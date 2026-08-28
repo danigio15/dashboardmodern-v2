@@ -24,6 +24,7 @@ import {
   pendingTodoItems,
 } from "../core/todo-model.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
+import { canonicalClimateType } from "../core/device-model.js";
 import {
   coverEntries,
   coverKindLabel,
@@ -357,6 +358,10 @@ function climateModel(states) {
         passo: numero(attributi.target_temp_step, 0.5) || 0.5,
         umidita: numero(attributi.current_humidity),
         azione: clean(attributi.hvac_action),
+        /* Che macchina e', non solo cosa sta facendo adesso: un termosifone
+         * spento resta un termosifone, e il fiocco di neve sopra un
+         * radiatore era il disegno di un'altra casa. */
+        tipo: canonicalClimateType(unit?.type),
       };
     })
     .filter(Boolean);
@@ -1275,12 +1280,22 @@ function lightsDetail(widget) {
 
 /* L'icona racconta cosa sta facendo l'unita': fiamma quando scalda, fiocco
  * quando raffresca — la stessa lingua della pagina Clima. */
-function climateGlyph(mode) {
+/* Il disegno di una riga del clima: prima cosa sta facendo, poi cos'e'.
+ *
+ * Prima guardava soltanto lo stato, e chiudeva con il fiocco di neve per
+ * tutto quello che non riconosceva: «off», «auto», «heat_cool». In una casa
+ * dove il clima sono i termosifoni voleva dire tutte le righe col fiocco,
+ * anche d'inverno a caldaia accesa. Quando lo stato non lo dice, lo dice il
+ * tipo scelto in configurazione — lo stesso che le Stanze disegnano gia'. */
+const ICONE_CLIMA = Object.freeze({ termo: "🔥", pompa: "♨️", clima: "❄️" });
+
+function climateGlyph(mode, tipo = "clima") {
+  if (mode.includes("heat") && mode.includes("cool")) return ICONE_CLIMA[tipo] || "❄️";
   if (mode.includes("heat")) return "🔥";
   if (mode.includes("cool")) return "❄️";
   if (mode.includes("dry")) return "💧";
   if (mode.includes("fan")) return "🌀";
-  return "❄️";
+  return ICONE_CLIMA[tipo] || "❄️";
 }
 
 /* I nomi delle modalita', gli stessi che usa la scheda del Clima rapido in
@@ -1401,7 +1416,7 @@ function climateDetail(widget) {
        * usciva sopra a quella dopo. Fuori e' un elemento come gli altri, alto
        * quanto gli serve. */
       return rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${climateGlyph(row.mode || "")}</span>
+        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${climateGlyph(row.mode || "", row.tipo)}</span>
          <span class="dm-w-name">${esc(row.name)}<small>${
            row.ambient == null ? "" : `${formatNumber(row.ambient, 1)}°`
          }${row.on && row.target != null ? ` → ${formatNumber(row.target, 1)}°` : ""}</small></span>
@@ -2017,8 +2032,18 @@ function sincronizzaPopup(models, states) {
     }
     return false;
   }
-  if (host.dataset.dmWidget !== aperto.key || host.hidden) {
-    host.dataset.dmWidget = aperto.key;
+  /* Il segno di chi sta raccontando NON si chiama come quello delle tessere.
+   *
+   * Si chiamava `data-dm-widget`, lo stesso nome che porta ogni tessera della
+   * griglia, e in fondo a chi ascolta i tocchi c'e' la riga che dice: se sotto
+   * il dito c'e' un `[data-dm-widget]`, apri o chiudi quella tessera. Dentro
+   * la finestra aperta quel nome lo portava la finestra stessa: qualunque
+   * tocco che non fosse gia' stato preso da un comando — la casella della
+   * lista, il tasto piu', una riga qualsiasi — risaliva fino a lei e la
+   * chiudeva. Nelle prove non si vedeva perche' toccavano coi comandi, e i
+   * comandi tornano indietro prima. */
+  if (host.dataset.dmPopupOf !== aperto.key || host.hidden) {
+    host.dataset.dmPopupOf = aperto.key;
     host.hidden = false;
     host.innerHTML = detailMarkup(aperto, states);
     doc?.documentElement?.classList?.add("dm-widget-popup-open");
@@ -2365,7 +2390,9 @@ function onClick(event) {
     toggleExpand(state.expanded);
     return;
   }
-  const tile = event.target?.closest?.("[data-dm-widget]");
+  /* Solo le tessere della griglia si aprono e si chiudono col tocco: quello
+   * che sta dentro la finestra ha gia' avuto le sue occasioni qui sopra. */
+  const tile = event.target?.closest?.("#dm-widgets [data-dm-widget]");
   if (tile) {
     event.preventDefault();
     toggleExpand(tile.dataset.dmWidget);
@@ -2779,14 +2806,14 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
    «Persone»: sulla Home i blocchi si annunciano tutti allo stesso modo. Sotto,
    la riga che dice come sta la casa, e che si tinge quando qualcosa chiede
    attenzione. */
+/* Come «Azioni rapide»: solo la parola, senza disegni davanti. Il simbolo che
+ * c'era faceva di questa scritta un'altra cosa dalle sue sorelle. */
 #dm-widgets .dm-widgets-title{
   margin:15px 0 0;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;
-  letter-spacing:2px;text-transform:uppercase;color:var(--text-dim,#64748b);
-  display:flex;align-items:center;gap:8px}
+  letter-spacing:2px;text-transform:uppercase;color:var(--text-dim,#64748b)}
 #dm-widgets .dm-widgets-sub{
   margin:4px 0 14px;font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#64748b)}
 #dm-widgets[data-dm-mood="avviso"] .dm-widgets-sub{color:#b45309}
-#dm-widgets .dm-widgets-title::before{content:"🧩";font-size:15px;letter-spacing:0}
 
 /* Le tessere: piccole, quiete, con l'anello che racconta e la freccia che
    promette. L'accento vive nei dettagli — l'anello, il fianco, il bagliore

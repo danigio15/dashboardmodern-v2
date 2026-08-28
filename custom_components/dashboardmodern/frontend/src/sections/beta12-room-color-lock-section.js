@@ -693,7 +693,8 @@ installStyle("dm-beta12-room-color-lock-style", `
   }
   html[data-dm-ios-kiosk="true"] body{
     box-sizing:border-box!important;padding-top:max(env(safe-area-inset-top),0px)!important;
-    padding-left:max(env(safe-area-inset-left),0px)!important;padding-right:max(env(safe-area-inset-right),0px)!important;
+    padding-left:max(env(safe-area-inset-left),var(--dm-gutter,14px))!important;
+    padding-right:max(env(safe-area-inset-right),var(--dm-gutter,14px))!important;
     -webkit-overflow-scrolling:touch!important
   }
   html[data-dm-ios-kiosk="true"] #bottomNav{padding-bottom:max(env(safe-area-inset-bottom),0px)!important}
