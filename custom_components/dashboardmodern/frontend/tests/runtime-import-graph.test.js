@@ -400,7 +400,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // cerchi del flusso, che hanno lo stile solo li', restano invisibili: da
   // fuori «i flussi sono scomparsi». Sta da solo perche' guarda il documento,
   // non una sezione, e nessuna sezione deve sapere che esiste.
-  assert.ok(relative.length <= 166, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 167 con le strisce di linguette: i periodi, gli impianti e le stanze sono
+  // lo stesso nastro che scorre di lato disegnato in tre posti, e ne veniva lo
+  // stesso difetto tre volte — la pillola accesa tagliata contro la testata,
+  // e le ultime linguette irraggiungibili col mouse. Adesso quella regola ha
+  // un padrone solo: `le-strisce-di-linguette-section.js`.
+  assert.ok(relative.length <= 167, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

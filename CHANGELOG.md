@@ -33,6 +33,33 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   che li rifa' — `scripts/porta-in-casa-le-librerie.mjs` — si ferma se il
   registro npm servisse un byte diverso.
 
+- **I numeri delle tessere si vedevano con la testa mozzata.** Il numero e'
+  Oswald a quaranta con l'interlinea stretta a .92 — trentasette pixel di riga
+  — e il disegno di quel carattere, fra quello che sale e quello che scende, a
+  quaranta ne occupa quarantotto. Con la finestra che taglia addosso, quei
+  sette pixel non uscivano: venivano tagliati. Non si era mai visto per un
+  motivo che non fa onore a nessuno — Oswald arrivava da Google, e dove Google
+  non si raggiunge il numero cadeva su un carattere di sistema che nella riga
+  stretta ci sta: il difetto c'era per chiunque avesse una linea che arriva a
+  Google, e non per la macchina che lo doveva scoprire. L'interlinea stretta
+  resta, perche' e' lei che tiene i numeri vicini: a cedere e' soltanto la
+  finestra, sette pixel sopra e sotto ripresi da un margine uguale e
+  contrario. Il disegno non si sposta di niente.
+
+- **Le linguette che scorrono di lato hanno un padrone solo.** I periodi
+  dell'Energia e degli Elettrodomestici, gli impianti e le stanze sono lo
+  stesso nastro disegnato in tre posti, e ne veniva lo stesso difetto tre
+  volte. Il primo: chi scorre di lato taglia anche in alto e in basso — basta
+  che un asse non sia libero perche' il browser ritagli pure l'altro — e il
+  nastro dei periodi aveva quattro pixel di spazio contro una pillola che si
+  solleva di due e porta un'ombra da ventotto: quella accesa si vedeva mozzata
+  contro la testata della sezione. Il secondo: col mouse quel nastro e' una
+  trappola, perche' la barra e' nascosta apposta e la rotella sopra una fila
+  orizzontale scorre la pagina in giu' — le ultime linguette restavano oltre
+  il bordo destro, visibili a meta' e irraggiungibili. Le Stanze la correzione
+  ce l'avevano gia', scritta in casa loro; adesso e' una regola sola per
+  tutt'e tre.
+
 - **Una delle tre librerie non la usava nessuno.** panzoom arrivava a ogni
   avvio, trentadue chilobyte da scaricare, leggere ed eseguire prima che la
   pagina potesse andare avanti, e in tutta la plancia non c'e' una riga che lo

@@ -3476,10 +3476,32 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
      lo legge invece di guardarlo: due riquadri di blocco affiancati diventano
      «42 %» quando si copiano o si ascoltano. Qui sono due pezzi in riga. */
   display:block;min-width:0;line-height:1}
+/* La finestra che taglia deve stare larga quanto il carattere, non quanto la
+   riga.
+   
+   Il numero e' Oswald a quaranta con l'interlinea stretta a .92: trentasette
+   pixel di riga. Ma il disegno di Oswald, fra quello che sale e quello che
+   scende, a quaranta ne occupa sessantaquattro — misurati, non stimati — e
+   con la finestra che taglia addosso quei ventisette pixel di troppo non
+   escono: vengono tagliati, e il numero si vede con la testa mozzata.
+   
+   Non si e' visto per un motivo che non fa onore a nessuno: Oswald arrivava
+   da Google, e dove Google non si raggiunge — la macchina delle prove, per
+   dirne una — il numero cadeva su un carattere di sistema che nella riga
+   stretta ci sta. Adesso Oswald arriva sempre, quindi il taglio si vede
+   sempre, ed e' giusto cosi': c'era gia' per chiunque avesse una linea che
+   arriva a Google, e non per la macchina che lo doveva scoprire.
+   
+   Quello che si vede resta identico. La riga sale a 1.6 — tanto quanto il
+   carattere occupa davvero — e un margine negativo uguale e contrario la
+   riporta a 36,8: la scatola esterna e' quella di prima al pixel, quindi
+   niente si sposta, e dentro c'e' finalmente il posto per il disegno intero.
+   L'interlinea che tiene i numeri vicini non l'ha decisa la finestra: la
+   decide il margine. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-value{
-  max-width:100%;overflow:hidden;padding-bottom:4px;margin-bottom:-4px;
+  max-width:100%;overflow:hidden;padding:0;margin:-13.6px 0;
   display:inline-flex;align-items:baseline;vertical-align:baseline;
-  font-family:'Oswald','Inter',sans-serif;font-weight:200;font-size:40px;line-height:.92;
+  font-family:'Oswald','Inter',sans-serif;font-weight:200;font-size:40px;line-height:1.6;
   letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
 /* Una parola al posto di un numero si rimpicciolisce quanto basta a entrare
    intera: meglio leggerla tutta che leggerne meta' in grande. */
