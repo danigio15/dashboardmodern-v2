@@ -269,9 +269,13 @@ function installStyles() {
        Un solo proprietario per pagina: qui non si tocca più. */
 
     @media(max-width:760px){
-      #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
-      #page-clima .cp-card{min-height:0!important;padding:18px 20px!important;gap:16px!important}
-      #page-clima .cp-temp-target .val{font-size:43px!important}
+      /* Sotto i 760 la scheda del Clima la impagina beta16: imbottitura, spazi
+         e corpo del numero sono i suoi. Qui restava una griglia identica alla
+         sua parola per parola, una imbottitura e uno spazio che perdevano, e
+         un numero da 43 pixel che non si e' mai visto — ne vincevano 28.
+         L'unica cosa che era davvero di qui e' che la scheda non ha un'altezza
+         minima sul telefono: quella resta. */
+      #page-clima .cp-card{min-height:0!important}
       #editor-modal .ed-row.dm-beta7-action-row{grid-template-columns:44px minmax(0,1fr) 40px 40px!important;gap:7px!important;padding:9px!important}
     }
 

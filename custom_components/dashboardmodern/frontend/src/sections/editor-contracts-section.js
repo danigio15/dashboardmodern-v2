@@ -400,21 +400,9 @@ function installStyles() {
   installStyle(
     "dm-editor-contracts-style",
     `
-      #editor-modal[data-dm-editor-theme="dark"] .ed-shell{
-        background:var(--card-bg,#161f36)!important;color:var(--text,#e6edf7)!important
-      }
-      #editor-modal[data-dm-editor-theme="dark"] .ed-tabs,
-      #editor-modal[data-dm-editor-theme="dark"] .ed-inner-tabs,
-      #editor-modal[data-dm-editor-theme="dark"] .dm-report-row{
-        background:var(--surface-2,#1b2540)!important
-      }
-      #editor-modal[data-dm-editor-theme="dark"] .ed-input,
-      #editor-modal[data-dm-editor-theme="dark"] input,
-      #editor-modal[data-dm-editor-theme="dark"] select,
-      #editor-modal[data-dm-editor-theme="dark"] textarea{
-        background:var(--surface-3,#212d4c)!important;color:var(--text,#e6edf7)!important;
-        border-color:var(--card-border,#263453)!important
-      }
+      /* Il guscio, le linguette e le caselle dell'editor scuro li dipinge il
+       * foglio dell'editor, non questo: qui c'erano le stesse tre regole coi
+       * nomi del tema di Home Assistant, e vinceva un pezzo per uno. */
       #editor-modal[data-dm-editor-theme="dark"] .ed-slot-lbl{color:var(--text-dim,#92a4c2)!important}
       #editor-modal [data-energy-panel="report"] [data-report-manual][hidden]{display:none!important}
       #editor-modal [data-energy-panel="report"] [data-report-manual]:not([hidden]){display:grid!important;gap:10px!important;margin-top:10px!important}
@@ -437,17 +425,18 @@ function installStyles() {
       #editor-modal .dm-editor-entity-row>input{min-width:0!important;flex:1 1 auto!important}
       #editor-modal .dm-contract-entity-picker{display:grid!important;place-items:center!important;flex:0 0 42px!important;width:42px!important;min-width:42px!important;height:42px!important;margin:0!important;padding:0!important;border:0!important;border-radius:11px!important;background:linear-gradient(135deg,#0ea5e9,#0369a1)!important;color:#fff!important;font-size:15px!important;cursor:pointer!important}
 
-      /* Energy source guide: readable visual hierarchy on desktop and mobile. */
-      #editor-modal .dm-energy-source-guide{gap:14px!important}
-      #editor-modal .dm-energy-source-guide-intro{padding:16px!important;gap:10px!important}
+      /* La guida delle fonti la impagina il modulo che la costruisce.
+       *
+       * Qui c'erano cinque numeri che ne correggevano altrettanti scritti di
+       * la', senza che nessuno dei due lo sapesse: due spaziature, due
+       * imbottiture, un raggio, e l'intestazione della scheda che passava da
+       * riga a griglia. Sono andati a stare accanto al resto della guida, coi
+       * valori che si vedevano. */
       #editor-modal .dm-energy-source-guide-intro>strong{font-size:15px!important}
       #editor-modal .dm-energy-guide-steps{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
       #editor-modal .dm-energy-guide-steps>span{display:grid!important;align-content:start!important;gap:4px!important;padding:10px 11px!important;border-radius:12px!important;background:color-mix(in srgb,var(--ha-card-background,var(--card-bg,#fff)) 78%,transparent)!important;border:1px solid color-mix(in srgb,var(--info-color,#0ea5e9) 14%,transparent)!important}
       #editor-modal .dm-energy-guide-steps b{font-size:11px!important;color:var(--text,#0f172a)!important}
       #editor-modal .dm-energy-guide-steps small{font-size:10.5px!important;line-height:1.4!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
-      #editor-modal .dm-energy-source-guide-grid{gap:12px!important}
-      #editor-modal .dm-energy-source-contract{padding:14px!important;border-radius:16px!important}
-      #editor-modal .dm-energy-source-contract header{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:8px!important;align-items:center!important;margin-bottom:10px!important}
       #editor-modal .dm-energy-source-contract header>strong{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
       #editor-modal .dm-energy-contract-note{padding:4px 7px!important;border-radius:999px!important;background:var(--secondary-background-color,#f1f5f9)!important;color:var(--secondary-text-color,#64748b)!important;font-size:9px!important;font-weight:900!important;white-space:nowrap!important}
       #editor-modal .dm-energy-source-contract dl{gap:0!important;border:1px solid var(--divider-color,#e2e8f0)!important;border-radius:12px!important;overflow:hidden!important}

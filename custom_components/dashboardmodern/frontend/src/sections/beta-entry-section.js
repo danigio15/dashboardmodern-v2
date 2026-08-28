@@ -113,6 +113,9 @@ if (typeof document !== "undefined") {
         animation:none!important;
         transform:none!important;
       }
+      /* La finestra sta ferma: niente animazioni, niente spostamenti. Il colore
+       * del cielo pero' cambia piano, ed e' il modulo del cielo a dirlo — qui
+       * c'era un "transition:none" che perdeva contro il suo, sempre. */
       html body #page-tapparelle#page-tapparelle .tapp-win{
         box-sizing:border-box!important;
         height:132px!important;
@@ -120,7 +123,6 @@ if (typeof document !== "undefined") {
         max-height:132px!important;
         margin:0!important;
         animation:none!important;
-        transition:none!important;
         transform:none!important;
       }
       html body #page-tapparelle#page-tapparelle .tapp-shutter{
