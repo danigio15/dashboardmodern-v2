@@ -394,7 +394,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // solo `press`, e chiedergli `toggle` non muove niente e non dice niente.
   // Sta da solo perche' e' una sola domanda, e la risposta non serve a chi
   // disegna i tasti: quello e' mestiere del vassoio, che infatti non lo sa.
-  assert.ok(relative.length <= 165, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 166 col foglio del guscio: `foglio-del-guscio-section.js` si accorge se il
+  // foglio di stile grosso non e' arrivato e lo richiede. Quando si perde, la
+  // plancia sembra quasi normale — i moduli portano il proprio stile — ma i
+  // cerchi del flusso, che hanno lo stile solo li', restano invisibili: da
+  // fuori «i flussi sono scomparsi». Sta da solo perche' guarda il documento,
+  // non una sezione, e nessuna sezione deve sapere che esiste.
+  assert.ok(relative.length <= 166, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

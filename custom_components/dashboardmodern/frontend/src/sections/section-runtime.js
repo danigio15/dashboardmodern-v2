@@ -51,6 +51,7 @@ import { installShutterSection } from "./shutter-section.js";
 import { installPageMastheadSection } from "./page-masthead-section.js";
 import { installAzioniRapideVassoio } from "./azioni-rapide-vassoio-section.js";
 import { installAzioniServizioGiusto } from "./azioni-servizio-giusto-section.js";
+import { installFoglioDelGuscio } from "./foglio-del-guscio-section.js";
 import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
@@ -738,6 +739,7 @@ export function installSectionRuntime() {
      * gia' esistere. */
     installAzioniRapideVassoio();
     installAzioniServizioGiusto();
+    installFoglioDelGuscio();
     installPoolIrrigationSceneSection();
     installPoolExtraSection();
     installPoolEditorSection();
