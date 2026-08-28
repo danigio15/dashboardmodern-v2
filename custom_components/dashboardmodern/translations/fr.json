@@ -20,12 +20,14 @@
         "data": {
           "allowed_users": "Utilisateurs autorisés",
           "register_lovelace_dashboard": "Enregistrer aussi comme tableau de bord Home Assistant",
-          "admin_only": "Visible uniquement par les administrateurs"
+          "admin_only": "Visible uniquement par les administrateurs",
+          "check_updates": "Rechercher les nouvelles versions"
         },
         "data_description": {
           "allowed_users": "Filtre d'affichage uniquement. Les données et les services restent soumis aux permissions Home Assistant.",
           "register_lovelace_dashboard": "Le tableau de bord est créé à la première ouverture par un administrateur.",
-          "admin_only": "Filtre natif Home Assistant ; il l'emporte pour les comptes non administrateurs."
+          "admin_only": "Filtre natif Home Assistant ; il l'emporte pour les comptes non administrateurs.",
+          "check_updates": "Demande à GitHub toutes les demi-heures si une version plus récente est parue, et l'affiche dans Paramètres → Mises à jour. Désactivez-le pour que le panneau ne sorte pas sur internet ; le tableau de bord n'en a jamais besoin."
         }
       }
     }

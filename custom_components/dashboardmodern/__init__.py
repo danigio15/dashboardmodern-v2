@@ -17,7 +17,25 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-PLATFORMS: list[str] = []
+# L'unica piattaforma e' l'avviso di aggiornamento, e la porta una plancia
+# sola: chi ne ha due non deve ritrovarsi due voci per la stessa versione.
+PLATFORMS: list[str] = ["update"]
+
+
+def _primary_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Say whether this entry is the one that answers for the integration.
+
+    «Primaria» e' quella creata per prima, e il campo lo scrive il config flow.
+    Una configurazione vecchia puo' non averlo su nessuna: in quel caso vale la
+    prima per identificativo, che e' un ordine stabile fra un riavvio e
+    l'altro — non «quella che capita».
+    """
+    if entry.data.get("primary"):
+        return True
+    entries = hass.config_entries.async_entries(entry.domain)
+    if any(candidate.data.get("primary") for candidate in entries):
+        return False
+    return entry.entry_id == min(candidate.entry_id for candidate in entries)
 
 
 async def _reload_on_options_change(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -49,6 +67,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_register_websocket_api(hass)
     await async_register_frontend(hass, entry.entry_id)
     entry.async_on_unload(entry.add_update_listener(_reload_on_options_change))
+    if _primary_entry(hass, entry):
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
@@ -56,5 +76,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Remove this entry's panel registration."""
     from .frontend import async_unregister_frontend_entry
 
+    if _primary_entry(hass, entry):
+        await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await async_unregister_frontend_entry(hass, entry.entry_id)
     return True

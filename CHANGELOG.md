@@ -7,6 +7,35 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+### Aggiunto
+
+- **La plancia dice da sola quando esce una versione nuova.** L'integrazione
+  chiede a GitHub ogni mezz'ora se e' uscita una release, e la mostra in
+  *Impostazioni → Aggiornamenti* con le note di versione. Serviva, perche' HACS
+  da solo ci mette molto di piu': un repository **personalizzato** — aggiunto
+  per URL, che e' il modo in cui si installa questa integrazione — lo
+  ricontrolla **ogni quarantotto ore**, e non lo guarda nemmeno al riavvio di
+  Home Assistant. Sta scritto nel suo codice:
+
+  ```
+  custom_components/hacs/base.py
+      async_track_time_interval(
+          hass, self.async_update_downloaded_custom_repositories, timedelta(hours=48)
+      )
+  ```
+
+  Quelli dello store predefinito passano da un'altra strada, ogni sei ore, e
+  questo progetto in quello store non puo' entrare: la validazione dello store
+  pretende anche i controlli su `topics` e `license`, e la licenza qui e'
+  proprietaria. Da quarantotto ore a mezz'ora, quindi, e il tempo di
+  installarla lo accorcia il pulsante «Aggiorna informazioni» di HACS, che la
+  notifica stessa ricorda di premere.
+
+  L'installazione resta a HACS: i file sono i suoi, e due proprietari della
+  stessa cartella e' come nasce un aggiornamento a meta'. E chi la plancia la
+  tiene su una rete senza uscita puo' spegnere il controllo dalle opzioni
+  dell'integrazione: spento, non contatta piu' nessuno.
+
 ### Corretto
 
 - **La plancia non chiede piu' niente alla rete per aprirsi.** La testata del
@@ -32,6 +61,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   perse: si controllano sui byte in cartella a ogni giro di prove, e il giro
   che li rifa' — `scripts/porta-in-casa-le-librerie.mjs` — si ferma se il
   registro npm servisse un byte diverso.
+
+- **Il README dichiarava una licenza che non e' la sua.** Il distintivo in
+  testa diceva «MIT» e puntava al file `LICENSE`, che dice «DashboardModern v2
+  License — All rights reserved». Due affermazioni opposte nella stessa riga, e
+  su una licenza proprietaria non e' una svista che si possa lasciare li'.
 
 - **L'ordine delle stanze arriva davvero a tutte le pagine.** Le frecce nella
   scheda Stanze spostavano la riga, la scheda si ridisegnava nell'ordine nuovo

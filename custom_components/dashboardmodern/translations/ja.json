@@ -20,12 +20,14 @@
         "data": {
           "allowed_users": "許可するユーザー",
           "register_lovelace_dashboard": "Home Assistant のダッシュボードとしても登録する",
-          "admin_only": "管理者にだけ表示する"
+          "admin_only": "管理者にだけ表示する",
+          "check_updates": "新しいバージョンを確認する"
         },
         "data_description": {
           "allowed_users": "画面上の表示フィルターだけです。データとサービスへのアクセスは引き続き Home Assistant の権限に従います。",
           "register_lovelace_dashboard": "ダッシュボードは、管理者が DashboardModern を初めて開いたときに作成されます。",
-          "admin_only": "Home Assistant 本来のフィルターです。管理者以外のアカウントではこちらが優先されます。"
+          "admin_only": "Home Assistant 本来のフィルターです。管理者以外のアカウントではこちらが優先されます。",
+          "check_updates": "30分ごとに GitHub へ新しいリリースの有無を尋ね、「設定 → アップデート」に表示します。パネルを一切インターネットに出さないようにするにはオフにしてください。ダッシュボード自体には不要です。"
         }
       }
     }

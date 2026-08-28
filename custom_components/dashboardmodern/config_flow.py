@@ -15,7 +15,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN, NAME
+from .const import DOMAIN, NAME, OPTION_CHECK_UPDATES
 
 OPTION_ADMIN_ONLY = "admin_only"
 OPTION_ALLOWED_USERS = "allowed_users"
@@ -98,6 +98,12 @@ class DashboardModernOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     OPTION_ADMIN_ONLY,
                     default=self.config_entry.options.get(OPTION_ADMIN_ONLY, False),
+                ): bool,
+                # Acceso di suo: chi non lo vuole lo spegne, e la plancia torna
+                # a non parlare con nessuno fuori di casa.
+                vol.Optional(
+                    OPTION_CHECK_UPDATES,
+                    default=self.config_entry.options.get(OPTION_CHECK_UPDATES, True),
                 ): bool,
             }
         )

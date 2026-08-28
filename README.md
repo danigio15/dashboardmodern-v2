@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-18BCF2" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b" alt="MIT License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licenza-proprietaria-64748b" alt="Licenza proprietaria"></a>
 </p>
 
 <p align="center">
@@ -91,7 +91,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 | Consigliato | `recorder` attivo: serve per storico, report e analisi Energia |
 | Browser | qualsiasi browser moderno; app Companion iOS e Android supportate |
 | Entità | le tue: DashboardModern **non crea** entità, usa quelle già presenti in Home Assistant |
-| Rete | nessuna connessione a internet richiesta a runtime |
+| Rete | la plancia funziona senza internet. L'unica uscita e' il controllo delle nuove versioni, ogni mezz'ora verso GitHub, che si puo' spegnere dalle opzioni |
 
 ---
 
@@ -117,6 +117,17 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 
 1. Copia la cartella `custom_components/dashboardmodern/` nella tua `config/custom_components/`.
 2. Riavvia Home Assistant e aggiungi l'integrazione dal passo 6 qui sopra.
+
+### Come arriva l'avviso di una versione nuova
+
+L'integrazione **se ne accorge da sola, entro mezz'ora** dalla pubblicazione, e lo dice in *Impostazioni → Aggiornamenti* con le note di versione. Serve perche' HACS, da solo, ci mette molto di piu': un repository **personalizzato** — aggiunto per URL, che e' il modo in cui si installa questa integrazione — lo ricontrolla **ogni quarantotto ore**, e non lo guarda nemmeno al riavvio di Home Assistant. Quelli dello store predefinito passano da un'altra strada, ogni sei ore, e questo progetto in quello store non puo' entrare: la validazione dello store pretende anche i controlli su `topics` e `license`, e la licenza qui e' proprietaria.
+
+Quando l'avviso compare, **per installare serve un passaggio in HACS**, perche' i file li gestisce lui e potrebbe ancora offrire la versione precedente:
+
+1. **HACS → DashboardModern v2 → menu ⋮ → «Aggiorna informazioni»** — e' il modo di dire a HACS di guardare subito invece di aspettare le quarantotto ore;
+2. **«Aggiorna»**, e poi riavvia Home Assistant quando HACS mostra **In attesa di riavvio**.
+
+Chi la plancia la tiene su una rete senza uscita puo' spegnere il controllo: **Impostazioni → Dispositivi e servizi → DashboardModern → Configura → «Controlla le nuove versioni»**. Spento, l'integrazione non contatta piu' nessuno.
 
 ### Dopo un aggiornamento
 

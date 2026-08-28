@@ -20,12 +20,14 @@
         "data": {
           "allowed_users": "허용할 사용자",
           "register_lovelace_dashboard": "Home Assistant 대시보드로도 등록",
-          "admin_only": "관리자에게만 표시"
+          "admin_only": "관리자에게만 표시",
+          "check_updates": "새 버전 확인"
         },
         "data_description": {
           "allowed_users": "화면 표시 필터일 뿐입니다. 데이터와 서비스 접근은 여전히 Home Assistant 권한을 따릅니다.",
           "register_lovelace_dashboard": "대시보드는 관리자가 DashboardModern을 처음 열 때 만들어집니다.",
-          "admin_only": "Home Assistant 자체 필터입니다. 관리자가 아닌 계정에서는 이쪽이 우선합니다."
+          "admin_only": "Home Assistant 자체 필터입니다. 관리자가 아닌 계정에서는 이쪽이 우선합니다.",
+          "check_updates": "30분마다 GitHub에 새 릴리스가 있는지 물어보고 설정 → 업데이트에 표시합니다. 패널이 인터넷에 전혀 나가지 않게 하려면 끄세요. 대시보드 자체에는 필요하지 않습니다."
         }
       }
     }
