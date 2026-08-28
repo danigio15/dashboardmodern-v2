@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "开合传感器必须是 binary_sensor.*、sensor.* 或 input_boolean.* 实体。",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "请填写名称，并至少填写一个实体：卷帘、窗帘或遮阳篷中的 cover.* 或 switch.*，或者仅填开合传感器。",
+  "One room at a time · Scenes · Sensors": "一次一个房间 · 场景 · 传感器",
   " — configured": " — 已配置",
   "— Choose —": "— 选择 —",
   "— kWh from PV": "— 来自光伏的 kWh",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "冷暖运行中",
   "Active in the EV section — tap to remove it": "已在电动车分区显示 — 点按可移除",
   "Active renderer": "当前渲染器",
+  "Active": "运行中",
   "Activity": "活动",
   "Add": "添加",
   "Add appliance": "添加家电",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "请填写名称和一个有效的实体",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "请填写名称和一个有效的实体（例如 light.living 或 switch.kitchen）",
   "Enter a name and a valid entity.": "请输入名称和有效的实体。",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "请输入名称，并在卷帘、窗帘、遮阳篷中至少填写一个 cover.* 或 switch.* 实体。",
   "Enter a name and at least one entity": "请填写名称和至少一个实体",
   "Enter a name and camera entity": "请填写名称和摄像头实体",
   "Enter a name and entity": "请填写名称和实体",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "前面的区域",
   "Primary loop · Tank · DHW recirculation": "一次侧回路 · 储水罐 · 生活热水循环",
   "Printer": "打印机",
-  "Probe": "探头",
   "Problem binary_sensor: feeds the Alarm counter.": "故障 binary_sensor：用于报警计数。",
   "Production": "发电",
   "Production · Consumption · Report": "发电 · 用电 · 报表",

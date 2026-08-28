@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "खुलने का सेंसर binary_sensor.*, sensor.* या input_boolean.* इकाई होना चाहिए।",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "एक नाम और कम से कम एक इकाई दर्ज करें: शटर, पर्दे या शामियाने में से कोई cover.* या switch.*, या केवल खुलने का सेंसर।",
+  "One room at a time · Scenes · Sensors": "एक बार में एक कमरा · दृश्य · सेंसर",
   " — configured": " — कॉन्फ़िगर किया गया",
   "— Choose —": "— चुनें —",
   "— kWh from PV": "— सौर से kWh",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "सक्रिय जलवायु",
   "Active in the EV section — tap to remove it": "EV अनुभाग में सक्रिय — हटाने के लिए टैप करें",
   "Active renderer": "सक्रिय रेंडरर",
+  "Active": "सक्रिय",
   "Activity": "गतिविधि",
   "Add": "जोड़ें",
   "Add appliance": "उपकरण जोड़ें",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "नाम और एक सही इकाई लिखें",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "नाम और एक सही इकाई लिखें (जैसे light.living या switch.kitchen)",
   "Enter a name and a valid entity.": "नाम और एक वैध इकाई लिखें।",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "एक नाम और शटर, पर्दा, शामियाना में से कम से कम एक cover.* या switch.* एंटिटी दर्ज करें.",
   "Enter a name and at least one entity": "नाम और कम से कम एक इकाई लिखें",
   "Enter a name and camera entity": "नाम और कैमरे की इकाई लिखें",
   "Enter a name and entity": "नाम और इकाई लिखें",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "पिछले अनुभाग",
   "Primary loop · Tank · DHW recirculation": "प्राथमिक लूप · टैंक · गर्म पानी का पुनःसंचरण",
   "Printer": "प्रिंटर",
-  "Probe": "सेंसर",
   "Problem binary_sensor: feeds the Alarm counter.": "समस्या का binary_sensor: अलार्म काउंटर को भरता है।",
   "Production": "उत्पादन",
   "Production · Consumption · Report": "उत्पादन · खपत · रिपोर्ट",

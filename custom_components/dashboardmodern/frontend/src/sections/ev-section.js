@@ -112,6 +112,21 @@ const PLUGGED_WORDS = /(charg|ricaric|in carica|connect|collegat|plug|attacc|occ
  * prima. */
 const HA_SILENT_STATES = /^(unknown|unavailable)$/i;
 
+/* L'alfabeto delle wallbox: A, B, C, D, F.
+ *
+ * Lo dice la norma IEC 61851 e lo scrivono quasi tutte le colonnine: A = auto
+ * non connessa, B = cavo dentro e ferma, C e D = in carica, F = guasto. La
+ * pillola della pagina Auto queste lettere le legge da sempre — e' per questo
+ * che diceva «Collegata» — mentre chi sceglie la fotografia cercava parole:
+ * «B» non assomiglia a «collegato» ne' a «scollegato», quindi non decideva
+ * niente e si finiva sulla potenza. Con l'auto attaccata e piena la potenza e'
+ * zero, e zero vuol dire cavo staccato: la foto restava quella di riposo
+ * mentre lo stato, giustamente, diceva il contrario.
+ *
+ * Una lettera sola non e' una parola, e infatti va letta come un codice. */
+const CODICE_STACCATO = /^a$/i;
+const CODICE_ATTACCATO = /^[bcd]$/i;
+
 /* Le caselle da cui si capisce se il cavo e' attaccato: sono le stesse che
  * legge `vehiclePlugged()`, ed e' per questo che stanno scritte una volta
  * sola. */
@@ -156,6 +171,9 @@ export function vehiclePlugged() {
   }
   const status = clean(liveState("dm.ev_stato_ricarica")?.state);
   if (status && !HA_SILENT_STATES.test(status)) {
+    /* Prima il codice, perche' e' esatto; poi le parole, che sono indizi. */
+    if (CODICE_STACCATO.test(status)) return (state.lastPlugged = false);
+    if (CODICE_ATTACCATO.test(status)) return (state.lastPlugged = true);
     if (UNPLUGGED_STATES.test(status) || UNPLUGGED_WORDS.test(status)) return (state.lastPlugged = false);
     if (PLUGGED_WORDS.test(status)) return (state.lastPlugged = true);
   }

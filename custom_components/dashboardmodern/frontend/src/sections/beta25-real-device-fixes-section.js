@@ -260,6 +260,15 @@ export function renderBeta25TemperatureCards() {
   return true;
 }
 
+/* Riempie un campo entita' e lo fa sapere a chi lo disegna. */
+function scriviCampoEntita(input, valore) {
+  if (!input) return false;
+  input.value = valore;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
+}
+
 function entityField(id, label, value = "", optional = true) {
   return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}${optional ? ` <span class="ed-acc-n">${t("Facoltativo", "Optional")}</span>` : ""}</span><span class="ed-form-row"><input id="${id}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="sensor.entity"><button type="button" class="dm-entity-picker" data-beta25-pick="${id}" aria-label="${t("Seleziona entità", "Select entity")}">🔍</button></span></label>`;
 }
@@ -328,8 +337,20 @@ function renderBeta25TemperatureEditor() {
       select.disabled = true;
       nameInput.value = clean(entry.name);
       temperatureNameDraft = nameInput.value;
-      form.querySelector("#ed-pl-temp").value = clean(entry.temp);
-      form.querySelector("#dm-humidity-new").value = clean(entry.hum);
+      /* Il valore si scrive, e si dice a chi lo disegna che e' cambiato.
+       *
+       * Il campo dell'entita' non e' piu' una casella nuda: davanti gli sta la
+       * pastiglia che dice quale entita' e' scelta, e la casella vera resta
+       * dietro la matita. Scrivendo `input.value` e basta, la pastiglia non
+       * riceveva niente e continuava a dire «scegli un'entita'» sopra un campo
+       * che invece era pieno — e quel campo, essendo nascosto, non si vedeva
+       * neanche. In una temperatura aperta con la matita spariva tutto quello
+       * che c'era gia', e infatti non si riusciva piu' a modificarla.
+       *
+       * Chi scrive avvisa: e' lo stesso evento che la pastiglia ascolta gia'
+       * dal suo tasto «Elimina». */
+      scriviCampoEntita(form.querySelector("#ed-pl-temp"), clean(entry.temp));
+      scriviCampoEntita(form.querySelector("#dm-humidity-new"), clean(entry.hum));
       target.querySelector("[data-beta25-temperature-title]").textContent = `${t("Modifica", "Edit")} ${clean(room.name)}`;
       target.querySelector("[data-beta25-temperature-submit]").textContent = t("Salva modifiche", "Save changes");
       target.querySelector("[data-beta25-temperature-cancel]").hidden = false;

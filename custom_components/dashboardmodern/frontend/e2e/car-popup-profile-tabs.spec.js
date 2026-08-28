@@ -105,9 +105,18 @@ test("il popup dell'auto porta le linguette dei profili", async ({ page }, testI
       sborda: false,
     });
 
-  // La foto e' quella della configurazione, non un segnaposto del popup.
-  const foto = await page.getAttribute("#ev-new-car-img", "src");
-  expect(foto).toContain("/legacy/logo.png");
+  /* La foto e' quella della configurazione, non un segnaposto del popup.
+   *
+   * Letta aspettando, come tutto il resto di questa prova. La foto la scrive
+   * un giro di disegno, e i giri di disegno la sezione EV se li prende anche
+   * dal wallbox: leggere l'attributo una volta sola voleva dire chiedere
+   * proprio nell'istante in cui la finestra si stava ancora scrivendo, e su
+   * un iPad lento quell'istante capita. Quello che si pretende non cambia —
+   * la foto deve essere quella configurata — cambia solo che le si da' il
+   * tempo di comparire, come alle linguette qui sopra e qui sotto. */
+  await expect
+    .poll(() => page.getAttribute("#ev-new-car-img", "src"), { timeout: 15_000 })
+    .toContain("/legacy/logo.png");
 
   // Scegliere dalla finestra sceglie davvero, e la finestra resta aperta.
   await page.evaluate(async () => {

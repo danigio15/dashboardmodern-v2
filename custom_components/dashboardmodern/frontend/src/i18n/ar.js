@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "يجب أن يكون مستشعر الفتح كيانًا من نوع binary_sensor.* أو sensor.* أو input_boolean.*.",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "أدخل اسمًا وكيانًا واحدًا على الأقل: غطاء cover.* أو switch.* من الستارة أو الستارة الخارجية، أو مستشعر الفتح وحده.",
+  "One room at a time · Scenes · Sensors": "غرفة واحدة في كل مرة · مشاهد · مستشعرات",
   " — configured": " — مُهيّأة",
   "— Choose —": "— اختر —",
   "— kWh from PV": "— كيلوواط·ساعة من الشمسية",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "مناخ نشط",
   "Active in the EV section — tap to remove it": "مفعّلة في قسم السيارة — اضغط لإزالتها",
   "Active renderer": "المُصيِّر النشط",
+  "Active": "نشط",
   "Activity": "النشاط",
   "Add": "إضافة",
   "Add appliance": "إضافة جهاز",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "اكتب اسمًا وكيانًا صالحًا",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "اكتب اسمًا وكيانًا صالحًا (مثل light.living أو switch.kitchen)",
   "Enter a name and a valid entity.": "اكتب اسمًا وكيانًا صالحًا.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "أدخل اسمًا وكيان cover.* أو switch.* واحدًا على الأقل من بين الستارة المعدنية والستارة والمظلة.",
   "Enter a name and at least one entity": "اكتب اسمًا وكيانًا واحدًا على الأقل",
   "Enter a name and camera entity": "اكتب اسمًا وكيان الكاميرا",
   "Enter a name and entity": "اكتب اسمًا وكيانًا",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "الأقسام السابقة",
   "Primary loop · Tank · DHW recirculation": "الدائرة الأولية · الخزّان · إعادة تدوير الماء الساخن",
   "Printer": "الطابعة",
-  "Probe": "مجس",
   "Problem binary_sensor: feeds the Alarm counter.": "binary_sensor للعطل: يغذّي عدّاد الإنذارات.",
   "Production": "الإنتاج",
   "Production · Consumption · Report": "الإنتاج · الاستهلاك · التقرير",

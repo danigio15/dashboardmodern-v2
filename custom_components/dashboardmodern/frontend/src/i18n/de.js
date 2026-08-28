@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Der Öffnungssensor muss eine Entität binary_sensor.*, sensor.* oder input_boolean.* sein.",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Gib einen Namen und mindestens eine Entität an: eine Abdeckung cover.* oder switch.* aus Rollladen, Vorhang und Markise – oder allein den Öffnungssensor.",
+  "One room at a time · Scenes · Sensors": "Ein Raum nach dem anderen · Szenen · Sensoren",
   " — configured": " — konfiguriert",
   "— Choose —": "— Wählen —",
   "— kWh from PV": "— kWh aus PV",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "Klima aktiv",
   "Active in the EV section — tap to remove it": "Im EV-Bereich aktiv — zum Entfernen tippen",
   "Active renderer": "Aktiver Renderer",
+  "Active": "Aktiv",
   "Activity": "Aktivität",
   "Add": "Hinzufügen",
   "Add appliance": "Gerät hinzufügen",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Gib einen Namen und eine gültige Entität ein",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Gib einen Namen und eine gültige Entität ein (z. B. light.wohnzimmer oder switch.kueche)",
   "Enter a name and a valid entity.": "Gib einen Namen und eine gültige Entität ein.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Gib einen Namen und mindestens eine cover.*- oder switch.*-Entität für Rollladen, Vorhang oder Markise an.",
   "Enter a name and at least one entity": "Gib einen Namen und mindestens eine Entität ein",
   "Enter a name and camera entity": "Gib einen Namen und die Kamera-Entität ein",
   "Enter a name and entity": "Gib einen Namen und eine Entität ein",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "Vorherige Bereiche",
   "Primary loop · Tank · DHW recirculation": "Primärkreis · Speicher · Warmwasserzirkulation",
   "Printer": "Drucker",
-  "Probe": "Fühler",
   "Problem binary_sensor: feeds the Alarm counter.": "Störungs-binary_sensor: speist den Alarmzähler.",
   "Production": "Erzeugung",
   "Production · Consumption · Report": "Erzeugung · Verbrauch · Bericht",

@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "開閉センサーは binary_sensor.*、sensor.*、input_boolean.* のいずれかのエンティティである必要があります。",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "名前と、シャッター・カーテン・オーニングのいずれかの cover.* か switch.*、または開閉センサーだけでも、少なくとも一つのエンティティを入力してください。",
+  "One room at a time · Scenes · Sensors": "一部屋ずつ · シーン · センサー",
   " — configured": " — 設定済み",
   "— Choose —": "— 選択 —",
   "— kWh from PV": "— 太陽光から kWh",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "空調稼働中",
   "Active in the EV section — tap to remove it": "EVセクションに表示中 — タップで外す",
   "Active renderer": "使用中のレンダラー",
+  "Active": "稼働中",
   "Activity": "アクティビティ",
   "Add": "追加",
   "Add appliance": "家電を追加",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "名前と、正しいエンティティを入力してください",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "名前と、正しいエンティティを入力してください（例: light.living または switch.kitchen）",
   "Enter a name and a valid entity.": "名前と有効なエンティティを入力してください。",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "名前と、シャッター・カーテン・オーニングのいずれかに cover.* または switch.* エンティティを1つ以上入力してください。",
   "Enter a name and at least one entity": "名前と、エンティティを 1 つ以上入力してください",
   "Enter a name and camera entity": "名前と、カメラのエンティティを入力してください",
   "Enter a name and entity": "名前とエンティティを入力してください",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "前のセクション",
   "Primary loop · Tank · DHW recirculation": "一次側 · 貯湯タンク · 給湯循環",
   "Printer": "プリンター",
-  "Probe": "センサー",
   "Problem binary_sensor: feeds the Alarm counter.": "異常の binary_sensor。警報のカウンターに使われます。",
   "Production": "発電",
   "Production · Consumption · Report": "発電 · 消費 · レポート",

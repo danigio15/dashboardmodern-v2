@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Açılma sensörü binary_sensor.*, sensor.* veya input_boolean.* varlığı olmalıdır.",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Bir ad ve en az bir varlık girin: panjur, perde ve tenteden bir cover.* ya da switch.*, veya yalnızca açılma sensörü.",
+  "One room at a time · Scenes · Sensors": "Tek seferde bir oda · Sahneler · Sensörler",
   " — configured": " — yapılandırıldı",
   "— Choose —": "— Seç —",
   "— kWh from PV": "— GES'ten kWh",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "Etkin iklim",
   "Active in the EV section — tap to remove it": "EV bölümünde etkin — kaldırmak için dokunun",
   "Active renderer": "Etkin işleyici",
+  "Active": "Etkin",
   "Activity": "Aktivite",
   "Add": "Ekle",
   "Add appliance": "Cihaz ekle",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Bir ad ve geçerli bir varlık girin",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Bir ad ve geçerli bir varlık girin (örn. light.salon ya da switch.mutfak)",
   "Enter a name and a valid entity.": "Bir ad ve geçerli bir varlık yaz.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Bir ad ve panjur, perde veya tente için en az bir cover.* veya switch.* varlığı girin.",
   "Enter a name and at least one entity": "Bir ad ve en az bir varlık girin",
   "Enter a name and camera entity": "Bir ad ve kamera varlığını girin",
   "Enter a name and entity": "Bir ad ve varlık girin",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "Önceki bölümler",
   "Primary loop · Tank · DHW recirculation": "Birincil devre · Depo · Sıcak su sirkülasyonu",
   "Printer": "Yazıcı",
-  "Probe": "Sonda",
   "Problem binary_sensor: feeds the Alarm counter.": "Arıza binary_sensor'ü: alarm sayacını besler.",
   "Production": "Üretim",
   "Production · Consumption · Report": "Üretim · Tüketim · Rapor",

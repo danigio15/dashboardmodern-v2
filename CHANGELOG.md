@@ -5,6 +5,89 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.2
+
+### Corretto
+
+- **L'interruttore «nel widget» si accendeva e non portava niente.** Nel Solare
+  termico le righe erano tre, fisse, chiamate «Sonda 1, 2, 3»: «Sonda 2» non e'
+  il nome di niente, e tutto il resto — le pompe, il delta, la pressione — non
+  entrava mai in Home. Accendere l'interruttore su quelle righe non faceva
+  succedere niente, e un interruttore che non fa succedere niente e' peggio di
+  un interruttore che non c'e'. Adesso ogni casella mappata puo' arrivare nella
+  tessera, col nome vero dell'entita', e le pompe portano acceso o spento.
+
+- **Auto: col cavo attaccato la foto restava quella a cavo staccato.** Lo stato
+  di ricarica di quasi tutte le wallbox e' un codice della norma IEC 61851 — A
+  non connessa, B cavo dentro e ferma, C e D in carica, F guasto — e la pillola
+  della pagina quelle lettere le legge da sempre: e' per questo che diceva
+  «Collegata». Chi sceglie fra le due fotografie cercava invece parole, e «B»
+  non assomiglia ne' a «collegato» ne' a «scollegato»: non decideva niente e si
+  finiva sulla potenza. Con l'auto attaccata e la batteria piena la potenza e'
+  zero, e zero vuol dire cavo staccato.
+
+- **Il popup delle telecamere si rinfrescava a vuoto e restava nero.** Da
+  quando il dettaglio vive in un popup, la stessa inquadratura sta a schermo in
+  due posti insieme: la miniatura nella tessera e quella grande sopra. Il
+  registro delle immagini scaricate era tenuto per telecamera, e le due si
+  davano il cambio sulla stessa casella — la seconda che finiva di scaricare
+  buttava via il fotogramma della prima, che pero' era ancora appeso al suo
+  riquadro. Al giro dopo toccava all'altra.
+
+- **Aprendo una temperatura con la matita sembrava svuotata.** Il campo di
+  un'entita' non e' piu' una casella nuda: davanti gli sta la pastiglia che
+  dice quale entita' e' scelta, e la casella vera resta dietro la matita. Chi
+  apriva in modifica scriveva il valore e basta, senza dirlo a chi lo disegna:
+  la pastiglia continuava a invitare a scegliere sopra un campo pieno, e
+  salvare avrebbe scritto il vuoto.
+
+- **Una finestra col solo sensore si inseriva ma non si poteva piu'
+  modificare.** La regola su cosa basta per una riga era scritta in due posti
+  che dicevano due cose: chi inserisce accettava gia' il contatto da solo —
+  persiane, scuri, una maniglia — e chi riapre per modificare contava soltanto
+  le tre coperture, rifiutando la riga che l'altro aveva appena creato.
+
+- **Nella pagina Stanze una stanza con piu' sonde ne mostrava una sola.** La
+  scheda Temperature permette da tempo di selezionare la stessa stanza piu'
+  volte, con un nome per ognuna — il comodino, il termostato a muro, la sonda
+  della veranda — ma qui si leggeva solo la prima coppia. Adesso ognuna ha la
+  sua riga, col suo nome.
+
+- **Nel riepilogo della stanza il termosifone e il condizionatore avevano la
+  stessa icona.** Due righe affiancate diventavano due fiocchi di neve identici
+  sopra due cose che non fanno la stessa cosa; il tipo la configurazione lo sa
+  gia'.
+
+- **La plancia partiva a filo di schermo.** Non c'era nessun margine laterale:
+  su un telefono la «P» di PERSONE nasceva sul bordo e sembrava tagliata, e le
+  tessere finivano contro il vetro.
+
+- **Il tasto di accensione del Clima era un quadratino vuoto.** Usava un
+  carattere che i font di sistema di Android non coprono. Adesso e' disegnato,
+  e non dipende piu' da nessun font.
+
+- **In configurazione le ultime schede uscivano fuori misura.** La tabella dei
+  simboli non conosceva Widget, Backup, Persone, Aspirapolvere e Aperture, e
+  chi non c'era non veniva diviso in simbolo e nome: da telefono, dove la
+  colonna si stringe a un simbolo solo, quelle restavano col nome attaccato.
+  Adesso la tabella e' il primo posto dove guardare, non l'unico.
+
+- **Nella tessera Sicurezza lo stato non ci stava.** «Disinserito» a ventitre
+  pixel si leggeva «Disinse...», che non dice niente: il numero grande resta
+  grande finche' e' corto, e a una parola si da' la misura che la fa entrare.
+
+### Aggiunto
+
+- **La pagina Stanze ha la sua intestazione.** Era la sola pagina della plancia
+  che partiva dalle linguette, senza dire dove si era arrivati.
+
+- **Sotto «Widget» c'e' scritto quali tessere chiedono attenzione.** Dire
+  quante, sopra otto tessere, obbliga a guardarle tutte per scoprire chi sono:
+  adesso ci sono i nomi, e se non ci stanno in larghezza la riga scorre.
+  L'intestazione, intanto, e' diventata un titolo di sezione come «Azioni
+  rapide» e «Persone»: sulla Home i blocchi si annunciano tutti allo stesso
+  modo.
+
 ## 1.3.1
 
 ### Corretto

@@ -27,6 +27,15 @@ const TAB_ICONS = Object.freeze({
   tapp: "🪟",
   irr: "💧",
   pool: "🏊",
+  /* Le schede nate dopo questa tabella. Senza il loro nome qui la linguetta
+   * restava tutta intera — simbolo e parola insieme — e da telefono, dove la
+   * colonna si stringe a un simbolo solo, quelle quattro uscivano fuori misura
+   * col nome accavallato. Il simbolo e' lo stesso che ognuna si scrive. */
+  todo: "🧩",
+  backup: "💾",
+  people: "👥",
+  robot: "🤖",
+  doors: "🚪",
 });
 
 const FLOW_LOADS = Object.freeze({
@@ -82,6 +91,15 @@ function activeTab() {
   return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
 }
 
+/* Il simbolo con cui una linguetta comincia, se ne ha uno. */
+function primoSimbolo(button) {
+  const gia = clean(button.querySelector(":scope > .dm-beta4-tab-icon")?.textContent);
+  if (gia) return gia;
+  const testo = clean(button.textContent);
+  const trovato = testo.match(/^[^\p{L}\p{N}\s]+/u);
+  return trovato ? trovato[0].trim() : "";
+}
+
 function stripLeadingIcon(value) {
   return clean(value).replace(/^[^\p{L}\p{N}]+/u, "").trim();
 }
@@ -104,7 +122,15 @@ function brandLogo(brand) {
 function syncConfigTabIcons() {
   doc?.querySelectorAll?.(".ed-tab[data-tab]").forEach((button) => {
     const tab = clean(button.dataset.tab);
-    const icon = TAB_ICONS[tab];
+    /* Chi non e' in tabella tiene il simbolo che si scrive da solo.
+     *
+     * Prima si usciva subito, e quella linguetta non veniva divisa in simbolo
+     * e nome: la regola che da telefono nasconde il nome cerca proprio quel
+     * pezzo, e non trovandolo lasciava la parola attaccata al simbolo dentro
+     * una colonna larga quanto un dito. Succedeva a ogni scheda aggiunta dopo
+     * che questa tabella e' stata scritta — cioe' sempre alle ultime. Adesso
+     * la tabella e' il primo posto dove guardare, non l'unico. */
+    const icon = TAB_ICONS[tab] || primoSimbolo(button);
     if (!icon) return;
     const existingLabel = button.querySelector("[data-dm-config-name]");
     const labelText = stripLeadingIcon(existingLabel?.textContent || button.textContent) || tab;

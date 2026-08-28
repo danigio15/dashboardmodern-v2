@@ -22,6 +22,7 @@
  * una seconda card per la stessa luce vorrebbe dire mantenerne due.
  */
 import { lightCommand, lightView, lightsSignature } from "../core/light-model.js";
+import { canonicalClimateType } from "../core/device-model.js";
 import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
@@ -32,6 +33,7 @@ import {
   roomSceneSummary,
 } from "../core/room-overview.js";
 import { pageCardMarkup } from "./lights-page-section.js";
+import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
   allStates,
   clean,
@@ -124,6 +126,22 @@ const nomeBlocco = (blocco) => {
 };
 
 const iconaBlocco = (blocco) => BLOCK_LABELS[blocco.key]?.[2] || "•";
+
+/* Il fiocco di neve non va bene per tutto quello che si chiama «clima».
+ *
+ * Sotto quella voce ci stanno il condizionatore, il termosifone e la pompa di
+ * calore: nel riepilogo della stanza portavano tutti la stessa icona, e due
+ * righe affiancate — «Soggiorno» e «Clima Soggiorno» — diventavano due fiocchi
+ * di neve identici sopra due cose che non fanno la stessa cosa. Il tipo la
+ * configurazione lo sa gia': lo dice la casella. */
+const ICONE_CLIMA = Object.freeze({ termo: "🔥", pompa: "♨️", clima: "❄️" });
+
+function iconaVoce(item, blocco) {
+  const propria = clean(item?.emoji_icon);
+  if (propria) return propria;
+  if (blocco.key === "clima") return ICONE_CLIMA[canonicalClimateType(item?.type)] || "❄️";
+  return iconaBlocco(blocco);
+}
 
 /* Il nome di una voce, comunque sia stata configurata: quello scelto, quello
  * che dice Home Assistant, e in ultima istanza l'entita' stessa — che e' brutta
@@ -309,21 +327,42 @@ export function sceneMarkup(pagina, states) {
  * card sta qui e non fra le voci: quelle sono cose dentro la stanza, questa e'
  * la stanza. */
 function readingMarkup(pagina, states) {
-  if (!pagina.temp && !pagina.hum) return "";
+  /* Una stanza puo' avere piu' di una coppia di sensori.
+   *
+   * La scheda Temperature lo permette da tempo — «la stessa stanza puo' essere
+   * selezionata piu' volte», con un nome per ognuna: il comodino, il termostato
+   * a muro, la sonda della veranda. Qui pero' si leggevano solo le due caselle
+   * scritte sulla riga della stanza, cioe' la prima coppia: chi ne aveva tre ne
+   * vedeva una, e le altre due sembravano non essere mai state configurate.
+   *
+   * Le associazioni le sa gia' chi le scrive, e si chiedono a lui. */
+  const associazioni = temperatureEntries(pagina).filter((voce) => voce.temp || voce.hum);
+  if (!associazioni.length) return "";
   const leggi = (entity, coda) => {
     const value = clean(states?.[entity]?.state);
     return value && value !== "unknown" && value !== "unavailable" ? `${value}${coda}` : "—";
   };
-  return `<article class="dm-stanze-card dm-stanze-clima">
+  const misura = (entity, etichetta, coda) =>
+    entity
+      ? `<div><span>${esc(etichetta)}</span><b data-dm-stanza-lettura="${esc(entity)}" data-dm-stanza-coda="${esc(coda)}">${esc(leggi(entity, coda))}</b></div>`
+      : "";
+  return associazioni
+    .map((voce) => {
+      /* Col nome suo se ce l'ha: con tre righe uguali non si saprebbe quale
+       * sonda sta dicendo cosa. */
+      const titolo = clean(voce.name) || clean(pagina.name);
+      return `<article class="dm-stanze-card dm-stanze-clima">
     <div class="dm-stanze-card-row">
       <span class="dm-stanze-orb">🌡️</span>
-      <span class="dm-stanze-title"><b>${esc(pagina.name)}</b><s>${esc(t("Sensori della stanza", "Room sensors"))}</s></span>
+      <span class="dm-stanze-title"><b>${esc(titolo)}</b><s>${esc(t("Sensori della stanza", "Room sensors"))}</s></span>
     </div>
     <div class="dm-stanze-readings">
-      ${pagina.temp ? `<div><span>${esc(t("Temperatura", "Temperature"))}</span><b data-dm-stanza-lettura="${esc(pagina.temp)}">${esc(leggi(pagina.temp, "°"))}</b></div>` : ""}
-      ${pagina.hum ? `<div><span>${esc(t("Umidità", "Humidity"))}</span><b data-dm-stanza-lettura="${esc(pagina.hum)}">${esc(leggi(pagina.hum, "%"))}</b></div>` : ""}
+      ${misura(voce.temp, t("Temperatura", "Temperature"), "°")}
+      ${misura(voce.hum, t("Umidità", "Humidity"), "%")}
     </div>
   </article>`;
+    })
+    .join("");
 }
 
 /* Una voce che non e' una luce: nome, stato, e il verso per la sua pagina.
@@ -336,7 +375,7 @@ function rowMarkup(item, blocco, states) {
   const entity = entitaVoce(item);
   return `<article class="dm-stanze-card dm-stanze-voce" data-dm-stanza-vai="${esc(blocco.tab)}" data-dm-stanza-entita="${esc(entity)}" role="button" tabindex="0">
     <div class="dm-stanze-card-row">
-      <span class="dm-stanze-orb">${esc(item?.emoji_icon || iconaBlocco(blocco))}</span>
+      <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
       <span class="dm-stanze-title"><b>${esc(nomeVoce(item, states))}</b><s data-dm-stanza-stato="${esc(entity)}" data-dm-stanza-blocco="${esc(blocco.key)}">${esc(statoVoce(item, states, blocco.key))}</s></span>
       <span class="dm-stanze-vai" aria-hidden="true">›</span>
     </div>
@@ -455,11 +494,14 @@ function paint() {
   /* Struttura uguale: si riscrivono solo i valori. Rifare l'HTML a ogni giro
    * spegnerebbe il dito posato su un cursore e farebbe ripartire ogni
    * animazione da capo. */
-  const pagina = pickRoomPage(pagine, state.room);
   for (const node of wrap.querySelectorAll("[data-dm-stanza-lettura]")) {
     const entity = node.getAttribute("data-dm-stanza-lettura");
     const valore = clean(states?.[entity]?.state);
-    const coda = entity === pagina?.hum ? "%" : "°";
+    /* L'unita' la porta la riga che l'ha disegnata. Prima si deduceva
+     * confrontando l'entita' con l'umidita' della stanza: con piu' coppie di
+     * sensori quel confronto sbagliava tutte le righe tranne la prima, e le
+     * umidita' delle altre uscivano in gradi. */
+    const coda = node.getAttribute("data-dm-stanza-coda") || "°";
     const testo = valore && valore !== "unknown" && valore !== "unavailable" ? `${valore}${coda}` : "—";
     if (node.textContent !== testo) node.textContent = testo;
   }

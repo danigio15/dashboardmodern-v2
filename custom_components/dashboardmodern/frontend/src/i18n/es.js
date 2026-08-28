@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "El sensor de apertura debe ser una entidad binary_sensor.*, sensor.* o input_boolean.*.",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Introduce un nombre y al menos una entidad: una cubierta cover.* o switch.* entre persiana, cortina y toldo, o solo el sensor de apertura.",
+  "One room at a time · Scenes · Sensors": "Una habitación a la vez · Escenas · Sensores",
   " — configured": " — configurada",
   "— Choose —": "— Elegir —",
   "— kWh from PV": "— kWh de la FV",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "Clima activo",
   "Active in the EV section — tap to remove it": "Activa en la sección EV: toca para quitarla",
   "Active renderer": "Renderizador activo",
+  "Active": "Activo",
   "Activity": "Actividad",
   "Add": "Añadir",
   "Add appliance": "Añadir electrodoméstico",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Escribe un nombre y una entidad válida",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Escribe un nombre y una entidad válida (p. ej. light.salon o switch.cocina)",
   "Enter a name and a valid entity.": "Introduce un nombre y una entidad válida.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Introduce un nombre y al menos una entidad cover.* o switch.* entre persiana, cortina y toldo.",
   "Enter a name and at least one entity": "Escribe un nombre y al menos una entidad",
   "Enter a name and camera entity": "Escribe un nombre y la entidad de la cámara",
   "Enter a name and entity": "Escribe un nombre y una entidad",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "Secciones anteriores",
   "Primary loop · Tank · DHW recirculation": "Circuito primario · Acumulador · Recirculación de ACS",
   "Printer": "Impresora",
-  "Probe": "Sonda",
   "Problem binary_sensor: feeds the Alarm counter.": "binary_sensor de problema: alimenta el contador de la alarma.",
   "Production": "Producción",
   "Production · Consumption · Report": "Producción · Consumo · Informe",

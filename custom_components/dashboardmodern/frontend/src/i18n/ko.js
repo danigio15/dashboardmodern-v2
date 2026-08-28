@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "열림 센서는 binary_sensor.*, sensor.* 또는 input_boolean.* 엔터티여야 합니다.",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "이름과 최소 한 개의 엔터티를 입력하세요: 셔터·커튼·차양 중 cover.* 또는 switch.*, 아니면 열림 센서만으로도 됩니다.",
+  "One room at a time · Scenes · Sensors": "한 번에 한 방씩 · 장면 · 센서",
   " — configured": " — 설정됨",
   "— Choose —": "— 선택 —",
   "— kWh from PV": "— 태양광에서 kWh",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "냉난방 가동 중",
   "Active in the EV section — tap to remove it": "EV 섹션에 표시 중 — 탭하면 제외",
   "Active renderer": "사용 중인 렌더러",
+  "Active": "작동 중",
   "Activity": "활동",
   "Add": "추가",
   "Add appliance": "가전 추가",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "이름과 올바른 엔티티를 입력하세요",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "이름과 올바른 엔티티를 입력하세요(예: light.living 또는 switch.kitchen)",
   "Enter a name and a valid entity.": "이름과 올바른 엔티티를 입력하세요.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "이름과 셔터·커튼·어닝 중 최소 하나의 cover.* 또는 switch.* 엔티티를 입력하세요.",
   "Enter a name and at least one entity": "이름과 엔티티를 하나 이상 입력하세요",
   "Enter a name and camera entity": "이름과 카메라 엔티티를 입력하세요",
   "Enter a name and entity": "이름과 엔티티를 입력하세요",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "이전 섹션",
   "Primary loop · Tank · DHW recirculation": "1차 배관 · 축열조 · 온수 순환",
   "Printer": "프린터",
-  "Probe": "센서",
   "Problem binary_sensor: feeds the Alarm counter.": "고장 binary_sensor. 경보 카운터에 쓰입니다.",
   "Production": "발전",
   "Production · Consumption · Report": "발전 · 소비 · 리포트",

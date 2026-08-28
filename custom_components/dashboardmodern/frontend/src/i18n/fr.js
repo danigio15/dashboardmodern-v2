@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Le capteur d'ouverture doit être une entité binary_sensor.*, sensor.* ou input_boolean.*.",
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Saisis un nom et au moins une entité : une couverture cover.* ou switch.* parmi volet, rideau et store, ou le seul capteur d'ouverture.",
+  "One room at a time · Scenes · Sensors": "Une pièce à la fois · Scènes · Capteurs",
   " — configured": " — configurée",
   "— Choose —": "— Choisir —",
   "— kWh from PV": "— kWh du PV",
@@ -299,6 +302,7 @@ export default Object.freeze({
   "Active climate": "Climat actif",
   "Active in the EV section — tap to remove it": "Active dans la section VE — touchez pour la retirer",
   "Active renderer": "Rendu actif",
+  "Active": "Actif",
   "Activity": "Activité",
   "Add": "Ajouter",
   "Add appliance": "Ajouter un appareil",
@@ -715,7 +719,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Saisissez un nom et une entité valide",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Saisissez un nom et une entité valide (p. ex. light.salon ou switch.cuisine)",
   "Enter a name and a valid entity.": "Saisis un nom et une entité valide.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Saisis un nom et au moins une entité cover.* ou switch.* parmi volet, rideau et store.",
   "Enter a name and at least one entity": "Saisissez un nom et au moins une entité",
   "Enter a name and camera entity": "Saisissez un nom et l'entité de la caméra",
   "Enter a name and entity": "Saisissez un nom et une entité",
@@ -1279,7 +1282,6 @@ export default Object.freeze({
   "Previous sections": "Sections précédentes",
   "Primary loop · Tank · DHW recirculation": "Circuit primaire · Ballon · Bouclage ECS",
   "Printer": "Imprimante",
-  "Probe": "Sonde",
   "Problem binary_sensor: feeds the Alarm counter.": "binary_sensor de problème : alimente le compteur d'alarme.",
   "Production": "Production",
   "Production · Consumption · Report": "Production · Consommation · Rapport",
