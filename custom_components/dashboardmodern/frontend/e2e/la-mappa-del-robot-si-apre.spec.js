@@ -135,3 +135,36 @@ test("non si rimpicciolisce sotto la sua misura, e si chiude", async ({ page }, 
   await page.locator("#dm-robot-map-view [data-dm-map-close]").evaluate((nodo) => nodo.click());
   expect((await lettura(page)).aperto).toBe(false);
 });
+
+test("ingrandita, si scorre col mouse — come nella card nativa di HA", async ({
+  page,
+}, testInfo) => {
+  /* «Credo manchi solo la possibilità di scorrere con il mouse una volta
+   * ingrandita come succede per la card standard di HA»: il trascinamento
+   * c'e', e questa prova lo tiene fermo — rotella per ingrandire, poi il
+   * mouse che preme e trascina sposta davvero la mappa. */
+  const mappa = await avvia(page, testInfo);
+  await mappa.dispatchEvent("click");
+  await expect.poll(async () => (await lettura(page)).aperto).toBe(true);
+
+  const palco = page.locator("#dm-robot-map-view [data-dm-map-stage]");
+  const riquadro = await palco.boundingBox();
+  const centro = { x: riquadro.x + riquadro.width / 2, y: riquadro.y + riquadro.height / 2 };
+
+  /* La rotella ingrandisce attorno al punto. */
+  await page.mouse.move(centro.x, centro.y);
+  await page.mouse.wheel(0, -240);
+  await page.mouse.wheel(0, -240);
+  await expect.poll(async () => (await lettura(page)).ingrandita).toBe(true);
+  const prima = (await lettura(page)).trasformazione;
+
+  /* Il mouse preme e trascina: la mappa lo segue. */
+  await page.mouse.down();
+  await page.mouse.move(centro.x + 120, centro.y + 80, { steps: 6 });
+  await page.mouse.up();
+  const dopo = await lettura(page);
+  expect(dopo.trasformazione).not.toBe(prima);
+  const [, x, y] = dopo.trasformazione.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/) || [];
+  expect(Number(x)).toBeGreaterThan(0);
+  expect(Number(y)).toBeGreaterThan(0);
+});
