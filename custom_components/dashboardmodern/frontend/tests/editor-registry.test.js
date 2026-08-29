@@ -214,13 +214,15 @@ test("Energy flow writes every field through the single writer, with no draft to
   );
   assert.doesNotMatch(energy, /structuredClone\(model\)/);
   assert.doesNotMatch(energy, /store\.replaceSection\("energy"/);
+  /* E ogni scrittura dice A QUALE impianto appartiene: senza, quello che si
+   * scriveva per il secondo finiva addosso al primo. */
   assert.match(
     energy,
-    /onChange: \(group, key, value\) => persistEnergyField\(store, group, key, value\)/,
+    /onChange: \(group, key, value\) => persistEnergyField\(store, group, key, value, impiantoAperto\(\)\)/,
   );
   assert.match(
     energy,
-    /onSignedChange: \(group, signed\) => persistSignedSource\(store, group, signed\)/,
+    /onSignedChange: \(group, signed\) => persistSignedSource\(store, group, signed, impiantoAperto\(\)\)/,
   );
   assert.match(energy, /onSave: async/);
   assert.match(energy, /await flushEnergyWrites\(\)/);
