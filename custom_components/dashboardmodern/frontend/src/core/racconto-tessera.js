@@ -101,6 +101,32 @@ export function daQuanto(minuti, traduci = IN_ITALIANO) {
   );
 }
 
+/* Lo stesso tempo, ma davanti invece che dietro.
+ *
+ * `daQuanto` porta la preposizione dentro — «da 40 minuti» — perche' quasi
+ * sempre si racconta qualcosa che dura da un po'. Per una previsione la
+ * preposizione e' un'altra: «fra un'ora e venti». Tenere due funzioni invece di
+ * incollare le parole a mano evita il difetto che questa e' nata per togliere:
+ * «La pompa gira da da 40 minuti», che e' quello che usciva incollando. */
+export function fraQuanto(minuti, traduci = IN_ITALIANO) {
+  const quanti = Math.max(0, Math.round(Number(minuti) || 0));
+  if (quanti < 1) return traduci("a momenti", "any moment");
+  if (quanti < 60)
+    return traduci(`fra ${quanti} minut${quanti === 1 ? "o" : "i"}`, `in ${quanti} min`);
+  const ore = Math.floor(quanti / 60);
+  const resto = quanti % 60;
+  if (ore < 24) {
+    if (!resto) return traduci(ore === 1 ? "fra un'ora" : `fra ${ore} ore`, `in ${ore}h`);
+    const testaOre = ore === 1 ? "un'ora" : `${ore} ore`;
+    return traduci(`fra ${testaOre} e ${resto}`, `in ${ore}h ${resto}m`);
+  }
+  const giorni = Math.floor(ore / 24);
+  return traduci(
+    `fra ${giorni} giorn${giorni === 1 ? "o" : "i"}`,
+    `in ${giorni} day${giorni === 1 ? "" : "s"}`,
+  );
+}
+
 /* Il numero come si scrive qui: virgola decimale in italiano, punto in
  * inglese, e il punto delle migliaia solo dove serve. */
 export function numero(valore, decimali = 0, lingua = "it-IT") {

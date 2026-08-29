@@ -371,9 +371,31 @@ function scopeFor(period) {
  * and are not guaranteed to be identifier-safe. */
 const cssEscape = (value) => String(value).replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
+/* Le bolle vecchie si spengono con un foglio, non nodo per nodo a ogni giro.
+ *
+ * Misurato: seicentotrenta scritture di `hidden = true` in quaranta passate, su
+ * nodi che erano gia' nascosti. Due difetti in uno. Il primo e' lo spreco: ogni
+ * scrittura e' una modifica al documento e un ricalcolo di stile, per non
+ * cambiare niente. Il secondo e' peggio, ed e' quello che si vede: fra il
+ * momento in cui il guscio ridisegna una di quelle bolle e il fotogramma in cui
+ * questo modulo la rinasconde c'e' una finestra in cui la bolla e' visibile —
+ * un cerchio vuoto che compare e sparisce in fondo al flusso.
+ *
+ * Una regola di stile non ha quella finestra: vale dall'istante in cui il nodo
+ * esiste, senza aspettare nessun giro di disegno. Il marchio sul nodo resta
+ * perche' e' lui che dice «questa l'ha sostituita il flusso nuovo», e la
+ * regola lo legge. */
+function regolaDelleBolleVecchie() {
+  return `${LEGACY_LOAD_SELECTOR.split(",")
+    .map((pezzo) => `#view-ist ${pezzo.trim()}:not([data-dm-flow-node]):not([data-dm-flow-arc])`)
+    .join(",")}{display:none!important}`;
+}
+
 function hideLegacyLoadTopology(stage) {
   stage?.querySelectorAll?.(LEGACY_LOAD_SELECTOR).forEach((node) => {
     if (node.dataset.dmFlowNode || node.dataset.dmFlowArc) return;
+    /* Gia' fatto: non si riscrive. Il marchio e' il ricordo. */
+    if (node.dataset.dmLegacyEnergyLoad === "replaced") return;
     node.hidden = true;
     setStyleProperty(node, "display", "none", "important");
     node.dataset.dmLegacyEnergyLoad = "replaced";
@@ -748,6 +770,7 @@ function installStyles() {
   installStyle(
     "dm-energy-flow-section-style",
     `
+    ${regolaDelleBolleVecchie()}
     .dm-energy-flow-active{display:inline!important;visibility:visible!important;opacity:1!important;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dm-flow-color) 52%,transparent))!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
     .dm-energy-flow-idle{opacity:.30!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
     .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}

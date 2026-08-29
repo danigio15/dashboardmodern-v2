@@ -5,6 +5,48 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.7
+
+### Corretto
+
+- **Il cerchio vuoto che compariva e spariva in fondo al flusso Energia.** Le
+  bolle dei carichi vecchie le nasconde il modulo del flusso, che disegna le
+  sue: solo che le nascondeva nodo per nodo a ogni passata di disegno —
+  seicentotrenta scritture in quaranta giri, su nodi gia' nascosti. Fra il
+  momento in cui il guscio ne ridisegna una e il fotogramma in cui il modulo la
+  rinasconde c'e' una finestra in cui quella bolla si vede, ed e' il cerchio che
+  lampeggiava. Adesso a spegnerle e' una regola di stile, che vale dall'istante
+  in cui il nodo esiste e non aspetta nessun giro: le scritture passano da
+  seicentotrenta a zero, e la finestra in cui si vedeva non c'e' piu'.
+
+- **«Temperatura Pannello solare Temperature».** La parola due volte, una per
+  lingua, su tre righe della stessa finestra. Non nasce dalla plancia: Home
+  Assistant costruisce il nome amichevole di un sensore incastrando il nome del
+  dispositivo — scritto in italiano da chi abita la casa — con quello
+  dell'entita', che l'integrazione scrive in inglese. Stampato com'e' pero'
+  sembra un difetto della plancia. Adesso la parola in coda se ne va quando il
+  numero accanto dice gia' la stessa cosa: «80,9 °C» dice «temperatura» meglio
+  della parola. I nomi che senza quella parola direbbero di meno restano
+  interi — «Delta Solare termico Boiler» non si tocca — perche' un nome
+  accorciato troppo smette di dire quale cosa sia, ed e' il difetto peggiore
+  dei due.
+
+- **La croce per chiudere si vedeva poco.** Era un testo grigio chiaro senza
+  sfondo, in un angolo di una finestra piena di colori. Adesso ha un fondo, un
+  bordo e il colore pieno del testo, e il bersaglio arriva a trentadue pixel —
+  la misura sotto la quale un dito manca.
+
+### Aggiunto
+
+- **Le finestre dicono quando, e da quanto.** Erano poco informative: dicevano
+  che una cosa e' accesa, che si legge gia' dal colore del cerchio. Adesso
+  mentre la batteria si carica la sezione Energia cambia soggetto — la domanda
+  non e' piu' quanto consuma la casa, ma quando sara' piena — e risponde: «La
+  batteria e' piena fra un'ora e venti». La pompa del solare termico dice da
+  quanto gira, non solo che gira. Il momento di partenza lo sa Home Assistant,
+  e cambia solo quando quella cosa parte o si ferma: non si inventa niente, e
+  dove il momento non c'e' non si scrive una durata.
+
 ## 1.3.6
 
 ### Aggiunto

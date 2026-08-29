@@ -455,3 +455,64 @@ test("la lingua dei numeri si passa, non si indovina", () => {
   assert.match(analisiDellaSezione(tessera, tedesco, Date.now(), null, "de-DE").frase, /1,25 kW/);
   assert.match(analisiDellaSezione(tessera, tedesco, Date.now(), null, "en-US").frase, /1\.25 kW/);
 });
+
+/* ── le finestre dicono quando, e da quanto ────────────────────────────── */
+
+test("mentre la batteria si carica, dice quando sara' piena", () => {
+  /* «Tipo: fra tot tempo le batterie di casa sono cariche.» La sezione Energia
+   * ha due soggetti: di solito la potenza della casa, ma mentre la batteria si
+   * carica la domanda diventa un'altra, e il traguardo e' il pieno. */
+  const carica = storia(13, 5 * MINUTO, (i) => 60 + i); // dal 60% in su
+  const esito = analisiDellaSezione(
+    {
+      key: "energia",
+      soggetto: "carica",
+      rows: [
+        { group: "house", watts: 246 },
+        { group: "battery", watts: -900 },
+      ],
+    },
+    IT,
+    ADESSO,
+    carica,
+  );
+  const arrivo = esito.punti.find((p) => /piena/.test(p));
+  assert.ok(arrivo, `deve dire quando sara' piena: ${JSON.stringify(esito.punti)}`);
+  assert.match(arrivo, /La batteria e' piena fra/);
+});
+
+test("la pompa del solare dice da quanto gira, non solo che gira", () => {
+  /* «Piuttosto: la pompa e' attiva da tot tempo.» Che sia accesa lo dice gia'
+   * il colore del cerchio; da quanto, no. */
+  const esito = analisiDellaSezione(
+    {
+      key: "solare",
+      attiva: true,
+      rows: [
+        { name: "Pannello", raw: 80.9, on: true, daQuando: ADESSO - 40 * MINUTO },
+        { name: "Accumulo", raw: 72.9 },
+      ],
+    },
+    IT,
+    ADESSO,
+  );
+  assert.match(esito.frase, /La pompa gira da 40 minuti/);
+  assert.match(esito.frase, /8,0°/, "e continua a dire il salto");
+});
+
+test("senza il momento di partenza non si inventa una durata", () => {
+  const esito = analisiDellaSezione(
+    {
+      key: "solare",
+      attiva: true,
+      rows: [
+        { name: "Pannello", raw: 80.9 },
+        { name: "Accumulo", raw: 72.9 },
+      ],
+    },
+    IT,
+    ADESSO,
+  );
+  assert.match(esito.frase, /La pompa gira:/);
+  assert.doesNotMatch(esito.frase, /da /);
+});

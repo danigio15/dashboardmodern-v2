@@ -33,6 +33,7 @@ import {
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
+import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   coverEntries,
@@ -57,6 +58,7 @@ import {
   formatNumber,
   installStyle,
   lexicalGlobal,
+  locale,
   readClimateUnits,
   readJson,
   root,
@@ -778,17 +780,26 @@ function rigaDaEntita(states, entity, glifo = "•") {
     const cifre = Number.isInteger(numero) || Math.abs(numero) >= 100 ? 0 : 1;
     return {
       glyph: glifo,
-      name: nome,
+      /* Il nome senza la parola che il numero dice gia': «Temperatura Pannello
+       * solare Temperature» diventa «Temperatura Pannello solare». La seconda
+       * parola arriva dall'incastro fra il nome del dispositivo, scritto da chi
+       * abita la casa, e quello dell'entita', scritto dall'integrazione. */
+      name: nomeDellaLettura(nome, { unita }),
       entity: chiave,
       raw: numero,
       unit: unita,
       value: `${formatNumber(numero, cifre)}${unita ? ` ${unita}` : ""}`,
     };
   }
+  /* Da quando sta cosi': Home Assistant lo sa, ed e' la differenza fra «la
+   * pompa e' accesa» e «la pompa gira da quaranta minuti» — la seconda dice
+   * qualcosa, la prima e' gia' scritta nel colore del cerchio. */
+  const daQuando = Date.parse(stato?.last_changed ?? stato?.last_updated ?? "");
+  const quando = Number.isFinite(daQuando) ? daQuando : null;
   if (STATI_ACCESI.test(grezzo))
-    return { glyph: glifo, name: nome, entity: chiave, on: true, value: t("Acceso", "On") };
+    return { glyph: glifo, name: nome, entity: chiave, on: true, daQuando: quando, value: t("Acceso", "On") };
   if (STATI_SPENTI.test(grezzo))
-    return { glyph: glifo, name: nome, entity: chiave, on: false, value: t("Spento", "Off") };
+    return { glyph: glifo, name: nome, entity: chiave, on: false, daQuando: quando, value: t("Spento", "Off") };
   return { glyph: glifo, name: nome, value: grezzo };
 }
 
@@ -2509,6 +2520,12 @@ function corsaMarkup(widget) {
 function entitaDelRacconto(widget) {
   if (widget?.key === "energia") {
     const energia = section("energy", {}) || {};
+    /* Mentre la batteria si carica, la domanda non e' piu' «quanto consuma la
+     * casa» ma «quando e' piena». Il racconto segue allora lo stato di carica,
+     * ed e' quello che permette di dire «cariche fra un'ora e venti» invece di
+     * ripetere un numero che si legge gia' sopra. */
+    if (widget?.soggetto === "carica")
+      return clean(energia?.battery?.soc) || "dm.energy_stato_carica_batteria";
     return clean(energia?.house?.power) || "dm.energy_potenza_consumo_casa";
   }
   if (widget?.key === "temperatura") return clean(widget?.rows?.[0]?.entity);
@@ -2542,7 +2559,21 @@ function storiaDelWidget(widget) {
 }
 
 function verdettoEFrase(widget) {
-  const lettura = analisiDellaSezione(widget, t, Date.now(), storiaDelWidget(widget));
+  /* La batteria che si carica cambia la domanda della sezione Energia: si
+   * vuole sapere quando sara' piena. Il soggetto lo decide chi disegna, che
+   * conosce i numeri di adesso, e il motore ci si adegua. */
+  const batteria = widget?.rows?.find?.((r) => r?.group === "battery")?.watts;
+  const conSoggetto =
+    widget?.key === "energia" && Number(batteria) < -10
+      ? { ...widget, soggetto: "carica" }
+      : widget;
+  const lettura = analisiDellaSezione(
+    conSoggetto,
+    t,
+    Date.now(),
+    storiaDelWidget(conSoggetto),
+    locale?.(),
+  );
   const verdetto = verdettoDellaTessera(widget, t);
   const tono = lettura?.tono || verdetto.tono;
   const parola = tono === verdetto.tono ? verdetto.testo : parolaDelVerdetto(tono, t);
@@ -3499,15 +3530,27 @@ html.dm-widget-popup-open{overflow:hidden}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* «Chiudi» sta in cima, scritto, non un tondino in un angolo: e' la prima cosa
    che si vede e la si legge, come nel progetto. */
+/* La croce per chiudere si deve vedere.
+ *
+ * Era un testo grigio chiaro senza sfondo, in un angolo di una finestra che ha
+ * colori dappertutto: «non sono presenti sulle croci per chiudere il tab, si
+ * vede poco». Adesso ha un fondo suo, un bordo e il colore del testo pieno, e
+ * il bersaglio arriva a trentadue pixel di altezza — che e' la misura sotto la
+ * quale un dito manca. */
 #dm-widget-popup .dm-widget-detail .dm-w-close{
   grid-column:1/-1;grid-row:1;justify-self:start;
-  display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 4px 0 0;
-  border:0;background:none;box-shadow:none;
-  font-size:10.5px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;
-  color:var(--text-dim,#64748b);cursor:pointer;
-  transition:color .18s ease}
-#dm-widget-popup .dm-widget-detail .dm-w-close span{font-size:13px;letter-spacing:0}
-#dm-widget-popup .dm-widget-detail .dm-w-close:hover{color:#dc2626}
+  display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 12px 0 9px;
+  border:1px solid var(--card-border,#e2e8f0);border-radius:999px;
+  background:var(--card-bg,#fff);box-shadow:0 1px 3px rgba(15,23,42,.06);
+  font-size:11px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--text,#0f172a);cursor:pointer;
+  transition:color .18s ease,background .18s ease,border-color .18s ease}
+#dm-widget-popup .dm-widget-detail .dm-w-close span{font-size:15px;letter-spacing:0;line-height:1}
+#dm-widget-popup .dm-widget-detail .dm-w-close:hover{
+  color:#dc2626;border-color:color-mix(in srgb,#dc2626 40%,transparent);
+  background:color-mix(in srgb,#dc2626 8%,var(--card-bg,#fff))}
+#dm-widget-popup .dm-widget-detail .dm-w-close:focus-visible{
+  outline:2px solid var(--dm-widget-accent,#0ea5e9);outline-offset:2px}
 html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{color:#fca5a5}
 /* E la finestra non ha piu' bisogno del filo di colore sul bordo alto: adesso
  * il colore ce l'ha la fascia. */

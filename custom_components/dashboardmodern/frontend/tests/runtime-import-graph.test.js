@@ -455,7 +455,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // per la stessa entita' e la certezza che prima o poi una scada con una
   // regola diversa dall'altra. E' il difetto che si sta togliendo dappertutto
   // in questi giorni: qui si evitava di crearne uno nuovo.
-  assert.ok(relative.length <= 174, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 175 col nome della lettura. Nella finestra del Solare termico si leggeva
+  // «Temperatura Pannello solare Temperature»: la parola due volte, una per
+  // lingua. Non e' un difetto della plancia — Home Assistant costruisce il nome
+  // amichevole incastrando il nome del dispositivo, che scrive chi abita la
+  // casa, con quello dell'entita', che scrive l'integrazione — ma stampato
+  // com'e' sembra un difetto della plancia. Il modulo toglie dalla coda la
+  // parola gia' detta dall'unita' del valore, e non tocca i nomi che senza
+  // quella parola direbbero di meno: meta' delle sue prove pretende che il nome
+  // resti intero, perche' accorciare troppo e' il difetto peggiore dei due.
+  assert.ok(relative.length <= 175, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
