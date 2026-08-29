@@ -2063,10 +2063,20 @@ function temperatureDetail(widget) {
  * Il ripiego resta quello di prima — si indovina dal nome se e' una porta o
  * una finestra — perche' chi non ha scelto niente deve continuare a vedere
  * quello che vedeva. Chi invece l'icona l'ha scelta in configurazione se la
- * ritrova qui: e' l'unico posto dove quelle undici righe si distinguono. */
+ * ritrova qui: e' l'unico posto dove quelle undici righe si distinguono.
+ *
+ * La scelta puo' essere un nome mdi, perche' il selettore delle icone e' quello
+ * del motore e scrive quello: stampato come testo si leggeva `mdi:gate` al
+ * posto del disegno. Chi sa disegnarlo e' il motore, e lo si chiede a lui. */
 function iconaApertura(row) {
   const scelta = clean(readJson("cd_avvisi_icone", {})?.[clean(row.entity)]);
-  if (scelta) return scelta;
+  if (scelta && /^mdi:/i.test(scelta)) {
+    const disegnata = root.DashboardModernIconEngine?.markup?.("action", scelta, {
+      size: 20,
+    });
+    if (disegnata) return disegnata;
+  }
+  if (scelta) return esc(scelta);
   return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
 }
 
@@ -2075,7 +2085,7 @@ function openingsDetail(widget) {
   return rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${esc(iconaApertura(row))}</span>
+        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${iconaApertura(row)}</span>
          <span class="dm-w-name">${esc(row.name)}</span>
          <b class="dm-w-val">${esc(row.on ? t("Aperta", "Open") : t("Chiusa", "Closed"))}</b>`,
       ),

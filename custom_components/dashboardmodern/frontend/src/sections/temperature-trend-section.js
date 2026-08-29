@@ -201,6 +201,68 @@ export function trendGeometry(series, window, view = VIEW) {
  * Adesso la scala si prende un passo tondo — mezzo grado, uno, due, cinque —
  * scelto perche' ne escano fra le quattro e le sette: abbastanza per leggere,
  * poche abbastanza da non diventare una grata. */
+/* A che altezza sta il numero in coda a ogni linea, e chi il numero non ce
+ * l'ha.
+ *
+ * Ognuno starebbe all'altezza della sua linea, e in una casa dove le stanze
+ * viaggiano tutte fra i 27 e i 28 gradi finivano uno sopra l'altro: cinque
+ * numeri impilati in dieci pixel, illeggibili, e per giunta coprivano le linee.
+ * Si allontanano quel tanto che basta a starci, partendo dal basso, cosi'
+ * l'ordine resta quello delle linee.
+ *
+ * Se le stanze sono tante lo spazio non basta. Prima le due passate si
+ * limitavano a spingere, la seconda ripartiva dall'orlo alto senza piu'
+ * guardare quello basso, e gli ultimi numeri finivano sull'asse delle ore o
+ * fuori dal disegno, tagliati: sul telefono bastano quattordici stanze. Adesso
+ * il passo si stringe fino a dove il numero si legge ancora, e chi non ci sta
+ * il numero non ce l'ha — resta la sua linea, col suo colore e il suo tratto, e
+ * la legenda che lo dice. Meglio un numero in meno che un numero tagliato.
+ *
+ * Si tengono quelli piu' distanti fra loro, presi a passo costante lungo
+ * l'ordine delle linee: cosi' quello che si legge copre tutta l'altezza del
+ * disegno invece di ammucchiarsi da una parte. */
+export const ALTEZZA_ETICHETTA = 13;
+export const ALTEZZA_MINIMA_ETICHETTA = 9;
+
+export function altezzeDelleCode(altezze, { cima, fondo }) {
+  const code = altezze
+    .map((y, indice) => ({ indice, y: y + 3.5 }))
+    .sort((primo, secondo) => secondo.y - primo.y);
+  if (!code.length) return new Map();
+  const spazio = Math.max(0, fondo - cima);
+  const quanteStanno =
+    spazio >= ALTEZZA_MINIMA_ETICHETTA
+      ? Math.min(code.length, Math.floor(spazio / ALTEZZA_MINIMA_ETICHETTA) + 1)
+      : 1;
+  const tenute =
+    quanteStanno >= code.length
+      ? code
+      : Array.from({ length: quanteStanno }, (_niente, posto) =>
+          code[Math.round((posto * (code.length - 1)) / (quanteStanno - 1 || 1))],
+        );
+  const passo =
+    tenute.length > 1
+      ? Math.max(
+          ALTEZZA_MINIMA_ETICHETTA,
+          Math.min(ALTEZZA_ETICHETTA, spazio / (tenute.length - 1)),
+        )
+      : ALTEZZA_ETICHETTA;
+
+  let limite = fondo;
+  for (const coda of tenute) {
+    coda.y = Math.min(coda.y, limite);
+    limite = coda.y - passo;
+  }
+  // Se il mucchio ha sfondato in alto, si ridiscende dall'orlo superiore — e
+  // senza perdere di vista quello basso, che e' il pezzo che mancava.
+  let minimo = cima;
+  for (const coda of [...tenute].reverse()) {
+    coda.y = Math.min(Math.max(coda.y, minimo), fondo);
+    minimo = coda.y + passo;
+  }
+  return new Map(tenute.map((coda) => [coda.indice, coda.y]));
+}
+
 export function tacche(min, max) {
   const ampiezza = max - min;
   if (!Number.isFinite(ampiezza) || ampiezza <= 0) return [];
@@ -418,32 +480,10 @@ function drawChart(chart, geometry, window, view) {
   chart.append(axis);
 
   const single = geometry.series.length === 1;
-  /* I numeri in coda alla linea non si sovrappongono.
-   *
-   * Ognuno stava all'altezza della sua linea, e in una casa dove le stanze
-   * viaggiano tutte fra i 27 e i 28 gradi finivano uno sopra l'altro: cinque
-   * numeri impilati in dieci pixel, illeggibili, e per giunta coprivano le
-   * linee. Si calcolano prima tutte le altezze, poi si allontanano quel tanto
-   * che basta a starci — partendo dal basso, cosi' l'ordine resta quello delle
-   * linee e nessuno esce dal disegno. */
-  const ALTEZZA_ETICHETTA = 13;
-  const fondo = view.height - view.bottom - 2;
-  const cima = view.top + 4;
-  const code = geometry.series
-    .map((item, indice) => ({ indice, y: item.last.y + 3.5 }))
-    .sort((primo, secondo) => secondo.y - primo.y);
-  let limite = fondo;
-  for (const coda of code) {
-    coda.y = Math.min(coda.y, limite);
-    limite = coda.y - ALTEZZA_ETICHETTA;
-  }
-  // Se il mucchio ha sfondato in alto, si ridiscende dall'orlo superiore.
-  let minimo = cima;
-  for (const coda of [...code].reverse()) {
-    coda.y = Math.max(coda.y, minimo);
-    minimo = coda.y + ALTEZZA_ETICHETTA;
-  }
-  const altezzaCoda = new Map(code.map((coda) => [coda.indice, coda.y]));
+  const altezzaCoda = altezzeDelleCode(
+    geometry.series.map((item) => item.last.y),
+    { cima: view.top + 4, fondo: view.height - view.bottom - 2 },
+  );
 
   geometry.series.forEach((item, indice) => {
     const group = svg("g", { class: "dm-trend-series", style: `--dm-series:${item.colour}` });
@@ -457,13 +497,16 @@ function drawChart(chart, geometry, window, view) {
       svg("circle", { class: "dm-trend-dot", cx: item.last.x, cy: item.last.y, r: 3.4 }),
     );
     // the current reading rides at the end of its own line
-    const tag = svg("text", {
-      class: "dm-trend-value",
-      x: Math.min(item.last.x + 7, view.width - 4),
-      y: altezzaCoda.get(indice) ?? item.last.y + 3.5,
-    });
-    tag.textContent = degrees(item.last.value);
-    group.append(tag);
+    const y = altezzaCoda.get(indice);
+    if (y != null) {
+      const tag = svg("text", {
+        class: "dm-trend-value",
+        x: Math.min(item.last.x + 7, view.width - 4),
+        y,
+      });
+      tag.textContent = degrees(item.last.value);
+      group.append(tag);
+    }
     chart.append(group);
   });
 }

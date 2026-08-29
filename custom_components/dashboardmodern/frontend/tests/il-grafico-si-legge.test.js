@@ -27,6 +27,67 @@ const tacche = new Function(
   ).replace("export function tacche", "return function tacche")}; return tacche;`,
 )();
 
+/* Anche `altezzeDelleCode` e' pura, e sta appena prima. */
+const altezzeDelleCode = new Function(
+  `${sorgente
+    .slice(
+      sorgente.indexOf("export const ALTEZZA_ETICHETTA"),
+      sorgente.indexOf("export function tacche"),
+    )
+    .replaceAll("export ", "")}; return altezzeDelleCode;`,
+)();
+
+/* I numeri in coda non escono dal disegno, nemmeno quando le stanze sono tante.
+ *
+ * Le due passate si limitavano a spingere: la seconda ripartiva dall'orlo alto
+ * e non guardava piu' quello basso, cosi' con quattordici stanze su un grafico
+ * da 210 pixel gli ultimi numeri finivano sull'asse delle ore o proprio fuori
+ * dall'immagine, tagliati. */
+test("i numeri in coda restano dentro il disegno, comunque vada", () => {
+  const cima = 12;
+  const fondo = 178;
+  for (const quante of [1, 3, 7, 14, 18, 26]) {
+    // il caso peggiore: tutte le stanze alla stessa temperatura, quindi tutte
+    // le code partono dallo stesso punto
+    const altezze = Array.from({ length: quante }, () => 95);
+    const code = altezzeDelleCode(altezze, { cima, fondo });
+    assert.ok(code.size >= 1, `${quante} stanze: nessun numero`);
+    assert.ok(code.size <= quante, `${quante} stanze: piu' numeri che stanze`);
+    for (const [indice, y] of code) {
+      assert.ok(
+        y >= cima - 0.001 && y <= fondo + 0.001,
+        `${quante} stanze: il numero ${indice} finisce a ${y}, fuori da ${cima}-${fondo}`,
+      );
+    }
+  }
+});
+
+/* E non si accavallano: chi non ci sta il numero non ce l'ha, e resta alla
+ * legenda — meglio un numero in meno che due numeri uno sopra l'altro. */
+test("i numeri che restano stanno larghi almeno quanto si leggono", () => {
+  const cima = 12;
+  const fondo = 178;
+  for (const quante of [5, 14, 26]) {
+    const code = altezzeDelleCode(
+      Array.from({ length: quante }, () => 95),
+      { cima, fondo },
+    );
+    const altezze = [...code.values()].sort((primo, secondo) => primo - secondo);
+    for (let posto = 1; posto < altezze.length; posto += 1) {
+      assert.ok(
+        altezze[posto] - altezze[posto - 1] >= 9 - 0.001,
+        `${quante} stanze: due numeri a ${altezze[posto] - altezze[posto - 1]} pixel`,
+      );
+    }
+  }
+});
+
+/* Con poche stanze non si perde niente: ognuna ha il suo numero. */
+test("con poche stanze ogni stanza tiene il suo numero", () => {
+  const code = altezzeDelleCode([40, 70, 110, 150], { cima: 12, fondo: 178 });
+  assert.equal(code.size, 4);
+});
+
 test("la scala mette da quattro a sette righe, su numeri tondi", () => {
   for (const [minimo, massimo] of [
     [25, 29.5],

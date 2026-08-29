@@ -61,6 +61,28 @@ export function alertIcon(entity, group) {
   return clean(scelte[clean(entity)]) || groupIcon(group);
 }
 
+/* L'icona di un avviso, disegnata.
+ *
+ * Il selettore delle icone e' quello del motore, e quello che scrive nel campo
+ * e' il nome mdi della voce — `mdi:gate`, `mdi:window-shutter`. Chi poi
+ * stampava quel campo come testo mostrava all'utente la scritta `mdi:gate` al
+ * posto di un disegno: si vedeva nella riga dell'apertura sulla Home e
+ * nell'anteprima della finestra di modifica. Il nome mdi va dato al motore,
+ * che ne tira fuori il disegno di casa.
+ *
+ * L'emoji resta emoji: chi non ha mai aperto quel selettore ha nel campo
+ * quella del gruppo, e deve continuare a vedere quella. */
+export function alertIconMarkup(entity, group, misura = 20) {
+  const valore = alertIcon(entity, group);
+  if (/^mdi:/i.test(valore)) {
+    const disegnata = root.DashboardModernIconEngine?.markup?.("action", valore, {
+      size: misura,
+    });
+    if (disegnata) return disegnata;
+  }
+  return esc(valore);
+}
+
 /* Chi si e' aggiunto non puo' essere anche uno che si e' tolto.
  *
  * Le due liste sono `cd_gruppi_extra` — quello che l'utente ha aggiunto — e
@@ -207,10 +229,18 @@ function persistAlert({ oldEntity, oldGroup, entity, group, name, icon }) {
 
 function syncAlertVisual(form) {
   const icon = clean(form.elements.icon?.value) || groupIcon(form.elements.group.value);
-  const preview = form.querySelector("[data-alert-group-preview]");
-  if (preview) preview.textContent = icon;
-  const header = form.closest(".dm-section-dialog")?.querySelector("[data-alert-header-icon]");
-  if (header) header.textContent = icon;
+  /* Un nome mdi si disegna, non si scrive: `textContent` mostrava all'utente
+   * la scritta `mdi:gate` appena finito di sceglierla dal selettore. */
+  const disegnata = /^mdi:/i.test(icon)
+    ? root.DashboardModernIconEngine?.markup?.("action", icon, { size: 22 })
+    : "";
+  const mostra = (nodo) => {
+    if (!nodo) return;
+    if (disegnata) nodo.innerHTML = disegnata;
+    else nodo.textContent = icon;
+  };
+  mostra(form.querySelector("[data-alert-group-preview]"));
+  mostra(form.closest(".dm-section-dialog")?.querySelector("[data-alert-header-icon]"));
 }
 
 export function openAlertEditor(row) {
@@ -226,8 +256,8 @@ export function openAlertEditor(row) {
     <form data-form>
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(rowName(row, oldEntity))}" required></label>
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(oldEntity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
-      <label class="ed-slot"><span class="ed-slot-lbl">${t("Gruppo avviso", "Alert group")}</span><span class="dm-alert-group-row"><span class="dm-alert-group-preview" data-alert-group-preview aria-hidden="true">${esc(alertIcon(oldEntity, oldGroup))}</span><select class="ed-input" name="group">${groupOptions(oldGroup)}</select></span><small>${t("Il gruppo decide dove l’avviso viene sorvegliato.", "The group decides where the alert is watched.")}</small></label>
-      <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input class="ed-input" id="dm-alert-icon" name="icon" value="${esc(alertIcon(oldEntity, oldGroup))}" maxlength="8" autocomplete="off"><button type="button" class="dm-entity-picker" data-pick-icon aria-label="${t("Scegli l’icona", "Pick the icon")}">🔍</button></span><small>${t("Lasciala uguale a quella del gruppo per seguirlo; cambiala per distinguere questa apertura dalle altre.", "Leave it as the group icon to follow it; change it to tell this opening from the others.")}</small></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Gruppo avviso", "Alert group")}</span><span class="dm-alert-group-row"><span class="dm-alert-group-preview" data-alert-group-preview aria-hidden="true">${alertIconMarkup(oldEntity, oldGroup, 22)}</span><select class="ed-input" name="group">${groupOptions(oldGroup)}</select></span><small>${t("Il gruppo decide dove l’avviso viene sorvegliato.", "The group decides where the alert is watched.")}</small></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input class="ed-input" id="dm-alert-icon" name="icon" value="${esc(alertIcon(oldEntity, oldGroup))}" maxlength="32" autocomplete="off"><button type="button" class="dm-entity-picker" data-pick-icon aria-label="${t("Scegli l’icona", "Pick the icon")}">🔍</button></span><small>${t("Lasciala uguale a quella del gruppo per seguirlo; cambiala per distinguere questa apertura dalle altre.", "Leave it as the group icon to follow it; change it to tell this opening from the others.")}</small></label>
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
     </form>

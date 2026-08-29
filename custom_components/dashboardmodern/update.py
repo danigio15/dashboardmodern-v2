@@ -196,9 +196,20 @@ async def async_setup_entry(
     # li sostituisce HACS sotto un processo gia' avviato.
     integrazione = await async_get_integration(hass, DOMAIN)
     coordinator = DashboardModernReleaseCoordinator(hass)
-    await coordinator.async_config_entry_first_refresh()
     async_add_entities(
         [DashboardModernUpdate(coordinator, normalize_version(integrazione.version))]
+    )
+    # La prima occhiata a GitHub si fa da parte, non qui.
+    #
+    # Aspettarla teneva fermo l'avvio dell'integrazione finche' la richiesta non
+    # tornava. Una rete che rifiuta subito non si sente; una che ingoia il
+    # pacchetto e non risponde — un firewall che scarta invece di respingere —
+    # tiene fermo tutto per i venti secondi buoni del timeout, a ogni avvio di
+    # Home Assistant e a ogni ricarica. Sapere se e' uscita una versione e'
+    # comodo, non indispensabile: l'entita' senza risposta legge gia' «niente di
+    # nuovo», e quando la risposta arriva si aggiorna da sola.
+    entry.async_create_background_task(
+        hass, coordinator.async_refresh(), f"{DOMAIN}-prima-occhiata"
     )
 
 

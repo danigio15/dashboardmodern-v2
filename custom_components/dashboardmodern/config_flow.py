@@ -99,12 +99,29 @@ class DashboardModernOptionsFlow(config_entries.OptionsFlow):
                     OPTION_ADMIN_ONLY,
                     default=self.config_entry.options.get(OPTION_ADMIN_ONLY, False),
                 ): bool,
-                # Acceso di suo: chi non lo vuole lo spegne, e la plancia torna
-                # a non parlare con nessuno fuori di casa.
-                vol.Optional(
-                    OPTION_CHECK_UPDATES,
-                    default=self.config_entry.options.get(OPTION_CHECK_UPDATES, True),
-                ): bool,
             }
         )
+        # L'avviso di aggiornamento e' dell'integrazione, non della singola
+        # plancia: lo porta una sola, quella venuta per prima, ed e' la sua
+        # opzione a contare. Mostrarlo anche sulle altre voleva dire offrire un
+        # interruttore che non comanda niente — spento su una plancia
+        # secondaria, la richiesta a GitHub partiva lo stesso — e su una scelta
+        # che riguarda la riservatezza non e' un dettaglio. Quindi compare dove
+        # ha effetto.
+        #
+        # Acceso di suo: chi non lo vuole lo spegne, e la plancia torna a non
+        # parlare con nessuno fuori di casa.
+        from . import _primary_entry
+
+        if _primary_entry(self.hass, self.config_entry):
+            schema = schema.extend(
+                {
+                    vol.Optional(
+                        OPTION_CHECK_UPDATES,
+                        default=self.config_entry.options.get(
+                            OPTION_CHECK_UPDATES, True
+                        ),
+                    ): bool,
+                }
+            )
         return self.async_show_form(step_id="init", data_schema=schema)

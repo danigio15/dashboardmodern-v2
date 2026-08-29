@@ -49,6 +49,43 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **L'icona scelta per un'apertura si leggeva `mdi:gate`.** Il selettore delle
+  icone e' quello del motore e scrive il nome mdi della voce; chi poi stampava
+  quel campo lo stampava come testo. Si vedeva nella riga dell'apertura sulla
+  Home e nell'anteprima della finestra di modifica: al posto del disegno, la
+  scritta. Adesso il nome mdi lo si da' al motore, che ne tira fuori il disegno
+  di casa; chi non ha mai aperto quel selettore ha ancora l'emoji del gruppo e
+  continua a vedere quella.
+
+- **L'avviso di aggiornamento teneva fermo l'avvio.** La prima occhiata a GitHub
+  si aspettava prima di considerare avviata l'integrazione. Una rete che rifiuta
+  subito non si sente; una che ingoia il pacchetto senza rispondere — un
+  firewall che scarta invece di respingere — teneva fermo tutto per i venti
+  secondi del timeout, a ogni avvio di Home Assistant e a ogni ricarica. Adesso
+  quella occhiata si fa da parte: l'entita' senza risposta legge gia' «niente di
+  nuovo», e quando la risposta arriva si aggiorna da sola.
+
+- **Togliendo la plancia principale spariva l'avviso di aggiornamento.**
+  L'avviso lo porta una plancia sola, e chi lo porta si decide quando quella
+  plancia si avvia: tolta quella, le altre erano gia' avviate e nessuna se ne
+  accorgeva. Restava senza fino al riavvio di Home Assistant. Adesso la prima
+  che resta riparte e se lo riprende.
+
+- **L'interruttore degli aggiornamenti compariva anche dove non comandava
+  niente.** Con piu' di una plancia lo si vedeva su tutte, ma a contare e' solo
+  quello della prima: spegnerlo su una secondaria non fermava la richiesta a
+  GitHub, e accenderlo la' non la faceva partire. Su una scelta che riguarda la
+  riservatezza non e' un dettaglio: adesso compare dove ha effetto.
+
+- **Il grafico delle temperature tagliava i numeri con molte stanze.** I numeri
+  in coda alle linee si allontanano per non accavallarsi, ma la passata che li
+  ridiscendeva dall'orlo alto non guardava piu' quello basso: sul telefono
+  bastavano quattordici stanze perche' gli ultimi finissero sull'asse delle ore
+  o proprio fuori dall'immagine. Adesso il passo si stringe fino a dove il
+  numero si legge ancora, e chi non ci sta il numero non ce l'ha — resta la sua
+  linea, col suo colore e il suo tratto, e la legenda che la nomina. Meglio un
+  numero in meno che un numero tagliato.
+
 - **La finestra dell'elettrodomestico restava aperta senza croce per
   chiuderla.** Da quando la testata segue la pagina aperta, una riga la nasconde
   quando quella pagina non e' la Home. La riga pero' diceva «intestazione», e
