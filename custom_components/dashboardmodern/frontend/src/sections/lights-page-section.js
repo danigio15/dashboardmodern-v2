@@ -29,7 +29,19 @@ import {
 } from "../core/light-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { openLightControl } from "./lights-scene-section.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, scriviSeCambia, t, wrapFunction } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  readJson,
+  root,
+  scriviSeCambia,
+  siComanda,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_LIGHTS_PAGE__";
 const state = (root[KEY] ||= {
@@ -92,7 +104,14 @@ export function pageLightGroups() {
     for (const id of group.entities) {
       if (seen.has(id)) continue;
       seen.add(id);
-      views.push(lightView(id, { name: names[id], state: states[id], room: group.room }));
+      views.push(
+        lightView(id, {
+          name: names[id],
+          state: states[id],
+          room: group.room,
+          comandabile: siComanda(id),
+        }),
+      );
     }
     if (views.length) groups.push({ room: group.room, views });
   }
@@ -102,7 +121,9 @@ export function pageLightGroups() {
     if (!id.includes(".") || seen.has(id)) continue;
     seen.add(id);
     const room = t("Altre zone", "Other areas");
-    extra.push(lightView(id, { name: names[id], state: states[id], room }));
+    extra.push(
+      lightView(id, { name: names[id], state: states[id], room, comandabile: siComanda(id) }),
+    );
   }
   if (extra.length) groups.push({ room: t("Altre zone", "Other areas"), views: extra });
   return groups;
@@ -188,14 +209,21 @@ export function pageCardMarkup(view) {
     view.colorful || view.tunable || view.effects.length
       ? `<button type="button" class="dm-lucip-tune" data-dm-lucip-open aria-label="${t("Controlli di", "Controls for")} ${esc(view.name)}">${SLIDERS}</button>`
       : "";
-  return `<article class="dm-lucip-card ${view.on ? "is-on" : ""}" data-dm-lucip="${esc(view.id)}" data-dm-lucip-available="${view.available}" style="--dm-light-color:${esc(color)};--dm-light-ink:${readableInk(color)};--dm-light-level:${view.on ? Math.max(12, level) : 0}%">
+  /* Una cosa che si guarda e basta: il tasto resta al suo posto — toglierlo
+   * cambierebbe la riga sotto gli occhi di chi la conosce — ma smette di essere
+   * un tasto. Non si preme, non si illumina al passaggio, e il lucchetto dice
+   * perche'. Il rifiuto vero non e' qui: `lightCommand` non costruisce nemmeno
+   * il comando, cosi' non c'e' modo di aggirarlo. */
+  const bloccata = view.comandabile === false;
+  return `<article class="dm-lucip-card ${view.on ? "is-on" : ""}" data-dm-lucip="${esc(view.id)}" data-dm-lucip-available="${view.available}" data-dm-lucip-comandabile="${!bloccata}" style="--dm-light-color:${esc(color)};--dm-light-ink:${readableInk(color)};--dm-light-level:${view.on ? Math.max(12, level) : 0}%">
     <span class="dm-lucip-glow" aria-hidden="true"></span>
-    <button type="button" class="dm-lucip-main" data-dm-lucip-toggle aria-pressed="${view.on}">
+    <button type="button" class="dm-lucip-main" data-dm-lucip-toggle aria-pressed="${view.on}"${bloccata ? ` aria-disabled="true" title="${esc(t("Si vede ma non si comanda", "Shown but not controllable"))}"` : ""}>
       <span class="dm-lucip-orb" aria-hidden="true">${view.domain === "light" ? BULB : PLUG}</span>
       <span class="dm-lucip-title">
         <strong>${esc(view.name)}</strong>
         <span class="dm-lucip-meta">
           <small class="dm-lucip-state" data-dm-lucip-state>${stateText(view)}</small>
+          ${bloccata ? `<span class="dm-lucip-badge" data-kind="bloccata">🔒 ${esc(t("Solo lettura", "Read only"))}</span>` : ""}
           ${badge ? `<span class="dm-lucip-badge" data-kind="${badge.kind}">${badge.label}</span>` : ""}
         </span>
       </span>
@@ -424,7 +452,11 @@ function viewOf(id) {
   if (!entity) return null;
   const names = readJson("cd_luci", {});
   const stato = allStates()[entity];
-  const view = lightView(entity, { name: names[entity], state: stato });
+  const view = lightView(entity, {
+    name: names[entity],
+    state: stato,
+    comandabile: siComanda(entity),
+  });
   const promesso = heldValue(entity, "power");
   if (promesso == null || !view.available) return view;
   if (promesso === view.on) {
@@ -690,6 +722,17 @@ function installStyles() {
       :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-state{color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
       :is(#page-luci,#page-stanze) .dm-lucip-badge{flex:0 0 auto;padding:2px 7px;border-radius:999px;font-size:8.5px;font-weight:900;letter-spacing:.6px;background:color-mix(in srgb,var(--dm-light-color,#f59e0b) 16%,transparent);color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,var(--text,#0f172a));border:1px solid color-mix(in srgb,var(--dm-light-color,#f59e0b) 26%,transparent)}
       :is(#page-luci,#page-stanze) .dm-lucip-badge[data-kind="switch"]{background:rgba(148,163,184,.14);color:var(--secondary-text-color,#64748b);border-color:rgba(148,163,184,.3)}
+      /* Una cosa che si guarda e basta. Il tasto resta dov'era — la riga non
+         cambia forma sotto gli occhi di chi la conosce — ma non risponde al
+         dito, non si illumina al passaggio, e il lucchetto lo dice. Il rifiuto
+         vero sta nel motore: qui c'e' solo il modo di accorgersene prima di
+         provarci. */
+      :is(#page-luci,#page-stanze) .dm-lucip-badge[data-kind="bloccata"]{background:rgba(148,163,184,.16);color:var(--secondary-text-color,#64748b);border-color:rgba(148,163,184,.34)}
+      :is(#page-luci,#page-stanze) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-main{cursor:default}
+      :is(#page-luci,#page-stanze) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-orb,
+      :is(#page-luci,#page-stanze) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-led{opacity:.5}
+      :is(#page-luci,#page-stanze) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-main:hover,
+      :is(#page-luci,#page-stanze) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-main:active{transform:none;filter:none}
       /* Il puntino grigio diceva poco: al suo posto un interruttore a
        * pillola, con la manopola che scorre e si tinge del colore della
        * lampada. E' decorativo — il gesto resta il tocco sulla card — ma
@@ -764,7 +807,8 @@ export function installLightsPageSection() {
   doc.addEventListener("click", handleClick);
   doc.addEventListener("input", (event) => handleSlide(event, false));
   doc.addEventListener("change", (event) => handleSlide(event, true));
-  for (const name of ["render", "cdApplyNavVis"]) wrapFunction(name, "__dmLightsPageSection", schedule);
+  for (const name of ["render", "cdApplyNavVis"])
+    wrapFunction(name, "__dmLightsPageSection", schedule);
   for (const event of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

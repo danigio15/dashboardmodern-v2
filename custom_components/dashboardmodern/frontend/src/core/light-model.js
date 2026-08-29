@@ -108,7 +108,10 @@ export function brightnessToPercent(brightness) {
  * is not in the registry — a configured light whose integration is down still
  * has to appear, marked unavailable, instead of silently vanishing.
  */
-export function lightView(id, { name = "", state = null, room = "", floor = "" } = {}) {
+export function lightView(
+  id,
+  { name = "", state = null, room = "", floor = "", comandabile = true } = {},
+) {
   const entity = clean(id);
   const domain = entityDomain(entity);
   const attributes = state?.attributes || {};
@@ -162,6 +165,15 @@ export function lightView(id, { name = "", state = null, room = "", floor = "" }
     kelvin: tunable ? (kelvin === null ? null : clamp(kelvin, range.min, range.max)) : null,
     minKelvin: range.min,
     maxKelvin: range.max,
+    /* Se questa si comanda.
+     *
+     * Certe cose in casa si guardano e basta: la presa del frigo, quella del
+     * modem, il congelatore in garage. Il tasto c'e' perche' l'entita' e' un
+     * interruttore, ma premerlo non e' mai una cosa che si voleva fare — e chi
+     * lo preme spesso non e' chi ha configurato la plancia. Chi disegna legge
+     * questo per fare il tasto spento; chi comanda non deve nemmeno guardarlo,
+     * ci pensa `lightCommand`. */
+    comandabile: comandabile !== false,
   };
 }
 
@@ -299,6 +311,15 @@ export function lightCommand(view, change = {}) {
   const entity = clean(view?.id);
   const domain = view?.domain === "light" ? "light" : entityDomain(entity) || "homeassistant";
   if (!entity) return null;
+  /* Il rifiuto sta qui, non nelle pagine.
+   *
+   * Un tasto disegnato grigio che poi funziona lo stesso e' peggio di un tasto
+   * normale: chi lo guarda crede di non poterlo premere e chi lo preme scopre
+   * di si'. Le pagine che comandano una luce sono quattro — Luci, Stanze, i
+   * riquadri della Home, le Prese — e tutte e quattro passano di qui. Chi
+   * dimenticasse il grigio farebbe una cosa brutta; chi dimenticasse il
+   * controllo, senza questa riga, farebbe una cosa pericolosa. */
+  if (view?.comandabile === false) return null;
 
   const power = change.power;
   const wantsOff = power === false || change.brightnessPct === 0;

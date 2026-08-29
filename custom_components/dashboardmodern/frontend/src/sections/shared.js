@@ -44,10 +44,7 @@ export const t = (it, en) => {
 /* Translate a string that only exists in English (no Italian counterpart). */
 export const tr = (en) => translate(en, getLocale());
 export const esc = (value) =>
-  clean(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll('"', "&quot;");
+  clean(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
 
 export function readClimateUnits() {
   let values;
@@ -108,12 +105,14 @@ const ENERGY_RUNTIME_FIELDS = Object.freeze(
   Object.fromEntries(
     ["house", "solar", "grid", "battery"].map((group) => [
       group,
-      [...new Set(
-        ENERGY_RUNTIME_SOURCES.filter((source) => source.group === group).flatMap((source) => [
-          source.totalKey,
-          ...source.periodKeys,
-        ]),
-      )],
+      [
+        ...new Set(
+          ENERGY_RUNTIME_SOURCES.filter((source) => source.group === group).flatMap((source) => [
+            source.totalKey,
+            ...source.periodKeys,
+          ]),
+        ),
+      ],
     ]),
   ),
 );
@@ -156,7 +155,11 @@ function cumulativeEntity(reference, states = {}, resolver = root.resolveEntity)
  * deliberately never promoted to Total here, so a valid explicit monthly
  * sensor remains authoritative for the current month.
  */
-export function sanitizeEnergyModel(value = {}, states = allStates(), resolver = root.resolveEntity) {
+export function sanitizeEnergyModel(
+  value = {},
+  states = allStates(),
+  resolver = root.resolveEntity,
+) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
   const snapshot = states && typeof states === "object" ? states : {};
   if (!Object.keys(snapshot).length) return value;
@@ -262,7 +265,8 @@ export function section(name, fallback) {
     // A read-only view when the store offers one: the sections only read here,
     // and a fresh deep copy per call was the busiest thing on an idle plancia.
     const store = dashboardStore();
-    const value = (store?.peekSection ? store.peekSection(name) : store?.getSection?.(name)) ?? fallback;
+    const value =
+      (store?.peekSection ? store.peekSection(name) : store?.getSection?.(name)) ?? fallback;
     return name === "energy" ? sanitizeEnergyModel(value, allStates(), root.resolveEntity) : value;
   } catch (_error) {
     return fallback;
@@ -311,9 +315,7 @@ export function roomOptionsMarkup(selected = "", vuoto = "") {
   const righe = (Array.isArray(stanze) ? stanze : []).map((room) => {
     const valore = String(room?.id || room?.name || "").trim();
     if (!valore) return "";
-    const attiva = [room?.id, room?.name]
-      .map((voce) => String(voce ?? "").trim())
-      .includes(scelto);
+    const attiva = [room?.id, room?.name].map((voce) => String(voce ?? "").trim()).includes(scelto);
     const simbolo = String(room?.icon || "").trim();
     const glifo = simbolo && !simbolo.startsWith("mdi:") ? `${esc(simbolo)} ` : "";
     return `<option value="${esc(valore)}"${attiva ? " selected" : ""}>${glifo}${esc(room?.name || valore)}</option>`;
@@ -378,7 +380,8 @@ export function allStates() {
   const hosted = [root.__HASS__?.states, root.hass?.states].filter(
     (value) => value && typeof value === "object",
   );
-  if (!hosted.length && !globalThis.__DM_SLOW_STATES__) return registry && typeof registry === "object" ? registry : {};
+  if (!hosted.length && !globalThis.__DM_SLOW_STATES__)
+    return registry && typeof registry === "object" ? registry : {};
   const values = hosted.length ? Object.assign({}, ...hosted) : {};
   for (const name of ["_RAW_STATES", "STATES"]) {
     const lexical = lexicalGlobal(name);
@@ -393,6 +396,49 @@ export function readJson(key, fallback) {
   } catch (_error) {
     return fallback;
   }
+}
+
+/* Le cose che si guardano e basta.
+ *
+ * «Non e' meglio oscurare il tasto accendi/spegni sulla presa del frigo?» —
+ * si', ed e' il genere di domanda che ha una risposta sola per tutta la
+ * plancia. La presa del frigo, quella del modem, il congelatore in garage: il
+ * tasto c'e' perche' l'entita' e' un interruttore, ma premerlo non e' mai una
+ * cosa che si voleva fare, e chi lo preme spesso non e' chi ha configurato la
+ * plancia.
+ *
+ * L'elenco sta in un posto solo e si legge da qui. La regola — cosa succede a
+ * un comando che parte lo stesso — sta in `lightCommand`, che e' puro e lo
+ * rifiuta: un tasto grigio che poi funziona sarebbe peggio di un tasto normale.
+ */
+const CHIAVE_SOLO_LETTURA = "cd_solo_lettura";
+
+export function entitaSoloLettura() {
+  const mappa = readJson(CHIAVE_SOLO_LETTURA, {});
+  return mappa && typeof mappa === "object" ? mappa : {};
+}
+
+/** Se questa entita' si puo' comandare. Senza entita' la risposta e' si': non
+ * e' compito di questa funzione dire che manca un'entita'. */
+export function siComanda(entity, bloccate = entitaSoloLettura()) {
+  const id = String(entity ?? "").trim();
+  if (!id) return true;
+  return bloccate[id] !== true;
+}
+
+/** Mette o toglie il blocco. Torna `true` se qualcosa e' cambiato davvero. */
+export function segnaSoloLettura(entity, bloccata) {
+  const id = String(entity ?? "").trim();
+  if (!id) return false;
+  const mappa = entitaSoloLettura();
+  if (bloccata) {
+    if (mappa[id] === true) return false;
+    mappa[id] = true;
+  } else {
+    if (!(id in mappa)) return false;
+    delete mappa[id];
+  }
+  return writeJsonIfChanged(CHIAVE_SOLO_LETTURA, mappa, { sync: false });
 }
 
 export function writeJsonIfChanged(key, value, { sync = true } = {}) {
@@ -487,9 +533,7 @@ export function applyTemperatureReading(card, temperature, humidity) {
 export function temperatureCardLabels(room = {}, entry = {}) {
   const id = clean(entry.id);
   const primary = !id || id === "primary";
-  const temperature = primary
-    ? clean(room.temp_name || room.temperature_name)
-    : clean(entry.name);
+  const temperature = primary ? clean(room.temp_name || room.temperature_name) : clean(entry.name);
   const humidity = primary ? clean(room.hum_name || room.humidity_name) : "";
   return {
     temperature: temperature || t("Temperatura", "Temperature"),
@@ -641,8 +685,7 @@ export function scriviSeCambia(nodo, markup) {
    * corretto: la firma resterebbe la nostra, il paragone tornerebbe, e li'
    * resterebbe la roba di un altro. Il testo si puo' confrontare — quello torna
    * indietro identico — mentre il markup no. */
-  if (nodo.dataset?.dmScritto === testo && nodo.textContent === nodo.dataset.dmTesto)
-    return false;
+  if (nodo.dataset?.dmScritto === testo && nodo.textContent === nodo.dataset.dmTesto) return false;
   nodo.innerHTML = testo;
   if (nodo.dataset) {
     nodo.dataset.dmScritto = testo;

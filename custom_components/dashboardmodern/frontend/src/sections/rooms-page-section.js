@@ -43,6 +43,7 @@ import {
   readJson,
   root,
   section,
+  siComanda,
   t,
   wrapFunction,
 } from "./shared.js";
@@ -165,9 +166,7 @@ function entitaVoce(item) {
 
 function nomeVoce(item, states) {
   const entity = entitaVoce(item);
-  return (
-    clean(item?.name) || clean(states?.[entity]?.attributes?.friendly_name) || entity || "—"
-  );
+  return clean(item?.name) || clean(states?.[entity]?.attributes?.friendly_name) || entity || "—";
 }
 
 /* Cosa sta facendo, in una parola. La pagina di ogni sezione lo racconta per
@@ -306,8 +305,7 @@ export function pillsMarkup(pagine, scelta) {
 export function sceneMarkup(pagina, states) {
   const { totale, accese } = roomSceneSummary(pagina, states);
   if (!totale) return "";
-  const quante =
-    totale === 1 ? t("1 luce", "1 light") : t(`${totale} luci`, `${totale} lights`);
+  const quante = totale === 1 ? t("1 luce", "1 light") : t(`${totale} luci`, `${totale} lights`);
   return `<section class="dm-stanze-scena" role="group" aria-label="${esc(t("Scene della stanza", "Room scenes"))}">
     <div class="dm-stanze-scena-kpi">
       <span>${esc(t("Scene", "Scenes"))}</span>
@@ -435,7 +433,11 @@ export function blockMarkup(blocco, states) {
           .map((luce) => {
             const entity = clean(luce.entity || luce.id);
             return pageCardMarkup(
-              lightView(entity, { name: clean(luce.name), state: states?.[entity] }),
+              lightView(entity, {
+                name: clean(luce.name),
+                state: states?.[entity],
+                comandabile: siComanda(entity),
+              }),
             );
           })
           .join("")
@@ -496,7 +498,7 @@ function signature(pagine, scelta, states) {
       .join("|"),
     lightsSignature(
       roomSceneEntities(pickRoomPage(pagine, scelta)).map((entity) =>
-        lightView(entity, { state: states?.[entity] }),
+        lightView(entity, { state: states?.[entity], comandabile: siComanda(entity) }),
       ),
     ),
   ].join("§");
@@ -529,7 +531,8 @@ function paint() {
      * sensori quel confronto sbagliava tutte le righe tranne la prima, e le
      * umidita' delle altre uscivano in gradi. */
     const coda = node.getAttribute("data-dm-stanza-coda") || "°";
-    const testo = valore && valore !== "unknown" && valore !== "unavailable" ? `${valore}${coda}` : "—";
+    const testo =
+      valore && valore !== "unknown" && valore !== "unavailable" ? `${valore}${coda}` : "—";
     if (node.textContent !== testo) node.textContent = testo;
   }
   for (const node of wrap.querySelectorAll("[data-dm-stanza-stato]")) {
@@ -581,7 +584,7 @@ function runScene(on) {
   const pagina = pickRoomPage(roomPages(), state.room);
   root.navigator?.vibrate?.(15);
   for (const entity of roomSceneEntities(pagina)) {
-    const view = lightView(entity, { state: states[entity] });
+    const view = lightView(entity, { state: states[entity], comandabile: siComanda(entity) });
     if (view.on === on || !view.available) continue;
     callService(lightCommand(view, { power: on }));
   }
@@ -688,7 +691,8 @@ export function installRoomsPageSection() {
     if (event.key !== "Enter" && event.key !== " ") return;
     if (event.target?.closest?.("[data-dm-stanza-vai]")) handleClick(event);
   });
-  for (const name of ["render", "cdApplyNavVis"]) wrapFunction(name, "__dmRoomsPageSection", schedule);
+  for (const name of ["render", "cdApplyNavVis"])
+    wrapFunction(name, "__dmRoomsPageSection", schedule);
   for (const event of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

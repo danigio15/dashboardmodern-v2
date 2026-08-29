@@ -22,8 +22,14 @@ const USER_DATA_VERSION = 1;
  * (`cd_stanze_entita`) e il segno progressivo delle auto (`cd_ev_meta`). Le
  * prime due erano configurazione che restava su un dispositivo solo; la terza
  * e' la guardia contro gli identificativi riusati, e senza viaggiare non
- * guardava niente. */
-export const CONFIG_KEYS_REVISION = 9;
+ * guardava niente.
+ * La revisione 10 aggiunge le cose che si guardano e basta
+ * (`cd_solo_lettura`). «Non e' meglio oscurare il tasto accendi/spegni sulla
+ * presa del frigo?» — si', ed e' una decisione della casa, non del telefono da
+ * cui la si e' presa: se non viaggia, il frigo e' protetto sul telefono di chi
+ * ha configurato la plancia e spegnibile su tutti gli altri, che e' esattamente
+ * il contrario di quello che serve. */
+export const CONFIG_KEYS_REVISION = 10;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -104,6 +110,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",
+  // Le cose che si guardano e basta: la presa del frigo, quella del modem.
+  "cd_solo_lettura",
   "cd_luci_room_order",
   "cd_clima_units",
   // Cosa accende il tasto Clima rapido: modalita', temperatura e ventola.

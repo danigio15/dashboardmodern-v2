@@ -90,6 +90,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Le cose che si guardano e basta.** «Non è meglio oscurare il tasto
+  accendi/spegni sulla presa del frigo?» — sì, e non è una preferenza estetica:
+  un tasto che non va premuto non dovrebbe esserci. La presa del frigo, quella
+  del modem, il congelatore in garage sono interruttori come gli altri, e la
+  plancia li disegnava come gli altri; solo che premerli non è mai una cosa che
+  si voleva fare, e chi li preme spesso non è chi ha configurato la plancia.
+  Adesso nella scheda di una luce o di una presa c'è un interruttore: la riga
+  resta dov'è, si legge sempre se è accesa, ma il tasto non risponde. Il grigio
+  da solo non sarebbe bastato — un tasto disegnato spento che poi funziona è
+  peggio di un tasto normale — quindi il rifiuto sta nel motore, in un punto
+  solo per cui passano tutte e quattro le pagine che comandano qualcosa:
+  nemmeno «spegni tutte» la tocca. La scelta viaggia con la configurazione,
+  perché è una decisione della casa e non del telefono da cui la si è presa.
+
+
 - **Le finestre dicono quando, e da quanto.** Erano poco informative: dicevano
   che una cosa e' accesa, che si legge gia' dal colore del cerchio. Adesso
   mentre la batteria si carica la sezione Energia cambia soggetto — la domanda
