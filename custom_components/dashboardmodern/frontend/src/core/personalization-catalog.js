@@ -513,7 +513,15 @@ export const ACTION_ICON_CATALOG = Object.freeze(
     ["climate", "Clima", "Climate", "mdi:snowflake", "❄️"],
     ["heat", "Riscaldamento", "Heating", "mdi:radiator", "🔥"],
     ["security", "Sicurezza", "Security", "mdi:shield-home", "🛡️"],
-    ["gate", "Cancello", "Gate", "mdi:gate", "🚪"],
+    /* La porta e il cancello sono due cose diverse.
+     *
+     * Qui c'era solo il cancello, e si teneva l'emoji della porta: 🚪. Chi
+     * configurava un'azione per una porta — «Door Piscina Spa» — la vedeva
+     * disegnata come un cancello a stecche, identica a quella del cancello
+     * vero due riquadri piu' in la'. Segnalato come «l'icona della porta non
+     * compare piu'», ed era esattamente cosi': non c'era. */
+    ["door", "Porta", "Door", "mdi:door-closed", "🚪"],
+    ["gate", "Cancello", "Gate", "mdi:gate", "🚧"],
     ["shutters", "Tapparelle", "Shutters", "mdi:window-shutter", "🪟"],
     ["scene", "Scena", "Scene", "mdi:movie-open", "🎬"],
     ["script", "Script", "Script", "mdi:script-text-play", "▶️"],
@@ -540,6 +548,7 @@ const ACTION_ARTWORK = Object.freeze({
   heat: "<rect x='9' y='12' width='30' height='27' rx='4'/><path d='M16 12v27m8-27v27m8-27v27M12 8v4m24-4v4M14 43v-4m20 4v-4'/>",
   security:
     "<path d='M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z'/><path d='M18 23l4 4 8-9'/>",
+  door: "<path d='M13 6h22v36H13z'/><path d='M18 11h12v26H18z'/><circle cx='27' cy='25' r='2'/><path d='M9 42h30'/>",
   gate: "<path d='M8 41V9h32v32M14 41V15h20v26M14 23h20M14 31h20'/>",
   shutters:
     "<rect x='8' y='7' width='32' height='34' rx='3'/><path d='M12 13h24M12 19h24M12 25h24M12 31h24M12 37h24'/>",
@@ -856,7 +865,8 @@ const LOAD_APPLIANCE_DEFINITIONS = [
     "🧖",
     "sauna idromassaggio jacuzzi",
   ],
-  ["gate", "Cancello", "Gate", "mdi:gate", "🚪", "cancello portone motore"],
+  ["door", "Porta", "Door", "mdi:door-closed", "🚪", "porta portoncino ingresso door serratura"],
+  ["gate", "Cancello", "Gate", "mdi:gate", "🚧", "cancello portone motore"],
   [
     "shutters",
     "Tapparelle",

@@ -83,6 +83,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   parte prendere. Adesso c'e' una riga per strada, con il motivo di ciascuna —
   quella tentata e fallita e quella nemmeno tentata.
 
+- **L'icona della porta non compariva piu'.** Nelle Azioni rapide una porta
+  prendeva il disegno del cancello: «Door Piscina Spa» e «Cancello» finivano
+  identici. Non era un difetto del motore delle icone — nel catalogo la porta
+  non c'era proprio, e il cancello si teneva per se' anche il suo simbolo, 🚪.
+  Chi configurava una porta trovava l'unica cosa che quel simbolo sapesse
+  trovare. Adesso la porta c'e', col suo disegno, e il cancello ha il suo. Chi
+  aveva gia' un cancello configurato non si ritrova una porta.
+
 - **La croce per chiudere si vedeva poco.** Era un testo grigio chiaro senza
   sfondo, in un angolo di una finestra piena di colori. Adesso ha un fondo, un
   bordo e il colore pieno del testo, e il bersaglio arriva a trentadue pixel —
