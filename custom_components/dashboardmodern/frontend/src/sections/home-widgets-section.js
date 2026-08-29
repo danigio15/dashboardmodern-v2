@@ -1346,15 +1346,23 @@ function preseModel(states) {
     if (!widgetIncludes(presa.entity, fuori)) continue;
     const stato = stateOf(states, presa.entity);
     if (!stato) continue;
+    const grezzo = clean(stato.state).toLowerCase();
+    /* Assente non e' spento: `unavailable` e `unknown` dicono che lo stato
+     * non si conosce, non che la presa e' spenta. La riga lo dice, e il tasto
+     * non finge di poter comandare quello che non risponde. */
+    const disponibile = grezzo !== "unavailable" && grezzo !== "unknown";
     rows.push({
       // Il disegno del catalogo di casa; l'emoji resta per i valori vecchi.
       glyph: iconaPresaMarkup(presa.icon, 17),
       name: clean(presa.name) || presa.entity,
       entity: presa.entity,
-      on: clean(stato.state).toLowerCase() === "on",
-      comando: siComanda(presa.entity),
-      value:
-        clean(stato.state).toLowerCase() === "on" ? t("Accesa", "On") : t("Spenta", "Off"),
+      on: grezzo === "on",
+      comando: siComanda(presa.entity) && disponibile,
+      value: !disponibile
+        ? t("Non disponibile", "Unavailable")
+        : grezzo === "on"
+          ? t("Accesa", "On")
+          : t("Spenta", "Off"),
     });
   }
   if (!rows.length) return null;

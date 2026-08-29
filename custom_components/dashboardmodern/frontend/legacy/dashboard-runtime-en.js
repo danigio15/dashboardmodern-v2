@@ -1780,7 +1780,7 @@ function editorRenderAvvisi() {
 }
 
 function edAddAvviso() {
-    const grp = document.getElementById('ed-avv-grp').value; if (grp === 'tapp') { const entT = (document.getElementById('ed-avv-ent').value||'').trim(); const nmT = (document.getElementById('ed-avv-name').value||'').trim(); if (!entT.includes('.')) { alert('Inserisci una entità cover valida'); return; } const itemT = { entities:[entT], name: nmT || entT, icon:'🪟', cond:'eq', value:'open' }; const listT = cdCfgList('cd_avvisi_custom'); listT.push(itemT); localStorage.setItem('cd_avvisi_custom', JSON.stringify(listT)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} editorSwitch('avvisi'); edToast('Avviso tapparella aggiunto'); return; }
+    const grp = document.getElementById('ed-avv-grp').value; if (grp === 'tapp') { const entT = (document.getElementById('ed-avv-ent').value||'').trim(); const nmT = (document.getElementById('ed-avv-name').value||'').trim(); if (!entT.includes('.')) { alert('Inserisci una entità cover valida'); return; } /* L'icona del selettore vale per OGNI avviso: questo ramo la ignorava e la tapparella restava col suo simbolo qualunque cosa si scegliesse. */ const icT = (((document.getElementById('ed-avv-icon')||{}).value)||'').trim(); const itemT = { entities:[entT], name: nmT || entT, icon: (icT && icT !== '⚠️') ? icT : '🪟', cond:'eq', value:'open' }; const listT = cdCfgList('cd_avvisi_custom'); listT.push(itemT); localStorage.setItem('cd_avvisi_custom', JSON.stringify(listT)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} editorSwitch('avvisi'); edToast('Avviso tapparella aggiunto'); return; }
     const ent = (document.getElementById('ed-avv-ent').value||'').trim();
     const name = (document.getElementById('ed-avv-name').value||'').trim();
     if (grp === 'custom') {
@@ -5090,6 +5090,19 @@ let _cdBootAtteso = false;
 function _cdModuliPronti() {
     return Boolean(window.__DASHBOARDMODERN_SECTION_RUNTIME__ && window.__DASHBOARDMODERN_SECTION_RUNTIME__.installed);
 }
+/* I fogli grandi non bloccano piu' la prima dipintura (media="print" finche'
+ * non arrivano, poi il loro onload li accende): il velo quindi non deve
+ * togliersi prima che il vestito sia arrivato, o con i moduli gia' in cache si
+ * vedrebbe la plancia nuda per un momento. Se un foglio non arriva mai, ci
+ * pensa la stessa scadenza degli otto secondi. */
+function _cdFogliPronti() {
+    try {
+        const fogli = document.querySelectorAll('link[rel="stylesheet"][href*="dashboard-runtime"]');
+        for (const foglio of fogli) { if (foglio.media === 'print') return false; }
+        return true;
+    } catch (e) { return true; }
+}
+function _cdPlanciaPronta() { return _cdModuliPronti() && _cdFogliPronti(); }
 function _cdTogliIlVelo() {
     if (_cdBootDone) return; _cdBootDone = true;
     const o = document.getElementById('cd-boot-overlay');
@@ -5099,12 +5112,12 @@ function cdHideBoot() {
     window.__DASHBOARDMODERN_READY__ = true;
     if (window.__DASHBOARDMODERN_BOOT_TIMEOUT__) clearTimeout(window.__DASHBOARDMODERN_BOOT_TIMEOUT__);
     if (_cdBootDone) return;
-    if (_cdModuliPronti()) { _cdTogliIlVelo(); return; }
+    if (_cdPlanciaPronta()) { _cdTogliIlVelo(); return; }
     if (_cdBootAtteso) return; _cdBootAtteso = true;
     const scadenza = Date.now() + CD_ATTESA_MODULI;
     const guarda = () => {
         if (_cdBootDone) return;
-        if (_cdModuliPronti() || Date.now() >= scadenza) { _cdTogliIlVelo(); return; }
+        if (_cdPlanciaPronta() || Date.now() >= scadenza) { _cdTogliIlVelo(); return; }
         (window.requestAnimationFrame || window.setTimeout)(guarda, 32);
     };
     guarda();

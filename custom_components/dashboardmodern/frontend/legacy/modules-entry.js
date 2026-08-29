@@ -246,9 +246,24 @@ function renderEnergyEditorTab(target) {
  * entita' del primo, e scriverci sopra. Il ridisegno che parte dal magazzino
  * non copre questo caso: scatta al salvataggio dell'impianto, PRIMA che la
  * scelta sia scritta. */
-globalThis.addEventListener?.("dashboardmodern:energy-plant-changed", () => {
-  const body = globalThis.document?.getElementById?.("ed-body");
-  if (!body || body.dataset.editor !== "energy" || energyWriteInFlight()) return;
+globalThis.addEventListener?.("dashboardmodern:energy-plant-changed", async () => {
+  const trovaMaschera = () => {
+    const body = globalThis.document?.getElementById?.("ed-body");
+    return body && body.dataset.editor === "energy" ? body : null;
+  };
+  if (!trovaMaschera()) return;
+  /* Una scrittura in corso non annulla il ridisegno: lo fa aspettare.
+   *
+   * Scrivere in un campo e toccare subito la linguetta dell'altro impianto fa
+   * partire prima il salvataggio del campo (sul suo impianto, letto al
+   * momento del cambio) e poi il clic: rinunciare al ridisegno qui lasciava
+   * la maschera vecchia sotto la linguetta nuova — e il prossimo campo
+   * toccato sarebbe finito sull'impianto sbagliato. */
+  if (energyWriteInFlight()) {
+    try { await flushEnergyWrites(); } catch (_error) {}
+  }
+  const body = trovaMaschera();
+  if (!body) return;
   renderEnergyEditorTab(body);
   mountCurrentEditor("energy", body);
 });
