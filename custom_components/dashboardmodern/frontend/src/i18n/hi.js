@@ -1813,4 +1813,7 @@ export default Object.freeze({
   "WebRTC: skipped, the browser does not support it": "WebRTC: छोड़ा गया, ब्राउज़र इसका समर्थन नहीं करता",
   "⚠️ Camera without an entity": "⚠️ बिना एंटिटी वाला कैमरा",
   "The Home Assistant entity is missing in the Cameras tab": "कैमरा टैब में Home Assistant एंटिटी मौजूद नहीं है",
+  "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "उन सॉकेट के लिए जिन्हें बंद नहीं करना चाहिए: फ़्रिज, मोडेम, फ़्रीज़र। पंक्ति अपनी जगह रहती है, बटन काम करना बंद कर देता है।",
+  "Read only": "केवल पढ़ने के लिए",
+  "Shown but not controllable": "दिखता है पर नियंत्रित नहीं होता",
 });

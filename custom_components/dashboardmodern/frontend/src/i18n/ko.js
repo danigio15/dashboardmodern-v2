@@ -1813,4 +1813,7 @@ export default Object.freeze({
   "WebRTC: skipped, the browser does not support it": "WebRTC: 건너뜀, 브라우저가 지원하지 않음",
   "⚠️ Camera without an entity": "⚠️ 엔터티가 없는 카메라",
   "The Home Assistant entity is missing in the Cameras tab": "카메라 탭에 Home Assistant 엔터티가 없습니다",
+  "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "꺼서는 안 되는 콘센트용입니다. 냉장고, 모뎀, 냉동고 등. 행은 그대로 남고 버튼만 반응하지 않습니다.",
+  "Read only": "읽기 전용",
+  "Shown but not controllable": "보이지만 조작할 수 없음",
 });
