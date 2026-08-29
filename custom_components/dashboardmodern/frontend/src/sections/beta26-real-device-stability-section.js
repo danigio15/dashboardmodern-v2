@@ -1065,6 +1065,47 @@ function applyFlowColor(node, color) {
   });
 }
 
+/* Le bolle del flusso Energia hanno un padrone solo.
+ *
+ * Nel guscio ci sono cinque bolle a posto fisso — Boiler, Wallbox, Clima,
+ * Lavanderia, Cucina — disegnate quando i carichi erano quei cinque e basta.
+ * Oggi i carichi li disegna il flusso nuovo, in numero e posizione decisi dalla
+ * configurazione, e le cinque vecchie le ritira: le marchia
+ * `data-dm-legacy-energy-load="replaced"` e le nasconde.
+ *
+ * Qui sotto si decide se una bolla e' spenta in configurazione. La domanda e'
+ * legittima, ma non su una bolla gia' ritirata: rimettendole `display` a posto
+ * («riacceso, dunque tornaci visibile») si cancellava proprio il `none` con cui
+ * il flusso l'aveva ritirata, e la bolla vecchia ricompariva al suo posto fisso
+ * — un cerchio in piu' in fondo, e uno sopra il Wallbox nuovo. Due padroni per
+ * la stessa bolla, ed e' sempre il secondo a rovinare il lavoro del primo.
+ *
+ * Quindi: su una bolla ritirata dal flusso non si tocca niente, ne' per
+ * nasconderla ne' per riaccenderla. E dove si tocca, si rimette il valore che
+ * c'era prima invece di cancellare la proprieta', perche' cancellarla non
+ * ripristina: scopre quello che ci stava sotto. */
+const RITIRATA_DAL_FLUSSO = (element) => element?.dataset?.dmLegacyEnergyLoad === "replaced";
+
+export function nascondiPerConfigurazione(element) {
+  if (!element || RITIRATA_DAL_FLUSSO(element)) return;
+  if (element.dataset.dmBeta27ForcedHidden !== "true") {
+    /* Cosa c'era prima, per poterlo rimettere identico. La stringa vuota e'
+     * «non c'era niente», ed e' un valore, non un'assenza. */
+    element.dataset.dmBeta27DisplayPrima = element.style.getPropertyValue("display") || "";
+    element.dataset.dmBeta27ForcedHidden = "true";
+  }
+  element.style.setProperty("display", "none", "important");
+}
+
+export function rimettiComeStava(element) {
+  if (!element || element.dataset.dmBeta27ForcedHidden !== "true") return;
+  const prima = element.dataset.dmBeta27DisplayPrima || "";
+  delete element.dataset.dmBeta27ForcedHidden;
+  delete element.dataset.dmBeta27DisplayPrima;
+  if (prima) element.style.setProperty("display", prima);
+  else element.style.removeProperty("display");
+}
+
 export function applyFlowNodeCustomization() {
   const raw = readJson("cd_flow_nodes", {});
   const nodes = normalizeFlowNodesForEditor(raw);
@@ -1073,23 +1114,15 @@ export function applyFlowNodeCustomization() {
     const line = doc?.getElementById?.(node.lineId);
     const explicit = raw && Object.prototype.hasOwnProperty.call(raw, key) ? raw[key] : null;
     if (explicit?.enabled === false) {
-      if (target) {
-        target.dataset.dmBeta27ForcedHidden = "true";
-        target.style.setProperty("display", "none", "important");
-      }
-      if (line) {
-        line.dataset.dmBeta27ForcedHidden = "true";
-        line.style.setProperty("display", "none", "important");
-      }
+      nascondiPerConfigurazione(target);
+      nascondiPerConfigurazione(line);
       continue;
     }
     for (const element of [target, line]) {
-      if (element?.dataset?.dmBeta27ForcedHidden === "true") {
-        delete element.dataset.dmBeta27ForcedHidden;
-        element.style.removeProperty("display");
-      }
+      if (RITIRATA_DAL_FLUSSO(element)) continue;
+      rimettiComeStava(element);
     }
-    if (target && explicit?.color) applyFlowColor(target, node.color);
+    if (target && explicit?.color && !RITIRATA_DAL_FLUSSO(target)) applyFlowColor(target, node.color);
   }
   return true;
 }

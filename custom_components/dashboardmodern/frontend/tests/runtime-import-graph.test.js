@@ -455,7 +455,45 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // per la stessa entita' e la certezza che prima o poi una scada con una
   // regola diversa dall'altra. E' il difetto che si sta togliendo dappertutto
   // in questi giorni: qui si evitava di crearne uno nuovo.
-  assert.ok(relative.length <= 174, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 175 col nome della lettura. Nella finestra del Solare termico si leggeva
+  // «Temperatura Pannello solare Temperature»: la parola due volte, una per
+  // lingua. Non e' un difetto della plancia — Home Assistant costruisce il nome
+  // amichevole incastrando il nome del dispositivo, che scrive chi abita la
+  // casa, con quello dell'entita', che scrive l'integrazione — ma stampato
+  // com'e' sembra un difetto della plancia. Il modulo toglie dalla coda la
+  // parola gia' detta dall'unita' del valore, e non tocca i nomi che senza
+  // quella parola direbbero di meno: meta' delle sue prove pretende che il nome
+  // resti intero, perche' accorciare troppo e' il difetto peggiore dei due.
+  // 176 con le strade per aprire una telecamera. Su Ring e Arlo il video non
+  // partiva, e i due motivi erano l'uno il contrario dell'altro: si provava una
+  // strada che non poteva funzionare, e si smetteva di provare quella che stava
+  // per riuscire. WebRTC si tentava sempre — la condizione era «il browser sa
+  // farlo», che oggi e' vero dappertutto — ma quel WebRTC li' e' go2rtc, e vuole
+  // il nome del flusso che le si e' dato dentro go2rtc: chi non ce l'ha
+  // installata pagava tre secondi a ogni apertura per un flusso inesistente. E
+  // l'HLS aveva dieci secondi di tempo, tarati su una telecamera di casa sempre
+  // accesa: una in cloud deve prima svegliare l'apparecchio e ci mette di piu',
+  // quindi si mollava sul piu' bello e si finiva sulle istantanee a due
+  // fotogrammi al secondo — «si vede, ma a scatti», che e' il modo in cui si
+  // vive un difetto senza saperlo nominare. La scelta sta in un modulo puro
+  // perche' e' l'unico modo di provarla senza avere una Ring in casa: entrano la
+  // telecamera e quello che Home Assistant dichiara di lei, esce l'ordine delle
+  // strade con le attese e il perche' di quelle saltate.
+  // 178 con le prese. «Cosa ne pensi di inserire una sezione dedicata a prese
+  // generiche, tipo TV Salotto, TV letto, Presa Firestick?» — si potevano gia'
+  // configurare, perche' la scheda Luci accetta anche `switch.`, e una presa
+  // messa li' si accende benissimo. Solo che si chiama luce: finisce
+  // nell'elenco delle luci, si conta nel «3 accese» del salone, e «spegni tutte
+  // le luci» la spegne — cosa che per la TV puo' anche andare e per il modem
+  // no. I moduli sono due perche' fanno due mestieri: `prese-model.js` e' puro
+  // e sa solo che forma ha una presa e come si raggruppano per stanza;
+  // `prese-section.js` mette la pagina, la voce nella barra e la scheda di
+  // configurazione. Quello che NON c'e' e' la ragione per cui sono due e non
+  // cinque: niente motore per accendere — a comandare una presa e' lo stesso
+  // `lightCommand` di tutto il resto, quindi il blocco «si vede ma non si
+  // comanda» vale qui senza una riga in piu' — e niente scheda nuova da
+  // disegnare, perche' e' la stessa `pageCardMarkup` delle luci.
+  assert.ok(relative.length <= 178, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

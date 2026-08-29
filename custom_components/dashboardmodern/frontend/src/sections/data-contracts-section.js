@@ -269,47 +269,75 @@ function normalizeLegacyLightRooms() {
   if (!rooms.length) return false;
   const lights = readJson("cd_luci", {});
   const assignments = readJson("cd_luci_rooms", {});
-  const adopted = new Map();
   let changed = false;
   for (const [entity, name] of Object.entries(lights)) {
     const raw = clean(assignments[entity]);
-    if (rooms.some((room) => clean(room.id) === raw || clean(room.name) === raw)) continue;
+    /* Gia' a posto: l'assegnazione porta l'identificativo della stanza. */
+    if (rooms.some((room) => clean(room.id) === raw)) continue;
+    /* Chi decide, e in che ordine.
+     *
+     * Prima l'indizio che viene dall'entita' e dal suo nome, poi quello che
+     * dice l'assegnazione. Sembra il contrario di quello che si farebbe — una
+     * scelta fatta a mano dovrebbe vincere su un indovinello — ma questo ordine
+     * risponde a una segnalazione vera, ed e' sorvegliato da una prova col
+     * browser: le assegnazioni che arrivano qui non sono scelte a mano, sono
+     * cio' che resta di un'importazione dalle aree, e sono spesso pezzi di
+     * stringa che assomigliano a una stanza senza esserlo. Cambiare l'ordine
+     * senza una segnalazione che lo chieda vorrebbe dire spostare le luci di
+     * chi non ha chiesto niente. */
     const inferred = canonicalRoomForLight(entity, name, rooms);
+    /* Il nome di una stanza si scrive nell'assegnazione solo quando arriva
+     * dall'importazione delle aree. Rimane un nome, e un nome si puo'
+     * cambiare: al primo rinomino la luce resta scollegata. Qui diventa
+     * l'identificativo, che non cambia mai. */
     const resolved =
       inferred ||
-      rooms.find(
-        (room) =>
-          clean(room.name).toLowerCase() === raw.toLowerCase() ||
-          slug(room.name) === slug(raw) ||
-          slug(room.id).replace(/^room-/, "") === slug(raw).replace(/^room-/, ""),
-      );
-    if (resolved && assignments[entity] !== resolved.id) {
-      assignments[entity] = resolved.id;
+      (raw
+        ? rooms.find(
+            (room) =>
+              clean(room.name).toLowerCase() === raw.toLowerCase() ||
+              slug(room.name) === slug(raw) ||
+              slug(room.id).replace(/^room-/, "") === slug(raw).replace(/^room-/, ""),
+          )
+        : null);
+    /* Si riscrive solo se c'e' qualcosa di MEGLIO da scrivere.
+     *
+     * Una stanza puo' non avere un identificativo: il deposito tiene quello che
+     * gli e' stato dato, e una configurazione scritta a mano ha solo il nome.
+     * Senza questa riga si prendeva `resolved.id` — che li' non esiste — e le si
+     * scriveva addosso `undefined`; ma `undefined` in un oggetto sparisce
+     * appena lo si serializza, quindi l'assegnazione non veniva corretta:
+     * veniva cancellata, e tutte le luci finivano fra le altre zone. Il nome lo
+     * risolvono tutti, l'`undefined` nessuno: senza un identificativo si
+     * lascia il nome dov'e'. */
+    const identificativo = clean(resolved?.id);
+    if (identificativo && assignments[entity] !== identificativo) {
+      assignments[entity] = identificativo;
       changed = true;
       continue;
     }
-    /* Una stanza che c'e' solo sulle luci non e' una stanza fantasma: e' una
-     * stanza che manca all'elenco.
+    /* Le stanze sono soltanto quelle della sezione Stanze. Nient'altro ne crea.
      *
-     * L'importazione dalle aree di Home Assistant assegna a ogni luce il nome
-     * della sua area e, separatamente, aggiunge quelle aree all'elenco delle
-     * stanze. Le due scritture non hanno lo stesso proprietario: l'elenco viene
-     * riscritto dal deposito a ogni salvataggio, l'assegnazione delle luci no.
-     * Bastava un salvataggio perche' l'elenco perdesse le aree e le luci
-     * restassero a puntare a nomi che nella sezione Stanze non c'erano piu'.
-     * Il nome viene adottato: era una stanza vera, torna nell'elenco. */
-    if (!resolved && raw) adopted.set(raw, (adopted.get(raw) || []).concat(entity));
-  }
-  if (adopted.size) {
-    const next = rooms.slice();
-    for (const [name, entities] of adopted) {
-      const id = `room-${slug(name) || next.length + 1}`;
-      if (next.some((room) => clean(room.id) === id)) continue;
-      next.push({ id, name, icon: "🏠" });
-      for (const entity of entities) assignments[entity] = id;
+     * Qui c'era l'adozione: una luce che nominava una stanza non piu' esistente
+     * se la faceva ricreare. Nasceva da un problema vero — l'importazione dalle
+     * aree di Home Assistant scrive il nome dell'area su ogni luce e,
+     * separatamente, aggiunge quelle aree all'elenco; le due scritture non hanno
+     * lo stesso padrone, e bastava un salvataggio perche' l'elenco le perdesse —
+     * ma la cura era peggiore. Ricreare la stanza da un'assegnazione voleva dire
+     * dare all'elenco delle stanze un secondo padrone, e un secondo padrone che
+     * non sa nemmeno cosa ha in mano: quel valore e' un identificativo, non un
+     * nome, e riadottandolo ci finiva davanti un altro «room-». Cancella tre
+     * volte e leggi «room-room-room-terrazzo».
+     *
+     * Adesso una luce che punta a una stanza che non c'e' piu' semplicemente non
+     * ha una stanza: finisce fra le altre zone, dove si vede, e la si riassegna
+     * dalla sezione Stanze. Perdere un'assegnazione e' un fastidio che si
+     * risolve in due tocchi; una stanza inventata che si allunga a ogni giro non
+     * si risolve affatto, perche' chi la guarda non sa nemmeno da dove venga. */
+    if (!resolved && raw) {
+      delete assignments[entity];
       changed = true;
     }
-    if (changed) dashboardStore()?.replaceSection?.("rooms", next);
   }
   if (!changed) return false;
   writeJsonIfChanged("cd_luci_rooms", assignments, { sync: false });
@@ -336,11 +364,14 @@ export async function applyDataContracts() {
 
 function schedule(delay = 0) {
   if (!doc || state.timer) return;
-  state.timer = root.setTimeout?.(async () => {
-    state.timer = 0;
-    subscribeStore();
-    await applyDataContracts();
-  }, Math.max(0, Number(delay) || 0));
+  state.timer = root.setTimeout?.(
+    async () => {
+      state.timer = 0;
+      subscribeStore();
+      await applyDataContracts();
+    },
+    Math.max(0, Number(delay) || 0),
+  );
 }
 
 function subscribeStore() {

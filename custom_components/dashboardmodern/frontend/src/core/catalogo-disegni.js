@@ -42,6 +42,12 @@ const CORPI = Object.freeze({
 
   security: `${PANNELLO}<path ${SCOCCA} d="M48 10 18 22v24c0 18 12 32 30 40 18-8 30-22 30-40V22z"/><path ${TRATTO_CHIARO} d="M34 47l10 11 19-21"/>`,
 
+  /* La porta, che non c'era.
+   *
+   * C'era solo il cancello, e teneva per se' anche l'emoji della porta: chi
+   * configurava una porta si ritrovava le stecche del cancello. */
+  door: `${PANNELLO}<rect ${SCOCCA} x="24" y="12" width="48" height="72" rx="8"/><rect ${FRONTALE} x="31" y="19" width="34" height="58" rx="5"/><circle ${ACCENTO} cx="58" cy="50" r="3.6"/><path ${TRATTO_CHIARO} d="M38 26h20M38 34h20"/>`,
+
   gate: `${PANNELLO}<rect ${SCOCCA} x="12" y="24" width="8" height="56" rx="4"/><rect ${SCOCCA} x="76" y="24" width="8" height="56" rx="4"/><rect ${FRONTALE} x="24" y="34" width="48" height="38" rx="6"/><path ${TRATTO} d="M32 34v38M42 34v38M52 34v38M62 34v38M24 53h48"/>`,
 
   shutters: `${PANNELLO}<rect ${SCOCCA} x="14" y="14" width="68" height="66" rx="10"/><rect ${FRONTALE} x="21" y="21" width="54" height="52" rx="6"/><path ${TRATTO} d="M25 31h46M25 41h46M25 51h46M25 61h46"/><rect ${ACCENTO} x="38" y="76" width="20" height="6" rx="3"/>`,
@@ -162,6 +168,11 @@ const ALIAS = Object.freeze({
   "pompa-di-calore": "heat-pump",
   sicurezza: "security",
   cancello: "gate",
+  porta: "door",
+  "door-closed": "door",
+  "door-open": "door",
+  portoncino: "door",
+  ingresso: "door",
   tapparelle: "shutters",
   scena: "scene",
   interruttore: "toggle",

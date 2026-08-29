@@ -128,9 +128,9 @@ test("da schermo largo il nome ci sta e le tessere riempiono la riga", async () 
   assert.ok(desktop, "manca il blocco da schermo largo");
   /* La card della luce non e' piu' incatenata a una pagina sola: la pagina
    * Stanze mostra le stesse, e il foglio deve valere anche li'. */
-  assert.match(desktop[0], /:is\(#page-luci,#page-stanze\) \.dm-lucip-grid\{display:flex;flex-wrap:wrap\}/);
+  assert.match(desktop[0], /:is\(#page-luci,#page-stanze,#page-prese\) \.dm-lucip-grid\{display:flex;flex-wrap:wrap\}/);
   // Il tetto serve: una stanza con una luce sola non diventa un cartellone.
-  assert.match(desktop[0], /:is\(#page-luci,#page-stanze\) \.dm-lucip-card\{flex:1 1 306px;max-width:396px\}/);
+  assert.match(desktop[0], /:is\(#page-luci,#page-stanze,#page-prese\) \.dm-lucip-card\{flex:1 1 306px;max-width:396px\}/);
   /* Il comando della stanza stava all'altro capo dello schermo, a un metro dal
    * conteggio che lo riguarda: da schermo largo torna accanto al suo. */
   assert.match(desktop[0], /\.dm-lucip-room-btn\{order:0\}/);

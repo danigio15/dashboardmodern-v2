@@ -5,6 +5,177 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.7
+
+### Corretto
+
+- **Il cerchio in piu' in fondo al flusso Energia, e quello sopra il Wallbox.**
+  Non era uno sfarfallio: erano due serie di bolle disegnate insieme. Nel guscio
+  ce ne sono cinque a posto fisso — Boiler, Wallbox, Clima, Lavanderia,
+  Cucina — di quando i carichi erano quei cinque e basta; oggi li disegna il
+  flusso, in numero e posizione decisi dalla configurazione, e quelle cinque le
+  ritira. La scheda dei nodi pero' decideva la stessa cosa da un'altra parte:
+  ogni volta che una bolla veniva riaccesa in configurazione le rimetteva a
+  posto la proprieta' `display`, e cosi' cancellava proprio il «nascosta» con
+  cui il flusso l'aveva ritirata. La bolla vecchia tornava al suo posto fisso,
+  addosso a quella nuova. Due padroni per la stessa bolla, ed e' sempre il
+  secondo a rovinare il lavoro del primo: adesso su una bolla che il flusso ha
+  gia' sostituito la scheda non scrive piu' niente, ne' per nasconderla ne' per
+  riaccenderla, e dove scrive rimette il valore che c'era invece di cancellare
+  la proprieta' — cancellarla non ripristina, scopre quello che sta sotto.
+
+- **La stessa bolla vecchia riappariva anche in Giorno e in Mese.** La regola
+  di stile che le tiene ritirate era scritta per la sola vista Istantanea, ma le
+  cinque bolle a posto fisso stanno in tutte e tre le viste, e in tutte e tre
+  c'e' qualcun altro che decide di mostrarle — la scheda dei nodi, e il
+  completatore degli slot che riaccende la linea del Wallbox quando in casa c'e'
+  un'auto. La difesa copriva un terzo del problema; adesso vale su tutte e tre.
+
+- **Una luce assegnata a una stanza per nome adesso la tiene anche se la stanza
+  cambia nome.** L'importazione dalle aree di Home Assistant scrive sulle luci
+  il nome dell'area, non il suo identificativo; finche' il nome corrispondeva a
+  una stanza configurata la plancia lo lasciava com'era, e al primo rinomino la
+  luce restava scollegata. Adesso il nome diventa l'identificativo, che non
+  cambia mai. Un'assegnazione scritta a mano continua a vincere su quello che si
+  indovina dal nome dell'entita': `light.salone_lampada` messa in Cucina resta
+  in Cucina.
+
+- **Le bolle vecchie non fanno piu' in tempo a vedersi.** Le nascondeva il
+  modulo del flusso nodo per nodo a ogni passata di disegno — seicentotrenta
+  scritture in quaranta giri, su nodi gia' nascosti — e fra il momento in cui il
+  guscio ne ridisegna una e il fotogramma in cui il modulo la rinasconde c'e'
+  una finestra in cui quella bolla si vede. Adesso a spegnerle e' anche una
+  regola di stile, che vale dall'istante in cui il nodo esiste e non aspetta
+  nessun giro: le scritture passano da seicentotrenta a zero, e quella finestra
+  non c'e' piu'.
+
+- **«Temperatura Pannello solare Temperature».** La parola due volte, una per
+  lingua, su tre righe della stessa finestra. Non nasce dalla plancia: Home
+  Assistant costruisce il nome amichevole di un sensore incastrando il nome del
+  dispositivo — scritto in italiano da chi abita la casa — con quello
+  dell'entita', che l'integrazione scrive in inglese. Stampato com'e' pero'
+  sembra un difetto della plancia. Adesso la parola in coda se ne va quando il
+  numero accanto dice gia' la stessa cosa: «80,9 °C» dice «temperatura» meglio
+  della parola. I nomi che senza quella parola direbbero di meno restano
+  interi — «Delta Solare termico Boiler» non si tocca — perche' un nome
+  accorciato troppo smette di dire quale cosa sia, ed e' il difetto peggiore
+  dei due.
+
+- **Sei frasi che dicevano il falso.** Tutte con la stessa forma: una finestra
+  che afferma una cosa mentre nella stessa finestra ce n'è scritta un'altra. Con
+  il sensore della casa irraggiungibile l'Energia diceva «il sole non produce»
+  anche col fotovoltaico a due chilowatt. Una vasca con la sonda del pH e senza
+  termometro leggeva «il pH è 7,3» e, riga sotto, «non c'è ancora una lettura».
+  Un aspirapolvere che non dichiara la carica disegnava la barra rossa vuota,
+  cioè annunciava una batteria a terra per dire che non la conosceva. Un'auto
+  sola veniva raccontata al plurale, perché si contavano le righe — carica e
+  autonomia — invece delle auto. La temperatura in grande è la media delle
+  stanze, ma la lettura nel tempo chiedeva la storia della prima e diceva «più
+  alto del solito» su un numero diverso da quello scritto sopra. E le righe del
+  solare termico portavano solo il testo, così l'analisi delle sonde e la durata
+  della pompa non uscivano mai. La regola che le lega: **assente non è zero, e
+  assente non è spento.** Un sensore che non risponde non dice che la batteria è
+  a terra o che il sole è fermo — dice che non risponde, e adesso la finestra
+  dice quello.
+
+- **Ring e Arlo: il video non partiva.** Due motivi opposti fra loro. Il primo:
+  si provava sempre WebRTC, perche' la condizione era «il browser sa farlo» — e
+  oggi lo sanno fare tutti. Ma quel WebRTC li' non e' quello di Home Assistant,
+  e' l'estensione go2rtc, e vuole il nome del flusso che le si e' dato dentro
+  go2rtc: chi non ce l'ha installata non ha nessun flusso con quel nome, e il
+  nome lo si tirava a indovinare dall'entita'. Tre secondi buttati a ogni
+  apertura, per tutti, prima ancora di cominciare — e altri tre subito dopo per
+  un MJPEG che una telecamera in cloud non ha. Il secondo motivo e' il contrario
+  del primo: si smetteva di aspettare quella che stava per riuscire. Ring, Arlo,
+  Blink e Nest non hanno un flusso sempre acceso da agganciare; quando le chiami
+  devono svegliare l'apparecchio, e ci mettono piu' dei dieci secondi che erano
+  concessi. Si mollava sul piu' bello e si finiva sulle istantanee a due
+  fotogrammi al secondo — «si vede, ma a scatti», che e' il modo in cui si vive
+  un difetto senza saperlo nominare. Adesso Home Assistant lo dice da se' che
+  flusso ha una telecamera, e la plancia gli crede: WebRTC solo se il flusso
+  go2rtc c'e' davvero, e a chi deve svegliarsi si da' il tempo di svegliarsi.
+
+- **Quando una telecamera non si apre, adesso si legge perche'.** Il messaggio
+  diceva «nessuna strategia di streaming ha funzionato», che non si sa da che
+  parte prendere. Adesso c'e' una riga per strada, con il motivo di ciascuna —
+  quella tentata e fallita e quella nemmeno tentata.
+
+- **La finestra della Piscina mostrava sempre e solo la prima vasca.** Leggeva
+  la configurazione com'è — che sono le caselle della prima — mentre le altre
+  vivono in un elenco accanto, e da lì non le ha mai viste. Adesso legge lo
+  stesso elenco della scheda di configurazione, e con più di una vasca ogni riga
+  porta davanti il nome della sua: «Idromassaggio · Acqua».
+
+- **La luce della piscina non si accendeva dalla finestra.** Era una riga
+  scritta — «Luce · Acceso» — come la temperatura dell'acqua, che però non si
+  comanda. Chi apre una finestra che dice «Acceso» si aspetta di poterla
+  toccare, e aveva ragione: pompa, riscaldamento e luce adesso hanno il loro
+  interruttore. Se l'entità è fra quelle che si guardano e basta, l'interruttore
+  non c'è: le due cose si parlano.
+
+- **Alla prima vasca non si poteva dare un nome.** La maschera di sopra è quella
+  che c'è sempre stata e configura la prima piscina, ma un nome non glielo
+  chiedeva: quando la piscina era una sola si chiamava «Piscina» e bastava.
+  Dalla seconda in poi serve, e le altre il nome ce l'hanno — la prima restava
+  l'unica senza, e con due vasche non si distinguevano.
+
+- **Una zona d'irrigazione non si poteva modificare.** C'era solo il cestino:
+  per cambiare il nome o la durata bisognava cancellarla e rifarla, e
+  rifacendola si perdeva il posto nella sequenza — che è l'ordine in cui il
+  programma le avvia, quindi non è un dettaglio. Adesso c'è la matita, come su
+  ogni altro elenco della configurazione, e la zona modificata resta dov'era.
+
+- **L'icona della porta non compariva piu'.** Nelle Azioni rapide una porta
+  prendeva il disegno del cancello: «Door Piscina Spa» e «Cancello» finivano
+  identici. Non era un difetto del motore delle icone — nel catalogo la porta
+  non c'era proprio, e il cancello si teneva per se' anche il suo simbolo, 🚪.
+  Chi configurava una porta trovava l'unica cosa che quel simbolo sapesse
+  trovare. Adesso la porta c'e', col suo disegno, e il cancello ha il suo. Chi
+  aveva gia' un cancello configurato non si ritrova una porta.
+
+- **La croce per chiudere si vedeva poco.** Era un testo grigio chiaro senza
+  sfondo, in un angolo di una finestra piena di colori. Adesso ha un fondo, un
+  bordo e il colore pieno del testo, e il bersaglio arriva a trentadue pixel —
+  la misura sotto la quale un dito manca.
+
+### Aggiunto
+
+- **Le prese hanno una sezione loro.** Si potevano già configurare — la scheda
+  Luci accetta anche `switch.`, e una presa messa lì si accende benissimo — solo
+  che si chiama luce: finisce nell'elenco delle luci, si conta nel «3 accese»
+  del salone, e «spegni tutte le luci» la spegne. Per la TV del salotto può
+  anche andare; per il modem no. Il difetto non era che non si potesse fare: era
+  doverla chiamare col nome di un'altra cosa. Adesso c'è una scheda Prese in
+  configurazione e una pagina sua nella barra, con le prese raggruppate per
+  stanza. Quello che NON è cambiato è la parte migliore: si accendono con lo
+  stesso motore di tutto il resto e si disegnano con la stessa scheda delle
+  luci — quindi il blocco «si vede ma non si comanda» vale anche qui, e la
+  presa del frigo si protegge dalla sua stessa riga.
+
+- **Le cose che si guardano e basta.** «Non è meglio oscurare il tasto
+  accendi/spegni sulla presa del frigo?» — sì, e non è una preferenza estetica:
+  un tasto che non va premuto non dovrebbe esserci. La presa del frigo, quella
+  del modem, il congelatore in garage sono interruttori come gli altri, e la
+  plancia li disegnava come gli altri; solo che premerli non è mai una cosa che
+  si voleva fare, e chi li preme spesso non è chi ha configurato la plancia.
+  Adesso nella scheda di una luce o di una presa c'è un interruttore: la riga
+  resta dov'è, si legge sempre se è accesa, ma il tasto non risponde. Il grigio
+  da solo non sarebbe bastato — un tasto disegnato spento che poi funziona è
+  peggio di un tasto normale — quindi il rifiuto sta nel motore, in un punto
+  solo per cui passano tutte e quattro le pagine che comandano qualcosa:
+  nemmeno «spegni tutte» la tocca. La scelta viaggia con la configurazione,
+  perché è una decisione della casa e non del telefono da cui la si è presa.
+
+
+- **Le finestre dicono quando, e da quanto.** Erano poco informative: dicevano
+  che una cosa e' accesa, che si legge gia' dal colore del cerchio. Adesso
+  mentre la batteria si carica la sezione Energia cambia soggetto — la domanda
+  non e' piu' quanto consuma la casa, ma quando sara' piena — e risponde: «La
+  batteria e' piena fra un'ora e venti». La pompa del solare termico dice da
+  quanto gira, non solo che gira. Il momento di partenza lo sa Home Assistant,
+  e cambia solo quando quella cosa parte o si ferma: non si inventa niente, e
+  dove il momento non c'e' non si scrive una durata.
+
 ## 1.3.6
 
 ### Aggiunto

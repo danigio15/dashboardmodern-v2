@@ -43,7 +43,7 @@
  * lo stesso.
  */
 
-import { daQuanto, numero, VERDETTI } from "./racconto-tessera.js";
+import { daQuanto, fraQuanto, numero, VERDETTI } from "./racconto-tessera.js";
 import { letturaNelTempo, SOGLIE_INSOLITO } from "./modello-nel-tempo.js";
 
 const IN_ITALIANO = (italiano) => italiano;
@@ -193,10 +193,26 @@ const LETTURE = Object.freeze({
       };
     }
 
+    /* Manca la lettura della casa, non quella del sole.
+     *
+     * Qui si diceva «il sole non produce» ogni volta che il sensore della casa
+     * era irraggiungibile — anche col fotovoltaico a due chilowatt, perche' il
+     * ramo del bilancio piu' sopra pretende di conoscere tutti e due i numeri e
+     * questo raccoglieva quello che avanzava. Dire che il sole e' fermo quando
+     * si sa che non lo e' e' la bugia peggiore fra quelle possibili qui: chi
+     * legge chiude la finestra convinto di avere un impianto guasto. */
     if (casa == null)
       return {
         tono: VERDETTI.bene,
-        frase: tr("Il sole non produce.", "No solar production."),
+        /* Qui `sole` c'e' sempre: se mancasse anche lui, il ramo piu' in alto
+         * avrebbe gia' detto che non c'e' niente da leggere. */
+        frase:
+          sole > 20
+            ? tr(
+                `Il sole fa ${watt(sole, l)}. Il consumo della casa non si legge.`,
+                `The sun is making ${watt(sole, l)}. The house consumption is unavailable.`,
+              )
+            : tr("Il sole non produce.", "No solar production."),
         punti,
       };
     return {
@@ -213,7 +229,7 @@ const LETTURE = Object.freeze({
   },
 
   /* Il fotovoltaico dentro il solare termico: sonde e pompa. */
-  solare: (tr, tessera) => {
+  solare: (tr, tessera, adesso) => {
     const l = lingua(tr, tessera?.lingua);
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
     const pompa = tessera?.attiva === true;
@@ -256,15 +272,30 @@ const LETTURE = Object.freeze({
         punti,
       };
     const salto = estremo.massimo.gradi - estremo.minimo.gradi;
-    if (pompa)
+    if (pompa) {
+      /* «La pompa e' accesa» e' gia' scritto nel colore del cerchio. Quello che
+       * aggiunge qualcosa e' da quanto: Home Assistant sa da quando quello
+       * stato non cambia, e quel momento cambia solo quando la pompa parte o
+       * si ferma. */
+      const minuti = daQuandoDelleRighe(
+        righe.filter((r) => r?.on === true),
+        adesso,
+      );
       return {
         tono: VERDETTI.corso,
-        frase: tr(
-          `La pompa gira: ${numero(salto, 1, l)}° di salto fra il pannello e l'accumulo.`,
-          `Pump running: ${numero(salto, 1, l)}° between panel and store.`,
-        ),
+        frase:
+          minuti == null
+            ? tr(
+                `La pompa gira: ${numero(salto, 1, l)}° di salto fra il pannello e l'accumulo.`,
+                `Pump running: ${numero(salto, 1, l)}° between panel and store.`,
+              )
+            : tr(
+                `La pompa gira ${daQuanto(minuti, tr)}: ${numero(salto, 1, l)}° di salto fra il pannello e l'accumulo.`,
+                `Pump running ${daQuanto(minuti, tr)}: ${numero(salto, 1, l)}° between panel and store.`,
+              ),
         punti,
       };
+    }
     return {
       tono: VERDETTI.bene,
       frase: tr(
@@ -560,10 +591,20 @@ const LETTURE = Object.freeze({
           punti,
         };
     }
+    /* «Non c'e' ancora una lettura» dopo aver appena scritto il pH.
+     *
+     * Questo ramo guardava la sola temperatura dell'acqua: una vasca con la
+     * sonda del pH e senza termometro si sentiva dire che il pH e' 7,3 e, riga
+     * sotto, che non c'e' ancora una lettura. Due frasi che si smentiscono
+     * nella stessa finestra valgono meno di una sola. Se qualcosa si e' letto,
+     * si dice cosa manca; se non si e' letto niente, allora si', non c'e'
+     * ancora una lettura. */
     if (acqua == null)
       return {
         tono: VERDETTI.bene,
-        frase: tr("Non c'e' ancora una lettura.", "No reading yet."),
+        frase: punti.length
+          ? tr("La temperatura dell'acqua non si legge.", "The water temperature is unavailable.")
+          : tr("Non c'e' ancora una lettura.", "No reading yet."),
         punti,
       };
     return {
@@ -648,7 +689,15 @@ export function analisiDellaSezione(
  * deve saperlo. Il verso — il pieno di una batteria, l'obiettivo di un
  * termostato — e' invece una cosa della sezione, e sta scritta qui. */
 const FORMA = Object.freeze({
-  energia: { unita: (v, l) => watt(v, l), bersaglio: () => null },
+  /* La sezione Energia ha due soggetti. Di solito e' la potenza della casa, e
+   * allora si scrive in watt e non c'e' un traguardo. Mentre la batteria si
+   * carica il soggetto diventa lo stato di carica: si scrive in percentuale, e
+   * il traguardo e' il pieno — cosi' la finestra puo' dire quando ci arriva
+   * invece di ripetere un numero che si legge gia' sopra. */
+  energia: {
+    unita: (v, l, tessera) => (tessera?.soggetto === "carica" ? `${Math.round(v)}%` : watt(v, l)),
+    bersaglio: (tessera) => (tessera?.soggetto === "carica" ? 100 : null),
+  },
   temperatura: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
   solare: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
   piscina: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
@@ -667,7 +716,7 @@ function puntiDelModello(tessera, storia, tr, adesso) {
   const forma = FORMA[tessera?.key];
   if (!forma || !storia) return { punti: [], tono: null };
   const l = lingua(tr, tessera?.lingua);
-  const scrivi = (v) => forma.unita(v, l);
+  const scrivi = (v) => forma.unita(v, l, tessera);
   const lettura = letturaNelTempo(storia, { adesso, bersaglio: forma.bersaglio(tessera) });
   if (!lettura) return { punti: [], tono: null };
 
@@ -705,8 +754,12 @@ function puntiDelModello(tessera, storia, tr, adesso) {
    * il passo. L'arrivo e' la risposta migliore delle due: «piena fra un'ora»
    * dice piu' di «sale del dodici per cento all'ora». */
   if (lettura.arrivo) {
-    const fraQuanto = daQuanto((lettura.arrivo - adesso) / 60000, tr);
-    punti.push(tr(`Ci arriva ${fraQuanto}`, `Getting there ${fraQuanto}`));
+    const quando = fraQuanto((lettura.arrivo - adesso) / 60000, tr);
+    punti.push(
+      tessera?.soggetto === "carica"
+        ? tr(`La batteria e' piena ${quando}`, `Battery full ${quando}`)
+        : tr(`Ci arriva ${quando}`, `Getting there ${quando}`),
+    );
   } else if (lettura.tendenza && lettura.tendenza.verso !== "ferma") {
     const passo = Math.abs(lettura.tendenza.perOra);
     punti.push(

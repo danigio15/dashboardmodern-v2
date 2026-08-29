@@ -1,11 +1,17 @@
-/* Una stanza che c'e' solo sulle luci non e' una stanza fantasma.
+/* Le stanze sono soltanto quelle della sezione Stanze.
  *
- * L'importazione dalle aree di Home Assistant assegna a ogni luce il nome della
- * sua area e, separatamente, aggiunge quelle aree all'elenco delle stanze. Le
- * due scritture non hanno lo stesso proprietario: l'elenco viene riscritto dal
- * deposito a ogni salvataggio, l'assegnazione delle luci no. Bastava un
- * salvataggio perche' le luci restassero a puntare a nomi che nella sezione
- * Stanze non c'erano piu'.
+ * L'importazione dalle aree di Home Assistant lascia sulle luci il NOME
+ * dell'area, non il suo identificativo. Se quel nome corrisponde a una stanza
+ * configurata, l'assegnazione va riscritta con l'id: cambiare il nome della
+ * stanza non deve staccarle le luci.
+ *
+ * Se invece quel nome non corrisponde a niente, prima la plancia adottava la
+ * stanza — la aggiungeva all'elenco per non perdere l'assegnazione. Sembrava
+ * gentile, ed era il secondo padrone dell'elenco delle stanze: da li' nasceva
+ * il nome che si allungava a ogni cancellazione, `room-room-room-terrazzo`.
+ * Adesso l'elenco ha un padrone solo, ed e' la sezione Stanze. Una luce che
+ * punta a una stanza che non c'e' semplicemente non ha una stanza: finisce
+ * fra le altre zone, dove si vede, e la si riassegna in due tocchi.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
@@ -34,7 +40,7 @@ const seed = {
 };
 
 for (const variant of PRIMARY) {
-  test(`${variant}: una stanza assegnata solo alle luci finisce nell'elenco`, async ({
+  test(`${variant}: una stanza che c'e' solo sulle luci non entra nell'elenco`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(90_000);
@@ -45,34 +51,40 @@ for (const variant of PRIMARY) {
         JSON.stringify({ "light.piantana": "Piantana", "light.faretti": "Faretti" }),
       );
       // Quello che lascia l'importazione dalle aree: un nome, non un id.
+      // «Salone» e' una stanza configurata, «Mansarda» no.
       localStorage.setItem(
         "cd_luci_rooms",
         JSON.stringify({ "light.piantana": "Mansarda", "light.faretti": "Salone" }),
       );
     });
-    // La passata sui contratti gira quando il runtime la sveglia: qui la si
-    // sveglia dalla stessa porta, invece di aspettare che passi da sola. Senza
-    // questo la prova dipendeva da quale evento capitasse entro venti secondi,
-    // e su una macchina lenta non ne capitava nessuno.
+    /* La passata sui contratti gira quando il runtime la sveglia: qui la si
+     * sveglia dalla stessa porta, invece di aspettare che passi da sola. */
     await expect
       .poll(
         () =>
           page.evaluate(() => {
             window.dispatchEvent(new Event("pageshow"));
-            const rooms = window.DashboardModernModules?.store?.getSection?.("rooms") || [];
-            return rooms.map((room) => room.name).sort();
+            try {
+              return JSON.parse(localStorage.getItem("cd_luci_rooms") || "{}");
+            } catch (error) {
+              return {};
+            }
           }),
-        { message: "la stanza delle luci compare fra le stanze", timeout: 20_000 },
+        {
+          message:
+            "il nome diventa un id per la stanza che c'e', e sparisce per quella che non c'e'",
+          timeout: 20_000,
+        },
       )
-      .toEqual(["Mansarda", "Salone"]);
+      .toEqual({ "light.faretti": "room-salone" });
 
-    const assignment = await page.evaluate(() => {
-      try {
-        return JSON.parse(localStorage.getItem("cd_luci_rooms") || "{}")["light.piantana"];
-      } catch (error) {
-        return null;
-      }
-    });
-    expect(assignment, "la luce punta alla stanza per id").toMatch(/^room-/);
+    /* L'elenco delle stanze non e' cresciuto: nessuno l'ha scritto tranne la
+     * sezione Stanze, che qui non e' stata toccata. */
+    const stanze = await page.evaluate(() =>
+      (window.DashboardModernModules?.store?.getSection?.("rooms") || []).map(
+        (stanza) => stanza.name,
+      ),
+    );
+    expect(stanze, "nessuna stanza inventata").toEqual(["Salone"]);
   });
 }

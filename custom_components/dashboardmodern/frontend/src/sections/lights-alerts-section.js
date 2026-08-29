@@ -1,5 +1,21 @@
 import { LIGHT_DOMAINS, isLightEntity, lightView } from "../core/light-model.js";
-import { allStates, clean, doc, english, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  english,
+  esc,
+  installStyle,
+  onEditorRedraw,
+  readJson,
+  root,
+  section,
+  segnaSoloLettura,
+  siComanda,
+  t,
+  wrapFunction,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_LIGHTS_ALERTS_SECTION__";
 const state = (root[KEY] ||= {
@@ -65,7 +81,9 @@ export function configuredLightGroups() {
   });
   const preferredLabels = preferredRooms.map((room) => roomLabel(room, rooms));
   const roomNames = [
-    ...preferredLabels.filter((room, index) => grouped.has(room) && preferredLabels.indexOf(room) === index),
+    ...preferredLabels.filter(
+      (room, index) => grouped.has(room) && preferredLabels.indexOf(room) === index,
+    ),
     ...[...grouped.keys()].filter((room) => !preferredLabels.includes(room)),
   ];
   return roomNames.map((room) => {
@@ -97,7 +115,7 @@ function roomOptions(selected) {
  * so the badge is the only place the difference is visible before opening the
  * controls. */
 function lightMeta(id) {
-  const view = lightView(id, { state: allStates()?.[id] });
+  const view = lightView(id, { state: allStates()?.[id], comandabile: siComanda(id) });
   const badges = [];
   if (!view.available) badges.push({ kind: "off", label: t("NON DISPONIBILE", "UNAVAILABLE") });
   if (view.colorful) badges.push({ kind: "rgb", label: "RGB" });
@@ -189,13 +207,16 @@ function replaceEntity(value, oldId, newId) {
   if (Array.isArray(value)) return value.map((item) => replaceEntity(item, oldId, newId));
   if (value && typeof value === "object") {
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key === oldId ? newId : key, replaceEntity(item, oldId, newId)]),
+      Object.entries(value).map(([key, item]) => [
+        key === oldId ? newId : key,
+        replaceEntity(item, oldId, newId),
+      ]),
     );
   }
   return value === oldId ? newId : value;
 }
 
-function saveAllLightMaps({ oldId, entity, name, roomId }) {
+function saveAllLightMaps({ oldId, entity, name, roomId, soloLettura = null }) {
   const keys = [
     "cd_luci",
     "cd_luci_rooms",
@@ -212,8 +233,10 @@ function saveAllLightMaps({ oldId, entity, name, roomId }) {
       readJson(key, key === "cd_luci_room_order" || key === "cd_quick_actions" ? [] : {}),
     ]),
   );
+  let changedByLock = false;
   const lights = values.cd_luci && typeof values.cd_luci === "object" ? values.cd_luci : {};
-  const assignments = values.cd_luci_rooms && typeof values.cd_luci_rooms === "object" ? values.cd_luci_rooms : {};
+  const assignments =
+    values.cd_luci_rooms && typeof values.cd_luci_rooms === "object" ? values.cd_luci_rooms : {};
   if (entity !== oldId) {
     delete lights[oldId];
     delete assignments[oldId];
@@ -227,8 +250,17 @@ function saveAllLightMaps({ oldId, entity, name, roomId }) {
   if (values.cd_avvisi_names_extra && typeof values.cd_avvisi_names_extra === "object")
     values.cd_avvisi_names_extra[entity] = name;
 
-  let changed = false;
-  for (const key of keys) changed = writeJsonIfChanged(key, values[key], { sync: false }) || changed;
+  /* Il blocco viaggia con l'entita': cambiando entita' non lo si lascia
+   * addosso a quella vecchia, che non esiste piu' nella plancia. */
+  if (entity !== oldId && !siComanda(oldId)) {
+    segnaSoloLettura(oldId, false);
+    if (soloLettura === null) segnaSoloLettura(entity, true);
+  }
+  if (soloLettura !== null) changedByLock = segnaSoloLettura(entity, soloLettura);
+
+  let changed = changedByLock;
+  for (const key of keys)
+    changed = writeJsonIfChanged(key, values[key], { sync: false }) || changed;
   if (changed) {
     root.cdMarkDirty?.();
     root.cdSyncPush?.();
@@ -253,6 +285,7 @@ export function openLightEditor(entityId) {
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(oldId)}" required data-domain="${LIGHT_DOMAINS.join(" ")}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
       <div class="ed-slot"><span class="dm-light-caps-lbl">${t("Cosa sa fare", "What it can do")}</span><div class="dm-light-caps"><div class="dm-light-badges" data-capabilities>${meta.badges}</div><button type="button" class="dm-light-caps-try" data-controls>${t("Prova i controlli", "Try the controls")}</button></div><small class="dm-light-caps-note">${t("Letto da Home Assistant. Una luce dietro uno switch accende e spegne soltanto; luminosità e colore compaiono nel popup solo se l'entità li dichiara.", "Read from Home Assistant. A light behind a switch only turns on and off; brightness and colour appear in the popup only when the entity declares them.")}</small></div>
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomOptions(assignments[oldId])}</select></label>
+      <label class="ed-slot dm-solo-lettura"><span class="ed-slot-lbl">${t("Si vede ma non si comanda", "Shown but not controllable")}</span><span class="ed-form-row"><input type="checkbox" name="soloLettura" ${siComanda(oldId) ? "" : "checked"}><small>${t("Per le prese che non vanno spente: il frigo, il modem, il congelatore. La riga resta dov'è, il tasto smette di rispondere.", "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.")}</small></span></label>
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
     </form>
@@ -261,8 +294,12 @@ export function openLightEditor(entityId) {
   const form = modal.querySelector("[data-form]");
   const entityInput = form.elements.entity;
   const close = () => modal.remove();
-  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
-  modal.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(entityInput));
+  modal
+    .querySelectorAll("[data-close],[data-cancel]")
+    .forEach((button) => button.addEventListener("click", close));
+  modal
+    .querySelector("[data-pick]")
+    .addEventListener("click", () => root.wzPickEntity?.(entityInput));
   /* The badges describe the entity in the field, not the one the modal opened
    * with: pointing a light at another entity changes what it can do, and the
    * controls the popup will offer change with it. */
@@ -293,10 +330,19 @@ export function openLightEditor(entityId) {
     }
     const existing = readJson("cd_luci", {});
     if (entity !== oldId && existing[entity]) {
-      error.textContent = t("Questa entità è già configurata.", "This entity is already configured.");
+      error.textContent = t(
+        "Questa entità è già configurata.",
+        "This entity is already configured.",
+      );
       return;
     }
-    saveAllLightMaps({ oldId, entity, name, roomId });
+    saveAllLightMaps({
+      oldId,
+      entity,
+      name,
+      roomId,
+      soloLettura: Boolean(form.elements.soloLettura?.checked),
+    });
     close();
     rerenderLights();
   });
@@ -318,11 +364,19 @@ export function addLightFromForm() {
   const error = doc?.querySelector("[data-light-add-error]");
   const domini = LIGHT_DOMAINS.map((domain) => `${domain}.*`).join(", ");
   if (!isLightEntity(entity)) {
-    if (error) error.textContent = t(`Inserisci un'entità valida (${domini}).`, `Enter a valid entity (${domini}).`);
+    if (error)
+      error.textContent = t(
+        `Inserisci un'entità valida (${domini}).`,
+        `Enter a valid entity (${domini}).`,
+      );
     return false;
   }
   if (readJson("cd_luci", {})[entity]) {
-    if (error) error.textContent = t("Questa entità è già configurata.", "This entity is already configured.");
+    if (error)
+      error.textContent = t(
+        "Questa entità è già configurata.",
+        "This entity is already configured.",
+      );
     return false;
   }
   if (error) error.textContent = "";
@@ -357,12 +411,20 @@ export function mapsWithoutLight(values, id) {
    * comparire fra gli avvisi come se niente fosse. */
   const extras = { ...(values.cd_gruppi_extra || {}) };
   if (Array.isArray(extras.luci)) extras.luci = extras.luci.filter((item) => item !== entity);
-  return { cd_luci: lights, cd_luci_rooms: assignments, cd_luci_order: order, cd_gruppi_extra: extras };
+  return {
+    cd_luci: lights,
+    cd_luci_rooms: assignments,
+    cd_luci_order: order,
+    cd_gruppi_extra: extras,
+  };
 }
 
 function deleteLight(id) {
   const values = Object.fromEntries(
-    ["cd_luci", "cd_luci_rooms", "cd_luci_order", "cd_gruppi_extra"].map((key) => [key, readJson(key, {})]),
+    ["cd_luci", "cd_luci_rooms", "cd_luci_order", "cd_gruppi_extra"].map((key) => [
+      key,
+      readJson(key, {}),
+    ]),
   );
   const next = mapsWithoutLight(values, id);
   let changed = false;
@@ -407,7 +469,9 @@ export function openLightDeleteConfirm(entityId) {
   </section>`;
   doc.body.append(modal);
   const close = () => modal.remove();
-  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
+  modal
+    .querySelectorAll("[data-close],[data-cancel]")
+    .forEach((button) => button.addEventListener("click", close));
   modal.addEventListener("click", (event) => {
     if (event.target === modal) close();
   });
@@ -481,7 +545,9 @@ export function openOrderedLightPicker(groupName, onDone, preselected = []) {
   const list = modal.querySelector("[data-list]");
   const render = () => {
     const query = clean(modal.querySelector("[data-search]").value).toLowerCase();
-    const visible = ordered.filter((id) => `${names[id] || ""} ${id}`.toLowerCase().includes(query));
+    const visible = ordered.filter((id) =>
+      `${names[id] || ""} ${id}`.toLowerCase().includes(query),
+    );
     list.innerHTML = visible
       .map((id) => {
         const checked = selected.includes(id);
@@ -499,7 +565,8 @@ export function openOrderedLightPicker(groupName, onDone, preselected = []) {
       });
       row.querySelector("[data-up]").addEventListener("click", () => {
         const index = selected.indexOf(id);
-        if (index > 0) [selected[index - 1], selected[index]] = [selected[index], selected[index - 1]];
+        if (index > 0)
+          [selected[index - 1], selected[index]] = [selected[index], selected[index - 1]];
         render();
       });
       row.querySelector("[data-down]").addEventListener("click", () => {
@@ -512,7 +579,9 @@ export function openOrderedLightPicker(groupName, onDone, preselected = []) {
   };
   const close = () => modal.remove();
   modal.querySelector("[data-search]").addEventListener("input", render);
-  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
+  modal
+    .querySelectorAll("[data-close],[data-cancel]")
+    .forEach((button) => button.addEventListener("click", close));
   modal.querySelector("[data-save]").addEventListener("click", () => {
     onDone?.(selected);
     close();
@@ -600,7 +669,8 @@ function installStyles() {
 }
 
 function installOwners() {
-  if (typeof root.editorRenderLuci === "function") root.editorRenderLuci = renderCanonicalLightsEditor;
+  if (typeof root.editorRenderLuci === "function")
+    root.editorRenderLuci = renderCanonicalLightsEditor;
   root.cdPickLights = openOrderedLightPicker;
   root.cdLuceRen = openLightEditor;
   /* Anche i nomi legacy puntano alle versioni che funzionano dentro l'app:
