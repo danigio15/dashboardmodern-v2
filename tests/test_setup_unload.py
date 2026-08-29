@@ -17,9 +17,17 @@ from custom_components.dashboardmodern.const import DOMAIN
 
 @pytest.mark.asyncio
 async def test_setup_registers_the_frontend(
-    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Setup registers the panel that serves the HTML dashboard."""
+    """Setup registers the panel that serves the HTML dashboard.
+
+    Da quando c'e' l'avviso di aggiornamento il setup monta una piattaforma, e
+    montarla vuol dire chiedere a Home Assistant dov'e' l'integrazione. Nelle
+    prove le integrazioni personalizzate non si vedono se non lo si chiede:
+    senza questa riga il setup non trova se stesso.
+    """
     registered: list[str] = []
 
     async def fake_register(_hass: HomeAssistant, entry_id: str) -> None:

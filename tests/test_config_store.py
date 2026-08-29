@@ -244,9 +244,16 @@ async def test_the_store_is_shared_by_every_user_and_device(
 
 
 async def test_setup_exposes_the_store_and_the_commands(
-    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Setting up an entry makes the shared configuration reachable."""
+    """Setting up an entry makes the shared configuration reachable.
+
+    Il setup monta la piattaforma dell'avviso di aggiornamento, e per montarla
+    Home Assistant deve poter trovare l'integrazione: nelle prove le
+    personalizzate si vedono solo a richiesta.
+    """
     from homeassistant.components import websocket_api
 
     from custom_components.dashboardmodern import async_setup_entry
