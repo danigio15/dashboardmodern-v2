@@ -5,6 +5,122 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.6
+
+### Aggiunto
+
+- **Le finestre leggono i numeri, non li elencano soltanto.** Dentro il motore
+  c'e' adesso un modello di una grandezza nel tempo: prende le letture delle ore
+  precedenti e ne ricava le quattro cose che servono per dire qualcosa di
+  sensato su un numero — da che parte sta andando, quando arrivera' dove deve
+  arrivare, quale sia il suo valore abituale, e se quello di adesso sia normale.
+
+  Prima la finestra diceva «574 W» e nient'altro, e un numero da solo non si sa
+  se e' tanto o poco: 574 watt sono normali per una casa e tantissimi per un
+  frigorifero. Adesso dice «Piu' alto del solito per quest'ora: 900 W contro
+  300 W», e quando lo scostamento e' forte la sezione diventa da guardare anche
+  se non c'e' niente di acceso — che e' il caso per cui un modello serve, perche'
+  contando le cose accese non lo si trova.
+
+  Non c'e' un modello di linguaggio, ed e' una scelta: non si puo' chiedere a chi
+  installa una plancia per la propria casa di installare anche un'intelligenza
+  artificiale, di pagarla a ogni finestra che apre e di mandare fuori casa le
+  letture dei propri sensori. E su questo mestiere — contare — un modello di
+  linguaggio e' lo strumento sbagliato: sbaglia i conti, e li sbaglia in modo
+  plausibile.
+
+  Tre scelte tengono onesto il modello, e sono anche i tre modi di sbagliarlo. Il
+  tempo pesa: Home Assistant registra una lettura quando il valore cambia, non a
+  intervalli regolari, e un sensore fermo a zero per sei ore che poi fa tre
+  picchi in un minuto, contando le letture, «di solito» sta al picco — contando
+  il tempo sta a zero, che e' la verita'. Si usa la mediana e non la media, che
+  un inverter capace di leggere sessantamila watt per due secondi sposterebbe
+  per un'ora intera. E una tendenza si annuncia solo se c'e': una retta la si
+  traccia anche sul rumore, e sotto una certa bonta' la risposta e' «ferma»
+  invece di una salita inventata. Stessa prudenza sulle previsioni, che tacciono
+  quando l'arrivo cade oltre l'orizzonte: «la batteria sara' piena fra ventisei
+  ore» e' un modo raffinato di non dire niente.
+
+  Il modello non sa niente di sezioni, di finestre e di documento — prende numeri
+  e restituisce numeri — quindi serve anche per altro: una soglia di avviso, una
+  previsione dentro una sezione, il colore di una scheda.
+
+- **Una lettura propria per ogni sezione.** Dieci sezioni su diciassette non
+  avevano una frase loro e cadevano su un ripiego che sa contare soltanto cose
+  accese e spente. Da li' l'Energia scriveva «4 cose, nessuna in funzione» con il
+  fotovoltaico a 2,16 kW — le sue quattro righe sono casa, solare, rete e
+  batteria — e la Sicurezza scriveva «Qui non c'e' ancora niente» con l'antifurto
+  elencato subito sotto, perche' il suo antifurto non e' una riga. Non erano
+  frasi imprecise: parlavano di un'altra cosa.
+
+  Adesso l'Energia ragiona sul bilancio — «Il sole fa 2,16 kW e la casa ne usa
+  574 W: ne avanzano 1,59 kW», con sotto «La batteria si carica a 1,47 kW»,
+  perche' il segno meno detto a parole toglie un'ambiguita' che nessuno e' tenuto
+  a sciogliere. La Temperatura dice la distanza fra la stanza piu' calda e la
+  piu' fredda, che e' il dato utile: la media da sola non lo e'. La Piscina col
+  pH fuori norma diventa da guardare anche senza niente acceso. Dove il dato non
+  c'e' non si inventa niente e non si scrive una riga vuota: si dice di meno.
+
+### Corretto
+
+- **La batteria del flusso Energia sfarfallava fra due formati.** Nel video
+  arrivato dalla casa: la bolla diceva «▼ 1796 W / SOC 75%» e due fotogrammi dopo
+  «-1796 W / 75 %», avanti e indietro. Non era un'animazione: erano quattro mani
+  sullo stesso numero. Il guscio col suo formattatore, il modulo del flusso con
+  la freccia, un modulo di rattoppo con una terza forma, e un quarto che teneva
+  un MutationObserver sul nodo per rimettere il prefisso «SOC» addosso a quello
+  che ci scrivevano gli altri. Sorvegliare un nodo per disfare la scrittura di un
+  altro modulo non e' una correzione: e' il secondo padrone che litiga col primo.
+  Adesso il padrone e' uno, e si prende il cartello che ferma la mano del guscio
+  prima che arrivi il primo stato, cosi' non si vede nemmeno il lampo iniziale.
+
+- **Nelle Stanze la luce si accendeva ma non cambiava stato.** Il comando
+  partiva, Home Assistant accendeva la luce, e la scheda restava «SPENTA». La
+  scheda e' quella della pagina Luci — le Stanze se la prendono da li', perche'
+  due schede per la stessa luce vorrebbe dire mantenerne due — ma il
+  riallineamento era rimasto chiuso dentro la pagina Luci, e per giunta si
+  fermava quando quella pagina non era quella aperta. Adesso chi possiede il
+  disegno possiede anche l'aggiornamento, per tutte le sue schede dovunque siano.
+  In piu' il tocco si vede subito, invece di aspettare il giro completo del
+  comando: se lo stato che arriva dice il contrario vince lui, e la promessa
+  scade da sola, cosi' un comando che non arriva a destinazione non lascia una
+  scheda che mente.
+
+- **La finestra del Clima lasciava tre voragini fra le etichette e i comandi.**
+  L'etichetta ha una larghezza fissa di ottantadue pixel, che nella riga
+  orizzontale e' la colonna di sinistra; sul telefono la riga diventa una colonna
+  e quegli ottantadue pixel smettono di essere una larghezza e diventano
+  un'altezza — la parola «Modalita'» alta ottantadue pixel, col vuoto sotto. La
+  correzione esisteva gia' ma era scritta per una sola delle due finestre: un
+  selettore aggiornato e il suo gemello dimenticato. Duecentodieci pixel di vuoto
+  in meno.
+
+- **Sotto «Comandi» c'erano cose che non si comandano.** Nella finestra
+  dell'Energia stavano Casa, Solare, Rete e Batteria: quattro letture, senza un
+  tasto. Lo stesso per Telecamere, Solare termico e Piscina. Un titolo che
+  annuncia comandi dove non ce ne sono manda a cercare qualcosa che non c'e', e
+  chi cerca pensa che sia rotto. Adesso il titolo guarda cosa c'e' davvero sotto.
+  E le percentuali si vedono prima di leggerle: sotto il nome c'e' una barra che
+  diventa rossa sotto il venti per cento.
+
+- **Trentatre regole di stile morte sul Clima, e tre conflitti veri.** La scheda
+  del Clima aveva due pelli, in due fogli diversi, che si contendevano
+  quattordici misure con valori in disaccordo — la scheda alta 248 pixel o senza
+  minimo, il numero grande 46 o 28, i bordi 22 o 17. Vinceva chi caricava per
+  ultimo, quindi la misura vera non stava scritta da nessuna parte; e nel
+  frattempo quella scheda non la disegna piu' nessuno. Se ne vanno tutte e due.
+  Restavano tre conflitti veri — il marchio dell'auto, il grassetto di un avviso,
+  l'imbottitura di un'intestazione — e adesso ognuna di quelle decisioni ha un
+  padrone solo. Una prova rifa' il conto a ogni giro e pretende zero.
+
+- **Lo storico chiesto a Recorder ha un padrone solo.** Il grafico delle
+  temperature aveva la sua domanda con la sua cache; quando anche le finestre
+  hanno avuto bisogno delle stesse letture, copiarla avrebbe fatto due padroni
+  dello stesso traffico — due cache che non si parlano, due domande per la stessa
+  entita', e la certezza che prima o poi una scada con una regola diversa
+  dall'altra. La domanda non blocca niente: la finestra si apre col numero che
+  ha, e si ridisegna quando la risposta arriva.
+
 ## 1.3.5
 
 ### Aggiunto
