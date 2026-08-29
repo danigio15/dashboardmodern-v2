@@ -5,6 +5,64 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.8
+
+### Corretto
+
+- **Aprire un popup dei widget non fa piu' tremare la Home.** «In ogni popup
+  che premo dei widget trema tutto»: la firma con cui la griglia decide se
+  ridisegnarsi contava anche QUALE tessera fosse aperta — un resto dell'epoca
+  in cui il dettaglio era una tendina dentro la griglia. Aprire o chiudere la
+  finestra cambiava la firma, e la firma ributtava giu' tutte le tessere mentre
+  la finestra saliva: sul telefono la Home si svuotava e si ridisegnava, due
+  volte per popup. La struttura adesso e' solo quali tessere ci sono;
+  l'evidenza della tessera aperta e' un valore e si scrive addosso al nodo,
+  come tutti gli altri valori.
+
+- **Al primo avvio la pagina non resta piu' bianca.** Il velo d'avvio c'era,
+  ma stava scritto DOPO i fogli di stile e gli script sincroni in testa: il
+  browser non poteva dipingerlo finche' la rete non aveva finito. Adesso il
+  velo e' la prima cosa del corpo, col suo stile critico in linea, e si
+  dipinge alla prima passata; i fogli grandi si caricano senza bloccare, e gli
+  script che non servono prima del runtime sono scesi in fondo.
+
+- **I parametri del MiniPC si chiamano col loro nome.** Le card della
+  configurazione dicevano «— Nessuna stanza — Casa Ingresso… Nel widget» al
+  posto di «CPU (%)»: il nome sta nel value di un campo rinominabile, che nel
+  textContent non compare, e nell'etichetta altri moduli appendono la tendina
+  delle stanze e l'interruttore «Nel widget» — leggere il textContent
+  raccoglieva solo la loro spazzatura.
+
+- **Due rilevatori di temperatura nella stessa stanza: due card, non una.**
+  Le associazioni oltre la prima esistevano gia' — il trend e la pagina Stanze
+  le usano — ma la pagina Temperatura aveva due disegnatori in guerra per la
+  stessa griglia, e vinceva quello che ne mostrava una sola. Il modello delle
+  sonde e' sceso in core, il disegnatore e' rimasto uno, e ogni sonda ha la
+  sua card — col titolo che distingue le sorelle («Salone · Comodino») e il
+  risveglio sugli eventi anche per la seconda.
+
+- **Il secondo impianto Energia si configura davvero, non addosso al primo.**
+  «Ho configurato due impianti ma non legge i dati il secondo»: la maschera
+  della scheda mostrava sempre le entita' del primo impianto, e ogni scrittura
+  tornava li' — il secondo restava vuoto, e il primo rischiava di perdere i
+  suoi sensori. Adesso la maschera si disegna dall'impianto scelto, ogni
+  scrittura porta con se' l'impianto aperto, e al cambio di linguetta la
+  maschera montata si rifa' subito.
+
+- **La mappa del robot ingrandita si scorre col mouse, e una prova lo tiene
+  fermo.** Il visore a schermo pieno c'era gia' — rotella e pizzico
+  ingrandiscono, il dito e il mouse trascinano, il doppio tocco rimette
+  com'era — ma nessuna prova difendeva il trascinamento: adesso una lo fa.
+
+### Aggiunto
+
+- **L'icona di una presa si sceglie dal catalogo di casa.** Il campo era una
+  casella di testo libero col 🔌 dentro; adesso il bottone apre il selettore
+  dei carichi — lo stesso catalogo in stile elettrodomestici, nessun catalogo
+  nuovo — e il disegno scelto compare nella scheda, sul bottone e nella riga
+  della tessera della Home. L'emoji resta il ripiego per le prese configurate
+  prima.
+
 ## 1.3.7
 
 ### Corretto
