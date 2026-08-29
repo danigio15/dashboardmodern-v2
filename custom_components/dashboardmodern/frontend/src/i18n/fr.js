@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "Les mesures",
   "The state": "L'état",
   "Controls": "Commandes",
+  "Readings": "Relevés",
 });

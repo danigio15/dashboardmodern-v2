@@ -19,7 +19,14 @@
  * della rete, e intanto a intervalli che si allargano. Da connessi non resta
  * acceso niente.
  */
-import { doc, english, lexicalGlobal, root, t } from "./shared.js";
+import {
+  doc,
+  english,
+  lexicalGlobal,
+  root,
+  scriviTestoSeCambia,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONNECTION_RECOVERY__";
 const state = (root[KEY] ||= { installed: false, listeners: false, timer: 0, attempts: 0, lastTry: 0 });
@@ -81,7 +88,7 @@ function announceRetry() {
   const label = doc?.getElementById("conn-text");
   if (!label || connectionUp()) return false;
   const text = t("Riconnessione…", "Reconnecting…");
-  if (label.textContent !== text) label.textContent = text;
+  scriviTestoSeCambia(label, text);
   return true;
 }
 

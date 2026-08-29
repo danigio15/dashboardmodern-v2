@@ -41,6 +41,8 @@ import {
   installStyle,
   readJson,
   root,
+  scriviSeCambia,
+  scriviTestoSeCambia,
   section,
   t,
 } from "./shared.js";
@@ -640,7 +642,7 @@ function renderSidebar(shell, models, counts, rooms, labels) {
   }
   const statesHost = shell.querySelector("[data-dm-states]");
   if (statesHost) {
-    statesHost.innerHTML = [
+    scriviSeCambia(statesHost, [
       sideItem({
         key: "running",
         kind: "state",
@@ -673,7 +675,7 @@ function renderSidebar(shell, models, counts, rooms, labels) {
         count: counts.alarm,
         active: state.ui.filter === "alarm",
       }),
-    ].join("");
+    ].join(""));
   }
   const overview = shell.querySelector("[data-dm-side-overview]");
   if (overview)
@@ -684,11 +686,11 @@ function renderSidebar(shell, models, counts, rooms, labels) {
   const watts = shell.querySelector("[data-dm-total-watts]");
   if (watts) {
     const label = formatPowerLabel(counts.watts);
-    if (watts.textContent !== label) watts.textContent = label;
+    scriviTestoSeCambia(watts, label);
   }
   const active = shell.querySelector("[data-dm-total-running]");
   if (active && active.textContent !== String(counts.running))
-    active.textContent = String(counts.running);
+    scriviTestoSeCambia(active, String(counts.running));
   const spark = shell.querySelector("[data-dm-spark]");
   if (spark) {
     const { line, area } = filoDaZero(state.spark, 100, 28);

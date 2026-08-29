@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "القياسات",
   "The state": "الحالة",
   "Controls": "أدوات التحكم",
+  "Readings": "القراءات",
 });

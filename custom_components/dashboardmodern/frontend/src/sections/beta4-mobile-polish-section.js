@@ -662,7 +662,12 @@ function installStyles() {
      * sull'elemento. Adesso il colore lo porta il marchio (Tesla rosso, BMW
      * blu, Renault giallo) e per le case il cui marchio e' nero decide il tema.
      * Qui restano la forma e il fondo, che erano l'altra meta' del lavoro. */
-    .dm-car-brand{display:grid!important;place-items:center!important;background:transparent!important}
+    /* Il «display» lo dichiara personalization-section, che il marchio lo
+       disegna: qui c'era un «grid!important» che vinceva sul suo «inline-grid»,
+       quindi la riga del padrone non si e' mai vista. Adesso il padrone dice
+       «grid» — cioe' quello che si vedeva davvero — e qui resta soltanto lo
+       sfondo, che e' la cosa per cui questo foglio esiste. */
+    .dm-car-brand{place-items:center!important;background:transparent!important}
     .dm-beta5-brand-logo{display:grid!important;place-items:center!important;width:82px!important;height:54px!important;color:currentColor!important}
     .dm-beta5-brand-logo svg{display:block!important;width:78px!important;height:50px!important;max-width:100%!important;overflow:visible!important}
     /* Il riquadro del marchio e la sua pastiglia li misura beta9: le tre

@@ -534,8 +534,12 @@ function installStyles() {
     }
     /* Le fasce che portavano il titolo di Solare termico e MiniPC ora portano
        solo la pastiglia di stato: si stringono su quella invece di lasciare in
-       mezzo la banda vuota di quando c'era anche il titolo. */
-    #page-boiler .boiler-header{padding:12px 22px!important}
+       mezzo la banda vuota di quando c'era anche il titolo.
+       L'imbottitura del Solare termico non si scrive piu' qui: la scrive
+       solar-thermal-design-section, che quell'intestazione la disegna, e la
+       lega al segno che questa fascia le lascia addosso, «dm-mast-folded».
+       Prima erano due fogli a dichiarare la stessa imbottitura con due valori
+       diversi, e vinceva chi caricava per ultimo. */
     #page-server .srv-hero-top{padding-top:12px!important;padding-bottom:12px!important}
 
     /* The heading a page printed for itself: kept in the document for whoever

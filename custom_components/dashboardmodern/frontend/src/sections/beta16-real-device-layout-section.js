@@ -324,24 +324,8 @@ function installStyles() {
       #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]{width:calc(100% - 12px)!important;margin:8px auto 14px!important;padding:4px!important;gap:3px!important;border-radius:20px!important}
       #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"] .clima-page-mode-btn{min-height:52px!important;padding:7px 6px!important;gap:6px!important;border-radius:16px!important;font-size:13px!important;letter-spacing:.8px!important}
       #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"] .clima-page-mode-btn .icon{font-size:21px!important}
-
-      #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
       #page-clima .dm-beta16-climate-group-heading{display:none!important}
       #page-clima .dm-beta16-climate-room{display:flex!important;align-items:center!important;min-width:0!important;margin:-2px 0 0!important;padding:3px 6px!important;border-radius:9px!important;background:rgba(14,165,233,.08)!important;color:var(--text-dim,#64748b)!important;font-size:8px!important;font-weight:850!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-      #page-clima .cp-card{box-sizing:border-box!important;min-width:0!important;padding:10px 8px!important;border-radius:17px!important;gap:7px!important}
-      #page-clima .cp-header{gap:5px!important;min-width:0!important}
-      #page-clima .cp-title-wrap{gap:5px!important;min-width:0!important}
-      #page-clima .cp-icon{width:29px!important;height:29px!important;min-width:29px!important;border-radius:9px!important;font-size:15px!important}
-      #page-clima .cp-name{min-width:0!important;max-width:100%!important;font-size:12px!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-      #page-clima .cp-badge{padding:3px 6px!important;font-size:8px!important;white-space:nowrap!important}
-      #page-clima .cp-body{gap:6px!important;min-width:0!important}
-      #page-clima .cp-temp-target .lbl,#page-clima .cp-temp-current-lbl{font-size:7px!important;letter-spacing:.4px!important}
-      #page-clima .cp-temp-target .val{font-size:28px!important;line-height:1!important}
-      #page-clima .cp-temp-current{font-size:16px!important;line-height:1!important}
-      #page-clima .cp-controls{min-height:42px!important;padding:3px!important;border-radius:13px!important}
-      #page-clima .cp-btn{min-width:0!important;min-height:36px!important;font-size:22px!important}
-      #page-clima .cp-pwr{min-width:0!important;font-size:18px!important}
-      #page-clima .clima-section-title{margin:14px 0 8px 3px!important;font-size:11px!important;line-height:1.2!important}
 
       #page-temp .dm-temperature-room-tabs{padding-left:8px!important;padding-right:8px!important;margin-top:6px!important}
       #page-temp .dm-temperature-room-tabs>button{min-height:38px!important;padding:7px 10px!important;font-size:11px!important;border-radius:13px!important}
@@ -349,11 +333,7 @@ function installStyles() {
     }
 
     @media(max-width:360px){
-      #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
-      #page-clima .cp-card{padding:9px 7px!important;border-radius:15px!important}
-      #page-clima .cp-name{font-size:11px!important}
       #page-clima .dm-beta16-climate-room{font-size:7.5px!important;padding:3px 5px!important}
-      #page-clima .cp-temp-target .val{font-size:25px!important}
     }
   `);
 }

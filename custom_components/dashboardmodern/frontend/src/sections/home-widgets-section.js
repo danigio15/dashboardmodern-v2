@@ -29,8 +29,11 @@ import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
   bricioleDellaSezione,
   fraseDellaTessera,
+  parolaDelVerdetto,
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
+import { analisiDellaSezione } from "../core/analisi-sezione.js";
+import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   coverEntries,
   coverKindLabel,
@@ -628,7 +631,15 @@ function temperatureModel(states) {
     .map((room) => {
       const temperature = numOf(states, room.temp);
       const humidity = numOf(states, clean(room.hum) || clean(room.temp).replace("_temperature", "_humidity"));
-      return { name: clean(room.name) || clean(room.id), temperature, humidity };
+      /* L'entita' resta sulla riga: senza, la finestra non sa a chi chiedere
+       * lo storico, e la Temperatura non poteva mai avere la sua analisi nel
+       * tempo. */
+      return {
+        name: clean(room.name) || clean(room.id),
+        entity: clean(room.temp),
+        temperature,
+        humidity,
+      };
     })
     .filter((row) => row.temperature != null);
   if (!rows.length) return null;
@@ -756,19 +767,28 @@ function rigaDaEntita(states, entity, glifo = "•") {
   if (STATI_MUTI.test(grezzo)) return null;
   const nome = friendlyName(states, chiave);
   const numero = numOf(states, chiave);
+  /* Accanto al testo che si legge, il dato grezzo per chi conta.
+   *
+   * La riga portava solo il valore gia' formattato — «56.2°», «Acceso» — e chi
+   * doveva farci un conto trovava una stringa: `Number("56.2°")` non e' un
+   * numero, e l'analisi delle sonde del solare termico non usciva mai. Il
+   * testo e' per gli occhi, `raw` e `on` per i conti. */
   if (numero != null) {
     const unita = clean(stato?.attributes?.unit_of_measurement);
     const cifre = Number.isInteger(numero) || Math.abs(numero) >= 100 ? 0 : 1;
     return {
       glyph: glifo,
       name: nome,
+      entity: chiave,
+      raw: numero,
+      unit: unita,
       value: `${formatNumber(numero, cifre)}${unita ? ` ${unita}` : ""}`,
     };
   }
   if (STATI_ACCESI.test(grezzo))
-    return { glyph: glifo, name: nome, value: t("Acceso", "On") };
+    return { glyph: glifo, name: nome, entity: chiave, on: true, value: t("Acceso", "On") };
   if (STATI_SPENTI.test(grezzo))
-    return { glyph: glifo, name: nome, value: t("Spento", "Off") };
+    return { glyph: glifo, name: nome, entity: chiave, on: false, value: t("Spento", "Off") };
   return { glyph: glifo, name: nome, value: grezzo };
 }
 
@@ -945,9 +965,17 @@ function robotsModel(states) {
      * puliscono la notizia e' che stanno pulendo. */
     ring: attivi.length ? null : piuScarico,
     attiva: attivi.length > 0,
+    /* Come per l'irrigazione: il testo per gli occhi, i campi grezzi per chi
+     * conta. Senza, un aspirapolvere che sta pulendo veniva annunciato come
+     * fermo, e l'avviso di batteria scarica non poteva mai uscire. */
     rows: viste.map((vista) => ({
       glyph: vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
       name: vista.name,
+      cleaning: vista.cleaning,
+      charging: vista.charging,
+      state: vista.state,
+      battery: vista.battery,
+      entity: clean(vista.entity),
       value: vista.battery == null
         ? robotStateLabel(vista.state)
         : `${robotStateLabel(vista.state)} · ${Math.round(vista.battery)}%`,
@@ -1142,9 +1170,16 @@ function irrigationModel(states) {
         : t("umidità terreno", "soil moisture"),
     ring: inFunzione.length ? null : umidita,
     attiva: inFunzione.length > 0,
+    /* Accanto al testo che si legge va il dato grezzo, che serve a chi conta.
+     * Le righe portavano solo «in funzione» / «ferma» tradotto, e il motore di
+     * analisi — che cerca un booleano — leggeva tutte le zone come ferme
+     * proprio mentre l'acqua usciva. Il testo e' per gli occhi, `on` per i
+     * conti: due mestieri, due campi. */
     rows: attive.map((zona) => ({
       glyph: "🌱",
       name: clean(zona.name) || clean(zona.entity),
+      on: zonaInFunzione(states, zona),
+      entity: clean(zona.entity),
       value: zonaInFunzione(states, zona)
         ? t("in funzione", "running")
         : t("ferma", "idle"),
@@ -1156,13 +1191,14 @@ function irrigationModel(states) {
  * un'icona, un nome e un valore. */
 function rowsDetail(widget) {
   return (widget.rows || [])
-    .map((row) =>
-      rowShell(
+    .map((row) => {
+      const livello = livelloMarkup(percentualeDellaRiga(row));
+      return rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${row.glyph || "•"}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
+         <span class="dm-w-name">${esc(row.name)}${livello}</span>
          <b class="dm-w-val">${esc(row.value)}</b>`,
-      ),
-    )
+      );
+    })
     .join("");
 }
 
@@ -1616,6 +1652,41 @@ function tileMarkup(widget, index = 0) {
 
 function rowShell(inner, attrs = "") {
   return `<div class="dm-w-row" ${attrs}>${inner}</div>`;
+}
+
+/* Una percentuale si vede prima di leggerla.
+ *
+ * Le righe delle finestre dicevano «12%» e basta: per sapere se era poco o
+ * tanto bisognava leggere il numero e pensarci. Una barra sotto il nome lo
+ * dice a colpo d'occhio, e il numero resta dov'e' — la barra aggiunge, non
+ * sostituisce. Si mette solo dove la percentuale ha un fondo e un pieno che
+ * vogliono dire qualcosa: una carica, una posizione, un'umidita'. Sotto il
+ * venti per cento cambia colore, che e' la soglia a cui la stessa
+ * percentuale smette di essere un dato e diventa una cosa da guardare.
+ */
+function livelloMarkup(percentuale) {
+  /* `Number(null)` fa zero, e uno zero passa tutti i controlli che seguono:
+   * senza questa riga ogni riga senza percentuale — una temperatura, un pH,
+   * un acceso/spento — si prendeva una barra rossa vuota, cioe' l'avviso di
+   * «quasi scarico» sopra una cosa che una carica non ce l'ha. */
+  if (percentuale == null || percentuale === "") return "";
+  const valore = Number(percentuale);
+  if (!Number.isFinite(valore) || valore < 0 || valore > 100) return "";
+  const quota = Math.round(valore);
+  return `<span class="dm-w-livello" aria-hidden="true"${quota <= 20 ? ' data-basso="true"' : ""}>
+      <i style="width:${quota}%"></i>
+    </span>`;
+}
+
+/* La percentuale di una riga, quando ce l'ha e vuol dire un livello. */
+function percentualeDellaRiga(riga) {
+  for (const campo of ["battery", "position", "level", "soc", "humidity", "percent"]) {
+    const valore = Number(riga?.[campo]);
+    if (Number.isFinite(valore)) return valore;
+  }
+  const testo = String(riga?.value ?? "").trim();
+  const trovata = /^(\d{1,3})(?:[.,]\d+)?\s*%$/.exec(testo);
+  return trovata ? Number(trovata[1]) : null;
 }
 
 function todoItemMarkup(list, item, today) {
@@ -2417,13 +2488,73 @@ function corsaMarkup(widget) {
  * quanto, e dove va a finire.» Il verdetto e' la pillola colorata; la frase la
  * scrive il modulo puro, che sa dire «2 zone su 5 accese, manca 1,2°» invece
  * di lasciare undici righe da mettere insieme a mente. */
+/* Il verdetto e la frase, e sotto i punti che la sostengono.
+ *
+ * La frase la scrive il motore di analisi quando la sezione ha una lettura
+ * sua — l'Energia ragiona sul bilancio, la Temperatura sulla distanza fra la
+ * stanza piu' calda e la piu' fredda — e in quel caso il tono lo decide la
+ * lettura, non il conteggio delle righe: una piscina col pH fuori norma e' da
+ * guardare anche se non c'e' niente «acceso».
+ *
+ * Le sette sezioni fatte di cose che si accendono e si spengono continuano ad
+ * avere la loro frase di prima, che li' e' giusta.
+ */
+/* L'entita' che racconta la storia di una tessera.
+ *
+ * E' quella del numero grande: se la finestra mostra i watt di casa, la storia
+ * che interessa e' quella dei watt di casa. Dove il numero grande non viene da
+ * un'entita' sola — le luci, le tapparelle, che sono elenchi — non c'e' niente
+ * da chiedere, e infatti quelle sezioni una lettura nel tempo non ce l'hanno.
+ */
+function entitaDelRacconto(widget) {
+  if (widget?.key === "energia") {
+    const energia = section("energy", {}) || {};
+    return clean(energia?.house?.power) || "dm.energy_potenza_consumo_casa";
+  }
+  if (widget?.key === "temperatura") return clean(widget?.rows?.[0]?.entity);
+  if (widget?.key === "ev") return clean(widget?.rows?.[0]?.batteria || widget?.rows?.[0]?.entity);
+  if (["solare", "piscina", "robot", "irrigazione"].includes(widget?.key))
+    return clean(widget?.rows?.[0]?.entity);
+  if (widget?.key === "elettrodomestici")
+    return clean(widget?.running?.[0]?.entity || widget?.rows?.[0]?.entity);
+  return "";
+}
+
+/* Le tre ore precedenti, se lo storico le ha gia' date.
+ *
+ * Non si aspetta: la finestra si apre subito col numero che c'e', e se la
+ * storia arriva dopo la finestra si ridisegna. Una finestra che aspetta la
+ * rete per aprirsi, su una casa senza Recorder, non si apre. */
+function storiaDelWidget(widget) {
+  const entita = entitaDelRacconto(widget);
+  if (!entita) return null;
+  /* Il valore di adesso va in coda alla storia: la risposta dello storico vale
+   * nove minuti, e senza questa coda il modello leggerebbe come «adesso» un
+   * valore vecchio fino a nove minuti — arrivando a contraddire il numero
+   * grande della stessa finestra. */
+  const stato = allStates()?.[entita];
+  const vivo = Number(clean(stato?.state));
+  return puntiDi(
+    entita,
+    3,
+    Number.isFinite(vivo) ? { adesso: { quando: Date.now(), valore: vivo } } : {},
+  );
+}
+
 function verdettoEFrase(widget) {
+  const lettura = analisiDellaSezione(widget, t, Date.now(), storiaDelWidget(widget));
   const verdetto = verdettoDellaTessera(widget, t);
+  const tono = lettura?.tono || verdetto.tono;
+  const parola = tono === verdetto.tono ? verdetto.testo : parolaDelVerdetto(tono, t);
   const misura = clean(widget.value);
   const nota = clean(widget.caption);
-  return `<section class="dm-w-racconto" data-dm-verdetto="${verdetto.tono}">
-      <span class="dm-w-verdetto">${esc(verdetto.testo)}</span>
-      <p class="dm-w-frase">${esc(fraseDellaTessera(widget, t))}</p>
+  const punti = lettura?.punti?.length
+    ? `<ul class="dm-w-punti">${lettura.punti.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`
+    : "";
+  return `<section class="dm-w-racconto" data-dm-verdetto="${tono}">
+      <span class="dm-w-verdetto">${esc(parola)}</span>
+      <p class="dm-w-frase">${esc(lettura?.frase || fraseDellaTessera(widget, t))}</p>
+      ${punti}
       ${
         misura
           ? `<div class="dm-w-misura"><b>${esc(misura)}</b>${
@@ -2446,7 +2577,21 @@ function detailBody(widget, states) {
   return `${verdettoEFrase(widget)}
     ${caselleDelleMisure(widget)}
     ${pilloleDelloStato(widget)}
-    ${comandi ? `<h4 class="dm-w-titoletto">${esc(t("Comandi", "Controls"))}</h4>${comandi}` : ""}`;
+    ${comandi ? `<h4 class="dm-w-titoletto">${esc(titoloDelBlocco(comandi))}</h4>${comandi}` : ""}`;
+}
+
+/* Il titolo dice cosa c'e' sotto, e non sempre sono comandi.
+ *
+ * Nella finestra dell'Energia sotto «COMANDI» stavano Casa, Solare, Rete e
+ * Batteria: quattro letture, che non si comandano — non c'e' niente da
+ * premere. Lo stesso per Telecamere, Solare termico e Piscina. Un titolo che
+ * annuncia comandi dove non ce ne sono manda a cercare un tasto che non
+ * esiste. Si guarda cosa c'e' davvero nel blocco invece di deciderlo a
+ * tavolino: se c'e' qualcosa da premere sono comandi, altrimenti sono letture.
+ */
+function titoloDelBlocco(markup) {
+  const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
+  return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
 
 function detailRows(widget, states) {
@@ -3396,6 +3541,28 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-frase{
   margin:0;font-size:14.5px;line-height:1.45;font-weight:700;
   color:var(--text,#0f172a);text-wrap:balance}
+/* I punti che sostengono la frase: piccoli, sotto, uno per riga. La frase
+ * dice la cosa; i punti dicono i numeri su cui si regge — «la batteria si
+ * carica a 1,47 kW», «in rete vanno 41 W» — che nella riga grande non ci
+ * starebbero senza farne un paragrafo. */
+/* La barra del livello: sta sotto il nome, larga quanto la colonna, e non
+   sposta niente — due pixel e mezzo di altezza dentro la riga che c'era gia'. */
+#dm-widget-popup .dm-w-livello{
+  display:block;margin-top:5px;height:3px;border-radius:999px;overflow:hidden;
+  background:color-mix(in srgb,var(--text-dim,#94a3b8) 22%,transparent)}
+#dm-widget-popup .dm-w-livello>i{
+  display:block;height:100%;border-radius:inherit;
+  background:var(--dm-widget-accent,#0ea5e9);
+  transition:width .3s ease}
+#dm-widget-popup .dm-w-livello[data-basso="true"]>i{background:#e11d48}
+#dm-widget-popup .dm-w-punti{
+  margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+#dm-widget-popup .dm-w-punti li{
+  position:relative;padding-inline-start:13px;font-size:12.5px;line-height:1.4;
+  font-weight:650;color:var(--muted,#64748b)}
+#dm-widget-popup .dm-w-punti li::before{
+  content:"";position:absolute;inset-inline-start:2px;top:.62em;
+  width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.55}
 #dm-widget-popup .dm-w-misura{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 #dm-widget-popup .dm-w-misura b{
   font-family:'Oswald',system-ui,sans-serif;font-weight:300;
@@ -3578,11 +3745,19 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-note{
   margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
 /* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
-   trecentonovanta, lasciavano alle modalita' una pastiglia per riga. */
+   trecentonovanta, lasciavano alle modalita' una pastiglia per riga.
+   Le tre righe valgono per tutt'e due le finestre. Le ultime due erano scritte
+   per la sola «#dm-widget-popup», e la gemella e' rimasta indietro: nella
+   finestra del Clima la riga diventava una colonna ma l'etichetta teneva il
+   suo «flex:0 0 82px», che in colonna non e' piu' una larghezza ma
+   un'altezza. Misurato: la parola «Modalita'» alta ottantadue pixel, con
+   sotto il vuoto — sono i buchi che si vedevano fra «MODALITA'» e le
+   pastiglie, fra «TEMPERATURA» e il suo passo, fra «VENTOLA» e i numeri.
+   La riga sopra le nominava gia' tutt'e due; queste due no. */
 @media(max-width:600px){
   :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
-  #dm-widget-popup .dm-w-panel-lbl{flex:none}
-  #dm-widget-popup .dm-w-stepper{align-self:flex-start}
+  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-lbl{flex:none}
+  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper{align-self:flex-start}
 }
 #dm-widget-popup .dm-w-row{
   position:relative;display:flex;align-items:center;gap:12px;
@@ -4217,6 +4392,12 @@ export function installHomeWidgetsSection() {
     "dashboardmodern:editor-rendered",
   ])
     root.addEventListener?.(eventName, schedule);
+  /* La storia delle ore precedenti arriva quando arriva, e la finestra non
+   * l'aspetta per aprirsi: si apre col numero che c'e' gia'. Quando la
+   * risposta atterra, pero', il racconto ha due righe in piu' da dire — «piu'
+   * alto del solito per quest'ora», «ci arriva fra un'ora» — e vanno mostrate
+   * senza che l'utente debba chiudere e riaprire. */
+  quandoArrivaLoStorico(schedule);
   // Il numero delle voci aperte E' lo stato dell'entita': quando cambia, le
   // voci vanno rilette — la spunta fatta da un altro dispositivo arriva cosi'.
   root.addEventListener?.("dashboardmodern:state-changed", (event) => {

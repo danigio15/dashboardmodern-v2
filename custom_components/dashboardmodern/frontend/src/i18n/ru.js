@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "Показания",
   "The state": "Состояние",
   "Controls": "Управление",
+  "Readings": "Показания",
 });

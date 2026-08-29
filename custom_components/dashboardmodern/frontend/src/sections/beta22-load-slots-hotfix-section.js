@@ -287,32 +287,6 @@ function syncCanonicalLoadBubbles() {
   return true;
 }
 
-function syncBatterySoc() {
-  if (!doc) return false;
-  const energy = readSection("energy", {});
-  const entity = socEntity(energy);
-  const battery = doc.querySelector("#view-ist #n-battery,#n-battery");
-  if (!battery) return false;
-  let node = battery.querySelector("#v-battery-soc,.dm-battery-soc");
-  if (!node) {
-    node = doc.createElement("small");
-    node.id = "v-battery-soc";
-    node.className = "dm-battery-soc";
-    battery.append(node);
-  }
-  if (!entity) {
-    node.hidden = true;
-    node.textContent = "";
-    node.removeAttribute("data-entity");
-    return true;
-  }
-  const value = stateNumber(entity);
-  node.hidden = false;
-  node.dataset.entity = entity;
-  node.textContent = value === null ? "SOC —" : `SOC ${Math.round(value)}%`;
-  return true;
-}
-
 function canonicalRoomName(row) {
   const id = clean(row?.dataset?.roomId);
   const rooms = readSection("rooms", []);
@@ -411,10 +385,14 @@ function schedaAperta() {
   return Boolean(doc?.getElementById?.("editor-modal") || doc?.getElementById?.("ed-body"));
 }
 
+/* Lo stato di carica della batteria non si scrive piu' da qui: il padrone e'
+ * `energy-flow-section`, che disegna la bolla. Qui ne restava una seconda
+ * copia con un formato suo, e le due si riscrivevano addosso a ogni cambio di
+ * stato — lo sfarfallio della sezione Energia. Il ripiego «se la casella non
+ * c'e' la creo» e' passato di la' insieme al resto. */
 function applyAll() {
   flowState.frame = 0;
   syncCanonicalLoadBubbles();
-  syncBatterySoc();
   if (!schedaAperta()) return;
   repairTemperatureRows();
   repairEnergyCostEditor();

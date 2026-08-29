@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "读数",
   "The state": "状态",
   "Controls": "控制",
+  "Readings": "读数",
 });

@@ -33,6 +33,7 @@ import {
   installStyle,
   restyleOnLocaleChange,
   root,
+  scriviTestoSeCambia,
   t,
   wrapFunction,
 } from "./shared.js";
@@ -136,6 +137,19 @@ function stylesheet() {
   }
   html[data-theme="dark"] #page-boiler .boiler-dashboard {
     box-shadow:0 30px 70px rgba(0,0,0,.45);
+  }
+
+  /* Quando la fascia della plancia si prende il titolo, questa intestazione
+     resta con la sola pastiglia di stato e si stringe: senza, in mezzo
+     rimaneva la banda vuota di quando il titolo c'era. La regola sta qui —
+     l'intestazione e' di questo modulo — e si accende dal segno che la fascia
+     lascia sul titolo ripiegato. Il ripiego per chi non ha «:has()» e'
+     l'imbottitura piena, che e' il disegno di prima: piu' larga del dovuto, ma
+     giusta. */
+  @supports selector(:has(*)) {
+    #page-boiler .boiler-header:has([data-dm-mast-folded="true"]) {
+      padding:12px 22px;
+    }
   }
 
   #page-boiler .boiler-header {
@@ -1120,7 +1134,7 @@ function stylesheet() {
 function element(tag, className, text) {
   const node = doc.createElement(tag);
   if (className) node.className = className;
-  if (text) node.textContent = text;
+  if (text) scriviTestoSeCambia(node, text);
   return node;
 }
 
