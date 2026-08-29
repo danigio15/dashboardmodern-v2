@@ -36,12 +36,25 @@ test("brand contract is claimed before load failure and after every vehicle rend
   assert.match(source, /guardAll\(\);\n\s*return result;/);
 });
 
-test("beta7 final polish owns quick actions and climate, and no longer skins the shutters", async () => {
+test("beta7 final polish owns quick actions, and non skinna piu' ne' clima ne' tapparelle", async () => {
   const source = await readFile(regressionsUrl, "utf8");
   assert.match(source, /polishQuickActionCards/);
   assert.match(source, /dm-beta7-existing-action-icon/);
   assert.match(source, /dm-beta7-action-form-row/);
-  assert.match(source, /aspect-ratio:auto/);
+  /* Il Clima non lo skinna piu' nemmeno questo foglio.
+   *
+   * Ne aveva una pelle intera per la scheda `cp-*`, e beta16 ne aveva
+   * un'altra: quattordici misure decise da due fogli in disaccordo — la card
+   * alta 248px o senza minimo, il numero grande 46px o 28px, i bordi 22px o
+   * 17px — dove vinceva chi caricava per ultimo. Un commento qui dentro
+   * diceva gia' «sotto i 760 la scheda del Clima la impagina beta16»: se
+   * n'erano accorti, e le due pelli erano rimaste tutt'e due.
+   *
+   * Solo che quella scheda non la disegna piu' nessuno: la pagina Clima e'
+   * tutta di climate-thermal-section, e a plancia aperta i nodi `cp-*` sono
+   * zero — contati con e senza i dati vecchi del guscio. Come la pelle della
+   * tapparella qui sotto, se ne va. */
+  assert.doesNotMatch(source, /#page-clima[^\n]*\.cp-/);
   // The shutter repaint guard stays; the Beta 7 window skin does not. It was
   // the only sheet declaring left/right/top on .tapp-shutter, so it detached
   // the closed panel from the opening the current skin draws.

@@ -722,7 +722,7 @@ function installStyles() {
        l'hanno se lo scrivono addosso, e quelli che non ce l'hanno — i marchi
        sostanzialmente neri, lasciati apposta senza — devono seguire
        l'inchiostro di dove stanno, non diventare azzurri. */
-    .dm-car-brand{display:inline-grid;place-items:center;color:inherit}.dm-action-glyph{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9);line-height:1}.dm-action-glyph svg{display:block!important;max-width:100%!important;max-height:100%!important}
+    .dm-car-brand{display:grid;place-items:center;color:inherit}.dm-action-glyph{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9);line-height:1}.dm-action-glyph svg{display:block!important;max-width:100%!important;max-height:100%!important}
     /* La pastiglia del marchio, nel selettore dell'auto, la dimensiona il
        modulo che le ha dato la forma giusta sul telefono. Qui c'erano cinque
        misure che ne correggevano altrettante, tutte perdenti: la pastiglia da

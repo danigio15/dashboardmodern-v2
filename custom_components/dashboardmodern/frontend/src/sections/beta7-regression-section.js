@@ -243,20 +243,16 @@ function installStyles() {
     #editor-modal .dm-beta7-action-form-row #ed-qa-icon{display:none!important}
     #editor-modal .dm-beta7-action-form-row .dm-beta6-qa-icon-trigger{grid-area:icon!important;display:grid!important;place-items:center!important;width:64px!important;min-width:64px!important;max-width:64px!important;height:54px!important;min-height:54px!important;margin:0!important;padding:8px!important;border-radius:16px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;color:var(--accent,#0ea5e9)!important;overflow:hidden!important}
 
-    /* Clima: su telefono due card compatte per riga, senza aspect-ratio quadrato
-       che dilata target, temperatura ambiente e barra comandi. */
-    #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
-    #page-clima .cp-card{aspect-ratio:auto!important;min-height:248px!important;height:auto!important;padding:18px!important;gap:14px!important;border-radius:22px!important;justify-content:space-between!important}
-    #page-clima .cp-header{gap:10px!important}
-    #page-clima .cp-title-wrap{min-width:0!important;gap:10px!important}
-    #page-clima .cp-name{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:15px!important}
-    #page-clima .cp-badge{flex:0 0 auto!important}
-    #page-clima .cp-body{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:end!important;gap:16px!important;padding:2px 2px 4px!important}
-    #page-clima .cp-temp-target .val{font-size:46px!important;line-height:.95!important}
-    #page-clima .cp-temp-current-wrap{align-items:flex-end!important;text-align:right!important}
-    #page-clima .cp-temp-current{font-size:23px!important;line-height:1!important}
-    #page-clima .cp-controls{min-height:58px!important;padding:6px!important;border-radius:17px!important}
-    #page-clima .cp-btn{height:46px!important;font-size:20px!important}
+    /* La scheda del Clima non si skinna piu' da qui, e non da nessun rattoppo.
+       Ne restavano due copie, in questo foglio e in beta16, che si
+       contendevano quattordici decisioni con valori diversi: la card alta
+       248px o senza minimo, il numero grande 46px o 28px, i bordi 22px o
+       17px. Vinceva chi caricava per ultimo, quindi la misura vera non era
+       scritta da nessuna parte. Solo che quella card non la disegna piu'
+       nessuno: la pagina Clima e' tutta di climate-thermal-section — contati
+       a plancia aperta, con e senza i dati vecchi del guscio, i nodi «cp-*»
+       sono zero. Se un giorno quel markup tornera', le sue misure le scrivera'
+       chi lo disegna, in un posto solo. */
 
     /* La Tapparella non è più skinnata qui.
        Quella pelle risale a Beta 7 e disegnava una finestra alta 180px con il
@@ -275,12 +271,10 @@ function installStyles() {
          un numero da 43 pixel che non si e' mai visto — ne vincevano 28.
          L'unica cosa che era davvero di qui e' che la scheda non ha un'altezza
          minima sul telefono: quella resta. */
-      #page-clima .cp-card{min-height:0!important}
       #editor-modal .ed-row.dm-beta7-action-row{grid-template-columns:44px minmax(0,1fr) 40px 40px!important;gap:7px!important;padding:9px!important}
     }
 
     @media(hover:none){
-      #page-clima .cp-card:hover{transform:none!important}
     }
   `);
 }

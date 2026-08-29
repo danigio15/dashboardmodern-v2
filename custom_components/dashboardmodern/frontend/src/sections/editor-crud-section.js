@@ -574,7 +574,9 @@ function installStyles() {
          vedeva sballato. Qui resta solo cio' che non e' impaginazione. */
       #editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field{min-width:0!important;margin:0!important}
       #editor-modal .dm-report-history-help{grid-column:1/-1;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.4}
-      #editor-modal .dm-report-row[data-history-valid="false"] .dm-report-history-help{color:var(--warning-color,#b45309);font-weight:800}
+      /* Il grassetto dell'avviso lo decide report-editor-section, che disegna
+         quella riga: qui c'era un 800 che perdeva sempre contro il suo 850. */
+      #editor-modal .dm-report-row[data-history-valid="false"] .dm-report-history-help{color:var(--warning-color,#b45309)}
       #editor-modal .dm-edit-existing{background:color-mix(in srgb,var(--info-color,#0ea5e9) 14%,transparent)!important;color:var(--info-color,#0369a1)!important}
       #editor-modal .dm-edit-cancel{width:100%;margin-top:7px;background:var(--secondary-background-color,#e8eef5)!important;color:var(--text,#0f172a)!important}
       #editor-modal [data-dm-editing="true"]{outline:2px solid color-mix(in srgb,var(--info-color,#0ea5e9) 45%,transparent);outline-offset:2px}

@@ -36,7 +36,13 @@ test("beta16 runtime loads after beta14 and owns the requested mobile contracts"
     assert.ok(beta14 >= 0, "beta14 import is present");
     assert.ok(beta16 > beta14, "beta16 loads after beta14");
   }
-  assert.match(source, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
+  /* La griglia a due colonne del Clima non si pretende piu' qui: quel foglio
+     e' andato via insieme al resto delle regole sulla scheda `cp-*`. Erano
+     quattordici misure decise da questo foglio e da beta7-regression in
+     disaccordo — la card alta 248px o senza minimo, il numero grande 46px o
+     28px — su un markup che nessuno disegna piu': la pagina Clima e' tutta di
+     climate-thermal-section, e a plancia aperta i nodi `cp-*` sono zero, con
+     e senza i dati vecchi del guscio. */
   assert.match(source, /clima-page-mode-btn\{min-height:52px!important/);
   assert.match(source, /dm-temperature-room-tabs/);
   assert.match(source, /dmBeta16ActionName/);
