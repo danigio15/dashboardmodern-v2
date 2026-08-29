@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "zonas en marcha",
   "Zoom in": "Acercar",
   "Zoom out": "Alejar",
+  "3h ago": "hace 3 h",
+  "now": "ahora",
+  "The readings": "Las medidas",
+  "The state": "El estado",
+  "Controls": "Controles",
 });

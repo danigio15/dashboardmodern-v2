@@ -19,7 +19,7 @@
  * a mano quando lo si sa gia' sarebbe solo lavoro in piu'. Chi non li vuole li
  * toglie, e la rimozione resta — e' la stessa regola delle altre liste.
  */
-import { allStates, clean, doc, esc, lexicalGlobal, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
+import { allStates, clean, doc, esc, lexicalGlobal, onEditorRedraw, readJson, root, scriviSeCambia, t, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_FLOOD_ALERTS__";
 const state = (root[KEY] ||= { installed: false, frame: 0, deleteBound: false });
@@ -217,7 +217,7 @@ function ensureFloodEditorRows() {
     `<summary class="ed-acc-head">${FLOOD_ICON} ${esc(floodName())} ` +
     `<span class="ed-acc-n">${entities.length}</span></summary>` +
     `<div class="ed-acc-body"><div class="ed-list">${righe}</div></div>`;
-  if (acc.innerHTML !== markup) acc.innerHTML = markup;
+  scriviSeCambia(acc, markup);
   return true;
 }
 

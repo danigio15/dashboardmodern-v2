@@ -421,7 +421,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // in `tavolozza-disegni.js`, scritti una volta sola: sono due perche' la
   // tavolozza la usa anche chi disegnera' la cinquantasettesima, e senza un
   // posto dove chiederla si ricomincia a occhio.
-  assert.ok(relative.length <= 170, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 171 col racconto della tessera: la finestra di una sezione ha smesso di
+  // essere un elenco e dice cosa sta succedendo — «2 zone su 5 accese, manca
+  // 1,2 gradi all'obiettivo» invece di undici righe da mettere insieme a
+  // mente. Il verdetto e la frase si ragionano, quindi stanno in un modulo
+  // puro, `racconto-tessera.js`, e si provano senza browser: una frase che
+  // dice «da 40 minuti» o «finisce alle 19:20» e' esattamente il genere di
+  // cosa che si sbaglia in silenzio, e a occhio non si vede.
+  assert.ok(relative.length <= 171, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

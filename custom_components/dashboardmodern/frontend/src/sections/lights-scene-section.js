@@ -13,7 +13,7 @@ import {
 } from "../core/light-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { roomOrderRank } from "../core/room-overview.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, readJson, root, scriviSeCambia, section, t } from "./shared.js";
 
 /* Single paint owner for the Gestione Luci popup and for the controls of one
  * light.
@@ -402,7 +402,7 @@ function sync() {
       ? `<b>${summary.on}</b><span>${summary.on === 1 ? t("accesa", "on") : t("accese", "on")}</span>`
       : `<span>${t("Tutte spente", "All off")}</span>`;
     const markup = `<div class="lgx-bar-l"><span class="lgx-dot ${summary.on ? "active" : ""}"></span>${counter}</div>${summary.on ? `<div class="lgx-alloff" data-dm-light-all="off">${t("Spegni tutte", "Turn all off")}</div>` : ""}`;
-    if (bar.innerHTML !== markup) bar.innerHTML = markup;
+    scriviSeCambia(bar, markup);
   }
   syncControl();
   return true;

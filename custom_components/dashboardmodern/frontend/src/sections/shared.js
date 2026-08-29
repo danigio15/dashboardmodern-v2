@@ -612,3 +612,67 @@ export function formatNumber(value, digits = 1) {
     maximumFractionDigits: digits,
   });
 }
+
+/* Riscrive un pezzo di documento solo se quello che c'e' non e' gia' quello.
+ *
+ * Il paragone non si puo' fare con `innerHTML`: quello che il documento
+ * restituisce non e' la stringa che gli si e' data. Il browser rinormalizza —
+ * `color:var(--x,#fff)` torna indietro come `color: var(--x, #fff);`, con gli
+ * spazi e il punto e virgola — quindi `nodo.innerHTML !== markup` e' vero
+ * anche quando non e' cambiato niente, e si riscrive a ogni giro.
+ *
+ * Con decine di cambi di stato al secondo, che e' la normalita' di una casa
+ * vera, quelle scritte venivano distrutte e rifatte in continuazione: e' lo
+ * sfarfallio che si vedeva sull'Energia, con i pezzi che sparivano e
+ * ricomparivano sotto gli occhi. Misurato sulla sezione Energia: quindicimila
+ * modifiche al documento in tre secondi.
+ *
+ * Si confronta quello che si e' scritto, tenuto da parte sul nodo stesso —
+ * cosi' se il vecchio runtime riscrive quel pezzo la firma se ne va con lui e
+ * al giro dopo si ridisegna davvero.
+ */
+export function scriviSeCambia(nodo, markup) {
+  if (!nodo) return false;
+  const testo = String(markup ?? "");
+  rivendica(nodo);
+  /* Due domande, e servono tutt'e due. La firma dice se quello da scrivere e'
+   * cambiato; il testo dice se quello che avevamo scritto c'e' ancora. Senza la
+   * seconda, chi passa e riscrive quel pezzo di sua iniziativa non verrebbe mai
+   * corretto: la firma resterebbe la nostra, il paragone tornerebbe, e li'
+   * resterebbe la roba di un altro. Il testo si puo' confrontare — quello torna
+   * indietro identico — mentre il markup no. */
+  if (nodo.dataset?.dmScritto === testo && nodo.textContent === nodo.dataset.dmTesto)
+    return false;
+  nodo.innerHTML = testo;
+  if (nodo.dataset) {
+    nodo.dataset.dmScritto = testo;
+    nodo.dataset.dmTesto = nodo.textContent;
+  }
+  return true;
+}
+
+/* Lo stesso, per un testo semplice. */
+export function scriviTestoSeCambia(nodo, testo) {
+  if (!nodo) return false;
+  const valore = String(testo ?? "");
+  rivendica(nodo);
+  if (nodo.textContent === valore) return false;
+  nodo.textContent = valore;
+  return true;
+}
+
+/* «Questo pezzo lo scrivo io.»
+ *
+ * Il guscio vecchio riscrive gli stessi posti dei moduli, con numeri suoi presi
+ * da un'altra parte: sull'Energia il guscio legge le caselle vecchie e il
+ * modulo legge Recorder, e i due numeri non sono lo stesso numero. A ogni
+ * cambio di stato si riscrivevano a vicenda, e quello che si vedeva erano due
+ * valori che si alternavano — lo sfarfallio, con «qualcosa sotto».
+ *
+ * Chi passa di qui mette un cartello sul nodo, e il guscio quel nodo non lo
+ * tocca piu'. Il cartello lo mette solo chi scrive davvero: se il modulo non ha
+ * i dati non scrive, non rivendica niente, e il guscio continua a fare quello
+ * che ha sempre fatto. */
+function rivendica(nodo) {
+  if (nodo.dataset && nodo.dataset.dmPadrone !== "moduli") nodo.dataset.dmPadrone = "moduli";
+}

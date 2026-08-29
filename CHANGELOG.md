@@ -5,6 +5,69 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.5
+
+### Aggiunto
+
+- **La finestra di una tessera dice cosa sta succedendo, invece di elencare.**
+  Era un elenco: undici righe con un nome e un numero, e toccava a chi guarda
+  metterle insieme. Adesso e' una forma sola per tutte le sezioni, sempre nello
+  stesso ordine — il verdetto, la frase, la misura con la sua corsa, le caselle,
+  i comandi.
+
+  Il **verdetto** e' la pillola in cima: verde quando non c'e' niente da fare,
+  ambra quando qualcosa sta lavorando adesso, rossa quando qualcuno deve
+  guardarci. Se c'e' qualcosa da guardare vince quello, anche se nel frattempo
+  qualcos'altro sta lavorando: una finestra aperta batte una lavatrice in
+  funzione.
+
+  La **frase** e' quella che si legge davvero: «2 zone accese su 3, mancano 2,0°
+  all'obiettivo», «Nessuna perdita, tutte e sei le sonde hanno risposto», «La
+  piu' bassa e' Garage al 12%, su 3». La scrive un modulo a parte che non tocca
+  il documento, cosi' si prova senza browser — una frase che conta male e'
+  sbagliata senza rompersi, e a occhio non si vede.
+
+  La **corsa** e' la storia delle ultime tre ore sotto il numero grande, chiesta
+  a Recorder con lo stesso trasporto che usa gia' il grafico delle temperature:
+  non se ne apre un secondo, e finche' non risponde la finestra sta in piedi lo
+  stesso — il numero c'e', la linea arriva dopo.
+
+  Le **caselle** sono le stesse misure che la tessera gia' riassumeva: non se ne
+  inventano altre. Le pillole dello **stato** dicono in un colpo d'occhio chi e'
+  in funzione. I **comandi** sono le righe di prima, con dentro i loro
+  interruttori: cambia il posto, non quello che fanno. E «Chiudi» adesso e'
+  scritto in cima, non un tondino in un angolo.
+
+### Corretto
+
+- **All'avvio si vedeva la plancia vecchia, e poi cambiava.** Sotto non c'e'
+  nessuna versione vecchia: il guscio disegna una sua Home e i moduli gliela
+  riscrivono addosso quando sono installati. Il velo di avvio pero' se ne andava
+  quando aveva finito il guscio, non quando la plancia era quella vera, e in quel
+  buco si vedeva l'altra — misurato, a partire da 727 millisecondi. Adesso il
+  velo aspetta i moduli; se non arrivano si toglie lo stesso dopo otto secondi,
+  perche' la plancia del guscio e' comunque meglio di una schermata che non
+  finisce mai.
+
+- **La sezione Energia sfarfallava, «con qualcosa sotto».** Erano due cose
+  insieme. Il guscio e il modulo scrivevano gli stessi numeri presi da due parti
+  diverse — il guscio dalle caselle vecchie, il modulo da Recorder — e si
+  riscrivevano a vicenda a ogni cambio di stato: quello che si vedeva erano due
+  valori che si alternavano. E il controllo «e' gia' scritto?» si faceva
+  confrontando con `innerHTML`, che il documento restituisce rinormalizzato — un
+  colore scritto `color:var(--x,#fff)` torna indietro come `color: var(--x,
+  #fff);` — quindi non tornava mai e si riscriveva sempre. Misurato:
+  quindicimila modifiche al documento in tre secondi, con settecentoventi pezzi
+  distrutti e rifatti. Adesso zero pezzi rifatti: chi scrive lascia un cartello e
+  il guscio quel posto non lo tocca piu'.
+
+- **Le entita' nelle Stanze non si comandavano.** Le luci avevano gia' la card
+  vera della pagina Luci; tutto il resto — una presa, un ventilatore, un'entita'
+  assegnata a mano a una stanza — era una riga che portava nella sezione e basta:
+  si toccava e non succedeva niente. Adesso quello che si accende e si spegne ha
+  il suo interruttore li', che si muove appena lo tocchi e che il cambio di stato
+  poi conferma o corregge.
+
 ## 1.3.4
 
 ### Aggiunto

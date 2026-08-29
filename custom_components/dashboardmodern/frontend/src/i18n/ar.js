@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "مناطق تعمل",
   "Zoom in": "تكبير",
   "Zoom out": "تصغير",
+  "3h ago": "قبل 3 ساعات",
+  "now": "الآن",
+  "The readings": "القياسات",
+  "The state": "الحالة",
+  "Controls": "أدوات التحكم",
 });

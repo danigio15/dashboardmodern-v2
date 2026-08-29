@@ -125,7 +125,7 @@ test("il passo della temperatura chiede il grado giusto", async ({ page }, testI
 test("in cima alla finestra ci sono i numeri che riassumono", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await avvia(page, testInfo);
-  const riepilogo = page.locator("#dm-widget-popup .dm-w-summary .dm-w-stat");
+  const riepilogo = page.locator("#dm-widget-popup .dm-w-caselle .dm-w-casella");
   await expect(riepilogo).toHaveCount(3);
   await expect(riepilogo.first()).toContainText("1/3");
   /* E si legge tutto: il vassoio non taglia le etichette. */

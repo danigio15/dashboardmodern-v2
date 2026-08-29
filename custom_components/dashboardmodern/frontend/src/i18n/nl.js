@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "zones actief",
   "Zoom in": "Inzoomen",
   "Zoom out": "Uitzoomen",
+  "3h ago": "3 uur geleden",
+  "now": "nu",
+  "The readings": "De metingen",
+  "The state": "De staat",
+  "Controls": "Bediening",
 });

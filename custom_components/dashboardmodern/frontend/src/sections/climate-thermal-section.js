@@ -36,14 +36,15 @@ import {
   allStates,
   clean,
   doc,
-  lexicalGlobal,
   english,
   esc,
   finiteOrNull,
   installStyle,
+  lexicalGlobal,
   readClimateUnits,
   readJson,
   root,
+  scriviSeCambia,
   section,
   t,
   wrapFunction,
@@ -866,7 +867,7 @@ function pannelloNellaFinestra(entity) {
     (modalita || ventola)?.before(ospite);
     if (!ospite.isConnected) finestra.append(ospite);
   }
-  if (ospite.innerHTML !== markup) ospite.innerHTML = markup;
+  scriviSeCambia(ospite, markup);
   intestazioneDellaFinestra(entity);
   return true;
 }

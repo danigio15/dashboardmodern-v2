@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "稼働中のゾーン",
   "Zoom in": "拡大",
   "Zoom out": "縮小",
+  "3h ago": "3時間前",
+  "now": "現在",
+  "The readings": "計測値",
+  "The state": "状態",
+  "Controls": "操作",
 });

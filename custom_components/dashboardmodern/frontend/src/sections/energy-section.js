@@ -7,7 +7,7 @@ import {
   isCumulativeEnergyEntity,
 } from "../core/period-service.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
-import { allStates, clean, dashboardStore, doc, english, esc, finite, formatNumber, installStyle, onEditorRedraw, readJson, root, section, selectedPeriod, t, wrapFunction } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, english, esc, finite, formatNumber, installStyle, onEditorRedraw, readJson, root, scriviSeCambia, scriviTestoSeCambia, section, selectedPeriod, t, wrapFunction } from "./shared.js";
 import {
   isHostedDashboard,
   sanitizeHostedCredentials,
@@ -423,17 +423,11 @@ function commitDerived(bundle) {
 }
 
 function setText(id, value) {
-  const node = doc?.getElementById(id);
-  if (!node || node.textContent === value) return false;
-  node.textContent = value;
-  return true;
+  return scriviTestoSeCambia(doc?.getElementById(id), value);
 }
 
 function setHtml(id, value) {
-  const node = doc?.getElementById(id);
-  if (!node || node.innerHTML === value) return false;
-  node.innerHTML = value;
-  return true;
+  return scriviSeCambia(doc?.getElementById(id), value);
 }
 
 function kwh(value, digits = 1) {
@@ -493,7 +487,7 @@ function applyReportOverview(bundle) {
       `<span class="ed-yoy-chip">🏠 ${kwh(data.house)}</span>`,
       `<span class="ed-yoy-chip">⚡ ${kwh(data.gridImport)} ${t("da Rete", "from Grid")}</span>`,
     ].join("");
-    if (chips.innerHTML !== value) chips.innerHTML = value;
+    scriviSeCambia(chips, value);
   }
   const money = financial(data, bundle);
   setText("ed-fin-pagato", `${formatNumber(money.withoutSolar, 2)} €`);

@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "个区域灌溉中",
   "Zoom in": "放大",
   "Zoom out": "缩小",
+  "3h ago": "3 小时前",
+  "now": "现在",
+  "The readings": "读数",
+  "The state": "状态",
+  "Controls": "控制",
 });
