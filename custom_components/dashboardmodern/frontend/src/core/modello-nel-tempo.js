@@ -186,7 +186,7 @@ export function quandoTocca(punti, bersaglio, { adesso = Date.now(), orizzonteOr
  * valore sballato gonfia la deviazione standard e con lei la soglia di
  * «insolito», che e' il modo in cui una guardia smette di suonare.
  */
-export function ilSolito(punti) {
+export function ilSolito(punti, { adesso = Date.now() } = {}) {
   const letture = serie(punti);
   if (letture.length < 2) return null;
 
@@ -195,6 +195,16 @@ export function ilSolito(punti) {
     const durata = letture[i + 1].quando - letture[i].quando;
     if (durata > 0) pesate.push({ valore: letture[i].valore, peso: durata });
   }
+  /* L'ultima lettura dura fino ad adesso, e va pesata come le altre.
+   *
+   * Pesando solo gli intervalli fra letture consecutive, l'ultima non ne
+   * aveva nessuno e valeva zero. Su una casa e' il caso normale: un sensore
+   * passa da 100 a 200 un'ora fa e poi non cambia piu': con l'ultima a peso
+   * zero, il solito resta 100 e il 200 di adesso risulta fortemente insolito —
+   * cioe' si annuncia una stranezza a un sensore che sta fermo da un'ora. */
+  const ultima = letture[letture.length - 1];
+  const codaFinoAOra = adesso - ultima.quando;
+  if (codaFinoAOra > 0) pesate.push({ valore: ultima.valore, peso: codaFinoAOra });
   if (!pesate.length) return null;
 
   const centro = medianaPesata(pesate);
@@ -242,7 +252,7 @@ export function ilSolitoAQuestOra(punti, { adesso = Date.now(), larghezzaOre = 1
   if (vicine.length < PUNTI_MINIMI) return null;
   const giorni = new Set(vicine.map((l) => new Date(l.quando).toDateString()));
   if (giorni.size < 2) return null;
-  const solito = ilSolito(vicine);
+  const solito = ilSolito(vicine, { adesso });
   return solito ? { ...solito, giorni: giorni.size, ora: bersaglio } : null;
 }
 
@@ -311,7 +321,7 @@ export function letturaNelTempo(punti, { adesso = Date.now(), bersaglio = null }
   const letture = serie(punti);
   if (!letture.length) return null;
   const adessoValore = letture[letture.length - 1].valore;
-  const solito = ilSolito(letture);
+  const solito = ilSolito(letture, { adesso });
   const abituale = ilSolitoAQuestOra(letture, { adesso });
   const riferimento = abituale || solito;
   return {

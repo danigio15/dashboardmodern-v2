@@ -508,6 +508,16 @@ function toggleLight(id) {
   holdValue(view.id, "power", acceso);
   send(view, { power: acceso });
   schedule();
+  /* Il ritorno indietro va programmato, non solo permesso.
+   *
+   * Il pegno scade da solo, ma la scadenza si guarda quando qualcuno ridisegna:
+   * se il comando non arriva a destinazione — servizio fallito, connessione
+   * caduta — non arriva nemmeno un cambio di stato, quindi nessuno ridisegna e
+   * la scheda resta accesa per sempre su una luce che e' spenta. Un ridisegno
+   * messo in coda alla scadenza chiude il cerchio: o nel frattempo lo stato ha
+   * confermato, e non cambia niente, o il pegno e' scaduto e la scheda torna
+   * com'era. */
+  root.setTimeout?.(schedule, HOLD_MS + 60);
 }
 
 function setRoomPower(room, on) {

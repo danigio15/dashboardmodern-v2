@@ -363,3 +363,95 @@ test("il modello non aggiunge mai piu' di due righe", () => {
     "scriverle tutte trasforma la finestra in un bollettino",
   );
 });
+
+/* ── gli undici rilievi della revisione, uno per uno ────────────────────── */
+
+test("l'irrigazione che bagna non viene annunciata come ferma", () => {
+  /* Le righe portavano solo il testo tradotto — «in funzione» / «ferma» — e la
+   * lettura, che cerca un booleano, le trovava tutte ferme proprio mentre
+   * l'acqua usciva. Adesso la riga porta anche il dato grezzo. */
+  const conGrezzo = analisiDellaSezione(
+    { key: "irrigazione", attiva: true, rows: [{ name: "Prato", on: true, value: "in funzione" }] },
+    IT,
+  );
+  assert.equal(conGrezzo.tono, VERDETTI.corso);
+  assert.match(conGrezzo.frase, /Prato sta bagnando/);
+
+  /* E se il grezzo non c'e' — dati vecchi — si ricade sul conto della tessera
+   * invece di dire il falso. */
+  const senzaGrezzo = analisiDellaSezione(
+    { key: "irrigazione", attiva: true, rows: [{ name: "Prato", value: "in funzione" }] },
+    IT,
+  );
+  assert.equal(senzaGrezzo.tono, VERDETTI.corso);
+  assert.doesNotMatch(senzaGrezzo.frase, /ferme/);
+});
+
+test("il robot che pulisce non viene annunciato come fermo", () => {
+  const conGrezzo = analisiDellaSezione(
+    { key: "robot", rows: [{ name: "Robi", cleaning: true, battery: 60 }] },
+    IT,
+  );
+  assert.equal(conGrezzo.tono, VERDETTI.corso);
+
+  const senzaGrezzo = analisiDellaSezione(
+    { key: "robot", attiva: true, rows: [{ name: "Robi", value: "In pulizia · 60%" }] },
+    IT,
+  );
+  assert.equal(senzaGrezzo.tono, VERDETTI.corso, "il conto della tessera fa da rete");
+});
+
+test("le sonde del solare si leggono dal valore grezzo, non dal testo", () => {
+  /* «56.2°» attraverso Number fa NaN: l'analisi del salto fra le sonde non
+   * usciva mai. La riga adesso porta `raw` accanto a `value`. */
+  const esito = analisiDellaSezione(
+    {
+      key: "solare",
+      attiva: true,
+      rows: [
+        { name: "Pannello", raw: 68, value: "68°" },
+        { name: "Accumulo", raw: 44, value: "44°" },
+      ],
+    },
+    IT,
+  );
+  assert.match(esito.frase, /24,0°/, "il salto si calcola sul grezzo");
+});
+
+test("un dato che manca non vale zero", () => {
+  /* `Number(null)` fa zero, e uno zero e' una misura: una stanza senza sensore
+   * di umidita' entrava nella media come 0%. */
+  const esito = analisiDellaSezione(
+    {
+      key: "temperatura",
+      rows: [
+        { name: "A", temperature: 20, humidity: 50 },
+        { name: "B", temperature: 22, humidity: null },
+      ],
+    },
+    IT,
+  );
+  const umidita = esito.punti.find((p) => /Umidita/.test(p));
+  assert.match(umidita, /50%/, "la media e' di una stanza sola, non 25%");
+});
+
+test("con piu' auto non si dice che la piu' scarica e' in carica", () => {
+  /* `ring` e' la carica piu' bassa fra tutte, `attiva` dice che QUALCUNA e'
+   * attaccata: messe insieme diventavano «quella al 10% e' in carica» mentre in
+   * carica c'era l'altra, all'80%. */
+  const esito = analisiDellaSezione(
+    { key: "ev", ring: 10, attiva: true, quante: 2, rows: [{}, {}] },
+    IT,
+  );
+  assert.doesNotMatch(esito.frase, /^In carica, al 10%/);
+  assert.match(esito.frase, /la piu' scarica e' al 10%/);
+});
+
+test("la lingua dei numeri si passa, non si indovina", () => {
+  /* Chiedendo a tr("it","en") chi fosse, il tedesco finiva su «en-US»: una
+   * finestra tedesca mescolava un titolo «1,25 kW» con un'analisi «1.25 kW». */
+  const tessera = { key: "energia", rows: [{ group: "house", watts: 1250 }] };
+  const tedesco = (_it, en) => en;
+  assert.match(analisiDellaSezione(tessera, tedesco, Date.now(), null, "de-DE").frase, /1,25 kW/);
+  assert.match(analisiDellaSezione(tessera, tedesco, Date.now(), null, "en-US").frase, /1\.25 kW/);
+});

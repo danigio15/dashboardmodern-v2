@@ -631,7 +631,15 @@ function temperatureModel(states) {
     .map((room) => {
       const temperature = numOf(states, room.temp);
       const humidity = numOf(states, clean(room.hum) || clean(room.temp).replace("_temperature", "_humidity"));
-      return { name: clean(room.name) || clean(room.id), temperature, humidity };
+      /* L'entita' resta sulla riga: senza, la finestra non sa a chi chiedere
+       * lo storico, e la Temperatura non poteva mai avere la sua analisi nel
+       * tempo. */
+      return {
+        name: clean(room.name) || clean(room.id),
+        entity: clean(room.temp),
+        temperature,
+        humidity,
+      };
     })
     .filter((row) => row.temperature != null);
   if (!rows.length) return null;
@@ -759,19 +767,28 @@ function rigaDaEntita(states, entity, glifo = "•") {
   if (STATI_MUTI.test(grezzo)) return null;
   const nome = friendlyName(states, chiave);
   const numero = numOf(states, chiave);
+  /* Accanto al testo che si legge, il dato grezzo per chi conta.
+   *
+   * La riga portava solo il valore gia' formattato — «56.2°», «Acceso» — e chi
+   * doveva farci un conto trovava una stringa: `Number("56.2°")` non e' un
+   * numero, e l'analisi delle sonde del solare termico non usciva mai. Il
+   * testo e' per gli occhi, `raw` e `on` per i conti. */
   if (numero != null) {
     const unita = clean(stato?.attributes?.unit_of_measurement);
     const cifre = Number.isInteger(numero) || Math.abs(numero) >= 100 ? 0 : 1;
     return {
       glyph: glifo,
       name: nome,
+      entity: chiave,
+      raw: numero,
+      unit: unita,
       value: `${formatNumber(numero, cifre)}${unita ? ` ${unita}` : ""}`,
     };
   }
   if (STATI_ACCESI.test(grezzo))
-    return { glyph: glifo, name: nome, value: t("Acceso", "On") };
+    return { glyph: glifo, name: nome, entity: chiave, on: true, value: t("Acceso", "On") };
   if (STATI_SPENTI.test(grezzo))
-    return { glyph: glifo, name: nome, value: t("Spento", "Off") };
+    return { glyph: glifo, name: nome, entity: chiave, on: false, value: t("Spento", "Off") };
   return { glyph: glifo, name: nome, value: grezzo };
 }
 
@@ -948,9 +965,17 @@ function robotsModel(states) {
      * puliscono la notizia e' che stanno pulendo. */
     ring: attivi.length ? null : piuScarico,
     attiva: attivi.length > 0,
+    /* Come per l'irrigazione: il testo per gli occhi, i campi grezzi per chi
+     * conta. Senza, un aspirapolvere che sta pulendo veniva annunciato come
+     * fermo, e l'avviso di batteria scarica non poteva mai uscire. */
     rows: viste.map((vista) => ({
       glyph: vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
       name: vista.name,
+      cleaning: vista.cleaning,
+      charging: vista.charging,
+      state: vista.state,
+      battery: vista.battery,
+      entity: clean(vista.entity),
       value: vista.battery == null
         ? robotStateLabel(vista.state)
         : `${robotStateLabel(vista.state)} · ${Math.round(vista.battery)}%`,
@@ -1145,9 +1170,16 @@ function irrigationModel(states) {
         : t("umidità terreno", "soil moisture"),
     ring: inFunzione.length ? null : umidita,
     attiva: inFunzione.length > 0,
+    /* Accanto al testo che si legge va il dato grezzo, che serve a chi conta.
+     * Le righe portavano solo «in funzione» / «ferma» tradotto, e il motore di
+     * analisi — che cerca un booleano — leggeva tutte le zone come ferme
+     * proprio mentre l'acqua usciva. Il testo e' per gli occhi, `on` per i
+     * conti: due mestieri, due campi. */
     rows: attive.map((zona) => ({
       glyph: "🌱",
       name: clean(zona.name) || clean(zona.entity),
+      on: zonaInFunzione(states, zona),
+      entity: clean(zona.entity),
       value: zonaInFunzione(states, zona)
         ? t("in funzione", "running")
         : t("ferma", "idle"),
@@ -1633,6 +1665,11 @@ function rowShell(inner, attrs = "") {
  * percentuale smette di essere un dato e diventa una cosa da guardare.
  */
 function livelloMarkup(percentuale) {
+  /* `Number(null)` fa zero, e uno zero passa tutti i controlli che seguono:
+   * senza questa riga ogni riga senza percentuale — una temperatura, un pH,
+   * un acceso/spento — si prendeva una barra rossa vuota, cioe' l'avviso di
+   * «quasi scarico» sopra una cosa che una carica non ce l'ha. */
+  if (percentuale == null || percentuale === "") return "";
   const valore = Number(percentuale);
   if (!Number.isFinite(valore) || valore < 0 || valore > 100) return "";
   const quota = Math.round(valore);
@@ -2490,7 +2527,18 @@ function entitaDelRacconto(widget) {
  * rete per aprirsi, su una casa senza Recorder, non si apre. */
 function storiaDelWidget(widget) {
   const entita = entitaDelRacconto(widget);
-  return entita ? puntiDi(entita, 3) : null;
+  if (!entita) return null;
+  /* Il valore di adesso va in coda alla storia: la risposta dello storico vale
+   * nove minuti, e senza questa coda il modello leggerebbe come «adesso» un
+   * valore vecchio fino a nove minuti — arrivando a contraddire il numero
+   * grande della stessa finestra. */
+  const stato = allStates()?.[entita];
+  const vivo = Number(clean(stato?.state));
+  return puntiDi(
+    entita,
+    3,
+    Number.isFinite(vivo) ? { adesso: { quando: Date.now(), valore: vivo } } : {},
+  );
 }
 
 function verdettoEFrase(widget) {

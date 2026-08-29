@@ -212,3 +212,19 @@ test("la lettura completa, e i suoi null che vogliono dire «non so»", () => {
   assert.equal(scarsa.arrivo, null);
   assert.equal(letturaNelTempo([], { adesso: ADESSO }), null);
 });
+
+test("l'ultima lettura pesa fino ad adesso, non zero", () => {
+  /* Il caso normale in una casa: un sensore sta a 100 per mezz'ora, passa a
+   * 200 due ore e mezza fa, e da allora non cambia piu'. Pesando solo gli
+   * intervalli fra letture, l'ultima non ne ha nessuno e vale zero: il solito
+   * resterebbe 100 e il 200 di adesso risulterebbe fortemente insolito — cioe'
+   * si annuncerebbe una stranezza a un sensore fermo da due ore e mezza. */
+  const punti = [];
+  for (let i = 0; i < 7; i += 1)
+    punti.push({ quando: ADESSO - 3 * ORA + i * 5 * MINUTO, valore: 100 });
+  punti.push({ quando: ADESSO - 2.5 * ORA, valore: 200 });
+
+  const solito = ilSolito(punti, { adesso: ADESSO });
+  assert.equal(solito.centro, 200, "il 200 dura due ore e mezza, il 100 mezz'ora");
+  assert.ok(quantoInsolito(200, solito) < 1, "un sensore fermo da ore non e' una stranezza");
+});

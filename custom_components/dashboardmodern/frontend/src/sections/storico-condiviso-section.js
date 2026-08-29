@@ -115,7 +115,7 @@ export function quandoArrivaLoStorico(avvisa) {
  * «unavailable». Qui passa solo cio' che e' un numero: il modello misura, e su
  * «unavailable» non c'e' niente da misurare. Buttarli e' meglio che contarli
  * zero, che farebbe sembrare spento un sensore che era solo irraggiungibile. */
-export function puntiDi(entity, ore = 3) {
+export function puntiDi(entity, ore = 3, { adesso = null } = {}) {
   const righe = serieDi(entity, ore);
   if (!righe) return null;
   const punti = [];
@@ -124,6 +124,19 @@ export function puntiDi(entity, ore = 3) {
     const quando = Number(riga?.time);
     if (Number.isFinite(valore) && Number.isFinite(quando) && quando > 0)
       punti.push({ quando, valore });
+  }
+  /* La lettura di adesso si appende in coda, se chi chiama ce l'ha.
+   *
+   * La risposta vale nove minuti, e in quei nove minuti la coda della serie
+   * resta ferma a com'era: chi legge l'ultimo punto come «il valore di adesso»
+   * — ed e' quello che fa il modello — poteva raccontare una stranezza che
+   * contraddiceva il numero grande della stessa finestra, per nove minuti. Il
+   * valore vivo lo sa gia' chi disegna: lo passa, e la coda e' vera. */
+  const vivo = Number(adesso?.valore);
+  const quandoVivo = Number(adesso?.quando);
+  if (Number.isFinite(vivo) && Number.isFinite(quandoVivo)) {
+    const ultimo = punti[punti.length - 1];
+    if (!ultimo || quandoVivo > ultimo.quando) punti.push({ quando: quandoVivo, valore: vivo });
   }
   return punti;
 }

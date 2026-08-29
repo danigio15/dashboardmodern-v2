@@ -50,7 +50,12 @@ const IN_ITALIANO = (italiano) => italiano;
 
 /* ── attrezzi ──────────────────────────────────────────────────────────── */
 
+/* `Number(null)` fa zero, e uno zero e' una misura: senza questo controllo una
+ * stanza senza sensore di umidita' entrava nella media come 0%, e un'auto senza
+ * lettura della carica diventava un'auto al 12% da guardare. Un dato che manca
+ * non e' un dato che vale zero. */
 const num = (valore) => {
+  if (valore == null || valore === "") return null;
   const n = Number(valore);
   return Number.isFinite(n) ? n : null;
 };
@@ -66,7 +71,13 @@ function watt(valore, lingua = "it-IT") {
   return `${numero(n, 0, lingua)} W`;
 }
 
-const lingua = (tr) => (tr("it", "en") === "en" ? "en-US" : "it-IT");
+/* La lingua per i numeri arriva da fuori, non si indovina.
+ *
+ * Qui si chiedeva a `tr("it","en")` chi fosse: in italiano torna «it», in
+ * inglese «en», e in tedesco torna quello che c'e' nel catalogo — quindi si
+ * finiva su «en-US», e una finestra tedesca mescolava un titolo «1,25 kW» con
+ * un'analisi «1.25 kW». Chi chiama la lingua ce l'ha: la passa. */
+const lingua = (tr, dichiarata) => dichiarata || (tr("it", "en") === "en" ? "en-US" : "it-IT");
 
 /* Il piu' grande e il piu' piccolo di un elenco, per campo. */
 function estremi(righe, campo) {
@@ -109,7 +120,7 @@ const LETTURE = Object.freeze({
   /* L'Energia non e' un elenco di cose accese: e' un bilancio. Chi produce,
    * chi consuma, e dove finisce la differenza. */
   energia: (tr, tessera) => {
-    const l = lingua(tr);
+    const l = lingua(tr, tessera?.lingua);
     const di = (gruppo) => num(tessera?.rows?.find((r) => r?.group === gruppo)?.watts);
     const casa = di("house");
     const sole = di("solar");
@@ -203,13 +214,17 @@ const LETTURE = Object.freeze({
 
   /* Il fotovoltaico dentro il solare termico: sonde e pompa. */
   solare: (tr, tessera) => {
-    const l = lingua(tr);
+    const l = lingua(tr, tessera?.lingua);
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
     const pompa = tessera?.attiva === true;
-    const gradi = righe.filter((r) => num(r?.temperature ?? r?.value) != null);
+    /* Il grado si legge dal campo grezzo, non dal testo: il testo e' «68°», e
+     * `Number("68°")` non e' un numero. Le righe di questa sezione portano
+     * `raw` accanto a `value` proprio per questo. */
+    const gradoDi = (r) => num(r?.raw ?? r?.temperature);
+    const gradi = righe.filter((r) => gradoDi(r) != null);
     const punti = [];
     const estremo = estremi(
-      gradi.map((r) => ({ ...r, gradi: num(r.temperature ?? r.value) })),
+      gradi.map((r) => ({ ...r, gradi: gradoDi(r) })),
       "gradi",
     );
     if (estremo && estremo.massimo !== estremo.minimo) {
@@ -303,7 +318,7 @@ const LETTURE = Object.freeze({
 
   /* La Temperatura: la media da sola non dice niente, la differenza si'. */
   temperatura: (tr, tessera) => {
-    const l = lingua(tr);
+    const l = lingua(tr, tessera?.lingua);
     const righe = (Array.isArray(tessera?.rows) ? tessera.rows : []).filter(
       (r) => num(r?.temperature) != null,
     );
@@ -348,7 +363,7 @@ const LETTURE = Object.freeze({
   },
 
   elettrodomestici: (tr, tessera, adesso) => {
-    const l = lingua(tr);
+    const l = lingua(tr, tessera?.lingua);
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
     const accesi = righe.filter((r) => pulito(r?.mode) === "running");
     const punti = [];
@@ -400,11 +415,32 @@ const LETTURE = Object.freeze({
     };
   },
 
+  /* Con piu' di un'auto la tessera dice due cose che non parlano della stessa
+   * macchina: `ring` e' la carica piu' bassa fra tutte, `attiva` dice che
+   * QUALCUNA e' attaccata. Messe insieme diventano «quella al 10% e' in
+   * carica» mentre in carica c'e' l'altra, che sta all'80%. Con una sola auto
+   * le due cose coincidono e si puo' dire; con piu' d'una si dice di meno, che
+   * e' meglio di dire il falso. */
   ev: (tr, tessera) => {
-    const l = lingua(tr);
+    const l = lingua(tr, tessera?.lingua);
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
     const allaPresa = tessera?.attiva === true;
     const carica = num(tessera?.ring);
+    const piuAuto = (Number(tessera?.quante) || righe.length) > 1;
+    if (piuAuto && carica != null)
+      return {
+        tono: allaPresa ? VERDETTI.corso : carica < 20 ? VERDETTI.guarda : VERDETTI.bene,
+        frase: allaPresa
+          ? tr(
+              `Una e' in carica; la piu' scarica e' al ${Math.round(carica)}%.`,
+              `One is charging; the lowest is at ${Math.round(carica)}%.`,
+            )
+          : tr(
+              `Nessuna attaccata; la piu' scarica e' al ${Math.round(carica)}%.`,
+              `None plugged in; the lowest is at ${Math.round(carica)}%.`,
+            ),
+        punti: [],
+      };
     const punti = [];
     const km = righe.map((r) => num(r?.km)).filter((v) => v != null);
     if (km.length)
@@ -443,7 +479,16 @@ const LETTURE = Object.freeze({
 
   robot: (tr, tessera) => {
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
+    /* La tessera dice gia' quanti ne stanno lavorando, col suo conto: se le
+     * righe non portano il campo grezzo — puo' succedere con dati vecchi — si
+     * ricade su quello invece di dire che sono tutti fermi. */
     const attivi = righe.filter((r) => r?.cleaning === true || pulito(r?.state) === "cleaning");
+    if (!attivi.length && tessera?.attiva === true)
+      return {
+        tono: VERDETTI.corso,
+        frase: tr("Qualcuno sta pulendo.", "One is cleaning."),
+        punti: [],
+      };
     const cariche = righe.map((r) => num(r?.battery)).filter((v) => v != null);
     const piuScarico = cariche.length ? Math.min(...cariche) : null;
     const punti = [];
@@ -486,7 +531,7 @@ const LETTURE = Object.freeze({
   },
 
   piscina: (tr, tessera) => {
-    const l = lingua(tr);
+    const l = lingua(tr, tessera?.lingua);
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
     const trova = (nome) => righe.find((r) => pulito(r?.name).toLowerCase() === nome);
     const acqua = num(trova(tr("acqua", "water"))?.raw ?? trova(tr("acqua", "water"))?.value);
@@ -531,6 +576,12 @@ const LETTURE = Object.freeze({
   irrigazione: (tr, tessera, adesso) => {
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
     const bagnano = righe.filter((r) => r?.on === true || r?.running === true);
+    if (!bagnano.length && tessera?.attiva === true)
+      return {
+        tono: VERDETTI.corso,
+        frase: tr("Sta irrigando.", "Watering."),
+        punti: [],
+      };
     const umidita = num(tessera?.ring);
     const punti = [];
     if (umidita != null && !bagnano.length)
@@ -574,12 +625,14 @@ export function analisiDellaSezione(
   traduci = IN_ITALIANO,
   adesso = Date.now(),
   storia = null,
+  linguaDeiNumeri = null,
 ) {
   const lettura = LETTURE[tessera?.key];
   if (!lettura) return null;
-  const esito = lettura(traduci, tessera || {}, adesso);
+  const conLingua = { ...(tessera || {}), lingua: linguaDeiNumeri || tessera?.lingua || null };
+  const esito = lettura(traduci, conLingua, adesso);
   if (!esito?.frase) return null;
-  const dalModello = puntiDelModello(tessera, storia, traduci, adesso);
+  const dalModello = puntiDelModello(conLingua, storia, traduci, adesso);
   return {
     tono: dalModello.tono || esito.tono || VERDETTI.bene,
     frase: esito.frase,
@@ -613,7 +666,7 @@ const FORMA = Object.freeze({
 function puntiDelModello(tessera, storia, tr, adesso) {
   const forma = FORMA[tessera?.key];
   if (!forma || !storia) return { punti: [], tono: null };
-  const l = lingua(tr);
+  const l = lingua(tr, tessera?.lingua);
   const scrivi = (v) => forma.unita(v, l);
   const lettura = letturaNelTempo(storia, { adesso, bersaglio: forma.bersaglio(tessera) });
   if (!lettura) return { punti: [], tono: null };
