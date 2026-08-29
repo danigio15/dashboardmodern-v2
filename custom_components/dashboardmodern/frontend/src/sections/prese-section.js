@@ -20,7 +20,9 @@
  * l'elenco: cioe' esattamente la cosa che mancava, e nient'altro.
  */
 import { lightSummary, lightView } from "../core/light-model.js";
+import { directEmoji } from "../core/personalization-catalog.js";
 import { eEntitaDiPresa, normalizzaPrese, presePerStanza } from "../core/prese-model.js";
+import { iconGlyphMarkup, openIconPicker } from "./icon-engine-section.js";
 import { pageCardMarkup, pageSummaryMarkup } from "./lights-page-section.js";
 import {
   allStates,
@@ -44,6 +46,24 @@ const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
 export const PRESE_PAGE_ID = "page-prese";
 export const PRESE_TAB = "prese";
 const CHIAVE = "cd_prese";
+
+/* L'icona di una presa esce dal catalogo di casa, non dalla tastiera.
+ *
+ * «Nella sezione prese non si puo' scegliere icona: richiama sempre il
+ * catalogo creato da noi con lo stile elettrodomestici.» Il campo era una
+ * casella di testo libero col 🔌 dentro: le emoji cambiano faccia da un
+ * telefono all'altro, e nella stessa pagina stavano accanto ai disegni in
+ * scocca blu notte. Il selettore e' quello dei carichi — stesso catalogo,
+ * stessa tavolozza — e il token mdi scelto si disegna col motore delle icone.
+ * L'emoji resta il ripiego per le prese configurate prima. */
+export const ICONA_PRESA_PREDEFINITA = "mdi:power-plug";
+
+export function iconaPresaMarkup(icon, size = 24) {
+  const token = clean(icon);
+  const emoji = directEmoji(token);
+  if (emoji) return esc(emoji);
+  return iconGlyphMarkup("load", token || ICONA_PRESA_PREDEFINITA, { size });
+}
 
 /** L'elenco delle prese: dal modello canonico, o dalla chiave di sempre. */
 export function presiConfigurate() {
@@ -234,7 +254,7 @@ function opzioniStanza(scelta) {
 function rigaMarkup(presa, indice) {
   const stanza = stanze().find((voce) => clean(voce?.id) === presa.room_id);
   return `<article class="ed-row dm-presa-row" data-presa-index="${indice}">
-    <div class="dm-presa-icon" aria-hidden="true">${esc(presa.icon || "🔌")}</div>
+    <div class="dm-presa-icon" aria-hidden="true">${iconaPresaMarkup(presa.icon, 22)}</div>
     <div class="ed-row-main">
       <div class="ed-row-new">${esc(presa.name)}</div>
       <div class="ed-row-old mono">${esc(presa.entity)}${stanza ? ` · 🏠 ${esc(clean(stanza.name))}` : ""}</div>
@@ -266,7 +286,7 @@ export function renderPreseEditor(target) {
     <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Nome", "Name"))}</span><input id="ed-presa-name" class="ed-input" value="${esc(corrente?.name || "")}" placeholder="${esc(t("TV Salotto", "Living-room TV"))}"></label>
     <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Entità Home Assistant", "Home Assistant entity"))}</span><span class="ed-form-row"><input id="ed-presa-ent" class="ed-input mono" value="${esc(corrente?.entity || "")}" placeholder="switch.tv_salotto" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-presa-pick aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span></label>
     <div class="ed-form-row">
-      <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Icona", "Icon"))}</span><input id="ed-presa-icon" class="ed-input" value="${esc(corrente?.icon || "🔌")}" placeholder="🔌"></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Icona", "Icon"))}</span><span class="ed-form-row dm-presa-icon-row"><input id="ed-presa-icon" class="ed-input" value="${esc(corrente?.icon || ICONA_PRESA_PREDEFINITA)}" hidden><button type="button" class="dm-presa-icon-btn" data-presa-icon-pick aria-label="${esc(t("Scegli icona dal catalogo", "Choose icon from the catalog"))}" title="${esc(t("Scegli icona dal catalogo", "Choose icon from the catalog"))}">${iconaPresaMarkup(corrente?.icon, 26)}</button></span></label>
       <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Stanza", "Room"))}</span><select id="ed-presa-room" class="ed-input">${opzioniStanza(corrente?.room_id)}</select></label>
     </div>
     <label class="ed-slot dm-presa-lock"><span class="ed-slot-lbl">${esc(t("Si vede ma non si comanda", "Shown but not controllable"))}</span><span class="ed-form-row"><input type="checkbox" id="ed-presa-lock" ${corrente && !siComanda(corrente.entity) ? "checked" : ""}><small>${esc(
@@ -279,6 +299,18 @@ export function renderPreseEditor(target) {
     <button type="button" class="ed-btn-add" data-presa-save>${corrente ? `💾 ${esc(t("Salva modifiche", "Save changes"))}` : `＋ ${esc(t("Aggiungi presa", "Add socket"))}`}</button>
     ${corrente ? `<button type="button" class="ed-btn-add" data-presa-cancel>${esc(t("Annulla modifica", "Cancel edit"))}</button>` : ""}
   </section>`;
+  /* Il selettore scrive il token nel campo e avvisa con `change`: il bottone
+   * si ridipinge da li', cosi' la scelta si vede subito senza rifare la
+   * scheda. */
+  const campoIcona = target.querySelector("#ed-presa-icon");
+  const bottoneIcona = target.querySelector("[data-presa-icon-pick]");
+  if (campoIcona && bottoneIcona) {
+    const dipingiIcona = () => {
+      bottoneIcona.innerHTML = iconaPresaMarkup(campoIcona.value, 26);
+    };
+    campoIcona.addEventListener("input", dipingiIcona);
+    campoIcona.addEventListener("change", dipingiIcona);
+  }
   return true;
 }
 
@@ -286,7 +318,7 @@ function leggiModulo() {
   return {
     name: clean(doc?.getElementById("ed-presa-name")?.value),
     entity: clean(doc?.getElementById("ed-presa-ent")?.value),
-    icon: clean(doc?.getElementById("ed-presa-icon")?.value) || "🔌",
+    icon: clean(doc?.getElementById("ed-presa-icon")?.value) || ICONA_PRESA_PREDEFINITA,
     room_id: clean(doc?.getElementById("ed-presa-room")?.value),
     bloccata: Boolean(doc?.getElementById("ed-presa-lock")?.checked),
   };
@@ -305,6 +337,12 @@ function onEditorClick(event) {
   if (event.target.closest("[data-presa-pick]")) {
     event.preventDefault();
     root.wzPickEntity?.(doc.getElementById("ed-presa-ent"));
+    return;
+  }
+  if (event.target.closest("[data-presa-icon-pick]")) {
+    event.preventDefault();
+    // Il catalogo dei carichi: lo stesso stile degli elettrodomestici.
+    openIconPicker(doc.getElementById("ed-presa-icon"), "load");
     return;
   }
   if (event.target.closest("[data-presa-cancel]")) {
@@ -391,6 +429,13 @@ function installStyles() {
       #page-prese .dm-lucip-empty span{font-size:12px;color:var(--secondary-text-color,#64748b);font-weight:700}
       .dm-prese-editor .dm-presa-row{align-items:center}
       .dm-prese-editor .dm-presa-icon{flex:0 0 auto;font-size:20px;width:30px;text-align:center}
+      .dm-prese-editor .dm-presa-icon svg{display:block;margin:0 auto}
+      .dm-prese-editor .dm-presa-icon-row{align-items:center}
+      .dm-prese-editor .dm-presa-icon-btn{display:grid;place-items:center;width:52px;height:44px;padding:6px;
+        border:1px solid var(--divider-color,#dbe4ee);border-radius:12px;cursor:pointer;
+        background:linear-gradient(145deg,color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,var(--card-background-color,#fff)),var(--card-background-color,#fff))}
+      .dm-prese-editor .dm-presa-icon-btn:hover{filter:brightness(1.04)}
+      .dm-prese-editor .dm-presa-icon-btn svg{display:block}
       .dm-prese-editor .dm-presa-error:empty{display:none}
       .dm-prese-editor .dm-presa-error{display:block;margin:6px 0 0;color:#b91c1c;font-size:12px;font-weight:800}
       .dm-prese-editor .dm-presa-lock small{display:block;margin-top:3px;color:var(--secondary-text-color,#64748b);font-size:11px;font-weight:700;line-height:1.35}

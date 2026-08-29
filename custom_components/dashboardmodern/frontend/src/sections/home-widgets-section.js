@@ -36,6 +36,7 @@ import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
 import { normalizzaPrese } from "../core/prese-model.js";
+import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   coverEntries,
@@ -1346,7 +1347,8 @@ function preseModel(states) {
     const stato = stateOf(states, presa.entity);
     if (!stato) continue;
     rows.push({
-      glyph: clean(presa.icon) || "🔌",
+      // Il disegno del catalogo di casa; l'emoji resta per i valori vecchi.
+      glyph: iconaPresaMarkup(presa.icon, 17),
       name: clean(presa.name) || presa.entity,
       entity: presa.entity,
       on: clean(stato.state).toLowerCase() === "on",

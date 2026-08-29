@@ -198,3 +198,81 @@ test("la pagina Prese ha l'intestazione, e la Home ha la sua tessera", async ({
     timeout: 10000,
   });
 });
+
+test("l'icona si sceglie dal catalogo di casa, e si disegna col suo tratto", async ({
+  page,
+}, testInfo) => {
+  /* «Nella sezione prese non si puo' scegliere icona: richiama sempre il
+   * catalogo creato da noi con lo stile elettrodomestici.» Il campo era testo
+   * libero: adesso il bottone apre il selettore dei carichi — lo stesso
+   * catalogo, la stessa tavolozza — e il token scelto si disegna col motore
+   * delle icone, nella scheda e nella tessera della Home. */
+  test.setTimeout(150_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, {
+    ...SEME,
+    visibility: { home: true, prese: true },
+  });
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true, null, {
+    timeout: 60000,
+  });
+  await page.evaluate(() => {
+    const stati = eval("_RAW_STATES");
+    stati["switch.tv_salotto"] = {
+      entity_id: "switch.tv_salotto",
+      state: "on",
+      attributes: { friendly_name: "switch.tv_salotto" },
+    };
+    window.applyStates?.();
+  });
+
+  /* Dalla scheda: il bottone apre il selettore del catalogo. */
+  await page.evaluate(() => {
+    if (!document.getElementById("editor-modal")?.classList.contains("show"))
+      window.apriConfigEntita();
+    window.editorSwitch("prese");
+  });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => {
+    const scrivi = (id, valore) => {
+      const campo = document.getElementById(id);
+      if (!campo) return;
+      campo.value = valore;
+      campo.dispatchEvent(new Event("input", { bubbles: true }));
+      campo.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    scrivi("ed-presa-name", "TV Salotto");
+    scrivi("ed-presa-ent", "switch.tv_salotto");
+  });
+  await page.locator("[data-presa-icon-pick]").click();
+  const selettore = page.locator("#dm-visual-picker");
+  await expect(selettore).toBeVisible();
+  /* E' il catalogo dei carichi, con i suoi gruppi. */
+  await expect(selettore.locator(".dm-picker-group").first()).toBeVisible();
+  await selettore.locator('.dm-picker-option[title="TV"]').first().click();
+  await expect(selettore).toBeHidden({ timeout: 5000 });
+  /* La scelta si vede subito sul bottone, come disegno e non come scritta. */
+  await expect(page.locator("[data-presa-icon-pick] svg")).toBeVisible();
+
+  await page.locator("[data-presa-save]").click();
+  await page.waitForTimeout(300);
+  const salvata = await page.evaluate(() => JSON.parse(localStorage.getItem("cd_prese") || "[]"));
+  expect(salvata[0]?.icon).toBe("mdi:television");
+  /* La riga della scheda porta il disegno del catalogo. */
+  await expect(page.locator(".dm-presa-row .dm-presa-icon svg")).toBeVisible();
+
+  /* E la tessera della Home lo porta nella sua riga. */
+  await page.evaluate(() => {
+    document.querySelector("#editor-modal .ed-head-close")?.click();
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page.waitForTimeout(1600);
+  const tessera = page.locator('#dm-widgets .dm-tile[data-dm-widget="prese"]');
+  await expect(tessera).toBeVisible();
+  await tessera.click();
+  await page.waitForTimeout(400);
+  const finestra = page.locator('#dm-widget-popup [data-dm-widget-detail="prese"]');
+  await expect(finestra).toBeVisible();
+  await expect(finestra.locator(".dm-w-row .dm-w-glyph svg").first()).toBeVisible();
+});
