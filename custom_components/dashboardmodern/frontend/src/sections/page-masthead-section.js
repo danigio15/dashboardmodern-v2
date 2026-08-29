@@ -412,11 +412,45 @@ function foldRules() {
   }).join("\n    ");
 }
 
+/* La fascia della plancia si vede sulla Home e basta, e a dirlo e' la pagina
+ * aperta — non l'ultimo che ha cliccato.
+ *
+ * Il guscio la accende e la spegne dentro il gestore delle voci in basso:
+ * «se hai premuto Home mettila a flex, altrimenti a none». Sembra la stessa
+ * cosa ma non lo e', perche' quel gestore lo lega una volta sola al
+ * caricamento, e le tre pagine nate dopo — Stanze, Luci, Aspirapolvere — hanno
+ * ciascuna il proprio ascolto, che di quella fascia non sa niente. Il
+ * risultato e' che la fascia si porta dietro lo stato lasciato dalla pagina
+ * di prima: da Home a Stanze resta accesa (due intestazioni sulla stessa
+ * pagina), e chi torna alla Home da una strada che non passa per la voce in
+ * basso se la ritrova spenta — la testata della Home sparita, senza aver
+ * toccato niente.
+ *
+ * La decisione non e' di un clic, e' della pagina che sta aperta: qui si
+ * scrive cosi', e con il peso massimo, perche' quello che il guscio si scrive
+ * addosso sull'elemento vince su qualunque foglio che non lo abbia. Chi non
+ * conosce `:has` — nessun browser di oggi, ma la rete e' lunga — non si
+ * prende nessuna delle due righe e resta al comportamento di prima, invece di
+ * ritrovarsi la fascia accesa dappertutto. */
+/* E si parla della fascia della plancia, che e' una sola ed e' figlia diretta
+ * del corpo del documento: da qui il `>`. Non e' un vezzo — `header` e basta
+ * prende anche le intestazioni delle finestre di modifica, che stanno in fondo
+ * al corpo dentro la loro scheda, e le spegneva tutte, croce di chiusura
+ * compresa, ogni volta che la pagina aperta non era la Home. */
+function regolaDellaFascia() {
+  const fascia = "header:not(.dm-page-mast)";
+  return `@supports selector(:has(*)){
+      body:has(.page.active)>${fascia}{display:flex!important}
+      body:has(.page.active:not(#page-home))>${fascia}{display:none!important}
+    }`;
+}
+
 function installStyles() {
   installStyle(
     STYLE_ID,
     `
     ${foldRules()}
+    ${regolaDellaFascia()}
     /* Una sola larghezza per tutte le sezioni.
      *
      * Ogni sezione si era scelta la sua: Energia, Elettrodomestici e

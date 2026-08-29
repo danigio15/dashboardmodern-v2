@@ -570,13 +570,24 @@ function leapmotorVisual(size = 48) {
   return `<span class="dm-car-brand dm-leapmotor-mark" data-brand="leapmotor" data-brand-source="inline" data-dm-beta5-brand="Leapmotor" title="Leapmotor" style="width:${safeSize}px;height:${safeSize}px;color:${CAR_BRAND_COLORS.leapmotor || "currentColor"}"><span data-brand-logo="leapmotor" style="display:grid;place-items:center;width:100%;height:100%"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true" fill="currentColor"><path d="M6 16 17 10v19l6 4v9L6 32z"/><path d="M24 5l18 10v17l-14 8V28l7-4v-6l-7-4v31l-4-2z"/></svg></span></span>`;
 }
 
+/* Il nome mdi di una voce e' quello che si salva nella configurazione: quando
+ * arriva di li', la voce e' una sola e la si riconosce per intero. Prima si
+ * passava subito al confronto a parole, che pero' dichiara buona la prima voce
+ * che ha una parola qualsiasi dentro al nome cercato: `mdi:home` finiva in
+ * soffitta, e `mdi:silverware-fork-knife` non trovava la cucina perche' il
+ * confronto era fra trattini e spazi. Il giro largo resta, ma dopo. */
+const nomeVoce = (value) => normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ").trim();
+
 export function roomCatalogMatch(value) {
-  const token = normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
+  const token = nomeVoce(value);
   if (!token) return ROOM_CATALOG[0];
+  const esatta = ROOM_CATALOG.find(
+    (item) => item.id === token || nomeVoce(item.mdi) === token || nomeVoce(item.id) === token,
+  );
+  if (esatta) return esatta;
   return (
     ROOM_CATALOG.find(
       (item) =>
-        item.id === token ||
         normalized(item.mdi).includes(token) ||
         `${item.keywords} ${item.it} ${item.en}`
           .split(/\s+/)
@@ -902,12 +913,11 @@ export function loadGlyph(value) {
   return loadCatalogMatch(token)?.glyph || actionCatalogMatch(token)?.glyph || "🔌";
 }
 
-export function roomOptionsMarkup({ selected = "", locale = getLocale() } = {}) {
-  return ROOM_CATALOG.map(
-    (item) =>
-      `<option value="${item.mdi}" ${clean(selected) === item.mdi ? "selected" : ""}>${catalogLabel(item, locale)}</option>`,
-  ).join("");
-}
+/* Qui c'era anche un roomOptionsMarkup che elencava le icone del catalogo.
+ * Nessuno lo importava, e il nome era quello con cui mezza plancia chiede
+ * l'elenco delle stanze configurate — che vive in sections/shared.js e fa una
+ * cosa completamente diversa. Un nome uguale per due cose diverse e' un errore
+ * che aspetta chi importa in fretta. */
 
 /* Catalog entries carry an Italian and an English name; the English one is the
  * pivot every other language is keyed by. */

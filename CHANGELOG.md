@@ -5,6 +5,339 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.4
+
+### Aggiunto
+
+- **La plancia dice da sola quando esce una versione nuova.** L'integrazione
+  chiede a GitHub ogni mezz'ora se e' uscita una release, e la mostra in
+  *Impostazioni → Aggiornamenti* con le note di versione. Serviva, perche' HACS
+  da solo ci mette molto di piu': un repository **personalizzato** — aggiunto
+  per URL, che e' il modo in cui si installa questa integrazione — lo
+  ricontrolla **ogni quarantotto ore**, e non lo guarda nemmeno al riavvio di
+  Home Assistant. Sta scritto nel suo codice:
+
+  ```
+  custom_components/hacs/base.py
+      async_track_time_interval(
+          hass, self.async_update_downloaded_custom_repositories, timedelta(hours=48)
+      )
+  ```
+
+  Quelli dello store predefinito passano da un'altra strada, ogni sei ore, e
+  questo progetto in quello store non puo' entrare: la validazione dello store
+  pretende anche i controlli su `topics` e `license`, e la licenza qui e'
+  proprietaria. Da quarantotto ore a mezz'ora, quindi, e il tempo di
+  installarla lo accorcia il pulsante «Aggiorna informazioni» di HACS, che la
+  notifica stessa ricorda di premere.
+
+  L'installazione resta a HACS: i file sono i suoi, e due proprietari della
+  stessa cartella e' come nasce un aggiornamento a meta'. E chi la plancia la
+  tiene su una rete senza uscita puo' spegnere il controllo dalle opzioni
+  dell'integrazione: spento, non contatta piu' nessuno.
+
+- **Dalla finestra di una tessera si va nella sua sezione.** La finestra dice
+  cosa sta succedendo; quando non basta si va nella sezione, che e' il posto
+  dove quella roba si comanda per intero — e prima da li' si usciva soltanto
+  chiudendo e andando a cercare la voce in basso. Adesso in fondo c'e' «Apri
+  sezione», e porta davvero: chiude la finestra e preme la voce vera, che e' il
+  gesto che il guscio conosce e l'unico che funziona per le pagine nate da un
+  modulo. Il tasto non c'e' dove non porterebbe da nessuna parte — batterie,
+  allagamenti e cose da fare vivono soltanto in Home — ne' dove la sezione e'
+  stata spenta in configurazione: aprire una pagina che l'utente ha deciso di
+  non avere sarebbe peggio che non offrirla.
+
+### Corretto
+
+- **L'icona scelta per un'apertura si leggeva `mdi:gate`.** Il selettore delle
+  icone e' quello del motore e scrive il nome mdi della voce; chi poi stampava
+  quel campo lo stampava come testo. Si vedeva nella riga dell'apertura sulla
+  Home e nell'anteprima della finestra di modifica: al posto del disegno, la
+  scritta. Adesso il nome mdi lo si da' al motore, che ne tira fuori il disegno
+  di casa; chi non ha mai aperto quel selettore ha ancora l'emoji del gruppo e
+  continua a vedere quella.
+
+- **L'avviso di aggiornamento teneva fermo l'avvio.** La prima occhiata a GitHub
+  si aspettava prima di considerare avviata l'integrazione. Una rete che rifiuta
+  subito non si sente; una che ingoia il pacchetto senza rispondere — un
+  firewall che scarta invece di respingere — teneva fermo tutto per i venti
+  secondi del timeout, a ogni avvio di Home Assistant e a ogni ricarica. Adesso
+  quella occhiata si fa da parte: l'entita' senza risposta legge gia' «niente di
+  nuovo», e quando la risposta arriva si aggiorna da sola.
+
+- **Togliendo la plancia principale spariva l'avviso di aggiornamento.**
+  L'avviso lo porta una plancia sola, e chi lo porta si decide quando quella
+  plancia si avvia: tolta quella, le altre erano gia' avviate e nessuna se ne
+  accorgeva. Restava senza fino al riavvio di Home Assistant. Adesso la prima
+  che resta riparte e se lo riprende.
+
+- **L'interruttore degli aggiornamenti compariva anche dove non comandava
+  niente.** Con piu' di una plancia lo si vedeva su tutte, ma a contare e' solo
+  quello della prima: spegnerlo su una secondaria non fermava la richiesta a
+  GitHub, e accenderlo la' non la faceva partire. Su una scelta che riguarda la
+  riservatezza non e' un dettaglio: adesso compare dove ha effetto.
+
+- **Il grafico delle temperature tagliava i numeri con molte stanze.** I numeri
+  in coda alle linee si allontanano per non accavallarsi, ma la passata che li
+  ridiscendeva dall'orlo alto non guardava piu' quello basso: sul telefono
+  bastavano quattordici stanze perche' gli ultimi finissero sull'asse delle ore
+  o proprio fuori dall'immagine. Adesso il passo si stringe fino a dove il
+  numero si legge ancora, e chi non ci sta il numero non ce l'ha — resta la sua
+  linea, col suo colore e il suo tratto, e la legenda che la nomina. Meglio un
+  numero in meno che un numero tagliato.
+
+- **La finestra dell'elettrodomestico restava aperta senza croce per
+  chiuderla.** Da quando la testata segue la pagina aperta, una riga la nasconde
+  quando quella pagina non e' la Home. La riga pero' diceva «intestazione», e
+  basta: nel documento di intestazioni ce n'e' una per ogni finestra di
+  modifica — quella col titolo e la croce — e le spegneva tutte. La scheda degli
+  avvisi, per la stessa ragione, non aveva piu' la forma di quella degli
+  elettrodomestici. Adesso quella riga parla solo della fascia della plancia,
+  che e' una sola.
+
+- **Le icone nuove potevano bloccare la pagina.** Il motore ridisegna un'icona
+  solo se quella che trova non e' gia' quella giusta, e per capirlo confrontava
+  il testo del glifo. Con l'emoji funzionava; col disegno del catalogo il testo
+  e' vuoto, il paragone non tornava mai, e il motore riscriveva a ogni giro
+  senza fermarsi — la plancia restava li'. Adesso ogni disegno si porta addosso
+  la sua firma, e chi lo guarda sa riconoscerlo.
+
+- **Tredici voci del catalogo uscivano ancora a emoji.** La configurazione salva
+  il nome mdi, i disegni hanno il nome della voce, e in mezzo c'e' il catalogo
+  che dal primo risale alla seconda: solo che chi cercava il disegno provava un
+  nome solo, e chi risaliva alla voce si accontentava della prima che
+  somigliasse. Cosi' `mdi:home` apriva la soffitta e la cucina non si trovava
+  affatto. Adesso i nomi si provano tutti, il nome mdi porta alla sua voce e non
+  a una che le somiglia, e la prova che pretende il disegno parte da dove parte
+  lo schermo — prima partiva da un'altra parte, ed e' per questo che quelle
+  tredici erano disegnate sulla carta e a faccina sullo schermo.
+
+- **Elettrodomestici: due disegni morti della stessa scheda.** La sezione si
+  costruisce le proprie schede da quando c'e' la vetrina, ma il disegno
+  precedente — la scheda alta, con l'immagine grande sopra e i numeri sotto —
+  era rimasto in piedi in due fogli diversi, e i due si contendevano
+  centoventisei decisioni: quanto e' larga, che angoli ha, quanto e' grande il
+  numero. Vinceva chi caricava per ultimo. Solo che quella scheda non la
+  disegna piu' nessuno: messa in piedi la plancia e contati i selettori uno per
+  uno, dei duecentoquindici del primo foglio ne trovavano qualcosa quattro, e
+  uno solo dei quarantanove del secondo. Se ne vanno tutti e due, e con loro
+  dieci animazioni per famiglia di elettrodomestico che non hanno mai girato:
+  quelle che si vedono sono sempre state le altre, della vetrina, piu' ricche.
+
+- **Centosettantasei regole di stile avevano due padroni; adesso zero.** La
+  stessa regola scritta col peso massimo in due fogli che non si parlano:
+  finche' i valori coincidono non si vede niente, il giorno che uno cambia
+  vince quello che capita di caricare per ultimo e la modifica «non fa
+  effetto». Due non erano peso morto ma difetti veri. L'editor scuro cambiava
+  colore a seconda del tema di fuori, perche' il secondo padrone usava i nomi
+  del tema di Home Assistant, che esistono solo quando la plancia e' gia'
+  scura. E le righe delle luci erano rotte fra 761 e 900 pixel — la finestra a
+  meta' schermo, il tablet in verticale: un foglio diceva «quattro caselle
+  disposte cosi'», un altro ne dava cinque, e il nome della luce finiva
+  schiacciato in 140 pixel con un buco da 257 accanto. Una prova apre la
+  plancia, legge i fogli nell'ordine vero e dice quale riga di quale foglio non
+  fa effetto.
+
+- **Un disegno per fotogramma, non uno per evento.** Home Assistant manda un
+  evento per ogni entita' che cambia stato, e in una casa vera sono decine al
+  secondo. La plancia rispondeva ridisegnando tutto ogni volta — settecento
+  righe di render piu' sedici moduli agganciati, per ogni singolo sensore che
+  si muoveva. Misurato: centosettanta cambi di stato facevano centosettanta
+  disegni e 1125 millisecondi dentro render, su una plancia quasi vuota e su un
+  computer. Adesso la risposta agli eventi si mette in coda e disegna una volta
+  sola alla fine della raffica: un disegno, sette millisecondi. Chi chiama il
+  disegno a mano — un salvataggio, un cambio di pagina — continua ad averlo
+  subito.
+
+- **I carichi comparivano sotto Elettrodomestici, Aperture e Backup.** Un
+  blocco «CARICHI / + Aggiungi carico» spoglio, che li' non vuol dire niente.
+  Era un secondo editor dei carichi, con lo stesso nome di funzione di quello
+  vero: cercava il pannello dei flussi e, se non lo trovava — cioe' ogni volta
+  che la configurazione era aperta su un'altra linguetta — ripiegava sulla
+  scheda intera, e da li' ti seguiva ovunque. Bastava aprire Energia una volta.
+
+- **Tre configurazioni restavano su un dispositivo solo.** Le icone degli
+  avvisi, le entita' assegnate a mano a una stanza e il segno progressivo delle
+  auto non erano nell'elenco di cio' che viaggia fra i dispositivi, quindi
+  nemmeno nel backup. Le prime due si configuravano sul telefono e sul computer
+  non c'erano; la terza e' la guardia contro gli identificativi riusati, e senza
+  viaggiare il secondo dispositivo ripartiva da capo col conteggio — la
+  prossima auto nasceva con l'identificativo di una cancellata, ereditandone le
+  foto. Una prova legge i sorgenti e pretende che ogni casella scritta stia o
+  nell'elenco che viaggia o in quello di cio' che resta sul dispositivo, col
+  perche' scritto accanto.
+
+- **Stanze: la luce non si accendeva, e il clima non portava sul clima
+  giusto.** La card della luce e' la stessa della pagina Luci, ma il gesto era
+  rimasto legato a quella pagina: si vedeva l'interruttore, si premeva, non
+  succedeva niente. Il clima invece cambiava pagina e finiva li', che in una
+  casa con dodici condizionatori vuol dire lasciare chi guarda in cima a un
+  elenco. Adesso la luce si comanda da dove e' disegnata, e dopo il cambio di
+  pagina si apre la cosa che si e' toccata.
+
+- **Il grafico delle temperature non si leggeva.** Una sola riga orizzontale
+  con un numero accanto — quella del comfort — e tutto il resto sospeso nel
+  vuoto; due stanze dello stesso azzurro, perche' le tinte erano sei e la
+  settima ripartiva dalla prima; e i numeri in coda alle linee tutti impilati
+  in dieci pixel. Adesso la scala si prende un passo tondo con quattro-sette
+  righe numerate, le tinte restano sei ma cambia il tratto — pieno, a tratti, a
+  puntini, quindi diciotto stanze prima che due linee si somiglino — e i numeri
+  si allontanano invece di sovrapporsi.
+
+- **«E' un contatore totale?» era una domanda con due risposte.** Da quella
+  risposta dipende tutto il calcolo dell'energia: si parte da un contatore che
+  sale e non torna mai indietro, e giorno, mese e anno sono la differenza fra
+  due letture. La domanda era scritta due volte, con regole diverse. Una
+  guardava solo il nome, e cosi' un sensore di potenza chiamato `total_power`,
+  che sta in watt, passava per contatore: si prendeva la differenza fra due
+  watt e la si chiamava energia. Lo stesso per un contatore dell'acqua in litri
+  marcato `total_increasing`. L'altra controllava di avere davvero energia ma
+  non conosceva la parola «counter» e non guardava mai il nome amichevole.
+  Adesso e' una sola, con l'unione delle due meta' giuste.
+
+- **La plancia chiedeva i suoi moduli a dieci riprese.** Sono
+  centosessantacinque, tre megabyte e mezzo, e la catena degli import e'
+  profonda dieci livelli: un browser scopre un modulo solo quando ha finito di
+  leggere quello che lo importa. In quei secondi si vede la plancia com'e'
+  disegnata dal guscio — il meteo grande in mezzo alla pagina, le azioni rapide
+  senza il loro ripiano — e poi si sposta tutto sotto gli occhi. Adesso il
+  guscio porta l'elenco davanti e il browser li chiede tutti insieme:
+  mediana su tre giri a caldo, l'ultimo modulo arriva a 645 millisecondi invece
+  di 1500. Resta il pezzo piu' grosso, che non e' rete: durante l'avvio il filo
+  principale sta occupato 2,3 secondi a installare i moduli, ed e' li' che vive
+  il resto dell'attesa.
+
+- **Sette nomi per quattordici funzioni.** Chi importa a memoria si prende
+  l'una per l'altra, e il codice continua a funzionare finche' un giorno non
+  funziona. Tre erano copie morte che nessuno importava, due erano cose diverse
+  col nome uguale — il filo dei consumi parte da zero, quello della temperatura
+  si adatta al minimo e al massimo — e un `formatNumber` era una trappola: due
+  versioni con argomenti diversi, e chi importava quella sbagliata vedeva il
+  numero uscire con le cifre di serie, senza un errore.
+
+### Aggiunto
+
+- **Un catalogo di icone tutto nostro, cinquantasei disegni nuovi.** Nella
+  stessa schermata ne convivevano tre stili: la scocca blu notte degli
+  elettrodomestici, il tratto sottile delle stanze, e le emoji del sistema per
+  le stanze nel selettore dei carichi, per le azioni rapide e per i carichi —
+  che per giunta cambiano faccia da un telefono a un altro, per cui la stessa
+  plancia non era uguale nemmeno a se stessa. Adesso i disegni sono tutti della
+  stessa famiglia: le ventiquattro stanze, le azioni, e gli impianti — pompa di
+  calore, riscaldamento a pavimento, deumidificatore, server, router, stampante,
+  fotovoltaico, batteria, pompa, irrigazione, sauna, ascensore, presa, stufa a
+  pellet. Contate le voci dei tre cataloghi: centotredici, e nessuna resta senza.
+  I colori e i tratti stanno in un modulo a parte, cosi' chi disegnera' la
+  cinquantasettesima li chiede li' invece di sceglierli a occhio.
+
+- **La plancia non chiede piu' niente alla rete per aprirsi.** La testata del
+  documento apriva quattro connessioni verso l'esterno prima di disegnare
+  qualsiasi cosa — il foglio dei caratteri di Google e tre librerie da
+  jsdelivr — e nessuna delle quattro era rimandata: bastava che una sola non
+  rispondesse perche' la lettura della pagina si fermasse li'. Home Assistant
+  sta in casa, e molte case sul quadro non hanno internet, o ce l'hanno lento,
+  o hanno un DNS che risponde quando gli pare: su quelle case la plancia non
+  era lenta, era ferma, e ripartiva soltanto quando il browser si arrendeva da
+  solo — decine di secondi dopo. Adesso le tre librerie e i caratteri li serve
+  l'integrazione, dalla stessa cartella di tutto il resto. Su una linea che non
+  arriva a Google la plancia passa da tredici secondi e mezzo prima di
+  cominciare a uno e sette.
+
+  E' anche la spiegazione piu' credibile del foglio del guscio che ogni tanto
+  non arrivava — quello che faceva sparire i flussi finche' non si ricaricava
+  la pagina: la sua richiesta stava in coda dietro quattro connessioni ferme.
+  La rete di sicurezza messa nella 1.3.3 resta dov'e', ma adesso la coda
+  davanti non c'e' piu'.
+
+  Le impronte firmate che stavano negli attributi `integrity` non sono andate
+  perse: si controllano sui byte in cartella a ogni giro di prove, e il giro
+  che li rifa' — `scripts/porta-in-casa-le-librerie.mjs` — si ferma se il
+  registro npm servisse un byte diverso.
+
+- **Il README dichiarava una licenza che non e' la sua.** Il distintivo in
+  testa diceva «MIT» e puntava al file `LICENSE`, che dice «DashboardModern v2
+  License — All rights reserved». Due affermazioni opposte nella stessa riga, e
+  su una licenza proprietaria non e' una svista che si possa lasciare li'.
+
+- **L'ordine delle stanze arriva davvero a tutte le pagine.** Le frecce nella
+  scheda Stanze spostavano la riga, la scheda si ridisegnava nell'ordine nuovo
+  — la scheda l'elenco lo legge davvero — e Luci, Tapparelle, Clima ed
+  Elettrodomestici restavano nell'ordine in cui le stanze erano state create.
+  Chi ha messo l'Ingresso per primo continuava a vedere il Soggiorno in cima
+  alle tapparelle. Il motivo: il modello canonico porta su ogni stanza un campo
+  `order`, e chi lo trova gia' scritto se lo tiene; quel numero nasce alla
+  prima migrazione e vale la posizione di allora. Le frecce riscrivevano
+  l'elenco e non lo toccavano — due padroni dello stesso ordine, e vinceva
+  quello vecchio. Adesso quando l'elenco cambia si riscrive anche il numero, e
+  chi l'ordine se l'era gia' scelto se lo ritrova allineato alla prima apertura
+  della scheda, senza dover ripremere niente.
+
+- **Un'apertura tolta e rimessa adesso resta.** Le liste sono due — quello che
+  hai aggiunto e quello che hai tolto — e il guscio le legge in quest'ordine:
+  prima somma le aggiunte, poi toglie le rimozioni. Ma chi aggiungeva non
+  ripuliva mai la seconda: un'apertura tolta una volta e rimessa dopo finiva in
+  tutte e due, e la sottrazione arrivava per ultima. Nel giro in corso si
+  vedeva — l'aggiunta entra anche in memoria — e al riavvio spariva. Da fuori
+  si legge «non riesco piu' ad aggiungerne altre»: si aggiungevano davvero, e
+  non tornavano piu' su. Le due liste non possono piu' dire il contrario l'una
+  dell'altra: se un'entita' sta in tutt'e due ha ragione l'aggiunta, che e'
+  l'ultimo gesto fatto apposta.
+
+- **Ogni avviso puo' avere la sua icona.** La decideva il gruppo e basta:
+  undici aperture, undici porte uguali, e la finestra del bagno
+  indistinguibile dalla portafinestra del salotto. Adesso nella finestra di
+  modifica c'e' il campo dell'icona, con lo stesso selettore del resto della
+  plancia. Chi non la tocca continua a seguire il gruppo come prima — anche
+  cambiando gruppo — e chi la sceglie se la ritrova nella tessera Aperture,
+  che e' il posto dove quelle righe si devono distinguere.
+
+- **La fascia della plancia si vede sulla Home, e a dirlo e' la pagina aperta.**
+  Chi decideva era l'ultimo che aveva cliccato: il guscio accende e spegne
+  quella fascia dentro il gestore delle voci in basso, e quel gestore lo lega
+  una volta sola al caricamento. Le tre pagine nate dopo — Stanze, Luci,
+  Aspirapolvere — hanno ciascuna il proprio ascolto, e di quella fascia non
+  sanno niente: la portavano avanti com'era. Da Home a Stanze restava accesa,
+  e sulla stessa pagina si vedevano due intestazioni; nell'altro verso, chi
+  arrivava alla Home lasciando la fascia spenta se la ritrovava spenta — la
+  Home senza la sua testata, senza aver toccato niente. Adesso la decisione
+  non e' di un clic ma della pagina che sta aperta, scritta una volta sola nel
+  modulo che le intestazioni gia' le possiede.
+
+- **I numeri delle tessere si vedevano con la testa mozzata.** Il numero e'
+  Oswald a quaranta con l'interlinea stretta a .92 — trentasette pixel di riga
+  — e il disegno di quel carattere, fra quello che sale e quello che scende, a
+  quaranta ne occupa quarantotto. Con la finestra che taglia addosso, quei
+  sette pixel non uscivano: venivano tagliati. Non si era mai visto per un
+  motivo che non fa onore a nessuno — Oswald arrivava da Google, e dove Google
+  non si raggiunge il numero cadeva su un carattere di sistema che nella riga
+  stretta ci sta: il difetto c'era per chiunque avesse una linea che arriva a
+  Google, e non per la macchina che lo doveva scoprire. L'interlinea stretta
+  resta, perche' e' lei che tiene i numeri vicini: a cedere e' soltanto la
+  finestra, sette pixel sopra e sotto ripresi da un margine uguale e
+  contrario. Il disegno non si sposta di niente.
+
+- **Le linguette che scorrono di lato hanno un padrone solo.** I periodi
+  dell'Energia e degli Elettrodomestici, gli impianti e le stanze sono lo
+  stesso nastro disegnato in tre posti, e ne veniva lo stesso difetto tre
+  volte. Il primo: chi scorre di lato taglia anche in alto e in basso — basta
+  che un asse non sia libero perche' il browser ritagli pure l'altro — e il
+  nastro dei periodi aveva quattro pixel di spazio contro una pillola che si
+  solleva di due e porta un'ombra da ventotto: quella accesa si vedeva mozzata
+  contro la testata della sezione. Il secondo: col mouse quel nastro e' una
+  trappola, perche' la barra e' nascosta apposta e la rotella sopra una fila
+  orizzontale scorre la pagina in giu' — le ultime linguette restavano oltre
+  il bordo destro, visibili a meta' e irraggiungibili. Le Stanze la correzione
+  ce l'avevano gia', scritta in casa loro; adesso e' una regola sola per
+  tutt'e tre.
+
+- **Una delle tre librerie non la usava nessuno.** panzoom arrivava a ogni
+  avvio, trentadue chilobyte da scaricare, leggere ed eseguire prima che la
+  pagina potesse andare avanti, e in tutta la plancia non c'e' una riga che lo
+  chiami: la mappa dell'aspirapolvere si sposta e si ingrandisce con le sue
+  trasformazioni. Adesso non arriva piu'. E hls.js — mezzo mega, che serve
+  soltanto quando si apre una telecamera — e' passato a `defer`: c'e' lo
+  stesso quando serve, ma non ferma piu' la lettura della pagina.
+
 ## 1.3.3
 
 ### Cambiato

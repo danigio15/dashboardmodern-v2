@@ -39,6 +39,12 @@ ASSET_SUFFIXES = frozenset(
         ".svg",
         ".gif",
         ".ico",
+        # I caratteri arrivano con la plancia: senza questi due suffissi il
+        # foglio in legacy/vendor/caratteri.css chiederebbe file che
+        # l'integrazione non serve, e la plancia tornerebbe al carattere di
+        # sistema — che e' esattamente cio' che si voleva smettere di fare.
+        ".woff2",
+        ".woff",
     }
 )
 RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})

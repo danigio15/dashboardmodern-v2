@@ -16,8 +16,14 @@ const USER_DATA_VERSION = 1;
  * centrale si vogliono vedere (`cd_antifurto_modi`) e cosa fa il tasto Clima
  * rapido (`cd_clima_rapido`). Sono preferenze della plancia, non del
  * dispositivo che le ha fatte: senza stare qui restavano su un telefono solo e
- * dal backup sparivano. */
-export const CONFIG_KEYS_REVISION = 8;
+ * dal backup sparivano.
+ * La revisione 9 aggiunge le tre che mancavano ancora: le icone degli avvisi
+ * (`cd_avvisi_icone`), le entita' assegnate a mano a una stanza
+ * (`cd_stanze_entita`) e il segno progressivo delle auto (`cd_ev_meta`). Le
+ * prime due erano configurazione che restava su un dispositivo solo; la terza
+ * e' la guardia contro gli identificativi riusati, e senza viaggiare non
+ * guardava niente. */
+export const CONFIG_KEYS_REVISION = 9;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -149,6 +155,20 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_hidden_elements",
   "cd_costo_kwh",
   "cd_prezzo_immissione",
+  /* Le tre della revisione 9, trovate contando chi scrive cosa.
+   *
+   * `cd_avvisi_icone`: l'icona scelta per ogni avviso. Si sceglieva sul
+   * telefono e sul computer restava quella di serie.
+   * `cd_stanze_entita`: a quale stanza appartiene un'entita' che la stanza non
+   * ce l'ha per mestiere. Configurata da una parte, di la' non esisteva.
+   * `cd_ev_meta`: il numero piu' alto mai dato a un'auto. Questo non e' una
+   * comodita': se non viaggia, il secondo dispositivo riparte da capo col
+   * conteggio e la prossima auto nasce con l'identificativo di una cancellata,
+   * ereditandone le foto — che e' esattamente il difetto che quel numero esiste
+   * per impedire. */
+  "cd_avvisi_icone",
+  "cd_stanze_entita",
+  "cd_ev_meta",
 ]);
 
 const LEGACY_SYNC_CONTROL_KEYS = Object.freeze(["cd_sync_ts", "cd_sync_dirty"]);

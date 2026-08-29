@@ -4,27 +4,17 @@ import { PRIMARY } from "./helpers/variants.js";
 async function bootDashboard(page, variant) {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.route("https://**", async (route) => {
-    const url = route.request().url();
-    if (url.includes("chart.js")) {
-      return route.fulfill({
-        contentType: "application/javascript",
-        body: "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}}",
-      });
-    }
-    if (url.includes("panzoom")) {
-      return route.fulfill({
-        contentType: "application/javascript",
-        body: "window.panzoom=()=>({dispose(){}})",
-      });
-    }
-    if (url.includes("hls.js")) {
-      return route.fulfill({
-        contentType: "application/javascript",
-        body: "window.Hls=class{static isSupported(){return false}}",
-      });
-    }
-    return route.fulfill({ status: 200, body: "" });
+  /* Le librerie stanno in casa: si sostituiscono li', non piu' su jsdelivr. */
+  const finti = {
+    "chart.umd.min.js":
+      "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}}",
+    "hls.min.js": "window.Hls=class{static isSupported(){return false}}",
+  };
+  await page.route(/\/vendor\/[^/]+\.js(?:\?.*)?$/, (route) => {
+    const nome = route.request().url().split("/").pop().split("?")[0];
+    const corpo = finti[nome];
+    if (corpo === undefined) return route.continue();
+    return route.fulfill({ contentType: "application/javascript", body: corpo });
   });
 
   await page.addInitScript(() => {

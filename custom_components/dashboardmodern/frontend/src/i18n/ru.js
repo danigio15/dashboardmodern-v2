@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Оставьте значок группы, чтобы следовать за ней; измените его, чтобы отличить этот проём от остальных.",
+  "Open section": "Открыть раздел",
+  "Pick the icon": "Выбрать значок",
+  "The group decides where the alert is watched.": "Группа определяет, где отслеживается оповещение.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Датчик открытия должен быть сущностью binary_sensor.*, sensor.* или input_boolean.*.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Укажите название и хотя бы одну сущность: cover.* или switch.* среди ставней, штор и маркизы — либо только датчик открытия.",
   "One room at a time · Scenes · Sensors": "По одной комнате · Сцены · Датчики",
@@ -1569,7 +1573,6 @@ export default Object.freeze({
   "Terrace": "Терраса",
   "Test connection →": "Проверить подключение →",
   "thanks to solar": "благодаря солнечным панелям",
-  "The alert icon follows the selected group, as in the dashboard.": "Значок оповещения следует за выбранной группой, как на панели.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "Резервная копия собирает всю конфигурацию панели в один файл: разделы, комнаты, сущности, людей, машины — всё. Восстановление возвращает её на место и перезагружает.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Карточка и всплывающее окно всегда показывают список со всеми процентами: 0 — закрыто, 100 — открыто. Здесь выбирается привычное значение: 5 закрывает почти полностью, оставляя щель для воздуха, — и в списке оно отмечено звёздочкой. Пусто — избранного нет.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "Карточка остаётся В работе эти минуты после последнего значения мощности выше порога: это покрывает сушку посудомойки при 0 Вт и паузы цикла.",

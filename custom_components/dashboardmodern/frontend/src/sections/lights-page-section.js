@@ -478,18 +478,31 @@ function setAllPower(on) {
 
 /* ─────────────────────────────── ascolto ────────────────────────────────── */
 
+/* La card della luce si comanda ovunque sia disegnata.
+ *
+ * Il foglio di stile era gia' stato liberato dalla pagina Luci — «adesso la
+ * card e' di chi la ospita» — ma il gesto no: qui si pretendeva che il tocco
+ * arrivasse da dentro `#lucip-wrap`, e le stesse card disegnate nella pagina
+ * Stanze finivano fuori da quel recinto. Si vedeva l'interruttore, si premeva,
+ * e non succedeva niente: segnalato esattamente cosi'. Il cursore della
+ * luminosita' invece funzionava gia' — il suo gestore guarda la card, non la
+ * pagina — ed e' la prova che il recinto era di troppo.
+ *
+ * I due tasti «tutte» e «tutta la stanza» restano legati alla pagina Luci
+ * perche' sono suoi: li' fuori non esistono, e leggere la stanza da un tasto
+ * che non c'e' non vuol dire niente. */
 function handleClick(event) {
-  const wrap = event.target?.closest?.("#lucip-wrap");
-  if (!wrap) return;
-  const all = event.target?.closest?.("[data-dm-lucip-all]");
-  if (all) {
-    setAllPower(all.dataset.dmLucipAll === "on");
-    return;
-  }
-  const room = event.target?.closest?.("[data-dm-lucip-room]");
-  if (room) {
-    setRoomPower(room.dataset.dmLucipRoomName, room.dataset.dmLucipRoom === "on");
-    return;
+  if (event.target?.closest?.("#lucip-wrap")) {
+    const all = event.target?.closest?.("[data-dm-lucip-all]");
+    if (all) {
+      setAllPower(all.dataset.dmLucipAll === "on");
+      return;
+    }
+    const room = event.target?.closest?.("[data-dm-lucip-room]");
+    if (room) {
+      setRoomPower(room.dataset.dmLucipRoomName, room.dataset.dmLucipRoom === "on");
+      return;
+    }
   }
   const card = event.target?.closest?.("[data-dm-lucip]");
   if (!card) return;

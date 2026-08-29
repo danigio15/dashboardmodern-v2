@@ -20,12 +20,14 @@
         "data": {
           "allowed_users": "İzin verilen kullanıcılar",
           "register_lovelace_dashboard": "Home Assistant panosu olarak da kaydet",
-          "admin_only": "Yalnızca yöneticilere görünür"
+          "admin_only": "Yalnızca yöneticilere görünür",
+          "check_updates": "Yeni sürümleri denetle"
         },
         "data_description": {
           "allowed_users": "Yalnızca arayüz görünürlüğü süzgeci. Veriler ve servisler Home Assistant izinlerine bağlı kalır.",
           "register_lovelace_dashboard": "Pano, bir yönetici DashboardModern'i ilk kez açtığında oluşturulur.",
-          "admin_only": "Home Assistant'ın kendi süzgeci; yönetici olmayan hesaplarda o üstün gelir."
+          "admin_only": "Home Assistant'ın kendi süzgeci; yönetici olmayan hesaplarda o üstün gelir.",
+          "check_updates": "Her yarım saatte bir GitHub'a daha yeni bir sürüm çıkıp çıkmadığını sorar ve Ayarlar → Güncellemeler altında gösterir. Panelin internete hiç çıkmaması için kapatın; panonun buna ihtiyacı yoktur."
         }
       }
     }

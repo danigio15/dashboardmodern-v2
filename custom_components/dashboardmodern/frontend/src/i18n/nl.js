@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Laat het gelijk aan het groepspictogram om het te volgen; wijzig het om deze opening van de andere te onderscheiden.",
+  "Open section": "Sectie openen",
+  "Pick the icon": "Kies het pictogram",
+  "The group decides where the alert is watched.": "De groep bepaalt waar de melding wordt bewaakt.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "De openingssensor moet een binary_sensor.*-, sensor.*- of input_boolean.*-entiteit zijn.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Voer een naam in en minstens één entiteit: een cover.* of switch.* bij rolluik, gordijn of zonwering, of alleen de openingssensor.",
   "One room at a time · Scenes · Sensors": "Eén kamer tegelijk · Scènes · Sensoren",
@@ -1569,7 +1573,6 @@ export default Object.freeze({
   "Terrace": "Terras",
   "Test connection →": "Verbinding testen →",
   "thanks to solar": "dankzij zonne-energie",
-  "The alert icon follows the selected group, as in the dashboard.": "Het meldingspictogram volgt de gekozen groep, net als in het dashboard.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "De back-up verzamelt de hele dashboardconfiguratie in één bestand: secties, kamers, entiteiten, personen, auto's, alles. Herstellen zet het terug en herlaadt.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "De kaart en de pop-up tonen altijd de keuzelijst met alle percentages: 0 = dicht, 100 = open. Kies hier je gebruikelijke stand — 5 sluit bijna helemaal en laat wat lucht door — en die krijgt een ster in de lijst. Leeg = geen voorkeur.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "De kaart blijft deze minuten op In bedrijf na de laatste meting boven de drempel: dat dekt de 0W-droogfase van de vaatwasser en pauzes in de cyclus.",

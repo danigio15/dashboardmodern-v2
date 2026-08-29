@@ -98,7 +98,16 @@ async function openEditor(page, tab) {
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
-async function oneVisibleGlyph(locator, className, text) {
+/* Un glifo solo, e quello giusto.
+ *
+ * Quello che questa prova difende e' che nel posto dell'icona ci sia una cosa
+ * sola: niente seconda icona lasciata li' dal vecchio runtime, niente
+ * pseudo-elemento che ne ridisegna un'altra sopra. Come si chiami quella cosa
+ * dipende dal catalogo: da quando le voci di serie hanno il loro disegno, ad
+ * arrivare qui e' un disegno con il suo nome — `disegno` — e non piu' l'emoji
+ * del sistema. Chi non ha disegno resta a emoji, e si controlla il testo. */
+async function oneVisibleGlyph(locator, className, atteso) {
+  const { emoji = "", disegno = "" } = typeof atteso === "string" ? { emoji: atteso } : atteso;
   await expect(locator).toBeVisible();
   await expect
     .poll(() =>
@@ -107,18 +116,22 @@ async function oneVisibleGlyph(locator, className, text) {
           const before = getComputedStyle(node, "::before");
           const after = getComputedStyle(node, "::after");
           const semantic = node.querySelectorAll(`:scope > .${args.className}`);
+          const glifo = semantic[0];
           const pseudoVisible = (style) => {
             const content = style.content || "";
             return (
               !["none", "normal", '""', "''", ""].includes(content) && style.display !== "none"
             );
           };
+          const disegnato = glifo?.dataset?.dmDisegno === "casa";
           return {
             children: node.children.length,
             semantic: semantic.length,
-            text: semantic[0]?.textContent || "",
+            emoji: disegnato ? "" : glifo?.textContent || "",
+            disegno: disegnato ? glifo.querySelector("[data-dm-art]")?.dataset.dmArt || "?" : "",
             before: pseudoVisible(before),
             after: pseudoVisible(after),
+            // Il disegno e' un solo svg: due vorrebbe dire due icone sovrapposte.
             svg: node.querySelectorAll("svg").length,
           };
         },
@@ -128,10 +141,11 @@ async function oneVisibleGlyph(locator, className, text) {
     .toEqual({
       children: 1,
       semantic: 1,
-      text,
+      emoji,
+      disegno,
       before: false,
       after: false,
-      svg: 0,
+      svg: disegno ? 1 : 0,
     });
 }
 
@@ -149,9 +163,9 @@ test("beta13: Home quick action has exactly one icon even after delayed legacy r
   });
 
   const icon = page.locator("#qa-grid .qa-btn .icon").first();
-  await oneVisibleGlyph(icon, "dm-beta12-action-glyph", "💡");
+  await oneVisibleGlyph(icon, "dm-beta12-action-glyph", { disegno: "lights" });
   await page.waitForTimeout(1100);
-  await oneVisibleGlyph(icon, "dm-beta12-action-glyph", "💡");
+  await oneVisibleGlyph(icon, "dm-beta12-action-glyph", { disegno: "lights" });
 });
 
 test("beta13: room rows and action picker never expose a second vector/pseudo icon", async ({
@@ -166,9 +180,9 @@ test("beta13: room rows and action picker never expose a second vector/pseudo ic
       '#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index="0"]) .dm-room-list-icon',
     )
     .first();
-  await oneVisibleGlyph(roomIcon, "dm-beta12-room-glyph", "🛋️");
+  await oneVisibleGlyph(roomIcon, "dm-beta12-room-glyph", { disegno: "room-living" });
   await page.waitForTimeout(1000);
-  await oneVisibleGlyph(roomIcon, "dm-beta12-room-glyph", "🛋️");
+  await oneVisibleGlyph(roomIcon, "dm-beta12-room-glyph", { disegno: "room-living" });
 
   await page.evaluate(() => {
     localStorage.setItem(
@@ -186,9 +200,9 @@ test("beta13: room rows and action picker never expose a second vector/pseudo ic
   await expect(picker).toBeVisible();
   await expect(picker).toHaveAttribute("data-dm-single-glyph-owner", "true");
   const first = picker.locator('.dm-picker-option[data-index="0"] .dm-picker-visual');
-  await oneVisibleGlyph(first, "dm-beta12-action-glyph", "🏠");
+  await oneVisibleGlyph(first, "dm-beta12-action-glyph", { disegno: "home" });
   await page.waitForTimeout(1100);
-  await oneVisibleGlyph(first, "dm-beta12-action-glyph", "🏠");
+  await oneVisibleGlyph(first, "dm-beta12-action-glyph", { disegno: "home" });
 });
 
 test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable mobile width", async ({

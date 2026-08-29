@@ -11,15 +11,32 @@ pytest.importorskip(
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.dashboardmodern import async_setup_entry, async_unload_entry
-from custom_components.dashboardmodern.const import DOMAIN
+from custom_components.dashboardmodern import async_unload_entry
+from custom_components.dashboardmodern.const import DOMAIN, OPTION_CHECK_UPDATES
 
 
 @pytest.mark.asyncio
 async def test_setup_registers_the_frontend(
-    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Setup registers the panel that serves the HTML dashboard."""
+    """Setup registers the panel that serves the HTML dashboard.
+
+    L'avvio lo chiede a Home Assistant, non si chiama la funzione a mano: da
+    quando c'e' l'avviso di aggiornamento il setup monta una piattaforma, e una
+    piattaforma si monta solo su una voce che Home Assistant sta davvero
+    avviando. Chiamata a mano, la voce resta «non caricata» e il montaggio
+    viene rifiutato — che e' quello che succedeva qui.
+
+    Serve anche `enable_custom_integrations`: nelle prove le integrazioni
+    personalizzate non si vedono se non lo si chiede, e senza quello il setup
+    non trova se stesso.
+
+    L'avviso di aggiornamento si spegne dalle opzioni: guarda in rete se c'e'
+    una versione nuova, e queste due prove parlano del pannello e dello
+    schedario, non di lui.
+    """
     registered: list[str] = []
 
     async def fake_register(_hass: HomeAssistant, entry_id: str) -> None:
@@ -29,10 +46,13 @@ async def test_setup_registers_the_frontend(
 
     monkeypatch.setattr(frontend_module, "async_register_frontend", fake_register)
 
-    entry = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    entry = MockConfigEntry(
+        domain=DOMAIN, entry_id="entry-1", options={OPTION_CHECK_UPDATES: False}
+    )
     entry.add_to_hass(hass)
 
-    assert await async_setup_entry(hass, entry) is True
+    assert await hass.config_entries.async_setup(entry.entry_id) is True
+    await hass.async_block_till_done()
     assert registered == ["entry-1"]
 
 

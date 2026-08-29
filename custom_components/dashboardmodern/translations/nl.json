@@ -20,12 +20,14 @@
         "data": {
           "allowed_users": "Toegestane gebruikers",
           "register_lovelace_dashboard": "Ook registreren als Home Assistant-dashboard",
-          "admin_only": "Alleen zichtbaar voor beheerders"
+          "admin_only": "Alleen zichtbaar voor beheerders",
+          "check_updates": "Controleren op nieuwe versies"
         },
         "data_description": {
           "allowed_users": "Alleen een zichtbaarheidsfilter van de interface. Voor gegevens en services gelden nog steeds de rechten van Home Assistant.",
           "register_lovelace_dashboard": "Het dashboard wordt aangemaakt zodra een beheerder DashboardModern voor het eerst opent.",
-          "admin_only": "Ingebouwd filter van Home Assistant; het wint voor accounts zonder beheerdersrechten."
+          "admin_only": "Ingebouwd filter van Home Assistant; het wint voor accounts zonder beheerdersrechten.",
+          "check_updates": "Vraagt GitHub elk half uur of er een nieuwere release is en toont die bij Instellingen → Updates. Zet het uit zodat het paneel helemaal niet het internet op gaat; het dashboard heeft het nooit nodig."
         }
       }
     }

@@ -5,16 +5,23 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
+/* Sul telefono la scheda si stringe, e a stringerla e' chi la disegna.
+ *
+ * Questa prova misurava la scheda alta del foglio accanto: 370 pixel di
+ * larghezza, la colonna da 92, l'illustrazione da 84. Numeri veri, per una
+ * scheda che nessuno disegnava piu'. La scheda che si vede sul telefono e'
+ * quella della sezione, e si stringe con le proprie misure. */
 test("appliance mobile layout targets the real legacy body without changing artwork ownership", async () => {
   const layout = await read("src/sections/appliance-layout-section.js");
+  const showcase = await read("src/sections/appliance-showcase-section.js");
   const appliances = await read("src/sections/appliances-section.js");
-  assert.match(layout, /max-width:370px!important/);
-  assert.match(layout, /grid-template-columns:92px minmax\(0,1fr\)/);
-  assert.match(layout, /width:84px!important;height:84px!important/);
-  assert.match(layout, />\.appl-info/);
-  assert.match(layout, /min-height:126px!important/);
-  assert.match(layout, /min-height:31px!important;height:31px!important/);
-  assert.match(layout, /button\[hidden\].*display:none!important;visibility:hidden!important/);
+  assert.match(showcase, /@media\(max-width:1120px\)/);
+  assert.match(
+    showcase,
+    /\.dm-appl-shell\[data-view="list"\] \.appl-wide-card\.dm-ap-card\{grid-template-columns:64px minmax\(0,1fr\)/,
+  );
+  assert.match(showcase, /@media\(max-width:640px\)/);
+  // Il disegno dell'elettrodomestico lo possiede la sezione, una volta sola.
   assert.doesNotMatch(layout, /resolveApplianceArtwork|applianceArtworkCandidates|canonicalArtworkType|applianceArtwork\(/);
   assert.match(appliances, /from "\.\.\/core\/appliance-artwork\.js"/);
   assert.match(appliances, /canonicalArtworkType/);

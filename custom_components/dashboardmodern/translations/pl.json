@@ -20,12 +20,14 @@
         "data": {
           "allowed_users": "Uprawnieni użytkownicy",
           "register_lovelace_dashboard": "Zarejestruj także jako panel Home Assistant",
-          "admin_only": "Widoczny tylko dla administratorów"
+          "admin_only": "Widoczny tylko dla administratorów",
+          "check_updates": "Sprawdzaj nowe wersje"
         },
         "data_description": {
           "allowed_users": "Tylko filtr widoczności interfejsu. Dane i usługi nadal podlegają uprawnieniom Home Assistant.",
           "register_lovelace_dashboard": "Panel powstaje przy pierwszym otwarciu przez administratora.",
-          "admin_only": "Natywny filtr Home Assistant; dla kont bez uprawnień administratora ma pierwszeństwo."
+          "admin_only": "Natywny filtr Home Assistant; dla kont bez uprawnień administratora ma pierwszeństwo.",
+          "check_updates": "Co pół godziny pyta GitHuba, czy jest nowsze wydanie, i pokazuje je w Ustawienia → Aktualizacje. Wyłącz, aby panel w ogóle nie łączył się z internetem; sam pulpit tego nie potrzebuje."
         }
       }
     }

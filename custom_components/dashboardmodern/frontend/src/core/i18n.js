@@ -615,25 +615,13 @@ export function resetLocale() {
 /* Formatting helpers                                                  */
 /* ------------------------------------------------------------------ */
 
-export function formatNumber(value, options = {}, code = getLocale()) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return "—";
-  try {
-    return new Intl.NumberFormat(intlLocale(code), options).format(parsed);
-  } catch (_error) {
-    return String(parsed);
-  }
-}
-
-export function formatDate(value, options = {}, code = getLocale()) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  try {
-    return new Intl.DateTimeFormat(intlLocale(code), options).format(date);
-  } catch (_error) {
-    return date.toISOString();
-  }
-}
+/* Qui c'erano anche formatNumber e formatDate. Nessuno li chiamava: i numeri
+ * della plancia li formatta il formatNumber di sections/shared.js, che prende
+ * le cifre decimali invece di un oggetto di opzioni. Due funzioni con lo
+ * stesso nome e argomenti diversi sono una trappola che aspetta: chi importa
+ * quella sbagliata passa un 2 dove ci vuole un oggetto, non se ne accorge, e
+ * il numero esce con le cifre di serie. Quello che serviva davvero da qui e'
+ * intlLocale, che dice a Intl in che lingua parlare, e resta. */
 
 /** Localised list of month names, used by the energy period pickers. */
 export function monthNames(code = getLocale(), style = "long") {

@@ -3,19 +3,28 @@ import { clickStableButton } from "./helpers/navigation.js";
 import { editEntityFieldByHand, saveSection, showRawEntityFields } from "./helpers/entity-field.js";
 import { PRIMARY } from "./helpers/variants.js";
 
-async function disableSriForMockedExternalScripts(page) {
-  // These E2E routes replace the pinned CDN files with deterministic stubs.
-  // Their bytes intentionally differ from production, so SRI would reject the
-  // stubs. Strip SRI only from the document served inside this test; the
-  // committed legacy HTML remains pinned/SRI-protected and is validated by the
-  // release-hardening frontend contract.
-  await page.route(/\/legacy\/dashboard(?:-en)?\.html(?:\?.*)?$/, async (route) => {
-    const response = await route.fetch();
-    const body = (await response.text()).replace(
-      /\s+integrity="sha384-[^"]+"\s+crossorigin="anonymous"/g,
-      "",
-    );
-    await route.fulfill({ response, body });
+/* Le tre librerie stanno in casa, e queste prove le sostituiscono li'.
+ *
+ * Prima arrivavano da jsdelivr e bastava dirottare `https://**`; adesso le
+ * serve l'integrazione da `legacy/vendor/`, quindi si dirotta quel percorso.
+ * Chi passa `null` come corpo se le prende davvero. */
+async function stubVendorScripts(page, corpi) {
+  await page.route(/\/vendor\/[^/]+\.js(?:\?.*)?$/, (route) => {
+    const nome = route.request().url().split("/").pop().split("?")[0];
+    const corpo = corpi[nome];
+    if (corpo === undefined) return route.continue();
+    return route.fulfill({ contentType: "application/javascript", body: corpo });
+  });
+}
+
+/* Nessuna richiesta verso l'esterno, mai piu'.
+ *
+ * E' la garanzia che questo giro difende: una casa senza internet sul quadro
+ * deve vedere la plancia com'e', non aspettare che il browser si arrenda. */
+function nienteRete(page, fuori) {
+  page.on("request", (richiesta) => {
+    const url = richiesta.url();
+    if (/^https?:\/\/(?!127\.0\.0\.1|localhost)/.test(url)) fuori.push(url);
   });
 }
 
@@ -23,22 +32,12 @@ for (const variant of PRIMARY) {
   test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(`${error.message}\n${error.stack || ""}`));
-    await disableSriForMockedExternalScripts(page);
-    await page.route("https://**", (route) => {
-      const url = route.request().url();
-      if (url.startsWith("https://fonts.googleapis.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "text/css",
-          body: "/* E2E font stub */",
-        });
-      if (url.startsWith("https://fonts.gstatic.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "font/woff2",
-          body: Buffer.from([]),
-        });
-      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+    const fuori = [];
+    nienteRete(page, fuori);
+    await stubVendorScripts(page, {
+      "chart.umd.min.js": "",
+      "panzoom.min.js": "",
+      "hls.min.js": "",
     });
     await page.addInitScript(() => {
       window.WebSocket = class extends EventTarget {
@@ -58,13 +57,19 @@ for (const variant of PRIMARY) {
       }),
     ).toHaveCount(0);
     expect(pageErrors).toEqual([]);
+    expect(fuori, "la plancia ha chiesto qualcosa alla rete").toEqual([]);
   });
 
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
     page,
   }, testInfo) => {
-    if (testInfo.project.name === "webkit-ipad")
-      test.slow(true, "Full editor integration flow is slower on WebKit");
+    /* Il giro completo dell'editor e' la prova piu' lunga del progetto: apre
+     * ogni linguetta, ogni finestra e ogni selettore. Da sola sta dentro il
+     * mezzo minuto di default per un pelo — ventisei secondi su una macchina
+     * ferma — e con la suite intera addosso non ci sta piu': cadeva a caso, e
+     * non per quello che stava provando. Le altre prove pesanti del progetto
+     * si prendono lo stesso minuto e un quarto. */
+    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 75_000);
     const errors = [];
     const pageErrors = [];
     const seedState = {
@@ -125,37 +130,13 @@ for (const variant of PRIMARY) {
       pageErrors.push(detail);
       rejectEarlyPageError(new Error(`Page error before runtime readiness:\n${detail}`));
     });
-    await disableSriForMockedExternalScripts(page);
-    await page.route("https://**", async (route) => {
-      const url = route.request().url();
-      if (url.startsWith("https://fonts.googleapis.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "text/css",
-          body: "/* E2E font stub */",
-        });
-      if (url.startsWith("https://fonts.gstatic.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "font/woff2",
-          body: Buffer.from([]),
-        });
-      if (url.includes("chart.js"))
-        return route.fulfill({
-          contentType: "application/javascript",
-          body: "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}}",
-        });
-      if (url.includes("panzoom"))
-        return route.fulfill({
-          contentType: "application/javascript",
-          body: "window.panzoom=()=>({dispose(){}})",
-        });
-      if (url.includes("hls.js"))
-        return route.fulfill({
-          contentType: "application/javascript",
-          body: "window.Hls=class{static isSupported(){return false}}",
-        });
-      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+    const fuori = [];
+    nienteRete(page, fuori);
+    await stubVendorScripts(page, {
+      "chart.umd.min.js":
+        "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}}",
+      "panzoom.min.js": "window.panzoom=()=>({dispose(){}})",
+      "hls.min.js": "window.Hls=class{static isSupported(){return false}}",
     });
     await page.addInitScript(() => {
       class TestSocket extends EventTarget {
@@ -431,9 +412,20 @@ for (const variant of PRIMARY) {
     await expect(roomPicker).toHaveAttribute("data-dm-beta17-picker", "room");
     const roomOptions = roomPicker.locator(".dm-beta17-room-option");
     expect(await roomOptions.count()).toBeGreaterThanOrEqual(20);
-    for (const icon of ["🛏️", "🛋️", "🍳", "🚿", "💻", "🚗", "🌇", "🧺"]) {
+    /* Le stanze del selettore hanno il disegno di casa, non piu' l'emoji del
+     * sistema: si cerca il nome del disegno. */
+    for (const disegno of [
+      "room-bedroom",
+      "room-living",
+      "oven",
+      "room-bathroom",
+      "room-office",
+      "room-garage",
+      "room-balcony",
+      "washer",
+    ]) {
       expect(
-        await roomPicker.locator(".dm-beta12-room-glyph", { hasText: icon }).count(),
+        await roomPicker.locator(`.dm-beta12-room-glyph [data-dm-art="${disegno}"]`).count(),
       ).toBeGreaterThanOrEqual(1);
     }
     const roomSearch = roomPicker.locator("[data-search]");
@@ -501,5 +493,6 @@ for (const variant of PRIMARY) {
     });
     expect(errors).toEqual([]);
     expect(pageErrors).toEqual([]);
+    expect(fuori, "la plancia ha chiesto qualcosa alla rete").toEqual([]);
   });
 }

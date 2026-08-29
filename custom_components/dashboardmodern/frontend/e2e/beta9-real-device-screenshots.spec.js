@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
+import { attendiIlGlifo } from "./helpers/glifo-di-casa.js";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { PRIMARY } from "./helpers/variants.js";
 
@@ -281,15 +282,7 @@ for (const variant of PRIMARY) {
     await expect(roomRow).toBeVisible();
     const roomIcon = roomRow.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]');
     await expect(roomIcon).toBeVisible();
-    await expect
-      .poll(() =>
-        roomIcon.evaluate((node) => {
-          const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
-          const fallback = getComputedStyle(node, "::before").content || "";
-          return `${semantic}${fallback}`;
-        }),
-      )
-      .toContain("🛋️");
+    await attendiIlGlifo(roomIcon, "dm-beta12-room-glyph", "disegno:room-living");
 
     await openEditor(page, "sez7");
     const configuredTemperature = page.locator(

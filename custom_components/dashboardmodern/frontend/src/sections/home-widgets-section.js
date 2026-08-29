@@ -2058,14 +2058,34 @@ function temperatureDetail(widget) {
     .join("");
 }
 
+/* L'icona di un'apertura, quando chi l'ha configurata ne ha scelta una.
+ *
+ * Il ripiego resta quello di prima — si indovina dal nome se e' una porta o
+ * una finestra — perche' chi non ha scelto niente deve continuare a vedere
+ * quello che vedeva. Chi invece l'icona l'ha scelta in configurazione se la
+ * ritrova qui: e' l'unico posto dove quelle undici righe si distinguono.
+ *
+ * La scelta puo' essere un nome mdi, perche' il selettore delle icone e' quello
+ * del motore e scrive quello: stampato come testo si leggeva `mdi:gate` al
+ * posto del disegno. Chi sa disegnarlo e' il motore, e lo si chiede a lui. */
+function iconaApertura(row) {
+  const scelta = clean(readJson("cd_avvisi_icone", {})?.[clean(row.entity)]);
+  if (scelta && /^mdi:/i.test(scelta)) {
+    const disegnata = root.DashboardModernIconEngine?.markup?.("action", scelta, {
+      size: 20,
+    });
+    if (disegnata) return disegnata;
+  }
+  if (scelta) return esc(scelta);
+  return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
+}
+
 function openingsDetail(widget) {
   const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, MAX_DETAIL_ROWS);
   return rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${
-          /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟"
-        }</span>
+        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${iconaApertura(row)}</span>
          <span class="dm-w-name">${esc(row.name)}</span>
          <b class="dm-w-val">${esc(row.on ? t("Aperta", "Open") : t("Chiusa", "Closed"))}</b>`,
       ),
@@ -2224,7 +2244,55 @@ function detailRows(widget, states) {
   return "";
 }
 
+/* La sezione a cui una tessera appartiene.
+ *
+ * La finestra dice quello che sta succedendo; quando non basta si va nella
+ * sezione, che e' il posto dove quella roba si comanda per intero. Prima da li'
+ * si usciva solo chiudendo e cercando la voce in basso.
+ *
+ * Le tessere che una sezione non ce l'hanno non stanno in questo elenco, e per
+ * loro il tasto non c'e': batterie, allagamenti e cose da fare vivono soltanto
+ * in Home, e un tasto che non porta da nessuna parte e' una promessa che
+ * nessuno mantiene. Telecamere e aperture portano a Sicurezza, che e' la
+ * sezione che le contiene davvero. */
+const SEZIONE_DEL_WIDGET = Object.freeze({
+  luci: "luci",
+  clima: "clima",
+  tapparelle: "tapparelle",
+  sicurezza: "security",
+  telecamere: "security",
+  aperture: "security",
+  energia: "energy",
+  elettrodomestici: "appliances-main",
+  temperatura: "temp",
+  ev: "ev",
+  solare: "boiler",
+  piscina: "piscina",
+  irrigazione: "irrigazione",
+  robot: "robot",
+});
+
+/* La voce della sezione, ma solo se ci si puo' davvero andare.
+ *
+ * Una sezione spenta in configurazione ha la sua voce nascosta — `cdApplyNavVis`
+ * le scrive `display:none` addosso — e portarci sarebbe peggio che non
+ * offrirlo: si aprirebbe una pagina che l'utente ha deciso di non avere. */
+function voceDellaSezione(chiave) {
+  const tab = SEZIONE_DEL_WIDGET[clean(chiave)];
+  if (!tab) return null;
+  const voce = doc?.querySelector?.(`.tab[data-tab="${tab}"]`);
+  if (!voce || voce.style?.display === "none") return null;
+  return voce;
+}
+
 function detailMarkup(widget, states) {
+  const vaiAllaSezione = voceDellaSezione(widget.key)
+    ? `<footer class="dm-w-piede">
+        <button type="button" class="dm-w-vai" data-dm-w-sezione="${esc(widget.key)}">
+          ${esc(t("Apri sezione", "Open section"))} <span aria-hidden="true">→</span>
+        </button>
+      </footer>`
+    : "";
   return `<article class="dm-widget-detail" data-dm-widget-detail="${widget.key}"
       style="--dm-widget-accent:${widget.accent}">
       <header class="dm-w-head">
@@ -2234,6 +2302,7 @@ function detailMarkup(widget, states) {
         <button type="button" class="dm-w-close" data-dm-widget-close aria-label="${esc(t("Chiudi", "Close"))}">✕</button>
       </header>
       <div class="dm-w-body">${detailBody(widget, states)}</div>
+      ${vaiAllaSezione}
     </article>`;
 }
 
@@ -2782,6 +2851,22 @@ function onClick(event) {
     if (list) completeItem(list, clean(check.dataset.dmTodoUid), clean(check.dataset.dmTodoSummary));
     return;
   }
+  /* «Apri sezione»: si chiude la finestra e si preme la voce in basso.
+   *
+   * L'ordine non e' un dettaglio. Finche' la finestra e' aperta il documento
+   * porta `dm-widget-popup-open`, che gli blocca lo scorrimento: premere la
+   * voce prima di chiudere lascerebbe la sezione nuova ferma a meta' pagina.
+   * E si preme la voce vera invece di accendere la pagina a mano, perche' e'
+   * il gesto che il guscio conosce — e per le pagine nate da un modulo, che
+   * hanno un ascolto tutto loro, e' l'unico che funziona. */
+  const sezione = event.target?.closest?.("[data-dm-w-sezione]");
+  if (sezione) {
+    event.preventDefault();
+    const voce = voceDellaSezione(sezione.dataset.dmWSezione);
+    chiudiPopup();
+    voce?.click();
+    return;
+  }
   const light = event.target?.closest?.("[data-dm-w-light]");
   if (light) {
     event.preventDefault();
@@ -3042,6 +3127,19 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 /* E la finestra non ha piu' bisogno del filo di colore sul bordo alto: adesso
  * il colore ce l'ha la fascia. */
 #dm-widget-popup .dm-widget-detail::before{display:none}
+#dm-widget-popup .dm-w-piede{
+  display:flex;padding:0 15px 15px;margin:0}
+#dm-widget-popup .dm-w-vai{
+  flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:46px;padding:12px 16px;border-radius:15px;
+  border:1px solid var(--divider-color,#dbe4ee);
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 12%,var(--card-bg,#fff));
+  color:var(--dm-widget-accent,#0369a1);
+  font:inherit;font-size:13px;font-weight:800;letter-spacing:.4px;cursor:pointer;
+  transition:transform .18s ease,box-shadow .18s ease}
+#dm-widget-popup .dm-w-vai:hover{
+  transform:translateY(-1px);box-shadow:0 10px 22px -16px rgba(15,23,42,.7)}
+#dm-widget-popup .dm-w-vai:active{transform:none}
 #dm-widget-popup .dm-w-body{
   padding:16px 18px 20px;display:grid;gap:9px;
   /* L'altezza minima azzerata perche' un figlio di colonna flex, per difetto,
@@ -3476,10 +3574,32 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
      lo legge invece di guardarlo: due riquadri di blocco affiancati diventano
      «42 %» quando si copiano o si ascoltano. Qui sono due pezzi in riga. */
   display:block;min-width:0;line-height:1}
+/* La finestra che taglia deve stare larga quanto il carattere, non quanto la
+   riga.
+   
+   Il numero e' Oswald a quaranta con l'interlinea stretta a .92: trentasette
+   pixel di riga. Ma il disegno di Oswald, fra quello che sale e quello che
+   scende, a quaranta ne occupa sessantaquattro — misurati, non stimati — e
+   con la finestra che taglia addosso quei ventisette pixel di troppo non
+   escono: vengono tagliati, e il numero si vede con la testa mozzata.
+   
+   Non si e' visto per un motivo che non fa onore a nessuno: Oswald arrivava
+   da Google, e dove Google non si raggiunge — la macchina delle prove, per
+   dirne una — il numero cadeva su un carattere di sistema che nella riga
+   stretta ci sta. Adesso Oswald arriva sempre, quindi il taglio si vede
+   sempre, ed e' giusto cosi': c'era gia' per chiunque avesse una linea che
+   arriva a Google, e non per la macchina che lo doveva scoprire.
+   
+   Quello che si vede resta identico. La riga sale a 1.6 — tanto quanto il
+   carattere occupa davvero — e un margine negativo uguale e contrario la
+   riporta a 36,8: la scatola esterna e' quella di prima al pixel, quindi
+   niente si sposta, e dentro c'e' finalmente il posto per il disegno intero.
+   L'interlinea che tiene i numeri vicini non l'ha decisa la finestra: la
+   decide il margine. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-value{
-  max-width:100%;overflow:hidden;padding-bottom:4px;margin-bottom:-4px;
+  max-width:100%;overflow:hidden;padding:0;margin:-13.6px 0;
   display:inline-flex;align-items:baseline;vertical-align:baseline;
-  font-family:'Oswald','Inter',sans-serif;font-weight:200;font-size:40px;line-height:.92;
+  font-family:'Oswald','Inter',sans-serif;font-weight:200;font-size:40px;line-height:1.6;
   letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
 /* Una parola al posto di un numero si rimpicciolisce quanto basta a entrare
    intera: meglio leggerla tutta che leggerne meta' in grande. */

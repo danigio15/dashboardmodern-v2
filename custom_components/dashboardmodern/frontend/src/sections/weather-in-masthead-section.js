@@ -146,9 +146,11 @@ header.dm-testata-col-meteo>.status-pill .live-dot{width:13px;height:13px}
 
 /* L'intestazione della plancia, non quella di una pagina: ogni sezione ne ha
  * una sua — le monta il modulo delle intestazioni di pagina — e si riconoscono
- * dalla classe. */
+ * dalla classe. Quella della plancia e' figlia diretta del corpo, e si chiede
+ * cosi': senza il `>` ci finiscono dentro anche le intestazioni delle finestre
+ * di modifica. */
 function testata() {
-  return doc?.querySelector?.("header:not(.dm-page-mast)");
+  return doc?.querySelector?.("body>header:not(.dm-page-mast)");
 }
 
 /* «💧 Umidita' 38%» e' un'icona, una parola e un numero, ma la parola nel

@@ -265,7 +265,10 @@ function pushSample(entity, ambient) {
   return true;
 }
 
-export function sparklinePath(series, { width, height, pad } = SPARK) {
+/* Il filo della temperatura si adatta al minimo e al massimo della serie: fra
+ * 21 e 22 gradi il movimento c'e' e va visto. Quello dei consumi parte invece
+ * da zero, ed e' un'altra funzione — avevano lo stesso nome. */
+export function filoFraMinimoEMassimo(series, { width, height, pad } = SPARK) {
   if (!Array.isArray(series) || series.length < 3) return null;
   const low = Math.min(...series);
   const high = Math.max(...series);
@@ -534,7 +537,7 @@ function paintSpark(card, unit, reading) {
   if (!svg) return;
   const changed = pushSample(unit.entity, reading.ambient);
   const series = state.history.get(unit.entity) || [];
-  const path = sparklinePath(series);
+  const path = filoFraMinimoEMassimo(series);
   if (!path) {
     svg.hidden = true;
     return;

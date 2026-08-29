@@ -51,12 +51,28 @@ FIXES_STYLE_TAG = '<link rel="stylesheet" href="./dashboard-runtime.css">'
 HEAD_ANCHOR = "<head>"
 HEAD_CLOSE_ANCHOR = "\n</head>"
 
+# The upstream head opens four connections to the public internet before it
+# paints anything: the Google Fonts stylesheet and three jsdelivr scripts, none
+# of them deferred, so any one of them can hold up parsing. Home Assistant runs
+# inside the house; plenty of houses have no internet on the panel, a slow line
+# or a DNS that answers when it feels like it. There the dashboard was not slow,
+# it was stopped, and it only restarted when the browser gave up on its own.
+# The vendored copies live in legacy/vendor/ and are refreshed by
+# scripts/porta-in-casa-le-librerie.mjs, which verifies the same sha384 digests
+# that used to sit in the integrity attributes below.
 CHART_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
-CHART_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>'
-PANZOOM_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/panzoom@9.4.0/dist/panzoom.min.js"></script>'
-PANZOOM_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/panzoom@9.4.0/dist/panzoom.min.js" integrity="sha384-eexGhKur8uM8+ZcFzz42RmxqFkn5dlKkACVXVptLAlKhEkBGbGpyMfVxcRNjK6ka" crossorigin="anonymous"></script>'
+CHART_LOCAL = '<script src="./vendor/chart.umd.min.js"></script>'
+PANZOOM_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/panzoom@9.4.0/dist/panzoom.min.js"></script>\n'
+# Nothing in the dashboard has ever called panzoom: the robot map pans and
+# zooms with its own CSS transforms. The tag is dropped, not vendored.
+PANZOOM_LOCAL = ""
 HLS_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>'
-HLS_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.17/dist/hls.min.js" integrity="sha384-A+DTEBcAPU1Pk7Lby1xo6mi1AwflNlm+ojz8+BPFLErHgB1ZIgxfykSGIG+sPtC5" crossorigin="anonymous"></script>'
+# hls.js is half a megabyte and is only touched when a camera popup opens, so
+# it must not hold up parsing. Deferred scripts still run before
+# DOMContentLoaded, long before any camera is opened.
+HLS_LOCAL = '<script defer src="./vendor/hls.min.js"></script>'
+FONTS_CDN_ANCHOR = '<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@300;400;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">'
+FONTS_LOCAL = '<link rel="stylesheet" href="./vendor/caratteri.css">'
 
 WIZARD_ANCHOR = "\n        step: 1,\n        token: conn.token"
 WIZARD_PATCHED = (
@@ -121,11 +137,18 @@ def _apply_all(source: str, anchor: str, replacement: str, label: str) -> str:
 
 
 def _pin_cdn_dependencies(source: str, name: str) -> str:
-    """Pin third-party scripts and enforce Subresource Integrity."""
+    """Serve the third-party assets from the integration, not from the internet.
+
+    Subresource Integrity is not lost, it moved: the digests are checked when
+    the files are vendored, and tests/release-hardening.test.js re-checks the
+    committed bytes on every run. Same-origin files served by Home Assistant
+    itself have nothing left for SRI to defend against.
+    """
     dependencies = (
-        ("chart.js", CHART_CDN_ANCHOR, CHART_CDN_PINNED),
-        ("panzoom", PANZOOM_CDN_ANCHOR, PANZOOM_CDN_PINNED),
-        ("hls.js", HLS_CDN_ANCHOR, HLS_CDN_PINNED),
+        ("chart.js", CHART_CDN_ANCHOR, CHART_LOCAL),
+        ("panzoom", PANZOOM_CDN_ANCHOR, PANZOOM_LOCAL),
+        ("hls.js", HLS_CDN_ANCHOR, HLS_LOCAL),
+        ("fonts", FONTS_CDN_ANCHOR, FONTS_LOCAL),
     )
     for label, anchor, replacement in dependencies:
         source = _apply_once(source, anchor, replacement, f"{name} {label} CDN")

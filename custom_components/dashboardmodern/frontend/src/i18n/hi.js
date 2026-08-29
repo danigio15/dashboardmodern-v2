@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "समूह के आइकन जैसा ही रहने दें ताकि वह उसका अनुसरण करे; इस खुलने वाले हिस्से को बाकियों से अलग दिखाने के लिए बदलें।",
+  "Open section": "अनुभाग खोलें",
+  "Pick the icon": "आइकन चुनें",
+  "The group decides where the alert is watched.": "समूह तय करता है कि चेतावनी कहाँ देखी जाती है।",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "खुलने का सेंसर binary_sensor.*, sensor.* या input_boolean.* इकाई होना चाहिए।",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "एक नाम और कम से कम एक इकाई दर्ज करें: शटर, पर्दे या शामियाने में से कोई cover.* या switch.*, या केवल खुलने का सेंसर।",
   "One room at a time · Scenes · Sensors": "एक बार में एक कमरा · दृश्य · सेंसर",
@@ -1569,7 +1573,6 @@ export default Object.freeze({
   "Terrace": "छत",
   "Test connection →": "कनेक्शन जाँचें →",
   "thanks to solar": "सौर ऊर्जा की बदौलत",
-  "The alert icon follows the selected group, as in the dashboard.": "चेतावनी का आइकन चुने गए समूह के अनुसार बदलता है, जैसे डैशबोर्ड में।",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "बैकअप पूरे डैशबोर्ड की कॉन्फ़िगरेशन एक फ़ाइल में समेटता है: अनुभाग, कमरे, इकाइयाँ, लोग, कारें, सब कुछ। बहाली उसे वापस रखकर फिर लोड करती है।",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "कार्ड और पॉपअप हमेशा हर प्रतिशत वाली ड्रॉपडाउन सूची दिखाते हैं: 0 = बंद, 100 = खुला। यहाँ अपना सामान्य मान चुनें — 5 लगभग पूरा बंद करता है और थोड़ी हवा आने देता है — और वह सूची में तारे के साथ दिखता है। खाली = कोई पसंदीदा नहीं।",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "थ्रेशोल्ड से ऊपर आख़िरी पावर रीडिंग के बाद इन मिनटों तक कार्ड चालू दिखता है: यह डिशवॉशर के 0 W सुखाने के चरण और चक्र के ठहराव को कवर करता है।",

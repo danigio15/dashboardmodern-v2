@@ -665,8 +665,8 @@ function installStyles() {
     .dm-car-brand{display:grid!important;place-items:center!important;background:transparent!important}
     .dm-beta5-brand-logo{display:grid!important;place-items:center!important;width:82px!important;height:54px!important;color:currentColor!important}
     .dm-beta5-brand-logo svg{display:block!important;width:78px!important;height:50px!important;max-width:100%!important;overflow:visible!important}
-    #dm-visual-picker[data-kind="car"] .dm-picker-option{min-height:126px!important;padding:12px 8px!important}
-    #dm-visual-picker[data-kind="car"] .dm-picker-visual{min-height:58px!important}
+    /* Il riquadro del marchio e la sua pastiglia li misura beta9: le tre
+       misure che stavano qui perdevano tutte, e restavano solo a far numero. */
     [data-brand-preview] .dm-beta5-brand-logo{width:86px!important;height:56px!important}
 
     #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-add-row{display:grid!important;grid-template-columns:58px 138px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:10px!important}

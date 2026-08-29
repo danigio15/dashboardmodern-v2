@@ -290,8 +290,9 @@ function installStyles() {
     }
 
     @media(max-width:760px){
-      #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]{margin:14px auto 22px!important;padding:5px!important;border-radius:26px!important}
-      #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"] .clima-page-mode-btn{min-height:72px!important;padding:10px 8px!important;gap:9px!important;border-radius:21px!important;font-size:16px!important;letter-spacing:1.2px!important}
+      /* Il selettore Caldo/Freddo sul telefono lo misura beta16: le nove misure
+         che stavano qui — margine, imbottitura, raggio, corpo, spaziatura —
+         perdevano tutte contro le sue, scritte piu' avanti nella cascata. */
       #page-clima .clima-page-mode-switch .clima-page-mode-btn .icon{font-size:27px!important}
       #dm-visual-picker[data-kind="room"] .dm-picker-visual .dm-beta12-room-glyph,#dm-visual-picker[data-kind="action"] .dm-picker-visual .dm-beta12-action-glyph{font-size:34px!important}
     }

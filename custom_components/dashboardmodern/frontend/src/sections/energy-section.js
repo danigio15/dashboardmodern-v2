@@ -852,11 +852,6 @@ function validSocEntity(entity) {
   return attrs.device_class === "battery" || attrs.unit_of_measurement === "%";
 }
 
-async function persistEnergyLoads(loads) {
-  const store = dashboardStore();
-  if (store?.replaceSection) await store.replaceSection("energyLoads", loads.slice(0, 8));
-}
-
 function installBatterySocField(editor, model) {
   if (editor.querySelector("#dm-energy-battery-soc")) return;
   const anchor = editor.querySelector("#dm-energy-battery-daily_discharged_energy");
@@ -879,68 +874,20 @@ function installBatterySocField(editor, model) {
   body.prepend(wrap);
 }
 
-function installEnergyLoadsEditor(editor) {
-  let panel = editor.querySelector("[data-energy-loads-editor]");
-  if (!panel) {
-    panel = doc.createElement("section");
-    panel.className = "dm-energy-loads-editor";
-    panel.dataset.energyLoadsEditor = "true";
-    (editor.querySelector('[data-energy-panel="flows"]') || editor).append(panel);
-  }
-  const loads = section("energyLoads", []);
-  panel.innerHTML = `<h3>${t("Carichi", "Loads")}</h3><div class="dm-energy-load-list"></div>${loads.length < 8 ? `<button type="button" data-energy-load-add>＋ ${t("Aggiungi carico", "Add load")}</button>` : ""}`;
-  const list = panel.querySelector(".dm-energy-load-list");
-  loads.forEach((load, index) => {
-    const row = doc.createElement("div");
-    row.className = "ed-row dm-energy-load-row";
-    row.dataset.energyLoadId = load.id;
-    row.innerHTML = `<span class="dm-energy-load-icon">${esc(load.icon)}</span><span class="ed-row-main"><strong class="ed-row-new">${esc(load.name)}</strong><small>${esc(load.power_entity)}${load.energy_entity ? ` · ${esc(load.energy_entity)}` : ""}</small></span><button type="button" data-edit>✎</button><button type="button" data-delete>🗑</button>`;
-    row.querySelector("[data-delete]").addEventListener("click", async () => {
-      await persistEnergyLoads(loads.filter((_, position) => position !== index));
-      installEnergyLoadsEditor(editor);
-    });
-    row
-      .querySelector("[data-edit]")
-      .addEventListener("click", () => showEnergyLoadForm(editor, load, index));
-    list.append(row);
-  });
-  panel
-    .querySelector("[data-energy-load-add]")
-    ?.addEventListener("click", () => showEnergyLoadForm(editor));
-}
-
-function showEnergyLoadForm(editor, load = {}, editIndex = -1) {
-  const panel = editor.querySelector("[data-energy-loads-editor]");
-  let form = panel.querySelector("form");
-  form?.remove();
-  form = doc.createElement("form");
-  form.className = "dm-energy-load-form";
-  form.innerHTML = `<input class="ed-input" name="name" required maxlength="48" placeholder="${t("Nome", "Name")}" value="${esc(load.name)}"><input class="ed-input" name="icon" placeholder="mdi:flash" value="${esc(load.icon || "mdi:flash")}"><input class="ed-input" name="power_entity" required placeholder="sensor.potenza" value="${esc(load.power_entity)}"><input class="ed-input" name="energy_entity" placeholder="sensor.energia_totale" value="${esc(load.energy_entity)}"><input name="color" type="color" value="${esc(load.color || "#0ea5e9")}"><button type="submit">${t("Salva", "Save")}</button>`;
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
-    if (
-      data.energy_entity &&
-      !isCumulativeEnergyEntity(data.energy_entity, allStates(), root.resolveEntity)
-    ) {
-      form.elements.energy_entity.dataset.validation = "invalid";
-      return;
-    }
-    const loads = section("energyLoads", []);
-    const item = {
-      ...load,
-      ...data,
-      id: load.id || "",
-      order: editIndex < 0 ? loads.length : editIndex,
-    };
-    if (editIndex < 0) loads.push(item);
-    else loads[editIndex] = item;
-    await persistEnergyLoads(loads);
-    installEnergyLoadsEditor(editor);
-    scheduleProjection();
-  });
-  panel.append(form);
-}
+/* I carichi li disegna la sezione «Carichi e dispositivi», e nessun altro.
+ *
+ * Qui c'era un secondo editor dei carichi, con lo stesso nome di funzione di
+ * quello vero. Cercava il pannello dei flussi e, se non lo trovava — cioe'
+ * ogni volta che la configurazione era aperta su un'altra linguetta —
+ * ripiegava sulla scheda intera. Cosi' quel blocco finiva appeso al corpo
+ * della configurazione e ti seguiva ovunque: sotto Elettrodomestici, sotto
+ * Aperture, sotto Backup compariva un «CARICHI / + Aggiungi carico» spoglio,
+ * che li' non vuol dire niente. Segnalato esattamente cosi', ed era
+ * esattamente questo: un padrone in piu' per una cosa che ne aveva gia' uno.
+ *
+ * Con lui se ne vanno il suo salvataggio e la sua maschera: la sezione
+ * energy-loads-editor-section.js fa tutto, con le schede, gli impianti e il
+ * tasto Salva. */
 
 function updateConfiguredCount(body) {
   const counter = body?.closest("details.ed-acc")?.querySelector("summary small");
@@ -973,7 +920,6 @@ function installEnergyEditorContracts() {
 
   const model = configuredEnergyModel();
   installBatterySocField(editor, model);
-  installEnergyLoadsEditor(editor);
   TOTAL_FIELDS.forEach((definition) => {
     const [group, key, afterKey] = definition;
     /* Il campo puo' esserci gia': lo stampa il runtime, e in quel caso e' la

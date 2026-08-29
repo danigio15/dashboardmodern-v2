@@ -188,16 +188,62 @@ export function resolveEntity(reference, resolver = globalThis.resolveEntity) {
   }
 }
 
+/* «E' un contatore totale?» — la domanda si fa in un posto solo.
+ *
+ * Da questa risposta dipende tutto il calcolo dell'energia: si parte da un
+ * contatore che sale e non torna mai indietro, e giorno, mese e anno si
+ * ricavano dalla differenza fra due letture. Se si sbaglia a riconoscerlo, i
+ * numeri non sono un po' storti: sono un'altra cosa.
+ *
+ * La domanda era scritta due volte, in due moduli, con lo stesso nome e regole
+ * diverse — ed e' proprio il genere di cosa che non deve poter divergere.
+ * Ognuna delle due aveva ragione su una meta':
+ *
+ * - Una guardava solo il nome. Cosi' un sensore di *potenza* chiamato
+ *   `sensor.total_power`, che sta in watt, passava per contatore totale: si
+ *   prendeva la differenza fra due watt e la si chiamava energia. Numeri
+ *   inventati. Lo stesso valeva per un contatore dell'acqua in litri marcato
+ *   `total_increasing`.
+ * - L'altra controllava di avere davvero un'entita' di energia, ma il suo
+ *   elenco di parole era piu' corto: non conosceva «counter», e non guardava
+ *   mai il nome amichevole. Un `sensor.energy_counter` in kWh, o un sensore
+ *   che si chiama `sensor.dm_0154` ma che in casa si legge «Contatore
+ *   energia», non li riconosceva nessuno dei due posti dove serviva.
+ *
+ * Qui c'e' l'unione delle due meta' giuste: prima si controlla che sia energia
+ * — e in watt non lo e' mai — poi si accetta il vocabolario piu' largo. Un
+ * sensore di cui non e' ancora arrivato nessun attributo passa lo stesso: al
+ * primo disegno la casa e' ancora vuota, e rifiutarlo li' vorrebbe dire aprire
+ * la plancia con l'energia in bianco.
+ */
+const UNITA_DI_POTENZA = /^(w|kw|mw)$/;
+const UNITA_DI_ENERGIA = /^(wh|kwh|mwh)$/;
+const PAROLE_DA_CONTATORE = /(^|[\s._-])(total|totale|lifetime|counter|contatore|meter)([\s._-]|$)/;
+
 export function isCumulativeEnergyEntity(entityId, states = {}, resolver = (value) => value) {
   const original = String(entityId || "").trim();
   if (!original) return false;
   const resolved = resolveEntity(original, resolver);
   const state = states?.[resolved] || states?.[original] || null;
   const attributes = state?.attributes || {};
+
+  const unita = String(attributes.unit_of_measurement || "")
+    .trim()
+    .toLowerCase();
+  // I watt non sono energia: sono quanto sta consumando adesso.
+  if (UNITA_DI_POTENZA.test(unita)) return false;
+  const classe = String(attributes.device_class || "")
+    .trim()
+    .toLowerCase();
+  // Con gli attributi in mano si pretende che parlino di energia: senza questo
+  // un contatore dell'acqua in litri diventava un contatore della corrente.
+  if (Object.keys(attributes).length && !UNITA_DI_ENERGIA.test(unita) && classe !== "energy")
+    return false;
+
   const stateClass = String(attributes.state_class || "").toLowerCase();
   if (stateClass === "total" || stateClass === "total_increasing") return true;
-  const text = `${original} ${resolved} ${attributes.friendly_name || ""}`.toLowerCase();
-  return /(^|[\s._-])(total|totale|lifetime|counter|contatore|meter)([\s._-]|$)/.test(text);
+  const testo = `${original} ${resolved} ${attributes.friendly_name || ""}`.toLowerCase();
+  return PAROLE_DA_CONTATORE.test(testo);
 }
 
 export function sourcePlans(

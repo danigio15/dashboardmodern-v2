@@ -20,12 +20,14 @@
         "data": {
           "allowed_users": "允许的用户",
           "register_lovelace_dashboard": "同时注册为 Home Assistant 面板",
-          "admin_only": "仅管理员可见"
+          "admin_only": "仅管理员可见",
+          "check_updates": "检查新版本"
         },
         "data_description": {
           "allowed_users": "仅为界面显示过滤。数据和服务的访问仍然由 Home Assistant 的权限决定。",
           "register_lovelace_dashboard": "面板会在管理员首次打开 DashboardModern 时创建。",
-          "admin_only": "Home Assistant 自带的过滤；对非管理员账号以它为准。"
+          "admin_only": "Home Assistant 自带的过滤；对非管理员账号以它为准。",
+          "check_updates": "每半小时向 GitHub 询问是否有更新的版本，并显示在“设置 → 更新”中。关闭后面板完全不联网；仪表板本身并不需要它。"
         }
       }
     }

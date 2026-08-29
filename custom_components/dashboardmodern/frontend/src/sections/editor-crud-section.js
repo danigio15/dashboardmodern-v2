@@ -506,7 +506,20 @@ function installStyles() {
   installStyle(
     "dm-editor-crud-section-style",
     `
-      #editor-modal[data-dm-editor-theme="dark"]{--dm-editor-shell:#161f36;--dm-editor-panel:#1b2540;--dm-editor-control:#212d4c;--dm-editor-border:#31405f;--dm-editor-text:#edf4ff;--dm-editor-muted:#a8b7cf;background:rgba(3,7,18,.76)!important;color-scheme:dark}
+      /* I sei colori dell'editor scuro, scritti qui e da nessun'altra parte.
+       *
+       * Erano due serie: questa, e una seconda in un foglio che carica dopo e
+       * che ridipingeva guscio, linguette e caselle coi nomi del tema di Home
+       * Assistant. Il risultato non era ne' l'una ne' l'altra: il fondo delle
+       * linguette lo dava il secondo, il testo e il bordo il primo. E siccome
+       * quei nomi esistono solo quando la plancia e' gia' scura, il guscio
+       * cambiava colore a seconda del tema di fuori — piu' scuro sulla plancia
+       * scura, piu' chiaro su quella chiara, per la stessa finestra.
+       *
+       * Adesso i colori sono questi, sempre. Il testo passa da #edf4ff a
+       * #e6edf7 perche' e' quello che si vedeva davvero, ed e' lo stesso testo
+       * chiaro del resto della plancia. */
+      #editor-modal[data-dm-editor-theme="dark"]{--dm-editor-shell:#161f36;--dm-editor-panel:#1b2540;--dm-editor-control:#212d4c;--dm-editor-border:#31405f;--dm-editor-text:#e6edf7;--dm-editor-muted:#a8b7cf;background:rgba(3,7,18,.76)!important;color-scheme:dark}
       #editor-modal[data-dm-editor-theme="dark"] .ed-shell,#editor-modal[data-dm-editor-theme="dark"] .ed-head,#editor-modal[data-dm-editor-theme="dark"] .ed-body{background:var(--dm-editor-shell)!important;color:var(--dm-editor-text)!important;border-color:var(--dm-editor-border)!important}
       #editor-modal[data-dm-editor-theme="dark"] .ed-tabs,#editor-modal[data-dm-editor-theme="dark"] .ed-inner-tabs,#editor-modal[data-dm-editor-theme="dark"] .sub-tabs-energy,#editor-modal[data-dm-editor-theme="dark"] .ed-row,#editor-modal[data-dm-editor-theme="dark"] .dm-report-row,#editor-modal[data-dm-editor-theme="dark"] .ed-acc,#editor-modal[data-dm-editor-theme="dark"] .ed-acc-body{background:var(--dm-editor-panel)!important;color:var(--dm-editor-text)!important;border-color:var(--dm-editor-border)!important}
       #editor-modal[data-dm-editor-theme="dark"] input,#editor-modal[data-dm-editor-theme="dark"] select,#editor-modal[data-dm-editor-theme="dark"] textarea,#editor-modal[data-dm-editor-theme="dark"] .ed-input{background:var(--dm-editor-control)!important;color:var(--dm-editor-text)!important;border-color:var(--dm-editor-border)!important}

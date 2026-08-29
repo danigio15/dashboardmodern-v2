@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "그룹 아이콘 그대로 두면 따라갑니다. 이 개구부를 다른 것과 구분하려면 바꾸세요.",
+  "Open section": "섹션 열기",
+  "Pick the icon": "아이콘 고르기",
+  "The group decides where the alert is watched.": "알림을 어디에서 감시할지는 그룹이 정합니다.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "열림 센서는 binary_sensor.*, sensor.* 또는 input_boolean.* 엔터티여야 합니다.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "이름과 최소 한 개의 엔터티를 입력하세요: 셔터·커튼·차양 중 cover.* 또는 switch.*, 아니면 열림 센서만으로도 됩니다.",
   "One room at a time · Scenes · Sensors": "한 번에 한 방씩 · 장면 · 센서",
@@ -1569,7 +1573,6 @@ export default Object.freeze({
   "Terrace": "테라스",
   "Test connection →": "연결 시험 →",
   "thanks to solar": "태양광 덕분에",
-  "The alert icon follows the selected group, as in the dashboard.": "알림 아이콘은 대시보드처럼 선택한 그룹을 따릅니다.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "백업은 대시보드 구성 전체를 한 파일에 모읍니다: 섹션, 방, 엔티티, 사람, 자동차, 전부. 복원은 되돌려 놓고 새로 고칩니다.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "카드와 팝업에는 언제나 모든 퍼센트가 담긴 드롭다운이 있습니다(0 = 닫힘, 100 = 열림). 여기서 평소에 쓰는 값을 고르세요. 5는 바람만 조금 통하게 거의 다 닫습니다. 고른 값은 드롭다운에 별표로 표시됩니다. 비워 두면 즐겨 쓰는 값이 없습니다.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "임계값을 넘은 마지막 전력 이후 이 시간(분) 동안 카드가 작동 중으로 유지됩니다. 식기세척기의 0W 건조 단계와 사이클 중 일시정지를 포함합니다.",

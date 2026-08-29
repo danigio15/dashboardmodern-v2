@@ -29,6 +29,8 @@
  * chi la stava guardando. Si tiene l'uid.
  */
 
+import { prossimoIdentificativo, segnoPiuAlto } from "./segno-progressivo.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 /** Il campo in cui l'auto tiene la sua identita'. */
@@ -69,31 +71,23 @@ export const VEHICLE_FIELDS = Object.freeze([
 const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
 const array = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 
-const numeroDi = (uid) => {
-  const match = new RegExp(`^${VEHICLE_ID_PREFIX}-(\\d+)$`).exec(clean(uid));
-  return match ? Number(match[1]) : 0;
-};
+const richiestaDelSegno = (list, metadata) => ({
+  elenco: array(list),
+  metadata: isObject(metadata) ? metadata : {},
+  prefisso: VEHICLE_ID_PREFIX,
+  identificativo: (car) => car?.[VEHICLE_KEY_FIELD],
+  campoSegno: VEHICLE_SEQ_FIELD,
+  minimo: 0,
+});
 
-/**
- * Il numero piu' alto mai distribuito.
- *
- * Guardare solo le auto vive non basta: chi cancella l'ultima e ne aggiunge
- * un'altra si ritroverebbe lo stesso uid, e con esso le foto e la mappatura di
- * quella cancellata. Il segno resta scritto anche quando l'auto che l'ha alzato
- * non c'e' piu'.
- */
-export function altoSegno(list = [], metadata = {}) {
-  const daiVivi = array(list).reduce(
-    (massimo, car) => Math.max(massimo, numeroDi(car?.[VEHICLE_KEY_FIELD])),
-    0,
-  );
-  const scritto = Number(isObject(metadata) ? metadata[VEHICLE_SEQ_FIELD] : 0);
-  return Math.max(daiVivi, Number.isFinite(scritto) ? scritto : 0, 0);
+/** Il numero piu' alto mai distribuito a un'auto. La regola sta in un posto solo. */
+export function altoSegnoVeicoli(list = [], metadata = {}) {
+  return segnoPiuAlto(richiestaDelSegno(list, metadata));
 }
 
 /** L'uid di un'auto che sta per nascere. Non si ricava dal nome e non si riusa. */
 export function nuovoVeicoloId(list = [], metadata = {}) {
-  return `${VEHICLE_ID_PREFIX}-${altoSegno(list, metadata) + 1}`;
+  return prossimoIdentificativo(richiestaDelSegno(list, metadata));
 }
 
 /** Una vettura normalizzata: quello che c'e', nella forma che il resto si aspetta. */
@@ -162,7 +156,7 @@ export function storedVehicles(list = [], metadata = {}) {
     cars: auto,
     metadata: {
       ...(isObject(metadata) ? metadata : {}),
-      [VEHICLE_SEQ_FIELD]: altoSegno(auto, metadata),
+      [VEHICLE_SEQ_FIELD]: altoSegnoVeicoli(auto, metadata),
     },
   };
 }

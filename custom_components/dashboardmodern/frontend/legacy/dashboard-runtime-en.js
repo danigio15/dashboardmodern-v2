@@ -1037,7 +1037,7 @@ async function connect() {
     if(m.type === 'result' && Array.isArray(m.result)) { m.result.forEach(s => STATES[s.entity_id] = s); render(); }
     if(m.type === 'event' && m.event.event_type === 'state_changed') { 
         if(m.event.data.new_state) STATES[m.event.data.entity_id] = m.event.data.new_state; else delete STATES[m.event.data.entity_id];
-        render(); 
+        cdRenderSoon(); 
         // v240/v241/v244: aggiorna popup clima rapido se aperto
         const eid = m.event.data.entity_id;
         if (eid && document.getElementById('quick-clima-modal')?.classList.contains('show')) {
@@ -2346,6 +2346,33 @@ function cdSyncCollect() {
     CD_SYNC_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) out[k] = v; });
     return out;
 }
+/* Un disegno per fotogramma, non uno per evento.
+ *
+ * Home Assistant manda un evento per ogni entita' che cambia stato, e in una
+ * casa vera sono decine al secondo: ogni sensore di temperatura, ogni presa che
+ * misura, ogni luce. Qui si rispondeva ridisegnando tutto ogni volta — e
+ * «tutto» sono settecento righe di render piu' sedici moduli agganciati.
+ * Misurato su una plancia quasi vuota: centosettanta cambi di stato facevano
+ * centosettanta disegni, 1125 millisecondi buttati dentro render. Su un
+ * telefono, con una casa vera, e' la sezione che si impasta mentre la si
+ * guarda.
+ *
+ * Gli stati intanto sono gia' aggiornati: chi disegna legge STATES, non
+ * l'evento. Disegnare una volta sola alla fine della raffica mostra esattamente
+ * le stesse cose, e in tempo per il fotogramma dopo. Chi chiama render() a mano
+ * — un salvataggio, un cambio di pagina — continua ad averlo subito e sincrono:
+ * qui si mette in coda soltanto la risposta agli eventi. */
+function cdRenderSoon() {
+  if (cdRenderSoon._atteso) return;
+  cdRenderSoon._atteso = true;
+  const disegna = () => {
+    cdRenderSoon._atteso = false;
+    try { render(); } catch (e) {}
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(disegna);
+  else setTimeout(disegna, 16);
+}
+
 function cdSyncApply(data) {
     if (!data) return 0;
     let n = 0;

@@ -1,23 +1,6 @@
 import { expect } from "@playwright/test";
 
-async function disableSriForMockedExternalScripts(page) {
-  // Browser E2E deliberately replaces remote CDN scripts with deterministic
-  // local stubs. SRI correctly rejects those stubs because their bytes differ
-  // from production. Strip integrity only from the served E2E document; the
-  // committed legacy HTML remains pinned/SRI-protected and is checked by the
-  // frontend hardening tests.
-  await page.route(/\/legacy\/dashboard(?:-en)?\.html(?:\?.*)?$/, async (route) => {
-    const response = await route.fetch();
-    const body = (await response.text()).replace(
-      /\s+integrity="sha384-[^"]+"\s+crossorigin="anonymous"/g,
-      "",
-    );
-    await route.fulfill({ response, body });
-  });
-}
-
 export async function bootNamespacedDashboard(page, variant, testInfo, seed) {
-  await disableSriForMockedExternalScripts(page);
   const instance = [
     "e2e",
     testInfo.project.name,

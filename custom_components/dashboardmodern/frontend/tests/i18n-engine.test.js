@@ -5,7 +5,6 @@ import {
   DEFAULT_LOCALE,
   SOURCE_LOCALE,
   detectLocale,
-  formatNumber,
   getLocale,
   intlLocale,
   isRtl,
@@ -174,9 +173,13 @@ test("the vendored shell is chosen per locale, English for anything unshipped", 
   assert.equal(legacyShellFor("ar"), "dashboard-en.html");
 });
 
+/* Il numero lo formatta Intl, e in che lingua glielo dice intlLocale: e'
+ * quello il pezzo che questo motore deve garantire. Prima la prova chiamava un
+ * formatNumber esportato da qui che nessuna sezione ha mai importato — i numeri
+ * della plancia passano dal formatNumber di shared.js — e cosi' l'unica cosa
+ * che teneva in vita quella funzione era la prova che la provava. */
 test("numbers are formatted in the locale, not in one hard-coded tag", () => {
   assert.equal(intlLocale("de"), "de-DE");
-  assert.equal(formatNumber(1234.5, { minimumFractionDigits: 1 }, "de"), "1.234,5");
-  assert.equal(formatNumber(1234.5, { minimumFractionDigits: 1 }, "en"), "1,234.5");
-  assert.equal(formatNumber("not a number", {}, "en"), "—");
+  assert.equal(new Intl.NumberFormat(intlLocale("de"), { minimumFractionDigits: 1 }).format(1234.5), "1.234,5");
+  assert.equal(new Intl.NumberFormat(intlLocale("en"), { minimumFractionDigits: 1 }).format(1234.5), "1,234.5");
 });

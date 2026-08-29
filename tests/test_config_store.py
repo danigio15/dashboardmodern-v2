@@ -244,13 +244,23 @@ async def test_the_store_is_shared_by_every_user_and_device(
 
 
 async def test_setup_exposes_the_store_and_the_commands(
-    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Setting up an entry makes the shared configuration reachable."""
+    """Setting up an entry makes the shared configuration reachable.
+
+    L'avvio lo chiede a Home Assistant, non si chiama la funzione a mano: il
+    setup monta la piattaforma dell'avviso di aggiornamento, e una piattaforma
+    si monta solo su una voce che Home Assistant sta davvero avviando.
+    L'integrazione poi deve anche potersi trovare — nelle prove le
+    personalizzate si vedono solo a richiesta — e l'avviso si spegne dalle
+    opzioni, perche' guarda in rete e qui si parla dello schedario.
+    """
     from homeassistant.components import websocket_api
 
-    from custom_components.dashboardmodern import async_setup_entry
     from custom_components.dashboardmodern import frontend as frontend_module
+    from custom_components.dashboardmodern.const import OPTION_CHECK_UPDATES
     from custom_components.dashboardmodern.websocket_api import TYPE_GET, TYPE_SET
 
     async def fake_register(_hass: HomeAssistant, _entry_id: str) -> None:
@@ -258,9 +268,15 @@ async def test_setup_exposes_the_store_and_the_commands(
 
     monkeypatch.setattr(frontend_module, "async_register_frontend", fake_register)
 
-    entry = MockConfigEntry(domain=DOMAIN, entry_id="entry-1", title="Casa")
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="entry-1",
+        title="Casa",
+        options={OPTION_CHECK_UPDATES: False},
+    )
     entry.add_to_hass(hass)
-    assert await async_setup_entry(hass, entry) is True
+    assert await hass.config_entries.async_setup(entry.entry_id) is True
+    await hass.async_block_till_done()
 
     assert isinstance(hass.data[DOMAIN]["config_store"], DashboardConfigStore)
     handlers = hass.data[websocket_api.const.DOMAIN]

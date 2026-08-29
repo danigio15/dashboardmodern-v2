@@ -175,27 +175,13 @@ export async function buildApplianceDailyBreakdown(
   });
 }
 
-export function inferApplianceEntity(device = {}, states = {}, kind = "energy") {
-  const candidates = [
-    device[`${kind}_entity`],
-    device[`${kind}_today`],
-    device.daily_energy_entity,
-    device.monthly_energy_entity,
-    device.total_energy_entity,
-    ...(device.entities || []),
-  ]
-    .map((entry) => (typeof entry === "string" ? entry : entry?.entity || entry?.entity_id))
-    .map(clean)
-    .filter(Boolean);
-  const unit = kind === "power" ? /^(w|kw)$/i : /^(wh|kwh|mwh)$/i;
-  const name =
-    kind === "power" ? /power|potenza|watt/i : /energy|energia|kwh|consum|total|totale|mese|month/i;
-  return (
-    candidates.find((id) => unit.test(clean(states[id]?.attributes?.unit_of_measurement))) ||
-    candidates.find((id) => name.test(id)) ||
-    ""
-  );
-}
+/* Qui c'era un secondo inferApplianceEntity — indovinare quale entita' di un
+ * elettrodomestico e' il consumo e quale la potenza — con lo stesso nome di
+ * quello di data-contracts-section.js e regole diverse: questo guardava solo
+ * l'unita' di misura, quello guarda anche la classe del dispositivo e i campi
+ * gia' configurati. Non lo chiamava nessuno dei due; e' rimasto quello che ha
+ * le prove a dire cosa deve rispondere. */
+
 
 function devices() {
   const values = section("appliances", []);

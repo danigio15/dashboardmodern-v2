@@ -562,6 +562,47 @@ function runScene(on) {
   schedule();
 }
 
+/* Portare nella sezione non basta: bisogna arrivare sulla cosa.
+ *
+ * Il tocco su una riga cambiava pagina e finiva li'. In una casa con dodici
+ * condizionatori vuol dire scaricare chi guarda in cima a un elenco e lasciarlo
+ * cercare quello che aveva appena toccato — «mi rimanda alla sezione clima ma
+ * non all'entita', quindi cosi' non serve a niente». Detto giusto.
+ *
+ * Dopo il cambio di pagina si apre la cosa: il clima ha il suo popup per
+ * entita', e per il resto si cerca la scheda che porta quell'entita' addosso e
+ * si tocca quella. Se non si trova niente resta il comportamento di prima —
+ * la sezione aperta — che e' comunque meglio di restare dov'eravamo.
+ *
+ * Il rinvio di un fotogramma non e' pigrizia: la pagina di destinazione si
+ * disegna quando diventa attiva, e cercare la scheda un istante prima vuol dire
+ * cercarla in una pagina ancora vuota. */
+function apriLaVoce(entity) {
+  if (!entity || !doc) return false;
+  const prova = () => {
+    if (typeof root.apriClimaPopup === "function" && entity.startsWith("climate.")) {
+      try {
+        root.apriClimaPopup(entity);
+        return true;
+      } catch (_errore) {}
+    }
+    const scheda = doc.querySelector(
+      `.page.active [data-appliance-id="${CSS.escape(entity)}"],` +
+        `.page.active [data-dm-lucip="${CSS.escape(entity)}"],` +
+        `.page.active [data-entity="${CSS.escape(entity)}"],` +
+        `.page.active [data-dm-entita="${CSS.escape(entity)}"]`,
+    );
+    if (!scheda) return false;
+    scheda.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    scheda.click?.();
+    return true;
+  };
+  root.requestAnimationFrame?.(() => {
+    if (!prova()) root.setTimeout?.(prova, 220);
+  }) || root.setTimeout?.(prova, 0);
+  return true;
+}
+
 function handleClick(event) {
   const pillola = event.target?.closest?.("[data-dm-stanza]");
   if (pillola) {
@@ -580,6 +621,7 @@ function handleClick(event) {
   if (vai) {
     const tab = doc?.querySelector?.(`.tab[data-tab="${vai.getAttribute("data-dm-stanza-vai")}"]`);
     tab?.click?.();
+    apriLaVoce(clean(vai.getAttribute("data-dm-stanza-entita")));
   }
 }
 
@@ -616,29 +658,11 @@ function installStyles() {
 
       /* Le pillole sono quelle di Temperature: stessa forma, stesso font, stesso
        * conteggio. Due modi di disegnare la stessa cosa sarebbero due cose. */
-      /* La striscia che scorre di lato taglia anche in alto e in basso.
-       *
-       * Lo scorrimento di lato porta con se' un taglio anche sull'altro verso: le
-       * pillole hanno un bordo e un'ombra che scende, e senza spazio dentro la
-       * striscia finivano tagliate contro la testata della sezione. Il posto
-       * per l'ombra si fa qui dentro, non fuori. */
-      #page-stanze .dm-stanze-tabs{display:flex;align-items:center;gap:10px;width:100%;margin:2px 0 0;padding:8px 2px 12px;overflow-x:auto;scrollbar-width:none}
+      /* Lo spazio dentro il nastro e la fila che va a capo col mouse non stanno
+       * piu' qui: sono la stessa regola dei periodi e degli impianti, e adesso
+       * ce l'ha in mano le-strisce-di-linguette-section.js per tutt'e tre. */
+      #page-stanze .dm-stanze-tabs{display:flex;align-items:center;gap:10px;width:100%;margin:2px 0 0;padding-left:2px;padding-right:2px;overflow-x:auto;scrollbar-width:none}
       #page-stanze .dm-stanze-tabs::-webkit-scrollbar{display:none}
-      /* Col mouse la fila va a capo, invece di scorrere di lato.
-       *
-       * Il nastro scorre in orizzontale con la barra nascosta apposta: col
-       * dito e' il gesto giusto e la barra sarebbe solo sporcizia. Col mouse
-       * pero' quel gesto non esiste — la rotella sopra una fila orizzontale
-       * scorre la pagina in giu' — e la barra non c'e' da afferrare: con
-       * quattordici stanze le ultime otto restavano oltre il bordo destro,
-       * visibili a meta' e irraggiungibili.
-       *
-       * In verticale lo spazio c'e': la fila va a capo e ogni stanza sta a
-       * schermo, senza nessun gesto da scoprire. Dove si tocca, resta il
-       * nastro che si spinge col dito. */
-      @media (hover:hover) and (pointer:fine){
-        #page-stanze .dm-stanze-tabs{flex-wrap:wrap;overflow-x:visible}
-      }
       #page-stanze .dm-stanze-tab{font-family:inherit;display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:44px;padding:9px 16px;border:1.5px solid var(--divider-color,#dbe4ee);border-radius:100px;background:var(--card-bg,#fff);color:var(--text-dim,#64748b);font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 20px -12px rgba(15,23,42,.28)}
       #page-stanze .dm-stanze-tab.active{border-color:color-mix(in srgb,var(--primary-color,#0ea5e9) 46%,transparent);background:color-mix(in srgb,var(--primary-color,#0ea5e9) 12%,var(--card-bg,#fff));color:var(--primary-color,#0284c7)}
       #page-stanze .dm-stanze-tab>span:not(.dm-stanze-tab-icon){max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

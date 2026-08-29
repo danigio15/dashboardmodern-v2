@@ -13,7 +13,7 @@ async function loadSection() {
 }
 
 test("a slot shows the name Home Assistant knows, not the raw id", async () => {
-  const { entityLabel } = await loadSection();
+  const { nomeDaHomeAssistant: entityLabel } = await loadSection();
   const states = {
     "sensor.b10_soc": { attributes: { friendly_name: "B10 Stato di carica" } },
     "sensor.no_name": { attributes: {} },

@@ -1,11 +1,183 @@
 <!DOCTYPE html>
 <html lang="it">
 <head><link rel="stylesheet" href="./dashboard-runtime-it.css">
-<!-- config.js imports section-runtime.js dynamically, but only once the legacy
-     runtime has booted. Without this hint the module graph starts downloading
-     after that boot finishes, so a tab clicked in the meantime paints the
-     legacy render before the modular sections can take it over. -->
+<!-- I moduli, chiesti tutti insieme dal primo istante.
+     La plancia e' fatta di centosessantacinque moduli e la catena degli import
+     e' profonda dieci livelli: un browser scopre un modulo solo quando ha
+     finito di leggere quello che lo importa, quindi senza questo elenco
+     servono dieci giri di rete uno dopo l'altro. In quei secondi si vede la
+     plancia com'e' disegnata dal guscio — il meteo grande in mezzo alla
+     pagina, le azioni rapide senza il loro ripiano — e poi tutto si sposta
+     sotto gli occhi.
+     L'elenco lo scrive `scripts/porta-avanti-i-moduli.mjs` camminando sul
+     grafo vero: a mano invecchierebbe in una settimana. -->
+<!-- moduli-in-anticipo:inizio -->
+<link rel="modulepreload" href="./build-info.js">
+<link rel="modulepreload" href="./modules-entry.js">
+<link rel="modulepreload" href="../src/core/alarm-panel.js">
+<link rel="modulepreload" href="../src/core/appliance-artwork.js">
+<link rel="modulepreload" href="../src/core/appliance-card-view-model.js">
+<link rel="modulepreload" href="../src/core/appliance-cycle-tracker.js">
+<link rel="modulepreload" href="../src/core/appliance-hero-artwork.js">
+<link rel="modulepreload" href="../src/core/appliance-view-model.js">
+<link rel="modulepreload" href="../src/core/avatar-3d.js">
+<link rel="modulepreload" href="../src/core/avatar-catalog.js">
+<link rel="modulepreload" href="../src/core/catalogo-disegni.js">
+<link rel="modulepreload" href="../src/core/climate-power.js">
+<link rel="modulepreload" href="../src/core/cover-kind.js">
+<link rel="modulepreload" href="../src/core/dashboard-store.js">
+<link rel="modulepreload" href="../src/core/daylight.js">
+<link rel="modulepreload" href="../src/core/device-model.js">
+<link rel="modulepreload" href="../src/core/editor-slots.js">
+<link rel="modulepreload" href="../src/core/energy-bundle-service.js">
+<link rel="modulepreload" href="../src/core/energy-calculations.js">
+<link rel="modulepreload" href="../src/core/energy-flow-topology.js">
+<link rel="modulepreload" href="../src/core/energy-flow-truth.js">
+<link rel="modulepreload" href="../src/core/energy-loads-config.js">
+<link rel="modulepreload" href="../src/core/energy-plants.js">
+<link rel="modulepreload" href="../src/core/energy-projection.js">
+<link rel="modulepreload" href="../src/core/energy-view-model.js">
+<link rel="modulepreload" href="../src/core/energy-writer.js">
+<link rel="modulepreload" href="../src/core/entity-autodetect.js">
+<link rel="modulepreload" href="../src/core/entity-search-index.js">
+<link rel="modulepreload" href="../src/core/ev-console.js">
+<link rel="modulepreload" href="../src/core/i18n-dom.js">
+<link rel="modulepreload" href="../src/core/i18n.js">
+<link rel="modulepreload" href="../src/core/kiosk-undo.js">
+<link rel="modulepreload" href="../src/core/light-model.js">
+<link rel="modulepreload" href="../src/core/media-picker.js">
+<link rel="modulepreload" href="../src/core/migrations.js">
+<link rel="modulepreload" href="../src/core/oggetti-widget.js">
+<link rel="modulepreload" href="../src/core/period-service.js">
+<link rel="modulepreload" href="../src/core/person-model.js">
+<link rel="modulepreload" href="../src/core/personalization-catalog.js">
+<link rel="modulepreload" href="../src/core/pool-model.js">
+<link rel="modulepreload" href="../src/core/quick-climate.js">
+<link rel="modulepreload" href="../src/core/renderers.js">
+<link rel="modulepreload" href="../src/core/robot-model.js">
+<link rel="modulepreload" href="../src/core/room-overview.js">
+<link rel="modulepreload" href="../src/core/runtime-metrics.js">
+<link rel="modulepreload" href="../src/core/runtime-steps.js">
+<link rel="modulepreload" href="../src/core/security-door-model.js">
+<link rel="modulepreload" href="../src/core/segno-progressivo.js">
+<link rel="modulepreload" href="../src/core/shutter-window.js">
+<link rel="modulepreload" href="../src/core/signed-energy.js">
+<link rel="modulepreload" href="../src/core/state-event-gate.js">
+<link rel="modulepreload" href="../src/core/subload-popup-model.js">
+<link rel="modulepreload" href="../src/core/tavolozza-disegni.js">
+<link rel="modulepreload" href="../src/core/todo-model.js">
+<link rel="modulepreload" href="../src/core/vehicle-model.js">
+<link rel="modulepreload" href="../src/i18n/source-index.js">
+<link rel="modulepreload" href="../src/legacy/dashboard-data.js">
+<link rel="modulepreload" href="../src/sections/alarm-modes-editor-section.js">
+<link rel="modulepreload" href="../src/sections/alerts-section.js">
+<link rel="modulepreload" href="../src/sections/appliance-editor-section.js">
+<link rel="modulepreload" href="../src/sections/appliance-layout-section.js">
+<link rel="modulepreload" href="../src/sections/appliance-showcase-section.js">
+<link rel="modulepreload" href="../src/sections/appliances-section.js">
+<link rel="modulepreload" href="../src/sections/azioni-rapide-vassoio-section.js">
+<link rel="modulepreload" href="../src/sections/azioni-servizio-giusto-section.js">
+<link rel="modulepreload" href="../src/sections/backup-editor-section.js">
+<link rel="modulepreload" href="../src/sections/beta-compat-section.js">
+<link rel="modulepreload" href="../src/sections/beta-entry-section.js">
+<link rel="modulepreload" href="../src/sections/beta11-real-device-polish-section.js">
+<link rel="modulepreload" href="../src/sections/beta12-real-device-polish-section.js">
+<link rel="modulepreload" href="../src/sections/beta12-room-color-lock-section.js">
+<link rel="modulepreload" href="../src/sections/beta14-real-device-hotfix-section.js">
+<link rel="modulepreload" href="../src/sections/beta16-real-device-layout-section.js">
+<link rel="modulepreload" href="../src/sections/beta17-final-icon-polish-section.js">
+<link rel="modulepreload" href="../src/sections/beta22-load-slots-hotfix-section.js">
+<link rel="modulepreload" href="../src/sections/beta24-energy-recovery-section.js">
+<link rel="modulepreload" href="../src/sections/beta25-compatibility-section.js">
+<link rel="modulepreload" href="../src/sections/beta25-real-device-fixes-section.js">
+<link rel="modulepreload" href="../src/sections/beta26-real-device-stability-section.js">
+<link rel="modulepreload" href="../src/sections/beta27-release-stability-section.js">
+<link rel="modulepreload" href="../src/sections/beta4-mobile-polish-section.js">
+<link rel="modulepreload" href="../src/sections/beta6-feedback-section.js">
+<link rel="modulepreload" href="../src/sections/beta7-brand-guard-section.js">
+<link rel="modulepreload" href="../src/sections/beta7-regression-section.js">
+<link rel="modulepreload" href="../src/sections/beta9-real-device-polish-section.js">
+<link rel="modulepreload" href="../src/sections/climate-power-section.js">
+<link rel="modulepreload" href="../src/sections/climate-thermal-section.js">
+<link rel="modulepreload" href="../src/sections/config-persistence-section.js">
+<link rel="modulepreload" href="../src/sections/config-uniformity-section.js">
+<link rel="modulepreload" href="../src/sections/connection-recovery-section.js">
+<link rel="modulepreload" href="../src/sections/data-contracts-section.js">
+<link rel="modulepreload" href="../src/sections/editor-contracts-section.js">
+<link rel="modulepreload" href="../src/sections/editor-crud-section.js">
+<link rel="modulepreload" href="../src/sections/editor-entry-section.js">
+<link rel="modulepreload" href="../src/sections/editor-polish-section.js">
+<link rel="modulepreload" href="../src/sections/editor-slots-section.js">
+<link rel="modulepreload" href="../src/sections/energy-analysis-section.js">
+<link rel="modulepreload" href="../src/sections/energy-calculations-section.js">
+<link rel="modulepreload" href="../src/sections/energy-flow-section.js">
+<link rel="modulepreload" href="../src/sections/energy-guidance-section.js">
+<link rel="modulepreload" href="../src/sections/energy-legacy-guard-section.js">
+<link rel="modulepreload" href="../src/sections/energy-loads-editor-section.js">
+<link rel="modulepreload" href="../src/sections/energy-plants-section.js">
+<link rel="modulepreload" href="../src/sections/energy-refresh-section.js">
+<link rel="modulepreload" href="../src/sections/energy-report-polish-section.js">
+<link rel="modulepreload" href="../src/sections/energy-section.js">
+<link rel="modulepreload" href="../src/sections/energy-services-section.js">
+<link rel="modulepreload" href="../src/sections/energy-signed-section.js">
+<link rel="modulepreload" href="../src/sections/energy-stability-section.js">
+<link rel="modulepreload" href="../src/sections/entity-autodetect-section.js">
+<link rel="modulepreload" href="../src/sections/entity-picker-guard-section.js">
+<link rel="modulepreload" href="../src/sections/entity-search-section.js">
+<link rel="modulepreload" href="../src/sections/ev-section.js">
+<link rel="modulepreload" href="../src/sections/ev-showcase-section.js">
+<link rel="modulepreload" href="../src/sections/flood-alerts-section.js">
+<link rel="modulepreload" href="../src/sections/foglio-del-guscio-section.js">
+<link rel="modulepreload" href="../src/sections/history-section.js">
+<link rel="modulepreload" href="../src/sections/home-widgets-section.js">
+<link rel="modulepreload" href="../src/sections/i18n-section.js">
+<link rel="modulepreload" href="../src/sections/icon-engine-section.js">
+<link rel="modulepreload" href="../src/sections/le-strisce-di-linguette-section.js">
+<link rel="modulepreload" href="../src/sections/legacy-sections-registry.js">
+<link rel="modulepreload" href="../src/sections/lights-alerts-section.js">
+<link rel="modulepreload" href="../src/sections/lights-page-section.js">
+<link rel="modulepreload" href="../src/sections/lights-scene-section.js">
+<link rel="modulepreload" href="../src/sections/live-ui-section.js">
+<link rel="modulepreload" href="../src/sections/media-picker-section.js">
+<link rel="modulepreload" href="../src/sections/minipc-showcase-section.js">
+<link rel="modulepreload" href="../src/sections/navigation-section.js">
+<link rel="modulepreload" href="../src/sections/page-masthead-section.js">
+<link rel="modulepreload" href="../src/sections/people-editor-section.js">
+<link rel="modulepreload" href="../src/sections/people-section.js">
+<link rel="modulepreload" href="../src/sections/person-avatar-section.js">
+<link rel="modulepreload" href="../src/sections/personalization-section.js">
+<link rel="modulepreload" href="../src/sections/pool-editor-section.js">
+<link rel="modulepreload" href="../src/sections/pool-extra-section.js">
+<link rel="modulepreload" href="../src/sections/pool-irrigation-scene-section.js">
+<link rel="modulepreload" href="../src/sections/quick-climate-editor-section.js">
+<link rel="modulepreload" href="../src/sections/report-editor-section.js">
+<link rel="modulepreload" href="../src/sections/robot-editor-section.js">
+<link rel="modulepreload" href="../src/sections/robot-section.js">
+<link rel="modulepreload" href="../src/sections/room-assign-section.js">
+<link rel="modulepreload" href="../src/sections/rooms-order-editor-section.js">
+<link rel="modulepreload" href="../src/sections/rooms-page-section.js">
+<link rel="modulepreload" href="../src/sections/save-engine-section.js">
 <link rel="modulepreload" href="../src/sections/section-runtime.js">
+<link rel="modulepreload" href="../src/sections/security-doors-editor-section.js">
+<link rel="modulepreload" href="../src/sections/security-doors-section.js">
+<link rel="modulepreload" href="../src/sections/security-showcase-section.js">
+<link rel="modulepreload" href="../src/sections/shared.js">
+<link rel="modulepreload" href="../src/sections/shutter-scene-section.js">
+<link rel="modulepreload" href="../src/sections/shutter-section.js">
+<link rel="modulepreload" href="../src/sections/shutter-sky-section.js">
+<link rel="modulepreload" href="../src/sections/shutter-window-section.js">
+<link rel="modulepreload" href="../src/sections/solar-thermal-design-section.js">
+<link rel="modulepreload" href="../src/sections/subload-popup-section.js">
+<link rel="modulepreload" href="../src/sections/temperature-layout-section.js">
+<link rel="modulepreload" href="../src/sections/temperature-section.js">
+<link rel="modulepreload" href="../src/sections/temperature-trend-section.js">
+<link rel="modulepreload" href="../src/sections/theme-foundation-section.js">
+<link rel="modulepreload" href="../src/sections/todo-editor-section.js">
+<link rel="modulepreload" href="../src/sections/unified-editors-section.js">
+<link rel="modulepreload" href="../src/sections/weather-in-masthead-section.js">
+<link rel="modulepreload" href="../src/sections/widget-entity-choice-section.js">
+<link rel="modulepreload" href="../src/transport/hosted-bridge-guard.js">
+<!-- moduli-in-anticipo:fine -->
 <script src="./storage-namespace.js"></script>
 <script src="./bridge-prelude.js"></script>
 <script type="module" src="./modules-entry.js"></script>
@@ -14,11 +186,10 @@
 <title>Smart Home Dashboard</title>
 <!-- ═══ CONFIG UTENTE (opzionale): copia config.example.js in config.js accanto a questo file e personalizza ═══ -->
 <script src="config.js" onerror="console.warn('[Dashboard] config.js non trovato — uso i default interni')"></script>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@300;400;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="./vendor/caratteri.css">
+<script src="./vendor/chart.umd.min.js"></script>
 <script src="./dashboard-debug-it.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/panzoom@9.4.0/dist/panzoom.min.js" integrity="sha384-eexGhKur8uM8+ZcFzz42RmxqFkn5dlKkACVXVptLAlKhEkBGbGpyMfVxcRNjK6ka" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.17/dist/hls.min.js" integrity="sha384-A+DTEBcAPU1Pk7Lby1xo6mi1AwflNlm+ojz8+BPFLErHgB1ZIgxfykSGIG+sPtC5" crossorigin="anonymous"></script>
+<script defer src="./vendor/hls.min.js"></script>
 
 <link rel="stylesheet" href="./dashboard-runtime.css">
 </head>

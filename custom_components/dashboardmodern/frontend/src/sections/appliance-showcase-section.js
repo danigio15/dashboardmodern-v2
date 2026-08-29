@@ -236,7 +236,14 @@ export function filterShowcaseModels(models = [], ui = {}) {
     });
 }
 
-export function sparklinePath(samples = [], width = 100, height = 28) {
+/* Il filo dei consumi parte da zero, sempre.
+ *
+ * Si chiamava sparklinePath come quello del Clima, che pero' disegna un'altra
+ * cosa: quello si adatta al minimo e al massimo della serie, perche' fra 21 e
+ * 22 gradi il movimento va visto; qui il fondo e' zero, perche' una macchina
+ * spenta deve stare per terra e non a meta' del riquadro. Due fili diversi con
+ * lo stesso nome sono uno scambio che aspetta. */
+export function filoDaZero(samples = [], width = 100, height = 28) {
   const values = samples.map((value) => Math.max(0, finiteOrNull(value) ?? 0));
   if (values.length < 2) {
     const y = height - 3;
@@ -684,7 +691,7 @@ function renderSidebar(shell, models, counts, rooms, labels) {
     active.textContent = String(counts.running);
   const spark = shell.querySelector("[data-dm-spark]");
   if (spark) {
-    const { line, area } = sparklinePath(state.spark, 100, 28);
+    const { line, area } = filoDaZero(state.spark, 100, 28);
     const lineNode = spark.querySelector(".dm-spark-line");
     const areaNode = spark.querySelector(".dm-spark-area");
     if (lineNode && lineNode.getAttribute("d") !== line) lineNode.setAttribute("d", line);
@@ -1112,7 +1119,14 @@ function showcaseCss() {
 .dm-ap-chip{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:11px;background:#eff6ff;box-shadow:inset 0 0 0 1px rgba(59,130,246,.10)}
 .dm-ap-chip .dm-appliance-art,.dm-ap-chip svg{width:27px;height:27px}
 .dm-ap-headings{display:flex;flex-direction:column;min-width:0;flex:1;gap:1px}
-.dm-ap-name{font-size:13.5px;font-weight:900;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Il nome della scheda: qui, e in un posto solo.
+ *
+ * Lo decidevano in tre. Questa riga chiedeva 13,5 pixel, poi il foglio
+ * della vecchia scheda alta imponeva 20 pixel col peso massimo, e per
+ * ultimo un foglio di rifiniture ne imponeva 15: usciva 15, con il corpo
+ * di uno e la spaziatura di un altro. Nessuno aveva scelto quel nome li'.
+ * Adesso sono i valori che si vedevano, scritti dove nasce la scheda. */
+.dm-ap-name{min-width:0;font-size:15px;font-weight:950;letter-spacing:-.15px;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dm-ap-room{font-size:10px;font-weight:750;color:var(--dm-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dm-ap-badge{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:8.5px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
 .dm-ap-badge.run{background:#dcfce7;color:#15803d}
