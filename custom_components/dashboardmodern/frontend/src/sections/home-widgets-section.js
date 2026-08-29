@@ -3610,11 +3610,19 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-note{
   margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
 /* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
-   trecentonovanta, lasciavano alle modalita' una pastiglia per riga. */
+   trecentonovanta, lasciavano alle modalita' una pastiglia per riga.
+   Le tre righe valgono per tutt'e due le finestre. Le ultime due erano scritte
+   per la sola «#dm-widget-popup», e la gemella e' rimasta indietro: nella
+   finestra del Clima la riga diventava una colonna ma l'etichetta teneva il
+   suo «flex:0 0 82px», che in colonna non e' piu' una larghezza ma
+   un'altezza. Misurato: la parola «Modalita'» alta ottantadue pixel, con
+   sotto il vuoto — sono i buchi che si vedevano fra «MODALITA'» e le
+   pastiglie, fra «TEMPERATURA» e il suo passo, fra «VENTOLA» e i numeri.
+   La riga sopra le nominava gia' tutt'e due; queste due no. */
 @media(max-width:600px){
   :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
-  #dm-widget-popup .dm-w-panel-lbl{flex:none}
-  #dm-widget-popup .dm-w-stepper{align-self:flex-start}
+  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-lbl{flex:none}
+  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper{align-self:flex-start}
 }
 #dm-widget-popup .dm-w-row{
   position:relative;display:flex;align-items:center;gap:12px;
