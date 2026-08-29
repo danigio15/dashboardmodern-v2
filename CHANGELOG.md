@@ -49,6 +49,32 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La finestra dell'elettrodomestico restava aperta senza croce per
+  chiuderla.** Da quando la testata segue la pagina aperta, una riga la nasconde
+  quando quella pagina non e' la Home. La riga pero' diceva «intestazione», e
+  basta: nel documento di intestazioni ce n'e' una per ogni finestra di
+  modifica — quella col titolo e la croce — e le spegneva tutte. La scheda degli
+  avvisi, per la stessa ragione, non aveva piu' la forma di quella degli
+  elettrodomestici. Adesso quella riga parla solo della fascia della plancia,
+  che e' una sola.
+
+- **Le icone nuove potevano bloccare la pagina.** Il motore ridisegna un'icona
+  solo se quella che trova non e' gia' quella giusta, e per capirlo confrontava
+  il testo del glifo. Con l'emoji funzionava; col disegno del catalogo il testo
+  e' vuoto, il paragone non tornava mai, e il motore riscriveva a ogni giro
+  senza fermarsi — la plancia restava li'. Adesso ogni disegno si porta addosso
+  la sua firma, e chi lo guarda sa riconoscerlo.
+
+- **Tredici voci del catalogo uscivano ancora a emoji.** La configurazione salva
+  il nome mdi, i disegni hanno il nome della voce, e in mezzo c'e' il catalogo
+  che dal primo risale alla seconda: solo che chi cercava il disegno provava un
+  nome solo, e chi risaliva alla voce si accontentava della prima che
+  somigliasse. Cosi' `mdi:home` apriva la soffitta e la cucina non si trovava
+  affatto. Adesso i nomi si provano tutti, il nome mdi porta alla sua voce e non
+  a una che le somiglia, e la prova che pretende il disegno parte da dove parte
+  lo schermo — prima partiva da un'altra parte, ed e' per questo che quelle
+  tredici erano disegnate sulla carta e a faccina sullo schermo.
+
 - **Elettrodomestici: due disegni morti della stessa scheda.** La sezione si
   costruisce le proprie schede da quando c'e' la vetrina, ma il disegno
   precedente — la scheda alta, con l'immagine grande sopra e i numeri sotto —
