@@ -82,11 +82,33 @@ function polishLoadsEditor() {
   return true;
 }
 
+/* Il nome del parametro NON e' il textContent dell'etichetta.
+ *
+ * Dentro `.ed-slot-lbl` il nome vero sta nel value di un campo rinominabile
+ * (`input.wz-lbl-edit`), che nel textContent non compare. E nell'etichetta
+ * altri moduli appendono i loro comandi — la tendina delle stanze,
+ * l'interruttore «Nel widget» — cosi' il textContent era SOLO la loro
+ * spazzatura: le card del MiniPC si intitolavano
+ * «— Nessuna stanza — Casa Ingresso… Nel widget» al posto di «CPU (%)».
+ * Si legge il campo; se un runtime vecchio scrive l'etichetta come testo, si
+ * legge quel testo dopo aver tolto i controlli degli altri. */
+function labelDelloSlot(slot) {
+  const etichetta = slot?.querySelector?.(".ed-slot-lbl");
+  const campo = clean(etichetta?.querySelector?.("input.wz-lbl-edit")?.value);
+  if (campo) return campo;
+  if (!etichetta) return "";
+  const copia = etichetta.cloneNode(true);
+  copia
+    .querySelectorAll("select,button,input,textarea")
+    .forEach((controllo) => controllo.remove());
+  return clean(copia.textContent).replace(/✏️/g, "");
+}
+
 function serverSlots(body) {
   return [...body.querySelectorAll('input.ed-slot-in[data-ref^="dm.server_"]')]
     .map((input) => {
       const slot = input.closest(".ed-slot") || input.parentElement;
-      const label = clean(slot?.querySelector?.(".ed-slot-lbl")?.textContent).replace(/✏️/g, "") || clean(input.dataset.ref).replace(/^dm\.server_/, "").replace(/_/g, " ");
+      const label = labelDelloSlot(slot) || clean(input.dataset.ref).replace(/^dm\.server_/, "").replace(/_/g, " ");
       return { ref: clean(input.dataset.ref), label, value: clean(input.value), input };
     })
     .filter((item) => item.ref);
