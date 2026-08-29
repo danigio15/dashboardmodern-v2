@@ -292,8 +292,19 @@ function normalizeLegacyLightRooms() {
      * cambiare: al primo rinomino la luce resta scollegata. Qui diventa
      * l'identificativo, che non cambia mai. */
     const resolved = perNome || canonicalRoomForLight(entity, name, rooms);
-    if (resolved && assignments[entity] !== resolved.id) {
-      assignments[entity] = resolved.id;
+    /* Si riscrive solo se c'e' qualcosa di MEGLIO da scrivere.
+     *
+     * Una stanza puo' non avere un identificativo: il deposito tiene quello che
+     * gli e' stato dato, e una configurazione scritta a mano ha solo il nome.
+     * Senza questa riga si prendeva `resolved.id` — che li' non esiste — e le si
+     * scriveva addosso `undefined`; ma `undefined` in un oggetto sparisce
+     * appena lo si serializza, quindi l'assegnazione non veniva corretta:
+     * veniva cancellata, e tutte le luci finivano fra le altre zone. Il nome lo
+     * risolvono tutti, l'`undefined` nessuno: senza un identificativo si
+     * lascia il nome dov'e'. */
+    const identificativo = clean(resolved?.id);
+    if (identificativo && assignments[entity] !== identificativo) {
+      assignments[entity] = identificativo;
       changed = true;
       continue;
     }

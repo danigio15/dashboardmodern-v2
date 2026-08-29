@@ -38,7 +38,9 @@ TOCCA_IL_DISCO = frozenset(
 # Le funzioni che fanno quel lavoro per mestiere: sono sincrone apposta, e chi
 # le chiama deve mandarle nell'executor. Nominarle qui vuol dire che una
 # chiamata a una di queste dentro un `async def` e' grave quanto un rglob.
-LAVORI_DI_DISCO = frozenset({"_runtime_assets", "_runtime_digest", "_frontend_asset_version"})
+LAVORI_DI_DISCO = frozenset(
+    {"_runtime_assets", "_runtime_digest", "_frontend_asset_version"}
+)
 
 
 def _nome_chiamato(nodo: ast.Call) -> str:
@@ -52,7 +54,9 @@ def _nome_chiamato(nodo: ast.Call) -> str:
 def _dentro_executor(nodo: ast.AST) -> bool:
     """La chiamata sta dentro un `async_add_executor_job`?"""
     for figlio in ast.walk(nodo):
-        if isinstance(figlio, ast.Call) and _nome_chiamato(figlio) == "async_add_executor_job":
+        if not isinstance(figlio, ast.Call):
+            continue
+        if _nome_chiamato(figlio) == "async_add_executor_job":
             return True
     return False
 
