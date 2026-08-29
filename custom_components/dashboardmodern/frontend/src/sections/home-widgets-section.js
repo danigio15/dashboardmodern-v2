@@ -3084,12 +3084,7 @@ function ensureHost() {
   return host;
 }
 
-/* La struttura e' cio' che c'e', non quanto vale: quali tessere, quale e'
- * aperta. Cambia lei → si rifa' il markup, ed e' l'unico momento in cui
- * l'apertura anima; cambiano i valori → si scrivono al loro posto, e il corpo
- * del dettaglio si riscrive da dentro senza rifare la card — o l'ingresso
- * ripartirebbe a ogni evento di stato. */
-/* La struttura e' QUALI tessere ci sono, e quale e' aperta. Nient'altro.
+/* La struttura e' QUALI tessere ci sono. Nient'altro.
  *
  * Ci stava dentro anche il fatto che una tessera avesse o no la barra, e la
  * barra dipende da un valore: un sensore che per un giro dice «non
@@ -3097,10 +3092,15 @@ function ensureHost() {
  * blocco tutte le tessere della Home. Da fuori si vede un tremolio, e
  * capitava a ogni evento di stato che passasse di li'.
  *
- * La barra adesso sta sempre nel markup e si accende e si spegne da sola,
- * come i valori: cambia quello che c'e' scritto, non quello che c'e'. */
+ * E ci stava dentro anche QUALE tessera fosse aperta — un resto dell'epoca in
+ * cui il dettaglio era una tendina dentro la griglia. Ma il dettaglio vive nel
+ * popup: aprire e chiudere cambiava la firma, e la firma rifaceva tutte le
+ * tessere con la finestra che stava ancora salendo. Sul telefono si vede la
+ * Home svuotarsi e ridisegnarsi a ogni tocco — «trema tutto» — due volte per
+ * popup, all'andata e al ritorno. L'evidenza della tessera aperta e' un
+ * valore, e si scrive addosso alla tessera come tutti gli altri valori. */
 function structureSignature(models) {
-  return [state.expanded, models.map((widget) => widget.key).join("|")].join("§");
+  return models.map((widget) => widget.key).join("|");
 }
 
 export function renderHomeWidgets() {
@@ -3231,6 +3231,9 @@ export function renderHomeWidgets() {
         tile.dataset.acceso = accesa;
         cambiato = true;
       }
+      // L'apertura non e' struttura: si scrive qui, e la tessera resta lei.
+      const aperta = String(state.expanded === widget.key);
+      if (tile.dataset.open !== aperta) tile.dataset.open = aperta;
       const caption = tile.querySelector("[data-dm-tile-caption]");
       if (caption && caption.textContent !== widget.caption) {
         caption.textContent = widget.caption;
