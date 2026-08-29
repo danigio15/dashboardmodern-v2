@@ -29,8 +29,10 @@ import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
   bricioleDellaSezione,
   fraseDellaTessera,
+  parolaDelVerdetto,
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
+import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import {
   coverEntries,
   coverKindLabel,
@@ -2417,13 +2419,31 @@ function corsaMarkup(widget) {
  * quanto, e dove va a finire.» Il verdetto e' la pillola colorata; la frase la
  * scrive il modulo puro, che sa dire «2 zone su 5 accese, manca 1,2°» invece
  * di lasciare undici righe da mettere insieme a mente. */
+/* Il verdetto e la frase, e sotto i punti che la sostengono.
+ *
+ * La frase la scrive il motore di analisi quando la sezione ha una lettura
+ * sua — l'Energia ragiona sul bilancio, la Temperatura sulla distanza fra la
+ * stanza piu' calda e la piu' fredda — e in quel caso il tono lo decide la
+ * lettura, non il conteggio delle righe: una piscina col pH fuori norma e' da
+ * guardare anche se non c'e' niente «acceso».
+ *
+ * Le sette sezioni fatte di cose che si accendono e si spengono continuano ad
+ * avere la loro frase di prima, che li' e' giusta.
+ */
 function verdettoEFrase(widget) {
+  const lettura = analisiDellaSezione(widget, t);
   const verdetto = verdettoDellaTessera(widget, t);
+  const tono = lettura?.tono || verdetto.tono;
+  const parola = tono === verdetto.tono ? verdetto.testo : parolaDelVerdetto(tono, t);
   const misura = clean(widget.value);
   const nota = clean(widget.caption);
-  return `<section class="dm-w-racconto" data-dm-verdetto="${verdetto.tono}">
-      <span class="dm-w-verdetto">${esc(verdetto.testo)}</span>
-      <p class="dm-w-frase">${esc(fraseDellaTessera(widget, t))}</p>
+  const punti = lettura?.punti?.length
+    ? `<ul class="dm-w-punti">${lettura.punti.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`
+    : "";
+  return `<section class="dm-w-racconto" data-dm-verdetto="${tono}">
+      <span class="dm-w-verdetto">${esc(parola)}</span>
+      <p class="dm-w-frase">${esc(lettura?.frase || fraseDellaTessera(widget, t))}</p>
+      ${punti}
       ${
         misura
           ? `<div class="dm-w-misura"><b>${esc(misura)}</b>${
@@ -3396,6 +3416,18 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-frase{
   margin:0;font-size:14.5px;line-height:1.45;font-weight:700;
   color:var(--text,#0f172a);text-wrap:balance}
+/* I punti che sostengono la frase: piccoli, sotto, uno per riga. La frase
+ * dice la cosa; i punti dicono i numeri su cui si regge — «la batteria si
+ * carica a 1,47 kW», «in rete vanno 41 W» — che nella riga grande non ci
+ * starebbero senza farne un paragrafo. */
+#dm-widget-popup .dm-w-punti{
+  margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+#dm-widget-popup .dm-w-punti li{
+  position:relative;padding-inline-start:13px;font-size:12.5px;line-height:1.4;
+  font-weight:650;color:var(--muted,#64748b)}
+#dm-widget-popup .dm-w-punti li::before{
+  content:"";position:absolute;inset-inline-start:2px;top:.62em;
+  width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.55}
 #dm-widget-popup .dm-w-misura{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 #dm-widget-popup .dm-w-misura b{
   font-family:'Oswald',system-ui,sans-serif;font-weight:300;

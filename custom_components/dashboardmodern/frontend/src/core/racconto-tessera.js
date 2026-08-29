@@ -42,6 +42,17 @@ const PAROLE_VERDETTO = Object.freeze({
   guarda: ["Da guardare", "Needs a look"],
 });
 
+/* La parola che accompagna un tono.
+ *
+ * Serve a chi il tono lo decide altrove: il motore di analisi puo' dire «da
+ * guardare» per una piscina col pH fuori norma, dove il conteggio delle righe
+ * direbbe «tutto regolare» perche' non c'e' niente di acceso. La pillola
+ * dev'essere quella del tono vero, non quella del conteggio. */
+export function parolaDelVerdetto(tono, traduci = IN_ITALIANO) {
+  const parole = PAROLE_VERDETTO[tono] || PAROLE_VERDETTO.bene;
+  return traduci(parole[0], parole[1]);
+}
+
 /* Il verdetto di una tessera.
  *
  * L'ordine conta: se c'e' qualcosa da guardare lo si dice, anche se nel

@@ -428,7 +428,18 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // puro, `racconto-tessera.js`, e si provano senza browser: una frase che
   // dice «da 40 minuti» o «finisce alle 19:20» e' esattamente il genere di
   // cosa che si sbaglia in silenzio, e a occhio non si vede.
-  assert.ok(relative.length <= 171, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 172 col motore di analisi delle finestre: la frase sotto il verdetto
+  // veniva da un ripiego che sa contare solo cose accese e spente, e dieci
+  // sezioni su diciassette non sono fatte cosi'. L'Energia scriveva «4 cose,
+  // nessuna in funzione» col fotovoltaico a 2,16 kW; la Sicurezza «Qui non
+  // c'e' ancora niente» con l'antifurto elencato sotto. Le letture stanno in
+  // un modulo puro, `analisi-sezione.js`, separato da `racconto-tessera.js`
+  // perche' fanno due mestieri diversi: quello dice se una tessera e' in moto
+  // e come si chiama il suo verdetto, questo legge i numeri di una sezione e
+  // ne ricava una frase e i punti che la reggono. Tenerli insieme voleva dire
+  // un file dove il conteggio delle righe e il bilancio energetico si
+  // guardano, ed e' il genere di vicinanza da cui nascono i due padroni.
+  assert.ok(relative.length <= 172, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
