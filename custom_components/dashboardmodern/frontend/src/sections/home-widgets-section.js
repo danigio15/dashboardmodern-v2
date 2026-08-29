@@ -50,7 +50,6 @@ import {
   allStates,
   clean,
   doc,
-  english,
   esc,
   formatNumber,
   installStyle,
@@ -1199,11 +1198,20 @@ function friendlyName(states, entity) {
 function openingsModel(states) {
   const entities = gruppoEntita("win");
   if (!entities.length) return null;
-  const rows = entities.map((entity) => ({
-    entity,
-    name: friendlyName(states, entity),
-    on: clean(stateOf(states, entity)?.state).toLowerCase() === "on",
-  }));
+  const rows = entities.map((entity) => {
+    const stato = stateOf(states, entity);
+    /* Da quando sta cosi'. Home Assistant lo sa, e per un contatto e' un dato
+     * onesto: cambia quando la finestra si apre o si chiude, non a ogni
+     * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
+     * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
+    const daQuando = Date.parse(stato?.last_changed ?? "");
+    return {
+      entity,
+      name: friendlyName(states, entity),
+      on: clean(stato?.state).toLowerCase() === "on",
+      daQuando: Number.isFinite(daQuando) ? daQuando : null,
+    };
+  });
   const open = rows.filter((row) => row.on);
   if (!open.length) return null;
   return { key: "aperture", accent: "#dc2626", icon: "🚪", alert: true, label: t("Aperture", "Openings"),
@@ -2285,74 +2293,118 @@ const CORSA_FRESCA_PER = 4 * 60 * 1000;
 const corse = new Map();
 const corseInVolo = new Set();
 
-/* Quale entita' racconta questa sezione. E' quella del numero grande: la prima
- * riga che ha un valore da mettere su una linea. */
-function entitaDellaCorsa(widget) {
+/* Da dove si prende il numero da mettere sulla linea.
+ *
+ * Non basta che una riga abbia un numero: bisogna sapere se quel numero e' lo
+ * stato dell'entita' o un suo attributo, perche' Recorder li serve in due modi
+ * diversi. Un sensore di temperatura ha il numero nello stato; un
+ * termostato lo tiene in `current_temperature`, e chiedendo lo stato si
+ * riceve «heat»; una tapparella lo tiene in `current_position`, e lo stato dice
+ * «open». Chiedere lo stato e basta voleva dire nessuna linea per meta' delle
+ * sezioni, senza che si capisse perche'. */
+const ATTRIBUTO_DELLA_CORSA = Object.freeze({
+  ambient: "current_temperature",
+  position: "current_position",
+});
+const CAMPI_DELLA_CORSA = ["raw", "level", "watts", "temperature", "ambient", "position"];
+
+function fonteDellaCorsa(widget) {
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
   for (const riga of righe) {
     const entity = clean(riga?.entity);
     if (!entity) continue;
-    for (const campo of ["raw", "level", "ambient", "temperature", "position"]) {
-      if (Number.isFinite(Number(riga?.[campo]))) return entity;
+    for (const campo of CAMPI_DELLA_CORSA) {
+      if (!Number.isFinite(Number(riga?.[campo]))) continue;
+      return { entity, attributo: ATTRIBUTO_DELLA_CORSA[campo] || "" };
     }
   }
-  return "";
+  return null;
 }
 
-async function chiediLaCorsa(entity) {
+/* Ogni punto col suo momento.
+ *
+ * Recorder risponde quando lo stato cambia, non a intervalli regolari: un
+ * sensore fermo per tre ore e sceso un minuto fa da' due punti. Spalmandoli a
+ * distanza uguale la linea raccontava una discesa lenta di tre ore, che non e'
+ * mai successa. Ogni punto va messo dove sta davvero nel tempo. */
+async function chiediLaCorsa(fonte) {
   const broker = root.DashboardModernEnergyService?.broker;
   if (typeof broker?.request !== "function") return [];
-  const fine = new Date();
-  const inizio = new Date(fine.getTime() - CORSA_ORE * 60 * 60 * 1000);
+  const fine = Date.now();
+  const inizio = fine - CORSA_ORE * 60 * 60 * 1000;
+  const conAttributi = Boolean(fonte.attributo);
   const risposta = await broker.request({
     type: "history/history_during_period",
-    start_time: inizio.toISOString(),
-    end_time: fine.toISOString(),
-    entity_ids: [entity],
+    start_time: new Date(inizio).toISOString(),
+    end_time: new Date(fine).toISOString(),
+    entity_ids: [fonte.entity],
     include_start_time_state: true,
     significant_changes_only: false,
-    minimal_response: true,
-    no_attributes: true,
+    minimal_response: !conAttributi,
+    no_attributes: !conAttributi,
   });
-  const grezze = Array.isArray(risposta) ? risposta[0] : risposta?.[entity];
+  const grezze = Array.isArray(risposta) ? risposta[0] : risposta?.[fonte.entity];
+  const momento = (riga) => {
+    const quando = riga?.lu ?? riga?.last_updated ?? riga?.last_changed;
+    if (typeof quando === "number") return quando * 1000;
+    const letto = Date.parse(quando ?? "");
+    return Number.isFinite(letto) ? letto : NaN;
+  };
   return (Array.isArray(grezze) ? grezze : [])
-    .map((riga) => Number(riga?.s ?? riga?.state))
-    .filter((valore) => Number.isFinite(valore));
+    .map((riga) => ({
+      quando: momento(riga),
+      valore: Number(
+        conAttributi
+          ? (riga?.a ?? riga?.attributes ?? {})[fonte.attributo]
+          : (riga?.s ?? riga?.state),
+      ),
+    }))
+    .filter((punto) => Number.isFinite(punto.valore) && Number.isFinite(punto.quando))
+    .map((punto) => ({
+      ...punto,
+      // fuori dalla finestra chiesta non si va: il primo punto puo' essere
+      // quello di partenza, che Recorder data prima dell'inizio.
+      quando: Math.min(Math.max(punto.quando, inizio), fine),
+    }));
 }
 
-function corsaDi(entity) {
-  if (!entity) return null;
-  const avuta = corse.get(entity);
-  if (avuta && Date.now() - avuta.quando < CORSA_FRESCA_PER) return avuta.valori;
-  if (corseInVolo.has(entity)) return avuta?.valori || null;
-  corseInVolo.add(entity);
-  chiediLaCorsa(entity)
-    .then((valori) => corse.set(entity, { valori, quando: Date.now() }))
-    .catch(() => corse.set(entity, { valori: [], quando: Date.now() }))
+function corsaDi(fonte) {
+  if (!fonte?.entity) return null;
+  const chiave = `${fonte.entity}|${fonte.attributo}`;
+  const avuta = corse.get(chiave);
+  if (avuta && Date.now() - avuta.quando < CORSA_FRESCA_PER) return avuta.punti;
+  if (corseInVolo.has(chiave)) return avuta?.punti || null;
+  corseInVolo.add(chiave);
+  chiediLaCorsa(fonte)
+    .then((punti) => corse.set(chiave, { punti, quando: Date.now() }))
+    .catch(() => corse.set(chiave, { punti: [], quando: Date.now() }))
     .finally(() => {
-      corseInVolo.delete(entity);
+      corseInVolo.delete(chiave);
       /* La linea e' arrivata: si ridisegna la finestra, che intanto e' rimasta
        * aperta e leggibile senza. */
       schedule();
     });
-  return avuta?.valori || null;
+  return avuta?.punti || null;
 }
 
 function corsaMarkup(widget) {
-  const valori = corsaDi(entitaDellaCorsa(widget));
-  if (!valori || valori.length < 2) return "";
+  const punti = corsaDi(fonteDellaCorsa(widget));
+  if (!punti || punti.length < 2) return "";
+  const valori = punti.map((punto) => punto.valore);
   const minimo = Math.min(...valori);
   const massimo = Math.max(...valori);
   const ampiezza = massimo - minimo || 1;
-  const passo = 100 / (valori.length - 1);
-  const punti = valori
-    .map((valore, posto) => `${(posto * passo).toFixed(2)},${(26 - ((valore - minimo) / ampiezza) * 22).toFixed(2)}`)
+  const fine = punti[punti.length - 1].quando;
+  const inizio = Math.min(punti[0].quando, fine - CORSA_ORE * 60 * 60 * 1000);
+  const durata = fine - inizio || 1;
+  const alto = (valore) => (26 - ((valore - minimo) / ampiezza) * 22).toFixed(2);
+  const disegno = punti
+    .map((punto) => `${(((punto.quando - inizio) / durata) * 100).toFixed(2)},${alto(punto.valore)}`)
     .join(" ");
-  const ultimo = valori[valori.length - 1];
   return `<div class="dm-w-corsa">
       <svg viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-hidden="true">
-        <polyline points="${punti}" />
-        <circle cx="100" cy="${(26 - ((ultimo - minimo) / ampiezza) * 22).toFixed(2)}" r="1.6" />
+        <polyline points="${disegno}" />
+        <circle cx="100" cy="${alto(valori[valori.length - 1])}" r="1.6" />
       </svg>
       <span>${esc(t("3 ore fa", "3h ago"))}</span>
       <span>${esc(t("adesso", "now"))}</span>
@@ -2366,13 +2418,12 @@ function corsaMarkup(widget) {
  * scrive il modulo puro, che sa dire «2 zone su 5 accese, manca 1,2°» invece
  * di lasciare undici righe da mettere insieme a mente. */
 function verdettoEFrase(widget) {
-  const inglese = english();
-  const verdetto = verdettoDellaTessera(widget, inglese);
+  const verdetto = verdettoDellaTessera(widget, t);
   const misura = clean(widget.value);
   const nota = clean(widget.caption);
   return `<section class="dm-w-racconto" data-dm-verdetto="${verdetto.tono}">
       <span class="dm-w-verdetto">${esc(verdetto.testo)}</span>
-      <p class="dm-w-frase">${esc(fraseDellaTessera(widget, inglese))}</p>
+      <p class="dm-w-frase">${esc(fraseDellaTessera(widget, t))}</p>
       ${
         misura
           ? `<div class="dm-w-misura"><b>${esc(misura)}</b>${
@@ -2458,6 +2509,13 @@ function voceDellaSezione(chiave) {
   return voce;
 }
 
+/* Le briciole di questa sezione, in una riga sola. Le calcola un posto solo:
+ * le scrive chi apre la finestra e le riscrive chi la aggiorna, e se i due non
+ * dicono la stessa cosa il secondo cancella il primo. */
+function bricioleDelWidget(widget) {
+  return bricioleDellaSezione(widget.key, t).join(" · ") || clean(widget.caption);
+}
+
 function detailMarkup(widget, states) {
   const vaiAllaSezione = voceDellaSezione(widget.key)
     ? `<footer class="dm-w-piede">
@@ -2472,7 +2530,7 @@ function detailMarkup(widget, states) {
         <button type="button" class="dm-w-close" data-dm-widget-close aria-label="${esc(t("Chiudi", "Close"))}"><span aria-hidden="true">✕</span> ${esc(t("Chiudi", "Close"))}</button>
         <span class="dm-w-head-ic" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
         <strong data-dm-titolo>${esc(widget.label)}</strong>
-        <small data-dm-detail-caption>${esc(bricioleDellaSezione(widget.key, english()).join(" · ") || widget.caption)}</small>
+        <small data-dm-detail-caption>${esc(bricioleDelWidget(widget))}</small>
       </header>
       <div class="dm-w-body">${detailBody(widget, states)}</div>
       ${vaiAllaSezione}
@@ -2686,9 +2744,14 @@ export function renderHomeWidgets() {
         misura.dataset.dmMisura = firma;
       }
       if (state.expanded === widget.key) {
+        /* Sotto il titolo ci vanno le briciole della sezione, non la didascalia
+         * della mattonella: sono due cose diverse, e qui si rimetteva la
+         * seconda al primo cambio di stato — cioe' quasi subito, su una casa
+         * viva. Le briciole si calcolano come all'apertura. */
         const captionDetail = doc.querySelector("#dm-widget-popup [data-dm-detail-caption]");
-        if (captionDetail && captionDetail.textContent !== widget.caption)
-          captionDetail.textContent = widget.caption;
+        const briciole = bricioleDelWidget(widget);
+        if (captionDetail && captionDetail.textContent !== briciole)
+          captionDetail.textContent = briciole;
         const body = doc.querySelector("#dm-widget-popup .dm-w-body");
         const markup = detailBody(widget, states);
         const scritto = state.corpo.chiave === widget.key && state.corpo.markup === markup;
