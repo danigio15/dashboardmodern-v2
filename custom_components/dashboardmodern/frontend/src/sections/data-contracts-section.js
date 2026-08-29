@@ -274,24 +274,32 @@ function normalizeLegacyLightRooms() {
     const raw = clean(assignments[entity]);
     /* Gia' a posto: l'assegnazione porta l'identificativo della stanza. */
     if (rooms.some((room) => clean(room.id) === raw)) continue;
-    /* Quello che l'assegnazione dice, se dice qualcosa.
+    /* Chi decide, e in che ordine.
      *
-     * Un'assegnazione scritta a mano dalla persona vince sempre su quello che
-     * si indovina dal nome dell'entita': `light.salone_lampada` messa in
-     * Cucina sta in Cucina, e non c'e' nessun indizio che possa smentirlo. */
-    const perNome = raw
-      ? rooms.find(
-          (room) =>
-            clean(room.name).toLowerCase() === raw.toLowerCase() ||
-            slug(room.name) === slug(raw) ||
-            slug(room.id).replace(/^room-/, "") === slug(raw).replace(/^room-/, ""),
-        )
-      : null;
+     * Prima l'indizio che viene dall'entita' e dal suo nome, poi quello che
+     * dice l'assegnazione. Sembra il contrario di quello che si farebbe — una
+     * scelta fatta a mano dovrebbe vincere su un indovinello — ma questo ordine
+     * risponde a una segnalazione vera, ed e' sorvegliato da una prova col
+     * browser: le assegnazioni che arrivano qui non sono scelte a mano, sono
+     * cio' che resta di un'importazione dalle aree, e sono spesso pezzi di
+     * stringa che assomigliano a una stanza senza esserlo. Cambiare l'ordine
+     * senza una segnalazione che lo chieda vorrebbe dire spostare le luci di
+     * chi non ha chiesto niente. */
+    const inferred = canonicalRoomForLight(entity, name, rooms);
     /* Il nome di una stanza si scrive nell'assegnazione solo quando arriva
      * dall'importazione delle aree. Rimane un nome, e un nome si puo'
      * cambiare: al primo rinomino la luce resta scollegata. Qui diventa
      * l'identificativo, che non cambia mai. */
-    const resolved = perNome || canonicalRoomForLight(entity, name, rooms);
+    const resolved =
+      inferred ||
+      (raw
+        ? rooms.find(
+            (room) =>
+              clean(room.name).toLowerCase() === raw.toLowerCase() ||
+              slug(room.name) === slug(raw) ||
+              slug(room.id).replace(/^room-/, "") === slug(raw).replace(/^room-/, ""),
+          )
+        : null);
     /* Si riscrive solo se c'e' qualcosa di MEGLIO da scrivere.
      *
      * Una stanza puo' non avere un identificativo: il deposito tiene quello che
