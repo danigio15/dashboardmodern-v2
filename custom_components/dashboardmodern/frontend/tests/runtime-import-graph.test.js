@@ -479,7 +479,21 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // perche' e' l'unico modo di provarla senza avere una Ring in casa: entrano la
   // telecamera e quello che Home Assistant dichiara di lei, esce l'ordine delle
   // strade con le attese e il perche' di quelle saltate.
-  assert.ok(relative.length <= 176, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 178 con le prese. «Cosa ne pensi di inserire una sezione dedicata a prese
+  // generiche, tipo TV Salotto, TV letto, Presa Firestick?» — si potevano gia'
+  // configurare, perche' la scheda Luci accetta anche `switch.`, e una presa
+  // messa li' si accende benissimo. Solo che si chiama luce: finisce
+  // nell'elenco delle luci, si conta nel «3 accese» del salone, e «spegni tutte
+  // le luci» la spegne — cosa che per la TV puo' anche andare e per il modem
+  // no. I moduli sono due perche' fanno due mestieri: `prese-model.js` e' puro
+  // e sa solo che forma ha una presa e come si raggruppano per stanza;
+  // `prese-section.js` mette la pagina, la voce nella barra e la scheda di
+  // configurazione. Quello che NON c'e' e' la ragione per cui sono due e non
+  // cinque: niente motore per accendere — a comandare una presa e' lo stesso
+  // `lightCommand` di tutto il resto, quindi il blocco «si vede ma non si
+  // comanda» vale qui senza una riga in piu' — e niente scheda nuova da
+  // disegnare, perche' e' la stessa `pageCardMarkup` delle luci.
+  assert.ok(relative.length <= 178, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

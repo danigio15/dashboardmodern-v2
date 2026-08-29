@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "مسبح كبير",
   "Name of the first basin": "اسم الحوض الأول",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "تُملأ حسّاسات الحوض الأول في النموذج أعلاه. هنا تمنحه اسمًا، حتى تعرف أيّ حوض تنظر إليه عندما يكون لديك أكثر من واحد.",
+  "Add socket": "إضافة مقبس",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "أضف المقابس من تبويب المقابس في الإعدادات: تلفزيون الصالة، الفايرستيك، المودم.",
+  "Edit socket": "تعديل المقبس",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "أدخل كيانًا صالحًا (switch أو input_boolean أو light أو fan).",
+  "Living-room TV": "تلفزيون الصالة",
+  "No socket": "لا يوجد مقبس",
+  "No socket configured": "لم يتم إعداد أي مقبس",
+  "Sockets": "المقابس",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "مقابس المنزل: تلفزيون الصالة، تلفزيون غرفة النوم، الفايرستيك، المودم. تعمل وتنطفئ مثل الإضاءة، لكنها مستقلة — فـ«أطفئ كل الإضاءة» لا يطفئ المودم.",
 });

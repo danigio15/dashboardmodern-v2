@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Büyük havuz",
   "Name of the first basin": "İlk havuzun adı",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "İlk havuzun sensörleri yukarıdaki formda doldurulur. Burada ona bir ad verirsiniz, böylece birden fazla havuz varken hangisine baktığınızı anlarsınız.",
+  "Add socket": "Priz ekle",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Prizleri ayarlardaki Prizler sekmesinden ekleyin: salondaki televizyon, Firestick, modem.",
+  "Edit socket": "Prizi düzenle",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Geçerli bir varlık girin (switch, input_boolean, light veya fan).",
+  "Living-room TV": "Salon televizyonu",
+  "No socket": "Priz yok",
+  "No socket configured": "Yapılandırılmış priz yok",
+  "Sockets": "Prizler",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Evdeki prizler: salondaki televizyon, yatak odasındaki, Firestick, modem. Işıklar gibi açılıp kapanır ama kendi başlarına dururlar — böylece «tüm ışıkları kapat» modemi kapatmaz.",
 });

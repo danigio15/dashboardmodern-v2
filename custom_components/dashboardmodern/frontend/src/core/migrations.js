@@ -1,6 +1,7 @@
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
 import { ENERGY_SLOT_MAP } from "./energy-projection.js";
 import { normalizeRobots } from "./robot-model.js";
+import { normalizzaPrese } from "./prese-model.js";
 
 export const SECTION_KEYS = Object.freeze({
   rooms: "cd_stanze",
@@ -14,6 +15,7 @@ export const SECTION_KEYS = Object.freeze({
   pool: "cd_piscina",
   irrigation: "cd_irrigazione",
   robots: "cd_robot",
+  sockets: "cd_prese",
   energy: "cd_energy_model",
   energyLoads: "cd_energy_loads",
   entityOverrides: "cd_entity_overrides",
@@ -89,6 +91,12 @@ export function migrateEv(input = [], rooms = []) {
  * configurazione scritta a mano non si perde. */
 export function migrateRobots(input = []) {
   return normalizeRobots(input);
+}
+
+/* Le prese: un elenco come i robot, con dentro la stanza. La forma la decide il
+ * modulo delle prese, cosi' chi salva e chi disegna leggono la stessa. */
+export function migrateSockets(input = []) {
+  return normalizzaPrese(input);
 }
 
 export function migratePool(input = {}) {
@@ -169,6 +177,7 @@ export function normalizeSection(section, input, context = {}) {
     pool: migratePool,
     irrigation: migrateIrrigation,
     robots: migrateRobots,
+    sockets: migrateSockets,
     energy: migrateEnergy,
     energyLoads: normalizeEnergyLoads,
     entityOverrides: migrateEntityOverrides,

@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "大泳池",
   "Name of the first basin": "第一个池子的名称",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "第一个池子的传感器在上面的表单里填写。在这里给它取个名字，池子不止一个时就能分清在看哪一个。",
+  "Add socket": "添加插座",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "在设置的“插座”标签里添加：客厅电视、Firestick、光猫。",
+  "Edit socket": "编辑插座",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "请输入有效实体（switch、input_boolean、light 或 fan）。",
+  "Living-room TV": "客厅电视",
+  "No socket": "没有插座",
+  "No socket configured": "还没有配置插座",
+  "Sockets": "插座",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "家里的插座：客厅电视、卧室电视、Firestick、光猫。它们像灯一样开关，但自成一类——所以“关掉所有灯”不会关掉光猫。",
 });

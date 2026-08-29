@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Großer Pool",
   "Name of the first basin": "Name des ersten Beckens",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "Die Sensoren des ersten Beckens werden im Formular oben eingetragen. Hier gibst du ihm einen Namen, damit du bei mehreren Becken erkennst, welches du gerade ansiehst.",
+  "Add socket": "Steckdose hinzufügen",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Steckdosen im Reiter Steckdosen der Einstellungen hinzufügen: der Fernseher im Wohnzimmer, der Firestick, das Modem.",
+  "Edit socket": "Steckdose bearbeiten",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Gib eine gültige Entität ein (switch, input_boolean, light oder fan).",
+  "Living-room TV": "Fernseher Wohnzimmer",
+  "No socket": "Keine Steckdose",
+  "No socket configured": "Keine Steckdose eingerichtet",
+  "Sockets": "Steckdosen",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Die Steckdosen im Haus: der Fernseher im Wohnzimmer, der im Schlafzimmer, der Firestick, das Modem. Sie schalten wie Lampen, leben aber für sich — so schaltet «alle Lichter aus» das Modem nicht ab.",
 });

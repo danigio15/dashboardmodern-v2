@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Piscina grande",
   "Name of the first basin": "Nome da primeira piscina",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "Os sensores da primeira piscina preenchem-se no formulário acima. Aqui dá-lhe um nome, para que com mais do que uma saiba qual está a ver.",
+  "Add socket": "Adicionar tomada",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Adicione as tomadas no separador Tomadas das definições: a TV da sala, a Firestick, o modem.",
+  "Edit socket": "Editar tomada",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Introduza uma entidade válida (switch, input_boolean, light ou fan).",
+  "Living-room TV": "TV da sala",
+  "No socket": "Nenhuma tomada",
+  "No socket configured": "Nenhuma tomada configurada",
+  "Sockets": "Tomadas",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "As tomadas da casa: a TV da sala, a do quarto, a Firestick, o modem. Ligam-se e desligam-se como as luzes, mas vivem à parte — assim «desligar todas as luzes» não desliga o modem.",
 });

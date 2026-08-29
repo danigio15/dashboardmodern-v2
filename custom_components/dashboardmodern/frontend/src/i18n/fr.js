@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Grand bassin",
   "Name of the first basin": "Nom du premier bassin",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "Les capteurs du premier bassin se renseignent dans le formulaire ci-dessus. Ici vous lui donnez un nom, pour savoir lequel vous regardez quand il y en a plusieurs.",
+  "Add socket": "Ajouter une prise",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Ajoutez les prises depuis l'onglet Prises des réglages : la télé du salon, le Firestick, la box.",
+  "Edit socket": "Modifier la prise",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Saisissez une entité valide (switch, input_boolean, light ou fan).",
+  "Living-room TV": "Télé du salon",
+  "No socket": "Aucune prise",
+  "No socket configured": "Aucune prise configurée",
+  "Sockets": "Prises",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Les prises de la maison : la télé du salon, celle de la chambre, le Firestick, la box. Elles s'allument comme les lumières, mais vivent à part — ainsi « éteindre toutes les lumières » n'éteint pas la box.",
 });

@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Piscina grande",
   "Name of the first basin": "Nombre de la primera piscina",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "Los sensores de la primera piscina se rellenan en el formulario de arriba. Aquí le das un nombre, para que con más de una sepas cuál estás mirando.",
+  "Add socket": "Añadir enchufe",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Añade los enchufes desde la pestaña Enchufes de la configuración: la tele del salón, el Firestick, el módem.",
+  "Edit socket": "Editar enchufe",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Introduce una entidad válida (switch, input_boolean, light o fan).",
+  "Living-room TV": "Tele del salón",
+  "No socket": "Ningún enchufe",
+  "No socket configured": "Ningún enchufe configurado",
+  "Sockets": "Enchufes",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Los enchufes de la casa: la tele del salón, la del dormitorio, el Firestick, el módem. Se encienden y se apagan como las luces, pero van por su cuenta — así «apagar todas las luces» no apaga el módem.",
 });

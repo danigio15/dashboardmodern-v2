@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "大きいプール",
   "Name of the first basin": "1つ目の浴槽の名前",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "1つ目の浴槽のセンサーは上のフォームで設定します。ここでは名前を付けます。浴槽が複数あるとき、どれを見ているかがわかります。",
+  "Add socket": "コンセントを追加",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "設定の「コンセント」タブから追加します。リビングのテレビ、Firestick、モデムなど。",
+  "Edit socket": "コンセントを編集",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "有効なエンティティを入力してください（switch、input_boolean、light、fan）。",
+  "Living-room TV": "リビングのテレビ",
+  "No socket": "コンセントなし",
+  "No socket configured": "コンセントが設定されていません",
+  "Sockets": "コンセント",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "家のコンセント。リビングのテレビ、寝室のテレビ、Firestick、モデム。照明と同じように入切できますが、別扱いです。だから「すべての照明を消す」でモデムは切れません。",
 });

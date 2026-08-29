@@ -159,7 +159,7 @@ test("la sezione riusa la card della pagina Luci invece di rifarne una", async (
   /* E il foglio di quella card non e' piu' incatenato alla sua pagina, o qui
    * arriverebbe nuda. */
   const luci = await leggi("../src/sections/lights-page-section.js");
-  assert.match(luci, /:is\(#page-luci,#page-stanze\) \.dm-lucip-card\{/);
+  assert.match(luci, /:is\(#page-luci,#page-stanze,#page-prese\) \.dm-lucip-card\{/);
 });
 
 test("la sezione e' installata dal runtime e ha la sua voce nella barra", async () => {

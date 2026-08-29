@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Duży basen",
   "Name of the first basin": "Nazwa pierwszej niecki",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "Czujniki pierwszej niecki uzupełnia się w formularzu powyżej. Tutaj nadajesz jej nazwę, żeby przy kilku nieckach wiedzieć, na którą patrzysz.",
+  "Add socket": "Dodaj gniazdko",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Dodaj gniazdka z karty Gniazdka w ustawieniach: telewizor w salonie, Firestick, modem.",
+  "Edit socket": "Edytuj gniazdko",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Wpisz poprawną encję (switch, input_boolean, light lub fan).",
+  "Living-room TV": "Telewizor w salonie",
+  "No socket": "Brak gniazdka",
+  "No socket configured": "Nie skonfigurowano żadnego gniazdka",
+  "Sockets": "Gniazdka",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Gniazdka w domu: telewizor w salonie, ten w sypialni, Firestick, modem. Włączają się jak światła, ale żyją osobno — dzięki temu «zgaś wszystkie światła» nie wyłącza modemu.",
 });

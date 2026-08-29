@@ -28,8 +28,12 @@ const USER_DATA_VERSION = 1;
  * presa del frigo?» — si', ed e' una decisione della casa, non del telefono da
  * cui la si e' presa: se non viaggia, il frigo e' protetto sul telefono di chi
  * ha configurato la plancia e spegnibile su tutti gli altri, che e' esattamente
- * il contrario di quello che serve. */
-export const CONFIG_KEYS_REVISION = 10;
+ * il contrario di quello che serve.
+ * La revisione 11 aggiunge le prese (`cd_prese`). Prima le prese si
+ * configuravano fra le luci — la scheda Luci accetta anche `switch.` — e
+ * viaggiavano dentro `cd_luci`; adesso hanno un elenco loro, e senza stare qui
+ * resterebbero sul telefono che le ha configurate. */
+export const CONFIG_KEYS_REVISION = 11;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -112,6 +116,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_luci_order",
   // Le cose che si guardano e basta: la presa del frigo, quella del modem.
   "cd_solo_lettura",
+  // Le prese: TV del salotto, Firestick, modem.
+  "cd_prese",
   "cd_luci_room_order",
   "cd_clima_units",
   // Cosa accende il tasto Clima rapido: modalita', temperatura e ventola.

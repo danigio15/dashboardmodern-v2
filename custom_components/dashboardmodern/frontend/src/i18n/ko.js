@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "큰 수영장",
   "Name of the first basin": "첫 번째 수조의 이름",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "첫 번째 수조의 센서는 위 양식에서 입력합니다. 여기서는 이름을 붙입니다. 수조가 여러 개일 때 어느 것을 보고 있는지 알 수 있습니다.",
+  "Add socket": "콘센트 추가",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "설정의 콘센트 탭에서 추가하세요. 거실 TV, 파이어스틱, 모뎀 등.",
+  "Edit socket": "콘센트 편집",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "올바른 엔터티를 입력하세요 (switch, input_boolean, light 또는 fan).",
+  "Living-room TV": "거실 TV",
+  "No socket": "콘센트 없음",
+  "No socket configured": "설정된 콘센트가 없습니다",
+  "Sockets": "콘센트",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "집 안의 콘센트: 거실 TV, 침실 TV, 파이어스틱, 모뎀. 조명처럼 켜고 끄지만 따로 관리됩니다 — 그래서 «모든 조명 끄기»로 모뎀이 꺼지지 않습니다.",
 });

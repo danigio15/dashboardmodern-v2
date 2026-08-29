@@ -123,6 +123,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Le prese hanno una sezione loro.** Si potevano già configurare — la scheda
+  Luci accetta anche `switch.`, e una presa messa lì si accende benissimo — solo
+  che si chiama luce: finisce nell'elenco delle luci, si conta nel «3 accese»
+  del salone, e «spegni tutte le luci» la spegne. Per la TV del salotto può
+  anche andare; per il modem no. Il difetto non era che non si potesse fare: era
+  doverla chiamare col nome di un'altra cosa. Adesso c'è una scheda Prese in
+  configurazione e una pagina sua nella barra, con le prese raggruppate per
+  stanza. Quello che NON è cambiato è la parte migliore: si accendono con lo
+  stesso motore di tutto il resto e si disegnano con la stessa scheda delle
+  luci — quindi il blocco «si vede ma non si comanda» vale anche qui, e la
+  presa del frigo si protegge dalla sua stessa riga.
+
 - **Le cose che si guardano e basta.** «Non è meglio oscurare il tasto
   accendi/spegni sulla presa del frigo?» — sì, e non è una preferenza estetica:
   un tasto che non va premuto non dovrebbe esserci. La presa del frigo, quella

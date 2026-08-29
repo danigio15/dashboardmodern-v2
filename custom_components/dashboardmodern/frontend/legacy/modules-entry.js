@@ -19,6 +19,7 @@ import {
 import { runSteps, stepReporter } from "../src/core/runtime-steps.js";
 import { DashboardStore } from "../src/core/dashboard-store.js";
 import { daProvare, diagnosi, siSveglia, strategieDellaTelecamera } from "../src/core/strategie-telecamera.js";
+import { renderPreseEditor } from "../src/sections/prese-section.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { energyWriteInFlight, flushEnergyWrites, persistEnergyField, persistSignedSource } from "../src/core/energy-writer.js";
@@ -499,6 +500,10 @@ export const EDITOR_REGISTRY = Object.freeze({
   report: { render: renderReportEditor, mount: mountReportEditor, visibilityKey: "energy" },
   temperature: { render: renderTemperatureEditor, mount: mountTemperatureEditor, visibilityKey: "temp" },
   diagnostics: { render: renderDiagnostics, mount: mountCurrentEditor, visibilityKey: null },
+  /* Le prese. La scheda la disegna il modulo che tiene l'elenco: e' lui che sa
+   * cosa c'e' dentro, e un secondo posto che lo disegna sarebbe un secondo
+   * padrone del formato. */
+  prese: { render: renderPreseEditor, mount: mountCurrentEditor, visibilityKey: "prese" },
 });
 
 export function dispatchEditorTab(tab, target, registry = EDITOR_REGISTRY) {
@@ -518,7 +523,22 @@ export function renderEditorTab(tab, target = globalThis.document?.getElementByI
 
 export function registerEditorTabs(root = globalThis.document) {
   const tabs = root?.querySelector?.(".ed-tabs");
-  if (!tabs || tabs.querySelector('[data-tab="runtime"]')) return;
+  if (!tabs) return;
+  /* La scheda Prese sta accanto a quella delle Luci, che e' da dove le prese
+   * sono uscite: chi le cerca le cerca li' vicino. Se la fila non ha le Luci
+   * — un guscio piu' vecchio — va in fondo, che e' meglio di non esserci. */
+  if (!tabs.querySelector('[data-tab="prese"]')) {
+    const prese = root.createElement("button");
+    prese.type = "button";
+    prese.className = "ed-tab";
+    prese.dataset.tab = "prese";
+    prese.textContent = "🔌 Prese";
+    prese.addEventListener("click", () => globalThis.editorSwitch?.("prese"));
+    const luci = tabs.querySelector('[data-tab="luci"]');
+    if (luci) luci.after(prese);
+    else tabs.append(prese);
+  }
+  if (tabs.querySelector('[data-tab="runtime"]')) return;
   const button = root.createElement("button"); button.type = "button"; button.className = "ed-tab";
   button.dataset.tab = "runtime"; button.textContent = "🩺 Runtime";
   button.addEventListener("click", () => renderEditorTab("runtime")); tabs.append(button);

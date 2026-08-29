@@ -62,6 +62,7 @@ import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-secti
 import { installPoolExtraSection } from "./pool-extra-section.js";
 import { installPoolEditorSection } from "./pool-editor-section.js";
 import { installRobotSection } from "./robot-section.js";
+import { installPreseSection } from "./prese-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
@@ -746,6 +747,7 @@ export function installSectionRuntime() {
     installPoolExtraSection();
     installPoolEditorSection();
     installRobotSection();
+    installPreseSection();
     installRobotEditorSection();
     /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
      * riusano la card della pagina Luci: si installano dopo di lei. */

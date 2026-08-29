@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "बड़ा पूल",
   "Name of the first basin": "पहले पूल का नाम",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "पहले पूल के सेंसर ऊपर वाले फ़ॉर्म में भरे जाते हैं। यहाँ आप उसे नाम देते हैं, ताकि एक से ज़्यादा होने पर पता चले कि आप कौन-सा देख रहे हैं।",
+  "Add socket": "सॉकेट जोड़ें",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "सेटिंग्स के सॉकेट टैब से सॉकेट जोड़ें: लिविंग रूम का टीवी, फ़ायरस्टिक, मोडेम।",
+  "Edit socket": "सॉकेट बदलें",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "मान्य एंटिटी डालें (switch, input_boolean, light या fan)।",
+  "Living-room TV": "लिविंग रूम का टीवी",
+  "No socket": "कोई सॉकेट नहीं",
+  "No socket configured": "कोई सॉकेट सेट नहीं है",
+  "Sockets": "सॉकेट",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "घर के सॉकेट: लिविंग रूम का टीवी, बेडरूम वाला, फ़ायरस्टिक, मोडेम। ये रोशनी की तरह चालू-बंद होते हैं, पर अलग रहते हैं — इसलिए «सारी लाइटें बंद करो» से मोडेम बंद नहीं होता।",
 });

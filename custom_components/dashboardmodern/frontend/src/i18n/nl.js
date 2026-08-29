@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Groot bad",
   "Name of the first basin": "Naam van het eerste bad",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "De sensoren van het eerste bad vul je in het formulier hierboven in. Hier geef je het een naam, zodat je bij meer dan één bad ziet welk bad je bekijkt.",
+  "Add socket": "Stopcontact toevoegen",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Voeg stopcontacten toe via het tabblad Stopcontacten in de instellingen: de tv in de woonkamer, de Firestick, het modem.",
+  "Edit socket": "Stopcontact bewerken",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Voer een geldige entiteit in (switch, input_boolean, light of fan).",
+  "Living-room TV": "Tv woonkamer",
+  "No socket": "Geen stopcontact",
+  "No socket configured": "Geen stopcontact ingesteld",
+  "Sockets": "Stopcontacten",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "De stopcontacten in huis: de tv in de woonkamer, die in de slaapkamer, de Firestick, het modem. Ze gaan aan en uit als lampen, maar staan op zichzelf — zo zet «alle lampen uit» het modem niet uit.",
 });

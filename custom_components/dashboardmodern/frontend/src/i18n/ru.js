@@ -1819,4 +1819,13 @@ export default Object.freeze({
   "Large pool": "Большой бассейн",
   "Name of the first basin": "Название первой чаши",
   "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "Датчики первой чаши заполняются в форме выше. Здесь вы даёте ей название, чтобы при нескольких чашах понимать, на какую смотрите.",
+  "Add socket": "Добавить розетку",
+  "Add sockets from the Sockets tab in the settings: the living-room TV, the Firestick, the modem.": "Добавьте розетки на вкладке «Розетки» в настройках: телевизор в гостиной, Firestick, модем.",
+  "Edit socket": "Изменить розетку",
+  "Enter a valid entity (switch, input_boolean, light or fan).": "Введите корректный объект (switch, input_boolean, light или fan).",
+  "Living-room TV": "Телевизор в гостиной",
+  "No socket": "Розеток нет",
+  "No socket configured": "Ни одной розетки не настроено",
+  "Sockets": "Розетки",
+  "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Розетки в доме: телевизор в гостиной, телевизор в спальне, Firestick, модем. Включаются как свет, но живут отдельно — поэтому «выключить весь свет» не выключает модем.",
 });
