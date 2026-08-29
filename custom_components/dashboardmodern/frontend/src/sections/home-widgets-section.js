@@ -1158,13 +1158,14 @@ function irrigationModel(states) {
  * un'icona, un nome e un valore. */
 function rowsDetail(widget) {
   return (widget.rows || [])
-    .map((row) =>
-      rowShell(
+    .map((row) => {
+      const livello = livelloMarkup(percentualeDellaRiga(row));
+      return rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${row.glyph || "•"}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
+         <span class="dm-w-name">${esc(row.name)}${livello}</span>
          <b class="dm-w-val">${esc(row.value)}</b>`,
-      ),
-    )
+      );
+    })
     .join("");
 }
 
@@ -1618,6 +1619,36 @@ function tileMarkup(widget, index = 0) {
 
 function rowShell(inner, attrs = "") {
   return `<div class="dm-w-row" ${attrs}>${inner}</div>`;
+}
+
+/* Una percentuale si vede prima di leggerla.
+ *
+ * Le righe delle finestre dicevano «12%» e basta: per sapere se era poco o
+ * tanto bisognava leggere il numero e pensarci. Una barra sotto il nome lo
+ * dice a colpo d'occhio, e il numero resta dov'e' — la barra aggiunge, non
+ * sostituisce. Si mette solo dove la percentuale ha un fondo e un pieno che
+ * vogliono dire qualcosa: una carica, una posizione, un'umidita'. Sotto il
+ * venti per cento cambia colore, che e' la soglia a cui la stessa
+ * percentuale smette di essere un dato e diventa una cosa da guardare.
+ */
+function livelloMarkup(percentuale) {
+  const valore = Number(percentuale);
+  if (!Number.isFinite(valore) || valore < 0 || valore > 100) return "";
+  const quota = Math.round(valore);
+  return `<span class="dm-w-livello" aria-hidden="true"${quota <= 20 ? ' data-basso="true"' : ""}>
+      <i style="width:${quota}%"></i>
+    </span>`;
+}
+
+/* La percentuale di una riga, quando ce l'ha e vuol dire un livello. */
+function percentualeDellaRiga(riga) {
+  for (const campo of ["battery", "position", "level", "soc", "humidity", "percent"]) {
+    const valore = Number(riga?.[campo]);
+    if (Number.isFinite(valore)) return valore;
+  }
+  const testo = String(riga?.value ?? "").trim();
+  const trovata = /^(\d{1,3})(?:[.,]\d+)?\s*%$/.exec(testo);
+  return trovata ? Number(trovata[1]) : null;
 }
 
 function todoItemMarkup(list, item, today) {
@@ -2466,7 +2497,21 @@ function detailBody(widget, states) {
   return `${verdettoEFrase(widget)}
     ${caselleDelleMisure(widget)}
     ${pilloleDelloStato(widget)}
-    ${comandi ? `<h4 class="dm-w-titoletto">${esc(t("Comandi", "Controls"))}</h4>${comandi}` : ""}`;
+    ${comandi ? `<h4 class="dm-w-titoletto">${esc(titoloDelBlocco(comandi))}</h4>${comandi}` : ""}`;
+}
+
+/* Il titolo dice cosa c'e' sotto, e non sempre sono comandi.
+ *
+ * Nella finestra dell'Energia sotto «COMANDI» stavano Casa, Solare, Rete e
+ * Batteria: quattro letture, che non si comandano — non c'e' niente da
+ * premere. Lo stesso per Telecamere, Solare termico e Piscina. Un titolo che
+ * annuncia comandi dove non ce ne sono manda a cercare un tasto che non
+ * esiste. Si guarda cosa c'e' davvero nel blocco invece di deciderlo a
+ * tavolino: se c'e' qualcosa da premere sono comandi, altrimenti sono letture.
+ */
+function titoloDelBlocco(markup) {
+  const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
+  return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
 
 function detailRows(widget, states) {
@@ -3420,6 +3465,16 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
  * dice la cosa; i punti dicono i numeri su cui si regge — «la batteria si
  * carica a 1,47 kW», «in rete vanno 41 W» — che nella riga grande non ci
  * starebbero senza farne un paragrafo. */
+/* La barra del livello: sta sotto il nome, larga quanto la colonna, e non
+   sposta niente — due pixel e mezzo di altezza dentro la riga che c'era gia'. */
+#dm-widget-popup .dm-w-livello{
+  display:block;margin-top:5px;height:3px;border-radius:999px;overflow:hidden;
+  background:color-mix(in srgb,var(--text-dim,#94a3b8) 22%,transparent)}
+#dm-widget-popup .dm-w-livello>i{
+  display:block;height:100%;border-radius:inherit;
+  background:var(--dm-widget-accent,#0ea5e9);
+  transition:width .3s ease}
+#dm-widget-popup .dm-w-livello[data-basso="true"]>i{background:#e11d48}
 #dm-widget-popup .dm-w-punti{
   margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
 #dm-widget-popup .dm-w-punti li{
