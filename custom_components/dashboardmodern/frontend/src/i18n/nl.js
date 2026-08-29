@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Geen stopcontact ingesteld",
   "Sockets": "Stopcontacten",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "De stopcontacten in huis: de tv in de woonkamer, die in de slaapkamer, de Firestick, het modem. Ze gaan aan en uit als lampen, maar staan op zichzelf — zo zet «alle lampen uit» het modem niet uit.",
+  "${accese} on": "${accese} aan",
+  "1 on": "1 aan",
+  "On/off · Consumption · Room by room": "Aan/uit · Verbruik · Kamer voor kamer",
 });

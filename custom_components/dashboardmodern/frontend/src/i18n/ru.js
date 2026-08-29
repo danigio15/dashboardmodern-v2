@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Ни одной розетки не настроено",
   "Sockets": "Розетки",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Розетки в доме: телевизор в гостиной, телевизор в спальне, Firestick, модем. Включаются как свет, но живут отдельно — поэтому «выключить весь свет» не выключает модем.",
+  "${accese} on": "${accese} включено",
+  "1 on": "1 включена",
+  "On/off · Consumption · Room by room": "Вкл/выкл · Потребление · Комната за комнатой",
 });

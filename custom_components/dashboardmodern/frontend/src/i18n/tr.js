@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Yapılandırılmış priz yok",
   "Sockets": "Prizler",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Evdeki prizler: salondaki televizyon, yatak odasındaki, Firestick, modem. Işıklar gibi açılıp kapanır ama kendi başlarına dururlar — böylece «tüm ışıkları kapat» modemi kapatmaz.",
+  "${accese} on": "${accese} açık",
+  "1 on": "1 açık",
+  "On/off · Consumption · Room by room": "Açma/kapama · Tüketim · Oda oda",
 });

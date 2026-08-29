@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Aucune prise configurée",
   "Sockets": "Prises",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Les prises de la maison : la télé du salon, celle de la chambre, le Firestick, la box. Elles s'allument comme les lumières, mais vivent à part — ainsi « éteindre toutes les lumières » n'éteint pas la box.",
+  "${accese} on": "${accese} allumées",
+  "1 on": "1 allumée",
+  "On/off · Consumption · Room by room": "Marche/arrêt · Consommation · Pièce par pièce",
 });

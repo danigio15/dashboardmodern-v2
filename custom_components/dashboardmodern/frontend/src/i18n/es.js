@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Ningún enchufe configurado",
   "Sockets": "Enchufes",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Los enchufes de la casa: la tele del salón, la del dormitorio, el Firestick, el módem. Se encienden y se apagan como las luces, pero van por su cuenta — así «apagar todas las luces» no apaga el módem.",
+  "${accese} on": "${accese} encendidos",
+  "1 on": "1 encendido",
+  "On/off · Consumption · Room by room": "Encendido/apagado · Consumo · Habitación por habitación",
 });

@@ -61,6 +61,15 @@ const PAGES = Object.freeze([
     it: ["Luci", "Accensione · Luminosità · Colore"],
     en: ["Lights", "On/off · Brightness · Colour"],
   },
+  /* Le Prese sono nate insieme alla loro pagina, e l'intestazione nasce con
+   * loro: una sezione nuova entra qui il giorno stesso, non alla prima
+   * segnalazione — che infatti e' arrivata. */
+  {
+    id: "page-prese",
+    tint: ["71,85,105", "245,158,11"],
+    it: ["Prese", "Accensione · Consumi · Stanza per stanza"],
+    en: ["Sockets", "On/off · Consumption · Room by room"],
+  },
   {
     id: "page-piscina",
     tint: ["14,165,233", "34,211,238"],

@@ -35,6 +35,7 @@ import {
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
+import { normalizzaPrese } from "../core/prese-model.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   coverEntries,
@@ -1326,6 +1327,50 @@ function zonaInFunzione(states, zona) {
   return IRRIGAZIONE_ATTIVA.test(stato);
 }
 
+/* La tessera delle Prese.
+ *
+ * La sezione e' nata senza, ed e' stato segnalato subito: una sezione nuova
+ * entra nel ponte con la stessa logica delle altre, non alla prima
+ * segnalazione. Le righe sono comandi — un interruttore per presa, come la
+ * pompa della piscina — e il blocco «si vede ma non si comanda» vale anche
+ * qui, perche' l'interruttore compare solo dove `siComanda` dice di si'. */
+function preseModel(states) {
+  const canonico = section("sockets", null);
+  const grezzo = Array.isArray(canonico) && canonico.length ? canonico : readJson("cd_prese", []);
+  const prese = normalizzaPrese(grezzo).filter((presa) => clean(presa.entity));
+  if (!prese.length) return null;
+  const fuori = widgetExcludedEntities();
+  const rows = [];
+  for (const presa of prese) {
+    if (!widgetIncludes(presa.entity, fuori)) continue;
+    const stato = stateOf(states, presa.entity);
+    if (!stato) continue;
+    rows.push({
+      glyph: clean(presa.icon) || "🔌",
+      name: clean(presa.name) || presa.entity,
+      entity: presa.entity,
+      on: clean(stato.state).toLowerCase() === "on",
+      comando: siComanda(presa.entity),
+      value:
+        clean(stato.state).toLowerCase() === "on" ? t("Accesa", "On") : t("Spenta", "Off"),
+    });
+  }
+  if (!rows.length) return null;
+  const accese = rows.filter((row) => row.on).length;
+  return {
+    key: "prese",
+    accent: "#475569",
+    icon: "🔌",
+    label: t("Prese", "Sockets"),
+    value: String(accese),
+    caption:
+      accese === 1 ? t("1 accesa", "1 on") : t(`${accese} accese`, `${accese} on`),
+    ring: rows.length ? Math.round((accese / rows.length) * 100) : null,
+    attiva: accese > 0,
+    rows,
+  };
+}
+
 function irrigationModel(states) {
   const config = root.getIrr?.() || readJson("cd_irrigazione", {});
   const zones = Array.isArray(config?.zones) ? config.zones : [];
@@ -1689,6 +1734,7 @@ function widgetModels(states) {
       robotsModel(states),
       solarThermalModel(states),
       poolModel(states),
+      preseModel(states),
       irrigationModel(states),
       openingsModel(states),
       batteriesModel(states),
@@ -2933,7 +2979,7 @@ function detailRows(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
-  if (["ev", "solare", "piscina", "irrigazione", "robot"].includes(widget.key))
+  if (["ev", "solare", "piscina", "prese", "irrigazione", "robot"].includes(widget.key))
     return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
@@ -2955,6 +3001,7 @@ function detailRows(widget, states) {
  * sezione che le contiene davvero. */
 const SEZIONE_DEL_WIDGET = Object.freeze({
   luci: "luci",
+  prese: "prese",
   clima: "clima",
   tapparelle: "tapparelle",
   sicurezza: "security",

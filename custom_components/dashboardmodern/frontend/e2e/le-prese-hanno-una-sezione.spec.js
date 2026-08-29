@@ -134,3 +134,67 @@ test("una presa si configura, si vede nella sua pagina e non finisce fra le luci
   });
   expect(Object.keys(luci)).toEqual([]);
 });
+
+test("la pagina Prese ha l'intestazione, e la Home ha la sua tessera", async ({
+  page,
+}, testInfo) => {
+  /* Segnalato il giorno del rilascio: la sezione era nata senza intestazione e
+   * senza tessera fra i widget. Una sezione nuova entra con la stessa logica
+   * delle altre — masthead, tessera, finestra — non a pezzi. */
+  test.setTimeout(150_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, {
+    ...SEME,
+    visibility: { home: true, prese: true },
+  });
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true, null, {
+    timeout: 60000,
+  });
+  await page.evaluate(() => {
+    const stati = eval("_RAW_STATES");
+    for (const [id, stato] of [
+      ["switch.tv_salotto", "on"],
+      ["switch.firestick", "off"],
+    ])
+      stati[id] = { entity_id: id, state: stato, attributes: { friendly_name: id } };
+    localStorage.setItem(
+      "cd_prese",
+      JSON.stringify([
+        { name: "TV Salotto", entity: "switch.tv_salotto", room_id: "room-salone" },
+        { name: "Firestick", entity: "switch.firestick" },
+      ]),
+    );
+    window.__comandi = [];
+    window.dmCallHaService = (dominio, servizio, dati) => {
+      window.__comandi.push(`${dominio}.${servizio} ${dati?.entity_id || ""}`);
+      return Promise.resolve(true);
+    };
+    window.applyStates?.();
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page.waitForTimeout(1600);
+
+  /* La tessera c'e', conta le accese, e la finestra comanda. */
+  const tessera = page.locator('#dm-widgets .dm-tile[data-dm-widget="prese"]');
+  await expect(tessera).toBeVisible();
+  expect(await tessera.innerText()).toContain("1");
+  await tessera.click();
+  await page.waitForTimeout(400);
+  const finestra = page.locator('#dm-widget-popup [data-dm-widget-detail="prese"]');
+  await expect(finestra).toBeVisible();
+  expect(await finestra.innerText()).toContain("TV Salotto");
+  await finestra.locator('[data-dm-w-light="switch.firestick"]').click();
+  await page.waitForTimeout(250);
+  expect(await page.evaluate(() => window.__comandi)).toEqual(["switch.toggle switch.firestick"]);
+  await page.evaluate(() => document.querySelector("[data-dm-widget-close]")?.click());
+
+  /* E la pagina ha l'intestazione come le altre. */
+  await page.evaluate(() => document.querySelector('.tab[data-tab="prese"]')?.click());
+  await page.waitForTimeout(700);
+  const testata = page.locator("#page-prese .dm-page-mast");
+  await expect(testata).toBeVisible();
+  await expect(testata.locator(".dm-page-mast-title")).toHaveText(/Prese|Sockets/, {
+    timeout: 10000,
+  });
+});

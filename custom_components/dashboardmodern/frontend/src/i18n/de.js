@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Keine Steckdose eingerichtet",
   "Sockets": "Steckdosen",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Die Steckdosen im Haus: der Fernseher im Wohnzimmer, der im Schlafzimmer, der Firestick, das Modem. Sie schalten wie Lampen, leben aber für sich — so schaltet «alle Lichter aus» das Modem nicht ab.",
+  "${accese} on": "${accese} an",
+  "1 on": "1 an",
+  "On/off · Consumption · Room by room": "Ein/Aus · Verbrauch · Raum für Raum",
 });

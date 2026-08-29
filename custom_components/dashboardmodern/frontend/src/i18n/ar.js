@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "لم يتم إعداد أي مقبس",
   "Sockets": "المقابس",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "مقابس المنزل: تلفزيون الصالة، تلفزيون غرفة النوم، الفايرستيك، المودم. تعمل وتنطفئ مثل الإضاءة، لكنها مستقلة — فـ«أطفئ كل الإضاءة» لا يطفئ المودم.",
+  "${accese} on": "${accese} قيد التشغيل",
+  "1 on": "1 قيد التشغيل",
+  "On/off · Consumption · Room by room": "تشغيل/إيقاف · الاستهلاك · غرفة بغرفة",
 });

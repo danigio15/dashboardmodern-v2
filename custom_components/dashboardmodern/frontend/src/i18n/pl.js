@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Nie skonfigurowano żadnego gniazdka",
   "Sockets": "Gniazdka",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Gniazdka w domu: telewizor w salonie, ten w sypialni, Firestick, modem. Włączają się jak światła, ale żyją osobno — dzięki temu «zgaś wszystkie światła» nie wyłącza modemu.",
+  "${accese} on": "${accese} włączone",
+  "1 on": "1 włączone",
+  "On/off · Consumption · Room by room": "Wł./wył. · Zużycie · Pokój po pokoju",
 });

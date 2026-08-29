@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "설정된 콘센트가 없습니다",
   "Sockets": "콘센트",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "집 안의 콘센트: 거실 TV, 침실 TV, 파이어스틱, 모뎀. 조명처럼 켜고 끄지만 따로 관리됩니다 — 그래서 «모든 조명 끄기»로 모뎀이 꺼지지 않습니다.",
+  "${accese} on": "${accese}개 켜짐",
+  "1 on": "1개 켜짐",
+  "On/off · Consumption · Room by room": "켜기/끄기 · 소비 · 방별",
 });
