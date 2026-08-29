@@ -63,8 +63,13 @@ for (const variant of PRIMARY) {
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
     page,
   }, testInfo) => {
-    if (testInfo.project.name === "webkit-ipad")
-      test.slow(true, "Full editor integration flow is slower on WebKit");
+    /* Il giro completo dell'editor e' la prova piu' lunga del progetto: apre
+     * ogni linguetta, ogni finestra e ogni selettore. Da sola sta dentro il
+     * mezzo minuto di default per un pelo — ventisei secondi su una macchina
+     * ferma — e con la suite intera addosso non ci sta piu': cadeva a caso, e
+     * non per quello che stava provando. Le altre prove pesanti del progetto
+     * si prendono lo stesso minuto e un quarto. */
+    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 75_000);
     const errors = [];
     const pageErrors = [];
     const seedState = {
