@@ -2,6 +2,7 @@
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import { normalizeTemperatureEntry, temperatureEntries } from "../core/room-overview.js";
+import { renderTemperatureCards } from "./temperature-section.js";
 import {
   clean,
   dashboardStore,
@@ -112,7 +113,12 @@ function humidityEntity(entry) {
  * l'editor delle associazioni, e chi chiedeva questo disegno viene mandato dal
  * padrone. */
 export function renderBeta25TemperatureCards() {
-  return Boolean(root.buildTempCards?.());
+  /* La chiamata e' DIRETTA, non attraverso `root.buildTempCards`: quel nome
+   * globale ha ancora altri proprietari (il padrone stabile di beta26 ci
+   * installa il suo giro di linguette e valori), e passare di li' era una
+   * ricorsione infinita — beta26 chiama questa funzione per la struttura, e
+   * questa richiamava beta26. */
+  return renderTemperatureCards();
 }
 
 /* Riempie un campo entita' e lo fa sapere a chi lo disegna. */

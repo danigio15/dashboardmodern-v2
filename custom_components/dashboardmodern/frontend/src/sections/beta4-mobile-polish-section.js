@@ -276,8 +276,8 @@ function removeAlertFlash(form, customMode) {
   });
 }
 
-function polishAlertIconField(custom) {
-  const input = custom?.querySelector?.("#ed-avv-icon");
+function polishAlertIconField(contenitore) {
+  const input = contenitore?.querySelector?.("#ed-avv-icon");
   if (!input) return;
   const row = input.parentElement;
   if (!row) return;
@@ -307,8 +307,12 @@ function polishAlertsFirstInsert() {
       custom.hidden = !visible;
       custom.style.display = visible ? "grid" : "none";
       custom.setAttribute("aria-hidden", String(!visible));
-      if (visible) polishAlertIconField(custom);
     }
+    /* La riga dell'icona non vive piu' dentro il blocco custom: l'icona vale
+     * per OGNI avviso (#229), quindi la sua riga e' sempre visibile e si
+     * veste sempre — cercandola nel blocco custom non la si trovava piu' e il
+     * tasto restava nudo. */
+    polishAlertIconField(form || body);
     removeAlertFlash(form, visible);
   };
   if (group.dataset.dmBeta5Bound !== "true") {
