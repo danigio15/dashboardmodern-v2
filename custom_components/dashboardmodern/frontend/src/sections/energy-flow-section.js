@@ -72,9 +72,7 @@ export function renderBatterySoc(targetDocument, energy = {}, states = {}) {
   const node = nodoDelSoc(targetDocument);
   if (!node) return "—";
   const entity = clean(
-    energy?.battery?.soc ||
-      energy?.battery?.battery_soc_entity ||
-      energy?.battery?.battery_soc,
+    energy?.battery?.soc || energy?.battery?.battery_soc_entity || energy?.battery?.battery_soc,
   );
   /* Senza entita' configurata la casella non si mostra vuota: si toglie.
    * Il comportamento arriva da beta22, che qui dentro non c'e' piu'. */
@@ -385,10 +383,17 @@ const cssEscape = (value) => String(value).replaceAll("\\", "\\\\").replaceAll('
  * esiste, senza aspettare nessun giro di disegno. Il marchio sul nodo resta
  * perche' e' lui che dice «questa l'ha sostituita il flusso nuovo», e la
  * regola lo legge. */
+/* La regola vale su tutte e tre le viste — Istantaneo, Giorno, Mese — perche'
+ * le bolle a posto fisso stanno in tutte e tre, e in tutte e tre c'e' qualcun
+ * altro che decide di mostrarle: la scheda dei nodi, e il completatore degli
+ * slot che riaccende la linea del Wallbox quando in casa c'e' un'auto. Scritta
+ * per la sola vista Istantanea, la difesa copriva un terzo del problema. */
 function regolaDelleBolleVecchie() {
-  return `${LEGACY_LOAD_SELECTOR.split(",")
-    .map((pezzo) => `#view-ist ${pezzo.trim()}:not([data-dm-flow-node]):not([data-dm-flow-arc])`)
-    .join(",")}{display:none!important}`;
+  return `${FLOW_VIEWS.flatMap(({ id }) =>
+    LEGACY_LOAD_SELECTOR.split(",").map(
+      (pezzo) => `#${id} ${pezzo.trim()}:not([data-dm-flow-node]):not([data-dm-flow-arc])`,
+    ),
+  ).join(",")}{display:none!important}`;
 }
 
 function hideLegacyLoadTopology(stage) {

@@ -18,7 +18,17 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
-const VECCHIE = ["n-boiler", "n-wb", "n-clima", "n-lav", "n-cuc"];
+/* Le cinque bolle a posto fisso, e le loro linee, in tutte e tre le viste: le
+ * stesse cinque sono ripetute in Istantaneo, Giorno e Mese, e chi le riaccende
+ * — la scheda dei nodi, o il completatore degli slot quando in casa c'e'
+ * un'auto — non guarda in quale vista si trova. */
+const CODE = ["", "-day", "-month"];
+const VECCHIE = ["n-boiler", "n-wb", "n-clima", "n-lav", "n-cuc"].flatMap((base) =>
+  CODE.map((coda) => `${base}${coda}`),
+);
+const LINEE = ["line-home-boiler", "line-home-wb", "line-home-clima"].flatMap((base) =>
+  CODE.map((coda) => `${base}${coda}`),
+);
 
 const SEME = {
   schema_version: 4,
@@ -59,6 +69,19 @@ async function bolleDipinte(page, ids) {
   }, ids);
 }
 
+/* Le linee non hanno un riquadro da misurare: una `path` nascosta e una lunga
+ * hanno la stessa scatola. Si guarda il `display` calcolato. */
+async function nascoste(page, ids) {
+  return page.evaluate(
+    (elenco) =>
+      elenco.filter((id) => {
+        const nodo = document.getElementById(id);
+        return nodo && getComputedStyle(nodo).display !== "none";
+      }),
+    ids,
+  );
+}
+
 test("le bolle vecchie del flusso restano ritirate anche riaccendendone una", async ({
   page,
 }, testInfo) => {
@@ -93,6 +116,7 @@ test("le bolle vecchie del flusso restano ritirate anche riaccendendone una", as
   await page.waitForTimeout(900);
 
   expect(await bolleDipinte(page, VECCHIE)).toEqual([]);
+  expect(await nascoste(page, LINEE)).toEqual([]);
   /* Il flusso nuovo c'e' davvero: senza questa, la prova sopra passerebbe anche
    * con la sezione vuota. */
   expect(
@@ -110,4 +134,5 @@ test("le bolle vecchie del flusso restano ritirate anche riaccendendone una", as
   await page.waitForTimeout(400);
 
   expect(await bolleDipinte(page, VECCHIE)).toEqual([]);
+  expect(await nascoste(page, LINEE)).toEqual([]);
 });

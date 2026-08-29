@@ -272,16 +272,26 @@ function normalizeLegacyLightRooms() {
   let changed = false;
   for (const [entity, name] of Object.entries(lights)) {
     const raw = clean(assignments[entity]);
-    if (rooms.some((room) => clean(room.id) === raw || clean(room.name) === raw)) continue;
-    const inferred = canonicalRoomForLight(entity, name, rooms);
-    const resolved =
-      inferred ||
-      rooms.find(
-        (room) =>
-          clean(room.name).toLowerCase() === raw.toLowerCase() ||
-          slug(room.name) === slug(raw) ||
-          slug(room.id).replace(/^room-/, "") === slug(raw).replace(/^room-/, ""),
-      );
+    /* Gia' a posto: l'assegnazione porta l'identificativo della stanza. */
+    if (rooms.some((room) => clean(room.id) === raw)) continue;
+    /* Quello che l'assegnazione dice, se dice qualcosa.
+     *
+     * Un'assegnazione scritta a mano dalla persona vince sempre su quello che
+     * si indovina dal nome dell'entita': `light.salone_lampada` messa in
+     * Cucina sta in Cucina, e non c'e' nessun indizio che possa smentirlo. */
+    const perNome = raw
+      ? rooms.find(
+          (room) =>
+            clean(room.name).toLowerCase() === raw.toLowerCase() ||
+            slug(room.name) === slug(raw) ||
+            slug(room.id).replace(/^room-/, "") === slug(raw).replace(/^room-/, ""),
+        )
+      : null;
+    /* Il nome di una stanza si scrive nell'assegnazione solo quando arriva
+     * dall'importazione delle aree. Rimane un nome, e un nome si puo'
+     * cambiare: al primo rinomino la luce resta scollegata. Qui diventa
+     * l'identificativo, che non cambia mai. */
+    const resolved = perNome || canonicalRoomForLight(entity, name, rooms);
     if (resolved && assignments[entity] !== resolved.id) {
       assignments[entity] = resolved.id;
       changed = true;
@@ -335,11 +345,14 @@ export async function applyDataContracts() {
 
 function schedule(delay = 0) {
   if (!doc || state.timer) return;
-  state.timer = root.setTimeout?.(async () => {
-    state.timer = 0;
-    subscribeStore();
-    await applyDataContracts();
-  }, Math.max(0, Number(delay) || 0));
+  state.timer = root.setTimeout?.(
+    async () => {
+      state.timer = 0;
+      subscribeStore();
+      await applyDataContracts();
+    },
+    Math.max(0, Number(delay) || 0),
+  );
 }
 
 function subscribeStore() {

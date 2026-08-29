@@ -24,6 +24,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   riaccenderla, e dove scrive rimette il valore che c'era invece di cancellare
   la proprieta' — cancellarla non ripristina, scopre quello che sta sotto.
 
+- **La stessa bolla vecchia riappariva anche in Giorno e in Mese.** La regola
+  di stile che le tiene ritirate era scritta per la sola vista Istantanea, ma le
+  cinque bolle a posto fisso stanno in tutte e tre le viste, e in tutte e tre
+  c'e' qualcun altro che decide di mostrarle — la scheda dei nodi, e il
+  completatore degli slot che riaccende la linea del Wallbox quando in casa c'e'
+  un'auto. La difesa copriva un terzo del problema; adesso vale su tutte e tre.
+
+- **Una luce assegnata a una stanza per nome adesso la tiene anche se la stanza
+  cambia nome.** L'importazione dalle aree di Home Assistant scrive sulle luci
+  il nome dell'area, non il suo identificativo; finche' il nome corrispondeva a
+  una stanza configurata la plancia lo lasciava com'era, e al primo rinomino la
+  luce restava scollegata. Adesso il nome diventa l'identificativo, che non
+  cambia mai. Un'assegnazione scritta a mano continua a vincere su quello che si
+  indovina dal nome dell'entita': `light.salone_lampada` messa in Cucina resta
+  in Cucina.
+
 - **Le bolle vecchie non fanno piu' in tempo a vedersi.** Le nascondeva il
   modulo del flusso nodo per nodo a ogni passata di disegno — seicentotrenta
   scritture in quaranta giri, su nodi gia' nascosti — e fra il momento in cui il
