@@ -439,7 +439,23 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // ne ricava una frase e i punti che la reggono. Tenerli insieme voleva dire
   // un file dove il conteggio delle righe e il bilancio energetico si
   // guardano, ed e' il genere di vicinanza da cui nascono i due padroni.
-  assert.ok(relative.length <= 172, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 173 col modello di una grandezza nel tempo: la finestra sapeva dire «574 W»
+  // e nient'altro, e un numero da solo non si sa se e' tanto o poco — 574 watt
+  // sono normali per una casa e tantissimi per un frigorifero. Il modulo
+  // prende una serie di letture e ne ricava le quattro cose che servono per
+  // dire qualcosa di sensato: da che parte sta andando, quando ci arrivera',
+  // quale sia il suo valore abituale, e se quello di adesso sia normale. Sta
+  // per conto suo perche' non sa niente di sezioni: conta e basta, e va bene
+  // anche per una soglia di avviso o per decidere se una scheda si colora.
+  //
+  // 174 col padrone unico dello storico. Il modello vuole le letture di prima,
+  // che il grafico delle temperature gia' chiedeva a Recorder con la sua cache.
+  // La strada breve era copiarne il codice nelle finestre: sarebbero stati due
+  // padroni dello stesso traffico, due cache che non si parlano, due domande
+  // per la stessa entita' e la certezza che prima o poi una scada con una
+  // regola diversa dall'altra. E' il difetto che si sta togliendo dappertutto
+  // in questi giorni: qui si evitava di crearne uno nuovo.
+  assert.ok(relative.length <= 174, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

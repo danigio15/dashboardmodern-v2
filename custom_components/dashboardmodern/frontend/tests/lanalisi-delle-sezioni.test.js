@@ -236,3 +236,130 @@ test("le sezioni senza lettura propria sono solo quelle che ne hanno gia' una", 
     "todo",
   ]);
 });
+
+/* ── quello che il modello aggiunge ────────────────────────────────────── */
+
+const ORA = 3600_000;
+const MINUTO = 60_000;
+const ADESSO = Date.parse("2026-08-29T20:00:00Z");
+
+/** Letture regolari, una ogni `passo`, valore da `fai`. */
+function storia(quanti, passo, fai, fine = ADESSO) {
+  const fuori = [];
+  for (let i = quanti - 1; i >= 0; i -= 1)
+    fuori.push({ quando: fine - i * passo, valore: fai(quanti - 1 - i) });
+  return fuori;
+}
+
+test("senza storia il motore dice quello che diceva prima", () => {
+  const tessera = { key: "energia", rows: [{ group: "house", watts: 574 }] };
+  const senza = analisiDellaSezione(tessera, IT, ADESSO);
+  const conNiente = analisiDellaSezione(tessera, IT, ADESSO, null);
+  assert.deepEqual(senza, conNiente);
+  assert.ok(senza.frase, "la finestra sta in piedi anche senza storia");
+});
+
+test("il modello dice quando il consumo e' fuori dal solito", () => {
+  /* Tre giorni di storia: a quest'ora la casa fa 300 W. Adesso ne fa 900. */
+  const punti = [];
+  for (let giorno = 0; giorno < 3; giorno += 1)
+    for (let i = 0; i < 8; i += 1)
+      punti.push({ quando: ADESSO - giorno * 24 * ORA - i * 5 * MINUTO, valore: 300 });
+  punti.push({ quando: ADESSO, valore: 900 });
+
+  const esito = analisiDellaSezione(
+    { key: "energia", rows: [{ group: "house", watts: 900 }] },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.ok(
+    esito.punti.some((p) => /Piu' alto del solito per quest'ora/.test(p)),
+    `manca il confronto col solito: ${JSON.stringify(esito.punti)}`,
+  );
+  assert.ok(esito.punti.some((p) => /900 W/.test(p)), "dice quanto fa adesso");
+  assert.ok(esito.punti.some((p) => /300 W/.test(p)), "e quanto fa di solito");
+});
+
+test("quando e' il solito non spreca una riga per dirlo", () => {
+  const punti = storia(30, 5 * MINUTO, () => 300);
+  const esito = analisiDellaSezione(
+    { key: "energia", rows: [{ group: "house", watts: 300 }] },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.ok(
+    !esito.punti.some((p) => /solito/.test(p)),
+    "«e' nella norma» e' il caso di quasi sempre: dirlo e' una riga sprecata",
+  );
+});
+
+test("un valore molto fuori dal solito diventa da guardare", () => {
+  /* Nessuno sta «facendo» niente — nessuna riga accesa — eppure c'e'
+   * qualcosa: e' il caso per cui il modello esiste. */
+  const punti = storia(40, 3 * MINUTO, () => 200);
+  punti.push({ quando: ADESSO, valore: 3000 });
+  const esito = analisiDellaSezione(
+    { key: "energia", rows: [{ group: "house", watts: 3000 }] },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.equal(esito.tono, VERDETTI.guarda);
+});
+
+test("il modello dice quando l'auto sara' carica", () => {
+  // dal 50% in su, un punto percentuale ogni cinque minuti
+  const punti = storia(13, 5 * MINUTO, (i) => 50 + i);
+  const esito = analisiDellaSezione(
+    { key: "ev", ring: 62, attiva: true, rows: [] },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.ok(
+    esito.punti.some((p) => /Ci arriva/.test(p)),
+    `deve dire quando finisce: ${JSON.stringify(esito.punti)}`,
+  );
+});
+
+test("quando non sa dire l'arrivo dice almeno il passo", () => {
+  // la temperatura sale, ma non c'e' un bersaglio a cui arrivare
+  const punti = storia(19, 10 * MINUTO, (i) => 20 + i / 6);
+  const esito = analisiDellaSezione(
+    { key: "temperatura", rows: [{ name: "Salone", temperature: 23 }] },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.ok(
+    esito.punti.some((p) => /Sale di 1,0° all'ora/.test(p)),
+    `deve dire il passo: ${JSON.stringify(esito.punti)}`,
+  );
+});
+
+test("sul rumore non annuncia nessuna salita", () => {
+  const ballo = [0, 40, -35, 25, -20, 45, -50, 15, 30, -10, 20, -25, 35, -40, 10];
+  const punti = storia(ballo.length, 5 * MINUTO, (i) => 500 + ballo[i]);
+  const esito = analisiDellaSezione(
+    { key: "energia", rows: [{ group: "house", watts: 510 }] },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.ok(
+    !esito.punti.some((p) => /Sale|Scende/.test(p)),
+    `una retta si traccia anche sul rumore, ma non si annuncia: ${JSON.stringify(esito.punti)}`,
+  );
+});
+
+test("il modello non aggiunge mai piu' di due righe", () => {
+  const punti = storia(13, 5 * MINUTO, (i) => 50 + i);
+  const senza = analisiDellaSezione({ key: "ev", ring: 62, attiva: true, rows: [] }, IT, ADESSO);
+  const con = analisiDellaSezione({ key: "ev", ring: 62, attiva: true, rows: [] }, IT, ADESSO, punti);
+  assert.ok(
+    con.punti.length - senza.punti.length <= 2,
+    "scriverle tutte trasforma la finestra in un bollettino",
+  );
+});

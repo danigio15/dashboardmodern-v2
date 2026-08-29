@@ -44,6 +44,7 @@
  */
 
 import { daQuanto, numero, VERDETTI } from "./racconto-tessera.js";
+import { letturaNelTempo, SOGLIE_INSOLITO } from "./modello-nel-tempo.js";
 
 const IN_ITALIANO = (italiano) => italiano;
 
@@ -568,16 +569,101 @@ const LETTURE = Object.freeze({
 /* Chi non ha una lettura sua non riceve una frase sbagliata: riceve niente, e
  * chi disegna sa che sotto il verdetto non va scritto nulla. E' meglio di una
  * riga che parla di un'altra sezione. */
-export function analisiDellaSezione(tessera, traduci = IN_ITALIANO, adesso = Date.now()) {
+export function analisiDellaSezione(
+  tessera,
+  traduci = IN_ITALIANO,
+  adesso = Date.now(),
+  storia = null,
+) {
   const lettura = LETTURE[tessera?.key];
   if (!lettura) return null;
   const esito = lettura(traduci, tessera || {}, adesso);
   if (!esito?.frase) return null;
+  const dalModello = puntiDelModello(tessera, storia, traduci, adesso);
   return {
-    tono: esito.tono || VERDETTI.bene,
+    tono: dalModello.tono || esito.tono || VERDETTI.bene,
     frase: esito.frase,
-    punti: (esito.punti || []).filter(Boolean),
+    punti: [...(esito.punti || []), ...dalModello.punti].filter(Boolean),
   };
+}
+
+/* ── quello che il modello aggiunge, quando c'e' una storia ────────────── */
+
+/* Come si scrive il numero di questa sezione, e verso cosa sta andando.
+ *
+ * Il modello conta e basta: non sa se quei numeri sono watt o gradi, e non
+ * deve saperlo. Il verso — il pieno di una batteria, l'obiettivo di un
+ * termostato — e' invece una cosa della sezione, e sta scritta qui. */
+const FORMA = Object.freeze({
+  energia: { unita: (v, l) => watt(v, l), bersaglio: () => null },
+  temperatura: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
+  solare: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
+  piscina: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
+  ev: { unita: (v) => `${Math.round(v)}%`, bersaglio: (t) => (t?.attiva ? 100 : null) },
+  robot: { unita: (v) => `${Math.round(v)}%`, bersaglio: () => null },
+  irrigazione: { unita: (v) => `${Math.round(v)}%`, bersaglio: () => null },
+  elettrodomestici: { unita: (v, l) => watt(v, l), bersaglio: () => null },
+});
+
+/* Al massimo due righe.
+ *
+ * Il modello sa dire cinque cose; scriverle tutte trasforma la finestra in un
+ * bollettino, e chi legge smette a meta'. Si tengono le due che rispondono
+ * alle domande vere: «e' normale?» e «dove sta andando?». */
+function puntiDelModello(tessera, storia, tr, adesso) {
+  const forma = FORMA[tessera?.key];
+  if (!forma || !storia) return { punti: [], tono: null };
+  const l = lingua(tr);
+  const scrivi = (v) => forma.unita(v, l);
+  const lettura = letturaNelTempo(storia, { adesso, bersaglio: forma.bersaglio(tessera) });
+  if (!lettura) return { punti: [], tono: null };
+
+  const punti = [];
+  let tono = null;
+
+  /* «E' normale?» — e la risposta ha senso solo con un riferimento: il solito
+   * a quest'ora se la storia copre piu' giorni, altrimenti il solito e basta.
+   * Sotto la soglia non si dice niente: «e' nella norma» e' una riga sprecata,
+   * perche' e' il caso di quasi sempre. */
+  const riferimento = lettura.abituale || lettura.solito;
+  if (lettura.insolito != null && lettura.insolito >= SOGLIE_INSOLITO.notevole && riferimento) {
+    const sopra = lettura.valore > riferimento.centro;
+    const quando = lettura.abituale
+      ? tr("per quest'ora", "for this time of day")
+      : tr("delle ultime ore", "over the last few hours");
+    punti.push(
+      sopra
+        ? tr(
+            `Piu' alto del solito ${quando}: ${scrivi(lettura.valore)} contro ${scrivi(riferimento.centro)}`,
+            `Higher than usual ${quando}: ${scrivi(lettura.valore)} against ${scrivi(riferimento.centro)}`,
+          )
+        : tr(
+            `Piu' basso del solito ${quando}: ${scrivi(lettura.valore)} contro ${scrivi(riferimento.centro)}`,
+            `Lower than usual ${quando}: ${scrivi(lettura.valore)} against ${scrivi(riferimento.centro)}`,
+          ),
+    );
+    /* Un valore molto fuori dal solito e' una cosa da guardare, qualunque
+     * cosa dica il conteggio delle righe. E' il caso per cui questo modello
+     * esiste: nessuno sta «facendo» niente, eppure c'e' qualcosa. */
+    if (lettura.insolito >= SOGLIE_INSOLITO.forte) tono = VERDETTI.guarda;
+  }
+
+  /* «Dove sta andando?» — l'arrivo se il modello sa dire quando, altrimenti
+   * il passo. L'arrivo e' la risposta migliore delle due: «piena fra un'ora»
+   * dice piu' di «sale del dodici per cento all'ora». */
+  if (lettura.arrivo) {
+    const fraQuanto = daQuanto((lettura.arrivo - adesso) / 60000, tr);
+    punti.push(tr(`Ci arriva ${fraQuanto}`, `Getting there ${fraQuanto}`));
+  } else if (lettura.tendenza && lettura.tendenza.verso !== "ferma") {
+    const passo = Math.abs(lettura.tendenza.perOra);
+    punti.push(
+      lettura.tendenza.verso === "sale"
+        ? tr(`Sale di ${scrivi(passo)} all'ora`, `Rising ${scrivi(passo)} per hour`)
+        : tr(`Scende di ${scrivi(passo)} all'ora`, `Falling ${scrivi(passo)} per hour`),
+    );
+  }
+
+  return { punti, tono };
 }
 
 /* Le sezioni che questo motore sa leggere. Serve alla prova che pretende che

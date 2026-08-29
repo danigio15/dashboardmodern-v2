@@ -6,24 +6,18 @@
 // to the card popup — no chart library, so it costs nothing to load and scales
 // to any width the page happens to have.
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
-import { normalizeHistoryRows } from "./history-section.js";
+import { quandoArrivaLoStorico, serieDi } from "./storico-condiviso-section.js";
 import { clean, doc, english, installStyle, locale, root, section, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TEMPERATURE_TREND__";
 const state = (root[KEY] ||= {
   installed: false,
   listeners: false,
-  cache: new Map(),
-  pending: new Map(),
   frame: 0,
   hours: 24,
   signature: "",
 });
 
-const FRESH_FOR = 9 * 60 * 1000;
-// A dashboard often paints before Home Assistant answers. A failed read must not
-// pin an empty chart for the whole refresh window, so it is retried much sooner.
-const RETRY_AFTER = 25 * 1000;
 const VIEW = Object.freeze({ width: 720, height: 250, left: 38, right: 54, top: 14, bottom: 24 });
 
 /* The chart is drawn one unit per pixel: a fixed viewBox stretched to the panel
@@ -283,49 +277,16 @@ function degrees(value) {
   return `${value.toFixed(1).replace(".", t(",", "."))}°`;
 }
 
-async function fetchHistory(entity, hours) {
-  const broker = root.DashboardModernEnergyService?.broker;
-  if (typeof broker?.request !== "function") throw new Error("history transport unavailable");
-  const end = new Date();
-  const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
-  const result = await broker.request({
-    type: "history/history_during_period",
-    start_time: start.toISOString(),
-    end_time: end.toISOString(),
-    entity_ids: [entity],
-    include_start_time_state: true,
-    significant_changes_only: false,
-    minimal_response: true,
-    no_attributes: true,
-  });
-  return normalizeHistoryRows(result, entity);
-}
-
+/* Lo storico lo chiede il modulo condiviso, non piu' questo.
+ *
+ * Qui c'erano la domanda a Recorder e la sua cache. Quando anche la finestra
+ * di una tessera ha avuto bisogno delle stesse letture, tenerle qui avrebbe
+ * voluto dire copiarle di la': due cache che non si parlano, due domande per
+ * la stessa entita', e la certezza che prima o poi una delle due scada con una
+ * regola diversa. Adesso il padrone e' uno, e quando risponde avvisa: da li'
+ * riparte il disegno. */
 function rowsFor(entity, hours) {
-  const key = `${entity}@${hours}`;
-  const cached = state.cache.get(key);
-  const now = Date.now();
-  const freshFor = cached?.failed ? RETRY_AFTER : FRESH_FOR;
-  if (cached && now - cached.at < freshFor) return cached.rows;
-  if (state.pending.has(key)) return cached?.rows || null;
-
-  state.pending.set(
-    key,
-    fetchHistory(entity, hours)
-      .then((rows) => {
-        state.cache.set(key, { rows, at: Date.now(), failed: !rows.length });
-        return rows;
-      })
-      .catch(() => {
-        state.cache.set(key, { rows: [], at: Date.now(), failed: true });
-        return [];
-      })
-      .finally(() => {
-        state.pending.delete(key);
-        schedule();
-      }),
-  );
-  return cached?.rows || null;
+  return serieDi(entity, hours);
 }
 
 function svg(name, attributes = {}) {
@@ -631,12 +592,16 @@ function installStyles() {
   );
 }
 
+/* La risposta allo storico arriva quando arriva: da li' si ridisegna. Prima
+ * lo faceva la coda della domanda, che stava in questo modulo; adesso la
+ * domanda e' del modulo condiviso, e chi vuole saperlo si iscrive. */
 export function installTemperatureTrendSection() {
   if (!doc) return false;
   installStyles();
   renderTemperatureTrend();
   if (!state.listeners) {
     state.listeners = true;
+    quandoArrivaLoStorico(schedule);
     for (const eventName of [
       "dashboardmodern:legacy-ready",
       "dashboardmodern:runtime-ready",

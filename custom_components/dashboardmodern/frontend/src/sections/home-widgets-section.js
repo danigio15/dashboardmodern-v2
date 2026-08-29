@@ -33,6 +33,7 @@ import {
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
+import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   coverEntries,
   coverKindLabel,
@@ -2461,8 +2462,39 @@ function corsaMarkup(widget) {
  * Le sette sezioni fatte di cose che si accendono e si spengono continuano ad
  * avere la loro frase di prima, che li' e' giusta.
  */
+/* L'entita' che racconta la storia di una tessera.
+ *
+ * E' quella del numero grande: se la finestra mostra i watt di casa, la storia
+ * che interessa e' quella dei watt di casa. Dove il numero grande non viene da
+ * un'entita' sola — le luci, le tapparelle, che sono elenchi — non c'e' niente
+ * da chiedere, e infatti quelle sezioni una lettura nel tempo non ce l'hanno.
+ */
+function entitaDelRacconto(widget) {
+  if (widget?.key === "energia") {
+    const energia = section("energy", {}) || {};
+    return clean(energia?.house?.power) || "dm.energy_potenza_consumo_casa";
+  }
+  if (widget?.key === "temperatura") return clean(widget?.rows?.[0]?.entity);
+  if (widget?.key === "ev") return clean(widget?.rows?.[0]?.batteria || widget?.rows?.[0]?.entity);
+  if (["solare", "piscina", "robot", "irrigazione"].includes(widget?.key))
+    return clean(widget?.rows?.[0]?.entity);
+  if (widget?.key === "elettrodomestici")
+    return clean(widget?.running?.[0]?.entity || widget?.rows?.[0]?.entity);
+  return "";
+}
+
+/* Le tre ore precedenti, se lo storico le ha gia' date.
+ *
+ * Non si aspetta: la finestra si apre subito col numero che c'e', e se la
+ * storia arriva dopo la finestra si ridisegna. Una finestra che aspetta la
+ * rete per aprirsi, su una casa senza Recorder, non si apre. */
+function storiaDelWidget(widget) {
+  const entita = entitaDelRacconto(widget);
+  return entita ? puntiDi(entita, 3) : null;
+}
+
 function verdettoEFrase(widget) {
-  const lettura = analisiDellaSezione(widget, t);
+  const lettura = analisiDellaSezione(widget, t, Date.now(), storiaDelWidget(widget));
   const verdetto = verdettoDellaTessera(widget, t);
   const tono = lettura?.tono || verdetto.tono;
   const parola = tono === verdetto.tono ? verdetto.testo : parolaDelVerdetto(tono, t);
@@ -4312,6 +4344,12 @@ export function installHomeWidgetsSection() {
     "dashboardmodern:editor-rendered",
   ])
     root.addEventListener?.(eventName, schedule);
+  /* La storia delle ore precedenti arriva quando arriva, e la finestra non
+   * l'aspetta per aprirsi: si apre col numero che c'e' gia'. Quando la
+   * risposta atterra, pero', il racconto ha due righe in piu' da dire — «piu'
+   * alto del solito per quest'ora», «ci arriva fra un'ora» — e vanno mostrate
+   * senza che l'utente debba chiudere e riaprire. */
+  quandoArrivaLoStorico(schedule);
   // Il numero delle voci aperte E' lo stato dell'entita': quando cambia, le
   // voci vanno rilette — la spunta fatta da un altro dispositivo arriva cosi'.
   root.addEventListener?.("dashboardmodern:state-changed", (event) => {

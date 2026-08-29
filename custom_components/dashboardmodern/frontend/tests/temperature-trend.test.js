@@ -101,7 +101,15 @@ test("the panel is one owner that reads the selection instead of copying it", as
   // the filter broke in the first place.
   assert.match(source, /dm-beta16-temperature-tabs .dm-beta27-temperature-tab.active/);
   assert.doesNotMatch(source, /setInterval|MutationObserver/);
-  // The history transport is the one the card popup already uses.
-  assert.match(source, /history\/history_during_period/);
-  assert.match(source, /normalizeHistoryRows/);
+  /* Lo storico non se lo chiede da solo: lo chiede al modulo condiviso.
+   *
+   * Qui si pretendeva che la domanda a Recorder fosse scritta dentro questo
+   * file — «lo stesso trasporto che usa gia' la finestra della card». Era
+   * l'intenzione giusta detta nel modo debole: due moduli che scrivono la
+   * stessa domanda usano lo stesso trasporto per modo di dire, e ognuno ha la
+   * sua cache. Quando anche le finestre hanno avuto bisogno di quelle letture,
+   * la domanda e' passata a un padrone solo. Adesso la prova pretende quello:
+   * che qui la domanda non ci sia. */
+  assert.doesNotMatch(source, /history\/history_during_period/);
+  assert.match(source, /from "\.\/storico-condiviso-section\.js"/);
 });
