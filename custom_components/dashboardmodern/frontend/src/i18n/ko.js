@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "측정값",
   "The state": "상태",
   "Controls": "제어",
+  "Readings": "측정값",
 });

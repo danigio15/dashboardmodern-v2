@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "Pomiary",
   "The state": "Stan",
   "Controls": "Sterowanie",
+  "Readings": "Odczyty",
 });

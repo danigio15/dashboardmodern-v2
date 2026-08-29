@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "माप",
   "The state": "स्थिति",
   "Controls": "नियंत्रण",
+  "Readings": "रीडिंग",
 });

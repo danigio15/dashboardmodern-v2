@@ -1327,6 +1327,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Read from Home Assistant. A light behind a switch only turns on and off; brightness and colour appear in the popup only when the entity declares them.",
   "Reading areas and entities from Home Assistant…",
   "Reading…",
+  "Readings",
   "reads",
   "Ready",
   "Real photo of your appliance shown instead of the artwork.",

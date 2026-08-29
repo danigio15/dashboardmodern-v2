@@ -1811,4 +1811,5 @@ export default Object.freeze({
   "The readings": "Ölçümler",
   "The state": "Durum",
   "Controls": "Kontroller",
+  "Readings": "Ölçümler",
 });

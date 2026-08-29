@@ -999,6 +999,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Leggo aree ed entità da Home Assistant…": "Reading areas and entities from Home Assistant…",
   "Leggo…": "Reading…",
   "Letto da Home Assistant. Una luce dietro uno switch accende e spegne soltanto; luminosità e colore compaiono nel popup solo se l'entità li dichiara.": "Read from Home Assistant. A light behind a switch only turns on and off; brightness and colour appear in the popup only when the entity declares them.",
+  "Letture": "Readings",
   "limite 75°": "75° limit",
   "Limite di sicurezza": "Safety limit",
   "Lingua / variante": "Language / variant",
