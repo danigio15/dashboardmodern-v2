@@ -98,7 +98,21 @@ test("ogni finestra porta l'oggetto della sua tessera, e il titolo ci sta", asyn
       return {
         disegno: Boolean(testa?.querySelector(".dm-w-head-ic .dm-oggetto")),
         tagliato: titolo ? titolo.scrollWidth > titolo.clientWidth + 1 : true,
-        soprapposto: bordoTitolo && bordoChiudi ? bordoTitolo.right > bordoChiudi.left + 1 : true,
+        /* Si sovrappongono davvero, o stanno solo sulla stessa colonna?
+         *
+         * Il paragone era su una dimensione sola — «il titolo finisce dopo
+         * dove comincia Chiudi» — e valeva finche' Chiudi stava alla destra
+         * del titolo. Adesso «Chiudi» e' scritto in cima, sopra il nome della
+         * sezione, e su una dimensione sola due cose incolonnate risultano
+         * sempre sovrapposte pur non toccandosi mai. Quello che conta e' se i
+         * due rettangoli si incrociano. */
+        soprapposto:
+          bordoTitolo && bordoChiudi
+            ? bordoTitolo.right > bordoChiudi.left + 1 &&
+              bordoTitolo.left < bordoChiudi.right - 1 &&
+              bordoTitolo.bottom > bordoChiudi.top + 1 &&
+              bordoTitolo.top < bordoChiudi.bottom - 1
+            : true,
       };
     });
     expect(esito.disegno, `la finestra di ${chiave} non ha l'oggetto disegnato`).toBe(true);

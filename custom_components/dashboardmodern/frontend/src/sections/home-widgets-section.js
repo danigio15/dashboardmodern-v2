@@ -27,6 +27,11 @@ import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-vie
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
+  bricioleDellaSezione,
+  fraseDellaTessera,
+  verdettoDellaTessera,
+} from "../core/racconto-tessera.js";
+import {
   coverEntries,
   coverKindLabel,
   coverPositionChoices,
@@ -45,6 +50,7 @@ import {
   allStates,
   clean,
   doc,
+  english,
   esc,
   formatNumber,
   installStyle,
@@ -2221,8 +2227,170 @@ function summaryMarkup(widget) {
     .join("")}</div>`;
 }
 
+/* Le pillole dello stato: cosa sta lavorando e cosa no.
+ *
+ * Nel progetto stanno sotto «LO STATO», verdi quelle attive e smorte le altre:
+ * si legge in un colpo d'occhio chi e' in funzione senza contare le righe. */
+function pilloleDelloStato(widget) {
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  const voci = righe
+    .filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name))
+    .slice(0, 8);
+  if (!voci.length) return "";
+  return `<h4 class="dm-w-titoletto">${esc(t("Lo stato", "The state"))}</h4>
+    <div class="dm-w-pillole">${voci
+      .map(
+        (riga) =>
+          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${esc(clean(riga.name))}${
+            clean(riga.value) ? ` <b>${esc(clean(riga.value))}</b>` : ""
+          }</span>`,
+      )
+      .join("")}</div>`;
+}
+
+/* Le caselle: le stesse misure che la tessera riassume, in grande.
+ *
+ * Le sceglieva gia' `summaryChips` per la striscia in cima alla finestra —
+ * «la piu' bassa», «media», «in funzione» — ed e' esattamente quello che il
+ * progetto chiama «le caselle». Non se ne inventano altre: quelle sono. */
+function caselleDelleMisure(widget) {
+  const voci = summaryChips(widget);
+  if (!voci.length) return "";
+  return `<h4 class="dm-w-titoletto">${esc(t("Le misure", "The readings"))}</h4>
+    <div class="dm-w-caselle">${voci
+      .map(
+        ([etichetta, valore]) =>
+          `<div class="dm-w-casella"><b>${esc(valore)}</b><span>${esc(etichetta)}</span></div>`,
+      )
+      .join("")}</div>`;
+}
+
+/* La corsa della misura: dov'era tre ore fa, dov'e' adesso.
+ *
+ * «La misura con la sua corsa»: un numero da solo non dice se sta salendo o
+ * scendendo, e quasi sempre e' quello che si vuole sapere. La storia la chiede
+ * a Recorder lo stesso trasporto che usa il grafico delle temperature — non se
+ * ne apre un secondo — e finche' non risponde la finestra sta in piedi lo
+ * stesso: il numero c'e', la linea arriva dopo.
+ *
+ * Si tiene in memoria per qualche minuto: aprire e chiudere la stessa finestra
+ * tre volte non deve chiedere tre volte la stessa cosa. */
+const CORSA_ORE = 3;
+const CORSA_FRESCA_PER = 4 * 60 * 1000;
+const corse = new Map();
+const corseInVolo = new Set();
+
+/* Quale entita' racconta questa sezione. E' quella del numero grande: la prima
+ * riga che ha un valore da mettere su una linea. */
+function entitaDellaCorsa(widget) {
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  for (const riga of righe) {
+    const entity = clean(riga?.entity);
+    if (!entity) continue;
+    for (const campo of ["raw", "level", "ambient", "temperature", "position"]) {
+      if (Number.isFinite(Number(riga?.[campo]))) return entity;
+    }
+  }
+  return "";
+}
+
+async function chiediLaCorsa(entity) {
+  const broker = root.DashboardModernEnergyService?.broker;
+  if (typeof broker?.request !== "function") return [];
+  const fine = new Date();
+  const inizio = new Date(fine.getTime() - CORSA_ORE * 60 * 60 * 1000);
+  const risposta = await broker.request({
+    type: "history/history_during_period",
+    start_time: inizio.toISOString(),
+    end_time: fine.toISOString(),
+    entity_ids: [entity],
+    include_start_time_state: true,
+    significant_changes_only: false,
+    minimal_response: true,
+    no_attributes: true,
+  });
+  const grezze = Array.isArray(risposta) ? risposta[0] : risposta?.[entity];
+  return (Array.isArray(grezze) ? grezze : [])
+    .map((riga) => Number(riga?.s ?? riga?.state))
+    .filter((valore) => Number.isFinite(valore));
+}
+
+function corsaDi(entity) {
+  if (!entity) return null;
+  const avuta = corse.get(entity);
+  if (avuta && Date.now() - avuta.quando < CORSA_FRESCA_PER) return avuta.valori;
+  if (corseInVolo.has(entity)) return avuta?.valori || null;
+  corseInVolo.add(entity);
+  chiediLaCorsa(entity)
+    .then((valori) => corse.set(entity, { valori, quando: Date.now() }))
+    .catch(() => corse.set(entity, { valori: [], quando: Date.now() }))
+    .finally(() => {
+      corseInVolo.delete(entity);
+      /* La linea e' arrivata: si ridisegna la finestra, che intanto e' rimasta
+       * aperta e leggibile senza. */
+      schedule();
+    });
+  return avuta?.valori || null;
+}
+
+function corsaMarkup(widget) {
+  const valori = corsaDi(entitaDellaCorsa(widget));
+  if (!valori || valori.length < 2) return "";
+  const minimo = Math.min(...valori);
+  const massimo = Math.max(...valori);
+  const ampiezza = massimo - minimo || 1;
+  const passo = 100 / (valori.length - 1);
+  const punti = valori
+    .map((valore, posto) => `${(posto * passo).toFixed(2)},${(26 - ((valore - minimo) / ampiezza) * 22).toFixed(2)}`)
+    .join(" ");
+  const ultimo = valori[valori.length - 1];
+  return `<div class="dm-w-corsa">
+      <svg viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-hidden="true">
+        <polyline points="${punti}" />
+        <circle cx="100" cy="${(26 - ((ultimo - minimo) / ampiezza) * 22).toFixed(2)}" r="1.6" />
+      </svg>
+      <span>${esc(t(`${CORSA_ORE} ore fa`, `${CORSA_ORE}h ago`))}</span>
+      <span>${esc(t("adesso", "now"))}</span>
+    </div>`;
+}
+
+/* Il verdetto e la frase, che sono le prime due cose che si leggono.
+ *
+ * «Il popup smette di essere un elenco e dice cosa sta facendo l'impianto, da
+ * quanto, e dove va a finire.» Il verdetto e' la pillola colorata; la frase la
+ * scrive il modulo puro, che sa dire «2 zone su 5 accese, manca 1,2°» invece
+ * di lasciare undici righe da mettere insieme a mente. */
+function verdettoEFrase(widget) {
+  const inglese = english();
+  const verdetto = verdettoDellaTessera(widget, inglese);
+  const misura = clean(widget.value);
+  const nota = clean(widget.caption);
+  return `<section class="dm-w-racconto" data-dm-verdetto="${verdetto.tono}">
+      <span class="dm-w-verdetto">${esc(verdetto.testo)}</span>
+      <p class="dm-w-frase">${esc(fraseDellaTessera(widget, inglese))}</p>
+      ${
+        misura
+          ? `<div class="dm-w-misura"><b>${esc(misura)}</b>${
+              nota ? `<small>${esc(nota)}</small>` : ""
+            }</div>`
+          : ""
+      }
+      ${corsaMarkup(widget)}
+    </section>`;
+}
+
+/* Una forma sola, sempre nello stesso ordine.
+ *
+ * «Diciassette sezioni. Stesso ordine, sempre: il verdetto, la frase, la
+ * misura con la sua corsa, le caselle, i comandi.» I comandi sono le righe di
+ * prima: li' ci sono gli interruttori, e quelli non si toccano — cambia il
+ * posto, non quello che fanno. */
 function detailBody(widget, states) {
-  return `${summaryMarkup(widget)}${detailRows(widget, states)}`;
+  const comandi = detailRows(widget, states);
+  return `${verdettoEFrase(widget)}
+    ${caselleDelleMisure(widget)}
+    ${pilloleDelloStato(widget)}
+    ${comandi ? `<h4 class="dm-w-titoletto">${esc(t("Comandi", "Controls"))}</h4>${comandi}` : ""}`;
 }
 
 function detailRows(widget, states) {
@@ -2296,10 +2464,10 @@ function detailMarkup(widget, states) {
   return `<article class="dm-widget-detail" data-dm-widget-detail="${widget.key}"
       style="--dm-widget-accent:${widget.accent}">
       <header class="dm-w-head">
+        <button type="button" class="dm-w-close" data-dm-widget-close aria-label="${esc(t("Chiudi", "Close"))}"><span aria-hidden="true">✕</span> ${esc(t("Chiudi", "Close"))}</button>
         <span class="dm-w-head-ic" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
         <strong data-dm-titolo>${esc(widget.label)}</strong>
-        <small data-dm-detail-caption>${esc(widget.caption)}</small>
-        <button type="button" class="dm-w-close" data-dm-widget-close aria-label="${esc(t("Chiudi", "Close"))}">✕</button>
+        <small data-dm-detail-caption>${esc(bricioleDellaSezione(widget.key, english()).join(" · ") || widget.caption)}</small>
       </header>
       <div class="dm-w-body">${detailBody(widget, states)}</div>
       ${vaiAllaSezione}
@@ -3064,7 +3232,10 @@ html.dm-widget-popup-open{overflow:hidden}
  * sottotitolo di una sezione con sei voci finiva sempre coi puntini. */
 #dm-widget-popup .dm-widget-detail .dm-w-head{
   flex:0 0 auto;position:relative;overflow:hidden;
-  display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;
+  /* Tre righe: «Chiudi» in cima da solo, poi l'icona col nome della sezione, e
+     sotto le briciole. E' la testata del progetto: la via d'uscita si vede
+     subito, il nome e' grande e colorato, e sotto c'e' scritto di cosa parla. */
+  display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto;
   column-gap:15px;row-gap:5px;align-items:center;
   padding:20px 22px 19px;color:var(--text,#0f172a);border-bottom:0;box-shadow:none;
   /* Il testo a sinistra: questa e' un <header>, e da telefono il foglio della
@@ -3086,7 +3257,7 @@ html.dm-widget-popup-open{overflow:hidden}
 /* La pastiglia dell'icona: la tinta della sezione, appena posata, con l'anello
  * sottile che hanno tutte le pastiglie della plancia. */
 #dm-widget-popup .dm-widget-detail .dm-w-head-ic{
-  grid-row:1/3;flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center;
+  grid-column:1;grid-row:2/4;flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center;
   border-radius:16px;font-size:23px;
   background:linear-gradient(140deg,
     color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 17%,var(--card-bg,#fff)),
@@ -3104,29 +3275,114 @@ html.dm-widget-popup-open{overflow:hidden}
  * regola condivisa con la tessera aperta in griglia, che a parita' di peso
  * vincerebbe perche' viene dopo. */
 #dm-widget-popup .dm-widget-detail .dm-w-head strong{
-  grid-column:2;grid-row:1;min-width:0;white-space:nowrap;overflow:hidden;
+  grid-column:2;grid-row:2;min-width:0;white-space:nowrap;overflow:hidden;
   font-family:'Oswald',system-ui,sans-serif;font-weight:700;
   font-size:clamp(19px,2.4vw,25px);line-height:1.05;letter-spacing:2px;text-transform:uppercase;
   color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 78%,#0f172a)}
 #dm-widget-popup .dm-widget-detail .dm-w-head small{
-  grid-column:2;grid-row:2;flex:none;
+  grid-column:2;grid-row:3;flex:none;
   font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;
   color:var(--text-dim,#64748b);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* «Chiudi» sta in cima, scritto, non un tondino in un angolo: e' la prima cosa
+   che si vede e la si legge, come nel progetto. */
 #dm-widget-popup .dm-widget-detail .dm-w-close{
-  grid-column:3;grid-row:1/3;
-  flex:0 0 38px;width:38px;height:38px;border-radius:50%;
-  display:grid;place-items:center;font-size:15px;font-weight:800;
-  background:var(--card-bg,#fff);border:1px solid var(--card-border,#e2e8f0);
-  color:var(--text-dim,#64748b);box-shadow:0 6px 16px -10px rgba(15,23,42,.5);
-  transition:background .18s ease,border-color .18s ease,color .18s ease}
-#dm-widget-popup .dm-widget-detail .dm-w-close:hover{
-  background:#fee2e2;border-color:#fecaca;color:#dc2626}
-html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
-  background:rgba(220,38,38,.22);border-color:rgba(248,113,113,.45);color:#fca5a5}
+  grid-column:1/-1;grid-row:1;justify-self:start;
+  display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 4px 0 0;
+  border:0;background:none;box-shadow:none;
+  font-size:10.5px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--text-dim,#64748b);cursor:pointer;
+  transition:color .18s ease}
+#dm-widget-popup .dm-widget-detail .dm-w-close span{font-size:13px;letter-spacing:0}
+#dm-widget-popup .dm-widget-detail .dm-w-close:hover{color:#dc2626}
+html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{color:#fca5a5}
 /* E la finestra non ha piu' bisogno del filo di colore sul bordo alto: adesso
  * il colore ce l'ha la fascia. */
 #dm-widget-popup .dm-widget-detail::before{display:none}
+/* ── una forma sola: il verdetto, la frase, la misura con la sua corsa ─────
+ *
+ * Il blocco in cima alla finestra. Prende la tinta della sezione appena
+ * accennata, cosi' si capisce da lontano di cosa si sta parlando, e il verdetto
+ * ci mette il suo colore: verde quando non c'e' niente da fare, ambra quando
+ * qualcosa sta lavorando, rosso quando qualcuno deve guardarci. */
+#dm-widget-popup .dm-w-racconto{
+  display:grid;gap:11px;margin:0 0 18px;padding:15px 16px 14px;
+  border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--dm-verdetto,#10b981) 24%,transparent);
+  background:linear-gradient(160deg,
+    color-mix(in srgb,var(--dm-verdetto,#10b981) 11%,var(--card-bg,#fff)),
+    var(--card-bg,#fff) 72%)}
+#dm-widget-popup .dm-w-racconto[data-dm-verdetto="bene"]{--dm-verdetto:#10b981}
+#dm-widget-popup .dm-w-racconto[data-dm-verdetto="corso"]{--dm-verdetto:#f59e0b}
+#dm-widget-popup .dm-w-racconto[data-dm-verdetto="guarda"]{--dm-verdetto:#e11d48}
+#dm-widget-popup .dm-w-verdetto{
+  justify-self:start;display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:999px;
+  background:color-mix(in srgb,var(--dm-verdetto,#10b981) 16%,transparent);
+  color:color-mix(in srgb,var(--dm-verdetto,#10b981) 82%,#0f172a);
+  font-size:9.5px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase}
+#dm-widget-popup .dm-w-verdetto::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:var(--dm-verdetto,#10b981)}
+/* La frase e' la cosa che si legge davvero: sta grande come un testo, non come
+   un'etichetta, e va a capo invece di finire in tre puntini. */
+#dm-widget-popup .dm-w-frase{
+  margin:0;font-size:14.5px;line-height:1.45;font-weight:700;
+  color:var(--text,#0f172a);text-wrap:balance}
+#dm-widget-popup .dm-w-misura{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+#dm-widget-popup .dm-w-misura b{
+  font-family:'Oswald',system-ui,sans-serif;font-weight:300;
+  font-size:clamp(30px,9vw,42px);line-height:1;letter-spacing:-.01em;
+  color:var(--text,#0f172a);font-variant-numeric:tabular-nums}
+#dm-widget-popup .dm-w-misura small{
+  font-size:11px;font-weight:800;line-height:1.35;
+  color:color-mix(in srgb,var(--dm-verdetto,#10b981) 70%,var(--text-dim,#64748b))}
+/* La corsa: dov'era, dov'e' arrivata. Senza numeri sopra — quelli stanno gia'
+   accanto — perche' quello che serve e' la forma. */
+#dm-widget-popup .dm-w-corsa{
+  display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:2px 0;margin-top:2px}
+#dm-widget-popup .dm-w-corsa svg{
+  grid-column:1/-1;width:100%;height:34px;overflow:visible}
+#dm-widget-popup .dm-w-corsa polyline{
+  fill:none;stroke:var(--dm-verdetto,#10b981);stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+#dm-widget-popup .dm-w-corsa circle{fill:var(--dm-verdetto,#10b981)}
+#dm-widget-popup .dm-w-corsa span{
+  font-size:9px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;
+  color:var(--text-dim,#94a3b8)}
+#dm-widget-popup .dm-w-corsa span:last-child{text-align:right}
+/* ── le caselle e le pillole ──────────────────────────────────────────── */
+#dm-widget-popup .dm-w-titoletto{
+  margin:18px 0 8px;font-size:9.5px;font-weight:900;letter-spacing:1.7px;
+  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+#dm-widget-popup .dm-w-caselle{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#dm-widget-popup .dm-w-casella{
+  display:grid;gap:2px;padding:10px 11px;border-radius:14px;
+  border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
+#dm-widget-popup .dm-w-casella b{
+  font-family:'Oswald',system-ui,sans-serif;font-weight:400;font-size:19px;line-height:1.1;
+  color:var(--text,#0f172a);font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dm-widget-popup .dm-w-casella span{
+  font-size:8.5px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;
+  color:var(--text-dim,#94a3b8);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dm-widget-popup .dm-w-pillole{display:flex;flex-wrap:wrap;gap:6px}
+#dm-widget-popup .dm-w-pillola{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;
+  font-size:10.5px;font-weight:800;
+  border:1px solid var(--card-border,#e2e8f0);
+  background:var(--surface-2,#f8fafc);color:var(--text-dim,#94a3b8)}
+#dm-widget-popup .dm-w-pillola::before{
+  content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+#dm-widget-popup .dm-w-pillola[data-acceso="true"]{
+  border-color:color-mix(in srgb,#10b981 34%,transparent);
+  background:color-mix(in srgb,#10b981 12%,transparent);
+  color:color-mix(in srgb,#10b981 76%,#0f172a)}
+#dm-widget-popup .dm-w-pillola b{font-weight:900;color:inherit}
+@media(max-width:420px){
+  #dm-widget-popup .dm-w-caselle{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 #dm-widget-popup .dm-w-piede{
   display:flex;padding:0 15px 15px;margin:0}
 #dm-widget-popup .dm-w-vai{
