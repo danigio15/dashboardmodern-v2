@@ -62,9 +62,12 @@ test("custom Temperature entity names are projected onto live dashboard labels",
 
 test("the label above the reading has a single owner", async () => {
   const guard = await readFile(guardUrl, "utf8");
+  /* beta25 non e' piu' nell'elenco: il suo disegnatore di card e' stato
+   * ritirato — era il secondo padrone di `buildTempCards`, e la guerra fra i
+   * due faceva sparire le sonde oltre la prima. Le card le disegna solo il
+   * padrone canonico; beta25 tiene l'editor delle associazioni. */
   for (const name of [
     "temperature-section.js",
-    "beta25-real-device-fixes-section.js",
     "beta26-real-device-stability-section.js",
   ]) {
     const source = await readFile(new URL(`../src/sections/${name}`, import.meta.url), "utf8");
@@ -96,9 +99,12 @@ test("the comfort pill carries a short unavailable label and keeps the full word
 
   // Every renderer of the pill shows the short form while `title`, `aria-label`
   // and `data-comfort` keep the full label the badge colours key off.
+  /* beta25 non e' piu' nell'elenco: il suo disegnatore di card e' stato
+   * ritirato — era il secondo padrone di `buildTempCards`, e la guerra fra i
+   * due faceva sparire le sonde oltre la prima. Le card le disegna solo il
+   * padrone canonico; beta25 tiene l'editor delle associazioni. */
   for (const name of [
     "temperature-section.js",
-    "beta25-real-device-fixes-section.js",
     "beta26-real-device-stability-section.js",
   ]) {
     const source = await readFile(new URL(`../src/sections/${name}`, import.meta.url), "utf8");
@@ -169,9 +175,12 @@ test("the reading is projected onto the card so the sheet can draw it", async ()
   assert.equal(card.dataset.dmHumidity, "off");
 
   // Every renderer hands its reading to the same function.
+  /* beta25 non e' piu' nell'elenco: il suo disegnatore di card e' stato
+   * ritirato — era il secondo padrone di `buildTempCards`, e la guerra fra i
+   * due faceva sparire le sonde oltre la prima. Le card le disegna solo il
+   * padrone canonico; beta25 tiene l'editor delle associazioni. */
   for (const name of [
     "temperature-section.js",
-    "beta25-real-device-fixes-section.js",
     "beta26-real-device-stability-section.js",
   ]) {
     const source = await readFile(new URL(`../src/sections/${name}`, import.meta.url), "utf8");

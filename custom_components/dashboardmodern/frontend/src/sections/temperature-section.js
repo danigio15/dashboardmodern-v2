@@ -1,5 +1,6 @@
 // DM-FIX-20260815A
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
+import { temperatureEntries } from "../core/room-overview.js";
 import {
   allStates,
   applyTemperatureReading,
@@ -34,8 +35,21 @@ function rooms() {
   return Array.isArray(values) ? values : [];
 }
 
-function configuredRooms() {
-  return rooms().filter((room) => clean(room?.temp));
+/* Una voce per SONDA, non per stanza.
+ *
+ * «Se nella stessa stanza metto più rilevatori di temperature ne fa vedere
+ * solo uno»: le associazioni oltre la prima esistono gia' — vivono in
+ * `metadata.temperature_entries`, e il trend e la pagina Stanze le usano — ma
+ * questa pagina leggeva solo `room.temp`, la prima coppia. Qui si appiattisce:
+ * ogni associazione con un sensore di temperatura diventa una card sua, e
+ * `quante` dice se il titolo deve distinguere le sorelle. */
+function roomEntries() {
+  const voci = [];
+  for (const room of rooms()) {
+    const entries = temperatureEntries(room).filter((entry) => clean(entry.temp));
+    for (const entry of entries) voci.push({ room, entry, quante: entries.length });
+  }
+  return voci;
 }
 
 function eventEntityIds(event) {
@@ -45,9 +59,9 @@ function eventEntityIds(event) {
 
 function temperatureEntityIds() {
   const ids = new Set();
-  configuredRooms().forEach((room) => {
-    const temperature = clean(room.temp);
-    const humidity = clean(room.hum || temperature.replace("_temperature", "_humidity"));
+  roomEntries().forEach((voce) => {
+    const temperature = clean(voce.entry.temp);
+    const humidity = entryHumidity(voce.entry);
     if (temperature) ids.add(temperature);
     if (humidity) ids.add(humidity);
   });
@@ -81,21 +95,36 @@ function safeId(entity) {
   return clean(entity).replace(/[.\-]/g, "_");
 }
 
-function roomHumidity(room) {
-  const temp = clean(room?.temp);
-  return clean(room?.hum || temp.replace("_temperature", "_humidity"));
+function entryHumidity(entry) {
+  const temp = clean(entry?.temp);
+  return clean(entry?.hum || temp.replace("_temperature", "_humidity"));
 }
 
-function cardSignature(values = configuredRooms()) {
+/* Il titolo della card: la stanza, e — quando le sonde sono piu' d'una — quale
+ * sonda, perche' due card entrambe «Salone» non si distinguono. */
+function cardTitle(voce) {
+  const base = clean(voce.room.name) || t("Stanza", "Room");
+  if (voce.quante <= 1) return base;
+  const nome =
+    clean(voce.entry.name) || clean(exactState(voce.entry.temp)?.attributes?.friendly_name);
+  // «Cameretta · Cameretta» non distingue niente: il suffisso serve solo
+  // quando dice qualcosa in piu' della stanza.
+  if (!nome || nome.toLowerCase() === base.toLowerCase()) return base;
+  return `${base} · ${nome}`;
+}
+
+function cardSignature(values = roomEntries()) {
   return values
-    .map((room) =>
+    .map((voce) =>
       [
-        clean(room.id),
-        clean(room.name),
-        clean(room.icon),
-        clean(room.floor),
-        clean(room.temp),
-        roomHumidity(room),
+        clean(voce.room.id),
+        clean(voce.entry.id),
+        clean(voce.room.name),
+        clean(voce.entry.name),
+        clean(voce.room.icon),
+        clean(voce.room.floor),
+        clean(voce.entry.temp),
+        entryHumidity(voce.entry),
       ].join("|"),
     )
     .join(";");
@@ -113,18 +142,20 @@ function openHistory(event, entity, name) {
   root.apriStorico?.(event, entity, name);
 }
 
-function createTemperatureCard(room) {
-  const temperature = clean(room.temp);
-  const humidity = roomHumidity(room);
+function createTemperatureCard(voce) {
+  const { room, entry } = voce;
+  const temperature = clean(entry.temp);
+  const humidity = entryHumidity(entry);
   const tid = safeId(temperature);
   const hid = safeId(humidity);
 
   const card = doc.createElement("article");
   card.className = "temp-card cp-card dm-temperature-card";
   card.dataset.roomId = clean(room.id);
+  card.dataset.temperatureId = clean(entry.id) || "primary";
   card.dataset.dmTemperatureCanonical = "true";
   card.style.setProperty("--cp-rgb", "148, 163, 184");
-  card.addEventListener("click", (event) => openHistory(event, temperature, clean(room.name)));
+  card.addEventListener("click", (event) => openHistory(event, temperature, cardTitle(voce)));
 
   const header = doc.createElement("div");
   header.className = "cp-header temp-card-header";
@@ -136,7 +167,7 @@ function createTemperatureCard(room) {
   icon.append(makeText("dm-temperature-icon-fallback", glyph(room.icon)));
   const name = doc.createElement("div");
   name.className = "cp-name temp-room-name";
-  name.textContent = clean(room.name) || (t("Stanza", "Room"));
+  name.textContent = cardTitle(voce);
   title.append(icon, name);
   const badge = doc.createElement("div");
   badge.className = "cp-badge temp-comfort-badge";
@@ -147,7 +178,7 @@ function createTemperatureCard(room) {
   body.className = "cp-body temp-card-body";
   const current = doc.createElement("div");
   current.className = "cp-temp-current-wrap";
-  const labels = temperatureCardLabels(room);
+  const labels = temperatureCardLabels(room, entry);
   current.append(
     makeText("cp-temp-current-lbl", labels.temperature),
     makeText("cp-temp-current temp-value", "—"),
@@ -163,17 +194,18 @@ function createTemperatureCard(room) {
   humidityBox.lastElementChild.id = `hv_${hid}`;
   humidityBox.addEventListener("click", (event) => {
     event.stopPropagation();
-    openHistory(event, humidity, `${clean(room.name)} ${t("Umidità", "Humidity")}`);
+    openHistory(event, humidity, `${cardTitle(voce)} ${t("Umidità", "Humidity")}`);
   });
   body.append(current, humidityBox);
   card.append(header, body);
   return card;
 }
 
-function updateCard(card, room) {
-  if (!card || !room) return;
-  const temperature = numericState(room.temp);
-  const humidity = numericState(roomHumidity(room));
+function updateCard(card, voce) {
+  if (!card || !voce) return;
+  const { room, entry } = voce;
+  const temperature = numericState(entry.temp);
+  const humidity = numericState(entryHumidity(entry));
   const value = card.querySelector(".temp-value");
   const humidityValue = card.querySelector(".temp-hum-val");
   const comfort = card.querySelector(".temp-comfort-badge");
@@ -199,16 +231,24 @@ function updateCard(card, room) {
     fallback.textContent = glyph(room.icon);
     if (!fallback.parentElement) icon.replaceChildren(fallback);
   }
-  if (name) name.textContent = clean(room.name) || (t("Stanza", "Room"));
+  if (name) name.textContent = cardTitle(voce);
+}
+
+function vocePerCard(values, card) {
+  return values.find(
+    (voce) =>
+      clean(voce.room.id) === clean(card.dataset.roomId) &&
+      (clean(voce.entry.id) || "primary") === (clean(card.dataset.temperatureId) || "primary"),
+  );
 }
 
 export function normalizeTemperatureCards() {
   const grid = doc?.getElementById("temp-grid");
   if (!grid) return false;
-  const values = configuredRooms();
+  const values = roomEntries();
   for (const card of grid.querySelectorAll(".temp-card[data-room-id]")) {
-    const room = values.find((item) => clean(item.id) === clean(card.dataset.roomId));
-    if (room) updateCard(card, room);
+    const voce = vocePerCard(values, card);
+    if (voce) updateCard(card, voce);
   }
   return values.length > 0;
 }
@@ -216,7 +256,7 @@ export function normalizeTemperatureCards() {
 export function renderTemperatureCards({ force = false } = {}) {
   const grid = doc?.getElementById("temp-grid");
   if (!grid) return false;
-  const values = configuredRooms();
+  const values = roomEntries();
   const signature = cardSignature(values);
 
   if (
@@ -238,9 +278,9 @@ export function renderTemperatureCards({ force = false } = {}) {
     return false;
   }
 
-  const cards = values.map((room) => {
-    const card = createTemperatureCard(room);
-    updateCard(card, room);
+  const cards = values.map((voce) => {
+    const card = createTemperatureCard(voce);
+    updateCard(card, voce);
     return card;
   });
   grid.replaceChildren(...cards);

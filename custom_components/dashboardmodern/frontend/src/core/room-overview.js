@@ -135,6 +135,49 @@ export function belongsToRoom(item, room) {
 
 const array = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 
+/* Le sonde di temperatura di una stanza, tutte, in un posto solo.
+ *
+ * La prima coppia vive addosso alla stanza (`temp`/`hum`, col nome in
+ * `temp_name`); quelle oltre la prima stanno in
+ * `metadata.temperature_entries`. Questo elenco lo leggevano in tre — il
+ * trend, la pagina Stanze e il disegnatore delle card — ognuno col suo
+ * appiattimento: erano due padroni per la stessa cosa, e infatti la pagina
+ * Temperatura mostrava una sonda sola per quante ne fossero configurate.
+ * Il modello sta qui, che e' puro; chi disegna lo chiede e basta. */
+const PRIMARY_TEMPERATURE_ID = "primary";
+
+export function normalizeTemperatureEntry(entry = {}, index = 0) {
+  return {
+    id: clean(entry.id) || `temperature-extra-${index + 1}`,
+    name: clean(entry.name || entry.label),
+    temp: clean(entry.temp || entry.temperature_entity || entry.entity),
+    hum: clean(entry.hum || entry.humidity_entity),
+  };
+}
+
+/** Ogni associazione temperatura di una stanza canonica, primaria compresa. */
+export function temperatureEntries(room = {}) {
+  const entries = [];
+  const primaryTemp = clean(room.temp);
+  const primaryHum = clean(room.hum);
+  if (primaryTemp || primaryHum) {
+    entries.push({
+      id: PRIMARY_TEMPERATURE_ID,
+      name: clean(room.temp_name),
+      temp: primaryTemp,
+      hum: primaryHum,
+    });
+  }
+  const extras = Array.isArray(room?.metadata?.temperature_entries)
+    ? room.metadata.temperature_entries
+    : [];
+  extras
+    .map(normalizeTemperatureEntry)
+    .filter((entry) => entry.temp || entry.hum)
+    .forEach((entry) => entries.push(entry));
+  return entries;
+}
+
 /* Le luci arrivano in due forme.
  *
  * Il modello canonico ne fa un elenco di dispositivi con `room_id`; la
