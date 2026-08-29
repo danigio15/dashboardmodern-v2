@@ -34,37 +34,6 @@ const GENERIC_TOKENS = new Set([
   "carico",
 ]);
 
-/* Il valore rimasto addosso a una luce: e' un nome o un identificativo?
- *
- * «Quando elimini alcune stanze ricompaiono con un nome sempre piu' lungo»:
- * room-room-room-room-terrazzo. Il giro era questo. L'assegnazione di una luce
- * porta l'IDENTIFICATIVO della stanza — `room-terrazzo` — non il suo nome.
- * Cancellata la stanza, quell'identificativo non si risolve piu', e chi
- * riadottava la stanza lo prendeva per un nome: ne faceva un identificativo
- * nuovo mettendogli davanti un altro `room-`, e il nome della stanza diventava
- * `room-terrazzo`. Cancella di nuovo, e il prefisso si somma. Ogni giro una
- * parola in piu', per sempre.
- *
- * Adesso si guarda cosa si ha in mano. Se e' gia' un identificativo di quelli
- * che genera questa plancia, la stanza rinasce con QUELLO — cosi' le luci che
- * la nominano restano attaccate — e il nome si ricava togliendo il prefisso,
- * che e' l'unico pezzo che non e' mai stato scritto da una persona. Se e' un
- * nome vero, si comporta come prima.
- */
-export function stanzaAdottata(raw, progressivo) {
-  const testo = clean(raw);
-  if (!testo) return { id: "", name: "" };
-  const gia = /^room-(.+)$/i.exec(testo);
-  if (gia) {
-    /* Il nome leggibile da un identificativo: i trattini tornano spazi e la
-     * prima lettera si alza. «room-bagno-grande» diventa «Bagno grande». */
-    const parole = gia[1].replace(/[-_]+/g, " ").trim();
-    const nome = parole ? parole.charAt(0).toUpperCase() + parole.slice(1) : testo;
-    return { id: testo, name: nome };
-  }
-  return { id: `room-${slug(testo) || progressivo}`, name: testo };
-}
-
 function entityId(entry) {
   return clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id);
 }
@@ -300,7 +269,6 @@ function normalizeLegacyLightRooms() {
   if (!rooms.length) return false;
   const lights = readJson("cd_luci", {});
   const assignments = readJson("cd_luci_rooms", {});
-  const adopted = new Map();
   let changed = false;
   for (const [entity, name] of Object.entries(lights)) {
     const raw = clean(assignments[entity]);
@@ -319,30 +287,28 @@ function normalizeLegacyLightRooms() {
       changed = true;
       continue;
     }
-    /* Una stanza che c'e' solo sulle luci non e' una stanza fantasma: e' una
-     * stanza che manca all'elenco.
+    /* Le stanze sono soltanto quelle della sezione Stanze. Nient'altro ne crea.
      *
-     * L'importazione dalle aree di Home Assistant assegna a ogni luce il nome
-     * della sua area e, separatamente, aggiunge quelle aree all'elenco delle
-     * stanze. Le due scritture non hanno lo stesso proprietario: l'elenco viene
-     * riscritto dal deposito a ogni salvataggio, l'assegnazione delle luci no.
-     * Bastava un salvataggio perche' l'elenco perdesse le aree e le luci
-     * restassero a puntare a nomi che nella sezione Stanze non c'erano piu'.
-     * Il nome viene adottato: era una stanza vera, torna nell'elenco. */
-    if (!resolved && raw) adopted.set(raw, (adopted.get(raw) || []).concat(entity));
-  }
-  
-  if (adopted.size) {
-    const next = rooms.slice();
-    for (const [raw, entities] of adopted) {
-      const { id, name } = stanzaAdottata(raw, next.length + 1);
-      if (!id) continue;
-      if (next.some((room) => clean(room.id) === id)) continue;
-      next.push({ id, name, icon: "🏠" });
-      for (const entity of entities) assignments[entity] = id;
+     * Qui c'era l'adozione: una luce che nominava una stanza non piu' esistente
+     * se la faceva ricreare. Nasceva da un problema vero — l'importazione dalle
+     * aree di Home Assistant scrive il nome dell'area su ogni luce e,
+     * separatamente, aggiunge quelle aree all'elenco; le due scritture non hanno
+     * lo stesso padrone, e bastava un salvataggio perche' l'elenco le perdesse —
+     * ma la cura era peggiore. Ricreare la stanza da un'assegnazione voleva dire
+     * dare all'elenco delle stanze un secondo padrone, e un secondo padrone che
+     * non sa nemmeno cosa ha in mano: quel valore e' un identificativo, non un
+     * nome, e riadottandolo ci finiva davanti un altro «room-». Cancella tre
+     * volte e leggi «room-room-room-terrazzo».
+     *
+     * Adesso una luce che punta a una stanza che non c'e' piu' semplicemente non
+     * ha una stanza: finisce fra le altre zone, dove si vede, e la si riassegna
+     * dalla sezione Stanze. Perdere un'assegnazione e' un fastidio che si
+     * risolve in due tocchi; una stanza inventata che si allunga a ogni giro non
+     * si risolve affatto, perche' chi la guarda non sa nemmeno da dove venga. */
+    if (!resolved && raw) {
+      delete assignments[entity];
       changed = true;
     }
-    if (changed) dashboardStore()?.replaceSection?.("rooms", next);
   }
   if (!changed) return false;
   writeJsonIfChanged("cd_luci_rooms", assignments, { sync: false });

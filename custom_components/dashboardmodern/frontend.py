@@ -246,7 +246,13 @@ async def _ensure_static_registered(
     if hass.http is None:
         await async_setup_component(hass, "http", {})
 
-    assets = list(_runtime_assets())
+    # Percorrere la cartella e' un'operazione di disco, e questa funzione gira
+    # nell'event loop di Home Assistant: dalla 2026.8 lo dice ad alta voce —
+    # «Detected blocking call to scandir». Non e' un avviso pedante: sono
+    # centosettanta moduli piu' il guscio, e mentre il ciclo cammina fra i file
+    # nessun'altra integrazione va avanti. L'elenco si costruisce quindi da
+    # parte, come si fa gia' per il digest degli asset qui sopra.
+    assets = await hass.async_add_executor_job(lambda: list(_runtime_assets()))
 
     def configs(prefix: str, cache_headers: bool) -> list[StaticPathConfig]:
         return [
