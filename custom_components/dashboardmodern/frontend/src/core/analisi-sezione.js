@@ -193,10 +193,26 @@ const LETTURE = Object.freeze({
       };
     }
 
+    /* Manca la lettura della casa, non quella del sole.
+     *
+     * Qui si diceva «il sole non produce» ogni volta che il sensore della casa
+     * era irraggiungibile — anche col fotovoltaico a due chilowatt, perche' il
+     * ramo del bilancio piu' sopra pretende di conoscere tutti e due i numeri e
+     * questo raccoglieva quello che avanzava. Dire che il sole e' fermo quando
+     * si sa che non lo e' e' la bugia peggiore fra quelle possibili qui: chi
+     * legge chiude la finestra convinto di avere un impianto guasto. */
     if (casa == null)
       return {
         tono: VERDETTI.bene,
-        frase: tr("Il sole non produce.", "No solar production."),
+        /* Qui `sole` c'e' sempre: se mancasse anche lui, il ramo piu' in alto
+         * avrebbe gia' detto che non c'e' niente da leggere. */
+        frase:
+          sole > 20
+            ? tr(
+                `Il sole fa ${watt(sole, l)}. Il consumo della casa non si legge.`,
+                `The sun is making ${watt(sole, l)}. The house consumption is unavailable.`,
+              )
+            : tr("Il sole non produce.", "No solar production."),
         punti,
       };
     return {
@@ -575,10 +591,20 @@ const LETTURE = Object.freeze({
           punti,
         };
     }
+    /* «Non c'e' ancora una lettura» dopo aver appena scritto il pH.
+     *
+     * Questo ramo guardava la sola temperatura dell'acqua: una vasca con la
+     * sonda del pH e senza termometro si sentiva dire che il pH e' 7,3 e, riga
+     * sotto, che non c'e' ancora una lettura. Due frasi che si smentiscono
+     * nella stessa finestra valgono meno di una sola. Se qualcosa si e' letto,
+     * si dice cosa manca; se non si e' letto niente, allora si', non c'e'
+     * ancora una lettura. */
     if (acqua == null)
       return {
         tono: VERDETTI.bene,
-        frase: tr("Non c'e' ancora una lettura.", "No reading yet."),
+        frase: punti.length
+          ? tr("La temperatura dell'acqua non si legge.", "The water temperature is unavailable.")
+          : tr("Non c'e' ancora una lettura.", "No reading yet."),
         punti,
       };
     return {

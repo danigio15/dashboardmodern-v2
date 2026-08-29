@@ -1019,6 +1019,13 @@ function evModel(states) {
      * attaccata alla presa. */
     ring: percentuale,
     attiva: letture.some((lettura) => autoAllaPresa(lettura.ricarica)),
+    /* Quante auto ci sono, detto qui e non contato dalle righe.
+     *
+     * Un'auto sola porta due righe — la carica e l'autonomia — e chi contava le
+     * righe ne deduceva due auto: la finestra diceva «una e' in ricarica; la
+     * piu' scarica e'...» a chi ne ha una. Le auto le sa questo modello, che le
+     * ha appena messe in fila. */
+    quante: letture.length,
     rows,
   };
 }
@@ -1141,9 +1148,21 @@ function solarThermalModel(states) {
       const attivo = STATI_ACCESI.test(dato.state);
       if (pompa == null && casella.ref.includes("pompa")) pompa = attivo;
       visti.add(dato.entity);
+      /* Accanto al testo che si legge, cio' che serve per ragionarci.
+       *
+       * La riga portava solo «Acceso»: chi legge la sezione per dire da quanto
+       * gira la pompa cerca `on` e il momento in cui e' cambiata, non trovava
+       * ne' l'uno ne' l'altro, e la frase sulla durata non usciva mai. */
+      /* `dato.state` e' la stringa dello stato, non l'oggetto: il momento del
+       * cambio sta sull'entita', e lo si va a prendere di la'. */
+      const quando = stateOf(states, dato.entity);
+      const cambiato = Date.parse(quando?.last_changed ?? quando?.last_updated ?? "");
       righe.push({
         glyph: casella.glyph,
         name: friendlyName(states, dato.entity),
+        entity: dato.entity,
+        on: attivo,
+        daQuando: Number.isFinite(cambiato) ? cambiato : null,
         value: attivo ? t("Acceso", "On") : t("Spento", "Off"),
       });
       continue;
@@ -1154,6 +1173,10 @@ function solarThermalModel(states) {
     righe.push({
       glyph: casella.glyph,
       name: friendlyName(states, dato.entity),
+      entity: dato.entity,
+      /* Il testo e' per gli occhi, `raw` per i conti: `Number("68°")` non e' un
+       * numero, e l'analisi delle sonde non usciva mai. */
+      raw: dato.value,
       value: `${formatNumber(dato.value, casella.cifre)}${casella.unita}`,
     });
   }
@@ -1923,7 +1946,16 @@ function livelloMarkup(percentuale) {
 /* La percentuale di una riga, quando ce l'ha e vuol dire un livello. */
 function percentualeDellaRiga(riga) {
   for (const campo of ["battery", "position", "level", "soc", "humidity", "percent"]) {
-    const valore = Number(riga?.[campo]);
+    /* Assente non e' zero.
+     *
+     * Un aspirapolvere che non dice la sua carica la porta come `null`, e
+     * `Number(null)` fa zero: la riga si disegnava con la barra rossa vuota,
+     * cioe' annunciava una batteria a terra per dire che non la conosceva. Chi
+     * disegna la barra, dopo, non ha piu' modo di distinguere quello zero da
+     * uno zero vero. */
+    const grezzo = riga?.[campo];
+    if (grezzo === null || grezzo === undefined || grezzo === "") continue;
+    const valore = Number(grezzo);
     if (Number.isFinite(valore)) return valore;
   }
   const testo = String(riga?.value ?? "").trim();
@@ -2768,7 +2800,14 @@ function entitaDelRacconto(widget) {
       return clean(energia?.battery?.soc) || "dm.energy_stato_carica_batteria";
     return clean(energia?.house?.power) || "dm.energy_potenza_consumo_casa";
   }
-  if (widget?.key === "temperatura") return clean(widget?.rows?.[0]?.entity);
+  /* La temperatura in grande e' la MEDIA delle stanze, e una media non ha una
+   * sua entita' da chiedere allo storico. Con una stanza sola la media e' quella
+   * stanza, e la storia e' la sua; con due o piu' si chiedeva la storia della
+   * prima e la si confrontava con la media di tutte — «piu' alto del solito»
+   * detto su un numero diverso da quello scritto sopra. Meglio nessuna lettura
+   * nel tempo che una che parla di un'altra cosa. */
+  if (widget?.key === "temperatura")
+    return (widget?.rows?.length || 0) === 1 ? clean(widget?.rows?.[0]?.entity) : "";
   if (widget?.key === "ev") return clean(widget?.rows?.[0]?.batteria || widget?.rows?.[0]?.entity);
   if (["solare", "piscina", "robot", "irrigazione"].includes(widget?.key))
     return clean(widget?.rows?.[0]?.entity);

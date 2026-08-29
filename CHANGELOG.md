@@ -61,6 +61,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   accorciato troppo smette di dire quale cosa sia, ed e' il difetto peggiore
   dei due.
 
+- **Sei frasi che dicevano il falso.** Tutte con la stessa forma: una finestra
+  che afferma una cosa mentre nella stessa finestra ce n'è scritta un'altra. Con
+  il sensore della casa irraggiungibile l'Energia diceva «il sole non produce»
+  anche col fotovoltaico a due chilowatt. Una vasca con la sonda del pH e senza
+  termometro leggeva «il pH è 7,3» e, riga sotto, «non c'è ancora una lettura».
+  Un aspirapolvere che non dichiara la carica disegnava la barra rossa vuota,
+  cioè annunciava una batteria a terra per dire che non la conosceva. Un'auto
+  sola veniva raccontata al plurale, perché si contavano le righe — carica e
+  autonomia — invece delle auto. La temperatura in grande è la media delle
+  stanze, ma la lettura nel tempo chiedeva la storia della prima e diceva «più
+  alto del solito» su un numero diverso da quello scritto sopra. E le righe del
+  solare termico portavano solo il testo, così l'analisi delle sonde e la durata
+  della pompa non uscivano mai. La regola che le lega: **assente non è zero, e
+  assente non è spento.** Un sensore che non risponde non dice che la batteria è
+  a terra o che il sole è fermo — dice che non risponde, e adesso la finestra
+  dice quello.
+
 - **Ring e Arlo: il video non partiva.** Due motivi opposti fra loro. Il primo:
   si provava sempre WebRTC, perche' la condizione era «il browser sa farlo» — e
   oggi lo sanno fare tutti. Ma quel WebRTC li' non e' quello di Home Assistant,
