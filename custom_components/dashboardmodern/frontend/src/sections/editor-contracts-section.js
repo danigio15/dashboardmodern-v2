@@ -1,5 +1,5 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
-import { clean, doc, english, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
+import { clean, doc, english, installStyle, onEditorRedraw, root, scriviSeCambia, t, wrapFunction } from "./shared.js";
 
 root.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CONTRACTS_SECTION__";
@@ -180,7 +180,7 @@ export function syncApplianceEditorPreview(
   const value = clean(select.value).toLowerCase();
   const artwork = applianceArtwork(value, 72);
   if (artwork) {
-    if (preview.innerHTML !== artwork) preview.innerHTML = artwork;
+    scriviSeCambia(preview, artwork);
   } else {
     const glyph = selectedOptionGlyph(select);
     preview.innerHTML = `<span class="dm-appliance-menu-glyph">${glyph}</span>`;
@@ -319,7 +319,7 @@ function normalizeEnergyHelp() {
     "<strong>⚡ Configurazione Energia</strong><span><b>Periodo corrente:</b> usa i sensori Giorno / Mese / Anno configurati. <b>Mesi precedenti:</b> usa i contatori Totali kWh tramite Recorder. Casa viene calcolata con lo stesso bilancio dei flussi di Home Assistant.</span>",
     "<strong>⚡ Energy configuration</strong><span><b>Current period:</b> uses configured Day / Month / Year sensors. <b>Previous months/years:</b> uses Total kWh counters through Recorder. Home is calculated with the same Home Assistant flow balance.</span>",
   );
-  if (overview.innerHTML !== markup) overview.innerHTML = markup;
+  scriviSeCambia(overview, markup);
   doc?.querySelectorAll("#editor-modal .dm-energy-total-note").forEach((note) => {
     const label = t(
       "Storico · contatore totale kWh (total / total_increasing)",

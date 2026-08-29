@@ -146,3 +146,43 @@ test("l'interruttore della luce comanda anche dalla pagina Stanze", async ({ pag
   expect(ultima.data?.entity_id).toBe("light.faretti_sx");
   expect(ultima.service).toBe("turn_on");
 });
+
+/* E si comanda anche quello che una stanza si e' presa a mano.
+ *
+ * Le luci hanno la card vera della pagina Luci, e quella si e' sempre comandata.
+ * Tutto il resto — un'entita' assegnata a mano a una stanza, una presa, un
+ * ventilatore — era una riga che portava nella sezione e basta: si toccava e
+ * non succedeva niente. «Le entita' nelle stanze continuano a non funzionare:
+ * non mi dice se dopo clicco la luce e' accesa.» Adesso quello che si accende e
+ * si spegne ha il suo interruttore qui, e la riga dice subito com'e' andata.
+ */
+test("una presa assegnata a mano si accende dalla pagina Stanze", async ({ page }, testInfo) => {
+  await apri(page, testInfo);
+  await page.evaluate(() => {
+    // Il documento aggiunge da solo il prefisso della plancia alle chiavi.
+    localStorage.setItem(
+      "cd_stanze_entita",
+      JSON.stringify({ "switch.presa_salone": "room-salone" }),
+    );
+    const grezzi = eval("_RAW_STATES");
+    grezzi["switch.presa_salone"] = {
+      entity_id: "switch.presa_salone",
+      state: "off",
+      attributes: { friendly_name: "Presa salone" },
+    };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page.locator('#page-stanze [data-dm-stanza="room-salone"]').click();
+
+  const interruttore = page.locator('#page-stanze [data-dm-stanza-tocca="switch.presa_salone"]');
+  await expect(interruttore).toHaveCount(1);
+  await expect(interruttore).toHaveAttribute("aria-checked", "false");
+  await interruttore.click();
+
+  const chiamate = await page.evaluate(() => window.__DM_CHIAMATE__);
+  const ultima = chiamate[chiamate.length - 1];
+  expect(ultima.domain).toBe("switch");
+  expect(ultima.service).toBe("turn_on");
+  expect(ultima.data?.entity_id).toBe("switch.presa_salone");
+  await expect(interruttore).toHaveAttribute("aria-checked", "true");
+});

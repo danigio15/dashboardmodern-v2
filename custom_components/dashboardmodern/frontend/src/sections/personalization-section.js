@@ -1,5 +1,5 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
-import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
+import { clean, doc, esc, installStyle, readJson, root, scriviSeCambia, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 import { VEHICLE_KEY_FIELD } from "../core/vehicle-model.js";
 import { bozzaAperta, editedVehicle, profiles, salvaAuto } from "./ev-section.js";
 
@@ -226,7 +226,7 @@ function decorateRoomEditorRows() {
     if (motore?.render) motore.render(visual, "room", room.icon || room.name || "mdi:home", { size: 34 });
     else {
       const markup = roomVisual(room.icon || room.name, 34) || iconMarkup(room.icon || "mdi:home", 30);
-      if (visual.innerHTML !== markup) visual.innerHTML = markup;
+      scriviSeCambia(visual, markup);
     }
     const label = main.querySelector(".ed-row-new");
     if (label) label.textContent = clean(room.name) || t("Stanza", "Room");

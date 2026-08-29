@@ -167,8 +167,20 @@ function dmIconChoose(e) {
 /* v0.9.7 (#6): logo del brand (SVG inline, niente asset esterni) per wizard e config */
 /* v0.10.9: setter di testo null-safe. L'auto-hide RIMUOVE fisicamente pagine/sezioni non
    configurate dal DOM; senza questo, render() andava in TypeError su elementi assenti. */
-function setTxt(id, v) { try { const e = document.getElementById(id); if (e) e.textContent = v; } catch(_) {} }
-function setHtml(id, v) { try { const e = document.getElementById(id); if (e) e.innerHTML = v; } catch(_) {} }
+/* Il guscio non riscrive quello che un modulo si e' preso.
+   Sull'Energia il guscio legge le caselle vecchie e il modulo legge Recorder:
+   due numeri diversi nello stesso posto, riscritti a vicenda a ogni cambio di
+   stato. Chi ha scritto lascia un cartello, e qui lo si rispetta. Se il modulo
+   non ha dati non scrive, non lascia cartelli, e qui non cambia niente. */
+function cdPresoDaiModuli(e) { try { return e && e.dataset && e.dataset.dmPadrone === 'moduli'; } catch(_) { return false; } }
+function setTxt(id, v) { try { const e = document.getElementById(id); if (e && !cdPresoDaiModuli(e)) e.textContent = v; } catch(_) {} }
+/* Riscrive solo se e' cambiato davvero.
+   Non si puo' confrontare con `innerHTML`: quello che il documento restituisce
+   non e' la stringa che gli si e' data — il browser rinormalizza lo stile — e
+   il paragone non tornerebbe mai. Si tiene da parte quello che si e' scritto.
+   Senza, con decine di cambi di stato al secondo queste scritte venivano
+   distrutte e rifatte in continuazione: e' lo sfarfallio dell'Energia. */
+function setHtml(id, v) { try { const e = document.getElementById(id); if (e && !cdPresoDaiModuli(e) && (e.dataset.dmScritto !== String(v) || e.textContent !== e.dataset.dmTesto)) { e.innerHTML = String(v); e.dataset.dmScritto = String(v); e.dataset.dmTesto = e.textContent; } } catch(_) {} }
 /* ═══════════════ v0.11.0: ELETTRODOMESTICI (sezione generica) ═══════════════
    Più elettrodomestici configurabili, 1 o più entità ciascuno, stato ricavato dal
    consumo (Watt) → funziona anche con elettrodomestici NON wifi via presa smart.
@@ -4300,7 +4312,10 @@ function updateGestioneLuci() {
   const bar = list.querySelector('.lgx-bar');
   if (bar) {
     const newBar = `<div class="lgx-bar-l"><span class="lgx-dot ${onCount>0?'active':''}"></span>${onCount>0 ? '<b>'+onCount+'</b><span>'+(onCount===1?'accesa':'accese')+'</span>' : '<span>Tutte spente</span>'}</div>${onCount>0 ? '<div class="lgx-alloff" onclick="event.stopPropagation(); luciTutteOff()">Spegni tutte</div>' : ''}`;
-    if (bar.innerHTML !== newBar) bar.innerHTML = newBar;
+    /* Non si confronta con `innerHTML`: quello che il documento restituisce
+       non e' la stringa che gli si e' data, e il paragone non torna mai. Si
+       tiene da parte quello che si e' scritto. */
+    if (bar.dataset.dmScritto !== newBar) { bar.innerHTML = newBar; bar.dataset.dmScritto = newBar; }
   }
 }
 
@@ -5081,12 +5096,43 @@ document.addEventListener('DOMContentLoaded', () => {
    se la versione sul disco è diversa da quella in esecuzione, ricarica con ?v=nuova
    (query diversa = il browser scarica il file fresco). L'URL della plancia non cambia mai. ═══ */
 let _cdBootDone = false;
-function cdHideBoot() {
-    window.__DASHBOARDMODERN_READY__ = true;
-    if (window.__DASHBOARDMODERN_BOOT_TIMEOUT__) clearTimeout(window.__DASHBOARDMODERN_BOOT_TIMEOUT__);
+/* Il velo si toglie quando la plancia e' quella vera, non quando ha finito il guscio.
+ *
+ * Il guscio disegna una sua versione della Home — il meteo grande in mezzo alla
+ * pagina, le azioni rapide senza il loro ripiano — e i moduli gliela riscrivono
+ * addosso appena sono installati. Fra le due cose passa piu' di un secondo, e
+ * finora il velo se ne andava all'inizio di quel secondo: si vedeva la plancia
+ * vecchia, e poi tutto si spostava sotto gli occhi. Non era una versione
+ * rimasta sotto — era il nuovo che doveva ancora arrivare — ma da guardare e'
+ * la stessa cosa.
+ *
+ * Adesso si aspetta che i moduli abbiano preso in mano la plancia. Se non
+ * arrivano — un modulo che non si carica, una rete che si pianta — dopo otto
+ * secondi il velo si toglie lo stesso: meglio la plancia del guscio che una
+ * schermata che non finisce mai. */
+const CD_ATTESA_MODULI = 8000;
+let _cdBootAtteso = false;
+function _cdModuliPronti() {
+    return Boolean(window.__DASHBOARDMODERN_SECTION_RUNTIME__ && window.__DASHBOARDMODERN_SECTION_RUNTIME__.installed);
+}
+function _cdTogliIlVelo() {
     if (_cdBootDone) return; _cdBootDone = true;
     const o = document.getElementById('cd-boot-overlay');
     if (o) { o.style.opacity = '0'; setTimeout(() => { if (o.parentNode) o.remove(); }, 260); }
+}
+function cdHideBoot() {
+    window.__DASHBOARDMODERN_READY__ = true;
+    if (window.__DASHBOARDMODERN_BOOT_TIMEOUT__) clearTimeout(window.__DASHBOARDMODERN_BOOT_TIMEOUT__);
+    if (_cdBootDone) return;
+    if (_cdModuliPronti()) { _cdTogliIlVelo(); return; }
+    if (_cdBootAtteso) return; _cdBootAtteso = true;
+    const scadenza = Date.now() + CD_ATTESA_MODULI;
+    const guarda = () => {
+        if (_cdBootDone) return;
+        if (_cdModuliPronti() || Date.now() >= scadenza) { _cdTogliIlVelo(); return; }
+        (window.requestAnimationFrame || window.setTimeout)(guarda, 32);
+    };
+    guarda();
 }
 async function cdCheckUpdate(isBoot) {
     if (window.__DASHBOARDMODERN_HOSTED__ || location.pathname.indexOf('/dashboardmodern_static') !== -1) { try { if (isBoot) cdHideBoot(); } catch(e) {} return; }

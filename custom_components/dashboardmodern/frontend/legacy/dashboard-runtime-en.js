@@ -167,8 +167,20 @@ function dmIconChoose(e) {
 /* v0.9.7 (#6): brand logo (inline SVG, no external assets) for wizard and config */
 /* v0.10.9: setter di testo null-safe. L'auto-hide RIMUOVE fisicamente pagine/sezioni non
    configurate dal DOM; senza questo, render() andava in TypeError su elementi assenti. */
-function setTxt(id, v) { try { const e = document.getElementById(id); if (e) e.textContent = v; } catch(_) {} }
-function setHtml(id, v) { try { const e = document.getElementById(id); if (e) e.innerHTML = v; } catch(_) {} }
+/* The shell does not rewrite what a module has taken over.
+   On the Energy page the shell reads the old slots and the module reads
+   Recorder: two different numbers in the same place, overwriting each other on
+   every state change. Whoever writes leaves a marker, and it is honoured here.
+   A module with no data writes nothing, leaves no marker, and nothing changes. */
+function cdPresoDaiModuli(e) { try { return e && e.dataset && e.dataset.dmPadrone === 'moduli'; } catch(_) { return false; } }
+function setTxt(id, v) { try { const e = document.getElementById(id); if (e && !cdPresoDaiModuli(e)) e.textContent = v; } catch(_) {} }
+/* Rewrite only when it really changed.
+   `innerHTML` cannot be compared against: what the document gives back is not
+   the string it was given — the browser re-normalises the style — so the
+   comparison would never hold. What was written is kept aside instead.
+   Without this, with dozens of state changes a second these labels were torn
+   down and rebuilt over and over: that is the Energy flicker. */
+function setHtml(id, v) { try { const e = document.getElementById(id); if (e && !cdPresoDaiModuli(e) && (e.dataset.dmScritto !== String(v) || e.textContent !== e.dataset.dmTesto)) { e.innerHTML = String(v); e.dataset.dmScritto = String(v); e.dataset.dmTesto = e.textContent; } } catch(_) {} }
 /* ═══════════════ v0.11.0: APPLIANCES (generic section) ═══════════════
    Multiple configurable appliances, 1+ entities each, status derived from
    power draw (Watts) → works with NON-wifi appliances via a smart plug.
@@ -4264,7 +4276,10 @@ function updateGestioneLuci() {
   const bar = list.querySelector('.lgx-bar');
   if (bar) {
     const newBar = `<div class="lgx-bar-l"><span class="lgx-dot ${onCount>0?'active':''}"></span>${onCount>0 ? '<b>'+onCount+'</b><span>on</span>' : '<span>All off</span>'}</div>${onCount>0 ? '<div class="lgx-alloff" onclick="event.stopPropagation(); luciTutteOff()">Turn all off</div>' : ''}`;
-    if (bar.innerHTML !== newBar) bar.innerHTML = newBar;
+    /* Non si confronta con `innerHTML`: quello che il documento restituisce
+       non e' la stringa che gli si e' data, e il paragone non torna mai. Si
+       tiene da parte quello che si e' scritto. */
+    if (bar.dataset.dmScritto !== newBar) { bar.innerHTML = newBar; bar.dataset.dmScritto = newBar; }
   }
 }
 
@@ -5041,12 +5056,41 @@ document.addEventListener('DOMContentLoaded', () => {
    se la versione sul disco è diversa da quella in esecuzione, ricarica con ?v=nuova
    (query diversa = il browser scarica il file fresco). L'URL della plancia non cambia mai. ═══ */
 let _cdBootDone = false;
-function cdHideBoot() {
-    window.__DASHBOARDMODERN_READY__ = true;
-    if (window.__DASHBOARDMODERN_BOOT_TIMEOUT__) clearTimeout(window.__DASHBOARDMODERN_BOOT_TIMEOUT__);
+/* The veil lifts when the dashboard is the real one, not when the shell is done.
+ *
+ * The shell paints its own Home — the big weather block in the middle of the
+ * page, the quick actions without their shelf — and the modules rewrite it as
+ * soon as they are installed. More than a second passes between the two, and
+ * the veil used to lift at the start of that second: the old dashboard showed,
+ * and then everything moved under your eyes. It was never an old version left
+ * underneath — it was the new one still on its way — but it looks the same.
+ *
+ * Now it waits for the modules to take over. If they never do — a module that
+ * fails to load, a network that stalls — the veil lifts anyway after eight
+ * seconds: the shell's dashboard beats a screen that never finishes. */
+const CD_ATTESA_MODULI = 8000;
+let _cdBootAtteso = false;
+function _cdModuliPronti() {
+    return Boolean(window.__DASHBOARDMODERN_SECTION_RUNTIME__ && window.__DASHBOARDMODERN_SECTION_RUNTIME__.installed);
+}
+function _cdTogliIlVelo() {
     if (_cdBootDone) return; _cdBootDone = true;
     const o = document.getElementById('cd-boot-overlay');
     if (o) { o.style.opacity = '0'; setTimeout(() => { if (o.parentNode) o.remove(); }, 260); }
+}
+function cdHideBoot() {
+    window.__DASHBOARDMODERN_READY__ = true;
+    if (window.__DASHBOARDMODERN_BOOT_TIMEOUT__) clearTimeout(window.__DASHBOARDMODERN_BOOT_TIMEOUT__);
+    if (_cdBootDone) return;
+    if (_cdModuliPronti()) { _cdTogliIlVelo(); return; }
+    if (_cdBootAtteso) return; _cdBootAtteso = true;
+    const scadenza = Date.now() + CD_ATTESA_MODULI;
+    const guarda = () => {
+        if (_cdBootDone) return;
+        if (_cdModuliPronti() || Date.now() >= scadenza) { _cdTogliIlVelo(); return; }
+        (window.requestAnimationFrame || window.setTimeout)(guarda, 32);
+    };
+    guarda();
 }
 async function cdCheckUpdate(isBoot) {
     if (window.__DASHBOARDMODERN_HOSTED__ || location.pathname.indexOf('/dashboardmodern_static') !== -1) { try { if (isBoot) cdHideBoot(); } catch(e) {} return; }

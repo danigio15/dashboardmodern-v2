@@ -29,7 +29,7 @@ import {
 } from "../core/light-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { openLightControl } from "./lights-scene-section.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, t, wrapFunction } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, readJson, root, scriviSeCambia, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_LIGHTS_PAGE__";
 const state = (root[KEY] ||= {
@@ -376,7 +376,7 @@ function syncValues(wrap, groups, views) {
   const counter = wrap.querySelector("[data-dm-lucip-summary]");
   if (counter) {
     const markup = pageSummaryMarkup(summary);
-    if (counter.innerHTML !== markup) counter.innerHTML = markup;
+    scriviSeCambia(counter, markup);
     counter.classList.toggle("is-on", summary.on > 0);
   }
 }

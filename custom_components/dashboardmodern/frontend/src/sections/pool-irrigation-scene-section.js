@@ -16,6 +16,7 @@ import {
   onEditorRedraw,
   readJson,
   root,
+  scriviSeCambia,
   t,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -367,7 +368,7 @@ function syncPoolValues(host, config, index) {
       heating ? `<span class="dm-pool-flag dm-heat">${esc(t("Riscaldamento attivo", "Heating on"))}</span>` : "",
       lighting ? `<span class="dm-pool-flag dm-light">${esc(t("Luce accesa", "Light on"))}</span>` : "",
     ].filter(Boolean).join("");
-    if (flags.innerHTML !== chips) flags.innerHTML = chips;
+    scriviSeCambia(flags, chips);
   }
 
   for (const [kind, entity, min, max] of [
@@ -665,7 +666,7 @@ function syncIrrigationValues(host, grid, config) {
       chips.push(`<span class="dm-irr-meta-chip" data-alert="${String(rain >= threshold)}">🌧️ ${t("pioggia", "rain")} ${Math.round(rain)}% · ${t("soglia", "threshold")} ${threshold}%</span>`);
     }
     const markup = chips.join("");
-    if (meta.innerHTML !== markup) meta.innerHTML = markup;
+    scriviSeCambia(meta, markup);
     meta.hidden = !markup;
   }
 

@@ -371,13 +371,40 @@ function readingMarkup(pagina, states) {
  * gradi, comandare una tapparella vuol dire una percentuale: rifarli qui
  * sarebbe rifare due sezioni, e tenerne aggiornate due copie. Il tocco porta
  * dove quella cosa si comanda davvero. */
+/* Cosa si accende e si spegne con un tocco, e con quale comando.
+ *
+ * Una luce, una presa, un ventilatore e un interruttore finto di Home Assistant
+ * si comandano tutti allo stesso modo. Il clima e le tapparelle no — hanno modi
+ * e posizioni — e per quelli il tocco porta ancora nella sezione, che e' il
+ * posto dove si comandano per intero. */
+const DOMINI_CHE_SI_TOCCANO = Object.freeze(["light", "switch", "fan", "input_boolean"]);
+
+function siPuoAccendere(entity) {
+  return DOMINI_CHE_SI_TOCCANO.includes(clean(entity).split(".")[0]);
+}
+
+function accesa(entity, states) {
+  return clean(states?.[entity]?.state).toLowerCase() === "on";
+}
+
+/* La riga di una stanza si comanda da qui, non solo da un'altra pagina.
+ *
+ * «Le cose che compaiono nella sezione Stanze non sono comandabili: se clicco
+ * su luce non fa nulla.» Prima il tocco portava nella sezione e basta — utile
+ * per il clima, inutile per una luce, che si accende e si spegne e basta. Adesso
+ * quello che si accende ha il suo interruttore qui, e la scritta sotto il nome
+ * dice com'e' andata; il resto della riga continua a portare nella sezione, per
+ * chi vuole fare di piu'. */
 function rowMarkup(item, blocco, states) {
   const entity = entitaVoce(item);
+  const tocco = siPuoAccendere(entity)
+    ? `<button type="button" class="dm-stanze-tocca" data-dm-stanza-tocca="${esc(entity)}" role="switch" aria-checked="${accesa(entity, states) ? "true" : "false"}" aria-label="${esc(nomeVoce(item, states))}"><span class="dm-stanze-tocca-pallino"></span></button>`
+    : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;
   return `<article class="dm-stanze-card dm-stanze-voce" data-dm-stanza-vai="${esc(blocco.tab)}" data-dm-stanza-entita="${esc(entity)}" role="button" tabindex="0">
     <div class="dm-stanze-card-row">
       <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
       <span class="dm-stanze-title"><b>${esc(nomeVoce(item, states))}</b><s data-dm-stanza-stato="${esc(entity)}" data-dm-stanza-blocco="${esc(blocco.key)}">${esc(statoVoce(item, states, blocco.key))}</s></span>
-      <span class="dm-stanze-vai" aria-hidden="true">›</span>
+      ${tocco}
     </div>
   </article>`;
 }
@@ -617,6 +644,30 @@ function handleClick(event) {
     runScene(scena.getAttribute("data-dm-stanza-scena") === "on");
     return;
   }
+  /* L'interruttore prima della riga: sta dentro la riga, e la riga porta
+   * altrove — senza questo, accendere una luce cambiava pagina. */
+  const tocca = event.target?.closest?.("[data-dm-stanza-tocca]");
+  if (tocca) {
+    event.preventDefault();
+    event.stopPropagation();
+    const entity = clean(tocca.getAttribute("data-dm-stanza-tocca"));
+    if (!entity) return;
+    const domain = entity.split(".")[0];
+    const acceso = accesa(entity, allStates());
+    root.navigator?.vibrate?.(8);
+    callService({
+      domain,
+      service: acceso ? "turn_off" : "turn_on",
+      data: { entity_id: entity },
+    });
+    /* L'interruttore si muove subito, senza aspettare che Home Assistant
+     * ritorni lo stato: chi tocca deve vedere qualcosa muoversi. Non si
+     * ridisegna qui — ridisegnare adesso rileggerebbe lo stato vecchio e lo
+     * rimetterebbe com'era, che da fuori si legge «non ha fatto niente». Il
+     * ridisegno arriva col cambio di stato, e allora o conferma o corregge. */
+    tocca.setAttribute("aria-checked", acceso ? "false" : "true");
+    return;
+  }
   const vai = event.target?.closest?.("[data-dm-stanza-vai]");
   if (vai) {
     const tab = doc?.querySelector?.(`.tab[data-tab="${vai.getAttribute("data-dm-stanza-vai")}"]`);
@@ -697,6 +748,16 @@ function installStyles() {
       #page-stanze .dm-stanze-voce{cursor:pointer}
       #page-stanze .dm-stanze-voce:active{transform:scale(.985)}
       #page-stanze .dm-stanze-vai{flex:0 0 auto;color:var(--secondary-text-color,#cbd5e1);font-size:20px;font-weight:900;line-height:1}
+      /* L'interruttore della riga: lo stesso della pagina Luci, cosi' chi lo
+         vede qui sa gia' cos'e' e come si tocca. */
+      #page-stanze .dm-stanze-tocca{flex:0 0 auto;display:inline-flex;align-items:center;width:50px;height:30px;padding:3px;border:0;border-radius:999px;background:var(--divider-color,#cbd5e1);cursor:pointer;transition:background .18s ease}
+      #page-stanze .dm-stanze-tocca[aria-checked="true"]{background:var(--primary-color,#0ea5e9)}
+      #page-stanze .dm-stanze-tocca-pallino{width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(15,23,42,.28);transition:transform .18s ease}
+      #page-stanze .dm-stanze-tocca[aria-checked="true"] .dm-stanze-tocca-pallino{transform:translateX(20px)}
+      #page-stanze .dm-stanze-tocca:focus-visible{outline:2px solid var(--primary-color,#0ea5e9);outline-offset:2px}
+      @media (prefers-reduced-motion:reduce){
+        #page-stanze .dm-stanze-tocca,#page-stanze .dm-stanze-tocca-pallino{transition:none}
+      }
       #page-stanze .dm-stanze-readings{display:flex;gap:20px;padding:0 14px 14px}
       #page-stanze .dm-stanze-readings div{display:grid;gap:2px}
       #page-stanze .dm-stanze-readings span{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
