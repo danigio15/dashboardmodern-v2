@@ -464,7 +464,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // parola gia' detta dall'unita' del valore, e non tocca i nomi che senza
   // quella parola direbbero di meno: meta' delle sue prove pretende che il nome
   // resti intero, perche' accorciare troppo e' il difetto peggiore dei due.
-  assert.ok(relative.length <= 175, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 176 con le strade per aprire una telecamera. Su Ring e Arlo il video non
+  // partiva, e i due motivi erano l'uno il contrario dell'altro: si provava una
+  // strada che non poteva funzionare, e si smetteva di provare quella che stava
+  // per riuscire. WebRTC si tentava sempre — la condizione era «il browser sa
+  // farlo», che oggi e' vero dappertutto — ma quel WebRTC li' e' go2rtc, e vuole
+  // il nome del flusso che le si e' dato dentro go2rtc: chi non ce l'ha
+  // installata pagava tre secondi a ogni apertura per un flusso inesistente. E
+  // l'HLS aveva dieci secondi di tempo, tarati su una telecamera di casa sempre
+  // accesa: una in cloud deve prima svegliare l'apparecchio e ci mette di piu',
+  // quindi si mollava sul piu' bello e si finiva sulle istantanee a due
+  // fotogrammi al secondo — «si vede, ma a scatti», che e' il modo in cui si
+  // vive un difetto senza saperlo nominare. La scelta sta in un modulo puro
+  // perche' e' l'unico modo di provarla senza avere una Ring in casa: entrano la
+  // telecamera e quello che Home Assistant dichiara di lei, esce l'ordine delle
+  // strade con le attese e il perche' di quelle saltate.
+  assert.ok(relative.length <= 176, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

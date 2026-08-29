@@ -5244,31 +5244,63 @@ function dmIsWebRTC() { return typeof RTCPeerConnection !== 'undefined'; }
 
 function dmStreamName(cam) { return cam.stream || (cam.entity ? cam.entity.split('.')[1] : ''); }
 
+/* Le strade per aprire una telecamera le sceglie un modulo, non questa riga.
+   Provare WebRTC sempre — perche' il browser sa farlo — voleva dire tre secondi
+   buttati a ogni apertura da chi non ha go2rtc; e dieci secondi di attesa per
+   l'HLS sono meno di quanto ci mette una Ring o una Arlo a svegliarsi, quindi si
+   mollava proprio sul piu' bello e si finiva sulle istantanee. Il modulo guarda
+   cosa Home Assistant dichiara della telecamera e decide di conseguenza; qui
+   restano le parole, che il modulo non sa in che lingua vanno dette. */
+const _DM_CAM_MOTIVI = { 'senza-nome-di-flusso': 'WebRTC: skipped, no go2rtc stream configured', 'browser-senza-webrtc': 'WebRTC: skipped, the browser does not support it', 'browser-senza-hls': 'HLS: skipped, hls.js not loaded', 'telecamera-che-dorme': 'MJPEG: skipped, the camera only streams on demand' };
+
 async function dmCamOpen(cam, title, content) {
     dmCamCleanup();
     _dmCurrentCam = cam;
-    const streamName = dmStreamName(cam);
-    if (!streamName) { content.innerHTML = '<div class="cam-popup-error">⚠️ Stream not configured for this camera</div>'; return; }
+    if (!cam || !cam.entity) { content.innerHTML = '<div class="cam-popup-error">⚠️ Camera without an entity<br><span style="font-weight:500;opacity:.85;font-size:12px;text-transform:none;letter-spacing:0;">The Home Assistant entity is missing in the Cameras tab</span></div>'; return; }
     const camState = STATES[cam.entity] && STATES[cam.entity].state;
     if (camState === 'unavailable' || camState === 'unknown') {
-        content.innerHTML = `<div class="cam-popup-error">⚠️ Camera offline<br><span style="font-weight:500;opacity:.85;font-size:12px;text-transform:none;letter-spacing:0;">${cam.entity} not responding (state: ${camState || 'sconosciuto'})</span></div>`;
+        content.innerHTML = `<div class="cam-popup-error">⚠️ Camera offline<br><span style="font-weight:500;opacity:.85;font-size:12px;text-transform:none;letter-spacing:0;">${cam.entity} not responding (state: ${camState || 'unknown'})</span></div>`;
         return;
     }
-    const strategies = [];
-    if (dmIsWebRTC()) strategies.push({ name: 'WebRTC', run: () => dmCamWebRTC(cam, streamName, content) });
-    strategies.push({ name: 'HLS',     run: () => dmCamHLS(cam, content) });
-    strategies.push({ name: 'MJPEG',   run: () => dmCamMJPEG(cam, content) });
-    strategies.push({ name: 'Polling', run: () => Promise.resolve(dmCamPolling(cam, content)) });
-    for (const st of strategies) {
-        try { await st.run(); console.log('[Cam] ✓ ' + st.name); return; }
-        catch (err) { console.warn('[Cam] ' + st.name + ' fallito:', err && err.message || err); dmCleanupWebRTC(); dmCleanupHLS(); }
+    const api = (window.DashboardModernModules && DashboardModernModules.telecamere) || null;
+    const stato = STATES[cam.entity] || { entity_id: cam.entity };
+    const strade = api ? api.strategieDellaTelecamera(cam, stato, {
+        webrtcNelBrowser: dmIsWebRTC(),
+        hlsNelBrowser: typeof Hls !== 'undefined' || document.createElement('video').canPlayType('application/vnd.apple.mpegurl') !== '',
+    }) : [
+        { nome: 'WebRTC', salta: dmIsWebRTC() && cam.stream ? null : 'senza-nome-di-flusso', attesa: 3000, flusso: cam.stream },
+        { nome: 'HLS', attesa: 25000 },
+        { nome: 'MJPEG', attesa: 3000 },
+        { nome: 'Istantanee' },
+    ];
+    const CORSE = {
+        WebRTC: (strada) => dmCamWebRTC(cam, strada.flusso || dmStreamName(cam), content, strada.attesa),
+        HLS: (strada) => dmCamHLS(cam, content, strada.attesa),
+        MJPEG: (strada) => dmCamMJPEG(cam, content, strada.attesa),
+        Istantanee: () => Promise.resolve(dmCamPolling(cam, content)),
+    };
+    const tentativi = [];
+    for (const strada of strade) {
+        if (strada.salta) { tentativi.push({ nome: strada.nome, salta: strada.salta }); console.log('[Cam] – ' + strada.nome + ': ' + strada.salta); continue; }
+        try { await CORSE[strada.nome](strada); console.log('[Cam] ✓ ' + strada.nome); return; }
+        catch (err) {
+            const motivo = (err && err.message) || String(err);
+            tentativi.push({ nome: strada.nome, errore: motivo });
+            console.warn('[Cam] ' + strada.nome + ' fallito:', motivo);
+            dmCleanupWebRTC(); dmCleanupHLS();
+        }
     }
-    content.innerHTML = '<div class="cam-popup-error">⚠️ Unable to open camera<br><span style="font-weight:500;opacity:.85;font-size:12px;text-transform:none;letter-spacing:0;">No streaming strategy worked</span></div>';
+    /* Il messaggio dice cosa non ha funzionato, una riga per strada: «nessuna
+       strategia ha funzionato» non si sa da che parte prenderlo. */
+    const righe = (api ? api.diagnosi(tentativi) : tentativi).map(function (voce) {
+        return voce.salta ? (_DM_CAM_MOTIVI[voce.salta] || (voce.nome + ': ' + voce.salta)) : (voce.nome + ': ' + voce.errore);
+    });
+    content.innerHTML = '<div class="cam-popup-error">⚠️ Unable to open the camera<br><span style="font-weight:500;opacity:.85;font-size:12px;text-transform:none;letter-spacing:0;">' + righe.map(function (riga) { return String(riga).replace(/</g, '&lt;'); }).join('<br>') + '</span></div>';
 }
 
 const _DM_FS_BTNS = `<button id="close-fullscreen-btn" class="close-fullscreen-btn" style="display:none; position:absolute; top:16px; right:16px; z-index:99999; background:rgba(15,23,42,0.85); border:2px solid rgba(255,255,255,0.4); color:#fff; border-radius:50%; width:52px; height:52px; font-size:22px; font-weight:bold; cursor:pointer; align-items:center; justify-content:center; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:0 10px 25px rgba(0,0,0,0.6);" onclick="toggleFullScreenCam()">✕</button>`;
 
-async function dmCamWebRTC(cam, streamName, content) {
+async function dmCamWebRTC(cam, streamName, content, attesa) {
     content.innerHTML = `<div class="cam-popup-body"><div id="video-iframe-container" class="cam-zoom-container" style="position:relative; padding-top:56.25%;"><video id="cam-video" autoplay playsinline></video><div id="cam-audio-mini" class="cam-audio-mini-banner" onclick="dmUnlockAudioWebRTC()">🔇 Tap per audio</div><div id="cam-video-loader" class="cam-video-loader-overlay"><div class="cam-popup-spinner"></div><div>Connecting WebRTC…</div></div>${_DM_FS_BTNS}</div><button id="toggle-fs-main-btn" class="cam-fs-btn" onclick="toggleFullScreenCam()">🔲 Fullscreen</button></div>`;
     const videoEl = document.getElementById('cam-video');
     const loaderEl = document.getElementById('cam-video-loader');
@@ -5278,13 +5310,13 @@ async function dmCamWebRTC(cam, streamName, content) {
         const ok = () => { if (done) return; done = true; if (loaderEl) loaderEl.classList.add('hidden'); resolve(); };
         videoEl.addEventListener('playing', ok, { once: true });
         videoEl.addEventListener('loadeddata', ok, { once: true });
-        setTimeout(() => { if (done) return; done = true; reject(new Error('WebRTC video did not start within 3s')); }, 3000);
+        setTimeout(() => { if (done) return; done = true; reject(new Error(`WebRTC: no frame within ${Math.round((attesa || 3000) / 1000)}s`)); }, attesa || 3000);
     });
     await dmStartWebRTC(streamName, videoEl);
     await started;
 }
 
-async function dmCamHLS(cam, content) {
+async function dmCamHLS(cam, content, attesa) {
     if (!ws || ws.readyState !== WebSocket.OPEN) throw new Error('HA WebSocket not active');
     const reqId = msgId++;
     const hlsUrl = await new Promise((resolve, reject) => {
@@ -5312,11 +5344,11 @@ async function dmCamHLS(cam, content) {
             dmUpdateAudioStatus(); resolve(); };
         ['loadedmetadata','canplay','loadeddata','playing'].forEach(ev => videoEl.addEventListener(ev, onReady, { once: true }));
         videoEl.addEventListener('error', () => { if (done) return; done = true; reject(new Error('Video error')); }, { once: true });
-        setTimeout(() => { if (done) return; done = true; reject(new Error('HLS: no frame within 10s')); }, 10000);
+        setTimeout(() => { if (done) return; done = true; reject(new Error(`HLS: no frame within ${Math.round((attesa || 10000) / 1000)}s`)); }, attesa || 10000);
     });
 }
 
-async function dmCamMJPEG(cam, content) {
+async function dmCamMJPEG(cam, content, attesa) {
     let streamUrl = null;
     const state = STATES[cam.entity];
     if (state && state.attributes && state.attributes.entity_picture) {
@@ -5333,7 +5365,7 @@ async function dmCamMJPEG(cam, content) {
         let done = false;
         mjpegEl.onload = () => { if (done) return; done = true; if (loaderEl) loaderEl.classList.add('hidden'); resolve(); };
         mjpegEl.onerror = () => { if (done) return; done = true; reject(new Error('MJPEG load error')); };
-        setTimeout(() => { if (done) return; done = true; reject(new Error('MJPEG: no frame within 3s')); }, 3000);
+        setTimeout(() => { if (done) return; done = true; reject(new Error(`MJPEG: no frame within ${Math.round((attesa || 3000) / 1000)}s`)); }, attesa || 3000);
     });
 }
 

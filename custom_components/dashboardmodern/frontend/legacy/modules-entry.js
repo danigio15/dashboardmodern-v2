@@ -18,6 +18,7 @@ import {
 } from "../src/legacy/dashboard-data.js";
 import { runSteps, stepReporter } from "../src/core/runtime-steps.js";
 import { DashboardStore } from "../src/core/dashboard-store.js";
+import { daProvare, diagnosi, siSveglia, strategieDellaTelecamera } from "../src/core/strategie-telecamera.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { energyWriteInFlight, flushEnergyWrites, persistEnergyField, persistSignedSource } from "../src/core/energy-writer.js";
@@ -584,6 +585,11 @@ const DashboardModernModules = Object.freeze({
     saveCamera,
     removeCamera,
   }),
+  /* Come si apre una telecamera: la scelta delle strade e delle attese sta in
+   * un modulo puro, e il runtime la chiede a lui invece di averla scritta
+   * dentro. E' l'unico modo perche' quella scelta si possa provare senza una
+   * Ring in casa. */
+  telecamere: Object.freeze({ strategieDellaTelecamera, daProvare, diagnosi, siSveglia }),
   store,
   EDITOR_REGISTRY,
   renderEditorTab,

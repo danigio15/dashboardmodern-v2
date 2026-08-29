@@ -45,6 +45,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   accorciato troppo smette di dire quale cosa sia, ed e' il difetto peggiore
   dei due.
 
+- **Ring e Arlo: il video non partiva.** Due motivi opposti fra loro. Il primo:
+  si provava sempre WebRTC, perche' la condizione era «il browser sa farlo» — e
+  oggi lo sanno fare tutti. Ma quel WebRTC li' non e' quello di Home Assistant,
+  e' l'estensione go2rtc, e vuole il nome del flusso che le si e' dato dentro
+  go2rtc: chi non ce l'ha installata non ha nessun flusso con quel nome, e il
+  nome lo si tirava a indovinare dall'entita'. Tre secondi buttati a ogni
+  apertura, per tutti, prima ancora di cominciare — e altri tre subito dopo per
+  un MJPEG che una telecamera in cloud non ha. Il secondo motivo e' il contrario
+  del primo: si smetteva di aspettare quella che stava per riuscire. Ring, Arlo,
+  Blink e Nest non hanno un flusso sempre acceso da agganciare; quando le chiami
+  devono svegliare l'apparecchio, e ci mettono piu' dei dieci secondi che erano
+  concessi. Si mollava sul piu' bello e si finiva sulle istantanee a due
+  fotogrammi al secondo — «si vede, ma a scatti», che e' il modo in cui si vive
+  un difetto senza saperlo nominare. Adesso Home Assistant lo dice da se' che
+  flusso ha una telecamera, e la plancia gli crede: WebRTC solo se il flusso
+  go2rtc c'e' davvero, e a chi deve svegliarsi si da' il tempo di svegliarsi.
+
+- **Quando una telecamera non si apre, adesso si legge perche'.** Il messaggio
+  diceva «nessuna strategia di streaming ha funzionato», che non si sa da che
+  parte prendere. Adesso c'e' una riga per strada, con il motivo di ciascuna —
+  quella tentata e fallita e quella nemmeno tentata.
+
 - **La croce per chiudere si vedeva poco.** Era un testo grigio chiaro senza
   sfondo, in un angolo di una finestra piena di colori. Adesso ha un fondo, un
   bordo e il colore pieno del testo, e il bersaglio arriva a trentadue pixel —
