@@ -142,7 +142,15 @@ test("ingrandita, si scorre col mouse — come nella card nativa di HA", async (
   /* «Credo manchi solo la possibilità di scorrere con il mouse una volta
    * ingrandita come succede per la card standard di HA»: il trascinamento
    * c'e', e questa prova lo tiene fermo — rotella per ingrandire, poi il
-   * mouse che preme e trascina sposta davvero la mappa. */
+   * mouse che preme e trascina sposta davvero la mappa.
+   *
+   * Sull'iPad la rotella non esiste nemmeno come API («Mouse wheel is not
+   * supported in mobile WebKit»): questo e' il gesto della scrivania, e li'
+   * si ingrandisce col pizzico — che le prove qui sopra coprono gia'. */
+  test.skip(
+    testInfo.project.name === "webkit-ipad",
+    "la rotella del mouse non esiste nel WebKit mobile",
+  );
   const mappa = await avvia(page, testInfo);
   await mappa.dispatchEvent("click");
   await expect.poll(async () => (await lettura(page)).aperto).toBe(true);
