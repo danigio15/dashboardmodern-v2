@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><link rel="stylesheet" href="./dashboard-runtime-en.css">
+<head><link rel="stylesheet" href="./dashboard-runtime-en.css" media="print" onload="this.media='all'">
+<!-- Il velo d'avvio si dipinge PRIMA che arrivi qualunque foglio esterno:
+     queste regole sono inline apposta, e i fogli grandi non bloccano piu' il
+     primo dipinto — tanto sotto il velo non si vede niente finche' la plancia
+     non e' pronta. Senza, al primo avvio restava uno schermo bianco per tutto
+     il tempo del download. -->
+<style id="dm-avvio-critico">
+html{background:#e8edf3}
+html[data-theme="dark"]{background:#0b1220}
+#cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease;font-family:system-ui,-apple-system,sans-serif}
+html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}
+#cd-boot-overlay img{width:76px;height:76px;border-radius:20px}
+#cd-boot-overlay b{font-size:15px;letter-spacing:.09em;color:#0f172a;text-transform:uppercase;font-weight:900}
+html[data-theme="dark"] #cd-boot-overlay b{color:#e2e8f0}
+#cd-boot-overlay small{font-size:11.5px;color:#64748b;font-weight:700}
+#cd-boot-overlay .s{width:38px;height:38px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}
+@keyframes cdBootSpin{to{transform:rotate(360deg)}}
+</style>
 <!-- I moduli, chiesti tutti insieme dal primo istante.
      La plancia e' fatta di centosessantacinque moduli e la catena degli import
      e' profonda dieci livelli: un browser scopre un modulo solo quando ha
@@ -194,17 +211,17 @@
 <title>Smart Home Dashboard</title>
 <!-- ═══ CONFIG UTENTE (opzionale): copia config.example.js in config.js accanto a questo file e personalizza ═══ -->
 <script src="config.js" onerror="console.warn('[Dashboard] config.js non trovato — uso i default interni')"></script>
-<link rel="stylesheet" href="./vendor/caratteri.css">
-<script src="./vendor/chart.umd.min.js"></script>
-<script src="./dashboard-debug-en.js"></script>
+<link rel="stylesheet" href="./vendor/caratteri.css" media="print" onload="this.media='all'">
 <script defer src="./vendor/hls.min.js"></script>
 
-<link rel="stylesheet" href="./dashboard-runtime.css">
+<link rel="stylesheet" href="./dashboard-runtime.css" media="print" onload="this.media='all'">
 </head>
 <body>
+<!-- Prima di tutto, anche dello script del tema: stava sotto uno script
+     sincrono, e finche' quello non arrivava lo schermo restava vuoto. -->
+<div id="cd-boot-overlay"><img src="./logo.png" alt=""><b>DashboardModern</b><div class="s"></div><small>Loading…</small></div>
 <script src="./dashboard-theme-en.js"></script>
 
-<div id="cd-boot-overlay"><div class="s"></div></div>
 <script data-dashboardmodern-bootstrap-watchdog src="./dashboard-watchdog-en.js"></script>
 <div class="animated-mesh-bg"></div>
 
@@ -1710,6 +1727,10 @@
     </div>
   </div>
 </div>
+<!-- Scesi dalla testa del documento: sincroni com'erano, tenevano in ostaggio
+     il primo dipinto. Restano prima del runtime, che e' chi li usa. -->
+<script src="./vendor/chart.umd.min.js"></script>
+<script src="./dashboard-debug-en.js"></script>
 <script src="./dashboard-runtime-en.js"></script>
 
   <section class="page" id="page-temp">

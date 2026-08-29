@@ -494,6 +494,7 @@ export default Object.freeze({
   "Choose car brand": "कार का ब्रांड चुनें",
   "Choose entity": "इकाई चुनें",
   "Choose icon": "आइकन चुनें",
+  "Choose icon from the catalog": "कैटलॉग से आइकन चुनें",
   "Choose load icon": "लोड का आइकन चुनें",
   "Choose model": "मॉडल चुनें",
   "Choose parameter": "मान चुनें",
@@ -1140,7 +1141,6 @@ export default Object.freeze({
   "No shutter or curtain configured": "कोई शटर या परदा कॉन्फ़िगर नहीं",
   "No signal": "कोई संकेत नहीं",
   "No temperature configured.": "कोई तापमान कॉन्फ़िगर नहीं है।",
-  "No temperature sensor configured yet.": "अभी कोई तापमान सेंसर कॉन्फ़िगर नहीं है।",
   "no threshold": "कोई सीमा नहीं",
   "No todo.* list found": "कोई todo.* सूची नहीं मिली",
   "No vacuum configured": "कोई वैक्यूम कॉन्फ़िगर नहीं",
@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "कोई सॉकेट सेट नहीं है",
   "Sockets": "सॉकेट",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "घर के सॉकेट: लिविंग रूम का टीवी, बेडरूम वाला, फ़ायरस्टिक, मोडेम। ये रोशनी की तरह चालू-बंद होते हैं, पर अलग रहते हैं — इसलिए «सारी लाइटें बंद करो» से मोडेम बंद नहीं होता।",
+  "${accese} on": "${accese} चालू",
+  "1 on": "1 चालू",
+  "On/off · Consumption · Room by room": "चालू/बंद · खपत · कमरा-दर-कमरा",
 });

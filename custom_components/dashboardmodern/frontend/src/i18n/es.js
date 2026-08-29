@@ -494,6 +494,7 @@ export default Object.freeze({
   "Choose car brand": "Elegir marca del coche",
   "Choose entity": "Elegir entidad",
   "Choose icon": "Elegir icono",
+  "Choose icon from the catalog": "Elegir icono del catálogo",
   "Choose load icon": "Elegir icono de carga",
   "Choose model": "Elegir modelo",
   "Choose parameter": "Elegir parámetro",
@@ -1140,7 +1141,6 @@ export default Object.freeze({
   "No shutter or curtain configured": "Ninguna persiana o cortina configurada",
   "No signal": "Sin señal",
   "No temperature configured.": "Ninguna temperatura configurada.",
-  "No temperature sensor configured yet.": "Todavía no hay ningún sensor de temperatura configurado.",
   "no threshold": "sin umbral",
   "No todo.* list found": "No se encontró ninguna lista todo.*",
   "No vacuum configured": "Ningún aspirador configurado",
@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Ningún enchufe configurado",
   "Sockets": "Enchufes",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Los enchufes de la casa: la tele del salón, la del dormitorio, el Firestick, el módem. Se encienden y se apagan como las luces, pero van por su cuenta — así «apagar todas las luces» no apaga el módem.",
+  "${accese} on": "${accese} encendidos",
+  "1 on": "1 encendido",
+  "On/off · Consumption · Room by room": "Encendido/apagado · Consumo · Habitación por habitación",
 });

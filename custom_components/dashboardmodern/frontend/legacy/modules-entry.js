@@ -23,6 +23,7 @@ import { renderPreseEditor } from "../src/sections/prese-section.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { energyWriteInFlight, flushEnergyWrites, persistEnergyField, persistSignedSource } from "../src/core/energy-writer.js";
+import { IMPIANTO_SCELTO_KEY, plantModel } from "../src/core/energy-plants.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
 import { getLocale, pick } from "../src/core/i18n.js";
@@ -177,8 +178,15 @@ createRenderCoordinator(store, {
 });
 
 let activeEnergyPanel = "flows";
+/* L'impianto che si sta configurando: la maschera mostra I SUOI campi e ogni
+ * scrittura torna a lui. Senza, il secondo impianto era una quinta di teatro:
+ * la scheda mostrava le entita' del primo, e quello che si scriveva finiva
+ * addosso al primo — «ho configurato due impianti ma non legge i dati il
+ * secondo». Con un impianto solo esce la stringa vuota, cioe' il primo, cioe'
+ * esattamente com'era prima. */
+const impiantoAperto = () => String(globalThis.localStorage?.getItem(IMPIANTO_SCELTO_KEY) ?? "").trim();
 function renderEnergyEditorTab(target) {
-  const model = store.getSection("energy");
+  const model = plantModel(store.getSection("energy"), impiantoAperto());
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
     getLocale(),
     {
@@ -196,8 +204,8 @@ function renderEnergyEditorTab(target) {
        * La bozza presa all'apertura rimetteva a posto i valori che i campi
        * aggiunti dopo (contatori totali, SOC) avevano gia' salvato, e le
        * modifiche non ancora salvate sparivano cambiando sezione. */
-      onChange: (group, key, value) => persistEnergyField(store, group, key, value),
-      onSignedChange: (group, signed) => persistSignedSource(store, group, signed),
+      onChange: (group, key, value) => persistEnergyField(store, group, key, value, impiantoAperto()),
+      onSignedChange: (group, signed) => persistSignedSource(store, group, signed, impiantoAperto()),
       /* Dichiarare la sorgente unica spegne le caselle dei due versi: la
        * maschera va ridisegnata dal modello appena salvato, non indovinata. */
       onSignedRerender: async () => {
@@ -229,6 +237,36 @@ function renderEnergyEditorTab(target) {
       },
     });
 }
+
+/* Cambiare impianto rifa' la maschera, se la maschera c'e'.
+ *
+ * Le linguette scrivono la scelta e la annunciano; la maschera mostra i campi
+ * dell'impianto scelto, quindi al cambio va ridisegnata dal modello nuovo —
+ * lasciarla com'era voleva dire compilare il secondo impianto guardando le
+ * entita' del primo, e scriverci sopra. Il ridisegno che parte dal magazzino
+ * non copre questo caso: scatta al salvataggio dell'impianto, PRIMA che la
+ * scelta sia scritta. */
+globalThis.addEventListener?.("dashboardmodern:energy-plant-changed", async () => {
+  const trovaMaschera = () => {
+    const body = globalThis.document?.getElementById?.("ed-body");
+    return body && body.dataset.editor === "energy" ? body : null;
+  };
+  if (!trovaMaschera()) return;
+  /* Una scrittura in corso non annulla il ridisegno: lo fa aspettare.
+   *
+   * Scrivere in un campo e toccare subito la linguetta dell'altro impianto fa
+   * partire prima il salvataggio del campo (sul suo impianto, letto al
+   * momento del cambio) e poi il clic: rinunciare al ridisegno qui lasciava
+   * la maschera vecchia sotto la linguetta nuova — e il prossimo campo
+   * toccato sarebbe finito sull'impianto sbagliato. */
+  if (energyWriteInFlight()) {
+    try { await flushEnergyWrites(); } catch (_error) {}
+  }
+  const body = trovaMaschera();
+  if (!body) return;
+  renderEnergyEditorTab(body);
+  mountCurrentEditor("energy", body);
+});
 
 const esc = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 export function createEntityField({ id, label, value = "", placeholder = "sensor.entity", domain = "", optional = true } = {}) {

@@ -1,20 +1,21 @@
 // Beta 25 real-device fixes: multi-sensor temperatures and appliance artwork ownership.
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
+import { normalizeTemperatureEntry, temperatureEntries } from "../core/room-overview.js";
+import { renderTemperatureCards } from "./temperature-section.js";
 import {
-  allStates,
-  applyTemperatureReading,
   clean,
-  comfortBadgeText,
   dashboardStore,
   doc,
-  english,
   esc,
   root,
   section,
   t,
-  temperatureCardLabels,
 } from "./shared.js";
+
+/* Il modello delle sonde e' sceso in core (room-overview): chi lo importava da
+ * qui continua a trovarlo. */
+export { temperatureEntries };
 
 const KEY = "__DASHBOARDMODERN_BETA25_REAL_DEVICE_FIXES__";
 const state = (root[KEY] ||= {
@@ -39,45 +40,13 @@ function applianceList() {
   return Array.isArray(value) ? value : [];
 }
 
-function normalizeExtraEntry(entry = {}, index = 0) {
-  return {
-    id: clean(entry.id) || `temperature-extra-${index + 1}`,
-    name: clean(entry.name || entry.label),
-    temp: clean(entry.temp || entry.temperature_entity || entry.entity),
-    hum: clean(entry.hum || entry.humidity_entity),
-  };
-}
-
-/** Return every temperature association for one canonical room. */
-export function temperatureEntries(room = {}) {
-  const entries = [];
-  const primaryTemp = clean(room.temp);
-  const primaryHum = clean(room.hum);
-  if (primaryTemp || primaryHum) {
-    entries.push({
-      id: PRIMARY_ID,
-      name: clean(room.temp_name),
-      temp: primaryTemp,
-      hum: primaryHum,
-    });
-  }
-  const extras = Array.isArray(room?.metadata?.temperature_entries)
-    ? room.metadata.temperature_entries
-    : [];
-  extras
-    .map(normalizeExtraEntry)
-    .filter((entry) => entry.temp || entry.hum)
-    .forEach((entry) => entries.push(entry));
-  return entries;
-}
-
 /**
  * Keep the first association projected to legacy room.temp/hum so old cards and
  * exports remain compatible; additional associations live in room metadata.
  */
 export function projectTemperatureEntries(room = {}, entries = []) {
   const normalized = (Array.isArray(entries) ? entries : [])
-    .map(normalizeExtraEntry)
+    .map(normalizeTemperatureEntry)
     .filter((entry) => entry.temp || entry.hum);
   const primary = normalized[0] || null;
   const metadata = { ...(room.metadata || {}) };
@@ -101,7 +70,7 @@ export function projectTemperatureEntries(room = {}, entries = []) {
 
 export function upsertTemperatureEntry(room = {}, entry = {}, editingId = "") {
   const entries = temperatureEntries(room).map((item) => ({ ...item }));
-  const next = normalizeExtraEntry(entry, entries.length);
+  const next = normalizeTemperatureEntry(entry, entries.length);
   const target = clean(editingId);
   if (target) {
     const index = entries.findIndex((item) => item.id === target);
@@ -134,130 +103,22 @@ function humidityEntity(entry) {
   return clean(entry?.hum || temp.replace("_temperature", "_humidity"));
 }
 
-function numericState(entity) {
-  const value = Number.parseFloat(allStates()[clean(entity)]?.state);
-  return Number.isFinite(value) ? value : null;
-}
-
-function comfortLabel(value) {
-  if (value == null) return t("Non disponibile", "Unavailable");
-  if (value < 18) return t("Freddo", "Cold");
-  if (value > 26) return t("Caldo", "Hot");
-  return "Comfort";
-}
-
-function cardName(room, entry) {
-  const roomName = clean(room?.name) || (t("Stanza", "Room"));
-  const label = clean(entry?.name);
-  return label ? `${roomName} · ${label}` : roomName;
-}
-
-function makeText(className, value) {
-  const node = doc.createElement("span");
-  node.className = className;
-  node.textContent = value;
-  return node;
-}
-
-function createTemperatureCard(record) {
-  const { room, entry } = record;
-  const card = doc.createElement("article");
-  card.className = "temp-card cp-card dm-temperature-card";
-  card.dataset.roomId = clean(room.id);
-  card.dataset.temperatureId = clean(entry.id);
-  card.dataset.dmTemperatureCanonical = "true";
-  card.style.setProperty("--cp-rgb", "148, 163, 184");
-  card.addEventListener("click", (event) =>
-    root.apriStorico?.(event, clean(entry.temp), cardName(room, entry)),
-  );
-
-  const header = doc.createElement("div");
-  header.className = "cp-header temp-card-header";
-  const title = doc.createElement("div");
-  title.className = "cp-title-wrap";
-  const icon = doc.createElement("div");
-  icon.className = "cp-icon temp-room-icon";
-  icon.dataset.roomIcon = clean(room.icon || "mdi:home");
-  icon.append(makeText("dm-temperature-icon-fallback", glyph(room.icon)));
-  const name = doc.createElement("div");
-  name.className = "cp-name temp-room-name";
-  name.textContent = cardName(room, entry);
-  title.append(icon, name);
-  const badge = doc.createElement("div");
-  badge.className = "cp-badge temp-comfort-badge";
-  header.append(title, badge);
-
-  const body = doc.createElement("div");
-  body.className = "cp-body temp-card-body";
-  const current = doc.createElement("div");
-  current.className = "cp-temp-current-wrap";
-  const labels = temperatureCardLabels(room, entry);
-  current.append(
-    makeText("cp-temp-current-lbl", labels.temperature),
-    makeText("cp-temp-current temp-value", "—"),
-  );
-  const humidity = doc.createElement("div");
-  humidity.className = "cp-temp-target";
-  humidity.append(
-    makeText("lbl", `💧 ${labels.humidity}`),
-    makeText("val temp-hum-val", "—%"),
-  );
-  humidity.addEventListener("click", (event) => {
-    event.stopPropagation();
-    const entity = humidityEntity(entry);
-    if (entity) root.apriStorico?.(event, entity, `${cardName(room, entry)} · ${t("Umidità", "Humidity")}`);
-  });
-  body.append(current, humidity);
-  card.append(header, body);
-  return card;
-}
-
-function updateTemperatureCard(card, record) {
-  const { room, entry } = record;
-  const temperature = numericState(entry.temp);
-  const humidity = numericState(humidityEntity(entry));
-  const value = card.querySelector(".temp-value");
-  const hum = card.querySelector(".temp-hum-val");
-  const comfort = card.querySelector(".temp-comfort-badge");
-  const name = card.querySelector(".temp-room-name");
-  if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
-  if (hum) hum.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
-  applyTemperatureReading(card, temperature, humidity);
-  if (comfort) {
-    const label = comfortLabel(temperature);
-    comfort.textContent = comfortBadgeText(label);
-    comfort.title = label;
-    comfort.setAttribute("aria-label", label);
-    comfort.dataset.comfort = label.toLowerCase().replaceAll(" ", "-");
-  }
-  if (name) name.textContent = cardName(room, entry);
-}
-
+/* Un disegnatore solo.
+ *
+ * Questo modulo disegnava le card per associazione in concorrenza col padrone
+ * canonico della pagina: due installatori che si rubavano `buildTempCards` a
+ * vicenda, e vinceva l'ultimo — che in casa vera era quello per-stanza, cioe'
+ * una sonda sola per quante ne fossero configurate. Il disegno per
+ * associazione adesso e' DEL padrone canonico (temperature-section); qui resta
+ * l'editor delle associazioni, e chi chiedeva questo disegno viene mandato dal
+ * padrone. */
 export function renderBeta25TemperatureCards() {
-  const grid = doc?.getElementById?.("temp-grid");
-  if (!grid) return false;
-  const records = temperatureRecords();
-  if (!records.length) {
-    const empty = doc.createElement("div");
-    empty.className = "dm-temperature-empty";
-    empty.textContent = t("Nessun sensore temperatura configurato.", "No temperature sensor configured yet.");
-    grid.replaceChildren(empty);
-    return false;
-  }
-  const cards = records.map((record) => {
-    const card = createTemperatureCard(record);
-    updateTemperatureCard(card, record);
-    return card;
-  });
-  grid.replaceChildren(...cards);
-  /* Both markers in the same render turn, as the stable Beta 26 owner already
-   * does. Stamping only "beta25-multi" and leaving the rename to the
-   * compatibility pass opened a window in which the grid claimed a renderer
-   * nobody owns: the pass is wired to a different trigger, so whichever ran
-   * last won, and on a slow boot that was this render. */
-  grid.dataset.beta25TemperatureRenderer = "multi";
-  grid.dataset.dmTemperatureRenderer = "canonical";
-  return true;
+  /* La chiamata e' DIRETTA, non attraverso `root.buildTempCards`: quel nome
+   * globale ha ancora altri proprietari (il padrone stabile di beta26 ci
+   * installa il suo giro di linguette e valori), e passare di li' era una
+   * ricorsione infinita — beta26 chiama questa funzione per la struttura, e
+   * questa richiamava beta26. */
+  return renderTemperatureCards();
 }
 
 /* Riempie un campo entita' e lo fa sapere a chi lo disegna. */
@@ -454,16 +315,11 @@ export function repairApplianceCards() {
 }
 
 function installTemperatureOwners() {
-  for (const name of ["buildTempCards", "renderTemperature"]) {
-    const current = root[name];
-    if (current?.__dmBeta25TemperatureOwner) continue;
-    const owner = function beta25TemperatureOwner() {
-      return renderBeta25TemperatureCards();
-    };
-    owner.__dmBeta25TemperatureOwner = true;
-    owner.__dmPrevious = current;
-    root[name] = owner;
-  }
+  /* Niente piu' padroni installati da qui: `buildTempCards` e
+   * `renderTemperature` appartengono al disegnatore canonico della pagina,
+   * che ora conosce tutte le sonde. Installarli anche da qui era la guerra
+   * dei due padroni, e vinceva l'ultimo arrivato. */
+  return false;
 }
 
 function subscribeStore() {

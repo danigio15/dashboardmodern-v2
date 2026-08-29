@@ -494,6 +494,7 @@ export default Object.freeze({
   "Choose car brand": "选择汽车品牌",
   "Choose entity": "选择实体",
   "Choose icon": "选择图标",
+  "Choose icon from the catalog": "从目录中选择图标",
   "Choose load icon": "选择负载图标",
   "Choose model": "选择车型",
   "Choose parameter": "选择参数",
@@ -1140,7 +1141,6 @@ export default Object.freeze({
   "No shutter or curtain configured": "尚未配置卷帘或窗帘",
   "No signal": "没有信号",
   "No temperature configured.": "未配置温度。",
-  "No temperature sensor configured yet.": "尚未配置温度传感器。",
   "no threshold": "没有阈值",
   "No todo.* list found": "未找到 todo.* 列表",
   "No vacuum configured": "尚未配置扫地机器人",
@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "还没有配置插座",
   "Sockets": "插座",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "家里的插座：客厅电视、卧室电视、Firestick、光猫。它们像灯一样开关，但自成一类——所以“关掉所有灯”不会关掉光猫。",
+  "${accese} on": "${accese} 个已开启",
+  "1 on": "1 个已开启",
+  "On/off · Consumption · Room by room": "开/关 · 能耗 · 逐个房间",
 });

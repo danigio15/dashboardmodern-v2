@@ -494,6 +494,7 @@ export default Object.freeze({
   "Choose car brand": "自動車のメーカーを選択",
   "Choose entity": "エンティティを選択",
   "Choose icon": "アイコンを選択",
+  "Choose icon from the catalog": "カタログからアイコンを選択",
   "Choose load icon": "負荷のアイコンを選択",
   "Choose model": "モデルを選択",
   "Choose parameter": "項目を選択",
@@ -1140,7 +1141,6 @@ export default Object.freeze({
   "No shutter or curtain configured": "シャッターもカーテンも設定されていません",
   "No signal": "信号なし",
   "No temperature configured.": "温度が設定されていません。",
-  "No temperature sensor configured yet.": "温度センサーはまだ設定されていません。",
   "no threshold": "しきい値なし",
   "No todo.* list found": "todo.* リストが見つかりません",
   "No vacuum configured": "ロボット掃除機が設定されていません",
@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "コンセントが設定されていません",
   "Sockets": "コンセント",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "家のコンセント。リビングのテレビ、寝室のテレビ、Firestick、モデム。照明と同じように入切できますが、別扱いです。だから「すべての照明を消す」でモデムは切れません。",
+  "${accese} on": "${accese}個オン",
+  "1 on": "1個オン",
+  "On/off · Consumption · Room by room": "オン/オフ · 消費 · 部屋ごと",
 });

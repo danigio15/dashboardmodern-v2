@@ -494,6 +494,7 @@ export default Object.freeze({
   "Choose car brand": "اختر ماركة السيارة",
   "Choose entity": "اختر الكيان",
   "Choose icon": "اختر الأيقونة",
+  "Choose icon from the catalog": "اختر أيقونة من الكتالوج",
   "Choose load icon": "اختر أيقونة الحِمل",
   "Choose model": "اختر الطراز",
   "Choose parameter": "اختر المعطى",
@@ -1140,7 +1141,6 @@ export default Object.freeze({
   "No shutter or curtain configured": "لا توجد ستارة معدنية أو قماشية مُهيّأة",
   "No signal": "لا توجد إشارة",
   "No temperature configured.": "لم تُهيّأ أي درجة حرارة.",
-  "No temperature sensor configured yet.": "لم يُهيّأ بعد أي حساس حرارة.",
   "no threshold": "بلا عتبة",
   "No todo.* list found": "لم يُعثر على قائمة todo.*",
   "No vacuum configured": "لا توجد مكنسة مُهيّأة",
@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "لم يتم إعداد أي مقبس",
   "Sockets": "المقابس",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "مقابس المنزل: تلفزيون الصالة، تلفزيون غرفة النوم، الفايرستيك، المودم. تعمل وتنطفئ مثل الإضاءة، لكنها مستقلة — فـ«أطفئ كل الإضاءة» لا يطفئ المودم.",
+  "${accese} on": "${accese} قيد التشغيل",
+  "1 on": "1 قيد التشغيل",
+  "On/off · Consumption · Room by room": "تشغيل/إيقاف · الاستهلاك · غرفة بغرفة",
 });

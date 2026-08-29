@@ -90,6 +90,18 @@ function scegli(id) {
   try {
     scheduleEnergyRefresh(true);
   } catch (_error) {}
+  /* Se la maschera dell'Energia e' montata, va rifatta ADESSO: mostra i campi
+   * dell'impianto scelto, e lasciarla com'era vorrebbe dire compilare il
+   * secondo impianto guardando le entita' del primo — e scriverci sopra. Il
+   * ridisegno che parte dal magazzino non basta: scatta quando l'impianto
+   * viene salvato, cioe' PRIMA che questa scelta sia scritta. A ridisegnarla
+   * e' chi la possiede — l'ingresso dei moduli — che ascolta questo
+   * annuncio. */
+  try {
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:energy-plant-changed", {
+      detail: { plant: clean(id) },
+    }));
+  } catch (_error) {}
   root.render?.();
   schedule();
 }

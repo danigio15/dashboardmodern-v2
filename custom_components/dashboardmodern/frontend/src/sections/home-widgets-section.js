@@ -35,6 +35,8 @@ import {
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
+import { normalizzaPrese } from "../core/prese-model.js";
+import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   coverEntries,
@@ -1106,11 +1108,19 @@ function robotsModel(states) {
  * l'interruttore. Le temperature portano il loro numero; le pompe e gli
  * interruttori portano acceso o spento, perche' di una pompa quello si
  * guarda. */
+/* Quali caselle sono SONDE, e quali no.
+ *
+ * La finestra diceva «77,9° di salto fra la sonda piu' calda e la piu'
+ * fredda» confrontando la temperatura del boiler col Delta — che non e' una
+ * sonda: e' gia' una differenza, e a -3° faceva da «piu' fredda» a ogni
+ * lettura. E senza il marchio sarebbero entrate nel confronto anche la
+ * pressione in bar e la potenza in watt, che un numero grezzo ce l'hanno.
+ * `sonda: true` sta solo su cio' che misura una temperatura in un punto. */
 const CASELLE_SOLARE = Object.freeze([
-  { ref: "dm.boiler_sonda_temperatura_1", glyph: "🌡️", unita: "°", cifre: 1 },
-  { ref: "dm.boiler_sonda_temperatura_2", glyph: "🌡️", unita: "°", cifre: 1 },
-  { ref: "dm.boiler_sonda_temperatura_3", glyph: "🌡️", unita: "°", cifre: 1 },
-  { ref: "dm.boiler_temperatura", glyph: "🌡️", unita: "°", cifre: 1 },
+  { ref: "dm.boiler_sonda_temperatura_1", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
+  { ref: "dm.boiler_sonda_temperatura_2", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
+  { ref: "dm.boiler_sonda_temperatura_3", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
+  { ref: "dm.boiler_temperatura", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
   { ref: "dm.boiler_delta_temperatura", glyph: "📐", unita: "°", cifre: 1 },
   { ref: "dm.boiler_pressione_acqua", glyph: "💧", unita: " bar", cifre: 1 },
   { ref: "dm.boiler_potenza_resistenza_boiler", glyph: "⚡", unita: " W", cifre: 0 },
@@ -1177,6 +1187,10 @@ function solarThermalModel(states) {
       /* Il testo e' per gli occhi, `raw` per i conti: `Number("68°")` non e' un
        * numero, e l'analisi delle sonde non usciva mai. */
       raw: dato.value,
+      /* Esplicito su ogni riga numerica: il confronto fra sonde legge questo,
+       * e una riga senza marchio per lui e' una sonda — e' la forma che tiene
+       * in piedi le righe costruite altrove, dove sono tutte sonde davvero. */
+      sonda: casella.sonda === true,
       value: `${formatNumber(dato.value, casella.cifre)}${casella.unita}`,
     });
   }
@@ -1314,6 +1328,59 @@ function zonaInFunzione(states, zona) {
   return IRRIGAZIONE_ATTIVA.test(stato);
 }
 
+/* La tessera delle Prese.
+ *
+ * La sezione e' nata senza, ed e' stato segnalato subito: una sezione nuova
+ * entra nel ponte con la stessa logica delle altre, non alla prima
+ * segnalazione. Le righe sono comandi — un interruttore per presa, come la
+ * pompa della piscina — e il blocco «si vede ma non si comanda» vale anche
+ * qui, perche' l'interruttore compare solo dove `siComanda` dice di si'. */
+function preseModel(states) {
+  const canonico = section("sockets", null);
+  const grezzo = Array.isArray(canonico) && canonico.length ? canonico : readJson("cd_prese", []);
+  const prese = normalizzaPrese(grezzo).filter((presa) => clean(presa.entity));
+  if (!prese.length) return null;
+  const fuori = widgetExcludedEntities();
+  const rows = [];
+  for (const presa of prese) {
+    if (!widgetIncludes(presa.entity, fuori)) continue;
+    const stato = stateOf(states, presa.entity);
+    if (!stato) continue;
+    const grezzo = clean(stato.state).toLowerCase();
+    /* Assente non e' spento: `unavailable` e `unknown` dicono che lo stato
+     * non si conosce, non che la presa e' spenta. La riga lo dice, e il tasto
+     * non finge di poter comandare quello che non risponde. */
+    const disponibile = grezzo !== "unavailable" && grezzo !== "unknown";
+    rows.push({
+      // Il disegno del catalogo di casa; l'emoji resta per i valori vecchi.
+      glyph: iconaPresaMarkup(presa.icon, 17),
+      name: clean(presa.name) || presa.entity,
+      entity: presa.entity,
+      on: grezzo === "on",
+      comando: siComanda(presa.entity) && disponibile,
+      value: !disponibile
+        ? t("Non disponibile", "Unavailable")
+        : grezzo === "on"
+          ? t("Accesa", "On")
+          : t("Spenta", "Off"),
+    });
+  }
+  if (!rows.length) return null;
+  const accese = rows.filter((row) => row.on).length;
+  return {
+    key: "prese",
+    accent: "#475569",
+    icon: "🔌",
+    label: t("Prese", "Sockets"),
+    value: String(accese),
+    caption:
+      accese === 1 ? t("1 accesa", "1 on") : t(`${accese} accese`, `${accese} on`),
+    ring: rows.length ? Math.round((accese / rows.length) * 100) : null,
+    attiva: accese > 0,
+    rows,
+  };
+}
+
 function irrigationModel(states) {
   const config = root.getIrr?.() || readJson("cd_irrigazione", {});
   const zones = Array.isArray(config?.zones) ? config.zones : [];
@@ -1416,7 +1483,14 @@ function gruppoEntita(chiave) {
 }
 
 function friendlyName(states, entity) {
+  /* Prima il nome che la persona ha scritto in configurazione, poi quello di
+   * Home Assistant. Il widget delle aperture mostrava «Sensore Porta/finestra
+   * Camera matrimoniale Batteria» — il nome di fabbrica — anche a chi quella
+   * riga l'aveva battezzata: il nome scelto sta in `cd_avvisi_names_extra`,
+   * ed e' lo stesso posto da cui lo leggono il Quadro Avvisi e gli
+   * allagamenti. Un nome dato una volta vale ovunque. */
   return (
+    clean(readJson("cd_avvisi_names_extra", {})?.[entity]) ||
     clean(stateOf(states, entity)?.attributes?.friendly_name) ||
     entity.split(".")[1]?.replaceAll("_", " ") ||
     entity
@@ -1670,6 +1744,7 @@ function widgetModels(states) {
       robotsModel(states),
       solarThermalModel(states),
       poolModel(states),
+      preseModel(states),
       irrigationModel(states),
       openingsModel(states),
       batteriesModel(states),
@@ -2914,7 +2989,7 @@ function detailRows(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
-  if (["ev", "solare", "piscina", "irrigazione", "robot"].includes(widget.key))
+  if (["ev", "solare", "piscina", "prese", "irrigazione", "robot"].includes(widget.key))
     return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
@@ -2936,6 +3011,7 @@ function detailRows(widget, states) {
  * sezione che le contiene davvero. */
 const SEZIONE_DEL_WIDGET = Object.freeze({
   luci: "luci",
+  prese: "prese",
   clima: "clima",
   tapparelle: "tapparelle",
   sicurezza: "security",
@@ -3018,12 +3094,7 @@ function ensureHost() {
   return host;
 }
 
-/* La struttura e' cio' che c'e', non quanto vale: quali tessere, quale e'
- * aperta. Cambia lei → si rifa' il markup, ed e' l'unico momento in cui
- * l'apertura anima; cambiano i valori → si scrivono al loro posto, e il corpo
- * del dettaglio si riscrive da dentro senza rifare la card — o l'ingresso
- * ripartirebbe a ogni evento di stato. */
-/* La struttura e' QUALI tessere ci sono, e quale e' aperta. Nient'altro.
+/* La struttura e' QUALI tessere ci sono. Nient'altro.
  *
  * Ci stava dentro anche il fatto che una tessera avesse o no la barra, e la
  * barra dipende da un valore: un sensore che per un giro dice «non
@@ -3031,10 +3102,15 @@ function ensureHost() {
  * blocco tutte le tessere della Home. Da fuori si vede un tremolio, e
  * capitava a ogni evento di stato che passasse di li'.
  *
- * La barra adesso sta sempre nel markup e si accende e si spegne da sola,
- * come i valori: cambia quello che c'e' scritto, non quello che c'e'. */
+ * E ci stava dentro anche QUALE tessera fosse aperta — un resto dell'epoca in
+ * cui il dettaglio era una tendina dentro la griglia. Ma il dettaglio vive nel
+ * popup: aprire e chiudere cambiava la firma, e la firma rifaceva tutte le
+ * tessere con la finestra che stava ancora salendo. Sul telefono si vede la
+ * Home svuotarsi e ridisegnarsi a ogni tocco — «trema tutto» — due volte per
+ * popup, all'andata e al ritorno. L'evidenza della tessera aperta e' un
+ * valore, e si scrive addosso alla tessera come tutti gli altri valori. */
 function structureSignature(models) {
-  return [state.expanded, models.map((widget) => widget.key).join("|")].join("§");
+  return models.map((widget) => widget.key).join("|");
 }
 
 export function renderHomeWidgets() {
@@ -3165,6 +3241,9 @@ export function renderHomeWidgets() {
         tile.dataset.acceso = accesa;
         cambiato = true;
       }
+      // L'apertura non e' struttura: si scrive qui, e la tessera resta lei.
+      const aperta = String(state.expanded === widget.key);
+      if (tile.dataset.open !== aperta) tile.dataset.open = aperta;
       const caption = tile.querySelector("[data-dm-tile-caption]");
       if (caption && caption.textContent !== widget.caption) {
         caption.textContent = widget.caption;

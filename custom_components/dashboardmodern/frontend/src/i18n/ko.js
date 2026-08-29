@@ -494,6 +494,7 @@ export default Object.freeze({
   "Choose car brand": "자동차 브랜드 선택",
   "Choose entity": "엔티티 선택",
   "Choose icon": "아이콘 선택",
+  "Choose icon from the catalog": "카탈로그에서 아이콘 선택",
   "Choose load icon": "부하 아이콘 선택",
   "Choose model": "모델 선택",
   "Choose parameter": "항목 선택",
@@ -1140,7 +1141,6 @@ export default Object.freeze({
   "No shutter or curtain configured": "설정된 셔터나 커튼이 없습니다",
   "No signal": "신호 없음",
   "No temperature configured.": "설정된 온도가 없습니다.",
-  "No temperature sensor configured yet.": "아직 온도 센서가 설정되지 않았습니다.",
   "no threshold": "기준값 없음",
   "No todo.* list found": "todo.* 목록을 찾을 수 없음",
   "No vacuum configured": "설정된 로봇청소기가 없습니다",
@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "설정된 콘센트가 없습니다",
   "Sockets": "콘센트",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "집 안의 콘센트: 거실 TV, 침실 TV, 파이어스틱, 모뎀. 조명처럼 켜고 끄지만 따로 관리됩니다 — 그래서 «모든 조명 끄기»로 모뎀이 꺼지지 않습니다.",
+  "${accese} on": "${accese}개 켜짐",
+  "1 on": "1개 켜짐",
+  "On/off · Consumption · Room by room": "켜기/끄기 · 소비 · 방별",
 });

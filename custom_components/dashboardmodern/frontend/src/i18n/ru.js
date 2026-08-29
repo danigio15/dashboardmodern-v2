@@ -494,6 +494,7 @@ export default Object.freeze({
   "Choose car brand": "Выбрать марку автомобиля",
   "Choose entity": "Выбрать сущность",
   "Choose icon": "Выбрать значок",
+  "Choose icon from the catalog": "Выбрать значок из каталога",
   "Choose load icon": "Выбрать значок нагрузки",
   "Choose model": "Выбрать модель",
   "Choose parameter": "Выбрать параметр",
@@ -1140,7 +1141,6 @@ export default Object.freeze({
   "No shutter or curtain configured": "Рольставни и шторы не настроены",
   "No signal": "Нет сигнала",
   "No temperature configured.": "Температура не настроена.",
-  "No temperature sensor configured yet.": "Датчик температуры ещё не настроен.",
   "no threshold": "без порога",
   "No todo.* list found": "Списки todo.* не найдены",
   "No vacuum configured": "Пылесос не настроен",
@@ -1828,4 +1828,7 @@ export default Object.freeze({
   "No socket configured": "Ни одной розетки не настроено",
   "Sockets": "Розетки",
   "The sockets around the house: the living-room TV, the bedroom one, the Firestick, the modem. They switch on and off like lights, but they live on their own — so «turn all lights off» does not turn off the modem.": "Розетки в доме: телевизор в гостиной, телевизор в спальне, Firestick, модем. Включаются как свет, но живут отдельно — поэтому «выключить весь свет» не выключает модем.",
+  "${accese} on": "${accese} включено",
+  "1 on": "1 включена",
+  "On/off · Consumption · Room by room": "Вкл/выкл · Потребление · Комната за комнатой",
 });

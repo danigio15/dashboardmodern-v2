@@ -1757,6 +1757,9 @@ function editorRenderAvvisi() {
         </select>
         <div style="display:flex; gap:6px;"><input id="ed-avv-ent" class="ed-input mono" style="flex:1;" autocomplete="off" placeholder="binary_sensor.finestra_x_contact"><button type="button" onclick="wzPickEntity('#ed-avv-ent')" style="flex:0 0 40px; height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:15px; cursor:pointer;">🔍</button></div>
         <input id="ed-avv-name" class="ed-input" value="${editing ? esc(ed.name) : ''}" placeholder="Alert name (e.g. Open windows)">
+        <!-- L'icona vale per OGNI avviso, non solo per i personalizzati: era chiusa
+             dentro il blocco custom, e per le Aperture non c'era modo di sceglierla (#229). -->
+        <div style="display:flex; gap:6px;"><input id="ed-avv-icon" class="ed-input" style="flex:1;" value="${editing ? esc(ed.icon || '⚠️') : '⚠️'}" placeholder="Icon (e.g. ⚠️ 💧 🌡️)"><button type="button" onclick="dmIconPicker('#ed-avv-icon')" style="flex:0 0 40px; height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:15px; cursor:pointer;">🔍</button></div>
         <div id="ed-avv-custom" style="display:${editing ? 'block' : 'none'};">
           <button type="button" class="ed-btn-add" style="background:linear-gradient(135deg,#0ea5e9,#0369a1); margin-bottom:8px;" onclick="edAvvAddEntity()">＋ Add this entity to the list</button>
           <div id="ed-avv-ents" style="margin-bottom:8px;"></div>
@@ -1769,7 +1772,7 @@ function editorRenderAvvisi() {
             ${cOpt('lt','Less than…')}
           </select>
           <input id="ed-avv-val" class="ed-input" value="${editing ? esc(ed.value) : ''}" placeholder="manual state or value (e.g. heat, 23.5, open)" style="display:${showVal ? 'block' : 'none'};">
-          <div style="display:flex; gap:6px;"><input id="ed-avv-icon" class="ed-input" style="flex:1;" value="${editing ? esc(ed.icon || '⚠️') : '⚠️'}" placeholder="Icon (e.g. ⚠️ 💧 🌡️)"><button type="button" onclick="dmIconPicker('#ed-avv-icon')" style="flex:0 0 40px; height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:15px; cursor:pointer;">🔍</button></div>
+          
         </div>
         <button class="ed-btn-add" onclick="edAddAvviso()">${editing ? '💾 Save changes' : '＋ Add alert'}</button>
         ${editing ? '<button type="button" class="ed-btn-add" style="background:#94a3b8; margin-top:6px;" onclick="edAvvCancelEdit()">✖ Cancel edit</button>' : ''}
@@ -1777,7 +1780,7 @@ function editorRenderAvvisi() {
 }
 
 function edAddAvviso() {
-    const grp = document.getElementById('ed-avv-grp').value; if (grp === 'tapp') { const entT = (document.getElementById('ed-avv-ent').value||'').trim(); const nmT = (document.getElementById('ed-avv-name').value||'').trim(); if (!entT.includes('.')) { alert('Inserisci una entità cover valida'); return; } const itemT = { entities:[entT], name: nmT || entT, icon:'🪟', cond:'eq', value:'open' }; const listT = cdCfgList('cd_avvisi_custom'); listT.push(itemT); localStorage.setItem('cd_avvisi_custom', JSON.stringify(listT)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} editorSwitch('avvisi'); edToast('Avviso tapparella aggiunto'); return; }
+    const grp = document.getElementById('ed-avv-grp').value; if (grp === 'tapp') { const entT = (document.getElementById('ed-avv-ent').value||'').trim(); const nmT = (document.getElementById('ed-avv-name').value||'').trim(); if (!entT.includes('.')) { alert('Inserisci una entità cover valida'); return; } /* L'icona del selettore vale per OGNI avviso: questo ramo la ignorava e la tapparella restava col suo simbolo qualunque cosa si scegliesse. */ const icT = (((document.getElementById('ed-avv-icon')||{}).value)||'').trim(); const itemT = { entities:[entT], name: nmT || entT, icon: (icT && icT !== '⚠️') ? icT : '🪟', cond:'eq', value:'open' }; const listT = cdCfgList('cd_avvisi_custom'); listT.push(itemT); localStorage.setItem('cd_avvisi_custom', JSON.stringify(listT)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} editorSwitch('avvisi'); edToast('Avviso tapparella aggiunto'); return; }
     const ent = (document.getElementById('ed-avv-ent').value||'').trim();
     const name = (document.getElementById('ed-avv-name').value||'').trim();
     if (grp === 'custom') {
@@ -1801,9 +1804,23 @@ function edAddAvviso() {
     }
     if (!ent.includes('.')) { alert('Enter a valid entity'); return; }
     const extG = edGetExtra('cd_gruppi_extra');
-    if (!extG[grp]) extG[grp] = [];
+    // Una lista che non e' una lista (un salvataggio corrotto, un backup di
+    // un'altra versione) faceva morire il salvataggio qui, in silenzio: il
+    // tasto sembrava non fare niente (#229). Si rimette in forma e si va.
+    if (!Array.isArray(extG[grp])) extG[grp] = [];
     if (!extG[grp].includes(ent)) extG[grp].push(ent);
     localStorage.setItem('cd_gruppi_extra', JSON.stringify(extG));
+    // L'icona scelta vale anche qui, non solo per gli avvisi personalizzati:
+    // si scrive solo se non e' quella di serie, cosi' chi non la tocca segue
+    // il gruppo. Stessa regola della matita del Quadro Avvisi.
+    try {
+        const iconaScelta = ((document.getElementById('ed-avv-icon') || {}).value || '').trim();
+        if (iconaScelta && iconaScelta !== '⚠️') {
+            const icone = edGetExtra('cd_avvisi_icone');
+            icone[ent] = iconaScelta;
+            localStorage.setItem('cd_avvisi_icone', JSON.stringify(icone));
+        }
+    } catch (e) {}
     // v292 (issue #3): valido subito anche nel runtime — niente reload per vederlo
     if (GRUPPI_MONITORAGGIO[grp] && !GRUPPI_MONITORAGGIO[grp].includes(ent)) GRUPPI_MONITORAGGIO[grp].push(ent);
     try { cdMarkDirty(); cdSyncPush(); } catch(e){}
@@ -5073,6 +5090,19 @@ let _cdBootAtteso = false;
 function _cdModuliPronti() {
     return Boolean(window.__DASHBOARDMODERN_SECTION_RUNTIME__ && window.__DASHBOARDMODERN_SECTION_RUNTIME__.installed);
 }
+/* I fogli grandi non bloccano piu' la prima dipintura (media="print" finche'
+ * non arrivano, poi il loro onload li accende): il velo quindi non deve
+ * togliersi prima che il vestito sia arrivato, o con i moduli gia' in cache si
+ * vedrebbe la plancia nuda per un momento. Se un foglio non arriva mai, ci
+ * pensa la stessa scadenza degli otto secondi. */
+function _cdFogliPronti() {
+    try {
+        const fogli = document.querySelectorAll('link[rel="stylesheet"][href*="dashboard-runtime"]');
+        for (const foglio of fogli) { if (foglio.media === 'print') return false; }
+        return true;
+    } catch (e) { return true; }
+}
+function _cdPlanciaPronta() { return _cdModuliPronti() && _cdFogliPronti(); }
 function _cdTogliIlVelo() {
     if (_cdBootDone) return; _cdBootDone = true;
     const o = document.getElementById('cd-boot-overlay');
@@ -5082,12 +5112,12 @@ function cdHideBoot() {
     window.__DASHBOARDMODERN_READY__ = true;
     if (window.__DASHBOARDMODERN_BOOT_TIMEOUT__) clearTimeout(window.__DASHBOARDMODERN_BOOT_TIMEOUT__);
     if (_cdBootDone) return;
-    if (_cdModuliPronti()) { _cdTogliIlVelo(); return; }
+    if (_cdPlanciaPronta()) { _cdTogliIlVelo(); return; }
     if (_cdBootAtteso) return; _cdBootAtteso = true;
     const scadenza = Date.now() + CD_ATTESA_MODULI;
     const guarda = () => {
         if (_cdBootDone) return;
-        if (_cdModuliPronti() || Date.now() >= scadenza) { _cdTogliIlVelo(); return; }
+        if (_cdPlanciaPronta() || Date.now() >= scadenza) { _cdTogliIlVelo(); return; }
         (window.requestAnimationFrame || window.setTimeout)(guarda, 32);
     };
     guarda();

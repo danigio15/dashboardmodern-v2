@@ -1,4 +1,5 @@
 import { LIGHT_DOMAINS, isLightEntity, lightView } from "../core/light-model.js";
+import { roomOrderRank } from "../core/room-overview.js";
 import {
   allStates,
   clean,
@@ -86,6 +87,19 @@ export function configuredLightGroups() {
     ),
     ...[...grouped.keys()].filter((room) => !preferredLabels.includes(room)),
   ];
+  /* L'ordine delle stanze e' quello della sezione Stanze, e vale anche qui.
+   *
+   * Senza queste righe i gruppi uscivano nell'ordine in cui le luci erano
+   * state configurate: chi aveva messo il bagnetto in cima in configurazione
+   * se lo ritrovava in fondo alla pagina Luci, e l'ordinamento sembrava non
+   * servire a niente (#228). La domanda «quale stanza viene prima» ha un
+   * padrone solo, `roomOrderRank`; le stanze che la configurazione non
+   * conosce — «Altre zone» compresa — restano in fondo, nell'ordine in cui
+   * stavano, e l'elenco di `cd_luci_room_order` sopravvive come spareggio fra
+   * quelle. */
+  const posto = roomOrderRank(rooms);
+  const prima = [...roomNames];
+  roomNames.sort((a, b) => posto(a) - posto(b) || prima.indexOf(a) - prima.indexOf(b));
   return roomNames.map((room) => {
     const current = grouped.get(room) || [];
     const saved = Array.isArray(order[room]) ? order[room] : [];
