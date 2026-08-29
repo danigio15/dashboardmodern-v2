@@ -237,7 +237,13 @@ const LETTURE = Object.freeze({
      * `Number("68°")` non e' un numero. Le righe di questa sezione portano
      * `raw` accanto a `value` proprio per questo. */
     const gradoDi = (r) => num(r?.raw ?? r?.temperature);
-    const gradi = righe.filter((r) => gradoDi(r) != null);
+    /* Il Delta non e' una sonda: e' gia' una differenza, e a -3° farebbe da
+     * «piu' fredda» a ogni lettura. Ne' lo sono la pressione o la potenza, che
+     * un numero grezzo ce l'hanno. Chi costruisce le righe marchia le sonde
+     * vere con `sonda: true`; una riga senza marchio si tratta da sonda,
+     * perche' e' cosi' che sono fatte le righe semplici delle prove e delle
+     * tessere costruite a mano — dove di misure ce n'e' una sola. */
+    const gradi = righe.filter((r) => gradoDi(r) != null && r?.sonda !== false);
     const punti = [];
     const estremo = estremi(
       gradi.map((r) => ({ ...r, gradi: gradoDi(r) })),

@@ -1106,11 +1106,19 @@ function robotsModel(states) {
  * l'interruttore. Le temperature portano il loro numero; le pompe e gli
  * interruttori portano acceso o spento, perche' di una pompa quello si
  * guarda. */
+/* Quali caselle sono SONDE, e quali no.
+ *
+ * La finestra diceva «77,9° di salto fra la sonda piu' calda e la piu'
+ * fredda» confrontando la temperatura del boiler col Delta — che non e' una
+ * sonda: e' gia' una differenza, e a -3° faceva da «piu' fredda» a ogni
+ * lettura. E senza il marchio sarebbero entrate nel confronto anche la
+ * pressione in bar e la potenza in watt, che un numero grezzo ce l'hanno.
+ * `sonda: true` sta solo su cio' che misura una temperatura in un punto. */
 const CASELLE_SOLARE = Object.freeze([
-  { ref: "dm.boiler_sonda_temperatura_1", glyph: "🌡️", unita: "°", cifre: 1 },
-  { ref: "dm.boiler_sonda_temperatura_2", glyph: "🌡️", unita: "°", cifre: 1 },
-  { ref: "dm.boiler_sonda_temperatura_3", glyph: "🌡️", unita: "°", cifre: 1 },
-  { ref: "dm.boiler_temperatura", glyph: "🌡️", unita: "°", cifre: 1 },
+  { ref: "dm.boiler_sonda_temperatura_1", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
+  { ref: "dm.boiler_sonda_temperatura_2", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
+  { ref: "dm.boiler_sonda_temperatura_3", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
+  { ref: "dm.boiler_temperatura", glyph: "🌡️", unita: "°", cifre: 1, sonda: true },
   { ref: "dm.boiler_delta_temperatura", glyph: "📐", unita: "°", cifre: 1 },
   { ref: "dm.boiler_pressione_acqua", glyph: "💧", unita: " bar", cifre: 1 },
   { ref: "dm.boiler_potenza_resistenza_boiler", glyph: "⚡", unita: " W", cifre: 0 },
@@ -1177,6 +1185,10 @@ function solarThermalModel(states) {
       /* Il testo e' per gli occhi, `raw` per i conti: `Number("68°")` non e' un
        * numero, e l'analisi delle sonde non usciva mai. */
       raw: dato.value,
+      /* Esplicito su ogni riga numerica: il confronto fra sonde legge questo,
+       * e una riga senza marchio per lui e' una sonda — e' la forma che tiene
+       * in piedi le righe costruite altrove, dove sono tutte sonde davvero. */
+      sonda: casella.sonda === true,
       value: `${formatNumber(dato.value, casella.cifre)}${casella.unita}`,
     });
   }
@@ -1416,7 +1428,14 @@ function gruppoEntita(chiave) {
 }
 
 function friendlyName(states, entity) {
+  /* Prima il nome che la persona ha scritto in configurazione, poi quello di
+   * Home Assistant. Il widget delle aperture mostrava «Sensore Porta/finestra
+   * Camera matrimoniale Batteria» — il nome di fabbrica — anche a chi quella
+   * riga l'aveva battezzata: il nome scelto sta in `cd_avvisi_names_extra`,
+   * ed e' lo stesso posto da cui lo leggono il Quadro Avvisi e gli
+   * allagamenti. Un nome dato una volta vale ovunque. */
   return (
+    clean(readJson("cd_avvisi_names_extra", {})?.[entity]) ||
     clean(stateOf(states, entity)?.attributes?.friendly_name) ||
     entity.split(".")[1]?.replaceAll("_", " ") ||
     entity

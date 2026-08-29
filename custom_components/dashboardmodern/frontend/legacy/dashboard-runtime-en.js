@@ -1757,6 +1757,9 @@ function editorRenderAvvisi() {
         </select>
         <div style="display:flex; gap:6px;"><input id="ed-avv-ent" class="ed-input mono" style="flex:1;" autocomplete="off" placeholder="binary_sensor.finestra_x_contact"><button type="button" onclick="wzPickEntity('#ed-avv-ent')" style="flex:0 0 40px; height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:15px; cursor:pointer;">🔍</button></div>
         <input id="ed-avv-name" class="ed-input" value="${editing ? esc(ed.name) : ''}" placeholder="Alert name (e.g. Open windows)">
+        <!-- L'icona vale per OGNI avviso, non solo per i personalizzati: era chiusa
+             dentro il blocco custom, e per le Aperture non c'era modo di sceglierla (#229). -->
+        <div style="display:flex; gap:6px;"><input id="ed-avv-icon" class="ed-input" style="flex:1;" value="${editing ? esc(ed.icon || '⚠️') : '⚠️'}" placeholder="Icon (e.g. ⚠️ 💧 🌡️)"><button type="button" onclick="dmIconPicker('#ed-avv-icon')" style="flex:0 0 40px; height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:15px; cursor:pointer;">🔍</button></div>
         <div id="ed-avv-custom" style="display:${editing ? 'block' : 'none'};">
           <button type="button" class="ed-btn-add" style="background:linear-gradient(135deg,#0ea5e9,#0369a1); margin-bottom:8px;" onclick="edAvvAddEntity()">＋ Add this entity to the list</button>
           <div id="ed-avv-ents" style="margin-bottom:8px;"></div>
@@ -1769,7 +1772,7 @@ function editorRenderAvvisi() {
             ${cOpt('lt','Less than…')}
           </select>
           <input id="ed-avv-val" class="ed-input" value="${editing ? esc(ed.value) : ''}" placeholder="manual state or value (e.g. heat, 23.5, open)" style="display:${showVal ? 'block' : 'none'};">
-          <div style="display:flex; gap:6px;"><input id="ed-avv-icon" class="ed-input" style="flex:1;" value="${editing ? esc(ed.icon || '⚠️') : '⚠️'}" placeholder="Icon (e.g. ⚠️ 💧 🌡️)"><button type="button" onclick="dmIconPicker('#ed-avv-icon')" style="flex:0 0 40px; height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:15px; cursor:pointer;">🔍</button></div>
+          
         </div>
         <button class="ed-btn-add" onclick="edAddAvviso()">${editing ? '💾 Save changes' : '＋ Add alert'}</button>
         ${editing ? '<button type="button" class="ed-btn-add" style="background:#94a3b8; margin-top:6px;" onclick="edAvvCancelEdit()">✖ Cancel edit</button>' : ''}
@@ -1801,9 +1804,23 @@ function edAddAvviso() {
     }
     if (!ent.includes('.')) { alert('Enter a valid entity'); return; }
     const extG = edGetExtra('cd_gruppi_extra');
-    if (!extG[grp]) extG[grp] = [];
+    // Una lista che non e' una lista (un salvataggio corrotto, un backup di
+    // un'altra versione) faceva morire il salvataggio qui, in silenzio: il
+    // tasto sembrava non fare niente (#229). Si rimette in forma e si va.
+    if (!Array.isArray(extG[grp])) extG[grp] = [];
     if (!extG[grp].includes(ent)) extG[grp].push(ent);
     localStorage.setItem('cd_gruppi_extra', JSON.stringify(extG));
+    // L'icona scelta vale anche qui, non solo per gli avvisi personalizzati:
+    // si scrive solo se non e' quella di serie, cosi' chi non la tocca segue
+    // il gruppo. Stessa regola della matita del Quadro Avvisi.
+    try {
+        const iconaScelta = ((document.getElementById('ed-avv-icon') || {}).value || '').trim();
+        if (iconaScelta && iconaScelta !== '⚠️') {
+            const icone = edGetExtra('cd_avvisi_icone');
+            icone[ent] = iconaScelta;
+            localStorage.setItem('cd_avvisi_icone', JSON.stringify(icone));
+        }
+    } catch (e) {}
     // v292 (issue #3): valido subito anche nel runtime — niente reload per vederlo
     if (GRUPPI_MONITORAGGIO[grp] && !GRUPPI_MONITORAGGIO[grp].includes(ent)) GRUPPI_MONITORAGGIO[grp].push(ent);
     try { cdMarkDirty(); cdSyncPush(); } catch(e){}

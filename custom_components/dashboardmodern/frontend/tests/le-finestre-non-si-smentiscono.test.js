@@ -127,3 +127,48 @@ test("una carica che non si legge non disegna una barra a terra", async () => {
   /* Il campo assente non ferma la ricerca sugli altri. */
   assert.equal(percentuale({ battery: null, level: 30 }), 30);
 });
+
+/* ── il Delta non e' una sonda ───────────────────────────────────────────── */
+
+test("il confronto fra sonde non tira dentro il Delta, la pressione o i watt", () => {
+  /* «77,9° di salto fra la sonda piu' calda e la piu' fredda», confrontando la
+   * temperatura del boiler col Delta a -3°: il Delta e' gia' una differenza, e
+   * faceva da «piu' fredda» a ogni lettura. */
+  const lettura = analisiDellaSezione(
+    {
+      key: "solare",
+      attiva: false,
+      rows: [
+        { name: "Temperatura Boiler", raw: 74.9, sonda: true, entity: "a" },
+        { name: "Sonda pannello", raw: 68.2, sonda: true, entity: "b" },
+        { name: "Delta Solare termico Boiler", raw: -3.0, sonda: false, entity: "c" },
+        { name: "Pressione", raw: 1.5, sonda: false, entity: "d" },
+        { name: "Resistenza", raw: 1500, sonda: false, entity: "e" },
+      ],
+    },
+    IN_INGLESE,
+  );
+  assert.match(lettura.frase, /6\.7|6,7/, "il salto giusto e' fra le due sonde vere");
+  for (const punto of lettura.punti) {
+    assert.doesNotMatch(
+      punto,
+      /Delta|Pressione|Resistenza/,
+      `una non-sonda e' entrata nel confronto: ${punto}`,
+    );
+  }
+});
+
+test("una riga senza marchio resta una sonda: e' la forma delle tessere semplici", () => {
+  const lettura = analisiDellaSezione(
+    {
+      key: "solare",
+      attiva: false,
+      rows: [
+        { name: "Pannello", raw: 61, entity: "a" },
+        { name: "Boiler", raw: 48, entity: "b" },
+      ],
+    },
+    IN_INGLESE,
+  );
+  assert.match(lettura.frase, /13/);
+});
