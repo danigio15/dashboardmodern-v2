@@ -327,6 +327,34 @@ function paint() {
   return true;
 }
 
+/* Riallinea OGNI card della luce del documento, dovunque sia disegnata.
+ *
+ * La card e' di questo modulo, ma non la disegna solo questo modulo: la pagina
+ * Stanze si prende `pageCardMarkup` da qui, perche' una seconda card per la
+ * stessa luce vorrebbe dire mantenerne due. Il riallineamento pero' era rimasto
+ * chiuso dentro `#lucip-wrap`, e `paint` per giunta si fermava subito se la
+ * pagina Luci non era quella aperta. Risultato: nelle Stanze si accendeva la
+ * luce, Home Assistant la accendeva davvero, e la card restava «SPENTA»
+ * finche' non si passava dalla pagina Luci — «se accendo una luce non cambia
+ * stato, non c'e' il refresh».
+ *
+ * Un padrone solo, quindi, ma con lo sguardo lungo: chi possiede il disegno
+ * possiede anche l'aggiornamento, e lo fa per tutte le sue card. Le Stanze non
+ * ne tengono una copia — due modi di aggiornare la stessa card sono due
+ * padroni, che e' il difetto da cui veniamo. */
+export function riallineaLeCardDelleLuci() {
+  if (!doc) return 0;
+  let quante = 0;
+  for (const card of doc.querySelectorAll("[data-dm-lucip]")) {
+    const entity = clean(card.getAttribute("data-dm-lucip"));
+    const view = entity ? viewOf(entity) : null;
+    if (!view) continue;
+    syncCard(card, view);
+    quante += 1;
+  }
+  return quante;
+}
+
 function syncCard(card, view) {
   card.classList.toggle("is-on", view.on);
   card.dataset.dmLucipAvailable = String(view.available);
@@ -383,11 +411,28 @@ function syncValues(wrap, groups, views) {
 
 /* ─────────────────────────────── comandi ────────────────────────────────── */
 
+/* La lettura di una luce, col pegno del tocco davanti allo stato.
+ *
+ * Il pegno e' quello che l'utente ha appena chiesto e Home Assistant non ha
+ * ancora confermato: dura pochi secondi e serve perche' la card si muova
+ * all'istante invece di restare ferma per tutto il giro del comando. Scaduto
+ * il pegno — o arrivato uno stato che dice il contrario — comanda lo stato,
+ * che e' la verita'. Un comando che non arriva a destinazione non lascia
+ * quindi una card che mente: torna da sola com'era. */
 function viewOf(id) {
   const entity = clean(id);
   if (!entity) return null;
   const names = readJson("cd_luci", {});
-  return lightView(entity, { name: names[entity], state: allStates()[entity] });
+  const stato = allStates()[entity];
+  const view = lightView(entity, { name: names[entity], state: stato });
+  const promesso = heldValue(entity, "power");
+  if (promesso == null || !view.available) return view;
+  if (promesso === view.on) {
+    // lo stato ha confermato: il pegno ha finito il suo mestiere
+    releaseHolds(entity);
+    return view;
+  }
+  return { ...view, on: promesso };
 }
 
 function callService(command) {
@@ -446,12 +491,22 @@ function live(view, change, field, value, { commit = false } = {}) {
   }
 }
 
+/* Il tocco si vede subito, e lo stato vero poi conferma o corregge.
+ *
+ * Prima si aspettava il giro completo — comando a Home Assistant, stato di
+ * ritorno, ridisegno — e in quel mezzo secondo la card non faceva niente: chi
+ * tocca non sa se ha toccato. Adesso la card si muove all'istante e il valore
+ * si trattiene per il tempo del giro; quando lo stato arriva, se dice il
+ * contrario vince lui. Il pegno scade da solo, cosi' un comando che non arriva
+ * a destinazione non lascia una card che mente per sempre. */
 function toggleLight(id) {
   const view = viewOf(id);
   if (!view) return;
+  const acceso = !view.on;
   feedback();
   releaseHolds(view.id);
-  send(view, { power: !view.on });
+  holdValue(view.id, "power", acceso);
+  send(view, { power: acceso });
   schedule();
 }
 
@@ -536,6 +591,9 @@ function repaint() {
   ensureLightsTab();
   teachNavVisibility();
   paint();
+  /* Dopo `paint`, che si ferma se la pagina Luci non e' quella aperta: le card
+   * disegnate altrove — le Stanze — vanno riallineate lo stesso. */
+  riallineaLeCardDelleLuci();
 }
 
 function schedule() {
