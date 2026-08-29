@@ -9,15 +9,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
-- **Il cerchio vuoto che compariva e spariva in fondo al flusso Energia.** Le
-  bolle dei carichi vecchie le nasconde il modulo del flusso, che disegna le
-  sue: solo che le nascondeva nodo per nodo a ogni passata di disegno —
-  seicentotrenta scritture in quaranta giri, su nodi gia' nascosti. Fra il
-  momento in cui il guscio ne ridisegna una e il fotogramma in cui il modulo la
-  rinasconde c'e' una finestra in cui quella bolla si vede, ed e' il cerchio che
-  lampeggiava. Adesso a spegnerle e' una regola di stile, che vale dall'istante
-  in cui il nodo esiste e non aspetta nessun giro: le scritture passano da
-  seicentotrenta a zero, e la finestra in cui si vedeva non c'e' piu'.
+- **Il cerchio in piu' in fondo al flusso Energia, e quello sopra il Wallbox.**
+  Non era uno sfarfallio: erano due serie di bolle disegnate insieme. Nel guscio
+  ce ne sono cinque a posto fisso — Boiler, Wallbox, Clima, Lavanderia,
+  Cucina — di quando i carichi erano quei cinque e basta; oggi li disegna il
+  flusso, in numero e posizione decisi dalla configurazione, e quelle cinque le
+  ritira. La scheda dei nodi pero' decideva la stessa cosa da un'altra parte:
+  ogni volta che una bolla veniva riaccesa in configurazione le rimetteva a
+  posto la proprieta' `display`, e cosi' cancellava proprio il «nascosta» con
+  cui il flusso l'aveva ritirata. La bolla vecchia tornava al suo posto fisso,
+  addosso a quella nuova. Due padroni per la stessa bolla, ed e' sempre il
+  secondo a rovinare il lavoro del primo: adesso su una bolla che il flusso ha
+  gia' sostituito la scheda non scrive piu' niente, ne' per nasconderla ne' per
+  riaccenderla, e dove scrive rimette il valore che c'era invece di cancellare
+  la proprieta' — cancellarla non ripristina, scopre quello che sta sotto.
+
+- **Le bolle vecchie non fanno piu' in tempo a vedersi.** Le nascondeva il
+  modulo del flusso nodo per nodo a ogni passata di disegno — seicentotrenta
+  scritture in quaranta giri, su nodi gia' nascosti — e fra il momento in cui il
+  guscio ne ridisegna una e il fotogramma in cui il modulo la rinasconde c'e'
+  una finestra in cui quella bolla si vede. Adesso a spegnerle e' anche una
+  regola di stile, che vale dall'istante in cui il nodo esiste e non aspetta
+  nessun giro: le scritture passano da seicentotrenta a zero, e quella finestra
+  non c'e' piu'.
 
 - **«Temperatura Pannello solare Temperature».** La parola due volte, una per
   lingua, su tre righe della stessa finestra. Non nasce dalla plancia: Home
