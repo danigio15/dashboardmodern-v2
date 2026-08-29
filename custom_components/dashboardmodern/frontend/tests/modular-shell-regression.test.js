@@ -14,7 +14,15 @@ for (const [file, locale] of [
   test(`${file} remains a lightweight modular shell`, () => {
     const html = fs.readFileSync(path.join(legacy, file), "utf8");
     assert.ok(Buffer.byteLength(html) < 150_000, `${file} grew back into a monolith`);
-    assert.doesNotMatch(html, /<style(?:\s|>)/i);
+    /* Un solo <style> e' ammesso, ed e' quello critico del velo d'avvio: i
+     * fogli grandi si caricano senza bloccare, quindi il velo deve potersi
+     * dipingere PRIMA che arrivino — e uno stile che deve dipingersi prima
+     * dei fogli non puo' stare in un foglio. Resta un velo, non un vestito:
+     * piccolo, e con quel nome. Tutto il resto degli stili vive fuori. */
+    const stili = [...html.matchAll(/<style([^>]*)>([\s\S]*?)<\/style>/gi)];
+    assert.equal(stili.length, 1, `${file}: gli stili vivono nei fogli, non nella pagina`);
+    assert.match(stili[0][1], /id="dm-avvio-critico"/);
+    assert.ok(stili[0][2].length < 3000, `${file}: lo stile del velo sta ingrassando`);
     assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>\s*\S/i);
     assert.ok(html.includes(`dashboard-runtime-${locale}.css`));
     assert.ok(html.includes(`dashboard-runtime-${locale}.js`));

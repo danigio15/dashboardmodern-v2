@@ -38,7 +38,14 @@ test("the dashboard head asks the internet for nothing", async () => {
     // apre una telecamera, quindi non deve fermare la lettura della pagina.
     assert.doesNotMatch(source, /panzoom/);
     assert.match(source, /<script defer src="\.\/vendor\/hls\.min\.js"><\/script>/);
-    assert.match(source, /<link rel="stylesheet" href="\.\/vendor\/caratteri\.css">/);
+    /* Il foglio dei caratteri si carica senza bloccare la prima dipintura:
+     * media="print" finche' non e' arrivato, poi torna per tutti. E' sicuro
+     * perche' il velo d'avvio copre la pagina finche' il runtime non e'
+     * pronto. */
+    assert.match(
+      source,
+      /<link rel="stylesheet" href="\.\/vendor\/caratteri\.css" media="print" onload="this\.media='all'">/,
+    );
   }
 });
 
