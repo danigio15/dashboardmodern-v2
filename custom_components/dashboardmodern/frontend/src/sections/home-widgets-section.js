@@ -2275,6 +2275,11 @@ function caselleDelleMisure(widget) {
  *
  * Si tiene in memoria per qualche minuto: aprire e chiudere la stessa finestra
  * tre volte non deve chiedere tre volte la stessa cosa. */
+/* Tre ore, e la scritta sotto la linea lo dice a parole.
+ *
+ * Il numero non entra nella frase da tradurre: una frase costruita a pezzi non
+ * si puo' estrarre per le altre lingue, e resterebbe in italiano dappertutto.
+ * Le due cose devono restare d'accordo, e a tenerle d'accordo c'e' una prova. */
 const CORSA_ORE = 3;
 const CORSA_FRESCA_PER = 4 * 60 * 1000;
 const corse = new Map();
@@ -2349,7 +2354,7 @@ function corsaMarkup(widget) {
         <polyline points="${punti}" />
         <circle cx="100" cy="${(26 - ((ultimo - minimo) / ampiezza) * 22).toFixed(2)}" r="1.6" />
       </svg>
-      <span>${esc(t(`${CORSA_ORE} ore fa`, `${CORSA_ORE}h ago`))}</span>
+      <span>${esc(t("3 ore fa", "3h ago"))}</span>
       <span>${esc(t("adesso", "now"))}</span>
     </div>`;
 }

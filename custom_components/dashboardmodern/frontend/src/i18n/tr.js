@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "bölge çalışıyor",
   "Zoom in": "Yakınlaştır",
   "Zoom out": "Uzaklaştır",
+  "3h ago": "3 sa önce",
+  "now": "şimdi",
+  "The readings": "Ölçümler",
+  "The state": "Durum",
+  "Controls": "Kontroller",
 });

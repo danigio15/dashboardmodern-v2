@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "क्षेत्र चालू",
   "Zoom in": "बड़ा करें",
   "Zoom out": "छोटा करें",
+  "3h ago": "3 घंटे पहले",
+  "now": "अभी",
+  "The readings": "माप",
+  "The state": "स्थिति",
+  "Controls": "नियंत्रण",
 });

@@ -1806,4 +1806,9 @@ export default Object.freeze({
   "zones running": "зон работает",
   "Zoom in": "Приблизить",
   "Zoom out": "Отдалить",
+  "3h ago": "3 ч назад",
+  "now": "сейчас",
+  "The readings": "Показания",
+  "The state": "Состояние",
+  "Controls": "Управление",
 });
