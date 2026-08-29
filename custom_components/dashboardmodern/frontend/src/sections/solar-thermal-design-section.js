@@ -33,6 +33,7 @@ import {
   installStyle,
   restyleOnLocaleChange,
   root,
+  scriviTestoSeCambia,
   t,
   wrapFunction,
 } from "./shared.js";
@@ -1120,7 +1121,7 @@ function stylesheet() {
 function element(tag, className, text) {
   const node = doc.createElement(tag);
   if (className) node.className = className;
-  if (text) node.textContent = text;
+  if (text) scriviTestoSeCambia(node, text);
   return node;
 }
 

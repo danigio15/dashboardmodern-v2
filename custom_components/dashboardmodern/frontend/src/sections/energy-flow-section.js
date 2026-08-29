@@ -16,6 +16,7 @@ import {
   locale,
   readJson,
   root,
+  scriviTestoSeCambia,
   section,
   wrapFunction,
   writeIconGlyph,
@@ -50,21 +51,59 @@ function stateNumber(states, entity) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/* Lo stato di carica della batteria ha un padrone solo, ed e' questo.
+ *
+ * Ne aveva quattro. Il guscio scriveva `75 %` col suo formattatore; questo
+ * modulo scriveva `75%`; `beta22-load-slots-hotfix` scriveva `SOC 75%`; e
+ * `beta24-energy-recovery` teneva un MutationObserver sul nodo che rimetteva
+ * il prefisso «SOC» addosso a quello che scrivevano gli altri. Quattro mani
+ * sullo stesso numero, con tre forme diverse: quello che si vedeva era il
+ * numero che cambiava faccia a ogni cambio di stato — «▼ 1796 W / SOC 75%» e
+ * poi «-1796 W / 75 %», avanti e indietro. Era lo sfarfallio della sezione
+ * Energia, e non era un difetto di disegno: erano due testi che si
+ * alternavano.
+ *
+ * Adesso scrive solo questo, col prefisso che avevano scelto gli altri due —
+ * «SOC» dice cos'e' quel numero, e senza si legge come una percentuale di
+ * qualcosa che non si sa. Passa dal delegato, che lascia il cartello
+ * `data-dm-padrone`: e' quel cartello che ferma la mano del guscio.
+ */
 export function renderBatterySoc(targetDocument, energy = {}, states = {}) {
-  const node = targetDocument?.getElementById?.("v-battery-soc");
+  const node = nodoDelSoc(targetDocument);
   if (!node) return "—";
   const entity = clean(
     energy?.battery?.soc ||
       energy?.battery?.battery_soc_entity ||
       energy?.battery?.battery_soc,
   );
+  /* Senza entita' configurata la casella non si mostra vuota: si toglie.
+   * Il comportamento arriva da beta22, che qui dentro non c'e' piu'. */
+  if (!entity) {
+    node.hidden = true;
+    scriviTestoSeCambia(node, "");
+    node.removeAttribute("data-entity");
+    return "—";
+  }
   const value = stateNumber(states, entity);
-  const text = entity && value !== null ? `${Math.round(value)}%` : "—";
-  // Only when it changes: this runs on every pass, and rewriting the same
-  // reading is a mutation for every observer and a repaint for nothing.
-  if (node.textContent !== text) node.textContent = text;
+  const text = value === null ? "SOC —" : `SOC ${Math.round(value)}%`;
+  node.hidden = false;
+  scriviTestoSeCambia(node, text);
   if (node.dataset.entity !== entity) node.dataset.entity = entity;
   return text;
+}
+
+/* La casella nasce qui se il guscio non l'ha disegnata: prima la creava
+ * beta22, ed e' l'unica ragione per cui quel modulo toccava questo nodo. */
+function nodoDelSoc(targetDocument) {
+  const gia = targetDocument?.getElementById?.("v-battery-soc");
+  if (gia) return gia;
+  const bolla = targetDocument?.querySelector?.("#view-ist #n-battery,#n-battery");
+  if (!bolla) return null;
+  const nuovo = targetDocument.createElement("small");
+  nuovo.id = "v-battery-soc";
+  nuovo.className = "dm-battery-soc";
+  bolla.append(nuovo);
+  return nuovo;
 }
 
 function parseNumber(node) {
@@ -388,10 +427,10 @@ function ensureBubble(stage, node, period, scale) {
   setStyleProperty(element, "--dm-flow-mobile-left", `${node.mobile.left}%`);
   setStyleProperty(element, "--dm-flow-mobile-top", `${node.mobile.top}%`);
   const label = element.querySelector(".node-label");
-  if (label && label.textContent !== node.name) label.textContent = node.name;
+  scriviTestoSeCambia(label, node.name);
   writeIcon(element.querySelector(".node-icon"), node.icon);
   const value = element.querySelector(".dm-flow-value");
-  if (value && value.textContent !== node.text) value.textContent = node.text;
+  scriviTestoSeCambia(value, node.text);
   element.dataset.dmCanonicalLoad = node.id;
   element.dataset.dmFlowPeriod = period;
   element.dataset.dmFlowActive = node.active ? "true" : "false";
@@ -672,8 +711,7 @@ export function refreshEnergyFlows() {
   const testo = batteryReadout(batteria);
   if (testo) {
     for (const id of ["v-battery", "m-v-battery"]) {
-      const nodo = doc.getElementById(id);
-      if (nodo && nodo.textContent !== testo) nodo.textContent = testo;
+      scriviTestoSeCambia(doc.getElementById(id), testo);
     }
   }
   renderBatterySoc(doc, section("energy", {}), allStates());
@@ -786,7 +824,25 @@ export function installEnergyFlowSection() {
     true,
   );
   bindStore();
+  rivendicaLeBolleDellaBatteria();
   scheduleSettled();
+}
+
+/* Le due caselle della batteria si rivendicano all'installazione, prima che
+ * arrivi il primo stato.
+ *
+ * Il cartello `data-dm-padrone` ferma la mano del guscio, ma solo da quando
+ * c'e'. Chi lo lasciava alla prima passata di disegno arrivava tardi: il
+ * guscio aveva gia' scritto la sua forma — `-1796 W` — e quella si vedeva per
+ * un istante prima che il modulo la coprisse con `▼ 1796 W`. Misurato: due
+ * scritture su quaranta cambi di stato, cioe' un lampo solo all'avvio, ma un
+ * lampo che si vede. Rivendicare subito lo toglie: il guscio quelle caselle
+ * non le scrive mai, nemmeno la prima volta. */
+function rivendicaLeBolleDellaBatteria() {
+  for (const id of ["v-battery", "m-v-battery", "v-battery-soc"]) {
+    const nodo = doc?.getElementById?.(id);
+    if (nodo?.dataset && nodo.dataset.dmPadrone !== "moduli") nodo.dataset.dmPadrone = "moduli";
+  }
 }
 
 if (doc?.readyState === "loading")

@@ -16,7 +16,6 @@ import { ENERGY_SLOT_MAP } from "../core/energy-projection.js";
 const root = globalThis;
 const doc = root.document;
 const PATCH_MARKER = "__DASHBOARDMODERN_BETA24_STORE_RECOVERY__";
-const SOC_MARKER = "dmBeta24SocOwner";
 const PERSIST_META_KEY = "dm_persistence_meta";
 
 const clean = (value) => String(value ?? "").trim();
@@ -289,39 +288,22 @@ export function installBeta24StoreRecovery() {
   return true;
 }
 
+/* La forma canonica del testo del SOC: «SOC 75%».
+ *
+ * Qui c'era anche un MutationObserver che sorvegliava il nodo e ci rimetteva
+ * questo prefisso ogni volta che qualcun altro lo toglieva. Sorvegliare un
+ * nodo per disfare quello che ci scrive un altro modulo non e' una
+ * correzione: e' il secondo padrone che litiga col primo, e nel video si
+ * vedeva il numero cambiare faccia avanti e indietro. Adesso il testo lo
+ * scrive giusto chi lo possiede — `energy-flow-section` — e non c'e' piu'
+ * niente da normalizzare a posteriori. La funzione resta perche' dice qual e'
+ * la forma giusta, e una prova la usa per pretenderla. */
 export function normalizeBatterySocText(value) {
   const text = clean(value);
   if (!text) return text;
   if (/^soc\b/i.test(text)) return `SOC ${text.replace(/^soc\s*/i, "")}`.trim();
   if (/^(?:\d+(?:[.,]\d+)?%|—)$/.test(text)) return `SOC ${text}`;
   return text;
-}
-
-function normalizeBatterySocNode(node) {
-  if (!node || node.hidden) return false;
-  const normalized = normalizeBatterySocText(node.textContent);
-  if (!normalized || normalized === clean(node.textContent)) return false;
-  node.textContent = normalized;
-  return true;
-}
-
-function bindBatterySocOwner() {
-  const node = doc?.querySelector?.("#view-ist #v-battery-soc,#v-battery-soc");
-  if (!node) return false;
-  normalizeBatterySocNode(node);
-  if (node.dataset?.[SOC_MARKER] === "true") return true;
-  if (node.dataset) node.dataset[SOC_MARKER] = "true";
-  if (typeof root.MutationObserver === "function") {
-    const observer = new root.MutationObserver(() => normalizeBatterySocNode(node));
-    observer.observe(node, { childList: true, characterData: true, subtree: true });
-  }
-  return true;
-}
-
-function scheduleSocOwner() {
-  root.requestAnimationFrame?.(bindBatterySocOwner);
-  root.setTimeout?.(bindBatterySocOwner, 0);
-  root.setTimeout?.(bindBatterySocOwner, 120);
 }
 
 function requestInitialRemoteReconcile() {
@@ -336,17 +318,6 @@ function requestInitialRemoteReconcile() {
 function installRuntimeRecovery() {
   installBeta24StoreRecovery();
   requestInitialRemoteReconcile();
-  for (const name of [
-    "dashboardmodern:legacy-ready",
-    "dashboardmodern:runtime-ready",
-    "dashboardmodern:states-ready",
-    "dashboardmodern:energy-stable",
-    "dashboardmodern:period-bundle",
-  ])
-    root.addEventListener?.(name, scheduleSocOwner);
-  if (doc?.readyState === "loading")
-    doc.addEventListener("DOMContentLoaded", scheduleSocOwner, { once: true });
-  else scheduleSocOwner();
 }
 
 installRuntimeRecovery();

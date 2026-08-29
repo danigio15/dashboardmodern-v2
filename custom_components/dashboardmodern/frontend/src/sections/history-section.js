@@ -1,4 +1,13 @@
-import { clean, doc, installStyle, locale, root, section, t } from "./shared.js";
+import {
+  clean,
+  doc,
+  installStyle,
+  locale,
+  root,
+  scriviTestoSeCambia,
+  section,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_HISTORY_SECTION__";
 const state = (root[KEY] ||= {
@@ -185,7 +194,7 @@ function paintZoomBadge() {
   const labels = state.chart?.data?.labels || [];
   const range = badge.querySelector("[data-dm-hist-range]");
   const text = `${clean(labels[view.min])} – ${clean(labels[view.max])}`;
-  if (range && range.textContent !== text) range.textContent = text;
+  scriviTestoSeCambia(range, text);
 }
 
 function applyWindow(window) {
@@ -462,7 +471,7 @@ export async function openHistory(event, entityId, name, hours = 24) {
   modal.dataset.dmHistoryEntity = entity;
   delete modal.dataset.dmHistoryError;
   const title = doc.getElementById("hist-title");
-  if (title) title.textContent = state.currentName;
+  scriviTestoSeCambia(title, state.currentName);
   doc.querySelectorAll(".hist-time-btn").forEach((button) =>
     button.classList.toggle("active", Number(button.dataset.hours) === Number(hours)),
   );
