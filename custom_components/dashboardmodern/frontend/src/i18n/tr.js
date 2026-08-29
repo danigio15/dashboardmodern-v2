@@ -1816,4 +1816,7 @@ export default Object.freeze({
   "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "Kapatılmaması gereken prizler için: buzdolabı, modem, dondurucu. Satır yerinde kalır, düğme yanıt vermeyi bırakır.",
   "Read only": "Salt okunur",
   "Shown but not controllable": "Görünür ama kumanda edilemez",
+  "Large pool": "Büyük havuz",
+  "Name of the first basin": "İlk havuzun adı",
+  "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "İlk havuzun sensörleri yukarıdaki formda doldurulur. Burada ona bir ad verirsiniz, böylece birden fazla havuz varken hangisine baktığınızı anlarsınız.",
 });

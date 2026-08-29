@@ -83,6 +83,31 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   parte prendere. Adesso c'e' una riga per strada, con il motivo di ciascuna —
   quella tentata e fallita e quella nemmeno tentata.
 
+- **La finestra della Piscina mostrava sempre e solo la prima vasca.** Leggeva
+  la configurazione com'è — che sono le caselle della prima — mentre le altre
+  vivono in un elenco accanto, e da lì non le ha mai viste. Adesso legge lo
+  stesso elenco della scheda di configurazione, e con più di una vasca ogni riga
+  porta davanti il nome della sua: «Idromassaggio · Acqua».
+
+- **La luce della piscina non si accendeva dalla finestra.** Era una riga
+  scritta — «Luce · Acceso» — come la temperatura dell'acqua, che però non si
+  comanda. Chi apre una finestra che dice «Acceso» si aspetta di poterla
+  toccare, e aveva ragione: pompa, riscaldamento e luce adesso hanno il loro
+  interruttore. Se l'entità è fra quelle che si guardano e basta, l'interruttore
+  non c'è: le due cose si parlano.
+
+- **Alla prima vasca non si poteva dare un nome.** La maschera di sopra è quella
+  che c'è sempre stata e configura la prima piscina, ma un nome non glielo
+  chiedeva: quando la piscina era una sola si chiamava «Piscina» e bastava.
+  Dalla seconda in poi serve, e le altre il nome ce l'hanno — la prima restava
+  l'unica senza, e con due vasche non si distinguevano.
+
+- **Una zona d'irrigazione non si poteva modificare.** C'era solo il cestino:
+  per cambiare il nome o la durata bisognava cancellarla e rifarla, e
+  rifacendola si perdeva il posto nella sequenza — che è l'ordine in cui il
+  programma le avvia, quindi non è un dettaglio. Adesso c'è la matita, come su
+  ogni altro elenco della configurazione, e la zona modificata resta dov'era.
+
 - **L'icona della porta non compariva piu'.** Nelle Azioni rapide una porta
   prendeva il disegno del cancello: «Door Piscina Spa» e «Cancello» finivano
   identici. Non era un difetto del motore delle icone — nel catalogo la porta

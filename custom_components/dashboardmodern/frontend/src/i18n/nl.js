@@ -1816,4 +1816,7 @@ export default Object.freeze({
   "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "Voor stopcontacten die niet uit mogen: de koelkast, het modem, de vriezer. De regel blijft staan, de knop reageert niet meer.",
   "Read only": "Alleen lezen",
   "Shown but not controllable": "Zichtbaar maar niet bedienbaar",
+  "Large pool": "Groot bad",
+  "Name of the first basin": "Naam van het eerste bad",
+  "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "De sensoren van het eerste bad vul je in het formulier hierboven in. Hier geef je het een naam, zodat je bij meer dan één bad ziet welk bad je bekijkt.",
 });

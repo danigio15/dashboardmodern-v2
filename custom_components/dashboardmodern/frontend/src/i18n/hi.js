@@ -1816,4 +1816,7 @@ export default Object.freeze({
   "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "उन सॉकेट के लिए जिन्हें बंद नहीं करना चाहिए: फ़्रिज, मोडेम, फ़्रीज़र। पंक्ति अपनी जगह रहती है, बटन काम करना बंद कर देता है।",
   "Read only": "केवल पढ़ने के लिए",
   "Shown but not controllable": "दिखता है पर नियंत्रित नहीं होता",
+  "Large pool": "बड़ा पूल",
+  "Name of the first basin": "पहले पूल का नाम",
+  "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "पहले पूल के सेंसर ऊपर वाले फ़ॉर्म में भरे जाते हैं। यहाँ आप उसे नाम देते हैं, ताकि एक से ज़्यादा होने पर पता चले कि आप कौन-सा देख रहे हैं।",
 });

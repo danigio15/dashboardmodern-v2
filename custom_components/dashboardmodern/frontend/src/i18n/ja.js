@@ -1816,4 +1816,7 @@ export default Object.freeze({
   "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "切ってはいけないコンセント用です。冷蔵庫、モデム、冷凍庫など。行はそのまま残り、ボタンだけが反応しなくなります。",
   "Read only": "表示のみ",
   "Shown but not controllable": "表示されますが操作できません",
+  "Large pool": "大きいプール",
+  "Name of the first basin": "1つ目の浴槽の名前",
+  "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "1つ目の浴槽のセンサーは上のフォームで設定します。ここでは名前を付けます。浴槽が複数あるとき、どれを見ているかがわかります。",
 });

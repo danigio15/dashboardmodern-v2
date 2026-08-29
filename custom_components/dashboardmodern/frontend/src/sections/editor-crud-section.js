@@ -2,7 +2,20 @@
 import { contactEntity } from "../core/shutter-window.js";
 import { coverDownRelay, coverPresetPosition } from "../core/cover-kind.js";
 import { canonicalClimateType } from "../core/device-model.js";
-import { clean, dashboardStore, doc, english, installStyle, onEditorRedraw, readClimateUnits, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import {
+  clean,
+  dashboardStore,
+  doc,
+  english,
+  installStyle,
+  onEditorRedraw,
+  readClimateUnits,
+  readJson,
+  root,
+  t,
+  wrapFunction,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
@@ -17,7 +30,9 @@ const state = (root[KEY] ||= {
 function syncEditorTheme() {
   const modal = doc?.getElementById("editor-modal");
   if (!modal) return;
-  const explicit = clean(doc.documentElement?.dataset?.theme || doc.body?.dataset?.theme).toLowerCase();
+  const explicit = clean(
+    doc.documentElement?.dataset?.theme || doc.body?.dataset?.theme,
+  ).toLowerCase();
   let dark = explicit === "dark";
   if (!explicit) {
     const scheme = clean(root.getComputedStyle?.(doc.documentElement)?.colorScheme).toLowerCase();
@@ -71,12 +86,20 @@ function normalizeReportEditor() {
 }
 
 function listFor(kind) {
-  if (kind === "action") return root.getQuickActions?.().slice?.() || readJson("cd_quick_actions", []);
+  if (kind === "action")
+    return root.getQuickActions?.().slice?.() || readJson("cd_quick_actions", []);
   if (kind === "climate") {
     return readClimateUnits();
   }
   if (kind === "shutter") return root.getTapparelle?.().slice?.() || readJson("cd_tapparelle", []);
   if (kind === "room") return root.getStanze?.().slice?.() || readJson("cd_stanze", []);
+  /* Le zone d'irrigazione stanno dentro un oggetto, non in un elenco loro: qui
+   * esce l'elenco, e chi salva rimette l'oggetto intorno. */
+  if (kind === "irrigation") {
+    const configurazione = root.getIrr?.() || readJson("cd_irrigazione", {});
+    const zone = configurazione?.zones;
+    return Array.isArray(zone) ? zone.slice() : [];
+  }
   return [];
 }
 
@@ -106,7 +129,10 @@ function rowsBeforeForm(container, selector) {
   if (!container || !field) return [];
   return [...container.querySelectorAll(".ed-row")].filter((row) => {
     if (row.contains(field)) return false;
-    return Boolean(row.querySelector(".ed-del")) && Boolean(row.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING);
+    return (
+      Boolean(row.querySelector(".ed-del")) &&
+      Boolean(row.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING)
+    );
   });
 }
 
@@ -130,6 +156,11 @@ function ensureEditButtons() {
     ["climate", body.querySelector("#ed-cl-type")?.closest("details") || body, "#ed-cl-type"],
     ["shutter", body, "#ed-tp-name"],
     ["room", body, "#ed-room-name"],
+    /* Le zone d'irrigazione avevano solo il cestino: per cambiare il nome o la
+     * durata di una zona bisognava cancellarla e rifarla, e rifacendola si
+     * perdeva il posto nella sequenza — che e' l'ordine in cui il programma le
+     * avvia, quindi non e' un dettaglio. */
+    ["irrigation", body, "#ed-irr-name"],
   ];
   definitions.forEach(([kind, container, selector]) => {
     if (!container?.querySelector(selector)) return;
@@ -160,6 +191,7 @@ function formFor(kind) {
     climate: "#ed-cl-type",
     shutter: "#ed-tp-name",
     room: "#ed-room-name",
+    irrigation: "#ed-irr-name",
   };
   const field = doc?.querySelector(selectors[kind]);
   return field?.closest(".ed-form") || field?.parentElement || null;
@@ -189,14 +221,21 @@ function addCancel(kind) {
 function beginEdit(kind, index) {
   const item = listFor(kind)[index];
   if (!item) return;
-  if (kind === "action" && item.type === "luci_group" && typeof root.edEditLightGroup === "function") {
+  if (
+    kind === "action" &&
+    item.type === "luci_group" &&
+    typeof root.edEditLightGroup === "function"
+  ) {
     root.edEditLightGroup(index);
     return;
   }
   state.editing = { kind, index };
   formFor(kind)?.setAttribute("data-dm-editing", "true");
   if (kind === "action") {
-    setField("ed-qa-type", item.type === "builtin" ? `builtin_${item.builtin}` : item.type || "toggle");
+    setField(
+      "ed-qa-type",
+      item.type === "builtin" ? `builtin_${item.builtin}` : item.type || "toggle",
+    );
     setField("ed-qa-icon", item.icon || "");
     setField("ed-qa-name", item.name || "");
     setField("ed-qa-ent", item.entity || "");
@@ -220,12 +259,18 @@ function beginEdit(kind, index) {
     setField("ed-tp-down", clean(item?.down) || "");
     setField("ed-tp-down-tenda", clean(item?.tendaDown) || "");
     setField("ed-tp-down-tendasole", clean(item?.tendaSoleDown) || "");
+  } else if (kind === "irrigation") {
+    setField("ed-irr-name", item.name || "");
+    setField("ed-irr-ent", item.entity || "");
+    setField("ed-irr-room", item.room || item.room_id || "");
+    setField("ed-irr-min", Number.parseFloat(item.mins) > 0 ? item.mins : 10);
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
     setField("ed-room-floor", item.floor || "");
     const preview = doc.getElementById("ed-room-icon-preview");
-    if (preview) preview.innerHTML = root.cdIconMarkup?.(item.icon || "🏠", 26) || item.icon || "🏠";
+    if (preview)
+      preview.innerHTML = root.cdIconMarkup?.(item.icon || "🏠", 26) || item.icon || "🏠";
   }
   const add = formFor(kind)?.querySelector(".ed-btn-add:not(.dm-edit-cancel)");
   if (add) add.textContent = t("💾 Salva modifiche", "💾 Save changes");
@@ -234,7 +279,11 @@ function beginEdit(kind, index) {
 
 function finishEdit(kind) {
   state.editing = null;
-  root.editorSwitch?.({ action: "sezioni", climate: "sezioni", shutter: "tapp", room: "stanze" }[kind]);
+  root.editorSwitch?.(
+    { action: "sezioni", climate: "sezioni", shutter: "tapp", room: "stanze", irrigation: "irr" }[
+      kind
+    ],
+  );
 }
 
 function installAddWrappers() {
@@ -318,138 +367,145 @@ function installAddWrappers() {
   const salvaTapparelle = (list) => {
     writeJsonIfChanged("cd_tapparelle", list);
     try {
-      dashboardStore()?.replaceSection?.("covers", list)?.catch?.(() => {});
+      dashboardStore()
+        ?.replaceSection?.("covers", list)
+        ?.catch?.(() => {});
     } catch (_error) {}
     root.renderTapparelle?.();
   };
 
-  wrap("edTappAdd", "shutter", (index) => {
-    const list = listFor("shutter");
-    list[index] = {
-      ...(list[index] || {}),
-      name: clean(doc.getElementById("ed-tp-name")?.value),
-      entity: clean(doc.getElementById("ed-tp-ent")?.value),
-      room: clean(doc.getElementById("ed-tp-room")?.value),
-      // Il contatto dell'infisso: la card lo legge per sapere se la finestra
-      // dietro la tapparella e' aperta.
-      contact: clean(doc.getElementById("ed-tp-contact")?.value),
-      /* Un infisso puo' averle tutte: una casella per funzione, e il tipo non
-       * si dichiara piu' perche' lo dice la casella. */
-      tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
-      tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
-    };
-    // La posizione preferita (#200): numero 0-100, vuota = nessuna stella
-    // nella tendina della card.
-    const preset = coverPresetPosition({ preset: doc.getElementById("ed-tp-preset")?.value });
-    if (preset == null) delete list[index].preset;
-    else list[index].preset = preset;
-    // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
-    // anche il primo comando e' un rele'.
-    for (const [campo, chiave, casella] of [
-      ["entity", "down", "ed-tp-down"],
-      ["tenda", "tendaDown", "ed-tp-down-tenda"],
-      ["tendaSole", "tendaSoleDown", "ed-tp-down-tendasole"],
-    ]) {
-      const giu = coverDownRelay({
-        entity: list[index][campo],
-        down: doc.getElementById(casella)?.value,
-      });
-      if (giu) list[index][chiave] = giu;
-      else delete list[index][chiave];
-    }
-    salvaTapparelle(list);
-  },
-  /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
-   * scrive il runtime, che di questo campo non sa niente, e la voce nasce senza.
-   * Qui la si ritrova dalla sua entita' e le si posa accanto il contatto. */
-  /* I campi in piu' sopravvivono anche a una tapparella appena aggiunta:
-   * l'elenco lo scrive il runtime, che di queste caselle non sa niente, e la
-   * voce nasce senza. Qui la si ritrova dalla sua entita' e glieli si posa
-   * accanto. */
-  () => {
-    const extra = {
-      contact: clean(doc.getElementById("ed-tp-contact")?.value),
-      tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
-      tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
-      preset: clean(doc.getElementById("ed-tp-preset")?.value),
-      down: clean(doc.getElementById("ed-tp-down")?.value),
-      tendaDown: clean(doc.getElementById("ed-tp-down-tenda")?.value),
-      tendaSoleDown: clean(doc.getElementById("ed-tp-down-tendasole")?.value),
-    };
-    const entity = clean(doc.getElementById("ed-tp-ent")?.value);
-    /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui
-     * significava non poterlo aggiungere affatto. */
-    const qualcosa = entity || Object.values(extra).some(Boolean);
-    if (!qualcosa) return null;
-    /* Un infisso senza tapparella non e' un errore.
-     *
-     * La scheda dice «su una finestra ci stanno tutte e tre: compila le caselle
-     * che hai», e poi il runtime — che di quelle caselle non sa niente — si
-     * ferma su «Inserisci una entita' cover valida» perche' la sua e' vuota.
-     * La riga la scrivevamo comunque noi un istante dopo, quindi si finiva con
-     * un errore in faccia e la riga creata lo stesso: il modo peggiore di dire
-     * che ha funzionato.
-     *
-     * Il rifiuto si zittisce solo quando sappiamo di poterlo smentire, cioe'
-     * quando un'altra casella e' compilata, e solo per la durata di quella
-     * chiamata. */
-    /* E si zittisce solo davanti a una copertura vera.
-     *
-     * `qualcosa` e' vero anche con il solo sensore del contatto, o con una
-     * casella riempita con un'entita' che copertura non e': li' il rifiuto del
-     * runtime ha ragione, e toglierlo di mezzo vorrebbe dire scrivere una riga
-     * che non comanda niente — o peggio, che un domani manda `cover.open_cover`
-     * a un sensore. */
-    // Anche un rele': switch.* comanda molte tapparelle vere.
-    const eUnaCopertura = (valore) => /^(cover|switch)\./i.test(clean(valore));
-    /* E una finestra puo' non avere motori affatto.
-     *
-     * «Io non ho le tapparelle, ho le persiane e sono manuali, pero' ho sensori
-     * di apertura, volevo inserirli ma chiede obbligatoriamente l'entita'
-     * tapparella». Il modulo offriva la casella del contatto e poi rifiutava la
-     * riga che conteneva solo quello: una promessa e un dietrofront. Il contatto
-     * da solo non comanda niente, ma dice se la finestra e' aperta, ed e'
-     * esattamente cio' che la card sa disegnare. */
-    const eUnContatto = (valore) => /^(binary_sensor|sensor|input_boolean)\./i.test(clean(valore));
-    const alternativaValida =
-      eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole) || eUnContatto(extra.contact);
-    const zittire = !entity && alternativaValida;
-    const avviso = zittire ? root.alert : null;
-    if (zittire) {
-      try {
-        root.alert = () => {};
-      } catch (_error) {}
-    }
-    return () => {
+  wrap(
+    "edTappAdd",
+    "shutter",
+    (index) => {
+      const list = listFor("shutter");
+      list[index] = {
+        ...(list[index] || {}),
+        name: clean(doc.getElementById("ed-tp-name")?.value),
+        entity: clean(doc.getElementById("ed-tp-ent")?.value),
+        room: clean(doc.getElementById("ed-tp-room")?.value),
+        // Il contatto dell'infisso: la card lo legge per sapere se la finestra
+        // dietro la tapparella e' aperta.
+        contact: clean(doc.getElementById("ed-tp-contact")?.value),
+        /* Un infisso puo' averle tutte: una casella per funzione, e il tipo non
+         * si dichiara piu' perche' lo dice la casella. */
+        tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
+        tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
+      };
+      // La posizione preferita (#200): numero 0-100, vuota = nessuna stella
+      // nella tendina della card.
+      const preset = coverPresetPosition({ preset: doc.getElementById("ed-tp-preset")?.value });
+      if (preset == null) delete list[index].preset;
+      else list[index].preset = preset;
+      // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
+      // anche il primo comando e' un rele'.
+      for (const [campo, chiave, casella] of [
+        ["entity", "down", "ed-tp-down"],
+        ["tenda", "tendaDown", "ed-tp-down-tenda"],
+        ["tendaSole", "tendaSoleDown", "ed-tp-down-tendasole"],
+      ]) {
+        const giu = coverDownRelay({
+          entity: list[index][campo],
+          down: doc.getElementById(casella)?.value,
+        });
+        if (giu) list[index][chiave] = giu;
+        else delete list[index][chiave];
+      }
+      salvaTapparelle(list);
+    },
+    /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
+     * scrive il runtime, che di questo campo non sa niente, e la voce nasce senza.
+     * Qui la si ritrova dalla sua entita' e le si posa accanto il contatto. */
+    /* I campi in piu' sopravvivono anche a una tapparella appena aggiunta:
+     * l'elenco lo scrive il runtime, che di queste caselle non sa niente, e la
+     * voce nasce senza. Qui la si ritrova dalla sua entita' e glieli si posa
+     * accanto. */
+    () => {
+      const extra = {
+        contact: clean(doc.getElementById("ed-tp-contact")?.value),
+        tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
+        tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
+        preset: clean(doc.getElementById("ed-tp-preset")?.value),
+        down: clean(doc.getElementById("ed-tp-down")?.value),
+        tendaDown: clean(doc.getElementById("ed-tp-down-tenda")?.value),
+        tendaSoleDown: clean(doc.getElementById("ed-tp-down-tendasole")?.value),
+      };
+      const entity = clean(doc.getElementById("ed-tp-ent")?.value);
+      /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui
+       * significava non poterlo aggiungere affatto. */
+      const qualcosa = entity || Object.values(extra).some(Boolean);
+      if (!qualcosa) return null;
+      /* Un infisso senza tapparella non e' un errore.
+       *
+       * La scheda dice «su una finestra ci stanno tutte e tre: compila le caselle
+       * che hai», e poi il runtime — che di quelle caselle non sa niente — si
+       * ferma su «Inserisci una entita' cover valida» perche' la sua e' vuota.
+       * La riga la scrivevamo comunque noi un istante dopo, quindi si finiva con
+       * un errore in faccia e la riga creata lo stesso: il modo peggiore di dire
+       * che ha funzionato.
+       *
+       * Il rifiuto si zittisce solo quando sappiamo di poterlo smentire, cioe'
+       * quando un'altra casella e' compilata, e solo per la durata di quella
+       * chiamata. */
+      /* E si zittisce solo davanti a una copertura vera.
+       *
+       * `qualcosa` e' vero anche con il solo sensore del contatto, o con una
+       * casella riempita con un'entita' che copertura non e': li' il rifiuto del
+       * runtime ha ragione, e toglierlo di mezzo vorrebbe dire scrivere una riga
+       * che non comanda niente — o peggio, che un domani manda `cover.open_cover`
+       * a un sensore. */
+      // Anche un rele': switch.* comanda molte tapparelle vere.
+      const eUnaCopertura = (valore) => /^(cover|switch)\./i.test(clean(valore));
+      /* E una finestra puo' non avere motori affatto.
+       *
+       * «Io non ho le tapparelle, ho le persiane e sono manuali, pero' ho sensori
+       * di apertura, volevo inserirli ma chiede obbligatoriamente l'entita'
+       * tapparella». Il modulo offriva la casella del contatto e poi rifiutava la
+       * riga che conteneva solo quello: una promessa e un dietrofront. Il contatto
+       * da solo non comanda niente, ma dice se la finestra e' aperta, ed e'
+       * esattamente cio' che la card sa disegnare. */
+      const eUnContatto = (valore) =>
+        /^(binary_sensor|sensor|input_boolean)\./i.test(clean(valore));
+      const alternativaValida =
+        eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole) || eUnContatto(extra.contact);
+      const zittire = !entity && alternativaValida;
+      const avviso = zittire ? root.alert : null;
       if (zittire) {
         try {
-          root.alert = avviso;
+          root.alert = () => {};
         } catch (_error) {}
       }
-      const list = listFor("shutter");
-      let index = -1;
-      list.forEach((item, position) => {
-        if (entity && clean(item?.entity) === entity) index = position;
-      });
-      /* Senza tapparella il runtime la riga non la scrive: la scriviamo noi,
-       * in coda, con il nome e la stanza che erano nel modulo. */
-      if (index < 0 && !entity && alternativaValida) {
-        list.push({
-          name: clean(doc.getElementById("ed-tp-name")?.value),
-          entity: "",
-          room: clean(doc.getElementById("ed-tp-room")?.value),
+      return () => {
+        if (zittire) {
+          try {
+            root.alert = avviso;
+          } catch (_error) {}
+        }
+        const list = listFor("shutter");
+        let index = -1;
+        list.forEach((item, position) => {
+          if (entity && clean(item?.entity) === entity) index = position;
         });
-        index = list.length - 1;
-      }
-      if (index < 0) return;
-      const uguale = Object.entries(extra).every(
-        ([campo, valore]) => clean(list[index][campo]) === valore,
-      );
-      if (uguale) return;
-      list[index] = { ...list[index], ...extra };
-      salvaTapparelle(list);
-    };
-  });
+        /* Senza tapparella il runtime la riga non la scrive: la scriviamo noi,
+         * in coda, con il nome e la stanza che erano nel modulo. */
+        if (index < 0 && !entity && alternativaValida) {
+          list.push({
+            name: clean(doc.getElementById("ed-tp-name")?.value),
+            entity: "",
+            room: clean(doc.getElementById("ed-tp-room")?.value),
+          });
+          index = list.length - 1;
+        }
+        if (index < 0) return;
+        const uguale = Object.entries(extra).every(
+          ([campo, valore]) => clean(list[index][campo]) === valore,
+        );
+        if (uguale) return;
+        list[index] = { ...list[index], ...extra };
+        salvaTapparelle(list);
+      };
+    },
+  );
 
   wrap("edStanzaRoomAdd", "room", (index) => {
     const list = listFor("room");
@@ -462,6 +518,32 @@ function installAddWrappers() {
     if (!list[index].floor) delete list[index].floor;
     writeJsonIfChanged("cd_stanze", list);
     root.buildTempCards?.();
+  });
+
+  /* Le zone d'irrigazione stanno dentro un oggetto — con il sensore della
+   * pioggia, la soglia e l'orario — quindi si riscrive l'oggetto intero e non
+   * il solo elenco. La zona modificata resta al suo posto: quel posto e'
+   * l'ordine in cui il programma le avvia, e rifacendola da capo si perdeva. */
+  wrap("edIrrAddZone", "irrigation", (index) => {
+    const configurazione = root.getIrr?.() || readJson("cd_irrigazione", {});
+    const zone = Array.isArray(configurazione?.zones) ? configurazione.zones.slice() : [];
+    if (!zone[index]) return;
+    const entity = clean(doc.getElementById("ed-irr-ent")?.value);
+    const name = clean(doc.getElementById("ed-irr-name")?.value);
+    const room = clean(doc.getElementById("ed-irr-room")?.value);
+    const minuti = Number.parseFloat(doc.getElementById("ed-irr-min")?.value);
+    zone[index] = {
+      ...zone[index],
+      name: name || entity || zone[index].name,
+      entity: entity || zone[index].entity,
+      mins: Number.isFinite(minuti) && minuti > 0 ? minuti : 10,
+    };
+    if (room) zone[index].room = room;
+    else delete zone[index].room;
+    const salvata = { ...configurazione, zones: zone };
+    if (typeof root.saveIrr === "function") root.saveIrr(salvata);
+    else writeJsonIfChanged("cd_irrigazione", salvata);
+    root.renderIrrigazione?.();
   });
 }
 
@@ -611,9 +693,7 @@ function installStyles() {
 function retiredTabTarget() {
   const active = clean(doc?.querySelector("#editor-modal .ed-tab.active")?.dataset?.tab);
   if (active && active !== "sezioni") return active;
-  const first = clean(
-    doc?.querySelector('#editor-modal .ed-tab[data-tab^="sez"]')?.dataset?.tab,
-  );
+  const first = clean(doc?.querySelector('#editor-modal .ed-tab[data-tab^="sez"]')?.dataset?.tab);
   return first && first !== "sezioni" ? first : "";
 }
 

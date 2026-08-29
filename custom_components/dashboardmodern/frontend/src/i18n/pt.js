@@ -1816,4 +1816,7 @@ export default Object.freeze({
   "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "Para as tomadas que não devem ser desligadas: o frigorífico, o modem, o congelador. A linha fica onde está, o botão deixa de responder.",
   "Read only": "Apenas leitura",
   "Shown but not controllable": "Vê-se mas não se comanda",
+  "Large pool": "Piscina grande",
+  "Name of the first basin": "Nome da primeira piscina",
+  "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "Os sensores da primeira piscina preenchem-se no formulário acima. Aqui dá-lhe um nome, para que com mais do que uma saiba qual está a ver.",
 });

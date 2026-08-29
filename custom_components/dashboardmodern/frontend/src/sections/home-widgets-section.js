@@ -34,6 +34,7 @@ import {
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
+import { poolList } from "../core/pool-model.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   coverEntries,
@@ -63,6 +64,7 @@ import {
   readJson,
   root,
   section,
+  siComanda,
   t,
 } from "./shared.js";
 
@@ -315,11 +317,19 @@ function todoModel() {
     return { list, items };
   });
   const percent = total ? Math.round(((total - pending) / total) * 100) : 0;
-  return { key: "todo", accent: "#059669", icon: "✅", label: t("Da fare", "To-do"),
-    value: String(pending), caption: t(`${pending} da fare`, `${pending} to do`),
+  return {
+    key: "todo",
+    accent: "#059669",
+    icon: "✅",
+    label: t("Da fare", "To-do"),
+    value: String(pending),
+    caption: t(`${pending} da fare`, `${pending} to do`),
     // La quota dice quanto e' stato spuntato: la tessera pero' si accende
     // quando resta qualcosa da fare, non quando e' tutto finito.
-    ring: percent, attiva: pending > 0, blocks };
+    ring: percent,
+    attiva: pending > 0,
+    blocks,
+  };
 }
 
 function lightsModel(states) {
@@ -331,19 +341,28 @@ function lightsModel(states) {
   }
   const fuori = widgetExcludedEntities();
   const rows = groups.flatMap((group) =>
-    group.entities.filter((entity) => widgetIncludes(entity, fuori)).map((entity) => ({
-      entity,
-      room: group.room,
-      name: clean(group.lights?.[entity]) || entity.split(".")[1]?.replaceAll("_", " ") || entity,
-      on: clean(stateOf(states, entity)?.state).toLowerCase() === "on",
-    })),
+    group.entities
+      .filter((entity) => widgetIncludes(entity, fuori))
+      .map((entity) => ({
+        entity,
+        room: group.room,
+        name: clean(group.lights?.[entity]) || entity.split(".")[1]?.replaceAll("_", " ") || entity,
+        on: clean(stateOf(states, entity)?.state).toLowerCase() === "on",
+      })),
   );
   if (!rows.length) return null;
   const on = rows.filter((row) => row.on);
-  return { key: "luci", accent: "#f59e0b", icon: "💡", label: t("Luci", "Lights"),
+  return {
+    key: "luci",
+    accent: "#f59e0b",
+    icon: "💡",
+    label: t("Luci", "Lights"),
     value: String(on.length),
     caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
-    ring: Math.round((on.length / rows.length) * 100), rows, on };
+    ring: Math.round((on.length / rows.length) * 100),
+    rows,
+    on,
+  };
 }
 
 /* Una riga del Clima da una unita' configurata.
@@ -356,39 +375,38 @@ function lightsModel(states) {
  * chi toglieva un termosifone dalla Home si ritrovava, in pagina, il pannello
  * vecchio. Il filtro e' una faccenda della tessera, non della riga. */
 function rigaClima(states, unit) {
-      const entity = clean(unit?.entity || unit?.entity_id || unit?.entities?.[0]);
-      if (!entity) return null;
-      const current = stateOf(states, entity);
-      const raw = clean(current?.state).toLowerCase();
-      const attributi = current?.attributes || {};
-      const elenco = (valori) =>
-        Array.isArray(valori) ? valori.map(clean).filter(Boolean) : [];
-      const numero = (valore, difetto = null) =>
-        Number.isFinite(Number(valore)) ? Number(valore) : difetto;
-      return {
-        entity,
-        name: clean(unit?.name) || entity,
-        on: Boolean(current) && raw !== "off" && raw !== "unavailable" && raw !== "unknown",
-        mode: raw,
-        ambient: numero(attributi.current_temperature),
-        target: numero(attributi.temperature),
-        /* Quello che serve al pannello della rotella: cosa l'unita' accetta, e
-         * dove sta adesso. Sono attributi che Home Assistant pubblica gia' —
-         * il modello si limita a portarli in riga invece di farli cercare a
-         * chi disegna. */
-        modi: elenco(attributi.hvac_modes),
-        ventole: elenco(attributi.fan_modes),
-        ventola: clean(attributi.fan_mode),
-        minima: numero(attributi.min_temp, 5),
-        massima: numero(attributi.max_temp, 35),
-        passo: numero(attributi.target_temp_step, 0.5) || 0.5,
-        umidita: numero(attributi.current_humidity),
-        azione: clean(attributi.hvac_action),
-        /* Che macchina e', non solo cosa sta facendo adesso: un termosifone
-         * spento resta un termosifone, e il fiocco di neve sopra un
-         * radiatore era il disegno di un'altra casa. */
-        tipo: canonicalClimateType(unit?.type),
-      };
+  const entity = clean(unit?.entity || unit?.entity_id || unit?.entities?.[0]);
+  if (!entity) return null;
+  const current = stateOf(states, entity);
+  const raw = clean(current?.state).toLowerCase();
+  const attributi = current?.attributes || {};
+  const elenco = (valori) => (Array.isArray(valori) ? valori.map(clean).filter(Boolean) : []);
+  const numero = (valore, difetto = null) =>
+    Number.isFinite(Number(valore)) ? Number(valore) : difetto;
+  return {
+    entity,
+    name: clean(unit?.name) || entity,
+    on: Boolean(current) && raw !== "off" && raw !== "unavailable" && raw !== "unknown",
+    mode: raw,
+    ambient: numero(attributi.current_temperature),
+    target: numero(attributi.temperature),
+    /* Quello che serve al pannello della rotella: cosa l'unita' accetta, e
+     * dove sta adesso. Sono attributi che Home Assistant pubblica gia' —
+     * il modello si limita a portarli in riga invece di farli cercare a
+     * chi disegna. */
+    modi: elenco(attributi.hvac_modes),
+    ventole: elenco(attributi.fan_modes),
+    ventola: clean(attributi.fan_mode),
+    minima: numero(attributi.min_temp, 5),
+    massima: numero(attributi.max_temp, 35),
+    passo: numero(attributi.target_temp_step, 0.5) || 0.5,
+    umidita: numero(attributi.current_humidity),
+    azione: clean(attributi.hvac_action),
+    /* Che macchina e', non solo cosa sta facendo adesso: un termosifone
+     * spento resta un termosifone, e il fiocco di neve sopra un
+     * radiatore era il disegno di un'altra casa. */
+    tipo: canonicalClimateType(unit?.type),
+  };
 }
 
 function climateModel(states) {
@@ -408,10 +426,16 @@ function climateModel(states) {
   const average = ambient.length
     ? ambient.reduce((sum, value) => sum + value, 0) / ambient.length
     : null;
-  return { key: "clima", accent: "#0ea5e9", icon: "❄️", label: t("Clima", "Climate"),
+  return {
+    key: "clima",
+    accent: "#0ea5e9",
+    icon: "❄️",
+    label: t("Clima", "Climate"),
     value: average == null ? String(on.length) : `${formatNumber(average, 1)}°`,
     caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
-    ring: Math.round((on.length / rows.length) * 100), rows };
+    ring: Math.round((on.length / rows.length) * 100),
+    rows,
+  };
 }
 
 /* La riga del Clima di quell'entita', ricalcolata al momento: serve al passo
@@ -498,10 +522,16 @@ function coversModel(states) {
     .filter(Boolean);
   if (!rows.length) return null;
   const open = rows.filter((row) => row.open);
-  return { key: "tapparelle", accent: "#8b5cf6", icon: "🪟", label: t("Tapparelle", "Shutters"),
+  return {
+    key: "tapparelle",
+    accent: "#8b5cf6",
+    icon: "🪟",
+    label: t("Tapparelle", "Shutters"),
     value: String(open.length),
     caption: nomiAccesi(open, () => true, t(`${open.length} aperte`, `${open.length} open`)),
-    ring: Math.round((open.length / rows.length) * 100), rows };
+    ring: Math.round((open.length / rows.length) * 100),
+    rows,
+  };
 }
 
 function securityModel(states) {
@@ -526,11 +556,21 @@ function securityModel(states) {
   // La didascalia parla di quello che questa tessera comanda — l'antifurto e
   // le aperture — non delle telecamere: quelle hanno la loro tessera, con le
   // miniature, e dirle due volte era dire due volte la stessa cosa.
-  return { key: "sicurezza", accent: triggered ? "#e11d48" : "#10b981", icon: "🛡️", alert: triggered,
-    label: t("Sicurezza", "Security"), value,
+  return {
+    key: "sicurezza",
+    accent: triggered ? "#e11d48" : "#10b981",
+    icon: "🛡️",
+    alert: triggered,
+    label: t("Sicurezza", "Security"),
+    value,
     caption: doors.length ? clean(doors[0].name) || clean(doors[0].entity) : "",
-    ring: armed || triggered ? 100 : 0, doors,
-    alarm: Boolean(alarm), armed, triggered, mode: raw };
+    ring: armed || triggered ? 100 : 0,
+    doors,
+    alarm: Boolean(alarm),
+    armed,
+    triggered,
+    mode: raw,
+  };
 }
 
 /* Watt leggibili: sotto il migliaio il numero intero, sopra i kW con due
@@ -554,8 +594,16 @@ function camerasModel() {
     }))
     .filter((row) => row.entity && widgetIncludes(row.entity));
   if (!rows.length) return null;
-  return { key: "telecamere", accent: "#0284c7", icon: "📹", label: t("Telecamere", "Cameras"),
-    value: String(rows.length), caption: rows[0].name, ring: null, rows };
+  return {
+    key: "telecamere",
+    accent: "#0284c7",
+    icon: "📹",
+    label: t("Telecamere", "Cameras"),
+    value: String(rows.length),
+    caption: rows[0].name,
+    ring: null,
+    rows,
+  };
 }
 
 const ENERGY_SLOTS = Object.freeze([
@@ -586,10 +634,20 @@ function energyModel(states) {
   const today = numOf(states, clean(model?.house?.daily_energy) || "dm.energy_consumo_casa_oggi");
   const rows = readings.filter((row) => row.watts != null);
   if (house == null && !rows.length) return null;
-  return { key: "energia", accent: "#f97316", icon: "⚡", label: t("Energia", "Energy"),
+  return {
+    key: "energia",
+    accent: "#f97316",
+    icon: "⚡",
+    label: t("Energia", "Energy"),
     value: formatWatts(house),
-    caption: today == null ? t("potenza di casa", "home power") : `${t("Oggi", "Today")} ${formatNumber(today, 1)} kWh`,
-    ring: null, rows, today };
+    caption:
+      today == null
+        ? t("potenza di casa", "home power")
+        : `${t("Oggi", "Today")} ${formatNumber(today, 1)} kWh`,
+    ring: null,
+    rows,
+    today,
+  };
 }
 
 function appliancesModel(states) {
@@ -618,10 +676,17 @@ function appliancesModel(states) {
     });
   if (!rows.length) return null;
   const running = rows.filter((row) => row.mode === "running");
-  return { key: "elettrodomestici", accent: "#06b6d4", icon: "🫧",
-    label: t("Elettrodomestici", "Appliances"), value: String(running.length),
+  return {
+    key: "elettrodomestici",
+    accent: "#06b6d4",
+    icon: "🫧",
+    label: t("Elettrodomestici", "Appliances"),
+    value: String(running.length),
     caption: nomiAccesi(running, () => true, t("in funzione", "running")),
-    ring: Math.round((running.length / rows.length) * 100), rows, running };
+    ring: Math.round((running.length / rows.length) * 100),
+    rows,
+    running,
+  };
 }
 
 function temperatureModel(states) {
@@ -632,7 +697,10 @@ function temperatureModel(states) {
     .filter((room) => clean(room?.temp) && widgetIncludes(room.temp, fuori))
     .map((room) => {
       const temperature = numOf(states, room.temp);
-      const humidity = numOf(states, clean(room.hum) || clean(room.temp).replace("_temperature", "_humidity"));
+      const humidity = numOf(
+        states,
+        clean(room.hum) || clean(room.temp).replace("_temperature", "_humidity"),
+      );
       /* L'entita' resta sulla riga: senza, la finestra non sa a chi chiedere
        * lo storico, e la Temperatura non poteva mai avere la sua analisi nel
        * tempo. */
@@ -650,10 +718,16 @@ function temperatureModel(states) {
   const humidity = humidities.length
     ? Math.round(humidities.reduce((sum, value) => sum + value, 0) / humidities.length)
     : null;
-  return { key: "temperatura", accent: "#ef4444", icon: "🌡️",
-    label: t("Temperatura", "Temperature"), value: `${formatNumber(average, 1)}°`,
+  return {
+    key: "temperatura",
+    accent: "#ef4444",
+    icon: "🌡️",
+    label: t("Temperatura", "Temperature"),
+    value: `${formatNumber(average, 1)}°`,
     caption: humidity == null ? "" : `${t("Umidità", "Humidity")} ${humidity}%`,
-    ring: null, rows };
+    ring: null,
+    rows,
+  };
 }
 
 /* ── le sezioni che mancavano al ponte ────────────────────────────────── */
@@ -694,9 +768,7 @@ const RIF_BATTERIA_EV = Object.freeze(["dm.ev_batteria_auto", "dm.ev_battery", "
  * nelle chiavi globali — quindi si legge di li', senza toccare niente. */
 function vetture() {
   const elenco = section("ev", readJson("cd_ev_cars", []));
-  return (Array.isArray(elenco) ? elenco : []).filter(
-    (auto) => auto && typeof auto === "object",
-  );
+  return (Array.isArray(elenco) ? elenco : []).filter((auto) => auto && typeof auto === "object");
 }
 
 /* Se l'auto e' attaccata alla presa, leggendo lo stato della ricarica.
@@ -724,7 +796,7 @@ const SPINA_NO =
 const SPINA_SI = /(charging|carica|plug|connect|conness|colleg)/;
 
 function letturaVettura(states, auto, fuori, indice) {
-  const mappa = (auto?.ov || auto?.overrides || {}) || {};
+  const mappa = auto?.ov || auto?.overrides || {} || {};
   const visti = new Set();
   const misura = (riferimento) => {
     const entity = clean(mappa[riferimento]);
@@ -797,9 +869,23 @@ function rigaDaEntita(states, entity, glifo = "•") {
   const daQuando = Date.parse(stato?.last_changed ?? stato?.last_updated ?? "");
   const quando = Number.isFinite(daQuando) ? daQuando : null;
   if (STATI_ACCESI.test(grezzo))
-    return { glyph: glifo, name: nome, entity: chiave, on: true, daQuando: quando, value: t("Acceso", "On") };
+    return {
+      glyph: glifo,
+      name: nome,
+      entity: chiave,
+      on: true,
+      daQuando: quando,
+      value: t("Acceso", "On"),
+    };
   if (STATI_SPENTI.test(grezzo))
-    return { glyph: glifo, name: nome, entity: chiave, on: false, daQuando: quando, value: t("Spento", "Off") };
+    return {
+      glyph: glifo,
+      name: nome,
+      entity: chiave,
+      on: false,
+      daQuando: quando,
+      value: t("Spento", "Off"),
+    };
   return { glyph: glifo, name: nome, value: grezzo };
 }
 
@@ -922,7 +1008,10 @@ function evModel(states) {
       ? `${formatNumber(primaKm, 0)} km`
       : "";
   return {
-    key: "ev", accent: "#06b6d4", icon: "🚗", label: t("Auto", "Car"),
+    key: "ev",
+    accent: "#06b6d4",
+    icon: "🚗",
+    label: t("Auto", "Car"),
     value: percentuale == null ? `${formatNumber(primaKm, 0)} km` : `${Math.round(percentuale)}%`,
     caption: didascalia,
     /* La quota qui e' la carica, non «quanto e' attivo»: una macchina ferma
@@ -987,9 +1076,10 @@ function robotsModel(states) {
       state: vista.state,
       battery: vista.battery,
       entity: clean(vista.entity),
-      value: vista.battery == null
-        ? robotStateLabel(vista.state)
-        : `${robotStateLabel(vista.state)} · ${Math.round(vista.battery)}%`,
+      value:
+        vista.battery == null
+          ? robotStateLabel(vista.state)
+          : `${robotStateLabel(vista.state)} · ${Math.round(vista.battery)}%`,
     })),
   };
 }
@@ -1084,9 +1174,17 @@ function solarThermalModel(states) {
           : t("Spento", "Off")
         : righe[0].value;
   return {
-    key: "solare", accent: "#f59e0b", icon: "🌞", label: t("Solare termico", "Solar thermal"),
+    key: "solare",
+    accent: "#f59e0b",
+    icon: "🌞",
+    label: t("Solare termico", "Solar thermal"),
     value: inGrande,
-    caption: pompa == null ? "" : pompa ? t("Pompa in funzione", "Pump running") : t("Pompa ferma", "Pump idle"),
+    caption:
+      pompa == null
+        ? ""
+        : pompa
+          ? t("Pompa in funzione", "Pump running")
+          : t("Pompa ferma", "Pump idle"),
     ring: null,
     // La quota qui non c'e': la tessera si accende quando la pompa lavora.
     attiva: Boolean(pompa),
@@ -1094,37 +1192,73 @@ function solarThermalModel(states) {
   };
 }
 
+/* Le caselle di una vasca che sono comandi, non letture: la pompa, il
+ * riscaldamento, la luce. Si accendono e si spengono, e nella finestra devono
+ * avere un interruttore invece di una scritta. */
+const COMANDI_PISCINA = Object.freeze({ pumpEnt: "🔄", heatEnt: "🔥", lightEnt: "💡" });
+
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
   const fuori = widgetExcludedEntities();
-  const leggi = (chiave, etichetta, glyph, unita = "") => {
-    const entity = clean(config[chiave]);
-    if (!entity || !widgetIncludes(entity, fuori)) return null;
-    const valore = numOf(states, entity);
-    if (valore == null) return null;
-    return { glyph, name: etichetta, value: `${formatNumber(valore, 1)}${unita}`, raw: valore, entity };
-  };
-  const rows = [
-    leggi("tempEnt", t("Acqua", "Water"), "🌡️", "°"),
-    leggi("phEnt", "pH", "🧪"),
-    leggi("clEnt", t("Cloro", "Chlorine"), "💧"),
-  ].filter(Boolean);
-  /* E tutto il resto che e' stato mappato: pompa, riscaldamento, luce.
+  /* Tutte le vasche, non solo la prima.
    *
-   * La tessera ne leggeva tre — acqua, pH, cloro — mentre l'interruttore «nel
-   * widget» sta accanto a ognuna delle caselle della scheda. Acceso su una
-   * delle altre non faceva niente, perche' qui non le guardava nessuno. */
-  const visti = new Set(rows.map((riga) => riga.entity).filter(Boolean));
-  const GLIFI_PISCINA = { pumpEnt: "🔄", heatEnt: "🔥", lightEnt: "💡" };
-  for (const [chiave, glifo] of Object.entries(GLIFI_PISCINA)) {
-    const entity = clean(config[chiave]);
-    if (!entity || visti.has(entity) || !widgetIncludes(entity, fuori)) continue;
-    const riga = rigaDaEntita(states, entity, glifo);
-    if (!riga) continue;
-    visti.add(entity);
-    rows.push(riga);
-  }
+   * Qui si leggeva `config` cosi' com'e', che sono le caselle della PRIMA
+   * vasca: le altre stanno in un elenco accanto, e la finestra della Home non
+   * le ha mai viste. Chi ne ha due vedeva sempre e solo quella di sopra.
+   * `poolList` e' lo stesso elenco che legge la scheda di configurazione — un
+   * padrone solo per la domanda «quante vasche ci sono». */
+  const vasche = poolList(config);
+  const piuDiUna = vasche.length > 1;
+  /* Col nome davanti solo quando serve distinguere: con una vasca sola
+   * «Piscina · Acqua» sarebbe una parola in piu' a ogni riga. */
+  const etichetta = (pool, index, testo) =>
+    piuDiUna ? `${clean(pool.name) || `${t("Piscina", "Pool")} ${index + 1}`} · ${testo}` : testo;
+
+  const rows = [];
+  const visti = new Set();
+  vasche.forEach((pool, index) => {
+    const leggi = (chiave, testo, glyph, unita = "") => {
+      const entity = clean(pool[chiave]);
+      if (!entity || visti.has(entity) || !widgetIncludes(entity, fuori)) return;
+      const valore = numOf(states, entity);
+      if (valore == null) return;
+      visti.add(entity);
+      rows.push({
+        glyph,
+        name: etichetta(pool, index, testo),
+        value: `${formatNumber(valore, 1)}${unita}`,
+        raw: valore,
+        entity,
+      });
+    };
+    leggi("tempEnt", t("Acqua", "Water"), "🌡️", "°");
+    leggi("phEnt", "pH", "🧪");
+    leggi("clEnt", t("Cloro", "Chlorine"), "💧");
+
+    /* E tutto il resto che e' stato mappato: pompa, riscaldamento, luce.
+     *
+     * La tessera ne leggeva tre — acqua, pH, cloro — mentre l'interruttore «nel
+     * widget» sta accanto a ognuna delle caselle della scheda. Acceso su una
+     * delle altre non faceva niente, perche' qui non le guardava nessuno.
+     *
+     * E adesso si comandano: erano scritte e basta, quindi la luce della
+     * piscina si vedeva accesa e dalla finestra non si poteva spegnere. */
+    for (const [chiave, glifo] of Object.entries(COMANDI_PISCINA)) {
+      const entity = clean(pool[chiave]);
+      if (!entity || visti.has(entity) || !widgetIncludes(entity, fuori)) continue;
+      const riga = rigaDaEntita(states, entity, glifo);
+      if (!riga) continue;
+      visti.add(entity);
+      rows.push({
+        ...riga,
+        name: etichetta(pool, index, riga.name),
+        /* Un interruttore, non una scritta — a meno che questa entita' sia
+         * fra quelle che si guardano e basta. */
+        comando: siComanda(entity),
+      });
+    }
+  });
   if (!rows.length) return null;
   const acqua = rows.find((riga) => riga.name === t("Acqua", "Water"));
   /* Sotto il numero grande sta la seconda cosa che si vuole sapere.
@@ -1138,10 +1272,14 @@ function poolModel(states) {
     rows.find((riga) => riga.name === "pH" && riga !== testa) ||
     rows.find((riga) => riga !== testa);
   return {
-    key: "piscina", accent: "#0ea5e9", icon: "🏊", label: t("Piscina", "Pool"),
+    key: "piscina",
+    accent: "#0ea5e9",
+    icon: "🏊",
+    label: t("Piscina", "Pool"),
     value: testa.value,
     caption: compagna ? `${compagna.name} ${compagna.value}` : "",
-    ring: null, rows,
+    ring: null,
+    rows,
   };
 }
 
@@ -1172,8 +1310,15 @@ function irrigationModel(states) {
   const terreno = clean(config.soilEnt || config.soil_entity);
   const umidita = terreno && widgetIncludes(terreno, fuori) ? numOf(states, terreno) : null;
   return {
-    key: "irrigazione", accent: "#10b981", icon: "💧", label: t("Irrigazione", "Irrigation"),
-    value: inFunzione.length ? `${inFunzione.length}` : umidita == null ? `${attive.length}` : `${Math.round(umidita)}%`,
+    key: "irrigazione",
+    accent: "#10b981",
+    icon: "💧",
+    label: t("Irrigazione", "Irrigation"),
+    value: inFunzione.length
+      ? `${inFunzione.length}`
+      : umidita == null
+        ? `${attive.length}`
+        : `${Math.round(umidita)}%`,
     caption: inFunzione.length
       ? t("zone in funzione", "zones running")
       : umidita == null
@@ -1191,9 +1336,7 @@ function irrigationModel(states) {
       name: clean(zona.name) || clean(zona.entity),
       on: zonaInFunzione(states, zona),
       entity: clean(zona.entity),
-      value: zonaInFunzione(states, zona)
-        ? t("in funzione", "running")
-        : t("ferma", "idle"),
+      value: zonaInFunzione(states, zona) ? t("in funzione", "running") : t("ferma", "idle"),
     })),
   };
 }
@@ -1204,6 +1347,21 @@ function rowsDetail(widget) {
   return (widget.rows || [])
     .map((row) => {
       const livello = livelloMarkup(percentualeDellaRiga(row));
+      /* Una riga che e' un comando ha un interruttore, non una scritta.
+       *
+       * La luce della piscina si vedeva accesa e dalla finestra non si poteva
+       * spegnere: era una riga di sola lettura come la temperatura dell'acqua,
+       * che infatti non si comanda. Chi guarda una finestra che dice «Luce:
+       * Acceso» si aspetta di poterla toccare, e aveva ragione. L'interruttore
+       * e' lo stesso delle luci — `data-dm-w-light` sa gia' chiamare il
+       * servizio giusto per qualunque dominio. */
+      if (row.comando)
+        return rowShell(
+          `<span class="dm-w-glyph" data-on="${row.on === true}" aria-hidden="true">${row.glyph || "•"}</span>
+           <span class="dm-w-name">${esc(row.name)}${livello}</span>
+           <button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on === true}"
+             aria-label="${esc(row.name)}"><i></i></button>`,
+        );
       return rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${row.glyph || "•"}</span>
          <span class="dm-w-name">${esc(row.name)}${livello}</span>
@@ -1261,9 +1419,18 @@ function openingsModel(states) {
   });
   const open = rows.filter((row) => row.on);
   if (!open.length) return null;
-  return { key: "aperture", accent: "#dc2626", icon: "🚪", alert: true, label: t("Aperture", "Openings"),
-    value: String(open.length), caption: open[0] ? open[0].name : "",
-    ring: Math.round((open.length / rows.length) * 100), rows, open };
+  return {
+    key: "aperture",
+    accent: "#dc2626",
+    icon: "🚪",
+    alert: true,
+    label: t("Aperture", "Openings"),
+    value: String(open.length),
+    caption: open[0] ? open[0].name : "",
+    ring: Math.round((open.length / rows.length) * 100),
+    rows,
+    open,
+  };
 }
 
 function batteriesModel(states) {
@@ -1272,21 +1439,39 @@ function batteriesModel(states) {
   const rows = entities
     .map((entity) => {
       const level = Number(stateOf(states, entity)?.state);
-      return { entity, name: friendlyName(states, entity), level: Number.isFinite(level) ? level : null };
+      return {
+        entity,
+        name: friendlyName(states, entity),
+        level: Number.isFinite(level) ? level : null,
+      };
     })
     .filter((row) => row.level != null)
     .sort((a, b) => a.level - b.level);
   const low = rows.filter((row) => row.level <= 20);
   if (!low.length) return null;
-  return { key: "batterie", accent: "#eab308", icon: "🔋", alert: true, label: t("Batterie", "Batteries"),
-    value: String(low.length), caption: low[0] ? `${low[0].name} ${Math.round(low[0].level)}%` : "",
-    ring: Math.round((low.length / rows.length) * 100), rows, low };
+  return {
+    key: "batterie",
+    accent: "#eab308",
+    icon: "🔋",
+    alert: true,
+    label: t("Batterie", "Batteries"),
+    value: String(low.length),
+    caption: low[0] ? `${low[0].name} ${Math.round(low[0].level)}%` : "",
+    ring: Math.round((low.length / rows.length) * 100),
+    rows,
+    low,
+  };
 }
 
 function floodModel(states) {
   let entities = [];
   try {
-    entities = floodEntities(readJson("cd_gruppi_extra", {}), readJson("cd_gruppi_removed", {}), states, true);
+    entities = floodEntities(
+      readJson("cd_gruppi_extra", {}),
+      readJson("cd_gruppi_removed", {}),
+      states,
+      true,
+    );
   } catch (_error) {
     return null;
   }
@@ -1301,9 +1486,17 @@ function floodModel(states) {
     }));
   const wet = rows.filter((row) => row.on);
   if (!wet.length) return null;
-  return { key: "allagamenti", accent: "#38bdf8", icon: "💧", alert: true, label: t("Allagamenti", "Floods"),
-    value: String(wet.length), caption: wet[0] ? wet[0].name : "",
-    ring: 100, rows: wet };
+  return {
+    key: "allagamenti",
+    accent: "#38bdf8",
+    icon: "💧",
+    alert: true,
+    label: t("Allagamenti", "Floods"),
+    value: String(wet.length),
+    caption: wet[0] ? wet[0].name : "",
+    ring: 100,
+    rows: wet,
+  };
 }
 
 /* Le stesse condizioni del runtime, riga per riga: un avviso personalizzato
@@ -1315,7 +1508,17 @@ function avvisoAttivo(avviso, current) {
   const soglia = Number.parseFloat(avviso?.value);
   switch (clean(avviso?.cond)) {
     case "off":
-      return ["off", "closed", "false", "no", "0", "unavailable", "unknown", "idle", "standby"].includes(stato);
+      return [
+        "off",
+        "closed",
+        "false",
+        "no",
+        "0",
+        "unavailable",
+        "unknown",
+        "idle",
+        "standby",
+      ].includes(stato);
     case "eq":
       return stato === String(avviso?.value ?? "").toLowerCase();
     case "neq":
@@ -1325,8 +1528,26 @@ function avvisoAttivo(avviso, current) {
     case "lt":
       return !Number.isNaN(numero) && !Number.isNaN(soglia) && numero < soglia;
     default:
-      return ["on", "open", "opened", "true", "yes", "home", "detected", "heat", "heating", "cool",
-        "cooling", "playing", "active", "armed", "wet", "motion", "occupied", "running"].includes(stato);
+      return [
+        "on",
+        "open",
+        "opened",
+        "true",
+        "yes",
+        "home",
+        "detected",
+        "heat",
+        "heating",
+        "cool",
+        "cooling",
+        "playing",
+        "active",
+        "armed",
+        "wet",
+        "motion",
+        "occupied",
+        "running",
+      ].includes(stato);
   }
 }
 
@@ -1354,9 +1575,17 @@ function customAlertModels(states) {
           state: clean(stateOf(states, entity)?.state),
         }));
       if (!rows.length) return null;
-      return { key: `custom-${index}`, accent: "#f59e0b", icon: clean(avviso?.icon) || "⚠️", alert: true,
-        label: clean(avviso?.name) || t("Avviso", "Alert"), value: String(rows.length),
-        caption: rows[0]?.name || "", ring: null, rows };
+      return {
+        key: `custom-${index}`,
+        accent: "#f59e0b",
+        icon: clean(avviso?.icon) || "⚠️",
+        alert: true,
+        label: clean(avviso?.name) || t("Avviso", "Alert"),
+        value: String(rows.length),
+        caption: rows[0]?.name || "",
+        ring: null,
+        rows,
+      };
     })
     .filter(Boolean);
 }
@@ -1502,7 +1731,10 @@ export function firmaMisura(widget) {
   if (widget?.key === "ev") return `batt:${quota}`;
   if (totale >= 2) {
     const segmenti = Math.min(totale, 6);
-    const accesi = Math.min(segmenti, Math.max(quota > 0 ? 1 : 0, Math.round((quota / 100) * segmenti)));
+    const accesi = Math.min(
+      segmenti,
+      Math.max(quota > 0 ? 1 : 0, Math.round((quota / 100) * segmenti)),
+    );
     return `punti:${accesi}/${segmenti}`;
   }
   return `barra:${quota}`;
@@ -1512,8 +1744,7 @@ function misuraMarkup(widget) {
   const firma = firmaMisura(widget);
   if (!firma) return "";
   const [tipo, dato] = firma.split(":");
-  if (tipo === "batt")
-    return `<span class="dm-tile-batt"><i style="width:${dato}%"></i></span>`;
+  if (tipo === "batt") return `<span class="dm-tile-batt"><i style="width:${dato}%"></i></span>`;
   if (tipo === "punti") {
     const [accesi, segmenti] = dato.split("/").map(Number);
     let dentro = "";
@@ -1730,10 +1961,13 @@ function todoDetail(widget) {
       const extra = open.length - shown.filter((item) => item.status !== "completed").length;
       let body;
       if (items === null) body = `<p class="dm-w-empty">${esc(t("Caricamento…", "Loading…"))}</p>`;
-      else if (!shown.length) body = `<p class="dm-w-empty">✨ ${esc(t("Tutto fatto", "All done"))}</p>`;
+      else if (!shown.length)
+        body = `<p class="dm-w-empty">✨ ${esc(t("Tutto fatto", "All done"))}</p>`;
       else
         body = `<ul class="dm-todo-items">${shown.map((item) => todoItemMarkup(list, item, today)).join("")}</ul>${
-          extra > 0 ? `<p class="dm-w-empty">${esc(t(`+${extra} altre voci`, `+${extra} more items`))}</p>` : ""
+          extra > 0
+            ? `<p class="dm-w-empty">${esc(t(`+${extra} altre voci`, `+${extra} more items`))}</p>`
+            : ""
         }`;
       /* La riga per scrivere sta in fondo alla lista a cui appartiene: con
        * piu' liste aperte, una casella sola in cima non direbbe in quale
@@ -1962,8 +2196,9 @@ function climateDetail(widget) {
        * a capo — la griglia le dava l'altezza di una riga sola e il pannello
        * usciva sopra a quella dopo. Fuori e' un elemento come gli altri, alto
        * quanto gli serve. */
-      return rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${climateGlyph(row.mode || "", row.tipo)}</span>
+      return (
+        rowShell(
+          `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${climateGlyph(row.mode || "", row.tipo)}</span>
          <span class="dm-w-name">${esc(row.name)}<small>${
            row.ambient == null ? "" : `${formatNumber(row.ambient, 1)}°`
          }${row.on && row.target != null ? ` → ${formatNumber(row.target, 1)}°` : ""}</small></span>
@@ -1977,8 +2212,9 @@ function climateDetail(widget) {
          }
          <button type="button" class="dm-w-power" data-dm-w-clima="${esc(row.entity)}" data-on="${row.on}"
            aria-label="${esc(row.name)}">${GLIFO_ACCENSIONE}</button>`,
-        `data-dm-w-open="${Boolean(aperto)}"`,
-      ) + pannello;
+          `data-dm-w-open="${Boolean(aperto)}"`,
+        ) + pannello
+      );
     })
     .join("");
 }
@@ -2078,9 +2314,7 @@ function securityDetail(widget, states) {
      * stessa conferma, stesso tastierino del PIN, stessa chiamata. Qui non si
      * ricopia niente, si chiede a chi lo sa gia' fare. */
     const apre = doorOpenCall(door.entity, stateOf(states, door.entity));
-    const invito = door.pin
-      ? t("Apri, col PIN", "Open, with the PIN")
-      : t("Apri", "Open");
+    const invito = door.pin ? t("Apri, col PIN", "Open, with the PIN") : t("Apri", "Open");
     parts.push(
       rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${esc(door.icon)}</span>
@@ -2177,7 +2411,9 @@ function iconaApertura(row) {
 }
 
 function openingsDetail(widget) {
-  const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, MAX_DETAIL_ROWS);
+  const rows = [...widget.rows]
+    .sort((a, b) => Number(b.on) - Number(a.on))
+    .slice(0, MAX_DETAIL_ROWS);
   return rows
     .map((row) =>
       rowShell(
@@ -2276,7 +2512,9 @@ function summaryChips(widget) {
     const aperte = righe.filter((riga) => Number(riga?.position) > 0).length;
     return [
       [t("aperte", "open"), `${aperte}/${righe.length}`],
-      posizioni.length ? [t("apertura media", "average"), `${Math.round(media(posizioni))}%`] : null,
+      posizioni.length
+        ? [t("apertura media", "average"), `${Math.round(media(posizioni))}%`]
+        : null,
     ].filter(Boolean);
   }
   if (widget.key === "batterie") {
@@ -2481,7 +2719,9 @@ function corsaMarkup(widget) {
   const durata = fine - inizio || 1;
   const alto = (valore) => (26 - ((valore - minimo) / ampiezza) * 22).toFixed(2);
   const disegno = punti
-    .map((punto) => `${(((punto.quando - inizio) / durata) * 100).toFixed(2)},${alto(punto.valore)}`)
+    .map(
+      (punto) => `${(((punto.quando - inizio) / durata) * 100).toFixed(2)},${alto(punto.valore)}`,
+    )
     .join(" ");
   return `<div class="dm-w-corsa">
       <svg viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-hidden="true">
@@ -2787,7 +3027,8 @@ export function renderHomeWidgets() {
   if (sub) {
     const quante = models.length;
     const avvisi = models.filter((widget) => widget.alert).length;
-    const sezioni = quante === 1 ? t("1 sezione", "1 section") : t(`${quante} sezioni`, `${quante} sections`);
+    const sezioni =
+      quante === 1 ? t("1 sezione", "1 section") : t(`${quante} sezioni`, `${quante} sections`);
     /* Non basta dire QUANTE chiedono attenzione: bisogna dire QUALI.
      *
      * «2 chiedono attenzione» sopra otto tessere obbliga a guardarle tutte per
@@ -2795,7 +3036,10 @@ export function renderHomeWidgets() {
      * riepilogo dovrebbe risparmiare. I nomi in larghezza ci stanno di rado, e
      * allora la riga scorre: la stessa andatura delle didascalie delle
      * tessere, e solo quando serve davvero. */
-    const nomi = models.filter((widget) => widget.alert).map((widget) => widget.label).join(", ");
+    const nomi = models
+      .filter((widget) => widget.alert)
+      .map((widget) => widget.label)
+      .join(", ");
     const attenzione = avvisi
       ? avvisi === 1
         ? `${t("1 chiede attenzione", "1 needs attention")}: ${nomi}`
@@ -2821,7 +3065,8 @@ export function renderHomeWidgets() {
     if (mounted.dataset.dmMood !== stato) mounted.dataset.dmMood = stato;
   }
 
-  if (state.expanded && !models.some((widget) => widget.key === state.expanded)) state.expanded = "";
+  if (state.expanded && !models.some((widget) => widget.key === state.expanded))
+    state.expanded = "";
   const grid = mounted.querySelector(".dm-widgets-grid");
   if (!grid) return false;
 
@@ -3148,9 +3393,7 @@ async function aggiornaTelecamere() {
    * nessuna, e un timer che si sveglia ogni tanto per non fare niente mentre
    * le telecamere restano nere. Si guarda in tutti e due i posti. */
   const figures =
-    doc?.querySelectorAll?.(
-      "#dm-widgets [data-dm-w-cam],#dm-widget-popup [data-dm-w-cam]",
-    ) || [];
+    doc?.querySelectorAll?.("#dm-widgets [data-dm-w-cam],#dm-widget-popup [data-dm-w-cam]") || [];
   await Promise.all(
     [...figures].map((figure) =>
       loadCameraFrame(
@@ -3253,14 +3496,18 @@ function onClick(event) {
   if (cestino) {
     event.preventDefault();
     const lista = listaTodo(cestino.dataset.dmTodoList);
-    if (lista) removeItem(lista, clean(cestino.dataset.dmTodoUid), clean(cestino.dataset.dmTodoSummary));
+    if (lista)
+      removeItem(lista, clean(cestino.dataset.dmTodoUid), clean(cestino.dataset.dmTodoSummary));
     return;
   }
   const check = event.target?.closest?.("[data-dm-todo-check]");
   if (check && !check.disabled) {
     event.preventDefault();
-    const list = configuredTodoLists().find((value) => value.id === clean(check.dataset.dmTodoList));
-    if (list) completeItem(list, clean(check.dataset.dmTodoUid), clean(check.dataset.dmTodoSummary));
+    const list = configuredTodoLists().find(
+      (value) => value.id === clean(check.dataset.dmTodoList),
+    );
+    if (list)
+      completeItem(list, clean(check.dataset.dmTodoUid), clean(check.dataset.dmTodoSummary));
     return;
   }
   /* «Apri sezione»: si chiude la finestra e si preme la voce in basso.
@@ -3403,7 +3650,9 @@ function stateChangeTouchesTodo(event) {
 /* ── stile ────────────────────────────────────────────────────────────── */
 
 function installStyles() {
-  installStyle(STYLE_ID, `
+  installStyle(
+    STYLE_ID,
+    `
 /* ── il popup del dettaglio ───────────────────────────────────────────────
  *
  * Le stesse forme dei popup che la plancia ha gia': il velo chiaro sfocato
@@ -4411,7 +4660,8 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 @media (max-width:520px){
   :is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 }
-`);
+`,
+  );
 }
 
 export function installHomeWidgetsSection() {

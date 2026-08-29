@@ -1816,4 +1816,7 @@ export default Object.freeze({
   "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "꺼서는 안 되는 콘센트용입니다. 냉장고, 모뎀, 냉동고 등. 행은 그대로 남고 버튼만 반응하지 않습니다.",
   "Read only": "읽기 전용",
   "Shown but not controllable": "보이지만 조작할 수 없음",
+  "Large pool": "큰 수영장",
+  "Name of the first basin": "첫 번째 수조의 이름",
+  "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "첫 번째 수조의 센서는 위 양식에서 입력합니다. 여기서는 이름을 붙입니다. 수조가 여러 개일 때 어느 것을 보고 있는지 알 수 있습니다.",
 });

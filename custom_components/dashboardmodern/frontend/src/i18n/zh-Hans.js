@@ -1816,4 +1816,7 @@ export default Object.freeze({
   "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.": "适用于不该断电的插座：冰箱、光猫、冰柜。这一行保持原位，只是按钮不再响应。",
   "Read only": "只读",
   "Shown but not controllable": "可见但不可操作",
+  "Large pool": "大泳池",
+  "Name of the first basin": "第一个池子的名称",
+  "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.": "第一个池子的传感器在上面的表单里填写。在这里给它取个名字，池子不止一个时就能分清在看哪一个。",
 });

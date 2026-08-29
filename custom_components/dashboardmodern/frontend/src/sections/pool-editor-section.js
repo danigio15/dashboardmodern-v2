@@ -89,9 +89,31 @@ function schedaMarkup(pool, index) {
   </article>`;
 }
 
+/* Il nome della prima vasca.
+ *
+ * La maschera di sopra e' quella che c'e' sempre stata, e configura la prima
+ * vasca: sensori, comandi, filtrazione. Un nome pero' non glielo chiedeva —
+ * quando la piscina era una sola non serviva, si chiamava «Piscina» e bastava.
+ * Dalla seconda in poi serve eccome, e le altre il nome ce l'hanno: la prima
+ * restava l'unica senza, e con due vasche non si distinguevano. Segnalato
+ * esattamente cosi'.
+ *
+ * Sta qui e non nella maschera di sopra perche' il nome e' una cosa di questo
+ * modulo — e' lui che tiene l'elenco delle vasche — e due posti che scrivono lo
+ * stesso campo sarebbero due padroni. */
+function primaMarkup(pool = {}) {
+  return `<div class="ed-sec-title">🏊 ${t("Nome della prima vasca", "Name of the first basin")}</div>
+    <div class="ed-intro">${t(
+      "I sensori della prima vasca si compilano nella maschera qui sopra. Qui le si da' un nome, cosi' con piu' di una vasca si capisce quale si sta guardando.",
+      "The first basin's sensors are filled in the form above. Here you give it a name, so with more than one basin you can tell which one you are looking at.",
+    )}</div>
+    <label class="ed-slot dm-pool-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-pool-first-name" class="ed-input" data-pool-first-name value="${esc(clean(pool.name))}" placeholder="${t("Piscina grande", "Large pool")}"></span></label>`;
+}
+
 function panelMarkup(pools) {
   const altre = pools.slice(1);
-  return `<div class="ed-sec-title">🏊 ${t("Altre piscine", "Other pools")}</div>
+  return `${primaMarkup(pools[0])}
+    <div class="ed-sec-title">🏊 ${t("Altre piscine", "Other pools")}</div>
     <div class="ed-intro">${t(
       "La maschera qui sopra configura la prima vasca. Se ne hai piu' di una, aggiungi qui le altre: ognuna ha i suoi sensori, i suoi comandi e la sua filtrazione.",
       "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.",
@@ -126,9 +148,11 @@ function leggiScheda(riga, pool) {
  * la vedeva sparire. Si ridisegna quando cambia cio' che si vede — quante
  * vasche ci sono, come si chiamano, quale e' aperta — e mai mentre si scrive. */
 function firma(pools) {
-  return [pools.length, state.aperta, ...pools.map((pool) => `${pool.id}~${clean(pool.name)}`)].join(
-    "|",
-  );
+  return [
+    pools.length,
+    state.aperta,
+    ...pools.map((pool) => `${pool.id}~${clean(pool.name)}`),
+  ].join("|");
 }
 
 export function ensurePoolEditor() {
@@ -141,6 +165,10 @@ export function ensurePoolEditor() {
     panel.dataset.dmPoolEditor = "true";
     body.append(panel);
     panel.addEventListener("click", (event) => onClick(event, panel));
+    /* Il nome si scrive e si salva quando si esce dal campo, non a ogni
+     * lettera: il pannello si ridisegna quando un nome cambia, e salvare a
+     * ogni tasto vorrebbe dire cancellare la parola mentre la si scrive. */
+    panel.addEventListener("change", (event) => onChange(event, panel));
     state.firma = "";
   }
   const pools = elenco();
@@ -167,6 +195,22 @@ function schedulePoolEditor() {
 function ridisegna(panel) {
   panel.dataset.firma = "";
   ensurePoolEditor();
+}
+
+function onChange(event, panel) {
+  const campo = event.target?.closest?.("[data-pool-first-name]");
+  if (!campo) return;
+  const pools = elenco();
+  if (!pools.length) return;
+  const nome = clean(campo.value);
+  if (clean(pools[0].name) === nome) return;
+  const next = pools.slice();
+  next[0] = { ...next[0], name: nome };
+  salva(next);
+  ridisegna(panel);
+  try {
+    root.renderPiscina?.();
+  } catch (_error) {}
 }
 
 function onClick(event, panel) {
