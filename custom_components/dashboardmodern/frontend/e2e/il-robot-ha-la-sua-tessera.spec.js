@@ -64,15 +64,15 @@ test("fermi, la tessera dice la carica piu' bassa", async ({ page }, testInfo) =
 
 test("uno che pulisce vale piu' di una percentuale", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
-  /* Mentre puliscono, la notizia e' che stanno pulendo: la carica torna a
-   * essere la risposta quando sono tutti fermi. */
+  /* Mentre lavorano — chi pulisce e chi taglia — la notizia e' che stanno
+   * lavorando: la carica torna a essere la risposta quando sono tutti fermi. */
   await avvia(page, testInfo, {
     "vacuum.terra": { state: "cleaning", attributes: { battery_level: 88 } },
     "vacuum.primo": { state: "docked", attributes: { battery_level: 42 } },
   });
   await expect(tessera(page)).toBeVisible();
   await expect(tessera(page)).toContainText("1");
-  await expect(tessera(page)).toContainText(/in pulizia/i);
+  await expect(tessera(page)).toContainText(/al lavoro/i);
 });
 
 test("senza robot configurati la tessera non c'e'", async ({ page }, testInfo) => {
