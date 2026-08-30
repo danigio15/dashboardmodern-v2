@@ -9,6 +9,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **Il guscio inglese non parla piu' italiano.** Il runtime vendorizzato EN
+  portava ancora etichette italiane cablate — «ARMATO · FUORI», «DISARMATO»,
+  la tessera «Antifurto», i toast di salvataggio, la pillola «In attesa...»,
+  le etichette del solare nell'editor. Un modulo se ne fa padrone e le
+  traduce alla fonte, finche' la correzione non arriva a monte.
+
 - **Il ritratto delle persone diventa su misura.** Capelli (lisci, ricci,
   calvo), barba con le sue fogge (nessuna, rasata, corta, lunga) e colori di
   capelli e barba sono scelte separate che si combinano liberamente: dove il

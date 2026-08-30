@@ -34,6 +34,7 @@ import { installLightsPageSection } from "./lights-page-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installSmokeAlertsSection } from "./smoke-alerts-section.js";
+import { installEnglishRuntimeStrings } from "./english-runtime-strings-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
@@ -702,6 +703,9 @@ export function installSectionRuntime() {
      * porta il suo blocco nella pagina Sicurezza e il rilevamento continuo
      * delle aperture nuove. */
     installSmokeAlertsSection();
+    /* Sul guscio inglese, le parole italiane rimaste nel runtime vendorizzato
+     * si traducono qui, finche' la correzione non arriva a monte. */
+    installEnglishRuntimeStrings();
     // The redesigned Security page must own #cam-grid before the live-ui camera
     // owner starts filling the thumbnails, so the first paint is already the new
     // wall instead of the legacy cards.
@@ -822,6 +826,7 @@ export function installSectionRuntime() {
         "alerts",
         "flood-alerts",
         "smoke-alerts",
+        "english-runtime-strings",
         "theme-foundation",
         "security-showcase",
         "security-doors",

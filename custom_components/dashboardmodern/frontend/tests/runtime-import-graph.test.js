@@ -499,11 +499,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // widget che ti fa anche analisi» — il guscio elencava ogni entita' con lo
   // slug, il modulo riveste la stessa finestra con verdetto, frase, caselle,
   // pillole e comandi.
+  // 181 con le parole inglesi del guscio: il runtime EN portava ancora
+  // etichette italiane cablate, e il modulo che le traduce e' il padrone
+  // provvisorio finche' la correzione non arriva a monte.
   // 180 coi rilevatori di fumo (#238): la lista sorvegliata `fumo` che si
   // riempie da sola — e continua a farlo, col registro dei gia' visti — piu'
   // il blocco nella pagina Sicurezza e le aperture nuove che entrano da sole
   // nel gruppo `win`. Un modulo solo, sul calco di flood-alerts.
-  assert.ok(relative.length <= 180, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 181, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
