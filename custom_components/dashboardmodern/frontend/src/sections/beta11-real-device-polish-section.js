@@ -140,13 +140,21 @@ function closeAlertPicker() {
   doc?.getElementById("dm-beta11-alert-picker")?.remove();
 }
 
-function openAlertPicker(input) {
+/* Il catalogo delle icone, riusabile: nato per gli avvisi, serve anche alle
+ * aperture (porte, cancelli, serrature ci sono gia'). Chi lo apre da fuori
+ * passa il suo titolo; il selettore scrive nel campo e annuncia il cambio. */
+export function openEmojiPicker(input, titolo) {
+  return openAlertPicker(input, titolo);
+}
+
+function openAlertPicker(input, titolo) {
   if (!input || !doc) return false;
   closeAlertPicker();
+  const intestazione = titolo || `🔔 ${t("Scegli icona avviso", "Choose alert icon")}`;
   const modal = doc.createElement("div");
   modal.id = "dm-beta11-alert-picker";
   modal.className = "dm-section-modal dm-beta11-alert-picker";
-  modal.innerHTML = `<section class="dm-section-dialog dm-beta11-alert-dialog" role="dialog" aria-modal="true"><header><strong>🔔 ${t("Scegli icona avviso", "Choose alert icon")}</strong><button type="button" data-close>✕</button></header><div class="dm-beta11-alert-search"><input class="ed-input" type="search" data-search placeholder="🔎 ${t("Cerca icona…", "Search icons…")}"></div><div class="dm-beta11-alert-grid">${ALERT_ICON_CATALOG.map(([glyph, it, en, keywords]) => `<button type="button" class="dm-beta11-alert-option" data-alert-icon="${glyph}" data-search-text="${`${it} ${en} ${keywords}`.toLowerCase()}"><span class="dm-beta11-alert-glyph" aria-hidden="true">${glyph}</span><b>${t(it, en)}</b></button>`).join("")}</div></section>`;
+  modal.innerHTML = `<section class="dm-section-dialog dm-beta11-alert-dialog" role="dialog" aria-modal="true"><header><strong>${intestazione}</strong><button type="button" data-close>✕</button></header><div class="dm-beta11-alert-search"><input class="ed-input" type="search" data-search placeholder="🔎 ${t("Cerca icona…", "Search icons…")}"></div><div class="dm-beta11-alert-grid">${ALERT_ICON_CATALOG.map(([glyph, it, en, keywords]) => `<button type="button" class="dm-beta11-alert-option" data-alert-icon="${glyph}" data-search-text="${`${it} ${en} ${keywords}`.toLowerCase()}"><span class="dm-beta11-alert-glyph" aria-hidden="true">${glyph}</span><b>${t(it, en)}</b></button>`).join("")}</div></section>`;
   doc.body.append(modal);
   const close = () => modal.remove();
   modal.querySelector("[data-close]")?.addEventListener("click", close);

@@ -73,3 +73,23 @@ test("l'icona e' quella scelta, o quella del gruppo se non se n'e' scelta", () =
   /* Un'entita' senza gruppo riconosciuto non resta muta. */
   assert.equal(alertIcon("sensor.qualcosa", "boh"), "🔔");
 });
+
+/* «Apertura: ancora non si puo' cambiare icona»: il campo era una casella di
+ * testo nuda, e l'unica strada era l'emoji dalla tastiera. Ora accanto al
+ * campo c'e' il tasto che apre il catalogo — lo stesso selettore delle icone
+ * degli avvisi, dove porte, cancelli e serrature ci sono gia' — e il campo
+ * resta scrivibile per chi vuole un'emoji fuori catalogo. */
+test("l'icona della porta si sceglie dal catalogo, non solo dalla tastiera", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const editor = await readFile(
+    new URL("../src/sections/security-doors-editor-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(editor, /data-door-icon-pick="dm-door-\$\{index\}-icon"/);
+  assert.match(editor, /openEmojiPicker\(input, /);
+  const beta11 = await readFile(
+    new URL("../src/sections/beta11-real-device-polish-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(beta11, /export function openEmojiPicker/);
+});

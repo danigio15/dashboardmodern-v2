@@ -7,6 +7,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.3.11
 
+### Aggiunto
+
+- **L'icona di un'apertura si sceglie dal catalogo.** Il campo era una
+  casella di testo nuda e l'unica strada era l'emoji dalla tastiera: ora
+  accanto al campo c'e' il tasto che apre lo stesso selettore delle icone
+  degli avvisi — porte, cancelli e serrature ci sono gia' — e il campo resta
+  scrivibile per chi vuole un'emoji fuori catalogo.
+
 ### Corretto
 
 - **Il velo d'avvio non si vede piu' due volte.** All'avvio Home Assistant
