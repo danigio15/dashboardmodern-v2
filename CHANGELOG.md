@@ -13,7 +13,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   portava ancora etichette italiane cablate — «ARMATO · FUORI», «DISARMATO»,
   la tessera «Antifurto», i toast di salvataggio, la pillola «In attesa...»,
   le etichette del solare nell'editor. Un modulo se ne fa padrone e le
-  traduce alla fonte, finche' la correzione non arriva a monte.
+  traduce alla fonte, finche' la correzione non arriva a monte. Anche il
+  guscio statico EN mentiva — le linguette del solare «Istantanea /
+  Giornaliera / Mensile», i nodi del flusso «Solare / Casa / Batteria /
+  Rete» — quindi il passaggio DOM di traduzione, che prima saltava
+  l'inglese dandolo per gia' tradotto, ora gira anche li': l'inglese e' la
+  lingua pivot e si risolve dall'indice, senza scaricare cataloghi.
 
 - **Il ritratto delle persone diventa su misura.** Capelli (lisci, ricci,
   calvo), barba con le sue fogge (nessuna, rasata, corta, lunga) e colori di
