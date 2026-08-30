@@ -203,23 +203,28 @@ html[data-theme="dark"] #cd-boot-overlay b{color:#e2e8f0}
 <link rel="modulepreload" href="../src/sections/widget-entity-choice-section.js">
 <link rel="modulepreload" href="../src/transport/hosted-bridge-guard.js">
 <!-- moduli-in-anticipo:fine -->
-<script src="./storage-namespace.js"></script>
-<script src="./bridge-prelude.js"></script>
 <script type="module" src="./modules-entry.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Smart Home Dashboard</title>
-<!-- ═══ CONFIG UTENTE (opzionale): copia config.example.js in config.js accanto a questo file e personalizza ═══ -->
-<script src="config.js" onerror="console.warn('[Dashboard] config.js non trovato — uso i default interni')"></script>
 <link rel="stylesheet" href="./vendor/caratteri.css" media="print" onload="this.media='all'">
 <script defer src="./vendor/hls.min.js"></script>
 
 <link rel="stylesheet" href="./dashboard-runtime.css" media="print" onload="this.media='all'">
 </head>
 <body>
-<!-- Prima di tutto, anche dello script del tema: stava sotto uno script
-     sincrono, e finche' quello non arrivava lo schermo restava vuoto. -->
+<!-- Prima di tutto, anche di OGNI script sincrono: il parser si ferma su
+     ciascuno di loro, e a riavvio di Home Assistant possono metterci secondi
+     ad arrivare — con loro in testa lo schermo restava bianco per tutto quel
+     tempo, e il velo usciva solo alla fine. Qui sopra non c'e' niente che
+     blocchi: il velo si dipinge subito, gli script si aspettano sotto di lui.
+     L'ordine di esecuzione e' lo stesso di prima: spazio dei nomi, ponte,
+     config, tema. -->
 <div id="cd-boot-overlay"><img src="./logo.png" alt=""><b>DashboardModern</b><div class="s"></div><small>Loading…</small></div>
+<script src="./storage-namespace.js"></script>
+<script src="./bridge-prelude.js"></script>
+<!-- ═══ CONFIG UTENTE (opzionale): copia config.example.js in config.js accanto a questo file e personalizza ═══ -->
+<script src="config.js" onerror="console.warn('[Dashboard] config.js non trovato — uso i default interni')"></script>
 <script src="./dashboard-theme-en.js"></script>
 
 <script data-dashboardmodern-bootstrap-watchdog src="./dashboard-watchdog-en.js"></script>

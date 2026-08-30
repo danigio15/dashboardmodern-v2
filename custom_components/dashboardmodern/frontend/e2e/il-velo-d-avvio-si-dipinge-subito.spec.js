@@ -9,15 +9,31 @@
  * Adesso il velo e' la prima cosa del body, vestito da regole inline che non
  * aspettano nessuno, e i fogli grandi non bloccano piu' il dipinto: sotto il
  * velo non si vede niente comunque, finche' la plancia non e' pronta.
+ *
+ * Seconda segnalazione, al riavvio di Home Assistant: bianco a lungo, e il
+ * logo solo alla fine. In testa alla pagina erano rimasti tre script sincroni
+ * — lo spazio dei nomi, il ponte, la config — e il parser si ferma su ognuno:
+ * finche' il server, che sta ancora ripartendo, non li consegna, al velo non
+ * ci si arriva proprio. Adesso stanno sotto di lui, e questa prova ferma
+ * anche loro: il velo deve dipingersi lo stesso, subito.
  */
 import { expect, test } from "@playwright/test";
 
 test("il velo si dipinge anche con la rete lenta", async ({ page }) => {
   test.setTimeout(90_000);
-  /* La rete lenta di un primo avvio: il runtime e i fogli grandi non arrivano.
-   * Il velo deve esserci lo stesso, dipinto dalle regole inline. */
-  await page.route("**/dashboard-runtime-it.js", (r) => new Promise(() => {}));
-  await page.route("**/dashboard-runtime-it.css", (r) => new Promise(() => {}));
+  /* La rete lenta di un riavvio: il runtime, i fogli grandi e OGNI script
+   * sincrono non arrivano. Il velo deve esserci lo stesso, dipinto dalle
+   * regole inline prima che il parser incontri il primo script. */
+  for (const risorsa of [
+    "**/dashboard-runtime-it.js",
+    "**/dashboard-runtime-it.css",
+    "**/storage-namespace.js",
+    "**/bridge-prelude.js",
+    "**/config.js",
+    "**/dashboard-theme-it.js",
+    "**/dashboard-watchdog-it.js",
+  ])
+    await page.route(risorsa, (r) => new Promise(() => {}));
   await page.goto("/legacy/dashboard.html?dmi=prova-velo-lento", { waitUntil: "commit" });
   const velo = page.locator("#cd-boot-overlay");
   await expect(velo).toBeVisible({ timeout: 10000 });
