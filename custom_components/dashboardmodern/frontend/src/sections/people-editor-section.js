@@ -408,6 +408,27 @@ function ridisegna() {
   ensurePeopleEditor();
 }
 
+/* Un frame di respiro fra una composizione e l'altra: ottanta ritratti in
+ * fila, incollati microtask a microtask, affamano i frame — su webkit la
+ * pagina restava decine di secondi senza un solo requestAnimationFrame,
+ * quindi niente scroll fluido sotto le dita e ogni attesa basata sui frame
+ * (la stabilita' dei click nelle prove compresa) appesa per l'intera
+ * ricomposizione. La rete del setTimeout copre chi i frame li sospende del
+ * tutto (una scheda in secondo piano). */
+function respiro() {
+  return new Promise((via) => {
+    let fatto = false;
+    const ok = () => {
+      if (!fatto) {
+        fatto = true;
+        via();
+      }
+    };
+    if (typeof root.requestAnimationFrame === "function") root.requestAnimationFrame(ok);
+    root.setTimeout?.(ok, 50);
+  });
+}
+
 /* Le anteprime si riempiono dopo: comporre quaranta ritratti mentre la
  * scheda sta comparendo vorrebbe dire una scheda che si apre in ritardo. */
 async function dipingiAnteprime() {
@@ -446,6 +467,7 @@ async function dipingiAnteprime() {
       img.alt = "";
       posto.replaceChildren(img);
       posto.dataset.dmComposta = attesa;
+      await respiro();
     }
   }
 }

@@ -157,7 +157,20 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
       let cambi = 0;
       let ultima = "";
       while (performance.now() - inizio < 1200) {
-        await new Promise((via) => requestAnimationFrame(via));
+        /* La rete del setTimeout: su webkit i frame possono restare affamati
+         * per decine di secondi durante la ricomposizione, e un campionatore
+         * appeso al solo rAF si appendeva con loro. */
+        await new Promise((via) => {
+          let fatto = false;
+          const ok = () => {
+            if (!fatto) {
+              fatto = true;
+              via();
+            }
+          };
+          requestAnimationFrame(ok);
+          setTimeout(ok, 50);
+        });
         const dopo = nodo.getBoundingClientRect();
         if (
           Math.abs(dopo.x - prima.x) > 0.5 ||
