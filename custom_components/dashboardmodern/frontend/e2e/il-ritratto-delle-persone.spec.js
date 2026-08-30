@@ -146,7 +146,34 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
   const premi = async (selettore) => {
     const bersaglio = riga.locator(selettore);
     await bersaglio.evaluate((nodo) => nodo.scrollIntoView({ block: "center" }));
-    await bersaglio.click();
+    /* Su webkit l'attesa di stabilita' di Playwright non converge mai qui
+     * dentro, in punti diversi a ogni giro: si MISURA chi si muove — la
+     * stampa arriva nel log della CI — e si preme senza aspettarla. La
+     * verita' del gesto la dicono le asserzioni dopo il click, che restano
+     * tutte. */
+    const quiete = await bersaglio.evaluate(async (nodo) => {
+      const inizio = performance.now();
+      let prima = nodo.getBoundingClientRect();
+      let cambi = 0;
+      let ultima = "";
+      while (performance.now() - inizio < 1200) {
+        await new Promise((via) => requestAnimationFrame(via));
+        const dopo = nodo.getBoundingClientRect();
+        if (
+          Math.abs(dopo.x - prima.x) > 0.5 ||
+          Math.abs(dopo.y - prima.y) > 0.5 ||
+          Math.abs(dopo.width - prima.width) > 0.5 ||
+          Math.abs(dopo.height - prima.height) > 0.5
+        ) {
+          cambi += 1;
+          ultima = `dx${Math.round(dopo.x - prima.x)} dy${Math.round(dopo.y - prima.y)} dw${Math.round(dopo.width - prima.width)} dh${Math.round(dopo.height - prima.height)}`;
+        }
+        prima = dopo;
+      }
+      return { cambi, ultima };
+    });
+    console.log(`QUIETE ${selettore}: ${JSON.stringify(quiete)}`);
+    await bersaglio.click({ force: true });
   };
 
   /* Le file si seguono: senza barba il suo colore sparisce... */
