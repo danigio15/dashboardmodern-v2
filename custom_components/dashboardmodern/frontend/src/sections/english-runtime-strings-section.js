@@ -49,13 +49,30 @@ export const RUNTIME_EN = Object.freeze({
 
 const MARCHIO = "__dmEnglishRuntimeStrings";
 
-/** La voce tradotta, o il testo com'era. I toast portano a volte un'emoji
- * davanti («✅ Rilevate: ...»): si traduce anche il pezzo dopo il prefisso. */
+/* Le frasi che portano un numero dietro — «Attivo da 1 min», «✅ Rilevate: 3»
+ * — si traducono per prefisso, con le unita' della coda. */
+const PREFISSI = [
+  ["✅ Rilevate: ", "✅ Detected: "],
+  ["Attivo da ", "Active for "],
+];
+const UNITA = [
+  [" ore", " hours"],
+  [" ora", " hour"],
+  [" giorni", " days"],
+  [" giorno", " day"],
+];
+
+/** La voce tradotta, o il testo com'era. */
 export function traduciTesto(testo) {
   const secco = String(testo ?? "");
   const chiave = secco.trim();
   if (RUNTIME_EN[chiave]) return secco.replace(chiave, RUNTIME_EN[chiave]);
-  if (chiave.startsWith("✅ Rilevate: ")) return secco.replace("✅ Rilevate: ", "✅ Detected: ");
+  for (const [it, en] of PREFISSI) {
+    if (!chiave.startsWith(it)) continue;
+    let coda = chiave.slice(it.length);
+    for (const [uIt, uEn] of UNITA) coda = coda.replace(uIt, uEn);
+    return secco.replace(chiave, en + coda);
+  }
   return secco;
 }
 
@@ -123,6 +140,16 @@ export function installEnglishRuntimeStrings(root = globalThis, doc = globalThis
   ])
     root.addEventListener?.(evento, ripassa);
   ripassa();
+
+  /* Il palco dell'allarme il runtime EN lo ridisegna a ogni tick, con le sue
+   * parole: gli eventi non bastano, serve un battito — mirato ai due nodi
+   * dell'allarme, e muto quando la pagina non si vede. */
+  const battito = () => {
+    if (doc.visibilityState === "hidden") return;
+    traduciAlbero(doc.getElementById("alarm-stage"), doc);
+    traduciAlbero(doc.getElementById("glance-alarm") || doc.querySelector("[data-glance-alarm]"), doc);
+  };
+  root.setInterval?.(battito, 400);
 }
 
 if (typeof document !== "undefined") {

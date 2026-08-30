@@ -533,6 +533,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * on a visible Home; collapsed, the timer dies and the object URLs are
    * returned.
    *
+   * The fifth transcribes the alarm stage into English: the vendored EN
+   * runtime redraws it every tick with its own Italian words, so no event can
+   * win that race. Same discipline: English shell only, alarm nodes only,
+   * silent while the page is hidden.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -541,6 +546,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
     [
+      "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",
       "src/sections/people-section.js",
