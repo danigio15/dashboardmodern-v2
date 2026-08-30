@@ -138,8 +138,59 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
   const pastiglie = riga.locator(".dm-face-opt-img img");
   await expect(pastiglie).toHaveCount(80, { timeout: 120000 });
 
+  /* Le pastiglie profonde — il casual e' il trentunesimo di trentacinque —
+   * stanno sotto la piega del modale, e su webkit lo «scrolling into view»
+   * di Playwright non converge li' dentro: la pastiglia si porta in vista
+   * con lo scroll della pagina — lo stesso che usa il dito — e poi si
+   * preme. */
+  const premi = async (selettore) => {
+    const bersaglio = riga.locator(selettore);
+    await bersaglio.evaluate((nodo) => nodo.scrollIntoView({ block: "center" }));
+    /* Su webkit l'attesa di stabilita' di Playwright non converge mai qui
+     * dentro, in punti diversi a ogni giro: si MISURA chi si muove — la
+     * stampa arriva nel log della CI — e si preme senza aspettarla. La
+     * verita' del gesto la dicono le asserzioni dopo il click, che restano
+     * tutte. */
+    const quiete = await bersaglio.evaluate(async (nodo) => {
+      const inizio = performance.now();
+      let prima = nodo.getBoundingClientRect();
+      let cambi = 0;
+      let ultima = "";
+      while (performance.now() - inizio < 1200) {
+        /* La rete del setTimeout: su webkit i frame possono restare affamati
+         * per decine di secondi durante la ricomposizione, e un campionatore
+         * appeso al solo rAF si appendeva con loro. */
+        await new Promise((via) => {
+          let fatto = false;
+          const ok = () => {
+            if (!fatto) {
+              fatto = true;
+              via();
+            }
+          };
+          requestAnimationFrame(ok);
+          setTimeout(ok, 50);
+        });
+        const dopo = nodo.getBoundingClientRect();
+        if (
+          Math.abs(dopo.x - prima.x) > 0.5 ||
+          Math.abs(dopo.y - prima.y) > 0.5 ||
+          Math.abs(dopo.width - prima.width) > 0.5 ||
+          Math.abs(dopo.height - prima.height) > 0.5
+        ) {
+          cambi += 1;
+          ultima = `dx${Math.round(dopo.x - prima.x)} dy${Math.round(dopo.y - prima.y)} dw${Math.round(dopo.width - prima.width)} dh${Math.round(dopo.height - prima.height)}`;
+        }
+        prima = dopo;
+      }
+      return { cambi, ultima };
+    });
+    console.log(`QUIETE ${selettore}: ${JSON.stringify(quiete)}`);
+    await bersaglio.click({ force: true });
+  };
+
   /* Le file si seguono: senza barba il suo colore sparisce... */
-  await riga.locator('[data-face-k="barba"][data-face-v="nessuna"]').click();
+  await premi('[data-face-k="barba"][data-face-v="nessuna"]');
   await expect(riga.locator(".dm-face-row", { hasText: "Colore barba" })).toHaveCount(0, {
     timeout: 20000,
   });
@@ -147,17 +198,44 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
 
   /* ...e il colore del vestito vale solo per i busti ricolorabili: il cuoco
    * lo toglie, il casual lo riporta. */
-  await riga.locator('[data-face-k="vestito"][data-face-v="cuoco"]').click();
+  await premi('[data-face-k="vestito"][data-face-v="cuoco"]');
   await expect(riga.locator('[data-face-k="vestito"][data-face-v="cuoco"]')).toHaveClass(/on/);
   await expect(riga.locator(".dm-face-row")).toHaveCount(9);
-  await riga.locator('[data-face-k="vestito"][data-face-v="casual"]').click();
+  await premi('[data-face-k="vestito"][data-face-v="casual"]');
   await expect(riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]')).toBeVisible();
-  await riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]').click();
+  await premi('[data-face-k="coloreVestito"][data-face-v="verde"]');
   await expect(riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]')).toHaveClass(
     /on/,
   );
 
   /* E un accessorio si sceglie come tutto il resto. */
-  await riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]').click();
+  await premi('[data-face-k="occhiali"][data-face-v="tondi"]');
   await expect(riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]')).toHaveClass(/on/);
+
+  /* Il banco si aggiorna IN LOCO: un tocco non ricostruisce le file.
+   * Rifare tutto a ogni scelta buttava ottanta pastiglie composte e le
+   * ricomponeva da capo — su webkit lento il banco restava in subbuglio e i
+   * click non trovavano mai un bottone fermo. Qui si misura la quiete: dopo
+   * un tocco il bottone di un'altra fila e' LO STESSO nodo di prima, e
+   * nessuna casella gia' composta si e' svuotata. */
+  const primaDelTocco = await riga.evaluate((nodo) => {
+    window.__DM_NODO_FERMO__ = nodo.querySelector('[data-face-k="persona"][data-face-v="uomo"]');
+    return {
+      piene: nodo.querySelectorAll(".dm-face-opt-img img").length,
+    };
+  });
+  await premi('[data-face-k="capelli"][data-face-v="ricci"]');
+  await expect(riga.locator('[data-face-k="capelli"][data-face-v="ricci"]')).toHaveClass(/on/);
+  const dopoIlTocco = await riga.evaluate((nodo) => ({
+    stessoNodo:
+      window.__DM_NODO_FERMO__ ===
+        nodo.querySelector('[data-face-k="persona"][data-face-v="uomo"]') &&
+      window.__DM_NODO_FERMO__?.isConnected === true,
+    piene: nodo.querySelectorAll(".dm-face-opt-img img").length,
+  }));
+  expect(dopoIlTocco.stessoNodo, "il bottone e' lo stesso nodo: niente ricostruzione").toBe(true);
+  expect(
+    dopoIlTocco.piene,
+    "le pastiglie composte non si svuotano mentre si ricompongono",
+  ).toBeGreaterThanOrEqual(primaDelTocco.piene);
 });

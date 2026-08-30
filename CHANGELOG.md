@@ -104,6 +104,42 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La barba sta sul viso, con precisione.** La maschera del pelo prendeva
+  tutti i pixel scuri sotto il confine: le ciocche lunghe ai lati del viso
+  diventavano barba, e il pelo trapiantato da una testa donatrice sbordava
+  oltre guance e mento. Ora la barba vive in una campana centrata sul viso
+  — le ciocche restano capelli — e il trapianto aderisce alla sagoma della
+  testa che lo riceve; solo la coda della barba lunga resta libera di
+  pendere sotto il mento.
+
+- **Il Report non parte piu' vuoto quando il runtime batte i moduli.** La
+  lista dei dispositivi nasceva da una chiamata sola all'avvio e, se i
+  moduli non c'erano ancora, restava vuota fino a un timer di cortesia:
+  appena i moduli si annunciano, se quella chiamata era fallita si
+  ricostruisce subito.
+
+- **Il vassoio delle Azioni rapide segue il tema scuro.** In dark il ripiano
+  restava un lenzuolo bianco in mezzo alla Home nera, coi tasti scuri sopra:
+  il fondo leggeva una variabile che non esiste (`--bg`) e cadeva sul
+  ripiego chiaro. Ora legge quella vera del tema (`--bg-sculpted`): col
+  tema scuro e' un ripiano scuro appena rialzato dal fondo, col chiaro
+  resta identico a prima. Stessa pulizia sulle sfumature delle tessere.
+
+- **Il banco del ritratto si aggiorna in loco, senza ricostruirsi.** Ogni
+  scelta rifaceva da capo tutte le file e buttava le ottanta pastiglie
+  composte: su un dispositivo lento il banco restava in subbuglio per
+  decine di secondi dopo ogni tocco, con le caselle vuote che si
+  riempivano una alla volta. Ora un tocco cambia solo cio' che cambia —
+  la spunta, le file che entrano o escono — e ogni pastiglia tiene il
+  disegno vecchio finche' quello nuovo non e' pronto.
+
+- **Le pillole d'avviso respirano anche in compatta.** La modalita' compatta
+  spegneva l'alone dietro le tessere — ed era proprio l'alone il respiro
+  degli avvisi, quello che li fa muovere anche quando non hanno un disegno
+  loro. Nella pillola l'alone si fa velo aderente, appena colorato del
+  colore d'avviso, e continua a pulsare piano; le pillole senza avviso
+  restano piatte come da progetto.
+
 - **La riga «Ambiente» nella card del Clima si legge.** Il carattere della
   temperatura ambiente sotto lo slider era troppo piccolo: leggermente piu'
   grande, con gli estremi della scala che restano contorno.
