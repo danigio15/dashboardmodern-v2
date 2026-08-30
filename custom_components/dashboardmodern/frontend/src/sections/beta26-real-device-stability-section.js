@@ -2,6 +2,7 @@
 // section visibility after configuration saves, and a hierarchical Energy load
 // editor that projects directly to the existing flow/subload runtime contracts.
 import { applianceArtwork } from "../core/appliance-artwork.js";
+import { TAB_SECTION_KEYS, activeTab as schedaAttiva } from "./config-uniformity-section.js";
 import { canonicalApplianceVisualKey } from "../core/device-model.js";
 import {
   renderBeta25TemperatureCards,
@@ -509,7 +510,16 @@ export function legacyVisibilityTargets() {
   return [...targets];
 }
 
-export function ensureConfiguredSectionsVisible({ sync = true, render = true } = {}) {
+/* La chiave di sezione della scheda aperta adesso, se ne governa una.
+ * Le schede nate dai moduli senza riga nella mappa condivisa (le Prese col
+ * loro banner inline) si aggiungono qui. */
+function chiaveDellaSchedaAperta() {
+  const extra = { prese: "prese" };
+  const tab = schedaAttiva();
+  return TAB_SECTION_KEYS[tab] || extra[tab] || "";
+}
+
+export function ensureConfiguredSectionsVisible({ sync = true, render = true, espressa = "" } = {}) {
   let changed = false;
   const store = dashboardStore();
   if (store?.getState && store?.ensureSectionVisibleForData) {
@@ -525,8 +535,12 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true } =
     : {};
   const manual = manualVisibilityChoices();
   for (const key of legacyVisibilityTargets()) {
-    // Su una sezione decisa a mano non si torna, in nessun senso.
-    if (manual[key] === true) continue;
+    /* Su una sezione decisa a mano non si torna — tranne quando il gesto
+     * nuovo e' piu' fresco del veto: salvare contenuto in una scheda E'
+     * esprimersi su quella sezione («dopo aver fatto salva la sezione non
+     * passa in visibile»). Vale per la sola sezione salvata; le altre
+     * scelte manuali restano sacre. */
+    if (manual[key] === true && key !== espressa) continue;
     if (next[key] === true) continue;
     next[key] = true;
     changed = true;
@@ -566,11 +580,11 @@ export function seedModernSectionVisibility() {
   return changed;
 }
 
-function scheduleVisibilityRepair(delay = 80) {
+function scheduleVisibilityRepair(delay = 80, espressa = "") {
   root.clearTimeout?.(state.visibilityTimer);
   state.visibilityTimer = root.setTimeout?.(() => {
     state.visibilityTimer = 0;
-    ensureConfiguredSectionsVisible();
+    ensureConfiguredSectionsVisible({ espressa });
   }, delay);
 }
 
@@ -1321,14 +1335,14 @@ export function installBeta26RealDeviceStability() {
           !manualVisibility &&
           /salva|save|aggiungi|add|crea|create/.test(text)
         )
-          scheduleVisibilityRepair(120);
+          scheduleVisibilityRepair(120, chiaveDellaSchedaAperta());
       },
       true,
     );
     doc.addEventListener(
       "submit",
       () => {
-        scheduleVisibilityRepair(120);
+        scheduleVisibilityRepair(120, chiaveDellaSchedaAperta());
       },
       true,
     );

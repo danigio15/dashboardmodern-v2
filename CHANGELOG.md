@@ -9,6 +9,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Aggiungere una voce al MiniPC non butta le entita' gia' scritte.** Il
+  ridisegno della lista ripartiva dai valori catturati all'apertura del
+  pannello: tutto cio' che era digitato ma non ancora salvato spariva — con
+  l'Aggiungi come col cestino. Prima di ridisegnare ora si raccoglie quello
+  che c'e' scritto.
+
+- **Salvare una scheda accende la sua sezione, anche se era stata nascosta a
+  mano.** Salvare contenuto e' esprimersi su quella sezione: il veto manuale
+  cade per la sola scheda salvata, le altre scelte restano sacre. Vale anche
+  per le sezioni nate dai moduli (Stanze, Luci, Prese, Aspirapolvere).
+
+- **Una sola icona nella riga della stanza.** Il quadratino grezzo del campo
+  icona usciva accanto al selettore del catalogo (da telefono era gia'
+  nascosto, da desktop no): a schermo resta solo il selettore, su ogni
+  misura.
+
 - **Il Report non balla piu': i numeri hanno un padrone solo.** La Panoramica
   alternava due serie — 473 e 586 kWh, 81% e 84%, gli euro calcolati e
   «0,00 €» — perche' i KPI e la griglia finanziaria avevano tre mani addosso:

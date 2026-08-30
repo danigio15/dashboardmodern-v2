@@ -679,7 +679,14 @@ function installStyles() {
        misure che stavano qui perdevano tutte, e restavano solo a far numero. */
     [data-brand-preview] .dm-beta5-brand-logo{width:86px!important;height:56px!important}
 
-    #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-add-row{display:grid!important;grid-template-columns:58px 138px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:10px!important}
+    /* Il quadratino grezzo dell'icona non si vede MAI: «non voglio vedere
+     * doppie icone». Il campo resta nel documento — e' quello che i
+     * salvataggi leggono e che il selettore dal catalogo compila — ma a
+     * schermo c'e' solo il trigger che apre il catalogo, su ogni misura.
+     * Prima si nascondeva solo da telefono, e da desktop uscivano due
+     * icone affiancate. */
+    #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-add-row{display:grid!important;grid-template-columns:58px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:10px!important}
+    #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon{display:none!important}
     #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon-preview{display:none!important}
     /* I due campi devono riempire la loro colonna.
      *

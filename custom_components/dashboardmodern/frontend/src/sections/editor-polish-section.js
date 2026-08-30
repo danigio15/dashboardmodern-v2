@@ -133,6 +133,20 @@ function storeServerValue(item, value) {
   sync();
 }
 
+/* Quello che c'e' scritto ADESSO nelle righe, dentro `slots`.
+ *
+ * Il ridisegno riparte da `slot.value`, che nasceva alla costruzione del
+ * pannello e si aggiornava solo al Salva: premere «Aggiungi» — o un cestino —
+ * ributtava l'innerHTML dai valori vecchi, e tutte le entita' digitate e non
+ * ancora salvate sparivano insieme. Prima di ridisegnare si raccoglie. */
+function raccogliValoriCorrenti(panel, slots) {
+  panel.querySelectorAll("[data-ref]").forEach((row) => {
+    const slot = slots.find((item) => item.ref === row.dataset.ref);
+    const input = row.querySelector("[data-server-value]");
+    if (slot && input) slot.value = clean(input.value);
+  });
+}
+
 function renderServerCards(panel, slots, visibleRefs) {
   const list = panel.querySelector("[data-server-list]");
   if (!list) return;
@@ -150,6 +164,7 @@ function renderServerCards(panel, slots, visibleRefs) {
     }
   });
   list.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => {
+    raccogliValoriCorrenti(panel, slots);
     const ref = button.closest("[data-ref]")?.dataset.ref;
     const slot = slots.find((item) => item.ref === ref);
     if (slot) {
@@ -181,6 +196,7 @@ function ensureServerEditor() {
   panel.querySelector("[data-add]")?.addEventListener("click", () => {
     const ref = clean(panel.querySelector("[data-slot-select]")?.value);
     if (!ref) return;
+    raccogliValoriCorrenti(panel, slots);
     visibleRefs.add(ref);
     renderServerCards(panel, slots, visibleRefs);
     root.setTimeout?.(() => root.DashboardModernModules?.render?.mountEntityPickers?.(panel), 0);

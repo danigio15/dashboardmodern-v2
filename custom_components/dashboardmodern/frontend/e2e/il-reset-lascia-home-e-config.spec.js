@@ -51,4 +51,36 @@ test("a configurazione vuota le voci in barra sono Home e Config", async ({ page
   );
   console.log("VISIBILI:", JSON.stringify(visibili));
   expect(visibili.sort()).toEqual(["config", "home"]);
+
+  /* E la strada del ritorno: «dopo aver fatto salva e inserito le entita' la
+   * sezione non passa automaticamente in visibile». Da qui — tutto spento —
+   * si aggiunge una stanza e si salva: la voce Stanze deve accendersi da
+   * sola, senza passare dall'interruttore. */
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("stanze");
+  });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => {
+    const nome = document.querySelector(
+      "#ed-body #ed-room-name, #ed-body input[placeholder*='Cucina']",
+    );
+    nome.value = "Cucina";
+    nome.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page
+    .locator("#ed-body [onclick*='edStanzaRoomAdd'], #ed-body button:has-text('AGGIUNGI STANZA')")
+    .first()
+    .click();
+  await page.locator("#ed-body .ed-save-btn:visible").last().click();
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const tab = document.querySelector('.tab[data-tab="stanze"]');
+          return tab ? getComputedStyle(tab).display !== "none" : null;
+        }),
+      { timeout: 10000 },
+    )
+    .toBe(true);
 });
