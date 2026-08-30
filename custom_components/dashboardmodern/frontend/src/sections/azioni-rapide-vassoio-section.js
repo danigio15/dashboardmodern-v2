@@ -37,12 +37,16 @@ const STILE = `
 /* La prima intestazione della pagina non ha niente sopra da cui staccarsi. */
 #page-home>.section-title:first-child{margin-top:15px}
 
-/* Il vassoio: un ripiano incavato che tiene dentro i tasti. */
+/* Il vassoio: un ripiano incavato che tiene dentro i tasti.
+   Il fondo viene da --bg-sculpted, che e' la variabile vera del tema: qui
+   c'era scritto --bg, che non esiste da nessuna parte, e in modalita' scura
+   il ripiano restava sul ripiego chiaro — un lenzuolo bianco in mezzo alla
+   Home nera, coi tasti scuri sopra. */
 #page-home .dm-vassoio{
   padding:12px;border-radius:26px;position:relative;
   background:linear-gradient(180deg,
-    color-mix(in srgb,var(--text,#0f172a) 6%,var(--bg,#eef2f7)),
-    color-mix(in srgb,var(--text,#0f172a) 3%,var(--bg,#eef2f7)));
+    color-mix(in srgb,var(--text,#0f172a) 6%,var(--bg-sculpted,#eef2f7)),
+    color-mix(in srgb,var(--text,#0f172a) 3%,var(--bg-sculpted,#eef2f7)));
   box-shadow:inset 0 3px 9px rgba(15,23,42,.14),inset 0 -1px 0 var(--dm-vetrino-vassoio,rgba(255,255,255,.75))}
 html[data-theme="dark"] #page-home .dm-vassoio,
 body.dark-theme #page-home .dm-vassoio{
@@ -66,7 +70,7 @@ html body #page-home .dm-vassoio #qa-grid .qa-btn{
   border-radius:18px!important;justify-content:center!important;gap:11px!important;
   background:linear-gradient(180deg,
     var(--card-background-color,var(--card-bg,#fff)),
-    color-mix(in srgb,var(--card-background-color,var(--card-bg,#fff)) 93%,var(--bg,#eef2f7)))!important;
+    color-mix(in srgb,var(--card-background-color,var(--card-bg,#fff)) 93%,var(--bg-sculpted,#eef2f7)))!important;
   box-shadow:inset 0 1px 0 var(--dm-vetrino-vassoio,rgba(255,255,255,.75)),
              0 8px 18px -14px rgba(15,23,42,.85)!important;
   transition:transform .13s ease,background .13s ease}

@@ -98,6 +98,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il vassoio delle Azioni rapide segue il tema scuro.** In dark il ripiano
+  restava un lenzuolo bianco in mezzo alla Home nera, coi tasti scuri sopra:
+  il fondo leggeva una variabile che non esiste (`--bg`) e cadeva sul
+  ripiego chiaro. Ora legge quella vera del tema (`--bg-sculpted`): col
+  tema scuro e' un ripiano scuro appena rialzato dal fondo, col chiaro
+  resta identico a prima. Stessa pulizia sulle sfumature delle tessere.
+
 - **Il banco del ritratto si aggiorna in loco, senza ricostruirsi.** Ogni
   scelta rifaceva da capo tutte le file e buttava le ottanta pastiglie
   composte: su un dispositivo lento il banco restava in subbuglio per

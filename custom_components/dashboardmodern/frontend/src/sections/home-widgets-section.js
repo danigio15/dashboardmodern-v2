@@ -4533,7 +4533,7 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;
   min-height:118px;padding:15px 16px 17px;border:0;border-radius:22px;
   background:linear-gradient(180deg,var(--card-bg,#fff),
-    color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg,#eef2f7)));
+    color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg-sculpted,#eef2f7)));
   color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
   box-shadow:
     inset 0 1px 0 var(--dm-vetrino),
@@ -4555,7 +4555,7 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
     radial-gradient(135% 105% at 100% 0%,
       color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) var(--dm-velo),transparent),transparent 66%),
     linear-gradient(180deg,var(--card-bg,#fff),
-      color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg,#eef2f7)));
+      color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg-sculpted,#eef2f7)));
   box-shadow:
     inset 0 1px 0 var(--dm-vetrino),
     inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 28%,transparent),
