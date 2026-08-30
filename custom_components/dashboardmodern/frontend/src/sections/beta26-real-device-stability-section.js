@@ -581,9 +581,15 @@ export function seedModernSectionVisibility() {
 }
 
 function scheduleVisibilityRepair(delay = 80, espressa = "") {
+  /* Il clic sul bottone Salva e il submit della stessa forma arrivano in
+   * coppia: il secondo non deve cancellare la sezione che il primo ha
+   * dichiarato. */
+  if (state.visibilityTimer && !espressa) espressa = clean(state.visibilityEspressa);
+  state.visibilityEspressa = espressa;
   root.clearTimeout?.(state.visibilityTimer);
   state.visibilityTimer = root.setTimeout?.(() => {
     state.visibilityTimer = 0;
+    state.visibilityEspressa = "";
     ensureConfiguredSectionsVisible({ espressa });
   }, delay);
 }
@@ -1339,10 +1345,17 @@ export function installBeta26RealDeviceStability() {
       },
       true,
     );
+    /* Un submit che risale il documento e' anonimo: non dice quale forma sia
+     * stata salvata, e in un editor pieno di forme puo' partire da ovunque —
+     * anche subito dopo che la persona ha appena nascosto una sezione dalla
+     * fascia. Qui la riparazione corre senza `espressa`: accende le sezioni
+     * configurate mai decise, ma non tocca i veti manuali. Esprimersi su una
+     * sezione resta il mestiere del clic sul suo vero bottone di salvataggio,
+     * gestito qui sopra. */
     doc.addEventListener(
       "submit",
       () => {
-        scheduleVisibilityRepair(120, chiaveDellaSchedaAperta());
+        scheduleVisibilityRepair(120);
       },
       true,
     );

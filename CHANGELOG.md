@@ -37,6 +37,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   interruttori e gli script coi loro tasti. Ogni casella apre ancora lo
   storico.
 
+- **Il Tasto Clima rapido vale anche sulla parte Caldo.** Nel popup Clima il
+  tocco su un'unita' Caldo che e' una vera entita' climate.* (termostato,
+  valvola) ora accende coi passi di QUELLA unita' — ripiego: riscaldamento,
+  senza toccare altro — e spegne con la stessa regola dei pulsanti della
+  pagina; prima passava dal toggle degli input_boolean, che per un termostato
+  cadeva nel vuoto. Nel form e nella matita, col Tipo su «Caldo» i campi
+  partono dal riscaldamento (niente 26 gradi da condizionatore), e la tendina
+  offre sempre la modalita' del preset anche in una casa di soli
+  condizionatori. I termosifoni pilotati da un input_boolean restano col loro
+  interruttore.
+
 ### Corretto
 
 - **La riga «Ambiente» nella card del Clima si legge.** Il carattere della
@@ -104,7 +115,10 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **Salvare una scheda accende la sua sezione, anche se era stata nascosta a
   mano.** Salvare contenuto e' esprimersi su quella sezione: il veto manuale
   cade per la sola scheda salvata, le altre scelte restano sacre. Vale anche
-  per le sezioni nate dai moduli (Stanze, Luci, Prese, Aspirapolvere).
+  per le sezioni nate dai moduli (Stanze, Luci, Prese, Aspirapolvere). E il
+  veto lo fa cadere solo il VERO tasto di salvataggio della scheda: un submit
+  qualunque che risale il documento — l'editor ne e' pieno — non riaccende
+  una sezione appena nascosta dalla fascia.
 
 - **Una sola icona nella riga della stanza.** Il quadratino grezzo del campo
   icona usciva accanto al selettore del catalogo (da telefono era gia'

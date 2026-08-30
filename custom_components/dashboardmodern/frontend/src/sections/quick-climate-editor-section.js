@@ -19,12 +19,14 @@
 import {
   QUICK_CLIMATE_DEFAULT,
   QUICK_CLIMATE_FAN_FALLBACK,
+  QUICK_CLIMATE_HEAT_DEFAULT,
   QUICK_CLIMATE_KEY,
   QUICK_CLIMATE_MODES,
   QUICK_CLIMATE_UNITS_KEY,
   normalizeQuickClimate,
   quickClimateForUnit,
   quickClimateHint,
+  quickClimatePresetForZone,
   quickClimateSteps,
 } from "../core/quick-climate.js";
 import { climateUnits } from "./climate-thermal-section.js";
@@ -69,8 +71,17 @@ function impostazione() {
   return normalizeQuickClimate(readJson(QUICK_CLIMATE_KEY, QUICK_CLIMATE_DEFAULT));
 }
 
-function presetDi(entita) {
-  return quickClimateForUnit(entita, readJson(QUICK_CLIMATE_UNITS_KEY, {}), impostazione());
+/* La zona dice il ripiego: chi preme dalla parte Caldo e non ha mai
+ * specificato niente accende in riscaldamento, non col default storico dei
+ * condizionatori. Un preset detto dalla persona resta suo, salvo le modalita'
+ * che in Caldo farebbero il contrario della promessa (vedi il core). */
+function presetDi(entita, zona = "") {
+  const caldo = clean(zona).toLowerCase() === "caldo";
+  const ripiego = caldo ? QUICK_CLIMATE_HEAT_DEFAULT : impostazione();
+  return quickClimatePresetForZone(
+    quickClimateForUnit(entita, readJson(QUICK_CLIMATE_UNITS_KEY, {}), ripiego),
+    zona,
+  );
 }
 
 function salvaPresetDi(entita, scelta) {
@@ -114,10 +125,15 @@ function accettate(entita = "") {
 }
 
 /* I tre campi, pronti da mettere in un form. `scelta` e' il preset da mostrare,
- * `entita` restringe le tendine a quello che quell'unita' accetta. */
-export function quickClimateFieldsMarkup(entita = "", scelta = null) {
-  const preset = scelta ? normalizeQuickClimate(scelta) : presetDi(entita);
+ * `entita` restringe le tendine a quello che quell'unita' accetta, `zona`
+ * («caldo») cambia il ripiego per chi configura un termosifone. */
+export function quickClimateFieldsMarkup(entita = "", scelta = null, zona = "") {
+  const preset = scelta ? normalizeQuickClimate(scelta) : presetDi(entita, zona);
   const { modi, ventole } = accettate(entita);
+  /* La modalita' del preset si offre sempre: chi aggiunge un termosifone in
+   * una casa di soli condizionatori deve trovare «Riscaldamento» in tendina,
+   * anche se nessuna unita' gia' scritta lo dichiara. */
+  if (preset.mode && !modi.includes(preset.mode)) modi.unshift(preset.mode);
   const nomi = NOMI();
   const nomiVentola = NOMI_VENTOLA();
   const opzioniModo = modi
@@ -192,8 +208,18 @@ export function ensureQuickClimateBlock() {
   }
   const aggiungi = tastoAggiungi();
   if (!aggiungi) return false;
+  /* Il Tipo scelto nel form decide il ripiego mostrato: un termosifone che
+   * nasce col default dei condizionatori (freddo, 26 gradi) direbbe il
+   * contrario di quel che fara'. Il cambio della tendina ridisegna il blocco:
+   * l'osservatore guarda i figli, non i valori. */
+  const tendinaTipo = body.querySelector("#ed-cl-type");
+  if (tendinaTipo && !tendinaTipo.__dmQuickClimateTipo) {
+    tendinaTipo.__dmQuickClimateTipo = true;
+    tendinaTipo.addEventListener("change", () => root.queueMicrotask?.(ensureQuickClimateBlock));
+  }
+  const termo = clean(tendinaTipo?.value) === "termo";
   const { modi, ventole } = accettate();
-  const firma = `form§${modi.join(",")}§${ventole.join(",")}`;
+  const firma = `form§${termo ? "caldo" : "freddo"}§${modi.join(",")}§${ventole.join(",")}`;
   if (!blocco) {
     blocco = doc.createElement("section");
     blocco.id = BLOCK_ID;
@@ -212,7 +238,7 @@ export function ensureQuickClimateBlock() {
           "This is what THIS unit's button does in the Home climate popup. Each unit keeps its own steps, editable from the pencil too; empty temperature and fan mean the button leaves them alone.",
         ),
       )}</p>
-      ${quickClimateFieldsMarkup("", impostazione())}
+      ${quickClimateFieldsMarkup("", termo ? QUICK_CLIMATE_HEAT_DEFAULT : impostazione())}
     </div>`;
   return true;
 }
@@ -244,7 +270,10 @@ function agganciaAggiunta() {
 /* La porta per il runtime storico: i passi di UNA entita'. Senza entita' — o
  * per chi chiama ancora alla vecchia maniera — escono quelli globali. */
 function publishQuickClimate() {
-  root.dmQuickClimateSteps = (entita) => quickClimateSteps(presetDi(entita));
+  /* La zona e' facoltativa: chi chiama alla vecchia maniera (il ramo Freddo
+   * del runtime) non la passa e non cambia niente; la parte Caldo la dice, e
+   * riceve passi che scaldano. */
+  root.dmQuickClimateSteps = (entita, zona) => quickClimateSteps(presetDi(entita, zona));
   root.dmQuickClimateHint = (parole) => {
     /* Con preset per unita' una riga sola non puo' dire i passi di tutte:
      * si dice la verita' generica invece del dettaglio di una sola. */

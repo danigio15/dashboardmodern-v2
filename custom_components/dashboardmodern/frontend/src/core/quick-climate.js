@@ -49,6 +49,16 @@ export const QUICK_CLIMATE_MODES = Object.freeze([
   "fan_only",
 ]);
 
+/* Il ripiego della parte Caldo: il default storico (freddo, ventisei gradi,
+ * ventola automatica) e' nato per i condizionatori, e un termosifone acceso
+ * cosi' farebbe il contrario di quel che gli si chiede. Chi non specifica
+ * niente accende in riscaldamento e non tocca altro. */
+export const QUICK_CLIMATE_HEAT_DEFAULT = Object.freeze({
+  mode: "heat",
+  temperature: null,
+  fan: "",
+});
+
 /* Sotto i cinque gradi e sopra i trentacinque non c'e' un condizionatore che
  * obbedisca: e' un numero digitato male, non una scelta. */
 const MIN = 5;
@@ -89,6 +99,22 @@ export function quickClimateForUnit(entity, perUnita, globale) {
   const dato =
     perUnita && typeof perUnita === "object" && !Array.isArray(perUnita) ? perUnita[chiave] : null;
   return normalizeQuickClimate(dato && typeof dato === "object" ? dato : globale);
+}
+
+/**
+ * Il preset visto dalla zona da cui si preme.
+ *
+ * La parte Caldo del popup accende per scaldare: un preset che dice «cool» o
+ * «dry» li' dentro e' un ripiego pensato per i condizionatori (o una pompa di
+ * calore configurata dal lato Freddo), e obbedirgli farebbe raffrescare dal
+ * tab che promette il contrario. Le modalita' che scaldano — heat, heat_cool,
+ * auto, fan_only — restano come scelte, perche' quelle le ha dette qualcuno.
+ */
+export function quickClimatePresetForZone(preset, zona) {
+  const scelta = normalizeQuickClimate(preset);
+  if (pulito(zona).toLowerCase() !== "caldo") return scelta;
+  if (scelta.mode === "cool" || scelta.mode === "dry") return { ...scelta, mode: "heat" };
+  return scelta;
 }
 
 /**

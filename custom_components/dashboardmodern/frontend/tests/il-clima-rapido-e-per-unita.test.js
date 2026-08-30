@@ -16,7 +16,9 @@ import test from "node:test";
 
 import {
   QUICK_CLIMATE_FAN_FALLBACK,
+  QUICK_CLIMATE_HEAT_DEFAULT,
   quickClimateForUnit,
+  quickClimatePresetForZone,
   quickClimateSteps,
 } from "../src/core/quick-climate.js";
 
@@ -42,6 +44,50 @@ test("ogni unita' ha i suoi passi, e il globale resta il ripiego", () => {
   const passi = quickClimateSteps(cameretta);
   assert.deepEqual(passi[1], { service: "set_temperature", data: { temperature: 24 } });
   assert.deepEqual(passi[2], { service: "set_fan_mode", data: { fan_mode: "low" } });
+});
+
+/* «questa funzione la devi riproporre anche sulla parte caldo non solo
+ * freddo»: la parte Caldo del popup accendeva solo input_boolean, senza passi,
+ * e il ripiego storico (freddo, 26 gradi) avrebbe fatto raffrescare un
+ * termosifone. */
+test("la parte Caldo ha i suoi passi, e il ripiego scalda", () => {
+  /* Chi non ha mai specificato niente accende in riscaldamento e basta. */
+  const passi = quickClimateSteps(QUICK_CLIMATE_HEAT_DEFAULT);
+  assert.deepEqual(passi, [{ service: "set_hvac_mode", data: { hvac_mode: "heat" } }]);
+
+  /* Un preset detto dalla persona resta suo (22 gradi restano 22)... */
+  const suo = quickClimatePresetForZone({ mode: "heat", temperature: 22, fan: "" }, "caldo");
+  assert.equal(suo.mode, "heat");
+  assert.equal(suo.temperature, 22);
+
+  /* ...ma «cool» dal tab che promette di scaldare diventa «heat»:
+   * e' il ripiego dei condizionatori, non una scelta per il Caldo. */
+  const voltato = quickClimatePresetForZone({ mode: "cool", temperature: 26, fan: "auto" }, "caldo");
+  assert.equal(voltato.mode, "heat");
+  assert.equal(voltato.temperature, 26);
+
+  /* Dal lato Freddo non cambia niente. */
+  const freddo = quickClimatePresetForZone({ mode: "cool", temperature: 26, fan: "auto" }, "");
+  assert.equal(freddo.mode, "cool");
+});
+
+test("il tocco Caldo del popup parla ai termostati veri coi loro passi", () => {
+  const termica = leggi("src/sections/climate-thermal-section.js");
+  assert.match(
+    termica,
+    /toccoCaldoTermostato\(unita\.entity\)/,
+    "un'unita' Caldo climate.* non passa da nsToggleTerm",
+  );
+  assert.match(
+    termica,
+    /dmQuickClimateSteps\?\.\(entity, "caldo"\)/,
+    "i passi sono quelli per-unita', chiesti dalla zona Caldo",
+  );
+  assert.match(
+    termica,
+    /commutaClima\(entity, false, "caldo"\)/,
+    "lo spegnimento passa dalla regola dei pulsanti della pagina",
+  );
 });
 
 test("le quattro velocita' standard sono il ripiego della ventola", () => {
