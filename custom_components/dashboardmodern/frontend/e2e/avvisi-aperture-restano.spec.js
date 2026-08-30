@@ -110,6 +110,7 @@ test.describe("avvisi delle Aperture", () => {
       /Clima|Climate/,
       /Riscaldamento|Heating/,
       /Allagamenti|Floods/,
+      /Fumo|Smoke/,
     ]);
     await page.evaluate(() =>
       document.querySelector("#dm-alert-editor-modal form").requestSubmit(),

@@ -37,6 +37,10 @@ const GROUPS = Object.freeze([
    * `flood-alerts-section.js`, che le da' la card e il popup; qui c'e' la voce
    * che la fa scegliere quando si configura un avviso. */
   ["allag", "💧", "Allagamenti", "Floods"],
+  /* Stessa storia per il fumo: la lista la tiene `smoke-alerts-section.js`,
+   * che rileva i sensori da sola e li mostra anche nella pagina Sicurezza;
+   * qui c'e' la voce che fa scegliere il gruppo quando si configura. */
+  ["fumo", "💨", "Fumo", "Smoke"],
 ]);
 
 /** Le chiavi che il Quadro Avvisi sorveglia davvero. */
@@ -55,10 +59,30 @@ function groupIcon(group) {
  * scrive continua a vedere quella del gruppo, come prima. */
 const ICONS_KEY = "cd_avvisi_icone";
 
-/** L'icona di un avviso: la sua se ce l'ha, quella del gruppo altrimenti. */
+/* L'icona che la classe del sensore sa gia' suggerire.
+ *
+ * Con le aperture rilevate da sole nessuno passa piu' dalla finestra di
+ * modifica, e tutte uscivano con la porta del gruppo: ma Home Assistant sa
+ * distinguere una porta da una finestra — lo dichiara in `device_class` — e
+ * quel dato e' piu' onesto del disegno unico. Vale come RIPIEGO: chi un'icona
+ * l'ha scelta a mano (`cd_avvisi_icone`) continua a vedere la sua. */
+const DEVICE_CLASS_ICONS = Object.freeze({
+  door: "🚪",
+  opening: "🚪",
+  garage_door: "🚪",
+  window: "🪟",
+});
+
+function deviceClassIcon(entity) {
+  const stato = allStates()[clean(entity)];
+  return DEVICE_CLASS_ICONS[clean(stato?.attributes?.device_class).toLowerCase()] || "";
+}
+
+/** L'icona di un avviso: la sua se ce l'ha, poi quella della classe del
+ * sensore, quella del gruppo per ultima. */
 export function alertIcon(entity, group) {
   const scelte = readJson(ICONS_KEY, {}) || {};
-  return clean(scelte[clean(entity)]) || groupIcon(group);
+  return clean(scelte[clean(entity)]) || deviceClassIcon(entity) || groupIcon(group);
 }
 
 /* L'icona di un avviso, disegnata.
@@ -209,12 +233,14 @@ function persistAlert({ oldEntity, oldGroup, entity, group, name, icon }) {
     removed[oldGroup] = [...new Set([...(removed[oldGroup] || []), oldEntity])];
   if (oldEntity !== entity) delete names[oldEntity];
   names[entity] = name;
-  /* L'icona si scrive solo se e' diversa da quella del gruppo: cosi' chi non
-   * la tocca continua a seguire il gruppo anche se il gruppo cambia idea. */
+  /* L'icona si scrive solo se e' diversa da quella del gruppo — e da quella
+   * che la classe del sensore suggerisce gia' da sola: cosi' chi non la tocca
+   * continua a seguire i ripieghi anche se questi cambiano idea. */
   const icone = readJson(ICONS_KEY, {}) || {};
   if (oldEntity !== entity) delete icone[oldEntity];
   const scelta = clean(icon);
-  if (scelta && scelta !== groupIcon(group)) icone[entity] = scelta;
+  if (scelta && scelta !== groupIcon(group) && scelta !== deviceClassIcon(entity))
+    icone[entity] = scelta;
   else delete icone[entity];
   let changed = false;
   changed = writeJsonIfChanged(ICONS_KEY, icone, { sync: false }) || changed;
