@@ -138,8 +138,19 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
   const pastiglie = riga.locator(".dm-face-opt-img img");
   await expect(pastiglie).toHaveCount(80, { timeout: 120000 });
 
+  /* Le pastiglie profonde — il casual e' il trentunesimo di trentacinque —
+   * stanno sotto la piega del modale, e su webkit lo «scrolling into view»
+   * di Playwright non converge li' dentro: la pastiglia si porta in vista
+   * con lo scroll della pagina — lo stesso che usa il dito — e poi si
+   * preme. */
+  const premi = async (selettore) => {
+    const bersaglio = riga.locator(selettore);
+    await bersaglio.evaluate((nodo) => nodo.scrollIntoView({ block: "center" }));
+    await bersaglio.click();
+  };
+
   /* Le file si seguono: senza barba il suo colore sparisce... */
-  await riga.locator('[data-face-k="barba"][data-face-v="nessuna"]').click();
+  await premi('[data-face-k="barba"][data-face-v="nessuna"]');
   await expect(riga.locator(".dm-face-row", { hasText: "Colore barba" })).toHaveCount(0, {
     timeout: 20000,
   });
@@ -147,18 +158,18 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
 
   /* ...e il colore del vestito vale solo per i busti ricolorabili: il cuoco
    * lo toglie, il casual lo riporta. */
-  await riga.locator('[data-face-k="vestito"][data-face-v="cuoco"]').click();
+  await premi('[data-face-k="vestito"][data-face-v="cuoco"]');
   await expect(riga.locator('[data-face-k="vestito"][data-face-v="cuoco"]')).toHaveClass(/on/);
   await expect(riga.locator(".dm-face-row")).toHaveCount(9);
-  await riga.locator('[data-face-k="vestito"][data-face-v="casual"]').click();
+  await premi('[data-face-k="vestito"][data-face-v="casual"]');
   await expect(riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]')).toBeVisible();
-  await riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]').click();
+  await premi('[data-face-k="coloreVestito"][data-face-v="verde"]');
   await expect(riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]')).toHaveClass(
     /on/,
   );
 
   /* E un accessorio si sceglie come tutto il resto. */
-  await riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]').click();
+  await premi('[data-face-k="occhiali"][data-face-v="tondi"]');
   await expect(riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]')).toHaveClass(/on/);
 
   /* Il banco si aggiorna IN LOCO: un tocco non ricostruisce le file.
@@ -173,7 +184,7 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
       piene: nodo.querySelectorAll(".dm-face-opt-img img").length,
     };
   });
-  await riga.locator('[data-face-k="capelli"][data-face-v="ricci"]').click();
+  await premi('[data-face-k="capelli"][data-face-v="ricci"]');
   await expect(riga.locator('[data-face-k="capelli"][data-face-v="ricci"]')).toHaveClass(/on/);
   const dopoIlTocco = await riga.evaluate((nodo) => ({
     stessoNodo:

@@ -509,16 +509,24 @@ function aggiornaBuilder(builder, markup) {
   if (viva && vivaNuova && viva.getAttribute("style") !== vivaNuova.getAttribute("style"))
     viva.setAttribute("style", vivaNuova.getAttribute("style"));
   const chiaveDi = (fila) => fila.querySelector("[data-face-k]")?.dataset.faceK || "";
+  const nuove = [...fileNuove.querySelectorAll(".dm-face-row")];
+  const chiaviNuove = new Set(nuove.map(chiaveDi));
   const vecchiePerChiave = new Map();
-  for (const fila of fileVecchie.querySelectorAll(".dm-face-row"))
+  for (const fila of [...fileVecchie.querySelectorAll(".dm-face-row")]) {
+    /* Le file sparite se ne vanno PRIMA del riordino: cosi' il cursore
+     * scorre solo sulle vive e le file ferme restano ferme davvero, senza
+     * stacca-e-riattacca di passaggio. */
+    if (!chiaviNuove.has(chiaveDi(fila))) {
+      fila.remove();
+      continue;
+    }
     vecchiePerChiave.set(chiaveDi(fila), fila);
-  const tenute = new Set();
+  }
   let cursore = fileVecchie.firstElementChild;
-  for (const filaNuova of [...fileNuove.querySelectorAll(".dm-face-row")]) {
+  for (const filaNuova of nuove) {
     const chiave = chiaveDi(filaNuova);
     let fila = vecchiePerChiave.get(chiave) || null;
     if (fila) {
-      tenute.add(chiave);
       const bottoniNuovi = [...filaNuova.querySelectorAll("[data-face-k]")];
       const bottoni = [...fila.querySelectorAll("[data-face-k]")];
       if (
@@ -526,6 +534,7 @@ function aggiornaBuilder(builder, markup) {
         bottoni.some((b, i) => b.dataset.faceV !== bottoniNuovi[i].dataset.faceV)
       ) {
         /* La fila ha cambiato le sue voci: si cede il passo alla nuova. */
+        if (fila === cursore) cursore = filaNuova;
         fila.replaceWith(filaNuova);
         fila = filaNuova;
       } else {
@@ -550,8 +559,6 @@ function aggiornaBuilder(builder, markup) {
     if (fila === cursore) cursore = cursore.nextElementSibling;
     else fileVecchie.insertBefore(fila, cursore);
   }
-  for (const [chiave, fila] of vecchiePerChiave)
-    if (!tenute.has(chiave) && fila.isConnected) fila.remove();
 }
 
 /* L'anteprima del ritratto segue le mani: si cambia emoji o colore e lo si
