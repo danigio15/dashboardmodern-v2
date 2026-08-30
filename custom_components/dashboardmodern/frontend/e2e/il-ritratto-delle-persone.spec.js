@@ -83,6 +83,13 @@ const persone = [
 test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async ({
   page,
 }, testInfo) => {
+  /* Ottanta pastiglie composte piu' i ridisegni di sei gesti: sul webkit
+   * della CI ogni composizione costa secondi di lavoro sincrono, e la spec
+   * viveva sul filo dei 30s di default — l'attesa delle pastiglie qui sotto
+   * dichiara gia' 120s, ma il tetto del test non glieli dava mai. Il tempo
+   * dice quanto e' lento il ferro, non se il codice e' giusto: la verita'
+   * la dicono le asserzioni. */
+  test.setTimeout(120_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seme);
   await page.evaluate((elenco) => {

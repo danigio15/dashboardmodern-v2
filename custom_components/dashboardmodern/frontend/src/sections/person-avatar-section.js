@@ -328,14 +328,19 @@ function applicaBarba(telaTesta, op, donatrice) {
        * basso, la si tira su fin sopra quel mento. */
       let alza = 0;
       if (metaCoda != null) {
+        /* La lettura parte da meta' tela: sopra c'e' solo viso pieno, e
+         * ogni riga in meno e' lavoro sincrono risparmiato sul webkit
+         * lento della CI, dove le composizioni si pagano a secondi. */
         const x0 = Math.round(lato * 0.36);
+        const y0 = Math.floor(lato * 0.5);
         const larghezza = Math.round(lato * 0.28);
-        const colonna = pennello.getImageData(x0, 0, larghezza, telaTesta.height).data;
+        const altezza = telaTesta.height - y0;
+        const colonna = pennello.getImageData(x0, y0, larghezza, altezza).data;
         let mento = 0;
-        for (let riga = telaTesta.height - 1; riga >= 0 && !mento; riga -= 1)
+        for (let riga = altezza - 1; riga >= 0 && !mento; riga -= 1)
           for (let px = 0; px < larghezza; px += 1)
             if (colonna[(riga * larghezza + px) * 4 + 3] > 40) {
-              mento = riga;
+              mento = y0 + riga;
               break;
             }
         const cima = y + metaCoda * scala;
