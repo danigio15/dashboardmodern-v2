@@ -3822,11 +3822,10 @@ html.dm-widget-popup-open{overflow:hidden}
  * che compare gia' quasi intera in un fotogramma solo e poi si assesta per un
  * quarto di secondo — cioe' «trema» — perche' l'animazione d'ingresso viene
  * mangiata dal lavoro del primo disegno. Una dissolvenza pura non ha niente
- * che possa tremare: o si vede o non si vede ancora. Su desktop, dove i
- * fotogrammi ci sono, la card continua a salire come prima. */
-@media(pointer:coarse){
-  #dm-widget-popup .dm-widget-detail{animation:dmWidgetPopupIn .22s ease-out}
-}
+ * che possa tremare: o si vede o non si vede ancora. L'override sta in fondo
+ * al foglio, DOPO la regola dmWidgetIn che a pari specificita' vincerebbe
+ * per posizione. Su desktop, dove i fotogrammi ci sono, la card sale come
+ * prima. */
 /* Chi ha chiesto meno movimento non lo riceve: la finestra c'e' o non c'e'. */
 @media(prefers-reduced-motion:reduce){
   #dm-widget-popup,#dm-widget-popup .dm-widget-detail{animation:none}
@@ -4642,6 +4641,16 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   content:"";position:absolute;top:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,transparent,var(--dm-widget-accent,#0ea5e9) 30%,var(--dm-widget-accent,#0ea5e9) 70%,transparent)}
 @keyframes dmWidgetIn{from{opacity:0;transform:translateY(-7px) scale(.985)}to{opacity:1;transform:none}}
+/* Questi override stanno DOPO la regola qui sopra, che a pari specificita'
+ * vincerebbe per posizione: messi prima non si applicavano mai — ne' la
+ * dissolvenza del telefono, ne' il rispetto di chi ha chiesto meno movimento
+ * (osservazione giusta della review). */
+@media(pointer:coarse){
+  :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{animation:dmWidgetPopupIn .22s ease-out}
+}
+@media(prefers-reduced-motion:reduce){
+  :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{animation:none}
+}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-head{display:flex;align-items:center;gap:9px;padding:13px 16px 10px}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-head-ic{font-size:16px}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-head strong{
