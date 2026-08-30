@@ -168,6 +168,33 @@ def test_l_installazione_si_fa_da_qui() -> None:
     assert "_riavvio_richiesto" in sorgente
 
 
+def test_un_secondo_installa_mentre_il_primo_lavora_si_rifiuta() -> None:
+    """Due «Installa» sovrapposti userebbero le stesse cartelle d'appoggio.
+
+    Un'automazione che riprova mentre il primo download e' in corso puo'
+    portar via la cartella vecchia proprio mentre il primo ci conta per il
+    ripristino. Il segno di lavoro in corso si controlla in testa, e fra il
+    controllo e la sua scrittura non c'e' un await: sul loop e' atomico.
+    """
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    assert "if self._attr_in_progress:" in sorgente
+    # E il fallimento pubblica subito lo stato ripulito: senza, l'entita'
+    # restava «in installazione» col tasto spento fino al giro del coordinator.
+    spegnimento = sorgente.index("self._attr_in_progress = False")
+    assert "async_write_ha_state" in sorgente[spegnimento : spegnimento + 400]
+
+
+def test_la_pulizia_della_vecchia_non_boccia_lo_scambio_riuscito() -> None:
+    """A rinomini fatti l'installazione e' fatta: la vecchia e' spazzatura.
+
+    Se il disco non la lascia togliere subito, annunciare un fallimento
+    spingerebbe a installare di nuovo sopra file gia' nuovi; i residui li
+    spazza comunque la testa della funzione, al giro dopo.
+    """
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    assert "shutil.rmtree(vecchia, ignore_errors=True)" in sorgente
+
+
 def test_lo_zip_buono_prende_il_posto_del_vecchio(tmp_path: Path) -> None:
     """A scambio riuscito restano i file nuovi, e nessuna cartella d'appoggio."""
     cartella = _cartella_installata(tmp_path)

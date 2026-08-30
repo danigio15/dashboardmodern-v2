@@ -198,7 +198,11 @@ def installa_da_zip(cartella: Path, dati: bytes, versione: str) -> None:
     except OSError:
         vecchia.rename(cartella)
         raise
-    shutil.rmtree(vecchia)
+    # A scambio riuscito la vecchia e' solo spazzatura: se il disco non la
+    # lascia togliere adesso, l'installazione e' comunque fatta — annunciarla
+    # fallita spingerebbe a installare di nuovo sopra file gia' nuovi. I
+    # residui li spazza la testa di questa stessa funzione, al giro dopo.
+    shutil.rmtree(vecchia, ignore_errors=True)
 
 
 class DashboardModernReleaseCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -343,6 +347,19 @@ class DashboardModernUpdate(
         «Installa» viene rifiutato — installare sopra un'installazione a meta'
         e' esattamente il pasticcio che questo tasto promette di non fare.
         """
+        # Due «Installa» sovrapposti — un'automazione che riprova mentre il
+        # primo download e' in corso — lavorerebbero sulle stesse cartelle
+        # d'appoggio, e il secondo puo' portar via la vecchia proprio mentre
+        # il primo ci conta per il ripristino. Il segno e' gia' li': da qui
+        # alla sua scrittura non c'e' nemmeno un await, quindi sul loop il
+        # controllo e' atomico.
+        if self._attr_in_progress:
+            raise HomeAssistantError(
+                self._frase(
+                    "Un'installazione è già in corso.",
+                    "An installation is already running.",
+                )
+            )
         if self._riavvio_richiesto:
             raise HomeAssistantError(
                 self._frase(
@@ -426,6 +443,10 @@ class DashboardModernUpdate(
                 ) from errore
         finally:
             self._attr_in_progress = False
+            # Anche sul fallimento: senza questa scrittura l'entita' restava
+            # pubblicata come «in installazione», col tasto spento, fino al
+            # prossimo giro del coordinator.
+            self.async_write_ha_state()
 
         self._installed = destinazione
         self._riavvio_richiesto = True

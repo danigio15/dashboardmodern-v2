@@ -122,10 +122,9 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 
 L'integrazione **se ne accorge da sola, entro mezz'ora** dalla pubblicazione, e lo dice in *Impostazioni → Aggiornamenti* con le note di versione. Serve perche' HACS, da solo, ci mette molto di piu': un repository **personalizzato** — aggiunto per URL, che e' il modo in cui si installa questa integrazione — lo ricontrolla **ogni quarantotto ore**, e non lo guarda nemmeno al riavvio di Home Assistant. Quelli dello store predefinito passano da un'altra strada, ogni sei ore, e questo progetto in quello store non puo' entrare: la validazione dello store pretende anche i controlli su `topics` e `license`, e la licenza qui e' proprietaria.
 
-Quando l'avviso compare, **per installare serve un passaggio in HACS**, perche' i file li gestisce lui e potrebbe ancora offrire la versione precedente:
+Quando l'avviso compare, **si installa da li'**: il tasto **«Installa»** in *Impostazioni → Aggiornamenti* scarica lo stesso identico zip che installerebbe HACS, lo controlla prima che un solo file si muova, e a fine scambio chiede il riavvio di Home Assistant che completa l'aggiornamento. HACS si riallinea da solo al suo prossimo controllo.
 
-1. **HACS → DashboardModern v2 → menu ⋮ → «Aggiorna informazioni»** — e' il modo di dire a HACS di guardare subito invece di aspettare le quarantotto ore;
-2. **«Aggiorna»**, e poi riavvia Home Assistant quando HACS mostra **In attesa di riavvio**.
+Chi preferisce la strada di HACS ce l'ha ancora tutta: **HACS → DashboardModern v2 → menu ⋮ → «Aggiorna informazioni»** (per non aspettare le quarantotto ore), poi **«Aggiorna»** e riavvio quando HACS mostra **In attesa di riavvio**.
 
 Chi la plancia la tiene su una rete senza uscita puo' spegnere il controllo: **Impostazioni → Dispositivi e servizi → DashboardModern → Configura → «Controlla le nuove versioni»**. Spento, l'integrazione non contatta piu' nessuno.
 
@@ -133,7 +132,7 @@ Chi la plancia la tiene su una rete senza uscita puo' spegnere il controllo: **I
 
 Gli asset del frontend sono pubblicati su un URL versionato con il **digest del contenuto** (`/dashboardmodern_static/<digest>/…`): quando aggiorni, l'URL cambia e il browser scarica la versione nuova senza hard refresh. Serve comunque:
 
-1. riavviare Home Assistant quando HACS mostra **In attesa di riavvio**;
+1. riavviare Home Assistant quando l'installazione lo chiede (dal tasto «Installa» arriva una notifica; da HACS, quando mostra **In attesa di riavvio**);
 2. sull'app Companion, chiuderla e riaprirla se resta visibile la versione precedente.
 
 ---
