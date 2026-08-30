@@ -115,7 +115,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   oltre guance e mento. Ora la barba vive in una campana centrata sul viso
   — le ciocche restano capelli — e il trapianto aderisce alla sagoma della
   testa che lo riceve; solo la coda della barba lunga resta libera di
-  pendere sotto il mento.
+  pendere sotto il mento. Sulle carnagioni scure la soglia del pelo ora
+  scende con la pelle (prima l'intero basso viso passava per barba e usciva
+  un lastrone squadrato), la coda salta la bocca della donatrice (denti e
+  labbra stirati erano zanne bianche sotto il mento), aggancia il mento
+  vero anche con le chiome larghe e si assottiglia verso la punta.
 
 - **Il Report non parte piu' vuoto quando il runtime batte i moduli.** La
   lista dei dispositivi nasceva da una chiamata sola all'avvio e, se i

@@ -107,25 +107,77 @@ function dentroLaCampana(x, y, lato) {
   return dalCentro <= semiLarghezza;
 }
 
+/* La pelle del viso, campionata dove nessuna foggia arriva: la fronte e i
+ * due zigomi sotto gli occhi. Si tiene il campione piu' chiaro, perche' sui
+ * ritratti femminili la fronte e' coperta dai capelli e il punto coperto
+ * mentirebbe scuro. */
+function pelleDelViso(dati, lato) {
+  const punti = [
+    [0.5, 0.34],
+    [0.44, 0.47],
+    [0.56, 0.47],
+  ];
+  let migliore = null;
+  for (const [px, py] of punti) {
+    const i = (Math.round(lato * py) * lato + Math.round(lato * px)) * 4;
+    if (dati[i + 3] < 200) continue;
+    const m = Math.max(dati[i], dati[i + 1], dati[i + 2]);
+    if (!migliore || m > migliore.m) migliore = { m, rgb: [dati[i], dati[i + 1], dati[i + 2]] };
+  }
+  return migliore;
+}
+
 function mascheraBarba(dati, lato) {
+  /* Sulle carnagioni scure la soglia fissa annega: anche la pelle sta sotto
+   * PELO, e la maschera allagava l'intero basso viso — il ritratto scuro
+   * usciva con un lastrone squadrato al posto della barba. Il pelo e' scuro
+   * RISPETTO alla pelle di quel viso: la soglia scende col campione di
+   * pelle (misurato: pelle scura 77-79, pelo scuro 34-50) e non sale mai
+   * sopra quella di laboratorio. */
+  const pelle = pelleDelViso(dati, lato);
+  const soglia = pelle ? Math.max(40, Math.min(PELO, Math.round(pelle.m * 0.65))) : PELO;
   const maschera = new Uint8Array(lato * lato);
+  const dentro = (x, y) => {
+    const i = (y * lato + x) * 4;
+    return dati[i + 3] > 40 && y > confine(x, lato) && dentroLaCampana(x, y, lato);
+  };
   for (let y = Math.floor(lato * 0.36); y < lato * 0.97; y += 1)
     for (let x = 0; x < lato; x += 1) {
       const i = (y * lato + x) * 4;
-      if (
-        dati[i + 3] > 40 &&
-        Math.max(dati[i], dati[i + 1], dati[i + 2]) < PELO &&
-        y > confine(x, lato) &&
-        dentroLaCampana(x, y, lato)
-      )
+      if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < soglia)
         maschera[y * lato + x] = 1;
+    }
+  /* Sulle carnagioni scure i riflessi del pelo (55-75) e la pelle (54-79)
+   * si sovrappongono: nessuna soglia li separa, e i riflessi esclusi
+   * bucavano la barba — dal buco stirato nella coda passava lo sfondo. Il
+   * pelo certo fa da seme e la maschera cresce per adiacenza di qualche
+   * pixel con una soglia rilassata: i riflessi attaccati al pelo entrano,
+   * la guancia lontana no. Su medie e chiare la soglia rilassata coincide
+   * con quella di laboratorio e la crescita non aggiunge nulla. */
+  const rilassata = pelle ? Math.min(PELO, Math.round(pelle.m * 0.9)) : PELO;
+  if (rilassata > soglia)
+    for (let giro = 0; giro < 4; giro += 1) {
+      const orlo = [];
+      for (let y = Math.floor(lato * 0.36); y < lato * 0.97; y += 1)
+        for (let x = 1; x < lato - 1; x += 1) {
+          const p = y * lato + x;
+          if (maschera[p]) continue;
+          if (!maschera[p - 1] && !maschera[p + 1] && !maschera[p - lato] && !maschera[p + lato])
+            continue;
+          const i = p * 4;
+          if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < rilassata)
+            orlo.push(p);
+        }
+      if (!orlo.length) break;
+      for (const p of orlo) maschera[p] = 1;
     }
   return maschera;
 }
 
-/* Colore pelle: la fronte, l'unico punto sicuramente nudo su una faccia
- * barbuta. */
+/* Colore pelle per la rasata: lo stesso campione robusto del viso. */
 function guancia(dati, lato) {
+  const pelle = pelleDelViso(dati, lato);
+  if (pelle) return pelle.rgb;
   const i = (Math.round(lato * 0.34) * lato + Math.round(lato * 0.5)) * 4;
   return [dati[i], dati[i + 1], dati[i + 2]];
 }
@@ -204,19 +256,54 @@ function applicaBarba(telaTesta, op, donatrice) {
         if (y < y0) y0 = y;
         if (y > y1) y1 = y;
       }
-    if (y1 <= y0) return;
-    const meta = y0 + Math.floor(((y1 - y0) * 3) / 5);
-    destinazione.drawImage(
-      strato,
-      0,
-      meta,
-      lato,
-      y1 - meta,
-      lato * 0.05,
-      meta,
-      lato * 0.9,
-      (y1 - meta) * 2.1,
-    );
+    if (y1 <= y0) return null;
+    let meta = y0 + Math.floor(((y1 - y0) * 3) / 5);
+    /* La banda da stirare non deve contenere la bocca della donatrice:
+     * denti e labbra sono chiari, nella maschera diventano un buco, e il
+     * buco stirato usciva come zanne bianche sotto il mento. Se una riga
+     * della banda ha un varco fra il primo e l'ultimo pixel di pelo, la
+     * banda parte dalla riga sotto. */
+    let pulita = meta;
+    for (let y = meta; y <= y1; y += 1) {
+      let a = -1,
+        b = -1;
+      for (let x = 0; x < lato; x += 1)
+        if (maschera[y * lato + x]) {
+          if (a < 0) a = x;
+          b = x;
+        }
+      if (a < 0) continue;
+      let varco = 0;
+      for (let x = a; x <= b; x += 1) {
+        varco = maschera[y * lato + x] ? 0 : varco + 1;
+        if (varco >= 3) {
+          pulita = y + 1;
+          break;
+        }
+      }
+    }
+    if (y1 - pulita >= 4) meta = pulita;
+    /* La coda si assottiglia verso la punta: stirata a larghezza piena era
+     * un blocco squadrato, largo in fondo quanto in cima. Dieci fette che
+     * si stringono la fanno pendere come un pizzo. */
+    const altezza = (y1 - meta) * 2.1;
+    const fette = 10;
+    for (let f = 0; f < fette; f += 1) {
+      const t = f / (fette - 1);
+      const largo = lato * 0.9 * (1 - 0.4 * t);
+      destinazione.drawImage(
+        strato,
+        0,
+        meta + ((y1 - meta) * f) / fette,
+        lato,
+        (y1 - meta) / fette + 1,
+        (lato - largo) / 2,
+        meta + (altezza * f) / fette,
+        largo,
+        altezza / fette + 1,
+      );
+    }
+    return meta;
   };
 
   if (donatrice) {
@@ -233,12 +320,36 @@ function applicaBarba(telaTesta, op, donatrice) {
       pieno.width = lato;
       pieno.height = Math.round(lato * (1 + BARBA_LUNGA_EXTRA));
       const suo = pieno.getContext("2d");
-      coda(suo, strato);
-      pennello.drawImage(pieno, x, y, lato * scala, pieno.height * scala);
+      const metaCoda = coda(suo, strato);
+      /* La coda deve AGGANCIARE il mento del ricevente: con le chiome
+       * larghe l'innesto scala la donatrice e la banda atterrava sotto il
+       * mento, staccata dal viso. Si misura l'ultimo pixel opaco del terzo
+       * centrale della testa e, se la cima della coda finirebbe piu' in
+       * basso, la si tira su fin sopra quel mento. */
+      let alza = 0;
+      if (metaCoda != null) {
+        const x0 = Math.round(lato * 0.36);
+        const larghezza = Math.round(lato * 0.28);
+        const colonna = pennello.getImageData(x0, 0, larghezza, telaTesta.height).data;
+        let mento = 0;
+        for (let riga = telaTesta.height - 1; riga >= 0 && !mento; riga -= 1)
+          for (let px = 0; px < larghezza; px += 1)
+            if (colonna[(riga * larghezza + px) * 4 + 3] > 40) {
+              mento = riga;
+              break;
+            }
+        const cima = y + metaCoda * scala;
+        const voluta = mento - lato * 0.06;
+        if (mento && cima > voluta) alza = voluta - cima;
+      }
+      /* Prima il pelo aderente al viso, POI la coda: se la coda entrasse
+       * per prima, il passaggio in atop dipingerebbe la trama del fondo
+       * della donatrice sopra la coda stessa — il fantasma nel pizzo. */
       pennello.save();
       pennello.globalCompositeOperation = "source-atop";
       pennello.drawImage(strato, x, y, lato * scala, lato * scala);
       pennello.restore();
+      pennello.drawImage(pieno, x, y + alza, lato * scala, pieno.height * scala);
     } else {
       pennello.save();
       pennello.globalCompositeOperation = "source-atop";
