@@ -1843,4 +1843,5 @@ export default Object.freeze({
   "Run": "실행",
   "THIS field is what turns WebRTC on: the stream name as written inside go2rtc/Frigate. The camera name is not the lever.": "WebRTC를 켜는 것은 바로 이 칸입니다: go2rtc/Frigate에 적힌 스트림 이름. 카메라 이름은 레버가 아닙니다.",
   "WebRTC: skipped — fill in “go2rtc stream name” in the Cameras tab (the camera name is not the lever)": "WebRTC: 건너뜀 — 카메라 탭의 «go2rtc 스트림 이름»을 채우세요(카메라 이름은 레버가 아닙니다)",
+  "Unplugged": "연결 안 됨",
 });

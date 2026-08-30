@@ -1843,4 +1843,5 @@ export default Object.freeze({
   "Run": "Exécuter",
   "THIS field is what turns WebRTC on: the stream name as written inside go2rtc/Frigate. The camera name is not the lever.": "C'est CE champ qui active WebRTC : le nom du flux tel qu'écrit dans go2rtc/Frigate. Le nom de la caméra n'est pas le levier.",
   "WebRTC: skipped — fill in “go2rtc stream name” in the Cameras tab (the camera name is not the lever)": "WebRTC : ignoré — remplissez « Nom du flux go2rtc » dans l'onglet Caméras (le nom de la caméra n'est pas le levier)",
+  "Unplugged": "Débranchée",
 });

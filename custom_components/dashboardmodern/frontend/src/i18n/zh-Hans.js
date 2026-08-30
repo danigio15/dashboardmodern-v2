@@ -1843,4 +1843,5 @@ export default Object.freeze({
   "Run": "运行",
   "THIS field is what turns WebRTC on: the stream name as written inside go2rtc/Frigate. The camera name is not the lever.": "打开WebRTC的正是这个字段:流名称,按go2rtc/Frigate里写的填。摄像头名称不是这个开关。",
   "WebRTC: skipped — fill in “go2rtc stream name” in the Cameras tab (the camera name is not the lever)": "WebRTC:已跳过 — 请在摄像头选项卡填写「go2rtc流名称」(摄像头名称不是这个开关)",
+  "Unplugged": "未插电",
 });

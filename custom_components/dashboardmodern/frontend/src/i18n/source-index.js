@@ -1503,6 +1503,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Scene": "Scenes",
   "Scene della stanza": "Room scenes",
   "Scienziato": "Scientist",
+  "Scollegata": "Unplugged",
   "Sconosciuto": "Unknown",
   "Scura": "Dark",
   "Scuro": "Dark",

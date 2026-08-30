@@ -1843,4 +1843,5 @@ export default Object.freeze({
   "Run": "تشغيل",
   "THIS field is what turns WebRTC on: the stream name as written inside go2rtc/Frigate. The camera name is not the lever.": "هذا الحقل هو ما يفعّل WebRTC: اسم البث كما هو مكتوب داخل go2rtc/Frigate. اسم الكاميرا ليس هو المفتاح.",
   "WebRTC: skipped — fill in “go2rtc stream name” in the Cameras tab (the camera name is not the lever)": "WebRTC: تم التخطي — املأ «اسم بث go2rtc» في تبويب الكاميرات (اسم الكاميرا ليس هو المفتاح)",
+  "Unplugged": "غير موصولة",
 });

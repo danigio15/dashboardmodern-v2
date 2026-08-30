@@ -1733,6 +1733,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Unknown",
   "Unlock",
   "Unlocked",
+  "Unplugged",
   "Unprotected",
   "Unsaved changes",
   "Updating Recorder data…",
