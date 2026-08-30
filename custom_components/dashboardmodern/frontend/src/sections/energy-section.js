@@ -7,6 +7,7 @@ import {
   isCumulativeEnergyEntity,
 } from "../core/period-service.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
+import { DEFAULT_EXPORT_RATE, DEFAULT_IMPORT_RATE, importRateEntity, resolveRate } from "../core/energy-calculations.js";
 import { allStates, clean, dashboardStore, doc, english, esc, finite, formatNumber, installStyle, onEditorRedraw, readJson, root, scriviSeCambia, scriviTestoSeCambia, section, selectedPeriod, t, wrapFunction } from "./shared.js";
 import {
   isHostedDashboard,
@@ -326,19 +327,28 @@ async function loadDevicePeriod(kind, date) {
 function rates() {
   const read = (key) => {
     const configured = root.cdCfg?.(key);
-    if (configured !== undefined && configured !== null && configured !== "")
-      return finite(configured);
-    return finite(root.localStorage?.getItem(key));
+    if (configured !== undefined && configured !== null && configured !== "") return configured;
+    return root.localStorage?.getItem(key);
   };
-  /* Gli stessi default del guscio (0.25 €/kWh comprato, 0.10 €/kWh
-   * venduto): il modulo partiva da zero, il guscio da questi, e nel Report
-   * gli euro si alternavano tra calcolati e «0,00». Chi salva un costo suo
-   * lo vince comunque; lo zero esplicito il salvataggio non lo scrive. */
-  const importPrice = read("cd_costo_kwh");
-  const exportPrice = read("cd_prezzo_immissione");
+  /* I default del guscio vivono in `resolveRate`, e solo la': il modulo
+   * partiva da zero, il guscio dai suoi numeri, e nel Report gli euro si
+   * alternavano tra calcolati e «0,00». Chi salva un costo suo lo vince
+   * comunque; lo zero esplicito il salvataggio non lo scrive. Il prezzo di
+   * acquisto puo' anche essere un'entita' scelta nel modello canonico: in
+   * quel caso si legge il suo stato, che si aggiorna da solo. */
+  const states = allStates();
+  const entita = importRateEntity(section("energy", {}));
+  let sorgente = read("cd_costo_kwh");
+  if (entita) {
+    try {
+      sorgente = clean(root.resolveEntity?.(entita) || entita);
+    } catch (_error) {
+      sorgente = entita;
+    }
+  }
   return {
-    importPrice: importPrice > 0 ? importPrice : 0.25,
-    exportPrice: exportPrice > 0 ? exportPrice : 0.1,
+    importPrice: resolveRate(sorgente, states, DEFAULT_IMPORT_RATE),
+    exportPrice: resolveRate(read("cd_prezzo_immissione"), states, DEFAULT_EXPORT_RATE),
   };
 }
 

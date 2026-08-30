@@ -126,14 +126,29 @@ test("anche edSetText e l'anello rispettano il cartello dei moduli", () => {
   }
 });
 
-/* Le tariffe hanno gli stessi default da tutte le parti: 0.25 e 0.10.
- * Il guscio partiva da questi, i moduli da zero, e nel Report gli euro si
- * alternavano tra calcolati e «0,00 €». */
-test("le tariffe dei moduli hanno i default del guscio", () => {
-  const energia = readFileSync(join(MODULI, "energy-section.js"), "utf8");
-  const polish = readFileSync(join(MODULI, "energy-report-polish-section.js"), "utf8");
-  assert.match(energia, /importPrice > 0 \? importPrice : 0\.25/);
-  assert.match(energia, /exportPrice > 0 \? exportPrice : 0\.1/);
-  assert.match(polish, /rateOrDefault\("cd_costo_kwh", 0\.25\)/);
-  assert.match(polish, /rateOrDefault\("cd_prezzo_immissione", 0\.1\)/);
+/* Le tariffe hanno gli stessi default da tutte le parti — e i default hanno
+ * UNA casa sola: `resolveRate` in core/energy-calculations.js. Il guscio
+ * partiva dai suoi numeri, i moduli da zero, e nel Report gli euro si
+ * alternavano tra calcolati e «0,00 €»; poi i due numeri erano scritti in due
+ * moduli, che e' lo stesso difetto in forma di costante. Ogni lettore passa
+ * dall'helper — che sa anche leggere il prezzo da un'entita' (#217) — e
+ * nessuno riporta un default a casa sua. */
+test("le tariffe dei moduli passano dall'helper, dove vivono i default", () => {
+  const helper = readFileSync(join(RADICE, "src", "core", "energy-calculations.js"), "utf8");
+  assert.match(helper, /export const DEFAULT_IMPORT_RATE = 0\.25/);
+  assert.match(helper, /export const DEFAULT_EXPORT_RATE = 0\.1\b/);
+  const lettori = [
+    ["energy-section.js", true],
+    ["energy-report-polish-section.js", true],
+    ["appliance-showcase-section.js", false],
+  ];
+  for (const [nome, conDefault] of lettori) {
+    const testo = readFileSync(join(MODULI, nome), "utf8");
+    assert.match(testo, /resolveRate\(/, `${nome} non passa dall'helper`);
+    assert.doesNotMatch(testo, /0\.25/, `${nome} riporta il default di acquisto a casa sua`);
+    if (conDefault) {
+      assert.match(testo, /DEFAULT_IMPORT_RATE/, nome);
+      assert.match(testo, /DEFAULT_EXPORT_RATE/, nome);
+    }
+  }
 });

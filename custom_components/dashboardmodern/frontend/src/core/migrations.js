@@ -131,6 +131,12 @@ export function migrateEnergy(input = {}) {
     uscita.plants = value.plants.map((impianto) =>
       impianto && typeof impianto === "object" && !Array.isArray(impianto) ? { ...impianto } : {},
     );
+  /* Il prezzo di acquisto puo' essere un'entita' (#217). La scelta abita nel
+   * modello canonico, e chi normalizza deve portarsela dietro come gli
+   * impianti qui sopra: dimenticarla vorrebbe dire che il primo salvataggio
+   * qualunque riporta la tariffa al numero fisso. */
+  const importRateEntity = String(value.rates?.import_entity ?? "").trim();
+  if (importRateEntity) uscita.rates = { import_entity: importRateEntity };
   return uscita;
 }
 
