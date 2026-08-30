@@ -95,17 +95,22 @@ const VESTITI_VECCHI = {
 function migraFaccia(face) {
   if (!face || typeof face !== "object" || Array.isArray(face)) return face;
   if (!("skin" in face) && !("hair" in face)) return face;
-  const barba = face.beard && face.beard !== "nessuna";
-  const capelliBianchi = face.hairColor === "bianco" || face.hairColor === "grigio";
+  /* La faccia della 1.2 diceva gia' barba e colore per conto loro, come fa
+   * di nuovo la v7: si traducono dritti, senza passare per la fila unica dei
+   * capelli che c'era in mezzo. Le facce di quella fase intermedia — capelli
+   * «barba», «rossi», «bianchi» — le traduce il normalizzatore del ritratto. */
   return {
     persona: face.build === "magra" ? "donna" : "uomo",
-    capelli: barba
-      ? "barba"
-      : capelliBianchi
-        ? "bianchi"
-        : face.hairColor === "rame"
-          ? "rossi"
-          : CAPELLI_VECCHI[face.hair] || "lisci",
+    capelli: CAPELLI_VECCHI[face.hair] || "lisci",
+    barba: face.beard && face.beard !== "nessuna" ? "corta" : "nessuna",
+    coloreCapelli:
+      face.hairColor === "bianco"
+        ? "bianco"
+        : face.hairColor === "grigio"
+          ? "grigio"
+          : face.hairColor === "rame"
+            ? "rame"
+            : "naturale",
     carnagione: PELLE_VECCHIA[face.skin] || "media",
     vestito: VESTITI_VECCHI[face.outfit] || "nessuno",
   };

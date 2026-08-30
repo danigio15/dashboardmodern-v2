@@ -1,9 +1,11 @@
 /* Il ritratto delle persone, dalla scelta allo schermo.
  *
- * Il modello si prova a tavolino — dice quali due immagini servono — ma la
- * catena intera no: i file che arrivano davvero, la testa incollata sul busto,
- * la tela nella card, e il costruttore in configurazione che mostra la faccia
- * vera dentro ogni pastiglia. Qui si prova quella, sul documento vero.
+ * Il modello si prova a tavolino — dice quali immagini servono e quali
+ * ritocchi restano — ma la catena intera no: i file che arrivano davvero, la
+ * testa incollata sul busto, le tinte e gli accessori dipinti sulla tela, la
+ * card in Home, e il costruttore in configurazione con le sue file nuove —
+ * barba, colori, occhi, occhiali, collana, colore del vestito. Qui si prova
+ * quella, sul documento vero.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
@@ -28,6 +30,8 @@ const seme = {
 };
 
 const persone = [
+  /* La faccia salvata prima della v7: `capelli: "barba"` deve tradursi in
+   * lisci + barba corta, senza che Giovanni cambi faccia. */
   {
     id: "p1",
     name: "Giovanni",
@@ -37,13 +41,24 @@ const persone = [
       face: { persona: "uomo", capelli: "barba", carnagione: "media", vestito: "ufficio" },
     },
   },
+  /* Una faccia v7 piena: ricci tinti, occhiali, collana, busto ricolorato. */
   {
     id: "p2",
     name: "Giulia",
     entity: "person.giulia",
     avatar: {
       color: "#c94a3e",
-      face: { persona: "donna", capelli: "rossi", carnagione: "chiara", vestito: "medico" },
+      face: {
+        persona: "donna",
+        capelli: "ricci",
+        coloreCapelli: "biondo",
+        occhi: "verde",
+        carnagione: "chiara",
+        vestito: "casual",
+        coloreVestito: "verde",
+        occhiali: "tondi",
+        collana: "catenina",
+      },
     },
   },
   /* La faccia disegnata a mano della 1.2: non deve sparire, deve tradursi. */
@@ -65,7 +80,7 @@ const persone = [
   },
 ];
 
-test("i ritratti arrivano in Home, e il costruttore mostra la faccia vera", async ({
+test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async ({
   page,
 }, testInfo) => {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
@@ -75,7 +90,7 @@ test("i ritratti arrivano in Home, e il costruttore mostra la faccia vera", asyn
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready"));
   }, persone);
 
-  /* Tre tele: anche la faccia vecchia ne ha una, tradotta. */
+  /* Tre tele: anche le facce vecchie ne hanno una, tradotte. */
   await expect(page.locator("#dm-people canvas.dm-avatar-3d")).toHaveCount(3, { timeout: 20000 });
 
   /* La testa incollata sul busto e' composta davvero: la tela non e' vuota. */
@@ -88,18 +103,61 @@ test("i ritratti arrivano in Home, e il costruttore mostra la faccia vera", asyn
   });
   expect(dipinta).toBeGreaterThan(0.15);
 
-  /* Il costruttore: ogni pastiglia e' la faccia con quel pezzo addosso. */
+  /* Il costruttore: le file della v7, nell'ordine del design. Giovanni ha la
+   * barba (tradotta in corta) e l'ufficio (ricolorabile), quindi si vedono
+   * anche «Colore barba» e «Colore vestito». */
   await page.evaluate(() => window.apriConfigEntita());
   await page.locator('.ed-tab[data-tab="people"]').click();
   await page.locator("#ed-body [data-person-edit]").first().click();
-  /* Sei persone, sei capelli, cinque carnagioni e trenta vestiti — «nessuno»
-   * compreso, che e' il ritratto della sola testa: quarantasette pastiglie, e
-   * ognuna e' un ritratto composto, quindi si aspettano. */
-  const pastiglie = page.locator("#ed-body .dm-people-row[data-open='true'] .dm-face-opt-img img");
-  await expect(pastiglie).toHaveCount(47, { timeout: 60000 });
-
-  /* E si sceglie: cambiando vestito il ritratto salvato cambia con lui. */
   const riga = page.locator('#ed-body .dm-people-row[data-open="true"]');
+  await expect(
+    riga.locator(".dm-face-row .dm-face-row-lbl"),
+    "le undici file del ritratto, nell'ordine approvato",
+  ).toHaveText(
+    [
+      /Persona7/,
+      /Capelli3/,
+      /Barba4/,
+      /Colore capelli8/,
+      /Colore barba5/,
+      /Colore occhi5/,
+      /Occhiali4/,
+      /Collana3/,
+      /Carnagione5/,
+      /Vestito35/,
+      /Colore vestito6/,
+    ],
+    { timeout: 20000 },
+  );
+
+  /* Il colore degli occhi e' una fila di cerchi, non di ritratti. */
+  await expect(riga.locator(".dm-face-dot")).toHaveCount(5);
+
+  /* Ottanta pastiglie composte — 7+3+4+8+5+4+3+5+35+6 — e ognuna e' un
+   * ritratto vero, quindi si aspettano. */
+  const pastiglie = riga.locator(".dm-face-opt-img img");
+  await expect(pastiglie).toHaveCount(80, { timeout: 120000 });
+
+  /* Le file si seguono: senza barba il suo colore sparisce... */
+  await riga.locator('[data-face-k="barba"][data-face-v="nessuna"]').click();
+  await expect(riga.locator(".dm-face-row", { hasText: "Colore barba" })).toHaveCount(0, {
+    timeout: 20000,
+  });
+  await expect(riga.locator(".dm-face-row")).toHaveCount(10);
+
+  /* ...e il colore del vestito vale solo per i busti ricolorabili: il cuoco
+   * lo toglie, il casual lo riporta. */
   await riga.locator('[data-face-k="vestito"][data-face-v="cuoco"]').click();
   await expect(riga.locator('[data-face-k="vestito"][data-face-v="cuoco"]')).toHaveClass(/on/);
+  await expect(riga.locator(".dm-face-row")).toHaveCount(9);
+  await riga.locator('[data-face-k="vestito"][data-face-v="casual"]').click();
+  await expect(riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]')).toBeVisible();
+  await riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]').click();
+  await expect(riga.locator('[data-face-k="coloreVestito"][data-face-v="verde"]')).toHaveClass(
+    /on/,
+  );
+
+  /* E un accessorio si sceglie come tutto il resto. */
+  await riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]').click();
+  await expect(riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]')).toHaveClass(/on/);
 });

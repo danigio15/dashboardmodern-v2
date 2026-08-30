@@ -48,18 +48,26 @@ export const PERSONE = [
   { key: "neutro", nome: "Person", capelli: true },
   { key: "ragazzo", nome: "Boy", capelli: false },
   { key: "ragazza", nome: "Girl", capelli: false },
-  /* A monte l'anziano e' uno solo: «Older man» e «Older woman» non sono
-   * stati renderizzati, e una fila con due caselle vuote e' peggio di una
-   * fila con una casella in meno. */
-  { key: "anziano", nome: "Older person", capelli: false },
+  /* A monte gli anziani per genere ci sono eccome: «Old man» e «Old woman»,
+   * con tutte le carnagioni. La chiave `anziano` resta quella di sempre —
+   * cambia solo il render che ci sta dietro — e `anziana` nasce accanto.
+   * I vecchi file `older_person_*` restano su disco per chi ha una cache. */
+  { key: "anziano", nome: "Old man", capelli: false },
+  { key: "anziana", nome: "Old woman", capelli: false },
 ];
 
+/* Le varianti di testa renderizzate a monte. Non sono piu' la fila «Capelli»
+ * dell'editor: li' si scelgono taglio, barba e colore per conto loro, e il
+ * modello (`avatar-3d.js`) traduce quella scelta nella variante nativa piu'
+ * vicina — biondo su lisci e' un render vero, biondo su ricci e' una tinta
+ * fatta a runtime sopra i ricci scuri. */
 export const CAPELLI = [
   { key: "lisci", suffisso: "" },
   { key: "barba", suffisso: "beard" },
   { key: "ricci", suffisso: "curly hair" },
   { key: "rossi", suffisso: "red hair" },
   { key: "bianchi", suffisso: "white hair" },
+  { key: "biondi", suffisso: "blonde hair" },
   { key: "calvo", suffisso: "bald" },
 ];
 
@@ -76,8 +84,11 @@ export const CARNAGIONI = [
  * portano un oggetto grosso davanti — il portatile, la lavagna — che in un
  * cerchio da novanta pixel coprirebbe la persona. */
 export const VESTITI = [
-  { key: "ufficio", nome: "office worker" },
-  { key: "medico", nome: "health worker" },
+  /* `ricolorabile` sta anche su due mestieri storici: il completo
+   * dell'ufficio e il camice del medico sono tessuti a tinta piena, e la
+   * finestra HSV del compositore li sa spostare su un altro colore. */
+  { key: "ufficio", nome: "office worker", ricolorabile: true },
+  { key: "medico", nome: "health worker", ricolorabile: true },
   { key: "cuoco", nome: "cook" },
   { key: "smoking", nome: "in tuxedo" },
   { key: "velo", nome: "with veil" },
@@ -108,6 +119,19 @@ export const VESTITI = [
   { key: "fata", nome: "fairy" },
   { key: "vampiro", nome: "vampire" },
   { key: "elfo", nome: "elf" },
+  /* Il guardaroba di tutti i giorni. `ricolorabile` dice al modello che
+   * l'abito accetta la fila «Colore vestito»: sono i busti dove il tessuto e'
+   * una tinta piena che la finestra HSV del compositore sa riconoscere.
+   * `sintetico` marca gli abiti che a monte non esistono — polo e camicia si
+   * dipingono a runtime sul busto della maglietta (colletto e abbottonatura),
+   * quindi non hanno file loro. `nomi` limita i generi renderizzati: la
+   * persona «In attesa» a monte e' solo «Pregnant woman», e per un ritratto
+   * maschile il modello ricade con grazia sul busto femminile. */
+  { key: "casual", nome: "tipping hand", ricolorabile: true },
+  { key: "saluto", nome: "raising hand", ricolorabile: true },
+  { key: "polo", sintetico: "casual", ricolorabile: true },
+  { key: "camicia", sintetico: "casual", ricolorabile: true },
+  { key: "attesa", nomi: { donna: "Pregnant woman" }, ricolorabile: true },
 ];
 
 const nomeFile = (nome, tono) => `${nome} ${tono}`.toLowerCase().replace(/[ -]/g, "_");
@@ -131,17 +155,27 @@ export function elencoImmagini() {
     else teste.push({ ruolo: "testa", nome: persona.nome, persona: persona.key, capelli: null });
   }
   const busti = [];
-  for (const vestito of VESTITI)
+  for (const vestito of VESTITI) {
+    /* Gli abiti sintetici non hanno un render a monte: si dipingono a
+     * runtime sul busto di un altro vestito, e qui non c'e' niente da
+     * scaricare ne' da misurare. */
+    if (vestito.sintetico) continue;
     for (const genere of [
       ["uomo", "Man"],
       ["donna", "Woman"],
-    ])
+    ]) {
+      /* `nomi` dice quali generi esistono a monte, col nome intero: la
+       * «Pregnant woman» non e' «Woman pregnant», ed e' sola. */
+      const nome = vestito.nomi ? vestito.nomi[genere[0]] : `${genere[1]} ${vestito.nome}`;
+      if (!nome) continue;
       busti.push({
         ruolo: "busto",
-        nome: `${genere[1]} ${vestito.nome}`,
+        nome,
         vestito: vestito.key,
         genere: genere[0],
       });
+    }
+  }
   const fuori = [];
   for (const voce of [...teste, ...busti])
     for (const pelle of CARNAGIONI)
@@ -351,6 +385,41 @@ async function principale() {
     );
 
   const vivi = voci.filter((v) => !v.assente);
+
+  /* ── La testa dei busti con la mano alzata ────────────────────────────
+   * «Casual» e «saluto» portano una mano alla stessa altezza della testa —
+   * nel saluto perfino piu' su — e nei render femminili tocca i capelli:
+   * nessuna scansione della sagoma le separa. Per quei busti la testa si
+   * ricava dagli OCCHI, che la misura trova bene anche li': la distanza fra
+   * i due fa da righello, e le proporzioni — quanta testa per occhio, quanta
+   * risalita fino alla cima — si prendono dal ritratto di sola testa dello
+   * stesso genere e della stessa carnagione, che ha la stessa pettinatura.
+   * Cosi' la testa scelta a runtime atterra con gli occhi al posto giusto. */
+  const MANO_ALZATA = new Set(["casual", "saluto"]);
+  const proporzioni = (file) => {
+    const misura = misure[file];
+    if (!misura?.occhi) return null;
+    const passo = misura.occhi[1].cx - misura.occhi[0].cx;
+    return {
+      larghezza: misura.testa.w / passo,
+      risalita: ((misura.occhi[0].cy + misura.occhi[1].cy) / 2 - misura.testa.alto) / passo,
+    };
+  };
+  const decimi = (v) => Math.round(v * 10) / 10;
+  for (const voce of vivi.filter((v) => v.ruolo === "busto" && MANO_ALZATA.has(v.vestito))) {
+    const misura = misure[voce.file];
+    const guida = proporzioni(nomeFile(voce.genere === "donna" ? "Woman" : "Man", voce.tono));
+    if (!misura?.occhi || !guida) continue;
+    const [primo, secondo] = misura.occhi;
+    const passo = secondo.cx - primo.cx;
+    misura.testa = {
+      alto: Math.max(0, Math.round((primo.cy + secondo.cy) / 2 - guida.risalita * passo)),
+      basso: misura.testa.basso,
+      cx: decimi((primo.cx + secondo.cx) / 2),
+      w: decimi(guida.larghezza * passo),
+    };
+  }
+
   const teste = {};
   for (const v of vivi.filter((v) => v.ruolo === "testa"))
     teste[`${v.persona}|${v.capelli ?? ""}|${v.carnagione}`] = v.file;
@@ -372,7 +441,13 @@ export const AVATAR_LATO = ${LATO};
 export const AVATAR_PERSONE = ${json(PERSONE.map(({ key, capelli }) => ({ key, capelli })))};
 export const AVATAR_CAPELLI = ${json(CAPELLI.map(({ key }) => ({ key })))};
 export const AVATAR_CARNAGIONI = ${json(CARNAGIONI.map(({ key }) => ({ key })))};
-export const AVATAR_VESTITI = ${json(VESTITI.map(({ key }) => ({ key })))};
+export const AVATAR_VESTITI = ${json(
+    VESTITI.map(({ key, ricolorabile, sintetico }) => ({
+      key,
+      ...(ricolorabile ? { ricolorabile: true } : {}),
+      ...(sintetico ? { sintetico } : {}),
+    })),
+  )};
 export const AVATAR_TESTE = ${json(teste)};
 export const AVATAR_BUSTI = ${json(busti)};
 export const AVATAR_MISURE = ${json(misure)};
