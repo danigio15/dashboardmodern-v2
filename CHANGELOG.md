@@ -98,6 +98,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La barba sta sul viso, con precisione.** La maschera del pelo prendeva
+  tutti i pixel scuri sotto il confine: le ciocche lunghe ai lati del viso
+  diventavano barba, e il pelo trapiantato da una testa donatrice sbordava
+  oltre guance e mento. Ora la barba vive in una campana centrata sul viso
+  — le ciocche restano capelli — e il trapianto aderisce alla sagoma della
+  testa che lo riceve; solo la coda della barba lunga resta libera di
+  pendere sotto il mento.
+
+- **Il Report non parte piu' vuoto quando il runtime batte i moduli.** La
+  lista dei dispositivi nasceva da una chiamata sola all'avvio e, se i
+  moduli non c'erano ancora, restava vuota fino a un timer di cortesia:
+  appena i moduli si annunciano, se quella chiamata era fallita si
+  ricostruisce subito.
+
 - **Il vassoio delle Azioni rapide segue il tema scuro.** In dark il ripiano
   restava un lenzuolo bianco in mezzo alla Home nera, coi tasti scuri sopra:
   il fondo leggeva una variabile che non esiste (`--bg`) e cadeva sul

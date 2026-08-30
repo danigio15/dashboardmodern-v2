@@ -93,12 +93,31 @@ function tintaCapelli(dati, lato, rgb, lift) {
 const confine = (x, lato, centro = 0.46, alzata = 0.09) =>
   lato * (centro + alzata * ((x - lato / 2) / (lato / 2)) ** 2);
 
+/* La campana della barba: quanto puo' allargarsi dal centro del viso, riga
+ * per riga. Al livello della bocca arriva alle guance, verso il mento si
+ * stringe. Dal campo: «la barba sul viso non e' precisa» — senza questo
+ * limite le ciocche lunghe ai lati del viso (la donna, il neutro coi capelli
+ * sciolti) finivano nella maschera e diventavano barba, e il pelo saliva
+ * sulle guance fino agli occhi. */
+function dentroLaCampana(x, y, lato) {
+  const dalCentro = Math.abs(x - lato / 2) / (lato / 2);
+  const quota = y / lato;
+  /* Da 0.62 di semi-larghezza alla bocca a 0.34 sotto il mento. */
+  const semiLarghezza = quota < 0.68 ? 0.62 : 0.62 - ((quota - 0.68) / 0.29) * 0.28;
+  return dalCentro <= semiLarghezza;
+}
+
 function mascheraBarba(dati, lato) {
   const maschera = new Uint8Array(lato * lato);
   for (let y = Math.floor(lato * 0.36); y < lato * 0.97; y += 1)
     for (let x = 0; x < lato; x += 1) {
       const i = (y * lato + x) * 4;
-      if (dati[i + 3] > 40 && Math.max(dati[i], dati[i + 1], dati[i + 2]) < PELO && y > confine(x, lato))
+      if (
+        dati[i + 3] > 40 &&
+        Math.max(dati[i], dati[i + 1], dati[i + 2]) < PELO &&
+        y > confine(x, lato) &&
+        dentroLaCampana(x, y, lato)
+      )
         maschera[y * lato + x] = 1;
     }
   return maschera;
@@ -203,6 +222,11 @@ function applicaBarba(telaTesta, op, donatrice) {
   if (donatrice) {
     const strato = stratoBarba(dati, maschera, lato);
     const { scala, x, y } = op.innesto || { scala: 1, x: 0, y: 0 };
+    /* Il pelo trapiantato aderisce al viso che lo riceve: `source-atop`
+     * disegna solo dove la testa ha gia' pixel, e la barba di una donatrice
+     * piu' larga non sborda piu' oltre le guance e il mento («la barba sul
+     * viso non e' precisa»). Solo la coda della lunga resta libera: deve
+     * pendere SOTTO il mento, fuori dalla sagoma. */
     if (op.foggia === "lunga") {
       /* Prima si allunga nello spazio della donatrice, poi si innesta. */
       const pieno = doc.createElement("canvas");
@@ -210,10 +234,16 @@ function applicaBarba(telaTesta, op, donatrice) {
       pieno.height = Math.round(lato * (1 + BARBA_LUNGA_EXTRA));
       const suo = pieno.getContext("2d");
       coda(suo, strato);
-      suo.drawImage(strato, 0, 0);
       pennello.drawImage(pieno, x, y, lato * scala, pieno.height * scala);
-    } else {
+      pennello.save();
+      pennello.globalCompositeOperation = "source-atop";
       pennello.drawImage(strato, x, y, lato * scala, lato * scala);
+      pennello.restore();
+    } else {
+      pennello.save();
+      pennello.globalCompositeOperation = "source-atop";
+      pennello.drawImage(strato, x, y, lato * scala, lato * scala);
+      pennello.restore();
     }
   } else {
     const ritocco = pennello.createImageData(lato, lato);

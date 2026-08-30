@@ -1066,7 +1066,9 @@ function bindEvents() {
     installObserver();
     installEnergyEditorContracts();
     scheduleEnergyRefresh(true);
+    risvegliaReportDelGuscio();
   });
+  root.addEventListener?.("dashboardmodern:runtime-ready", risvegliaReportDelGuscio);
   /* La maschera Energia si ridisegna anche da sola — dichiarare una sorgente
    * unica con segno spegne le caselle dei due versi — e i campi aggiunti qui
    * vanno rimessi sul nuovo albero. */
@@ -1079,6 +1081,23 @@ function bindEvents() {
     if (state.bundle) scheduleProjection();
     else scheduleEnergyRefresh(true);
   });
+}
+
+/* Il Report del guscio parte a freddo: la sua lista (ED_DEVICES) nasce da
+ * UNA chiamata all'avvio del runtime, e se quella corre prima che i moduli
+ * esistano la lista resta vuota fino a un timer di cortesia di due secondi
+ * e mezzo — sul campo un Report senza dispositivi, e sulla macchina lenta
+ * della CI un rosso che va e viene. Il guscio pero' lascia un segno quando
+ * fallisce (__DM_REPORT_RUNTIME_ERROR__): appena i moduli annunciano di
+ * esserci, se il segno e' acceso si ricostruisce; quando il guscio ce
+ * l'aveva gia' fatta, qui non si tocca niente. */
+function risvegliaReportDelGuscio() {
+  if (!root.__DM_REPORT_RUNTIME_ERROR__) return;
+  if (typeof root.cdRebuildReportDevices !== "function") return;
+  try {
+    root.cdRebuildReportDevices();
+    root.buildReportSelect?.();
+  } catch (_error) {}
 }
 
 function subscribeStore() {
