@@ -637,6 +637,13 @@ function installStyles() {
       .dm-icon-engine-glyph>span{display:block!important;line-height:1!important}
       [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]{position:relative!important;color:initial!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"]{z-index:100040!important}
+      /* Il dialogo dei picker ha TRE figli — testata, ricerca, griglia — ma il
+       * guscio dei dialoghi di sezione ne prevede due (auto minmax(0,1fr)) ad
+       * altezza fissa: la riga elastica finiva alla RICERCA e la griglia
+       * cascava in fondo, con un vuoto enorme in mezzo — cercando, l'unica
+       * icona trovata restava in basso invece di salire in testa. Qui le righe
+       * giuste e l'altezza a contenuto: i risultati stanno sotto la ricerca. */
+      .dm-section-modal .dm-section-dialog.dm-picker-dialog{height:auto!important;grid-template-rows:auto auto minmax(0,1fr)!important;align-content:start!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-dialog{width:min(820px,calc(100vw - 22px))!important;max-height:min(88dvh,800px)!important;overflow:hidden!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-search{padding:12px 18px 8px!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-search .ed-input{width:100%!important;box-sizing:border-box!important}

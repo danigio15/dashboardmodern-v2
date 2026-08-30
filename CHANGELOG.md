@@ -9,6 +9,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le icone dicono la stessa cosa dappertutto.** Nel form delle Stanze
+  l'anteprima accanto al campo diceva l'emoji di sistema (🚿) mentre catalogo
+  e righe salvate dicono il disegno di casa: ora anche l'anteprima chiede al
+  motore dei disegni. Nelle tendine «Seleziona stanza» (Temperatura, Clima,
+  Finestre) i nomi uscivano con l'emoji davanti — un catalogo estraneo — e in
+  un menu nativo il disegno di casa non si puo' mettere: resta il nome, senza
+  icona sbagliata.
+
+- **Nel catalogo icone i risultati della ricerca salgono in testa.** La
+  griglia stava ancorata in fondo a una finestra ad altezza fissa — il guscio
+  dei dialoghi prevede due figli, il picker ne ha tre, e la riga elastica
+  finiva alla barra di ricerca: cercando, l'unica icona trovata restava in
+  basso con un vuoto enorme sopra. Ora testata, ricerca e griglia hanno
+  ognuna la propria riga e i risultati stanno subito sotto la ricerca.
+
 - **Aggiungere una voce al MiniPC non butta le entita' gia' scritte.** Il
   ridisegno della lista ripartiva dai valori catturati all'apertura del
   pannello: tutto cio' che era digitato ma non ancora salvato spariva — con

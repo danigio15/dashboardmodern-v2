@@ -1,5 +1,4 @@
 // DM-FIX-20260812C
-import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   clean,
   dashboardStore,
@@ -189,7 +188,10 @@ function replaceRoomOptions(select, { temperature = false } = {}) {
   rooms.forEach((room) => {
     const option = doc.createElement("option");
     option.value = clean(room.id || room.name);
-    option.textContent = `${directEmoji(room.icon) || roomGlyph(room.icon)} ${clean(room.name) || option.value}`;
+    /* Solo il nome: l'emoji davanti veniva dal catalogo di sistema — «il
+     * catalogo non nostro» — e in un option nativo il disegno di casa non si
+     * puo' mettere. Meglio nessuna icona che quella sbagliata. */
+    option.textContent = clean(room.name) || option.value;
     if (temperature && !editing && (clean(room.temp) || clean(room.hum)) && option.value !== current) option.disabled = true;
     options.push(option);
   });

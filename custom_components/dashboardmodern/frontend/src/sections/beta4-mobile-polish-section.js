@@ -251,7 +251,14 @@ function polishRoomFirstInsert() {
   trigger.setAttribute("aria-label", t("Scegli icona stanza", "Choose room icon"));
   const refresh = () => {
     const value = clean(input.value) || "mdi:home";
-    trigger.innerHTML = roomVisual(value, 46) || `<span aria-hidden="true">🏠</span>`;
+    /* La stessa icona che si vedra' dopo il salvataggio: l'anteprima diceva
+     * l'emoji (🚿) mentre il catalogo e le righe salvate dicono il disegno di
+     * casa — «prima si mostra un'icona poi se ne vede un'altra». Chi disegna
+     * l'anteprima e' lo stesso motore che disegna il resto. */
+    trigger.innerHTML =
+      root.DashboardModernIconEngine?.markup?.("room", value, { size: 40 }) ||
+      roomVisual(value, 46) ||
+      `<span aria-hidden="true">🏠</span>`;
   };
   if (trigger.dataset.dmBeta5Bound !== "true") {
     trigger.dataset.dmBeta5Bound = "true";
