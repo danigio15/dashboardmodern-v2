@@ -160,4 +160,31 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
   /* E un accessorio si sceglie come tutto il resto. */
   await riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]').click();
   await expect(riga.locator('[data-face-k="occhiali"][data-face-v="tondi"]')).toHaveClass(/on/);
+
+  /* Il banco si aggiorna IN LOCO: un tocco non ricostruisce le file.
+   * Rifare tutto a ogni scelta buttava ottanta pastiglie composte e le
+   * ricomponeva da capo — su webkit lento il banco restava in subbuglio e i
+   * click non trovavano mai un bottone fermo. Qui si misura la quiete: dopo
+   * un tocco il bottone di un'altra fila e' LO STESSO nodo di prima, e
+   * nessuna casella gia' composta si e' svuotata. */
+  const primaDelTocco = await riga.evaluate((nodo) => {
+    window.__DM_NODO_FERMO__ = nodo.querySelector('[data-face-k="persona"][data-face-v="uomo"]');
+    return {
+      piene: nodo.querySelectorAll(".dm-face-opt-img img").length,
+    };
+  });
+  await riga.locator('[data-face-k="capelli"][data-face-v="ricci"]').click();
+  await expect(riga.locator('[data-face-k="capelli"][data-face-v="ricci"]')).toHaveClass(/on/);
+  const dopoIlTocco = await riga.evaluate((nodo) => ({
+    stessoNodo:
+      window.__DM_NODO_FERMO__ ===
+        nodo.querySelector('[data-face-k="persona"][data-face-v="uomo"]') &&
+      window.__DM_NODO_FERMO__?.isConnected === true,
+    piene: nodo.querySelectorAll(".dm-face-opt-img img").length,
+  }));
+  expect(dopoIlTocco.stessoNodo, "il bottone e' lo stesso nodo: niente ricostruzione").toBe(true);
+  expect(
+    dopoIlTocco.piene,
+    "le pastiglie composte non si svuotano mentre si ricompongono",
+  ).toBeGreaterThanOrEqual(primaDelTocco.piene);
 });

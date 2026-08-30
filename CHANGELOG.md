@@ -98,6 +98,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il banco del ritratto si aggiorna in loco, senza ricostruirsi.** Ogni
+  scelta rifaceva da capo tutte le file e buttava le ottanta pastiglie
+  composte: su un dispositivo lento il banco restava in subbuglio per
+  decine di secondi dopo ogni tocco, con le caselle vuote che si
+  riempivano una alla volta. Ora un tocco cambia solo cio' che cambia —
+  la spunta, le file che entrano o escono — e ogni pastiglia tiene il
+  disegno vecchio finche' quello nuovo non e' pronto.
+
 - **Le pillole d'avviso respirano anche in compatta.** La modalita' compatta
   spegneva l'alone dietro le tessere — ed era proprio l'alone il respiro
   degli avvisi, quello che li fa muovere anche quando non hanno un disegno

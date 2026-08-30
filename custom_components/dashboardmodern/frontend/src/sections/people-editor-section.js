@@ -424,15 +424,28 @@ async function dipingiAnteprime() {
     if (face && grande) ritrattoVivo(grande, face, "sveglio");
     for (const bottone of riga.querySelectorAll("[data-face-anteprima]")) {
       const posto = bottone.querySelector(".dm-face-opt-img");
-      if (!posto || posto.firstElementChild) continue;
+      if (!posto) continue;
+      /* Una pastiglia gia' composta per QUESTA anteprima non si rifa'; una
+       * superata (il banco aggiornato in loco le cambia l'anteprima sotto)
+       * tiene il disegno vecchio finche' il nuovo non e' pronto. */
+      const attesa = bottone.dataset.faceAnteprima || "";
+      if (!attesa) continue;
+      if (posto.dataset.dmComposta === attesa && posto.firstElementChild) continue;
+      if (posto.dataset.dmInViaggio === attesa) continue;
+      posto.dataset.dmInViaggio = attesa;
       let scelta = null;
-      try { scelta = JSON.parse(bottone.dataset.faceAnteprima); } catch (_errore) { continue; }
+      try { scelta = JSON.parse(attesa); } catch (_errore) { continue; }
       const url = await ritrattoFermo(scelta);
+      if (posto.dataset.dmInViaggio === attesa) delete posto.dataset.dmInViaggio;
       if (!url || !posto.isConnected) continue;
+      /* Nel frattempo un altro tocco puo' aver cambiato di nuovo l'anteprima:
+       * un disegno gia' vecchio non si mette. */
+      if ((bottone.dataset.faceAnteprima || "") !== attesa) continue;
       const img = doc.createElement("img");
       img.src = url;
       img.alt = "";
       posto.replaceChildren(img);
+      posto.dataset.dmComposta = attesa;
     }
   }
 }
@@ -457,13 +470,88 @@ function scriviFace(riga, people, index, face) {
   if (builder && people[index]) {
     const colore =
       clean(riga.querySelector('[data-person-field="color"]')?.value) || people[index].avatar.color;
-    builder.innerHTML = builderMarkup({
-      ...people[index],
-      avatar: { ...people[index].avatar, face, color: colore },
-    });
+    aggiornaBuilder(
+      builder,
+      builderMarkup({
+        ...people[index],
+        avatar: { ...people[index].avatar, face, color: colore },
+      }),
+    );
   }
   aggiornaAnteprima(riga, people, index);
   dipingiAnteprime();
+}
+
+/* Il banco del ritratto si aggiorna in loco, non si ricostruisce.
+ *
+ * Rifare `innerHTML` a ogni scelta buttava via ottanta pastiglie composte e
+ * le ricomponeva tutte da capo: su una macchina lenta il banco restava in
+ * subbuglio per decine di secondi dopo OGNI tocco — caselle vuote che si
+ * riempivano una alla volta — e la prova su webkit non trovava mai un
+ * bottone fermo da premere. Qui si copia sui bottoni che gia' esistono solo
+ * cio' che e' cambiato (la spunta, l'anteprima da comporre, l'etichetta
+ * della fila); le file nuove entrano vergini, quelle sparite se ne vanno, e
+ * ogni pastiglia superata tiene il disegno vecchio finche' quello nuovo non
+ * e' pronto. */
+function aggiornaBuilder(builder, markup) {
+  const nuovo = doc.createElement("div");
+  nuovo.innerHTML = markup;
+  const fileNuove = nuovo.querySelector(".dm-face-rows");
+  const fileVecchie = builder.querySelector(".dm-face-rows");
+  /* Da o verso lo stato senza ritratto (Crea/Togli): struttura diversa,
+   * la ricostruzione intera resta la strada onesta. */
+  if (!fileNuove || !fileVecchie) {
+    builder.innerHTML = markup;
+    return;
+  }
+  const viva = builder.querySelector("[data-face-anteprima-viva]");
+  const vivaNuova = nuovo.querySelector("[data-face-anteprima-viva]");
+  if (viva && vivaNuova && viva.getAttribute("style") !== vivaNuova.getAttribute("style"))
+    viva.setAttribute("style", vivaNuova.getAttribute("style"));
+  const chiaveDi = (fila) => fila.querySelector("[data-face-k]")?.dataset.faceK || "";
+  const vecchiePerChiave = new Map();
+  for (const fila of fileVecchie.querySelectorAll(".dm-face-row"))
+    vecchiePerChiave.set(chiaveDi(fila), fila);
+  const tenute = new Set();
+  let cursore = fileVecchie.firstElementChild;
+  for (const filaNuova of [...fileNuove.querySelectorAll(".dm-face-row")]) {
+    const chiave = chiaveDi(filaNuova);
+    let fila = vecchiePerChiave.get(chiave) || null;
+    if (fila) {
+      tenute.add(chiave);
+      const bottoniNuovi = [...filaNuova.querySelectorAll("[data-face-k]")];
+      const bottoni = [...fila.querySelectorAll("[data-face-k]")];
+      if (
+        bottoni.length !== bottoniNuovi.length ||
+        bottoni.some((b, i) => b.dataset.faceV !== bottoniNuovi[i].dataset.faceV)
+      ) {
+        /* La fila ha cambiato le sue voci: si cede il passo alla nuova. */
+        fila.replaceWith(filaNuova);
+        fila = filaNuova;
+      } else {
+        const lbl = fila.querySelector(".dm-face-row-lbl");
+        const lblNuova = filaNuova.querySelector(".dm-face-row-lbl");
+        if (lbl && lblNuova && lbl.innerHTML !== lblNuova.innerHTML)
+          lbl.innerHTML = lblNuova.innerHTML;
+        bottoni.forEach((bottone, i) => {
+          const atteso = bottoniNuovi[i];
+          if (bottone.className !== atteso.className) bottone.className = atteso.className;
+          for (const attributo of ["data-face-anteprima", "style", "aria-label"]) {
+            const valore = atteso.getAttribute(attributo);
+            if (bottone.getAttribute(attributo) === valore) continue;
+            if (valore === null) bottone.removeAttribute(attributo);
+            else bottone.setAttribute(attributo, valore);
+          }
+        });
+      }
+    } else {
+      fila = filaNuova;
+    }
+    if (fila === cursore) cursore = cursore.nextElementSibling;
+    else fileVecchie.insertBefore(fila, cursore);
+  }
+  for (const [chiave, fila] of vecchiePerChiave)
+    if (!tenute.has(chiave) && fila.isConnected) fila.remove();
 }
 
 /* L'anteprima del ritratto segue le mani: si cambia emoji o colore e lo si
