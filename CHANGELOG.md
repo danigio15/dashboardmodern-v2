@@ -5,6 +5,29 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.10
+
+### Corretto
+
+- **Sul telefono il popup dei widget non trema piu': entra in dissolvenza.**
+  Il video della segnalazione mostrava la finestra comparire quasi intera in
+  un fotogramma solo e poi assestarsi per un quarto di secondo: la scala con
+  la traslazione, sopra il fondale sfocato, sul telefono perde fotogrammi e
+  l'ingresso si legge come un tremito. Ora su schermo tattile la card compare
+  in dissolvenza pura — niente si muove, niente puo' tremare — e su desktop,
+  dove i fotogrammi ci sono, sale come prima. Tolto anche un ingresso a
+  sfalsamento delle righe rimasto scritto su un nome che non esiste piu'.
+
+- **Una X sola sul tondo di chiusura dello storico.** La X la disegna la
+  regola generica col suo ::before, nascondendo quella scritta nel markup;
+  la regola specifica dello storico rimetteva una misura al testo e sul
+  tondo se ne vedevano due.
+
+- **Al riavvio il velo nasce col logo, non con la sola rotella.** Il logo
+  era un'immagine esterna e arrivava dopo il primo dipinto: prima si vedeva
+  la rotella da sola, poi compariva lui. Ora una versione compressa del logo
+  viaggia dentro la pagina e il velo e' completo dal primo fotogramma.
+
 ## 1.3.9
 
 ### Aggiunto

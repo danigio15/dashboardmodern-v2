@@ -3815,6 +3815,17 @@ html.dm-widget-popup-open{overflow:hidden}
   box-shadow:0 32px 64px -28px rgba(2,6,23,.45),0 6px 18px -12px rgba(2,6,23,.25);
   animation:dmWidgetPopupCard .28s cubic-bezier(.16,1,.3,1)}
 @keyframes dmWidgetPopupCard{from{opacity:0;transform:scale(.96) translateY(12px)}to{opacity:1;transform:none}}
+/* Sul telefono la card non si muove: solo dissolvenza.
+ *
+ * La scala con la traslazione, sopra un fondale sfocato costoso, sul
+ * telefono perde fotogrammi: il video della segnalazione mostra la finestra
+ * che compare gia' quasi intera in un fotogramma solo e poi si assesta per un
+ * quarto di secondo — cioe' «trema» — perche' l'animazione d'ingresso viene
+ * mangiata dal lavoro del primo disegno. Una dissolvenza pura non ha niente
+ * che possa tremare: o si vede o non si vede ancora. L'override sta in fondo
+ * al foglio, DOPO la regola dmWidgetIn che a pari specificita' vincerebbe
+ * per posizione. Su desktop, dove i fotogrammi ci sono, la card sale come
+ * prima. */
 /* Chi ha chiesto meno movimento non lo riceve: la finestra c'e' o non c'e'. */
 @media(prefers-reduced-motion:reduce){
   #dm-widget-popup,#dm-widget-popup .dm-widget-detail{animation:none}
@@ -4630,6 +4641,16 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   content:"";position:absolute;top:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,transparent,var(--dm-widget-accent,#0ea5e9) 30%,var(--dm-widget-accent,#0ea5e9) 70%,transparent)}
 @keyframes dmWidgetIn{from{opacity:0;transform:translateY(-7px) scale(.985)}to{opacity:1;transform:none}}
+/* Questi override stanno DOPO la regola qui sopra, che a pari specificita'
+ * vincerebbe per posizione: messi prima non si applicavano mai — ne' la
+ * dissolvenza del telefono, ne' il rispetto di chi ha chiesto meno movimento
+ * (osservazione giusta della review). */
+@media(pointer:coarse){
+  :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{animation:dmWidgetPopupIn .22s ease-out}
+}
+@media(prefers-reduced-motion:reduce){
+  :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{animation:none}
+}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-head{display:flex;align-items:center;gap:9px;padding:13px 16px 10px}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-head-ic{font-size:16px}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-head strong{
@@ -4644,17 +4665,13 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   display:flex;align-items:center;gap:11px;min-height:42px;padding:5px 8px;border-radius:12px;
   animation:none;
   transition:background .2s ease}
-/* Le righe entrano una volta sola: al primo disegno dopo l'apertura. */
-:is(#dm-widgets,#dm-widget-popup) .dm-w-body[data-dm-fresh="true"] .dm-row{
-  animation:dmRowIn .32s cubic-bezier(.16,1,.3,1) both}
-@keyframes dmRowIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(1){animation-delay:30ms}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(2){animation-delay:60ms}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(3){animation-delay:90ms}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(4){animation-delay:120ms}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(5){animation-delay:150ms}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(6){animation-delay:180ms}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(n+7){animation-delay:210ms}
+/* Le righe non hanno un ingresso loro: entra la finestra, tutta insieme.
+ *
+ * L'ingresso a sfalsamento era scritto su .dm-row, un nome che nel corpo
+ * non esiste — le righe sono .dm-w-row — quindi non e' mai partito, e gli
+ * sfalsamenti qui sotto ritardavano un'animazione che era none. Non si
+ * ripara: righe che scivolano dentro una card che sta ancora salendo sono
+ * un secondo movimento sopra il primo, cioe' il tremolio. Se ne va tutto. */
 :is(#dm-widgets,#dm-widget-popup) .dm-w-row:hover{background:var(--surface-3,#f1f5f9)}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-glyph{flex:0 0 auto;font-size:15px;transition:filter .25s ease,opacity .25s ease}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-glyph[data-on="false"]{filter:grayscale(1);opacity:.4}

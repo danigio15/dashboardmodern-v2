@@ -42,13 +42,22 @@ for (const variante of ["dashboard.html", "dashboard-en.html"]) {
     test.setTimeout(120_000);
     /* Il campionatore si installa prima di qualunque script della pagina e
      * guarda a ogni fotogramma: c'e' ancora il velo? i moduli sono
-     * installati? Un fotogramma senza velo e senza moduli e' il difetto. */
+     * installati? Un fotogramma senza velo e senza moduli e' il difetto.
+     *
+     * Ma si vigila da quando il velo e' ESISTITO almeno una volta: il primo
+     * fotogramma puo' capitare mentre il parser sta ancora leggendo la testata
+     * — li' il corpo e' vuoto e si vede solo il fondo tinto, che non e' la
+     * plancia del guscio. Che il velo arrivi subito lo pretende gia' la prova
+     * del velo, con la rete strozzata; qui il contratto e' un altro: una volta
+     * su, il velo non se ne va prima che i moduli abbiano preso in mano. */
     await page.addInitScript(() => {
       window.__scoperti = [];
+      let veloVisto = false;
       const guarda = () => {
         const velo = Boolean(document.getElementById("cd-boot-overlay"));
+        veloVisto ||= velo;
         const moduli = Boolean(window.__DASHBOARDMODERN_SECTION_RUNTIME__?.installed);
-        if (!velo && !moduli) window.__scoperti.push(Math.round(performance.now()));
+        if (veloVisto && !velo && !moduli) window.__scoperti.push(Math.round(performance.now()));
         if (!moduli) requestAnimationFrame(guarda);
       };
       requestAnimationFrame(guarda);

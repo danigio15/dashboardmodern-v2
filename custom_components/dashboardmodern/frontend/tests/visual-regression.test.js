@@ -48,10 +48,14 @@ const expectedTabs = [
  *    delle sezioni ci si perdevano dentro. Adesso il fondo e' quasi pieno, il
  *    vetro sfoca di piu' — quello che passa sotto si intuisce e non si legge,
  *    che e' il punto di un vetro smerigliato — e ogni voce costa dodici pixel
- *    in meno: l'icona e il nome ci stanno lo stesso, il resto era aria. */
+ *    in meno: l'icona e il nome ci stanno lo stesso, il resto era aria;
+ *  - sul tondo di chiusura dello storico c'era una X di troppo. La X la
+ *    disegna il ::before della regola generica, che azzera la misura del
+ *    testo per nascondere quella scritta nel markup; la regola specifica
+ *    dello storico rimetteva font-size 14px e le si vedevano tutte e due. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "4a552a37b22aed71bce1437083aefe8f5aa30d384b82b5bbba89f65cee158040",
-  "dashboard-runtime-en.css": "58f2316aea1acaac607fb1edb5dcc00eccea5d9a5cc42a9bbf0c5d071ddff7e1",
+  "dashboard-runtime-it.css": "fe071ead5060bad9a1294bd78f0e98c17c13012fcf80cb28999bf11fecbcf2d9",
+  "dashboard-runtime-en.css": "69cec2f6f0f01f7a1e00e5d1ead35362f1c2a57fdd904fc9a2f2ecc528f31c43",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {
