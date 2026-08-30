@@ -9,6 +9,33 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il tasto Clima rapido e' per unita', e si imposta dove si configura
+  l'unita'.** Modalita', temperatura e ventola stavano in un blocco globale
+  sopra le unita' — «viene attribuito quel valore a tutto» — e la cameretta
+  non poteva volere 24 gradi col salone a 26. I tre campi ora stanno nel form
+  di aggiunta, prima di «Aggiungi unita' clima», e nella finestra della
+  matita: ogni unita' ha i suoi passi, che viaggiano con la configurazione
+  (revisione 12). La tendina della Ventola non resta piu' vuota quando
+  l'unita' non dichiara i suoi `fan_modes`: si offrono le quattro velocita'
+  standard, coi nomi per esteso.
+
+- **Nel popup Clima la tessera della stanza disegna la stanza.** Bastava che
+  l'unita' avesse una stanza per ritrovarsi l'icona della porta; ora esce il
+  disegno di casa dell'icona della stanza, e la porta e' tornata alle porte.
+
+- **Azioni rapide piu' oneste.** Il campo «Entita' da comandare» compare solo
+  per i tipi che la usano (toggle, script, scena): i popup nativi le entita'
+  se le prendono da soli. E un popup nativo senza nome scritto dice cosa apre
+  — Luci, Clima, Antifurto, Lavatrice — invece di «Azione rapida» ripetuto.
+
+- **I modali di modifica si leggono.** L'entita' inserita stava su una
+  pillola blu piena col testo invisibile: il blu resta al bottone-lente, la
+  chip col nome torna chiara. «Modifica luce» spiegava il solo-vista con le
+  parole delle prese («il frigo, il modem, il congelatore») schiacciate in
+  una colonnina: parole sue e riga impaginata. Una luce aggiunta senza nome
+  prende il friendly name dell'entita', non lo slug «faretti_cucina». E le
+  tendine delle stanze dei modali dicono solo il nome, senza emoji davanti.
+
 - **Le icone dicono la stessa cosa dappertutto.** Nel form delle Stanze
   l'anteprima accanto al campo diceva l'emoji di sistema (🚿) mentre catalogo
   e righe salvate dicono il disegno di casa: ora anche l'anteprima chiede al

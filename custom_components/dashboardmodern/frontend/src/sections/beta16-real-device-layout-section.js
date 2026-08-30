@@ -122,8 +122,16 @@ function repairQuickActionRows() {
     const anchor = row.querySelector(":scope > .dm-beta7-existing-action-icon,:scope > .dm-room-list-icon");
     const nodes = ensureRowMain(row, anchor);
     if (!nodes) return;
-    const name = clean(action.name) || (t("Azione rapida", "Quick action"));
     const type = clean(action.builtin || action.type).replace(/^builtin_/, "");
+    /* Un popup nativo senza nome scritto dice COSA apre, non «Azione rapida»:
+     * quattro righe uguali non si distinguevano in niente. */
+    const titoli = {
+      luci: t("Luci", "Lights"),
+      clima: t("Clima", "Climate"),
+      antifurto: t("Antifurto", "Alarm"),
+      lavatrice: t("Lavatrice", "Washing machine"),
+    };
+    const name = clean(action.name) || titoli[type] || (t("Azione rapida", "Quick action"));
     nodes.primary.textContent = name;
     nodes.primary.title = name;
     nodes.secondary.textContent = clean(action.entity) || type;

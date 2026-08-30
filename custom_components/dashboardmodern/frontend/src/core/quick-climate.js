@@ -19,6 +19,17 @@
 
 export const QUICK_CLIMATE_KEY = "cd_clima_rapido";
 
+/* I passi di OGNI unita', per entita': «come e' impostato ora viene attribuito
+ * quel valore a tutto» — e invece la cameretta puo' volere 24 gradi e il
+ * salone 26. La chiave globale resta il ripiego di chi non specifica. */
+export const QUICK_CLIMATE_UNITS_KEY = "cd_clima_rapido_unita";
+
+/* Le quattro velocita' che Home Assistant chiama standard: il ripiego di
+ * quando NESSUNA unita' dichiara le sue — capita alle integrazioni che
+ * rispondono tardi o senza attributi. Stessa regola delle modalita': una
+ * scheda senza scelte e' peggio di una scheda con una scelta in piu'. */
+export const QUICK_CLIMATE_FAN_FALLBACK = Object.freeze(["auto", "low", "medium", "high"]);
+
 /* Quello che la plancia ha sempre fatto: resta il comportamento di chi non
  * apre mai la configurazione. */
 export const QUICK_CLIMATE_DEFAULT = Object.freeze({
@@ -63,6 +74,21 @@ export function normalizeQuickClimate(stored) {
           : QUICK_CLIMATE_DEFAULT.temperature,
     fan,
   };
+}
+
+/**
+ * Il preset di UNA unita': il suo se l'ha detto, altrimenti quello globale.
+ *
+ * `perUnita` e' il contenuto della chiave per-entita' ({ "climate.cucina":
+ * {mode,temperature,fan} }), `globale` quello della chiave storica. Un record
+ * per-unita' si salva sempre completo dal suo form, quindi il ripiego e' tutto
+ * o niente: niente fusioni campo per campo che nessuno saprebbe prevedere.
+ */
+export function quickClimateForUnit(entity, perUnita, globale) {
+  const chiave = pulito(entity);
+  const dato =
+    perUnita && typeof perUnita === "object" && !Array.isArray(perUnita) ? perUnita[chiave] : null;
+  return normalizeQuickClimate(dato && typeof dato === "object" ? dato : globale);
 }
 
 /**

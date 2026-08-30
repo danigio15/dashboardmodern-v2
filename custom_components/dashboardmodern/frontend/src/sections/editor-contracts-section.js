@@ -490,7 +490,10 @@ function installStyles() {
       .dm-section-modal .dm-section-dialog .ed-slot-lbl{font-size:12px!important;font-weight:800!important;color:var(--secondary-text-color,#64748b)!important}
       .dm-section-modal .dm-section-dialog .ed-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 48px!important;gap:10px!important;align-items:center!important}
       .dm-section-modal .dm-section-dialog .ed-input{box-sizing:border-box!important;width:100%!important;min-height:48px!important;padding:10px 14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:13px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:inherit!important}
-      .dm-section-modal .dm-section-dialog .dm-entity-picker{min-width:48px!important;height:48px!important;border:0!important;border-radius:13px!important;background:var(--primary-color,#0284c7)!important;color:#fff!important;cursor:pointer!important}
+      /* Il blu pieno e' del bottone-lente quadrato, NON della chip larga che
+         porta il nome dell'entita': dipinta cosi', l'entita' inserita non si
+         leggeva — blu su blu, da ogni modale di modifica. */
+      .dm-section-modal .dm-section-dialog .dm-entity-picker:not(.dm-slot-chip){min-width:48px!important;height:48px!important;border:0!important;border-radius:13px!important;background:var(--primary-color,#0284c7)!important;color:#fff!important;cursor:pointer!important}
       .dm-section-modal .dm-section-dialog>form>footer{position:sticky!important;bottom:0!important;z-index:2!important;display:flex!important;justify-content:flex-end!important;gap:10px!important;margin:2px -22px 0!important;padding:14px 22px 18px!important;border-top:1px solid var(--divider-color,#e2e8f0)!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
       .dm-section-modal .dm-section-dialog>form>footer button{min-height:44px!important;padding:10px 16px!important;border:0!important;border-radius:12px!important;font-weight:900!important;cursor:pointer!important}
       .dm-section-modal .dm-section-dialog>form>footer .ed-save-btn{background:var(--success-color,#059669)!important;color:#fff!important}

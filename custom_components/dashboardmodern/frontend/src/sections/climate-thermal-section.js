@@ -774,6 +774,28 @@ function unitaDelModo(modo) {
   });
 }
 
+/* Il disegno di casa della stanza di un'unita', se la stanza ha un'icona. */
+function disegnoDellaStanza(riferimento) {
+  const chiave = clean(riferimento);
+  if (!chiave) return "";
+  let stanze = [];
+  try {
+    stanze = root.cdRoomList?.() || [];
+  } catch (_error) {
+    stanze = [];
+  }
+  const stanza = stanze.find(
+    (voce) => clean(voce?.id) === chiave || clean(voce?.name) === chiave,
+  );
+  const icona = clean(stanza?.icon);
+  if (!icona) return "";
+  try {
+    return root.DashboardModernIconEngine?.markup?.("room", icona, { size: 34 }) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
 function tastoRapido(unita, states) {
   const stato = states?.[unita.entity];
   const grezzo = clean(stato?.state).toLowerCase();
@@ -796,10 +818,14 @@ function tastoRapido(unita, states) {
     else root.nsToggleTerm?.(unita.entity);
   };
   const nome = clean(unita.name) || clean(unita.room) || unita.entity;
-  const icona = clean(unita.room) ? "🚪" : freddo ? "❄️" : "🔥";
+  /* L'icona e' quella della STANZA, dal catalogo dei disegni di casa: prima
+   * bastava avere una stanza per ritrovarsi una porta (🚪) — «che c'entra
+   * l'icona porta nel clima». Senza stanza, o senza disegno, parla il modo. */
+  const disegno = disegnoDellaStanza(unita.room);
+  const icona = freddo ? "❄️" : "🔥";
   tasto.innerHTML =
     `${gradi ? `<span class="ns-clima-btn-temp">${esc(gradi)}</span>` : ""}` +
-    `<span class="ns-clima-btn-icon">${esc(icona)}</span>` +
+    `<span class="ns-clima-btn-icon">${disegno || esc(icona)}</span>` +
     `<span class="ns-clima-btn-name">${esc(nome)}</span>`;
   return tasto;
 }

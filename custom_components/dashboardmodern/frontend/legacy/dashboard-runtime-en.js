@@ -6868,7 +6868,8 @@ function nsToggleClima(entityId) {
       // lasciata vuota vuol dire «non toccare». Se il modulo che li traduce non
       // c'e', si accende come si e' sempre acceso.
       var passi;
-      try { passi = window.dmQuickClimateSteps && window.dmQuickClimateSteps(); } catch (e) { passi = null; }
+      // I passi sono di QUESTA unita': ogni entita' ha i suoi, il globale resta il ripiego.
+      try { passi = window.dmQuickClimateSteps && window.dmQuickClimateSteps(entityId); } catch (e) { passi = null; }
       if (!passi || !passi.length) passi = [
         { service: 'set_hvac_mode', data: { hvac_mode: 'cool' } },
         { service: 'set_temperature', data: { temperature: 26 } },
