@@ -74,6 +74,10 @@ const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
 export const TODO_CONFIG_KEY = "cd_todo";
 export const WIDGETS_CONFIG_KEY = "cd_widgets";
+/* Le entita' «In evidenza» (#236): sensori sparsi che si vogliono tenere
+ * d'occhio dalla Home senza dar loro una sezione intera. La chiave e' gia'
+ * registrata in persistenza, revisione 13. */
+export const EVIDENZA_CONFIG_KEY = "cd_evidenza";
 const STALE_MS = 30000;
 /* Quanto si aspetta prima di richiedere le voci a una lista che ha appena
  * risposto con un errore — o non ha risposto affatto. */
@@ -1076,21 +1080,22 @@ function robotsModel(states) {
     .map((robot) => robotView(robot, states));
   if (!viste.length) return null;
 
-  const attivi = viste.filter((vista) => vista.cleaning);
+  /* «Al lavoro» copre entrambe le specie: chi pulisce e chi taglia. */
+  const attivi = viste.filter((vista) => vista.cleaning || vista.mowing);
   const cariche = viste.map((vista) => vista.battery).filter((carica) => carica != null);
   const piuScarico = cariche.length ? Math.min(...cariche) : null;
   return {
     key: "robot",
     accent: "#7c3aed",
     icon: "🤖",
-    label: t("Aspirapolvere", "Vacuums"),
+    label: t("Robot", "Robots"),
     value: attivi.length
       ? `${attivi.length}`
       : piuScarico == null
         ? `${viste.length}`
         : `${Math.round(piuScarico)}%`,
     caption: attivi.length
-      ? t("in pulizia", "cleaning")
+      ? t("al lavoro", "working")
       : piuScarico == null
         ? t("configurati", "configured")
         : t("carica più bassa", "lowest charge"),
@@ -1102,7 +1107,7 @@ function robotsModel(states) {
      * conta. Senza, un aspirapolvere che sta pulendo veniva annunciato come
      * fermo, e l'avviso di batteria scarica non poteva mai uscire. */
     rows: viste.map((vista) => ({
-      glyph: vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
+      glyph: vista.mowing ? "🌱" : vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
       name: vista.name,
       cleaning: vista.cleaning,
       charging: vista.charging,
@@ -1710,7 +1715,57 @@ function customAlertModels(states) {
     .filter(Boolean);
 }
 
+/* La tessera «In evidenza» (#236).
+ *
+ * Le altre tessere raccontano una sezione; questa racconta le entita' scelte a
+ * mano — il quadro elettrico, la sonda del rack, la pompa del pozzo — che una
+ * sezione non ce l'hanno e in Home prima non avevano un posto. La
+ * configurazione sta in `cd_evidenza`: righe `{name, icon?, entity, room_id?}`
+ * scritte nella scheda 🧩 Widget, e la tessera compare solo se almeno una riga
+ * ha la sua entita'. Ogni riga si legge con `rigaDaEntita`, che sa gia' dare a
+ * un numero la sua unita' e a un interruttore la sua parola; il nome scelto
+ * dall'utente vince su quello dell'integrazione. */
+export function evidenzaModel(states) {
+  const voci = readJson(EVIDENZA_CONFIG_KEY, []);
+  if (!Array.isArray(voci)) return null;
+  const fuori = widgetExcludedEntities();
+  const rows = voci
+    .map((voce) => {
+      const entity = clean(voce?.entity);
+      if (!entity || !widgetIncludes(entity, fuori)) return null;
+      const glifo = clean(voce?.icon) || "⭐";
+      const nome = clean(voce?.name);
+      const riga = rigaDaEntita(states, entity, glifo);
+      /* Un'entita' che adesso non risponde resta in tessera col suo trattino:
+       * e' stata scelta apposta, e sparire in silenzio direbbe «tutto bene». */
+      if (!riga)
+        return { glyph: glifo, name: nome || friendlyName(states, entity), entity, value: "—" };
+      return nome ? { ...riga, name: nome } : riga;
+    })
+    .filter(Boolean);
+  if (!rows.length) return null;
+  return {
+    key: "evidenza",
+    accent: "#eab308",
+    icon: "⭐",
+    label: t("In evidenza", "Highlights"),
+    // Il numero grande dice quante cose si stanno tenendo d'occhio; il
+    // riassunto sotto le nomina una per una col loro valore.
+    value: String(rows.length),
+    caption: rows.map((riga) => clean(`${riga.name} ${riga.value}`)).join(" · "),
+    ring: null,
+    // Si accende se qualcosa fra le evidenze e' acceso davvero.
+    attiva: rows.some((riga) => riga.on === true),
+    rows,
+  };
+}
+
 /* ── la personalizzazione (cd_widgets) ────────────────────────────────── */
+
+/* I tre modi della compatta (#224): mai, auto, sempre. «Auto» e' il difetto,
+ * e vuol dire compatta solo dove lo spazio manca — sotto i 520 pixel, deciso
+ * dalla media query del foglio, non da un giro di JavaScript. */
+const MODI_COMPATTO = Object.freeze(["mai", "auto", "sempre"]);
 
 export function widgetPreferences() {
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
@@ -1719,7 +1774,10 @@ export function widgetPreferences() {
   const excluded = Array.isArray(stored?.excluded)
     ? stored.excluded.map(clean).filter(Boolean)
     : [];
-  return { hidden, order, excluded };
+  const compatto = MODI_COMPATTO.includes(clean(stored?.compatto))
+    ? clean(stored?.compatto)
+    : "auto";
+  return { hidden, order, excluded, compatto };
 }
 
 /* Le entita' che restano fuori dai widget.
@@ -1754,6 +1812,7 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
 function widgetModels(states) {
   return applyWidgetPreferences(
     [
+      evidenzaModel(states),
       todoModel(states),
       lightsModel(states),
       climateModel(states),
@@ -1943,8 +2002,13 @@ function fallaEntrare(nodo, spazioBase, corpoMinimo) {
   if (!nodo) return;
   nodo.style.letterSpacing = "";
   nodo.style.fontSize = "";
+  /* La soglia e' un pixel intero di sforo, non due: nelle pillole compatte il
+   * nome sfora spesso di un pixel solo — colpa degli arrotondamenti a corpo
+   * 8.8 — e con la soglia larga il fitter non interveniva mai: restava il
+   * taglio coi puntini, cioe' l'ellissi spuria, su nomi che un decimo di
+   * corpo in meno avrebbe fatto entrare interi. */
   const stretta = () =>
-    nodo.scrollWidth > nodo.clientWidth + 1 || nodo.scrollHeight > nodo.clientHeight + 1;
+    nodo.scrollWidth - nodo.clientWidth >= 1 || nodo.scrollHeight - nodo.clientHeight >= 1;
   if (!stretta()) return;
   let spazio = spazioBase;
   let corpo = Number.parseFloat(root.getComputedStyle?.(nodo)?.fontSize) || 10;
@@ -1960,8 +2024,12 @@ function fallaEntrare(nodo, spazioBase, corpoMinimo) {
 }
 
 function sistemaLeScritte(dove = doc) {
+  /* Il minimo scende a 6.7: nelle pillole compatte il nome parte gia' da 8.8
+   * pixel, e fermarsi a 7.6 lasciava «Elettrodomestici» a meta' strada — ne'
+   * intero ne' leggibile. Prima si stringe la spaziatura, poi il corpo: e'
+   * l'ordine che `fallaEntrare` ha gia'. */
   for (const nome of dove?.querySelectorAll?.("[data-dm-tile-label]") || [])
-    fallaEntrare(nome, 0.11, 7.6);
+    fallaEntrare(nome, 0.11, 6.7);
   /* Anche il titolo della finestra: «Elettrodomestici» a venticinque pixel
    * con due di spaziatura finiva sotto il tasto di chiusura. */
   for (const titolo of dove?.querySelectorAll?.("[data-dm-titolo]") || [])
@@ -2661,6 +2729,7 @@ function pilloleDelloStato(widget) {
  * gia' glifo, valore e nome: qui cambiano vestito, da elenco a caselle. Le
  * acceso/spento restano alle pillole, i comandi restano comandi. */
 const CHIAVI_A_CARTE = new Set([
+  "evidenza",
   "ev",
   "solare",
   "piscina",
@@ -3183,6 +3252,13 @@ export function renderHomeWidgets() {
   }
   const mounted = host || ensureHost();
   if (!mounted) return false;
+  /* La modalita' compatta (#224) e' un attributo sull'ospite, e il resto lo fa
+   * il foglio: «sempre» stringe subito, «auto» stringe solo sotto i 520 pixel
+   * grazie alla media query, «mai» non lascia traccia. */
+  const compatto = widgetPreferences().compatto;
+  if (compatto === "mai") mounted.removeAttribute?.("data-dm-compatto");
+  else if (mounted.getAttribute?.("data-dm-compatto") !== compatto)
+    mounted.setAttribute?.("data-dm-compatto", compatto);
   const title = mounted.querySelector(".dm-widgets-title");
   if (title) title.textContent = t("Widget", "Widgets");
   /* La riga sotto il titolo diceva come si usa una tessera. Lo si capisce da
@@ -3485,8 +3561,22 @@ function scorriUnaRiga(riga) {
   return false;
 }
 
+/* Se le didascalie adesso sono nascoste dalla compatta: con «sempre» lo sono
+ * per forza, con «auto» solo quando la media query del foglio e' vera — e
+ * `matchMedia` risponde alla stessa domanda della stessa query. */
+function didascalieNascoste() {
+  const modo = clean(doc?.getElementById?.("dm-widgets")?.getAttribute?.("data-dm-compatto"));
+  if (modo === "sempre") return true;
+  if (modo === "auto") return Boolean(root.matchMedia?.("(max-width: 520px)")?.matches);
+  return false;
+}
+
 function scorriDidascalie(grid) {
   if (!grid?.querySelectorAll) return 0;
+  /* Con le tessere compatte le didascalie non si vedono: misurarle lo stesso
+   * sarebbe un reflow a vuoto a ogni giro di valori, su un telefono che e'
+   * proprio il posto dove la compatta scatta. */
+  if (didascalieNascoste()) return 0;
   let mossi = 0;
   for (const nastro of grid.querySelectorAll("[data-dm-tile-caption]")) {
     const finestra = nastro.parentElement;
@@ -4857,8 +4947,108 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 @media (max-width:520px){
   :is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 }
+${regoleCompatte()}
 `,
   );
+}
+
+/* La modalita' compatta «C4» (#224): il design approvato, riprodotto pari.
+ *
+ * La tessera diventa una pillola coricata: due colonne, quarantotto pixel
+ * d'altezza, raggio quattordici. Dentro, tre cose sole — il chip neutro con
+ * l'oggetto, il nome in maiuscoletto pieno, il valore ancorato a destra — e
+ * sul fianco sinistro la tacca a semipillola col colore della sezione, fusa
+ * nel bordo. Le didascalie e le misure spariscono: la pillola e' il colpo
+ * d'occhio, il resto vive nel popup, che non cambia.
+ *
+ * Le stesse regole valgono due volte — sempre, e in «auto» solo sotto i 520
+ * pixel — quindi si scrivono una volta sola qui e si stampano con la radice
+ * giusta. I selettori portano `[data-acceso]` esplicito dove serve vincere in
+ * specificita': le vesti di base delle tessere accese e aperte pesano
+ * (1,2,1), e una radice sola non basterebbe a coprirle. */
+function regoleCompatteCon(radice) {
+  return `
+/* Due colonne fitte: la compatta serve a far stare tutto sopra la piega. */
+${radice} .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+/* La pillola: piatta, una sola ombra morbida e l'hairline — niente gradienti,
+   niente grana, niente alone. [data-acceso] c'e' su ogni tessera, e serve a
+   battere la veste colorata di quelle accese o aperte. */
+${radice} .dm-tile,
+${radice} .dm-tile[data-acceso],
+${radice} .dm-tile[data-open]{
+  flex-direction:row;align-items:center;gap:9px;
+  min-height:48px;padding:0 12px 0 13px;border-radius:14px;
+  background:var(--card-bg,#fff);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 8%,transparent),
+    0 10px 20px -16px rgba(15,23,42,.5)}
+${radice} .dm-tile::before{display:none}
+${radice} .dm-tile .dm-tile-alone{display:none}
+/* La tacca d'accento: una semipillola di 4×21 fusa nel bordo sinistro, col
+   colore della sezione. animation:none perche' ::after e' anche la lama
+   dell'accensione, che nella pillola non ha posto. */
+${radice} .dm-tile[data-acceso]::after{
+  content:"";position:absolute;left:0;top:50%;width:4px;height:21px;
+  margin-top:-10.5px;border-radius:0 4px 4px 0;
+  background:var(--dm-widget-accent,#0ea5e9);
+  transform:none;animation:none;pointer-events:none}
+/* La prima riga si scioglie: chip e nome diventano figli della pillola. */
+${radice} .dm-tile-cima{display:contents}
+/* Il chip: trenta pixel, cuscinetto neutro con la sola hairline — il colore
+   nella pillola ce lo mette la tacca, non il chip. */
+${radice} .dm-tile[data-acceso] .dm-tile-chip,
+${radice} .dm-tile[data-open] .dm-tile-chip{
+  flex:0 0 30px;width:30px;height:30px;border-radius:10px;font-size:15px;
+  background:var(--surface-2,#f8fafc);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 9%,transparent)}
+${radice} .dm-tile-chip .dm-oggetto{width:19px;height:19px;filter:none}
+/* Il nome: maiuscoletto minuto in inchiostro pieno, non smorzato — a questa
+   misura il grigio non si leggerebbe. */
+${radice} .dm-tile-label{
+  font-size:8.8px;line-height:1.2;letter-spacing:.09em;
+  color:var(--text,#0f172a)}
+/* Il valore, ancorato a destra col suo margine ottico di 12px (il cuscino
+   destro della pillola). Il margine a zero annulla il -13.6px pensato per
+   Oswald a corpo 40: qui il valore e' Inter, e quel margine lo decapitava. */
+${radice} .dm-tile-val{
+  display:flex;align-items:baseline;flex:0 0 auto;min-width:0;max-width:55%;
+  margin-left:auto}
+${radice} .dm-tile-value,
+${radice} .dm-tile-value[data-dm-len="medio"],
+${radice} .dm-tile-value[data-dm-len="lungo"]{
+  display:inline-flex;margin:0;padding:0;
+  font-family:'Inter',sans-serif;font-weight:800;font-size:15.5px;line-height:1.15;
+  letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;
+  -webkit-line-clamp:unset;color:var(--text,#0f172a)}
+/* L'unita'-parola: otto pixel, smorzata. */
+${radice} .dm-tile-unit{
+  margin-left:4px;font-family:'Inter',sans-serif;font-size:8px;font-weight:800;
+  letter-spacing:.08em;color:var(--text-dim,#94a3b8)}
+/* Il grado e la percentuale vanno in apice, come sui quadranti veri. */
+${radice} .dm-tile-unit[data-simbolo="true"]{
+  align-self:flex-start;margin-left:1px;font-size:9.5px;font-weight:800;
+  line-height:1.5;letter-spacing:0;color:var(--text-dim,#64748b)}
+/* Didascalie e misure non ci sono: la pillola dice il nome e il numero. */
+${radice} .dm-tile-fondo{display:none}
+/* La pillola d'avviso: il velo piatto del colore d'avviso al 10%, l'hairline
+   in tinta, la tacca piu' spessa e il valore in tinta scura. Niente gradienti
+   ne' alone animato: l'avviso si legge, non lampeggia. */
+${radice} .dm-tile[data-alert="true"]{
+  background:color-mix(in srgb,var(--dm-widget-accent,#e11d48) 10%,var(--card-bg,#fff));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#e11d48) 30%,transparent),
+    0 10px 20px -16px rgba(15,23,42,.5)}
+${radice} .dm-tile[data-alert="true"]::after{width:5px;height:27px;margin-top:-13.5px}
+${radice} .dm-tile[data-alert="true"] .dm-tile-value{
+  color:color-mix(in srgb,var(--dm-widget-accent,#e11d48) 68%,#0f172a)}`;
+}
+
+/* Le due radici della compatta: «sempre» vale ovunque, «auto» solo dove lo
+ * spazio manca — la media query e' la stessa che gia' stringe la griglia. */
+function regoleCompatte() {
+  return `${regoleCompatteCon('#dm-widgets[data-dm-compatto="sempre"]')}
+@media (max-width:520px){${regoleCompatteCon('#dm-widgets[data-dm-compatto="auto"]')}
+}`;
 }
 
 export function installHomeWidgetsSection() {

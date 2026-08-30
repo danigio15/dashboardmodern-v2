@@ -11,6 +11,7 @@ import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
 import { normalizeAlertsEditor } from "./alerts-section.js";
 import { refreshFloodAlerts } from "./flood-alerts-section.js";
 import {
+  EVIDENZA_CONFIG_KEY,
   WIDGETS_CONFIG_KEY,
   renderHomeWidgets,
   widgetPreferences,
@@ -30,7 +31,7 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TODO_EDITOR__";
-const state = (root[KEY] ||= { installed: false, aperto: -1 });
+const state = (root[KEY] ||= { installed: false, aperto: -1, evidAperto: -1 });
 
 export const TODO_EDITOR_TAB = "todo";
 const LEGACY_ALERTS_TAB = "avvisi";
@@ -64,6 +65,7 @@ function nomeDi(list, index) {
  * avvisi personalizzati sono una voce sola: si governano insieme. */
 function catalogoTessere() {
   return [
+    ["evidenza", "⭐", t("In evidenza", "Highlights")],
     ["todo", "✅", t("Da fare", "To-do")],
     ["luci", "💡", t("Luci", "Lights")],
     ["clima", "❄️", t("Clima", "Climate")],
@@ -101,13 +103,45 @@ function tessereOrdinate() {
 }
 
 function salvaTessere(rows, hidden) {
-  writeJsonIfChanged(WIDGETS_CONFIG_KEY, {
-    order: rows.map(([key]) => key),
-    hidden: [...hidden],
-  });
+  /* Si riscrivono ordine e visibilita' SENZA buttare il resto della chiave:
+   * `cd_widgets` porta anche le esclusioni per entita' e la modalita' compatta,
+   * e un riordino non deve azzerarle. */
+  scriviPreferenze({ order: rows.map(([key]) => key), hidden: [...hidden] });
+}
+
+/* Una scrittura parziale di `cd_widgets`: quello che c'era resta, e la Home si
+ * ridisegna subito con la scelta nuova. */
+function scriviPreferenze(pezzo) {
+  const stored = readJson(WIDGETS_CONFIG_KEY, {});
+  const base = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  writeJsonIfChanged(WIDGETS_CONFIG_KEY, { ...base, ...pezzo });
   try {
     renderHomeWidgets();
   } catch (_error) {}
+}
+
+/* La riga della modalita' compatta (#224): un segmented a tre voci che scrive
+ * `cd_widgets.compatto` e si vede subito in Home. Sta sopra l'elenco delle
+ * tessere perche' governa tutte insieme, non una alla volta. */
+function compattoMarkup() {
+  const scelto = widgetPreferences().compatto;
+  const voci = [
+    ["mai", t("Mai", "Never")],
+    ["auto", t("Auto", "Auto")],
+    ["sempre", t("Sempre", "Always")],
+  ];
+  return `<div class="ed-row dm-widget-compatto-row">
+    <span class="ed-row-main"><strong class="ed-row-new">${t("Tessere compatte", "Compact tiles")}</strong><small class="ed-row-old">${t(
+      "Con Auto si stringono solo sugli schermi stretti",
+      "With Auto they shrink on narrow screens only",
+    )}</small></span>
+    <div class="dm-widget-compatto" role="group" aria-label="${t("Tessere compatte", "Compact tiles")}">${voci
+      .map(
+        ([valore, parola]) =>
+          `<button type="button" data-widget-compatto="${valore}" data-on="${valore === scelto}">${parola}</button>`,
+      )
+      .join("")}</div>
+  </div>`;
 }
 
 function tessereMarkup() {
@@ -116,6 +150,7 @@ function tessereMarkup() {
     "Scegli quali tessere vedere in Home e in che ordine. Le tessere degli avvisi — aperture, batterie, allagamenti e avvisi personalizzati — compaiono da sole solo quando hanno qualcosa da dire.",
     "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.",
   )}</div>
+  ${compattoMarkup()}
   <div class="ed-list dm-widget-pref-list">${rows
     .map(
       ([key, icon, label], index) => `<div class="ed-row dm-widget-pref" data-widget-key="${esc(key)}">
@@ -127,6 +162,81 @@ function tessereMarkup() {
       </div>`,
     )
     .join("")}</div>`;
+}
+
+/* ── le entita' in evidenza (#236) ────────────────────────────────────── */
+
+/* Le righe grezze di `cd_evidenza`: come per le liste, una riga appena
+ * aggiunta e' vuota e va lasciata compilare prima di giudicarla. */
+function evidenze() {
+  const stored = readJson(EVIDENZA_CONFIG_KEY, []);
+  return Array.isArray(stored) ? stored : [];
+}
+
+function salvaEvidenze(voci) {
+  writeJsonIfChanged(EVIDENZA_CONFIG_KEY, voci);
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
+}
+
+/* Le stanze di casa, per la tendina facoltativa: la stessa lista che usano le
+ * altre schede, letta e basta. */
+function stanzeDiCasa() {
+  try {
+    const rooms = root.getStanze?.() || readJson("cd_stanze", []);
+    return (Array.isArray(rooms) ? rooms : [])
+      .map((room) => ({ id: clean(room?.id), name: clean(room?.name) || clean(room?.id) }))
+      .filter((room) => room.id);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function rigaEvidenzaMarkup(voce, index) {
+  const aperto = state.evidAperto === index;
+  const nome = clean(voce?.name) || clean(voce?.entity) || `${t("Entità", "Entity")} ${index + 1}`;
+  const stanze = stanzeDiCasa();
+  const scelta = clean(voce?.room_id);
+  return `<article class="ed-row dm-todo-ed-row dm-evid-row" data-evid-index="${index}" data-open="${aperto}">
+    <div class="dm-todo-ed-head">
+      <span class="dm-todo-ed-icon" aria-hidden="true">${esc(clean(voce?.icon) || "⭐")}</span>
+      <span class="ed-row-main"><strong class="ed-row-new">${esc(nome)}</strong><small class="ed-row-old mono">${esc(clean(voce?.entity) || t("nessuna entità", "no entity"))}</small></span>
+      <button type="button" class="ed-del dm-todo-ed-edit" data-evid-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
+      <button type="button" class="ed-del dm-todo-ed-del" data-evid-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
+    </div>
+    <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-evid-${index}-name" class="ed-input" data-evid-field="name" value="${esc(clean(voce?.name))}" placeholder="${t("Quadro elettrico", "Main panel")}"></span></label>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Icona (facoltativa)", "Icon (optional)")}</span><span class="ed-form-row"><input id="dm-evid-${index}-icon" class="ed-input" data-evid-field="icon" value="${esc(clean(voce?.icon))}" placeholder="⭐" maxlength="8"></span></label>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Entità", "Entity")}</span>
+        <span class="ed-form-row"><input id="dm-evid-${index}-entity" class="ed-input mono" data-evid-field="entity" value="${esc(clean(voce?.entity))}" placeholder="sensor.quadro_temperatura" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-evid-pick="dm-evid-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
+        <small>${t("Qualunque entità di Home Assistant: la tessera ne mostra lo stato, con l'unità quando c'è.", "Any Home Assistant entity: the tile shows its state, with the unit when there is one.")}</small></label>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Stanza (facoltativa)", "Room (optional)")}</span><span class="ed-form-row"><select class="ed-input" data-evid-field="room_id"><option value="">${t("Nessuna", "None")}</option>${stanze
+        .map(
+          (room) =>
+            `<option value="${esc(room.id)}"${room.id === scelta ? " selected" : ""}>${esc(room.name)}</option>`,
+        )
+        .join("")}</select></span></label>
+      <output class="dm-todo-ed-error" data-evid-error></output>
+      <button type="button" class="ed-save-btn" data-evid-save>💾 ${t("Salva entità", "Save entity")}</button>
+    </div>
+  </article>`;
+}
+
+/* Il blocco «In evidenza» della scheda: le righe, e il tasto per aggiungerne. */
+function evidenzaMarkup() {
+  const voci = evidenze();
+  return `<div class="ed-sec-title dm-widget-ed-sep">⭐ ${esc(t("In evidenza", "Highlights"))}</div>
+  <div class="ed-intro">${t(
+    "Le entità da tenere d'occhio dalla Home: la tessera «In evidenza» le riassume in una riga e, aperta, le mostra a caselle.",
+    "Entities to keep an eye on from Home: the “Highlights” tile sums them up in one line and, opened, shows them as cards.",
+  )}</div>
+  <div class="ed-list dm-todo-ed-list dm-evid-list">${
+    voci.length
+      ? voci.map((voce, index) => rigaEvidenzaMarkup(voce, index)).join("")
+      : `<div class="ed-empty">${t("Nessuna entità in evidenza", "No highlighted entity")}</div>`
+  }</div>
+  <button type="button" class="ed-btn-add" data-evid-add>＋ ${t("Aggiungi entità", "Add entity")}</button>`;
 }
 
 function rigaMarkup(list, index) {
@@ -162,6 +272,7 @@ function bodyMarkup(lists) {
   }</div>
   <button type="button" class="ed-btn-add" data-todo-add>＋ ${t("Aggiungi lista", "Add list")}</button>
   <button type="button" class="ed-btn-add" data-todo-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>
+  ${evidenzaMarkup()}
   ${avvisiMarkup()}`;
 }
 
@@ -196,9 +307,12 @@ export function ensureTodoEditor() {
   const preferences = widgetPreferences();
   const firma = [
     state.aperto,
+    state.evidAperto,
     preferences.order.join(","),
     preferences.hidden.join(","),
+    preferences.compatto,
     ...lists.map((list) => `${list?.id}~${list?.name}~${list?.entity}`),
+    ...evidenze().map((voce) => `⭐${voce?.name}~${voce?.icon}~${voce?.entity}~${voce?.room_id}`),
   ].join("|");
   if (body.dataset.dmTodoEditor === firma && body.querySelector(".dm-todo-ed-list")) {
     /* Il corpo e' gia' quello giusto e non si rifa': le rifiniture degli
@@ -280,6 +394,15 @@ function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== TODO_EDITOR_TAB || !body.contains(event.target)) return;
 
+  /* Il segmented della compatta: scrive la scelta e la Home la veste subito. */
+  const compatto = event.target.closest("[data-widget-compatto]");
+  if (compatto) {
+    event.preventDefault();
+    scriviPreferenze({ compatto: clean(compatto.dataset.widgetCompatto) });
+    ridisegna();
+    return;
+  }
+
   const rigaTessera = event.target.closest("[data-widget-key]");
   if (rigaTessera) {
     event.preventDefault();
@@ -299,6 +422,68 @@ function onClick(event) {
     }
     salvaTessere(rows, hidden);
     ridisegna();
+    return;
+  }
+
+  /* ── il blocco «In evidenza» ── */
+  if (event.target.closest("[data-evid-add]")) {
+    event.preventDefault();
+    const voci = evidenze();
+    state.evidAperto = voci.length;
+    salvaEvidenze([...voci, { name: "", icon: "", entity: "", room_id: "" }]);
+    ridisegna();
+    return;
+  }
+  const pickEvid = event.target.closest("[data-evid-pick]");
+  if (pickEvid) {
+    event.preventDefault();
+    const input = body.querySelector(`#${CSS.escape(clean(pickEvid.dataset.evidPick))}`);
+    if (input) root.wzPickEntity?.(input);
+    return;
+  }
+  const rigaEvid = event.target.closest("[data-evid-index]");
+  if (rigaEvid) {
+    const voci = evidenze();
+    const index = Number(rigaEvid.dataset.evidIndex);
+    if (!Number.isFinite(index) || !voci[index]) return;
+    if (event.target.closest("[data-evid-edit]")) {
+      event.preventDefault();
+      state.evidAperto = state.evidAperto === index ? -1 : index;
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-evid-del]")) {
+      event.preventDefault();
+      const nome = clean(voci[index]?.name) || clean(voci[index]?.entity) || `${index + 1}`;
+      const domanda = t(`Tolgo "${nome}" dalle evidenze?`, `Remove "${nome}" from highlights?`);
+      if (root.confirm && !root.confirm(domanda)) return;
+      state.evidAperto = -1;
+      salvaEvidenze(voci.filter((_voce, position) => position !== index));
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-evid-save]")) {
+      event.preventDefault();
+      const next = voci.slice();
+      const letta = { ...voci[index] };
+      for (const campo of rigaEvid.querySelectorAll("[data-evid-field]"))
+        letta[clean(campo.dataset.evidField)] = clean(campo.value);
+      const errore = rigaEvid.querySelector("[data-evid-error]");
+      if (!/^[a-z_]+\.\w+$/i.test(letta.entity)) {
+        if (errore)
+          errore.textContent = t(
+            "Serve un'entità valida (dominio.nome).",
+            "A valid entity is required (domain.name).",
+          );
+        return;
+      }
+      if (errore) errore.textContent = "";
+      next[index] = letta;
+      state.evidAperto = -1;
+      salvaEvidenze(next);
+      ridisegna();
+      root.edToast?.(t("💾 Entità salvata", "💾 Entity saved"));
+    }
     return;
   }
 
@@ -444,6 +629,14 @@ function installStyles() {
       #ed-body .dm-todo-ed-error:not(:empty){color:var(--error-color,#dc2626);font-size:12px;font-weight:800}
       #ed-body .dm-todo-ed-intro{margin-top:14px}
       #ed-body .dm-widget-ed-sep{margin-top:22px;padding-top:16px;border-top:1px solid var(--card-border,#e2e8f0)}
+      #ed-body .dm-widget-compatto-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important;margin-bottom:8px}
+      #ed-body .dm-widget-compatto{display:inline-flex;padding:2px;border-radius:999px;
+        background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0)}
+      #ed-body .dm-widget-compatto button{border:0;background:transparent;border-radius:999px;
+        padding:5px 12px;font:inherit;font-size:12px;font-weight:800;
+        color:var(--text-dim,#64748b);cursor:pointer;transition:background .18s ease,color .18s ease}
+      #ed-body .dm-widget-compatto button[data-on="true"]{
+        background:var(--card-bg,#fff);color:var(--text,#0f172a);box-shadow:0 1px 3px rgba(15,23,42,.15)}
       #ed-body .dm-widget-pref-list{display:grid;gap:6px;margin-bottom:10px}
       #ed-body .dm-widget-pref{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
       #ed-body .dm-widget-pref-icon{font-size:17px}
