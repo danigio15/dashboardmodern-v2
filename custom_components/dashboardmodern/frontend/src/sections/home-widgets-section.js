@@ -985,9 +985,13 @@ function evModel(states) {
   const profilate = vetture()
     .map((auto, indice) => letturaVettura(states, auto, fuori, indice))
     .filter(Boolean);
-  /* Con una sola vettura leggibile dai profili la tessera non cambia: e'
-   * quella che si vede da sempre, e nominarla sarebbe rumore. */
-  const letture = profilate.length > 1 ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
+  /* Il profilo comanda appena e' leggibile, anche da solo: prima, con UNA
+   * vettura profilata, si leggevano solo le chiavi globali — che si riempiono
+   * ai salvataggi successivi, la foto compresa — e un'auto con la batteria
+   * mappata nel SUO profilo restava invisibile in Home finche' non si
+   * toccava altro. Le chiavi globali restano il ripiego di chi non ha
+   * profili. */
+  const letture = profilate.length ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
   if (!letture.length) return null;
   const piu = letture.length > 1;
   const rows = letture.flatMap((lettura) => righeVettura(lettura, piu));

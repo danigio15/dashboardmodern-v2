@@ -27,6 +27,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   senza il suo interruttore nella scheda dell'editor: ora ce l'ha, come
   tutte le altre.
 
+- **La tessera dell'auto esce anche senza foto.** Con una vettura profilata
+  la tessera della Home leggeva solo le chiavi globali — che si riempiono ai
+  salvataggi successivi, la foto compresa — e un'auto con la batteria mappata
+  nel suo profilo restava invisibile finche' non si toccava altro. Il profilo
+  ora comanda appena e' leggibile, anche da solo.
+
 - **Lo stato di carica dice solo la percentuale.** Sotto la freccia e i watt
   della batteria la dicitura «SOC» non aggiungeva niente: via, resta «86%».
 
