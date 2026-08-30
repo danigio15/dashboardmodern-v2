@@ -135,7 +135,8 @@ test("si rimpicciolisce anche sotto misura, centrata, e si chiude", async ({ pag
     await page.locator("#dm-robot-map-view [data-dm-map-out]").evaluate((nodo) => nodo.click());
   const rimpicciolita = await lettura(page);
   expect(rimpicciolita.trasformazione).toContain("scale(0.4)");
-  expect(rimpicciolita.trasformazione).toContain("translate(0px, 0px)");
+  // WebKit scrive translate(0px), Chromium translate(0px, 0px): stessa cosa.
+  expect(rimpicciolita.trasformazione).toMatch(/translate\(0px(?:, 0px)?\)/);
 
   await page.locator("#dm-robot-map-view [data-dm-map-reset]").evaluate((nodo) => nodo.click());
   expect((await lettura(page)).trasformazione).toContain("scale(1)");

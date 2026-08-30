@@ -18,6 +18,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   spento (#232). Ora il ponte porta le costanti, il controllo passa, e la
   richiesta di flusso parte.
 
+### Corretto (temperature)
+
+- **L'umidita' non si inventa (#242).** Senza entita' di umidita' scelta, la
+  gemella si indovina sostituendo _temperature con _humidity nel nome; su un
+  id senza «_temperature» la sostituzione restituiva lo stesso id, e la card
+  mostrava la temperatura due volte — la seconda col «%» addosso. Ora
+  l'indovinello vale solo se il nome cambia davvero, e senza entita' la
+  casella dell'umidita' non compare proprio.
+
 ### Corretto (mappa del robot)
 
 - **La mappa a schermo intero si rimpicciolisce anche sotto misura.** «Zoom

@@ -96,8 +96,16 @@ function safeId(entity) {
 }
 
 function entryHumidity(entry) {
+  const scelta = clean(entry?.hum);
+  if (scelta) return scelta;
+  /* Senza entita' scelta si prova la gemella per nome. Ma solo se il nome
+   * cambia davvero: su un id senza «_temperature» il replace restituiva lo
+   * STESSO id, e la card mostrava la temperatura una seconda volta col «%»
+   * addosso (#242). Un'umidita' non configurata e non indovinabile e' vuota,
+   * e la card non ne parla. */
   const temp = clean(entry?.temp);
-  return clean(entry?.hum || temp.replace("_temperature", "_humidity"));
+  const indovinata = temp.replace("_temperature", "_humidity");
+  return indovinata !== temp ? indovinata : "";
 }
 
 /* Il titolo della card: la stanza, e — quando le sonde sono piu' d'una — quale
@@ -185,18 +193,24 @@ function createTemperatureCard(voce) {
   );
   current.lastElementChild.id = `tv_${tid}`;
 
-  const humidityBox = doc.createElement("div");
-  humidityBox.className = "cp-temp-target";
-  humidityBox.append(
-    makeText("lbl", `💧 ${labels.humidity}`),
-    makeText("val temp-hum-val", "—%"),
-  );
-  humidityBox.lastElementChild.id = `hv_${hid}`;
-  humidityBox.addEventListener("click", (event) => {
-    event.stopPropagation();
-    openHistory(event, humidity, `${cardTitle(voce)} ${t("Umidità", "Humidity")}`);
-  });
-  body.append(current, humidityBox);
+  /* Niente entita', niente casella: chi ha lasciato vuota l'umidita' l'ha
+   * fatto apposta, e un «—%» fisso e' solo una domanda senza risposta. */
+  if (humidity) {
+    const humidityBox = doc.createElement("div");
+    humidityBox.className = "cp-temp-target";
+    humidityBox.append(
+      makeText("lbl", `💧 ${labels.humidity}`),
+      makeText("val temp-hum-val", "—%"),
+    );
+    humidityBox.lastElementChild.id = `hv_${hid}`;
+    humidityBox.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openHistory(event, humidity, `${cardTitle(voce)} ${t("Umidità", "Humidity")}`);
+    });
+    body.append(current, humidityBox);
+  } else {
+    body.append(current);
+  }
   card.append(header, body);
   return card;
 }
