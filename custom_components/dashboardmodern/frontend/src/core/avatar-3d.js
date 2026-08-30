@@ -274,7 +274,10 @@ function testaEOperazioni(scelte) {
        * fogge e per i colori si lavora sulla barba che c'e' gia'. */
       variante = "barba";
       barbaNativa = true;
-    } else if (VARIANTE_COLORE[scelte.coloreCapelli] && cerca(VARIANTE_COLORE[scelte.coloreCapelli]))
+    } else if (
+      VARIANTE_COLORE[scelte.coloreCapelli] &&
+      cerca(VARIANTE_COLORE[scelte.coloreCapelli])
+    )
       variante = VARIANTE_COLORE[scelte.coloreCapelli];
   }
   const testa = cerca(variante) || cerca(scelte.capelli) || cerca("lisci");
