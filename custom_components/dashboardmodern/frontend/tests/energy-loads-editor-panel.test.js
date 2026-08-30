@@ -394,10 +394,7 @@ test("the panel stays hidden when another Energy tab is open", () => {
   );
 });
 
-<<<<<<< current
 
-=======
->>>>>>> stashed
 /* ── «＋ Scegli da Elettrodomestici» ─────────────────────────────────────── */
 
 // Lo stato del modulo vive sotto la chiave pubblicata: i test precedenti lo
@@ -435,12 +432,8 @@ test("picking a configured appliance writes its subload metadata through the app
   // Solo l'elettrodomestico libero è proposto: la lavatrice ha già un carico.
   const choices = panel.querySelectorAll("[data-dm-appliance-choice]");
   assert.equal(choices.length, 1);
-<<<<<<< current
   const written = choices[0].textContent + choices[0].descendants().map((node) => node.textContent).join("");
   assert.match(written, /Forno/);
-=======
-  assert.match(choices[0].textContent + (choices[0].descendants().map((n) => n.textContent).join("") || ""), /Forno/);
->>>>>>> stashed
 
   choices[0].click();
   await tick();
