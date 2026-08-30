@@ -87,6 +87,13 @@ test("l'icona della porta si sceglie dal catalogo, non solo dalla tastiera", asy
   );
   assert.match(editor, /data-door-icon-pick="dm-door-\$\{index\}-icon"/);
   assert.match(editor, /openEmojiPicker\(input, /);
+  /* Il tasto del catalogo NON deve vestire classi altrui: .dm-entity-picker
+   * accanto a un input marca il campo come entita' (la guardia apriva la
+   * ricerca delle entita' sopra al catalogo), e button.dm-icon-picker e' il
+   * gancio dell'icon engine (apriva «Scegli icona azione»). */
+  assert.match(editor, /class="dm-door-icon-btn" data-door-icon-pick/);
+  assert.doesNotMatch(editor, /class="dm-entity-picker" data-door-icon-pick/);
+  assert.doesNotMatch(editor, /class="dm-icon-picker" data-door-icon-pick/);
   const beta11 = await readFile(
     new URL("../src/sections/beta11-real-device-polish-section.js", import.meta.url),
     "utf8",

@@ -5,6 +5,17 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.12
+
+### Corretto
+
+- **Il tasto 🎨 delle Aperture apriva la ricerca delle entita'.** Vestiva la
+  classe della lente accanto ai campi entita', e per la plancia quella classe
+  E' il segno che il campo chiede un'entita': sopra al catalogo delle icone
+  si apriva «Scegli l'entita'», e premuto col dito si sceglieva un'entita'
+  invece di un'icona. Il tasto ora ha una classe tutta sua — stesso vestito,
+  nessun gestore altrui — e apre il catalogo e basta.
+
 ## 1.3.11
 
 ### Corretto (telecamere)
