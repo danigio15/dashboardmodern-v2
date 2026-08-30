@@ -3,14 +3,18 @@ import test from "node:test";
 
 import {
   drawableRobots,
+  MOWER_ACTIONS,
+  MOWER_FEATURES,
   normalizeRobots,
   ROBOT_ACTIONS,
   robotActions,
   robotCommand,
   robotFanCommand,
   robotMapPicture,
+  robotSpecies,
   robotStateLabel,
   robotView,
+  SPECIES_LABELS,
   VACUUM_FEATURES,
 } from "../src/core/robot-model.js";
 
@@ -144,6 +148,166 @@ test("il nome viene dalla configurazione, poi da Home Assistant, poi dall'entita
   assert.equal(robotView({ entity: "vacuum.a", name: "Piano terra" }, states).name, "Piano terra");
   assert.equal(robotView({ entity: "vacuum.a" }, states).name, "Robottino");
   assert.equal(robotView({ entity: "vacuum.a" }, {}).name, "vacuum.a");
+});
+
+/* Task #220: il tagliaerba e' un robot, non un aspirapolvere travestito.
+ *
+ * La specie la dice il prefisso dell'entita', e con lei cambiano il dialetto
+ * dei servizi, gli stati, i pulsanti — e sparisce la potenza di aspirazione,
+ * che un tagliaerba non ha mai avuto. */
+
+test("la specie la dice il prefisso dell'entita'", () => {
+  assert.equal(robotSpecies("vacuum.robottino"), "vacuum");
+  assert.equal(robotSpecies("lawn_mower.rasaerba"), "lawn_mower");
+  // Un robot senza entita' — appena aggiunto — resta la specie di sempre.
+  assert.equal(robotSpecies(""), "vacuum");
+  assert.ok(SPECIES_LABELS.lawn_mower[0] && SPECIES_LABELS.lawn_mower[1]);
+});
+
+test("il tagliaerba che taglia si dice, in tutte e due le lingue", () => {
+  const view = robotView(
+    { entity: "lawn_mower.rasaerba" },
+    { "lawn_mower.rasaerba": stato("mowing") },
+  );
+  assert.equal(view.species, "lawn_mower");
+  assert.equal(view.state, "mowing");
+  assert.equal(view.mowing, true);
+  assert.equal(view.cleaning, false);
+  assert.equal(robotStateLabel(view.state), "Sta tagliando");
+  assert.equal(robotStateLabel(view.state, true), "Mowing");
+  // Gli stati comuni restano comuni: alla base e' alla base anche sul prato.
+  const base = robotView(
+    { entity: "lawn_mower.rasaerba" },
+    { "lawn_mower.rasaerba": stato("docked", { battery_level: 50 }) },
+  );
+  assert.equal(base.state, "docked");
+  assert.equal(base.charging, true);
+});
+
+test("i pulsanti del tagliaerba sono i suoi, coi suoi numeri", () => {
+  // Senza dichiarazioni li ha tutti e tre — e mai stop, spot o locate.
+  const muto = robotView(
+    { entity: "lawn_mower.rasaerba" },
+    { "lawn_mower.rasaerba": stato("docked") },
+  );
+  assert.deepEqual(robotActions(muto), MOWER_ACTIONS);
+  assert.deepEqual(
+    MOWER_ACTIONS.map((action) => action.act),
+    ["start", "pause", "return"],
+  );
+  // I numeri delle capacita' sono quelli di lawn_mower, non quelli dei vacuum:
+  // DOCK vale 4, che per un vacuum sarebbe PAUSE.
+  const parziale = robotView(
+    { entity: "lawn_mower.rasaerba" },
+    {
+      "lawn_mower.rasaerba": stato("docked", {
+        supported_features: MOWER_FEATURES.START_MOWING | MOWER_FEATURES.DOCK,
+      }),
+    },
+  );
+  assert.deepEqual(
+    robotActions(parziale).map((action) => action.act),
+    ["start", "return"],
+  );
+});
+
+test("i comandi del tagliaerba parlano il dominio lawn_mower", () => {
+  const view = { entity: "lawn_mower.rasaerba" };
+  assert.deepEqual(robotCommand("start", view), {
+    domain: "lawn_mower",
+    service: "start_mowing",
+    data: { entity_id: "lawn_mower.rasaerba" },
+  });
+  assert.deepEqual(robotCommand("pause", view), {
+    domain: "lawn_mower",
+    service: "pause",
+    data: { entity_id: "lawn_mower.rasaerba" },
+  });
+  assert.deepEqual(robotCommand("return", view), {
+    domain: "lawn_mower",
+    service: "dock",
+    data: { entity_id: "lawn_mower.rasaerba" },
+  });
+  // Niente ripiego turn_on/turn_off: un tagliaerba non ha mai avuto quei
+  // servizi, e uno «stop» non esiste proprio.
+  const vecchio = { entity: "lawn_mower.rasaerba", features: MOWER_FEATURES.PAUSE };
+  assert.equal(robotCommand("start", vecchio).service, "start_mowing");
+  assert.equal(robotCommand("stop", view), null);
+});
+
+test("un tagliaerba non ha potenza di aspirazione, qualunque cosa dichiari", () => {
+  const view = robotView(
+    { entity: "lawn_mower.rasaerba" },
+    {
+      "lawn_mower.rasaerba": stato("mowing", { fan_speed: "Alta", fan_speed_list: ["Alta", "Bassa"] }),
+    },
+  );
+  assert.deepEqual(view.fanSpeeds, []);
+  assert.equal(view.fanSpeed, "");
+  assert.equal(robotFanCommand(view, "Alta"), null);
+});
+
+test("la batteria configurata a parte vince su quella dell'attributo", () => {
+  // Molti tagliaerba la pubblicano come sensore separato: il campo e'
+  // facoltativo e deve sopravvivere alla normalizzazione, o sparirebbe a ogni
+  // salvataggio.
+  const [robot] = normalizeRobots([
+    { entity: "lawn_mower.rasaerba", battery: "sensor.rasaerba_batteria" },
+  ]);
+  assert.equal(robot.battery, "sensor.rasaerba_batteria");
+
+  const states = {
+    "lawn_mower.rasaerba": stato("mowing", { battery_level: 15 }),
+    "sensor.rasaerba_batteria": stato("76"),
+  };
+  const view = robotView(robot, states);
+  assert.equal(view.battery, 76);
+  assert.equal(view.batteryEntity, "sensor.rasaerba_batteria");
+  // Il sensore che tace non lascia la scheda senza carica: si torna
+  // all'attributo, che e' meglio di niente.
+  const muto = robotView(robot, {
+    "lawn_mower.rasaerba": stato("mowing", { battery_level: 15 }),
+    "sensor.rasaerba_batteria": stato("unavailable"),
+  });
+  assert.equal(muto.battery, 15);
+  // E per i vacuum senza sensore a parte non cambia niente.
+  const vac = robotView(
+    { entity: "vacuum.a" },
+    { "vacuum.a": stato("cleaning", { battery_level: 40 }) },
+  );
+  assert.equal(vac.battery, 40);
+});
+
+test("l'editor accetta anche i tagliaerba, e offre il campo batteria", async () => {
+  // La regola di validazione non e' esportata — e' un dettaglio della scheda —
+  // quindi si legge dal sorgente e si prova per quello che e': la porta che
+  // decide chi e' un robot.
+  const { readFileSync } = await import("node:fs");
+  const testo = readFileSync(
+    new URL("../src/sections/robot-editor-section.js", import.meta.url),
+    "utf8",
+  );
+  const regola = testo.match(/if \(!(\/\^[^\n]+?\/i)\.test\(next\[index\]\.entity\)\)/);
+  assert.ok(regola, "la validazione dell'entita' non c'e' piu'");
+  const porta = new Function(`return ${regola[1]}`)();
+  assert.ok(porta.test("vacuum.robottino"));
+  assert.ok(porta.test("lawn_mower.rasaerba"));
+  assert.ok(!porta.test("sensor.batteria"));
+  assert.ok(!porta.test("lawn_mower."));
+  // Il campo facoltativo della batteria salva `battery` nella riga del robot.
+  assert.match(testo, /-battery`/);
+  assert.match(testo, /lawn_mower/);
+});
+
+test("l'intestazione della pagina robot non nomina una specie sola", async () => {
+  const { readFileSync } = await import("node:fs");
+  const testo = readFileSync(
+    new URL("../src/sections/page-masthead-section.js", import.meta.url),
+    "utf8",
+  );
+  const blocco = testo.slice(testo.indexOf('id: "page-robot"'), testo.indexOf('id: "page-stanze"'));
+  assert.ok(blocco.length > 0, "la pagina robot non e' piu' nell'elenco delle intestazioni");
+  assert.doesNotMatch(blocco, /aspirapolvere|vacuum|tagliaerba|mower/i);
 });
 
 /* Task #24: una sola larghezza per tutte le sezioni, in un posto solo.

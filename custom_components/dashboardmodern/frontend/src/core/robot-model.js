@@ -1,4 +1,4 @@
-/* Il robot aspirapolvere.
+/* Il robot aspirapolvere — e il tagliaerba.
  *
  * Un robot non e' un interruttore: ha uno stato che racconta cosa sta facendo,
  * una batteria che si consuma mentre lo fa, una potenza di aspirazione da
@@ -9,6 +9,11 @@
  * stato, quale comando risponde a un pulsante, quali pulsanti ha senso mostrare
  * per quel robot. Il modulo e' puro: non parla con Home Assistant e non tocca
  * il DOM, cosi' le regole si possono provare senza accendere niente.
+ *
+ * I robot sono di due specie, e a dirlo e' l'entita' stessa: `vacuum.*` e' un
+ * aspirapolvere, `lawn_mower.*` un tagliaerba. Le due specie parlano dialetti
+ * diversi — servizi, stati e numeri delle capacita' non coincidono — e la
+ * specie decide quale dialetto si usa, senza che chi disegna debba saperlo.
  */
 
 import { SOURCE_LOCALE, getLocale, pick } from "./i18n.js";
@@ -39,8 +44,30 @@ export const VACUUM_FEATURES = Object.freeze({
   START: 8192,
 });
 
+/* Cosa sa fare un tagliaerba. Anche questi numeri sono di Home Assistant
+ * (`LawnMowerEntityFeature`): un dialetto piu' povero, tre capacita' in tutto,
+ * e nessuna parentela coi numeri dei vacuum. */
+export const MOWER_FEATURES = Object.freeze({
+  START_MOWING: 1,
+  PAUSE: 2,
+  DOCK: 4,
+});
+
+/* La specie di un robot la dice il prefisso della sua entita'. Chi non ha
+ * ancora un'entita' — un robot appena aggiunto — e' un aspirapolvere finche'
+ * non si dichiara, che e' la specie di sempre. */
+export function robotSpecies(entity) {
+  return clean(entity).toLowerCase().startsWith("lawn_mower.") ? "lawn_mower" : "vacuum";
+}
+
+export const SPECIES_LABELS = Object.freeze({
+  vacuum: ["Aspirapolvere", "Vacuum"],
+  lawn_mower: ["Tagliaerba", "Lawn mower"],
+});
+
 export const ROBOT_STATES = Object.freeze({
   cleaning: ["Sta pulendo", "Cleaning"],
+  mowing: ["Sta tagliando", "Mowing"],
   returning: ["Torna alla base", "Returning to dock"],
   docked: ["Alla base", "Docked"],
   idle: ["In attesa", "Idle"],
@@ -68,6 +95,10 @@ export function normalizeRobot(input = {}, index = 0) {
     name: clean(input.name),
     entity: clean(input.entity || input.entities?.[0]),
     mapEntity: clean(input.mapEntity || input.map_entity),
+    /* La batteria puo' essere un sensore a parte: molti tagliaerba la
+     * pubblicano cosi', fuori dall'entita' del robot. Il campo e' facoltativo
+     * e deve sopravvivere alla normalizzazione, o sparirebbe a ogni salvataggio. */
+    battery: clean(input.battery || input.battery_entity || input.batteryEntity),
     room: clean(input.room || input.room_id),
   };
 }
@@ -117,26 +148,39 @@ export function robotMapPicture(states = {}, mapEntity = "") {
  */
 export function robotView(robot = {}, states = {}) {
   const entity = clean(robot.entity);
+  const species = robotSpecies(entity);
   const current = states?.[entity];
   const raw = clean(current?.state).toLowerCase();
   const known = Object.prototype.hasOwnProperty.call(ROBOT_STATES, raw);
   const attributes = current?.attributes || {};
   const features = Number(attributes.supported_features) || 0;
-  const battery = numero(attributes.battery_level);
+  /* La batteria configurata a parte vince su quella dell'attributo: chi l'ha
+   * indicata l'ha fatto perche' il robot non la dice da se'. Se pero' il
+   * sensore tace — non ancora arrivato, non raggiungibile — si torna
+   * all'attributo, che e' meglio di niente. */
+  const batteryEntity = clean(robot.battery);
+  const separata = batteryEntity ? numero(states?.[batteryEntity]?.state) : null;
+  const battery = separata !== null ? separata : numero(attributes.battery_level);
   return {
     id: clean(robot.id),
     entity,
+    species,
     name: clean(robot.name) || clean(attributes.friendly_name) || entity,
     room: clean(robot.room),
     available: Boolean(current) && raw !== "unavailable" && raw !== "",
     state: current ? (known ? raw : "unknown") : "unavailable",
     battery,
+    batteryEntity,
     charging: raw === "docked" && battery !== null && battery < 100,
     cleaning: raw === "cleaning",
-    fanSpeed: clean(attributes.fan_speed),
-    fanSpeeds: Array.isArray(attributes.fan_speed_list)
-      ? attributes.fan_speed_list.map(clean).filter(Boolean)
-      : [],
+    mowing: raw === "mowing",
+    /* Un tagliaerba non ha potenza di aspirazione, qualunque cosa dicano i
+     * suoi attributi: senza velocita' il disegno non mostra la tendina. */
+    fanSpeed: species === "lawn_mower" ? "" : clean(attributes.fan_speed),
+    fanSpeeds:
+      species !== "lawn_mower" && Array.isArray(attributes.fan_speed_list)
+        ? attributes.fan_speed_list.map(clean).filter(Boolean)
+        : [],
     features,
     error: clean(attributes.error),
     mapEntity: clean(robot.mapEntity),
@@ -165,19 +209,38 @@ export const ROBOT_ACTIONS = Object.freeze([
   { act: "locate", glyph: "🔔", it: "Trovalo", en: "Locate", feature: VACUUM_FEATURES.LOCATE },
 ]);
 
+/* I pulsanti del tagliaerba: tre in tutto, come i suoi servizi. Non c'e' uno
+ * «stop» — un tagliaerba fermo in mezzo al prato non e' uno stato che Home
+ * Assistant conosca — e non c'e' pulizia mirata ne' «trovalo». */
+export const MOWER_ACTIONS = Object.freeze([
+  { act: "start", glyph: "▶", it: "Avvia", en: "Start", feature: MOWER_FEATURES.START_MOWING },
+  { act: "pause", glyph: "⏸", it: "Pausa", en: "Pause", feature: MOWER_FEATURES.PAUSE },
+  { act: "return", glyph: "🏠", it: "Alla base", en: "Dock", feature: MOWER_FEATURES.DOCK },
+]);
+
 export function robotActions(view = {}) {
+  const catalogo = robotSpecies(view.entity) === "lawn_mower" ? MOWER_ACTIONS : ROBOT_ACTIONS;
   const features = Number(view.features) || 0;
-  if (!features) return ROBOT_ACTIONS;
-  return ROBOT_ACTIONS.filter((action) => (features & action.feature) !== 0);
+  if (!features) return catalogo;
+  return catalogo.filter((action) => (features & action.feature) !== 0);
 }
 
+/* Ogni specie ha il suo dizionario pulsante → servizio, nel dominio che porta
+ * il suo stesso nome. */
 const SERVIZI = Object.freeze({
-  start: "start",
-  pause: "pause",
-  stop: "stop",
-  return: "return_to_base",
-  spot: "clean_spot",
-  locate: "locate",
+  vacuum: Object.freeze({
+    start: "start",
+    pause: "pause",
+    stop: "stop",
+    return: "return_to_base",
+    spot: "clean_spot",
+    locate: "locate",
+  }),
+  lawn_mower: Object.freeze({
+    start: "start_mowing",
+    pause: "pause",
+    return: "dock",
+  }),
 });
 
 /**
@@ -187,28 +250,35 @@ const SERVIZI = Object.freeze({
  * vecchi si accendono con `turn_on`, ed e' la stessa cosa detta col nome di
  * prima. Chiamare il servizio sbagliato non da' errore, non fa proprio niente
  * — che e' il modo peggiore di sbagliare.
+ *
+ * Il ripiego su `turn_on`/`turn_off` e' un fatto dei vacuum: i tagliaerba non
+ * hanno mai avuto quei servizi, e offrirli vorrebbe dire proprio il comando
+ * che non fa niente.
  */
 export function robotCommand(action, view = {}) {
   const act = clean(action);
+  const species = robotSpecies(view.entity);
   const features = Number(view.features) || 0;
-  if (act === "start" && features && !(features & VACUUM_FEATURES.START))
-    return { domain: "vacuum", service: "turn_on", data: { entity_id: view.entity } };
-  if (
-    act === "stop" &&
-    features &&
-    !(features & VACUUM_FEATURES.STOP) &&
-    features & VACUUM_FEATURES.TURN_OFF
-  )
-    return { domain: "vacuum", service: "turn_off", data: { entity_id: view.entity } };
-  const service = SERVIZI[act];
+  if (species === "vacuum") {
+    if (act === "start" && features && !(features & VACUUM_FEATURES.START))
+      return { domain: "vacuum", service: "turn_on", data: { entity_id: view.entity } };
+    if (
+      act === "stop" &&
+      features &&
+      !(features & VACUUM_FEATURES.STOP) &&
+      features & VACUUM_FEATURES.TURN_OFF
+    )
+      return { domain: "vacuum", service: "turn_off", data: { entity_id: view.entity } };
+  }
+  const service = SERVIZI[species][act];
   if (!service) return null;
-  return { domain: "vacuum", service, data: { entity_id: view.entity } };
+  return { domain: species, service, data: { entity_id: view.entity } };
 }
 
-/** Il comando per cambiare potenza di aspirazione. */
+/** Il comando per cambiare potenza di aspirazione. Un tagliaerba non ne ha. */
 export function robotFanCommand(view = {}, speed = "") {
   const fan = clean(speed);
-  if (!fan) return null;
+  if (!fan || robotSpecies(view.entity) === "lawn_mower") return null;
   return {
     domain: "vacuum",
     service: "set_fan_speed",

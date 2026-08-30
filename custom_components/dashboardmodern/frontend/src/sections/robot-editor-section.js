@@ -8,12 +8,15 @@
  * testo, e chi scriveva «salone» dove la stanza si chiama «Salone» vedeva il
  * robot sparire dalla sezione Stanze senza che nessuno dicesse perche'.
  *
- * Un robot chiede due entita': quella del robot, che e' un `vacuum`, e quella
- * della mappa, che invece non ha un tipo suo — chi ce l'ha la pubblica come
- * telecamera o come immagine, ed e' per questo che il campo accetta tutte e
- * due invece di pretenderne una.
+ * Un robot chiede due entita': quella del robot — un `vacuum` per gli
+ * aspirapolvere, un `lawn_mower` per i tagliaerba — e quella della mappa, che
+ * invece non ha un tipo suo: chi ce l'ha la pubblica come telecamera o come
+ * immagine, ed e' per questo che il campo accetta tutte e due invece di
+ * pretenderne una. La batteria e' un terzo campo, facoltativo: molti
+ * tagliaerba la espongono come sensore a parte, e chi lo indica la vede al
+ * posto di quella (spesso assente) dell'entita' del robot.
  */
-import { normalizeRobots } from "../core/robot-model.js";
+import { normalizeRobots, robotSpecies } from "../core/robot-model.js";
 import { clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, roomOptionsMarkup, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ROBOT_EDITOR__";
@@ -47,7 +50,7 @@ function activeTab() {
 }
 
 function nomeDi(robot, index) {
-  return clean(robot.name) || clean(robot.entity) || `${t("Robot", "Vacuum")} ${index + 1}`;
+  return clean(robot.name) || clean(robot.entity) || `${t("Robot", "Robot")} ${index + 1}`;
 }
 
 function campo(id, label, value, placeholder, hint) {
@@ -58,20 +61,24 @@ function campo(id, label, value, placeholder, hint) {
 
 function rigaMarkup(robot, index) {
   const aperto = state.aperto === index;
+  /* L'icona della riga dice la specie: chi ha un aspirapolvere e un tagliaerba
+   * li distingue dall'elenco, senza aprire le righe. */
+  const icona = robotSpecies(robot.entity) === "lawn_mower" ? "🌱" : "🤖";
   return `<article class="ed-row dm-robot-row" data-robot-index="${index}" data-open="${aperto}">
     <div class="dm-robot-row-head">
-      <span class="dm-robot-row-icon" aria-hidden="true">🤖</span>
+      <span class="dm-robot-row-icon" aria-hidden="true">${icona}</span>
       <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDi(robot, index))}</strong><small class="ed-row-old mono">${esc(clean(robot.entity) || t("nessuna entità", "no entity"))}</small></span>
       <button type="button" class="ed-del dm-robot-edit" data-robot-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
       <button type="button" class="ed-del dm-robot-del" data-robot-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
     </div>
     <div class="dm-robot-row-body"${aperto ? "" : " hidden"}>
-      <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-robot-${index}-name" class="ed-input" data-robot-field="name" value="${esc(clean(robot.name))}" placeholder="${t("Robot del piano terra", "Ground floor vacuum")}"></span></label>
-      ${campo(`dm-robot-${index}-entity`, t("Entità del robot", "Vacuum entity"), robot.entity, "vacuum.robot", t("È l'entità vacuum.* che Home Assistant espone per il robot.", "The vacuum.* entity Home Assistant exposes for the robot."))}
+      <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-robot-${index}-name" class="ed-input" data-robot-field="name" value="${esc(clean(robot.name))}" placeholder="${t("Robot del piano terra", "Ground floor robot")}"></span></label>
+      ${campo(`dm-robot-${index}-entity`, t("Entità del robot", "Robot entity"), robot.entity, "vacuum.robot", t("È l'entità vacuum.* (aspirapolvere) o lawn_mower.* (tagliaerba) che Home Assistant espone per il robot.", "The vacuum.* (vacuum) or lawn_mower.* (lawn mower) entity Home Assistant exposes for the robot."))}
       ${campo(`dm-robot-${index}-mapEntity`, t("Entità della mappa", "Map entity"), robot.mapEntity, "camera.robot_map", t("La mappa arriva da una telecamera o da un'immagine: camera.* o image.*. Lasciala vuota se il tuo robot non ne pubblica una.", "The map comes from a camera or an image: camera.* or image.*. Leave it empty if your robot does not publish one."))}
+      ${campo(`dm-robot-${index}-battery`, t("Batteria", "Battery"), robot.battery, "sensor.robot_batteria", t("Facoltativa: il sensore che dice la carica, se il robot la pubblica a parte — capita spesso coi tagliaerba. Se indicata, vince sulla batteria dell'entità del robot.", "Optional: the sensor reporting the charge, when the robot publishes it separately — common with lawn mowers. When set, it wins over the robot entity's own battery."))}
       <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><span class="ed-form-row"><select id="dm-robot-${index}-room" class="ed-input" data-robot-field="room">${roomOptionsMarkup(clean(robot.room), t("Nessuna stanza", "No room"))}</select></span></label>
       <output class="dm-robot-error" data-robot-error></output>
-      <button type="button" class="ed-save-btn" data-robot-save>💾 ${t("Salva robot", "Save vacuum")}</button>
+      <button type="button" class="ed-save-btn" data-robot-save>💾 ${t("Salva robot", "Save robot")}</button>
     </div>
   </article>`;
 }
@@ -86,15 +93,15 @@ function bodyMarkup(robots) {
   })();
   return `${banner}
     <div class="ed-intro">${t(
-      "I robot aspirapolvere: stato, batteria, potenza di aspirazione, comandi e mappa. Ogni robot ha la sua scheda nella sezione Aspirapolvere.",
-      "Robot vacuums: state, battery, suction power, controls and map. Each robot gets its own card in the Vacuum section.",
+      "I robot di casa — aspirapolvere e tagliaerba: stato, batteria, comandi e mappa. Ogni robot ha la sua scheda nella sezione Robot.",
+      "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.",
     )}</div>
     <div class="ed-list dm-robot-list">${
       robots.length
         ? robots.map((robot, index) => rigaMarkup(robot, index)).join("")
-        : `<div class="ed-empty">${t("Nessun robot configurato", "No vacuum configured")}</div>`
+        : `<div class="ed-empty">${t("Nessun robot configurato", "No robot configured")}</div>`
     }</div>
-    <button type="button" class="ed-btn-add" data-robot-add>＋ ${t("Aggiungi robot", "Add vacuum")}</button>`;
+    <button type="button" class="ed-btn-add" data-robot-add>＋ ${t("Aggiungi robot", "Add robot")}</button>`;
 }
 
 function leggiRiga(riga, robot) {
@@ -178,16 +185,17 @@ async function onClick(event) {
     const next = robots.slice();
     next[index] = leggiRiga(riga, robots[index]);
     const errore = riga.querySelector("[data-robot-error]");
-    /* Un'entita' che non e' un `vacuum` non e' un robot: salvarla vorrebbe
-     * dire una scheda che non risponde a nessun comando, senza dire perche'. */
-    if (!/^vacuum\.[a-z0-9_]+$/i.test(next[index].entity)) {
-      if (errore) errore.textContent = t("Serve un'entità vacuum.* valida.", "A valid vacuum.* entity is required.");
+    /* Un'entita' che non e' un `vacuum` ne' un `lawn_mower` non e' un robot:
+     * salvarla vorrebbe dire una scheda che non risponde a nessun comando,
+     * senza dire perche'. */
+    if (!/^(?:vacuum|lawn_mower)\.[a-z0-9_]+$/i.test(next[index].entity)) {
+      if (errore) errore.textContent = t("Serve un'entità vacuum.* o lawn_mower.* valida.", "A valid vacuum.* or lawn_mower.* entity is required.");
       return;
     }
     if (errore) errore.textContent = "";
     await salva(next);
     ridisegna();
-    root.edToast?.(t("💾 Robot salvato", "💾 Vacuum saved"));
+    root.edToast?.(t("💾 Robot salvato", "💾 Robot saved"));
   }
 }
 
@@ -208,7 +216,7 @@ export function ensureRobotEditorTab() {
   const tab = doc.createElement("button");
   tab.className = "ed-tab";
   tab.dataset.tab = ROBOT_EDITOR_TAB;
-  tab.textContent = `🤖 ${t("Aspirapolvere", "Vacuum")}`;
+  tab.textContent = `🤖 ${t("Robot", "Robots")}`;
   tab.addEventListener("click", () => root.editorSwitch?.(ROBOT_EDITOR_TAB));
   const prima = tabs.querySelector('.ed-tab[data-tab="runtime"]');
   if (prima) prima.before(tab);
