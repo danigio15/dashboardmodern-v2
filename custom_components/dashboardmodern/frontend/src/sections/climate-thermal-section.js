@@ -1159,7 +1159,11 @@ function climateCss() {
   display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-4px;
   font-size:10px;font-weight:700;color:var(--dm-cl-dim);font-variant-numeric:tabular-nums
 }
-.dm-cl-legend b{color:var(--dm-cl-text);font-weight:800}
+/* L'Ambiente con la sua temperatura si deve leggere: «e' troppo piccolo»,
+ * detto proprio della riga dentro la card. I due estremi della scala restano
+ * piccoli, che sono contorno. */
+.dm-cl-legend>span:nth-child(2){font-size:12.5px}
+.dm-cl-legend b{color:var(--dm-cl-text);font-weight:800;font-size:13.5px}
 
 .dm-cl-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dm-cl-modes{

@@ -493,7 +493,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `lightCommand` di tutto il resto, quindi il blocco «si vede ma non si
   // comanda» vale qui senza una riga in piu' — e niente scheda nuova da
   // disegnare, perche' e' la stessa `pageCardMarkup` delle luci.
-  assert.ok(relative.length <= 178, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 179 col popup dell'elettrodomestico rivestito da progetto
+  // (`appliance-detail-popup-section.js`): «quando clicco su un
+  // elettrodomestico si apre questo popup orrendo, crealo piu' bello stile
+  // widget che ti fa anche analisi» — il guscio elencava ogni entita' con lo
+  // slug, il modulo riveste la stessa finestra con verdetto, frase, caselle,
+  // pillole e comandi.
+  assert.ok(relative.length <= 179, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

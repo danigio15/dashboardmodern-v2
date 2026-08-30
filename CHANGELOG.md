@@ -29,7 +29,24 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   friggitrice col cestello, disegnati nello stile del catalogo, con gli
   eroi animati per le loro pagine.
 
+- **Anche il popup dell'elettrodomestico parla come il progetto.** Cliccando
+  un elettrodomestico si apriva l'elenco di ogni entita' con lo slug sotto il
+  nome; ora la stessa finestra apre col verdetto e la frase («Condizionatori
+  e' in funzione e sta tirando 1105 W; oggi ha fatto 10.24 kWh»), le letture
+  a caselle coi nomi veri, gli acceso/spento a pillole, e sotto «Comandi» gli
+  interruttori e gli script coi loro tasti. Ogni casella apre ancora lo
+  storico.
+
 ### Corretto
+
+- **La riga «Ambiente» nella card del Clima si legge.** Il carattere della
+  temperatura ambiente sotto lo slider era troppo piccolo: leggermente piu'
+  grande, con gli estremi della scala che restano contorno.
+
+- **Il WebRTC delle telecamere dice qual e' la leva.** La strada WebRTC parte
+  solo col «Nome stream go2rtc» compilato nella scheda Telecamere — il nome
+  della telecamera non c'entra. Ora il campo lo spiega sotto, e quando la
+  strada viene saltata il popup dice esattamente cosa compilare.
 
 - **La bolla della wallbox nel flusso legge i kW come kW.** Il sensore
   scriveva 1,61 kW e la bolla diceva «2 W»: l'istantanea leggeva lo stato

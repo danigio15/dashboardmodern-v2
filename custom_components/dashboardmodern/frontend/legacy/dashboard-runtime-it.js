@@ -3705,7 +3705,7 @@ function editorRenderSezioni() {
           <div class="ed-form">
             <input id="ed-cam-name" class="ed-input" placeholder="Nome (es. Giardino)">
             <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cam-ent" style="flex:1;" class="ed-input mono" placeholder="camera.giardino"><button type="button" onclick="wzPickEntity('#ed-cam-ent')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
-            <input id="ed-cam-stream" class="ed-input mono" placeholder="Nome stream go2rtc (facoltativo, per WebRTC)">
+            <input id="ed-cam-stream" class="ed-input mono" placeholder="Nome stream go2rtc (facoltativo, per WebRTC)"><small style="display:block;font-size:11px;color:var(--text-dim,#64748b);margin:2px 2px 0;">\u00c8 QUESTO campo ad accendere WebRTC: il nome del flusso come sta scritto dentro go2rtc/Frigate. Il nome della telecamera non c'entra.</small>
             <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddCamera()">＋ Aggiungi telecamera</button><button type="button" class="ed-save-btn" onclick="edSaveSezione(this)">💾 Salva sezione</button>
           </div>
         </div>
@@ -5323,7 +5323,7 @@ function dmStreamName(cam) { return cam.stream || (cam.entity ? cam.entity.split
    mollava proprio sul piu' bello e si finiva sulle istantanee. Il modulo guarda
    cosa Home Assistant dichiara della telecamera e decide di conseguenza; qui
    restano le parole, che il modulo non sa in che lingua vanno dette. */
-const _DM_CAM_MOTIVI = { 'senza-nome-di-flusso': 'WebRTC: saltato, nessun flusso go2rtc configurato', 'browser-senza-webrtc': 'WebRTC: saltato, il browser non lo supporta', 'browser-senza-hls': 'HLS: saltato, hls.js non caricato', 'telecamera-che-dorme': 'MJPEG: saltato, la telecamera trasmette solo su richiesta' };
+const _DM_CAM_MOTIVI = { 'senza-nome-di-flusso': 'WebRTC: saltato — compila \u00abNome stream go2rtc\u00bb nella scheda Telecamere (il nome della telecamera non c\u2019entra)', 'browser-senza-webrtc': 'WebRTC: saltato, il browser non lo supporta', 'browser-senza-hls': 'HLS: saltato, hls.js non caricato', 'telecamera-che-dorme': 'MJPEG: saltato, la telecamera trasmette solo su richiesta' };
 
 async function dmCamOpen(cam, title, content) {
     dmCamCleanup();
