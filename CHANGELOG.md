@@ -5,6 +5,23 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.9
+
+### Aggiunto
+
+- **L'aggiornamento si installa da Impostazioni → Aggiornamenti.** Prima
+  l'avviso c'era ma il tasto no — l'integrazione compariva fra i «non
+  installabili», e l'unica strada era la deviazione in due passi dentro HACS.
+  Il timore che teneva il tasto spento («due proprietari della stessa cartella
+  e' come nasce un aggiornamento a meta'») si risolve nel COME si installa,
+  non rifiutando il tasto: lo zip scaricato e' lo stesso identico che
+  installerebbe HACS, viene controllato prima che un solo file si muova — i
+  percorsi, il manifest, la versione promessa — lo scambio e' un rinomino con
+  la cartella di prima tenuta accanto finche' la nuova non e' al suo posto, e
+  un fallimento rimette tutto com'era. Alla fine serve un riavvio di Home
+  Assistant, e l'entita' lo dice; HACS si riallinea da solo al suo prossimo
+  controllo. Chi preferisce la strada di HACS ce l'ha ancora tutta.
+
 ## 1.3.8
 
 ### Corretto
