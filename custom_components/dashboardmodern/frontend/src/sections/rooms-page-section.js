@@ -112,7 +112,7 @@ export function assignedItems(mappa = readJson(ROOM_ASSIGN_KEY, {}), states = al
 const BLOCK_LABELS = Object.freeze({
   clima: ["Clima", "Climate", "❄️"],
   luci: ["Luci", "Lights", "💡"],
-  coperture: ["Tapparelle e finestre", "Shutters and windows", "🪟"],
+  coperture: ["Finestre", "Windows", "🪟"],
   elettrodomestici: ["Elettrodomestici", "Appliances", "🧺"],
   telecamere: ["Telecamere", "Cameras", "📹"],
   carichi: ["Carichi", "Loads", "🔌"],

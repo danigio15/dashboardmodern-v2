@@ -528,7 +528,7 @@ function coversModel(states) {
     key: "tapparelle",
     accent: "#8b5cf6",
     icon: "🪟",
-    label: t("Tapparelle", "Shutters"),
+    label: t("Finestre", "Windows"),
     value: String(open.length),
     caption: nomiAccesi(open, () => true, t(`${open.length} aperte`, `${open.length} open`)),
     ring: Math.round((open.length / rows.length) * 100),

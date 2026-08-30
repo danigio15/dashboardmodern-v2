@@ -327,7 +327,7 @@ function dropLegacyBackHome() {
  * heading above the page owns it now.
  */
 function heroMarkup() {
-  return `<section class="dm-tapp-hero" data-dm-tapp-hero role="group" aria-label="${esc(t("Tapparelle e tende", "Shutters and curtains"))}">
+  return `<section class="dm-tapp-hero" data-dm-tapp-hero role="group" aria-label="${esc(t("Finestre", "Windows"))}">
     <div class="dm-tapp-kpi">
       <span>${esc(t("Stato", "State"))}</span>
       <b data-dm-tapp-summary>—</b>

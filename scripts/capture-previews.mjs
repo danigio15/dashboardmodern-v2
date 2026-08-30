@@ -218,7 +218,7 @@ const TARGETS = [
   },
   {
     id: "shutters",
-    title: "Tapparelle",
+    title: "Finestre",
     both: true,
     setup: () => {
       window.__dmPreview.tab("tapparelle");

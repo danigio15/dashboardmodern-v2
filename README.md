@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>La dashboard completa per Home Assistant: si configura a video, funziona su telefono, tablet e desktop.</strong><br>
-  Persone · Stanze · Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Luci · Clima · Temperatura · Tapparelle · Sicurezza · Solare termico · Piscina · Irrigazione · Aspirapolvere · Server
+  Persone · Stanze · Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Luci · Clima · Temperatura · Finestre · Sicurezza · Solare termico · Piscina · Irrigazione · Aspirapolvere · Server
 </p>
 
 <p align="center">
@@ -68,7 +68,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
 - [Dove vive la configurazione](#dove-vive-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Tapparelle](#tapparelle-tende-e-finestre) · [Sicurezza](#sicurezza-telecamere-e-aperture) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Aspirapolvere](#aspirapolvere) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-telecamere-e-aperture) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Aspirapolvere](#aspirapolvere) · [MiniPC](#minipc-e-rete)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
 - [Come vengono calcolati i numeri](#come-vengono-calcolati-i-numeri)
@@ -178,7 +178,7 @@ Ordine consigliato (o revisione dopo l'autorilevamento):
 3. **Carichi** — definisci i cerchi sotto Casa nel flusso (wallbox, clima, cucina…).
 4. **Elettrodomestici** — aggiungi gli apparecchi e i loro sensori.
 5. **Temperatura** — associa temperatura e umidità alle stanze già create.
-6. **Luci, Clima, Tapparelle** — assegna ogni entità alla stanza corretta.
+6. **Luci, Clima, Finestre** — assegna ogni entità alla stanza corretta.
 7. **Persone** — chi abita la casa, con il ritratto e i sensori del telefono.
 8. **Auto, Sicurezza, Piscina, Irrigazione, Aspirapolvere, MiniPC** — abilita solo ciò che usi.
 9. **Widget, Azioni rapide, personalizzazione** — cosa compare in Home, icone, ordine della barra.
@@ -238,7 +238,7 @@ Quali entità finiscono nei widget lo decidi entità per entità, con l'interrut
 
 **Le finestre aprono come aprono le pagine**: la testata è la stessa fascia con cui si apre ogni pagina della plancia — l'alone di colore dall'angolo, il titolo in maiuscolo nel colore della sezione, il sottotitolo in maiuscoletto, la riga che sfuma in fondo.
 
-**In cima, i numeri che riassumono**: quanti in funzione, la media in casa e l'obiettivo per il Clima; accese e spente per le Luci; aperte e apertura media per le Tapparelle; la più fredda, la media e la più calda per le Temperature. Sono ricavati dalle righe: non c'è niente di nuovo da tenere aggiornato.
+**In cima, i numeri che riassumono**: quanti in funzione, la media in casa e l'obiettivo per il Clima; accese e spente per le Luci; aperte e apertura media per le Finestre; la più fredda, la media e la più calda per le Temperature. Sono ricavati dalle righe: non c'è niente di nuovo da tenere aggiornato.
 
 Dentro, **ogni riga è la tessera della Home messa in orizzontale**: pastiglia dell'icona tinta quando è acceso, neutra quando è spento, e la riga intera velata appena del colore. Da un metro di distanza si contano gli accesi senza leggere niente. Una lista lunga **scorre**, con l'intestazione ferma in cima.
 
@@ -432,7 +432,7 @@ Una card per stanza con temperatura, umidità e un **giudizio di comfort** — f
 
 ---
 
-## Tapparelle, tende e finestre
+## Finestre: tapparelle, tende e sensori
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
@@ -534,7 +534,7 @@ L'editor è un'unica finestra con **ventidue schede**, una per area, elencate in
 
 Tutte le configurazioni descritte qui sono **visuali**: nessun YAML.
 
-`Impostazioni` · `Home` · `Energia` · `EV` · `Solare` · `Sicurezza` · `MiniPC` · `Temperatura` · `Azioni` · `Clima` · `Piscina` · `Irrigazione` · `Tapparelle` · `Stanze` · `Luci` · `Elettrodom.` · `Aperture` · `Backup` · `Widget` · `Aspirapolvere` · `Persone` · `Runtime`
+`Impostazioni` · `Home` · `Energia` · `EV` · `Solare` · `Sicurezza` · `MiniPC` · `Temperatura` · `Azioni` · `Clima` · `Piscina` · `Irrigazione` · `Finestre` · `Stanze` · `Luci` · `Elettrodom.` · `Aperture` · `Backup` · `Widget` · `Aspirapolvere` · `Persone` · `Runtime`
 
 > Le schermate qui sotto sono in **tema chiaro**; l'editor segue il tema della plancia, quindi in tema scuro le stesse schede appaiono scure — c'è una galleria in fondo al capitolo.
 
@@ -646,7 +646,7 @@ Temperatura e umidità per stanza, con le soglie di comfort.
 
 Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto animato), stanza, entità di controllo, potenza, energia giornaliera e totale, stato del programma, tempo rimanente, temperatura, ultimo ciclo (durata, energia, costo), **soglie di standby e funzionamento** e **ritardo di fine ciclo**.
 
-### 💡 Luci · ❄️ Clima · 🪟 Tapparelle
+### 💡 Luci · ❄️ Clima · 🪟 Finestre
 
 <table>
 <tr>
@@ -658,7 +658,7 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 - **Luci**: entità (`light.`, `switch.`, `input_boolean.`, `fan.`, `group.`), nome, stanza — chiesta subito quando aggiungi una luce — e ordine.
 - **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo**, **Caldo** o entrambi per una pompa di calore. Qui si configura anche il **tasto Clima rapido** della Home — modalità, temperatura e ventola — con le sole modalità che le unità configurate accettano davvero; un campo lasciato vuoto vuol dire «non toccare».
-- **Tapparelle**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso** e percentuali dei preset. Il solo sensore basta per una persiana manuale.
+- **Finestre**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso** e percentuali dei preset. Il solo sensore basta per una persiana manuale.
 
 ### 🤖 Aspirapolvere · ✅ Cose da fare · 🚪 Aperture
 
@@ -721,7 +721,7 @@ L'ultima scheda è di diagnostica: versione della plancia, stato del bridge di a
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-settings.webp" alt="Editor Impostazioni in tema scuro"><br><sub>Impostazioni</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-rooms.webp" alt="Editor Stanze in tema scuro"><br><sub>Stanze</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-people.webp" alt="Editor Persone in tema scuro"><br><sub>Persone</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy.webp" alt="Editor Energia in tema scuro"><br><sub>Energia · flussi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-loads.webp" alt="Editor Carichi in tema scuro"><br><sub>Energia · carichi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-report.webp" alt="Editor Report in tema scuro"><br><sub>Energia · report</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-settings.webp" alt="Editor tariffe in tema scuro"><br><sub>Energia · tariffe</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-appliances.webp" alt="Editor Elettrodomestici in tema scuro"><br><sub>Elettrodomestici</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-temperature.webp" alt="Editor Temperatura in tema scuro"><br><sub>Temperatura</sub></td></tr>
-<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-lights.webp" alt="Editor Luci in tema scuro"><br><sub>Luci</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-climate.webp" alt="Editor Clima in tema scuro"><br><sub>Clima</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-shutters.webp" alt="Editor Tapparelle in tema scuro"><br><sub>Tapparelle</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-lights.webp" alt="Editor Luci in tema scuro"><br><sub>Luci</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-climate.webp" alt="Editor Clima in tema scuro"><br><sub>Clima</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-shutters.webp" alt="Editor Tapparelle in tema scuro"><br><sub>Finestre</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-robot.webp" alt="Editor Aspirapolvere in tema scuro"><br><sub>Aspirapolvere</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-todo.webp" alt="Editor Cose da fare in tema scuro"><br><sub>Cose da fare</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-doors.webp" alt="Editor Aperture in tema scuro"><br><sub>Aperture</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-pool.webp" alt="Editor Piscina in tema scuro"><br><sub>Piscina</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-irrigation.webp" alt="Editor Irrigazione in tema scuro"><br><sub>Irrigazione</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ev.webp" alt="Editor Auto elettrica in tema scuro"><br><sub>Auto elettrica</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-alerts.webp" alt="Editor Widget in tema scuro"><br><sub>Widget e avvisi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-quick-actions.webp" alt="Editor Azioni rapide in tema scuro"><br><sub>Azioni rapide</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-backup.webp" alt="Editor Backup in tema scuro"><br><sub>Backup</sub></td></tr>

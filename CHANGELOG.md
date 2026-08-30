@@ -35,6 +35,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   quando non succede rimpicciolire e' l'unica via d'uscita. Sotto misura la
   mappa resta centrata; il tasto ⟳ rimette com'era.
 
+### Cambiato
+
+- **La sezione «Tapparelle» ora si chiama «Finestre»** («Windows» in
+  inglese). Ci si configurano tapparelle, tende, tende da sole e sensori di
+  apertura sull'infisso: il nome vecchio raccontava solo la prima. Cambiano
+  la linguetta nella barra, il titolo della pagina, la scheda dell'editor, la
+  tessera della Home e le traduzioni in tutte le lingue; le entita' e i dati
+  salvati restano come sono.
+
 ### Aggiunto
 
 - **Il riavvio si chiede dal posto standard, col suo tasto.** Dopo
