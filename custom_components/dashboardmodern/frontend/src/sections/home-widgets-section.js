@@ -982,7 +982,11 @@ function righeVettura(lettura, conNome) {
     righe.push({
       glyph: "🔌",
       name: `${prefisso}${t("Ricarica", "Charging")}`,
-      value: lettura.ricarica,
+      /* La parola, non il codice: «C» e' il gergo della wallbox, e in una
+       * casella si legge malissimo. La lettura e' la stessa di `attiva`. */
+      value: autoAllaPresa(lettura.ricarica)
+        ? t("In carica", "Charging")
+        : t("Scollegata", "Unplugged"),
     });
   /* E tutte le altre caselle mappate di questa vettura: sono quelle su cui
    * l'interruttore «nel widget» sta acceso, e finora non uscivano. */
