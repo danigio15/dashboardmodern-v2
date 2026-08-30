@@ -138,55 +138,22 @@ test("i ritratti arrivano in Home, e il costruttore ha le file della v7", async 
   const pastiglie = riga.locator(".dm-face-opt-img img");
   await expect(pastiglie).toHaveCount(80, { timeout: 120000 });
 
-  /* Le pastiglie profonde — il casual e' il trentunesimo di trentacinque —
-   * stanno sotto la piega del modale, e su webkit lo «scrolling into view»
-   * di Playwright non converge li' dentro: la pastiglia si porta in vista
-   * con lo scroll della pagina — lo stesso che usa il dito — e poi si
-   * preme. */
+  /* Il gesto si fa in UN turno di thread, dentro la pagina.
+   *
+   * Sul webkit della CI ogni composizione di pastiglia costa secondi di
+   * lavoro sincrono: qualunque coreografia di Playwright che chieda piu'
+   * turni — l'attesa di stabilita' (a frame), lo scrolling into view,
+   * perfino un campionatore con la rete del setTimeout (misurato: su
+   * Chromium il banco e' di marmo, zero variazioni di rect; su webkit il
+   * campionatore stesso moriva di fame) — si accoda dietro decine di quei
+   * task e sfora il timeout. `scrollIntoView` piu' `click()` in un solo
+   * evaluate si accodano UNA volta e poi corrono; la verita' del gesto la
+   * dicono le asserzioni dopo, che auto-attendono. */
   const premi = async (selettore) => {
-    const bersaglio = riga.locator(selettore);
-    await bersaglio.evaluate((nodo) => nodo.scrollIntoView({ block: "center" }));
-    /* Su webkit l'attesa di stabilita' di Playwright non converge mai qui
-     * dentro, in punti diversi a ogni giro: si MISURA chi si muove — la
-     * stampa arriva nel log della CI — e si preme senza aspettarla. La
-     * verita' del gesto la dicono le asserzioni dopo il click, che restano
-     * tutte. */
-    const quiete = await bersaglio.evaluate(async (nodo) => {
-      const inizio = performance.now();
-      let prima = nodo.getBoundingClientRect();
-      let cambi = 0;
-      let ultima = "";
-      while (performance.now() - inizio < 1200) {
-        /* La rete del setTimeout: su webkit i frame possono restare affamati
-         * per decine di secondi durante la ricomposizione, e un campionatore
-         * appeso al solo rAF si appendeva con loro. */
-        await new Promise((via) => {
-          let fatto = false;
-          const ok = () => {
-            if (!fatto) {
-              fatto = true;
-              via();
-            }
-          };
-          requestAnimationFrame(ok);
-          setTimeout(ok, 50);
-        });
-        const dopo = nodo.getBoundingClientRect();
-        if (
-          Math.abs(dopo.x - prima.x) > 0.5 ||
-          Math.abs(dopo.y - prima.y) > 0.5 ||
-          Math.abs(dopo.width - prima.width) > 0.5 ||
-          Math.abs(dopo.height - prima.height) > 0.5
-        ) {
-          cambi += 1;
-          ultima = `dx${Math.round(dopo.x - prima.x)} dy${Math.round(dopo.y - prima.y)} dw${Math.round(dopo.width - prima.width)} dh${Math.round(dopo.height - prima.height)}`;
-        }
-        prima = dopo;
-      }
-      return { cambi, ultima };
+    await riga.locator(selettore).evaluate((nodo) => {
+      nodo.scrollIntoView({ block: "center" });
+      nodo.click();
     });
-    console.log(`QUIETE ${selettore}: ${JSON.stringify(quiete)}`);
-    await bersaglio.click({ force: true });
   };
 
   /* Le file si seguono: senza barba il suo colore sparisce... */
