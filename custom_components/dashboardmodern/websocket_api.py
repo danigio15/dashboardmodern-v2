@@ -28,6 +28,23 @@ amministratori, dentro la lista se una lista c'e'. La lettura resta aperta a
 chi la plancia la puo' usare, perche' senza leggere non la si puo' nemmeno
 disegnare; scrittura, ripristino ed elenco dei file chiedono lo stesso
 permesso, non uno piu' debole.
+
+E c'e' una seconda regola, altrettanto importante: **il profilo non lo sceglie
+il client**. Il permesso e' legato all'``entry_id``, ma il ``profile`` arrivava
+a parte, come stringa libera. Un utente autorizzato per la sua plancia poteva
+percio' passare il proprio ``entry_id`` — che il controllo accetta — e nominare
+il profilo di un'altra plancia, leggendolo, riscrivendolo o ripristinandolo. E
+poteva inventare profili qualunque, facendo crescere lo storage condiviso senza
+limite.
+
+Adesso il profilo si deriva dal server a partire dall'``entry_id`` (la stessa
+derivazione che il pannello inietta, quindi per un client legittimo non cambia
+niente) e il ``profile`` del client non e' piu' fidato: chi chiama puo'
+raggiungere soltanto la plancia principale o una plancia il cui ``entry_id`` gli
+e' consentito. Solo un amministratore, e solo quando non indica un ``entry_id``,
+puo' ancora nominare un profilo esplicito, perche' e' lui a gestirli. L'elenco
+completo dei profili resta visibile ai soli amministratori, e il numero
+complessivo dei profili e' limitato.
 """
 
 from __future__ import annotations
@@ -41,8 +58,10 @@ from homeassistant.core import callback
 from .config_flow import OPTION_ADMIN_ONLY, OPTION_ALLOWED_USERS
 from .config_store import (
     PRIMARY_PROFILE,
+    ProfileLimitError,
     SnapshotTooLargeError,
     async_get_config_store,
+    profile_for_entry,
 )
 from .const import DOMAIN
 from .www_files import MAX_UPLOAD_BYTES, list_www_folder, save_www_upload
@@ -74,6 +93,11 @@ def _allowed_users(entry: Any) -> set[str]:
     return {str(user_id) for user_id in value if user_id}
 
 
+def _is_admin(connection: Any) -> bool:
+    user = getattr(connection, "user", None)
+    return bool(user is not None and getattr(user, "is_admin", False))
+
+
 def _may_use(entry: Any, user: Any) -> bool:
     """Se questo utente puo' usare questa plancia.
 
@@ -91,25 +115,72 @@ def _may_use(entry: Any, user: Any) -> bool:
     return str(getattr(user, "id", "")) in consentiti
 
 
-def _authorized(hass: HomeAssistant, connection: Any, entry_id: str | None) -> bool:
-    """Se chi chiama puo' usare la plancia a cui si riferisce.
+def _entry_is_primary(hass: HomeAssistant, entry: Any, entries: list[Any]) -> bool:
+    """Se questa e' la plancia principale.
 
-    Senza `entry_id` — e' il caso normale, la plancia principale — basta poterne
-    usare almeno una: chi non puo' usarne nessuna non ha niente da fare qui.
+    Stessa regola di ``frontend._entry_is_primary``, cosi' il profilo derivato
+    qui coincide con quello che il pannello inietta e per un client legittimo
+    non cambia nulla.
+    """
+    if entry.data.get("primary"):
+        return True
+    if any(e.data.get("primary") for e in entries):
+        return False
+    return bool(entries) and entries[0].entry_id == entry.entry_id
+
+
+def _profile_for(hass: HomeAssistant, entry: Any, entries: list[Any]) -> str:
+    """Il profilo condiviso di questa plancia, derivato dal server."""
+    return profile_for_entry(
+        primary=_entry_is_primary(hass, entry, entries),
+        title=entry.title or "",
+        entry_id=entry.entry_id,
+    )
+
+
+def _resolve_profile(
+    hass: HomeAssistant,
+    connection: Any,
+    entry_id: str | None,
+    requested_profile: str,
+) -> str | None:
+    """Il profilo su cui questo utente puo' agire, o ``None`` per negare.
+
+    Il profilo si deriva dall'``entry_id`` lato server: il ``requested_profile``
+    del client non e' fidato e serve solo a un amministratore che gestisce i
+    profili senza indicare una plancia. Cosi' chi chiama puo' raggiungere
+    soltanto la plancia principale o una plancia il cui ``entry_id`` gli e'
+    consentito, e non puo' inventare profili arbitrari.
     """
     user = getattr(connection, "user", None)
-    if user is not None and getattr(user, "is_admin", False):
-        return True
     entries = _entries(hass)
-    # Nessuna plancia installata, nessuna regola da applicare: qui non c'e'
-    # niente da proteggere, e rifiutare vorrebbe dire rompere il negozio
-    # condiviso per chi lo usa senza pannelli.
-    if not entries:
-        return True
     if entry_id:
-        scelta = next((entry for entry in entries if entry.entry_id == entry_id), None)
-        return bool(scelta and _may_use(scelta, user))
-    return any(_may_use(entry, user) for entry in entries)
+        scelta = next((e for e in entries if e.entry_id == entry_id), None)
+        if scelta is None or not _may_use(scelta, user):
+            return None
+        return _profile_for(hass, scelta, entries)
+    # Senza `entry_id`. Un amministratore puo' nominare un profilo esplicito
+    # (gestione, enumerazione); chiunque altro raggiunge solo la principale.
+    if not entries:
+        # Nessuna plancia installata: negozio condiviso senza pannelli, niente
+        # da proteggere. Un profilo arbitrario resta pero' riservato agli admin.
+        return requested_profile if _is_admin(connection) else PRIMARY_PROFILE
+    if not any(_may_use(e, user) for e in entries):
+        return None
+    return requested_profile if _is_admin(connection) else PRIMARY_PROFILE
+
+
+def _visible_profiles(connection: Any, result: dict[str, Any]) -> dict[str, Any]:
+    """Nascondi l'elenco completo dei profili a chi non e' amministratore.
+
+    Sapere quali altre plance esistono e' informazione che un utente normale
+    non deve ricavare da questi comandi; vede solo il proprio profilo.
+    """
+    if _is_admin(connection):
+        return result
+    proprio = result.get("profile")
+    listed = result.get("profiles") or []
+    return {**result, "profiles": [p for p in listed if p == proprio]}
 
 
 def _deny(connection: Any, msg: dict[str, Any]) -> None:
@@ -134,12 +205,13 @@ async def async_get_config(
     msg: dict[str, Any],
 ) -> None:
     """Return the shared snapshot of one plancia."""
-    if not _authorized(hass, connection, msg.get("entry_id")):
+    profile = _resolve_profile(hass, connection, msg.get("entry_id"), msg["profile"])
+    if profile is None:
         _deny(connection, msg)
         return
     store = await async_get_config_store(hass)
-    result = await store.async_get(msg["profile"], entry_id=msg.get("entry_id"))
-    connection.send_result(msg["id"], result)
+    result = await store.async_get(profile, entry_id=msg.get("entry_id"))
+    connection.send_result(msg["id"], _visible_profiles(connection, result))
 
 
 @websocket_api.websocket_command(
@@ -170,14 +242,15 @@ async def async_set_config(
     msg: dict[str, Any],
 ) -> None:
     """Store a snapshot for one plancia."""
-    if not _authorized(hass, connection, msg.get("entry_id")):
+    profile = _resolve_profile(hass, connection, msg.get("entry_id"), msg["profile"])
+    if profile is None:
         _deny(connection, msg)
         return
     store = await async_get_config_store(hass)
     snapshot = msg["snapshot"]
     try:
         result = await store.async_set(
-            msg["profile"],
+            profile,
             snapshot["values"],
             entry_id=msg.get("entry_id"),
             keys_revision=snapshot["keys_revision"],
@@ -189,7 +262,10 @@ async def async_set_config(
     except SnapshotTooLargeError as error:
         connection.send_error(msg["id"], "snapshot_too_large", str(error))
         return
-    connection.send_result(msg["id"], result)
+    except ProfileLimitError as error:
+        connection.send_error(msg["id"], "too_many_profiles", str(error))
+        return
+    connection.send_result(msg["id"], _visible_profiles(connection, result))
 
 
 @websocket_api.websocket_command(
@@ -207,14 +283,15 @@ async def async_restore_config(
     msg: dict[str, Any],
 ) -> None:
     """Promote a kept revision of one plancia back to current."""
-    if not _authorized(hass, connection, msg.get("entry_id")):
+    profile = _resolve_profile(hass, connection, msg.get("entry_id"), msg["profile"])
+    if profile is None:
         _deny(connection, msg)
         return
     store = await async_get_config_store(hass)
     result = await store.async_restore(
-        msg["profile"], msg["revision"], entry_id=msg.get("entry_id")
+        profile, msg["revision"], entry_id=msg.get("entry_id")
     )
-    connection.send_result(msg["id"], result)
+    connection.send_result(msg["id"], _visible_profiles(connection, result))
 
 
 @websocket_api.websocket_command(
@@ -230,7 +307,7 @@ async def async_list_www(
     msg: dict[str, Any],
 ) -> None:
     """Elenca una cartella di ``config/www`` per il selettore delle foto."""
-    if not _authorized(hass, connection, None):
+    if _resolve_profile(hass, connection, None, PRIMARY_PROFILE) is None:
         _deny(connection, msg)
         return
     result = await hass.async_add_executor_job(
@@ -265,7 +342,7 @@ async def async_upload_www(
     rispondeva 401. La foto viaggia percio' su questo stesso canale, e chi puo'
     scrivere e' chi puo' gia' scrivere la configurazione.
     """
-    if not _authorized(hass, connection, None):
+    if _resolve_profile(hass, connection, None, PRIMARY_PROFILE) is None:
         _deny(connection, msg)
         return
     import base64
