@@ -283,6 +283,7 @@ def test_si_puo_spegnere_e_lo_dicono_tutte_le_lingue() -> None:
         campi = dati["options"]["step"]["init"]["data"]
         assert "check_updates" in campi, f"{nome} non traduce l'opzione"
 
+
 def test_l_entita_ha_un_nome_da_mostrare() -> None:
     """Senza un dispositivo l'entita' non aveva un nome da nessuna parte.
 
