@@ -45,3 +45,17 @@ test("e se non c'e' nemmeno l'inglese si prende quello che c'e'", () => {
   const panel = { config: { legacy_variants: ["dashboard-de.html"] } };
   assert.equal(resolveLegacyVariant(panel, { locale: { language: "fr" } }), "dashboard-de.html");
 });
+
+/* All'avvio Home Assistant puo' staccare e riattaccare il pannello nel giro
+ * di un fotogramma: smontare subito buttava via l'iframe con tutta la
+ * plancia, e il prossimo `set hass` la ricostruiva da zero — il velo d'avvio
+ * si vedeva due volte. Lo smontaggio aspetta un attimo e si annulla se il
+ * pannello torna attaccato; se se n'e' andato davvero, parte. */
+test("lo smontaggio del pannello e' differito, e il riattacco lo annulla", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../panel.js", import.meta.url), "utf8");
+  assert.match(source, /connectedCallback\(\)\s*\{\s*if \(this\._smontaggio\)/);
+  assert.match(source, /disconnectedCallback\(\)\s*\{\s*if \(this\._smontaggio\) return;/);
+  assert.match(source, /if \(!this\.isConnected\) this\.resetHost\(\)/);
+  assert.doesNotMatch(source, /disconnectedCallback\(\)\s*\{\s*this\.resetHost\(\);/);
+});

@@ -282,3 +282,42 @@ def test_si_puo_spegnere_e_lo_dicono_tutte_le_lingue() -> None:
         dati = json.loads(percorso.read_text(encoding="utf-8"))
         campi = dati["options"]["step"]["init"]["data"]
         assert "check_updates" in campi, f"{nome} non traduce l'opzione"
+
+
+def test_l_entita_ha_un_nome_da_mostrare() -> None:
+    """Senza un dispositivo l'entita' non aveva un nome da nessuna parte.
+
+    `_attr_name = None` dice «usa il nome del dispositivo», e il dispositivo
+    non c'era: la pagina Aggiornamenti ripiegava sull'entity_id — il dialogo
+    titolava «update.dashboardmodern_...» e la riga dell'elenco restava
+    grigia, senza nome.
+    """
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    assert "DeviceInfo(" in sorgente
+    assert "name=NAME" in sorgente
+    assert "sw_version=installed" in sorgente
+
+
+def test_il_riavvio_si_chiede_dal_posto_standard() -> None:
+    """La Riparazione col tasto, come HACS — non una notifica da leggere.
+
+    Chi aggiornava da HACS premeva «riavvia» nella Riparazione di Home
+    Assistant; il tasto «Installa» lasciava invece una notifica testuale, e
+    quel tasto non si trovava piu' da nessuna parte. A installazione riuscita
+    si apre la stessa Riparazione, e la conferma riavvia davvero.
+    """
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    assert "async_create_issue" in sorgente
+    assert '"riavvio_richiesto"' in sorgente
+    assert "persistent_notification" not in sorgente
+    riparazioni = (COMPONENT / "repairs.py").read_text(encoding="utf-8")
+    assert "async_create_fix_flow" in riparazioni
+    assert '"homeassistant", "restart"' in riparazioni
+    lingue = sorted((COMPONENT / "translations").glob("*.json"))
+    assert lingue
+    for percorso in [*lingue, COMPONENT / "strings.json"]:
+        dati = json.loads(percorso.read_text(encoding="utf-8"))
+        voce = dati["issues"]["riavvio_richiesto"]
+        passo = voce["fix_flow"]["step"]["confirm"]
+        assert voce["title"], percorso.name
+        assert "{version}" in passo["description"], percorso.name

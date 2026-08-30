@@ -67,7 +67,7 @@ function catalogoTessere() {
     ["todo", "✅", t("Da fare", "To-do")],
     ["luci", "💡", t("Luci", "Lights")],
     ["clima", "❄️", t("Clima", "Climate")],
-    ["tapparelle", "🪟", t("Tapparelle", "Shutters")],
+    ["tapparelle", "🪟", t("Finestre", "Windows")],
     ["sicurezza", "🛡️", t("Sicurezza", "Security")],
     ["telecamere", "📹", t("Telecamere", "Cameras")],
     ["energia", "⚡", t("Energia", "Energy")],

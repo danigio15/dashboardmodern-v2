@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "Перезапустите, чтобы завершить обновление DashboardModern",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Перезапустить Home Assistant",
+            "description": "Версия {version} установлена на диск. Перезапустите Home Assistant, чтобы загрузить её."
+          }
+        }
+      }
+    }
   }
 }

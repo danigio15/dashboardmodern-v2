@@ -127,6 +127,7 @@ export class DashboardModernPanel extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.host = null;
     this.mounted = false;
+    this._smontaggio = 0;
   }
 
   set hass(value) {
@@ -196,8 +197,28 @@ export class DashboardModernPanel extends HTMLElement {
     });
   }
 
+  /* Lo smontaggio aspetta un attimo, il rimontaggio no.
+   *
+   * All'avvio Home Assistant puo' staccare e riattaccare il pannello nel giro
+   * di un fotogramma — un riordino del suo stesso documento, non una
+   * navigazione vera. Smontare subito butta via l'iframe con tutta la plancia,
+   * e il prossimo `set hass` la ricostruisce da zero: il velo d'avvio si
+   * vedeva due volte — compare, sparisce col documento, ricompare col nuovo.
+   * Se il pannello torna attaccato prima del giro successivo non c'e' niente
+   * da smontare; se invece se n'e' andato davvero, lo smontaggio parte. */
+  connectedCallback() {
+    if (this._smontaggio) {
+      clearTimeout(this._smontaggio);
+      this._smontaggio = 0;
+    }
+  }
+
   disconnectedCallback() {
-    this.resetHost();
+    if (this._smontaggio) return;
+    this._smontaggio = setTimeout(() => {
+      this._smontaggio = 0;
+      if (!this.isConnected) this.resetHost();
+    }, 250);
   }
 }
 

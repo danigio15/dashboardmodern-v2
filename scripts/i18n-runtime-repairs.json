@@ -35,5 +35,6 @@
   "⚙️ Configurazione → Configure Entities → 📑 Sections": "⚙️ Configuration → Configure Entities → 📑 Sections",
   "❌ History non disponibile": "❌ History unavailable",
   "📊 Aggiungi i tuoi dispositivi da ⚙️ → Configure Entities → Carichi → \"Report Analisi — voci\"": "📊 Add your devices from ⚙️ → Configure Entities → Loads → \"Analysis Report — entries\"",
+  "(entità cover). Compaiono nella pagina 🪟 Windows, raggruppate per piano e stanza.": "(cover entities). They appear on the 🪟 Windows page, grouped by floor and room.",
   "(optional): solo questo utente HA vedrà la pagina ⚙️ Configurazione. Lascia vuoto per mostrarla a tutti.": "(optional): only this HA user will see the ⚙️ Configuration page. Leave it empty to show it to everyone."
 }

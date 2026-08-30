@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "أعد التشغيل لإكمال تحديث DashboardModern",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "إعادة تشغيل Home Assistant",
+            "description": "الإصدار {version} مثبت على القرص. أعد تشغيل Home Assistant لتحميله."
+          }
+        }
+      }
+    }
   }
 }

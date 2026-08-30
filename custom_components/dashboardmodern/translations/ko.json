@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "DashboardModern 업데이트를 완료하려면 다시 시작하세요",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Home Assistant 다시 시작",
+            "description": "버전 {version}이(가) 디스크에 설치되었습니다. 불러오려면 Home Assistant를 다시 시작하세요."
+          }
+        }
+      }
+    }
   }
 }

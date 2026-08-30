@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "Riavvia per completare l'aggiornamento di DashboardModern",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Riavvia Home Assistant",
+            "description": "La versione {version} è installata sul disco. Riavvia Home Assistant per caricarla."
+          }
+        }
+      }
+    }
   }
 }

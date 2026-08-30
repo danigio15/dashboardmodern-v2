@@ -104,6 +104,19 @@ export function createBridgeSocket({
   const permitted = new Set(allowed);
 
   return class BridgeSocket {
+    /* Le costanti del WebSocket vero, sulla classe.
+     *
+     * Nel documento ospitato QUESTA classe e' `window.WebSocket`, e il guscio
+     * confronta `ws.readyState !== WebSocket.OPEN` prima di chiedere un
+     * flusso HLS. Senza le statiche il confronto era `1 !== undefined` —
+     * sempre vero — e l'HLS veniva scartato prima ancora di mandare
+     * `camera/stream`: nessuna telecamera del pannello si svegliava mai, e
+     * le cam in cloud (Ring, Arlo) restavano sulle istantanee vecchie. */
+    static CONNECTING = 0;
+    static OPEN = OPEN;
+    static CLOSING = 2;
+    static CLOSED = CLOSED;
+
     constructor() {
       this.readyState = OPEN;
       this.onmessage = null;

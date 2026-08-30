@@ -200,7 +200,9 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # Round 19: appliance save, tapparelle alert group, cams in security,
         # navbar ordering from Impostazioni.
         assert "editorRenderAppliances() + '<button" in html, name
-        assert 'value="tapp">🪟 Tapparelle (cover)' in html, name
+        # La sezione si chiama Finestre (Windows nella build inglese).
+        finestre = "Windows" if name == "dashboard-en.html" else "Finestre"
+        assert f'value="tapp">🪟 {finestre} (cover)' in html, name
         assert "grp === 'tapp'" in html, name
         assert "alsoN=(n===4)?10:-1" in html, name
         assert 'data-tab="sez10"' not in html, name

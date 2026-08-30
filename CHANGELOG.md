@@ -5,6 +5,79 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.11
+
+### Corretto (telecamere)
+
+- **Le telecamere del pannello chiedono davvero il flusso live.** Nel
+  documento ospitato il ponte verso Home Assistant fa da WebSocket, ma non
+  portava le costanti del WebSocket vero: il controllo «la socket e' aperta?»
+  confrontava 1 con niente, falliva sempre, e l'HLS si scartava prima ancora
+  di mandare la richiesta. Nessuna telecamera del pannello si svegliava — le
+  cam in cloud come Ring e Arlo restavano sulle istantanee vecchie, LED
+  spento (#232). Ora il ponte porta le costanti, il controllo passa, e la
+  richiesta di flusso parte.
+
+### Corretto (temperature)
+
+- **L'umidita' non si inventa (#242).** Senza entita' di umidita' scelta, la
+  gemella si indovina sostituendo _temperature con _humidity nel nome; su un
+  id senza «_temperature» la sostituzione restituiva lo stesso id, e la card
+  mostrava la temperatura due volte — la seconda col «%» addosso. Ora
+  l'indovinello vale solo se il nome cambia davvero, e senza entita' la
+  casella dell'umidita' non compare proprio.
+
+### Corretto (mappa del robot)
+
+- **La mappa a schermo intero si rimpicciolisce anche sotto misura.** «Zoom
+  in avanti ma non indietro, e non si apre completa»: il divieto di scendere
+  sotto la misura d'apertura presumeva che a misura si vedesse tutta, e
+  quando non succede rimpicciolire e' l'unica via d'uscita. Sotto misura la
+  mappa resta centrata; il tasto ⟳ rimette com'era.
+
+### Cambiato
+
+- **La sezione «Tapparelle» ora si chiama «Finestre»** («Windows» in
+  inglese). Ci si configurano tapparelle, tende, tende da sole e sensori di
+  apertura sull'infisso: il nome vecchio raccontava solo la prima. Cambiano
+  la linguetta nella barra, il titolo della pagina, la scheda dell'editor, la
+  tessera della Home e le traduzioni in tutte le lingue; le entita' e i dati
+  salvati restano come sono.
+
+### Aggiunto
+
+- **Il riavvio si chiede dal posto standard, col suo tasto.** Dopo
+  «Installa» compariva solo una notifica testuale, e chi veniva da HACS
+  cercava il tasto di riavvio dove lo aveva sempre trovato — nelle
+  Riparazioni — senza trovarlo. Ora a installazione riuscita si apre la
+  Riparazione «Riavvio richiesto»: premi, confermi, Home Assistant riparte.
+  In tutte le lingue.
+
+- **L'icona di un'apertura si sceglie dal catalogo.** Il campo era una
+  casella di testo nuda e l'unica strada era l'emoji dalla tastiera: ora
+  accanto al campo c'e' il tasto che apre lo stesso selettore delle icone
+  degli avvisi — porte, cancelli e serrature ci sono gia' — e il campo resta
+  scrivibile per chi vuole un'emoji fuori catalogo.
+
+### Corretto
+
+- **Il velo d'avvio non si vede piu' due volte.** All'avvio Home Assistant
+  puo' staccare e riattaccare il pannello nel giro di un fotogramma: lo
+  smontaggio immediato buttava via la plancia intera e il rimontaggio la
+  ricostruiva da zero — velo, vuoto, velo di nuovo. Ora lo smontaggio aspetta
+  un attimo e si annulla se il pannello torna attaccato.
+
+- **L'ultimo sfarfallio all'apertura dei popup.** Su schermo tattile anche il
+  velo sfocato dietro la card entrava in dissolvenza, e ricomporre il fondale
+  sfumato a ogni fotogramma faceva vibrare lo sfondo: ora il velo c'e' o non
+  c'e', a dissolversi e' solo la card.
+
+- **L'entita' degli aggiornamenti ha un nome.** Senza un dispositivo la
+  pagina Aggiornamenti ripiegava sull'entity_id: il dialogo titolava
+  «update.dashboardmodern_...» e la riga dell'elenco restava grigia. Ora
+  l'entita' appartiene al dispositivo «DashboardModern v2» e si presenta
+  cosi'.
+
 ## 1.3.10
 
 ### Corretto

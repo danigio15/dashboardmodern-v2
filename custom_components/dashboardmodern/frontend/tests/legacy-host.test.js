@@ -403,3 +403,55 @@ test("events reach the hosted page and unsubscribe when the socket closes", asyn
   socket.close();
   assert.equal(released, 1);
 });
+
+/* Lo smontaggio del pannello e' differito: nella sua finestra un host
+ * sostituto puo' essere gia' montato, e i globali sul window sono i suoi.
+ * Il destroy in ritardo non deve portargli via il ponte: cancella solo se
+ * la firma — il BridgeSocket — e' ancora la propria. */
+test("il destroy in ritardo non porta via i globali di un host sostituto", () => {
+  const { host, hostWindow } = mount();
+  const vecchio = host;
+  // Un sostituto monta sullo stesso window e riscrive i globali.
+  const container2 = fakeElement("div");
+  const nuovo = mountLegacyHost(container2, {
+    hass: { locale: { language: "it" } },
+    connection: connectionWith(),
+    staticBase: "/dashboardmodern_static/def",
+    documentRef,
+    hostWindow,
+    fetchRef: async () => ({
+      ok: true,
+      text: async () => "<!doctype html><html><head></head><body></body></html>",
+    }),
+  });
+  const ponteDelNuovo = hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
+  vecchio.destroy();
+  assert.equal(hostWindow[HOST_KEY], true, "il marchio del sostituto e' sparito");
+  assert.equal(
+    hostWindow.__DASHBOARDMODERN_BRIDGE_WS__,
+    ponteDelNuovo,
+    "il ponte del sostituto e' stato cancellato dal destroy in ritardo",
+  );
+  // E quando a smontare e' il legittimo proprietario, i globali se ne vanno.
+  nuovo.destroy();
+  assert.equal(HOST_KEY in hostWindow, false);
+  assert.equal("__DASHBOARDMODERN_BRIDGE_WS__" in hostWindow, false);
+});
+
+/* Nel documento ospitato il BridgeSocket E' `window.WebSocket`, e il guscio
+ * confronta `ws.readyState !== WebSocket.OPEN` prima di chiedere un flusso
+ * HLS. Senza le costanti statiche il confronto era `1 !== undefined` —
+ * sempre vero — e l'HLS si scartava prima di mandare `camera/stream`:
+ * nessuna telecamera del pannello si svegliava (la Ring della #232 restava
+ * sulle istantanee vecchie, LED spento). */
+test("il BridgeSocket porta le costanti del WebSocket vero", () => {
+  const { hostWindow, host } = mount();
+  const Socket = hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
+  assert.equal(Socket.CONNECTING, 0);
+  assert.equal(Socket.OPEN, 1);
+  assert.equal(Socket.CLOSING, 2);
+  assert.equal(Socket.CLOSED, 3);
+  const socket = new Socket();
+  assert.equal(socket.readyState, Socket.OPEN);
+  host.destroy();
+});

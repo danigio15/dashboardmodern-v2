@@ -122,14 +122,23 @@ test("si ingrandisce, e il tasto che rimette com'era la rimette com'era", async 
   expect(azzerata.trasformazione).toContain("scale(1)");
 });
 
-test("non si rimpicciolisce sotto la sua misura, e si chiude", async ({ page }, testInfo) => {
+test("si rimpicciolisce anche sotto misura, centrata, e si chiude", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   const mappa = await avvia(page, testInfo);
   await mappa.evaluate((nodo) => nodo.click());
-  /* Sotto l'uno non si va: la mappa diventerebbe un francobollo in mezzo al
-     nero, e non c'e' niente da guadagnarci. */
-  for (let giro = 0; giro < 4; giro += 1)
+  /* Sotto l'uno SI VA. Il divieto («francobollo in mezzo al nero») presumeva
+     che a misura la mappa si vedesse tutta; dal campo e' arrivato il
+     contrario — «zoom in avanti ma non indietro, e non si apre completa» — e
+     quando la misura tradisce, rimpicciolire e' l'unica via d'uscita.
+     Sotto misura resta centrata, e il pavimento e' 0.4. */
+  for (let giro = 0; giro < 6; giro += 1)
     await page.locator("#dm-robot-map-view [data-dm-map-out]").evaluate((nodo) => nodo.click());
+  const rimpicciolita = await lettura(page);
+  expect(rimpicciolita.trasformazione).toContain("scale(0.4)");
+  // WebKit scrive translate(0px), Chromium translate(0px, 0px): stessa cosa.
+  expect(rimpicciolita.trasformazione).toMatch(/translate\(0px(?:, 0px)?\)/);
+
+  await page.locator("#dm-robot-map-view [data-dm-map-reset]").evaluate((nodo) => nodo.click());
   expect((await lettura(page)).trasformazione).toContain("scale(1)");
 
   await page.locator("#dm-robot-map-view [data-dm-map-close]").evaluate((nodo) => nodo.click());

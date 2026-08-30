@@ -293,6 +293,9 @@ LOCALIZATION_GLOSSARY: tuple[tuple[str, str], ...] = (
     ("Room", "Stanza"),
     ("Cameras", "Telecamere"),
     ("Rooms", "Stanze"),
+    # La sezione delle coperture si chiama Finestre (tapparelle, tende e
+    # sensori di apertura insieme); la build inglese la traduce Windows.
+    ("Windows", "Finestre"),
 )
 
 

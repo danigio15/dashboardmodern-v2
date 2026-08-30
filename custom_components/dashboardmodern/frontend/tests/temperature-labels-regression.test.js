@@ -187,3 +187,22 @@ test("the reading is projected onto the card so the sheet can draw it", async ()
     assert.match(source, /applyTemperatureReading\(card/, name);
   }
 });
+
+/* L'umidita' non si inventa (#242).
+ *
+ * Senza entita' scelta la gemella si indovina sostituendo _temperature con
+ * _humidity nell'id. Su un id senza «_temperature» il replace restituiva lo
+ * STESSO id: la card mostrava la temperatura due volte, la seconda col «%»
+ * addosso. Ora l'indovinello vale solo se il nome cambia davvero, e senza
+ * entita' la casella dell'umidita' non si costruisce proprio. */
+test("l'umidita' non ricade sull'entita' della temperatura", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(
+    new URL("../src/sections/temperature-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /indovinata !== temp \? indovinata : ""/);
+  assert.doesNotMatch(source, /entry\?\.hum \|\| temp\.replace/);
+  const costruzione = source.slice(source.indexOf("function createTemperatureCard"));
+  assert.match(costruzione, /if \(humidity\) \{[\s\S]{0,120}humidityBox/);
+});

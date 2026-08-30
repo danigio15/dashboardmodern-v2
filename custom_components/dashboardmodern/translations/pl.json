@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "Uruchom ponownie, aby dokończyć aktualizację DashboardModern",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Uruchom ponownie Home Assistant",
+            "description": "Wersja {version} jest zainstalowana na dysku. Uruchom ponownie Home Assistant, aby ją załadować."
+          }
+        }
+      }
+    }
   }
 }

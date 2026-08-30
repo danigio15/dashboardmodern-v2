@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "重启以完成 DashboardModern 更新",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "重启 Home Assistant",
+            "description": "版本 {version} 已安装到磁盘。重启 Home Assistant 以加载它。"
+          }
+        }
+      }
+    }
   }
 }

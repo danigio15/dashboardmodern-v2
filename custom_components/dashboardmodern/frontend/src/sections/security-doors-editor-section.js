@@ -10,6 +10,7 @@ import {
   isDoorEntity,
   normalizeDoorPin,
 } from "../core/security-door-model.js";
+import { openEmojiPicker } from "./beta11-real-device-polish-section.js";
 import { clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SECURITY_DOORS_EDITOR__";
@@ -49,7 +50,7 @@ function rigaMarkup(door, index) {
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Entità che apre", "Opening entity")}</span>
         <span class="ed-form-row"><input id="dm-door-${index}-entity" class="ed-input mono" data-door-field="entity" value="${esc(door.entity)}" placeholder="lock.portone" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-door-pick="dm-door-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
         <small>${t("Serratura, pulsante, relè, cancello o script: lock.*, button.*, switch.*, cover.*, script.*…", "Lock, button, relay, gate or script: lock.*, button.*, switch.*, cover.*, script.*…")}</small></label>
-      <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input id="dm-door-${index}-icon" class="ed-input" data-door-field="icon" value="${esc(door.icon || "🚪")}" maxlength="4"></span></label>
+      <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input id="dm-door-${index}-icon" class="ed-input" data-door-field="icon" value="${esc(door.icon || "🚪")}" maxlength="4"><button type="button" class="dm-entity-picker" data-door-icon-pick="dm-door-${index}-icon" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span></label>
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("PIN (facoltativo)", "PIN (optional)")}</span><span class="ed-form-row"><input id="dm-door-${index}-pin" class="ed-input mono" data-door-field="pin" value="${esc(door.pin)}" inputmode="numeric" autocomplete="off" placeholder="1234"></span>
         <small>${t("Da 4 a 8 cifre: prima di aprire viene chiesto il codice, contro i tocchi accidentali. Vuoto = solo conferma.", "4 to 8 digits: the code is asked before opening, against accidental taps. Empty = confirm only.")}</small></label>
       <output class="dm-door-ed-error" data-door-error></output>
@@ -123,6 +124,17 @@ function onClick(event) {
     event.preventDefault();
     const input = body.querySelector(`#${CSS.escape(clean(pick.dataset.doorPick))}`);
     if (input) root.wzPickEntity?.(input);
+    return;
+  }
+  /* L'icona si sceglie dal catalogo, non si scrive a mano: e' lo stesso
+   * selettore delle icone degli avvisi — porte, cancelli e serrature ci sono
+   * gia' — col titolo suo. Il campo resta scrivibile per chi vuole un'emoji
+   * che nel catalogo non c'e'. */
+  const pickIcona = event.target.closest("[data-door-icon-pick]");
+  if (pickIcona) {
+    event.preventDefault();
+    const input = body.querySelector(`#${CSS.escape(clean(pickIcona.dataset.doorIconPick))}`);
+    if (input) openEmojiPicker(input, `🚪 ${t("Scegli icona", "Choose icon")}`);
     return;
   }
   const riga = event.target.closest("[data-door-index]");

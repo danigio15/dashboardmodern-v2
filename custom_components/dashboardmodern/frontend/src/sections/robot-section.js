@@ -285,7 +285,12 @@ export function renderRobots() {
  * chiede niente in piu' a Home Assistant per aprirla.
  */
 const VISORE_ID = "dm-robot-map-view";
-const INGRANDIMENTO_MIN = 1;
+/* Sotto la misura d'apertura SI PUO' andare. Il divieto («la mappa
+ * diventerebbe un francobollo») presumeva che a misura si vedesse tutta; dal
+ * campo e' arrivato il contrario — «zoom in avanti ma non indietro, e non si
+ * apre completa» — e quando la misura tradisce, rimpicciolire e' l'unica via
+ * d'uscita che l'utente ha in mano. Sotto l'uno la mappa resta centrata. */
+const INGRANDIMENTO_MIN = 0.4;
 const INGRANDIMENTO_MAX = 8;
 
 function vista() {
@@ -319,7 +324,9 @@ function ingrandisci(figura, fattore, puntoX, puntoY) {
   v.x = cx - ((cx - v.x) * dopo) / prima;
   v.y = cy - ((cy - v.y) * dopo) / prima;
   v.scala = dopo;
-  if (dopo === INGRANDIMENTO_MIN) {
+  /* A misura o piu' piccola, la mappa sta in mezzo: uno spostamento residuo
+   * la lascerebbe in un angolo, piccola e fuori asse. */
+  if (dopo <= 1) {
     v.x = 0;
     v.y = 0;
   }
