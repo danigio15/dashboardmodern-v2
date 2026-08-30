@@ -327,13 +327,24 @@ export function mountLegacyHost(
       } catch (_error) {}
       releaseMarkedElements(documentRef, ["data-dm-ios-kiosk"]);
       frame.remove();
-      delete hostWindow[HOST_KEY];
-      delete hostWindow.__DASHBOARDMODERN_INSTANCE__;
-      delete hostWindow.__DASHBOARDMODERN_PROFILE__;
-      delete hostWindow.__DASHBOARDMODERN_PRIMARY__;
-      delete hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
-      delete hostWindow.__DASHBOARDMODERN_REAL_TOKEN__;
-      delete hostWindow.DASHBOARDMODERN_AUTH_TOKEN;
+      /* I globali si cancellano solo se sono ancora i NOSTRI.
+       *
+       * Lo smontaggio del pannello e' differito: se in quella finestra un
+       * host sostituto e' gia' montato — un'altra plancia, o la stessa
+       * rimontata — i globali sul window sono i suoi, e cancellarli qui gli
+       * porterebbe via il ponte: il documento nuovo, al prossimo giro,
+       * troverebbe il posto vuoto e si installerebbe senza Home Assistant.
+       * Il ponte e' la firma: se non e' piu' il nostro, non si tocca niente
+       * (osservazione giusta della review). */
+      if (hostWindow.__DASHBOARDMODERN_BRIDGE_WS__ === BridgeSocket) {
+        delete hostWindow[HOST_KEY];
+        delete hostWindow.__DASHBOARDMODERN_INSTANCE__;
+        delete hostWindow.__DASHBOARDMODERN_PROFILE__;
+        delete hostWindow.__DASHBOARDMODERN_PRIMARY__;
+        delete hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
+        delete hostWindow.__DASHBOARDMODERN_REAL_TOKEN__;
+        delete hostWindow.DASHBOARDMODERN_AUTH_TOKEN;
+      }
     },
   };
 }
