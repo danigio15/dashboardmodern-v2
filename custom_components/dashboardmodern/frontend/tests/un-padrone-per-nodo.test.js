@@ -102,3 +102,38 @@ test("chi scrive un nodo del guscio passa dal delegato che lo rivendica", () => 
       `continuera' a riscriverglielo sopra:\n  ${senzaCartello.join("\n  ")}`,
   );
 });
+
+/* Il cartello vale per TUTTE le mani del guscio, `edSetText` compresa.
+ *
+ * `setTxt` e `setHtml` lo rispettavano; `edSetText` — la mano con cui i due
+ * render del Report scrivono i KPI e la griglia finanziaria — no. Il modulo
+ * rivendicava i nodi e il guscio ci riscriveva sopra a ogni giro: 473 e 586,
+ * 81%% e 84%%, gli euro calcolati e «0,00», avanti e indietro. Idem il
+ * cerchio dell'anello, scritto con `setAttribute` diretto. */
+test("anche edSetText e l'anello rispettano il cartello dei moduli", () => {
+  for (const variante of ["dashboard-runtime-it.js", "dashboard-runtime-en.js"]) {
+    const guscio = readFileSync(join(RADICE, "legacy", variante), "utf8");
+    assert.match(
+      guscio,
+      /function edSetText\(id, html\) \{[\s\S]{0,400}?cdPresoDaiModuli\(el\)/,
+      `${variante}: edSetText scrive senza guardare il cartello`,
+    );
+    assert.doesNotMatch(
+      guscio,
+      /if \(circle\) circle\.setAttribute\('stroke-dasharray'/,
+      `${variante}: l'anello si scrive senza guardare il cartello`,
+    );
+  }
+});
+
+/* Le tariffe hanno gli stessi default da tutte le parti: 0.25 e 0.10.
+ * Il guscio partiva da questi, i moduli da zero, e nel Report gli euro si
+ * alternavano tra calcolati e «0,00 €». */
+test("le tariffe dei moduli hanno i default del guscio", () => {
+  const energia = readFileSync(join(MODULI, "energy-section.js"), "utf8");
+  const polish = readFileSync(join(MODULI, "energy-report-polish-section.js"), "utf8");
+  assert.match(energia, /importPrice > 0 \? importPrice : 0\.25/);
+  assert.match(energia, /exportPrice > 0 \? exportPrice : 0\.1/);
+  assert.match(polish, /rateOrDefault\("cd_costo_kwh", 0\.25\)/);
+  assert.match(polish, /rateOrDefault\("cd_prezzo_immissione", 0\.1\)/);
+});

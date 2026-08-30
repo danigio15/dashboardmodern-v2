@@ -482,6 +482,16 @@ export function legacyVisibilityTargets() {
   if (listConfigured("cd_ev_cars") || clean(root.localStorage?.getItem?.("cd_ev_image")))
     targets.add("ev");
 
+  /* Le sezioni nate dai moduli — Stanze, Luci, Prese, Aspirapolvere — hanno
+   * la stessa regola delle undici del guscio: contano come configurate se
+   * hanno qualcosa da mostrare. Una stanza e' una riga qualsiasi (puo' vivere
+   * di solo nome e icona, senza entita'). */
+  const unaRiga = (row) => Boolean(row);
+  if (listConfigured("cd_stanze", unaRiga)) targets.add("stanze");
+  if (objectHasValues("cd_luci")) targets.add("luci");
+  if (listConfigured("cd_prese", unaRiga)) targets.add("prese");
+  if (listConfigured("cd_robot", unaRiga)) targets.add("robot");
+
   const overrides = readJson("cd_entity_overrides", {});
   for (const [slot, value] of Object.entries(overrides || {})) {
     if (!clean(value).includes(".")) continue;
@@ -525,6 +535,33 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true } =
     writeJsonIfChanged("cd_sections", next, { sync });
     root.cdApplyNavVis?.();
     if (render) root.render?.();
+  }
+  return changed;
+}
+
+/* L'esordio delle quattro sezioni dei moduli, speculare a `cdSecBoot`: il
+ * guscio semina le sue undici voci — mai decisa e senza contenuto = spenta —
+ * ma quelle nate dai moduli (Stanze, Luci, Prese, Aspirapolvere) non le
+ * conosce. Senza questa semina, dopo un reset totale la barra le teneva
+ * accese su una plancia completamente vuota. Semina e basta: le voci gia'
+ * decise — a mano o da un giro precedente — non si toccano, e accendere le
+ * sezioni configurate resta il mestiere della riparazione qui sopra, che
+ * corre al salvataggio e non all'avvio. */
+export function seedModernSectionVisibility() {
+  const visibility = readJson("cd_sections", {});
+  const next = visibility && typeof visibility === "object" && !Array.isArray(visibility)
+    ? { ...visibility }
+    : {};
+  const targets = legacyVisibilityTargets();
+  let changed = false;
+  for (const key of ["stanze", "luci", "prese", "robot"]) {
+    if (key in next) continue;
+    next[key] = targets.includes(key);
+    changed = true;
+  }
+  if (changed) {
+    writeJsonIfChanged("cd_sections", next);
+    root.cdApplyNavVis?.();
   }
   return changed;
 }
@@ -1296,6 +1333,14 @@ export function installBeta26RealDeviceStability() {
       true,
     );
   }
+  /* La semina corre all'avvio (e ai giri successivi di cdApplyNavVis non
+   * serve: le chiavi ormai esistono). Un solo ritardo breve: prima deve
+   * passare la proiezione del magazzino sulle chiavi legacy. */
+  root.setTimeout?.(() => {
+    try {
+      seedModernSectionVisibility();
+    } catch (_error) {}
+  }, 400);
   state.installed = true;
   return true;
 }

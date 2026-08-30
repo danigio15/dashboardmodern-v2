@@ -245,10 +245,12 @@ export function ensureRoomsTab() {
   tab.className = "tab";
   tab.dataset.tab = ROOMS_TAB;
   tab.id = `tab-${ROOMS_TAB}`;
-  /* La porta, non la casa: nella barra la casa e' Home, e due case vicine
-   * sono due voci che si somigliano troppo per distinguerle al volo. La porta
-   * e' la stessa che la sezione porta gia' in configurazione. */
-  tab.innerHTML = `<span class="icon">🚪</span><span class="text">${esc(t("Stanze", "Rooms"))}</span>`;
+  /* Il divano, non la casa e non la porta: la casa e' Home, e la porta e'
+   * delle Aperture — con tutt'e due le voci in barra, due porte affiancate
+   * non si distinguono al volo. Il divano e' il segno delle stanze anche in
+   * Home Assistant (mdi:sofa), ed e' lo stesso che la scheda porta in
+   * configurazione. */
+  tab.innerHTML = `<span class="icon">🛋️</span><span class="text">${esc(t("Stanze", "Rooms"))}</span>`;
   /* Il gestore che il runtime lega alle voci lo lega una volta sola, al
    * caricamento: questa arriva dopo, e il suo tocco se lo deve gestire da se'. */
   tab.addEventListener("click", () => {

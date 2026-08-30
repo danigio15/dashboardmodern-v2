@@ -284,7 +284,7 @@ RENAME_PATCHES: tuple[tuple[str, str], ...] = (
 ROOMS_TAB_ANCHOR = (
     '<button class="ed-tab" data-tab="luci"  onclick="editorSwitch(\'luci\')">'
 )
-ROOMS_TAB_REPLACEMENT = '<button class="ed-tab" data-tab="stanze" onclick="editorSwitch(\'stanze\')">🚪 Stanze</button>\n          <button class="ed-tab" data-tab="luci"  onclick="editorSwitch(\'luci\')">'
+ROOMS_TAB_REPLACEMENT = '<button class="ed-tab" data-tab="stanze" onclick="editorSwitch(\'stanze\')">🛋️ Stanze</button>\n          <button class="ed-tab" data-tab="luci"  onclick="editorSwitch(\'luci\')">'
 
 # 2. A branch in editorSwitch to render it.
 ROOMS_SWITCH_ANCHOR = "if (tab === 'luci')   body.innerHTML = editorRenderLuci();"

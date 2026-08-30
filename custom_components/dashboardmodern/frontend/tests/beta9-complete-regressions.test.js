@@ -75,8 +75,10 @@ test("valued energy connectors are revived, animated and restore legacy visibili
 test("financial overview and canonical Energy owner keep sold income separate from real cost", async () => {
   const [report, energy] = await Promise.all([readFile(reportUrl, "utf8"), readFile(energyUrl, "utf8")]);
   assert.match(report, /root\.cdCfg\?\.\(key\)/);
-  assert.match(report, /rateValue\("cd_costo_kwh"\)/);
-  assert.match(report, /rateValue\("cd_prezzo_immissione"\)/);
+  /* Le tariffe passano dai default del guscio (0.25/0.10): il modulo partiva
+   * da zero e gli euro del Report si alternavano tra calcolati e «0,00». */
+  assert.match(report, /rateOrDefault\("cd_costo_kwh", 0\.25\)/);
+  assert.match(report, /rateOrDefault\("cd_prezzo_immissione", 0\.1\)/);
   assert.match(report, /const realCost = importCost/);
   assert.doesNotMatch(report, /realCost\s*=\s*Math\.max\(0,\s*importCost\s*-\s*exportIncome/);
   assert.match(report, /__dmCanonicalEnergyRates/);

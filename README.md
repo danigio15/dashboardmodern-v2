@@ -572,7 +572,7 @@ Al termine compare il riepilogo **🪄 Ecco cosa ho trovato**, con quante entit�
 
 > **Niente è stato ancora salvato.** La configurazione cambia solo quando premi **✅ APPLICA E RICARICA**. I valori vengono scritti **senza mai sovrascrivere** quello che hai già impostato, e gli slot di **Energia** passano dal modello canonico, che è ciò che li rende persistenti.
 
-### 🚪 Stanze
+### 🛋️ Stanze
 
 <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-rooms-light.webp" alt="Editor - stanze" width="100%">
 

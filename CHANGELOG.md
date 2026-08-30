@@ -9,6 +9,33 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il Report non balla piu': i numeri hanno un padrone solo.** La Panoramica
+  alternava due serie — 473 e 586 kWh, 81% e 84%, gli euro calcolati e
+  «0,00 €» — perche' i KPI e la griglia finanziaria avevano tre mani addosso:
+  due render del guscio piu' i moduli, ognuno con la sua formula e le sue
+  tariffe. Il cartello del padrone ora ferma anche `edSetText` e l'anello
+  dell'autosufficienza, e le tariffe dei moduli partono dagli stessi default
+  del guscio (0.25 €/kWh comprato, 0.10 venduto): scrive uno solo, con un
+  solo calcolo.
+
+- **Dopo il reset totale la barra teneva sezioni accese su una plancia
+  vuota.** Stanze, Luci, Prese e Aspirapolvere — le voci nate dai moduli —
+  non seguivano la regola d'esordio delle altre: mai decisa e senza contenuto
+  = spenta. Ora la seguono, e a plancia azzerata restano Home e Config.
+
+- **Le Stanze non si potevano nascondere.** Era l'unica pagina della barra
+  senza il suo interruttore nella scheda dell'editor: ora ce l'ha, come
+  tutte le altre.
+
+- **Lo stato di carica dice solo la percentuale.** Sotto la freccia e i watt
+  della batteria la dicitura «SOC» non aggiungeva niente: via, resta «86%».
+
+- **Stanze e Aperture avevano la stessa porta.** In configurazione — e da
+  telefono, dove della linguetta resta il solo simbolo — due 🚪 affiancate
+  non si distinguono. La porta resta alle Aperture, che di porte vivono;
+  le Stanze prendono il divano 🛋️, lo stesso segno che Home Assistant usa
+  per le aree, in configurazione e nella barra della plancia.
+
 - **Il tasto 🎨 delle Aperture apriva la ricerca delle entita'.** Vestiva la
   classe della lente accanto ai campi entita', e per la plancia quella classe
   E' il segno che il campo chiede un'entita': sopra al catalogo delle icone

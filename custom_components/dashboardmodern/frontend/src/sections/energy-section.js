@@ -330,7 +330,16 @@ function rates() {
       return finite(configured);
     return finite(root.localStorage?.getItem(key));
   };
-  return { importPrice: read("cd_costo_kwh"), exportPrice: read("cd_prezzo_immissione") };
+  /* Gli stessi default del guscio (0.25 €/kWh comprato, 0.10 €/kWh
+   * venduto): il modulo partiva da zero, il guscio da questi, e nel Report
+   * gli euro si alternavano tra calcolati e «0,00». Chi salva un costo suo
+   * lo vince comunque; lo zero esplicito il salvataggio non lo scrive. */
+  const importPrice = read("cd_costo_kwh");
+  const exportPrice = read("cd_prezzo_immissione");
+  return {
+    importPrice: importPrice > 0 ? importPrice : 0.25,
+    exportPrice: exportPrice > 0 ? exportPrice : 0.1,
+  };
 }
 
 function incompleteMessage(results) {
@@ -498,6 +507,15 @@ function applyReportOverview(bundle) {
   setText("ed-fin-imm", `${formatNumber(money.exportIncome, 2)} €`);
   setText("ed-auto-big", `${auto}%`);
   setText("ed-auto-ring-val", `${auto}%`);
+  /* L'anello e' lo stesso numero disegnato: se lo riempie il guscio col SUO
+   * calcolo, la geometria dice 81 mentre il testo dice 84. Lo scrive chi
+   * scrive il testo, col cartello che ferma la mano del guscio. */
+  const cerchio = doc?.getElementById("ed-auto-circle");
+  if (cerchio) {
+    if (cerchio.dataset && cerchio.dataset.dmPadrone !== "moduli") cerchio.dataset.dmPadrone = "moduli";
+    const giro = 2 * Math.PI * 32;
+    cerchio.setAttribute("stroke-dasharray", `${((auto / 100) * giro).toFixed(1)} ${giro.toFixed(1)}`);
+  }
   const circle = doc?.getElementById("ed-auto-circle");
   if (circle) circle.setAttribute("stroke-dasharray", `${(201 * auto) / 100} 201`);
 }

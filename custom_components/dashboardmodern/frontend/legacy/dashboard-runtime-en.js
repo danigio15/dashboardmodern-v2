@@ -1264,7 +1264,7 @@ function apriConfigEntita() {
           <button class="ed-tab" data-tab="pool" onclick="editorSwitch('pool')">🏊 Piscina</button>
           <button class="ed-tab" data-tab="irr" onclick="editorSwitch('irr')">💧 Irrigazione</button>
           <button class="ed-tab" data-tab="tapp" onclick="editorSwitch('tapp')">🪟 Windows</button>
-          <button class="ed-tab" data-tab="stanze" onclick="editorSwitch('stanze')">🚪 Rooms</button>
+          <button class="ed-tab" data-tab="stanze" onclick="editorSwitch('stanze')">🛋️ Rooms</button>
           <button class="ed-tab" data-tab="luci"  onclick="editorSwitch('luci')">💡 Lights</button>
           <button class="ed-tab" data-tab="appliances" onclick="editorSwitch('appliances')">🧺 Appliances</button>
           <button class="ed-tab" data-tab="avvisi" onclick="editorSwitch('avvisi')">🔔 Alerts</button>
@@ -7111,7 +7111,7 @@ function edUpdateKpiOnly() {
     const circ = 2 * Math.PI * 32;
     const dash = (auto / 100) * circ;
     const circle = document.getElementById('ed-auto-circle');
-    if (circle) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circ.toFixed(1));
+    if (circle && !cdPresoDaiModuli(circle)) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circ.toFixed(1));
     edSetText('ed-auto-ring-val', auto + '%');
     edSetText('ed-auto-big', auto + '%');
 
@@ -7405,8 +7405,11 @@ function edSwitchTab(tab) {
 }
 
 function edSetText(id, html) {
+    /* Il cartello dei moduli vale anche qui: senza questo controllo i due
+       render del Report riscrivevano i KPI e la griglia finanziaria sopra ai
+       moduli, e i numeri si alternavano a ogni giro. */
     const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
+    if (el && !cdPresoDaiModuli(el)) el.innerHTML = html;
 }
 
 async function renderEnergyDashboard() {
@@ -7643,7 +7646,7 @@ async function renderEnergyDashboard() {
     const circumference = 2 * Math.PI * 32;
     const dash = (autosufficienza / 100) * circumference;
     const circle = document.getElementById('ed-auto-circle');
-    if (circle) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circumference.toFixed(1));
+    if (circle && !cdPresoDaiModuli(circle)) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circumference.toFixed(1));
     edSetText('ed-auto-ring-val', autosufficienza + '%');
     edSetText('ed-auto-big', autosufficienza + '%');
 

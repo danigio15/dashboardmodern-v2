@@ -288,7 +288,7 @@ export function installBeta24StoreRecovery() {
   return true;
 }
 
-/* La forma canonica del testo del SOC: «SOC 75%».
+/* La forma canonica del testo del SOC: «75%», la percentuale nuda.
  *
  * Qui c'era anche un MutationObserver che sorvegliava il nodo e ci rimetteva
  * questo prefisso ogni volta che qualcun altro lo toglieva. Sorvegliare un
@@ -297,12 +297,13 @@ export function installBeta24StoreRecovery() {
  * vedeva il numero cambiare faccia avanti e indietro. Adesso il testo lo
  * scrive giusto chi lo possiede — `energy-flow-section` — e non c'e' piu'
  * niente da normalizzare a posteriori. La funzione resta perche' dice qual e'
- * la forma giusta, e una prova la usa per pretenderla. */
+ * la forma giusta, e una prova la usa per pretenderla. La dicitura «SOC»
+ * c'era ed e' stata tolta su richiesta: sotto i watt della batteria la
+ * percentuale si spiega da sola. */
 export function normalizeBatterySocText(value) {
   const text = clean(value);
   if (!text) return text;
-  if (/^soc\b/i.test(text)) return `SOC ${text.replace(/^soc\s*/i, "")}`.trim();
-  if (/^(?:\d+(?:[.,]\d+)?%|—)$/.test(text)) return `SOC ${text}`;
+  if (/^soc\b/i.test(text)) return text.replace(/^soc\s*/i, "").trim() || "—";
   return text;
 }
 

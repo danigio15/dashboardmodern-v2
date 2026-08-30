@@ -1,6 +1,6 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceArtworkType } from "../core/appliance-card-view-model.js";
-import { clean, doc, formatNumber, installStyle, root, t, wrapFunction } from "./shared.js";
+import { clean, doc, formatNumber, installStyle, root, scriviTestoSeCambia, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_REPORT_POLISH__";
 const state = (root[KEY] ||= { installed: false, frame: 0, dailyChart: null, legacyDailyChart: null, subscribed: false });
@@ -227,14 +227,21 @@ function rateValue(key) {
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
+/* Gli stessi default del guscio: 0.25 e 0.10. Vedi `rates()` della sezione
+ * Energia, che e' l'altro lettore delle stesse chiavi. */
+function rateOrDefault(key, fallback) {
+  const value = rateValue(key);
+  return value > 0 ? value : fallback;
+}
+
 function money(value) {
   return `${formatNumber(Math.max(0, Number(value) || 0), 2)} €`;
 }
 
 export function applyFinancialOverview(bundle) {
   if (!bundle?.month) return false;
-  const importPrice = rateValue("cd_costo_kwh");
-  const exportPrice = rateValue("cd_prezzo_immissione");
+  const importPrice = rateOrDefault("cd_costo_kwh", 0.25);
+  const exportPrice = rateOrDefault("cd_prezzo_immissione", 0.1);
   const data = bundle.month;
   const importCost = Math.max(0, Number(data.gridImport) || 0) * importPrice;
   const withoutSolar = Math.max(0, Number(data.house) || 0) * importPrice;
@@ -245,10 +252,9 @@ export function applyFinancialOverview(bundle) {
   const realCost = importCost;
   const saved = Math.max(0, withoutSolar - importCost);
 
-  const set = (id, value) => {
-    const node = doc?.getElementById(id);
-    if (node) node.textContent = value;
-  };
+  /* Scrivere passando dal delegato lascia il cartello sul nodo: senza, il
+   * guscio non sapeva che la griglia aveva un padrone e ci riscriveva sopra. */
+  const set = (id, value) => scriviTestoSeCambia(doc?.getElementById(id), value);
   set("ed-fin-pagato", money(withoutSolar));
   set("ed-fin-pagato-sub", `${formatNumber(data.house, 1)} kWh`);
   set("ed-fin-costo", money(realCost));

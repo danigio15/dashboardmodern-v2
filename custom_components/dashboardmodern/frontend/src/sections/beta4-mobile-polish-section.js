@@ -20,9 +20,10 @@ const TAB_ICONS = Object.freeze({
   sez9: "❄️",
   appliances: "🧺",
   luci: "💡",
-  /* La porta, non la casa: la casa e' Home, e da telefono — dove della
-   * linguetta resta il solo simbolo — due case affiancate non si distinguono. */
-  stanze: "🚪",
+  /* Il divano, non la porta: la porta e' delle Aperture (`doors`, qui
+   * sotto), e da telefono — dove della linguetta resta il solo simbolo —
+   * due porte affiancate non si distinguono. */
+  stanze: "🛋️",
   avvisi: "🔔",
   tapp: "🪟",
   irr: "💧",

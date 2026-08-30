@@ -62,9 +62,9 @@ test("lo stato di carica dice cos'e', e sparisce se non e' configurato", async (
       { battery: { battery_soc_entity: "sensor.battery_soc" } },
       { "sensor.battery_soc": { state: "78" } },
     ),
-    "SOC 78%",
+    "78%",
   );
-  assert.equal(node.textContent, "SOC 78%");
+  assert.equal(node.textContent, "78%");
   assert.equal(node.hidden, false);
 
   // l'entita' risponde ma non con un numero: la casella resta, il valore no
@@ -74,7 +74,7 @@ test("lo stato di carica dice cos'e', e sparisce se non e' configurato", async (
       { battery: { battery_soc_entity: "sensor.battery_soc" } },
       { "sensor.battery_soc": { state: "unavailable" } },
     ),
-    "SOC —",
+    "—",
   );
 
   // nessuna entita' configurata: la casella si toglie
