@@ -18,6 +18,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   spento (#232). Ora il ponte porta le costanti, il controllo passa, e la
   richiesta di flusso parte.
 
+### Corretto (mappa del robot)
+
+- **La mappa a schermo intero si rimpicciolisce anche sotto misura.** «Zoom
+  in avanti ma non indietro, e non si apre completa»: il divieto di scendere
+  sotto la misura d'apertura presumeva che a misura si vedesse tutta, e
+  quando non succede rimpicciolire e' l'unica via d'uscita. Sotto misura la
+  mappa resta centrata; il tasto ⟳ rimette com'era.
+
 ### Aggiunto
 
 - **L'icona di un'apertura si sceglie dal catalogo.** Il campo era una
