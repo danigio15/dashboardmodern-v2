@@ -6,7 +6,7 @@ import {
 import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
-import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads } from "../core/energy-plants.js";
+import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads, plantModel } from "../core/energy-plants.js";
 import {
   allStates,
   clean,
@@ -529,6 +529,13 @@ export function renderDynamicFlowLoads(period, model = stageModel(period)) {
  * — letti dagli STATI, non dai testi delle bolle, che da qui in poi possono
  * dire grandezza e verso senza mandare in confusione nessun lettore. */
 
+/* L'Energia dell'impianto scelto: il primo livello dell'oggetto salvato E' il
+ * primo impianto, e chi legge senza scegliere legge sempre casa sua. */
+function energiaDellImpianto() {
+  const scelto = clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+  return plantModel(section("energy", {}), scelto);
+}
+
 function potenzaViva(reference) {
   // `null` — non zero — quando lo stato vivo non c'e': «spento» e «non
   // configurato» sono due risposte diverse, e chi chiama deve poterle
@@ -733,15 +740,22 @@ export function refreshEnergyFlows() {
   /* La bolla della batteria diceva il numero grezzo col segno («-201 W»
    * mentre carica): il segno e' una convenzione del modello, non una lettura.
    * Grandezza e verso, con la freccia — e le decisioni sulle linee, qui
-   * sopra, ormai leggono gli stati e non questo testo. */
+   * sopra, ormai leggono gli stati e non questo testo.
+   *
+   * E si scrive SEMPRE. Il cartello del padrone che questa scrittura pianta
+   * sulla bolla ferma la mano del guscio per sempre: tacere quando non c'e'
+   * la freccia — sullo zero, o sull'impianto che una batteria non ce l'ha —
+   * lasciava inciso il numero di prima, e cambiando impianto si leggeva la
+   * carica dell'altra casa. «—» senza lettura, «0 W» da ferma. */
   const batteria = potenzaViva("dm.energy_potenza_batteria");
-  const testo = batteryReadout(batteria);
-  if (testo) {
-    for (const id of ["v-battery", "m-v-battery"]) {
-      scriviTestoSeCambia(doc.getElementById(id), testo);
-    }
+  const testo = batteria === null ? "—" : (batteryReadout(batteria) ?? "0 W");
+  for (const id of ["v-battery", "m-v-battery"]) {
+    scriviTestoSeCambia(doc.getElementById(id), testo);
   }
-  renderBatterySoc(doc, section("energy", {}), allStates());
+  /* Lo stato di carica e' dell'impianto scelto, non del documento intero: il
+   * primo livello dell'oggetto Energia E' il primo impianto, e leggerlo
+   * com'e' mostrava il SOC di casa propria dentro la casa dell'altro. */
+  renderBatterySoc(doc, energiaDellImpianto(), allStates());
   return touched;
 }
 

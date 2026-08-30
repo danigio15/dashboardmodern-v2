@@ -9,6 +9,10 @@ NAME = "DashboardModern v2"
 REPOSITORY = "danigio15/dashboardmodern-v2"
 RELEASES_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
 
+# Lo zip che ogni release pubblica: lo stesso identico file che installerebbe
+# HACS (hacs.json: zip_release). Il tasto «Installa» scarica questo.
+RELEASE_ASSET = "dashboardmodern.zip"
+
 # Half an hour. HACS gives a custom repository — one added by URL, which is how
 # this integration is installed — forty-eight hours, and does not even look at
 # startup; six hours is what the default store gets, and this project cannot

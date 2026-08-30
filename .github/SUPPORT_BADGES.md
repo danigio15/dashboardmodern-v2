@@ -14,6 +14,6 @@ A chi usa questa integrazione: ci metto parecchia energia e parecchia passione. 
 
 ### Come installarla
 
-L'integrazione se ne accorge da sola entro mezz'ora e lo dice in **Impostazioni → Aggiornamenti**. Per installare serve un passaggio in HACS, che di suo ricontrolla i repository personalizzati **ogni 48 ore**:
+L'integrazione se ne accorge da sola entro mezz'ora e lo dice in **Impostazioni → Aggiornamenti**: da li' il tasto **«Installa»** fa tutto, e alla fine chiede il riavvio di Home Assistant.
 
-**HACS → DashboardModern v2 → menu ⋮ → «Aggiorna informazioni»**, poi **«Aggiorna»** e riavvia Home Assistant.
+Chi preferisce HACS ha ancora la sua strada: **HACS → DashboardModern v2 → menu ⋮ → «Aggiorna informazioni»**, poi **«Aggiorna»** e riavvio.

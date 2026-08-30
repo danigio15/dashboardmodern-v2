@@ -168,3 +168,74 @@ test("anche i misuratori seguono l'impianto, non solo i carichi", async ({ page 
     .poll(() => misuratori(page), { timeout: 20_000 })
     .toEqual({ rete: "780", solare: "1520", casa: "2300" });
 });
+
+test("la batteria non trapela nell'impianto che non ce l'ha", async ({ page }, testInfo) => {
+  /* «Impianto 2 non ho configurato entità: recupera entità dell'impianto 1» —
+   * e infatti nella bolla della batteria restavano incisi la carica e il SOC
+   * dell'altra casa. Il cartello del padrone che i moduli piantano sulla
+   * bolla ferma la mano del guscio per sempre: chi lo pianta deve scrivere
+   * SEMPRE, anche «—». E il SOC si legge dall'impianto scelto, non dal primo
+   * livello del documento. */
+  test.setTimeout(120_000);
+  const conBatteria = JSON.parse(JSON.stringify(SEME));
+  conBatteria.sections.energy.battery = {
+    power: "sensor.batt_w",
+    soc: "sensor.batt_soc",
+  };
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, conBatteria);
+  await page.evaluate(() => {
+    const letture = {
+      "sensor.rete_w": "2100",
+      "sensor.fv_w": "3400",
+      "sensor.casa_w": "2470",
+      "sensor.batt_w": "243",
+      "sensor.batt_soc": "76",
+      "sensor.rete2_w": "780",
+      "sensor.fv2_w": "1520",
+      "sensor.casa2_w": "2300",
+    };
+    const raw = eval("_RAW_STATES");
+    for (const [id, valore] of Object.entries(letture))
+      raw[id] = { entity_id: id, state: valore, attributes: { unit_of_measurement: "W" } };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page
+    .locator('.tab[data-tab="energy"]')
+    .first()
+    .evaluate((b) => b.click());
+  await page.evaluate(() => window.render?.());
+
+  const bolle = () =>
+    page.evaluate(() => {
+      const testo = (id) => (document.getElementById(id)?.textContent || "").trim();
+      const visibili = ["n-solar", "n-grid", "n-home", "n-battery"].filter((id) => {
+        const nodo = document.getElementById(id);
+        if (!nodo) return false;
+        const stile = getComputedStyle(nodo);
+        return stile.display !== "none" && stile.visibility !== "hidden";
+      });
+      return { batteria: testo("v-battery"), soc: testo("v-battery-soc"), visibili };
+    });
+
+  await expect.poll(async () => (await bolle()).batteria, { timeout: 20_000 }).toContain("243");
+  await expect.poll(async () => (await bolle()).soc).toContain("76");
+
+  /* Nell'impianto senza batteria la bolla dice «—», e il SOC non parla. */
+  await page
+    .locator('#page-energy [data-dm-impianto="impianto-2"]')
+    .evaluate((pillola) => pillola.click());
+  await page.evaluate(() => window.render?.());
+  await expect.poll(async () => (await bolle()).batteria, { timeout: 20_000 }).toBe("—");
+  await expect.poll(async () => (await bolle()).soc).not.toContain("76");
+
+  /* E tornando indietro: i suoi numeri, e TUTTI i cerchi al loro posto —
+   * «improvvisamente scompare tutto» e' il contrario di questo. */
+  await page
+    .locator('#page-energy [data-dm-impianto="impianto"]')
+    .evaluate((pillola) => pillola.click());
+  await page.evaluate(() => window.render?.());
+  await expect.poll(async () => (await bolle()).batteria, { timeout: 20_000 }).toContain("243");
+  await expect.poll(async () => (await bolle()).soc).toContain("76");
+  expect((await bolle()).visibili).toEqual(["n-solar", "n-grid", "n-home", "n-battery"]);
+});

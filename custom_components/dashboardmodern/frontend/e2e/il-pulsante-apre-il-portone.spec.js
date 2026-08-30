@@ -52,18 +52,24 @@ async function avvia(page, testInfo) {
       state: "unknown",
       attributes: {},
     };
-    /* Si prende nota di tutto quello che parte sul filo. */
+    /* Si prende nota di tutto quello che parte sul filo — sul PROTOTIPO, non
+     * sull'istanza: il socket dell'harness non si connette mai e il guscio ne
+     * crea uno nuovo a ogni riconnessione. La spia sull'istanza spariva col
+     * socket vecchio, e su webkit — piu' lento — il tocco arrivava sempre dopo
+     * il rimpiazzo: «sul filo e' partito: niente», con la parola giusta invece
+     * partita davvero. Il prototipo li vede tutti, presenti e futuri. */
     window.__inviati = [];
-    const socket = eval("typeof ws !== 'undefined' ? ws : null");
-    if (socket) {
-      const originale = socket.send.bind(socket);
-      socket.send = (grezzo) => {
+    const proto = window.WebSocket?.prototype;
+    if (proto && !proto.__dmSpiato) {
+      const originale = proto.send;
+      proto.send = function (grezzo) {
         try {
           const m = JSON.parse(grezzo);
           if (m?.type === "call_service") window.__inviati.push(`${m.domain}.${m.service}`);
         } catch (_e) {}
-        return originale(grezzo);
+        return originale.call(this, grezzo);
       };
+      proto.__dmSpiato = true;
     }
     window.buildQuickActions?.();
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
@@ -82,11 +88,10 @@ test("il pulsante chiede press, non toggle", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await avvia(page, testInfo);
   await page.evaluate(() => window.qaRun(0));
-  await page.waitForTimeout(400);
+  /* Niente attese a tempo fisso: su webkit il giro puo' essere piu' lento del
+   * cronometro. Si sonda finche' la parola giusta non e' partita. */
+  await expect.poll(() => inviati(page), { timeout: 10_000 }).toContain("button.press");
   const partiti = await inviati(page);
-  expect(partiti, `sul filo e' partito: ${partiti.join(", ") || "niente"}`).toContain(
-    "button.press",
-  );
   expect(partiti, "e' partito un servizio che non esiste").not.toContain("button.toggle");
 });
 
@@ -94,21 +99,14 @@ test("dove toggle e' giusto non si cambia niente", async ({ page }, testInfo) =>
   test.setTimeout(120_000);
   await avvia(page, testInfo);
   await page.evaluate(() => window.qaRun(1));
-  await page.waitForTimeout(400);
-  const partiti = await inviati(page);
-  expect(partiti, `sul filo e' partito: ${partiti.join(", ") || "niente"}`).toContain(
-    "light.toggle",
-  );
+  await expect.poll(() => inviati(page), { timeout: 10_000 }).toContain("light.toggle");
 });
 
 test("la serratura chiusa si apre, non si scambia", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await avvia(page, testInfo);
   await page.evaluate(() => window.qaRun(2));
-  await page.waitForTimeout(400);
+  await expect.poll(() => inviati(page), { timeout: 10_000 }).toContain("lock.unlock");
   const partiti = await inviati(page);
-  expect(partiti, `sul filo e' partito: ${partiti.join(", ") || "niente"}`).toContain(
-    "lock.unlock",
-  );
   expect(partiti, "la serratura non ha un toggle").not.toContain("lock.toggle");
 });

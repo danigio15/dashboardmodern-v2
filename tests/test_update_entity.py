@@ -21,32 +21,69 @@ e il silenzio quando la rete non c'e'.
 
 from __future__ import annotations
 
+import io
 import json
 import re
+import shutil
+import zipfile
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components/dashboardmodern"
 UPDATE = COMPONENT / "update.py"
 
 
-def _carica_funzioni() -> tuple[Callable[..., str], Callable[[str, str], bool]]:
-    """Prende `normalize_version` e `newer` senza tirarsi dietro Home Assistant.
+def _carica_funzioni() -> tuple[
+    Callable[..., str], Callable[[str, str], bool], Callable[..., None]
+]:
+    """Prende le funzioni pure senza tirarsi dietro Home Assistant.
 
     Il modulo importa `homeassistant.components.update`, che nell'ambiente
-    delle prove non c'e'. Le due funzioni pero' sono pura aritmetica sulle
-    stringhe e non toccano nulla: si compilano da sole.
+    delle prove non c'e'. Ma il confronto fra versioni e lo scambio dei file
+    sono aritmetica e disco: si compilano da soli, coi moduli standard che
+    usano passati nello spazio dei nomi.
     """
     sorgente = UPDATE.read_text(encoding="utf-8")
     inizio = sorgente.index("def normalize_version")
     fine = sorgente.index("class DashboardModernReleaseCoordinator")
-    spazio: dict = {"Any": object}
+    spazio: dict = {
+        "Any": object,
+        "io": io,
+        "json": json,
+        "shutil": shutil,
+        "zipfile": zipfile,
+        "Path": Path,
+        "PurePosixPath": PurePosixPath,
+        "DOMAIN": "dashboardmodern",
+    }
     exec(compile(sorgente[inizio:fine], str(UPDATE), "exec"), spazio)  # noqa: S102
-    return spazio["normalize_version"], spazio["newer"]
+    return spazio["normalize_version"], spazio["newer"], spazio["installa_da_zip"]
 
 
-normalize_version, newer = _carica_funzioni()
+normalize_version, newer, installa_da_zip = _carica_funzioni()
+
+
+def _zip_di_release(versione: str, **file_extra: str) -> bytes:
+    """Uno zip fatto come quello vero: manifest alla radice, file accanto."""
+    manifesto = {"domain": "dashboardmodern", "version": versione}
+    dati = io.BytesIO()
+    with zipfile.ZipFile(dati, "w") as archivio:
+        archivio.writestr("manifest.json", json.dumps(manifesto))
+        archivio.writestr("__init__.py", f"# {versione}\n")
+        for nome, contenuto in file_extra.items():
+            archivio.writestr(nome, contenuto)
+    return dati.getvalue()
+
+
+def _cartella_installata(tmp_path: Path) -> Path:
+    cartella = tmp_path / "custom_components" / "dashboardmodern"
+    cartella.mkdir(parents=True)
+    (cartella / "manifest.json").write_text(
+        json.dumps({"domain": "dashboardmodern", "version": "1.3.8"})
+    )
+    (cartella / "vecchio.py").write_text("# resto della versione vecchia\n")
+    return cartella
 
 
 def test_il_v_del_tag_non_conta_come_versione_diversa() -> None:
@@ -114,11 +151,105 @@ def test_bozze_e_pre_release_non_diventano_un_avviso() -> None:
     assert 'payload.get("prerelease")' in sorgente
 
 
-def test_l_installazione_resta_a_hacs() -> None:
-    """Due proprietari della stessa cartella e' come nasce un aggiornamento a meta'."""
+def test_l_installazione_si_fa_da_qui() -> None:
+    """Il tasto «Installa» c'e', e installa lo stesso zip che userebbe HACS.
+
+    L'installazione RESTAVA a HACS — «due proprietari della stessa cartella e'
+    come nasce un aggiornamento a meta'» — ma cosi' l'aggiornamento finiva fra
+    i «non installabili» della pagina di Home Assistant, con una deviazione in
+    due passi come unica strada. La paura dei due proprietari si risolve nel
+    COME si installa, non rifiutando il tasto: e il come sta nelle prove dello
+    scambio qui sotto.
+    """
     sorgente = UPDATE.read_text(encoding="utf-8")
     assert "UpdateEntityFeature.RELEASE_NOTES" in sorgente
-    assert "UpdateEntityFeature.INSTALL" not in sorgente
+    assert "UpdateEntityFeature.INSTALL" in sorgente
+    # Il riavvio completa, e un secondo «Installa» prima del riavvio si rifiuta.
+    assert "_riavvio_richiesto" in sorgente
+
+
+def test_un_secondo_installa_mentre_il_primo_lavora_si_rifiuta() -> None:
+    """Due «Installa» sovrapposti userebbero le stesse cartelle d'appoggio.
+
+    Un'automazione che riprova mentre il primo download e' in corso puo'
+    portar via la cartella vecchia proprio mentre il primo ci conta per il
+    ripristino. Il segno di lavoro in corso si controlla in testa, e fra il
+    controllo e la sua scrittura non c'e' un await: sul loop e' atomico.
+    """
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    assert "if self._attr_in_progress:" in sorgente
+    # E il fallimento pubblica subito lo stato ripulito: senza, l'entita'
+    # restava «in installazione» col tasto spento fino al giro del coordinator.
+    spegnimento = sorgente.index("self._attr_in_progress = False")
+    assert "async_write_ha_state" in sorgente[spegnimento : spegnimento + 400]
+
+
+def test_la_pulizia_della_vecchia_non_boccia_lo_scambio_riuscito() -> None:
+    """A rinomini fatti l'installazione e' fatta: la vecchia e' spazzatura.
+
+    Se il disco non la lascia togliere subito, annunciare un fallimento
+    spingerebbe a installare di nuovo sopra file gia' nuovi; i residui li
+    spazza comunque la testa della funzione, al giro dopo.
+    """
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    assert "shutil.rmtree(vecchia, ignore_errors=True)" in sorgente
+
+
+def test_lo_zip_buono_prende_il_posto_del_vecchio(tmp_path: Path) -> None:
+    """A scambio riuscito restano i file nuovi, e nessuna cartella d'appoggio."""
+    cartella = _cartella_installata(tmp_path)
+    dati = _zip_di_release("1.3.9", **{"frontend/nuovo.js": "// nuovo\n"})
+    installa_da_zip(cartella, dati, "v1.3.9")
+    manifesto = json.loads((cartella / "manifest.json").read_text())
+    assert manifesto["version"] == "1.3.9"
+    assert (cartella / "frontend/nuovo.js").exists()
+    assert not (cartella / "vecchio.py").exists()
+    residui = sorted(p.name for p in cartella.parent.iterdir())
+    assert residui == ["dashboardmodern"]
+
+
+def test_lo_zip_che_scavalca_la_cartella_non_tocca_niente(tmp_path: Path) -> None:
+    """Un archivio con `..` o percorsi assoluti non muove un solo file."""
+    cartella = _cartella_installata(tmp_path)
+    for nome in ("../fuori.py", "/assoluto.py"):
+        dati = io.BytesIO()
+        with zipfile.ZipFile(dati, "w") as archivio:
+            archivio.writestr(
+                "manifest.json",
+                json.dumps({"domain": "dashboardmodern", "version": "1.3.9"}),
+            )
+            archivio.writestr(nome, "# non deve uscire\n")
+        try:
+            installa_da_zip(cartella, dati.getvalue(), "1.3.9")
+        except ValueError:
+            pass
+        else:  # pragma: no cover - il fallimento atteso e' l'eccezione
+            raise AssertionError(f"{nome}: lo zip doveva essere rifiutato")
+    assert (cartella / "vecchio.py").exists()
+    assert not (tmp_path / "custom_components" / "fuori.py").exists()
+
+
+def test_lo_zip_sbagliato_viene_rifiutato_prima_di_muovere(tmp_path: Path) -> None:
+    """Dominio o versione diversi da quelli promessi: niente scambio."""
+    cartella = _cartella_installata(tmp_path)
+    sbagliati = [
+        _zip_di_release("1.4.0"),  # versione diversa da quella promessa
+        b"non uno zip",
+    ]
+    dati = io.BytesIO()
+    with zipfile.ZipFile(dati, "w") as archivio:
+        archivio.writestr("manifest.json", json.dumps({"domain": "altro"}))
+    sbagliati.append(dati.getvalue())
+    for zip_sbagliato in sbagliati:
+        try:
+            installa_da_zip(cartella, zip_sbagliato, "1.3.9")
+        except (ValueError, zipfile.BadZipFile):
+            pass
+        else:  # pragma: no cover - il fallimento atteso e' l'eccezione
+            raise AssertionError("lo zip doveva essere rifiutato")
+    assert (cartella / "vecchio.py").exists()
+    manifesto = json.loads((cartella / "manifest.json").read_text())
+    assert manifesto["version"] == "1.3.8"
 
 
 def test_il_controllo_gira_piu_spesso_di_hacs() -> None:

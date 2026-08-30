@@ -16,8 +16,20 @@ proprietary source-available licence that GitHub classifies as NOASSERTION.
 
 So the notification arrives here instead. This entity asks GitHub for the
 latest release on its own, and does it often enough that a release published in
-the morning is announced the same morning. Installing is still HACS's job — the
-files are its — and the release summary says which button to press.
+the morning is announced the same morning.
+
+Installing happens here too. It used to stay with HACS — «two owners of the
+same folder is how a half-written update happens» — but that left the update
+sitting in Home Assistant's page marked *not installable*, with a two-step
+detour through HACS as the only way in. The two-owners worry is answered by
+HOW the install works, not by refusing to have a button: the zip downloaded is
+the exact asset HACS would install (`hacs.json: zip_release`), it is validated
+before a single file moves (its paths, its manifest, its version), the swap is
+a rename with the previous folder kept beside it until the new one is in
+place, and a failure puts the old folder back. HACS finds the same files at
+its next «Update information» and simply re-aligns. The one thing the button
+cannot do is reload Python that is already running: a restart finishes the
+job, and the entity says so.
 
 Nothing here is required for the dashboard to work. If the panel has no way out
 to the internet the check simply finds nothing and says nothing: no repeated
@@ -27,11 +39,17 @@ wants it off can turn it off from the integration's options.
 
 from __future__ import annotations
 
+import io
+import json
 import logging
+import shutil
+import zipfile
 from datetime import timedelta
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -43,6 +61,7 @@ from .const import (
     DOMAIN,
     NAME,
     OPTION_CHECK_UPDATES,
+    RELEASE_ASSET,
     RELEASES_URL,
     REPOSITORY,
     UPDATE_SCAN_INTERVAL,
@@ -60,6 +79,16 @@ _LOGGER = logging.getLogger(__name__)
 # `304 Not Modified` back does not count at all — which is why the tag from the
 # previous answer is sent along. The cost of knowing early is that low.
 _TIMEOUT = 20
+
+# La cartella di questa integrazione, risolta una volta al caricamento: dentro
+# `async_install` toccherebbe il disco sul loop.
+_CARTELLA = Path(__file__).resolve().parent
+
+# Lo zip di una release pesa pochi megabyte; il download ha un suo tempo e un
+# suo tetto, perche' un file che non somiglia per niente a quello atteso non
+# deve nemmeno finire in memoria.
+_DOWNLOAD_TIMEOUT = 300
+_MAX_ZIP = 200 * 1024 * 1024
 
 # Home Assistant refuses to show a summary longer than this, so it is cut here
 # rather than by the frontend.
@@ -123,6 +152,59 @@ def newer(latest: str, installed: str) -> bool:
     )
 
 
+def installa_da_zip(cartella: Path, dati: bytes, versione: str) -> None:
+    """Replace the integration folder with the release zip's content.
+
+    Prima si controlla, poi si muove, e ogni mossa e' reversibile:
+
+    - nessun nome nello zip puo' uscire dalla cartella (`..`, percorsi
+      assoluti): un archivio che ci prova non tocca un solo file;
+    - lo zip deve contenere il `manifest.json` di QUESTA integrazione, con la
+      versione che si e' promesso di installare — non «uno zip qualunque»;
+    - si spacchetta in una cartella nuova accanto a quella vera, poi due
+      rinomini: la vecchia si fa da parte, la nuova prende il suo posto. Se il
+      secondo rinomino fallisce, la vecchia torna dov'era. La vecchia si
+      cancella solo a scambio riuscito.
+
+    Gira nell'executor: qui dentro e' tutto disco, niente loop.
+    """
+    with zipfile.ZipFile(io.BytesIO(dati)) as archivio:
+        nomi = archivio.namelist()
+        for nome in nomi:
+            pezzo = PurePosixPath(nome)
+            if pezzo.is_absolute() or ".." in pezzo.parts:
+                raise ValueError(f"percorso fuori dalla cartella nello zip: {nome}")
+        if "manifest.json" not in nomi:
+            raise ValueError("lo zip non contiene il manifest dell'integrazione")
+        manifesto = json.loads(archivio.read("manifest.json"))
+        if manifesto.get("domain") != DOMAIN:
+            raise ValueError("lo zip appartiene a un'altra integrazione")
+        if normalize_version(manifesto.get("version")) != normalize_version(versione):
+            raise ValueError(
+                "lo zip porta la versione "
+                f"{manifesto.get('version')!r}, non la {versione!r} promessa"
+            )
+        genitore = cartella.parent
+        nuova = genitore / f".{cartella.name}-nuovo"
+        vecchia = genitore / f".{cartella.name}-vecchio"
+        for scarto in (nuova, vecchia):
+            if scarto.exists():
+                shutil.rmtree(scarto)
+        nuova.mkdir()
+        archivio.extractall(nuova)
+    cartella.rename(vecchia)
+    try:
+        nuova.rename(cartella)
+    except OSError:
+        vecchia.rename(cartella)
+        raise
+    # A scambio riuscito la vecchia e' solo spazzatura: se il disco non la
+    # lascia togliere adesso, l'installazione e' comunque fatta — annunciarla
+    # fallita spingerebbe a installare di nuovo sopra file gia' nuovi. I
+    # residui li spazza la testa di questa stessa funzione, al giro dopo.
+    shutil.rmtree(vecchia, ignore_errors=True)
+
+
 class DashboardModernReleaseCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Ask GitHub for the newest release, and keep the last good answer."""
 
@@ -176,11 +258,20 @@ class DashboardModernReleaseCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         version = normalize_version(payload.get("tag_name"))
         if not version:
             return self._last
+        # Lo zip della release: e' quello che il tasto «Installa» scarica. Una
+        # release senza — non dovrebbe succedere, il flusso di rilascio lo
+        # carica sempre — lascia il tasto a spiegare la strada di HACS.
+        asset_url = ""
+        for asset in payload.get("assets") or []:
+            if isinstance(asset, dict) and asset.get("name") == RELEASE_ASSET:
+                asset_url = str(asset.get("browser_download_url") or "")
+                break
         self._last = {
             "version": version,
             "url": payload.get("html_url")
             or f"https://github.com/{REPOSITORY}/releases",
             "notes": str(payload.get("body") or ""),
+            "asset_url": asset_url,
         }
         return self._last
 
@@ -221,10 +312,15 @@ class DashboardModernUpdate(
     _attr_has_entity_name = True
     _attr_name = None
     _attr_title = NAME
-    # Installing stays with HACS: the files are its, and two owners of the same
-    # folder is how a half-written update happens. The notes are shown here so
-    # the decision can be taken without leaving Home Assistant.
-    _attr_supported_features = UpdateEntityFeature.RELEASE_NOTES
+    # Il tasto «Installa» c'e': senza, l'aggiornamento finiva nella pagina di
+    # Home Assistant fra i «non installabili», con HACS come unica strada. Lo
+    # zip che si installa e' lo stesso che installerebbe HACS, controllato
+    # prima che un solo file si muova; il come sta in `installa_da_zip`.
+    _attr_supported_features = (
+        UpdateEntityFeature.INSTALL
+        | UpdateEntityFeature.PROGRESS
+        | UpdateEntityFeature.RELEASE_NOTES
+    )
 
     def __init__(
         self, coordinator: DashboardModernReleaseCoordinator, installed: str
@@ -232,7 +328,144 @@ class DashboardModernUpdate(
         """Bind the entity to the integration, not to a single plancia."""
         super().__init__(coordinator)
         self._installed = installed
+        self._riavvio_richiesto = False
         self._attr_unique_id = f"{DOMAIN}_release"
+
+    def _frase(self, italiano: str, inglese: str) -> str:
+        """The system's language decides: HA does not translate these texts."""
+        lingua = str(self.hass.config.language or "").lower()
+        return italiano if lingua.startswith("it") else inglese
+
+    async def async_install(
+        self, version: str | None, backup: bool, **kwargs: Any
+    ) -> None:
+        """Download the release zip and swap the integration's files.
+
+        Quello che il tasto NON puo' fare e' ricaricare il Python gia' in
+        esecuzione: i file nuovi sono a terra, il processo e' ancora quello
+        vecchio. Il riavvio completa, e finche' non arriva un secondo
+        «Installa» viene rifiutato — installare sopra un'installazione a meta'
+        e' esattamente il pasticcio che questo tasto promette di non fare.
+        """
+        # Due «Installa» sovrapposti — un'automazione che riprova mentre il
+        # primo download e' in corso — lavorerebbero sulle stesse cartelle
+        # d'appoggio, e il secondo puo' portar via la vecchia proprio mentre
+        # il primo ci conta per il ripristino. Il segno e' gia' li': da qui
+        # alla sua scrittura non c'e' nemmeno un await, quindi sul loop il
+        # controllo e' atomico.
+        if self._attr_in_progress:
+            raise HomeAssistantError(
+                self._frase(
+                    "Un'installazione è già in corso.",
+                    "An installation is already running.",
+                )
+            )
+        if self._riavvio_richiesto:
+            raise HomeAssistantError(
+                self._frase(
+                    "Aggiornamento già installato: riavvia Home Assistant "
+                    "per completarlo.",
+                    "Update already installed: restart Home Assistant to complete it.",
+                )
+            )
+        dati_release = self.coordinator.data or {}
+        destinazione = str(dati_release.get("version") or "")
+        if not destinazione or not newer(destinazione, self._installed or ""):
+            raise HomeAssistantError(
+                self._frase(
+                    "Nessuna versione nuova da installare.",
+                    "No new version to install.",
+                )
+            )
+        asset_url = str(dati_release.get("asset_url") or "")
+        if not asset_url:
+            raise HomeAssistantError(
+                self._frase(
+                    "La release non pubblica il suo zip: aggiorna da HACS "
+                    "(menu ⋮ → «Aggiorna informazioni», poi «Aggiorna»).",
+                    "The release does not publish its zip: update from HACS "
+                    "(⋮ menu → “Update information”, then “Update”).",
+                )
+            )
+
+        self._attr_in_progress = True
+        self.async_write_ha_state()
+        try:
+            session = async_get_clientsession(self.hass)
+            try:
+                async with session.get(
+                    asset_url, timeout=_DOWNLOAD_TIMEOUT
+                ) as risposta:
+                    if risposta.status != 200:
+                        raise HomeAssistantError(
+                            self._frase(
+                                f"GitHub ha risposto {risposta.status} "
+                                "scaricando lo zip della release.",
+                                f"GitHub answered {risposta.status} while "
+                                "downloading the release zip.",
+                            )
+                        )
+                    if (risposta.content_length or 0) > _MAX_ZIP:
+                        raise HomeAssistantError(
+                            self._frase(
+                                "Lo zip della release è più grande del previsto.",
+                                "The release zip is larger than expected.",
+                            )
+                        )
+                    dati = await risposta.read()
+            except HomeAssistantError:
+                raise
+            except Exception as errore:
+                raise HomeAssistantError(
+                    self._frase(
+                        f"Download dello zip fallito: {errore}",
+                        f"Downloading the zip failed: {errore}",
+                    )
+                ) from errore
+            if len(dati) > _MAX_ZIP:
+                raise HomeAssistantError(
+                    self._frase(
+                        "Lo zip della release è più grande del previsto.",
+                        "The release zip is larger than expected.",
+                    )
+                )
+            try:
+                await self.hass.async_add_executor_job(
+                    installa_da_zip, _CARTELLA, dati, destinazione
+                )
+            except (ValueError, OSError, zipfile.BadZipFile) as errore:
+                raise HomeAssistantError(
+                    self._frase(
+                        f"Installazione interrotta, file di prima al loro "
+                        f"posto: {errore}",
+                        f"Install stopped, previous files back in place: {errore}",
+                    )
+                ) from errore
+        finally:
+            self._attr_in_progress = False
+            # Anche sul fallimento: senza questa scrittura l'entita' restava
+            # pubblicata come «in installazione», col tasto spento, fino al
+            # prossimo giro del coordinator.
+            self.async_write_ha_state()
+
+        self._installed = destinazione
+        self._riavvio_richiesto = True
+        self.async_write_ha_state()
+        from homeassistant.components.persistent_notification import (
+            async_create as notifica,
+        )
+
+        notifica(
+            self.hass,
+            self._frase(
+                f"La versione {destinazione} è installata. Riavvia Home "
+                "Assistant per completare l'aggiornamento.",
+                f"Version {destinazione} is installed. Restart Home Assistant "
+                "to complete the update.",
+            ),
+            title=NAME,
+            notification_id=f"{DOMAIN}_riavvio",
+        )
 
     @property
     def installed_version(self) -> str | None:
@@ -264,28 +497,23 @@ class DashboardModernUpdate(
 
     @property
     def release_summary(self) -> str | None:
-        """What to do about it, in the two lines the dialog shows.
-
-        HACS refreshes a custom repository every 48 hours, so it can still be
-        offering the previous version when this notice arrives. Saying which
-        button shortens that wait is the difference between a notification and
-        a nuisance.
-        """
+        """What to do about it, in the two lines the dialog shows."""
+        if self._riavvio_richiesto:
+            return self._frase(
+                "Installata: riavvia Home Assistant per completare l'aggiornamento.",
+                "Installed: restart Home Assistant to complete the update.",
+            )[:_SUMMARY_MAX]
         if not self.installed_version or self.latest_version == self.installed_version:
             return None
         # Home Assistant non traduce questo testo, quindi lo si sceglie qui
         # nella lingua del sistema: la plancia parla due lingue e questo e'
         # l'unico posto dove la scelta non la fa il suo motore di traduzione.
-        if str(self.hass.config.language or "").lower().startswith("it"):
-            return (
-                "In HACS: DashboardModern v2 → menu ⋮ → «Aggiorna informazioni», "
-                "poi «Aggiorna». Senza quel passaggio HACS può metterci fino a "
-                "48 ore ad accorgersi della versione nuova."
-            )[:_SUMMARY_MAX]
-        return (
-            'In HACS: DashboardModern v2 → ⋮ menu → "Update information", then '
-            '"Update". Without that step HACS can take up to 48 hours to notice '
-            "the new version."
+        return self._frase(
+            "Si installa da qui col tasto «Installa»; alla fine serve un "
+            "riavvio di Home Assistant. HACS si riallinea da solo al suo "
+            "prossimo controllo.",
+            "Install it from here with the “Install” button; a Home Assistant "
+            "restart finishes the job. HACS re-aligns on its next check.",
         )[:_SUMMARY_MAX]
 
     async def async_release_notes(self) -> str | None:

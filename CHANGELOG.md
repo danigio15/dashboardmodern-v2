@@ -5,6 +5,53 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.9
+
+### Aggiunto
+
+- **L'aggiornamento si installa da Impostazioni → Aggiornamenti.** Prima
+  l'avviso c'era ma il tasto no — l'integrazione compariva fra i «non
+  installabili», e l'unica strada era la deviazione in due passi dentro HACS.
+  Il timore che teneva il tasto spento («due proprietari della stessa cartella
+  e' come nasce un aggiornamento a meta'») si risolve nel COME si installa,
+  non rifiutando il tasto: lo zip scaricato e' lo stesso identico che
+  installerebbe HACS, viene controllato prima che un solo file si muova — i
+  percorsi, il manifest, la versione promessa — lo scambio e' un rinomino con
+  la cartella di prima tenuta accanto finche' la nuova non e' al suo posto, e
+  un fallimento rimette tutto com'era. Alla fine serve un riavvio di Home
+  Assistant, e l'entita' lo dice; HACS si riallinea da solo al suo prossimo
+  controllo. Chi preferisce la strada di HACS ce l'ha ancora tutta.
+
+- **Prese e Aspirapolvere nell'elenco dei widget.** Le due tessere esistevano
+  in Home ma non comparivano nell'elenco ordina/accendi della scheda Widget:
+  erano nate dopo il catalogo e nessuno le aveva mai iscritte. Ora ci sono, e
+  una prova tiene i due elenchi legati per sempre.
+
+### Corretto
+
+- **La batteria di un impianto non trapela piu' nell'altro.** Passando al
+  secondo impianto Energia, la bolla della batteria continuava a mostrare i
+  watt e la percentuale di carica del primo: il testo si scriveva solo quando
+  c'era una freccia da mostrare, e la percentuale si leggeva dal documento
+  grezzo, che e' sempre il primo impianto. Adesso la bolla scrive a ogni giro
+  («—» quando la batteria non c'e') e la carica segue l'impianto scelto; la
+  stessa prova pretende, al ritorno, i quattro cerchi del flusso tutti
+  visibili.
+
+- **Un solo menu per l'icona degli avvisi.** Nella riga dell'icona erano
+  rimasti due tasti che aprivano due selettori diversi: resta l'anteprima,
+  che apre il catalogo, e il tasto vecchio si ritira.
+
+- **Al riavvio il logo di caricamento esce subito.** Lo schermo restava
+  bianco finche' il server, che stava ancora ripartendo, non consegnava tre
+  script sincroni rimasti in testa alla pagina: ora stanno sotto il velo
+  d'avvio, e sopra di loro non c'e' piu' niente che blocchi il primo dipinto.
+
+- **Le tessere della Home hanno un guardiano contro il tremolio.** Una prova
+  automatica apre il popup, scatena trenta giri di stati che cambiano e
+  chiude: le tessere devono restare gli stessi nodi negli stessi pixel, e il
+  corpo del popup aggiornarsi senza rinascere.
+
 ## 1.3.8
 
 ### Corretto

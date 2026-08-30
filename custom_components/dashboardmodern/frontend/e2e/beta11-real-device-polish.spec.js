@@ -209,21 +209,18 @@ for (const variant of PRIMARY) {
     const alertPreview = page.locator(".dm-beta11-alert-preview");
     const legacyTrigger = page.locator(".dm-beta5-alert-icon-trigger").last();
     await expect(alertPreview).toBeVisible();
-    await expect(legacyTrigger).toBeVisible();
-
-    // The historical compatibility listener used to classify ed-avv-icon as a
-    // room icon simply because its id contains "icon". The existing config
-    // button must now reach the Beta11 alert catalog instead.
-    await legacyTrigger.click();
-    let picker = page.locator("#dm-beta11-alert-picker");
-    await expect(picker).toBeVisible();
+    /* Un menu solo: il tasto legacy — la lente che apriva dmIconPicker, poi
+       ridipinta — apriva un secondo selettore accanto all'anteprima («due
+       volte menu per inserire icona»). Adesso si ritira: esiste ancora, ma
+       nascosto e marcato, cosi' un click arrivato prima della vestizione
+       finisce comunque sul catalogo. L'unico ingresso visibile e'
+       l'anteprima. */
+    await expect(legacyTrigger).toBeHidden();
+    await expect(legacyTrigger).toHaveAttribute("data-dm-beta11-alert-picker", "true");
     await expect(page.locator("#dm-icon-picker")).toHaveCount(0);
-    expect(await picker.locator(".dm-beta11-alert-option").count()).toBeGreaterThanOrEqual(35);
-    await picker.locator("[data-close]").click();
-    await expect(picker).toHaveCount(0);
 
     await alertPreview.click();
-    picker = page.locator("#dm-beta11-alert-picker");
+    let picker = page.locator("#dm-beta11-alert-picker");
     await expect(picker).toBeVisible();
     expect(await picker.locator(".dm-beta11-alert-option").count()).toBeGreaterThanOrEqual(35);
     await picker.locator('.dm-beta11-alert-option[data-alert-icon="🚨"]').click();
