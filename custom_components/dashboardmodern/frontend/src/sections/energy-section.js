@@ -1092,6 +1092,10 @@ function bindEvents() {
  * esserci, se il segno e' acceso si ricostruisce; quando il guscio ce
  * l'aveva gia' fatta, qui non si tocca niente. */
 function risvegliaReportDelGuscio() {
+  /* Le voci del selettore del Report sono NOMI dati dalla persona, piu'
+   * un'emoji: il passaggio di traduzione del DOM non deve toccarle — un
+   * «Forno» chiamato cosi' dal suo padrone resta «Forno» in ogni lingua. */
+  doc?.getElementById?.("ed-dev-selector")?.setAttribute("data-dm-no-i18n", "");
   if (!root.__DM_REPORT_RUNTIME_ERROR__) return;
   if (typeof root.cdRebuildReportDevices !== "function") return;
   try {

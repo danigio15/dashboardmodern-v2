@@ -417,7 +417,7 @@ export function buildCardMarkup(model, labels = copy()) {
   return `<article class="appl-wide-card dm-ap-card dm-ap-mech is-${badgeClass} acc-${esc(model.accent)}${model.alarm ? " has-alarm" : ""}" data-appliance-id="${esc(model.id)}" data-idx="${model.index}" data-mode="${esc(model.mode)}" data-art="${esc(model.artworkType)}" role="button" tabindex="0" aria-label="${esc(model.name)} — ${esc(model.label)}">
     <div class="dm-ap-top">
       <span class="dm-ap-chip" aria-hidden="true">${applianceArtwork(model.artworkType, 30) || "🔌"}</span>
-      <span class="dm-ap-headings"><span class="dm-ap-name appl-wide-name">${esc(model.name)}</span>${roomName ? `<span class="dm-ap-room">${esc(roomName)}</span>` : ""}</span>
+      <span class="dm-ap-headings"><span class="dm-ap-name appl-wide-name" data-dm-no-i18n>${esc(model.name)}</span>${roomName ? `<span class="dm-ap-room" data-dm-no-i18n>${esc(roomName)}</span>` : ""}</span>
       <span class="dm-ap-badge ${badgeClass}"><i class="dm-ap-dot"></i>${esc(model.label)}</span>
       ${controls}
     </div>
