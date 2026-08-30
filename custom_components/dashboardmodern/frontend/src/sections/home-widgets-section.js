@@ -815,11 +815,20 @@ function letturaVettura(states, auto, fuori, indice) {
   const stato = misura("dm.ev_stato_ricarica");
   if (!carica && !autonomia) return null;
   const percentuale = carica?.value == null ? null : Math.max(0, Math.min(100, carica.value));
+  /* Potenza e traguardo si SBIRCIANO senza segnarli fra i visti: la potenza
+   * resta anche una casella fra le altre, qui serve solo a dire quando la
+   * carica finisce — «ora l'auto e' in carica ma non dice quando finisce». */
+  const sbircia = (riferimento) => {
+    const entity = clean(mappa[riferimento]);
+    return entity && widgetIncludes(entity, fuori) ? numOf(states, entity) : null;
+  };
   return {
     nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
     percentuale,
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
+    kw: sbircia("dm.ev_potenza_ricarica"),
+    target: sbircia("dm.ev_target_soc"),
     altre: altreCaselleEv(states, mappa, fuori, visti),
   };
 }
@@ -948,6 +957,8 @@ function letturaAttiva(states, fuori) {
     percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
+    kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
+    target: refValue(states, "dm.ev_target_soc", fuori)?.value ?? null,
     altre: altreCaselleEv(states, mappa, fuori, visti),
   };
 }
@@ -1025,6 +1036,11 @@ function evModel(states) {
      * attaccata alla presa. */
     ring: percentuale,
     attiva: letture.some((lettura) => autoAllaPresa(lettura.ricarica)),
+    /* Quel che serve a dire QUANDO finisce la carica: potenza e traguardo
+     * dell'auto attaccata (o della prima). Li usa il motore di analisi con la
+     * stessa formula della pagina EV, cosi' i due posti dicono la stessa ora. */
+    ricaricaKw: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.kw ?? null,
+    targetSoc: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.target ?? null,
     /* Quante auto ci sono, detto qui e non contato dalle righe.
      *
      * Un'auto sola porta due righe — la carica e l'autonomia — e chi contava le
@@ -1435,31 +1451,24 @@ function irrigationModel(states) {
   };
 }
 
-/* Le quattro tessere nuove condividono lo stesso dettaglio: righe con
- * un'icona, un nome e un valore. */
+/* Sotto l'analisi restano solo i COMANDI: gli interruttori veri.
+ *
+ * «Dopo la parte analisi sopra non voglio vedere quell'elenco bruttissimo di
+ * entita'»: le righe di sola lettura non fanno piu' lista — le numeriche
+ * diventano caselle sotto «Le misure» (`carteDalleRighe`), le acceso/spento
+ * stanno gia' nelle pillole de «Lo stato», come nel progetto approvato. Qui
+ * resta cio' che si preme: l'interruttore e' lo stesso delle luci —
+ * `data-dm-w-light` sa chiamare il servizio giusto per qualunque dominio. */
 function rowsDetail(widget) {
   return (widget.rows || [])
+    .filter((row) => row.comando)
     .map((row) => {
       const livello = livelloMarkup(percentualeDellaRiga(row));
-      /* Una riga che e' un comando ha un interruttore, non una scritta.
-       *
-       * La luce della piscina si vedeva accesa e dalla finestra non si poteva
-       * spegnere: era una riga di sola lettura come la temperatura dell'acqua,
-       * che infatti non si comanda. Chi guarda una finestra che dice «Luce:
-       * Acceso» si aspetta di poterla toccare, e aveva ragione. L'interruttore
-       * e' lo stesso delle luci — `data-dm-w-light` sa gia' chiamare il
-       * servizio giusto per qualunque dominio. */
-      if (row.comando)
-        return rowShell(
-          `<span class="dm-w-glyph" data-on="${row.on === true}" aria-hidden="true">${row.glyph || "•"}</span>
-           <span class="dm-w-name">${esc(row.name)}${livello}</span>
-           <button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on === true}"
-             aria-label="${esc(row.name)}"><i></i></button>`,
-        );
       return rowShell(
-        `<span class="dm-w-glyph" aria-hidden="true">${row.glyph || "•"}</span>
+        `<span class="dm-w-glyph" data-on="${row.on === true}" aria-hidden="true">${row.glyph || "•"}</span>
          <span class="dm-w-name">${esc(row.name)}${livello}</span>
-         <b class="dm-w-val">${esc(row.value)}</b>`,
+         <button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on === true}"
+           aria-label="${esc(row.name)}"><i></i></button>`,
       );
     })
     .join("");
@@ -1511,10 +1520,16 @@ function openingsModel(states) {
      * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
      * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
     const daQuando = Date.parse(stato?.last_changed ?? "");
+    const aperta = clean(stato?.state).toLowerCase() === "on";
+    const nome = friendlyName(states, entity);
     return {
       entity,
-      name: friendlyName(states, entity),
-      on: clean(stato?.state).toLowerCase() === "on",
+      name: nome,
+      on: aperta,
+      /* Da quando le aperture non fanno piu' lista sotto, la pillola e'
+       * il loro posto: porta l'icona scelta e la parola, non solo il colore. */
+      glyph: iconaApertura({ entity, name: nome }),
+      value: aperta ? t("Aperta", "Open") : t("Chiusa", "Closed"),
       daQuando: Number.isFinite(daQuando) ? daQuando : null,
     };
   });
@@ -2446,57 +2461,23 @@ function securityDetail(widget, states) {
   return parts.join("");
 }
 
-function energyDetail(widget) {
-  const names = {
-    house: t("Casa", "House"),
-    solar: t("Solare", "Solar"),
-    grid: t("Rete", "Grid"),
-    battery: t("Batteria", "Battery"),
-  };
-  const glyphs = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
-  return widget.rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" aria-hidden="true">${glyphs[row.group]}</span>
-         <span class="dm-w-name">${esc(names[row.group])}</span>
-         <b class="dm-w-val">${formatWatts(row.watts)}</b>`,
-      ),
-    )
-    .join("");
+/* Casa, Solare, Rete e Batteria sono LETTURE: escono come caselle sotto
+ * «Le misure» (`carteDalleRighe`), non come elenco qui sotto. */
+function energyDetail() {
+  return "";
 }
 
+/* Chi lavora e' una casella de «Le misure», col suo disegno vero; qui resta
+ * solo la parola per la casa tutta spenta, che una casella non ce l'ha. */
 function appliancesDetail(widget) {
   if (!widget.running.length)
     return `<p class="dm-w-empty">✨ ${esc(t("Tutto spento", "Everything off"))}</p>`;
-  return widget.running
-    .map((row) => {
-      // L'icona e' quella vera dell'elettrodomestico — la lavatrice ha
-      // l'oblo', il forno lo sportello: lo stesso tratto della sua pagina.
-      const disegno = root.cdApplianceIcon?.(row.type, 20);
-      const icona = disegno
-        ? `<span class="dm-w-appl-ic" aria-hidden="true">${disegno}</span>`
-        : `<span class="dm-w-glyph" data-on="true" aria-hidden="true">🫧</span>`;
-      return rowShell(
-        `${icona}
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${row.watts == null ? "" : formatWatts(row.watts)}</b>`,
-      );
-    })
-    .join("");
+  return "";
 }
 
-function temperatureDetail(widget) {
-  return widget.rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" aria-hidden="true">🌡️</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${formatNumber(row.temperature, 1)}°${
-           row.humidity == null ? "" : ` · ${Math.round(row.humidity)}%`
-         }</b>`,
-      ),
-    )
-    .join("");
+/* Le stanze coi loro gradi sono caselle de «Le misure», non un elenco. */
+function temperatureDetail() {
+  return "";
 }
 
 /* L'icona di un'apertura, quando chi l'ha configurata ne ha scelta una.
@@ -2521,32 +2502,16 @@ function iconaApertura(row) {
   return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
 }
 
-function openingsDetail(widget) {
-  const rows = [...widget.rows]
-    .sort((a, b) => Number(b.on) - Number(a.on))
-    .slice(0, MAX_DETAIL_ROWS);
-  return rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${iconaApertura(row)}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${esc(row.on ? t("Aperta", "Open") : t("Chiusa", "Closed"))}</b>`,
-      ),
-    )
-    .join("");
+/* Le aperture sono acceso/spento col nome: vivono nelle pillole de «Lo
+ * stato» — aperte accese, chiuse smorte — e nelle caselle dei conteggi.
+ * L'icona scelta per riga resta a `iconaApertura`, che serve le pillole. */
+function openingsDetail() {
+  return "";
 }
 
-function batteriesDetail(widget) {
-  return widget.rows
-    .slice(0, MAX_DETAIL_ROWS)
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">${row.level <= 20 ? "🪫" : "🔋"}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${Math.round(row.level)}%</b>`,
-      ),
-    )
-    .join("");
+/* Ogni batteria col suo livello e' una casella de «Le misure». */
+function batteriesDetail() {
+  return "";
 }
 
 function floodDetail(widget) {
@@ -2560,17 +2525,9 @@ function floodDetail(widget) {
     .join("");
 }
 
-function customDetail(widget) {
-  return widget.rows
-    .slice(0, MAX_DETAIL_ROWS)
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">${esc(widget.icon)}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${esc(row.state)}</b>`,
-      ),
-    )
-    .join("");
+/* Anche gli avvisi personalizzati sono caselle: nome e stato, in carta. */
+function customDetail() {
+  return "";
 }
 
 /* Le miniature: i fotogrammi non stanno nel markup — li posa
@@ -2672,34 +2629,120 @@ function summaryMarkup(widget) {
  * si legge in un colpo d'occhio chi e' in funzione senza contare le righe. */
 function pilloleDelloStato(widget) {
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  /* Dodici e non otto: da quando le righe acceso/spento non fanno piu' lista
+   * sotto, le pillole sono l'unico posto dove si leggono — una casa con
+   * undici aperture le deve vedere tutte. */
   const voci = righe
     .filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name))
-    .slice(0, 8);
+    .slice(0, 12);
   if (!voci.length) return "";
   return `<h4 class="dm-w-titoletto">${esc(t("Lo stato", "The state"))}</h4>
     <div class="dm-w-pillole">${voci
       .map(
         (riga) =>
-          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${esc(clean(riga.name))}${
+          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${
+            riga.glyph ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>` : ""
+          }${esc(clean(riga.name))}${
             clean(riga.value) ? ` <b>${esc(clean(riga.value))}</b>` : ""
           }</span>`,
       )
       .join("")}</div>`;
 }
 
-/* Le caselle: le stesse misure che la tessera riassume, in grande.
+/* Le righe di sola lettura, fatte caselle.
  *
- * Le sceglieva gia' `summaryChips` per la striscia in cima alla finestra —
- * «la piu' bassa», «media», «in funzione» — ed e' esattamente quello che il
- * progetto chiama «le caselle». Non se ne inventano altre: quelle sono. */
+ * «Nel progetto dei widget non era cosi', con la lista sotto: erano tutte
+ * card oltre alla parte di analisi.» Le righe numeriche o testuali — la
+ * temperatura dell'acqua, l'autonomia dell'auto, i watt della casa — hanno
+ * gia' glifo, valore e nome: qui cambiano vestito, da elenco a caselle. Le
+ * acceso/spento restano alle pillole, i comandi restano comandi. */
+const CHIAVI_A_CARTE = new Set([
+  "ev",
+  "solare",
+  "piscina",
+  "prese",
+  "irrigazione",
+  "robot",
+  "energia",
+  "temperatura",
+  "batterie",
+  "elettrodomestici",
+]);
+
+function carteDalleRighe(widget) {
+  const chiave = clean(widget.key);
+  if (!(CHIAVI_A_CARTE.has(chiave) || chiave.startsWith("custom-"))) return [];
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  if (chiave === "energia") {
+    const nomi = {
+      house: t("Casa", "House"),
+      solar: t("Solare", "Solar"),
+      grid: t("Rete", "Grid"),
+      battery: t("Batteria", "Battery"),
+    };
+    const glifi = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
+    return righe.map((riga) => ({
+      glyph: glifi[riga.group] || "⚡",
+      valore: formatWatts(riga.watts),
+      etichetta: nomi[riga.group] || clean(riga.group),
+    }));
+  }
+  if (chiave === "temperatura") {
+    return righe.map((riga) => ({
+      glyph: "🌡️",
+      valore: `${formatNumber(riga.temperature, 1)}°${
+        riga.humidity == null ? "" : ` · ${Math.round(riga.humidity)}%`
+      }`,
+      etichetta: clean(riga.name),
+    }));
+  }
+  if (chiave === "batterie") {
+    return righe.map((riga) => ({
+      glyph: riga.level <= 20 ? "🪫" : "🔋",
+      valore: `${Math.round(riga.level)}%`,
+      etichetta: clean(riga.name),
+    }));
+  }
+  if (chiave === "elettrodomestici") {
+    /* Chi sta lavorando, coi suoi watt e il suo disegno vero: la lavatrice
+     * ha l'oblo', il forno lo sportello. */
+    return (Array.isArray(widget.running) ? widget.running : []).map((riga) => ({
+      glyph: root.cdApplianceIcon?.(riga.type, 20) || "🫧",
+      valore: riga.watts == null ? t("in funzione", "running") : formatWatts(riga.watts),
+      etichetta: clean(riga.name),
+    }));
+  }
+  if (chiave.startsWith("custom-")) {
+    return righe.map((riga) => ({
+      glyph: clean(widget.icon) || "•",
+      valore: clean(riga.state),
+      etichetta: clean(riga.name),
+    }));
+  }
+  return righe
+    .filter((riga) => !riga.comando && typeof riga?.on !== "boolean")
+    .map((riga) => ({
+      glyph: riga.glyph || "•",
+      valore: clean(riga.value) || (riga.raw == null ? "—" : String(riga.raw)),
+      etichetta: clean(riga.name),
+    }));
+}
+
+/* Le caselle: i riassunti di `summaryChips` («la piu' bassa», «media», «in
+ * funzione») piu' le letture fatte caselle. Un titolo solo, una griglia sola. */
 function caselleDelleMisure(widget) {
-  const voci = summaryChips(widget);
+  const voci = [
+    ...summaryChips(widget).map(([etichetta, valore]) => ({ glyph: "", valore, etichetta })),
+    ...carteDalleRighe(widget),
+  ].slice(0, 12);
   if (!voci.length) return "";
   return `<h4 class="dm-w-titoletto">${esc(t("Le misure", "The readings"))}</h4>
     <div class="dm-w-caselle">${voci
       .map(
-        ([etichetta, valore]) =>
-          `<div class="dm-w-casella"><b>${esc(valore)}</b><span>${esc(etichetta)}</span></div>`,
+        (voce) =>
+          `<div class="dm-w-casella">${
+            voce.glyph ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>` : ""
+          }<b>${esc(voce.valore)}</b><span>${esc(voce.etichetta)}</span></div>`,
       )
       .join("")}</div>`;
 }
@@ -3919,8 +3962,10 @@ html.dm-widget-popup-open{overflow:hidden}
  * vede poco». Adesso ha un fondo suo, un bordo e il colore del testo pieno, e
  * il bersaglio arriva a trentadue pixel di altezza — che e' la misura sotto la
  * quale un dito manca. */
+/* A destra, come in tutti gli altri popup della plancia: a sinistra stava
+ * addosso alla testata — «li non mi piace, e' vicino alla testata». */
 #dm-widget-popup .dm-widget-detail .dm-w-close{
-  grid-column:1/-1;grid-row:1;justify-self:start;
+  grid-column:1/-1;grid-row:1;justify-self:end;
   display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 12px 0 9px;
   border:1px solid var(--card-border,#e2e8f0);border-radius:999px;
   background:var(--card-bg,#fff);box-shadow:0 1px 3px rgba(15,23,42,.06);
@@ -4019,6 +4064,8 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-casella{
   display:grid;gap:2px;padding:10px 11px;border-radius:14px;
   border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
+#dm-widget-popup .dm-w-casella-ic{font-size:15px;line-height:1}
+#dm-widget-popup .dm-w-casella-ic svg{width:18px;height:18px;display:block}
 #dm-widget-popup .dm-w-casella b{
   font-family:'Oswald',system-ui,sans-serif;font-weight:400;font-size:19px;line-height:1.1;
   color:var(--text,#0f172a);font-variant-numeric:tabular-nums;
@@ -4035,6 +4082,8 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   background:var(--surface-2,#f8fafc);color:var(--text-dim,#94a3b8)}
 #dm-widget-popup .dm-w-pillola::before{
   content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+#dm-widget-popup .dm-w-pillola-ic{display:inline-grid;place-items:center;font-size:12px;line-height:1}
+#dm-widget-popup .dm-w-pillola-ic svg{width:14px;height:14px}
 #dm-widget-popup .dm-w-pillola[data-acceso="true"]{
   border-color:color-mix(in srgb,#10b981 34%,transparent);
   background:color-mix(in srgb,#10b981 12%,transparent);

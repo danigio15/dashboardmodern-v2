@@ -6,6 +6,12 @@ export function canonicalArtworkType(value) {
   if (/microonde|microwave/.test(token)) return "microwave";
   if (/forno|oven|stove/.test(token)) return "oven";
   if (/frigo|fridge|refriger|frigorifero|freezer|congelatore/.test(token)) return "fridge";
+  /* Il boiler d'accumulo prima dello scaldabagno: la chiave e' «accumulo»
+   * perche' la parola «boiler» da sola e' storicamente lo scaldabagno a muro
+   * — rimapparla romperebbe chi l'ha gia' scritta — ma l'etichetta a video
+   * dice Boiler, che e' come lo chiama chi ce l'ha. */
+  if (/accumulo|puffer|storage[_ -]?(?:boiler|tank)/.test(token)) return "storage-boiler";
+  if (/friggitrice|air[_ -]?fryer|airfryer/.test(token)) return "air-fryer";
   if (/scaldabagno|boiler|water[_ -]?heater/.test(token)) return "boiler";
   // "dishwasher" must resolve before the washer pattern: /washer/ would match
   // the "…washer" suffix and canonicalArtworkType would not be idempotent.
@@ -58,6 +64,10 @@ function artworkBody(type) {
     oven: `${panel}<rect ${shell} x="15" y="10" width="66" height="76" rx="9"/><rect ${face} x="21" y="17" width="54" height="14" rx="5"/><circle ${accent} cx="29" cy="24" r="3.2"/><circle ${muted} cx="39" cy="24" r="3.2"/><circle ${muted} cx="49" cy="24" r="3.2"/><rect ${face} x="21" y="37" width="54" height="40" rx="6"/><rect ${window} x="28" y="44" width="40" height="25" rx="4"/><path ${line} d="M34 61c8-7 20-7 28 0M31 72h34"/>`,
     microwave: `${panel}<rect ${shell} x="10" y="22" width="76" height="54" rx="10"/><rect ${face} x="16" y="29" width="50" height="40" rx="6"/><rect ${window} x="22" y="35" width="38" height="28" rx="4"/><circle ${accent} cx="76" cy="36" r="5"/><rect ${accent} x="70" y="47" width="12" height="5" rx="2.5"/><rect ${muted} x="70" y="57" width="12" height="5" rx="2.5"/><path ${line} d="M31 56h20M34 51c4-5 10-5 14 0"/>`,
     fridge: `${panel}<rect ${shell} x="20" y="8" width="56" height="80" rx="12"/><rect ${face} x="26" y="14" width="44" height="31" rx="7"/><rect ${face} x="26" y="51" width="44" height="30" rx="7"/><rect ${accent} x="31" y="21" width="6" height="17" rx="3"/><rect ${accent} x="31" y="58" width="6" height="17" rx="3"/><circle ${accent} cx="63" cy="22" r="3"/>`,
+    "storage-boiler": `${panel}<rect ${shell} x="24" y="7" width="48" height="74" rx="22"/><rect ${face} x="31" y="14" width="34" height="60" rx="16"/><path ${window} d="M32 54c8-6 14 4 22-2 4-3 8-3 11 0v4a16 16 0 0 1-16 16h-2a16 16 0 0 1-15-16Z"/><circle ${face} cx="48" cy="33" r="9"/><circle ${window} cx="48" cy="33" r="6"/><path ${line} d="M48 33l4-4"/><circle ${accent} cx="48" cy="20" r="3"/><path ${line} d="M34 81v7M62 81v7M72 26h13M72 62h13"/>`,
+
+    "air-fryer": `${panel}<path ${shell} d="M31 11h34c9 0 15 7 15 16v31c0 15-12 27-27 27h-10c-15 0-27-12-27-27V27c0-9 6-16 15-16Z"/><rect ${face} x="30" y="18" width="36" height="18" rx="9"/><circle ${window} cx="48" cy="27" r="6"/><circle ${accent} cx="48" cy="27" r="2.6"/><path ${face} d="M25 52h46v8a16 16 0 0 1-16 16H41a16 16 0 0 1-16-16Z"/><rect ${shell} x="40" y="58" width="16" height="6" rx="3"/><path ${line} d="M36 44h24"/>`,
+
     boiler: `${panel}<rect ${shell} x="20" y="8" width="56" height="76" rx="28"/><rect ${face} x="27" y="15" width="42" height="62" rx="21"/><path ${window} d="M28 51c9-8 16 5 25-3 6-5 10-4 16 0v18a13 13 0 0 1-13 13H40a13 13 0 0 1-13-13Z"/><circle ${shell} cx="48" cy="58" r="8"/><path ${lightLine} d="M48 53v6M44 57l4 4 4-4"/><path ${line} d="M36 86v5M60 86v5"/>`,
     washer: `${panel}<rect ${shell} x="13" y="10" width="70" height="76" rx="9"/><rect ${face} x="19" y="16" width="58" height="14" rx="5"/><circle ${accent} cx="27" cy="23" r="3"/><rect ${muted} x="58" y="20" width="12" height="5" rx="2.5"/><circle ${face} cx="48" cy="57" r="24"/><circle ${window} cx="48" cy="57" r="17"/><path ${lightLine} d="M35 58c8-8 18 8 27-1M38 64c7-5 13 4 20 0"/>`,
     dryer: `${panel}<rect ${shell} x="13" y="10" width="70" height="76" rx="9"/><rect ${face} x="19" y="16" width="58" height="14" rx="5"/><circle ${accent} cx="27" cy="23" r="3"/><circle ${face} cx="48" cy="57" r="24"/><circle ${window} cx="48" cy="57" r="17"/><path ${lightLine} d="M39 64c-5-5 5-8 0-13M48 64c-5-5 5-8 0-13M57 64c-5-5 5-8 0-13"/>`,

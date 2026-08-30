@@ -112,6 +112,37 @@ function daQuandoDelleRighe(righe, adesso) {
   return momenti.length ? (adesso - Math.max(...momenti)) / 60000 : null;
 }
 
+/* Quando finisce la carica dell'auto, con la STESSA formula della pagina EV:
+ * i punti percentuali che mancano al traguardo, la capacita' assunta di 70
+ * kWh, la potenza del caricatore. Cosi' la finestra del widget e la pagina
+ * dicono la stessa ora. La potenza arriva com'e' scritta nel sensore: sopra
+ * 100 la si legge in watt, altrimenti in kilowatt — e' la lettura del guscio. */
+const CAPACITA_ASSUNTA_KWH = 70;
+
+function oraDelPieno(tessera, adesso, linguaDeiNumeri) {
+  const carica = num(tessera?.ring);
+  const potenza = num(tessera?.ricaricaKw);
+  if (carica == null || potenza == null || potenza <= 0) return null;
+  const grezzo = num(tessera?.targetSoc);
+  const traguardo = grezzo != null && grezzo > 0 && grezzo <= 100 ? Math.round(grezzo) : 100;
+  if (carica >= traguardo) return null;
+  const kw = potenza > 100 ? potenza / 1000 : potenza;
+  const ore = ((traguardo - carica) * CAPACITA_ASSUNTA_KWH) / 100 / kw;
+  /* Oltre due giorni non e' una previsione, e' un numero a caso: si tace. */
+  if (!Number.isFinite(ore) || ore <= 0 || ore > 48) return null;
+  const fine = new Date(adesso + ore * 3600 * 1000);
+  let ora;
+  try {
+    ora = new Intl.DateTimeFormat(linguaDeiNumeri || "it", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(fine);
+  } catch (_errore) {
+    ora = `${String(fine.getHours()).padStart(2, "0")}:${String(fine.getMinutes()).padStart(2, "0")}`;
+  }
+  return { ora, traguardo };
+}
+
 /* ── le letture, una per sezione ───────────────────────────────────────── */
 
 /* Ognuna riceve (tr, tessera, adesso) e torna {tono, frase, punti}.
@@ -458,7 +489,7 @@ const LETTURE = Object.freeze({
    * carica» mentre in carica c'e' l'altra, che sta all'80%. Con una sola auto
    * le due cose coincidono e si puo' dire; con piu' d'una si dice di meno, che
    * e' meglio di dire il falso. */
-  ev: (tr, tessera) => {
+  ev: (tr, tessera, adesso = Date.now()) => {
     const l = lingua(tr, tessera?.lingua);
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
     const allaPresa = tessera?.attiva === true;
@@ -492,12 +523,22 @@ const LETTURE = Object.freeze({
           : tr("Non e' attaccata.", "Not plugged in."),
         punti,
       };
-    if (allaPresa)
+    if (allaPresa) {
+      /* «Ora l'auto e' in carica ma non dice quando finisce»: se si sa a che
+       * potenza sta caricando, si dice l'ora d'arrivo — predittiva, come
+       * «l'acqua e' calda verso le 16:30» del solare termico. */
+      const pieno = oraDelPieno(tessera, adesso, l);
       return {
         tono: VERDETTI.corso,
-        frase: tr(`In carica, al ${Math.round(carica)}%.`, `Charging, at ${Math.round(carica)}%.`),
+        frase: pieno
+          ? tr(
+              `In carica al ${Math.round(carica)}%: di questo passo arriva al ${pieno.traguardo}% verso le ${pieno.ora}.`,
+              `Charging at ${Math.round(carica)}%: at this rate it reaches ${pieno.traguardo}% around ${pieno.ora}.`,
+            )
+          : tr(`In carica, al ${Math.round(carica)}%.`, `Charging, at ${Math.round(carica)}%.`),
         punti,
       };
+    }
     if (carica < 20)
       return {
         tono: VERDETTI.guarda,
@@ -707,7 +748,13 @@ const FORMA = Object.freeze({
   temperatura: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
   solare: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
   piscina: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
-  ev: { unita: (v) => `${Math.round(v)}%`, bersaglio: (t) => (t?.attiva ? 100 : null) },
+  /* Quando la frase dice gia' l'ora del pieno (dalla potenza del caricatore),
+   * il modello non aggiunge il SUO arrivo dalla pendenza: due orari diversi
+   * per la stessa carica sono una contraddizione, non un'informazione. */
+  ev: {
+    unita: (v) => `${Math.round(v)}%`,
+    bersaglio: (t) => (t?.attiva && !(Number(t?.ricaricaKw) > 0) ? 100 : null),
+  },
   robot: { unita: (v) => `${Math.round(v)}%`, bersaglio: () => null },
   irrigazione: { unita: (v) => `${Math.round(v)}%`, bersaglio: () => null },
   elettrodomestici: { unita: (v, l) => watt(v, l), bersaglio: () => null },

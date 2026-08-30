@@ -16,6 +16,8 @@
  * what shipped before.
  */
 
+import { wattsFromState } from "./signed-energy.js";
+
 export const FLOW_MAX_LOADS = 8;
 
 /* Index -> legacy slot key. Beta 26/27 store per-slot flow-node customization
@@ -203,6 +205,18 @@ function stateNumber(states, entity) {
   return finiteOrNull(source?.state ?? source);
 }
 
+/* I watt dell'istantanea li conta chi guarda anche l'unita': la wallbox che
+ * scrive «1.61» con unita' kW finiva in bolla come «2 W» — si leggeva lo
+ * stato grezzo e basta, mentre il popup dell'auto diceva 1.61 kW. Senza
+ * unita' si assume il watt, come fa il runtime. */
+function stateWatts(states, entity) {
+  if (!entity) return null;
+  const source = states?.[entity];
+  if (source && typeof source === "object" && source.state !== undefined)
+    return finiteOrNull(wattsFromState(source));
+  return finiteOrNull(source?.state ?? source);
+}
+
 /* Day and month first ask the Recorder bundle, which already holds that
  * period's delta of the cumulative meter — the only correct way to turn a
  * lifetime counter into a period figure. Only an explicit day/month helper is
@@ -218,7 +232,10 @@ function periodValue(load, period, states, recorderValues) {
     const numeric = finiteOrNull(fromBundle);
     if (numeric !== null) return { entity: entity || flowRecorderEntity(load), value: numeric };
   }
-  return { entity, value: stateNumber(states, entity) };
+  return {
+    entity,
+    value: period === "instant" ? stateWatts(states, entity) : stateNumber(states, entity),
+  };
 }
 
 /* Everything filed under a circle: the appliances created inside it from the

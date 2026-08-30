@@ -67,10 +67,16 @@ export const APPLIANCE_CATALOG = Object.freeze([
   { key: "condizionatore", it: "Condizionatore", en: "Air conditioner" },
   { key: "ventilatore", it: "Ventilatore", en: "Fan" },
   { key: "scaldabagno", it: "Scaldabagno", en: "Water heater" },
+  /* Il boiler d'accumulo NON e' lo scaldabagno a muro: e' il cilindrone a
+   * pavimento del solare termico, e mancava proprio come voce. La chiave e'
+   * «accumulo» perche' «boiler» da sola e' da sempre l'alias dello
+   * scaldabagno; l'etichetta dice Boiler, come lo chiama chi ce l'ha. */
+  { key: "accumulo", it: "Boiler", en: "Storage boiler" },
   { key: "tv", it: "TV", en: "TV" },
   { key: "caffe", it: "Caffettiera", en: "Coffee maker" },
   { key: "tostapane", it: "Tostapane", en: "Toaster" },
   { key: "bollitore", it: "Bollitore", en: "Kettle" },
+  { key: "friggitrice", it: "Friggitrice ad aria", en: "Air fryer" },
   { key: "generico", it: "Altro", en: "Other" },
 ]);
 

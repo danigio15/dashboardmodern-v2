@@ -7,7 +7,34 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.3.12
 
+### Nuovo
+
+- **Il popup dei widget e' il progetto approvato: tutte card, niente
+  elenco.** Sotto l'analisi le letture non fanno piu' la lista di righe: le
+  numeriche sono caselle sotto «Le misure» (glifo, valore grande,
+  etichetta), gli acceso/spento pillole sotto «Lo stato» — le aperture con
+  l'icona scelta e la parola Aperta/Chiusa — e sotto «Comandi» restano solo
+  gli interruttori veri. Vale per auto, solare, piscina, energia,
+  temperatura, batterie, irrigazione, robot, elettrodomestici e avvisi
+  personalizzati. Il tasto Chiudi sta a destra, come negli altri popup.
+
+- **L'auto in carica dice quando finisce.** «In carica al 53%: di questo
+  passo arriva al 100% verso le 08:26» — l'ora del pieno viene dalla stessa
+  formula della pagina EV (potenza del caricatore e traguardo), cosi' i due
+  posti dicono la stessa ora; e quando la potenza parla, il modello non
+  aggiunge un secondo orario dalla pendenza.
+
+- **Boiler e Friggitrice ad aria nel catalogo elettrodomestici.** Il
+  cilindrone d'accumulo a pavimento (manometro, acqua, tubi) e la
+  friggitrice col cestello, disegnati nello stile del catalogo, con gli
+  eroi animati per le loro pagine.
+
 ### Corretto
+
+- **La bolla della wallbox nel flusso legge i kW come kW.** Il sensore
+  scriveva 1,61 kW e la bolla diceva «2 W»: l'istantanea leggeva lo stato
+  grezzo ignorando l'unita'. Ora i watt li conta chi guarda anche l'unita',
+  per ogni carico.
 
 - **Il tasto Clima rapido e' per unita', e si imposta dove si configura
   l'unita'.** Modalita', temperatura e ventola stavano in un blocco globale

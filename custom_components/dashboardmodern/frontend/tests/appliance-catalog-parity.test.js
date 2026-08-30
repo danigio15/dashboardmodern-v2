@@ -7,6 +7,8 @@ import {
   normalizeDevice,
 } from "../src/core/device-model.js";
 
+/* Le 20 voci originali piu' le due chieste dal campo: il boiler d'accumulo
+ * (chiave «accumulo», etichetta Boiler) e la friggitrice ad aria. */
 const PICKER_KEYS = [
   "lavatrice",
   "lavastoviglie",
@@ -23,10 +25,12 @@ const PICKER_KEYS = [
   "condizionatore",
   "ventilatore",
   "scaldabagno",
+  "accumulo",
   "tv",
   "caffe",
   "tostapane",
   "bollitore",
+  "friggitrice",
   "generico",
 ];
 
@@ -46,10 +50,12 @@ const PICKER_LABELS_IT = [
   "Condizionatore",
   "Ventilatore",
   "Scaldabagno",
+  "Boiler",
   "TV",
   "Caffettiera",
   "Tostapane",
   "Bollitore",
+  "Friggitrice ad aria",
   "Altro",
 ];
 
