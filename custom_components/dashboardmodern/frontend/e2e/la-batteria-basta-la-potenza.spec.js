@@ -33,10 +33,26 @@ const seme = (battery) => ({
 });
 
 const STATI = {
-  "sensor.fv_w": { entity_id: "sensor.fv_w", state: "4100", attributes: { unit_of_measurement: "W" } },
-  "sensor.casa_w": { entity_id: "sensor.casa_w", state: "3500", attributes: { unit_of_measurement: "W" } },
-  "sensor.batt_w": { entity_id: "sensor.batt_w", state: "250", attributes: { unit_of_measurement: "W" } },
-  "sensor.batt_soc": { entity_id: "sensor.batt_soc", state: "86", attributes: { unit_of_measurement: "%" } },
+  "sensor.fv_w": {
+    entity_id: "sensor.fv_w",
+    state: "4100",
+    attributes: { unit_of_measurement: "W" },
+  },
+  "sensor.casa_w": {
+    entity_id: "sensor.casa_w",
+    state: "3500",
+    attributes: { unit_of_measurement: "W" },
+  },
+  "sensor.batt_w": {
+    entity_id: "sensor.batt_w",
+    state: "250",
+    attributes: { unit_of_measurement: "W" },
+  },
+  "sensor.batt_soc": {
+    entity_id: "sensor.batt_soc",
+    state: "86",
+    attributes: { unit_of_measurement: "%" },
+  },
 };
 
 async function avvia(page, testInfo, battery) {
@@ -65,7 +81,9 @@ test("con la sola potenza il cerchio c'e', e la riga del SoC no", async ({ page 
   if (soc) expect(soc.hidden).toBe(true);
 });
 
-test("col SoC configurato si legge la percentuale nuda, senza la dicitura", async ({ page }, testInfo) => {
+test("col SoC configurato si legge la percentuale nuda, senza la dicitura", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(150_000);
   await avvia(page, testInfo, { power: "sensor.batt_w", soc: "sensor.batt_soc" });
   await expect

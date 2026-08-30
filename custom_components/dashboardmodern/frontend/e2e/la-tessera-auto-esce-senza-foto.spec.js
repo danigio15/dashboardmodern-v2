@@ -37,7 +37,11 @@ test("un profilo con la batteria basta a far uscire la tessera", async ({ page }
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
   await page.evaluate(() => {
     const stati = {
-      "sensor.leap_soc": { entity_id: "sensor.leap_soc", state: "86", attributes: { unit_of_measurement: "%" } },
+      "sensor.leap_soc": {
+        entity_id: "sensor.leap_soc",
+        state: "86",
+        attributes: { unit_of_measurement: "%" },
+      },
     };
     window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
     const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");

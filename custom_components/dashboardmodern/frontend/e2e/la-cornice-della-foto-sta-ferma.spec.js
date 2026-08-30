@@ -46,9 +46,17 @@ const SEME = {
 
 function statiDelGiro(giro) {
   return {
-    "sensor.leap_soc": { entity_id: "sensor.leap_soc", state: String(50 + (giro % 3)), attributes: { unit_of_measurement: "%" } },
+    "sensor.leap_soc": {
+      entity_id: "sensor.leap_soc",
+      state: String(50 + (giro % 3)),
+      attributes: { unit_of_measurement: "%" },
+    },
     "sensor.leap_stato": { entity_id: "sensor.leap_stato", state: "C", attributes: {} },
-    "sensor.leap_kw": { entity_id: "sensor.leap_kw", state: String(1.6 + giro * 0.01), attributes: { unit_of_measurement: "kW" } },
+    "sensor.leap_kw": {
+      entity_id: "sensor.leap_kw",
+      state: String(1.6 + giro * 0.01),
+      attributes: { unit_of_measurement: "kW" },
+    },
   };
 }
 
@@ -60,7 +68,9 @@ test("angoli, geometria e sorgente della foto non ballano", async ({ page }, tes
    * suo ciclo di vita intero (load, misura, pelle). */
   const { readFileSync } = await import("node:fs");
   const logo = readFileSync(new URL("../legacy/logo.png", import.meta.url));
-  await page.route("**/local/**", (route) => route.fulfill({ status: 200, contentType: "image/png", body: logo }));
+  await page.route("**/local/**", (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: logo }),
+  );
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
   await page.evaluate((stati) => {
@@ -83,7 +93,9 @@ test("angoli, geometria e sorgente della foto non ballano", async ({ page }, tes
         raggio: stile.borderRadius,
         overflow: stile.overflow,
         src: img.getAttribute("src") || "",
-        rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join(","),
+        rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join(
+          ",",
+        ),
         opacita: getComputedStyle(img).opacity,
       };
     });
@@ -98,7 +110,9 @@ test("angoli, geometria e sorgente della foto non ballano", async ({ page }, tes
       const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
       if (raw) Object.assign(raw, stati);
       window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
-      try { window.render?.(); } catch (_e) {}
+      try {
+        window.render?.();
+      } catch (_e) {}
     }, statiDelGiro(giro));
     await page.waitForTimeout(120);
     const adesso = await fotografa();
