@@ -50,6 +50,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
@@ -464,20 +465,18 @@ class DashboardModernUpdate(
         self._installed = destinazione
         self._riavvio_richiesto = True
         self.async_write_ha_state()
-        from homeassistant.components.persistent_notification import (
-            async_create as notifica,
-        )
-
-        notifica(
+        # Il riavvio si chiede dal posto standard: una Riparazione col suo
+        # tasto, come fa HACS. La notifica testuale diceva la stessa cosa ma
+        # da un'altra porta, e chi veniva da HACS cercava il tasto dove lo
+        # aveva sempre trovato — e non lo trovava piu'.
+        ir.async_create_issue(
             self.hass,
-            self._frase(
-                f"La versione {destinazione} è installata. Riavvia Home "
-                "Assistant per completare l'aggiornamento.",
-                f"Version {destinazione} is installed. Restart Home Assistant "
-                "to complete the update.",
-            ),
-            title=NAME,
-            notification_id=f"{DOMAIN}_riavvio",
+            DOMAIN,
+            "riavvio_richiesto",
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="riavvio_richiesto",
+            translation_placeholders={"version": destinazione},
         )
 
     @property

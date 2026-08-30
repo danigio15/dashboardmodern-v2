@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "Restart to finish the DashboardModern update",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "Version {version} is installed on disk. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
   }
 }

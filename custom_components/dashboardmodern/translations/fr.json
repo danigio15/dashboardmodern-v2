@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "Redémarrez pour terminer la mise à jour de DashboardModern",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Redémarrer Home Assistant",
+            "description": "La version {version} est installée sur le disque. Redémarrez Home Assistant pour la charger."
+          }
+        }
+      }
+    }
   }
 }

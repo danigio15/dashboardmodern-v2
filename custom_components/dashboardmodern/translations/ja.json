@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "DashboardModern の更新を完了するには再起動してください",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Home Assistant を再起動",
+            "description": "バージョン {version} はディスクにインストール済みです。読み込むには Home Assistant を再起動してください。"
+          }
+        }
+      }
+    }
   }
 }

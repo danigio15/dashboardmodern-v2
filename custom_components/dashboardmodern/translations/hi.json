@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "DashboardModern अपडेट पूरा करने के लिए पुनः आरंभ करें",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Home Assistant पुनः आरंभ करें",
+            "description": "संस्करण {version} डिस्क पर इंस्टॉल है। इसे लोड करने के लिए Home Assistant पुनः आरंभ करें।"
+          }
+        }
+      }
+    }
   }
 }

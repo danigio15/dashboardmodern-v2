@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "Herstart om de DashboardModern-update te voltooien",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Home Assistant herstarten",
+            "description": "Versie {version} staat op de schijf. Herstart Home Assistant om deze te laden."
+          }
+        }
+      }
+    }
   }
 }

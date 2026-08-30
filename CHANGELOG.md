@@ -37,6 +37,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Il riavvio si chiede dal posto standard, col suo tasto.** Dopo
+  «Installa» compariva solo una notifica testuale, e chi veniva da HACS
+  cercava il tasto di riavvio dove lo aveva sempre trovato — nelle
+  Riparazioni — senza trovarlo. Ora a installazione riuscita si apre la
+  Riparazione «Riavvio richiesto»: premi, confermi, Home Assistant riparte.
+  In tutte le lingue.
+
 - **L'icona di un'apertura si sceglie dal catalogo.** Il campo era una
   casella di testo nuda e l'unica strada era l'emoji dalla tastiera: ora
   accanto al campo c'e' il tasto che apre lo stesso selettore delle icone

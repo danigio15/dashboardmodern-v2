@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "DashboardModern güncellemesini tamamlamak için yeniden başlatın",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Home Assistant'ı yeniden başlat",
+            "description": "{version} sürümü diske kuruldu. Yüklemek için Home Assistant'ı yeniden başlatın."
+          }
+        }
+      }
+    }
   }
 }

@@ -31,5 +31,18 @@
         }
       }
     }
+  },
+  "issues": {
+    "riavvio_richiesto": {
+      "title": "Neu starten, um das DashboardModern-Update abzuschließen",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Home Assistant neu starten",
+            "description": "Version {version} ist auf der Festplatte installiert. Starte Home Assistant neu, um sie zu laden."
+          }
+        }
+      }
+    }
   }
 }
