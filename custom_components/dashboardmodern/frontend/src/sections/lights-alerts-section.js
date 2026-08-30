@@ -651,11 +651,15 @@ function installStyles() {
       /* Modal shell/headers/forms/footers are owned only by editor-contracts-section.js. */
       .dm-section-dialog [data-error]{min-height:18px;color:var(--error-color,#dc2626);font-weight:800}
       /* La riga del solo-vista: casella e spiegazione affiancate, larghe.
-         Senza queste righe la riga eredita una griglia pensata per altro e il
-         testo finiva schiacciato in una colonnina sul bordo destro. */
-      .dm-solo-lettura-riga{display:flex!important;align-items:flex-start!important;gap:10px!important;grid-template-columns:none!important;width:100%!important}
-      .dm-solo-lettura-riga input[type="checkbox"]{flex:0 0 auto!important;width:20px!important;height:20px!important;margin:1px 0 0!important}
-      .dm-solo-lettura-riga small{flex:1 1 auto!important;min-width:0!important;font-size:11.5px!important;font-weight:600!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important;text-align:left!important}
+         Il guscio dei modali detta ai .ed-form-row una griglia «campo + 48px»
+         con la sua importanza: qui serve pareggiarne la specificita', o il
+         testo finisce schiacciato in una colonnina sul bordo destro. */
+      .dm-solo-lettura-riga,
+      .dm-section-modal .dm-section-dialog .ed-form-row.dm-solo-lettura-riga{display:flex!important;align-items:flex-start!important;gap:10px!important;grid-template-columns:none!important;width:100%!important}
+      .dm-solo-lettura-riga input[type="checkbox"],
+      .dm-section-modal .dm-section-dialog .dm-solo-lettura-riga input[type="checkbox"]{flex:0 0 auto!important;width:20px!important;height:20px!important;min-height:20px!important;margin:1px 0 0!important}
+      .dm-solo-lettura-riga small,
+      .dm-section-modal .dm-section-dialog .dm-solo-lettura-riga small{flex:1 1 auto!important;min-width:0!important;font-size:11.5px!important;font-weight:600!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important;text-align:left!important}
       .dm-light-picker-dialog{grid-template-rows:auto auto minmax(0,1fr) auto!important}
       .dm-light-picker-dialog>[data-search]{box-sizing:border-box!important;width:auto!important;margin:14px 16px 8px!important}
       .dm-light-picker-list{min-height:0!important;overflow:auto!important;padding:8px 16px 16px!important}
