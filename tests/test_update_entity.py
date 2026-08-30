@@ -282,3 +282,16 @@ def test_si_puo_spegnere_e_lo_dicono_tutte_le_lingue() -> None:
         dati = json.loads(percorso.read_text(encoding="utf-8"))
         campi = dati["options"]["step"]["init"]["data"]
         assert "check_updates" in campi, f"{nome} non traduce l'opzione"
+
+def test_l_entita_ha_un_nome_da_mostrare() -> None:
+    """Senza un dispositivo l'entita' non aveva un nome da nessuna parte.
+
+    `_attr_name = None` dice «usa il nome del dispositivo», e il dispositivo
+    non c'era: la pagina Aggiornamenti ripiegava sull'entity_id — il dialogo
+    titolava «update.dashboardmodern_...» e la riga dell'elenco restava
+    grigia, senza nome.
+    """
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    assert "DeviceInfo(" in sorgente
+    assert "name=NAME" in sorgente
+    assert "sw_version=installed" in sorgente

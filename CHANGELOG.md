@@ -5,6 +5,27 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.11
+
+### Corretto
+
+- **Il velo d'avvio non si vede piu' due volte.** All'avvio Home Assistant
+  puo' staccare e riattaccare il pannello nel giro di un fotogramma: lo
+  smontaggio immediato buttava via la plancia intera e il rimontaggio la
+  ricostruiva da zero — velo, vuoto, velo di nuovo. Ora lo smontaggio aspetta
+  un attimo e si annulla se il pannello torna attaccato.
+
+- **L'ultimo sfarfallio all'apertura dei popup.** Su schermo tattile anche il
+  velo sfocato dietro la card entrava in dissolvenza, e ricomporre il fondale
+  sfumato a ogni fotogramma faceva vibrare lo sfondo: ora il velo c'e' o non
+  c'e', a dissolversi e' solo la card.
+
+- **L'entita' degli aggiornamenti ha un nome.** Senza un dispositivo la
+  pagina Aggiornamenti ripiegava sull'entity_id: il dialogo titolava
+  «update.dashboardmodern_...» e la riga dell'elenco restava grigia. Ora
+  l'entita' appartiene al dispositivo «DashboardModern v2» e si presenta
+  cosi'.
+
 ## 1.3.10
 
 ### Corretto

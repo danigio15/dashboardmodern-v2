@@ -4647,6 +4647,11 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
  * (osservazione giusta della review). */
 @media(pointer:coarse){
   :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{animation:dmWidgetPopupIn .22s ease-out}
+  /* E il velo sfocato dietro la card non si anima: ricomporre il fondale
+   * sfumato a ogni fotogramma della dissolvenza e' il lavoro che sul telefono
+   * faceva vibrare tutto lo sfondo. Il velo c'e' o non c'e'; a dissolversi
+   * e' solo la card, che e' piccola. */
+  #dm-widget-popup{animation:none}
 }
 @media(prefers-reduced-motion:reduce){
   :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{animation:none}

@@ -51,6 +51,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -330,6 +331,18 @@ class DashboardModernUpdate(
         self._installed = installed
         self._riavvio_richiesto = False
         self._attr_unique_id = f"{DOMAIN}_release"
+        # Senza un dispositivo l'entita' non ha un nome da nessuna parte —
+        # `_attr_name = None` dice «usa il nome del dispositivo» — e la pagina
+        # Aggiornamenti ripiegava sull'entity_id: il dialogo titolava
+        # «update.dashboardmodern_...» e la riga dell'elenco restava grigia.
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "dashboardmodern")},
+            name=NAME,
+            manufacturer="DashboardModern",
+            model=NAME,
+            sw_version=installed,
+            configuration_url=f"https://github.com/{REPOSITORY}",
+        )
 
     def _frase(self, italiano: str, inglese: str) -> str:
         """The system's language decides: HA does not translate these texts."""
