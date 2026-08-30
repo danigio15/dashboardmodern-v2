@@ -7,6 +7,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.3.11
 
+### Corretto (telecamere)
+
+- **Le telecamere del pannello chiedono davvero il flusso live.** Nel
+  documento ospitato il ponte verso Home Assistant fa da WebSocket, ma non
+  portava le costanti del WebSocket vero: il controllo «la socket e' aperta?»
+  confrontava 1 con niente, falliva sempre, e l'HLS si scartava prima ancora
+  di mandare la richiesta. Nessuna telecamera del pannello si svegliava — le
+  cam in cloud come Ring e Arlo restavano sulle istantanee vecchie, LED
+  spento (#232). Ora il ponte porta le costanti, il controllo passa, e la
+  richiesta di flusso parte.
+
 ### Aggiunto
 
 - **L'icona di un'apertura si sceglie dal catalogo.** Il campo era una

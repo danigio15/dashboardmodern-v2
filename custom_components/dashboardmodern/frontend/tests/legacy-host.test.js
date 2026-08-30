@@ -437,3 +437,21 @@ test("il destroy in ritardo non porta via i globali di un host sostituto", () =>
   assert.equal(HOST_KEY in hostWindow, false);
   assert.equal("__DASHBOARDMODERN_BRIDGE_WS__" in hostWindow, false);
 });
+
+/* Nel documento ospitato il BridgeSocket E' `window.WebSocket`, e il guscio
+ * confronta `ws.readyState !== WebSocket.OPEN` prima di chiedere un flusso
+ * HLS. Senza le costanti statiche il confronto era `1 !== undefined` —
+ * sempre vero — e l'HLS si scartava prima di mandare `camera/stream`:
+ * nessuna telecamera del pannello si svegliava (la Ring della #232 restava
+ * sulle istantanee vecchie, LED spento). */
+test("il BridgeSocket porta le costanti del WebSocket vero", () => {
+  const { hostWindow, host } = mount();
+  const Socket = hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
+  assert.equal(Socket.CONNECTING, 0);
+  assert.equal(Socket.OPEN, 1);
+  assert.equal(Socket.CLOSING, 2);
+  assert.equal(Socket.CLOSED, 3);
+  const socket = new Socket();
+  assert.equal(socket.readyState, Socket.OPEN);
+  host.destroy();
+});
