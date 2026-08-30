@@ -5,7 +5,7 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## 1.3.12
+## 1.4.0
 
 ### Nuovo
 
