@@ -41,7 +41,8 @@ const PAGES = Object.freeze([
     en: ["Windows", "Shutters · Curtains · Contact sensors"],
   },
   /* La pagina ospita aspirapolvere e tagliaerba insieme: il nome e il
-   * sottotitolo non nominano una specie sola, o mentirebbero all'altra. */
+   * sottotitolo non nominano una specie sola, o mentirebbero a quella che
+   * resta fuori. */
   {
     id: "page-robot",
     tint: ["100,116,139", "14,165,233"],

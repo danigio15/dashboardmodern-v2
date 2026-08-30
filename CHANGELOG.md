@@ -9,6 +9,54 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **Il ritratto delle persone diventa su misura.** Capelli (lisci, ricci,
+  calvo), barba con le sue fogge (nessuna, rasata, corta, lunga) e colori di
+  capelli e barba sono scelte separate che si combinano liberamente: dove il
+  render originale non esiste, il compositore tinge preservando le ombre,
+  trapianta la barba sui ricci e sintetizza rasata e lunga. Arrivano gli
+  anziani per genere con le cinque carnagioni, i biondi, il colore degli
+  occhi, gli occhiali (tondi, quadrati, da sole) e le collane, e un
+  guardaroba di 35 capi veri — con polo, camicia, l'abito premaman e la fila
+  «Colore vestito» per chi ne regge la tinta. Le facce salvate migrano da
+  sole allo schema nuovo.
+
+- **Il prezzo dell'energia puo' venire da un'entita' (#217).** Nella card
+  «Costo energia» il prezzo di acquisto ha il segmentato Numero | Entita':
+  chi compra a prezzo di borsa sceglie il suo sensore e sotto legge il
+  valore corrente, che si aggiorna da solo. Tutti i lettori — flussi,
+  Report, costo del ciclo — passano dalla stessa porta, dove abitano anche i
+  default di sempre.
+
+- **Il tagliaerba entra nella sezione Robot (#220).** Un'entita'
+  lawn_mower.* e' un robot come un vacuum.*: parla i suoi servizi, dice «Sta
+  tagliando» in verde e non offre i comandi che non ha mai avuto; la
+  batteria puo' venire da un sensore a parte, come molti la pubblicano.
+  Pagina e navigazione ora dicono «Robot».
+
+- **Le tessere della Home si fanno pillole (#224).** La preferenza «Tessere
+  compatte» (Mai / Auto / Sempre, nella scheda Widget) stringe la fascia in
+  pillole a due colonne con la tacca del colore di sezione: tutta la fascia
+  in un colpo d'occhio sul telefono, col tocco che apre il solito popup. Con
+  Auto succede solo sotto i 520px.
+
+- **La tessera «In evidenza» (#236).** Le entita' scelte a mano — il quadro
+  elettrico, l'armadio di rete, la pompa — arrivano in Home con riassunto in
+  didascalia e dettaglio a caselle; si configurano nella scheda Widget col
+  selettore vero, stanza facoltativa.
+
+- **I rilevatori di fumo si configurano da soli (#238).** I binary_sensor di
+  fumo entrano nel quadro avvisi anche se montati dopo il primo avvio, e la
+  pagina Sicurezza guadagna il blocco «Rilevatori di fumo» con l'allarme
+  rosso che pulsa. Le porte e le finestre scoperte dopo il primo avvio si
+  aggiungono da sole alle Aperture — rispettando quelle tolte a mano — e chi
+  non ha scelto un'icona ha quella giusta per la sua classe.
+
+- **Gli elettrodomestici si fanno trovare dal flusso (#214).** Nella modale
+  dell'elettrodomestico un suggerimento verde segnala chi ha gia' la potenza
+  mappata e nessun cerchio; nell'editor Carichi il bottone «Scegli da
+  Elettrodomestici» assegna un apparecchio gia' configurato senza
+  riconfigurarlo, e a carico pieno lo dice invece di troncare.
+
 - **Il popup dei widget e' il progetto approvato: tutte card, niente
   elenco.** Sotto l'analisi le letture non fanno piu' la lista di righe: le
   numeriche sono caselle sotto «Le misure» (glifo, valore grande,
