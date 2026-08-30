@@ -83,8 +83,12 @@ test("il foglio ha la C4 due volte: «sempre» ovunque, «auto» sotto i 520px",
   assert.match(compatta, /\.dm-tile-fondo\{display:none\}/);
   assert.match(compatta, /10%,var\(--card-bg,#fff\)\)/);
   assert.match(compatta, /width:5px;height:27px/);
-  // Niente alone animato ne' grana: la compatta e' piatta.
-  assert.match(compatta, /\.dm-tile-alone\{display:none\}/);
+  // Niente grana: la compatta e' piatta. L'alone pero' non sparisce —
+  // e' il respiro degli avvisi («un avviso che non si sa leggere si muove
+  // lo stesso», la prova delle animazioni lo pretende anche da telefono) —
+  // e nella pillola si fa velo aderente che continua a pulsare.
+  assert.match(compatta, /\.dm-tile-alone\{\n\s*inset:0;height:auto;border-radius:inherit/);
+  assert.doesNotMatch(compatta, /\.dm-tile-alone\{display:none\}/);
   assert.match(compatta, /\.dm-tile::before\{display:none\}/);
 });
 

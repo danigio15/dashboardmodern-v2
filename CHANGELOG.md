@@ -98,6 +98,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le pillole d'avviso respirano anche in compatta.** La modalita' compatta
+  spegneva l'alone dietro le tessere — ed era proprio l'alone il respiro
+  degli avvisi, quello che li fa muovere anche quando non hanno un disegno
+  loro. Nella pillola l'alone si fa velo aderente, appena colorato del
+  colore d'avviso, e continua a pulsare piano; le pillole senza avviso
+  restano piatte come da progetto.
+
 - **La riga «Ambiente» nella card del Clima si legge.** Il carattere della
   temperatura ambiente sotto lo slider era troppo piccolo: leggermente piu'
   grande, con gli estremi della scala che restano contorno.

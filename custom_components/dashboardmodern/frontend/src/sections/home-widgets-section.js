@@ -4971,8 +4971,8 @@ function regoleCompatteCon(radice) {
 /* Due colonne fitte: la compatta serve a far stare tutto sopra la piega. */
 ${radice} .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 /* La pillola: piatta, una sola ombra morbida e l'hairline — niente gradienti,
-   niente grana, niente alone. [data-acceso] c'e' su ogni tessera, e serve a
-   battere la veste colorata di quelle accese o aperte. */
+   niente grana. [data-acceso] c'e' su ogni tessera, e serve a battere la
+   veste colorata di quelle accese o aperte. */
 ${radice} .dm-tile,
 ${radice} .dm-tile[data-acceso],
 ${radice} .dm-tile[data-open]{
@@ -4983,7 +4983,15 @@ ${radice} .dm-tile[data-open]{
     inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 8%,transparent),
     0 10px 20px -16px rgba(15,23,42,.5)}
 ${radice} .dm-tile::before{display:none}
-${radice} .dm-tile .dm-tile-alone{display:none}
+/* L'alone non sparisce: e' il respiro degli avvisi — «un avviso che non si
+   sa leggere si muove lo stesso» — e spegnerlo qui lasciava le pillole
+   d'avviso immobili proprio sui telefoni, dove la compatta e' di casa.
+   Nella pillola si fa velo: aderisce al bordo, prende il colore d'avviso
+   appena accennato e continua a pulsare con dmTileRespiro. Per le pillole
+   senza avviso resta a opacita' zero com'e' sempre stato. */
+${radice} .dm-tile .dm-tile-alone{
+  inset:0;height:auto;border-radius:inherit;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
 /* La tacca d'accento: una semipillola di 4×21 fusa nel bordo sinistro, col
    colore della sezione. animation:none perche' ::after e' anche la lama
    dell'accensione, che nella pillola non ha posto. */
