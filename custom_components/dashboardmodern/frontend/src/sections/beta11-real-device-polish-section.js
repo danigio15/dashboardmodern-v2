@@ -193,9 +193,14 @@ function decorateAlertIconField() {
     input.addEventListener("input", decorateAlertIconField);
     input.addEventListener("change", decorateAlertIconField);
   }
+  /* Un menu solo. Il tasto legacy — la lente che apriva dmIconPicker, poi
+   * ridipinta 🎨 — restava accanto all'anteprima, e i due aprivano ciascuno
+   * il proprio selettore: due menu per la stessa icona. L'anteprima e' il
+   * menu; il tasto di prima si ritira, ma resta marcato cosi' un click
+   * arrivato prima di questa vestizione finisce comunque sul catalogo. */
   row.querySelectorAll(".dm-beta5-alert-icon-trigger").forEach((button) => {
     button.dataset.dmBeta11AlertPicker = "true";
-    button.textContent = "🎨";
+    button.hidden = true;
   });
   return true;
 }
@@ -239,10 +244,10 @@ function installStyles() {
     #ed-body .dm-beta11-room-row .ed-row-new{display:block!important;position:static!important;min-width:0!important;width:auto!important;max-width:100%!important;height:auto!important;min-height:1em!important;visibility:visible!important;opacity:1!important;color:var(--text,#0f172a)!important;font-size:16px!important;font-weight:850!important;line-height:1.25!important;text-align:left!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;clip:auto!important;clip-path:none!important;transform:none!important}
     #ed-body .dm-beta11-room-row>[data-dm-edit-kind="room"]{grid-column:3!important;grid-row:1!important}
     #ed-body .dm-beta11-room-row>.ed-del:last-child{grid-column:4!important;grid-row:1!important}
-    #ed-body .dm-beta11-alert-icon-row{display:grid!important;grid-template-columns:64px minmax(0,1fr) 52px!important;gap:10px!important;align-items:center!important;min-width:0!important;width:100%!important}
+    #ed-body .dm-beta11-alert-icon-row{display:grid!important;grid-template-columns:64px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;min-width:0!important;width:100%!important}
     #ed-body .dm-beta11-alert-preview{display:grid!important;place-items:center!important;width:64px!important;height:64px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--card-background-color,#fff)!important;font-size:32px!important;cursor:pointer!important}
     #ed-body .dm-beta11-alert-icon-row>#ed-avv-icon{min-width:0!important;width:100%!important;grid-column:2!important}
-    #ed-body .dm-beta11-alert-icon-row>.dm-beta5-alert-icon-trigger{grid-column:3!important;position:static!important;width:52px!important;height:52px!important;margin:0!important;transform:none!important}
+    #ed-body .dm-beta11-alert-icon-row>.dm-beta5-alert-icon-trigger{display:none!important}
     .dm-beta11-alert-dialog{width:min(720px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important;overflow:hidden!important}.dm-beta11-alert-search{padding:14px 16px 8px!important}.dm-beta11-alert-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;padding:8px 16px 18px!important;max-height:60vh!important;overflow:auto!important}.dm-beta11-alert-option{display:grid!important;grid-template-rows:48px auto!important;place-items:center!important;gap:7px!important;min-height:94px!important;padding:10px 7px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;cursor:pointer!important}.dm-beta11-alert-option[hidden]{display:none!important}.dm-beta11-alert-glyph{font-size:31px!important}.dm-beta11-alert-option b{font-size:11px!important;text-align:center!important}
     @media(max-width:560px){html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview[data-dm-beta11-ev-preview="true"]{grid-template-columns:92px minmax(0,1fr)!important;gap:9px!important;padding:10px!important}html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand,html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-leapmotor-mark{width:88px!important;max-width:88px!important;height:44px!important;max-height:44px!important}#ed-body .ed-row.dm-room-config-row.dm-beta11-room-row{grid-template-columns:56px minmax(0,1fr) 46px 46px!important;gap:8px!important;padding:11px 10px!important}.dm-beta11-alert-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
   `,

@@ -65,6 +65,21 @@ test("alerts get an expanded coherent visual picker without polling", async () =
   assert.doesNotMatch(source, /setInterval\s*\(/);
 });
 
+test("l'icona degli avvisi ha un menu solo: l'anteprima", async () => {
+  /* La riga dell'icona era arrivata ad avere due tasti-menu: l'anteprima che
+   * apre il catalogo, e accanto la vecchia lente legacy ridipinta 🎨, che
+   * apriva un selettore suo. Due menu per la stessa icona sono uno di troppo:
+   * il tasto di prima si ritira — resta marcato, cosi' un click arrivato
+   * prima della vestizione finisce comunque sul catalogo — e la riga ha due
+   * colonne, non tre. */
+  const source = await readFile(polishUrl, "utf8");
+  assert.match(source, /button\.hidden = true/);
+  assert.doesNotMatch(source, /button\.textContent = "🎨"/);
+  assert.match(source, /\.dm-beta11-alert-icon-row>\.dm-beta5-alert-icon-trigger\{display:none!important\}/);
+  assert.match(source, /dm-beta11-alert-icon-row\{display:grid!important;grid-template-columns:64px minmax\(0,1fr\)!important/);
+  assert.match(source, /button\.dataset\.dmBeta11AlertPicker = "true"/);
+});
+
 test("plain-text and typed editor fields never receive entity picker buttons", async () => {
   const source = await readFile(entityGuardUrl, "utf8");
   assert.match(source, /id\.startsWith\("ed-avv-"\)\) return id === "ed-avv-ent"/);
