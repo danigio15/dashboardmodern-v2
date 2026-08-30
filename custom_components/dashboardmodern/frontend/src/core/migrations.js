@@ -1,5 +1,5 @@
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
-import { ENERGY_SLOT_MAP } from "./energy-projection.js";
+import { COOLING_SLOT_MAP, ENERGY_SLOT_MAP } from "./energy-projection.js";
 import { normalizeRobots } from "./robot-model.js";
 import { normalizzaPrese } from "./prese-model.js";
 
@@ -123,6 +123,11 @@ export function migrateEnergy(input = {}) {
     battery: { ...(value.battery || {}) },
     metadata: { ...(value.metadata || {}) },
   };
+  /* Le temperature dell'inverter e la ventola (la scheda Temperature di
+   * Energia): un gruppo solo, fuori dagli impianti. Chi normalizza deve
+   * portarselo dietro, o il primo salvataggio lo dimentica. */
+  if (value.cooling && typeof value.cooling === "object" && !Array.isArray(value.cooling))
+    uscita.cooling = { ...value.cooling };
   const id = String(value.id ?? "").trim();
   if (id) uscita.id = id;
   const name = String(value.name ?? "").trim();
@@ -405,6 +410,27 @@ export function migrateState(input = {}, legacy = {}) {
       energy.metadata = { ...(energy.metadata || {}), energy_loads_migrated: true };
       changes.push(`legacy energy flow loads migrated (${loads.length})`);
     } else state.sections.energyLoads = normalizeEnergyLoads(state.sections.energyLoads);
+    /* Le temperature dell'inverter e la ventola mappate a mano dal tab
+     * Sostituzioni entrano nel modello, una volta sola: da adesso quegli
+     * alias li governa la proiezione, e senza semina il primo salvataggio
+     * li cancellerebbe a chi li aveva gia' collegati. */
+    if (!energy.metadata?.cooling_migrated) {
+      const overrides = {
+        ...(state.sections.entityOverrides || {}),
+        ...(legacy.entityOverrides || {}),
+      };
+      const semina = {};
+      for (const [path, slot] of Object.entries(COOLING_SLOT_MAP)) {
+        const campo = path.split(".")[1];
+        const entita = String(overrides[slot] || "").trim();
+        if (entita && !String(energy.cooling?.[campo] || "").trim()) semina[campo] = entita;
+      }
+      if (Object.keys(semina).length) {
+        energy.cooling = { ...(energy.cooling || {}), ...semina };
+        changes.push(`legacy cooling entities migrated (${Object.keys(semina).length})`);
+      }
+      energy.metadata = { ...(energy.metadata || {}), cooling_migrated: true };
+    }
   }
   return { state, changes };
 }

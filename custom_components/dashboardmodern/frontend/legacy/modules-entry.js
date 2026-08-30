@@ -88,6 +88,13 @@ const COPY_SOURCE = Object.freeze({
   activeRenderer: ["Renderer attivo", "Active renderer"],
   loadNameRequired: ["Inserisci il nome del carico", "Enter a load name"],
   energySaveFailed: ["Salvataggio Energia fallito", "Energy save failed"],
+  coolingTitle: ["Temperature e raffreddamento", "Temperatures & cooling"],
+  coolingHint: ["Sensori della scheda Temperature di Energia: inverter, batteria e ventola. Ogni campo si salva appena lo cambi.", "Sensors for the Energy Temperatures tab: inverter, battery and fan. Every field saves as soon as you change it."],
+  coolingAcTemp: ["Temperatura inverter AC", "Inverter AC temperature"],
+  coolingDcTemp: ["Temperatura inverter DC", "Inverter DC temperature"],
+  coolingBatTemp: ["Temperatura batteria", "Battery temperature"],
+  coolingFanPower: ["Potenza ventola", "Fan power"],
+  coolingFanSwitch: ["Interruttore ventola", "Fan switch"],
 });
 const t = (key) => {
   const entry = COPY_SOURCE[key];
@@ -248,6 +255,47 @@ function renderEnergyEditorTab(target) {
           bottone.addEventListener("click", () => applicaModalita(bottone.dataset.dmRateMode)),
         );
         applicaModalita(card.dataset.dmImportRateMode);
+        /* La scheda Temperature di Energia si collega da qui («manca la
+         * parte nel config per configurare le entita' di questa parte»):
+         * temperature dell'inverter e della batteria, potenza e
+         * interruttore della ventola. Il gruppo e' uno solo, fuori dagli
+         * impianti — la pagina che lo legge e' una — e ogni campo si salva
+         * appena cambia, come i contatori totali della maschera Flussi. */
+        const raffreddamento = globalThis.document.createElement("div");
+        raffreddamento.className = "ed-form dm-energy-cooling-card";
+        raffreddamento.dataset.energyCooling = "";
+        raffreddamento.innerHTML = `<div class="ed-sec-title">🌡️ ${t("coolingTitle")}</div><div class="ed-hint">${t("coolingHint")}</div>`;
+        const campiRaffreddamento = [
+          ["inverter_ac_temperature", t("coolingAcTemp"), "°C", "sensor.inverter_temp_ac"],
+          ["inverter_dc_temperature", t("coolingDcTemp"), "°C", "sensor.inverter_temp_dc"],
+          ["battery_temperature", t("coolingBatTemp"), "°C", "sensor.batteria_temp"],
+          ["fan_power", t("coolingFanPower"), "W", "sensor.ventola_potenza"],
+          ["fan_switch", t("coolingFanSwitch"), "", "switch.ventola_inverter"],
+        ];
+        const statiRaffreddamento = globalThis.STATES || {};
+        const modelloRaffreddamento = store.getSection("energy")?.cooling || {};
+        for (const [campo, etichetta, unita, esempio] of campiRaffreddamento) {
+          const slotCampo = globalThis.document.createElement("label");
+          slotCampo.className = "ed-slot";
+          slotCampo.innerHTML = `<span class="ed-slot-lbl">${etichetta}${unita ? ` <span class="ed-acc-n">${unita}</span>` : ""} <span class="ed-acc-n">${t("optional")}</span></span><span class="ed-hint">${t("entity")}: ${esempio}</span>`;
+          const valore = String(modelloRaffreddamento[campo] || "").trim();
+          const { field } = createEntityPickerField(globalThis.document, {
+            id: `dm-energy-cooling-${campo}`,
+            value: valore,
+            placeholder: esempio,
+            label: etichetta,
+            locale: getLocale(),
+            state: statiRaffreddamento[valore]?.state,
+            unit: unita,
+            onPick: (input) => globalThis.wzPickEntity?.(input),
+            /* Fuori dagli impianti: qualunque linguetta sia aperta, il
+             * campo scrive al primo livello del modello Energia. */
+            onChange: (nuovo) => persistEnergyField(store, "cooling", campo, nuovo, ""),
+          });
+          slotCampo.append(field);
+          raffreddamento.append(slotCampo);
+        }
+        settings.append(raffreddamento);
       },
       /* Ogni campo scrive dove scrivono gli altri.
        * La bozza presa all'apertura rimetteva a posto i valori che i campi

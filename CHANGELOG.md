@@ -31,6 +31,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   «Colore vestito» per chi ne regge la tinta. Le facce salvate migrano da
   sole allo schema nuovo.
 
+- **Le temperature dell'inverter e la ventola si configurano dalle
+  impostazioni di Energia.** La scheda Temperature (inverter AC/DC, batteria,
+  ventola) restava «In attesa...» perche' nessuna maschera sapeva collegare le
+  sue entita'. In Energia → Impostazioni arriva il riquadro «Temperature e
+  raffreddamento» con i cinque campi — le tre temperature, la potenza e
+  l'interruttore della ventola — e ogni campo si salva appena cambia. Chi le
+  aveva gia' mappate a mano dal tab Sostituzioni se le ritrova compilate.
+
 - **Il prezzo dell'energia puo' venire da un'entita' (#217).** Nella card
   «Costo energia» il prezzo di acquisto ha il segmentato Numero | Entita':
   chi compra a prezzo di borsa sceglie il suo sensore e sotto legge il
