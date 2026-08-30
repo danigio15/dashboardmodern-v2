@@ -186,6 +186,20 @@ function inferredPowerEntity(device) {
   }) || "";
 }
 
+/* Se accanto al select «Carico energia» va acceso il suggerimento.
+ *
+ * Un elettrodomestico con la potenza mappata è esattamente quello che un
+ * cerchio del flusso sa sommare: se non è ancora dentro nessun carico, vale la
+ * pena dirlo lì dove si sceglie. Appena un gruppo è scelto il suggerimento non
+ * ha più niente da suggerire, e sparisce. */
+export function flowGroupSuggested(device = {}) {
+  if (clean(device?.metadata?.beta27_subload_group)) return false;
+  return Boolean(
+    clean(device?.power_entity || device?.power || device?.power_sensor) ||
+      inferredPowerEntity(device),
+  );
+}
+
 function cumulativeEntity(value) {
   const entity = clean(value);
   if (!entity) return false;
@@ -329,7 +343,7 @@ export function openApplianceEditor(index) {
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
         <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><input type="hidden" name="icon" value="${esc(visual)}"><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="canonical-picker" aria-hidden="false"></span><button type="button" class="ed-input dm-appliance-type-trigger" data-type-trigger aria-haspopup="listbox"></button></span><small>${t("Usa lo stesso catalogo e la stessa icona azzurra della prima configurazione.", "Uses the same catalog and blue icon as the first configuration.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
-        <label class="ed-slot"><span class="ed-slot-lbl">${t("Carico energia", "Energy load")}</span><select class="ed-input" name="flow_group" data-dm-appliance-flow-group>${flowLoadOptions(device.metadata?.beta27_subload_group)}</select><small>${t("Il cerchio del flusso in cui rientra. Il suo valore diventa la somma dei dispositivi assegnati, e il popup del cerchio lo elenca: non serve riconfigurarlo nei Carichi.", "The flow circle it belongs to. That circle becomes the total of the appliances assigned to it and its popup lists them, with nothing to configure again under Loads.")}</small></label>
+        <label class="ed-slot"><span class="ed-slot-lbl">${t("Carico energia", "Energy load")}</span><select class="ed-input" name="flow_group" data-dm-appliance-flow-group>${flowLoadOptions(device.metadata?.beta27_subload_group)}</select><small class="dm-appliance-flow-suggestion" data-dm-flow-suggestion${flowGroupSuggested(device) ? "" : " hidden"}>✨ ${t("Suggerito: ha una potenza mappata", "Suggested: it has a mapped power sensor")}</small><small>${t("Il cerchio del flusso in cui rientra. Il suo valore diventa la somma dei dispositivi assegnati, e il popup del cerchio lo elenca: non serve riconfigurarlo nei Carichi.", "The flow circle it belongs to. That circle becomes the total of the appliances assigned to it and its popup lists them, with nothing to configure again under Loads.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? device.metadata?.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
       </div>
       <section class="dm-appliance-entity-grid">
@@ -354,6 +368,14 @@ export function openApplianceEditor(index) {
       onSelect: (key) => updateEditType(modal, key),
     });
   });
+  /* Il suggerimento vive e muore col select: appena un gruppo è scelto non c'è
+   * più niente da suggerire; tolto il gruppo, se la potenza c'è, riappare. */
+  const flowSelect = modal.querySelector("[data-dm-appliance-flow-group]");
+  const flowSuggestion = modal.querySelector("[data-dm-flow-suggestion]");
+  if (flowSelect && flowSuggestion)
+    flowSelect.addEventListener("change", () => {
+      flowSuggestion.hidden = Boolean(clean(flowSelect.value)) || !powerInitial;
+    });
   modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
   modal.querySelectorAll("[data-pick]").forEach((button) => button.addEventListener("click", () => root.wzPickEntity?.(form.elements[button.dataset.pick])));
   modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
@@ -442,6 +464,8 @@ function installStyles() {
     .dm-appliance-type-trigger{display:grid!important;grid-template-columns:38px minmax(0,1fr) 22px!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:58px!important;padding:8px 12px!important;text-align:left!important;cursor:pointer!important;color:var(--text,#0f172a)!important;background:var(--card-background-color,#fff)!important}
     .dm-appliance-type-trigger-icon{display:grid!important;place-items:center!important;width:36px!important;height:36px!important;color:#0ea5e9!important}.dm-appliance-type-trigger-icon svg{width:30px!important;height:30px!important}.dm-appliance-type-trigger-label{min-width:0!important;font-weight:750!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-appliance-type-chevron{font-size:20px!important;justify-self:end!important}
     .dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:hidden!important}
+    .dm-appliance-flow-suggestion{display:block!important;margin-top:3px!important;color:#16a34a!important;font-weight:750!important}
+    .dm-appliance-flow-suggestion[hidden]{display:none!important}
     .dm-appliance-card-fields{margin-top:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 45%,transparent)!important;overflow:hidden!important}
     .dm-appliance-card-fields>summary{padding:13px 16px!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important;list-style:none!important;user-select:none!important}
     .dm-appliance-card-fields>summary::-webkit-details-marker{display:none!important}

@@ -91,7 +91,10 @@ function subloadOf(parentId) {
   return (item) => clean(item?.metadata?.beta27_subload_group) === clean(parentId);
 }
 
-function normalizeChild(child = {}, index = 0, source = "load") {
+/* Esportata perché l'editor dei carichi, quando un elettrodomestico viene
+ * scelto dal suo pulsante, deve mettere in lista la stessa riga che una
+ * rilettura del modello produrrebbe: una forma sola, scritta qui. */
+export function normalizeChild(child = {}, index = 0, source = "load") {
   return {
     source,
     id: clean(child.id) || `${slug(child.name) || "sottocarico"}-${index + 1}`,

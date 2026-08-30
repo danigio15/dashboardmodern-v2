@@ -12,6 +12,7 @@ import {
   loadsConfigModel,
   loadsConfigToSections,
   moveLoad,
+  normalizeChild,
 } from "../src/core/energy-loads-config.js";
 
 /* An installation configured the old way: five fixed circles in `cd_flow_nodes`
@@ -242,6 +243,46 @@ test("a circle owns its group explicitly, a new one groups under itself", () => 
   );
   const { loads } = loadsConfigToSections(model, []);
   assert.equal(loads[0].metadata.flow_group, "cucina");
+});
+
+test("a picked appliance normalizes to the same row a model re-read would produce", () => {
+  // L'editor dei carichi, quando un elettrodomestico viene scelto dal pulsante
+  // «Scegli da Elettrodomestici», mette in lista questa stessa forma: la riga
+  // aggiunta a mano e quella riletta dal modello devono essere identiche.
+  const child = normalizeChild(
+    {
+      id: "appl-forno",
+      name: "Forno",
+      icon: "forno",
+      power_entity: "sensor.forno_power",
+      total_energy_entity: "sensor.forno_total",
+      visual_key: "forno",
+      metadata: { beta27_subload_group: "cucina" },
+    },
+    0,
+    "appliance",
+  );
+  assert.equal(child.source, "appliance");
+  assert.equal(child.id, "appl-forno");
+  assert.equal(child.power, "sensor.forno_power");
+  assert.equal(child.total, "sensor.forno_total");
+  assert.equal(child.visual, "forno");
+
+  const model = loadsConfigModel({
+    loads: [{ id: "cucina", name: "Cucina", order: 0, power_entity: "sensor.cucina" }],
+    appliances: [
+      {
+        id: "appl-forno",
+        name: "Forno",
+        icon: "forno",
+        power_entity: "sensor.forno_power",
+        total_energy_entity: "sensor.forno_total",
+        visual_key: "forno",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+    ],
+  });
+  assert.deepEqual(model[0].children, [child]);
 });
 
 test("each card says what it is bound to and what is still missing", () => {

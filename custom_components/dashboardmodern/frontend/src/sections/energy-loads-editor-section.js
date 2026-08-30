@@ -28,6 +28,7 @@ import {
   loadsConfigModel,
   loadsConfigToSections,
   moveLoad,
+  normalizeChild,
 } from "../core/energy-loads-config.js";
 import {
   activeLocale,
@@ -134,6 +135,74 @@ async function persist(panel) {
   state.model = null;
   root.dmRefreshEnergyFlows?.();
   root.render?.();
+  render(panel);
+  return true;
+}
+
+/* Gli elettrodomestici della loro sezione, letti da dove stanno.
+ *
+ * Non è una copia dei carichi: sono i dispositivi configurati sotto
+ * Elettrodomestici, e questo editor li tocca in un punto solo — il metadato
+ * che li mette dentro un cerchio. Tutto il resto resta di là. */
+function elettrodomestici() {
+  const stored = section("appliances", null);
+  if (Array.isArray(stored)) return stored.slice();
+  const legacy = readJson("cd_appliances", []);
+  return Array.isArray(legacy) ? legacy : [];
+}
+
+/* Quelli che un carico può ancora adottare: configurati, con un nome, e non
+ * già dentro un cerchio. L'indice è quello della lista salvata, perché la
+ * scelta riscrive esattamente quella riga. */
+function elettrodomesticiLiberi() {
+  return elettrodomestici()
+    .map((device, index) => ({ device, index }))
+    .filter(
+      ({ device }) =>
+        device && clean(device.name) && !clean(device.metadata?.beta27_subload_group),
+    );
+}
+
+/* Se questo carico sta nell'impianto principale. Gli elettrodomestici non
+ * hanno un campo impianto: appartengono tutti alla prima casa, e proporli per
+ * un cerchio di un'altra li farebbe contare due volte dalla parte sbagliata. */
+function caricoDelPrimoImpianto(load) {
+  const suo = clean(load?.plant);
+  return !suo || suo === PRIMO_IMPIANTO;
+}
+
+/* La scelta dal pulsante «Scegli da Elettrodomestici»: si scrive il metadato
+ * sull'elettrodomestico e si salva la SUA sezione, per lo stesso percorso che
+ * usa la modale dell'editor Elettrodomestici. Il carico non si sporca: la riga
+ * che compare qui sotto è già persistita di là. */
+async function assegnaElettrodomestico(panel, load, index) {
+  if (load.children.length >= MAX_SUBLOADS) return false;
+  const list = elettrodomestici();
+  const device = list[index];
+  if (!device) return false;
+  const group = clean(load.group) || clean(load.id);
+  list[index] = {
+    ...device,
+    metadata: { ...(device.metadata || {}), beta27_subload_group: group },
+  };
+  const store = dashboardStore();
+  if (store?.replaceSection) await store.replaceSection("appliances", list);
+  else {
+    writeJsonIfChanged("cd_appliances", list);
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  }
+  root.renderAppliances?.();
+  root.renderApplianceSection?.(true);
+  root.dmRefreshEnergyFlows?.();
+  state.picking = "";
+  if (state.dirty) {
+    /* Un modello con modifiche in mano non si butta: la riga nuova si aggiunge
+     * dove una rilettura l'avrebbe messa, nella stessa forma. */
+    load.children.push(normalizeChild(list[index], load.children.length, "appliance"));
+  } else {
+    state.model = null;
+  }
   render(panel);
   return true;
 }
@@ -552,7 +621,98 @@ function loadCard(panel, load, index, total) {
     state.editing = child.id;
     markDirty(panel);
   });
-  children.append(addChild);
+  const addRow = element("div", "dm-loads-add-row");
+  addRow.append(addChild);
+
+  if (!caricoDelPrimoImpianto(load)) {
+    /* Un cerchio di un altro impianto non ha elettrodomestici da scegliere, e
+     * un pulsante muto sembrerebbe rotto: al suo posto c'è il perché. */
+    children.append(addRow);
+    children.append(
+      element(
+        "div",
+        "ed-hint dm-loads-pick-foreign",
+        t(
+          "Gli elettrodomestici non hanno un campo impianto: si possono scegliere solo per i carichi dell'impianto principale.",
+          "Appliances carry no plant field: they can only be picked for the loads of the main plant.",
+        ),
+      ),
+    );
+    body.append(children);
+    card.append(body);
+    return card;
+  }
+
+  const pieno = load.children.length >= MAX_SUBLOADS;
+  const scegli = element(
+    "button",
+    "ed-btn-add",
+    pieno
+      ? t(
+          `Carico pieno: massimo ${MAX_SUBLOADS} dispositivi`,
+          `Load full: at most ${MAX_SUBLOADS} appliances`,
+        )
+      : `＋ ${t("Scegli da Elettrodomestici", "Pick from Appliances")}`,
+  );
+  scegli.type = "button";
+  scegli.dataset.dmSubloadPick = "true";
+  /* Il tetto non si tronca in silenzio: a carico pieno il pulsante lo dice. */
+  scegli.disabled = pieno;
+  scegli.addEventListener("click", () => {
+    state.picking = state.picking === load.id ? "" : load.id;
+    render(panel);
+  });
+  addRow.append(scegli);
+  children.append(addRow);
+
+  if (state.picking === load.id && !pieno) {
+    const picker = element("div", "ed-list dm-loads-appliance-picker");
+    picker.dataset.dmAppliancePicker = "true";
+    picker.append(
+      element(
+        "div",
+        "ed-hint",
+        t(
+          "La scelta assegna l'elettrodomestico a questo carico: resta configurato nella sua sezione, e qui compare come riga «da Elettrodomestici».",
+          "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.",
+        ),
+      ),
+    );
+    const liberi = elettrodomesticiLiberi();
+    if (!liberi.length)
+      picker.append(
+        element(
+          "div",
+          "ed-empty",
+          t(
+            "Nessun elettrodomestico libero: sono già tutti dentro un carico, o non ce n'è di configurati.",
+            "No free appliance: they are all inside a load already, or none is configured.",
+          ),
+        ),
+      );
+    for (const { device, index: at } of liberi) {
+      const choice = element("button", "ed-row dm-loads-appliance-choice");
+      choice.type = "button";
+      choice.dataset.dmApplianceChoice = String(at);
+      const visual = clean(device.visual_key || device.device_type || device.icon);
+      const ritratto = visual ? applianceArtwork(visual, 26) : "";
+      if (ritratto) {
+        const segno = element("span", "dm-loads-subload-art");
+        segno.innerHTML = ritratto;
+        choice.append(segno, element("span", "", clean(device.name)));
+      } else {
+        choice.textContent = `🔌 ${clean(device.name)}`;
+      }
+      choice.addEventListener("click", () => {
+        void assegnaElettrodomestico(panel, load, at).catch((error) => {
+          console.error("[DashboardModern] unable to assign the appliance", error);
+        });
+      });
+      picker.append(choice);
+    }
+    children.append(picker);
+  }
+
   body.append(children);
 
   card.append(body);
@@ -717,6 +877,13 @@ function installStyles() {
     .dm-loads-subload-art svg{display:block;width:100%;height:100%}
     .dm-loads-source-tag{flex:none;padding:4px 10px;border-radius:999px;background:var(--divider-color,#e2e8f0);color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:.3px}
     .dm-loads-subload-form{margin:0 0 10px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
+    /* I due modi di aggiungere stanno fianco a fianco, e vanno a capo dove il
+       telefono non ha posto per tutti e due. */
+    .dm-loads-add-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .dm-loads-add-row .ed-btn-add[disabled]{opacity:.55;cursor:default}
+    .dm-loads-appliance-picker{margin-top:8px;padding:10px;border:1px solid var(--divider-color,#e2e8f0);border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
+    .dm-loads-appliance-choice{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;color:var(--text,#0f172a)}
+    .dm-loads-pick-foreign{margin-top:6px}
     /* The phone is exactly where the three squeezed fields were unreadable, so
        there is no narrow variant that puts them back side by side. */
     @media(max-width:640px){.dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}.dm-loads-icon-row{grid-template-columns:minmax(0,1fr) 50px!important}.dm-loads-icon-btn{width:50px!important}}
