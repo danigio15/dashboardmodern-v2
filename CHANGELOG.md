@@ -5,6 +5,21 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Corretto
+
+- **La testata di Home si ripara da sola, col meteo vestito.** Il guscio la
+  nasconde con uno stile inline quando si apre un'altra sezione e la
+  rimostrava SOLO al clic sulla linguetta Home: qualunque strada riportasse
+  alla Home senza quel clic la lasciava invisibile per sempre — «scompare la
+  scritta in alto, si vede solo il meteo». E se la classe della fascia si
+  perdeva col meteo gia' dentro, il meteo tornava alla taglia da card intera
+  e sfondava i margini. Ora chiunque passi ripara: a ogni giro di stati, a
+  fine scroll, al cambio di visibilita' — e la classe della fascia si
+  riafferma sempre. Sulle altre sezioni la testata nascosta resta nascosta,
+  come deve.
+
 ## 1.4.0
 
 ### Nuovo
