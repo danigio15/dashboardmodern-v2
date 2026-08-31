@@ -165,6 +165,11 @@ function travasa(list, model) {
     const potenza = nodo.querySelector(".dm-subload-power");
     if (potenza) potenza.textContent = item.powerText;
     const giorno = nodo.querySelector(".dm-subload-daily");
+    /* La riga dei kWh di oggi c'e' solo se il dato c'e'. Quando compare o
+     * sparisce cambia la FORMA della carta, non un valore: travasare
+     * lascerebbe una carta senza riga che non la ottiene piu', o una riga con
+     * dentro il numero di ieri. Si torna a rifare, che qui capita di rado. */
+    if (Boolean(giorno) !== Boolean(item.dailyText)) return false;
     if (giorno && item.dailyText) giorno.textContent = `${item.dailyText} ${t("oggi", "today")}`;
     const barra = nodo.querySelector(".dm-subload-meter");
     const riempimento = nodo.querySelector(".dm-subload-meter-fill");
@@ -274,11 +279,23 @@ export function renderSubloadPopup(groupId = state.group) {
 
   /* Stessa forma, valori nuovi: si travasa invece di rifare (il popup
    * sfarfallava a ogni giro di stati). La firma sono gli apparecchi
-   * nell'ordine in cui stanno adesso. */
-  const firma = `${model.id}§${model.items
+   * nell'ordine in cui stanno adesso, piu' l'identita' del cerchio.
+   *
+   * L'identita' ci sta dentro perche' il travaso non tocca la testata: se un
+   * cerchio del flusso viene rinominato, ricolorato o cambia icona mentre il
+   * popup e' aperto, gli apparecchi restano gli stessi e la finestra avrebbe
+   * continuato a portare il nome vecchio finche' non la si richiudeva. Un
+   * cambio di nome capita una volta ogni tanto: rifare la lista li' non costa
+   * niente, ed e' quello che vuole chi ha appena rinominato.
+   *
+   * E c'e' dentro anche il gruppo, non solo il carico: le viste per periodo
+   * sono lo stesso cerchio con un suffisso (`cucina`, `cucina_month`) e hanno
+   * gli stessi apparecchi, quindi passando da ISTANTANEO a MESE la testata
+   * sarebbe rimasta a dire ISTANTANEO. */
+  const firma = `${groupId}§${model.id}§${model.items
     .map((item) => item.id)
     .sort()
-    .join(",")}`;
+    .join(",")}§${model.name}§${model.icon}§${model.color}`;
   if (list.dataset.dmSubloadFirma === firma && travasa(list, model)) return true;
 
   writeTitle(model, groupId);

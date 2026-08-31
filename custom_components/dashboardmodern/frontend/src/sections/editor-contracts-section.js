@@ -483,7 +483,17 @@ function installStyles() {
       /* Canonical geometry for every section editor. */
       .dm-section-modal{position:fixed!important;inset:0!important;z-index:100040!important;display:grid!important;place-items:center!important;padding:16px!important;background:rgba(15,23,42,.58)!important;backdrop-filter:blur(5px)!important}
       .dm-section-modal .dm-section-dialog{box-sizing:border-box!important;width:min(880px,calc(100vw - 24px))!important;height:min(760px,calc(100dvh - 32px))!important;max-height:min(760px,calc(100dvh - 32px))!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:26px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--text,#0f172a)!important;box-shadow:0 28px 80px rgba(15,23,42,.3)!important}
-      .dm-section-modal .dm-section-dialog>header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:18px 22px!important;border-bottom:1px solid var(--divider-color,#e2e8f0)!important;font-size:18px!important}
+      .dm-section-modal .dm-section-dialog>header{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:18px 22px!important;border-bottom:1px solid var(--divider-color,#e2e8f0)!important;font-size:18px!important}
+      /* Il titolo sta su una riga, la chiusura non si stringe.
+         La pillola scritta e' piu' larga del tondino muto che ha sostituito, e
+         da telefono non ci stava piu' accanto ai titoli lunghi: il foglio
+         vendorizzato manda a capo tutte le intestazioni (flex-wrap wrap), e
+         quella dell'elettrodomestico si spezzava in due righe — alta 117px
+         contro gli 84px di quello dell'avviso, cioe' la stessa veste che
+         tornava a essere due vesti. Qui la riga non si spezza, il titolo si
+         accorcia coi puntini e l'altezza e' una sola per tutte le finestre. */
+      .dm-section-modal .dm-section-dialog>header>*:not([data-close]){min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+      .dm-section-modal .dm-section-dialog>header [data-close]{flex:none!important}
       /* Una chiusura sola per tutta la plancia: la pillola scritta «✕ CHIUDI»,
          la stessa della finestra dei widget. I tondini muti erano di sette
          misure diverse — «rendi coerenti le x chiudi ovunque, non solo x» — e

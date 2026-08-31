@@ -280,7 +280,9 @@ function montaEditor() {
     const catalogo = evento.target?.closest?.(".dm-termico-icona-btn");
     if (catalogo) {
       const campo = catalogo.parentElement?.querySelector(".dm-termico-icona");
-      if (campo) openIconPicker(campo, "action");
+      /* Anche il pannello dello Stato termico stampa `voce.icon` come testo:
+       * qui si scrive il segno, non il nome del disegno. */
+      if (campo) openIconPicker(campo, "action", { glifo: true });
       return;
     }
     const lente = evento.target?.closest?.(".dm-entity-picker");

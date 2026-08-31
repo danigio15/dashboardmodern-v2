@@ -322,7 +322,11 @@ function creaCarta() {
     const catalogo = evento.target?.closest?.(".dm-lav-icona-btn");
     if (catalogo) {
       const campo = catalogo.parentElement?.querySelector(".dm-lav-icona");
-      if (campo) openIconPicker(campo, "action");
+      /* Il segno, non il nome del disegno: il tasto del programma stampa
+       * `voce.icon` come testo nudo, e un «mdi:washing-machine» ci si
+       * leggerebbe per esteso — lo stesso guaio delle porte. La scelta resta
+       * quella del catalogo di casa. */
+      if (campo) openIconPicker(campo, "action", { glifo: true });
       return;
     }
     if (evento.target?.closest?.(".dm-lav-aggiungi"))

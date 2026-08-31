@@ -72,9 +72,22 @@ test("una presa bloccata si vede, si legge, e non si comanda", async ({ page }, 
   await expect(frigo.locator('[data-kind="bloccata"]')).toBeVisible();
   await expect(frigo.locator("[data-dm-lucip-state]")).not.toBeEmpty();
 
-  /* E adesso si preme davvero. */
+  /* E adesso si preme davvero. Non succede niente di elettrico: si apre la
+   * finestra che racconta la presa — «puoi mettere un popup al click che apre
+   * piu' informazioni, ma mai accendere o spegnere» — e li' dentro, al posto
+   * del tasto, c'e' il lucchetto. */
   await frigo.locator("[data-dm-lucip-toggle]").click({ force: true });
   await page.waitForTimeout(250);
+  expect(await page.evaluate(() => window.__comandi)).toEqual([]);
+
+  const scheda = page.locator("#dm-light-control-modal");
+  await expect(scheda).toBeVisible({ timeout: 10000 });
+  await expect(scheda.locator(".dm-lightctl-bloccata")).toBeVisible();
+  await expect(scheda.locator("[data-dm-light-power]")).toHaveCount(0);
+  /* Chiusa la finestra si torna alla pagina: senza, il velo del foglio
+   * coprirebbe le carte e il resto della prova premerebbe il vuoto. */
+  await scheda.locator("[data-close]").click();
+  await expect(scheda).toHaveCount(0);
   expect(await page.evaluate(() => window.__comandi)).toEqual([]);
 
   /* La presa accanto, che nessuno ha bloccato, risponde: la prova sopra

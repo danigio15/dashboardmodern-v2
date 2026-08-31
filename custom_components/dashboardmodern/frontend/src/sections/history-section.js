@@ -474,6 +474,15 @@ export async function openHistory(event, entityId, name, hours = 24) {
   if (nonMappata) {
     const modale = doc?.getElementById("history-modal");
     if (!modale) return false;
+    /* Anche la voce non mappata prende il turno.
+     *
+     * Senza queste due righe, una richiesta partita per l'entita' di prima
+     * passava ancora il suo controllo di generazione e, arrivando dopo,
+     * scriveva il proprio grafico sopra la spiegazione; e i tasti delle ore
+     * continuavano a riaprire quell'altra entita'. */
+    state.currentEntity = entity;
+    state.currentName = clean(name) || entity;
+    state.generation += 1;
     modale.classList.add("show");
     modale.dataset.dmHistoryEntity = entity;
     modale.dataset.dmHistoryLoaded = "unmapped";

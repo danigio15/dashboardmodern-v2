@@ -13,7 +13,20 @@ import {
 } from "../core/light-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { roomOrderRank } from "../core/room-overview.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, scriviSeCambia, section, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  entitaSoloLettura,
+  installStyle,
+  readJson,
+  root,
+  scriviSeCambia,
+  section,
+  siComanda,
+  t,
+} from "./shared.js";
 
 /* Single paint owner for the Gestione Luci popup and for the controls of one
  * light.
@@ -128,6 +141,8 @@ function lightViews() {
   const names = readJson("cd_luci", {});
   const states = allStates();
   const allowed = popupFilter();
+  /* La lista delle bloccate si legge una volta per tutta la passata. */
+  const bloccate = entitaSoloLettura();
   const seen = new Set();
   const entries = [];
   for (const group of configuredLightGroups()) {
@@ -151,6 +166,11 @@ function lightViews() {
         state: states[id],
         room,
         floor: clean(root.cdRoomFloorOf?.(room)),
+        /* Il divieto viaggia col modello, sempre. `lightView` da' per buono
+         * che si comandi, e senza questa riga la finestra dei controlli
+         * disegnava il tasto e `lightCommand` — che rifiuta guardando proprio
+         * qui — non aveva niente da rifiutare. */
+        comandabile: siComanda(id, bloccate),
       }),
     );
 }
@@ -414,7 +434,13 @@ function viewOf(id) {
   const entity = clean(id);
   if (!entity) return null;
   const names = readJson("cd_luci", {});
-  return lightView(entity, { name: names[entity], state: allStates()[entity] });
+  /* Anche qui: e' da questa vista che la finestra dei controlli disegna il
+   * tasto e da qui che `lightCommand` decide se lasciar partire il comando. */
+  return lightView(entity, {
+    name: names[entity],
+    state: allStates()[entity],
+    comandabile: siComanda(entity),
+  });
 }
 
 function send(view, change) {
