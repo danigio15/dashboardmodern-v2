@@ -15,6 +15,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   si renderizza bene». Ora un tasto arriva al massimo a 220 pixel e la fila
   si centra nel ripiano, senza buchi fantasma ai lati.
 
+- **Il popup del Clima rapido veste le stanze come si deve.** Tre difetti in
+  una finestra: le card senza tetto diventavano quadrati da un quarto di
+  schermo, il disegno di casa usciva piccolo e sbiadito dal grigio dello
+  spento, e l'unita' senza stanza configurata cadeva sulla fiamma gigante di
+  sistema — «Bagno e Camera da Letto non sono congrue». Ora le stanze sono
+  pastiglie con un tetto di 150 pixel, il disegno e' a 46 e resta leggibile
+  anche da spento (lo stato lo dice il colore, non la nebbia), la stanza si
+  trova anche per NOME quando il legame non e' configurato, e chi resta
+  orfano prende il termosifone del catalogo.
+
 - **Il cancello non e' piu' una sbarra da cantiere.** Il ripiego a emoji
   della voce Cancello — nelle azioni come negli avvisi — era 🚧, la sbarra
   dei lavori stradali. Di norma esce il disegno di casa; quando tocca

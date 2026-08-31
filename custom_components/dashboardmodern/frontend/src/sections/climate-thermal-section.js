@@ -461,7 +461,8 @@ function groupedMarkup(units, labels) {
         .sort((sinistra, destra) => stanza(sinistra.room) - stanza(destra.room))
         .map((unit) => cardMarkup(unit, labels))
         .join("");
-      const heading = floor && keys.length > 1 ? `<div class="dm-cl-floor">🏢 ${esc(floor)}</div>` : "";
+      const heading =
+        floor && keys.length > 1 ? `<div class="dm-cl-floor">🏢 ${esc(floor)}</div>` : "";
       return `${heading}${cards}`;
     })
     .join("");
@@ -485,7 +486,9 @@ function signature(units) {
 function syncGrid(grid, units, labels) {
   const current = signature(units);
   if (grid._dmClimaSig === current) return false;
-  grid.innerHTML = units.length ? groupedMarkup(units, labels) : emptyMarkup(grid.dataset.dmClZone, labels);
+  grid.innerHTML = units.length
+    ? groupedMarkup(units, labels)
+    : emptyMarkup(grid.dataset.dmClZone, labels);
   grid._dmClimaSig = current;
   return true;
 }
@@ -512,7 +515,8 @@ function paintCard(card, unit, reading, labels) {
   }
 
   const ambient = card.querySelector("[data-dm-cl-ambient]");
-  if (ambient) ambient.textContent = reading.ambient === null ? "--°" : `${reading.ambient.toFixed(1)}°`;
+  if (ambient)
+    ambient.textContent = reading.ambient === null ? "--°" : `${reading.ambient.toFixed(1)}°`;
 
   const caption = card.querySelector("[data-dm-cl-mode-cap]");
   if (caption) caption.textContent = modeCaption(reading, labels);
@@ -591,7 +595,9 @@ function paintSummary(shell, units, states, labels) {
     button.disabled = wantsOn ? running === inZone.length : running === 0;
   }
   for (const badge of shell.querySelectorAll("[data-dm-cl-count]")) {
-    badge.textContent = String(units.filter((unit) => unit.zone === badge.dataset.dmClCount).length);
+    badge.textContent = String(
+      units.filter((unit) => unit.zone === badge.dataset.dmClCount).length,
+    );
   }
   paintZoneTabs(shell, units);
   shell.dataset.dmClZone = zone;
@@ -776,23 +782,51 @@ function unitaDelModo(modo) {
   });
 }
 
-/* Il disegno di casa della stanza di un'unita', se la stanza ha un'icona. */
-function disegnoDellaStanza(riferimento) {
-  const chiave = clean(riferimento);
-  if (!chiave) return "";
+/* Il disegno di casa della stanza di un'unita', se la stanza ha un'icona.
+ *
+ * La stanza si cerca prima dal riferimento dell'unita', e poi — dal campo:
+ * «Bagno e Camera da Letto non sono congrue, esce la fiamma» — dal NOME
+ * dell'unita': chi chiama l'unita' come la stanza non ha configurato il
+ * legame, ma la stanza e' evidentemente quella. */
+function disegnoDellaStanza(riferimento, nomeUnita) {
   let stanze = [];
   try {
     stanze = root.cdRoomList?.() || [];
   } catch (_error) {
     stanze = [];
   }
-  const stanza = stanze.find(
-    (voce) => clean(voce?.id) === chiave || clean(voce?.name) === chiave,
-  );
+  const cerca = (chiave) =>
+    chiave
+      ? stanze.find(
+          (voce) =>
+            clean(voce?.id) === chiave || clean(voce?.name).toLowerCase() === chiave.toLowerCase(),
+        )
+      : null;
+  const stanza = cerca(clean(riferimento)) || cerca(clean(nomeUnita));
   const icona = clean(stanza?.icon);
   if (!icona) return "";
   try {
-    return root.DashboardModernIconEngine?.markup?.("room", icona, { size: 34 }) || "";
+    return root.DashboardModernIconEngine?.markup?.("room", icona, { size: 46 }) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+/* Il ripiego quando la stanza non c'e' o non ha disegno: il termosifone o il
+ * fiocco di neve del catalogo di casa, non l'emoji nuda — la fiamma gigante
+ * di sistema stonava con tutto il resto della plancia. L'emoji resta solo
+ * come ultima spiaggia, se il motore dei disegni non risponde. */
+function disegnoDelModo(freddo) {
+  try {
+    return (
+      root.DashboardModernIconEngine?.markup?.(
+        "action",
+        freddo ? "mdi:snowflake" : "mdi:radiator",
+        {
+          size: 46,
+        },
+      ) || ""
+    );
   } catch (_error) {
     return "";
   }
@@ -857,8 +891,9 @@ function tastoRapido(unita, states) {
   const nome = clean(unita.name) || clean(unita.room) || unita.entity;
   /* L'icona e' quella della STANZA, dal catalogo dei disegni di casa: prima
    * bastava avere una stanza per ritrovarsi una porta (🚪) — «che c'entra
-   * l'icona porta nel clima». Senza stanza, o senza disegno, parla il modo. */
-  const disegno = disegnoDellaStanza(unita.room);
+   * l'icona porta nel clima». Senza stanza (nemmeno per nome), o senza
+   * disegno, parla il modo — ma col disegno di casa, non con l'emoji. */
+  const disegno = disegnoDellaStanza(unita.room, unita.name) || disegnoDelModo(freddo);
   const icona = freddo ? "❄️" : "🔥";
   tasto.innerHTML =
     `${gradi ? `<span class="ns-clima-btn-temp">${esc(gradi)}</span>` : ""}` +
@@ -990,6 +1025,7 @@ function installPannelloDellaFinestra() {
 export function installClimateThermalSection() {
   if (!doc) return;
   installStyle(STYLE_ID, climateCss());
+  installStyle("dm-clima-rapido-taglia-style", climaRapidoCss());
   installOverrides();
   if (!state.listeners) {
     state.listeners = true;
@@ -1018,6 +1054,28 @@ export function installClimateThermalSection() {
 }
 
 /* ── styles ───────────────────────────────────────────────────────────── */
+
+/* Il popup del Clima rapido, rimesso in taglia.
+ *
+ * Dal campo, con la foto: «le card sono troppo grandi» — la griglia del
+ * guscio e' due (o tre) colonne da un frazionario senza tetto, e su una
+ * scheda larga ogni stanza diventava un quadrato da duecentocinquanta pixel
+ * — e «le icone non si vedono bene, troppo piccole»: il disegno di casa
+ * usciva a 34 pixel dentro una casella pensata per un'emoji da 50, per
+ * giunta sbiadito dal grigio dello stato spento. Le stanze ora sono
+ * pastiglie da 150 al massimo, centrate, e il disegno resta leggibile anche
+ * da spento: lo stato lo dice il colore del bordo, non la nebbia. */
+function climaRapidoCss() {
+  return `
+#quick-clima-modal .ns-clima-grid{
+  grid-template-columns:repeat(auto-fit,minmax(112px,150px))!important;
+  justify-content:center!important}
+#quick-clima-modal .ns-clima-btn-icon{filter:saturate(.55) opacity(.85)!important}
+#quick-clima-modal .ns-clima-btn.on-clima .ns-clima-btn-icon,
+#quick-clima-modal .ns-clima-btn.on-heat .ns-clima-btn-icon{filter:none!important}
+#quick-clima-modal .ns-clima-btn-icon svg{display:block}
+`;
+}
 
 function climateCss() {
   return `
