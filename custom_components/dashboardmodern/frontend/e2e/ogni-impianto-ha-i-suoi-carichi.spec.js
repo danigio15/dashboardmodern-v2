@@ -237,5 +237,11 @@ test("la batteria non trapela nell'impianto che non ce l'ha", async ({ page }, t
   await page.evaluate(() => window.render?.());
   await expect.poll(async () => (await bolle()).batteria, { timeout: 20_000 }).toContain("243");
   await expect.poll(async () => (await bolle()).soc).toContain("76");
-  expect((await bolle()).visibili).toEqual(["n-solar", "n-grid", "n-home", "n-battery"]);
+  /* Anche i cerchi si aspettano. Le due righe qui sopra aspettano i numeri,
+   * questa leggeva una volta sola: la bolla della batteria rientra in scena
+   * un attimo dopo i suoi watt, e sotto carico quell'attimo si allunga —
+   * «n-battery» mancava all'appello per un pelo. */
+  await expect
+    .poll(async () => (await bolle()).visibili, { timeout: 20_000 })
+    .toEqual(["n-solar", "n-grid", "n-home", "n-battery"]);
 });
