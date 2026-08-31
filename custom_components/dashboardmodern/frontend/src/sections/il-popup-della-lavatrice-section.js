@@ -20,6 +20,7 @@
  */
 import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { applianceVisualKey } from "../core/device-model.js";
+import { openIconPicker } from "./icon-engine-section.js";
 import {
   clean,
   doc,
@@ -161,7 +162,11 @@ function rigaEditor(voce) {
   const nodo = doc.createElement("div");
   nodo.className = "dm-lav-riga";
   nodo.innerHTML =
-    `<input class="ed-input dm-lav-icona" maxlength="4" value="${esc(voce.icon || "")}" placeholder="🧺" aria-label="${t("Icona", "Icon")}">` +
+    /* L'icona si sceglie dal catalogo di casa, non si batte a mano: il campo
+     * resta scrivibile per chi vuole un'emoji sua, ma il tasto apre il
+     * selettore unico — «non e' possibile mettere icone per i programmi». */
+    `<span class="ed-form-row dm-lav-icona-riga"><input class="ed-input dm-lav-icona" maxlength="24" value="${esc(voce.icon || "")}" placeholder="🧺" aria-label="${t("Icona", "Icon")}">` +
+    `<button type="button" class="dm-lav-icona-btn" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span>` +
     `<input class="ed-input dm-lav-nome" value="${esc(voce.name || "")}" placeholder="${t("Nome (es. Rapido 30')", "Name (e.g. Quick 30')")}">` +
     `<input class="ed-input ed-slot-in mono dm-lav-entita" value="${esc(voce.entity || "")}" placeholder="script.lavatrice_rapido">` +
     `<button type="button" class="ed-del dm-lav-via" aria-label="${t("Elimina", "Delete")}">🗑️</button>`;
@@ -188,6 +193,75 @@ export function montaEditor() {
   return true;
 }
 
+/* ── il resto del popup: le entita' che riempiono le sue caselle ─────────
+ *
+ * «Non si possono configurare le altre cose presenti nel popup»: la carta
+ * mostrava solo i tasti dei programmi, mentre tutto il resto della finestra
+ * — la presa, l'avvio, la fase, il tempo, i tre menu a tendina — restava
+ * mappabile soltanto nella fisarmonica Lavatrice della scheda Sezioni, che
+ * da «Azioni rapide» non si vede nemmeno. Sono gli stessi slot del guscio:
+ * qui si scrivono negli stessi `cd_entity_overrides`, quindi le due strade
+ * portano allo stesso posto e non si contraddicono. */
+const CASELLE = Object.freeze([
+  { ref: "dm.lavatrice_presa_avvio_lavatrice", it: "Presa/avvio (switch)", en: "Power socket (switch)" },
+  { ref: "dm.lavatrice_avvio_ciclo", it: "Avvio ciclo (switch)", en: "Start cycle (switch)" },
+  { ref: "dm.lavatrice_fase_corrente", it: "Fase corrente (testo)", en: "Current phase (text)" },
+  { ref: "dm.lavatrice_tempo_rimanente", it: "Tempo rimanente", en: "Remaining time" },
+  { ref: "dm.lavatrice_programma", it: "Programma (select)", en: "Program (select)" },
+  { ref: "dm.lavatrice_temperatura", it: "Temperatura (select)", en: "Temperature (select)" },
+  { ref: "dm.lavatrice_centrifuga", it: "Centrifuga (select)", en: "Spin (select)" },
+  {
+    ref: "dm.lavatrice_potenza_presa_lavatrice_per_lavatrici_no",
+    it: "Potenza presa (W) — sopra 5 W la lavatrice risulta in funzione",
+    en: "Socket power (W) — above 5 W the washer counts as running",
+  },
+]);
+
+function overrides() {
+  const dati = root.cdCfg?.("cd_entity_overrides") || readJson("cd_entity_overrides", {});
+  return dati && typeof dati === "object" ? dati : {};
+}
+
+/** Scrive lo slot come lo scrive il guscio, e se il guscio non c'e' scrive
+ * lo stesso posto a mano: la scheda vale anche fuori dalla plancia viva. */
+export function scriviCasella(ref, valore) {
+  const chiave = clean(ref);
+  const entita = clean(valore);
+  if (!chiave) return false;
+  if (entita && !entita.includes(".")) return false;
+  const dati = { ...overrides() };
+  if (!entita || entita === chiave) delete dati[chiave];
+  else dati[chiave] = entita;
+  try {
+    root.localStorage?.setItem?.("cd_entity_overrides", JSON.stringify(dati));
+    const vivi = root.cdCfg?.("cd_entity_overrides");
+    /* Il guscio tiene la sua copia in memoria: se non la si aggiorna, il
+     * primo salvataggio di un'altra riga riscrive sopra questa. */
+    if (vivi && typeof vivi === "object") {
+      for (const vecchia of Object.keys(vivi)) if (!(vecchia in dati)) delete vivi[vecchia];
+      Object.assign(vivi, dati);
+    }
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  } catch (_errore) {
+    return false;
+  }
+  return true;
+}
+
+function rigaCasella(casella) {
+  const nodo = doc.createElement("div");
+  nodo.className = "ed-slot dm-lav-slot";
+  const valore = clean(overrides()[casella.ref]);
+  nodo.innerHTML =
+    `<div class="ed-slot-lbl">${esc(t(casella.it, casella.en))}</div>` +
+    `<div class="dm-lav-slot-riga">` +
+    `<input class="ed-input mono ed-slot-in dm-lav-slot-in" autocomplete="off" data-ref="${esc(casella.ref)}" value="${esc(valore)}" placeholder="es. sensor.lavatrice_fase" aria-label="${esc(t(casella.it, casella.en))}">` +
+    `<button type="button" class="dm-lav-slot-btn" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button>` +
+    `</div>`;
+  return nodo;
+}
+
 function creaCarta() {
   const carta = doc.createElement("div");
   carta.className = "ed-form dm-lav-carta";
@@ -199,21 +273,60 @@ function creaCarta() {
       "The program buttons in the washing machine popup: name, entity (script or switch), icon — as many as you need. With no programs the grid disappears.",
     )}</div>` +
     `<div class="dm-lav-righe"></div>` +
-    `<button type="button" class="ed-btn-add dm-lav-aggiungi">＋ ${t("Aggiungi programma", "Add program")}</button>`;
+    `<button type="button" class="ed-btn-add dm-lav-aggiungi">＋ ${t("Aggiungi programma", "Add program")}</button>` +
+    `<div class="ed-sec-title dm-lav-caselle-titolo">🎛️ ${t("Il resto del popup", "The rest of the popup")}</div>` +
+    `<div class="ed-hint">${t(
+      "Le entità che riempiono la finestra: la presa, l'avvio del ciclo, la fase, il tempo e i tre menu. Sono le stesse della scheda Lavatrice in Sezioni: quello che scrivi qui lo trovi anche lì.",
+      "The entities that fill the window: the socket, the cycle start, the phase, the time and the three menus. They are the same as the Washing machine card under Sections: what you write here shows up there too.",
+    )}</div>` +
+    `<div class="dm-lav-caselle"></div>`;
   const righe = carta.querySelector(".dm-lav-righe");
   programmiAttuali().forEach((voce) => righe.append(rigaEditor(voce)));
+  const caselle = carta.querySelector(".dm-lav-caselle");
+  CASELLE.forEach((casella) => caselle.append(rigaCasella(casella)));
 
   const salva = () => {
     scriviConfig(raccogli(carta));
     /* I tasti del popup seguono subito, senza aspettare un altro giro. */
     disegnaProgrammi();
   };
-  carta.addEventListener("change", salva);
+  carta.addEventListener("change", (evento) => {
+    /* Le caselle del popup non sono programmi: ognuna salva il suo slot e
+     * basta, altrimenti `raccogli` le leggerebbe come righe vuote. */
+    const casella = evento.target?.closest?.(".dm-lav-slot-in");
+    if (casella) {
+      scriviCasella(casella.dataset.ref, casella.value);
+      return;
+    }
+    salva();
+  });
   carta.addEventListener("click", (evento) => {
+    const lente = evento.target?.closest?.(".dm-lav-slot-btn");
+    if (lente) {
+      const campo = lente.closest(".dm-lav-slot")?.querySelector(".dm-lav-slot-in");
+      /* Il selettore di entita' e' quello del guscio: una sola lista, gia'
+       * filtrata sulle entita' vive. Gli si passa il CAMPO, non il nome dello
+       * slot: col nome cercherebbe `input[data-ref=...]` per tutta la pagina e
+       * scriverebbe nella riga gemella della scheda Sezioni, ridisegnando la
+       * procedura guidata. Col campo scrive qui e batte un `change`, che e'
+       * quello che questa carta ascolta. */
+      if (campo) root.wzPickEntity?.(campo);
+      return;
+    }
     const via = evento.target?.closest?.(".dm-lav-via");
     if (via) {
       via.closest(".dm-lav-riga")?.remove();
       salva();
+      return;
+    }
+    const catalogo = evento.target?.closest?.(".dm-lav-icona-btn");
+    if (catalogo) {
+      const campo = catalogo.parentElement?.querySelector(".dm-lav-icona");
+      /* Il segno, non il nome del disegno: il tasto del programma stampa
+       * `voce.icon` come testo nudo, e un «mdi:washing-machine» ci si
+       * leggerebbe per esteso — lo stesso guaio delle porte. La scelta resta
+       * quella del catalogo di casa. */
+      if (campo) openIconPicker(campo, "action", { glifo: true });
       return;
     }
     if (evento.target?.closest?.(".dm-lav-aggiungi"))
@@ -228,9 +341,10 @@ function creaCarta() {
  * e poi, precisato: «il config non lo devi mettere nel popup ma nella sezione
  * azioni rapide — quando si sceglie popup lavatrice esce la configurazione
  * completa». Quando il menu dell'azione (editor o procedura guidata) sta su
- * «🧺 Popup Lavatrice», sotto compare la carta intera dei programmi — nome,
- * entita', icona, quanti ne vuoi — col salvataggio a ogni modifica; scelta
- * un'altra azione, la carta si ritira. */
+ * «🧺 Popup Lavatrice», sotto compare la carta intera: i programmi — nome,
+ * entita', icona, quanti ne vuoi — e le caselle del popup, con salvataggio a
+ * ogni modifica; scelta un'altra azione, la carta si ritira. «Configurazione
+ * completa» vuol dire tutto quello che la finestra mostra, non i soli tasti. */
 export function montaNelleAzioni() {
   let montata = false;
   for (const id of ["ed-qa-type", "wz-qa-type"]) {
@@ -268,8 +382,16 @@ const STILE = `
 .dm-lav-righe{display:grid;gap:8px;margin:10px 0}
 .dm-lav-riga{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}
 .dm-lav-riga .dm-lav-icona{text-align:center;padding-inline:4px}
+.dm-lav-icona-riga{display:flex;gap:6px;min-width:0}
+.dm-lav-icona-riga .dm-lav-icona{flex:1 1 auto;min-width:0}
+.dm-lav-icona-btn{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:12px;background:linear-gradient(145deg,#12aee4,#047faf);color:#fff;font-size:15px;cursor:pointer}
 @media(max-width:560px){.dm-lav-riga{grid-template-columns:44px minmax(0,1fr) 38px}
 .dm-lav-riga .dm-lav-entita{grid-column:1/-1}}
+.dm-lav-caselle-titolo{margin-top:16px}
+.dm-lav-caselle{display:grid;gap:10px;margin-top:10px}
+.dm-lav-slot-riga{display:flex;gap:6px;align-items:center;min-width:0}
+.dm-lav-slot-riga .dm-lav-slot-in{flex:1 1 auto;min-width:0}
+.dm-lav-slot-btn{flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;font-size:14px;cursor:pointer}
 `;
 
 export function installPopupLavatrice() {

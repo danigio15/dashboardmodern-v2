@@ -28,6 +28,10 @@ class ClassList {
   }
 }
 
+/* `data-dm-subload-card` → `dmSubloadCard`, come fa il browser. */
+const datasetKey = (attributo) =>
+  attributo.replace(/^data-/, "").replace(/-([a-z0-9])/g, (_intero, lettera) => lettera.toUpperCase());
+
 class Element {
   constructor(tag) {
     this.tagName = String(tag).toUpperCase();
@@ -68,13 +72,21 @@ class Element {
     }
     return out;
   }
+  /* Classi e attributi `data-*`. Gli attributi servono davvero: il popup
+   * cerca le carte con `[data-dm-subload-card]` per travasarci dentro i valori
+   * nuovi, e un finto DOM che li ignorasse restituirebbe sempre la lista vuota
+   * — cioe' non farebbe mai passare la strada veloce, che e' proprio quella
+   * che queste prove devono guardare. */
+  matches(selector) {
+    const attributo = selector.match(/^\[([a-z0-9-]+)\]$/i);
+    if (attributo) return datasetKey(attributo[1]) in this.dataset;
+    return this.classList.contains(selector.replace(/^\./, ""));
+  }
   querySelector(selector) {
-    const wanted = selector.replace(/^\./, "");
-    return this.descendants().find((node) => node.classList.contains(wanted)) || null;
+    return this.descendants().find((node) => node.matches(selector)) || null;
   }
   querySelectorAll(selector) {
-    const wanted = selector.replace(/^\./, "");
-    return this.descendants().filter((node) => node.classList.contains(wanted));
+    return this.descendants().filter((node) => node.matches(selector));
   }
 }
 
@@ -221,4 +233,61 @@ test("an emoji is still written as text, not through the mdi renderer", () => {
   const icon = title.querySelector(".dm-subload-title-icon");
   assert.equal(icon.textContent, "🍳");
   assert.equal(icon.innerHTML, "");
+});
+
+/* ── il travaso non deve mentire ────────────────────────────────────────────
+ *
+ * Il popup si aggiorna in due modi: rifacendo la lista, o travasando i valori
+ * nei nodi che ci sono gia' (e' quello che ha tolto lo sfarfallio). Il travaso
+ * pero' tocca solo quello che ha davanti: se cambia la FORMA — una riga che
+ * compare, un cerchio che cambia nome — travasare lascia sullo schermo una
+ * cosa vecchia. Queste due prove sono i due casi trovati.
+ */
+const CUCINA_CON_GIORNO = [
+  { id: "cucina", name: "Cucina", icon: "🍳", order: 0 },
+  {
+    id: "forno",
+    name: "Forno",
+    power_entity: "sensor.forno_power",
+    daily_energy_entity: "sensor.forno_oggi",
+    metadata: { beta27_subload_group: "cucina" },
+  },
+];
+
+test("la riga dei kWh di oggi compare e sparisce davvero", () => {
+  configure({
+    loads: CUCINA_CON_GIORNO,
+    states: { "sensor.forno_power": { state: "1800" } },
+  });
+  popup.renderSubloadPopup("cucina");
+  assert.equal(list.querySelector(".dm-subload-daily"), null, "senza dato, nessuna riga");
+
+  /* Il dato arriva a popup aperto: la carta deve guadagnare la riga. */
+  globalThis.__HASS__ = {
+    states: { "sensor.forno_power": { state: "1800" }, "sensor.forno_oggi": { state: "2.4" } },
+  };
+  popup.renderSubloadPopup("cucina");
+  const riga = list.querySelector(".dm-subload-daily");
+  assert.ok(riga, "col dato, la riga c'e'");
+  assert.match(riga.textContent, /2[.,]4/);
+
+  /* E se il sensore smette di rispondere la riga se ne va, invece di restare
+   * li' col numero di prima. */
+  globalThis.__HASS__ = { states: { "sensor.forno_power": { state: "1800" } } };
+  popup.renderSubloadPopup("cucina");
+  assert.equal(list.querySelector(".dm-subload-daily"), null, "senza dato la riga sparisce");
+});
+
+test("rinominare il cerchio a popup aperto cambia la testata", () => {
+  configure({ loads: KITCHEN, states: { "sensor.forno_power": { state: "1800" } } });
+  popup.renderSubloadPopup("cucina");
+  assert.equal(title.querySelector(".dm-subload-title-name").textContent, "CUCINA");
+
+  /* Gli apparecchi non cambiano: cambia solo il nome. Con la firma che
+   * guardava i soli identificativi, il travaso saltava la testata e la
+   * finestra restava intestata «CUCINA» fino alla riapertura. */
+  storage.set("cd_flow_nodes", JSON.stringify({ boiler: { name: "Cucina nuova", icon: "🔥" } }));
+  popup.renderSubloadPopup("cucina");
+  assert.equal(title.querySelector(".dm-subload-title-name").textContent, "CUCINA NUOVA");
+  assert.equal(title.querySelector(".dm-subload-title-icon").textContent, "🔥");
 });

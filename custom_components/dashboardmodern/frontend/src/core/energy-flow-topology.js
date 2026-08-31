@@ -232,18 +232,13 @@ function stateWatts(states, entity) {
  * casella canonica e restava senza valore. Stessa domanda, stessa risposta:
  * la prima entita' che parla in watt e' la potenza. */
 function potenzaImplicita(load, states) {
-  /* Prima i campi espliciti dell'apparecchio: il condizionatore coi watt in
-   * `power_entity` usciva a 1,45 kW nel popup e a 0 W nel cerchio, perche'
-   * qui si scandiva solo `entities`. Stessa domanda del popup, stessa lista
-   * di unita' (anche «watt»/«watts», spazi tolti). */
+  /* La lista `entities` e' roba mista — temperature, contatori, interruttori —
+   * quindi qui l'unita' e' obbligatoria: si prende la prima che parla in watt
+   * (anche «watt»/«watts», spazi tolti). */
   const parlaInWatt = (id) =>
     /^(w|kw|mw|watt|watts)$/.test(
       clean(states?.[id]?.attributes?.unit_of_measurement).toLowerCase().replaceAll(" ", ""),
     );
-  for (const campo of [load?.power_entity, load?.power, load?.power_sensor]) {
-    const id = clean(campo);
-    if (id && parlaInWatt(id)) return id;
-  }
   for (const grezza of Array.isArray(load?.entities) ? load.entities : []) {
     const id = clean(typeof grezza === "string" ? grezza : grezza?.entity || grezza?.entity_id);
     if (id && parlaInWatt(id)) return id;
@@ -251,10 +246,37 @@ function potenzaImplicita(load, states) {
   return "";
 }
 
+/* Il campo dove sta scritta la potenza, coi nomi di tutte le stagioni.
+ *
+ * Il popup dei sottocarichi legge `power ?? pwrLive ?? pwr ?? power_entity` e
+ * non chiede nessuna unita': un sensore template senza `unit_of_measurement`
+ * li' vale watt (come fa il runtime). Il cerchio invece leggeva solo
+ * `power_entity` E pretendeva l'unita': gli apparecchi col sensore senza
+ * unita' sparivano dalla somma e il cerchio restava sullo zero degli altri —
+ * «il flusso elettrodomestici continua a restituire 0 invece della somma
+ * riportata nei carichi interni». Un campo scritto apposta ci si fida. */
+export function campoDiPotenza(load) {
+  for (const campo of [
+    load?.power_entity,
+    load?.power,
+    load?.pwrLive,
+    load?.pwr,
+    load?.power_sensor,
+  ]) {
+    const id = clean(typeof campo === "string" ? campo : campo?.entity || campo?.entity_id);
+    /* Solo un vero entity_id: qualche modello storico teneva in `power` il
+     * numero dei watt massimi, e un numero non e' un'entita' da leggere. */
+    if (/^[a-z_]+\.[a-z0-9_]+$/i.test(id)) return id;
+  }
+  return "";
+}
+
 function periodValue(load, period, states, recorderValues, { implicita = true } = {}) {
   const canonica = flowPeriodEntity(load, period);
   const entity =
-    canonica || (period === "instant" && implicita ? potenzaImplicita(load, states) : canonica);
+    period === "instant"
+      ? canonica || campoDiPotenza(load) || (implicita ? potenzaImplicita(load, states) : "")
+      : canonica;
   if (period !== "instant" && recorderValues) {
     const key = clean(load.id) || clean(load.name);
     const fromBundle =

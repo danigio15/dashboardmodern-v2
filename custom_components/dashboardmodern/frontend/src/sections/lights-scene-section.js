@@ -13,7 +13,20 @@ import {
 } from "../core/light-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { roomOrderRank } from "../core/room-overview.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, scriviSeCambia, section, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  entitaSoloLettura,
+  installStyle,
+  readJson,
+  root,
+  scriviSeCambia,
+  section,
+  siComanda,
+  t,
+} from "./shared.js";
 
 /* Single paint owner for the Gestione Luci popup and for the controls of one
  * light.
@@ -128,6 +141,8 @@ function lightViews() {
   const names = readJson("cd_luci", {});
   const states = allStates();
   const allowed = popupFilter();
+  /* La lista delle bloccate si legge una volta per tutta la passata. */
+  const bloccate = entitaSoloLettura();
   const seen = new Set();
   const entries = [];
   for (const group of configuredLightGroups()) {
@@ -151,6 +166,11 @@ function lightViews() {
         state: states[id],
         room,
         floor: clean(root.cdRoomFloorOf?.(room)),
+        /* Il divieto viaggia col modello, sempre. `lightView` da' per buono
+         * che si comandi, e senza questa riga la finestra dei controlli
+         * disegnava il tasto e `lightCommand` — che rifiuta guardando proprio
+         * qui — non aveva niente da rifiutare. */
+        comandabile: siComanda(id, bloccate),
       }),
     );
 }
@@ -414,7 +434,13 @@ function viewOf(id) {
   const entity = clean(id);
   if (!entity) return null;
   const names = readJson("cd_luci", {});
-  return lightView(entity, { name: names[entity], state: allStates()[entity] });
+  /* Anche qui: e' da questa vista che la finestra dei controlli disegna il
+   * tasto e da qui che `lightCommand` decide se lasciar partire il comando. */
+  return lightView(entity, {
+    name: names[entity],
+    state: allStates()[entity],
+    comandabile: siComanda(entity),
+  });
 }
 
 function send(view, change) {
@@ -611,8 +637,20 @@ export function renderLightControlMarkup(view) {
           <small class="mono">${esc(view.id)}</small>
           ${view.room ? `<small>${esc(view.room)}</small>` : ""}
         </span>
-        <button type="button" class="dm-lightctl-power" data-dm-light-power aria-pressed="${view.on}">${view.on ? t("Spegni", "Turn off") : t("Accendi", "Turn on")}</button>
+        ${
+          view.comandabile === false
+            ? `<span class="dm-lightctl-bloccata">🔒 ${esc(t("Solo lettura", "Read only"))}</span>`
+            : `<button type="button" class="dm-lightctl-power" data-dm-light-power aria-pressed="${view.on}">${view.on ? t("Spegni", "Turn off") : t("Accendi", "Turn on")}</button>`
+        }
       </div>
+      ${
+        view.comandabile === false
+          ? `<p class="dm-lightctl-note">${t(
+              "Questa presa è configurata come «si vede ma non si comanda»: la finestra la racconta, ma non la accende né la spegne.",
+              "This socket is configured as shown but not controllable: this window reports it, it never switches it.",
+            )}</p>`
+          : ""
+      }
       ${view.available ? "" : `<p class="dm-lightctl-note">${t("Entità non disponibile in Home Assistant.", "Entity unavailable in Home Assistant.")}</p>`}
       ${brightness}${colorBlock}${whiteBlock}${effectBlock}${plain}
     </div>
@@ -896,6 +934,7 @@ function installStyles() {
     .dm-lightctl .dm-lightctl-hero-text{display:grid!important;gap:2px!important;flex:1 1 auto!important;min-width:0!important}
     .dm-lightctl .dm-lightctl-hero-text b{font-size:14px!important;font-weight:900!important;letter-spacing:.6px!important}
     .dm-lightctl .dm-lightctl-hero-text small{font-size:11px!important;color:var(--secondary-text-color,#64748b)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    .dm-lightctl .dm-lightctl-bloccata{flex:0 0 auto!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:11px 16px!important;border-radius:14px!important;border:1px dashed var(--card-border,#cbd5e1)!important;color:var(--text-dim,#64748b)!important;font-size:11px!important;font-weight:900!important;letter-spacing:.6px!important;text-transform:uppercase!important}
     .dm-lightctl .dm-lightctl-power{flex:0 0 auto!important;padding:11px 18px!important;border:0!important;border-radius:14px!important;background:var(--dm-light-color,#f59e0b)!important;color:var(--dm-light-ink,#0f172a)!important;font-size:12px!important;font-weight:900!important;letter-spacing:.6px!important;text-transform:uppercase!important;cursor:pointer!important}
     .dm-lightctl .dm-lightctl-power[aria-pressed="false"]{background:var(--secondary-background-color,#f1f5f9)!important;color:var(--secondary-text-color,#64748b)!important}
     .dm-lightctl .dm-lightctl-block{display:grid!important;gap:10px!important;padding:14px!important;border:1px solid var(--divider-color,#e2e8f0)!important;border-radius:18px!important}

@@ -189,15 +189,26 @@ for (const variant of PRIMARY) {
         hasText: "Errore durante il caricamento di DashboardModern",
       }),
     ).toHaveCount(0);
-    expect(
-      await page.evaluate(() =>
-        ED_DEVICES.map((device) => [device.name, device.icon, device.sensor]),
-      ),
-    ).toEqual([
-      ["Washer first", "🧺", "sensor.washer_month"],
-      ["Pump second", "💧", "sensor.pump_month"],
-      ["Manual third", "🔌", "sensor.manual_month"],
-    ]);
+    /* Le voci del Report si aspettano, non si leggono al volo.
+     *
+     * `__DASHBOARDMODERN_LEGACY_READY__` dice che il guscio c'e', non che ha
+     * gia' rifatto l'elenco: quello lo rifa' `cdRebuildReportDevices` da un
+     * setTimeout a 2600 ms dall'apertura del socket. La lettura secca vinceva
+     * la corsa su una macchina ferma e la perdeva con la suite intera addosso
+     * — «Array []» al posto delle tre voci. Le stesse tre voci, aspettate. */
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() =>
+            ED_DEVICES.map((device) => [device.name, device.icon, device.sensor]),
+          ),
+        { timeout: 20_000 },
+      )
+      .toEqual([
+        ["Washer first", "🧺", "sensor.washer_month"],
+        ["Pump second", "💧", "sensor.pump_month"],
+        ["Manual third", "🔌", "sensor.manual_month"],
+      ]);
     expect(
       await page.evaluate(() => {
         const state = window.DashboardModernModules.store.getState();

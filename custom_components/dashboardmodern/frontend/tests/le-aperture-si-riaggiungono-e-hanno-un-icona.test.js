@@ -76,9 +76,11 @@ test("l'icona e' quella scelta, o quella del gruppo se non se n'e' scelta", () =
 
 /* «Apertura: ancora non si puo' cambiare icona»: il campo era una casella di
  * testo nuda, e l'unica strada era l'emoji dalla tastiera. Ora accanto al
- * campo c'e' il tasto che apre il catalogo — lo stesso selettore delle icone
- * degli avvisi, dove porte, cancelli e serrature ci sono gia' — e il campo
- * resta scrivibile per chi vuole un'emoji fuori catalogo. */
+ * campo c'e' il tasto che apre il CATALOGO DI CASA — quello solo, `openIconPicker`
+ * del motore delle icone: passava da `openEmojiPicker`, che apriva una griglia
+ * di emoji sua quando il motore non c'era, e dal campo si vedevano porte che
+ * nel catalogo non esistono. Il campo resta scrivibile per chi vuole un'emoji
+ * fuori catalogo. */
 test("l'icona della porta si sceglie dal catalogo, non solo dalla tastiera", async () => {
   const { readFile } = await import("node:fs/promises");
   const editor = await readFile(
@@ -86,7 +88,9 @@ test("l'icona della porta si sceglie dal catalogo, non solo dalla tastiera", asy
     "utf8",
   );
   assert.match(editor, /data-door-icon-pick="dm-door-\$\{index\}-icon"/);
-  assert.match(editor, /openEmojiPicker\(input, /);
+  assert.match(editor, /openIconPicker\(input, "action"\)/);
+  /* E l'icona di serie e' un token del catalogo, non un'emoji di sistema. */
+  assert.match(editor, /const ICONA_PORTA = "mdi:door-closed"/);
   /* Il tasto del catalogo NON deve vestire classi altrui: .dm-entity-picker
    * accanto a un input marca il campo come entita' (la guardia apriva la
    * ricerca delle entita' sopra al catalogo), e button.dm-icon-picker e' il

@@ -360,7 +360,11 @@ export function openIconPicker(input, kind = "action", options = {}) {
     button.addEventListener("click", () => {
       const item = rows[Number(button.dataset.index)];
       if (!item) return;
-      input.value = item.value;
+      /* Di norma si scrive il nome del disegno (`mdi:…`), che tutta la
+       * plancia sa dipingere. Dove il consumatore stampa la casella come
+       * testo nudo si scrive il segno: la scelta resta la stessa voce del
+       * catalogo, cambia solo come la si consegna. */
+      input.value = options.glifo === true ? item.glyph || item.value : item.value;
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
       close();
@@ -615,6 +619,26 @@ function installRenderOwners() {
   wrapAfter("editorSwitch", "__dmIconEngineEditor", scheduleEditorIconSurfaces);
 }
 
+/* I campi icona che il guscio si serviva da solo, e che catalogo vogliono.
+ *
+ * «A qualsiasi parte viene richiesta una icona deve puntare sempre ed
+ * esclusivamente al nostro catalogo»: queste caselle aprivano `wzPickIcon`,
+ * cioe' una griglia piatta di emoji di sistema (CD_EMOJI_SET) che col
+ * catalogo di casa non c'entra niente — stanze e piani con una tavolozza,
+ * il resto della plancia con un'altra. Ora ognuna apre il catalogo unico,
+ * nella famiglia che le compete. */
+const CAMPI_DEL_GUSCIO = Object.freeze({
+  "ed-st-icon": { kind: "room" },
+  "ed-st2-icon": { kind: "room" },
+  "wz-st-icon": { kind: "room" },
+  /* Il piano scrive il segno, non il nome mdi: le linguette dei piani in
+   * Temperature stampano l'icona come testo nudo (`${fIco} ${f}`), quindi un
+   * «mdi:home» ci finirebbe scritto per esteso. Il catalogo e' lo stesso, e'
+   * il consumatore che sa leggere una cosa sola. */
+  "ed-st2-flicon": { kind: "room", glifo: true },
+  "ed-rep2-icon": { kind: "load" },
+});
+
 function installLegacyBridge() {
   const bridge = (target, category = "") => {
     const input =
@@ -627,6 +651,33 @@ function installLegacyBridge() {
   bridge.__dmIconEngineBridge = true;
   state.legacyBridge = bridge;
   root.dmIconPicker = bridge;
+  hijackLegacyIconPicker(bridge);
+}
+
+/** Il selettore emoji del guscio passa di qui: stessa firma, stesso punto di
+ * chiamata (gli `onclick` scritti nel markup), catalogo diverso. Se il campo
+ * non si trova si torna all'originale, che almeno qualcosa apre. */
+function hijackLegacyIconPicker(bridge) {
+  const originale = root.wzPickIcon;
+  if (typeof originale === "function" && originale.__dmIconEngineLegacy) return false;
+  function scegliDalCatalogo(target) {
+    const input =
+      typeof target === "string" ? doc?.querySelector?.(target) : target instanceof Element ? target : null;
+    if (!input) {
+      if (typeof originale === "function") return originale.call(this, target);
+      return false;
+    }
+    /* La griglia emoji del guscio resta aperta se qualcuno l'ha gia' alzata:
+     * due finestre sovrapposte sarebbero peggio di una sbagliata. */
+    doc?.getElementById?.("cd-icon-picker")?.remove();
+    const campo = CAMPI_DEL_GUSCIO[input.id];
+    if (!campo) return bridge(input, input.dataset?.iconCategory || "action");
+    return openIconPicker(input, campo.kind, { autofocus: false, glifo: campo.glifo === true });
+  }
+  scegliDalCatalogo.__dmIconEngineLegacy = true;
+  scegliDalCatalogo.__dmPrevious = originale;
+  root.wzPickIcon = scegliDalCatalogo;
+  return true;
 }
 
 function installStyles() {

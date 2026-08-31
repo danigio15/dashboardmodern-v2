@@ -516,6 +516,11 @@ function cardSignature(model, view) {
     model.cycle?.costLabel,
     model.alarm ? 1 : 0,
     model.action?.pressed ? 1 : 0,
+    /* Il tasto acceso/spento fa parte della forma della scheda: senza queste
+     * due voci, spuntare «Senza tasto Accendi/Spegni» non cambiava la firma e
+     * la scheda restava quella di prima, col tasto ancora vivo. */
+    model.action?.visible ? 1 : 0,
+    clean(model.action?.entity),
     clean(model.visual?.value),
     model.room?.name,
   ].join("|");

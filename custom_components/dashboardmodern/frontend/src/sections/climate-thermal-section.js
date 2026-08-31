@@ -612,12 +612,14 @@ function paintSummary(shell, units, states, labels) {
       : "--°";
   }
   /* La caldaia configurata dice come sta anche qui, non solo sotto il meteo:
-   * accesa (e da quanto) o spenta. Senza caldaia la casella non esiste. */
+   * accesa (e da quanto) o spenta. Senza caldaia la casella non esiste, e
+   * nella zona Freddo nemmeno: «lo stato caldaia lo devi inserire solo nella
+   * sezione caldo» — fra i condizionatori non c'entra niente. */
   const caldaiaEl = shell.querySelector("[data-dm-cl-caldaia]");
   if (caldaiaEl) {
     let caldaia = null;
     try {
-      caldaia = statoCaldaia();
+      if (zone === "caldo") caldaia = statoCaldaia();
     } catch (_error) {}
     caldaiaEl.hidden = !caldaia;
     if (caldaia) {
@@ -1298,6 +1300,11 @@ function climateCss() {
   display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:96px;padding:9px 15px;
   border:1px solid var(--dm-cl-line);border-radius:16px;background:var(--dm-cl-card);box-shadow:var(--dm-cl-shadow)
 }
+/* «Solo nella sezione caldo»: la casella della caldaia si spegne con
+ * l'attributo hidden, ma la regola qui sopra e' d'autore mentre quella che
+ * nasconde arriva dal foglio del browser — a parita' di peso perde sempre.
+ * Senza questa riga, nel Freddo restava un riquadro vuoto con dentro «--». */
+.dm-cl-kpi[hidden]{display:none}
 .dm-cl-kpi span{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--dm-cl-dim)}
 .dm-cl-kpi b{font-size:19px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
 .dm-cl-kpi b small{font-size:12px;font-weight:700;color:var(--dm-cl-dim);letter-spacing:0}

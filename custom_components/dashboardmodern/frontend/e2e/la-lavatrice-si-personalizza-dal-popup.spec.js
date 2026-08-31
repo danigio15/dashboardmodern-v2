@@ -97,6 +97,36 @@ test("scelto Popup Lavatrice esce la carta, scritta si vede nel popup", async ({
     ),
   ).toBeAttached({ timeout: 10000 });
 
+  /* «Non si possono configurare le altre cose presenti nel popup»: la carta
+   * porta anche le caselle della finestra, e scriverne una la salva negli
+   * stessi override del guscio. */
+  await expect(
+    page.locator('#ed-body .dm-lav-slot-in[data-ref="dm.lavatrice_fase_corrente"]'),
+  ).toBeAttached({ timeout: 10000 });
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const campo = document.querySelector(
+            '#ed-body .dm-lav-slot-in[data-ref="dm.lavatrice_tempo_rimanente"]',
+          );
+          if (!campo) return "campo-assente";
+          campo.value = "sensor.lavatrice_tempo";
+          campo.dispatchEvent(new Event("change", { bubbles: true }));
+          const dati = JSON.parse(window.localStorage.getItem("cd_entity_overrides") || "{}");
+          return dati["dm.lavatrice_tempo_rimanente"] || "";
+        }),
+      { timeout: 15000 },
+    )
+    .toBe("sensor.lavatrice_tempo");
+  /* E i programmi gia' scritti restano dov'erano: le caselle non passano da
+   * `raccogli`, quindi non si portano via la lista. */
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(window.localStorage.getItem("cd_lavatrice_programmi") || "[]"),
+    ),
+  ).toHaveLength(1);
+
   /* Scelta un'altra azione, la carta si ritira. */
   await expect
     .poll(

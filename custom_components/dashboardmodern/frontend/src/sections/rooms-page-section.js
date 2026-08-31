@@ -391,7 +391,11 @@ function readingMarkup(pagina, states) {
 const DOMINI_CHE_SI_TOCCANO = Object.freeze(["light", "switch", "fan", "input_boolean"]);
 
 function siPuoAccendere(entity) {
-  return DOMINI_CHE_SI_TOCCANO.includes(clean(entity).split(".")[0]);
+  /* Il dominio dice che l'entita' SAPREBBE accendersi, non che si POSSA
+   * comandare: la riga della stanza costruiva la chiamata a mano, senza
+   * passare da `lightCommand`, e una presa marcata «si vede ma non si
+   * comanda» si accendeva davvero da qui. Il divieto vale in ogni pagina. */
+  return DOMINI_CHE_SI_TOCCANO.includes(clean(entity).split(".")[0]) && siComanda(entity);
 }
 
 function accesa(entity, states) {

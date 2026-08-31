@@ -15,6 +15,7 @@
  * `lightCommand` non costruisce nemmeno il comando.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { lightCommand, lightView } from "../src/core/light-model.js";
@@ -112,4 +113,28 @@ test("l'elenco delle bloccate si scrive e si rilegge da un posto solo", async ()
   /* Senza entita' non si dice di no: dire che manca un'entita' e' compito di
    * un altro. */
   assert.equal(siComanda(""), true);
+});
+
+/* ── e il divieto deve VIAGGIARE col modello ────────────────────────────────
+ *
+ * `lightCommand` rifiuta guardando `view.comandabile`, e la finestra dei
+ * controlli disegna il lucchetto guardando lo stesso campo. Ma `lightView` da'
+ * per buono che si comandi: chi costruisce la vista senza passare il divieto
+ * ottiene un modello che dice di si' su tutta la linea — tasto acceso e
+ * comando che parte davvero. E' successo proprio cosi' nelle viste della
+ * finestra delle Luci, dove il divieto non veniva passato.
+ */
+test("chi costruisce una vista di luce passa il divieto, sempre", () => {
+  const sorgente = readFileSync(
+    new URL("../src/sections/lights-scene-section.js", import.meta.url),
+    "utf8",
+  );
+  const costruite = (sorgente.match(/\blightView\(/g) || []).length;
+  const conDivieto = (sorgente.match(/\bcomandabile:/g) || []).length;
+  assert.ok(costruite >= 2, "le viste della finestra Luci sono almeno due");
+  assert.equal(
+    conDivieto,
+    costruite,
+    `${costruite} viste costruite ma solo ${conDivieto} portano il divieto`,
+  );
 });

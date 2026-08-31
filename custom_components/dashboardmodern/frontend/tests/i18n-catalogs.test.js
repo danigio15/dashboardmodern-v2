@@ -126,6 +126,9 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   "Turbo",
   /* Il nome della scheda del ponte: mezza Europa lo chiama cosi'. */
   "Widgets",
+  /* Il nome della rete di casa: dove non si scrive in un altro alfabeto si
+   * scrive cosi' e basta. */
+  "Wi-Fi",
   "kWh/day",
   "☀️ Solar",
   "📊 Report",
@@ -149,6 +152,7 @@ const SHARED_ACROSS_LANGUAGES = new Set([
  */
 const LOCALE_IDENTITIES = {
   es: new Set([
+    "Gas",
     "Natural",
     "Polo",
     "Robot",
@@ -208,6 +212,7 @@ const LOCALE_IDENTITIES = {
     "DIMMER",
     "Download",
     "Garage",
+    "Gas",
     "Grill",
     "ideal",
     "Indigo",
@@ -215,6 +220,7 @@ const LOCALE_IDENTITIES = {
     "Magenta",
     "Name",
     "Name (A–Z)",
+    "Wind",
     "NNW",
     "November",
     "Optional",
@@ -275,6 +281,7 @@ const LOCALE_IDENTITIES = {
     "DIMMER",
     "Effect",
     "Garage",
+    "Gas",
     "Grill",
     "Hatchback",
     "Indigo",
@@ -298,6 +305,7 @@ const LOCALE_IDENTITIES = {
     "Violet",
     "Warm",
     "Water",
+    "Wind",
     "WNW",
     "Zone",
   ]),

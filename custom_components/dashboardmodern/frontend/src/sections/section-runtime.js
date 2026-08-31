@@ -542,6 +542,19 @@ function syncApplianceKpis() {
   const doc = root.document;
   const grid = doc?.getElementById("appl-kpi-grid");
   if (!grid) return false;
+  /* Due numeri non valgono tutti i modelli della casa a ogni giro di stati.
+   *
+   * `applianceKpiModels()` costruisce il modello di OGNI elettrodomestico —
+   * stati, unita', soglie, storia — due volte al secondo, anche con la pagina
+   * chiusa e nessun popup aperto: per scrivere «in funzione: 3» e i watt di
+   * una casella che nessuno sta guardando. Con la pagina chiusa si sta fermi;
+   * il tocco su una linguetta rimette in moto (vedi installApplianceKpiPopup). */
+  const popupAperto = ["running", "power"].some((kind) => {
+    const popup = doc.getElementById(`dm-appliance-${kind}-popup`);
+    return popup && !popup.hidden;
+  });
+  const inScena = Boolean(grid.closest?.(".page.active")) || Boolean(grid.offsetParent);
+  if (!inScena && !popupAperto) return false;
   const models = applianceKpiModels();
   const running = models.filter((model) => model.mode === "running");
   const totalWatts = models.reduce(
@@ -675,12 +688,54 @@ function installApplianceKpiPopups() {
   });
   root.addEventListener?.("dashboardmodern:state-changed", schedule);
   root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
+  /* La pagina che si apre: i numeri stavano fermi mentre era chiusa, e al
+   * tocco della linguetta devono essere subito quelli di adesso. */
+  doc?.addEventListener?.(
+    "click",
+    (evento) => {
+      if (evento.target?.closest?.(".tab,[data-tab]")) schedule();
+    },
+    true,
+  );
   root.queueMicrotask?.(schedule);
+}
+
+/* «La plancia e' dipinta»: la bandiera che il guscio aspetta prima di
+ * sciogliere il velo. Due fotogrammi dopo l'installazione — il primo per le
+ * rAF che i moduli hanno appena messo in coda, il secondo per il disegno che
+ * ne esce. Senza requestAnimationFrame (o in un test) si alza subito. */
+export const DIPINTA_KEY = "__DASHBOARDMODERN_PLANCIA_DIPINTA__";
+
+function dichiaraDipinta() {
+  const alza = () => {
+    root[DIPINTA_KEY] = true;
+    try {
+      root.dispatchEvent?.(new CustomEvent("dashboardmodern:plancia-dipinta", { detail: {} }));
+    } catch (_errore) {}
+  };
+  const frame = root.requestAnimationFrame;
+  if (typeof frame !== "function") {
+    alza();
+    return;
+  }
+  frame(() => frame(alza));
 }
 
 export function installSectionRuntime() {
   if (root[RUNTIME_KEY]?.installed) return root[RUNTIME_KEY];
   if (root[INSTALLING_KEY]) return root[RUNTIME_KEY] || null;
+  /* Fine dell'avvio a pezzi.
+   *
+   * Quasi nessun modulo dipinge dentro `install()`: chiama `schedule()`, cioe'
+   * un requestAnimationFrame. Il velo pero' cadeva appena `installed` diventava
+   * vero — nello stesso fotogramma — e i quaranta ridisegni pendenti finivano
+   * sotto gli occhi: il meteo che salta nell'intestazione, le azioni rapide che
+   * entrano nel loro ripiano, le pagine riscritte. «Il caricamento e' lentissimo
+   * e poi va a pezzi, non carica tutto insieme.»
+   *
+   * Due fotogrammi di pazienza: il primo lascia girare le rAF che i moduli
+   * hanno appena messo in coda, il secondo lascia dipingere il risultato. Solo
+   * allora la plancia si dichiara dipinta e il guscio scioglie il velo. */
 
   root[INSTALLING_KEY] = true;
   try {
@@ -906,7 +961,22 @@ export function installSectionRuntime() {
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
       energyServices: root.__DASHBOARDMODERN_ENERGY_SERVICES__,
+      /* Il guscio, per togliere il velo, non deve fidarsi di `installed`: dice
+       * che i moduli sono INSTALLATI, non che hanno DIPINTO. Chi sa aspettare
+       * la dipintura lo dichiara qui. */
+      dipinge: true,
     });
+    /* L'annuncio che sessantanove moduli aspettavano.
+     *
+     * `dashboardmodern:runtime-ready` non lo emetteva nessuno: chi si era
+     * agganciato solo a lui non si svegliava mai, e chi aveva aggiunto
+     * `legacy-ready` come rete di sicurezza faceva il lavoro due volte. Ora
+     * l'annuncio parte davvero, e parte QUI: sotto il velo, prima che la
+     * plancia si dichiari dipinta. */
+    try {
+      root.dispatchEvent?.(new CustomEvent("dashboardmodern:runtime-ready", { detail: {} }));
+    } catch (_errore) {}
+    dichiaraDipinta();
     return root[RUNTIME_KEY];
   } finally {
     delete root[INSTALLING_KEY];

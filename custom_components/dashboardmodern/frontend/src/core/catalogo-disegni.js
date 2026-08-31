@@ -153,6 +153,61 @@ const CORPI = Object.freeze({
   socket: `${PANNELLO}<rect ${SCOCCA} x="18" y="18" width="60" height="60" rx="16"/><circle ${FRONTALE} cx="48" cy="48" r="21"/><circle ${SCOCCA} cx="39" cy="44" r="4"/><circle ${SCOCCA} cx="57" cy="44" r="4"/><rect ${SCOCCA} x="44" y="56" width="8" height="6" rx="3"/>`,
 
   fireplace: `${PANNELLO}<rect ${SCOCCA} x="16" y="16" width="64" height="68" rx="10"/><rect ${FRONTALE} x="24" y="24" width="48" height="40" rx="7"/><path ${CALDO} d="M48 32c5 6 6 11 4 15 4-1 6-5 6-9 5 6 6 13 2 19H38c-4-9-2-19 10-25Z"/><path ${TRATTO_CHIARO} d="M30 74h36"/>`,
+
+  /* ── Le forme che mancavano al catalogo unico ─────────────────────────
+   *
+   * «Rivedi completamente il catalogo nostro delle icone, fallo piu' ampio e
+   * a qualsiasi parte viene richiesta una icona deve puntare sempre ed
+   * esclusivamente al nostro catalogo»: le voci nuove non potevano restare
+   * emoji di sistema accanto alle scocche blu notte. Stessa famiglia: il
+   * riquadro, la scocca, il frontale, un accento. */
+  info: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="48" r="32"/><circle ${FRONTALE} cx="48" cy="33" r="4.6"/><rect ${FRONTALE} x="43.4" y="42" width="9.2" height="24" rx="4.6"/>`,
+
+  check: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="48" r="32"/><path ${TRATTO_CHIARO} d="M33 49l11 12 21-25"/>`,
+
+  error: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="48" r="32"/><path ${TRATTO_CHIARO} d="M36 36l24 24M60 36 36 60"/>`,
+
+  lock: `${PANNELLO}<path ${TRATTO} d="M34 44V34a14 14 0 0 1 28 0v10"/><rect ${SCOCCA} x="24" y="44" width="48" height="38" rx="10"/><circle ${VETRO} cx="48" cy="59" r="6"/><rect ${VETRO} x="45" y="59" width="6" height="12" rx="3"/>`,
+
+  motion: `${PANNELLO}<circle ${SCOCCA} cx="52" cy="22" r="8"/><path ${SCOCCA} d="M44 34h10l9 18-8 4-5-9-3 15 11 12v13h-9V78l-13-13 5-24-9 6-6-8z"/><path ${TRATTO_ACCENTO} d="M74 30c5 6 5 14 0 20M20 30c-5 6-5 14 0 20"/>`,
+
+  smoke: `${PANNELLO}<rect ${SCOCCA} x="18" y="56" width="60" height="26" rx="10"/><rect ${ACCENTO} x="27" y="65" width="10" height="8" rx="4"/><path ${TRATTO} d="M36 46c0-8 10-8 10-16s-8-8-8-14M56 46c0-6 8-7 8-14"/>`,
+
+  thermometer: `${PANNELLO}<rect ${SCOCCA} x="40" y="12" width="16" height="46" rx="8"/><circle ${SCOCCA} cx="48" cy="68" r="16"/><circle ${ACCENTO} cx="48" cy="68" r="9"/><rect ${ACCENTO} x="45" y="32" width="6" height="30" rx="3"/><path ${TRATTO} d="M62 26h8M62 36h8M62 46h8"/>`,
+
+  sun: `${PANNELLO}<circle ${CALDO} cx="48" cy="48" r="19"/><path ${TRATTO} d="M48 12v9M48 75v9M12 48h9M75 48h9M23 23l6 6M67 67l6 6M73 23l-6 6M29 67l-6 6"/>`,
+
+  moon: `${PANNELLO}<path ${SCOCCA} d="M60 14a34 34 0 1 0 22 44 27 27 0 0 1-22-44Z"/><circle ${CALDO} cx="70" cy="30" r="4"/><circle ${VETRO} cx="42" cy="60" r="5"/>`,
+
+  speaker: `${PANNELLO}<rect ${SCOCCA} x="26" y="10" width="44" height="76" rx="12"/><circle ${VETRO} cx="48" cy="58" r="14"/><circle ${ACCENTO} cx="48" cy="58" r="6"/><circle ${FRONTALE} cx="48" cy="28" r="7"/>`,
+
+  person: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="32" r="15"/><path ${SCOCCA} d="M18 84c0-17 13-27 30-27s30 10 30 27z"/><path ${TRATTO_CHIARO} d="M40 30c2-3 6-4 9-3"/>`,
+
+  pet: `${PANNELLO}<ellipse ${SCOCCA} cx="48" cy="62" rx="17" ry="14"/><ellipse ${SCOCCA} cx="27" cy="42" rx="8" ry="11"/><ellipse ${SCOCCA} cx="69" cy="42" rx="8" ry="11"/><ellipse ${SCOCCA} cx="38" cy="26" rx="8" ry="11"/><ellipse ${SCOCCA} cx="58" cy="26" rx="8" ry="11"/><circle ${ACCENTO} cx="48" cy="60" r="5"/>`,
+
+  package: `${PANNELLO}<path ${SCOCCA} d="M48 10 82 28v40L48 86 14 68V28z"/><path ${FRONTALE} d="M48 30 68 41v22L48 74 28 63V41z"/><path ${TRATTO} d="M28 41 48 52l20-11M48 52v22"/>`,
+
+  mail: `${PANNELLO}<rect ${SCOCCA} x="12" y="26" width="72" height="46" rx="10"/><path ${TRATTO_CHIARO} d="m16 32 32 22 32-22"/><rect ${ACCENTO} x="62" y="16" width="16" height="16" rx="8"/>`,
+
+  phone: `${PANNELLO}<rect ${SCOCCA} x="27" y="8" width="42" height="80" rx="12"/><rect ${VETRO} x="33" y="20" width="30" height="50" rx="6"/><rect ${FRONTALE} x="42" y="76" width="12" height="4" rx="2"/>`,
+
+  timer: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="54" r="30"/><circle ${FRONTALE} cx="48" cy="54" r="22"/><path ${TRATTO} d="M48 40v14l10 7"/><rect ${SCOCCA} x="38" y="10" width="20" height="9" rx="4.5"/>`,
+
+  cart: `${PANNELLO}<path ${TRATTO} d="M14 20h10l10 38h34l9-26H30"/><circle ${SCOCCA} cx="38" cy="76" r="8"/><circle ${SCOCCA} cx="66" cy="76" r="8"/><rect ${ACCENTO} x="44" y="36" width="26" height="6" rx="3"/>`,
+
+  list: `${PANNELLO}<rect ${SCOCCA} x="18" y="12" width="60" height="72" rx="12"/><rect ${FRONTALE} x="26" y="22" width="44" height="52" rx="8"/><path ${TRATTO_ACCENTO} d="m33 38 5 5 9-10M33 58l5 5 9-10"/><path ${TRATTO} d="M53 40h12M53 60h12"/>`,
+
+  key: `${PANNELLO}<circle ${SCOCCA} cx="34" cy="38" r="18"/><circle ${VETRO} cx="34" cy="38" r="7"/><path ${SCOCCA} d="M45 48 78 81l-9 9-8-8-6 6-7-7 6-6-9-9z"/>`,
+
+  tools: `${PANNELLO}<path ${SCOCCA} d="M22 68 52 38l-6-6a16 16 0 0 1 20-20l-9 9 8 8 9-9a16 16 0 0 1-20 20l-6-6-30 30z"/><circle ${ACCENTO} cx="26" cy="72" r="6"/>`,
+
+  heart: `${PANNELLO}<path ${ACCENTO} d="M48 82 20 55a17 17 0 0 1 24-24l4 4 4-4a17 17 0 0 1 24 24z"/><path ${TRATTO_CHIARO} d="M28 50h12l4-8 6 16 5-8h13"/>`,
+
+  wind: `${PANNELLO}<path ${TRATTO} d="M14 34h34a10 10 0 1 0-10-10"/><path ${TRATTO} d="M14 50h46a10 10 0 1 1-10 10"/><path ${TRATTO_ACCENTO} d="M14 66h26a8 8 0 1 1-8 8"/>`,
+
+  broom: `${PANNELLO}<path ${TRATTO} d="M62 14 40 44"/><path ${SCOCCA} d="M30 44h26l10 26a6 6 0 0 1-6 8H26a6 6 0 0 1-6-8z"/><path ${TRATTO_CHIARO} d="M30 58v18M40 58v18M50 58v18"/>`,
+
+  refresh: `${PANNELLO}<path ${TRATTO} d="M76 48a28 28 0 1 1-9-20"/><path ${SCOCCA} d="M72 6h8v22H58z"/>`,
 });
 
 /* I nomi con cui il resto della plancia chiede la stessa cosa. Un disegno solo,
@@ -196,6 +251,77 @@ const ALIAS = Object.freeze({
   irrigazione: "irrigation",
   ascensore: "lift",
   casa: "home",
+  /* Le voci nuove del catalogo unico: ognuna al suo disegno di famiglia. */
+  alarm: "security",
+  allarme: "security",
+  warning: "bell",
+  attenzione: "bell",
+  informazione: "info",
+  risolto: "check",
+  errore: "error",
+  bloccato: "lock",
+  unlock: "lock",
+  sbloccato: "lock",
+  serratura: "lock",
+  window: "shutters",
+  finestra: "shutters",
+  garage: "room-garage",
+  movimento: "motion",
+  presence: "motion",
+  presenza: "motion",
+  fire: "fireplace",
+  incendio: "fireplace",
+  fumo: "smoke",
+  gas: "smoke",
+  leak: "water",
+  perdita: "water",
+  flood: "water",
+  allagamento: "water",
+  temperatura: "thermometer",
+  humidity: "water",
+  umidita: "water",
+  sole: "sun",
+  notte: "moon",
+  vento: "wind",
+  rain: "water",
+  pioggia: "water",
+  "battery-low": "battery",
+  plug: "socket",
+  vacuum: "robot-vacuum",
+  aspirapolvere: "robot-vacuum",
+  pool: "room-pool",
+  piscina: "room-pool",
+  tv: "television",
+  casse: "speaker",
+  musica: "speaker",
+  music: "speaker",
+  wifi: "router",
+  rete: "router",
+  persona: "person",
+  animale: "pet",
+  pacco: "package",
+  posta: "mail",
+  telefono: "phone",
+  scadenza: "timer",
+  calendar: "timer",
+  shopping: "cart",
+  spesa: "cart",
+  todo: "list",
+  chiave: "key",
+  bed: "room-bedroom",
+  letto: "room-bedroom",
+  away: "door",
+  party: "scene",
+  festa: "scene",
+  movie: "scene",
+  film: "scene",
+  clean: "broom",
+  pulizie: "broom",
+  manutenzione: "tools",
+  salute: "heart",
+  aggiorna: "refresh",
+  restart: "refresh",
+  riavvia: "refresh",
 });
 
 const pulito = (valore) =>

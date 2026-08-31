@@ -12,7 +12,7 @@ import {
   normalizeDoorPin,
 } from "../core/security-door-model.js";
 import { entitaDellePrese, iconaPortaMarkup } from "./security-doors-section.js";
-import { openEmojiPicker } from "./beta11-real-device-polish-section.js";
+import { openIconPicker } from "./icon-engine-section.js";
 import {
   clean,
   doc,
@@ -30,6 +30,11 @@ const state = (root[KEY] ||= { installed: false, aperto: -1 });
 
 export const DOORS_EDITOR_TAB = "doors";
 const CONFIG_KEY = "cd_security_doors";
+
+/* L'icona di serie di una porta e' quella del CATALOGO di casa, non un'emoji
+ * di sistema: «anche in primo inserimento, sulla riga icona vedo una porta che
+ * non appartiene al catalogo nostro». Il token lo disegna il motore. */
+const ICONA_PORTA = "mdi:door-closed";
 
 /* L'editor lavora sulle righe grezze: una porta appena aggiunta e' vuota, e la
  * normalizzazione — che le righe non valide le scarta — la farebbe sparire
@@ -53,7 +58,7 @@ function rigaMarkup(door, index) {
   return `<article class="ed-row dm-door-ed-row" data-door-index="${index}" data-open="${aperto}">
     <div class="dm-door-ed-head">
       <span class="dm-door-ed-icon" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
-      <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDi(door, index))}</strong><small class="ed-row-old mono">${esc(clean(door.entity) || t("nessuna entità", "no entity"))}${door.pin ? " · 🔒 PIN" : ""}</small></span>
+      <span class="ed-row-main dm-door-ed-testo"><strong class="ed-row-new">${esc(nomeDi(door, index))}</strong><small class="ed-row-old mono">${esc(clean(door.entity) || t("nessuna entità", "no entity"))}${door.pin ? " · 🔒 PIN" : ""}</small></span>
       <button type="button" class="ed-del dm-door-ed-edit" data-door-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
       <button type="button" class="ed-del dm-door-ed-del" data-door-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
     </div>
@@ -62,7 +67,7 @@ function rigaMarkup(door, index) {
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Entità che apre", "Opening entity")}</span>
         <span class="ed-form-row"><input id="dm-door-${index}-entity" class="ed-input mono" data-door-field="entity" value="${esc(door.entity)}" placeholder="lock.portone" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-door-pick="dm-door-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
         <small>${t("Serratura, pulsante, relè, cancello o script: lock.*, button.*, switch.*, cover.*, script.*…", "Lock, button, relay, gate or script: lock.*, button.*, switch.*, cover.*, script.*…")}</small></label>
-      <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input id="dm-door-${index}-icon" class="ed-input" data-door-field="icon" value="${esc(door.icon || "🚪")}" maxlength="4"><button type="button" class="dm-door-icon-btn" data-door-icon-pick="dm-door-${index}-icon" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span></label>
+      <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input id="dm-door-${index}-icon" class="ed-input" data-door-field="icon" value="${esc(door.icon || ICONA_PORTA)}" maxlength="24"><button type="button" class="dm-door-icon-btn" data-door-icon-pick="dm-door-${index}-icon" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span></label>
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("PIN (facoltativo)", "PIN (optional)")}</span><span class="ed-form-row"><input id="dm-door-${index}-pin" class="ed-input mono" data-door-field="pin" value="${esc(door.pin)}" inputmode="numeric" autocomplete="off" placeholder="1234"></span>
         <small>${t("Da 4 a 8 cifre: prima di aprire viene chiesto il codice, contro i tocchi accidentali. Vuoto = solo conferma.", "4 to 8 digits: the code is asked before opening, against accidental taps. Empty = confirm only.")}</small></label>
       <output class="dm-door-ed-error" data-door-error></output>
@@ -136,7 +141,7 @@ function onClick(event) {
     state.aperto = raw.length;
     writeJsonIfChanged(CONFIG_KEY, [
       ...raw,
-      { id: `door-${Date.now().toString(36)}`, name: "", entity: "", icon: "🚪", pin: "" },
+      { id: `door-${Date.now().toString(36)}`, name: "", entity: "", icon: ICONA_PORTA, pin: "" },
     ]);
     ridisegna();
     return;
@@ -156,7 +161,7 @@ function onClick(event) {
   if (pickIcona) {
     event.preventDefault();
     const input = body.querySelector(`#${CSS.escape(clean(pickIcona.dataset.doorIconPick))}`);
-    if (input) openEmojiPicker(input, `🚪 ${t("Scegli icona", "Choose icon")}`);
+    if (input) openIconPicker(input, "action");
     return;
   }
   const riga = event.target.closest("[data-door-index]");
@@ -273,6 +278,11 @@ function installStyles() {
       #ed-body .dm-door-ed-list{display:grid;gap:8px;margin-bottom:10px}
       #ed-body .dm-door-ed-row{display:block!important;padding:0!important;overflow:hidden}
       #ed-body .dm-door-ed-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
+      /* Il nome e l'entita' erano incollati: «dopo salvato, nome porta e'
+       * troppo attaccato a nome entita'». Vanno su due righe loro. */
+      #ed-body .dm-door-ed-testo{display:grid!important;gap:3px!important;min-width:0}
+      #ed-body .dm-door-ed-testo .ed-row-new{line-height:1.25}
+      #ed-body .dm-door-ed-testo .ed-row-old{opacity:.72;font-size:11.5px;line-height:1.3}
       #ed-body .dm-door-ed-icon{font-size:18px}
       #ed-body .dm-door-ed-body{display:grid;gap:8px;padding:0 12px 12px}
       #ed-body .dm-door-ed-body[hidden]{display:none!important}

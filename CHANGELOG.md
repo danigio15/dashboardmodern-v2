@@ -5,6 +5,82 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.3
+
+### Nuovo
+
+- **La configurazione della lavatrice sta nelle Azioni rapide.** Scelto «🧺
+  Popup Lavatrice» dal menu dell'azione compare la carta intera: i programmi
+  — nome, entita', icona, quanti ne vuoi, con l'icona presa dal catalogo di
+  casa — e le caselle della finestra (presa, avvio ciclo, fase, tempo,
+  programma, temperatura, centrifuga, potenza della presa). Sono gli stessi
+  slot della scheda Lavatrice in Sezioni: quello che si scrive di qua si
+  ritrova di la'. Il ⚙️ dentro al popup non c'e' piu'.
+- **Il catalogo delle icone e' uno solo, e piu' ampio.** Le azioni rapide
+  passano da 21 a 81 voci — avvisi, aperture, allagamenti, meteo, stanze,
+  apparecchi, persone, promemoria — ognuna col suo disegno nello stile della
+  plancia. E ogni casella che chiede un'icona apre quel catalogo: anche le
+  stanze, i piani, le temperature e il Report, che fino a ieri aprivano la
+  griglia di emoji di sistema del guscio.
+
+### Corretto
+
+- **La plancia non si apre piu' a pezzi.** Il velo si scioglieva nello stesso
+  istante in cui i moduli si dicevano installati, mentre una quarantina di
+  loro doveva ancora dipingere: si vedeva la pagina ricomporsi. Ora il velo
+  aspetta che la plancia sia davvero dipinta, e i conti degli
+  elettrodomestici non girano piu' fuori scena.
+- **Le telecamere si aprono subito.** A ogni giro il travaso strappava il
+  `src` alle immagini gia' scaricate: riquadro nero e nuovo scaricamento,
+  all'infinito. Ora l'immagine resta dov'e', le richieste in volo sono al
+  massimo due e la spazzata delle chiavi morte passa ogni cinque secondi
+  invece che a ogni fotogramma.
+- **Il popup Temperatura si legge.** Temperatura e umidita' non stanno piu'
+  appiccicate: l'umidita' ha la sua riga sotto il numero grande.
+- **Il Chiudi e' lo stesso ovunque.** Tutte le finestre della plancia
+  chiudono con la stessa pastiglia scritta «✕ CHIUDI» — niente piu' tondini
+  con la crocetta doppia ne' eccezioni per lo storico. E le intestazioni
+  restano alte uguali: la pastiglia e' piu' larga del tondino, e da telefono
+  i titoli lunghi andavano a capo portandosi dietro una riga in piu'.
+- **Il cerchio Elettrodomestici somma davvero, e il popup non sfarfalla.**
+  La potenza si cerca anche nei campi espliciti dell'apparecchio, e il popup
+  dei sotto-carichi aggiorna le carte al loro posto invece di rifarle da
+  capo a ogni battito.
+- **Il popup dei carichi resta al passo con quello che mostra.** Aggiornare
+  le carte al loro posto voleva dire non toccare piu' la testata: cambiando
+  nome, icona, colore o periodo del cerchio restava scritto quello di prima
+  fino alla riapertura. E la riga dei kWh di oggi ora compare e sparisce
+  davvero, invece di mancare per sempre o restare col numero di ieri.
+- **Lo storico non si fa scrivere sopra.** Aprendo una voce non mappata
+  mentre una richiesta di prima era ancora per aria, quella arrivava dopo e
+  copriva la spiegazione col grafico dell'altra entita'.
+- **La presa in solo lettura non si accende nemmeno toccando la card.** Le
+  quattro strade che aggiravano il divieto — card delle Luci, pagina Stanze,
+  tessera della Home, `toggle` del guscio — sono chiuse: al tocco si apre la
+  finestra delle informazioni, col lucchetto e la spiegazione. E anche quella
+  finestra ora sa del divieto: mostrava il tasto acceso e il comando partiva
+  davvero, perche' il modello della luce dava per buono che si comandasse.
+- **Gli elettrodomestici col flag non si spengono, e il tasto non sparisce.**
+  La levetta seguiva l'entita' anche a comando nascosto, e la firma della
+  card non guardava il flag: da spento il tasto se ne andava.
+- **Lo stato della caldaia sta solo nel Caldo.** Fra i condizionatori non
+  c'entra niente, e adesso il riquadro li' non c'e' proprio: si spegneva con
+  l'attributo `hidden`, che pero' perdeva contro la regola di stile della
+  casella, e nel Freddo restava un rettangolo vuoto con dentro «--».
+- **Le carte del Clima restano nel Clima.** Non compaiono piu' in tutte le
+  schede della configurazione: si ancorano al modulo vivo e si ritirano da
+  sole se finiscono fuori posto.
+- **Lo storico del MiniPC dice cosa manca.** Disco e temperatura CPU non
+  aprivano piu' niente: la guardia leggeva gli stati da un posto che non
+  esiste. Ora la finestra si apre e spiega che la voce va mappata.
+- **Le porte delle Aperture nascono col disegno di casa.** L'icona di
+  partenza e' quella del catalogo, il selettore e' quello unico, e il nome
+  della porta non e' piu' incollato al nome dell'entita'.
+- **L'icona scelta si vede, non si legge.** Dove il pannello stampa la
+  casella come testo nudo — i programmi della lavatrice, lo Stato termico,
+  le linguette dei piani — il catalogo scrive il segno invece del nome del
+  disegno: prima ci sarebbe finito «mdi:washing-machine» per esteso.
+
 ## 1.4.2
 
 ### Nuovo
