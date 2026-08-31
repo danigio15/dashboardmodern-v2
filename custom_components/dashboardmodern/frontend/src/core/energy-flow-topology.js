@@ -270,7 +270,25 @@ export function subloadsOf(load = {}, loads = [], appliances = []) {
   const fromAppliances = (Array.isArray(appliances) ? appliances : []).filter(
     (item) => tagged(item) && !known.has(clean(item.id)),
   );
-  return [...own, ...fromAppliances];
+  /* Il cerchio puo' essere una STANZA: «flussi raggruppati per stanza,
+   * cerchio = stanza col totale». Con `flow_room` sul carico entrano tutti
+   * gli elettrodomestici di quella stanza — anche quelli configurati domani,
+   * senza altro da fare — tranne chi e' gia' dentro un altro cerchio, che
+   * altrimenti verrebbe contato due volte. */
+  const stanza = clean(load?.metadata?.flow_room).toLowerCase();
+  let fromRoom = [];
+  if (stanza) {
+    for (const item of [...own, ...fromAppliances]) known.add(clean(item.id));
+    fromRoom = (Array.isArray(appliances) ? appliances : []).filter((item) => {
+      if (!item || known.has(clean(item.id))) return false;
+      const suo = clean(item?.metadata?.beta27_subload_group);
+      if (suo && suo !== group) return false;
+      return [item.room_id, item.roomId, item.room].some(
+        (voce) => clean(voce).toLowerCase() === stanza,
+      );
+    });
+  }
+  return [...own, ...fromAppliances, ...fromRoom];
 }
 
 /* A circle holding appliances reads as their sum.

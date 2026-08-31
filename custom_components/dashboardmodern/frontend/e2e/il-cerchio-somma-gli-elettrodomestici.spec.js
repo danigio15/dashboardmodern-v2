@@ -66,3 +66,49 @@ test("il cerchio degli elettrodomestici porta i loro watt", async ({ page }, tes
   );
   expect(bolla.some((b) => b.nome === "Cucina" && /312/.test(b.valore))).toBe(true);
 });
+
+test("il cerchio puo' essere una stanza col suo totale", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  const seme = structuredClone(SEME);
+  seme.sections.rooms = [{ id: "room-salone", name: "Salone" }];
+  seme.sections.loads = [
+    {
+      id: "cerchio-salone",
+      name: "Salone",
+      icon: "🛋️",
+      order: 0,
+      metadata: { flow_room: "room-salone" },
+    },
+  ];
+  seme.sections.appliances = [
+    {
+      id: "tv",
+      name: "TV",
+      type: "generico",
+      power_entity: "sensor.tv_w",
+      room_id: "room-salone",
+    },
+  ];
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, seme);
+  await page.evaluate(() => {
+    const raw = eval("_RAW_STATES");
+    raw["sensor.tv_w"] = {
+      entity_id: "sensor.tv_w",
+      state: "121",
+      attributes: { unit_of_measurement: "W" },
+    };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page
+    .locator('.tab[data-tab="energy"]')
+    .first()
+    .evaluate((b) => b.click());
+  await page.waitForTimeout(1500);
+  const bolle = await page.evaluate(() =>
+    [...document.querySelectorAll("#page-energy [data-dm-flow-node]")].map((nodo) =>
+      (nodo.textContent || "").trim(),
+    ),
+  );
+  expect(bolle.some((testo) => testo.includes("Salone") && /121/.test(testo))).toBe(true);
+});

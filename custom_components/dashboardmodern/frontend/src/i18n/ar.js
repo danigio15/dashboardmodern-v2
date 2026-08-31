@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "تدفق أحمال الطاقة",
   "Energy meter (kWh)": "عداد الطاقة (ك.و.س)",
   "Energy save failed": "تعذّر حفظ «الطاقة»",
+  "Circle = room": "الدائرة = غرفة",
+  "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "أجهزة تلك الغرفة تنضم للدائرة تلقائيًا، حتى المستقبلية؛ ومن هو داخل دائرة أخرى لا يُحسب مرتين.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "عند الإيقاف يكفي كيان الطقس أعلاه: الحرارة والرطوبة والرياح تُقرأ منه.",
   "Use your own entities for the weather station": "استخدم كياناتك الخاصة لمحطة الطقس",
   "On cards show the room temperature big (target below)": "في البطاقات اعرض حرارة الغرفة كبيرة (الهدف بالأسفل)",

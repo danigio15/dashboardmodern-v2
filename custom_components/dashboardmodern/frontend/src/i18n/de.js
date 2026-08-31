@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "Verbraucherfluss der Energie",
   "Energy meter (kWh)": "Energiezähler (kWh)",
   "Energy save failed": "Speichern der Energie fehlgeschlagen",
+  "Circle = room": "Kreis = Raum",
+  "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "Die Geräte dieses Raums treten dem Kreis von selbst bei, künftige eingeschlossen; was schon in einem anderen Kreis steckt, wird nicht doppelt gezählt.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Aus: die Weather-Entität oben genügt — Temperatur, Feuchte und Wind kommen von ihr.",
   "Use your own entities for the weather station": "Eigene Entitäten für die Wetterstation verwenden",
   "On cards show the room temperature big (target below)": "Auf den Karten die Raumtemperatur groß zeigen (Ziel darunter)",

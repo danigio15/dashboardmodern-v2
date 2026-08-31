@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "Verbruikersstroom van de energie",
   "Energy meter (kWh)": "Energiemeter (kWh)",
   "Energy save failed": "Opslaan van Energie mislukt",
+  "Circle = room": "Cirkel = kamer",
+  "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "De apparaten van die kamer sluiten zich vanzelf bij de cirkel aan, ook toekomstige; wat al in een andere cirkel zit, wordt niet dubbel geteld.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Uit: de weather-entiteit hierboven volstaat — temperatuur, vochtigheid en wind komen daarvandaan.",
   "Use your own entities for the weather station": "Eigen entiteiten voor het weerstation gebruiken",
   "On cards show the room temperature big (target below)": "Toon op de kaarten de kamertemperatuur groot (doel eronder)",

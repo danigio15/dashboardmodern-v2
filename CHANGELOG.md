@@ -9,6 +9,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **Un cerchio del flusso puo' essere una stanza.** Nella scheda di un
+  carico c'e' «Cerchio = stanza»: scelta la stanza, i suoi
+  elettrodomestici entrano nel cerchio da soli — anche quelli configurati
+  domani — e il cerchio ne mostra il totale; chi sta gia' in un altro
+  cerchio non si conta due volte. Il popup del cerchio li elenca tutti.
+
 - **La mappatura del Meteo si sfoltisce.** Nella scheda Home della
   mappatura i cinque campi della stazione — temperatura, umidita',
   percepita, vento, direzione — stanno dietro la casella «Usa entita'

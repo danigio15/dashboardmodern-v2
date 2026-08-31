@@ -545,3 +545,37 @@ test("il cerchio somma anche gli elettrodomestici del mondo vecchio", () => {
   });
   assert.equal(muto.nodes[0].value, null);
 });
+
+test("il cerchio puo' essere una stanza: i suoi apparecchi entrano da soli", () => {
+  /* «Flussi raggruppati per stanza — cerchio = stanza col totale». Chi sta
+   * gia' dentro un altro cerchio non si conta due volte, e le altre stanze
+   * non c'entrano. */
+  const model = flowStageModel({
+    loads: [{ id: "cerchio-salone", name: "Salone", metadata: { flow_room: "room-salone" } }],
+    appliances: [
+      { id: "tv", name: "TV", power_entity: "sensor.tv_w", room_id: "room-salone", metadata: {} },
+      {
+        id: "frigo",
+        name: "Frigo",
+        power_entity: "sensor.frigo_w",
+        room_id: "room-cucina",
+        metadata: {},
+      },
+      {
+        id: "stufa",
+        name: "Stufa",
+        power_entity: "sensor.stufa_w",
+        room_id: "room-salone",
+        metadata: { beta27_subload_group: "altro-cerchio" },
+      },
+    ],
+    states: {
+      "sensor.tv_w": { state: "120", attributes: { unit_of_measurement: "W" } },
+      "sensor.frigo_w": { state: "80", attributes: { unit_of_measurement: "W" } },
+      "sensor.stufa_w": { state: "900", attributes: { unit_of_measurement: "W" } },
+    },
+    period: "instant",
+  });
+  assert.equal(model.nodes[0].value, 120);
+  assert.equal(model.nodes[0].children, 1);
+});

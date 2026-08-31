@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "電力の負荷フロー",
   "Energy meter (kWh)": "電力量計 (kWh)",
   "Energy save failed": "エネルギーの保存に失敗しました",
+  "Circle = room": "サークル = 部屋",
+  "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "その部屋の家電は自動でサークルに入ります（今後追加分も）。すでに別のサークルにあるものは二重に数えません。",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "オフなら上の weather エンティティで十分：気温・湿度・風はそこから読みます。",
   "Use your own entities for the weather station": "気象ステーションに独自のエンティティを使う",
   "On cards show the room temperature big (target below)": "カードでは室温を大きく表示（設定温度は下）",

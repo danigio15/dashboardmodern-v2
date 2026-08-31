@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "전력 부하 흐름",
   "Energy meter (kWh)": "전력량계 (kWh)",
   "Energy save failed": "에너지 저장에 실패했습니다",
+  "Circle = room": "원 = 방",
+  "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "그 방의 가전은 스스로 원에 들어옵니다(앞으로 추가될 것도 포함). 이미 다른 원에 있는 것은 두 번 세지 않습니다.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "끄면 위의 weather 엔터티로 충분합니다. 온도·습도·바람을 거기서 읽습니다.",
   "Use your own entities for the weather station": "기상 스테이션에 자체 엔터티 사용",
   "On cards show the room temperature big (target below)": "카드에서 실내 온도를 크게 표시 (목표는 아래)",

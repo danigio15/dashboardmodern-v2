@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "Поток нагрузок энергии",
   "Energy meter (kWh)": "Счётчик энергии (кВт·ч)",
   "Energy save failed": "Не удалось сохранить «Энергию»",
+  "Circle = room": "Круг = комната",
+  "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "Приборы этой комнаты сами входят в круг, включая будущие; то, что уже в другом круге, дважды не считается.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Выключено — достаточно сущности weather выше: температура, влажность и ветер читаются из неё.",
   "Use your own entities for the weather station": "Свои сущности для метеостанции",
   "On cards show the room temperature big (target below)": "На карточках показывать крупно температуру в комнате (цель ниже)",

@@ -158,8 +158,7 @@ function elettrodomesticiLiberi() {
   return elettrodomestici()
     .map((device, index) => ({ device, index }))
     .filter(
-      ({ device }) =>
-        device && clean(device.name) && !clean(device.metadata?.beta27_subload_group),
+      ({ device }) => device && clean(device.name) && !clean(device.metadata?.beta27_subload_group),
     );
 }
 
@@ -207,6 +206,48 @@ async function assegnaElettrodomestico(panel, load, index) {
   return true;
 }
 
+/* Il cerchio puo' essere una stanza intera: «flussi raggruppati per stanza,
+ * cerchio = stanza col totale». La scelta vive in `metadata.flow_room` sul
+ * carico canonico e si scrive subito, come l'assegnazione di un
+ * elettrodomestico: gli apparecchi della stanza entrano da soli, anche
+ * quelli configurati domani. */
+function carichiCanonici() {
+  const stored = section("loads", null);
+  if (Array.isArray(stored)) return stored.slice();
+  const legacy = readJson("cd_loads", []);
+  return Array.isArray(legacy) ? legacy : [];
+}
+
+function stanzaDelCerchio(load) {
+  const canonico = carichiCanonici().find((voce) => clean(voce.id) === clean(load.id));
+  return clean(canonico?.metadata?.flow_room);
+}
+
+async function impostaStanzaDelCerchio(load, roomId) {
+  const lista = carichiCanonici();
+  const at = lista.findIndex((voce) => clean(voce.id) === clean(load.id));
+  if (at < 0) return false;
+  lista[at] = {
+    ...lista[at],
+    metadata: { ...(lista[at].metadata || {}), flow_room: clean(roomId) },
+  };
+  const store = dashboardStore();
+  if (store?.replaceSection) await store.replaceSection("loads", lista);
+  else {
+    writeJsonIfChanged("cd_loads", lista);
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  }
+  root.dmRefreshEnergyFlows?.();
+  return true;
+}
+
+function stanzeDiCasa() {
+  const stored = section("rooms", null);
+  const lista = Array.isArray(stored) && stored.length ? stored : readJson("cd_stanze", []);
+  return (Array.isArray(lista) ? lista : []).filter((voce) => clean(voce?.name));
+}
+
 function element(tag, className = "", text = "") {
   const node = doc.createElement(tag);
   if (className) node.className = className;
@@ -235,7 +276,12 @@ function preview(load, index) {
   return node;
 }
 
-function textField(label, value, onChange, { className = "ed-input", type = "text", hook = "" } = {}) {
+function textField(
+  label,
+  value,
+  onChange,
+  { className = "ed-input", type = "text", hook = "" } = {},
+) {
   const field = element("label", "ed-slot");
   field.append(element("span", "ed-slot-lbl", label));
   const input = doc.createElement("input");
@@ -360,10 +406,7 @@ function subloadRow(panel, load, child, index) {
       `dm-loads-${child.id}-total`,
       t("Contatore totale", "Total meter"),
       child.total,
-      t(
-        "Da qui si calcolano giorno e mese.",
-        "Day and month are calculated from this one.",
-      ),
+      t("Da qui si calcolano giorno e mese.", "Day and month are calculated from this one."),
       (value) => {
         child.total = value;
         state.dirty = true;
@@ -600,6 +643,34 @@ function loadCard(panel, load, index, total) {
       ),
     ),
   );
+  /* La via rapida: il cerchio segue una stanza intera. */
+  const stanze = stanzeDiCasa();
+  if (stanze.length && caricoDelPrimoImpianto(load)) {
+    const riga = element("label", "ed-slot dm-loads-room-circle");
+    riga.append(element("span", "ed-slot-lbl", `🛋️ ${t("Cerchio = stanza", "Circle = room")}`));
+    const scelta = doc.createElement("select");
+    scelta.className = "ed-input";
+    const salvata = stanzaDelCerchio(load);
+    scelta.append(new Option(`— ${t("Nessuna", "None")} —`, ""));
+    for (const stanza of stanze) {
+      const valore = clean(stanza.id || stanza.name);
+      scelta.append(new Option(stanza.name, valore, false, valore === salvata));
+    }
+    scelta.addEventListener("change", () => impostaStanzaDelCerchio(load, scelta.value));
+    riga.append(scelta);
+    riga.append(
+      element(
+        "small",
+        "",
+        t(
+          "Gli elettrodomestici di quella stanza entrano nel cerchio da soli, anche quelli configurati domani; chi sta già in un altro cerchio non si conta due volte.",
+          "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.",
+        ),
+      ),
+    );
+    children.append(riga);
+  }
+
   const list = element("div", "ed-list");
   if (!load.children.length)
     list.append(element("div", "ed-empty", t("Nessun dispositivo.", "No appliance yet.")));
