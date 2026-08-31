@@ -96,16 +96,23 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
 
   assert.equal(relative.filter((file) => file.endsWith("section-runtime.js")).length, 1);
   assert.equal(relative.filter((file) => file.endsWith("legacy-sections-registry.js")).length, 1);
-  assert.deepEqual(relative.filter((file) => /legacy\/release-\d+/.test(file)), []);
+  assert.deepEqual(
+    relative.filter((file) => /legacy\/release-\d+/.test(file)),
+    [],
+  );
   assert.deepEqual(
     relative.filter((file) =>
-      /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard|runtime-consolidated/.test(file),
+      /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard|runtime-consolidated/.test(
+        file,
+      ),
     ),
     [],
   );
   assert.deepEqual(
     relative.filter((file) =>
-      /mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|runtime-startup-coordinator|report-mobile-fixes/.test(file),
+      /mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|runtime-startup-coordinator|report-mobile-fixes/.test(
+        file,
+      ),
     ),
     [],
   );
@@ -509,7 +516,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 182 con le voci termiche del popup Caldo: le tre righe cablate nel
   // guscio (una addirittura su switch.caldaia) diventano `cd_termico_caldo`,
   // configurabili dalla scheda Clima — e senza voci il pannello sparisce.
-  assert.ok(relative.length <= 182, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 183 col popup «Clima attivi» che distingue chi scalda da chi raffresca
+  // e dice da quanto tempo (`il-popup-del-clima-distingue-section.js`): il
+  // guscio mescolava heat e cool in una lista sola, senza orologio.
+  assert.ok(
+    relative.length <= 183,
+    `production graph unexpectedly grew to ${relative.length} modules`,
+  );
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -557,7 +570,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
     ],
   );
 
-  const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
+  const observers = [...graph.entries()].filter(([, source]) =>
+    /new\s+(?:root\.)?MutationObserver\s*\(/.test(source),
+  );
   // Beta17 contributes one page-scoped observer so delayed legacy writes on
   // #page-temp cannot resurrect the progress placeholder. Beta24 may add one
   // node-scoped SOC observer. Beta26 adds one #temp-grid-scoped observer. The

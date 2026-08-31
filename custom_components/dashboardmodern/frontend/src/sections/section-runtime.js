@@ -44,6 +44,7 @@ import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
+import { installPopupClimaDistingue } from "./il-popup-del-clima-distingue-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEntitySearchSection } from "./entity-search-section.js";
@@ -383,28 +384,36 @@ function applianceKpiCard(kind) {
   const mounted = grid.querySelector(`[data-dm-appliance-kpi="${kind}"]`);
   if (mounted) return mounted;
   const patterns = {
-    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
+    running:
+      /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
     power: /consumo\s+istantaneo|instant(?:aneous)?\s+(?:power|consumption)|power\s+now/i,
     daily: /energia\s+giornaliera|daily\s+energy/i,
     alerts: /avvisi|alerts|warnings/i,
   };
   const pattern = patterns[kind];
   if (!pattern) return null;
-  return [...grid.querySelectorAll(".glance-card")].find((card) => pattern.test(clean(card.textContent))) || null;
+  return (
+    [...grid.querySelectorAll(".glance-card")].find((card) =>
+      pattern.test(clean(card.textContent)),
+    ) || null
+  );
 }
 
 function applianceKpiLabelNode(card, kind) {
   if (!card) return null;
   const patterns = {
-    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
+    running:
+      /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
     power: /consumo\s+istantaneo|instant(?:aneous)?\s+(?:power|consumption)|power\s+now/i,
   };
   const preferred = card.querySelector(".g-label,.glance-label,[data-glance-label]");
   if (preferred) return preferred;
   const pattern = patterns[kind];
-  return [...card.querySelectorAll("span,small,div")].find(
-    (node) => node.childElementCount === 0 && pattern?.test(clean(node.textContent)),
-  ) || null;
+  return (
+    [...card.querySelectorAll("span,small,div")].find(
+      (node) => node.childElementCount === 0 && pattern?.test(clean(node.textContent)),
+    ) || null
+  );
 }
 
 function formatApplianceWatts(value) {
@@ -491,9 +500,10 @@ function applianceKpiRow(model, kind, totalWatts = 0) {
   const room = clean(model?.room?.name);
   const watts = Number(model?.watts);
   const measurable = Number.isFinite(watts);
-  const right = kind === "running"
-    ? `<strong>${measurable ? formatApplianceWatts(watts) : htmlEscape(model.label)}</strong><small>${htmlEscape(model.label)}</small>`
-    : `<strong>${formatApplianceWatts(watts)}</strong><small>${totalWatts > 0 ? `${Math.round((Math.max(0, watts) / totalWatts) * 100)}%` : "0%"}</small>`;
+  const right =
+    kind === "running"
+      ? `<strong>${measurable ? formatApplianceWatts(watts) : htmlEscape(model.label)}</strong><small>${htmlEscape(model.label)}</small>`
+      : `<strong>${formatApplianceWatts(watts)}</strong><small>${totalWatts > 0 ? `${Math.round((Math.max(0, watts) / totalWatts) * 100)}%` : "0%"}</small>`;
   return `<div class="dm-appliance-kpi-row" data-appliance-id="${htmlEscape(model.id)}">
     <span class="dm-appliance-kpi-visual dm-ap-mech is-${htmlEscape(model?.mode === "running" ? "run" : model?.mode === "standby" ? "standby" : "off")}">${applianceKpiArtwork(model)}</span>
     <span class="dm-appliance-kpi-row-main"><strong>${htmlEscape(model.name)}</strong>${room ? `<small>🏠 ${htmlEscape(room)}</small>` : ""}</span>
@@ -542,7 +552,10 @@ function syncApplianceKpis() {
     runningCard.dataset.dmApplianceKpi = "running";
     runningCard.setAttribute("role", "button");
     runningCard.tabIndex = 0;
-    runningCard.setAttribute("aria-label", t("Apri elettrodomestici in funzione", "Open appliances running"));
+    runningCard.setAttribute(
+      "aria-label",
+      t("Apri elettrodomestici in funzione", "Open appliances running"),
+    );
     const label = applianceKpiLabelNode(runningCard, "running");
     if (label) label.textContent = t("IN FUNZIONE", "RUNNING");
     const value = runningCard.querySelector(".g-val");
@@ -554,7 +567,10 @@ function syncApplianceKpis() {
     powerCard.dataset.dmApplianceKpi = "power";
     powerCard.setAttribute("role", "button");
     powerCard.tabIndex = 0;
-    powerCard.setAttribute("aria-label", t("Apri consumo istantaneo elettrodomestici", "Open instant appliance power"));
+    powerCard.setAttribute(
+      "aria-label",
+      t("Apri consumo istantaneo elettrodomestici", "Open instant appliance power"),
+    );
     const value = powerCard.querySelector(".g-val");
     if (value) value.textContent = formatApplianceWatts(totalWatts);
   }
@@ -614,25 +630,37 @@ function installApplianceKpiPopups() {
   for (const name of ["renderAppliances", "renderApplianceSection", "render"]) {
     wrapFunction(name, "__dmApplianceKpiPopups", schedule);
   }
-  doc.addEventListener("click", (event) => {
-    const card = event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-kpi="running"],#appl-kpi-grid [data-dm-appliance-kpi="power"]');
-    if (card) {
-      const kind = card.dataset.dmApplianceKpi;
-      const popup = ensureApplianceKpiPopup(kind);
-      renderApplianceKpiPopup(kind);
-      if (popup) {
-        popup.hidden = false;
-        popup.classList.add("show");
+  doc.addEventListener(
+    "click",
+    (event) => {
+      const card = event.target?.closest?.(
+        '#appl-kpi-grid [data-dm-appliance-kpi="running"],#appl-kpi-grid [data-dm-appliance-kpi="power"]',
+      );
+      if (card) {
+        const kind = card.dataset.dmApplianceKpi;
+        const popup = ensureApplianceKpiPopup(kind);
+        renderApplianceKpiPopup(kind);
+        if (popup) {
+          popup.hidden = false;
+          popup.classList.add("show");
+        }
+        return;
       }
-      return;
-    }
-    if (event.target?.closest?.("[data-tab='appliances-main'],[data-tab='appliances'],.tab[data-tab='appliances-main']")) {
-      root.queueMicrotask?.(schedule);
-    }
-  }, true);
+      if (
+        event.target?.closest?.(
+          "[data-tab='appliances-main'],[data-tab='appliances'],.tab[data-tab='appliances-main']",
+        )
+      ) {
+        root.queueMicrotask?.(schedule);
+      }
+    },
+    true,
+  );
   doc.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
-    const card = event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-kpi="running"],#appl-kpi-grid [data-dm-appliance-kpi="power"]');
+    const card = event.target?.closest?.(
+      '#appl-kpi-grid [data-dm-appliance-kpi="running"],#appl-kpi-grid [data-dm-appliance-kpi="power"]',
+    );
     if (!card) return;
     event.preventDefault();
     const kind = card.dataset.dmApplianceKpi;
@@ -722,6 +750,9 @@ export function installSectionRuntime() {
     /* Le voci termiche del popup Caldo: dopo chi disegna il popup, cosi' il
      * pannello passa di mano una volta sola. */
     installTermicoDelCaldo();
+    /* Il popup Clima attivi separa caldo e freddo e dice da quanto: legge
+     * le righe che il guscio ha appena disegnato. */
+    installPopupClimaDistingue();
     /* I parametri del tasto Clima rapido chiedono alle unita' cosa accettano:
      * si installano dopo chi quelle unita' le tiene. */
     installQuickClimateEditorSection();

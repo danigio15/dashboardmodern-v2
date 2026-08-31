@@ -20,6 +20,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La pillola «Caldaia accesa» segue la caldaia configurata, e il popup
+  Clima distingue chi scalda da chi raffresca.** La pillola sotto il meteo
+  leggeva `switch.caldaia` cablato: ora segue la voce caldaia di
+  `cd_termico_caldo`, e senza una caldaia configurata sparisce. Il popup
+  «Clima attivi» mescolava tutto: ora le righe in riscaldamento stanno
+  sotto la loro testata e quelle in raffrescamento sotto la loro (quando i
+  due mondi convivono), e ogni riga — pillola compresa, e cosi' le voci del
+  pannello del popup Caldo — dice da quanto tempo e' accesa.
+
 - **Il popup degli elettrodomestici parla in parole, non in slug.** Le
   caselle delle misure stampavano il friendly name tale e quale —
   «W_KWH_FRIGO», «ENERGY_OGGI_FRIGO» — con la batteria (🔋) sopra i kWh:
