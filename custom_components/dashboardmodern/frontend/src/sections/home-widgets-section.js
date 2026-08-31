@@ -74,6 +74,10 @@ const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
 export const TODO_CONFIG_KEY = "cd_todo";
 export const WIDGETS_CONFIG_KEY = "cd_widgets";
+/* Le entita' «In evidenza» (#236): sensori sparsi che si vogliono tenere
+ * d'occhio dalla Home senza dar loro una sezione intera. La chiave e' gia'
+ * registrata in persistenza, revisione 13. */
+export const EVIDENZA_CONFIG_KEY = "cd_evidenza";
 const STALE_MS = 30000;
 /* Quanto si aspetta prima di richiedere le voci a una lista che ha appena
  * risposto con un errore — o non ha risposto affatto. */
@@ -815,11 +819,20 @@ function letturaVettura(states, auto, fuori, indice) {
   const stato = misura("dm.ev_stato_ricarica");
   if (!carica && !autonomia) return null;
   const percentuale = carica?.value == null ? null : Math.max(0, Math.min(100, carica.value));
+  /* Potenza e traguardo si SBIRCIANO senza segnarli fra i visti: la potenza
+   * resta anche una casella fra le altre, qui serve solo a dire quando la
+   * carica finisce — «ora l'auto e' in carica ma non dice quando finisce». */
+  const sbircia = (riferimento) => {
+    const entity = clean(mappa[riferimento]);
+    return entity && widgetIncludes(entity, fuori) ? numOf(states, entity) : null;
+  };
   return {
     nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
     percentuale,
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
+    kw: sbircia("dm.ev_potenza_ricarica"),
+    target: sbircia("dm.ev_target_soc"),
     altre: altreCaselleEv(states, mappa, fuori, visti),
   };
 }
@@ -948,6 +961,8 @@ function letturaAttiva(states, fuori) {
     percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
+    kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
+    target: refValue(states, "dm.ev_target_soc", fuori)?.value ?? null,
     altre: altreCaselleEv(states, mappa, fuori, visti),
   };
 }
@@ -971,7 +986,11 @@ function righeVettura(lettura, conNome) {
     righe.push({
       glyph: "🔌",
       name: `${prefisso}${t("Ricarica", "Charging")}`,
-      value: lettura.ricarica,
+      /* La parola, non il codice: «C» e' il gergo della wallbox, e in una
+       * casella si legge malissimo. La lettura e' la stessa di `attiva`. */
+      value: autoAllaPresa(lettura.ricarica)
+        ? t("In carica", "Charging")
+        : t("Scollegata", "Unplugged"),
     });
   /* E tutte le altre caselle mappate di questa vettura: sono quelle su cui
    * l'interruttore «nel widget» sta acceso, e finora non uscivano. */
@@ -985,9 +1004,13 @@ function evModel(states) {
   const profilate = vetture()
     .map((auto, indice) => letturaVettura(states, auto, fuori, indice))
     .filter(Boolean);
-  /* Con una sola vettura leggibile dai profili la tessera non cambia: e'
-   * quella che si vede da sempre, e nominarla sarebbe rumore. */
-  const letture = profilate.length > 1 ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
+  /* Il profilo comanda appena e' leggibile, anche da solo: prima, con UNA
+   * vettura profilata, si leggevano solo le chiavi globali — che si riempiono
+   * ai salvataggi successivi, la foto compresa — e un'auto con la batteria
+   * mappata nel SUO profilo restava invisibile in Home finche' non si
+   * toccava altro. Le chiavi globali restano il ripiego di chi non ha
+   * profili. */
+  const letture = profilate.length ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
   if (!letture.length) return null;
   const piu = letture.length > 1;
   const rows = letture.flatMap((lettura) => righeVettura(lettura, piu));
@@ -1021,6 +1044,11 @@ function evModel(states) {
      * attaccata alla presa. */
     ring: percentuale,
     attiva: letture.some((lettura) => autoAllaPresa(lettura.ricarica)),
+    /* Quel che serve a dire QUANDO finisce la carica: potenza e traguardo
+     * dell'auto attaccata (o della prima). Li usa il motore di analisi con la
+     * stessa formula della pagina EV, cosi' i due posti dicono la stessa ora. */
+    ricaricaKw: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.kw ?? null,
+    targetSoc: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.target ?? null,
     /* Quante auto ci sono, detto qui e non contato dalle righe.
      *
      * Un'auto sola porta due righe — la carica e l'autonomia — e chi contava le
@@ -1052,21 +1080,22 @@ function robotsModel(states) {
     .map((robot) => robotView(robot, states));
   if (!viste.length) return null;
 
-  const attivi = viste.filter((vista) => vista.cleaning);
+  /* «Al lavoro» copre entrambe le specie: chi pulisce e chi taglia. */
+  const attivi = viste.filter((vista) => vista.cleaning || vista.mowing);
   const cariche = viste.map((vista) => vista.battery).filter((carica) => carica != null);
   const piuScarico = cariche.length ? Math.min(...cariche) : null;
   return {
     key: "robot",
     accent: "#7c3aed",
     icon: "🤖",
-    label: t("Aspirapolvere", "Vacuums"),
+    label: t("Robot", "Robots"),
     value: attivi.length
       ? `${attivi.length}`
       : piuScarico == null
         ? `${viste.length}`
         : `${Math.round(piuScarico)}%`,
     caption: attivi.length
-      ? t("in pulizia", "cleaning")
+      ? t("al lavoro", "working")
       : piuScarico == null
         ? t("configurati", "configured")
         : t("carica più bassa", "lowest charge"),
@@ -1078,7 +1107,7 @@ function robotsModel(states) {
      * conta. Senza, un aspirapolvere che sta pulendo veniva annunciato come
      * fermo, e l'avviso di batteria scarica non poteva mai uscire. */
     rows: viste.map((vista) => ({
-      glyph: vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
+      glyph: vista.mowing ? "🌱" : vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
       name: vista.name,
       cleaning: vista.cleaning,
       charging: vista.charging,
@@ -1431,31 +1460,24 @@ function irrigationModel(states) {
   };
 }
 
-/* Le quattro tessere nuove condividono lo stesso dettaglio: righe con
- * un'icona, un nome e un valore. */
+/* Sotto l'analisi restano solo i COMANDI: gli interruttori veri.
+ *
+ * «Dopo la parte analisi sopra non voglio vedere quell'elenco bruttissimo di
+ * entita'»: le righe di sola lettura non fanno piu' lista — le numeriche
+ * diventano caselle sotto «Le misure» (`carteDalleRighe`), le acceso/spento
+ * stanno gia' nelle pillole de «Lo stato», come nel progetto approvato. Qui
+ * resta cio' che si preme: l'interruttore e' lo stesso delle luci —
+ * `data-dm-w-light` sa chiamare il servizio giusto per qualunque dominio. */
 function rowsDetail(widget) {
   return (widget.rows || [])
+    .filter((row) => row.comando)
     .map((row) => {
       const livello = livelloMarkup(percentualeDellaRiga(row));
-      /* Una riga che e' un comando ha un interruttore, non una scritta.
-       *
-       * La luce della piscina si vedeva accesa e dalla finestra non si poteva
-       * spegnere: era una riga di sola lettura come la temperatura dell'acqua,
-       * che infatti non si comanda. Chi guarda una finestra che dice «Luce:
-       * Acceso» si aspetta di poterla toccare, e aveva ragione. L'interruttore
-       * e' lo stesso delle luci — `data-dm-w-light` sa gia' chiamare il
-       * servizio giusto per qualunque dominio. */
-      if (row.comando)
-        return rowShell(
-          `<span class="dm-w-glyph" data-on="${row.on === true}" aria-hidden="true">${row.glyph || "•"}</span>
-           <span class="dm-w-name">${esc(row.name)}${livello}</span>
-           <button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on === true}"
-             aria-label="${esc(row.name)}"><i></i></button>`,
-        );
       return rowShell(
-        `<span class="dm-w-glyph" aria-hidden="true">${row.glyph || "•"}</span>
+        `<span class="dm-w-glyph" data-on="${row.on === true}" aria-hidden="true">${row.glyph || "•"}</span>
          <span class="dm-w-name">${esc(row.name)}${livello}</span>
-         <b class="dm-w-val">${esc(row.value)}</b>`,
+         <button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on === true}"
+           aria-label="${esc(row.name)}"><i></i></button>`,
       );
     })
     .join("");
@@ -1507,10 +1529,16 @@ function openingsModel(states) {
      * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
      * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
     const daQuando = Date.parse(stato?.last_changed ?? "");
+    const aperta = clean(stato?.state).toLowerCase() === "on";
+    const nome = friendlyName(states, entity);
     return {
       entity,
-      name: friendlyName(states, entity),
-      on: clean(stato?.state).toLowerCase() === "on",
+      name: nome,
+      on: aperta,
+      /* Da quando le aperture non fanno piu' lista sotto, la pillola e'
+       * il loro posto: porta l'icona scelta e la parola, non solo il colore. */
+      glyph: iconaApertura({ entity, name: nome }),
+      value: aperta ? t("Aperta", "Open") : t("Chiusa", "Closed"),
       daQuando: Number.isFinite(daQuando) ? daQuando : null,
     };
   });
@@ -1687,7 +1715,57 @@ function customAlertModels(states) {
     .filter(Boolean);
 }
 
+/* La tessera «In evidenza» (#236).
+ *
+ * Le altre tessere raccontano una sezione; questa racconta le entita' scelte a
+ * mano — il quadro elettrico, la sonda del rack, la pompa del pozzo — che una
+ * sezione non ce l'hanno e in Home prima non avevano un posto. La
+ * configurazione sta in `cd_evidenza`: righe `{name, icon?, entity, room_id?}`
+ * scritte nella scheda 🧩 Widget, e la tessera compare solo se almeno una riga
+ * ha la sua entita'. Ogni riga si legge con `rigaDaEntita`, che sa gia' dare a
+ * un numero la sua unita' e a un interruttore la sua parola; il nome scelto
+ * dall'utente vince su quello dell'integrazione. */
+export function evidenzaModel(states) {
+  const voci = readJson(EVIDENZA_CONFIG_KEY, []);
+  if (!Array.isArray(voci)) return null;
+  const fuori = widgetExcludedEntities();
+  const rows = voci
+    .map((voce) => {
+      const entity = clean(voce?.entity);
+      if (!entity || !widgetIncludes(entity, fuori)) return null;
+      const glifo = clean(voce?.icon) || "⭐";
+      const nome = clean(voce?.name);
+      const riga = rigaDaEntita(states, entity, glifo);
+      /* Un'entita' che adesso non risponde resta in tessera col suo trattino:
+       * e' stata scelta apposta, e sparire in silenzio direbbe «tutto bene». */
+      if (!riga)
+        return { glyph: glifo, name: nome || friendlyName(states, entity), entity, value: "—" };
+      return nome ? { ...riga, name: nome } : riga;
+    })
+    .filter(Boolean);
+  if (!rows.length) return null;
+  return {
+    key: "evidenza",
+    accent: "#eab308",
+    icon: "⭐",
+    label: t("In evidenza", "Highlights"),
+    // Il numero grande dice quante cose si stanno tenendo d'occhio; il
+    // riassunto sotto le nomina una per una col loro valore.
+    value: String(rows.length),
+    caption: rows.map((riga) => clean(`${riga.name} ${riga.value}`)).join(" · "),
+    ring: null,
+    // Si accende se qualcosa fra le evidenze e' acceso davvero.
+    attiva: rows.some((riga) => riga.on === true),
+    rows,
+  };
+}
+
 /* ── la personalizzazione (cd_widgets) ────────────────────────────────── */
+
+/* I tre modi della compatta (#224): mai, auto, sempre. «Auto» e' il difetto,
+ * e vuol dire compatta solo dove lo spazio manca — sotto i 520 pixel, deciso
+ * dalla media query del foglio, non da un giro di JavaScript. */
+const MODI_COMPATTO = Object.freeze(["mai", "auto", "sempre"]);
 
 export function widgetPreferences() {
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
@@ -1696,7 +1774,10 @@ export function widgetPreferences() {
   const excluded = Array.isArray(stored?.excluded)
     ? stored.excluded.map(clean).filter(Boolean)
     : [];
-  return { hidden, order, excluded };
+  const compatto = MODI_COMPATTO.includes(clean(stored?.compatto))
+    ? clean(stored?.compatto)
+    : "auto";
+  return { hidden, order, excluded, compatto };
 }
 
 /* Le entita' che restano fuori dai widget.
@@ -1731,6 +1812,7 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
 function widgetModels(states) {
   return applyWidgetPreferences(
     [
+      evidenzaModel(states),
       todoModel(states),
       lightsModel(states),
       climateModel(states),
@@ -1920,8 +2002,13 @@ function fallaEntrare(nodo, spazioBase, corpoMinimo) {
   if (!nodo) return;
   nodo.style.letterSpacing = "";
   nodo.style.fontSize = "";
+  /* La soglia e' un pixel intero di sforo, non due: nelle pillole compatte il
+   * nome sfora spesso di un pixel solo — colpa degli arrotondamenti a corpo
+   * 8.8 — e con la soglia larga il fitter non interveniva mai: restava il
+   * taglio coi puntini, cioe' l'ellissi spuria, su nomi che un decimo di
+   * corpo in meno avrebbe fatto entrare interi. */
   const stretta = () =>
-    nodo.scrollWidth > nodo.clientWidth + 1 || nodo.scrollHeight > nodo.clientHeight + 1;
+    nodo.scrollWidth - nodo.clientWidth >= 1 || nodo.scrollHeight - nodo.clientHeight >= 1;
   if (!stretta()) return;
   let spazio = spazioBase;
   let corpo = Number.parseFloat(root.getComputedStyle?.(nodo)?.fontSize) || 10;
@@ -1937,8 +2024,12 @@ function fallaEntrare(nodo, spazioBase, corpoMinimo) {
 }
 
 function sistemaLeScritte(dove = doc) {
+  /* Il minimo scende a 6.7: nelle pillole compatte il nome parte gia' da 8.8
+   * pixel, e fermarsi a 7.6 lasciava «Elettrodomestici» a meta' strada — ne'
+   * intero ne' leggibile. Prima si stringe la spaziatura, poi il corpo: e'
+   * l'ordine che `fallaEntrare` ha gia'. */
   for (const nome of dove?.querySelectorAll?.("[data-dm-tile-label]") || [])
-    fallaEntrare(nome, 0.11, 7.6);
+    fallaEntrare(nome, 0.11, 6.7);
   /* Anche il titolo della finestra: «Elettrodomestici» a venticinque pixel
    * con due di spaziatura finiva sotto il tasto di chiusura. */
   for (const titolo of dove?.querySelectorAll?.("[data-dm-titolo]") || [])
@@ -2442,57 +2533,23 @@ function securityDetail(widget, states) {
   return parts.join("");
 }
 
-function energyDetail(widget) {
-  const names = {
-    house: t("Casa", "House"),
-    solar: t("Solare", "Solar"),
-    grid: t("Rete", "Grid"),
-    battery: t("Batteria", "Battery"),
-  };
-  const glyphs = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
-  return widget.rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" aria-hidden="true">${glyphs[row.group]}</span>
-         <span class="dm-w-name">${esc(names[row.group])}</span>
-         <b class="dm-w-val">${formatWatts(row.watts)}</b>`,
-      ),
-    )
-    .join("");
+/* Casa, Solare, Rete e Batteria sono LETTURE: escono come caselle sotto
+ * «Le misure» (`carteDalleRighe`), non come elenco qui sotto. */
+function energyDetail() {
+  return "";
 }
 
+/* Chi lavora e' una casella de «Le misure», col suo disegno vero; qui resta
+ * solo la parola per la casa tutta spenta, che una casella non ce l'ha. */
 function appliancesDetail(widget) {
   if (!widget.running.length)
     return `<p class="dm-w-empty">✨ ${esc(t("Tutto spento", "Everything off"))}</p>`;
-  return widget.running
-    .map((row) => {
-      // L'icona e' quella vera dell'elettrodomestico — la lavatrice ha
-      // l'oblo', il forno lo sportello: lo stesso tratto della sua pagina.
-      const disegno = root.cdApplianceIcon?.(row.type, 20);
-      const icona = disegno
-        ? `<span class="dm-w-appl-ic" aria-hidden="true">${disegno}</span>`
-        : `<span class="dm-w-glyph" data-on="true" aria-hidden="true">🫧</span>`;
-      return rowShell(
-        `${icona}
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${row.watts == null ? "" : formatWatts(row.watts)}</b>`,
-      );
-    })
-    .join("");
+  return "";
 }
 
-function temperatureDetail(widget) {
-  return widget.rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" aria-hidden="true">🌡️</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${formatNumber(row.temperature, 1)}°${
-           row.humidity == null ? "" : ` · ${Math.round(row.humidity)}%`
-         }</b>`,
-      ),
-    )
-    .join("");
+/* Le stanze coi loro gradi sono caselle de «Le misure», non un elenco. */
+function temperatureDetail() {
+  return "";
 }
 
 /* L'icona di un'apertura, quando chi l'ha configurata ne ha scelta una.
@@ -2517,32 +2574,16 @@ function iconaApertura(row) {
   return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
 }
 
-function openingsDetail(widget) {
-  const rows = [...widget.rows]
-    .sort((a, b) => Number(b.on) - Number(a.on))
-    .slice(0, MAX_DETAIL_ROWS);
-  return rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${iconaApertura(row)}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${esc(row.on ? t("Aperta", "Open") : t("Chiusa", "Closed"))}</b>`,
-      ),
-    )
-    .join("");
+/* Le aperture sono acceso/spento col nome: vivono nelle pillole de «Lo
+ * stato» — aperte accese, chiuse smorte — e nelle caselle dei conteggi.
+ * L'icona scelta per riga resta a `iconaApertura`, che serve le pillole. */
+function openingsDetail() {
+  return "";
 }
 
-function batteriesDetail(widget) {
-  return widget.rows
-    .slice(0, MAX_DETAIL_ROWS)
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">${row.level <= 20 ? "🪫" : "🔋"}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${Math.round(row.level)}%</b>`,
-      ),
-    )
-    .join("");
+/* Ogni batteria col suo livello e' una casella de «Le misure». */
+function batteriesDetail() {
+  return "";
 }
 
 function floodDetail(widget) {
@@ -2556,17 +2597,9 @@ function floodDetail(widget) {
     .join("");
 }
 
-function customDetail(widget) {
-  return widget.rows
-    .slice(0, MAX_DETAIL_ROWS)
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">${esc(widget.icon)}</span>
-         <span class="dm-w-name">${esc(row.name)}</span>
-         <b class="dm-w-val">${esc(row.state)}</b>`,
-      ),
-    )
-    .join("");
+/* Anche gli avvisi personalizzati sono caselle: nome e stato, in carta. */
+function customDetail() {
+  return "";
 }
 
 /* Le miniature: i fotogrammi non stanno nel markup — li posa
@@ -2668,34 +2701,121 @@ function summaryMarkup(widget) {
  * si legge in un colpo d'occhio chi e' in funzione senza contare le righe. */
 function pilloleDelloStato(widget) {
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  /* Dodici e non otto: da quando le righe acceso/spento non fanno piu' lista
+   * sotto, le pillole sono l'unico posto dove si leggono — una casa con
+   * undici aperture le deve vedere tutte. */
   const voci = righe
     .filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name))
-    .slice(0, 8);
+    .slice(0, 12);
   if (!voci.length) return "";
   return `<h4 class="dm-w-titoletto">${esc(t("Lo stato", "The state"))}</h4>
     <div class="dm-w-pillole">${voci
       .map(
         (riga) =>
-          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${esc(clean(riga.name))}${
+          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${
+            riga.glyph ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>` : ""
+          }${esc(clean(riga.name))}${
             clean(riga.value) ? ` <b>${esc(clean(riga.value))}</b>` : ""
           }</span>`,
       )
       .join("")}</div>`;
 }
 
-/* Le caselle: le stesse misure che la tessera riassume, in grande.
+/* Le righe di sola lettura, fatte caselle.
  *
- * Le sceglieva gia' `summaryChips` per la striscia in cima alla finestra —
- * «la piu' bassa», «media», «in funzione» — ed e' esattamente quello che il
- * progetto chiama «le caselle». Non se ne inventano altre: quelle sono. */
+ * «Nel progetto dei widget non era cosi', con la lista sotto: erano tutte
+ * card oltre alla parte di analisi.» Le righe numeriche o testuali — la
+ * temperatura dell'acqua, l'autonomia dell'auto, i watt della casa — hanno
+ * gia' glifo, valore e nome: qui cambiano vestito, da elenco a caselle. Le
+ * acceso/spento restano alle pillole, i comandi restano comandi. */
+const CHIAVI_A_CARTE = new Set([
+  "evidenza",
+  "ev",
+  "solare",
+  "piscina",
+  "prese",
+  "irrigazione",
+  "robot",
+  "energia",
+  "temperatura",
+  "batterie",
+  "elettrodomestici",
+]);
+
+function carteDalleRighe(widget) {
+  const chiave = clean(widget.key);
+  if (!(CHIAVI_A_CARTE.has(chiave) || chiave.startsWith("custom-"))) return [];
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  if (chiave === "energia") {
+    const nomi = {
+      house: t("Casa", "House"),
+      solar: t("Solare", "Solar"),
+      grid: t("Rete", "Grid"),
+      battery: t("Batteria", "Battery"),
+    };
+    const glifi = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
+    return righe.map((riga) => ({
+      glyph: glifi[riga.group] || "⚡",
+      valore: formatWatts(riga.watts),
+      etichetta: nomi[riga.group] || clean(riga.group),
+    }));
+  }
+  if (chiave === "temperatura") {
+    return righe.map((riga) => ({
+      glyph: "🌡️",
+      valore: `${formatNumber(riga.temperature, 1)}°${
+        riga.humidity == null ? "" : ` · ${Math.round(riga.humidity)}%`
+      }`,
+      etichetta: clean(riga.name),
+    }));
+  }
+  if (chiave === "batterie") {
+    return righe.map((riga) => ({
+      glyph: riga.level <= 20 ? "🪫" : "🔋",
+      valore: `${Math.round(riga.level)}%`,
+      etichetta: clean(riga.name),
+    }));
+  }
+  if (chiave === "elettrodomestici") {
+    /* Chi sta lavorando, coi suoi watt e il suo disegno vero: la lavatrice
+     * ha l'oblo', il forno lo sportello. */
+    return (Array.isArray(widget.running) ? widget.running : []).map((riga) => ({
+      glyph: root.cdApplianceIcon?.(riga.type, 20) || "🫧",
+      valore: riga.watts == null ? t("in funzione", "running") : formatWatts(riga.watts),
+      etichetta: clean(riga.name),
+    }));
+  }
+  if (chiave.startsWith("custom-")) {
+    return righe.map((riga) => ({
+      glyph: clean(widget.icon) || "•",
+      valore: clean(riga.state),
+      etichetta: clean(riga.name),
+    }));
+  }
+  return righe
+    .filter((riga) => !riga.comando && typeof riga?.on !== "boolean")
+    .map((riga) => ({
+      glyph: riga.glyph || "•",
+      valore: clean(riga.value) || (riga.raw == null ? "—" : String(riga.raw)),
+      etichetta: clean(riga.name),
+    }));
+}
+
+/* Le caselle: i riassunti di `summaryChips` («la piu' bassa», «media», «in
+ * funzione») piu' le letture fatte caselle. Un titolo solo, una griglia sola. */
 function caselleDelleMisure(widget) {
-  const voci = summaryChips(widget);
+  const voci = [
+    ...summaryChips(widget).map(([etichetta, valore]) => ({ glyph: "", valore, etichetta })),
+    ...carteDalleRighe(widget),
+  ].slice(0, 12);
   if (!voci.length) return "";
   return `<h4 class="dm-w-titoletto">${esc(t("Le misure", "The readings"))}</h4>
     <div class="dm-w-caselle">${voci
       .map(
-        ([etichetta, valore]) =>
-          `<div class="dm-w-casella"><b>${esc(valore)}</b><span>${esc(etichetta)}</span></div>`,
+        (voce) =>
+          `<div class="dm-w-casella">${
+            voce.glyph ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>` : ""
+          }<b>${esc(voce.valore)}</b><span>${esc(voce.etichetta)}</span></div>`,
       )
       .join("")}</div>`;
 }
@@ -3132,6 +3252,13 @@ export function renderHomeWidgets() {
   }
   const mounted = host || ensureHost();
   if (!mounted) return false;
+  /* La modalita' compatta (#224) e' un attributo sull'ospite, e il resto lo fa
+   * il foglio: «sempre» stringe subito, «auto» stringe solo sotto i 520 pixel
+   * grazie alla media query, «mai» non lascia traccia. */
+  const compatto = widgetPreferences().compatto;
+  if (compatto === "mai") mounted.removeAttribute?.("data-dm-compatto");
+  else if (mounted.getAttribute?.("data-dm-compatto") !== compatto)
+    mounted.setAttribute?.("data-dm-compatto", compatto);
   const title = mounted.querySelector(".dm-widgets-title");
   if (title) title.textContent = t("Widget", "Widgets");
   /* La riga sotto il titolo diceva come si usa una tessera. Lo si capisce da
@@ -3434,8 +3561,22 @@ function scorriUnaRiga(riga) {
   return false;
 }
 
+/* Se le didascalie adesso sono nascoste dalla compatta: con «sempre» lo sono
+ * per forza, con «auto» solo quando la media query del foglio e' vera — e
+ * `matchMedia` risponde alla stessa domanda della stessa query. */
+function didascalieNascoste() {
+  const modo = clean(doc?.getElementById?.("dm-widgets")?.getAttribute?.("data-dm-compatto"));
+  if (modo === "sempre") return true;
+  if (modo === "auto") return Boolean(root.matchMedia?.("(max-width: 520px)")?.matches);
+  return false;
+}
+
 function scorriDidascalie(grid) {
   if (!grid?.querySelectorAll) return 0;
+  /* Con le tessere compatte le didascalie non si vedono: misurarle lo stesso
+   * sarebbe un reflow a vuoto a ogni giro di valori, su un telefono che e'
+   * proprio il posto dove la compatta scatta. */
+  if (didascalieNascoste()) return 0;
   let mossi = 0;
   for (const nastro of grid.querySelectorAll("[data-dm-tile-caption]")) {
     const finestra = nastro.parentElement;
@@ -3915,8 +4056,10 @@ html.dm-widget-popup-open{overflow:hidden}
  * vede poco». Adesso ha un fondo suo, un bordo e il colore del testo pieno, e
  * il bersaglio arriva a trentadue pixel di altezza — che e' la misura sotto la
  * quale un dito manca. */
+/* A destra, come in tutti gli altri popup della plancia: a sinistra stava
+ * addosso alla testata — «li non mi piace, e' vicino alla testata». */
 #dm-widget-popup .dm-widget-detail .dm-w-close{
-  grid-column:1/-1;grid-row:1;justify-self:start;
+  grid-column:1/-1;grid-row:1;justify-self:end;
   display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 12px 0 9px;
   border:1px solid var(--card-border,#e2e8f0);border-radius:999px;
   background:var(--card-bg,#fff);box-shadow:0 1px 3px rgba(15,23,42,.06);
@@ -4015,6 +4158,8 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-casella{
   display:grid;gap:2px;padding:10px 11px;border-radius:14px;
   border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
+#dm-widget-popup .dm-w-casella-ic{font-size:15px;line-height:1}
+#dm-widget-popup .dm-w-casella-ic svg{width:18px;height:18px;display:block}
 #dm-widget-popup .dm-w-casella b{
   font-family:'Oswald',system-ui,sans-serif;font-weight:400;font-size:19px;line-height:1.1;
   color:var(--text,#0f172a);font-variant-numeric:tabular-nums;
@@ -4031,6 +4176,8 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   background:var(--surface-2,#f8fafc);color:var(--text-dim,#94a3b8)}
 #dm-widget-popup .dm-w-pillola::before{
   content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+#dm-widget-popup .dm-w-pillola-ic{display:inline-grid;place-items:center;font-size:12px;line-height:1}
+#dm-widget-popup .dm-w-pillola-ic svg{width:14px;height:14px}
 #dm-widget-popup .dm-w-pillola[data-acceso="true"]{
   border-color:color-mix(in srgb,#10b981 34%,transparent);
   background:color-mix(in srgb,#10b981 12%,transparent);
@@ -4386,7 +4533,7 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;
   min-height:118px;padding:15px 16px 17px;border:0;border-radius:22px;
   background:linear-gradient(180deg,var(--card-bg,#fff),
-    color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg,#eef2f7)));
+    color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg-sculpted,#eef2f7)));
   color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
   box-shadow:
     inset 0 1px 0 var(--dm-vetrino),
@@ -4408,7 +4555,7 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
     radial-gradient(135% 105% at 100% 0%,
       color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) var(--dm-velo),transparent),transparent 66%),
     linear-gradient(180deg,var(--card-bg,#fff),
-      color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg,#eef2f7)));
+      color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg-sculpted,#eef2f7)));
   box-shadow:
     inset 0 1px 0 var(--dm-vetrino),
     inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 28%,transparent),
@@ -4800,8 +4947,116 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 @media (max-width:520px){
   :is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 }
+${regoleCompatte()}
 `,
   );
+}
+
+/* La modalita' compatta «C4» (#224): il design approvato, riprodotto pari.
+ *
+ * La tessera diventa una pillola coricata: due colonne, quarantotto pixel
+ * d'altezza, raggio quattordici. Dentro, tre cose sole — il chip neutro con
+ * l'oggetto, il nome in maiuscoletto pieno, il valore ancorato a destra — e
+ * sul fianco sinistro la tacca a semipillola col colore della sezione, fusa
+ * nel bordo. Le didascalie e le misure spariscono: la pillola e' il colpo
+ * d'occhio, il resto vive nel popup, che non cambia.
+ *
+ * Le stesse regole valgono due volte — sempre, e in «auto» solo sotto i 520
+ * pixel — quindi si scrivono una volta sola qui e si stampano con la radice
+ * giusta. I selettori portano `[data-acceso]` esplicito dove serve vincere in
+ * specificita': le vesti di base delle tessere accese e aperte pesano
+ * (1,2,1), e una radice sola non basterebbe a coprirle. */
+function regoleCompatteCon(radice) {
+  return `
+/* Due colonne fitte: la compatta serve a far stare tutto sopra la piega. */
+${radice} .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+/* La pillola: piatta, una sola ombra morbida e l'hairline — niente gradienti,
+   niente grana. [data-acceso] c'e' su ogni tessera, e serve a battere la
+   veste colorata di quelle accese o aperte. */
+${radice} .dm-tile,
+${radice} .dm-tile[data-acceso],
+${radice} .dm-tile[data-open]{
+  flex-direction:row;align-items:center;gap:9px;
+  min-height:48px;padding:0 12px 0 13px;border-radius:14px;
+  background:var(--card-bg,#fff);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 8%,transparent),
+    0 10px 20px -16px rgba(15,23,42,.5)}
+${radice} .dm-tile::before{display:none}
+/* L'alone non sparisce: e' il respiro degli avvisi — «un avviso che non si
+   sa leggere si muove lo stesso» — e spegnerlo qui lasciava le pillole
+   d'avviso immobili proprio sui telefoni, dove la compatta e' di casa.
+   Nella pillola si fa velo: aderisce al bordo, prende il colore d'avviso
+   appena accennato e continua a pulsare con dmTileRespiro. Per le pillole
+   senza avviso resta a opacita' zero com'e' sempre stato. */
+${radice} .dm-tile .dm-tile-alone{
+  inset:0;height:auto;border-radius:inherit;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
+/* La tacca d'accento: una semipillola di 4×21 fusa nel bordo sinistro, col
+   colore della sezione. animation:none perche' ::after e' anche la lama
+   dell'accensione, che nella pillola non ha posto. */
+${radice} .dm-tile[data-acceso]::after{
+  content:"";position:absolute;left:0;top:50%;width:4px;height:21px;
+  margin-top:-10.5px;border-radius:0 4px 4px 0;
+  background:var(--dm-widget-accent,#0ea5e9);
+  transform:none;animation:none;pointer-events:none}
+/* La prima riga si scioglie: chip e nome diventano figli della pillola. */
+${radice} .dm-tile-cima{display:contents}
+/* Il chip: trenta pixel, cuscinetto neutro con la sola hairline — il colore
+   nella pillola ce lo mette la tacca, non il chip. */
+${radice} .dm-tile[data-acceso] .dm-tile-chip,
+${radice} .dm-tile[data-open] .dm-tile-chip{
+  flex:0 0 30px;width:30px;height:30px;border-radius:10px;font-size:15px;
+  background:var(--surface-2,#f8fafc);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 9%,transparent)}
+${radice} .dm-tile-chip .dm-oggetto{width:19px;height:19px;filter:none}
+/* Il nome: maiuscoletto minuto in inchiostro pieno, non smorzato — a questa
+   misura il grigio non si leggerebbe. */
+${radice} .dm-tile-label{
+  font-size:8.8px;line-height:1.2;letter-spacing:.09em;
+  color:var(--text,#0f172a)}
+/* Il valore, ancorato a destra col suo margine ottico di 12px (il cuscino
+   destro della pillola). Il margine a zero annulla il -13.6px pensato per
+   Oswald a corpo 40: qui il valore e' Inter, e quel margine lo decapitava. */
+${radice} .dm-tile-val{
+  display:flex;align-items:baseline;flex:0 0 auto;min-width:0;max-width:55%;
+  margin-left:auto}
+${radice} .dm-tile-value,
+${radice} .dm-tile-value[data-dm-len="medio"],
+${radice} .dm-tile-value[data-dm-len="lungo"]{
+  display:inline-flex;margin:0;padding:0;
+  font-family:'Inter',sans-serif;font-weight:800;font-size:15.5px;line-height:1.15;
+  letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;
+  -webkit-line-clamp:unset;color:var(--text,#0f172a)}
+/* L'unita'-parola: otto pixel, smorzata. */
+${radice} .dm-tile-unit{
+  margin-left:4px;font-family:'Inter',sans-serif;font-size:8px;font-weight:800;
+  letter-spacing:.08em;color:var(--text-dim,#94a3b8)}
+/* Il grado e la percentuale vanno in apice, come sui quadranti veri. */
+${radice} .dm-tile-unit[data-simbolo="true"]{
+  align-self:flex-start;margin-left:1px;font-size:9.5px;font-weight:800;
+  line-height:1.5;letter-spacing:0;color:var(--text-dim,#64748b)}
+/* Didascalie e misure non ci sono: la pillola dice il nome e il numero. */
+${radice} .dm-tile-fondo{display:none}
+/* La pillola d'avviso: il velo piatto del colore d'avviso al 10%, l'hairline
+   in tinta, la tacca piu' spessa e il valore in tinta scura. Niente gradienti
+   ne' alone animato: l'avviso si legge, non lampeggia. */
+${radice} .dm-tile[data-alert="true"]{
+  background:color-mix(in srgb,var(--dm-widget-accent,#e11d48) 10%,var(--card-bg,#fff));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#e11d48) 30%,transparent),
+    0 10px 20px -16px rgba(15,23,42,.5)}
+${radice} .dm-tile[data-alert="true"]::after{width:5px;height:27px;margin-top:-13.5px}
+${radice} .dm-tile[data-alert="true"] .dm-tile-value{
+  color:color-mix(in srgb,var(--dm-widget-accent,#e11d48) 68%,#0f172a)}`;
+}
+
+/* Le due radici della compatta: «sempre» vale ovunque, «auto» solo dove lo
+ * spazio manca — la media query e' la stessa che gia' stringe la griglia. */
+function regoleCompatte() {
+  return `${regoleCompatteCon('#dm-widgets[data-dm-compatto="sempre"]')}
+@media (max-width:520px){${regoleCompatteCon('#dm-widgets[data-dm-compatto="auto"]')}
+}`;
 }
 
 export function installHomeWidgetsSection() {

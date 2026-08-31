@@ -1,6 +1,8 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceArtworkType } from "../core/appliance-card-view-model.js";
-import { clean, doc, formatNumber, installStyle, root, t, wrapFunction } from "./shared.js";
+import { DEFAULT_EXPORT_RATE, DEFAULT_IMPORT_RATE, importRateEntity, resolveRate } from "../core/energy-calculations.js";
+import { persistEnergyField } from "../core/energy-writer.js";
+import { allStates, clean, doc, formatNumber, installStyle, root, scriviTestoSeCambia, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_REPORT_POLISH__";
 const state = (root[KEY] ||= { installed: false, frame: 0, dailyChart: null, legacyDailyChart: null, subscribed: false });
@@ -218,13 +220,21 @@ function applyAutonomy(bundle) {
   if (card) card.dataset.dmAutonomyFormula = "(house-gridImport)/house";
 }
 
-function rateValue(key) {
+function rateRaw(key) {
   const configured = root.cdCfg?.(key);
-  const raw = configured !== undefined && configured !== null && configured !== ""
+  return configured !== undefined && configured !== null && configured !== ""
     ? configured
     : root.localStorage?.getItem(key);
-  const value = Number(String(raw ?? "").replace(",", "."));
-  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+/* I default vivono in `resolveRate` e solo la'. Vedi `rates()` della sezione
+ * Energia, che e' l'altro lettore delle stesse sorgenti: il prezzo di
+ * acquisto puo' essere l'entita' scelta nel modello canonico — e allora si
+ * legge il suo stato — oppure il numero salvato con la chiave di sempre. */
+function rateOrDefault(key, fallback) {
+  const entita = key === "cd_costo_kwh" ? importRateEntity(model()) : "";
+  const sorgente = entita ? resolved(entita) : rateRaw(key);
+  return resolveRate(sorgente, allStates(), fallback);
 }
 
 function money(value) {
@@ -233,8 +243,8 @@ function money(value) {
 
 export function applyFinancialOverview(bundle) {
   if (!bundle?.month) return false;
-  const importPrice = rateValue("cd_costo_kwh");
-  const exportPrice = rateValue("cd_prezzo_immissione");
+  const importPrice = rateOrDefault("cd_costo_kwh", DEFAULT_IMPORT_RATE);
+  const exportPrice = rateOrDefault("cd_prezzo_immissione", DEFAULT_EXPORT_RATE);
   const data = bundle.month;
   const importCost = Math.max(0, Number(data.gridImport) || 0) * importPrice;
   const withoutSolar = Math.max(0, Number(data.house) || 0) * importPrice;
@@ -245,10 +255,9 @@ export function applyFinancialOverview(bundle) {
   const realCost = importCost;
   const saved = Math.max(0, withoutSolar - importCost);
 
-  const set = (id, value) => {
-    const node = doc?.getElementById(id);
-    if (node) node.textContent = value;
-  };
+  /* Scrivere passando dal delegato lascia il cartello sul nodo: senza, il
+   * guscio non sapeva che la griglia aveva un padrone e ci riscriveva sopra. */
+  const set = (id, value) => scriviTestoSeCambia(doc?.getElementById(id), value);
   set("ed-fin-pagato", money(withoutSolar));
   set("ed-fin-pagato-sub", `${formatNumber(data.house, 1)} kWh`);
   set("ed-fin-costo", money(realCost));
@@ -285,6 +294,20 @@ function installCostSettingsOwner() {
     const exportRate = normalize(exportInput);
     root.localStorage?.setItem("cd_costo_kwh", importRate);
     root.localStorage?.setItem("cd_prezzo_immissione", exportRate);
+    /* La scelta «da entita'» del prezzo di acquisto (#217) abita nel modello
+     * canonico, non in una chiave sciolta: in modalita' Entita' si salva l'id
+     * scelto, in modalita' Numero lo si toglie — e' cosi' che si torna al
+     * numero. Il prezzo di vendita resta numerico. */
+    const card = doc?.querySelector?.(".dm-energy-cost-card");
+    const entityInput = doc?.getElementById("ed-costo-kwh-entita");
+    const entityId = clean(entityInput?.value);
+    const entityMode = card?.dataset?.dmImportRateMode === "entity" && entityId;
+    persistEnergyField(
+      root.DashboardModernModules?.store,
+      "rates",
+      "import_entity",
+      entityMode ? entityId : "",
+    );
     root.cdMarkDirty?.();
     root.cdSyncPush?.();
     root.DashboardModernEnergyService?.refresh?.();

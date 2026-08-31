@@ -1,5 +1,4 @@
 // DM-FIX-20260812C
-import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   clean,
   dashboardStore,
@@ -123,8 +122,16 @@ function repairQuickActionRows() {
     const anchor = row.querySelector(":scope > .dm-beta7-existing-action-icon,:scope > .dm-room-list-icon");
     const nodes = ensureRowMain(row, anchor);
     if (!nodes) return;
-    const name = clean(action.name) || (t("Azione rapida", "Quick action"));
     const type = clean(action.builtin || action.type).replace(/^builtin_/, "");
+    /* Un popup nativo senza nome scritto dice COSA apre, non «Azione rapida»:
+     * quattro righe uguali non si distinguevano in niente. */
+    const titoli = {
+      luci: t("Luci", "Lights"),
+      clima: t("Clima", "Climate"),
+      antifurto: t("Antifurto", "Alarm"),
+      lavatrice: t("Lavatrice", "Washing machine"),
+    };
+    const name = clean(action.name) || titoli[type] || (t("Azione rapida", "Quick action"));
     nodes.primary.textContent = name;
     nodes.primary.title = name;
     nodes.secondary.textContent = clean(action.entity) || type;
@@ -189,7 +196,10 @@ function replaceRoomOptions(select, { temperature = false } = {}) {
   rooms.forEach((room) => {
     const option = doc.createElement("option");
     option.value = clean(room.id || room.name);
-    option.textContent = `${directEmoji(room.icon) || roomGlyph(room.icon)} ${clean(room.name) || option.value}`;
+    /* Solo il nome: l'emoji davanti veniva dal catalogo di sistema — «il
+     * catalogo non nostro» — e in un option nativo il disegno di casa non si
+     * puo' mettere. Meglio nessuna icona che quella sbagliata. */
+    option.textContent = clean(room.name) || option.value;
     if (temperature && !editing && (clean(room.temp) || clean(room.hum)) && option.value !== current) option.disabled = true;
     options.push(option);
   });

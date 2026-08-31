@@ -149,6 +149,10 @@ const SHARED_ACROSS_LANGUAGES = new Set([
  */
 const LOCALE_IDENTITIES = {
   es: new Set([
+    "Natural",
+    "Polo",
+    "Robot",
+    "Robots",
     "Color",
     "Error",
     "ideal",
@@ -158,6 +162,9 @@ const LOCALE_IDENTITIES = {
     "Total",
   ]),
   fr: new Set([
+    "Polo",
+    "Robot",
+    "Robots",
     "Action",
     "Batteries",
     "CCTV ACTIVE",
@@ -189,6 +196,7 @@ const LOCALE_IDENTITIES = {
     "Zone",
   ]),
   de: new Set([
+    "Polo",
     "💨 Wind",
     "${value} offline",
     "April",
@@ -230,6 +238,9 @@ const LOCALE_IDENTITIES = {
     "Zone",
   ]),
   pt: new Set([
+    "Casual",
+    "Natural",
+    "Polo",
     "${value} offline",
     "CCTV offline",
     "ideal",
@@ -238,6 +249,10 @@ const LOCALE_IDENTITIES = {
     "Total",
   ]),
   nl: new Set([
+    "Casual",
+    "Polo",
+    "Robot",
+    "Robots",
     "♨️ Oven",
     "⚠️ Camera offline",
     "💨 Wind",
@@ -287,6 +302,8 @@ const LOCALE_IDENTITIES = {
     "Zone",
   ]),
   pl: new Set([
+    "Polo",
+    "Robot",
     "🛡️ ALARM",
     "${value} offline",
     "Alarm",
@@ -299,6 +316,8 @@ const LOCALE_IDENTITIES = {
     "Start",
   ]),
   tr: new Set([
+    "Polo",
+    "Robot",
     "🛡️ ALARM",
     "Alarm",
     "Disk",

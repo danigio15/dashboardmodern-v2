@@ -299,7 +299,7 @@ export function openLightEditor(entityId) {
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(oldId)}" required data-domain="${LIGHT_DOMAINS.join(" ")}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
       <div class="ed-slot"><span class="dm-light-caps-lbl">${t("Cosa sa fare", "What it can do")}</span><div class="dm-light-caps"><div class="dm-light-badges" data-capabilities>${meta.badges}</div><button type="button" class="dm-light-caps-try" data-controls>${t("Prova i controlli", "Try the controls")}</button></div><small class="dm-light-caps-note">${t("Letto da Home Assistant. Una luce dietro uno switch accende e spegne soltanto; luminosità e colore compaiono nel popup solo se l'entità li dichiara.", "Read from Home Assistant. A light behind a switch only turns on and off; brightness and colour appear in the popup only when the entity declares them.")}</small></div>
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomOptions(assignments[oldId])}</select></label>
-      <label class="ed-slot dm-solo-lettura"><span class="ed-slot-lbl">${t("Si vede ma non si comanda", "Shown but not controllable")}</span><span class="ed-form-row"><input type="checkbox" name="soloLettura" ${siComanda(oldId) ? "" : "checked"}><small>${t("Per le prese che non vanno spente: il frigo, il modem, il congelatore. La riga resta dov'è, il tasto smette di rispondere.", "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.")}</small></span></label>
+      <label class="ed-slot dm-solo-lettura"><span class="ed-slot-lbl">${t("Si vede ma non si comanda", "Shown but not controllable")}</span><span class="ed-form-row dm-solo-lettura-riga"><input type="checkbox" name="soloLettura" ${siComanda(oldId) ? "" : "checked"}><small>${t("Per le luci che vuoi solo vedere, senza rischiare un tocco: la riga resta dov'è, il tasto smette di rispondere.", "For lights you only want to see, with no accidental taps: the row stays where it is, the button stops responding.")}</small></span></label>
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
     </form>
@@ -373,7 +373,14 @@ export function openLightEditor(entityId) {
  */
 export function addLightFromForm() {
   const entity = clean(doc?.getElementById("luce-add-ent")?.value);
-  const name = clean(doc?.getElementById("luce-add-name")?.value) || entity.split(".")[1] || entity;
+  /* Senza nome scritto si prende quello VERO dell'entita' — il friendly name
+   * di Home Assistant — non lo slug: «faretti_cucina» non e' un nome. Lo slug
+   * resta solo per le entita' che un nome non ce l'hanno proprio. */
+  const name =
+    clean(doc?.getElementById("luce-add-name")?.value) ||
+    clean(allStates()?.[entity]?.attributes?.friendly_name) ||
+    entity.split(".")[1]?.replaceAll("_", " ") ||
+    entity;
   const roomId = clean(doc?.getElementById("luce-add-room")?.value);
   const error = doc?.querySelector("[data-light-add-error]");
   const domini = LIGHT_DOMAINS.map((domain) => `${domain}.*`).join(", ");
@@ -643,6 +650,16 @@ function installStyles() {
     `
       /* Modal shell/headers/forms/footers are owned only by editor-contracts-section.js. */
       .dm-section-dialog [data-error]{min-height:18px;color:var(--error-color,#dc2626);font-weight:800}
+      /* La riga del solo-vista: casella e spiegazione affiancate, larghe.
+         Il guscio dei modali detta ai .ed-form-row una griglia «campo + 48px»
+         con la sua importanza: qui serve pareggiarne la specificita', o il
+         testo finisce schiacciato in una colonnina sul bordo destro. */
+      .dm-solo-lettura-riga,
+      .dm-section-modal .dm-section-dialog .ed-form-row.dm-solo-lettura-riga{display:flex!important;align-items:flex-start!important;gap:10px!important;grid-template-columns:none!important;width:100%!important}
+      .dm-solo-lettura-riga input[type="checkbox"],
+      .dm-section-modal .dm-section-dialog .dm-solo-lettura-riga input[type="checkbox"]{flex:0 0 auto!important;width:20px!important;height:20px!important;min-height:20px!important;margin:1px 0 0!important}
+      .dm-solo-lettura-riga small,
+      .dm-section-modal .dm-section-dialog .dm-solo-lettura-riga small{flex:1 1 auto!important;min-width:0!important;font-size:11.5px!important;font-weight:600!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important;text-align:left!important}
       .dm-light-picker-dialog{grid-template-rows:auto auto minmax(0,1fr) auto!important}
       .dm-light-picker-dialog>[data-search]{box-sizing:border-box!important;width:auto!important;margin:14px 16px 8px!important}
       .dm-light-picker-list{min-height:0!important;overflow:auto!important;padding:8px 16px 16px!important}

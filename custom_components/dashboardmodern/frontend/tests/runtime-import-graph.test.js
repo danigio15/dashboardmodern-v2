@@ -493,7 +493,20 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `lightCommand` di tutto il resto, quindi il blocco «si vede ma non si
   // comanda» vale qui senza una riga in piu' — e niente scheda nuova da
   // disegnare, perche' e' la stessa `pageCardMarkup` delle luci.
-  assert.ok(relative.length <= 178, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 179 col popup dell'elettrodomestico rivestito da progetto
+  // (`appliance-detail-popup-section.js`): «quando clicco su un
+  // elettrodomestico si apre questo popup orrendo, crealo piu' bello stile
+  // widget che ti fa anche analisi» — il guscio elencava ogni entita' con lo
+  // slug, il modulo riveste la stessa finestra con verdetto, frase, caselle,
+  // pillole e comandi.
+  // 181 con le parole inglesi del guscio: il runtime EN portava ancora
+  // etichette italiane cablate, e il modulo che le traduce e' il padrone
+  // provvisorio finche' la correzione non arriva a monte.
+  // 180 coi rilevatori di fumo (#238): la lista sorvegliata `fumo` che si
+  // riempie da sola — e continua a farlo, col registro dei gia' visti — piu'
+  // il blocco nella pagina Sicurezza e le aperture nuove che entrano da sole
+  // nel gruppo `win`. Un modulo solo, sul calco di flood-alerts.
+  assert.ok(relative.length <= 181, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -520,6 +533,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * on a visible Home; collapsed, the timer dies and the object URLs are
    * returned.
    *
+   * The fifth transcribes the alarm stage into English: the vendored EN
+   * runtime redraws it every tick with its own Italian words, so no event can
+   * win that race. Same discipline: English shell only, alarm nodes only,
+   * silent while the page is hidden.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -528,6 +546,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
     [
+      "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",
       "src/sections/people-section.js",

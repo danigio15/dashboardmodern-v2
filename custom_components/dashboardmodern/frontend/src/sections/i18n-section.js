@@ -27,12 +27,17 @@ const KEY = "__DASHBOARDMODERN_I18N_SECTION__";
 const state = (root[KEY] ||= { installed: false, stop: null });
 
 /**
- * The vendored shells are authored in Italian and English. Any other locale is
- * served one of those two and needs the DOM pass to finish the job; Italian and
- * English do not, so they skip the observer entirely and pay nothing for it.
+ * The vendored shells are authored in Italian and English — but the English
+ * one is not fully English: dashboard-en.html and the EN runtime still carry
+ * Italian markup (the energy sub-tabs «Istantanea / Giornaliera / Mensile»,
+ * the flow nodes «Solare / Casa / Batteria», the solar-thermal page, the EV
+ * popup). English is the pivot language, so the DOM pass resolves those via
+ * the source index without fetching any catalog — which is why English runs
+ * it too. Only Italian, the language the shells are truly written in, skips
+ * the observer: for it the pass would be a no-op walk.
  */
 function needsDomPass(locale) {
-  return locale !== "it" && locale !== "en";
+  return locale !== "it";
 }
 
 function applyDirection(locale) {

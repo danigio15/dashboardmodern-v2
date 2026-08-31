@@ -18,6 +18,7 @@
  *   `apriApplianceDetail`, `apriStorico`, `apriConfigEntita`.
  */
 import { applianceArtwork } from "../core/appliance-artwork.js";
+import { importRateEntity, resolveRate } from "../core/energy-calculations.js";
 import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import {
   applianceCardModel,
@@ -150,15 +151,29 @@ function roomList() {
     .filter((room) => room.name);
 }
 
+/* Il prezzo globale del kWh passa da `resolveRate` come tutti gli altri
+ * lettori: puo' essere l'entita' scelta nel modello canonico — e allora e' il
+ * suo stato, che si aggiorna da solo — oppure il numero salvato. Qui non c'e'
+ * un default: senza un prezzo il costo del ciclo semplicemente non si mostra,
+ * e resta cosi'. La precedenza del `price_kwh` per-apparecchio non si decide
+ * qui: sta nel modello della card. */
 function globalPriceKwh() {
-  const configured = root.cdCfg?.("cd_costo_kwh");
-  const direct = finiteOrNull(configured);
-  if (direct != null) return direct;
-  try {
-    return finiteOrNull(root.localStorage?.getItem?.("cd_costo_kwh"));
-  } catch (_error) {
-    return null;
+  const entita = importRateEntity(section("energy", {}));
+  let sorgente = root.cdCfg?.("cd_costo_kwh");
+  if (entita) {
+    try {
+      sorgente = clean(root.resolveEntity?.(entita) || entita);
+    } catch (_error) {
+      sorgente = entita;
+    }
+  } else if (sorgente === undefined || sorgente === null || sorgente === "") {
+    try {
+      sorgente = root.localStorage?.getItem?.("cd_costo_kwh");
+    } catch (_error) {
+      sorgente = null;
+    }
   }
+  return resolveRate(sorgente, allStates(), null);
 }
 
 function tracker() {
@@ -402,7 +417,7 @@ export function buildCardMarkup(model, labels = copy()) {
   return `<article class="appl-wide-card dm-ap-card dm-ap-mech is-${badgeClass} acc-${esc(model.accent)}${model.alarm ? " has-alarm" : ""}" data-appliance-id="${esc(model.id)}" data-idx="${model.index}" data-mode="${esc(model.mode)}" data-art="${esc(model.artworkType)}" role="button" tabindex="0" aria-label="${esc(model.name)} — ${esc(model.label)}">
     <div class="dm-ap-top">
       <span class="dm-ap-chip" aria-hidden="true">${applianceArtwork(model.artworkType, 30) || "🔌"}</span>
-      <span class="dm-ap-headings"><span class="dm-ap-name appl-wide-name">${esc(model.name)}</span>${roomName ? `<span class="dm-ap-room">${esc(roomName)}</span>` : ""}</span>
+      <span class="dm-ap-headings"><span class="dm-ap-name appl-wide-name" data-dm-no-i18n>${esc(model.name)}</span>${roomName ? `<span class="dm-ap-room" data-dm-no-i18n>${esc(roomName)}</span>` : ""}</span>
       <span class="dm-ap-badge ${badgeClass}"><i class="dm-ap-dot"></i>${esc(model.label)}</span>
       ${controls}
     </div>

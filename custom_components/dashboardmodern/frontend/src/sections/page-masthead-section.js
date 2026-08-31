@@ -40,11 +40,14 @@ const PAGES = Object.freeze([
     it: ["Finestre", "Tapparelle · Tende · Sensori di apertura"],
     en: ["Windows", "Shutters · Curtains · Contact sensors"],
   },
+  /* La pagina ospita aspirapolvere e tagliaerba insieme: il nome e il
+   * sottotitolo non nominano una specie sola, o mentirebbero a quella che
+   * resta fuori. */
   {
     id: "page-robot",
     tint: ["100,116,139", "14,165,233"],
-    it: ["Robot aspirapolvere", "Stato · Batteria · Mappa della casa"],
-    en: ["Robot vacuum", "State · Battery · Home map"],
+    it: ["Robot", "Stato · Batteria · Mappa"],
+    en: ["Robots", "State · Battery · Map"],
   },
   /* Le Stanze sono nate dopo questo elenco e ci sono rimaste fuori: erano la
    * sola pagina della plancia che partiva dalle linguette, senza mai dire dove

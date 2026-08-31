@@ -88,8 +88,9 @@ test("la scelta viaggia con la configurazione, come tutte le altre", () => {
   assert.match(persistenza, /"cd_antifurto_modi"/);
   assert.match(persistenza, /"cd_clima_rapido"/);
   /* E chi aggiunge chiavi alza la revisione, altrimenti un salvataggio vecchio
-   * che quelle chiavi non le ha non viene completato con quelle di qui. */
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 11/);
+   * che quelle chiavi non le ha non viene completato con quelle di qui.
+   * (La 12 aggiunge i passi del Clima rapido per unita'.) */
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 13/);
 });
 
 test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () => {

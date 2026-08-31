@@ -21,7 +21,7 @@ import { DashboardStore } from "../src/core/dashboard-store.js";
 import { daProvare, diagnosi, siSveglia, strategieDellaTelecamera } from "../src/core/strategie-telecamera.js";
 import { renderPreseEditor } from "../src/sections/prese-section.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
-import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
+import { createEnergyReportRows, createEntityPickerField, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { energyWriteInFlight, flushEnergyWrites, persistEnergyField, persistSignedSource } from "../src/core/energy-writer.js";
 import { IMPIANTO_SCELTO_KEY, plantModel } from "../src/core/energy-plants.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
@@ -63,6 +63,10 @@ const COPY_SOURCE = Object.freeze({
   energyCost: ["Costo energia", "Energy cost"],
   energyRates: ["Tariffe usate dal Report Energia.", "Rates used by the Energy Report."],
   saveCosts: ["Salva costi", "Save costs"],
+  rateNumber: ["Numero", "Number"],
+  rateEntity: ["Entità", "Entity"],
+  rateAutoNote: ["si aggiorna da solo", "updates by itself"],
+  ratePickHint: ["Scegli l'entità del prezzo: il valore si aggiornerà da solo.", "Pick the price entity: the value will update by itself."],
   loadsIntro: ["Carichi e Report condividono il modello canonico senza duplicati.", "Loads and Report share the canonical model without duplicates."],
   appliances: ["Elettrodomestici / dispositivi", "Appliances / devices"],
   secondaryLoads: ["Carichi secondari", "Secondary loads"],
@@ -84,6 +88,13 @@ const COPY_SOURCE = Object.freeze({
   activeRenderer: ["Renderer attivo", "Active renderer"],
   loadNameRequired: ["Inserisci il nome del carico", "Enter a load name"],
   energySaveFailed: ["Salvataggio Energia fallito", "Energy save failed"],
+  coolingTitle: ["Temperature e raffreddamento", "Temperatures & cooling"],
+  coolingHint: ["Sensori della scheda Temperature di Energia: inverter, batteria e ventola. Ogni campo si salva appena lo cambi.", "Sensors for the Energy Temperatures tab: inverter, battery and fan. Every field saves as soon as you change it."],
+  coolingAcTemp: ["Temperatura inverter AC", "Inverter AC temperature"],
+  coolingDcTemp: ["Temperatura inverter DC", "Inverter DC temperature"],
+  coolingBatTemp: ["Temperatura batteria", "Battery temperature"],
+  coolingFanPower: ["Potenza ventola", "Fan power"],
+  coolingFanSwitch: ["Interruttore ventola", "Fan switch"],
 });
 const t = (key) => {
   const entry = COPY_SOURCE[key];
@@ -194,11 +205,97 @@ function renderEnergyEditorTab(target) {
       renderLoads: (loads) => { if (renderLoadsPanel(loads)) return; mountLoadsEditor(loads); mountCurrentEditor("loads", loads); },
       renderReport: (report) => { renderReportEditor(report); mountReportEditor("report", report); },
       renderSettings: (settings) => {
+        /* Il prezzo di acquisto puo' venire da un'entita' (#217): il
+         * segmentato Numero | Entita' sceglie la sorgente. La scelta abita
+         * nel modello energia canonico — sopravvive alla normalizzazione — e
+         * il salvataggio resta quello di sempre: edSaveCosti, che oggi e' il
+         * padrone canonico delle tariffe. */
+        const entitaPrezzo = String(store.getSection("energy")?.rates?.import_entity ?? "").trim();
         settings.innerHTML = `${globalThis.cdEnViewsHtml?.() || ""}
-          <div class="ed-form dm-energy-cost-card"><div class="ed-sec-title">💶 ${t("energyCost")}</div>
+          <div class="ed-form dm-energy-cost-card" data-dm-import-rate-mode="${entitaPrezzo ? "entity" : "number"}"><div class="ed-sec-title">💶 ${t("energyCost")}</div>
           <div class="ed-hint">${t("energyRates")}</div>
+          <div class="dm-rate-mode" role="group"><button type="button" class="dm-rate-mode-btn" data-dm-rate-mode="number">${t("rateNumber")}</button><button type="button" class="dm-rate-mode-btn" data-dm-rate-mode="entity">${t("rateEntity")}</button></div>
           <div class="ed-form-row"><input id="ed-costo-kwh" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh prelevato" value="${globalThis.cdCfg?.("cd_costo_kwh") || ""}"><input id="ed-prezzo-imm" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh immesso" value="${globalThis.cdCfg?.("cd_prezzo_immissione") || ""}"></div>
+          <span data-dm-rate-entity-slot hidden></span><small class="dm-rate-entity-note" data-dm-rate-entity-note hidden></small>
           <button class="ed-save-btn" onclick="edSaveCosti()">💾 ${t("saveCosts")}</button></div>`;
+        const card = settings.querySelector(".dm-energy-cost-card");
+        const slot = card.querySelector("[data-dm-rate-entity-slot]");
+        const nota = card.querySelector("[data-dm-rate-entity-note]");
+        const aggiornaNota = () => {
+          if (card.dataset.dmImportRateMode !== "entity") return;
+          const id = String(card.querySelector("#ed-costo-kwh-entita")?.value ?? "").trim();
+          if (!id) { nota.textContent = t("ratePickHint"); return; }
+          const valore = Number((globalThis._RAW_STATES || globalThis.STATES || {})[id]?.state);
+          const prezzo = Number.isFinite(valore) ? valore.toLocaleString(getLocale(), { maximumFractionDigits: 4 }) : "—";
+          nota.textContent = `${prezzo} €/kWh · ${t("rateAutoNote")}`;
+        };
+        /* Il campo entita' vero, lo stesso dell'editor Carichi. */
+        const { field } = createEntityPickerField(globalThis.document, {
+          id: "ed-costo-kwh-entita",
+          value: entitaPrezzo,
+          placeholder: "sensor.prezzo_kwh",
+          label: t("entity"),
+          locale: getLocale(),
+          onPick: (input) => globalThis.wzPickEntity?.(input),
+          onChange: aggiornaNota,
+        });
+        slot.append(field);
+        const applicaModalita = (modalita) => {
+          card.dataset.dmImportRateMode = modalita;
+          const numero = card.querySelector("#ed-costo-kwh");
+          if (numero) numero.hidden = modalita === "entity";
+          slot.hidden = modalita !== "entity";
+          nota.hidden = modalita !== "entity";
+          card.querySelectorAll("[data-dm-rate-mode]").forEach((bottone) => {
+            bottone.dataset.active = bottone.dataset.dmRateMode === modalita ? "true" : "false";
+          });
+          aggiornaNota();
+        };
+        card.querySelectorAll("[data-dm-rate-mode]").forEach((bottone) =>
+          bottone.addEventListener("click", () => applicaModalita(bottone.dataset.dmRateMode)),
+        );
+        applicaModalita(card.dataset.dmImportRateMode);
+        /* La scheda Temperature di Energia si collega da qui («manca la
+         * parte nel config per configurare le entita' di questa parte»):
+         * temperature dell'inverter e della batteria, potenza e
+         * interruttore della ventola. Il gruppo e' uno solo, fuori dagli
+         * impianti — la pagina che lo legge e' una — e ogni campo si salva
+         * appena cambia, come i contatori totali della maschera Flussi. */
+        const raffreddamento = globalThis.document.createElement("div");
+        raffreddamento.className = "ed-form dm-energy-cooling-card";
+        raffreddamento.dataset.energyCooling = "";
+        raffreddamento.innerHTML = `<div class="ed-sec-title">🌡️ ${t("coolingTitle")}</div><div class="ed-hint">${t("coolingHint")}</div>`;
+        const campiRaffreddamento = [
+          ["inverter_ac_temperature", t("coolingAcTemp"), "°C", "sensor.inverter_temp_ac"],
+          ["inverter_dc_temperature", t("coolingDcTemp"), "°C", "sensor.inverter_temp_dc"],
+          ["battery_temperature", t("coolingBatTemp"), "°C", "sensor.batteria_temp"],
+          ["fan_power", t("coolingFanPower"), "W", "sensor.ventola_potenza"],
+          ["fan_switch", t("coolingFanSwitch"), "", "switch.ventola_inverter"],
+        ];
+        const statiRaffreddamento = globalThis.STATES || {};
+        const modelloRaffreddamento = store.getSection("energy")?.cooling || {};
+        for (const [campo, etichetta, unita, esempio] of campiRaffreddamento) {
+          const slotCampo = globalThis.document.createElement("label");
+          slotCampo.className = "ed-slot";
+          slotCampo.innerHTML = `<span class="ed-slot-lbl">${etichetta}${unita ? ` <span class="ed-acc-n">${unita}</span>` : ""} <span class="ed-acc-n">${t("optional")}</span></span><span class="ed-hint">${t("entity")}: ${esempio}</span>`;
+          const valore = String(modelloRaffreddamento[campo] || "").trim();
+          const { field } = createEntityPickerField(globalThis.document, {
+            id: `dm-energy-cooling-${campo}`,
+            value: valore,
+            placeholder: esempio,
+            label: etichetta,
+            locale: getLocale(),
+            state: statiRaffreddamento[valore]?.state,
+            unit: unita,
+            onPick: (input) => globalThis.wzPickEntity?.(input),
+            /* Fuori dagli impianti: qualunque linguetta sia aperta, il
+             * campo scrive al primo livello del modello Energia. */
+            onChange: (nuovo) => persistEnergyField(store, "cooling", campo, nuovo, ""),
+          });
+          slotCampo.append(field);
+          raffreddamento.append(slotCampo);
+        }
+        settings.append(raffreddamento);
       },
       /* Ogni campo scrive dove scrivono gli altri.
        * La bozza presa all'apertura rimetteva a posto i valori che i campi

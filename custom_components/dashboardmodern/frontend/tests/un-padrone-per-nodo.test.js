@@ -102,3 +102,53 @@ test("chi scrive un nodo del guscio passa dal delegato che lo rivendica", () => 
       `continuera' a riscriverglielo sopra:\n  ${senzaCartello.join("\n  ")}`,
   );
 });
+
+/* Il cartello vale per TUTTE le mani del guscio, `edSetText` compresa.
+ *
+ * `setTxt` e `setHtml` lo rispettavano; `edSetText` — la mano con cui i due
+ * render del Report scrivono i KPI e la griglia finanziaria — no. Il modulo
+ * rivendicava i nodi e il guscio ci riscriveva sopra a ogni giro: 473 e 586,
+ * 81%% e 84%%, gli euro calcolati e «0,00», avanti e indietro. Idem il
+ * cerchio dell'anello, scritto con `setAttribute` diretto. */
+test("anche edSetText e l'anello rispettano il cartello dei moduli", () => {
+  for (const variante of ["dashboard-runtime-it.js", "dashboard-runtime-en.js"]) {
+    const guscio = readFileSync(join(RADICE, "legacy", variante), "utf8");
+    assert.match(
+      guscio,
+      /function edSetText\(id, html\) \{[\s\S]{0,400}?cdPresoDaiModuli\(el\)/,
+      `${variante}: edSetText scrive senza guardare il cartello`,
+    );
+    assert.doesNotMatch(
+      guscio,
+      /if \(circle\) circle\.setAttribute\('stroke-dasharray'/,
+      `${variante}: l'anello si scrive senza guardare il cartello`,
+    );
+  }
+});
+
+/* Le tariffe hanno gli stessi default da tutte le parti — e i default hanno
+ * UNA casa sola: `resolveRate` in core/energy-calculations.js. Il guscio
+ * partiva dai suoi numeri, i moduli da zero, e nel Report gli euro si
+ * alternavano tra calcolati e «0,00 €»; poi i due numeri erano scritti in due
+ * moduli, che e' lo stesso difetto in forma di costante. Ogni lettore passa
+ * dall'helper — che sa anche leggere il prezzo da un'entita' (#217) — e
+ * nessuno riporta un default a casa sua. */
+test("le tariffe dei moduli passano dall'helper, dove vivono i default", () => {
+  const helper = readFileSync(join(RADICE, "src", "core", "energy-calculations.js"), "utf8");
+  assert.match(helper, /export const DEFAULT_IMPORT_RATE = 0\.25/);
+  assert.match(helper, /export const DEFAULT_EXPORT_RATE = 0\.1\b/);
+  const lettori = [
+    ["energy-section.js", true],
+    ["energy-report-polish-section.js", true],
+    ["appliance-showcase-section.js", false],
+  ];
+  for (const [nome, conDefault] of lettori) {
+    const testo = readFileSync(join(MODULI, nome), "utf8");
+    assert.match(testo, /resolveRate\(/, `${nome} non passa dall'helper`);
+    assert.doesNotMatch(testo, /0\.25/, `${nome} riporta il default di acquisto a casa sua`);
+    if (conDefault) {
+      assert.match(testo, /DEFAULT_IMPORT_RATE/, nome);
+      assert.match(testo, /DEFAULT_EXPORT_RATE/, nome);
+    }
+  }
+});

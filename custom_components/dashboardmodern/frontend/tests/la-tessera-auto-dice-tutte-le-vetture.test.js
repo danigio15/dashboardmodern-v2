@@ -35,12 +35,16 @@ test("con due vetture la tessera nomina l'una e l'altra", () => {
   assert.match(modello, /Math\.min\(\.\.\.cariche\)/);
 });
 
-test("con una vettura sola non cambia niente", () => {
-  /* Nominarla sarebbe rumore, e chi non ha profili configurati continua a
-   * leggere dalle chiavi globali come ha sempre fatto. */
+test("il profilo comanda appena e' leggibile, anche da solo", () => {
+  /* Prima con UNA vettura profilata si leggevano solo le chiavi globali —
+   * che si riempiono ai salvataggi successivi, la foto compresa — e un'auto
+   * con la batteria mappata nel SUO profilo restava invisibile in Home
+   * finche' non si toccava altro. Le chiavi globali restano il ripiego di
+   * chi non ha profili, e con una sola vettura le righe restano senza nome:
+   * nominarla sarebbe rumore. */
   assert.match(
     modello,
-    /profilate\.length > 1 \? profilate : \[letturaAttiva\(states, fuori\)\]\.filter\(Boolean\)/,
+    /profilate\.length \? profilate : \[letturaAttiva\(states, fuori\)\]\.filter\(Boolean\)/,
   );
   assert.match(modello, /function letturaAttiva\(states, fuori\)/);
 });

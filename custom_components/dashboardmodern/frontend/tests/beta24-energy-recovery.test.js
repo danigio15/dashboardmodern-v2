@@ -182,9 +182,9 @@ test("retired Beta22 energy loads are promoted once into canonical Loads", () =>
 });
 
 test("SOC text has one stable visible contract", () => {
-  assert.equal(normalizeBatterySocText("62%"), "SOC 62%");
-  assert.equal(normalizeBatterySocText("SOC 62%"), "SOC 62%");
-  assert.equal(normalizeBatterySocText("—"), "SOC —");
+  assert.equal(normalizeBatterySocText("62%"), "62%");
+  assert.equal(normalizeBatterySocText("SOC 62%"), "62%");
+  assert.equal(normalizeBatterySocText("—"), "—");
 });
 
 test("allStates merges Home Assistant, WebView and canonical state registries", () => {

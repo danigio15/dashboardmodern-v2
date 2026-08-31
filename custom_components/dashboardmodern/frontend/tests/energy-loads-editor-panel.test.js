@@ -393,3 +393,109 @@ test("the panel stays hidden when another Energy tab is open", () => {
     "no unconditional display rule survives",
   );
 });
+
+
+/* ── «＋ Scegli da Elettrodomestici» ─────────────────────────────────────── */
+
+// Lo stato del modulo vive sotto la chiave pubblicata: i test precedenti lo
+// hanno sporcato apposta, questi ripartono da una maschera pulita.
+const editorState = globalThis.__DASHBOARDMODERN_ENERGY_LOADS_EDITOR__;
+function resetEditor() {
+  editorState.model = null;
+  editorState.dirty = false;
+  editorState.picking = "";
+  editorState.editing = "";
+  editorState.open = new Set();
+}
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test("picking a configured appliance writes its subload metadata through the appliances store", async () => {
+  resetEditor();
+  sections.loads = [{ id: "cucina", name: "Cucina", order: 0, power_entity: "sensor.cucina" }];
+  sections.appliances = [
+    { id: "appl-forno", name: "Forno", power_entity: "sensor.forno_power" },
+    {
+      id: "appl-lavatrice",
+      name: "Lavatrice",
+      power_entity: "sensor.washer_power",
+      metadata: { beta27_subload_group: "lavanderia" },
+    },
+  ];
+  render();
+
+  const pickButton = panel.querySelector("[data-dm-subload-pick]");
+  assert.ok(pickButton, "the second button sits beside Add appliance");
+  assert.equal(pickButton.disabled, false);
+  assert.match(pickButton.textContent, /Scegli da Elettrodomestici/);
+
+  pickButton.click();
+  // Solo l'elettrodomestico libero è proposto: la lavatrice ha già un carico.
+  const choices = panel.querySelectorAll("[data-dm-appliance-choice]");
+  assert.equal(choices.length, 1);
+  const written = choices[0].textContent + choices[0].descendants().map((node) => node.textContent).join("");
+  assert.match(written, /Forno/);
+
+  choices[0].click();
+  await tick();
+
+  // La scelta è passata dalla sezione `appliances`, come fa la modale.
+  assert.equal(sections.appliances[0].metadata.beta27_subload_group, "cucina");
+  assert.equal(
+    sections.appliances[1].metadata.beta27_subload_group,
+    "lavanderia",
+    "the appliance already assigned elsewhere is untouched",
+  );
+  // I carichi non sono stati riscritti: la riga vive nella sezione di là.
+  assert.equal(sections.loads.length, 1);
+
+  // E al refresh dell'editor la riga «da Elettrodomestici» c'è, in sola lettura.
+  const row = panel.querySelector('[data-dm-subload-source="appliance"]');
+  assert.ok(row, "the assigned appliance shows up as a read-only row");
+  assert.equal(row.dataset.dmSubload, "appl-forno");
+  assert.equal(row.querySelector("[data-dm-subload-delete]"), null);
+});
+
+test("a full load says so on the picker button instead of truncating in silence", () => {
+  resetEditor();
+  sections.loads = [
+    { id: "pieno", name: "Pieno", order: 0, power_entity: "sensor.pieno" },
+    ...Array.from({ length: 12 }, (_, index) => ({
+      id: `pieno-sub-${index + 1}`,
+      name: `Dispositivo ${index + 1}`,
+      power_entity: `sensor.sub${index + 1}`,
+      metadata: { beta27_subload_group: "pieno" },
+    })),
+  ];
+  sections.appliances = [{ id: "appl-forno", name: "Forno", power_entity: "sensor.forno_power" }];
+  render();
+
+  const pickButton = panel.querySelector("[data-dm-subload-pick]");
+  assert.equal(pickButton.disabled, true);
+  assert.match(pickButton.textContent, /Carico pieno: massimo 12 dispositivi/);
+
+  // Anche forzando il click il picker non si apre: niente tredicesima riga.
+  pickButton.click();
+  assert.equal(panel.querySelector("[data-dm-appliance-picker]"), null);
+});
+
+test("a load of another plant explains why appliances cannot be picked for it", () => {
+  resetEditor();
+  storage.set("cd_energy_plant", "impianto-2");
+  sections.energy = { plants: [{ id: "impianto-2", name: "Casa 2" }] };
+  sections.loads = [
+    { id: "altro", name: "Altro", order: 0, power_entity: "sensor.altro", plant: "impianto-2" },
+  ];
+  sections.appliances = [{ id: "appl-forno", name: "Forno", power_entity: "sensor.forno_power" }];
+  render();
+
+  assert.deepEqual(cards().map((card) => card.dataset.dmLoad), ["altro"]);
+  // Gli elettrodomestici non hanno un campo impianto: niente pulsante qui,
+  // e al suo posto la riga che spiega il perché.
+  assert.equal(panel.querySelector("[data-dm-subload-pick]"), null);
+  const spiegazione = panel.querySelector(".dm-loads-pick-foreign");
+  assert.ok(spiegazione);
+  assert.match(spiegazione.textContent, /impianto principale/);
+
+  storage.delete("cd_energy_plant");
+  delete sections.energy;
+});

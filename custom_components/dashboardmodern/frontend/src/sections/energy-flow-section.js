@@ -63,10 +63,11 @@ function stateNumber(states, entity) {
  * Energia, e non era un difetto di disegno: erano due testi che si
  * alternavano.
  *
- * Adesso scrive solo questo, col prefisso che avevano scelto gli altri due —
- * «SOC» dice cos'e' quel numero, e senza si legge come una percentuale di
- * qualcosa che non si sa. Passa dal delegato, che lascia il cartello
- * `data-dm-padrone`: e' quel cartello che ferma la mano del guscio.
+ * Adesso scrive solo questo. Il prefisso «SOC» che avevano scelto gli altri
+ * due se n'e' andato su richiesta: sotto la freccia e i watt della batteria
+ * la percentuale si spiega da sola, e la sigla la sporcava. Passa dal
+ * delegato, che lascia il cartello `data-dm-padrone`: e' quel cartello che
+ * ferma la mano del guscio.
  */
 export function renderBatterySoc(targetDocument, energy = {}, states = {}) {
   const node = nodoDelSoc(targetDocument);
@@ -83,7 +84,7 @@ export function renderBatterySoc(targetDocument, energy = {}, states = {}) {
     return "—";
   }
   const value = stateNumber(states, entity);
-  const text = value === null ? "SOC —" : `SOC ${Math.round(value)}%`;
+  const text = value === null ? "—" : `${Math.round(value)}%`;
   node.hidden = false;
   scriviTestoSeCambia(node, text);
   if (node.dataset.entity !== entity) node.dataset.entity = entity;

@@ -19,6 +19,17 @@
 
 export const QUICK_CLIMATE_KEY = "cd_clima_rapido";
 
+/* I passi di OGNI unita', per entita': «come e' impostato ora viene attribuito
+ * quel valore a tutto» — e invece la cameretta puo' volere 24 gradi e il
+ * salone 26. La chiave globale resta il ripiego di chi non specifica. */
+export const QUICK_CLIMATE_UNITS_KEY = "cd_clima_rapido_unita";
+
+/* Le quattro velocita' che Home Assistant chiama standard: il ripiego di
+ * quando NESSUNA unita' dichiara le sue — capita alle integrazioni che
+ * rispondono tardi o senza attributi. Stessa regola delle modalita': una
+ * scheda senza scelte e' peggio di una scheda con una scelta in piu'. */
+export const QUICK_CLIMATE_FAN_FALLBACK = Object.freeze(["auto", "low", "medium", "high"]);
+
 /* Quello che la plancia ha sempre fatto: resta il comportamento di chi non
  * apre mai la configurazione. */
 export const QUICK_CLIMATE_DEFAULT = Object.freeze({
@@ -37,6 +48,16 @@ export const QUICK_CLIMATE_MODES = Object.freeze([
   "dry",
   "fan_only",
 ]);
+
+/* Il ripiego della parte Caldo: il default storico (freddo, ventisei gradi,
+ * ventola automatica) e' nato per i condizionatori, e un termosifone acceso
+ * cosi' farebbe il contrario di quel che gli si chiede. Chi non specifica
+ * niente accende in riscaldamento e non tocca altro. */
+export const QUICK_CLIMATE_HEAT_DEFAULT = Object.freeze({
+  mode: "heat",
+  temperature: null,
+  fan: "",
+});
 
 /* Sotto i cinque gradi e sopra i trentacinque non c'e' un condizionatore che
  * obbedisca: e' un numero digitato male, non una scelta. */
@@ -63,6 +84,37 @@ export function normalizeQuickClimate(stored) {
           : QUICK_CLIMATE_DEFAULT.temperature,
     fan,
   };
+}
+
+/**
+ * Il preset di UNA unita': il suo se l'ha detto, altrimenti quello globale.
+ *
+ * `perUnita` e' il contenuto della chiave per-entita' ({ "climate.cucina":
+ * {mode,temperature,fan} }), `globale` quello della chiave storica. Un record
+ * per-unita' si salva sempre completo dal suo form, quindi il ripiego e' tutto
+ * o niente: niente fusioni campo per campo che nessuno saprebbe prevedere.
+ */
+export function quickClimateForUnit(entity, perUnita, globale) {
+  const chiave = pulito(entity);
+  const dato =
+    perUnita && typeof perUnita === "object" && !Array.isArray(perUnita) ? perUnita[chiave] : null;
+  return normalizeQuickClimate(dato && typeof dato === "object" ? dato : globale);
+}
+
+/**
+ * Il preset visto dalla zona da cui si preme.
+ *
+ * La parte Caldo del popup accende per scaldare: un preset che dice «cool» o
+ * «dry» li' dentro e' un ripiego pensato per i condizionatori (o una pompa di
+ * calore configurata dal lato Freddo), e obbedirgli farebbe raffrescare dal
+ * tab che promette il contrario. Le modalita' che scaldano — heat, heat_cool,
+ * auto, fan_only — restano come scelte, perche' quelle le ha dette qualcuno.
+ */
+export function quickClimatePresetForZone(preset, zona) {
+  const scelta = normalizeQuickClimate(preset);
+  if (pulito(zona).toLowerCase() !== "caldo") return scelta;
+  if (scelta.mode === "cool" || scelta.mode === "dry") return { ...scelta, mode: "heat" };
+  return scelta;
 }
 
 /**

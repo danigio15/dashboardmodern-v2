@@ -18,6 +18,7 @@ import {
   robotFanCommand,
   robotStateLabel,
   robotView,
+  SPECIES_LABELS,
 } from "../core/robot-model.js";
 import {
   allStates,
@@ -92,7 +93,9 @@ export function ensureRobotTab() {
   tab.className = "tab";
   tab.dataset.tab = ROBOT_TAB;
   tab.id = `tab-${ROBOT_TAB}`;
-  tab.innerHTML = `<span class="icon">🤖</span><span class="text">${esc(t("Aspirapolvere", "Vacuum"))}</span>`;
+  /* La voce si chiama «Robot», non «Aspirapolvere»: da quando la sezione
+   * accoglie anche i tagliaerba, il nome vecchio mentirebbe a meta' dei robot. */
+  tab.innerHTML = `<span class="icon">🤖</span><span class="text">${esc(t("Robot", "Robots"))}</span>`;
   /* Il gestore che il runtime lega alle voci lo lega una volta sola, al
    * caricamento: questa arriva dopo, e il suo tocco se lo deve gestire da se'.
    * Fa la stessa identica cosa, perche' due modi di cambiare pagina sarebbero
@@ -164,6 +167,17 @@ function mapMarkup(view) {
   </div>`;
 }
 
+/* Il segno della specie: il tagliaerba non e' un aspirapolvere e non si
+ * traveste da lui — l'icona e l'etichetta piccola lo dicono a colpo d'occhio. */
+function speciesIcon(view) {
+  return view.species === "lawn_mower" ? "🌱" : "🤖";
+}
+
+function speciesTag(view) {
+  if (view.species !== "lawn_mower") return "";
+  return t(SPECIES_LABELS.lawn_mower[0], SPECIES_LABELS.lawn_mower[1]);
+}
+
 function cardMarkup(view) {
   const actions = robotActions(view)
     .map(
@@ -173,12 +187,13 @@ function cardMarkup(view) {
         </button>`,
     )
     .join("");
-  return `<article class="dm-robot-card" data-dm-robot="${esc(view.entity)}" data-dm-robot-state="${esc(view.state)}">
+  const sotto = [speciesTag(view), view.room].filter(Boolean).join(" · ");
+  return `<article class="dm-robot-card" data-dm-robot="${esc(view.entity)}" data-dm-robot-state="${esc(view.state)}" data-dm-robot-species="${esc(view.species)}">
     <div class="dm-robot-head">
-      <span class="dm-robot-icon" aria-hidden="true">🤖</span>
+      <span class="dm-robot-icon" aria-hidden="true">${speciesIcon(view)}</span>
       <span class="dm-robot-title">
         <strong>${esc(view.name)}</strong>
-        ${view.room ? `<small>${esc(view.room)}</small>` : ""}
+        ${sotto ? `<small>${esc(sotto)}</small>` : ""}
       </span>
       <span class="dm-robot-state" data-dm-robot-label>${esc(robotStateLabel(view.state))}</span>
     </div>
@@ -193,7 +208,7 @@ function cardMarkup(view) {
 }
 
 function emptyMarkup() {
-  return `<div class="ed-empty dm-robot-empty">${esc(t("Nessun robot configurato", "No vacuum configured"))}</div>`;
+  return `<div class="ed-empty dm-robot-empty">${esc(t("Nessun robot configurato", "No robot configured"))}</div>`;
 }
 
 function signatureOf(views) {
@@ -201,11 +216,16 @@ function signatureOf(views) {
     .map((view) =>
       [
         view.entity,
+        view.species,
         view.name,
         view.room,
         view.features,
         view.mapEntity,
         view.fanSpeeds.join("+"),
+        /* La presenza della batteria decide se la sua casella esiste nel
+         * markup: quando compare — il sensore a parte che arriva dopo — la
+         * scheda va rifatta, non solo aggiornata. */
+        view.battery === null ? "" : "batt",
       ].join("~"),
     )
     .join("|");
@@ -632,6 +652,9 @@ function installStyles() {
       #page-robot .dm-robot-title small{color:var(--secondary-text-color,#64748b);font-size:11.5px;font-weight:700}
       #page-robot .dm-robot-state{flex:0 0 auto;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.02em;text-transform:uppercase;background:var(--secondary-background-color,#eef3f8);color:var(--secondary-text-color,#64748b)}
       #page-robot [data-dm-robot-state="cleaning"] .dm-robot-state{background:color-mix(in srgb,#0ea5e9 18%,transparent);color:#0369a1}
+      /* Il tagliaerba al lavoro si accende come l'aspirapolvere che pulisce,
+         ma del colore del prato. */
+      #page-robot [data-dm-robot-state="mowing"] .dm-robot-state{background:color-mix(in srgb,#16a34a 18%,transparent);color:#15803d}
       #page-robot [data-dm-robot-state="returning"] .dm-robot-state{background:color-mix(in srgb,#8b5cf6 18%,transparent);color:#6d28d9}
       #page-robot [data-dm-robot-state="docked"] .dm-robot-state{background:color-mix(in srgb,#10b981 18%,transparent);color:#047857}
       #page-robot [data-dm-robot-state="error"] .dm-robot-state,

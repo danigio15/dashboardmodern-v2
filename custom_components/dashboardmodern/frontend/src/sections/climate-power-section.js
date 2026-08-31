@@ -83,6 +83,15 @@ function chiama(entity, service, data) {
   return false;
 }
 
+/* La stessa presa, per chi manda un passo alla volta: i passi del tasto
+ * rapido viaggiano per la strada delle luci e delle tapparelle, non su un
+ * secondo canale. Torna false se non c'era nessuno ad ascoltare. */
+export function chiamaClima(entity, service, data) {
+  const id = clean(entity);
+  if (!id) return false;
+  return chiama(id, service, data || {});
+}
+
 /* La modalita' che il tab chiede, ma solo per chi vive in tutti e due.
  *
  * La pompa di calore (#195) ha una card in Freddo e una in Caldo: il tasto del

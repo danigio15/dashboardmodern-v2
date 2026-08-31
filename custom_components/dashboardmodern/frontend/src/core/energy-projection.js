@@ -2,7 +2,20 @@
 import { getDeviceVisual } from "./device-model.js";
 import { isCumulativeEnergyEntity } from "./period-service.js";
 
+/* La scheda Temperature di Energia: inverter, batteria e ventola. Vive fuori
+ * dai gruppi di impianto — la pagina che la legge e' una sola — e si configura
+ * dalle impostazioni di Energia («manca la parte nel config per configurare le
+ * entita' di questa parte, sia le temperature inverter che le ventole»). */
+export const COOLING_SLOT_MAP = Object.freeze({
+  "cooling.inverter_ac_temperature": "dm.energy_temperatura_ac_inverter",
+  "cooling.inverter_dc_temperature": "dm.energy_temperatura_dc_inverter",
+  "cooling.battery_temperature": "dm.energy_temperatura_batteria",
+  "cooling.fan_power": "dm.energy_potenza_ventola_inverter",
+  "cooling.fan_switch": "dm.energy_interruttore_ventola_inverter",
+});
+
 export const ENERGY_SLOT_MAP = Object.freeze({
+  ...COOLING_SLOT_MAP,
   "house.power": "dm.energy_potenza_consumo_casa",
   "house.daily_energy": "dm.energy_consumo_casa_oggi",
   "house.monthly_energy": "dm.energy_consumo_casa_mese",

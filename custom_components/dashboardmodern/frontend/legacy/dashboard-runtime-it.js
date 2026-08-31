@@ -1268,7 +1268,7 @@ function apriConfigEntita() {
           <button class="ed-tab" data-tab="pool" onclick="editorSwitch('pool')">🏊 Piscina</button>
           <button class="ed-tab" data-tab="irr" onclick="editorSwitch('irr')">💧 Irrigazione</button>
           <button class="ed-tab" data-tab="tapp" onclick="editorSwitch('tapp')">🪟 Finestre</button>
-          <button class="ed-tab" data-tab="stanze" onclick="editorSwitch('stanze')">🚪 Stanze</button>
+          <button class="ed-tab" data-tab="stanze" onclick="editorSwitch('stanze')">🛋️ Stanze</button>
           <button class="ed-tab" data-tab="luci"  onclick="editorSwitch('luci')">💡 Luci</button>
           <button class="ed-tab" data-tab="appliances" onclick="editorSwitch('appliances')">🧺 Elettrodom.</button>
           <button class="ed-tab" data-tab="avvisi" onclick="editorSwitch('avvisi')">🔔 Avvisi</button>
@@ -3705,7 +3705,7 @@ function editorRenderSezioni() {
           <div class="ed-form">
             <input id="ed-cam-name" class="ed-input" placeholder="Nome (es. Giardino)">
             <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cam-ent" style="flex:1;" class="ed-input mono" placeholder="camera.giardino"><button type="button" onclick="wzPickEntity('#ed-cam-ent')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
-            <input id="ed-cam-stream" class="ed-input mono" placeholder="Nome stream go2rtc (facoltativo, per WebRTC)">
+            <input id="ed-cam-stream" class="ed-input mono" placeholder="Nome stream go2rtc (facoltativo, per WebRTC)"><small style="display:block;font-size:11px;color:var(--text-dim,#64748b);margin:2px 2px 0;">\u00c8 QUESTO campo ad accendere WebRTC: il nome del flusso come sta scritto dentro go2rtc/Frigate. Il nome della telecamera non c'entra.</small>
             <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddCamera()">＋ Aggiungi telecamera</button><button type="button" class="ed-save-btn" onclick="edSaveSezione(this)">💾 Salva sezione</button>
           </div>
         </div>
@@ -5323,7 +5323,7 @@ function dmStreamName(cam) { return cam.stream || (cam.entity ? cam.entity.split
    mollava proprio sul piu' bello e si finiva sulle istantanee. Il modulo guarda
    cosa Home Assistant dichiara della telecamera e decide di conseguenza; qui
    restano le parole, che il modulo non sa in che lingua vanno dette. */
-const _DM_CAM_MOTIVI = { 'senza-nome-di-flusso': 'WebRTC: saltato, nessun flusso go2rtc configurato', 'browser-senza-webrtc': 'WebRTC: saltato, il browser non lo supporta', 'browser-senza-hls': 'HLS: saltato, hls.js non caricato', 'telecamera-che-dorme': 'MJPEG: saltato, la telecamera trasmette solo su richiesta' };
+const _DM_CAM_MOTIVI = { 'senza-nome-di-flusso': 'WebRTC: saltato — compila \u00abNome stream go2rtc\u00bb nella scheda Telecamere (il nome della telecamera non c\u2019entra)', 'browser-senza-webrtc': 'WebRTC: saltato, il browser non lo supporta', 'browser-senza-hls': 'HLS: saltato, hls.js non caricato', 'telecamera-che-dorme': 'MJPEG: saltato, la telecamera trasmette solo su richiesta' };
 
 async function dmCamOpen(cam, title, content) {
     dmCamCleanup();
@@ -6916,7 +6916,8 @@ function nsToggleClima(entityId) {
       // lasciata vuota vuol dire «non toccare». Se il modulo che li traduce non
       // c'e', si accende come si e' sempre acceso.
       var passi;
-      try { passi = window.dmQuickClimateSteps && window.dmQuickClimateSteps(); } catch (e) { passi = null; }
+      // I passi sono di QUESTA unita': ogni entita' ha i suoi, il globale resta il ripiego.
+      try { passi = window.dmQuickClimateSteps && window.dmQuickClimateSteps(entityId); } catch (e) { passi = null; }
       if (!passi || !passi.length) passi = [
         { service: 'set_hvac_mode', data: { hvac_mode: 'cool' } },
         { service: 'set_temperature', data: { temperature: 26 } },
@@ -7163,7 +7164,7 @@ function edUpdateKpiOnly() {
     const circ = 2 * Math.PI * 32;
     const dash = (auto / 100) * circ;
     const circle = document.getElementById('ed-auto-circle');
-    if (circle) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circ.toFixed(1));
+    if (circle && !cdPresoDaiModuli(circle)) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circ.toFixed(1));
     edSetText('ed-auto-ring-val', auto + '%');
     edSetText('ed-auto-big', auto + '%');
 
@@ -7457,8 +7458,11 @@ function edSwitchTab(tab) {
 }
 
 function edSetText(id, html) {
+    /* Il cartello dei moduli vale anche qui: senza questo controllo i due
+       render del Report riscrivevano i KPI e la griglia finanziaria sopra ai
+       moduli, e i numeri si alternavano a ogni giro. */
     const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
+    if (el && !cdPresoDaiModuli(el)) el.innerHTML = html;
 }
 
 async function renderEnergyDashboard() {
@@ -7696,7 +7700,7 @@ async function renderEnergyDashboard() {
     const circumference = 2 * Math.PI * 32;
     const dash = (autosufficienza / 100) * circumference;
     const circle = document.getElementById('ed-auto-circle');
-    if (circle) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circumference.toFixed(1));
+    if (circle && !cdPresoDaiModuli(circle)) circle.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + circumference.toFixed(1));
     edSetText('ed-auto-ring-val', autosufficienza + '%');
     edSetText('ed-auto-big', autosufficienza + '%');
 

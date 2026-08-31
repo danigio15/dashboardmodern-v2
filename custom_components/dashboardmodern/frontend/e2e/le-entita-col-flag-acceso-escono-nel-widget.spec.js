@@ -80,12 +80,15 @@ async function avvia(page, testInfo) {
   await page.waitForTimeout(1500);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
   await page.locator('#dm-widgets .dm-tile[data-dm-widget="ev"]').click();
-  await expect(page.locator("#dm-widget-popup .dm-w-row").first()).toBeVisible();
+  await expect(page.locator("#dm-widget-popup .dm-w-casella").first()).toBeVisible();
 }
 
+/* Dal 30 agosto il popup parla a carte: le misure stanno nelle caselle
+ * (.dm-w-casella) e negli stati a pillola, le righe restano ai soli comandi.
+ * La promessa dell'interruttore e' la stessa; si legge tutto quel che c'e'. */
 const righe = (page) =>
   page
-    .locator("#dm-widget-popup .dm-w-row")
+    .locator("#dm-widget-popup :is(.dm-w-casella, .dm-w-pillola, .dm-w-row)")
     .evaluateAll((nodi) => nodi.map((n) => n.textContent.replace(/\s+/g, " ").trim()));
 
 test("tutte le caselle mappate dell'auto arrivano nella finestra", async ({ page }, testInfo) => {

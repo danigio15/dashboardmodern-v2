@@ -678,6 +678,26 @@ export function decorateEntityFields(scope = doc?.getElementById("ed-body")) {
   return pending;
 }
 
+/* Il campo entita' delle Azioni rapide segue il tipo scelto.
+ *
+ * Il guscio lo nasconde gia' per i popup nativi (`edQaTypeChanged`), ma la
+ * pelle a scheda scrive `display:flex` importante sulla stessa riga quando la
+ * decora — e da li' in poi «Entita' da comandare» restava a chiedere entita'
+ * che i popup non vogliono: «se il popup lo fai tu in automatico non devi far
+ * scegliere le entita'». La visibilita' si ristabilisce a ogni passata, con la
+ * stessa priorita' con cui la pelle l'aveva scritta. */
+function rispettaTipoAzione(scope) {
+  const tipo = clean(scope?.querySelector?.("#ed-qa-type")?.value);
+  if (!tipo) return;
+  const riga =
+    scope.querySelector("#ed-qa-ent-row") ||
+    scope.querySelector("#ed-qa-ent")?.parentElement ||
+    null;
+  if (!riga) return;
+  const serve = ["toggle", "script", "scene"].includes(tipo);
+  riga.style.setProperty("display", serve ? "flex" : "none", "important");
+}
+
 export function decorateEditorSlots(scope = doc?.getElementById("ed-body")) {
   if (!scope) return 0;
   clarifyEntityPlaceholders();
@@ -685,6 +705,7 @@ export function decorateEditorSlots(scope = doc?.getElementById("ed-body")) {
   let count = 0;
   for (const body of scope.querySelectorAll(".ed-acc-body")) if (decorateBody(body)) count += 1;
   state.pending = decorateEntityFields(scope);
+  rispettaTipoAzione(scope);
   return count;
 }
 

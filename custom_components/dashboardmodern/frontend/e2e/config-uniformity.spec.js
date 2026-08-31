@@ -75,10 +75,13 @@ const SECTION_TABS = [
   // Da quando la sezione Luci sta nella barra, la sua scheda ha la fascia
   // visibile/nascondi come tutte le altre.
   "luci",
+  // E da quando le Stanze sono una pagina della barra vale anche per loro:
+  // era l'unica voce che non si poteva nascondere, chiesto esplicitamente.
+  "stanze",
 ];
 // «avvisi» non è più una linguetta: gli avvisi stanno in fondo alla scheda
 // «🧩 Widget», che è anche lei una scheda senza sezione da accendere.
-const PLAIN_TABS = ["sez8", "stanze", "todo"];
+const PLAIN_TABS = ["sez8", "todo"];
 const NO_SAVE_TABS = ["runtime"];
 
 async function boot(page, testInfo) {
@@ -203,7 +206,7 @@ test.describe("the configuration behaves the same on every tab", () => {
     }
     for (const tab of PLAIN_TABS) {
       await openTab(page, tab);
-      // These three are not sections of the dashboard, so they have no switch.
+      // These are not sections of the dashboard, so they have no switch.
       await settledTabState(page, (view) => view.banners, `${tab}: no switch`).toBe(0);
     }
   });

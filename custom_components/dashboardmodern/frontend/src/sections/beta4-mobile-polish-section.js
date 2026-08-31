@@ -20,9 +20,10 @@ const TAB_ICONS = Object.freeze({
   sez9: "❄️",
   appliances: "🧺",
   luci: "💡",
-  /* La porta, non la casa: la casa e' Home, e da telefono — dove della
-   * linguetta resta il solo simbolo — due case affiancate non si distinguono. */
-  stanze: "🚪",
+  /* Il divano, non la porta: la porta e' delle Aperture (`doors`, qui
+   * sotto), e da telefono — dove della linguetta resta il solo simbolo —
+   * due porte affiancate non si distinguono. */
+  stanze: "🛋️",
   avvisi: "🔔",
   tapp: "🪟",
   irr: "💧",
@@ -250,7 +251,14 @@ function polishRoomFirstInsert() {
   trigger.setAttribute("aria-label", t("Scegli icona stanza", "Choose room icon"));
   const refresh = () => {
     const value = clean(input.value) || "mdi:home";
-    trigger.innerHTML = roomVisual(value, 46) || `<span aria-hidden="true">🏠</span>`;
+    /* La stessa icona che si vedra' dopo il salvataggio: l'anteprima diceva
+     * l'emoji (🚿) mentre il catalogo e le righe salvate dicono il disegno di
+     * casa — «prima si mostra un'icona poi se ne vede un'altra». Chi disegna
+     * l'anteprima e' lo stesso motore che disegna il resto. */
+    trigger.innerHTML =
+      root.DashboardModernIconEngine?.markup?.("room", value, { size: 40 }) ||
+      roomVisual(value, 46) ||
+      `<span aria-hidden="true">🏠</span>`;
   };
   if (trigger.dataset.dmBeta5Bound !== "true") {
     trigger.dataset.dmBeta5Bound = "true";
@@ -678,7 +686,14 @@ function installStyles() {
        misure che stavano qui perdevano tutte, e restavano solo a far numero. */
     [data-brand-preview] .dm-beta5-brand-logo{width:86px!important;height:56px!important}
 
-    #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-add-row{display:grid!important;grid-template-columns:58px 138px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:10px!important}
+    /* Il quadratino grezzo dell'icona non si vede MAI: «non voglio vedere
+     * doppie icone». Il campo resta nel documento — e' quello che i
+     * salvataggi leggono e che il selettore dal catalogo compila — ma a
+     * schermo c'e' solo il trigger che apre il catalogo, su ogni misura.
+     * Prima si nascondeva solo da telefono, e da desktop uscivano due
+     * icone affiancate. */
+    #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-add-row{display:grid!important;grid-template-columns:58px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:10px!important}
+    #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon{display:none!important}
     #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon-preview{display:none!important}
     /* I due campi devono riempire la loro colonna.
      *

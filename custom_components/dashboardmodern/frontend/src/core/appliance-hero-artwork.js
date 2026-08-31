@@ -389,6 +389,48 @@ function boiler(id) {
   <path d="M96 194v14M144 194v14" stroke="#8fa0b3" stroke-width="7" stroke-linecap="round"/>`;
 }
 
+/* ── boiler d'accumulo ───────────────────────────────────────────────── */
+
+/* Il cilindrone a pavimento del solare termico: manometro in alto, acqua che
+ * ondeggia in basso, tubi di mandata e ritorno sul fianco. */
+function storageBoiler(id) {
+  return `${defs(id)}
+  ${FLOOR(120)}
+  <rect x="62" y="18" width="116" height="184" rx="54" fill="url(#dmh-white-${id})" ${EDGE}/>
+  <rect x="62" y="18" width="116" height="184" rx="54" fill="url(#dmh-sheen-${id})"/>
+  <circle cx="120" cy="72" r="26" fill="#eef2f7" ${EDGE}/>
+  <circle cx="120" cy="72" r="19" fill="url(#dmh-cool-${id})"/>
+  <path d="M120 72l11-11" stroke="#0f2942" stroke-width="4" stroke-linecap="round"/>
+  <g class="dmh-water">
+    <path d="M74 138c14-10 26 6 40-2s24-4 38 2v22a46 46 0 0 1-46 40 46 46 0 0 1-46-40z" fill="#38bdf8" opacity=".7"/>
+    <path d="M80 152c12-7 22 4 34-1s20-3 32 1" stroke="#e0f2fe" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </g>
+  ${display(id, 100, 108, 40, 12)}
+  ${led(120, 96, "#f59e0b", 3)}
+  <path d="M178 58h26M178 152h26" stroke="#8fa0b3" stroke-width="8" stroke-linecap="round"/>
+  <path d="M92 202v12M148 202v12" stroke="#8fa0b3" stroke-width="7" stroke-linecap="round"/>`;
+}
+
+/* ── friggitrice ad aria ─────────────────────────────────────────────── */
+
+/* Il corpo a uovo, l'anello dei comandi, il cassetto del cestello con la
+ * maniglia, e l'aria calda che gira quando lavora. */
+function airFryer(id) {
+  return `${defs(id)}
+  ${FLOOR(120)}
+  <path d="M84 34h72c22 0 34 18 34 40v58c0 34-28 62-62 62h-16c-34 0-62-28-62-62V74c0-22 12-40 34-40z" fill="url(#dmh-white-${id})" ${EDGE}/>
+  <path d="M84 34h72c22 0 34 18 34 40v58c0 34-28 62-62 62h-16c-34 0-62-28-62-62V74c0-22 12-40 34-40z" fill="url(#dmh-sheen-${id})"/>
+  <rect x="84" y="48" width="72" height="34" rx="17" fill="#101d31" ${DARKEDGE}/>
+  <circle cx="120" cy="65" r="12" fill="url(#dmh-cool-${id})"/>
+  <circle class="dmh-fan" cx="120" cy="65" r="7" fill="none" stroke="#e0f2fe" stroke-width="3" stroke-dasharray="5 6"/>
+  <g class="dmh-glow">
+    <path d="M76 110c6 8 6 16 0 24M120 106c6 10 6 20 0 30M164 110c6 8 6 16 0 24" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" fill="none" opacity=".55"/>
+  </g>
+  <path d="M62 150h116v6a44 44 0 0 1-44 38h-28a44 44 0 0 1-44-38z" fill="#eef2f7" ${EDGE}/>
+  <rect x="98" y="160" width="44" height="14" rx="7" fill="#101d31"/>
+  ${led(120, 142, "#22c55e", 3)}`;
+}
+
 /* ── tv ──────────────────────────────────────────────────────────────── */
 
 function television(id) {
@@ -492,6 +534,8 @@ const BUILDERS = {
   "air-conditioner": airConditioner,
   fan: ventilator,
   boiler,
+  "storage-boiler": storageBoiler,
+  "air-fryer": airFryer,
   television,
   coffee,
   toaster,

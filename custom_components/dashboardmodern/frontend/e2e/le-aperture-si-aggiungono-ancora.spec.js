@@ -131,6 +131,9 @@ test("il widget delle aperture usa il nome scelto, non quello di fabbrica", asyn
       "cd_avvisi_names_extra",
       JSON.stringify({ "binary_sensor.sensore_porta_finestra_camera": "Porta camera" }),
     );
+    /* La prova legge la didascalia della tessera piena: sul telefono la
+     * modalita' compatta (Auto) la nasconderebbe, e qui non e' lei l'imputata. */
+    localStorage.setItem("cd_widgets", JSON.stringify({ compatto: "mai" }));
     /* Il gruppo vivo si costruisce all'avvio: qui si semina dopo, quindi si
      * aggiorna anche lui — e' quello che fa il salvataggio vero. */
     window.eval(

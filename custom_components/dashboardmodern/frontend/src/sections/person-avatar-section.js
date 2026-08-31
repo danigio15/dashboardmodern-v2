@@ -17,7 +17,7 @@
  * trovato e misurato, col colore preso dalla guancia della persona stessa —
  * cosi' combaciano con qualunque carnagione senza saperla.
  */
-import { AVATAR_LATO, risolviAvatar3d } from "../core/avatar-3d.js";
+import { AVATAR_LATO, BARBA_LUNGA_EXTRA, risolviAvatar3d } from "../core/avatar-3d.js";
 import { doc, installStyle, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_AVATAR_3D__";
@@ -48,36 +48,643 @@ function immagine(nome) {
   return attesa;
 }
 
+/* ── Le operazioni sui pixel ──────────────────────────────────────────────
+ *
+ * Il modello dichiara i ritocchi — tinte, barba, iridi, occhiali, abiti —
+ * come dati; qui ognuno diventa lavoro su una tela. Le formule sono quelle
+ * del laboratorio che le ha provate a occhio, e non si reinterpretano:
+ * stessa luminanza preservata nelle tinte, stesso confine a mandibola per
+ * la barba, stessa finestra di tinta per gli abiti.
+ */
+
+/* Un pixel e' pelo quando e' scuro: la stessa soglia del laboratorio. */
+const PELO = 110;
+
+/* La tinta a luminanza preservata: il colore pieno va sul pixel scalato
+ * dalla sua luce (`k`, con `lift` che schiarisce la resa complessiva), e il
+ * peso cresce quanto piu' il pixel e' scuro — cioe' quanto piu' e' pelo. */
+function tingiPixel(dati, i, [tr, tg, tb], lift) {
+  const r = dati[i],
+    g = dati[i + 1],
+    b = dati[i + 2];
+  const m = Math.max(r, g, b);
+  if (m >= PELO) return;
+  const lum = (r + g + b) / 3;
+  const k = 0.35 + lift + (0.65 - lift * 0.5) * (lum / PELO);
+  const peso = Math.min(1, (PELO - m) / 60);
+  dati[i] = r + (Math.min(255, tr * k) - r) * peso;
+  dati[i + 1] = g + (Math.min(255, tg * k) - g) * peso;
+  dati[i + 2] = b + (Math.min(255, tb * k) - b) * peso;
+}
+
+/* La chioma: i pixel scuri nella parte alta (capelli e sopracciglia). */
+function tintaCapelli(dati, lato, rgb, lift) {
+  for (let y = 0; y < lato * 0.52; y += 1)
+    for (let x = 0; x < lato; x += 1) {
+      const i = (y * lato + x) * 4;
+      if (dati[i + 3] >= 40) tingiPixel(dati, i, rgb, lift);
+    }
+}
+
+/* Il confine capelli/barba: una parabola alta al centro del viso (per
+ * prendere i baffi) e piu' bassa ai lati (per non mangiare i capelli sopra
+ * le orecchie). La barba e' l'insieme dei pixel scuri sotto quel confine —
+ * basette comprese. */
+const confine = (x, lato, centro = 0.46, alzata = 0.09) =>
+  lato * (centro + alzata * ((x - lato / 2) / (lato / 2)) ** 2);
+
+/* La campana della barba: quanto puo' allargarsi dal centro del viso, riga
+ * per riga. Al livello della bocca arriva alle guance, verso il mento si
+ * stringe. Dal campo: «la barba sul viso non e' precisa» — senza questo
+ * limite le ciocche lunghe ai lati del viso (la donna, il neutro coi capelli
+ * sciolti) finivano nella maschera e diventavano barba, e il pelo saliva
+ * sulle guance fino agli occhi. */
+function dentroLaCampana(x, y, lato) {
+  const dalCentro = Math.abs(x - lato / 2) / (lato / 2);
+  const quota = y / lato;
+  /* Da 0.62 di semi-larghezza alla bocca a 0.34 sotto il mento. */
+  const semiLarghezza = quota < 0.68 ? 0.62 : 0.62 - ((quota - 0.68) / 0.29) * 0.28;
+  return dalCentro <= semiLarghezza;
+}
+
+/* La pelle del viso, campionata dove nessuna foggia arriva: la fronte e i
+ * due zigomi sotto gli occhi. Si tiene il campione piu' chiaro, perche' sui
+ * ritratti femminili la fronte e' coperta dai capelli e il punto coperto
+ * mentirebbe scuro. */
+function pelleDelViso(dati, lato) {
+  const punti = [
+    [0.5, 0.34],
+    [0.44, 0.47],
+    [0.56, 0.47],
+  ];
+  let migliore = null;
+  for (const [px, py] of punti) {
+    const i = (Math.round(lato * py) * lato + Math.round(lato * px)) * 4;
+    if (dati[i + 3] < 200) continue;
+    const m = Math.max(dati[i], dati[i + 1], dati[i + 2]);
+    if (!migliore || m > migliore.m) migliore = { m, rgb: [dati[i], dati[i + 1], dati[i + 2]] };
+  }
+  return migliore;
+}
+
+function mascheraBarba(dati, lato) {
+  /* Sulle carnagioni scure la soglia fissa annega: anche la pelle sta sotto
+   * PELO, e la maschera allagava l'intero basso viso — il ritratto scuro
+   * usciva con un lastrone squadrato al posto della barba. Il pelo e' scuro
+   * RISPETTO alla pelle di quel viso: la soglia scende col campione di
+   * pelle (misurato: pelle scura 77-79, pelo scuro 34-50) e non sale mai
+   * sopra quella di laboratorio. */
+  const pelle = pelleDelViso(dati, lato);
+  const soglia = pelle ? Math.max(40, Math.min(PELO, Math.round(pelle.m * 0.65))) : PELO;
+  const maschera = new Uint8Array(lato * lato);
+  const dentro = (x, y) => {
+    const i = (y * lato + x) * 4;
+    return dati[i + 3] > 40 && y > confine(x, lato) && dentroLaCampana(x, y, lato);
+  };
+  for (let y = Math.floor(lato * 0.36); y < lato * 0.97; y += 1)
+    for (let x = 0; x < lato; x += 1) {
+      const i = (y * lato + x) * 4;
+      if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < soglia)
+        maschera[y * lato + x] = 1;
+    }
+  /* Sulle carnagioni scure i riflessi del pelo (55-75) e la pelle (54-79)
+   * si sovrappongono: nessuna soglia li separa, e i riflessi esclusi
+   * bucavano la barba — dal buco stirato nella coda passava lo sfondo. Il
+   * pelo certo fa da seme e la maschera cresce per adiacenza di qualche
+   * pixel con una soglia rilassata: i riflessi attaccati al pelo entrano,
+   * la guancia lontana no. Su medie e chiare la soglia rilassata coincide
+   * con quella di laboratorio e la crescita non aggiunge nulla. */
+  const rilassata = pelle ? Math.min(PELO, Math.round(pelle.m * 0.9)) : PELO;
+  if (rilassata > soglia)
+    for (let giro = 0; giro < 4; giro += 1) {
+      const orlo = [];
+      for (let y = Math.floor(lato * 0.36); y < lato * 0.97; y += 1)
+        for (let x = 1; x < lato - 1; x += 1) {
+          const p = y * lato + x;
+          if (maschera[p]) continue;
+          if (!maschera[p - 1] && !maschera[p + 1] && !maschera[p - lato] && !maschera[p + lato])
+            continue;
+          const i = p * 4;
+          if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < rilassata)
+            orlo.push(p);
+        }
+      if (!orlo.length) break;
+      for (const p of orlo) maschera[p] = 1;
+    }
+  return maschera;
+}
+
+/* Colore pelle per la rasata: lo stesso campione robusto del viso. */
+function guancia(dati, lato) {
+  const pelle = pelleDelViso(dati, lato);
+  if (pelle) return pelle.rgb;
+  const i = (Math.round(lato * 0.34) * lato + Math.round(lato * 0.5)) * 4;
+  return [dati[i], dati[i + 1], dati[i + 2]];
+}
+
+/* Lo strato-barba: una tela con i soli pixel della maschera, e l'alfa
+ * ammorbidita con una piccola sfocatura — due passate di media mobile, che
+ * di una gaussiana stretta sono la sorella povera e indistinguibile. */
+function stratoBarba(dati, maschera, lato) {
+  const strato = doc.createElement("canvas");
+  strato.width = strato.height = lato;
+  const pennello = strato.getContext("2d");
+  const uscita = pennello.createImageData(lato, lato);
+  const fuori = uscita.data;
+  for (let p = 0; p < maschera.length; p += 1)
+    if (maschera[p]) {
+      const i = p * 4;
+      fuori[i] = dati[i];
+      fuori[i + 1] = dati[i + 1];
+      fuori[i + 2] = dati[i + 2];
+      fuori[i + 3] = dati[i + 3];
+    }
+  for (let passata = 0; passata < 2; passata += 1) {
+    const prima = new Uint8ClampedArray(lato * lato);
+    for (let p = 0; p < prima.length; p += 1) prima[p] = fuori[p * 4 + 3];
+    for (let y = 1; y < lato - 1; y += 1)
+      for (let x = 1; x < lato - 1; x += 1) {
+        const p = y * lato + x;
+        fuori[p * 4 + 3] =
+          (prima[p] * 2 + prima[p - 1] + prima[p + 1] + prima[p - lato] + prima[p + lato]) / 6;
+      }
+  }
+  pennello.putImageData(uscita, 0, 0);
+  return strato;
+}
+
+/* La barba, in tutte le sue vesti: tinta, rasata, corta, lunga; sulla testa
+ * stessa quando il render la porta gia', trapiantata da una donatrice della
+ * stessa carnagione quando no. `innesto` — scala e angolo con cui la tela
+ * della donatrice atterra su questa — lo ha gia' calcolato il modello. */
+function applicaBarba(telaTesta, op, donatrice) {
+  const lato = AVATAR_LATO;
+  const pennello = telaTesta.getContext("2d");
+  let dati;
+  if (donatrice) {
+    const appoggio = doc.createElement("canvas");
+    appoggio.width = appoggio.height = lato;
+    const suo = appoggio.getContext("2d");
+    suo.drawImage(donatrice, 0, 0, lato, lato);
+    dati = suo.getImageData(0, 0, lato, lato).data;
+  } else {
+    dati = pennello.getImageData(0, 0, lato, lato).data;
+  }
+  const maschera = mascheraBarba(dati, lato);
+  if (op.rgb)
+    for (let p = 0; p < maschera.length; p += 1) if (maschera[p]) tingiPixel(dati, p * 4, op.rgb, op.lift || 0);
+  if (op.foggia === "rasata") {
+    /* Barba dissolta verso la pelle: l'ombra corta del rasato. */
+    const [sr, sg, sb] = guancia(dati, lato);
+    for (let p = 0; p < maschera.length; p += 1)
+      if (maschera[p]) {
+        const i = p * 4;
+        dati[i] += (sr - dati[i]) * 0.62;
+        dati[i + 1] += (sg - dati[i + 1]) * 0.62;
+        dati[i + 2] += (sb - dati[i + 2]) * 0.62;
+      }
+  }
+
+  /* La coda della barba lunga: il pezzo basso dello strato, stirato in giu'
+   * su una tela che si e' gia' allungata apposta. */
+  const coda = (destinazione, strato) => {
+    let y0 = lato,
+      y1 = 0;
+    for (let p = 0; p < maschera.length; p += 1)
+      if (maschera[p]) {
+        const y = (p / lato) | 0;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    if (y1 <= y0) return null;
+    let meta = y0 + Math.floor(((y1 - y0) * 3) / 5);
+    /* La banda da stirare non deve contenere la bocca della donatrice:
+     * denti e labbra sono chiari, nella maschera diventano un buco, e il
+     * buco stirato usciva come zanne bianche sotto il mento. Se una riga
+     * della banda ha un varco fra il primo e l'ultimo pixel di pelo, la
+     * banda parte dalla riga sotto. */
+    let pulita = meta;
+    for (let y = meta; y <= y1; y += 1) {
+      let a = -1,
+        b = -1;
+      for (let x = 0; x < lato; x += 1)
+        if (maschera[y * lato + x]) {
+          if (a < 0) a = x;
+          b = x;
+        }
+      if (a < 0) continue;
+      let varco = 0;
+      for (let x = a; x <= b; x += 1) {
+        varco = maschera[y * lato + x] ? 0 : varco + 1;
+        if (varco >= 3) {
+          pulita = y + 1;
+          break;
+        }
+      }
+    }
+    if (y1 - pulita >= 4) meta = pulita;
+    /* La coda si assottiglia verso la punta: stirata a larghezza piena era
+     * un blocco squadrato, largo in fondo quanto in cima. Dieci fette che
+     * si stringono la fanno pendere come un pizzo. */
+    const altezza = (y1 - meta) * 2.1;
+    const fette = 10;
+    for (let f = 0; f < fette; f += 1) {
+      const t = f / (fette - 1);
+      const largo = lato * 0.9 * (1 - 0.4 * t);
+      destinazione.drawImage(
+        strato,
+        0,
+        meta + ((y1 - meta) * f) / fette,
+        lato,
+        (y1 - meta) / fette + 1,
+        (lato - largo) / 2,
+        meta + (altezza * f) / fette,
+        largo,
+        altezza / fette + 1,
+      );
+    }
+    return meta;
+  };
+
+  if (donatrice) {
+    const strato = stratoBarba(dati, maschera, lato);
+    const { scala, x, y } = op.innesto || { scala: 1, x: 0, y: 0 };
+    /* Il pelo trapiantato aderisce al viso che lo riceve: `source-atop`
+     * disegna solo dove la testa ha gia' pixel, e la barba di una donatrice
+     * piu' larga non sborda piu' oltre le guance e il mento («la barba sul
+     * viso non e' precisa»). Solo la coda della lunga resta libera: deve
+     * pendere SOTTO il mento, fuori dalla sagoma. */
+    if (op.foggia === "lunga") {
+      /* Prima si allunga nello spazio della donatrice, poi si innesta. */
+      const pieno = doc.createElement("canvas");
+      pieno.width = lato;
+      pieno.height = Math.round(lato * (1 + BARBA_LUNGA_EXTRA));
+      const suo = pieno.getContext("2d");
+      const metaCoda = coda(suo, strato);
+      /* La coda deve AGGANCIARE il mento del ricevente: con le chiome
+       * larghe l'innesto scala la donatrice e la banda atterrava sotto il
+       * mento, staccata dal viso. Si misura l'ultimo pixel opaco del terzo
+       * centrale della testa e, se la cima della coda finirebbe piu' in
+       * basso, la si tira su fin sopra quel mento. */
+      let alza = 0;
+      if (metaCoda != null) {
+        /* La lettura parte da meta' tela: sopra c'e' solo viso pieno, e
+         * ogni riga in meno e' lavoro sincrono risparmiato sul webkit
+         * lento della CI, dove le composizioni si pagano a secondi. */
+        const x0 = Math.round(lato * 0.36);
+        const y0 = Math.floor(lato * 0.5);
+        const larghezza = Math.round(lato * 0.28);
+        const altezza = telaTesta.height - y0;
+        const colonna = pennello.getImageData(x0, y0, larghezza, altezza).data;
+        let mento = 0;
+        for (let riga = altezza - 1; riga >= 0 && !mento; riga -= 1)
+          for (let px = 0; px < larghezza; px += 1)
+            if (colonna[(riga * larghezza + px) * 4 + 3] > 40) {
+              mento = y0 + riga;
+              break;
+            }
+        const cima = y + metaCoda * scala;
+        const voluta = mento - lato * 0.06;
+        if (mento && cima > voluta) alza = voluta - cima;
+      }
+      /* Prima il pelo aderente al viso, POI la coda: se la coda entrasse
+       * per prima, il passaggio in atop dipingerebbe la trama del fondo
+       * della donatrice sopra la coda stessa — il fantasma nel pizzo. */
+      pennello.save();
+      pennello.globalCompositeOperation = "source-atop";
+      pennello.drawImage(strato, x, y, lato * scala, lato * scala);
+      pennello.restore();
+      pennello.drawImage(pieno, x, y + alza, lato * scala, pieno.height * scala);
+    } else {
+      pennello.save();
+      pennello.globalCompositeOperation = "source-atop";
+      pennello.drawImage(strato, x, y, lato * scala, lato * scala);
+      pennello.restore();
+    }
+  } else {
+    const ritocco = pennello.createImageData(lato, lato);
+    ritocco.data.set(dati);
+    pennello.putImageData(ritocco, 0, 0);
+    if (op.foggia === "lunga") {
+      const strato = stratoBarba(dati, maschera, lato);
+      coda(pennello, strato);
+      pennello.drawImage(strato, 0, 0);
+    }
+  }
+}
+
+/* L'iride tinta, dentro i riquadri degli occhi misurati in build: si spostano
+ * i pixel che non sono ne' chiari (la sclera) ne' scurissimi (la pupilla),
+ * conservando la luce e con la mano leggera — un'iride e' un cerchio di due
+ * millimetri, non un faro. */
+function tintaIride(telaTesta, occhi, [tr, tg, tb]) {
+  const lato = AVATAR_LATO;
+  const pennello = telaTesta.getContext("2d");
+  const riferimento = (tr + tg + tb) / 3 || 1;
+  for (const occhio of occhi || []) {
+    const x0 = Math.max(0, Math.round(occhio.cx - occhio.w * 0.55));
+    const y0 = Math.max(0, Math.round(occhio.cy - occhio.h * 0.75));
+    const larghezza = Math.min(lato - x0, Math.round(occhio.w * 1.1));
+    const altezza = Math.min(lato - y0, Math.round(occhio.h * 1.5));
+    if (larghezza <= 0 || altezza <= 0) continue;
+    const zona = pennello.getImageData(x0, y0, larghezza, altezza);
+    const dati = zona.data;
+    for (let i = 0; i < dati.length; i += 4) {
+      if (dati[i + 3] < 200) continue;
+      const m = Math.max(dati[i], dati[i + 1], dati[i + 2]);
+      if (m > 200 || m < 45) continue;
+      const k = (dati[i] + dati[i + 1] + dati[i + 2]) / 3 / riferimento;
+      dati[i] += (Math.min(255, tr * k) - dati[i]) * 0.55;
+      dati[i + 1] += (Math.min(255, tg * k) - dati[i + 1]) * 0.55;
+      dati[i + 2] += (Math.min(255, tb * k) - dati[i + 2]) * 0.55;
+    }
+    pennello.putImageData(zona, x0, y0);
+  }
+}
+
+/* Un rettangolo dagli angoli tondi disegnato a mano: `roundRect` c'e' quasi
+ * ovunque, ma un ritratto che dipende dal «quasi» e' un ritratto rotto. */
+function percorsoTondo(pennello, x0, y0, x1, y1, raggio) {
+  const r = Math.min(raggio, (x1 - x0) / 2, (y1 - y0) / 2);
+  pennello.beginPath();
+  pennello.moveTo(x0 + r, y0);
+  pennello.arcTo(x1, y0, x1, y1, r);
+  pennello.arcTo(x1, y1, x0, y1, r);
+  pennello.arcTo(x0, y1, x0, y0, r);
+  pennello.arcTo(x0, y0, x1, y0, r);
+  pennello.closePath();
+}
+
+/* Gli occhiali: montatura centrata sugli occhi misurati, cosi' seguono
+ * qualunque faccia; le stanghette corrono fino al bordo della testa. */
+function disegnaOcchiali(telaTesta, misura, stile, colore = [45, 48, 56]) {
+  if (!misura?.occhi || misura.occhi.length < 2) return;
+  const pennello = telaTesta.getContext("2d");
+  const [o1, o2] = misura.occhi;
+  const pieno = `rgb(${colore[0]},${colore[1]},${colore[2]})`;
+  const spessore = Math.max(2, AVATAR_LATO / 64);
+  const raggio = (o1.w * 1.55) / 2; /* semi-lato della lente */
+  pennello.save();
+  pennello.strokeStyle = pieno;
+  pennello.lineWidth = spessore;
+  for (const occhio of [o1, o2]) {
+    if (stile === "tondi") {
+      pennello.beginPath();
+      pennello.ellipse(occhio.cx, occhio.cy, raggio, raggio * 0.92, 0, 0, Math.PI * 2);
+      pennello.stroke();
+    } else {
+      percorsoTondo(
+        pennello,
+        occhio.cx - raggio,
+        occhio.cy - raggio * 0.92,
+        occhio.cx + raggio,
+        occhio.cy + raggio * 0.92,
+        raggio * (stile === "sole" ? 0.45 : 0.35),
+      );
+      if (stile === "sole") {
+        pennello.fillStyle = `rgba(${colore[0]},${colore[1]},${colore[2]},0.84)`;
+        pennello.fill();
+        pennello.lineWidth = spessore / 2;
+      }
+      pennello.stroke();
+      pennello.lineWidth = spessore;
+    }
+  }
+  /* Ponte e stanghette. */
+  const ym = o1.cy;
+  pennello.beginPath();
+  pennello.moveTo(o1.cx + raggio, ym - raggio * 0.35);
+  pennello.lineTo(o2.cx - raggio, ym - raggio * 0.35);
+  pennello.stroke();
+  const sinistra = misura.testa.cx - misura.testa.w / 2;
+  const destra = misura.testa.cx + misura.testa.w / 2;
+  pennello.beginPath();
+  pennello.moveTo(o1.cx - raggio, ym - raggio * 0.2);
+  pennello.lineTo(sinistra + 2, ym - raggio * 0.45);
+  pennello.moveTo(o2.cx + raggio, ym - raggio * 0.2);
+  pennello.lineTo(destra - 2, ym - raggio * 0.45);
+  pennello.stroke();
+  pennello.restore();
+}
+
+/* ── Gli abiti ──────────────────────────────────────────────────────────
+ * La ricolorazione lavora per finestra di tinta: i pixel del tessuto — nella
+ * parte bassa, saturi, dentro la fascia di tinta del tessuto originale — si
+ * spostano sul colore voluto conservando la luce, cosi' pieghe e ombre
+ * restano. `desatura` fissa la saturazione per i tessuti spenti. */
+function daRgbAHsv(r, g, b) {
+  const massimo = Math.max(r, g, b) / 255;
+  const minimo = Math.min(r, g, b) / 255;
+  const delta = massimo - minimo;
+  let tinta = 0;
+  if (delta > 0) {
+    if (massimo === r / 255) tinta = (((g - b) / 255 / delta) % 6) / 6;
+    else if (massimo === g / 255) tinta = ((b - r) / 255 / delta + 2) / 6;
+    else tinta = ((r - g) / 255 / delta + 4) / 6;
+    if (tinta < 0) tinta += 1;
+  }
+  return [tinta, massimo ? delta / massimo : 0, massimo];
+}
+
+function daHsvARgb(tinta, saturazione, valore) {
+  const settore = tinta * 6;
+  const c = valore * saturazione;
+  const x = c * (1 - Math.abs((settore % 2) - 1));
+  const base = valore - c;
+  const [r, g, b] =
+    settore < 1
+      ? [c, x, 0]
+      : settore < 2
+        ? [x, c, 0]
+        : settore < 3
+          ? [0, c, x]
+          : settore < 4
+            ? [0, x, c]
+            : settore < 5
+              ? [x, 0, c]
+              : [c, 0, x];
+  return [(r + base) * 255, (g + base) * 255, (b + base) * 255];
+}
+
+function ricoloraAbito(telaBusto, op) {
+  const lato = AVATAR_LATO;
+  const yMin = op.yMin ?? 0.38;
+  const satMin = op.satMin ?? 0.18;
+  const hueLo = op.hueLo ?? 0.5;
+  const hueHi = op.hueHi ?? 0.75;
+  const pennello = telaBusto.getContext("2d");
+  const partenza = Math.floor(lato * yMin);
+  const zona = pennello.getImageData(0, partenza, lato, lato - partenza);
+  const dati = zona.data;
+  const [th, ts, tv] = daRgbAHsv(op.rgb[0], op.rgb[1], op.rgb[2]);
+  for (let i = 0; i < dati.length; i += 4) {
+    if (dati[i + 3] < 40) continue;
+    const [tinta, saturazione, valore] = daRgbAHsv(dati[i], dati[i + 1], dati[i + 2]);
+    if (saturazione < satMin || tinta < hueLo || tinta > hueHi) continue;
+    const ns = op.desatura == null ? ts * (0.55 + 0.45 * saturazione) : op.desatura;
+    const [nr, ng, nb] = daHsvARgb(th, ns, valore * (0.75 + 0.25 * tv));
+    dati[i] = nr;
+    dati[i + 1] = ng;
+    dati[i + 2] = nb;
+  }
+  pennello.putImageData(zona, 0, partenza);
+}
+
+/* Colletto e abbottonatura, dipinti: polo e camicia a monte non esistono,
+ * si cuciono sulla maglietta. Due falde aperte a V in una tonalita' appena
+ * diversa dal tessuto, la righina verticale, i bottoni. */
+function disegnaColletto(telaBusto, op) {
+  const lato = AVATAR_LATO;
+  const pennello = telaBusto.getContext("2d");
+  const [r, g, b] = op.rgb;
+  const scuro = `rgb(${(r * 0.62) | 0},${(g * 0.62) | 0},${(b * 0.62) | 0})`;
+  const medio = `rgb(${Math.min(255, (r * 1.12) | 0)},${Math.min(255, (g * 1.12) | 0)},${Math.min(255, (b * 1.12) | 0)})`;
+  const cx = 0.485 * lato;
+  const cy = 0.6 * lato;
+  const fw = 0.115 * lato;
+  const fh = 0.115 * 1.05 * lato;
+  const falda = (verso) => {
+    pennello.beginPath();
+    pennello.moveTo(cx + verso * fw * 1.6, cy - fh * 0.45);
+    pennello.lineTo(cx + verso * fw * 0.08, cy - fh * 0.12);
+    pennello.lineTo(cx + verso * fw * 0.85, cy + fh * 0.62);
+    pennello.lineTo(cx + verso * fw * 1.75, cy + fh * 0.05);
+    pennello.closePath();
+    pennello.fillStyle = medio;
+    pennello.fill();
+    pennello.strokeStyle = scuro;
+    pennello.lineWidth = 1;
+    pennello.stroke();
+  };
+  falda(-1);
+  falda(1);
+  pennello.strokeStyle = scuro;
+  pennello.lineWidth = Math.max(1, lato / 140);
+  pennello.beginPath();
+  pennello.moveTo(cx, cy - fh * 0.05);
+  pennello.lineTo(cx, cy + fh * 1.45);
+  pennello.stroke();
+  pennello.fillStyle = scuro;
+  const bottone = Math.max(1, lato / 128);
+  for (let i = 0; i < (op.bottoni || 2); i += 1) {
+    const by = cy + fh * (0.42 + 0.5 * i);
+    pennello.beginPath();
+    pennello.ellipse(cx, by, bottone, bottone, 0, 0, Math.PI * 2);
+    pennello.fill();
+  }
+}
+
+/* La collana: un arco d'oro sotto il girocollo del busto, con o senza
+ * pendente. La testa arriva dopo, e il mento le passa sopra com'e' giusto. */
+function disegnaCollana(telaBusto, stile, oro = [212, 168, 83]) {
+  const lato = AVATAR_LATO;
+  const pennello = telaBusto.getContext("2d");
+  const cx = 0.485 * lato;
+  const cy = 0.615 * lato;
+  const aw = 0.155 * lato;
+  const ah = 0.1 * lato;
+  const pieno = `rgb(${oro[0]},${oro[1]},${oro[2]})`;
+  pennello.save();
+  pennello.strokeStyle = pieno;
+  pennello.lineWidth = Math.max(1.5, lato / 120);
+  pennello.beginPath();
+  pennello.ellipse(cx, cy, aw, ah, 0, (15 * Math.PI) / 180, (165 * Math.PI) / 180);
+  pennello.stroke();
+  if (stile === "pendente") {
+    const py = cy + ah;
+    const pr = 0.028 * lato;
+    pennello.fillStyle = pieno;
+    pennello.beginPath();
+    pennello.ellipse(cx, py + pr * 0.7, pr, pr, 0, 0, Math.PI * 2);
+    pennello.fill();
+    pennello.fillStyle = "rgb(240,214,150)";
+    pennello.beginPath();
+    pennello.ellipse(cx, py + pr * 0.7, pr * 0.45, pr * 0.45, 0, 0, Math.PI * 2);
+    pennello.fill();
+  }
+  pennello.restore();
+}
+
 /* ── La composizione ──────────────────────────────────────────────────── */
 
 /**
- * Il ritratto composto: il busto vestito, e sopra la testa scelta —
- * riscalata sulla misura della testa che quel busto ha gia'.
+ * Il ritratto composto: il busto vestito coi suoi ritocchi, e sopra la
+ * testa scelta coi suoi — riscalata sulla misura della testa che quel busto
+ * ha gia'. La tela della testa si allunga quando la barba e' lunga: la coda
+ * scende sul busto, o la testa si stringe per farla stare nel quadrato.
  * @returns {Promise<{tela:HTMLCanvasElement,occhi:Array}|null>}
  */
 export async function componiRitratto(face) {
   const risolto = risolviAvatar3d(face);
   if (!risolto || !doc?.createElement) return null;
-  const chiave = `${risolto.testa}|${risolto.busto || ""}`;
+  /* La firma comprende le operazioni: la stessa coppia di immagini con una
+   * tinta diversa e' un altro ritratto. */
+  const chiave = `${risolto.testa}|${risolto.busto || ""}|${JSON.stringify(risolto.operazioni)}`;
   const gia = state.composti.get(chiave);
   if (gia) return gia;
   const attesa = (async () => {
-    const [testa, busto] = await Promise.all([immagine(risolto.testa), risolto.busto ? immagine(risolto.busto) : null]);
+    const donatrici = risolto.operazioni.testa
+      .filter((op) => op.tipo === "barba" && op.donatrice)
+      .map((op) => op.donatrice);
+    const [testa, busto, ...donate] = await Promise.all([
+      immagine(risolto.testa),
+      risolto.busto ? immagine(risolto.busto) : null,
+      ...donatrici.map((nome) => immagine(nome)),
+    ]);
     if (!testa) return null;
+
+    const lunga = risolto.operazioni.testa.some(
+      (op) => op.tipo === "barba" && op.foggia === "lunga",
+    );
+    const telaTesta = doc.createElement("canvas");
+    telaTesta.width = AVATAR_LATO;
+    telaTesta.height = Math.round(AVATAR_LATO * (lunga ? 1 + BARBA_LUNGA_EXTRA : 1));
+    const suPennello = telaTesta.getContext("2d");
+    if (!suPennello) return null;
+    suPennello.drawImage(testa, 0, 0, AVATAR_LATO, AVATAR_LATO);
+    for (const op of risolto.operazioni.testa) {
+      if (op.tipo === "tintaCapelli") {
+        const zona = suPennello.getImageData(0, 0, AVATAR_LATO, AVATAR_LATO);
+        tintaCapelli(zona.data, AVATAR_LATO, op.rgb, op.lift || 0);
+        suPennello.putImageData(zona, 0, 0);
+      } else if (op.tipo === "barba") {
+        applicaBarba(telaTesta, op, op.donatrice ? donate[donatrici.indexOf(op.donatrice)] : null);
+      } else if (op.tipo === "iride") {
+        tintaIride(telaTesta, risolto.misura?.occhi, op.rgb);
+      } else if (op.tipo === "occhiali") {
+        disegnaOcchiali(telaTesta, risolto.misura, op.stile);
+      }
+    }
+
     const tela = doc.createElement("canvas");
     tela.width = tela.height = AVATAR_LATO;
     const pennello = tela.getContext("2d");
     if (!pennello) return null;
     if (busto) {
-      pennello.drawImage(busto, 0, 0, AVATAR_LATO, AVATAR_LATO);
-      pennello.drawImage(testa, risolto.x, risolto.y, AVATAR_LATO * risolto.scala, AVATAR_LATO * risolto.scala);
-    } else {
-      pennello.drawImage(testa, 0, 0, AVATAR_LATO, AVATAR_LATO);
+      const telaBusto = doc.createElement("canvas");
+      telaBusto.width = telaBusto.height = AVATAR_LATO;
+      const giuPennello = telaBusto.getContext("2d");
+      giuPennello.drawImage(busto, 0, 0, AVATAR_LATO, AVATAR_LATO);
+      for (const op of risolto.operazioni.busto) {
+        if (op.tipo === "ricoloraAbito") ricoloraAbito(telaBusto, op);
+        else if (op.tipo === "colletto") disegnaColletto(telaBusto, op);
+        else if (op.tipo === "collana") disegnaCollana(telaBusto, op.stile);
+      }
+      pennello.drawImage(telaBusto, 0, 0);
     }
+    pennello.drawImage(
+      telaTesta,
+      risolto.x,
+      risolto.y,
+      AVATAR_LATO * risolto.scala,
+      telaTesta.height * risolto.scala,
+    );
     return { tela, occhi: risolto.occhi };
   })();
   state.composti.set(chiave, attesa);
-  if (state.composti.size > 40) state.composti.delete(state.composti.keys().next().value);
+  /* La memoria e' cresciuta con l'editor: la scheda aperta compone una
+   * pastiglia per ogni casella, e sono piu' di ottanta. */
+  if (state.composti.size > 200) state.composti.delete(state.composti.keys().next().value);
   return attesa;
 }
 

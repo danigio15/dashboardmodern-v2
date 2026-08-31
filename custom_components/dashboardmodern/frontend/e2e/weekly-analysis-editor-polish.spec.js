@@ -95,7 +95,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await typeTrigger.click();
     const picker = page.locator("#dm-applpick");
     await expect(picker).toBeVisible();
-    await expect(picker.locator("[data-appliance-type]")).toHaveCount(20);
+    /* 22 dal 30 agosto: il campo ha chiesto Boiler d'accumulo e Friggitrice
+     * ad aria, e il selettore le offre con le altre venti. */
+    await expect(picker.locator("[data-appliance-type]")).toHaveCount(22);
     await picker.locator('[data-appliance-type="lavastoviglie"]').click();
     await expect(typeInput).toHaveValue("lavastoviglie");
     await expect(typeTrigger).toContainText(/Lavastoviglie|Dishwasher/i);

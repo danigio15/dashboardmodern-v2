@@ -217,6 +217,41 @@ test("in English the Italian shell is translated to its pivot text", async () =>
   assert.equal(root.childNodes[0].nodeValue, "Appliances");
 });
 
+test("the EN shell's solar section reaches English through the pivot", async () => {
+  /* dashboard-en.html is vendored with Italian markup in the energy page: the
+   * sub-tabs and the flow nodes. On the English locale the pass must resolve
+   * them via the source index alone — no catalog is ever fetched for "en". */
+  await setLocale("en", { persist: false, apply: false });
+  assert.equal(translateSource("⚡ Istantanea"), "⚡ Instant");
+  assert.equal(translateSource("📅 Giornaliera"), "📅 Daily");
+  assert.equal(translateSource("📆 Mensile"), "📆 Monthly");
+  assert.equal(translateSource("Solare"), "Solar");
+  assert.equal(translateSource("Casa"), "Home");
+  assert.equal(translateSource("Batteria"), "Battery");
+  assert.equal(translateSource("Rete"), "Grid");
+  assert.equal(translateSource("Panoramica"), "Overview");
+
+  /* And every other locale reaches its own word through the same pivot: the
+   * energy page must be coherent in French exactly as it now is in English. */
+  registerCatalog("fr", { Solar: "Solaire", "⚡ Instant": "⚡ Instantané" });
+  await setLocale("fr", { persist: false, apply: false });
+  assert.equal(translateSource("Solare"), "Solaire");
+  assert.equal(translateSource("⚡ Istantanea"), "⚡ Instantané");
+});
+
+test("the English locale keeps the DOM pass on: its shell is not fully English", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const section = readFileSync(
+    fileURLToPath(new URL("../src/sections/i18n-section.js", import.meta.url)),
+    "utf8",
+  );
+  /* Only the Italian shell may skip the observer. Excluding "en" again would
+   * bring back the Italian solar tabs on the English dashboard. */
+  assert.match(section, /return locale !== "it";/);
+  assert.doesNotMatch(section, /locale !== "en"/);
+});
+
 test("whitespace-only and unknown text are left exactly as they were", async () => {
   registerCatalog("de", { Appliances: "Geräte" });
   await setLocale("de", { persist: false, apply: false });

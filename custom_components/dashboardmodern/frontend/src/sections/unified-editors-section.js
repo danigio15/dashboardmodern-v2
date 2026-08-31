@@ -3,6 +3,10 @@ import { coverDownRelay, coverKindLabel, coverPresetPosition } from "../core/cov
 import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
+  quickClimateFieldsMarkup,
+  salvaQuickClimateDaCampi,
+} from "./quick-climate-editor-section.js";
+import {
   clean,
   doc,
   esc,
@@ -61,7 +65,9 @@ function roomsOptions(selected) {
     `<option value="">— ${t("Nessuna stanza", "No room")} —</option>`,
     ...rooms.map((room) => {
       const value = clean(room.id || room.name);
-      return `<option value="${esc(value)}" ${[room.id, room.name].map(clean).includes(clean(selected)) ? "selected" : ""}>${esc(room.icon || "🏠")} ${esc(room.name || value)}</option>`;
+      /* Solo il nome: l'emoji davanti era il catalogo di sistema, e in un
+       * option nativo il disegno di casa non si puo' mettere. */
+      return `<option value="${esc(value)}" ${[room.id, room.name].map(clean).includes(clean(selected)) ? "selected" : ""}>${esc(room.name || value)}</option>`;
     }),
   ].join("");
 }
@@ -234,7 +240,8 @@ function openClimateEditor(item, index) {
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="type"><option value="clima" ${selectedType === "clima" ? "selected" : ""}>❄️ ${t("Freddo", "Cool")}</option><option value="termo" ${selectedType === "termo" ? "selected" : ""}>🔥 ${t("Caldo", "Heat")}</option><option value="pompa" ${selectedType === "pompa" ? "selected" : ""}>♨️ ${t("Pompa di calore (freddo + caldo)", "Heat pump (cool + heat)")}</option></select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>`,
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
+     <div class="ed-slot"><span class="ed-slot-lbl">${t("Tasto Clima rapido", "Quick climate button")}</span><small>${t("Cosa fa il tasto di questa unità nel popup Clima della Home. Vuoto = non toccare.", "What this unit's button does in the Home climate popup. Empty = leave alone.")}</small>${quickClimateFieldsMarkup(clean(item.entity), null, selectedType === "termo" ? "caldo" : "")}</div>`,
     selectedType === "termo" ? "🔥" : selectedType === "pompa" ? "♨️" : "❄️",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
@@ -252,6 +259,8 @@ function openClimateEditor(item, index) {
       form.querySelector("[data-error]").textContent = t("Nome ed entità sono obbligatori.", "Name and entity are required.");
       return;
     }
+    /* I passi del tasto rapido sono di QUESTA unita': si salvano con lei. */
+    salvaQuickClimateDaCampi(form, list[index].entity);
     persist("climate", list);
     close();
     root.editorSwitch?.(currentTab("climate"));

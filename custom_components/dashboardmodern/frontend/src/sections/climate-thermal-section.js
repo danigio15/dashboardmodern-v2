@@ -29,7 +29,9 @@
  * Irrigation redesign did.
  */
 import { canonicalClimateType } from "../core/device-model.js";
+import { climateIsOff } from "../core/climate-power.js";
 import { roomOrderRank } from "../core/room-overview.js";
+import { chiamaClima, commutaClima } from "./climate-power-section.js";
 import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
   activeLocale,
@@ -774,6 +776,62 @@ function unitaDelModo(modo) {
   });
 }
 
+/* Il disegno di casa della stanza di un'unita', se la stanza ha un'icona. */
+function disegnoDellaStanza(riferimento) {
+  const chiave = clean(riferimento);
+  if (!chiave) return "";
+  let stanze = [];
+  try {
+    stanze = root.cdRoomList?.() || [];
+  } catch (_error) {
+    stanze = [];
+  }
+  const stanza = stanze.find(
+    (voce) => clean(voce?.id) === chiave || clean(voce?.name) === chiave,
+  );
+  const icona = clean(stanza?.icon);
+  if (!icona) return "";
+  try {
+    return root.DashboardModernIconEngine?.markup?.("room", icona, { size: 34 }) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+/* Il tocco della parte Caldo, per chi e' un termostato vero.
+ *
+ * Il runtime storico accende il Caldo con `nsToggleTerm`, che parla solo la
+ * lingua degli input_boolean: per i termosifoni pilotati da un'automazione va
+ * benissimo, ma un'unita' Caldo che e' una entita' climate.* riceveva una
+ * chiamata che il suo dominio non conosce — e il Tasto Clima rapido, appena
+ * diventato per-unita', dalla parte Caldo non parlava proprio. Qui il
+ * termostato si accende coi SUOI passi (ripiego: riscaldamento, senza toccare
+ * altro) e si spegne con la stessa regola dei pulsanti della pagina. */
+function toccoCaldoTermostato(entity) {
+  const stato = allStates()?.[entity] || null;
+  root.navigator?.vibrate?.(15);
+  if (stato && !climateIsOff(stato)) {
+    commutaClima(entity, false, "caldo");
+  } else {
+    let passi = null;
+    try {
+      passi = root.dmQuickClimateSteps?.(entity, "caldo");
+    } catch (_error) {
+      passi = null;
+    }
+    if (!Array.isArray(passi) || !passi.length)
+      passi = [{ service: "set_hvac_mode", data: { hvac_mode: "heat" } }];
+    /* Distanziati nel tempo come nel ramo Freddo: mandare la temperatura a
+     * un'unita' ancora spenta la fa cadere nel vuoto. */
+    passi.forEach((passo, indice) => {
+      const manda = () => chiamaClima(entity, passo.service, passo.data);
+      if (indice === 0) manda();
+      else root.setTimeout?.(manda, indice * 700);
+    });
+  }
+  root.setTimeout?.(() => root.renderQuickClima?.(), 500);
+}
+
 function tastoRapido(unita, states) {
   const stato = states?.[unita.entity];
   const grezzo = clean(stato?.state).toLowerCase();
@@ -793,13 +851,18 @@ function tastoRapido(unita, states) {
   tasto.setAttribute("data-entity", unita.entity);
   tasto.onclick = () => {
     if (freddo) root.nsToggleClima?.(unita.entity);
+    else if (clean(unita.entity).startsWith("climate.")) toccoCaldoTermostato(unita.entity);
     else root.nsToggleTerm?.(unita.entity);
   };
   const nome = clean(unita.name) || clean(unita.room) || unita.entity;
-  const icona = clean(unita.room) ? "🚪" : freddo ? "❄️" : "🔥";
+  /* L'icona e' quella della STANZA, dal catalogo dei disegni di casa: prima
+   * bastava avere una stanza per ritrovarsi una porta (🚪) — «che c'entra
+   * l'icona porta nel clima». Senza stanza, o senza disegno, parla il modo. */
+  const disegno = disegnoDellaStanza(unita.room);
+  const icona = freddo ? "❄️" : "🔥";
   tasto.innerHTML =
     `${gradi ? `<span class="ns-clima-btn-temp">${esc(gradi)}</span>` : ""}` +
-    `<span class="ns-clima-btn-icon">${esc(icona)}</span>` +
+    `<span class="ns-clima-btn-icon">${disegno || esc(icona)}</span>` +
     `<span class="ns-clima-btn-name">${esc(nome)}</span>`;
   return tasto;
 }
@@ -1133,7 +1196,11 @@ function climateCss() {
   display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-4px;
   font-size:10px;font-weight:700;color:var(--dm-cl-dim);font-variant-numeric:tabular-nums
 }
-.dm-cl-legend b{color:var(--dm-cl-text);font-weight:800}
+/* L'Ambiente con la sua temperatura si deve leggere: «e' troppo piccolo»,
+ * detto proprio della riga dentro la card. I due estremi della scala restano
+ * piccoli, che sono contorno. */
+.dm-cl-legend>span:nth-child(2){font-size:12.5px}
+.dm-cl-legend b{color:var(--dm-cl-text);font-weight:800;font-size:13.5px}
 
 .dm-cl-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dm-cl-modes{

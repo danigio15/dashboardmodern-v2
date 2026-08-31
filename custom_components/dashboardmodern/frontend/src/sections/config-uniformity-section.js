@@ -58,6 +58,10 @@ export const TAB_SECTION_KEYS = Object.freeze({
    * chiave a `cdNavVisMap`: questa riga fa comparire la fascia sulla scheda
    * Luci dell'editor, e toccarla nasconde davvero la voce nella barra. */
   luci: "luci",
+  /* Le Stanze erano l'unica pagina della barra senza il suo interruttore:
+   * «manca proprio la possibilita' di nascondere la sezione». La chiave e'
+   * quella che il modulo delle stanze insegna a `cdNavVisMap`. */
+  stanze: "stanze",
 });
 
 /* Tabs that hold no configuration to save: diagnostics is read-only, the

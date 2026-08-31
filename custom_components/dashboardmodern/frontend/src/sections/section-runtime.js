@@ -17,6 +17,7 @@ import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installEnergyLoadsEditor } from "./energy-loads-editor-section.js";
 import { installSubloadPopupSection } from "./subload-popup-section.js";
+import { installApplianceDetailPopupSection } from "./appliance-detail-popup-section.js";
 import { installEnergyAnalysisSection } from "./energy-analysis-section.js";
 import { installHistorySection } from "./history-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
@@ -32,6 +33,8 @@ import { installLightsSceneSection } from "./lights-scene-section.js";
 import { installLightsPageSection } from "./lights-page-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installFloodAlertsSection } from "./flood-alerts-section.js";
+import { installSmokeAlertsSection } from "./smoke-alerts-section.js";
+import { installEnglishRuntimeStrings } from "./english-runtime-strings-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
@@ -669,6 +672,7 @@ export function installSectionRuntime() {
     installEnergyFlowSection();
     installEnergyLoadsEditor();
     installSubloadPopupSection();
+    installApplianceDetailPopupSection();
     installEnergyAnalysisSection();
     installHistorySection();
     installTemperatureSection();
@@ -695,6 +699,13 @@ export function installSectionRuntime() {
     /* L'allagamento e' una lista sorvegliata come le altre: si installa dove si
      * installano gli avvisi, subito dopo chi possiede il loro editor. */
     installFloodAlertsSection();
+    /* Il fumo segue l'allagamento — stessa famiglia, stesso posto — e in piu'
+     * porta il suo blocco nella pagina Sicurezza e il rilevamento continuo
+     * delle aperture nuove. */
+    installSmokeAlertsSection();
+    /* Sul guscio inglese, le parole italiane rimaste nel runtime vendorizzato
+     * si traducono qui, finche' la correzione non arriva a monte. */
+    installEnglishRuntimeStrings();
     // The redesigned Security page must own #cam-grid before the live-ui camera
     // owner starts filling the thumbnails, so the first paint is already the new
     // wall instead of the legacy cards.
@@ -814,6 +825,8 @@ export function installSectionRuntime() {
         "lights-page",
         "alerts",
         "flood-alerts",
+        "smoke-alerts",
+        "english-runtime-strings",
         "theme-foundation",
         "security-showcase",
         "security-doors",

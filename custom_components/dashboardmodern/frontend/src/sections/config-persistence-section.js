@@ -32,8 +32,16 @@ const USER_DATA_VERSION = 1;
  * La revisione 11 aggiunge le prese (`cd_prese`). Prima le prese si
  * configuravano fra le luci — la scheda Luci accetta anche `switch.` — e
  * viaggiavano dentro `cd_luci`; adesso hanno un elenco loro, e senza stare qui
- * resterebbero sul telefono che le ha configurate. */
-export const CONFIG_KEYS_REVISION = 11;
+ * resterebbero sul telefono che le ha configurate.
+ * La revisione 12 aggiunge i passi del tasto Clima rapido per unita'
+ * (`cd_clima_rapido_unita`): la cameretta a 24 gradi e il salone a 26 sono
+ * una scelta della casa, e deve valere da ogni telefono.
+ * La revisione 13 aggiunge le entita' in evidenza (`cd_evidenza`) — la tessera
+ * della Home che tiene d'occhio sensori senza stanza — e il registro dei
+ * sensori di fumo gia' visti (`cd_fumo_rilevato`): entrambe descrivono la
+ * casa, non il telefono, e senza stare qui resterebbero sul dispositivo che
+ * le ha configurate. */
+export const CONFIG_KEYS_REVISION = 13;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -122,6 +130,12 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_clima_units",
   // Cosa accende il tasto Clima rapido: modalita', temperatura e ventola.
   "cd_clima_rapido",
+  // Gli stessi passi, ma di OGNI unita': la cameretta a 24, il salone a 26.
+  "cd_clima_rapido_unita",
+  // Le entita' in evidenza: la tessera che tiene d'occhio sensori senza stanza.
+  "cd_evidenza",
+  // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
+  "cd_fumo_rilevato",
   "cd_ev_cars",
   "cd_ev_car_active",
   "cd_ev_visual",

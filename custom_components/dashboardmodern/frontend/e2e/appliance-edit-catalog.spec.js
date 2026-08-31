@@ -88,7 +88,7 @@ async function boot(page, variant, testInfo) {
 }
 
 for (const variant of PRIMARY) {
-  test(`${variant}: Edit shares all 20 blue appliance icons and preserves links`, async ({
+  test(`${variant}: Edit shares all 22 blue appliance icons and preserves links`, async ({
     page,
   }, testInfo) => {
     if (testInfo.project.name === "webkit-ipad")
@@ -127,7 +127,9 @@ for (const variant of PRIMARY) {
     await trigger.click();
     const picker = page.locator("#dm-applpick");
     await expect(picker).toBeVisible();
-    await expect(picker.locator("[data-appliance-type]")).toHaveCount(20);
+    /* 22 dal 30 agosto: il campo ha chiesto Boiler d'accumulo e Friggitrice
+     * ad aria, e il selettore le offre con le altre venti. */
+    await expect(picker.locator("[data-appliance-type]")).toHaveCount(22);
     for (const type of [
       "frigo",
       "congelatore",

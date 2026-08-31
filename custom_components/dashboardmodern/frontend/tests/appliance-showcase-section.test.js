@@ -169,7 +169,8 @@ test("the hero artwork covers every catalog type with animatable mechanisms", as
   const expected = [
     "washer", "dryer", "dishwasher", "oven", "microwave", "fridge", "freezer",
     "cooktop", "hood", "iron", "vacuum", "robot-vacuum", "air-conditioner",
-    "fan", "boiler", "television", "coffee", "toaster", "kettle", "generic",
+    "fan", "boiler", "storage-boiler", "air-fryer", "television", "coffee",
+    "toaster", "kettle", "generic",
   ];
   assert.deepEqual([...HERO_ARTWORK_TYPES].sort(), [...expected].sort());
   for (const type of expected) {
@@ -230,9 +231,10 @@ test("canonical artwork types are idempotent (dishwasher never becomes washer)",
     "../src/core/appliance-artwork.js"
   );
   for (const type of [
-    "oven", "microwave", "fridge", "boiler", "washer", "dryer", "dishwasher",
-    "cooktop", "television", "hood", "iron", "vacuum", "robot-vacuum",
-    "air-conditioner", "fan", "coffee", "toaster", "kettle", "generic",
+    "oven", "microwave", "fridge", "boiler", "storage-boiler", "air-fryer",
+    "washer", "dryer", "dishwasher", "cooktop", "television", "hood", "iron",
+    "vacuum", "robot-vacuum", "air-conditioner", "fan", "coffee", "toaster",
+    "kettle", "generic",
   ]) {
     assert.equal(canonicalArtworkType(type), type, `canonical type drifted for ${type}`);
   }

@@ -289,7 +289,7 @@ export function renderPreseEditor(target) {
       <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Icona", "Icon"))}</span><span class="ed-form-row dm-presa-icon-row"><input id="ed-presa-icon" class="ed-input" value="${esc(corrente?.icon || ICONA_PRESA_PREDEFINITA)}" hidden><button type="button" class="dm-presa-icon-btn" data-presa-icon-pick aria-label="${esc(t("Scegli icona dal catalogo", "Choose icon from the catalog"))}" title="${esc(t("Scegli icona dal catalogo", "Choose icon from the catalog"))}">${iconaPresaMarkup(corrente?.icon, 26)}</button></span></label>
       <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Stanza", "Room"))}</span><select id="ed-presa-room" class="ed-input">${opzioniStanza(corrente?.room_id)}</select></label>
     </div>
-    <label class="ed-slot dm-presa-lock"><span class="ed-slot-lbl">${esc(t("Si vede ma non si comanda", "Shown but not controllable"))}</span><span class="ed-form-row"><input type="checkbox" id="ed-presa-lock" ${corrente && !siComanda(corrente.entity) ? "checked" : ""}><small>${esc(
+    <label class="ed-slot dm-presa-lock"><span class="ed-slot-lbl">${esc(t("Si vede ma non si comanda", "Shown but not controllable"))}</span><span class="ed-form-row dm-solo-lettura-riga"><input type="checkbox" id="ed-presa-lock" ${corrente && !siComanda(corrente.entity) ? "checked" : ""}><small>${esc(
       t(
         "Per le prese che non vanno spente: il frigo, il modem, il congelatore. La riga resta dov'è, il tasto smette di rispondere.",
         "For sockets that must not be switched off: the fridge, the modem, the freezer. The row stays where it is, the button stops responding.",

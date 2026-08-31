@@ -192,6 +192,25 @@ test("store preserves fresh room edits including Temperature display names", () 
   assert.equal(store.getSection("rooms")[0].temp_name, "Sonda cucina");
 });
 
+/* Il prezzo di acquisto puo' venire da un'entita' (#217): la scelta sta nel
+ * modello energia canonico e deve sopravvivere al giro completo dello store —
+ * normalizzazione compresa — altrimenti il primo salvataggio qualunque
+ * riporta la tariffa al numero fisso. */
+test("il prezzo da entita' del modello energia sopravvive al giro dello store", async () => {
+  const { store, storage } = setup();
+  await store.replaceSection("energy", {
+    grid: { total_import_energy: "sensor.import" },
+    rates: { import_entity: "sensor.pun_prezzo" },
+  });
+  assert.equal(store.getSection("energy").rates.import_entity, "sensor.pun_prezzo");
+  store.persist();
+  assert.equal(store.getSection("energy").rates.import_entity, "sensor.pun_prezzo");
+  assert.equal(
+    JSON.parse(storage.getItem("cd_energy_model")).rates.import_entity,
+    "sensor.pun_prezzo",
+  );
+});
+
 test("restore normalizes room names in canonical and legacy snapshots", () => {
   const restored = normalizeRestoredValues({
     cd_stanze: JSON.stringify([{ id: "room_x", name: "", temp: "sensor.t" }]),

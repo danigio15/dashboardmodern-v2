@@ -50,7 +50,7 @@ function rigaMarkup(door, index) {
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Entità che apre", "Opening entity")}</span>
         <span class="ed-form-row"><input id="dm-door-${index}-entity" class="ed-input mono" data-door-field="entity" value="${esc(door.entity)}" placeholder="lock.portone" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-door-pick="dm-door-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
         <small>${t("Serratura, pulsante, relè, cancello o script: lock.*, button.*, switch.*, cover.*, script.*…", "Lock, button, relay, gate or script: lock.*, button.*, switch.*, cover.*, script.*…")}</small></label>
-      <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input id="dm-door-${index}-icon" class="ed-input" data-door-field="icon" value="${esc(door.icon || "🚪")}" maxlength="4"><button type="button" class="dm-entity-picker" data-door-icon-pick="dm-door-${index}-icon" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span></label>
+      <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input id="dm-door-${index}-icon" class="ed-input" data-door-field="icon" value="${esc(door.icon || "🚪")}" maxlength="4"><button type="button" class="dm-door-icon-btn" data-door-icon-pick="dm-door-${index}-icon" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span></label>
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("PIN (facoltativo)", "PIN (optional)")}</span><span class="ed-form-row"><input id="dm-door-${index}-pin" class="ed-input mono" data-door-field="pin" value="${esc(door.pin)}" inputmode="numeric" autocomplete="off" placeholder="1234"></span>
         <small>${t("Da 4 a 8 cifre: prima di aprire viene chiesto il codice, contro i tocchi accidentali. Vuoto = solo conferma.", "4 to 8 digits: the code is asked before opening, against accidental taps. Empty = confirm only.")}</small></label>
       <output class="dm-door-ed-error" data-door-error></output>
@@ -213,6 +213,14 @@ function installStyles() {
       #ed-body .dm-door-ed-field{display:grid;gap:4px;margin:0}
       #ed-body .dm-door-ed-field .ed-form-row{display:flex;gap:8px;min-width:0}
       #ed-body .dm-door-ed-field .ed-form-row>input{flex:1 1 auto;min-width:0}
+      /* Il tasto del catalogo icone veste come la lente delle entita' ma ha
+       * una classe tutta sua: .dm-entity-picker accanto a un input marca il
+       * campo come entita' (la guardia apriva la ricerca delle entita' sopra
+       * al catalogo), e button.dm-icon-picker e' il gancio dell'icon engine
+       * (apriva «Scegli icona azione»). Ogni classe condivisa qui e' un
+       * gestore in piu' che ruba il click. */
+      #ed-body .dm-door-icon-btn{display:inline-grid!important;place-items:center!important;flex:0 0 50px!important;width:50px!important;min-width:50px!important;height:50px!important;min-height:50px!important;padding:0!important;border:0!important;border-radius:13px!important;background:linear-gradient(145deg,#12aee4,#047faf)!important;color:#fff!important;font-size:16px!important;cursor:pointer!important}
+      @media(max-width:600px){#ed-body .dm-door-icon-btn{flex-basis:46px!important;width:46px!important;min-width:46px!important;height:46px!important;min-height:46px!important}}
       #ed-body .dm-door-ed-error:not(:empty){color:var(--error-color,#dc2626);font-size:12px;font-weight:800}
     `,
   );

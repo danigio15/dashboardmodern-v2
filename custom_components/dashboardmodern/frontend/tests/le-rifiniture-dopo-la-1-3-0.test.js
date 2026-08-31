@@ -13,11 +13,15 @@ import { fileURLToPath } from "node:url";
 const QUI = dirname(fileURLToPath(import.meta.url));
 const leggi = (relativo) => readFileSync(join(QUI, "..", relativo), "utf8");
 
-test("nella barra la casa e' una sola: Stanze ha la sua porta", () => {
+test("nella barra Stanze ha il divano: la casa e' Home, la porta e' Aperture", () => {
+  /* Prima era la porta — scelta contro le due case affiancate — ma la porta
+   * e' il segno delle Aperture, e appena la loro scheda e' arrivata in barra
+   * le due voci si somigliavano come prima le case. Il divano e' il segno
+   * delle stanze anche in Home Assistant (mdi:sofa). */
   const sezione = leggi("src/sections/rooms-page-section.js");
   const voce = sezione.slice(sezione.indexOf("export function ensureRoomsTab"));
   const icona = voce.match(/<span class="icon">(.+?)<\/span>/)?.[1];
-  assert.equal(icona, "🚪", "due case affiancate nella barra sono due voci indistinguibili");
+  assert.equal(icona, "🛋️", "ne' la casa di Home ne' la porta delle Aperture");
 });
 
 test("l'icona di una stanza si traduce nel simbolo, non si scrive", () => {
@@ -130,7 +134,8 @@ test("da telefono in piedi della linguetta resta il simbolo", () => {
   assert.match(padrone, /setAttribute\("aria-label", nome\)/);
   /* La casa nella barra e la casa in configurazione erano la stessa: da
    * telefono, col solo simbolo, sarebbero due voci indistinguibili. */
-  assert.match(padrone, /stanze: "🚪"/);
+  assert.match(padrone, /stanze: "🛋️"/);
+  assert.match(padrone, /doors: "🚪"/);
 
   for (const file of ["dashboard-runtime-it.css", "dashboard-runtime-en.css"]) {
     const foglio = leggi(`legacy/${file}`);

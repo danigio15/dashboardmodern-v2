@@ -13,6 +13,9 @@
 import { t } from "./shared.js";
 import { intlLocale } from "../core/i18n.js";
 import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads } from "../core/energy-plants.js";
+import { importRateEntity } from "../core/energy-calculations.js";
+import { createEntityPickerField } from "../core/renderers.js";
+import { persistEnergyField } from "../core/energy-writer.js";
 
 const root = globalThis;
 const doc = root.document;
@@ -335,6 +338,29 @@ function configuredRate(key) {
   return clean(root.localStorage?.getItem?.(key));
 }
 
+/* La nota sotto il campo entita': il valore che l'entita' vale adesso —
+ * «0,1132 €/kWh · si aggiorna da solo» — perche' chi sceglie il sensore veda
+ * subito che prezzo sta comprando. Si riscrive a ogni giro di riparazione:
+ * il prezzo di borsa cambia, la scheda resta aperta. */
+function aggiornaNotaPrezzoEntita(card) {
+  const nota = card?.querySelector?.("[data-dm-rate-entity-note]");
+  if (!nota || card.dataset.dmImportRateMode !== "entity") return;
+  const entita = clean(card.querySelector("#ed-costo-kwh-entita")?.value);
+  if (!entita) {
+    nota.textContent = t(
+      "Scegli l'entità del prezzo: il valore si aggiornerà da solo.",
+      "Pick the price entity: the value will update by itself.",
+    );
+    return;
+  }
+  const valore = stateNumber(entita);
+  const prezzo =
+    valore === null
+      ? "—"
+      : new Intl.NumberFormat(intlLocale(), { maximumFractionDigits: 4 }).format(valore);
+  nota.textContent = `${prezzo} €/kWh · ${t("si aggiorna da solo", "updates by itself")}`;
+}
+
 function repairEnergyCostEditor() {
   if (!doc) return false;
   const editor = doc.querySelector('#ed-body[data-editor="energy"],#editor-modal [data-editor="energy"]');
@@ -346,18 +372,62 @@ function repairEnergyCostEditor() {
     card.className = "ed-form dm-energy-cost-card";
     settings.append(card);
   }
-  if (card.dataset.dmCostOwner === "beta22-hotfix") return true;
+  if (card.dataset.dmCostOwner === "beta22-hotfix") {
+    aggiornaNotaPrezzoEntita(card);
+    return true;
+  }
   const buy = configuredRate("cd_costo_kwh");
   const sell = configuredRate("cd_prezzo_immissione");
+  /* Il prezzo di acquisto puo' venire da un'entita' (#217): la scelta sta nel
+   * modello canonico, quindi la scheda riapre nella modalita' salvata. */
+  const entitaSalvata = importRateEntity(readSection("energy", {}) || {});
   card.dataset.dmCostOwner = "beta22-hotfix";
+  card.dataset.dmImportRateMode = entitaSalvata ? "entity" : "number";
   card.innerHTML = `
     <div class="ed-sec-title">💶 ${t("Costo energia", "Energy cost")}</div>
     <div class="ed-hint">${t("Tariffe usate dal Report Energia.", "Rates used by the Energy Report.")}</div>
     <div class="dm-energy-cost-grid">
-      <label class="dm-energy-cost-field"><span>${t("Energia acquistata", "Purchased energy")} <small>€/kWh</small></span><input id="ed-costo-kwh" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(buy)}" placeholder="0,000"></label>
-      <label class="dm-energy-cost-field"><span>${t("Energia venduta", "Sold energy")} <small>€/kWh</small></span><input id="ed-prezzo-imm" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(sell)}" placeholder="0,000"></label>
+      <div class="dm-energy-cost-field"><span>${t("Energia acquistata", "Purchased energy")} <small>€/kWh</small></span>
+        <span class="dm-rate-mode" role="group" aria-label="${t("Sorgente del prezzo di acquisto", "Purchase price source")}">
+          <button type="button" class="dm-rate-mode-btn" data-dm-rate-mode="number">${t("Numero", "Number")}</button>
+          <button type="button" class="dm-rate-mode-btn" data-dm-rate-mode="entity">${t("Entità", "Entity")}</button>
+        </span>
+        <input id="ed-costo-kwh" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(buy)}" placeholder="0,000">
+        <span class="dm-rate-entity-slot" data-dm-rate-entity-slot hidden></span>
+        <small class="dm-rate-entity-note" data-dm-rate-entity-note hidden></small>
+      </div>
+      <div class="dm-energy-cost-field"><span>${t("Energia venduta", "Sold energy")} <small>€/kWh</small></span><input id="ed-prezzo-imm" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(sell)}" placeholder="0,000"></div>
     </div>
     <button type="button" class="ed-save-btn" data-dm-save-energy-costs>💾 ${t("Salva costi", "Save costs")}</button>`;
+  /* Il campo entita' e' quello vero, lo stesso dell'editor Carichi: casella
+   * piu' lente, e la scelta passa dal selettore canonico del runtime. */
+  const slot = card.querySelector("[data-dm-rate-entity-slot]");
+  const { field } = createEntityPickerField(doc, {
+    id: "ed-costo-kwh-entita",
+    value: entitaSalvata,
+    placeholder: "sensor.prezzo_kwh",
+    label: t("Entità prezzo", "Price entity"),
+    locale: intlLocale(),
+    onPick: (input) => root.wzPickEntity?.(input),
+    onChange: () => aggiornaNotaPrezzoEntita(card),
+  });
+  slot.append(field);
+  const applicaModalita = (modalita) => {
+    card.dataset.dmImportRateMode = modalita;
+    const numero = card.querySelector("#ed-costo-kwh");
+    if (numero) numero.hidden = modalita === "entity";
+    slot.hidden = modalita !== "entity";
+    const nota = card.querySelector("[data-dm-rate-entity-note]");
+    if (nota) nota.hidden = modalita !== "entity";
+    card.querySelectorAll("[data-dm-rate-mode]").forEach((bottone) => {
+      bottone.dataset.active = bottone.dataset.dmRateMode === modalita ? "true" : "false";
+    });
+    aggiornaNotaPrezzoEntita(card);
+  };
+  card.querySelectorAll("[data-dm-rate-mode]").forEach((bottone) =>
+    bottone.addEventListener("click", () => applicaModalita(bottone.dataset.dmRateMode)),
+  );
+  applicaModalita(card.dataset.dmImportRateMode);
   card.querySelector("[data-dm-save-energy-costs]")?.addEventListener("click", () => {
     if (typeof root.edSaveCosti === "function") {
       root.edSaveCosti();
@@ -367,6 +437,10 @@ function repairEnergyCostEditor() {
     const exportValue = clean(card.querySelector("#ed-prezzo-imm")?.value);
     root.localStorage?.setItem?.("cd_costo_kwh", importValue);
     root.localStorage?.setItem?.("cd_prezzo_immissione", exportValue);
+    /* Anche il ripiego scrive la scelta dove abita: nel modello canonico. */
+    const entita = clean(card.querySelector("#ed-costo-kwh-entita")?.value);
+    const daEntita = card.dataset.dmImportRateMode === "entity" && entita;
+    persistEnergyField(store(), "rates", "import_entity", daEntita ? entita : "");
     root.cdMarkDirty?.();
     root.cdSyncPush?.();
   });
@@ -471,6 +545,16 @@ function installStyle() {
     .dm-energy-cost-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:12px!important;margin:12px 0!important}
     .dm-energy-cost-field{display:grid!important;gap:7px!important;min-width:0!important;color:var(--text,#0f172a)!important;font-weight:700!important}
     .dm-energy-cost-field .ed-input{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:48px!important;padding:10px 12px!important;color:var(--text,#0f172a)!important;background:var(--card-bg,#fff)!important;border:1px solid var(--border,rgba(15,23,42,.14))!important;border-radius:14px!important;font-size:16px!important}
+    .dm-energy-cost-field .ed-input[hidden]{display:none!important}
+    .dm-rate-mode{display:inline-flex!important;width:max-content!important;border:1px solid var(--border,rgba(15,23,42,.14))!important;border-radius:12px!important;overflow:hidden!important}
+    .dm-rate-mode-btn{appearance:none;border:0;background:transparent;padding:7px 16px;font:inherit;font-weight:800;color:var(--muted,#64748b);cursor:pointer}
+    .dm-rate-mode-btn[data-active="true"]{background:var(--accent-color,#0ea5e9);color:#fff}
+    .dm-rate-entity-slot{display:block}
+    .dm-rate-entity-slot[hidden],.dm-rate-entity-note[hidden]{display:none!important}
+    .dm-rate-entity-slot .ed-form-row{display:flex;gap:8px;align-items:center}
+    .dm-rate-entity-slot .ed-input{display:block;box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:10px 12px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:14px;font-size:15px;color:var(--text,#0f172a);background:var(--card-bg,#fff)}
+    .dm-rate-entity-slot .dm-entity-picker{min-height:48px;min-width:48px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:14px;background:var(--card-bg,#fff);cursor:pointer;font-size:18px}
+    .dm-rate-entity-note{display:block;color:var(--muted,#64748b);font-weight:600}
     .dm-battery-soc{display:block;margin-top:3px;font-size:12px;font-weight:800;line-height:1.15;color:var(--success-color,#16a34a)}
     .dm-battery-soc[hidden]{display:none!important}
     @media(max-width:640px){.dm-energy-cost-grid{grid-template-columns:1fr!important}}

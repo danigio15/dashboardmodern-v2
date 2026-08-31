@@ -5,6 +5,273 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.0
+
+### Nuovo
+
+- **Il guscio inglese non parla piu' italiano.** Il runtime vendorizzato EN
+  portava ancora etichette italiane cablate — «ARMATO · FUORI», «DISARMATO»,
+  la tessera «Antifurto», i toast di salvataggio, la pillola «In attesa...»,
+  le etichette del solare nell'editor. Un modulo se ne fa padrone e le
+  traduce alla fonte, finche' la correzione non arriva a monte. Anche il
+  guscio statico EN mentiva — le linguette del solare «Istantanea /
+  Giornaliera / Mensile», i nodi del flusso «Solare / Casa / Batteria /
+  Rete» — quindi il passaggio DOM di traduzione, che prima saltava
+  l'inglese dandolo per gia' tradotto, ora gira anche li': l'inglese e' la
+  lingua pivot e si risolve dall'indice, senza scaricare cataloghi.
+
+- **Il ritratto delle persone diventa su misura.** Capelli (lisci, ricci,
+  calvo), barba con le sue fogge (nessuna, rasata, corta, lunga) e colori di
+  capelli e barba sono scelte separate che si combinano liberamente: dove il
+  render originale non esiste, il compositore tinge preservando le ombre,
+  trapianta la barba sui ricci e sintetizza rasata e lunga. Arrivano gli
+  anziani per genere con le cinque carnagioni, i biondi, il colore degli
+  occhi, gli occhiali (tondi, quadrati, da sole) e le collane, e un
+  guardaroba di 35 capi veri — con polo, camicia, l'abito premaman e la fila
+  «Colore vestito» per chi ne regge la tinta. Le facce salvate migrano da
+  sole allo schema nuovo.
+
+- **Le temperature dell'inverter e la ventola si configurano dalle
+  impostazioni di Energia.** La scheda Temperature (inverter AC/DC, batteria,
+  ventola) restava «In attesa...» perche' nessuna maschera sapeva collegare le
+  sue entita'. In Energia → Impostazioni arriva il riquadro «Temperature e
+  raffreddamento» con i cinque campi — le tre temperature, la potenza e
+  l'interruttore della ventola — e ogni campo si salva appena cambia. Chi le
+  aveva gia' mappate a mano dal tab Sostituzioni se le ritrova compilate.
+
+- **Il prezzo dell'energia puo' venire da un'entita' (#217).** Nella card
+  «Costo energia» il prezzo di acquisto ha il segmentato Numero | Entita':
+  chi compra a prezzo di borsa sceglie il suo sensore e sotto legge il
+  valore corrente, che si aggiorna da solo. Tutti i lettori — flussi,
+  Report, costo del ciclo — passano dalla stessa porta, dove abitano anche i
+  default di sempre.
+
+- **Il tagliaerba entra nella sezione Robot (#220).** Un'entita'
+  lawn_mower.* e' un robot come un vacuum.*: parla i suoi servizi, dice «Sta
+  tagliando» in verde e non offre i comandi che non ha mai avuto; la
+  batteria puo' venire da un sensore a parte, come molti la pubblicano.
+  Pagina e navigazione ora dicono «Robot».
+
+- **Le tessere della Home si fanno pillole (#224).** La preferenza «Tessere
+  compatte» (Mai / Auto / Sempre, nella scheda Widget) stringe la fascia in
+  pillole a due colonne con la tacca del colore di sezione: tutta la fascia
+  in un colpo d'occhio sul telefono, col tocco che apre il solito popup. Con
+  Auto succede solo sotto i 520px.
+
+- **La tessera «In evidenza» (#236).** Le entita' scelte a mano — il quadro
+  elettrico, l'armadio di rete, la pompa — arrivano in Home con riassunto in
+  didascalia e dettaglio a caselle; si configurano nella scheda Widget col
+  selettore vero, stanza facoltativa.
+
+- **I rilevatori di fumo si configurano da soli (#238).** I binary_sensor di
+  fumo entrano nel quadro avvisi anche se montati dopo il primo avvio, e la
+  pagina Sicurezza guadagna il blocco «Rilevatori di fumo» con l'allarme
+  rosso che pulsa. Le porte e le finestre scoperte dopo il primo avvio si
+  aggiungono da sole alle Aperture — rispettando quelle tolte a mano — e chi
+  non ha scelto un'icona ha quella giusta per la sua classe.
+
+- **Gli elettrodomestici si fanno trovare dal flusso (#214).** Nella modale
+  dell'elettrodomestico un suggerimento verde segnala chi ha gia' la potenza
+  mappata e nessun cerchio; nell'editor Carichi il bottone «Scegli da
+  Elettrodomestici» assegna un apparecchio gia' configurato senza
+  riconfigurarlo, e a carico pieno lo dice invece di troncare.
+
+- **Il popup dei widget e' il progetto approvato: tutte card, niente
+  elenco.** Sotto l'analisi le letture non fanno piu' la lista di righe: le
+  numeriche sono caselle sotto «Le misure» (glifo, valore grande,
+  etichetta), gli acceso/spento pillole sotto «Lo stato» — le aperture con
+  l'icona scelta e la parola Aperta/Chiusa — e sotto «Comandi» restano solo
+  gli interruttori veri. Vale per auto, solare, piscina, energia,
+  temperatura, batterie, irrigazione, robot, elettrodomestici e avvisi
+  personalizzati. Il tasto Chiudi sta a destra, come negli altri popup.
+
+- **L'auto in carica dice quando finisce.** «In carica al 53%: di questo
+  passo arriva al 100% verso le 08:26» — l'ora del pieno viene dalla stessa
+  formula della pagina EV (potenza del caricatore e traguardo), cosi' i due
+  posti dicono la stessa ora; e quando la potenza parla, il modello non
+  aggiunge un secondo orario dalla pendenza.
+
+- **Boiler e Friggitrice ad aria nel catalogo elettrodomestici.** Il
+  cilindrone d'accumulo a pavimento (manometro, acqua, tubi) e la
+  friggitrice col cestello, disegnati nello stile del catalogo, con gli
+  eroi animati per le loro pagine.
+
+- **Anche il popup dell'elettrodomestico parla come il progetto.** Cliccando
+  un elettrodomestico si apriva l'elenco di ogni entita' con lo slug sotto il
+  nome; ora la stessa finestra apre col verdetto e la frase («Condizionatori
+  e' in funzione e sta tirando 1105 W; oggi ha fatto 10.24 kWh»), le letture
+  a caselle coi nomi veri, gli acceso/spento a pillole, e sotto «Comandi» gli
+  interruttori e gli script coi loro tasti. Ogni casella apre ancora lo
+  storico.
+
+- **Il Tasto Clima rapido vale anche sulla parte Caldo.** Nel popup Clima il
+  tocco su un'unita' Caldo che e' una vera entita' climate.* (termostato,
+  valvola) ora accende coi passi di QUELLA unita' — ripiego: riscaldamento,
+  senza toccare altro — e spegne con la stessa regola dei pulsanti della
+  pagina; prima passava dal toggle degli input_boolean, che per un termostato
+  cadeva nel vuoto. Nel form e nella matita, col Tipo su «Caldo» i campi
+  partono dal riscaldamento (niente 26 gradi da condizionatore), e la tendina
+  offre sempre la modalita' del preset anche in una casa di soli
+  condizionatori. I termosifoni pilotati da un input_boolean restano col loro
+  interruttore.
+
+### Corretto
+
+- **La barba sta sul viso, con precisione.** La maschera del pelo prendeva
+  tutti i pixel scuri sotto il confine: le ciocche lunghe ai lati del viso
+  diventavano barba, e il pelo trapiantato da una testa donatrice sbordava
+  oltre guance e mento. Ora la barba vive in una campana centrata sul viso
+  — le ciocche restano capelli — e il trapianto aderisce alla sagoma della
+  testa che lo riceve; solo la coda della barba lunga resta libera di
+  pendere sotto il mento. Sulle carnagioni scure la soglia del pelo ora
+  scende con la pelle (prima l'intero basso viso passava per barba e usciva
+  un lastrone squadrato), la coda salta la bocca della donatrice (denti e
+  labbra stirati erano zanne bianche sotto il mento), aggancia il mento
+  vero anche con le chiome larghe e si assottiglia verso la punta.
+
+- **Il Report non parte piu' vuoto quando il runtime batte i moduli.** La
+  lista dei dispositivi nasceva da una chiamata sola all'avvio e, se i
+  moduli non c'erano ancora, restava vuota fino a un timer di cortesia:
+  appena i moduli si annunciano, se quella chiamata era fallita si
+  ricostruisce subito.
+
+- **Il vassoio delle Azioni rapide segue il tema scuro.** In dark il ripiano
+  restava un lenzuolo bianco in mezzo alla Home nera, coi tasti scuri sopra:
+  il fondo leggeva una variabile che non esiste (`--bg`) e cadeva sul
+  ripiego chiaro. Ora legge quella vera del tema (`--bg-sculpted`): col
+  tema scuro e' un ripiano scuro appena rialzato dal fondo, col chiaro
+  resta identico a prima. Stessa pulizia sulle sfumature delle tessere.
+
+- **Il banco del ritratto si aggiorna in loco, senza ricostruirsi.** Ogni
+  scelta rifaceva da capo tutte le file e buttava le ottanta pastiglie
+  composte: su un dispositivo lento il banco restava in subbuglio per
+  decine di secondi dopo ogni tocco, con le caselle vuote che si
+  riempivano una alla volta. Ora un tocco cambia solo cio' che cambia —
+  la spunta, le file che entrano o escono — e ogni pastiglia tiene il
+  disegno vecchio finche' quello nuovo non e' pronto.
+
+- **Le pillole d'avviso respirano anche in compatta.** La modalita' compatta
+  spegneva l'alone dietro le tessere — ed era proprio l'alone il respiro
+  degli avvisi, quello che li fa muovere anche quando non hanno un disegno
+  loro. Nella pillola l'alone si fa velo aderente, appena colorato del
+  colore d'avviso, e continua a pulsare piano; le pillole senza avviso
+  restano piatte come da progetto.
+
+- **La riga «Ambiente» nella card del Clima si legge.** Il carattere della
+  temperatura ambiente sotto lo slider era troppo piccolo: leggermente piu'
+  grande, con gli estremi della scala che restano contorno.
+
+- **Il WebRTC delle telecamere dice qual e' la leva.** La strada WebRTC parte
+  solo col «Nome stream go2rtc» compilato nella scheda Telecamere — il nome
+  della telecamera non c'entra. Ora il campo lo spiega sotto, e quando la
+  strada viene saltata il popup dice esattamente cosa compilare.
+
+- **La bolla della wallbox nel flusso legge i kW come kW.** Il sensore
+  scriveva 1,61 kW e la bolla diceva «2 W»: l'istantanea leggeva lo stato
+  grezzo ignorando l'unita'. Ora i watt li conta chi guarda anche l'unita',
+  per ogni carico.
+
+- **Il tasto Clima rapido e' per unita', e si imposta dove si configura
+  l'unita'.** Modalita', temperatura e ventola stavano in un blocco globale
+  sopra le unita' — «viene attribuito quel valore a tutto» — e la cameretta
+  non poteva volere 24 gradi col salone a 26. I tre campi ora stanno nel form
+  di aggiunta, prima di «Aggiungi unita' clima», e nella finestra della
+  matita: ogni unita' ha i suoi passi, che viaggiano con la configurazione
+  (revisione 12). La tendina della Ventola non resta piu' vuota quando
+  l'unita' non dichiara i suoi `fan_modes`: si offrono le quattro velocita'
+  standard, coi nomi per esteso.
+
+- **Nel popup Clima la tessera della stanza disegna la stanza.** Bastava che
+  l'unita' avesse una stanza per ritrovarsi l'icona della porta; ora esce il
+  disegno di casa dell'icona della stanza, e la porta e' tornata alle porte.
+
+- **Azioni rapide piu' oneste.** Il campo «Entita' da comandare» compare solo
+  per i tipi che la usano (toggle, script, scena): i popup nativi le entita'
+  se le prendono da soli. E un popup nativo senza nome scritto dice cosa apre
+  — Luci, Clima, Antifurto, Lavatrice — invece di «Azione rapida» ripetuto.
+
+- **I modali di modifica si leggono.** L'entita' inserita stava su una
+  pillola blu piena col testo invisibile: il blu resta al bottone-lente, la
+  chip col nome torna chiara. «Modifica luce» spiegava il solo-vista con le
+  parole delle prese («il frigo, il modem, il congelatore») schiacciate in
+  una colonnina: parole sue e riga impaginata. Una luce aggiunta senza nome
+  prende il friendly name dell'entita', non lo slug «faretti_cucina». E le
+  tendine delle stanze dei modali dicono solo il nome, senza emoji davanti.
+
+- **Le icone dicono la stessa cosa dappertutto.** Nel form delle Stanze
+  l'anteprima accanto al campo diceva l'emoji di sistema (🚿) mentre catalogo
+  e righe salvate dicono il disegno di casa: ora anche l'anteprima chiede al
+  motore dei disegni. Nelle tendine «Seleziona stanza» (Temperatura, Clima,
+  Finestre) i nomi uscivano con l'emoji davanti — un catalogo estraneo — e in
+  un menu nativo il disegno di casa non si puo' mettere: resta il nome, senza
+  icona sbagliata.
+
+- **Nel catalogo icone i risultati della ricerca salgono in testa.** La
+  griglia stava ancorata in fondo a una finestra ad altezza fissa — il guscio
+  dei dialoghi prevede due figli, il picker ne ha tre, e la riga elastica
+  finiva alla barra di ricerca: cercando, l'unica icona trovata restava in
+  basso con un vuoto enorme sopra. Ora testata, ricerca e griglia hanno
+  ognuna la propria riga e i risultati stanno subito sotto la ricerca.
+
+- **Aggiungere una voce al MiniPC non butta le entita' gia' scritte.** Il
+  ridisegno della lista ripartiva dai valori catturati all'apertura del
+  pannello: tutto cio' che era digitato ma non ancora salvato spariva — con
+  l'Aggiungi come col cestino. Prima di ridisegnare ora si raccoglie quello
+  che c'e' scritto.
+
+- **Salvare una scheda accende la sua sezione, anche se era stata nascosta a
+  mano.** Salvare contenuto e' esprimersi su quella sezione: il veto manuale
+  cade per la sola scheda salvata, le altre scelte restano sacre. Vale anche
+  per le sezioni nate dai moduli (Stanze, Luci, Prese, Aspirapolvere). E il
+  veto lo fa cadere solo il VERO tasto di salvataggio della scheda: un submit
+  qualunque che risale il documento — l'editor ne e' pieno — non riaccende
+  una sezione appena nascosta dalla fascia.
+
+- **Una sola icona nella riga della stanza.** Il quadratino grezzo del campo
+  icona usciva accanto al selettore del catalogo (da telefono era gia'
+  nascosto, da desktop no): a schermo resta solo il selettore, su ogni
+  misura.
+
+- **Il Report non balla piu': i numeri hanno un padrone solo.** La Panoramica
+  alternava due serie — 473 e 586 kWh, 81% e 84%, gli euro calcolati e
+  «0,00 €» — perche' i KPI e la griglia finanziaria avevano tre mani addosso:
+  due render del guscio piu' i moduli, ognuno con la sua formula e le sue
+  tariffe. Il cartello del padrone ora ferma anche `edSetText` e l'anello
+  dell'autosufficienza, e le tariffe dei moduli partono dagli stessi default
+  del guscio (0.25 €/kWh comprato, 0.10 venduto): scrive uno solo, con un
+  solo calcolo.
+
+- **Dopo il reset totale la barra teneva sezioni accese su una plancia
+  vuota.** Stanze, Luci, Prese e Aspirapolvere — le voci nate dai moduli —
+  non seguivano la regola d'esordio delle altre: mai decisa e senza contenuto
+  = spenta. Ora la seguono, e a plancia azzerata restano Home e Config.
+
+- **Le Stanze non si potevano nascondere.** Era l'unica pagina della barra
+  senza il suo interruttore nella scheda dell'editor: ora ce l'ha, come
+  tutte le altre.
+
+- **La tessera dell'auto esce anche senza foto.** Con una vettura profilata
+  la tessera della Home leggeva solo le chiavi globali — che si riempiono ai
+  salvataggi successivi, la foto compresa — e un'auto con la batteria mappata
+  nel suo profilo restava invisibile finche' non si toccava altro. Il profilo
+  ora comanda appena e' leggibile, anche da solo.
+
+- **Lo stato di carica dice solo la percentuale.** Sotto la freccia e i watt
+  della batteria la dicitura «SOC» non aggiungeva niente: via, resta «86%».
+
+- **Stanze e Aperture avevano la stessa porta.** In configurazione — e da
+  telefono, dove della linguetta resta il solo simbolo — due 🚪 affiancate
+  non si distinguono. La porta resta alle Aperture, che di porte vivono;
+  le Stanze prendono il divano 🛋️, lo stesso segno che Home Assistant usa
+  per le aree, in configurazione e nella barra della plancia.
+
+- **Il tasto 🎨 delle Aperture apriva la ricerca delle entita'.** Vestiva la
+  classe della lente accanto ai campi entita', e per la plancia quella classe
+  E' il segno che il campo chiede un'entita': sopra al catalogo delle icone
+  si apriva «Scegli l'entita'», e premuto col dito si sceglieva un'entita'
+  invece di un'icona. Il tasto ora ha una classe tutta sua — stesso vestito,
+  nessun gestore altrui — e apre il catalogo e basta.
+
 ## 1.3.11
 
 ### Corretto (telecamere)

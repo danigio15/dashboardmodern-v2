@@ -16,13 +16,21 @@
  * foto del profilo.
  */
 import {
+  BARBE,
   CAPELLI,
   CARNAGIONI,
+  COLLANE,
+  COLORI_BARBA,
+  COLORI_CAPELLI,
+  COLORI_OCCHI,
+  COLORI_VESTITO,
+  OCCHIALI,
   PERSONE,
   VESTITI,
   avatar3dACaso,
   normalizeAvatar3d,
   personaHaCapelli,
+  vestitoRicolorabile,
 } from "../core/avatar-3d.js";
 import {
   AVATAR_COLORS,
@@ -105,34 +113,90 @@ function campoEntita(id, field, label, value, placeholder, hint) {
 
 /* ── Il costruttore del ritratto ──────────────────────────────────────────
  *
- * Quattro file: chi sei, che capelli hai, che carnagione, com'e' vestito.
- * Ogni pastiglia non e' un'icona: e' il TUO ritratto con quel pezzo addosso,
- * composto dallo stesso motore che disegna la card. Quello che scegli e'
- * esattamente quello che vedrai.
+ * Le file del ritratto, nell'ordine in cui si legge una persona: chi sei,
+ * che taglio porti, la barba, i colori, gli occhi, gli accessori, la
+ * carnagione, il vestito e il suo colore. Ogni pastiglia non e' un'icona:
+ * e' il TUO ritratto con quel pezzo addosso, composto dallo stesso motore
+ * che disegna la card. Quello che scegli e' esattamente quello che vedrai.
+ *
+ * Tre eccezioni, tutte volute:
+ *  - le file «a teste nude» (persona, capelli, carnagione) mostrano render
+ *    semplici, senza il vestito corrente: si sta scegliendo una testa, e
+ *    trentacinque cuochi diversi solo per il cranio confondono l'occhio;
+ *  - «Colore barba» compare solo con una barba addosso, e «Colore vestito»
+ *    solo sui busti che si lasciano ricolorare: una fila senza effetto e'
+ *    una bugia disegnata;
+ *  - «Colore occhi» e' una fila di cerchi, come lo sfondo: un'iride in una
+ *    pastiglia da quarantasei pixel non si vedrebbe.
  *
  * Le pastiglie si riempiono dopo, quando le immagini sono arrivate: comporre
- * quaranta ritratti mentre la scheda sta comparendo vorrebbe dire una scheda
+ * ottanta ritratti mentre la scheda sta comparendo vorrebbe dire una scheda
  * che si apre in ritardo, e non vale.
  */
 function fileRitratto(face) {
+  const conCapelli = personaHaCapelli(face.persona);
   return [
-    { k: "persona", label: t("Persona", "Person"), valori: [...PERSONE], nomi: NOMI_PERSONE },
-    ...(personaHaCapelli(face.persona)
-      ? [{ k: "capelli", label: t("Capelli", "Hair"), valori: [...CAPELLI], nomi: NOMI_CAPELLI }]
+    { k: "persona", label: t("Persona", "Person"), valori: [...PERSONE], nomi: NOMI_PERSONE, nudo: true },
+    ...(conCapelli
+      ? [{ k: "capelli", label: t("Capelli", "Hair"), valori: [...CAPELLI], nomi: NOMI_CAPELLI, nudo: true }]
       : []),
-    { k: "carnagione", label: t("Carnagione", "Skin tone"), valori: [...CARNAGIONI], nomi: NOMI_CARNAGIONI },
+    { k: "barba", label: t("Barba", "Beard"), valori: [...BARBE], nomi: NOMI_BARBE },
+    ...(conCapelli
+      ? [{ k: "coloreCapelli", label: t("Colore capelli", "Hair color"), valori: [...COLORI_CAPELLI], nomi: NOMI_COLORI_CAPELLI }]
+      : []),
+    ...(face.barba !== "nessuna"
+      ? [{ k: "coloreBarba", label: t("Colore barba", "Beard color"), valori: [...COLORI_BARBA], nomi: NOMI_COLORI_BARBA }]
+      : []),
+    { k: "occhi", label: t("Colore occhi", "Eye color"), valori: [...COLORI_OCCHI], nomi: NOMI_OCCHI, cerchi: OCCHI_CERCHI },
+    { k: "occhiali", label: t("Occhiali", "Glasses"), valori: [...OCCHIALI], nomi: NOMI_OCCHIALI },
+    { k: "collana", label: t("Collana", "Necklace"), valori: [...COLLANE], nomi: NOMI_COLLANE },
+    { k: "carnagione", label: t("Carnagione", "Skin tone"), valori: [...CARNAGIONI], nomi: NOMI_CARNAGIONI, nudo: true },
     { k: "vestito", label: t("Vestito", "Outfit"), valori: [...VESTITI], nomi: NOMI_VESTITI },
+    ...(vestitoRicolorabile(face.vestito)
+      ? [{ k: "coloreVestito", label: t("Colore vestito", "Outfit color"), valori: [...COLORI_VESTITO], nomi: NOMI_COLORI_VESTITO }]
+      : []),
   ];
 }
 
 const NOMI_PERSONE = () => ({
   uomo: t("Uomo", "Man"), donna: t("Donna", "Woman"), neutro: t("Neutro", "Neutral"),
   ragazzo: t("Ragazzo", "Boy"), ragazza: t("Ragazza", "Girl"),
-  anziano: t("Anziano", "Older person"),
+  anziano: t("Anziano", "Old man"), anziana: t("Anziana", "Old woman"),
 });
 const NOMI_CAPELLI = () => ({
-  lisci: t("Lisci", "Straight"), barba: t("Barba", "Beard"), ricci: t("Ricci", "Curly"),
-  rossi: t("Rossi", "Red"), bianchi: t("Bianchi", "White"), calvo: t("Calvo", "Bald"),
+  lisci: t("Lisci", "Straight"), ricci: t("Ricci", "Curly"), calvo: t("Calvo", "Bald"),
+});
+const NOMI_BARBE = () => ({
+  nessuna: t("Nessuna", "None"), rasata: t("Rasata", "Stubble"),
+  corta: t("Corta", "Short"), lunga: t("Lunga", "Long"),
+});
+const NOMI_COLORI_CAPELLI = () => ({
+  naturale: t("Naturale", "Natural"), biondo: t("Biondo", "Blonde"), rosso: t("Rosso", "Red"),
+  bianco: t("Bianco", "White"), castano: t("Castano", "Brown"), rame: t("Rame", "Copper"),
+  grigio: t("Grigio", "Gray"), rosa: t("Rosa", "Pink"),
+});
+const NOMI_COLORI_BARBA = () => ({
+  naturale: t("Naturale", "Natural"), grigia: t("Grigia", "Gray"), bionda: t("Bionda", "Blonde"),
+  rame: t("Rame", "Copper"), castana: t("Castana", "Brown"),
+});
+const NOMI_OCCHI = () => ({
+  marrone: t("Marroni", "Brown"), verde: t("Verdi", "Green"), azzurro: t("Azzurri", "Blue"),
+  grigio: t("Grigi", "Gray"), nero: t("Neri", "Black"),
+});
+/* I cerchi della fila «Colore occhi»: l'iride, non una pastiglia-ritratto. */
+const OCCHI_CERCHI = Object.freeze({
+  marrone: "#5b4132", verde: "#3a6b48", azzurro: "#3f74b5", grigio: "#7d8794", nero: "#26221f",
+});
+const NOMI_OCCHIALI = () => ({
+  nessuno: t("Nessuno", "None"), tondi: t("Tondi", "Round"),
+  quadrati: t("Quadrati", "Square"), sole: t("Da sole", "Sunglasses"),
+});
+const NOMI_COLLANE = () => ({
+  nessuna: t("Nessuna", "None"), catenina: t("Catenina", "Chain"), pendente: t("Pendente", "Pendant"),
+});
+const NOMI_COLORI_VESTITO = () => ({
+  blu: t("Blu", "Blue"), verde: t("Verde", "Green"), rosso: t("Rosso", "Red"),
+  giallo: t("Giallo", "Yellow"), viola: t("Viola", "Purple"), grigio: t("Grigio", "Gray"),
 });
 const NOMI_CARNAGIONI = () => ({
   chiara: t("Chiara", "Light"), chiara2: t("Chiara+", "Light+"), media: t("Media", "Medium"),
@@ -153,6 +217,9 @@ const NOMI_VESTITI = () => ({
   turbante: t("Turbante", "Turban"), supercattivo: t("Supercattivo", "Supervillain"),
   mago: t("Mago", "Mage"), fata: t("Fata", "Fairy"),
   vampiro: t("Vampiro", "Vampire"), elfo: t("Elfo", "Elf"),
+  casual: t("Casual", "Casual"), saluto: t("Saluto", "Wave"),
+  polo: t("Polo", "Polo"), camicia: t("Camicia", "Shirt"),
+  attesa: t("In attesa", "Expecting"),
 });
 
 function builderMarkup(person) {
@@ -161,15 +228,24 @@ function builderMarkup(person) {
     return `<button type="button" class="ed-btn-add dm-face-create" data-face-create>🧑‍🎨 ${t("Crea il ritratto", "Create the portrait")}</button>
       <small>${t("Oppure scrivi un'emoji qui sotto — o lascia vuoto per le iniziali del nome.", "Or type an emoji below — or leave it empty for the initials of the name.")}</small>`;
   const righe = fileRitratto(face)
-    .map(({ k, label, valori, nomi }) => {
+    .map(({ k, label, valori, nomi, nudo, cerchi }) => {
       const etichette = nomi();
       const opzioni = valori
         .map((valore) => {
-          const scelta = { ...face, [k]: valore };
+          if (cerchi)
+            /* Un cerchio pieno, come la fila dello sfondo: la scelta e' un
+             * colore, non un ritratto. */
+            return `<button type="button" class="dm-people-color dm-face-dot${face[k] === valore ? " on" : ""}" data-face-k="${k}" data-face-v="${esc(valore)}" style="--dm-person-color:${esc(cerchi[valore])}" aria-label="${esc(`${label}: ${etichette[valore] || valore}`)}"></button>`;
+          /* Le file «a teste nude» mostrano la testa che si sta scegliendo,
+           * senza il vestito corrente addosso; le altre restano il ritratto
+           * intero con quel pezzo cambiato. */
+          const scelta = nudo
+            ? { ...face, [k]: valore, vestito: "nessuno" }
+            : { ...face, [k]: valore };
           return `<button type="button" class="dm-face-opt${face[k] === valore ? " on" : ""}" data-face-k="${k}" data-face-v="${esc(valore)}" data-face-anteprima="${esc(JSON.stringify(scelta))}" aria-label="${esc(`${label}: ${etichette[valore] || valore}`)}"><span class="dm-face-opt-img"></span><i>${esc(etichette[valore] || valore)}</i></button>`;
         })
         .join("");
-      return `<div class="dm-face-row"><span class="dm-face-row-lbl">${esc(label)}<b>${valori.length}</b></span><span class="dm-face-row-opts">${opzioni}</span></div>`;
+      return `<div class="dm-face-row"><span class="dm-face-row-lbl">${esc(label)}<b>${valori.length}</b></span><span class="dm-face-row-opts${cerchi ? " dm-face-row-dots" : ""}">${opzioni}</span></div>`;
     })
     .join("");
   return `<div class="dm-face-workbench">
@@ -332,6 +408,27 @@ function ridisegna() {
   ensurePeopleEditor();
 }
 
+/* Un frame di respiro fra una composizione e l'altra: ottanta ritratti in
+ * fila, incollati microtask a microtask, affamano i frame — su webkit la
+ * pagina restava decine di secondi senza un solo requestAnimationFrame,
+ * quindi niente scroll fluido sotto le dita e ogni attesa basata sui frame
+ * (la stabilita' dei click nelle prove compresa) appesa per l'intera
+ * ricomposizione. La rete del setTimeout copre chi i frame li sospende del
+ * tutto (una scheda in secondo piano). */
+function respiro() {
+  return new Promise((via) => {
+    let fatto = false;
+    const ok = () => {
+      if (!fatto) {
+        fatto = true;
+        via();
+      }
+    };
+    if (typeof root.requestAnimationFrame === "function") root.requestAnimationFrame(ok);
+    root.setTimeout?.(ok, 50);
+  });
+}
+
 /* Le anteprime si riempiono dopo: comporre quaranta ritratti mentre la
  * scheda sta comparendo vorrebbe dire una scheda che si apre in ritardo. */
 async function dipingiAnteprime() {
@@ -348,15 +445,29 @@ async function dipingiAnteprime() {
     if (face && grande) ritrattoVivo(grande, face, "sveglio");
     for (const bottone of riga.querySelectorAll("[data-face-anteprima]")) {
       const posto = bottone.querySelector(".dm-face-opt-img");
-      if (!posto || posto.firstElementChild) continue;
+      if (!posto) continue;
+      /* Una pastiglia gia' composta per QUESTA anteprima non si rifa'; una
+       * superata (il banco aggiornato in loco le cambia l'anteprima sotto)
+       * tiene il disegno vecchio finche' il nuovo non e' pronto. */
+      const attesa = bottone.dataset.faceAnteprima || "";
+      if (!attesa) continue;
+      if (posto.dataset.dmComposta === attesa && posto.firstElementChild) continue;
+      if (posto.dataset.dmInViaggio === attesa) continue;
+      posto.dataset.dmInViaggio = attesa;
       let scelta = null;
-      try { scelta = JSON.parse(bottone.dataset.faceAnteprima); } catch (_errore) { continue; }
+      try { scelta = JSON.parse(attesa); } catch (_errore) { continue; }
       const url = await ritrattoFermo(scelta);
+      if (posto.dataset.dmInViaggio === attesa) delete posto.dataset.dmInViaggio;
       if (!url || !posto.isConnected) continue;
+      /* Nel frattempo un altro tocco puo' aver cambiato di nuovo l'anteprima:
+       * un disegno gia' vecchio non si mette. */
+      if ((bottone.dataset.faceAnteprima || "") !== attesa) continue;
       const img = doc.createElement("img");
       img.src = url;
       img.alt = "";
       posto.replaceChildren(img);
+      posto.dataset.dmComposta = attesa;
+      await respiro();
     }
   }
 }
@@ -381,13 +492,95 @@ function scriviFace(riga, people, index, face) {
   if (builder && people[index]) {
     const colore =
       clean(riga.querySelector('[data-person-field="color"]')?.value) || people[index].avatar.color;
-    builder.innerHTML = builderMarkup({
-      ...people[index],
-      avatar: { ...people[index].avatar, face, color: colore },
-    });
+    aggiornaBuilder(
+      builder,
+      builderMarkup({
+        ...people[index],
+        avatar: { ...people[index].avatar, face, color: colore },
+      }),
+    );
   }
   aggiornaAnteprima(riga, people, index);
   dipingiAnteprime();
+}
+
+/* Il banco del ritratto si aggiorna in loco, non si ricostruisce.
+ *
+ * Rifare `innerHTML` a ogni scelta buttava via ottanta pastiglie composte e
+ * le ricomponeva tutte da capo: su una macchina lenta il banco restava in
+ * subbuglio per decine di secondi dopo OGNI tocco — caselle vuote che si
+ * riempivano una alla volta — e la prova su webkit non trovava mai un
+ * bottone fermo da premere. Qui si copia sui bottoni che gia' esistono solo
+ * cio' che e' cambiato (la spunta, l'anteprima da comporre, l'etichetta
+ * della fila); le file nuove entrano vergini, quelle sparite se ne vanno, e
+ * ogni pastiglia superata tiene il disegno vecchio finche' quello nuovo non
+ * e' pronto. */
+function aggiornaBuilder(builder, markup) {
+  const nuovo = doc.createElement("div");
+  nuovo.innerHTML = markup;
+  const fileNuove = nuovo.querySelector(".dm-face-rows");
+  const fileVecchie = builder.querySelector(".dm-face-rows");
+  /* Da o verso lo stato senza ritratto (Crea/Togli): struttura diversa,
+   * la ricostruzione intera resta la strada onesta. */
+  if (!fileNuove || !fileVecchie) {
+    builder.innerHTML = markup;
+    return;
+  }
+  const viva = builder.querySelector("[data-face-anteprima-viva]");
+  const vivaNuova = nuovo.querySelector("[data-face-anteprima-viva]");
+  if (viva && vivaNuova && viva.getAttribute("style") !== vivaNuova.getAttribute("style"))
+    viva.setAttribute("style", vivaNuova.getAttribute("style"));
+  const chiaveDi = (fila) => fila.querySelector("[data-face-k]")?.dataset.faceK || "";
+  const nuove = [...fileNuove.querySelectorAll(".dm-face-row")];
+  const chiaviNuove = new Set(nuove.map(chiaveDi));
+  const vecchiePerChiave = new Map();
+  for (const fila of [...fileVecchie.querySelectorAll(".dm-face-row")]) {
+    /* Le file sparite se ne vanno PRIMA del riordino: cosi' il cursore
+     * scorre solo sulle vive e le file ferme restano ferme davvero, senza
+     * stacca-e-riattacca di passaggio. */
+    if (!chiaviNuove.has(chiaveDi(fila))) {
+      fila.remove();
+      continue;
+    }
+    vecchiePerChiave.set(chiaveDi(fila), fila);
+  }
+  let cursore = fileVecchie.firstElementChild;
+  for (const filaNuova of nuove) {
+    const chiave = chiaveDi(filaNuova);
+    let fila = vecchiePerChiave.get(chiave) || null;
+    if (fila) {
+      const bottoniNuovi = [...filaNuova.querySelectorAll("[data-face-k]")];
+      const bottoni = [...fila.querySelectorAll("[data-face-k]")];
+      if (
+        bottoni.length !== bottoniNuovi.length ||
+        bottoni.some((b, i) => b.dataset.faceV !== bottoniNuovi[i].dataset.faceV)
+      ) {
+        /* La fila ha cambiato le sue voci: si cede il passo alla nuova. */
+        if (fila === cursore) cursore = filaNuova;
+        fila.replaceWith(filaNuova);
+        fila = filaNuova;
+      } else {
+        const lbl = fila.querySelector(".dm-face-row-lbl");
+        const lblNuova = filaNuova.querySelector(".dm-face-row-lbl");
+        if (lbl && lblNuova && lbl.innerHTML !== lblNuova.innerHTML)
+          lbl.innerHTML = lblNuova.innerHTML;
+        bottoni.forEach((bottone, i) => {
+          const atteso = bottoniNuovi[i];
+          if (bottone.className !== atteso.className) bottone.className = atteso.className;
+          for (const attributo of ["data-face-anteprima", "style", "aria-label"]) {
+            const valore = atteso.getAttribute(attributo);
+            if (bottone.getAttribute(attributo) === valore) continue;
+            if (valore === null) bottone.removeAttribute(attributo);
+            else bottone.setAttribute(attributo, valore);
+          }
+        });
+      }
+    } else {
+      fila = filaNuova;
+    }
+    if (fila === cursore) cursore = cursore.nextElementSibling;
+    else fileVecchie.insertBefore(fila, cursore);
+  }
 }
 
 /* L'anteprima del ritratto segue le mani: si cambia emoji o colore e lo si
@@ -705,6 +898,7 @@ function installStyles() {
       #ed-body .dm-face-row-lbl{display:flex;justify-content:space-between;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
       #ed-body .dm-face-row-lbl b{color:var(--info-color,#0ea5e9)}
       #ed-body .dm-face-row-opts{display:flex;flex-wrap:wrap;gap:6px}
+      #ed-body .dm-face-row-dots{align-items:center;padding:3px 0}
       #ed-body .dm-face-opt{width:58px;border:2px solid transparent;background:var(--surface-2,#f1f5f9);border-radius:14px;padding:2px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;font:inherit;transition:border-color .18s ease,background .18s ease}
       #ed-body .dm-face-opt.on{border-color:var(--info-color,#0ea5e9);background:color-mix(in srgb,var(--info-color,#0ea5e9) 12%,transparent)}
       #ed-body .dm-face-opt-img{width:46px;height:46px;display:block}

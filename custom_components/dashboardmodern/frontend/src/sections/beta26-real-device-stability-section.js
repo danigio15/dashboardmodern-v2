@@ -2,6 +2,7 @@
 // section visibility after configuration saves, and a hierarchical Energy load
 // editor that projects directly to the existing flow/subload runtime contracts.
 import { applianceArtwork } from "../core/appliance-artwork.js";
+import { TAB_SECTION_KEYS, activeTab as schedaAttiva } from "./config-uniformity-section.js";
 import { canonicalApplianceVisualKey } from "../core/device-model.js";
 import {
   renderBeta25TemperatureCards,
@@ -482,6 +483,16 @@ export function legacyVisibilityTargets() {
   if (listConfigured("cd_ev_cars") || clean(root.localStorage?.getItem?.("cd_ev_image")))
     targets.add("ev");
 
+  /* Le sezioni nate dai moduli — Stanze, Luci, Prese, Aspirapolvere — hanno
+   * la stessa regola delle undici del guscio: contano come configurate se
+   * hanno qualcosa da mostrare. Una stanza e' una riga qualsiasi (puo' vivere
+   * di solo nome e icona, senza entita'). */
+  const unaRiga = (row) => Boolean(row);
+  if (listConfigured("cd_stanze", unaRiga)) targets.add("stanze");
+  if (objectHasValues("cd_luci")) targets.add("luci");
+  if (listConfigured("cd_prese", unaRiga)) targets.add("prese");
+  if (listConfigured("cd_robot", unaRiga)) targets.add("robot");
+
   const overrides = readJson("cd_entity_overrides", {});
   for (const [slot, value] of Object.entries(overrides || {})) {
     if (!clean(value).includes(".")) continue;
@@ -499,7 +510,16 @@ export function legacyVisibilityTargets() {
   return [...targets];
 }
 
-export function ensureConfiguredSectionsVisible({ sync = true, render = true } = {}) {
+/* La chiave di sezione della scheda aperta adesso, se ne governa una.
+ * Le schede nate dai moduli senza riga nella mappa condivisa (le Prese col
+ * loro banner inline) si aggiungono qui. */
+function chiaveDellaSchedaAperta() {
+  const extra = { prese: "prese" };
+  const tab = schedaAttiva();
+  return TAB_SECTION_KEYS[tab] || extra[tab] || "";
+}
+
+export function ensureConfiguredSectionsVisible({ sync = true, render = true, espressa = "" } = {}) {
   let changed = false;
   const store = dashboardStore();
   if (store?.getState && store?.ensureSectionVisibleForData) {
@@ -515,8 +535,12 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true } =
     : {};
   const manual = manualVisibilityChoices();
   for (const key of legacyVisibilityTargets()) {
-    // Su una sezione decisa a mano non si torna, in nessun senso.
-    if (manual[key] === true) continue;
+    /* Su una sezione decisa a mano non si torna — tranne quando il gesto
+     * nuovo e' piu' fresco del veto: salvare contenuto in una scheda E'
+     * esprimersi su quella sezione («dopo aver fatto salva la sezione non
+     * passa in visibile»). Vale per la sola sezione salvata; le altre
+     * scelte manuali restano sacre. */
+    if (manual[key] === true && key !== espressa) continue;
     if (next[key] === true) continue;
     next[key] = true;
     changed = true;
@@ -529,11 +553,44 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true } =
   return changed;
 }
 
-function scheduleVisibilityRepair(delay = 80) {
+/* L'esordio delle quattro sezioni dei moduli, speculare a `cdSecBoot`: il
+ * guscio semina le sue undici voci — mai decisa e senza contenuto = spenta —
+ * ma quelle nate dai moduli (Stanze, Luci, Prese, Aspirapolvere) non le
+ * conosce. Senza questa semina, dopo un reset totale la barra le teneva
+ * accese su una plancia completamente vuota. Semina e basta: le voci gia'
+ * decise — a mano o da un giro precedente — non si toccano, e accendere le
+ * sezioni configurate resta il mestiere della riparazione qui sopra, che
+ * corre al salvataggio e non all'avvio. */
+export function seedModernSectionVisibility() {
+  const visibility = readJson("cd_sections", {});
+  const next = visibility && typeof visibility === "object" && !Array.isArray(visibility)
+    ? { ...visibility }
+    : {};
+  const targets = legacyVisibilityTargets();
+  let changed = false;
+  for (const key of ["stanze", "luci", "prese", "robot"]) {
+    if (key in next) continue;
+    next[key] = targets.includes(key);
+    changed = true;
+  }
+  if (changed) {
+    writeJsonIfChanged("cd_sections", next);
+    root.cdApplyNavVis?.();
+  }
+  return changed;
+}
+
+function scheduleVisibilityRepair(delay = 80, espressa = "") {
+  /* Il clic sul bottone Salva e il submit della stessa forma arrivano in
+   * coppia: il secondo non deve cancellare la sezione che il primo ha
+   * dichiarato. */
+  if (state.visibilityTimer && !espressa) espressa = clean(state.visibilityEspressa);
+  state.visibilityEspressa = espressa;
   root.clearTimeout?.(state.visibilityTimer);
   state.visibilityTimer = root.setTimeout?.(() => {
     state.visibilityTimer = 0;
-    ensureConfiguredSectionsVisible();
+    state.visibilityEspressa = "";
+    ensureConfiguredSectionsVisible({ espressa });
   }, delay);
 }
 
@@ -1284,10 +1341,17 @@ export function installBeta26RealDeviceStability() {
           !manualVisibility &&
           /salva|save|aggiungi|add|crea|create/.test(text)
         )
-          scheduleVisibilityRepair(120);
+          scheduleVisibilityRepair(120, chiaveDellaSchedaAperta());
       },
       true,
     );
+    /* Un submit che risale il documento e' anonimo: non dice quale forma sia
+     * stata salvata, e in un editor pieno di forme puo' partire da ovunque —
+     * anche subito dopo che la persona ha appena nascosto una sezione dalla
+     * fascia. Qui la riparazione corre senza `espressa`: accende le sezioni
+     * configurate mai decise, ma non tocca i veti manuali. Esprimersi su una
+     * sezione resta il mestiere del clic sul suo vero bottone di salvataggio,
+     * gestito qui sopra. */
     doc.addEventListener(
       "submit",
       () => {
@@ -1296,6 +1360,14 @@ export function installBeta26RealDeviceStability() {
       true,
     );
   }
+  /* La semina corre all'avvio (e ai giri successivi di cdApplyNavVis non
+   * serve: le chiavi ormai esistono). Un solo ritardo breve: prima deve
+   * passare la proiezione del magazzino sulle chiavi legacy. */
+  root.setTimeout?.(() => {
+    try {
+      seedModernSectionVisibility();
+    } catch (_error) {}
+  }, 400);
   state.installed = true;
   return true;
 }

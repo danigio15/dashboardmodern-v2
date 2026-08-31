@@ -7,6 +7,7 @@ import {
   isCumulativeEnergyEntity,
 } from "../core/period-service.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
+import { DEFAULT_EXPORT_RATE, DEFAULT_IMPORT_RATE, importRateEntity, resolveRate } from "../core/energy-calculations.js";
 import { allStates, clean, dashboardStore, doc, english, esc, finite, formatNumber, installStyle, onEditorRedraw, readJson, root, scriviSeCambia, scriviTestoSeCambia, section, selectedPeriod, t, wrapFunction } from "./shared.js";
 import {
   isHostedDashboard,
@@ -326,11 +327,29 @@ async function loadDevicePeriod(kind, date) {
 function rates() {
   const read = (key) => {
     const configured = root.cdCfg?.(key);
-    if (configured !== undefined && configured !== null && configured !== "")
-      return finite(configured);
-    return finite(root.localStorage?.getItem(key));
+    if (configured !== undefined && configured !== null && configured !== "") return configured;
+    return root.localStorage?.getItem(key);
   };
-  return { importPrice: read("cd_costo_kwh"), exportPrice: read("cd_prezzo_immissione") };
+  /* I default del guscio vivono in `resolveRate`, e solo la': il modulo
+   * partiva da zero, il guscio dai suoi numeri, e nel Report gli euro si
+   * alternavano tra calcolati e «0,00». Chi salva un costo suo lo vince
+   * comunque; lo zero esplicito il salvataggio non lo scrive. Il prezzo di
+   * acquisto puo' anche essere un'entita' scelta nel modello canonico: in
+   * quel caso si legge il suo stato, che si aggiorna da solo. */
+  const states = allStates();
+  const entita = importRateEntity(section("energy", {}));
+  let sorgente = read("cd_costo_kwh");
+  if (entita) {
+    try {
+      sorgente = clean(root.resolveEntity?.(entita) || entita);
+    } catch (_error) {
+      sorgente = entita;
+    }
+  }
+  return {
+    importPrice: resolveRate(sorgente, states, DEFAULT_IMPORT_RATE),
+    exportPrice: resolveRate(read("cd_prezzo_immissione"), states, DEFAULT_EXPORT_RATE),
+  };
 }
 
 function incompleteMessage(results) {
@@ -498,6 +517,15 @@ function applyReportOverview(bundle) {
   setText("ed-fin-imm", `${formatNumber(money.exportIncome, 2)} €`);
   setText("ed-auto-big", `${auto}%`);
   setText("ed-auto-ring-val", `${auto}%`);
+  /* L'anello e' lo stesso numero disegnato: se lo riempie il guscio col SUO
+   * calcolo, la geometria dice 81 mentre il testo dice 84. Lo scrive chi
+   * scrive il testo, col cartello che ferma la mano del guscio. */
+  const cerchio = doc?.getElementById("ed-auto-circle");
+  if (cerchio) {
+    if (cerchio.dataset && cerchio.dataset.dmPadrone !== "moduli") cerchio.dataset.dmPadrone = "moduli";
+    const giro = 2 * Math.PI * 32;
+    cerchio.setAttribute("stroke-dasharray", `${((auto / 100) * giro).toFixed(1)} ${giro.toFixed(1)}`);
+  }
   const circle = doc?.getElementById("ed-auto-circle");
   if (circle) circle.setAttribute("stroke-dasharray", `${(201 * auto) / 100} 201`);
 }
@@ -1038,7 +1066,9 @@ function bindEvents() {
     installObserver();
     installEnergyEditorContracts();
     scheduleEnergyRefresh(true);
+    risvegliaReportDelGuscio();
   });
+  root.addEventListener?.("dashboardmodern:runtime-ready", risvegliaReportDelGuscio);
   /* La maschera Energia si ridisegna anche da sola — dichiarare una sorgente
    * unica con segno spegne le caselle dei due versi — e i campi aggiunti qui
    * vanno rimessi sul nuovo albero. */
@@ -1051,6 +1081,27 @@ function bindEvents() {
     if (state.bundle) scheduleProjection();
     else scheduleEnergyRefresh(true);
   });
+}
+
+/* Il Report del guscio parte a freddo: la sua lista (ED_DEVICES) nasce da
+ * UNA chiamata all'avvio del runtime, e se quella corre prima che i moduli
+ * esistano la lista resta vuota fino a un timer di cortesia di due secondi
+ * e mezzo — sul campo un Report senza dispositivi, e sulla macchina lenta
+ * della CI un rosso che va e viene. Il guscio pero' lascia un segno quando
+ * fallisce (__DM_REPORT_RUNTIME_ERROR__): appena i moduli annunciano di
+ * esserci, se il segno e' acceso si ricostruisce; quando il guscio ce
+ * l'aveva gia' fatta, qui non si tocca niente. */
+function risvegliaReportDelGuscio() {
+  /* Le voci del selettore del Report sono NOMI dati dalla persona, piu'
+   * un'emoji: il passaggio di traduzione del DOM non deve toccarle — un
+   * «Forno» chiamato cosi' dal suo padrone resta «Forno» in ogni lingua. */
+  doc?.getElementById?.("ed-dev-selector")?.setAttribute("data-dm-no-i18n", "");
+  if (!root.__DM_REPORT_RUNTIME_ERROR__) return;
+  if (typeof root.cdRebuildReportDevices !== "function") return;
+  try {
+    root.cdRebuildReportDevices();
+    root.buildReportSelect?.();
+  } catch (_error) {}
 }
 
 function subscribeStore() {
