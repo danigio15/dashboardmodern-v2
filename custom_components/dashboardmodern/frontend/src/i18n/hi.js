@@ -717,7 +717,6 @@ export default Object.freeze({
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "बंद होने पर ऊपर की weather एंटिटी काफ़ी है: तापमान, नमी और हवा उसी से पढ़ी जाती हैं।",
   "Use your own entities for the weather station": "मौसम स्टेशन के लिए अपनी एंटिटी उपयोग करें",
   "On cards show the room temperature big (target below)": "कार्ड पर कमरे का तापमान बड़ा दिखाएँ (लक्ष्य नीचे)",
-  "Customize programs": "प्रोग्राम अनुकूलित करें",
   "Add program": "प्रोग्राम जोड़ें",
   "Name (e.g. Quick 30')": "नाम (जैसे क्विक 30')",
   "Quick programs of the popup": "पॉपअप के क्विक प्रोग्राम",

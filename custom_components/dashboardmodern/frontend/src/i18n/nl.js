@@ -717,7 +717,6 @@ export default Object.freeze({
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Uit: de weather-entiteit hierboven volstaat — temperatuur, vochtigheid en wind komen daarvandaan.",
   "Use your own entities for the weather station": "Eigen entiteiten voor het weerstation gebruiken",
   "On cards show the room temperature big (target below)": "Toon op de kaarten de kamertemperatuur groot (doel eronder)",
-  "Customize programs": "Programma's aanpassen",
   "Add program": "Programma toevoegen",
   "Name (e.g. Quick 30')": "Naam (bijv. Snel 30')",
   "Quick programs of the popup": "Snelprogramma's van de pop-up",

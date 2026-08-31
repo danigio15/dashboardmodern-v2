@@ -717,7 +717,6 @@ export default Object.freeze({
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Выключено — достаточно сущности weather выше: температура, влажность и ветер читаются из неё.",
   "Use your own entities for the weather station": "Свои сущности для метеостанции",
   "On cards show the room temperature big (target below)": "На карточках показывать крупно температуру в комнате (цель ниже)",
-  "Customize programs": "Настроить программы",
   "Add program": "Добавить программу",
   "Name (e.g. Quick 30')": "Название (напр. Быстрая 30')",
   "Quick programs of the popup": "Быстрые программы окна",
