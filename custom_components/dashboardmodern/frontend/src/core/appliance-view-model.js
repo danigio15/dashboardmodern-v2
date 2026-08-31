@@ -248,7 +248,9 @@ export function createApplianceViewModel(
     off: pick("SPENTO", "OFF", locale),
     unavailable: pick("NON DISPONIBILE", "UNAVAILABLE", locale),
   };
-  const canControl = Boolean(controlEntity);
+  /* L'interruttore mappato serve anche solo a leggere lo stato: chi ha
+   * spuntato «senza interruttore» tiene la lettura e perde il tasto. */
+  const canControl = Boolean(controlEntity) && device.switch_disabled !== true;
   const controlOn = controlState === "on";
   return Object.freeze({
     id: clean(device.id),

@@ -502,6 +502,12 @@ export function normalizeDevice(input = {}, section, context = {}) {
       state_entity: input.state_entity || input.state || "",
       show_in_report: input.show_in_report !== false,
       show_in_dashboard: input.show_in_dashboard !== false,
+      /* Il tasto acceso/spento della card si puo' togliere per apparecchio:
+       * «aggiungere la possibilita' di disabilitare lo switch on/off» — c'e'
+       * chi mappa l'interruttore per leggere lo stato ma non vuole che il
+       * frigo si spenga da una card. Il campo passa di qui o sparisce alla
+       * prima normalizzazione, come e' gia' successo tre volte. */
+      switch_disabled: input.switch_disabled === true,
       report_label: String(input.report_label || ""),
       report_icon: String(input.report_icon || emoji),
       report_entity: String(input.report_entity || ""),

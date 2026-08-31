@@ -9,6 +9,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **Il tasto Accendi/Spegni di un elettrodomestico si puo' togliere.**
+  Nella scheda dell'apparecchio, sotto l'entita' comando, c'e' la casella
+  «Senza tasto Accendi/Spegni»: l'interruttore mappato continua a leggere
+  lo stato — la card dice ancora se e' in funzione — ma il tasto sparisce,
+  cosi' il frigo non si spegne per sbaglio da una card.
+
 - **Le voci termiche del popup Caldo si configurano, e senza voci
   spariscono.** Sotto le stanze del Caldo c'erano tre righe cablate nel
   guscio — Caldaia (su un'entita' di un impianto specifico), Pompa

@@ -117,7 +117,6 @@ const BLOCK_LABELS = Object.freeze({
   coperture: ["Finestre", "Windows", "🪟"],
   elettrodomestici: ["Elettrodomestici", "Appliances", "🧺"],
   telecamere: ["Telecamere", "Cameras", "📹"],
-  /* La spina ora e' delle Prese: i carichi sono misura, non presa. */
   carichi: ["Carichi", "Loads", "⚡"],
   robot: ["Aspirapolvere", "Vacuums", "🤖"],
   irrigazione: ["Irrigazione", "Irrigation", "💧"],

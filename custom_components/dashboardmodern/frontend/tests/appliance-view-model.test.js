@@ -2,11 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createApplianceViewModel } from "../src/core/appliance-view-model.js";
 
-const device = { id: "washer", name: "Lavatrice", power_entity: "sensor.washer_power", control_entity: "switch.washer", total_energy_entity: "sensor.washer_energy", threshold_standby: 1, threshold_run: 5 };
+const device = {
+  id: "washer",
+  name: "Lavatrice",
+  power_entity: "sensor.washer_power",
+  control_entity: "switch.washer",
+  total_energy_entity: "sensor.washer_energy",
+  threshold_standby: 1,
+  threshold_run: 5,
+};
 const states = (power, control = "on") => ({
   "sensor.washer_power": { state: String(power), attributes: { unit_of_measurement: "W" } },
   "switch.washer": { state: control, attributes: {} },
-  "sensor.washer_energy": { state: "184.2", attributes: { unit_of_measurement: "kWh", state_class: "total_increasing" } },
+  "sensor.washer_energy": {
+    state: "184.2",
+    attributes: { unit_of_measurement: "kWh", state_class: "total_increasing" },
+  },
 });
 
 test("one appliance view model owns status, summary, badge, action and history", () => {
@@ -17,6 +28,23 @@ test("one appliance view model owns status, summary, badge, action and history",
   assert.equal(model.summary.label, model.label);
   assert.equal(model.action.service, "turn_off");
   assert.equal(model.historyEntity, "sensor.washer_energy");
+});
+
+test("con «senza tasto» l'interruttore mappato legge lo stato ma non offre il tasto", () => {
+  /* «Aggiungere la possibilita' di disabilitare lo switch on/off»: chi mappa
+   * l'interruttore del frigo per leggere lo stato non vuole spegnerlo da una
+   * card. La lettura resta identica, sparisce solo l'azione. */
+  const model = createApplianceViewModel(
+    { ...device, switch_disabled: true },
+    states(12),
+    [],
+    "it",
+  );
+  assert.equal(model.action.visible, false);
+  assert.equal(model.mode, "running");
+  assert.equal(model.controlEntity, "switch.washer");
+  // Senza il flag il tasto resta, com'e' sempre stato.
+  assert.equal(createApplianceViewModel(device, states(12), [], "it").action.visible, true);
 });
 
 test("appliance thresholds produce STANDBY and SPENTO deterministically", () => {
@@ -71,7 +99,11 @@ test("monthly energy measurements do not masquerade as lifetime history", () => 
     {
       [monthly]: {
         state: "3.2",
-        attributes: { unit_of_measurement: "kWh", state_class: "measurement", device_class: "energy" },
+        attributes: {
+          unit_of_measurement: "kWh",
+          state_class: "measurement",
+          device_class: "energy",
+        },
       },
     },
     [],
@@ -144,7 +176,10 @@ test("an explicit off wins immediately over the end-of-cycle delay", () => {
 test("without off_delay_minutes the ladder is untouched by the hold", () => {
   const holds = new Map();
   const t0 = Date.parse("2026-08-16T10:00:00");
-  assert.equal(createApplianceViewModel(device, states(1800), [], "it", { now: t0, holds }).mode, "running");
+  assert.equal(
+    createApplianceViewModel(device, states(1800), [], "it", { now: t0, holds }).mode,
+    "running",
+  );
   assert.equal(
     createApplianceViewModel(device, states(0, "on"), [], "it", { now: t0 + 1000, holds }).mode,
     "standby",
@@ -164,7 +199,6 @@ test("unknown and unavailable configured states are not presented as OFF", () =>
   }
 });
 
-
 /* La scadenza del ritardo bussa da sola.
  *
  * Un elettrodomestico che ha smesso di consumare non manda piu' nessun cambio
@@ -174,9 +208,8 @@ test("unknown and unavailable configured states are not presented as OFF", () =>
  * una sveglia sulla scadenza e chi disegna la sente.
  */
 test("il ritardo di fine ciclo avvisa chi disegna quando scade", async () => {
-  const { createApplianceViewModel, onRunHoldExpiry, resetRunHolds } = await import(
-    "../src/core/appliance-view-model.js"
-  );
+  const { createApplianceViewModel, onRunHoldExpiry, resetRunHolds } =
+    await import("../src/core/appliance-view-model.js");
   resetRunHolds();
   const sveglie = [];
   const stacca = onRunHoldExpiry(() => sveglie.push(Date.now()));
