@@ -9,6 +9,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **Il verso di sensori e tapparelle si puo' invertire (#244).** Certi
+  contatti porta/finestra stanno a ON quando l'infisso e' CHIUSO, e certe
+  tapparelle dichiarano 100 quando sono giu': la plancia diceva sempre il
+  contrario. Come nelle card Lovelace, ora si gira il verso: per i sensori
+  col comando ⇄ accanto a ogni apertura nella scheda Avvisi (la lista
+  viaggia con la configurazione), per le tapparelle con la casella
+  «Percentuali invertite» della riga (e il ⇄ sulle righe esistenti).
+  Tutta la plancia legge col verso vero — Quadro Avvisi, widget, pagine,
+  card — e i cursori scrivono tradotto, cosi' «100% · Aperta» apre
+  davvero.
+
 - **La casella Batteria del widget Energia dice anche quanto e' piena.**
   Lo stato di carica ha gia' il suo slot nella mappatura: ora la casella
   lo scrive accanto ai watt («-320 W · 78%»), e con la sola percentuale

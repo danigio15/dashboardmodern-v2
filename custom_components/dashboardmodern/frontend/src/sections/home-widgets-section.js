@@ -49,6 +49,13 @@ import {
 import { doorOpenCall, normalizeSecurityDoors } from "../core/security-door-model.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
+import {
+  CHIAVE_VERSI,
+  apertaSecondoVerso,
+  insiemeInvertiti,
+  posizioneSecondoVerso,
+  versoInvertito,
+} from "../core/verso-aperture.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
@@ -502,17 +509,26 @@ function coversModel(states) {
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
-      const position = Number(current?.attributes?.current_position);
+      /* Il verso (#244): la tapparella girata dichiara 100 quando e' giu', e
+       * il contatto girato sta a ON quando e' chiuso. Qui si normalizza tutto
+       * al verso della plancia — 100 e ON vogliono dire aperto — cosi' quello
+       * che segue non deve saperne niente. */
+      const girata = versoInvertito(item);
+      const position = posizioneSecondoVerso(Number(current?.attributes?.current_position), girata);
       /* Il contatto parla la sua lingua — `on` e' aperto — e non ha posizione:
        * chiederla a lui vorrebbe dire inventarla. */
       const open = soloSensore
-        ? windowOpenFromState(current?.state) === true
+        ? apertaSecondoVerso(
+            windowOpenFromState(current?.state),
+            insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
+          ) === true
         : raw === "open" || raw === "opening" || (Number.isFinite(position) && position > 0);
       return {
         soloSensore: Boolean(soloSensore),
         entity,
         name: etichetta,
         open,
+        invertita: girata,
         position: soloSensore || !Number.isFinite(position) ? null : Math.round(position),
         isCover: !soloSensore && /^cover\./i.test(entity),
         // Chi accetta `set_cover_position` (bit 4) si ferma dove gli si dice.
@@ -1541,7 +1557,11 @@ function openingsModel(states) {
      * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
      * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
     const daQuando = Date.parse(stato?.last_changed ?? "");
-    const aperta = clean(stato?.state).toLowerCase() === "on";
+    /* Il sensore girato (#244) sta a ON quando la finestra e' CHIUSA. */
+    const aperta = apertaSecondoVerso(
+      clean(stato?.state).toLowerCase() === "on",
+      insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
+    );
     const nome = friendlyName(states, entity);
     return {
       entity,
@@ -2443,6 +2463,7 @@ function positionSelectMarkup(row) {
     })
     .join("");
   return `<select class="dm-w-position" data-dm-w-position="${esc(row.entity)}"
+      data-dm-w-verso="${row.invertita ? "1" : ""}"
       aria-label="${esc(invito)}" title="${esc(invito)}"><option value="">↕</option>${voci}</select>`;
 }
 
@@ -3786,9 +3807,15 @@ function onChange(event) {
   const scelta = clean(position.value);
   position.value = "";
   if (scelta === "") return;
+  /* La tendina parla il verso della plancia (100 = aperta); alla tapparella
+   * girata (#244) si scrive tradotto, con la stessa traduzione della
+   * lettura. */
   callHa("cover", "set_cover_position", {
     entity_id: clean(position.dataset.dmWPosition),
-    position: Math.max(0, Math.min(100, Math.round(Number(scelta) || 0))),
+    position: posizioneSecondoVerso(
+      Math.round(Number(scelta) || 0),
+      position.dataset.dmWVerso === "1",
+    ),
   });
 }
 

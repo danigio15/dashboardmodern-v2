@@ -32,6 +32,7 @@ import {
   roomSceneEntities,
   roomSceneSummary,
 } from "../core/room-overview.js";
+import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
 import { pageCardMarkup } from "./lights-page-section.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
@@ -191,10 +192,18 @@ const MODI_CLIMA = Object.freeze({
  * d'occhio, e per il resto c'e' la sua pagina. */
 function statoVoce(item, states, blocco = "") {
   const entity = entitaVoce(item);
-  const stato = clean(states?.[entity]?.state).toLowerCase();
+  let stato = clean(states?.[entity]?.state).toLowerCase();
   if (!entity) return "";
   if (!stato || stato === "unavailable" || stato === "unknown")
     return t("Non disponibile", "Unavailable");
+  /* Il contatto girato (#244) sta a ON quando l'anta e' chiusa: la parola
+   * segue il verso vero. */
+  if (
+    entity.startsWith("binary_sensor.") &&
+    (stato === "on" || stato === "off") &&
+    insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity)
+  )
+    stato = stato === "on" ? "off" : "on";
   if (blocco === "coperture") {
     if (stato === "on" || stato === "open") return t("Aperta", "Open");
     if (stato === "off" || stato === "closed") return t("Chiusa", "Closed");

@@ -526,8 +526,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // (`il-popup-della-lavatrice-section.js`): i quattro programmi cablati nel
   // guscio diventano `cd_lavatrice_programmi`, l'immagine e' quella della
   // sezione Elettrodomestici, la veste quella delle altre finestre.
+  // 186 col verso delle aperture (#244, `core/verso-aperture.js`): il conto
+  // puro dei sensori girati (ON = chiuso) e delle tapparelle girate
+  // (100 = chiusa), condiviso da widget, pagine e runtime.
   assert.ok(
-    relative.length <= 185,
+    relative.length <= 186,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

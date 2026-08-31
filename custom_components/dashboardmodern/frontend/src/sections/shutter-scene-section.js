@@ -11,8 +11,26 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
+import {
+  CHIAVE_VERSI,
+  apertaSecondoVerso,
+  insiemeInvertiti,
+  posizioneSecondoVerso,
+  versoInvertito,
+} from "../core/verso-aperture.js";
 import { roomOrderRank } from "../core/room-overview.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, roomLabel, section, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  readJson,
+  root,
+  roomLabel,
+  section,
+  t,
+} from "./shared.js";
 
 // Single paint owner for the Tapparelle page.
 //
@@ -103,12 +121,22 @@ function coverView(item = {}, distingui = false) {
   } else if (eUnoSwitch(entity)) {
     status = status === "on" ? "open" : status === "off" ? "closed" : status;
   }
+  /* La tapparella girata (#244) dichiara 100 quando e' giu': qui si legge
+   * tradotto al verso della plancia, e chi scrive traduce all'inverso. */
   const raw = eUnoSwitch(entity) ? null : current?.attributes?.current_position;
-  const reported = raw == null ? null : Math.max(0, Math.min(100, Number(raw)));
+  const reported = raw == null ? null : posizioneSecondoVerso(Number(raw), versoInvertito(item));
   const hasPosition = Number.isFinite(reported);
   const features = Number(current?.attributes?.supported_features) || 0;
   const grab = state.grabbed.get(entity);
-  const position = grab ? grab.position : hasPosition ? reported : status === "open" ? 100 : status === "closed" ? 0 : 50;
+  const position = grab
+    ? grab.position
+    : hasPosition
+      ? reported
+      : status === "open"
+        ? 100
+        : status === "closed"
+          ? 0
+          : 50;
   const room = roomLabel(clean(item.room));
   return {
     entity,
@@ -153,7 +181,11 @@ function nomeCopertura(item, current, entity, distingui) {
 function windowOnlyView(item = {}) {
   const contatto = clean(contactEntity(item));
   if (!contatto) return null;
-  const aperta = windowOpenFromState(allStates()[contatto]?.state);
+  /* Il contatto girato (#244) sta a ON quando l'anta e' chiusa. */
+  const aperta = apertaSecondoVerso(
+    windowOpenFromState(allStates()[contatto]?.state),
+    insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(contatto),
+  );
   const room = roomLabel(clean(item.room));
   return {
     entity: contatto,
@@ -280,8 +312,16 @@ function summaryText(views) {
   const closed = tutte.length - moving - open;
   const parts = [];
   if (open) parts.push(open === 1 ? t("1 aperta", "1 open") : t(`${open} aperte`, `${open} open`));
-  if (closed) parts.push(closed === 1 ? t("1 chiusa", "1 closed") : t(`${closed} chiuse`, `${closed} closed`));
-  if (moving) parts.push(moving === 1 ? t("1 in movimento", "1 moving") : t(`${moving} in movimento`, `${moving} moving`));
+  if (closed)
+    parts.push(
+      closed === 1 ? t("1 chiusa", "1 closed") : t(`${closed} chiuse`, `${closed} closed`),
+    );
+  if (moving)
+    parts.push(
+      moving === 1
+        ? t("1 in movimento", "1 moving")
+        : t(`${moving} in movimento`, `${moving} moving`),
+    );
   const infissi = views.filter((view) => view.soloInfisso && view.status === "open").length;
   if (infissi)
     parts.push(
@@ -313,7 +353,8 @@ function backHomeMarkup() {
 
 /** The legacy runtime's own copy, which would otherwise show up twice. */
 function dropLegacyBackHome() {
-  doc?.getElementById("page-tapparelle")
+  doc
+    ?.getElementById("page-tapparelle")
     ?.querySelectorAll(":scope > .back-home-btn")
     .forEach((button) => button.remove());
 }
@@ -390,7 +431,8 @@ function panelMarkup(view) {
       <span class="dm-tendasole-bordo"></span>
     </div>`;
   }
-  if (!coverIsSideways(view.kind)) return `<div class="tapp-shutter" data-dm-panel>${`<i></i>`.repeat(SLAT_COUNT)}</div>`;
+  if (!coverIsSideways(view.kind))
+    return `<div class="tapp-shutter" data-dm-panel>${`<i></i>`.repeat(SLAT_COUNT)}</div>`;
   return `<div class="dm-tenda" data-dm-panel>
     <span class="dm-tenda-telo dm-sinistra"></span>
     <span class="dm-tenda-telo dm-destra"></span>
@@ -642,8 +684,14 @@ function insegnaComandoDiGruppo() {
      * servizi cover su uno switch cadrebbero nel vuoto. */
     const cartaSingola = button?.closest?.("[data-tapp]");
     const entitaSingola = clean(cartaSingola?.getAttribute?.("data-tapp"));
-    if (!button?.getAttribute?.("data-all") && eUnoSwitch(entitaSingola) && !cartaSingola?.hasAttribute?.("data-dm-covers")) {
-      return comandaSwitch(entitaSingola, button.getAttribute("data-svc")) ? undefined : originale.call(this, button, ...resto);
+    if (
+      !button?.getAttribute?.("data-all") &&
+      eUnoSwitch(entitaSingola) &&
+      !cartaSingola?.hasAttribute?.("data-dm-covers")
+    ) {
+      return comandaSwitch(entitaSingola, button.getAttribute("data-svc"))
+        ? undefined
+        : originale.call(this, button, ...resto);
     }
     /* Sui bottoni di una card con piu' coperture, "apri" apre la finestra
      * intera: il comando parte una volta per copertura, con la stessa
@@ -714,7 +762,9 @@ function renderShutters() {
   if (summary) summary.textContent = summaryText(views);
 
   views.forEach((view) => {
-    const card = grid.querySelector(`[data-dm-shutter-card][data-tapp="${CSS.escape(view.entity)}"]`);
+    const card = grid.querySelector(
+      `[data-dm-shutter-card][data-tapp="${CSS.escape(view.entity)}"]`,
+    );
     if (card) syncCard(card, view);
   });
 }
@@ -747,11 +797,12 @@ function grab(entity, position) {
   const previous = state.grabbed.get(entity);
   if (previous?.timeout) root.clearTimeout?.(previous.timeout);
   const pending = { position };
-  pending.timeout = root.setTimeout?.(() => {
-    if (state.grabbed.get(entity) !== pending) return;
-    state.grabbed.delete(entity);
-    schedule();
-  }, GRAB_MS) || 0;
+  pending.timeout =
+    root.setTimeout?.(() => {
+      if (state.grabbed.get(entity) !== pending) return;
+      state.grabbed.delete(entity);
+      schedule();
+    }, GRAB_MS) || 0;
   state.grabbed.set(entity, pending);
 }
 
@@ -771,7 +822,8 @@ function previewPosition(range) {
   const position = Math.max(0, Math.min(100, Math.round(Number(range.value) || 0)));
   grab(entity, position);
   const scope = `[data-dm-entity="${CSS.escape(entity)}"]`;
-  if (entity === clean(card.dataset.tapp)) card.style.setProperty("--tapp-open", String(position / 100));
+  if (entity === clean(card.dataset.tapp))
+    card.style.setProperty("--tapp-open", String(position / 100));
   const barra = card.querySelector(`[data-dm-bar="${CSS.escape(entity)}"] .dm-tapp-track`);
   if (barra) barra.style.setProperty("--tapp-open", String(position / 100));
   const multipla = card.hasAttribute("data-dm-covers");
@@ -786,6 +838,18 @@ function previewPosition(range) {
   if (readout) readout.textContent = `${position}%`;
 }
 
+/* Il verso della riga che possiede QUESTA copertura (#244). */
+function copertureGirata(entity) {
+  const id = clean(entity);
+  if (!id) return false;
+  for (const item of configuredCovers()) {
+    if (clean(item?.entity) === id) return versoInvertito(item);
+    for (const voce of coverEntries(item))
+      if (clean(voce.entity) === id) return versoInvertito(item);
+  }
+  return false;
+}
+
 async function commitPosition(range) {
   const card = cardOf(range);
   const entity = clean(range.dataset.dmEntity) || clean(card?.dataset.tapp);
@@ -793,9 +857,11 @@ async function commitPosition(range) {
   const position = Math.max(0, Math.min(100, Math.round(Number(range.value) || 0)));
   grab(entity, position);
   try {
+    /* Il cursore parla il verso della plancia (100 = aperta); alla tapparella
+     * girata si scrive tradotto, con la stessa traduzione della lettura. */
     await root.dmCallHaService?.("cover", "set_cover_position", {
       entity_id: entity,
-      position,
+      position: posizioneSecondoVerso(position, copertureGirata(entity)),
     });
   } catch (error) {
     root.console?.error?.("[DashboardModern] shutter position", error);
@@ -851,7 +917,9 @@ function installListeners() {
 /* ──────────────────────────────── styles ────────────────────────────────── */
 
 function installStyles() {
-  installStyle(STYLE_ID, `
+  installStyle(
+    STYLE_ID,
+    `
     /* Structure only. Every legacy class this page reuses keeps its skin — and
        its first-paint geometry — in shutter-section.js. */
     html body #page-tapparelle#page-tapparelle .dm-tapp-hero{
@@ -982,7 +1050,8 @@ function installStyles() {
       html body #page-tapparelle#page-tapparelle .dm-tapp-bulk{flex:1 1 100%!important}
       html body #page-tapparelle#page-tapparelle .dm-tapp-bulk button{padding:11px 10px!important}
     }
-  `);
+  `,
+  );
 }
 
 export function installShutterSceneSection() {
