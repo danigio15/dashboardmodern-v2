@@ -68,6 +68,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Gli avatar sono coerenti: la barba segue i capelli, gli occhi
+  dell'uomo non sono piu' truccati.** La barba «naturale» restava nera
+  anche su una testa bionda o bianca: ora eredita il colore della chioma
+  (bionda sui biondi, grigia sui bianchi, rame sui rossi), e chi un
+  colore l'ha scelto apposta vince sempre. Le palpebre dell'espressione
+  contenta curvavano uguali su tutti i volti e il bordo-ciglio era una
+  riga scura da eyeliner — «l'avatar uomo ha occhi da donna»: sui volti
+  maschili la palpebra ora curva poco, e il ciglio e' leggero a occhio
+  socchiuso, deciso solo a occhio chiuso.
+
 - **Il «Salva sezione» delle Aperture salva tutte le porte, non solo la
   prima.** Il tasto verde premeva i salvataggi nascosti riga per riga; il
   primo valido ridisegnava l'editor e i bottoni delle righe dopo restavano

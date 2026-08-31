@@ -21,7 +21,12 @@ import { AVATAR_LATO, BARBA_LUNGA_EXTRA, risolviAvatar3d } from "../core/avatar-
 import { doc, installStyle, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_AVATAR_3D__";
-const state = (root[KEY] ||= { immagini: new Map(), composti: new Map(), tele: new Set(), sveglia: 0 });
+const state = (root[KEY] ||= {
+  immagini: new Map(),
+  composti: new Map(),
+  tele: new Set(),
+  sveglia: 0,
+});
 
 /* Le immagini stanno fuori dal grafo dei moduli — sono file, non codice — e
  * quindi non hanno un `import.meta.url` da cui dedurre l'indirizzo. Si
@@ -165,8 +170,7 @@ function mascheraBarba(dati, lato) {
           if (!maschera[p - 1] && !maschera[p + 1] && !maschera[p - lato] && !maschera[p + lato])
             continue;
           const i = p * 4;
-          if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < rilassata)
-            orlo.push(p);
+          if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < rilassata) orlo.push(p);
         }
       if (!orlo.length) break;
       for (const p of orlo) maschera[p] = 1;
@@ -232,7 +236,8 @@ function applicaBarba(telaTesta, op, donatrice) {
   }
   const maschera = mascheraBarba(dati, lato);
   if (op.rgb)
-    for (let p = 0; p < maschera.length; p += 1) if (maschera[p]) tingiPixel(dati, p * 4, op.rgb, op.lift || 0);
+    for (let p = 0; p < maschera.length; p += 1)
+      if (maschera[p]) tingiPixel(dati, p * 4, op.rgb, op.lift || 0);
   if (op.foggia === "rasata") {
     /* Barba dissolta verso la pelle: l'ombra corta del rasato. */
     const [sr, sg, sb] = guancia(dati, lato);
@@ -679,7 +684,7 @@ export async function componiRitratto(face) {
       AVATAR_LATO * risolto.scala,
       telaTesta.height * risolto.scala,
     );
-    return { tela, occhi: risolto.occhi };
+    return { tela, occhi: risolto.occhi, genere: risolto.genere };
   })();
   state.composti.set(chiave, attesa);
   /* La memoria e' cresciuta con l'editor: la scheda aperta compone una
@@ -713,16 +718,28 @@ export function disegnaPalpebre(pennello, occhi, quanto, curva = 0) {
     pennello.moveTo(occhio.cx - larghezza, cima - altezza);
     pennello.lineTo(occhio.cx + larghezza, cima - altezza);
     pennello.lineTo(occhio.cx + larghezza, bordo);
-    pennello.quadraticCurveTo(occhio.cx, bordo + altezza * (0.18 + curva), occhio.cx - larghezza, bordo);
+    pennello.quadraticCurveTo(
+      occhio.cx,
+      bordo + altezza * (0.18 + curva),
+      occhio.cx - larghezza,
+      bordo,
+    );
     pennello.closePath();
     pennello.fill();
     /* Il ciglio: una riga appena piu' scura sul bordo della palpebra. Senza,
-     * l'occhio chiuso e' una macchia di pelle. */
-    pennello.strokeStyle = `rgba(${(r * 0.45) | 0},${(g * 0.4) | 0},${(b * 0.4) | 0},${0.5 + 0.45 * quanto})`;
-    pennello.lineWidth = Math.max(1.2, altezza * 0.11);
+     * l'occhio chiuso e' una macchia di pelle — ma a occhio quasi aperto una
+     * riga scura e' eyeliner, non un ciglio: leggera quando l'occhio e'
+     * socchiuso, decisa solo quando si chiude davvero. */
+    pennello.strokeStyle = `rgba(${(r * 0.55) | 0},${(g * 0.5) | 0},${(b * 0.5) | 0},${0.3 + 0.55 * quanto})`;
+    pennello.lineWidth = Math.max(1, altezza * 0.09);
     pennello.beginPath();
     pennello.moveTo(occhio.cx - larghezza / 2, bordo);
-    pennello.quadraticCurveTo(occhio.cx, bordo + altezza * (0.18 + curva), occhio.cx + larghezza / 2, bordo);
+    pennello.quadraticCurveTo(
+      occhio.cx,
+      bordo + altezza * (0.18 + curva),
+      occhio.cx + larghezza / 2,
+      bordo,
+    );
     pennello.stroke();
     pennello.restore();
   }
@@ -762,7 +779,10 @@ function ridisegna(voce, quanto) {
   pennello.clearRect(0, 0, AVATAR_LATO, AVATAR_LATO);
   pennello.drawImage(voce.ritratto.tela, 0, 0);
   const posa = ESPRESSIONI[voce.espressione] || ESPRESSIONI.sveglio;
-  disegnaPalpebre(pennello, voce.ritratto.occhi, Math.max(posa.chiusura, quanto), posa.curva);
+  /* La stessa curva su tutti i volti faceva «occhi da donna» sull'uomo: la
+   * palpebra maschile curva meno, quella femminile resta com'era. */
+  const curva = posa.curva * (voce.ritratto.genere === "donna" ? 1 : 0.55);
+  disegnaPalpebre(pennello, voce.ritratto.occhi, Math.max(posa.chiusura, quanto), curva);
 }
 
 /* Il battito: chiude in centoquaranta millisecondi e riapre in centosessanta.
