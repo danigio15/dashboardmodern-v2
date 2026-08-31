@@ -61,6 +61,7 @@ import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
 import { loadCameraFrame } from "./live-ui-section.js";
+import { hasConfiguredData } from "../core/dashboard-store.js";
 import {
   allStates,
   clean,
@@ -1976,7 +1977,67 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
   return models.filter((widget) => !hidden.has(chiave(widget))).sort((a, b) => rank(a) - rank(b));
 }
 
+/* Le sezioni canoniche che dicono «questa plancia e' stata configurata». */
+const SEZIONI_CONFIGURABILI = Object.freeze([
+  "rooms",
+  "cameras",
+  "appliances",
+  "loads",
+  "lights",
+  "climate",
+  "ev",
+  "covers",
+  "pool",
+  "irrigation",
+  "energy",
+  "sockets",
+  "robots",
+  "entityOverrides",
+]);
+
+/* Le liste legacy che una tessera legge senza passare dalle sezioni: chi ha
+ * configurato SOLO queste ha comunque una plancia configurata. */
+const LISTE_CONFIGURABILI = Object.freeze([
+  "cd_avvisi_custom",
+  TODO_CONFIG_KEY,
+  EVIDENZA_CONFIG_KEY,
+  "cd_security_doors",
+  "cd_prese",
+]);
+
+/* Se questa plancia e' stata configurata da qualcuno.
+ *
+ * Le tessere degli avvisi — aperture, batterie, allagamenti — non nascono dalla
+ * configurazione: nascono dal rilevamento, cioe' da quello che Home Assistant
+ * ha in casa. Su una plancia appena creata questo voleva dire trovarsi in Home
+ * il ponte gia' acceso, con «2 aperte su 30», sotto il messaggio che dice il
+ * contrario — «non hai ancora collegato le tue entita', quindi le card sono
+ * nascoste» — e con dentro la casa dell'altra plancia. Chi ne apre una nuova la
+ * vuole vuota: «doveva crearne una ex novo sciolta dall'altra».
+ *
+ * Finche' non c'e' niente di configurato qui, il ponte tace. Basta la prima
+ * stanza, la prima entita' mappata, il primo avviso a mano perche' torni. */
+export function planciaConfigurata() {
+  for (const nome of SEZIONI_CONFIGURABILI) {
+    const valore = section(nome, null);
+    if (valore == null) continue;
+    if (nome === "entityOverrides") {
+      if (Object.values(valore || {}).some((entity) => clean(entity).includes("."))) return true;
+      continue;
+    }
+    if (hasConfiguredData(nome, valore)) return true;
+  }
+  for (const chiave of LISTE_CONFIGURABILI) {
+    const valore = readJson(chiave, null);
+    if (Array.isArray(valore) ? valore.length : valore && Object.keys(valore).length) return true;
+  }
+  /* Le luci vivono in una mappa `{entita: nome}` sia in sezione sia in legacy. */
+  const luci = readJson("cd_luci", null);
+  return Boolean(luci && Object.keys(luci).length);
+}
+
 function widgetModels(states) {
+  if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
     [
       evidenzaModel(states),

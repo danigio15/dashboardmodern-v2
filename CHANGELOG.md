@@ -17,7 +17,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   e da li' in poi si scrivevano addosso. Adesso i posti si assegnano guardando
   tutte le plance insieme — chi c'era prima non si muove, chi arriva su un nome
   occupato ne riceve uno suo — e una plancia ospitata che non sa di essere la
-  principale non si prende piu' la configurazione della principale.
+  principale non si prende piu' la configurazione della principale. E una
+  plancia senza niente di configurato non mostra piu' il ponte dei widget: le
+  tessere degli avvisi — aperture, batterie, allagamenti — nascono dal
+  rilevamento e non dalla configurazione, e su una plancia appena creata
+  raccontavano la casa dell'altra proprio sotto il messaggio che diceva il
+  contrario. Basta la prima stanza perche' tornino.
 
 - **Il cerchio dell'Energia dice quello che dice la sua finestra.** Il cerchio
   segnava 0 W e la finestra dei sotto-carichi 838 W. Adesso un contatore di
