@@ -71,6 +71,7 @@ export function roomSources() {
     rooms: lista("rooms", "cd_stanze"),
     lights: Array.isArray(canoniche) && canoniche.length ? canoniche : readJson("cd_luci", {}),
     lightRooms: readJson("cd_luci_rooms", {}),
+    prese: lista("prese", "cd_prese"),
     climate: lista("climate", "cd_clima_units"),
     covers: lista("covers", "cd_tapparelle"),
     appliances: lista("appliances", "cd_appliances"),
@@ -112,10 +113,12 @@ export function assignedItems(mappa = readJson(ROOM_ASSIGN_KEY, {}), states = al
 const BLOCK_LABELS = Object.freeze({
   clima: ["Clima", "Climate", "❄️"],
   luci: ["Luci", "Lights", "💡"],
+  prese: ["Prese", "Plugs", "🔌"],
   coperture: ["Finestre", "Windows", "🪟"],
   elettrodomestici: ["Elettrodomestici", "Appliances", "🧺"],
   telecamere: ["Telecamere", "Cameras", "📹"],
-  carichi: ["Carichi", "Loads", "🔌"],
+  /* La spina ora e' delle Prese: i carichi sono misura, non presa. */
+  carichi: ["Carichi", "Loads", "⚡"],
   robot: ["Aspirapolvere", "Vacuums", "🤖"],
   irrigazione: ["Irrigazione", "Irrigation", "💧"],
   altro: ["Altro in questa stanza", "Also in this room", "📍"],
@@ -413,6 +416,7 @@ function rowMarkup(item, blocco, states) {
 const TAB_DI = Object.freeze({
   clima: "clima",
   luci: "luci",
+  prese: "prese",
   coperture: "tapparelle",
   elettrodomestici: "appliances-main",
   /* Le telecamere stanno nella pagina Sicurezza, non in Home: toccarne una
@@ -430,7 +434,7 @@ export function blockMarkup(blocco, states) {
   if (!blocco.voci.length) return "";
   const conTab = { ...blocco, tab: TAB_DI[blocco.key] || "home" };
   const card =
-    blocco.key === "luci"
+    blocco.key === "luci" || blocco.key === "prese"
       ? blocco.voci
           .map((luce) => {
             const entity = clean(luce.entity || luce.id);

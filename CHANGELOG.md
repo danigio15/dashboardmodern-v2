@@ -20,6 +20,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le Prese abitano anche la pagina Stanze.** La sezione Prese non veniva
+  riportata dentro Stanze: ora ogni presa sta nella sua stanza, subito
+  dopo le luci, con la stessa card e lo stesso interruttore — e i Carichi
+  hanno lasciato la spina alle Prese, prendendo il fulmine.
+
 - **Gas e monossido entrano nella lista del fumo.** «Rilevatori fumo/gas
   in config sicurezza»: Home Assistant li dichiara con lo stesso
   vocabolario del fumo (`device_class` gas e carbon_monoxide), e ora la
