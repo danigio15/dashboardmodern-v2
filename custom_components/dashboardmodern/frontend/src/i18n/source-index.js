@@ -1475,7 +1475,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Riepilogo:": "Summary:",
   "Rileva da Home Assistant": "Detect from Home Assistant",
   "Rileva dal telefono": "Detect from the phone",
-  "Rilevatori di fumo": "Smoke detectors",
+  "Rilevatori fumo e gas": "Smoke & gas detectors",
   "RIMANENTI": "LEFT",
   "Rimetti com'era": "Reset",
   "Rimpicciolisci": "Zoom out",

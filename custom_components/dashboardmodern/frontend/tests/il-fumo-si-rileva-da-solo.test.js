@@ -44,23 +44,23 @@ test("un rilevatore di fumo e' quello che Home Assistant dichiara tale", () => {
   );
 });
 
-test("gas e monossido sono predisposti ma non ancora attivi", () => {
-  /* La costante e' il posto dove si estendera': oggi contiene solo il fumo,
-   * e finche' e' cosi' un sensore di gas non deve entrare nel gruppo. */
-  assert.deepEqual([...SMOKE_DEVICE_CLASSES], ["smoke"]);
+test("gas e monossido entrano nella stessa lista del fumo", () => {
+  /* Dal campo: «rilevatori fumo/gas in config sicurezza». Home Assistant li
+   * dichiara con lo stesso vocabolario, e la famiglia sta insieme. */
+  assert.deepEqual([...SMOKE_DEVICE_CLASSES], ["smoke", "gas", "carbon_monoxide"]);
   assert.equal(
     isSmokeSensor("binary_sensor.gas_cucina", {
       state: "off",
       attributes: { device_class: "gas" },
     }),
-    false,
+    true,
   );
   assert.equal(
     isSmokeSensor("binary_sensor.co_taverna", {
       state: "off",
       attributes: { device_class: "carbon_monoxide" },
     }),
-    false,
+    true,
   );
 });
 

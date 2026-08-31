@@ -20,6 +20,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Gas e monossido entrano nella lista del fumo.** «Rilevatori fumo/gas
+  in config sicurezza»: Home Assistant li dichiara con lo stesso
+  vocabolario del fumo (`device_class` gas e carbon_monoxide), e ora la
+  famiglia sta insieme — stessa lista sorvegliata che si riempie da sola,
+  stessa voce in configurazione col cestino, stesso blocco nella pagina
+  Sicurezza. La voce si chiama «Rilevatori fumo e gas».
+
 - **Il popup dell'Auto dice quando finisce, e parla in parole.** Accanto
   al tempo che manca («2H 15M RIM.») ora c'e' l'ora a cui si arriva
   («· verso le 10:46»), calcolata dalla stessa formula del guscio; sotto
