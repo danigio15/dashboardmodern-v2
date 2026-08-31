@@ -255,7 +255,8 @@ function potenzaImplicita(load, states) {
  * unita' sparivano dalla somma e il cerchio restava sullo zero degli altri —
  * «il flusso elettrodomestici continua a restituire 0 invece della somma
  * riportata nei carichi interni». Un campo scritto apposta ci si fida. */
-export function campoDiPotenza(load) {
+export function campoDiPotenza(load, states = null) {
+  const scritte = [];
   for (const campo of [
     load?.power_entity,
     load?.power,
@@ -266,16 +267,29 @@ export function campoDiPotenza(load) {
     const id = clean(typeof campo === "string" ? campo : campo?.entity || campo?.entity_id);
     /* Solo un vero entity_id: qualche modello storico teneva in `power` il
      * numero dei watt massimi, e un numero non e' un'entita' da leggere. */
-    if (/^[a-z_]+\.[a-z0-9_]+$/i.test(id)) return id;
+    if (/^[a-z_]+\.[a-z0-9_]+$/i.test(id) && !scritte.includes(id)) scritte.push(id);
   }
-  return "";
+  if (!scritte.length) return "";
+  if (!states) return scritte[0];
+  /* Fra piu' caselle scritte vince quella che un numero ce l'ha davvero.
+   *
+   * L'ordine dei campi era una scommessa: qui si guarda `power_entity` per
+   * prima, il popup guardava `power` per prima. Un apparecchio con due
+   * caselle — la canonica vuota o ferma, e quella viva del guscio vecchio —
+   * faceva dire due numeri diversi alla stessa schermata: «0 W» nel cerchio e
+   * «838 W» nella sua finestra. Chiedere chi risponde, invece di indovinare
+   * chi dovrebbe, mette d'accordo le due strade senza scegliere un ordine. */
+  return scritte.find((id) => stateWatts(states, id) !== null) || scritte[0];
 }
 
 function periodValue(load, period, states, recorderValues, { implicita = true } = {}) {
   const canonica = flowPeriodEntity(load, period);
+  /* `campoDiPotenza` guarda gia' `power_entity` per prima, quindi provarla a
+   * parte non aggiungeva niente: toglieva soltanto la possibilita' di
+   * accorgersi che quella casella non risponde e che un'altra si'. */
   const entity =
     period === "instant"
-      ? canonica || campoDiPotenza(load) || (implicita ? potenzaImplicita(load, states) : "")
+      ? campoDiPotenza(load, states) || (implicita ? potenzaImplicita(load, states) : "")
       : canonica;
   if (period !== "instant" && recorderValues) {
     const key = clean(load.id) || clean(load.name);
@@ -340,7 +354,16 @@ function readingFor(load, children, period, states, recorderValues) {
   const own = periodValue(load, period, states, recorderValues, {
     implicita: !children.length,
   });
-  if (own.value !== null) return { ...own, source: "direct", children: children.length };
+  /* Uno zero non e' una misura, e' un buco.
+   *
+   * Il sensore proprio del cerchio vince sulla somma, e finche' misura e'
+   * giusto cosi'. Ma quando dice ZERO e dentro ci sono apparecchi che tirano
+   * davvero, quello zero non e' la verita': e' una casella che non risponde.
+   * E il cerchio si metteva a contraddire la propria finestra sulla stessa
+   * schermata — «0 W» fuori, «838 W» dentro. A zero si guarda cosa c'e'
+   * dentro; se anche dentro non tira nessuno, zero resta zero. */
+  if (own.value !== null && own.value !== 0)
+    return { ...own, source: "direct", children: children.length };
   if (!children.length) return { ...own, source: "direct", children: 0 };
   let total = null;
   for (const child of children) {
@@ -348,12 +371,8 @@ function readingFor(load, children, period, states, recorderValues) {
     if (value === null) continue;
     total = (total ?? 0) + value;
   }
-  return {
-    entity: own.entity,
-    value: total,
-    source: total === null ? "direct" : "sum",
-    children: children.length,
-  };
+  if (total === null || total === 0) return { ...own, source: "direct", children: children.length };
+  return { entity: own.entity, value: total, source: "sum", children: children.length };
 }
 
 /* Only values the user actually saved override the canonical Load. The

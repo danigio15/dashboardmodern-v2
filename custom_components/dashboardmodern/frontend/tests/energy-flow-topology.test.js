@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   FLOW_MAX_LOADS,
+  campoDiPotenza,
   flowIntensity,
   flowNodeScale,
   flowPeriodEntity,
@@ -671,4 +672,68 @@ test("un numero scritto in `power` non diventa un'entita' da leggere", async () 
   assert.equal(campoDiPotenza({ power: 2400 }), "");
   assert.equal(campoDiPotenza({ power: "sensor.x_w" }), "sensor.x_w");
   assert.equal(campoDiPotenza({ power_entity: "", pwr: { entity: "sensor.y" } }), "sensor.y");
+});
+
+/* ── quello che si vede nel video del 31 agosto ─────────────────────────────
+ *
+ * Sulla stessa schermata il cerchio diceva «0 W» e la sua finestra «838 W».
+ * Due modi diversi di arrivarci, e qui ci sono tutti e due.
+ */
+test("un contatore di gruppo fermo a zero non nasconde quello che c'e' dentro", () => {
+  const loads = [
+    { id: "elettro", name: "Elettrodomestici", order: 0, power_entity: "sensor.gruppo_w" },
+    {
+      id: "condizionatori",
+      name: "Condizionatori",
+      power_entity: "sensor.condizionatori_w",
+      metadata: { beta27_subload_group: "elettro" },
+    },
+  ];
+  const fermo = flowStageModel({
+    loads,
+    states: { "sensor.gruppo_w": { state: "0" }, "sensor.condizionatori_w": { state: "838" } },
+  });
+  assert.equal(fermo.nodes[0].value, 838, "a zero si guarda cosa c'e' dentro");
+  assert.equal(fermo.nodes[0].source, "sum");
+
+  /* La pinza che misura davvero continua a vincere: non e' un via libera alla
+   * somma, e' solo il rifiuto di credere a uno zero. */
+  const misura = flowStageModel({
+    loads,
+    states: { "sensor.gruppo_w": { state: "2000" }, "sensor.condizionatori_w": { state: "838" } },
+  });
+  assert.equal(misura.nodes[0].value, 2000);
+  assert.equal(misura.nodes[0].source, "direct");
+
+  /* E se anche dentro non tira nessuno, zero resta zero: nessuno ha mentito. */
+  const spento = flowStageModel({
+    loads,
+    states: { "sensor.gruppo_w": { state: "0" }, "sensor.condizionatori_w": { state: "0" } },
+  });
+  assert.equal(spento.nodes[0].value, 0);
+  assert.equal(spento.nodes[0].source, "direct");
+});
+
+test("fra due caselle di potenza vince quella che risponde, per tutti e due", () => {
+  /* L'apparecchio ne ha due: la canonica, vuota, e quella viva del guscio
+   * vecchio. Il cerchio guardava `power_entity` per prima, il popup `power`:
+   * due letture diverse della stessa cosa. */
+  const apparecchio = {
+    id: "condizionatori",
+    name: "Condizionatori",
+    power_entity: "sensor.canonico_muto",
+    pwrLive: "sensor.condizionatori_w",
+    metadata: { beta27_subload_group: "elettro" },
+  };
+  const states = { "sensor.condizionatori_w": { state: "838" } };
+  assert.equal(campoDiPotenza(apparecchio, states), "sensor.condizionatori_w");
+  /* Senza stati la scelta resta quella di prima: chi non ha da chiedere non
+   * cambia comportamento. */
+  assert.equal(campoDiPotenza(apparecchio), "sensor.canonico_muto");
+
+  const model = flowStageModel({
+    loads: [{ id: "elettro", name: "Elettrodomestici", order: 0 }, apparecchio],
+    states,
+  });
+  assert.equal(model.nodes[0].value, 838);
 });

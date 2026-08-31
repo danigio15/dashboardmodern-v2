@@ -363,15 +363,38 @@ function installStyles() {
   );
 }
 
+/* Il disegnatore del guscio, quello che non deve piu' toccare la lista.
+ *
+ * `renderSubLoads` fa una cosa sola: `subloads-list.innerHTML = html`. E il
+ * battito degli stati lo richiama a popup aperto, ogni volta:
+ *
+ *     if (currentPopupType.startsWith('subloads_')) renderSubLoads(...)
+ *
+ * Cosi' a ogni giro le carte moderne venivano spazzate via e rimesse subito
+ * dopo. E' il «fleak»: nel video la griglia sparisce e torna, e in mezzo resta
+ * la sola fascia del totale sul bianco. Rimetterle dopo non basta — fra lo
+ * strappo e il rimedio ci sta un fotogramma, e quel fotogramma si vede.
+ * L'unico modo per non farlo vedere e' non strappare. */
+const SOLO_NOSTRO = new Set(["renderSubLoads"]);
+
 function wrapOpener(name) {
   const current = root[name];
   const marker = `__dmSubloadPopup_${name}`;
   if (typeof current !== "function" || current[marker]) return false;
   const wrapped = function (group, ...rest) {
     state.group = clean(group);
+    /* Se questa finestra la sappiamo disegnare noi, la disegniamo e basta: il
+     * guscio non scrive, quindi non c'e' niente da rimettere a posto. Se non
+     * la sappiamo disegnare — un tipo di sotto-carichi che il modulo non
+     * conosce — `renderSubloadPopup` dice di no e il guscio lavora come
+     * prima. */
+    if (SOLO_NOSTRO.has(name) && renderSubloadPopup(state.group)) return undefined;
     const result = current.call(this, group, ...rest);
-    // The legacy renderer paints first; this owner replaces its list once the
-    // modal is on screen, so open/close and history clicks stay untouched.
+    /* Qui il guscio ha appena scritto: si rimpiazza SUBITO, nello stesso giro,
+     * cosi' la sua versione non arriva mai allo schermo. I due ripensamenti
+     * restano per quando il primo colpo non riesce, che e' all'apertura:
+     * la finestra non e' ancora in scena. */
+    if (renderSubloadPopup(state.group)) return result;
     root.queueMicrotask?.(() => renderSubloadPopup(state.group));
     root.setTimeout?.(() => renderSubloadPopup(state.group), 60);
     return result;

@@ -291,3 +291,43 @@ test("rinominare il cerchio a popup aperto cambia la testata", () => {
   assert.equal(title.querySelector(".dm-subload-title-name").textContent, "CUCINA NUOVA");
   assert.equal(title.querySelector(".dm-subload-title-icon").textContent, "🔥");
 });
+
+/* ── il «fleak» del video ───────────────────────────────────────────────────
+ *
+ * Il guscio ha un suo disegnatore, `renderSubLoads`, che fa una cosa sola:
+ * `subloads-list.innerHTML = html`. E il battito degli stati lo richiama a
+ * popup aperto, a ogni giro. Le carte moderne venivano spazzate via e rimesse
+ * subito dopo: nel video la griglia sparisce e torna, e in mezzo resta la sola
+ * fascia del totale sul bianco. Rimetterle dopo non basta — fra lo strappo e
+ * il rimedio ci sta un fotogramma. Qui si pretende che lo strappo non avvenga.
+ */
+test("il disegnatore del guscio non svuota piu' la lista a ogni battito", () => {
+  configure({ loads: KITCHEN, states: { "sensor.forno_power": { state: "1800" } } });
+
+  let scrittureDelGuscio = 0;
+  globalThis.renderSubLoads = function () {
+    scrittureDelGuscio += 1;
+    list.replaceChildren();
+  };
+  /* La sezione si e' gia' installata: si riapre la porta per farle agganciare
+   * il disegnatore appena definito, come fa la plancia quando il guscio
+   * arriva dopo i moduli. */
+  globalThis.__DASHBOARDMODERN_SUBLOAD_POPUP__.installed = false;
+  popup.installSubloadPopupSection();
+  popup.renderSubloadPopup("cucina");
+  const prima = list.children.length;
+  assert.ok(prima > 0, "le carte moderne ci sono");
+
+  /* Il battito degli stati: il guscio chiama il suo disegnatore. */
+  globalThis.renderSubLoads("cucina");
+  assert.equal(scrittureDelGuscio, 0, "il guscio non ha scritto: la finestra e' nostra");
+  assert.equal(
+    list.children.length,
+    prima,
+    "e la lista e' rimasta piena, senza sparire e ricomparire",
+  );
+
+  /* Un tipo di sotto-carichi che non e' nostro resta al guscio, come prima. */
+  globalThis.renderSubLoads("un_gruppo_che_non_esiste");
+  assert.equal(scrittureDelGuscio, 1, "quello che non sappiamo disegnare lo disegna il guscio");
+});
