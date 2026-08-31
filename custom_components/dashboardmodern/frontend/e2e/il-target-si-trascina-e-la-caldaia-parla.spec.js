@@ -18,7 +18,13 @@ const SEME = {
     appliances: [],
     loads: [],
     lights: [],
-    climate: [{ name: "Salone", entity: "climate.salone", type: "clima", room: "salone" }],
+    /* Due zone davvero: il condizionatore nel Freddo e un termosifone nel
+     * Caldo. Con una zona sola le linguette si nascondono, e la casella della
+     * caldaia — che sta nel Caldo — non si potrebbe nemmeno raggiungere. */
+    climate: [
+      { name: "Salone", entity: "climate.salone", type: "clima", room: "salone" },
+      { name: "Termosifone", entity: "climate.termo", type: "termo", room: "salone" },
+    ],
     ev: [],
     covers: [],
     pool: {},
@@ -88,6 +94,16 @@ test("la presa sulla corsia manda il grado scelto, la caldaia dice da quanto", a
         hvac_modes: ["off", "cool"],
       },
     };
+    stati["climate.termo"] = {
+      entity_id: "climate.termo",
+      state: "heat",
+      attributes: {
+        friendly_name: "Termosifone",
+        current_temperature: 20,
+        temperature: 21,
+        hvac_modes: ["off", "heat"],
+      },
+    };
     stati["switch.caldaia_vera"] = {
       entity_id: "switch.caldaia_vera",
       state: "on",
@@ -109,13 +125,21 @@ test("la presa sulla corsia manda il grado scelto, la caldaia dice da quanto", a
     { timeout: 15000 },
   );
 
-  /* La caldaia nella testata: accesa, e dice da quanto. */
+  /* La caldaia sta nel Caldo, e SOLO li'. «Lo stato caldaia lo devi inserire
+   * solo nella sezione caldo, non anche in freddo»: fra i condizionatori non
+   * c'entra niente, e nemmeno da spenta — il riquadro proprio non c'e'. */
   const caldaia = page.locator("#page-clima [data-dm-cl-caldaia]");
+  await expect(caldaia).toBeHidden({ timeout: 10000 });
+  await page.locator('#page-clima .clima-page-mode-btn[data-dm-cl-zone="caldo"]').click();
   await expect(caldaia).toBeVisible({ timeout: 10000 });
   await expect(caldaia.locator("[data-dm-cl-caldaia-stato]")).toContainText("Accesa", {
     timeout: 10000,
   });
   await expect(caldaia.locator("[data-dm-cl-caldaia-stato]")).toContainText("2 h");
+
+  /* La corsia del condizionatore sta nel Freddo: si torna di la'. */
+  await page.locator('#page-clima .clima-page-mode-btn[data-dm-cl-zone="freddo"]').click();
+  await expect(caldaia).toBeHidden({ timeout: 10000 });
 
   /* La presa sulla corsia: al centro di 16..30 c'e' il grado 23. */
   const rail = page.locator('#page-clima [data-dm-cl="climate.salone"] .dm-cl-rail');
