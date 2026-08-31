@@ -57,12 +57,16 @@ body.dark-theme #page-home .dm-vassoio{
   content:"";position:absolute;left:12px;right:12px;bottom:6px;height:1px;border-radius:1px;
   background:var(--dm-vetrino-vassoio,rgba(255,255,255,.75));opacity:.55;pointer-events:none}
 
-/* Dentro il vassoio i tasti stanno larghi quanto la fila, senza tetto massimo:
-   il ripiano ha gia' il suo bordo, e un tasto che si ferma prima lascia un
-   vuoto che sembra un errore. */
+/* Dentro il vassoio i tasti hanno un tetto di larghezza.
+   Qui c'era scritto il contrario — «senza tetto massimo, un tasto che si
+   ferma prima lascia un vuoto» — e il campo ha risposto con la foto: con due
+   o tre azioni su uno schermo largo ogni tasto si stirava a mezzo metro,
+   «card enormi» che non si renderizzano bene. Un tasto e' un tasto: al
+   massimo 220 pixel, e la fila si centra nel ripiano — auto-fit butta via le
+   colonne vuote, quindi niente buchi fantasma ai lati. */
 html body #page-home .dm-vassoio #qa-grid{
-  display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;
-  justify-content:stretch!important;align-items:stretch!important;gap:10px!important;width:100%!important}
+  display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,220px))!important;
+  justify-content:center!important;align-items:stretch!important;gap:10px!important;width:100%!important}
 html body #page-home .dm-vassoio #qa-grid .qa-btn{
   box-sizing:border-box!important;width:100%!important;max-width:none!important;
   min-height:100px!important;height:auto!important;padding:14px 10px!important;

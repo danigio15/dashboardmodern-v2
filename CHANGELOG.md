@@ -9,6 +9,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **I tasti delle Azioni rapide restano tasti, anche su uno schermo largo.**
+  La griglia del vassoio era dichiarata apposta senza tetto di larghezza, e
+  con due o tre azioni ogni tasto si stirava a mezzo metro — «la sezione non
+  si renderizza bene». Ora un tasto arriva al massimo a 220 pixel e la fila
+  si centra nel ripiano, senza buchi fantasma ai lati.
+
+- **Il cancello non e' piu' una sbarra da cantiere.** Il ripiego a emoji
+  della voce Cancello — nelle azioni come negli avvisi — era 🚧, la sbarra
+  dei lavori stradali. Di norma esce il disegno di casa; quando tocca
+  all'emoji ora esce il portale, lo stesso che il guscio usa nella conferma
+  «Apri Cancello».
+
 - **La testata di Home si ripara da sola, col meteo vestito.** Il guscio la
   nasconde con uno stile inline quando si apre un'altra sezione e la
   rimostrava SOLO al clic sulla linguetta Home: qualunque strada riportasse

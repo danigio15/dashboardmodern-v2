@@ -39,7 +39,7 @@ const ALERT_ICON_CATALOG = Object.freeze([
   ["💡", "Luce", "Light", "luce light lampadina"],
   ["🧺", "Elettrodomestico", "Appliance", "elettrodomestico appliance lavatrice laundry"],
   ["🚗", "Auto", "Vehicle", "auto car vehicle ev macchina"],
-  ["🚧", "Cancello / Accesso", "Gate / Access", "cancello gate accesso access"],
+  ["⛩️", "Cancello / Accesso", "Gate / Access", "cancello gate accesso access"],
   ["🏠", "Casa", "Home", "casa home abitazione"],
   ["👤", "Persona", "Person", "persona person utente user presenza"],
   ["🐾", "Animale", "Pet", "animale pet cane gatto dog cat"],
