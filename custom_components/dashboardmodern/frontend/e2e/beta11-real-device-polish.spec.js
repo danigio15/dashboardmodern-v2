@@ -219,12 +219,21 @@ for (const variant of PRIMARY) {
     await expect(legacyTrigger).toHaveAttribute("data-dm-beta11-alert-picker", "true");
     await expect(page.locator("#dm-icon-picker")).toHaveCount(0);
 
+    /* Dal #48 l'anteprima apre il catalogo del motore di casa
+       (#dm-visual-picker) — porte, cancelli e serrature disegnati coi tratti
+       del progetto — e la griglia emoji nata a parte resta solo come ripiego
+       per chi il motore non ce l'ha. */
+    const primaDellaScelta = await alertInput.inputValue();
     await alertPreview.click();
-    let picker = page.locator("#dm-beta11-alert-picker");
+    const picker = page.locator("#dm-visual-picker");
     await expect(picker).toBeVisible();
-    expect(await picker.locator(".dm-beta11-alert-option").count()).toBeGreaterThanOrEqual(35);
-    await picker.locator('.dm-beta11-alert-option[data-alert-icon="🚨"]').click();
-    await expect(alertInput).toHaveValue("🚨");
-    await expect(alertPreview).toHaveText("🚨");
+    await expect(page.locator("#dm-beta11-alert-picker")).toHaveCount(0);
+    expect(await picker.locator(".dm-picker-option").count()).toBeGreaterThanOrEqual(10);
+    await picker.locator(".dm-picker-option").first().click();
+    /* La scelta arriva nel campo: un valore nuovo, non quello di prima. */
+    await expect
+      .poll(async () => alertInput.inputValue(), { timeout: 10000 })
+      .not.toBe(primaDellaScelta);
+    expect(await alertInput.inputValue()).not.toBe("");
   });
 }
