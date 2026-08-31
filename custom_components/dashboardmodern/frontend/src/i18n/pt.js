@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "Fluxo de cargas de energia",
   "Energy meter (kWh)": "Contador de energia (kWh)",
   "Energy save failed": "Falha ao guardar a Energia",
+  "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Desligado, basta a entidade weather acima: temperatura, humidade e vento vêm dela.",
+  "Use your own entities for the weather station": "Usar entidades próprias para a estação meteo",
   "On cards show the room temperature big (target below)": "Nos cartões mostra grande a temperatura ambiente (alvo por baixo)",
   "Add program": "Adicionar programa",
   "Name (e.g. Quick 30')": "Nome (ex.: Rápido 30')",

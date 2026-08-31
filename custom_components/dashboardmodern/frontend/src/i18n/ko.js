@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "전력 부하 흐름",
   "Energy meter (kWh)": "전력량계 (kWh)",
   "Energy save failed": "에너지 저장에 실패했습니다",
+  "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "끄면 위의 weather 엔터티로 충분합니다. 온도·습도·바람을 거기서 읽습니다.",
+  "Use your own entities for the weather station": "기상 스테이션에 자체 엔터티 사용",
   "On cards show the room temperature big (target below)": "카드에서 실내 온도를 크게 표시 (목표는 아래)",
   "Add program": "프로그램 추가",
   "Name (e.g. Quick 30')": "이름 (예: 퀵 30')",

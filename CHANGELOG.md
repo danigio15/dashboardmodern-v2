@@ -9,6 +9,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **La mappatura del Meteo si sfoltisce.** Nella scheda Home della
+  mappatura i cinque campi della stazione — temperatura, umidita',
+  percepita, vento, direzione — stanno dietro la casella «Usa entita'
+  proprie per la stazione meteo»: spenta, basta l'entita' weather. Chi
+  li aveva gia' mappati trova la casella accesa da sola.
+
 - **La card del Clima si puo' girare.** Nella scheda Clima della
   configurazione c'e' il flag «Nelle card mostra grande l'ambiente»:
   col flag acceso il numero grande e' la temperatura della stanza e la

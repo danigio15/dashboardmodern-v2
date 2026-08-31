@@ -14,7 +14,7 @@
  */
 import { onLocaleChange } from "../core/i18n.js";
 import { translateSource } from "../core/i18n-dom.js";
-import { doc, installStyle, root } from "./shared.js";
+import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_WEATHER_MASTHEAD__";
 const STYLE_ID = "dm-weather-masthead-style";
@@ -249,6 +249,63 @@ function ripara() {
   sposta();
 }
 
+/* La mappatura del meteo, sfoltita: «non mostrare tutte le entita'; un flag
+ * "usa entita' proprie" mostra i campi, altrimenti default sull'entita'
+ * weather». I cinque campi della stazione — temperatura, umidita',
+ * percepita, vento, direzione — restano dietro la casella: chi li aveva
+ * gia' mappati la trova accesa da sola. */
+const FLAG_METEO = "cd_meteo_entita_proprie";
+
+function flagMeteo() {
+  try {
+    const scritto = root.localStorage?.getItem?.(FLAG_METEO);
+    return scritto == null ? null : scritto === "1";
+  } catch (_errore) {
+    return null;
+  }
+}
+
+function montaFlagMeteo() {
+  const slotMeteo = doc?.querySelector?.('input[data-ref="dm.home_meteo"]');
+  const fisarmonica = slotMeteo?.closest?.("details.ed-acc");
+  if (!fisarmonica) return false;
+  const campi = [...fisarmonica.querySelectorAll('input[data-ref^="dm.home_meteo_"]')]
+    .map((input) => input.closest(".ed-slot"))
+    .filter(Boolean);
+  if (!campi.length) return false;
+  let casella = fisarmonica.querySelector("[data-dm-meteo-flag]");
+  const scelto = flagMeteo();
+  const mappati = campi.some((slot) => clean(slot.querySelector("input[data-ref]")?.value));
+  const acceso = scelto == null ? mappati : scelto;
+  if (!casella) {
+    casella = doc.createElement("label");
+    casella.className = "ed-check dm-meteo-flag";
+    casella.dataset.dmMeteoFlag = "";
+    casella.innerHTML =
+      `<input type="checkbox"${acceso ? " checked" : ""}> ` +
+      t(
+        "Usa entità proprie per la stazione meteo",
+        "Use your own entities for the weather station",
+      ) +
+      `<small>${t(
+        "Spenta, basta l'entità weather qui sopra: temperatura, umidità e vento si leggono da lei.",
+        "Off, the weather entity above is enough: temperature, humidity and wind come from it.",
+      )}</small>`;
+    slotMeteo.closest(".ed-slot")?.after(casella);
+    casella.querySelector("input").addEventListener("change", (evento) => {
+      try {
+        root.localStorage?.setItem?.(FLAG_METEO, evento.target.checked ? "1" : "0");
+        root.cdMarkDirty?.();
+        root.cdSyncPush?.();
+      } catch (_errore) {}
+      montaFlagMeteo();
+    });
+  }
+  const vivo = casella.querySelector("input")?.checked ?? acceso;
+  for (const slot of campi) slot.hidden = !vivo;
+  return true;
+}
+
 export function installWeatherInMasthead() {
   if (state.installed) return false;
   if (!doc?.querySelector) return false;
@@ -287,6 +344,16 @@ export function installWeatherInMasthead() {
   doc.addEventListener?.("visibilitychange", ripara);
   /* La lingua puo' arrivare dopo: il catalogo si scarica, e quando e' pronto
    * le parole del meteo vanno rifatte dal loro originale. */
+  for (const eventoEditor of ["dashboardmodern:editor-rendered", "dashboardmodern:legacy-ready"])
+    root.addEventListener?.(eventoEditor, () => montaFlagMeteo());
+  doc.addEventListener?.(
+    "click",
+    (evento) => {
+      if (evento.target?.closest?.(".ed-tab[data-tab], .ed-acc-head"))
+        root.setTimeout?.(montaFlagMeteo, 0);
+    },
+    true,
+  );
   state.stopLocale = onLocaleChange(() => {
     const meteo = doc?.querySelector?.(".weather-widget");
     if (meteo) avvolgiLeParole(meteo);

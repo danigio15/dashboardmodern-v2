@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "ऊर्जा लोड प्रवाह",
   "Energy meter (kWh)": "ऊर्जा मीटर (kWh)",
   "Energy save failed": "ऊर्जा सहेजना विफल",
+  "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "बंद होने पर ऊपर की weather एंटिटी काफ़ी है: तापमान, नमी और हवा उसी से पढ़ी जाती हैं।",
+  "Use your own entities for the weather station": "मौसम स्टेशन के लिए अपनी एंटिटी उपयोग करें",
   "On cards show the room temperature big (target below)": "कार्ड पर कमरे का तापमान बड़ा दिखाएँ (लक्ष्य नीचे)",
   "Add program": "प्रोग्राम जोड़ें",
   "Name (e.g. Quick 30')": "नाम (जैसे क्विक 30')",

@@ -2049,7 +2049,7 @@ function edImport() {
 }
 function edResetAll() {
     if (!confirm('Rimuovere TUTTE le personalizzazioni di questo dispositivo?')) return;
-    ['cd_connection','cd_branding','cd_sections','cd_section_names','cd_luci','cd_luci_rooms','cd_luci_order','cd_luci_room_order','cd_stanze','cd_cameras','cd_appliances','cd_clima_units','cd_quick_actions','cd_termico_caldo','cd_lavatrice_programmi','cd_clima_inverti_card','cd_devices','cd_ev_image','cd_entity_overrides','cd_subloads_extra','cd_subload_groups','cd_report_devices','cd_tapparelle','cd_irrigazione','cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors','cd_slot_labels','cd_flow_nodes','cd_gruppi_extra','cd_gruppi_removed','cd_avvisi_names_extra','cd_text_overrides','cd_hidden_elements'].forEach(k=>localStorage.removeItem(k));
+    ['cd_connection','cd_branding','cd_sections','cd_section_names','cd_luci','cd_luci_rooms','cd_luci_order','cd_luci_room_order','cd_stanze','cd_cameras','cd_appliances','cd_clima_units','cd_quick_actions','cd_termico_caldo','cd_lavatrice_programmi','cd_clima_inverti_card','cd_meteo_entita_proprie','cd_devices','cd_ev_image','cd_entity_overrides','cd_subloads_extra','cd_subload_groups','cd_report_devices','cd_tapparelle','cd_irrigazione','cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors','cd_slot_labels','cd_flow_nodes','cd_gruppi_extra','cd_gruppi_removed','cd_avvisi_names_extra','cd_text_overrides','cd_hidden_elements'].forEach(k=>localStorage.removeItem(k));
     location.reload();
 }
 
@@ -2375,7 +2375,7 @@ function wzRender() {
    La configurazione viene salvata anche nell'archivio utente di Home Assistant
    (frontend user_data): configuri una volta, la ritrovi su ogni dispositivo. */
 /* v301: cd_theme e cd_navbar_mode NON sono sincronizzati — sono preferenze del singolo dispositivo */
-const CD_SYNC_KEYS = ['dm_dashboard_state','cd_connection','cd_branding','cd_sections','cd_section_names','cd_luci','cd_luci_rooms','cd_stanze','cd_cameras','cd_appliances','cd_loads','cd_energy_model','cd_clima_units','cd_quick_actions','cd_termico_caldo','cd_lavatrice_programmi','cd_clima_inverti_card','cd_devices','cd_ev_image','cd_entity_overrides','cd_tapparelle','cd_irrigazione','cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors','cd_slot_labels','cd_flow_nodes','cd_avvisi_custom','cd_text_overrides','cd_hidden_elements'];
+const CD_SYNC_KEYS = ['dm_dashboard_state','cd_connection','cd_branding','cd_sections','cd_section_names','cd_luci','cd_luci_rooms','cd_stanze','cd_cameras','cd_appliances','cd_loads','cd_energy_model','cd_clima_units','cd_quick_actions','cd_termico_caldo','cd_lavatrice_programmi','cd_clima_inverti_card','cd_meteo_entita_proprie','cd_devices','cd_ev_image','cd_entity_overrides','cd_tapparelle','cd_irrigazione','cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors','cd_slot_labels','cd_flow_nodes','cd_avvisi_custom','cd_text_overrides','cd_hidden_elements'];
 
 function cdSyncCollect() {
     const out = { _savedAt: Date.now() };

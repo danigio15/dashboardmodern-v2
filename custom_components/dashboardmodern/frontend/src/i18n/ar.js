@@ -708,6 +708,8 @@ export default Object.freeze({
   "Energy load flow": "تدفق أحمال الطاقة",
   "Energy meter (kWh)": "عداد الطاقة (ك.و.س)",
   "Energy save failed": "تعذّر حفظ «الطاقة»",
+  "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "عند الإيقاف يكفي كيان الطقس أعلاه: الحرارة والرطوبة والرياح تُقرأ منه.",
+  "Use your own entities for the weather station": "استخدم كياناتك الخاصة لمحطة الطقس",
   "On cards show the room temperature big (target below)": "في البطاقات اعرض حرارة الغرفة كبيرة (الهدف بالأسفل)",
   "Add program": "إضافة برنامج",
   "Name (e.g. Quick 30')": "الاسم (مثل سريع 30')",
