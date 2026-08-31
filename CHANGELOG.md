@@ -52,6 +52,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La matita della telecamera riporta l'entita' anche nella veste.** In
+  modifica l'entita' «spariva»: la matita riempiva il campo grezzo in
+  silenzio e la chip che lo veste — ridipinta solo quando il campo
+  annuncia un cambio — continuava a dire «Scegli entita'» sopra un campo
+  pieno. Ora la matita annuncia il cambio e la veste dice quello che c'e'.
+
 - **Il cerchio del flusso riempito dagli elettrodomestici porta i loro
   watt.** Scegliendo elettrodomestici nei Carichi il cerchio nasceva ma
   restava senza valore, mentre il popup dell'apparecchio i watt li
