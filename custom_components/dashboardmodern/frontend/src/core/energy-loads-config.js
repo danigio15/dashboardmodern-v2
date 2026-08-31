@@ -288,6 +288,42 @@ export function moveLoad(model = [], id, delta) {
   return values.map((item, index) => ({ ...item, order: index }));
 }
 
+/* Le caselle di questa maschera sono la parola definitiva.
+ *
+ * Un carico salvato di qui porta il segno: chi tira a indovinare — il
+ * contratto dei dispositivi, che riempie le caselle vuote leggendo i nomi
+ * delle entita' — sa che qui non c'e' niente da indovinare. Senza il segno
+ * svuotare una casella non serviva a niente: si salvava vuota e un istante
+ * dopo tornava scritta.
+ *
+ * «Io elimino l'entita' inserita per far usare il calcolo ma non la elimina.» */
+export const CAMPI_SCELTI = "dm_campi_scelti";
+
+/* Lo specchio piatto delle entita', rifatto da capo a ogni salvataggio.
+ *
+ * `entities` (e `entity`) sono la copia di tutte le caselle in un elenco solo,
+ * e finora arrivavano dal salvataggio precedente: svuotare la «Potenza
+ * istantanea» lasciava li' il sensore, e da li' se lo riprendevano sia chi
+ * indovina le caselle sia il cerchio, che quando la casella e' vuota guarda
+ * proprio questo elenco. Adesso lo specchio si ricava dalle caselle e basta:
+ * quello che non e' scritto da nessuna parte non c'e' piu'. */
+const CAMPI_ENTITA = Object.freeze([
+  "control_entity",
+  "power_entity",
+  "energy_entity",
+  "daily_energy_entity",
+  "monthly_energy_entity",
+  "total_energy_entity",
+  "history_entity",
+  "report_entity",
+  "state_entity",
+]);
+
+function conSpecchio(record) {
+  const scritte = [...new Set(CAMPI_ENTITA.map((campo) => clean(record[campo])).filter(Boolean))];
+  return { ...record, entities: scritte, entity: scritte[0] || "" };
+}
+
 /* What to persist. The canonical section carries the loads and their
  * appliances; the three legacy objects are a one-way mirror so the hosted
  * subload popup keeps opening on configuration it can already read.
@@ -311,28 +347,31 @@ export function loadsConfigToSections(model = [], previous = [], plant = null) {
       const id = clean(load.id) || `carico-${index + 1}`;
       const group = clean(load.group) || id;
       const kept = before.get(id) || {};
-      loads.push({
-        ...kept,
-        id,
-        [LOAD_PLANT_FIELD]: impianto,
-        name: clean(load.name) || `Carico ${index + 1}`,
-        icon: clean(load.icon) || "🔌",
-        color: clean(load.color) || PALETTE[index % PALETTE.length],
-        order: index,
-        show_in_dashboard: load.visible !== false,
-        power_entity: clean(load.power),
-        total_energy_entity: clean(load.total),
-        history_entity: clean(load.total),
-        daily_energy_entity: clean(load.daily),
-        monthly_energy_entity: clean(load.monthly),
-        metadata: {
-          ...(kept.metadata || {}),
-          // A circle is never an appliance, and it owns its group explicitly.
-          beta27_subload_group: "",
-          flow_group: group,
-          flow_color: clean(load.color) || PALETTE[index % PALETTE.length],
-        },
-      });
+      loads.push(
+        conSpecchio({
+          ...kept,
+          id,
+          [LOAD_PLANT_FIELD]: impianto,
+          name: clean(load.name) || `Carico ${index + 1}`,
+          icon: clean(load.icon) || "🔌",
+          color: clean(load.color) || PALETTE[index % PALETTE.length],
+          order: index,
+          show_in_dashboard: load.visible !== false,
+          power_entity: clean(load.power),
+          total_energy_entity: clean(load.total),
+          history_entity: clean(load.total),
+          daily_energy_entity: clean(load.daily),
+          monthly_energy_entity: clean(load.monthly),
+          metadata: {
+            ...(kept.metadata || {}),
+            // A circle is never an appliance, and it owns its group explicitly.
+            beta27_subload_group: "",
+            flow_group: group,
+            flow_color: clean(load.color) || PALETTE[index % PALETTE.length],
+            [CAMPI_SCELTI]: true,
+          },
+        }),
+      );
 
       groups.push({
         id: group,
@@ -359,29 +398,32 @@ export function loadsConfigToSections(model = [], previous = [], plant = null) {
         // be the second copy this rewrite exists to remove.
         if (child.source === "appliance") continue;
         const childKept = before.get(clean(child.id)) || {};
-        loads.push({
-          ...childKept,
-          id: clean(child.id),
-          /* Un elettrodomestico sta nell'impianto del suo cerchio: scriverlo
-           * qui e' cio' che permette, piu' sotto, di riconoscere in una riga
-           * sola tutto quello che appartiene a un altro impianto. */
-          [LOAD_PLANT_FIELD]: impianto,
-          name: clean(child.name),
-          icon: clean(child.icon) || "🔌",
-          order: index,
-          show_in_dashboard: false,
-          power_entity: clean(child.power),
-          control_entity: clean(childKept.control_entity),
-          daily_energy_entity: clean(child.daily),
-          monthly_energy_entity: clean(child.monthly),
-          total_energy_entity: clean(child.total),
-          history_entity: clean(child.total),
-          metadata: {
-            ...(childKept.metadata || {}),
-            beta27_subload_group: group,
-            beta27_subload_id: clean(child.id),
-          },
-        });
+        loads.push(
+          conSpecchio({
+            ...childKept,
+            id: clean(child.id),
+            /* Un elettrodomestico sta nell'impianto del suo cerchio: scriverlo
+             * qui e' cio' che permette, piu' sotto, di riconoscere in una riga
+             * sola tutto quello che appartiene a un altro impianto. */
+            [LOAD_PLANT_FIELD]: impianto,
+            name: clean(child.name),
+            icon: clean(child.icon) || "🔌",
+            order: index,
+            show_in_dashboard: false,
+            power_entity: clean(child.power),
+            control_entity: clean(childKept.control_entity),
+            daily_energy_entity: clean(child.daily),
+            monthly_energy_entity: clean(child.monthly),
+            total_energy_entity: clean(child.total),
+            history_entity: clean(child.total),
+            metadata: {
+              ...(childKept.metadata || {}),
+              beta27_subload_group: group,
+              beta27_subload_id: clean(child.id),
+              [CAMPI_SCELTI]: true,
+            },
+          }),
+        );
       }
 
       /* The circle customization is now the load itself. The slot mirror is

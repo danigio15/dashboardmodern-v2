@@ -302,3 +302,59 @@ test("each card says what it is bound to and what is still missing", () => {
   assert.match(loadConfigWarnings({ total: "sensor.t" })[0], /Manca la potenza/);
   assert.equal(loadConfigSummary({ power: "sensor.p" }, "en"), "power");
 });
+
+/* «Io elimino l'entita' inserita per far usare il calcolo ma non la elimina.»
+ *
+ * Il cestino della «Potenza istantanea» svuota la casella, ma lo specchio
+ * piatto — `entities`, `entity` — arrivava dal salvataggio precedente e teneva
+ * in vita il sensore appena tolto: da li' se lo riprendeva chi indovina le
+ * caselle vuote, e il cerchio non diventava mai la somma dei suoi dispositivi.
+ */
+test("svuotare una casella la svuota davvero, specchio compreso", () => {
+  const previous = [
+    {
+      id: "elettro",
+      name: "Elettrodomestici",
+      order: 0,
+      power_entity: "sensor.potenza_elettrodomestici_w_4",
+      entity: "sensor.potenza_elettrodomestici_w_4",
+      entities: ["sensor.potenza_elettrodomestici_w_4"],
+    },
+  ];
+  const model = loadsConfigModel({ loads: previous });
+  model[0].power = "";
+  const { loads, flowNodes } = loadsConfigToSections(model, previous);
+  const elettro = loads.find((item) => item.id === "elettro");
+  assert.equal(elettro.power_entity, "");
+  assert.deepEqual(elettro.entities, []);
+  assert.equal(elettro.entity, "");
+  // Anche lo specchio del vecchio flusso, che il runtime legge di suo.
+  assert.equal(flowNodes.boiler.pwr, "");
+  // E il carico dice di essere stato configurato a mano, cosi' chi indovina
+  // le caselle vuote sa di non doverci mettere le mani.
+  assert.equal(elettro.metadata.dm_campi_scelti, true);
+});
+
+test("lo specchio tiene le caselle che questa maschera non mostra", () => {
+  const previous = [
+    {
+      id: "lavatrice",
+      name: "Lavatrice",
+      order: 0,
+      power_entity: "sensor.lavatrice_w",
+      control_entity: "switch.lavatrice",
+      report_entity: "sensor.lavatrice_mese",
+      entities: ["sensor.sparito"],
+    },
+  ];
+  const model = loadsConfigModel({ loads: previous });
+  const { loads } = loadsConfigToSections(model, previous);
+  const lavatrice = loads.find((item) => item.id === "lavatrice");
+  assert.deepEqual(lavatrice.entities, [
+    "switch.lavatrice",
+    "sensor.lavatrice_w",
+    "sensor.lavatrice_mese",
+  ]);
+  // L'entita' che non era in nessuna casella non torna piu' da sola.
+  assert.ok(!lavatrice.entities.includes("sensor.sparito"));
+});

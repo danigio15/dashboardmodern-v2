@@ -96,6 +96,29 @@ function markDirty(panel) {
   render(panel);
 }
 
+/* Sporco senza ridisegnare.
+ *
+ * Le caselle delle entita' non possono chiamare `markDirty`: quello rifa'
+ * l'intero pannello, e rifarlo mentre si sta scrivendo in un campo porta via
+ * quello che si sta scrivendo. Per questo scrivevano solo `state.dirty = true`
+ * — ma il tasto «Salva carichi» il suo `disabled` se l'era gia' preso al
+ * disegno precedente, e nessuno glielo toglieva piu'.
+ *
+ * Cosi' svuotare la «Potenza istantanea» col cestino non si poteva salvare: il
+ * tasto restava spento, e riaprendo la configurazione l'entita' era ancora li'.
+ * «Io elimino l'entita' inserita per far usare il calcolo ma non la elimina.»
+ * Qui si aggiornano i soli comandi, che e' tutto quello che cambia. */
+function segnaSporco(panel) {
+  state.dirty = true;
+  const host = panel || doc?.querySelector?.('[data-energy-panel="loads"]');
+  const save = host?.querySelector?.("[data-dm-loads-save]");
+  if (save) save.disabled = false;
+  const actions = save?.closest?.(".ed-action-bar");
+  if (actions) actions.dataset.state = "dirty";
+  const status = host?.querySelector?.("[data-dm-loads-status]");
+  if (status) status.textContent = t("Modifiche non salvate", "Unsaved changes");
+}
+
 async function persist(panel) {
   const previous = configuredLoads();
   const { plant, list } = impiantoAperto();
@@ -400,7 +423,7 @@ function subloadRow(panel, load, child, index) {
     ),
     entityField(`dm-loads-${child.id}-power`, t("Potenza", "Power"), child.power, "", (value) => {
       child.power = value;
-      state.dirty = true;
+      segnaSporco(panel);
     }),
     entityField(
       `dm-loads-${child.id}-total`,
@@ -409,7 +432,7 @@ function subloadRow(panel, load, child, index) {
       t("Da qui si calcolano giorno e mese.", "Day and month are calculated from this one."),
       (value) => {
         child.total = value;
-        state.dirty = true;
+        segnaSporco(panel);
       },
     ),
   );
@@ -570,7 +593,7 @@ function loadCard(panel, load, index, total) {
         : t("Il valore della vista Istantaneo.", "What the Instant view shows."),
       (value) => {
         load.power = value;
-        state.dirty = true;
+        segnaSporco(panel);
       },
     ),
     entityField(
@@ -583,7 +606,7 @@ function loadCard(panel, load, index, total) {
       ),
       (value) => {
         load.total = value;
-        state.dirty = true;
+        segnaSporco(panel);
       },
     ),
   );
@@ -611,7 +634,7 @@ function loadCard(panel, load, index, total) {
       "",
       (value) => {
         load.daily = value;
-        state.dirty = true;
+        segnaSporco(panel);
       },
     ),
     entityField(
@@ -621,7 +644,7 @@ function loadCard(panel, load, index, total) {
       "",
       (value) => {
         load.monthly = value;
-        state.dirty = true;
+        segnaSporco(panel);
       },
     ),
   );

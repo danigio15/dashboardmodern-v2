@@ -5,6 +5,27 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Corretto
+
+- **Il cerchio dell'Energia dice quello che dice la sua finestra.** Il cerchio
+  segnava 0 W e la finestra dei sotto-carichi 838 W. Adesso un contatore di
+  gruppo fermo a zero non nasconde piu' quello che ha dentro — a zero si guarda
+  la somma dei dispositivi — e la casella della potenza la scelgono allo stesso
+  modo il cerchio e la finestra, cosi' un apparecchio con due caselle scritte
+  non dice piu' due numeri diversi nella stessa schermata. Sparito anche il
+  tremolio della finestra: la griglia veniva buttata e rifatta a ogni battito
+  degli stati, decine di volte al minuto.
+- **Il cestino della «Potenza istantanea» toglie l'entita' davvero.** «Io
+  elimino l'entita' inserita per far usare il calcolo ma non la elimina.» Erano
+  tre cose in fila: il tasto «Salva carichi» restava spento dopo aver svuotato
+  una casella; l'elenco piatto delle entita' si portava dietro il sensore
+  appena tolto; e un istante dopo il salvataggio chi indovina le caselle vuote
+  dai nomi dei sensori lo rimetteva al suo posto. Ora una casella svuotata
+  resta vuota — e il cerchio diventa la somma dei dispositivi che ha dentro,
+  che e' esattamente perche' la si svuota.
+
 ## 1.4.3
 
 ### Nuovo
