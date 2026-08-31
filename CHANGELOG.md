@@ -76,9 +76,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   contenta curvavano uguali su tutti i volti e il bordo-ciglio era una
   riga scura da eyeliner — «l'avatar uomo ha occhi da donna»: sui volti
   maschili la palpebra ora curva poco, e il ciglio e' leggero a occhio
-  socchiuso, deciso solo a occhio chiuso. E il colletto di polo e
-  camicia — con la collana — ora sta al collo misurato del busto:
-  disegnato a coordinate fisse, galleggiava sul braccio.
+  socchiuso, deciso solo a occhio chiuso. Al secondo giro di scatti:
+  l'uomo a riposo tiene gli occhi APERTI del render (la palpebra dipinta
+  compare solo nel battito, quasi dritta) — la fascia color pelle a
+  occhio socchiuso si leggeva comunque come ombretto; e la barba
+  trapiantata segue il viso — la campana della maschera prendeva anche
+  le ciocche accanto alle orecchie della donatrice e usciva una lastra
+  piu' larga delle guance, col fondo tagliato piatto: ora sta dentro le
+  guance, scende sotto gli zigomi e chiude a punta come la nativa. E il
+  colletto di polo e camicia — con la collana — sta al collo misurato
+  del busto: disegnato a coordinate fisse, galleggiava sul braccio.
 
 - **Il «Salva sezione» delle Aperture salva tutte le porte, non solo la
   prima.** Il tasto verde premeva i salvataggi nascosti riga per riga; il

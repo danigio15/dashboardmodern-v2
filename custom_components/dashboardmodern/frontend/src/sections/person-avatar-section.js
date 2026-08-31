@@ -95,7 +95,9 @@ function tintaCapelli(dati, lato, rgb, lift) {
  * prendere i baffi) e piu' bassa ai lati (per non mangiare i capelli sopra
  * le orecchie). La barba e' l'insieme dei pixel scuri sotto quel confine —
  * basette comprese. */
-const confine = (x, lato, centro = 0.46, alzata = 0.09) =>
+/* L'alzata ai lati e' cresciuta con la campana stretta: il bordo alto della
+ * barba ai lati del viso scende sotto gli zigomi, come sul render nativo. */
+const confine = (x, lato, centro = 0.46, alzata = 0.14) =>
   lato * (centro + alzata * ((x - lato / 2) / (lato / 2)) ** 2);
 
 /* La campana della barba: quanto puo' allargarsi dal centro del viso, riga
@@ -107,8 +109,16 @@ const confine = (x, lato, centro = 0.46, alzata = 0.09) =>
 function dentroLaCampana(x, y, lato) {
   const dalCentro = Math.abs(x - lato / 2) / (lato / 2);
   const quota = y / lato;
-  /* Da 0.62 di semi-larghezza alla bocca a 0.34 sotto il mento. */
-  const semiLarghezza = quota < 0.68 ? 0.62 : 0.62 - ((quota - 0.68) / 0.29) * 0.28;
+  /* La campana era larga 0.62: alla quota della bocca prendeva anche le
+   * ciocche scure accanto alle orecchie della donatrice, e trapiantate su
+   * una chioma d'altro colore diventavano una lastra piu' larga del viso —
+   * «la barba non segue il viso». La barba nativa sta DENTRO le guance:
+   * 0.48 alla bocca, che si stringe a 0.30 verso il mento. */
+  let semiLarghezza = quota < 0.68 ? 0.48 : 0.48 - ((quota - 0.68) / 0.29) * 0.18;
+  /* Il fondo si chiude a punta: senza questa stretta la maschera finiva
+   * contro il taglio orizzontale della tela e la barba usciva col fondo
+   * piatto, da lastra — la nativa pende a V. */
+  if (quota > 0.86) semiLarghezza *= Math.max(0, 1 - (quota - 0.86) / 0.11);
   return dalCentro <= semiLarghezza;
 }
 
@@ -782,10 +792,15 @@ function ridisegna(voce, quanto) {
   pennello.clearRect(0, 0, AVATAR_LATO, AVATAR_LATO);
   pennello.drawImage(voce.ritratto.tela, 0, 0);
   const posa = ESPRESSIONI[voce.espressione] || ESPRESSIONI.sveglio;
-  /* La stessa curva su tutti i volti faceva «occhi da donna» sull'uomo: la
-   * palpebra maschile curva meno, quella femminile resta com'era. */
-  const curva = posa.curva * (voce.ritratto.genere === "donna" ? 1 : 0.55);
-  disegnaPalpebre(pennello, voce.ritratto.occhi, Math.max(posa.chiusura, quanto), curva);
+  /* La palpebra a riposo faceva «occhi da donna» sull'uomo: e' una fascia
+   * color pelle dipinta sopra l'occhio, e sul volto maschile si legge come
+   * ombretto. A riposo l'uomo tiene gli occhi del render — aperti, suoi — e
+   * la palpebra dipinta compare solo nel battito, quasi dritta. La donna
+   * resta com'era: la sua strizzatina le sta bene. */
+  const donna = voce.ritratto.genere === "donna";
+  const chiusura = donna ? posa.chiusura : 0;
+  const curva = posa.curva * (donna ? 1 : 0.35);
+  disegnaPalpebre(pennello, voce.ritratto.occhi, Math.max(chiusura, quanto), curva);
 }
 
 /* Il battito: chiude in centoquaranta millisecondi e riapre in centosessanta.
