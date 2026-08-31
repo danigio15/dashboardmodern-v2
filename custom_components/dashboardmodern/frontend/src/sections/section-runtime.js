@@ -46,6 +46,7 @@ import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
 import { installPopupClimaDistingue } from "./il-popup-del-clima-distingue-section.js";
 import { installPopupAutoRacconta } from "./il-popup-dell-auto-racconta-section.js";
+import { installPopupLavatrice } from "./il-popup-della-lavatrice-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEntitySearchSection } from "./entity-search-section.js";
@@ -757,6 +758,9 @@ export function installSectionRuntime() {
     /* Il popup dell'Auto: l'ora di fine carica accanto al tempo che manca,
      * la frase d'analisi, i codici del cavo in parole. */
     installPopupAutoRacconta();
+    /* Il popup della lavatrice: programmi configurabili, immagine della
+     * sezione, veste di casa. */
+    installPopupLavatrice();
     /* I parametri del tasto Clima rapido chiedono alle unita' cosa accettano:
      * si installano dopo chi quelle unita' le tiene. */
     installQuickClimateEditorSection();

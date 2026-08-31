@@ -9,6 +9,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **Il popup della lavatrice e' tuo.** I quattro programmi rapidi erano
+  scritti nel guscio su slot fissi: ora i tasti vivono in una lista libera
+  — nome, entita' (script o switch), icona, quanti ne vuoi — nella
+  fisarmonica della lavatrice in configurazione, e senza programmi la
+  griglia sparisce. L'immagine e' quella della sezione Elettrodomestici
+  (la foto scelta nella scheda, o il disegno di casa) invece del file
+  /local che quasi nessuno ha; tasti e card vestono come il resto della
+  plancia.
+
 - **Il tasto Accendi/Spegni di un elettrodomestico si puo' togliere.**
   Nella scheda dell'apparecchio, sotto l'entita' comando, c'e' la casella
   «Senza tasto Accendi/Spegni»: l'interruttore mappato continua a leggere

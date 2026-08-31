@@ -522,8 +522,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 184 col popup dell'Auto che racconta
   // (`il-popup-dell-auto-racconta-section.js`): l'ora di fine carica accanto
   // al tempo che manca, la frase d'analisi, i codici IEC del cavo in parole.
+  // 185 col popup della lavatrice rifatto
+  // (`il-popup-della-lavatrice-section.js`): i quattro programmi cablati nel
+  // guscio diventano `cd_lavatrice_programmi`, l'immagine e' quella della
+  // sezione Elettrodomestici, la veste quella delle altre finestre.
   assert.ok(
-    relative.length <= 184,
+    relative.length <= 185,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
