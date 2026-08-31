@@ -61,13 +61,17 @@ test("il + aggiunge una seconda porta dopo la prima", async ({ page }, testInfo)
   /* Il 🎨 apre il catalogo delle icone e NIENT'ALTRO. Col vestito della lente
    * (.dm-entity-picker) la guardia dei selettori marcava il campo dell'icona
    * come campo entita', e sopra al catalogo si apriva la ricerca delle
-   * entita': premuto col dito, si sceglieva un'entita' invece di un'icona. */
+   * entita': premuto col dito, si sceglieva un'entita' invece di un'icona.
+   * Dal #48 il catalogo e' quello DI CASA (il motore delle icone,
+   * #dm-visual-picker): la griglia emoji nata a parte resta solo come
+   * ripiego per chi non ha il motore. */
   await page.locator("#ed-body .dm-door-ed-row").first().locator("[data-door-edit]").click();
   await page.waitForTimeout(400);
   const iconaInput = page.locator('#ed-body input[data-door-field="icon"]').first();
   await expect(iconaInput).not.toHaveAttribute("data-entity-input", "true");
   await page.locator("[data-door-icon-pick]").first().click();
   await page.waitForTimeout(400);
-  await expect(page.locator(".dm-beta11-alert-dialog")).toBeVisible();
+  await expect(page.locator("#dm-visual-picker")).toBeVisible();
+  await expect(page.locator("#dm-beta11-alert-picker")).toHaveCount(0);
   await expect(page.locator("#cd-entpick")).toHaveCount(0);
 });
