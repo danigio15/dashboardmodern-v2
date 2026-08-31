@@ -91,3 +91,63 @@ test("verdetto, caselle e comandi al posto dell'elenco di slug", async ({ page }
     ),
   ).toHaveText("▶");
 });
+
+/* I sensori arrivano spesso col friendly name uguale allo slug — W_KWH_FRIGO,
+ * ENERGY_OGGI_FRIGO — e la casella li stampava tali e quali, con la batteria
+ * (🔋) sopra i kWh: «si capisce poco cosi'» e «non ha senso il simbolo
+ * batteria». Ora la lettura porta la SUA parola — Potenza, Energia oggi — e
+ * l'unita' comanda sul nome: W_KWH_FRIGO con unita' W e' potenza, non energia. */
+test("gli slug diventano parole e i kWh perdono la batteria", async ({ page }, testInfo) => {
+  test.setTimeout(150_000);
+  const seme = structuredClone(SEME);
+  seme.sections.appliances = [
+    {
+      name: "Frigorifero",
+      type: "frigo",
+      entities: ["sensor.w_kwh_frigo", "sensor.energy_oggi_frigo", "sensor.temp_frigo"],
+    },
+  ];
+  const stati = {
+    "sensor.w_kwh_frigo": {
+      entity_id: "sensor.w_kwh_frigo",
+      state: "86",
+      attributes: { unit_of_measurement: "W", friendly_name: "W_KWH_FRIGO" },
+    },
+    "sensor.energy_oggi_frigo": {
+      entity_id: "sensor.energy_oggi_frigo",
+      state: "0.64",
+      attributes: { unit_of_measurement: "kWh", friendly_name: "ENERGY_OGGI_FRIGO" },
+    },
+    "sensor.temp_frigo": {
+      entity_id: "sensor.temp_frigo",
+      state: "4.2",
+      attributes: { unit_of_measurement: "°C", friendly_name: "TEMP_FRIGO" },
+    },
+  };
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, seme);
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  await page.evaluate((extra) => {
+    window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...extra } };
+    const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+    if (raw) Object.assign(raw, extra);
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  }, stati);
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => window.apriApplianceDetail(0));
+  const lista = page.locator("#details-list");
+  await expect(lista.locator(".dm-apde-casella")).toHaveCount(3, { timeout: 10000 });
+  const etichette = await lista.locator(".dm-apde-casella > span:last-child").allTextContents();
+  expect(etichette).toContain("Potenza");
+  expect(etichette).toContain("Energia oggi");
+  expect(etichette).toContain("Temperatura");
+  /* Ne' slug urlati ne' batteria. */
+  const testo = await lista.evaluate((nodo) => nodo.textContent);
+  expect(testo).not.toContain("W_KWH_FRIGO");
+  expect(testo).not.toContain("ENERGY_OGGI_FRIGO");
+  expect(testo).not.toContain("🔋");
+  /* La potenza veste il fulmine anche se il suo slug giura «kwh». */
+  const glifi = await lista.locator(".dm-apde-casella-ic").allTextContents();
+  expect(glifi.filter((g) => g.includes("⚡")).length).toBe(1);
+  expect(glifi.filter((g) => g.includes("📊")).length).toBe(1);
+});

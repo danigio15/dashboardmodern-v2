@@ -5,6 +5,245 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.1
+
+### Nuovo
+
+- **Il verso di sensori e tapparelle si puo' invertire (#244).** Certi
+  contatti porta/finestra stanno a ON quando l'infisso e' CHIUSO, e certe
+  tapparelle dichiarano 100 quando sono giu': la plancia diceva sempre il
+  contrario. Come nelle card Lovelace, ora si gira il verso: per i sensori
+  col comando ⇄ accanto a ogni apertura nella scheda Avvisi (la lista
+  viaggia con la configurazione), per le tapparelle con la casella
+  «Percentuali invertite» della riga (e il ⇄ sulle righe esistenti).
+  Tutta la plancia legge col verso vero — Quadro Avvisi, widget, pagine,
+  card — e i cursori scrivono tradotto, cosi' «100% · Aperta» apre
+  davvero.
+
+- **La casella Batteria del widget Energia dice anche quanto e' piena.**
+  Lo stato di carica ha gia' il suo slot nella mappatura: ora la casella
+  lo scrive accanto ai watt («-320 W · 78%»), e con la sola percentuale
+  mappata basta lei a far esistere la casella.
+
+- **Un cerchio del flusso puo' essere una stanza.** Nella scheda di un
+  carico c'e' «Cerchio = stanza»: scelta la stanza, i suoi
+  elettrodomestici entrano nel cerchio da soli — anche quelli configurati
+  domani — e il cerchio ne mostra il totale; chi sta gia' in un altro
+  cerchio non si conta due volte. Il popup del cerchio li elenca tutti.
+
+- **La mappatura del Meteo si sfoltisce.** Nella scheda Home della
+  mappatura i cinque campi della stazione — temperatura, umidita',
+  percepita, vento, direzione — stanno dietro la casella «Usa entita'
+  proprie per la stazione meteo»: spenta, basta l'entita' weather. Chi
+  li aveva gia' mappati trova la casella accesa da sola.
+
+- **La card del Clima si puo' girare.** Nella scheda Clima della
+  configurazione c'e' il flag «Nelle card mostra grande l'ambiente»:
+  col flag acceso il numero grande e' la temperatura della stanza e la
+  riga piccola il target — didascalie comprese, che seguono i numeri.
+
+- **Il popup della lavatrice e' tuo.** I quattro programmi rapidi erano
+  scritti nel guscio su slot fissi: ora i tasti vivono in una lista libera
+  — nome, entita' (script o switch), icona, quanti ne vuoi — nella
+  fisarmonica della lavatrice in configurazione, e senza programmi la
+  griglia sparisce. L'immagine e' quella della sezione Elettrodomestici
+  (la foto scelta nella scheda, o il disegno di casa) invece del file
+  /local che quasi nessuno ha; tasti e card vestono come il resto della
+  plancia.
+
+- **Il tasto Accendi/Spegni di un elettrodomestico si puo' togliere.**
+  Nella scheda dell'apparecchio, sotto l'entita' comando, c'e' la casella
+  «Senza tasto Accendi/Spegni»: l'interruttore mappato continua a leggere
+  lo stato — la card dice ancora se e' in funzione — ma il tasto sparisce,
+  cosi' il frigo non si spegne per sbaglio da una card.
+
+- **Le voci termiche del popup Caldo si configurano, e senza voci
+  spariscono.** Sotto le stanze del Caldo c'erano tre righe cablate nel
+  guscio — Caldaia (su un'entita' di un impianto specifico), Pompa
+  termocamino, Aspiratore canna fumaria — che per chiunque altro dicevano
+  «N/D» per sempre. Nella scheda Clima della configurazione arriva il campo
+  libero: nome, entita' e icona per ogni voce, quante se ne vogliono, col
+  salvataggio a ogni modifica. Chi aveva davvero le tre storiche mappate se
+  le ritrova seminate; chi non ne configura nessuna non vede il pannello.
+
+### Corretto
+
+- **Il blocco «Si vede ma non si comanda» della presa si salva davvero.**
+  Il salvataggio passava da un nome che nessuno aveva mai messo su root e
+  faceva no-op in silenzio: la casella tornava vuota e la presa restava
+  comandabile. Ora il blocco si scrive, la casella riaperta si ritrova
+  spuntata, e tolta se ne va.
+
+- **Gli avatar sono coerenti: la barba segue i capelli, gli occhi
+  dell'uomo non sono piu' truccati.** La barba «naturale» restava nera
+  anche su una testa bionda o bianca: ora eredita il colore della chioma
+  (bionda sui biondi, grigia sui bianchi, rame sui rossi), e chi un
+  colore l'ha scelto apposta vince sempre. Le palpebre dell'espressione
+  contenta curvavano uguali su tutti i volti e il bordo-ciglio era una
+  riga scura da eyeliner — «l'avatar uomo ha occhi da donna»: sui volti
+  maschili la palpebra ora curva poco, e il ciglio e' leggero a occhio
+  socchiuso, deciso solo a occhio chiuso. Al secondo giro di scatti:
+  l'uomo a riposo tiene gli occhi APERTI del render (la palpebra dipinta
+  compare solo nel battito, quasi dritta) — la fascia color pelle a
+  occhio socchiuso si leggeva comunque come ombretto; e la barba
+  trapiantata segue il viso — la campana della maschera prendeva anche
+  le ciocche accanto alle orecchie della donatrice e usciva una lastra
+  piu' larga delle guance, col fondo tagliato piatto: ora sta dentro le
+  guance, scende sotto gli zigomi e chiude a punta come la nativa. E il
+  colletto di polo e camicia — con la collana — sta al collo misurato
+  del busto: disegnato a coordinate fisse, galleggiava sul braccio.
+
+- **Il «Salva sezione» delle Aperture salva tutte le porte, non solo la
+  prima.** Il tasto verde premeva i salvataggi nascosti riga per riga; il
+  primo valido ridisegnava l'editor e i bottoni delle righe dopo restavano
+  staccati dal documento — il gestore li ignorava, l'entita' appena scelta
+  si perdeva e la pagina Sicurezza mostrava una porta sola. Ora il gesto
+  legge tutte le righe e scrive una volta; la riga aggiunta e mai
+  compilata non resta in giro come «Porta 2» fantasma, e quella a meta'
+  resta scritta, aperta e con l'errore in vista.
+
+- **La caccia ai duplicati e alle sovrascritture delle telecamere.** Cinque
+  cose vere trovate e curate. L'«Auto-rileva» della configurazione
+  rimpiazzava la lista delle telecamere con tutte le `camera.*` di Home
+  Assistant: nomi propri, stanza e nome del flusso go2rtc sparivano (e il
+  WebRTC smetteva di funzionare) — ora le esistenti restano come sono e si
+  aggiungono solo le entita' nuove. La modifica di una telecamera
+  ricostruiva la riga da zero, buttando i campi che il form non conosce
+  (la stanza scritta dal registro di HA) — ora li conserva. La procedura
+  guidata aveva DUE `wzAddStanza`: quella senza il ramo di modifica
+  ombreggiava quella vera, e modificare una stanza la duplicava — la
+  doppia e' morta. Il passo finale della procedura scriveva anche le liste
+  vuote sopra quelle piene (e tre righe erano copiate due volte) — ora una
+  lista vuota non cancella niente. E i gestori delle risposte websocket
+  non si buttavano alla riconnessione: si accumulavano a ogni caduta di
+  linea, sottoscrizioni WebRTC comprese. In piu' e' morta `renderVideoHls`,
+  una seconda filiera video mai chiamata, col suo `#popup-cam-video` che
+  non esiste in nessun HTML.
+
+- **Le telecamere parlano anche il WebRTC nativo di Home Assistant.** La
+  plancia conosceva solo il dialetto dell'estensione go2rtc: senza il nome
+  del flusso compilato la strada WebRTC si saltava, anche quando Home
+  Assistant dichiarava di saper negoziare da solo (2024.11+, ad esempio
+  le Reolink). Ora, se la telecamera espone il WebRTC nativo, la plancia
+  negozia direttamente sulla websocket di HA — offerta, risposta e
+  candidati, col vecchio scambio a risposta unica come ripiego per i core
+  piu' datati — e il nome del flusso go2rtc resta solo per chi ce l'ha,
+  e continua a vincere se compilato.
+
+- **La matita della telecamera riporta l'entita' anche nella veste.** In
+  modifica l'entita' «spariva»: la matita riempiva il campo grezzo in
+  silenzio e la chip che lo veste — ridipinta solo quando il campo
+  annuncia un cambio — continuava a dire «Scegli entita'» sopra un campo
+  pieno. Ora la matita annuncia il cambio e la veste dice quello che c'e'.
+
+- **Il cerchio del flusso riempito dagli elettrodomestici porta i loro
+  watt.** Scegliendo elettrodomestici nei Carichi il cerchio nasceva ma
+  restava senza valore, mentre il popup dell'apparecchio i watt li
+  mostrava: gli apparecchi del mondo vecchio portano solo l'elenco di
+  entita', senza la casella canonica della potenza, e il cerchio leggeva
+  solo quella. Ora fa la stessa domanda del popup: la prima entita' che
+  parla in watt e' la potenza.
+
+- **Le Aperture usano il catalogo icone di casa.** La lente dell'icona di
+  avvisi, aperture e porte apriva una griglia di emoji nata a parte: ora
+  apre il motore delle icone del progetto — porte, cancelli e serrature
+  disegnati coi tratti di casa. La griglia di prima resta solo come
+  ripiego se il motore non e' ancora in piedi.
+
+- **«Aggiungi persona» non butta piu' la persona che si stava
+  scrivendo.** Il tasto ridisegnava la scheda con quello che c'era in
+  memoria: il nome appena scritto — su una persona ancora senza entita' —
+  spariva. Ora quello che c'e' nelle righe si mette al sicuro prima di
+  aggiungere (e prima di importare), e la bozza di una persona nata senza
+  entita' vale anche se l'entita' arriva dopo.
+
+- **Le Prese abitano anche la pagina Stanze.** La sezione Prese non veniva
+  riportata dentro Stanze: ora ogni presa sta nella sua stanza, subito
+  dopo le luci, con la stessa card e lo stesso interruttore — e i Carichi
+  hanno lasciato la spina alle Prese, prendendo il fulmine.
+
+- **Gas e monossido entrano nella lista del fumo.** «Rilevatori fumo/gas
+  in config sicurezza»: Home Assistant li dichiara con lo stesso
+  vocabolario del fumo (`device_class` gas e carbon_monoxide), e ora la
+  famiglia sta insieme — stessa lista sorvegliata che si riempie da sola,
+  stessa voce in configurazione col cestino, stesso blocco nella pagina
+  Sicurezza. La voce si chiama «Rilevatori fumo e gas».
+
+- **Il popup dell'Auto dice quando finisce, e parla in parole.** Accanto
+  al tempo che manca («2H 15M RIM.») ora c'e' l'ora a cui si arriva
+  («· verso le 10:46»), calcolata dalla stessa formula del guscio; e i
+  codici IEC del cavo che il guscio non conosce — minuscole, parole di
+  evcc — escono in parole, non piu' «C» nudo nelle caselle. La frase
+  d'analisi resta dove sta: nel popup del widget Auto.
+
+- **La finestra aperta di una tessera si aggiorna senza tremare.** Il
+  tremolio era ricomparso perche' il corpo del popup veniva buttato via e
+  riscritto a ogni valore che cambiava — ogni due secondi su una casa
+  viva — e con lui se ne andavano il punto di scorrimento, la corsa
+  disegnata e i nodi sotto il dito. Quando la forma non cambia, ora i
+  valori nuovi si travasano nei nodi che ci sono gia'; quando cambia
+  davvero, la riscrittura almeno tiene il punto di lettura.
+
+- **Il Chiudi dei popup resta in cima, anche a lista scorsa.** Nei popup
+  lunghi — il Clima rapido con tante stanze, i dettagli fitti —
+  l'intestazione con la croce scorreva via col contenuto: «il tasto Chiudi
+  sta troppo in fondo e non si legge». Ora e' incollata al bordo alto del
+  foglio che scorre, col fondo pieno, e il foglio non supera mai l'area
+  visibile vera dello schermo (misura dvh, dove il browser la capisce).
+
+- **La pillola «Caldaia accesa» segue la caldaia configurata, e il popup
+  Clima distingue chi scalda da chi raffresca.** La pillola sotto il meteo
+  leggeva `switch.caldaia` cablato: ora segue la voce caldaia di
+  `cd_termico_caldo`, e senza una caldaia configurata sparisce. Il popup
+  «Clima attivi» mescolava tutto: ora le righe in riscaldamento stanno
+  sotto la loro testata e quelle in raffrescamento sotto la loro (quando i
+  due mondi convivono), e ogni riga — pillola compresa, e cosi' le voci del
+  pannello del popup Caldo — dice da quanto tempo e' accesa.
+
+- **Il popup degli elettrodomestici parla in parole, non in slug.** Le
+  caselle delle misure stampavano il friendly name tale e quale —
+  «W_KWH_FRIGO», «ENERGY_OGGI_FRIGO» — con la batteria (🔋) sopra i kWh:
+  «si capisce poco cosi'» e «non ha senso il simbolo batteria». Ora ogni
+  lettura porta la sua parola — Potenza, Energia oggi, Energia del mese,
+  Contatore totale, Temperatura — decisa prima di tutto dall'unita' (un
+  sensore in watt e' potenza anche se lo slug giura «kwh»), i kWh vestono
+  il grafico, e nei nomi restanti gli underscore diventano spazi col nome
+  dell'elettrodomestico tolto di mezzo: e' gia' scritto in cima alla
+  finestra.
+
+- **I tasti delle Azioni rapide restano tasti, anche su uno schermo largo.**
+  La griglia del vassoio era dichiarata apposta senza tetto di larghezza, e
+  con due o tre azioni ogni tasto si stirava a mezzo metro — «la sezione non
+  si renderizza bene». Ora un tasto arriva al massimo a 220 pixel e la fila
+  si centra nel ripiano, senza buchi fantasma ai lati.
+
+- **Il popup del Clima rapido veste le stanze come si deve.** Tre difetti in
+  una finestra: le card senza tetto diventavano quadrati da un quarto di
+  schermo, il disegno di casa usciva piccolo e sbiadito dal grigio dello
+  spento, e l'unita' senza stanza configurata cadeva sulla fiamma gigante di
+  sistema — «Bagno e Camera da Letto non sono congrue». Ora le stanze sono
+  pastiglie con un tetto di 150 pixel, il disegno e' a 46 e resta leggibile
+  anche da spento (lo stato lo dice il colore, non la nebbia), la stanza si
+  trova anche per NOME quando il legame non e' configurato, e chi resta
+  orfano prende il termosifone del catalogo.
+
+- **Il cancello non e' piu' una sbarra da cantiere.** Il ripiego a emoji
+  della voce Cancello — nelle azioni come negli avvisi — era 🚧, la sbarra
+  dei lavori stradali. Di norma esce il disegno di casa; quando tocca
+  all'emoji ora esce il portale, lo stesso che il guscio usa nella conferma
+  «Apri Cancello».
+
+- **La testata di Home si ripara da sola, col meteo vestito.** Il guscio la
+  nasconde con uno stile inline quando si apre un'altra sezione e la
+  rimostrava SOLO al clic sulla linguetta Home: qualunque strada riportasse
+  alla Home senza quel clic la lasciava invisibile per sempre — «scompare la
+  scritta in alto, si vede solo il meteo». E se la classe della fascia si
+  perdeva col meteo gia' dentro, il meteo tornava alla taglia da card intera
+  e sfondava i margini. Ora chiunque passi ripara: a ogni giro di stati, a
+  fine scroll, al cambio di visibilita' — e la classe della fascia si
+  riafferma sempre. Sulle altre sezioni la testata nascosta resta nascosta,
+  come deve.
+
 ## 1.4.0
 
 ### Nuovo

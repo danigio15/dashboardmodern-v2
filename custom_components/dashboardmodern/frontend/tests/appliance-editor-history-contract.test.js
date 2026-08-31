@@ -16,7 +16,12 @@ test("editing the lifetime meter preserves an independent current-period Report 
 });
 
 test("legacy history only prefills Total energy when it is actually cumulative", () => {
-  assert.match(source, /const totalInitial = \[device\.total_energy_entity, device\.history_entity, device\.report_entity\]/);
+  /* Prettier puo' andare a capo dopo l'uguale: la sentinella guarda la
+   * sostanza — le tre caselle, in quest'ordine — non l'impaginazione. */
+  assert.match(
+    source,
+    /const totalInitial =\s*\[device\.total_energy_entity, device\.history_entity, device\.report_entity\]/,
+  );
   assert.match(source, /\.find\(cumulativeEntity\)/);
   assert.doesNotMatch(source, /device\.total_energy_entity \|\| device\.history_entity/);
 });

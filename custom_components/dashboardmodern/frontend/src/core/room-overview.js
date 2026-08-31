@@ -87,6 +87,9 @@ export function roomOrderRank(rooms = []) {
 export const ROOM_BLOCKS = Object.freeze([
   { key: "clima", section: "climate" },
   { key: "luci", section: "lights" },
+  /* Le prese hanno la stanza addosso come le luci — «la sezione Prese non
+   * viene riportata dentro Stanze» — e qui si leggono dall'altro lato. */
+  { key: "prese", section: "prese" },
   { key: "coperture", section: "covers" },
   { key: "elettrodomestici", section: "appliances" },
   { key: "telecamere", section: "cameras" },
@@ -245,6 +248,7 @@ export function roomOverviewModel(input = {}) {
   const sorgenti = {
     climate: array(input.climate),
     lights: lightItems(input.lights, input.lightRooms),
+    prese: array(input.prese),
     covers: array(input.covers),
     appliances: array(input.appliances),
     cameras: array(input.cameras),

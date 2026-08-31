@@ -166,7 +166,10 @@ test("il colore del vestito tocca solo i busti ricolorabili, e «blu» e' la fab
 
 test("accessori: occhiali e collana sono operazioni, e con le lenti scure niente ciglia", () => {
   const tondi = risolviAvatar3d({ persona: "uomo", occhiali: "tondi" });
-  assert.partialDeepStrictEqual(tondi.operazioni.testa.at(-1), { tipo: "occhiali", stile: "tondi" });
+  assert.partialDeepStrictEqual(tondi.operazioni.testa.at(-1), {
+    tipo: "occhiali",
+    stile: "tondi",
+  });
   assert.ok(tondi.occhi.length === 2, "con le lenti trasparenti gli occhi battono ancora");
   const sole = risolviAvatar3d({ persona: "uomo", occhiali: "sole" });
   assert.deepEqual(sole.occhi, [], "le palpebre sopra le lenti sarebbero pelle sul vetro");
@@ -191,4 +194,49 @@ test("il sorteggio consegna una faccia completa dentro i cataloghi nuovi", () =>
   const faccia = avatar3dACaso(() => semi[(semi.push(semi.shift()), 0)]);
   assert.deepEqual(faccia, normalizeAvatar3d(faccia), "gia' normale, senza buchi");
   assert.ok(risolviAvatar3d(faccia), "e si risolve in un ritratto vero");
+});
+
+test("la barba «naturale» segue i capelli: bionda sui biondi, grigia sui bianchi", () => {
+  /* Su una testa bionda una barba nera non e' naturale, e' un trucco. */
+  for (const [coloreCapelli, atteso] of [
+    ["biondo", [236, 190, 100]],
+    ["bianco", [176, 178, 184]],
+    ["rosso", [190, 92, 46]],
+  ]) {
+    const risolto = risolviAvatar3d({
+      persona: "uomo",
+      capelli: "lisci",
+      coloreCapelli,
+      barba: "corta",
+      carnagione: "chiara",
+    });
+    const barba = risolto.operazioni.testa.find((op) => op.tipo === "barba");
+    assert.ok(barba, `${coloreCapelli}: la barba c'e'`);
+    assert.deepEqual(barba.rgb, atteso, `${coloreCapelli}: la barba segue la chioma`);
+  }
+  /* Chi il colore l'ha scelto apposta vince sulla coerenza. */
+  const scelta = risolviAvatar3d({
+    persona: "uomo",
+    capelli: "lisci",
+    coloreCapelli: "biondo",
+    barba: "corta",
+    coloreBarba: "castana",
+    carnagione: "chiara",
+  });
+  const barbaScelta = scelta.operazioni.testa.find((op) => op.tipo === "barba");
+  assert.deepEqual(barbaScelta.rgb, [141, 92, 47]);
+  /* E coi capelli al naturale resta tutto com'era: render barbuto, zero ritocchi. */
+  const naturale = risolviAvatar3d({
+    persona: "uomo",
+    capelli: "lisci",
+    barba: "corta",
+    carnagione: "chiara",
+  });
+  assert.deepEqual(tipi(naturale), []);
+});
+
+test("il ritratto dichiara il genere del volto, per le palpebre di chi disegna", () => {
+  assert.equal(risolviAvatar3d({ persona: "uomo", carnagione: "chiara" }).genere, "uomo");
+  assert.equal(risolviAvatar3d({ persona: "donna", carnagione: "chiara" }).genere, "donna");
+  assert.equal(risolviAvatar3d({ persona: "anziana", carnagione: "chiara" }).genere, "donna");
 });

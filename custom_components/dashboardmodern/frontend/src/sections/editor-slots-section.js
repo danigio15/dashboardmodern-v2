@@ -108,7 +108,10 @@ function ensureSlotClear(slot, input) {
   clear.type = "button";
   clear.className = "dm-slot-clear";
   clear.innerHTML = `<span aria-hidden="true">🗑</span><span class="dm-slot-clear-tx">${esc(t("Elimina", "Remove"))}</span>`;
-  clear.setAttribute("aria-label", t("Togli l'entità da questo campo", "Remove the entity from this field"));
+  clear.setAttribute(
+    "aria-label",
+    t("Togli l'entità da questo campo", "Remove the entity from this field"),
+  );
   clear.hidden = !clean(input.value);
   clear.addEventListener("click", (event) => {
     event.preventDefault();
@@ -603,7 +606,10 @@ function decorateField(input) {
   clearField.type = "button";
   clearField.className = "dm-chip-clear";
   clearField.innerHTML = `<span aria-hidden="true">🗑</span><span class="dm-chip-manual-tx">${esc(t("Elimina", "Remove"))}</span>`;
-  clearField.setAttribute("aria-label", t("Togli l'entità da questo campo", "Remove the entity from this field"));
+  clearField.setAttribute(
+    "aria-label",
+    t("Togli l'entità da questo campo", "Remove the entity from this field"),
+  );
   clearField.addEventListener("click", (event) => {
     event.preventDefault();
     if (!clean(input.value)) return;
@@ -1019,6 +1025,16 @@ function installStyles() {
 function bindLegacyEntryPoints() {
   onEditorRedraw("__dmEditorSlots_editorSwitch", schedule);
   wrapFunction("apriConfigEntita", "__dmEditorSlots_apriConfigEntita", schedule);
+  /* La matita della telecamera riempie i campi in silenzio: scrive `.value`
+   * e non annuncia niente, e la chip che veste il campo — che si ridipinge
+   * sul `change` — restava a dire «Scegli entita'» sopra un campo pieno:
+   * «in modifica sparisce l'entita'». Dopo la matita si annuncia il cambio,
+   * e la chip dice quello che c'e' davvero. */
+  wrapFunction("edEditCamera", "__dmEditorSlots_edEditCamera", () => {
+    for (const id of ["ed-cam-name", "ed-cam-ent", "ed-cam-stream"]) {
+      doc?.getElementById?.(id)?.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  });
 }
 
 export function installEditorSlotsSection() {

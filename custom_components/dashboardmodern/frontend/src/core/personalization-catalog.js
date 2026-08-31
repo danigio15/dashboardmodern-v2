@@ -521,7 +521,12 @@ export const ACTION_ICON_CATALOG = Object.freeze(
      * vero due riquadri piu' in la'. Segnalato come «l'icona della porta non
      * compare piu'», ed era esattamente cosi': non c'era. */
     ["door", "Porta", "Door", "mdi:door-closed", "🚪"],
-    ["gate", "Cancello", "Gate", "mdi:gate", "🚧"],
+    /* Il ripiego a emoji del cancello era 🚧 — la sbarra dei lavori
+     * stradali. Dal campo: «ho inserito cancello e mi ritrovo una sbarra
+     * dei lavori stradali». Di norma esce il disegno di casa; quando tocca
+     * all'emoji, meglio il portale ⛩️ — lo stesso che il guscio usa nella
+     * conferma «Apri Cancello». */
+    ["gate", "Cancello", "Gate", "mdi:gate", "⛩️"],
     ["shutters", "Tapparelle", "Shutters", "mdi:window-shutter", "🪟"],
     ["scene", "Scena", "Scene", "mdi:movie-open", "🎬"],
     ["script", "Script", "Script", "mdi:script-text-play", "▶️"],
@@ -866,7 +871,7 @@ const LOAD_APPLIANCE_DEFINITIONS = [
     "sauna idromassaggio jacuzzi",
   ],
   ["door", "Porta", "Door", "mdi:door-closed", "🚪", "porta portoncino ingresso door serratura"],
-  ["gate", "Cancello", "Gate", "mdi:gate", "🚧", "cancello portone motore"],
+  ["gate", "Cancello", "Gate", "mdi:gate", "⛩️", "cancello portone motore"],
   [
     "shutters",
     "Tapparelle",

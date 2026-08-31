@@ -41,7 +41,17 @@ const USER_DATA_VERSION = 1;
  * sensori di fumo gia' visti (`cd_fumo_rilevato`): entrambe descrivono la
  * casa, non il telefono, e senza stare qui resterebbero sul dispositivo che
  * le ha configurate. */
-export const CONFIG_KEYS_REVISION = 13;
+/* La revisione 14 aggiunge il verso girato (#244): i sensori porta/finestra
+ * che stanno a ON quando l'infisso e' chiuso (`cd_stati_invertiti`). E' un
+ * fatto dei fili, non del telefono: letto da un dispositivo solo, gli altri
+ * continuerebbero a dire «aperta» su una finestra chiusa. Con lei viaggiano
+ * anche le quattro della stessa stagione che erano rimaste solo nelle liste
+ * legacy del runtime — le voci del Caldo (`cd_termico_caldo`), i programmi
+ * della lavatrice (`cd_lavatrice_programmi`), la card del Clima girata
+ * (`cd_clima_inverti_card`) e la stazione meteo propria
+ * (`cd_meteo_entita_proprie`): senza stare qui restavano sul dispositivo
+ * che le aveva configurate e il ripristino da un altro le perdeva. */
+export const CONFIG_KEYS_REVISION = 14;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -127,6 +137,16 @@ export const CONFIG_KEYS = Object.freeze([
   // Le prese: TV del salotto, Firestick, modem.
   "cd_prese",
   "cd_luci_room_order",
+  // I sensori porta/finestra che parlano al contrario (#244): ON = chiuso.
+  "cd_stati_invertiti",
+  // Le voci della parte Caldo del Clima (caldaia, pompe): lista libera.
+  "cd_termico_caldo",
+  // I programmi rapidi della lavatrice: nome, entita', icona.
+  "cd_lavatrice_programmi",
+  // La card del Clima girata: grande l'ambiente, piccola la target.
+  "cd_clima_inverti_card",
+  // La stazione meteo con entita' proprie, dietro la sua casella.
+  "cd_meteo_entita_proprie",
   "cd_clima_units",
   // Cosa accende il tasto Clima rapido: modalita', temperatura e ventola.
   "cd_clima_rapido",
@@ -872,7 +892,10 @@ function refreshRuntimeAfterRestore(remote) {
   try {
     root.DashboardModernModules?.store?.migrate?.();
   } catch (error) {
-    console.warn("[DashboardModern] canonical state reload after persistence restore failed", error);
+    console.warn(
+      "[DashboardModern] canonical state reload after persistence restore failed",
+      error,
+    );
   } finally {
     if (!eraRipristino) delete root.__DASHBOARDMODERN_PERSIST_RESTORE__;
   }
@@ -1017,7 +1040,10 @@ async function hydrateLegacyUserData() {
     state.dirtyAt = 0;
     state.localWasConfigured = localConfigured;
     writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
-    if (Number(remote.keys_revision) < CONFIG_KEYS_REVISION || remote.migrated_from === "legacy-flat")
+    if (
+      Number(remote.keys_revision) < CONFIG_KEYS_REVISION ||
+      remote.migrated_from === "legacy-flat"
+    )
       await pushLegacyUserData();
     return false;
   }
@@ -1138,7 +1164,10 @@ function installStorageMutationBridge() {
 }
 
 function resetConfirmation() {
-  return t("Eliminare tutta la configurazione DashboardModern di questa plancia?", "Delete all DashboardModern configuration for this dashboard?");
+  return t(
+    "Eliminare tutta la configurazione DashboardModern di questa plancia?",
+    "Delete all DashboardModern configuration for this dashboard?",
+  );
 }
 
 /* Svuotare la propria configurazione, non quella di Home Assistant.

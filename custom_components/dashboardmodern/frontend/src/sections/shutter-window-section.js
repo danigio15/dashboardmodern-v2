@@ -19,7 +19,17 @@
  */
 import { coverEntries, coverKindLabel } from "../core/cover-kind.js";
 import { contactEntity, shutterWindowModel } from "../core/shutter-window.js";
-import { allStates, clean, dashboardStore, doc, installStyle, readJson, root, t } from "./shared.js";
+import { CHIAVE_VERSI, apertaSecondoVerso, insiemeInvertiti } from "../core/verso-aperture.js";
+import {
+  allStates,
+  clean,
+  dashboardStore,
+  doc,
+  installStyle,
+  readJson,
+  root,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SHUTTER_WINDOW__";
 const STYLE_ID = "dm-shutter-window-style";
@@ -95,6 +105,12 @@ export function paintCard(card, states = allStates()) {
   build(windowNode);
   const cover = coverForCard(card);
   const model = shutterWindowModel(cover || {}, states, root.resolveEntity || ((value) => value));
+  /* Il contatto girato (#244) sta a ON quando l'anta e' chiusa: il disegno
+   * e la pastiglia seguono il verso vero, non quello del filo. */
+  model.open = apertaSecondoVerso(
+    model.open,
+    insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(clean(model.entity)),
+  );
   // Aperto solo quando il contatto lo dice: un sensore che non risponde non e'
   // una finestra chiusa, ma il disegno di riposo e' quello, e non si inventa
   // un'apertura che nessuno ha misurato.
@@ -174,11 +190,7 @@ function caselle() {
      * la seconda «Chiudi» non chiude niente. Vale solo quando la casella
      * principale porta anch'essa un rele': su una copertura vera i due versi
      * li ha gia' Home Assistant. */
-    [
-      "ed-tp-down",
-      t("Relè di discesa", "Down relay"),
-      "switch.tapparella_giu",
-    ],
+    ["ed-tp-down", t("Relè di discesa", "Down relay"), "switch.tapparella_giu"],
     ["ed-tp-tenda", coverKindLabel("tenda"), "cover.tenda_salotto"],
     /* Anche la tenda puo' stare su due rele' — «ho due tende su due Shelly
      * 2PM» e' la segnalazione da cui e' nato tutto: ognuna delle tre

@@ -117,7 +117,10 @@ test("i watt si contano leggendo l'unita', non solo il numero", async () => {
   // E la tessera legge da li', non piu' dal numero nudo.
   const ponte = leggi("sections/home-widgets-section.js");
   assert.match(ponte, /import \{ wattsFromState \} from "\.\.\/core\/signed-energy\.js"/);
-  assert.match(ponte, /watts: wattsOf\(states, clean\(model\?\.\[group\]\?\.\[field\]\) \|\| slot\)/);
+  assert.match(
+    ponte,
+    /watts: wattsOf\(states, clean\(model\?\.\[group\]\?\.\[field\]\) \|\| slot\)/,
+  );
   // Anche il flusso, che guardava solo il kW e prendeva un MW per un watt.
   const flusso = leggi("sections/energy-flow-section.js");
   assert.match(flusso, /return wattsFromState\(nodo\)/);
@@ -135,7 +138,10 @@ test("la finestra col solo contatto entra nella tessera delle tapparelle", () =>
   assert.match(ponte, /if \(isWindowOnly\(item\)\)/);
   assert.match(ponte, /soloSensore: true/);
   // Il contatto parla la sua lingua, e non ha una posizione da inventare.
-  assert.match(ponte, /windowOpenFromState\(current\?\.state\) === true/);
+  // Dal #244 la lettura passa dal verso (il sensore girato dice il contrario),
+  // ma la sorgente resta windowOpenFromState: una regola sola.
+  assert.match(ponte, /windowOpenFromState\(current\?\.state\)/);
+  assert.match(ponte, /apertaSecondoVerso\(/);
   assert.match(ponte, /position: soloSensore \|\| !Number\.isFinite\(position\) \? null/);
   // E non prende i comandi: `isCover` resta falso, quindi niente frecce.
   assert.match(ponte, /isCover: !soloSensore && \/\^cover\\\.\/i\.test\(entity\)/);

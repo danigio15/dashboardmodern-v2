@@ -223,8 +223,27 @@ function stateWatts(states, entity) {
  * read from state; a load that has nothing but a lifetime meter and no bundle
  * sample reads as absent, because the alternative is printing a running total
  * as today's or this month's consumption. */
+/* La potenza di chi non ha la casella canonica.
+ *
+ * Gli elettrodomestici configurati nel mondo vecchio portano solo
+ * `entities: [...]`, senza `power_entity`: il loro popup i watt li trova
+ * scandendo le entita' — e' cosi' che «il popup dello stesso elettrodomestico
+ * mostra i valori corretti» — ma il cerchio che li somma leggeva solo la
+ * casella canonica e restava senza valore. Stessa domanda, stessa risposta:
+ * la prima entita' che parla in watt e' la potenza. */
+function potenzaImplicita(load, states) {
+  for (const grezza of Array.isArray(load?.entities) ? load.entities : []) {
+    const id = clean(typeof grezza === "string" ? grezza : grezza?.entity || grezza?.entity_id);
+    if (!id) continue;
+    const unit = clean(states?.[id]?.attributes?.unit_of_measurement).toLowerCase();
+    if (["w", "kw", "mw"].includes(unit)) return id;
+  }
+  return "";
+}
+
 function periodValue(load, period, states, recorderValues) {
-  const entity = flowPeriodEntity(load, period);
+  const canonica = flowPeriodEntity(load, period);
+  const entity = canonica || (period === "instant" ? potenzaImplicita(load, states) : canonica);
   if (period !== "instant" && recorderValues) {
     const key = clean(load.id) || clean(load.name);
     const fromBundle =
@@ -251,7 +270,25 @@ export function subloadsOf(load = {}, loads = [], appliances = []) {
   const fromAppliances = (Array.isArray(appliances) ? appliances : []).filter(
     (item) => tagged(item) && !known.has(clean(item.id)),
   );
-  return [...own, ...fromAppliances];
+  /* Il cerchio puo' essere una STANZA: «flussi raggruppati per stanza,
+   * cerchio = stanza col totale». Con `flow_room` sul carico entrano tutti
+   * gli elettrodomestici di quella stanza — anche quelli configurati domani,
+   * senza altro da fare — tranne chi e' gia' dentro un altro cerchio, che
+   * altrimenti verrebbe contato due volte. */
+  const stanza = clean(load?.metadata?.flow_room).toLowerCase();
+  let fromRoom = [];
+  if (stanza) {
+    for (const item of [...own, ...fromAppliances]) known.add(clean(item.id));
+    fromRoom = (Array.isArray(appliances) ? appliances : []).filter((item) => {
+      if (!item || known.has(clean(item.id))) return false;
+      const suo = clean(item?.metadata?.beta27_subload_group);
+      if (suo && suo !== group) return false;
+      return [item.room_id, item.roomId, item.room].some(
+        (voce) => clean(voce).toLowerCase() === stanza,
+      );
+    });
+  }
+  return [...own, ...fromAppliances, ...fromRoom];
 }
 
 /* A circle holding appliances reads as their sum.

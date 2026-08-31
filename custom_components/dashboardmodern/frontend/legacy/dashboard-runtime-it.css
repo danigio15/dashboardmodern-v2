@@ -4867,6 +4867,28 @@ html[data-theme="dark"] .ev-waw-close:hover {
   .ev-waw-title { font-size: 18px; }
 }
 
+
+/* Il Chiudi resta dove si trova: in cima, anche a lista scorsa.
+   Dal campo: «il tasto Chiudi sta troppo in fondo e non si legge» — nei
+   popup lunghi (il Clima rapido con tante stanze, i dettagli fitti)
+   l'intestazione scorreva via con il contenuto e per uscire bisognava
+   risalire tutto. L'intestazione ora e' incollata al bordo alto del foglio
+   che scorre, con il fondo pieno perche' le righe non le passino sotto. */
+.modal-card > .ev-waw-header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--card-bg);
+  box-shadow: 0 -40px 0 0 var(--card-bg);
+}
+/* E il foglio non supera mai lo schermo vero: 95vh sull'app Android e' piu'
+   alto dell'area visibile (la barra dell'app non conta nei vh), e il fondo
+   del popup finiva sotto. dvh misura quello che si vede; chi non lo capisce
+   scarta la riga e tiene il 95vh di sopra. */
+.modal-card {
+  max-height: min(95vh, 92dvh);
+}
+
 /* Chi ha chiesto meno movimento non lo riceve: la finestra c'e' o non c'e'. */
 @media (prefers-reduced-motion: reduce) {
   .modal-card, .modal-wrapper { transition: opacity 0.12s linear !important; }

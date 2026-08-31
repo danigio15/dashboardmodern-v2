@@ -246,11 +246,30 @@ function colletto(vestito, colore) {
  * corta al naturale sono «beard». Il resto e' base piu' vicina + ritocchi. */
 const VARIANTE_COLORE = { biondo: "biondi", rosso: "rossi", bianco: "bianchi" };
 
+/* La barba «naturale» segue i capelli: su una testa bionda una barba nera
+ * non e' naturale, e' un trucco. Chi un colore l'ha scelto apposta vince
+ * sempre; chi ha lasciato «naturale» trova la barba del colore della
+ * chioma — bionda coi biondi, grigia coi bianchi, rame coi rossi. */
+const BARBA_DA_CAPELLI = Object.freeze({
+  biondo: "bionda",
+  bianco: "grigia",
+  grigio: "grigia",
+  rosso: "rame",
+  rame: "rame",
+  castano: "castana",
+});
+
+export function coloreBarbaCoerente(scelte) {
+  if (scelte.coloreBarba !== "naturale") return scelte.coloreBarba;
+  if (!personaHaCapelli(scelte.persona)) return "naturale";
+  return BARBA_DA_CAPELLI[scelte.coloreCapelli] || "naturale";
+}
+
 function testaEOperazioni(scelte) {
   const cerca = (variante) =>
     AVATAR_TESTE[`${scelte.persona}|${variante ?? ""}|${scelte.carnagione}`];
   const operazioni = [];
-  const tintaBarba = TINTE_BARBA[scelte.coloreBarba] || null;
+  const tintaBarba = TINTE_BARBA[coloreBarbaCoerente(scelte)] || null;
 
   if (!personaHaCapelli(scelte.persona)) {
     /* Testa unica: ragazzi e anziani. La barba, se scelta, si trapianta. */
@@ -378,11 +397,17 @@ export function risolviAvatar3d(input) {
       ? ricoloreAbito(scelte.vestito, scelte.coloreVestito)
       : null;
     if (ricolore) perBusto.push(ricolore);
+    /* Il collo NON sta al centro della tela: sui busti «casual» (la posa
+     * della mano) la testa siede a cx≈72 su 192, e il colletto disegnato a
+     * coordinate fisse galleggiava sul braccio. L'ancora e' la misura vera
+     * del busto: colletto e collana seguono il collo, non la tela. */
+    const ancora = misuraBusto ? { cx: misuraBusto.testa.cx } : null;
     const cucito = colletto(scelte.vestito, scelte.coloreVestito);
-    if (cucito) perBusto.push(cucito);
+    if (cucito) perBusto.push(ancora ? { ...cucito, ancora } : cucito);
     /* La collana sta al girocollo del busto: senza busto non c'e' un collo
      * su cui appoggiarla, e la scelta non ha effetto. */
-    if (scelte.collana !== "nessuna") perBusto.push({ tipo: "collana", stile: scelte.collana });
+    if (scelte.collana !== "nessuna")
+      perBusto.push({ tipo: "collana", stile: scelte.collana, ...(ancora ? { ancora } : {}) });
   }
 
   const lunga = operazioni.some((op) => op.tipo === "barba" && op.foggia === "lunga");
@@ -392,6 +417,9 @@ export function risolviAvatar3d(input) {
     scala,
     x,
     y,
+    /* Il genere del volto: le palpebre di chi disegna curvano meno sui
+     * volti maschili — la stessa curva su tutti faceva «occhi da donna». */
+    genere: genereDi(scelte.persona),
     /* Le misure della testa nel SUO spazio, non in quello della tela: le
      * operazioni — iridi, occhiali, maschera della barba — lavorano sulla
      * testa prima dell'incastro, ed e' li' che gli servono gli occhi. */

@@ -461,7 +461,8 @@ function groupedMarkup(units, labels) {
         .sort((sinistra, destra) => stanza(sinistra.room) - stanza(destra.room))
         .map((unit) => cardMarkup(unit, labels))
         .join("");
-      const heading = floor && keys.length > 1 ? `<div class="dm-cl-floor">🏢 ${esc(floor)}</div>` : "";
+      const heading =
+        floor && keys.length > 1 ? `<div class="dm-cl-floor">🏢 ${esc(floor)}</div>` : "";
       return `${heading}${cards}`;
     })
     .join("");
@@ -485,13 +486,27 @@ function signature(units) {
 function syncGrid(grid, units, labels) {
   const current = signature(units);
   if (grid._dmClimaSig === current) return false;
-  grid.innerHTML = units.length ? groupedMarkup(units, labels) : emptyMarkup(grid.dataset.dmClZone, labels);
+  grid.innerHTML = units.length
+    ? groupedMarkup(units, labels)
+    : emptyMarkup(grid.dataset.dmClZone, labels);
   grid._dmClimaSig = current;
   return true;
 }
 
 function visibleZone() {
   return doc?.querySelector(".clima-zone-caldo.show") ? "caldo" : "freddo";
+}
+
+/* «Flag per invertire i dati della card: target sotto al posto di ambiente,
+ * ambiente sopra al posto di target» — c'e' chi guarda la card per sapere
+ * quanti gradi FA la stanza, non quanti ne chiede. Il flag e' uno per la
+ * sezione, vive in `cd_clima_inverti_card` e viaggia con la configurazione. */
+function cartaInvertita() {
+  try {
+    return root.localStorage?.getItem?.("cd_clima_inverti_card") === "1";
+  } catch (_errore) {
+    return false;
+  }
 }
 
 function paintCard(card, unit, reading, labels) {
@@ -502,17 +517,28 @@ function paintCard(card, unit, reading, labels) {
   const stateChip = card.querySelector("[data-dm-cl-state]");
   if (stateChip) stateChip.textContent = stateLabel(reading, zone, labels);
 
+  /* Col flag acceso il numero grande e' l'ambiente e la riga piccola il
+   * target; le didascalie seguono i numeri, o direbbero il falso. */
+  const invertita = cartaInvertita();
+  const grande = invertita ? reading.ambient : reading.target;
+  const piccolo = invertita ? reading.target : reading.ambient;
   const target = card.querySelector("[data-dm-cl-target]");
   if (target) {
-    const value = reading.target;
     target.innerHTML =
-      value === null
+      grande === null
         ? `--<span class="dm-cl-deg">°</span>`
-        : `${Math.round(value * 10) / 10}<span class="dm-cl-deg">°</span>`;
+        : `${Math.round(grande * 10) / 10}<span class="dm-cl-deg">°</span>`;
   }
+  const didascalia = card.querySelector(".dm-cl-cap");
+  if (didascalia) didascalia.textContent = invertita ? labels.room : labels.target;
 
   const ambient = card.querySelector("[data-dm-cl-ambient]");
-  if (ambient) ambient.textContent = reading.ambient === null ? "--°" : `${reading.ambient.toFixed(1)}°`;
+  if (ambient) {
+    ambient.textContent = piccolo === null ? "--°" : `${piccolo.toFixed(1)}°`;
+    const parola = ambient.parentElement?.firstChild;
+    if (parola && parola.nodeType === 3)
+      parola.nodeValue = `${invertita ? labels.target : labels.room} `;
+  }
 
   const caption = card.querySelector("[data-dm-cl-mode-cap]");
   if (caption) caption.textContent = modeCaption(reading, labels);
@@ -591,7 +617,9 @@ function paintSummary(shell, units, states, labels) {
     button.disabled = wantsOn ? running === inZone.length : running === 0;
   }
   for (const badge of shell.querySelectorAll("[data-dm-cl-count]")) {
-    badge.textContent = String(units.filter((unit) => unit.zone === badge.dataset.dmClCount).length);
+    badge.textContent = String(
+      units.filter((unit) => unit.zone === badge.dataset.dmClCount).length,
+    );
   }
   paintZoneTabs(shell, units);
   shell.dataset.dmClZone = zone;
@@ -776,23 +804,51 @@ function unitaDelModo(modo) {
   });
 }
 
-/* Il disegno di casa della stanza di un'unita', se la stanza ha un'icona. */
-function disegnoDellaStanza(riferimento) {
-  const chiave = clean(riferimento);
-  if (!chiave) return "";
+/* Il disegno di casa della stanza di un'unita', se la stanza ha un'icona.
+ *
+ * La stanza si cerca prima dal riferimento dell'unita', e poi — dal campo:
+ * «Bagno e Camera da Letto non sono congrue, esce la fiamma» — dal NOME
+ * dell'unita': chi chiama l'unita' come la stanza non ha configurato il
+ * legame, ma la stanza e' evidentemente quella. */
+function disegnoDellaStanza(riferimento, nomeUnita) {
   let stanze = [];
   try {
     stanze = root.cdRoomList?.() || [];
   } catch (_error) {
     stanze = [];
   }
-  const stanza = stanze.find(
-    (voce) => clean(voce?.id) === chiave || clean(voce?.name) === chiave,
-  );
+  const cerca = (chiave) =>
+    chiave
+      ? stanze.find(
+          (voce) =>
+            clean(voce?.id) === chiave || clean(voce?.name).toLowerCase() === chiave.toLowerCase(),
+        )
+      : null;
+  const stanza = cerca(clean(riferimento)) || cerca(clean(nomeUnita));
   const icona = clean(stanza?.icon);
   if (!icona) return "";
   try {
-    return root.DashboardModernIconEngine?.markup?.("room", icona, { size: 34 }) || "";
+    return root.DashboardModernIconEngine?.markup?.("room", icona, { size: 46 }) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+/* Il ripiego quando la stanza non c'e' o non ha disegno: il termosifone o il
+ * fiocco di neve del catalogo di casa, non l'emoji nuda — la fiamma gigante
+ * di sistema stonava con tutto il resto della plancia. L'emoji resta solo
+ * come ultima spiaggia, se il motore dei disegni non risponde. */
+function disegnoDelModo(freddo) {
+  try {
+    return (
+      root.DashboardModernIconEngine?.markup?.(
+        "action",
+        freddo ? "mdi:snowflake" : "mdi:radiator",
+        {
+          size: 46,
+        },
+      ) || ""
+    );
   } catch (_error) {
     return "";
   }
@@ -857,8 +913,9 @@ function tastoRapido(unita, states) {
   const nome = clean(unita.name) || clean(unita.room) || unita.entity;
   /* L'icona e' quella della STANZA, dal catalogo dei disegni di casa: prima
    * bastava avere una stanza per ritrovarsi una porta (🚪) — «che c'entra
-   * l'icona porta nel clima». Senza stanza, o senza disegno, parla il modo. */
-  const disegno = disegnoDellaStanza(unita.room);
+   * l'icona porta nel clima». Senza stanza (nemmeno per nome), o senza
+   * disegno, parla il modo — ma col disegno di casa, non con l'emoji. */
+  const disegno = disegnoDellaStanza(unita.room, unita.name) || disegnoDelModo(freddo);
   const icona = freddo ? "❄️" : "🔥";
   tasto.innerHTML =
     `${gradi ? `<span class="ns-clima-btn-temp">${esc(gradi)}</span>` : ""}` +
@@ -987,9 +1044,38 @@ function installPannelloDellaFinestra() {
   return true;
 }
 
+/* La casella nella scheda Clima della configurazione: un flag solo per
+ * tutta la sezione. Si monta quando la scheda c'e' (si riconosce dal suo
+ * campo stanza) e non c'e' gia'. */
+function montaFlagCarta() {
+  const corpo = doc?.getElementById?.("ed-body");
+  if (!corpo || !corpo.querySelector("#ed-cl-room")) return false;
+  if (corpo.querySelector("[data-dm-cl-inverti]")) return true;
+  const blocco = doc.createElement("label");
+  blocco.className = "ed-check dm-cl-inverti";
+  blocco.dataset.dmClInverti = "";
+  blocco.innerHTML =
+    `<input type="checkbox"${cartaInvertita() ? " checked" : ""}> ` +
+    t(
+      "Nelle card mostra grande l'ambiente (target sotto)",
+      "On cards show the room temperature big (target below)",
+    );
+  blocco.querySelector("input").addEventListener("change", (evento) => {
+    try {
+      root.localStorage?.setItem?.("cd_clima_inverti_card", evento.target.checked ? "1" : "0");
+      root.cdMarkDirty?.();
+      root.cdSyncPush?.();
+    } catch (_errore) {}
+    renderClimate({ rebuild: true });
+  });
+  corpo.append(blocco);
+  return true;
+}
+
 export function installClimateThermalSection() {
   if (!doc) return;
   installStyle(STYLE_ID, climateCss());
+  installStyle("dm-clima-rapido-taglia-style", climaRapidoCss());
   installOverrides();
   if (!state.listeners) {
     state.listeners = true;
@@ -1012,12 +1098,48 @@ export function installClimateThermalSection() {
       });
     }
     root.addEventListener?.("dashboardmodern:state-changed", () => renderClimate());
+    for (const eventoEditor of [
+      "dashboardmodern:editor-rendered",
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+    ])
+      root.addEventListener?.(eventoEditor, () => montaFlagCarta());
+    doc.addEventListener(
+      "click",
+      (evento) => {
+        if (evento.target?.closest?.('.ed-tab[data-tab], [data-tab="clima"]'))
+          root.setTimeout?.(montaFlagCarta, 0);
+      },
+      true,
+    );
   }
   state.installed = true;
   renderClimate({ rebuild: true });
 }
 
 /* ── styles ───────────────────────────────────────────────────────────── */
+
+/* Il popup del Clima rapido, rimesso in taglia.
+ *
+ * Dal campo, con la foto: «le card sono troppo grandi» — la griglia del
+ * guscio e' due (o tre) colonne da un frazionario senza tetto, e su una
+ * scheda larga ogni stanza diventava un quadrato da duecentocinquanta pixel
+ * — e «le icone non si vedono bene, troppo piccole»: il disegno di casa
+ * usciva a 34 pixel dentro una casella pensata per un'emoji da 50, per
+ * giunta sbiadito dal grigio dello stato spento. Le stanze ora sono
+ * pastiglie da 150 al massimo, centrate, e il disegno resta leggibile anche
+ * da spento: lo stato lo dice il colore del bordo, non la nebbia. */
+function climaRapidoCss() {
+  return `
+#quick-clima-modal .ns-clima-grid{
+  grid-template-columns:repeat(auto-fit,minmax(112px,150px))!important;
+  justify-content:center!important}
+#quick-clima-modal .ns-clima-btn-icon{filter:saturate(.55) opacity(.85)!important}
+#quick-clima-modal .ns-clima-btn.on-clima .ns-clima-btn-icon,
+#quick-clima-modal .ns-clima-btn.on-heat .ns-clima-btn-icon{filter:none!important}
+#quick-clima-modal .ns-clima-btn-icon svg{display:block}
+`;
+}
 
 function climateCss() {
   return `

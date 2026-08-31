@@ -49,6 +49,13 @@ import {
 import { doorOpenCall, normalizeSecurityDoors } from "../core/security-door-model.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
+import {
+  CHIAVE_VERSI,
+  apertaSecondoVerso,
+  insiemeInvertiti,
+  posizioneSecondoVerso,
+  versoInvertito,
+} from "../core/verso-aperture.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
@@ -502,17 +509,26 @@ function coversModel(states) {
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
-      const position = Number(current?.attributes?.current_position);
+      /* Il verso (#244): la tapparella girata dichiara 100 quando e' giu', e
+       * il contatto girato sta a ON quando e' chiuso. Qui si normalizza tutto
+       * al verso della plancia — 100 e ON vogliono dire aperto — cosi' quello
+       * che segue non deve saperne niente. */
+      const girata = versoInvertito(item);
+      const position = posizioneSecondoVerso(Number(current?.attributes?.current_position), girata);
       /* Il contatto parla la sua lingua — `on` e' aperto — e non ha posizione:
        * chiederla a lui vorrebbe dire inventarla. */
       const open = soloSensore
-        ? windowOpenFromState(current?.state) === true
+        ? apertaSecondoVerso(
+            windowOpenFromState(current?.state),
+            insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
+          ) === true
         : raw === "open" || raw === "opening" || (Number.isFinite(position) && position > 0);
       return {
         soloSensore: Boolean(soloSensore),
         entity,
         name: etichetta,
         open,
+        invertita: girata,
         position: soloSensore || !Number.isFinite(position) ? null : Math.round(position),
         isCover: !soloSensore && /^cover\./i.test(entity),
         // Chi accetta `set_cover_position` (bit 4) si ferma dove gli si dice.
@@ -639,6 +655,17 @@ function energyModel(states) {
   const house = readings.find((row) => row.group === "house")?.watts ?? null;
   const today = numOf(states, clean(model?.house?.daily_energy) || "dm.energy_consumo_casa_oggi");
   const rows = readings.filter((row) => row.watts != null);
+  /* Quanto e' piena la batteria, adesso. Dal campo: «nel widget fotovoltaico
+   * inserire anche la percentuale batteria attuale». Lo stato di carica ha
+   * gia' il suo slot — e' quello che racconta «piena fra un'ora» — e la
+   * casella Batteria lo dice accanto ai watt; senza la potenza mappata, la
+   * percentuale basta da sola a far esistere la casella. */
+  const soc = numOf(states, clean(model?.battery?.soc) || "dm.energy_stato_carica_batteria");
+  if (soc != null) {
+    const batteria = rows.find((row) => row.group === "battery");
+    if (batteria) batteria.soc = soc;
+    else rows.push({ group: "battery", watts: null, soc });
+  }
   if (house == null && !rows.length) return null;
   return {
     key: "energia",
@@ -1047,8 +1074,10 @@ function evModel(states) {
     /* Quel che serve a dire QUANDO finisce la carica: potenza e traguardo
      * dell'auto attaccata (o della prima). Li usa il motore di analisi con la
      * stessa formula della pagina EV, cosi' i due posti dicono la stessa ora. */
-    ricaricaKw: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.kw ?? null,
-    targetSoc: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.target ?? null,
+    ricaricaKw:
+      (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.kw ?? null,
+    targetSoc:
+      (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.target ?? null,
     /* Quante auto ci sono, detto qui e non contato dalle righe.
      *
      * Un'auto sola porta due righe — la carica e l'autonomia — e chi contava le
@@ -1402,8 +1431,7 @@ function preseModel(states) {
     icon: "🔌",
     label: t("Prese", "Sockets"),
     value: String(accese),
-    caption:
-      accese === 1 ? t("1 accesa", "1 on") : t(`${accese} accese`, `${accese} on`),
+    caption: accese === 1 ? t("1 accesa", "1 on") : t(`${accese} accese`, `${accese} on`),
     ring: rows.length ? Math.round((accese / rows.length) * 100) : null,
     attiva: accese > 0,
     rows,
@@ -1529,7 +1557,17 @@ function openingsModel(states) {
      * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
      * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
     const daQuando = Date.parse(stato?.last_changed ?? "");
-    const aperta = clean(stato?.state).toLowerCase() === "on";
+    /* Il sensore girato (#244) sta a ON quando la finestra e' CHIUSA. Un
+     * sensore muto (unavailable/unknown) non e' una finestra: girato o no,
+     * non si conta — o il verso girato trasformava il silenzio in allarme. */
+    const grezzo = clean(stato?.state).toLowerCase();
+    const vivo = grezzo === "on" || grezzo === "off";
+    const aperta = vivo
+      ? apertaSecondoVerso(
+          grezzo === "on",
+          insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
+        ) === true
+      : false;
     const nome = friendlyName(states, entity);
     return {
       entity,
@@ -2431,6 +2469,7 @@ function positionSelectMarkup(row) {
     })
     .join("");
   return `<select class="dm-w-position" data-dm-w-position="${esc(row.entity)}"
+      data-dm-w-verso="${row.invertita ? "1" : ""}"
       aria-label="${esc(invito)}" title="${esc(invito)}"><option value="">↕</option>${voci}</select>`;
 }
 
@@ -2713,7 +2752,9 @@ function pilloleDelloStato(widget) {
       .map(
         (riga) =>
           `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${
-            riga.glyph ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>` : ""
+            riga.glyph
+              ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>`
+              : ""
           }${esc(clean(riga.name))}${
             clean(riga.value) ? ` <b>${esc(clean(riga.value))}</b>` : ""
           }</span>`,
@@ -2756,7 +2797,14 @@ function carteDalleRighe(widget) {
     const glifi = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
     return righe.map((riga) => ({
       glyph: glifi[riga.group] || "⚡",
-      valore: formatWatts(riga.watts),
+      /* La batteria dice anche quanto e' piena: watt e percentuale insieme,
+       * o la sola percentuale quando la potenza non e' mappata. */
+      valore:
+        riga.group === "battery" && riga.soc != null
+          ? riga.watts == null
+            ? `${Math.round(riga.soc)}%`
+            : `${formatWatts(riga.watts)} · ${Math.round(riga.soc)}%`
+          : formatWatts(riga.watts),
       etichetta: nomi[riga.group] || clean(riga.group),
     }));
   }
@@ -2814,7 +2862,9 @@ function caselleDelleMisure(widget) {
       .map(
         (voce) =>
           `<div class="dm-w-casella">${
-            voce.glyph ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>` : ""
+            voce.glyph
+              ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>`
+              : ""
           }<b>${esc(voce.valore)}</b><span>${esc(voce.etichetta)}</span></div>`,
       )
       .join("")}</div>`;
@@ -3188,6 +3238,56 @@ function detailMarkup(widget, states) {
     </article>`;
 }
 
+/* ── il travaso del corpo aperto ──────────────────────────────────────────
+ *
+ * La finestra aperta si aggiorna a ogni valore che cambia. Buttare via il
+ * corpo e riscriverlo (innerHTML) ogni due secondi era il tremolio: lo
+ * scorrimento tornava in cima, la corsa disegnata lampeggiava, un campo con
+ * il fuoco lo perdeva. Se la forma non e' cambiata — stessi nodi, stessi
+ * tag, nello stesso ordine — si travasano testi e attributi in quello che
+ * c'e' gia': niente nodi nuovi, niente salti. */
+function stessaOssatura(a, b) {
+  if (a.childNodes.length !== b.childNodes.length) return false;
+  for (let i = 0; i < a.childNodes.length; i++) {
+    const mio = a.childNodes[i];
+    const suo = b.childNodes[i];
+    if (mio.nodeType !== suo.nodeType) return false;
+    if (mio.nodeType === 1 && (mio.tagName !== suo.tagName || !stessaOssatura(mio, suo)))
+      return false;
+  }
+  return true;
+}
+
+function ricopia(mio, suo) {
+  if (mio.nodeType === 3) {
+    if (mio.nodeValue !== suo.nodeValue) mio.nodeValue = suo.nodeValue;
+    return;
+  }
+  if (mio.nodeType !== 1) return;
+  for (const attributo of [...mio.attributes]) {
+    if (!suo.hasAttribute(attributo.name)) mio.removeAttribute(attributo.name);
+  }
+  for (const attributo of [...suo.attributes]) {
+    if (mio.getAttribute(attributo.name) !== attributo.value)
+      mio.setAttribute(attributo.name, attributo.value);
+  }
+  for (let i = 0; i < mio.childNodes.length; i++) ricopia(mio.childNodes[i], suo.childNodes[i]);
+}
+
+function travasaCorpo(body, markup) {
+  const stampo = doc.createElement("template");
+  stampo.innerHTML = markup;
+  if (stessaOssatura(body, stampo.content)) {
+    for (let i = 0; i < body.childNodes.length; i++)
+      ricopia(body.childNodes[i], stampo.content.childNodes[i]);
+    return;
+  }
+  /* Forma nuova: si riscrive, ma senza perdere il punto di lettura. */
+  const scorrimento = body.scrollTop;
+  body.innerHTML = markup;
+  body.scrollTop = scorrimento;
+}
+
 /* ── rendering ────────────────────────────────────────────────────────── */
 
 function ensureHost() {
@@ -3422,12 +3522,15 @@ export function renderHomeWidgets() {
         const markup = detailBody(widget, states);
         const scritto = state.corpo.chiave === widget.key && state.corpo.markup === markup;
         if (body && !scritto) {
-          /* Il corpo si riscrive a ogni valore che cambia: se le righe
-           * rientrassero in scena ogni volta, la card aperta tremerebbe da
-           * sola. L'ingresso e' solo del primo disegno — quello che segue
-           * l'apertura. */
+          /* Il corpo si aggiorna a ogni valore che cambia — cioe' ogni due
+           * secondi su una casa viva. Riscriverlo con innerHTML era il
+           * tremolio ricomparso: lo scorrimento tornava in cima, la corsa
+           * lampeggiava, il dito perdeva quello che stava toccando. Quando
+           * l'ossatura e' la stessa si travasano solo testi e attributi nei
+           * nodi che ci sono gia'; la riscrittura intera resta per quando
+           * cambia la forma, e almeno tiene il punto di scorrimento. */
           const primoDisegno = body.dataset.dmPainted !== "true";
-          body.innerHTML = markup;
+          travasaCorpo(body, markup);
           state.corpo = { chiave: widget.key, markup };
           body.dataset.dmPainted = "true";
           body.dataset.dmFresh = primoDisegno ? "true" : "false";
@@ -3710,9 +3813,15 @@ function onChange(event) {
   const scelta = clean(position.value);
   position.value = "";
   if (scelta === "") return;
+  /* La tendina parla il verso della plancia (100 = aperta); alla tapparella
+   * girata (#244) si scrive tradotto, con la stessa traduzione della
+   * lettura. */
   callHa("cover", "set_cover_position", {
     entity_id: clean(position.dataset.dmWPosition),
-    position: Math.max(0, Math.min(100, Math.round(Number(scelta) || 0))),
+    position: posizioneSecondoVerso(
+      Math.round(Number(scelta) || 0),
+      position.dataset.dmWVerso === "1",
+    ),
   });
 }
 

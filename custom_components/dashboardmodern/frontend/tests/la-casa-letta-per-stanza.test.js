@@ -39,6 +39,7 @@ const CASA = {
   climate: [{ name: "Split", entity: "climate.x", room_id: "room-salone" }],
   covers: [{ name: "Tapparella", entity: "cover.x", room: "Salone" }],
   cameras: [{ name: "Ingresso", entity: "camera.x", room: "Cucina" }],
+  prese: [{ name: "TV Salotto", entity: "switch.tv", room_id: "room-salone" }],
 };
 
 const pagina = (id) => pickRoomPage(roomOverviewModel(CASA), id);
@@ -48,9 +49,12 @@ test("ogni stanza raccoglie quello che le appartiene, comunque sia scritto", () 
   // Tre modi diversi di dire «Salone»: la mappa delle luci, l'id canonico, il
   // nome sulla riga. Tutti e tre arrivano nella stessa pagina.
   assert.equal(blocco("room-salone", "luci").length, 2);
+  // E la presa della TV sta nel salone: «la sezione Prese non viene
+  // riportata dentro Stanze» — ora si legge dall'altro lato come le luci.
+  assert.equal(blocco("room-salone", "prese").length, 1);
   assert.equal(blocco("room-salone", "clima").length, 1);
   assert.equal(blocco("room-salone", "coperture").length, 1);
-  assert.equal(pagina("room-salone").count, 4);
+  assert.equal(pagina("room-salone").count, 5);
   assert.equal(pagina("room-cucina").count, 1);
 });
 
@@ -74,7 +78,10 @@ test("cio' che una stanza non ce l'ha finisce dove si puo' vedere", () => {
 test("senza orfane il raccoglitore non compare affatto", () => {
   const pagine = roomOverviewModel({ rooms: [{ name: "Salone" }] });
   assert.equal(pagine.length, 1);
-  assert.equal(pagine.some((voce) => voce.senzaStanza), false);
+  assert.equal(
+    pagine.some((voce) => voce.senzaStanza),
+    false,
+  );
 });
 
 test("niente viene contato due volte: la prima stanza che lo reclama lo tiene", () => {
@@ -82,7 +89,10 @@ test("niente viene contato due volte: la prima stanza che lo reclama lo tiene", 
     rooms: [{ name: "Salone" }, { name: "Salone" }],
     covers: [{ entity: "cover.x", room: "Salone" }],
   });
-  assert.equal(pagine.reduce((totale, voce) => totale + voce.count, 0), 1);
+  assert.equal(
+    pagine.reduce((totale, voce) => totale + voce.count, 0),
+    1,
+  );
 });
 
 test("la stanza di una luce sta nella mappa a parte, non sulla luce", () => {
@@ -134,6 +144,9 @@ test("i blocchi sono quelli, nell'ordine con cui si guarda una stanza entrandoci
     [
       "clima",
       "luci",
+      // Le prese subito dopo le luci: stessa forma, stesso interruttore —
+      // «la sezione Prese non viene riportata dentro Stanze».
+      "prese",
       "coperture",
       "elettrodomestici",
       "telecamere",
@@ -180,8 +193,11 @@ test("dove si dichiara una stanza, si sceglie: non si scrive", async () => {
     new URL("../src/sections/robot-editor-section.js", import.meta.url),
     "utf8",
   );
-  assert.match(editor, /<select id="dm-robot-\$\{index\}-room"/,
-    "la stanza del robot si sceglie da una tendina");
+  assert.match(
+    editor,
+    /<select id="dm-robot-\$\{index\}-room"/,
+    "la stanza del robot si sceglie da una tendina",
+  );
   assert.match(editor, /roomOptionsMarkup\(clean\(robot\.room\)/);
   assert.doesNotMatch(editor, /<input id="dm-robot-\$\{index\}-room"/);
 

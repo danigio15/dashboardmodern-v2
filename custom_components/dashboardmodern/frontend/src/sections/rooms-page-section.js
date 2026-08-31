@@ -32,6 +32,7 @@ import {
   roomSceneEntities,
   roomSceneSummary,
 } from "../core/room-overview.js";
+import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
 import { pageCardMarkup } from "./lights-page-section.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
@@ -71,6 +72,7 @@ export function roomSources() {
     rooms: lista("rooms", "cd_stanze"),
     lights: Array.isArray(canoniche) && canoniche.length ? canoniche : readJson("cd_luci", {}),
     lightRooms: readJson("cd_luci_rooms", {}),
+    prese: lista("prese", "cd_prese"),
     climate: lista("climate", "cd_clima_units"),
     covers: lista("covers", "cd_tapparelle"),
     appliances: lista("appliances", "cd_appliances"),
@@ -112,10 +114,11 @@ export function assignedItems(mappa = readJson(ROOM_ASSIGN_KEY, {}), states = al
 const BLOCK_LABELS = Object.freeze({
   clima: ["Clima", "Climate", "❄️"],
   luci: ["Luci", "Lights", "💡"],
+  prese: ["Prese", "Plugs", "🔌"],
   coperture: ["Finestre", "Windows", "🪟"],
   elettrodomestici: ["Elettrodomestici", "Appliances", "🧺"],
   telecamere: ["Telecamere", "Cameras", "📹"],
-  carichi: ["Carichi", "Loads", "🔌"],
+  carichi: ["Carichi", "Loads", "⚡"],
   robot: ["Aspirapolvere", "Vacuums", "🤖"],
   irrigazione: ["Irrigazione", "Irrigation", "💧"],
   altro: ["Altro in questa stanza", "Also in this room", "📍"],
@@ -189,10 +192,18 @@ const MODI_CLIMA = Object.freeze({
  * d'occhio, e per il resto c'e' la sua pagina. */
 function statoVoce(item, states, blocco = "") {
   const entity = entitaVoce(item);
-  const stato = clean(states?.[entity]?.state).toLowerCase();
+  let stato = clean(states?.[entity]?.state).toLowerCase();
   if (!entity) return "";
   if (!stato || stato === "unavailable" || stato === "unknown")
     return t("Non disponibile", "Unavailable");
+  /* Il contatto girato (#244) sta a ON quando l'anta e' chiusa: la parola
+   * segue il verso vero. */
+  if (
+    entity.startsWith("binary_sensor.") &&
+    (stato === "on" || stato === "off") &&
+    insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity)
+  )
+    stato = stato === "on" ? "off" : "on";
   if (blocco === "coperture") {
     if (stato === "on" || stato === "open") return t("Aperta", "Open");
     if (stato === "off" || stato === "closed") return t("Chiusa", "Closed");
@@ -413,6 +424,7 @@ function rowMarkup(item, blocco, states) {
 const TAB_DI = Object.freeze({
   clima: "clima",
   luci: "luci",
+  prese: "prese",
   coperture: "tapparelle",
   elettrodomestici: "appliances-main",
   /* Le telecamere stanno nella pagina Sicurezza, non in Home: toccarne una
@@ -430,7 +442,7 @@ export function blockMarkup(blocco, states) {
   if (!blocco.voci.length) return "";
   const conTab = { ...blocco, tab: TAB_DI[blocco.key] || "home" };
   const card =
-    blocco.key === "luci"
+    blocco.key === "luci" || blocco.key === "prese"
       ? blocco.voci
           .map((luce) => {
             const entity = clean(luce.entity || luce.id);

@@ -2,7 +2,9 @@ import { applianceArtwork } from "../core/appliance-artwork.js";
 import {
   APPLIANCE_CATALOG,
   applianceCatalogLabel,
-  canonicalApplianceVisualKey, applianceVisualKey } from "../core/device-model.js";
+  canonicalApplianceVisualKey,
+  applianceVisualKey,
+} from "../core/device-model.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
   activeLocale,
@@ -55,7 +57,8 @@ function roomOptions(selected) {
 function flowLoadOptions(selected) {
   const loads = section("loads", readJson("cd_loads", []));
   const circles = (Array.isArray(loads) ? loads : []).filter(
-    (item) => item && item.category !== "manual-report" && !clean(item?.metadata?.beta27_subload_group),
+    (item) =>
+      item && item.category !== "manual-report" && !clean(item?.metadata?.beta27_subload_group),
   );
   return [
     `<option value="">— ${t("Nessuno", "None")} —</option>`,
@@ -121,7 +124,9 @@ function openTypePicker({ selected = "generico", onSelect } = {}) {
     });
     grid.append(button);
   });
-  overlay.querySelector(".dm-appliance-type-close")?.addEventListener("click", () => overlay.remove());
+  overlay
+    .querySelector(".dm-appliance-type-close")
+    ?.addEventListener("click", () => overlay.remove());
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) overlay.remove();
   });
@@ -157,33 +162,45 @@ function installPickerOverride() {
 }
 
 function entityCandidates(device = {}) {
-  return [...new Set([
-    device.control_entity,
-    device.switch_entity,
-    device.switch,
-    device.light,
-    device.fan,
-    device.power_entity,
-    device.power,
-    device.power_sensor,
-    ...(device.entities || []).map((entry) =>
-      clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id),
+  return [
+    ...new Set(
+      [
+        device.control_entity,
+        device.switch_entity,
+        device.switch,
+        device.light,
+        device.fan,
+        device.power_entity,
+        device.power,
+        device.power_sensor,
+        ...(device.entities || []).map((entry) =>
+          clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id),
+        ),
+      ]
+        .map(clean)
+        .filter(Boolean),
     ),
-  ].map(clean).filter(Boolean))];
+  ];
 }
 
 function inferredControlEntity(device) {
-  return entityCandidates(device).find((entity) => /^(switch|light|input_boolean|fan)\./i.test(entity)) || "";
+  return (
+    entityCandidates(device).find((entity) =>
+      /^(switch|light|input_boolean|fan)\./i.test(entity),
+    ) || ""
+  );
 }
 
 function inferredPowerEntity(device) {
   const candidates = entityCandidates(device);
   const states = allStates();
-  return candidates.find((entity) => {
-    const current = states[entity];
-    const unit = clean(current?.attributes?.unit_of_measurement).toLowerCase();
-    return ["w", "kw", "mw"].includes(unit);
-  }) || "";
+  return (
+    candidates.find((entity) => {
+      const current = states[entity];
+      const unit = clean(current?.attributes?.unit_of_measurement).toLowerCase();
+      return ["w", "kw", "mw"].includes(unit);
+    }) || ""
+  );
 }
 
 /* Se accanto al select «Carico energia» va acceso il suggerimento.
@@ -196,7 +213,7 @@ export function flowGroupSuggested(device = {}) {
   if (clean(device?.metadata?.beta27_subload_group)) return false;
   return Boolean(
     clean(device?.power_entity || device?.power || device?.power_sensor) ||
-      inferredPowerEntity(device),
+    inferredPowerEntity(device),
   );
 }
 
@@ -276,17 +293,23 @@ function cardFieldsMarkup(device = {}) {
 }
 
 function normalizeEntities(device, values) {
-  return [...new Set([
-    values.control_entity,
-    values.power_entity,
-    values.energy_entity,
-    values.daily_energy_entity,
-    values.monthly_energy_entity,
-    values.total_energy_entity,
-    values.history_entity,
-    values.report_entity,
-    ...(device.entities || []).map((entry) => clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id)),
-  ].filter(Boolean))];
+  return [
+    ...new Set(
+      [
+        values.control_entity,
+        values.power_entity,
+        values.energy_entity,
+        values.daily_energy_entity,
+        values.monthly_energy_entity,
+        values.total_energy_entity,
+        values.history_entity,
+        values.report_entity,
+        ...(device.entities || []).map((entry) =>
+          clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id),
+        ),
+      ].filter(Boolean),
+    ),
+  ];
 }
 
 async function saveAppliance(index, next) {
@@ -319,7 +342,10 @@ function updateEditType(modal, key) {
   if (trigger) {
     trigger.dataset.applianceType = canonical;
     trigger.innerHTML = `<span class="dm-appliance-type-trigger-icon">${typeIconMarkup(canonical, 30)}</span><span class="dm-appliance-type-trigger-label">${esc(typeLabel(canonical))}</span><span class="dm-appliance-type-chevron" aria-hidden="true">⌄</span>`;
-    trigger.setAttribute("aria-label", `${t("Tipo / immagine", "Type / artwork")}: ${typeLabel(canonical)}`);
+    trigger.setAttribute(
+      "aria-label",
+      `${t("Tipo / immagine", "Type / artwork")}: ${typeLabel(canonical)}`,
+    );
   }
 }
 
@@ -328,11 +354,15 @@ export function openApplianceEditor(index) {
   if (!device) return false;
   doc?.getElementById("dm-appliance-editor-modal")?.remove();
   const visual = deviceVisualKey(device);
-  const totalInitial = [device.total_energy_entity, device.history_entity, device.report_entity]
-    .map(clean)
-    .find(cumulativeEntity) || "";
-  const controlInitial = clean(device.control_entity || device.switch_entity) || inferredControlEntity(device);
-  const powerInitial = clean(device.power_entity || device.power || device.power_sensor) || inferredPowerEntity(device);
+  const totalInitial =
+    [device.total_energy_entity, device.history_entity, device.report_entity]
+      .map(clean)
+      .find(cumulativeEntity) || "";
+  const controlInitial =
+    clean(device.control_entity || device.switch_entity) || inferredControlEntity(device);
+  const powerInitial =
+    clean(device.power_entity || device.power || device.power_sensor) ||
+    inferredPowerEntity(device);
   const modal = doc.createElement("div");
   modal.id = "dm-appliance-editor-modal";
   modal.className = "dm-section-modal";
@@ -348,6 +378,7 @@ export function openApplianceEditor(index) {
       </div>
       <section class="dm-appliance-entity-grid">
         ${entityField("control_entity", t("Entità comando", "Control entity"), controlInitial, t("Switch, light, fan o input_boolean usato dal pulsante Accendi/Spegni.", "Switch, light, fan or input_boolean used by the On/Off button."))}
+        <label class="ed-check dm-appliance-switch-off"><input type="checkbox" name="switch_disabled"${device.switch_disabled ? " checked" : ""}> ${t("Senza tasto Accendi/Spegni", "Without the On/Off button")}<small>${t("L'entità comando resta per leggere lo stato, ma la card non mostra l'interruttore: il frigo non si spegne per sbaglio.", "The control entity still reads the state, but the card hides the switch: the fridge cannot be turned off by mistake.")}</small></label>
         ${entityField("power_entity", t("Potenza istantanea", "Instant power"), powerInitial, t("Sensore W o kW mostrato nella card.", "W or kW sensor shown on the card."))}
         ${entityField("daily_energy_entity", t("Energia giornaliera", "Daily energy"), device.daily_energy_entity, t("Facoltativa: sostituisce il calcolo del giorno.", "Optional: overrides the daily calculation."))}
         ${entityField("monthly_energy_entity", t("Energia mensile", "Monthly energy"), device.monthly_energy_entity, t("Facoltativa: sostituisce il calcolo del mese corrente.", "Optional: overrides the current-month calculation."))}
@@ -376,9 +407,19 @@ export function openApplianceEditor(index) {
     flowSelect.addEventListener("change", () => {
       flowSuggestion.hidden = Boolean(clean(flowSelect.value)) || !powerInitial;
     });
-  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
-  modal.querySelectorAll("[data-pick]").forEach((button) => button.addEventListener("click", () => root.wzPickEntity?.(form.elements[button.dataset.pick])));
-  modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
+  modal
+    .querySelectorAll("[data-close],[data-cancel]")
+    .forEach((button) => button.addEventListener("click", close));
+  modal
+    .querySelectorAll("[data-pick]")
+    .forEach((button) =>
+      button.addEventListener("click", () =>
+        root.wzPickEntity?.(form.elements[button.dataset.pick]),
+      ),
+    );
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) close();
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(form).entries());
@@ -386,9 +427,15 @@ export function openApplianceEditor(index) {
     const total = clean(values.total_energy_entity);
     const totalState = allStates()[total];
     const stateClass = clean(totalState?.attributes?.state_class).toLowerCase();
-    if (!name) { form.querySelector("[data-error]").textContent = t("Inserisci il nome.", "Enter a name."); return; }
+    if (!name) {
+      form.querySelector("[data-error]").textContent = t("Inserisci il nome.", "Enter a name.");
+      return;
+    }
     if (total && totalState && !["total", "total_increasing"].includes(stateClass)) {
-      form.querySelector("[data-error]").textContent = t("Il sensore Energia totale deve avere state_class total o total_increasing.", "The Total energy sensor must have state_class total or total_increasing.");
+      form.querySelector("[data-error]").textContent = t(
+        "Il sensore Energia totale deve avere state_class total o total_increasing.",
+        "The Total energy sensor must have state_class total or total_increasing.",
+      );
       return;
     }
     const visualKey = editorVisualKey(values.icon) || deviceVisualKey(device);
@@ -403,8 +450,13 @@ export function openApplianceEditor(index) {
       visual_type: "asset",
       room_id: clean(values.room_id),
       metadata: { ...(device.metadata || {}), beta27_subload_group: clean(values.flow_group) },
-      threshold_run: Number.isFinite(Number(values.threshold_run)) ? Number(values.threshold_run) : 5,
+      threshold_run: Number.isFinite(Number(values.threshold_run))
+        ? Number(values.threshold_run)
+        : 5,
       control_entity: clean(values.control_entity),
+      /* Una casella non spuntata non entra nel FormData: qui il silenzio
+       * significa «tasto abilitato», che e' il comportamento di sempre. */
+      switch_disabled: values.switch_disabled === "on",
       power_entity: clean(values.power_entity),
       daily_energy_entity: clean(values.daily_energy_entity),
       monthly_energy_entity: clean(values.monthly_energy_entity),
@@ -436,10 +488,21 @@ export function openApplianceEditor(index) {
       last_cost_entity: clean(values.last_cost_entity),
     };
     if (next.threshold_standby === "") delete next.threshold_standby;
-    for (const key of ["cycle_minutes", "off_delay_minutes", "temp_min", "temp_max", "max_power", "price_kwh"]) {
+    for (const key of [
+      "cycle_minutes",
+      "off_delay_minutes",
+      "temp_min",
+      "temp_max",
+      "max_power",
+      "price_kwh",
+    ]) {
       if (next[key] === "") delete next[key];
     }
-    next.energy_entity = clean(device.energy_entity) || next.total_energy_entity || next.monthly_energy_entity || next.daily_energy_entity;
+    next.energy_entity =
+      clean(device.energy_entity) ||
+      next.total_energy_entity ||
+      next.monthly_energy_entity ||
+      next.daily_energy_entity;
     next.entities = normalizeEntities(device, next);
     try {
       await saveAppliance(index, next);
@@ -486,7 +549,9 @@ function installStyles() {
 function installOverride() {
   if (typeof root.edApplEdit !== "function" || root.edApplEdit.__dmModalEditor) return false;
   state.previousEdit ||= root.edApplEdit;
-  function modalApplianceEditor(index) { return openApplianceEditor(Number(index)); }
+  function modalApplianceEditor(index) {
+    return openApplianceEditor(Number(index));
+  }
   modalApplianceEditor.__dmModalEditor = true;
   modalApplianceEditor.__dmPrevious = state.previousEdit;
   root.edApplEdit = modalApplianceEditor;
@@ -510,5 +575,6 @@ export function installApplianceEditorSection() {
   }
 }
 
-if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installApplianceEditorSection, { once: true });
+if (doc?.readyState === "loading")
+  doc.addEventListener("DOMContentLoaded", installApplianceEditorSection, { once: true });
 else installApplianceEditorSection();

@@ -96,16 +96,23 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
 
   assert.equal(relative.filter((file) => file.endsWith("section-runtime.js")).length, 1);
   assert.equal(relative.filter((file) => file.endsWith("legacy-sections-registry.js")).length, 1);
-  assert.deepEqual(relative.filter((file) => /legacy\/release-\d+/.test(file)), []);
+  assert.deepEqual(
+    relative.filter((file) => /legacy\/release-\d+/.test(file)),
+    [],
+  );
   assert.deepEqual(
     relative.filter((file) =>
-      /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard|runtime-consolidated/.test(file),
+      /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard|runtime-consolidated/.test(
+        file,
+      ),
     ),
     [],
   );
   assert.deepEqual(
     relative.filter((file) =>
-      /mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|runtime-startup-coordinator|report-mobile-fixes/.test(file),
+      /mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|runtime-startup-coordinator|report-mobile-fixes/.test(
+        file,
+      ),
     ),
     [],
   );
@@ -506,7 +513,26 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // riempie da sola — e continua a farlo, col registro dei gia' visti — piu'
   // il blocco nella pagina Sicurezza e le aperture nuove che entrano da sole
   // nel gruppo `win`. Un modulo solo, sul calco di flood-alerts.
-  assert.ok(relative.length <= 181, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 182 con le voci termiche del popup Caldo: le tre righe cablate nel
+  // guscio (una addirittura su switch.caldaia) diventano `cd_termico_caldo`,
+  // configurabili dalla scheda Clima — e senza voci il pannello sparisce.
+  // 183 col popup «Clima attivi» che distingue chi scalda da chi raffresca
+  // e dice da quanto tempo (`il-popup-del-clima-distingue-section.js`): il
+  // guscio mescolava heat e cool in una lista sola, senza orologio.
+  // 184 col popup dell'Auto che racconta
+  // (`il-popup-dell-auto-racconta-section.js`): l'ora di fine carica accanto
+  // al tempo che manca, la frase d'analisi, i codici IEC del cavo in parole.
+  // 185 col popup della lavatrice rifatto
+  // (`il-popup-della-lavatrice-section.js`): i quattro programmi cablati nel
+  // guscio diventano `cd_lavatrice_programmi`, l'immagine e' quella della
+  // sezione Elettrodomestici, la veste quella delle altre finestre.
+  // 186 col verso delle aperture (#244, `core/verso-aperture.js`): il conto
+  // puro dei sensori girati (ON = chiuso) e delle tapparelle girate
+  // (100 = chiusa), condiviso da widget, pagine e runtime.
+  assert.ok(
+    relative.length <= 186,
+    `production graph unexpectedly grew to ${relative.length} modules`,
+  );
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -554,7 +580,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
     ],
   );
 
-  const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
+  const observers = [...graph.entries()].filter(([, source]) =>
+    /new\s+(?:root\.)?MutationObserver\s*\(/.test(source),
+  );
   // Beta17 contributes one page-scoped observer so delayed legacy writes on
   // #page-temp cannot resurrect the progress placeholder. Beta24 may add one
   // node-scoped SOC observer. Beta26 adds one #temp-grid-scoped observer. The
@@ -577,7 +605,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // #page-home: la striscia si sposta una volta sola, ma se qualcuno la
   // rimette dentro la pagina — un ridisegno che riscrive #page-home per
   // intero — va ripresa, e non c'e' nessun nome da avvolgere per saperlo.
-  assert.ok(observers.length <= 10, `too many production observers: ${observers.length}`);
+  // L'undicesimo e' del popup dell'Auto, e guarda solo il testo del tempo
+  // rimanente (#v-ev-remain-popup): il guscio lo riscrive a ogni giro del suo
+  // disegno — non su un evento nostro — e l'ora di fine carica va rimessa
+  // appena lui la cancella; non c'e' nessun nome da avvolgere per saperlo.
+  assert.ok(observers.length <= 11, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

@@ -38,6 +38,7 @@ const seme = {
     energy: {},
     entityOverrides: {},
     covers: [{ name: "Tapparella salone", entity: "cover.tapp_salone", room: "Salone" }],
+    prese: [{ name: "TV Salotto", entity: "switch.tv_salotto", room: "Salone" }],
   },
   visibility: { home: true, stanze: true },
 };
@@ -52,6 +53,7 @@ const stati = {
   "climate.salone": { state: "cool", attributes: {} },
   "cover.tapp_salone": { state: "open", attributes: { current_position: 60 } },
   "camera.salone": { state: "idle", attributes: {} },
+  "switch.tv_salotto": { state: "on", attributes: {} },
 };
 
 async function apri(page, testInfo) {
@@ -83,9 +85,13 @@ test("ogni stanza porta quello che le appartiene, e le sue luci sono le card ver
   const salone = page.locator('#page-stanze [data-dm-stanza="room-salone"]');
   await expect(salone).toHaveClass(/active/);
 
-  // La luce non e' una card nuova: e' quella della pagina Luci, col suo cursore.
-  await expect(page.locator("#page-stanze .dm-lucip-card")).toHaveCount(2);
+  // La luce non e' una card nuova: e' quella della pagina Luci, col suo
+  // cursore. E la presa della TV sta qui con la stessa card, senza cursore:
+  // «la sezione Prese non viene riportata dentro Stanze».
+  await expect(page.locator("#page-stanze .dm-lucip-card")).toHaveCount(3);
   await expect(page.locator("#page-stanze [data-dm-lucip-brightness]")).toHaveCount(2);
+  await expect(page.locator("#page-stanze")).toContainText("TV Salotto");
+  await expect(page.locator("#page-stanze")).toContainText(/Prese|Plugs/);
   // E il clima parla italiano, non `cool`.
   await expect(page.locator("#page-stanze")).toContainText(/Raffredda|Cooling/);
   await expect(page.locator("#page-stanze")).toContainText("29.2°");

@@ -52,10 +52,15 @@ const expectedTabs = [
  *  - sul tondo di chiusura dello storico c'era una X di troppo. La X la
  *    disegna il ::before della regola generica, che azzera la misura del
  *    testo per nascondere quella scritta nel markup; la regola specifica
- *    dello storico rimetteva font-size 14px e le si vedevano tutte e due. */
+ *    dello storico rimetteva font-size 14px e le si vedevano tutte e due;
+ *  - il Chiudi resta in cima anche a lista scorsa. Nei popup lunghi (il
+ *    Clima rapido con tante stanze) l'intestazione scorreva via col
+ *    contenuto: «il tasto Chiudi sta troppo in fondo e non si legge». Ora
+ *    e' sticky sul bordo alto del foglio, col fondo pieno, e il foglio non
+ *    supera l'area visibile vera (dvh) sull'app Android. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "fe071ead5060bad9a1294bd78f0e98c17c13012fcf80cb28999bf11fecbcf2d9",
-  "dashboard-runtime-en.css": "69cec2f6f0f01f7a1e00e5d1ead35362f1c2a57fdd904fc9a2f2ecc528f31c43",
+  "dashboard-runtime-it.css": "f65413c622dd106a5a680de905aa5773873c7f26b4ecdc5b690aca18e4144b36",
+  "dashboard-runtime-en.css": "9b811f16ba7b61510e0fc8937c0a186fbc9c51d58be4b7aeb58655082e545bbb",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

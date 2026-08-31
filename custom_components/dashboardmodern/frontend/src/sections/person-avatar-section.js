@@ -21,7 +21,12 @@ import { AVATAR_LATO, BARBA_LUNGA_EXTRA, risolviAvatar3d } from "../core/avatar-
 import { doc, installStyle, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_AVATAR_3D__";
-const state = (root[KEY] ||= { immagini: new Map(), composti: new Map(), tele: new Set(), sveglia: 0 });
+const state = (root[KEY] ||= {
+  immagini: new Map(),
+  composti: new Map(),
+  tele: new Set(),
+  sveglia: 0,
+});
 
 /* Le immagini stanno fuori dal grafo dei moduli — sono file, non codice — e
  * quindi non hanno un `import.meta.url` da cui dedurre l'indirizzo. Si
@@ -90,7 +95,9 @@ function tintaCapelli(dati, lato, rgb, lift) {
  * prendere i baffi) e piu' bassa ai lati (per non mangiare i capelli sopra
  * le orecchie). La barba e' l'insieme dei pixel scuri sotto quel confine —
  * basette comprese. */
-const confine = (x, lato, centro = 0.46, alzata = 0.09) =>
+/* L'alzata ai lati e' cresciuta con la campana stretta: il bordo alto della
+ * barba ai lati del viso scende sotto gli zigomi, come sul render nativo. */
+const confine = (x, lato, centro = 0.46, alzata = 0.14) =>
   lato * (centro + alzata * ((x - lato / 2) / (lato / 2)) ** 2);
 
 /* La campana della barba: quanto puo' allargarsi dal centro del viso, riga
@@ -102,8 +109,16 @@ const confine = (x, lato, centro = 0.46, alzata = 0.09) =>
 function dentroLaCampana(x, y, lato) {
   const dalCentro = Math.abs(x - lato / 2) / (lato / 2);
   const quota = y / lato;
-  /* Da 0.62 di semi-larghezza alla bocca a 0.34 sotto il mento. */
-  const semiLarghezza = quota < 0.68 ? 0.62 : 0.62 - ((quota - 0.68) / 0.29) * 0.28;
+  /* La campana era larga 0.62: alla quota della bocca prendeva anche le
+   * ciocche scure accanto alle orecchie della donatrice, e trapiantate su
+   * una chioma d'altro colore diventavano una lastra piu' larga del viso —
+   * «la barba non segue il viso». La barba nativa sta DENTRO le guance:
+   * 0.48 alla bocca, che si stringe a 0.30 verso il mento. */
+  let semiLarghezza = quota < 0.68 ? 0.48 : 0.48 - ((quota - 0.68) / 0.29) * 0.18;
+  /* Il fondo si chiude a punta: senza questa stretta la maschera finiva
+   * contro il taglio orizzontale della tela e la barba usciva col fondo
+   * piatto, da lastra — la nativa pende a V. */
+  if (quota > 0.86) semiLarghezza *= Math.max(0, 1 - (quota - 0.86) / 0.11);
   return dalCentro <= semiLarghezza;
 }
 
@@ -165,8 +180,7 @@ function mascheraBarba(dati, lato) {
           if (!maschera[p - 1] && !maschera[p + 1] && !maschera[p - lato] && !maschera[p + lato])
             continue;
           const i = p * 4;
-          if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < rilassata)
-            orlo.push(p);
+          if (dentro(x, y) && Math.max(dati[i], dati[i + 1], dati[i + 2]) < rilassata) orlo.push(p);
         }
       if (!orlo.length) break;
       for (const p of orlo) maschera[p] = 1;
@@ -232,7 +246,8 @@ function applicaBarba(telaTesta, op, donatrice) {
   }
   const maschera = mascheraBarba(dati, lato);
   if (op.rgb)
-    for (let p = 0; p < maschera.length; p += 1) if (maschera[p]) tingiPixel(dati, p * 4, op.rgb, op.lift || 0);
+    for (let p = 0; p < maschera.length; p += 1)
+      if (maschera[p]) tingiPixel(dati, p * 4, op.rgb, op.lift || 0);
   if (op.foggia === "rasata") {
     /* Barba dissolta verso la pelle: l'ombra corta del rasato. */
     const [sr, sg, sb] = guancia(dati, lato);
@@ -539,7 +554,9 @@ function disegnaColletto(telaBusto, op) {
   const [r, g, b] = op.rgb;
   const scuro = `rgb(${(r * 0.62) | 0},${(g * 0.62) | 0},${(b * 0.62) | 0})`;
   const medio = `rgb(${Math.min(255, (r * 1.12) | 0)},${Math.min(255, (g * 1.12) | 0)},${Math.min(255, (b * 1.12) | 0)})`;
-  const cx = 0.485 * lato;
+  /* L'ancora e' il collo misurato del busto; il vecchio 0.485 resta il
+   * ripiego per un modello senza misura. */
+  const cx = op.ancora?.cx ?? 0.485 * lato;
   const cy = 0.6 * lato;
   const fw = 0.115 * lato;
   const fh = 0.115 * 1.05 * lato;
@@ -576,10 +593,11 @@ function disegnaColletto(telaBusto, op) {
 
 /* La collana: un arco d'oro sotto il girocollo del busto, con o senza
  * pendente. La testa arriva dopo, e il mento le passa sopra com'e' giusto. */
-function disegnaCollana(telaBusto, stile, oro = [212, 168, 83]) {
+function disegnaCollana(telaBusto, stile, ancora = null, oro = [212, 168, 83]) {
   const lato = AVATAR_LATO;
   const pennello = telaBusto.getContext("2d");
-  const cx = 0.485 * lato;
+  /* Come il colletto: al collo misurato del busto, non al centro della tela. */
+  const cx = ancora?.cx ?? 0.485 * lato;
   const cy = 0.615 * lato;
   const aw = 0.155 * lato;
   const ah = 0.1 * lato;
@@ -668,7 +686,7 @@ export async function componiRitratto(face) {
       for (const op of risolto.operazioni.busto) {
         if (op.tipo === "ricoloraAbito") ricoloraAbito(telaBusto, op);
         else if (op.tipo === "colletto") disegnaColletto(telaBusto, op);
-        else if (op.tipo === "collana") disegnaCollana(telaBusto, op.stile);
+        else if (op.tipo === "collana") disegnaCollana(telaBusto, op.stile, op.ancora);
       }
       pennello.drawImage(telaBusto, 0, 0);
     }
@@ -679,7 +697,7 @@ export async function componiRitratto(face) {
       AVATAR_LATO * risolto.scala,
       telaTesta.height * risolto.scala,
     );
-    return { tela, occhi: risolto.occhi };
+    return { tela, occhi: risolto.occhi, genere: risolto.genere };
   })();
   state.composti.set(chiave, attesa);
   /* La memoria e' cresciuta con l'editor: la scheda aperta compone una
@@ -713,16 +731,28 @@ export function disegnaPalpebre(pennello, occhi, quanto, curva = 0) {
     pennello.moveTo(occhio.cx - larghezza, cima - altezza);
     pennello.lineTo(occhio.cx + larghezza, cima - altezza);
     pennello.lineTo(occhio.cx + larghezza, bordo);
-    pennello.quadraticCurveTo(occhio.cx, bordo + altezza * (0.18 + curva), occhio.cx - larghezza, bordo);
+    pennello.quadraticCurveTo(
+      occhio.cx,
+      bordo + altezza * (0.18 + curva),
+      occhio.cx - larghezza,
+      bordo,
+    );
     pennello.closePath();
     pennello.fill();
     /* Il ciglio: una riga appena piu' scura sul bordo della palpebra. Senza,
-     * l'occhio chiuso e' una macchia di pelle. */
-    pennello.strokeStyle = `rgba(${(r * 0.45) | 0},${(g * 0.4) | 0},${(b * 0.4) | 0},${0.5 + 0.45 * quanto})`;
-    pennello.lineWidth = Math.max(1.2, altezza * 0.11);
+     * l'occhio chiuso e' una macchia di pelle — ma a occhio quasi aperto una
+     * riga scura e' eyeliner, non un ciglio: leggera quando l'occhio e'
+     * socchiuso, decisa solo quando si chiude davvero. */
+    pennello.strokeStyle = `rgba(${(r * 0.55) | 0},${(g * 0.5) | 0},${(b * 0.5) | 0},${0.3 + 0.55 * quanto})`;
+    pennello.lineWidth = Math.max(1, altezza * 0.09);
     pennello.beginPath();
     pennello.moveTo(occhio.cx - larghezza / 2, bordo);
-    pennello.quadraticCurveTo(occhio.cx, bordo + altezza * (0.18 + curva), occhio.cx + larghezza / 2, bordo);
+    pennello.quadraticCurveTo(
+      occhio.cx,
+      bordo + altezza * (0.18 + curva),
+      occhio.cx + larghezza / 2,
+      bordo,
+    );
     pennello.stroke();
     pennello.restore();
   }
@@ -762,7 +792,15 @@ function ridisegna(voce, quanto) {
   pennello.clearRect(0, 0, AVATAR_LATO, AVATAR_LATO);
   pennello.drawImage(voce.ritratto.tela, 0, 0);
   const posa = ESPRESSIONI[voce.espressione] || ESPRESSIONI.sveglio;
-  disegnaPalpebre(pennello, voce.ritratto.occhi, Math.max(posa.chiusura, quanto), posa.curva);
+  /* La palpebra a riposo faceva «occhi da donna» sull'uomo: e' una fascia
+   * color pelle dipinta sopra l'occhio, e sul volto maschile si legge come
+   * ombretto. A riposo l'uomo tiene gli occhi del render — aperti, suoi — e
+   * la palpebra dipinta compare solo nel battito, quasi dritta. La donna
+   * resta com'era: la sua strizzatina le sta bene. */
+  const donna = voce.ritratto.genere === "donna";
+  const chiusura = donna ? posa.chiusura : 0;
+  const curva = posa.curva * (donna ? 1 : 0.35);
+  disegnaPalpebre(pennello, voce.ritratto.occhi, Math.max(chiusura, quanto), curva);
 }
 
 /* Il battito: chiude in centoquaranta millisecondi e riapre in centosessanta.

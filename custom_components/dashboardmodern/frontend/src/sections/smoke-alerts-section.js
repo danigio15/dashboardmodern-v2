@@ -45,12 +45,12 @@ const state = (root[KEY] ||= { installed: false, frame: 0, deleteBound: false, s
 export const SMOKE_GROUP = "fumo";
 export const SMOKE_ICON = "💨";
 
-/* Le classi che questo rilevamento riconosce. Home Assistant dichiara con lo
- * stesso vocabolario anche il gas (`gas`) e il monossido (`carbon_monoxide`):
- * quando si decidera' di sorvegliarli, la loro classe si aggiunge qui e tutto
- * il resto — registro, gruppo, blocco in Sicurezza — viene da se'. Per ora si
- * attiva solo il fumo, che e' quello che il numero 238 chiede. */
-export const SMOKE_DEVICE_CLASSES = Object.freeze(["smoke"]);
+/* Le classi che questo rilevamento riconosce. Il numero 238 chiedeva il
+ * fumo; dal campo poi e' arrivato il resto della famiglia — «rilevatori
+ * fumo/gas in config sicurezza» — e Home Assistant li dichiara tutti con lo
+ * stesso vocabolario: `gas` e il monossido (`carbon_monoxide`) entrano
+ * nella stessa lista sorvegliata, stesso registro, stesso blocco. */
+export const SMOKE_DEVICE_CLASSES = Object.freeze(["smoke", "gas", "carbon_monoxide"]);
 
 /* Il registro dei gia' visti. Non e' l'interruttore «ho gia' guardato» degli
  * allagamenti: e' l'elenco dei sensori incontrati almeno una volta, perche'
@@ -59,7 +59,7 @@ export const SMOKE_DEVICE_CLASSES = Object.freeze(["smoke"]);
  * sul telefono non si ripropone sul tablet. */
 export const SMOKE_SEEN_KEY = "cd_fumo_rilevato";
 
-const smokeName = () => t("Rilevatori di fumo", "Smoke detectors");
+const smokeName = () => t("Rilevatori fumo e gas", "Smoke & gas detectors");
 
 /** Un rilevatore di fumo, come lo dichiara Home Assistant. */
 export function isSmokeSensor(entityId, stato) {

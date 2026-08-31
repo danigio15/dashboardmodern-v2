@@ -12,15 +12,7 @@
  * Il guscio disegna la sua lista e questo modulo la riveste subito dopo:
  * stessa finestra, stesso apri e chiudi, nessun secondo padrone.
  */
-import {
-  allStates,
-  clean,
-  doc,
-  esc,
-  installStyle,
-  root,
-  t,
-} from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_APPLIANCE_DETAIL_POPUP__";
 const state = (root[KEY] ||= { installed: false });
@@ -45,36 +37,110 @@ function nomeDi(states, entity) {
 }
 
 /* Il glifo della casella, indovinato da entita' e unita': sono letture di
- * elettrodomestici, e nessuna porta un'icona scritta da qualche parte. */
+ * elettrodomestici, e nessuna porta un'icona scritta da qualche parte.
+ * L'energia in kWh usciva con la batteria (🔋) addosso — «non ha senso il
+ * simbolo batteria» — che qui non c'entra niente: e' consumo contato, non
+ * carica. Il grafico dice quello che e': una quantita' che si accumula. */
 function glifoDellaLettura(entity, unit) {
+  /* L'unita' comanda: c'e' chi chiama il sensore di potenza «w_kwh_frigo»,
+   * e a leggere solo il nome i watt uscirebbero vestiti da energia. */
+  const unita = clean(unit).toLowerCase();
+  if (unita === "w" || unita === "kw") return "⚡";
+  if (unita === "kwh" || unita === "wh") return "📊";
   const token = `${entity} ${unit}`.toLowerCase();
   if (/temperatur|°/.test(token)) return "🌡️";
   if (/umidit|humidity/.test(token)) return "💧";
-  if (/kwh|energy|energia/.test(token)) return "🔋";
+  if (/kwh|energy|energia/.test(token)) return "📊";
   if (/\bw\b|watt|power|potenza/.test(token)) return "⚡";
   if (/corrente|current|\ba\b/.test(token)) return "🔌";
   if (/volt|tension/.test(token)) return "🎚️";
   return "📈";
 }
 
+/* Il nome della casella, in parole.
+ *
+ * I sensori arrivano spesso col friendly name uguale allo slug —
+ * «w_kwh_frigo», «energy_oggi_frigo» — e la casella li stampava tali e
+ * quali: «si capisce poco cosi'». Una lettura pero' si riconosce da unita' e
+ * indizi nel nome: qui diventa la SUA parola — Potenza, Energia oggi,
+ * Energia del mese, Contatore totale — e quando due letture cadrebbero sulla
+ * stessa parola la seconda tiene le sue, ripulite: underscore in spazi e il
+ * nome dell'elettrodomestico tolto di mezzo, perche' in quella finestra c'e'
+ * scritto gia' in cima di chi si parla. */
+function nomeDellaLettura(entity, nome, unit, tokenElettrodomestico, usate) {
+  const token = `${entity} ${nome} ${unit}`.toLowerCase();
+  const unita = clean(unit).toLowerCase();
+  /* L'unita' comanda sul nome: «w_kwh_frigo» con unita' W e' potenza, non
+   * energia, per quanto il suo slug giuri il contrario. */
+  const kwh = unita === "kwh" || unita === "wh" || (!unita && /kwh/.test(token));
+  let parola = "";
+  if (unita === "w" || unita === "kw") parola = t("Potenza", "Power");
+  else if (kwh && /oggi|today|daily|giorn/.test(token)) parola = t("Energia oggi", "Energy today");
+  else if (kwh && /mese|month/.test(token)) parola = t("Energia del mese", "Energy this month");
+  else if (kwh && /anno|year|annual/.test(token))
+    parola = t("Energia dell'anno", "Energy this year");
+  else if (kwh && /total|lifetime|somma/.test(token)) parola = t("Contatore totale", "Total meter");
+  else if (kwh) parola = t("Energia", "Energy");
+  else if (/temperatur|°/.test(token)) parola = t("Temperatura", "Temperature");
+  else if (/umidit|humidity/.test(token)) parola = t("Umidità", "Humidity");
+  else if (unita === "a") parola = t("Corrente", "Current");
+  else if (unita === "v") parola = t("Tensione", "Voltage");
+  if (parola && !usate.has(parola)) {
+    usate.add(parola);
+    return parola;
+  }
+  /* Niente parola canonica (o gia' presa): le sue, ripulite. */
+  return nomeInParole(nome, tokenElettrodomestico);
+}
+
+/* Lo slug in parole: underscore e trattini in spazi, e il nome
+ * dell'elettrodomestico tolto — la finestra dice gia' in cima di chi parla. */
+function nomeInParole(nome, tokenElettrodomestico) {
+  const via = new Set(tokenElettrodomestico);
+  const parole = clean(nome)
+    .replaceAll(/[_\-.]+/g, " ")
+    .split(/\s+/)
+    .filter((pezzo) => pezzo && !via.has(pezzo.toLowerCase()));
+  const pulito = parole.join(" ").trim();
+  return pulito || clean(nome);
+}
+
+/* Le parole del nome dell'elettrodomestico, per toglierle dalle etichette. */
+function tokenDi(appliance) {
+  const nome = clean(root.cdApplianceDisplayName?.(appliance)) || clean(appliance?.name) || "";
+  return nome.toLowerCase().split(/\s+/).filter(Boolean);
+}
+
 /* Le quattro famiglie della finestra, da un giro solo sulle entita'. */
 function famiglie(appliance) {
   const states = allStates();
+  const token = tokenDi(appliance);
+  const usate = new Set();
   const misure = [];
   const pillole = [];
   const comandi = [];
+  /* «Senza tasto Accendi/Spegni»: l'interruttore resta in lettura — la
+   * pillola dice acceso o spento — ma il tasto non si offre, o il frigo
+   * protetto dalla card restava spegnibile dalla sua finestra. */
+  const senzaTasto = appliance?.switch_disabled === true;
   for (const entity of entita(appliance)) {
     const stato = states?.[entity];
     const grezzo = clean(stato?.state);
     const nome = nomeDi(states, entity);
     if (DOMINI_AZIONE.test(entity)) {
-      comandi.push({ entity, nome, azione: true, acceso: false });
+      comandi.push({ entity, nome: nomeInParole(nome, token), azione: true, acceso: false });
       continue;
     }
     if (DOMINI_INTERRUTTORE.test(entity)) {
       const acceso = grezzo.toLowerCase() === "on";
-      pillole.push({ entity, nome, acceso, valore: acceso ? t("Acceso", "On") : t("Spento", "Off") });
-      comandi.push({ entity, nome, azione: false, acceso });
+      const parole = nomeInParole(nome, token);
+      pillole.push({
+        entity,
+        nome: parole,
+        acceso,
+        valore: acceso ? t("Acceso", "On") : t("Spento", "Off"),
+      });
+      if (!senzaTasto) comandi.push({ entity, nome: parole, azione: false, acceso });
       continue;
     }
     if (STATI_MUTI.test(grezzo)) continue;
@@ -83,14 +149,14 @@ function famiglie(appliance) {
       const unit = clean(stato?.attributes?.unit_of_measurement);
       misure.push({
         entity,
-        nome,
+        nome: nomeDellaLettura(entity, nome, unit, token, usate),
         glifo: glifoDellaLettura(entity, unit),
         valore: `${grezzo}${unit ? ` ${unit}` : ""}`,
       });
       continue;
     }
     const acceso = /^(on|open|aperto|running|cleaning|heat|cool)$/i.test(grezzo);
-    pillole.push({ entity, nome, acceso, valore: grezzo });
+    pillole.push({ entity, nome: nomeInParole(nome, token), acceso, valore: grezzo });
   }
   return { misure: misure.slice(0, 12), pillole: pillole.slice(0, 12), comandi };
 }
@@ -102,7 +168,9 @@ function racconto(appliance, misure) {
   const oggi = misure.find(
     (m) => /oggi|today|daily|giorn/i.test(`${m.entity} ${m.nome}`) && /kwh/i.test(m.valore),
   );
-  const codaOggi = oggi ? t(`; oggi ha fatto ${oggi.valore}.`, `; today it did ${oggi.valore}.`) : ".";
+  const codaOggi = oggi
+    ? t(`; oggi ha fatto ${oggi.valore}.`, `; today it did ${oggi.valore}.`)
+    : ".";
   if (stato.cls === "run") {
     return {
       tono: "corso",
