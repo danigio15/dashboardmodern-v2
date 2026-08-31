@@ -820,8 +820,18 @@ function installRailDrag() {
   const rilascia = (event) => {
     if (!presa) return;
     aggiorna(event);
-    if (Number.isFinite(presa.grado))
-      chiamaClima(presa.entity, "set_temperature", { temperature: presa.grado });
+    if (Number.isFinite(presa.grado)) {
+      /* La corsia disegna la scala della famiglia, ma il comando rispetta i
+       * limiti dell'ENTITA': un termostato con min/max piu' stretti (o in
+       * Fahrenheit) non riceve mai un grado fuori dal suo intervallo. */
+      const attrs = allStates()?.[presa.entity]?.attributes || {};
+      let grado = presa.grado;
+      const minimo = Number(attrs.min_temp);
+      const massimo = Number(attrs.max_temp);
+      if (Number.isFinite(minimo)) grado = Math.max(grado, Math.ceil(minimo));
+      if (Number.isFinite(massimo)) grado = Math.min(grado, Math.floor(massimo));
+      chiamaClima(presa.entity, "set_temperature", { temperature: grado });
+    }
     presa = null;
   };
   doc.addEventListener("pointerup", rilascia, true);

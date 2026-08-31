@@ -30,6 +30,12 @@ const state = (root[KEY] ||= { installed: false });
 
 const CHIAVE = "cd_termico_caldo";
 
+/* La voce caldaia si riconosce dal nome, in piu' lingue: caldaia/scaldabagno
+ * (calda…), boiler, chaudiere, Kessel, caldera, furnace, ketel, kotel. Un
+ * ruolo esplicito sulla riga sarebbe piu' pulito, ma cambierebbe la forma di
+ * cd_termico_caldo: per ora la rete si allarga. */
+const REGEX_CALDAIA = /calda|boiler|chaudi|kessel|calder|furnace|ketel|kotel/i;
+
 /* Le tre voci che il guscio teneva cablate: si seminano SOLO se la loro
  * entita' esiste davvero in questa casa — la caldaia come switch diretto, le
  * altre due dietro i vecchi slot opachi. */
@@ -165,7 +171,7 @@ export function disegnaPannello() {
  * sezione Clima («mostrare lo stato caldaia, e se accesa da quanto»).
  * Senza una voce caldaia configurata torna null e chi chiede non disegna. */
 export function statoCaldaia() {
-  const caldaia = vociAttuali().find((voce) => /calda|boiler/i.test(voce.name));
+  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
   if (!caldaia) return null;
   const stato = statoDi(caldaia.entity);
   const acceso = stato === "on";
@@ -177,7 +183,7 @@ export function statoCaldaia() {
 export function pillolaDellaCaldaia() {
   const banner = doc?.getElementById?.("caldaia-banner");
   if (!banner) return false;
-  const caldaia = vociAttuali().find((voce) => /calda|boiler/i.test(voce.name));
+  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
   if (!caldaia) {
     banner.classList.remove("show");
     return true;

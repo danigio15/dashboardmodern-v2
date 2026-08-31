@@ -383,6 +383,12 @@ function onEditorClick(event) {
       icon: modulo.icon,
       room_id: modulo.room_id,
     };
+    /* Se la riga cambia entita', il blocco non resta appeso alla vecchia:
+     * cd_solo_lettura e' la guardia condivisa coi comandi di tutta la
+     * plancia, e un marcatore orfano lasciava non comandabile un'entita'
+     * che nessuno protegge piu'. */
+    const entitaPrima = indice === null ? "" : clean(elenco[indice]?.entity);
+    if (entitaPrima && entitaPrima !== clean(voce.entity)) segnaSoloLettura(entitaPrima, false);
     if (indice === null) elenco.push(voce);
     else elenco[indice] = voce;
     salvaPrese(elenco);
@@ -419,6 +425,10 @@ function onEditorClick(event) {
     const domanda = t(`Elimino "${nome}"?`, `Remove "${nome}"?`);
     if (root.confirm && !root.confirm(domanda)) return;
     state.modifica = null;
+    /* La presa se ne va col suo eventuale blocco: il marcatore orfano in
+     * cd_solo_lettura teneva non comandabile un'entita' non piu' protetta. */
+    const entitaVia = clean(prese[indice]?.entity);
+    if (entitaVia) segnaSoloLettura(entitaVia, false);
     salvaPrese(prese.filter((_presa, posizione) => posizione !== indice));
     ridisegnaScheda();
     schedule();
