@@ -1147,18 +1147,33 @@ function installPannelloDellaFinestra() {
  * campo stanza) e non c'e' gia'. */
 function montaFlagCarta() {
   const corpo = doc?.getElementById?.("ed-body");
-  if (!corpo || !corpo.querySelector("#ed-cl-room")) return false;
-  if (corpo.querySelector("[data-dm-cl-inverti]")) return true;
-  const blocco = doc.createElement("label");
-  blocco.className = "ed-check dm-cl-inverti";
-  blocco.dataset.dmClInverti = "";
-  blocco.innerHTML =
+  if (!corpo) return false;
+  /* Accanto al form del Clima, con la vita del form — lo schema del blocco
+   * «Tasto Clima rapido», che non trafila. Il flag appeso in coda a ed-body
+   * restava visibile in ogni scheda della configurazione («il flag per la
+   * card clima presente in tutte le sezioni»): ora vive attaccato al tasto
+   * «Aggiungi unita' clima», e col form sparito si toglie da solo. */
+  const aggiungi = corpo.querySelector('[onclick*="edAddClima"]');
+  const dentroClima = Boolean(corpo.querySelector("#ed-cl-ent")) && Boolean(aggiungi);
+  if (!dentroClima) {
+    corpo.querySelectorAll("[data-dm-cl-inverti]").forEach((nodo) => nodo.remove());
+    return false;
+  }
+  const blocco = aggiungi.parentElement || corpo;
+  corpo.querySelectorAll("[data-dm-cl-inverti]").forEach((nodo) => {
+    if (!blocco.contains(nodo)) nodo.remove();
+  });
+  if (blocco.querySelector("[data-dm-cl-inverti]")) return true;
+  const casella = doc.createElement("label");
+  casella.className = "ed-check dm-cl-inverti";
+  casella.dataset.dmClInverti = "";
+  casella.innerHTML =
     `<input type="checkbox"${cartaInvertita() ? " checked" : ""}> ` +
     t(
       "Nelle card mostra grande l'ambiente (target sotto)",
       "On cards show the room temperature big (target below)",
     );
-  blocco.querySelector("input").addEventListener("change", (evento) => {
+  casella.querySelector("input").addEventListener("change", (evento) => {
     try {
       root.localStorage?.setItem?.("cd_clima_inverti_card", evento.target.checked ? "1" : "0");
       root.cdMarkDirty?.();
@@ -1166,7 +1181,7 @@ function montaFlagCarta() {
     } catch (_errore) {}
     renderClimate({ rebuild: true });
   });
-  corpo.append(blocco);
+  blocco.append(casella);
   return true;
 }
 

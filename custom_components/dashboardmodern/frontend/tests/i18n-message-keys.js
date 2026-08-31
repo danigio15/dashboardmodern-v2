@@ -635,7 +635,6 @@ export const MESSAGE_KEYS = Object.freeze([
   "Custom alerts",
   "Custom image (URL)",
   "customizations permanently baked in. Then upload it to Home Assistant replacing the current file.",
-  "Customize programs",
   "Cyan",
   "Cycles · Consumption · Each device's state",
   "Cycling",

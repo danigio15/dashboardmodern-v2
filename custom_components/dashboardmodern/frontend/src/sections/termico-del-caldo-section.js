@@ -13,7 +13,16 @@
  * disegna quelle: nessuna voce, nessun pannello. Chi aveva davvero le tre
  * storiche mappate se le ritrova seminate nella configurazione, una volta.
  */
-import { allStates, clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  root,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TERMICO_CALDO__";
 const STYLE_ID = "dm-termico-caldo-style";
@@ -210,9 +219,23 @@ function raccogli(carta) {
 
 function montaEditor() {
   const corpo = doc?.getElementById?.("ed-body");
-  /* La scheda Clima si riconosce dal suo campo stanza. */
-  if (!corpo || !corpo.querySelector("#ed-cl-room")) return false;
-  if (corpo.querySelector("[data-dm-termico-caldo]")) return true;
+  if (!corpo) return false;
+  /* Accanto al form del Clima, con la vita del form — lo schema del blocco
+   * «Tasto Clima rapido», che non trafila. La carta appesa in coda a ed-body
+   * restava visibile in ogni scheda della configurazione («stato termico
+   * presente in tutte le sezioni»): ora vive attaccata al tasto «Aggiungi
+   * unita' clima», e quando il form non c'e' si toglie da sola. */
+  const aggiungi = corpo.querySelector('[onclick*="edAddClima"]');
+  const dentroClima = Boolean(corpo.querySelector("#ed-cl-ent")) && Boolean(aggiungi);
+  if (!dentroClima) {
+    corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => nodo.remove());
+    return false;
+  }
+  const blocco = aggiungi.parentElement || corpo;
+  corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => {
+    if (!blocco.contains(nodo)) nodo.remove();
+  });
+  if (blocco.querySelector("[data-dm-termico-caldo]")) return true;
   const carta = doc.createElement("div");
   carta.className = "ed-form dm-termico-carta";
   carta.dataset.dmTermicoCaldo = "";
@@ -251,7 +274,7 @@ function montaEditor() {
       if (campo) root.wzPickEntity?.(campo);
     }
   });
-  corpo.append(carta);
+  blocco.append(carta);
   return true;
 }
 

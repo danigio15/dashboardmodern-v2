@@ -1322,7 +1322,6 @@ export const SOURCE_INDEX = Object.freeze({
   "Persona": "Person",
   "Persona precedente": "Previous person",
   "Persona successiva": "Next person",
-  "Personalizza programmi": "Customize programs",
   "personalizzazioni integrate in modo permanente. Poi caricalo su Home Assistant al posto del file attuale.": "customizations permanently baked in. Then upload it to Home Assistant replacing the current file.",
   "Persone": "People",
   "pH massimo": "Maximum pH",
