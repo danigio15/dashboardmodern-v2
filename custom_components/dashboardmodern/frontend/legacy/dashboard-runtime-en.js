@@ -1017,7 +1017,7 @@ async function connect() {
 
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
-    if (m.id && pendingWsCallbacks[m.id]) { pendingWsCallbacks[m.id](m); delete pendingWsCallbacks[m.id]; }
+    if (m.id && pendingWsCallbacks[m.id]) { const cb = pendingWsCallbacks[m.id]; cb(m); /* v305: una sottoscrizione (WebRTC nativo) riceve piu' messaggi con lo stesso id: chi si marca keepAlive resta in ascolto e si toglie da solo */ if (!cb.keepAlive) delete pendingWsCallbacks[m.id]; }
     
     if(m.type === 'auth_required') ws.send(JSON.stringify({type:'auth', access_token:token}));
     if(m.type === 'auth_ok') {
@@ -5304,7 +5304,7 @@ async function dmCamOpen(cam, title, content) {
         { nome: 'Istantanee' },
     ];
     const CORSE = {
-        WebRTC: (strada) => dmCamWebRTC(cam, strada.flusso || dmStreamName(cam), content, strada.attesa),
+        WebRTC: (strada) => dmCamWebRTC(cam, strada, content, strada.attesa),
         HLS: (strada) => dmCamHLS(cam, content, strada.attesa),
         MJPEG: (strada) => dmCamMJPEG(cam, content, strada.attesa),
         Istantanee: () => Promise.resolve(dmCamPolling(cam, content)),
@@ -5330,7 +5330,12 @@ async function dmCamOpen(cam, title, content) {
 
 const _DM_FS_BTNS = `<button id="close-fullscreen-btn" class="close-fullscreen-btn" style="display:none; position:absolute; top:16px; right:16px; z-index:99999; background:rgba(15,23,42,0.85); border:2px solid rgba(255,255,255,0.4); color:#fff; border-radius:50%; width:52px; height:52px; font-size:22px; font-weight:bold; cursor:pointer; align-items:center; justify-content:center; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:0 10px 25px rgba(0,0,0,0.6);" onclick="toggleFullScreenCam()">✕</button>`;
 
-async function dmCamWebRTC(cam, streamName, content, attesa) {
+async function dmCamWebRTC(cam, strada, content, attesa) {
+    /* Due dialetti per lo stesso video: il WebRTC nativo di Home Assistant
+       (camera/webrtc/offer — go2rtc integrato, Ring, Nest) e l'estensione
+       go2rtc col nome del flusso. La strada dice quale parlare. */
+    const streamName = (strada && strada.flusso) || dmStreamName(cam);
+    const nativa = Boolean(strada && strada.nativa);
     content.innerHTML = `<div class="cam-popup-body"><div id="video-iframe-container" class="cam-zoom-container" style="position:relative; padding-top:56.25%;"><video id="cam-video" autoplay playsinline></video><div id="cam-audio-mini" class="cam-audio-mini-banner" onclick="dmUnlockAudioWebRTC()">🔇 Tap per audio</div><div id="cam-video-loader" class="cam-video-loader-overlay"><div class="cam-popup-spinner"></div><div>Connecting WebRTC…</div></div>${_DM_FS_BTNS}</div><button id="toggle-fs-main-btn" class="cam-fs-btn" onclick="toggleFullScreenCam()">🔲 Fullscreen</button></div>`;
     const videoEl = document.getElementById('cam-video');
     const loaderEl = document.getElementById('cam-video-loader');
@@ -5342,7 +5347,7 @@ async function dmCamWebRTC(cam, streamName, content, attesa) {
         videoEl.addEventListener('loadeddata', ok, { once: true });
         setTimeout(() => { if (done) return; done = true; reject(new Error(`WebRTC: no frame within ${Math.round((attesa || 3000) / 1000)}s`)); }, attesa || 3000);
     });
-    await dmStartWebRTC(streamName, videoEl);
+    if (nativa) await dmStartWebRTCNative(cam.entity, videoEl); else await dmStartWebRTC(streamName, videoEl);
     await started;
 }
 
@@ -5456,6 +5461,81 @@ async function dmStartWebRTC(streamName, videoEl) {
         };
         camWs.onerror = () => fail(new Error('WebRTC WebSocket unreachable'));
         camWs.onclose = (e) => { if (!settled) { if (e.code === 4401 || e.code === 4403) fail(new Error('WebRTC auth rejected')); else fail(new Error('WS chiusa prima dell handshake (code ' + e.code + ')')); } };
+    });
+}
+
+/* v305: WebRTC come lo parla Home Assistant (2024.11+): l'offerta parte sul
+   websocket di casa con `camera/webrtc/offer`, le risposte arrivano come
+   EVENTI sulla stessa sottoscrizione — session, answer, candidate, error — e
+   i candidati locali si spediscono con `camera/webrtc/candidate` appena la
+   sessione ha un nome. Sulle versioni piu' vecchie il comando non esiste:
+   si ripiega su `camera/web_rtc_offer`, che risponde una volta sola con la
+   answer intera (niente trickle). */
+async function dmStartWebRTCNative(entityId, videoEl) {
+    dmCleanupWebRTC();
+    if (!ws || ws.readyState !== WebSocket.OPEN) throw new Error('WebSocket HA non attiva');
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }], bundlePolicy: 'max-bundle' });
+    _dmPc = pc;
+    pc.ontrack = (e) => { if (videoEl.srcObject !== e.streams[0]) videoEl.srcObject = e.streams[0]; dmTryPlayUnmuted(videoEl); };
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    return new Promise((resolve, reject) => {
+        let settled = false, sessionId = '';
+        const subId = msgId++;
+        const inAttesa = [];
+        const chiudi = () => { delete pendingWsCallbacks[subId]; };
+        const fail = (err) => { if (settled) return; settled = true; clearTimeout(tid); chiudi(); reject(err); };
+        const done = () => { if (settled) return; settled = true; clearTimeout(tid); resolve(pc); };
+        const tid = setTimeout(() => fail(new Error('Timeout WebRTC nativo (15s)')), 15000);
+        pc.onicecandidate = (e) => {
+            if (!e.candidate) return;
+            const invio = { type: 'camera/webrtc/candidate', entity_id: entityId, candidate: e.candidate.toJSON ? e.candidate.toJSON() : { candidate: e.candidate.candidate, sdpMid: e.candidate.sdpMid, sdpMLineIndex: e.candidate.sdpMLineIndex } };
+            if (sessionId) { invio.session_id = sessionId; try { ws.send(JSON.stringify(Object.assign({ id: msgId++ }, invio))); } catch (_e) {} }
+            else inAttesa.push(invio);
+        };
+        const gestore = async (m) => {
+            if (m.type === 'result') {
+                if (m.success === false) {
+                    const codice = m.error && m.error.code;
+                    if (codice === 'unknown_command' || codice === 'unknown_type') { chiudi(); dmLegacyWebRtcOffer(entityId, pc, offer).then(done, fail); return; }
+                    fail(new Error((m.error && m.error.message) || 'camera/webrtc/offer rifiutata'));
+                }
+                return;
+            }
+            const ev = m.event || {};
+            if (ev.type === 'session') {
+                sessionId = ev.session_id || '';
+                while (sessionId && inAttesa.length) { const invio = inAttesa.shift(); invio.session_id = sessionId; try { ws.send(JSON.stringify(Object.assign({ id: msgId++ }, invio))); } catch (_e) {} }
+            } else if (ev.type === 'answer') {
+                try { await pc.setRemoteDescription({ type: 'answer', sdp: ev.answer }); done(); } catch (err) { fail(err); }
+            } else if (ev.type === 'candidate') {
+                const cand = ev.candidate && (ev.candidate.candidate ? ev.candidate : { candidate: ev.candidate });
+                if (cand && cand.candidate) { try { await pc.addIceCandidate(cand); } catch (_err) {} }
+            } else if (ev.type === 'error') {
+                fail(new Error(ev.message || ev.code || 'Errore WebRTC nativo'));
+            }
+        };
+        gestore.keepAlive = true;
+        pendingWsCallbacks[subId] = gestore;
+        try { ws.send(JSON.stringify({ id: subId, type: 'camera/webrtc/offer', entity_id: entityId, offer: offer.sdp })); }
+        catch (err) { fail(err); }
+    });
+}
+
+/* Il dialetto vecchio: una domanda, una risposta con la answer intera. */
+function dmLegacyWebRtcOffer(entityId, pc, offer) {
+    return new Promise((resolve, reject) => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) { reject(new Error('WebSocket HA non attiva')); return; }
+        const reqId = msgId++;
+        const tid = setTimeout(() => { if (pendingWsCallbacks[reqId]) { delete pendingWsCallbacks[reqId]; reject(new Error('Timeout web_rtc_offer')); } }, 10000);
+        pendingWsCallbacks[reqId] = (m) => {
+            clearTimeout(tid);
+            if (m.success && m.result && m.result.answer) pc.setRemoteDescription({ type: 'answer', sdp: m.result.answer }).then(resolve, reject);
+            else reject(new Error((m.error && m.error.message) || 'web_rtc_offer fallita'));
+        };
+        ws.send(JSON.stringify({ id: reqId, type: 'camera/web_rtc_offer', entity_id: entityId, offer: offer.sdp }));
     });
 }
 

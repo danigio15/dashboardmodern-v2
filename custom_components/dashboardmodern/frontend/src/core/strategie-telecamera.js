@@ -91,12 +91,27 @@ export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
   const dorme = siSveglia(stato);
   const webrtcNelBrowser = opzioni.webrtcNelBrowser !== false;
   const hlsNelBrowser = opzioni.hlsNelBrowser !== false;
+  /* Home Assistant moderno parla WebRTC da solo: `frontend_stream_type` vale
+   * `web_rtc` quando l'entita' negozia via `camera/webrtc/offer` (go2rtc e'
+   * integrato dal 2024.12, e Ring/Nest passano di li'). E' un'altra strada
+   * rispetto all'estensione go2rtc col nome del flusso: quella resta per chi
+   * l'ha configurata, questa non chiede niente — lo dichiara Home Assistant. */
+  const nativa = pulito(stato?.attributes?.frontend_stream_type).toLowerCase() === "web_rtc";
 
   const strade = [];
 
   if (!webrtcNelBrowser) strade.push({ nome: "WebRTC", salta: "browser-senza-webrtc" });
-  else if (!nomeDelFlusso) strade.push({ nome: "WebRTC", salta: "senza-nome-di-flusso" });
-  else strade.push({ nome: "WebRTC", attesa: ATTESE.WEBRTC, flusso: nomeDelFlusso });
+  else if (nomeDelFlusso)
+    strade.push({ nome: "WebRTC", attesa: ATTESE.WEBRTC, flusso: nomeDelFlusso });
+  else if (nativa)
+    strade.push({
+      nome: "WebRTC",
+      /* Una telecamera in cloud che negozia in nativo deve prima svegliarsi:
+       * il tempo e' quello della sveglia, non quello della rete di casa. */
+      attesa: dorme ? ATTESE.HLS_SVEGLIA : ATTESE.HLS_LOCALE,
+      nativa: true,
+    });
+  else strade.push({ nome: "WebRTC", salta: "senza-nome-di-flusso" });
 
   if (!hlsNelBrowser) strade.push({ nome: "HLS", salta: "browser-senza-hls" });
   else

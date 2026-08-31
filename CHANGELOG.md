@@ -52,6 +52,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le telecamere parlano anche il WebRTC nativo di Home Assistant.** La
+  plancia conosceva solo il dialetto dell'estensione go2rtc: senza il nome
+  del flusso compilato la strada WebRTC si saltava, anche quando Home
+  Assistant dichiarava di saper negoziare da solo (2024.11+, ad esempio
+  le Reolink). Ora, se la telecamera espone il WebRTC nativo, la plancia
+  negozia direttamente sulla websocket di HA — offerta, risposta e
+  candidati, col vecchio scambio a risposta unica come ripiego per i core
+  piu' datati — e il nome del flusso go2rtc resta solo per chi ce l'ha,
+  e continua a vincere se compilato.
+
 - **La matita della telecamera riporta l'entita' anche nella veste.** In
   modifica l'entita' «spariva»: la matita riempiva il campo grezzo in
   silenzio e la chip che lo veste — ridipinta solo quando il campo

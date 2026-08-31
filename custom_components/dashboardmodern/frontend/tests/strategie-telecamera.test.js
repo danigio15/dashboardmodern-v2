@@ -104,3 +104,43 @@ test("la diagnosi dice cosa e' successo a ogni strada, saltate comprese", () => 
     { nome: "HLS", salta: null, errore: "Timeout" },
   ]);
 });
+
+test("chi dichiara WebRTC nativo lo prova senza nome di flusso", () => {
+  /* Home Assistant moderno negozia da solo (`frontend_stream_type:
+   * "web_rtc"`, go2rtc integrato, Ring e Nest): «WebRTC ancora non
+   * funzionante» era la plancia che parlava solo il dialetto
+   * dell'estensione go2rtc e saltava la strada per mancanza del nome. */
+  const NATIVA_SVEGLIA = {
+    entity_id: "camera.ingresso_ring",
+    state: "idle",
+    attributes: { friendly_name: "Ingresso", frontend_stream_type: "web_rtc" },
+  };
+  const strade = strategieDellaTelecamera({ entity: "camera.ingresso_ring" }, NATIVA_SVEGLIA);
+  const webrtc = strada(strade, "WebRTC");
+  assert.equal(webrtc.salta, undefined);
+  assert.equal(webrtc.nativa, true);
+  // In cloud deve prima svegliarsi: il tempo e' quello della sveglia.
+  assert.equal(webrtc.attesa, ATTESE.HLS_SVEGLIA);
+  assert.equal(nomiDa(daProvare(strade))[0], "WebRTC");
+
+  const NATIVA_LOCALE = {
+    entity_id: "camera.giardino",
+    state: "streaming",
+    attributes: { frontend_stream_type: "web_rtc" },
+  };
+  assert.equal(
+    strada(strategieDellaTelecamera({}, NATIVA_LOCALE), "WebRTC").attesa,
+    ATTESE.HLS_LOCALE,
+  );
+});
+
+test("il nome di flusso configurato vince sul nativo: e' una scelta esplicita", () => {
+  const NATIVA = {
+    entity_id: "camera.giardino",
+    state: "streaming",
+    attributes: { frontend_stream_type: "web_rtc" },
+  };
+  const webrtc = strada(strategieDellaTelecamera({ stream: "giardino_go2rtc" }, NATIVA), "WebRTC");
+  assert.equal(webrtc.flusso, "giardino_go2rtc");
+  assert.equal(webrtc.nativa, undefined);
+});
