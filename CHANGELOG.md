@@ -52,6 +52,24 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La caccia ai duplicati e alle sovrascritture delle telecamere.** Cinque
+  cose vere trovate e curate. L'«Auto-rileva» della configurazione
+  rimpiazzava la lista delle telecamere con tutte le `camera.*` di Home
+  Assistant: nomi propri, stanza e nome del flusso go2rtc sparivano (e il
+  WebRTC smetteva di funzionare) — ora le esistenti restano come sono e si
+  aggiungono solo le entita' nuove. La modifica di una telecamera
+  ricostruiva la riga da zero, buttando i campi che il form non conosce
+  (la stanza scritta dal registro di HA) — ora li conserva. La procedura
+  guidata aveva DUE `wzAddStanza`: quella senza il ramo di modifica
+  ombreggiava quella vera, e modificare una stanza la duplicava — la
+  doppia e' morta. Il passo finale della procedura scriveva anche le liste
+  vuote sopra quelle piene (e tre righe erano copiate due volte) — ora una
+  lista vuota non cancella niente. E i gestori delle risposte websocket
+  non si buttavano alla riconnessione: si accumulavano a ogni caduta di
+  linea, sottoscrizioni WebRTC comprese. In piu' e' morta `renderVideoHls`,
+  una seconda filiera video mai chiamata, col suo `#popup-cam-video` che
+  non esiste in nessun HTML.
+
 - **Le telecamere parlano anche il WebRTC nativo di Home Assistant.** La
   plancia conosceva solo il dialetto dell'estensione go2rtc: senza il nome
   del flusso compilato la strada WebRTC si saltava, anche quando Home

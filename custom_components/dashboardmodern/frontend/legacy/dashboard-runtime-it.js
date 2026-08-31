@@ -627,7 +627,6 @@ let currentWeatherEntity = null;
 let currentActiveCam = null;
 let currentHistEntity = null;
 let currentHistName = null;
-let hlsInstance = null; 
 let isPseudoFullscreen = false; // Gestione Fullscreen per iOS su flussi MJPEG
 
 /* v281: la dashboard deve vivere anche se il CDN di Chart.js non è raggiungibile
@@ -1069,7 +1068,7 @@ async function connect() {
         }
     }
   };
-  ws.onclose = () => { document.getElementById('live-dot').classList.remove('connected'); setTxt('conn-text', 'Riconnessione...'); setTimeout(connect, 5000); };
+  ws.onclose = () => { document.getElementById('live-dot').classList.remove('connected'); setTxt('conn-text', 'Riconnessione...'); /* Le risposte di questa socket non arriveranno mai piu': i gestori in attesa (comprese le sottoscrizioni keepAlive del WebRTC) si buttano, o si accumulano a ogni riconnessione. */ try { pendingWsCallbacks = {}; } catch (e) {} setTimeout(connect, 5000); };
 }
 
 function toggle(eid) {
@@ -2882,10 +2881,20 @@ function wzAutoDetect() {
 
     // — Telecamere
     if (!(WIZ.cameras || []).length) {
-        WIZ.cameras = M.filter(e => e.id.startsWith('camera.')).map(e => {
+        /* Le telecamere gia' configurate NON si rimpiazzano: l'auto-rileva le
+         * scriveva pari pari sopra cd_cameras e chi aveva nomi propri, stanza e
+         * nome del flusso go2rtc se li vedeva sparire (e il WebRTC smetteva di
+         * funzionare). Le esistenti restano come sono; si aggiungono solo le
+         * entita' camera.* che ancora non ci sono. */
+        const rilevate = M.filter(e => e.id.startsWith('camera.')).map(e => {
             const area = wzAreaOf(e.id);
             return { name: area && !e.name.toLowerCase().includes(area.toLowerCase()) ? area + ' - ' + e.name : e.name, entity: e.id };
         });
+        let esistenti = [];
+        try { esistenti = (typeof getCameras === 'function' ? getCameras() : []) || []; } catch (e) { esistenti = []; }
+        const occupate = {};
+        esistenti.forEach(c => { if (c && c.entity) occupate[c.entity] = 1; });
+        WIZ.cameras = esistenti.concat(rilevate.filter(c => c.entity && !occupate[c.entity]));
         nCam = WIZ.cameras.length;
     }
 
@@ -3244,18 +3253,9 @@ function wzAddStanza() {
     wzRender();
 }
 
-function wzAddStanza() {
-    const icon = (document.getElementById('wz-st-icon').value || '🏠').trim();
-    const name = (document.getElementById('wz-st-name').value || '').trim();
-    const temp = (document.getElementById('wz-st-temp').value || '').trim();
-    const hum = (document.getElementById('wz-st-hum').value || '').trim();
-    if (!name || !temp.includes('.')) { alert('Inserisci nome e sensore temperatura'); return; }
-    if (!WIZ.stanze) WIZ.stanze = [];
-    const r = { name, icon, temp };
-    if (hum.includes('.')) r.hum = hum;
-    WIZ.stanze.push(r);
-    wzRender();
-}
+/* La wzAddStanza doppia e' morta qui: la versione senza il ramo di modifica
+ * ombreggiava quella vera e ogni modifica di stanza nel wizard diventava un
+ * doppione in lista. */
 function wzAddClima() {
     const type = document.getElementById('wz-cl-type').value;
     const name = (document.getElementById('wz-cl-name').value || '').trim();
@@ -3414,14 +3414,14 @@ function wzFinish() {
     if (WIZ.sectionNames && Object.keys(WIZ.sectionNames).length) localStorage.setItem('cd_section_names', JSON.stringify(WIZ.sectionNames));
     else localStorage.removeItem('cd_section_names');
     if (Object.keys(WIZ.luci).length) localStorage.setItem('cd_luci', JSON.stringify(WIZ.luci));
-    if (WIZ.cameras) localStorage.setItem('cd_cameras', JSON.stringify(WIZ.cameras));
-    if (WIZ.climaUnits) localStorage.setItem('cd_clima_units', JSON.stringify(WIZ.climaUnits));
-    if (WIZ.stanze) localStorage.setItem('cd_stanze', JSON.stringify(WIZ.stanze));
-    if (WIZ.devices) localStorage.setItem('cd_devices', JSON.stringify(WIZ.devices));
-    if (WIZ.reportDevices) localStorage.setItem('cd_report_devices', JSON.stringify(WIZ.reportDevices));
-    if (WIZ.stanze) localStorage.setItem('cd_stanze', JSON.stringify(WIZ.stanze));
-    if (WIZ.devices) localStorage.setItem('cd_devices', JSON.stringify(WIZ.devices));
-    if (WIZ.reportDevices) localStorage.setItem('cd_report_devices', JSON.stringify(WIZ.reportDevices));
+    
+    
+    
+    if (WIZ.devices && WIZ.devices.length) localStorage.setItem('cd_devices', JSON.stringify(WIZ.devices));
+    if (WIZ.reportDevices && WIZ.reportDevices.length) localStorage.setItem('cd_report_devices', JSON.stringify(WIZ.reportDevices));
+    
+    
+    
     if (WIZ.quickActions) localStorage.setItem('cd_quick_actions', JSON.stringify(WIZ.quickActions));
     if (WIZ.evImage !== undefined) localStorage.setItem('cd_ev_image', JSON.stringify(WIZ.evImage || ''));
     if (WIZ.entities && Object.keys(WIZ.entities).length) {
@@ -3861,7 +3861,7 @@ function edDelClima(i) {
 let _dmCameraEditIndex=null;
 function edEditCamera(i){ var c=getCameras()[i]; if(!c)return; _dmCameraEditIndex=i; document.getElementById('ed-cam-name').value=c.name||''; document.getElementById('ed-cam-ent').value=c.entity||''; document.getElementById('ed-cam-stream').value=c.stream||''; var room=document.getElementById('ed-cam-room'); if(room) room.value=c.room_id||c.room||''; }
 function dmSaveCameras(cams){ var store=globalThis.DashboardModernModules&&DashboardModernModules.store; if(store) return store.replaceSection('cameras',cams).catch(function(e){ alert('Salvataggio telecamera fallito: '+e.message); }); localStorage.setItem('cd_cameras',JSON.stringify(cams)); try{cdMarkDirty();cdSyncPush();}catch(e){} var grid=document.getElementById('cam-grid'); if(grid)grid._sig=''; buildCamCards(); refreshCameras(); try{render();}catch(e){} }
-function edAddCamera() { const name=(document.getElementById('ed-cam-name').value||'').trim(), ent=(document.getElementById('ed-cam-ent').value||'').trim(), stream=(document.getElementById('ed-cam-stream').value||'').trim(); if(!name||!/^camera\.[a-z0-9_]+$/i.test(ent)){alert('Telecamera non valida');return;} const cams=getCameras().slice(); const nuova={id:(_dmCameraEditIndex!=null&&cams[_dmCameraEditIndex]&&cams[_dmCameraEditIndex].id)||('camera_'+Date.now().toString(36)),name:name,entity:ent,stream:stream,room_id:(document.getElementById('ed-cam-room')||{}).value||''}; if(_dmCameraEditIndex==null)cams.push(nuova);else cams[_dmCameraEditIndex]=nuova; _dmCameraEditIndex=null; dmSaveCameras(cams); if(!globalThis.DashboardModernModules) editorSwitch('sezioni'); edToast('Telecamera aggiunta'); }
+function edAddCamera() { const name=(document.getElementById('ed-cam-name').value||'').trim(), ent=(document.getElementById('ed-cam-ent').value||'').trim(), stream=(document.getElementById('ed-cam-stream').value||'').trim(); if(!name||!/^camera\.[a-z0-9_]+$/i.test(ent)){alert('Telecamera non valida');return;} const cams=getCameras().slice(); /* La riga in modifica non si ricostruisce da zero: i campi che il form non conosce (la stanza del registro, un flag storico) restano suoi. */ const precedente=(_dmCameraEditIndex!=null&&cams[_dmCameraEditIndex])||{}; const nuova=Object.assign({},precedente,{id:precedente.id||('camera_'+Date.now().toString(36)),name:name,entity:ent,stream:stream,room_id:(document.getElementById('ed-cam-room')||{}).value||''}); if(_dmCameraEditIndex==null)cams.push(nuova);else cams[_dmCameraEditIndex]=nuova; _dmCameraEditIndex=null; dmSaveCameras(cams); if(!globalThis.DashboardModernModules) editorSwitch('sezioni'); edToast('Telecamera aggiunta'); }
 function edDelCamera(i) { const cams=getCameras().slice(); cams.splice(i,1); _dmCameraEditIndex=null; dmSaveCameras(cams); if(!globalThis.DashboardModernModules) editorSwitch('sezioni'); }
 
 function edSetSlot(input) {
@@ -5652,47 +5652,9 @@ function dmCamCleanup() {
     _dmCurrentCam = null;
 }
 
-function renderVideoHls(url) {
-    const video = document.getElementById('popup-cam-video');
-    const fallbackImg = document.getElementById('popup-cam-fallback-img');
-    const instr = document.getElementById('cam-instr');
-    if(!video) return;
-
-    // A. CONFIGURAZIONE AUDIO FORZATA
-    video.muted = false; 
-    video.volume = 1.0;
-
-    video.onplaying = () => {
-        if(fallbackImg) fallbackImg.style.display = 'none';
-        video.style.display = 'block';
-        
-        // B. BLINDATURA AUDIO PER IOS/ANDROID
-        video.muted = false;
-        video.volume = 1.0;
-        
-        if(instr) instr.innerHTML = `<span style="color:#10b981;">✔️ Flusso Diretto con Audio Attivo</span>`;
-    };
-
-    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-        if(hlsInstance) hlsInstance.destroy();
-        hlsInstance = new Hls({ 
-            manifestLoadingTimeOut: 20000, 
-            enableWorker: true,
-            // Importante: forza la gestione del codec audio
-            audioCodec: 'aac' 
-        });
-        hlsInstance.loadSource(url);
-        hlsInstance.attachMedia(video);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
-            video.muted = false;
-            video.play().catch(e => console.log("Autoplay bloccato dal browser, premi Play", e));
-        });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-        video.muted = false; // Forza l'audio per Safari nativo
-        video.play().catch(e => console.log("Autoplay bloccato", e));
-    }
-}
+/* Qui viveva renderVideoHls: una seconda filiera video mai chiamata, col suo
+ * #popup-cam-video che non esiste in nessun HTML. Le strade vere del popup
+ * telecamera sono in dmCamOpen. */
 function renderFallbackMjpeg() {
     const video = document.getElementById('popup-cam-video');
     const fallbackImg = document.getElementById('popup-cam-fallback-img');
