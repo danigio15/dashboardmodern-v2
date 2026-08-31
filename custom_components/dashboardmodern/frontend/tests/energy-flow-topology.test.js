@@ -63,7 +63,10 @@ test("desktop keeps one evenly spaced row and anchors every connector on Home", 
   assert.equal(eight.length, 8);
   assert.ok(eight.every(({ row }) => row === 0));
   const lefts = eight.map(({ left }) => left);
-  assert.deepEqual([...lefts].sort((a, b) => a - b), lefts);
+  assert.deepEqual(
+    [...lefts].sort((a, b) => a - b),
+    lefts,
+  );
 });
 
 test("mobile wraps onto a second row instead of crushing eight bubbles into one", () => {
@@ -500,4 +503,45 @@ test("gli altri cerchi non diventano l'auto per il fatto di essere secondi", () 
   });
   assert.equal(model.nodes[1].slotKey, "wb");
   assert.equal(model.nodes[1].click.kind, "history");
+});
+
+test("il cerchio somma anche gli elettrodomestici del mondo vecchio", () => {
+  /* «I flussi si creano ma senza valore; il popup dello stesso
+   * elettrodomestico mostra i valori corretti»: gli apparecchi configurati
+   * prima del modello canonico portano solo `entities: [...]`, senza
+   * `power_entity`. Il popup i watt li trova scandendo le entita'; il
+   * cerchio deve fare la stessa domanda. */
+  const model = flowStageModel({
+    loads: [{ id: "cerchio-cucina", name: "Cucina", metadata: {} }],
+    appliances: [
+      {
+        id: "frigo",
+        name: "Frigo",
+        entities: ["switch.frigo", "sensor.frigo_w"],
+        metadata: { beta27_subload_group: "cerchio-cucina" },
+      },
+    ],
+    states: {
+      "sensor.frigo_w": { state: "312", attributes: { unit_of_measurement: "W" } },
+      "switch.frigo": { state: "on", attributes: {} },
+    },
+    period: "instant",
+  });
+  assert.equal(model.nodes[0].value, 312);
+  assert.equal(model.nodes[0].source, "sum");
+  // E chi i watt non li dichiara da nessuna parte resta onestamente muto.
+  const muto = flowStageModel({
+    loads: [{ id: "cerchio-cucina", name: "Cucina", metadata: {} }],
+    appliances: [
+      {
+        id: "x",
+        name: "X",
+        entities: ["switch.x"],
+        metadata: { beta27_subload_group: "cerchio-cucina" },
+      },
+    ],
+    states: { "switch.x": { state: "on", attributes: {} } },
+    period: "instant",
+  });
+  assert.equal(muto.nodes[0].value, null);
 });

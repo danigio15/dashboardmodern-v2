@@ -223,8 +223,27 @@ function stateWatts(states, entity) {
  * read from state; a load that has nothing but a lifetime meter and no bundle
  * sample reads as absent, because the alternative is printing a running total
  * as today's or this month's consumption. */
+/* La potenza di chi non ha la casella canonica.
+ *
+ * Gli elettrodomestici configurati nel mondo vecchio portano solo
+ * `entities: [...]`, senza `power_entity`: il loro popup i watt li trova
+ * scandendo le entita' — e' cosi' che «il popup dello stesso elettrodomestico
+ * mostra i valori corretti» — ma il cerchio che li somma leggeva solo la
+ * casella canonica e restava senza valore. Stessa domanda, stessa risposta:
+ * la prima entita' che parla in watt e' la potenza. */
+function potenzaImplicita(load, states) {
+  for (const grezza of Array.isArray(load?.entities) ? load.entities : []) {
+    const id = clean(typeof grezza === "string" ? grezza : grezza?.entity || grezza?.entity_id);
+    if (!id) continue;
+    const unit = clean(states?.[id]?.attributes?.unit_of_measurement).toLowerCase();
+    if (["w", "kw", "mw"].includes(unit)) return id;
+  }
+  return "";
+}
+
 function periodValue(load, period, states, recorderValues) {
-  const entity = flowPeriodEntity(load, period);
+  const canonica = flowPeriodEntity(load, period);
+  const entity = canonica || (period === "instant" ? potenzaImplicita(load, states) : canonica);
   if (period !== "instant" && recorderValues) {
     const key = clean(load.id) || clean(load.name);
     const fromBundle =

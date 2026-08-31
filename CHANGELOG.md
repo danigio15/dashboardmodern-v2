@@ -46,6 +46,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il cerchio del flusso riempito dagli elettrodomestici porta i loro
+  watt.** Scegliendo elettrodomestici nei Carichi il cerchio nasceva ma
+  restava senza valore, mentre il popup dell'apparecchio i watt li
+  mostrava: gli apparecchi del mondo vecchio portano solo l'elenco di
+  entita', senza la casella canonica della potenza, e il cerchio leggeva
+  solo quella. Ora fa la stessa domanda del popup: la prima entita' che
+  parla in watt e' la potenza.
+
 - **Le Aperture usano il catalogo icone di casa.** La lente dell'icona di
   avvisi, aperture e porte apriva una griglia di emoji nata a parte: ora
   apre il motore delle icone del progetto — porte, cancelli e serrature
