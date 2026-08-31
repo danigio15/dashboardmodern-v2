@@ -41,7 +41,18 @@ import {
 } from "../core/person-model.js";
 import { pickMediaImage } from "./media-picker-section.js";
 import { installAvatar3dStyle, ritrattoFermo, ritrattoVivo } from "./person-avatar-section.js";
-import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  onEditorRedraw,
+  readJson,
+  root,
+  t,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PEOPLE_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
@@ -51,12 +62,78 @@ const state = (root[KEY] ||= { installed: false, aperto: -1 });
  * per categorie: espressioni, gente di casa, mestieri, e qualche animale per
  * chi non si prende sul serio. */
 export const AVATAR_EMOJI = Object.freeze([
-  "😀", "😊", "😎", "🥰", "😇", "🤓", "🥳", "😴", "🤠", "🥸", "🤗", "😜",
-  "👨", "👩", "🧑", "👦", "👧", "👶", "👴", "👵", "🧔", "👱‍♀️", "👱‍♂️", "🧑‍🦰",
-  "👨‍🦱", "👩‍🦱", "👨‍🦳", "👩‍🦳", "👨‍🦲", "🧑‍🦱", "👩‍🦰", "🧕", "👳‍♂️", "👲", "🧒", "🧓",
-  "👨‍💻", "👩‍💻", "👨‍🍳", "👩‍🍳", "👨‍⚕️", "👩‍⚕️", "👨‍🏫", "👩‍🏫", "👷‍♂️", "👷‍♀️", "👮‍♂️", "👮‍♀️",
-  "👨‍🔧", "👩‍🔧", "👨‍🚒", "👩‍🚒", "👨‍✈️", "👩‍✈️", "👨‍🎨", "👩‍🎨", "🧑‍🌾", "🧑‍🎓", "🦸‍♂️", "🦸‍♀️",
-  "🐱", "🐶", "🦊", "🐼", "🐨", "🦁", "🐯", "🐸", "🐧", "🦄", "🐢", "🦉",
+  "😀",
+  "😊",
+  "😎",
+  "🥰",
+  "😇",
+  "🤓",
+  "🥳",
+  "😴",
+  "🤠",
+  "🥸",
+  "🤗",
+  "😜",
+  "👨",
+  "👩",
+  "🧑",
+  "👦",
+  "👧",
+  "👶",
+  "👴",
+  "👵",
+  "🧔",
+  "👱‍♀️",
+  "👱‍♂️",
+  "🧑‍🦰",
+  "👨‍🦱",
+  "👩‍🦱",
+  "👨‍🦳",
+  "👩‍🦳",
+  "👨‍🦲",
+  "🧑‍🦱",
+  "👩‍🦰",
+  "🧕",
+  "👳‍♂️",
+  "👲",
+  "🧒",
+  "🧓",
+  "👨‍💻",
+  "👩‍💻",
+  "👨‍🍳",
+  "👩‍🍳",
+  "👨‍⚕️",
+  "👩‍⚕️",
+  "👨‍🏫",
+  "👩‍🏫",
+  "👷‍♂️",
+  "👷‍♀️",
+  "👮‍♂️",
+  "👮‍♀️",
+  "👨‍🔧",
+  "👩‍🔧",
+  "👨‍🚒",
+  "👩‍🚒",
+  "👨‍✈️",
+  "👩‍✈️",
+  "👨‍🎨",
+  "👩‍🎨",
+  "🧑‍🌾",
+  "🧑‍🎓",
+  "🦸‍♂️",
+  "🦸‍♀️",
+  "🐱",
+  "🐶",
+  "🦊",
+  "🐼",
+  "🐨",
+  "🦁",
+  "🐯",
+  "🐸",
+  "🐧",
+  "🦄",
+  "🐢",
+  "🦉",
 ]);
 
 export const PEOPLE_EDITOR_TAB = "people";
@@ -136,89 +213,188 @@ function campoEntita(id, field, label, value, placeholder, hint) {
 function fileRitratto(face) {
   const conCapelli = personaHaCapelli(face.persona);
   return [
-    { k: "persona", label: t("Persona", "Person"), valori: [...PERSONE], nomi: NOMI_PERSONE, nudo: true },
+    {
+      k: "persona",
+      label: t("Persona", "Person"),
+      valori: [...PERSONE],
+      nomi: NOMI_PERSONE,
+      nudo: true,
+    },
     ...(conCapelli
-      ? [{ k: "capelli", label: t("Capelli", "Hair"), valori: [...CAPELLI], nomi: NOMI_CAPELLI, nudo: true }]
+      ? [
+          {
+            k: "capelli",
+            label: t("Capelli", "Hair"),
+            valori: [...CAPELLI],
+            nomi: NOMI_CAPELLI,
+            nudo: true,
+          },
+        ]
       : []),
     { k: "barba", label: t("Barba", "Beard"), valori: [...BARBE], nomi: NOMI_BARBE },
     ...(conCapelli
-      ? [{ k: "coloreCapelli", label: t("Colore capelli", "Hair color"), valori: [...COLORI_CAPELLI], nomi: NOMI_COLORI_CAPELLI }]
+      ? [
+          {
+            k: "coloreCapelli",
+            label: t("Colore capelli", "Hair color"),
+            valori: [...COLORI_CAPELLI],
+            nomi: NOMI_COLORI_CAPELLI,
+          },
+        ]
       : []),
     ...(face.barba !== "nessuna"
-      ? [{ k: "coloreBarba", label: t("Colore barba", "Beard color"), valori: [...COLORI_BARBA], nomi: NOMI_COLORI_BARBA }]
+      ? [
+          {
+            k: "coloreBarba",
+            label: t("Colore barba", "Beard color"),
+            valori: [...COLORI_BARBA],
+            nomi: NOMI_COLORI_BARBA,
+          },
+        ]
       : []),
-    { k: "occhi", label: t("Colore occhi", "Eye color"), valori: [...COLORI_OCCHI], nomi: NOMI_OCCHI, cerchi: OCCHI_CERCHI },
+    {
+      k: "occhi",
+      label: t("Colore occhi", "Eye color"),
+      valori: [...COLORI_OCCHI],
+      nomi: NOMI_OCCHI,
+      cerchi: OCCHI_CERCHI,
+    },
     { k: "occhiali", label: t("Occhiali", "Glasses"), valori: [...OCCHIALI], nomi: NOMI_OCCHIALI },
     { k: "collana", label: t("Collana", "Necklace"), valori: [...COLLANE], nomi: NOMI_COLLANE },
-    { k: "carnagione", label: t("Carnagione", "Skin tone"), valori: [...CARNAGIONI], nomi: NOMI_CARNAGIONI, nudo: true },
+    {
+      k: "carnagione",
+      label: t("Carnagione", "Skin tone"),
+      valori: [...CARNAGIONI],
+      nomi: NOMI_CARNAGIONI,
+      nudo: true,
+    },
     { k: "vestito", label: t("Vestito", "Outfit"), valori: [...VESTITI], nomi: NOMI_VESTITI },
     ...(vestitoRicolorabile(face.vestito)
-      ? [{ k: "coloreVestito", label: t("Colore vestito", "Outfit color"), valori: [...COLORI_VESTITO], nomi: NOMI_COLORI_VESTITO }]
+      ? [
+          {
+            k: "coloreVestito",
+            label: t("Colore vestito", "Outfit color"),
+            valori: [...COLORI_VESTITO],
+            nomi: NOMI_COLORI_VESTITO,
+          },
+        ]
       : []),
   ];
 }
 
 const NOMI_PERSONE = () => ({
-  uomo: t("Uomo", "Man"), donna: t("Donna", "Woman"), neutro: t("Neutro", "Neutral"),
-  ragazzo: t("Ragazzo", "Boy"), ragazza: t("Ragazza", "Girl"),
-  anziano: t("Anziano", "Old man"), anziana: t("Anziana", "Old woman"),
+  uomo: t("Uomo", "Man"),
+  donna: t("Donna", "Woman"),
+  neutro: t("Neutro", "Neutral"),
+  ragazzo: t("Ragazzo", "Boy"),
+  ragazza: t("Ragazza", "Girl"),
+  anziano: t("Anziano", "Old man"),
+  anziana: t("Anziana", "Old woman"),
 });
 const NOMI_CAPELLI = () => ({
-  lisci: t("Lisci", "Straight"), ricci: t("Ricci", "Curly"), calvo: t("Calvo", "Bald"),
+  lisci: t("Lisci", "Straight"),
+  ricci: t("Ricci", "Curly"),
+  calvo: t("Calvo", "Bald"),
 });
 const NOMI_BARBE = () => ({
-  nessuna: t("Nessuna", "None"), rasata: t("Rasata", "Stubble"),
-  corta: t("Corta", "Short"), lunga: t("Lunga", "Long"),
+  nessuna: t("Nessuna", "None"),
+  rasata: t("Rasata", "Stubble"),
+  corta: t("Corta", "Short"),
+  lunga: t("Lunga", "Long"),
 });
 const NOMI_COLORI_CAPELLI = () => ({
-  naturale: t("Naturale", "Natural"), biondo: t("Biondo", "Blonde"), rosso: t("Rosso", "Red"),
-  bianco: t("Bianco", "White"), castano: t("Castano", "Brown"), rame: t("Rame", "Copper"),
-  grigio: t("Grigio", "Gray"), rosa: t("Rosa", "Pink"),
+  naturale: t("Naturale", "Natural"),
+  biondo: t("Biondo", "Blonde"),
+  rosso: t("Rosso", "Red"),
+  bianco: t("Bianco", "White"),
+  castano: t("Castano", "Brown"),
+  rame: t("Rame", "Copper"),
+  grigio: t("Grigio", "Gray"),
+  rosa: t("Rosa", "Pink"),
 });
 const NOMI_COLORI_BARBA = () => ({
-  naturale: t("Naturale", "Natural"), grigia: t("Grigia", "Gray"), bionda: t("Bionda", "Blonde"),
-  rame: t("Rame", "Copper"), castana: t("Castana", "Brown"),
+  naturale: t("Naturale", "Natural"),
+  grigia: t("Grigia", "Gray"),
+  bionda: t("Bionda", "Blonde"),
+  rame: t("Rame", "Copper"),
+  castana: t("Castana", "Brown"),
 });
 const NOMI_OCCHI = () => ({
-  marrone: t("Marroni", "Brown"), verde: t("Verdi", "Green"), azzurro: t("Azzurri", "Blue"),
-  grigio: t("Grigi", "Gray"), nero: t("Neri", "Black"),
+  marrone: t("Marroni", "Brown"),
+  verde: t("Verdi", "Green"),
+  azzurro: t("Azzurri", "Blue"),
+  grigio: t("Grigi", "Gray"),
+  nero: t("Neri", "Black"),
 });
 /* I cerchi della fila «Colore occhi»: l'iride, non una pastiglia-ritratto. */
 const OCCHI_CERCHI = Object.freeze({
-  marrone: "#5b4132", verde: "#3a6b48", azzurro: "#3f74b5", grigio: "#7d8794", nero: "#26221f",
+  marrone: "#5b4132",
+  verde: "#3a6b48",
+  azzurro: "#3f74b5",
+  grigio: "#7d8794",
+  nero: "#26221f",
 });
 const NOMI_OCCHIALI = () => ({
-  nessuno: t("Nessuno", "None"), tondi: t("Tondi", "Round"),
-  quadrati: t("Quadrati", "Square"), sole: t("Da sole", "Sunglasses"),
+  nessuno: t("Nessuno", "None"),
+  tondi: t("Tondi", "Round"),
+  quadrati: t("Quadrati", "Square"),
+  sole: t("Da sole", "Sunglasses"),
 });
 const NOMI_COLLANE = () => ({
-  nessuna: t("Nessuna", "None"), catenina: t("Catenina", "Chain"), pendente: t("Pendente", "Pendant"),
+  nessuna: t("Nessuna", "None"),
+  catenina: t("Catenina", "Chain"),
+  pendente: t("Pendente", "Pendant"),
 });
 const NOMI_COLORI_VESTITO = () => ({
-  blu: t("Blu", "Blue"), verde: t("Verde", "Green"), rosso: t("Rosso", "Red"),
-  giallo: t("Giallo", "Yellow"), viola: t("Viola", "Purple"), grigio: t("Grigio", "Gray"),
+  blu: t("Blu", "Blue"),
+  verde: t("Verde", "Green"),
+  rosso: t("Rosso", "Red"),
+  giallo: t("Giallo", "Yellow"),
+  viola: t("Viola", "Purple"),
+  grigio: t("Grigio", "Gray"),
 });
 const NOMI_CARNAGIONI = () => ({
-  chiara: t("Chiara", "Light"), chiara2: t("Chiara+", "Light+"), media: t("Media", "Medium"),
-  ambrata: t("Ambrata", "Tan"), scura: t("Scura", "Dark"),
+  chiara: t("Chiara", "Light"),
+  chiara2: t("Chiara+", "Light+"),
+  media: t("Media", "Medium"),
+  ambrata: t("Ambrata", "Tan"),
+  scura: t("Scura", "Dark"),
 });
 const NOMI_VESTITI = () => ({
-  nessuno: t("Nessuno", "None"), ufficio: t("Ufficio", "Office"), medico: t("Medico", "Doctor"),
-  cuoco: t("Cuoco", "Chef"), smoking: t("Smoking", "Tuxedo"), velo: t("Velo", "Veil"),
-  pompiere: t("Pompiere", "Firefighter"), poliziotto: t("Poliziotto", "Police"),
-  muratore: t("Muratore", "Builder"), operaio: t("Operaio", "Worker"),
-  meccanico: t("Meccanico", "Mechanic"), contadino: t("Contadino", "Farmer"),
-  pilota: t("Pilota", "Pilot"), astronauta: t("Astronauta", "Astronaut"),
-  giudice: t("Giudice", "Judge"), supereroe: t("Supereroe", "Superhero"),
-  scienziato: t("Scienziato", "Scientist"), insegnante: t("Insegnante", "Teacher"),
-  studente: t("Studente", "Student"), informatico: t("Informatico", "Technologist"),
-  artista: t("Artista", "Artist"), cantante: t("Cantante", "Singer"),
-  guardia: t("Guardia", "Guard"), detective: t("Detective", "Detective"),
-  turbante: t("Turbante", "Turban"), supercattivo: t("Supercattivo", "Supervillain"),
-  mago: t("Mago", "Mage"), fata: t("Fata", "Fairy"),
-  vampiro: t("Vampiro", "Vampire"), elfo: t("Elfo", "Elf"),
-  casual: t("Casual", "Casual"), saluto: t("Saluto", "Wave"),
-  polo: t("Polo", "Polo"), camicia: t("Camicia", "Shirt"),
+  nessuno: t("Nessuno", "None"),
+  ufficio: t("Ufficio", "Office"),
+  medico: t("Medico", "Doctor"),
+  cuoco: t("Cuoco", "Chef"),
+  smoking: t("Smoking", "Tuxedo"),
+  velo: t("Velo", "Veil"),
+  pompiere: t("Pompiere", "Firefighter"),
+  poliziotto: t("Poliziotto", "Police"),
+  muratore: t("Muratore", "Builder"),
+  operaio: t("Operaio", "Worker"),
+  meccanico: t("Meccanico", "Mechanic"),
+  contadino: t("Contadino", "Farmer"),
+  pilota: t("Pilota", "Pilot"),
+  astronauta: t("Astronauta", "Astronaut"),
+  giudice: t("Giudice", "Judge"),
+  supereroe: t("Supereroe", "Superhero"),
+  scienziato: t("Scienziato", "Scientist"),
+  insegnante: t("Insegnante", "Teacher"),
+  studente: t("Studente", "Student"),
+  informatico: t("Informatico", "Technologist"),
+  artista: t("Artista", "Artist"),
+  cantante: t("Cantante", "Singer"),
+  guardia: t("Guardia", "Guard"),
+  detective: t("Detective", "Detective"),
+  turbante: t("Turbante", "Turban"),
+  supercattivo: t("Supercattivo", "Supervillain"),
+  mago: t("Mago", "Mage"),
+  fata: t("Fata", "Fairy"),
+  vampiro: t("Vampiro", "Vampire"),
+  elfo: t("Elfo", "Elf"),
+  casual: t("Casual", "Casual"),
+  saluto: t("Saluto", "Wave"),
+  polo: t("Polo", "Polo"),
+  camicia: t("Camicia", "Shirt"),
   attesa: t("In attesa", "Expecting"),
 });
 
@@ -271,13 +447,24 @@ function sensoriCampi(index, person) {
     ["distance", t("Distanza da casa", "Distance from home"), "sensor.telefono_distance"],
     ["travel", t("Tempo di rientro", "Time to home"), "sensor.waze_casa"],
     ["direction", t("Direzione", "Direction"), "sensor.home_direction_of_travel"],
-    ["address", t("Posizione (indirizzo)", "Location (address)"), "sensor.telefono_geocoded_location"],
+    [
+      "address",
+      t("Posizione (indirizzo)", "Location (address)"),
+      "sensor.telefono_geocoded_location",
+    ],
     ["activity", t("Attività", "Activity"), "sensor.telefono_activity"],
     ["wifi", t("Rete WiFi", "WiFi network"), "sensor.telefono_wifi_connection"],
   ];
   return campi
     .map(([field, label, placeholder]) =>
-      campoEntita(`dm-person-${index}-${field}`, field, label, person[field] || "", placeholder, ""),
+      campoEntita(
+        `dm-person-${index}-${field}`,
+        field,
+        label,
+        person[field] || "",
+        placeholder,
+        "",
+      ),
     )
     .join("");
 }
@@ -360,7 +547,10 @@ function raccogliRighe(body, people, esclusa = -1) {
     const posizione = Number(riga.dataset.personIndex);
     if (!Number.isFinite(posizione) || !people[posizione] || posizione === esclusa) continue;
     const bozza = leggiRiga(riga, people[posizione]);
-    if (ENTITY_RE.test(bozza.entity)) next[posizione] = bozza;
+    /* La bozza vince se la sua entita' regge — o se quella salvata non c'era
+     * comunque: la persona APPENA creata, ancora senza entita', non deve
+     * perdere il nome appena scritto solo perche' l'entita' arriva dopo. */
+    if (ENTITY_RE.test(bozza.entity) || !clean(people[posizione].entity)) next[posizione] = bozza;
   }
   return next;
 }
@@ -455,7 +645,11 @@ async function dipingiAnteprime() {
       if (posto.dataset.dmInViaggio === attesa) continue;
       posto.dataset.dmInViaggio = attesa;
       let scelta = null;
-      try { scelta = JSON.parse(attesa); } catch (_errore) { continue; }
+      try {
+        scelta = JSON.parse(attesa);
+      } catch (_errore) {
+        continue;
+      }
       const url = await ritrattoFermo(scelta);
       if (posto.dataset.dmInViaggio === attesa) delete posto.dataset.dmInViaggio;
       if (!url || !posto.isConnected) continue;
@@ -600,11 +794,16 @@ async function onClick(event) {
   if (event.target.closest("[data-person-add]")) {
     event.preventDefault();
     state.aperto = people.length;
-    /* Una persona senza nome ne' entita' non e' una persona e la
+    /* Prima si mette al sicuro quello che c'e' scritto ADESSO nelle righe:
+     * «se mentre si sta creando una persona si preme Aggiungi, deve salvare
+     * la persona corrente» — il ridisegno che segue riscrive le caselle, e
+     * senza questa raccolta la persona a meta' spariva.
+     *
+     * Una persona senza nome ne' entita' non e' una persona e la
      * normalizzazione la scarterebbe: la riga nuova nasce con un nome
      * provvisorio, che e' anche quello che si vede finche' non lo si cambia. */
     salva([
-      ...people,
+      ...raccogliRighe(body, people),
       {
         id: `person-${Date.now().toString(36)}`,
         name: `${t("Persona", "Person")} ${people.length + 1}`,
@@ -631,7 +830,8 @@ async function onClick(event) {
       root.edToast?.(t("Nessuna nuova persona da importare", "No new people to import"));
       return;
     }
-    salva([...people, ...nuove]);
+    /* Anche qui: quello che c'e' scritto nelle righe si salva, non si butta. */
+    salva([...raccogliRighe(body, people), ...nuove]);
     state.aperto = -1;
     ridisegna();
     root.edToast?.(t(`${nuove.length} persone importate`, `${nuove.length} people imported`));
@@ -706,9 +906,9 @@ async function onClick(event) {
     event.preventDefault();
     const campo = riga.querySelector('[data-person-field="color"]');
     if (campo) campo.value = clean(colore.dataset.personColor);
-    riga.querySelectorAll("[data-person-color]").forEach((button) =>
-      button.classList.toggle("on", button === colore),
-    );
+    riga
+      .querySelectorAll("[data-person-color]")
+      .forEach((button) => button.classList.toggle("on", button === colore));
     riga
       .querySelector(".dm-face-preview")
       ?.style?.setProperty("--dm-person-color", clean(colore.dataset.personColor));
@@ -751,7 +951,10 @@ async function onClick(event) {
   }
   if (event.target.closest("[data-person-del]")) {
     event.preventDefault();
-    const domanda = t(`Elimino "${nomeDi(people[index], index)}"?`, `Remove "${nomeDi(people[index], index)}"?`);
+    const domanda = t(
+      `Elimino "${nomeDi(people[index], index)}"?`,
+      `Remove "${nomeDi(people[index], index)}"?`,
+    );
     if (root.confirm && !root.confirm(domanda)) return;
     state.aperto = -1;
     salva(people.filter((_person, position) => position !== index));

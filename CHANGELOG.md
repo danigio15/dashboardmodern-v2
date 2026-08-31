@@ -35,6 +35,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **«Aggiungi persona» non butta piu' la persona che si stava
+  scrivendo.** Il tasto ridisegnava la scheda con quello che c'era in
+  memoria: il nome appena scritto — su una persona ancora senza entita' —
+  spariva. Ora quello che c'e' nelle righe si mette al sicuro prima di
+  aggiungere (e prima di importare), e la bozza di una persona nata senza
+  entita' vale anche se l'entita' arriva dopo.
+
 - **Le Prese abitano anche la pagina Stanze.** La sezione Prese non veniva
   riportata dentro Stanze: ora ogni presa sta nella sua stanza, subito
   dopo le luci, con la stessa card e lo stesso interruttore — e i Carichi
