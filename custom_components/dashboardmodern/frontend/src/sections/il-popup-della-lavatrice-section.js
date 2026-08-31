@@ -20,7 +20,7 @@
  */
 import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { applianceVisualKey } from "../core/device-model.js";
-import { openIconPicker } from "./icon-engine-section.js";
+import { iconGlyphMarkup, openIconPicker } from "./icon-engine-section.js";
 import {
   clean,
   doc,
@@ -92,7 +92,17 @@ function tasto(voce) {
   nodo.type = "button";
   nodo.className = "lav-preset-btn";
   nodo.dataset.dmLavProgramma = voce.entity;
-  nodo.innerHTML = `<div class="icon-wrap">${esc(voce.icon)}</div><div class="name">${esc(voce.name)}</div>`;
+  /* Il disegno di casa, non il carattere nudo.
+   *
+   * Qui si stampava `voce.icon` come testo: chi sceglieva dal catalogo si
+   * portava a casa un'emoji, e i tasti dei programmi erano gli unici della
+   * plancia a non avere il disegno di famiglia. Il motore sa fare tutti e due
+   * i mestieri — disegna quello che il catalogo conosce, e per un'emoji
+   * scritta a mano scrive l'emoji — quindi chi aveva gia' i suoi tasti non
+   * perde niente. */
+  nodo.innerHTML =
+    `<div class="icon-wrap">${iconGlyphMarkup("action", voce.icon, { size: 26 })}</div>` +
+    `<div class="name">${esc(voce.name)}</div>`;
   nodo.addEventListener("click", () => {
     root.navigator?.vibrate?.(12);
     /* La strada del guscio: toggle risolve il riferimento e per gli script
@@ -165,7 +175,7 @@ function rigaEditor(voce) {
     /* L'icona si sceglie dal catalogo di casa, non si batte a mano: il campo
      * resta scrivibile per chi vuole un'emoji sua, ma il tasto apre il
      * selettore unico — «non e' possibile mettere icone per i programmi». */
-    `<span class="ed-form-row dm-lav-icona-riga"><input class="ed-input dm-lav-icona" maxlength="24" value="${esc(voce.icon || "")}" placeholder="🧺" aria-label="${t("Icona", "Icon")}">` +
+    `<span class="ed-form-row dm-lav-icona-riga"><input class="ed-input dm-lav-icona" maxlength="40" value="${esc(voce.icon || "")}" placeholder="🧺" aria-label="${t("Icona", "Icon")}">` +
     `<button type="button" class="dm-lav-icona-btn" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span>` +
     `<input class="ed-input dm-lav-nome" value="${esc(voce.name || "")}" placeholder="${t("Nome (es. Rapido 30')", "Name (e.g. Quick 30')")}">` +
     `<input class="ed-input ed-slot-in mono dm-lav-entita" value="${esc(voce.entity || "")}" placeholder="script.lavatrice_rapido">` +
@@ -322,11 +332,11 @@ function creaCarta() {
     const catalogo = evento.target?.closest?.(".dm-lav-icona-btn");
     if (catalogo) {
       const campo = catalogo.parentElement?.querySelector(".dm-lav-icona");
-      /* Il segno, non il nome del disegno: il tasto del programma stampa
-       * `voce.icon` come testo nudo, e un «mdi:washing-machine» ci si
-       * leggerebbe per esteso — lo stesso guaio delle porte. La scelta resta
-       * quella del catalogo di casa. */
-      if (campo) openIconPicker(campo, "action", { glifo: true });
+      /* Il nome del disegno, adesso che il tasto lo sa disegnare: prima qui
+       * si prendeva il solo carattere, perche' il tasto stampava il campo
+       * com'era e un «mdi:washing-machine» ci si sarebbe letto per esteso.
+       * Cosi' i programmi hanno le icone di casa come tutto il resto. */
+      if (campo) openIconPicker(campo, "action");
       return;
     }
     if (evento.target?.closest?.(".dm-lav-aggiungi"))
@@ -345,6 +355,34 @@ function creaCarta() {
  * entita', icona, quanti ne vuoi — e le caselle del popup, con salvataggio a
  * ogni modifica; scelta un'altra azione, la carta si ritira. «Configurazione
  * completa» vuol dire tutto quello che la finestra mostra, non i soli tasti. */
+/* La stessa carta, per chi la vuole altrove.
+ *
+ * «Azione rapida lavatrice in modifica non mi fa scegliere tutte le entita'
+ * del popup»: la finestra «Modifica azione» e' un'altra maschera, con un menu
+ * suo, e li' la carta non arrivava — si configurava il popup solo mentre lo si
+ * creava, e riaprendo non si ritrovava piu' niente. Ora chi disegna quella
+ * finestra chiede la carta qui, ed e' la stessa: stessi programmi, stesse
+ * caselle, stesso salvataggio. */
+export function cartaLavatrice() {
+  return creaCarta();
+}
+
+/* La carta compare o si ritira dentro un contenitore qualunque, secondo il
+ * valore di un menu del tipo azione. Vale per la scheda Azioni, per la
+ * procedura guidata e per la finestra di modifica. */
+export function accompagnaMenuAzione(select, contenitore) {
+  if (!select || !contenitore) return false;
+  if (!select.__dmLavAscolta) {
+    select.__dmLavAscolta = true;
+    select.addEventListener("change", () => accompagnaMenuAzione(select, contenitore));
+  }
+  const esistente = contenitore.querySelector("[data-dm-lav-programmi]");
+  const vuole = clean(select.value) === "builtin_lavatrice";
+  if (vuole && !esistente) contenitore.append(creaCarta());
+  if (!vuole && esistente) esistente.remove();
+  return vuole;
+}
+
 export function montaNelleAzioni() {
   let montata = false;
   for (const id of ["ed-qa-type", "wz-qa-type"]) {

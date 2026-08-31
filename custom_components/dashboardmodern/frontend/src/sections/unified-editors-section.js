@@ -6,6 +6,7 @@ import {
   quickClimateFieldsMarkup,
   salvaQuickClimateDaCampi,
 } from "./quick-climate-editor-section.js";
+import { accompagnaMenuAzione } from "./il-popup-della-lavatrice-section.js";
 import {
   clean,
   doc,
@@ -185,7 +186,8 @@ function openActionEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="dm-unified-icon-row"><span class="dm-unified-icon-preview" data-action-icon-preview aria-hidden="true">${iconMarkup(initialIcon, actionTypeIcon(selectedType), 36)}</span><input class="ed-input" name="icon" value="${esc(initialIcon)}"></span><small>${t("L’icona è personalizzabile anche per le azioni integrate e viene mostrata nella Home.", "The icon is customizable for built-in actions too and is shown on Home.")}</small></label>
      <label class="ed-slot" data-action-entity-field><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Conferma opzionale", "Optional confirmation")}</span><textarea class="ed-input" name="confirm">${esc(item.confirm || item.confirmation)}</textarea></label>`,
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Conferma opzionale", "Optional confirmation")}</span><textarea class="ed-input" name="confirm">${esc(item.confirm || item.confirmation)}</textarea></label>
+     <div data-action-washer-host></div>`,
     actionTypeIcon(selectedType),
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
@@ -199,6 +201,19 @@ function openActionEditor(item, index) {
       36,
     );
   });
+  /* Il popup della lavatrice si configura anche di qui.
+   *
+   * «Azione rapida lavatrice in modifica non mi fa scegliere tutte le entita'
+   * del popup»: la carta con i programmi e le caselle usciva solo mentre si
+   * CREAVA l'azione, sotto il menu della scheda. Chi tornava a modificarla
+   * trovava quattro campi e nient'altro, e quello che aveva scritto sembrava
+   * perso. E' la stessa carta, montata qui sotto e ritirata se si sceglie
+   * un'altra azione. */
+  const cartaHost = form.querySelector("[data-action-washer-host]");
+  accompagnaMenuAzione(form.elements.type, cartaHost);
+  form.elements.type.addEventListener("change", () =>
+    accompagnaMenuAzione(form.elements.type, cartaHost),
+  );
   syncActionEditor(form);
   form.addEventListener("submit", (event) => {
     event.preventDefault();

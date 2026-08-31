@@ -1444,6 +1444,125 @@ function preseModel(states) {
   };
 }
 
+/* Le caselle del MiniPC che la tessera sa raccontare, nell'ordine in cui
+ * contano: prima quanto sta lavorando, poi quanto scotta e quanto tira, poi la
+ * linea. Sono gli stessi riferimenti della sua scheda: chi li ha mappati una
+ * volta non deve rimapparli qui. */
+const CASELLE_MINIPC = Object.freeze([
+  { ref: "dm.server_cpu", it: "CPU", en: "CPU", glyph: "🧠", unita: "%", cifre: 0, quota: true },
+  { ref: "dm.server_ram", it: "RAM", en: "RAM", glyph: "📊", unita: "%", cifre: 0, quota: true },
+  {
+    ref: "dm.server_disco",
+    it: "Disco",
+    en: "Disk",
+    glyph: "💽",
+    unita: "%",
+    cifre: 0,
+    quota: true,
+  },
+  {
+    ref: "dm.server_temperatura_cpu",
+    it: "Temperatura CPU",
+    en: "CPU temperature",
+    glyph: "🌡️",
+    unita: "°",
+    cifre: 1,
+  },
+  { ref: "dm.server_temperature", it: "Temperatura", en: "Temperature", glyph: "🌡️", unita: "°", cifre: 1 },
+  {
+    ref: "dm.server_potenza_raspberry_server",
+    it: "Potenza",
+    en: "Power",
+    glyph: "⚡",
+    unita: " W",
+    cifre: 0,
+  },
+  {
+    ref: "dm.server_speedtest_download",
+    it: "Download",
+    en: "Download",
+    glyph: "⬇️",
+    unita: " Mb/s",
+    cifre: 0,
+  },
+  {
+    ref: "dm.server_speedtest_upload",
+    it: "Upload",
+    en: "Upload",
+    glyph: "⬆️",
+    unita: " Mb/s",
+    cifre: 0,
+  },
+  { ref: "dm.server_ping_internet", it: "Ping", en: "Ping", glyph: "📡", unita: " ms", cifre: 0 },
+  { ref: "dm.server_stato_internet", it: "Internet", en: "Internet", glyph: "🌐", acceso: true },
+  {
+    ref: "dm.server_raggiungibilita_google",
+    it: "Rete raggiungibile",
+    en: "Network reachable",
+    glyph: "🌐",
+    acceso: true,
+  },
+]);
+
+/* La tessera del MiniPC.
+ *
+ * «Nella sezione widget manca completamente minipc»: la scheda aveva la sua
+ * pagina e le sue caselle, ma in Home non c'era niente — e il ponte esiste
+ * proprio per dire di sfuggita come sta quello che di solito si guarda per
+ * intero. In grande va la CPU, che e' la risposta alla domanda «sta
+ * faticando?»; il resto sta nella finestra, e il tasto porta alla sua
+ * sezione. */
+function minipcModel(states) {
+  const fuori = widgetExcludedEntities();
+  const rows = [];
+  const visti = new Set();
+  let carico = null;
+  for (const casella of CASELLE_MINIPC) {
+    const dato = refValue(states, casella.ref, fuori);
+    if (!dato || visti.has(dato.entity)) continue;
+    if (casella.acceso) {
+      if (STATI_MUTI.test(dato.state)) continue;
+      visti.add(dato.entity);
+      const attivo = STATI_ACCESI.test(dato.state);
+      rows.push({
+        glyph: casella.glyph,
+        name: friendlyName(states, dato.entity),
+        entity: dato.entity,
+        on: attivo,
+        value: attivo ? t("Attivo", "Up") : t("Assente", "Down"),
+      });
+      continue;
+    }
+    if (dato.value == null) continue;
+    visti.add(dato.entity);
+    if (casella.quota && carico === null && casella.ref === "dm.server_cpu") carico = dato.value;
+    rows.push({
+      glyph: casella.glyph,
+      name: t(casella.it, casella.en),
+      entity: dato.entity,
+      raw: dato.value,
+      value: `${formatNumber(dato.value, casella.cifre)}${casella.unita}`,
+    });
+  }
+  if (!rows.length) return null;
+  const quote = rows.filter((row) => /^(CPU|RAM|Disco|Disk)$/.test(row.name));
+  return {
+    key: "minipc",
+    accent: "#334155",
+    icon: "🖥️",
+    label: t("MiniPC", "MiniPC"),
+    value: carico != null ? `${formatNumber(carico, 0)}%` : rows[0].value,
+    /* Le altre due quote in didascalia: sono la coppia che si guarda insieme
+     * alla CPU, e cosi' la tessera dice tutto senza aprirsi. */
+    caption: quote
+      .filter((row) => row.name !== "CPU")
+      .map((row) => `${row.name} ${row.value}`)
+      .join(" · "),
+    ring: carico != null ? Math.round(carico) : null,
+    rows,
+  };
+}
+
 function irrigationModel(states) {
   const config = root.getIrr?.() || readJson("cd_irrigazione", {});
   const zones = Array.isArray(config?.zones) ? config.zones : [];
@@ -1873,6 +1992,7 @@ function widgetModels(states) {
       evModel(states),
       robotsModel(states),
       solarThermalModel(states),
+      minipcModel(states),
       poolModel(states),
       preseModel(states),
       irrigationModel(states),
@@ -3217,6 +3337,7 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   piscina: "piscina",
   irrigazione: "irrigazione",
   robot: "robot",
+  minipc: "server",
 });
 
 /* La voce della sezione, ma solo se ci si puo' davvero andare.

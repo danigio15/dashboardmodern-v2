@@ -532,6 +532,18 @@ export const ACTION_ICON_CATALOG = Object.freeze(
     ["script", "Script", "Script", "mdi:script-text-play", "▶️"],
     ["toggle", "Interruttore", "Toggle", "mdi:toggle-switch-outline", "🔀"],
     ["laundry", "Lavatrice", "Washing machine", "mdi:washing-machine", "🧺"],
+    /* I programmi della lavatrice, per i tasti del suo popup: si battezzano
+     * uno per uno, e il catalogo non aveva niente da offrire oltre al cesto. */
+    ["wash-cotton", "Cotone", "Cotton", "mdi:tshirt-crew", "☁️"],
+    ["wash-synthetic", "Sintetici", "Synthetics", "mdi:hanger", "👔"],
+    ["wash-wool", "Lana", "Wool", "mdi:sheep", "🧶"],
+    ["wash-quick", "Rapido", "Quick wash", "mdi:timer-fast", "⏱️"],
+    ["wash-eco", "Eco", "Eco", "mdi:leaf", "🍃"],
+    ["wash-spin", "Centrifuga", "Spin", "mdi:rotate-3d-variant", "🔃"],
+    ["wash-rinse", "Risciacquo", "Rinse", "mdi:water-sync", "🚿"],
+    ["wash-hot", "Igienizzante", "Sanitize", "mdi:thermometer-high", "🧼"],
+    ["wash-delicate", "Delicati", "Delicates", "mdi:feather", "🪶"],
+    ["wash-duvet", "Piumoni", "Duvets", "mdi:bed-king", "🛌"],
     ["power", "Energia", "Power", "mdi:flash", "⚡"],
     ["ev", "Auto", "Car", "mdi:car-electric", "🚗"],
     ["boiler", "Boiler", "Boiler", "mdi:water-boiler", "♨️"],

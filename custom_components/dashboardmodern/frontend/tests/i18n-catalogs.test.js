@@ -129,6 +129,15 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   /* Il nome della rete di casa: dove non si scrive in un altro alfabeto si
    * scrive cosi' e basta. */
   "Wi-Fi",
+  /* Le sigle del MiniPC: si scrivono cosi' in mezzo mondo, e dove non e' vero
+   * — russo, giapponese, arabo — il catalogo di quella lingua le traduce. */
+  "CPU",
+  "RAM",
+  "Ping",
+  "Internet",
+  "MiniPC",
+  /* Il programma della lavatrice: sull'oblo' c'e' scritto «Eco» ovunque. */
+  "Eco",
   "kWh/day",
   "☀️ Solar",
   "📊 Report",
