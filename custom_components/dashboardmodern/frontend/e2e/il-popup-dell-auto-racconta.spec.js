@@ -1,5 +1,5 @@
-/* Il popup dell'Auto sul documento vero: l'ora accanto al tempo, la frase,
- * i codici in parole.
+/* Il popup dell'Auto sul documento vero: l'ora accanto al tempo e i codici
+ * in parole (la frase d'analisi sta nel popup widget, non qui).
  *
  * Il guscio scrive «2H 15M RIM.» e riscrive quel nodo a ogni giro: il
  * modulo deve rimettere l'ora ogni volta, leggendola da quel testo — la
@@ -52,9 +52,7 @@ const STATI = {
   },
 };
 
-test("l'ora accanto al tempo, la frase sotto il nome, e torna dopo ogni riscrittura", async ({
-  page,
-}, testInfo) => {
+test("l'ora accanto al tempo, e torna dopo ogni riscrittura", async ({ page }, testInfo) => {
   test.setTimeout(150_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
@@ -73,11 +71,9 @@ test("l'ora accanto al tempo, la frase sotto il nome, e torna dopo ogni riscritt
   });
   await expect(tempo).toContainText("verso le", { timeout: 10000 });
 
-  /* E la frase d'analisi sta sotto il nome dell'auto. */
-  const frase = page.locator("#ev-popup [data-dm-ev-frase]");
-  await expect(frase).toContainText("In carica al 53%", { timeout: 10000 });
-  await expect(frase).toContainText("1.6 kW");
-  await expect(frase).toContainText("verso le");
+  /* La frase d'analisi NON sta qui: «l'analisi non va nel popup auto ma nel
+   * popup widget» — la' c'e' gia', e questo popup non ne fa una copia. */
+  await expect(page.locator("#ev-popup [data-dm-ev-frase]")).toHaveCount(0);
 
   /* Il guscio riscrive il nodo al giro dopo: l'ora torna da sola. */
   await page.evaluate(() => {

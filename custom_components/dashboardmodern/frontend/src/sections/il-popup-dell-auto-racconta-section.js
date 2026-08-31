@@ -7,13 +7,13 @@
  * stampano il codice cosi' com'e' — «C», che non dice niente.
  *
  * Questo modulo lavora sopra il disegno del guscio: accanto al tempo che
- * manca scrive l'ora («· verso le 10:46»), sotto il nome dell'auto mette la
- * frase d'analisi come nei popup dei widget, e le caselle che mostrano un
- * codice nudo lo ricevono in parole. La formula del tempo resta quella del
- * guscio — qui la si legge, non la si rifa' — cosi' i due posti dicono la
- * stessa ora.
+ * manca scrive l'ora («· verso le 10:46») e le caselle che mostrano un
+ * codice nudo lo ricevono in parole. La frase d'analisi NON sta qui: «l'analisi
+ * non va nel popup auto ma nel popup widget» — e nel popup dei widget c'e'
+ * gia'. La formula del tempo resta quella del guscio — qui la si legge, non
+ * la si rifa' — cosi' i due posti dicono la stessa ora.
  */
-import { allStates, clean, doc, installStyle, readJson, root, section, t } from "./shared.js";
+import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_POPUP_AUTO_RACCONTA__";
 const state = (root[KEY] ||= { installed: false });
@@ -40,31 +40,6 @@ export function oraDiFineCarica(testo, adesso = Date.now()) {
   if (!preso) return "";
   const fine = new Date(adesso + (Number(preso[1]) * 60 + Number(preso[2])) * 60000);
   return `${fine.getHours()}:${String(fine.getMinutes()).padStart(2, "0")}`;
-}
-
-/* Il riferimento si scioglie come lo scioglie la plancia: prima le chiavi
- * globali (l'auto «in uso»), e se li' non c'e' niente si guarda nella
- * mappatura dei profili — e' la stessa che «Usa» copia nelle globali. */
-function sciogli(riferimento) {
-  const globale = clean(root.resolveEntity?.(riferimento) || riferimento);
-  if (globale && !globale.startsWith("dm.")) return globale;
-  const vetture = section("ev", readJson("cd_ev_cars", []));
-  for (const auto of Array.isArray(vetture) ? vetture : []) {
-    const mappa = auto?.ov || auto?.overrides || {};
-    const entity = clean(mappa[riferimento]);
-    if (entity) return entity;
-  }
-  return globale;
-}
-
-function lettura(riferimento) {
-  const grezzo = clean(allStates()?.[sciogli(riferimento)]?.state);
-  return ["unknown", "unavailable", "none"].includes(grezzo.toLowerCase()) ? "" : grezzo;
-}
-
-function inCarica() {
-  const codice = clean(lettura("dm.ev_stato_ricarica")).toLowerCase();
-  return codice === "c" || codice === "d" || codice.startsWith("charging");
 }
 
 /* L'ora accanto al tempo che manca. Il guscio riscrive quel testo a ogni
@@ -94,57 +69,10 @@ function umanizzaCaselle() {
   }
 }
 
-/* La frase d'analisi sotto il nome, come nei popup dei widget. */
-function frase() {
-  const testa = doc?.querySelector?.("#ev-popup .ev-popup-header-info");
-  if (!testa) return;
-  let nodo = testa.querySelector("[data-dm-ev-frase]");
-  if (!nodo) {
-    nodo = doc.createElement("p");
-    nodo.className = "dm-ev-frase";
-    nodo.dataset.dmEvFrase = "";
-    testa.append(nodo);
-  }
-  const soc = Number.parseFloat(lettura("dm.ev_batteria_auto"));
-  const socTxt = Number.isFinite(soc) ? Math.round(soc) : null;
-  let parole = "";
-  if (inCarica()) {
-    const grezza = Number.parseFloat(lettura("dm.ev_potenza_wallbox"));
-    const kw = Number.isFinite(grezza) ? (grezza > 100 ? grezza / 1000 : grezza) : null;
-    const kwTxt = kw ? t(` a ${kw.toFixed(1)} kW`, ` at ${kw.toFixed(1)} kW`) : "";
-    const target = Number.parseInt(lettura("dm.ev_target_soc"), 10) || 100;
-    const ora = oraDiFineCarica(doc.getElementById("v-ev-remain-popup")?.textContent);
-    parole =
-      socTxt == null
-        ? t(`In carica${kwTxt}.`, `Charging${kwTxt}.`)
-        : ora
-          ? t(
-              `In carica al ${socTxt}%${kwTxt}: di questo passo il ${target}% arriva verso le ${ora}.`,
-              `Charging at ${socTxt}%${kwTxt}: at this pace ${target}% lands around ${ora}.`,
-            )
-          : t(`In carica al ${socTxt}%${kwTxt}.`, `Charging at ${socTxt}%${kwTxt}.`);
-  } else if (
-    statoUmanoEV(lettura("dm.ev_stato_ricarica")) ===
-    t("Collegata, in attesa", "Plugged in, waiting")
-  ) {
-    parole =
-      socTxt == null
-        ? t("Collegata e in attesa di corrente.", "Plugged in and waiting for power.")
-        : t(
-            `Collegata e in attesa di corrente; batteria al ${socTxt}%.`,
-            `Plugged in and waiting for power; battery at ${socTxt}%.`,
-          );
-  } else if (socTxt != null) {
-    parole = t(`Scollegata; batteria al ${socTxt}%.`, `Unplugged; battery at ${socTxt}%.`);
-  }
-  if (nodo.textContent !== parole) nodo.textContent = parole;
-}
-
 function rivesti() {
   try {
     aggiungiOra();
     umanizzaCaselle();
-    frase();
   } catch (_errore) {}
 }
 
@@ -163,7 +91,6 @@ function osserva() {
 }
 
 const STILE = `
-#ev-popup .dm-ev-frase{margin:6px 0 0;font-size:12px;font-weight:700;line-height:1.4;color:var(--text-dim,#64748b)}
 #v-ev-remain-popup .dm-ev-verso{opacity:.75;font-weight:700}
 `;
 
