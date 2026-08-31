@@ -34,6 +34,7 @@ import {
   readJson,
   root,
   section,
+  segnaSoloLettura,
   siComanda,
   t,
   wrapFunction,
@@ -387,8 +388,12 @@ function onEditorClick(event) {
     salvaPrese(elenco);
     /* Il blocco non vive qui: sta nell'elenco delle cose che si guardano e
      * basta, che e' lo stesso delle luci. Un secondo elenco vorrebbe dire una
-     * presa protetta nella sua sezione e comandabile dalla pagina Stanze. */
-    root.dmSegnaSoloLettura?.(modulo.entity, modulo.bloccata);
+     * presa protetta nella sua sezione e comandabile dalla pagina Stanze.
+     * La chiamata e' DIRETTA: passava da `root.dmSegnaSoloLettura?.()`, un
+     * nome che nessuno ha mai messo su root, e l'optional chaining faceva
+     * no-op in silenzio — «se lo salvo non prende l'opzione e la presa
+     * continua ad essere comandata». */
+    segnaSoloLettura(modulo.entity, modulo.bloccata);
     state.modifica = null;
     ridisegnaScheda();
     schedule();

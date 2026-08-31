@@ -68,6 +68,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il blocco «Si vede ma non si comanda» della presa si salva davvero.**
+  Il salvataggio passava da un nome che nessuno aveva mai messo su root e
+  faceva no-op in silenzio: la casella tornava vuota e la presa restava
+  comandabile. Ora il blocco si scrive, la casella riaperta si ritrova
+  spuntata, e tolta se ne va.
+
 - **Gli avatar sono coerenti: la barba segue i capelli, gli occhi
   dell'uomo non sono piu' truccati.** La barba «naturale» restava nera
   anche su una testa bionda o bianca: ora eredita il colore della chioma
