@@ -32,6 +32,7 @@ import { canonicalClimateType } from "../core/device-model.js";
 import { climateIsOff } from "../core/climate-power.js";
 import { roomOrderRank } from "../core/room-overview.js";
 import { chiamaClima, commutaClima } from "./climate-power-section.js";
+import { statoCaldaia } from "./termico-del-caldo-section.js";
 import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
   activeLocale,
@@ -321,6 +322,10 @@ function skeletonMarkup(labels) {
         <span>${esc(labels.ambient)}</span>
         <b data-dm-cl-average>--°</b>
       </div>
+      <div class="dm-cl-kpi" data-dm-cl-caldaia hidden>
+        <span>🔥 <span data-dm-cl-caldaia-nome>${esc(t("Caldaia", "Boiler"))}</span></span>
+        <b data-dm-cl-caldaia-stato>--</b>
+      </div>
       <div class="dm-cl-bulk">
         <button type="button" data-dm-cl-bulk="on">${ICONS.power}${esc(labels.allOn)}</button>
         <span class="dm-cl-bulk-div" aria-hidden="true"></span>
@@ -606,6 +611,30 @@ function paintSummary(shell, units, states, labels) {
       ? `${(ambient.reduce((sum, value) => sum + value, 0) / ambient.length).toFixed(1)}°`
       : "--°";
   }
+  /* La caldaia configurata dice come sta anche qui, non solo sotto il meteo:
+   * accesa (e da quanto) o spenta. Senza caldaia la casella non esiste. */
+  const caldaiaEl = shell.querySelector("[data-dm-cl-caldaia]");
+  if (caldaiaEl) {
+    let caldaia = null;
+    try {
+      caldaia = statoCaldaia();
+    } catch (_error) {}
+    caldaiaEl.hidden = !caldaia;
+    if (caldaia) {
+      const nomeEl = caldaiaEl.querySelector("[data-dm-cl-caldaia-nome]");
+      if (nomeEl) nomeEl.textContent = caldaia.nome || t("Caldaia", "Boiler");
+      const statoEl = caldaiaEl.querySelector("[data-dm-cl-caldaia-stato]");
+      if (statoEl) {
+        const da = caldaia.da;
+        statoEl.textContent = !caldaia.noto
+          ? "--"
+          : caldaia.acceso
+            ? `${t("Accesa", "On")}${da ? ` · ${t(`da ${da}`, `for ${da}`)}` : ""}`
+            : t("Spenta", "Off");
+        statoEl.style.color = caldaia.noto && caldaia.acceso ? "#f97316" : "";
+      }
+    }
+  }
   const subtitle = shell.querySelector("[data-dm-cl-sub]");
   if (subtitle) {
     const family = zone === "caldo" ? labels.radiators : labels.coolers;
@@ -730,6 +759,75 @@ export function wholeDegreeDelta(shown, delta) {
   // A unit parked on a half degree walks to the next whole one, not past it.
   const next = down ? Math.ceil(current) - 1 : Math.floor(current) + 1;
   return next - current;
+}
+
+/* La barra si trascina («possibilita' di scorrere la barra per aumentare e
+ * diminuire la temperatura, sia da desktop che da mobile»): il dito o il
+ * mouse prendono la corsia, il pomello e il numero seguono in diretta, e al
+ * rilascio parte UNA set_temperature col grado intero scelto. I ± restano. */
+function gradoDalPunto(rail, zone, clientX) {
+  const [low, high] = RANGE[zone] || RANGE.freddo;
+  const box = rail.getBoundingClientRect();
+  const frazione = Math.min(1, Math.max(0, (clientX - box.left) / Math.max(1, box.width)));
+  return Math.round(low + frazione * (high - low));
+}
+
+function dipingiPresa(presa) {
+  const [low, high] = RANGE[presa.zone] || RANGE.freddo;
+  const percento = (((presa.grado - low) / (high - low)) * 100).toFixed(1);
+  const fill = presa.card.querySelector("[data-dm-cl-fill]");
+  const knob = presa.card.querySelector("[data-dm-cl-knob]");
+  if (fill) fill.style.width = `${percento}%`;
+  if (knob) {
+    knob.hidden = false;
+    knob.style.left = `${percento}%`;
+  }
+  /* Il numero grande segue solo quando racconta il target (flag girata
+   * spenta): con la carta girata il grande e' l'ambiente e non si tocca. */
+  if (!cartaInvertita()) {
+    const target = presa.card.querySelector("[data-dm-cl-target]");
+    if (target) target.innerHTML = `${presa.grado}<span class="dm-cl-deg">°</span>`;
+  }
+}
+
+function installRailDrag() {
+  if (state.railDrag || !doc) return;
+  state.railDrag = true;
+  let presa = null;
+  const aggiorna = (event) => {
+    if (!presa) return;
+    presa.grado = gradoDalPunto(presa.rail, presa.zone, event.clientX);
+    dipingiPresa(presa);
+  };
+  doc.addEventListener(
+    "pointerdown",
+    (event) => {
+      const rail = event.target?.closest?.(".dm-cl-rail");
+      const card = rail?.closest?.("[data-dm-cl]");
+      if (!rail || !card) return;
+      /* Il click sulla card apre il popup: una presa sulla barra no. */
+      event.preventDefault();
+      event.stopPropagation();
+      presa = { rail, card, entity: clean(card.dataset.dmCl), zone: card.dataset.dmClZone };
+      try {
+        rail.setPointerCapture?.(event.pointerId);
+      } catch (_error) {}
+      aggiorna(event);
+    },
+    true,
+  );
+  doc.addEventListener("pointermove", aggiorna, true);
+  const rilascia = (event) => {
+    if (!presa) return;
+    aggiorna(event);
+    if (Number.isFinite(presa.grado))
+      chiamaClima(presa.entity, "set_temperature", { temperature: presa.grado });
+    presa = null;
+  };
+  doc.addEventListener("pointerup", rilascia, true);
+  doc.addEventListener("pointercancel", () => {
+    presa = null;
+  });
 }
 
 function installTemperatureStep() {
@@ -1080,6 +1178,7 @@ export function installClimateThermalSection() {
   if (!state.listeners) {
     state.listeners = true;
     doc.addEventListener("click", onClick);
+    installRailDrag();
     for (const eventName of [
       "dashboardmodern:legacy-ready",
       "dashboardmodern:runtime-ready",
@@ -1296,7 +1395,7 @@ function climateCss() {
 .dm-cl-spark-line{fill:none;stroke:rgb(var(--dm-cl-u));stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .dm-cl-spark-end{fill:rgb(var(--dm-cl-u));stroke:var(--dm-cl-card);stroke-width:2}
 
-.dm-cl-rail{position:relative;height:22px;display:flex;align-items:center}
+.dm-cl-rail{position:relative;height:22px;display:flex;align-items:center;cursor:pointer;touch-action:none}
 .dm-cl-bed{position:absolute;left:0;right:0;height:8px;border-radius:999px;background:var(--dm-cl-sunk)}
 .dm-cl-fill{
   position:absolute;left:0;height:8px;border-radius:999px;width:0;

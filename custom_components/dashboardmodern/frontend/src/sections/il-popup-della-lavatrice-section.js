@@ -184,6 +184,11 @@ export function montaEditor() {
   const fisarmonica = slot?.closest?.("details.ed-acc");
   if (!fisarmonica) return false;
   if (fisarmonica.querySelector("[data-dm-lav-programmi]")) return true;
+  fisarmonica.append(creaCarta());
+  return true;
+}
+
+function creaCarta() {
   const carta = doc.createElement("div");
   carta.className = "ed-form dm-lav-carta";
   carta.dataset.dmLavProgrammi = "";
@@ -198,7 +203,11 @@ export function montaEditor() {
   const righe = carta.querySelector(".dm-lav-righe");
   programmiAttuali().forEach((voce) => righe.append(rigaEditor(voce)));
 
-  const salva = () => scriviConfig(raccogli(carta));
+  const salva = () => {
+    scriviConfig(raccogli(carta));
+    /* I tasti del popup seguono subito, senza aspettare un altro giro. */
+    disegnaProgrammi();
+  };
   carta.addEventListener("change", salva);
   carta.addEventListener("click", (evento) => {
     const via = evento.target?.closest?.(".dm-lav-via");
@@ -210,7 +219,27 @@ export function montaEditor() {
     if (evento.target?.closest?.(".dm-lav-aggiungi"))
       righe.append(rigaEditor({ icon: "🧺", name: "", entity: "" }));
   });
-  fisarmonica.append(carta);
+  return carta;
+}
+
+/* La personalizzazione a portata di mano: dentro il popup stesso.
+ *
+ * «Manca la possibilita' di personalizzare il popup azione rapida lavatrice»
+ * — la carta dei programmi viveva solo nella fisarmonica della mappatura, che
+ * non tutti trovano (e senza programmi la griglia sparisce, quindi il popup
+ * non suggeriva nemmeno che i tasti esistono). Un ⚙️ ripiegato sotto i
+ * programmi apre la stessa carta, con lo stesso salvataggio a ogni modifica. */
+export function montaPersonalizzaPopup() {
+  const quick = doc?.querySelector?.("#lavatrice-modal .lav-area-quick");
+  if (!quick) return false;
+  if (quick.querySelector("[data-dm-lav-popup-editor]")) return true;
+  const piega = doc.createElement("details");
+  piega.className = "dm-lav-popup-editor";
+  piega.dataset.dmLavPopupEditor = "";
+  const testa = doc.createElement("summary");
+  testa.textContent = `⚙️ ${t("Personalizza programmi", "Customize programs")}`;
+  piega.append(testa, creaCarta());
+  quick.append(piega);
   return true;
 }
 
@@ -228,6 +257,15 @@ const STILE = `
 #lavatrice-modal .dm-lav-veste img{max-width:140px;filter:drop-shadow(0 15px 25px rgba(0,0,0,.15))}
 #lavatrice-modal .dm-lav-veste svg{width:170px;height:auto;filter:drop-shadow(0 14px 24px rgba(2,6,23,.20))}
 .dm-lav-carta{margin-top:12px}
+#lavatrice-modal .dm-lav-popup-editor{margin-top:10px}
+#lavatrice-modal .dm-lav-popup-editor>summary{
+  cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--text-dim,#64748b);padding:6px 10px;border-radius:999px;
+  border:1px dashed var(--card-border,#cbd5e1)}
+#lavatrice-modal .dm-lav-popup-editor>summary::-webkit-details-marker{display:none}
+#lavatrice-modal .dm-lav-popup-editor[open]>summary{color:#0ea5e9;border-color:#0ea5e9}
+#lavatrice-modal .dm-lav-popup-editor .dm-lav-carta{margin-top:10px}
 .dm-lav-righe{display:grid;gap:8px;margin:10px 0}
 .dm-lav-riga{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}
 .dm-lav-riga .dm-lav-icona{text-align:center;padding-inline:4px}
@@ -241,6 +279,7 @@ export function installPopupLavatrice() {
   installStyle("dm-popup-lavatrice-style", STILE);
   disegnaProgrammi();
   vesteImmagine();
+  montaPersonalizzaPopup();
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
@@ -249,6 +288,7 @@ export function installPopupLavatrice() {
     root.addEventListener?.(evento, () => {
       disegnaProgrammi();
       vesteImmagine();
+      montaPersonalizzaPopup();
     });
   }
   onEditorRedraw("__dmLavProgrammi", () => montaEditor());

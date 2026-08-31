@@ -250,9 +250,13 @@ function installStyles() {
     .dm-subload-head{display:flex;align-items:center;gap:11px;min-width:0}
     .dm-subload-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:14px;background:color-mix(in srgb,var(--dm-subload-tint) 70%,transparent);font-size:23px}
     .dm-subload-title{display:flex;flex-direction:column;min-width:0}
-    .dm-subload-title b{color:var(--text,#0f172a);font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* Il nome va a capo invece dei puntini: «Condizio…» non diceva quale.
+     * Due righe bastano a ogni nome vero. */
+    .dm-subload-title b{color:var(--text,#0f172a);font-size:14px;font-weight:800;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     .dm-subload-title small{color:var(--dm-subload-color,#64748b);font-size:10px;font-weight:900;letter-spacing:1.1px}
-    .dm-subload-value{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+    /* I watt sopra, i kWh di oggi sotto: affiancati («0 W 0,2 kWh oggi») si
+     * leggevano come un numero solo. */
+    .dm-subload-value{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
     .dm-subload-power{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;line-height:1;color:var(--text,#0f172a)}
     .dm-subload-daily{color:var(--muted,#64748b);font-size:12px;font-weight:700}
     .dm-subload-meter{height:6px;border-radius:999px;background:color-mix(in srgb,var(--divider-color,#e2e8f0) 80%,transparent);overflow:hidden}

@@ -15,6 +15,7 @@ import {
   LOCK_SUPPORT_OPEN,
   doorOpenCall,
   doorPinMatches,
+  doorsSenzaOccupate,
   isDoorEntity,
   normalizeDoorPin,
   normalizeSecurityDoors,
@@ -129,4 +130,21 @@ test("l'editor valida entita' e PIN prima di salvare", () => {
   assert.match(editor, /isDoorEntity\(porta\.entity\)/);
   assert.match(editor, /normalizeDoorPin\(pin\)/);
   assert.match(editor, /cd_security_doors/);
+});
+
+/* Le entita' delle Prese comparse fra le aperture (dal campo): una presa non
+ * e' una porta, e la lista si disegna senza. */
+test("le entita' occupate dalle prese non sono porte", () => {
+  const doors = [
+    { id: "d1", name: "Portone", entity: "switch.portone", icon: "🚪", pin: "" },
+    { id: "d2", name: "", entity: "switch.lavatrice", icon: "🚪", pin: "" },
+    { id: "d3", name: "", entity: "", icon: "🚪", pin: "" },
+  ];
+  const pulite = doorsSenzaOccupate(doors, new Set(["switch.lavatrice"]));
+  assert.deepEqual(
+    pulite.map((door) => door.id),
+    ["d1", "d3"],
+  );
+  /* Senza occupate la lista passa intatta, righe vuote comprese. */
+  assert.equal(doorsSenzaOccupate(doors, new Set()).length, 3);
 });

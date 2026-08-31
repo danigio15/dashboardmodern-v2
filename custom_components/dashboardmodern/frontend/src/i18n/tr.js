@@ -717,6 +717,7 @@ export default Object.freeze({
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Kapalıyken yukarıdaki weather varlığı yeter: sıcaklık, nem ve rüzgar ondan okunur.",
   "Use your own entities for the weather station": "Hava istasyonu için kendi varlıklarını kullan",
   "On cards show the room temperature big (target below)": "Kartlarda oda sıcaklığını büyük göster (hedef altta)",
+  "Customize programs": "Programları özelleştir",
   "Add program": "Program ekle",
   "Name (e.g. Quick 30')": "Ad (örn. Hızlı 30')",
   "Quick programs of the popup": "Pencerenin hızlı programları",

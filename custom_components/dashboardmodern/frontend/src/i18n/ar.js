@@ -717,6 +717,7 @@ export default Object.freeze({
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "عند الإيقاف يكفي كيان الطقس أعلاه: الحرارة والرطوبة والرياح تُقرأ منه.",
   "Use your own entities for the weather station": "استخدم كياناتك الخاصة لمحطة الطقس",
   "On cards show the room temperature big (target below)": "في البطاقات اعرض حرارة الغرفة كبيرة (الهدف بالأسفل)",
+  "Customize programs": "تخصيص البرامج",
   "Add program": "إضافة برنامج",
   "Name (e.g. Quick 30')": "الاسم (مثل سريع 30')",
   "Quick programs of the popup": "البرامج السريعة للنافذة",

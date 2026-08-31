@@ -56,6 +56,18 @@ export function normalizeSecurityDoors(values) {
     .filter((item) => isDoorEntity(item.entity));
 }
 
+/* Una presa non e' una porta, anche se il dominio (switch.*) e' lo stesso.
+ *
+ * Dal campo: entita' delle Prese comparse fra le aperture della Sicurezza —
+ * la configurazione condivisa se le porta su ogni dispositivo. Chi disegna
+ * passa qui l'insieme delle entita' occupate altrove (le prese) e le porte
+ * che le usano si scartano. */
+export function doorsSenzaOccupate(doors, occupate) {
+  if (!Array.isArray(doors)) return [];
+  if (!(occupate instanceof Set) || !occupate.size) return doors;
+  return doors.filter((door) => !occupate.has(clean(door?.entity).toLowerCase()));
+}
+
 /* Il bit con cui una serratura dichiara di sapersi APRIRE, oltre che
  * sbloccare: e' la differenza fra il chiavistello e il pulsante del portone. */
 export const LOCK_SUPPORT_OPEN = 1;

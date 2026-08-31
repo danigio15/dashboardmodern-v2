@@ -152,6 +152,19 @@ export function disegnaPannello() {
  * segue la voce caldaia di `cd_termico_caldo` — quella col nome che lo dice —
  * e quando e' accesa racconta anche da quanto. Senza una caldaia configurata,
  * niente pillola. */
+/* Lo stato della caldaia per chi lo racconta altrove: la testata della
+ * sezione Clima («mostrare lo stato caldaia, e se accesa da quanto»).
+ * Senza una voce caldaia configurata torna null e chi chiede non disegna. */
+export function statoCaldaia() {
+  const caldaia = vociAttuali().find((voce) => /calda|boiler/i.test(voce.name));
+  if (!caldaia) return null;
+  const stato = statoDi(caldaia.entity);
+  const acceso = stato === "on";
+  const noto = Boolean(stato) && !["unavailable", "unknown"].includes(stato);
+  const da = acceso ? daQuanto(allStates()?.[entitaViva(caldaia.entity)]?.last_changed) : "";
+  return { nome: caldaia.name, acceso, noto, da };
+}
+
 export function pillolaDellaCaldaia() {
   const banner = doc?.getElementById?.("caldaia-banner");
   if (!banner) return false;

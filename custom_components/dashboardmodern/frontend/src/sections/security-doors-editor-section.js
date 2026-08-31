@@ -7,9 +7,11 @@
  */
 import {
   SECURITY_DOOR_DOMAINS,
+  doorsSenzaOccupate,
   isDoorEntity,
   normalizeDoorPin,
 } from "../core/security-door-model.js";
+import { entitaDellePrese, iconaPortaMarkup } from "./security-doors-section.js";
 import { openEmojiPicker } from "./beta11-real-device-polish-section.js";
 import {
   clean,
@@ -50,7 +52,7 @@ function rigaMarkup(door, index) {
   const aperto = state.aperto === index;
   return `<article class="ed-row dm-door-ed-row" data-door-index="${index}" data-open="${aperto}">
     <div class="dm-door-ed-head">
-      <span class="dm-door-ed-icon" aria-hidden="true">${esc(door.icon || "🚪")}</span>
+      <span class="dm-door-ed-icon" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
       <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDi(door, index))}</strong><small class="ed-row-old mono">${esc(clean(door.entity) || t("nessuna entità", "no entity"))}${door.pin ? " · 🔒 PIN" : ""}</small></span>
       <button type="button" class="ed-del dm-door-ed-edit" data-door-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
       <button type="button" class="ed-del dm-door-ed-del" data-door-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
@@ -112,7 +114,14 @@ function ridisegna() {
 
 function grezze() {
   const stored = readJson(CONFIG_KEY, []);
-  return Array.isArray(stored) ? stored : [];
+  const righe = Array.isArray(stored) ? stored : [];
+  /* Le entita' delle Prese non sono porte: se la configurazione condivisa se
+   * le e' portate qui dentro (viste dal campo: switch.lavatrice fra le
+   * aperture), si scartano E si ripulisce la lista salvata, cosi' il macello
+   * non torna dagli altri dispositivi. Le righe vuote in compilazione restano. */
+  const pulite = doorsSenzaOccupate(righe, entitaDellePrese());
+  if (pulite.length !== righe.length) writeJsonIfChanged(CONFIG_KEY, pulite);
+  return pulite;
 }
 
 function onClick(event) {

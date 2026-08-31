@@ -209,11 +209,10 @@ export function pageCardMarkup(view) {
     view.colorful || view.tunable || view.effects.length
       ? `<button type="button" class="dm-lucip-tune" data-dm-lucip-open aria-label="${t("Controlli di", "Controls for")} ${esc(view.name)}">${SLIDERS}</button>`
       : "";
-  /* Una cosa che si guarda e basta: il tasto resta al suo posto — toglierlo
-   * cambierebbe la riga sotto gli occhi di chi la conosce — ma smette di essere
-   * un tasto. Non si preme, non si illumina al passaggio, e il lucchetto dice
-   * perche'. Il rifiuto vero non e' qui: `lightCommand` non costruisce nemmeno
-   * il comando, cosi' non c'e' modo di aggirarlo. */
+  /* Una cosa che si guarda e basta non ha l'interruttore: la levetta sparisce
+   * proprio («se disabilitato devi togliere lo switch»), resta la card col
+   * lucchetto che dice perche'. Il rifiuto vero non e' qui: `lightCommand`
+   * non costruisce nemmeno il comando, cosi' non c'e' modo di aggirarlo. */
   const bloccata = view.comandabile === false;
   return `<article class="dm-lucip-card ${view.on ? "is-on" : ""}" data-dm-lucip="${esc(view.id)}" data-dm-lucip-available="${view.available}" data-dm-lucip-comandabile="${!bloccata}" style="--dm-light-color:${esc(color)};--dm-light-ink:${readableInk(color)};--dm-light-level:${view.on ? Math.max(12, level) : 0}%">
     <span class="dm-lucip-glow" aria-hidden="true"></span>
@@ -227,7 +226,7 @@ export function pageCardMarkup(view) {
           ${badge ? `<span class="dm-lucip-badge" data-kind="${badge.kind}">${badge.label}</span>` : ""}
         </span>
       </span>
-      <span class="dm-lucip-led" aria-hidden="true"></span>
+      ${bloccata ? "" : `<span class="dm-lucip-led" aria-hidden="true"></span>`}
     </button>
     ${dimmer || tools ? `<div class="dm-lucip-tools">${dimmer}${tools}</div>` : ""}
   </article>`;

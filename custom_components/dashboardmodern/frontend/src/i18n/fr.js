@@ -717,6 +717,7 @@ export default Object.freeze({
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Désactivé, l'entité weather ci-dessus suffit : température, humidité et vent en proviennent.",
   "Use your own entities for the weather station": "Utiliser vos propres entités pour la station météo",
   "On cards show the room temperature big (target below)": "Sur les cartes, afficher en grand la température ambiante (cible dessous)",
+  "Customize programs": "Personnaliser les programmes",
   "Add program": "Ajouter un programme",
   "Name (e.g. Quick 30')": "Nom (ex. Rapide 30')",
   "Quick programs of the popup": "Programmes rapides du popup",
