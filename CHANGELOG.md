@@ -20,6 +20,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La finestra aperta di una tessera si aggiorna senza tremare.** Il
+  tremolio era ricomparso perche' il corpo del popup veniva buttato via e
+  riscritto a ogni valore che cambiava — ogni due secondi su una casa
+  viva — e con lui se ne andavano il punto di scorrimento, la corsa
+  disegnata e i nodi sotto il dito. Quando la forma non cambia, ora i
+  valori nuovi si travasano nei nodi che ci sono gia'; quando cambia
+  davvero, la riscrittura almeno tiene il punto di lettura.
+
 - **Il Chiudi dei popup resta in cima, anche a lista scorsa.** Nei popup
   lunghi — il Clima rapido con tante stanze, i dettagli fitti —
   l'intestazione con la croce scorreva via col contenuto: «il tasto Chiudi

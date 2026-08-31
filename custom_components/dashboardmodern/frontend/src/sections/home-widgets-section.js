@@ -1047,8 +1047,10 @@ function evModel(states) {
     /* Quel che serve a dire QUANDO finisce la carica: potenza e traguardo
      * dell'auto attaccata (o della prima). Li usa il motore di analisi con la
      * stessa formula della pagina EV, cosi' i due posti dicono la stessa ora. */
-    ricaricaKw: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.kw ?? null,
-    targetSoc: (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.target ?? null,
+    ricaricaKw:
+      (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.kw ?? null,
+    targetSoc:
+      (letture.find((lettura) => autoAllaPresa(lettura.ricarica)) || letture[0])?.target ?? null,
     /* Quante auto ci sono, detto qui e non contato dalle righe.
      *
      * Un'auto sola porta due righe — la carica e l'autonomia — e chi contava le
@@ -1402,8 +1404,7 @@ function preseModel(states) {
     icon: "🔌",
     label: t("Prese", "Sockets"),
     value: String(accese),
-    caption:
-      accese === 1 ? t("1 accesa", "1 on") : t(`${accese} accese`, `${accese} on`),
+    caption: accese === 1 ? t("1 accesa", "1 on") : t(`${accese} accese`, `${accese} on`),
     ring: rows.length ? Math.round((accese / rows.length) * 100) : null,
     attiva: accese > 0,
     rows,
@@ -2713,7 +2714,9 @@ function pilloleDelloStato(widget) {
       .map(
         (riga) =>
           `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${
-            riga.glyph ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>` : ""
+            riga.glyph
+              ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>`
+              : ""
           }${esc(clean(riga.name))}${
             clean(riga.value) ? ` <b>${esc(clean(riga.value))}</b>` : ""
           }</span>`,
@@ -2814,7 +2817,9 @@ function caselleDelleMisure(widget) {
       .map(
         (voce) =>
           `<div class="dm-w-casella">${
-            voce.glyph ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>` : ""
+            voce.glyph
+              ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>`
+              : ""
           }<b>${esc(voce.valore)}</b><span>${esc(voce.etichetta)}</span></div>`,
       )
       .join("")}</div>`;
@@ -3188,6 +3193,56 @@ function detailMarkup(widget, states) {
     </article>`;
 }
 
+/* ── il travaso del corpo aperto ──────────────────────────────────────────
+ *
+ * La finestra aperta si aggiorna a ogni valore che cambia. Buttare via il
+ * corpo e riscriverlo (innerHTML) ogni due secondi era il tremolio: lo
+ * scorrimento tornava in cima, la corsa disegnata lampeggiava, un campo con
+ * il fuoco lo perdeva. Se la forma non e' cambiata — stessi nodi, stessi
+ * tag, nello stesso ordine — si travasano testi e attributi in quello che
+ * c'e' gia': niente nodi nuovi, niente salti. */
+function stessaOssatura(a, b) {
+  if (a.childNodes.length !== b.childNodes.length) return false;
+  for (let i = 0; i < a.childNodes.length; i++) {
+    const mio = a.childNodes[i];
+    const suo = b.childNodes[i];
+    if (mio.nodeType !== suo.nodeType) return false;
+    if (mio.nodeType === 1 && (mio.tagName !== suo.tagName || !stessaOssatura(mio, suo)))
+      return false;
+  }
+  return true;
+}
+
+function ricopia(mio, suo) {
+  if (mio.nodeType === 3) {
+    if (mio.nodeValue !== suo.nodeValue) mio.nodeValue = suo.nodeValue;
+    return;
+  }
+  if (mio.nodeType !== 1) return;
+  for (const attributo of [...mio.attributes]) {
+    if (!suo.hasAttribute(attributo.name)) mio.removeAttribute(attributo.name);
+  }
+  for (const attributo of [...suo.attributes]) {
+    if (mio.getAttribute(attributo.name) !== attributo.value)
+      mio.setAttribute(attributo.name, attributo.value);
+  }
+  for (let i = 0; i < mio.childNodes.length; i++) ricopia(mio.childNodes[i], suo.childNodes[i]);
+}
+
+function travasaCorpo(body, markup) {
+  const stampo = doc.createElement("template");
+  stampo.innerHTML = markup;
+  if (stessaOssatura(body, stampo.content)) {
+    for (let i = 0; i < body.childNodes.length; i++)
+      ricopia(body.childNodes[i], stampo.content.childNodes[i]);
+    return;
+  }
+  /* Forma nuova: si riscrive, ma senza perdere il punto di lettura. */
+  const scorrimento = body.scrollTop;
+  body.innerHTML = markup;
+  body.scrollTop = scorrimento;
+}
+
 /* ── rendering ────────────────────────────────────────────────────────── */
 
 function ensureHost() {
@@ -3422,12 +3477,15 @@ export function renderHomeWidgets() {
         const markup = detailBody(widget, states);
         const scritto = state.corpo.chiave === widget.key && state.corpo.markup === markup;
         if (body && !scritto) {
-          /* Il corpo si riscrive a ogni valore che cambia: se le righe
-           * rientrassero in scena ogni volta, la card aperta tremerebbe da
-           * sola. L'ingresso e' solo del primo disegno — quello che segue
-           * l'apertura. */
+          /* Il corpo si aggiorna a ogni valore che cambia — cioe' ogni due
+           * secondi su una casa viva. Riscriverlo con innerHTML era il
+           * tremolio ricomparso: lo scorrimento tornava in cima, la corsa
+           * lampeggiava, il dito perdeva quello che stava toccando. Quando
+           * l'ossatura e' la stessa si travasano solo testi e attributi nei
+           * nodi che ci sono gia'; la riscrittura intera resta per quando
+           * cambia la forma, e almeno tiene il punto di scorrimento. */
           const primoDisegno = body.dataset.dmPainted !== "true";
-          body.innerHTML = markup;
+          travasaCorpo(body, markup);
           state.corpo = { chiave: widget.key, markup };
           body.dataset.dmPainted = "true";
           body.dataset.dmFresh = primoDisegno ? "true" : "false";
