@@ -164,12 +164,39 @@ function sposta() {
   const meteo = doc?.querySelector?.(".weather-widget");
   if (!header || !meteo) return false;
   avvolgiLeParole(meteo);
-  if (meteo.parentElement === header) return false;
+  if (meteo.parentElement === header) {
+    /* Gia' al suo posto, ma la classe puo' essersi persa per strada: senza,
+     * il meteo dentro la fascia torna alla taglia da card intera — icona a
+     * settanta, temperatura a cinquantadue — e sfonda i margini («il meteo
+     * in alto si vede male»). La classe si riafferma, non si presuppone. */
+    header.classList.add("dm-testata-col-meteo");
+    return false;
+  }
   const nome = header.querySelector(".header-left-wrap");
   if (nome) nome.after(meteo);
   else header.prepend(meteo);
   header.classList.add("dm-testata-col-meteo");
   return true;
+}
+
+/* La testata di Home non resta nascosta sulla Home.
+ *
+ * Il guscio la nasconde con uno stile inline quando si apre un'altra sezione
+ * e la rimostra SOLO al clic sulla linguetta Home: qualunque strada riporti
+ * alla Home senza passare da quel clic — un ripristino, un ricaricamento a
+ * meta', un giro storto del telefono («scompare la scritta in alto, si vede
+ * solo il meteo») — la lascia invisibile per sempre, perche' nessun altro la
+ * ripara. Qui la ripara chiunque passi: se la pagina attiva e' la Home e la
+ * testata ha il display inline spento, lo si toglie. Sulle altre sezioni non
+ * si tocca niente: li' nascosta e' giusta. */
+function ripara() {
+  const header = testata();
+  if (!header) return;
+  const attiva = doc?.querySelector?.(".page.active");
+  if (attiva?.id === "page-home" && header.style.display === "none") {
+    header.style.display = "";
+  }
+  sposta();
 }
 
 export function installWeatherInMasthead() {
@@ -181,12 +208,33 @@ export function installWeatherInMasthead() {
    * riscrive `#page-home` per intero: il meteo, che ormai sta altrove, non
    * torna indietro da solo — ma se qualcuno lo rimette li' dentro va ripreso.
    * L'osservatore guarda solo i figli della pagina, e riporta il blocco al
-   * suo posto senza ridisegnare niente. */
-  const page = doc.getElementById?.("page-home");
-  if (page && typeof root.MutationObserver === "function") {
-    state.observer = new root.MutationObserver(() => sposta());
-    state.observer.observe(page, { childList: true });
+   * suo posto senza ridisegnare niente. Se la pagina non c'e' ancora, si
+   * riprova quando il guscio si annuncia: installarsi una volta sola a
+   * pagina assente lasciava il meteo orfano per tutta la sessione. */
+  const osserva = () => {
+    if (state.observer) return;
+    const page = doc.getElementById?.("page-home");
+    if (page && typeof root.MutationObserver === "function") {
+      state.observer = new root.MutationObserver(() => sposta());
+      state.observer.observe(page, { childList: true });
+    }
+  };
+  osserva();
+  for (const eventName of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:state-changed",
+    "pageshow",
+  ]) {
+    root.addEventListener?.(eventName, () => {
+      osserva();
+      ripara();
+    });
   }
+  /* Lo scroll non dovrebbe entrarci, ma e' proprio durante lo scroll veloce
+   * che la testata e' stata vista sparire: a fine corsa si controlla. */
+  root.addEventListener?.("scrollend", ripara);
+  doc.addEventListener?.("visibilitychange", ripara);
   state.installed = true;
   return true;
 }
