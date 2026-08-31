@@ -1557,11 +1557,17 @@ function openingsModel(states) {
      * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
      * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
     const daQuando = Date.parse(stato?.last_changed ?? "");
-    /* Il sensore girato (#244) sta a ON quando la finestra e' CHIUSA. */
-    const aperta = apertaSecondoVerso(
-      clean(stato?.state).toLowerCase() === "on",
-      insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
-    );
+    /* Il sensore girato (#244) sta a ON quando la finestra e' CHIUSA. Un
+     * sensore muto (unavailable/unknown) non e' una finestra: girato o no,
+     * non si conta — o il verso girato trasformava il silenzio in allarme. */
+    const grezzo = clean(stato?.state).toLowerCase();
+    const vivo = grezzo === "on" || grezzo === "off";
+    const aperta = vivo
+      ? apertaSecondoVerso(
+          grezzo === "on",
+          insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
+        ) === true
+      : false;
     const nome = friendlyName(states, entity);
     return {
       entity,

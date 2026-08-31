@@ -119,6 +119,10 @@ function famiglie(appliance) {
   const misure = [];
   const pillole = [];
   const comandi = [];
+  /* «Senza tasto Accendi/Spegni»: l'interruttore resta in lettura — la
+   * pillola dice acceso o spento — ma il tasto non si offre, o il frigo
+   * protetto dalla card restava spegnibile dalla sua finestra. */
+  const senzaTasto = appliance?.switch_disabled === true;
   for (const entity of entita(appliance)) {
     const stato = states?.[entity];
     const grezzo = clean(stato?.state);
@@ -136,7 +140,7 @@ function famiglie(appliance) {
         acceso,
         valore: acceso ? t("Acceso", "On") : t("Spento", "Off"),
       });
-      comandi.push({ entity, nome: parole, azione: false, acceso });
+      if (!senzaTasto) comandi.push({ entity, nome: parole, azione: false, acceso });
       continue;
     }
     if (STATI_MUTI.test(grezzo)) continue;

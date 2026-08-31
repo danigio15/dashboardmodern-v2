@@ -3422,9 +3422,12 @@ function wzFinish() {
     if (WIZ.sectionNames && Object.keys(WIZ.sectionNames).length) localStorage.setItem('cd_section_names', JSON.stringify(WIZ.sectionNames));
     else localStorage.removeItem('cd_section_names');
     if (Object.keys(WIZ.luci).length) localStorage.setItem('cd_luci', JSON.stringify(WIZ.luci));
-    
-    
-    
+    /* Le tre scritture qui sotto erano sparite con la de-duplicazione delle
+       righe doppie (la copia dell'auto-rileva aveva lo stesso testo): senza,
+       camere, clima e stanze scelti nel wizard si perdevano al termine. */
+    if (WIZ.cameras && WIZ.cameras.length) localStorage.setItem('cd_cameras', JSON.stringify(WIZ.cameras));
+    if (WIZ.climaUnits && WIZ.climaUnits.length) localStorage.setItem('cd_clima_units', JSON.stringify(WIZ.climaUnits));
+    if (WIZ.stanze && WIZ.stanze.length) localStorage.setItem('cd_stanze', JSON.stringify(WIZ.stanze));
     if (WIZ.devices && WIZ.devices.length) localStorage.setItem('cd_devices', JSON.stringify(WIZ.devices));
     if (WIZ.reportDevices && WIZ.reportDevices.length) localStorage.setItem('cd_report_devices', JSON.stringify(WIZ.reportDevices));
     
@@ -5568,7 +5571,7 @@ async function dmStartWebRTCNative(entityId, videoEl) {
             }
         };
         gestore.keepAlive = true;
-        pendingWsCallbacks[subId] = gestore;
+        pendingWsCallbacks[subId] = gestore; _dmNativeSubId = subId;
         try { ws.send(JSON.stringify({ id: subId, type: 'camera/webrtc/offer', entity_id: entityId, offer: offer.sdp })); }
         catch (err) { fail(err); }
     });
@@ -5647,7 +5650,11 @@ window.dmAttivaAudio = async function () {
     catch (e) { content.innerHTML = `<div class="cam-popup-error">⚠️ Audio non disponibile<br><span style="font-weight:500;opacity:.85;font-size:12px;text-transform:none;letter-spacing:0;">${e.message || e}</span></div>`; setTimeout(() => { const c = document.getElementById('details-list'); if (c) dmCamPolling(cam, c); }, 3500); }
 };
 
-function dmCleanupWebRTC() { if (_dmPc) { try { _dmPc.close(); } catch (e) {} _dmPc = null; } if (_dmWs) { try { _dmWs.close(); } catch (e) {} _dmWs = null; } }
+var _dmNativeSubId = null;
+/* Il gestore keepAlive della sottoscrizione nativa si butta alla chiusura:
+   senza, ogni apri-e-chiudi di una telecamera nativa lasciava un gestore
+   appeso fino alla riconnessione della websocket. */
+function dmCleanupWebRTC() { if (_dmPc) { try { _dmPc.close(); } catch (e) {} _dmPc = null; } if (_dmWs) { try { _dmWs.close(); } catch (e) {} _dmWs = null; } if (_dmNativeSubId != null) { try { delete pendingWsCallbacks[_dmNativeSubId]; } catch (e) {} _dmNativeSubId = null; } }
 function dmCleanupHLS() { if (_dmHls) { try { _dmHls.destroy(); } catch (e) {} _dmHls = null; } }
 function dmCamCleanup() {
     dmCleanupWebRTC(); dmCleanupHLS();
@@ -5839,7 +5846,7 @@ function apriDettagli(e, tipo) {
     if(tipo === 'luci' && st === 'on') items.push({ id, nm, st: 'ACCESA', icon: '💡', canOff: true });
     else if(tipo === 'clima' && !['off', 'unavailable', 'unknown'].includes(st)) items.push({ id, nm, st: st.toUpperCase(), icon: '❄️', canOff: true });
     else if(tipo === 'risc' && ['heat', 'heating', 'on'].includes(st)) items.push({ id, nm, st: 'ACCESO', icon: '🔥', canOff: true });
-    else if(tipo === 'win' && ((st === 'on') !== dmVersoInvertito(id))) {
+    else if(tipo === 'win' && (st === 'on' || st === 'off') && ((st === 'on') !== dmVersoInvertito(id))) {
       // v296: SOLO le aperture aperte (coerente col contatore)
       const winIcon = /porta/i.test(nm) ? '🚪' : '🪟';
       items.push({ id, nm, st: 'APERTA', icon: winIcon, canOff: false });
@@ -5985,7 +5992,21 @@ function render() {
       /* #205: la stazione meteo personale. Ogni sensore mappato (Ecowitt e
          simili) vince sull'attributo dell'entità weather; la direzione del
          vento in gradi diventa una rosa a 16 punte, un testo resta testo. */
+      /* La casella «entita' proprie» comanda: spenta, le mappature della
+         stazione restano scritte ma non si leggono — il default torna a
+         essere l'entita' weather, come promesso dalla scheda Meteo. */
+      let cdMeteoProprie = false;
+      try {
+          const cdMeteoScelta = cdCfg('cd_meteo_entita_proprie');
+          if (cdMeteoScelta == null) {
+              /* Mai deciso: come nell'editor, comanda la mappatura gia' fatta
+                 — chi aveva la stazione non la perde per una casella mai vista. */
+              cdMeteoProprie = ['dm.home_meteo_temperatura','dm.home_meteo_umidita','dm.home_meteo_percepita','dm.home_meteo_vento','dm.home_meteo_vento_direzione']
+                  .some(function(k){ const st = STATES[k]; return st && st.entity_id !== 'dm.unmapped'; });
+          } else cdMeteoProprie = cdMeteoScelta === true || cdMeteoScelta === 1 || cdMeteoScelta === '1';
+      } catch (e) { cdMeteoProprie = false; }
       const cdMeteoStazione = (ref) => {
+          if (!cdMeteoProprie) return null;
           const st = STATES[ref];
           if (!st || st.entity_id === 'dm.unmapped') return null;
           const v = parseFloat(st.state);
@@ -5998,6 +6019,7 @@ function render() {
       const wsWind = cdMeteoStazione('dm.home_meteo_vento');
       let wsDir = '';
       (function(){
+          if (!cdMeteoProprie) return;
           const st = STATES['dm.home_meteo_vento_direzione'];
           if (!st || st.entity_id === 'dm.unmapped') return;
           const raw = String(st.state || '');
@@ -6052,7 +6074,7 @@ function render() {
       setGlance('luci',  cdCount('luci',  s => s.state === 'on'));
       setGlance('clima', cdCount('clima', s => !['off','unavailable','unknown'].includes(s.state)));
       setGlance('risc',  cdCount('risc',  s => ['heat','heating','on'].includes(s.state)));
-      setGlance('win',   cdCount('win',   s => (s.state === 'on') !== dmVersoInvertito(s.entity_id)));
+      setGlance('win',   cdCount('win',   s => (s.state === 'on' || s.state === 'off') && ((s.state === 'on') !== dmVersoInvertito(s.entity_id))));
       setGlance('batt',  cdCount('batt',  s => { const v = parseFloat(s.state); return !isNaN(v) && v <= 20; }));
       try { cdRenderCustomAvvisi(); } catch(e) {}
       

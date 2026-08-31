@@ -67,11 +67,22 @@ function scriviConfig(lista) {
   disegnaPannello();
 }
 
+/* La voce puo' portare un riferimento virtuale (dm.core_053, dagli slot
+ * storici seminati): allStates() conosce solo gli entity_id veri, quindi
+ * prima si risolve — o le righe migrate restavano N/D per sempre. */
+function entitaViva(entity) {
+  try {
+    return clean(root.resolveEntity?.(entity) || entity) || clean(entity);
+  } catch (_errore) {
+    return clean(entity);
+  }
+}
+
 function statoDi(entity) {
   try {
     /* STATES nel guscio e' un `let` lessicale, invisibile da window: la
      * porta giusta per i moduli e' allStates(). */
-    return clean(allStates()?.[entity]?.state).toLowerCase();
+    return clean(allStates()?.[entitaViva(entity)]?.state).toLowerCase();
   } catch (_errore) {
     return "";
   }
@@ -102,7 +113,7 @@ function riga(voce) {
   const noto = Boolean(stato) && !["unavailable", "unknown"].includes(stato);
   /* «Deve dire da quanto tempo sono accesi, idem la caldaia»: la data del
    * cambio di stato ce l'ha Home Assistant, la riga la mette in parole. */
-  const da = acceso ? daQuanto(allStates()?.[voce.entity]?.last_changed) : "";
+  const da = acceso ? daQuanto(allStates()?.[entitaViva(voce.entity)]?.last_changed) : "";
   const nodo = doc.createElement("div");
   nodo.className = `ns-thermal-row${commutabile(voce.entity) ? " is-clickable" : ""}`;
   nodo.dataset.dmTermico = voce.entity;
@@ -153,7 +164,7 @@ export function pillolaDellaCaldaia() {
   banner.classList.toggle("show", acceso);
   const testo = banner.querySelector(".caldaia-banner-text");
   if (testo) {
-    const da = acceso ? daQuanto(allStates()?.[caldaia.entity]?.last_changed) : "";
+    const da = acceso ? daQuanto(allStates()?.[entitaViva(caldaia.entity)]?.last_changed) : "";
     testo.textContent = `${t("Caldaia accesa", "Furnace on")}${da ? ` · ${da}` : ""}`;
   }
   return true;

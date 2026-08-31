@@ -20,6 +20,16 @@ const state = (root[KEY] ||= { installed: false });
 
 const CALDI = /^(heat|heating|heat_cool)$/i;
 
+/* In `heat_cool`/`auto` lo stato dice solo il modo scelto: cosa sta facendo
+ * ADESSO lo dice `hvac_action` (heating/cooling/idle). Un'unita' automatica
+ * che raffresca finiva sotto «Riscaldano»: l'azione, quando parla, comanda. */
+function scaldaAdesso(stato) {
+  const azione = clean(stato?.attributes?.hvac_action).toLowerCase();
+  if (azione === "heating") return true;
+  if (azione === "cooling") return false;
+  return CALDI.test(clean(stato?.state));
+}
+
 /* L'entita' della riga sta solo negli onclick dei suoi tasti. */
 function entitaDellaRiga(riga) {
   for (const bottone of riga.querySelectorAll("button[onclick]")) {
@@ -55,7 +65,7 @@ export function decora(tipo) {
       nodo.textContent = ` · ${t(`acceso da ${da}`, `on for ${da}`)}`;
       dove.append(nodo);
     }
-    (CALDI.test(clean(stato?.state)) ? caldo : freddo).push(riga);
+    (scaldaAdesso(stato) ? caldo : freddo).push(riga);
   }
   /* Le testate solo quando i due mondi convivono: una lista tutta di un
    * colore non ha bisogno di dirselo. */
