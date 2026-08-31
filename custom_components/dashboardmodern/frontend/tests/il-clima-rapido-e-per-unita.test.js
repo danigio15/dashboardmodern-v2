@@ -129,10 +129,13 @@ test("il blocco del tasto rapido vive nel form dell'unita', non sopra a tutto", 
 test("la tessera del popup Clima disegna la stanza, non una porta", () => {
   const testo = leggi("src/sections/climate-thermal-section.js");
   assert.doesNotMatch(testo, /clean\(unita\.room\) \? "🚪"/, "la porta non e' l'icona di una stanza");
+  /* La stanza si cerca anche per NOME («Bagno e Camera da Letto escono con
+   * la fiamma»: il legame non era configurato, ma la stanza era evidente), e
+   * chi resta orfano prende il disegno del modo, non l'emoji nuda. */
   assert.match(
     testo,
-    /disegnoDellaStanza\(unita\.room\)/,
-    "l'icona della tessera viene dal catalogo dei disegni della stanza",
+    /disegnoDellaStanza\(unita\.room, unita\.name\) \|\| disegnoDelModo\(freddo\)/,
+    "l'icona della tessera viene dal catalogo: stanza per id o per nome, poi il modo",
   );
 });
 
