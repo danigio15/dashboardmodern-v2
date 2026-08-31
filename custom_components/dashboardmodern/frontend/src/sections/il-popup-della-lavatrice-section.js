@@ -18,7 +18,7 @@
  * lavatrice della sezione Elettrodomestici — o la foto vera, se nella
  * scheda dell'apparecchio ne e' stata scelta una.
  */
-import { applianceArtwork } from "../core/appliance-artwork.js";
+import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { applianceVisualKey } from "../core/device-model.js";
 import {
   clean,
@@ -135,9 +135,12 @@ export function vesteImmagine() {
   const veste = doc.createElement("span");
   veste.dataset.dmLavVeste = "";
   veste.className = "dm-lav-veste";
+  /* Il disegno e' QUELLO della card della sezione — l'oblo' fotorealistico
+   * dell'hero — non l'iconcina del catalogo: «voglio quella proprio nella
+   * sezione, non icona». */
   veste.innerHTML = foto
     ? `<img src="${esc(foto)}" alt="" loading="lazy">`
-    : applianceArtwork("lavatrice", 140);
+    : applianceHeroArtwork("lavatrice", 170);
   /* Il vecchio <img> puntava a un file /local che quasi nessuno ha: si
    * spegne, non si combatte. E il cestino di ripiego che il suo onerror
    * aveva acceso sul contenitore se ne va con lui. */
@@ -145,6 +148,10 @@ export function vesteImmagine() {
   if (vecchia) vecchia.style.display = "none";
   area.classList.remove("img-fallback");
   area.append(veste);
+  /* E via il cesto di paglia dalla testata: l'identita' del popup e' la
+   * lavatrice disegnata qui sotto, non un cesto. */
+  const testata = doc.querySelector("#lavatrice-modal .ev-waw-title .icon");
+  if (testata) testata.style.display = "none";
   return true;
 }
 
@@ -219,7 +226,7 @@ const STILE = `
   border:1px solid var(--card-border,#e2e8f0);border-radius:14px;background:var(--card-bg,#fff)}
 #lavatrice-modal .dm-lav-veste{display:grid;place-items:center;min-height:120px}
 #lavatrice-modal .dm-lav-veste img{max-width:140px;filter:drop-shadow(0 15px 25px rgba(0,0,0,.15))}
-#lavatrice-modal .dm-lav-veste .dm-appliance-art svg{width:132px;height:132px;filter:drop-shadow(0 12px 22px rgba(2,6,23,.18))}
+#lavatrice-modal .dm-lav-veste svg{width:170px;height:auto;filter:drop-shadow(0 14px 24px rgba(2,6,23,.20))}
 .dm-lav-carta{margin-top:12px}
 .dm-lav-righe{display:grid;gap:8px;margin:10px 0}
 .dm-lav-riga{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}

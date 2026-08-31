@@ -44,7 +44,8 @@ test("senza programmi niente griglia; configurato uno, compare quello solo", asy
   await expect(modal).not.toContainText("Rapido 59");
 
   /* L'immagine e' il disegno della sezione Elettrodomestici. */
-  await expect(modal.locator(".dm-lav-veste .dm-appliance-art svg")).toHaveCount(1);
+  /* Il disegno e' l'hero della card della sezione, non l'iconcina. */
+  await expect(modal.locator(".dm-lav-veste svg")).toHaveCount(1);
   await expect(modal.locator("#img-lavatrice")).toBeHidden();
 
   /* Un programma configurato: compare lui, e il tocco esegue la SUA entita'. */
