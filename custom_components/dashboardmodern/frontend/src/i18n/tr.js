@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Enerji yük akışı",
   "Energy meter (kWh)": "Enerji sayacı (kWh)",
   "Energy save failed": "Enerji kaydedilemedi",
+  "On cards show the room temperature big (target below)": "Kartlarda oda sıcaklığını büyük göster (hedef altta)",
   "Add program": "Program ekle",
   "Name (e.g. Quick 30')": "Ad (örn. Hızlı 30')",
   "Quick programs of the popup": "Pencerenin hızlı programları",

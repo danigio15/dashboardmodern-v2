@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Przepływ odbiorników energii",
   "Energy meter (kWh)": "Licznik energii (kWh)",
   "Energy save failed": "Nie udało się zapisać Energii",
+  "On cards show the room temperature big (target below)": "Na kartach pokazuj dużą temperaturę pokoju (cel poniżej)",
   "Add program": "Dodaj program",
   "Name (e.g. Quick 30')": "Nazwa (np. Szybki 30')",
   "Quick programs of the popup": "Szybkie programy okna",

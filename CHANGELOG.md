@@ -9,6 +9,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **La card del Clima si puo' girare.** Nella scheda Clima della
+  configurazione c'e' il flag «Nelle card mostra grande l'ambiente»:
+  col flag acceso il numero grande e' la temperatura della stanza e la
+  riga piccola il target — didascalie comprese, che seguono i numeri.
+
 - **Il popup della lavatrice e' tuo.** I quattro programmi rapidi erano
   scritti nel guscio su slot fissi: ora i tasti vivono in una lista libera
   — nome, entita' (script o switch), icona, quanti ne vuoi — nella

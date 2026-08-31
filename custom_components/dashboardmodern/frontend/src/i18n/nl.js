@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Verbruikersstroom van de energie",
   "Energy meter (kWh)": "Energiemeter (kWh)",
   "Energy save failed": "Opslaan van Energie mislukt",
+  "On cards show the room temperature big (target below)": "Toon op de kaarten de kamertemperatuur groot (doel eronder)",
   "Add program": "Programma toevoegen",
   "Name (e.g. Quick 30')": "Naam (bijv. Snel 30')",
   "Quick programs of the popup": "Snelprogramma's van de pop-up",

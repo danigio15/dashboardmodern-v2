@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "ऊर्जा लोड प्रवाह",
   "Energy meter (kWh)": "ऊर्जा मीटर (kWh)",
   "Energy save failed": "ऊर्जा सहेजना विफल",
+  "On cards show the room temperature big (target below)": "कार्ड पर कमरे का तापमान बड़ा दिखाएँ (लक्ष्य नीचे)",
   "Add program": "प्रोग्राम जोड़ें",
   "Name (e.g. Quick 30')": "नाम (जैसे क्विक 30')",
   "Quick programs of the popup": "पॉपअप के क्विक प्रोग्राम",

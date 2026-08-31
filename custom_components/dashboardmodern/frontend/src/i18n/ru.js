@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Поток нагрузок энергии",
   "Energy meter (kWh)": "Счётчик энергии (кВт·ч)",
   "Energy save failed": "Не удалось сохранить «Энергию»",
+  "On cards show the room temperature big (target below)": "На карточках показывать крупно температуру в комнате (цель ниже)",
   "Add program": "Добавить программу",
   "Name (e.g. Quick 30')": "Название (напр. Быстрая 30')",
   "Quick programs of the popup": "Быстрые программы окна",

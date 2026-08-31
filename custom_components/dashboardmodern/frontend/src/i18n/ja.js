@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "電力の負荷フロー",
   "Energy meter (kWh)": "電力量計 (kWh)",
   "Energy save failed": "エネルギーの保存に失敗しました",
+  "On cards show the room temperature big (target below)": "カードでは室温を大きく表示（設定温度は下）",
   "Add program": "プログラムを追加",
   "Name (e.g. Quick 30')": "名前（例：クイック30'）",
   "Quick programs of the popup": "ポップアップのクイックプログラム",

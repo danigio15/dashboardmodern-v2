@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "전력 부하 흐름",
   "Energy meter (kWh)": "전력량계 (kWh)",
   "Energy save failed": "에너지 저장에 실패했습니다",
+  "On cards show the room temperature big (target below)": "카드에서 실내 온도를 크게 표시 (목표는 아래)",
   "Add program": "프로그램 추가",
   "Name (e.g. Quick 30')": "이름 (예: 퀵 30')",
   "Quick programs of the popup": "팝업의 퀵 프로그램",

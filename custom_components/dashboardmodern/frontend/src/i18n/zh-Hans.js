@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "用电负载流向",
   "Energy meter (kWh)": "电能表（kWh）",
   "Energy save failed": "保存“能源”失败",
+  "On cards show the room temperature big (target below)": "卡片上大字显示室温（目标温度在下方）",
   "Add program": "添加程序",
   "Name (e.g. Quick 30')": "名称（如 快洗 30'）",
   "Quick programs of the popup": "弹窗的快捷程序",

@@ -497,6 +497,18 @@ function visibleZone() {
   return doc?.querySelector(".clima-zone-caldo.show") ? "caldo" : "freddo";
 }
 
+/* «Flag per invertire i dati della card: target sotto al posto di ambiente,
+ * ambiente sopra al posto di target» — c'e' chi guarda la card per sapere
+ * quanti gradi FA la stanza, non quanti ne chiede. Il flag e' uno per la
+ * sezione, vive in `cd_clima_inverti_card` e viaggia con la configurazione. */
+function cartaInvertita() {
+  try {
+    return root.localStorage?.getItem?.("cd_clima_inverti_card") === "1";
+  } catch (_errore) {
+    return false;
+  }
+}
+
 function paintCard(card, unit, reading, labels) {
   const zone = unit.zone;
   card.classList.toggle("is-on", reading.on);
@@ -505,18 +517,28 @@ function paintCard(card, unit, reading, labels) {
   const stateChip = card.querySelector("[data-dm-cl-state]");
   if (stateChip) stateChip.textContent = stateLabel(reading, zone, labels);
 
+  /* Col flag acceso il numero grande e' l'ambiente e la riga piccola il
+   * target; le didascalie seguono i numeri, o direbbero il falso. */
+  const invertita = cartaInvertita();
+  const grande = invertita ? reading.ambient : reading.target;
+  const piccolo = invertita ? reading.target : reading.ambient;
   const target = card.querySelector("[data-dm-cl-target]");
   if (target) {
-    const value = reading.target;
     target.innerHTML =
-      value === null
+      grande === null
         ? `--<span class="dm-cl-deg">°</span>`
-        : `${Math.round(value * 10) / 10}<span class="dm-cl-deg">°</span>`;
+        : `${Math.round(grande * 10) / 10}<span class="dm-cl-deg">°</span>`;
   }
+  const didascalia = card.querySelector(".dm-cl-cap");
+  if (didascalia) didascalia.textContent = invertita ? labels.room : labels.target;
 
   const ambient = card.querySelector("[data-dm-cl-ambient]");
-  if (ambient)
-    ambient.textContent = reading.ambient === null ? "--°" : `${reading.ambient.toFixed(1)}°`;
+  if (ambient) {
+    ambient.textContent = piccolo === null ? "--°" : `${piccolo.toFixed(1)}°`;
+    const parola = ambient.parentElement?.firstChild;
+    if (parola && parola.nodeType === 3)
+      parola.nodeValue = `${invertita ? labels.target : labels.room} `;
+  }
 
   const caption = card.querySelector("[data-dm-cl-mode-cap]");
   if (caption) caption.textContent = modeCaption(reading, labels);
@@ -1022,6 +1044,34 @@ function installPannelloDellaFinestra() {
   return true;
 }
 
+/* La casella nella scheda Clima della configurazione: un flag solo per
+ * tutta la sezione. Si monta quando la scheda c'e' (si riconosce dal suo
+ * campo stanza) e non c'e' gia'. */
+function montaFlagCarta() {
+  const corpo = doc?.getElementById?.("ed-body");
+  if (!corpo || !corpo.querySelector("#ed-cl-room")) return false;
+  if (corpo.querySelector("[data-dm-cl-inverti]")) return true;
+  const blocco = doc.createElement("label");
+  blocco.className = "ed-check dm-cl-inverti";
+  blocco.dataset.dmClInverti = "";
+  blocco.innerHTML =
+    `<input type="checkbox"${cartaInvertita() ? " checked" : ""}> ` +
+    t(
+      "Nelle card mostra grande l'ambiente (target sotto)",
+      "On cards show the room temperature big (target below)",
+    );
+  blocco.querySelector("input").addEventListener("change", (evento) => {
+    try {
+      root.localStorage?.setItem?.("cd_clima_inverti_card", evento.target.checked ? "1" : "0");
+      root.cdMarkDirty?.();
+      root.cdSyncPush?.();
+    } catch (_errore) {}
+    renderClimate({ rebuild: true });
+  });
+  corpo.append(blocco);
+  return true;
+}
+
 export function installClimateThermalSection() {
   if (!doc) return;
   installStyle(STYLE_ID, climateCss());
@@ -1048,6 +1098,20 @@ export function installClimateThermalSection() {
       });
     }
     root.addEventListener?.("dashboardmodern:state-changed", () => renderClimate());
+    for (const eventoEditor of [
+      "dashboardmodern:editor-rendered",
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+    ])
+      root.addEventListener?.(eventoEditor, () => montaFlagCarta());
+    doc.addEventListener(
+      "click",
+      (evento) => {
+        if (evento.target?.closest?.('.ed-tab[data-tab], [data-tab="clima"]'))
+          root.setTimeout?.(montaFlagCarta, 0);
+      },
+      true,
+    );
   }
   state.installed = true;
   renderClimate({ rebuild: true });

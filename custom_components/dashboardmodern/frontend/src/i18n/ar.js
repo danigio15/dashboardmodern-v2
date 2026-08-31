@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "تدفق أحمال الطاقة",
   "Energy meter (kWh)": "عداد الطاقة (ك.و.س)",
   "Energy save failed": "تعذّر حفظ «الطاقة»",
+  "On cards show the room temperature big (target below)": "في البطاقات اعرض حرارة الغرفة كبيرة (الهدف بالأسفل)",
   "Add program": "إضافة برنامج",
   "Name (e.g. Quick 30')": "الاسم (مثل سريع 30')",
   "Quick programs of the popup": "البرامج السريعة للنافذة",

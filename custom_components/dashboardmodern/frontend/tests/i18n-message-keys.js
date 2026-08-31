@@ -1245,6 +1245,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "On",
   "ON",
   "On / Active / Open (on)",
+  "On cards show the room temperature big (target below)",
   "on for ${da}",
   "On Home",
   "on this device",

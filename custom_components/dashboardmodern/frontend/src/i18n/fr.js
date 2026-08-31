@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Flux des charges d'énergie",
   "Energy meter (kWh)": "Compteur d'énergie (kWh)",
   "Energy save failed": "Échec de l'enregistrement d'Énergie",
+  "On cards show the room temperature big (target below)": "Sur les cartes, afficher en grand la température ambiante (cible dessous)",
   "Add program": "Ajouter un programme",
   "Name (e.g. Quick 30')": "Nom (ex. Rapide 30')",
   "Quick programs of the popup": "Programmes rapides du popup",

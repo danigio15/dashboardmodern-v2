@@ -1156,6 +1156,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Nel widget": "In the widget",
   "nella norma": "in range",
   "Nella scheda Telecamere manca l'entita' di Home Assistant": "The Home Assistant entity is missing in the Cameras tab",
+  "Nelle card mostra grande l'ambiente (target sotto)": "On cards show the room temperature big (target below)",
   "Neri": "Black",
   "Nessun avviso configurato": "No alerts configured",
   "Nessun carico configurato": "No configured loads",
