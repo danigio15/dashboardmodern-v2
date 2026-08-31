@@ -20,6 +20,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il popup degli elettrodomestici parla in parole, non in slug.** Le
+  caselle delle misure stampavano il friendly name tale e quale —
+  «W_KWH_FRIGO», «ENERGY_OGGI_FRIGO» — con la batteria (🔋) sopra i kWh:
+  «si capisce poco cosi'» e «non ha senso il simbolo batteria». Ora ogni
+  lettura porta la sua parola — Potenza, Energia oggi, Energia del mese,
+  Contatore totale, Temperatura — decisa prima di tutto dall'unita' (un
+  sensore in watt e' potenza anche se lo slug giura «kwh»), i kWh vestono
+  il grafico, e nei nomi restanti gli underscore diventano spazi col nome
+  dell'elettrodomestico tolto di mezzo: e' gia' scritto in cima alla
+  finestra.
+
 - **I tasti delle Azioni rapide restano tasti, anche su uno schermo largo.**
   La griglia del vassoio era dichiarata apposta senza tetto di larghezza, e
   con due o tre azioni ogni tasto si stirava a mezzo metro — «la sezione non
