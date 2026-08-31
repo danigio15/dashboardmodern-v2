@@ -397,11 +397,17 @@ export function risolviAvatar3d(input) {
       ? ricoloreAbito(scelte.vestito, scelte.coloreVestito)
       : null;
     if (ricolore) perBusto.push(ricolore);
+    /* Il collo NON sta al centro della tela: sui busti «casual» (la posa
+     * della mano) la testa siede a cx≈72 su 192, e il colletto disegnato a
+     * coordinate fisse galleggiava sul braccio. L'ancora e' la misura vera
+     * del busto: colletto e collana seguono il collo, non la tela. */
+    const ancora = misuraBusto ? { cx: misuraBusto.testa.cx } : null;
     const cucito = colletto(scelte.vestito, scelte.coloreVestito);
-    if (cucito) perBusto.push(cucito);
+    if (cucito) perBusto.push(ancora ? { ...cucito, ancora } : cucito);
     /* La collana sta al girocollo del busto: senza busto non c'e' un collo
      * su cui appoggiarla, e la scelta non ha effetto. */
-    if (scelte.collana !== "nessuna") perBusto.push({ tipo: "collana", stile: scelte.collana });
+    if (scelte.collana !== "nessuna")
+      perBusto.push({ tipo: "collana", stile: scelte.collana, ...(ancora ? { ancora } : {}) });
   }
 
   const lunga = operazioni.some((op) => op.tipo === "barba" && op.foggia === "lunga");

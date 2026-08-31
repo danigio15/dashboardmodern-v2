@@ -76,7 +76,9 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   contenta curvavano uguali su tutti i volti e il bordo-ciglio era una
   riga scura da eyeliner — «l'avatar uomo ha occhi da donna»: sui volti
   maschili la palpebra ora curva poco, e il ciglio e' leggero a occhio
-  socchiuso, deciso solo a occhio chiuso.
+  socchiuso, deciso solo a occhio chiuso. E il colletto di polo e
+  camicia — con la collana — ora sta al collo misurato del busto:
+  disegnato a coordinate fisse, galleggiava sul braccio.
 
 - **Il «Salva sezione» delle Aperture salva tutte le porte, non solo la
   prima.** Il tasto verde premeva i salvataggi nascosti riga per riga; il

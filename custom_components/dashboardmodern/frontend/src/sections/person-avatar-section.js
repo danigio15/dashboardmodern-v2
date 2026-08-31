@@ -544,7 +544,9 @@ function disegnaColletto(telaBusto, op) {
   const [r, g, b] = op.rgb;
   const scuro = `rgb(${(r * 0.62) | 0},${(g * 0.62) | 0},${(b * 0.62) | 0})`;
   const medio = `rgb(${Math.min(255, (r * 1.12) | 0)},${Math.min(255, (g * 1.12) | 0)},${Math.min(255, (b * 1.12) | 0)})`;
-  const cx = 0.485 * lato;
+  /* L'ancora e' il collo misurato del busto; il vecchio 0.485 resta il
+   * ripiego per un modello senza misura. */
+  const cx = op.ancora?.cx ?? 0.485 * lato;
   const cy = 0.6 * lato;
   const fw = 0.115 * lato;
   const fh = 0.115 * 1.05 * lato;
@@ -581,10 +583,11 @@ function disegnaColletto(telaBusto, op) {
 
 /* La collana: un arco d'oro sotto il girocollo del busto, con o senza
  * pendente. La testa arriva dopo, e il mento le passa sopra com'e' giusto. */
-function disegnaCollana(telaBusto, stile, oro = [212, 168, 83]) {
+function disegnaCollana(telaBusto, stile, ancora = null, oro = [212, 168, 83]) {
   const lato = AVATAR_LATO;
   const pennello = telaBusto.getContext("2d");
-  const cx = 0.485 * lato;
+  /* Come il colletto: al collo misurato del busto, non al centro della tela. */
+  const cx = ancora?.cx ?? 0.485 * lato;
   const cy = 0.615 * lato;
   const aw = 0.155 * lato;
   const ah = 0.1 * lato;
@@ -673,7 +676,7 @@ export async function componiRitratto(face) {
       for (const op of risolto.operazioni.busto) {
         if (op.tipo === "ricoloraAbito") ricoloraAbito(telaBusto, op);
         else if (op.tipo === "colletto") disegnaColletto(telaBusto, op);
-        else if (op.tipo === "collana") disegnaCollana(telaBusto, op.stile);
+        else if (op.tipo === "collana") disegnaCollana(telaBusto, op.stile, op.ancora);
       }
       pennello.drawImage(telaBusto, 0, 0);
     }
