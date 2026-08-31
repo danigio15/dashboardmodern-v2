@@ -20,6 +20,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il popup dell'Auto dice quando finisce, e parla in parole.** Accanto
+  al tempo che manca («2H 15M RIM.») ora c'e' l'ora a cui si arriva
+  («· verso le 10:46»), calcolata dalla stessa formula del guscio; sotto
+  il nome dell'auto arriva la frase d'analisi come nei popup dei widget
+  («In carica al 53% a 1.6 kW: di questo passo il 100% arriva verso le
+  10:46»); e i codici IEC del cavo che il guscio non conosce — minuscole,
+  parole di evcc — escono in parole, non piu' «C» nudo nelle caselle.
+
 - **La finestra aperta di una tessera si aggiorna senza tremare.** Il
   tremolio era ricomparso perche' il corpo del popup veniva buttato via e
   riscritto a ogni valore che cambiava — ogni due secondi su una casa

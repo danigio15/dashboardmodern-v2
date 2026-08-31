@@ -519,8 +519,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 183 col popup «Clima attivi» che distingue chi scalda da chi raffresca
   // e dice da quanto tempo (`il-popup-del-clima-distingue-section.js`): il
   // guscio mescolava heat e cool in una lista sola, senza orologio.
+  // 184 col popup dell'Auto che racconta
+  // (`il-popup-dell-auto-racconta-section.js`): l'ora di fine carica accanto
+  // al tempo che manca, la frase d'analisi, i codici IEC del cavo in parole.
   assert.ok(
-    relative.length <= 183,
+    relative.length <= 184,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -595,7 +598,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // #page-home: la striscia si sposta una volta sola, ma se qualcuno la
   // rimette dentro la pagina — un ridisegno che riscrive #page-home per
   // intero — va ripresa, e non c'e' nessun nome da avvolgere per saperlo.
-  assert.ok(observers.length <= 10, `too many production observers: ${observers.length}`);
+  // L'undicesimo e' del popup dell'Auto, e guarda solo il testo del tempo
+  // rimanente (#v-ev-remain-popup): il guscio lo riscrive a ogni giro del suo
+  // disegno — non su un evento nostro — e l'ora di fine carica va rimessa
+  // appena lui la cancella; non c'e' nessun nome da avvolgere per saperlo.
+  assert.ok(observers.length <= 11, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,
