@@ -11,7 +11,17 @@ import {
   normalizeDoorPin,
 } from "../core/security-door-model.js";
 import { openEmojiPicker } from "./beta11-real-device-polish-section.js";
-import { clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
+import {
+  clean,
+  doc,
+  esc,
+  installStyle,
+  onEditorRedraw,
+  readJson,
+  root,
+  t,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SECURITY_DOORS_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
@@ -115,7 +125,10 @@ function onClick(event) {
      * la normalizzazione la faranno il salvataggio e la sezione. */
     const raw = grezze();
     state.aperto = raw.length;
-    writeJsonIfChanged(CONFIG_KEY, [...raw, { id: `door-${Date.now().toString(36)}`, name: "", entity: "", icon: "🚪", pin: "" }]);
+    writeJsonIfChanged(CONFIG_KEY, [
+      ...raw,
+      { id: `door-${Date.now().toString(36)}`, name: "", entity: "", icon: "🚪", pin: "" },
+    ]);
     ridisegna();
     return;
   }
@@ -155,35 +168,79 @@ function onClick(event) {
     const domanda = t(`Elimino "${nome}"?`, `Remove "${nome}"?`);
     if (root.confirm && !root.confirm(domanda)) return;
     state.aperto = -1;
-    writeJsonIfChanged(CONFIG_KEY, raw.filter((_door, position) => position !== index));
+    writeJsonIfChanged(
+      CONFIG_KEY,
+      raw.filter((_door, position) => position !== index),
+    );
     root.renderSecurity?.();
     ridisegna();
     return;
   }
   if (event.target.closest("[data-door-save]")) {
     event.preventDefault();
-    const next = raw.slice();
-    next[index] = leggiRiga(riga, raw[index]);
-    const errore = riga.querySelector("[data-door-error]");
-    if (!isDoorEntity(next[index].entity)) {
+    salvaTutte(body);
+  }
+}
+
+/* Il salvataggio legge TUTTE le righe prima di scrivere, come le Persone.
+ *
+ * Il tasto «Salva sezione» preme i salvataggi nascosti di ogni riga, uno
+ * dietro l'altro; ma il salvataggio per-riga ridisegnava l'editor, e i bottoni
+ * delle righe dopo restavano staccati dal documento: il gestore delegato li
+ * ignorava e si salvava SOLO la prima porta — le altre perdevano l'entita'
+ * appena scelta e la pagina Sicurezza non le mostrava. Un gesto solo che
+ * raccoglie ogni riga e scrive una volta non ha un secondo bottone da perdere.
+ */
+function salvaTutte(body) {
+  const raw = grezze();
+  const next = raw.slice();
+  const righe = body.querySelectorAll("[data-door-index]");
+  const errori = new Map();
+  for (const riga of righe) {
+    const index = Number(riga.dataset.doorIndex);
+    if (!Number.isFinite(index) || !next[index]) continue;
+    next[index] = leggiRiga(riga, next[index]);
+    const porta = next[index];
+    const vuota = !clean(porta.name) && !clean(porta.entity) && !clean(porta.pin);
+    if (vuota) {
+      /* La riga appena aggiunta e mai compilata non diventa una «Porta 2»
+       * fantasma che gira in configurazione: sparisce in silenzio. */
+      next[index] = null;
+      continue;
+    }
+    if (!isDoorEntity(porta.entity)) {
       const domini = SECURITY_DOOR_DOMAINS.join(", ");
-      if (errore)
-        errore.textContent = t(
+      /* La riga resta scritta com'e' — grezza, non renderizzabile — cosi'
+       * quello che l'utente ha battuto non si perde mentre la completa. */
+      errori.set(
+        clean(porta.id),
+        t(
           `Serve un'entità che sappia aprire: ${domini}.`,
           `An entity that can open is required: ${domini}.`,
-        );
-      return;
+        ),
+      );
+      continue;
     }
-    const pin = clean(next[index].pin);
-    if (pin && !normalizeDoorPin(pin)) {
-      if (errore) errore.textContent = t("Il PIN è di 4-8 cifre.", "The PIN is 4-8 digits.");
-      return;
-    }
-    if (errore) errore.textContent = "";
-    salva(next);
-    ridisegna();
-    root.edToast?.(t("💾 Porta salvata", "💾 Door saved"));
+    const pin = clean(porta.pin);
+    if (pin && !normalizeDoorPin(pin))
+      errori.set(clean(porta.id), t("Il PIN è di 4-8 cifre.", "The PIN is 4-8 digits."));
   }
+  const salvate = next.filter(Boolean);
+  /* La riga da completare resta aperta, con l'errore in vista; a lavoro
+   * finito le teste si chiudono. */
+  state.aperto = salvate.findIndex((porta) => errori.has(clean(porta.id)));
+  salva(salvate);
+  ridisegna();
+  for (const [id, testo] of errori) {
+    const posizione = salvate.findIndex((porta) => clean(porta.id) === id);
+    const errore = body.querySelector(`[data-door-index="${posizione}"] [data-door-error]`);
+    if (errore) errore.textContent = testo;
+  }
+  root.edToast?.(
+    errori.size
+      ? t("💾 Salvate — una porta è da completare", "💾 Saved — one door needs finishing")
+      : t("💾 Porta salvata", "💾 Door saved"),
+  );
 }
 
 export function ensureDoorsEditorTab() {

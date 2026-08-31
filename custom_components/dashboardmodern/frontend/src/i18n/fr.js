@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Flux des charges d'énergie",
   "Energy meter (kWh)": "Compteur d'énergie (kWh)",
   "Energy save failed": "Échec de l'enregistrement d'Énergie",
+  "💾 Saved — one door needs finishing": "💾 Enregistré — une porte reste à compléter",
   "Circle = room": "Cercle = pièce",
   "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "Les appareils de cette pièce rejoignent le cercle tout seuls, futurs compris ; ce qui est déjà dans un autre cercle n'est pas compté deux fois.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Désactivé, l'entité weather ci-dessus suffit : température, humidité et vent en proviennent.",

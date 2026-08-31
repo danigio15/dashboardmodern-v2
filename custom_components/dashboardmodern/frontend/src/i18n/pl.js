@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Przepływ odbiorników energii",
   "Energy meter (kWh)": "Licznik energii (kWh)",
   "Energy save failed": "Nie udało się zapisać Energii",
+  "💾 Saved — one door needs finishing": "💾 Zapisano — jedne drzwi wymagają dokończenia",
   "Circle = room": "Okrąg = pokój",
   "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "Urządzenia z tego pokoju same wchodzą do okręgu, także przyszłe; co już siedzi w innym okręgu, nie liczy się dwa razy.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Wyłączone: wystarczy encja weather powyżej — temperatura, wilgotność i wiatr są z niej czytane.",

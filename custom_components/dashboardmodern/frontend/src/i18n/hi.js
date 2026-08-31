@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "ऊर्जा लोड प्रवाह",
   "Energy meter (kWh)": "ऊर्जा मीटर (kWh)",
   "Energy save failed": "ऊर्जा सहेजना विफल",
+  "💾 Saved — one door needs finishing": "💾 सहेजा गया — एक दरवाज़ा पूरा करना बाकी है",
   "Circle = room": "वृत्त = कमरा",
   "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "उस कमरे के उपकरण अपने आप वृत्त में आ जाते हैं, भविष्य के भी; जो पहले से दूसरे वृत्त में है वह दो बार नहीं गिना जाता।",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "बंद होने पर ऊपर की weather एंटिटी काफ़ी है: तापमान, नमी और हवा उसी से पढ़ी जाती हैं।",

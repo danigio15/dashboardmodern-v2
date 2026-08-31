@@ -163,6 +163,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "💾 Save changes",
   "💾 Save lights layout",
   "💾 Save section",
+  "💾 Saved — one door needs finishing",
   "💾 Saving and reloading…",
   "💾 Section saved",
   "📅 Daily",

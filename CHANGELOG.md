@@ -52,6 +52,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il «Salva sezione» delle Aperture salva tutte le porte, non solo la
+  prima.** Il tasto verde premeva i salvataggi nascosti riga per riga; il
+  primo valido ridisegnava l'editor e i bottoni delle righe dopo restavano
+  staccati dal documento — il gestore li ignorava, l'entita' appena scelta
+  si perdeva e la pagina Sicurezza mostrava una porta sola. Ora il gesto
+  legge tutte le righe e scrive una volta; la riga aggiunta e mai
+  compilata non resta in giro come «Porta 2» fantasma, e quella a meta'
+  resta scritta, aperta e con l'errore in vista.
+
 - **La caccia ai duplicati e alle sovrascritture delle telecamere.** Cinque
   cose vere trovate e curate. L'«Auto-rileva» della configurazione
   rimpiazzava la lista delle telecamere con tutte le `camera.*` di Home

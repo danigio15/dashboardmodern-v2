@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Поток нагрузок энергии",
   "Energy meter (kWh)": "Счётчик энергии (кВт·ч)",
   "Energy save failed": "Не удалось сохранить «Энергию»",
+  "💾 Saved — one door needs finishing": "💾 Сохранено — одну дверь нужно доделать",
   "Circle = room": "Круг = комната",
   "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "Приборы этой комнаты сами входят в круг, включая будущие; то, что уже в другом круге, дважды не считается.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Выключено — достаточно сущности weather выше: температура, влажность и ветер читаются из неё.",

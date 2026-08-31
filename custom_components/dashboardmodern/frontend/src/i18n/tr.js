@@ -708,6 +708,7 @@ export default Object.freeze({
   "Energy load flow": "Enerji yük akışı",
   "Energy meter (kWh)": "Enerji sayacı (kWh)",
   "Energy save failed": "Enerji kaydedilemedi",
+  "💾 Saved — one door needs finishing": "💾 Kaydedildi — bir kapı tamamlanmayı bekliyor",
   "Circle = room": "Daire = oda",
   "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.": "O odanın cihazları daireye kendiliğinden katılır, gelecektekiler dahil; başka bir dairede olan iki kez sayılmaz.",
   "Off, the weather entity above is enough: temperature, humidity and wind come from it.": "Kapalıyken yukarıdaki weather varlığı yeter: sıcaklık, nem ve rüzgar ondan okunur.",

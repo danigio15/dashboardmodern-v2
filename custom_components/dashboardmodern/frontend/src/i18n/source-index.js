@@ -163,6 +163,7 @@ export const SOURCE_INDEX = Object.freeze({
   "💾 Salva modifiche": "💾 Save changes",
   "💾 Salva organizzazione luci": "💾 Save lights layout",
   "💾 Salva sezione": "💾 Save section",
+  "💾 Salvate — una porta è da completare": "💾 Saved — one door needs finishing",
   "💾 Salvo e ricarico…": "💾 Saving and reloading…",
   "💾 Scarica HTML modificato": "💾 Download modified HTML",
   "💾 Sezione salvata": "💾 Section saved",

@@ -122,7 +122,11 @@ test("il blocco sta fra la centrale e le telecamere, col tastierino della centra
 
 test("l'editor valida entita' e PIN prima di salvare", () => {
   const editor = leggi("sections/security-doors-editor-section.js");
-  assert.match(editor, /isDoorEntity\(next\[index\]\.entity\)/);
+  // Il salvataggio legge TUTTE le righe prima di scrivere (il tasto «Salva
+  // sezione» premeva i bottoni per-riga e il primo ridisegno staccava gli
+  // altri: si salvava solo la prima porta).
+  assert.match(editor, /function salvaTutte\(body\)/);
+  assert.match(editor, /isDoorEntity\(porta\.entity\)/);
   assert.match(editor, /normalizeDoorPin\(pin\)/);
   assert.match(editor, /cd_security_doors/);
 });
