@@ -237,9 +237,26 @@ export function integrationUserDataKey({ primary = true, instance = "" } = {}) {
   return `dashboardmodern_integration_config${suffix}`;
 }
 
+/* Se questa plancia sia la principale, e cosa fare quando non lo dice nessuno.
+ *
+ * Il valore lo dichiara l'integrazione. Quando manca — un pannello vecchio
+ * rimasto nella cache del browser — qui si dava per scontato di essere la
+ * principale, e una plancia ospitata che non sapeva di non esserlo finiva a
+ * leggere e scrivere la configurazione dell'altra: due plance, una
+ * configurazione sola. In dubbio adesso vale il contrario, e a fare da spia c'e'
+ * l'istanza: chi ne ha una e' ospitato dall'integrazione, e allora non e' la
+ * principale finche' non lo dice lei. Una plancia da sola, senza istanza,
+ * resta quella di sempre. */
+export function laPrincipale() {
+  const dichiarata = root.__DASHBOARDMODERN_PRIMARY__;
+  if (dichiarata === undefined || dichiarata === null)
+    return !String(root.__DASHBOARDMODERN_INSTANCE__ || "");
+  return dichiarata !== false;
+}
+
 function userDataKey() {
   return integrationUserDataKey({
-    primary: root.__DASHBOARDMODERN_PRIMARY__ !== false,
+    primary: laPrincipale(),
     instance: root.__DASHBOARDMODERN_INSTANCE__,
   });
 }
@@ -287,7 +304,7 @@ export function configProfileFor({ profile = "", primary = true } = {}) {
 function currentProfile() {
   return configProfileFor({
     profile: root.__DASHBOARDMODERN_PROFILE__ || parentProfile() || "",
-    primary: root.__DASHBOARDMODERN_PRIMARY__ !== false,
+    primary: laPrincipale(),
   });
 }
 

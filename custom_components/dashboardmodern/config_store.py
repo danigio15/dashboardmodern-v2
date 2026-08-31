@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any
 from .const import DOMAIN
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from homeassistant.core import HomeAssistant
 
@@ -74,8 +74,50 @@ def profile_for_entry(*, primary: bool, title: str, entry_id: str) -> str:
         return PRIMARY_PROFILE
     from homeassistant.util import slugify
 
+    return _named_profile(title, entry_id, slugify)
+
+
+def _named_profile(title: str, entry_id: str, slugify: Any) -> str:
     slug = slugify(title or "")
     return f"{PROFILE_PREFIX}{slug or entry_id[:8].lower()}"
+
+
+def unique_profiles(
+    entries: Sequence[tuple[str, str, bool]], *, slugify: Any = None
+) -> dict[str, str]:
+    """Assegna a ogni plancia il SUO profilo, senza due che ne condividono uno.
+
+    Il nome del profilo veniva dal titolo e basta: due plance chiamate allo
+    stesso modo — e chi ne aggiunge una seconda lascia il nome proposto —
+    finivano nello stesso posto, e la nuova nasceva gia' piena della
+    configurazione dell'altra. «Se aggiungo una nuova dashboard da integrazioni
+    mi duplica quella attuale, invece doveva crearne una ex novo sciolta
+    dall'altra.»
+
+    Chi arriva per primo tiene il nome del titolo, cosi' una plancia che
+    esisteva gia' non cambia posto e non perde niente; chi arriva dopo su un
+    nome gia' occupato si porta dietro un pezzo del proprio identificativo, che
+    e' l'unica cosa che due plance non possono avere uguale.
+
+    ``entries`` e' una sequenza di ``(entry_id, titolo, primaria)`` nell'ordine
+    in cui le plance sono state create.
+    """
+    if slugify is None:  # pragma: no cover - la strada di Home Assistant
+        from homeassistant.util import slugify as slugify_ha
+
+        slugify = slugify_ha
+    assegnati: dict[str, str] = {}
+    presi: set[str] = set()
+    for entry_id, title, primary in entries:
+        if primary:
+            profilo = PRIMARY_PROFILE
+        else:
+            profilo = _named_profile(title, entry_id, slugify)
+            if profilo in presi:
+                profilo = f"{profilo}-{entry_id[:6].lower()}"
+        assegnati[entry_id] = profilo
+        presi.add(profilo)
+    return assegnati
 
 
 def _meaningful_scalar(value: Any) -> bool:
@@ -255,6 +297,18 @@ class DashboardConfigStore:
             return profile, None
         remembered = self._entry_profiles().get(entry_id)
         if not remembered or remembered == profile or remembered not in profiles:
+            return profile, None
+        # Un ricordo non vale se quella cassetta e' di un'altra plancia.
+        #
+        # Il ricordo serve a seguire un rinomino: la stessa plancia, sotto un
+        # altro nome, ritrova la sua roba. Ma due plance chiamate allo stesso
+        # modo hanno condiviso una cassetta sola — e' il difetto che i profili
+        # unici tolgono di mezzo — e senza questa riga il ricordo le
+        # rimetterebbe insieme il giorno dopo, vanificando la separazione.
+        if any(
+            altra != entry_id and salvato == remembered
+            for altra, salvato in self._entry_profiles().items()
+        ):
             return profile, None
         return remembered, profile
 

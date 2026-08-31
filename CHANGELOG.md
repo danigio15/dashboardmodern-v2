@@ -9,6 +9,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Una plancia nuova nasce vuota, non copia di quella che c'era.** «Se aggiungo
+  una nuova dashboard da integrazioni mi duplica quella attuale, invece doveva
+  crearne una ex novo sciolta dall'altra.» Il nome della cassetta dove sta la
+  configurazione veniva dal titolo, e chi ne aggiunge una seconda lascia il nome
+  proposto: due plance chiamate allo stesso modo finivano nella stessa cassetta
+  e da li' in poi si scrivevano addosso. Adesso i posti si assegnano guardando
+  tutte le plance insieme — chi c'era prima non si muove, chi arriva su un nome
+  occupato ne riceve uno suo — e una plancia ospitata che non sa di essere la
+  principale non si prende piu' la configurazione della principale.
+
 - **Il cerchio dell'Energia dice quello che dice la sua finestra.** Il cerchio
   segnava 0 W e la finestra dei sotto-carichi 838 W. Adesso un contatore di
   gruppo fermo a zero non nasconde piu' quello che ha dentro — a zero si guarda

@@ -8,6 +8,7 @@ const {
   CONFIG_KEYS,
   CONFIG_KEYS_REVISION,
   integrationUserDataKey,
+  laPrincipale,
   mergeLegacyMissingConfig,
   migrateLegacyUserData,
   normalizeRemoteSnapshot,
@@ -312,4 +313,37 @@ test("remote restore propagates deletions instead of leaving stale desktop keys"
   assert.equal(storage.getItem("cd_devices"), null);
   assert.equal(storage.getItem("cd_costo_kwh"), "0.27");
   assert.deepEqual(JSON.parse(storage.getItem("cd_sections")), { energy: false });
+});
+
+/* Due plance non si guardano nemmeno quando il pannello e' vecchio.
+ *
+ * «Se aggiungo una nuova dashboard da integrazioni mi duplica quella attuale,
+ * invece doveva crearne una ex novo sciolta dall'altra.» La chiave del
+ * trasporto per-utente si sdoppia solo per chi NON e' la principale, e prima
+ * chi non lo dichiarava passava per principale: bastava un pannello rimasto in
+ * cache perche' due plance scrivessero nello stesso posto. */
+test("una plancia ospitata che non sa di essere secondaria non si prende la principale", () => {
+  const primaPrima = globalThis.__DASHBOARDMODERN_PRIMARY__;
+  const istanzaPrima = globalThis.__DASHBOARDMODERN_INSTANCE__;
+  try {
+    delete globalThis.__DASHBOARDMODERN_PRIMARY__;
+    globalThis.__DASHBOARDMODERN_INSTANCE__ = "01ff77aa22bb33cc";
+    assert.equal(laPrincipale(), false);
+
+    // Una plancia da sola, senza istanza, resta quella di sempre.
+    delete globalThis.__DASHBOARDMODERN_INSTANCE__;
+    assert.equal(laPrincipale(), true);
+
+    // E quando l'integrazione lo dice, comanda lei.
+    globalThis.__DASHBOARDMODERN_INSTANCE__ = "01ff77aa22bb33cc";
+    globalThis.__DASHBOARDMODERN_PRIMARY__ = true;
+    assert.equal(laPrincipale(), true);
+    globalThis.__DASHBOARDMODERN_PRIMARY__ = false;
+    assert.equal(laPrincipale(), false);
+  } finally {
+    if (primaPrima === undefined) delete globalThis.__DASHBOARDMODERN_PRIMARY__;
+    else globalThis.__DASHBOARDMODERN_PRIMARY__ = primaPrima;
+    if (istanzaPrima === undefined) delete globalThis.__DASHBOARDMODERN_INSTANCE__;
+    else globalThis.__DASHBOARDMODERN_INSTANCE__ = istanzaPrima;
+  }
 });
