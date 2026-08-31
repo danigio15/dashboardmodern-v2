@@ -1588,4 +1588,10 @@ export default Object.freeze({
   "Temperature 1": "Temperatur 1",
   "Temperature 2": "Temperatur 2",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "Ein Kühlschrank mit Gefrierfach sind zwei Fächer: das zweite kommt hierher. Sind beide Felder gefüllt, zeichnet die Karte zwei Balken.",
+  "Drag to move · wheel or pinch to zoom": "Ziehen zum Bewegen · Rad oder Zwei-Finger zum Zoomen",
+  "Map": "Karte",
+  "Open the map": "Karte öffnen",
+  "Reset": "Zurücksetzen",
+  "Zoom in": "Vergrößern",
+  "Zoom out": "Verkleinern",
 });

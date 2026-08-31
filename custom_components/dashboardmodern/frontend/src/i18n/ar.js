@@ -1568,4 +1568,10 @@ export default Object.freeze({
   "Temperature 1": "الحرارة ١",
   "Temperature 2": "الحرارة ٢",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "الثلاجة مع الفريزر حيّزان: الثاني يوضع هنا. عند ملء الحقلين ترسم البطاقة شريطين.",
+  "Drag to move · wheel or pinch to zoom": "اسحب للتحريك · العجلة أو القرص للتكبير",
+  "Map": "الخريطة",
+  "Open the map": "افتح الخريطة",
+  "Reset": "إعادة الضبط",
+  "Zoom in": "تكبير",
+  "Zoom out": "تصغير",
 });

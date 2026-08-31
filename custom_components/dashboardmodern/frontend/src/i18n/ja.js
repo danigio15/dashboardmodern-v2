@@ -1578,4 +1578,10 @@ export default Object.freeze({
   "Temperature 1": "温度 1",
   "Temperature 2": "温度 2",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "冷凍室のある冷蔵庫は二つの区画です。二つめはここに。両方を入れるとカードは二本のバーを描きます。",
+  "Drag to move · wheel or pinch to zoom": "ドラッグで移動・ホイールやピンチで拡大",
+  "Map": "マップ",
+  "Open the map": "マップを開く",
+  "Reset": "元に戻す",
+  "Zoom in": "拡大",
+  "Zoom out": "縮小",
 });

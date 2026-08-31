@@ -1,0 +1,137 @@
+/* «L'aspirapolvere mi fa vedere solo un pezzo della mappa: non si può aprire,
+ * né spostare, né zoommare.»
+ *
+ * Nella card la mappa sta in un riquadro quattro terzi: ci sta tutta — è
+ * disegnata `contain`, non ritagliata — ma di una casa intera dentro
+ * trecento pixel non si legge niente, e non c'era modo di guardarla più da
+ * vicino. Adesso si apre a schermo pieno, si trascina e si ingrandisce.
+ */
+import { expect, test } from "@playwright/test";
+import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+
+/* Un'immagine larga, così l'ingrandimento ha qualcosa da mostrare. */
+const PIXEL = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+const STATI = {
+  "vacuum.piano_terra": {
+    entity_id: "vacuum.piano_terra",
+    state: "docked",
+    attributes: {
+      friendly_name: "Piper",
+      battery_level: 100,
+      supported_features: 8192 + 4 + 8 + 16 + 32 + 64,
+    },
+  },
+  "camera.piano_terra_map": {
+    entity_id: "camera.piano_terra_map",
+    state: "idle",
+    attributes: { entity_picture: "/api/camera_proxy/camera.piano_terra_map?token=abc" },
+  },
+};
+
+const SEME = {
+  schema_version: 4,
+  sections: {
+    rooms: [],
+    cameras: [],
+    appliances: [],
+    loads: [],
+    lights: [],
+    climate: [],
+    ev: [],
+    covers: [],
+    pool: {},
+    irrigation: { zones: [] },
+    robots: [
+      {
+        id: "robot-1",
+        name: "Piper",
+        entity: "vacuum.piano_terra",
+        mapEntity: "camera.piano_terra_map",
+      },
+    ],
+    energy: {},
+    entityOverrides: {},
+  },
+  visibility: { home: true, robot: true },
+};
+
+async function avvia(page, testInfo) {
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await page.route("**/api/camera_proxy/**", (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
+  );
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.evaluate((valori) => {
+    const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+    if (raw) Object.assign(raw, valori);
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  }, STATI);
+  await page.locator('nav.tabs .tab[data-tab="robot"]').dispatchEvent("click");
+  await expect(page.locator("#page-robot")).toHaveClass(/active/);
+  const mappa = page.locator("[data-dm-robot-map-open]");
+  await expect(mappa).toHaveCount(1);
+  /* La mappa si apre quando il disegno e' arrivato: prima non c'e' niente da
+     ingrandire, e il riquadro lo dice. */
+  await expect(mappa).toHaveAttribute("data-dm-map-state", "ready");
+  return mappa;
+}
+
+const lettura = (page) =>
+  page.evaluate(() => {
+    const visore = document.getElementById("dm-robot-map-view");
+    const figura = visore?.querySelector("[data-dm-map-big]");
+    return {
+      aperto: Boolean(visore) && !visore.hidden,
+      trasformazione: figura ? figura.style.transform : "",
+      ingrandita: figura?.dataset.dmZoom === "true",
+      sorgente: figura?.getAttribute("src") || "",
+    };
+  });
+
+test("toccando la mappa si apre a schermo pieno, con lo stesso disegno", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  const mappa = await avvia(page, testInfo);
+  await mappa.evaluate((nodo) => nodo.click());
+  const stato = await lettura(page);
+  expect(stato.aperto).toBe(true);
+  // Il disegno e' quello che la card ha gia' preso: nessuna richiesta in piu'.
+  expect(stato.sorgente).toBeTruthy();
+  expect(stato.ingrandita).toBe(false);
+});
+
+test("si ingrandisce, e il tasto che rimette com'era la rimette com'era", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  const mappa = await avvia(page, testInfo);
+  await mappa.evaluate((nodo) => nodo.click());
+  await page.locator("#dm-robot-map-view [data-dm-map-in]").evaluate((nodo) => nodo.click());
+  const dopo = await lettura(page);
+  expect(dopo.ingrandita).toBe(true);
+  expect(dopo.trasformazione).toMatch(/scale\(1\.[1-9]/);
+
+  await page.locator("#dm-robot-map-view [data-dm-map-reset]").evaluate((nodo) => nodo.click());
+  const azzerata = await lettura(page);
+  expect(azzerata.ingrandita).toBe(false);
+  expect(azzerata.trasformazione).toContain("scale(1)");
+});
+
+test("non si rimpicciolisce sotto la sua misura, e si chiude", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  const mappa = await avvia(page, testInfo);
+  await mappa.evaluate((nodo) => nodo.click());
+  /* Sotto l'uno non si va: la mappa diventerebbe un francobollo in mezzo al
+     nero, e non c'e' niente da guadagnarci. */
+  for (let giro = 0; giro < 4; giro += 1)
+    await page.locator("#dm-robot-map-view [data-dm-map-out]").evaluate((nodo) => nodo.click());
+  expect((await lettura(page)).trasformazione).toContain("scale(1)");
+
+  await page.locator("#dm-robot-map-view [data-dm-map-close]").evaluate((nodo) => nodo.click());
+  expect((await lettura(page)).aperto).toBe(false);
+});

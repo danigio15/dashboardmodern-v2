@@ -1580,4 +1580,10 @@ export default Object.freeze({
   "Temperature 1": "Температура 1",
   "Temperature 2": "Температура 2",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "Холодильник с морозильной камерой — это два отделения: второе указывается здесь. Когда заполнены оба поля, карточка рисует две полосы.",
+  "Drag to move · wheel or pinch to zoom": "Перетащите, чтобы сдвинуть · колесо или щипок для увеличения",
+  "Map": "Карта",
+  "Open the map": "Открыть карту",
+  "Reset": "Сбросить",
+  "Zoom in": "Приблизить",
+  "Zoom out": "Отдалить",
 });

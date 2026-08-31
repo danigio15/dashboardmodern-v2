@@ -1572,4 +1572,10 @@ export default Object.freeze({
   "Temperature 1": "तापमान 1",
   "Temperature 2": "तापमान 2",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "फ्रीज़र वाला फ्रिज दो हिस्से हैं: दूसरा यहाँ डालें। दोनों भरे हों तो कार्ड दो पट्टियाँ बनाता है।",
+  "Drag to move · wheel or pinch to zoom": "खिसकाने के लिए खींचें · ज़ूम के लिए व्हील या पिंच",
+  "Map": "नक्शा",
+  "Open the map": "नक्शा खोलें",
+  "Reset": "रीसेट",
+  "Zoom in": "बड़ा करें",
+  "Zoom out": "छोटा करें",
 });

@@ -1551,4 +1551,10 @@ export default Object.freeze({
   "Temperature 1": "温度 1",
   "Temperature 2": "温度 2",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "带冷冻室的冰箱是两个隔间：第二个填在这里。两个框都填好，卡片会画两条条带。",
+  "Drag to move · wheel or pinch to zoom": "拖动移动 · 滚轮或双指缩放",
+  "Map": "地图",
+  "Open the map": "打开地图",
+  "Reset": "重置",
+  "Zoom in": "放大",
+  "Zoom out": "缩小",
 });
