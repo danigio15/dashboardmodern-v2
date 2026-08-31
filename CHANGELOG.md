@@ -20,6 +20,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il Chiudi dei popup resta in cima, anche a lista scorsa.** Nei popup
+  lunghi — il Clima rapido con tante stanze, i dettagli fitti —
+  l'intestazione con la croce scorreva via col contenuto: «il tasto Chiudi
+  sta troppo in fondo e non si legge». Ora e' incollata al bordo alto del
+  foglio che scorre, col fondo pieno, e il foglio non supera mai l'area
+  visibile vera dello schermo (misura dvh, dove il browser la capisce).
+
 - **La pillola «Caldaia accesa» segue la caldaia configurata, e il popup
   Clima distingue chi scalda da chi raffresca.** La pillola sotto il meteo
   leggeva `switch.caldaia` cablato: ora segue la voce caldaia di
