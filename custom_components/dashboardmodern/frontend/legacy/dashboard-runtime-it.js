@@ -5997,13 +5997,15 @@ function render() {
          essere l'entita' weather, come promesso dalla scheda Meteo. */
       let cdMeteoProprie = false;
       try {
-          const cdMeteoScelta = cdCfg('cd_meteo_entita_proprie');
+          /* Il grezzo, non cdCfg: per una chiave assente cdCfg risponde {} (o
+             la config precotta) e «mai deciso» diventava «spenta». */
+          const cdMeteoScelta = localStorage.getItem('cd_meteo_entita_proprie');
           if (cdMeteoScelta == null) {
               /* Mai deciso: come nell'editor, comanda la mappatura gia' fatta
                  — chi aveva la stazione non la perde per una casella mai vista. */
               cdMeteoProprie = ['dm.home_meteo_temperatura','dm.home_meteo_umidita','dm.home_meteo_percepita','dm.home_meteo_vento','dm.home_meteo_vento_direzione']
                   .some(function(k){ const st = STATES[k]; return st && st.entity_id !== 'dm.unmapped'; });
-          } else cdMeteoProprie = cdMeteoScelta === true || cdMeteoScelta === 1 || cdMeteoScelta === '1';
+          } else cdMeteoProprie = cdMeteoScelta === '1' || cdMeteoScelta === 'true';
       } catch (e) { cdMeteoProprie = false; }
       const cdMeteoStazione = (ref) => {
           if (!cdMeteoProprie) return null;
