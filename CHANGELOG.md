@@ -5,6 +5,52 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.2
+
+### Nuovo
+
+- **La barra del Clima si trascina.** Il target si sceglie prendendo la
+  corsia col dito o col mouse — il pomello e il numero seguono in diretta e
+  al rilascio parte un solo comando col grado intero scelto. I tasti ➖/➕
+  restano.
+- **La testata del Clima dice come sta la caldaia.** La caldaia configurata
+  nello Stato termico compare fra i numeri della sezione: accesa (e da
+  quanto) o spenta. Senza caldaia configurata la casella non c'e'.
+- **La lavatrice si personalizza dal popup.** Sotto i programmi rapidi c'e'
+  «⚙️ Personalizza programmi»: la stessa carta della configurazione — nome,
+  entita', icona, quanti programmi vuoi — con il salvataggio a ogni modifica
+  e i tasti che compaiono subito.
+
+### Corretto
+
+- **Le entita' delle Prese non sono porte.** Se la configurazione condivisa
+  se le era portate fra le aperture della Sicurezza, ora si scartano ovunque
+  — sezione, widget, editor — e l'editor ripulisce la lista salvata.
+- **L'icona scelta dal catalogo si vede davvero.** Il catalogo di casa
+  scrive token `mdi:*`: stampati come testo l'icona della porta «spariva».
+  Ora la disegna il motore — nell'editor, nella pagina Sicurezza e nel
+  widget.
+- **Il Chiudi della finestra widget si legge intero.** La regola del tondino
+  delle tessere schiacciava la pillola scritta della testata e la scritta
+  usciva tagliata («✕ CH…»).
+- **Le minicard dei popup si leggono.** Le etichette delle misure vanno a
+  capo invece di finire nei puntini, e nelle pillole dello stato il nome e
+  la parola di stato si distinguono (nome · STATO).
+- **Le aperture aperte stanno in testa.** Il popup diceva «2 aperte» ma la
+  seconda stava in mezzo alle chiuse, sotto la piega: ora le aperte vengono
+  prima.
+- **La presa in solo lettura non ha piu' la levetta.** La card resta col
+  lucchetto, l'interruttore sparisce proprio — e il comando era gia'
+  rifiutato alla radice.
+- **Il cerchio Elettrodomestici del flusso porta la somma vera.** Il gruppo
+  pescava dalla propria lista un sensore a 0 W e la somma degli apparecchi
+  dentro non partiva mai («il popup somma 1,45 kW, il cerchio dice 0 W»);
+  e la potenza si trova anche nei campi espliciti dell'apparecchio, con le
+  unita' scritte per esteso.
+- **Il popup dei carichi si legge.** I nomi vanno a capo invece di
+  troncarsi («Condizio…») e i kWh di oggi stanno sotto i watt, non
+  accostati.
+
 ## 1.4.1
 
 ### Nuovo

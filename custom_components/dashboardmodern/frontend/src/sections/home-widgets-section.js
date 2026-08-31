@@ -46,7 +46,8 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
-import { doorOpenCall, normalizeSecurityDoors } from "../core/security-door-model.js";
+import { doorOpenCall } from "../core/security-door-model.js";
+import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
 import {
@@ -559,7 +560,8 @@ function coversModel(states) {
 function securityModel(states) {
   const fuori = widgetExcludedEntities();
   const alarm = stateOf(states, "dm.security_centrale_allarme");
-  const doors = normalizeSecurityDoors(readJson("cd_security_doors", [])).filter((door) =>
+  /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
+  const doors = configuredSecurityDoors().filter((door) =>
     widgetIncludes(door.entity, fuori),
   );
   // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
@@ -1582,6 +1584,10 @@ function openingsModel(states) {
   });
   const open = rows.filter((row) => row.on);
   if (!open.length) return null;
+  /* Le aperte in testa: «dice due porte aperte ma sotto ne mostra una» — la
+   * seconda stava sotto la piega, in mezzo a ventotto chiuse. L'ordine fra
+   * pari resta quello del gruppo (il sort e' stabile). */
+  const ordinate = [...rows].sort((a, b) => Number(b.on) - Number(a.on));
   return {
     key: "aperture",
     accent: "#dc2626",
@@ -1591,7 +1597,7 @@ function openingsModel(states) {
     value: String(open.length),
     caption: open[0] ? open[0].name : "",
     ring: Math.round((open.length / rows.length) * 100),
-    rows,
+    rows: ordinate,
     open,
   };
 }
@@ -2554,7 +2560,7 @@ function securityDetail(widget, states) {
     const invito = door.pin ? t("Apri, col PIN", "Open, with the PIN") : t("Apri", "Open");
     parts.push(
       rowShell(
-        `<span class="dm-w-glyph" aria-hidden="true">${esc(door.icon)}</span>
+        `<span class="dm-w-glyph" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
          <span class="dm-w-name">${esc(door.name || door.entity)}<small>${esc(label)}</small></span>
          ${
            apre
@@ -2755,8 +2761,8 @@ function pilloleDelloStato(widget) {
             riga.glyph
               ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>`
               : ""
-          }${esc(clean(riga.name))}${
-            clean(riga.value) ? ` <b>${esc(clean(riga.value))}</b>` : ""
+          }<span class="dm-w-pillola-nome">${esc(clean(riga.name))}</span>${
+            clean(riga.value) ? `<b>${esc(clean(riga.value))}</b>` : ""
           }</span>`,
       )
       .join("")}</div>`;
@@ -4273,10 +4279,12 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   font-family:'Oswald',system-ui,sans-serif;font-weight:400;font-size:19px;line-height:1.1;
   color:var(--text,#0f172a);font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* L'etichetta va a capo invece di finire nei puntini: «TEMPERATURA PANNELLO…»
+ * non diceva piu' quale pannello. Due righe bastano a ogni nome vero. */
 #dm-widget-popup .dm-w-casella span{
   font-size:8.5px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;
-  color:var(--text-dim,#94a3b8);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  color:var(--text-dim,#94a3b8);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #dm-widget-popup .dm-w-pillole{display:flex;flex-wrap:wrap;gap:6px}
 #dm-widget-popup .dm-w-pillola{
   display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;
@@ -4291,7 +4299,16 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   border-color:color-mix(in srgb,#10b981 34%,transparent);
   background:color-mix(in srgb,#10b981 12%,transparent);
   color:color-mix(in srgb,#10b981 76%,#0f172a)}
-#dm-widget-popup .dm-w-pillola b{font-weight:900;color:inherit}
+/* Nome e stato si distinguono: il nome respira, lo stato e' la parola in
+ * maiuscoletto dopo il punto — «non si capisce» era tutto sullo stesso tono. */
+#dm-widget-popup .dm-w-pillola{font-size:11px}
+#dm-widget-popup .dm-w-pillola-nome{
+  min-width:0;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text,#0f172a);font-weight:700}
+#dm-widget-popup .dm-w-pillola[data-acceso="true"] .dm-w-pillola-nome{color:inherit}
+#dm-widget-popup .dm-w-pillola b{
+  font-weight:900;color:inherit;text-transform:uppercase;font-size:9.5px;letter-spacing:.8px}
+#dm-widget-popup .dm-w-pillola b::before{content:"·";margin-right:5px;font-size:11px}
 @media(max-width:420px){
   #dm-widget-popup .dm-w-caselle{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -4918,7 +4935,11 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   font-size:12.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-head small{flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-close{
+/* Il tondino da 28px e' della tessera in griglia: dentro la finestra di
+ * dettaglio il Chiudi e' la pillola scritta della testata, e questa regola —
+ * che viene dopo — la schiacciava a 28px facendo traboccare la scritta
+ * («la x con chiudi ancora sballato»). */
+:is(#dm-widgets,#dm-widget-popup) .dm-w-close:not(.dm-widget-detail .dm-w-close){
   flex:0 0 28px;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:9px;
   background:var(--surface-3,#f1f5f9);color:var(--text-dim,#64748b);font-size:12px;cursor:pointer}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-body{display:grid;gap:2px;padding:0 10px 12px}

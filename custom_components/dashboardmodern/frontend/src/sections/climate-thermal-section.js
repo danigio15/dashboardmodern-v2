@@ -32,6 +32,7 @@ import { canonicalClimateType } from "../core/device-model.js";
 import { climateIsOff } from "../core/climate-power.js";
 import { roomOrderRank } from "../core/room-overview.js";
 import { chiamaClima, commutaClima } from "./climate-power-section.js";
+import { statoCaldaia } from "./termico-del-caldo-section.js";
 import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
   activeLocale,
@@ -321,6 +322,10 @@ function skeletonMarkup(labels) {
         <span>${esc(labels.ambient)}</span>
         <b data-dm-cl-average>--°</b>
       </div>
+      <div class="dm-cl-kpi" data-dm-cl-caldaia hidden>
+        <span>🔥 <span data-dm-cl-caldaia-nome>${esc(t("Caldaia", "Boiler"))}</span></span>
+        <b data-dm-cl-caldaia-stato>--</b>
+      </div>
       <div class="dm-cl-bulk">
         <button type="button" data-dm-cl-bulk="on">${ICONS.power}${esc(labels.allOn)}</button>
         <span class="dm-cl-bulk-div" aria-hidden="true"></span>
@@ -606,6 +611,30 @@ function paintSummary(shell, units, states, labels) {
       ? `${(ambient.reduce((sum, value) => sum + value, 0) / ambient.length).toFixed(1)}°`
       : "--°";
   }
+  /* La caldaia configurata dice come sta anche qui, non solo sotto il meteo:
+   * accesa (e da quanto) o spenta. Senza caldaia la casella non esiste. */
+  const caldaiaEl = shell.querySelector("[data-dm-cl-caldaia]");
+  if (caldaiaEl) {
+    let caldaia = null;
+    try {
+      caldaia = statoCaldaia();
+    } catch (_error) {}
+    caldaiaEl.hidden = !caldaia;
+    if (caldaia) {
+      const nomeEl = caldaiaEl.querySelector("[data-dm-cl-caldaia-nome]");
+      if (nomeEl) nomeEl.textContent = caldaia.nome || t("Caldaia", "Boiler");
+      const statoEl = caldaiaEl.querySelector("[data-dm-cl-caldaia-stato]");
+      if (statoEl) {
+        const da = caldaia.da;
+        statoEl.textContent = !caldaia.noto
+          ? "--"
+          : caldaia.acceso
+            ? `${t("Accesa", "On")}${da ? ` · ${t(`da ${da}`, `for ${da}`)}` : ""}`
+            : t("Spenta", "Off");
+        statoEl.style.color = caldaia.noto && caldaia.acceso ? "#f97316" : "";
+      }
+    }
+  }
   const subtitle = shell.querySelector("[data-dm-cl-sub]");
   if (subtitle) {
     const family = zone === "caldo" ? labels.radiators : labels.coolers;
@@ -730,6 +759,85 @@ export function wholeDegreeDelta(shown, delta) {
   // A unit parked on a half degree walks to the next whole one, not past it.
   const next = down ? Math.ceil(current) - 1 : Math.floor(current) + 1;
   return next - current;
+}
+
+/* La barra si trascina («possibilita' di scorrere la barra per aumentare e
+ * diminuire la temperatura, sia da desktop che da mobile»): il dito o il
+ * mouse prendono la corsia, il pomello e il numero seguono in diretta, e al
+ * rilascio parte UNA set_temperature col grado intero scelto. I ± restano. */
+function gradoDalPunto(rail, zone, clientX) {
+  const [low, high] = RANGE[zone] || RANGE.freddo;
+  const box = rail.getBoundingClientRect();
+  const frazione = Math.min(1, Math.max(0, (clientX - box.left) / Math.max(1, box.width)));
+  return Math.round(low + frazione * (high - low));
+}
+
+function dipingiPresa(presa) {
+  const [low, high] = RANGE[presa.zone] || RANGE.freddo;
+  const percento = (((presa.grado - low) / (high - low)) * 100).toFixed(1);
+  const fill = presa.card.querySelector("[data-dm-cl-fill]");
+  const knob = presa.card.querySelector("[data-dm-cl-knob]");
+  if (fill) fill.style.width = `${percento}%`;
+  if (knob) {
+    knob.hidden = false;
+    knob.style.left = `${percento}%`;
+  }
+  /* Il numero grande segue solo quando racconta il target (flag girata
+   * spenta): con la carta girata il grande e' l'ambiente e non si tocca. */
+  if (!cartaInvertita()) {
+    const target = presa.card.querySelector("[data-dm-cl-target]");
+    if (target) target.innerHTML = `${presa.grado}<span class="dm-cl-deg">°</span>`;
+  }
+}
+
+function installRailDrag() {
+  if (state.railDrag || !doc) return;
+  state.railDrag = true;
+  let presa = null;
+  const aggiorna = (event) => {
+    if (!presa) return;
+    presa.grado = gradoDalPunto(presa.rail, presa.zone, event.clientX);
+    dipingiPresa(presa);
+  };
+  doc.addEventListener(
+    "pointerdown",
+    (event) => {
+      const rail = event.target?.closest?.(".dm-cl-rail");
+      const card = rail?.closest?.("[data-dm-cl]");
+      if (!rail || !card) return;
+      /* Il click sulla card apre il popup: una presa sulla barra no. */
+      event.preventDefault();
+      event.stopPropagation();
+      presa = { rail, card, entity: clean(card.dataset.dmCl), zone: card.dataset.dmClZone };
+      try {
+        rail.setPointerCapture?.(event.pointerId);
+      } catch (_error) {}
+      aggiorna(event);
+    },
+    true,
+  );
+  doc.addEventListener("pointermove", aggiorna, true);
+  const rilascia = (event) => {
+    if (!presa) return;
+    aggiorna(event);
+    if (Number.isFinite(presa.grado)) {
+      /* La corsia disegna la scala della famiglia, ma il comando rispetta i
+       * limiti dell'ENTITA': un termostato con min/max piu' stretti (o in
+       * Fahrenheit) non riceve mai un grado fuori dal suo intervallo. */
+      const attrs = allStates()?.[presa.entity]?.attributes || {};
+      let grado = presa.grado;
+      const minimo = Number(attrs.min_temp);
+      const massimo = Number(attrs.max_temp);
+      if (Number.isFinite(minimo)) grado = Math.max(grado, Math.ceil(minimo));
+      if (Number.isFinite(massimo)) grado = Math.min(grado, Math.floor(massimo));
+      chiamaClima(presa.entity, "set_temperature", { temperature: grado });
+    }
+    presa = null;
+  };
+  doc.addEventListener("pointerup", rilascia, true);
+  doc.addEventListener("pointercancel", () => {
+    presa = null;
+  });
 }
 
 function installTemperatureStep() {
@@ -1049,18 +1157,33 @@ function installPannelloDellaFinestra() {
  * campo stanza) e non c'e' gia'. */
 function montaFlagCarta() {
   const corpo = doc?.getElementById?.("ed-body");
-  if (!corpo || !corpo.querySelector("#ed-cl-room")) return false;
-  if (corpo.querySelector("[data-dm-cl-inverti]")) return true;
-  const blocco = doc.createElement("label");
-  blocco.className = "ed-check dm-cl-inverti";
-  blocco.dataset.dmClInverti = "";
-  blocco.innerHTML =
+  if (!corpo) return false;
+  /* Accanto al form del Clima, con la vita del form — lo schema del blocco
+   * «Tasto Clima rapido», che non trafila. Il flag appeso in coda a ed-body
+   * restava visibile in ogni scheda della configurazione («il flag per la
+   * card clima presente in tutte le sezioni»): ora vive attaccato al tasto
+   * «Aggiungi unita' clima», e col form sparito si toglie da solo. */
+  const aggiungi = corpo.querySelector('[onclick*="edAddClima"]');
+  const dentroClima = Boolean(corpo.querySelector("#ed-cl-ent")) && Boolean(aggiungi);
+  if (!dentroClima) {
+    corpo.querySelectorAll("[data-dm-cl-inverti]").forEach((nodo) => nodo.remove());
+    return false;
+  }
+  const blocco = aggiungi.parentElement || corpo;
+  corpo.querySelectorAll("[data-dm-cl-inverti]").forEach((nodo) => {
+    if (!blocco.contains(nodo)) nodo.remove();
+  });
+  if (blocco.querySelector("[data-dm-cl-inverti]")) return true;
+  const casella = doc.createElement("label");
+  casella.className = "ed-check dm-cl-inverti";
+  casella.dataset.dmClInverti = "";
+  casella.innerHTML =
     `<input type="checkbox"${cartaInvertita() ? " checked" : ""}> ` +
     t(
       "Nelle card mostra grande l'ambiente (target sotto)",
       "On cards show the room temperature big (target below)",
     );
-  blocco.querySelector("input").addEventListener("change", (evento) => {
+  casella.querySelector("input").addEventListener("change", (evento) => {
     try {
       root.localStorage?.setItem?.("cd_clima_inverti_card", evento.target.checked ? "1" : "0");
       root.cdMarkDirty?.();
@@ -1068,7 +1191,7 @@ function montaFlagCarta() {
     } catch (_errore) {}
     renderClimate({ rebuild: true });
   });
-  corpo.append(blocco);
+  blocco.append(casella);
   return true;
 }
 
@@ -1080,6 +1203,7 @@ export function installClimateThermalSection() {
   if (!state.listeners) {
     state.listeners = true;
     doc.addEventListener("click", onClick);
+    installRailDrag();
     for (const eventName of [
       "dashboardmodern:legacy-ready",
       "dashboardmodern:runtime-ready",
@@ -1296,7 +1420,7 @@ function climateCss() {
 .dm-cl-spark-line{fill:none;stroke:rgb(var(--dm-cl-u));stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .dm-cl-spark-end{fill:rgb(var(--dm-cl-u));stroke:var(--dm-cl-card);stroke-width:2}
 
-.dm-cl-rail{position:relative;height:22px;display:flex;align-items:center}
+.dm-cl-rail{position:relative;height:22px;display:flex;align-items:center;cursor:pointer;touch-action:none}
 .dm-cl-bed{position:absolute;left:0;right:0;height:8px;border-radius:999px;background:var(--dm-cl-sunk)}
 .dm-cl-fill{
   position:absolute;left:0;height:8px;border-radius:999px;width:0;

@@ -13,8 +13,10 @@
 import {
   doorOpenCall,
   doorPinMatches,
+  doorsSenzaOccupate,
   normalizeSecurityDoors,
 } from "../core/security-door-model.js";
+import { normalizzaPrese } from "../core/prese-model.js";
 import {
   activeLocale,
   allStates,
@@ -42,8 +44,23 @@ const state = (root[KEY] ||= {
   busy: new Set(),
 });
 
+/* Le entita' gia' occupate dalle Prese: una presa non e' una porta.
+ * La lista si NORMALIZZA prima di leggerla: le voci storiche portano
+ * l'entita' anche come `entita` o `entity_id`, e lette grezze quelle prese
+ * restavano fra le porte. */
+export function entitaDellePrese() {
+  return new Set(
+    normalizzaPrese(readJson("cd_prese", []))
+      .map((presa) => clean(presa.entity).toLowerCase())
+      .filter(Boolean),
+  );
+}
+
 export function configuredSecurityDoors() {
-  return normalizeSecurityDoors(readJson(SECURITY_DOORS_CONFIG_KEY, []));
+  return doorsSenzaOccupate(
+    normalizeSecurityDoors(readJson(SECURITY_DOORS_CONFIG_KEY, [])),
+    entitaDellePrese(),
+  );
 }
 
 /* ── model ────────────────────────────────────────────────────────────── */
@@ -66,9 +83,21 @@ function doorStateLabel(door, states) {
 
 /* ── markup ───────────────────────────────────────────────────────────── */
 
+/* L'icona di una porta. Il catalogo di casa scrive token `mdi:*`: stampati
+ * come testo l'icona «spariva» (si leggeva mdi:gate al posto del disegno).
+ * Chi sa disegnare il token e' il motore; l'emoji passa com'e'. */
+export function iconaPortaMarkup(icon, size = 22) {
+  const token = clean(icon) || "🚪";
+  if (/^mdi:/i.test(token)) {
+    const disegnata = root.DashboardModernIconEngine?.markup?.("action", token, { size });
+    return disegnata || "🚪";
+  }
+  return esc(token);
+}
+
 function doorMarkup(door) {
   return `<button type="button" class="dm-door" data-dm-door="${esc(door.id)}">
-      <span class="dm-door-ic" aria-hidden="true">${esc(door.icon)}</span>
+      <span class="dm-door-ic" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
       <span class="dm-door-copy">
         <strong class="dm-door-name">${esc(door.name || door.entity)}</strong>
         <span class="dm-door-state" data-dm-door-state></span>
@@ -175,7 +204,8 @@ function confirmAndOpen(door) {
   if (typeof root.confermaAzione === "function") {
     try {
       root.confermaAzione({
-        icon: door.icon || "🚪",
+        /* Il popup di conferma stampa testo: un token mdi li' non si disegna. */
+        icon: /^mdi:/i.test(clean(door.icon)) ? "🚪" : door.icon || "🚪",
         title: clean(door.name) || t("Apri", "Open"),
         message: t("Confermi l'apertura?", "Confirm opening?"),
         onConfirm: () => openDoor(door),

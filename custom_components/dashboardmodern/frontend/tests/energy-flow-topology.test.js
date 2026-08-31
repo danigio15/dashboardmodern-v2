@@ -579,3 +579,42 @@ test("il cerchio puo' essere una stanza: i suoi apparecchi entrano da soli", () 
   assert.equal(model.nodes[0].value, 120);
   assert.equal(model.nodes[0].children, 1);
 });
+
+test("il cerchio-gruppo somma i figli anche se la SUA lista ha un sensore a 0 W", () => {
+  /* Dal campo: «il cerchio dice 0 W, il popup somma 1,45 kW». La potenza
+   * implicita — il primo sensore in watt della lista — vale solo per chi non
+   * ha figli: il gruppo pescava dalla propria lista uno zero e la somma non
+   * partiva mai. Il sensore vero (power_entity) continua a vincere. */
+  const model = flowStageModel({
+    loads: [
+      {
+        id: "cerchio-elettro",
+        name: "Elettrodomestici",
+        entities: ["sensor.spia_w"],
+        metadata: { flow_group: "cerchio-elettro" },
+      },
+    ],
+    appliances: [
+      {
+        id: "condizionatore",
+        name: "Condizionatore",
+        power_entity: "sensor.clima_kw",
+        metadata: { beta27_subload_group: "cerchio-elettro" },
+      },
+      {
+        id: "forno",
+        name: "Forno",
+        entities: [{ entity: "sensor.forno_w" }],
+        metadata: { beta27_subload_group: "cerchio-elettro" },
+      },
+    ],
+    states: {
+      "sensor.spia_w": { state: "0", attributes: { unit_of_measurement: "W" } },
+      "sensor.clima_kw": { state: "1.45", attributes: { unit_of_measurement: "kW" } },
+      "sensor.forno_w": { state: "30", attributes: { unit_of_measurement: "watt" } },
+    },
+    period: "instant",
+  });
+  assert.equal(model.nodes[0].value, 1480);
+  assert.equal(model.nodes[0].source, "sum");
+});

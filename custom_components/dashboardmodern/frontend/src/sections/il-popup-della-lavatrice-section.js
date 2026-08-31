@@ -184,6 +184,11 @@ export function montaEditor() {
   const fisarmonica = slot?.closest?.("details.ed-acc");
   if (!fisarmonica) return false;
   if (fisarmonica.querySelector("[data-dm-lav-programmi]")) return true;
+  fisarmonica.append(creaCarta());
+  return true;
+}
+
+function creaCarta() {
   const carta = doc.createElement("div");
   carta.className = "ed-form dm-lav-carta";
   carta.dataset.dmLavProgrammi = "";
@@ -198,7 +203,11 @@ export function montaEditor() {
   const righe = carta.querySelector(".dm-lav-righe");
   programmiAttuali().forEach((voce) => righe.append(rigaEditor(voce)));
 
-  const salva = () => scriviConfig(raccogli(carta));
+  const salva = () => {
+    scriviConfig(raccogli(carta));
+    /* I tasti del popup seguono subito, senza aspettare un altro giro. */
+    disegnaProgrammi();
+  };
   carta.addEventListener("change", salva);
   carta.addEventListener("click", (evento) => {
     const via = evento.target?.closest?.(".dm-lav-via");
@@ -210,8 +219,36 @@ export function montaEditor() {
     if (evento.target?.closest?.(".dm-lav-aggiungi"))
       righe.append(rigaEditor({ icon: "🧺", name: "", entity: "" }));
   });
-  fisarmonica.append(carta);
-  return true;
+  return carta;
+}
+
+/* La personalizzazione sta nelle Azioni rapide, non nel popup.
+ *
+ * «Manca la possibilita' di personalizzare il popup azione rapida lavatrice»
+ * e poi, precisato: «il config non lo devi mettere nel popup ma nella sezione
+ * azioni rapide — quando si sceglie popup lavatrice esce la configurazione
+ * completa». Quando il menu dell'azione (editor o procedura guidata) sta su
+ * «🧺 Popup Lavatrice», sotto compare la carta intera dei programmi — nome,
+ * entita', icona, quanti ne vuoi — col salvataggio a ogni modifica; scelta
+ * un'altra azione, la carta si ritira. */
+export function montaNelleAzioni() {
+  let montata = false;
+  for (const id of ["ed-qa-type", "wz-qa-type"]) {
+    const select = doc?.getElementById?.(id);
+    if (!select) continue;
+    if (!select.__dmLavAscolta) {
+      select.__dmLavAscolta = true;
+      select.addEventListener("change", () => montaNelleAzioni());
+    }
+    const contenitore = select.closest(".ed-form") || select.parentElement?.parentElement;
+    if (!contenitore) continue;
+    const esistente = contenitore.querySelector("[data-dm-lav-programmi]");
+    const vuole = clean(select.value) === "builtin_lavatrice";
+    if (vuole && !esistente) contenitore.append(creaCarta());
+    if (!vuole && esistente) esistente.remove();
+    montata = montata || vuole;
+  }
+  return montata;
 }
 
 /* La veste: il popup parla la lingua delle altre finestre della plancia. */
@@ -249,9 +286,13 @@ export function installPopupLavatrice() {
     root.addEventListener?.(evento, () => {
       disegnaProgrammi();
       vesteImmagine();
+      montaNelleAzioni();
     });
   }
-  onEditorRedraw("__dmLavProgrammi", () => montaEditor());
+  onEditorRedraw("__dmLavProgrammi", () => {
+    montaEditor();
+    montaNelleAzioni();
+  });
   state.installed = true;
   return true;
 }

@@ -232,18 +232,29 @@ function stateWatts(states, entity) {
  * casella canonica e restava senza valore. Stessa domanda, stessa risposta:
  * la prima entita' che parla in watt e' la potenza. */
 function potenzaImplicita(load, states) {
+  /* Prima i campi espliciti dell'apparecchio: il condizionatore coi watt in
+   * `power_entity` usciva a 1,45 kW nel popup e a 0 W nel cerchio, perche'
+   * qui si scandiva solo `entities`. Stessa domanda del popup, stessa lista
+   * di unita' (anche «watt»/«watts», spazi tolti). */
+  const parlaInWatt = (id) =>
+    /^(w|kw|mw|watt|watts)$/.test(
+      clean(states?.[id]?.attributes?.unit_of_measurement).toLowerCase().replaceAll(" ", ""),
+    );
+  for (const campo of [load?.power_entity, load?.power, load?.power_sensor]) {
+    const id = clean(campo);
+    if (id && parlaInWatt(id)) return id;
+  }
   for (const grezza of Array.isArray(load?.entities) ? load.entities : []) {
     const id = clean(typeof grezza === "string" ? grezza : grezza?.entity || grezza?.entity_id);
-    if (!id) continue;
-    const unit = clean(states?.[id]?.attributes?.unit_of_measurement).toLowerCase();
-    if (["w", "kw", "mw"].includes(unit)) return id;
+    if (id && parlaInWatt(id)) return id;
   }
   return "";
 }
 
-function periodValue(load, period, states, recorderValues) {
+function periodValue(load, period, states, recorderValues, { implicita = true } = {}) {
   const canonica = flowPeriodEntity(load, period);
-  const entity = canonica || (period === "instant" ? potenzaImplicita(load, states) : canonica);
+  const entity =
+    canonica || (period === "instant" && implicita ? potenzaImplicita(load, states) : canonica);
   if (period !== "instant" && recorderValues) {
     const key = clean(load.id) || clean(load.name);
     const fromBundle =
@@ -299,7 +310,14 @@ export function subloadsOf(load = {}, loads = [], appliances = []) {
  * what makes a group circle worth having: add an appliance and the circle
  * grows, with nothing else to configure. */
 function readingFor(load, children, period, states, recorderValues) {
-  const own = periodValue(load, period, states, recorderValues);
+  /* La potenza «implicita» — il primo sensore in watt della lista — vale solo
+   * per chi non ha figli: il cerchio-gruppo pescava dalla propria lista un
+   * sensore a 0 W e la somma degli elettrodomestici dentro non partiva mai
+   * («il cerchio dice 0 W, il popup somma 1,45 kW»). Il sensore SUO vero
+   * (power_entity, la pinza sulla linea) continua a vincere sulla somma. */
+  const own = periodValue(load, period, states, recorderValues, {
+    implicita: !children.length,
+  });
   if (own.value !== null) return { ...own, source: "direct", children: children.length };
   if (!children.length) return { ...own, source: "direct", children: 0 };
   let total = null;

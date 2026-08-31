@@ -13,13 +13,28 @@
  * disegna quelle: nessuna voce, nessun pannello. Chi aveva davvero le tre
  * storiche mappate se le ritrova seminate nella configurazione, una volta.
  */
-import { allStates, clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  root,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TERMICO_CALDO__";
 const STYLE_ID = "dm-termico-caldo-style";
 const state = (root[KEY] ||= { installed: false });
 
 const CHIAVE = "cd_termico_caldo";
+
+/* La voce caldaia si riconosce dal nome, in piu' lingue: caldaia/scaldabagno
+ * (calda…), boiler, chaudiere, Kessel, caldera, furnace, ketel, kotel. Un
+ * ruolo esplicito sulla riga sarebbe piu' pulito, ma cambierebbe la forma di
+ * cd_termico_caldo: per ora la rete si allarga. */
+const REGEX_CALDAIA = /calda|boiler|chaudi|kessel|calder|furnace|ketel|kotel/i;
 
 /* Le tre voci che il guscio teneva cablate: si seminano SOLO se la loro
  * entita' esiste davvero in questa casa — la caldaia come switch diretto, le
@@ -152,10 +167,23 @@ export function disegnaPannello() {
  * segue la voce caldaia di `cd_termico_caldo` — quella col nome che lo dice —
  * e quando e' accesa racconta anche da quanto. Senza una caldaia configurata,
  * niente pillola. */
+/* Lo stato della caldaia per chi lo racconta altrove: la testata della
+ * sezione Clima («mostrare lo stato caldaia, e se accesa da quanto»).
+ * Senza una voce caldaia configurata torna null e chi chiede non disegna. */
+export function statoCaldaia() {
+  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
+  if (!caldaia) return null;
+  const stato = statoDi(caldaia.entity);
+  const acceso = stato === "on";
+  const noto = Boolean(stato) && !["unavailable", "unknown"].includes(stato);
+  const da = acceso ? daQuanto(allStates()?.[entitaViva(caldaia.entity)]?.last_changed) : "";
+  return { nome: caldaia.name, acceso, noto, da };
+}
+
 export function pillolaDellaCaldaia() {
   const banner = doc?.getElementById?.("caldaia-banner");
   if (!banner) return false;
-  const caldaia = vociAttuali().find((voce) => /calda|boiler/i.test(voce.name));
+  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
   if (!caldaia) {
     banner.classList.remove("show");
     return true;
@@ -197,9 +225,23 @@ function raccogli(carta) {
 
 function montaEditor() {
   const corpo = doc?.getElementById?.("ed-body");
-  /* La scheda Clima si riconosce dal suo campo stanza. */
-  if (!corpo || !corpo.querySelector("#ed-cl-room")) return false;
-  if (corpo.querySelector("[data-dm-termico-caldo]")) return true;
+  if (!corpo) return false;
+  /* Accanto al form del Clima, con la vita del form — lo schema del blocco
+   * «Tasto Clima rapido», che non trafila. La carta appesa in coda a ed-body
+   * restava visibile in ogni scheda della configurazione («stato termico
+   * presente in tutte le sezioni»): ora vive attaccata al tasto «Aggiungi
+   * unita' clima», e quando il form non c'e' si toglie da sola. */
+  const aggiungi = corpo.querySelector('[onclick*="edAddClima"]');
+  const dentroClima = Boolean(corpo.querySelector("#ed-cl-ent")) && Boolean(aggiungi);
+  if (!dentroClima) {
+    corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => nodo.remove());
+    return false;
+  }
+  const blocco = aggiungi.parentElement || corpo;
+  corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => {
+    if (!blocco.contains(nodo)) nodo.remove();
+  });
+  if (blocco.querySelector("[data-dm-termico-caldo]")) return true;
   const carta = doc.createElement("div");
   carta.className = "ed-form dm-termico-carta";
   carta.dataset.dmTermicoCaldo = "";
@@ -238,7 +280,7 @@ function montaEditor() {
       if (campo) root.wzPickEntity?.(campo);
     }
   });
-  corpo.append(carta);
+  blocco.append(carta);
   return true;
 }
 
