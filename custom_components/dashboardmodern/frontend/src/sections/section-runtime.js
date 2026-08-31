@@ -43,6 +43,7 @@ import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
+import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEntitySearchSection } from "./entity-search-section.js";
@@ -718,6 +719,9 @@ export function installSectionRuntime() {
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();
     installClimateThermalSection();
+    /* Le voci termiche del popup Caldo: dopo chi disegna il popup, cosi' il
+     * pannello passa di mano una volta sola. */
+    installTermicoDelCaldo();
     /* I parametri del tasto Clima rapido chiedono alle unita' cosa accettano:
      * si installano dopo chi quelle unita' le tiene. */
     installQuickClimateEditorSection();

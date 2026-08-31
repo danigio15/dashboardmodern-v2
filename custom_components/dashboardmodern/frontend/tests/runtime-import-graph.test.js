@@ -506,7 +506,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // riempie da sola — e continua a farlo, col registro dei gia' visti — piu'
   // il blocco nella pagina Sicurezza e le aperture nuove che entrano da sole
   // nel gruppo `win`. Un modulo solo, sul calco di flood-alerts.
-  assert.ok(relative.length <= 181, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 182 con le voci termiche del popup Caldo: le tre righe cablate nel
+  // guscio (una addirittura su switch.caldaia) diventano `cd_termico_caldo`,
+  // configurabili dalla scheda Clima — e senza voci il pannello sparisce.
+  assert.ok(relative.length <= 182, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

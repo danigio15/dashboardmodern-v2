@@ -7,6 +7,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+### Nuovo
+
+- **Le voci termiche del popup Caldo si configurano, e senza voci
+  spariscono.** Sotto le stanze del Caldo c'erano tre righe cablate nel
+  guscio — Caldaia (su un'entita' di un impianto specifico), Pompa
+  termocamino, Aspiratore canna fumaria — che per chiunque altro dicevano
+  «N/D» per sempre. Nella scheda Clima della configurazione arriva il campo
+  libero: nome, entita' e icona per ogni voce, quante se ne vogliono, col
+  salvataggio a ogni modifica. Chi aveva davvero le tre storiche mappate se
+  le ritrova seminate; chi non ne configura nessuna non vede il pannello.
+
 ### Corretto
 
 - **I tasti delle Azioni rapide restano tasti, anche su uno schermo largo.**
