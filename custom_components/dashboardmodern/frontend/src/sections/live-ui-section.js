@@ -153,7 +153,16 @@ let contatoreImmagini = 0;
  * nuove. Le voci vecchie non venivano piu' toccate da nessuno, e i loro blob
  * restavano in memoria per tutta la vita della pagina. Prima di scrivere la
  * chiave nuova si fa un giro: quello che non e' piu' nel documento si revoca. */
-function ripulisciChiaviMorte(registry) {
+/* La spazzata costa un `querySelector` per voce, e girava per OGNI immagine:
+ * con sei telecamere erano trentasei interrogazioni del documento a ogni
+ * giro. Le voci morte non nascono a raffica — nascono quando il muro si rifa'
+ * — quindi basta passare ogni tanto. */
+let ultimaSpazzata = 0;
+const SPAZZATA_OGNI_MS = 5000;
+
+function ripulisciChiaviMorte(registry, adesso = Date.now()) {
+  if (adesso - ultimaSpazzata < SPAZZATA_OGNI_MS) return false;
+  ultimaSpazzata = adesso;
   for (const [chiave, url] of [...registry.entries()]) {
     if (!chiave.includes("#")) continue;
     if (doc?.querySelector?.(`[data-dm-camera-key="${CSS.escape(chiave)}"]`)) continue;
@@ -164,6 +173,7 @@ function ripulisciChiaviMorte(registry) {
     }
     registry.delete(chiave);
   }
+  return true;
 }
 
 function chiaveImmagine(image, entity) {

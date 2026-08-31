@@ -111,25 +111,14 @@ function card(item, model) {
   const head = element("div", "dm-subload-head");
   head.append(iconSpan("dm-subload-icon", item.icon));
   const title = element("div", "dm-subload-title");
-  title.append(
-    element("b", "", item.name),
-    element(
-      "small",
-      "",
-      {
-        running: t("IN FUNZIONE", "RUNNING"),
-        standby: t("STANDBY", "STANDBY"),
-        off: t("SPENTO", "OFF"),
-        unknown: t("NON DISPONIBILE", "UNAVAILABLE"),
-      }[item.state],
-    ),
-  );
+  title.append(element("b", "", item.name), element("small", "", ETICHETTE()[item.state]));
   head.append(title);
   node.append(head);
 
   const value = element("div", "dm-subload-value");
   value.append(element("span", "dm-subload-power", item.powerText));
-  if (item.dailyText) value.append(element("small", "dm-subload-daily", `${item.dailyText} oggi`));
+  if (item.dailyText)
+    value.append(element("small", "dm-subload-daily", `${item.dailyText} ${t("oggi", "today")}`));
   node.append(value);
 
   const meter = element("div", "dm-subload-meter");
@@ -142,6 +131,64 @@ function card(item, model) {
   meter.hidden = !model.total;
   return node;
 }
+
+/* I valori nuovi nei nodi che ci sono gia'.
+ *
+ * «il popup fa dei continui fleak»: la lista si ricostruiva da capo a ogni
+ * giro di stati — due secondi su una casa viva — e con lei se ne andavano il
+ * punto di scorrimento e i nodi sotto il dito. Quando la forma non cambia
+ * (stessi apparecchi, stesso ordine) si travasa e basta. */
+function travasa(list, model) {
+  const somma = list.querySelector(".dm-subload-total-value");
+  if (somma) somma.textContent = model.totalText;
+  const conteggio = list.querySelector(".dm-subload-total small");
+  if (conteggio)
+    conteggio.textContent = model.count
+      ? `${model.running}/${model.count} ${t("in funzione", "running")}`
+      : t("nessun dispositivo", "no appliance");
+  /* Le carte si cercano per dataset, non per selettore: un identificativo puo'
+   * contenere qualunque cosa e non tutti i motori hanno CSS.escape. */
+  const carte = new Map(
+    [...list.querySelectorAll("[data-dm-subload-card]")].map((nodo) => [
+      nodo.dataset.dmSubloadCard,
+      nodo,
+    ]),
+  );
+  for (const item of model.items) {
+    const nodo = carte.get(item.id);
+    if (!nodo) return false;
+    nodo.dataset.dmSubloadState = item.state;
+    nodo.style.setProperty("--dm-subload-color", item.color);
+    nodo.style.setProperty("--dm-subload-tint", item.tint);
+    const parola = nodo.querySelector(".dm-subload-title small");
+    if (parola) parola.textContent = ETICHETTE()[item.state];
+    const potenza = nodo.querySelector(".dm-subload-power");
+    if (potenza) potenza.textContent = item.powerText;
+    const giorno = nodo.querySelector(".dm-subload-daily");
+    if (giorno && item.dailyText) giorno.textContent = `${item.dailyText} ${t("oggi", "today")}`;
+    const barra = nodo.querySelector(".dm-subload-meter");
+    const riempimento = nodo.querySelector(".dm-subload-meter-fill");
+    if (riempimento) riempimento.style.setProperty("width", `${Math.round(item.share * 100)}%`);
+    if (barra) barra.hidden = !model.total;
+  }
+  /* La classifica cambia coi watt: le carte si rimettono in fila spostando i
+   * nodi che ci sono, non rifacendoli. */
+  const griglia = list.querySelector(".dm-subload-grid");
+  if (griglia) {
+    for (const item of model.items) {
+      const nodo = carte.get(item.id);
+      if (nodo && nodo.parentElement === griglia) griglia.append(nodo);
+    }
+  }
+  return true;
+}
+
+const ETICHETTE = () => ({
+  running: t("IN FUNZIONE", "RUNNING"),
+  standby: t("STANDBY", "STANDBY"),
+  off: t("SPENTO", "OFF"),
+  unknown: t("NON DISPONIBILE", "UNAVAILABLE"),
+});
 
 function header(model) {
   const node = element("div", "dm-subload-summary");
@@ -175,15 +222,36 @@ function stageIdentity(load, loads, appliances) {
     icon: clean(load.emoji_icon || load.icon),
     color: clean(load.color || load.metadata?.flow_color),
   };
+  /* Nome, icona e colore non cambiano coi watt: il palco intero si calcolava
+   * a ogni giro di stati solo per rileggerli — ed e' il conto piu' caro di
+   * tutta la finestra. Si tiene da parte, con una chiave che comprende quello
+   * che potrebbe cambiarli: la personalizzazione del cerchio e i campi del
+   * carico. Cosi' un cerchio rinominato si vede subito lo stesso. */
+  const flowNodes = readJson("cd_flow_nodes", null);
+  let chiave = "";
+  try {
+    /* La personalizzazione puo' stare sotto lo slot storico («boiler») e non
+     * sotto l'identificativo del carico: nella chiave ci va tutta. */
+    chiave = `${fallback.id}§${fallback.name}§${fallback.icon}§${fallback.color}§${JSON.stringify(
+      flowNodes ?? null,
+    )}`;
+  } catch (_errore) {
+    chiave = "";
+  }
+  if (chiave && state.identita?.chiave === chiave) return state.identita.valore;
   try {
     const stage = flowStageModel({
       loads,
       appliances,
-      flowNodes: readJson("cd_flow_nodes", null),
+      flowNodes,
       states: allStates(),
     });
     const node = stage.nodes.find((item) => clean(item.id) === fallback.id);
-    return node ? { id: node.id, name: node.name, icon: node.icon, color: node.color } : fallback;
+    const valore = node
+      ? { id: node.id, name: node.name, icon: node.icon, color: node.color }
+      : fallback;
+    if (chiave) state.identita = { chiave, valore };
+    return valore;
   } catch (_error) {
     return fallback;
   }
@@ -204,9 +272,19 @@ export function renderSubloadPopup(groupId = state.group) {
     locale: locale(),
   });
 
+  /* Stessa forma, valori nuovi: si travasa invece di rifare (il popup
+   * sfarfallava a ogni giro di stati). La firma sono gli apparecchi
+   * nell'ordine in cui stanno adesso. */
+  const firma = `${model.id}§${model.items
+    .map((item) => item.id)
+    .sort()
+    .join(",")}`;
+  if (list.dataset.dmSubloadFirma === firma && travasa(list, model)) return true;
+
   writeTitle(model, groupId);
   list.dataset.dmSubloadOwner = "beta30";
   list.dataset.dmSubloadCount = String(model.count);
+  list.dataset.dmSubloadFirma = firma;
   list.replaceChildren();
   list.append(header(model));
   const grid = element("div", "dm-subload-grid");

@@ -330,7 +330,13 @@ function hideLegacyPowerOnly(card) {
 }
 
 function ensureToggle(card, model) {
-  const entity = clean(model.action.entity);
+  /* Il flag «Senza tasto Accendi/Spegni» si legge in `visible`, non
+   * nell'entita': l'entita' comanda resta scritta comunque — serve a leggere
+   * lo stato — e qui si guardava solo quella. La vetrina non disegnava il
+   * tasto, e un attimo dopo questa normalizzazione ne creava uno nuovo, vivo:
+   * «se metto il flag si spegne comunque». Chi non deve comandare non ha
+   * bottone, e quello rimasto da prima se ne va. */
+  const entity = model.action?.visible ? clean(model.action.entity) : "";
   restoreLegacyActions(card);
   let button = card.querySelector('[data-dm-power-toggle="true"]');
   if (!entity) {

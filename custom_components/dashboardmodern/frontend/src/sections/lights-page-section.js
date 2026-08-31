@@ -606,7 +606,22 @@ function handleClick(event) {
     openLightControl(card.dataset.dmLucip);
     return;
   }
-  if (event.target?.closest?.("[data-dm-lucip-toggle]")) toggleLight(card.dataset.dmLucip);
+  if (event.target?.closest?.("[data-dm-lucip-toggle]")) {
+    /* Una cosa che si guarda e basta non si accende nemmeno per sbaglio.
+     *
+     * Il rifiuto stava solo in fondo, in `lightCommand`: qui il tocco passava
+     * lo stesso, il pegno ottimistico accendeva la card e per sei secondi la
+     * presa del frigo si vedeva ACCESA — il comando non partiva, ma quello che
+     * si vede e' il contrario di quello che il flag promette. «Se c'e' il flag
+     * anche il tocco sulla card dev'essere disabilitato: puoi mettere un popup
+     * che apre piu' informazioni, ma mai accendere o spegnere.» */
+    const vista = viewOf(card.dataset.dmLucip);
+    if (vista?.comandabile === false) {
+      openLightControl(card.dataset.dmLucip);
+      return;
+    }
+    toggleLight(card.dataset.dmLucip);
+  }
 }
 
 function handleSlide(event, commit) {
@@ -803,6 +818,30 @@ function installStyles() {
   );
 }
 
+/* Il cancello di ultima istanza, sul `toggle` del guscio.
+ *
+ * Il runtime vendorizzato non conosce `cd_solo_lettura`: la sua `toggle(id)`
+ * manda la chiamata sul filo e basta, e ogni card scritta li' dentro — il
+ * popup «Gestione luci», le righe delle stanze del guscio — poteva accendere
+ * quello che la plancia dichiara intoccabile. Qui si mette una guardia sola
+ * davanti a tutte quelle strade: chi non si comanda non si comanda, da
+ * qualunque parte arrivi il tocco. */
+function installGuardiaSoloLettura() {
+  const originale = root.toggle;
+  if (typeof originale !== "function" || originale.__dmGuardiaSoloLettura) return false;
+  function toggleGuardato(entity, ...resto) {
+    if (!siComanda(clean(entity))) {
+      root.edToast?.(t("🔒 Si vede ma non si comanda", "🔒 Shown but not controllable"));
+      return undefined;
+    }
+    return originale.call(this, entity, ...resto);
+  }
+  toggleGuardato.__dmGuardiaSoloLettura = true;
+  toggleGuardato.__dmPrevious = originale;
+  root.toggle = toggleGuardato;
+  return true;
+}
+
 export function installLightsPageSection() {
   if (!doc || state.installed) return;
   state.installed = true;
@@ -822,7 +861,12 @@ export function installLightsPageSection() {
     "dashboardmodern:state-changed",
     "dashboardmodern:persistence-restored",
     "dashboardmodern:config-reset",
-  ])
+  ]) {
     root.addEventListener?.(event, schedule);
+    /* Il guscio definisce `toggle` quando gli pare: si riprova a ogni
+     * annuncio finche' la guardia non e' al suo posto. */
+    root.addEventListener?.(event, installGuardiaSoloLettura);
+  }
+  installGuardiaSoloLettura();
   schedule();
 }

@@ -1,4 +1,5 @@
 import {
+  allStates,
   clean,
   doc,
   installStyle,
@@ -457,8 +458,35 @@ export async function openHistory(event, entityId, name, hours = 24) {
   if (event && root.navigator?.vibrate) root.navigator.vibrate(15);
 
   const entity = resolvedEntity(entityId);
-  const current = root.STATES?.[entity] || root._RAW_STATES?.[entity];
-  if (!entity || current?.entity_id === "dm.unmapped") return false;
+  /* Gli stati si chiedono a `allStates()`, non a `window.STATES`.
+   *
+   * `STATES` e `_RAW_STATES` sono binding lessicali del guscio: da un modulo
+   * `root.STATES` e' sempre `undefined`, quindi questa guardia non scattava
+   * mai. Risultato: una voce non mappata — il Disco del MiniPC, che vive su
+   * uno slot `dm.*` — arrivava fino al Recorder col riferimento virtuale, la
+   * risposta tornava vuota e la finestra diceva «nessun dato registrato»
+   * senza spiegare niente: «apro i dati storici del disco e non mi mostra
+   * nulla». Adesso la guardia funziona, e quando la voce non e' mappata la
+   * finestra lo dice invece di restare muta. */
+  if (!entity) return false;
+  const current = allStates()?.[entity];
+  const nonMappata = current?.entity_id === "dm.unmapped" || /^dm\./i.test(entity);
+  if (nonMappata) {
+    const modale = doc?.getElementById("history-modal");
+    if (!modale) return false;
+    modale.classList.add("show");
+    modale.dataset.dmHistoryEntity = entity;
+    modale.dataset.dmHistoryLoaded = "unmapped";
+    scriviTestoSeCambia(doc.getElementById("hist-title"), clean(name) || entity);
+    setLoading(
+      "empty",
+      t(
+        "Questa voce non ha ancora un'entità: mappala in Configurazione per vedere il suo storico.",
+        "This reading has no entity yet: map it in the configuration to see its history.",
+      ),
+    );
+    return false;
+  }
 
   state.currentEntity = entity;
   state.currentName = clean(name) || current?.attributes?.friendly_name || entity;

@@ -57,10 +57,17 @@ const expectedTabs = [
  *    Clima rapido con tante stanze) l'intestazione scorreva via col
  *    contenuto: «il tasto Chiudi sta troppo in fondo e non si legge». Ora
  *    e' sticky sul bordo alto del foglio, col fondo pieno, e il foglio non
- *    supera l'area visibile vera (dvh) sull'app Android. */
+ *    supera l'area visibile vera (dvh) sull'app Android;
+ *  - la chiusura si legge, e si legge uguale dappertutto. «Rendi coerenti le
+ *    x chiudi ovunque, non solo x»: qui dentro il tondino nascondeva la
+ *    parola (font-size:0) e ridisegnava la croce col ::before, mentre lo
+ *    storico aveva pure una regola sua che rimetteva il testo. Ora .ev-waw-close
+ *    torna la pillola scritta «✕ CHIUDI» — nessun azzeramento del carattere,
+ *    nessun ::before, e l'eccezione dello storico non serve piu': tutti i
+ *    fogli della plancia chiudono con la stessa pastiglia. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "f65413c622dd106a5a680de905aa5773873c7f26b4ecdc5b690aca18e4144b36",
-  "dashboard-runtime-en.css": "9b811f16ba7b61510e0fc8937c0a186fbc9c51d58be4b7aeb58655082e545bbb",
+  "dashboard-runtime-it.css": "93d2c9db5f62b641c1fd92d58db332aafd6e96d84a38e6610efd17fd3edba6be",
+  "dashboard-runtime-en.css": "02a4749ff9090df9612cfe022062d487aabc7c6c34600d5cf61177e91f427710",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

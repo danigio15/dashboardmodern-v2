@@ -618,3 +618,57 @@ test("il cerchio-gruppo somma i figli anche se la SUA lista ha un sensore a 0 W"
   assert.equal(model.nodes[0].value, 1480);
   assert.equal(model.nodes[0].source, "sum");
 });
+
+test("il cerchio somma anche gli apparecchi col sensore senza unita' e coi nomi storici", () => {
+  /* Dal campo, secondo giro: «il flusso elettrodomestici continua a
+   * restituire 0 invece della somma riportata nei carichi interni». Il popup
+   * legge `power ?? pwrLive ?? pwr ?? power_entity` senza chiedere l'unita';
+   * il cerchio leggeva solo power_entity E pretendeva l'unita', quindi
+   * l'apparecchio grosso spariva dalla somma e restava lo zero degli altri. */
+  const model = flowStageModel({
+    loads: [
+      {
+        id: "cerchio-elettro",
+        name: "Elettrodomestici",
+        metadata: { flow_group: "cerchio-elettro" },
+      },
+    ],
+    appliances: [
+      {
+        id: "condizionatore",
+        name: "Condizionatore",
+        /* senza unita' dichiarata: vale watt, come nel runtime */
+        power_entity: "sensor.clima_w",
+        metadata: { beta27_subload_group: "cerchio-elettro" },
+      },
+      {
+        id: "lavatrice",
+        name: "Lavatrice",
+        /* nome storico del campo, quello che legge il popup */
+        pwrLive: "sensor.lavatrice_w",
+        metadata: { beta27_subload_group: "cerchio-elettro" },
+      },
+      {
+        id: "forno",
+        name: "Forno",
+        pwr: "sensor.forno_kw",
+        metadata: { beta27_subload_group: "cerchio-elettro" },
+      },
+    ],
+    states: {
+      "sensor.clima_w": { state: "1450", attributes: {} },
+      "sensor.lavatrice_w": { state: "30", attributes: { unit_of_measurement: "W" } },
+      "sensor.forno_kw": { state: "0.02", attributes: { unit_of_measurement: "kW" } },
+    },
+    period: "instant",
+  });
+  assert.equal(model.nodes[0].value, 1500);
+  assert.equal(model.nodes[0].source, "sum");
+});
+
+test("un numero scritto in `power` non diventa un'entita' da leggere", async () => {
+  const { campoDiPotenza } = await import("../src/core/energy-flow-topology.js");
+  assert.equal(campoDiPotenza({ power: 2400 }), "");
+  assert.equal(campoDiPotenza({ power: "sensor.x_w" }), "sensor.x_w");
+  assert.equal(campoDiPotenza({ power_entity: "", pwr: { entity: "sensor.y" } }), "sensor.y");
+});

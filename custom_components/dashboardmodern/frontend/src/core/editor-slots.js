@@ -9,6 +9,11 @@ export const EDITOR_SLOT_SECTIONS = Object.freeze({
   "dm.server_cpu": "server",
   "dm.server_ram": "server",
   "dm.server_temperature": "server",
+  /* Le due che il guscio offre davvero nella scheda MiniPC e che qui
+   * mancavano: il disco e la temperatura della CPU col suo nome vero. Senza,
+   * finivano nella sezione giusta solo per somiglianza del prefisso. */
+  "dm.server_disco": "server",
+  "dm.server_temperatura_cpu": "server",
   "dm.boiler_temperatura": "boiler",
   "dm.boiler_potenza": "boiler",
   "dm.security_centrale_allarme": "security",

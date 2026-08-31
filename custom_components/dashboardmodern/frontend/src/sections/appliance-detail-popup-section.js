@@ -21,11 +21,35 @@ const STATI_MUTI = /^(unknown|unavailable|none|)$/i;
 const DOMINI_INTERRUTTORE = /^(switch|light|input_boolean|fan)\./;
 const DOMINI_AZIONE = /^(script|scene|button)\./;
 
+/* Le entita' dell'apparecchio, comprese quelle scritte nelle caselle proprie.
+ *
+ * La finestra leggeva soltanto la lista `entities`: chi aveva messo
+ * l'interruttore nella sua casella — «Entita' comando» dell'editor, che e'
+ * dove il campo si compila — non vedeva ne' la pillola acceso/spento ne' il
+ * tasto. «Scompare il pulsante per comandare lo switch»: non era sparito, non
+ * era mai arrivato. Le caselle proprie entrano per prime, senza doppioni. */
+const CASELLE_PROPRIE = Object.freeze([
+  "control_entity",
+  "switch_entity",
+  "switch",
+  "light",
+  "fan",
+  "power_entity",
+  "temperature_entity",
+]);
+
 function entita(appliance) {
-  return (appliance?.entities || [])
-    .map((voce) => (typeof voce === "string" ? voce : voce?.entity))
-    .map(clean)
-    .filter(Boolean);
+  const viste = new Set();
+  const elenco = [];
+  const aggiungi = (voce) => {
+    const id = clean(typeof voce === "string" ? voce : voce?.entity || voce?.entity_id);
+    if (!id || !id.includes(".") || viste.has(id)) return;
+    viste.add(id);
+    elenco.push(id);
+  };
+  for (const casella of CASELLE_PROPRIE) aggiungi(appliance?.[casella]);
+  for (const voce of appliance?.entities || []) aggiungi(voce);
+  return elenco;
 }
 
 function nomeDi(states, entity) {

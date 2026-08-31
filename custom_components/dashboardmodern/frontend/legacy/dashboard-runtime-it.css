@@ -860,23 +860,6 @@ header { display: flex; align-items: center; justify-content: space-between; mar
 #history-modal .ev-waw-title {
   font-size: 22px !important;
 }
-#history-modal .ev-waw-close {
-  width: 36px !important; height: 36px !important;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  background: var(--surface-3) !important;
-  border: 1px solid #e2e8f0 !important;
-  color: var(--text-dim) !important;
-  /* La X la disegna il ::before della regola generica: rimettere qui una
-     misura al testo resuscitava anche la X scritta nel markup — e sul tondo
-     se ne vedevano due. */
-  font-size: 0 !important;
-  letter-spacing: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: none !important;
-}
 #history-modal .ev-waw-close:hover {
   background: #fee2e2 !important;
   color: #e11d48 !important;
@@ -4833,22 +4816,23 @@ html[data-theme="dark"] .modal-wrapper {
   overflow-wrap: anywhere;
 }
 .ev-waw-close {
+  /* La parola torna a vedersi: il markup dice gia' «✕ CHIUDI» e il
+     foglio la nascondeva con font-size:0 ridisegnando la croce nel
+     ::before. Una chiusura sola in tutta la plancia, e scritta. */
   flex: 0 0 auto !important;
-  width: 38px !important;
-  height: 38px !important;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  font-size: 0 !important;
-  letter-spacing: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 34px !important;
+  padding: 0 14px !important;
+  gap: 7px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.4px !important;
+  text-transform: uppercase !important;
   box-shadow: none !important;
   background: var(--surface-3) !important;
   border: 1px solid var(--card-border) !important;
-}
-.ev-waw-close::before {
-  content: "✕";
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0;
 }
 .ev-waw-close:hover {
   transform: none !important;

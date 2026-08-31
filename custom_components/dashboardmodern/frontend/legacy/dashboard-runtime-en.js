@@ -5099,7 +5099,17 @@ let _cdBootDone = false;
 const CD_ATTESA_MODULI = 8000;
 let _cdBootAtteso = false;
 function _cdModuliPronti() {
-    return Boolean(window.__DASHBOARDMODERN_SECTION_RUNTIME__ && window.__DASHBOARDMODERN_SECTION_RUNTIME__.installed);
+    const rt = window.__DASHBOARDMODERN_SECTION_RUNTIME__;
+    if (!rt || !rt.installed) return false;
+    /* `installed` dice che i moduli sono INSTALLATI, non che hanno DIPINTO:
+       quasi tutti disegnano in un requestAnimationFrame, e il velo si
+       scioglieva proprio sopra la ricomposizione — il meteo che salta
+       nell'intestazione, le azioni rapide che entrano nel ripiano, le pagine
+       riscritte. «Il caricamento va a pezzi.» Chi sa aspettare lo dichiara
+       (`dipinge`) e alza la bandiera due fotogrammi dopo; per i moduli vecchi
+       che non la dichiarano si fa come prima. */
+    if (!rt.dipinge) return true;
+    return Boolean(window.__DASHBOARDMODERN_PLANCIA_DIPINTA__);
 }
 /* I fogli grandi non bloccano piu' la prima dipintura (media="print" finche'
  * non arrivano, poi il loro onload li accende): il velo quindi non deve

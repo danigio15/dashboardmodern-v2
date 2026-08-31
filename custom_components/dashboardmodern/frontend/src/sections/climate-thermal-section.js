@@ -612,12 +612,14 @@ function paintSummary(shell, units, states, labels) {
       : "--°";
   }
   /* La caldaia configurata dice come sta anche qui, non solo sotto il meteo:
-   * accesa (e da quanto) o spenta. Senza caldaia la casella non esiste. */
+   * accesa (e da quanto) o spenta. Senza caldaia la casella non esiste, e
+   * nella zona Freddo nemmeno: «lo stato caldaia lo devi inserire solo nella
+   * sezione caldo» — fra i condizionatori non c'entra niente. */
   const caldaiaEl = shell.querySelector("[data-dm-cl-caldaia]");
   if (caldaiaEl) {
     let caldaia = null;
     try {
-      caldaia = statoCaldaia();
+      if (zone === "caldo") caldaia = statoCaldaia();
     } catch (_error) {}
     caldaiaEl.hidden = !caldaia;
     if (caldaia) {

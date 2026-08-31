@@ -138,6 +138,7 @@ const SECTION_TABLES = Object.freeze([
   { file: "editor-slots-section.js", name: "SLOT_LABELS", rows: "values", at: [0, 1] },
   { file: "energy-guidance-section.js", name: "CLASH_LABELS", rows: "values", at: [0, 1] },
   { file: "energy-section.js", name: "TOTAL_FIELDS", rows: "items", at: [3, 4] },
+  { file: "il-popup-della-lavatrice-section.js", name: "CASELLE", rows: "items", at: ["it", "en"] },
   { file: "lights-scene-section.js", name: "SWATCHES", rows: "items", at: ["it", "en"] },
   { file: "people-section.js", name: "ACTIVITY_LABELS", rows: "values", at: [0, 1] },
   { file: "lights-scene-section.js", name: "KELVIN_PRESETS", rows: "items", at: ["it", "en"] },

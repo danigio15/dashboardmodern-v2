@@ -15,6 +15,7 @@
  * perche' fra sei mesi non ricompaia una faccina in mezzo alle scocche.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -64,6 +65,31 @@ test("ogni azione rapida ha il suo disegno", () => {
 test("ogni carico ha il suo disegno", () => {
   const senza = LOAD_ICON_CATALOG.filter((voce) => !disegnata("load", voce)).map((voce) => voce.id);
   assert.deepEqual(senza, [], `carichi senza disegno: ${senza.join(", ")}`);
+});
+
+/* «A qualsiasi parte viene richiesta una icona deve puntare sempre ed
+ * esclusivamente al nostro catalogo»: il guscio aveva un selettore suo, una
+ * griglia piatta di emoji di sistema, agganciato a cinque caselle — stanze,
+ * temperature, piani, report. Adesso quelle caselle passano dal catalogo di
+ * casa, e la funzione del guscio e' dirottata a monte, dove sono scritti gli
+ * `onclick` del markup vendorizzato. */
+test("il selettore emoji del guscio e' dirottato sul catalogo di casa", () => {
+  const motore = readFileSync(
+    new URL("../src/sections/icon-engine-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(motore, /root\.wzPickIcon = scegliDalCatalogo/);
+  for (const campo of [
+    "ed-st-icon",
+    "ed-st2-icon",
+    "ed-st2-flicon",
+    "wz-st-icon",
+    "ed-rep2-icon",
+  ])
+    assert.ok(motore.includes(`"${campo}"`), `casella non dirottata: ${campo}`);
+  /* Le linguette dei piani stampano l'icona come testo nudo: li' si scrive il
+   * segno, non il nome mdi, o si legge «mdi:home» per esteso. */
+  assert.match(motore, /"ed-st2-flicon": \{ kind: "room", glifo: true \}/);
 });
 
 /* E il nome mdi va alla sua voce, non alla prima che gli somiglia: `mdi:home`

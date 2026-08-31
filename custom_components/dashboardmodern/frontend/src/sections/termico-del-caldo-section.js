@@ -23,6 +23,7 @@ import {
   t,
   wrapFunction,
 } from "./shared.js";
+import { openIconPicker } from "./icon-engine-section.js";
 
 const KEY = "__DASHBOARDMODERN_TERMICO_CALDO__";
 const STYLE_ID = "dm-termico-caldo-style";
@@ -204,7 +205,9 @@ function rigaEditor(voce, indice) {
   const nodo = doc.createElement("div");
   nodo.className = "dm-termico-riga";
   nodo.innerHTML =
-    `<input class="ed-input dm-termico-icona" maxlength="4" value="${esc(voce.icon || "")}" placeholder="🔥" aria-label="${t("Icona", "Icon")}">` +
+    /* Anche qui l'icona viene dal catalogo di casa, col suo tasto. */
+    `<span class="ed-form-row dm-termico-icona-riga"><input class="ed-input dm-termico-icona" maxlength="24" value="${esc(voce.icon || "")}" placeholder="🔥" aria-label="${t("Icona", "Icon")}">` +
+    `<button type="button" class="dm-termico-icona-btn" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span>` +
     `<input class="ed-input dm-termico-nome" value="${esc(voce.name || "")}" placeholder="${t("Nome (es. Caldaia)", "Name (e.g. Boiler)")}">` +
     `<span class="ed-form-row dm-termico-presa"><input class="ed-input ed-slot-in mono dm-termico-entita" value="${esc(voce.entity || "")}" placeholder="switch.caldaia">` +
     `<button type="button" class="dm-entity-picker" aria-label="${t("Seleziona", "Select")}">🔍</button></span>` +
@@ -274,6 +277,12 @@ function montaEditor() {
       righe.append(rigaEditor({ icon: "🔥", name: "", entity: "" }, righe.children.length));
       return;
     }
+    const catalogo = evento.target?.closest?.(".dm-termico-icona-btn");
+    if (catalogo) {
+      const campo = catalogo.parentElement?.querySelector(".dm-termico-icona");
+      if (campo) openIconPicker(campo, "action");
+      return;
+    }
     const lente = evento.target?.closest?.(".dm-entity-picker");
     if (lente) {
       const campo = lente.parentElement?.querySelector(".dm-termico-entita");
@@ -290,6 +299,9 @@ const STILE = `
 .dm-termico-righe{display:grid;gap:8px;margin:10px 0}
 .dm-termico-riga{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}
 .dm-termico-riga .dm-termico-icona{text-align:center;padding-inline:4px}
+.dm-termico-icona-riga{display:flex;gap:6px;min-width:0}
+.dm-termico-icona-riga .dm-termico-icona{flex:1 1 auto;min-width:0}
+.dm-termico-icona-btn{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:12px;background:linear-gradient(145deg,#12aee4,#047faf);color:#fff;font-size:15px;cursor:pointer}
 .dm-termico-riga .dm-termico-presa{display:flex;gap:6px}
 .dm-termico-riga .dm-termico-presa .dm-termico-entita{flex:1;min-width:0}
 @media(max-width:560px){.dm-termico-riga{grid-template-columns:44px minmax(0,1fr) 38px}

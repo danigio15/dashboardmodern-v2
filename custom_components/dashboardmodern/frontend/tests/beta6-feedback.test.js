@@ -22,7 +22,9 @@ test("feedback layer keeps legacy quick-action defaults while the icon engine ow
   assert.match(feedback, /scene:\{glyph:"🎬",mdi:"mdi:movie-open"\}/);
   assert.match(feedback, /DashboardModernIconEngine\?\.syncQuickActions\?\.\(\)/);
   assert.match(engine, /modal\.id = "dm-visual-picker"/);
-  assert.match(engine, /input\.value = item\.value/);
+  /* La voce scelta finisce nel campo. Di norma col nome del disegno; dove il
+   * consumatore stampa la casella come testo nudo, col segno. */
+  assert.match(engine, /input\.value = options\.glifo === true \? item\.glyph \|\| item\.value : item\.value/);
 });
 
 test("legacy quick-action editor delegates picker and glyph rendering to the icon engine", async () => {

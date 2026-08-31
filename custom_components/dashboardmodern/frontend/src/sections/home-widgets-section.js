@@ -362,6 +362,10 @@ function lightsModel(states) {
         room: group.room,
         name: clean(group.lights?.[entity]) || entity.split(".")[1]?.replaceAll("_", " ") || entity,
         on: clean(stateOf(states, entity)?.state).toLowerCase() === "on",
+        /* «Si vede ma non si comanda» vale anche qui: la tessera della Home
+         * disegnava l'interruttore per tutte e il gestore chiamava il
+         * servizio dritto, senza passare dal divieto. */
+        comando: siComanda(entity),
       })),
   );
   if (!rows.length) return null;
@@ -2235,8 +2239,12 @@ function lightsDetail(widget) {
       rowShell(
         `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">💡</span>
          <span class="dm-w-name">${esc(row.name)}<small>${esc(row.room)}</small></span>
-         <button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on}"
-           aria-label="${esc(row.name)}"><i></i></button>`,
+         ${
+           row.comando === false
+             ? `<span class="dm-w-bloccata" title="${esc(t("Si vede ma non si comanda", "Shown but not controllable"))}" aria-hidden="true">🔒</span>`
+             : `<button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on}"
+           aria-label="${esc(row.name)}"><i></i></button>`
+         }`,
       ),
     )
     .join("");
@@ -2815,12 +2823,18 @@ function carteDalleRighe(widget) {
     }));
   }
   if (chiave === "temperatura") {
+    /* Due misure diverse, non una stringa sola.
+     *
+     * «27,4° · 50%» erano gradi e umidita' incollati nello stesso numero
+     * grande — stesso corpo, stesso colore, e a stringere finivano nei
+     * puntini senza sapere quale dei due era sparito: «non si capisce niente
+     * tra temperatura e umidita'». Adesso i gradi restano il numero della
+     * casella e l'umidita' e' la sua riga, con la goccia davanti. */
     return righe.map((riga) => ({
       glyph: "🌡️",
-      valore: `${formatNumber(riga.temperature, 1)}°${
-        riga.humidity == null ? "" : ` · ${Math.round(riga.humidity)}%`
-      }`,
+      valore: `${formatNumber(riga.temperature, 1)}°`,
       etichetta: clean(riga.name),
+      sotto: riga.humidity == null ? "" : `💧 ${Math.round(riga.humidity)}%`,
     }));
   }
   if (chiave === "batterie") {
@@ -2871,7 +2885,9 @@ function caselleDelleMisure(widget) {
             voce.glyph
               ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>`
               : ""
-          }<b>${esc(voce.valore)}</b><span>${esc(voce.etichetta)}</span></div>`,
+          }<b>${esc(voce.valore)}</b>${
+            voce.sotto ? `<i class="dm-w-casella-sotto">${esc(voce.sotto)}</i>` : ""
+          }<span>${esc(voce.etichetta)}</span></div>`,
       )
       .join("")}</div>`;
 }
@@ -3264,16 +3280,35 @@ function stessaOssatura(a, b) {
   return true;
 }
 
+/* Quello che il travaso NON deve toccare.
+ *
+ * Il markup fresco delle telecamere nasce senza `src` — il fotogramma lo
+ * scarica dopo qualcuno — e con `data-dm-camera-state="loading"`. Ricopiando
+ * alla lettera, ogni travaso strappava il fotogramma gia' arrivato: riquadro
+ * nero istantaneo, blob orfano in memoria e download da rifare. E il travaso
+ * scatta a ogni cambio della frase in cima, cioe' di continuo: e' questa la
+ * ragione del «widget telecamere lentissimo in apertura». Chi scarica se lo
+ * tiene: il fotogramma e' roba viva, non markup. */
+const ATTRIBUTI_VIVI = new Set([
+  "src",
+  "data-dm-camera-key",
+  "data-dm-camera-entity",
+  "data-dm-camera-state",
+]);
+
 function ricopia(mio, suo) {
   if (mio.nodeType === 3) {
     if (mio.nodeValue !== suo.nodeValue) mio.nodeValue = suo.nodeValue;
     return;
   }
   if (mio.nodeType !== 1) return;
+  const vivo = mio.tagName === "IMG" || mio.hasAttribute?.("data-dm-camera-key");
   for (const attributo of [...mio.attributes]) {
+    if (vivo && ATTRIBUTI_VIVI.has(attributo.name)) continue;
     if (!suo.hasAttribute(attributo.name)) mio.removeAttribute(attributo.name);
   }
   for (const attributo of [...suo.attributes]) {
+    if (vivo && ATTRIBUTI_VIVI.has(attributo.name) && mio.hasAttribute(attributo.name)) continue;
     if (mio.getAttribute(attributo.name) !== attributo.value)
       mio.setAttribute(attributo.name, attributo.value);
   }
@@ -3762,15 +3797,27 @@ async function aggiornaTelecamere() {
    * le telecamere restano nere. Si guarda in tutti e due i posti. */
   const figures =
     doc?.querySelectorAll?.("#dm-widgets [data-dm-w-cam],#dm-widget-popup [data-dm-w-cam]") || [];
-  await Promise.all(
-    [...figures].map((figure) =>
-      loadCameraFrame(
+  /* Due alla volta, non tutte insieme.
+   *
+   * Ogni miniatura e' uno snapshot che Home Assistant deve tirare fuori dallo
+   * stream: con sei telecamere partivano sei richieste in un colpo, sei
+   * flussi RTSP aperti insieme, e la finestra restava nera finche' l'ultima
+   * non rispondeva. A due per volta la prima immagine arriva subito e le
+   * altre la seguono — la stessa attesa totale, ma vista riempirsi. */
+  const coda = [...figures];
+  const IN_VOLO = 2;
+  const tira = async () => {
+    while (coda.length) {
+      const figure = coda.shift();
+      if (!figure) return;
+      await loadCameraFrame(
         { entity: clean(figure.dataset.dmWCam) },
         figure.querySelector("img"),
         state.cameraUrls,
-      ),
-    ),
-  );
+      );
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(IN_VOLO, coda.length) }, tira));
   sincronizzaTimerTelecamere();
   return true;
 }
@@ -3904,6 +3951,9 @@ function onClick(event) {
   if (light) {
     event.preventDefault();
     const entity = clean(light.dataset.dmWLight);
+    /* L'ultimo cancello: un interruttore rimasto da un disegno di prima non
+     * deve poter comandare una cosa protetta. */
+    if (!siComanda(entity)) return;
     // Ottimista: l'interruttore scatta subito, lo stato vero arriva col
     // prossimo evento e conferma o corregge.
     light.dataset.on = String(light.dataset.on !== "true");
@@ -4279,6 +4329,12 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   font-family:'Oswald',system-ui,sans-serif;font-weight:400;font-size:19px;line-height:1.1;
   color:var(--text,#0f172a);font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* La seconda misura della casella — l'umidita' accanto ai gradi — sta sotto il
+ * numero grande, in tondo e col suo colore: si legge come un'altra cosa. */
+#dm-widget-popup .dm-w-casella-sotto{
+  font-style:normal;font-size:11.5px;font-weight:800;line-height:1.2;
+  color:color-mix(in srgb,#0ea5e9 72%,var(--text-dim,#64748b));
+  font-variant-numeric:tabular-nums}
 /* L'etichetta va a capo invece di finire nei puntini: «TEMPERATURA PANNELLO…»
  * non diceva piu' quale pannello. Due righe bastano a ogni nome vero. */
 #dm-widget-popup .dm-w-casella span{
