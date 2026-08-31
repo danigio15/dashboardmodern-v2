@@ -40,6 +40,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le Aperture usano il catalogo icone di casa.** La lente dell'icona di
+  avvisi, aperture e porte apriva una griglia di emoji nata a parte: ora
+  apre il motore delle icone del progetto — porte, cancelli e serrature
+  disegnati coi tratti di casa. La griglia di prima resta solo come
+  ripiego se il motore non e' ancora in piedi.
+
 - **«Aggiungi persona» non butta piu' la persona che si stava
   scrivendo.** Il tasto ridisegnava la scheda con quello che c'era in
   memoria: il nome appena scritto — su una persona ancora senza entita' —

@@ -1,4 +1,13 @@
-import { clean, dashboardStore, doc, installStyle, readJson, root, t, wrapFunction } from "./shared.js";
+import {
+  clean,
+  dashboardStore,
+  doc,
+  installStyle,
+  readJson,
+  root,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 // Compatibility owner kept temporarily while EV and Alerts are absorbed by their
 // canonical sections. Room/Temperature icon DOM is single-owner: this module may
@@ -149,6 +158,12 @@ export function openEmojiPicker(input, titolo) {
 
 function openAlertPicker(input, titolo) {
   if (!input || !doc) return false;
+  /* Il catalogo e' quello di casa: il motore delle icone disegna porte,
+   * cancelli, serrature e avvisi con i tratti del progetto — «il catalogo
+   * icone delle Aperture non e' quello del progetto». La griglia di emoji
+   * qui sotto resta solo come ripiego se il motore non c'e' ancora. */
+  const motore = root.dmIconPicker;
+  if (typeof motore === "function" && motore.__dmIconEngineBridge) return motore(input, "action");
   closeAlertPicker();
   const intestazione = titolo || `🔔 ${t("Scegli icona avviso", "Choose alert icon")}`;
   const modal = doc.createElement("div");
