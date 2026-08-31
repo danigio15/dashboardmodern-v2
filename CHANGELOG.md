@@ -9,6 +9,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Nuovo
 
+- **La casella Batteria del widget Energia dice anche quanto e' piena.**
+  Lo stato di carica ha gia' il suo slot nella mappatura: ora la casella
+  lo scrive accanto ai watt («-320 W · 78%»), e con la sola percentuale
+  mappata basta lei a far esistere la casella.
+
 - **Un cerchio del flusso puo' essere una stanza.** Nella scheda di un
   carico c'e' «Cerchio = stanza»: scelta la stanza, i suoi
   elettrodomestici entrano nel cerchio da soli — anche quelli configurati

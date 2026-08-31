@@ -639,6 +639,17 @@ function energyModel(states) {
   const house = readings.find((row) => row.group === "house")?.watts ?? null;
   const today = numOf(states, clean(model?.house?.daily_energy) || "dm.energy_consumo_casa_oggi");
   const rows = readings.filter((row) => row.watts != null);
+  /* Quanto e' piena la batteria, adesso. Dal campo: «nel widget fotovoltaico
+   * inserire anche la percentuale batteria attuale». Lo stato di carica ha
+   * gia' il suo slot — e' quello che racconta «piena fra un'ora» — e la
+   * casella Batteria lo dice accanto ai watt; senza la potenza mappata, la
+   * percentuale basta da sola a far esistere la casella. */
+  const soc = numOf(states, clean(model?.battery?.soc) || "dm.energy_stato_carica_batteria");
+  if (soc != null) {
+    const batteria = rows.find((row) => row.group === "battery");
+    if (batteria) batteria.soc = soc;
+    else rows.push({ group: "battery", watts: null, soc });
+  }
   if (house == null && !rows.length) return null;
   return {
     key: "energia",
@@ -2759,7 +2770,14 @@ function carteDalleRighe(widget) {
     const glifi = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
     return righe.map((riga) => ({
       glyph: glifi[riga.group] || "⚡",
-      valore: formatWatts(riga.watts),
+      /* La batteria dice anche quanto e' piena: watt e percentuale insieme,
+       * o la sola percentuale quando la potenza non e' mappata. */
+      valore:
+        riga.group === "battery" && riga.soc != null
+          ? riga.watts == null
+            ? `${Math.round(riga.soc)}%`
+            : `${formatWatts(riga.watts)} · ${Math.round(riga.soc)}%`
+          : formatWatts(riga.watts),
       etichetta: nomi[riga.group] || clean(riga.group),
     }));
   }
