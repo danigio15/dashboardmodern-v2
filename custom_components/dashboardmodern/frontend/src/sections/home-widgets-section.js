@@ -2805,6 +2805,17 @@ function iconaApertura(row) {
     if (disegnata) return disegnata;
   }
   if (scelta) return esc(scelta);
+  /* Il disegno di casa anche quando nessuno ha scelto un'icona.
+   *
+   * Qui si tornava all'emoji del sistema — la porta e la finestra che ogni
+   * telefono disegna a modo suo — proprio nelle pillole che si guardano di
+   * corsa: «continuo a vedere icone che non sono nostre». Il catalogo la porta
+   * e la finestra ce le ha; si chiedono a lui. */
+  const canonica = /porta|cancell|door|gate/i.test(row.name)
+    ? "mdi:door-closed"
+    : "mdi:window-closed-variant";
+  const disegnata = root.DashboardModernIconEngine?.markup?.("action", canonica, { size: 20 });
+  if (disegnata) return disegnata;
   return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
 }
 

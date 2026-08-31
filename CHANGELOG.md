@@ -23,6 +23,10 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   rilevamento e non dalla configurazione, e su una plancia appena creata
   raccontavano la casa dell'altra proprio sotto il messaggio che diceva il
   contrario. Basta la prima stanza perche' tornino.
+- **Anche la barra in basso e le pillole delle aperture hanno i disegni di
+  casa.** Erano gli ultimi due posti con le emoji del sistema — e la barra e' il
+  piu' guardato di tutti: la casa di un telefono accanto al fiocco di un altro.
+  Le voci a riposo restano spente, quella aperta e' a colori.
 
 - **Il cerchio dell'Energia dice quello che dice la sua finestra.** Il cerchio
   segnava 0 W e la finestra dei sotto-carichi 838 W. Adesso un contatore di

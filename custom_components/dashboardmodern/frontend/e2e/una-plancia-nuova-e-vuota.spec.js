@@ -95,3 +95,37 @@ test("basta una stanza perche' il ponte torni", async ({ page }, testInfo) => {
     timeout: 20_000,
   });
 });
+
+test("le pillole delle aperture portano il disegno di casa, non l'emoji del telefono", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(150_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, {
+    ...VUOTA,
+    sections: {
+      ...VUOTA.sections,
+      rooms: [{ id: "bagno", name: "Bagno", temp: "sensor.bagno_t" }],
+    },
+  });
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  await laCasaEsiste(page);
+
+  const tessera = page.locator('.dm-tile[data-dm-widget="aperture"]').first();
+  await expect(tessera).toBeVisible({ timeout: 20_000 });
+  await tessera.click();
+
+  const pillole = page.locator(".dm-w-pillola");
+  await expect(pillole.first()).toBeVisible({ timeout: 20_000 });
+  const segni = await page.evaluate(() =>
+    [...document.querySelectorAll(".dm-w-pillola-ic")].slice(0, 6).map((segno) => ({
+      disegno: Boolean(segno.querySelector("svg")),
+      testo: (segno.textContent || "").trim(),
+    })),
+  );
+  expect(segni.length).toBeGreaterThan(0);
+  /* Ogni pillola porta il suo disegno, e nessuna porta piu' un carattere di
+   * sistema al posto suo. */
+  expect(segni.filter((segno) => !segno.disegno)).toEqual([]);
+  expect(segni.filter((segno) => segno.testo)).toEqual([]);
+});

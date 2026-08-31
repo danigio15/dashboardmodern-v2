@@ -1,7 +1,13 @@
+import { oggettoWidget } from "../core/oggetti-widget.js";
 import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_NAVIGATION_SECTION__";
-const state = (root[KEY] ||= { installed: false, scroller: null, autoHide: 0, behaviour: false });
+const state = (root[KEY] ||= {
+  installed: false,
+  scroller: null,
+  autoHide: 0,
+  behaviour: false,
+});
 
 /* The dock is sized on its content (`width:max-content`), so with every section
  * enabled the thirteen tabs are wider than the screen and the ones past the
@@ -22,6 +28,16 @@ function installStyles() {
       .bottom-nav-bar{isolation:isolate!important}
       .bottom-nav-bar .tab{color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
       .bottom-nav-bar .tab .icon,.bottom-nav-bar .tab .text{opacity:.78!important;transition:opacity .16s ease,color .16s ease!important}
+      /* Il disegno di casa sta nella casella del simbolo, alla sua misura.
+       *
+       * Il guscio spegneva i simboli con grayscale(1) e opacita' a meta': era una
+       * regola scritta per le emoji, e sui disegni li sbiadiva fino a farli
+       * sparire. Le voci a riposo restano spente — e' cosi' che si vede
+       * qual e' quella aperta — ma abbastanza da riconoscerle; quella aperta
+       * torna a colori pieni. */
+      .bottom-nav-bar .tab .icon>.dm-oggetto{width:24px;height:24px;display:block;margin:0 auto}
+      nav.tabs.bottom-nav-bar .tab .icon:has(>.dm-oggetto){filter:grayscale(.85) opacity(.72)!important}
+      nav.tabs.bottom-nav-bar .tab.active .icon:has(>.dm-oggetto){filter:none!important}
       .bottom-nav-bar .tab.active{color:var(--text,#0f172a)!important}
       .bottom-nav-bar .tab.active .icon,.bottom-nav-bar .tab.active .text{opacity:1!important}
       html[data-theme="dark"] .bottom-nav-bar,html.dark .bottom-nav-bar,body[data-theme="dark"] .bottom-nav-bar,body.dark .bottom-nav-bar,.dark .bottom-nav-bar{background:rgba(19,28,48,.94)!important;border-color:#40506f!important;box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.07)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important}
@@ -569,6 +585,57 @@ export function configSempreUltima(scope = doc) {
  * configurazione condivisa, e a intervalli finche' la pagina vive. Invece di
  * inseguirli si avvolgono le loro funzioni: cosi' Config torna in fondo subito
  * dopo, qualunque sia stata la ragione del riordino. */
+/* Quale disegno di casa porta ogni pagina, nella barra in basso.
+ *
+ * La barra era rimasta l'ultimo posto — e il piu' guardato di tutti — con le
+ * emoji del sistema: la casa di Samsung accanto al fiocco di Apple, e su ogni
+ * telefono una faccia diversa. «Ti avevo chiesto di inserire icone nostre su
+ * tutta la dashboard e continuo a vedere icone che non sono nostre.» Sono gli
+ * stessi oggetti delle tessere e del menu della configurazione: una famiglia
+ * sola, dal primo all'ultimo angolo della plancia. */
+const OGGETTO_DELLA_PAGINA = Object.freeze({
+  home: "home",
+  energy: "energia",
+  "appliances-main": "elettrodomestici",
+  ev: "ev",
+  boiler: "solare",
+  clima: "clima",
+  temp: "temperatura",
+  tapparelle: "tapparelle",
+  security: "sicurezza",
+  server: "minipc",
+  piscina: "piscina",
+  irrigazione: "irrigazione",
+  luci: "luci",
+  prese: "prese",
+  robot: "robot",
+  stanze: "stanze",
+  aperture: "aperture",
+  doors: "aperture",
+  telecamere: "telecamere",
+  config: "impostazioni",
+});
+
+/** Mette il disegno di casa al posto del simbolo, su ogni voce della barra. */
+export function disegniNellaBarra(scope = doc) {
+  const schede = scope?.querySelectorAll?.("nav.tabs .tab[data-tab]");
+  if (!schede?.length) return 0;
+  let messi = 0;
+  for (const scheda of schede) {
+    const pagina = clean(scheda.dataset.tab);
+    const disegno = OGGETTO_DELLA_PAGINA[pagina];
+    if (!disegno) continue;
+    const casella = scheda.querySelector(":scope > .icon");
+    if (!casella || casella.dataset.dmOggetto === disegno) continue;
+    const marchio = oggettoWidget(disegno);
+    if (!marchio) continue;
+    casella.innerHTML = marchio;
+    casella.dataset.dmOggetto = disegno;
+    messi += 1;
+  }
+  return messi;
+}
+
 function accodaDopo(nome) {
   const originale = root[nome];
   if (typeof originale !== "function" || originale.__dmConfigUltima) return false;
@@ -576,6 +643,7 @@ function accodaDopo(nome) {
     const esito = originale.apply(this, argomenti);
     try {
       configSempreUltima();
+      disegniNellaBarra();
     } catch (_error) {}
     return esito;
   };
@@ -597,7 +665,17 @@ export function installNavigationSection() {
   root.addEventListener?.("dashboardmodern:persistence-restored", () => {
     applyNavbarMode();
     configSempreUltima();
+    disegniNellaBarra();
   });
+  /* La barra la riscrive il guscio a ogni giro di visibilita': i disegni si
+   * rimettono quando succede, non una volta sola all'avvio. */
+  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
+    root.addEventListener?.(evento, () => disegniNellaBarra());
+  /* La barra la rifa' il guscio: a ogni giro di visibilita' e di ordine — che
+   * sono le due funzioni avvolte qui sopra — e al primo disegno. Ci si aggancia
+   * a quelle, senza sorveglianti ne' timer: e' la stessa regola con cui questo
+   * modulo tiene il resto della barra. */
+  disegniNellaBarra();
   installStyles();
   installBarBehaviour();
   if (!installScroller()) {

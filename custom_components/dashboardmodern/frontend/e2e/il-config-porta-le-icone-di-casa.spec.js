@@ -140,3 +140,41 @@ test("il MiniPC ha la sua tessera in Home, con la CPU in grande", async ({ page 
   await expect(tessera.locator("[data-dm-tile-caption]")).toHaveText(/RAM 62%.*Disco 71%/);
   await expect(tessera.locator(".dm-tile-chip svg")).toHaveCount(1);
 });
+
+test("la barra in basso porta i disegni di casa, non le emoji del telefono", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(150_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+
+  const leggiSchede = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("nav.tabs .tab[data-tab]")]
+        .filter((scheda) => scheda.querySelector(":scope > .icon"))
+        .map((scheda) => ({
+          tab: scheda.dataset.tab,
+          disegno: Boolean(scheda.querySelector(":scope > .icon > svg")),
+          testo: (scheda.querySelector(":scope > .icon")?.textContent || "").trim(),
+        })),
+    );
+  /* La barra la riscrive il guscio: si aspetta che i disegni ci siano tutti. */
+  await expect
+    .poll(
+      async () => {
+        const lette = await leggiSchede();
+        return lette.length && lette.every((scheda) => scheda.disegno);
+      },
+      { timeout: 20_000 },
+    )
+    .toBeTruthy();
+  const schede = await leggiSchede();
+  /* Le voci che ci sono sempre: se la lista fosse vuota — una barra non
+   * disegnata, un runtime a meta' — il conto dei «senza disegno» sarebbe zero
+   * e la prova passerebbe senza aver guardato niente. */
+  expect(schede.map((scheda) => scheda.tab)).toEqual(expect.arrayContaining(["home", "config"]));
+  expect(schede.length).toBeGreaterThan(4);
+  /* Nessun carattere di sistema rimasto nella casella del simbolo. */
+  expect(schede.filter((scheda) => scheda.testo)).toEqual([]);
+});
