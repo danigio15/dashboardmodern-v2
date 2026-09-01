@@ -34,10 +34,12 @@ import {
   calendariConfigurati,
   configuredTodoLists,
   eventiDeiCalendari,
+  listeConNome,
   scadenzeDaFare,
   segnaFatta,
 } from "./home-widgets-section.js";
 import {
+  azioneDellaScadenzaMarkup,
   azioniDellEventoMarkup,
   bozzaAperta,
   chiaveDellEvento,
@@ -251,6 +253,7 @@ function eventoMarkup(evento, adesso, lingua, calendari, piuCalendari) {
         <b>${esc(evento.summary || t("Senza titolo", "Untitled"))}</b>
         <small>${esc(evento.lista)}</small>
       </span>
+      ${azioneDellaScadenzaMarkup(evento)}
     </li>`;
   const ora = inCorso(evento, adesso);
   const sotto = [piuCalendari ? evento.calendario : "", evento.location].filter(Boolean).join(" · ");
@@ -400,7 +403,7 @@ function dipingi() {
   /* Il modulo sa quali calendari ci sono da chi lo disegna: e' lo stesso
    * elenco in Home e qui. */
   dichiaraCalendari(calendari);
-  const modulo = moduloMarkup(calendari);
+  const modulo = moduloMarkup(calendari, listeConNome());
   /* Il tasto nasce sul giorno scelto: chi ha appena toccato sabato nella
    * fascia non vuole segnare un impegno per oggi. */
   const nuovo = bozzaAperta() ? "" : tastoNuovoMarkup(calendari, state.giorno);

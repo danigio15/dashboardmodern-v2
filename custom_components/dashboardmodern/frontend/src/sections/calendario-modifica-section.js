@@ -21,12 +21,17 @@
  * a Home Assistant QUALE evento si intende.
  */
 import {
+  bozzaCosaNuova,
   bozzaDaEvento,
+  bozzaDaVoce,
   bozzaNuova,
+  campiDellaCosa,
+  giornoDiCasella,
   capacitaDelCalendario,
   eventoCancellabile,
   eventoModificabile,
   messaggioDellEvento,
+  oraDiCasella,
 } from "../core/calendario-model.js";
 import {
   allStates,
@@ -106,6 +111,41 @@ export function azioniDellEventoMarkup(evento, chiave) {
   }</span>`;
 }
 
+/* La matita su una cosa da fare (#259).
+ *
+ * Aggiungere una cosa da fare e' sempre stato veloce — si scrive e via — ma
+ * non c'era modo di darle una DATA, e la data e' quella che decide dove
+ * finisce nell'agenda. Senza, l'agenda mostrava soltanto le scadenze che
+ * qualcun altro aveva messo da un'altra parte.
+ *
+ * Il cestino non si aggiunge qui: le righe delle liste ce l'hanno gia' loro,
+ * e due cestini sulla stessa riga sarebbero due modi di togliere la stessa
+ * cosa. */
+export function azioneDellaCosaMarkup(voce, lista) {
+  const chiave = chiaveDellaCosa(voce, lista);
+  return `<button type="button" class="dm-calm-tasto dm-calm-tasto-cosa"
+    data-dm-calm-cosa="${esc(chiave)}"
+    title="${esc(t("Modifica", "Edit"))}" aria-label="${esc(t("Modifica", "Edit"))}">✏️</button>`;
+}
+
+/* La stessa matita, per una scadenza gia' dentro l'agenda.
+ *
+ * La riga dell'agenda porta i campi appiattiti — `uid`, `listaId`, `lista` —
+ * e ricomporre voce e lista qui evita di scriverne l'oggetto dentro il
+ * disegno: un oggetto letterale in mezzo a un template si legge come una
+ * regola di stile, e la guardia dei fogli lo conta come tale. */
+export function azioneDellaScadenzaMarkup(riga) {
+  /* La riga porta l'istante, non la data com'era scritta: si ricompone, o il
+   * modulo si aprirebbe con la casella della scadenza VUOTA proprio sulla
+   * riga che una scadenza ce l'ha — e salvando gliela toglierebbe. */
+  const giorno = giornoDiCasella(riga?.inizio);
+  const due = riga?.tuttoIlGiorno ? giorno : `${giorno}T${oraDiCasella(riga?.inizio)}:00`;
+  return azioneDellaCosaMarkup(
+    { uid: riga?.uid, summary: riga?.summary, due },
+    { id: riga?.listaId, entity: riga?.entity, name: riga?.lista },
+  );
+}
+
 /** Il tasto per segnare un impegno nuovo, dove qualcuno lo accetta. */
 export function tastoNuovoMarkup(calendari, giorno = "") {
   if (!qualcunoAccettaEventi(calendari)) return "";
@@ -137,9 +177,87 @@ const campo = (nome, etichetta, dentro, aiuto = "") =>
  * modifica, e' una cancellazione piu' una creazione, e fingere il contrario
  * perderebbe l'originale.
  */
-export function moduloMarkup(calendari) {
+export function moduloMarkup(calendari, liste = []) {
   const bozza = state.bozza;
   if (!bozza) return "";
+  return bozza.tipo === "cosa" ? moduloDellaCosa(bozza, liste) : moduloDellImpegno(bozza, calendari);
+}
+
+/* Il modulo di una cosa da fare.
+ *
+ * Stessa forma di quello degli impegni — cosa, quando, note — perche' e' lo
+ * stesso gesto e due forme diverse sarebbero due cose da imparare. Cambia il
+ * «quando»: qui la data si puo' NON mettere, e la casella vuota vuol dire
+ * «senza scadenza», non «data mancante». */
+function moduloDellaCosa(bozza, liste) {
+  const nuova = !clean(bozza.uid);
+  return `<form class="dm-calm-modulo" data-dm-calm-modulo data-tipo="cosa">
+    <div class="dm-calm-testa">
+      <strong>${esc(nuova ? t("Nuova cosa da fare", "New to-do") : t("Modifica cosa da fare", "Edit to-do"))}</strong>
+      <button type="button" class="dm-calm-chiudi" data-dm-calm-annulla
+        aria-label="${esc(t("Annulla", "Cancel"))}">✕</button>
+    </div>
+    ${
+      nuova && liste.length > 1
+        ? campo(
+            "listaId",
+            t("Lista", "List"),
+            `<select class="dm-calm-input" data-dm-calm-campo-valore="listaId">${liste
+              .map(
+                (voce) =>
+                  `<option value="${esc(voce.id)}"${
+                    voce.id === bozza.listaId ? " selected" : ""
+                  }>${esc(clean(voce.name) || voce.entity)}</option>`,
+              )
+              .join("")}</select>`,
+          )
+        : ""
+    }
+    ${campo(
+      "summary",
+      t("Titolo", "Title"),
+      `<input type="text" class="dm-calm-input" data-dm-calm-campo-valore="summary"
+        value="${esc(bozza.summary)}" maxlength="200" autocomplete="off"
+        placeholder="${esc(t("Chiamare l'idraulico", "Call the plumber"))}">`,
+    )}
+    ${campo(
+      "giornoScadenza",
+      t("Scadenza", "Due"),
+      `<span class="dm-calm-coppia"><input type="date" class="dm-calm-input"
+        data-dm-calm-campo-valore="giornoScadenza" value="${esc(bozza.giornoScadenza)}"><input
+        type="time" class="dm-calm-input dm-calm-ora" data-dm-calm-campo-valore="oraScadenza"
+        value="${esc(bozza.oraScadenza)}"></span>`,
+      t(
+        "Lasciala vuota per una cosa senza scadenza. Con una data compare nell'agenda, nel suo giorno.",
+        "Leave it empty for something with no due date. With a date it shows up in the agenda, on its day.",
+      ),
+    )}
+    ${campo(
+      "description",
+      t("Note", "Notes"),
+      `<textarea class="dm-calm-input dm-calm-note" rows="2" maxlength="500"
+        data-dm-calm-campo-valore="description">${esc(bozza.description)}</textarea>`,
+    )}
+    <output class="dm-calm-errore">${esc(state.errore)}</output>
+    <div class="dm-calm-fondo">
+      <button type="button" class="dm-calm-annulla" data-dm-calm-annulla>${esc(t("Annulla", "Cancel"))}</button>
+      <button type="button" class="dm-calm-salva" data-dm-calm-salva${state.inCorso ? " disabled" : ""}>${esc(
+        state.inCorso ? t("Salvo…", "Saving…") : t("Salva", "Save"),
+      )}</button>
+    </div>
+  </form>`;
+}
+
+/**
+ * Il modulo con cui si segna o si corregge un impegno.
+ *
+ * L'ordine e' quello in cui si pensa un appuntamento: cosa, quando, dove. Il
+ * calendario si sceglie solo quando ce n'e' piu' d'uno E si sta segnando
+ * qualcosa di nuovo: spostare un evento da un calendario all'altro non e' una
+ * modifica, e' una cancellazione piu' una creazione, e fingere il contrario
+ * perderebbe l'originale.
+ */
+function moduloDellImpegno(bozza, calendari) {
   const nuovo = !clean(bozza.uid);
   const scelta = (Array.isArray(calendari) ? calendari : []).filter(
     (voce) => capacitaDi(voce.entity).crea,
@@ -250,6 +368,24 @@ export function apriModificaEvento(evento) {
   return true;
 }
 
+export function apriModificaCosa(chiave) {
+  const visto = VISTI.get(clean(chiave));
+  if (!visto?.voce) return false;
+  state.bozza = bozzaDaVoce(visto.voce, visto.lista);
+  state.errore = "";
+  ridisegnaOspiti();
+  return true;
+}
+
+export function apriCosaNuova(liste, giorno = "") {
+  const elenco = Array.isArray(liste) ? liste : [];
+  if (!elenco.length) return false;
+  state.bozza = bozzaCosaNuova(elenco[0], giorno);
+  state.errore = "";
+  ridisegnaOspiti();
+  return true;
+}
+
 export function chiudiModulo() {
   if (!state.bozza) return false;
   state.bozza = null;
@@ -284,6 +420,7 @@ function lamenti() {
 
 async function salva() {
   if (state.inCorso || !state.bozza) return;
+  if (state.bozza.tipo === "cosa") return salvaLaCosa();
   const { evento, errore } = messaggioDellEvento(state.bozza, lamenti());
   if (errore) {
     state.errore = errore;
@@ -317,13 +454,57 @@ async function salva() {
     );
     state.inCorso = false;
     state.bozza = null;
-    root.edToast?.(nuovo ? t("📅 Impegno segnato", "📅 Event added") : t("📅 Impegno aggiornato", "📅 Event updated"));
+    root.edToast?.(
+      nuovo ? t("📅 Impegno segnato", "📅 Event added") : t("📅 Impegno aggiornato", "📅 Event updated"),
+    );
     rileggi();
   } catch (guaio) {
     state.inCorso = false;
     /* Il messaggio di Home Assistant e' la sola spiegazione che chi guarda
      * puo' capire: «il calendario e' di sola lettura» dice cosa fare, «errore»
      * no. */
+    state.errore = clean(guaio?.message) || t("Non è riuscito.", "It did not work.");
+  }
+  ridisegnaOspiti();
+}
+
+/* Una cosa da fare si scrive con un servizio, non con un comando del socket:
+ * `todo.add_item` e `todo.update_item` sono quelli che la plancia chiama gia'
+ * per aggiungere e per spuntare, e qui si aggiungono soltanto i campi che
+ * mancavano — la scadenza e le note. */
+async function salvaLaCosa() {
+  const bozza = state.bozza;
+  const { campi, errore } = campiDellaCosa(bozza, lamenti());
+  if (errore) {
+    state.errore = errore;
+    ridisegnaOspiti();
+    return;
+  }
+  const nuova = !clean(bozza.uid);
+  state.inCorso = true;
+  state.errore = "";
+  ridisegnaOspiti();
+  try {
+    await chiediAHomeAssistant({
+      type: "call_service",
+      domain: "todo",
+      service: nuova ? "add_item" : "update_item",
+      target: { entity_id: bozza.entity },
+      /* Modificando, `item` e' la chiave con cui Home Assistant ritrova la
+       * voce e `rename` il titolo nuovo: passare il titolo nuovo come `item`
+       * vorrebbe dire cercare una voce che non esiste ancora. */
+      service_data: nuova
+        ? campi
+        : { ...campi, item: clean(bozza.uid), rename: clean(bozza.summary) },
+    });
+    state.inCorso = false;
+    state.bozza = null;
+    root.edToast?.(
+      nuova ? t("✅ Aggiunta alla lista", "✅ Added to the list") : t("✅ Aggiornata", "✅ Updated"),
+    );
+    rileggi();
+  } catch (guaio) {
+    state.inCorso = false;
     state.errore = clean(guaio?.message) || t("Non è riuscito.", "It did not work.");
   }
   ridisegnaOspiti();
@@ -386,6 +567,13 @@ export function chiaveDellEvento(evento) {
   return chiave;
 }
 
+/** Lo stesso per una cosa da fare: la riga porta la chiave, non l'oggetto. */
+export function chiaveDellaCosa(voce, lista) {
+  const chiave = `cosa|${clean(lista?.id)}|${clean(voce?.uid) || clean(voce?.summary)}`;
+  VISTI.set(chiave, { voce, lista });
+  return chiave;
+}
+
 function onClick(event) {
   const bersaglio = event.target;
   if (!bersaglio?.closest) return;
@@ -395,6 +583,13 @@ function onClick(event) {
     event.preventDefault();
     event.stopPropagation();
     apriNuovoEvento(calendariDelMomento(), clean(nuovo.dataset.dmCalmNuovo));
+    return;
+  }
+  const cosa = bersaglio.closest("[data-dm-calm-cosa]");
+  if (cosa) {
+    event.preventDefault();
+    event.stopPropagation();
+    apriModificaCosa(clean(cosa.dataset.dmCalmCosa));
     return;
   }
   const modifica = bersaglio.closest("[data-dm-calm-modifica]");

@@ -675,3 +675,87 @@ test("la stessa riga non compare due volte nella stessa pagina", async () => {
   assert.match(sezione, /agendaPerGiorno\(restano, scadenze, adesso\)/);
   assert.match(sezione, /data-dm-ritardo="true"/);
 });
+
+/* ── anche una cosa da fare si modifica ────────────────────────────────────
+ *
+ * «Nel popup widget compaiono anche le cose da fare in inserimento modifica e
+ * fatto?» Aggiungere, spuntare e togliere c'erano; MODIFICARE no — e senza
+ * modifica non c'era modo di dare una SCADENZA a una cosa da fare, che dopo
+ * l'ultimo giro e' proprio quello che decide dove finisce nell'agenda.
+ */
+
+test("una cosa da fare si apre col suo titolo e la sua scadenza", async () => {
+  const { bozzaCosaNuova, bozzaDaVoce, campiDellaCosa } = await import(
+    "../src/core/calendario-model.js"
+  );
+  const lista = { id: "t1", name: "Casa", entity: "todo.casa" };
+  const conData = bozzaDaVoce({ uid: "a2", summary: "Idraulico", due: "2026-09-02" }, lista);
+  assert.equal(conData.tipo, "cosa");
+  assert.equal(conData.giornoScadenza, "2026-09-02");
+  /* Una scadenza «entro giovedi'» non e' una scadenza «giovedi' alle 00:00»:
+   * proporre mezzanotte la farebbe diventare tale al primo salvataggio. */
+  assert.equal(conData.oraScadenza, "");
+  const conOra = bozzaDaVoce({ uid: "a3", summary: "Ritiro", due: "2026-09-02T09:30:00" }, lista);
+  assert.equal(conOra.oraScadenza, "09:30");
+  // Senza data la casella e' vuota, e vuota vuol dire «senza scadenza».
+  assert.equal(bozzaDaVoce({ uid: "a1", summary: "Boh" }, lista).giornoScadenza, "");
+  assert.equal(bozzaCosaNuova(lista, "2026-09-04").giornoScadenza, "2026-09-04");
+});
+
+test("i campi del servizio dicono anche quando togliere la scadenza", async () => {
+  const { bozzaDaVoce, campiDellaCosa } = await import("../src/core/calendario-model.js");
+  const lista = { id: "t1", entity: "todo.casa" };
+  const conData = bozzaDaVoce({ uid: "a2", summary: "Idraulico", due: "2026-09-02" }, lista);
+  assert.deepEqual(campiDellaCosa(conData).campi, {
+    item: "Idraulico",
+    description: null,
+    due_date: "2026-09-02",
+  });
+  /* `due_date` e `due_datetime` sono alternativi e Home Assistant ne accetta
+   * uno solo: con un'ora si manda il secondo. */
+  assert.deepEqual(campiDellaCosa({ ...conData, oraScadenza: "09:30" }).campi, {
+    item: "Idraulico",
+    description: null,
+    due_datetime: "2026-09-02T09:30:00",
+  });
+  /* Togliere la scadenza e' `null`, non «campo assente»: un campo che non si
+   * manda non si tocca, e la voce se la terrebbe. */
+  assert.equal(campiDellaCosa({ ...conData, giornoScadenza: "" }).campi.due_date, null);
+  assert.match(campiDellaCosa({ ...conData, summary: "" }).errore, /titolo/i);
+  assert.match(campiDellaCosa({ ...conData, entity: "" }).errore, /calendario/i);
+});
+
+test("il modulo delle cose da fare e' lo stesso di quello degli impegni", async () => {
+  const modifica = await readFile(
+    new URL("../src/sections/calendario-modifica-section.js", import.meta.url),
+    "utf8",
+  );
+  /* Stessa forma — cosa, quando, note — perche' e' lo stesso gesto: due forme
+   * diverse sarebbero due cose da imparare. */
+  assert.match(modifica, /function moduloDellaCosa\(bozza, liste\)/);
+  assert.match(modifica, /function moduloDellImpegno\(bozza, calendari\)/);
+  assert.match(modifica, /bozza\.tipo === "cosa" \? moduloDellaCosa/);
+  /* Si scrive con i servizi che la plancia gia' chiama per aggiungere e
+   * spuntare, non con un comando nuovo del socket. */
+  assert.match(modifica, /service: nuova \? "add_item" : "update_item"/);
+  /* Modificando, `item` e' la chiave con cui Home Assistant ritrova la voce e
+   * `rename` il titolo nuovo: passare il titolo nuovo come `item` vorrebbe
+   * dire cercare una voce che non esiste ancora. */
+  assert.match(modifica, /item: clean\(bozza\.uid\), rename: clean\(bozza\.summary\)/);
+  /* La riga dell'agenda porta l'istante e non la data com'era scritta: senza
+   * ricomporla, il modulo si aprirebbe con la casella VUOTA proprio sulla riga
+   * che una scadenza ce l'ha — e salvando gliela toglierebbe. */
+  assert.match(modifica, /export function azioneDellaScadenzaMarkup\(riga\)/);
+  assert.match(modifica, /const giorno = giornoDiCasella\(riga\?\.inizio\)/);
+
+  // La matita compare sia nella lista sia sulla scadenza dentro l'agenda.
+  const home = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(home, /\$\{azioneDellaCosaMarkup\(item, list\)\}/);
+  assert.match(home, /\$\{azioneDellaScadenzaMarkup\(riga\)\}/);
+  /* Un cestino solo per riga: le righe delle liste ce l'hanno gia', e due
+   * cestini sulla stessa riga sarebbero due modi di togliere la stessa cosa. */
+  assert.doesNotMatch(modifica, /data-dm-calm-cosa-elimina/);
+});

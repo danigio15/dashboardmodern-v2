@@ -72,6 +72,8 @@ import {
   prossimiEventi,
 } from "../core/calendario-model.js";
 import {
+  azioneDellaCosaMarkup,
+  azioneDellaScadenzaMarkup,
   azioniDellEventoMarkup,
   bozzaAperta,
   chiaveDellEvento,
@@ -3162,6 +3164,7 @@ function todoItemMarkup(list, item, today) {
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
         aria-label="${esc(segnaFatta(item.summary))}"${done ? " disabled" : ""}></button>
       <span class="dm-todo-text">${esc(item.summary)}${due}</span>
+      ${azioneDellaCosaMarkup(item, list)}
       <button type="button" class="dm-todo-del" data-dm-todo-del data-dm-todo-list="${esc(list.id)}"
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
         title="${esc(t("Togli dalla lista", "Remove from the list"))}"
@@ -3182,6 +3185,16 @@ function todoItemMarkup(list, item, today) {
 export function scadenzeDaFare() {
   const cose = todoModel(allStates());
   return cose ? scadenzeDelleListe(cose.blocks) : [];
+}
+
+/* Le liste, col nome con cui si chiamano: servono al modulo per far scegliere
+ * dove finisce una cosa nuova. */
+export function listeConNome() {
+  return configuredTodoLists().map((list, index) => ({
+    id: list.id,
+    entity: list.entity,
+    name: clean(list.name) || `${t("Lista", "List")} ${index + 1}`,
+  }));
 }
 
 export function bloccoDaFareMarkup() {
@@ -3251,6 +3264,7 @@ function rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari) {
         <b>${esc(riga.summary || t("Senza titolo", "Untitled"))}</b>
         <small>${esc(riga.lista)}</small>
       </span>
+      ${azioneDellaScadenzaMarkup(riga)}
     </li>`;
   const ora = inCorso(riga, adesso);
   return `<li class="dm-cal-evento" data-adesso="${ora}">
@@ -3290,7 +3304,7 @@ function calendarioDetail(widget, scadenze = []) {
    * elenco in Home e nella pagina, e passarglielo in un attributo vorrebbe
    * dire un JSON dentro il documento. */
   dichiaraCalendari(widget.calendari);
-  const modulo = moduloMarkup(widget.calendari);
+  const modulo = moduloMarkup(widget.calendari, listeConNome());
   /* Il tasto sta in cima e non in fondo: la finestra scorre, e in fondo a
    * un'agenda di due settimane il tasto per segnare un impegno e' un tasto che
    * non si trova. */
@@ -6329,7 +6343,10 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-check{
   border-color:var(--dm-widget-accent,#059669);background:var(--dm-widget-accent,#059669)}
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-check::after{opacity:1;transform:scale(1)}
-:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-text{min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+/* Il testo si prende lo spazio che avanza, cosi' la matita e il cestino
+   restano insieme a destra: senza, la matita resta attaccata alla parola e il
+   cestino se ne va da solo in fondo. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-text{flex:1;min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-text{color:var(--text-dim,#94a3b8);text-decoration:line-through}
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-due{
   display:inline-flex;align-items:center;gap:3px;margin-left:7px;padding:1px 7px;border-radius:999px;
@@ -6470,7 +6487,13 @@ export function installHomeWidgetsSection() {
    * si lamenta, e ci fa rileggere gli eventi dopo ogni scrittura: e' lui che
    * sa quando qualcosa e' cambiato, non noi. */
   registraOspiteCalendario(() => schedule());
-  registraRilettura((opzioni) => aggiornaCalendari(opzioni));
+  registraRilettura((opzioni) => {
+    aggiornaCalendari(opzioni);
+    /* Dopo una modifica si rileggono anche le voci: una scadenza spostata
+     * cambia il giorno in cui la riga compare, e senza rilettura resterebbe
+     * dov'era finche' non cambia qualcos'altro. */
+    for (const list of configuredTodoLists()) fetchItems(list.entity, { force: true });
+  });
   doc.addEventListener("click", onClick);
   bindEscape();
   doc.addEventListener("change", onChange);

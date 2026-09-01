@@ -469,6 +469,83 @@ export function agendaPerGiorno(eventi, scadenze, adesso = Date.now()) {
   };
 }
 
+/* ── la bozza di una cosa da fare ─────────────────────────────────────────
+ *
+ * Una cosa da fare si scrive al volo — titolo e via — ma la sua DATA e' quella
+ * che decide dove finisce nell'agenda, e senza un posto in cui metterla
+ * l'agenda mostra soltanto quelle che qualcun altro ha datato altrove. Percio'
+ * le cose da fare hanno il loro modulo, con la stessa forma di quello degli
+ * impegni: cosa, quando, note.
+ *
+ * La differenza sta nel «quando»: un impegno DEVE avere un inizio e una fine,
+ * una cosa da fare puo' non avere niente — e la casella vuota vuol dire
+ * proprio quello, «senza scadenza», non «data mancante».
+ */
+export function bozzaDaVoce(voce, lista) {
+  if (!voce) return null;
+  const capo = istanteDi(voce.due);
+  return {
+    tipo: "cosa",
+    entity: clean(lista?.entity),
+    listaId: clean(lista?.id),
+    /* La chiave con cui Home Assistant ritrova la voce: l'`uid` se ce l'ha,
+     * altrimenti il titolo — che e' quello che accetta `todo.update_item`. */
+    uid: clean(voce.uid) || clean(voce.summary),
+    summary: clean(voce.summary),
+    description: clean(voce.description),
+    giornoScadenza: capo.istante === null ? "" : giornoDiCasella(capo.istante),
+    /* L'ora solo se ce l'ha davvero: una scadenza «entro giovedi'» non e' una
+     * scadenza «giovedi' alle 00:00», e proporre mezzanotte la farebbe
+     * diventare tale al primo salvataggio. */
+    oraScadenza: capo.istante === null || capo.tuttoIlGiorno ? "" : oraDiCasella(capo.istante),
+  };
+}
+
+/** Le caselle con cui si apre il modulo su una cosa da fare che ancora non c'e'. */
+export function bozzaCosaNuova(lista, giorno = "") {
+  return {
+    tipo: "cosa",
+    entity: clean(lista?.entity),
+    listaId: clean(lista?.id),
+    uid: "",
+    summary: "",
+    description: "",
+    giornoScadenza: clean(giorno),
+    oraScadenza: "",
+  };
+}
+
+/**
+ * Dalla bozza di una cosa da fare ai campi del servizio, o al motivo per cui
+ * non si puo'.
+ *
+ * `due_date` e `due_datetime` sono alternativi e Home Assistant ne accetta uno
+ * solo; `null` non e' «non toccare», e' «togli la scadenza» — e la differenza
+ * conta, perche' e' l'unico modo di cancellarne una senza rifare la voce.
+ */
+export function campiDellaCosa(bozza, lamenti = LAMENTI_CALENDARIO) {
+  const dette = { ...LAMENTI_CALENDARIO, ...(lamenti || {}) };
+  const titolo = clean(bozza?.summary);
+  if (!clean(bozza?.entity)) return { errore: dette.calendario };
+  if (!titolo) return { errore: dette.titolo };
+  const giorno = clean(bozza?.giornoScadenza);
+  const ora = clean(bozza?.oraScadenza);
+  const campi = { item: titolo, description: clean(bozza?.description) || null };
+  if (!giorno) {
+    /* Senza giorno la scadenza si toglie: `null` e non «campo assente», o una
+     * voce che ce l'aveva se la terrebbe. */
+    campi.due_date = null;
+  } else if (ora) {
+    const istante = istanteDaCaselle(giorno, ora);
+    if (istante === null) return { errore: dette.quando };
+    campi.due_datetime = `${giorno}T${ora}:00`;
+  } else {
+    if (istanteDaCaselle(giorno, "00:00") === null) return { errore: dette.quando };
+    campi.due_date = giorno;
+  }
+  return { campi };
+}
+
 /* ── come si dice ─────────────────────────────────────────────────────── */
 
 /* Le parole che questo modulo mette in mezzo ai numeri.
