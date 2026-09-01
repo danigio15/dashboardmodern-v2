@@ -22,18 +22,14 @@
           "register_lovelace_dashboard": "Zarejestruj także jako panel Home Assistant",
           "admin_only": "Widoczny tylko dla administratorów",
           "check_updates": "Sprawdzaj nowe wersje",
-          "tickets_enabled": "Zgłoszenia z panelu",
-          "ticket_endpoint": "Adres usługi zgłoszeń",
-          "maintainer_token": "Klucz konsoli opiekuna"
+          "tickets_enabled": "Zgłoszenia z panelu"
         },
         "data_description": {
           "allowed_users": "Tylko filtr widoczności interfejsu. Dane i usługi nadal podlegają uprawnieniom Home Assistant.",
           "register_lovelace_dashboard": "Panel powstaje przy pierwszym otwarciu przez administratora.",
           "admin_only": "Natywny filtr Home Assistant; dla kont bez uprawnień administratora ma pierwszeństwo.",
           "check_updates": "Co pół godziny pyta GitHuba, czy jest nowsze wydanie, i pokazuje je w Ustawienia → Aktualizacje. Wyłącz, aby panel w ogóle nie łączył się z internetem; sam pulpit tego nie potrzebuje.",
-          "tickets_enabled": "Pozwala każdemu, kto korzysta z panelu, zgłosić błąd, propozycję funkcji lub prośbę o pomoc bez wychodzenia z niego. Wyłączone — nic nie jest wysyłane; już napisane zgłoszenia pozostają czytelne w domu.",
-          "ticket_endpoint": "Puste oznacza adres wbudowany. Akceptowany jest wyłącznie https. Zgłoszenia zostają w domu, dopóki usługa ich nie przyjmie.",
-          "maintainer_token": "Tylko dla osoby prowadzącej kolejkę: włącza konsolę pokazującą zgłoszenia ze wszystkich instalacji. Klucz nigdy nie opuszcza Home Assistanta."
+          "tickets_enabled": "Pozwala każdemu, kto korzysta z panelu, zgłosić błąd, zaproponować pomysł lub poprosić o pomoc bez wychodzenia z niego. Zgłoszenie staje się publicznym issue na GitHubie, otwartym w jego imieniu — na tym samym koncie, o które poprosił już HACS. Wyłączone — nic nie opuszcza domu."
         }
       }
     }

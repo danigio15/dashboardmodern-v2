@@ -23,20 +23,18 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.dashboardmodern.const import (
-    DOMAIN,
-    OPTION_MAINTAINER_TOKEN,
-    OPTION_TICKET_ENDPOINT,
-    OPTION_TICKETS_ENABLED,
-)
+from custom_components.dashboardmodern import github_client
+from custom_components.dashboardmodern.const import DOMAIN, OPTION_TICKETS_ENABLED
+from custom_components.dashboardmodern.github_tokens import async_get_token_store
 from custom_components.dashboardmodern.ticket_store import (
     STATE_DRAFT,
     TYPE_BUG,
     TYPE_SUPPORT,
-    async_get_ticket_store,
 )
 from custom_components.dashboardmodern.websocket_api import (
     TYPE_TICKET_ANSWER,
+    TYPE_TICKET_AUTH_FORGET,
+    TYPE_TICKET_AUTH_START,
     TYPE_TICKET_CREATE,
     TYPE_TICKET_DELETE,
     TYPE_TICKET_LIST,
@@ -120,10 +118,33 @@ async def _refused(
 
 
 @pytest.fixture(autouse=True)
-def _commands(hass: HomeAssistant) -> None:
-    """Registra i comandi una volta per prova."""
+def _commands(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Registra i comandi, e fingi che l'autorizzazione sia configurata.
+
+    Senza `client_id` l'integrazione non parla con GitHub — che e' il
+    comportamento giusto di serie — e meta' di quello che si prova qui non si
+    vedrebbe affatto.
+    """
     hass.data.setdefault(websocket_api.const.DOMAIN, {})
+    monkeypatch.setattr(github_client, "configured", lambda: True)
+
+    async def _mai_sulla_rete(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        raise AssertionError("una prova dei comandi non deve chiamare GitHub")
+
+    # La porta verso GitHub e' una sola, e qui si tappa per tutte: quello che
+    # si prova in questo file sono i comandi, non il trasporto.
+    monkeypatch.setattr(github_client, "_request", _mai_sulla_rete)
     async_register_websocket_api(hass)
+
+
+async def _collega(
+    hass: HomeAssistant, user_id: str, *, maintainer: bool = False
+) -> None:
+    """Fingi che questo utente abbia gia' fatto il giro su github.com."""
+    store = await async_get_token_store(hass)
+    await store.async_remember(
+        user_id, token=f"gho_{user_id}", login=f"{user_id}-hub", maintainer=maintainer
+    )
 
 
 def _entry(hass: HomeAssistant, **options: Any) -> MockConfigEntry:
@@ -147,39 +168,51 @@ async def test_una_segnalazione_si_apre_dalla_plancia(hass: HomeAssistant) -> No
     creata = await _command(hass, StubConnection(hass), _NUOVA, 1)
     assert creata["ticket"]["title"] == "Le tapparelle non si fermano"
     assert creata["ticket"]["state"] == STATE_DRAFT
-    # Nessun indirizzo configurato: non e' partito niente, e viene detto.
+    # La plancia saprebbe spedire, ma chi scrive non ha collegato il proprio
+    # account: la segnalazione resta scritta, e non e' partito niente.
     assert creata["delivered"] is False
 
     elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 2)
     assert [ticket["id"] for ticket in elenco["tickets"]] == [creata["ticket"]["id"]]
-    assert elenco["delivery"] is False
+    assert elenco["delivery"] is True
+    assert elenco["account"]["connected"] is False
 
 
-async def test_senza_indirizzo_la_plancia_lo_dice(hass: HomeAssistant) -> None:
+async def test_senza_autorizzazione_la_plancia_lo_dice(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Un tasto «invia» che non spedisce e' peggio di un tasto assente."""
-    _entry(hass, **{OPTION_TICKET_ENDPOINT: ""})
-    elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 1)
-    assert elenco["delivery"] is False
-
-
-async def test_un_indirizzo_in_chiaro_non_vale(hass: HomeAssistant) -> None:
-    """Quello che l'utente scrive a una persona sola non viaggia in chiaro."""
-    _entry(hass, **{OPTION_TICKET_ENDPOINT: "http://relay.example.com"})
+    _entry(hass)
+    monkeypatch.setattr(github_client, "configured", lambda: False)
     elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 1)
     assert elenco["delivery"] is False
 
 
 async def test_spegnendole_non_parte_niente(hass: HomeAssistant) -> None:
     """Chi non vuole che la plancia parli fuori casa ha un interruttore."""
-    _entry(
-        hass,
-        **{
-            OPTION_TICKET_ENDPOINT: "https://relay.example.com",
-            OPTION_TICKETS_ENABLED: False,
-        },
-    )
+    _entry(hass, **{OPTION_TICKETS_ENABLED: False})
     elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 1)
     assert elenco["delivery"] is False
+
+
+async def test_l_elenco_dice_chi_ha_collegato_l_account(
+    hass: HomeAssistant,
+) -> None:
+    """La finestra deve sapere se offrire «invia» o «collega GitHub»."""
+    _entry(hass)
+    scollegato = await _command(
+        hass, StubConnection(hass, user_id="anna"), {"type": TYPE_TICKET_LIST}, 1
+    )
+    assert scollegato["account"] == {
+        "connected": False,
+        "login": "",
+        "maintainer": False,
+    }
+    await _collega(hass, "anna")
+    collegato = await _command(
+        hass, StubConnection(hass, user_id="anna"), {"type": TYPE_TICKET_LIST}, 2
+    )
+    assert collegato["account"]["login"] == "anna-hub"
 
 
 async def test_ognuno_vede_le_proprie(hass: HomeAssistant) -> None:
@@ -252,11 +285,12 @@ async def test_nessuno_cancella_quella_di_un_altro(hass: HomeAssistant) -> None:
     assert code == "not_found"
 
 
-async def test_la_console_chiede_amministratore_e_chiave(
+async def test_la_console_chiede_amministratore_e_permessi(
     hass: HomeAssistant,
 ) -> None:
     """Due cose insieme: nessuna delle due, da sola, apre la coda di tutti."""
     _entry(hass)
+    await _collega(hass, "anna", maintainer=True)
     code, _ = await _refused(
         hass,
         StubConnection(hass, is_admin=False, user_id="anna"),
@@ -265,35 +299,36 @@ async def test_la_console_chiede_amministratore_e_chiave(
     )
     assert code == websocket_api.const.ERR_UNAUTHORIZED
 
-    # Amministratore di casa propria, ma senza chiave: non e' la console.
+    # Amministratore di casa propria, ma senza permessi sulla repository:
+    # non e' la console.
+    await _collega(hass, "user-1", maintainer=False)
     code, _ = await _refused(hass, StubConnection(hass), {"type": TYPE_TICKET_QUEUE}, 2)
     assert code == "not_console"
 
 
-async def test_senza_chiave_non_si_risponde_a_nessuno(hass: HomeAssistant) -> None:
+async def test_senza_permessi_non_si_risponde_a_nessuno(
+    hass: HomeAssistant,
+) -> None:
     """Anche la risposta passa dallo stesso cancello della coda."""
     _entry(hass)
     code, _ = await _refused(
         hass,
         StubConnection(hass),
-        {"type": TYPE_TICKET_ANSWER, "remote_id": "R-1", "state": "in-carico"},
+        {"type": TYPE_TICKET_ANSWER, "number": 1, "reply": "Ciao"},
         1,
     )
     assert code == "not_console"
 
 
-async def test_la_console_si_accende_con_la_chiave(hass: HomeAssistant) -> None:
-    """Con la chiave configurata, la plancia sa di essere la console."""
-    _entry(
-        hass,
-        **{
-            OPTION_MAINTAINER_TOKEN: "chiave-segreta",
-            OPTION_TICKET_ENDPOINT: "https://relay.example.com",
-        },
-    )
+async def test_la_console_si_accende_con_i_permessi(hass: HomeAssistant) -> None:
+    """Lo dice GitHub, non una chiave incollata nelle opzioni."""
+    _entry(hass)
+    await _collega(hass, "user-1", maintainer=True)
     elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 1)
     assert elenco["console"] is True
-    # E per chi non amministra resta spenta, chiave o non chiave.
+
+    # E per chi non amministra Home Assistant resta spenta, permessi o no.
+    await _collega(hass, "anna", maintainer=True)
     altro = await _command(
         hass,
         StubConnection(hass, is_admin=False, user_id="anna"),
@@ -303,25 +338,40 @@ async def test_la_console_si_accende_con_la_chiave(hass: HomeAssistant) -> None:
     assert altro["console"] is False
 
 
-async def test_la_chiave_non_esce_mai_verso_il_browser(hass: HomeAssistant) -> None:
-    """Nessuna risposta di questi comandi contiene la chiave, in nessuna forma."""
-    _entry(
-        hass,
-        **{
-            OPTION_MAINTAINER_TOKEN: "chiave-segreta",
-            OPTION_TICKET_ENDPOINT: "https://relay.example.com",
-        },
-    )
-    elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 1)
-    assert "chiave-segreta" not in repr(elenco)
-    assert elenco["console"] is True
-
-
-async def test_l_identificativo_non_esce_verso_il_browser(
+async def test_il_gettone_non_esce_mai_verso_il_browser(
     hass: HomeAssistant,
 ) -> None:
-    """Serve al relay per raggruppare, non alla plancia per mostrarlo."""
-    await _command(hass, StubConnection(hass), _NUOVA, 1)
-    store = await async_get_ticket_store(hass)
-    elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 2)
-    assert store.installation_id not in repr(elenco)
+    """Nessuna risposta di questi comandi contiene il gettone, in nessuna forma."""
+    _entry(hass)
+    await _collega(hass, "user-1", maintainer=True)
+    elenco = await _command(hass, StubConnection(hass), {"type": TYPE_TICKET_LIST}, 1)
+    assert "gho_user-1" not in repr(elenco)
+    assert elenco["account"]["login"] == "user-1-hub"
+
+
+async def test_scollegare_dimentica_il_proprio_account(
+    hass: HomeAssistant,
+) -> None:
+    """E ognuno scollega il proprio, non quello di un altro."""
+    _entry(hass)
+    await _collega(hass, "anna")
+    anna = StubConnection(hass, is_admin=False, user_id="anna")
+    assert await _command(hass, anna, {"type": TYPE_TICKET_AUTH_FORGET}, 1) == {
+        "removed": True
+    }
+    elenco = await _command(hass, anna, {"type": TYPE_TICKET_LIST}, 2)
+    assert elenco["account"]["connected"] is False
+
+
+async def test_chi_non_puo_usare_la_plancia_non_collega_niente(
+    hass: HomeAssistant,
+) -> None:
+    """Il cancello dell'autorizzazione e' lo stesso di tutti gli altri comandi."""
+    _entry(hass, admin_only=True)
+    code, _ = await _refused(
+        hass,
+        StubConnection(hass, is_admin=False, user_id="ospite"),
+        {"type": TYPE_TICKET_AUTH_START},
+        1,
+    )
+    assert code == websocket_api.const.ERR_UNAUTHORIZED

@@ -70,4 +70,3 @@ jobs:
           npm run check:i18n
           npm run format:check
           npm run test:frontend
-          npm run test:relay

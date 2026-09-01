@@ -330,12 +330,22 @@ class TicketStore:
         await self._async_save()
         return public_ticket(ticket)
 
-    async def async_mark_sent(self, ticket_id: str, remote_id: str) -> bool:
-        """Segna che il ticket e' arrivato dall'altra parte."""
+    async def async_mark_sent(
+        self, ticket_id: str, remote_id: str, *, issue_url: str = ""
+    ) -> bool:
+        """Segna che il ticket e' arrivato dall'altra parte.
+
+        ``remote_id`` e' il numero della issue, e ``issue_url`` il suo
+        indirizzo: si sanno tutti e due nello stesso istante, quando GitHub
+        risponde, e tenerli separati vorrebbe dire una seconda scrittura per
+        un dato che era gia' in mano.
+        """
         ticket = self._find(ticket_id)
         if ticket is None:
             return False
         ticket["remote_id"] = str(remote_id or "")
+        if issue_url.startswith("https://github.com/"):
+            ticket["issue_url"] = issue_url[:400]
         ticket["state"] = STATE_SENT
         ticket["delivery_error"] = ""
         ticket["updated_at"] = _now_ms()

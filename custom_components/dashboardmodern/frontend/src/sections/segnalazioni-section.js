@@ -28,6 +28,11 @@ const state = (root[KEY] ||= {
   tickets: [],
   delivery: false,
   console: false,
+  account: { connected: false, login: "", maintainer: false },
+  /* Il giro dell'autorizzazione, mentre e' in corso: il codice da digitare,
+   * l'attesa che GitHub ha chiesto, e il timer che sta interrogando. */
+  auth: null,
+  authTimer: 0,
   queue: null,
   tab: "nuova",
   tipo: "bug",
@@ -42,6 +47,9 @@ const WS_DELETE = "dashboardmodern/tickets/delete";
 const WS_SYNC = "dashboardmodern/tickets/sync";
 const WS_QUEUE = "dashboardmodern/tickets/queue";
 const WS_ANSWER = "dashboardmodern/tickets/answer";
+const WS_AUTH_START = "dashboardmodern/tickets/auth/start";
+const WS_AUTH_POLL = "dashboardmodern/tickets/auth/poll";
+const WS_AUTH_FORGET = "dashboardmodern/tickets/auth/forget";
 
 /* Esportati perche' una prova li tenga accanto all'allowlist del ponte. Un
  * tipo non elencato la' non arriva a Home Assistant e la finestra risponde
@@ -54,6 +62,9 @@ export const WS_TYPES = Object.freeze([
   WS_SYNC,
   WS_QUEUE,
   WS_ANSWER,
+  WS_AUTH_START,
+  WS_AUTH_POLL,
+  WS_AUTH_FORGET,
 ]);
 
 /* Le sole chiavi che questa finestra puo' mettere nella diagnostica. Il
@@ -145,6 +156,146 @@ async function diagnostica() {
   );
 }
 
+/* ─── Il collegamento a GitHub ─────────────────────────────────────────────
+ *
+ * Lo stesso identico giro che HACS fa gia' fare a chiunque installi questa
+ * plancia: un codice da digitare su github.com/login/device. Chi e' arrivato
+ * fin qui l'ha gia' fatto una volta, e lo riconosce — ed e' la ragione per cui
+ * le segnalazioni non hanno bisogno di nessun servizio di mezzo.
+ *
+ * Il gettone non passa mai da qui. Da questa parte si sa chi ha autorizzato e
+ * se e' lui a tenere la repository; il resto lo tiene il backend. */
+
+function statoCollegamento() {
+  if (!state.delivery) {
+    return `<div class="dm-tkt-avviso">${esc(
+      t(
+        "L'invio non e' configurato su questa plancia: la segnalazione resta qui e partira' da sola quando lo sara'.",
+        "Sending is not configured on this dashboard: the report stays here and will be sent on its own once it is.",
+      ),
+    )}</div>`;
+  }
+  if (state.auth) {
+    return `
+      <div class="dm-tkt-avviso dm-tkt-device">
+        <div>${esc(
+          t(
+            "Apri github.com/login/device e digita questo codice:",
+            "Open github.com/login/device and type this code:",
+          ),
+        )}</div>
+        <div class="dm-tkt-codice">${esc(state.auth.user_code)}</div>
+        <div class="dm-tkt-azioni">
+          <a class="dm-tkt-btn" href="${esc(state.auth.verification_uri)}"
+             target="_blank" rel="noreferrer noopener">${esc(
+               t("Apri GitHub", "Open GitHub"),
+             )}</a>
+          <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="annulla">${esc(
+            t("Annulla", "Cancel"),
+          )}</button>
+        </div>
+      </div>`;
+  }
+  if (state.account.connected) {
+    return `
+      <div class="dm-tkt-avviso dm-tkt-collegato">
+        <span>${esc(t("Collegato come", "Connected as"))} <b>${esc(
+          state.account.login,
+        )}</b></span>
+        <button type="button" class="dm-tkt-tolgi" data-dm-tkt="scollega">${esc(
+          t("Scollega", "Disconnect"),
+        )}</button>
+      </div>`;
+  }
+  return `
+    <div class="dm-tkt-avviso">
+      <div>${esc(
+        t(
+          "Per inviare serve il tuo account GitHub: lo stesso che ti ha gia' chiesto HACS, con lo stesso codice da digitare.",
+          "Sending needs your GitHub account: the same one HACS already asked you for, with the same code to type.",
+        ),
+      )}</div>
+      <div class="dm-tkt-azioni">
+        <button type="button" class="dm-tkt-btn" data-dm-tkt="collega">${esc(
+          t("Collega GitHub", "Connect GitHub"),
+        )}</button>
+      </div>
+    </div>`;
+}
+
+async function collega() {
+  state.avviso = "";
+  try {
+    const avvio = await chiedi(WS_AUTH_START);
+    state.auth = avvio;
+    disegna();
+    attendiAutorizzazione(avvio);
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+    disegna();
+  }
+}
+
+function fermaAttesa() {
+  if (state.authTimer) root.clearTimeout?.(state.authTimer);
+  state.authTimer = 0;
+}
+
+/* L'attesa la decide GitHub, non noi: `interval` arriva nella risposta, e
+ * `slow_down` lo allunga. Insistere piu' in fretta si paga con un rifiuto. */
+function attendiAutorizzazione(avvio) {
+  fermaAttesa();
+  const scadenza = Date.now() + (Number(avvio.expires_in) || 900) * 1000;
+  const giro = async (attesa) => {
+    if (!state.auth || Date.now() > scadenza) {
+      state.auth = null;
+      state.avviso = `!${t("Il codice e' scaduto: riprova.", "The code expired: try again.")}`;
+      disegna();
+      return;
+    }
+    try {
+      const risposta = await chiedi(WS_AUTH_POLL, { device_code: avvio.device_code });
+      if (risposta?.pending) {
+        const prossima = Math.max(Number(risposta.interval) || attesa, 1) * 1000;
+        state.authTimer = root.setTimeout?.(() => giro(prossima / 1000), prossima);
+        return;
+      }
+      state.auth = null;
+      if (risposta?.account) state.account = risposta.account;
+      state.avviso = risposta?.delivered
+        ? t("Collegato. Le segnalazioni in attesa sono partite.", "Connected. Pending reports were sent.")
+        : t("Collegato.", "Connected.");
+      await ricarica();
+    } catch (errore) {
+      state.auth = null;
+      state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+      disegna();
+    }
+  };
+  const attesa = Math.max(Number(avvio.interval) || 5, 1);
+  state.authTimer = root.setTimeout?.(() => giro(attesa), attesa * 1000);
+}
+
+function annullaCollegamento() {
+  fermaAttesa();
+  state.auth = null;
+  disegna();
+}
+
+async function scollega() {
+  fermaAttesa();
+  try {
+    await chiedi(WS_AUTH_FORGET);
+    state.avviso = t(
+      "Scollegato da qui. Per revocare del tutto l'accesso, toglilo anche dalle applicazioni autorizzate su github.com.",
+      "Disconnected here. To revoke access entirely, remove it from your authorized apps on github.com too.",
+    );
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+  }
+  await ricarica();
+}
+
 /* ─── Il foglio di stile ───────────────────────────────────────────────── */
 
 const CSS = `
@@ -213,6 +364,16 @@ const CSS = `
   color:var(--text-dim,#64748b); font-size:11px; font-weight:700; text-decoration:underline; }
 .dm-tkt-vuoto { padding:26px 10px; text-align:center; font-size:13px;
   color:var(--text-dim,#64748b); }
+.dm-tkt-pubblica { padding:10px 13px; border-radius:13px; font-size:12px;
+  line-height:1.45; background:rgba(249,115,22,0.12); color:var(--text,#0f172a); }
+.dm-tkt-device { display:flex; flex-direction:column; gap:10px; }
+.dm-tkt-codice { font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:26px; font-weight:800; letter-spacing:4px; text-align:center;
+  padding:10px; border-radius:12px; background:var(--card-bg,#fff);
+  color:var(--text,#0f172a); user-select:all; }
+.dm-tkt-collegato { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  justify-content:space-between; }
+a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
 @media (max-width:520px) { .dm-tkt-tipo { flex-basis:calc(33% - 8px); } }
 `;
 
@@ -285,6 +446,10 @@ export function apri() {
 }
 
 export function chiudi() {
+  /* Chi chiude a meta' autorizzazione non deve lasciare dietro un timer che
+   * continua a chiedere a GitHub per un quarto d'ora. */
+  fermaAttesa();
+  state.auth = null;
   doc?.getElementById?.("dm-tkt-modal")?.classList.remove("show");
 }
 
@@ -294,6 +459,7 @@ async function ricarica() {
     state.tickets = Array.isArray(risposta?.tickets) ? risposta.tickets : [];
     state.delivery = Boolean(risposta?.delivery);
     state.console = Boolean(risposta?.console);
+    if (risposta?.account) state.account = risposta.account;
   } catch (_error) {
     /* La finestra si apre lo stesso: quello che c'e' da scrivere si scrive
      * anche senza aver letto l'elenco, e l'elenco si riprende da solo. */
@@ -338,14 +504,7 @@ function moduloMarkup() {
         <span>${esc(tipo.nome())}</span>
       </button>`,
   ).join("");
-  const avvisoConsegna = state.delivery
-    ? ""
-    : `<div class="dm-tkt-avviso">${esc(
-        t(
-          "Il servizio non e' configurato: la segnalazione resta qui e partira' da sola quando lo sara'.",
-          "The service is not configured: the report stays here and will be sent on its own once it is.",
-        ),
-      )}</div>`;
+  const avvisoConsegna = statoCollegamento();
   return `
     ${avvisoConsegna}
     <div class="dm-tkt-tipi">${tipi}</div>
@@ -376,10 +535,22 @@ function moduloMarkup() {
       <summary>${esc(t("Cosa viene inviato", "What gets sent"))}</summary>
       <dl data-dm-tkt="diag"></dl>
     </details>
+    <div class="dm-tkt-pubblica">${esc(
+      t(
+        "La segnalazione diventa una pagina pubblica su github.com, aperta a tuo nome: chiunque potra' leggerla. Quello che scrivi qui sopra, e la diagnostica, ci finiscono dentro. Il recapito no: quello resta in casa.",
+        "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. What you write above, and the diagnostics, go into it. Your contact does not: that stays at home.",
+      ),
+    )}</div>
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn" data-dm-tkt="invia" ${
         state.busy ? "disabled" : ""
-      }>${esc(state.busy ? t("Invio…", "Sending…") : t("Invia", "Send"))}</button>
+      }>${esc(
+        state.busy
+          ? t("Invio…", "Sending…")
+          : state.account.connected || !state.delivery
+            ? t("Invia", "Send")
+            : t("Salva e collega GitHub", "Save and connect GitHub"),
+      )}</button>
     </div>`;
 }
 
@@ -446,17 +617,10 @@ function consoleMarkup() {
   if (!state.queue.length) {
     return `<div class="dm-tkt-vuoto">${esc(t("Coda vuota.", "The queue is empty."))}</div>`;
   }
-  return `<div class="dm-tkt-elenco">${state.queue
+  const voci = state.queue
     .map((ticket) => {
+      const numero = Number(ticket.number) || 0;
       const tipo = TIPI.find((voce) => voce.id === ticket.type) || TIPI[0];
-      const remoto = esc(clean(ticket.remote_id));
-      const scelte = ["in-carico", "risolto", "chiuso"]
-        .map(
-          (stato) =>
-            `<button type="button" class="dm-tkt-tolgi" data-dm-stato="${stato}"
-              data-dm-remoto="${remoto}">${esc(STATI[stato].nome())}</button>`,
-        )
-        .join("");
       return `
         <div class="dm-tkt-voce">
           <div class="dm-tkt-voce-testa">
@@ -465,10 +629,36 @@ function consoleMarkup() {
             ${statoMarkup(clean(ticket.state) || "inviato")}
           </div>
           <p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>
-          <div class="dm-tkt-voce-pie">${scelte}</div>
+          <div class="dm-tkt-voce-pie">
+            <span>#${numero}</span>
+            <span>${esc(clean(ticket.author))}</span>
+            <a class="dm-tkt-link" href="${esc(clean(ticket.issue_url))}"
+               target="_blank" rel="noreferrer noopener">${esc(
+                 t("Su GitHub", "On GitHub"),
+               )}</a>
+          </div>
+          <div class="dm-tkt-campo">
+            <textarea id="dm-tkt-risposta-${numero}"
+              placeholder="${esc(t("Rispondi…", "Reply…"))}"></textarea>
+          </div>
+          <div class="dm-tkt-azioni">
+            <button type="button" class="dm-tkt-btn chiaro"
+              data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
+                t("Rispondi", "Reply"),
+              )}</button>
+            <button type="button" class="dm-tkt-btn"
+              data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
+                t("Rispondi e risolvi", "Reply and solve"),
+              )}</button>
+            <button type="button" class="dm-tkt-btn chiaro"
+              data-dm-rispondi="${numero}" data-dm-chiudi="chiuso">${esc(
+                t("Archivia", "Archive"),
+              )}</button>
+          </div>
         </div>`;
     })
-    .join("")}</div>`;
+    .join("");
+  return `<div class="dm-tkt-elenco">${voci}</div>`;
 }
 
 function disegna() {
@@ -524,11 +714,16 @@ function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-tolgi]").forEach((bottone) => {
     bottone.addEventListener("click", () => elimina(bottone.dataset.dmTolgi));
   });
-  corpo.querySelectorAll("[data-dm-stato]").forEach((bottone) => {
+  corpo.querySelectorAll("[data-dm-rispondi]").forEach((bottone) => {
     bottone.addEventListener("click", () =>
-      rispondi(bottone.dataset.dmRemoto, bottone.dataset.dmStato),
+      rispondi(bottone.dataset.dmRispondi, bottone.dataset.dmChiudi),
     );
   });
+  corpo.querySelector('[data-dm-tkt="collega"]')?.addEventListener("click", collega);
+  corpo
+    .querySelector('[data-dm-tkt="annulla"]')
+    ?.addEventListener("click", annullaCollegamento);
+  corpo.querySelector('[data-dm-tkt="scollega"]')?.addEventListener("click", scollega);
   const corpoTesto = corpo.querySelector("#dm-tkt-corpo");
   const conta = corpo.querySelector('[data-dm-tkt="conta"]');
   if (corpoTesto && conta) {
@@ -618,15 +813,31 @@ async function caricaCoda() {
   disegna();
 }
 
-async function rispondi(remoteId, stato) {
-  if (!remoteId) return;
+async function rispondi(numero, chiusura) {
+  const issue = Number(numero) || 0;
+  if (!issue) return;
+  const modale = doc?.getElementById?.("dm-tkt-modal");
+  const testo = clean(modale?.querySelector(`#dm-tkt-risposta-${issue}`)?.value);
+  /* Archiviare senza scrivere niente ha senso — «non e' un difetto» — ma
+   * rispondere senza testo no: sarebbe un commento vuoto sotto la
+   * segnalazione di qualcuno. */
+  if (!testo && !chiusura) {
+    state.avviso = `!${t("Scrivi una risposta.", "Write a reply.")}`;
+    disegna();
+    return;
+  }
+  state.busy = true;
+  disegna();
   try {
-    await chiedi(WS_ANSWER, { remote_id: remoteId, state: stato });
+    await chiedi(WS_ANSWER, { number: issue, reply: testo, close: chiusura || "" });
+    state.avviso = t("Risposta pubblicata.", "Reply published.");
     state.queue = null;
-    await caricaCoda();
   } catch (errore) {
     state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
-    disegna();
+  } finally {
+    state.busy = false;
+    if (state.queue === null) await caricaCoda();
+    else disegna();
   }
 }
 
@@ -659,6 +870,8 @@ export function installSegnalazioniSection() {
 
 /** Seme per le prove: dimentica l'installazione e la finestra. */
 export function uninstallSegnalazioniSection() {
+  fermaAttesa();
+  state.auth = null;
   doc?.getElementById?.("dm-tkt-modal")?.remove();
   doc?.getElementById?.("dm-tkt-card")?.remove();
   state.installed = false;

@@ -72,6 +72,9 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "dashboardmodern/tickets/sync",
   "dashboardmodern/tickets/queue",
   "dashboardmodern/tickets/answer",
+  "dashboardmodern/tickets/auth/start",
+  "dashboardmodern/tickets/auth/poll",
+  "dashboardmodern/tickets/auth/forget",
   "auth/sign_path",
 ]);
 

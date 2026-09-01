@@ -1,18 +1,20 @@
 """La consegna delle segnalazioni, e il ritorno delle risposte.
 
-Il mestiere e' tutto qui e non nel browser, per un motivo che il progetto ha
-gia' incontrato: la plancia gira dentro un iframe `about:srcdoc` e non
-possiede nessun token: le sue chiamate REST tornavano 401, ed e' la ragione
-per cui anche il caricamento delle foto e' passato dal WebSocket. Una chiamata
-verso l'esterno partita da li' dovrebbe passare la CSP di Home Assistant e il
-CORS di chi la riceve; partita da qui non incontra ne' l'una ne' l'altro, e in
-piu' la chiave del manutentore resta dove sta — dentro le opzioni del config
-entry, mai dentro un bundle JavaScript che chiunque puo' aprire.
+Una segnalazione aperta dalla plancia diventa una issue di questa stessa
+repository, aperta a nome di chi l'ha scritta. Il manutentore risponde dalla
+sua plancia, la risposta e' un commento sotto la issue, e chi ha segnalato se
+la ritrova nella propria: lo stesso filo, percorso nei due sensi.
 
-Niente di tutto questo e' necessario perche' la plancia funzioni. Senza un
-indirizzo configurato non parte una sola richiesta: le segnalazioni si
-scrivono, si conservano e si rileggono in casa, e la plancia lo dice invece di
-far finta di aver spedito.
+Il mestiere sta qui, in Python, e non nel browser, per una ragione che il
+progetto ha gia' incontrato: la plancia gira in un iframe `about:srcdoc` e non
+possiede nessun token — le sue chiamate REST tornavano 401, ed e' il motivo per
+cui anche il caricamento delle foto passa dal WebSocket. Ma qui c'e' una
+seconda ragione, piu' forte: **il gettone GitHub non deve mai arrivare al
+browser**. Sta nel deposito del backend e viaggia solo verso api.github.com.
+
+Niente di tutto questo e' necessario perche' la plancia funzioni. Senza
+autorizzazione le segnalazioni si scrivono, si conservano e si rileggono in
+casa, e la plancia lo dice invece di far finta di aver spedito.
 """
 
 from __future__ import annotations
@@ -20,15 +22,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-
-from .const import (
-    DOMAIN,
-    OPTION_MAINTAINER_TOKEN,
-    OPTION_TICKET_ENDPOINT,
-    OPTION_TICKETS_ENABLED,
-    TICKET_RELAY_URL,
-)
+from . import github_client
+from .const import DOMAIN, OPTION_TICKETS_ENABLED, TICKET_SYNC_BATCH
+from .github_client import GitHubError
+from .github_tokens import async_get_token_store
 from .ticket_store import STATE_DRAFT, async_get_ticket_store
 
 if TYPE_CHECKING:
@@ -39,20 +36,7 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-#: Venti secondi: la stessa pazienza che il controllo aggiornamenti concede a
-#: GitHub. Oltre, chi ha aperto la segnalazione ha gia' smesso di guardare.
-_TIMEOUT = 20
-
-#: Il tetto sulla risposta del relay. Non e' diffidenza verso il proprio
-#: servizio: e' che un servizio raggiungibile da fuori casa non deve poter
-#: decidere quanta memoria occupa dentro casa.
-_MAX_RESPONSE_BYTES = 256 * 1024
-
 DATA_TICKET_UNSUB = "ticket_sync_unsub"
-
-
-class RelayUnavailable(RuntimeError):
-    """Il relay non e' configurato, e' spento o non ha risposto."""
 
 
 def _primary_options(hass: HomeAssistant) -> Mapping[str, Any]:
@@ -70,158 +54,159 @@ def _primary_options(hass: HomeAssistant) -> Mapping[str, Any]:
     return {}
 
 
-def relay_endpoint(hass: HomeAssistant) -> str:
-    """L'indirizzo del relay, o stringa vuota se non se ne parla."""
-    options = _primary_options(hass)
-    if not options.get(OPTION_TICKETS_ENABLED, True):
-        return ""
-    endpoint = str(options.get(OPTION_TICKET_ENDPOINT) or TICKET_RELAY_URL or "")
-    endpoint = endpoint.strip().rstrip("/")
-    # Solo HTTPS. Un endpoint in chiaro porterebbe fuori casa, su una rete che
-    # non e' la propria, quello che l'utente ha scritto pensando di scriverlo a
-    # una persona sola.
-    if not endpoint.startswith("https://"):
-        return ""
-    return endpoint
+def enabled(hass: HomeAssistant) -> bool:
+    """Se questa installazione parla con GitHub per le segnalazioni."""
+    if not _primary_options(hass).get(OPTION_TICKETS_ENABLED, True):
+        return False
+    return github_client.configured()
 
 
-def maintainer_token(hass: HomeAssistant) -> str:
-    """La chiave della console, se questa installazione e' quella di chi scrive."""
-    return str(_primary_options(hass).get(OPTION_MAINTAINER_TOKEN) or "").strip()
+# ─── L'autorizzazione ────────────────────────────────────────────────────────
 
 
-async def _post(
-    hass: HomeAssistant,
-    path: str,
-    payload: dict[str, Any],
-    *,
-    token: str = "",
+async def async_begin_auth(hass: HomeAssistant) -> dict[str, Any]:
+    """Chiedi il codice che l'utente andra' a digitare su github.com."""
+    if not enabled(hass):
+        raise GitHubError("disabled", "Le segnalazioni sono spente su questa plancia.")
+    return await github_client.async_start_device_flow(hass)
+
+
+async def async_finish_auth(
+    hass: HomeAssistant, *, user_id: str, device_code: str
 ) -> dict[str, Any]:
-    """Una richiesta al relay, con la risposta letta come JSON e con un tetto."""
-    endpoint = relay_endpoint(hass)
-    if not endpoint:
-        raise RelayUnavailable("Nessun indirizzo configurato per le segnalazioni.")
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    session = async_get_clientsession(hass)
-    try:
-        async with session.post(
-            f"{endpoint}{path}", json=payload, headers=headers, timeout=_TIMEOUT
-        ) as answer:
-            corpo = await answer.content.read(_MAX_RESPONSE_BYTES + 1)
-            if len(corpo) > _MAX_RESPONSE_BYTES:
-                raise RelayUnavailable("Risposta troppo grande.")
-            if answer.status == 429:
-                raise RelayUnavailable("Troppe segnalazioni: riprova piu' tardi.")
-            if answer.status >= 400:
-                raise RelayUnavailable(f"Il servizio ha risposto {answer.status}.")
-            import json
-
-            try:
-                letta = json.loads(corpo or b"{}")
-            except ValueError as errore:
-                raise RelayUnavailable("Risposta illeggibile.") from errore
-            return letta if isinstance(letta, dict) else {}
-    except RelayUnavailable:
-        raise
-    except Exception as errore:  # noqa: BLE001 - rete: ogni guasto e' lo stesso
-        raise RelayUnavailable("Servizio non raggiungibile.") from errore
+    """Ritira il gettone e ricordalo. Solleva ``DevicePending`` se non e' pronto."""
+    if not enabled(hass):
+        raise GitHubError("disabled", "Le segnalazioni sono spente su questa plancia.")
+    token = await github_client.async_poll_device_flow(hass, device_code)
+    chi = await github_client.async_whoami(hass, token)
+    store = await async_get_token_store(hass)
+    return await store.async_remember(
+        user_id, token=token, login=chi["login"], maintainer=chi["maintainer"]
+    )
 
 
-async def async_deliver_pending(hass: HomeAssistant) -> int:
-    """Prova a consegnare le bozze. Torna quante ne sono partite.
+async def async_forget_auth(hass: HomeAssistant, user_id: str) -> bool:
+    """Dimentica il gettone di questo utente."""
+    store = await async_get_token_store(hass)
+    return await store.async_forget(user_id)
+
+
+# ─── La consegna ─────────────────────────────────────────────────────────────
+
+
+async def async_deliver_pending(hass: HomeAssistant, *, user_id: str = "") -> int:
+    """Apri le issue delle bozze. Torna quante ne sono partite.
+
+    Ognuno consegna le proprie: la issue nasce a nome di chi l'ha scritta, e
+    non del primo utente della casa che si e' autorizzato. Una bozza di chi non
+    ha ancora autorizzato resta bozza — non e' un guasto, e' che manca la firma.
 
     Un fallimento non e' un errore da registro: la rete di casa va e viene, e
     ripetere lo stesso avviso ogni mezz'ora e' rumore. Resta scritto sul
     ticket, dove chi l'ha aperto lo puo' leggere.
     """
-    if not relay_endpoint(hass):
+    if not enabled(hass):
         return 0
-    store = await async_get_ticket_store(hass)
+    tickets = await async_get_ticket_store(hass)
+    gettoni = await async_get_token_store(hass)
     partiti = 0
-    for ticket in store.pending():
-        payload = {
-            "installation": store.installation_id,
-            "type": ticket["type"],
-            "title": ticket["title"],
-            "body": ticket["body"],
-            "contact": ticket["contact"],
-            "diagnostics": ticket["diagnostics"],
-        }
+    for ticket in tickets.pending():
+        autore = str(ticket.get("opened_by") or "")
+        if user_id and autore != user_id:
+            continue
+        token = gettoni.token(autore)
+        if not token:
+            await tickets.async_mark_failed(
+                ticket["id"], "Collega GitHub per inviare questa segnalazione."
+            )
+            continue
         try:
-            risposta = await _post(hass, "/ticket", payload)
-        except RelayUnavailable as errore:
-            await store.async_mark_failed(ticket["id"], str(errore))
+            aperta = await github_client.async_create_issue(hass, token, ticket)
+        except GitHubError as errore:
+            await tickets.async_mark_failed(ticket["id"], str(errore))
             continue
-        remote_id = str(risposta.get("id") or "")
-        if not remote_id:
-            await store.async_mark_failed(ticket["id"], "Il servizio non ha risposto.")
-            continue
-        await store.async_mark_sent(ticket["id"], remote_id)
+        await tickets.async_mark_sent(
+            ticket["id"], str(aperta["number"]), issue_url=aperta["url"]
+        )
         partiti += 1
     return partiti
 
 
 async def async_sync_states(hass: HomeAssistant) -> int:
-    """Chiedi che fine hanno fatto i ticket gia' partiti. Torna quanti sono cambiati."""
-    if not relay_endpoint(hass):
+    """Vai a vedere che fine hanno fatto le segnalazioni gia' aperte."""
+    if not enabled(hass):
         return 0
-    store = await async_get_ticket_store(hass)
-    identificativi = store.remote_ids()
-    if not identificativi:
+    tickets = await async_get_ticket_store(hass)
+    numeri = tickets.remote_ids()[:TICKET_SYNC_BATCH]
+    if not numeri:
         return 0
-    try:
-        risposta = await _post(
-            hass,
-            "/sync",
-            {"installation": store.installation_id, "ids": identificativi},
-        )
-    except RelayUnavailable:
-        return 0
-    aggiornamenti = risposta.get("tickets")
-    if not isinstance(aggiornamenti, list):
-        return 0
-    return await store.async_merge_remote(aggiornamenti)
+    gettoni = await async_get_token_store(hass)
+    token = gettoni.any_token()
+    aggiornamenti: list[dict[str, Any]] = []
+    for numero in numeri:
+        try:
+            letta = await github_client.async_read_issue(hass, int(numero), token=token)
+        except (GitHubError, ValueError):
+            # Una issue cancellata o irraggiungibile non ferma le altre.
+            continue
+        aggiornamenti.append({**letta, "remote_id": str(letta["number"])})
+    return await tickets.async_merge_remote(aggiornamenti)
 
 
-async def async_fetch_queue(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """La coda del manutentore. Senza chiave non si chiede nemmeno."""
-    token = maintainer_token(hass)
-    if not token:
-        raise RelayUnavailable("Questa installazione non e' la console.")
-    risposta = await _post(hass, "/queue", {}, token=token)
-    coda = risposta.get("tickets")
-    return coda if isinstance(coda, list) else []
+# ─── La console ──────────────────────────────────────────────────────────────
 
 
-async def async_answer_ticket(
+async def async_console_token(hass: HomeAssistant, user_id: str) -> str:
+    """Il gettone di chi apre la console, se ha i permessi per averla.
+
+    Non basta amministrare Home Assistant: bisogna poter scrivere sulla
+    repository, e quello lo dice GitHub. Cosi' la console si accende da sola
+    sulla plancia giusta, senza nessuna chiave da incollare da nessuna parte.
+    """
+    gettoni = await async_get_token_store(hass)
+    if not gettoni.is_maintainer(user_id):
+        raise GitHubError("not_console", "Questa installazione non e' la console.")
+    return gettoni.token(user_id)
+
+
+async def async_queue(hass: HomeAssistant, user_id: str) -> list[dict[str, Any]]:
+    """Le segnalazioni nate dalla plancia, viste da chi tiene la repository."""
+    token = await async_console_token(hass, user_id)
+    return await github_client.async_queue(hass, token)
+
+
+async def async_answer(
     hass: HomeAssistant,
     *,
-    remote_id: str,
-    state: str = "",
+    user_id: str,
+    number: int,
     reply: str = "",
-    promote: bool = False,
+    close: str = "",
 ) -> dict[str, Any]:
-    """Rispondi, cambia stato, o promuovi a issue pubblica. Solo dalla console."""
-    token = maintainer_token(hass)
-    if not token:
-        raise RelayUnavailable("Questa installazione non e' la console.")
-    return await _post(
-        hass,
-        "/answer",
-        {
-            "remote_id": remote_id,
-            "state": state,
-            "reply": reply,
-            "promote": bool(promote),
-        },
-        token=token,
-    )
+    """Rispondi sotto la segnalazione, e se serve chiudila.
+
+    La risposta e' un commento su GitHub: la vede chi ha segnalato, dentro la
+    sua plancia al primo giro di sync, e la vede chiunque passi dalla issue.
+    Un posto solo, non due da tenere allineati.
+    """
+    token = await async_console_token(hass, user_id)
+    fatto: dict[str, Any] = {"commented": False, "closed": False}
+    if reply.strip():
+        await github_client.async_comment(hass, token, number, reply.strip())
+        fatto["commented"] = True
+    if close in {"risolto", "chiuso"}:
+        await github_client.async_close_issue(
+            hass, token, number, planned=close == "risolto"
+        )
+        fatto["closed"] = True
+    return fatto
+
+
+# ─── Il giro periodico ───────────────────────────────────────────────────────
 
 
 async def _async_tick(hass: HomeAssistant) -> None:
-    """Il giro periodico: prima le bozze arretrate, poi le risposte."""
+    """Prima le bozze arretrate, poi le risposte."""
     try:
         await async_deliver_pending(hass)
         await async_sync_states(hass)
@@ -238,6 +223,7 @@ async def async_setup_tickets(hass: HomeAssistant, entry: ConfigEntry) -> None:
     from .const import TICKET_SYNC_INTERVAL
 
     await async_get_ticket_store(hass)
+    await async_get_token_store(hass)
     domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
     if domain_data.get(DATA_TICKET_UNSUB) is not None:
         return
@@ -262,12 +248,14 @@ def _async_teardown(hass: HomeAssistant) -> None:
 
 __all__ = [
     "STATE_DRAFT",
-    "RelayUnavailable",
-    "async_answer_ticket",
+    "GitHubError",
+    "async_answer",
+    "async_begin_auth",
     "async_deliver_pending",
-    "async_fetch_queue",
+    "async_finish_auth",
+    "async_forget_auth",
+    "async_queue",
     "async_setup_tickets",
     "async_sync_states",
-    "maintainer_token",
-    "relay_endpoint",
+    "enabled",
 ]

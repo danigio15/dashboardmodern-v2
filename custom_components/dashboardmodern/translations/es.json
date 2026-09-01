@@ -22,18 +22,14 @@
           "register_lovelace_dashboard": "Registrar también como panel de Home Assistant",
           "admin_only": "Visible solo para administradores",
           "check_updates": "Buscar versiones nuevas",
-          "tickets_enabled": "Informes desde el panel",
-          "ticket_endpoint": "Dirección del servicio de informes",
-          "maintainer_token": "Clave de la consola de mantenimiento"
+          "tickets_enabled": "Informes desde el panel"
         },
         "data_description": {
           "allowed_users": "Solo es un filtro de visibilidad de la interfaz. Los datos y los servicios siguen sujetos a los permisos de Home Assistant.",
           "register_lovelace_dashboard": "El panel se crea la primera vez que un administrador abre DashboardModern.",
           "admin_only": "Filtro nativo de Home Assistant; prevalece para las cuentas que no son de administrador.",
           "check_updates": "Pregunta a GitHub cada media hora si hay una versión más reciente y la muestra en Ajustes → Actualizaciones. Desactívalo para que el panel no salga a internet; el tablero no lo necesita.",
-          "tickets_enabled": "Permite a quien usa el panel abrir un informe de error, una petición de función o una solicitud de ayuda sin salir de él. Apagado, no se envía nada; los informes ya escritos siguen siendo legibles en casa.",
-          "ticket_endpoint": "Vacío significa la dirección incorporada. Solo se acepta https. Los informes se quedan en casa hasta que el servicio los acepta.",
-          "maintainer_token": "Solo para quien mantiene la cola: enciende la consola que muestra los informes que llegan de todas las instalaciones. Nunca sale de Home Assistant."
+          "tickets_enabled": "Permite a quien usa el panel informar de un fallo, proponer una idea o pedir ayuda sin salir de él. El informe se convierte en una incidencia pública en GitHub, abierta a su nombre — la misma cuenta que HACS ya le pidió. Apagado, no sale nada de casa."
         }
       }
     }

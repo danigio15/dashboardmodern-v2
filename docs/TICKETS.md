@@ -12,17 +12,19 @@ con la diagnostica gia' compilata, e arriva in una console dove lo si lavora.
 
 ## Le tre cose che un utente vuole dire
 
-| Tipo | Cos'e' | Dove finisce |
+| Tipo | Cos'e' | Titolo della issue |
 | --- | --- | --- |
-| `bug` | Qualcosa non funziona come dovrebbe | Console, poi eventualmente una issue pubblica |
-| `feature` | Vorrei che facesse anche questo | Console, poi eventualmente una issue pubblica |
-| `assistenza` | Non riesco a configurarlo / non capisco | Console, e basta |
+| `bug` | Qualcosa non funziona come dovrebbe | `[Bug]: …` |
+| `feature` | Vorrei che facesse anche questo | `[Feature]: …` |
+| `assistenza` | Non riesco a configurarlo / non capisco | `[Aiuto]: …` |
 
-La terza e' quella che oggi non ha casa. Una richiesta di assistenza contiene
-il nome delle stanze, gli `entity_id` dell'impianto, spesso una foto della
-casa: e' esattamente il materiale che non si mette in un tracker pubblico. Il
-sistema quindi non tratta i tre tipi allo stesso modo, e la differenza non e'
-un'etichetta ma il posto dove il ticket va a finire.
+Tutte e tre diventano una issue pubblica, e il prefisso e' lo stesso che i
+moduli su GitHub gia' usano. La terza e' quella su cui vale la pena tornare
+dopo le prime segnalazioni vere: una richiesta di assistenza porta il nome
+delle stanze e a volte le foto di casa, e finisce su una pagina che chiunque
+puo' leggere. Oggi la scelta e' **dirlo forte prima di spedire**, non
+nasconderlo — e il recapito, che e' l'unica cosa davvero personale, non parte
+comunque.
 
 ## Il vincolo che decide la forma
 
@@ -39,126 +41,179 @@ Da qui discende tutto il resto:
   nessuna CSP da negoziare, e un eventuale segreto resta lato server invece che
   dentro un bundle JavaScript che chiunque puo' leggere. E' lo stesso mestiere
   che `update.py` fa gia' per chiedere a GitHub l'ultima release.
-* **Il browser vede solo tre comandi WebSocket**, aggiunti all'allowlist:
-  `tickets/list`, `tickets/create`, `tickets/sync`.
+* **Il browser vede solo i comandi elencati nell'allowlist**: i sei delle
+  segnalazioni (`list`, `create`, `delete`, `sync`, `queue`, `answer`) e i tre
+  dell'autorizzazione (`auth/start`, `auth/poll`, `auth/forget`). Nessuno di
+  essi porta un segreto: il gettone GitHub sta nel backend e non passa di qui.
 
 ## Il giro completo
 
 ```text
-   Plancia dell'utente                 Casa dell'utente            Fuori
- ┌──────────────────────┐        ┌────────────────────────┐   ┌─────────────┐
- │ Configurazione       │        │ Home Assistant         │   │             │
- │  └ Segnalazioni      │        │  └ dashboardmodern     │   │   Relay     │
- │      • nuovo ticket  │──WS───▶│      • ticket_store    │──▶│  (Worker)   │
- │      • i miei ticket │◀───────│      • ticket_client   │◀──│   + D1      │
- └──────────────────────┘        └────────────────────────┘   └──────┬──────┘
-                                                                     │
-                                                              ┌──────▼──────┐
-                                                              │  Console    │
-                                                              │ manutentore │
-                                                              └─────────────┘
+   Plancia dell'utente              Casa dell'utente              github.com
+ ┌──────────────────────┐    ┌──────────────────────────┐   ┌────────────────┐
+ │ Configurazione       │    │ Home Assistant           │   │                │
+ │  └ Segnalazioni      │    │  └ dashboardmodern       │   │   Issue #42    │
+ │      • nuova         │─WS▶│      • ticket_store      │──▶│   (pubblica,   │
+ │      • le mie        │◀───│      • github_tokens     │◀──│    a suo nome) │
+ │      • console       │    │      • github_client     │   │                │
+ └──────────────────────┘    └──────────────────────────┘   └───────┬────────┘
+                                                                    │ commento
+   Plancia del manutentore                                          │
+ ┌──────────────────────┐                                           │
+ │  └ Segnalazioni      │───────────── risponde ────────────────────┘
+ │      • console       │
+ └──────────────────────┘
 ```
 
 Tre proprieta' sono volute:
 
-1. **Il ticket esiste anche se il relay e' spento.** Nasce nello store locale
-   con stato `bozza`, e la consegna e' un secondo momento che puo' fallire e
-   riprovare. Chi scrive una segnalazione alle due di notte mentre il Worker e'
-   in manutenzione non perde quello che ha scritto.
+1. **Il ticket esiste anche prima di partire.** Nasce nello store locale con
+   stato `bozza`, e la consegna e' un secondo momento che puo' fallire e
+   riprovare. Chi scrive alle due di notte con la rete che va e viene — o senza
+   aver ancora collegato GitHub — non perde quello che ha scritto.
 2. **Lo stato torna indietro.** La console cambia lo stato, la plancia lo
    ripesca alla `sync` e chi ha aperto il ticket vede «presa in carico» o
    «risolta in beta.21» senza chiedere niente a nessuno. E' la parte che fa la
    differenza fra un modulo di contatto e un sistema di ticket: senza, la
    stessa segnalazione arriva tre volte.
-3. **Il relay e' facoltativo e spento di suo.** Chi tiene la plancia su una
-   rete senza uscita non deve accorgersi che questa parte esiste, esattamente
-   come per il controllo aggiornamenti (`OPTION_CHECK_UPDATES`).
+3. **L'invio e' facoltativo.** Chi tiene la plancia su una rete senza uscita
+   non deve accorgersi che questa parte esiste, esattamente come per il
+   controllo aggiornamenti (`OPTION_CHECK_UPDATES`).
 
 ## Cosa viaggia, e cosa non viaggia
 
 Un ticket che parte porta con se':
 
 * tipo, titolo, corpo scritti dall'utente;
-* versione dell'integrazione, versione di Home Assistant, lingua, tipo di
-  installazione — le cose che la plancia sa e l'utente no;
-* un identificativo di installazione: un UUID casuale generato una volta,
-  senza rapporto con l'`entry_id`, con l'utente HA o con la rete. Serve a due
-  cose sole: raggruppare i ticket della stessa persona per rispondere, e
-  contare le richieste per fermare gli abusi.
-* un contatto **solo se l'utente lo scrive**, campo facoltativo e vuoto di suo.
+* versione dell'integrazione, versione di Home Assistant, lingua, pagina da
+  cui e' stata scritta, browser — le cose che la plancia sa e l'utente no.
 
 Non viaggia mai: l'URL di Home Assistant, token o credenziali di qualunque
 tipo, l'elenco delle entita', la posizione, il nome degli utenti HA,
-l'indirizzo e-mail dell'account. La diagnostica e' quella dichiarata sopra e
-nient'altro: e' una lista chiusa nel codice, non un `dict` raccolto a runtime.
+l'indirizzo e-mail dell'account. E **non viaggia il recapito**, anche quando
+l'utente lo scrive: quello resta in casa, per la console.
+
+La diagnostica e' quella dichiarata sopra e nient'altro: e' una lista chiusa
+nel codice, non un `dict` raccolto a runtime.
 
 L'utente vede cosa sta per partire prima di premere invio. Questo non e' un
 dettaglio di cortesia: e' la condizione perche' la cosa sia difendibile.
 
-## Il relay
+## Perche' non c'e' un servizio di mezzo
 
-Sta in `services/ticket-relay/`: un Worker Cloudflare (piano gratuito: 100k
-richieste al giorno) con un database D1. Tiene il token verso GitHub — se e
-quando un ticket viene promosso a issue pubblica — e non lo cede a nessuno.
-Istruzioni di deploy nel suo README; finche' non e' in piedi, tutto il resto
-funziona lo stesso.
+La prima versione di questo progetto prevedeva un relay: un piccolo servizio da
+tenere in piedi, con un database, un segreto da custodire e una superficie da
+difendere dagli abusi. Serviva a raggiungere le persone che su GitHub non
+c'erano.
 
-Quattro percorsi:
+Quelle persone non esistono. **La plancia si scarica da HACS, e HACS un account
+GitHub lo chiede gia'** — chiede anche la stessa identica autorizzazione, il
+codice da digitare su `github.com/login/device`. Chi ha questa plancia
+installata quel giro l'ha gia' fatto una volta, e lo riconosce.
+
+Quindi la segnalazione va dritta dove deve andare: diventa una issue di questa
+repository, aperta a nome di chi l'ha scritta. Niente servizio, niente
+database, niente segreto, niente antispam da scrivere: quello di GitHub e' gia'
+li'. E il manutentore le riceve dove riceve tutto il resto.
+
+## Il giro dell'autorizzazione
 
 ```text
-POST /ticket   pubblico    una segnalazione nuova        -> { id }
-POST /sync     pubblico    lo stato dei PROPRI ticket    -> { tickets }
-POST /queue    con chiave  la coda del manutentore       -> { tickets }
-POST /answer   con chiave  stato, risposta, promozione   -> { ok, issue_url }
+  plancia            backend                 github.com
+     │                  │                        │
+     │ «collega» ──────▶│  POST /login/device/code
+     │                  │───────────────────────▶│
+     │◀── ABCD-1234 ────│◀───────────────────────│
+     │                  │
+   l'utente digita il codice su github.com/login/device
+     │                  │  POST /login/oauth/access_token
+     │                  │───────────────────────▶│   (ogni `interval` secondi)
+     │◀── collegato ────│◀──── gho_… ────────────│
 ```
 
-**«I propri» in `/sync` non e' un modo di dire**, ed e' la regola piu'
-importante di tutto il servizio: la richiesta porta l'identificativo
-dell'installazione e la risposta contiene solo i ticket di quella. Senza quel
-vincolo chiunque conoscesse un identificativo leggerebbe le segnalazioni degli
-altri — comprese le richieste di assistenza, che sono quelle che portano il
-nome delle stanze e le foto di casa.
+**Il gettone non arriva mai al browser.** Nasce nel backend, resta nel suo
+deposito (`github_tokens.py`, un file separato da quello dei ticket perche'
+sono credenziali e hanno una vita loro) e viaggia solo verso `api.github.com`.
+Verso la plancia torna indietro chi ha autorizzato e se e' lui a tenere la
+repository: quello serve a disegnare la finestra, il gettone no.
 
-L'endpoint sta dentro codice sorgente pubblico, quindi e' pubblico: le difese
-non sono un dettaglio da rimandare.
+Uno per utente di Home Assistant, non uno per casa: chi apre una segnalazione
+la apre a suo nome, e in una casa con quattro persone sarebbe sbagliato che le
+segnalazioni di tutte comparissero sotto l'account di chi ha installato
+l'integrazione.
 
-* tetto di 64 KB sul corpo, e tetti per campo uguali a quelli dello store —
-  ripetuti apposta, perche' chi chiama puo' non essere una plancia affatto;
-* sei segnalazioni all'ora per installazione, venti per rete;
-* dell'indirizzo si conserva un'impronta con sale segreto, mai l'indirizzo;
-* la chiave della console si confronta senza uscire alla prima differenza;
-* nessuna intestazione CORS: lo chiama il backend di Home Assistant, non un
-  browser, e cosi' una pagina qualunque non ne puo' leggere le risposte;
-* interruttore generale, per spegnere tutto senza ridistribuire l'integrazione;
-* nessuna scrittura su GitHub automatica: la promozione a issue pubblica e' un
-  gesto che si fa dalla console, a ticket letto — e un `assistenza` non si
-  promuove mai, per costruzione.
+## Lo stato non si tiene allineato a mano
+
+Non c'e' uno stato da sincronizzare fra due posti: lo sa gia' GitHub, e la
+plancia lo deduce.
+
+| Sulla issue | In plancia |
+| --- | --- |
+| non ancora aperta | `bozza` |
+| aperta, nessun commento del manutentore | `inviato` |
+| aperta, con un commento del manutentore | `in-carico` |
+| chiusa come *completed* | `risolto` |
+| chiusa come *not planned* | `chiuso` |
+
+«Del manutentore» lo dice GitHub stesso su ogni commento, con
+`author_association`: nessuna chiamata in piu' e nessuna lista di nomi da
+tenere aggiornata.
+
+## Il prezzo da dire, e la plancia lo dice
+
+Una issue e' **una pagina pubblica**. Chi apre una segnalazione la pubblica a
+suo nome, e chiunque potra' leggerla. La finestra lo scrive sopra il tasto
+«invia», accanto a cosa esattamente viene mandato — non e' una cosa da far
+scoprire dopo.
+
+Una sola cosa non passa mai di la': il **recapito**. Chi ha scritto il proprio
+indirizzo lo ha scritto a una persona, non a una pagina indicizzata dai motori
+di ricerca: resta in casa, dove il manutentore lo legge dalla console.
+
+Questo pesa soprattutto sul tipo `assistenza`, che e' quello che porta il nome
+delle stanze e a volte le foto. Vale la pena rivederlo dopo le prime
+segnalazioni vere: la scelta di oggi e' dirlo forte, non nasconderlo.
 
 ## La console
 
-Sta dentro la plancia, in una sezione che si accende solo quando l'opzione
-`maintainer_token` e' valorizzata nel config entry: chi non e' il manutentore
-non la vede e, soprattutto, non la puo' chiamare — il token viaggia dal
-backend, non dal browser, e non compare mai nella configurazione condivisa che
-tutti gli utenti della plancia possono leggere.
+Sta dentro la plancia, ed e' la terza linguetta della stessa finestra. Si
+accende da sola quando chi guarda e' insieme **amministratore di Home
+Assistant** e un account GitHub che **sulla repository puo' scrivere**.
 
-Mostra la coda per stato, permette di rispondere, di cambiare stato, e di
-promuovere un `bug` o una `feature` a issue pubblica quando merita di essere
-discussa in piazza.
+La seconda meta' non e' una chiave da incollare da qualche parte: e' GitHub a
+dirla. Cosi' la console compare sulla plancia giusta senza che nessuno
+configuri niente, e il giorno in cui la repository cambia mano non resta una
+chiave scritta a dare un permesso che non c'e' piu'.
 
-## Fasi
+Mostra le segnalazioni nate dalle plance — si riconoscono da una riga
+invisibile nel corpo, non da un'etichetta, perche' GitHub le etichette le
+scarta quando a scriverle e' chi i permessi non li ha, cioe' esattamente chi
+apre le segnalazioni. Da li' si risponde: la risposta e' un commento sotto la
+issue, quindi la legge chi ha segnalato — dentro la sua plancia, al primo giro
+di sync — e la legge chiunque passi da GitHub. Un posto solo, non due da tenere
+allineati.
 
-| Fase | Contenuto | Stato |
-| --- | --- | --- |
-| 1 | Store locale, comandi WS, modulo nella plancia, elenco dei propri ticket | fatta |
-| 2 | Client di trasporto, `sync` dello stato | fatta |
-| 3 | Worker + D1, console manutentore | scritta, da mettere in piedi |
-| 4 | Promozione a issue GitHub dalla console | scritta, chiede `GITHUB_TOKEN` |
+## Cosa serve per accenderlo
 
-Le prime due funzionano da sole: senza indirizzo configurato la plancia
-conserva le segnalazioni in casa e lo dice, invece di mostrare un tasto
-«invia» che non spedisce niente. La terza e la quarta chiedono un account
-Cloudflare e un `wrangler deploy`.
+Una cosa sola, e si fa una volta: **registrare l'applicazione** che chiedera'
+l'autorizzazione, e scrivere il suo `client_id` in `const.py`. Nel device flow
+non esiste un `client_secret` da spedire, quindi il `client_id` sta nel codice
+come qualunque altra costante.
+
+Due strade, e non sono equivalenti:
+
+* una **GitHub App** con permesso *Issues: Read & write*, installata su questa
+  repository. E' la scelta giusta: i permessi sono quelli dell'App e nessun
+  altro, e chi autorizza non cede niente delle proprie repository;
+* un'**applicazione OAuth** con scope `public_repo`. Piu' semplice da
+  registrare, ma quello scope da' accesso in scrittura a *tutte* le repository
+  pubbliche di chi autorizza — per aprire una segnalazione e' molto piu' di
+  quanto serva, e chi ci fa caso se ne accorge.
+
+Il codice e' lo stesso per tutte e due: gli endpoint del device flow sono gli
+stessi, e cambia solo `GITHUB_SCOPE` (vuoto per la App). Finche'
+`GITHUB_CLIENT_ID` resta vuoto, le segnalazioni si scrivono e restano in casa,
+e la plancia lo dice invece di offrire un tasto che non spedisce.
 
 ## Il limite da dire subito
 

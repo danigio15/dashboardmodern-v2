@@ -26,32 +26,59 @@ OPTION_CHECK_UPDATES = "check_updates"
 
 # ─── Segnalazioni ────────────────────────────────────────────────────────────
 #
-# Dove le segnalazioni aperte dalla plancia vanno a finire. Vuoto vuol dire
-# «da nessuna parte»: il ticket si scrive, si conserva e si rilegge in casa,
-# ma non parte — e la plancia lo dice invece di far finta di aver spedito.
+# Le segnalazioni aperte dalla plancia diventano issue di questa stessa
+# repository, aperte a nome di chi le scrive.
 #
-# Va riempito con l'indirizzo del relay quando c'e', e finche' resta vuoto
-# l'integrazione non prova a contattare nessuno: nessuna richiesta in uscita,
-# nessun errore ripetuto nel registro.
-TICKET_RELAY_URL = ""
+# La strada e' questa e non un servizio di mezzo per una ragione che sta a
+# monte: **la plancia si scarica da HACS, e HACS un account GitHub lo chiede
+# gia'**. Chiede anche la stessa identica autorizzazione — il codice da
+# digitare su github.com/login/device — quindi chi ha la plancia installata
+# quel giro l'ha gia' fatto una volta, e lo riconosce. Un relay in mezzo
+# avrebbe voluto dire un servizio da tenere in piedi, un segreto da custodire
+# e una superficie da difendere dagli abusi, per raggiungere persone che su
+# GitHub ci sono gia' tutte.
+#
+# In cambio c'e' una cosa da dire chiaramente, e la plancia la dice prima di
+# spedire: una issue e' una pagina pubblica. Chi apre una segnalazione la
+# pubblica a suo nome, e chiunque puo' leggerla.
 
-# Ogni quanto la plancia prova a consegnare le bozze e a chiedere che fine
-# hanno fatto i ticket gia' partiti. Mezz'ora e' la stessa cadenza del
-# controllo aggiornamenti: chi apre una segnalazione la vede partire subito —
-# la consegna viene tentata all'istante — e questo giro serve solo a
-# recuperare quello che era andato storto e a portare a casa le risposte.
+# L'applicazione OAuth (o GitHub App) che chiede l'autorizzazione. Il
+# `client_id` e' pubblico per progetto — nel device flow non esiste un
+# `client_secret` da spedire — quindi sta qui e non fra i segreti.
+#
+# Vuoto vuol dire che l'autorizzazione non e' configurata: le segnalazioni si
+# scrivono e restano in casa, e la plancia lo dice invece di offrire un tasto
+# che non spedisce niente.
+GITHUB_CLIENT_ID = ""
+
+# Il permesso da chiedere. Con una GitHub App si lascia vuoto — i permessi li
+# porta l'App, e sono i suoi soli. Con un'applicazione OAuth serve
+# `public_repo`, che pero' e' largo: da' accesso in scrittura a tutte le
+# repository pubbliche di chi autorizza. Fra le due, la App e' la scelta
+# giusta proprio per questo.
+GITHUB_SCOPE = ""
+
+# Dove il device flow chiede e ritira l'autorizzazione.
+GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code"
+GITHUB_DEVICE_TOKEN_URL = "https://github.com/login/oauth/access_token"
+GITHUB_API = "https://api.github.com"
+
+# La riga invisibile che marca una issue come nata dalla plancia. Serve alla
+# console per ritrovarle: le etichette non vanno bene, perche' GitHub le
+# scarta quando a scriverle e' qualcuno che sulla repository non ha i permessi
+# — cioe' esattamente chi apre le segnalazioni.
+TICKET_MARKER = "<!-- plancia:v1 -->"
+
+# Ogni quanto la plancia riprova le consegne rimaste indietro e va a vedere se
+# qualcuno ha risposto. Mezz'ora, la stessa cadenza del controllo
+# aggiornamenti: chi apre una segnalazione la vede partire subito — la
+# consegna viene tentata all'istante — e questo giro serve al resto.
 TICKET_SYNC_INTERVAL = 30 * 60
+
+# Quante issue si vanno a rileggere in un giro. Un tetto perche' il giro non
+# diventi lungo quanto la storia di chi usa la plancia da due anni.
+TICKET_SYNC_BATCH = 20
 
 # Chi non vuole che la plancia parli con nessuno fuori di casa lo spegne, e le
 # segnalazioni restano una cosa fra lui e il suo Home Assistant.
 OPTION_TICKETS_ENABLED = "tickets_enabled"
-
-# L'indirizzo del relay, se questa installazione ne usa uno diverso da quello
-# di serie. Serve alle prove e a chi ospita il proprio.
-OPTION_TICKET_ENDPOINT = "ticket_endpoint"
-
-# La chiave che apre la console del manutentore. Sta nelle opzioni del config
-# entry — non nella configurazione condivisa, che ogni utente della plancia
-# puo' leggere — e non lascia mai il backend: il browser chiede la coda, il
-# backend la va a prendere.
-OPTION_MAINTAINER_TOKEN = "maintainer_token"

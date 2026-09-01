@@ -30,18 +30,30 @@ test("ogni messaggio che la finestra manda passa dal ponte", () => {
   }
 });
 
-test("i sei comandi sono quelli che il backend registra", () => {
-  assert.deepEqual(
-    [...WS_TYPES].sort(),
-    [
-      "dashboardmodern/tickets/answer",
-      "dashboardmodern/tickets/create",
-      "dashboardmodern/tickets/delete",
-      "dashboardmodern/tickets/list",
-      "dashboardmodern/tickets/queue",
-      "dashboardmodern/tickets/sync",
-    ],
-  );
+test("i nove comandi sono quelli che il backend registra", () => {
+  assert.deepEqual([...WS_TYPES].sort(), [
+    "dashboardmodern/tickets/answer",
+    "dashboardmodern/tickets/auth/forget",
+    "dashboardmodern/tickets/auth/poll",
+    "dashboardmodern/tickets/auth/start",
+    "dashboardmodern/tickets/create",
+    "dashboardmodern/tickets/delete",
+    "dashboardmodern/tickets/list",
+    "dashboardmodern/tickets/queue",
+    "dashboardmodern/tickets/sync",
+  ]);
+});
+
+test("il gettone GitHub non compare fra le cose che la finestra manda", () => {
+  /* La finestra chiede «apri una segnalazione», non «apri una segnalazione
+   * con questo gettone»: il gettone sta nel deposito del backend e da li' non
+   * esce. Se un giorno comparisse un comando che lo porta, si vede qui. */
+  for (const tipo of WS_TYPES) {
+    assert.ok(
+      !/token|gettone|secret/i.test(tipo),
+      `${tipo} suona come un comando che porta un segreto`,
+    );
+  }
 });
 
 test("la diagnostica che la finestra puo' mandare e' una lista chiusa", () => {

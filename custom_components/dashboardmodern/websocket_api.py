@@ -45,6 +45,8 @@ from .config_store import (
     async_get_config_store,
 )
 from .const import DOMAIN
+from .github_client import DevicePending, GitHubError
+from .github_tokens import async_get_token_store
 from .ticket_store import (
     MAX_BODY,
     MAX_CONTACT,
@@ -55,13 +57,16 @@ from .ticket_store import (
     async_get_ticket_store,
 )
 from .tickets import (
-    RelayUnavailable,
-    async_answer_ticket,
+    async_answer,
+    async_begin_auth,
     async_deliver_pending,
-    async_fetch_queue,
+    async_finish_auth,
+    async_forget_auth,
+    async_queue,
     async_sync_states,
-    maintainer_token,
-    relay_endpoint,
+)
+from .tickets import (
+    enabled as tickets_enabled,
 )
 from .www_files import MAX_UPLOAD_BYTES, list_www_folder, save_www_upload
 
@@ -81,6 +86,9 @@ TYPE_TICKET_DELETE = f"{DOMAIN}/tickets/delete"
 TYPE_TICKET_SYNC = f"{DOMAIN}/tickets/sync"
 TYPE_TICKET_QUEUE = f"{DOMAIN}/tickets/queue"
 TYPE_TICKET_ANSWER = f"{DOMAIN}/tickets/answer"
+TYPE_TICKET_AUTH_START = f"{DOMAIN}/tickets/auth/start"
+TYPE_TICKET_AUTH_POLL = f"{DOMAIN}/tickets/auth/poll"
+TYPE_TICKET_AUTH_FORGET = f"{DOMAIN}/tickets/auth/forget"
 
 _PROFILE = vol.All(str, vol.Length(min=1, max=64))
 _ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
@@ -331,13 +339,20 @@ def _is_admin(connection: Any) -> bool:
     return bool(getattr(getattr(connection, "user", None), "is_admin", False))
 
 
-def _console_denied(hass: HomeAssistant, connection: Any, msg: dict[str, Any]) -> bool:
+async def _console_denied(
+    hass: HomeAssistant, connection: Any, msg: dict[str, Any]
+) -> bool:
     """La console chiede due cose insieme, e servono entrambe.
 
-    Amministratore di questo Home Assistant, **e** una chiave del manutentore
-    configurata. La prima da sola non basta: l'amministratore di casa propria
-    non e' chi tiene la coda di tutti. La seconda da sola nemmeno: la chiave
-    sta nelle opzioni, e le opzioni le legge chi amministra.
+    Amministratore di questo Home Assistant, **e** un account GitHub che sulla
+    repository della plancia puo' scrivere. La prima da sola non basta:
+    l'amministratore di casa propria non e' chi tiene la coda di tutti.
+
+    La seconda non e' una chiave da incollare da qualche parte: e' GitHub a
+    dirla, quando chi ha autorizzato viene riconosciuto come chi tiene la
+    repository. Cosi' la console si accende da sola sulla plancia giusta, e il
+    giorno in cui la repository cambia mano non resta nessuna chiave scritta a
+    dare un permesso che non c'e' piu'.
     """
     if not _is_admin(connection):
         connection.send_error(
@@ -346,7 +361,8 @@ def _console_denied(hass: HomeAssistant, connection: Any, msg: dict[str, Any]) -
             "La console delle segnalazioni e' riservata agli amministratori.",
         )
         return True
-    if not maintainer_token(hass):
+    gettoni = await async_get_token_store(hass)
+    if not gettoni.is_maintainer(_caller_id(connection)):
         connection.send_error(
             msg["id"], "not_console", "Questa installazione non e' la console."
         )
@@ -366,16 +382,19 @@ async def async_list_tickets(
         _deny(connection, msg)
         return
     store = await async_get_ticket_store(hass)
+    gettoni = await async_get_token_store(hass)
+    chi = _caller_id(connection)
+    account = gettoni.describe(chi)
     connection.send_result(
         msg["id"],
         {
-            "tickets": store.list(
-                opened_by=_caller_id(connection), every=_is_admin(connection)
-            ),
-            # Senza indirizzo configurato la plancia lo dice, invece di
-            # mostrare un tasto «invia» che non spedisce niente.
-            "delivery": bool(relay_endpoint(hass)),
-            "console": bool(_is_admin(connection) and maintainer_token(hass)),
+            "tickets": store.list(opened_by=chi, every=_is_admin(connection)),
+            # Le tre cose che decidono cosa la finestra puo' offrire: se questa
+            # plancia parla con GitHub, se chi guarda ha collegato il proprio
+            # account, e se quell'account tiene la repository.
+            "delivery": tickets_enabled(hass),
+            "account": account,
+            "console": bool(_is_admin(connection) and account["maintainer"]),
         },
     )
 
@@ -423,14 +442,12 @@ async def async_create_ticket(
         connection.send_error(msg["id"], rifiuto.code, str(rifiuto))
         return
     delivered = 0
-    if relay_endpoint(hass):
-        delivered = await async_deliver_pending(hass)
+    if tickets_enabled(hass):
+        # Solo le proprie: la issue nasce a nome di chi ha scritto, e questo
+        # comando non e' il momento per spedire le bozze di un altro.
+        delivered = await async_deliver_pending(hass, user_id=_caller_id(connection))
     aggiornato = next(
-        (
-            voce
-            for voce in store.list(opened_by=_caller_id(connection), every=True)
-            if voce["id"] == ticket["id"]
-        ),
+        (voce for voce in store.list(every=True) if voce["id"] == ticket["id"]),
         ticket,
     )
     connection.send_result(
@@ -472,18 +489,19 @@ async def async_sync_tickets(
     if not _authorized(hass, connection, None):
         _deny(connection, msg)
         return
-    delivered = await async_deliver_pending(hass)
+    chi = _caller_id(connection)
+    delivered = await async_deliver_pending(hass, user_id=chi)
     changed = await async_sync_states(hass)
     store = await async_get_ticket_store(hass)
+    gettoni = await async_get_token_store(hass)
     connection.send_result(
         msg["id"],
         {
-            "tickets": store.list(
-                opened_by=_caller_id(connection), every=_is_admin(connection)
-            ),
+            "tickets": store.list(opened_by=chi, every=_is_admin(connection)),
             "delivered": delivered,
             "changed": changed,
-            "delivery": bool(relay_endpoint(hass)),
+            "delivery": tickets_enabled(hass),
+            "account": gettoni.describe(chi),
         },
     )
 
@@ -495,13 +513,13 @@ async def async_ticket_queue(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """La coda del manutentore: le segnalazioni arrivate da tutte le case."""
-    if _console_denied(hass, connection, msg):
+    """La coda del manutentore: le segnalazioni nate dalle plance."""
+    if await _console_denied(hass, connection, msg):
         return
     try:
-        coda = await async_fetch_queue(hass)
-    except RelayUnavailable as errore:
-        connection.send_error(msg["id"], "relay_unavailable", str(errore))
+        coda = await async_queue(hass, _caller_id(connection))
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
         return
     connection.send_result(msg["id"], {"tickets": coda})
 
@@ -509,10 +527,9 @@ async def async_ticket_queue(
 @websocket_api.websocket_command(
     {
         vol.Required("type"): TYPE_TICKET_ANSWER,
-        vol.Required("remote_id"): _REMOTE_ID,
-        vol.Optional("state", default=""): vol.All(str, vol.Length(max=32)),
+        vol.Required("number"): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional("reply", default=""): vol.All(str, vol.Length(max=MAX_REPLY * 2)),
-        vol.Optional("promote", default=False): bool,
+        vol.Optional("close", default=""): vol.In(["", "risolto", "chiuso"]),
     }
 )
 @websocket_api.async_response
@@ -521,21 +538,116 @@ async def async_answer_ticket_command(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Rispondi, cambia stato, o promuovi a issue pubblica."""
-    if _console_denied(hass, connection, msg):
+    """Rispondi sotto una segnalazione, e se serve chiudila.
+
+    La risposta e' un commento su GitHub: la ritrova chi ha segnalato, dentro
+    la sua plancia, e la legge chiunque passi dalla issue. Un posto solo.
+    """
+    if await _console_denied(hass, connection, msg):
         return
     try:
-        result = await async_answer_ticket(
+        fatto = await async_answer(
             hass,
-            remote_id=msg["remote_id"],
-            state=msg["state"],
+            user_id=_caller_id(connection),
+            number=msg["number"],
             reply=msg["reply"],
-            promote=msg["promote"],
+            close=msg["close"],
         )
-    except RelayUnavailable as errore:
-        connection.send_error(msg["id"], "relay_unavailable", str(errore))
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
         return
-    connection.send_result(msg["id"], result)
+    connection.send_result(msg["id"], fatto)
+
+
+# ─── Collegare il proprio account GitHub ─────────────────────────────────────
+#
+# Lo stesso giro che HACS fa gia' fare a chiunque installi la plancia: un
+# codice da digitare su github.com/login/device. Chi e' arrivato fin qui l'ha
+# gia' fatto una volta, e lo riconosce.
+#
+# Il gettone non compare in nessuna di queste risposte. Torna indietro chi ha
+# autorizzato e se e' lui a tenere la repository: quello serve a disegnare la
+# finestra, il gettone no.
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_TICKET_AUTH_START})
+@websocket_api.async_response
+async def async_ticket_auth_start(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Chiedi a GitHub il codice da mostrare."""
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    try:
+        avvio = await async_begin_auth(hass)
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    connection.send_result(msg["id"], avvio)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_TICKET_AUTH_POLL,
+        vol.Required("device_code"): vol.All(str, vol.Length(min=1, max=256)),
+    }
+)
+@websocket_api.async_response
+async def async_ticket_auth_poll(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Vedi se l'utente ha finito di autorizzare.
+
+    ``pending`` non e' un guasto ed e' la risposta normale delle prime volte:
+    torna col suo codice e con l'attesa che GitHub stesso ha chiesto, cosi' la
+    finestra non insiste piu' in fretta di quanto le sia concesso.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    try:
+        account = await async_finish_auth(
+            hass, user_id=_caller_id(connection), device_code=msg["device_code"]
+        )
+    except DevicePending as attesa:
+        connection.send_result(
+            msg["id"], {"pending": True, "interval": attesa.interval}
+        )
+        return
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    # Collegato: le bozze rimaste indietro partono adesso, senza aspettare il
+    # giro di mezz'ora. Chi ha appena autorizzato sta guardando.
+    delivered = await async_deliver_pending(hass, user_id=_caller_id(connection))
+    connection.send_result(
+        msg["id"], {"pending": False, "account": account, "delivered": delivered}
+    )
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_TICKET_AUTH_FORGET})
+@websocket_api.async_response
+async def async_ticket_auth_forget(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Scollega l'account da questo Home Assistant.
+
+    Toglie il gettone di qui, e non lo revoca su GitHub: quello si fa su
+    GitHub, ed e' la finestra a doverlo dire invece di lasciar credere che una
+    cosa sola ne faccia due.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    removed = await async_forget_auth(hass, _caller_id(connection))
+    connection.send_result(msg["id"], {"removed": removed})
 
 
 @callback
@@ -556,6 +668,9 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_sync_tickets,
         async_ticket_queue,
         async_answer_ticket_command,
+        async_ticket_auth_start,
+        async_ticket_auth_poll,
+        async_ticket_auth_forget,
     ):
         websocket_api.async_register_command(hass, command)
     domain_data[DATA_WEBSOCKET_REGISTERED] = True

@@ -22,18 +22,14 @@
           "register_lovelace_dashboard": "Registar também como painel do Home Assistant",
           "admin_only": "Visível apenas para administradores",
           "check_updates": "Procurar novas versões",
-          "tickets_enabled": "Relatos a partir do painel",
-          "ticket_endpoint": "Endereço do serviço de relatos",
-          "maintainer_token": "Chave da consola de manutenção"
+          "tickets_enabled": "Relatos a partir do painel"
         },
         "data_description": {
           "allowed_users": "Apenas um filtro de visibilidade da interface. Os dados e os serviços continuam sujeitos às permissões do Home Assistant.",
           "register_lovelace_dashboard": "O painel é criado da primeira vez que um administrador abre o DashboardModern.",
           "admin_only": "Filtro nativo do Home Assistant; prevalece nas contas que não são de administrador.",
           "check_updates": "Pergunta ao GitHub a cada meia hora se saiu uma versão mais recente e mostra-a em Definições → Atualizações. Desligue para que o painel não vá à internet; o painel de controlo nunca precisa disso.",
-          "tickets_enabled": "Permite a quem usa o painel abrir um relato de erro, um pedido de funcionalidade ou um pedido de apoio sem sair dele. Desligado, nada é enviado; os relatos já escritos continuam legíveis em casa.",
-          "ticket_endpoint": "Vazio significa o endereço de origem. Só se aceita https. Os relatos ficam em casa até o serviço os aceitar.",
-          "maintainer_token": "Só para quem mantém a fila: liga a consola que mostra os relatos que chegam de todas as instalações. Nunca sai do Home Assistant."
+          "tickets_enabled": "Permite a quem usa o painel relatar um erro, propor uma ideia ou pedir ajuda sem sair dele. O relato torna-se um issue público no GitHub, aberto em nome próprio — a mesma conta que o HACS já lhe pediu. Desligado, não sai nada de casa."
         }
       }
     }
