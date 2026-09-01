@@ -88,13 +88,35 @@ export function guscioImpacchettato(html) {
     `window.__DASHBOARDMODERN_IMPACCHETTATA__ = true;\n` +
     `</script>\n` +
     `${CHIUSURA}\n`;
+  /* Il ripiego, per davvero.
+   *
+   * Dichiarare dove sta il pacchetto non basta: se il file non arriva — un
+   * aggiornamento a meta', una copia incompleta — il browser resta con un solo
+   * indirizzo, quello che non risponde, e la plancia non parte affatto. Il
+   * documento deve accorgersene da se'. `onerror` scatta proprio quando lo
+   * script non si carica: allora si ritirano le due dichiarazioni, cosi'
+   * `config.js` torna a chiedere le sezioni ai sorgenti, e si rimette in pagina
+   * l'ingresso di sempre. Il caso peggiore torna a essere «lenta come ieri». */
+  const ripiego =
+    `<script type="module" src="./pacco/legacy/modules-entry.js" ` +
+    `onerror="window.__DASHBOARDMODERN_PACCO_SEZIONI__=null;` +
+    `window.__DASHBOARDMODERN_CATALOGHI__=null;` +
+    `window.__DASHBOARDMODERN_IMPACCHETTATA__=false;` +
+    `var s=document.createElement('script');s.type='module';s.src='./modules-entry.js';` +
+    `document.head.appendChild(s)"></script>`;
   return senzaPreload
     .replace(/^[ \t]*<link rel="modulepreload" href="\.\/modules-entry\.js">\n/m, dichiarazione)
-    .replace(
-      /<script type="module" src="\.\/modules-entry\.js"><\/script>/,
-      '<script type="module" src="./pacco/legacy/modules-entry.js"></script>',
-    );
+    .replace(/<script type="module" src="\.\/modules-entry\.js"><\/script>/, ripiego);
 }
+
+/* Il documento com'era prima, messo da parte.
+ *
+ * `--pulisci` rimetteva i gusci a HEAD con un `git checkout`, e cosi' buttava
+ * via anche le modifiche non salvate di chi stava lavorando su quei file: il
+ * ciclo `impacchetta` / `impacchetta:pulisci` gli faceva perdere il lavoro.
+ * Chiesto in revisione. Adesso si conserva la copia di partenza e si rimette
+ * quella: torna esattamente il documento che c'era, salvato o no. */
+const copiaDi = (relativo) => join(FRONTEND, `${relativo}.prima-del-pacco`);
 
 function scriviIGusci() {
   for (const relativo of GUSCI) {
@@ -103,13 +125,19 @@ function scriviIGusci() {
     if (html.includes(APERTURA)) continue;
     const fatto = guscioImpacchettato(html);
     if (fatto === html) throw new Error(`${relativo}: non ho trovato dove agganciare il pacchetto`);
+    writeFileSync(copiaDi(relativo), html);
     writeFileSync(percorso, fatto);
   }
 }
 
 function pulisci() {
   rmSync(PACCO, { recursive: true, force: true });
-  execFileSync("git", ["checkout", "--", ...GUSCI], { cwd: FRONTEND, stdio: "inherit" });
+  for (const relativo of GUSCI) {
+    const copia = copiaDi(relativo);
+    if (!existsSync(copia)) continue;
+    writeFileSync(join(FRONTEND, relativo), readFileSync(copia, "utf8"));
+    rmSync(copia, { force: true });
+  }
 }
 
 function main() {

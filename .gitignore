@@ -18,3 +18,4 @@ dashboardmodern.zip
 
 # Il pacchetto della plancia: si costruisce, non si conserva.
 custom_components/dashboardmodern/frontend/legacy/pacco/
+custom_components/dashboardmodern/frontend/legacy/*.prima-del-pacco

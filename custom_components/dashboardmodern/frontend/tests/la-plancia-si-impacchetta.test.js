@@ -107,6 +107,64 @@ test("il documento impacchettato non precarica piu' i moduli sciolti", () => {
   assert.doesNotMatch(fatto, /modulepreload" href="\.\.\/src\//);
 });
 
+test("il pacchetto si porta dentro la provenienza, e va generata prima", () => {
+  /* `modules-entry.js` importa `build-info.js`, e chi impacchetta lo mura
+   * dentro. Impacchettare PRIMA di generare la provenienza voleva dire murarci
+   * la versione e il commit della release precedente: la 1.4.5 sarebbe uscita
+   * dicendo di essere la 1.4.4, e il build-info generato dopo non l'avrebbe
+   * letto piu' nessuno. Chiesto in revisione, e verificato: nel pacchetto
+   * c'era davvero «1.4.4» insieme al commit di ieri. */
+  const info = readFileSync(join(FRONTEND, "legacy/build-info.js"), "utf8");
+  const versione = info.match(/"dashboardVersion"\s*:\s*"([^"]+)"/)?.[1];
+  assert.ok(versione, "build-info.js non dichiara piu' la versione");
+  assert.ok(
+    PACCO.includes(`"dashboardVersion": "${versione}"`) ||
+      PACCO.includes(`"dashboardVersion":"${versione}"`),
+    "il pacchetto non si porta dentro la provenienza: chi lo costruisce non la vede",
+  );
+
+  const rilascio = readFileSync(join(RADICE, ".github/workflows/release.yml"), "utf8");
+  const genera = rilascio.indexOf("generate_build_info.py");
+  const impacchetta = rilascio.indexOf("impacchetta-la-plancia.mjs");
+  assert.ok(genera > 0 && impacchetta > 0, "il rilascio non fa piu' questi due passi");
+  assert.ok(
+    genera < impacchetta,
+    "il rilascio impacchetta prima di generare la provenienza: la versione murata sarebbe quella vecchia",
+  );
+});
+
+test("se il pacchetto non arriva, il documento torna ai sorgenti da solo", () => {
+  /* Dichiarare dove sta il pacchetto non basta: se il file non risponde — un
+   * aggiornamento a meta', una copia incompleta — il browser resta con un solo
+   * indirizzo, quello rotto, e la plancia non parte affatto. Chiesto in
+   * revisione, ed e' giusto: il ripiego che avevo promesso copriva il caso
+   * «guscio non riscritto», non «pacchetto assente». */
+  const html = readFileSync(join(FRONTEND, "legacy/dashboard.html"), "utf8");
+  const fatto = guscioImpacchettato(html);
+  const tag = fatto.match(/<script type="module" src="\.\/pacco[^>]*>/)?.[0] || "";
+  assert.match(tag, /onerror=/, "l'ingresso impacchettato non si accorge di non essere arrivato");
+  assert.match(tag, /modules-entry\.js/, "il ripiego non rimette in pagina l'ingresso dei sorgenti");
+  assert.match(
+    tag,
+    /__DASHBOARDMODERN_PACCO_SEZIONI__\s*=\s*null/,
+    "ripiegando, le sezioni continuerebbero a essere chieste al pacchetto che non c'e'",
+  );
+  assert.match(
+    tag,
+    /__DASHBOARDMODERN_CATALOGHI__\s*=\s*null/,
+    "ripiegando, i cataloghi continuerebbero a essere cercati accanto al pacchetto",
+  );
+});
+
+test("ripulire non porta via il lavoro di chi sviluppa", () => {
+  /* `--pulisci` rimetteva i gusci a HEAD con un `git checkout`, e cosi'
+   * buttava via anche le modifiche non salvate: il ciclo impacchetta /
+   * pulisci faceva perdere il lavoro. Chiesto in revisione. */
+  const script = readFileSync(join(RADICE, "scripts/impacchetta-la-plancia.mjs"), "utf8");
+  assert.doesNotMatch(script, /execFileSync\("git", \["checkout"/);
+  assert.match(script, /prima-del-pacco/);
+});
+
 test("senza il pacchetto la plancia sa ancora da dove partire", async () => {
   /* Il ripiego non e' un di piu': se il passo che costruisce il pacchetto
    * salta, il documento resta quello dei sorgenti e la plancia deve avviarsi
