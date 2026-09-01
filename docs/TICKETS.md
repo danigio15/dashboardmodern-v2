@@ -234,27 +234,35 @@ issue, quindi la legge chi ha segnalato — dentro la sua plancia, al primo giro
 di sync — e la legge chiunque passi da GitHub. Un posto solo, non due da tenere
 allineati.
 
-## Cosa serve per accenderlo
+## L'applicazione, e com'e' registrata
 
-Una cosa sola, e si fa una volta: **registrare l'applicazione** che chiedera'
-l'autorizzazione, e scrivere il suo `client_id` in `const.py`. Nel device flow
-non esiste un `client_secret` da spedire, quindi il `client_id` sta nel codice
-come qualunque altra costante.
+E' una **GitHub App** — «DashboardModern Segnalazioni», di @danigio15 — con un
+permesso solo: *Issues: Read and write*. Il suo `client_id` sta in `const.py`,
+in chiaro, ed e' giusto cosi': nel device flow non esiste un `client_secret` da
+spedire, e lo stesso identificativo compare gia' nella pagina pubblica
+dell'App.
 
-Due strade, e non sono equivalenti:
+**Non c'e' nessuna chiave privata**, da nessuna parte. Servirebbe per
+autenticarsi *come* l'App — generare installation token, ricevere webhook — e
+qui non succede mai: si parla sempre e solo a nome di chi ha autorizzato. Al
+primo salvataggio GitHub avvisa che «devi generare una chiave privata per
+installare l'App»: e' vero per chi la installa, e questa non ha bisogno di
+essere installata da nessuno.
 
-* una **GitHub App** con permesso *Issues: Read & write*, installata su questa
-  repository. E' la scelta giusta: i permessi sono quelli dell'App e nessun
-  altro, e chi autorizza non cede niente delle proprie repository;
-* un'**applicazione OAuth** con scope `public_repo`. Piu' semplice da
-  registrare, ma quello scope da' accesso in scrittura a *tutte* le repository
-  pubbliche di chi autorizza — per aprire una segnalazione e' molto piu' di
-  quanto serva, e chi ci fa caso se ne accorge.
+Le tre caselle che contano, nella registrazione:
 
-Il codice e' lo stesso per tutte e due: gli endpoint del device flow sono gli
-stessi, e cambia solo `GITHUB_SCOPE` (vuoto per la App). Finche'
-`GITHUB_CLIENT_ID` resta vuoto, le segnalazioni si scrivono e restano in casa,
-e la plancia lo dice invece di offrire un tasto che non spedisce.
+| Casella | Come | Perche' |
+| --- | --- | --- |
+| **Enable Device Flow** | accesa | senza, il codice non viene mai generato |
+| **Expire user authorization tokens** | **spenta** | il codice non gestisce il `refresh_token`. Accesa, il gettone morirebbe dopo otto ore e ognuno rifarebbe il codice quasi ogni volta — e non basterebbe implementare il refresh, perche' anche quello scade dopo sei mesi, e chi segnala un bug ogni tanto lo troverebbe gia' morto |
+| **Webhook · Active** | spenta | non ne serve nessuno: la plancia interroga GitHub, non viceversa |
+
+L'alternativa scartata era un'**applicazione OAuth** con scope `public_repo`.
+Funziona identica — gli endpoint del device flow sono gli stessi, cambia solo
+`GITHUB_SCOPE` — ma quello scope da' accesso in scrittura a *tutte* le
+repository pubbliche di chi autorizza, per aprire una segnalazione. La App
+chiede quello che serve e nient'altro, e non viene installata sulle repository
+di nessuno.
 
 ## Il limite da dire subito
 

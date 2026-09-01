@@ -42,20 +42,26 @@ OPTION_CHECK_UPDATES = "check_updates"
 # spedire: una issue e' una pagina pubblica. Chi apre una segnalazione la
 # pubblica a suo nome, e chiunque puo' leggerla.
 
-# L'applicazione OAuth (o GitHub App) che chiede l'autorizzazione. Il
-# `client_id` e' pubblico per progetto — nel device flow non esiste un
-# `client_secret` da spedire — quindi sta qui e non fra i segreti.
+# L'applicazione che chiede l'autorizzazione: la GitHub App «DashboardModern
+# Segnalazioni», di @danigio15, con il solo permesso *Issues: Read and write*.
+#
+# Il `client_id` e' pubblico per progetto — nel device flow non esiste un
+# `client_secret` da spedire, e infatti questo stesso identificativo compare
+# nella pagina pubblica dell'App — quindi sta qui, in chiaro, e non fra i
+# segreti. Non c'e' nessuna chiave privata da nessuna parte: quella servirebbe
+# per autenticarsi *come* l'App, e qui non succede mai. Si parla sempre e solo
+# a nome di chi ha autorizzato.
 #
 # Vuoto vuol dire che l'autorizzazione non e' configurata: le segnalazioni si
 # scrivono e restano in casa, e la plancia lo dice invece di offrire un tasto
 # che non spedisce niente.
-GITHUB_CLIENT_ID = ""
+GITHUB_CLIENT_ID = "Iv23libQr1HSkyvzG9SO"
 
-# Il permesso da chiedere. Con una GitHub App si lascia vuoto — i permessi li
-# porta l'App, e sono i suoi soli. Con un'applicazione OAuth serve
-# `public_repo`, che pero' e' largo: da' accesso in scrittura a tutte le
-# repository pubbliche di chi autorizza. Fra le due, la App e' la scelta
-# giusta proprio per questo.
+# Il permesso da chiedere, e resta vuoto perche' l'App e' una GitHub App: i
+# permessi li porta lei, e sono i suoi soli. Un'applicazione OAuth avrebbe
+# chiesto `public_repo`, che e' molto piu' largo — scrittura su TUTTE le
+# repository pubbliche di chi autorizza, per aprire una segnalazione. E' la
+# ragione per cui si e' scelta la App.
 GITHUB_SCOPE = ""
 
 # Dove il device flow chiede e ritira l'autorizzazione.
