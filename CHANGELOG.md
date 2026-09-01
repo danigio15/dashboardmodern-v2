@@ -5,6 +5,32 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.3
+
+La compressione della beta.2 funziona — confermato dal campo: `content-encoding:
+br`, 366 kB al posto di 2007. Ed e' ancora lento. Quindi ne' le richieste ne' i
+byte erano la causa, e questa versione non prova a indovinare la terza: misura.
+
+### Corretto
+
+- **La riga «Transfer» non dichiara piu' cose che non ha misurato.** Diceva «non
+  compressi» di una plancia che arrivava compressa: il peso del corpo com'e'
+  arrivato non e' sempre disponibile, e quel vuoto finiva nel ramo sbagliato. E'
+  il modo in cui una diagnostica fa cercare il guasto dalla parte sbagliata, che
+  e' peggio del non averla. Adesso, quando quel dato manca, lo dice — e
+  soprattutto va a CHIEDERE al server come e' arrivato davvero il file, invece
+  di dedurlo: la riga si completa da sola con «servito br» o «servito in
+  chiaro».
+
+### Nuovo
+
+- **La Diagnostica dice quando la plancia e' pronta, e dove va il tempo.** La
+  riga «Boot» mostra quanto ci mette il velo ad andarsene, quando e' arrivato
+  l'ultimo file, e quanto tempo passa DOPO che la rete ha finito. Se il grosso
+  sta prima e' la rete; se sta dopo sono analisi ed esecuzione, dove ne' il
+  pacchetto ne' la compressione arrivano. Serve a smettere di tirare a
+  indovinare su una macchina che non e' la mia.
+
 ## 1.4.5-beta.2
 
 La beta di prima aveva ridotto le richieste da centosettantanove a tre, e dal

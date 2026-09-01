@@ -5168,6 +5168,12 @@ function _cdFogliPronti() {
 function _cdPlanciaPronta() { return _cdModuliPronti() && _cdFogliPronti(); }
 function _cdTogliIlVelo() {
     if (_cdBootDone) return; _cdBootDone = true;
+    // Il momento che conta per chi guarda, segnato dove succede davvero.
+    // `__DASHBOARDMODERN_READY__` lo alza cdHideBoot PRIMA di aspettare i
+    // moduli e i fogli: leggere quello vorrebbe dire dichiarare pronta una
+    // plancia ancora coperta dal velo, e sottostimare proprio il tempo che si
+    // sente. Chiesto in revisione. La Diagnostica legge questo.
+    try { window.__DASHBOARDMODERN_VELO_VIA__ = performance.now(); } catch(_) {}
     const o = document.getElementById('cd-boot-overlay');
     if (o) { o.style.opacity = '0'; setTimeout(() => { if (o.parentNode) o.remove(); }, 260); }
 }

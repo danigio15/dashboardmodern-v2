@@ -608,6 +608,53 @@ function mountReportEditor(_tab, target) {
   if (entityInputs !== pickers) throw new Error(`Entity picker invariant failed: ${entityInputs} inputs / ${pickers} pickers`);
 }
 
+/* Quando il velo se ne va, misurato mentre succede.
+ *
+ * Le richieste sono scese da centosettantanove a tre. I byte da 4,9 MB a 1,2,
+ * e la compressione e' confermata dal campo — `content-encoding: br`, 366 kB
+ * al posto di 2007. Ed e' ancora lento. Quindi il tempo se ne va in un posto
+ * che finora non ho misurato, e ho gia' sbagliato due volte a indovinarlo.
+ *
+ * Il momento del velo lo segna chi lo toglie: `_cdTogliIlVelo` scrive
+ * `__DASHBOARDMODERN_VELO_VIA__`, e qui si legge. La prima stesura guardava
+ * `__DASHBOARDMODERN_READY__`, ed era la cosa sbagliata: `cdHideBoot` alza
+ * quella bandiera PRIMA di mettersi ad aspettare moduli e fogli, quindi la
+ * plancia risultava «pronta» mentre il velo era ancora li'. Sottostimava
+ * proprio il tempo che si sente. Chiesto in revisione, ed era vero.
+ *
+ * L'altra meta' — quando la rete ha finito — si legge dai tempi delle risorse,
+ * con due accortezze che la prima stesura non aveva, tutt'e due segnalate:
+ *
+ *   - si contano solo le risorse arrivate PRIMA che il velo se ne andasse. Chi
+ *     riapre la Diagnostica fa partire la richiesta di `panel.js` qui sotto, e
+ *     quella diventerebbe «l'ultimo file» — minuti dopo l'avvio — schiacciando
+ *     a zero il tempo dopo la rete. La misura si corromperebbe da sola guardando
+ *     se stessa, e lo stesso farebbe qualunque risorsa caricata dopo;
+ *   - si conta anche il documento. Il guscio non e' una «risorsa»: sta nella
+ *     voce di navigazione, e sono centosei kB. Lasciarlo fuori vorrebbe dire
+ *     contare il suo scaricamento come lavoro del browser dopo la rete.
+ */
+export function tempoDiAvvio() {
+  try {
+    const veloVia = globalThis.__DASHBOARDMODERN_VELO_VIA__;
+    const casa = `${import.meta.url.split("/legacy/")[0]}/`;
+    const finiteEntro = (fine) => (veloVia ? fine <= veloVia : true);
+    const fini = performance
+      .getEntriesByType("resource")
+      .filter((risorsa) => risorsa.name.startsWith(casa))
+      .map((risorsa) => risorsa.responseEnd || 0)
+      .filter(finiteEntro);
+    const documento = performance.getEntriesByType("navigation")[0]?.responseEnd || 0;
+    if (documento && finiteEntro(documento)) fini.push(documento);
+    const s = (v) => `${(v / 1000).toFixed(1)} s`;
+    const ultimo = fini.length ? Math.max(...fini) : 0;
+    if (!veloVia) return ultimo ? `ultimo file a ${s(ultimo)} — velo non misurato` : "?";
+    return `velo via a ${s(veloVia)} · ultimo file a ${s(ultimo)} · ${s(Math.max(0, veloVia - ultimo))} dopo la rete`;
+  } catch (_) {
+    return "?";
+  }
+}
+
 /* Quanti byte sono arrivati davvero, e se sono arrivati compressi.
  *
  * Dal campo, dopo un rilascio che aveva ridotto le richieste da 179 a 3:
@@ -645,12 +692,46 @@ export function pesoScaricato() {
     const disteso = somma("decodedBodySize");
     if (!disteso) return "?";
     const mb = (v) => `${(v / 1048576).toFixed(1)} MB`;
-    const come = codificato && codificato / disteso < 0.9 ? "compressi" : "non compressi";
+    /* Senza `encodedBodySize` non si sa: dirlo e' l'unica risposta onesta.
+     * Prima un valore mancante — che vale zero — finiva nel ramo «non
+     * compressi», e la riga dichiarava una cosa che non aveva misurato. E' il
+     * modo in cui questa riga puo' far cercare il guasto dalla parte
+     * sbagliata, che e' peggio del non averla. */
+    const come = !codificato
+      ? "peso codificato non disponibile"
+      : codificato / disteso < 0.9
+        ? "compressi"
+        : "non compressi";
     return dalFilo
       ? `${mb(dalFilo)} di ${mb(disteso)} — ${come}`
       : `${mb(disteso)} dalla cache — ${come}`;
   } catch (_) {
     return "?";
+  }
+}
+
+/* E poi lo si chiede al server, invece di dedurlo.
+ *
+ * I conti qui sopra sono una deduzione: dicono quanto pesa quello che e'
+ * arrivato, non come e' arrivato. `fetch` invece la risposta ce l'ha scritta —
+ * `content-encoding` e' esposto per le risorse di casa propria, verificato con
+ * un browser vero — e una risposta letta batte una dedotta.
+ *
+ * `panel.js` sta in cima alla cartella servita, c'e' sempre, e pesa poco: e'
+ * il campione buono. La riga si scrive subito col peso e si completa da sola
+ * quando il server ha risposto; se la richiesta non riesce, resta quella che
+ * era. */
+async function chiediComeArrivano(target) {
+  const nodo = target.querySelector('[data-dm-voce="Transfer"]');
+  if (!nodo) return;
+  try {
+    const casa = `${import.meta.url.split("/legacy/")[0]}/`;
+    const risposta = await fetch(`${casa}panel.js`, { cache: "reload" });
+    if (!risposta.ok) return;
+    const come = risposta.headers.get("content-encoding");
+    nodo.textContent = `${nodo.textContent} · servito ${come || "in chiaro"}`;
+  } catch (_) {
+    /* Una diagnostica che non riesce a misurare non rompe la diagnostica. */
   }
 }
 
@@ -671,9 +752,11 @@ function renderDiagnostics(target) {
      * vedere a colpo d'occhio invece di indovinarlo dal cronometro. */
     Modules: globalThis.__DASHBOARDMODERN_IMPACCHETTATA__ ? "impacchettati (3 file)" : "sciolti (179 file)",
     Transfer: pesoScaricato(),
+    Boot: tempoDiAvvio(),
   };
-  target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
+  target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono" data-dm-voce="${esc(key)}">${esc(value)}</div></div></div>`).join("")}</div>`;
   target.dataset.runtimeDiagnostics = "true";
+  chiediComeArrivano(target);
 }
 
 export const EDITOR_TAB_ALIASES = Object.freeze({
