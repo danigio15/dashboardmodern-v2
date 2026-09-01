@@ -135,6 +135,18 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+      # La plancia va nel pacchetto impacchettata: nei sorgenti sono
+      # centosettantanove file JavaScript, e al primo avvio sono
+      # centosettantanove richieste. Il guscio riscritto qui finisce solo
+      # dentro lo zip; nel deposito restano i sorgenti, che si sviluppano cosi'.
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Impacchetta la plancia
+        run: |
+          npm ci
+          node scripts/impacchetta-la-plancia.mjs
       - name: Generate build provenance from the selected HEAD
         run: python scripts/build_release.py --expected-commit "$GITHUB_SHA" --output dashboardmodern.zip
       # Le note automatiche di GitHub elencano cosa è cambiato; il blocco di

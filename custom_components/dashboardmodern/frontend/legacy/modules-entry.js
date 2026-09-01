@@ -617,6 +617,13 @@ function renderDiagnostics(target) {
     "Static asset hash": location.pathname.match(/dashboardmodern_static\/([^/]+)/)?.[1] || BUILD_INFO.assetHash, [t("languageVariant")]: `${document.documentElement.lang || "?"} / ${location.pathname.split("/").pop()}`,
     [t("activeRenderer")]: document.querySelector(".ed-tab.active")?.dataset?.tab || "diagnostics",
     "Git commit": BUILD_INFO.commit, "Build date": BUILD_INFO.date,
+    /* Da dove sono arrivate le parti della plancia.
+     *
+     * Impacchettata sono tre file; sciolta sono centosettantanove, ed e' la
+     * differenza che si sente al primo avvio. Il pacchetto ha un ripiego: se
+     * manca, la plancia parte lo stesso dai sorgenti — e allora e' bene poterlo
+     * vedere a colpo d'occhio invece di indovinarlo dal cronometro. */
+    "Moduli": globalThis.__DASHBOARDMODERN_IMPACCHETTATA__ ? "impacchettati (3 file)" : "sciolti (179 file)",
   };
   target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
   target.dataset.runtimeDiagnostics = "true";

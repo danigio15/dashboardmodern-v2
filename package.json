@@ -12,10 +12,13 @@
     "test:frontend": "node --test custom_components/dashboardmodern/frontend/tests/*.test.js",
     "test:e2e": "playwright test",
     "format": "prettier --write \"custom_components/dashboardmodern/frontend/src/core/**/*.js\" \"custom_components/dashboardmodern/frontend/legacy/{modules-entry,build-info}.js\" \"custom_components/dashboardmodern/frontend/tests/{build-info,dashboard-store,editor-registry,modules-entry,release-artifact}.test.js\" \"custom_components/dashboardmodern/frontend/e2e/**/*.js\" playwright.config.js",
-    "format:check": "prettier --check \"custom_components/dashboardmodern/frontend/src/core/**/*.js\" \"custom_components/dashboardmodern/frontend/legacy/{modules-entry,build-info}.js\" \"custom_components/dashboardmodern/frontend/tests/{build-info,dashboard-store,editor-registry,modules-entry,release-artifact}.test.js\" \"custom_components/dashboardmodern/frontend/e2e/**/*.js\" playwright.config.js"
+    "format:check": "prettier --check \"custom_components/dashboardmodern/frontend/src/core/**/*.js\" \"custom_components/dashboardmodern/frontend/legacy/{modules-entry,build-info}.js\" \"custom_components/dashboardmodern/frontend/tests/{build-info,dashboard-store,editor-registry,modules-entry,release-artifact}.test.js\" \"custom_components/dashboardmodern/frontend/e2e/**/*.js\" playwright.config.js",
+    "impacchetta": "node scripts/impacchetta-la-plancia.mjs",
+    "impacchetta:pulisci": "node scripts/impacchetta-la-plancia.mjs --pulisci"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
+    "esbuild": "^0.28.2",
     "prettier": "^3.3.0"
   }
 }

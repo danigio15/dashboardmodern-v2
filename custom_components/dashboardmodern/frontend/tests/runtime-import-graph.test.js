@@ -633,10 +633,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * is narrow: a catalog must be named after a locale the registry declares,
    * which the i18n-catalogs contract checks in turn. */
   const engine = await readFile(path.join(srcRoot, "core/i18n.js"), "utf8");
+  /* La cartella dei cataloghi e' dichiarabile.
+   *
+   * Da quando la plancia si impacchetta, il codice cambia casa: dai sorgenti
+   * gira da `src/core/`, impacchettato da `legacy/`, e un percorso relativo
+   * scritto qui varrebbe solo in uno dei due posti. Chi prepara il pacchetto
+   * dichiara dove sono; senza dichiarazione vale `../i18n/`, la strada di
+   * sempre — ed e' quella che tiene in piedi l'esenzione qui sotto. */
   assert.match(
     engine,
-    /import\(`\.\.\/i18n\/\$\{[^}]+\}\.js`\)/,
-    "src/core/i18n.js no longer loads catalogs from src/i18n; the exemption below is stale",
+    /import\(`\$\{cartellaDeiCataloghi\(\)\}\$\{[^}]+\}\.js`\)/,
+    "src/core/i18n.js no longer loads catalogs by computed name; the exemption below is stale",
+  );
+  assert.match(
+    engine,
+    /return dichiarata \|\| "\.\.\/i18n\/";/,
+    "src/core/i18n.js no longer falls back to src/i18n; the exemption below is stale",
   );
   const catalogs = srcOrphans.filter((file) => /^src\/i18n\/[A-Za-z-]+\.js$/.test(file));
   assert.ok(catalogs.length > 0, "no language catalogs found under src/i18n");
