@@ -5,6 +5,71 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.7
+
+«Come velocita' non e' migliorato nulla, siamo sempre uguali.» Aveva ragione, e
+questa volta il tempo si e' andato a cercare col profilatore invece che a
+indovinarlo. Non stava dove si era guardato per sei versioni.
+
+### Piu' veloce
+
+- **Un secondo e sei decimi in meno all'avvio.** Profilando la partenza con la
+  CPU rallentata quattro volte — un telefono di fascia media — **una sola
+  funzione si mangiava 789 millisecondi su 6800**, dentro un modulo che scrive
+  tre variabili CSS e non disegna niente.
+
+  Non era il suo codice: erano quindici chiamate a cinquantadue millisecondi
+  l'una. Il giro era, per ogni pagina: guarda dove va l'intestazione, scrivila,
+  rileggi quanto e' larga. Ogni scrittura invalida lo stile, e ogni lettura che
+  le viene dietro obbliga il browser a **ricalcolarlo tutto** prima di
+  rispondere. Nove pagine, nove ricalcoli completi.
+
+  Adesso i quattro tempi si fanno per tutte le pagine prima di passare al
+  successivo — si legge dove vanno tutte, si scrivono tutte, si misurano tutte,
+  si applicano tutte: **due ricalcoli invece di nove**, e la spesa non cresce
+  piu' col numero delle pagine. Misurato sullo stesso banco, tre giri per parte:
+  **da 6693 a 5060 millisecondi**. Il modulo passa da 789 a 53.
+
+- **Il flusso dell'energia tace, quando non c'e' niente da dire.** E' la cosa
+  piu' indaffarata della plancia: gira piu' di una volta al secondo, per tre
+  viste, e riscriveva gli attributi di ogni bolla e di ogni linea **col valore
+  che avevano gia'**. Un `data-` riscritto uguale e' comunque una scrittura:
+  sveglia ogni osservatore della pagina e invalida lo stile del nodo.
+
+  Contate col popup dell'Auto aperto e gli stati fermi: **1777 scritture in
+  quattro secondi**, tutte dietro il velo. Adesso sono 297, e quelle che restano
+  non sono piu' del flusso.
+
+### Corretto
+
+- **La bolla della batteria non sparisce piu' cambiando impianto.** Il guscio
+  nasconde e rimostra le bolle del sole e della batteria guardando quali entita'
+  sono mappate — ma quella funzione la chiama **una volta sola, su un timer
+  all'avvio**. Cambiando impianto le entita' cambiano sotto i piedi e nessuno la
+  rifa': chi passava a una casa senza batteria e poi tornava alla propria
+  trovava la bolla sparita, e non tornava piu' finche' non ricaricava la pagina.
+
+  E' il «improvvisamente scompare tutto» segnalato. Adesso la decisione la
+  prende chi la sa — l'impianto scelto — a ogni passata.
+
+- **Il foglio di ogni finestra sta su un livello suo.** La sfocatura del velo
+  rilegge lo sfondo: ogni scrittura dietro la finestra e' una sfocatura da
+  rifare, e finche' il contenuto del foglio sta nello stesso livello viene
+  ridipinto insieme a lei — e' il lampo bianco che si vede sul telefono. La
+  promozione era stata data alla sola finestra dei carichi; il motivo non era
+  mai stato suo, e adesso vale per tutte e undici. Nessuna di loro ha figli
+  fissi che un livello nuovo strapperebbe alla finestra del browser: verificato
+  aprendole una per una.
+
+### Sulle prove
+
+La prova che sorvegliava la bolla della batteria **cadeva due volte su otto gia'
+prima di questa versione**, e restava verde solo perche' i controlli hanno due
+tentativi di riserva. Non stava aspettando un ritardo: aspettava una passata che
+non sarebbe mai arrivata. Chiusa la corsa, passa sedici volte su sedici, e una
+prova nuova la sorveglia in modo secco — senza la correzione cade quattro volte
+su quattro.
+
 ## 1.4.5-beta.6
 
 «Guarda, cambia intestazione, quindi c'e' qualcosa di duplicato» — due
