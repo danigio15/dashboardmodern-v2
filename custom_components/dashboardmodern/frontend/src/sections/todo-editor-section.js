@@ -8,6 +8,7 @@
  * esistono gia', perche' cio' che Home Assistant sa non si riscrive a mano.
  */
 import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
+import { oggettoWidget } from "../core/oggetti-widget.js";
 import { normalizeAlertsEditor } from "./alerts-section.js";
 import { refreshFloodAlerts } from "./flood-alerts-section.js";
 import {
@@ -75,8 +76,13 @@ function catalogoTessere() {
     ["energia", "⚡", t("Energia", "Energy")],
     ["elettrodomestici", "🫧", t("Elettrodomestici", "Appliances")],
     ["temperatura", "🌡️", t("Temperatura", "Temperature")],
+    /* Il MiniPC mancava del tutto: aveva la sua pagina e le sue caselle, e in
+     * Home non c'era modo ne' di vederlo ne' di dire che non lo si vuole. */
+    ["minipc", "🖥️", t("MiniPC", "MiniPC")],
     ["ev", "🚗", t("Auto", "Car")],
-    ["robot", "🤖", t("Aspirapolvere", "Vacuums")],
+    /* «Non esiste piu' aspirapolvere ma si chiama Robot»: la sezione ha
+     * cambiato nome, e la tessera che la racconta deve chiamarsi come lei. */
+    ["robot", "🤖", t("Robot", "Robots")],
     ["solare", "🌞", t("Solare termico", "Solar thermal")],
     ["piscina", "🏊", t("Piscina", "Pool")],
     ["prese", "🔌", t("Prese", "Sockets")],
@@ -154,7 +160,7 @@ function tessereMarkup() {
   <div class="ed-list dm-widget-pref-list">${rows
     .map(
       ([key, icon, label], index) => `<div class="ed-row dm-widget-pref" data-widget-key="${esc(key)}">
-        <span class="dm-widget-pref-icon" aria-hidden="true">${icon}</span>
+        <span class="dm-widget-pref-icon" aria-hidden="true">${oggettoWidget(key, icon)}</span>
         <span class="ed-row-main"><strong class="ed-row-new">${esc(label)}</strong></span>
         <button type="button" class="ed-del dm-widget-move" data-widget-up aria-label="${t("Più in alto", "Move up")}"${index === 0 ? " disabled" : ""}>▲</button>
         <button type="button" class="ed-del dm-widget-move" data-widget-down aria-label="${t("Più in basso", "Move down")}"${index === rows.length - 1 ? " disabled" : ""}>▼</button>
@@ -639,7 +645,8 @@ function installStyles() {
         background:var(--card-bg,#fff);color:var(--text,#0f172a);box-shadow:0 1px 3px rgba(15,23,42,.15)}
       #ed-body .dm-widget-pref-list{display:grid;gap:6px;margin-bottom:10px}
       #ed-body .dm-widget-pref{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
-      #ed-body .dm-widget-pref-icon{font-size:17px}
+      #ed-body .dm-widget-pref-icon{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
+      #ed-body .dm-widget-pref-icon .dm-oggetto{width:24px;height:24px;display:block}
       #ed-body .dm-widget-move[disabled]{opacity:.3;pointer-events:none}
       #ed-body .dm-widget-shown{
         flex:0 0 40px;width:40px;height:23px;position:relative;border:0;border-radius:999px;cursor:pointer;

@@ -230,6 +230,174 @@ const OGGETTI = Object.freeze({
     <path d="M12.8 11.6a7 7 0 0 0-1.8 4.4" stroke="#fff" stroke-opacity=".7" stroke-width="1.7" fill="none" stroke-linecap="round"/>
     <g stroke="#38bdf8" stroke-width="2" fill="none" stroke-linecap="round" opacity=".65">
       <path d="M6.4 25.4c2.6-2.2 4.6-2.2 7.2 0s4.6 2.2 7.2 0 3.2-1.6 4.8-.4"/></g>`,
+
+  /* Il MiniPC: la scocca di alluminio, la spia accesa e le prese sul davanti.
+   * «Nella sezione widget manca completamente minipc»: la tessera adesso c'e',
+   * e le serviva il suo oggetto come a tutte le altre. */
+  minipc: `<defs>
+      <linearGradient id="dmoPcS" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f1f5f9"/><stop offset=".5" stop-color="#94a3b8"/>
+        <stop offset="1" stop-color="#334155"/></linearGradient>
+      <linearGradient id="dmoPcF" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1e293b"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs>
+    ${OMBRA(16, 27.4, 9.4)}
+    <rect x="4.4" y="8.6" width="23.2" height="16.4" rx="3.4" fill="url(#dmoPcS)"/>
+    <rect x="6.6" y="11" width="18.8" height="11.6" rx="2.2" fill="url(#dmoPcF)"/>
+    <circle cx="10" cy="16.8" r="1.7" fill="#22c55e"/>
+    <g fill="#64748b"><rect x="14.2" y="14.6" width="4.4" height="2.4" rx="1"/>
+      <rect x="14.2" y="18.4" width="7.6" height="2.2" rx="1"/></g>
+    <path d="M6.6 10.4h18.8" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/>`,
+
+  /* La presa: mascherina chiara e i due fori, come quella della sezione. */
+  prese: `<defs>
+      <linearGradient id="dmoPresa" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset=".55" stop-color="#cbd5e1"/>
+        <stop offset="1" stop-color="#64748b"/></linearGradient></defs>
+    ${OMBRA(16, 28.2, 8)}
+    <rect x="5.6" y="5.6" width="20.8" height="20.8" rx="6" fill="url(#dmoPresa)"/>
+    <circle cx="16" cy="16" r="7.4" fill="#0f172a" opacity=".14"/>
+    <g fill="#334155"><rect x="12.4" y="12.6" width="2.6" height="6.8" rx="1.3"/>
+      <rect x="17" y="12.6" width="2.6" height="6.8" rx="1.3"/></g>
+    <path d="M8.4 8.6a6 6 0 0 1 3.4-2" stroke="#fff" stroke-opacity=".8" stroke-width="1.7" fill="none" stroke-linecap="round"/>`,
+
+  /* In evidenza: la stella, con il suo lucido in alto a sinistra. */
+  evidenza: `<defs>
+      <linearGradient id="dmoStella" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fef3c7"/><stop offset=".5" stop-color="#fbbf24"/>
+        <stop offset="1" stop-color="#b45309"/></linearGradient></defs>
+    ${OMBRA(16, 28.4, 7.4)}
+    <path d="m16 3.6 3.9 7.9 8.7 1.3-6.3 6.1 1.5 8.7L16 23.5l-7.8 4.1 1.5-8.7-6.3-6.1 8.7-1.3Z" fill="url(#dmoStella)"/>
+    <path d="m12.6 9.4 2.4-4.6" stroke="#fff" stroke-opacity=".75" stroke-width="1.7" stroke-linecap="round"/>`,
+
+  /* Gli avvisi fatti in casa: il cartello, con il punto esclamativo inciso. */
+  custom: `<defs>
+      <linearGradient id="dmoAvviso" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fde68a"/><stop offset=".5" stop-color="#f59e0b"/>
+        <stop offset="1" stop-color="#b45309"/></linearGradient></defs>
+    ${OMBRA(16, 28.2, 8.6)}
+    <path d="M16 4.4a2.6 2.6 0 0 1 2.2 1.3l9 15.6a2.6 2.6 0 0 1-2.2 3.9H7a2.6 2.6 0 0 1-2.2-3.9l9-15.6A2.6 2.6 0 0 1 16 4.4Z" fill="url(#dmoAvviso)"/>
+    <rect x="14.7" y="11" width="2.6" height="7.6" rx="1.3" fill="#fff" opacity=".92"/>
+    <circle cx="16" cy="21.4" r="1.6" fill="#fff" opacity=".92"/>`,
+
+  /* ── gli oggetti delle schede della configurazione ─────────────────────
+   *
+   * Il menu della configurazione portava le emoji del sistema, e due voci
+   * finivano con lo stesso segno: «azioni ed energia hanno lo stesso simbolo
+   * nel config». Qui ci sono gli oggetti che mancavano, nella stessa famiglia
+   * delle tessere: chi guarda la colonna vede una cosa sola, disegnata da noi.
+   */
+
+  /* La casa: tetto, corpo e la finestra accesa. */
+  home: `<defs>
+      <linearGradient id="dmoCasaT" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f87171"/><stop offset="1" stop-color="#b91c1c"/></linearGradient>
+      <linearGradient id="dmoCasaC" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient></defs>
+    ${OMBRA(16, 27.8, 8.6)}
+    <path d="M16 3.4 3.6 13.2l1.8 2.3L16 7.2l10.6 8.3 1.8-2.3Z" fill="url(#dmoCasaT)"/>
+    <path d="M6.8 14.6 16 7.4l9.2 7.2v11.2H6.8Z" fill="url(#dmoCasaC)"/>
+    <rect x="13.4" y="18" width="5.2" height="7.8" rx="1.2" fill="#64748b"/>
+    <rect x="8.6" y="16.4" width="3.4" height="3.4" rx="1" fill="#fbbf24"/>`,
+
+  /* Le azioni rapide: il tasto tondo e l'onda del tocco. Non un fulmine —
+   * quello e' dell'Energia, e due voci con lo stesso segno non si distinguono
+   * piu'. Qui si vede subito che e' una cosa da premere. */
+  azioni: `<defs>
+      <linearGradient id="dmoTasto" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#a5b4fc"/><stop offset=".5" stop-color="#6366f1"/>
+        <stop offset="1" stop-color="#3730a3"/></linearGradient></defs>
+    ${OMBRA(16, 28, 7.6)}
+    <circle cx="16" cy="15.6" r="9.4" fill="url(#dmoTasto)"/>
+    <circle cx="16" cy="15.6" r="5.4" fill="#0f172a" opacity=".2"/>
+    <circle cx="16" cy="15.6" r="4" fill="#e0e7ff"/>
+    <path d="M10.2 8.6a8 8 0 0 1 4-2.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.7"
+      fill="none" stroke-linecap="round"/>
+    <g stroke="#6366f1" stroke-width="1.9" fill="none" stroke-linecap="round" opacity=".7">
+      <path d="M24.6 22.6a12 12 0 0 0 1.8-3.4M27.8 25a15.6 15.6 0 0 0 2.2-4.4"/></g>`,
+
+  /* Le stanze: il divano, di fronte. */
+  stanze: `<defs>
+      <linearGradient id="dmoDivano" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fdba74"/><stop offset="1" stop-color="#c2410c"/></linearGradient></defs>
+    ${OMBRA(16, 27.6, 9.4)}
+    <rect x="4.6" y="12.4" width="4.6" height="9" rx="2.3" fill="url(#dmoDivano)"/>
+    <rect x="22.8" y="12.4" width="4.6" height="9" rx="2.3" fill="url(#dmoDivano)"/>
+    <rect x="7.6" y="9.6" width="16.8" height="8.4" rx="2.6" fill="#fed7aa"/>
+    <rect x="6.6" y="16" width="18.8" height="7" rx="2.6" fill="url(#dmoDivano)"/>
+    <path d="M9.6 11.6h12.8" stroke="#fff" stroke-opacity=".6" stroke-width="1.4" stroke-linecap="round"/>
+    <g fill="#7c2d12" opacity=".7"><rect x="8.4" y="23" width="2" height="2.8" rx="1"/>
+      <rect x="21.6" y="23" width="2" height="2.8" rx="1"/></g>`,
+
+  /* Le impostazioni: la ruota dentata con il mozzo chiaro. */
+  impostazioni: `<defs>
+      <linearGradient id="dmoRuota" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e2e8f0"/><stop offset=".5" stop-color="#94a3b8"/>
+        <stop offset="1" stop-color="#475569"/></linearGradient></defs>
+    ${OMBRA(16, 28, 7.4)}
+    <path d="M16 4.6a11.4 11.4 0 0 1 3.3.5l.9 3a8.6 8.6 0 0 1 2.3 1.3l3-.9a11.4 11.4 0 0 1 2.3 4l-2.1 2.2a8.6 8.6 0 0 1 0 2.6l2.1 2.2a11.4 11.4 0 0 1-2.3 4l-3-.9a8.6 8.6 0 0 1-2.3 1.3l-.9 3a11.4 11.4 0 0 1-6.6 0l-.9-3a8.6 8.6 0 0 1-2.3-1.3l-3 .9a11.4 11.4 0 0 1-2.3-4l2.1-2.2a8.6 8.6 0 0 1 0-2.6l-2.1-2.2a11.4 11.4 0 0 1 2.3-4l3 .9a8.6 8.6 0 0 1 2.3-1.3l.9-3A11.4 11.4 0 0 1 16 4.6Z" fill="url(#dmoRuota)"/>
+    <circle cx="16" cy="16" r="4.4" fill="#0f172a" opacity=".22"/>
+    <circle cx="16" cy="16" r="3.2" fill="#f8fafc"/>`,
+
+  /* Il backup: il dischetto, con la sua etichetta. */
+  backup: `<defs>
+      <linearGradient id="dmoDisco" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#60a5fa"/><stop offset=".55" stop-color="#2563eb"/>
+        <stop offset="1" stop-color="#1e3a8a"/></linearGradient></defs>
+    ${OMBRA(16, 28, 8.4)}
+    <path d="M5.6 5.6h16.2l4.6 4.6v16.2H5.6Z" fill="url(#dmoDisco)"/>
+    <rect x="10.4" y="5.6" width="9.2" height="6.4" rx="1.2" fill="#e2e8f0"/>
+    <rect x="16.4" y="6.8" width="2.4" height="4" rx="1" fill="#1e3a8a"/>
+    <rect x="9" y="16.4" width="14" height="10" rx="1.6" fill="#f8fafc"/>
+    <g stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round">
+      <path d="M11.4 19.4h9.2M11.4 22.2h6.4"/></g>`,
+
+  /* Le persone: due sagome, una davanti all'altra. */
+  persone: `<defs>
+      <linearGradient id="dmoPers" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs>
+    ${OMBRA(16, 27.8, 9)}
+    <circle cx="21.8" cy="11.6" r="4.2" fill="#94a3b8"/>
+    <path d="M14.6 25.4c.6-4.4 3.6-6.6 7.2-6.6s6.6 2.2 7.2 6.6Z" fill="#94a3b8"/>
+    <circle cx="12.4" cy="10.6" r="5" fill="url(#dmoPers)"/>
+    <path d="M3.6 25.4c.7-5 4.2-7.6 8.8-7.6s8.1 2.6 8.8 7.6Z" fill="url(#dmoPers)"/>
+    <path d="M8.6 7.4a4.6 4.6 0 0 1 3-1.6" stroke="#fff" stroke-opacity=".75" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>`,
+
+  /* Il runtime: il battito sotto vetro, che e' quello che quella scheda mostra. */
+  runtime: `<defs>
+      <linearGradient id="dmoBatt2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>
+    ${OMBRA(16, 27.8, 8.6)}
+    <rect x="3.6" y="7" width="24.8" height="18" rx="4" fill="#0f172a"/>
+    <rect x="5.6" y="9" width="20.8" height="14" rx="2.6" fill="#052e2b"/>
+    <path d="M7 16.4h4l2-4.4 3 8.4 2.4-5 1.8 3h4.8" stroke="url(#dmoBatt2)" stroke-width="2"
+      fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M6.4 10.4a3 3 0 0 1 2-1.2" stroke="#fff" stroke-opacity=".45" stroke-width="1.2"
+      fill="none" stroke-linecap="round"/>`,
+
+  /* Gli avvisi: la campana, con il suo battaglio. */
+  avvisi: `<defs>
+      <linearGradient id="dmoCamp" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fde68a"/><stop offset=".5" stop-color="#f59e0b"/>
+        <stop offset="1" stop-color="#92400e"/></linearGradient></defs>
+    ${OMBRA(16, 28.2, 7.6)}
+    <path d="M16 4.2a2 2 0 0 1 2 2v.8a7.6 7.6 0 0 1 5.6 7.3v4.4l2 3.4a1.4 1.4 0 0 1-1.2 2.1H9.6a1.4 1.4 0 0 1-1.2-2.1l2-3.4v-4.4A7.6 7.6 0 0 1 16 7v-.8a2 2 0 0 1 0-2Z" fill="url(#dmoCamp)"/>
+    <path d="M13.2 24.6h5.6a2.8 2.8 0 0 1-5.6 0Z" fill="#b45309"/>
+    <path d="M12 11.4a5 5 0 0 1 2.8-2.4" stroke="#fff" stroke-opacity=".75" stroke-width="1.6"
+      fill="none" stroke-linecap="round"/>`,
+
+  /* I widget: le tessere del ponte, tre riquadri e uno acceso. */
+  widget: `<defs>
+      <linearGradient id="dmoTess" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#5eead4"/><stop offset=".55" stop-color="#14b8a6"/>
+        <stop offset="1" stop-color="#0f766e"/></linearGradient></defs>
+    ${OMBRA(16, 28, 8.8)}
+    <rect x="4.4" y="4.6" width="10.8" height="10.8" rx="2.8" fill="url(#dmoTess)"/>
+    <rect x="17.4" y="4.6" width="10.2" height="6.8" rx="2.4" fill="#cbd5e1"/>
+    <rect x="17.4" y="13.6" width="10.2" height="13.8" rx="2.8" fill="#94a3b8"/>
+    <rect x="4.4" y="17.6" width="10.8" height="9.8" rx="2.8" fill="#cbd5e1"/>
+    <path d="M6.8 7.4a3.4 3.4 0 0 1 2.4-1.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>`,
 });
 
 /* Il disegno della tessera, pronto da mettere dentro la pastiglia.

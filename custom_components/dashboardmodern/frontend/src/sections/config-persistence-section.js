@@ -237,9 +237,31 @@ export function integrationUserDataKey({ primary = true, instance = "" } = {}) {
   return `dashboardmodern_integration_config${suffix}`;
 }
 
+/* Se questa plancia sia la principale, e cosa fare quando non lo dice nessuno.
+ *
+ * Il valore lo dichiara l'integrazione. Quando manca — un pannello vecchio
+ * rimasto nella cache del browser — qui si dava per scontato di essere la
+ * principale, e una plancia ospitata che non sapeva di non esserlo finiva a
+ * leggere e scrivere la configurazione dell'altra: due plance, una
+ * configurazione sola.
+ *
+ * La spia non puo' essere l'istanza. Ne ha una anche la principale — l'ospita
+ * la stessa integrazione, con la stessa marcatura — e prenderla per prova di
+ * essere secondari mandava proprio la principale a scrivere nella cassetta di
+ * un'altra: il difetto di prima, girato dall'altra parte. La spia e' il
+ * profilo, che una plancia secondaria si porta dietro (`dmc=`) e la principale
+ * no: se il profilo c'e' ed e' di un'altra cassetta, non siamo la principale.
+ * Senza ne' dichiarazione ne' profilo si resta come si e' sempre stati. */
+export function laPrincipale() {
+  const dichiarata = root.__DASHBOARDMODERN_PRIMARY__;
+  if (dichiarata !== undefined && dichiarata !== null) return dichiarata !== false;
+  const profilo = sanitizeProfile(root.__DASHBOARDMODERN_PROFILE__ || parentProfile() || "");
+  return profilo ? profilo === PRIMARY_PROFILE : true;
+}
+
 function userDataKey() {
   return integrationUserDataKey({
-    primary: root.__DASHBOARDMODERN_PRIMARY__ !== false,
+    primary: laPrincipale(),
     instance: root.__DASHBOARDMODERN_INSTANCE__,
   });
 }
@@ -287,7 +309,7 @@ export function configProfileFor({ profile = "", primary = true } = {}) {
 function currentProfile() {
   return configProfileFor({
     profile: root.__DASHBOARDMODERN_PROFILE__ || parentProfile() || "",
-    primary: root.__DASHBOARDMODERN_PRIMARY__ !== false,
+    primary: laPrincipale(),
   });
 }
 

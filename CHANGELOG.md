@@ -5,6 +5,68 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.4
+
+### Nuovo
+
+- **La barra in basso scansa i tasti del telefono** ([#249](https://github.com/danigio15/dashboardmodern-v2/issues/249)). «Nello smartphone
+  la barra inferiore e' parzialmente coperta dai tasti Android.» Non e' stata
+  alzata di un tanto fisso — su un telefono a gesti, su un tablet o su un
+  computer sarebbe rimasta sospesa per niente: quanto alzarla lo dice il
+  dispositivo, ed e' zero dove non c'e' niente da scansare. La barra, la
+  maniglia che la tira fuori e lo spazio sotto l'ultima card si adattano
+  insieme.
+
+### Corretto
+
+- **Una plancia nuova nasce vuota, non copia di quella che c'era.** «Se aggiungo
+  una nuova dashboard da integrazioni mi duplica quella attuale, invece doveva
+  crearne una ex novo sciolta dall'altra.» Il nome della cassetta dove sta la
+  configurazione veniva dal titolo, e chi ne aggiunge una seconda lascia il nome
+  proposto: due plance chiamate allo stesso modo finivano nella stessa cassetta
+  e da li' in poi si scrivevano addosso. Adesso i posti si assegnano guardando
+  tutte le plance insieme — chi c'era prima non si muove, chi arriva su un nome
+  occupato ne riceve uno suo — e una plancia ospitata che non sa di essere la
+  principale non si prende piu' la configurazione della principale. E una
+  plancia senza niente di configurato non mostra piu' il ponte dei widget: le
+  tessere degli avvisi — aperture, batterie, allagamenti — nascono dal
+  rilevamento e non dalla configurazione, e su una plancia appena creata
+  raccontavano la casa dell'altra proprio sotto il messaggio che diceva il
+  contrario. Basta la prima stanza perche' tornino — o la prima finestra
+  aggiunta a mano alle Aperture, che e' una scelta come le altre; quello che il
+  primo avvio si segna da solo, invece, non conta.
+- **Anche la barra in basso e le pillole delle aperture hanno i disegni di
+  casa.** Erano gli ultimi due posti con le emoji del sistema — e la barra e' il
+  piu' guardato di tutti: la casa di un telefono accanto al fiocco di un altro.
+  Le voci a riposo restano spente, quella aperta e' a colori.
+
+- **Il cerchio dell'Energia dice quello che dice la sua finestra.** Il cerchio
+  segnava 0 W e la finestra dei sotto-carichi 838 W. Adesso un contatore di
+  gruppo fermo a zero non nasconde piu' quello che ha dentro — a zero si guarda
+  la somma dei dispositivi — e la casella della potenza la scelgono allo stesso
+  modo il cerchio e la finestra, cosi' un apparecchio con due caselle scritte
+  non dice piu' due numeri diversi nella stessa schermata. Sparito anche il
+  tremolio della finestra: la griglia veniva buttata e rifatta a ogni battito
+  degli stati, decine di volte al minuto.
+- **Il cestino della «Potenza istantanea» toglie l'entita' davvero.** «Io
+  elimino l'entita' inserita per far usare il calcolo ma non la elimina.» Erano
+  tre cose in fila: il tasto «Salva carichi» restava spento dopo aver svuotato
+  una casella; l'elenco piatto delle entita' si portava dietro il sensore
+  appena tolto; e un istante dopo il salvataggio chi indovina le caselle vuote
+  dai nomi dei sensori lo rimetteva al suo posto. Ora una casella svuotata
+  resta vuota — e il cerchio diventa la somma dei dispositivi che ha dentro,
+  che e' esattamente perche' la si svuota.
+- **La tessera del MiniPC dice RAM e disco in tutte le lingue.** Sotto il
+  numero della CPU sceglieva le altre due quote leggendo l'etichetta scritta:
+  dove quelle parole sono tradotte — il giapponese, l'arabo — non ne
+  riconosceva nessuna, e la didascalia restava vuota pur avendo le letture in
+  mano. Adesso le sceglie dalla misura, che non cambia con la lingua.
+- **Rinominare una plancia non la manda nella cassetta di un'altra.** Con due
+  plance chiamate allo stesso modo, la seconda teneva un nome con il suffisso;
+  se poi si rinominava la prima, il nome liberato veniva ricalcolato e la
+  seconda ci finiva dentro. Ogni plancia si ricorda la sua cassetta, e il
+  ricordo vale piu' del nome appena scritto.
+
 ## 1.4.3
 
 ### Nuovo

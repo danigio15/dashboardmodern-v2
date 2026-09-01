@@ -208,11 +208,69 @@ const CORPI = Object.freeze({
   broom: `${PANNELLO}<path ${TRATTO} d="M62 14 40 44"/><path ${SCOCCA} d="M30 44h26l10 26a6 6 0 0 1-6 8H26a6 6 0 0 1-6-8z"/><path ${TRATTO_CHIARO} d="M30 58v18M40 58v18M50 58v18"/>`,
 
   refresh: `${PANNELLO}<path ${TRATTO} d="M76 48a28 28 0 1 1-9-20"/><path ${SCOCCA} d="M72 6h8v22H58z"/>`,
+
+  /* ── i programmi della lavatrice ───────────────────────────────────────
+   *
+   * «Crea anche nel nostro catalogo delle icone che possono essere utilizzate
+   * per i programmi della lavatrice»: i tasti del popup si battezzano uno per
+   * uno, e finora l'unico disegno pertinente era il cesto. Questi sono i
+   * programmi che una lavatrice ha davvero, nella stessa famiglia di tutto il
+   * resto: stesso riquadro, stessa scocca, stesso accento. */
+
+  /* Cotone: la maglietta, che e' il capo che tutti riconoscono. */
+  "wash-cotton": `${PANNELLO}<path ${SCOCCA} d="M38 20h20l18 10-8 14-8-4v34a4 4 0 0 1-4 4H40a4 4 0 0 1-4-4V40l-8 4-8-14z"/><path ${TRATTO_CHIARO} d="M40 21c2 6 14 6 16 0"/><circle ${ACCENTO} cx="48" cy="62" r="4"/>`,
+
+  /* Sintetici: la camicia col collo aperto e i bottoni. */
+  "wash-synthetic": `${PANNELLO}<path ${SCOCCA} d="M36 18h24l16 12-9 12-5-3v37a4 4 0 0 1-4 4H38a4 4 0 0 1-4-4V39l-5 3-9-12z"/><path ${TRATTO_CHIARO} d="M40 19l8 12 8-12M48 40v34"/><circle ${ACCENTO} cx="48" cy="50" r="2.6"/><circle ${ACCENTO} cx="48" cy="64" r="2.6"/>`,
+
+  /* Lana: il gomitolo con il filo che scappa. */
+  "wash-wool": `${PANNELLO}<circle ${SCOCCA} cx="46" cy="52" r="26"/><path ${TRATTO_CHIARO} d="M28 36c14 4 26 16 30 30M36 28c12 6 24 20 26 34M24 50c10 2 20 10 24 22"/><path ${TRATTO_ACCENTO} d="M70 40c8-4 12-10 10-18"/>`,
+
+  /* Rapido: l'oblo' con la lancetta corta, e la scia. */
+  "wash-quick": `${PANNELLO}<circle ${SCOCCA} cx="48" cy="50" r="28"/><circle ${FRONTALE} cx="48" cy="50" r="20"/><path ${TRATTO} d="M48 36v14l10 6"/><path ${TRATTO_ACCENTO} d="M14 32h16M10 46h12"/>`,
+
+  /* Eco: la foglia dentro l'oblo'. */
+  "wash-eco": `${PANNELLO}<circle ${SCOCCA} cx="48" cy="50" r="28"/><circle ${FRONTALE} cx="48" cy="50" r="20"/><path ${VERDE} d="M60 36c2 16-6 26-20 26 0-16 8-24 20-26z"/><path ${TRATTO} d="M38 64c6-8 12-14 20-18"/>`,
+
+  /* Centrifuga: il cestello e le frecce che girano forte. */
+  "wash-spin": `${PANNELLO}<circle ${SCOCCA} cx="48" cy="50" r="28"/><circle ${FRONTALE} cx="48" cy="50" r="19"/><path ${TRATTO_ACCENTO} d="M48 36a14 14 0 0 1 13 9"/><path ${ACCENTO} d="M64 40l-2 10-8-6z"/><path ${TRATTO_ACCENTO} d="M48 64a14 14 0 0 1-13-9"/><path ${ACCENTO} d="M32 60l2-10 8 6z"/>`,
+
+  /* Risciacquo: l'acqua che scende dentro il cestello. */
+  "wash-rinse": `${PANNELLO}<circle ${SCOCCA} cx="48" cy="54" r="26"/><circle ${FRONTALE} cx="48" cy="54" r="18"/><path ${VETRO} d="M48 12c7 9 11 14 11 19a11 11 0 0 1-22 0c0-5 4-10 11-19z"/><path ${TRATTO_CHIARO} d="M40 58c5 5 11 5 16 0"/>`,
+
+  /* Igienizzante: il caldo alto, col termometro e il vapore. */
+  "wash-hot": `${PANNELLO}<circle ${SCOCCA} cx="52" cy="56" r="24"/><circle ${FRONTALE} cx="52" cy="56" r="16"/><path ${CALDO} d="M30 20a6 6 0 0 1 12 0v28a10 10 0 1 1-12 0z"/><circle ${CALDO} cx="36" cy="60" r="9"/><path ${TRATTO_CHIARO} d="M46 50c4-4 4-8 0-12"/>`,
+
+  /* Delicati: la piuma, che dice «piano» senza scriverlo. */
+  "wash-delicate": `${PANNELLO}<path ${SCOCCA} d="M74 18c4 22-6 40-24 46l-10 4 4-10c8-18 18-30 30-40z"/><path ${TRATTO_CHIARO} d="M62 30 40 60M56 32l2 12M48 42l2 12"/><path ${TRATTO_ACCENTO} d="M24 78c6-6 12-10 18-12"/>`,
+
+  /* Piumoni: il capo grande, con le sue cuciture. */
+  "wash-duvet": `${PANNELLO}<rect ${SCOCCA} x="16" y="26" width="64" height="46" rx="10"/><path ${TRATTO_CHIARO} d="M16 42h64M16 58h64M38 26v46M60 26v46"/><circle ${ACCENTO} cx="27" cy="34" r="3"/>`,
 });
 
 /* I nomi con cui il resto della plancia chiede la stessa cosa. Un disegno solo,
  * tanti nomi: «luce», «light», «lights» sono la stessa lampadina. */
 const ALIAS = Object.freeze({
+  /* I programmi della lavatrice, chiamati come li chiama chi li usa. */
+  cotone: "wash-cotton",
+  cotton: "wash-cotton",
+  sintetici: "wash-synthetic",
+  synthetic: "wash-synthetic",
+  lana: "wash-wool",
+  wool: "wash-wool",
+  rapido: "wash-quick",
+  quick: "wash-quick",
+  eco: "wash-eco",
+  centrifuga: "wash-spin",
+  spin: "wash-spin",
+  risciacquo: "wash-rinse",
+  rinse: "wash-rinse",
+  igienizzante: "wash-hot",
+  sanitize: "wash-hot",
+  delicati: "wash-delicate",
+  delicate: "wash-delicate",
+  piumoni: "wash-duvet",
+  duvet: "wash-duvet",
   light: "lights",
   luce: "lights",
   luci: "lights",

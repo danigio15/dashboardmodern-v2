@@ -131,10 +131,29 @@ def _config_profile(hass: HomeAssistant, entry: Any) -> str:
     integration used to change the storage key of the configuration and left the
     plancia empty. The primary plancia keeps a fixed profile, the others follow
     their title, and a rename is followed by the store itself.
-    """
-    from .config_store import profile_for_entry
 
-    return profile_for_entry(
+    Il titolo pero' non basta a distinguerle: chi aggiunge una plancia lascia il
+    nome proposto, e due plance chiamate allo stesso modo finivano nello stesso
+    profilo — la nuova nasceva gia' piena della configurazione dell'altra.
+    Adesso i profili si assegnano guardando tutte le plance insieme, e chi
+    arriva su un nome gia' occupato ne riceve uno suo.
+    """
+    from .config_store import profile_for_entry, unique_profiles
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        return profile_for_entry(
+            primary=_entry_is_primary(hass, entry),
+            title=entry.title or "",
+            entry_id=entry.entry_id,
+        )
+    profili = unique_profiles(
+        [
+            (item.entry_id, item.title or "", _entry_is_primary(hass, item))
+            for item in entries
+        ]
+    )
+    return profili.get(entry.entry_id) or profile_for_entry(
         primary=_entry_is_primary(hass, entry),
         title=entry.title or "",
         entry_id=entry.entry_id,

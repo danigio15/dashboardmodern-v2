@@ -168,6 +168,16 @@ export function ensureEntityChoices() {
     // interruttore che promette di toglierla dai widget prometterebbe una cosa
     // che non esiste.
     if (row.matches(".dm-people-row")) continue;
+    /* Nemmeno un'azione rapida: quelle hanno la loro sezione in Home, non una
+     * tessera. L'interruttore ci finiva sopra perche' la riga scrive
+     * l'entity_id come tutte le altre, e prometteva di togliere dai widget una
+     * cosa che nei widget non c'e' mai stata — «tutte le azioni rapide non
+     * devono comparire nei widget». La riga si riconosce dal suo cestino, che
+     * chiama `edDelQA`: e' struttura, non parole, e vale nelle due lingue. */
+    if (row.querySelector('[onclick^="edDelQA"]')) {
+      row.querySelector(`[${CHOICE_ATTRIBUTE}]`)?.remove();
+      continue;
+    }
     const entities = entitiesOfRow(row);
     if (!entities.length) continue;
     const dentro = entities.some((entity) => !fuori.has(entity));

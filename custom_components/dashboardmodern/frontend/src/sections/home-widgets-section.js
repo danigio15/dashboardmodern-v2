@@ -61,6 +61,7 @@ import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
 import { loadCameraFrame } from "./live-ui-section.js";
+import { hasConfiguredData } from "../core/dashboard-store.js";
 import {
   allStates,
   clean,
@@ -1444,6 +1445,150 @@ function preseModel(states) {
   };
 }
 
+/* Le caselle del MiniPC che la tessera sa raccontare, nell'ordine in cui
+ * contano: prima quanto sta lavorando, poi quanto scotta e quanto tira, poi la
+ * linea. Sono gli stessi riferimenti della sua scheda: chi li ha mappati una
+ * volta non deve rimapparli qui. */
+const CASELLE_MINIPC = Object.freeze([
+  {
+    ref: "dm.server_cpu",
+    chiave: "cpu",
+    it: "CPU",
+    en: "CPU",
+    glyph: "🧠",
+    unita: "%",
+    cifre: 0,
+    quota: true,
+  },
+  {
+    ref: "dm.server_ram",
+    chiave: "ram",
+    it: "RAM",
+    en: "RAM",
+    glyph: "📊",
+    unita: "%",
+    cifre: 0,
+    quota: true,
+  },
+  {
+    ref: "dm.server_disco",
+    chiave: "disco",
+    it: "Disco",
+    en: "Disk",
+    glyph: "💽",
+    unita: "%",
+    cifre: 0,
+    quota: true,
+  },
+  {
+    ref: "dm.server_temperatura_cpu",
+    it: "Temperatura CPU",
+    en: "CPU temperature",
+    glyph: "🌡️",
+    unita: "°",
+    cifre: 1,
+  },
+  { ref: "dm.server_temperature", it: "Temperatura", en: "Temperature", glyph: "🌡️", unita: "°", cifre: 1 },
+  {
+    ref: "dm.server_potenza_raspberry_server",
+    it: "Potenza",
+    en: "Power",
+    glyph: "⚡",
+    unita: " W",
+    cifre: 0,
+  },
+  {
+    ref: "dm.server_speedtest_download",
+    it: "Download",
+    en: "Download",
+    glyph: "⬇️",
+    unita: " Mb/s",
+    cifre: 0,
+  },
+  {
+    ref: "dm.server_speedtest_upload",
+    it: "Upload",
+    en: "Upload",
+    glyph: "⬆️",
+    unita: " Mb/s",
+    cifre: 0,
+  },
+  { ref: "dm.server_ping_internet", it: "Ping", en: "Ping", glyph: "📡", unita: " ms", cifre: 0 },
+  { ref: "dm.server_stato_internet", it: "Internet", en: "Internet", glyph: "🌐", acceso: true },
+  {
+    ref: "dm.server_raggiungibilita_google",
+    it: "Rete raggiungibile",
+    en: "Network reachable",
+    glyph: "🌐",
+    acceso: true,
+  },
+]);
+
+/* La tessera del MiniPC.
+ *
+ * «Nella sezione widget manca completamente minipc»: la scheda aveva la sua
+ * pagina e le sue caselle, ma in Home non c'era niente — e il ponte esiste
+ * proprio per dire di sfuggita come sta quello che di solito si guarda per
+ * intero. In grande va la CPU, che e' la risposta alla domanda «sta
+ * faticando?»; il resto sta nella finestra, e il tasto porta alla sua
+ * sezione. */
+export function minipcModel(states) {
+  const fuori = widgetExcludedEntities();
+  const rows = [];
+  const visti = new Set();
+  let carico = null;
+  for (const casella of CASELLE_MINIPC) {
+    const dato = refValue(states, casella.ref, fuori);
+    if (!dato || visti.has(dato.entity)) continue;
+    if (casella.acceso) {
+      if (STATI_MUTI.test(dato.state)) continue;
+      visti.add(dato.entity);
+      const attivo = STATI_ACCESI.test(dato.state);
+      rows.push({
+        glyph: casella.glyph,
+        name: friendlyName(states, dato.entity),
+        entity: dato.entity,
+        on: attivo,
+        value: attivo ? t("Attivo", "Up") : t("Assente", "Down"),
+      });
+      continue;
+    }
+    if (dato.value == null) continue;
+    visti.add(dato.entity);
+    if (casella.quota && carico === null && casella.ref === "dm.server_cpu") carico = dato.value;
+    rows.push({
+      glyph: casella.glyph,
+      name: t(casella.it, casella.en),
+      /* Il nome della misura, non la parola tradotta.
+       *
+       * La didascalia sceglieva le righe leggendo l'etichetta: in arabo e in
+       * giapponese quelle parole sono tradotte, e la tessera perdeva RAM e
+       * disco pur avendone le letture. Chiesto in revisione. */
+      chiave: casella.chiave || "",
+      entity: dato.entity,
+      raw: dato.value,
+      value: `${formatNumber(dato.value, casella.cifre)}${casella.unita}`,
+    });
+  }
+  if (!rows.length) return null;
+  const quote = rows.filter((row) => ["cpu", "ram", "disco"].includes(row.chiave));
+  return {
+    key: "minipc",
+    accent: "#334155",
+    icon: "🖥️",
+    label: t("MiniPC", "MiniPC"),
+    value: carico != null ? `${formatNumber(carico, 0)}%` : rows[0].value,
+    /* Le altre due quote in didascalia: sono la coppia che si guarda insieme
+     * alla CPU, e cosi' la tessera dice tutto senza aprirsi. */
+    caption: quote
+      .filter((row) => row.chiave !== "cpu")
+      .map((row) => `${row.name} ${row.value}`)
+      .join(" · "),
+    ring: carico != null ? Math.round(carico) : null,
+    rows,
+  };
+}
+
 function irrigationModel(states) {
   const config = root.getIrr?.() || readJson("cd_irrigazione", {});
   const zones = Array.isArray(config?.zones) ? config.zones : [];
@@ -1857,7 +2002,106 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
   return models.filter((widget) => !hidden.has(chiave(widget))).sort((a, b) => rank(a) - rank(b));
 }
 
+/* Le sezioni canoniche che dicono «questa plancia e' stata configurata». */
+const SEZIONI_CONFIGURABILI = Object.freeze([
+  "rooms",
+  "cameras",
+  "appliances",
+  "loads",
+  "lights",
+  "climate",
+  "ev",
+  "covers",
+  "pool",
+  "irrigation",
+  "energy",
+  "sockets",
+  "robots",
+  "entityOverrides",
+]);
+
+/* Le liste legacy che una tessera legge senza passare dalle sezioni: chi ha
+ * configurato SOLO queste ha comunque una plancia configurata. */
+const LISTE_CONFIGURABILI = Object.freeze([
+  "cd_avvisi_custom",
+  TODO_CONFIG_KEY,
+  EVIDENZA_CONFIG_KEY,
+  "cd_security_doors",
+  "cd_prese",
+]);
+
+/* I gruppi di monitoraggio che si scrivono da soli.
+ *
+ * `cd_gruppi_extra` tiene le entita' che l'utente ha aggiunto agli avvisi — le
+ * finestre nelle Aperture, per dirne una — ed e' configurazione a tutti gli
+ * effetti: si arriva li' solo scegliendo. Tranne che per tre voci, che nessuno
+ * sceglie: allagamenti e fumo se li scrive il primo avvio guardando cosa c'e'
+ * in casa, e `luci` e' una copia di `cd_luci` che si rinfresca da se'. Contarle
+ * come configurazione voleva dire ridare per «configurata» una plancia appena
+ * nata — cioe' rimettere in piedi il difetto per cui in Home comparivano gli
+ * avvisi della casa di un'altra. */
+const GRUPPI_CHE_NON_SI_SCELGONO = Object.freeze(new Set(["allag", "fumo", "luci"]));
+
+/** Se qualcuno ha aggiunto a mano un'entita' a un gruppo di avvisi. */
+function gruppiScelti() {
+  const extras = readJson("cd_gruppi_extra", null);
+  if (!extras || typeof extras !== "object") return false;
+  return Object.entries(extras).some(
+    ([gruppo, lista]) =>
+      !GRUPPI_CHE_NON_SI_SCELGONO.has(gruppo) && Array.isArray(lista) && lista.length > 0,
+  );
+}
+
+/* Se questa plancia e' stata configurata da qualcuno.
+ *
+ * Le tessere degli avvisi — aperture, batterie, allagamenti — non nascono dalla
+ * configurazione: nascono dal rilevamento, cioe' da quello che Home Assistant
+ * ha in casa. Su una plancia appena creata questo voleva dire trovarsi in Home
+ * il ponte gia' acceso, con «2 aperte su 30», sotto il messaggio che dice il
+ * contrario — «non hai ancora collegato le tue entita', quindi le card sono
+ * nascoste» — e con dentro la casa dell'altra plancia. Chi ne apre una nuova la
+ * vuole vuota: «doveva crearne una ex novo sciolta dall'altra».
+ *
+ * Finche' non c'e' niente di configurato qui, il ponte tace. Basta la prima
+ * stanza, la prima entita' mappata, il primo avviso a mano perche' torni. */
+export function planciaConfigurata() {
+  for (const nome of SEZIONI_CONFIGURABILI) {
+    const valore = section(nome, null);
+    if (valore == null) continue;
+    if (nome === "entityOverrides") {
+      if (Object.values(valore || {}).some((entity) => clean(entity).includes("."))) return true;
+      continue;
+    }
+    /* Una stanza e' configurazione anche senza sensori dentro.
+     *
+     * Chiesto in revisione, e ha ragione: chi apre una plancia nuova comincia
+     * quasi sempre dalle stanze, e una stanza si crea col nome — i sensori
+     * arrivano dopo. Chi giudica i dati «configurati» guarda pero' solo la
+     * temperatura e l'umidita', e con la sola stanza avrebbe risposto di no:
+     * il ponte sarebbe rimasto muto proprio dopo il primo gesto di chi
+     * comincia. */
+    if (nome === "rooms") {
+      if (
+        Array.isArray(valore) &&
+        valore.some((stanza) => clean(stanza?.name) || clean(stanza?.id))
+      )
+        return true;
+      continue;
+    }
+    if (hasConfiguredData(nome, valore)) return true;
+  }
+  for (const chiave of LISTE_CONFIGURABILI) {
+    const valore = readJson(chiave, null);
+    if (Array.isArray(valore) ? valore.length : valore && Object.keys(valore).length) return true;
+  }
+  if (gruppiScelti()) return true;
+  /* Le luci vivono in una mappa `{entita: nome}` sia in sezione sia in legacy. */
+  const luci = readJson("cd_luci", null);
+  return Boolean(luci && Object.keys(luci).length);
+}
+
 function widgetModels(states) {
+  if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
     [
       evidenzaModel(states),
@@ -1873,6 +2117,7 @@ function widgetModels(states) {
       evModel(states),
       robotsModel(states),
       solarThermalModel(states),
+      minipcModel(states),
       poolModel(states),
       preseModel(states),
       irrigationModel(states),
@@ -2624,6 +2869,17 @@ function iconaApertura(row) {
     if (disegnata) return disegnata;
   }
   if (scelta) return esc(scelta);
+  /* Il disegno di casa anche quando nessuno ha scelto un'icona.
+   *
+   * Qui si tornava all'emoji del sistema — la porta e la finestra che ogni
+   * telefono disegna a modo suo — proprio nelle pillole che si guardano di
+   * corsa: «continuo a vedere icone che non sono nostre». Il catalogo la porta
+   * e la finestra ce le ha; si chiedono a lui. */
+  const canonica = /porta|cancell|door|gate/i.test(row.name)
+    ? "mdi:door-closed"
+    : "mdi:window-closed-variant";
+  const disegnata = root.DashboardModernIconEngine?.markup?.("action", canonica, { size: 20 });
+  if (disegnata) return disegnata;
   return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
 }
 
@@ -3217,6 +3473,7 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   piscina: "piscina",
   irrigazione: "irrigazione",
   robot: "robot",
+  minipc: "server",
 });
 
 /* La voce della sezione, ma solo se ci si puo' davvero andare.

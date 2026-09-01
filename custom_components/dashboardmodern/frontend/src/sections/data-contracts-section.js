@@ -7,6 +7,7 @@ import {
   root,
   writeJsonIfChanged,
 } from "./shared.js";
+import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 
 const KEY = "__DASHBOARDMODERN_DATA_CONTRACTS_SECTION__";
 const state = (root[KEY] ||= {
@@ -185,6 +186,18 @@ function candidateEntities(device = {}) {
 }
 
 function inferApplianceContract(device = {}) {
+  /* Chi e' passato dalla maschera ha gia' detto tutto, comprese le caselle
+   * che ha lasciato vuote apposta.
+   *
+   * Questa passata riempie le caselle vuote indovinando dai nomi delle
+   * entita', ed e' quello che serve a chi non ha mai configurato niente. Ma su
+   * un carico appena salvato a mano diventava il contrario di un aiuto:
+   * l'entita' della potenza tolta col cestino rientrava dalla finestra un
+   * istante dopo il salvataggio — «io elimino l'entita' inserita per far usare
+   * il calcolo ma non la elimina» — perche' il nome del sensore somigliava a
+   * quello del carico. Una casella vuota per scelta e' una risposta, non una
+   * domanda. */
+  if (device?.metadata?.[CAMPI_SCELTI] === true) return device;
   const entities = candidateEntities(device);
   const sensors = entities.filter((id) => /^sensor\./i.test(id));
   const energySensors = sensors.filter(isEnergyEntity);

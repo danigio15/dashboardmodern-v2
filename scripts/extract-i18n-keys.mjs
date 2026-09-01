@@ -142,6 +142,7 @@ const SECTION_TABLES = Object.freeze([
   { file: "lights-scene-section.js", name: "SWATCHES", rows: "items", at: ["it", "en"] },
   { file: "people-section.js", name: "ACTIVITY_LABELS", rows: "values", at: [0, 1] },
   { file: "lights-scene-section.js", name: "KELVIN_PRESETS", rows: "items", at: ["it", "en"] },
+  { file: "home-widgets-section.js", name: "CASELLE_MINIPC", rows: "items", at: ["it", "en"] },
   { file: "minipc-showcase-section.js", name: "GROUPS", rows: "items", at: ["it", "en"] },
   { file: "page-masthead-section.js", name: "PAGES", rows: "items", at: ["it", "en"] },
   { file: "pool-editor-section.js", name: "CAMPI", rows: "items", at: [1, 2] },

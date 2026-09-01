@@ -1,7 +1,13 @@
+import { oggettoWidget } from "../core/oggetti-widget.js";
 import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_NAVIGATION_SECTION__";
-const state = (root[KEY] ||= { installed: false, scroller: null, autoHide: 0, behaviour: false });
+const state = (root[KEY] ||= {
+  installed: false,
+  scroller: null,
+  autoHide: 0,
+  behaviour: false,
+});
 
 /* The dock is sized on its content (`width:max-content`), so with every section
  * enabled the thirteen tabs are wider than the screen and the ones past the
@@ -19,9 +25,54 @@ function installStyles() {
   installStyle(
     "dm-navigation-section-style",
     `
+      /* Quanto si prende il sistema in fondo allo schermo (#249).
+       *
+       * «Nello smartphone la barra inferiore e' parzialmente coperta dai tasti
+       * Android»: la barra sta a diciotto pixel dal fondo della pagina, e su un
+       * telefono coi tre tasti quel fondo e' sotto di loro. Alzarla di un tanto
+       * fisso avrebbe solo spostato il problema: su un telefono a gesti, su un
+       * tablet o su un computer sarebbe rimasta sospesa per niente.
+       *
+       * Quanto alzarla lo dice il dispositivo, schermo per schermo, ed e' zero
+       * dove non c'e' niente da scansare: la barra si alza esattamente di
+       * quello che il sistema si e' preso e non di un pixel di piu'. Il valore
+       * passa da una variabile cosi' che una prova possa fingere un telefono
+       * coi tasti e guardare la barra spostarsi davvero. */
+      :root{--dm-fondo-di-sistema:env(safe-area-inset-bottom,0px)}
+      /* La barra a riposo, quella tirata fuori e quella tenuta ferma: tutte e
+       * tre misurano dal fondo, e tutte e tre devono scansare i tasti. */
+      nav.tabs.bottom-nav-bar.visible,
+      body.cd-nav-fixed nav.tabs.bottom-nav-bar{
+        bottom:calc(18px + var(--dm-fondo-di-sistema))!important
+      }
+      /* E lo spazio sotto l'ultima card cresce insieme alla barra.
+       *
+       * Chiesto in revisione: la barra ferma si alza dell'inset, ma lo spazio
+       * riservato in fondo alla pagina restava quello di prima — cosi' la barra
+       * si mangiava proprio la distanza che serviva a non coprire l'ultima
+       * card, e piu' alta e' la fascia di sistema piu' grande era la
+       * sovrapposizione. */
+      body.cd-nav-fixed{padding-bottom:calc(112px + var(--dm-fondo-di-sistema))!important}
+      /* E la maniglia che tira fuori la barra, che sta ancora piu' in basso:
+       * se resta sotto i tasti non la si prende nemmeno. */
+      .bottom-nav-handle{bottom:calc(6px + var(--dm-fondo-di-sistema))!important}
+      nav.tabs.bottom-nav-bar.visible ~ .bottom-nav-handle,
+      body.nav-visible .bottom-nav-handle{
+        bottom:calc(90px + var(--dm-fondo-di-sistema))!important
+      }
       .bottom-nav-bar{isolation:isolate!important}
       .bottom-nav-bar .tab{color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
       .bottom-nav-bar .tab .icon,.bottom-nav-bar .tab .text{opacity:.78!important;transition:opacity .16s ease,color .16s ease!important}
+      /* Il disegno di casa sta nella casella del simbolo, alla sua misura.
+       *
+       * Il guscio spegneva i simboli con grayscale(1) e opacita' a meta': era una
+       * regola scritta per le emoji, e sui disegni li sbiadiva fino a farli
+       * sparire. Le voci a riposo restano spente — e' cosi' che si vede
+       * qual e' quella aperta — ma abbastanza da riconoscerle; quella aperta
+       * torna a colori pieni. */
+      .bottom-nav-bar .tab .icon>.dm-oggetto{width:24px;height:24px;display:block;margin:0 auto}
+      nav.tabs.bottom-nav-bar .tab .icon:has(>.dm-oggetto){filter:grayscale(.85) opacity(.72)!important}
+      nav.tabs.bottom-nav-bar .tab.active .icon:has(>.dm-oggetto){filter:none!important}
       .bottom-nav-bar .tab.active{color:var(--text,#0f172a)!important}
       .bottom-nav-bar .tab.active .icon,.bottom-nav-bar .tab.active .text{opacity:1!important}
       html[data-theme="dark"] .bottom-nav-bar,html.dark .bottom-nav-bar,body[data-theme="dark"] .bottom-nav-bar,body.dark .bottom-nav-bar,.dark .bottom-nav-bar{background:rgba(19,28,48,.94)!important;border-color:#40506f!important;box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.07)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important}
@@ -56,7 +107,7 @@ function installStyles() {
       .bottom-nav-bar .${ARROW_CLASS}{display:none}
       @media(min-width:769px) and (hover:hover) and (pointer:fine){
         nav.tabs.bottom-nav-bar{width:max-content!important;min-width:0!important;max-width:calc(100% - 48px)!important}
-        nav.tabs.bottom-nav-bar:has(:focus-visible){bottom:20px!important;opacity:1!important}
+        nav.tabs.bottom-nav-bar:has(:focus-visible){bottom:calc(20px + var(--dm-fondo-di-sistema))!important;opacity:1!important}
         nav.tabs.bottom-nav-bar .${SCROLLER_CLASS}{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;flex:0 1 auto!important;min-width:0!important;overflow-x:auto!important;overflow-y:hidden!important;overscroll-behavior-x:contain!important;scrollbar-width:none!important;-ms-overflow-style:none!important;scroll-padding-inline:28px!important}
         /* Il padding fa spazio alla gobba del dock dentro il riquadro che
          * ritaglia lo scroll; i margini negativi lo tolgono dal layout, così
@@ -569,6 +620,57 @@ export function configSempreUltima(scope = doc) {
  * configurazione condivisa, e a intervalli finche' la pagina vive. Invece di
  * inseguirli si avvolgono le loro funzioni: cosi' Config torna in fondo subito
  * dopo, qualunque sia stata la ragione del riordino. */
+/* Quale disegno di casa porta ogni pagina, nella barra in basso.
+ *
+ * La barra era rimasta l'ultimo posto — e il piu' guardato di tutti — con le
+ * emoji del sistema: la casa di Samsung accanto al fiocco di Apple, e su ogni
+ * telefono una faccia diversa. «Ti avevo chiesto di inserire icone nostre su
+ * tutta la dashboard e continuo a vedere icone che non sono nostre.» Sono gli
+ * stessi oggetti delle tessere e del menu della configurazione: una famiglia
+ * sola, dal primo all'ultimo angolo della plancia. */
+const OGGETTO_DELLA_PAGINA = Object.freeze({
+  home: "home",
+  energy: "energia",
+  "appliances-main": "elettrodomestici",
+  ev: "ev",
+  boiler: "solare",
+  clima: "clima",
+  temp: "temperatura",
+  tapparelle: "tapparelle",
+  security: "sicurezza",
+  server: "minipc",
+  piscina: "piscina",
+  irrigazione: "irrigazione",
+  luci: "luci",
+  prese: "prese",
+  robot: "robot",
+  stanze: "stanze",
+  aperture: "aperture",
+  doors: "aperture",
+  telecamere: "telecamere",
+  config: "impostazioni",
+});
+
+/** Mette il disegno di casa al posto del simbolo, su ogni voce della barra. */
+export function disegniNellaBarra(scope = doc) {
+  const schede = scope?.querySelectorAll?.("nav.tabs .tab[data-tab]");
+  if (!schede?.length) return 0;
+  let messi = 0;
+  for (const scheda of schede) {
+    const pagina = clean(scheda.dataset.tab);
+    const disegno = OGGETTO_DELLA_PAGINA[pagina];
+    if (!disegno) continue;
+    const casella = scheda.querySelector(":scope > .icon");
+    if (!casella || casella.dataset.dmOggetto === disegno) continue;
+    const marchio = oggettoWidget(disegno);
+    if (!marchio) continue;
+    casella.innerHTML = marchio;
+    casella.dataset.dmOggetto = disegno;
+    messi += 1;
+  }
+  return messi;
+}
+
 function accodaDopo(nome) {
   const originale = root[nome];
   if (typeof originale !== "function" || originale.__dmConfigUltima) return false;
@@ -576,6 +678,7 @@ function accodaDopo(nome) {
     const esito = originale.apply(this, argomenti);
     try {
       configSempreUltima();
+      disegniNellaBarra();
     } catch (_error) {}
     return esito;
   };
@@ -597,7 +700,17 @@ export function installNavigationSection() {
   root.addEventListener?.("dashboardmodern:persistence-restored", () => {
     applyNavbarMode();
     configSempreUltima();
+    disegniNellaBarra();
   });
+  /* La barra la riscrive il guscio a ogni giro di visibilita': i disegni si
+   * rimettono quando succede, non una volta sola all'avvio. */
+  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
+    root.addEventListener?.(evento, () => disegniNellaBarra());
+  /* La barra la rifa' il guscio: a ogni giro di visibilita' e di ordine — che
+   * sono le due funzioni avvolte qui sopra — e al primo disegno. Ci si aggancia
+   * a quelle, senza sorveglianti ne' timer: e' la stessa regola con cui questo
+   * modulo tiene il resto della barra. */
+  disegniNellaBarra();
   installStyles();
   installBarBehaviour();
   if (!installScroller()) {

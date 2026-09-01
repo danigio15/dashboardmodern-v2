@@ -7,7 +7,13 @@
  * construction rather than by coincidence.
  *
  * Pure: no DOM. The section renders what this returns.
+ *
+ * «Per costruzione e non per combinazione» era una promessa non mantenuta: la
+ * casella della potenza la sceglievano in due, ognuno col suo ordine, e con un
+ * apparecchio che ne ha scritte due la stessa schermata diceva due numeri.
+ * Adesso la sceglie una funzione sola, e sceglie quella che risponde.
  */
+import { campoDiPotenza } from "./energy-flow-topology.js";
 
 const clean = (value) => String(value ?? "").trim();
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
@@ -49,10 +55,7 @@ function rawState(states, entity) {
  * off, and no reading at all stays unknown instead of being called off. */
 export function subloadState(child = {}, states = {}) {
   const control = clean(child.state ?? child.bin ?? child.control_entity ?? child.state_entity);
-  const power = stateNumber(
-    states,
-    clean(child.power ?? child.pwrLive ?? child.pwr ?? child.power_entity),
-  );
+  const power = stateNumber(states, campoDiPotenza(child, states));
   if (control) {
     const value = rawState(states, control);
     if (value === "on" || value === "playing" || value === "heating" || value === "cleaning")
@@ -95,7 +98,7 @@ export function subloadPopupModel({
   dailyValues = null,
 } = {}) {
   const items = (Array.isArray(children) ? children : []).map((child, index) => {
-    const powerEntity = clean(child.power ?? child.pwrLive ?? child.pwr ?? child.power_entity);
+    const powerEntity = campoDiPotenza(child, states);
     const power = stateNumber(states, powerEntity);
     const status = subloadState(child, states);
     const id = clean(child.id) || `sub-${index + 1}`;

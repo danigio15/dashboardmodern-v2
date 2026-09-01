@@ -1,4 +1,5 @@
 import { catalogLabel, ROOM_CATALOG, roomVisual } from "../core/personalization-catalog.js";
+import { oggettoWidget } from "../core/oggetti-widget.js";
 import { clean, doc, esc, formatNumber, installStyle, root, t, wrapFunction } from "./shared.js";
 
 // Kept in the beta4 entry filename for release compatibility, but this module is
@@ -37,6 +38,43 @@ const TAB_ICONS = Object.freeze({
   people: "👥",
   robot: "🤖",
   doors: "🚪",
+});
+
+/* Quale disegno di casa porta ogni scheda della configurazione.
+ *
+ * «Ti avevo chiesto di inserire icone nostre su tutta la dashboard e continuo
+ * a vedere icone che non sono nostre»: la colonna del config era rimasta
+ * l'ultimo posto con le emoji del sistema. Sono gli stessi oggetti delle
+ * tessere della Home — una famiglia sola — e dove la tessera non esiste
+ * (impostazioni, azioni, stanze, backup, persone, runtime, avvisi, widget) il
+ * disegno e' stato fatto apposta. */
+const OGGETTO_DELLA_SCHEDA = Object.freeze({
+  visib: "impostazioni",
+  sez0: "home",
+  sez1: "energia",
+  sez2: "ev",
+  sez3: "solare",
+  sez4: "sicurezza",
+  sez6: "minipc",
+  sez7: "temperatura",
+  /* Non il fulmine: quello e' dell'Energia, ed era lo stesso su due voci. */
+  sez8: "azioni",
+  sez9: "clima",
+  appliances: "elettrodomestici",
+  luci: "luci",
+  prese: "prese",
+  stanze: "stanze",
+  avvisi: "avvisi",
+  tapp: "tapparelle",
+  irr: "irrigazione",
+  pool: "piscina",
+  todo: "widget",
+  backup: "backup",
+  people: "persone",
+  robot: "robot",
+  doors: "aperture",
+  runtime: "runtime",
+  telecamere: "telecamere",
 });
 
 const FLOW_LOADS = Object.freeze({
@@ -149,7 +187,21 @@ function syncConfigTabIcons() {
       labelNode.textContent = current;
       button.append(iconNode, labelNode);
     }
-    iconNode.textContent = icon;
+    /* Il disegno di casa quando c'e', il simbolo di sistema solo per chi non
+     * ce l'ha ancora. La colonna della configurazione portava le emoji, che
+     * cambiano faccia da un telefono all'altro e — peggio — si ripetevano:
+     * Energia e Azioni avevano lo stesso fulmine. */
+    const disegno = OGGETTO_DELLA_SCHEDA[tab];
+    const marchio = disegno ? oggettoWidget(disegno) : "";
+    if (marchio) {
+      if (iconNode.dataset.dmOggetto !== disegno) {
+        iconNode.innerHTML = marchio;
+        iconNode.dataset.dmOggetto = disegno;
+      }
+    } else {
+      delete iconNode.dataset.dmOggetto;
+      iconNode.textContent = icon;
+    }
     if (!clean(labelNode.textContent)) labelNode.textContent = labelText;
     /* Il nome anche fuori dal pezzo che lo scrive.
      *
@@ -636,6 +688,8 @@ function installStyles() {
      * vedeva sulle finestre. Sale insieme alla dissolvenza, come la' . */
     nav.tabs.bottom-nav-bar{transition:transform .4s cubic-bezier(0.175,0.885,0.32,1.275),bottom .4s cubic-bezier(0.175,0.885,0.32,1.275),opacity .3s ease,box-shadow .4s ease,backdrop-filter .3s ease,-webkit-backdrop-filter .3s ease!important}
     .ed-tab[data-tab]>.dm-beta4-tab-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:1.2em!important;margin-right:5px!important;visibility:visible!important;opacity:1!important}
+    /* Il disegno di casa occupa il posto del simbolo, alla stessa misura. */
+    .ed-tab[data-tab]>.dm-beta4-tab-icon>.dm-oggetto{width:20px;height:20px;display:block}
     .ed-tab[data-tab]>.dm-beta4-tab-label{display:inline!important;white-space:nowrap!important}
     /* Telefono tenuto in piedi: della linguetta resta il simbolo.
      *
@@ -652,6 +706,7 @@ function installStyles() {
     @media (orientation:portrait) and (max-width:640px){
       #editor-modal .ed-tab[data-tab]>.dm-beta4-tab-label{display:none!important}
       #editor-modal .ed-tab[data-tab]>.dm-beta4-tab-icon{margin-right:0!important;font-size:21px!important}
+      #editor-modal .ed-tab[data-tab]>.dm-beta4-tab-icon>.dm-oggetto{width:24px;height:24px}
     }
 
     #ed-body .ed-row[data-section-key] .ed-row-main{display:grid!important;grid-template-columns:minmax(0,1fr) 44px!important;grid-template-rows:auto!important;align-items:center!important;gap:8px!important;min-width:0!important;padding-right:0!important;position:relative!important}
