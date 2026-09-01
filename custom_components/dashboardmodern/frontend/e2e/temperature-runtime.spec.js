@@ -57,6 +57,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: Temperature editor, HA picker, persistence and live dashboard`, async ({
     page,
   }, testInfo) => {
+    /* Il tempo segue il browser, come nelle altre ventisette prove pesanti del
+     * progetto. Questa era rimasta sul mezzo minuto di default: apre l'editor,
+     * gira il selettore delle entita', salva, ricarica e va a rileggere la
+     * plancia viva, e su webkit ci mette tre volte tanto. Ha fermato il
+     * rilascio della 1.4.5-beta.2 con un «Test timeout of 30000ms exceeded» —
+     * proprio il valore di serie, che e' il modo in cui questo guasto si
+     * riconosce — dopo essere passata mezz'ora prima sulla stessa identica
+     * revisione: non era il codice, era il tempo concesso. */
+    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
     await page.addInitScript((haStates) => {
       window.WebSocket = class extends EventTarget {

@@ -165,9 +165,27 @@ for (const variant of PRIMARY) {
       window.WebSocket = TestSocket;
     });
 
-    // Seed only the canonical snapshot. Writing cd_entity_overrides after the
-    // first page load would trigger the legacy write bridge and overwrite this
-    // fixture with the already-initialized empty store before reload.
+    /* Il seme si mette PRIMA che parta un solo script, non fra due avvii.
+     *
+     * Prima si apriva la plancia, si scriveva il seme e si ricaricava. Ma quel
+     * primo avvio non e' finito quando `goto` torna: continua per conto suo, e
+     * ha un ponte che salva lo store su `dm_dashboard_state`. Se finiva DOPO la
+     * scrittura, ci passava sopra il suo store vuoto — e il ricaricamento
+     * leggeva il vuoto. Da li' l'elenco del Report non si riempiva piu': non in
+     * ritardo, proprio mai.
+     *
+     * E' cosi' che si spiega quello che si vedeva: cadeva solo su webkit, che
+     * e' il piu' lento e quindi l'unico che perdeva la corsa con una certa
+     * frequenza; cadeva a intermittenza; e cadeva con «Array []» anche dopo
+     * SESSANTA secondi d'attesa, che per un elenco rifatto da un timer a 2600
+     * ms non e' lentezza. Alzare l'attesa non poteva funzionare, e infatti non
+     * ha funzionato.
+     *
+     * `addInitScript` gira prima di ogni script della pagina: quando la plancia
+     * si avvia il seme c'e' gia', e non c'e' nessuna corsa da perdere. La
+     * guardia serve perche' lo script rigira a ogni navigazione: senza, un
+     * ricaricamento piu' avanti nella prova rimetterebbe il seme sopra a quello
+     * che la prova ha appena salvato. */
     await page.goto(`/legacy/${variant}`);
     await page.evaluate((state) => {
       localStorage.clear();
@@ -189,6 +207,22 @@ for (const variant of PRIMARY) {
         hasText: "Errore durante il caricamento di DashboardModern",
       }),
     ).toHaveCount(0);
+    /* Il seme e' sopravvissuto all'avvio?
+     *
+     * Questa riga non prova la plancia: prova la prova. Quando il seme veniva
+     * cancellato dall'avvio, il guasto si presentava sessanta secondi dopo,
+     * altrove, come «Array []» — e ci sono volute tre diagnosi, due delle quali
+     * sbagliate, per risalire da li' a qui. Adesso, se ricapita, il fallimento
+     * lo dice nel punto in cui succede e con queste parole. */
+    const appliancesNelSeme = await page.evaluate(() => {
+      try {
+        return JSON.parse(localStorage.getItem("dm_dashboard_state") || "{}")?.sections?.appliances
+          ?.length;
+      } catch (_) {
+        return null;
+      }
+    });
+    expect(appliancesNelSeme, "l'avvio ha cancellato il seme prima di leggerlo").toBe(1);
     /* Le voci del Report si aspettano, non si leggono al volo.
      *
      * `__DASHBOARDMODERN_LEGACY_READY__` dice che il guscio c'e', non che ha
