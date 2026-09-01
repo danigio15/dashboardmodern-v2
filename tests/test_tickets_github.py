@@ -196,6 +196,48 @@ async def test_collegarsi_ricorda_chi_e_e_cosa_puo_fare(
     assert account == {"connected": True, "login": "anna-hub", "maintainer": True}
 
 
+async def test_il_proprietario_e_il_manutentore_anche_senza_permissions(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """La risposta «sola lettura pubblica» non gli toglie la sua coda.
+
+    Un gettone di GitHub App su una repository dove l'App non e' installata
+    riceve un oggetto senza il campo `permissions`: se contasse solo quello,
+    chi tiene la repository si ritroverebbe senza console per una ragione che
+    con i suoi permessi non c'entra niente.
+    """
+    _entry(hass)
+    github.answer("oauth/access_token", {"access_token": "gho_segreto"})
+    github.answer("/user", {"login": "danigio15"})
+    github.answer("/repos/", {})
+    account = await tickets.async_finish_auth(hass, user_id="dani", device_code="dc-1")
+    assert account["maintainer"] is True
+
+
+async def test_il_proprietario_si_riconosce_a_prescindere_dalle_maiuscole(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """I nomi su GitHub non distinguono maiuscole e minuscole."""
+    _entry(hass)
+    github.answer("oauth/access_token", {"access_token": "gho_segreto"})
+    github.answer("/user", {"login": "DaniGio15"})
+    github.answer("/repos/", {})
+    account = await tickets.async_finish_auth(hass, user_id="dani", device_code="dc-1")
+    assert account["maintainer"] is True
+
+
+async def test_un_collaboratore_resta_manutentore_per_i_permessi(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Non solo il proprietario: chi puo' scrivere lo dice GitHub."""
+    _entry(hass)
+    github.answer("oauth/access_token", {"access_token": "gho_segreto"})
+    github.answer("/user", {"login": "una-collaboratrice"})
+    github.answer("/repos/", {"permissions": {"push": True}})
+    account = await tickets.async_finish_auth(hass, user_id="lei", device_code="dc-1")
+    assert account["maintainer"] is True
+
+
 async def test_chi_non_puo_scrivere_non_e_il_manutentore(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:

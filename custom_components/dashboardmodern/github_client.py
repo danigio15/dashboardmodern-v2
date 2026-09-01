@@ -189,12 +189,32 @@ async def async_poll_device_flow(hass: HomeAssistant, device_code: str) -> str:
     raise GitHubError("no_token", "GitHub non ha dato un gettone.")
 
 
+def _owner() -> str:
+    """Il proprietario della repository, come lo scrive `REPOSITORY`."""
+    return REPOSITORY.split("/", 1)[0].casefold()
+
+
 async def async_whoami(hass: HomeAssistant, token: str) -> dict[str, Any]:
-    """Chi e' che ha autorizzato, e se e' lui a tenere la repository."""
+    """Chi e' che ha autorizzato, e se e' lui a tenere la repository.
+
+    Due strade per la stessa domanda, e ne basta una.
+
+    La prima e' quella buona: GitHub dice quali permessi ha chi chiede, e vale
+    anche per un collaboratore che ieri non c'era. La seconda e' il nome: chi
+    ha autorizzato e' il proprietario della repository, e allora la console
+    gli spetta comunque.
+
+    Serve tutte e due perche' la prima puo' tacere. Un gettone di GitHub App
+    su una repository dove l'App non e' installata riceve la risposta nella
+    forma «sola lettura pubblica», che il campo `permissions` non ce l'ha —
+    e il proprietario si ritroverebbe senza la sua coda per una ragione che
+    con i suoi permessi non c'entra niente.
+    """
     utente = await _request(hass, "GET", f"{GITHUB_API}/user", token=token)
     login = str(utente.get("login") or "")
-    permessi = await _async_push_access(hass, token)
-    return {"login": login, "maintainer": permessi}
+    if login.casefold() == _owner():
+        return {"login": login, "maintainer": True}
+    return {"login": login, "maintainer": await _async_push_access(hass, token)}
 
 
 async def _async_push_access(hass: HomeAssistant, token: str) -> bool:

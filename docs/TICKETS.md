@@ -226,6 +226,15 @@ dirla. Cosi' la console compare sulla plancia giusta senza che nessuno
 configuri niente, e il giorno in cui la repository cambia mano non resta una
 chiave scritta a dare un permesso che non c'e' piu'.
 
+Due strade per la stessa domanda, e ne basta una: i permessi che GitHub
+riconosce a chi chiede — vale anche per un collaboratore che ieri non c'era —
+oppure il nome, se chi ha autorizzato e' il proprietario della repository.
+Servono tutte e due perche' la prima puo' tacere: un gettone di GitHub App su
+una repository dove l'App non e' installata riceve la risposta nella forma
+«sola lettura pubblica», che il campo `permissions` non ce l'ha, e il
+proprietario si ritroverebbe senza la sua coda per una ragione che con i suoi
+permessi non c'entra niente.
+
 Mostra le segnalazioni nate dalle plance — si riconoscono da una riga
 invisibile nel corpo, non da un'etichetta, perche' GitHub le etichette le
 scarta quando a scriverle e' chi i permessi non li ha, cioe' esattamente chi
