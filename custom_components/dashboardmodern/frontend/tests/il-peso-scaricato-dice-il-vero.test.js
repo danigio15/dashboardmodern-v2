@@ -99,6 +99,21 @@ test("tutto dalla cache si dice, non si finge", () => {
   assert.match(detto, /dalla cache/, `la riga non dice che non ha viaggiato: «${detto}»`);
 });
 
+test("senza il peso codificato non si dichiara nulla, si dice che manca", () => {
+  /* Il campo che dice quanto pesava il corpo com'e' arrivato non c'e' sempre.
+   * Quando manca vale zero, e zero finiva nel ramo «non compressi»: la riga
+   * dichiarava una cosa che non aveva misurato, ed e' cosi' che una
+   * diagnostica fa cercare il guasto dalla parte sbagliata — peggio che non
+   * averla. Il peso disteso invece si sa, e si dice. */
+  const detto = conQuesteRisorse(
+    [risorsa({ nome: "legacy/a.js", dalFilo: 0, codificato: 0, disteso: 5 * MB })],
+    pesoScaricato,
+  );
+  assert.doesNotMatch(detto, /non compressi/, `dichiara senza aver misurato: «${detto}»`);
+  assert.match(detto, /non disponibile/, `non dice che il dato manca: «${detto}»`);
+  assert.match(detto, /5\.0 MB/, `perde il peso che invece conosce: «${detto}»`);
+});
+
 test("dove il browser non riempie quei campi, la riga non inventa", () => {
   /* Non tutti i browser danno `encodedBodySize` e `transferSize`. Dire «?» e'
    * la risposta onesta; inventare uno zero direbbe «non compressi» di una

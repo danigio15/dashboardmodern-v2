@@ -645,12 +645,46 @@ export function pesoScaricato() {
     const disteso = somma("decodedBodySize");
     if (!disteso) return "?";
     const mb = (v) => `${(v / 1048576).toFixed(1)} MB`;
-    const come = codificato && codificato / disteso < 0.9 ? "compressi" : "non compressi";
+    /* Senza `encodedBodySize` non si sa: dirlo e' l'unica risposta onesta.
+     * Prima un valore mancante — che vale zero — finiva nel ramo «non
+     * compressi», e la riga dichiarava una cosa che non aveva misurato. E' il
+     * modo in cui questa riga puo' far cercare il guasto dalla parte
+     * sbagliata, che e' peggio del non averla. */
+    const come = !codificato
+      ? "peso codificato non disponibile"
+      : codificato / disteso < 0.9
+        ? "compressi"
+        : "non compressi";
     return dalFilo
       ? `${mb(dalFilo)} di ${mb(disteso)} — ${come}`
       : `${mb(disteso)} dalla cache — ${come}`;
   } catch (_) {
     return "?";
+  }
+}
+
+/* E poi lo si chiede al server, invece di dedurlo.
+ *
+ * I conti qui sopra sono una deduzione: dicono quanto pesa quello che e'
+ * arrivato, non come e' arrivato. `fetch` invece la risposta ce l'ha scritta —
+ * `content-encoding` e' esposto per le risorse di casa propria, verificato con
+ * un browser vero — e una risposta letta batte una dedotta.
+ *
+ * `panel.js` sta in cima alla cartella servita, c'e' sempre, e pesa poco: e'
+ * il campione buono. La riga si scrive subito col peso e si completa da sola
+ * quando il server ha risposto; se la richiesta non riesce, resta quella che
+ * era. */
+async function chiediComeArrivano(target) {
+  const nodo = target.querySelector('[data-dm-voce="Transfer"]');
+  if (!nodo) return;
+  try {
+    const casa = `${import.meta.url.split("/legacy/")[0]}/`;
+    const risposta = await fetch(`${casa}panel.js`, { cache: "reload" });
+    if (!risposta.ok) return;
+    const come = risposta.headers.get("content-encoding");
+    nodo.textContent = `${nodo.textContent} · servito ${come || "in chiaro"}`;
+  } catch (_) {
+    /* Una diagnostica che non riesce a misurare non rompe la diagnostica. */
   }
 }
 
@@ -672,8 +706,9 @@ function renderDiagnostics(target) {
     Modules: globalThis.__DASHBOARDMODERN_IMPACCHETTATA__ ? "impacchettati (3 file)" : "sciolti (179 file)",
     Transfer: pesoScaricato(),
   };
-  target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
+  target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono" data-dm-voce="${esc(key)}">${esc(value)}</div></div></div>`).join("")}</div>`;
   target.dataset.runtimeDiagnostics = "true";
+  chiediComeArrivano(target);
 }
 
 export const EDITOR_TAB_ALIASES = Object.freeze({
