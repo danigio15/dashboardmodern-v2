@@ -321,21 +321,38 @@ test("remote restore propagates deletions instead of leaving stale desktop keys"
  * invece doveva crearne una ex novo sciolta dall'altra.» La chiave del
  * trasporto per-utente si sdoppia solo per chi NON e' la principale, e prima
  * chi non lo dichiarava passava per principale: bastava un pannello rimasto in
- * cache perche' due plance scrivessero nello stesso posto. */
-test("una plancia ospitata che non sa di essere secondaria non si prende la principale", () => {
+ * cache perche' due plance scrivessero nello stesso posto.
+ *
+ * A dirlo, quando la dichiarazione manca, e' il profilo — non l'istanza: ne ha
+ * una anche la principale, e leggerla come «sono secondaria» mandava la
+ * principale a scrivere altrove. Questa prova tiene ferme tutt'e due le
+ * direzioni. */
+test("chi non sa di essere secondaria lo chiede al profilo, non all'istanza", () => {
   const primaPrima = globalThis.__DASHBOARDMODERN_PRIMARY__;
   const istanzaPrima = globalThis.__DASHBOARDMODERN_INSTANCE__;
+  const profiloPrima = globalThis.__DASHBOARDMODERN_PROFILE__;
   try {
     delete globalThis.__DASHBOARDMODERN_PRIMARY__;
     globalThis.__DASHBOARDMODERN_INSTANCE__ = "01ff77aa22bb33cc";
+
+    // Il profilo di un'altra cassetta: questa non e' la principale.
+    globalThis.__DASHBOARDMODERN_PROFILE__ = "plancia-mare";
     assert.equal(laPrincipale(), false);
+
+    // Il profilo della principale, o nessun profilo: lo e'. L'istanza da sola
+    // non basta a farla passare per secondaria — ce l'hanno tutte.
+    globalThis.__DASHBOARDMODERN_PROFILE__ = "primary";
+    assert.equal(laPrincipale(), true);
+    delete globalThis.__DASHBOARDMODERN_PROFILE__;
+    assert.equal(laPrincipale(), true);
 
     // Una plancia da sola, senza istanza, resta quella di sempre.
     delete globalThis.__DASHBOARDMODERN_INSTANCE__;
     assert.equal(laPrincipale(), true);
 
-    // E quando l'integrazione lo dice, comanda lei.
+    // E quando l'integrazione lo dice, comanda lei: anche contro il profilo.
     globalThis.__DASHBOARDMODERN_INSTANCE__ = "01ff77aa22bb33cc";
+    globalThis.__DASHBOARDMODERN_PROFILE__ = "plancia-mare";
     globalThis.__DASHBOARDMODERN_PRIMARY__ = true;
     assert.equal(laPrincipale(), true);
     globalThis.__DASHBOARDMODERN_PRIMARY__ = false;
@@ -345,5 +362,7 @@ test("una plancia ospitata che non sa di essere secondaria non si prende la prin
     else globalThis.__DASHBOARDMODERN_PRIMARY__ = primaPrima;
     if (istanzaPrima === undefined) delete globalThis.__DASHBOARDMODERN_INSTANCE__;
     else globalThis.__DASHBOARDMODERN_INSTANCE__ = istanzaPrima;
+    if (profiloPrima === undefined) delete globalThis.__DASHBOARDMODERN_PROFILE__;
+    else globalThis.__DASHBOARDMODERN_PROFILE__ = profiloPrima;
   }
 });

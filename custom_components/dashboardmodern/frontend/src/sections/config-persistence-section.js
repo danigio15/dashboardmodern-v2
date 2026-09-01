@@ -243,15 +243,20 @@ export function integrationUserDataKey({ primary = true, instance = "" } = {}) {
  * rimasto nella cache del browser — qui si dava per scontato di essere la
  * principale, e una plancia ospitata che non sapeva di non esserlo finiva a
  * leggere e scrivere la configurazione dell'altra: due plance, una
- * configurazione sola. In dubbio adesso vale il contrario, e a fare da spia c'e'
- * l'istanza: chi ne ha una e' ospitato dall'integrazione, e allora non e' la
- * principale finche' non lo dice lei. Una plancia da sola, senza istanza,
- * resta quella di sempre. */
+ * configurazione sola.
+ *
+ * La spia non puo' essere l'istanza. Ne ha una anche la principale — l'ospita
+ * la stessa integrazione, con la stessa marcatura — e prenderla per prova di
+ * essere secondari mandava proprio la principale a scrivere nella cassetta di
+ * un'altra: il difetto di prima, girato dall'altra parte. La spia e' il
+ * profilo, che una plancia secondaria si porta dietro (`dmc=`) e la principale
+ * no: se il profilo c'e' ed e' di un'altra cassetta, non siamo la principale.
+ * Senza ne' dichiarazione ne' profilo si resta come si e' sempre stati. */
 export function laPrincipale() {
   const dichiarata = root.__DASHBOARDMODERN_PRIMARY__;
-  if (dichiarata === undefined || dichiarata === null)
-    return !String(root.__DASHBOARDMODERN_INSTANCE__ || "");
-  return dichiarata !== false;
+  if (dichiarata !== undefined && dichiarata !== null) return dichiarata !== false;
+  const profilo = sanitizeProfile(root.__DASHBOARDMODERN_PROFILE__ || parentProfile() || "");
+  return profilo ? profilo === PRIMARY_PROFILE : true;
 }
 
 function userDataKey() {

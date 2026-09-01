@@ -2030,6 +2030,28 @@ const LISTE_CONFIGURABILI = Object.freeze([
   "cd_prese",
 ]);
 
+/* I gruppi di monitoraggio che si scrivono da soli.
+ *
+ * `cd_gruppi_extra` tiene le entita' che l'utente ha aggiunto agli avvisi — le
+ * finestre nelle Aperture, per dirne una — ed e' configurazione a tutti gli
+ * effetti: si arriva li' solo scegliendo. Tranne che per tre voci, che nessuno
+ * sceglie: allagamenti e fumo se li scrive il primo avvio guardando cosa c'e'
+ * in casa, e `luci` e' una copia di `cd_luci` che si rinfresca da se'. Contarle
+ * come configurazione voleva dire ridare per «configurata» una plancia appena
+ * nata — cioe' rimettere in piedi il difetto per cui in Home comparivano gli
+ * avvisi della casa di un'altra. */
+const GRUPPI_CHE_NON_SI_SCELGONO = Object.freeze(new Set(["allag", "fumo", "luci"]));
+
+/** Se qualcuno ha aggiunto a mano un'entita' a un gruppo di avvisi. */
+function gruppiScelti() {
+  const extras = readJson("cd_gruppi_extra", null);
+  if (!extras || typeof extras !== "object") return false;
+  return Object.entries(extras).some(
+    ([gruppo, lista]) =>
+      !GRUPPI_CHE_NON_SI_SCELGONO.has(gruppo) && Array.isArray(lista) && lista.length > 0,
+  );
+}
+
 /* Se questa plancia e' stata configurata da qualcuno.
  *
  * Le tessere degli avvisi — aperture, batterie, allagamenti — non nascono dalla
@@ -2072,6 +2094,7 @@ export function planciaConfigurata() {
     const valore = readJson(chiave, null);
     if (Array.isArray(valore) ? valore.length : valore && Object.keys(valore).length) return true;
   }
+  if (gruppiScelti()) return true;
   /* Le luci vivono in una mappa `{entita: nome}` sia in sezione sia in legacy. */
   const luci = readJson("cd_luci", null);
   return Boolean(luci && Object.keys(luci).length);

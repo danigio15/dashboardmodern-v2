@@ -314,9 +314,7 @@ class DashboardConfigStore:
         # modo hanno condiviso una cassetta sola — e' il difetto che i profili
         # unici tolgono di mezzo — e senza questa riga il ricordo le
         # rimetterebbe insieme il giorno dopo, vanificando la separazione.
-        altrui = {
-            salvato for altra, salvato in memoria.items() if altra != entry_id
-        }
+        altrui = {salvato for altra, salvato in memoria.items() if altra != entry_id}
         if ricordo in altrui:
             return profile, None
         # Il ricordo vale quando ha davvero una cassetta dietro, e vale anche

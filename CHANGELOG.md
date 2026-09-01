@@ -32,7 +32,9 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   tessere degli avvisi — aperture, batterie, allagamenti — nascono dal
   rilevamento e non dalla configurazione, e su una plancia appena creata
   raccontavano la casa dell'altra proprio sotto il messaggio che diceva il
-  contrario. Basta la prima stanza perche' tornino.
+  contrario. Basta la prima stanza perche' tornino — o la prima finestra
+  aggiunta a mano alle Aperture, che e' una scelta come le altre; quello che il
+  primo avvio si segna da solo, invece, non conta.
 - **Anche la barra in basso e le pillole delle aperture hanno i disegni di
   casa.** Erano gli ultimi due posti con le emoji del sistema — e la barra e' il
   piu' guardato di tutti: la casa di un telefono accanto al fiocco di un altro.
