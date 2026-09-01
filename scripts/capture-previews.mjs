@@ -91,6 +91,54 @@ const MOBILE = { width: 402, height: 900, deviceScaleFactor: 2, maxHeight: 2600 
  */
 const TARGETS = [
   {
+    id: "segnalazioni-config",
+    title: "Segnalazioni · la tessera in Configurazione",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("config");
+    },
+  },
+  {
+    id: "segnalazioni-nuova",
+    title: "Segnalazioni · aprirne una",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("nuova");
+    },
+  },
+  {
+    id: "segnalazioni-mie",
+    title: "Segnalazioni · le mie",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("mie");
+    },
+  },
+  {
+    id: "segnalazioni-cruscotto",
+    title: "Segnalazioni · il cruscotto",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("console");
+    },
+  },
+  {
+    id: "segnalazioni-collega",
+    title: "Segnalazioni · collegare GitHub",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("collega");
+    },
+  },
+  {
     id: "home",
     title: "Home",
     both: true,
@@ -1096,6 +1144,158 @@ async function bootPage(context, cameraStill, vehicleStill) {
       /* Boot artefact: the empty-state banner is evaluated 500 ms after
          DOMContentLoaded, before the mocked store has projected its sections. */
       document.getElementById("cd-empty-banner")?.remove();
+    };
+
+    /* ─── Segnalazioni ────────────────────────────────────────────────────
+     *
+     * La finestra delle segnalazioni parla col backend, che qui non c'e': al
+     * suo posto risponde questo, con una coda inventata. Come per il resto
+     * della galleria, niente arriva da un'installazione vera — sono
+     * segnalazioni scritte apposta per la foto.
+     */
+    window.__dmPreviewTickets = (dove) => {
+      const ORA = Date.parse("2026-09-01T09:20:00");
+      const GIORNO = 86400000;
+      const miei = [
+        {
+          id: "t1",
+          type: "bug",
+          title: "Le tapparelle non si fermano a meta'",
+          body: "Premo stop dalla pagina Finestre e continuano a scendere fino in fondo. Con due Shelly 2PM su tre succede sempre.",
+          state: "in-carico",
+          created_at: ORA - 2 * GIORNO,
+          remote_id: "194",
+          reply: "Riprodotta: il comando stop parte, ma la seconda tapparella lo ignora. Sto guardando come il rele' riporta la posizione.",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
+          delivery_error: "",
+          diagnostics: {},
+        },
+        {
+          id: "t2",
+          type: "feature",
+          title: "Un widget per il consumo della pompa di calore",
+          body: "Mi piacerebbe vedere la pompa di calore accanto agli altri carichi, con il suo storico giornaliero.",
+          state: "risolto",
+          created_at: ORA - 9 * GIORNO,
+          remote_id: "186",
+          reply: "Fatto in beta.21: la pompa di calore si aggiunge dai carichi come le altre voci.",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/186",
+          delivery_error: "",
+          diagnostics: {},
+        },
+        {
+          id: "t3",
+          type: "assistenza",
+          title: "Non capisco come collegare il secondo contatore",
+          body: "Ho un contatore per la casa e uno per il garage. Il secondo non so dove metterlo.",
+          state: "bozza",
+          created_at: ORA - 20 * 60000,
+          remote_id: "",
+          reply: "",
+          issue_url: "",
+          delivery_error: "",
+          diagnostics: {},
+        },
+      ];
+      const coda = [
+        {
+          number: 197,
+          type: "bug",
+          title: "La foto dell'auto torna quella di prima dopo il salvataggio",
+          body: "Seleziono la vettura nuova, salvo, e un istante dopo ricompare quella vecchia.",
+          state: "inviato",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/197",
+          author: "marco-b",
+          comments: 0,
+        },
+        {
+          number: 196,
+          type: "assistenza",
+          title: "Non trovo la pagina Piscina",
+          body: "Ho configurato le entita' ma la sezione non compare nella barra.",
+          state: "inviato",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/196",
+          author: "chiara-r",
+          comments: 0,
+        },
+        {
+          number: 194,
+          type: "bug",
+          title: "Le tapparelle non si fermano a meta'",
+          body: "Premo stop dalla pagina Finestre e continuano a scendere fino in fondo.",
+          state: "in-carico",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
+          author: "anna-g",
+          comments: 2,
+        },
+        {
+          number: 191,
+          type: "feature",
+          title: "Vorrei riordinare le stanze trascinandole",
+          body: "Adesso si spostano con le frecce, una posizione per volta.",
+          state: "inviato",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/191",
+          author: "luca-t",
+          comments: 1,
+        },
+        {
+          number: 186,
+          type: "feature",
+          title: "Un widget per il consumo della pompa di calore",
+          body: "Accanto agli altri carichi, con il suo storico giornaliero.",
+          state: "risolto",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/186",
+          author: "anna-g",
+          comments: 3,
+        },
+      ];
+      const collegato = dove !== "collega";
+      const account = collegato
+        ? { connected: true, login: "anna-g", maintainer: dove === "console" }
+        : { connected: false, login: "", maintainer: false };
+      const risposte = {
+        "dashboardmodern/tickets/list": {
+          tickets: miei,
+          delivery: true,
+          account,
+          console: dove === "console",
+        },
+        "dashboardmodern/tickets/queue": { tickets: coda },
+        "dashboardmodern/tickets/auth/start": {
+          user_code: "WDJB-MJHT",
+          device_code: "finto",
+          verification_uri: "https://github.com/login/device",
+          interval: 5,
+          expires_in: 900,
+        },
+        get_config: { version: "2026.8.0" },
+      };
+      const servizio = window.DashboardModernEnergyService || {};
+      window.DashboardModernEnergyService = {
+        ...servizio,
+        broker: {
+          ...(servizio.broker || {}),
+          request: async (messaggio) => risposte[messaggio?.type] ?? {},
+        },
+      };
+      const stato = window.__DASHBOARDMODERN_SEGNALAZIONI__;
+      if (stato) {
+        stato.tab = dove === "collega" ? "nuova" : dove;
+        stato.queue = dove === "console" ? coda : null;
+        stato.auth = null;
+        stato.avviso = "";
+        stato.tipo = "bug";
+        stato.filtro = "aperte";
+        stato.bozza =
+          dove === "nuova"
+            ? {
+                title: "Le tapparelle non si fermano a meta'",
+                body: "Premo stop dalla pagina Finestre e continuano a scendere fino in fondo.\n\nSuccede con due Shelly 2PM su tre. La terza si ferma dove deve.",
+                contact: "",
+              }
+            : { title: "", body: "", contact: "" };
+      }
+      window.DashboardModernSegnalazioni?.apri();
     };
 
     window.__dmPreview = {

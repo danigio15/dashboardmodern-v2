@@ -961,7 +961,9 @@ function sottotitolo() {
 function disegna() {
   const modale = doc?.getElementById?.("dm-tkt-modal");
   if (!modale) return;
-  modale.querySelector('[data-dm-tkt="titolo"]').textContent = t("Segnalazioni", "Reports");
+  modale.querySelector('[data-dm-tkt="titolo"]').textContent =
+    state.tab === "console" ? t("Cruscotto", "Console") : t("Segnalazioni", "Reports");
+  modale.querySelector('[data-dm-tkt="sottotitolo"]').textContent = sottotitolo();
   modale.querySelector('[data-dm-tkt="chiudi"]').textContent = t("Chiudi", "Close");
   const corpo = modale.querySelector('[data-dm-tkt="corpo"]');
   let pannello = "";
