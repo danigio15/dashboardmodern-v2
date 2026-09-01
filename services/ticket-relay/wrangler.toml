@@ -1,0 +1,30 @@
+# Il relay delle segnalazioni. Sta su Cloudflare Workers, piano gratuito.
+#
+# Prima del primo deploy:
+#
+#   wrangler d1 create dashboardmodern-tickets
+#   # copia l'id che stampa dentro database_id, qui sotto
+#   wrangler d1 execute dashboardmodern-tickets --remote --file=./schema.sql
+#   wrangler secret put MAINTAINER_TOKEN   # la chiave della console
+#   wrangler secret put IP_SALT            # una stringa casuale, e basta
+#   wrangler secret put GITHUB_TOKEN       # facoltativo: promozione a issue
+#   wrangler deploy
+#
+# I quattro segreti non stanno qui e non devono starci: `wrangler secret put`
+# li tiene da parte, e questo file finisce dentro una repository pubblica.
+
+name = "dashboardmodern-tickets"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dashboardmodern-tickets"
+database_id = "da-riempire-dopo-wrangler-d1-create"
+
+[vars]
+# Dove finiscono le segnalazioni promosse a issue pubblica. Senza
+# GITHUB_TOKEN la promozione non fa niente, e il ticket resta privato.
+GITHUB_REPO = "danigio15/dashboardmodern-v2"
+# L'interruttore generale. "1" spegne tutto senza toccare le plance.
+DISABLED = "0"

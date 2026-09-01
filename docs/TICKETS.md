@@ -97,18 +97,42 @@ dettaglio di cortesia: e' la condizione perche' la cosa sia difendibile.
 
 ## Il relay
 
-Un Worker Cloudflare (piano gratuito: 100k richieste al giorno) con un database
-D1. Tiene il token verso GitHub — se e quando un ticket viene promosso a issue
-pubblica — e non lo cede mai a nessuno.
+Sta in `services/ticket-relay/`: un Worker Cloudflare (piano gratuito: 100k
+richieste al giorno) con un database D1. Tiene il token verso GitHub — se e
+quando un ticket viene promosso a issue pubblica — e non lo cede a nessuno.
+Istruzioni di deploy nel suo README; finche' non e' in piedi, tutto il resto
+funziona lo stesso.
+
+Quattro percorsi:
+
+```text
+POST /ticket   pubblico    una segnalazione nuova        -> { id }
+POST /sync     pubblico    lo stato dei PROPRI ticket    -> { tickets }
+POST /queue    con chiave  la coda del manutentore       -> { tickets }
+POST /answer   con chiave  stato, risposta, promozione   -> { ok, issue_url }
+```
+
+**«I propri» in `/sync` non e' un modo di dire**, ed e' la regola piu'
+importante di tutto il servizio: la richiesta porta l'identificativo
+dell'installazione e la risposta contiene solo i ticket di quella. Senza quel
+vincolo chiunque conoscesse un identificativo leggerebbe le segnalazioni degli
+altri — comprese le richieste di assistenza, che sono quelle che portano il
+nome delle stanze e le foto di casa.
 
 L'endpoint sta dentro codice sorgente pubblico, quindi e' pubblico: le difese
 non sono un dettaglio da rimandare.
 
-* tetto di lunghezza su ogni campo, e rifiuto secco oltre;
-* limite per installazione (n ticket all'ora) e per indirizzo;
+* tetto di 64 KB sul corpo, e tetti per campo uguali a quelli dello store —
+  ripetuti apposta, perche' chi chiama puo' non essere una plancia affatto;
+* sei segnalazioni all'ora per installazione, venti per rete;
+* dell'indirizzo si conserva un'impronta con sale segreto, mai l'indirizzo;
+* la chiave della console si confronta senza uscire alla prima differenza;
+* nessuna intestazione CORS: lo chiama il backend di Home Assistant, non un
+  browser, e cosi' una pagina qualunque non ne puo' leggere le risposte;
 * interruttore generale, per spegnere tutto senza ridistribuire l'integrazione;
 * nessuna scrittura su GitHub automatica: la promozione a issue pubblica e' un
-  gesto che si fa dalla console, a ticket letto.
+  gesto che si fa dalla console, a ticket letto — e un `assistenza` non si
+  promuove mai, per costruzione.
 
 ## La console
 
@@ -124,12 +148,17 @@ discussa in piazza.
 
 ## Fasi
 
-| Fase | Contenuto | Dipende da |
+| Fase | Contenuto | Stato |
 | --- | --- | --- |
-| 1 | Store locale, comandi WS, modulo nella plancia, elenco dei propri ticket | niente |
-| 2 | Client di trasporto, `sync` dello stato | endpoint configurato |
-| 3 | Worker + D1, console manutentore | Cloudflare |
-| 4 | Promozione a issue GitHub dalla console | token nel Worker |
+| 1 | Store locale, comandi WS, modulo nella plancia, elenco dei propri ticket | fatta |
+| 2 | Client di trasporto, `sync` dello stato | fatta |
+| 3 | Worker + D1, console manutentore | scritta, da mettere in piedi |
+| 4 | Promozione a issue GitHub dalla console | scritta, chiede `GITHUB_TOKEN` |
+
+Le prime due funzionano da sole: senza indirizzo configurato la plancia
+conserva le segnalazioni in casa e lo dice, invece di mostrare un tasto
+«invia» che non spedisce niente. La terza e la quarta chiedono un account
+Cloudflare e un `wrangler deploy`.
 
 ## Il limite da dire subito
 
