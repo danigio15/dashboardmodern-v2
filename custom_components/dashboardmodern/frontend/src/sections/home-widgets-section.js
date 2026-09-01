@@ -1450,10 +1450,29 @@ function preseModel(states) {
  * linea. Sono gli stessi riferimenti della sua scheda: chi li ha mappati una
  * volta non deve rimapparli qui. */
 const CASELLE_MINIPC = Object.freeze([
-  { ref: "dm.server_cpu", it: "CPU", en: "CPU", glyph: "🧠", unita: "%", cifre: 0, quota: true },
-  { ref: "dm.server_ram", it: "RAM", en: "RAM", glyph: "📊", unita: "%", cifre: 0, quota: true },
+  {
+    ref: "dm.server_cpu",
+    chiave: "cpu",
+    it: "CPU",
+    en: "CPU",
+    glyph: "🧠",
+    unita: "%",
+    cifre: 0,
+    quota: true,
+  },
+  {
+    ref: "dm.server_ram",
+    chiave: "ram",
+    it: "RAM",
+    en: "RAM",
+    glyph: "📊",
+    unita: "%",
+    cifre: 0,
+    quota: true,
+  },
   {
     ref: "dm.server_disco",
+    chiave: "disco",
     it: "Disco",
     en: "Disk",
     glyph: "💽",
@@ -1513,7 +1532,7 @@ const CASELLE_MINIPC = Object.freeze([
  * intero. In grande va la CPU, che e' la risposta alla domanda «sta
  * faticando?»; il resto sta nella finestra, e il tasto porta alla sua
  * sezione. */
-function minipcModel(states) {
+export function minipcModel(states) {
   const fuori = widgetExcludedEntities();
   const rows = [];
   const visti = new Set();
@@ -1540,13 +1559,19 @@ function minipcModel(states) {
     rows.push({
       glyph: casella.glyph,
       name: t(casella.it, casella.en),
+      /* Il nome della misura, non la parola tradotta.
+       *
+       * La didascalia sceglieva le righe leggendo l'etichetta: in arabo e in
+       * giapponese quelle parole sono tradotte, e la tessera perdeva RAM e
+       * disco pur avendone le letture. Chiesto in revisione. */
+      chiave: casella.chiave || "",
       entity: dato.entity,
       raw: dato.value,
       value: `${formatNumber(dato.value, casella.cifre)}${casella.unita}`,
     });
   }
   if (!rows.length) return null;
-  const quote = rows.filter((row) => /^(CPU|RAM|Disco|Disk)$/.test(row.name));
+  const quote = rows.filter((row) => ["cpu", "ram", "disco"].includes(row.chiave));
   return {
     key: "minipc",
     accent: "#334155",
@@ -1556,7 +1581,7 @@ function minipcModel(states) {
     /* Le altre due quote in didascalia: sono la coppia che si guarda insieme
      * alla CPU, e cosi' la tessera dice tutto senza aprirsi. */
     caption: quote
-      .filter((row) => row.name !== "CPU")
+      .filter((row) => row.chiave !== "cpu")
       .map((row) => `${row.name} ${row.value}`)
       .join(" · "),
     ring: carico != null ? Math.round(carico) : null,
@@ -2023,6 +2048,22 @@ export function planciaConfigurata() {
     if (valore == null) continue;
     if (nome === "entityOverrides") {
       if (Object.values(valore || {}).some((entity) => clean(entity).includes("."))) return true;
+      continue;
+    }
+    /* Una stanza e' configurazione anche senza sensori dentro.
+     *
+     * Chiesto in revisione, e ha ragione: chi apre una plancia nuova comincia
+     * quasi sempre dalle stanze, e una stanza si crea col nome — i sensori
+     * arrivano dopo. Chi giudica i dati «configurati» guarda pero' solo la
+     * temperatura e l'umidita', e con la sola stanza avrebbe risposto di no:
+     * il ponte sarebbe rimasto muto proprio dopo il primo gesto di chi
+     * comincia. */
+    if (nome === "rooms") {
+      if (
+        Array.isArray(valore) &&
+        valore.some((stanza) => clean(stanza?.name) || clean(stanza?.id))
+      )
+        return true;
       continue;
     }
     if (hasConfiguredData(nome, valore)) return true;

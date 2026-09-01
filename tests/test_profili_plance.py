@@ -112,3 +112,38 @@ def test_il_ricordo_segue_ancora_un_rinomino() -> None:
     risolto, richiesto = negozio._resolve("plancia-cantina", "11111111cccccccc")
     assert risolto == "plancia-taverna"
     assert richiesto == "plancia-cantina"
+
+
+def test_la_cassetta_resta_quella_anche_se_il_nome_liscio_si_libera() -> None:
+    """Chiesto in revisione: il nome liberato dall'altra non se lo prende.
+
+    Due plance con lo stesso titolo: la seconda ha il nome suffissato. Si
+    rinomina la prima e «plancia-casa» torna libero — la seconda lo
+    ricalcolerebbe, e finirebbe di nuovo nella cassetta dell'altra.
+    """
+    negozio = _negozio(
+        {
+            "plancia-casa": {"values": {"cd_stanze": "[]"}},
+            "plancia-casa-222222": {"values": {}},
+        },
+        {"11111111cccccccc": "plancia-casa", "22222222dddddddd": "plancia-casa-222222"},
+    )
+    # La prima si rinomina «Mare»: il suo ricordo la riporta a casa sua.
+    risolto, _ = negozio._resolve("plancia-mare", "11111111cccccccc")
+    assert risolto == "plancia-casa"
+    # E la seconda, che adesso calcolerebbe il nome liscio, resta sulla sua.
+    risolto, richiesto = negozio._resolve("plancia-casa", "22222222dddddddd")
+    assert risolto == "plancia-casa-222222"
+    assert richiesto == "plancia-casa"
+
+
+def test_una_cassetta_mai_scritta_non_diventa_quella_di_un_altro() -> None:
+    """La seconda plancia non ha ancora salvato niente: la sua cassetta non
+    esiste, ma il nome che chiederebbe e' di un'altra. Meglio vuota che altrui.
+    """
+    negozio = _negozio(
+        {"plancia-casa": {"values": {"cd_stanze": "[]"}}},
+        {"11111111cccccccc": "plancia-casa", "22222222dddddddd": "plancia-casa-222222"},
+    )
+    risolto, _ = negozio._resolve("plancia-casa", "22222222dddddddd")
+    assert risolto == "plancia-casa-222222"

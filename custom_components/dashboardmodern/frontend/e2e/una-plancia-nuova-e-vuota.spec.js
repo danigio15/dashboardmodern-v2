@@ -86,8 +86,11 @@ test("basta una stanza perche' il ponte torni", async ({ page }, testInfo) => {
   /* Si configura qualcosa — una stanza, la prima cosa che chiunque fa — e la
    * plancia ricomincia a raccontare quello che ha in casa. */
   await page.evaluate(async () => {
+    /* Una stanza appena creata, col solo nome: e' come nasce dall'editor, e
+     * i sensori si aggiungono dopo. Chiesto in revisione: il ponte deve
+     * tornare gia' adesso, non solo quando la stanza ha una temperatura. */
     await window.DashboardModernModules?.store?.replaceSection?.("rooms", [
-      { id: "bagno", name: "Bagno", temp: "sensor.bagno_t" },
+      { id: "bagno", name: "Bagno" },
     ]);
   });
   await laCasaEsiste(page);

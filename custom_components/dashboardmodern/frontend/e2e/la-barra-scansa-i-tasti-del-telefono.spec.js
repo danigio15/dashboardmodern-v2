@@ -78,6 +78,24 @@ test("la barra si alza esattamente di quello che il sistema si prende", async ({
   expect(await altezzaDalFondo(page, "nav.tabs.bottom-nav-bar")).toBe(aRiposo);
 });
 
+test("lo spazio sotto l'ultima card cresce insieme alla barra", async ({ page }, testInfo) => {
+  test.setTimeout(150_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  await page.evaluate(() => document.body.classList.add("cd-nav-fixed"));
+
+  const spazioInFondo = () =>
+    page.evaluate(() => Math.round(parseFloat(getComputedStyle(document.body).paddingBottom) || 0));
+
+  /* Se la barra sale e lo spazio resta quello di prima, la barra si mangia
+   * proprio la distanza che serviva a non coprire l'ultima card. */
+  await fingiIlFondoDiSistema(page, 0);
+  const senzaTasti = await spazioInFondo();
+  await fingiIlFondoDiSistema(page, 48);
+  expect(await spazioInFondo()).toBe(senzaTasti + 48);
+});
+
 test("anche la maniglia che tira fuori la barra sta sopra i tasti", async ({ page }, testInfo) => {
   test.setTimeout(150_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));

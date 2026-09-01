@@ -291,12 +291,21 @@ class DashboardConfigStore:
         keeps serving it. The data is never moved between buckets: the panel and
         the companion card can ask under different names — one of them carrying a
         title from before a rename — and both are answered from the same place.
+
+        Il ricordo viene PRIMA del nome chiesto, e questo e' il punto.
+        Chiesto in revisione: due plance con lo stesso titolo, la seconda con il
+        nome suffissato; si rinomina o si toglie la prima, e il nome liscio
+        torna libero. La seconda lo ricalcolerebbe — e' quello che ha di nuovo
+        il titolo unico — e finirebbe di nuovo nella cassetta dell'altra, che e'
+        esattamente il difetto da cui si e' partiti. La cassetta di una plancia
+        gliela dice la sua memoria, non il conto del momento.
         """
-        profiles = self._profiles()
-        if profile in profiles or not entry_id:
+        if not entry_id:
             return profile, None
-        remembered = self._entry_profiles().get(entry_id)
-        if not remembered or remembered == profile or remembered not in profiles:
+        profiles = self._profiles()
+        memoria = self._entry_profiles()
+        ricordo = memoria.get(entry_id)
+        if not ricordo or ricordo == profile:
             return profile, None
         # Un ricordo non vale se quella cassetta e' di un'altra plancia.
         #
@@ -305,12 +314,17 @@ class DashboardConfigStore:
         # modo hanno condiviso una cassetta sola — e' il difetto che i profili
         # unici tolgono di mezzo — e senza questa riga il ricordo le
         # rimetterebbe insieme il giorno dopo, vanificando la separazione.
-        if any(
-            altra != entry_id and salvato == remembered
-            for altra, salvato in self._entry_profiles().items()
-        ):
+        altrui = {
+            salvato for altra, salvato in memoria.items() if altra != entry_id
+        }
+        if ricordo in altrui:
             return profile, None
-        return remembered, profile
+        # Il ricordo vale quando ha davvero una cassetta dietro, e vale anche
+        # quando non ce l'ha ancora ma il nome chiesto adesso e' di un'altra
+        # plancia: meglio una cassetta vuota che la roba di qualcun altro.
+        if ricordo in profiles or profile in altrui:
+            return ricordo, profile
+        return profile, None
 
     async def async_get(
         self, profile: str, *, entry_id: str | None = None

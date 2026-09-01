@@ -45,6 +45,14 @@ function installStyles() {
       body.cd-nav-fixed nav.tabs.bottom-nav-bar{
         bottom:calc(18px + var(--dm-fondo-di-sistema))!important
       }
+      /* E lo spazio sotto l'ultima card cresce insieme alla barra.
+       *
+       * Chiesto in revisione: la barra ferma si alza dell'inset, ma lo spazio
+       * riservato in fondo alla pagina restava quello di prima — cosi' la barra
+       * si mangiava proprio la distanza che serviva a non coprire l'ultima
+       * card, e piu' alta e' la fascia di sistema piu' grande era la
+       * sovrapposizione. */
+      body.cd-nav-fixed{padding-bottom:calc(112px + var(--dm-fondo-di-sistema))!important}
       /* E la maniglia che tira fuori la barra, che sta ancora piu' in basso:
        * se resta sotto i tasti non la si prende nemmeno. */
       .bottom-nav-handle{bottom:calc(6px + var(--dm-fondo-di-sistema))!important}
