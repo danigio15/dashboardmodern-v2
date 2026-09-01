@@ -129,6 +129,16 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-filo",
+    title: "Segnalazioni · il filo di una segnalazione",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("filo");
+    },
+  },
+  {
     id: "segnalazioni-allegati",
     title: "Segnalazioni · foto e video, appena spedita",
     both: true,
@@ -1216,7 +1226,8 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "inviato",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/197",
           author: "marco-b",
-          comments: 0,
+          comments: 2,
+          attachments: 1,
         },
         {
           number: 196,
@@ -1226,7 +1237,8 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "inviato",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/196",
           author: "chiara-r",
-          comments: 0,
+          comments: 1,
+          attachments: 0,
         },
         {
           number: 194,
@@ -1237,6 +1249,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
           author: "anna-g",
           comments: 2,
+          attachments: 2,
         },
         {
           number: 191,
@@ -1247,6 +1260,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/191",
           author: "luca-t",
           comments: 1,
+          attachments: 0,
         },
         {
           number: 186,
@@ -1257,20 +1271,58 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/186",
           author: "anna-g",
           comments: 3,
+          attachments: 0,
         },
       ];
       const collegato = dove !== "collega";
+      const daManutentore = dove === "console" || dove === "filo";
       const account = collegato
-        ? { connected: true, login: "anna-g", maintainer: dove === "console" }
+        ? { connected: true, login: "anna-g", maintainer: daManutentore }
         : { connected: false, login: "", maintainer: false };
       const risposte = {
         "dashboardmodern/tickets/list": {
           tickets: miei,
           delivery: true,
           account,
-          console: dove === "console",
+          console: daManutentore,
         },
         "dashboardmodern/tickets/queue": { tickets: coda },
+        "dashboardmodern/tickets/thread": {
+          number: 197,
+          body: "Seleziono la vettura nuova, salvo, e un istante dopo ricompare quella vecchia.",
+          attachments: [],
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/197",
+          state: "inviato",
+          comments: [
+            {
+              id: "1",
+              author: "marco-b",
+              maintainer: false,
+              at: "2026-09-01T08:41:00Z",
+              body: "Ecco cosa vedo: nel video si nota che la foto cambia da sola dopo circa un secondo.",
+              attachments: [
+                {
+                  url: "https://github.com/user-attachments/assets/finto-1",
+                  kind: "image",
+                  name: "Schermata del profilo auto",
+                },
+                {
+                  url: "https://github.com/user-attachments/assets/finto-2",
+                  kind: "file",
+                  name: "registrazione.mp4",
+                },
+              ],
+            },
+            {
+              id: "2",
+              author: "chiara-r",
+              maintainer: false,
+              at: "2026-09-01T09:02:00Z",
+              body: "Confermo, succede anche a me con due vetture configurate.",
+              attachments: [],
+            },
+          ],
+        },
         "dashboardmodern/tickets/auth/start": {
           user_code: "WDJB-MJHT",
           device_code: "finto",
@@ -1298,8 +1350,16 @@ async function bootPage(context, cameraStill, vehicleStill) {
               }
             : null;
         stato.tab =
-          dove === "collega" ? "nuova" : dove === "allegati" ? "mie" : dove;
-        stato.queue = dove === "console" ? coda : null;
+          dove === "collega"
+            ? "nuova"
+            : dove === "allegati"
+              ? "mie"
+              : dove === "filo"
+                ? "console"
+                : dove;
+        stato.fili = {};
+        stato.filiInCorso = {};
+        stato.queue = dove === "console" || dove === "filo" ? coda : null;
         stato.auth = null;
         stato.avviso = "";
         stato.tipo = "bug";
@@ -1314,6 +1374,9 @@ async function bootPage(context, cameraStill, vehicleStill) {
             : { title: "", body: "", contact: "" };
       }
       window.DashboardModernSegnalazioni?.apri();
+      if (dove === "filo" && stato) {
+        stato.fili = { 197: risposte["dashboardmodern/tickets/thread"] };
+      }
     };
 
     window.__dmPreview = {

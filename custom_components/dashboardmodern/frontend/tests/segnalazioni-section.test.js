@@ -35,7 +35,7 @@ test("ogni messaggio che la finestra manda passa dal ponte", () => {
   }
 });
 
-test("i nove comandi sono quelli che il backend registra", () => {
+test("i dieci comandi sono quelli che il backend registra", () => {
   assert.deepEqual([...WS_TYPES].sort(), [
     "dashboardmodern/tickets/answer",
     "dashboardmodern/tickets/auth/forget",
@@ -46,6 +46,7 @@ test("i nove comandi sono quelli che il backend registra", () => {
     "dashboardmodern/tickets/list",
     "dashboardmodern/tickets/queue",
     "dashboardmodern/tickets/sync",
+    "dashboardmodern/tickets/thread",
   ]);
 });
 
@@ -315,4 +316,38 @@ test("un indirizzo che arriva dal backend non diventa markup", () => {
   });
   assert.ok(!markup.includes("<script>"));
   assert.ok(markup.includes("&lt;script"));
+});
+
+
+/* ─── Vedere tutto ─────────────────────────────────────────────────────────
+ *
+ * Una segnalazione che ha dentro una schermata e' esattamente quella che si
+ * salta, se niente lo dice. Quello che si prova qui e' che il segno ci sia
+ * quando serve, che non ci sia quando non serve, e che gli indirizzi che
+ * arrivano da GitHub non diventino markup.
+ */
+
+test("la graffetta compare solo dove c'e' un allegato", () => {
+  assert.ok(codaVoceMarkup(inCoda({ attachments: 2, comments: 0 })).includes("📎 2"));
+  const nuda = codaVoceMarkup(inCoda({ attachments: 0, comments: 0 }));
+  assert.ok(!nuda.includes("📎"));
+  assert.ok(!nuda.includes("💬"));
+});
+
+test("il contatore dei commenti compare solo dove ce ne sono", () => {
+  assert.ok(codaVoceMarkup(inCoda({ comments: 3 })).includes("💬 3"));
+  assert.ok(!codaVoceMarkup(inCoda({ comments: 0 })).includes("💬"));
+});
+
+test("un conteggio che non e' un numero non stampa NaN", () => {
+  /* Arriva da GitHub: un campo mancante non deve diventare «📎 NaN». */
+  const markup = codaVoceMarkup(inCoda({ attachments: undefined, comments: null }));
+  assert.ok(!markup.includes("NaN"));
+  assert.ok(!markup.includes("📎"));
+});
+
+test("ogni voce della coda offre di vedere tutto", () => {
+  const markup = codaVoceMarkup(inCoda({ number: 77 }));
+  assert.ok(markup.includes('data-dm-filo="77"'));
+  assert.ok(markup.includes('aria-expanded="false"'));
 });

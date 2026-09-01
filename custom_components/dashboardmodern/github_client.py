@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -217,6 +218,72 @@ async def _async_push_access(hass: HomeAssistant, token: str) -> bool:
     )
 
 
+# ─── Gli allegati ────────────────────────────────────────────────────────────
+#
+# GitHub non ha un'API per allegare file a una issue, quindi la foto la mette
+# chi segnala, dalla pagina della segnalazione. Da qui pero' si puo' vedere che
+# c'e': una volta allegata, vive nel testo del commento come un indirizzo, e
+# quel testo l'API lo restituisce.
+#
+# Gli indirizzi hanno due forme, una moderna e una vecchia, e nessuna delle due
+# porta l'estensione del file: da `…/assets/<uuid>` non si capisce se sia una
+# foto o un video. A dirlo e' la sintassi che gli sta intorno — `![](…)` e'
+# un'immagine, un indirizzo nudo lo diventa quando GitHub lo disegna — quindi
+# quello che non e' dichiarato immagine resta «allegato» e basta, senza
+# inventare una faccia che non si conosce.
+
+_HOST_ALLEGATI = (
+    "https://github.com/user-attachments/assets/",
+    "https://user-images.githubusercontent.com/",
+    "https://private-user-images.githubusercontent.com/",
+)
+
+#: `![didascalia](indirizzo)` — la forma che GitHub scrive quando trascini
+#: un'immagine nel riquadro.
+_IMMAGINE = re.compile(r"!\[([^\]]*)\]\((https?://[^)\s]+)\)")
+
+#: Un indirizzo nudo su una riga sua: e' come GitHub scrive un video.
+_INDIRIZZO = re.compile(r"https?://[^\s<>()\[\]\"']+")
+
+MAX_ALLEGATI = 20
+
+
+def attachments_in(text: str) -> list[dict[str, str]]:
+    """Gli allegati citati in un testo, nell'ordine in cui compaiono.
+
+    Il doppione non si conta due volte: GitHub scrive lo stesso indirizzo sia
+    dentro `![](…)` sia, in certi casi, subito accanto, e chi legge la coda
+    vedrebbe due allegati dove ce n'e' uno.
+    """
+    if not isinstance(text, str) or not text:
+        return []
+    trovati: dict[str, dict[str, str]] = {}
+    for didascalia, indirizzo in _IMMAGINE.findall(text):
+        if indirizzo not in trovati:
+            trovati[indirizzo] = {
+                "url": indirizzo,
+                "kind": "image",
+                "name": didascalia.strip()[:120],
+            }
+    for indirizzo in _INDIRIZZO.findall(text):
+        pulito = indirizzo.rstrip(".,;:")
+        if pulito in trovati or not pulito.startswith(_HOST_ALLEGATI):
+            continue
+        # Non dichiarato immagine: puo' essere un video o un file, e non si
+        # tira a indovinare.
+        trovati[pulito] = {"url": pulito, "kind": "file", "name": ""}
+    return list(trovati.values())[:MAX_ALLEGATI]
+
+
+def _senza_allegati(text: str) -> str:
+    """Il testo senza gli indirizzi degli allegati, che li mostra la coda."""
+    ripulito = _IMMAGINE.sub("", text or "")
+    for indirizzo in _INDIRIZZO.findall(ripulito):
+        if indirizzo.startswith(_HOST_ALLEGATI):
+            ripulito = ripulito.replace(indirizzo, "")
+    return "\n".join(riga.rstrip() for riga in ripulito.splitlines()).strip()
+
+
 # ─── Le issue ────────────────────────────────────────────────────────────────
 
 
@@ -322,6 +389,67 @@ async def async_read_issue(
     }
 
 
+async def async_issue_thread(
+    hass: HomeAssistant, token: str, number: int
+) -> dict[str, Any]:
+    """Tutto quello che sta sotto una segnalazione: il testo e i commenti.
+
+    E' quello che serve alla console per non dover uscire: chi ha allegato una
+    foto l'ha allegata in un commento, e senza leggere i commenti la coda
+    mostrerebbe una segnalazione che sembra nuda mentre non lo e'.
+
+    Gli allegati si riportano separati dal testo. Lasciarli dentro vorrebbe
+    dire mostrare un indirizzo di quaranta caratteri in mezzo a una frase, e
+    nasconderli senza elencarli vorrebbe dire perderli.
+    """
+    issue = await _request(
+        hass,
+        "GET",
+        f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}",
+        token=token,
+    )
+    corpo = str(issue.get("body") or "").replace(TICKET_MARKER, "")
+    commenti: list[dict[str, Any]] = []
+    if int(issue.get("comments") or 0) > 0:
+        grezzi = await _request(
+            hass,
+            "GET",
+            f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}"
+            f"/comments?per_page={MAX_COMMENTS}",
+            token=token,
+        )
+        if isinstance(grezzi, list):
+            for commento in grezzi[-MAX_COMMENTS:]:
+                if not isinstance(commento, dict):
+                    continue
+                testo = str(commento.get("body") or "")
+                commenti.append(
+                    {
+                        "id": str(commento.get("id") or ""),
+                        "author": str((commento.get("user") or {}).get("login") or ""),
+                        "maintainer": str(commento.get("author_association"))
+                        in MAINTAINER_ASSOCIATIONS,
+                        "at": str(commento.get("created_at") or ""),
+                        "body": _senza_allegati(testo),
+                        "attachments": attachments_in(testo),
+                    }
+                )
+    return {
+        "number": int(issue.get("number") or number),
+        "body": _senza_allegati(corpo),
+        "attachments": attachments_in(corpo),
+        "comments": commenti,
+        "issue_url": str(issue.get("html_url") or ""),
+        "state": _state_from_issue(
+            issue,
+            next(
+                (uno["body"] for uno in reversed(commenti) if uno["maintainer"]),
+                "",
+            ),
+        ),
+    }
+
+
 async def async_comment(
     hass: HomeAssistant, token: str, number: int, body: str
 ) -> dict[str, Any]:
@@ -374,15 +502,19 @@ async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
         corpo = str(issue.get("body") or "")
         if TICKET_MARKER not in corpo:
             continue
+        allegati = attachments_in(corpo)
         coda.append(
             {
                 "number": int(issue.get("number") or 0),
                 "title": str(issue.get("title") or ""),
-                "body": corpo.replace(TICKET_MARKER, "").strip(),
+                "body": _senza_allegati(corpo.replace(TICKET_MARKER, "")),
                 "state": _state_from_issue(issue, ""),
                 "issue_url": str(issue.get("html_url") or ""),
                 "author": str((issue.get("user") or {}).get("login") or ""),
+                # Quanti ce ne sono si sa dall'elenco, senza aprire niente: e'
+                # il segno che dice quali valga la pena guardare.
                 "comments": int(issue.get("comments") or 0),
+                "attachments": len(allegati),
             }
         )
     return coda

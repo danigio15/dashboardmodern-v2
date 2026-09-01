@@ -175,6 +175,19 @@ risposta. Il momento e' quello giusto — chi ha appena scritto ha ancora il fil
 sotto mano — e nel modulo c'e' gia' una riga che lo anticipa, perche' non sia
 una sorpresa.
 
+**Da li' in poi pero' l'allegato torna dentro la plancia.** Una volta
+trascinato, vive nel testo del commento come un indirizzo, e quel testo l'API
+lo restituisce: la coda mostra `📎 2` e `💬 3` sulla scheda — il conto arriva
+dall'elenco, senza chiedere niente in piu' — e «Vedi tutto» apre il filo
+intero: il testo della segnalazione, ogni commento con chi l'ha scritto e
+quando, e gli allegati come schede. Delle immagini si tenta l'anteprima; se la
+CSP di Home Assistant non le lascia passare, la scheda diventa un rimando,
+che e' sempre meglio di un riquadro rotto.
+
+Gli indirizzi non portano l'estensione — da `…/assets/<uuid>` non si capisce se
+sia una foto o un video — quindi si guarda la sintassi intorno: `![](…)` e'
+un'immagine, tutto il resto resta «allegato» senza inventargli una faccia.
+
 Le tre strade che porterebbero l'allegato su GitHub da sole, e perche' non sono
 state prese:
 

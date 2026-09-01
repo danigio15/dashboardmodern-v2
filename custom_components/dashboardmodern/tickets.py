@@ -175,6 +175,19 @@ async def async_queue(hass: HomeAssistant, user_id: str) -> list[dict[str, Any]]
     return await github_client.async_queue(hass, token)
 
 
+async def async_thread(
+    hass: HomeAssistant, user_id: str, number: int
+) -> dict[str, Any]:
+    """Il filo intero di una segnalazione, per chi tiene la coda.
+
+    Una richiesta sola, e solo quando la console apre quella segnalazione:
+    chiedere i commenti di tutte e cinquanta in un colpo vorrebbe dire
+    cinquanta chiamate per guardarne una.
+    """
+    token = await async_console_token(hass, user_id)
+    return await github_client.async_issue_thread(hass, token, int(number))
+
+
 async def async_answer(
     hass: HomeAssistant,
     *,
@@ -257,5 +270,6 @@ __all__ = [
     "async_queue",
     "async_setup_tickets",
     "async_sync_states",
+    "async_thread",
     "enabled",
 ]

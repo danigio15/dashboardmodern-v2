@@ -28,7 +28,11 @@ from custom_components.dashboardmodern.const import (
     OPTION_TICKETS_ENABLED,
     TICKET_MARKER,
 )
-from custom_components.dashboardmodern.github_client import DevicePending, GitHubError
+from custom_components.dashboardmodern.github_client import (
+    DevicePending,
+    GitHubError,
+    attachments_in,
+)
 from custom_components.dashboardmodern.github_tokens import async_get_token_store
 from custom_components.dashboardmodern.ticket_store import (
     STATE_CLOSED,
@@ -571,3 +575,180 @@ async def test_una_risposta_vuota_non_scrive_niente(
     fatto = await tickets.async_answer(hass, user_id="dani", number=1, reply="   ")
     assert fatto == {"commented": False, "closed": False}
     assert github.calls == []
+
+
+# ─── Allegati e filo dei commenti ────────────────────────────────────────────
+
+
+def test_una_foto_trascinata_si_riconosce() -> None:
+    """GitHub scrive `![](…)` quando trascini un'immagine nel riquadro."""
+    allegati = attachments_in(
+        "Ecco cosa vedo:\n\n"
+        "![Schermata](https://github.com/user-attachments/assets/abc-123)"
+    )
+    assert allegati == [
+        {
+            "url": "https://github.com/user-attachments/assets/abc-123",
+            "kind": "image",
+            "name": "Schermata",
+        }
+    ]
+
+
+def test_un_indirizzo_nudo_e_un_allegato_di_cui_non_si_sa_la_faccia() -> None:
+    """Da `…/assets/<uuid>` non si capisce se sia un video o un file.
+
+    Non si tira a indovinare: si dice che c'e', e chi guarda apre.
+    """
+    allegati = attachments_in(
+        "Il video:\nhttps://github.com/user-attachments/assets/def-456"
+    )
+    assert [voce["kind"] for voce in allegati] == ["file"]
+
+
+def test_lo_stesso_indirizzo_non_si_conta_due_volte() -> None:
+    """GitHub a volte lo scrive due volte, e chi legge vedrebbe due allegati."""
+    url = "https://github.com/user-attachments/assets/abc-123"
+    assert len(attachments_in(f"![foto]({url})\n\n{url}")) == 1
+
+
+def test_le_foto_vecchie_si_riconoscono_ancora() -> None:
+    """Le segnalazioni di due anni fa usano l'altro dominio."""
+    allegati = attachments_in(
+        "![vecchia](https://user-images.githubusercontent.com/1/x.png)"
+    )
+    assert allegati[0]["kind"] == "image"
+
+
+def test_un_link_qualunque_non_e_un_allegato() -> None:
+    """Il rimando alla documentazione non deve accendere la graffetta."""
+    assert attachments_in("Vedi https://www.home-assistant.io/docs/") == []
+
+
+def test_un_testo_senza_niente_non_produce_niente() -> None:
+    assert attachments_in("") == []
+    assert attachments_in(None) == []  # type: ignore[arg-type]
+
+
+async def test_il_filo_porta_commenti_e_allegati(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Quello che serve alla console per non dover uscire."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer(
+        "/issues/42/comments",
+        [
+            {
+                "id": 1,
+                "user": {"login": "anna-g"},
+                "author_association": "NONE",
+                "created_at": "2026-09-01T10:00:00Z",
+                "body": "Ecco la schermata:\n"
+                "![vista](https://github.com/user-attachments/assets/aaa)",
+            },
+            {
+                "id": 2,
+                "user": {"login": "danigio15"},
+                "author_association": "OWNER",
+                "created_at": "2026-09-01T11:00:00Z",
+                "body": "Riprodotta.",
+            },
+        ],
+    )
+    github.answer(
+        "/issues/42",
+        {
+            "number": 42,
+            "state": "open",
+            "comments": 2,
+            "body": f"Il corpo.\n{TICKET_MARKER}",
+            "html_url": "https://github.com/x/y/issues/42",
+        },
+    )
+    filo = await tickets.async_thread(hass, "dani", 42)
+    assert filo["body"] == "Il corpo."
+    assert len(filo["comments"]) == 2
+    primo = filo["comments"][0]
+    assert primo["author"] == "anna-g"
+    assert primo["maintainer"] is False
+    assert primo["attachments"][0]["kind"] == "image"
+    # L'indirizzo lungo esce dal testo e va nell'elenco: dentro la frase
+    # sarebbe illeggibile, tolto e basta sarebbe perso.
+    assert "user-attachments" not in primo["body"]
+    assert primo["body"] == "Ecco la schermata:"
+    assert filo["comments"][1]["maintainer"] is True
+
+
+async def test_il_filo_deduce_lo_stato_dal_commento_del_manutentore(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Una segnalazione con una risposta e' «presa in carico», qui come altrove."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer(
+        "/issues/42/comments",
+        [
+            {
+                "id": 1,
+                "user": {"login": "danigio15"},
+                "author_association": "OWNER",
+                "created_at": "2026-09-01T11:00:00Z",
+                "body": "Ci sto lavorando.",
+            }
+        ],
+    )
+    github.answer(
+        "/issues/42", {"number": 42, "state": "open", "comments": 1, "body": "x"}
+    )
+    assert (await tickets.async_thread(hass, "dani", 42))["state"] == STATE_TRIAGED
+
+
+async def test_il_filo_chiede_i_permessi(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Il filo e' la coda di tutti: passa dallo stesso cancello."""
+    _entry(hass)
+    await _collega(hass, "anna", maintainer=False)
+    with pytest.raises(GitHubError) as errore:
+        await tickets.async_thread(hass, "anna", 42)
+    assert errore.value.code == "not_console"
+    assert github.calls == []
+
+
+async def test_la_coda_dice_quanti_allegati_ci_sono(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Senza aprire niente: e' il segno che dice quali guardare."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer(
+        "/issues?",
+        [
+            {
+                "number": 1,
+                "title": "Con la foto",
+                "body": "testo "
+                "![x](https://github.com/user-attachments/assets/aaa) "
+                f"{TICKET_MARKER}",
+                "state": "open",
+                "comments": 3,
+                "user": {"login": "anna-g"},
+            },
+            {
+                "number": 2,
+                "title": "Senza",
+                "body": f"solo testo {TICKET_MARKER}",
+                "state": "open",
+                "comments": 0,
+                "user": {"login": "luca-t"},
+            },
+        ],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert [(voce["attachments"], voce["comments"]) for voce in coda] == [
+        (1, 3),
+        (0, 0),
+    ]
+    # E l'indirizzo lungo non sporca il testo che la coda mostra.
+    assert "user-attachments" not in coda[0]["body"]

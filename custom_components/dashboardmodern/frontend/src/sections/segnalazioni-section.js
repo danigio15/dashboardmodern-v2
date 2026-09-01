@@ -38,6 +38,11 @@ const state = (root[KEY] ||= {
    * riquadro che spiega come allegare foto e video: e' il momento in cui chi
    * ha appena scritto ha ancora il file sotto mano. */
   appena: null,
+  /* I fili gia' chiesti, per numero di segnalazione. Restano aperti finche' la
+   * console e' aperta: richiuderli a ogni ridisegno vorrebbe dire richiedere a
+   * GitHub la stessa cosa che si e' appena letta. */
+  fili: {},
+  filiInCorso: {},
   filtro: "aperte",
   tab: "nuova",
   tipo: "bug",
@@ -56,6 +61,7 @@ const WS_DELETE = "dashboardmodern/tickets/delete";
 const WS_SYNC = "dashboardmodern/tickets/sync";
 const WS_QUEUE = "dashboardmodern/tickets/queue";
 const WS_ANSWER = "dashboardmodern/tickets/answer";
+const WS_THREAD = "dashboardmodern/tickets/thread";
 const WS_AUTH_START = "dashboardmodern/tickets/auth/start";
 const WS_AUTH_POLL = "dashboardmodern/tickets/auth/poll";
 const WS_AUTH_FORGET = "dashboardmodern/tickets/auth/forget";
@@ -71,6 +77,7 @@ export const WS_TYPES = Object.freeze([
   WS_SYNC,
   WS_QUEUE,
   WS_ANSWER,
+  WS_THREAD,
   WS_AUTH_START,
   WS_AUTH_POLL,
   WS_AUTH_FORGET,
@@ -536,6 +543,31 @@ a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
 .dm-tkt-filtro.attivo { background:var(--accent,#0ea5e9); color:#fff;
   border-color:transparent; }
 
+/* I segni sulla scheda, e il filo che si apre sotto. */
+.dm-tkt-segno { font-size:11px; font-weight:800; padding:3px 8px; border-radius:9px;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
+  white-space:nowrap; }
+.dm-tkt-filo { display:flex; flex-direction:column; gap:10px; margin-top:11px; }
+.dm-tkt-filo-attesa { padding:14px; text-align:center; font-size:12px;
+  color:var(--text-dim,#64748b); }
+.dm-tkt-commento { padding:11px 13px; border-radius:14px;
+  background:var(--surface-3,#f1f5f9); }
+.dm-tkt-commento.originale { background:transparent; padding:0; }
+.dm-tkt-commento.mio { background:rgba(14,165,233,0.10); }
+.dm-tkt-commento-testa { display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  font-size:11px; color:var(--text-dim,#64748b); }
+.dm-tkt-commento .dm-tkt-voce-corpo { margin-top:6px; }
+.dm-tkt-allegati { display:flex; gap:10px; flex-wrap:wrap; margin-top:9px; }
+.dm-tkt-allegato { display:flex; flex-direction:column; gap:5px; max-width:200px;
+  padding:8px; border-radius:12px; border:1px solid var(--card-border,#e2e8f0);
+  background:var(--card-bg,#fff); color:var(--text-dim,#64748b); font-size:11px;
+  font-weight:700; text-decoration:none; }
+.dm-tkt-allegato img { width:100%; max-height:150px; object-fit:cover;
+  border-radius:8px; display:block; background:var(--surface-3,#f1f5f9); }
+.dm-tkt-allegato span { word-break:break-word; }
+.dm-tkt-allegato.solo-link, .dm-tkt-allegato.rotto { flex-direction:row;
+  align-items:center; }
+
 @media (max-width:560px) {
   #dm-tkt-modal .modal-card.dm-tkt-pannello { padding:14px 12px; }
   .dm-tkt-tipi { grid-template-columns:1fr; }
@@ -930,10 +962,108 @@ function quandoMarkup(ticket) {
   return `#${numero}${chi ? ` · ${esc(chi)}` : ""}`;
 }
 
+/* Il segno che dice quali segnalazioni valga la pena aprire. Il conto arriva
+ * dalla coda, senza chiedere niente in piu' a GitHub: una segnalazione che
+ * sembra nuda e invece ha dentro una schermata e' esattamente quella che si
+ * salta. */
+function segniMarkup(ticket) {
+  const allegati = Number(ticket.attachments) || 0;
+  const commenti = Number(ticket.comments) || 0;
+  const segni = [];
+  if (allegati) {
+    segni.push(
+      `<span class="dm-tkt-segno" title="${esc(
+        t("Allegati", "Attachments"),
+      )}">📎 ${allegati}</span>`,
+    );
+  }
+  if (commenti) {
+    segni.push(
+      `<span class="dm-tkt-segno" title="${esc(
+        t("Commenti", "Comments"),
+      )}">💬 ${commenti}</span>`,
+    );
+  }
+  return segni.join("");
+}
+
+function allegatiMarkup(allegati) {
+  if (!Array.isArray(allegati) || !allegati.length) return "";
+  return `<div class="dm-tkt-allegati">${allegati
+    .map((allegato) => {
+      const url = clean(allegato?.url);
+      if (!url.startsWith("https://")) return "";
+      const nome = clean(allegato?.name);
+      if (allegato?.kind === "image") {
+        /* Si prova a mostrarla. Se la CSP di Home Assistant non lascia
+         * passare l'immagine — o se GitHub non risponde — resta il rimando,
+         * che e' sempre meglio di un riquadro rotto. */
+        return `
+          <a class="dm-tkt-allegato" href="${esc(url)}"
+             target="_blank" rel="noreferrer noopener">
+            <img src="${esc(url)}" alt="${esc(nome || t("Allegato", "Attachment"))}"
+                 loading="lazy"
+                 onerror="this.remove();this.parentElement.classList.add('rotto')">
+            <span>${esc(nome || t("Apri l'immagine", "Open the image"))}</span>
+          </a>`;
+      }
+      return `
+        <a class="dm-tkt-allegato solo-link" href="${esc(url)}"
+           target="_blank" rel="noreferrer noopener">
+          <span>🎬 ${esc(nome || t("Apri l'allegato", "Open the attachment"))}</span>
+        </a>`;
+    })
+    .join("")}</div>`;
+}
+
+function quandoLeggibile(iso) {
+  const quando = Date.parse(clean(iso));
+  return Number.isFinite(quando) ? new Date(quando).toLocaleString() : "";
+}
+
+function filoMarkup(numero) {
+  if (state.filiInCorso[numero]) {
+    return `<div class="dm-tkt-filo-attesa">${esc(
+      t("Leggo la segnalazione…", "Reading the report…"),
+    )}</div>`;
+  }
+  const filo = state.fili[numero];
+  if (!filo) return "";
+  const commenti = Array.isArray(filo.comments) ? filo.comments : [];
+  const corpo = `
+    <div class="dm-tkt-commento originale">
+      <div class="dm-tkt-commento-testa">${esc(
+        t("Il testo della segnalazione", "The text of the report"),
+      )}</div>
+      <p class="dm-tkt-voce-corpo">${esc(clean(filo.body))}</p>
+      ${allegatiMarkup(filo.attachments)}
+    </div>`;
+  const filaCommenti = commenti.length
+    ? commenti
+        .map(
+          (commento) => `
+            <div class="dm-tkt-commento${commento.maintainer ? " mio" : ""}">
+              <div class="dm-tkt-commento-testa">
+                <b>${esc(clean(commento.author))}</b>
+                ${commento.maintainer ? `<span class="dm-tkt-segno">${esc(t("tu", "you"))}</span>` : ""}
+                <span>${esc(quandoLeggibile(commento.at))}</span>
+              </div>
+              <p class="dm-tkt-voce-corpo">${esc(clean(commento.body))}</p>
+              ${allegatiMarkup(commento.attachments)}
+            </div>`,
+        )
+        .join("")
+    : `<div class="dm-tkt-filo-attesa">${esc(
+        t("Nessuno ha ancora scritto niente.", "Nobody has written anything yet."),
+      )}</div>`;
+  return `<div class="dm-tkt-filo">${corpo}${filaCommenti}</div>`;
+}
+
 export function codaVoceMarkup(ticket) {
   const numero = Number(ticket.number) || 0;
   const tipo = tipoAttivo(clean(ticket.type));
   const chiusa = ["risolto", "chiuso"].includes(clean(ticket.state));
+  const aperto = Boolean(state.fili[numero] || state.filiInCorso[numero]);
   const azioni = chiusa
     ? `<button type="button" class="dm-tkt-btn chiaro"
          data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
@@ -941,7 +1071,9 @@ export function codaVoceMarkup(ticket) {
          )}</button>`
     : `
       <button type="button" class="dm-tkt-btn chiaro"
-        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(t("Rispondi", "Reply"))}</button>
+        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
+          t("Rispondi", "Reply"),
+        )}</button>
       <button type="button" class="dm-tkt-btn"
         data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
           t("Rispondi e risolvi", "Reply and solve"),
@@ -955,16 +1087,21 @@ export function codaVoceMarkup(ticket) {
       <div class="dm-tkt-voce-testa">
         <span class="dm-tkt-tipo-pill" aria-hidden="true">${tipo.icona}</span>
         <span class="dm-tkt-voce-tit">${esc(clean(ticket.title))}</span>
+        ${segniMarkup(ticket)}
         ${statoMarkup(clean(ticket.state) || "inviato")}
       </div>
       <div class="dm-tkt-voce-pie">
         <span>${quandoMarkup(ticket)}</span>
+        <button type="button" class="dm-tkt-tolgi" data-dm-filo="${numero}"
+          aria-expanded="${aperto}">${esc(
+            aperto ? t("Nascondi tutto", "Hide everything") : t("Vedi tutto", "See everything"),
+          )}</button>
         <a class="dm-tkt-link" href="${esc(clean(ticket.issue_url))}"
            target="_blank" rel="noreferrer noopener">${esc(
              t("Apri su GitHub", "Open on GitHub"),
            )}</a>
       </div>
-      <p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>
+      ${aperto ? filoMarkup(numero) : `<p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>`}
       <div class="dm-tkt-campo">
         <textarea id="dm-tkt-risposta-${numero}" rows="3"
           placeholder="${esc(
@@ -1099,6 +1236,9 @@ function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-tolgi]").forEach((bottone) => {
     bottone.addEventListener("click", () => elimina(bottone.dataset.dmTolgi));
   });
+  corpo.querySelectorAll("[data-dm-filo]").forEach((bottone) => {
+    bottone.addEventListener("click", () => apriFilo(bottone.dataset.dmFilo));
+  });
   corpo.querySelectorAll("[data-dm-rispondi]").forEach((bottone) => {
     bottone.addEventListener("click", () =>
       rispondi(bottone.dataset.dmRispondi, bottone.dataset.dmChiudi),
@@ -1206,6 +1346,34 @@ async function caricaCoda() {
   disegna();
 }
 
+/**
+ * Apri o richiudi il filo di una segnalazione.
+ *
+ * Una richiesta sola, e solo la prima volta: quello che si e' gia' letto resta
+ * a disposizione finche' la console e' aperta, invece di richiederlo a GitHub
+ * ogni volta che si apre e si chiude la stessa segnalazione.
+ */
+async function apriFilo(numero) {
+  const chiave = String(Number(numero) || 0);
+  if (chiave === "0") return;
+  if (state.fili[chiave]) {
+    delete state.fili[chiave];
+    disegna();
+    return;
+  }
+  if (state.filiInCorso[chiave]) return;
+  state.filiInCorso[chiave] = true;
+  disegna();
+  try {
+    state.fili[chiave] = await chiedi(WS_THREAD, { number: Number(chiave) });
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+  } finally {
+    delete state.filiInCorso[chiave];
+    disegna();
+  }
+}
+
 async function rispondi(numero, chiusura) {
   const issue = Number(numero) || 0;
   if (!issue) return;
@@ -1224,6 +1392,9 @@ async function rispondi(numero, chiusura) {
   try {
     await chiedi(WS_ANSWER, { number: issue, reply: testo, close: chiusura || "" });
     state.avviso = t("Risposta pubblicata.", "Reply published.");
+    /* Il filo appena letto non contiene la risposta che si e' appena
+     * scritta: si butta, e si rilegge quando serve. */
+    delete state.fili[String(issue)];
     state.queue = null;
   } catch (errore) {
     state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
