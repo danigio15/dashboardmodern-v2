@@ -60,7 +60,11 @@ const USER_DATA_VERSION = 1;
  * caldaia (`cd_caldaia`). Sono la casa, non il telefono: senza viaggiare, chi
  * sceglie «solare piu' caldaia» su un dispositivo troverebbe sugli altri la
  * pagina di prima. */
-export const CONFIG_KEYS_REVISION = 16;
+/* La revisione 17 aggiunge il gruppo di continuita' (`cd_ups`, #256): quali
+ * entita' dicono se c'e' tensione, come sta la batteria e quanto carico
+ * regge. E' la casa, non il telefono: chi lo configura dal tablet in cucina
+ * non deve rifarlo dal telefono per vedere se la corrente e' caduta. */
+export const CONFIG_KEYS_REVISION = 17;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -166,6 +170,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_scaldabagni",
   "cd_impianti_termici",
   "cd_caldaia",
+  "cd_ups",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

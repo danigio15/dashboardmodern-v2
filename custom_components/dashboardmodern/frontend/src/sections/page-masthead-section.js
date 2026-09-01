@@ -104,6 +104,15 @@ const PAGES = Object.freeze([
     it: ["Energia", "Produzione · Consumi · Report"],
     en: ["Energy", "Production · Consumption · Report"],
   },
+  /* Il gruppo di continuita' (#256) e' nato con la sua pagina, e
+   * l'intestazione nasce con lei: una sezione nuova entra qui il giorno
+   * stesso, non alla prima segnalazione. */
+  {
+    id: "page-ups",
+    tint: ["14,165,233", "34,197,94"],
+    it: ["Continuità", "Rete · Batteria · Carico"],
+    en: ["Backup power", "Mains · Battery · Load"],
+  },
   {
     id: "page-appliances-main",
     tint: ["14,165,233", "99,102,241"],

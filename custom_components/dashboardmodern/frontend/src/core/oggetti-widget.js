@@ -288,6 +288,27 @@ const OGGETTI = Object.freeze({
       <rect x="14.2" y="18.4" width="7.6" height="2.2" rx="1"/></g>
     <path d="M6.6 10.4h18.8" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/>`,
 
+  /* Il gruppo di continuita' (#256): la scatola nera col pannello davanti, la
+   * batteria dentro che si vede dal livello, e la spia della rete. Non e' la
+   * batteria del telefono — quella e' una carica che scende e basta, questa e'
+   * una scatola attaccata al muro che regge la casa quando la corrente cade. */
+  ups: `<defs>
+      <linearGradient id="dmoUpsS" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#64748b"/><stop offset=".45" stop-color="#334155"/>
+        <stop offset="1" stop-color="#0f172a"/></linearGradient>
+      <linearGradient id="dmoUpsB" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#16a34a"/><stop offset=".6" stop-color="#4ade80"/>
+        <stop offset="1" stop-color="#bbf7d0"/></linearGradient></defs>
+    ${OMBRA(16, 28.8, 7.6)}
+    <rect x="7.4" y="4.2" width="17.2" height="23.4" rx="3" fill="url(#dmoUpsS)"/>
+    <rect x="9.6" y="6.6" width="12.8" height="7.4" rx="1.8" fill="#0b1220"/>
+    <rect x="10.8" y="8.4" width="7.4" height="3.8" rx="1" fill="url(#dmoUpsB)"/>
+    <circle cx="20.6" cy="10.3" r="1.3" fill="#22c55e"/>
+    <path d="M16.6 16.6 13.4 22h2.6l-.8 4 3.6-5.8h-2.6Z" fill="#fbbf24"/>
+    <g fill="#94a3b8"><rect x="9.6" y="24.2" width="4.6" height="2" rx="1"/>
+      <rect x="17.8" y="24.2" width="4.6" height="2" rx="1"/></g>
+    <path d="M9.6 5.6h12.8" stroke="#fff" stroke-opacity=".4" stroke-width="1.2"/>`,
+
   /* La presa: mascherina chiara e i due fori, come quella della sezione. */
   prese: `<defs>
       <linearGradient id="dmoPresa" x1="0" y1="0" x2="1" y2="1">

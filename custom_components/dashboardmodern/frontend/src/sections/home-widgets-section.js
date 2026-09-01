@@ -47,6 +47,13 @@ import {
   normalizzaCaldaia,
   verdettoPressione,
 } from "../core/impianti-termici.js";
+import {
+  CHIAVE_UPS,
+  daQuandoUps,
+  entitaDellUps,
+  letturaUps,
+  normalizzaUps,
+} from "../core/ups-model.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -1534,6 +1541,111 @@ function caldaiaModel(states) {
   };
 }
 
+/* La tessera del gruppo di continuita' (#256).
+ *
+ * «Vedere se c'e' tensione o no, lo stato della batteria e il carico»: tre
+ * domande, e la prima comanda le altre due. A rete presente la carica e' una
+ * conferma tranquilla — sta al cento per cento perche' non e' successo niente
+ * — e la tessera sta zitta col numero della batteria. Quando la rete cade
+ * quelle stesse cifre diventano un conto alla rovescia, e allora il numero
+ * grande e' l'autonomia: e' l'unica cosa che in quel momento si vuole sapere.
+ *
+ * Percio' la tessera non mostra sempre lo stesso valore. Non e' un capriccio:
+ * un UPS si guarda due volte in tutta la sua vita, e una delle due e' al buio.
+ */
+function upsModel(states) {
+  const config = readJson(CHIAVE_UPS, {});
+  const entita = entitaDellUps(config);
+  if (!entita.length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
+  const lettura = letturaUps(config, states, root.resolveEntity || ((value) => value));
+  const dato = normalizzaUps(config);
+
+  const rows = [];
+  const casella = clean(dato.rete) || clean(dato.stato);
+  if (casella)
+    rows.push({
+      glyph: "🔌",
+      name: t("Rete elettrica", "Mains power"),
+      entity: casella,
+      on: lettura.rete === true,
+      value:
+        lettura.rete === true
+          ? t("Presente", "Present")
+          : lettura.rete === false
+            ? t("Manca", "Missing")
+            : t("Sconosciuta", "Unknown"),
+    });
+  const misura = (campo, testo, glyph, valore, cifre, unita) => {
+    if (valore == null) return;
+    rows.push({
+      glyph,
+      name: testo,
+      entity: clean(dato[campo]),
+      raw: valore,
+      value: `${formatNumber(valore, cifre)}${unita}`,
+    });
+  };
+  misura("batteria", t("Batteria", "Battery"), "🔋", lettura.batteria, 0, "%");
+  misura("carico", t("Carico", "Load"), "📊", lettura.carico, 0, "%");
+  misura("autonomia", t("Autonomia residua", "Runtime left"), "⏳", lettura.autonomia, 0, " min");
+  misura("tensione", t("Tensione", "Voltage"), "⚡", lettura.tensione, 0, " V");
+  misura("potenza", t("Potenza", "Power"), "🔥", lettura.potenza, 0, " W");
+  misura("temperatura", t("Temperatura", "Temperature"), "🌡️", lettura.temperatura, 1, "°");
+  if (!rows.length) return null;
+
+  const aBatteria = lettura.rete === false;
+  const didascalia = () => {
+    if (aBatteria) {
+      /* Il numero si tira fuori prima: la chiave di traduzione dev'essere una
+       * frase con un buco, non un pezzo di codice. */
+      if (lettura.batteria != null) {
+        const carica = formatNumber(lettura.batteria, 0);
+        return t(`Va a batteria · ${carica}%`, `On battery · ${carica}%`);
+      }
+      return t("Va a batteria", "On battery");
+    }
+    if (lettura.rete === true) {
+      if (lettura.scarica) return t("Batteria scarica", "Battery low");
+      if (lettura.carico != null) {
+        const carico = formatNumber(lettura.carico, 0);
+        return t(`Rete presente · carico ${carico}%`, `Mains present · load ${carico}%`);
+      }
+      return t("Rete presente", "Mains present");
+    }
+    return t("Non risponde", "Not answering");
+  };
+  return {
+    key: "ups",
+    accent: "#0ea5e9",
+    icon: "🔋",
+    label: t("Continuità", "Backup power"),
+    /* A rete caduta parla l'autonomia, perche' e' il tempo che resta; a rete
+     * presente parla la batteria, perche' e' la conferma che il tempo c'e'. */
+    value:
+      aBatteria && lettura.autonomia != null
+        ? `${formatNumber(lettura.autonomia, 0)} min`
+        : lettura.batteria != null
+          ? `${formatNumber(lettura.batteria, 0)}%`
+          : lettura.rete === true
+            ? t("In rete", "On mains")
+            : t("A batteria", "On battery"),
+    caption: didascalia(),
+    // L'anello e' la carica: quanto tempo c'e' ancora dentro quella scatola.
+    ring: lettura.batteria == null ? null : Math.round(lettura.batteria),
+    // La tessera si accende quando la casa sta andando a batteria.
+    attiva: aBatteria,
+    /* L'alone: la rete caduta, o la batteria sotto la soglia anche a rete
+     * presente — che vuol dire che non ha finito di ricaricarsi dal guasto di
+     * prima, e il prossimo la trova impreparata. */
+    alert: lettura.allarme === true,
+    lettura,
+    da: daQuandoUps(config, states, root.resolveEntity || ((value) => value)),
+    rows,
+  };
+}
+
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
@@ -2354,6 +2466,7 @@ function widgetModels(states) {
       solarThermalModel(states),
       scaldabagnoModel(states),
       caldaiaModel(states),
+      upsModel(states),
       minipcModel(states),
       poolModel(states),
       preseModel(states),
@@ -3280,6 +3393,7 @@ const CHIAVI_A_CARTE = new Set([
   "evidenza",
   "scaldabagno",
   "caldaia",
+  "ups",
   "ev",
   "solare",
   "piscina",
@@ -3677,7 +3791,7 @@ function detailRows(widget, states) {
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
   if (
-    ["ev", "solare", "scaldabagno", "caldaia", "piscina", "prese", "irrigazione", "robot"].includes(
+    ["ev", "solare", "scaldabagno", "caldaia", "ups", "piscina", "prese", "irrigazione", "robot"].includes(
       widget.key,
     )
   )
@@ -3715,6 +3829,7 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   solare: "boiler",
   scaldabagno: "boiler",
   caldaia: "boiler",
+  ups: "ups",
   piscina: "piscina",
   irrigazione: "irrigazione",
   robot: "robot",

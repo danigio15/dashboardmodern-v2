@@ -91,6 +91,8 @@ import { installConfigUniformitySection } from "./config-uniformity-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installImpiantiTermiciSection } from "./impianti-termici-section.js";
 import { installImpiantiTermiciEditor } from "./impianti-termici-editor-section.js";
+import { installUpsSection } from "./ups-section.js";
+import { installUpsEditor } from "./ups-editor-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { activeLocale, allStates, clean, english, section, t, wrapFunction } from "./shared.js";
@@ -900,6 +902,12 @@ export function installSectionRuntime() {
      * mettono accanto, e per farlo devono trovarlo gia' al suo posto. */
     installImpiantiTermiciSection();
     installImpiantiTermiciEditor();
+    /* Il gruppo di continuita' (#256) ha una pagina sua, come le altre
+     * macchine della casa, e si configura nella scheda «Energia»: un UPS e' la
+     * corrente di casa, non un impianto termico. La pagina prima della scheda,
+     * cosi' la scheda trova gia' cosa ridisegnare quando si salva. */
+    installUpsSection();
+    installUpsEditor();
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();

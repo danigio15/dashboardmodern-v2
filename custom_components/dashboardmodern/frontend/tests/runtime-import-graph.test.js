@@ -548,8 +548,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // configura (`sections/impianti-termici-editor-section.js`). La pagina si
   // chiamava «Solare termico» e disegnava un impianto solo: chi ha il
   // fotovoltaico e lo scaldabagno ci trovava un pannello che non ha.
+  // 194 col gruppo di continuita' (#256): il nucleo che legge le sigle di NUT
+  // (`core/ups-model.js`) e la scheda che lo configura dentro «Energia»
+  // (`sections/ups-editor-section.js`). Un UPS non e' la tessera delle
+  // batterie — quella conta le pile dei sensori, questa dice se la casa ha
+  // corrente — e non e' un impianto termico: e' la corrente di casa, e si
+  // configura dove la corrente si configura.
+  // 195 con la pagina del gruppo di continuita' (#256,
+  // `sections/ups-section.js`): la scatola merita una pagina come le altre
+  // macchine della casa — «crea sempre una sezione a se', non solo il widget
+  // col popup» — e li' il verso in cui la corrente sta andando si vede
+  // disegnato invece che letto.
   assert.ok(
-    relative.length <= 192,
+    relative.length <= 195,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

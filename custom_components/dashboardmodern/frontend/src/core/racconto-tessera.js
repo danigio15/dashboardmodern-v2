@@ -259,6 +259,58 @@ const FRASI = Object.freeze({
       `Giving off ${numero(lettura.salto, 1)}° between flow and return.`,
     );
   },
+  /* Il gruppo di continuita' (#256) non si racconta contando righe.
+   *
+   * Le righe sono le sue caselle — rete, batteria, carico, autonomia — e
+   * «due su sei in funzione» non e' una notizia. La notizia e' una sola, e
+   * cambia di segno: o la corrente c'e', e allora si dice quanta riserva
+   * c'e' dietro; o la corrente e' caduta, e allora si dice da quanto e per
+   * quanto ancora. */
+  ups: (tr, _righe, tessera, adesso = Date.now()) => {
+    const lettura = tessera?.lettura;
+    if (!lettura) return tr("Qui non c'e' ancora niente.", "Nothing configured here yet.");
+    const carica = lettura.batteria == null ? null : numero(lettura.batteria, 0);
+    if (lettura.rete === false) {
+      /* Da quanto siamo al buio: e' la prima cosa che si vuole sapere, e il
+       * momento del cambio lo porta l'entita' stessa. */
+      const da = Number(tessera?.da);
+      const quando = Number.isFinite(da) ? ` ${daQuanto((adesso - da) / 60000, tr)}` : "";
+      if (lettura.autonomia != null)
+        return tr(
+          `Manca la corrente${quando}: restano ${numero(lettura.autonomia, 0)} minuti di batteria.`,
+          `Mains is out${quando}: ${numero(lettura.autonomia, 0)} minutes of battery left.`,
+        );
+      if (carica != null)
+        return tr(
+          `Manca la corrente${quando}: la batteria e' al ${carica}%.`,
+          `Mains is out${quando}: the battery is at ${carica}%.`,
+        );
+      return tr(`Manca la corrente${quando}.`, `Mains is out${quando}.`);
+    }
+    if (lettura.rete !== true) return tr("Non risponde.", "Not answering.");
+    if (lettura.scarica)
+      return carica == null
+        ? tr(
+            "La corrente c'e', ma la batteria e' scarica: adesso non reggerebbe.",
+            "Mains is on, but the battery is low: it would not hold right now.",
+          )
+        : tr(
+            `La corrente c'e', ma la batteria e' al ${carica}%: adesso non reggerebbe.`,
+            `Mains is on, but the battery is at ${carica}%: it would not hold right now.`,
+          );
+    const carico =
+      lettura.carico == null
+        ? ""
+        : tr(
+            `, con un carico del ${numero(lettura.carico, 0)}%`,
+            `, at ${numero(lettura.carico, 0)}% load`,
+          );
+    if (carica == null) return tr(`La corrente c'e'${carico}.`, `Mains is on${carico}.`);
+    return tr(
+      `La corrente c'e' e la batteria e' al ${carica}%${carico}.`,
+      `Mains is on and the battery is at ${carica}%${carico}.`,
+    );
+  },
   luci: (tr, righe) => {
     const accese = conta(righe, acceso);
     if (!accese) return tr("Sono tutte spente.", "Every light is off.");
@@ -483,6 +535,10 @@ const BRICIOLE = Object.freeze({
   batterie: [
     ["Livelli", "Soglie", "Autonomia"],
     ["Levels", "Thresholds", "Runtime"],
+  ],
+  ups: [
+    ["Rete", "Batteria", "Carico"],
+    ["Mains", "Battery", "Load"],
   ],
   allagamenti: [
     ["Sonde", "Perdite", "Controllo"],
