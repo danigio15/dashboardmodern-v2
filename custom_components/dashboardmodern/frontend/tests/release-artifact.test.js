@@ -66,6 +66,18 @@ test("HACS release artifact has root integration layout, complete brand assets a
   );
   assert.equal(names.includes("frontend/index.html"), false);
   assert.equal(names.includes("frontend/styles.css"), false);
+  /* I resti di chi ha appena eseguito la suite non partono per il mondo.
+   *
+   * `test-results` e `playwright-report` sono schermate, tracce e report. In CI
+   * il rilascio parte da un checkout pulito e non li ha mai avuti, quindi il
+   * pacchetto pubblicato e' sempre stato a posto; ma chi costruisce il pacchetto
+   * sulla propria macchina, dopo aver eseguito le prove, ci spediva dentro tre
+   * megabyte e mezzo di PNG senza accorgersene. Trovato misurando lo zip mentre
+   * si cercava un'altra cosa. */
+  const resti = names.filter(
+    (name) => name.includes("test-results") || name.includes("playwright-report"),
+  );
+  assert.deepEqual(resti, [], `resti delle prove nel pacchetto: ${resti.slice(0, 3).join(", ")}`);
 
   const buildInfo = readArchive("frontend/legacy/build-info.js");
   const manifest = JSON.parse(readArchive("manifest.json"));

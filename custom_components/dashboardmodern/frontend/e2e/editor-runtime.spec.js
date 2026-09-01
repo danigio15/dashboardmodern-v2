@@ -195,14 +195,23 @@ for (const variant of PRIMARY) {
      * gia' rifatto l'elenco: quello lo rifa' `cdRebuildReportDevices` da un
      * setTimeout a 2600 ms dall'apertura del socket. La lettura secca vinceva
      * la corsa su una macchina ferma e la perdeva con la suite intera addosso
-     * — «Array []» al posto delle tre voci. Le stesse tre voci, aspettate. */
+     * — «Array []» al posto delle tre voci. Le stesse tre voci, aspettate.
+     *
+     * L'attesa segue il browser, come gia' fa quella della prova intera qui
+     * sopra. Prima no: la prova su webkit si prende tre volte il tempo — perche'
+     * su webkit ci mette tre volte tanto — ma questo sondaggio dentro restava
+     * fermo a venti secondi. Su uno shard carico si arrendeva con «Array []»
+     * mentre alla prova restavano ancora due minuti di tempo: non era l'elenco
+     * a non arrivare, era chi lo aspettava ad andarsene prima. Nella stessa
+     * tornata anche `energy-flow-motion` su quello shard e' passata solo al
+     * secondo tentativo, che e' il segno di una macchina in affanno. */
     await expect
       .poll(
         () =>
           page.evaluate(() =>
             ED_DEVICES.map((device) => [device.name, device.icon, device.sensor]),
           ),
-        { timeout: 20_000 },
+        { timeout: testInfo.project.name === "webkit-ipad" ? 60_000 : 20_000 },
       )
       .toEqual([
         ["Washer first", "🧺", "sensor.washer_month"],
@@ -244,13 +253,26 @@ for (const variant of PRIMARY) {
      * leggeva come una prova ballerina: cadeva sempre e solo qui, e sempre e
      * solo su uno shard. Non ballava affatto — contava giusto.
      *
+     * E' passato a tredici quando ha imparato anche a dire quanto pesa
+     * arrivare: la riga di prima diceva che il pacchetto era in uso, ma non che
+     * i byte erano rimasti gli stessi, ed e' quello che si sentiva da fuori
+     * casa.
+     *
      * Chi aggiunge una voce alza questo numero E la nomina qui sotto: cosi'
      * la prossima volta il conto si legge invece di sembrare capriccio. */
-    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(12);
+    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(13);
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Integration version");
-    /* La dodicesima. Vale in tutt'e due gli stati, che e' il punto: la riga
-     * dice quale dei due, non presume. */
+    /* La dodicesima e la tredicesima. La prima si controlla dal valore, che
+     * vale in tutti gli stati: la riga dice quale dei due, non presume.
+     *
+     * La seconda si controlla dall'ETICHETTA, e non e' pigrizia: il peso lo
+     * ricava da `encodedBodySize` e `transferSize`, che non tutti i browser
+     * riempiono. Dove non ci sono, la riga dice «?» — che e' la risposta
+     * onesta, ma un'asserzione sul valore ci sarebbe cascata, e sarebbe caduta
+     * su un browser solo: il modo migliore per far sembrare ballerina una prova
+     * che non lo e'. */
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText(/impacchettati|sciolti/);
+    await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Transfer");
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });

@@ -608,6 +608,52 @@ function mountReportEditor(_tab, target) {
   if (entityInputs !== pickers) throw new Error(`Entity picker invariant failed: ${entityInputs} inputs / ${pickers} pickers`);
 }
 
+/* Quanti byte sono arrivati davvero, e se sono arrivati compressi.
+ *
+ * Dal campo, dopo un rilascio che aveva ridotto le richieste da 179 a 3:
+ * «nulla e' cambiato». Aveva ragione — e per saperlo e' servito uno scambio di
+ * messaggi e una schermata, perche' la plancia non sapeva dire quanto pesava
+ * arrivare. Adesso lo dice: chi entra da fuori casa passa da un tunnel, e li'
+ * contano i byte, non le richieste.
+ *
+ * Due cose vanno tenute distinte, e la prima stesura le confondeva.
+ *
+ * QUANTO HA VIAGGIATO lo dice `transferSize`. QUANTO ERA COMPRESSO lo dicono
+ * `encodedBodySize` contro `decodedBodySize` — il corpo come e' arrivato contro
+ * il corpo una volta disteso. Prima ricavavo la compressione dal rapporto fra
+ * trasferito e disteso, e su un carico mezzo in cache quel rapporto si gonfia
+ * da solo: chi era gia' in cache non ha viaggiato — `transferSize` zero — ma
+ * pesa lo stesso da disteso, e la riga avrebbe detto «compressi» di una plancia
+ * che arrivava in chiaro. Chiesto in revisione, ed era vero.
+ *
+ * Si contano solo le risorse della plancia. Quando la plancia sta dentro un
+ * riquadro l'elenco e' gia' suo, ma non e' detto che sia sempre cosi', e sommare
+ * anche cio' che ha scaricato Home Assistant intorno vorrebbe dire dare un
+ * numero che non risponde alla domanda. `import.meta.url` dice da dove arriva
+ * questo file, e tutto il resto della plancia sta li' sotto — sia coi sorgenti
+ * sciolti sia col pacchetto. */
+export function pesoScaricato() {
+  try {
+    const casa = `${import.meta.url.split("/legacy/")[0]}/`;
+    const nostre = performance
+      .getEntriesByType("resource")
+      .filter((risorsa) => risorsa.name.startsWith(casa));
+    if (!nostre.length) return "?";
+    const somma = (campo) => nostre.reduce((tot, r) => tot + (r[campo] || 0), 0);
+    const dalFilo = somma("transferSize");
+    const codificato = somma("encodedBodySize");
+    const disteso = somma("decodedBodySize");
+    if (!disteso) return "?";
+    const mb = (v) => `${(v / 1048576).toFixed(1)} MB`;
+    const come = codificato && codificato / disteso < 0.9 ? "compressi" : "non compressi";
+    return dalFilo
+      ? `${mb(dalFilo)} di ${mb(disteso)} — ${come}`
+      : `${mb(disteso)} dalla cache — ${come}`;
+  } catch (_) {
+    return "?";
+  }
+}
+
 function renderDiagnostics(target) {
   const rows = {
     "Integration version": BUILD_INFO.integrationVersion,
@@ -624,6 +670,7 @@ function renderDiagnostics(target) {
      * manca, la plancia parte lo stesso dai sorgenti — e allora e' bene poterlo
      * vedere a colpo d'occhio invece di indovinarlo dal cronometro. */
     Modules: globalThis.__DASHBOARDMODERN_IMPACCHETTATA__ ? "impacchettati (3 file)" : "sciolti (179 file)",
+    Transfer: pesoScaricato(),
   };
   target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
   target.dataset.runtimeDiagnostics = "true";

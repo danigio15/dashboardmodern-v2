@@ -19,3 +19,10 @@ dashboardmodern.zip
 # Il pacchetto della plancia: si costruisce, non si conserva.
 custom_components/dashboardmodern/frontend/legacy/pacco/
 custom_components/dashboardmodern/frontend/legacy/*.prima-del-pacco
+# I gusci di partenza, mentre il pacchetto e' montato. Stanno qui fuori apposta:
+# dentro la cartella dell'integrazione finivano dritti nel pacchetto di rilascio.
+.gusci-prima-del-pacco/
+# Le copie gia' compresse: le fa il rilascio, e chi sviluppa le cancella con
+# `--pulisci`. Committate sarebbero duecento file che invecchiano da soli.
+custom_components/dashboardmodern/frontend/**/*.gz
+custom_components/dashboardmodern/frontend/**/*.br

@@ -13,9 +13,15 @@
  * quasi due megabyte, e a una casa ne serve UNO — che continuano ad arrivare
  * uno alla volta quando servono.
  *
- * Niente minificazione: il guadagno grosso e' il numero di richieste, e con i
- * nomi veri un errore dal campo si legge ancora. Si potra' aggiungere quando
- * il resto sara' assestato.
+ * Poi dal campo e' tornato «nulla e' cambiato», e aveva ragione: le richieste
+ * non erano il problema. Chi apre la plancia da fuori casa passa da un tunnel,
+ * e li' contano i BYTE — quattro megabyte e mezzo, prima e dopo il pacchetto.
+ * Per questo lo script fa una seconda cosa: mette accanto a ogni file una copia
+ * gia' compressa, e Home Assistant manda quella. Da 4,9 MB a 1,2.
+ *
+ * Niente minificazione, e stavolta con una misura sotto: sopra la compressione
+ * vale il dieci per cento — 95 kB su 956 — e non vale i nomi veri, che sono
+ * quelli che rendono leggibile un errore arrivato dal campo.
  *
  * Lo script si usa cosi':
  *
@@ -27,9 +33,18 @@
  * fare il pacchetto, e i gusci riscritti finiscono solo li' dentro.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from "node:zlib";
 
 const RADICE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FRONTEND = join(RADICE, "custom_components/dashboardmodern/frontend");
@@ -115,10 +130,17 @@ export function guscioImpacchettato(html) {
  * via anche le modifiche non salvate di chi stava lavorando su quei file: il
  * ciclo `impacchetta` / `impacchetta:pulisci` gli faceva perdere il lavoro.
  * Chiesto in revisione. Adesso si conserva la copia di partenza e si rimette
- * quella: torna esattamente il documento che c'era, salvato o no. */
-const copiaDi = (relativo) => join(FRONTEND, `${relativo}.prima-del-pacco`);
+ * quella: torna esattamente il documento che c'era, salvato o no.
+ *
+ * Le copie stanno FUORI dalla cartella dell'integrazione: li' dentro finivano
+ * dritte nel pacchetto di rilascio — due documenti da centosei kB che nessuno
+ * avrebbe mai chiesto, spediti a tutti. */
+const RIPOSTIGLIO = join(RADICE, ".gusci-prima-del-pacco");
+export const copiaDi = (relativo) =>
+  join(RIPOSTIGLIO, `${relativo.replace(/\//g, "_")}.prima-del-pacco`);
 
 function scriviIGusci() {
+  mkdirSync(RIPOSTIGLIO, { recursive: true });
   for (const relativo of GUSCI) {
     const percorso = join(FRONTEND, relativo);
     const html = readFileSync(percorso, "utf8");
@@ -130,7 +152,99 @@ function scriviIGusci() {
   }
 }
 
+/* La plancia gia' compressa, accanto a se stessa.
+ *
+ * Il pacchetto ha tolto le richieste — da centosettantanove a tre — e dal campo
+ * e' tornato «nulla e' cambiato». La diagnostica diceva «impacchettati (3
+ * file)», quindi funzionava: erano le richieste a non essere il problema. Chi
+ * entra da fuori casa passa da un tunnel, e li' contano i BYTE. Erano 4,9 MB in
+ * chiaro, e restavano 4,9 MB anche dopo il pacchetto.
+ *
+ * Home Assistant serve questi file con aiohttp, e aiohttp guarda da se' se
+ * accanto al file ce n'e' uno con lo stesso nome piu' `.br` o `.gz`: se il
+ * browser dice di accettarli, manda quello. Verificato: chi chiede `identity`
+ * riceve ancora l'originale, quindi non si rompe niente. Non serve toccare una
+ * riga di Python — bastano i file.
+ *
+ * Misurato sui file veri: 4890 kB in chiaro, 1264 in gzip, 956 in brotli.
+ * Brotli lo capiscono tutti i browser su HTTPS; gzip serve a chi entra da casa
+ * su `http://`, dove Chrome il brotli non lo chiede nemmeno. Quindi tutti e
+ * due.
+ *
+ * Niente soglie di grandezza: un file che oggi supera una soglia e domani non
+ * la supera piu' si lascerebbe dietro la copia compressa vecchia, e quella
+ * verrebbe servita al posto della nuova. Un guasto muto, e dei peggiori. Meglio
+ * qualche `.gz` da trecento byte.
+ *
+ * Si comprime pero' solo quello che la plancia chiede DAVVERO: il guscio, il
+ * pacchetto, il runtime, i fogli, le librerie e i cataloghi delle lingue. I
+ * centosettantanove sorgenti sciolti sotto `src/` no — quelli servono al
+ * ripiego, cioe' al caso in cui il pacchetto non arriva, che per disegno e'
+ * gia' «lenta come ieri». Comprimerli costava 2,2 MB nel pacchetto di rilascio,
+ * scaricati da tutti a ogni aggiornamento, per una strada che non dovrebbe
+ * prendere nessuno. Il pacchetto passa da 7,1 a 10,5 MB invece che a 12,7.
+ *
+ * La regola e' per percorso, non per grandezza: un file sta sotto `legacy/` o
+ * non ci sta, e questo non cambia da un rilascio all'altro. Nessuna copia
+ * vecchia puo' restare indietro. */
+const DA_COMPRIMERE = Object.freeze(new Set([".js", ".css", ".json", ".html", ".svg"]));
+const FUORI_DAL_GIRO = Object.freeze(new Set(["e2e", "tests", "__pycache__", "node_modules"]));
+/* `legacy/` si porta dentro anche `legacy/pacco/`, che e' il grosso. */
+const SULLA_STRADA_BUONA = Object.freeze(["legacy", "src/i18n"]);
+const INGRESSI_IN_CIMA = Object.freeze(["panel.js", "dashboard-card.js"]);
+/* `build-info.js` no: il pacchetto di rilascio lo rigenera e lo sostituisce
+ * dentro lo zip, e una copia compressa di quello vecchio direbbe la versione
+ * sbagliata. Resta in chiaro, e sono trecento byte. */
+const SENZA_COPIA_COMPRESSA = "build-info.js";
+
+function* sottoLaCartella(cartella) {
+  for (const voce of readdirSync(cartella)) {
+    if (FUORI_DAL_GIRO.has(voce)) continue;
+    const percorso = join(cartella, voce);
+    if (statSync(percorso).isDirectory()) yield* sottoLaCartella(percorso);
+    else if (DA_COMPRIMERE.has(extname(voce)) && voce !== SENZA_COPIA_COMPRESSA) yield percorso;
+  }
+}
+
+function* daServire(radice) {
+  for (const ramo of SULLA_STRADA_BUONA) {
+    const cartella = join(radice, ramo);
+    if (existsSync(cartella)) yield* sottoLaCartella(cartella);
+  }
+  for (const nome of INGRESSI_IN_CIMA) {
+    const percorso = join(radice, nome);
+    if (existsSync(percorso)) yield percorso;
+  }
+}
+
+export function comprimiGliAsset(radice = FRONTEND) {
+  const fatti = [];
+  for (const percorso of daServire(radice)) {
+    const originale = readFileSync(percorso);
+    writeFileSync(`${percorso}.gz`, gzipSync(originale, { level: 9 }));
+    writeFileSync(`${percorso}.br`, brotliCompressSync(originale));
+    /* Una copia compressa che non torna all'originale e' peggio di nessuna
+     * copia: verrebbe servita al posto suo, e nessuno se ne accorgerebbe. */
+    if (!gunzipSync(readFileSync(`${percorso}.gz`)).equals(originale))
+      throw new Error(`${percorso}: la copia gzip non torna all'originale`);
+    if (!brotliDecompressSync(readFileSync(`${percorso}.br`)).equals(originale))
+      throw new Error(`${percorso}: la copia brotli non torna all'originale`);
+    fatti.push(percorso);
+  }
+  return fatti;
+}
+
+export function togliLeCopieCompresse(cartella) {
+  for (const voce of readdirSync(cartella)) {
+    if (FUORI_DAL_GIRO.has(voce)) continue;
+    const percorso = join(cartella, voce);
+    if (statSync(percorso).isDirectory()) togliLeCopieCompresse(percorso);
+    else if (voce.endsWith(".gz") || voce.endsWith(".br")) rmSync(percorso, { force: true });
+  }
+}
+
 function pulisci() {
+  togliLeCopieCompresse(FRONTEND);
   rmSync(PACCO, { recursive: true, force: true });
   for (const relativo of GUSCI) {
     const copia = copiaDi(relativo);
@@ -138,6 +252,7 @@ function pulisci() {
     writeFileSync(join(FRONTEND, relativo), readFileSync(copia, "utf8"));
     rmSync(copia, { force: true });
   }
+  rmSync(RIPOSTIGLIO, { recursive: true, force: true });
 }
 
 function main() {
@@ -150,7 +265,13 @@ function main() {
   scriviIGusci();
   const entrata = join(PACCO, "legacy/modules-entry.js");
   if (!existsSync(entrata)) throw new Error("il pacchetto non contiene l'ingresso della plancia");
-  console.log("plancia impacchettata in legacy/pacco/");
+  /* Per ultima, e non e' un dettaglio: comprime anche i gusci riscritti e il
+   * pacchetto appena fatto. Comprimere prima avrebbe messo da parte la
+   * versione di prima di tutto il lavoro. */
+  const compressi = comprimiGliAsset();
+  console.log(
+    `plancia impacchettata in legacy/pacco/, ${compressi.length} file con copia .gz e .br`,
+  );
 }
 
 if (process.argv[1] && process.argv[1].endsWith("impacchetta-la-plancia.mjs")) main();
