@@ -13,6 +13,7 @@
  */
 import { subloadPopupModel } from "../core/subload-popup-model.js";
 import { flowStageModel, subloadsOf } from "../core/energy-flow-topology.js";
+import { onRunHoldExpiry } from "../core/appliance-view-model.js";
 import {
   allStates,
   clean,
@@ -113,8 +114,19 @@ function iconSpan(className, icon) {
 function card(item, model) {
   const node = element("article", "dm-subload-card hist-clickable");
   node.dataset.dmSubloadCard = item.id;
-  if (item.entity)
-    node.addEventListener("click", (event) => root.apriStorico?.(event, item.entity, item.name));
+  /* Il bersaglio dello storico si legge dal nodo, non da quello che l'item
+   * era il giorno in cui la carta e' stata stampata.
+   *
+   * L'ascoltatore si mette una volta e resta; se si tenesse stretto l'`item`
+   * di allora, un apparecchio a cui cambia il sensore o il nome — un
+   * salvataggio nell'editor, una configurazione che arriva da un altro
+   * dispositivo — mostrerebbe il valore nuovo e aprirebbe lo storico del
+   * sensore vecchio. E una carta stampata quando il sensore non c'era ancora
+   * non diventerebbe cliccabile nemmeno quando arriva. */
+  node.addEventListener("click", (event) => {
+    const entita = clean(node.dataset.dmSubloadEntity);
+    if (entita) root.apriStorico?.(event, entita, node.dataset.dmSubloadName || "");
+  });
 
   const head = element("div", "dm-subload-head");
   head.append(element("span", "dm-subload-icon"));
@@ -139,6 +151,8 @@ function card(item, model) {
 function aggiornaCarta(node, item, model) {
   if (!node) return false;
   node.dataset.dmSubloadState = item.state;
+  node.dataset.dmSubloadEntity = clean(item.entity);
+  node.dataset.dmSubloadName = clean(item.name);
   node.style.setProperty("--dm-subload-color", item.color);
   node.style.setProperty("--dm-subload-tint", item.tint);
   iconInto(node.querySelector(".dm-subload-icon"), item.icon);
@@ -466,12 +480,28 @@ function bindOpeners() {
   for (const name of ["apriSubLoads", "openSubLoads", "renderSubLoads"]) wrapOpener(name);
 }
 
+/* La finestra e' aperta e in scena? Il ridisegno di una finestra chiusa e'
+ * lavoro buttato, e la sveglia del ritardo suona anche a popup chiuso. */
+function finestraAperta() {
+  const modale = doc?.getElementById?.("subloads-modal");
+  return Boolean(state.group) && Boolean(modale?.classList?.contains?.("show"));
+}
+
 export function installSubloadPopupSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
   bindOpeners();
   root.dmRenderSubloadPopup = renderSubloadPopup;
+  /* Il ritardo di fine ciclo scade da solo, e quando scade nessuno manda
+   * niente: la lavastoviglie che ha finito di asciugare non cambia stato in
+   * Home Assistant, e' il tempo che passa. Senza questa sveglia una finestra
+   * lasciata aperta continuerebbe a dire IN FUNZIONE — e a contarlo nella
+   * fascia del totale — finche' non arriva un aggiornamento per altri motivi.
+   * E' la stessa sveglia a cui e' iscritta la sezione Elettrodomestici. */
+  onRunHoldExpiry(() => {
+    if (finestraAperta()) renderSubloadPopup(state.group);
+  });
   for (const name of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

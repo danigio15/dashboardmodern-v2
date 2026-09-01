@@ -51,11 +51,29 @@ c'erano tre cose, e nessuna delle tre era quella che si cercava da tre beta.
   basta: 0,27 kW diventavano «0 W», cioe' un apparecchio spento mentre stava
   consumando duecentosettanta watt.
 
+- **«heating» e «cleaning» sono modi di dire che sta lavorando.** Erano due
+  parole che conosceva solo la finestra dei sotto-carichi, quando aveva una
+  regola sua. Adesso che la regola e' una sola dovevano arrivare anche nel
+  modello canonico: senza, un termostato in fase bassa o un aspirapolvere che
+  pulisce con la ventola al minimo direbbero SPENTO mentre lavorano — e su
+  tutt'e due le schermate.
+
+- **Il tasto dello storico segue il sensore.** L'ascoltatore del clic si mette
+  una volta e resta: se a un apparecchio cambia il sensore o il nome mentre la
+  finestra e' aperta, la carta mostrava il valore nuovo e apriva lo storico di
+  quello vecchio.
+
+- **La sveglia del ritardo di fine ciclo ridisegna anche la finestra.** Quando
+  `off_delay_minutes` scade nessuno manda niente — e' il tempo che passa — e una
+  finestra lasciata aperta sarebbe rimasta a dire IN FUNZIONE.
+
 ### Da sapere
 
-- Un cambio di titolo o sottotitolo fatto da un altro dispositivo si vedra' alla
-  prossima apertura invece che subito: il marchio lo applica un blocco che gira
-  una volta sola all'avvio.
+- Le tre chiavi che le legge solo l'avvio — il marchio, i nomi delle luci, le
+  unita' clima — quando cambiano da un altro dispositivo fanno ancora ricaricare
+  la pagina: scriverle in memoria e lasciare lo schermo a dire la cosa di prima
+  sarebbe peggio. Sono i pochi casi rimasti, e la differenza con prima e' che
+  adesso il ricaricamento e' l'eccezione invece della regola.
 - Un apparecchio il cui unico segnale e' un binary_sensor generico acceso, a
   zero watt, adesso dice STANDBY invece di IN FUNZIONE — la stessa parola che
   dice gia' la sua carta. Per i cicli che passano da zero watt c'e'

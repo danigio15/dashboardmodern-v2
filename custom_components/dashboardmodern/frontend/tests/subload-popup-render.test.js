@@ -111,7 +111,12 @@ list.id = "subloads-list";
 const title = new Element("h3");
 title.id = "subloads-title";
 title.textContent = "CARICHI";
-body.append(title, list);
+/* La finestra vera: chi ridisegna a sveglia suonata guarda se e' in scena, e
+ * ridisegnare una finestra chiusa e' lavoro buttato. */
+const modale = new Element("div");
+modale.id = "subloads-modal";
+modale.classList.add("show");
+body.append(title, list, modale);
 
 globalThis.document = {
   documentElement: Object.assign(new Element("html"), { lang: "it" }),
@@ -138,6 +143,7 @@ globalThis.DashboardModernModules = { store: { getSection: (name) => sections[na
 globalThis.__HASS__ = { states: {} };
 
 const popup = await import("../src/sections/subload-popup-section.js");
+const { resetRunHolds } = await import("../src/core/appliance-view-model.js");
 
 function configure({ loads = [], appliances = [], states = {}, flowNodes = null } = {}) {
   sections.loads = loads;
@@ -440,6 +446,113 @@ test("un apparecchio che se ne va se ne va da solo", () => {
   assert.equal(rimaste.length, 1, "ne resta una");
   assert.equal(rimaste[0].dataset.dmSubloadCard, "forno");
   assert.equal(rimaste[0].__segno, true, "e quella che resta e' lo stesso nodo di prima");
+});
+
+test("il tasto dello storico segue il sensore, anche se cambia a finestra aperta", () => {
+  /* L'ascoltatore del clic si mette una volta e resta. Se si tenesse stretto
+   * l'apparecchio com'era il giorno in cui la carta e' stata stampata, un
+   * sensore cambiato — un salvataggio nell'editor, una configurazione arrivata
+   * da un altro dispositivo — lascerebbe la carta a mostrare il valore nuovo e
+   * ad aprire lo storico di quello vecchio. */
+  configure({
+    loads: [
+      { id: "cucina", name: "Cucina", icon: "🍳", order: 0 },
+      {
+        id: "forno",
+        name: "Forno",
+        power_entity: "sensor.forno_power",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+    ],
+    states: { "sensor.forno_power": { state: "1800" } },
+  });
+  popup.renderSubloadPopup("cucina");
+  const carta = list.querySelector("[data-dm-subload-card]");
+  const chiesti = [];
+  const primaApriStorico = globalThis.apriStorico;
+  globalThis.apriStorico = (_evento, entita, nome) => chiesti.push([entita, nome]);
+  try {
+    carta.listeners.get("click")({});
+    assert.deepEqual(chiesti.at(-1), ["sensor.forno_power", "Forno"]);
+
+    /* Cambia il sensore, non l'identificativo: la carta e' la stessa e si
+     * aggiorna dov'e'. */
+    sections.loads[1] = {
+      id: "forno",
+      name: "Forno nuovo",
+      power_entity: "sensor.forno_power_2",
+      metadata: { beta27_subload_group: "cucina" },
+    };
+    globalThis.__HASS__ = { states: { "sensor.forno_power_2": { state: "1500" } } };
+    popup.renderSubloadPopup("cucina");
+    assert.equal(
+      list.querySelector("[data-dm-subload-card]"),
+      carta,
+      "la carta e' stata ristampata: la prova non guarda piu' il caso giusto",
+    );
+    carta.listeners.get("click")({});
+    assert.deepEqual(
+      chiesti.at(-1),
+      ["sensor.forno_power_2", "Forno nuovo"],
+      "il tasto apre lo storico del sensore di prima",
+    );
+  } finally {
+    globalThis.apriStorico = primaApriStorico;
+  }
+});
+
+test("la sveglia del ritardo di fine ciclo ridisegna la finestra aperta", () => {
+  /* Il ritardo di fine ciclo scade da solo, e quando scade nessuno manda
+   * niente: la lavastoviglie che ha finito di asciugare non cambia stato in
+   * Home Assistant, e' il tempo che passa. Senza iscriversi alla sveglia, una
+   * finestra lasciata aperta resta ferma a quello che diceva. */
+  resetRunHolds();
+  globalThis.__DASHBOARDMODERN_SUBLOAD_POPUP__.group = "cucina";
+  const carico = [
+    { id: "cucina", name: "Cucina", icon: "🍳", order: 0 },
+    {
+      id: "lavastoviglie",
+      name: "Lavastoviglie",
+      power_entity: "sensor.lav_power",
+      off_delay_minutes: 30,
+      metadata: { beta27_subload_group: "cucina" },
+    },
+  ];
+  const conWatt = (valore) => ({
+    "sensor.lav_power": { state: String(valore), attributes: { unit_of_measurement: "W" } },
+  });
+  configure({ loads: carico, states: conWatt(900) });
+  popup.renderSubloadPopup("cucina");
+
+  const primaSetTimeout = globalThis.setTimeout;
+  const sveglie = [];
+  globalThis.setTimeout = (callback) => {
+    sveglie.push(callback);
+    return sveglie.length;
+  };
+  try {
+    // Smette di consumare: il ritardo parte e mette la sua sveglia.
+    globalThis.__HASS__ = { states: conWatt(0) };
+    popup.renderSubloadPopup("cucina");
+    assert.equal(list.querySelector(".dm-subload-power").textContent, "0 W");
+    assert.ok(sveglie.length > 0, "il ritardo in corso non ha messo nessuna sveglia");
+
+    /* Fra la sveglia messa e la sveglia che suona i watt cambiano, e nessuno
+     * ridisegna: e' quello che succede a una finestra lasciata aperta. */
+    globalThis.__HASS__ = { states: conWatt(900) };
+    assert.equal(list.querySelector(".dm-subload-power").textContent, "0 W");
+
+    sveglie[0]();
+    assert.equal(
+      list.querySelector(".dm-subload-power").textContent,
+      "900 W",
+      "alla sveglia la finestra non si e' ridisegnata",
+    );
+  } finally {
+    globalThis.setTimeout = primaSetTimeout;
+    resetRunHolds();
+    globalThis.__DASHBOARDMODERN_SUBLOAD_POPUP__.group = "";
+  }
 });
 
 test("rinominare il cerchio a popup aperto cambia la testata", () => {

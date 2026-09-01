@@ -105,10 +105,18 @@ function applyRunHold({ key, mode, delayMinutes, explicitOff, now, holds }) {
   return "running";
 }
 
+/* `heating` e `cleaning` sono le parole di due mondi che qui mancavano: il
+ * termostato che sta scaldando (`hvac_action`) e l'aspirapolvere che sta
+ * pulendo. Le conosceva la finestra dei sotto-carichi, che aveva una regola
+ * sua; adesso che la regola e' una sola, se non stessero qui un termosifone in
+ * fase bassa o un robot che torna alla base direbbero SPENTO mentre stanno
+ * lavorando — su tutt'e due le schermate. */
 const semanticStateValues = new Set([
   "playing",
   "heat",
+  "heating",
   "cool",
+  "cleaning",
   "open",
   "opening",
   "running",
@@ -121,6 +129,19 @@ const semanticStateValues = new Set([
   "ready",
   "pronta",
   "pronto",
+]);
+
+/* Le parole con cui uno stato dice «sto lavorando». */
+const ACTIVE_STATE_VALUES = Object.freeze([
+  "playing",
+  "heat",
+  "heating",
+  "cool",
+  "cleaning",
+  "open",
+  "opening",
+  "running",
+  "active",
 ]);
 
 function inferSemanticStateEntity(device = {}, states = {}) {
@@ -216,8 +237,7 @@ export function createApplianceViewModel(
     /(?:^|[._-])(running|active|activity|operating|working)(?:[._-]|$)/i.test(stateEntity);
 
   const explicitRunning =
-    ["playing", "heat", "cool", "open", "opening", "running", "active"].includes(configuredState) ||
-    (activityBinary && configuredState === "on");
+    ACTIVE_STATE_VALUES.includes(configuredState) || (activityBinary && configuredState === "on");
 
   const explicitlyOff =
     Boolean(stateEntity) &&

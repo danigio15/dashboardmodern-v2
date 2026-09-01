@@ -12,18 +12,24 @@
  * il computer, un'altra plancia — la prima apertura sul telefono costava due
  * avvii invece di uno, e chi stava guardando qualcosa se lo vedeva sparire.
  *
- * Il ricaricamento non serve: applicare dal vivo e' la stessa cosa che fa
- * l'editor a ogni salvataggio. Lo store riceve il fotogramma e avvisa le
- * sezioni, `cdApplyNavVis()` rilegge quali sezioni vanno nella barra, `render()`
- * ridisegna il guscio. La prova su documento vero
+ * Per quasi tutto il ricaricamento non serve: applicare dal vivo e' la stessa
+ * cosa che fa l'editor a ogni salvataggio. Lo store riceve il fotogramma e
+ * avvisa le sezioni, `cdApplyNavVis()` rilegge quali sezioni vanno nella barra,
+ * `render()` ridisegna il guscio. La prova su documento vero
  * (`e2e/la-configurazione-nuova-arriva-senza-ricaricare.spec.js`) mostra che lo
  * schermo che ne esce e' lo stesso di un avvio pulito con quella
  * configurazione.
  *
- * Qui si guarda la sorgente, perche' e' l'unico posto dove si vede che il
- * ricaricamento NON c'e' piu': dentro `ws.onmessage` non ci si arriva da fuori.
- * I ricaricamenti rimasti sono sei, tutti chiesti da una persona che ha
- * appena premuto qualcosa.
+ * Restano fuori tre chiavi che le legge solo l'avvio — il marchio, i nomi delle
+ * luci, le unita' clima: scriverle in memoria e lasciare lo schermo a dire la
+ * cosa di prima sarebbe peggio del ricaricamento, quindi li' si ricarica. Sono
+ * i pochi casi rimasti, e la differenza con prima e' che adesso e' l'eccezione
+ * e non la regola.
+ *
+ * Qui si guarda la sorgente, perche' e' l'unico posto dove si vede a quale
+ * condizione il ricaricamento resta: dentro `ws.onmessage` non ci si arriva da
+ * fuori. Gli altri sei ricaricamenti li ha chiesti una persona che ha appena
+ * premuto qualcosa.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -32,10 +38,14 @@ import { readFileSync } from "node:fs";
 const RUNTIME = ["dashboard-runtime-it.js", "dashboard-runtime-en.js"];
 const sorgente = (nome) => readFileSync(new URL(`../legacy/${nome}`, import.meta.url), "utf8");
 
-/* I ricaricamenti leciti stanno tutti dentro sei funzioni, e sono sei tasti:
- * auto-rilevamento, salva generale, importa, azzera tutto, prova il token del
- * wizard, chiudi il wizard. Nessuno parte da solo. */
-const CHIESTI_DA_UNA_PERSONA = Object.freeze([
+/* Dove sta ogni ricaricamento, in ordine di comparsa nel file.
+ *
+ * Sei sono tasti: auto-rilevamento, salva generale, importa, azzera tutto,
+ * prova il token del wizard, chiudi il wizard. Il settimo sta dentro `connect`
+ * — e' il tiraggio da HA — e vale solo per le tre chiavi che le legge solo
+ * l'avvio: quello lo guarda la prova qui sopra, riga per riga. */
+const DOVE_SI_RICARICA = Object.freeze([
+  "connect",
   "edAutoRileva",
   "edSaveGeneral",
   "edImport",
@@ -53,22 +63,34 @@ function funzioneCheContiene(testo, posto) {
 }
 
 for (const nome of RUNTIME) {
-  test(`${nome}: il tiraggio da HA applica e basta, non ricarica`, () => {
+  test(`${nome}: il tiraggio da HA applica dov'e', e ricarica solo per le tre chiavi dell'avvio`, () => {
     const testo = sorgente(nome);
     const inizio = testo.indexOf("m.id === window._cdSyncReqId");
     assert.ok(inizio > 0, "il ramo del tiraggio non si trova piu': la prova va riscritta");
     const ramo = testo.slice(inizio, testo.indexOf("\n      return;\n", inizio));
 
-    assert.doesNotMatch(
-      ramo,
-      /location\.reload\(\)/,
-      "il tiraggio ricarica ancora la pagina: e' il salto bianco del filmato",
-    );
     assert.match(ramo, /cdApplyNavVis\(\)/, "senza rileggere la barra restano linguette di prima");
     assert.match(ramo, /render\(\)/, "senza ridisegnare il guscio resta la configurazione vecchia");
+
+    /* Il ricaricamento nel ramo puo' esserci, ma solo dietro la condizione: se
+     * ricomparisse incondizionato tornerebbe il salto bianco del filmato. */
+    const righeCheRicaricano = ramo
+      .split("\n")
+      .filter((riga) => riga.includes("location.reload()"));
+    assert.equal(righeCheRicaricano.length, 1, "il tiraggio ricarica da piu' di un punto");
+    assert.match(
+      righeCheRicaricano[0],
+      /CD_SOLO_ALL_AVVIO\.has\(k\)/,
+      "il tiraggio ricarica senza guardare quali chiavi sono cambiate: e' il salto bianco del filmato",
+    );
+    assert.match(
+      testo,
+      /const CD_SOLO_ALL_AVVIO = new Set\(\['cd_branding', 'cd_luci', 'cd_clima_units'\]\)/,
+      "l'elenco delle chiavi che legge solo l'avvio non e' piu' quello",
+    );
   });
 
-  test(`${nome}: gli unici ricaricamenti rimasti li ha chiesti una persona`, () => {
+  test(`${nome}: i ricaricamenti stanno dove devono stare`, () => {
     const testo = sorgente(nome);
     const dove = [];
     for (
@@ -79,7 +101,7 @@ for (const nome of RUNTIME) {
       dove.push(funzioneCheContiene(testo, i));
     assert.deepEqual(
       dove,
-      CHIESTI_DA_UNA_PERSONA,
+      DOVE_SI_RICARICA,
       "un ricaricamento e' comparso, sparito o si e' spostato: se e' automatico e' il salto bianco che torna",
     );
   });
