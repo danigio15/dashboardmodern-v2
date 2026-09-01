@@ -18,8 +18,8 @@
  * disegnava, il contatto si legge e basta.
  */
 import { coverEntries, coverKindLabel } from "../core/cover-kind.js";
-import { contactEntity, shutterWindowModel } from "../core/shutter-window.js";
-import { CHIAVE_VERSI, apertaSecondoVerso, insiemeInvertiti } from "../core/verso-aperture.js";
+import { contactEntity, inferriataEntity, serramentoModel } from "../core/shutter-window.js";
+import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
 import {
   allStates,
   clean,
@@ -63,8 +63,12 @@ function coverForCard(card) {
       (item) =>
         coverEntries(item).some((entry) => clean(entry.entity) === entity) ||
         /* Una finestra senza motori si identifica col suo contatto: e' l'unica
-         * entita' che ha, e quindi e' quella scritta sulla card. */
-        clean(contactEntity(item)) === entity,
+         * entita' che ha, e quindi e' quella scritta sulla card. Da quando i
+         * contatti possono essere due (#254), quello scritto sulla card puo'
+         * essere anche l'inferriata: chi ha le sole grate non aveva modo di
+         * ritrovare la propria riga. */
+        clean(contactEntity(item)) === entity ||
+        clean(inferriataEntity(item)) === entity,
     ) || null
   );
 }
@@ -94,44 +98,94 @@ function build(windowNode) {
     '<div class="dm-tw-anta dm-tw-anta-sx"></div>' +
     '<div class="dm-tw-anta dm-tw-anta-dx"><span class="dm-tw-maniglia"></span></div>' +
     '<div class="dm-tw-telaio"></div>';
-  windowNode.append(spalla, infisso);
+  /* L'inferriata sta FUORI, quindi davanti a tutto: due mezze grate che si
+   * scostano di lato, non ante che rientrano. Il nodo nasce sempre ma resta
+   * spento finche' qualcuno non dichiara il suo sensore — costruirlo solo
+   * quando serve vorrebbe dire ricostruire la card a ogni cambio di
+   * configurazione, e questa passata gira a ogni evento di stato. */
+  const grata = doc.createElement("div");
+  grata.className = "dm-tw-grata";
+  grata.innerHTML =
+    '<span class="dm-tw-grata-meta dm-tw-grata-sx"></span>' +
+    '<span class="dm-tw-grata-meta dm-tw-grata-dx"></span>';
+  windowNode.append(spalla, infisso, grata);
   return true;
 }
 
-/** Cosa dice il contatto di questa card, adesso. */
+/** Cosa dicono i contatti di questa card, adesso. */
 export function paintCard(card, states = allStates()) {
   const windowNode = card.querySelector(".tapp-win");
   if (!windowNode) return false;
   build(windowNode);
   const cover = coverForCard(card);
-  const model = shutterWindowModel(cover || {}, states, root.resolveEntity || ((value) => value));
-  /* Il contatto girato (#244) sta a ON quando l'anta e' chiusa: il disegno
-   * e la pastiglia seguono il verso vero, non quello del filo. */
-  model.open = apertaSecondoVerso(
-    model.open,
-    insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(clean(model.entity)),
+  /* Il contatto girato (#244) sta a ON quando l'anta e' chiusa: il disegno e
+   * la pastiglia seguono il verso vero, non quello del filo. Il verso lo
+   * applica il modello, che ha in mano tutti e due i contatti. */
+  const model = serramentoModel(
+    cover || {},
+    states,
+    root.resolveEntity || ((value) => value),
+    insiemeInvertiti(readJson(CHIAVE_VERSI, [])),
   );
   // Aperto solo quando il contatto lo dice: un sensore che non risponde non e'
   // una finestra chiusa, ma il disegno di riposo e' quello, e non si inventa
   // un'apertura che nessuno ha misurato.
-  const aperto = model.open === true ? "aperto" : "chiuso";
+  const aperto = model.infisso.open === true ? "aperto" : "chiuso";
   if (windowNode.dataset.dmInfissoStato !== aperto) windowNode.dataset.dmInfissoStato = aperto;
-  ensurePill(card, model.open === true);
+  /* La grata si accende solo dove qualcuno l'ha dichiarata: su tutte le altre
+   * card il vano resta esattamente quello di prima. */
+  const grata = model.inferriata.configured
+    ? model.inferriata.open === true
+      ? "aperta"
+      : "chiusa"
+    : "";
+  if ((windowNode.dataset.dmGrata || "") !== grata) {
+    if (grata) windowNode.dataset.dmGrata = grata;
+    else delete windowNode.dataset.dmGrata;
+  }
+  ensurePill(card, model);
   return true;
+}
+
+/* Come si legge un serramento, in due parole.
+ *
+ * Con la sola finestra resta la frase di sempre. Con la grata le parole
+ * diventano quattro, perche' quattro sono gli stati che si volevano
+ * distinguere: e' la differenza fra «sto arieggiando» e «e' rimasto aperto». */
+export function paroleDelSerramento(model) {
+  if (!model?.inferriata?.configured) {
+    return model?.infisso?.open === true ? t("Finestra aperta", "Window open") : "";
+  }
+  switch (model.stato) {
+    case "aperto":
+      return t("Inferriata e finestra aperte", "Grate and window open");
+    case "grata":
+      return t("Inferriata aperta", "Grate open");
+    case "infisso":
+      return t("Finestra aperta", "Window open");
+    default:
+      return "";
+  }
 }
 
 /* La pastiglia "Finestra aperta" accanto a quella della tapparella.
  *
  * Sta accanto, non al posto: la tapparella continua a dire a che punto e', e
  * l'infisso aggiunge la sua riga solo quando c'e' qualcosa da aggiungere. */
-function ensurePill(card, aperto) {
+function ensurePill(card, model) {
   const head = card.querySelector(".tapp-head");
   if (!head) return;
+  const label = paroleDelSerramento(model);
+  const aperto = Boolean(label);
   /* Su una finestra che si apre a mano la pastiglia della card gia' dice
    * «Aperta», e quella e' proprio la finestra: non c'e' una tapparella accanto
    * da distinguere. Aggiungerne una seconda con «Finestra aperta» sarebbe
-   * ripetere la stessa cosa due volte sulla stessa riga. */
-  if (card.dataset.dmSoloInfisso === "true") return;
+   * ripetere la stessa cosa due volte sulla stessa riga.
+   *
+   * Con l'inferriata pero' c'e' eccome da distinguere (#254): «Aperta» da solo
+   * non dice se e' aperta la grata, la finestra o tutte e due, che e' proprio
+   * la domanda per cui si sono messi due sensori. */
+  if (card.dataset.dmSoloInfisso === "true" && !model?.inferriata?.configured) return;
   let pill = head.querySelector(".dm-tw-pill");
   /* Due pastiglie sulla stessa riga mangiano il nome.
    *
@@ -152,7 +206,6 @@ function ensurePill(card, aperto) {
     pill.className = "tapp-state dm-tw-pill";
     head.append(pill);
   }
-  const label = t("Finestra aperta", "Window open");
   if (pill.textContent !== label) pill.textContent = label;
 }
 
@@ -211,6 +264,15 @@ function caselle() {
       "ed-tp-contact",
       t("Sensore apertura infisso", "Window contact sensor"),
       "binary_sensor.finestra_camera",
+    ],
+    /* Il secondo contatto, quello di fuori (#254): la grata davanti al vetro.
+     * Sta dopo l'infisso perche' e' l'ordine in cui si guardano dalla stanza —
+     * prima il serramento, poi cio' che ci sta davanti — e perche' chi non ha
+     * inferriate la trova in fondo e la salta. */
+    [
+      "ed-tp-inferriata",
+      t("Sensore apertura inferriata", "Grate contact sensor"),
+      "binary_sensor.inferriata_camera",
     ],
   ];
 }
@@ -398,6 +460,43 @@ function installStyles() {
                  rgba(15,23,42,0) 78%,rgba(15,23,42,.22) 91%,rgba(15,23,42,.62) 100%),
                  linear-gradient(180deg,rgba(15,23,42,.30),rgba(15,23,42,0) 26%)!important}
     html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-infisso-stato="aperto"] .dm-tw-spalla{opacity:1!important}
+
+    /* ── l'inferriata (#254) ────────────────────────────────────────────
+     *
+     * Sta FUORI, quindi davanti a tutto: sopra l'infisso, sopra il vano, sopra
+     * la tapparella. Due mezze grate che si scostano di lato — non ante che
+     * rientrano, perche' una grata scorre e non ruota.
+     *
+     * Sta DENTRO il telaio, non sopra: una grata copre il vetro, non la
+     * cornice, e disegnandola da bordo a bordo si perdeva il serramento che
+     * doveva proteggere. Le sbarre sono sottili e rade apposta: attraverso una
+     * grata si vede fuori, ed e' l'unica cosa che la distingue da un muro.
+     *
+     * Il nodo c'e' sempre ma non si vede: senza il sensore dichiarato la card
+     * resta quella di prima, pixel per pixel. */
+    html body #page-tapparelle#page-tapparelle .dm-tw-grata{
+      position:absolute!important;top:8px!important;bottom:8px!important;left:8px!important;
+      right:8px!important;z-index:8!important;pointer-events:none!important;display:none!important}
+    html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata] .dm-tw-grata{display:block!important}
+    html body #page-tapparelle#page-tapparelle .dm-tw-grata-meta{
+      position:absolute!important;top:0!important;bottom:0!important;width:50%!important;
+      transition:transform 1s cubic-bezier(.3,.7,.2,1)!important;
+      /* Sbarre verticali rade piu' due traverse: si vede attraverso. */
+      background:
+        repeating-linear-gradient(90deg,
+          rgba(51,65,85,.82) 0 3px,rgba(51,65,85,0) 3px 21px),
+        linear-gradient(180deg,rgba(51,65,85,0) 0 21%,rgba(51,65,85,.82) 21% 24%,
+          rgba(51,65,85,0) 24% 74%,rgba(51,65,85,.82) 74% 77%,rgba(51,65,85,0) 77%)!important;
+      filter:drop-shadow(1px 1px 0 rgba(255,255,255,.35))!important}
+    html body #page-tapparelle#page-tapparelle .dm-tw-grata-sx{left:0!important;transform-origin:left center!important}
+    html body #page-tapparelle#page-tapparelle .dm-tw-grata-dx{right:0!important;transform-origin:right center!important}
+    /* Aperta: le due meta' si ammucchiano contro i loro stipiti e il vetro
+       torna sgombro nel mezzo. Restano visibili — una grata aperta non
+       sparisce, si impacchetta di lato — e le sbarre schiacciate diventano
+       una fascia fitta, che e' esattamente come si vede una grata a soffietto
+       tirata da parte. */
+    html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata="aperta"] .dm-tw-grata-meta{
+      transform:scaleX(.16)!important}
 
     /* Con due pastiglie il nome tiene la sua riga e lo stato va a capo. */
     html body #page-tapparelle#page-tapparelle .tapp-head[data-dm-tw-pills="due"]{

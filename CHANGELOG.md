@@ -7,6 +7,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.4.6
 
+### Nuovo
+
+- **La finestra puo' avere anche l'inferriata.** «La card delle finestre e'
+  fantastica, ma non riesco ad adattarla alla mia situazione perche' non ho le
+  tapparelle. Sarebbe possibile una card che consideri due sensori di contatto,
+  uno per le inferriate esterne e uno per gli infissi interni?» Accanto al
+  sensore dell'infisso c'e' adesso quello dell'inferriata, e la card li disegna
+  tutti e due: la grata sta davanti al vetro e si impacchetta di lato, l'infisso
+  sta dietro e rientra verso i cardini. I quattro stati si distinguono a colpo
+  d'occhio — tutto chiuso, grata aperta, finestra aperta, tutto aperto — e la
+  pastiglia dice quale, perche' «Aperta» da solo non rispondeva alla domanda per
+  cui si sono messi due sensori. Chi non ha inferriate non vede niente di nuovo:
+  la casella vuota lascia la card esattamente com'era. (#254)
+- **E una riga con le sole grate si salva.** Valeva gia' per il solo contatto
+  dell'infisso — «ho le persiane manuali, pero' ho i sensori di apertura» — e
+  vale per lo stesso motivo: la riga non comanda niente, ma ha qualcosa da dire.
+- **In Home i due contatti sono due righe.** Una grata lasciata aperta e una
+  finestra lasciata aperta non sono la stessa notizia, e uscendo di casa e'
+  proprio quella la differenza che si vuole leggere.
+- **Il verso girato vale per entrambi.** Chi ha un contatto che sta a ON da
+  chiuso (#244) lo elenca come sempre: il verso e' un fatto del filo, non del
+  tipo di apertura.
+
 ### Corretto
 
 - **La scala del clima la dichiara il termostato, non la plancia.** «Ho una
