@@ -159,6 +159,34 @@ plancia lo deduce.
 `author_association`: nessuna chiamata in piu' e nessuna lista di nomi da
 tenere aggiornata.
 
+## Foto e video
+
+**GitHub non ha un'API per allegare file a una issue**, e non e' una svista: e'
+una scelta loro, dichiarata, per contenere gli abusi. Gli aggiri che circolano
+replicano il flusso del browser su `uploads.github.com/user-attachments`, un
+endpoint non documentato che GitHub non espone di proposito. Spedirlo a
+migliaia di installazioni HACS vorrebbe dire che il giorno in cui viene chiuso
+si rompono tutte insieme, in silenzio.
+
+Quindi la plancia non finge di spedirli: manda dove il flusso ufficiale esiste.
+Appena la segnalazione e' aperta compare un riquadro col suo numero e un tasto
+che porta alla sua pagina, dove foto e video si trascinano nel riquadro della
+risposta. Il momento e' quello giusto — chi ha appena scritto ha ancora il file
+sotto mano — e nel modulo c'e' gia' una riga che lo anticipa, perche' non sia
+una sorpresa.
+
+Le tre strade che porterebbero l'allegato su GitHub da sole, e perche' non sono
+state prese:
+
+| Strada | Costa |
+| --- | --- |
+| L'endpoint non documentato | Si rompe tutto insieme quando GitHub lo chiude |
+| Una repository dell'utente che ospita i file | Obbliga allo scope `public_repo` — scrittura su tutte le sue repository pubbliche — e crea una repository a casa sua senza che l'abbia chiesto |
+| Un servizio proprio per i soli allegati | E' il relay che si e' tolto, con in piu' spazio da pagare e una superficie d'abuso peggiore: il testo si legge, un file no |
+
+Se un giorno una di queste diventasse accettabile, il punto in cui innestarla e'
+uno solo: `github_client.async_create_issue`.
+
 ## Il prezzo da dire, e la plancia lo dice
 
 Una issue e' **una pagina pubblica**. Chi apre una segnalazione la pubblica a

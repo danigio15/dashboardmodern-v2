@@ -34,6 +34,10 @@ const state = (root[KEY] ||= {
   auth: null,
   authTimer: 0,
   queue: null,
+  /* La segnalazione appena aperta, finche' non la si congeda. Serve al
+   * riquadro che spiega come allegare foto e video: e' il momento in cui chi
+   * ha appena scritto ha ancora il file sotto mano. */
+  appena: null,
   filtro: "aperte",
   tab: "nuova",
   tipo: "bug",
@@ -453,6 +457,17 @@ const CSS = `
   border-radius:14px; font-size:12px; line-height:1.5;
   background:rgba(249,115,22,0.12); color:var(--text,#0f172a); }
 .dm-tkt-pubblica-ico { font-size:16px; line-height:1.2; }
+.dm-tkt-nota { display:flex; gap:10px; align-items:flex-start; padding:10px 13px;
+  border-radius:13px; font-size:12px; line-height:1.5;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b); }
+.dm-tkt-nota-ico { font-size:15px; line-height:1.25; }
+.dm-tkt-aperta { display:flex; flex-direction:column; gap:11px; padding:15px 17px;
+  border-radius:18px; background:rgba(22,163,74,0.12);
+  border:1px solid rgba(22,163,74,0.25); }
+.dm-tkt-aperta-testa { display:flex; gap:9px; align-items:center; font-size:14px;
+  color:var(--text,#0f172a); }
+.dm-tkt-aperta-ico { font-size:18px; line-height:1; }
+.dm-tkt-aperta-testo { font-size:13px; line-height:1.55; color:var(--text,#0f172a); }
 
 /* I tasti. */
 .dm-tkt-azioni { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
@@ -610,6 +625,7 @@ export function chiudi() {
    * continua a chiedere a GitHub per un quarto d'ora. */
   fermaAttesa();
   state.auth = null;
+  state.appena = null;
   doc?.getElementById?.("dm-tkt-modal")?.classList.remove("show");
 }
 
@@ -704,6 +720,15 @@ function moduloMarkup() {
       )}</summary>
       <dl data-dm-tkt="diag"></dl>
     </details>
+    <div class="dm-tkt-nota">
+      <span class="dm-tkt-nota-ico" aria-hidden="true">📎</span>
+      <span>${esc(
+        t(
+          "Foto e video si aggiungono dopo, sulla pagina della segnalazione: te lo ricorda lei appena l'hai spedita.",
+          "Photos and videos are added afterwards, on the report page: it reminds you as soon as you have sent it.",
+        ),
+      )}</span>
+    </div>
     <div class="dm-tkt-pubblica">
       <span class="dm-tkt-pubblica-ico" aria-hidden="true">🌍</span>
       <span>${esc(
@@ -767,6 +792,47 @@ export function voceMarkup(ticket) {
     </div>`;
 }
 
+/* ─── Foto e video ──────────────────────────────────────────────────────────
+ *
+ * GitHub non ha un'API per allegare file a una issue, e non e' una svista: e'
+ * una scelta loro, per contenere gli abusi. Gli aggiri che circolano
+ * replicano il flusso del browser su endpoint non documentati — il giorno che
+ * GitHub li chiude si romperebbero tutte le installazioni insieme, e questa
+ * plancia sta su troppe case per correre quel rischio.
+ *
+ * Quindi la strada e' quella che GitHub sostiene davvero: la segnalazione
+ * parte da qui, e la foto si aggiunge sulla sua pagina. Il momento buono per
+ * dirlo e' adesso — appena spedita, quando chi ha scritto ha ancora il file
+ * sotto mano — non in una nota che nessuno legge prima.
+ */
+
+export function appenaApertaMarkup(appena = state.appena) {
+  if (!appena) return "";
+  const numero = appena.numero ? `#${esc(appena.numero)}` : "";
+  return `
+    <div class="dm-tkt-aperta">
+      <div class="dm-tkt-aperta-testa">
+        <span class="dm-tkt-aperta-ico" aria-hidden="true">✅</span>
+        <span><b>${esc(t("Segnalazione aperta", "Report opened"))}</b> ${numero}</span>
+      </div>
+      <div class="dm-tkt-aperta-testo">${esc(
+        t(
+          "Una foto o un video valgono dieci righe di descrizione. Aprila su GitHub e trascinali nel riquadro della risposta: da qui non si possono spedire, GitHub non lo permette a nessun programma.",
+          "A photo or a video is worth ten lines of description. Open it on GitHub and drag them into the reply box: they cannot be sent from here, GitHub allows no program to do that.",
+        ),
+      )}</div>
+      <div class="dm-tkt-azioni">
+        <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="congeda">${esc(
+          t("Va bene cosi'", "It is fine as it is"),
+        )}</button>
+        <a class="dm-tkt-btn" href="${esc(appena.url)}"
+           target="_blank" rel="noreferrer noopener">${esc(
+             t("Aggiungi foto o video", "Add a photo or a video"),
+           )}</a>
+      </div>
+    </div>`;
+}
+
 function elencoMarkup() {
   if (!state.tickets.length) {
     return `
@@ -781,6 +847,7 @@ function elencoMarkup() {
       </div>`;
   }
   return `
+    ${appenaApertaMarkup()}
     <div class="dm-tkt-elenco">${state.tickets.map(voceMarkup).join("")}</div>
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="aggiorna" ${
@@ -1037,6 +1104,10 @@ function agganciaEventi(corpo) {
       rispondi(bottone.dataset.dmRispondi, bottone.dataset.dmChiudi),
     );
   });
+  corpo.querySelector('[data-dm-tkt="congeda"]')?.addEventListener("click", () => {
+    state.appena = null;
+    disegna();
+  });
   corpo.querySelector('[data-dm-tkt="collega"]')?.addEventListener("click", collega);
   corpo.querySelector('[data-dm-tkt="annulla"]')?.addEventListener("click", annullaCollegamento);
   corpo.querySelector('[data-dm-tkt="scollega"]')?.addEventListener("click", scollega);
@@ -1078,6 +1149,11 @@ async function invia() {
       diagnostics: await diagnostica(),
     });
     state.bozza = { title: "", body: "", contact: "" };
+    const aperta = risposta?.ticket || {};
+    state.appena =
+      risposta?.delivered && aperta.issue_url
+        ? { numero: clean(aperta.remote_id), url: clean(aperta.issue_url) }
+        : null;
     state.avviso = risposta?.delivered
       ? t("Inviata. Grazie.", "Sent. Thank you.")
       : t(

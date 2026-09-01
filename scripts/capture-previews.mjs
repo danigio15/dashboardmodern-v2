@@ -129,6 +129,16 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-allegati",
+    title: "Segnalazioni · foto e video, appena spedita",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("allegati");
+    },
+  },
+  {
     id: "segnalazioni-collega",
     title: "Segnalazioni · collegare GitHub",
     both: true,
@@ -1280,7 +1290,15 @@ async function bootPage(context, cameraStill, vehicleStill) {
       };
       const stato = window.__DASHBOARDMODERN_SEGNALAZIONI__;
       if (stato) {
-        stato.tab = dove === "collega" ? "nuova" : dove;
+        stato.appena =
+          dove === "allegati"
+            ? {
+                numero: "197",
+                url: "https://github.com/danigio15/dashboardmodern-v2/issues/197",
+              }
+            : null;
+        stato.tab =
+          dove === "collega" ? "nuova" : dove === "allegati" ? "mie" : dove;
         stato.queue = dove === "console" ? coda : null;
         stato.auth = null;
         stato.avviso = "";

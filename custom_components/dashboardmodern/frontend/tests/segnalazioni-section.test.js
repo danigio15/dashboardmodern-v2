@@ -15,6 +15,7 @@ import { ALLOWED_MESSAGE_TYPES } from "../src/legacy/bridge-socket.js";
 import {
   DIAGNOSTIC_KEYS,
   FILTRI_ID,
+  appenaApertaMarkup,
   WS_TYPES,
   codaVoceMarkup,
   contaColonne,
@@ -274,4 +275,44 @@ test("ogni voce della coda porta il numero della issue nei suoi tasti", () => {
   const markup = codaVoceMarkup(inCoda({ number: 77 }));
   assert.ok(markup.includes('data-dm-rispondi="77"'));
   assert.ok(markup.includes('id="dm-tkt-risposta-77"'));
+});
+
+
+/* ─── Foto e video ─────────────────────────────────────────────────────────
+ *
+ * GitHub non ha un'API per allegarli, quindi la plancia non finge di
+ * spedirli: manda alla pagina della segnalazione, dove il flusso ufficiale
+ * esiste. Quello che si prova qui e' che il rimando ci sia e punti al posto
+ * giusto.
+ */
+
+test("senza una segnalazione appena aperta il riquadro non c'e'", () => {
+  assert.equal(appenaApertaMarkup(null), "");
+});
+
+test("il riquadro manda alla pagina della segnalazione appena aperta", () => {
+  const markup = appenaApertaMarkup({
+    numero: "197",
+    url: "https://github.com/danigio15/dashboardmodern-v2/issues/197",
+  });
+  assert.ok(markup.includes("/issues/197"));
+  assert.ok(markup.includes("#197"));
+  /* Si apre altrove, e non deve poter toccare la finestra che l'ha aperto. */
+  assert.ok(markup.includes('rel="noreferrer noopener"'));
+  assert.ok(markup.includes('target="_blank"'));
+});
+
+test("il riquadro si puo' congedare", () => {
+  /* Chi non ha una foto da allegare non deve trovarselo davanti per sempre. */
+  const markup = appenaApertaMarkup({ numero: "1", url: "https://github.com/x/y/issues/1" });
+  assert.ok(markup.includes('data-dm-tkt="congeda"'));
+});
+
+test("un indirizzo che arriva dal backend non diventa markup", () => {
+  const markup = appenaApertaMarkup({
+    numero: '"><script>rubo()</script>',
+    url: '"><script>rubo()</script>',
+  });
+  assert.ok(!markup.includes("<script>"));
+  assert.ok(markup.includes("&lt;script"));
 });
