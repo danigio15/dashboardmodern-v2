@@ -138,6 +138,21 @@ function setStyleProperty(node, name, value, priority = "") {
   node.style.setProperty(name, value, priority);
 }
 
+/* Lo stesso, per i dati.
+ *
+ * Un `data-` riscritto col valore che ha gia' e' comunque una scrittura
+ * sull'attributo: sveglia ogni osservatore della pagina e invalida lo stile
+ * del nodo. La scena lo faceva per ogni bolla e per ogni linea, a ogni
+ * passata, e le passate sono piu' d'una al secondo: **millesettecento
+ * scritture in quattro secondi con gli stati fermi**. Dietro un popup aperto,
+ * dove il velo ha una sfocatura che rilegge lo sfondo, ognuna di quelle e' una
+ * sfocatura da rifare. */
+function scriviDatoSeCambia(node, chiave, valore) {
+  if (!node?.dataset) return;
+  if (node.dataset[chiave] === valore) return;
+  node.dataset[chiave] = valore;
+}
+
 /* Is this node on screen?
  *
  * The answer costs a style resolution, and the stage asks it for every value
@@ -328,13 +343,13 @@ function exposeConnector(node, active) {
   if (!node) return;
   if (active) {
     if (node.dataset.dmFlowForcedVisible !== "true") rememberConnectorVisibility(node);
-    node.hidden = false;
+    if (node.hidden) node.hidden = false;
     setStyleProperty(node, "display", "inline", "important");
     setStyleProperty(node, "visibility", "visible", "important");
-    node.dataset.dmFlowForcedVisible = "true";
+    scriviDatoSeCambia(node, "dmFlowForcedVisible", "true");
   } else if (node.dataset.dmFlowForcedVisible === "true") {
     restoreConnectorVisibility(node);
-    node.dataset.dmFlowForcedVisible = "false";
+    scriviDatoSeCambia(node, "dmFlowForcedVisible", "false");
   }
 }
 
@@ -447,8 +462,8 @@ function ensureBubble(stage, node, period, scale) {
     }
     stage.append(element);
   }
-  element.style.left = `${node.desktop.left}%`;
-  element.style.top = `${node.desktop.top}%`;
+  setStyleProperty(element, "left", `${node.desktop.left}%`);
+  setStyleProperty(element, "top", `${node.desktop.top}%`);
   setStyleProperty(element, "--n-color", node.color);
   setStyleProperty(element, "--dm-flow-color", node.color);
   setStyleProperty(element, "--dm-flow-scale", String(scale));
@@ -459,9 +474,9 @@ function ensureBubble(stage, node, period, scale) {
   writeIcon(element.querySelector(".node-icon"), node.icon);
   const value = element.querySelector(".dm-flow-value");
   scriviTestoSeCambia(value, node.text);
-  element.dataset.dmCanonicalLoad = node.id;
-  element.dataset.dmFlowPeriod = period;
-  element.dataset.dmFlowActive = node.active ? "true" : "false";
+  scriviDatoSeCambia(element, "dmCanonicalLoad", node.id);
+  scriviDatoSeCambia(element, "dmFlowPeriod", period);
+  scriviDatoSeCambia(element, "dmFlowActive", node.active ? "true" : "false");
   bindNodeClick(element, node, period);
   return element;
 }
@@ -480,7 +495,7 @@ function ensureArc(svg, node, variant) {
   setStyleProperty(path, "--line-color", node.color);
   setStyleProperty(path, "--dm-flow-width", `${node.intensity.width}px`);
   setStyleProperty(path, "--dm-flow-duration", `${node.intensity.duration}s`);
-  path.dataset.dmFlowValue = String(node.value ?? "");
+  scriviDatoSeCambia(path, "dmFlowValue", String(node.value ?? ""));
   colorNode(path, node.color, node.active);
   return path;
 }
@@ -511,11 +526,11 @@ export function renderDynamicFlowLoads(period, model = stageModel(period)) {
     ensureArc(mobileSvg, node, "mobile");
   }
   pruneStale(stage, keep);
-  stage.dataset.dmFlowLoads = String(model.count);
+  scriviDatoSeCambia(stage, "dmFlowLoads", String(model.count));
   // Beta 5's secondary-flow completer stands down on a stage that already has a
   // canonical owner; keep publishing the count it looks for.
-  scope.dataset.dmCanonicalLoadCount = String(model.count);
-  scope.dataset.dmFlowOwner = "beta30";
+  scriviDatoSeCambia(scope, "dmCanonicalLoadCount", String(model.count));
+  scriviDatoSeCambia(scope, "dmFlowOwner", "beta30");
   return model.count;
 }
 
@@ -716,10 +731,10 @@ function mirrorLegacyMainFlows(scope, period) {
       const active = displayedActive === null ? legacyActive : displayedActive;
       colorNode(node, mainLineColor(node), active);
       const kinds = mainKinds(node);
-      node.dataset.dmMainFlow = kinds.join("-");
-      node.dataset.dmFlowPeriod = period || "instant";
+      scriviDatoSeCambia(node, "dmMainFlow", kinds.join("-"));
+      scriviDatoSeCambia(node, "dmFlowPeriod", period || "instant");
       const value = edge === null ? directionalMainFlowValue(node, period) : edge;
-      if (value !== null) node.dataset.dmFlowValue = String(value);
+      if (value !== null) scriviDatoSeCambia(node, "dmFlowValue", String(value));
       touched = true;
     });
   return touched;
@@ -736,7 +751,7 @@ export function refreshEnergyFlows() {
     if (!scope) continue;
     touched = mirrorLegacyMainFlows(scope, period) || touched;
     touched = renderDynamicFlowLoads(view.period) > 0 || touched;
-    scope.dataset.dmEnergyFlows = "directional-value-bound";
+    scriviDatoSeCambia(scope, "dmEnergyFlows", "directional-value-bound");
   }
   /* La bolla della batteria diceva il numero grezzo col segno («-201 W»
    * mentre carica): il segno e' una convenzione del modello, non una lettura.
@@ -756,8 +771,35 @@ export function refreshEnergyFlows() {
   /* Lo stato di carica e' dell'impianto scelto, non del documento intero: il
    * primo livello dell'oggetto Energia E' il primo impianto, e leggerlo
    * com'e' mostrava il SOC di casa propria dentro la casa dell'altro. */
-  renderBatterySoc(doc, energiaDellImpianto(), allStates());
+  const impianto = energiaDellImpianto();
+  renderBatterySoc(doc, impianto, allStates());
+  mostraBolleDellImpianto(impianto);
   return touched;
+}
+
+/* Le due bolle che non tutti gli impianti hanno.
+ *
+ * Il guscio le nasconde e le rimostra in `cdApplyFlowMinimal`, guardando le
+ * entita' mappate — ma quella funzione la chiama una volta sola, su un timer
+ * all'avvio. Cambiando impianto le entita' cambiano sotto i piedi e nessuno la
+ * rifa': chi passa a una casa senza batteria e poi torna alla propria trovava
+ * la bolla della batteria sparita, e non tornava piu' finche' la pagina non si
+ * ricaricava. E' il «improvvisamente scompare tutto» segnalato, ed e' anche il
+ * motivo per cui la prova che lo sorveglia cadeva un giro su quattro: non
+ * aspettava un ritardo, aspettava una passata che non sarebbe mai arrivata.
+ *
+ * Qui la decisione la prende chi la sa, a ogni passata: l'impianto scelto dice
+ * se il sole e la batteria ce li ha, e le bolle seguono. */
+function mostraBolleDellImpianto(impianto) {
+  const bolle = [
+    ["n-solar", clean(impianto?.solar?.power)],
+    ["n-battery", clean(impianto?.battery?.power)],
+  ];
+  for (const [id, configurata] of bolle) {
+    for (const nodo of doc?.querySelectorAll?.(`#${id}`) || []) {
+      setStyleProperty(nodo, "display", configurata ? "" : "none");
+    }
+  }
 }
 
 function schedule() {
