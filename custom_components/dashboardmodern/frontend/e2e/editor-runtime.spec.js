@@ -292,9 +292,14 @@ for (const variant of PRIMARY) {
      * i byte erano rimasti gli stessi, ed e' quello che si sentiva da fuori
      * casa.
      *
+     * E a quattordici quando i byte sono scesi a un quarto — confermato dal
+     * campo, `content-encoding: br` — ed era ancora lento. Le prime due righe
+     * dicono COSA e' arrivato; la quarta dice QUANDO, e quanto del tempo sta
+     * dopo la rete, dove ne' il pacchetto ne' la compressione arrivano.
+     *
      * Chi aggiunge una voce alza questo numero E la nomina qui sotto: cosi'
      * la prossima volta il conto si legge invece di sembrare capriccio. */
-    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(13);
+    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(14);
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Integration version");
     /* La dodicesima e la tredicesima. La prima si controlla dal valore, che
      * vale in tutti gli stati: la riga dice quale dei due, non presume.
@@ -307,6 +312,7 @@ for (const variant of PRIMARY) {
      * che non lo e'. */
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText(/impacchettati|sciolti/);
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Transfer");
+    await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Boot");
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });

@@ -608,6 +608,66 @@ function mountReportEditor(_tab, target) {
   if (entityInputs !== pickers) throw new Error(`Entity picker invariant failed: ${entityInputs} inputs / ${pickers} pickers`);
 }
 
+/* Quando il velo se ne va, misurato mentre succede.
+ *
+ * Le richieste sono scese da centosettantanove a tre. I byte da 4,9 MB a 1,2,
+ * e la compressione e' confermata dal campo — `content-encoding: br`, 366 kB
+ * al posto di 2007. Ed e' ancora lento. Quindi il tempo se ne va in un posto
+ * che finora non ho misurato, e ho gia' sbagliato due volte a indovinarlo.
+ *
+ * Questo lo segna: dal momento in cui la plancia comincia a caricarsi a quando
+ * il velo se ne va. Il resto — quando e' arrivato l'ultimo file — si legge a
+ * posteriori dai tempi delle risorse, quindi non serve segnarlo. La differenza
+ * fra i due dice tutto: se il grosso sta PRIMA, e' la rete; se sta DOPO, e'
+ * analisi ed esecuzione, e la compressione non la tocca nemmeno.
+ *
+ * Niente orologio che guarda: si intercetta l'assegnazione. Chi toglie il velo
+ * scrive `__DASHBOARDMODERN_READY__ = true`, e quella scrittura passa di qui —
+ * il momento e' esatto invece che arrotondato al giro di sondaggio, e non
+ * arriva un `setInterval` in piu' nel grafo di produzione, dove ogni intervallo
+ * e' elencato uno per uno apposta perche' non ne entri uno di nascosto.
+ *
+ * Si arma solo dove c'e' una pagina: le prove che importano questo modulo da
+ * Node non devono trovarsi un accessore piantato su un globale. */
+let prontaDopo = null;
+if (typeof document !== "undefined") {
+  if (globalThis.__DASHBOARDMODERN_READY__) prontaDopo = performance.now();
+  else {
+    let acceso = false;
+    try {
+      Object.defineProperty(globalThis, "__DASHBOARDMODERN_READY__", {
+        configurable: true,
+        get: () => acceso,
+        set: (nuovo) => {
+          acceso = nuovo;
+          if (nuovo && prontaDopo === null) prontaDopo = performance.now();
+        },
+      });
+    } catch (_) {
+      /* Se il globale non si lascia intercettare, la riga dira' di non averlo
+       * misurato: meglio di un numero inventato. */
+    }
+  }
+}
+
+export function tempoDiAvvio() {
+  try {
+    const casa = `${import.meta.url.split("/legacy/")[0]}/`;
+    const nostre = performance
+      .getEntriesByType("resource")
+      .filter((risorsa) => risorsa.name.startsWith(casa));
+    const s = (v) => `${(v / 1000).toFixed(1)} s`;
+    const ultimo = nostre.length
+      ? Math.max(...nostre.map((risorsa) => risorsa.responseEnd || 0))
+      : 0;
+    if (!prontaDopo) return ultimo ? `ultimo file a ${s(ultimo)} — velo non misurato` : "?";
+    const dopoLaRete = Math.max(0, prontaDopo - ultimo);
+    return `pronta in ${s(prontaDopo)} · ultimo file a ${s(ultimo)} · ${s(dopoLaRete)} dopo la rete`;
+  } catch (_) {
+    return "?";
+  }
+}
+
 /* Quanti byte sono arrivati davvero, e se sono arrivati compressi.
  *
  * Dal campo, dopo un rilascio che aveva ridotto le richieste da 179 a 3:
@@ -705,6 +765,7 @@ function renderDiagnostics(target) {
      * vedere a colpo d'occhio invece di indovinarlo dal cronometro. */
     Modules: globalThis.__DASHBOARDMODERN_IMPACCHETTATA__ ? "impacchettati (3 file)" : "sciolti (179 file)",
     Transfer: pesoScaricato(),
+    Boot: tempoDiAvvio(),
   };
   target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono" data-dm-voce="${esc(key)}">${esc(value)}</div></div></div>`).join("")}</div>`;
   target.dataset.runtimeDiagnostics = "true";
