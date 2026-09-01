@@ -62,6 +62,18 @@ class Element {
     this.children = [];
     this.append(...nodes);
   }
+  /* Rimettere in fila senza spostare chi e' gia' al suo posto: il popup guarda
+   * `children[posto]` e usa `insertBefore` solo per chi non ci corrisponde. Un
+   * finto DOM senza `insertBefore` non farebbe passare quella strada. */
+  insertBefore(nodo, riferimento) {
+    if (nodo.parentElement)
+      nodo.parentElement.children = nodo.parentElement.children.filter((altro) => altro !== nodo);
+    const posto = this.children.indexOf(riferimento);
+    nodo.parentElement = this;
+    if (posto < 0) this.children.push(nodo);
+    else this.children.splice(posto, 0, nodo);
+    return nodo;
+  }
   /* Il browser ce l'ha, e adesso il popup lo usa: una carta che se ne va se ne
    * va da sola, senza portarsi dietro le altre. Un finto DOM senza `remove`
    * farebbe passare per buona proprio la riga che non funziona. */
