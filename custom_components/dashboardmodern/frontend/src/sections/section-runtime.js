@@ -5,6 +5,7 @@ import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installI18nSection } from "./i18n-section.js";
 import { installThemeFoundationSection } from "./theme-foundation-section.js";
+import { installIconeLeggibiliSection } from "./icone-leggibili-section.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
@@ -743,6 +744,10 @@ export function installSectionRuntime() {
     // the locale has to be settled before the first of them runs.
     installI18nSection();
     installThemeFoundationSection();
+    /* Subito dopo le fondamenta del tema e prima di ogni disegno: il foglio
+     * delle sfumature deve stare in cima al documento gia' al primo giro, o
+     * i disegni nascono mezzi e si riparano solo al secondo. */
+    installIconeLeggibiliSection();
     installHostedBridgeGuard();
     installLegacySections();
     installDataContractsSection();

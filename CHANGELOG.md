@@ -30,6 +30,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **La stessa regola in un posto solo.** La pagina Clima e il pannello della
   Home tenevano due copie della scala, e si fermavano a numeri diversi: adesso
   la calcola il nucleo, e le due si comportano uguale.
+- **Le icone della barra e della configurazione erano mezze, non chiare.** «Le
+  icone presenti sia sulla navbar che nel menu config sono poco leggibili,
+  troppo chiare.» Non era il colore: meta' di quei disegni non veniva dipinta.
+  Ogni oggetto si porta dentro le proprie sfumature e disegni uguali ripetono
+  gli stessi identificatori; in una pagina pero' a un identificatore ripetuto
+  risponde sempre il PRIMO che lo porta, e per meta' dei disegni quel primo sta
+  dentro una voce di barra che la configurazione tiene a `display:none`. Una
+  sfumatura in un ramo non disegnato non dipinge niente: del lampadario, del
+  termometro, del fulmine e della goccia restava soltanto l'ombra grigia sotto.
+  Adesso le sfumature stanno in un foglio unico in cima al documento, sempre
+  disegnato, ed e' lui a rispondere a tutti: nella colonna della configurazione
+  tornano interi Energia, EV, Sicurezza, MiniPC, Temperatura, Piscina,
+  Irrigazione, Luci, Prese, Elettrodomestici e Aperture.
+- **E sulla barra il velo era doppio.** Le voci a riposo stavano a `opacity:.78`
+  e sopra ci passava un `grayscale(.85) opacity(.72)`: i due si moltiplicano,
+  cioe' 0,56 di opacita' su una figura quasi senza colore. Adesso il velo e'
+  uno solo e il grigio un accenno; a dire qual e' la pagina aperta ci pensano la
+  pastiglia scura e il nome, che sono segnali piu' forti di uno sbiadimento.
+- **E il nome sotto il disegno si legge.** Era il grigio tenue al 70% di
+  opacita': sul bianco della barra fa 2,7 a uno, sotto la soglia di
+  leggibilita'. Adesso ne fa 7,7. Stesso conto per i nomi nella colonna della
+  configurazione.
 
 ## 1.4.5-beta.2
 

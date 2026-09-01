@@ -533,8 +533,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // la barra lo dice il termostato con `min_temp`/`max_temp`, non piu' una
   // coppia di numeri scritta a mano — e la regola sta in un posto solo,
   // perche' la pagina Clima e il popup della Home ne tenevano due copie.
+  // 188 con le icone che si leggono (`icone-leggibili-section.js`): il foglio
+  // unico delle sfumature, messo in cima al documento, perche' a un
+  // identificatore ripetuto risponde il primo che lo porta — e per meta' dei
+  // disegni quel primo stava dentro una voce di barra a `display:none`, cioe'
+  // non disegnava niente.
   assert.ok(
-    relative.length <= 187,
+    relative.length <= 188,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -13,7 +13,10 @@
  *
  * Ogni disegno sta in una griglia di 32x32 e si porta dietro le proprie
  * sfumature. Due tessere che mostrano lo stesso oggetto ripetono gli stessi
- * identificatori: sono definizioni identiche, quindi il disegno non cambia.
+ * identificatori: le definizioni sono identiche, quindi il disegno non cambia
+ * — ma perche' quella frase sia vera bisogna che a rispondere ci sia una
+ * definizione DISEGNATA, e non era garantito: vedi «il foglio delle
+ * sfumature» in fondo al file, che e' il pezzo che lo garantisce.
  * Le tessere che uno si costruisce da se' ("custom-...") non hanno un oggetto
  * nostro: per quelle resta il simbolo scelto da chi le ha fatte.
  */
@@ -416,3 +419,84 @@ export function haOggettoWidget(chiave) {
 }
 
 export const CHIAVI_OGGETTI = Object.freeze(Object.keys(OGGETTI));
+
+/* ── il foglio delle sfumature ────────────────────────────────────────────
+ *
+ * «Le icone presenti sia sulla navbar che nel menu config sono poco
+ * leggibili, troppo chiare.» Non erano chiare: erano MEZZE.
+ *
+ * Ogni disegno si porta dentro le proprie sfumature, e due disegni uguali
+ * ripetono gli stessi identificatori — era una scelta, ed era scritta qui
+ * sopra: «sono definizioni identiche, quindi il disegno non cambia». Il
+ * ragionamento pero' saltava un pezzo. In una pagina, a un identificatore
+ * ripetuto risponde SEMPRE il primo che lo porta, in ordine di documento; e
+ * il primo, per meta' dei disegni, sta dentro una voce di barra che la
+ * configurazione tiene a `display:none`. Una sfumatura dentro un ramo non
+ * disegnato non dipinge niente: il riferimento cade nel vuoto, e del
+ * lampadario o del termometro resta soltanto l'ombra sotto — che e'
+ * l'ellisse grigia chiara, l'unica parte senza sfumatura.
+ *
+ * Da qui il «troppo chiare»: chi guardava vedeva un residuo pallido, non un
+ * disegno spento.
+ *
+ * La riparazione sfrutta la stessa regola invece di subirla. Le definizioni
+ * si raccolgono una volta sola in un foglio che sta in cima al documento ed
+ * e' sempre disegnato: essendo il primo, e' lui a rispondere a tutti. Il
+ * markup delle singole tessere non cambia di un carattere — e questo conta,
+ * perche' le sezioni decidono se ridisegnare confrontando il markup che
+ * hanno appena scritto con quello di prima: identificatori diversi a ogni
+ * giro vorrebbero dire ridisegnare per sempre.
+ */
+
+/* Le definizioni di un disegno, senza il resto. */
+function definizioniDi(disegno) {
+  const apre = disegno.indexOf("<defs>");
+  if (apre < 0) return "";
+  const chiude = disegno.indexOf("</defs>", apre);
+  if (chiude < 0) return "";
+  return disegno.slice(apre + "<defs>".length, chiude);
+}
+
+/* Una sfumatura per volta, col suo identificatore: dentro i `defs` di questi
+ * disegni non c'e' altro che sfumature lineari e radiali. */
+const SFUMATURA = /<(linear|radial)Gradient\b[^>]*\bid="([^"]+)"[^>]*>[\s\S]*?<\/\1Gradient>/g;
+
+/* Ogni sfumatura una volta sola: due disegni che dichiarano lo stesso
+ * identificatore lo dichiarano identico, e la prima copia basta per tutti. */
+function raccogliDefinizioni() {
+  const viste = new Set();
+  const pezzi = [];
+  for (const disegno of Object.values(OGGETTI)) {
+    const dentro = definizioniDi(disegno);
+    if (!dentro) continue;
+    for (const trovata of dentro.matchAll(SFUMATURA)) {
+      const id = trovata[2];
+      if (viste.has(id)) continue;
+      viste.add(id);
+      pezzi.push(trovata[0]);
+    }
+  }
+  return { markup: pezzi.join(""), ids: Object.freeze([...viste]) };
+}
+
+const FOGLIO = raccogliDefinizioni();
+const FOGLIO_DEFS = FOGLIO.markup;
+
+/** Gli identificatori che il foglio dichiara: serve alle prove. */
+export function identificatoriDelFoglio() {
+  return FOGLIO.ids;
+}
+
+export const ID_FOGLIO_OGGETTI = "dm-oggetti-defs";
+
+/**
+ * Il foglio con tutte le sfumature dei disegni.
+ *
+ * Va messo per PRIMO dentro il corpo della pagina e non va mai nascosto con
+ * `display:none`: e' misura zero, non occupa spazio e non prende il dito, ma
+ * resta disegnato — che e' l'unica condizione perche' le sue sfumature
+ * dipingano davvero.
+ */
+export function foglioDegliOggetti() {
+  return `<svg id="${ID_FOGLIO_OGGETTI}" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none"><defs>${FOGLIO_DEFS}</defs></svg>`;
+}
