@@ -21,13 +21,19 @@
           "allowed_users": "允许的用户",
           "register_lovelace_dashboard": "同时注册为 Home Assistant 面板",
           "admin_only": "仅管理员可见",
-          "check_updates": "检查新版本"
+          "check_updates": "检查新版本",
+          "tickets_enabled": "从面板提交反馈",
+          "ticket_endpoint": "反馈服务地址",
+          "maintainer_token": "维护者控制台密钥"
         },
         "data_description": {
           "allowed_users": "仅为界面显示过滤。数据和服务的访问仍然由 Home Assistant 的权限决定。",
           "register_lovelace_dashboard": "面板会在管理员首次打开 DashboardModern 时创建。",
           "admin_only": "Home Assistant 自带的过滤；对非管理员账号以它为准。",
-          "check_updates": "每半小时向 GitHub 询问是否有更新的版本，并显示在“设置 → 更新”中。关闭后面板完全不联网；仪表板本身并不需要它。"
+          "check_updates": "每半小时向 GitHub 询问是否有更新的版本，并显示在“设置 → 更新”中。关闭后面板完全不联网；仪表板本身并不需要它。",
+          "tickets_enabled": "让使用面板的人不必离开面板即可提交缺陷报告、功能建议或求助请求。关闭后不会向任何地方发送内容；已经写好的反馈仍可在本地查看。",
+          "ticket_endpoint": "留空表示使用内置地址。只接受 https。在服务接收之前，反馈一直保存在本地。",
+          "maintainer_token": "只给维护队列的人使用：它会开启显示各个安装点反馈的控制台。密钥绝不会离开 Home Assistant。"
         }
       }
     }

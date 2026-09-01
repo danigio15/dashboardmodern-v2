@@ -21,13 +21,19 @@
           "allowed_users": "허용할 사용자",
           "register_lovelace_dashboard": "Home Assistant 대시보드로도 등록",
           "admin_only": "관리자에게만 표시",
-          "check_updates": "새 버전 확인"
+          "check_updates": "새 버전 확인",
+          "tickets_enabled": "대시보드에서 보내는 제보",
+          "ticket_endpoint": "제보 서비스 주소",
+          "maintainer_token": "관리자 콘솔 키"
         },
         "data_description": {
           "allowed_users": "화면 표시 필터일 뿐입니다. 데이터와 서비스 접근은 여전히 Home Assistant 권한을 따릅니다.",
           "register_lovelace_dashboard": "대시보드는 관리자가 DashboardModern을 처음 열 때 만들어집니다.",
           "admin_only": "Home Assistant 자체 필터입니다. 관리자가 아닌 계정에서는 이쪽이 우선합니다.",
-          "check_updates": "30분마다 GitHub에 새 릴리스가 있는지 물어보고 설정 → 업데이트에 표시합니다. 패널이 인터넷에 전혀 나가지 않게 하려면 끄세요. 대시보드 자체에는 필요하지 않습니다."
+          "check_updates": "30분마다 GitHub에 새 릴리스가 있는지 물어보고 설정 → 업데이트에 표시합니다. 패널이 인터넷에 전혀 나가지 않게 하려면 끄세요. 대시보드 자체에는 필요하지 않습니다.",
+          "tickets_enabled": "대시보드를 쓰는 누구나 대시보드를 벗어나지 않고 버그 제보, 기능 요청, 지원 요청을 열 수 있게 합니다. 끄면 아무것도 전송되지 않으며, 이미 작성한 제보는 집에서 계속 읽을 수 있습니다.",
+          "ticket_endpoint": "비워 두면 기본 주소를 씁니다. https만 받습니다. 서비스가 받아들일 때까지 제보는 집에 남아 있습니다.",
+          "maintainer_token": "대기열을 관리하는 사람만을 위한 것입니다. 모든 설치본에서 들어오는 제보를 보여 주는 콘솔을 켭니다. 키는 Home Assistant를 벗어나지 않습니다."
         }
       }
     }

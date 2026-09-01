@@ -21,13 +21,19 @@
           "allowed_users": "Toegestane gebruikers",
           "register_lovelace_dashboard": "Ook registreren als Home Assistant-dashboard",
           "admin_only": "Alleen zichtbaar voor beheerders",
-          "check_updates": "Controleren op nieuwe versies"
+          "check_updates": "Controleren op nieuwe versies",
+          "tickets_enabled": "Meldingen vanuit het dashboard",
+          "ticket_endpoint": "Adres van de meldingsdienst",
+          "maintainer_token": "Sleutel van de beheerconsole"
         },
         "data_description": {
           "allowed_users": "Alleen een zichtbaarheidsfilter van de interface. Voor gegevens en services gelden nog steeds de rechten van Home Assistant.",
           "register_lovelace_dashboard": "Het dashboard wordt aangemaakt zodra een beheerder DashboardModern voor het eerst opent.",
           "admin_only": "Ingebouwd filter van Home Assistant; het wint voor accounts zonder beheerdersrechten.",
-          "check_updates": "Vraagt GitHub elk half uur of er een nieuwere release is en toont die bij Instellingen → Updates. Zet het uit zodat het paneel helemaal niet het internet op gaat; het dashboard heeft het nooit nodig."
+          "check_updates": "Vraagt GitHub elk half uur of er een nieuwere release is en toont die bij Instellingen → Updates. Zet het uit zodat het paneel helemaal niet het internet op gaat; het dashboard heeft het nooit nodig.",
+          "tickets_enabled": "Laat iedereen die het dashboard gebruikt een bug, een wens of een hulpvraag melden zonder het te verlaten. Uitgeschakeld wordt er niets verstuurd; al geschreven meldingen blijven thuis leesbaar.",
+          "ticket_endpoint": "Leeg betekent het ingebouwde adres. Alleen https wordt geaccepteerd. Meldingen blijven thuis tot de dienst ze aanneemt.",
+          "maintainer_token": "Alleen voor wie de wachtrij bijhoudt: zet de console aan die de meldingen uit alle installaties toont. De sleutel verlaat Home Assistant nooit."
         }
       }
     }

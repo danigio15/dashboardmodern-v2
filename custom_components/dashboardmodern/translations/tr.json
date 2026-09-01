@@ -21,13 +21,19 @@
           "allowed_users": "İzin verilen kullanıcılar",
           "register_lovelace_dashboard": "Home Assistant panosu olarak da kaydet",
           "admin_only": "Yalnızca yöneticilere görünür",
-          "check_updates": "Yeni sürümleri denetle"
+          "check_updates": "Yeni sürümleri denetle",
+          "tickets_enabled": "Panodan bildirimler",
+          "ticket_endpoint": "Bildirim servisi adresi",
+          "maintainer_token": "Bakım konsolu anahtarı"
         },
         "data_description": {
           "allowed_users": "Yalnızca arayüz görünürlüğü süzgeci. Veriler ve servisler Home Assistant izinlerine bağlı kalır.",
           "register_lovelace_dashboard": "Pano, bir yönetici DashboardModern'i ilk kez açtığında oluşturulur.",
           "admin_only": "Home Assistant'ın kendi süzgeci; yönetici olmayan hesaplarda o üstün gelir.",
-          "check_updates": "Her yarım saatte bir GitHub'a daha yeni bir sürüm çıkıp çıkmadığını sorar ve Ayarlar → Güncellemeler altında gösterir. Panelin internete hiç çıkmaması için kapatın; panonun buna ihtiyacı yoktur."
+          "check_updates": "Her yarım saatte bir GitHub'a daha yeni bir sürüm çıkıp çıkmadığını sorar ve Ayarlar → Güncellemeler altında gösterir. Panelin internete hiç çıkmaması için kapatın; panonun buna ihtiyacı yoktur.",
+          "tickets_enabled": "Panoyu kullanan herkesin panodan çıkmadan hata bildirimi, özellik isteği veya destek talebi açmasını sağlar. Kapalıyken hiçbir şey gönderilmez; yazılmış bildirimler evde okunabilir kalır.",
+          "ticket_endpoint": "Boş bırakmak yerleşik adres demektir. Yalnızca https kabul edilir. Bildirimler, servis kabul edene kadar evde kalır.",
+          "maintainer_token": "Yalnızca kuyruğu tutan kişi içindir: tüm kurulumlardan gelen bildirimleri gösteren konsolu açar. Anahtar Home Assistant'tan asla çıkmaz."
         }
       }
     }

@@ -21,13 +21,19 @@
           "allowed_users": "許可するユーザー",
           "register_lovelace_dashboard": "Home Assistant のダッシュボードとしても登録する",
           "admin_only": "管理者にだけ表示する",
-          "check_updates": "新しいバージョンを確認する"
+          "check_updates": "新しいバージョンを確認する",
+          "tickets_enabled": "ダッシュボードからの報告",
+          "ticket_endpoint": "報告サービスのアドレス",
+          "maintainer_token": "メンテナーコンソールのキー"
         },
         "data_description": {
           "allowed_users": "画面上の表示フィルターだけです。データとサービスへのアクセスは引き続き Home Assistant の権限に従います。",
           "register_lovelace_dashboard": "ダッシュボードは、管理者が DashboardModern を初めて開いたときに作成されます。",
           "admin_only": "Home Assistant 本来のフィルターです。管理者以外のアカウントではこちらが優先されます。",
-          "check_updates": "30分ごとに GitHub へ新しいリリースの有無を尋ね、「設定 → アップデート」に表示します。パネルを一切インターネットに出さないようにするにはオフにしてください。ダッシュボード自体には不要です。"
+          "check_updates": "30分ごとに GitHub へ新しいリリースの有無を尋ね、「設定 → アップデート」に表示します。パネルを一切インターネットに出さないようにするにはオフにしてください。ダッシュボード自体には不要です。",
+          "tickets_enabled": "ダッシュボードを使う人が、そこから離れずに不具合の報告・機能の要望・サポートの依頼を出せるようにします。オフにすると何も送信されません。すでに書いた報告は自宅で読めるまま残ります。",
+          "ticket_endpoint": "空欄なら既定のアドレスを使います。https のみ受け付けます。サービスが受け取るまで、報告は自宅に残ります。",
+          "maintainer_token": "待ち行列を管理する人だけのものです。すべての導入先から届く報告を表示するコンソールを有効にします。鍵が Home Assistant の外に出ることはありません。"
         }
       }
     }

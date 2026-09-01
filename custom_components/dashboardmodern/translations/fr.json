@@ -21,13 +21,19 @@
           "allowed_users": "Utilisateurs autorisés",
           "register_lovelace_dashboard": "Enregistrer aussi comme tableau de bord Home Assistant",
           "admin_only": "Visible uniquement par les administrateurs",
-          "check_updates": "Rechercher les nouvelles versions"
+          "check_updates": "Rechercher les nouvelles versions",
+          "tickets_enabled": "Signalements depuis le tableau de bord",
+          "ticket_endpoint": "Adresse du service de signalement",
+          "maintainer_token": "Clé de la console de maintenance"
         },
         "data_description": {
           "allowed_users": "Filtre d'affichage uniquement. Les données et les services restent soumis aux permissions Home Assistant.",
           "register_lovelace_dashboard": "Le tableau de bord est créé à la première ouverture par un administrateur.",
           "admin_only": "Filtre natif Home Assistant ; il l'emporte pour les comptes non administrateurs.",
-          "check_updates": "Demande à GitHub toutes les demi-heures si une version plus récente est parue, et l'affiche dans Paramètres → Mises à jour. Désactivez-le pour que le panneau ne sorte pas sur internet ; le tableau de bord n'en a jamais besoin."
+          "check_updates": "Demande à GitHub toutes les demi-heures si une version plus récente est parue, et l'affiche dans Paramètres → Mises à jour. Désactivez-le pour que le panneau ne sorte pas sur internet ; le tableau de bord n'en a jamais besoin.",
+          "tickets_enabled": "Permet à qui utilise le tableau de bord d'ouvrir un signalement de bogue, une demande de fonctionnalité ou une demande d'assistance sans en sortir. Désactivé, rien n'est envoyé ; les signalements déjà écrits restent lisibles à la maison.",
+          "ticket_endpoint": "Vide signifie l'adresse intégrée. Seul https est accepté. Les signalements restent à la maison tant que le service ne les a pas pris en charge.",
+          "maintainer_token": "Réservé à qui tient la file : active la console qui montre les signalements arrivant de toutes les installations. La clé ne quitte jamais Home Assistant."
         }
       }
     }

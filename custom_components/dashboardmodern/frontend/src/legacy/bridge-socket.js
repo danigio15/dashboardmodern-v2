@@ -63,6 +63,15 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   // plancia servita dall'integrazione non possiede nessun token e ogni
   // chiamata REST del browser risponde 401.
   "dashboardmodern/www/upload",
+  // Le segnalazioni. Stessa ragione dell'upload, e una in piu': la chiave del
+  // manutentore sta nelle opzioni del config entry e la chiamata verso il
+  // relay la fa il backend, quindi qui passa la domanda e non il segreto.
+  "dashboardmodern/tickets/list",
+  "dashboardmodern/tickets/create",
+  "dashboardmodern/tickets/delete",
+  "dashboardmodern/tickets/sync",
+  "dashboardmodern/tickets/queue",
+  "dashboardmodern/tickets/answer",
   "auth/sign_path",
 ]);
 

@@ -15,7 +15,14 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN, NAME, OPTION_CHECK_UPDATES
+from .const import (
+    DOMAIN,
+    NAME,
+    OPTION_CHECK_UPDATES,
+    OPTION_MAINTAINER_TOKEN,
+    OPTION_TICKET_ENDPOINT,
+    OPTION_TICKETS_ENABLED,
+)
 
 OPTION_ADMIN_ONLY = "admin_only"
 OPTION_ALLOWED_USERS = "allowed_users"
@@ -122,6 +129,35 @@ class DashboardModernOptionsFlow(config_entries.OptionsFlow):
                             OPTION_CHECK_UPDATES, True
                         ),
                     ): bool,
+                    # Le segnalazioni valgono per l'installazione, quindi
+                    # stanno accanto al controllo aggiornamenti e per la stessa
+                    # ragione: sono le due sole cose che parlano fuori di casa,
+                    # e chi non le vuole le spegne nello stesso posto.
+                    vol.Optional(
+                        OPTION_TICKETS_ENABLED,
+                        default=self.config_entry.options.get(
+                            OPTION_TICKETS_ENABLED, True
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        OPTION_TICKET_ENDPOINT,
+                        description={
+                            "suggested_value": self.config_entry.options.get(
+                                OPTION_TICKET_ENDPOINT, ""
+                            )
+                        },
+                    ): str,
+                    # La chiave della console. Sta qui, non nella
+                    # configurazione condivisa: quella la legge ogni utente
+                    # della plancia, queste opzioni solo chi amministra.
+                    vol.Optional(
+                        OPTION_MAINTAINER_TOKEN,
+                        description={
+                            "suggested_value": self.config_entry.options.get(
+                                OPTION_MAINTAINER_TOKEN, ""
+                            )
+                        },
+                    ): str,
                 }
             )
         return self.async_show_form(step_id="init", data_schema=schema)
