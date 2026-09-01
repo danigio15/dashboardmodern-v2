@@ -21,12 +21,12 @@
  * una pagina vuota e' peggio che non offrirla.
  */
 import {
+  agendaPerGiorno,
   chiaveDelGiorno,
   etichettaDelGiorno,
   eventiDaQui,
   inCorso,
   oraDellEvento,
-  perGiorno,
 } from "../core/calendario-model.js";
 import {
   aggiornaCalendari,
@@ -34,6 +34,8 @@ import {
   calendariConfigurati,
   configuredTodoLists,
   eventiDeiCalendari,
+  scadenzeDaFare,
+  segnaFatta,
 } from "./home-widgets-section.js";
 import {
   azioniDellEventoMarkup,
@@ -174,11 +176,18 @@ function paroleDelCalendario() {
     oggi: t("Oggi", "Today"),
     domani: t("Domani", "Tomorrow"),
     tuttoIlGiorno: t("Tutto il giorno", "All day"),
+    daFare: t("Da fare", "To-do"),
+    inRitardo: t("In ritardo", "Overdue"),
   };
 }
 
 
+/* Il colore fisso delle scadenze: non appartengono a un calendario, e dargli
+ * quello del primo le farebbe sembrare roba sua. */
+const TINTA_SCADENZA = "#0ea5e9";
+
 function tintaDi(evento, calendari) {
+  if (evento?.tipo === "scadenza") return TINTA_SCADENZA;
   const suo = calendari.find(
     (voce) => voce.entity === evento.entity || voce.name === evento.calendario,
   );
@@ -225,7 +234,24 @@ function fasciaMarkup(giorni, adesso, lingua, calendari) {
   return `<div class="dm-calp-fascia">${celle.join("")}</div>`;
 }
 
+/* Una riga dell'agenda: un appuntamento o una scadenza.
+ *
+ * Sono due cose diverse e si vedono diverse. L'appuntamento porta la sua ora,
+ * la stecca del suo calendario e i tasti per spostarlo; la scadenza porta la
+ * casella da spuntare, perche' una cosa da fare non si sposta: si fa. */
 function eventoMarkup(evento, adesso, lingua, calendari, piuCalendari) {
+  if (evento.tipo === "scadenza")
+    return `<li class="dm-calp-evento" data-scadenza="true" style="--dm-calp-tinta:${TINTA_SCADENZA}">
+      <span class="dm-calp-ora">${esc(oraDellEvento(evento, paroleDelCalendario(), lingua))}</span>
+      <button type="button" class="dm-todo-check" data-dm-todo-check
+        data-dm-todo-list="${esc(evento.listaId)}" data-dm-todo-uid="${esc(evento.uid)}"
+        data-dm-todo-summary="${esc(evento.summary)}"
+        aria-label="${esc(segnaFatta(evento.summary))}"></button>
+      <span class="dm-calp-corpo">
+        <b>${esc(evento.summary || t("Senza titolo", "Untitled"))}</b>
+        <small>${esc(evento.lista)}</small>
+      </span>
+    </li>`;
   const ora = inCorso(evento, adesso);
   const sotto = [piuCalendari ? evento.calendario : "", evento.location].filter(Boolean).join(" · ");
   return `<li class="dm-calp-evento" data-adesso="${ora}"
@@ -283,7 +309,13 @@ function dipingi() {
   const { eventi, inArrivo } = eventiDeiCalendari();
   const adesso = Date.now();
   const restano = eventiDaQui(eventi, adesso);
-  const giorni = perGiorno(restano, adesso).slice(0, GIORNI_IN_AGENDA);
+  /* Le scadenze delle liste entrano nell'agenda, nel loro giorno (#259): una
+   * cosa da fare con una data E' un impegno di quel giorno, e tenerla in fondo
+   * alla pagina vuol dire guardare giovedi' senza vedere cosa scade giovedi'. */
+  const scadenze = scadenzeDaFare();
+  const insieme = agendaPerGiorno(restano, scadenze, adesso);
+  const arretrati = insieme.ritardo;
+  const giorni = insieme.giorni.slice(0, GIORNI_IN_AGENDA);
   const lingua = locale();
   const piuCalendari = calendari.length > 1;
 
@@ -312,10 +344,23 @@ function dipingi() {
     bozzaAperta(),
     calendari.map((voce) => [voce.entity, voce.tinta]),
     restano.map((evento) => [evento.entity, evento.inizio, evento.fine, evento.summary]),
+    scadenze.map((voce) => [voce.uid, voce.inizio, voce.summary]),
     chiaveDelGiorno(adesso),
   ]);
   if (state.firma === firma && dove.firstElementChild) return;
   state.firma = firma;
+
+  /* Quello che e' scaduto sta in cima, in un blocco suo: appartiene ad adesso,
+   * non al martedi' in cui e' passato. */
+  const ritardoMarkup =
+    arretrati.length && !state.giorno
+      ? `<section class="dm-calp-giorno" data-dm-ritardo="true">
+          <h3 class="dm-calp-titolo">⚠️ ${esc(paroleDelCalendario().inRitardo)}</h3>
+          <ul class="dm-calp-lista">${arretrati
+            .map((evento) => eventoMarkup(evento, adesso, lingua, calendari, piuCalendari))
+            .join("")}</ul>
+        </section>`
+      : "";
 
   const agenda = mostrati.length
     ? mostrati
@@ -336,13 +381,18 @@ function dipingi() {
             : t("✨ Niente in programma", "✨ Nothing scheduled"),
       )}</p>`;
 
-  const legenda = piuCalendari
-    ? `<div class="dm-calp-legenda">${calendari
+  /* Nella legenda entra anche «Da fare», ma solo se qualche scadenza c'e'
+   * davvero: una voce che spiega un colore assente e' una riga in piu' da
+   * leggere per niente. */
+  const vociLegenda = [
+    ...(piuCalendari ? calendari.map((voce) => [voce.tinta, clean(voce.name) || voce.entity]) : []),
+    ...(scadenze.length ? [[TINTA_SCADENZA, t("Da fare", "To-do")]] : []),
+  ];
+  const legenda = vociLegenda.length
+    ? `<div class="dm-calp-legenda">${vociLegenda
         .map(
-          (voce) =>
-            `<span class="dm-calp-voce"><i style="background:${esc(voce.tinta)}"></i>${esc(
-              voce.name || voce.entity,
-            )}</span>`,
+          ([tinta, nome]) =>
+            `<span class="dm-calp-voce"><i style="background:${esc(tinta)}"></i>${esc(nome)}</span>`,
         )
         .join("")}</div>`
     : "";
@@ -365,7 +415,7 @@ function dipingi() {
     }
     ${nuovo ? `<div class="dm-calp-nuovo-riga">${nuovo}</div>` : ""}
     ${modulo}
-    <div class="dm-calp-agenda">${agenda}</div>
+    <div class="dm-calp-agenda">${ritardoMarkup}${agenda}</div>
     ${cose}`;
 }
 
@@ -462,6 +512,14 @@ function installStyles() {
 
     /* ── l'agenda ──────────────────────────────────────────────────────── */
     ${P} .dm-calp-nuovo-riga{display:flex;justify-content:flex-start}
+    /* Una scadenza dentro l'agenda (#259): la casella al posto dei tasti, e la
+       parola «Da fare» dove gli altri hanno l'ora. */
+    ${P} .dm-calp-evento[data-scadenza="true"] .dm-calp-ora{color:var(--dm-calp-tinta,#0ea5e9)}
+    ${P} .dm-calp-evento[data-scadenza="true"] .dm-todo-check{
+      flex:0 0 19px;width:19px;height:19px;margin-top:2px}
+    ${P} .dm-calp-giorno[data-dm-ritardo="true"] .dm-calp-titolo{color:#b91c1c}
+    ${P} .dm-calp-giorno[data-dm-ritardo="true"] .dm-calp-evento{border-left-color:#ef4444}
+    ${P} .dm-calp-giorno[data-dm-ritardo="true"] .dm-calp-ora{color:#b91c1c}
     /* Le cose da fare: stessa scheda dei giorni, cosi' i due blocchi si
        leggono come due parti della stessa pagina e non come due pagine. */
     ${P} .dm-calp-cose{

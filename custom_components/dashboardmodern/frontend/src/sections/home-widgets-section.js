@@ -64,9 +64,11 @@ import {
   oraDellEvento,
   parseCalendarApiEvents,
   parseCalendarEventsResponse,
+  agendaPerGiorno,
   chiaveDelGiorno,
   etichettaDelGiorno,
-  perGiorno,
+  scadenzeDelleListe,
+  voceConScadenza,
   prossimiEventi,
 } from "../core/calendario-model.js";
 import {
@@ -534,6 +536,8 @@ function paroleDelCalendario() {
     oggi: t("Oggi", "Today"),
     domani: t("Domani", "Tomorrow"),
     tuttoIlGiorno: t("Tutto il giorno", "All day"),
+    daFare: t("Da fare", "To-do"),
+    inRitardo: t("In ritardo", "Overdue"),
   };
 }
 
@@ -548,6 +552,14 @@ function paroleDelCalendario() {
  * parola, non un numero. Il numero grande e' quanti ne restano oggi: quello
  * risponde a «sono libero stasera?» prima ancora di leggere.
  */
+/* Le liste grezze, per chi deve contare le scadenze senza disegnare niente. */
+function blocchiDelleListe() {
+  const fuori = widgetExcludedEntities();
+  return configuredTodoLists()
+    .filter((list) => widgetIncludes(list.entity, fuori))
+    .map((list) => ({ list, items: record(list.entity).items }));
+}
+
 function calendarioModel() {
   const { eventi, inArrivo, scelti } = eventiDeiCalendari();
   if (!scelti.length) return null;
@@ -560,6 +572,13 @@ function calendarioModel() {
   const diOggi = restano.filter(
     (evento) => chiaveDelGiorno(evento.inizio) === oggi || inCorso(evento, adesso),
   );
+  /* Anche le scadenze contano: «3 oggi» sopra un'agenda che di righe per oggi
+   * ne mostra quattro sarebbe un numero che smentisce quello che c'e' sotto.
+   * Quelle in ritardo entrano nel conto di oggi, perche' e' oggi che vanno
+   * fatte. */
+  const scadenzeOggi = scadenzeDelleListe(blocchiDelleListe()).filter(
+    (voce) => chiaveDelGiorno(voce.inizio) <= oggi,
+  ).length;
 
   /* Un evento nella didascalia: quando comincia e come si chiama. Il giorno si
    * scrive solo se non e' oggi — «Oggi 20:00» davanti a ogni riga sarebbe una
@@ -590,7 +609,10 @@ function calendarioModel() {
     label: t("Impegni", "Appointments"),
     /* Quanti ne restano oggi, non quanti ce ne sono in tutto: «diciotto» non
      * dice se stasera si e' liberi, «due oggi» si'. */
-    value: diOggi.length ? t(`${diOggi.length} oggi`, `${diOggi.length} today`) : "—",
+    value: (() => {
+      const quante = diOggi.length + scadenzeOggi;
+      return quante ? t(`${quante} oggi`, `${quante} today`) : "—";
+    })(),
     caption: didascalia(),
     /* Nessun anello: una percentuale di appuntamenti non vuol dire niente, e
      * un cerchio pieno a caso e' peggio di un cerchio che non c'e'. */
@@ -3118,6 +3140,16 @@ function percentualeDellaRiga(riga) {
   return trovata ? Number(trovata[1]) : null;
 }
 
+/* La frase della casella da spuntare, scritta una volta sola.
+ *
+ * Il titolo si tira fuori prima: scritta con tre nomi di variabile diversi —
+ * `item`, `riga`, `evento` — il raccoglitore delle traduzioni ne farebbe tre
+ * chiavi per la stessa frase, e i cataloghi tre righe da tradurre uguali. */
+export function segnaFatta(titolo) {
+  const nome = clean(titolo);
+  return t(`Segna fatta: ${nome}`, `Mark done: ${nome}`);
+}
+
 function todoItemMarkup(list, item, today) {
   const done = item.status === "completed";
   const dueDay = item.due ? item.due.slice(0, 10) : "";
@@ -3128,7 +3160,7 @@ function todoItemMarkup(list, item, today) {
   return `<li class="dm-todo-item${done ? " is-done" : ""}">
       <button type="button" class="dm-todo-check" data-dm-todo-check data-dm-todo-list="${esc(list.id)}"
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
-        aria-label="${esc(t(`Segna fatta: ${item.summary}`, `Mark done: ${item.summary}`))}"${done ? " disabled" : ""}></button>
+        aria-label="${esc(segnaFatta(item.summary))}"${done ? " disabled" : ""}></button>
       <span class="dm-todo-text">${esc(item.summary)}${due}</span>
       <button type="button" class="dm-todo-del" data-dm-todo-del data-dm-todo-list="${esc(list.id)}"
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
@@ -3143,6 +3175,15 @@ function todoItemMarkup(list, item, today) {
  * dell'Agenda: e' un pezzo solo, con gli stessi gesti — la spunta, il cestino,
  * la riga per scrivere — perche' due elenchi da spuntare sarebbero due modi di
  * spuntare, e uno dei due prima o poi si dimenticherebbe di ricaricare. */
+/* Le scadenze delle liste, per chi disegna l'agenda.
+ *
+ * La pagina le chiede come le chiede la finestra: una cosa da fare con una
+ * data e' un impegno di quel giorno, e le liste sono le stesse. */
+export function scadenzeDaFare() {
+  const cose = todoModel(allStates());
+  return cose ? scadenzeDelleListe(cose.blocks) : [];
+}
+
 export function bloccoDaFareMarkup() {
   const cose = todoModel(allStates());
   return cose ? todoDetail(cose) : "";
@@ -3152,8 +3193,12 @@ function todoDetail(widget) {
   const today = localToday();
   return widget.blocks
     .map(({ list, items }) => {
-      const open = pendingTodoItems(items || []);
-      const shown = (items || [])
+      /* Le cose con una data stanno nell'agenda, nel loro giorno (#259): qui
+       * restano quelle che un giorno non ce l'hanno. Mostrarle in tutti e due
+       * i posti sarebbe la stessa riga due volte nella stessa pagina. */
+      const senzaData = (items || []).filter((item) => !voceConScadenza(item));
+      const open = pendingTodoItems(senzaData);
+      const shown = senzaData
         .filter((item) => item.status !== "completed" || item.localDone)
         .slice(0, MAX_VISIBLE_ITEMS);
       const extra = open.length - shown.filter((item) => item.status !== "completed").length;
@@ -3189,12 +3234,58 @@ function todoDetail(widget) {
  * esistente Da Fare»: la stessa forma — un titolo di blocco e sotto le righe
  * — con la differenza che qui il titolo e' un giorno e le righe hanno un'ora.
  * Le stesse parole che si usano parlando: «Oggi», «Domani», e poi la data. */
-function calendarioDetail(widget) {
+/* Una riga dell'agenda: un appuntamento o una scadenza.
+ *
+ * Sono due cose diverse e si vedono diverse. L'appuntamento porta la sua ora e
+ * i tasti per spostarlo o cancellarlo; la scadenza porta la casella da
+ * spuntare, perche' una cosa da fare non si sposta: si fa. */
+function rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari) {
+  if (riga.tipo === "scadenza")
+    return `<li class="dm-cal-evento" data-scadenza="true">
+      <span class="dm-cal-ora">${esc(oraDellEvento(riga, parole, lingua))}</span>
+      <button type="button" class="dm-todo-check" data-dm-todo-check
+        data-dm-todo-list="${esc(riga.listaId)}" data-dm-todo-uid="${esc(riga.uid)}"
+        data-dm-todo-summary="${esc(riga.summary)}"
+        aria-label="${esc(segnaFatta(riga.summary))}"></button>
+      <span class="dm-cal-testo">
+        <b>${esc(riga.summary || t("Senza titolo", "Untitled"))}</b>
+        <small>${esc(riga.lista)}</small>
+      </span>
+    </li>`;
+  const ora = inCorso(riga, adesso);
+  return `<li class="dm-cal-evento" data-adesso="${ora}">
+    <span class="dm-cal-ora">${esc(oraDellEvento(riga, parole, lingua))}</span>
+    <span class="dm-cal-testo">
+      <b>${esc(riga.summary || t("Senza titolo", "Untitled"))}</b>
+      ${
+        /* Il luogo e il calendario di provenienza stanno sotto, e solo se ci
+         * sono: una riga vuota sotto ogni titolo farebbe un elenco alto il
+         * doppio per niente. */
+        riga.location || piuCalendari
+          ? `<small>${esc(
+              [piuCalendari ? riga.calendario : "", riga.location].filter(Boolean).join(" · "),
+            )}</small>`
+          : ""
+      }
+    </span>
+    ${ora ? `<span class="dm-cal-adesso">${esc(t("Adesso", "Now"))}</span>` : ""}
+    ${azioniDellEventoMarkup(riga, chiaveDellEvento(riga))}
+  </li>`;
+}
+
+/* Il pannello dell'agenda (#259): un giorno per volta, appuntamenti e scadenze.
+ *
+ * «Cliccandoci si apre una lista giorni/giorno e un elenco tipo come gia'
+ * esistente Da Fare»: la stessa forma — un titolo di blocco e sotto le righe —
+ * con la differenza che qui il titolo e' un giorno. E dentro ci sono tutte e
+ * due le cose che quel giorno riguardano: quello che succede a un'ora e quello
+ * che scade. */
+function calendarioDetail(widget, scadenze = []) {
   const adesso = Date.now();
-  const giorni = perGiorno(widget.eventi, adesso);
   const lingua = locale();
   const parole = paroleDelCalendario();
   const piuCalendari = widget.calendari.length > 1;
+  const { ritardo, giorni } = agendaPerGiorno(widget.eventi, scadenze, adesso);
   /* Il modulo sa quali calendari ci sono da chi lo disegna: e' lo stesso
    * elenco in Home e nella pagina, e passarglielo in un attributo vorrebbe
    * dire un JSON dentro il documento. */
@@ -3206,7 +3297,19 @@ function calendarioDetail(widget) {
   const nuovo = bozzaAperta() ? "" : tastoNuovoMarkup(widget.calendari);
   const testa = nuovo ? `<div class="dm-cal-fondo">${nuovo}</div>` : "";
 
-  if (!giorni.length)
+  /* Quello che e' scaduto sta in cima, in un blocco suo: una cosa da fare di
+   * martedi' scorso non appartiene a martedi' scorso — nessuno scorre indietro
+   * per trovarla — appartiene ad adesso. */
+  const arretrati = ritardo.length
+    ? `<div class="dm-w-block" data-dm-ritardo="true">
+        <span class="dm-w-block-title">⚠️ ${esc(parole.inRitardo)}</span>
+        <ul class="dm-cal-lista">${ritardo
+          .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
+          .join("")}</ul>
+      </div>`
+    : "";
+
+  if (!giorni.length && !arretrati)
     return `${modulo}${testa}<p class="dm-w-empty">${esc(
       widget.inArrivo
         ? t("Caricamento…", "Loading…")
@@ -3215,52 +3318,28 @@ function calendarioDetail(widget) {
 
   const elenco = giorni
     .slice(0, GIORNI_NEL_PANNELLO)
-    .map(({ giorno, eventi }) => {
-      const righe = eventi
-        .map((evento) => {
-          const ora = inCorso(evento, adesso);
-          return `<li class="dm-cal-evento" data-adesso="${ora}">
-            <span class="dm-cal-ora">${esc(oraDellEvento(evento, parole, lingua))}</span>
-            <span class="dm-cal-testo">
-              <b>${esc(evento.summary || t("Senza titolo", "Untitled"))}</b>
-              ${
-                /* Il luogo e il calendario di provenienza stanno sotto, e solo
-                 * se ci sono: una riga vuota sotto ogni titolo farebbe un
-                 * elenco alto il doppio per niente. */
-                evento.location || piuCalendari
-                  ? `<small>${esc(
-                      [piuCalendari ? evento.calendario : "", evento.location]
-                        .filter(Boolean)
-                        .join(" · "),
-                    )}</small>`
-                  : ""
-              }
-            </span>
-            ${ora ? `<span class="dm-cal-adesso">${esc(t("Adesso", "Now"))}</span>` : ""}
-            ${azioniDellEventoMarkup(evento, chiaveDellEvento(evento))}
-          </li>`;
-        })
-        .join("");
-      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
+    .map(
+      ({ giorno, eventi }) => `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
         etichettaDelGiorno(giorno, adesso, parole, lingua),
-      )}</span><ul class="dm-cal-lista">${righe}</ul></div>`;
-    })
+      )}</span><ul class="dm-cal-lista">${eventi
+        .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
+        .join("")}</ul></div>`,
+    )
     .join("");
-  return `${modulo}${testa}${elenco}`;
+  return `${modulo}${testa}${arretrati}${elenco}`;
 }
 
-/* La finestra dell'agenda: due blocchi, non due elenchi mescolati.
- *
- * Sopra gli impegni — hanno un'ora, si spostano, si cancellano — e sotto le
- * cose da fare, che hanno una casella da spuntare e un'ora non ce l'hanno.
- * Mescolarle in una lista sola vorrebbe dire righe che si somigliano e non
- * fanno la stessa cosa: la casella accanto a un appuntamento chiederebbe di
- * «spuntare» una riunione, che non vuol dire niente.
- *
- * Ogni pezzo tiene i gesti che aveva: la matita e il cestino sugli impegni, la
- * spunta e la riga per scrivere sulle cose da fare. */
 function agendaDetail(widget, states) {
-  const impegni = widget.calendario ? calendarioDetail(widget.calendario) : "";
+  /* Le scadenze delle liste entrano nell'agenda, nel loro giorno: una cosa da
+   * fare con una data E' un impegno di quel giorno. */
+  const scadenze = scadenzeDelleListe(widget.blocks);
+  const impegni = widget.calendario
+    ? calendarioDetail(widget.calendario, scadenze)
+    : /* Senza calendari, le scadenze un posto ce l'hanno lo stesso: sono
+       * l'agenda di chi tiene solo le liste. */
+      scadenze.length
+      ? calendarioDetail({ eventi: [], calendari: [], inArrivo: false }, scadenze)
+      : "";
   const cose = widget.cose ? todoDetail(widget.cose) : "";
   if (!impegni) return cose;
   if (!cose) return impegni;
@@ -6219,6 +6298,19 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   color:var(--dm-widget-accent,#6366f1)}
 /* Il fondo del pannello, dove sta il tasto per segnare un impegno nuovo. */
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-fondo{display:flex;justify-content:center;padding:6px 0 2px}
+/* Una scadenza dentro l'agenda (#259): la casella al posto dei tasti, e la
+   parola «Da fare» dove gli altri hanno l'ora. Si vede che e' un'altra cosa
+   senza doverla leggere. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-scadenza="true"] .dm-cal-ora{
+  color:var(--dm-widget-accent,#6366f1);opacity:.85}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-scadenza="true"] .dm-todo-check{
+  margin-top:0;flex:0 0 19px;width:19px;height:19px}
+/* Quello che e' scaduto: il blocco si stacca dagli altri, perche' e' la riga
+   per cui si apre l'agenda. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-w-block[data-dm-ritardo="true"] .dm-w-block-title{
+  color:#b91c1c}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-w-block[data-dm-ritardo="true"] .dm-cal-ora{
+  color:#b91c1c;opacity:1}
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-adesso{
   flex:0 0 auto;align-self:center;padding:3px 9px;border-radius:999px;
   font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#fff;

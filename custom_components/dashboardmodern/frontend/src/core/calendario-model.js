@@ -380,6 +380,95 @@ export function perGiorno(eventi, adesso = Date.now()) {
     .map(([giorno, elenco]) => ({ giorno, eventi: ordinaEventi(elenco) }));
 }
 
+/* ── le scadenze delle cose da fare ───────────────────────────────────────
+ *
+ * «Scadenze nell'agenda»: una cosa da fare con una data E' un impegno di quel
+ * giorno, e tenerla in un elenco a parte in fondo alla pagina vuol dire
+ * guardare l'agenda di giovedi' senza vedere che giovedi' scade la revisione
+ * dell'auto.
+ *
+ * Percio' entra nell'agenda, nel suo giorno, accanto agli appuntamenti — ma
+ * NON diventa un appuntamento: resta una cosa da spuntare, tiene la sua
+ * casella, e al posto dell'ora dice «da fare». Un appuntamento si sposta, una
+ * scadenza si fa.
+ *
+ * E chi ha una data la mostra qui e non due volte: la lista li' sotto tiene le
+ * cose senza data, quelle che un giorno loro non ce l'hanno. Due righe uguali
+ * in due posti della stessa pagina sono una riga di troppo.
+ */
+export function scadenzaDaVoce(voce, lista) {
+  const capo = istanteDi(voce?.due);
+  if (capo.istante === null) return null;
+  return {
+    /* Si riconosce da qui: chi disegna deve poterla trattare come quello che
+     * e' — una cosa da spuntare — invece che come un evento senza ora. */
+    tipo: "scadenza",
+    uid: clean(voce?.uid),
+    summary: clean(voce?.summary),
+    listaId: clean(lista?.id),
+    lista: clean(lista?.name) || clean(lista?.entity),
+    entity: clean(lista?.entity),
+    inizio: capo.istante,
+    fine: capo.istante,
+    tuttoIlGiorno: capo.tuttoIlGiorno,
+  };
+}
+
+/** Le scadenze aperte di tutte le liste. Quelle spuntate non scadono piu'. */
+export function scadenzeDelleListe(blocchi) {
+  const fuori = [];
+  for (const blocco of Array.isArray(blocchi) ? blocchi : []) {
+    for (const voce of Array.isArray(blocco?.items) ? blocco.items : []) {
+      if (clean(voce?.status).toLowerCase() === "completed") continue;
+      const scadenza = scadenzaDaVoce(voce, blocco?.list);
+      if (scadenza) fuori.push(scadenza);
+    }
+  }
+  return ordinaEventi(fuori);
+}
+
+/** Se questa voce ha una data, e quindi vive nell'agenda invece che in fondo. */
+export function voceConScadenza(voce) {
+  return istanteDi(voce?.due).istante !== null;
+}
+
+/**
+ * L'agenda intera: appuntamenti e scadenze, giorno per giorno.
+ *
+ * Quello che e' scaduto esce dai giorni e va in un gruppo suo, in cima: una
+ * cosa da fare di martedi' scorso non appartiene a martedi' scorso — nessuno
+ * scorre indietro per trovarla — appartiene ad adesso, ed e' proprio la riga
+ * per cui si apre l'agenda.
+ */
+export function agendaPerGiorno(eventi, scadenze, adesso = Date.now()) {
+  const oggi = chiaveDelGiorno(adesso);
+  const giorni = new Map();
+  const metti = (giorno, riga) => {
+    if (!giorni.has(giorno)) giorni.set(giorno, []);
+    giorni.get(giorno).push(riga);
+  };
+
+  for (const evento of eventiDaQui(eventi, adesso))
+    metti(evento.inizio < adesso ? oggi : chiaveDelGiorno(evento.inizio), evento);
+
+  const ritardo = [];
+  for (const scadenza of Array.isArray(scadenze) ? scadenze : []) {
+    const giorno = chiaveDelGiorno(scadenza.inizio);
+    /* Il confronto e' fra GIORNI e non fra istanti: una cosa da fare per oggi
+     * e' segnata a mezzanotte, e col confronto sugli istanti risulterebbe in
+     * ritardo dalle 00:01 in poi. */
+    if (giorno < oggi) ritardo.push(scadenza);
+    else metti(giorno, scadenza);
+  }
+
+  return {
+    ritardo: ordinaEventi(ritardo),
+    giorni: [...giorni.entries()]
+      .sort(([uno], [altro]) => (uno < altro ? -1 : uno > altro ? 1 : 0))
+      .map(([giorno, elenco]) => ({ giorno, eventi: ordinaEventi(elenco) })),
+  };
+}
+
 /* ── come si dice ─────────────────────────────────────────────────────── */
 
 /* Le parole che questo modulo mette in mezzo ai numeri.
@@ -392,6 +481,10 @@ export const PAROLE_CALENDARIO = Object.freeze({
   oggi: "Oggi",
   domani: "Domani",
   tuttoIlGiorno: "Tutto il giorno",
+  /* Una scadenza non ha un'ora: al posto suo, nella colonna delle ore, dice
+   * cos'e'. «00:00» direbbe mezzanotte, che non e' quando va fatta. */
+  daFare: "Da fare",
+  inRitardo: "In ritardo",
 });
 
 /**
@@ -427,26 +520,31 @@ export function etichettaDelGiorno(
   }
 }
 
+function orarioDi(istante, lingua) {
+  try {
+    return new Date(istante).toLocaleTimeString(lingua || undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (_error) {
+    return "";
+  }
+}
+
 /** L'ora di un evento, o la parola che dice che l'ora non ce l'ha. */
 export function oraDellEvento(evento, parole = PAROLE_CALENDARIO, lingua) {
   if (!evento) return "";
   const dette = { ...PAROLE_CALENDARIO, ...(parole || {}) };
+  /* Una scadenza senza ora dice cos'e', non «tutto il giorno»: quella e' la
+   * parola delle ferie, e una cosa da fare non dura un giorno — si fa. */
+  if (evento.tipo === "scadenza")
+    return evento.tuttoIlGiorno ? dette.daFare : orarioDi(evento.inizio, lingua);
   if (evento.tuttoIlGiorno) return dette.tuttoIlGiorno;
-  const orario = (istante) => {
-    try {
-      return new Date(istante).toLocaleTimeString(lingua || undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (_error) {
-      return "";
-    }
-  };
-  const dalle = orario(evento.inizio);
+  const dalle = orarioDi(evento.inizio, lingua);
   /* Un evento che finisce quando comincia non ha una durata da mostrare: e'
    * un promemoria, e «14:30 – 14:30» sarebbe una riga che si prende in giro. */
   if (evento.fine <= evento.inizio) return dalle;
-  return `${dalle} – ${orario(evento.fine)}`;
+  return `${dalle} – ${orarioDi(evento.fine, lingua)}`;
 }
 
 /**

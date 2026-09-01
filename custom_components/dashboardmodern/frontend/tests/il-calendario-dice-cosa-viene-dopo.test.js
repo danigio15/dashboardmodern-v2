@@ -144,7 +144,13 @@ test("oggi e domani si dicono con la parola, poi si scrive la data", () => {
    * traduzioni guarda le sezioni, e una `t()` scritta qui dentro non
    * finirebbe nei cataloghi — «Oggi» resterebbe italiano per tutti. */
   assert.equal(etichettaDelGiorno("2026-09-01", ADESSO, { oggi: "Today" }), "Today");
-  assert.deepEqual(Object.keys(PAROLE_CALENDARIO).sort(), ["domani", "oggi", "tuttoIlGiorno"]);
+  assert.deepEqual(Object.keys(PAROLE_CALENDARIO).sort(), [
+    "daFare",
+    "domani",
+    "inRitardo",
+    "oggi",
+    "tuttoIlGiorno",
+  ]);
   /* Dal terzo giorno in poi la parola non c'e' piu' — «dopodomani» in un
    * elenco lungo confonde — e si scrive la data, che e' quello che si
    * cercherebbe su un'agenda. */
@@ -277,7 +283,7 @@ test("una tessera sola, con dentro i due pezzi interi", async () => {
   assert.match(source, /parte: "impegni"/);
   assert.match(source, /parte: "cose"/);
   assert.match(source, /function agendaDetail\(widget, states\)/);
-  assert.match(source, /calendarioDetail\(widget\.calendario\)/);
+  assert.match(source, /calendarioDetail\(widget\.calendario, scadenze\)/);
   assert.match(source, /todoDetail\(widget\.cose\)/);
 
   /* «Visualizzando gli ultimi 2 eventi su widget»: i due stanno nella
@@ -565,4 +571,107 @@ test("il gettone si va a prendere in un posto solo", async () => {
     assert.doesNotMatch(sorgente, /function authToken\(\)/, nome);
     assert.match(sorgente, /gettoneDiAccesso/, nome);
   }
+});
+
+/* ── le scadenze stanno nell'agenda, nel loro giorno ───────────────────────
+ *
+ * «Scadenze nell'agenda.» Una cosa da fare con una data E' un impegno di quel
+ * giorno: tenerla in un elenco a parte in fondo alla pagina vuol dire guardare
+ * l'agenda di giovedi' senza vedere che giovedi' scade la revisione dell'auto.
+ */
+
+test("una cosa da fare con una data entra nell'agenda, e resta una cosa da fare", async () => {
+  const { agendaPerGiorno, oraDellEvento, scadenzeDelleListe, voceConScadenza } = await import(
+    "../src/core/calendario-model.js"
+  );
+  const giorno = (scarto) => {
+    const quando = new Date(ADESSO + scarto * 86400000);
+    const due = (numero) => String(numero).padStart(2, "0");
+    return `${quando.getFullYear()}-${due(quando.getMonth() + 1)}-${due(quando.getDate())}`;
+  };
+  const blocchi = [
+    {
+      list: { id: "t1", name: "Casa", entity: "todo.casa" },
+      items: [
+        { uid: "a1", summary: "Senza data", status: "needs_action" },
+        { uid: "a2", summary: "Idraulico", status: "needs_action", due: giorno(1) },
+        { uid: "a3", summary: "Bottiglie al vetro", status: "needs_action", due: giorno(-2) },
+        { uid: "a4", summary: "Bollo auto", status: "needs_action", due: giorno(0) },
+        // Spuntata: non scade piu'.
+        { uid: "a5", summary: "Fatta", status: "completed", due: giorno(1) },
+      ],
+    },
+  ];
+  const scadenze = scadenzeDelleListe(blocchi);
+  assert.deepEqual(
+    scadenze.map((voce) => voce.summary),
+    ["Bottiglie al vetro", "Bollo auto", "Idraulico"],
+  );
+  // Resta una cosa da spuntare, non diventa un appuntamento.
+  assert.equal(scadenze[0].tipo, "scadenza");
+  assert.equal(scadenze[0].listaId, "t1");
+  assert.equal(scadenze[0].uid, "a3");
+  /* Al posto dell'ora dice cos'e': «00:00» direbbe mezzanotte, che non e'
+   * quando va fatta, e «tutto il giorno» e' la parola delle ferie. */
+  assert.equal(oraDellEvento(scadenze[0]), "Da fare");
+  assert.equal(oraDellEvento(scadenze[0], { daFare: "To-do" }), "To-do");
+
+  const eventi = parseCalendarEventsResponse(RISPOSTA, "calendar.casa");
+  const { ritardo, giorni } = agendaPerGiorno(eventi, scadenze, ADESSO);
+  /* Quello che e' scaduto esce dai giorni: una cosa da fare di martedi' scorso
+   * non appartiene a martedi' scorso — nessuno scorre indietro per trovarla. */
+  assert.deepEqual(
+    ritardo.map((voce) => voce.summary),
+    ["Bottiglie al vetro"],
+  );
+  const oggi = giorni.find((voce) => voce.giorno === "2026-09-01");
+  /* Nel giorno, la scadenza sta insieme agli appuntamenti e prima di quelli
+   * con un'ora: e' segnata a mezzanotte, come gli eventi di tutto il giorno. */
+  assert.deepEqual(
+    oggi.eventi.map((voce) => voce.summary),
+    ["Bollo auto", "Riunione in corso", "Palestra"],
+  );
+  const domani = giorni.find((voce) => voce.giorno === "2026-09-02");
+  assert.ok(domani.eventi.some((voce) => voce.summary === "Idraulico"));
+  assert.ok(domani.eventi.some((voce) => voce.summary === "Ferie"));
+
+  // Chi ha una data vive nell'agenda; chi non ce l'ha resta nella lista sotto.
+  assert.equal(voceConScadenza({ due: giorno(1) }), true);
+  assert.equal(voceConScadenza({ due: "" }), false);
+  assert.equal(voceConScadenza({}), false);
+});
+
+test("una scadenza per oggi non e' in ritardo, nemmeno all'una di notte", async () => {
+  const { agendaPerGiorno, scadenzaDaVoce } = await import("../src/core/calendario-model.js");
+  const allUna = new Date(2026, 8, 1, 1, 0, 0).getTime();
+  const oggi = scadenzaDaVoce({ uid: "x", summary: "Bollo", due: "2026-09-01" }, { id: "t1" });
+  /* Una cosa da fare per oggi e' segnata a mezzanotte: col confronto sugli
+   * ISTANTI risulterebbe in ritardo dalle 00:01 in poi, e chi si alza la
+   * mattina troverebbe rossa una cosa che ha tutto il giorno per fare. */
+  const { ritardo, giorni } = agendaPerGiorno([], [oggi], allUna);
+  assert.deepEqual(ritardo, []);
+  assert.equal(giorni[0].giorno, "2026-09-01");
+  assert.equal(giorni[0].eventi[0].summary, "Bollo");
+});
+
+test("la stessa riga non compare due volte nella stessa pagina", async () => {
+  const source = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  /* Chi ha una data la mostra nell'agenda; la lista li' sotto tiene le cose
+   * senza data. Due righe uguali in due posti sono una riga di troppo. */
+  assert.match(source, /const senzaData = \(items \|\| \[\]\)\.filter\(\(item\) => !voceConScadenza\(item\)\)/);
+  // E la riga della scadenza porta la casella, non i tasti dell'appuntamento.
+  assert.match(source, /if \(riga\.tipo === "scadenza"\)/);
+  assert.match(source, /data-scadenza="true"[\s\S]{0,400}?data-dm-todo-check/);
+  // Il conteggio della tessera le comprende, o smentirebbe quello che c'e' sotto.
+  assert.match(source, /const scadenzeOggi = scadenzeDelleListe\(blocchiDelleListe\(\)\)/);
+
+  const sezione = await readFile(
+    new URL("../src/sections/calendario-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezione, /agendaPerGiorno\(restano, scadenze, adesso\)/);
+  assert.match(sezione, /data-dm-ritardo="true"/);
 });
