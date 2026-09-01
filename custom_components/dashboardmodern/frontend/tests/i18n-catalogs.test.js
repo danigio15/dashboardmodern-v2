@@ -169,6 +169,8 @@ const LOCALE_IDENTITIES = {
     "Color",
     "Error",
     "ideal",
+    /* Il plurale spagnolo di «idea» si scrive come in inglese. */
+    "Ideas",
     "Magenta",
     "Pickup",
     "Script",

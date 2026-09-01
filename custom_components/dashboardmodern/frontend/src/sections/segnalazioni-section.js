@@ -34,8 +34,13 @@ const state = (root[KEY] ||= {
   auth: null,
   authTimer: 0,
   queue: null,
+  filtro: "aperte",
   tab: "nuova",
   tipo: "bug",
+  /* Quello che si sta scrivendo. Sta qui e non solo nel DOM perche' ogni
+   * ridisegno rifa' il modulo da capo: senza, cambiare tipo a meta' frase
+   * cancellava la frase. */
+  bozza: { title: "", body: "", contact: "" },
   busy: false,
   avviso: "",
   config: null,
@@ -84,19 +89,103 @@ const MAX_TITOLO = 120;
 const MAX_CORPO = 4000;
 const MAX_CONTATTO = 190;
 
+/* I tre tipi. Ognuno porta la sua spiegazione e il suo suggerimento, perche'
+ * la differenza fra «non funziona» e «vorrei che facesse» la sa chi scrive
+ * solo se gliela si racconta: una segnalazione ben incasellata e' meta' del
+ * lavoro di chi la legge. */
 const TIPI = [
-  { id: "bug", icona: "🐞", nome: () => t("Un difetto", "A bug") },
-  { id: "feature", icona: "✨", nome: () => t("Un'idea", "An idea") },
-  { id: "assistenza", icona: "💬", nome: () => t("Aiuto", "Help") },
+  {
+    id: "bug",
+    icona: "🐞",
+    rgb: "220,38,38",
+    nome: () => t("Non funziona", "Something is broken"),
+    che: () =>
+      t(
+        "Qualcosa si comporta in modo diverso da come dovrebbe",
+        "Something behaves differently from how it should",
+      ),
+    titolo: () => t("In una riga: cosa succede", "In one line: what happens"),
+    corpo: () =>
+      t(
+        "Cosa hai fatto, cosa ti aspettavi, cosa e' successo invece.",
+        "What you did, what you expected, what happened instead.",
+      ),
+  },
+  {
+    id: "feature",
+    icona: "✨",
+    rgb: "124,58,237",
+    nome: () => t("Vorrei che facesse", "I would like it to"),
+    che: () =>
+      t(
+        "Un'idea, una cosa che manca, un modo migliore",
+        "An idea, something missing, a better way",
+      ),
+    titolo: () => t("In una riga: cosa vorresti", "In one line: what you would like"),
+    corpo: () =>
+      t(
+        "A cosa ti servirebbe, e come te la immagini nella plancia.",
+        "What you would need it for, and how you picture it in the dashboard.",
+      ),
+  },
+  {
+    id: "assistenza",
+    icona: "💬",
+    rgb: "14,165,233",
+    nome: () => t("Non ci riesco", "I cannot manage"),
+    che: () =>
+      t("Serve una mano a configurare o a capire", "You need a hand configuring or understanding"),
+    titolo: () =>
+      t("In una riga: cosa stai provando a fare", "In one line: what you are trying to do"),
+    corpo: () =>
+      t(
+        "Cosa vorresti ottenere e dove ti sei fermato.",
+        "What you are trying to achieve and where you got stuck.",
+      ),
+  },
 ];
 
+function tipoAttivo(id = state.tipo) {
+  return TIPI.find((voce) => voce.id === id) || TIPI[0];
+}
+
+/* Gli stati. Il colore non porta mai da solo l'informazione: accanto c'e'
+ * sempre un segno e una parola, perche' una pastiglia colorata e basta la
+ * legge chi distingue i colori e nessun altro. */
 const STATI = {
   bozza: { icona: "○", nome: () => t("Da inviare", "To send") },
   inviato: { icona: "●", nome: () => t("Inviata", "Sent") },
   "in-carico": { icona: "◐", nome: () => t("Presa in carico", "Being worked on") },
   risolto: { icona: "✓", nome: () => t("Risolta", "Solved") },
-  chiuso: { icona: "×", nome: () => t("Chiusa", "Closed") },
+  chiuso: { icona: "×", nome: () => t("Archiviata", "Archived") },
 };
+
+/* Le colonne del cruscotto: tre numeri, non un grafico. Un conteggio per
+ * stato e' una cifra sola per colonna, e una cifra sola si legge meglio
+ * scritta grande che disegnata. */
+const COLONNE = [
+  {
+    id: "inviato",
+    icona: "📥",
+    rgb: "14,165,233",
+    nome: () => t("Nuove", "New"),
+    tiene: (stato) => stato === "inviato",
+  },
+  {
+    id: "in-carico",
+    icona: "🔧",
+    rgb: "249,115,22",
+    nome: () => t("In lavorazione", "In progress"),
+    tiene: (stato) => stato === "in-carico",
+  },
+  {
+    id: "chiuse",
+    icona: "✅",
+    rgb: "22,163,74",
+    nome: () => t("Chiuse", "Closed"),
+    tiene: (stato) => stato === "risolto" || stato === "chiuso",
+  },
+];
 
 /* ─── Il canale verso Home Assistant ──────────────────────────────────────
  *
@@ -187,9 +276,7 @@ function statoCollegamento() {
         <div class="dm-tkt-codice">${esc(state.auth.user_code)}</div>
         <div class="dm-tkt-azioni">
           <a class="dm-tkt-btn" href="${esc(state.auth.verification_uri)}"
-             target="_blank" rel="noreferrer noopener">${esc(
-               t("Apri GitHub", "Open GitHub"),
-             )}</a>
+             target="_blank" rel="noreferrer noopener">${esc(t("Apri GitHub", "Open GitHub"))}</a>
           <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="annulla">${esc(
             t("Annulla", "Cancel"),
           )}</button>
@@ -199,9 +286,7 @@ function statoCollegamento() {
   if (state.account.connected) {
     return `
       <div class="dm-tkt-avviso dm-tkt-collegato">
-        <span>${esc(t("Collegato come", "Connected as"))} <b>${esc(
-          state.account.login,
-        )}</b></span>
+        <span>${esc(t("Collegato come", "Connected as"))} <b>${esc(state.account.login)}</b></span>
         <button type="button" class="dm-tkt-tolgi" data-dm-tkt="scollega">${esc(
           t("Scollega", "Disconnect"),
         )}</button>
@@ -263,7 +348,10 @@ function attendiAutorizzazione(avvio) {
       state.auth = null;
       if (risposta?.account) state.account = risposta.account;
       state.avviso = risposta?.delivered
-        ? t("Collegato. Le segnalazioni in attesa sono partite.", "Connected. Pending reports were sent.")
+        ? t(
+            "Collegato. Le segnalazioni in attesa sono partite.",
+            "Connected. Pending reports were sent.",
+          )
         : t("Collegato.", "Connected.");
       await ricarica();
     } catch (errore) {
@@ -303,78 +391,144 @@ const CSS = `
 .dm-tkt-badge { display:inline-flex; align-items:center; justify-content:center;
   min-width:20px; height:20px; padding:0 6px; margin-left:8px; border-radius:10px;
   background:var(--accent,#0ea5e9); color:#fff; font-size:11px; font-weight:800; }
-.dm-tkt-body { display:flex; flex-direction:column; gap:16px; }
+
+/* La finestra: larga come una pagina, perche' il cruscotto e' una pagina. */
+#dm-tkt-modal .modal-card.dm-tkt-pannello { max-width:760px; padding:20px; }
+.dm-tkt-hero { position:relative; margin-bottom:16px; }
+.dm-tkt-hero .cfg-hero-txt { flex:1; min-width:0; }
+.dm-tkt-hero .ev-waw-close { flex-shrink:0; }
+.dm-tkt-body { display:flex; flex-direction:column; gap:14px; }
+
+/* Le linguette. */
 .dm-tkt-tabs { display:flex; gap:8px; flex-wrap:wrap; }
 .dm-tkt-tab { flex:1 1 90px; padding:10px 12px; border-radius:14px; cursor:pointer;
   border:1px solid var(--card-border,#e2e8f0); background:var(--surface-3,#f1f5f9);
-  color:var(--text,#0f172a); font-size:13px; font-weight:700; text-align:center; }
-.dm-tkt-tab.attiva { background:var(--accent,#0ea5e9); color:#fff; border-color:transparent; }
-.dm-tkt-tipi { display:flex; gap:8px; flex-wrap:wrap; }
-.dm-tkt-tipo { flex:1 1 90px; padding:14px 8px; border-radius:16px; cursor:pointer;
+  color:var(--text,#0f172a); font-size:13px; font-weight:700; text-align:center;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), background .2s; }
+.dm-tkt-tab:hover { transform:translateY(-2px); }
+.dm-tkt-tab.attiva { background:var(--accent,#0ea5e9); color:#fff;
+  border-color:transparent; }
+
+/* I passi del modulo: un'etichetta piccola che dice a che punto sei. */
+.dm-tkt-passo { font-size:10px; font-weight:800; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--text-dim,#64748b); margin-top:4px; }
+
+/* Le tre schede del tipo. */
+.dm-tkt-tipi { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.dm-tkt-tipo { padding:14px 10px; border-radius:18px; cursor:pointer;
   border:2px solid var(--card-border,#e2e8f0); background:var(--surface-3,#f1f5f9);
-  color:var(--text,#0f172a); display:flex; flex-direction:column; align-items:center; gap:6px;
-  font-size:12px; font-weight:700; }
-.dm-tkt-tipo.attivo { border-color:var(--accent,#0ea5e9); background:rgba(14,165,233,0.12); }
-.dm-tkt-tipo .dm-tkt-tipo-ico { font-size:22px; line-height:1; }
+  color:var(--text,#0f172a); display:flex; flex-direction:column; align-items:center;
+  gap:6px; text-align:center; transition:transform .18s cubic-bezier(.34,1.56,.64,1),
+  border-color .2s, background .2s; }
+.dm-tkt-tipo:hover { transform:translateY(-3px); }
+.dm-tkt-tipo.attivo { border-color:rgb(var(--tk-rgb,14,165,233));
+  background:rgba(var(--tk-rgb,14,165,233),0.10); }
+.dm-tkt-tipo-ico { font-size:24px; line-height:1; }
+.dm-tkt-tipo-nm { font-size:13px; font-weight:800; }
+.dm-tkt-tipo-ds { font-size:11px; line-height:1.35; color:var(--text-dim,#64748b); }
+
+/* I campi. */
 .dm-tkt-campo { display:flex; flex-direction:column; gap:6px; }
 .dm-tkt-campo label { font-size:12px; font-weight:700; color:var(--text-dim,#64748b); }
 .dm-tkt-campo input, .dm-tkt-campo textarea { width:100%; box-sizing:border-box;
   padding:11px 13px; border-radius:13px; border:1px solid var(--card-border,#e2e8f0);
   background:var(--card-bg,#fff); color:var(--text,#0f172a); font-size:14px;
   font-family:inherit; }
-.dm-tkt-campo textarea { min-height:120px; resize:vertical; }
+.dm-tkt-campo input:focus, .dm-tkt-campo textarea:focus { outline:none;
+  border-color:var(--accent,#0ea5e9);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb,14,165,233),0.18); }
+.dm-tkt-campo textarea { min-height:120px; resize:vertical; line-height:1.5; }
 .dm-tkt-conta { font-size:11px; color:var(--text-dim,#64748b); text-align:right; }
-.dm-tkt-diag { border:1px solid var(--card-border,#e2e8f0); border-radius:13px; padding:10px 13px;
-  background:var(--surface-3,#f1f5f9); }
+
+/* Cosa parte. */
+.dm-tkt-diag { border:1px solid var(--card-border,#e2e8f0); border-radius:13px;
+  padding:10px 13px; background:var(--surface-3,#f1f5f9); }
 .dm-tkt-diag summary { cursor:pointer; font-size:12px; font-weight:700;
   color:var(--text-dim,#64748b); }
 .dm-tkt-diag dl { margin:10px 0 0; display:grid; grid-template-columns:auto 1fr;
   gap:4px 12px; font-size:12px; }
 .dm-tkt-diag dt { color:var(--text-dim,#64748b); }
 .dm-tkt-diag dd { margin:0; color:var(--text,#0f172a); word-break:break-word; }
+.dm-tkt-pubblica { display:flex; gap:10px; align-items:flex-start; padding:11px 14px;
+  border-radius:14px; font-size:12px; line-height:1.5;
+  background:rgba(249,115,22,0.12); color:var(--text,#0f172a); }
+.dm-tkt-pubblica-ico { font-size:16px; line-height:1.2; }
+
+/* I tasti. */
 .dm-tkt-azioni { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
 .dm-tkt-btn { padding:11px 20px; border-radius:14px; border:none; cursor:pointer;
-  font-size:13px; font-weight:800; background:var(--accent,#0ea5e9); color:#fff; }
-.dm-tkt-btn[disabled] { opacity:0.5; cursor:default; }
+  font-size:13px; font-weight:800; background:var(--accent,#0ea5e9); color:#fff;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), filter .2s; }
+.dm-tkt-btn:hover { transform:translateY(-2px); filter:brightness(1.05); }
+.dm-tkt-btn[disabled] { opacity:.5; cursor:default; transform:none; }
 .dm-tkt-btn.chiaro { background:var(--surface-3,#f1f5f9); color:var(--text,#0f172a);
   border:1px solid var(--card-border,#e2e8f0); }
-.dm-tkt-avviso { padding:10px 13px; border-radius:13px; font-size:13px; font-weight:600;
-  background:rgba(14,165,233,0.12); color:var(--text,#0f172a); }
+.dm-tkt-avviso { padding:11px 14px; border-radius:14px; font-size:13px;
+  line-height:1.5; font-weight:600; background:rgba(14,165,233,0.12);
+  color:var(--text,#0f172a); }
 .dm-tkt-avviso.male { background:rgba(220,38,38,0.12); }
-.dm-tkt-elenco { display:flex; flex-direction:column; gap:10px; }
-.dm-tkt-voce { border:1px solid var(--card-border,#e2e8f0); border-radius:16px;
-  padding:13px 15px; background:var(--card-bg,#fff); }
-.dm-tkt-voce-testa { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.dm-tkt-voce-tit { flex:1 1 auto; font-size:14px; font-weight:800; color:var(--text,#0f172a);
-  word-break:break-word; }
-.dm-tkt-stato { font-size:11px; font-weight:800; padding:3px 9px; border-radius:9px;
-  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b); white-space:nowrap; }
-.dm-tkt-stato[data-stato="risolto"] { background:rgba(21,128,61,0.15); color:#15803d; }
-.dm-tkt-stato[data-stato="in-carico"] { background:rgba(249,115,22,0.15); color:#c2410c; }
-.dm-tkt-stato[data-stato="bozza"] { background:rgba(100,116,139,0.15); }
-.dm-tkt-voce-corpo { margin:8px 0 0; font-size:13px; color:var(--text-dim,#64748b);
-  white-space:pre-wrap; word-break:break-word; }
-.dm-tkt-risposta { margin-top:9px; padding:9px 12px; border-radius:12px;
-  background:rgba(14,165,233,0.10); font-size:13px; color:var(--text,#0f172a);
-  white-space:pre-wrap; word-break:break-word; }
-.dm-tkt-voce-pie { display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-  margin-top:9px; font-size:11px; color:var(--text-dim,#64748b); }
-.dm-tkt-link { color:var(--accent,#0ea5e9); font-weight:700; text-decoration:none; }
-.dm-tkt-tolgi { background:none; border:none; cursor:pointer; padding:0;
-  color:var(--text-dim,#64748b); font-size:11px; font-weight:700; text-decoration:underline; }
-.dm-tkt-vuoto { padding:26px 10px; text-align:center; font-size:13px;
-  color:var(--text-dim,#64748b); }
-.dm-tkt-pubblica { padding:10px 13px; border-radius:13px; font-size:12px;
-  line-height:1.45; background:rgba(249,115,22,0.12); color:var(--text,#0f172a); }
+
+/* Il collegamento a GitHub. */
 .dm-tkt-device { display:flex; flex-direction:column; gap:10px; }
 .dm-tkt-codice { font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:26px; font-weight:800; letter-spacing:4px; text-align:center;
-  padding:10px; border-radius:12px; background:var(--card-bg,#fff);
+  padding:12px; border-radius:14px; background:var(--card-bg,#fff);
   color:var(--text,#0f172a); user-select:all; }
 .dm-tkt-collegato { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
   justify-content:space-between; }
 a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
-@media (max-width:520px) { .dm-tkt-tipo { flex-basis:calc(33% - 8px); } }
+
+/* L'elenco, di qua e di la'. */
+.dm-tkt-elenco { display:flex; flex-direction:column; gap:12px; }
+.dm-tkt-voce { border:1px solid var(--card-border,#e2e8f0); border-radius:18px;
+  padding:15px 17px; background:var(--card-bg,#fff);
+  box-shadow:var(--shadow-sculpted,0 4px 14px rgba(0,0,0,.05)); }
+.dm-tkt-lavoro { border-left:4px solid rgb(var(--tk-rgb,14,165,233)); }
+.dm-tkt-voce-testa { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.dm-tkt-tipo-pill { font-size:18px; line-height:1; }
+.dm-tkt-voce-tit { flex:1 1 auto; font-size:14px; font-weight:800;
+  color:var(--text,#0f172a); word-break:break-word; }
+.dm-tkt-stato { font-size:11px; font-weight:800; padding:3px 9px; border-radius:9px;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
+  white-space:nowrap; }
+.dm-tkt-stato[data-stato="risolto"] { background:rgba(22,163,74,0.15); color:#15803d; }
+.dm-tkt-stato[data-stato="in-carico"] { background:rgba(249,115,22,0.15); color:#c2410c; }
+.dm-tkt-stato[data-stato="inviato"] { background:rgba(14,165,233,0.15); color:#0369a1; }
+.dm-tkt-stato[data-stato="bozza"] { background:rgba(100,116,139,0.15); }
+.dm-tkt-voce-corpo { margin:9px 0 0; font-size:13px; line-height:1.55;
+  color:var(--text-dim,#64748b); white-space:pre-wrap; word-break:break-word; }
+.dm-tkt-risposta { margin-top:10px; padding:10px 13px; border-radius:13px;
+  background:rgba(14,165,233,0.10); font-size:13px; line-height:1.5;
+  color:var(--text,#0f172a); white-space:pre-wrap; word-break:break-word; }
+.dm-tkt-voce-pie { display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  margin-top:9px; font-size:11px; color:var(--text-dim,#64748b); }
+.dm-tkt-link { color:var(--accent,#0ea5e9); font-weight:700; text-decoration:none; }
+.dm-tkt-link:hover { text-decoration:underline; }
+.dm-tkt-tolgi { background:none; border:none; cursor:pointer; padding:0;
+  color:var(--text-dim,#64748b); font-size:11px; font-weight:700;
+  text-decoration:underline; }
+.dm-tkt-vuoto { display:flex; flex-direction:column; align-items:center; gap:12px;
+  padding:34px 14px; text-align:center; font-size:13px;
+  color:var(--text-dim,#64748b); }
+.dm-tkt-vuoto-ico { font-size:38px; opacity:.55; }
+
+/* Il cruscotto: i tre numeri e i filtri. */
+.dm-tkt-kpi { margin-bottom:0; }
+.dm-tkt-filtri { display:flex; gap:8px; flex-wrap:wrap; }
+.dm-tkt-filtro { padding:7px 14px; border-radius:50px; cursor:pointer;
+  border:1px solid var(--card-border,#e2e8f0); background:var(--surface-3,#f1f5f9);
+  color:var(--text-dim,#64748b); font-size:12px; font-weight:700; }
+.dm-tkt-filtro.attivo { background:var(--accent,#0ea5e9); color:#fff;
+  border-color:transparent; }
+
+@media (max-width:560px) {
+  #dm-tkt-modal .modal-card.dm-tkt-pannello { padding:14px 12px; }
+  .dm-tkt-tipi { grid-template-columns:1fr; }
+  .dm-tkt-tipo { flex-direction:row; text-align:left; gap:12px; }
+  .dm-tkt-tipo-ico { font-size:20px; }
+  .dm-tkt-tipo-ds { display:none; }
+  .dm-tkt-azioni .dm-tkt-btn { flex:1 1 auto; }
+}
 `;
 
 /* ─── La tessera in Configurazione ─────────────────────────────────────── */
@@ -421,9 +575,15 @@ function finestra() {
   modale.className = "modal-wrapper";
   modale.id = "dm-tkt-modal";
   modale.innerHTML = `
-    <div class="modal-card" role="dialog" aria-modal="true">
-      <div class="ev-waw-header">
-        <h3 class="ev-waw-title">🎫 <span data-dm-tkt="titolo"></span></h3>
+    <div class="modal-card dm-tkt-pannello" role="dialog" aria-modal="true"
+         aria-labelledby="dm-tkt-titolo">
+      <div class="cfg-hero dm-tkt-hero">
+        <div class="cfg-hero-ico" aria-hidden="true">🎫</div>
+        <div class="cfg-hero-txt">
+          <div class="cfg-hero-title" id="dm-tkt-titolo"
+               data-dm-tkt="titolo"></div>
+          <div class="cfg-hero-sub" data-dm-tkt="sottotitolo"></div>
+        </div>
         <button class="ev-waw-close" type="button" data-dm-tkt="chiudi"></button>
       </div>
       <div class="dm-tkt-body" data-dm-tkt="corpo"></div>
@@ -495,52 +655,64 @@ function avvisoMarkup() {
 }
 
 function moduloMarkup() {
+  const scelto = tipoAttivo();
   const tipi = TIPI.map(
     (tipo) => `
       <button type="button" class="dm-tkt-tipo${
         state.tipo === tipo.id ? " attivo" : ""
-      }" data-dm-tipo="${tipo.id}">
+      }" data-dm-tipo="${tipo.id}" style="--tk-rgb:${tipo.rgb};"
+        aria-pressed="${state.tipo === tipo.id}">
         <span class="dm-tkt-tipo-ico">${tipo.icona}</span>
-        <span>${esc(tipo.nome())}</span>
+        <span class="dm-tkt-tipo-nm">${esc(tipo.nome())}</span>
+        <span class="dm-tkt-tipo-ds">${esc(tipo.che())}</span>
       </button>`,
   ).join("");
-  const avvisoConsegna = statoCollegamento();
   return `
-    ${avvisoConsegna}
+    ${statoCollegamento()}
+    <div class="dm-tkt-passo">${esc(t("1 · Di che si tratta", "1 · What is it about"))}</div>
     <div class="dm-tkt-tipi">${tipi}</div>
+    <div class="dm-tkt-passo">${esc(t("2 · Raccontalo", "2 · Tell it"))}</div>
     <div class="dm-tkt-campo">
       <label for="dm-tkt-titolo">${esc(t("Titolo", "Title"))}</label>
       <input id="dm-tkt-titolo" type="text" maxlength="${MAX_TITOLO}"
-        placeholder="${esc(t("In una riga: cosa succede", "In one line: what happens"))}">
+        autocomplete="off" placeholder="${esc(scelto.titolo())}"
+        value="${esc(state.bozza.title)}">
     </div>
     <div class="dm-tkt-campo">
       <label for="dm-tkt-corpo">${esc(t("Descrizione", "Description"))}</label>
       <textarea id="dm-tkt-corpo" maxlength="${MAX_CORPO}"
-        placeholder="${esc(
-          t(
-            "Cosa hai fatto, cosa ti aspettavi, cosa e' successo invece.",
-            "What you did, what you expected, what happened instead.",
-          ),
-        )}"></textarea>
-      <div class="dm-tkt-conta" data-dm-tkt="conta">0 / ${MAX_CORPO}</div>
+        placeholder="${esc(scelto.corpo())}">${esc(state.bozza.body)}</textarea>
+      <div class="dm-tkt-conta" data-dm-tkt="conta">${state.bozza.body.length} / ${MAX_CORPO}</div>
     </div>
     <div class="dm-tkt-campo">
       <label for="dm-tkt-contatto">${esc(
         t("Come ricontattarti (facoltativo)", "How to reach you (optional)"),
       )}</label>
       <input id="dm-tkt-contatto" type="text" maxlength="${MAX_CONTATTO}"
-        placeholder="${esc(t("Lascia vuoto se non vuoi", "Leave empty if you prefer"))}">
+        autocomplete="off" value="${esc(state.bozza.contact)}"
+        placeholder="${esc(
+          t(
+            "Resta in casa: non finisce nella pagina pubblica",
+            "Stays at home: it does not go on the public page",
+          ),
+        )}">
     </div>
+    <div class="dm-tkt-passo">${esc(t("3 · Cosa parte", "3 · What gets sent"))}</div>
     <details class="dm-tkt-diag">
-      <summary>${esc(t("Cosa viene inviato", "What gets sent"))}</summary>
+      <summary>${esc(
+        t("Le cose che la plancia sa gia'", "The things the dashboard already knows"),
+      )}</summary>
       <dl data-dm-tkt="diag"></dl>
     </details>
-    <div class="dm-tkt-pubblica">${esc(
-      t(
-        "La segnalazione diventa una pagina pubblica su github.com, aperta a tuo nome: chiunque potra' leggerla. Quello che scrivi qui sopra, e la diagnostica, ci finiscono dentro. Il recapito no: quello resta in casa.",
-        "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. What you write above, and the diagnostics, go into it. Your contact does not: that stays at home.",
-      ),
-    )}</div>
+    <div class="dm-tkt-pubblica">
+      <span class="dm-tkt-pubblica-ico" aria-hidden="true">🌍</span>
+      <span>${esc(
+        t(
+          "La segnalazione diventa una pagina pubblica su github.com, aperta a tuo nome: chiunque potra' leggerla. Il recapito qui sopra no: quello resta in casa.",
+          "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.",
+        ),
+      )}</span>
+    </div>
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn" data-dm-tkt="invia" ${
         state.busy ? "disabled" : ""
@@ -597,9 +769,16 @@ export function voceMarkup(ticket) {
 
 function elencoMarkup() {
   if (!state.tickets.length) {
-    return `<div class="dm-tkt-vuoto">${esc(
-      t("Non hai ancora aperto nessuna segnalazione.", "You have not opened any report yet."),
-    )}</div>`;
+    return `
+      <div class="dm-tkt-vuoto">
+        <div class="dm-tkt-vuoto-ico" aria-hidden="true">🎫</div>
+        <div>${esc(
+          t("Non hai ancora aperto nessuna segnalazione.", "You have not opened any report yet."),
+        )}</div>
+        <button type="button" class="dm-tkt-btn" data-dm-tab="nuova">${esc(
+          t("Aprine una", "Open one"),
+        )}</button>
+      </div>`;
   }
   return `
     <div class="dm-tkt-elenco">${state.tickets.map(voceMarkup).join("")}</div>
@@ -610,55 +789,173 @@ function elencoMarkup() {
     </div>`;
 }
 
+/* ─── Il cruscotto ──────────────────────────────────────────────────────────
+ *
+ * Quello che serve a chi la coda la lavora: quante ne sono arrivate, quali
+ * aspettano una risposta, e la possibilita' di darla senza aprire un'altra
+ * finestra.
+ *
+ * Tre numeri e un elenco, e nessun grafico: un conteggio per stato e' una
+ * cifra sola per colonna, e una cifra sola si legge meglio scritta grande che
+ * disegnata. */
+
+export const FILTRI_ID = Object.freeze([
+  "aperte",
+  "tutte",
+  "bug",
+  "feature",
+  "assistenza",
+]);
+
+const FILTRI = [
+  { id: "aperte", nome: () => t("Da lavorare", "To work on") },
+  { id: "tutte", nome: () => t("Tutte", "All") },
+  { id: "bug", nome: () => t("Difetti", "Bugs") },
+  { id: "feature", nome: () => t("Idee", "Ideas") },
+  { id: "assistenza", nome: () => t("Aiuto", "Help") },
+];
+
+export function contaColonne(coda) {
+  return COLONNE.map((colonna) => ({
+    ...colonna,
+    quante: coda.filter((ticket) => colonna.tiene(clean(ticket.state))).length,
+  }));
+}
+
+function colonneMarkup(coda) {
+  return `<div class="ed-kpi-banner dm-tkt-kpi">${contaColonne(coda)
+    .map(
+      (colonna) => `
+        <div class="ed-kpi-item" style="--kpi-rgb:${colonna.rgb};">
+          <div class="ed-kpi-icon" aria-hidden="true">${colonna.icona}</div>
+          <div class="ed-kpi-val">${colonna.quante}</div>
+          <div class="ed-kpi-label">${esc(colonna.nome())}</div>
+        </div>`,
+    )
+    .join("")}</div>`;
+}
+
+function filtriMarkup() {
+  return `<div class="dm-tkt-filtri">${FILTRI.map(
+    (filtro) =>
+      `<button type="button" class="dm-tkt-filtro${
+        state.filtro === filtro.id ? " attivo" : ""
+      }" data-dm-filtro="${filtro.id}" aria-pressed="${
+        state.filtro === filtro.id
+      }">${esc(filtro.nome())}</button>`,
+  ).join("")}</div>`;
+}
+
+export function filtra(coda, filtro = state.filtro) {
+  if (filtro === "tutte") return coda;
+  if (filtro === "aperte") {
+    return coda.filter((ticket) => {
+      const stato = clean(ticket.state);
+      return stato !== "risolto" && stato !== "chiuso";
+    });
+  }
+  return coda.filter((ticket) => clean(ticket.type) === filtro);
+}
+
+function quandoMarkup(ticket) {
+  const numero = Number(ticket.number) || 0;
+  const chi = clean(ticket.author);
+  return `#${numero}${chi ? ` · ${esc(chi)}` : ""}`;
+}
+
+export function codaVoceMarkup(ticket) {
+  const numero = Number(ticket.number) || 0;
+  const tipo = tipoAttivo(clean(ticket.type));
+  const chiusa = ["risolto", "chiuso"].includes(clean(ticket.state));
+  const azioni = chiusa
+    ? `<button type="button" class="dm-tkt-btn chiaro"
+         data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
+           t("Aggiungi una risposta", "Add a reply"),
+         )}</button>`
+    : `
+      <button type="button" class="dm-tkt-btn chiaro"
+        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(t("Rispondi", "Reply"))}</button>
+      <button type="button" class="dm-tkt-btn"
+        data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
+          t("Rispondi e risolvi", "Reply and solve"),
+        )}</button>
+      <button type="button" class="dm-tkt-btn chiaro"
+        data-dm-rispondi="${numero}" data-dm-chiudi="chiuso">${esc(
+          t("Archivia", "Archive"),
+        )}</button>`;
+  return `
+    <div class="dm-tkt-voce dm-tkt-lavoro" style="--tk-rgb:${tipo.rgb};">
+      <div class="dm-tkt-voce-testa">
+        <span class="dm-tkt-tipo-pill" aria-hidden="true">${tipo.icona}</span>
+        <span class="dm-tkt-voce-tit">${esc(clean(ticket.title))}</span>
+        ${statoMarkup(clean(ticket.state) || "inviato")}
+      </div>
+      <div class="dm-tkt-voce-pie">
+        <span>${quandoMarkup(ticket)}</span>
+        <a class="dm-tkt-link" href="${esc(clean(ticket.issue_url))}"
+           target="_blank" rel="noreferrer noopener">${esc(
+             t("Apri su GitHub", "Open on GitHub"),
+           )}</a>
+      </div>
+      <p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>
+      <div class="dm-tkt-campo">
+        <textarea id="dm-tkt-risposta-${numero}" rows="3"
+          placeholder="${esc(
+            t(
+              "La risposta finisce sotto la segnalazione, e chi l'ha aperta la trova nella sua plancia.",
+              "The reply goes under the report, and whoever opened it finds it in their own dashboard.",
+            ),
+          )}"></textarea>
+      </div>
+      <div class="dm-tkt-azioni">${azioni}</div>
+    </div>`;
+}
+
 function consoleMarkup() {
   if (state.queue === null) {
     return `<div class="dm-tkt-vuoto">${esc(t("Carico la coda…", "Loading the queue…"))}</div>`;
   }
-  if (!state.queue.length) {
-    return `<div class="dm-tkt-vuoto">${esc(t("Coda vuota.", "The queue is empty."))}</div>`;
+  const coda = state.queue;
+  const scelte = filtra(coda);
+  const elenco = scelte.length
+    ? `<div class="dm-tkt-elenco">${scelte.map(codaVoceMarkup).join("")}</div>`
+    : `<div class="dm-tkt-vuoto">${esc(
+        state.filtro === "aperte"
+          ? t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.")
+          : t("Niente con questo filtro.", "Nothing under this filter."),
+      )}</div>`;
+  return `
+    ${colonneMarkup(coda)}
+    ${filtriMarkup()}
+    ${elenco}
+    <div class="dm-tkt-azioni">
+      <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="ricarica-coda" ${
+        state.busy ? "disabled" : ""
+      }>${esc(t("Aggiorna", "Refresh"))}</button>
+    </div>`;
+}
+
+/** La riga sotto il titolo: dove sei, e con che account. */
+function sottotitolo() {
+  /* Il pezzo che cambia si attacca FUORI da `t()`. Dentro finirebbe nella
+   * chiave — una chiave diversa per ogni conteggio e per ogni login — e a
+   * runtime nessun catalogo l'avrebbe mai contenuta: ogni lingua ricadrebbe
+   * sull'inglese proprio in questa riga. */
+  if (state.tab === "console") {
+    const quante = Array.isArray(state.queue) ? state.queue.length : 0;
+    const testa = t(
+      "Le segnalazioni arrivate dalle plance",
+      "Reports arrived from the dashboards",
+    );
+    return `${testa} · ${quante}`;
   }
-  const voci = state.queue
-    .map((ticket) => {
-      const numero = Number(ticket.number) || 0;
-      const tipo = TIPI.find((voce) => voce.id === ticket.type) || TIPI[0];
-      return `
-        <div class="dm-tkt-voce">
-          <div class="dm-tkt-voce-testa">
-            <span>${tipo.icona}</span>
-            <span class="dm-tkt-voce-tit">${esc(clean(ticket.title))}</span>
-            ${statoMarkup(clean(ticket.state) || "inviato")}
-          </div>
-          <p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>
-          <div class="dm-tkt-voce-pie">
-            <span>#${numero}</span>
-            <span>${esc(clean(ticket.author))}</span>
-            <a class="dm-tkt-link" href="${esc(clean(ticket.issue_url))}"
-               target="_blank" rel="noreferrer noopener">${esc(
-                 t("Su GitHub", "On GitHub"),
-               )}</a>
-          </div>
-          <div class="dm-tkt-campo">
-            <textarea id="dm-tkt-risposta-${numero}"
-              placeholder="${esc(t("Rispondi…", "Reply…"))}"></textarea>
-          </div>
-          <div class="dm-tkt-azioni">
-            <button type="button" class="dm-tkt-btn chiaro"
-              data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
-                t("Rispondi", "Reply"),
-              )}</button>
-            <button type="button" class="dm-tkt-btn"
-              data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
-                t("Rispondi e risolvi", "Reply and solve"),
-              )}</button>
-            <button type="button" class="dm-tkt-btn chiaro"
-              data-dm-rispondi="${numero}" data-dm-chiudi="chiuso">${esc(
-                t("Archivia", "Archive"),
-              )}</button>
-          </div>
-        </div>`;
-    })
-    .join("");
-  return `<div class="dm-tkt-elenco">${voci}</div>`;
+  if (state.account.connected) {
+    return `${t("Le tue richieste", "Your requests")} · ${state.account.login}`;
+  }
+  return t(
+    "Segnala un difetto, proponi un'idea, chiedi aiuto",
+    "Report a bug, suggest an idea, ask for help",
+  );
 }
 
 function disegna() {
@@ -694,9 +991,21 @@ async function mostraDiagnostica(corpo) {
 
 /* ─── I gesti ──────────────────────────────────────────────────────────── */
 
+/** Metti in salvo quello che c'e' scritto, prima di rifare il modulo. */
+function raccogliBozza() {
+  const modale = doc?.getElementById?.("dm-tkt-modal");
+  if (!modale?.querySelector("#dm-tkt-titolo")) return;
+  state.bozza = {
+    title: modale.querySelector("#dm-tkt-titolo")?.value ?? "",
+    body: modale.querySelector("#dm-tkt-corpo")?.value ?? "",
+    contact: modale.querySelector("#dm-tkt-contatto")?.value ?? "",
+  };
+}
+
 function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-tab]").forEach((bottone) => {
     bottone.addEventListener("click", () => {
+      raccogliBozza();
       state.tab = bottone.dataset.dmTab;
       state.avviso = "";
       disegna();
@@ -705,7 +1014,14 @@ function agganciaEventi(corpo) {
   });
   corpo.querySelectorAll("[data-dm-tipo]").forEach((bottone) => {
     bottone.addEventListener("click", () => {
+      raccogliBozza();
       state.tipo = bottone.dataset.dmTipo;
+      disegna();
+    });
+  });
+  corpo.querySelectorAll("[data-dm-filtro]").forEach((bottone) => {
+    bottone.addEventListener("click", () => {
+      state.filtro = bottone.dataset.dmFiltro;
       disegna();
     });
   });
@@ -720,9 +1036,7 @@ function agganciaEventi(corpo) {
     );
   });
   corpo.querySelector('[data-dm-tkt="collega"]')?.addEventListener("click", collega);
-  corpo
-    .querySelector('[data-dm-tkt="annulla"]')
-    ?.addEventListener("click", annullaCollegamento);
+  corpo.querySelector('[data-dm-tkt="annulla"]')?.addEventListener("click", annullaCollegamento);
   corpo.querySelector('[data-dm-tkt="scollega"]')?.addEventListener("click", scollega);
   const corpoTesto = corpo.querySelector("#dm-tkt-corpo");
   const conta = corpo.querySelector('[data-dm-tkt="conta"]');
@@ -734,10 +1048,10 @@ function agganciaEventi(corpo) {
 }
 
 async function invia() {
-  const modale = doc?.getElementById?.("dm-tkt-modal");
-  const titolo = clean(modale?.querySelector("#dm-tkt-titolo")?.value);
-  const corpo = clean(modale?.querySelector("#dm-tkt-corpo")?.value);
-  const contatto = clean(modale?.querySelector("#dm-tkt-contatto")?.value);
+  raccogliBozza();
+  const titolo = clean(state.bozza.title);
+  const corpo = clean(state.bozza.body);
+  const contatto = clean(state.bozza.contact);
   /* Il primo filtro e' qui, e serve a chi scrive: la stessa risposta dal
    * backend arriverebbe in italiano e dopo un giro sulla rete. */
   if (!titolo) {
@@ -761,6 +1075,7 @@ async function invia() {
       contact: contatto,
       diagnostics: await diagnostica(),
     });
+    state.bozza = { title: "", body: "", contact: "" };
     state.avviso = risposta?.delivered
       ? t("Inviata. Grazie.", "Sent. Thank you.")
       : t(

@@ -14,7 +14,11 @@ import test from "node:test";
 import { ALLOWED_MESSAGE_TYPES } from "../src/legacy/bridge-socket.js";
 import {
   DIAGNOSTIC_KEYS,
+  FILTRI_ID,
   WS_TYPES,
+  codaVoceMarkup,
+  contaColonne,
+  filtra,
   voceMarkup,
 } from "../src/sections/segnalazioni-section.js";
 
@@ -139,4 +143,135 @@ test("ogni stato ha una sua etichetta", () => {
     const markup = voceMarkup(ticket({ state: stato }));
     assert.ok(markup.includes(`data-stato="${stato}"`), `manca l'etichetta di ${stato}`);
   }
+});
+
+
+/* ─── Il cruscotto ─────────────────────────────────────────────────────────
+ *
+ * Tre numeri e un elenco filtrabile. Quello che si prova qui e' che i numeri
+ * contino le cose giuste e che il filtro non nasconda quello che serve —
+ * perche' un cruscotto che sbaglia il conto e' peggio di un cruscotto che non
+ * c'e'.
+ */
+
+function inCoda(overrides = {}) {
+  return {
+    number: 1,
+    type: "bug",
+    title: "Le tapparelle non si fermano",
+    body: "Premo stop e continuano a scendere.",
+    state: "inviato",
+    author: "anna-hub",
+    issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/1",
+    ...overrides,
+  };
+}
+
+test("le tre colonne contano gli stati giusti", () => {
+  const coda = [
+    inCoda({ number: 1, state: "inviato" }),
+    inCoda({ number: 2, state: "inviato" }),
+    inCoda({ number: 3, state: "in-carico" }),
+    inCoda({ number: 4, state: "risolto" }),
+    inCoda({ number: 5, state: "chiuso" }),
+  ];
+  const conti = contaColonne(coda);
+  assert.deepEqual(
+    conti.map((colonna) => [colonna.id, colonna.quante]),
+    [
+      ["inviato", 2],
+      ["in-carico", 1],
+      /* Risolta e archiviata stanno insieme: per chi lavora la coda sono
+       * tutte e due «non ci devo piu' tornare». */
+      ["chiuse", 2],
+    ],
+  );
+});
+
+test("un conteggio su una coda vuota e' zero, non un buco", () => {
+  assert.deepEqual(
+    contaColonne([]).map((colonna) => colonna.quante),
+    [0, 0, 0],
+  );
+});
+
+test("il filtro «da lavorare» toglie quelle chiuse", () => {
+  const coda = [
+    inCoda({ number: 1, state: "inviato" }),
+    inCoda({ number: 2, state: "in-carico" }),
+    inCoda({ number: 3, state: "risolto" }),
+    inCoda({ number: 4, state: "chiuso" }),
+  ];
+  assert.deepEqual(
+    filtra(coda, "aperte").map((ticket) => ticket.number),
+    [1, 2],
+  );
+});
+
+test("«tutte» non toglie niente", () => {
+  const coda = [inCoda({ number: 1, state: "risolto" })];
+  assert.equal(filtra(coda, "tutte").length, 1);
+});
+
+test("i filtri per tipo tengono solo il loro tipo", () => {
+  const coda = [
+    inCoda({ number: 1, type: "bug" }),
+    inCoda({ number: 2, type: "feature" }),
+    inCoda({ number: 3, type: "assistenza" }),
+  ];
+  for (const [filtro, atteso] of [
+    ["bug", [1]],
+    ["feature", [2]],
+    ["assistenza", [3]],
+  ]) {
+    assert.deepEqual(
+      filtra(coda, filtro).map((ticket) => ticket.number),
+      atteso,
+      `il filtro ${filtro} non tiene quello che deve`,
+    );
+  }
+});
+
+test("ogni filtro dichiarato sa rispondere", () => {
+  /* Un filtro nell'elenco che nessun ramo di `filtra` riconosce sarebbe un
+   * tasto che svuota la coda senza dire perche'. */
+  const coda = [inCoda({ type: "bug", state: "inviato" })];
+  for (const filtro of FILTRI_ID) {
+    assert.ok(Array.isArray(filtra(coda, filtro)), `${filtro} non torna un elenco`);
+  }
+});
+
+test("una segnalazione chiusa non offre di richiuderla", () => {
+  const aperta = codaVoceMarkup(inCoda({ state: "inviato" }));
+  assert.ok(aperta.includes('data-dm-chiudi="risolto"'));
+  assert.ok(aperta.includes('data-dm-chiudi="chiuso"'));
+  const chiusa = codaVoceMarkup(inCoda({ state: "risolto" }));
+  assert.ok(!chiusa.includes('data-dm-chiudi="risolto"'));
+  assert.ok(!chiusa.includes('data-dm-chiudi="chiuso"'));
+  /* Ma rispondere si puo' sempre: una segnalazione chiusa a cui arriva una
+   * domanda merita una risposta. */
+  assert.ok(chiusa.includes('data-dm-chiudi=""'));
+});
+
+test("il titolo e il corpo di chi segnala non diventano markup nella coda", () => {
+  const markup = codaVoceMarkup(
+    inCoda({ title: "<img src=x onerror=alert(1)>", body: "<script>rubo()</script>" }),
+  );
+  assert.ok(!markup.includes("<img"));
+  assert.ok(!markup.includes("<script>"));
+});
+
+test("il nome di chi ha segnalato non diventa markup", () => {
+  /* Arriva da GitHub, quindi da fuori: e' un nome che l'ha scelto qualcun
+   * altro. */
+  const markup = codaVoceMarkup(inCoda({ author: '"><b>oops</b>' }));
+  assert.ok(!markup.includes("<b>oops</b>"));
+});
+
+test("ogni voce della coda porta il numero della issue nei suoi tasti", () => {
+  /* E' quello che il comando manda al backend: sbagliarlo vuol dire
+   * rispondere sotto la segnalazione di un altro. */
+  const markup = codaVoceMarkup(inCoda({ number: 77 }));
+  assert.ok(markup.includes('data-dm-rispondi="77"'));
+  assert.ok(markup.includes('id="dm-tkt-risposta-77"'));
 });
