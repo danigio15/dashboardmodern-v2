@@ -165,28 +165,36 @@ for (const variant of PRIMARY) {
       window.WebSocket = TestSocket;
     });
 
-    /* Il seme si mette PRIMA che parta un solo script, non fra due avvii.
+    /* Il seme si scrive quando il primo avvio ha gia' scritto il suo.
      *
-     * Prima si apriva la plancia, si scriveva il seme e si ricaricava. Ma quel
-     * primo avvio non e' finito quando `goto` torna: continua per conto suo, e
-     * ha un ponte che salva lo store su `dm_dashboard_state`. Se finiva DOPO la
-     * scrittura, ci passava sopra il suo store vuoto — e il ricaricamento
-     * leggeva il vuoto. Da li' l'elenco del Report non si riempiva piu': non in
-     * ritardo, proprio mai.
+     * Questa e' la corsa che ha fatto cadere la prova per mezza giornata, e
+     * l'ha nominata la sonda qui sotto invece di una mia deduzione: «l'avvio ha
+     * cancellato il seme prima di leggerlo».
      *
-     * E' cosi' che si spiega quello che si vedeva: cadeva solo su webkit, che
-     * e' il piu' lento e quindi l'unico che perdeva la corsa con una certa
-     * frequenza; cadeva a intermittenza; e cadeva con «Array []» anche dopo
-     * SESSANTA secondi d'attesa, che per un elenco rifatto da un timer a 2600
-     * ms non e' lentezza. Alzare l'attesa non poteva funzionare, e infatti non
-     * ha funzionato.
+     * `goto` torna quando il documento e' pronto, non quando la plancia ha
+     * finito di avviarsi. Quel primo avvio continua per conto suo e a un certo
+     * punto salva il proprio store — vuoto — su `dm_dashboard_state`. Se lo
+     * faceva DOPO che la prova aveva scritto il seme, ci passava sopra, e il
+     * ricaricamento leggeva il vuoto: da li' l'elenco del Report non si
+     * riempiva piu'. Non in ritardo — proprio mai, ed e' per questo che
+     * aspettare di piu' non poteva funzionare, e infatti non ha funzionato.
      *
-     * `addInitScript` gira prima di ogni script della pagina: quando la plancia
-     * si avvia il seme c'e' gia', e non c'e' nessuna corsa da perdere. La
-     * guardia serve perche' lo script rigira a ogni navigazione: senza, un
-     * ricaricamento piu' avanti nella prova rimetterebbe il seme sopra a quello
-     * che la prova ha appena salvato. */
+     * Su Chromium quel salvataggio arriva quasi sempre prima, e la prova
+     * passava; su webkit, che ci mette tre volte tanto, arrivava dopo, e
+     * cadeva. Stessa corsa, esito diverso a seconda di chi corre.
+     *
+     * Adesso si aspetta che quel salvataggio sia avvenuto — la chiave esiste —
+     * e solo allora si scrive il seme: dopo, non c'e' piu' nessuno che possa
+     * passarci sopra.
+     *
+     * Anticipare il seme con `addInitScript`, cioe' metterlo prima ancora del
+     * primo avvio, l'ho provato e non funziona: quel primo avvio lo cancella
+     * comunque. E' una cosa che vale la pena sapere di questa plancia, e sta
+     * scritta qui perche' non la riprovi qualcun altro. */
     await page.goto(`/legacy/${variant}`);
+    await page.waitForFunction(() => !!localStorage.getItem("dm_dashboard_state"), {
+      timeout: 30_000,
+    });
     await page.evaluate((state) => {
       localStorage.clear();
       localStorage.setItem("dm_dashboard_state", JSON.stringify(state));
