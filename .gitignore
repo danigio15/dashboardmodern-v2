@@ -26,3 +26,7 @@ custom_components/dashboardmodern/frontend/legacy/*.prima-del-pacco
 # `--pulisci`. Committate sarebbero duecento file che invecchiano da soli.
 custom_components/dashboardmodern/frontend/**/*.gz
 custom_components/dashboardmodern/frontend/**/*.br
+
+# I banchi di misura si scrivono fuori dal deposito: uno c'e finito dentro
+# per un `git add -A` di troppo, e nessuno se ne era accorto.
+misura-tmp.mjs

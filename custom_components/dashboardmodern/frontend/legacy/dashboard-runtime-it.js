@@ -1047,11 +1047,29 @@ async function connect() {
         const v = m.result && m.result.value;
         const localTs = parseInt(localStorage.getItem('cd_sync_ts') || '0');
         if (localStorage.getItem('cd_sync_dirty')) { try { cdSyncPush(); } catch(e){} return; } // v299: prima invio le mie
-        if (v && v.__ts && v.__ts > localTs && !sessionStorage.getItem('cd_sync_reloading')) {
+        sessionStorage.removeItem('cd_sync_reloading'); sessionStorage.removeItem('cd_sync_rl2'); // v1.4.5: non si ricarica piu', le bandiere non servono
+        if (v && v.__ts && v.__ts > localTs) {
+          /* Cosa cambia davvero, guardato PRIMA di applicarlo: e' quello che dice
+             se basta applicare o se tocca ricaricare. */
+          const cambiate = CD_SYNC_KEYS.filter(k => v[k] !== undefined && v[k] !== localStorage.getItem(k));
           const n = cdSyncApply(v);
           localStorage.setItem('cd_sync_ts', String(v.__ts));
-          if (n > 0) { if (sessionStorage.getItem('cd_sync_rl2')) { console.log('[Sync] applicato senza reload (loop-guard)'); try { if (typeof render === 'function') render(); } catch(e2) {} } else { sessionStorage.setItem('cd_sync_rl2', '1'); sessionStorage.setItem('cd_sync_reloading', '1'); console.log('[Sync] config più recente da HA — ricarico'); location.reload(); } }
-        } else { sessionStorage.removeItem('cd_sync_reloading'); }
+          /* v1.4.5: la configurazione piu' recente da HA si applica dov'e'. Il
+             ricaricamento era il salto grosso del filmato: quattro secondi dopo
+             l'apertura la plancia diventava bianca, ripartiva da capo e tornava sulla
+             Home buttando via la pagina che si stava guardando — e costava un avvio
+             intero in piu' proprio nel momento in cui si aspetta. Applicare dal vivo
+             e' la stessa cosa che fa l'editor a ogni salvataggio: lo store riceve il
+             fotogramma e avvisa le sezioni, la barra rilegge quali sezioni ci sono, il
+             guscio ridisegna.
+             Restano fuori le poche chiavi che le legge solo l'avvio: quelle si
+             applicano ricaricando, perche' scriverle e basta lascerebbe lo schermo a
+             dire la cosa di prima — che e' peggio del ricaricamento. */
+          if (n > 0) {
+            if (cambiate.some(k => CD_SOLO_ALL_AVVIO.has(k))) { console.log('[Sync] cambiate chiavi che legge solo l\'avvio (' + cambiate.filter(k => CD_SOLO_ALL_AVVIO.has(k)).join(', ') + '): ricarico'); location.reload(); }
+            else { console.log('[Sync] configurazione piu\' recente da HA: applicata senza ricaricare'); try { cdApplyNavVis(); } catch(e2) {} try { if (typeof render === 'function') render(); } catch(e3) {} }
+          }
+        }
       } catch(e) { console.warn('[Sync] pull check:', e); }
       return;
     }
@@ -2382,6 +2400,17 @@ function wzRender() {
    La configurazione viene salvata anche nell'archivio utente di Home Assistant
    (frontend user_data): configuri una volta, la ritrovi su ogni dispositivo. */
 /* v301: cd_theme e cd_navbar_mode NON sono sincronizzati — sono preferenze del singolo dispositivo */
+/* Le chiavi che le legge solo l'avvio.
+ *
+ * Il marchio finisce nel titolo della pagina e nell'intestazione dentro un
+ * blocco che gira una volta sola; i nomi delle luci riempiono `LUCI_NAMES`
+ * allo stesso modo; e i gruppi clima del Quadro Avvisi si costruiscono una
+ * volta dalle unita' configurate. Scrivere queste in memoria e lasciare lo
+ * schermo a dire la cosa di prima e' peggio del ricaricamento: qui si
+ * ricarica, e sono i pochi casi rimasti. Tutto il resto — apparecchi,
+ * carichi, stanze, sezioni, energia, cioe' quasi tutto quello che si tocca —
+ * si applica dov'e'. */
+const CD_SOLO_ALL_AVVIO = new Set(['cd_branding', 'cd_luci', 'cd_clima_units']);
 const CD_SYNC_KEYS = ['dm_dashboard_state','cd_connection','cd_branding','cd_sections','cd_section_names','cd_luci','cd_luci_rooms','cd_stanze','cd_cameras','cd_appliances','cd_loads','cd_energy_model','cd_clima_units','cd_quick_actions','cd_termico_caldo','cd_lavatrice_programmi','cd_clima_inverti_card','cd_stati_invertiti','cd_meteo_entita_proprie','cd_devices','cd_ev_image','cd_entity_overrides','cd_tapparelle','cd_irrigazione','cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors','cd_slot_labels','cd_flow_nodes','cd_avvisi_custom','cd_text_overrides','cd_hidden_elements'];
 
 function cdSyncCollect() {
@@ -2419,7 +2448,12 @@ function cdRenderSoon() {
 function cdSyncApply(data) {
     if (!data) return 0;
     let n = 0;
-    if (data.dm_dashboard_state !== undefined) { localStorage.setItem('dm_dashboard_state', data.dm_dashboard_state); window.DashboardModernModules?.store?.applySnapshot(data.dm_dashboard_state); n++; } CD_SYNC_KEYS.filter(k => k !== 'dm_dashboard_state').forEach(k => { if (data[k] !== undefined) { localStorage.setItem(k, data[k]); n++; } });
+    /* v1.4.5: si conta quello che CAMBIA davvero. Prima contava ogni chiave del
+       carico — tutte, anche quando erano identiche a quelle gia' qui — e quel
+       numero era la ragione per rifare tutto lo schermo: bastava che un altro
+       dispositivo avesse toccato il timbro dell'ora perche' questa plancia
+       ridisegnasse una configurazione che aveva gia'. */
+    if (data.dm_dashboard_state !== undefined && data.dm_dashboard_state !== localStorage.getItem('dm_dashboard_state')) { localStorage.setItem('dm_dashboard_state', data.dm_dashboard_state); window.DashboardModernModules?.store?.applySnapshot(data.dm_dashboard_state); n++; } CD_SYNC_KEYS.filter(k => k !== 'dm_dashboard_state').forEach(k => { if (data[k] !== undefined && data[k] !== localStorage.getItem(k)) { localStorage.setItem(k, data[k]); n++; } });
     return n;
 }
 /* Push sul WS principale (dashboard già connessa) */

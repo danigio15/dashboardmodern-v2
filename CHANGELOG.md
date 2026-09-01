@@ -5,6 +5,80 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.4
+
+Un filmato di ventotto secondi, guardato fotogramma per fotogramma. Dentro
+c'erano tre cose, e nessuna delle tre era quella che si cercava da tre beta.
+
+### Corretto
+
+- **La plancia non si ricarica piu' da sola.** A quattro secondi dall'apertura
+  lo schermo diventa bianco, il velo di avvio torna su, e la plancia riparte
+  sulla Home buttando via la pagina che si stava guardando. Non era un disegno
+  che sfarfalla: era `location.reload()`. Lo chiamava il tiraggio della
+  configurazione da Home Assistant — se il timbro dell'ora di HA era piu'
+  recente di quello locale, applicava e ricaricava. Cioe': **ogni volta che si
+  e' toccata la configurazione da un'altra parte, la prima apertura costava due
+  avvii invece di uno.** E' anche una parte di «impiega troppo tempo in
+  caricamento», e sta fuori sia dalla rete sia dai byte — i due assi sbagliati
+  delle beta precedenti. Adesso la configurazione nuova si applica dov'e', come
+  fa l'editor a ogni salvataggio; e una configurazione identica a quella che
+  c'e' gia' non fa muovere niente.
+
+- **Il popup dell'Energia non lampeggia piu'.** A finestra aperta e ferma, la
+  griglia delle carte spariva per un fotogramma solo — un lampo bianco — e
+  tornava: sei volte in dieci secondi, al passo degli aggiornamenti che arrivano
+  da casa. E' quello che si vede in mezzo a un `replaceChildren`: la finestra
+  sta dentro un velo sfocato, che sul telefono e' un livello a se', e finche'
+  non e' ridipinto resta il bianco del foglio — sul computer non si vede, ed e'
+  per questo che il difetto e' sempre sembrato «solo del telefono». A farlo
+  scattare bastava la riga dei kWh di oggi che appare o sparisce: un contatore
+  giornaliero «non disponibile» per un giro, e otto carte venivano buttate via e
+  ristampate. Adesso testata e griglia si fanno una volta e restano, e le carte
+  si aggiornano dove sono.
+
+- **Il popup del cerchio dice la stessa parola della carta.** La finestra
+  Elettrodomestici segnava «8/8 IN FUNZIONE» con sei apparecchi a zero watt: le
+  prese erano accese, gli apparecchi no. La carta dello stesso apparecchio, due
+  schermate piu' in la', diceva STANDBY. Erano due regole per la stessa domanda.
+  Adesso la fa una funzione sola, quella della sezione Elettrodomestici: a dire
+  IN FUNZIONE sono i watt sopra soglia, uno stato che lo dice con parole sue, o
+  un sensore di attivita' chiamato per quello che e'. In regalo arrivano le
+  soglie per apparecchio e il ritardo di fine ciclo — la lavastoviglie che
+  asciuga resta IN FUNZIONE anche qui.
+
+- **Un contatore in kW sono watt.** La finestra del cerchio leggeva il numero e
+  basta: 0,27 kW diventavano «0 W», cioe' un apparecchio spento mentre stava
+  consumando duecentosettanta watt.
+
+- **«heating» e «cleaning» sono modi di dire che sta lavorando.** Erano due
+  parole che conosceva solo la finestra dei sotto-carichi, quando aveva una
+  regola sua. Adesso che la regola e' una sola dovevano arrivare anche nel
+  modello canonico: senza, un termostato in fase bassa o un aspirapolvere che
+  pulisce con la ventola al minimo direbbero SPENTO mentre lavorano — e su
+  tutt'e due le schermate.
+
+- **Il tasto dello storico segue il sensore.** L'ascoltatore del clic si mette
+  una volta e resta: se a un apparecchio cambia il sensore o il nome mentre la
+  finestra e' aperta, la carta mostrava il valore nuovo e apriva lo storico di
+  quello vecchio.
+
+- **La sveglia del ritardo di fine ciclo ridisegna anche la finestra.** Quando
+  `off_delay_minutes` scade nessuno manda niente — e' il tempo che passa — e una
+  finestra lasciata aperta sarebbe rimasta a dire IN FUNZIONE.
+
+### Da sapere
+
+- Le tre chiavi che le legge solo l'avvio — il marchio, i nomi delle luci, le
+  unita' clima — quando cambiano da un altro dispositivo fanno ancora ricaricare
+  la pagina: scriverle in memoria e lasciare lo schermo a dire la cosa di prima
+  sarebbe peggio. Sono i pochi casi rimasti, e la differenza con prima e' che
+  adesso il ricaricamento e' l'eccezione invece della regola.
+- Un apparecchio il cui unico segnale e' un binary_sensor generico acceso, a
+  zero watt, adesso dice STANDBY invece di IN FUNZIONE — la stessa parola che
+  dice gia' la sua carta. Per i cicli che passano da zero watt c'e'
+  `off_delay_minutes`, che adesso vale in tutt'e due i posti.
+
 ## 1.4.5-beta.3
 
 La compressione della beta.2 funziona — confermato dal campo: `content-encoding:

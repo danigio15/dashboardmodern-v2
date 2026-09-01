@@ -240,3 +240,31 @@ test("il ritardo di fine ciclo avvisa chi disegna quando scade", async () => {
     resetRunHolds();
   }
 });
+
+test("«heating» e «cleaning» sono modi di dire che sta lavorando", () => {
+  /* Due parole che qui mancavano, e che la finestra dei sotto-carichi conosceva
+   * quando aveva una regola sua. Adesso che la regola e' una sola dovevano
+   * arrivare qui, altrimenti un termosifone in fase bassa o un robot che sta
+   * pulendo con la ventola al minimo direbbero SPENTO mentre lavorano — e lo
+   * direbbero su tutt'e due le schermate. */
+  const conStato = (stato, potenza) =>
+    createApplianceViewModel(
+      { ...device, state_entity: "sensor.fase", control_entity: "" },
+      {
+        "sensor.washer_power": {
+          state: String(potenza),
+          attributes: { unit_of_measurement: "W" },
+        },
+        "sensor.fase": { state: stato, attributes: {} },
+      },
+      [],
+      "it",
+    ).mode;
+
+  assert.equal(conStato("heating", 0), "running", "il termostato che scalda");
+  assert.equal(conStato("cleaning", 0), "running", "l'aspirapolvere che pulisce");
+  /* E le parole di prima restano tali e quali. */
+  assert.equal(conStato("heat", 0), "running");
+  assert.equal(conStato("running", 0), "running");
+  assert.equal(conStato("idle", 0), "off");
+});
