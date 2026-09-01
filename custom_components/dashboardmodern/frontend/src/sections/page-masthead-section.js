@@ -201,6 +201,14 @@ function firstVisibleChild(host) {
   return null;
 }
 
+/* Restituisce anche la misura, non solo il posto.
+ *
+ * `alignToContent` rifaceva `tallestWrapper(host)` da capo per sapere qual e'
+ * il contenuto: la stessa passeggiata sul DOM, con le stesse letture di
+ * geometria, una seconda volta — e stavolta DOPO che l'intestazione era stata
+ * scritta e inserita, quindi con il calcolo dello stile da rifare tutto. Il
+ * contenitore piu' alto e' lo stesso che si e' appena misurato: si porta
+ * dietro invece di ricercarlo. */
 function mountFor(host) {
   const best = tallestWrapper(host);
   /* L'intestazione apre la pagina: se il contenitore del contenuto non e' la
@@ -216,8 +224,8 @@ function mountFor(host) {
    *
    * In quei casi l'intestazione nasce sulla pagina, prima di tutto, e la
    * larghezza gliela da' `alignToContent` copiandola dal contenuto. */
-  if (best && best !== firstVisibleChild(host)) return host;
-  return best || soleContentWrapper(host) || host;
+  if (best && best !== firstVisibleChild(host)) return { mount: host, best };
+  return { mount: best || soleContentWrapper(host) || host, best };
 }
 
 /* Larga quanto il contenuto anche quando non ci sta dentro.
@@ -227,29 +235,17 @@ function mountFor(host) {
  * telefono non si vede, su uno schermo largo si vede benissimo. Qui prende la
  * misura del contenuto e la porta con se'. Se il contenuto e' largo quanto la
  * pagina non c'e' niente da imporre e il limite si toglie. */
-function alignToContent(host, mast, mount) {
-  escapeMountPadding(mast, mount);
-  const content = mount === host ? tallestWrapper(host) : null;
-  // Si copia il limite che il contenuto si e' dato, non la sua larghezza di
-  // adesso: la larghezza include gia' il margine interno della pagina e
-  // l'intestazione, che quel margine ce l'ha anche lei, verrebbe piu' stretta
-  // del contenuto di due margini. Se il contenuto non si e' dato un limite non
-  // c'e' niente da copiare.
-  const declared = content ? root.getComputedStyle?.(content)?.maxWidth : "";
-  const width = /^[\d.]+px$/.test(declared || "") ? Number.parseFloat(declared) : 0;
-  const room = host.getBoundingClientRect().width;
-  if (width > 0 && room - width > 3) {
-    const limit = `${Math.round(width)}px`;
-    if (mast.style.getPropertyValue("--dm-mast-room") !== limit) {
-      mast.style.setProperty("--dm-mast-room", limit);
-    }
-    return;
-  }
-  if (mast.style.getPropertyValue("--dm-mast-room")) {
-    mast.style.removeProperty("--dm-mast-room");
-  }
-}
-
+/* Prima si legge, poi si scrive.
+ *
+ * Il giro era: leggi il margine, scrivilo, rileggi il contenuto, leggi la
+ * larghezza, scrivi il limite. Ogni scrittura invalida lo stile, e ogni
+ * lettura che le viene dietro obbliga il browser a ricalcolarlo tutto prima di
+ * rispondere: su una plancia con nove pagine in pancia una singola lettura
+ * costava cinquanta millisecondi, e all'avvio se ne facevano quindici — quasi
+ * ottocento millisecondi in un modulo che non disegna quasi niente.
+ *
+ * Le letture stanno tutte in cima, adesso, e le scritture tutte in fondo: un
+ * ricalcolo solo serve l'intero passaggio. */
 /* Il margine interno della casa non e' dell'intestazione.
  *
  * Tapparelle tiene il proprio contenuto in un blocco con sedici pixel di
@@ -258,11 +254,16 @@ function alignToContent(host, mast, mount) {
  * staccata dai bordi mentre su tutte le altre pagine tocca i lati. Il margine
  * serve a distanziare le card dal bordo, non ad accorciare l'apertura della
  * pagina, quindi l'intestazione ne esce e resta larga quanto la casa. */
-function escapeMountPadding(mast, mount) {
+/* La meta' che legge. */
+function mountBleed(mast, mount) {
   const style = mount === mast.parentElement ? root.getComputedStyle?.(mount) : null;
   const left = Number.parseFloat(style?.paddingLeft || "0") || 0;
   const right = Number.parseFloat(style?.paddingRight || "0") || 0;
-  const bleed = Math.min(left, right);
+  return Math.min(left, right);
+}
+
+/* La meta' che scrive. */
+function applyMountBleed(mast, bleed) {
   if (bleed > 0) {
     const value = `${Math.round(bleed)}px`;
     if (mast.style.getPropertyValue("--dm-mast-bleed") !== value) {
@@ -323,12 +324,19 @@ function foldLegacyHeading(host, selector) {
   }
 }
 
-function ensureMasthead(page) {
+/* Primo tempo: si guarda dove va, e non si tocca niente. */
+function planMasthead(page) {
   const host = doc?.getElementById?.(page.id);
-  if (!host) return false;
+  if (!host) return null;
+  const { mount, best } = mountFor(host);
+  return { page, host, mount, best, mast: null };
+}
+
+/* Secondo tempo: si scrive, e non si legge niente. */
+function placeMasthead(piano) {
+  const { page, host, mount } = piano;
   const labels = labelsFor(page);
   let mast = state.mastheads?.[page.id];
-  const mount = mountFor(host);
   /* L'intestazione che c'e' gia' si sposta, non si rifa'.
    *
    * La casa puo' cambiare mentre la pagina e' viva: su Auto la striscia del
@@ -368,10 +376,41 @@ function ensureMasthead(page) {
   if (mast.parentElement !== mount || mount.firstElementChild !== mast) {
     mount.insertBefore(mast, mount.firstChild);
   }
-  alignToContent(host, mast, mount);
+  piano.mast = mast;
+  return true;
+}
+
+/* Terzo tempo: si misura, e non si tocca niente. */
+function measureMasthead(piano) {
+  const { host, mast, mount, best } = piano;
+  if (!mast) return;
+  piano.bleed = mountBleed(mast, mount);
+  const content = mount === host ? best || null : null;
+  // Si copia il limite che il contenuto si e' dato, non la sua larghezza di
+  // adesso: la larghezza include gia' il margine interno della pagina e
+  // l'intestazione, che quel margine ce l'ha anche lei, verrebbe piu' stretta
+  // del contenuto di due margini. Se il contenuto non si e' dato un limite non
+  // c'e' niente da copiare.
+  const declared = content ? root.getComputedStyle?.(content)?.maxWidth : "";
+  piano.width = /^[\d.]+px$/.test(declared || "") ? Number.parseFloat(declared) : 0;
+  piano.room = host.getBoundingClientRect().width;
+}
+
+/* Quarto tempo: si applica quello che si e' misurato. */
+function applyMasthead(piano) {
+  const { page, host, mast, bleed, width, room } = piano;
+  if (!mast) return;
+  applyMountBleed(mast, bleed);
+  if (width > 0 && room - width > 3) {
+    const limit = `${Math.round(width)}px`;
+    if (mast.style.getPropertyValue("--dm-mast-room") !== limit) {
+      mast.style.setProperty("--dm-mast-room", limit);
+    }
+  } else if (mast.style.getPropertyValue("--dm-mast-room")) {
+    mast.style.removeProperty("--dm-mast-room");
+  }
   foldForeignBackButtons(host);
   foldLegacyHeading(host, page.fold);
-  return true;
 }
 
 /* The page on screen, and nothing else.
@@ -388,9 +427,28 @@ function pagesToRender() {
   return page ? [page] : [];
 }
 
+/* Tutte le pagine insieme, un ricalcolo solo.
+ *
+ * Il giro era per pagina: guarda dove va, scrivila, rileggi quanto e' larga.
+ * Nove pagine, nove volte andata e ritorno, e ogni ritorno costava al browser
+ * un ricalcolo completo dello stile perche' l'andata gliel'aveva appena
+ * invalidato: cinquanta millisecondi l'uno, settecento in tutto, per un modulo
+ * che scrive tre variabili CSS.
+ *
+ * Adesso i quattro tempi si fanno per tutte le pagine prima di passare al
+ * successivo: si legge dove vanno tutte, si scrivono tutte, si misurano tutte,
+ * si applicano tutte. Due ricalcoli in tutto invece di nove, e la spesa non
+ * cresce piu' col numero delle pagine. */
 export function renderPageMastheads() {
   if (!doc) return false;
-  for (const page of pagesToRender()) ensureMasthead(page);
+  const piani = [];
+  for (const page of pagesToRender()) {
+    const piano = planMasthead(page);
+    if (piano) piani.push(piano);
+  }
+  for (const piano of piani) placeMasthead(piano);
+  for (const piano of piani) measureMasthead(piano);
+  for (const piano of piani) applyMasthead(piano);
   state.seeded = true;
   return true;
 }
@@ -569,6 +627,14 @@ export function installPageMastheadSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  /* Una maniglia per rifare il passaggio completo, tutte le pagine insieme.
+   * Serve alla prova che sorveglia il costo del passaggio: senza poterlo
+   * chiedere, l'unico passaggio su tutte le pagine e' il primo, e quando la
+   * prova arriva e' gia' passato. */
+  root.__DASHBOARDMODERN_PAGE_MASTHEADS__ = () => {
+    state.seeded = false;
+    return renderPageMastheads();
+  };
   for (const eventName of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
