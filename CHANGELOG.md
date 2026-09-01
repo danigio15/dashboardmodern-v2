@@ -29,6 +29,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **Il verso girato vale per entrambi.** Chi ha un contatto che sta a ON da
   chiuso (#244) lo elenca come sempre: il verso e' un fatto del filo, non del
   tipo di apertura.
+- **Lo scaldabagno elettrico ha la sua tessera.** «Ho un impianto fotovoltaico
+  ed ho sfruttato uno scaldabagno per l'acqua calda sanitaria. La card attuale
+  e' fantastica ma pensata per il solare termico.» Adesso c'e' la sua: le
+  quattro caselle chieste — interruttore, temperatura dell'acqua, obiettivo,
+  consumo — piu' l'energia di oggi. Il numero grande e' l'acqua, l'anello dice
+  quanto manca all'obiettivo, e la tessera si accende mentre la resistenza
+  lavora. La differenza col solare non e' la forma della card: li' il calore
+  arriva dal sole e si guarda il salto fra le sonde, qui arriva da una
+  resistenza che si paga e si guarda quando ci sara' l'acqua calda. (#253)
+- **E con un `water_heater` di Home Assistant non c'e' niente da compilare.**
+  Basta la prima casella: stato, temperatura e obiettivo li dichiara l'entita'
+  stessa, e «Rileva da Home Assistant» la trova da sola. Le altre restano per
+  chi lo scaldabagno se l'e' messo insieme da un rele' e due sonde.
+- **L'obiettivo si legge anche da un termostato.** «Target preso dall'entita'
+  del termostato»: li' l'obiettivo non e' lo stato — lo stato e' la modalita' —
+  ma un attributo, e la casella lo cerca in tutti e due i posti.
 
 ### Corretto
 

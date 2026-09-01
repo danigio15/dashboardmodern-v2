@@ -89,6 +89,25 @@ const OGGETTI = Object.freeze({
     <circle cx="16" cy="16" r="7.4" fill="url(#dmoSole)"/>
     <path d="M11.9 11.5a5.5 5.5 0 0 0-1.6 3.3" stroke="#fff" stroke-opacity=".7" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
 
+  /* Lo scaldabagno: il serbatoio di lamiera, l'acqua calda che sale dal fondo,
+   * la spia della resistenza. Non e' il sole del solare termico — quello scalda
+   * da fuori, questo da dentro, e si vede. */
+  scaldabagno: `<defs>
+      <linearGradient id="dmoScaldC" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset=".45" stop-color="#dbe3ec"/>
+        <stop offset="1" stop-color="#9aa9bb"/></linearGradient>
+      <linearGradient id="dmoScaldA" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#ea580c"/><stop offset=".55" stop-color="#f97316"/>
+        <stop offset="1" stop-color="#fbbf24"/></linearGradient></defs>
+    ${OMBRA(16, 29.4, 6.4)}
+    <rect x="8.4" y="3.4" width="15.2" height="24" rx="7" fill="url(#dmoScaldC)"/>
+    <path d="M10.6 15.6h10.8v6.6a5.4 5.4 0 0 1-5.4 5.4 5.4 5.4 0 0 1-5.4-5.4Z" fill="url(#dmoScaldA)"/>
+    <rect x="13.6" y="1.6" width="4.8" height="2.6" rx="1.3" fill="#94a3b8"/>
+    <path d="M11.2 8a4.6 4.6 0 0 1 2.8-2.8" stroke="#fff" stroke-opacity=".85" stroke-width="1.6"
+      fill="none" stroke-linecap="round"/>
+    <circle cx="20.4" cy="11.4" r="1.5" fill="#ef4444"/>
+    <path d="M11.6 28.4v2M20.4 28.4v2" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round"/>`,
+
   /* La porta: pannello, maniglia, e il pavimento sotto. */
   aperture: `<defs>
       <linearGradient id="dmoPorta" x1="0" y1="0" x2="1" y2="0">

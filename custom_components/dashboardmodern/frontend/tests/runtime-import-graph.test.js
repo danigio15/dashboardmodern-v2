@@ -538,8 +538,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // identificatore ripetuto risponde il primo che lo porta — e per meta' dei
   // disegni quel primo stava dentro una voce di barra a `display:none`, cioe'
   // non disegnava niente.
+  // 189 con lo scaldabagno elettrico (#253, `core/scaldabagno-model.js`): la
+  // lettura delle sue caselle e il conto di quanto manca all'acqua calda, che
+  // e' la misura per cui si guarda uno scaldabagno e non esisteva da nessuna
+  // parte — il solare termico guarda il salto fra le sonde, che e' altro.
   assert.ok(
-    relative.length <= 188,
+    relative.length <= 189,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

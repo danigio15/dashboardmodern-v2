@@ -51,7 +51,11 @@ const USER_DATA_VERSION = 1;
  * (`cd_clima_inverti_card`) e la stazione meteo propria
  * (`cd_meteo_entita_proprie`): senza stare qui restavano sul dispositivo
  * che le aveva configurate e il ripristino da un altro le perdeva. */
-export const CONFIG_KEYS_REVISION = 14;
+/* La revisione 15 aggiunge lo scaldabagno elettrico (`cd_scaldabagni`, #253):
+ * quali entita' lo descrivono — l'interruttore, la sonda dell'acqua,
+ * l'obiettivo, il consumo. E' la casa, non il telefono: configurata da un
+ * dispositivo, gli altri resterebbero senza la tessera. */
+export const CONFIG_KEYS_REVISION = 15;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -154,6 +158,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_clima_rapido_unita",
   // Le entita' in evidenza: la tessera che tiene d'occhio sensori senza stanza.
   "cd_evidenza",
+  "cd_scaldabagni",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

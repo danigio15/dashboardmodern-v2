@@ -185,6 +185,54 @@ const nomeDi = (riga) => String(riga?.name || "").trim();
 /* ─────────────────────────── le frasi, una per sezione ───────────────────── */
 
 const FRASI = Object.freeze({
+  /* Lo scaldabagno (#253) non si racconta contando righe.
+   *
+   * La frase generica dice «uno su otto in funzione» perche' conta le righe
+   * della tessera, e le righe qui sono le caselle: due interruttori e sei
+   * misure. Ma di uno scaldabagno non si vuole sapere quante caselle sono
+   * accese: si vuole sapere se c'e' acqua calda, e quanta ne manca. */
+  scaldabagno: (tr, _righe, tessera) => {
+    const unita = Array.isArray(tessera?.unita) ? tessera.unita : [];
+    if (!unita.length) return tr("Qui non c'e' ancora niente.", "Nothing configured here yet.");
+    const gradi = (valore) => numero(valore, 1);
+    if (unita.length === 1) {
+      const solo = unita[0];
+      if (solo.stato === "spento")
+        return solo.temperatura == null
+          ? tr("E' spento.", "It is off.")
+          : tr(
+              `Spento, l'acqua e' a ${gradi(solo.temperatura)}°.`,
+              `Off, the water is at ${gradi(solo.temperatura)}°.`,
+            );
+      if (solo.stato === "pronto")
+        return tr(
+          `Acqua pronta a ${gradi(solo.temperatura)}°.`,
+          `Water ready at ${gradi(solo.temperatura)}°.`,
+        );
+      if (solo.stato === "scalda") {
+        if (solo.temperatura == null || solo.obiettivo == null)
+          return tr("Sta scaldando.", "Heating.");
+        const mancano = gradi(Math.max(0, solo.obiettivo - solo.temperatura));
+        return tr(
+          `L'acqua e' a ${gradi(solo.temperatura)}°: ne mancano ${mancano} all'obiettivo.`,
+          `The water is at ${gradi(solo.temperatura)}°: ${mancano} to go.`,
+        );
+      }
+      return tr("Non risponde.", "Not answering.");
+    }
+    const scaldano = unita.filter((riga) => riga.stato === "scalda").length;
+    const pronti = unita.filter((riga) => riga.stato === "pronto").length;
+    if (scaldano)
+      return tr(
+        `${scaldano} su ${unita.length} stanno scaldando.`,
+        `${scaldano} of ${unita.length} are heating.`,
+      );
+    if (pronti === unita.length) return tr("Acqua pronta ovunque.", "Water ready everywhere.");
+    return tr(
+      `${pronti} su ${unita.length} con l'acqua pronta.`,
+      `${pronti} of ${unita.length} with hot water.`,
+    );
+  },
   luci: (tr, righe) => {
     const accese = conta(righe, acceso);
     if (!accese) return tr("Sono tutte spente.", "Every light is off.");
@@ -385,6 +433,10 @@ const BRICIOLE = Object.freeze({
   solare: [
     ["Circuito primario", "Boiler", "Ricircolo sanitario"],
     ["Primary loop", "Tank", "Recirculation"],
+  ],
+  scaldabagno: [
+    ["Acqua calda", "Resistenza", "Consumo"],
+    ["Hot water", "Element", "Consumption"],
   ],
   piscina: [
     ["Qualita' dell'acqua", "Filtrazione", "Riscaldamento"],

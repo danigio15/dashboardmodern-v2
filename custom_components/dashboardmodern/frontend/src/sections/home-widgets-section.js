@@ -35,6 +35,11 @@ import {
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
+import {
+  SCALDABAGNI_KEY,
+  entitaDiUnoScaldabagno,
+  lettureScaldabagni,
+} from "../core/scaldabagno-model.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -1323,6 +1328,122 @@ function solarThermalModel(states) {
  * avere un interruttore invece di una scritta. */
 const COMANDI_PISCINA = Object.freeze({ pumpEnt: "🔄", heatEnt: "🔥", lightEnt: "💡" });
 
+/* La tessera dello scaldabagno (#253).
+ *
+ * «La card attuale e' fantastica ma pensata per il solare termico»: quella
+ * guarda il salto fra le sonde, perche' li' il calore arriva dal sole e la
+ * domanda e' se la pompa conviene farla girare. Qui il calore arriva da una
+ * resistenza che si paga, e la domanda e' un'altra: quanto manca all'acqua
+ * calda. Percio' il numero grande e' la temperatura dell'acqua e l'anello e'
+ * la distanza dall'obiettivo — non una percentuale inventata.
+ */
+export function configuredScaldabagni() {
+  return readJson(SCALDABAGNI_KEY, []);
+}
+
+const GLIFI_SCALDABAGNO = Object.freeze({
+  interruttore: "🔌",
+  temperatura: "🌡️",
+  obiettivo: "🎯",
+  potenza: "⚡",
+  energia: "📅",
+});
+
+function scaldabagnoModel(states) {
+  const fuori = widgetExcludedEntities();
+  const letture = lettureScaldabagni(
+    configuredScaldabagni(),
+    states,
+    root.resolveEntity || ((value) => value),
+  ).filter((lettura) =>
+    /* L'interruttore «nel widget»: basta che UNA delle caselle sia rimasta
+     * dentro perche' la riga abbia ancora qualcosa da dire in Home. */
+    entitaDiUnoScaldabagno(lettura).some((entity) => widgetIncludes(entity, fuori)),
+  );
+  if (!letture.length) return null;
+
+  const piuDiUno = letture.length > 1;
+  const nomeDi = (lettura, indice) =>
+    clean(lettura.name) || `${t("Scaldabagno", "Water heater")} ${indice + 1}`;
+  const etichetta = (lettura, indice, testo) =>
+    piuDiUno ? `${nomeDi(lettura, indice)} · ${testo}` : testo;
+
+  const rows = [];
+  letture.forEach((lettura, indice) => {
+    if (lettura.comandabile)
+      rows.push({
+        glyph: GLIFI_SCALDABAGNO.interruttore,
+        name: etichetta(lettura, indice, t("Resistenza", "Heating element")),
+        entity: lettura.comandabile,
+        on: lettura.acceso === true,
+        value: lettura.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
+        /* Un interruttore, non una scritta — salvo che quella entita' sia fra
+         * quelle che si guardano e basta. */
+        comando: siComanda(lettura.comandabile),
+      });
+    const misura = (chiave, testo, valore, cifre, unita) => {
+      if (valore == null) return;
+      rows.push({
+        glyph: GLIFI_SCALDABAGNO[chiave],
+        name: etichetta(lettura, indice, testo),
+        entity: clean(lettura[chiave === "temperatura" ? "entity" : chiave]) || lettura.entity,
+        raw: valore,
+        value: `${formatNumber(valore, cifre)}${unita}`,
+      });
+    };
+    misura("temperatura", t("Acqua adesso", "Water now"), lettura.temperatura, 1, "°");
+    misura("obiettivo", t("Obiettivo", "Target"), lettura.obiettivo, 1, "°");
+    misura("potenza", t("Consumo", "Power"), lettura.potenza, 0, " W");
+    misura("energia", t("Oggi", "Today"), lettura.energia, 1, " kWh");
+  });
+  if (!rows.length) return null;
+
+  /* Chi parla in grande: la prima riga che ha una temperatura dell'acqua. Se
+   * nessuno ce l'ha — c'e' solo il rele' — parla l'interruttore, che qualcosa
+   * da dire ce l'ha. */
+  const testa = letture.find((lettura) => lettura.temperatura != null) || letture[0];
+  const acceso = letture.some((lettura) => lettura.acceso === true);
+  const scalda = letture.some((lettura) => lettura.stato === "scalda");
+  const didascalia = () => {
+    if (testa.stato === "spento") return t("Spento", "Off");
+    if (testa.stato === "pronto") return t("Acqua pronta", "Water ready");
+    if (testa.stato === "scalda") {
+      if (testa.obiettivo == null) return t("Sta scaldando", "Heating");
+      /* Il numero si tira fuori prima: la chiave di traduzione deve essere una
+       * frase con un buco — «Scalda verso ${meta}°» — non un pezzo di codice
+       * che nessun traduttore puo' leggere. */
+      const meta = formatNumber(testa.obiettivo, 0);
+      return t(`Scalda verso ${meta}°`, `Heating to ${meta}°`);
+    }
+    return "";
+  };
+  return {
+    key: "scaldabagno",
+    accent: "#ea580c",
+    icon: "🚿",
+    label: t("Scaldabagno", "Water heater"),
+    value:
+      testa.temperatura != null
+        ? `${formatNumber(testa.temperatura, 1)}°`
+        : acceso
+          ? t("Acceso", "On")
+          : t("Spento", "Off"),
+    caption: didascalia(),
+    /* L'anello dice quanto manca all'acqua calda, che e' la sola cosa per cui
+     * si guarda uno scaldabagno. Senza obiettivo non c'e' corsa: niente
+     * anello, invece di un cerchio pieno a caso. */
+    ring: testa.quota == null ? null : Math.round(testa.quota * 100),
+    // La tessera si accende mentre la resistenza lavora, non quando e' finita.
+    attiva: scalda,
+    /* Le letture per unita', accanto alle righe: la frase della finestra parla
+     * di acqua calda e di gradi che mancano, non del numero di caselle accese
+     * — contando le righe direbbe «uno su otto in funzione», che di uno
+     * scaldabagno non e' una notizia. */
+    unita: letture,
+    rows,
+  };
+}
+
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
@@ -2141,6 +2262,7 @@ function widgetModels(states) {
       evModel(states),
       robotsModel(states),
       solarThermalModel(states),
+      scaldabagnoModel(states),
       minipcModel(states),
       poolModel(states),
       preseModel(states),
@@ -3065,6 +3187,7 @@ function pilloleDelloStato(widget) {
  * acceso/spento restano alle pillole, i comandi restano comandi. */
 const CHIAVI_A_CARTE = new Set([
   "evidenza",
+  "scaldabagno",
   "ev",
   "solare",
   "piscina",
@@ -3461,7 +3584,7 @@ function detailRows(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
-  if (["ev", "solare", "piscina", "prese", "irrigazione", "robot"].includes(widget.key))
+  if (["ev", "solare", "scaldabagno", "piscina", "prese", "irrigazione", "robot"].includes(widget.key))
     return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);

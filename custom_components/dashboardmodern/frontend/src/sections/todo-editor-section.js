@@ -8,6 +8,11 @@
  * esistono gia', perche' cio' che Home Assistant sa non si riscrive a mano.
  */
 import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
+import {
+  SCALDABAGNI_KEY,
+  isWaterHeaterEntity,
+  suggerisciScaldabagni,
+} from "../core/scaldabagno-model.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import { normalizeAlertsEditor } from "./alerts-section.js";
 import { refreshFloodAlerts } from "./flood-alerts-section.js";
@@ -32,7 +37,7 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TODO_EDITOR__";
-const state = (root[KEY] ||= { installed: false, aperto: -1, evidAperto: -1 });
+const state = (root[KEY] ||= { installed: false, aperto: -1, evidAperto: -1, scaldAperto: -1 });
 
 export const TODO_EDITOR_TAB = "todo";
 const LEGACY_ALERTS_TAB = "avvisi";
@@ -84,6 +89,9 @@ function catalogoTessere() {
      * cambiato nome, e la tessera che la racconta deve chiamarsi come lei. */
     ["robot", "🤖", t("Robot", "Robots")],
     ["solare", "🌞", t("Solare termico", "Solar thermal")],
+    /* Lo scaldabagno elettrico (#253): la scheda del solare guardava il salto
+     * fra le sonde, questo guarda quanto manca all'acqua calda. */
+    ["scaldabagno", "🚿", t("Scaldabagno", "Water heater")],
     ["piscina", "🏊", t("Piscina", "Pool")],
     ["prese", "🔌", t("Prese", "Sockets")],
     ["irrigazione", "💧", t("Irrigazione", "Irrigation")],
@@ -245,6 +253,121 @@ function evidenzaMarkup() {
   <button type="button" class="ed-btn-add" data-evid-add>＋ ${t("Aggiungi entità", "Add entity")}</button>`;
 }
 
+
+/* ── lo scaldabagno elettrico (#253) ──────────────────────────────────── */
+
+/* Le righe grezze: come per le altre, una riga appena aggiunta e' vuota e va
+ * lasciata compilare prima di giudicarla. */
+function scaldabagni() {
+  const stored = readJson(SCALDABAGNI_KEY, []);
+  return Array.isArray(stored) ? stored : [];
+}
+
+function salvaScaldabagni(voci) {
+  writeJsonIfChanged(SCALDABAGNI_KEY, voci);
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
+}
+
+/* Le sei caselle, in ordine di quanto servono.
+ *
+ * La prima da sola basta a chi ha un `water_heater.*`: quell'entita' dichiara
+ * stato, temperatura e obiettivo tutti insieme. Le altre sono per chi lo
+ * scaldabagno se l'e' messo insieme da un rele' e due sonde, che e' il caso di
+ * chi ha aperto la segnalazione. Nessuna e' obbligatoria: la tessera mostra
+ * quello che trova. */
+function caselleScaldabagno(index, voce) {
+  return [
+    [
+      "entity",
+      t("Scaldabagno di Home Assistant", "Home Assistant water heater"),
+      "water_heater.boiler",
+      t(
+        "Se ce l'hai, basta questa: stato, temperatura e obiettivo li dichiara lei.",
+        "If you have one, this is enough: it declares state, temperature and target itself.",
+      ),
+    ],
+    [
+      "interruttore",
+      t("Interruttore della resistenza", "Heating element switch"),
+      "switch.scaldabagno",
+      "",
+    ],
+    [
+      "temperatura",
+      t("Temperatura dell'acqua", "Water temperature"),
+      "sensor.scaldabagno_temperatura",
+      "",
+    ],
+    [
+      "obiettivo",
+      t("Obiettivo", "Target"),
+      "number.scaldabagno_target",
+      t(
+        "Un number, un climate o un water_heater: dal termostato si legge il suo obiettivo.",
+        "A number, a climate or a water_heater: the target is read from the thermostat.",
+      ),
+    ],
+    ["potenza", t("Consumo (W)", "Power (W)"), "sensor.scaldabagno_potenza", ""],
+    [
+      "energia",
+      t("Energia di oggi (kWh)", "Energy today (kWh)"),
+      "sensor.scaldabagno_energia_oggi",
+      "",
+    ],
+  ].map(([campo, etichetta, esempio, aiuto]) => {
+    const id = `dm-scald-${index}-${campo}`;
+    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(etichetta)}</span>
+      <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-scald-field="${campo}"
+        value="${esc(clean(voce?.[campo]))}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
+        type="button" class="dm-entity-picker" data-scald-pick="${id}"
+        aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>${
+          aiuto ? `<small>${esc(aiuto)}</small>` : ""
+        }</label>`;
+  }).join("");
+}
+
+function rigaScaldabagnoMarkup(voce, index) {
+  const aperto = state.scaldAperto === index;
+  const nome =
+    clean(voce?.name) ||
+    clean(voce?.entity) ||
+    `${t("Scaldabagno", "Water heater")} ${index + 1}`;
+  const sotto =
+    clean(voce?.entity) || clean(voce?.interruttore) || t("nessuna entità", "no entity");
+  return `<article class="ed-row dm-todo-ed-row dm-scald-row" data-scald-index="${index}" data-open="${aperto}">
+    <div class="dm-todo-ed-head">
+      <span class="dm-todo-ed-icon" aria-hidden="true">🚿</span>
+      <span class="ed-row-main"><strong class="ed-row-new">${esc(nome)}</strong><small class="ed-row-old mono">${esc(sotto)}</small></span>
+      <button type="button" class="ed-del dm-todo-ed-edit" data-scald-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
+      <button type="button" class="ed-del dm-todo-ed-del" data-scald-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
+    </div>
+    <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-scald-${index}-name" class="ed-input" data-scald-field="name" value="${esc(clean(voce?.name))}" placeholder="${t("Bagno grande", "Main bathroom")}"></span></label>
+      ${caselleScaldabagno(index, voce)}
+      <output class="dm-todo-ed-error" data-scald-error></output>
+      <button type="button" class="ed-save-btn" data-scald-save>💾 ${t("Salva scaldabagno", "Save water heater")}</button>
+    </div>
+  </article>`;
+}
+
+function scaldabagnoMarkup() {
+  const voci = scaldabagni();
+  return `<div class="ed-sec-title dm-widget-ed-sep">🚿 ${esc(t("Scaldabagno", "Water heater"))}</div>
+  <div class="ed-intro">${t(
+    "Lo scaldabagno elettrico, per chi l'acqua calda non la fa col sole: la tessera dice a che punto è l'acqua e quanto manca all'obiettivo. Con un water_heater di Home Assistant basta la prima casella.",
+    "The electric water heater, for whoever does not make hot water with the sun: the tile says where the water is and how far it is from the target. With a Home Assistant water_heater the first field is enough.",
+  )}</div>
+  <div class="ed-list dm-todo-ed-list dm-scald-list">${
+    voci.length
+      ? voci.map((voce, index) => rigaScaldabagnoMarkup(voce, index)).join("")
+      : `<div class="ed-empty">${t("Nessuno scaldabagno configurato", "No water heater configured")}</div>`
+  }</div>
+  <button type="button" class="ed-btn-add" data-scald-add>＋ ${t("Aggiungi scaldabagno", "Add water heater")}</button>
+  <button type="button" class="ed-btn-add" data-scald-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>`;
+}
+
 function rigaMarkup(list, index) {
   const aperto = state.aperto === index;
   return `<article class="ed-row dm-todo-ed-row" data-todo-index="${index}" data-open="${aperto}">
@@ -279,6 +402,7 @@ function bodyMarkup(lists) {
   <button type="button" class="ed-btn-add" data-todo-add>＋ ${t("Aggiungi lista", "Add list")}</button>
   <button type="button" class="ed-btn-add" data-todo-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>
   ${evidenzaMarkup()}
+  ${scaldabagnoMarkup()}
   ${avvisiMarkup()}`;
 }
 
@@ -314,6 +438,13 @@ export function ensureTodoEditor() {
   const firma = [
     state.aperto,
     state.evidAperto,
+    state.scaldAperto,
+    /* Le righe dello scaldabagno entrano nella firma o la scheda non si
+     * ridisegna dopo un salvataggio: si salvava e sullo schermo restava la
+     * riga di prima. */
+    ...scaldabagni().map(
+      (voce) => `${voce?.name}~${voce?.entity}~${voce?.interruttore}~${voce?.temperatura}~${voce?.obiettivo}~${voce?.potenza}~${voce?.energia}`,
+    ),
     preferences.order.join(","),
     preferences.hidden.join(","),
     preferences.compatto,
@@ -489,6 +620,100 @@ function onClick(event) {
       salvaEvidenze(next);
       ridisegna();
       root.edToast?.(t("💾 Entità salvata", "💾 Entity saved"));
+    }
+    return;
+  }
+
+  /* ── il blocco «Scaldabagno» (#253) ── */
+  if (event.target.closest("[data-scald-add]")) {
+    event.preventDefault();
+    const voci = scaldabagni();
+    state.scaldAperto = voci.length;
+    salvaScaldabagni([...voci, { name: "", entity: "" }]);
+    ridisegna();
+    return;
+  }
+  if (event.target.closest("[data-scald-detect]")) {
+    event.preventDefault();
+    /* Cio' che Home Assistant sa gia' non si riscrive a mano: le entita'
+     * `water_heater.*` che non sono ancora nell'elenco entrano da sole, col
+     * nome che hanno di la'. */
+    const voci = scaldabagni();
+    const trovati = suggerisciScaldabagni(allStates(), voci);
+    if (!trovati.length) {
+      root.edToast?.(t("Nessuno scaldabagno nuovo", "No new water heater"));
+      return;
+    }
+    salvaScaldabagni([
+      ...voci,
+      ...trovati.map((trovato) => ({ name: trovato.name, entity: trovato.entity })),
+    ]);
+    ridisegna();
+    root.edToast?.(t("🪄 Scaldabagni aggiunti", "🪄 Water heaters added"));
+    return;
+  }
+  const pickScald = event.target.closest("[data-scald-pick]");
+  if (pickScald) {
+    event.preventDefault();
+    const input = body.querySelector(`#${CSS.escape(clean(pickScald.dataset.scaldPick))}`);
+    if (input) root.wzPickEntity?.(input);
+    return;
+  }
+  const rigaScald = event.target.closest("[data-scald-index]");
+  if (rigaScald) {
+    const voci = scaldabagni();
+    const index = Number(rigaScald.dataset.scaldIndex);
+    if (!Number.isFinite(index) || !voci[index]) return;
+    if (event.target.closest("[data-scald-edit]")) {
+      event.preventDefault();
+      state.scaldAperto = state.scaldAperto === index ? -1 : index;
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-scald-del]")) {
+      event.preventDefault();
+      const nome = clean(voci[index]?.name) || clean(voci[index]?.entity) || `${index + 1}`;
+      const domanda = t(`Tolgo "${nome}"?`, `Remove "${nome}"?`);
+      if (root.confirm && !root.confirm(domanda)) return;
+      state.scaldAperto = -1;
+      salvaScaldabagni(voci.filter((_voce, position) => position !== index));
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-scald-save]")) {
+      event.preventDefault();
+      const next = voci.slice();
+      const letta = { ...voci[index] };
+      for (const campo of rigaScald.querySelectorAll("[data-scald-field]"))
+        letta[clean(campo.dataset.scaldField)] = clean(campo.value);
+      const errore = rigaScald.querySelector("[data-scald-error]");
+      /* Una riga senza nemmeno una casella non ha niente da mostrare, e in
+       * Home diventerebbe una tessera vuota. Basta UNA: quale, lo decide chi
+       * configura — con un water_heater e' la prima, con un rele' e due sonde
+       * sono le altre. */
+      const caselle = ["entity", "interruttore", "temperatura", "obiettivo", "potenza", "energia"];
+      if (!caselle.some((campo) => clean(letta[campo]))) {
+        if (errore)
+          errore.textContent = t("Serve almeno un'entità.", "At least one entity is required.");
+        return;
+      }
+      /* La prima casella vuole proprio un water_heater: e' quella che si porta
+       * dietro stato, temperatura e obiettivo insieme, e scriverci un sensore
+       * qualunque darebbe una scheda che non risponde. */
+      if (clean(letta.entity) && !isWaterHeaterEntity(letta.entity)) {
+        if (errore)
+          errore.textContent = t(
+            "La prima casella vuole un water_heater.*; le sonde vanno nelle caselle sotto.",
+            "The first field wants a water_heater.*; put probes in the fields below.",
+          );
+        return;
+      }
+      if (errore) errore.textContent = "";
+      next[index] = letta;
+      state.scaldAperto = -1;
+      salvaScaldabagni(next);
+      ridisegna();
+      root.edToast?.(t("💾 Scaldabagno salvato", "💾 Water heater saved"));
     }
     return;
   }
