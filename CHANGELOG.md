@@ -5,6 +5,27 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.5
+
+Il lampo del popup, di nuovo — e stavolta con la causa giusta. Nella beta.4 gli
+stati erano corretti e le carte restavano al loro posto, ma il lampo bianco
+c'era ancora: sei volte in nove secondi.
+
+### Corretto
+
+- **Il popup non riscrive piu' quello che non e' cambiato.** I due fotogrammi ai
+  lati del lampo erano identici: fra prima e dopo non cambiava un pixel. Non
+  stava cambiando niente, e il livello si ridipingeva lo stesso — perche' la
+  finestra riscriveva lo stesso. Al banco, dieci giri di stati fermi facevano
+  **seicentodieci scritture sul DOM**: le carte venivano «rimesse in fila» una
+  per una a ogni giro anche quando l'ordine era gia' quello, e attributi, colori
+  e testi venivano riassegnati col valore che avevano gia'. Assegnare lo stesso
+  valore non e' gratis: il browser non confronta, invalida — e dentro il velo
+  sfocato del modale ogni invalidazione e' un livello da ridipingere, che per un
+  fotogramma resta bianco. Adesso si confronta prima di scrivere, e in
+  classifica si sposta solo la carta che non e' al suo posto: **a stati fermi le
+  scritture sono zero.**
+
 ## 1.4.5-beta.4
 
 Un filmato di ventotto secondi, guardato fotogramma per fotogramma. Dentro

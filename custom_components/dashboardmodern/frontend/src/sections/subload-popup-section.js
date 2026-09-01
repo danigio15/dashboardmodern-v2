@@ -147,27 +147,55 @@ function card(item, model) {
   return node;
 }
 
+/* Si scrive solo quello che cambia.
+ *
+ * Il lampo del secondo filmato — beta.4 installata, carte che restano al loro
+ * posto — non era piu' la lista che si svuota: era la lista che si RISCRIVE
+ * anche quando non e' cambiato niente. Al banco, dieci giri di stati identici
+ * facevano cento scritture sul DOM: sessanta spostamenti di nodi e quaranta
+ * attributi riscritti col valore che avevano gia'.
+ *
+ * Dentro un velo sfocato ogni scrittura e' un livello da ridipingere, e finche'
+ * il livello non e' pronto resta il bianco del foglio. Ecco perche' i due
+ * fotogrammi ai lati del lampo erano IDENTICI: non stava cambiando niente, si
+ * stava solo riscrivendo.
+ *
+ * Assegnare lo stesso valore a `textContent`, a un `data-` o a una proprieta'
+ * CSS non e' gratis: il browser non confronta, invalida. Confrontare qui costa
+ * un `===`. */
+const poniTesto = (nodo, testo) => {
+  if (nodo && nodo.textContent !== testo) nodo.textContent = testo;
+};
+const poniDato = (nodo, chiave, valore) => {
+  if (nodo && nodo.dataset[chiave] !== valore) nodo.dataset[chiave] = valore;
+};
+const poniStile = (nodo, nome, valore) => {
+  if (nodo && nodo.style.getPropertyValue(nome) !== valore) nodo.style.setProperty(nome, valore);
+};
+const poniNascosto = (nodo, nascosto) => {
+  if (nodo && nodo.hidden !== nascosto) nodo.hidden = nascosto;
+};
+
 /* I valori nuovi dentro la carta che c'e' gia'. */
 function aggiornaCarta(node, item, model) {
   if (!node) return false;
-  node.dataset.dmSubloadState = item.state;
-  node.dataset.dmSubloadEntity = clean(item.entity);
-  node.dataset.dmSubloadName = clean(item.name);
-  node.style.setProperty("--dm-subload-color", item.color);
-  node.style.setProperty("--dm-subload-tint", item.tint);
+  poniDato(node, "dmSubloadState", item.state);
+  poniDato(node, "dmSubloadEntity", clean(item.entity));
+  poniDato(node, "dmSubloadName", clean(item.name));
+  poniStile(node, "--dm-subload-color", item.color);
+  poniStile(node, "--dm-subload-tint", item.tint);
   iconInto(node.querySelector(".dm-subload-icon"), item.icon);
-  const nome = node.querySelector(".dm-subload-name");
-  if (nome && nome.textContent !== item.name) nome.textContent = item.name;
-  const parola = node.querySelector(".dm-subload-state");
-  if (parola) parola.textContent = ETICHETTE()[item.state];
-  const potenza = node.querySelector(".dm-subload-power");
-  if (potenza) potenza.textContent = item.powerText;
+  poniTesto(node.querySelector(".dm-subload-name"), item.name);
+  poniTesto(node.querySelector(".dm-subload-state"), ETICHETTE()[item.state]);
+  poniTesto(node.querySelector(".dm-subload-power"), item.powerText);
   scriviIlGiorno(node, item);
-  const riempimento = node.querySelector(".dm-subload-meter-fill");
-  if (riempimento) riempimento.style.setProperty("width", `${Math.round(item.share * 100)}%`);
-  const barra = node.querySelector(".dm-subload-meter");
+  poniStile(
+    node.querySelector(".dm-subload-meter-fill"),
+    "width",
+    `${Math.round(item.share * 100)}%`,
+  );
   // The share is only meaningful when something in the group is drawing.
-  if (barra) barra.hidden = !model.total;
+  poniNascosto(node.querySelector(".dm-subload-meter"), !model.total);
   return true;
 }
 
@@ -250,17 +278,33 @@ function riconcilia(list, model) {
     ]),
   );
   const vivi = new Set();
+  const inFila = [];
   for (const item of model.items) {
     vivi.add(item.id);
     const nodo = carte.get(item.id);
     if (nodo) aggiornaCarta(nodo, item, model);
-    /* La classifica cambia coi watt: rimettere in fila e' spostare i nodi che
-     * ci sono — `append` di un nodo gia' figlio lo sposta, non lo copia. */
-    griglia.append(nodo || card(item, model));
+    inFila.push(nodo || card(item, model));
   }
   for (const [id, nodo] of carte) if (!vivi.has(id)) nodo.remove?.();
+
+  /* La classifica cambia coi watt, e rimettere in fila costa: ogni `append` e'
+   * un nodo che si sposta davvero, anche quando lo si rimette dov'era gia'.
+   * Otto carte, otto spostamenti, a ogni giro di stati — e ogni spostamento
+   * dentro il velo sfocato e' un livello da ridipingere. Adesso si guarda chi
+   * NON e' al suo posto, e si sposta solo quello: a classifica ferma non si
+   * tocca niente. */
+  const gia = vuotoInScena(griglia) ? 1 : 0;
+  for (let posto = 0; posto < inFila.length; posto++) {
+    const atteso = inFila[posto];
+    const attuale = griglia.children[posto + gia];
+    if (attuale === atteso) continue;
+    if (attuale) griglia.insertBefore(atteso, attuale);
+    else griglia.append(atteso);
+  }
   return true;
 }
+
+const vuotoInScena = (griglia) => Boolean(griglia.querySelector(".dm-subload-empty"));
 
 const ETICHETTE = () => ({
   running: t("IN FUNZIONE", "RUNNING"),
@@ -286,15 +330,15 @@ function header(model) {
  * versioni della stessa riga che possono divergere. */
 function aggiornaTestata(node, model) {
   if (!node) return false;
-  node.style.setProperty("--dm-subload-color", model.color);
+  poniStile(node, "--dm-subload-color", model.color);
   iconInto(node.querySelector(".dm-subload-summary-icon"), model.icon);
-  const somma = node.querySelector(".dm-subload-total-value");
-  if (somma) somma.textContent = model.totalText;
-  const conteggio = node.querySelector(".dm-subload-total-count");
-  if (conteggio)
-    conteggio.textContent = model.count
+  poniTesto(node.querySelector(".dm-subload-total-value"), model.totalText);
+  poniTesto(
+    node.querySelector(".dm-subload-total-count"),
+    model.count
       ? `${model.running}/${model.count} ${t("in funzione", "running")}`
-      : t("nessun dispositivo", "no appliance");
+      : t("nessun dispositivo", "no appliance"),
+  );
   return true;
 }
 
@@ -385,9 +429,9 @@ export function renderSubloadPopup(groupId = state.group) {
   if (list.dataset.dmSubloadFirma !== firma || !titolo?.querySelector?.(".dm-subload-title-name"))
     writeTitle(model, groupId);
 
-  list.dataset.dmSubloadOwner = "beta30";
-  list.dataset.dmSubloadCount = String(model.count);
-  list.dataset.dmSubloadFirma = firma;
+  poniDato(list, "dmSubloadOwner", "beta30");
+  poniDato(list, "dmSubloadCount", String(model.count));
+  poniDato(list, "dmSubloadFirma", firma);
   riconcilia(list, model);
   return true;
 }
