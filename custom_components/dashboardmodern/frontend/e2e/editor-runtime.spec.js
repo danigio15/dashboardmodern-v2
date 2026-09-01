@@ -195,14 +195,23 @@ for (const variant of PRIMARY) {
      * gia' rifatto l'elenco: quello lo rifa' `cdRebuildReportDevices` da un
      * setTimeout a 2600 ms dall'apertura del socket. La lettura secca vinceva
      * la corsa su una macchina ferma e la perdeva con la suite intera addosso
-     * — «Array []» al posto delle tre voci. Le stesse tre voci, aspettate. */
+     * — «Array []» al posto delle tre voci. Le stesse tre voci, aspettate.
+     *
+     * L'attesa segue il browser, come gia' fa quella della prova intera qui
+     * sopra. Prima no: la prova su webkit si prende tre volte il tempo — perche'
+     * su webkit ci mette tre volte tanto — ma questo sondaggio dentro restava
+     * fermo a venti secondi. Su uno shard carico si arrendeva con «Array []»
+     * mentre alla prova restavano ancora due minuti di tempo: non era l'elenco
+     * a non arrivare, era chi lo aspettava ad andarsene prima. Nella stessa
+     * tornata anche `energy-flow-motion` su quello shard e' passata solo al
+     * secondo tentativo, che e' il segno di una macchina in affanno. */
     await expect
       .poll(
         () =>
           page.evaluate(() =>
             ED_DEVICES.map((device) => [device.name, device.icon, device.sensor]),
           ),
-        { timeout: 20_000 },
+        { timeout: testInfo.project.name === "webkit-ipad" ? 60_000 : 20_000 },
       )
       .toEqual([
         ["Washer first", "🧺", "sensor.washer_month"],
