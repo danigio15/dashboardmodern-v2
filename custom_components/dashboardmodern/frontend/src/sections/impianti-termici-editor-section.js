@@ -118,7 +118,11 @@ function sceltaMarkup() {
 /* ── la caldaia ───────────────────────────────────────────────────────── */
 
 const CAMPI_CALDAIA = Object.freeze({
-  stato: [["Stato della caldaia", "Boiler state"], "binary_sensor.caldaia"],
+  stato: [
+    ["Stato della caldaia", "Boiler state"],
+    "binary_sensor.caldaia",
+    ["Da solo basta: acceso e spento, senza numeri.", "Enough on its own: on and off, no numbers."],
+  ],
   fiamma: [["Bruciatore acceso", "Burner on"], "binary_sensor.caldaia_fiamma"],
   mandata: [["Temperatura di mandata", "Flow temperature"], "sensor.caldaia_mandata"],
   ritorno: [["Temperatura di ritorno", "Return temperature"], "sensor.caldaia_ritorno"],
@@ -141,19 +145,21 @@ function salvaCaldaia(config) {
 function caldaiaMarkup() {
   const config = caldaia();
   const campi = CASELLE_CALDAIA.map(({ campo }) => {
-    const [etichetta, esempio] = CAMPI_CALDAIA[campo];
+    const [etichetta, esempio, aiuto] = CAMPI_CALDAIA[campo];
     const id = `dm-caldaia-${campo}`;
     return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(...etichetta))}</span>
       <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-dm-caldaia-field="${esc(campo)}"
         value="${esc(config[campo])}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
         type="button" class="dm-entity-picker" data-dm-caldaia-pick="${id}"
-        aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span></label>`;
+        aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>${
+          aiuto ? `<small>${esc(t(...aiuto))}</small>` : ""
+        }</label>`;
   }).join("");
   return `<div class="ed-sec-title dm-it-ed-sep">🔥 ${esc(t("Caldaia", "Boiler"))}</div>
   <div class="ed-intro">${esc(
     t(
-      "La differenza fra mandata e ritorno dice se l'impianto sta davvero cedendo calore; la pressione è l'unica cosa che ogni tanto va rabboccata a mano.",
-      "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand.",
+      "La differenza fra mandata e ritorno dice se l'impianto sta davvero cedendo calore; la pressione è l'unica cosa che ogni tanto va rabboccata a mano. Nessuna casella è obbligatoria: col solo stato la scheda mostra la caldaia accesa o spenta, senza numeri che non ha.",
+      "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.",
     ),
   )}</div>
   <div class="ed-list dm-todo-ed-list">
@@ -205,7 +211,10 @@ function caselleScaldabagno(index, voce) {
       "interruttore",
       t("Interruttore della resistenza", "Heating element switch"),
       "switch.scaldabagno",
-      "",
+      t(
+        "Da solo basta: la scheda dice acceso e spento, e non finge di sapere i gradi.",
+        "Enough on its own: the card says on and off, and does not pretend to know the degrees.",
+      ),
     ],
     [
       "temperatura",

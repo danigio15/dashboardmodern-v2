@@ -126,8 +126,21 @@ function targhetta(etichetta, valore, unita, colore, extra = "") {
   </div>`;
 }
 
-const NUMERO = (valore, cifre = 1) =>
-  valore == null ? "--" : formatNumber(valore, cifre);
+const NUMERO = (valore, cifre = 1) => formatNumber(valore, cifre);
+
+/* Una targhetta senza numero non si disegna.
+ *
+ * «Prevedi anche il semplice utilizzo senza sonde di temperatura: deve essere
+ * libero di scelta.» Chi ha solo il rele' dello scaldabagno, o solo lo stato
+ * della caldaia, non ha temperature da mostrare — e cinque targhette con «--»
+ * non sono una scheda spoglia: sono cinque promesse non mantenute. Le caselle
+ * che non ci sono non lasciano un buco: lasciano posto. */
+function nodoTarghetta(posizione, etichetta, valore, unita, colore, cifre = 1, extra = "") {
+  if (valore == null) return "";
+  return `<div class="dm-it-nodo dm-it-nodo-plate" style="${posizione}">
+    ${targhetta(etichetta, NUMERO(valore, cifre), unita, colore, extra)}
+  </div>`;
+}
 
 function scenaScaldabagno(letture) {
   if (!letture.length)
@@ -140,11 +153,18 @@ function scenaScaldabagno(letture) {
   const unita = letture[0];
   /* Il livello dell'acqua calda nel serbatoio: e' la stessa quota della
    * tessera in Home, e disegnarla qui col riempimento e' il modo piu' diretto
-   * di dire «quanto manca» senza scrivere una percentuale. */
-  const quota = unita.quota == null ? 0 : Math.round(unita.quota * 100);
+   * di dire «quanto manca» senza scrivere una percentuale.
+   *
+   * Chi non ha sonde quella quota non ce l'ha, e un serbatoio disegnato vuoto
+   * direbbe «non c'e' acqua calda» — che e' un'affermazione, non un'assenza di
+   * dati. Senza sonde il serbatoio si riempie tutto e parla il colore: caldo
+   * mentre la resistenza lavora, acciaio quando e' ferma. */
+  const conSonde = unita.quota != null;
+  const quota = conSonde ? Math.round(unita.quota * 100) : 100;
   const acceso = unita.acceso === true;
   const comando = clean(unita.comandabile);
-  return `<div class="dm-it-scena" data-dm-it-scena="scaldabagno" data-acceso="${acceso}">
+  return `<div class="dm-it-scena" data-dm-it-scena="scaldabagno" data-acceso="${acceso}"
+      data-sonde="${conSonde}">
     <svg class="dm-it-tubi" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
       <path class="dm-it-tubo" d="M 548 244 L 640 244 L 700 214 L 700 58"/>
       <path class="dm-it-tubo-int" d="M 548 244 L 640 244 L 700 214 L 700 58"/>
@@ -165,18 +185,10 @@ function scenaScaldabagno(letture) {
       <span class="dm-it-nome">${esc(unita.name || t("Scaldabagno", "Water heater"))}</span>
     </div>
 
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:16%;top:28%">
-      ${targhetta(t("Acqua adesso", "Water now"), NUMERO(unita.temperatura), "°C", "#f97316")}
-    </div>
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:16%;top:64%">
-      ${targhetta(t("Obiettivo", "Target"), NUMERO(unita.obiettivo), "°C", "#38bdf8")}
-    </div>
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:85%;top:28%">
-      ${targhetta(t("Consumo", "Power"), NUMERO(unita.potenza, 0), " W", "#a78bfa")}
-    </div>
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:85%;top:64%">
-      ${targhetta(t("Oggi", "Today"), NUMERO(unita.energia), " kWh", "#34d399")}
-    </div>
+    ${nodoTarghetta("left:16%;top:28%", t("Acqua adesso", "Water now"), unita.temperatura, "°C", "#f97316")}
+    ${nodoTarghetta("left:16%;top:64%", t("Obiettivo", "Target"), unita.obiettivo, "°C", "#38bdf8")}
+    ${nodoTarghetta("left:85%;top:28%", t("Consumo", "Power"), unita.potenza, " W", "#a78bfa", 0)}
+    ${nodoTarghetta("left:85%;top:64%", t("Oggi", "Today"), unita.energia, " kWh", "#34d399")}
 
     <div class="dm-it-nodo" style="left:52%;top:88%">
       ${
@@ -198,8 +210,19 @@ function scenaCaldaia(lettura) {
   const acceso = lettura.acceso === true || lettura.fiamma === true;
   const pressione = verdettoPressione(lettura.pressione);
   const salto = lettura.salto;
+  /* Chi ha mappato solo lo stato — «prevedi anche il semplice utilizzo senza
+   * sonde» — ha una caldaia che dice acceso e spento, e basta. Quella e' una
+   * scheda legittima: la scocca, la fiamma, il circuito che si scalda. Le
+   * targhette dei gradi non ci sono perche' non ci sono i gradi, non perche'
+   * qualcuno ha sbagliato a configurare. */
+  const conSonde = lettura.mandata != null || lettura.ritorno != null;
+  /* La fiamma nell'oblo' segue il bruciatore quando qualcuno l'ha mappato; chi
+   * ha mappato solo lo stato non ha un bruciatore da leggere, e allora e' lo
+   * stato a dire se la macchina lavora — dipingere l'oblo' spento sopra una
+   * caldaia accesa direbbe il contrario di quello che si sa. */
+  const brucia = lettura.fiamma === true || (lettura.fiamma == null && lettura.acceso === true);
   return `<div class="dm-it-scena" data-dm-it-scena="caldaia" data-acceso="${acceso}"
-      data-fiamma="${lettura.fiamma === true}">
+      data-fiamma="${brucia}" data-sonde="${conSonde}">
     <svg class="dm-it-tubi" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
       <path class="dm-it-tubo" d="M 300 296 L 640 296 L 720 336 L 800 336"/>
       <path class="dm-it-tubo-int" d="M 300 296 L 640 296 L 720 336 L 800 336"/>
@@ -213,9 +236,11 @@ function scenaCaldaia(lettura) {
       <div class="dm-it-caldaia">
         <span class="dm-it-caldaia-testa" aria-hidden="true"></span>
         <span class="dm-it-oblo" aria-hidden="true"><i class="dm-it-fiamma"></i></span>
-        <span class="dm-it-caldaia-display" aria-hidden="true">
-          <b>${esc(NUMERO(lettura.mandata, 0))}</b>
-        </span>
+        ${
+          lettura.mandata == null
+            ? ""
+            : `<span class="dm-it-caldaia-display" aria-hidden="true"><b>${esc(NUMERO(lettura.mandata, 0))}</b></span>`
+        }
         <span class="dm-it-caldaia-piede" aria-hidden="true"></span>
       </div>
       <span class="dm-it-nome">${esc(lettura.name || t("Caldaia", "Boiler"))}</span>
@@ -226,24 +251,18 @@ function scenaCaldaia(lettura) {
       <span class="dm-it-nome">${esc(t("Impianto", "Circuit"))}</span>
     </div>
 
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:64%;top:20%">
-      ${targhetta(t("Mandata", "Flow"), NUMERO(lettura.mandata), "°C", "#f43f5e")}
-    </div>
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:64%;top:80%">
-      ${targhetta(t("Ritorno", "Return"), NUMERO(lettura.ritorno), "°C", "#38bdf8")}
-    </div>
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:26%;top:14%">
-      ${targhetta(
-        t("Pressione", "Pressure"),
-        NUMERO(lettura.pressione),
-        " bar",
-        pressione === "bassa" ? "#f43f5e" : pressione === "alta" ? "#f59e0b" : "#34d399",
-        pressione ? ` data-dm-it-pressione="${pressione}"` : "",
-      )}
-    </div>
-    <div class="dm-it-nodo dm-it-nodo-plate" style="left:26%;top:84%">
-      ${targhetta(t("Acqua calda", "Hot water"), NUMERO(lettura.acquaCalda), "°C", "#fb923c")}
-    </div>
+    ${nodoTarghetta("left:64%;top:20%", t("Mandata", "Flow"), lettura.mandata, "°C", "#f43f5e")}
+    ${nodoTarghetta("left:64%;top:80%", t("Ritorno", "Return"), lettura.ritorno, "°C", "#38bdf8")}
+    ${nodoTarghetta(
+      "left:26%;top:14%",
+      t("Pressione", "Pressure"),
+      lettura.pressione,
+      " bar",
+      pressione === "bassa" ? "#f43f5e" : pressione === "alta" ? "#f59e0b" : "#34d399",
+      1,
+      pressione ? ` data-dm-it-pressione="${pressione}"` : "",
+    )}
+    ${nodoTarghetta("left:26%;top:84%", t("Acqua calda", "Hot water"), lettura.acquaCalda, "°C", "#fb923c")}
 
     ${
       salto == null
@@ -252,6 +271,26 @@ function scenaCaldaia(lettura) {
             <span class="dm-it-salto" data-cede="${salto >= 3}">
               ${esc(t("Salto", "Delta"))} <b>${esc(NUMERO(salto))}°</b>
             </span>
+          </div>`
+    }
+
+    ${
+      conSonde || lettura.pressione != null
+        ? ""
+        : `<div class="dm-it-nodo" style="left:57%;top:41%">
+            <span class="dm-it-salto" data-cede="${acceso}">${esc(
+              /* Si nomina quello che si sta leggendo davvero: chi ha mappato il
+               * bruciatore legge il bruciatore, chi ha mappato solo lo stato
+               * legge la caldaia. Dire «bruciatore» a chi non ce l'ha mappato
+               * sarebbe attribuirgli una lettura che non ha. */
+              lettura.fiamma != null
+                ? acceso
+                  ? t("Bruciatore acceso", "Burner on")
+                  : t("Bruciatore spento", "Burner off")
+                : acceso
+                  ? t("Caldaia accesa", "Boiler on")
+                  : t("Caldaia spenta", "Boiler off"),
+            )}</span>
           </div>`
     }
 
@@ -541,7 +580,15 @@ function installStyles() {
     #${PAGINA} .dm-it-tank-acqua{
       position:absolute;left:0;right:0;bottom:0;
       background:linear-gradient(to top,#ea580c,#fb923c 62%,#fbbf24);
-      opacity:.92;transition:height 1.4s cubic-bezier(.16,1,.3,1)}
+      opacity:.92;transition:height 1.4s cubic-bezier(.16,1,.3,1),background 1s ease}
+    /* Senza sonde il serbatoio non ha un livello da mostrare: si riempie tutto
+       e parla il colore — caldo mentre la resistenza lavora, acciaio quando e'
+       ferma. Un serbatoio disegnato vuoto direbbe «non c'e' acqua calda», che
+       e' un'affermazione e non un'assenza di dati. */
+    #${PAGINA} .dm-it-scena[data-sonde="false"] .dm-it-tank-acqua{
+      background:linear-gradient(to top,#94a3b8,#cbd5e1)}
+    #${PAGINA} .dm-it-scena[data-sonde="false"][data-acceso="true"] .dm-it-tank-acqua{
+      background:linear-gradient(to top,#ea580c,#fb923c 62%,#fbbf24)}
     #${PAGINA} .dm-it-tank-vetro{
       position:absolute;inset:0;pointer-events:none;
       background:linear-gradient(105deg,rgba(255,255,255,.72) 0 16%,rgba(255,255,255,0) 34%,

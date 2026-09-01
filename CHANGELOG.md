@@ -82,6 +82,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **Con tutti e tre gli impianti le tessere sono tre**, ognuna con la sua
   finestra, e tutte e tre portano alla stessa sezione: da li' si passa
   dall'una all'altra con le linguette.
+- **Senza sonde funziona lo stesso, ed e' una scelta libera.** «Prevedi sia per
+  la caldaia che per lo scaldabagno anche il semplice utilizzo senza sonde di
+  temperatura.» Nessuna casella e' obbligatoria. Con il solo interruttore lo
+  scaldabagno dice acceso e spento, il serbatoio si riempie tutto e parla il
+  colore — caldo mentre la resistenza lavora, acciaio quando e' ferma —
+  invece di mostrarsi vuoto, che sarebbe dire «non c'e' acqua calda». Con il
+  solo stato la caldaia accende il suo oblo' e mostra il circuito che si
+  scalda.
+- **E le targhette senza numero non si disegnano.** Cinque riquadri con «--»
+  non sono una scheda spoglia: sono cinque promesse non mantenute. Le caselle
+  che non ci sono non lasciano un buco, lasciano posto.
+- **La pastiglia nomina quello che sta davvero leggendo.** Chi mappa il
+  bruciatore legge «bruciatore acceso»; chi mappa solo lo stato legge «caldaia
+  accesa», perche' un bruciatore che nessuno ha mappato non si puo' citare.
 
 ### Corretto
 
