@@ -1047,11 +1047,20 @@ async function connect() {
         const v = m.result && m.result.value;
         const localTs = parseInt(localStorage.getItem('cd_sync_ts') || '0');
         if (localStorage.getItem('cd_sync_dirty')) { try { cdSyncPush(); } catch(e){} return; } // v299: prima invio le mie
-        if (v && v.__ts && v.__ts > localTs && !sessionStorage.getItem('cd_sync_reloading')) {
+        sessionStorage.removeItem('cd_sync_reloading'); sessionStorage.removeItem('cd_sync_rl2'); // v1.4.5: non si ricarica piu', le bandiere non servono
+        if (v && v.__ts && v.__ts > localTs) {
           const n = cdSyncApply(v);
           localStorage.setItem('cd_sync_ts', String(v.__ts));
-          if (n > 0) { if (sessionStorage.getItem('cd_sync_rl2')) { console.log('[Sync] applicato senza reload (loop-guard)'); try { if (typeof render === 'function') render(); } catch(e2) {} } else { sessionStorage.setItem('cd_sync_rl2', '1'); sessionStorage.setItem('cd_sync_reloading', '1'); console.log('[Sync] config più recente da HA — ricarico'); location.reload(); } }
-        } else { sessionStorage.removeItem('cd_sync_reloading'); }
+          /* v1.4.5: la configurazione piu' recente da HA si applica dov'e', senza
+             ricaricare. Il ricaricamento era il salto grosso del filmato: quattro
+             secondi dopo l'apertura la plancia diventava bianca, ripartiva da capo e
+             tornava sulla Home buttando via la pagina che si stava guardando — e
+             costava un avvio intero in piu' proprio nel momento in cui si aspetta.
+             Applicare dal vivo e' la stessa cosa che fa l'editor a ogni salvataggio:
+             lo store riceve il fotogramma e avvisa le sezioni, la barra rilegge quali
+             sezioni ci sono, il guscio ridisegna. */
+          if (n > 0) { console.log('[Sync] configurazione piu\' recente da HA: applicata senza ricaricare'); try { cdApplyNavVis(); } catch(e2) {} try { if (typeof render === 'function') render(); } catch(e3) {} }
+        }
       } catch(e) { console.warn('[Sync] pull check:', e); }
       return;
     }
@@ -2419,7 +2428,12 @@ function cdRenderSoon() {
 function cdSyncApply(data) {
     if (!data) return 0;
     let n = 0;
-    if (data.dm_dashboard_state !== undefined) { localStorage.setItem('dm_dashboard_state', data.dm_dashboard_state); window.DashboardModernModules?.store?.applySnapshot(data.dm_dashboard_state); n++; } CD_SYNC_KEYS.filter(k => k !== 'dm_dashboard_state').forEach(k => { if (data[k] !== undefined) { localStorage.setItem(k, data[k]); n++; } });
+    /* v1.4.5: si conta quello che CAMBIA davvero. Prima contava ogni chiave del
+       carico — tutte, anche quando erano identiche a quelle gia' qui — e quel
+       numero era la ragione per rifare tutto lo schermo: bastava che un altro
+       dispositivo avesse toccato il timbro dell'ora perche' questa plancia
+       ridisegnasse una configurazione che aveva gia'. */
+    if (data.dm_dashboard_state !== undefined && data.dm_dashboard_state !== localStorage.getItem('dm_dashboard_state')) { localStorage.setItem('dm_dashboard_state', data.dm_dashboard_state); window.DashboardModernModules?.store?.applySnapshot(data.dm_dashboard_state); n++; } CD_SYNC_KEYS.filter(k => k !== 'dm_dashboard_state').forEach(k => { if (data[k] !== undefined && data[k] !== localStorage.getItem(k)) { localStorage.setItem(k, data[k]); n++; } });
     return n;
 }
 /* Push sul WS principale (dashboard già connessa) */
