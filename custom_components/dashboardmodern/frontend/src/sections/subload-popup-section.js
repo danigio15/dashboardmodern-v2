@@ -13,6 +13,7 @@
  */
 import { subloadPopupModel } from "../core/subload-popup-model.js";
 import { flowStageModel, subloadsOf } from "../core/energy-flow-topology.js";
+import { onRunHoldExpiry } from "../core/appliance-view-model.js";
 import {
   allStates,
   clean,
@@ -89,8 +90,16 @@ function element(tag, className = "", text = "") {
 
 /* An icon may be an emoji or an `mdi:` token — the canonical picker writes
  * either. A token printed as text would show "mdi:stove" where the circle
- * shows the glyph. */
+ * shows the glyph.
+ *
+ * Il segno del disegno gia' fatto serve: per un `mdi:` il motore scrive
+ * `innerHTML`, e riscriverlo a ogni giro di stati rifarebbe quel pezzetto di
+ * albero venti volte al minuto senza che nulla sia cambiato. */
 function iconInto(target, icon) {
+  if (!target) return target;
+  const token = clean(icon);
+  if (target.dataset.dmSubloadIcon === token) return target;
+  target.dataset.dmSubloadIcon = token;
   writeIconGlyph(target, icon, { size: 24, kind: "load" });
   return target;
 }
@@ -99,94 +108,203 @@ function iconSpan(className, icon) {
   return iconInto(element("span", className), icon);
 }
 
+/* La carta si costruisce vuota e la riempie `aggiornaCarta`: cosi' quello che
+ * si vede appena stampata e quello che si vede al giro dopo lo scrive la stessa
+ * mano, e non possono divergere. */
 function card(item, model) {
   const node = element("article", "dm-subload-card hist-clickable");
   node.dataset.dmSubloadCard = item.id;
-  node.dataset.dmSubloadState = item.state;
-  node.style.setProperty("--dm-subload-color", item.color);
-  node.style.setProperty("--dm-subload-tint", item.tint);
-  if (item.entity)
-    node.addEventListener("click", (event) => root.apriStorico?.(event, item.entity, item.name));
+  /* Il bersaglio dello storico si legge dal nodo, non da quello che l'item
+   * era il giorno in cui la carta e' stata stampata.
+   *
+   * L'ascoltatore si mette una volta e resta; se si tenesse stretto l'`item`
+   * di allora, un apparecchio a cui cambia il sensore o il nome — un
+   * salvataggio nell'editor, una configurazione che arriva da un altro
+   * dispositivo — mostrerebbe il valore nuovo e aprirebbe lo storico del
+   * sensore vecchio. E una carta stampata quando il sensore non c'era ancora
+   * non diventerebbe cliccabile nemmeno quando arriva. */
+  node.addEventListener("click", (event) => {
+    const entita = clean(node.dataset.dmSubloadEntity);
+    if (entita) root.apriStorico?.(event, entita, node.dataset.dmSubloadName || "");
+  });
 
   const head = element("div", "dm-subload-head");
-  head.append(iconSpan("dm-subload-icon", item.icon));
+  head.append(element("span", "dm-subload-icon"));
   const title = element("div", "dm-subload-title");
-  title.append(element("b", "", item.name), element("small", "", ETICHETTE()[item.state]));
+  title.append(element("b", "dm-subload-name"), element("small", "dm-subload-state"));
   head.append(title);
   node.append(head);
 
   const value = element("div", "dm-subload-value");
-  value.append(element("span", "dm-subload-power", item.powerText));
-  if (item.dailyText)
-    value.append(element("small", "dm-subload-daily", `${item.dailyText} ${t("oggi", "today")}`));
+  value.append(element("span", "dm-subload-power"));
   node.append(value);
 
   const meter = element("div", "dm-subload-meter");
-  const fill = element("span", "dm-subload-meter-fill");
-  fill.style.setProperty("width", `${Math.round(item.share * 100)}%`);
-  meter.append(fill);
+  meter.append(element("span", "dm-subload-meter-fill"));
   node.append(meter);
 
-  // The share is only meaningful when something in the group is drawing.
-  meter.hidden = !model.total;
+  aggiornaCarta(node, item, model);
   return node;
 }
 
-/* I valori nuovi nei nodi che ci sono gia'.
+/* Si scrive solo quello che cambia.
  *
- * «il popup fa dei continui fleak»: la lista si ricostruiva da capo a ogni
- * giro di stati — due secondi su una casa viva — e con lei se ne andavano il
- * punto di scorrimento e i nodi sotto il dito. Quando la forma non cambia
- * (stessi apparecchi, stesso ordine) si travasa e basta. */
-function travasa(list, model) {
-  const somma = list.querySelector(".dm-subload-total-value");
-  if (somma) somma.textContent = model.totalText;
-  const conteggio = list.querySelector(".dm-subload-total small");
-  if (conteggio)
-    conteggio.textContent = model.count
-      ? `${model.running}/${model.count} ${t("in funzione", "running")}`
-      : t("nessun dispositivo", "no appliance");
+ * Il lampo del secondo filmato — beta.4 installata, carte che restano al loro
+ * posto — non era piu' la lista che si svuota: era la lista che si RISCRIVE
+ * anche quando non e' cambiato niente. Al banco, dieci giri di stati identici
+ * facevano cento scritture sul DOM: sessanta spostamenti di nodi e quaranta
+ * attributi riscritti col valore che avevano gia'.
+ *
+ * Dentro un velo sfocato ogni scrittura e' un livello da ridipingere, e finche'
+ * il livello non e' pronto resta il bianco del foglio. Ecco perche' i due
+ * fotogrammi ai lati del lampo erano IDENTICI: non stava cambiando niente, si
+ * stava solo riscrivendo.
+ *
+ * Assegnare lo stesso valore a `textContent`, a un `data-` o a una proprieta'
+ * CSS non e' gratis: il browser non confronta, invalida. Confrontare qui costa
+ * un `===`. */
+const poniTesto = (nodo, testo) => {
+  if (nodo && nodo.textContent !== testo) nodo.textContent = testo;
+};
+const poniDato = (nodo, chiave, valore) => {
+  if (nodo && nodo.dataset[chiave] !== valore) nodo.dataset[chiave] = valore;
+};
+const poniStile = (nodo, nome, valore) => {
+  if (nodo && nodo.style.getPropertyValue(nome) !== valore) nodo.style.setProperty(nome, valore);
+};
+const poniNascosto = (nodo, nascosto) => {
+  if (nodo && nodo.hidden !== nascosto) nodo.hidden = nascosto;
+};
+
+/* I valori nuovi dentro la carta che c'e' gia'. */
+function aggiornaCarta(node, item, model) {
+  if (!node) return false;
+  poniDato(node, "dmSubloadState", item.state);
+  poniDato(node, "dmSubloadEntity", clean(item.entity));
+  poniDato(node, "dmSubloadName", clean(item.name));
+  poniStile(node, "--dm-subload-color", item.color);
+  poniStile(node, "--dm-subload-tint", item.tint);
+  iconInto(node.querySelector(".dm-subload-icon"), item.icon);
+  poniTesto(node.querySelector(".dm-subload-name"), item.name);
+  poniTesto(node.querySelector(".dm-subload-state"), ETICHETTE()[item.state]);
+  poniTesto(node.querySelector(".dm-subload-power"), item.powerText);
+  scriviIlGiorno(node, item);
+  poniStile(
+    node.querySelector(".dm-subload-meter-fill"),
+    "width",
+    `${Math.round(item.share * 100)}%`,
+  );
+  // The share is only meaningful when something in the group is drawing.
+  poniNascosto(node.querySelector(".dm-subload-meter"), !model.total);
+  return true;
+}
+
+/* La riga dei kWh di oggi va e viene, ed e' l'unica cosa che cambia la FORMA
+ * della carta mentre la finestra e' aperta: basta che il contatore giornaliero
+ * risponda «non disponibile» per un giro e la riga sparisce, al ritorno del
+ * dato si rimette. Prima quel cambio di forma faceva rifare l'intera lista —
+ * otto carte buttate via per una riga sola. Adesso si aggiunge o si toglie
+ * quella riga, e le carte restano dove sono. */
+function scriviIlGiorno(node, item) {
+  const riga = node.querySelector(".dm-subload-daily");
+  if (!item.dailyText) {
+    riga?.remove?.();
+    return;
+  }
+  const testo = `${item.dailyText} ${t("oggi", "today")}`;
+  if (riga) {
+    if (riga.textContent !== testo) riga.textContent = testo;
+    return;
+  }
+  node.querySelector(".dm-subload-value")?.append(element("small", "dm-subload-daily", testo));
+}
+
+/* La lista si aggiorna, non si rifa'. Mai.
+ *
+ * «mi devi risolvere questo continuo fleak sulla sezione energia nei popup»:
+ * nel filmato, a finestra aperta e ferma, la griglia delle carte sparisce per
+ * un fotogramma solo — un lampo bianco — e torna. Sei volte in dieci secondi,
+ * a intervalli irregolari: il passo degli aggiornamenti che arrivano da casa.
+ *
+ * Il lampo non e' un difetto di disegno, e' quello che si vede in mezzo a un
+ * `replaceChildren` sulla lista. La finestra sta dentro un velo sfocato
+ * (`backdrop-filter` sul `.modal-wrapper`), che sul telefono e' un livello a
+ * se': tolte le carte, il livello va ridipinto, e finche' non e' pronto resta
+ * il bianco del foglio. Il computer non lo mostra — ridipinge in tempo — ed e'
+ * per questo che il difetto e' sempre stato «solo sul telefono».
+ *
+ * A far rifare la lista bastava, sopra ogni altra cosa, la riga dei kWh di
+ * oggi che appariva o spariva: un contatore giornaliero che risponde «non
+ * disponibile» per un giro, e otto carte venivano buttate via e ristampate.
+ *
+ * Qui non si butta via niente: la testata e la griglia si fanno una volta e
+ * restano, le carte si riconoscono dall'identificativo e si aggiornano dove
+ * sono, se ne aggiunge una solo quando l'apparecchio e' nuovo e se ne toglie
+ * una solo quando l'apparecchio non c'e' piu'. Senza strappo non c'e' lampo. */
+function riconcilia(list, model) {
+  let testata = list.querySelector(".dm-subload-summary");
+  let griglia = list.querySelector(".dm-subload-grid");
+  if (!testata || !griglia) {
+    /* Qui non c'e' niente di nostro da salvare: o e' la prima apertura, o ha
+     * scritto il guscio. Rifare adesso non si vede, perche' quello che si
+     * butta non e' quello che si sta guardando. */
+    testata = header(model);
+    griglia = element("div", "dm-subload-grid");
+    list.replaceChildren(testata, griglia);
+  } else {
+    aggiornaTestata(testata, model);
+  }
+
+  const vuoto = griglia.querySelector(".dm-subload-empty");
+  if (!model.count && !vuoto)
+    griglia.append(
+      element(
+        "div",
+        "dm-subload-empty",
+        t(
+          "Nessun dispositivo in questo carico. Aggiungili dall'editor Carichi.",
+          "No appliance in this load yet. Add them from the Loads editor.",
+        ),
+      ),
+    );
+  else if (model.count && vuoto) vuoto.remove?.();
+
   /* Le carte si cercano per dataset, non per selettore: un identificativo puo'
    * contenere qualunque cosa e non tutti i motori hanno CSS.escape. */
   const carte = new Map(
-    [...list.querySelectorAll("[data-dm-subload-card]")].map((nodo) => [
+    [...griglia.querySelectorAll("[data-dm-subload-card]")].map((nodo) => [
       nodo.dataset.dmSubloadCard,
       nodo,
     ]),
   );
+  const vivi = new Set();
+  const inFila = [];
   for (const item of model.items) {
+    vivi.add(item.id);
     const nodo = carte.get(item.id);
-    if (!nodo) return false;
-    nodo.dataset.dmSubloadState = item.state;
-    nodo.style.setProperty("--dm-subload-color", item.color);
-    nodo.style.setProperty("--dm-subload-tint", item.tint);
-    const parola = nodo.querySelector(".dm-subload-title small");
-    if (parola) parola.textContent = ETICHETTE()[item.state];
-    const potenza = nodo.querySelector(".dm-subload-power");
-    if (potenza) potenza.textContent = item.powerText;
-    const giorno = nodo.querySelector(".dm-subload-daily");
-    /* La riga dei kWh di oggi c'e' solo se il dato c'e'. Quando compare o
-     * sparisce cambia la FORMA della carta, non un valore: travasare
-     * lascerebbe una carta senza riga che non la ottiene piu', o una riga con
-     * dentro il numero di ieri. Si torna a rifare, che qui capita di rado. */
-    if (Boolean(giorno) !== Boolean(item.dailyText)) return false;
-    if (giorno && item.dailyText) giorno.textContent = `${item.dailyText} ${t("oggi", "today")}`;
-    const barra = nodo.querySelector(".dm-subload-meter");
-    const riempimento = nodo.querySelector(".dm-subload-meter-fill");
-    if (riempimento) riempimento.style.setProperty("width", `${Math.round(item.share * 100)}%`);
-    if (barra) barra.hidden = !model.total;
+    if (nodo) aggiornaCarta(nodo, item, model);
+    inFila.push(nodo || card(item, model));
   }
-  /* La classifica cambia coi watt: le carte si rimettono in fila spostando i
-   * nodi che ci sono, non rifacendoli. */
-  const griglia = list.querySelector(".dm-subload-grid");
-  if (griglia) {
-    for (const item of model.items) {
-      const nodo = carte.get(item.id);
-      if (nodo && nodo.parentElement === griglia) griglia.append(nodo);
-    }
+  for (const [id, nodo] of carte) if (!vivi.has(id)) nodo.remove?.();
+
+  /* La classifica cambia coi watt, e rimettere in fila costa: ogni `append` e'
+   * un nodo che si sposta davvero, anche quando lo si rimette dov'era gia'.
+   * Otto carte, otto spostamenti, a ogni giro di stati — e ogni spostamento
+   * dentro il velo sfocato e' un livello da ridipingere. Adesso si guarda chi
+   * NON e' al suo posto, e si sposta solo quello: a classifica ferma non si
+   * tocca niente. */
+  const gia = vuotoInScena(griglia) ? 1 : 0;
+  for (let posto = 0; posto < inFila.length; posto++) {
+    const atteso = inFila[posto];
+    const attuale = griglia.children[posto + gia];
+    if (attuale === atteso) continue;
+    if (attuale) griglia.insertBefore(atteso, attuale);
+    else griglia.append(atteso);
   }
   return true;
 }
+
+const vuotoInScena = (griglia) => Boolean(griglia.querySelector(".dm-subload-empty"));
 
 const ETICHETTE = () => ({
   running: t("IN FUNZIONE", "RUNNING"),
@@ -197,20 +315,31 @@ const ETICHETTE = () => ({
 
 function header(model) {
   const node = element("div", "dm-subload-summary");
-  node.style.setProperty("--dm-subload-color", model.color);
   const total = element("div", "dm-subload-total");
   total.append(
-    element("span", "dm-subload-total-value", model.totalText),
-    element(
-      "small",
-      "",
-      model.count
-        ? `${model.running}/${model.count} ${t("in funzione", "running")}`
-        : t("nessun dispositivo", "no appliance"),
-    ),
+    element("span", "dm-subload-total-value"),
+    element("small", "dm-subload-total-count"),
   );
-  node.append(iconSpan("dm-subload-summary-icon", model.icon), total);
+  node.append(element("span", "dm-subload-summary-icon"), total);
+  aggiornaTestata(node, model);
   return node;
+}
+
+/* La fascia del totale si scrive addosso a se stessa: e' la stessa mano che la
+ * riempie appena fatta e che la aggiorna a ogni giro, cosi' non ci sono due
+ * versioni della stessa riga che possono divergere. */
+function aggiornaTestata(node, model) {
+  if (!node) return false;
+  poniStile(node, "--dm-subload-color", model.color);
+  iconInto(node.querySelector(".dm-subload-summary-icon"), model.icon);
+  poniTesto(node.querySelector(".dm-subload-total-value"), model.totalText);
+  poniTesto(
+    node.querySelector(".dm-subload-total-count"),
+    model.count
+      ? `${model.running}/${model.count} ${t("in funzione", "running")}`
+      : t("nessun dispositivo", "no appliance"),
+  );
+  return true;
 }
 
 /* The circle's name, icon and colour as the stage resolved them.
@@ -277,47 +406,33 @@ export function renderSubloadPopup(groupId = state.group) {
     locale: locale(),
   });
 
-  /* Stessa forma, valori nuovi: si travasa invece di rifare (il popup
-   * sfarfallava a ogni giro di stati). La firma sono gli apparecchi
-   * nell'ordine in cui stanno adesso, piu' l'identita' del cerchio.
-   *
-   * L'identita' ci sta dentro perche' il travaso non tocca la testata: se un
-   * cerchio del flusso viene rinominato, ricolorato o cambia icona mentre il
-   * popup e' aperto, gli apparecchi restano gli stessi e la finestra avrebbe
-   * continuato a portare il nome vecchio finche' non la si richiudeva. Un
-   * cambio di nome capita una volta ogni tanto: rifare la lista li' non costa
-   * niente, ed e' quello che vuole chi ha appena rinominato.
+  /* La testata del modale — nome, icona, periodo — si riscrive solo quando c'e'
+   * qualcosa di diverso da dire. La firma sono gli apparecchi, piu' l'identita'
+   * del cerchio: se un cerchio del flusso viene rinominato, ricolorato o cambia
+   * icona mentre il popup e' aperto, gli apparecchi restano gli stessi e la
+   * finestra continuerebbe a portare il nome vecchio finche' non la si
+   * richiude.
    *
    * E c'e' dentro anche il gruppo, non solo il carico: le viste per periodo
    * sono lo stesso cerchio con un suffisso (`cucina`, `cucina_month`) e hanno
    * gli stessi apparecchi, quindi passando da ISTANTANEO a MESE la testata
-   * sarebbe rimasta a dire ISTANTANEO. */
+   * sarebbe rimasta a dire ISTANTANEO.
+   *
+   * L'altra ragione per riscriverla e' che il guscio ci sia passato sopra col
+   * suo `innerHTML`: allora il nostro nome non c'e' piu', e la firma da sola
+   * non se ne accorgerebbe. */
   const firma = `${groupId}§${model.id}§${model.items
     .map((item) => item.id)
     .sort()
     .join(",")}§${model.name}§${model.icon}§${model.color}`;
-  if (list.dataset.dmSubloadFirma === firma && travasa(list, model)) return true;
+  const titolo = doc?.getElementById?.(TITLE);
+  if (list.dataset.dmSubloadFirma !== firma || !titolo?.querySelector?.(".dm-subload-title-name"))
+    writeTitle(model, groupId);
 
-  writeTitle(model, groupId);
-  list.dataset.dmSubloadOwner = "beta30";
-  list.dataset.dmSubloadCount = String(model.count);
-  list.dataset.dmSubloadFirma = firma;
-  list.replaceChildren();
-  list.append(header(model));
-  const grid = element("div", "dm-subload-grid");
-  if (!model.count)
-    grid.append(
-      element(
-        "div",
-        "dm-subload-empty",
-        t(
-          "Nessun dispositivo in questo carico. Aggiungili dall'editor Carichi.",
-          "No appliance in this load yet. Add them from the Loads editor.",
-        ),
-      ),
-    );
-  for (const item of model.items) grid.append(card(item, model));
-  list.append(grid);
+  poniDato(list, "dmSubloadOwner", "beta30");
+  poniDato(list, "dmSubloadCount", String(model.count));
+  poniDato(list, "dmSubloadFirma", firma);
+  riconcilia(list, model);
   return true;
 }
 
@@ -326,6 +441,26 @@ function installStyles() {
     "dm-subload-popup-style",
     `
     #subloads-list[data-dm-subload-owner="beta30"]{display:block!important}
+    /* Il foglio della finestra su un livello suo.
+     *
+     * Questa e' l'unica delle tre correzioni che non ho potuto verificare da
+     * qui, e va detto: il lampo bianco e' un fatto del telefono, e in prova il
+     * disegno lo fa la CPU, dove non succede.
+     *
+     * Quello che si e' misurato: dentro la finestra, a riposo, le scritture
+     * sono zero — quindi non e' piu' lei a muoversi. DIETRO la finestra sono
+     * undici in quattro secondi: l'orologio, il puntino della connessione, il
+     * flusso dell'energia. E il velo del modale ha una sfocatura di venti pixel
+     * che rilegge lo sfondo: ogni scrittura dietro e' una sfocatura da rifare, e
+     * le due cose vanno insieme nello stesso livello.
+     *
+     * Promuovendo il foglio a livello suo, quello che c'e' scritto sopra non
+     * viene ridipinto insieme allo sfondo sfocato. La sfocatura resta com'era:
+     * cambia solo chi la paga. E si dichiara solo mentre la finestra e' in
+     * scena — un livello tenuto vivo a finestra chiusa e' memoria buttata — e
+     * senza toccare la trasformazione, che e' quella dell'animazione di
+     * apertura. */
+    #subloads-modal.modal-wrapper.show>.modal-card{will-change:transform}
     #subloads-title[data-dm-subload-title]{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}
     .dm-subload-title-icon{font-size:26px;line-height:1}
     .dm-subload-title-icon .dm-icon-engine-glyph,.dm-subload-summary-icon .dm-icon-engine-glyph,.dm-subload-icon .dm-icon-engine-glyph{font-size:inherit!important;height:auto!important}
@@ -377,6 +512,27 @@ function installStyles() {
  * L'unico modo per non farlo vedere e' non strappare. */
 const SOLO_NOSTRO = new Set(["renderSubLoads"]);
 
+/* Il segno di proprieta' dice cosa c'e' DENTRO la lista adesso, non cosa c'e'
+ * stato una volta.
+ *
+ * Restava attaccato anche quando la finestra tornava al guscio: `innerHTML`
+ * cambia i figli, non gli attributi. E allora due cose andavano storte, e la
+ * seconda l'aveva vista solo la revisione. Aprendo un gruppo che noi non
+ * sappiamo disegnare, dopo averne aperto uno che sappiamo: la mano di Beta 27
+ * si tirava indietro credendo che la finestra fosse ancora nostra, e quel
+ * gruppo restava senza periodo e col colore di quello aperto prima. E il
+ * `display:block` che serve alle nostre carte restava addosso a delle carte
+ * del guscio, che invece vanno in griglia.
+ *
+ * Il segno se ne va con la finestra: cosi' vuol dire quello che dice. */
+function nonEPiuNostra() {
+  const list = doc?.getElementById?.(LIST);
+  if (!list?.dataset) return false;
+  delete list.dataset.dmSubloadOwner;
+  delete list.dataset.dmSubloadFirma;
+  return true;
+}
+
 function wrapOpener(name) {
   const current = root[name];
   const marker = `__dmSubloadPopup_${name}`;
@@ -395,10 +551,26 @@ function wrapOpener(name) {
      * restano per quando il primo colpo non riesce, che e' all'apertura:
      * la finestra non e' ancora in scena. */
     if (renderSubloadPopup(state.group)) return result;
+    nonEPiuNostra();
     root.queueMicrotask?.(() => renderSubloadPopup(state.group));
     root.setTimeout?.(() => renderSubloadPopup(state.group), 60);
     return result;
   };
+  /* I segni di chi ha avvolto prima si portano avanti.
+   *
+   * «guarda, cambia intestazione: c'e' qualcosa di duplicato» — ed era vero.
+   * Anche la stabilita' Beta 27 avvolge `apriSubLoads`, e nessuno dei due
+   * riconosceva il segno dell'altro sulla funzione esterna: a ogni giro di
+   * stati ciascuno riavvolgeva quella dell'altro. Misurata, la catena cresceva
+   * di due a ogni giro — cinque avvolgimenti all'avvio, venticinque dopo dieci
+   * giri, sessantacinque dopo trenta — e continuava a crescere finche' la
+   * plancia restava aperta. Aprire la finestra faceva girare decine di volte
+   * due disegnatori che si scrivono sopra a vicenda.
+   *
+   * `Object.assign` copia i segni di chi c'era prima sulla funzione nuova, che
+   * e' la disciplina di `wrapFunction` in shared.js: cosi' il secondo vede il
+   * segno del primo e si ferma. */
+  Object.assign(wrapped, current);
   wrapped[marker] = true;
   wrapped.__dmWrappedOriginal = current;
   root[name] = wrapped;
@@ -409,12 +581,28 @@ function bindOpeners() {
   for (const name of ["apriSubLoads", "openSubLoads", "renderSubLoads"]) wrapOpener(name);
 }
 
+/* La finestra e' aperta e in scena? Il ridisegno di una finestra chiusa e'
+ * lavoro buttato, e la sveglia del ritardo suona anche a popup chiuso. */
+function finestraAperta() {
+  const modale = doc?.getElementById?.("subloads-modal");
+  return Boolean(state.group) && Boolean(modale?.classList?.contains?.("show"));
+}
+
 export function installSubloadPopupSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
   bindOpeners();
   root.dmRenderSubloadPopup = renderSubloadPopup;
+  /* Il ritardo di fine ciclo scade da solo, e quando scade nessuno manda
+   * niente: la lavastoviglie che ha finito di asciugare non cambia stato in
+   * Home Assistant, e' il tempo che passa. Senza questa sveglia una finestra
+   * lasciata aperta continuerebbe a dire IN FUNZIONE — e a contarlo nella
+   * fascia del totale — finche' non arriva un aggiornamento per altri motivi.
+   * E' la stessa sveglia a cui e' iscritta la sezione Elettrodomestici. */
+  onRunHoldExpiry(() => {
+    if (finestraAperta()) renderSubloadPopup(state.group);
+  });
   for (const name of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

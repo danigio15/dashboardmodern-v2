@@ -5,6 +5,153 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.6
+
+«Guarda, cambia intestazione, quindi c'e' qualcosa di duplicato» — due
+schermate dello stesso minuto, la stessa finestra, due intestazioni diverse. Era
+vero, e sotto c'era di peggio.
+
+### Corretto
+
+- **Due sezioni si riavvolgevano a vicenda, all'infinito.** La finestra dei
+  carichi e la stabilita' Beta 27 avvolgono tutt'e due `apriSubLoads`, e nessuna
+  riconosceva il segno dell'altra sulla funzione esterna: a ogni giro di stati
+  ciascuna riavvolgeva quella dell'altra. Misurata, la catena cresceva di due a
+  ogni giro — **cinque avvolgimenti all'avvio, venticinque dopo dieci giri,
+  sessantacinque dopo trenta** — e continuava a crescere per tutto il tempo che
+  la plancia restava aperta. Aprire la finestra faceva girare decine di volte
+  due disegnatori che si scrivono sopra a vicenda: e' da li' che veniva
+  l'intestazione che cambiava faccia.
+
+- **L'intestazione della finestra ha un proprietario solo.** La finestra moderna
+  se la scrive da se' — nome, icona e periodo in tre pezzi; la mano di prima
+  scriveva la stessa cosa in un pezzo solo e di un altro colore. Adesso quella
+  si tira indietro quando la finestra e' della nuova, e resta per i gruppi che
+  la nuova non sa disegnare.
+
+- **La riga «Transfer» non si contraddice piu'.** Diceva «4.9 MB dalla cache —
+  non compressi · servito br»: una deduzione dai pesi e una risposta del server,
+  opposte, in fila. Quando c'e' la risposta letta, la deduzione si toglie.
+
+### Provato ma non verificabile da qui
+
+- **Il foglio della finestra su un livello suo.** Dentro la finestra, a riposo,
+  le scritture sono zero; dietro sono undici in quattro secondi — l'orologio, il
+  puntino della connessione, il flusso. E il velo del modale ha una sfocatura
+  che rilegge lo sfondo: ogni scrittura dietro e' una sfocatura da rifare, e le
+  due cose stanno nello stesso livello. Promuovendo il foglio a livello suo, il
+  suo contenuto non viene ridipinto insieme allo sfondo. E' un fatto del
+  telefono, e in prova il disegno lo fa la CPU: qui non si riproduce.
+
+### Sulla velocita', per essere chiari
+
+I numeri della Diagnostica dicono dove sta il tempo, e non e' dove si e'
+guardato finora: **ultimo file a 2,9 s, velo via a 3,2 s** — cioe' 2,9 secondi
+prima che l'ultimo file sia pronto e 0,4 dopo. E il Transfer dice «dalla
+cache»: i file non li sta scaricando, li sta **leggendo e interpretando**. Sono
+4,9 MB di codice, di cui 2 in un pezzo solo.
+
+E' per questo che ne' meno richieste (beta.1) ne' meno byte sul filo (beta.2)
+hanno spostato niente, e non lo sposta nemmeno questa: il tempo se ne va a
+interpretare ed eseguire, e l'unica cosa che lo tocca e' **eseguire meno roba
+all'avvio** — montare per prime le sezioni della pagina che si vede e lasciare
+indietro le altre. E' un lavoro grosso e a se', non un ritocco.
+
+## 1.4.5-beta.5
+
+Il lampo del popup, di nuovo — e stavolta con la causa giusta. Nella beta.4 gli
+stati erano corretti e le carte restavano al loro posto, ma il lampo bianco
+c'era ancora: sei volte in nove secondi.
+
+### Corretto
+
+- **Il popup non riscrive piu' quello che non e' cambiato.** I due fotogrammi ai
+  lati del lampo erano identici: fra prima e dopo non cambiava un pixel. Non
+  stava cambiando niente, e il livello si ridipingeva lo stesso — perche' la
+  finestra riscriveva lo stesso. Al banco, dieci giri di stati fermi facevano
+  **seicentodieci scritture sul DOM**: le carte venivano «rimesse in fila» una
+  per una a ogni giro anche quando l'ordine era gia' quello, e attributi, colori
+  e testi venivano riassegnati col valore che avevano gia'. Assegnare lo stesso
+  valore non e' gratis: il browser non confronta, invalida — e dentro il velo
+  sfocato del modale ogni invalidazione e' un livello da ridipingere, che per un
+  fotogramma resta bianco. Adesso si confronta prima di scrivere, e in
+  classifica si sposta solo la carta che non e' al suo posto: **a stati fermi le
+  scritture sono zero.**
+
+## 1.4.5-beta.4
+
+Un filmato di ventotto secondi, guardato fotogramma per fotogramma. Dentro
+c'erano tre cose, e nessuna delle tre era quella che si cercava da tre beta.
+
+### Corretto
+
+- **La plancia non si ricarica piu' da sola.** A quattro secondi dall'apertura
+  lo schermo diventa bianco, il velo di avvio torna su, e la plancia riparte
+  sulla Home buttando via la pagina che si stava guardando. Non era un disegno
+  che sfarfalla: era `location.reload()`. Lo chiamava il tiraggio della
+  configurazione da Home Assistant — se il timbro dell'ora di HA era piu'
+  recente di quello locale, applicava e ricaricava. Cioe': **ogni volta che si
+  e' toccata la configurazione da un'altra parte, la prima apertura costava due
+  avvii invece di uno.** E' anche una parte di «impiega troppo tempo in
+  caricamento», e sta fuori sia dalla rete sia dai byte — i due assi sbagliati
+  delle beta precedenti. Adesso la configurazione nuova si applica dov'e', come
+  fa l'editor a ogni salvataggio; e una configurazione identica a quella che
+  c'e' gia' non fa muovere niente.
+
+- **Il popup dell'Energia non lampeggia piu'.** A finestra aperta e ferma, la
+  griglia delle carte spariva per un fotogramma solo — un lampo bianco — e
+  tornava: sei volte in dieci secondi, al passo degli aggiornamenti che arrivano
+  da casa. E' quello che si vede in mezzo a un `replaceChildren`: la finestra
+  sta dentro un velo sfocato, che sul telefono e' un livello a se', e finche'
+  non e' ridipinto resta il bianco del foglio — sul computer non si vede, ed e'
+  per questo che il difetto e' sempre sembrato «solo del telefono». A farlo
+  scattare bastava la riga dei kWh di oggi che appare o sparisce: un contatore
+  giornaliero «non disponibile» per un giro, e otto carte venivano buttate via e
+  ristampate. Adesso testata e griglia si fanno una volta e restano, e le carte
+  si aggiornano dove sono.
+
+- **Il popup del cerchio dice la stessa parola della carta.** La finestra
+  Elettrodomestici segnava «8/8 IN FUNZIONE» con sei apparecchi a zero watt: le
+  prese erano accese, gli apparecchi no. La carta dello stesso apparecchio, due
+  schermate piu' in la', diceva STANDBY. Erano due regole per la stessa domanda.
+  Adesso la fa una funzione sola, quella della sezione Elettrodomestici: a dire
+  IN FUNZIONE sono i watt sopra soglia, uno stato che lo dice con parole sue, o
+  un sensore di attivita' chiamato per quello che e'. In regalo arrivano le
+  soglie per apparecchio e il ritardo di fine ciclo — la lavastoviglie che
+  asciuga resta IN FUNZIONE anche qui.
+
+- **Un contatore in kW sono watt.** La finestra del cerchio leggeva il numero e
+  basta: 0,27 kW diventavano «0 W», cioe' un apparecchio spento mentre stava
+  consumando duecentosettanta watt.
+
+- **«heating» e «cleaning» sono modi di dire che sta lavorando.** Erano due
+  parole che conosceva solo la finestra dei sotto-carichi, quando aveva una
+  regola sua. Adesso che la regola e' una sola dovevano arrivare anche nel
+  modello canonico: senza, un termostato in fase bassa o un aspirapolvere che
+  pulisce con la ventola al minimo direbbero SPENTO mentre lavorano — e su
+  tutt'e due le schermate.
+
+- **Il tasto dello storico segue il sensore.** L'ascoltatore del clic si mette
+  una volta e resta: se a un apparecchio cambia il sensore o il nome mentre la
+  finestra e' aperta, la carta mostrava il valore nuovo e apriva lo storico di
+  quello vecchio.
+
+- **La sveglia del ritardo di fine ciclo ridisegna anche la finestra.** Quando
+  `off_delay_minutes` scade nessuno manda niente — e' il tempo che passa — e una
+  finestra lasciata aperta sarebbe rimasta a dire IN FUNZIONE.
+
+### Da sapere
+
+- Le tre chiavi che le legge solo l'avvio — il marchio, i nomi delle luci, le
+  unita' clima — quando cambiano da un altro dispositivo fanno ancora ricaricare
+  la pagina: scriverle in memoria e lasciare lo schermo a dire la cosa di prima
+  sarebbe peggio. Sono i pochi casi rimasti, e la differenza con prima e' che
+  adesso il ricaricamento e' l'eccezione invece della regola.
+- Un apparecchio il cui unico segnale e' un binary_sensor generico acceso, a
+  zero watt, adesso dice STANDBY invece di IN FUNZIONE — la stessa parola che
+  dice gia' la sua carta. Per i cicli che passano da zero watt c'e'
+  `off_delay_minutes`, che adesso vale in tutt'e due i posti.
+
 ## 1.4.5-beta.3
 
 La compressione della beta.2 funziona — confermato dal campo: `content-encoding:

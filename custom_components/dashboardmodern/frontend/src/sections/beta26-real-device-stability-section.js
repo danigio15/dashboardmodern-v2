@@ -1187,6 +1187,16 @@ export function applyFlowNodeCustomization() {
 function patchSubloadPopup(groupId = state.popupGroup) {
   const id = clean(groupId);
   if (!id) return false;
+  /* L'intestazione ha un proprietario solo.
+   *
+   * La finestra moderna se la scrive da se' — nome, icona e periodo in tre
+   * pezzi, con l'icona `mdi:` risolta — e questa e' la mano di prima, che
+   * scriveva la stessa cosa in un pezzo solo e di un altro colore. Le due si
+   * sovrascrivevano: due schermate dello stesso minuto mostravano due
+   * intestazioni diverse. Quando la finestra e' sua, qui non si scrive; per i
+   * gruppi che lei non sa disegnare questa resta l'unica intestazione decente,
+   * ed e' per quelli che serve ancora. */
+  if (doc?.getElementById?.("subloads-list")?.dataset?.dmSubloadOwner === "beta30") return false;
   const group = loadGroupsModel().find((item) => item.id === id);
   const title = doc?.getElementById?.("subloads-title");
   const modal = doc?.getElementById?.("subloads-modal");
@@ -1209,6 +1219,10 @@ function installPopupOwner() {
       root.queueMicrotask?.(() => patchSubloadPopup(type));
       return result;
     }
+    /* I segni di chi ha avvolto prima si portano avanti, altrimenti questo e
+     * l'avvolgimento del popup moderno si riavvolgono a vicenda a ogni giro di
+     * stati e la catena cresce senza fine. */
+    Object.assign(beta27OpenSubLoads, current);
     beta27OpenSubLoads.__dmBeta27PopupOwner = true;
     beta27OpenSubLoads.__dmPrevious = current;
     root[name] = beta27OpenSubLoads;
