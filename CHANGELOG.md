@@ -54,6 +54,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   dai nomi dei sensori lo rimetteva al suo posto. Ora una casella svuotata
   resta vuota — e il cerchio diventa la somma dei dispositivi che ha dentro,
   che e' esattamente perche' la si svuota.
+- **La tessera del MiniPC dice RAM e disco in tutte le lingue.** Sotto il
+  numero della CPU sceglieva le altre due quote leggendo l'etichetta scritta:
+  dove quelle parole sono tradotte — il giapponese, l'arabo — non ne
+  riconosceva nessuna, e la didascalia restava vuota pur avendo le letture in
+  mano. Adesso le sceglie dalla misura, che non cambia con la lingua.
+- **Rinominare una plancia non la manda nella cassetta di un'altra.** Con due
+  plance chiamate allo stesso modo, la seconda teneva un nome con il suffisso;
+  se poi si rinominava la prima, il nome liberato veniva ricalcolato e la
+  seconda ci finiva dentro. Ogni plancia si ricorda la sua cassetta, e il
+  ricordo vale piu' del nome appena scritto.
 
 ## 1.4.3
 
