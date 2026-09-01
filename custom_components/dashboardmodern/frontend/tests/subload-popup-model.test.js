@@ -8,6 +8,7 @@ import {
   subloadPopupModel,
   subloadState,
 } from "../src/core/subload-popup-model.js";
+import { createApplianceViewModel, resetRunHolds } from "../src/core/appliance-view-model.js";
 
 const KITCHEN = { id: "cucina", name: "Cucina", icon: "🍳", color: "#f97316" };
 
@@ -63,23 +64,105 @@ test("idle is not an error state, and a missing reading is not an off one", () =
   assert.notEqual(subloadState(child("radio", "Radio"), states).color, "#e11d48");
 });
 
-test("a state entity wins over power, because a cycle can pause at zero watts", () => {
+/* ── la stessa parola della sezione Elettrodomestici ────────────────────────
+ *
+ * «tutti e otto dicono IN FUNZIONE anche a 0 W»: nel filmato la finestra del
+ * cerchio Elettrodomestici segna «8/8 IN FUNZIONE» con sei apparecchi a zero
+ * watt. Qui c'era una seconda regola, piu' corta, in cui un interruttore acceso
+ * bastava a dire «in funzione» — mentre la carta dello stesso apparecchio, due
+ * schermate piu' in la', diceva STANDBY. Due regole per la stessa domanda sono
+ * due risposte diverse sulla stessa casa.
+ *
+ * Adesso la domanda la fa una funzione sola: `createApplianceViewModel`, quella
+ * della sezione Elettrodomestici. Un interruttore generico acceso a zero watt
+ * vuol dire che c'e' corrente, non che l'apparecchio stia lavorando.
+ */
+test("una presa accesa a zero watt e' STANDBY, come dice la carta dell'apparecchio", () => {
+  const presa = child("frigo", "Frigorifero", { control_entity: "switch.presa_frigo" });
   const states = {
-    "binary_sensor.washer": { state: "on" },
-    "sensor.washer_power": { state: "0" },
+    "switch.presa_frigo": { state: "on" },
+    "sensor.frigo_power": { state: "0", attributes: { unit_of_measurement: "W" } },
   };
-  const washer = child("washer", "Lavatrice", { state: "binary_sensor.washer" });
-  assert.equal(subloadState(washer, states).key, "running");
+  assert.equal(subloadState(presa, states).key, "standby");
 
-  // Reported off but still drawing a trickle: standby, not off.
-  const idle = child("washer", "Lavatrice", { state: "binary_sensor.washer" });
+  /* E la stessa parola, chiesta all'altra strada: e' questa l'uguaglianza
+   * richiesta, non una somiglianza. */
   assert.equal(
-    subloadState(idle, {
-      "binary_sensor.washer": { state: "off" },
-      "sensor.washer_power": { state: "2" },
-    }).key,
-    "standby",
+    createApplianceViewModel(
+      { ...presa, power_entity: "sensor.frigo_power" },
+      states,
+    ).mode,
+    subloadState(presa, states).key,
   );
+});
+
+test("a dire IN FUNZIONE sono i watt, o uno stato che lo dice con parole sue", () => {
+  /* Un sensore di attivita' chiamato per quello che e': la lavatrice a meta'
+   * ciclo consuma quasi niente e resta IN FUNZIONE. */
+  const lavatrice = child("lavatrice", "Lavatrice", {
+    state_entity: "binary_sensor.lavatrice_running",
+  });
+  assert.equal(
+    subloadState(lavatrice, {
+      "binary_sensor.lavatrice_running": { state: "on" },
+      "sensor.lavatrice_power": { state: "0", attributes: { unit_of_measurement: "W" } },
+    }).key,
+    "running",
+  );
+
+  /* Uno stato che dice `running` con parole sue vale uguale. */
+  const forno = child("forno", "Forno", { state_entity: "sensor.forno_state" });
+  assert.equal(
+    subloadState(forno, {
+      "sensor.forno_state": { state: "running" },
+      "sensor.forno_power": { state: "0", attributes: { unit_of_measurement: "W" } },
+    }).key,
+    "running",
+  );
+
+  /* E lo spento dichiarato vince sul filo di corrente, come sulla carta. */
+  assert.equal(
+    subloadState(lavatrice, {
+      "binary_sensor.lavatrice_running": { state: "off" },
+      "sensor.lavatrice_power": { state: "2", attributes: { unit_of_measurement: "W" } },
+    }).key,
+    "off",
+  );
+});
+
+test("un contatore in kW sono watt, non un numero letto e basta", () => {
+  /* La finestra leggeva il numero e via: 0,27 kW diventavano «0 W», cioe' un
+   * apparecchio spento mentre stava consumando duecentosettanta watt — e la sua
+   * carta, due schermate piu' in la', diceva 270 W e IN FUNZIONE. */
+  const condizionatore = child("clima", "Condizionatore");
+  const states = {
+    "sensor.clima_power": { state: "0.27", attributes: { unit_of_measurement: "kW" } },
+  };
+  const model = subloadPopupModel({ load: KITCHEN, children: [condizionatore], states });
+  assert.equal(model.items[0].power, 270);
+  assert.equal(model.items[0].state, "running");
+});
+
+test("il ritardo di fine ciclo vale anche qui: la stessa memoria, lo stesso ciclo", () => {
+  /* La lavastoviglie che asciuga consuma 0 W ma il ciclo non e' finito. La
+   * sezione Elettrodomestici lo sa gia' fare con `off_delay_minutes`; la
+   * finestra del cerchio non lo sapeva, perche' aveva una regola sua. */
+  resetRunHolds();
+  const lavastoviglie = child("lavastoviglie", "Lavastoviglie", { off_delay_minutes: 30 });
+  const acceso = {
+    "sensor.lavastoviglie_power": { state: "900", attributes: { unit_of_measurement: "W" } },
+  };
+  const asciuga = {
+    "sensor.lavastoviglie_power": { state: "0", attributes: { unit_of_measurement: "W" } },
+  };
+  assert.equal(subloadState(lavastoviglie, acceso).key, "running");
+  assert.equal(
+    subloadState(lavastoviglie, asciuga).key,
+    "running",
+    "il ciclo non e' finito: la finestra dice spento mentre la carta dice in funzione",
+  );
+  resetRunHolds();
+  assert.equal(subloadState(lavastoviglie, asciuga).key, "off");
 });
 
 test("an appliance with no reading shows as absent, never as zero", () => {
