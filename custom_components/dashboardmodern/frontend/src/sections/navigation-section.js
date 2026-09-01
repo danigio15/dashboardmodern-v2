@@ -25,6 +25,33 @@ function installStyles() {
   installStyle(
     "dm-navigation-section-style",
     `
+      /* Quanto si prende il sistema in fondo allo schermo (#249).
+       *
+       * «Nello smartphone la barra inferiore e' parzialmente coperta dai tasti
+       * Android»: la barra sta a diciotto pixel dal fondo della pagina, e su un
+       * telefono coi tre tasti quel fondo e' sotto di loro. Alzarla di un tanto
+       * fisso avrebbe solo spostato il problema: su un telefono a gesti, su un
+       * tablet o su un computer sarebbe rimasta sospesa per niente.
+       *
+       * Quanto alzarla lo dice il dispositivo, schermo per schermo, ed e' zero
+       * dove non c'e' niente da scansare: la barra si alza esattamente di
+       * quello che il sistema si e' preso e non di un pixel di piu'. Il valore
+       * passa da una variabile cosi' che una prova possa fingere un telefono
+       * coi tasti e guardare la barra spostarsi davvero. */
+      :root{--dm-fondo-di-sistema:env(safe-area-inset-bottom,0px)}
+      /* La barra a riposo, quella tirata fuori e quella tenuta ferma: tutte e
+       * tre misurano dal fondo, e tutte e tre devono scansare i tasti. */
+      nav.tabs.bottom-nav-bar.visible,
+      body.cd-nav-fixed nav.tabs.bottom-nav-bar{
+        bottom:calc(18px + var(--dm-fondo-di-sistema))!important
+      }
+      /* E la maniglia che tira fuori la barra, che sta ancora piu' in basso:
+       * se resta sotto i tasti non la si prende nemmeno. */
+      .bottom-nav-handle{bottom:calc(6px + var(--dm-fondo-di-sistema))!important}
+      nav.tabs.bottom-nav-bar.visible ~ .bottom-nav-handle,
+      body.nav-visible .bottom-nav-handle{
+        bottom:calc(90px + var(--dm-fondo-di-sistema))!important
+      }
       .bottom-nav-bar{isolation:isolate!important}
       .bottom-nav-bar .tab{color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
       .bottom-nav-bar .tab .icon,.bottom-nav-bar .tab .text{opacity:.78!important;transition:opacity .16s ease,color .16s ease!important}
@@ -72,7 +99,7 @@ function installStyles() {
       .bottom-nav-bar .${ARROW_CLASS}{display:none}
       @media(min-width:769px) and (hover:hover) and (pointer:fine){
         nav.tabs.bottom-nav-bar{width:max-content!important;min-width:0!important;max-width:calc(100% - 48px)!important}
-        nav.tabs.bottom-nav-bar:has(:focus-visible){bottom:20px!important;opacity:1!important}
+        nav.tabs.bottom-nav-bar:has(:focus-visible){bottom:calc(20px + var(--dm-fondo-di-sistema))!important;opacity:1!important}
         nav.tabs.bottom-nav-bar .${SCROLLER_CLASS}{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;flex:0 1 auto!important;min-width:0!important;overflow-x:auto!important;overflow-y:hidden!important;overscroll-behavior-x:contain!important;scrollbar-width:none!important;-ms-overflow-style:none!important;scroll-padding-inline:28px!important}
         /* Il padding fa spazio alla gobba del dock dentro il riquadro che
          * ritaglia lo scroll; i margini negativi lo tolgono dal layout, così

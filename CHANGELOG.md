@@ -5,7 +5,17 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non rilasciato
+## 1.4.4
+
+### Nuovo
+
+- **La barra in basso scansa i tasti del telefono** ([#249](https://github.com/danigio15/dashboardmodern-v2/issues/249)). «Nello smartphone
+  la barra inferiore e' parzialmente coperta dai tasti Android.» Non e' stata
+  alzata di un tanto fisso — su un telefono a gesti, su un tablet o su un
+  computer sarebbe rimasta sospesa per niente: quanto alzarla lo dice il
+  dispositivo, ed e' zero dove non c'e' niente da scansare. La barra, la
+  maniglia che la tira fuori e lo spazio sotto l'ultima card si adattano
+  insieme.
 
 ### Corretto
 
