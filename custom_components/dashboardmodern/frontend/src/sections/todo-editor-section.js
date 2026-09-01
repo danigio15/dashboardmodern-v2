@@ -73,10 +73,12 @@ function nomeDi(list, index) {
 function catalogoTessere() {
   return [
     ["evidenza", "⭐", t("In evidenza", "Highlights")],
-    ["todo", "✅", t("Da fare", "To-do")],
-    /* Il calendario (#259): non e' la lista delle cose da fare — quella e'
-     * roba da spuntare, questa e' roba che succede a un'ora. */
-    ["calendario", "📅", t("Calendario", "Calendar")],
+    /* Impegni e cose da fare stanno in una tessera sola (#259): erano due
+     * mattonelle con la stessa faccia, e chi guardava doveva ricordarsi quale
+     * era quale. Dentro restano due blocchi, perche' un appuntamento succede a
+     * un'ora e non si spunta, e una cosa da fare si spunta e un'ora non ce
+     * l'ha. */
+    ["agenda", "📅", t("Agenda", "Agenda")],
     ["luci", "💡", t("Luci", "Lights")],
     ["clima", "❄️", t("Clima", "Climate")],
     ["tapparelle", "🪟", t("Finestre", "Windows")],

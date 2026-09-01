@@ -311,43 +311,58 @@ const FRASI = Object.freeze({
       `Mains is on and the battery is at ${carica}%${carico}.`,
     );
   },
-  /* Il calendario (#259) non si racconta contando eventi.
+  /* L'agenda (#259) non si racconta contando righe.
    *
    * «Sette cose in programma» non e' una risposta: la domanda e' «cosa ho
-   * adesso, e cosa viene dopo». La frase dice quella, e quando non c'e'
-   * niente lo dice come una buona notizia. */
-  calendario: (tr, _righe, tessera, adesso = Date.now()) => {
+   * adesso, cosa viene dopo, e cosa mi resta da fare». Sono due mezze
+   * risposte da unire in una frase sola — e quando una delle due meta' non
+   * c'e', la frase e' l'altra e basta, senza una virgola appesa al vuoto. */
+  agenda: (tr, _righe, tessera, adesso = Date.now()) => {
     const primi = Array.isArray(tessera?.primi) ? tessera.primi : [];
+    const daFare = Number(tessera?.daFare) || 0;
     const titolo = (evento) =>
       String(evento?.summary || "").trim() || tr("un impegno", "an appointment");
-    if (!primi.length)
-      return tessera?.inArrivo
-        ? tr("Sto guardando l'agenda.", "Checking the calendar.")
-        : tr("Non c'e' niente in programma.", "Nothing scheduled.");
+    const cose = daFare
+      ? tr(
+          `Restano ${daFare} cos${daFare === 1 ? "a" : "e"} da fare.`,
+          `${daFare} thing${daFare === 1 ? "" : "s"} left to do.`,
+        )
+      : "";
+
+    if (!primi.length) {
+      if (tessera?.inArrivo) return tr("Sto guardando l'agenda.", "Checking the calendar.");
+      const vuoto = tr("Non c'e' niente in programma.", "Nothing scheduled.");
+      return cose ? `${vuoto} ${cose}` : vuoto;
+    }
     const [testa, dopo] = primi;
     const primo = titolo(testa);
     const secondo = dopo ? titolo(dopo) : "";
+    let impegni;
     if (testa.inizio <= adesso && testa.fine > adesso)
-      return dopo
+      impegni = dopo
         ? tr(
             `«${primo}» e' in corso; poi tocca a «${secondo}».`,
             `“${primo}” is under way; then “${secondo}”.`,
           )
         : tr(`«${primo}» e' in corso.`, `“${primo}” is under way.`);
-    const minuti = Math.max(0, Math.round((testa.inizio - adesso) / 60000));
-    /* Finche' e' un'attesa si dice in minuti, che e' come si risponde a
-     * «quanto manca». Piu' in la' i minuti smettono di essere una risposta. */
-    if (minuti <= 90)
-      return tr(
-        `«${primo}» comincia fra ${minuti} minut${minuti === 1 ? "o" : "i"}.`,
-        `“${primo}” starts in ${minuti} min.`,
-      );
-    return dopo
-      ? tr(
-          `Il prossimo e' «${primo}», poi «${secondo}».`,
-          `Next up is “${primo}”, then “${secondo}”.`,
-        )
-      : tr(`Il prossimo e' «${primo}».`, `Next up is “${primo}”.`);
+    else {
+      const minuti = Math.max(0, Math.round((testa.inizio - adesso) / 60000));
+      /* Finche' e' un'attesa si dice in minuti, che e' come si risponde a
+       * «quanto manca». Piu' in la' i minuti smettono di essere una risposta. */
+      if (minuti <= 90)
+        impegni = tr(
+          `«${primo}» comincia fra ${minuti} minut${minuti === 1 ? "o" : "i"}.`,
+          `“${primo}” starts in ${minuti} min.`,
+        );
+      else
+        impegni = dopo
+          ? tr(
+              `Il prossimo e' «${primo}», poi «${secondo}».`,
+              `Next up is “${primo}”, then “${secondo}”.`,
+            )
+          : tr(`Il prossimo e' «${primo}».`, `Next up is “${primo}”.`);
+    }
+    return cose ? `${impegni} ${cose}` : impegni;
   },
   luci: (tr, righe) => {
     const accese = conta(righe, acceso);
@@ -574,9 +589,9 @@ const BRICIOLE = Object.freeze({
     ["Livelli", "Soglie", "Autonomia"],
     ["Levels", "Thresholds", "Runtime"],
   ],
-  calendario: [
-    ["Oggi", "Prossimi giorni", "Impegni"],
-    ["Today", "Coming days", "Appointments"],
+  agenda: [
+    ["Impegni", "Da fare", "Prossimi giorni"],
+    ["Appointments", "To-do", "Coming days"],
   ],
   ups: [
     ["Rete", "Batteria", "Carico"],

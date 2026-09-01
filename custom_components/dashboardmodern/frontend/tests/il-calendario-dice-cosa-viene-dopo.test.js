@@ -215,55 +215,92 @@ test("l'ordine e' quello in cui le cose succedono", () => {
   assert.deepEqual(ordinaEventi(null), []);
 });
 
-test("la finestra non conta eventi: dice cosa viene dopo", () => {
+test("la finestra non conta eventi: dice cosa viene dopo, e cosa resta da fare", () => {
   const adesso = Date.now();
   const evento = (summary, da, a) => ({
     summary,
     inizio: adesso + da * 60000,
     fine: adesso + a * 60000,
   });
+  /* Una tessera sola per due cose (#259): «devono essere un'unica sezione». La
+   * frase le dice insieme, e quando una delle due meta' non c'e' resta
+   * l'altra, senza una virgola appesa al vuoto. */
   const corso = {
-    key: "calendario",
+    key: "agenda",
     primi: [evento("Riunione", -20, 40), evento("Palestra", 240, 300)],
+    daFare: 4,
     attiva: true,
   };
   const frase = fraseDellaTessera(corso, undefined, adesso);
   assert.match(frase, /«Riunione» e' in corso/);
   assert.match(frase, /«Palestra»/);
-  // E non «due su due in funzione», che di un calendario non e' una notizia.
+  assert.match(frase, /4 cose da fare/);
+  // E non «due su due in funzione», che di un'agenda non e' una notizia.
   assert.doesNotMatch(frase, /in funzione/);
   assert.equal(verdettoDellaTessera(corso).tono, "corso");
 
+  const solaAttesa = fraseDellaTessera(
+    { key: "agenda", primi: [evento("Dentista", 40, 100)], daFare: 0 },
+    undefined,
+    adesso,
+  );
+  assert.match(solaAttesa, /comincia fra 40 minuti/);
+  assert.doesNotMatch(solaAttesa, /da fare/);
+
+  // Solo liste, nessun calendario: la frase e' l'altra meta'.
   assert.match(
-    fraseDellaTessera({ key: "calendario", primi: [evento("Dentista", 40, 100)] }, undefined, adesso),
-    /comincia fra 40 minuti/,
+    fraseDellaTessera({ key: "agenda", primi: [], daFare: 3 }, undefined, adesso),
+    /niente in programma.*3 cose da fare/,
   );
   assert.match(
-    fraseDellaTessera({ key: "calendario", primi: [] }, undefined, adesso),
+    fraseDellaTessera({ key: "agenda", primi: [], daFare: 0 }, undefined, adesso),
     /niente in programma/,
   );
   assert.match(
-    fraseDellaTessera({ key: "calendario", primi: [], inArrivo: true }, undefined, adesso),
+    fraseDellaTessera({ key: "agenda", primi: [], inArrivo: true }, undefined, adesso),
     /agenda/,
   );
 });
 
-test("la tessera mostra i due eventi, non un conteggio da solo", async () => {
+test("una tessera sola, con dentro i due pezzi interi", async () => {
   const source = await readFile(
     new URL("../src/sections/home-widgets-section.js", import.meta.url),
     "utf8",
   );
+  /* «Devono essere un'unica sezione»: impegni e cose da fare erano due
+   * mattonelle con la stessa faccia. Adesso una sola, e dentro due blocchi che
+   * restano riconoscibili — un appuntamento succede a un'ora e non si spunta,
+   * una cosa da fare si spunta e un'ora non ce l'ha. */
+  assert.match(source, /key: "agenda"/);
+  assert.doesNotMatch(source, /key: "todo"/);
+  assert.doesNotMatch(source, /key: "calendario"/);
+  assert.match(source, /parte: "impegni"/);
+  assert.match(source, /parte: "cose"/);
+  assert.match(source, /function agendaDetail\(widget, states\)/);
+  assert.match(source, /calendarioDetail\(widget\.calendario\)/);
+  assert.match(source, /todoDetail\(widget\.cose\)/);
+
   /* «Visualizzando gli ultimi 2 eventi su widget»: i due stanno nella
    * didascalia con la loro ora davanti, perche' un appuntamento senza il
    * titolo non e' un appuntamento. */
   assert.match(source, /return primi\.map\(scritto\)\.join\(" {2}· {2}"\);/);
-  // Il numero grande e' quanti ne restano oggi, che risponde a «sono libero?».
-  assert.match(source, /diOggi\.length \? t\(`\$\{diOggi\.length\} oggi`/);
-  /* Nessun anello: una percentuale di appuntamenti non vuol dire niente, e un
-   * cerchio pieno a caso e' peggio di un cerchio che non c'e'. */
-  assert.match(source, /key: "calendario",[\s\S]{0,900}?ring: null/);
+  /* Nessun anello: mescolare la percentuale di cose spuntate con gli
+   * appuntamenti darebbe un cerchio che non risponde a niente. */
+  assert.match(source, /key: "agenda",[\s\S]{0,1400}?ring: null/);
   // Il disegno c'e': la tessera non resta col simbolo di ripiego.
-  assert.equal(haOggettoWidget("calendario"), true);
+  assert.equal(haOggettoWidget("agenda"), true);
+
+  /* Chi aveva gia' ordinato o nascosto le due vecchie non deve perdere la
+   * scelta: i nomi si traducono in lettura, senza riscrivere la
+   * configurazione. */
+  assert.match(source, /const TESSERE_RINOMINATE = Object\.freeze\(\{ todo: "agenda", calendario: "agenda" \}\)/);
+  assert.match(source, /function nascosteDiOggi\(nascoste\)/);
+
+  const editor = await readFile(
+    new URL("../src/sections/todo-editor-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(editor, /\["agenda", "📅", t\("Agenda", "Agenda"\)\]/);
 });
 
 test("gli eventi si chiedono al servizio, non allo stato dell'entita'", async () => {

@@ -508,7 +508,11 @@ function todoModel() {
   });
   const percent = total ? Math.round(((total - pending) / total) * 100) : 0;
   return {
-    key: "todo",
+    /* Non piu' una tessera: una delle due meta' dell'Agenda (#259). Il nome
+     * dice quale parte e', non quale mattonella — mattonella non ne ha piu'
+     * una sua, e lasciarle una `key` la farebbe cercare in un catalogo dove
+     * non c'e'. */
+    parte: "cose",
     accent: "#059669",
     icon: "✅",
     label: t("Da fare", "To-do"),
@@ -579,10 +583,11 @@ function calendarioModel() {
   };
 
   return {
-    key: "calendario",
+    // L'altra meta' dell'Agenda (#259): gli impegni. Vedi `todoModel` sopra.
+    parte: "impegni",
     accent: "#6366f1",
     icon: "📅",
-    label: t("Calendario", "Calendar"),
+    label: t("Impegni", "Appointments"),
     /* Quanti ne restano oggi, non quanti ce ne sono in tutto: «diciotto» non
      * dice se stasera si e' liberi, «due oggi» si'. */
     value: diOggi.length ? t(`${diOggi.length} oggi`, `${diOggi.length} today`) : "—",
@@ -1873,6 +1878,84 @@ function upsModel(states) {
   };
 }
 
+/* Una cosa sola: l'agenda (#259).
+ *
+ * «Devono essere un'unica sezione: nel calendario ci sono gli appuntamenti,
+ * invece cose da fare e' una lista. O crei un widget popup unico con tutte e
+ * due le sezioni.»
+ *
+ * Ha ragione, ed erano due tessere che si somigliavano troppo: due mattonelle
+ * vicine con la stessa faccia — un elenco di righe con un titolo sopra — che
+ * chiedevano a chi guarda di ricordarsi quale era quale. Ma non sono la stessa
+ * cosa, e nemmeno vanno mescolate in un elenco solo: un appuntamento succede
+ * a un'ora e non si spunta, una cosa da fare si spunta e un'ora non ce l'ha.
+ *
+ * Percio' una tessera, e dentro due blocchi che restano riconoscibili: sopra
+ * gli IMPEGNI, giorno per giorno, con la loro ora; sotto le COSE DA FARE, con
+ * la loro casella da spuntare. Una finestra sola in cui si legge la giornata
+ * intera invece di aprirne due per farsene un'idea.
+ *
+ * Il numero grande e' quello che si guarda di sfuggita — quanti impegni
+ * restano oggi — e la didascalia porta i due prossimi piu' quante cose
+ * restano da fare. */
+function agendaModel(states) {
+  const calendario = calendarioModel();
+  const cose = todoModel(states);
+  if (!calendario && !cose) return null;
+
+  const daFare = cose ? contaDaFare(cose) : 0;
+  const adesso = Date.now();
+  const inCorsoAdesso = Boolean(
+    calendario?.primi?.length && inCorso(calendario.primi[0], adesso),
+  );
+
+  /* La didascalia dice le due cose insieme quando ci sono tutte e due: «17:30
+   * Dentista · 4 da fare». Con una sola resta quella, senza il puntino che
+   * separerebbe da niente. */
+  const pezzi = [];
+  if (calendario && calendario.primi.length) pezzi.push(calendario.caption);
+  else if (calendario) pezzi.push(calendario.caption);
+  if (daFare) pezzi.push(t(`${daFare} da fare`, `${daFare} to do`));
+  else if (cose) pezzi.push(t("Tutto fatto", "All done"));
+
+  return {
+    key: "agenda",
+    accent: "#6366f1",
+    icon: "📅",
+    label: t("Agenda", "Agenda"),
+    /* Il numero grande resta quello degli impegni di oggi quando c'e' un
+     * calendario; chi ha solo le liste vede quante cose gli restano, che per
+     * lui e' la stessa domanda. */
+    value: calendario ? calendario.value : String(daFare),
+    caption: pezzi.filter(Boolean).join("  ·  "),
+    /* Nessun anello: mescolare la percentuale di cose spuntate con gli
+     * appuntamenti darebbe un cerchio che non risponde a niente. */
+    ring: null,
+    // Si accende mentre un impegno sta succedendo, o se resta qualcosa da fare.
+    attiva: inCorsoAdesso || daFare > 0,
+    /* I due pezzi restano interi: la finestra li disegna uno sotto l'altro, e
+     * ognuno tiene i gesti che aveva — la matita sugli impegni, la spunta
+     * sulle cose da fare. */
+    calendario,
+    cose,
+    // Quello che serve al racconto della finestra, senza doverlo ripescare.
+    primi: calendario?.primi || [],
+    eventi: calendario?.eventi || [],
+    inArrivo: Boolean(calendario?.inArrivo),
+    calendari: calendario?.calendari || [],
+    daFare,
+    blocks: cose?.blocks || [],
+  };
+}
+
+/* Quante cose restano da fare, in tutte le liste. */
+function contaDaFare(tessera) {
+  return (tessera.blocks || []).reduce(
+    (somma, blocco) => somma + pendingTodoItems(blocco.items || []).length,
+    0,
+  );
+}
+
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
@@ -2534,10 +2617,46 @@ export function evidenzaModel(states) {
  * dalla media query del foglio, non da un giro di JavaScript. */
 const MODI_COMPATTO = Object.freeze(["mai", "auto", "sempre"]);
 
+/* Le tessere che hanno cambiato nome, e cosa sono diventate.
+ *
+ * «Da fare» e «Calendario» erano due mattonelle e adesso sono una sola,
+ * «Agenda» (#259). Chi le aveva gia' ordinate o nascoste ha i vecchi nomi
+ * scritti in `cd_widgets`: senza tradurli, chi aveva nascosto «Da fare» si
+ * ritroverebbe l'agenda in Home senza averla chiesta, e chi aveva messo il
+ * calendario per primo se lo ritroverebbe in fondo.
+ *
+ * La traduzione si fa in lettura e non si riscrive la configurazione: cosi'
+ * una plancia aperta con la versione vecchia continua a leggere la sua, e
+ * nessuno perde niente tornando indietro. */
+const TESSERE_RINOMINATE = Object.freeze({ todo: "agenda", calendario: "agenda" });
+
+function nomeDiOggi(chiave) {
+  const nome = clean(chiave);
+  return TESSERE_RINOMINATE[nome] || nome;
+}
+
+/* Nascosta la nuova solo se erano nascoste TUTTE le vecchie: chi ne aveva
+ * spenta una sola vuole ancora vedere l'altra meta', e quella meta' adesso
+ * vive dentro l'agenda. */
+function nascosteDiOggi(nascoste) {
+  const dentro = new Set(nascoste.map(clean).filter(Boolean));
+  const vecchie = Object.keys(TESSERE_RINOMINATE);
+  const fuori = new Set(dentro);
+  for (const vecchia of vecchie) fuori.delete(vecchia);
+  if (vecchie.every((vecchia) => dentro.has(vecchia))) fuori.add("agenda");
+  return [...fuori];
+}
+
 export function widgetPreferences() {
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
-  const hidden = Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [];
-  const order = Array.isArray(stored?.order) ? stored.order.map(clean).filter(Boolean) : [];
+  const hidden = nascosteDiOggi(
+    Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [],
+  );
+  const order = [
+    ...new Set(
+      (Array.isArray(stored?.order) ? stored.order.map(clean).filter(Boolean) : []).map(nomeDiOggi),
+    ),
+  ];
   const excluded = Array.isArray(stored?.excluded)
     ? stored.excluded.map(clean).filter(Boolean)
     : [];
@@ -2679,8 +2798,7 @@ function widgetModels(states) {
   return applyWidgetPreferences(
     [
       evidenzaModel(states),
-      todoModel(states),
-      calendarioModel(),
+      agendaModel(states),
       lightsModel(states),
       climateModel(states),
       coversModel(states),
@@ -3019,6 +3137,17 @@ function todoItemMarkup(list, item, today) {
     </li>`;
 }
 
+/* Le cose da fare, disegnate dove serve.
+ *
+ * La stessa lista che sta nella finestra della Home serve anche alla pagina
+ * dell'Agenda: e' un pezzo solo, con gli stessi gesti — la spunta, il cestino,
+ * la riga per scrivere — perche' due elenchi da spuntare sarebbero due modi di
+ * spuntare, e uno dei due prima o poi si dimenticherebbe di ricaricare. */
+export function bloccoDaFareMarkup() {
+  const cose = todoModel(allStates());
+  return cose ? todoDetail(cose) : "";
+}
+
 function todoDetail(widget) {
   const today = localToday();
   return widget.blocks
@@ -3118,6 +3247,31 @@ function calendarioDetail(widget) {
     })
     .join("");
   return `${modulo}${testa}${elenco}`;
+}
+
+/* La finestra dell'agenda: due blocchi, non due elenchi mescolati.
+ *
+ * Sopra gli impegni — hanno un'ora, si spostano, si cancellano — e sotto le
+ * cose da fare, che hanno una casella da spuntare e un'ora non ce l'hanno.
+ * Mescolarle in una lista sola vorrebbe dire righe che si somigliano e non
+ * fanno la stessa cosa: la casella accanto a un appuntamento chiederebbe di
+ * «spuntare» una riunione, che non vuol dire niente.
+ *
+ * Ogni pezzo tiene i gesti che aveva: la matita e il cestino sugli impegni, la
+ * spunta e la riga per scrivere sulle cose da fare. */
+function agendaDetail(widget, states) {
+  const impegni = widget.calendario ? calendarioDetail(widget.calendario) : "";
+  const cose = widget.cose ? todoDetail(widget.cose) : "";
+  if (!impegni) return cose;
+  if (!cose) return impegni;
+  return `<div class="dm-ag-parte" data-dm-ag="impegni">
+      <h5 class="dm-ag-titolo">📅 ${esc(t("Impegni", "Appointments"))}</h5>
+      ${impegni}
+    </div>
+    <div class="dm-ag-parte" data-dm-ag="cose">
+      <h5 class="dm-ag-titolo">✅ ${esc(t("Da fare", "To-do"))}</h5>
+      ${cose}
+    </div>`;
 }
 
 function lightsDetail(widget) {
@@ -4057,7 +4211,14 @@ function detailBody(widget, states) {
   return `${verdettoEFrase(widget)}
     ${caselleDelleMisure(widget)}
     ${pilloleDelloStato(widget)}
-    ${comandi ? `<h4 class="dm-w-titoletto">${esc(titoloDelBlocco(comandi, widget.key))}</h4>${comandi}` : ""}`;
+    ${
+      comandi
+        ? `${(() => {
+            const titolo = titoloDelBlocco(comandi, widget.key);
+            return titolo ? `<h4 class="dm-w-titoletto">${esc(titolo)}</h4>` : "";
+          })()}${comandi}`
+        : ""
+    }`;
 }
 
 /* Il titolo dice cosa c'e' sotto, e non sempre sono comandi.
@@ -4070,16 +4231,17 @@ function detailBody(widget, states) {
  * tavolino: se c'e' qualcosa da premere sono comandi, altrimenti sono letture.
  */
 function titoloDelBlocco(markup, chiave = "") {
-  /* Il calendario non porta ne' comandi ne' letture: porta l'agenda, e
-   * chiamarla «Letture» direbbe che sotto ci sono numeri di sensori. */
-  if (chiave === "calendario") return t("Agenda", "Agenda");
+  /* L'Agenda non porta ne' comandi ne' letture, e non porta nemmeno un titolo:
+   * i suoi due pezzi — «Impegni» e «Da fare» — si annunciano da soli, e una
+   * riga «AGENDA» sopra due titoli sarebbe il nome della finestra scritto una
+   * seconda volta. */
+  if (chiave === "agenda") return "";
   const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
   return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
 
 function detailRows(widget, states) {
-  if (widget.key === "todo") return todoDetail(widget);
-  if (widget.key === "calendario") return calendarioDetail(widget);
+  if (widget.key === "agenda") return agendaDetail(widget, states);
   if (widget.key === "luci") return lightsDetail(widget);
   if (widget.key === "clima") return climateDetail(widget);
   if (widget.key === "tapparelle") return coversDetail(widget);
@@ -4128,7 +4290,7 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   scaldabagno: "boiler",
   caldaia: "boiler",
   ups: "ups",
-  calendario: "calendario",
+  agenda: "calendario",
   piscina: "piscina",
   irrigazione: "irrigazione",
   robot: "robot",
@@ -5529,38 +5691,38 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   #dm-widget-popup .dm-w-row .dm-w-door:active{transform:none}
 }
 /* La riga per scrivere: una casella e un piu', larghi quanto la lista. */
-#dm-widget-popup .dm-todo-add{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-add{
   display:flex;gap:8px;margin:9px 0 2px}
-#dm-widget-popup .dm-todo-new{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-new{
   flex:1 1 auto;min-width:0;height:38px;padding:0 13px;border-radius:13px;
   border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
   font:inherit;font-size:13px;font-weight:700;color:var(--text,#0f172a);
   transition:border-color .18s ease,box-shadow .18s ease}
-#dm-widget-popup .dm-todo-new::placeholder{color:var(--text-dim,#94a3b8);font-weight:600}
-#dm-widget-popup .dm-todo-new:focus{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-new::placeholder{color:var(--text-dim,#94a3b8);font-weight:600}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-new:focus{
   outline:none;border-color:var(--dm-widget-accent,#0ea5e9);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)}
-#dm-widget-popup .dm-todo-plus{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-plus{
   flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;
   border:0;border-radius:13px;cursor:pointer;
   background:var(--dm-widget-accent,#0ea5e9);color:#fff;
   font:inherit;font-size:19px;font-weight:800;line-height:1;
   box-shadow:0 8px 18px -10px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent);
   transition:transform .15s ease,filter .18s ease}
-#dm-widget-popup .dm-todo-plus:hover{filter:brightness(1.06)}
-#dm-widget-popup .dm-todo-plus:active{transform:scale(.94)}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-plus:hover{filter:brightness(1.06)}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-plus:active{transform:scale(.94)}
 /* Il cestino sta in fondo alla riga e si fa vedere quando serve: sempre sul
    telefono, dove non c'e' un puntatore da avvicinare. */
-#dm-widget-popup .dm-todo-del{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-del{
   flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;
   margin-left:auto;border:0;border-radius:10px;cursor:pointer;
   background:transparent;font-size:14px;line-height:1;opacity:.35;
   transition:opacity .18s ease,background .18s ease}
-#dm-widget-popup .dm-todo-item:hover .dm-todo-del{opacity:1}
-#dm-widget-popup .dm-todo-del:hover{background:#fee2e2;opacity:1}
-@media(hover:none){#dm-widget-popup .dm-todo-del{opacity:.7}}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-item:hover .dm-todo-del{opacity:1}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-del:hover{background:#fee2e2;opacity:1}
+@media(hover:none){:is(#dm-widget-popup,#page-calendario) .dm-todo-del{opacity:.7}}
 @media(prefers-reduced-motion:reduce){
-  #dm-widget-popup .dm-todo-plus:active{transform:none}
+  :is(#dm-widget-popup,#page-calendario) .dm-todo-plus:active{transform:none}
 }
 #dm-widget-popup .dm-w-block-title{
   padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
@@ -6031,54 +6193,62 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
  * titolo — perche' e' l'elenco a cui si e' chiesto di assomigliare. L'ora sta
  * a sinistra in colonna sua: incolonnata si legge di sfuggita, in mezzo al
  * titolo va cercata. */
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-lista{list-style:none;margin:0;padding:0 2px;display:grid;gap:9px}
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-evento{
+/* I due pezzi dell'Agenda (#259): impegni sopra, cose da fare sotto. Il
+   titolo di ognuno e' quello che li tiene distinti — mescolarli in un elenco
+   solo darebbe righe che si somigliano e non fanno la stessa cosa. */
+:is(#dm-widgets,#dm-widget-popup) .dm-ag-parte + .dm-ag-parte{
+  margin-top:18px;padding-top:16px;border-top:1px solid var(--card-border,#e2e8f0)}
+:is(#dm-widgets,#dm-widget-popup) .dm-ag-titolo{
+  margin:0 0 10px;font-size:12px;font-weight:900;letter-spacing:.4px;
+  color:var(--text-color,#0f172a)}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-lista{list-style:none;margin:0;padding:0 2px;display:grid;gap:9px}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento{
   display:flex;align-items:flex-start;gap:11px;min-width:0}
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-ora{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-ora{
   flex:0 0 auto;min-width:78px;font-size:11.5px;font-weight:800;line-height:1.5;
   font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b);padding-top:1px}
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-testo{display:grid;gap:1px;min-width:0;flex:1}
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-testo b{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-testo{display:grid;gap:1px;min-width:0;flex:1}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-testo b{
   font-size:13px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-testo small{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-testo small{
   font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);overflow-wrap:anywhere}
 /* Quello che sta succedendo adesso si stacca dagli altri: e' la riga per cui
    si e' aperta la finestra. */
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-evento[data-adesso="true"] .dm-cal-ora,
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-evento[data-adesso="true"] .dm-cal-testo b{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-adesso="true"] .dm-cal-ora,
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-adesso="true"] .dm-cal-testo b{
   color:var(--dm-widget-accent,#6366f1)}
 /* Il fondo del pannello, dove sta il tasto per segnare un impegno nuovo. */
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-fondo{display:flex;justify-content:center;padding:6px 0 2px}
-:is(#dm-widgets,#dm-widget-popup) .dm-cal-adesso{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-fondo{display:flex;justify-content:center;padding:6px 0 2px}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-adesso{
   flex:0 0 auto;align-self:center;padding:3px 9px;border-radius:999px;
   font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#fff;
   background:var(--dm-widget-accent,#6366f1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-check{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check{
   position:relative;flex:0 0 21px;width:21px;height:21px;margin-top:1px;border-radius:50%;cursor:pointer;
   border:2px solid color-mix(in srgb,var(--text-dim,#94a3b8) 55%,transparent);background:transparent;padding:0;
   transition:border-color .2s ease,background .25s ease,transform .15s ease}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-check:hover{border-color:var(--dm-widget-accent,#059669);transform:scale(1.08)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-check::after{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check:hover{border-color:var(--dm-widget-accent,#059669);transform:scale(1.08)}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check::after{
   content:"✓";position:absolute;inset:0;display:grid;place-items:center;
   color:#fff;font-size:12px;font-weight:900;opacity:0;transform:scale(.4);
   transition:opacity .2s ease,transform .25s cubic-bezier(.16,1,.3,1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-check{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-check{
   border-color:var(--dm-widget-accent,#059669);background:var(--dm-widget-accent,#059669)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-check::after{opacity:1;transform:scale(1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-text{min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-text{color:var(--text-dim,#94a3b8);text-decoration:line-through}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-due{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-check::after{opacity:1;transform:scale(1)}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-text{min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-text{color:var(--text-dim,#94a3b8);text-decoration:line-through}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-due{
   display:inline-flex;align-items:center;gap:3px;margin-left:7px;padding:1px 7px;border-radius:999px;
   background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e8edf3);
   font-size:10.5px;font-weight:800;color:var(--text-dim,#64748b);white-space:nowrap;vertical-align:1px}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-due[data-overdue="true"]{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-due[data-overdue="true"]{
   background:rgba(244,63,94,.10);border-color:rgba(244,63,94,.30);color:#be123c}
 
 @media (prefers-reduced-motion:reduce){
-  :is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron,:is(#dm-widgets,#dm-widget-popup) .dm-todo-check,
-  :is(#dm-widgets,#dm-widget-popup) .dm-todo-check::after,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch i,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron,:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check,
+  :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check::after,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch i,
   :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip,:is(#dm-widgets,#dm-widget-popup) .dm-w-cam img,
   :is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{transition:none}
   :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail,:is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-w-row,

@@ -118,8 +118,8 @@ const PAGES = Object.freeze([
   {
     id: "page-calendario",
     tint: ["99,102,241", "14,165,233"],
-    it: ["Calendario", "Oggi · Prossimi giorni · Impegni"],
-    en: ["Calendar", "Today · Coming days · Appointments"],
+    it: ["Agenda", "Impegni · Da fare · Prossimi giorni"],
+    en: ["Agenda", "Appointments · To-do · Coming days"],
   },
   {
     id: "page-appliances-main",

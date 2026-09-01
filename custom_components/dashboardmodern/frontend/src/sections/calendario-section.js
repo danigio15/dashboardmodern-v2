@@ -30,7 +30,9 @@ import {
 } from "../core/calendario-model.js";
 import {
   aggiornaCalendari,
+  bloccoDaFareMarkup,
   calendariConfigurati,
+  configuredTodoLists,
   eventiDeiCalendari,
 } from "./home-widgets-section.js";
 import {
@@ -70,8 +72,13 @@ export function calendariConTinta() {
   }));
 }
 
+/* La pagina c'e' se c'e' almeno una delle due cose.
+ *
+ * «Devono essere un'unica sezione»: qui dentro stanno gli impegni E le cose da
+ * fare, e chi ha solo le liste — senza nessun calendario — ha comunque una
+ * pagina da aprire. Prima le cose da fare vivevano soltanto in Home. */
 export function calendarioConfigurato() {
-  return calendariConfigurati().length > 0;
+  return calendariConfigurati().length > 0 || configuredTodoLists().length > 0;
 }
 
 /* ── la pagina e la sua voce nella barra ──────────────────────────────── */
@@ -108,7 +115,7 @@ export function ensureCalendarioTab() {
   voce.className = "tab";
   voce.dataset.tab = CALENDARIO_TAB;
   voce.id = `tab-${CALENDARIO_TAB}`;
-  voce.innerHTML = `<span class="icon">📅</span><span class="text">${esc(t("Calendario", "Calendar"))}</span>`;
+  voce.innerHTML = `<span class="icon">📅</span><span class="text">${esc(t("Agenda", "Agenda"))}</span>`;
   /* Il gestore che il runtime lega alle voci lo lega una volta sola, al
    * caricamento: questa arriva dopo, e il suo tocco se lo deve gestire da se'.
    * Fa la stessa identica cosa, perche' due modi di cambiare pagina sarebbero
@@ -258,11 +265,19 @@ function dipingi() {
   const dove = pagina?.querySelector?.("#calendario-wrap");
   if (!dove) return;
   const calendari = calendariConTinta();
+  /* Senza calendari ma con le liste la pagina non e' vuota: mostra le cose da
+   * fare e basta, che e' meta' agenda ma e' un'agenda. */
   if (!calendari.length) {
-    if (state.firma !== "vuoto") {
-      state.firma = "vuoto";
-      dove.innerHTML = vuotoMarkup();
-    }
+    const soleCose = bloccoDaFareMarkup();
+    const firmaVuota = soleCose ? `cose:${soleCose}` : "vuoto";
+    if (state.firma === firmaVuota && dove.firstElementChild) return;
+    state.firma = firmaVuota;
+    dove.innerHTML = soleCose
+      ? `<section class="dm-calp-cose">
+          <h3 class="dm-calp-titolo">✅ ${esc(t("Da fare", "To-do"))}</h3>
+          ${soleCose}
+        </section>`
+      : vuotoMarkup();
     return;
   }
   const { eventi, inArrivo } = eventiDeiCalendari();
@@ -276,9 +291,22 @@ function dipingi() {
    * che e' quello che si vuole aprendo la pagina. */
   const mostrati = state.giorno ? giorni.filter((voce) => voce.giorno === state.giorno) : giorni;
 
+  /* Le cose da fare stanno sotto gli impegni, in un blocco loro: un
+   * appuntamento succede a un'ora e non si spunta, una cosa da fare si spunta
+   * e un'ora non ce l'ha. Mescolarle in un elenco solo darebbe righe che si
+   * somigliano e non fanno la stessa cosa. */
+  const daFare = bloccoDaFareMarkup();
+  const cose = daFare
+    ? `<section class="dm-calp-cose">
+        <h3 class="dm-calp-titolo">✅ ${esc(t("Da fare", "To-do"))}</h3>
+        ${daFare}
+      </section>`
+    : "";
+
   const firma = JSON.stringify([
     state.giorno,
     inArrivo,
+    daFare,
     /* Il modulo aperto fa parte di quello che si vede: senza, chi tocca la
      * matita non vedrebbe comparire niente finche' non cambia uno stato. */
     bozzaAperta(),
@@ -337,7 +365,8 @@ function dipingi() {
     }
     ${nuovo ? `<div class="dm-calp-nuovo-riga">${nuovo}</div>` : ""}
     ${modulo}
-    <div class="dm-calp-agenda">${agenda}</div>`;
+    <div class="dm-calp-agenda">${agenda}</div>
+    ${cose}`;
 }
 
 function schedule() {
@@ -433,6 +462,15 @@ function installStyles() {
 
     /* ── l'agenda ──────────────────────────────────────────────────────── */
     ${P} .dm-calp-nuovo-riga{display:flex;justify-content:flex-start}
+    /* Le cose da fare: stessa scheda dei giorni, cosi' i due blocchi si
+       leggono come due parti della stessa pagina e non come due pagine. */
+    ${P} .dm-calp-cose{
+      padding:16px 18px;border-radius:22px;border:1px solid var(--card-border,#e2e8f0);
+      background:var(--card-bg,#fff);box-shadow:var(--shadow-glass,0 8px 30px rgba(0,0,0,.06))}
+    ${P} .dm-calp-cose .dm-w-block + .dm-w-block{margin-top:14px}
+    ${P} .dm-calp-cose .dm-w-block-title{
+      display:block;margin-bottom:8px;font-size:11px;font-weight:900;letter-spacing:1px;
+      text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
     ${P} .dm-calp-agenda{display:grid;gap:12px}
     ${P} .dm-calp-giorno{
       padding:16px 18px;border-radius:22px;border:1px solid var(--card-border,#e2e8f0);
