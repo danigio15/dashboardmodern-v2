@@ -135,6 +135,25 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+      # La plancia va nel pacchetto impacchettata: nei sorgenti sono
+      # centosettantanove file JavaScript, e al primo avvio sono
+      # centosettantanove richieste. Il guscio riscritto qui finisce solo
+      # dentro lo zip; nel deposito restano i sorgenti, che si sviluppano cosi'.
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      # Prima la provenienza, POI il pacchetto: `modules-entry.js` importa
+      # `build-info.js`, quindi impacchettare per primo ci murerebbe dentro la
+      # versione e il commit del file tracciato — quelli della release
+      # PRECEDENTE — e il build-info generato dopo non lo leggerebbe piu'
+      # nessuno. La plancia direbbe di essere la versione di ieri.
+      - name: Impacchetta la plancia
+        run: |
+          npm ci
+          python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA" \
+            --output custom_components/dashboardmodern/frontend/legacy/build-info.js
+          node scripts/impacchetta-la-plancia.mjs
       - name: Generate build provenance from the selected HEAD
         run: python scripts/build_release.py --expected-commit "$GITHUB_SHA" --output dashboardmodern.zip
       # Le note automatiche di GitHub elencano cosa è cambiato; il blocco di

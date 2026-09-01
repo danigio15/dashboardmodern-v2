@@ -15,3 +15,7 @@ dashboardmodern.zip
 # La cartella di lavoro dello script che prepara i ritratti: i PNG originali
 # si riscaricano, quello che si tiene sono i WebP gia' pronti.
 .avatar-cache/
+
+# Il pacchetto della plancia: si costruisce, non si conserva.
+custom_components/dashboardmodern/frontend/legacy/pacco/
+custom_components/dashboardmodern/frontend/legacy/*.prima-del-pacco

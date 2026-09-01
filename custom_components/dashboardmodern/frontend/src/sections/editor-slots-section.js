@@ -175,6 +175,20 @@ function decorateBody(body) {
   return true;
 }
 
+/* Le stesse righe, anche fuori dalle fisarmoniche.
+ *
+ * La passata di sopra gira sui `.ed-acc-body`, cioe' dentro le fisarmoniche
+ * delle Sezioni. Una carta che le stesse righe le porta altrove — quella del
+ * popup Lavatrice, che compare anche nella finestra «Modifica azione» — non
+ * veniva mai raggiunta: le sue caselle restavano campi nudi con la lente
+ * accanto, mentre in tutta la plancia le entita' si scelgono dalla riga
+ * stessa. «Non c'e' la lente per la ricerca entita' ma si fa direttamente
+ * nella riga»: chi disegna una carta cosi' la chiede qui, e ottiene le stesse
+ * righe del resto. */
+export function decoraCaselleDiUnaCarta(contenitore) {
+  return decorateBody(contenitore) ? 1 : 0;
+}
+
 /* Rows the configuration no longer offers, taken out of the form.
  *
  * The runtime tries to hide these two itself, with an inline `display:none`

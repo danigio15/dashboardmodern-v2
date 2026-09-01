@@ -398,6 +398,22 @@ export function pick(it, en, locale = getLocale()) {
 /* Catalog loading                                                     */
 /* ------------------------------------------------------------------ */
 
+/* Dove stanno i cataloghi, visti da chi li chiede.
+ *
+ * Sono tredici file da centoventi chili l'uno: due milioni in tutto, e a una
+ * casa ne serve UNO. Restano quindi fuori dal pacchetto anche quando tutto il
+ * resto della plancia e' impacchettato in un file solo — chi parla italiano
+ * non deve scaricare il coreano.
+ *
+ * Ma un import relativo si conta da dove sta il codice, e il codice cambia
+ * casa: dai sorgenti sciolti gira da `src/core/`, impacchettato da `legacy/`.
+ * Chi mette insieme il pacchetto sa dove l'ha messo e lo dichiara qui; senza
+ * dichiarazione vale la strada di sempre, quella dei sorgenti. */
+export function cartellaDeiCataloghi() {
+  const dichiarata = String(root.__DASHBOARDMODERN_CATALOGHI__ || "");
+  return dichiarata || "../i18n/";
+}
+
 /**
  * Load the catalog for a locale. English needs none (it is the pivot) and
  * Italian is carried inline by every `t(it, en)` call site.
@@ -409,7 +425,7 @@ export function loadCatalog(code) {
   if (BUILT_IN_LOCALES.includes(target) || catalogs.has(target)) return Promise.resolve(target);
   const pending = pendingLoads.get(target);
   if (pending) return pending;
-  const promise = import(`../i18n/${target}.js`)
+  const promise = import(`${cartellaDeiCataloghi()}${target}.js`)
     .then((module) => {
       registerCatalog(target, module.default || module.catalog || {});
       return target;

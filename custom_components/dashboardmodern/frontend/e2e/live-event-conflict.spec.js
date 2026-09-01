@@ -5,12 +5,15 @@ import { PRIMARY } from "./helpers/variants.js";
 
 async function runtimeSnapshot(page) {
   return page.evaluate(async () => {
-    const entry = [...document.scripts].find((script) =>
-      /\/legacy\/modules-entry\.js(?:\?|$)/.test(script.src),
-    );
-    if (!entry?.src) throw new Error("DashboardModern module entry not found");
+    /* Il conto si prende dai sorgenti, e la strada si conta dal DOCUMENTO.
+     *
+     * Prima si partiva dal tag dello script d'ingresso, che pero' cambia casa:
+     * impacchettata la plancia lo carica da `legacy/pacco/legacy/`, e quel
+     * `../src/` finiva a puntare dentro il pacchetto, dove i sorgenti non
+     * stanno. Il documento invece e' sempre `legacy/dashboard*.html`, col
+     * pacchetto e senza, e da li' la strada e' una sola. */
     const { runtimeMetrics } = await import(
-      new URL("../src/core/runtime-metrics.js", entry.src).href
+      new URL("../src/core/runtime-metrics.js", location.href).href
     );
     return {
       metrics: runtimeMetrics.snapshot(),
@@ -40,12 +43,15 @@ async function waitForExpensiveRuntimeQuiescence(page) {
 
 async function resetRuntimeMetrics(page) {
   await page.evaluate(async () => {
-    const entry = [...document.scripts].find((script) =>
-      /\/legacy\/modules-entry\.js(?:\?|$)/.test(script.src),
-    );
-    if (!entry?.src) throw new Error("DashboardModern module entry not found");
+    /* Il conto si prende dai sorgenti, e la strada si conta dal DOCUMENTO.
+     *
+     * Prima si partiva dal tag dello script d'ingresso, che pero' cambia casa:
+     * impacchettata la plancia lo carica da `legacy/pacco/legacy/`, e quel
+     * `../src/` finiva a puntare dentro il pacchetto, dove i sorgenti non
+     * stanno. Il documento invece e' sempre `legacy/dashboard*.html`, col
+     * pacchetto e senza, e da li' la strada e' una sola. */
     const { runtimeMetrics } = await import(
-      new URL("../src/core/runtime-metrics.js", entry.src).href
+      new URL("../src/core/runtime-metrics.js", location.href).href
     );
     runtimeMetrics.reset();
   });

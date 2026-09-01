@@ -59,9 +59,16 @@ test("la carta offre tutte le caselle del popup, non i soli programmi", () => {
     "dm.lavatrice_potenza_presa_lavatrice_per_lavatrici_no",
   ])
     assert.ok(SORGENTE.includes(`"${ref}"`), `casella mancante: ${ref}`);
-  /* La lente e' quella del guscio, e riceve il campo: col nome dello slot
-   * scriverebbe nella riga gemella della scheda Sezioni. */
-  assert.match(SORGENTE, /wzPickEntity\?\.\(campo\)/);
+  /* E si scelgono dalla riga, come in tutta la plancia.
+   *
+   * Qui c'era una lente disegnata dalla carta, che chiamava `wzPickEntity` sul
+   * campo. Accanto ne compariva una seconda, messa dalla guardia del selettore:
+   * due tasti identici appaiati — «questa funzione e' stata deprecata con la
+   * nuova metodologia di ricerca entita' ... si fa direttamente nella riga».
+   * La carta non disegna piu' la sua: chiede la stessa decorazione delle
+   * Sezioni, che trasforma ogni casella nella riga di scelta. */
+  assert.doesNotMatch(SORGENTE, /dm-lav-slot-btn/);
+  assert.match(SORGENTE, /decoraCaselleDiUnaCarta\(caselle\)/);
 });
 
 test("una casella scritta finisce negli override, una sbagliata no", () => {

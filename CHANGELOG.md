@@ -5,6 +5,32 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.1
+
+Una beta per provare l'avvio impacchettato prima di darlo a tutti. Chi non
+chiede le versioni beta non la riceve.
+
+### Nuovo
+
+- **La plancia arriva in un pacchetto, non in centosettantanove file.** «Impiega
+  ancora troppo tempo in caricamento, soprattutto in primo avvio.» Non era il
+  velo: al primo avvio il browser scaricava centosettantanove file JavaScript
+  per quattro megabyte. Non in fila — il documento li precarica tutti insieme —
+  ma su HTTP/1.1 il browser ne serve sei per volta, ed erano una trentina di
+  ondate prima di avere tutto. Adesso sono tre file. Restano fuori i tredici
+  cataloghi delle lingue, quasi due megabyte a una casa che ne parla una sola:
+  arriva solo quella che serve. Se il pacchetto manca, la plancia parte lo
+  stesso dai sorgenti — e la Diagnostica runtime dice quale delle due strade sta
+  usando.
+
+### Corretto
+
+- **Le caselle del popup Lavatrice si scelgono dalla riga.** Nella finestra
+  «Modifica azione» ogni casella portava due tasti azzurri con la lente,
+  appaiati, e nessuno dei due era il modo giusto: in tutta la plancia
+  un'entita' si sceglie dalla riga stessa. Quella passata pero' girava solo
+  dentro le fisarmoniche delle Sezioni, e questa carta sta altrove.
+
 ## 1.4.4
 
 ### Nuovo

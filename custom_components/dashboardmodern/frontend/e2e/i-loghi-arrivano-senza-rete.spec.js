@@ -33,11 +33,16 @@ test("con la rete staccata i loghi dei marchi si vedono lo stesso", async ({ pag
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seme);
 
   const esito = await page.evaluate(async () => {
-    const base = [...document.querySelectorAll("script")]
-      .map((nodo) => nodo.src)
-      .find((src) => src.includes("modules-entry"));
-    const radice = base ? base.replace(/\/legacy\/modules-entry.*$/, "") : "";
-    const catalogo = await import(`${radice}/src/core/personalization-catalog.js`);
+    /* Il catalogo si prende dai sorgenti, e la strada si conta dal DOCUMENTO.
+     *
+     * Prima si partiva dal tag dello script d'ingresso, che pero' cambia casa:
+     * impacchettata la plancia lo carica da `legacy/pacco/legacy/`, e togliere
+     * `/legacy/modules-entry...` da li' lasciava una radice dentro il
+     * pacchetto, dove i sorgenti non stanno. Il documento invece e' sempre
+     * `legacy/dashboard*.html`, col pacchetto e senza. */
+    const catalogo = await import(
+      new URL("../src/core/personalization-catalog.js", location.href).href
+    );
     const box = document.createElement("div");
     box.id = "dm-prova-loghi";
     document.body.append(box);

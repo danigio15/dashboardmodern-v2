@@ -35,7 +35,18 @@
     if (releaseVersion) globalThis.DASHBOARD_VERSION = releaseVersion;
 
     state.started = true;
-    state.promise = import("../src/sections/section-runtime.js").catch((error) => {
+    /* Da dove arrivano le sezioni.
+     *
+     * Nei sorgenti sono centosettantanove file sciolti, e al primo avvio sono
+     * centosettantanove andate e ritorni: e' il tempo che si vede girare la
+     * rotella. Il pacchetto le mette in un file solo, e chi lo prepara lo
+     * dichiara qui. Senza dichiarazione vale la strada di sempre — cosi' i
+     * sorgenti restano avviabili come sono, e se il pacchetto manca la
+     * plancia parte lo stesso, veloce come prima e non piu' lenta. */
+    const pacco = globalThis.__DASHBOARDMODERN_PACCO_SEZIONI__;
+    state.promise = (
+      pacco ? import(pacco) : import("../src/sections/section-runtime.js")
+    ).catch((error) => {
       state.started = false;
       state.promise = null;
       if (state.unloading) return null;
