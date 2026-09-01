@@ -5,6 +5,58 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.6
+
+«Guarda, cambia intestazione, quindi c'e' qualcosa di duplicato» — due
+schermate dello stesso minuto, la stessa finestra, due intestazioni diverse. Era
+vero, e sotto c'era di peggio.
+
+### Corretto
+
+- **Due sezioni si riavvolgevano a vicenda, all'infinito.** La finestra dei
+  carichi e la stabilita' Beta 27 avvolgono tutt'e due `apriSubLoads`, e nessuna
+  riconosceva il segno dell'altra sulla funzione esterna: a ogni giro di stati
+  ciascuna riavvolgeva quella dell'altra. Misurata, la catena cresceva di due a
+  ogni giro — **cinque avvolgimenti all'avvio, venticinque dopo dieci giri,
+  sessantacinque dopo trenta** — e continuava a crescere per tutto il tempo che
+  la plancia restava aperta. Aprire la finestra faceva girare decine di volte
+  due disegnatori che si scrivono sopra a vicenda: e' da li' che veniva
+  l'intestazione che cambiava faccia.
+
+- **L'intestazione della finestra ha un proprietario solo.** La finestra moderna
+  se la scrive da se' — nome, icona e periodo in tre pezzi; la mano di prima
+  scriveva la stessa cosa in un pezzo solo e di un altro colore. Adesso quella
+  si tira indietro quando la finestra e' della nuova, e resta per i gruppi che
+  la nuova non sa disegnare.
+
+- **La riga «Transfer» non si contraddice piu'.** Diceva «4.9 MB dalla cache —
+  non compressi · servito br»: una deduzione dai pesi e una risposta del server,
+  opposte, in fila. Quando c'e' la risposta letta, la deduzione si toglie.
+
+### Provato ma non verificabile da qui
+
+- **Il foglio della finestra su un livello suo.** Dentro la finestra, a riposo,
+  le scritture sono zero; dietro sono undici in quattro secondi — l'orologio, il
+  puntino della connessione, il flusso. E il velo del modale ha una sfocatura
+  che rilegge lo sfondo: ogni scrittura dietro e' una sfocatura da rifare, e le
+  due cose stanno nello stesso livello. Promuovendo il foglio a livello suo, il
+  suo contenuto non viene ridipinto insieme allo sfondo. E' un fatto del
+  telefono, e in prova il disegno lo fa la CPU: qui non si riproduce.
+
+### Sulla velocita', per essere chiari
+
+I numeri della Diagnostica dicono dove sta il tempo, e non e' dove si e'
+guardato finora: **ultimo file a 2,9 s, velo via a 3,2 s** — cioe' 2,9 secondi
+prima che l'ultimo file sia pronto e 0,4 dopo. E il Transfer dice «dalla
+cache»: i file non li sta scaricando, li sta **leggendo e interpretando**. Sono
+4,9 MB di codice, di cui 2 in un pezzo solo.
+
+E' per questo che ne' meno richieste (beta.1) ne' meno byte sul filo (beta.2)
+hanno spostato niente, e non lo sposta nemmeno questa: il tempo se ne va a
+interpretare ed eseguire, e l'unica cosa che lo tocca e' **eseguire meno roba
+all'avvio** — montare per prime le sezioni della pagina che si vede e lasciare
+indietro le altre. E' un lavoro grosso e a se', non un ritocco.
+
 ## 1.4.5-beta.5
 
 Il lampo del popup, di nuovo — e stavolta con la causa giusta. Nella beta.4 gli

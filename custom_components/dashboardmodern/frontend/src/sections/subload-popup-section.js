@@ -441,6 +441,26 @@ function installStyles() {
     "dm-subload-popup-style",
     `
     #subloads-list[data-dm-subload-owner="beta30"]{display:block!important}
+    /* Il foglio della finestra su un livello suo.
+     *
+     * Questa e' l'unica delle tre correzioni che non ho potuto verificare da
+     * qui, e va detto: il lampo bianco e' un fatto del telefono, e in prova il
+     * disegno lo fa la CPU, dove non succede.
+     *
+     * Quello che si e' misurato: dentro la finestra, a riposo, le scritture
+     * sono zero — quindi non e' piu' lei a muoversi. DIETRO la finestra sono
+     * undici in quattro secondi: l'orologio, il puntino della connessione, il
+     * flusso dell'energia. E il velo del modale ha una sfocatura di venti pixel
+     * che rilegge lo sfondo: ogni scrittura dietro e' una sfocatura da rifare, e
+     * le due cose vanno insieme nello stesso livello.
+     *
+     * Promuovendo il foglio a livello suo, quello che c'e' scritto sopra non
+     * viene ridipinto insieme allo sfondo sfocato. La sfocatura resta com'era:
+     * cambia solo chi la paga. E si dichiara solo mentre la finestra e' in
+     * scena — un livello tenuto vivo a finestra chiusa e' memoria buttata — e
+     * senza toccare la trasformazione, che e' quella dell'animazione di
+     * apertura. */
+    #subloads-modal.modal-wrapper.show>.modal-card{will-change:transform}
     #subloads-title[data-dm-subload-title]{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}
     .dm-subload-title-icon{font-size:26px;line-height:1}
     .dm-subload-title-icon .dm-icon-engine-glyph,.dm-subload-summary-icon .dm-icon-engine-glyph,.dm-subload-icon .dm-icon-engine-glyph{font-size:inherit!important;height:auto!important}
@@ -492,6 +512,27 @@ function installStyles() {
  * L'unico modo per non farlo vedere e' non strappare. */
 const SOLO_NOSTRO = new Set(["renderSubLoads"]);
 
+/* Il segno di proprieta' dice cosa c'e' DENTRO la lista adesso, non cosa c'e'
+ * stato una volta.
+ *
+ * Restava attaccato anche quando la finestra tornava al guscio: `innerHTML`
+ * cambia i figli, non gli attributi. E allora due cose andavano storte, e la
+ * seconda l'aveva vista solo la revisione. Aprendo un gruppo che noi non
+ * sappiamo disegnare, dopo averne aperto uno che sappiamo: la mano di Beta 27
+ * si tirava indietro credendo che la finestra fosse ancora nostra, e quel
+ * gruppo restava senza periodo e col colore di quello aperto prima. E il
+ * `display:block` che serve alle nostre carte restava addosso a delle carte
+ * del guscio, che invece vanno in griglia.
+ *
+ * Il segno se ne va con la finestra: cosi' vuol dire quello che dice. */
+function nonEPiuNostra() {
+  const list = doc?.getElementById?.(LIST);
+  if (!list?.dataset) return false;
+  delete list.dataset.dmSubloadOwner;
+  delete list.dataset.dmSubloadFirma;
+  return true;
+}
+
 function wrapOpener(name) {
   const current = root[name];
   const marker = `__dmSubloadPopup_${name}`;
@@ -510,10 +551,26 @@ function wrapOpener(name) {
      * restano per quando il primo colpo non riesce, che e' all'apertura:
      * la finestra non e' ancora in scena. */
     if (renderSubloadPopup(state.group)) return result;
+    nonEPiuNostra();
     root.queueMicrotask?.(() => renderSubloadPopup(state.group));
     root.setTimeout?.(() => renderSubloadPopup(state.group), 60);
     return result;
   };
+  /* I segni di chi ha avvolto prima si portano avanti.
+   *
+   * «guarda, cambia intestazione: c'e' qualcosa di duplicato» — ed era vero.
+   * Anche la stabilita' Beta 27 avvolge `apriSubLoads`, e nessuno dei due
+   * riconosceva il segno dell'altro sulla funzione esterna: a ogni giro di
+   * stati ciascuno riavvolgeva quella dell'altro. Misurata, la catena cresceva
+   * di due a ogni giro — cinque avvolgimenti all'avvio, venticinque dopo dieci
+   * giri, sessantacinque dopo trenta — e continuava a crescere finche' la
+   * plancia restava aperta. Aprire la finestra faceva girare decine di volte
+   * due disegnatori che si scrivono sopra a vicenda.
+   *
+   * `Object.assign` copia i segni di chi c'era prima sulla funzione nuova, che
+   * e' la disciplina di `wrapFunction` in shared.js: cosi' il secondo vede il
+   * segno del primo e si ferma. */
+  Object.assign(wrapped, current);
   wrapped[marker] = true;
   wrapped.__dmWrappedOriginal = current;
   root[name] = wrapped;

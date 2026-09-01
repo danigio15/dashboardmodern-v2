@@ -197,3 +197,50 @@ test("senza il segno del velo non si inventa un tempo", () => {
   const detto = conQuestoAvvio({ risorse: [fine("legacy/a.js", 2000)] }, tempoDiAvvio);
   assert.match(detto, /velo non misurato/, `dichiara un avvio che non ha visto: «${detto}»`);
 });
+
+/* La riga non si contraddice: la risposta letta zittisce la deduzione.
+ *
+ * Dal campo: «4.9 MB dalla cache — non compressi · servito br». Due frasi
+ * opposte sullo stesso file, una in fila all'altra. La prima e' una deduzione
+ * dai pesi — e dalla cache i pesi non dicono come sia arrivato — la seconda e'
+ * la risposta del server. Quando c'e' la seconda, la prima va tolta: una
+ * diagnostica che si contraddice non si legge, si scavalca.
+ */
+const { chiediComeArrivano } = await import(`../legacy/modules-entry.js?come=${Date.now()}`);
+
+function conRisposta(intestazione, testoIniziale, prova) {
+  const nodo = { textContent: testoIniziale };
+  const finto = { querySelector: (selettore) => (selettore.includes("Transfer") ? nodo : null) };
+  const primaFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    headers: { get: (nome) => (nome === "content-encoding" ? intestazione : null) },
+  });
+  return Promise.resolve(prova(finto, nodo)).finally(() => {
+    globalThis.fetch = primaFetch;
+  });
+}
+
+test("quando il server risponde «br», la deduzione dai pesi si toglie", async () => {
+  await conRisposta("br", "4.9 MB dalla cache — non compressi", async (finto, nodo) => {
+    await chiediComeArrivano(finto);
+    assert.equal(nodo.textContent, "4.9 MB dalla cache · servito br");
+    assert.doesNotMatch(nodo.textContent, /non compressi/, `si contraddice: «${nodo.textContent}»`);
+  });
+});
+
+test("e vale per tutte e tre le deduzioni, non solo per una", async () => {
+  for (const dedotto of ["compressi", "non compressi", "peso codificato non disponibile"])
+    await conRisposta("gzip", `1.2 MB di 4.9 MB — ${dedotto}`, async (finto, nodo) => {
+      await chiediComeArrivano(finto);
+      assert.equal(nodo.textContent, "1.2 MB di 4.9 MB · servito gzip");
+    });
+});
+
+test("senza intestazione lo dice, e la deduzione se ne va lo stesso", async () => {
+  /* «in chiaro» e' anch'esso una risposta letta: vale piu' della deduzione. */
+  await conRisposta(null, "4.9 MB dalla cache — compressi", async (finto, nodo) => {
+    await chiediComeArrivano(finto);
+    assert.equal(nodo.textContent, "4.9 MB dalla cache · servito in chiaro");
+  });
+});

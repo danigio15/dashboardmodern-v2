@@ -721,7 +721,7 @@ export function pesoScaricato() {
  * il campione buono. La riga si scrive subito col peso e si completa da sola
  * quando il server ha risposto; se la richiesta non riesce, resta quella che
  * era. */
-async function chiediComeArrivano(target) {
+export async function chiediComeArrivano(target) {
   const nodo = target.querySelector('[data-dm-voce="Transfer"]');
   if (!nodo) return;
   try {
@@ -729,7 +729,14 @@ async function chiediComeArrivano(target) {
     const risposta = await fetch(`${casa}panel.js`, { cache: "reload" });
     if (!risposta.ok) return;
     const come = risposta.headers.get("content-encoding");
-    nodo.textContent = `${nodo.textContent} · servito ${come || "in chiaro"}`;
+    /* La risposta letta zittisce la deduzione, invece di litigarci.
+     *
+     * La riga diceva «4.9 MB dalla cache — non compressi · servito br»: due
+     * frasi opposte sullo stesso file, in fila. La prima e' una deduzione dai
+     * pesi (e dalla cache i pesi non dicono come sia arrivato), la seconda e'
+     * la risposta del server. Quando c'e' la seconda, la prima si toglie: una
+     * diagnostica che si contraddice non si legge, si scavalca. */
+    nodo.textContent = `${nodo.textContent.replace(/ — (compressi|non compressi|peso codificato non disponibile)$/, "")} · servito ${come || "in chiaro"}`;
   } catch (_) {
     /* Una diagnostica che non riesce a misurare non rompe la diagnostica. */
   }
