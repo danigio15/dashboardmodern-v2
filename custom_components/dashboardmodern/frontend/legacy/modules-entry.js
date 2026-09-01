@@ -615,54 +615,41 @@ function mountReportEditor(_tab, target) {
  * al posto di 2007. Ed e' ancora lento. Quindi il tempo se ne va in un posto
  * che finora non ho misurato, e ho gia' sbagliato due volte a indovinarlo.
  *
- * Questo lo segna: dal momento in cui la plancia comincia a caricarsi a quando
- * il velo se ne va. Il resto — quando e' arrivato l'ultimo file — si legge a
- * posteriori dai tempi delle risorse, quindi non serve segnarlo. La differenza
- * fra i due dice tutto: se il grosso sta PRIMA, e' la rete; se sta DOPO, e'
- * analisi ed esecuzione, e la compressione non la tocca nemmeno.
+ * Il momento del velo lo segna chi lo toglie: `_cdTogliIlVelo` scrive
+ * `__DASHBOARDMODERN_VELO_VIA__`, e qui si legge. La prima stesura guardava
+ * `__DASHBOARDMODERN_READY__`, ed era la cosa sbagliata: `cdHideBoot` alza
+ * quella bandiera PRIMA di mettersi ad aspettare moduli e fogli, quindi la
+ * plancia risultava «pronta» mentre il velo era ancora li'. Sottostimava
+ * proprio il tempo che si sente. Chiesto in revisione, ed era vero.
  *
- * Niente orologio che guarda: si intercetta l'assegnazione. Chi toglie il velo
- * scrive `__DASHBOARDMODERN_READY__ = true`, e quella scrittura passa di qui —
- * il momento e' esatto invece che arrotondato al giro di sondaggio, e non
- * arriva un `setInterval` in piu' nel grafo di produzione, dove ogni intervallo
- * e' elencato uno per uno apposta perche' non ne entri uno di nascosto.
+ * L'altra meta' — quando la rete ha finito — si legge dai tempi delle risorse,
+ * con due accortezze che la prima stesura non aveva, tutt'e due segnalate:
  *
- * Si arma solo dove c'e' una pagina: le prove che importano questo modulo da
- * Node non devono trovarsi un accessore piantato su un globale. */
-let prontaDopo = null;
-if (typeof document !== "undefined") {
-  if (globalThis.__DASHBOARDMODERN_READY__) prontaDopo = performance.now();
-  else {
-    let acceso = false;
-    try {
-      Object.defineProperty(globalThis, "__DASHBOARDMODERN_READY__", {
-        configurable: true,
-        get: () => acceso,
-        set: (nuovo) => {
-          acceso = nuovo;
-          if (nuovo && prontaDopo === null) prontaDopo = performance.now();
-        },
-      });
-    } catch (_) {
-      /* Se il globale non si lascia intercettare, la riga dira' di non averlo
-       * misurato: meglio di un numero inventato. */
-    }
-  }
-}
-
+ *   - si contano solo le risorse arrivate PRIMA che il velo se ne andasse. Chi
+ *     riapre la Diagnostica fa partire la richiesta di `panel.js` qui sotto, e
+ *     quella diventerebbe «l'ultimo file» — minuti dopo l'avvio — schiacciando
+ *     a zero il tempo dopo la rete. La misura si corromperebbe da sola guardando
+ *     se stessa, e lo stesso farebbe qualunque risorsa caricata dopo;
+ *   - si conta anche il documento. Il guscio non e' una «risorsa»: sta nella
+ *     voce di navigazione, e sono centosei kB. Lasciarlo fuori vorrebbe dire
+ *     contare il suo scaricamento come lavoro del browser dopo la rete.
+ */
 export function tempoDiAvvio() {
   try {
+    const veloVia = globalThis.__DASHBOARDMODERN_VELO_VIA__;
     const casa = `${import.meta.url.split("/legacy/")[0]}/`;
-    const nostre = performance
+    const finiteEntro = (fine) => (veloVia ? fine <= veloVia : true);
+    const fini = performance
       .getEntriesByType("resource")
-      .filter((risorsa) => risorsa.name.startsWith(casa));
+      .filter((risorsa) => risorsa.name.startsWith(casa))
+      .map((risorsa) => risorsa.responseEnd || 0)
+      .filter(finiteEntro);
+    const documento = performance.getEntriesByType("navigation")[0]?.responseEnd || 0;
+    if (documento && finiteEntro(documento)) fini.push(documento);
     const s = (v) => `${(v / 1000).toFixed(1)} s`;
-    const ultimo = nostre.length
-      ? Math.max(...nostre.map((risorsa) => risorsa.responseEnd || 0))
-      : 0;
-    if (!prontaDopo) return ultimo ? `ultimo file a ${s(ultimo)} — velo non misurato` : "?";
-    const dopoLaRete = Math.max(0, prontaDopo - ultimo);
-    return `pronta in ${s(prontaDopo)} · ultimo file a ${s(ultimo)} · ${s(dopoLaRete)} dopo la rete`;
+    const ultimo = fini.length ? Math.max(...fini) : 0;
+    if (!veloVia) return ultimo ? `ultimo file a ${s(ultimo)} — velo non misurato` : "?";
+    return `velo via a ${s(veloVia)} · ultimo file a ${s(ultimo)} · ${s(Math.max(0, veloVia - ultimo))} dopo la rete`;
   } catch (_) {
     return "?";
   }

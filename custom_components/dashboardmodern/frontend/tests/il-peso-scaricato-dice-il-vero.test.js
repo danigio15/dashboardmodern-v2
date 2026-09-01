@@ -124,3 +124,76 @@ test("dove il browser non riempie quei campi, la riga non inventa", () => {
   );
   assert.equal(detto, "?");
 });
+
+/* La riga «Boot» dice quando il velo se ne va, e non si corrompe da sola.
+ *
+ * Tre punti, tutti e tre segnalati in revisione e tutti e tre veri:
+ *
+ *   - `__DASHBOARDMODERN_READY__` non e' il velo. `cdHideBoot` alza quella
+ *     bandiera PRIMA di mettersi ad aspettare moduli e fogli, e il velo puo'
+ *     restare li' per secondi: misurarla sottostima proprio il tempo che si
+ *     sente. Adesso il momento lo segna chi il velo lo toglie davvero;
+ *   - la Diagnostica, aprendosi, chiede `panel.js` per sapere come arrivano i
+ *     file. Quella richiesta e' una risorsa come le altre, e minuti dopo
+ *     l'avvio diventerebbe «l'ultimo file», schiacciando a zero il tempo dopo
+ *     la rete: la misura si corromperebbe guardando se stessa;
+ *   - il documento non e' una «risorsa»: sta nella voce di navigazione. Sono
+ *     centosei kB, e lasciarli fuori vorrebbe dire contarne lo scaricamento
+ *     come lavoro del browser.
+ */
+const { tempoDiAvvio } = await import(`../legacy/modules-entry.js?boot=${Date.now()}`);
+
+function conQuestoAvvio({ risorse = [], navigazione = null, veloVia }, prova) {
+  const prima = performance.getEntriesByType;
+  const primaVelo = globalThis.__DASHBOARDMODERN_VELO_VIA__;
+  performance.getEntriesByType = (tipo) =>
+    tipo === "resource" ? risorse : tipo === "navigation" ? (navigazione ? [navigazione] : []) : [];
+  if (veloVia === undefined) delete globalThis.__DASHBOARDMODERN_VELO_VIA__;
+  else globalThis.__DASHBOARDMODERN_VELO_VIA__ = veloVia;
+  try {
+    return prova();
+  } finally {
+    performance.getEntriesByType = prima;
+    if (primaVelo === undefined) delete globalThis.__DASHBOARDMODERN_VELO_VIA__;
+    else globalThis.__DASHBOARDMODERN_VELO_VIA__ = primaVelo;
+  }
+}
+
+const fine = (nome, responseEnd) => ({ name: `${CASA}${nome}`, responseEnd });
+
+test("il tempo e' quello del velo, non quello della bandiera", () => {
+  const detto = conQuestoAvvio(
+    { risorse: [fine("legacy/a.js", 2000)], veloVia: 6000 },
+    tempoDiAvvio,
+  );
+  assert.match(detto, /velo via a 6\.0 s/, `non misura il velo: «${detto}»`);
+  assert.match(detto, /4\.0 s dopo la rete/, `il conto dopo la rete non torna: «${detto}»`);
+});
+
+test("la richiesta della Diagnostica non diventa «l'ultimo file»", () => {
+  /* `panel.js` chiesto quando si apre il pannello, molto dopo l'avvio. */
+  const detto = conQuestoAvvio(
+    { risorse: [fine("legacy/a.js", 2000), fine("panel.js", 300000)], veloVia: 6000 },
+    tempoDiAvvio,
+  );
+  assert.match(detto, /ultimo file a 2\.0 s/, `si e' contata addosso: «${detto}»`);
+  assert.match(detto, /4\.0 s dopo la rete/, `il tempo dopo la rete e' sparito: «${detto}»`);
+});
+
+test("il documento conta come rete, non come lavoro del browser", () => {
+  const detto = conQuestoAvvio(
+    { risorse: [fine("legacy/a.js", 1000)], navigazione: { responseEnd: 5000 }, veloVia: 6000 },
+    tempoDiAvvio,
+  );
+  assert.match(detto, /ultimo file a 5\.0 s/, `il guscio non e' contato: «${detto}»`);
+  assert.match(
+    detto,
+    /1\.0 s dopo la rete/,
+    `il guscio finisce fra il lavoro del browser: «${detto}»`,
+  );
+});
+
+test("senza il segno del velo non si inventa un tempo", () => {
+  const detto = conQuestoAvvio({ risorse: [fine("legacy/a.js", 2000)] }, tempoDiAvvio);
+  assert.match(detto, /velo non misurato/, `dichiara un avvio che non ha visto: «${detto}»`);
+});
