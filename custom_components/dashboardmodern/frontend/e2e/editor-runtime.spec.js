@@ -244,13 +244,21 @@ for (const variant of PRIMARY) {
      * leggeva come una prova ballerina: cadeva sempre e solo qui, e sempre e
      * solo su uno shard. Non ballava affatto — contava giusto.
      *
+     * E' passato a tredici quando ha imparato anche a dire quanto pesa
+     * arrivare: la riga di prima diceva che il pacchetto era in uso, ma non che
+     * i byte erano rimasti gli stessi, ed e' quello che si sentiva da fuori
+     * casa.
+     *
      * Chi aggiunge una voce alza questo numero E la nomina qui sotto: cosi'
      * la prossima volta il conto si legge invece di sembrare capriccio. */
-    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(12);
+    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(13);
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Integration version");
-    /* La dodicesima. Vale in tutt'e due gli stati, che e' il punto: la riga
-     * dice quale dei due, non presume. */
+    /* La dodicesima e la tredicesima. Valgono in tutti gli stati, che e' il
+     * punto: le righe dicono quale, non presumono. */
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText(/impacchettati|sciolti/);
+    await expect(page.locator("[data-runtime-diagnostics]")).toContainText(
+      /compressi|dalla cache|MB/,
+    );
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });

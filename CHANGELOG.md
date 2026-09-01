@@ -5,6 +5,30 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.2
+
+La beta di prima aveva ridotto le richieste da centosettantanove a tre, e dal
+campo e' tornato «nulla e' cambiato». Era vero: le richieste non erano il
+problema.
+
+### Corretto
+
+- **La plancia arriva compressa: 4,9 MB diventano 1,2.** La Diagnostica diceva
+  «impacchettati (3 file)», quindi il pacchetto funzionava — ma i byte erano
+  rimasti gli stessi. Chi apre la plancia da fuori casa passa da un tunnel, e li'
+  non contano le richieste: contano i byte, e ne partivano quattro megabyte e
+  mezzo in chiaro. Adesso accanto a ogni file ne viaggia una copia gia'
+  compressa, e Home Assistant manda quella a chi la accetta. Misurato in pagina:
+  da 5142 kB scaricati a 1179. Su un collegamento da 5 Mbit/s la plancia e'
+  pronta in 2,8 secondi invece di 4,9. Chi entra da casa, dove la banda non
+  manca, non se ne accorgera': e' fuori casa che si sentiva.
+- **La Diagnostica dice quanto pesa arrivare.** La riga «Transfer» mostra i byte
+  davvero scesi dal filo e se erano compressi. Per sapere che la beta di prima
+  non aveva spostato niente sono serviti uno scambio di messaggi e una
+  schermata; adesso si legge.
+- **Due documenti da centosei kB non partono piu' per il mondo.** Le copie di
+  lavoro dei gusci finivano dentro il pacchetto di rilascio.
+
 ## 1.4.5-beta.1
 
 Una beta per provare l'avvio impacchettato prima di darlo a tutti. Chi non

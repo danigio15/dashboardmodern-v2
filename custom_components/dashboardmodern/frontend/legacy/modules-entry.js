@@ -608,6 +608,36 @@ function mountReportEditor(_tab, target) {
   if (entityInputs !== pickers) throw new Error(`Entity picker invariant failed: ${entityInputs} inputs / ${pickers} pickers`);
 }
 
+/* Quanti byte sono arrivati davvero, e se sono arrivati compressi.
+ *
+ * Dal campo, dopo un rilascio che aveva ridotto le richieste da 179 a 3:
+ * «nulla e' cambiato». Aveva ragione — e per saperlo e' servito uno scambio di
+ * messaggi e una schermata, perche' la plancia non sapeva dire quanto pesava
+ * arrivare. Adesso lo dice: chi entra da fuori casa passa da un tunnel, e li'
+ * contano i byte, non le richieste.
+ *
+ * `transferSize` e' quello che ha viaggiato sul filo, `decodedBodySize` quello
+ * che ne e' uscito: se il secondo e' molto piu' grande del primo, la
+ * compressione sta lavorando. A cache piena `transferSize` e' zero, e allora
+ * non c'e' niente da misurare — si dice quello. */
+function pesoScaricato() {
+  try {
+    const risorse = performance.getEntriesByType("resource");
+    if (!risorse.length) return "?";
+    const somma = (campo) => risorse.reduce((tot, r) => tot + (r[campo] || 0), 0);
+    const arrivato = somma("transferSize");
+    const disteso = somma("decodedBodySize");
+    if (!disteso) return "?";
+    const mb = (v) => `${(v / 1048576).toFixed(1)} MB`;
+    if (!arrivato) return `${mb(disteso)} (dalla cache)`;
+    return disteso / arrivato > 1.3
+      ? `${mb(arrivato)} di ${mb(disteso)} — compressi`
+      : `${mb(arrivato)} — non compressi`;
+  } catch (_) {
+    return "?";
+  }
+}
+
 function renderDiagnostics(target) {
   const rows = {
     "Integration version": BUILD_INFO.integrationVersion,
@@ -624,6 +654,7 @@ function renderDiagnostics(target) {
      * manca, la plancia parte lo stesso dai sorgenti — e allora e' bene poterlo
      * vedere a colpo d'occhio invece di indovinarlo dal cronometro. */
     Modules: globalThis.__DASHBOARDMODERN_IMPACCHETTATA__ ? "impacchettati (3 file)" : "sciolti (179 file)",
+    Transfer: pesoScaricato(),
   };
   target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
   target.dataset.runtimeDiagnostics = "true";
