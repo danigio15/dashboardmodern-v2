@@ -11,7 +11,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components/dashboardmodern"
-EXCLUDED_RELEASE_PARTS = frozenset({"__pycache__", "e2e", "tests"})
+# `test-results` e `playwright-report` sono i resti di chi ha appena eseguito la
+# suite: schermate, tracce, report. In CI il rilascio parte da un checkout
+# pulito e non li ha, quindi il pacchetto pubblicato e' sempre stato a posto —
+# ma chi costruisce il pacchetto sulla propria macchina, dopo aver eseguito le
+# prove, ci spediva dentro tre megabyte e mezzo di PNG. Trovato misurando lo
+# zip, non leggendo il codice.
+EXCLUDED_RELEASE_PARTS = frozenset(
+    {"__pycache__", "e2e", "tests", "test-results", "playwright-report", "node_modules"}
+)
 
 
 def _include_release_file(path: Path) -> bool:

@@ -262,12 +262,17 @@ for (const variant of PRIMARY) {
      * la prossima volta il conto si legge invece di sembrare capriccio. */
     await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(13);
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Integration version");
-    /* La dodicesima e la tredicesima. Valgono in tutti gli stati, che e' il
-     * punto: le righe dicono quale, non presumono. */
+    /* La dodicesima e la tredicesima. La prima si controlla dal valore, che
+     * vale in tutti gli stati: la riga dice quale dei due, non presume.
+     *
+     * La seconda si controlla dall'ETICHETTA, e non e' pigrizia: il peso lo
+     * ricava da `encodedBodySize` e `transferSize`, che non tutti i browser
+     * riempiono. Dove non ci sono, la riga dice «?» — che e' la risposta
+     * onesta, ma un'asserzione sul valore ci sarebbe cascata, e sarebbe caduta
+     * su un browser solo: il modo migliore per far sembrare ballerina una prova
+     * che non lo e'. */
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText(/impacchettati|sciolti/);
-    await expect(page.locator("[data-runtime-diagnostics]")).toContainText(
-      /compressi|dalla cache|MB/,
-    );
+    await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Transfer");
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });

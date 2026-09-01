@@ -171,23 +171,49 @@ function scriviIGusci() {
  * su `http://`, dove Chrome il brotli non lo chiede nemmeno. Quindi tutti e
  * due.
  *
- * Si comprime TUTTO il servibile, senza soglie: un file che oggi supera una
- * soglia e domani non la supera piu' si lascerebbe dietro la copia compressa
- * vecchia, e quella verrebbe servita al posto della nuova. Un guasto muto, e
- * dei peggiori. Meglio qualche `.gz` da trecento byte. */
+ * Niente soglie di grandezza: un file che oggi supera una soglia e domani non
+ * la supera piu' si lascerebbe dietro la copia compressa vecchia, e quella
+ * verrebbe servita al posto della nuova. Un guasto muto, e dei peggiori. Meglio
+ * qualche `.gz` da trecento byte.
+ *
+ * Si comprime pero' solo quello che la plancia chiede DAVVERO: il guscio, il
+ * pacchetto, il runtime, i fogli, le librerie e i cataloghi delle lingue. I
+ * centosettantanove sorgenti sciolti sotto `src/` no — quelli servono al
+ * ripiego, cioe' al caso in cui il pacchetto non arriva, che per disegno e'
+ * gia' «lenta come ieri». Comprimerli costava 2,2 MB nel pacchetto di rilascio,
+ * scaricati da tutti a ogni aggiornamento, per una strada che non dovrebbe
+ * prendere nessuno. Il pacchetto passa da 7,1 a 10,5 MB invece che a 12,7.
+ *
+ * La regola e' per percorso, non per grandezza: un file sta sotto `legacy/` o
+ * non ci sta, e questo non cambia da un rilascio all'altro. Nessuna copia
+ * vecchia puo' restare indietro. */
 const DA_COMPRIMERE = Object.freeze(new Set([".js", ".css", ".json", ".html", ".svg"]));
 const FUORI_DAL_GIRO = Object.freeze(new Set(["e2e", "tests", "__pycache__", "node_modules"]));
+/* `legacy/` si porta dentro anche `legacy/pacco/`, che e' il grosso. */
+const SULLA_STRADA_BUONA = Object.freeze(["legacy", "src/i18n"]);
+const INGRESSI_IN_CIMA = Object.freeze(["panel.js", "dashboard-card.js"]);
 /* `build-info.js` no: il pacchetto di rilascio lo rigenera e lo sostituisce
  * dentro lo zip, e una copia compressa di quello vecchio direbbe la versione
  * sbagliata. Resta in chiaro, e sono trecento byte. */
 const SENZA_COPIA_COMPRESSA = "build-info.js";
 
-function* daServire(cartella) {
+function* sottoLaCartella(cartella) {
   for (const voce of readdirSync(cartella)) {
     if (FUORI_DAL_GIRO.has(voce)) continue;
     const percorso = join(cartella, voce);
-    if (statSync(percorso).isDirectory()) yield* daServire(percorso);
+    if (statSync(percorso).isDirectory()) yield* sottoLaCartella(percorso);
     else if (DA_COMPRIMERE.has(extname(voce)) && voce !== SENZA_COPIA_COMPRESSA) yield percorso;
+  }
+}
+
+function* daServire(radice) {
+  for (const ramo of SULLA_STRADA_BUONA) {
+    const cartella = join(radice, ramo);
+    if (existsSync(cartella)) yield* sottoLaCartella(cartella);
+  }
+  for (const nome of INGRESSI_IN_CIMA) {
+    const percorso = join(radice, nome);
+    if (existsSync(percorso)) yield percorso;
   }
 }
 

@@ -40,11 +40,16 @@ const { comprimiGliAsset, togliLeCopieCompresse, copiaDi } = await import(
 function cartellaFinta() {
   const radice = mkdtempSync(join(tmpdir(), "dm-compressa-"));
   mkdirSync(join(radice, "legacy/vendor"), { recursive: true });
+  mkdirSync(join(radice, "src/i18n"), { recursive: true });
+  mkdirSync(join(radice, "src/sections"), { recursive: true });
   writeFileSync(join(radice, "legacy/grosso.js"), "export const x = 1;\n".repeat(5000));
   writeFileSync(join(radice, "legacy/foglio.css"), ".a{color:red}\n".repeat(400));
   writeFileSync(join(radice, "legacy/minuscolo.json"), '{"a":1}');
   writeFileSync(join(radice, "legacy/build-info.js"), 'export const BUILD_INFO = {"a":1};');
   writeFileSync(join(radice, "legacy/vendor/carattere.woff2"), Buffer.from([0, 1, 2, 3, 4]));
+  writeFileSync(join(radice, "src/i18n/ja.js"), "export default {};\n".repeat(3000));
+  writeFileSync(join(radice, "src/sections/una-sezione.js"), "export const y = 2;\n".repeat(3000));
+  writeFileSync(join(radice, "panel.js"), "export const p = 3;\n".repeat(200));
   return radice;
 }
 
@@ -52,7 +57,7 @@ test("ogni file di testo ha le sue due copie, e tornano all'originale", () => {
   const radice = cartellaFinta();
   try {
     const fatti = comprimiGliAsset(radice);
-    assert.equal(fatti.length, 3, `mi aspettavo tre file compressi, sono ${fatti.length}`);
+    assert.equal(fatti.length, 5, `mi aspettavo cinque file compressi, sono ${fatti.length}`);
     for (const percorso of fatti) {
       const originale = readFileSync(percorso);
       assert.ok(
@@ -92,6 +97,33 @@ test("i caratteri e le immagini restano come sono", () => {
     comprimiGliAsset(radice);
     assert.ok(!existsSync(join(radice, "legacy/vendor/carattere.woff2.gz")));
     assert.ok(!existsSync(join(radice, "legacy/vendor/carattere.woff2.br")));
+  } finally {
+    rmSync(radice, { recursive: true, force: true });
+  }
+});
+
+test("si comprime la strada buona, non quella del ripiego", () => {
+  /* I sorgenti sciolti sotto `src/` li chiede solo il ripiego, cioe' il caso in
+   * cui il pacchetto non arriva — che per disegno e' gia' «lenta come ieri».
+   * Comprimerli costava 2,2 MB dentro il pacchetto di rilascio, scaricati da
+   * tutti a ogni aggiornamento, per una strada che non dovrebbe prendere
+   * nessuno.
+   *
+   * I cataloghi delle lingue invece stanno sotto `src/` ma sono sulla strada
+   * buona: arrivano uno per volta a ogni avvio, apposta per non stare nel
+   * pacchetto. */
+  const radice = cartellaFinta();
+  try {
+    comprimiGliAsset(radice);
+    assert.ok(
+      existsSync(join(radice, "src/i18n/ja.js.br")),
+      "il catalogo della lingua non e' compresso",
+    );
+    assert.ok(existsSync(join(radice, "panel.js.br")), "l'ingresso in cima non e' compresso");
+    assert.ok(
+      !existsSync(join(radice, "src/sections/una-sezione.js.br")),
+      "i sorgenti del ripiego si portano dietro copie che nessuno chiedera'",
+    );
   } finally {
     rmSync(radice, { recursive: true, force: true });
   }

@@ -28,6 +28,15 @@ problema.
   schermata; adesso si legge.
 - **Due documenti da centosei kB non partono piu' per il mondo.** Le copie di
   lavoro dei gusci finivano dentro il pacchetto di rilascio.
+- **Nemmeno i resti delle prove.** Chi costruiva il pacchetto sulla propria
+  macchina, dopo aver eseguito la suite, ci spediva dentro tre megabyte e mezzo
+  di schermate di Playwright. Il pacchetto pubblicato non li ha mai avuti — in
+  CI il rilascio parte da un checkout pulito — ma adesso non li ha nessuno.
+
+Il pacchetto passa da 7,1 a 10,5 MB: si comprime solo quello che la plancia
+chiede davvero all'avvio, non i centosettantanove sorgenti sciolti che servono
+al solo ripiego. Si scarica una volta per aggiornamento, e si risparmia a ogni
+apertura.
 
 ## 1.4.5-beta.1
 
