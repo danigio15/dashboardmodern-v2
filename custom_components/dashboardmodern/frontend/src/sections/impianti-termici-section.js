@@ -22,10 +22,12 @@
  * l'interruttore chiama il servizio che chiamava gia' la tessera.
  */
 import {
+  BRICIOLA_SEZIONE,
   BRICIOLE_TERMICHE,
   CHIAVE_CALDAIA,
   CHIAVE_IMPIANTI,
   ETICHETTE_TERMICHE,
+  NOME_SEZIONE,
   TITOLI_TERMICI,
   entitaDellaCaldaia,
   impiantiScelti,
@@ -360,6 +362,44 @@ export function renderImpiantiTermici() {
   return true;
 }
 
+/* Il nome che la sezione porta in giro: nella barra in basso e nella scheda
+ * della configurazione.
+ *
+ * Il guscio scrive «Solare Termico» in tutti e due i posti, e quel nome e' di
+ * una delle tre macchine: chi ha solo la caldaia trovava la sua dentro una
+ * voce che parla di pannelli. Il nome scelto a mano da chi configura vince
+ * comunque — `cd_section_names` — perche' una preferenza esplicita batte
+ * sempre un valore di serie. */
+function nomeScelto() {
+  const nomi = readJson("cd_section_names", {});
+  return nomi && typeof nomi === "object" ? clean(nomi.solar) : "";
+}
+
+export function rinominaLaSezione() {
+  if (nomeScelto()) return false;
+  const nome = t(...NOME_SEZIONE);
+  let fatto = false;
+  const voce = doc?.querySelector?.('nav.tabs .tab[data-tab="boiler"] .text');
+  if (voce && clean(voce.textContent) !== nome) {
+    voce.textContent = nome;
+    fatto = true;
+  }
+  /* Nella configurazione la linguetta porta disegno e parola in due caselle
+   * separate: si riscrive la parola, non tutta la linguetta, o si porterebbe
+   * via il disegno. */
+  const linguetta = doc?.querySelector?.('.ed-tab[data-tab="sez3"] .dm-beta4-tab-label');
+  if (linguetta && clean(linguetta.textContent) !== nome) {
+    linguetta.textContent = nome;
+    fatto = true;
+  }
+  const nuda = doc?.querySelector?.('.ed-tab[data-tab="sez3"]:not(:has(.dm-beta4-tab-label))');
+  if (nuda && !clean(nuda.textContent).includes(nome)) {
+    nuda.textContent = `🌞 ${nome}`;
+    fatto = true;
+  }
+  return fatto;
+}
+
 function schedule() {
   if (state.frame) return;
   state.frame =
@@ -367,6 +407,7 @@ function schedule() {
       state.frame = 0;
       try {
         renderImpiantiTermici();
+        rinominaLaSezione();
       } catch (error) {
         root.console?.warn?.("[DashboardModern] impianti termici", error);
       }
@@ -626,13 +667,21 @@ export function installImpiantiTermiciSection() {
   /* Il nome della pagina lo scrive l'intestazione, che resta il suo padrone:
    * qui le si dice soltanto quale macchina si sta guardando adesso. */
   registraTitoloDiPagina(PAGINA, () => {
-    const attiva = tabAttiva(impiantiDiCasa(), state.tab);
-    if (!attiva) return null;
+    const scelti = impiantiDiCasa();
+    const attiva = tabAttiva(scelti, state.tab);
+    /* Con le linguette il titolo torna a essere il nome della sezione: a dire
+     * quale macchina si sta guardando ci pensa la linguetta accesa, e ripetere
+     * lo stesso nome due volte a due centimetri di distanza e' rumore. Senza
+     * linguette il titolo e' l'unica cosa che lo dice, e allora lo dice. */
+    if (servonoLinguette(scelti))
+      return { title: t(...NOME_SEZIONE), subtitle: t(...BRICIOLA_SEZIONE) };
+    if (!attiva) return { title: t(...NOME_SEZIONE), subtitle: t(...BRICIOLA_SEZIONE) };
     return {
       title: t(...TITOLI_TERMICI[attiva]),
       subtitle: t(...BRICIOLE_TERMICHE[attiva]),
     };
   });
+  rinominaLaSezione();
   doc.addEventListener("click", onClick);
   for (const evento of [
     "dashboardmodern:legacy-ready",

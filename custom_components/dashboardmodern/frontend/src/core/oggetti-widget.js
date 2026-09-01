@@ -108,6 +108,24 @@ const OGGETTI = Object.freeze({
     <circle cx="20.4" cy="11.4" r="1.5" fill="#ef4444"/>
     <path d="M11.6 28.4v2M20.4 28.4v2" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round"/>`,
 
+  /* La caldaia: la scocca a muro, l'oblo' del bruciatore con la fiamma dentro,
+   * i due attacchi sotto. Non e' il serbatoio dello scaldabagno — quella
+   * scalda e basta, questa serve anche i termosifoni. */
+  caldaia: `<defs>
+      <linearGradient id="dmoCaldC" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#dbe3ec"/>
+        <stop offset="1" stop-color="#a9b6c6"/></linearGradient>
+      <radialGradient id="dmoCaldF" cx=".5" cy="1" r=".9">
+        <stop offset="0" stop-color="#fde68a"/><stop offset=".5" stop-color="#fb923c"/>
+        <stop offset="1" stop-color="#ea580c"/></radialGradient></defs>
+    ${OMBRA(16, 28.8, 7.2)}
+    <rect x="4.6" y="4.2" width="22.8" height="21" rx="3.4" fill="url(#dmoCaldC)"/>
+    <rect x="7.4" y="6.8" width="17.2" height="4.2" rx="1.8" fill="#f8fafc"/>
+    <circle cx="22" cy="8.9" r="1.4" fill="#38bdf8"/>
+    <rect x="10.4" y="13.4" width="11.2" height="8.4" rx="2.2" fill="#0b1220"/>
+    <path d="M16 15.4c1.6 1.5 2.4 2.7 2.4 3.7a2.4 2.4 0 0 1-4.8 0c0-.7.3-1.4.9-2 .1.8.5 1.2 1.1 1.3-.2-1.2 0-2.2.4-3Z" fill="url(#dmoCaldF)"/>
+    <path d="M9.6 25.2v3M22.4 25.2v3" stroke="#94a3b8" stroke-width="1.9" stroke-linecap="round"/>`,
+
   /* La porta: pannello, maniglia, e il pavimento sotto. */
   aperture: `<defs>
       <linearGradient id="dmoPorta" x1="0" y1="0" x2="1" y2="0">

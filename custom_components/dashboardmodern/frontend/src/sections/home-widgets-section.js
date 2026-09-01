@@ -40,6 +40,13 @@ import {
   entitaDiUnoScaldabagno,
   lettureScaldabagni,
 } from "../core/scaldabagno-model.js";
+import {
+  CHIAVE_CALDAIA,
+  entitaDellaCaldaia,
+  letturaCaldaia,
+  normalizzaCaldaia,
+  verdettoPressione,
+} from "../core/impianti-termici.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -1444,6 +1451,89 @@ function scaldabagnoModel(states) {
   };
 }
 
+/* La tessera della caldaia (#253).
+ *
+ * Di una caldaia non si guarda una temperatura: si guarda il SALTO fra
+ * mandata e ritorno, perche' due numeri vicini su una caldaia accesa vogliono
+ * dire che l'acqua gira senza scaldare niente. E si guarda la pressione, che
+ * e' l'unica cosa di quell'impianto che ogni tanto chiede di alzarsi dal
+ * divano: sotto il bar il pressostato blocca tutto, e accorgersene dalla Home
+ * e' meglio che accorgersene da una doccia fredda. */
+function caldaiaModel(states) {
+  const config = readJson(CHIAVE_CALDAIA, {});
+  const entita = entitaDellaCaldaia(config);
+  if (!entita.length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
+  const lettura = letturaCaldaia(config, states, root.resolveEntity || ((value) => value));
+  const pressione = verdettoPressione(lettura.pressione);
+
+  const rows = [];
+  const dato = normalizzaCaldaia(config);
+  if (clean(dato.fiamma) || clean(dato.stato))
+    rows.push({
+      glyph: "🔥",
+      name: t("Bruciatore", "Burner"),
+      entity: clean(dato.fiamma) || clean(dato.stato),
+      on: lettura.fiamma === true || lettura.acceso === true,
+      value:
+        lettura.fiamma === true || lettura.acceso === true
+          ? t("Acceso", "On")
+          : t("Spento", "Off"),
+    });
+  const misura = (campo, testo, glyph, valore, cifre, unita) => {
+    if (valore == null) return;
+    rows.push({
+      glyph,
+      name: testo,
+      entity: clean(dato[campo]),
+      raw: valore,
+      value: `${formatNumber(valore, cifre)}${unita}`,
+    });
+  };
+  misura("mandata", t("Mandata", "Flow"), "🌡️", lettura.mandata, 1, "°");
+  misura("ritorno", t("Ritorno", "Return"), "🌡️", lettura.ritorno, 1, "°");
+  misura("acquaCalda", t("Acqua calda", "Hot water"), "🚿", lettura.acquaCalda, 1, "°");
+  misura("pressione", t("Pressione", "Pressure"), "📊", lettura.pressione, 1, " bar");
+  misura("modulazione", t("Modulazione", "Modulation"), "📶", lettura.modulazione, 0, "%");
+  if (!rows.length) return null;
+
+  const acceso = lettura.fiamma === true || lettura.acceso === true;
+  const didascalia = () => {
+    if (pressione === "bassa")
+      return t("Pressione bassa: rabbocca", "Pressure low: top it up");
+    if (lettura.salto != null) {
+      /* Il numero si tira fuori prima: la chiave di traduzione deve essere una
+       * frase con un buco, non un pezzo di codice. */
+      const salto = formatNumber(lettura.salto, 1);
+      return t(`Salto ${salto}°`, `Delta ${salto}°`);
+    }
+    return acceso ? t("Bruciatore acceso", "Burner on") : t("Bruciatore spento", "Burner off");
+  };
+  return {
+    key: "caldaia",
+    accent: "#ef4444",
+    icon: "🔥",
+    label: t("Caldaia", "Boiler"),
+    value:
+      lettura.mandata != null
+        ? `${formatNumber(lettura.mandata, 1)}°`
+        : acceso
+          ? t("Accesa", "On")
+          : t("Spenta", "Off"),
+    caption: didascalia(),
+    ring: lettura.modulazione == null ? null : Math.round(lettura.modulazione),
+    // La tessera si accende quando il bruciatore lavora.
+    attiva: acceso,
+    /* Una pressione sotto il minimo e' l'unica cosa di questa pagina che
+     * chiede di fare qualcosa: la tessera lo dice col suo alone, come le
+     * altre quando c'e' da guardare. */
+    alert: pressione === "bassa",
+    lettura,
+    rows,
+  };
+}
+
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
@@ -2263,6 +2353,7 @@ function widgetModels(states) {
       robotsModel(states),
       solarThermalModel(states),
       scaldabagnoModel(states),
+      caldaiaModel(states),
       minipcModel(states),
       poolModel(states),
       preseModel(states),
@@ -3188,6 +3279,7 @@ function pilloleDelloStato(widget) {
 const CHIAVI_A_CARTE = new Set([
   "evidenza",
   "scaldabagno",
+  "caldaia",
   "ev",
   "solare",
   "piscina",
@@ -3584,7 +3676,11 @@ function detailRows(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
-  if (["ev", "solare", "scaldabagno", "piscina", "prese", "irrigazione", "robot"].includes(widget.key))
+  if (
+    ["ev", "solare", "scaldabagno", "caldaia", "piscina", "prese", "irrigazione", "robot"].includes(
+      widget.key,
+    )
+  )
     return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
@@ -3617,6 +3713,8 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   temperatura: "temp",
   ev: "ev",
   solare: "boiler",
+  scaldabagno: "boiler",
+  caldaia: "boiler",
   piscina: "piscina",
   irrigazione: "irrigazione",
   robot: "robot",

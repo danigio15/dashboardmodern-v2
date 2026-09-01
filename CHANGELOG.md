@@ -67,6 +67,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **Chi non sceglie non perde niente.** Una plancia gia' configurata col solare
   continua a mostrarlo esattamente come prima: la domanda e' nuova, e le
   risposte di ieri valgono ancora.
+- **La sezione si chiama «Gestione termica».** Il nome vecchio era quello di
+  una delle tre macchine: chi ha solo la caldaia trovava la sua dentro una voce
+  che parlava di pannelli solari. Cambia nella barra in basso e nella scheda
+  della configurazione; chi la sezione se l'era rinominata a mano tiene il nome
+  che ha scelto.
+- **Anche la caldaia ha la sua tessera e la sua finestra.** Il numero grande e'
+  la mandata, la didascalia il salto fra mandata e ritorno — che e' la misura
+  per cui si guarda una caldaia — e la pressione sotto il bar accende la
+  tessera e la fa comparire fra quelle che chiedono attenzione. La finestra
+  dice perche': «l'acqua gira senza cedere calore» quando mandata e ritorno
+  sono quasi uguali, «sotto il minimo, la caldaia puo' bloccarsi» quando manca
+  pressione.
+- **Con tutti e tre gli impianti le tessere sono tre**, ognuna con la sua
+  finestra, e tutte e tre portano alla stessa sezione: da li' si passa
+  dall'una all'altra con le linguette.
 
 ### Corretto
 

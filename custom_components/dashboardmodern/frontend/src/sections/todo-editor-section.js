@@ -87,6 +87,7 @@ function catalogoTessere() {
     /* Lo scaldabagno elettrico (#253): la scheda del solare guardava il salto
      * fra le sonde, questo guarda quanto manca all'acqua calda. */
     ["scaldabagno", "🚿", t("Scaldabagno", "Water heater")],
+    ["caldaia", "🔥", t("Caldaia", "Boiler")],
     ["piscina", "🏊", t("Piscina", "Pool")],
     ["prese", "🔌", t("Prese", "Sockets")],
     ["irrigazione", "💧", t("Irrigazione", "Irrigation")],

@@ -233,6 +233,32 @@ const FRASI = Object.freeze({
       `${pronti} of ${unita.length} with hot water.`,
     );
   },
+  /* La caldaia (#253) non si racconta col numero di caselle accese.
+   *
+   * La cosa che si vuole sapere e' se l'impianto sta davvero cedendo calore —
+   * il salto fra mandata e ritorno — e se la pressione regge. Un «tre su
+   * cinque in funzione» qui non risponderebbe a nessuna delle due. */
+  caldaia: (tr, _righe, tessera) => {
+    const lettura = tessera?.lettura;
+    if (!lettura) return tr("Qui non c'e' ancora niente.", "Nothing configured here yet.");
+    if (lettura.pressione != null && lettura.pressione < 1)
+      return tr(
+        `Pressione a ${numero(lettura.pressione, 1)} bar: sotto il minimo, la caldaia puo' bloccarsi.`,
+        `Pressure at ${numero(lettura.pressione, 1)} bar: below minimum, the boiler may lock out.`,
+      );
+    const acceso = lettura.fiamma === true || lettura.acceso === true;
+    if (!acceso) return tr("Il bruciatore e' spento.", "The burner is off.");
+    if (lettura.salto == null) return tr("Il bruciatore sta lavorando.", "The burner is running.");
+    if (lettura.salto < 3)
+      return tr(
+        `Mandata e ritorno quasi uguali (${numero(lettura.salto, 1)}°): l'acqua gira senza cedere calore.`,
+        `Flow and return nearly equal (${numero(lettura.salto, 1)}°): water circulates without giving off heat.`,
+      );
+    return tr(
+      `Cede ${numero(lettura.salto, 1)}° fra mandata e ritorno.`,
+      `Giving off ${numero(lettura.salto, 1)}° between flow and return.`,
+    );
+  },
   luci: (tr, righe) => {
     const accese = conta(righe, acceso);
     if (!accese) return tr("Sono tutte spente.", "Every light is off.");
@@ -437,6 +463,10 @@ const BRICIOLE = Object.freeze({
   scaldabagno: [
     ["Acqua calda", "Resistenza", "Consumo"],
     ["Hot water", "Element", "Consumption"],
+  ],
+  caldaia: [
+    ["Mandata", "Ritorno", "Pressione"],
+    ["Flow", "Return", "Pressure"],
   ],
   piscina: [
     ["Qualita' dell'acqua", "Filtrazione", "Riscaldamento"],
