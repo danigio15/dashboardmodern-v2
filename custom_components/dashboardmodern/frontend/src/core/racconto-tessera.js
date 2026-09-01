@@ -311,6 +311,44 @@ const FRASI = Object.freeze({
       `Mains is on and the battery is at ${carica}%${carico}.`,
     );
   },
+  /* Il calendario (#259) non si racconta contando eventi.
+   *
+   * «Sette cose in programma» non e' una risposta: la domanda e' «cosa ho
+   * adesso, e cosa viene dopo». La frase dice quella, e quando non c'e'
+   * niente lo dice come una buona notizia. */
+  calendario: (tr, _righe, tessera, adesso = Date.now()) => {
+    const primi = Array.isArray(tessera?.primi) ? tessera.primi : [];
+    const titolo = (evento) =>
+      String(evento?.summary || "").trim() || tr("un impegno", "an appointment");
+    if (!primi.length)
+      return tessera?.inArrivo
+        ? tr("Sto guardando l'agenda.", "Checking the calendar.")
+        : tr("Non c'e' niente in programma.", "Nothing scheduled.");
+    const [testa, dopo] = primi;
+    const primo = titolo(testa);
+    const secondo = dopo ? titolo(dopo) : "";
+    if (testa.inizio <= adesso && testa.fine > adesso)
+      return dopo
+        ? tr(
+            `«${primo}» e' in corso; poi tocca a «${secondo}».`,
+            `“${primo}” is under way; then “${secondo}”.`,
+          )
+        : tr(`«${primo}» e' in corso.`, `“${primo}” is under way.`);
+    const minuti = Math.max(0, Math.round((testa.inizio - adesso) / 60000));
+    /* Finche' e' un'attesa si dice in minuti, che e' come si risponde a
+     * «quanto manca». Piu' in la' i minuti smettono di essere una risposta. */
+    if (minuti <= 90)
+      return tr(
+        `«${primo}» comincia fra ${minuti} minut${minuti === 1 ? "o" : "i"}.`,
+        `“${primo}” starts in ${minuti} min.`,
+      );
+    return dopo
+      ? tr(
+          `Il prossimo e' «${primo}», poi «${secondo}».`,
+          `Next up is “${primo}”, then “${secondo}”.`,
+        )
+      : tr(`Il prossimo e' «${primo}».`, `Next up is “${primo}”.`);
+  },
   luci: (tr, righe) => {
     const accese = conta(righe, acceso);
     if (!accese) return tr("Sono tutte spente.", "Every light is off.");
@@ -535,6 +573,10 @@ const BRICIOLE = Object.freeze({
   batterie: [
     ["Livelli", "Soglie", "Autonomia"],
     ["Levels", "Thresholds", "Runtime"],
+  ],
+  calendario: [
+    ["Oggi", "Prossimi giorni", "Impegni"],
+    ["Today", "Coming days", "Appointments"],
   ],
   ups: [
     ["Rete", "Batteria", "Carico"],

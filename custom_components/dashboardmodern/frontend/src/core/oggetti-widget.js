@@ -309,6 +309,27 @@ const OGGETTI = Object.freeze({
       <rect x="17.8" y="24.2" width="4.6" height="2" rx="1"/></g>
     <path d="M9.6 5.6h12.8" stroke="#fff" stroke-opacity=".4" stroke-width="1.2"/>`,
 
+  /* Il calendario (#259): il blocco di fogli, la testata colorata coi due
+   * anelli, e il giorno segnato. Non e' la spunta delle cose da fare — quella
+   * e' una cosa fatta, questa e' una cosa che deve ancora succedere. */
+  calendario: `<defs>
+      <linearGradient id="dmoCalT" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#818cf8"/><stop offset=".55" stop-color="#6366f1"/>
+        <stop offset="1" stop-color="#4338ca"/></linearGradient>
+      <linearGradient id="dmoCalF" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e2e8f0"/></linearGradient></defs>
+    ${OMBRA(16, 28.6, 8.6)}
+    <rect x="4.2" y="6.2" width="23.6" height="21.2" rx="3.4" fill="url(#dmoCalF)"/>
+    <path d="M4.2 9.6a3.4 3.4 0 0 1 3.4-3.4h16.8a3.4 3.4 0 0 1 3.4 3.4v3.2H4.2Z" fill="url(#dmoCalT)"/>
+    <g stroke="#64748b" stroke-width="2.2" stroke-linecap="round">
+      <path d="M10.6 3.2v4.4M21.4 3.2v4.4"/></g>
+    <rect x="8.6" y="16.4" width="5.2" height="4.4" rx="1.2" fill="#c7d2fe"/>
+    <rect x="16.4" y="16.4" width="7" height="4.4" rx="1.2" fill="#e2e8f0"/>
+    <rect x="8.6" y="22.4" width="7" height="3" rx="1.2" fill="#e2e8f0"/>
+    <circle cx="21.4" cy="23.6" r="2.8" fill="#f43f5e"/>
+    <path d="M5.8 8.4a2.6 2.6 0 0 1 2-1.8" stroke="#fff" stroke-opacity=".7" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>`,
+
   /* La presa: mascherina chiara e i due fori, come quella della sezione. */
   prese: `<defs>
       <linearGradient id="dmoPresa" x1="0" y1="0" x2="1" y2="1">

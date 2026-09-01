@@ -8,6 +8,12 @@
  * esistono gia', perche' cio' che Home Assistant sa non si riscrive a mano.
  */
 import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
+import {
+  CALENDARI_KEY,
+  isCalendarEntity,
+  suggerisciCalendari,
+} from "../core/calendario-model.js";
+import { renderCalendarioSection } from "./calendario-section.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import { normalizeAlertsEditor } from "./alerts-section.js";
 import { refreshFloodAlerts } from "./flood-alerts-section.js";
@@ -32,7 +38,7 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TODO_EDITOR__";
-const state = (root[KEY] ||= { installed: false, aperto: -1, evidAperto: -1 });
+const state = (root[KEY] ||= { installed: false, aperto: -1, evidAperto: -1, calAperto: -1 });
 
 export const TODO_EDITOR_TAB = "todo";
 const LEGACY_ALERTS_TAB = "avvisi";
@@ -68,6 +74,9 @@ function catalogoTessere() {
   return [
     ["evidenza", "⭐", t("In evidenza", "Highlights")],
     ["todo", "✅", t("Da fare", "To-do")],
+    /* Il calendario (#259): non e' la lista delle cose da fare — quella e'
+     * roba da spuntare, questa e' roba che succede a un'ora. */
+    ["calendario", "📅", t("Calendario", "Calendar")],
     ["luci", "💡", t("Luci", "Lights")],
     ["clima", "❄️", t("Clima", "Climate")],
     ["tapparelle", "🪟", t("Finestre", "Windows")],
@@ -253,6 +262,72 @@ function evidenzaMarkup() {
 }
 
 
+/* ── i calendari (#259) ───────────────────────────────────────────────────
+ *
+ * Stessa forma delle liste ToDo, e non e' pigrizia: sono due elenchi di
+ * entita' che Home Assistant ha gia', e chi ne ha configurato uno sa gia'
+ * configurare l'altro. Cambia il dominio — `calendar.*` invece di `todo.*` —
+ * e cambia il colore, che serve a distinguere due agende nello stesso giorno.
+ */
+function calendariGrezzi() {
+  const stored = readJson(CALENDARI_KEY, []);
+  return Array.isArray(stored) ? stored : [];
+}
+
+function salvaCalendari(voci) {
+  writeJsonIfChanged(CALENDARI_KEY, voci);
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
+  try {
+    renderCalendarioSection();
+  } catch (_error) {}
+}
+
+function nomeDelCalendario(voce, index) {
+  return clean(voce?.name) || clean(voce?.entity) || `${t("Calendario", "Calendar")} ${index + 1}`;
+}
+
+function rigaCalendarioMarkup(voce, index) {
+  const aperto = state.calAperto === index;
+  const colore = clean(voce?.colore);
+  return `<article class="ed-row dm-todo-ed-row dm-cal-ed-row" data-cal-index="${index}" data-open="${aperto}">
+    <div class="dm-todo-ed-head">
+      <span class="dm-todo-ed-icon" aria-hidden="true">📅</span>
+      <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDelCalendario(voce, index))}</strong><small class="ed-row-old mono">${esc(clean(voce?.entity) || t("nessuna entità", "no entity"))}</small></span>
+      <button type="button" class="ed-del dm-todo-ed-edit" data-cal-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
+      <button type="button" class="ed-del dm-todo-ed-del" data-cal-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
+    </div>
+    <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-cal-${index}-name" class="ed-input" data-cal-field="name" value="${esc(clean(voce?.name))}" placeholder="${t("Famiglia", "Family")}"></span></label>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Entità del calendario", "Calendar entity")}</span>
+        <span class="ed-form-row"><input id="dm-cal-${index}-entity" class="ed-input mono" data-cal-field="entity" value="${esc(clean(voce?.entity))}" placeholder="calendar.famiglia" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-cal-pick="dm-cal-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
+        <small>${t("È l'entità calendar.* di Home Assistant: la tessera mostra i prossimi due impegni, la sezione l'agenda giorno per giorno.", "The calendar.* entity from Home Assistant: the tile shows the next two appointments, the section the day-by-day agenda.")}</small></label>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Colore", "Colour")}</span>
+        <span class="ed-form-row dm-cal-ed-colore"><input type="color" id="dm-cal-${index}-colore" class="dm-cal-ed-swatch" data-cal-field="colore" value="${esc(colore || "#6366f1")}"><button type="button" class="ed-del" data-cal-colore-via>${t("Automatico", "Automatic")}</button></span>
+        <small>${t("Serve a distinguere due agende nello stesso giorno. Lasciandolo automatico ne riceve uno suo, sempre lo stesso.", "It tells two agendas apart on the same day. Left automatic it gets one of its own, always the same.")}</small></label>
+      <output class="dm-todo-ed-error" data-cal-error></output>
+      <button type="button" class="ed-save-btn" data-cal-save>💾 ${t("Salva calendario", "Save calendar")}</button>
+    </div>
+  </article>`;
+}
+
+function calendariMarkup() {
+  const voci = calendariGrezzi();
+  return `<div class="ed-sec-title dm-widget-ed-sep">📅 ${esc(t("Calendario", "Calendar"))}</div>
+  <div class="ed-intro">${t(
+    "I calendari che hai già in Home Assistant: la tessera in Home mostra i prossimi due impegni, e aprendola c'è l'elenco giorno per giorno. La sezione «Calendario» compare nella barra appena ne scegli uno.",
+    "The calendars you already have in Home Assistant: the Home tile shows the next two appointments, and opening it gives the day-by-day list. The «Calendar» section appears in the bar as soon as you pick one.",
+  )}</div>
+  <div class="ed-list dm-todo-ed-list dm-cal-ed-list">${
+    voci.length
+      ? voci.map((voce, index) => rigaCalendarioMarkup(voce, index)).join("")
+      : `<div class="ed-empty">${t("Nessun calendario configurato", "No calendar configured")}</div>`
+  }</div>
+  <button type="button" class="ed-btn-add" data-cal-add>＋ ${t("Aggiungi calendario", "Add calendar")}</button>
+  <button type="button" class="ed-btn-add" data-cal-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>`;
+}
+
 function rigaMarkup(list, index) {
   const aperto = state.aperto === index;
   return `<article class="ed-row dm-todo-ed-row" data-todo-index="${index}" data-open="${aperto}">
@@ -286,6 +361,7 @@ function bodyMarkup(lists) {
   }</div>
   <button type="button" class="ed-btn-add" data-todo-add>＋ ${t("Aggiungi lista", "Add list")}</button>
   <button type="button" class="ed-btn-add" data-todo-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>
+  ${calendariMarkup()}
   ${evidenzaMarkup()}
   ${avvisiMarkup()}`;
 }
@@ -302,7 +378,11 @@ function avvisiMarkup() {
     return "";
   }
   if (!markup) return "";
-  return `<div class="ed-sec-title dm-widget-ed-sep">🔔 ${esc(
+  /* La sua classe, oltre a quella comune: la spiegazione qui sotto la
+   * riscrive `potaGruppiOrfani`, e cercarla come «la prima ed-intro dopo un
+   * separatore» voleva dire riscrivere quella del primo blocco che capitava —
+   * col calendario in mezzo, la sua. */
+  return `<div class="ed-sec-title dm-widget-ed-sep dm-avvisi-ed-sep">🔔 ${esc(
     t("Widget di avviso", "Alert widgets"),
   )}</div>${markup}`;
 }
@@ -327,6 +407,8 @@ export function ensureTodoEditor() {
     preferences.compatto,
     ...lists.map((list) => `${list?.id}~${list?.name}~${list?.entity}`),
     ...evidenze().map((voce) => `⭐${voce?.name}~${voce?.icon}~${voce?.entity}~${voce?.room_id}`),
+    `📅${state.calAperto}`,
+    ...calendariGrezzi().map((voce) => `📅${voce?.name}~${voce?.entity}~${voce?.colore}`),
   ].join("|");
   if (body.dataset.dmTodoEditor === firma && body.querySelector(".dm-todo-ed-list")) {
     /* Il corpo e' gia' quello giusto e non si rifa': le rifiniture degli
@@ -390,7 +472,7 @@ function potaGruppiOrfani(body) {
   }
   // La spiegazione parlava del Quadro Avvisi, che non c'e' piu': dice dove
   // vanno a finire davvero questi sensori.
-  const intro = body.querySelector(".dm-widget-ed-sep ~ .ed-intro");
+  const intro = body.querySelector(".dm-avvisi-ed-sep ~ .ed-intro");
   if (intro)
     intro.textContent = t(
       "Le tessere d'avviso della Home — aperture, batterie, allagamenti — si accendono da sole solo quando hanno qualcosa da dire. Qui scegli quali sensori sorvegliano, con un nome pulito, oppure crei un avviso personalizzato su una o più entità, con condizione, stato a mano e icona a scelta.",
@@ -497,6 +579,101 @@ function onClick(event) {
       salvaEvidenze(next);
       ridisegna();
       root.edToast?.(t("💾 Entità salvata", "💾 Entity saved"));
+    }
+    return;
+  }
+
+  /* ── i calendari (#259) ── */
+  const calendari = calendariGrezzi();
+  if (event.target.closest("[data-cal-add]")) {
+    event.preventDefault();
+    state.calAperto = calendari.length;
+    salvaCalendari([...calendari, { id: `cal-${Date.now().toString(36)}`, name: "", entity: "" }]);
+    ridisegna();
+    return;
+  }
+  if (event.target.closest("[data-cal-detect]")) {
+    event.preventDefault();
+    /* Cio' che Home Assistant sa gia' non si riscrive a mano: le entita'
+     * `calendar.*` che non sono ancora nell'elenco entrano da sole, col nome
+     * che hanno di la'. */
+    const trovati = suggerisciCalendari(allStates(), calendari);
+    if (!trovati.length) {
+      root.edToast?.(t("Nessun calendario nuovo", "No new calendar"));
+      return;
+    }
+    state.calAperto = -1;
+    salvaCalendari([
+      ...calendari,
+      ...trovati.map((voce, indice) => ({
+        id: `cal-${Date.now().toString(36)}-${indice}`,
+        name: voce.name,
+        entity: voce.entity,
+      })),
+    ]);
+    ridisegna();
+    root.edToast?.(
+      t(`Aggiunti ${trovati.length} calendari`, `Added ${trovati.length} calendars`),
+    );
+    return;
+  }
+  const scegliCal = event.target.closest("[data-cal-pick]");
+  if (scegliCal) {
+    event.preventDefault();
+    const input = body.querySelector(`#${CSS.escape(clean(scegliCal.dataset.calPick))}`);
+    if (input) root.wzPickEntity?.(input);
+    return;
+  }
+  const rigaCal = event.target.closest("[data-cal-index]");
+  if (rigaCal) {
+    const indice = Number(rigaCal.dataset.calIndex);
+    if (!Number.isFinite(indice) || !calendari[indice]) return;
+    if (event.target.closest("[data-cal-edit]")) {
+      event.preventDefault();
+      state.calAperto = state.calAperto === indice ? -1 : indice;
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-cal-del]")) {
+      event.preventDefault();
+      const nome = nomeDelCalendario(calendari[indice], indice);
+      if (root.confirm && !root.confirm(t(`Tolgo "${nome}"?`, `Remove "${nome}"?`))) return;
+      state.calAperto = -1;
+      salvaCalendari(calendari.filter((_voce, posto) => posto !== indice));
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-cal-colore-via]")) {
+      event.preventDefault();
+      /* Tornare all'automatico e' togliere il colore, non sceglierne uno
+       * grigio: chi non decide riceve quello del suo posto nell'elenco. */
+      const prossimi = calendari.slice();
+      prossimi[indice] = { ...calendari[indice], colore: "" };
+      salvaCalendari(prossimi);
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-cal-save]")) {
+      event.preventDefault();
+      const prossimi = calendari.slice();
+      const letta = { ...calendari[indice] };
+      for (const campo of rigaCal.querySelectorAll("[data-cal-field]"))
+        letta[clean(campo.dataset.calField)] = clean(campo.value);
+      const errore = rigaCal.querySelector("[data-cal-error]");
+      if (!isCalendarEntity(letta.entity)) {
+        if (errore)
+          errore.textContent = t(
+            "Serve un'entità calendar.* valida.",
+            "A valid calendar.* entity is required.",
+          );
+        return;
+      }
+      if (errore) errore.textContent = "";
+      prossimi[indice] = letta;
+      state.calAperto = -1;
+      salvaCalendari(prossimi);
+      ridisegna();
+      root.edToast?.(t("💾 Calendario salvato", "💾 Calendar saved"));
     }
     return;
   }
@@ -643,6 +820,18 @@ function installStyles() {
       #ed-body .dm-todo-ed-error:not(:empty){color:var(--error-color,#dc2626);font-size:12px;font-weight:800}
       #ed-body .dm-todo-ed-intro{margin-top:14px}
       #ed-body .dm-widget-ed-sep{margin-top:22px;padding-top:16px;border-top:1px solid var(--card-border,#e2e8f0)}
+      /* Il colore di un calendario (#259): la casella e il tasto che la
+         rimette all'automatico stanno sulla stessa riga, perche' sono la
+         stessa decisione presa in due modi. */
+      #ed-body .dm-cal-ed-colore{display:flex;align-items:center;gap:10px}
+      /* Il campione del colore e' un'eccezione alla riga qui sopra, che allarga
+         ogni casella per tutta la riga: quella regola e' di questo stesso
+         foglio — nessun padrone conteso — e va vinta con la stessa forma, o un
+         colore largo tutta la riga sembra una barra invece di un campione. */
+      #ed-body .dm-todo-ed-field .ed-form-row > input.dm-cal-ed-swatch{
+        flex:0 0 58px;width:58px;min-width:0;height:38px;padding:3px;cursor:pointer;
+        border:1px solid var(--card-border,#e2e8f0);border-radius:10px;background:var(--card-bg,#fff)}
+      #ed-body .dm-cal-ed-colore .ed-del{flex:0 0 auto;width:auto;padding:0 12px;font-size:12px;font-weight:800}
       #ed-body .dm-widget-compatto-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important;margin-bottom:8px}
       #ed-body .dm-widget-compatto{display:inline-flex;padding:2px;border-radius:999px;
         background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0)}

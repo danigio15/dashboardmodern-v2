@@ -64,7 +64,11 @@ const USER_DATA_VERSION = 1;
  * entita' dicono se c'e' tensione, come sta la batteria e quanto carico
  * regge. E' la casa, non il telefono: chi lo configura dal tablet in cucina
  * non deve rifarlo dal telefono per vedere se la corrente e' caduta. */
-export const CONFIG_KEYS_REVISION = 17;
+/* La revisione 18 aggiunge i calendari scelti (`cd_calendari`, #259): quali
+ * entita' `calendar.*` si guardano, con che nome e di che colore. Sono la
+ * casa, non il telefono: chi li sceglie dal tablet non deve rifarlo dal
+ * telefono per vedere gli stessi impegni. */
+export const CONFIG_KEYS_REVISION = 18;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -171,6 +175,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_impianti_termici",
   "cd_caldaia",
   "cd_ups",
+  "cd_calendari",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

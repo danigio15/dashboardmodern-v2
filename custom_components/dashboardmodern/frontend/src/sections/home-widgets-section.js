@@ -54,6 +54,20 @@ import {
   letturaUps,
   normalizzaUps,
 } from "../core/ups-model.js";
+import {
+  CALENDARI_KEY,
+  GIORNI_AVANTI,
+  eventiDaQui,
+  inCorso,
+  minutiAllEvento,
+  normalizzaCalendari,
+  oraDellEvento,
+  parseCalendarEventsResponse,
+  chiaveDelGiorno,
+  etichettaDelGiorno,
+  perGiorno,
+  prossimiEventi,
+} from "../core/calendario-model.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -116,6 +130,12 @@ const STALE_MS = 30000;
 /* Quanto si aspetta prima di richiedere le voci a una lista che ha appena
  * risposto con un errore — o non ha risposto affatto. */
 const RETRY_MS = 20000;
+/* Un appuntamento non cambia ogni mezzo minuto come una lista della spesa:
+ * cinque minuti bastano, e sono cinque richieste l'ora invece di centoventi. */
+const CALENDARIO_STALE_MS = 300000;
+/* Quanti giorni entrano nella finestra della Home. Oltre due settimane non e'
+ * piu' «cosa ho in programma»: e' un'agenda, e per quella c'e' la sezione. */
+const GIORNI_NEL_PANNELLO = 14;
 const MAX_VISIBLE_ITEMS = 8;
 const MAX_DETAIL_ROWS = 14;
 
@@ -126,6 +146,10 @@ const state = (root[KEY] ||= {
   signature: "",
   escape: false,
   lists: new Map(), // entity -> { items, fetchedAt, inflight }
+  /* Gli eventi letti, per calendario (#259). Stanno accanto alle liste ToDo e
+   * non dentro: sono due servizi diversi e due risposte diverse, e mescolarle
+   * vorrebbe dire una mappa in cui meta' delle voci ha campi che non usa. */
+  calendari: new Map(), // entity -> { eventi, fetchedAt, inflight, failedAt }
   cameraTimer: 0,
   cameraUrls: new Map(), // entity -> object URL della tessera, MAI quelli del muro
   /* Quali righe hanno il pannello della rotella aperto. Sta qui e non nel
@@ -153,6 +177,11 @@ const state = (root[KEY] ||= {
 
 export function configuredTodoLists() {
   return normalizeTodoLists(readJson(TODO_CONFIG_KEY, []));
+}
+
+/** I calendari scelti (#259). */
+export function calendariConfigurati() {
+  return normalizzaCalendari(readJson(CALENDARI_KEY, []));
 }
 
 /* ── letture ──────────────────────────────────────────────────────────── */
@@ -249,6 +278,86 @@ async function fetchItems(entity, { force = false } = {}) {
   // Un fallimento non ha cambiato niente da disegnare: ridisegnare lo stesso
   // vorrebbe dire richiedere di nuovo, subito.
   if (riuscita) schedule();
+}
+
+/* ── il filo dei calendari (#259) ──────────────────────────────────────
+ *
+ * Stesso mestiere del filo delle liste, altro servizio: lo stato di un
+ * `calendar.*` e' `on`/`off` e negli attributi porta un evento solo, quindi
+ * l'elenco lo si chiede a `calendar.get_events`. La finestra e' un mese: una
+ * richiesta sola per calendario, e copre il «cosa ho questo mese». */
+function schedaCalendario(entity) {
+  let valore = state.calendari.get(entity);
+  if (!valore) {
+    valore = { eventi: null, fetchedAt: 0, inflight: false, failedAt: 0 };
+    state.calendari.set(entity, valore);
+  }
+  return valore;
+}
+
+/* L'ora scritta come la vuole il servizio: «2026-09-01 14:00:00», locale.
+ * Un ISO con la Z chiederebbe a Home Assistant una finestra spostata dal fuso
+ * di chi guarda, e il primo giorno dell'elenco sarebbe quello sbagliato. */
+function orarioPerIlServizio(istante) {
+  const quando = new Date(istante);
+  const due = (numero) => String(numero).padStart(2, "0");
+  return `${quando.getFullYear()}-${due(quando.getMonth() + 1)}-${due(quando.getDate())} ${due(
+    quando.getHours(),
+  )}:${due(quando.getMinutes())}:${due(quando.getSeconds())}`;
+}
+
+async function fetchEventi(entity, { force = false } = {}) {
+  const scheda = schedaCalendario(entity);
+  const adesso = Date.now();
+  if (scheda.inflight) return;
+  if (!force && scheda.eventi && adesso - scheda.fetchedAt < CALENDARIO_STALE_MS) return;
+  /* Come per le liste: dopo un errore si aspetta, o col socket giu' il disegno
+   * chiederebbe, la richiesta fallirebbe, il fallimento farebbe ridisegnare, e
+   * il giro ripartirebbe a ogni fotogramma. */
+  if (!force && !scheda.eventi && adesso - scheda.failedAt < RETRY_MS) return;
+  scheda.inflight = true;
+  let riuscita = false;
+  try {
+    const result = await askHomeAssistant({
+      type: "call_service",
+      domain: "calendar",
+      service: "get_events",
+      target: { entity_id: entity },
+      service_data: {
+        start_date_time: orarioPerIlServizio(adesso),
+        end_date_time: orarioPerIlServizio(adesso + GIORNI_AVANTI * 86400000),
+      },
+      return_response: true,
+    });
+    scheda.eventi = parseCalendarEventsResponse(result, entity);
+    scheda.fetchedAt = Date.now();
+    scheda.failedAt = 0;
+    riuscita = true;
+  } catch (error) {
+    scheda.failedAt = Date.now();
+    root.console?.warn?.("[DashboardModern] calendar events", error);
+  }
+  scheda.inflight = false;
+  if (riuscita) schedule();
+}
+
+/** Gli eventi di tutti i calendari scelti, in fila. Serve anche alla pagina. */
+export function eventiDeiCalendari() {
+  const scelti = calendariConfigurati();
+  const eventi = [];
+  let inArrivo = false;
+  for (const calendario of scelti) {
+    const scheda = schedaCalendario(calendario.entity);
+    if (scheda.eventi === null) inArrivo = true;
+    for (const evento of scheda.eventi || [])
+      eventi.push({ ...evento, calendario: calendario.name || calendario.entity, colore: calendario.colore });
+  }
+  return { eventi, inArrivo, scelti };
+}
+
+/** Chiede gli eventi a tutti i calendari scelti. */
+export function aggiornaCalendari(opzioni) {
+  for (const calendario of calendariConfigurati()) fetchEventi(calendario.entity, opzioni);
 }
 
 async function callHa(domain, servizio, payload) {
@@ -369,6 +478,83 @@ function todoModel() {
     ring: percent,
     attiva: pending > 0,
     blocks,
+  };
+}
+
+/* Le parole del calendario, dette qui e non nel nucleo: il raccoglitore delle
+ * traduzioni guarda le sezioni, e una `t()` scritta dentro `src/core` non
+ * finirebbe nei cataloghi — «Oggi» resterebbe italiano per tutti. */
+function paroleDelCalendario() {
+  return {
+    oggi: t("Oggi", "Today"),
+    domani: t("Domani", "Tomorrow"),
+    tuttoIlGiorno: t("Tutto il giorno", "All day"),
+  };
+}
+
+/* La tessera del calendario (#259).
+ *
+ * «Magari visualizzando gli ultimi 2 eventi su widget che cliccandoci si apre
+ * una lista giorni/giorno e un elenco tipo come gia' esistente Da Fare.»
+ *
+ * I due eventi stanno nella didascalia, con la loro ora davanti — e' la riga
+ * che scorre, la stessa in cui le Luci dicono quali sono accese — perche' un
+ * appuntamento senza il titolo non e' un appuntamento, e il titolo e' una
+ * parola, non un numero. Il numero grande e' quanti ne restano oggi: quello
+ * risponde a «sono libero stasera?» prima ancora di leggere.
+ */
+function calendarioModel() {
+  const { eventi, inArrivo, scelti } = eventiDeiCalendari();
+  if (!scelti.length) return null;
+  const adesso = Date.now();
+  const lingua = locale();
+  const parole = paroleDelCalendario();
+  const restano = eventiDaQui(eventi, adesso);
+  const primi = prossimiEventi(eventi, adesso, 2);
+  const oggi = chiaveDelGiorno(adesso);
+  const diOggi = restano.filter(
+    (evento) => chiaveDelGiorno(evento.inizio) === oggi || inCorso(evento, adesso),
+  );
+
+  /* Un evento nella didascalia: quando comincia e come si chiama. Il giorno si
+   * scrive solo se non e' oggi — «Oggi 20:00» davanti a ogni riga sarebbe una
+   * parola ripetuta che non distingue niente. */
+  const scritto = (evento) => {
+    const titolo = clean(evento.summary) || t("Senza titolo", "Untitled");
+    if (inCorso(evento, adesso)) return `${t("Adesso", "Now")} · ${titolo}`;
+    const giorno = chiaveDelGiorno(evento.inizio);
+    const quando = evento.tuttoIlGiorno
+      ? ""
+      : oraDellEvento(evento, parole, lingua).split(" ")[0];
+    const dove =
+      giorno === oggi ? quando : `${etichettaDelGiorno(giorno, adesso, parole, lingua)}${quando ? ` ${quando}` : ""}`;
+    return dove ? `${dove} · ${titolo}` : titolo;
+  };
+
+  const didascalia = () => {
+    if (!primi.length)
+      return inArrivo ? t("Caricamento…", "Loading…") : t("Niente in programma", "Nothing scheduled");
+    return primi.map(scritto).join("  ·  ");
+  };
+
+  return {
+    key: "calendario",
+    accent: "#6366f1",
+    icon: "📅",
+    label: t("Calendario", "Calendar"),
+    /* Quanti ne restano oggi, non quanti ce ne sono in tutto: «diciotto» non
+     * dice se stasera si e' liberi, «due oggi» si'. */
+    value: diOggi.length ? t(`${diOggi.length} oggi`, `${diOggi.length} today`) : "—",
+    caption: didascalia(),
+    /* Nessun anello: una percentuale di appuntamenti non vuol dire niente, e
+     * un cerchio pieno a caso e' peggio di un cerchio che non c'e'. */
+    ring: null,
+    // La tessera si accende mentre un evento sta succedendo.
+    attiva: primi.length > 0 && inCorso(primi[0], adesso),
+    primi,
+    eventi: restano,
+    inArrivo,
+    calendari: scelti,
   };
 }
 
@@ -2453,6 +2639,7 @@ function widgetModels(states) {
     [
       evidenzaModel(states),
       todoModel(states),
+      calendarioModel(),
       lightsModel(states),
       climateModel(states),
       coversModel(states),
@@ -2822,6 +3009,58 @@ function todoDetail(widget) {
           title="${esc(t("Aggiungi", "Add"))}" aria-label="${esc(t("Aggiungi", "Add"))}">＋</button>
       </div>`;
       return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(clean(list.name) || list.entity)}</span>${body}${scrivi}</div>`;
+    })
+    .join("");
+}
+
+/* Il pannello del calendario (#259): un giorno per volta.
+ *
+ * «Cliccandoci si apre una lista giorni/giorno e un elenco tipo come gia'
+ * esistente Da Fare»: la stessa forma — un titolo di blocco e sotto le righe
+ * — con la differenza che qui il titolo e' un giorno e le righe hanno un'ora.
+ * Le stesse parole che si usano parlando: «Oggi», «Domani», e poi la data. */
+function calendarioDetail(widget) {
+  const adesso = Date.now();
+  const giorni = perGiorno(widget.eventi, adesso);
+  if (!giorni.length)
+    return `<p class="dm-w-empty">${esc(
+      widget.inArrivo
+        ? t("Caricamento…", "Loading…")
+        : t("✨ Niente in programma", "✨ Nothing scheduled"),
+    )}</p>`;
+  const lingua = locale();
+  const parole = paroleDelCalendario();
+  const piuCalendari = widget.calendari.length > 1;
+  return giorni
+    .slice(0, GIORNI_NEL_PANNELLO)
+    .map(({ giorno, eventi }) => {
+      const righe = eventi
+        .map((evento) => {
+          const adesso2 = inCorso(evento, adesso);
+          return `<li class="dm-cal-evento" data-adesso="${adesso2}">
+            <span class="dm-cal-ora">${esc(oraDellEvento(evento, parole, lingua))}</span>
+            <span class="dm-cal-testo">
+              <b>${esc(evento.summary || t("Senza titolo", "Untitled"))}</b>
+              ${
+                /* Il luogo e il calendario di provenienza stanno sotto, e solo
+                 * se ci sono: una riga vuota sotto ogni titolo farebbe un
+                 * elenco alto il doppio per niente. */
+                evento.location || piuCalendari
+                  ? `<small>${esc(
+                      [piuCalendari ? evento.calendario : "", evento.location]
+                        .filter(Boolean)
+                        .join(" · "),
+                    )}</small>`
+                  : ""
+              }
+            </span>
+            ${adesso2 ? `<span class="dm-cal-adesso">${esc(t("Adesso", "Now"))}</span>` : ""}
+          </li>`;
+        })
+        .join("");
+      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
+        etichettaDelGiorno(giorno, adesso, parole, lingua),
+      )}</span><ul class="dm-cal-lista">${righe}</ul></div>`;
     })
     .join("");
 }
@@ -3763,7 +4002,7 @@ function detailBody(widget, states) {
   return `${verdettoEFrase(widget)}
     ${caselleDelleMisure(widget)}
     ${pilloleDelloStato(widget)}
-    ${comandi ? `<h4 class="dm-w-titoletto">${esc(titoloDelBlocco(comandi))}</h4>${comandi}` : ""}`;
+    ${comandi ? `<h4 class="dm-w-titoletto">${esc(titoloDelBlocco(comandi, widget.key))}</h4>${comandi}` : ""}`;
 }
 
 /* Il titolo dice cosa c'e' sotto, e non sempre sono comandi.
@@ -3775,13 +4014,17 @@ function detailBody(widget, states) {
  * esiste. Si guarda cosa c'e' davvero nel blocco invece di deciderlo a
  * tavolino: se c'e' qualcosa da premere sono comandi, altrimenti sono letture.
  */
-function titoloDelBlocco(markup) {
+function titoloDelBlocco(markup, chiave = "") {
+  /* Il calendario non porta ne' comandi ne' letture: porta l'agenda, e
+   * chiamarla «Letture» direbbe che sotto ci sono numeri di sensori. */
+  if (chiave === "calendario") return t("Agenda", "Agenda");
   const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
   return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
 
 function detailRows(widget, states) {
   if (widget.key === "todo") return todoDetail(widget);
+  if (widget.key === "calendario") return calendarioDetail(widget);
   if (widget.key === "luci") return lightsDetail(widget);
   if (widget.key === "clima") return climateDetail(widget);
   if (widget.key === "tapparelle") return coversDetail(widget);
@@ -3830,6 +4073,7 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   scaldabagno: "boiler",
   caldaia: "boiler",
   ups: "ups",
+  calendario: "calendario",
   piscina: "piscina",
   irrigazione: "irrigazione",
   robot: "robot",
@@ -4201,6 +4445,7 @@ export function renderHomeWidgets() {
   sincronizzaPopup(models, states);
 
   for (const list of configuredTodoLists()) fetchItems(list.entity);
+  aggiornaCalendari();
   // La tessera delle telecamere appena disegnata (o ridisegnata) chiede i suoi
   // fotogrammi; chiusa, restituisce timer e object URL.
   if (state.expanded === "telecamere") aggiornaTelecamere();
@@ -4686,6 +4931,16 @@ function stateChangeTouchesTodo(event) {
   const changed = new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
   if (!changed.size) return false;
   return configuredTodoLists().some((list) => changed.has(list.entity));
+}
+
+/* Lo stato di un `calendar.*` cambia quando un evento comincia o finisce: e'
+ * il momento in cui l'elenco e' vecchio, e va riletto senza aspettare che
+ * scada da solo. */
+function ilCambioTocaUnCalendario(event) {
+  const valori = event?.detail?.entity_ids || [event?.detail?.entity_id];
+  const cambiate = new Set((Array.isArray(valori) ? valori : [valori]).map(clean).filter(Boolean));
+  if (!cambiate.size) return false;
+  return calendariConfigurati().some((voce) => cambiate.has(voce.entity));
 }
 
 /* ── stile ────────────────────────────────────────────────────────────── */
@@ -5715,6 +5970,32 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   background:linear-gradient(0deg,rgba(2,6,15,.72),transparent)}
 
 /* Le voci ToDo dentro il dettaglio. */
+/* ── il calendario (#259): un giorno per volta ─────────────────────────
+ *
+ * Stesso passo delle cose da fare — stessa spaziatura, stesso blocco col suo
+ * titolo — perche' e' l'elenco a cui si e' chiesto di assomigliare. L'ora sta
+ * a sinistra in colonna sua: incolonnata si legge di sfuggita, in mezzo al
+ * titolo va cercata. */
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-lista{list-style:none;margin:0;padding:0 2px;display:grid;gap:9px}
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-evento{
+  display:flex;align-items:flex-start;gap:11px;min-width:0}
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-ora{
+  flex:0 0 auto;min-width:78px;font-size:11.5px;font-weight:800;line-height:1.5;
+  font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b);padding-top:1px}
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-testo{display:grid;gap:1px;min-width:0;flex:1}
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-testo b{
+  font-size:13px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-testo small{
+  font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);overflow-wrap:anywhere}
+/* Quello che sta succedendo adesso si stacca dagli altri: e' la riga per cui
+   si e' aperta la finestra. */
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-evento[data-adesso="true"] .dm-cal-ora,
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-evento[data-adesso="true"] .dm-cal-testo b{
+  color:var(--dm-widget-accent,#6366f1)}
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-adesso{
+  flex:0 0 auto;align-self:center;padding:3px 9px;border-radius:999px;
+  font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#fff;
+  background:var(--dm-widget-accent,#6366f1)}
 :is(#dm-widgets,#dm-widget-popup) .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
 :is(#dm-widgets,#dm-widget-popup) .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
 :is(#dm-widgets,#dm-widget-popup) .dm-todo-check{
@@ -5894,6 +6175,10 @@ export function installHomeWidgetsSection() {
   root.addEventListener?.("dashboardmodern:state-changed", (event) => {
     if (!stateChangeTouchesTodo(event)) return;
     for (const list of configuredTodoLists()) fetchItems(list.entity, { force: true });
+  });
+  root.addEventListener?.("dashboardmodern:state-changed", (event) => {
+    if (!ilCambioTocaUnCalendario(event)) return;
+    aggiornaCalendari({ force: true });
   });
   doc.addEventListener(
     "click",

@@ -92,6 +92,7 @@ import { installSolarThermalDesignSection } from "./solar-thermal-design-section
 import { installImpiantiTermiciSection } from "./impianti-termici-section.js";
 import { installImpiantiTermiciEditor } from "./impianti-termici-editor-section.js";
 import { installUpsSection } from "./ups-section.js";
+import { installCalendarioSection } from "./calendario-section.js";
 import { installUpsEditor } from "./ups-editor-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
@@ -908,6 +909,10 @@ export function installSectionRuntime() {
      * cosi' la scheda trova gia' cosa ridisegnare quando si salva. */
     installUpsSection();
     installUpsEditor();
+    /* Il calendario (#259) ha una pagina sua accanto alla Home: le sue
+     * caselle stanno nella scheda Widget, insieme alle liste ToDo, che e'
+     * l'elenco a cui e' stato chiesto di assomigliare. */
+    installCalendarioSection();
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();

@@ -559,8 +559,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // macchine della casa — «crea sempre una sezione a se', non solo il widget
   // col popup» — e li' il verso in cui la corrente sta andando si vede
   // disegnato invece che letto.
+  // 197 col calendario (#259): il nucleo che legge la risposta di
+  // `calendar.get_events` e raggruppa per giorno (`core/calendario-model.js`)
+  // e la pagina che disegna la settimana e l'agenda
+  // (`sections/calendario-section.js`). Lo stato di un `calendar.*` e'
+  // `on`/`off` e negli attributi porta un evento solo: l'elenco lo si chiede
+  // al servizio, come le voci delle liste ToDo.
   assert.ok(
-    relative.length <= 195,
+    relative.length <= 197,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

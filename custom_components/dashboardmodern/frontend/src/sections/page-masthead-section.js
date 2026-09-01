@@ -113,6 +113,14 @@ const PAGES = Object.freeze([
     it: ["Continuità", "Rete · Batteria · Carico"],
     en: ["Backup power", "Mains · Battery · Load"],
   },
+  /* Il calendario (#259) nasce con la sua pagina, e l'intestazione nasce con
+   * lei: gli impegni di oggi e dei giorni che vengono. */
+  {
+    id: "page-calendario",
+    tint: ["99,102,241", "14,165,233"],
+    it: ["Calendario", "Oggi · Prossimi giorni · Impegni"],
+    en: ["Calendar", "Today · Coming days · Appointments"],
+  },
   {
     id: "page-appliances-main",
     tint: ["14,165,233", "99,102,241"],
