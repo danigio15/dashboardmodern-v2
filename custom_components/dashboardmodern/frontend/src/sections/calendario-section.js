@@ -33,6 +33,15 @@ import {
   calendariConfigurati,
   eventiDeiCalendari,
 } from "./home-widgets-section.js";
+import {
+  azioniDellEventoMarkup,
+  bozzaAperta,
+  chiaveDellEvento,
+  dichiaraCalendari,
+  moduloMarkup,
+  registraOspiteCalendario,
+  tastoNuovoMarkup,
+} from "./calendario-modifica-section.js";
 import { clean, doc, esc, installStyle, locale, readJson, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CALENDARIO_SECTION__";
@@ -228,6 +237,7 @@ function eventoMarkup(evento, adesso, lingua, calendari, piuCalendari) {
       }
     </span>
     ${ora ? `<span class="dm-calp-adesso">${esc(t("Adesso", "Now"))}</span>` : ""}
+    ${azioniDellEventoMarkup(evento, chiaveDellEvento(evento))}
   </li>`;
 }
 
@@ -269,6 +279,9 @@ function dipingi() {
   const firma = JSON.stringify([
     state.giorno,
     inArrivo,
+    /* Il modulo aperto fa parte di quello che si vede: senza, chi tocca la
+     * matita non vedrebbe comparire niente finche' non cambia uno stato. */
+    bozzaAperta(),
     calendari.map((voce) => [voce.entity, voce.tinta]),
     restano.map((evento) => [evento.entity, evento.inizio, evento.fine, evento.summary]),
     chiaveDelGiorno(adesso),
@@ -306,6 +319,14 @@ function dipingi() {
         .join("")}</div>`
     : "";
 
+  /* Il modulo sa quali calendari ci sono da chi lo disegna: e' lo stesso
+   * elenco in Home e qui. */
+  dichiaraCalendari(calendari);
+  const modulo = moduloMarkup(calendari);
+  /* Il tasto nasce sul giorno scelto: chi ha appena toccato sabato nella
+   * fascia non vuole segnare un impegno per oggi. */
+  const nuovo = bozzaAperta() ? "" : tastoNuovoMarkup(calendari, state.giorno);
+
   dove.innerHTML = `${fasciaMarkup(giorni, adesso, lingua, calendari)}${legenda}
     ${
       state.giorno
@@ -314,6 +335,8 @@ function dipingi() {
           )}</button>`
         : ""
     }
+    ${nuovo ? `<div class="dm-calp-nuovo-riga">${nuovo}</div>` : ""}
+    ${modulo}
     <div class="dm-calp-agenda">${agenda}</div>`;
 }
 
@@ -409,6 +432,7 @@ function installStyles() {
       background:var(--card-bg,#fff);box-shadow:0 6px 16px rgba(0,0,0,.08)}
 
     /* ── l'agenda ──────────────────────────────────────────────────────── */
+    ${P} .dm-calp-nuovo-riga{display:flex;justify-content:flex-start}
     ${P} .dm-calp-agenda{display:grid;gap:12px}
     ${P} .dm-calp-giorno{
       padding:16px 18px;border-radius:22px;border:1px solid var(--card-border,#e2e8f0);
@@ -459,6 +483,9 @@ export function installCalendarioSection() {
   if (!doc || state.installed) return false;
   state.installed = true;
   installStyles();
+  /* Il modulo del calendario ci fa ridisegnare quando si apre, si chiude o si
+   * lamenta: e' lui che sa quando qualcosa e' cambiato, non noi. */
+  registraOspiteCalendario(() => renderCalendarioSection());
   ensureCalendarioPage();
   ensureCalendarioTab();
   doc.addEventListener("click", onClick);

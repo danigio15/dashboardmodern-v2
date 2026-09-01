@@ -62,12 +62,23 @@ import {
   minutiAllEvento,
   normalizzaCalendari,
   oraDellEvento,
+  parseCalendarApiEvents,
   parseCalendarEventsResponse,
   chiaveDelGiorno,
   etichettaDelGiorno,
   perGiorno,
   prossimiEventi,
 } from "../core/calendario-model.js";
+import {
+  azioniDellEventoMarkup,
+  bozzaAperta,
+  chiaveDellEvento,
+  dichiaraCalendari,
+  moduloMarkup,
+  registraOspiteCalendario,
+  registraRilettura,
+  tastoNuovoMarkup,
+} from "./calendario-modifica-section.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -108,6 +119,8 @@ import {
   esc,
   formatNumber,
   installStyle,
+  chiediAHomeAssistant,
+  gettoneDiAccesso,
   lexicalGlobal,
   locale,
   readClimateUnits,
@@ -203,40 +216,6 @@ function numOf(states, entity) {
 
 /* ── il filo delle liste ToDo ─────────────────────────────────────────── */
 
-function askHomeAssistant(payload, timeout = 8000) {
-  return new Promise((resolve, reject) => {
-    const socket = lexicalGlobal("ws");
-    const pending = lexicalGlobal("pendingWsCallbacks");
-    if (!socket || socket.readyState !== 1 || !pending) {
-      reject(new Error("socket"));
-      return;
-    }
-    let id = 0;
-    try {
-      id = root.eval("msgId++");
-    } catch (_error) {
-      reject(new Error("msgId"));
-      return;
-    }
-    const timer = root.setTimeout?.(() => {
-      delete pending[id];
-      reject(new Error("timeout"));
-    }, timeout);
-    pending[id] = (message) => {
-      root.clearTimeout?.(timer);
-      if (message?.success === false) reject(new Error(clean(message?.error?.message) || "todo"));
-      else resolve(message?.result);
-    };
-    try {
-      socket.send(JSON.stringify({ ...payload, id }));
-    } catch (error) {
-      root.clearTimeout?.(timer);
-      delete pending[id];
-      reject(error);
-    }
-  });
-}
-
 function record(entity) {
   let value = state.lists.get(entity);
   if (!value) {
@@ -259,7 +238,7 @@ async function fetchItems(entity, { force = false } = {}) {
   cache.inflight = true;
   let riuscita = false;
   try {
-    const result = await askHomeAssistant({
+    const result = await chiediAHomeAssistant({
       type: "call_service",
       domain: "todo",
       service: "get_items",
@@ -306,6 +285,58 @@ function orarioPerIlServizio(istante) {
   )}:${due(quando.getMinutes())}:${due(quando.getSeconds())}`;
 }
 
+/* Gli eventi, chiesti dove portano anche il loro nome proprio.
+ *
+ * Due strade, e non e' un ripiego: e' che una delle due porta l'`uid` e
+ * l'altra no.
+ *
+ *   - `/api/calendars/<entita>` e' quella che usa il pannello Calendario di
+ *     Home Assistant, e restituisce `uid` e `recurrence_id`. Senza quelli un
+ *     evento si puo' guardare ma non toccare: non c'e' modo di dire QUALE
+ *     modificare, e i tasti «modifica» e «elimina» non compaiono nemmeno.
+ *   - il servizio `calendar.get_events` restituisce solo inizio, fine,
+ *     titolo, descrizione e luogo. Basta a leggere, e funziona dove la porta
+ *     HTTP non risponde.
+ *
+ * La porta HTTP, dentro Home Assistant, non risponde a mani nude: la plancia
+ * servita dall'integrazione non possiede nessun gettone e ogni chiamata REST
+ * torna 401 — e' la stessa ragione per cui la foto dell'auto viaggia sul
+ * socket. Percio' il percorso si fa FIRMARE dal socket (`auth/sign_path`, lo
+ * stesso che il guscio usa per le immagini) e poi si chiede firmato. Chi ha un
+ * gettone lungo — la pagina servita da sola — lo usa e basta.
+ *
+ * Se nessuna delle due strade porta a casa qualcosa, resta il servizio: si
+ * vede l'agenda per intero, si perde solo la possibilita' di scriverci.
+ */
+async function percorsoFirmato(percorso) {
+  try {
+    const risposta = await chiediAHomeAssistant({
+      type: "auth/sign_path",
+      path: percorso,
+      expires: 30,
+    });
+    return clean(risposta?.path) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+async function eventiDallaPortaHttp(entity, da, a) {
+  if (typeof root.fetch !== "function") return null;
+  const percorso = `/api/calendars/${encodeURIComponent(entity)}?start=${encodeURIComponent(
+    new Date(da).toISOString(),
+  )}&end=${encodeURIComponent(new Date(a).toISOString())}`;
+  const gettone = gettoneDiAccesso();
+  const firmato = gettone ? "" : await percorsoFirmato(percorso);
+  const risposta = await root.fetch(firmato || percorso, {
+    headers: gettone ? { Authorization: `Bearer ${gettone}` } : {},
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!risposta.ok) return null;
+  return parseCalendarApiEvents(await risposta.json(), entity);
+}
+
 async function fetchEventi(entity, { force = false } = {}) {
   const scheda = schedaCalendario(entity);
   const adesso = Date.now();
@@ -317,19 +348,29 @@ async function fetchEventi(entity, { force = false } = {}) {
   if (!force && !scheda.eventi && adesso - scheda.failedAt < RETRY_MS) return;
   scheda.inflight = true;
   let riuscita = false;
+  const fino = adesso + GIORNI_AVANTI * 86400000;
   try {
-    const result = await askHomeAssistant({
-      type: "call_service",
-      domain: "calendar",
-      service: "get_events",
-      target: { entity_id: entity },
-      service_data: {
-        start_date_time: orarioPerIlServizio(adesso),
-        end_date_time: orarioPerIlServizio(adesso + GIORNI_AVANTI * 86400000),
-      },
-      return_response: true,
-    });
-    scheda.eventi = parseCalendarEventsResponse(result, entity);
+    let letti = null;
+    try {
+      letti = await eventiDallaPortaHttp(entity, adesso, fino);
+    } catch (_error) {
+      letti = null;
+    }
+    if (letti === null) {
+      const result = await chiediAHomeAssistant({
+        type: "call_service",
+        domain: "calendar",
+        service: "get_events",
+        target: { entity_id: entity },
+        service_data: {
+          start_date_time: orarioPerIlServizio(adesso),
+          end_date_time: orarioPerIlServizio(fino),
+        },
+        return_response: true,
+      });
+      letti = parseCalendarEventsResponse(result, entity);
+    }
+    scheda.eventi = letti;
     scheda.fetchedAt = Date.now();
     scheda.failedAt = 0;
     riuscita = true;
@@ -3022,22 +3063,34 @@ function todoDetail(widget) {
 function calendarioDetail(widget) {
   const adesso = Date.now();
   const giorni = perGiorno(widget.eventi, adesso);
+  const lingua = locale();
+  const parole = paroleDelCalendario();
+  const piuCalendari = widget.calendari.length > 1;
+  /* Il modulo sa quali calendari ci sono da chi lo disegna: e' lo stesso
+   * elenco in Home e nella pagina, e passarglielo in un attributo vorrebbe
+   * dire un JSON dentro il documento. */
+  dichiaraCalendari(widget.calendari);
+  const modulo = moduloMarkup(widget.calendari);
+  /* Il tasto sta in cima e non in fondo: la finestra scorre, e in fondo a
+   * un'agenda di due settimane il tasto per segnare un impegno e' un tasto che
+   * non si trova. */
+  const nuovo = bozzaAperta() ? "" : tastoNuovoMarkup(widget.calendari);
+  const testa = nuovo ? `<div class="dm-cal-fondo">${nuovo}</div>` : "";
+
   if (!giorni.length)
-    return `<p class="dm-w-empty">${esc(
+    return `${modulo}${testa}<p class="dm-w-empty">${esc(
       widget.inArrivo
         ? t("Caricamento…", "Loading…")
         : t("✨ Niente in programma", "✨ Nothing scheduled"),
     )}</p>`;
-  const lingua = locale();
-  const parole = paroleDelCalendario();
-  const piuCalendari = widget.calendari.length > 1;
-  return giorni
+
+  const elenco = giorni
     .slice(0, GIORNI_NEL_PANNELLO)
     .map(({ giorno, eventi }) => {
       const righe = eventi
         .map((evento) => {
-          const adesso2 = inCorso(evento, adesso);
-          return `<li class="dm-cal-evento" data-adesso="${adesso2}">
+          const ora = inCorso(evento, adesso);
+          return `<li class="dm-cal-evento" data-adesso="${ora}">
             <span class="dm-cal-ora">${esc(oraDellEvento(evento, parole, lingua))}</span>
             <span class="dm-cal-testo">
               <b>${esc(evento.summary || t("Senza titolo", "Untitled"))}</b>
@@ -3054,7 +3107,8 @@ function calendarioDetail(widget) {
                   : ""
               }
             </span>
-            ${adesso2 ? `<span class="dm-cal-adesso">${esc(t("Adesso", "Now"))}</span>` : ""}
+            ${ora ? `<span class="dm-cal-adesso">${esc(t("Adesso", "Now"))}</span>` : ""}
+            ${azioniDellEventoMarkup(evento, chiaveDellEvento(evento))}
           </li>`;
         })
         .join("");
@@ -3063,6 +3117,7 @@ function calendarioDetail(widget) {
       )}</span><ul class="dm-cal-lista">${righe}</ul></div>`;
     })
     .join("");
+  return `${modulo}${testa}${elenco}`;
 }
 
 function lightsDetail(widget) {
@@ -5992,6 +6047,8 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 :is(#dm-widgets,#dm-widget-popup) .dm-cal-evento[data-adesso="true"] .dm-cal-ora,
 :is(#dm-widgets,#dm-widget-popup) .dm-cal-evento[data-adesso="true"] .dm-cal-testo b{
   color:var(--dm-widget-accent,#6366f1)}
+/* Il fondo del pannello, dove sta il tasto per segnare un impegno nuovo. */
+:is(#dm-widgets,#dm-widget-popup) .dm-cal-fondo{display:flex;justify-content:center;padding:6px 0 2px}
 :is(#dm-widgets,#dm-widget-popup) .dm-cal-adesso{
   flex:0 0 auto;align-self:center;padding:3px 9px;border-radius:999px;
   font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#fff;
@@ -6147,6 +6204,11 @@ export function installHomeWidgetsSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  /* Il modulo del calendario ridisegna la finestra quando si apre, si chiude o
+   * si lamenta, e ci fa rileggere gli eventi dopo ogni scrittura: e' lui che
+   * sa quando qualcosa e' cambiato, non noi. */
+  registraOspiteCalendario(() => schedule());
+  registraRilettura((opzioni) => aggiornaCalendari(opzioni));
   doc.addEventListener("click", onClick);
   bindEscape();
   doc.addEventListener("change", onChange);

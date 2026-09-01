@@ -352,3 +352,180 @@ test("la spiegazione del calendario non se la prende quella degli avvisi", async
   assert.match(editor, /dm-avvisi-ed-sep ~ \.ed-intro/);
   assert.match(editor, /dm-widget-ed-sep dm-avvisi-ed-sep/);
 });
+
+/* ── il calendario si tocca, non si guarda soltanto ────────────────────────
+ *
+ * «Il popup del widget deve dare la possibilita' di modificare e di interagire
+ * con il calendario.» Un'agenda che si legge e basta e' mezza agenda.
+ */
+
+test("i tasti seguono quello che il calendario accetta davvero", async () => {
+  const { CAPACITA, capacitaDelCalendario, eventoCancellabile, eventoModificabile } = await import(
+    "../src/core/calendario-model.js"
+  );
+  assert.deepEqual({ ...CAPACITA }, { CREA: 1, CANCELLA: 2, MODIFICA: 4 });
+  const tutto = capacitaDelCalendario({ attributes: { supported_features: 7 } });
+  assert.deepEqual({ ...tutto }, { crea: true, cancella: true, modifica: true });
+  /* Google accetta eventi nuovi e non li lascia cancellare da qui; quello
+   * delle festivita' non accetta niente. Un tasto che poi risponde «non
+   * supportato» e' peggio che non mostrarlo. */
+  const soloNuovi = capacitaDelCalendario({ attributes: { supported_features: 1 } });
+  assert.deepEqual({ ...soloNuovi }, { crea: true, cancella: false, modifica: false });
+  const solaLettura = capacitaDelCalendario({});
+  assert.deepEqual({ ...solaLettura }, { crea: false, cancella: false, modifica: false });
+
+  /* E senza `uid` non si tocca niente comunque: e' il nome proprio con cui si
+   * dice a Home Assistant QUALE evento si intende, e gli eventi letti dal
+   * servizio non ce l'hanno. */
+  const conNome = { uid: "abc" };
+  const senzaNome = { uid: "" };
+  assert.equal(eventoModificabile(conNome, tutto), true);
+  assert.equal(eventoModificabile(senzaNome, tutto), false);
+  assert.equal(eventoCancellabile(conNome, soloNuovi), false);
+  assert.equal(eventoCancellabile(conNome, tutto), true);
+});
+
+test("solo la porta HTTP porta l'uid, e per questo la si prova per prima", async () => {
+  const { parseCalendarApiEvents } = await import("../src/core/calendario-model.js");
+  const letti = parseCalendarApiEvents(
+    [
+      {
+        uid: "u1",
+        summary: "Palestra",
+        location: "Via Verdi 3",
+        start: { dateTime: "2026-09-01T18:00:00+02:00" },
+        end: { dateTime: "2026-09-01T19:00:00+02:00" },
+      },
+      { uid: "u2", summary: "Ferie", start: { date: "2026-09-02" }, end: { date: "2026-09-03" } },
+    ],
+    "calendar.casa",
+  );
+  assert.equal(letti[0].uid, "u1");
+  /* La forma `{date: …}` E' la dichiarazione di «tutto il giorno»: non si
+   * indovina dalla durata, la si legge. */
+  assert.equal(letti[1].tuttoIlGiorno, true);
+  assert.equal(letti[0].tuttoIlGiorno, false);
+  assert.deepEqual(parseCalendarApiEvents(null, "calendar.casa"), []);
+
+  const home = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  /* Dentro Home Assistant la plancia non possiede nessun gettone e ogni
+   * chiamata REST torna 401: il percorso si fa firmare dal socket, come le
+   * immagini. */
+  assert.match(home, /type: "auth\/sign_path"/);
+  assert.match(home, /\/api\/calendars\//);
+  // E se non ci si arriva, resta il servizio: si legge, non si scrive.
+  assert.match(home, /service: "get_events"/);
+});
+
+test("una bozza torna evento senza spostare niente di un giorno", async () => {
+  const { bozzaDaEvento, bozzaNuova, messaggioDellEvento } = await import(
+    "../src/core/calendario-model.js"
+  );
+  const ferie = {
+    entity: "calendar.casa",
+    uid: "u2",
+    summary: "Ferie",
+    inizio: new Date(2026, 8, 2).getTime(),
+    /* Come la manda Home Assistant: la fine e' ESCLUSIVA, il giorno dopo
+     * l'ultimo. */
+    fine: new Date(2026, 8, 5).getTime(),
+    tuttoIlGiorno: true,
+  };
+  const bozza = bozzaDaEvento(ferie);
+  /* Nel modulo si mostra l'ultimo giorno vero: mostrare il 5 direbbe a chi
+   * guarda che le ferie finiscono un giorno piu' tardi di quando finiscono. */
+  assert.equal(bozza.giornoInizio, "2026-09-02");
+  assert.equal(bozza.giornoFine, "2026-09-04");
+  // E salvandola senza toccare niente torna esattamente com'era.
+  const { evento } = messaggioDellEvento(bozza);
+  assert.equal(evento.dtstart, "2026-09-02");
+  assert.equal(evento.dtend, "2026-09-05");
+
+  // Un impegno nuovo parte dalla mezz'ora tonda: nessuno segna alle 14:37.
+  const nuova = bozzaNuova("calendar.casa", new Date(2026, 8, 1, 14, 37).getTime());
+  assert.equal(nuova.oraInizio, "15:00");
+  assert.equal(nuova.oraFine, "16:00");
+  assert.equal(nuova.uid, "");
+});
+
+test("il modulo si lamenta invece di mandare una cosa storta", async () => {
+  const { bozzaNuova, messaggioDellEvento } = await import("../src/core/calendario-model.js");
+  const base = bozzaNuova("calendar.casa", new Date(2026, 8, 1, 10, 0).getTime());
+  assert.match(messaggioDellEvento(base).errore, /titolo/i);
+  assert.match(messaggioDellEvento({ ...base, entity: "", summary: "X" }).errore, /calendario/i);
+  assert.match(
+    messaggioDellEvento({ ...base, summary: "X", giornoInizio: "" }).errore,
+    /data/i,
+  );
+  /* Un impegno che finisce prima di cominciare non si manda: Home Assistant lo
+   * rifiuterebbe, e il rifiuto arriverebbe come una parola in inglese. */
+  assert.match(
+    messaggioDellEvento({ ...base, summary: "X", oraFine: "09:00" }).errore,
+    /finisce prima/i,
+  );
+  // Le parole del lamento arrivano da chi disegna, come tutte le altre.
+  assert.equal(
+    messaggioDellEvento({ ...base }, { titolo: "A title is required." }).errore,
+    "A title is required.",
+  );
+  // E una bozza in ordine passa.
+  assert.ok(messaggioDellEvento({ ...base, summary: "Cena" }).evento);
+});
+
+test("i tre comandi passano il ponte, e si vedono scritti per intero", async () => {
+  const modifica = await readFile(
+    new URL("../src/sections/calendario-modifica-section.js", import.meta.url),
+    "utf8",
+  );
+  /* La guardia del ponte cerca le stringhe nel codice: un `nuovo ? a : b`
+   * dentro `type:` nasconderebbe due comandi su tre alla prova, e poi dentro
+   * Home Assistant il messaggio verrebbe respinto. */
+  for (const comando of ["create", "update", "delete"])
+    assert.match(modifica, new RegExp(`type: "calendar/event/${comando}"`), comando);
+
+  const ponte = await readFile(
+    new URL("../src/legacy/bridge-socket.js", import.meta.url),
+    "utf8",
+  );
+  for (const comando of ["create", "update", "delete"])
+    assert.match(ponte, new RegExp(`"calendar/event/${comando}"`), comando);
+});
+
+test("il modulo e i tasti stanno in un posto solo, e li usano in due", async () => {
+  const modifica = await readFile(
+    new URL("../src/sections/calendario-modifica-section.js", import.meta.url),
+    "utf8",
+  );
+  /* I posti da cui si scrive sono due — la finestra della tessera e la pagina
+   * — e sono esattamente gli stessi gesti: due copie sarebbero due modi di
+   * segnare un impegno, e uno dei due si dimenticherebbe di un fuso. */
+  for (const nome of ["moduloMarkup", "azioniDellEventoMarkup", "tastoNuovoMarkup"])
+    assert.match(modifica, new RegExp(`export function ${nome}\\b`), nome);
+  for (const ospite of ["home-widgets-section.js", "calendario-section.js"]) {
+    const sorgente = await readFile(new URL(`../src/sections/${ospite}`, import.meta.url), "utf8");
+    assert.match(sorgente, /from "\.\/calendario-modifica-section\.js"/, ospite);
+    assert.match(sorgente, /moduloMarkup\(/, ospite);
+    assert.match(sorgente, /azioniDellEventoMarkup\(/, ospite);
+    /* Ognuno dice come si ridisegna: il modulo non sa dove sta, e non deve
+     * saperlo. */
+    assert.match(sorgente, /registraOspiteCalendario\(/, ospite);
+  }
+});
+
+test("il gettone si va a prendere in un posto solo", async () => {
+  /* Questa funzione stava copiata identica in tre sezioni — telecamere,
+   * immagini, mappa del robot — e ne stava per nascere una quarta per gli
+   * eventi. Dove si va a prendere il gettone e' una domanda con una risposta,
+   * non quattro uguali che un giorno divergono. */
+  const shared = await readFile(new URL("../src/sections/shared.js", import.meta.url), "utf8");
+  assert.match(shared, /export function gettoneDiAccesso\(\)/);
+  assert.match(shared, /export function chiediAHomeAssistant\(/);
+  for (const nome of ["live-ui-section.js", "media-picker-section.js", "robot-section.js"]) {
+    const sorgente = await readFile(new URL(`../src/sections/${nome}`, import.meta.url), "utf8");
+    assert.doesNotMatch(sorgente, /function authToken\(\)/, nome);
+    assert.match(sorgente, /gettoneDiAccesso/, nome);
+  }
+});

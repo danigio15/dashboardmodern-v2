@@ -131,6 +131,205 @@ export function parseCalendarEventsResponse(result, entity) {
     .filter(Boolean);
 }
 
+/**
+ * La risposta di `/api/calendars/<entita>`: la stessa che legge il pannello
+ * Calendario di Home Assistant.
+ *
+ * Si chiede questa e non solo il servizio perche' e' l'unica che porta l'`uid`
+ * — e senza `uid` un evento si puo' guardare ma non toccare: non c'e' modo di
+ * dire a Home Assistant QUALE modificare. Il servizio `calendar.get_events`
+ * restituisce soltanto inizio, fine, titolo, descrizione e luogo.
+ *
+ * I capi arrivano avvolti: `{"dateTime": "..."}` per un'ora, `{"date": "..."}`
+ * per un giorno intero — e la seconda forma e' proprio quella che dice «tutto
+ * il giorno», senza doverla indovinare dalla durata.
+ */
+export function parseCalendarApiEvents(righe, entity) {
+  if (!Array.isArray(righe)) return [];
+  const capo = (valore) => {
+    if (valore && typeof valore === "object")
+      return istanteDi(valore.dateTime || valore.date || "");
+    return istanteDi(valore);
+  };
+  return righe
+    .map((evento) => {
+      const inizio = capo(evento?.start);
+      const fine = capo(evento?.end);
+      if (inizio.istante === null) return null;
+      return {
+        entity: clean(entity),
+        summary: clean(evento?.summary),
+        description: clean(evento?.description),
+        location: clean(evento?.location),
+        inizio: inizio.istante,
+        fine: fine.istante === null ? inizio.istante : fine.istante,
+        tuttoIlGiorno: inizio.tuttoIlGiorno,
+        /* Le chiavi con cui si torna a parlare di QUESTO evento. `recurrence_id`
+         * distingue una ripetizione dalle sue sorelle: senza, modificare il
+         * martedi' vorrebbe dire modificare tutti i martedi'. */
+        uid: clean(evento?.uid),
+        recurrenceId: clean(evento?.recurrence_id),
+        rrule: clean(evento?.rrule),
+      };
+    })
+    .filter(Boolean);
+}
+
+/* ── cosa si puo' fare, e cosa no ─────────────────────────────────────────
+ *
+ * Non tutti i calendari si lasciano scrivere: quello delle festivita' e' di
+ * sola lettura, Google accetta eventi nuovi ma non li lascia cancellare da
+ * qui, il calendario locale fa tutto. Home Assistant lo dichiara nei bit di
+ * `supported_features`, e mostrare un tasto che poi risponde «non supportato»
+ * e' peggio che non mostrarlo. */
+export const CAPACITA = Object.freeze({ CREA: 1, CANCELLA: 2, MODIFICA: 4 });
+
+export function capacitaDelCalendario(state) {
+  const bit = Number(state?.attributes?.supported_features);
+  const valore = Number.isFinite(bit) ? bit : 0;
+  return Object.freeze({
+    crea: (valore & CAPACITA.CREA) !== 0,
+    cancella: (valore & CAPACITA.CANCELLA) !== 0,
+    modifica: (valore & CAPACITA.MODIFICA) !== 0,
+  });
+}
+
+/** Se questo evento, cosi' com'e', si puo' toccare. */
+export function eventoModificabile(evento, capacita) {
+  return Boolean(capacita?.modifica && clean(evento?.uid));
+}
+
+export function eventoCancellabile(evento, capacita) {
+  return Boolean(capacita?.cancella && clean(evento?.uid));
+}
+
+/* ── il modulo: da evento a caselle, e ritorno ────────────────────────────
+ *
+ * Le caselle di un modulo sono stringhe — «2026-09-02» e «14:30» — perche'
+ * quelle sono le forme che `<input type="date">` e `<input type="time">`
+ * sanno leggere e scrivere. Il giro da e verso gli istanti sta qui, dove si
+ * prova senza browser: e' il pezzo in cui un fuso sbagliato sposta un
+ * appuntamento di un giorno senza che nessuno se ne accorga.
+ */
+const due = (numero) => String(numero).padStart(2, "0");
+
+export function giornoDiCasella(istante) {
+  const quando = new Date(istante);
+  return `${quando.getFullYear()}-${due(quando.getMonth() + 1)}-${due(quando.getDate())}`;
+}
+
+export function oraDiCasella(istante) {
+  const quando = new Date(istante);
+  return `${due(quando.getHours())}:${due(quando.getMinutes())}`;
+}
+
+export function istanteDaCaselle(giorno, ora) {
+  const [anno, mese, numero] = clean(giorno).split("-").map(Number);
+  if (!Number.isFinite(anno) || !Number.isFinite(mese) || !Number.isFinite(numero)) return null;
+  const [ore, minuti] = clean(ora).split(":").map(Number);
+  return new Date(
+    anno,
+    mese - 1,
+    numero,
+    Number.isFinite(ore) ? ore : 0,
+    Number.isFinite(minuti) ? minuti : 0,
+    0,
+    0,
+  ).getTime();
+}
+
+/** Le caselle con cui si apre il modulo su un evento che esiste gia'. */
+export function bozzaDaEvento(evento) {
+  if (!evento) return null;
+  const tutto = evento.tuttoIlGiorno === true;
+  /* Per un evento di tutto il giorno la fine che arriva da Home Assistant e'
+   * ESCLUSIVA — il giorno dopo l'ultimo — e mostrarla cosi' direbbe a chi
+   * guarda che le ferie finiscono un giorno piu' tardi di quando finiscono. */
+  const fineMostrata = tutto ? evento.fine - 86400000 : evento.fine;
+  return {
+    entity: clean(evento.entity),
+    uid: clean(evento.uid),
+    recurrenceId: clean(evento.recurrenceId),
+    summary: clean(evento.summary),
+    location: clean(evento.location),
+    description: clean(evento.description),
+    tuttoIlGiorno: tutto,
+    giornoInizio: giornoDiCasella(evento.inizio),
+    oraInizio: oraDiCasella(evento.inizio),
+    giornoFine: giornoDiCasella(Math.max(evento.inizio, fineMostrata)),
+    oraFine: oraDiCasella(evento.fine),
+  };
+}
+
+/* La durata di serie di un impegno nuovo: un'ora, che e' quanto dura quasi
+ * tutto quello che si segna al volo. */
+export const DURATA_DI_SERIE = 3600000;
+
+/** Le caselle con cui si apre il modulo su un impegno che ancora non c'e'. */
+export function bozzaNuova(entity, quando = Date.now()) {
+  /* Si parte dalla mezz'ora tonda successiva: nessuno segna una riunione alle
+   * 14:37, e proporlo obbliga a correggere due caselle prima di scrivere. */
+  const passo = 1800000;
+  const inizio = Math.ceil(quando / passo) * passo;
+  return {
+    entity: clean(entity),
+    uid: "",
+    recurrenceId: "",
+    summary: "",
+    location: "",
+    description: "",
+    tuttoIlGiorno: false,
+    giornoInizio: giornoDiCasella(inizio),
+    oraInizio: oraDiCasella(inizio),
+    giornoFine: giornoDiCasella(inizio + DURATA_DI_SERIE),
+    oraFine: oraDiCasella(inizio + DURATA_DI_SERIE),
+  };
+}
+
+/* Le parole con cui il modulo si lamenta. Stanno qui in italiano e chi
+ * disegna passa le sue, per la stessa ragione delle altre: una `t()` scritta
+ * dentro `src/core` non finirebbe nei cataloghi. */
+export const LAMENTI_CALENDARIO = Object.freeze({
+  titolo: "Serve un titolo.",
+  quando: "La data non e' valida.",
+  ordine: "L'impegno finisce prima di cominciare.",
+  calendario: "Scegli un calendario.",
+});
+
+/**
+ * Dalla bozza al messaggio per Home Assistant, o al motivo per cui non si puo'.
+ *
+ * `dtstart` e `dtend` devono essere della STESSA forma — o due giorni o due
+ * istanti — e per un evento di tutto il giorno la fine e' il giorno DOPO
+ * l'ultimo, perche' e' cosi' che la intende il calendario: un evento di un
+ * giorno solo va da lunedi' a martedi'.
+ */
+export function messaggioDellEvento(bozza, lamenti = LAMENTI_CALENDARIO) {
+  const dette = { ...LAMENTI_CALENDARIO, ...(lamenti || {}) };
+  const titolo = clean(bozza?.summary);
+  if (!clean(bozza?.entity)) return { errore: dette.calendario };
+  if (!titolo) return { errore: dette.titolo };
+  const tutto = bozza?.tuttoIlGiorno === true;
+  const inizio = istanteDaCaselle(bozza?.giornoInizio, tutto ? "00:00" : bozza?.oraInizio);
+  const fine = istanteDaCaselle(bozza?.giornoFine, tutto ? "00:00" : bozza?.oraFine);
+  if (inizio === null || fine === null) return { errore: dette.quando };
+  if (fine < inizio) return { errore: dette.ordine };
+  const evento = { summary: titolo };
+  if (clean(bozza?.location)) evento.location = clean(bozza.location);
+  if (clean(bozza?.description)) evento.description = clean(bozza.description);
+  if (tutto) {
+    evento.dtstart = giornoDiCasella(inizio);
+    /* La fine esclusiva: il giorno dopo l'ultimo. Mandare lo stesso giorno
+     * darebbe un evento lungo zero, che Home Assistant rifiuta. */
+    evento.dtend = giornoDiCasella(fine + 86400000);
+  } else {
+    if (fine === inizio) return { errore: dette.ordine };
+    evento.dtstart = `${giornoDiCasella(inizio)}T${oraDiCasella(inizio)}:00`;
+    evento.dtend = `${giornoDiCasella(fine)}T${oraDiCasella(fine)}:00`;
+  }
+  return { evento };
+}
+
 /* ── l'ordine e la scelta ─────────────────────────────────────────────── */
 
 /** Gli eventi in fila, dal primo che comincia. */

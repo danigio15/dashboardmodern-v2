@@ -565,8 +565,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // (`sections/calendario-section.js`). Lo stato di un `calendar.*` e'
   // `on`/`off` e negli attributi porta un evento solo: l'elenco lo si chiede
   // al servizio, come le voci delle liste ToDo.
+  // 198 col calendario che si tocca (#259,
+  // `sections/calendario-modifica-section.js`): «il popup del widget deve dare
+  // la possibilita' di modificare e di interagire con il calendario». Il
+  // modulo, i tasti e i tre comandi che scrivono stanno in un posto solo
+  // perche' i posti da cui si scrive sono due — la finestra della tessera e la
+  // pagina — e due copie sarebbero due modi di segnare un impegno.
   assert.ok(
-    relative.length <= 197,
+    relative.length <= 198,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
