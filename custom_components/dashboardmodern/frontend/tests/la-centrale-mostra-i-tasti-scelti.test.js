@@ -90,8 +90,9 @@ test("la scelta viaggia con la configurazione, come tutte le altre", () => {
   /* E chi aggiunge chiavi alza la revisione, altrimenti un salvataggio vecchio
    * che quelle chiavi non le ha non viene completato con quelle di qui.
    * (La 14 aggiunge il verso girato dei sensori, #244; la 15 lo scaldabagno
-   * elettrico, #253.) */
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 15/);
+   * elettrico, #253; la 16 la scelta degli impianti termici e la caldaia,
+   * sempre #253.) */
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 16/);
 });
 
 test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () => {

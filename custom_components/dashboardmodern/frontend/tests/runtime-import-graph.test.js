@@ -542,8 +542,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // lettura delle sue caselle e il conto di quanto manca all'acqua calda, che
   // e' la misura per cui si guarda uno scaldabagno e non esisteva da nessuna
   // parte — il solare termico guarda il salto fra le sonde, che e' altro.
+  // 192 con le tre macchine del locale caldaia (#253): il nucleo della scelta
+  // (`core/impianti-termici.js`), la pagina che disegna le due scene nuove e
+  // le linguette (`sections/impianti-termici-section.js`) e la scheda che le
+  // configura (`sections/impianti-termici-editor-section.js`). La pagina si
+  // chiamava «Solare termico» e disegnava un impianto solo: chi ha il
+  // fotovoltaico e lo scaldabagno ci trovava un pannello che non ha.
   assert.ok(
-    relative.length <= 189,
+    relative.length <= 192,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

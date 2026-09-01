@@ -45,6 +45,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **L'obiettivo si legge anche da un termostato.** «Target preso dall'entita'
   del termostato»: li' l'obiettivo non e' lo stato — lo stato e' la modalita' —
   ma un attributo, e la casella lo cerca in tutti e due i posti.
+- **La sezione termica ha tre anime, non una.** Si chiamava «Solare termico» e
+  disegnava un impianto solo: pannello sul tetto, pompa, accumulo. Ma l'acqua
+  calda in casa la fanno tre macchine diverse — il sole, una resistenza, una
+  caldaia a gas — e quasi nessuno ne ha una sola: chi ha il fotovoltaico e lo
+  scaldabagno apriva quella pagina e ci trovava un pannello che non ha. Adesso
+  nella scheda Solare si spunta quello che si ha davvero, e la pagina prende la
+  forma di quello che si e' spuntato. Con due o tre compaiono in alto le
+  linguette, le stesse di Freddo e Caldo nella pagina Clima. (#253)
+- **Due scene nuove, nella stessa lingua della prima.** Lo scaldabagno ha il
+  suo serbatoio in piedi, con l'acqua calda che sale dal fondo — l'altezza del
+  riempimento e' quanto manca all'obiettivo — e le tre spire della resistenza
+  che si accendono quando lavora. La caldaia ha la scocca a muro con la fiamma
+  nell'oblo', la mandata e il ritorno che corrono al radiatore e il salto fra i
+  due, che e' la misura che dice se l'impianto sta davvero cedendo calore.
+- **La pressione bassa si vede prima di accorgersene.** Sotto il bar la
+  targhetta batte e compare la riga che dice perche': e' l'unica cosa di quella
+  pagina che ogni tanto chiede di alzarsi dal divano.
+- **La pagina si chiama come la macchina che si sta guardando.** «Impianto
+  solare termico» sopra una caldaia era il nome di un'altra macchina.
+- **Chi non sceglie non perde niente.** Una plancia gia' configurata col solare
+  continua a mostrarlo esattamente come prima: la domanda e' nuova, e le
+  risposte di ieri valgono ancora.
 
 ### Corretto
 

@@ -55,7 +55,12 @@ const USER_DATA_VERSION = 1;
  * quali entita' lo descrivono — l'interruttore, la sonda dell'acqua,
  * l'obiettivo, il consumo. E' la casa, non il telefono: configurata da un
  * dispositivo, gli altri resterebbero senza la tessera. */
-export const CONFIG_KEYS_REVISION = 15;
+/* La revisione 16 aggiunge le altre due macchine del locale caldaia (#253):
+ * quali impianti termici ci sono (`cd_impianti_termici`) e le caselle della
+ * caldaia (`cd_caldaia`). Sono la casa, non il telefono: senza viaggiare, chi
+ * sceglie «solare piu' caldaia» su un dispositivo troverebbe sugli altri la
+ * pagina di prima. */
+export const CONFIG_KEYS_REVISION = 16;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -159,6 +164,8 @@ export const CONFIG_KEYS = Object.freeze([
   // Le entita' in evidenza: la tessera che tiene d'occhio sensori senza stanza.
   "cd_evidenza",
   "cd_scaldabagni",
+  "cd_impianti_termici",
+  "cd_caldaia",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

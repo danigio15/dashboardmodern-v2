@@ -144,9 +144,41 @@ const PAGES = Object.freeze([
   },
 ]);
 
+/* Una pagina che cambia identita' sotto i piedi.
+ *
+ * Quasi tutte le pagine si chiamano sempre allo stesso modo, e il nome sta
+ * nella tabella qui sopra. La sezione termica no: dietro la stessa pagina ci
+ * possono essere il solare, lo scaldabagno o la caldaia, e scrivere «Impianto
+ * solare termico» sopra una caldaia e' il nome di un'altra macchina.
+ *
+ * L'intestazione resta di questo modulo — un padrone solo — ma un'altra
+ * sezione puo' dirgli come si chiama la pagina adesso. Il produttore torna
+ * `{title, subtitle}` oppure niente, e in quel caso vale la tabella. */
+const TITOLI_SU_MISURA = new Map();
+
+export function registraTitoloDiPagina(id, produttore) {
+  const chiave = clean(id);
+  if (!chiave) return false;
+  if (typeof produttore === "function") TITOLI_SU_MISURA.set(chiave, produttore);
+  else TITOLI_SU_MISURA.delete(chiave);
+  return true;
+}
+
 function labelsFor(page) {
   /* The pair is authored it/en; `t` turns it into the active language. */
-  return { title: t(page.it[0], page.en[0]), subtitle: t(page.it[1], page.en[1]) };
+  const difetto = { title: t(page.it[0], page.en[0]), subtitle: t(page.it[1], page.en[1]) };
+  const produttore = TITOLI_SU_MISURA.get(page.id);
+  if (!produttore) return difetto;
+  try {
+    const scelto = produttore();
+    if (!scelto) return difetto;
+    return {
+      title: clean(scelto.title) || difetto.title,
+      subtitle: clean(scelto.subtitle) || difetto.subtitle,
+    };
+  } catch (_error) {
+    return difetto;
+  }
 }
 
 /* The heading opens the page, and the way back opens the heading. Pages used to
