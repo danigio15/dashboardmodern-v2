@@ -104,9 +104,19 @@ test("nella barra Home e Stanze non portano la stessa icona", async ({ page }, t
   await boot(page, testInfo);
   // La voce Stanze nasce dal modulo, non dal documento: si aspetta che ci sia.
   await expect(page.locator('nav.tabs .tab[data-tab="stanze"]')).toHaveCount(1);
+  /* L'icona di una voce non e' piu' per forza una parola.
+   *
+   * Le voci della barra hanno il disegno di casa al posto dell'emoji, e un
+   * disegno non ha testo: leggendo solo `textContent` questa prova trovava il
+   * vuoto e cadeva su una barra perfettamente disegnata. Chi disegna lascia
+   * pero' il nome dell'oggetto sulla casella — `data-dm-oggetto` — ed e' quello
+   * che identifica l'icona; il testo resta per le voci non ancora disegnate. */
   const icone = await page.$$eval("nav.tabs .tab", (voci) =>
     Object.fromEntries(
-      voci.map((b) => [b.dataset.tab, (b.querySelector(".icon")?.textContent || "").trim()]),
+      voci.map((b) => {
+        const casella = b.querySelector(".icon");
+        return [b.dataset.tab, (casella?.dataset.dmOggetto || casella?.textContent || "").trim()];
+      }),
     ),
   );
   expect(icone.home).toBeTruthy();
