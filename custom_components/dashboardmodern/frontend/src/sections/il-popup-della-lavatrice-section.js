@@ -20,6 +20,7 @@
  */
 import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { applianceVisualKey } from "../core/device-model.js";
+import { decoraCaselleDiUnaCarta } from "./editor-slots-section.js";
 import { iconGlyphMarkup, openIconPicker } from "./icon-engine-section.js";
 import {
   clean,
@@ -263,11 +264,21 @@ function rigaCasella(casella) {
   const nodo = doc.createElement("div");
   nodo.className = "ed-slot dm-lav-slot";
   const valore = clean(overrides()[casella.ref]);
+  /* La lente non si disegna qui.
+   *
+   * Ce n'era una in fondo alla riga, e accanto ne compariva una seconda: la
+   * guardia del selettore mette la sua su ogni casella che nomina un'entita',
+   * e non riconosceva questa come gia' fatta — cercava una `.dm-entity-picker`
+   * e qui trovava un tasto con un nome suo. Due lenti identiche una accanto
+   * all'altra: chiamavano tutt'e due `wzPickEntity` sullo stesso campo.
+   *
+   * Quella di casa se ne va, e resta il meccanismo unico — «questa funzione e'
+   * stata deprecata con la nuova metodologia di ricerca entita'». Basta la
+   * casella: la guardia la riconosce dal `data-ref` e ci attacca la sua. */
   nodo.innerHTML =
     `<div class="ed-slot-lbl">${esc(t(casella.it, casella.en))}</div>` +
     `<div class="dm-lav-slot-riga">` +
     `<input class="ed-input mono ed-slot-in dm-lav-slot-in" autocomplete="off" data-ref="${esc(casella.ref)}" value="${esc(valore)}" placeholder="es. sensor.lavatrice_fase" aria-label="${esc(t(casella.it, casella.en))}">` +
-    `<button type="button" class="dm-lav-slot-btn" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button>` +
     `</div>`;
   return nodo;
 }
@@ -294,6 +305,14 @@ function creaCarta() {
   programmiAttuali().forEach((voce) => righe.append(rigaEditor(voce)));
   const caselle = carta.querySelector(".dm-lav-caselle");
   CASELLE.forEach((casella) => caselle.append(rigaCasella(casella)));
+  /* Le caselle si scelgono come dappertutto: dalla riga, non da una lente.
+   *
+   * Dentro le Sezioni ci pensava la passata che gira sulle fisarmoniche; nella
+   * finestra «Modifica azione» questa carta sta altrove e non veniva
+   * raggiunta. Chiederlo qui vale per tutt'e due i posti, ed e' la stessa
+   * riga: la pastiglia che dice cosa c'e' dentro, il cestino per toglierla e
+   * «Modifica manuale» per chi vuole scrivere l'entita' a mano. */
+  decoraCaselleDiUnaCarta(caselle);
 
   const salva = () => {
     scriviConfig(raccogli(carta));
@@ -311,18 +330,6 @@ function creaCarta() {
     salva();
   });
   carta.addEventListener("click", (evento) => {
-    const lente = evento.target?.closest?.(".dm-lav-slot-btn");
-    if (lente) {
-      const campo = lente.closest(".dm-lav-slot")?.querySelector(".dm-lav-slot-in");
-      /* Il selettore di entita' e' quello del guscio: una sola lista, gia'
-       * filtrata sulle entita' vive. Gli si passa il CAMPO, non il nome dello
-       * slot: col nome cercherebbe `input[data-ref=...]` per tutta la pagina e
-       * scriverebbe nella riga gemella della scheda Sezioni, ridisegnando la
-       * procedura guidata. Col campo scrive qui e batte un `change`, che e'
-       * quello che questa carta ascolta. */
-      if (campo) root.wzPickEntity?.(campo);
-      return;
-    }
     const via = evento.target?.closest?.(".dm-lav-via");
     if (via) {
       via.closest(".dm-lav-riga")?.remove();
@@ -429,7 +436,6 @@ const STILE = `
 .dm-lav-caselle{display:grid;gap:10px;margin-top:10px}
 .dm-lav-slot-riga{display:flex;gap:6px;align-items:center;min-width:0}
 .dm-lav-slot-riga .dm-lav-slot-in{flex:1 1 auto;min-width:0}
-.dm-lav-slot-btn{flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;font-size:14px;cursor:pointer}
 `;
 
 export function installPopupLavatrice() {
