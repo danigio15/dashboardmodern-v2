@@ -5,6 +5,32 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.6
+
+### Corretto
+
+- **La scala del clima la dichiara il termostato, non la plancia.** «Ho una
+  pompa di calore Samsung, il sensore mi gestisce la temperatura di uscita
+  dell'acqua dai 40 gradi fino a 70 massimo. Quando vado a inserire nel menu
+  clima l'entita', mi mette in predefinito 10-28 gradi e non sono riuscito a
+  capire come si modifica la scala.» Non c'era modo: i due estremi erano scritti
+  nel codice — sedici e trenta per il Freddo, dieci e ventotto per il Caldo — e
+  valevano per tutti. Con quella barra il pomello restava incollato al fondo e
+  quarantacinque gradi non si potevano nemmeno sfiorare. Adesso la barra legge
+  `min_temp` e `max_temp` dell'entita', che Home Assistant pubblica gia': quella
+  pompa disegna da 40 a 70, e il dito arriva dove serve. Chi non li dichiara
+  tiene la scala di prima, identica. (#252)
+- **E si muove del passo che l'unita' accetta.** Un termostato che lavora a
+  mezzi gradi riceveva comunque gradi interi, perche' il trascinamento
+  arrotondava sempre all'unita'. Adesso segue `target_temp_step`; chi non lo
+  dichiara resta al grado intero, che e' quello che la plancia ha sempre fatto.
+- **Il ritaglio non taglia piu' l'estremo che si stava cercando.** Al rilascio
+  il grado veniva riportato dentro i limiti arrotondando il minimo all'intero
+  superiore: un'unita' che dichiara 40,5 non arrivava mai al proprio minimo.
+- **La stessa regola in un posto solo.** La pagina Clima e il pannello della
+  Home tenevano due copie della scala, e si fermavano a numeri diversi: adesso
+  la calcola il nucleo, e le due si comportano uguale.
+
 ## 1.4.5-beta.2
 
 La beta di prima aveva ridotto le richieste da centosettantanove a tre, e dal

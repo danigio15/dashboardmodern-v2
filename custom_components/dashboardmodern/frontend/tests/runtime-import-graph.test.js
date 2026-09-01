@@ -529,8 +529,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 186 col verso delle aperture (#244, `core/verso-aperture.js`): il conto
   // puro dei sensori girati (ON = chiuso) e delle tapparelle girate
   // (100 = chiusa), condiviso da widget, pagine e runtime.
+  // 187 con la scala del clima (#252, `core/scala-clima.js`): fin dove arriva
+  // la barra lo dice il termostato con `min_temp`/`max_temp`, non piu' una
+  // coppia di numeri scritta a mano — e la regola sta in un posto solo,
+  // perche' la pagina Clima e il popup della Home ne tenevano due copie.
   assert.ok(
-    relative.length <= 186,
+    relative.length <= 187,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

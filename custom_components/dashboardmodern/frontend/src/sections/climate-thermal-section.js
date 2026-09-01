@@ -29,6 +29,12 @@
  * Irrigation redesign did.
  */
 import { canonicalClimateType } from "../core/device-model.js";
+import {
+  gradoNellaScala,
+  passoDellUnita,
+  quotaNellaScala,
+  scalaDellaZona,
+} from "../core/scala-clima.js";
 import { climateIsOff } from "../core/climate-power.js";
 import { roomOrderRank } from "../core/room-overview.js";
 import { chiamaClima, commutaClima } from "./climate-power-section.js";
@@ -65,7 +71,6 @@ const state = (root[KEY] ||= {
 
 /* Scale of the rail. Cooling units are set between 16° and 30°, radiators
  * between 10° and 28°, which is the range the legacy popup already clamps to. */
-const RANGE = Object.freeze({ freddo: [16, 30], caldo: [10, 28] });
 const SPARK = Object.freeze({ width: 132, height: 42, pad: 6, samples: 24 });
 const OFF_STATES = new Set(["off", "unavailable", "unknown", "none", ""]);
 
@@ -228,7 +233,19 @@ export function climateReading(entity, states = allStates()) {
     target: finiteOrNull(attributes.temperature),
     ambient: finiteOrNull(attributes.current_temperature),
     fan: clean(attributes.fan_mode).toLowerCase(),
+    /* Quello che l'unita' dichiara di se': fin dove arriva e di quanto si
+     * muove. La lettura li porta con se' perche' la barra si ridisegna a ogni
+     * evento di stato, e andarli a ripescare vorrebbe dire risolvere di nuovo
+     * la stessa entita' che si e' appena letta. */
+    attributi: attributes,
+    passo: passoDellUnita(attributes),
   };
+}
+
+/* La scala di questa card: quella dell'unita' se la dichiara, altrimenti
+ * quella della famiglia in cui la card sta. */
+function scalaDellaCard(reading, zone) {
+  return scalaDellaZona(reading?.attributi, zone);
 }
 
 function stateLabel(reading, zone, labels) {
@@ -250,10 +267,8 @@ function modeCaption(reading, labels) {
   return fan ? `${mode} · ${fan}` : mode;
 }
 
-function ratio(value, zone) {
-  const [low, high] = RANGE[zone];
-  if (value === null) return null;
-  return Math.min(1, Math.max(0, (value - low) / (high - low)));
+function ratio(value, scala) {
+  return quotaNellaScala(value, scala);
 }
 
 /* ── ambient history (kept in memory, no polling and no history API) ──── */
@@ -357,7 +372,10 @@ function emptyMarkup(zone, labels) {
 }
 
 function cardMarkup(unit, labels) {
-  const [low, high] = RANGE[unit.zone];
+  /* I due estremi si scrivono qui la prima volta e poi li riscrive
+   * `paintCard`: un'unita' che risponde tardi — o che cambia scala passando in
+   * Fahrenheit — deve poter correggere la legenda senza rifare la card. */
+  const [low, high] = scalaDellaZona(climateReading(unit.entity).attributi, unit.zone);
   const entity = esc(unit.entity).replaceAll("'", "&#39;");
   // The family is already in the masthead, so an unassigned unit shows nothing
   // here rather than repeating "Condizionatori" on every card.
@@ -390,9 +408,9 @@ function cardMarkup(unit, labels) {
         <span class="dm-cl-knob" data-dm-cl-knob hidden></span>
       </div>
       <div class="dm-cl-legend">
-        <span>${low}°</span>
+        <span data-dm-cl-low>${low}°</span>
         <span>${esc(labels.room)} <b data-dm-cl-ambient>--°</b></span>
-        <span>${high}°</span>
+        <span data-dm-cl-high>${high}°</span>
       </div>
       <div class="dm-cl-foot">
         <button type="button" class="dm-cl-modes" data-dm-cl-modes aria-label="${esc(labels.modesAria)}"
@@ -548,7 +566,16 @@ function paintCard(card, unit, reading, labels) {
   const caption = card.querySelector("[data-dm-cl-mode-cap]");
   if (caption) caption.textContent = modeCaption(reading, labels);
 
-  const targetRatio = ratio(reading.target, zone);
+  /* La scala della card, adesso: la dichiara l'unita' — una pompa di calore
+   * che manda acqua a settanta gradi dice quaranta e settanta — e solo se non
+   * la dichiara resta quella della famiglia. */
+  const scala = scalaDellaCard(reading, zone);
+  const estremoBasso = card.querySelector("[data-dm-cl-low]");
+  if (estremoBasso) estremoBasso.textContent = `${gradoScritto(scala[0])}°`;
+  const estremoAlto = card.querySelector("[data-dm-cl-high]");
+  if (estremoAlto) estremoAlto.textContent = `${gradoScritto(scala[1])}°`;
+
+  const targetRatio = ratio(reading.target, scala);
   const fill = card.querySelector("[data-dm-cl-fill]");
   const knob = card.querySelector("[data-dm-cl-knob]");
   if (fill) fill.style.width = targetRatio === null ? "0%" : `${(targetRatio * 100).toFixed(1)}%`;
@@ -556,7 +583,7 @@ function paintCard(card, unit, reading, labels) {
     knob.hidden = targetRatio === null;
     if (targetRatio !== null) knob.style.left = `${(targetRatio * 100).toFixed(1)}%`;
   }
-  const ambientRatio = ratio(reading.ambient, zone);
+  const ambientRatio = ratio(reading.ambient, scala);
   const mark = card.querySelector("[data-dm-cl-mark]");
   if (mark) {
     mark.hidden = ambientRatio === null;
@@ -767,16 +794,31 @@ export function wholeDegreeDelta(shown, delta) {
  * diminuire la temperatura, sia da desktop che da mobile»): il dito o il
  * mouse prendono la corsia, il pomello e il numero seguono in diretta, e al
  * rilascio parte UNA set_temperature col grado intero scelto. I ± restano. */
-function gradoDalPunto(rail, zone, clientX) {
-  const [low, high] = RANGE[zone] || RANGE.freddo;
-  const box = rail.getBoundingClientRect();
+/* Un grado scritto come lo si legge: 45 e non 45,0, ma 45,5 quando il
+ * termostato lavora a mezzi gradi e quel mezzo grado e' la scelta. */
+function gradoScritto(valore) {
+  const numero = Number(valore);
+  if (!Number.isFinite(numero)) return "--";
+  return String(Math.round(numero * 10) / 10);
+}
+
+/* La scala e il passo di UNA presa: la barra si sta trascinando su una card
+ * sola, e la scala e' quella dell'unita' che sta sotto le dita. */
+function scalaDellaPresa(presa) {
+  const reading = climateReading(presa.entity);
+  return { scala: scalaDellaCard(reading, presa.zone), passo: reading.passo };
+}
+
+function gradoDalPunto(presa, clientX) {
+  const { scala, passo } = scalaDellaPresa(presa);
+  const box = presa.rail.getBoundingClientRect();
   const frazione = Math.min(1, Math.max(0, (clientX - box.left) / Math.max(1, box.width)));
-  return Math.round(low + frazione * (high - low));
+  return gradoNellaScala(frazione, scala, passo);
 }
 
 function dipingiPresa(presa) {
-  const [low, high] = RANGE[presa.zone] || RANGE.freddo;
-  const percento = (((presa.grado - low) / (high - low)) * 100).toFixed(1);
+  const [low, high] = scalaDellaPresa(presa).scala;
+  const percento = (((presa.grado - low) / (high - low || 1)) * 100).toFixed(1);
   const fill = presa.card.querySelector("[data-dm-cl-fill]");
   const knob = presa.card.querySelector("[data-dm-cl-knob]");
   if (fill) fill.style.width = `${percento}%`;
@@ -788,7 +830,8 @@ function dipingiPresa(presa) {
    * spenta): con la carta girata il grande e' l'ambiente e non si tocca. */
   if (!cartaInvertita()) {
     const target = presa.card.querySelector("[data-dm-cl-target]");
-    if (target) target.innerHTML = `${presa.grado}<span class="dm-cl-deg">°</span>`;
+    if (target)
+      target.innerHTML = `${gradoScritto(presa.grado)}<span class="dm-cl-deg">°</span>`;
   }
 }
 
@@ -798,7 +841,7 @@ function installRailDrag() {
   let presa = null;
   const aggiorna = (event) => {
     if (!presa) return;
-    presa.grado = gradoDalPunto(presa.rail, presa.zone, event.clientX);
+    presa.grado = gradoDalPunto(presa, event.clientX);
     dipingiPresa(presa);
   };
   doc.addEventListener(
@@ -823,16 +866,14 @@ function installRailDrag() {
     if (!presa) return;
     aggiorna(event);
     if (Number.isFinite(presa.grado)) {
-      /* La corsia disegna la scala della famiglia, ma il comando rispetta i
-       * limiti dell'ENTITA': un termostato con min/max piu' stretti (o in
-       * Fahrenheit) non riceve mai un grado fuori dal suo intervallo. */
-      const attrs = allStates()?.[presa.entity]?.attributes || {};
-      let grado = presa.grado;
-      const minimo = Number(attrs.min_temp);
-      const massimo = Number(attrs.max_temp);
-      if (Number.isFinite(minimo)) grado = Math.max(grado, Math.ceil(minimo));
-      if (Number.isFinite(massimo)) grado = Math.min(grado, Math.floor(massimo));
-      chiamaClima(presa.entity, "set_temperature", { temperature: grado });
+      /* La corsia disegna gia' la scala dell'ENTITA' — non piu' quella della
+       * famiglia — quindi il grado sotto il dito e' per costruzione uno che
+       * quell'unita' accetta: `gradoNellaScala` lo scatta al suo passo e lo
+       * tiene fra i suoi estremi. Non c'e' piu' niente da ritagliare qui, ed
+       * e' un bene: il ritaglio di prima arrotondava all'intero superiore il
+       * minimo e all'intero inferiore il massimo, cosi' un termostato che
+       * dichiara 40,5 non arrivava mai al suo stesso minimo. */
+      chiamaClima(presa.entity, "set_temperature", { temperature: presa.grado });
     }
     presa = null;
   };

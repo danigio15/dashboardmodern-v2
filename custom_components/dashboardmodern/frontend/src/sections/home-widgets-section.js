@@ -58,6 +58,7 @@ import {
   versoInvertito,
 } from "../core/verso-aperture.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
+import { passoDellUnita, scalaDellUnita } from "../core/scala-clima.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
 import { loadCameraFrame } from "./live-ui-section.js";
@@ -402,6 +403,7 @@ function rigaClima(states, unit) {
   const elenco = (valori) => (Array.isArray(valori) ? valori.map(clean).filter(Boolean) : []);
   const numero = (valore, difetto = null) =>
     Number.isFinite(Number(valore)) ? Number(valore) : difetto;
+  const scala = scalaDellUnita(attributi);
   return {
     entity,
     name: clean(unit?.name) || entity,
@@ -416,9 +418,14 @@ function rigaClima(states, unit) {
     modi: elenco(attributi.hvac_modes),
     ventole: elenco(attributi.fan_modes),
     ventola: clean(attributi.fan_mode),
-    minima: numero(attributi.min_temp, 5),
-    massima: numero(attributi.max_temp, 35),
-    passo: numero(attributi.target_temp_step, 0.5) || 0.5,
+    /* Fin dove il pannello lascia andare l'obiettivo: la scala e' quella che
+     * l'unita' dichiara, e la regola sta nel nucleo insieme a quella della
+     * pagina Clima — erano due copie della stessa cosa, e una delle due si
+     * fermava a trentacinque gradi anche davanti a una pompa di calore che
+     * ne dichiara settanta (#252). */
+    minima: scala[0],
+    massima: scala[1],
+    passo: passoDellUnita(attributi, 0.5),
     umidita: numero(attributi.current_humidity),
     azione: clean(attributi.hvac_action),
     /* Che macchina e', non solo cosa sta facendo adesso: un termosifone
