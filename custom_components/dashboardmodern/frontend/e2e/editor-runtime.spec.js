@@ -234,8 +234,23 @@ for (const variant of PRIMARY) {
     await page.evaluate(() => window.apriConfigEntita());
     await expect(page.locator('.ed-tab[data-tab="runtime"]')).toHaveCount(1);
     await page.locator('.ed-tab[data-tab="runtime"]').click();
-    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(11);
+    /* Una riga per voce, e il numero e' proprio la prova: se un'etichetta
+     * tradotta torna vuota la sua chiave collassa, la riga sparisce senza
+     * rumore, e solo il conto se ne accorge.
+     *
+     * Il conto e' passato da undici a dodici quando la plancia ha imparato a
+     * dire da dove arrivano le sue parti — impacchettate o sciolte. Ci sono
+     * volute quattro tornate di CI per capirlo, perche' il fallimento si
+     * leggeva come una prova ballerina: cadeva sempre e solo qui, e sempre e
+     * solo su uno shard. Non ballava affatto — contava giusto.
+     *
+     * Chi aggiunge una voce alza questo numero E la nomina qui sotto: cosi'
+     * la prossima volta il conto si legge invece di sembrare capriccio. */
+    await expect(page.locator("[data-runtime-diagnostics] .ed-row")).toHaveCount(12);
     await expect(page.locator("[data-runtime-diagnostics]")).toContainText("Integration version");
+    /* La dodicesima. Vale in tutt'e due gli stati, che e' il punto: la riga
+     * dice quale dei due, non presume. */
+    await expect(page.locator("[data-runtime-diagnostics]")).toContainText(/impacchettati|sciolti/);
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });
