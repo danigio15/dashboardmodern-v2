@@ -1,19 +1,16 @@
 /* La configurazione del ponte dei widget (#201).
  *
  * La scheda «🧩 Widget» non esiste nel documento vendorizzato: si aggiunge
- * accanto alle altre, come quella delle persone. Sopra ci sono le tessere del
- * ponte — quali vedere in Home e in che ordine, scritte in `cd_widgets` — e
- * sotto le liste ToDo: ogni riga e' una lista `todo.*` col nome con cui
- * mostrarla, e «Rileva da Home Assistant» riempie l'elenco con le liste che
- * esistono gia', perche' cio' che Home Assistant sa non si riscrive a mano.
+ * accanto alle altre, come quella delle persone, e risponde a una domanda
+ * sola: quali tessere vedere in Home e in che ordine, scritte in `cd_widgets`.
+ *
+ * Le entita' da guardare non stanno piu' qui. I calendari e le liste ToDo
+ * erano finiti in questa scheda perche' qui era nata la tessera che li
+ * racconta, e chi cercava di configurare l'agenda doveva passare dai widget:
+ * adesso hanno la loro — «📅 Agenda» — come ogni pagina della barra. Qui
+ * restano le tessere che una pagina non ce l'hanno: «In evidenza», che e'
+ * soltanto una tessera, e i widget di avviso, che si accendono da soli.
  */
-import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
-import {
-  CALENDARI_KEY,
-  isCalendarEntity,
-  suggerisciCalendari,
-} from "../core/calendario-model.js";
-import { renderCalendarioSection } from "./calendario-section.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import { normalizeAlertsEditor } from "./alerts-section.js";
 import { refreshFloodAlerts } from "./flood-alerts-section.js";
@@ -24,7 +21,6 @@ import {
   widgetPreferences,
 } from "./home-widgets-section.js";
 import {
-  allStates,
   clean,
   doc,
   esc,
@@ -38,32 +34,13 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TODO_EDITOR__";
-const state = (root[KEY] ||= { installed: false, aperto: -1, evidAperto: -1, calAperto: -1 });
+const state = (root[KEY] ||= { installed: false, evidAperto: -1 });
 
 export const TODO_EDITOR_TAB = "todo";
 const LEGACY_ALERTS_TAB = "avvisi";
-const CONFIG_KEY = "cd_todo";
-
-/* L'editor lavora sulle righe grezze: una lista appena aggiunta e' vuota, e la
- * normalizzazione la scarterebbe prima che la si possa compilare. */
-function grezze() {
-  const stored = readJson(CONFIG_KEY, []);
-  return Array.isArray(stored) ? stored : [];
-}
-
-function salva(lists) {
-  writeJsonIfChanged(CONFIG_KEY, lists);
-  try {
-    renderHomeWidgets();
-  } catch (_error) {}
-}
 
 function activeTab() {
   return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
-}
-
-function nomeDi(list, index) {
-  return clean(list?.name) || clean(list?.entity) || `${t("Lista", "List")} ${index + 1}`;
 }
 
 /* ── le tessere del ponte ─────────────────────────────────────────────── */
@@ -263,107 +240,8 @@ function evidenzaMarkup() {
   <button type="button" class="ed-btn-add" data-evid-add>＋ ${t("Aggiungi entità", "Add entity")}</button>`;
 }
 
-
-/* ── i calendari (#259) ───────────────────────────────────────────────────
- *
- * Stessa forma delle liste ToDo, e non e' pigrizia: sono due elenchi di
- * entita' che Home Assistant ha gia', e chi ne ha configurato uno sa gia'
- * configurare l'altro. Cambia il dominio — `calendar.*` invece di `todo.*` —
- * e cambia il colore, che serve a distinguere due agende nello stesso giorno.
- */
-function calendariGrezzi() {
-  const stored = readJson(CALENDARI_KEY, []);
-  return Array.isArray(stored) ? stored : [];
-}
-
-function salvaCalendari(voci) {
-  writeJsonIfChanged(CALENDARI_KEY, voci);
-  try {
-    renderHomeWidgets();
-  } catch (_error) {}
-  try {
-    renderCalendarioSection();
-  } catch (_error) {}
-}
-
-function nomeDelCalendario(voce, index) {
-  return clean(voce?.name) || clean(voce?.entity) || `${t("Calendario", "Calendar")} ${index + 1}`;
-}
-
-function rigaCalendarioMarkup(voce, index) {
-  const aperto = state.calAperto === index;
-  const colore = clean(voce?.colore);
-  return `<article class="ed-row dm-todo-ed-row dm-cal-ed-row" data-cal-index="${index}" data-open="${aperto}">
-    <div class="dm-todo-ed-head">
-      <span class="dm-todo-ed-icon" aria-hidden="true">📅</span>
-      <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDelCalendario(voce, index))}</strong><small class="ed-row-old mono">${esc(clean(voce?.entity) || t("nessuna entità", "no entity"))}</small></span>
-      <button type="button" class="ed-del dm-todo-ed-edit" data-cal-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
-      <button type="button" class="ed-del dm-todo-ed-del" data-cal-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
-    </div>
-    <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
-      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-cal-${index}-name" class="ed-input" data-cal-field="name" value="${esc(clean(voce?.name))}" placeholder="${t("Famiglia", "Family")}"></span></label>
-      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Entità del calendario", "Calendar entity")}</span>
-        <span class="ed-form-row"><input id="dm-cal-${index}-entity" class="ed-input mono" data-cal-field="entity" value="${esc(clean(voce?.entity))}" placeholder="calendar.famiglia" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-cal-pick="dm-cal-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
-        <small>${t("È l'entità calendar.* di Home Assistant: la tessera mostra i prossimi due impegni, la sezione l'agenda giorno per giorno.", "The calendar.* entity from Home Assistant: the tile shows the next two appointments, the section the day-by-day agenda.")}</small></label>
-      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Colore", "Colour")}</span>
-        <span class="ed-form-row dm-cal-ed-colore"><input type="color" id="dm-cal-${index}-colore" class="dm-cal-ed-swatch" data-cal-field="colore" value="${esc(colore || "#6366f1")}"><button type="button" class="ed-del" data-cal-colore-via>${t("Automatico", "Automatic")}</button></span>
-        <small>${t("Serve a distinguere due agende nello stesso giorno. Lasciandolo automatico ne riceve uno suo, sempre lo stesso.", "It tells two agendas apart on the same day. Left automatic it gets one of its own, always the same.")}</small></label>
-      <output class="dm-todo-ed-error" data-cal-error></output>
-      <button type="button" class="ed-save-btn" data-cal-save>💾 ${t("Salva calendario", "Save calendar")}</button>
-    </div>
-  </article>`;
-}
-
-function calendariMarkup() {
-  const voci = calendariGrezzi();
-  return `<div class="ed-sec-title dm-widget-ed-sep">📅 ${esc(t("Calendario", "Calendar"))}</div>
-  <div class="ed-intro">${t(
-    "I calendari che hai già in Home Assistant: la tessera in Home mostra i prossimi due impegni, e aprendola c'è l'elenco giorno per giorno. La sezione «Calendario» compare nella barra appena ne scegli uno.",
-    "The calendars you already have in Home Assistant: the Home tile shows the next two appointments, and opening it gives the day-by-day list. The «Calendar» section appears in the bar as soon as you pick one.",
-  )}</div>
-  <div class="ed-list dm-todo-ed-list dm-cal-ed-list">${
-    voci.length
-      ? voci.map((voce, index) => rigaCalendarioMarkup(voce, index)).join("")
-      : `<div class="ed-empty">${t("Nessun calendario configurato", "No calendar configured")}</div>`
-  }</div>
-  <button type="button" class="ed-btn-add" data-cal-add>＋ ${t("Aggiungi calendario", "Add calendar")}</button>
-  <button type="button" class="ed-btn-add" data-cal-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>`;
-}
-
-function rigaMarkup(list, index) {
-  const aperto = state.aperto === index;
-  return `<article class="ed-row dm-todo-ed-row" data-todo-index="${index}" data-open="${aperto}">
-    <div class="dm-todo-ed-head">
-      <span class="dm-todo-ed-icon" aria-hidden="true">✅</span>
-      <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDi(list, index))}</strong><small class="ed-row-old mono">${esc(clean(list?.entity) || t("nessuna entità", "no entity"))}</small></span>
-      <button type="button" class="ed-del dm-todo-ed-edit" data-todo-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
-      <button type="button" class="ed-del dm-todo-ed-del" data-todo-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
-    </div>
-    <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
-      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-todo-${index}-name" class="ed-input" data-todo-field="name" value="${esc(clean(list?.name))}" placeholder="${t("Spesa", "Groceries")}"></span></label>
-      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Entità della lista", "List entity")}</span>
-        <span class="ed-form-row"><input id="dm-todo-${index}-entity" class="ed-input mono" data-todo-field="entity" value="${esc(clean(list?.entity))}" placeholder="todo.spesa" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-todo-pick="dm-todo-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
-        <small>${t("È l'entità todo.* di Home Assistant: la card in Home elenca le sue voci da spuntare.", "The todo.* entity from Home Assistant: the Home card lists its items to tick off.")}</small></label>
-      <output class="dm-todo-ed-error" data-todo-error></output>
-      <button type="button" class="ed-save-btn" data-todo-save>💾 ${t("Salva lista", "Save list")}</button>
-    </div>
-  </article>`;
-}
-
-function bodyMarkup(lists) {
+function bodyMarkup() {
   return `${tessereMarkup()}
-  <div class="ed-intro dm-todo-ed-intro">${t(
-    "Le liste ToDo di Home Assistant, in Home: le attività giornaliere sempre in primo piano, da spuntare direttamente dalla card.",
-    "Home Assistant to-do lists, on the Home page: daily tasks always in sight, ticked off straight from the card.",
-  )}</div>
-  <div class="ed-list dm-todo-ed-list">${
-    lists.length
-      ? lists.map((list, index) => rigaMarkup(list, index)).join("")
-      : `<div class="ed-empty">${t("Nessuna lista configurata", "No list configured")}</div>`
-  }</div>
-  <button type="button" class="ed-btn-add" data-todo-add>＋ ${t("Aggiungi lista", "Add list")}</button>
-  <button type="button" class="ed-btn-add" data-todo-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>
-  ${calendariMarkup()}
   ${evidenzaMarkup()}
   ${avvisiMarkup()}`;
 }
@@ -382,37 +260,25 @@ function avvisiMarkup() {
   if (!markup) return "";
   /* La sua classe, oltre a quella comune: la spiegazione qui sotto la
    * riscrive `potaGruppiOrfani`, e cercarla come «la prima ed-intro dopo un
-   * separatore» voleva dire riscrivere quella del primo blocco che capitava —
-   * col calendario in mezzo, la sua. */
+   * separatore» vorrebbe dire riscrivere quella del primo blocco che capita —
+   * quella delle evidenze, che di avvisi non parla. */
   return `<div class="ed-sec-title dm-widget-ed-sep dm-avvisi-ed-sep">🔔 ${esc(
     t("Widget di avviso", "Alert widgets"),
   )}</div>${markup}`;
 }
 
-function leggiRiga(riga, list) {
-  const next = { ...list };
-  for (const input of riga.querySelectorAll("[data-todo-field]"))
-    next[clean(input.dataset.todoField)] = clean(input.value);
-  return next;
-}
-
 export function ensureTodoEditor() {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== TODO_EDITOR_TAB) return false;
-  const lists = grezze();
   const preferences = widgetPreferences();
   const firma = [
-    state.aperto,
     state.evidAperto,
     preferences.order.join(","),
     preferences.hidden.join(","),
     preferences.compatto,
-    ...lists.map((list) => `${list?.id}~${list?.name}~${list?.entity}`),
     ...evidenze().map((voce) => `⭐${voce?.name}~${voce?.icon}~${voce?.entity}~${voce?.room_id}`),
-    `📅${state.calAperto}`,
-    ...calendariGrezzi().map((voce) => `📅${voce?.name}~${voce?.entity}~${voce?.colore}`),
   ].join("|");
-  if (body.dataset.dmTodoEditor === firma && body.querySelector(".dm-todo-ed-list")) {
+  if (body.dataset.dmTodoEditor === firma && body.querySelector(".dm-widget-pref-list")) {
     /* Il corpo e' gia' quello giusto e non si rifa': le rifiniture degli
      * avvisi vanno rimesse lo stesso, perche' chi le posa non passa piu' dal
      * cambio di linguetta e questa e' l'unica occasione che ha. */
@@ -420,7 +286,7 @@ export function ensureTodoEditor() {
     return true;
   }
   body.dataset.dmTodoEditor = firma;
-  body.innerHTML = bodyMarkup(lists);
+  body.innerHTML = bodyMarkup();
   body.dataset.renderer = "todo";
   // L'elenco entita' degli avvisi lo riempie il runtime a markup appena
   // posato, come faceva quando la scheda era sua. Solo qui: rifarlo a ogni
@@ -582,177 +448,6 @@ function onClick(event) {
       ridisegna();
       root.edToast?.(t("💾 Entità salvata", "💾 Entity saved"));
     }
-    return;
-  }
-
-  /* ── i calendari (#259) ── */
-  const calendari = calendariGrezzi();
-  if (event.target.closest("[data-cal-add]")) {
-    event.preventDefault();
-    state.calAperto = calendari.length;
-    salvaCalendari([...calendari, { id: `cal-${Date.now().toString(36)}`, name: "", entity: "" }]);
-    ridisegna();
-    return;
-  }
-  if (event.target.closest("[data-cal-detect]")) {
-    event.preventDefault();
-    /* Cio' che Home Assistant sa gia' non si riscrive a mano: le entita'
-     * `calendar.*` che non sono ancora nell'elenco entrano da sole, col nome
-     * che hanno di la'. */
-    const trovati = suggerisciCalendari(allStates(), calendari);
-    if (!trovati.length) {
-      root.edToast?.(t("Nessun calendario nuovo", "No new calendar"));
-      return;
-    }
-    state.calAperto = -1;
-    salvaCalendari([
-      ...calendari,
-      ...trovati.map((voce, indice) => ({
-        id: `cal-${Date.now().toString(36)}-${indice}`,
-        name: voce.name,
-        entity: voce.entity,
-      })),
-    ]);
-    ridisegna();
-    root.edToast?.(
-      t(`Aggiunti ${trovati.length} calendari`, `Added ${trovati.length} calendars`),
-    );
-    return;
-  }
-  const scegliCal = event.target.closest("[data-cal-pick]");
-  if (scegliCal) {
-    event.preventDefault();
-    const input = body.querySelector(`#${CSS.escape(clean(scegliCal.dataset.calPick))}`);
-    if (input) root.wzPickEntity?.(input);
-    return;
-  }
-  const rigaCal = event.target.closest("[data-cal-index]");
-  if (rigaCal) {
-    const indice = Number(rigaCal.dataset.calIndex);
-    if (!Number.isFinite(indice) || !calendari[indice]) return;
-    if (event.target.closest("[data-cal-edit]")) {
-      event.preventDefault();
-      state.calAperto = state.calAperto === indice ? -1 : indice;
-      ridisegna();
-      return;
-    }
-    if (event.target.closest("[data-cal-del]")) {
-      event.preventDefault();
-      const nome = nomeDelCalendario(calendari[indice], indice);
-      if (root.confirm && !root.confirm(t(`Tolgo "${nome}"?`, `Remove "${nome}"?`))) return;
-      state.calAperto = -1;
-      salvaCalendari(calendari.filter((_voce, posto) => posto !== indice));
-      ridisegna();
-      return;
-    }
-    if (event.target.closest("[data-cal-colore-via]")) {
-      event.preventDefault();
-      /* Tornare all'automatico e' togliere il colore, non sceglierne uno
-       * grigio: chi non decide riceve quello del suo posto nell'elenco. */
-      const prossimi = calendari.slice();
-      prossimi[indice] = { ...calendari[indice], colore: "" };
-      salvaCalendari(prossimi);
-      ridisegna();
-      return;
-    }
-    if (event.target.closest("[data-cal-save]")) {
-      event.preventDefault();
-      const prossimi = calendari.slice();
-      const letta = { ...calendari[indice] };
-      for (const campo of rigaCal.querySelectorAll("[data-cal-field]"))
-        letta[clean(campo.dataset.calField)] = clean(campo.value);
-      const errore = rigaCal.querySelector("[data-cal-error]");
-      if (!isCalendarEntity(letta.entity)) {
-        if (errore)
-          errore.textContent = t(
-            "Serve un'entità calendar.* valida.",
-            "A valid calendar.* entity is required.",
-          );
-        return;
-      }
-      if (errore) errore.textContent = "";
-      prossimi[indice] = letta;
-      state.calAperto = -1;
-      salvaCalendari(prossimi);
-      ridisegna();
-      root.edToast?.(t("💾 Calendario salvato", "💾 Calendar saved"));
-    }
-    return;
-  }
-
-  const lists = grezze();
-
-  if (event.target.closest("[data-todo-add]")) {
-    event.preventDefault();
-    state.aperto = lists.length;
-    writeJsonIfChanged(CONFIG_KEY, [
-      ...lists,
-      { id: `todo-${Date.now().toString(36)}`, name: "", entity: "" },
-    ]);
-    ridisegna();
-    return;
-  }
-  if (event.target.closest("[data-todo-detect]")) {
-    event.preventDefault();
-    const found = suggestTodoLists(allStates(), lists);
-    if (!found.length) {
-      root.edToast?.(t("Nessuna lista todo.* trovata", "No todo.* list found"));
-      return;
-    }
-    state.aperto = -1;
-    salva([
-      ...lists,
-      ...found.map((item, index) => ({
-        id: `todo-${Date.now().toString(36)}-${index}`,
-        name: item.name,
-        entity: item.entity,
-      })),
-    ]);
-    ridisegna();
-    root.edToast?.(t(`Aggiunte ${found.length} liste`, `Added ${found.length} lists`));
-    return;
-  }
-  const pick = event.target.closest("[data-todo-pick]");
-  if (pick) {
-    event.preventDefault();
-    const input = body.querySelector(`#${CSS.escape(clean(pick.dataset.todoPick))}`);
-    if (input) root.wzPickEntity?.(input);
-    return;
-  }
-  const riga = event.target.closest("[data-todo-index]");
-  if (!riga) return;
-  const index = Number(riga.dataset.todoIndex);
-  if (!Number.isFinite(index) || !lists[index]) return;
-
-  if (event.target.closest("[data-todo-edit]")) {
-    event.preventDefault();
-    state.aperto = state.aperto === index ? -1 : index;
-    ridisegna();
-    return;
-  }
-  if (event.target.closest("[data-todo-del]")) {
-    event.preventDefault();
-    const nome = nomeDi(lists[index], index);
-    const domanda = t(`Elimino "${nome}"?`, `Remove "${nome}"?`);
-    if (root.confirm && !root.confirm(domanda)) return;
-    state.aperto = -1;
-    salva(lists.filter((_list, position) => position !== index));
-    ridisegna();
-    return;
-  }
-  if (event.target.closest("[data-todo-save]")) {
-    event.preventDefault();
-    const next = lists.slice();
-    next[index] = leggiRiga(riga, lists[index]);
-    const errore = riga.querySelector("[data-todo-error]");
-    if (!isTodoEntity(next[index].entity)) {
-      if (errore) errore.textContent = t("Serve un'entità todo.* valida.", "A valid todo.* entity is required.");
-      return;
-    }
-    if (errore) errore.textContent = "";
-    salva(next);
-    ridisegna();
-    root.edToast?.(t("💾 Lista salvata", "💾 List saved"));
   }
 }
 
@@ -810,6 +505,12 @@ function installStyles() {
   installStyle(
     "dm-todo-editor-style",
     `
+      /* Il vestito comune delle righe della configurazione — l'intestazione,
+         il corpo che si apre, le caselle — nato qui con le liste ToDo e
+         rimasto qui quando quelle sono andate nella loro scheda: lo indossano
+         anche l'Agenda, la Gestione termica e la Continuita', e spostarlo
+         adesso vorrebbe dire cambiargli nome in cinque file per non cambiare
+         un pixel. Qui lo veste «In evidenza». */
       #ed-body .dm-todo-ed-list{display:grid;gap:8px;margin-bottom:10px}
       #ed-body .dm-todo-ed-row{display:block!important;padding:0!important;overflow:hidden}
       #ed-body .dm-todo-ed-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
@@ -820,20 +521,7 @@ function installStyles() {
       #ed-body .dm-todo-ed-field .ed-form-row{display:flex;gap:8px;min-width:0}
       #ed-body .dm-todo-ed-field .ed-form-row>input{flex:1 1 auto;min-width:0}
       #ed-body .dm-todo-ed-error:not(:empty){color:var(--error-color,#dc2626);font-size:12px;font-weight:800}
-      #ed-body .dm-todo-ed-intro{margin-top:14px}
       #ed-body .dm-widget-ed-sep{margin-top:22px;padding-top:16px;border-top:1px solid var(--card-border,#e2e8f0)}
-      /* Il colore di un calendario (#259): la casella e il tasto che la
-         rimette all'automatico stanno sulla stessa riga, perche' sono la
-         stessa decisione presa in due modi. */
-      #ed-body .dm-cal-ed-colore{display:flex;align-items:center;gap:10px}
-      /* Il campione del colore e' un'eccezione alla riga qui sopra, che allarga
-         ogni casella per tutta la riga: quella regola e' di questo stesso
-         foglio — nessun padrone conteso — e va vinta con la stessa forma, o un
-         colore largo tutta la riga sembra una barra invece di un campione. */
-      #ed-body .dm-todo-ed-field .ed-form-row > input.dm-cal-ed-swatch{
-        flex:0 0 58px;width:58px;min-width:0;height:38px;padding:3px;cursor:pointer;
-        border:1px solid var(--card-border,#e2e8f0);border-radius:10px;background:var(--card-bg,#fff)}
-      #ed-body .dm-cal-ed-colore .ed-del{flex:0 0 auto;width:auto;padding:0 12px;font-size:12px;font-weight:800}
       #ed-body .dm-widget-compatto-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important;margin-bottom:8px}
       #ed-body .dm-widget-compatto{display:inline-flex;padding:2px;border-radius:999px;
         background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0)}

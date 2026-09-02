@@ -53,6 +53,7 @@ import {
   root,
   siComanda,
   t,
+  wrapFunction,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_IMPIANTI_TERMICI__";
@@ -729,6 +730,14 @@ export function installImpiantiTermiciSection() {
     };
   });
   rinominaLaSezione();
+  /* «Appena apro si legge Solare, poi cambia in Gestione termica.»
+   *
+   * La linguetta della configurazione la scrive il guscio quando costruisce il
+   * pannello, e col nome vecchio: rinominarla al primo ridisegno vuol dire
+   * lasciarla vedere per un attimo com'era. `apriConfigEntita` e' il momento
+   * esatto in cui quel pannello esiste e nessuno l'ha ancora guardato — si
+   * riscrive li', prima che venga disegnato, e il cambio non si vede piu'. */
+  wrapFunction("apriConfigEntita", "__dmImpiantiRinomina", () => rinominaLaSezione());
   doc.addEventListener("click", onClick);
   for (const evento of [
     "dashboardmodern:legacy-ready",

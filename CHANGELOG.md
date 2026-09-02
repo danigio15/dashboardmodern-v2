@@ -61,8 +61,47 @@ scrivere.
   falso. Il prefisso poi sparisce dal titolo, perche' accanto c'e' gia' la
   pastiglia che lo dice.
 
+### Le schede della configurazione
+
+- **L'Agenda ha la sua scheda nella configurazione.** «Calendario, per
+  configurarlo devi toglierlo dalla parte widget: crea una sezione a se' nel
+  menu e metti calendario e cose da fare. Nei widget deve esserci solo
+  l'interruttore.» I calendari e le liste ToDo erano finiti nella scheda dei
+  widget, che risponde a una domanda sola — quali tessere vedere in Home e in
+  che ordine — e per configurare l'agenda bisognava passare di li'. Adesso hanno
+  la loro, «📅 Agenda», con i due elenchi uno sotto l'altro; nella scheda dei
+  widget restano gli interruttori delle tessere e basta. (#259)
+- **E la Continuita' pure.** Le caselle dell'UPS erano una coda della scheda
+  «Energia»: «nel config manca completamente la parte per configurare il gruppo
+  di continuita'». Non mancava, ma stava dove nessuno la cercava — e senza una
+  scheda sua non poteva avere il suo interruttore, perche' la fascia verde
+  dell'Energia e' dell'Energia. (#256)
+- **La Gestione termica si configura una macchina alla volta.** «La sezione
+  solare termico non e' suddivisa con le altre cose aggiunte, caldaia e
+  scaldabagno: nel config voglio le sottosezioni per configurare quelle, non
+  creare confusione.» Era una colonna sola — tredici caselle di pannelli
+  solari, poi lo scaldabagno, poi la caldaia — e chi cercava la sua macchina
+  scorreva quelle degli altri. In cima ci sono adesso le stesse linguette che
+  ha la pagina, una per macchina spuntata, e sotto c'e' soltanto quella accesa.
+  (#253)
+
 ### Corretto
 
+- **Le sezioni che non si potevano nascondere.** «Verifica tutta la repository e
+  vedi dove nella sezione c'e' il tasto "visibile e nascondi": lo deve
+  nascondere dalla navbar, in alcuni casi non funziona.» Aprendo la
+  configurazione scheda per scheda e toccando ogni fascia verde, il meccanismo
+  si e' rivelato sano: dove la fascia c'era, spegneva. Non funzionava dove la
+  fascia non c'era — l'Agenda e la Continuita' avevano una voce nella barra e
+  nessuna scheda dove metterla, e quelle due voci non si potevano togliere in
+  nessun modo. Adesso ce l'hanno, e una prova nuova bussa a chi domani aggiunge
+  una pagina alla barra senza dire dove si spegne.
+- **«Solare» che diventa «Gestione termica» sotto gli occhi.** «Appena apro si
+  legge solare, poi cambia in gestione termica.» La linguetta la scrive il
+  guscio quando costruisce il pannello, e col nome vecchio: la rinominavamo al
+  primo ridisegno, cioe' un istante dopo averla mostrata com'era. Adesso la
+  riscrittura avviene nel momento esatto in cui il pannello nasce, prima che
+  venga disegnato.
 - **Il titolo si prende davvero.** «Manca il titolo» anche a chi il titolo
   l'aveva appena scritto: la finestra e il campo si chiamavano tutti e due
   `dm-tkt-titolo`, e `querySelector` restituisce il primo in ordine di
@@ -72,7 +111,6 @@ scrivere.
   da' fuoco al campo, e cambiare linguetta non svuota piu' la bozza. Un id
   ripetuto e' HTML non valido, e si rompe cosi': in silenzio, lontano dal punto
   in cui e' stato scritto.
-
 - **La colonna «In lavorazione» non e' piu' sempre zero.** Chi ha commentato,
   nell'elenco, GitHub non lo dice — e chiederlo vorrebbe dire una chiamata per
   ogni riga. Vale allora il segno che c'e': un'aperta su cui si e' gia' parlato
