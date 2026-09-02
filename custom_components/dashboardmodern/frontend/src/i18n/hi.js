@@ -15,6 +15,7 @@ export default Object.freeze({
   "Any type": "कोई भी प्रकार",
   "Came from a dashboard: the reply goes back into it": "एक डैशबोर्ड से आई: जवाब उसी में वापस जाता है",
   "Everything on the repository": "रिपॉज़िटरी में जो कुछ भी है",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.": "जब तक आप इकाई नहीं चुनते, यह द्वार कहीं नहीं दिखेगा: न अनुभाग में, न टाइल पर, और «विजेट में» वाला स्विच भी नहीं आएगा।",
   "from a dashboard": "डैशबोर्ड से",
   "from GitHub": "GitHub से",
   "Nothing closed yet.": "अभी तक कुछ भी बंद नहीं हुआ।",

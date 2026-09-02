@@ -58,7 +58,16 @@ function rigaMarkup(door, index) {
   return `<article class="ed-row dm-door-ed-row" data-door-index="${index}" data-open="${aperto}">
     <div class="dm-door-ed-head">
       <span class="dm-door-ed-icon" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
-      <span class="ed-row-main dm-door-ed-testo"><strong class="ed-row-new">${esc(nomeDi(door, index))}</strong><small class="ed-row-old mono">${esc(clean(door.entity) || t("nessuna entità", "no entity"))}${door.pin ? " · 🔒 PIN" : ""}</small></span>
+      <span class="ed-row-main dm-door-ed-testo"><strong class="ed-row-new">${esc(nomeDi(door, index))}</strong><small class="ed-row-old mono">${esc(clean(door.entity) || t("nessuna entità", "no entity"))}${door.pin ? " · 🔒 PIN" : ""}</small>${
+        clean(door.entity)
+          ? ""
+          : `<small class="dm-door-ed-muta">${esc(
+              t(
+                "Finché non scegli l'entità questa apertura non si vede: né nella sezione, né nella tessera, e l'interruttore «nel widget» non compare.",
+                "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.",
+              ),
+            )}</small>`
+      }</span>
       <button type="button" class="ed-del dm-door-ed-edit" data-door-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
       <button type="button" class="ed-del dm-door-ed-del" data-door-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
     </div>
@@ -283,6 +292,12 @@ function installStyles() {
       #ed-body .dm-door-ed-testo{display:grid!important;gap:3px!important;min-width:0}
       #ed-body .dm-door-ed-testo .ed-row-new{line-height:1.25}
       #ed-body .dm-door-ed-testo .ed-row-old{opacity:.72;font-size:11.5px;line-height:1.3}
+      /* L'apertura senza entita' non e' un dettaglio grigio come gli altri:
+         e' una riga che non comparira' da nessuna parte, e finora lo diceva
+         con la stessa voce con cui si dice tutto il resto. */
+      #ed-body .dm-door-ed-muta{
+        display:block;font-size:11.5px;line-height:1.35;font-weight:700;
+        color:var(--warning-color,#b45309)}
       #ed-body .dm-door-ed-icon{font-size:18px}
       #ed-body .dm-door-ed-body{display:grid;gap:8px;padding:0 12px 12px}
       #ed-body .dm-door-ed-body[hidden]{display:none!important}

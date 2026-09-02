@@ -15,6 +15,7 @@ export default Object.freeze({
   "Any type": "모든 유형",
   "Came from a dashboard: the reply goes back into it": "대시보드에서 온 것: 답변이 그곳으로 돌아갑니다",
   "Everything on the repository": "저장소에 있는 모든 것",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.": "엔터티를 고르기 전에는 이 출입구가 어디에도 보이지 않습니다. 섹션에도 타일에도 나오지 않고, '위젯에 표시' 스위치도 나타나지 않습니다.",
   "from a dashboard": "대시보드에서",
   "from GitHub": "GitHub에서",
   "Nothing closed yet.": "아직 닫힌 것이 없습니다.",

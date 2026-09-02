@@ -15,6 +15,7 @@ export default Object.freeze({
   "Any type": "種類を問わず",
   "Came from a dashboard: the reply goes back into it": "ダッシュボードから届いたもの: 返信はそこに戻ります",
   "Everything on the repository": "リポジトリにあるものすべて",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.": "エンティティを選ぶまで、この開口部はどこにも表示されません。セクションにもタイルにも出ず、「ウィジェットに表示」のスイッチも現れません。",
   "from a dashboard": "ダッシュボードから",
   "from GitHub": "GitHub から",
   "Nothing closed yet.": "まだ閉じたものはありません。",

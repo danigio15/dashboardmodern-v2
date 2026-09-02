@@ -161,6 +161,17 @@ export function subloadPopupModel({
       id,
       name: clean(child.name) || `Carico ${index + 1}`,
       icon: clean(child.icon) || clean(child.emoji_icon) || "🔌",
+      /* Che elettrodomestico e'.
+       *
+       * «Nel popup energetico dei carichi elettrodomestici le icone riportate
+       * non sono quelle inserite»: otto apparecchi, otto prese uguali. Il tipo
+       * — lavatrice, forno, frigorifero — arrivava fin qui e veniva buttato
+       * via, e restava il ripiego.
+       *
+       * E' la stessa cosa che l'elenco della scheda Carichi si porta dietro
+       * per lo stesso motivo: due posti che parlano della stessa lavatrice
+       * devono mostrare la stessa lavatrice. */
+      visual: clean(child.visual_key || child.visual || child.device_type || child.type),
       entity: powerEntity,
       power,
       powerText: formatWatts(power, locale),

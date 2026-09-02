@@ -210,3 +210,43 @@ test("the popup names the circle it was opened from, with its period", () => {
   assert.equal(model.icon, "🍳");
   assert.equal(model.id, "cucina");
 });
+
+/* ── ogni apparecchio col suo disegno ──────────────────────────────────────
+ *
+ * «Nel popup energetico dei carichi elettrodomestici le icone riportate non
+ * sono quelle inserite»: otto apparecchi e otto prese uguali. Il tipo arrivava
+ * fin qui e veniva buttato via. */
+
+test("il tipo dell'elettrodomestico arriva fino alla carta", () => {
+  const model = subloadPopupModel({
+    load: KITCHEN,
+    children: [
+      { id: "lav", name: "Lavatrice", device_type: "lavatrice" },
+      { id: "fri", name: "Frigorifero", type: "frigorifero" },
+      { id: "cnd", name: "Condizionatore", visual_key: "condizionatori" },
+      { id: "gen", name: "Frog" },
+    ],
+    states: {},
+  });
+  const di = (id) => model.items.find((item) => item.id === id);
+  assert.equal(di("lav").visual, "lavatrice");
+  assert.equal(di("fri").visual, "frigorifero");
+  /* Il campo del catalogo vince sul tipo, come nell'elenco della scheda
+   * Carichi: e' quello che chi configura ha scelto a mano. */
+  assert.equal(di("cnd").visual, "condizionatori");
+  // Chi un tipo non ce l'ha non ne riceve uno inventato: resta il carattere.
+  assert.equal(di("gen").visual, "");
+  assert.equal(di("gen").icon, "🔌");
+});
+
+test("le due schede che parlano della stessa lavatrice la leggono allo stesso modo", async () => {
+  /* L'elenco della scheda Carichi risolveva gia' il tipo cosi'; il popup no, e
+   * per questo mostravano due lavatrici diverse. La regola e' una sola, e
+   * queste due righe la tengono uguale nei due posti. */
+  const { readFile } = await import("node:fs/promises");
+  const regola = /visual_key \|\| child\.visual \|\| child\.device_type \|\| child\.type/;
+  for (const dove of ["../src/core/energy-loads-config.js", "../src/core/subload-popup-model.js"]) {
+    const fonte = await readFile(new URL(dove, import.meta.url), "utf8");
+    assert.match(fonte, regola, dove);
+  }
+});

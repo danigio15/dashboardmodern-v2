@@ -15,6 +15,7 @@ export default Object.freeze({
   "Any type": "Elk soort",
   "Came from a dashboard: the reply goes back into it": "Gekomen vanaf een dashboard: het antwoord gaat daarheen terug",
   "Everything on the repository": "Alles in de repository",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.": "Zolang je geen entiteit kiest is deze opening nergens te zien: niet in de sectie, niet op de tegel, en de schakelaar 'in de widget' verschijnt niet.",
   "from a dashboard": "vanaf een dashboard",
   "from GitHub": "vanaf GitHub",
   "Nothing closed yet.": "Nog niets gesloten.",

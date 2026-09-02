@@ -15,6 +15,7 @@ export default Object.freeze({
   "Any type": "任意类型",
   "Came from a dashboard: the reply goes back into it": "来自某个面板：回复会回到那里",
   "Everything on the repository": "仓库里的全部内容",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.": "在选择实体之前，这个出入口哪里都看不到：版块里没有，磁贴上也没有，“显示在小组件”的开关也不会出现。",
   "from a dashboard": "来自面板",
   "from GitHub": "来自 GitHub",
   "Nothing closed yet.": "还没有已关闭的内容。",

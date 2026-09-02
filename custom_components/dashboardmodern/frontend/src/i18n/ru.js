@@ -15,6 +15,7 @@ export default Object.freeze({
   "Any type": "Любой вид",
   "Came from a dashboard: the reply goes back into it": "Пришло с панели: ответ вернётся туда же",
   "Everything on the repository": "Всё, что есть в репозитории",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.": "Пока вы не выбрали сущность, этот проём нигде не виден: ни в разделе, ни на плитке, и переключатель «в виджете» не появляется.",
   "from a dashboard": "с панели",
   "from GitHub": "с GitHub",
   "Nothing closed yet.": "Пока ничего не закрыто.",
