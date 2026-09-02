@@ -21,11 +21,12 @@ import {
   SPECIES_LABELS,
 } from "../core/robot-model.js";
 import {
-  allStates,
+allStates,
   clean,
   dashboardStore,
   doc,
   esc,
+  gettoneDiAccesso,
   installStyle,
   readJson,
   root,
@@ -489,20 +490,6 @@ export function apriMappaRobot(entity) {
 
 /* ── la mappa ────────────────────────────────────────────────────────────── */
 
-function authToken() {
-  const values = [
-    root.DASHBOARDMODERN_AUTH_TOKEN,
-    root.__DASHBOARDMODERN_REAL_TOKEN__,
-    root.LONG_LIVED_TOKEN,
-    root.HA_TOKEN,
-  ];
-  try {
-    const connection = readJson("cd_connection", {});
-    values.push(connection.token, connection.access_token);
-  } catch (_error) {}
-  return values.map(clean).find((value) => value && value !== "__dashboardmodern_hosted__") || "";
-}
-
 /* La mappa e' un disegno che cambia mentre il robot gira.
  *
  * Home Assistant la pubblica come telecamera o come immagine, e in tutti e due
@@ -524,7 +511,7 @@ async function loadMap(card, view) {
    * richiesto di nuovo, altrimenti la mappa resta rotta per sempre. */
   if (state.mapPictures.get(view.entity) === picture) return;
 
-  const token = authToken();
+  const token = gettoneDiAccesso();
   if (typeof root.fetch === "function" && token) {
     try {
       const response = await root.fetch(picture, {

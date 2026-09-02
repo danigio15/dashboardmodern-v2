@@ -330,6 +330,79 @@ export function roomOptionsMarkup(selected = "", vuoto = "") {
  * the runtime's own scope is the only way in, and it is the same door
  * `allStates()` has always used for `_RAW_STATES`.
  */
+/* Il gettone con cui si bussa alla porta HTTP di Home Assistant.
+ *
+ * Sta in tre posti diversi da dove arriva: una variabile che il guscio
+ * inietta, il salvataggio del collegamento, il vecchio nome. Il valore
+ * `__dashboardmodern_hosted__` non e' un gettone: e' il segnale che la
+ * plancia gira DENTRO Home Assistant e i cookie bastano gia'.
+ *
+ * Questa funzione stava copiata identica in tre sezioni — le telecamere, le
+ * immagini, la mappa del robot — e ne stava per nascere una quarta per gli
+ * eventi dei calendari. Adesso e' una sola: dove si va a prendere il gettone
+ * e' una domanda con una risposta, non tre uguali che un giorno divergono.
+ */
+export function gettoneDiAccesso() {
+  const valori = [
+    root.DASHBOARDMODERN_AUTH_TOKEN,
+    root.__DASHBOARDMODERN_REAL_TOKEN__,
+    root.LONG_LIVED_TOKEN,
+    root.HA_TOKEN,
+  ];
+  try {
+    const collegamento = readJson("cd_connection", {});
+    valori.push(collegamento.token, collegamento.access_token);
+  } catch (_error) {}
+  return valori.map(clean).find((valore) => valore && valore !== "__dashboardmodern_hosted__") || "";
+}
+
+/* Una domanda a Home Assistant, sulla presa che il guscio ha gia' aperto.
+ *
+ * Il guscio tiene la sua `ws` e la tabella `pendingWsCallbacks` in variabili
+ * lessicali, non su `window`: si arriva a entrambe da `lexicalGlobal`, e la
+ * risposta torna in una promessa. Serve a tutto quello che al socket chiede
+ * qualcosa e non si accontenta di chiamare un servizio a fondo perduto — le
+ * voci delle liste ToDo, gli eventi dei calendari, e le modifiche a quegli
+ * eventi. Sta qui e non in una sezione perche' e' un attrezzo, e tre copie
+ * dello stesso attrezzo sono tre occasioni di scadere in modo diverso.
+ */
+export function chiediAHomeAssistant(payload, timeout = 8000) {
+  return new Promise((resolve, reject) => {
+    const socket = lexicalGlobal("ws");
+    const pending = lexicalGlobal("pendingWsCallbacks");
+    if (!socket || socket.readyState !== 1 || !pending) {
+      reject(new Error("socket"));
+      return;
+    }
+    let id = 0;
+    try {
+      id = root.eval("msgId++");
+    } catch (_error) {
+      reject(new Error("msgId"));
+      return;
+    }
+    const timer = root.setTimeout?.(() => {
+      delete pending[id];
+      reject(new Error("timeout"));
+    }, timeout);
+    pending[id] = (message) => {
+      root.clearTimeout?.(timer);
+      /* Il messaggio di Home Assistant e' la sola spiegazione che chi guarda
+       * puo' capire: «l'evento non esiste piu'» invece di «errore». */
+      if (message?.success === false)
+        reject(new Error(clean(message?.error?.message) || "home assistant"));
+      else resolve(message?.result);
+    };
+    try {
+      socket.send(JSON.stringify({ ...payload, id }));
+    } catch (error) {
+      root.clearTimeout?.(timer);
+      delete pending[id];
+      reject(error);
+    }
+  });
+}
+
 export function lexicalGlobal(name) {
   try {
     const value = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);

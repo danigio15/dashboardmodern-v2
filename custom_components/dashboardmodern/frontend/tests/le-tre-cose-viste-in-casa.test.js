@@ -131,10 +131,17 @@ test("la finestra col solo contatto entra nella tessera delle tapparelle", () =>
   const ponte = leggi("sections/home-widgets-section.js");
   // La tessera conosce le finestre senza motori, con le stesse funzioni con
   // cui le conosce la pagina: una regola sola su cosa sia una finestra.
-  assert.match(
-    ponte,
-    /import \{ contactEntity, isWindowOnly, windowOpenFromState \} from "\.\.\/core\/shutter-window\.js"/,
-  );
+  // L'elenco importato e' cresciuto col secondo contatto (#254) e la riga si
+  // e' spezzata su piu' righe: si pretende che ci siano i nomi, non come sono
+  // impaginati — a quello pensa il formattatore, e un test che lo ripete si
+  // rompe a ogni virgola in piu' senza dire niente di utile.
+  const importati = ponte.match(
+    /import \{([^}]*)\} from "\.\.\/core\/shutter-window\.js"/,
+  )?.[1];
+  assert.ok(importati, "il ponte non importa piu' dal modulo delle finestre");
+  for (const nome of ["contactEntity", "isWindowOnly", "windowOpenFromState"]) {
+    assert.ok(importati.includes(nome), `manca ${nome}`);
+  }
   assert.match(ponte, /if \(isWindowOnly\(item\)\)/);
   assert.match(ponte, /soloSensore: true/);
   // Il contatto parla la sua lingua, e non ha una posizione da inventare.

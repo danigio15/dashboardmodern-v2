@@ -529,8 +529,50 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 186 col verso delle aperture (#244, `core/verso-aperture.js`): il conto
   // puro dei sensori girati (ON = chiuso) e delle tapparelle girate
   // (100 = chiusa), condiviso da widget, pagine e runtime.
+  // 187 con la scala del clima (#252, `core/scala-clima.js`): fin dove arriva
+  // la barra lo dice il termostato con `min_temp`/`max_temp`, non piu' una
+  // coppia di numeri scritta a mano — e la regola sta in un posto solo,
+  // perche' la pagina Clima e il popup della Home ne tenevano due copie.
+  // 188 con le icone che si leggono (`icone-leggibili-section.js`): il foglio
+  // unico delle sfumature, messo in cima al documento, perche' a un
+  // identificatore ripetuto risponde il primo che lo porta — e per meta' dei
+  // disegni quel primo stava dentro una voce di barra a `display:none`, cioe'
+  // non disegnava niente.
+  // 189 con lo scaldabagno elettrico (#253, `core/scaldabagno-model.js`): la
+  // lettura delle sue caselle e il conto di quanto manca all'acqua calda, che
+  // e' la misura per cui si guarda uno scaldabagno e non esisteva da nessuna
+  // parte — il solare termico guarda il salto fra le sonde, che e' altro.
+  // 192 con le tre macchine del locale caldaia (#253): il nucleo della scelta
+  // (`core/impianti-termici.js`), la pagina che disegna le due scene nuove e
+  // le linguette (`sections/impianti-termici-section.js`) e la scheda che le
+  // configura (`sections/impianti-termici-editor-section.js`). La pagina si
+  // chiamava «Solare termico» e disegnava un impianto solo: chi ha il
+  // fotovoltaico e lo scaldabagno ci trovava un pannello che non ha.
+  // 194 col gruppo di continuita' (#256): il nucleo che legge le sigle di NUT
+  // (`core/ups-model.js`) e la scheda che lo configura dentro «Energia»
+  // (`sections/ups-editor-section.js`). Un UPS non e' la tessera delle
+  // batterie — quella conta le pile dei sensori, questa dice se la casa ha
+  // corrente — e non e' un impianto termico: e' la corrente di casa, e si
+  // configura dove la corrente si configura.
+  // 195 con la pagina del gruppo di continuita' (#256,
+  // `sections/ups-section.js`): la scatola merita una pagina come le altre
+  // macchine della casa — «crea sempre una sezione a se', non solo il widget
+  // col popup» — e li' il verso in cui la corrente sta andando si vede
+  // disegnato invece che letto.
+  // 197 col calendario (#259): il nucleo che legge la risposta di
+  // `calendar.get_events` e raggruppa per giorno (`core/calendario-model.js`)
+  // e la pagina che disegna la settimana e l'agenda
+  // (`sections/calendario-section.js`). Lo stato di un `calendar.*` e'
+  // `on`/`off` e negli attributi porta un evento solo: l'elenco lo si chiede
+  // al servizio, come le voci delle liste ToDo.
+  // 198 col calendario che si tocca (#259,
+  // `sections/calendario-modifica-section.js`): «il popup del widget deve dare
+  // la possibilita' di modificare e di interagire con il calendario». Il
+  // modulo, i tasti e i tre comandi che scrivono stanno in un posto solo
+  // perche' i posti da cui si scrive sono due — la finestra della tessera e la
+  // pagina — e due copie sarebbero due modi di segnare un impegno.
   assert.ok(
-    relative.length <= 186,
+    relative.length <= 198,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

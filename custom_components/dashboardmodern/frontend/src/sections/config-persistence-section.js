@@ -51,7 +51,24 @@ const USER_DATA_VERSION = 1;
  * (`cd_clima_inverti_card`) e la stazione meteo propria
  * (`cd_meteo_entita_proprie`): senza stare qui restavano sul dispositivo
  * che le aveva configurate e il ripristino da un altro le perdeva. */
-export const CONFIG_KEYS_REVISION = 14;
+/* La revisione 15 aggiunge lo scaldabagno elettrico (`cd_scaldabagni`, #253):
+ * quali entita' lo descrivono — l'interruttore, la sonda dell'acqua,
+ * l'obiettivo, il consumo. E' la casa, non il telefono: configurata da un
+ * dispositivo, gli altri resterebbero senza la tessera. */
+/* La revisione 16 aggiunge le altre due macchine del locale caldaia (#253):
+ * quali impianti termici ci sono (`cd_impianti_termici`) e le caselle della
+ * caldaia (`cd_caldaia`). Sono la casa, non il telefono: senza viaggiare, chi
+ * sceglie «solare piu' caldaia» su un dispositivo troverebbe sugli altri la
+ * pagina di prima. */
+/* La revisione 17 aggiunge il gruppo di continuita' (`cd_ups`, #256): quali
+ * entita' dicono se c'e' tensione, come sta la batteria e quanto carico
+ * regge. E' la casa, non il telefono: chi lo configura dal tablet in cucina
+ * non deve rifarlo dal telefono per vedere se la corrente e' caduta. */
+/* La revisione 18 aggiunge i calendari scelti (`cd_calendari`, #259): quali
+ * entita' `calendar.*` si guardano, con che nome e di che colore. Sono la
+ * casa, non il telefono: chi li sceglie dal tablet non deve rifarlo dal
+ * telefono per vedere gli stessi impegni. */
+export const CONFIG_KEYS_REVISION = 18;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -154,6 +171,11 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_clima_rapido_unita",
   // Le entita' in evidenza: la tessera che tiene d'occhio sensori senza stanza.
   "cd_evidenza",
+  "cd_scaldabagni",
+  "cd_impianti_termici",
+  "cd_caldaia",
+  "cd_ups",
+  "cd_calendari",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

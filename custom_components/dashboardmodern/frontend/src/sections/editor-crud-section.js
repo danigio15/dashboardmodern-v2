@@ -1,5 +1,5 @@
 // DM-FIX-20260812B
-import { contactEntity } from "../core/shutter-window.js";
+import { contactEntity, inferriataEntity } from "../core/shutter-window.js";
 import { coverDownRelay, coverPresetPosition } from "../core/cover-kind.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
@@ -251,6 +251,7 @@ function beginEdit(kind, index) {
     setField("ed-tp-ent", item.entity || "");
     setField("ed-tp-room", item.room || item.room_id || "");
     setField("ed-tp-contact", contactEntity(item));
+    setField("ed-tp-inferriata", inferriataEntity(item));
     setField("ed-tp-tenda", item.tenda || "");
     setField("ed-tp-tendasole", item.tendaSole || "");
     setField("ed-tp-preset", coverPresetPosition(item) ?? "");
@@ -387,6 +388,9 @@ function installAddWrappers() {
         // Il contatto dell'infisso: la card lo legge per sapere se la finestra
         // dietro la tapparella e' aperta.
         contact: clean(doc.getElementById("ed-tp-contact")?.value),
+        /* Il contatto di fuori (#254): la grata davanti al vetro, che si apre
+         * per conto suo e va detta separata dall'infisso. */
+        inferriata: clean(doc.getElementById("ed-tp-inferriata")?.value),
         /* Un infisso puo' averle tutte: una casella per funzione, e il tipo non
          * si dichiara piu' perche' lo dice la casella. */
         tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
@@ -423,6 +427,7 @@ function installAddWrappers() {
     () => {
       const extra = {
         contact: clean(doc.getElementById("ed-tp-contact")?.value),
+        inferriata: clean(doc.getElementById("ed-tp-inferriata")?.value),
         tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
         tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
         preset: clean(doc.getElementById("ed-tp-preset")?.value),

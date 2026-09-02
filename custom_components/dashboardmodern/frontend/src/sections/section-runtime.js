@@ -5,6 +5,7 @@ import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installI18nSection } from "./i18n-section.js";
 import { installThemeFoundationSection } from "./theme-foundation-section.js";
+import { installIconeLeggibiliSection } from "./icone-leggibili-section.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
@@ -88,6 +89,11 @@ import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
+import { installImpiantiTermiciSection } from "./impianti-termici-section.js";
+import { installImpiantiTermiciEditor } from "./impianti-termici-editor-section.js";
+import { installUpsSection } from "./ups-section.js";
+import { installCalendarioSection } from "./calendario-section.js";
+import { installUpsEditor } from "./ups-editor-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { activeLocale, allStates, clean, english, section, t, wrapFunction } from "./shared.js";
@@ -743,6 +749,10 @@ export function installSectionRuntime() {
     // the locale has to be settled before the first of them runs.
     installI18nSection();
     installThemeFoundationSection();
+    /* Subito dopo le fondamenta del tema e prima di ogni disegno: il foglio
+     * delle sfumature deve stare in cima al documento gia' al primo giro, o
+     * i disegni nascono mezzi e si riparano solo al secondo. */
+    installIconeLeggibiliSection();
     installHostedBridgeGuard();
     installLegacySections();
     installDataContractsSection();
@@ -889,6 +899,20 @@ export function installSectionRuntime() {
     // already mounted, and re-renders itself on the same runtime events.
     installEvShowcaseSection();
     installSolarThermalDesignSection();
+    /* Dopo il disegno del solare: le linguette e le due scene nuove gli si
+     * mettono accanto, e per farlo devono trovarlo gia' al suo posto. */
+    installImpiantiTermiciSection();
+    installImpiantiTermiciEditor();
+    /* Il gruppo di continuita' (#256) ha una pagina sua, come le altre
+     * macchine della casa, e si configura nella scheda «Energia»: un UPS e' la
+     * corrente di casa, non un impianto termico. La pagina prima della scheda,
+     * cosi' la scheda trova gia' cosa ridisegnare quando si salva. */
+    installUpsSection();
+    installUpsEditor();
+    /* Il calendario (#259) ha una pagina sua accanto alla Home: le sue
+     * caselle stanno nella scheda Widget, insieme alle liste ToDo, che e'
+     * l'elenco a cui e' stato chiesto di assomigliare. */
+    installCalendarioSection();
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();
