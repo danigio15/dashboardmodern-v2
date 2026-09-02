@@ -14,16 +14,28 @@ export default Object.freeze({
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "O relato torna-se uma página pública no github.com, aberta em teu nome: qualquer pessoa poderá lê-la. A resposta volta para aqui, sob a discussão.",
   maintainer: "responsável",
+  "Add boiler": "Adicionar caldeira",
   "Assign the report to yourself on GitHub": "Atribui o relato a ti no GitHub",
   "Connect GitHub to write under this report.": "Liga o GitHub para escrever sob este relato.",
+  "Dashboard language": "Idioma do painel",
+  "Day zone": "Zona de dia",
+  "Home Assistant language": "Idioma do Home Assistant",
   "I'll take it": "Fico com ele",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Deixado no idioma do Home Assistant o painel segue o perfil de quem está a olhar. Escolher um fixa-o para este painel, mesmo que o Home Assistant fale outro idioma.",
   "Message sent.": "Mensagem enviada.",
+  "No boiler configured": "Nenhuma caldeira configurada",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "Nenhuma caldeira configurada: adiciona-a no separador Gestão térmica das definições.",
   Release: "Largar",
   "Released.": "Largado.",
   "Send the message": "Enviar a mensagem",
   Taken: "A cargo",
   "Taken by": "A cargo de",
   "Taken.": "Assumido.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "A diferença entre ida e retorno diz se o circuito está mesmo a ceder calor; a pressão é a única coisa que de vez em quando precisa de ser reposta à mão. Nenhum campo é obrigatório: só com o estado o cartão mostra a caldeira ligada ou desligada, sem números que não tem. Se tiveres mais do que uma — uma por zona — acrescenta-as aqui e a página ganha a fila para passar de uma à outra.",
+  "Unit": "Unidade",
   "Write here: the message goes under the report, under your name.":
     "Escreve aqui: a mensagem vai sob o relato, em teu nome.",
   " — configured": " — configurada",
@@ -736,7 +748,6 @@ export default Object.freeze({
     "A comparação fica disponível a partir da segunda semana registada",
   "Compatible lights only": "Apenas luzes compatíveis",
   Computer: "Computador",
-  "Condensing boiler": "Caldeira de condensação",
   Config: "Config",
   Configuration: "Configuração",
   CONFIGURATION: "CONFIGURAÇÃO",
@@ -2194,8 +2205,6 @@ export default Object.freeze({
     "A pasta tem demasiados ficheiros: só são listados os primeiros.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "O formulário acima configura o primeiro tanque. Se tiveres mais do que um, acrescenta os outros aqui: cada um tem os seus sensores, comandos e filtragem.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "A diferença entre ida e retorno diz se o circuito está mesmo a ceder calor; a pressão é a única coisa que de vez em quando precisa de ser reposta à mão. Nenhum campo é obrigatório: só com o estado o cartão mostra a caldeira ligada ou desligada, sem números que não tem.",
   "The group decides where the alert is watched.": "O grupo decide onde o aviso é vigiado.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "Os mosaicos de aviso do Início — aberturas, baterias, inundações — acendem-se sozinhos apenas quando têm algo a dizer. Aqui escolhes que sensores vigiam, com um nome limpo, ou crias um aviso personalizado sobre uma ou mais entidades, com condição, estado escrito à mão e ícone à escolha.",

@@ -14,17 +14,29 @@ export default Object.freeze({
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "報告はあなたの名前で github.com の公開ページになり、誰でも読めます。返事はここ、話の下に戻ってきます。",
   maintainer: "メンテナー",
+  "Add boiler": "ボイラーを追加",
   "Assign the report to yourself on GitHub": "GitHub で報告を自分に割り当てる",
   "Connect GitHub to write under this report.":
     "この報告に書き込むには GitHub を連携してください。",
+  "Dashboard language": "ダッシュボードの言語",
+  "Day zone": "昼のゾーン",
+  "Home Assistant language": "Home Assistant の言語",
   "I'll take it": "担当する",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Home Assistant の言語のままにしておくと、ダッシュボードは見ている人のプロフィールに従います。ひとつ選ぶとこのダッシュボードに固定され、Home Assistant が別の言語でもそのままです。",
   "Message sent.": "メッセージを送りました。",
+  "No boiler configured": "ボイラーは未設定です",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "ボイラーは未設定です。設定の「熱管理」タブから追加してください。",
   Release: "担当を外れる",
   "Released.": "担当を外れました。",
   "Send the message": "メッセージを送る",
   Taken: "担当中",
   "Taken by": "担当",
   "Taken.": "担当になりました。",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "往きと戻りの差は回路が実際に熱を出しているかを示します。圧力だけは時々手で補充する必要があります。必須の欄はありません。状態だけでもカードはボイラーの運転と停止を示し、持っていない数値は出しません。 複数ある場合は — ゾーンごとに一台 — ここに追加すると、ページに切り替えの列が出ます。",
+  "Unit": "機器",
   "Write here: the message goes under the report, under your name.":
     "ここに書いてください。メッセージはあなたの名前で報告の下に届きます。",
   " — configured": " — 設定済み",
@@ -736,7 +748,6 @@ export default Object.freeze({
   "Comparison is available from the second recorded week": "比較は記録 2 週目から表示できます",
   "Compatible lights only": "対応する照明のみ",
   Computer: "パソコン",
-  "Condensing boiler": "コンデンシングボイラー",
   Config: "設定",
   Configuration: "設定",
   CONFIGURATION: "設定",
@@ -2184,8 +2195,6 @@ export default Object.freeze({
     "フォルダーのファイルが多すぎます。先頭のものだけを表示しています。",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "上のフォームは 1 つ目の浴槽を設定します。複数ある場合はここに追加してください。それぞれにセンサー・操作・ろ過があります。",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "往きと戻りの差は回路が実際に熱を出しているかを示します。圧力だけは時々手で補充する必要があります。必須の欄はありません。状態だけでもカードはボイラーの運転と停止を示し、持っていない数値は出しません。",
   "The group decides where the alert is watched.": "通知をどこで監視するかはグループが決めます。",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "ホームの通知タイル（開閉・電池・浸水）は、伝えることがあるときだけひとりでに点灯します。ここでは、どのセンサーを見張るかをわかりやすい名前とともに選ぶか、条件・手入力の状態・好きなアイコンを指定して、ひとつ以上のエンティティにカスタム通知を作れます。",

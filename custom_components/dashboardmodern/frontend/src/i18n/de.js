@@ -14,17 +14,29 @@ export default Object.freeze({
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Die Meldung wird eine öffentliche Seite auf github.com, in deinem Namen eröffnet: jeder kann sie lesen. Die Antwort kommt hierher zurück, unter die Diskussion.",
   maintainer: "Betreuer",
+  "Add boiler": "Kessel hinzufügen",
   "Assign the report to yourself on GitHub": "Weise die Meldung dir selbst auf GitHub zu",
   "Connect GitHub to write under this report.":
     "Verbinde GitHub, um unter dieser Meldung zu schreiben.",
+  "Dashboard language": "Sprache des Dashboards",
+  "Day zone": "Tagzone",
+  "Home Assistant language": "Sprache von Home Assistant",
   "I'll take it": "Ich übernehme",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Bleibt sie auf der Sprache von Home Assistant, folgt das Dashboard dem Profil der Person, die gerade hinsieht. Wählst du eine aus, ist sie für dieses Dashboard festgelegt — auch wenn Home Assistant eine andere Sprache spricht.",
   "Message sent.": "Nachricht gesendet.",
+  "No boiler configured": "Kein Kessel eingerichtet",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "Kein Kessel eingerichtet: füge ihn im Reiter Wärmeverwaltung der Einstellungen hinzu.",
   Release: "Abgeben",
   "Released.": "Abgegeben.",
   "Send the message": "Nachricht senden",
   Taken: "Übernommen",
   "Taken by": "Übernommen von",
   "Taken.": "Übernommen.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "Der Abstand zwischen Vorlauf und Rücklauf sagt, ob der Kreis wirklich Wärme abgibt; der Druck ist das Einzige, was gelegentlich von Hand nachgefüllt werden muss. Kein Feld ist Pflicht: Schon mit dem Zustand zeigt die Karte den Kessel an oder aus, ohne Zahlen, die sie nicht hat. Bei mehreren — einer pro Zone — trägst du sie hier ein, und die Seite bekommt eine Reihe zum Umschalten.",
+  "Unit": "Gerät",
   "Write here: the message goes under the report, under your name.":
     "Schreib hier: die Nachricht steht unter der Meldung, in deinem Namen.",
   " — configured": " — konfiguriert",
@@ -744,7 +756,6 @@ export default Object.freeze({
     "Der Vergleich ist ab der zweiten aufgezeichneten Woche verfügbar",
   "Compatible lights only": "Nur kompatible Lichter",
   Computer: "Computer",
-  "Condensing boiler": "Brennwertkessel",
   Config: "Konfig",
   Configuration: "Konfiguration",
   CONFIGURATION: "KONFIGURATION",
@@ -2198,8 +2209,6 @@ export default Object.freeze({
     "Der Ordner enthält zu viele Dateien: nur die ersten werden aufgeführt.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Das Formular oben konfiguriert das erste Becken. Hast du mehrere, ergänze die anderen hier: jedes hat eigene Sensoren, eigene Bedienung und eigene Filterung.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "Der Abstand zwischen Vorlauf und Rücklauf sagt, ob der Kreis wirklich Wärme abgibt; der Druck ist das Einzige, was gelegentlich von Hand nachgefüllt werden muss. Kein Feld ist Pflicht: Schon mit dem Zustand zeigt die Karte den Kessel an oder aus, ohne Zahlen, die sie nicht hat.",
   "The group decides where the alert is watched.":
     "Die Gruppe bestimmt, wo die Meldung überwacht wird.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":

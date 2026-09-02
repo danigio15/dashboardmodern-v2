@@ -30,7 +30,6 @@ import {
   CHIAVE_IMPIANTI,
   ETICHETTE_TERMICHE,
   TIPI_TERMICI,
-  normalizzaCaldaia,
   servonoLinguette,
 } from "../core/impianti-termici.js";
 import {
@@ -55,7 +54,7 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_IMPIANTI_TERMICI_EDITOR__";
-const state = (root[KEY] ||= { installed: false, aperto: -1, firma: "", linguetta: "" });
+const state = (root[KEY] ||= { installed: false, aperto: -1, calAperto: -1, firma: "", linguetta: "" });
 
 /* La scheda del solare del guscio: e' li' che questa roba deve comparire,
  * perche' e' li' che chi configura va a cercare l'acqua calda. */
@@ -142,46 +141,77 @@ const CAMPI_CALDAIA = Object.freeze({
   modulazione: [["Modulazione (%)", "Modulation (%)"], "sensor.caldaia_modulazione"],
 });
 
-function caldaia() {
-  return normalizzaCaldaia(readJson(CHIAVE_CALDAIA, {}));
+/* Le righe grezze delle caldaie (#281): una appena aggiunta e' vuota, e la
+ * normalizzazione la scarterebbe prima che la si possa compilare.
+ *
+ * La chiave e' quella di sempre e accetta tutte e due le forme — l'oggetto di
+ * chi ne ha una sola, la lista di chi ne ha due — cosi' nessuno deve migrare
+ * niente per continuare a vedere quello che vedeva. */
+function caldaie() {
+  const stored = readJson(CHIAVE_CALDAIA, {});
+  if (Array.isArray(stored)) return stored;
+  return stored && typeof stored === "object" && Object.keys(stored).length ? [stored] : [];
 }
 
-function salvaCaldaia(config) {
-  writeJsonIfChanged(CHIAVE_CALDAIA, config);
+function salvaCaldaie(voci) {
+  writeJsonIfChanged(CHIAVE_CALDAIA, voci);
   try {
     renderImpiantiTermici();
   } catch (_error) {}
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
 }
 
-function caldaiaMarkup() {
-  const config = caldaia();
-  const campi = CASELLE_CALDAIA.map(({ campo }) => {
+function caselleCaldaia(index, voce) {
+  return CASELLE_CALDAIA.map(({ campo }) => {
     const [etichetta, esempio, aiuto] = CAMPI_CALDAIA[campo];
-    const id = `dm-caldaia-${campo}`;
+    const id = `dm-caldaia-${index}-${campo}`;
     return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(...etichetta))}</span>
-      <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-dm-caldaia-field="${esc(campo)}"
-        value="${esc(config[campo])}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
-        type="button" class="dm-entity-picker" data-dm-caldaia-pick="${id}"
+      <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-caldaia-field="${esc(campo)}"
+        value="${esc(clean(voce?.[campo]))}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
+        type="button" class="dm-entity-picker" data-caldaia-pick="${id}"
         aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>${
           aiuto ? `<small>${esc(t(...aiuto))}</small>` : ""
         }</label>`;
   }).join("");
+}
+
+function rigaCaldaiaMarkup(voce, index) {
+  const aperto = state.calAperto === index;
+  const nome = clean(voce?.name) || `${t("Caldaia", "Boiler")} ${index + 1}`;
+  const sotto =
+    clean(voce?.stato) || clean(voce?.fiamma) || clean(voce?.mandata) || t("nessuna entità", "no entity");
+  return `<article class="ed-row dm-todo-ed-row dm-caldaia-row" data-caldaia-index="${index}" data-open="${aperto}">
+    <div class="dm-todo-ed-head">
+      <span class="dm-todo-ed-icon" aria-hidden="true">🔥</span>
+      <span class="ed-row-main"><strong class="ed-row-new">${esc(nome)}</strong><small class="ed-row-old mono">${esc(sotto)}</small></span>
+      <button type="button" class="ed-del dm-todo-ed-edit" data-caldaia-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
+      <button type="button" class="ed-del dm-todo-ed-del" data-caldaia-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
+    </div>
+    <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-caldaia-${index}-name" class="ed-input" data-caldaia-field="name" value="${esc(clean(voce?.name))}" placeholder="${esc(t("Zona giorno", "Day zone"))}"></span></label>
+      ${caselleCaldaia(index, voce)}
+      <button type="button" class="ed-save-btn" data-caldaia-save>💾 ${esc(t("Salva caldaia", "Save boiler"))}</button>
+    </div>
+  </article>`;
+}
+
+function caldaiaMarkup() {
+  const voci = caldaie();
   return `<div class="ed-sec-title dm-it-ed-sep">🔥 ${esc(t("Caldaia", "Boiler"))}</div>
   <div class="ed-intro">${esc(
     t(
-      "La differenza fra mandata e ritorno dice se l'impianto sta davvero cedendo calore; la pressione è l'unica cosa che ogni tanto va rabboccata a mano. Nessuna casella è obbligatoria: col solo stato la scheda mostra la caldaia accesa o spenta, senza numeri che non ha.",
-      "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.",
+      "La differenza fra mandata e ritorno dice se l'impianto sta davvero cedendo calore; la pressione è l'unica cosa che ogni tanto va rabboccata a mano. Nessuna casella è obbligatoria: col solo stato la scheda mostra la caldaia accesa o spenta, senza numeri che non ha. Se ne hai più d'una — una per zona — aggiungile qui e in pagina compare la fila per passare dall'una all'altra.",
+      "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.",
     ),
   )}</div>
-  <div class="ed-list dm-todo-ed-list">
-    <article class="ed-row dm-todo-ed-row" data-open="true">
-      <div class="dm-todo-ed-body">
-        <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Nome", "Name"))}</span><span class="ed-form-row"><input id="dm-caldaia-name" class="ed-input" data-dm-caldaia-field="name" value="${esc(config.name)}" placeholder="${esc(t("Caldaia a condensazione", "Condensing boiler"))}"></span></label>
-        ${campi}
-        <button type="button" class="ed-save-btn" data-dm-caldaia-save>💾 ${esc(t("Salva caldaia", "Save boiler"))}</button>
-      </div>
-    </article>
-  </div>`;
+  <div class="ed-list dm-todo-ed-list dm-caldaia-list">${
+    voci.length
+      ? voci.map((voce, index) => rigaCaldaiaMarkup(voce, index)).join("")
+      : `<div class="ed-empty">${t("Nessuna caldaia configurata", "No boiler configured")}</div>`
+  }</div>
+  <button type="button" class="ed-btn-add" data-caldaia-add>＋ ${t("Aggiungi caldaia", "Add boiler")}</button>`;
 }
 
 /* ── lo scaldabagno elettrico (#253) ──────────────────────────────────── */
@@ -374,7 +404,7 @@ export function ensureImpiantiTermiciEditor() {
   if (!body || schedaAttiva() !== SCHEDA) return false;
   const scelti = impiantiDiCasa();
   const attiva = linguettaAttiva(scelti);
-  const firma = JSON.stringify([scelti, attiva, state.aperto, scaldabagni(), caldaia()]);
+  const firma = JSON.stringify([scelti, attiva, state.aperto, state.calAperto, scaldabagni(), caldaie()]);
   let blocco = body.querySelector(":scope > .dm-it-ed");
   const caselle = caselleDelSolare(body);
   if (blocco && firma === state.firma && (attiva !== "solare" || caselle?.closest(".dm-it-ed"))) {
@@ -452,22 +482,53 @@ function onClick(event) {
     return;
   }
 
-  /* ── la caldaia ── */
-  const pickCaldaia = event.target.closest("[data-dm-caldaia-pick]");
+  /* ── le caldaie (#281) ── */
+  const vociCaldaia = caldaie();
+  if (event.target.closest("[data-caldaia-add]")) {
+    event.preventDefault();
+    state.calAperto = vociCaldaia.length;
+    salvaCaldaie([...vociCaldaia, { id: `caldaia-${Date.now().toString(36)}`, name: "" }]);
+    ridisegna();
+    return;
+  }
+  const pickCaldaia = event.target.closest("[data-caldaia-pick]");
   if (pickCaldaia) {
     event.preventDefault();
-    const input = body.querySelector(`#${CSS.escape(clean(pickCaldaia.dataset.dmCaldaiaPick))}`);
+    const input = body.querySelector(`#${CSS.escape(clean(pickCaldaia.dataset.caldaiaPick))}`);
     if (input) root.wzPickEntity?.(input);
     return;
   }
-  if (event.target.closest("[data-dm-caldaia-save]")) {
-    event.preventDefault();
-    const next = { ...caldaia() };
-    for (const campo of body.querySelectorAll("[data-dm-caldaia-field]"))
-      next[clean(campo.dataset.dmCaldaiaField)] = clean(campo.value);
-    salvaCaldaia(next);
-    ridisegna();
-    root.edToast?.(t("💾 Caldaia salvata", "💾 Boiler saved"));
+  const rigaCaldaia = event.target.closest("[data-caldaia-index]");
+  if (rigaCaldaia) {
+    const indice = Number(rigaCaldaia.dataset.caldaiaIndex);
+    if (!Number.isFinite(indice) || !vociCaldaia[indice]) return;
+    if (event.target.closest("[data-caldaia-edit]")) {
+      event.preventDefault();
+      state.calAperto = state.calAperto === indice ? -1 : indice;
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-caldaia-del]")) {
+      event.preventDefault();
+      const nome = clean(vociCaldaia[indice]?.name) || `${t("Caldaia", "Boiler")} ${indice + 1}`;
+      if (root.confirm && !root.confirm(t(`Tolgo "${nome}"?`, `Remove "${nome}"?`))) return;
+      state.calAperto = -1;
+      salvaCaldaie(vociCaldaia.filter((_voce, posto) => posto !== indice));
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-caldaia-save]")) {
+      event.preventDefault();
+      const prossime = vociCaldaia.slice();
+      const letta = { ...vociCaldaia[indice] };
+      for (const campo of rigaCaldaia.querySelectorAll("[data-caldaia-field]"))
+        letta[clean(campo.dataset.caldaiaField)] = clean(campo.value);
+      prossime[indice] = letta;
+      state.calAperto = -1;
+      salvaCaldaie(prossime);
+      ridisegna();
+      root.edToast?.(t("💾 Caldaia salvata", "💾 Boiler saved"));
+    }
     return;
   }
 

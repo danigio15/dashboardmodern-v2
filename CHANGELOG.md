@@ -244,6 +244,34 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   vuoto e' quasi sempre colpa sua, non dello stato: dirlo evita di guardare una
   coda vuota chiedendosi dove siano finite le altre trentanove.
 
+### Nuovo
+
+- **Le entità del clima si raggruppano per stanza.** «Ho sette termosifoni con
+  valvola smart, ognuna con una o più entità VTherm: almeno si raddoppiano,
+  quattordici o più da mostrare nella sezione. Poterle raggruppare per stanza
+  aiuta a organizzare il contenuto.» (#261) Si raggruppava per piano soltanto,
+  e la ragione era buona: con un'unità per stanza un titolo di stanza vuol dire
+  un titolo sopra ogni singola carta, e la stanza sulla carta c'è già scritta.
+  Quella ragione cade quando le unità per stanza sono più d'una — lì il titolo
+  dice dove finisce una stanza e comincia l'altra, che dalle carte in fila non
+  si vede. Quindi la stessa regola del piano, che un titolo lo stampa solo se
+  sopra c'è più di un piano: la stanza si intitola quando almeno una ne tiene
+  più di una. Chi ne ha una per stanza vede esattamente quello che vedeva.
+- **La lingua si sceglie dalle Impostazioni.** «Vorrei poter modificare la
+  lingua senza ereditare necessariamente quella di HA: io ho HA in inglese
+  perché mi aiuta per lo sviluppo, ma la plancia la vorrei in italiano per
+  renderla fruibile agli altri componenti della famiglia.» (#263) Il motore
+  c'era già tutto, e in `i18n-section.js` c'era perfino scritto «così la pagina
+  delle impostazioni può cambiare lingua senza ricaricare»: mancava la pagina
+  delle impostazioni. Adesso c'è, con «Lingua di Home Assistant» che non è una
+  quattordicesima lingua ma l'assenza di scelta — sceglierla cancella la
+  preferenza e la plancia torna a seguire il profilo di chi guarda.
+- **E dentro Home Assistant quella scelta adesso vale.** Non sarebbe bastata la
+  tendina: la lingua che l'ospite inietta era il primo candidato, e dentro HA
+  c'è sempre, quindi una scelta salvata non avrebbe vinto mai. Una preferenza
+  esplicita batte un valore di serie, come dappertutto qui: chi non ne ha una
+  ricade esattamente su quello che vedeva prima.
+
 ### Corretto
 
 - **Le finestre Giornaliera e Mensile mostrano il periodo, non l'istante.** «I

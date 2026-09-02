@@ -14,16 +14,28 @@ export default Object.freeze({
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "يصبح البلاغ صفحة عامة على github.com، مفتوحة باسمك: سيتمكن أي شخص من قراءتها. يصلك الرد هنا، أسفل النقاش.",
   maintainer: "المشرف",
+  "Add boiler": "إضافة مرجل",
   "Assign the report to yourself on GitHub": "أسنِد البلاغ إلى نفسك على GitHub",
   "Connect GitHub to write under this report.": "اربط GitHub للكتابة تحت هذا البلاغ.",
+  "Dashboard language": "لغة اللوحة",
+  "Day zone": "منطقة النهار",
+  "Home Assistant language": "لغة Home Assistant",
   "I'll take it": "سأتولّاه",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "إذا تُركت على لغة Home Assistant فإن اللوحة تتبع ملف من ينظر إليها. واختيار لغة يثبّتها لهذه اللوحة، حتى لو كان Home Assistant يتكلم لغة أخرى.",
   "Message sent.": "أُرسلت الرسالة.",
+  "No boiler configured": "لا يوجد مرجل مُعد",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "لا يوجد مرجل مُعد: أضِفه من تبويب إدارة التدفئة في الإعدادات.",
   Release: "تخلَّ عنه",
   "Released.": "تم التخلي عنه.",
   "Send the message": "أرسل الرسالة",
   Taken: "قيد التولّي",
   "Taken by": "بعهدة",
   "Taken.": "تم تولّيه.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "الفرق بين الذهاب والعودة يبيّن إن كانت الدائرة تمنح حرارة فعلاً؛ أما الضغط فهو الشيء الوحيد الذي يحتاج أحياناً إلى تعبئة يدوية. لا حقل إلزامي: بالحالة وحدها تعرض البطاقة الغلاية تعمل أو مطفأة، بلا أرقام لا تملكها. وإن كان لديك أكثر من واحد — واحد لكل منطقة — فأضِفها هنا، وتظهر في الصفحة صفٌّ للتنقل بينها.",
+  "Unit": "وحدة",
   "Write here: the message goes under the report, under your name.":
     "اكتب هنا: تُنشر الرسالة تحت البلاغ باسمك.",
   " — configured": " — مُهيّأة",
@@ -725,7 +737,6 @@ export default Object.freeze({
     "تتاح المقارنة ابتداءً من الأسبوع الثاني المسجَّل",
   "Compatible lights only": "الأضواء المتوافقة فقط",
   Computer: "حاسوب",
-  "Condensing boiler": "غلاية تكثيفية",
   Config: "الإعدادات",
   Configuration: "الإعدادات",
   CONFIGURATION: "الإعدادات",
@@ -2162,8 +2173,6 @@ export default Object.freeze({
     "المجلد يحتوي على ملفات أكثر من اللازم: تُدرَج الأولى فقط.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "النموذج أعلاه يهيّئ الحوض الأول. فإن كان لديك أكثر من واحد، أضِف البقية هنا: لكلٍّ منها حساساتها وعناصر تحكمها وترشيحها.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "الفرق بين الذهاب والعودة يبيّن إن كانت الدائرة تمنح حرارة فعلاً؛ أما الضغط فهو الشيء الوحيد الذي يحتاج أحياناً إلى تعبئة يدوية. لا حقل إلزامي: بالحالة وحدها تعرض البطاقة الغلاية تعمل أو مطفأة، بلا أرقام لا تملكها.",
   "The group decides where the alert is watched.": "تحدد المجموعة أين تتم مراقبة التنبيه.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "بطاقات التنبيه في الرئيسية — الفتحات والبطاريات وتسرب المياه — تضيء من تلقاء نفسها فقط عندما يكون لديها ما تقوله. هنا تختار المستشعرات التي تراقبها، باسم نظيف، أو تنشئ تنبيهًا مخصصًا على كيان واحد أو أكثر، بشرط وحالة تكتبها بنفسك وأيقونة من اختيارك.",
