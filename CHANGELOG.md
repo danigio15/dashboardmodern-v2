@@ -71,6 +71,15 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
 
 ### Corretto
 
+- **Le risposte si vedono aprendo la finestra, senza premere niente.** Aprirla
+  leggeva solo quello che c'era in casa: le risposte scritte su GitHub
+  arrivavano premendo «Aggiorna», o al giro di mezz'ora. Chi apriva le proprie
+  segnalazioni per vedere se c'era una risposta — cioe' l'unico motivo per cui
+  uno le apre — trovava quello che gia' sapeva, e doveva chiudere e riaprire la
+  plancia. Adesso l'apertura se le va a riprendere da sola, al massimo una
+  volta al minuto, senza rotella e senza avvisi se la rete e' giu': chi ha solo
+  aperto una finestra non ha chiesto niente.
+
 - **Quando GitHub rifiuta, adesso si legge perche'.** Un `403` usciva come
   «permessi o limite orario»: due strade opposte dietro una frase sola — una si
   risolve con un'installazione, l'altra aspettando — e a chi legge restava il
@@ -96,6 +105,20 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   si apra.
 
 ### Il cruscotto
+
+- **I tasti che scrivono nascono spenti, e si accendono col testo.** Erano
+  sempre premibili, e alla pressione a vuoto rispondevano «Scrivi una
+  risposta»: un rimprovero al posto di un invito, per un errore che il tasto
+  poteva semplicemente non lasciar commettere. Spento adesso vuol dire spento
+  anche per il tasto pieno — la sola trasparenza lasciava un rettangolo azzurro
+  che continuava a leggersi come «premimi».
+
+- **E c'e' «Risolvi», che chiude e basta.** Chiudere senza scrivere e' un gesto
+  legittimo — «non e' un difetto», «era gia' risolta» — e prima l'unico modo di
+  farlo era «Archivia», che pero' dice un'altra cosa: archiviata vuol dire
+  lasciata li', risolta vuol dire fatta. Ora la riga ne ha quattro: due che
+  scrivono e aspettano il testo, due che chiudono subito.
+
 
 - **Lo stato e il tipo sono due file di tasti, e si incrociano.** Stavano tutti
   su una riga sola a scelta singola, e quello faceva sembrare «Da lavorare» e

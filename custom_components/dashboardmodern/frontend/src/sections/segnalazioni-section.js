@@ -46,6 +46,7 @@ const state = (root[KEY] ||= {
   filtro: "aperte",
   tipoCoda: "",
   queueAt: 0,
+  syncAt: 0,
   codaTimer: 0,
   tab: "nuova",
   tipo: "bug",
@@ -509,7 +510,13 @@ const CSS = `
   font-size:13px; font-weight:800; background:var(--accent,#0ea5e9); color:#fff;
   transition:transform .18s cubic-bezier(.34,1.56,.64,1), filter .2s; }
 .dm-tkt-btn:hover { transform:translateY(-2px); filter:brightness(1.05); }
-.dm-tkt-btn[disabled] { opacity:.5; cursor:default; transform:none; }
+/* Spento vuol dire spento anche quando il tasto e' quello pieno: la sola
+   trasparenza lasciava un rettangolo azzurro su fondo scuro, che continua a
+   leggersi come «premimi». Perde il colore e prende quello neutro, cosi' la
+   differenza fra «non ancora» e «adesso si'» si vede da lontano. */
+.dm-tkt-btn[disabled] { opacity:.55; cursor:default; transform:none; filter:none;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
+  border:1px solid var(--card-border,#e2e8f0); }
 .dm-tkt-btn.chiaro { background:var(--surface-3,#f1f5f9); color:var(--text,#0f172a);
   border:1px solid var(--card-border,#e2e8f0); }
 .dm-tkt-avviso { padding:11px 14px; border-radius:14px; font-size:13px;
@@ -696,6 +703,14 @@ export function apri(dove = "") {
   modale.classList.add("show");
   disegna();
   ricarica();
+  /* E si va a vedere se nel frattempo qualcuno ha risposto.
+   *
+   * `ricarica()` legge quello che c'e' in casa: le risposte scritte su GitHub
+   * non ci sono ancora, e ci arrivavano solo premendo «Aggiorna» o al giro di
+   * mezz'ora. Chi apriva le sue segnalazioni per vedere se c'era una risposta
+   * — cioe' l'unico motivo per cui uno le apre — trovava quello che gia'
+   * sapeva, e doveva chiudere e riaprire. */
+  sincronizza({ zitta: true });
 }
 
 export function chiudi() {
@@ -1334,18 +1349,31 @@ export function codaVoceMarkup(ticket) {
   const tipo = tipoInCoda(clean(ticket.type));
   const chiusa = CHIUSA.includes(clean(ticket.state));
   const aperto = Boolean(state.fili[numero] || state.filiInCorso[numero]);
+  /* I tasti che scrivono partono spenti e si accendono quando c'e' del testo.
+   * Prima erano sempre premibili e rispondevano «Scrivi una risposta»: un
+   * rimprovero al posto di un invito, per un errore che il tasto poteva
+   * semplicemente non lasciar commettere.
+   *
+   * Quelli che chiudono e basta restano accesi: chiudere senza scrivere e' un
+   * gesto legittimo — «non e' un difetto», «era gia' risolta» — e pretendere un
+   * commento per farlo vorrebbe dire chiedere di scrivere per forza. */
+  const scrive = ` data-dm-serve-testo="${numero}" disabled`;
   const azioni = chiusa
     ? `<button type="button" class="dm-tkt-btn chiaro"
-         data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
+         data-dm-rispondi="${numero}" data-dm-chiudi=""${scrive}>${esc(
            t("Aggiungi una risposta", "Add a reply"),
          )}</button>`
     : `
       <button type="button" class="dm-tkt-btn chiaro"
-        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(t("Rispondi", "Reply"))}</button>
+        data-dm-rispondi="${numero}" data-dm-chiudi=""${scrive}>${esc(
+          t("Rispondi", "Reply"),
+        )}</button>
       <button type="button" class="dm-tkt-btn"
-        data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
+        data-dm-rispondi="${numero}" data-dm-chiudi="risolto"${scrive}>${esc(
           t("Rispondi e risolvi", "Reply and solve"),
         )}</button>
+      <button type="button" class="dm-tkt-btn chiaro"
+        data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(t("Risolvi", "Solve"))}</button>
       <button type="button" class="dm-tkt-btn chiaro"
         data-dm-rispondi="${numero}" data-dm-chiudi="chiuso">${esc(
           t("Archivia", "Archive"),
@@ -1512,6 +1540,20 @@ function agganciaEventi(corpo) {
       disegna();
     });
   });
+  /* Si accendono mentre si scrive, e non a un ridisegno: rifare il markup a
+   * ogni tasto premuto vorrebbe dire perdere il punto del cursore e la
+   * selezione, cioe' rompere proprio la cosa che si sta usando. Qui si tocca
+   * solo `disabled`, che il testo non lo sfiora. */
+  corpo.querySelectorAll("[data-dm-serve-testo]").forEach((bottone) => {
+    const numero = bottone.dataset.dmServeTesto;
+    const campo = corpo.querySelector(`#dm-tkt-risposta-${numero}`);
+    if (!campo) return;
+    const aggiorna = () => {
+      bottone.disabled = !clean(campo.value);
+    };
+    campo.addEventListener("input", aggiorna);
+    aggiorna();
+  });
   corpo.querySelectorAll("[data-dm-tipo-coda]").forEach((bottone) => {
     bottone.addEventListener("click", () => {
       state.tipoCoda = bottone.dataset.dmTipoCoda;
@@ -1519,7 +1561,11 @@ function agganciaEventi(corpo) {
     });
   });
   corpo.querySelector('[data-dm-tkt="invia"]')?.addEventListener("click", invia);
-  corpo.querySelector('[data-dm-tkt="aggiorna"]')?.addEventListener("click", sincronizza);
+  /* Senza la lambda l'ascoltatore passerebbe l'Event come opzioni: oggi
+   * funzionerebbe per caso — un Event non ha `zitta`, quindi vale il difetto —
+   * ma e' un caso, e il giorno che l'opzione cambia nome smette di essere
+   * fortunato senza che niente lo dica. */
+  corpo.querySelector('[data-dm-tkt="aggiorna"]')?.addEventListener("click", () => sincronizza());
   corpo.querySelectorAll("[data-dm-tolgi]").forEach((bottone) => {
     bottone.addEventListener("click", () => elimina(bottone.dataset.dmTolgi));
   });
@@ -1613,15 +1659,31 @@ async function invia() {
   }
 }
 
-async function sincronizza() {
-  state.busy = true;
-  disegna();
+/* Ogni quanto le risposte si vanno a riprendere da sole all'apertura. Un
+ * minuto: aprire e richiudere la finestra tre volte di fila non deve voler dire
+ * tre giri completi verso GitHub, e in un minuto non e' cambiato niente. */
+const RISPOSTE_FRESCHE = 60 * 1000;
+
+async function sincronizza({ zitta = false } = {}) {
+  /* Zitta e' il giro che la finestra fa da sola quando si apre: si salta se e'
+   * appena stato fatto, non accende la rotella e se la rete e' giu' non dice
+   * niente — chi ha solo aperto una finestra non ha chiesto niente, e un avviso
+   * rosso in faccia all'apertura sarebbe una risposta a una domanda che nessuno
+   * ha fatto. Ad alta voce e' il tasto «Aggiorna», dove qualcuno ha chiesto. */
+  if (zitta && Date.now() - state.syncAt < RISPOSTE_FRESCHE) return;
+  if (!zitta) {
+    state.busy = true;
+    disegna();
+  }
   try {
     const risposta = await chiedi(WS_SYNC);
     state.tickets = Array.isArray(risposta?.tickets) ? risposta.tickets : state.tickets;
     state.delivery = Boolean(risposta?.delivery);
+    state.syncAt = Date.now();
   } catch (errore) {
-    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+    if (!zitta) {
+      state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+    }
   } finally {
     state.busy = false;
     installaTessera();
@@ -1693,14 +1755,12 @@ async function rispondi(numero, chiusura) {
   if (!issue) return;
   const modale = doc?.getElementById?.("dm-tkt-modal");
   const testo = clean(modale?.querySelector(`#dm-tkt-risposta-${issue}`)?.value);
-  /* Archiviare senza scrivere niente ha senso — «non e' un difetto» — ma
-   * rispondere senza testo no: sarebbe un commento vuoto sotto la
-   * segnalazione di qualcuno. */
-  if (!testo && !chiusura) {
-    state.avviso = `!${t("Scrivi una risposta.", "Write a reply.")}`;
-    disegna();
-    return;
-  }
+  /* Chiudere senza scrivere ha senso — «non e' un difetto», «era gia'
+   * risolta». Rispondere senza testo no: sarebbe un commento vuoto sotto la
+   * segnalazione di qualcuno. I tasti che scrivono nascono spenti apposta, e
+   * questa riga resta come rete: un tasto premuto da tastiera o da un'altra
+   * strada non deve poter pubblicare il vuoto. */
+  if (!testo && !chiusura) return;
   state.busy = true;
   disegna();
   try {

@@ -753,3 +753,44 @@ test("i generi di oggi tornano il conto di oggi, senza perderne per strada", () 
     },
   );
 });
+
+test("i tasti che scrivono nascono spenti, quelli che chiudono no", () => {
+  /* Prima erano tutti premibili e la risposta al vuoto era «Scrivi una
+   * risposta»: un rimprovero al posto di un invito, per un errore che il tasto
+   * poteva semplicemente non lasciar commettere.
+   *
+   * Chiudere senza scrivere invece e' un gesto legittimo — «non e' un
+   * difetto», «era gia' risolta» — e pretendere un commento per farlo vorrebbe
+   * dire chiedere di scrivere per forza. */
+  const voce = codaVoceMarkup(inCoda({ number: 7, state: "inviato" }));
+  const tasti = [...voce.matchAll(/<button[^>]*data-dm-rispondi="7"[^>]*>/g)].map((m) => m[0]);
+  assert.equal(tasti.length, 4, "i tasti della riga non sono piu' quattro");
+
+  const spenti = tasti.filter((tasto) => tasto.includes("disabled"));
+  assert.equal(spenti.length, 2, "i tasti spenti in partenza non sono due");
+  for (const tasto of spenti) {
+    assert.ok(
+      tasto.includes("data-dm-serve-testo"),
+      "un tasto nasce spento senza dire che aspetta del testo",
+    );
+  }
+
+  /* E i due che restano accesi chiudono davvero: uno risolve, l'altro
+   * archivia. Un tasto acceso che non chiude niente sarebbe un tasto che
+   * pubblica il vuoto. */
+  const accesi = tasti.filter((tasto) => !tasto.includes("disabled"));
+  assert.deepEqual(accesi.map((tasto) => tasto.match(/data-dm-chiudi="([^"]*)"/)[1]).sort(), [
+    "chiuso",
+    "risolto",
+  ]);
+});
+
+test("su una gia' chiusa il solo tasto che c'e' aspetta del testo", () => {
+  /* Li' l'unico gesto e' aggiungere una risposta, e una risposta vuota non e'
+   * una risposta. */
+  const voce = codaVoceMarkup(inCoda({ number: 9, state: "risolto" }));
+  const tasti = [...voce.matchAll(/<button[^>]*data-dm-rispondi="9"[^>]*>/g)].map((m) => m[0]);
+  assert.equal(tasti.length, 1);
+  assert.ok(tasti[0].includes("disabled"));
+  assert.ok(tasti[0].includes("data-dm-serve-testo"));
+});
