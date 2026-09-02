@@ -69,6 +69,32 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   Home, ad alta voce per la console — dove qualcuno sta guardando e un guasto
   va detto.
 
+### Corretto
+
+- **Quando GitHub rifiuta, adesso si legge perche'.** Un `403` usciva come
+  «permessi o limite orario»: due strade opposte dietro una frase sola — una si
+  risolve con un'installazione, l'altra aspettando — e a chi legge restava il
+  compito di indovinare. Con ogni rifiuto GitHub manda un `message` che quasi
+  sempre e' esatto («Resource not accessible by integration»), e veniva buttato
+  via. Adesso arriva fino alla riga sotto la segnalazione.
+
+- **La tessera compariva per caso, o non compariva.** La Home si disegna mentre
+  la richiesta verso GitHub e' ancora per aria, e a quel punto il sommario e'
+  nullo: la tessera non veniva messa, e restava fuori fino al primo evento che
+  facesse ridisegnare la griglia per un'altra ragione. Adesso l'arrivo della
+  coda e' esso stesso l'evento.
+
+- **E i suoi conti restavano fermi.** La soglia dei dieci minuti era un freno,
+  non un orologio: diceva «non richiedere se hai gia' chiesto da poco», e in una
+  plancia lasciata aperta su un tablet nessuno chiedeva piu' niente. Adesso c'e'
+  un battito che quei dieci minuti li conta — solo per chi ha la console, e
+  fermo mentre la pagina non si vede.
+
+- **«Apri il cruscotto» sembrava non fare niente.** Le due finestre stanno sullo
+  stesso piano e la piu' giovane copre l'altra: il cruscotto si apriva dietro
+  quella della tessera. Adesso la tessera chiude la propria prima che l'altra
+  si apra.
+
 ### Il cruscotto
 
 - **Lo stato e il tipo sono due file di tasti, e si incrociano.** Stavano tutti

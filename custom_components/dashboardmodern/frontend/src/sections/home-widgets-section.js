@@ -4915,6 +4915,21 @@ function popupHost() {
   return host;
 }
 
+/* «Apri il cruscotto» sta dentro la finestra di questa tessera, e quella
+ * finestra va chiusa prima che l'altra si apra. Le due stanno sullo stesso
+ * piano — `z-index: 9999` tutte e due — e la piu' giovane copre l'altra: il
+ * tasto sembrava non fare niente, perche' il cruscotto si apriva dietro.
+ *
+ * Chiude chi possiede: la sezione delle segnalazioni apre la propria finestra,
+ * questo file chiude la propria. Toccare il DOM altrui — o importarsi a
+ * vicenda, visto che e' questo file a importare quello — sarebbe la strada per
+ * romperle tutte e due insieme. */
+function ascoltaLaPorta() {
+  doc?.addEventListener?.("click", (event) => {
+    if (event.target?.closest?.("[data-dm-apri-cruscotto]")) chiudiPopup();
+  });
+}
+
 function chiudiPopup() {
   state.expanded = "";
   state.corpo = { chiave: "", markup: "" };
@@ -6667,8 +6682,13 @@ export function installHomeWidgetsSection() {
     // Una tapparella appena aggiunta in configurazione deve avere la sua
     // tessera subito, non al prossimo evento di stato.
     "dashboardmodern:editor-rendered",
+    /* La coda delle segnalazioni arriva da GitHub, quindi dopo che la Home si
+       e' gia' disegnata: la sua tessera va messa quando la risposta atterra,
+       non al primo evento che passi di li' per un'altra ragione. */
+    "dashboardmodern:segnalazioni-coda",
   ])
     root.addEventListener?.(eventName, schedule);
+  ascoltaLaPorta();
   /* La storia delle ore precedenti arriva quando arriva, e la finestra non
    * l'aspetta per aprirsi: si apre col numero che c'e' gia'. Quando la
    * risposta atterra, pero', il racconto ha due righe in piu' da dire — «piu'

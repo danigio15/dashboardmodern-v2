@@ -618,6 +618,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * win that race. Same discipline: English shell only, alarm nodes only,
    * silent while the page is hidden.
    *
+   * The sixth keeps the Segnalazioni tile of the Home deck honest. Its counts
+   * come from GitHub, and GitHub pushes nothing: without a beat the numbers
+   * freeze at whatever they were when the page was opened, wearing the face of
+   * the numbers of right now — which is worse than showing nothing. Ten
+   * minutes, and the same discipline as the rest: only for the account that
+   * holds the repository (nobody else has that tile), silent while the page is
+   * hidden, and stopped when the section is uninstalled.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -631,6 +639,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/live-ui-section.js",
       "src/sections/people-section.js",
       "src/sections/pool-extra-section.js",
+      "src/sections/segnalazioni-section.js",
     ],
   );
 

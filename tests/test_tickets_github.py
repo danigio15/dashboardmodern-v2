@@ -1076,3 +1076,38 @@ async def test_la_coda_porta_quando_e_stata_aperta(
     )
     coda = await tickets.async_queue(hass, "dani")
     assert [voce["created_at"] for voce in coda] == ["2026-09-02T08:15:00Z", ""]
+
+
+async def test_il_rifiuto_di_github_riporta_quello_che_github_dice(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """«Permessi o limite orario» sono due strade opposte dietro una frase sola.
+
+    Una si risolve installando l'App sulla repository, l'altra aspettando. Il
+    `message` di GitHub lo dice, e buttarlo via lasciava a chi legge il compito
+    di indovinare.
+    """
+    corpo = json.dumps({"message": "Resource not accessible by integration"}).encode()
+    monkeypatch.setattr(
+        github_client,
+        "async_get_clientsession",
+        lambda _hass: _Sessione(_Risposta([corpo], status=403)),
+    )
+    with pytest.raises(GitHubError) as guasto:
+        await github_client._request(hass, "POST", "https://api.github.com/x")
+    assert guasto.value.code == "forbidden"
+    assert "Resource not accessible by integration" in str(guasto.value)
+
+
+async def test_un_rifiuto_muto_resta_leggibile(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Senza `message` non si attacca una coda vuota alla frase."""
+    monkeypatch.setattr(
+        github_client,
+        "async_get_clientsession",
+        lambda _hass: _Sessione(_Risposta([b"non e' json"], status=404)),
+    )
+    with pytest.raises(GitHubError) as guasto:
+        await github_client._request(hass, "GET", "https://api.github.com/x")
+    assert str(guasto.value) == "Non trovato su GitHub."

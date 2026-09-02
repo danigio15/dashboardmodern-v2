@@ -46,6 +46,7 @@ const state = (root[KEY] ||= {
   filtro: "aperte",
   tipoCoda: "",
   queueAt: 0,
+  codaTimer: 0,
   tab: "nuova",
   tipo: "bug",
   /* Quello che si sta scrivendo. Sta qui e non solo nel DOM perche' ogni
@@ -712,6 +713,35 @@ export function chiudi() {
  * sempre l'ultima. */
 const CODA_FRESCA = 10 * 60 * 1000;
 
+/* E qualcuno che li conti, quei dieci minuti.
+ *
+ * La soglia da sola e' un freno, non un orologio: dice «non richiedere se hai
+ * gia' chiesto da poco», e in una plancia lasciata aperta su un tablet nessuno
+ * chiedeva piu' niente. I conti restavano fermi per ore, con l'aria di essere
+ * quelli di adesso — e una segnalazione arrivata a mezzogiorno non si sarebbe
+ * vista fino a che qualcuno non toccava qualcosa.
+ *
+ * Il battito parte solo per chi ha la console: per tutti gli altri non c'e'
+ * nessuna tessera da tenere fresca, e sarebbe una chiamata a vuoto ogni dieci
+ * minuti per sempre. */
+function battitoDellaCoda() {
+  fermaBattito();
+  state.codaTimer = root.setInterval?.(async () => {
+    /* Fermo mentre la pagina non si vede: una plancia in secondo piano non ha
+     * nessuno che la guardi, e chiedere a GitHub per una tessera che nessuno
+     * sta leggendo e' una chiamata buttata ogni dieci minuti per sempre. Al
+     * ritorno la coda e' vecchia di un giro, e il giro dopo la riprende. */
+    if (!state.console || doc?.hidden) return;
+    await caricaCoda({ zitta: true });
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:segnalazioni-coda"));
+  }, CODA_FRESCA);
+}
+
+function fermaBattito() {
+  if (state.codaTimer) root.clearInterval?.(state.codaTimer);
+  state.codaTimer = 0;
+}
+
 /* Quello che il widget della Home ha bisogno di sapere, e nient'altro.
  *
  * Torna `null` per chiunque non tenga la repository: la tessera non esiste per
@@ -797,7 +827,16 @@ async function ricarica() {
      * mostra senza che nessuno abbia aperto niente. Non a ogni giro pero': una
      * chiamata a GitHub per ogni ridisegno sarebbe uno spreco, e la coda non
      * cambia da un secondo all'altro. */
-    if (state.console) await caricaCoda({ zitta: true });
+    if (state.console) {
+      await caricaCoda({ zitta: true });
+      /* La Home si e' gia' disegnata mentre questa richiesta era per aria, e a
+       * quel punto il sommario era ancora nullo: la tessera non e' stata messa.
+       * Senza questo avviso restava fuori fino al primo evento che facesse
+       * ridisegnare la griglia per un'altra ragione — cioe' comparire per caso,
+       * che e' peggio del non comparire. */
+      root.dispatchEvent?.(new CustomEvent("dashboardmodern:segnalazioni-coda"));
+      if (!state.codaTimer) battitoDellaCoda();
+    }
   } catch (_error) {
     /* La finestra si apre lo stesso: quello che c'e' da scrivere si scrive
      * anche senza aver letto l'elenco, e l'elenco si riprende da solo. */
@@ -1718,6 +1757,7 @@ export function installSegnalazioniSection() {
 /** Seme per le prove: dimentica l'installazione e la finestra. */
 export function uninstallSegnalazioniSection() {
   fermaAttesa();
+  fermaBattito();
   state.auth = null;
   doc?.getElementById?.("dm-tkt-modal")?.remove();
   doc?.getElementById?.("dm-tkt-card")?.remove();

@@ -86,6 +86,43 @@ def configured() -> bool:
     return bool(GITHUB_CLIENT_ID)
 
 
+#: Quanto del messaggio di GitHub si riporta. Sono frasi corte; il tetto c'e'
+#: perche' quel testo finisce dritto sotto la segnalazione di chi ha scritto.
+_MAX_MOTIVO = 200
+
+
+def _motivo(corpo: bytes) -> str:
+    """Cosa dice GitHub del rifiuto, se lo dice.
+
+    Con ogni 4xx GitHub manda un `message` che il piu' delle volte e' esatto —
+    «Resource not accessible by integration» quando l'App non e' installata
+    sulla repository, «API rate limit exceeded» quando si e' insistito troppo.
+    Buttarlo via voleva dire mostrare «permessi o limite orario» e lasciare a
+    chi legge il compito di indovinare quale dei due: due strade opposte dietro
+    la stessa frase, una che si risolve con un'installazione e una aspettando.
+    """
+    try:
+        letto = json.loads(corpo or b"{}")
+    except ValueError:
+        return ""
+    if not isinstance(letto, dict):
+        return ""
+    return str(letto.get("message") or "")[:_MAX_MOTIVO].strip()
+
+
+def _guasto(status: int, corpo: bytes) -> GitHubError:
+    """Il guasto da sollevare per una risposta che non e' andata bene."""
+    motivo = _motivo(corpo)
+    coda = f" GitHub dice: {motivo}" if motivo else ""
+    if status == 401:
+        return GitHubError("unauthorized", f"Autorizzazione GitHub scaduta.{coda}")
+    if status == 403:
+        return GitHubError("forbidden", f"GitHub ha rifiutato.{coda}")
+    if status == 404:
+        return GitHubError("not_found", f"Non trovato su GitHub.{coda}")
+    return GitHubError("http", f"GitHub ha risposto {status}.{coda}")
+
+
 async def _leggi_col_tetto(flusso: Any) -> bytes:
     """Il corpo intero, o un guasto — mai un pezzo spacciato per il tutto.
 
@@ -128,16 +165,8 @@ async def _request(
             method, url, headers=headers, json=payload, timeout=_TIMEOUT
         ) as answer:
             corpo = await _leggi_col_tetto(answer.content)
-            if answer.status == 401:
-                raise GitHubError("unauthorized", "Autorizzazione GitHub scaduta.")
-            if answer.status == 403:
-                raise GitHubError(
-                    "forbidden", "GitHub ha rifiutato: permessi o limite orario."
-                )
-            if answer.status == 404:
-                raise GitHubError("not_found", "Non trovato su GitHub.")
             if answer.status >= 400:
-                raise GitHubError("http", f"GitHub ha risposto {answer.status}.")
+                raise _guasto(answer.status, corpo)
             try:
                 return json.loads(corpo or b"{}")
             except ValueError as errore:

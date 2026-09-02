@@ -306,10 +306,22 @@ dell'App.
 
 **Non c'e' nessuna chiave privata**, da nessuna parte. Servirebbe per
 autenticarsi *come* l'App — generare installation token, ricevere webhook — e
-qui non succede mai: si parla sempre e solo a nome di chi ha autorizzato. Al
-primo salvataggio GitHub avvisa che «devi generare una chiave privata per
-installare l'App»: e' vero per chi la installa, e questa non ha bisogno di
-essere installata da nessuno.
+qui non succede mai: si parla sempre e solo a nome di chi ha autorizzato.
+
+**L'App pero' va installata su questa repository, una volta sola.** Qui c'era
+scritto il contrario, ed era sbagliato: leggere i dati pubblici — chi ha
+autorizzato, l'elenco delle issue — un gettone di GitHub App lo fa comunque, ed
+e' per questo che la console si accendeva e mostrava tutto. **Scrivere** no: per
+aprire una issue serve che l'App sia installata sulla repository di
+destinazione. Senza, GitHub risponde `403` con
+`Resource not accessible by integration`, e la segnalazione resta in casa con
+quel motivo scritto sotto.
+
+L'installazione la fa il proprietario della repository, una volta, dalla pagina
+dell'App (*Install App*). Non e' una concessione a chi segnala: chi segnala
+autorizza per se' col codice, come sempre, e la sua issue esce a suo nome
+perche' su una repository pubblica aprire una issue e' cosa che qualunque
+account puo' fare.
 
 Le tre caselle che contano, nella registrazione:
 
@@ -323,8 +335,8 @@ L'alternativa scartata era un'**applicazione OAuth** con scope `public_repo`.
 Funziona identica — gli endpoint del device flow sono gli stessi, cambia solo
 `GITHUB_SCOPE` — ma quello scope da' accesso in scrittura a *tutte* le
 repository pubbliche di chi autorizza, per aprire una segnalazione. La App
-chiede quello che serve e nient'altro, e non viene installata sulle repository
-di nessuno.
+chiede quello che serve e nient'altro, e si installa su una repository sola:
+questa.
 
 ## Il limite da dire subito
 
