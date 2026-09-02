@@ -620,3 +620,38 @@ test("il disegnatore del guscio non svuota piu' la lista a ogni battito", () => 
   globalThis.renderSubLoads("un_gruppo_che_non_esiste");
   assert.equal(scrittureDelGuscio, 1, "quello che non sappiamo disegnare lo disegna il guscio");
 });
+
+test("un elettrodomestico col suo tipo porta il ritratto del catalogo", () => {
+  /* «Nel popup energetico dei carichi elettrodomestici le icone riportate non
+   * sono quelle inserite»: otto apparecchi e otto prese uguali. Il tipo ha un
+   * disegno — lo stesso che mostrano la sezione Elettrodomestici e l'elenco
+   * della scheda Carichi — e due posti che parlano della stessa lavatrice
+   * devono mostrare la stessa lavatrice. */
+  configure({
+    loads: [{ id: "cucina", name: "Cucina", icon: "🍳", order: 0 }],
+    appliances: [
+      {
+        id: "lav",
+        name: "Lavatrice",
+        device_type: "lavatrice",
+        power_entity: "sensor.lav_power",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+      {
+        id: "gen",
+        name: "Frog",
+        power_entity: "sensor.gen_power",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+    ],
+    states: { "sensor.lav_power": { state: "1200" }, "sensor.gen_power": { state: "0" } },
+  });
+  popup.renderSubloadPopup("cucina");
+
+  const carte = [...list.querySelectorAll("[data-dm-subload-card]")];
+  const di = (id) => carte.find((carta) => carta.dataset.dmSubloadCard === id);
+  const disegno = (id) => di(id)?.querySelector(".dm-subload-icon")?.innerHTML || "";
+  assert.match(disegno("lav"), /data-dm-art="washer"/);
+  // Il carattere non resta sotto il disegno: sarebbero due icone sovrapposte.
+  assert.equal(di("lav").querySelector(".dm-subload-icon").textContent, "");
+});

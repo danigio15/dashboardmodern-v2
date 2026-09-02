@@ -15,6 +15,7 @@ export default Object.freeze({
   "Any type": "Dowolny rodzaj",
   "Came from a dashboard: the reply goes back into it": "Przyszło z panelu: odpowiedź wraca do niego",
   "Everything on the repository": "Wszystko w repozytorium",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.": "Dopóki nie wybierzesz encji, tego otworu nigdzie nie widać: ani w sekcji, ani na kafelku, a przełącznik „w widżecie” się nie pojawia.",
   "from a dashboard": "z panelu",
   "from GitHub": "z GitHuba",
   "Nothing closed yet.": "Jeszcze nic nie zamknięto.",

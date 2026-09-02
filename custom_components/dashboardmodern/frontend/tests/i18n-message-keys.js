@@ -2105,6 +2105,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Unplugged",
   "Unprotected",
   "Unsaved changes",
+  "Until you pick the entity this opening is nowhere to be seen: not in the section, not on the tile, and the “in the widget” switch does not appear.",
   "Untitled",
   "Untyped",
   "Up",

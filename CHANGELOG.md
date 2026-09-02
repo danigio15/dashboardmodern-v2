@@ -10,6 +10,9 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 «Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non
 serviva a niente.
 
+E due cose viste dal vero: otto elettrodomestici con otto prese uguali al posto
+del loro disegno, e un'apertura che spariva senza dire perche'.
+
 ### Nuovo
 
 - **La tessera delle segnalazioni in Home, e c'e' solo per te.** Il numero
@@ -64,6 +67,23 @@ serviva a niente.
 - **Il messaggio di coda vuota dice chi sta tagliando.** Col tipo acceso il
   vuoto e' quasi sempre colpa sua, non dello stato: dirlo evita di guardare una
   coda vuota chiedendosi dove siano finite le altre trentanove.
+
+### Corretto
+
+- **Nel popup dei carichi ogni elettrodomestico ha il suo disegno.** «Le icone
+  riportate non sono quelle inserite»: otto apparecchi e otto prese uguali. Il
+  tipo — lavatrice, forno, frigorifero — arrivava fin dentro la finestra e
+  veniva buttato via, e restava il ripiego. Adesso c'e' il ritratto del
+  catalogo, lo stesso che mostrano la sezione Elettrodomestici e l'elenco della
+  scheda Carichi: due posti che parlano della stessa lavatrice devono mostrare
+  la stessa lavatrice. Chi un tipo non ce l'ha tiene il carattere che aveva.
+- **Un'apertura senza entita' adesso dice che non si vedra'.** «Se si creano
+  piu' aperture scompare l'interruttore del widget e non compare nel widget.»
+  Il meccanismo era sano — provate due aperture con la loro entita', tutte e
+  due hanno l'interruttore e tutte e due si vedono — ma una riga senza entita'
+  non compare da nessuna parte, e lo diceva soltanto con un «nessuna entita'»
+  grigio identico a ogni altro dettaglio. Adesso lo dice per intero, e si vede
+  che e' un avviso.
 
 ## 1.4.5-beta.9
 
