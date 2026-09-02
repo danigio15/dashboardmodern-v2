@@ -30,6 +30,9 @@ import {
   servonoLinguette,
   tabAttiva,
   verdettoPressione,
+  normalizzaCaldaie,
+  entitaDelleCaldaie,
+  lettureCaldaie,
 } from "../src/core/impianti-termici.js";
 import { letturaScaldabagno, statoScaldabagno } from "../src/core/scaldabagno-model.js";
 
@@ -211,4 +214,78 @@ test("la configurazione della caldaia si ripulisce da sola", () => {
   assert.equal(pulita.strano, undefined);
   for (const { campo } of CASELLE_CALDAIA) assert.equal(typeof pulita[campo], "string");
   assert.equal(normalizzaCaldaia(null).mandata, "");
+});
+
+/* ── due caldaie, una per zona (#281) ─────────────────────────────────────
+ *
+ * «Avendo una casa composta da due appartamenti uniti ho due caldaie, una per
+ * la zona giorno e una per la zona notte.» */
+
+test("la chiave della caldaia accetta l'oggetto di prima e la lista di adesso", () => {
+  /* Chi ne ha una la ritrova dov'era, senza migrare niente: e' la stessa
+   * chiave, e la forma vecchia continua a leggersi. */
+  const sola = normalizzaCaldaie({ name: "Caldaia", stato: "binary_sensor.c" });
+  assert.equal(sola.length, 1);
+  assert.equal(sola[0].name, "Caldaia");
+  assert.equal(sola[0].id, "caldaia-1");
+
+  const due = normalizzaCaldaie([
+    { id: "giorno", name: "Zona giorno", stato: "binary_sensor.g" },
+    { name: "Zona notte", mandata: "sensor.n" },
+  ]);
+  assert.deepEqual(
+    due.map((riga) => [riga.id, riga.name]),
+    [
+      ["giorno", "Zona giorno"],
+      ["caldaia-2", "Zona notte"],
+    ],
+  );
+});
+
+test("una riga senza nessuna entità non è una caldaia", () => {
+  /* Quella appena aggiunta vive nell'editor finche' non si compila: in pagina
+   * sarebbe una macchina che non dice niente. */
+  assert.equal(normalizzaCaldaie([{ name: "Nuova" }]).length, 0);
+  assert.equal(normalizzaCaldaie({}).length, 0);
+  assert.equal(normalizzaCaldaie(null).length, 0);
+});
+
+test("le entità e le letture arrivano da tutte e due", () => {
+  const config = [
+    { id: "g", name: "Giorno", mandata: "sensor.g_m", ritorno: "sensor.g_r" },
+    { id: "n", name: "Notte", mandata: "sensor.n_m", ritorno: "sensor.n_r" },
+  ];
+  assert.deepEqual(entitaDelleCaldaie(config), [
+    "sensor.g_m",
+    "sensor.g_r",
+    "sensor.n_m",
+    "sensor.n_r",
+  ]);
+  const letture = lettureCaldaie(config, {
+    "sensor.g_m": { state: "62.4" },
+    "sensor.g_r": { state: "48.1" },
+    "sensor.n_m": { state: "34" },
+    "sensor.n_r": { state: "32.5" },
+  });
+  assert.deepEqual(
+    letture.map((riga) => [riga.id, riga.salto]),
+    [
+      ["g", 14.3],
+      ["n", 1.5],
+    ],
+  );
+});
+
+test("la pagina mostra una macchina alla volta, con la fila per cambiare", async () => {
+  const sezione = await readFile(
+    new URL("../src/sections/impianti-termici-section.js", import.meta.url),
+    "utf8",
+  );
+  /* La fila non compare con una macchina sola: un selettore fra una cosa sola
+   * e' un tasto che non sceglie niente. */
+  assert.match(sezione, /if \(righe\.length < 2\) return "";/);
+  assert.match(sezione, /data-dm-it-quale=/);
+  /* E vale per tutti e due i tipi: gli scaldabagni erano gia' una lista in
+   * configurazione, ma la pagina ne disegnava uno. */
+  assert.match(sezione, /const quali = attiva === "caldaia" \? caldaie : letture;/);
 });

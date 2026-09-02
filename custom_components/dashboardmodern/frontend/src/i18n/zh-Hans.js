@@ -12,26 +12,35 @@
 
 export default Object.freeze({
   maintainer: "维护者",
+  "Add boiler": "添加锅炉",
   "Assign the report to yourself on GitHub": "在 GitHub 上把该反馈指派给自己",
   "Connect GitHub to write under this report.": "连接 GitHub 才能在这条反馈下留言。",
+  "Dashboard language": "面板语言",
+  "Day zone": "日间区域",
+  "Home Assistant language": "Home Assistant 的语言",
   "I'll take it": "我来处理",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "保持在 Home Assistant 的语言上，面板会跟随正在查看的人的配置。选定一种就会固定给这个面板，即使 Home Assistant 说的是另一种语言。",
   "Message sent.": "消息已发送。",
+  "No boiler configured": "未配置锅炉",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "未配置锅炉：请在设置的“热管理”标签页里添加。",
   Release: "放手",
   "Released.": "已放手。",
   "Send the message": "发送消息",
   Taken: "已认领",
   "Taken by": "认领人",
   "Taken.": "已认领。",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "供水与回水的温差说明回路是否真的在放热；压力是唯一偶尔需要手动补充的东西。没有必填项：仅凭状态，卡片就能显示锅炉的开与关，不会给出它没有的数字。如果不止一台——每个区域一台——在这里添加，页面上就会出现切换用的一行。",
+  "Unit": "设备",
   "Write here: the message goes under the report, under your name.":
     "在这里写：消息会以你的名义发到反馈下面。",
   " — configured": " — 已配置",
   "Any type": "任意类型",
   "Call-for-heat entity": "启停请求实体",
   "Came from a dashboard: the reply goes back into it": "来自某个面板：回复会回到那里",
-  "Dashboard language": "面板语言",
   "Everything on the repository": "仓库里的全部内容",
-  "Home Assistant language": "Home Assistant 的语言",
-  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "保持在 Home Assistant 的语言上，面板会跟随正在查看的人的配置。选定一种就会固定给这个面板，即使 Home Assistant 说的是另一种语言。",
   "Nothing came in today.": "今天没有新来的。",
   Solve: "标为已解决",
   "The entity that reports the boiler's call for heat, on or off.": "检测锅炉启停请求的实体。",
@@ -717,7 +726,6 @@ export default Object.freeze({
   "Comparison is available from the second recorded week": "从记录的第二周起才能对比",
   "Compatible lights only": "仅显示兼容的灯光",
   Computer: "电脑",
-  "Condensing boiler": "冷凝锅炉",
   Config: "设置",
   Configuration: "设置",
   CONFIGURATION: "设置",
@@ -2142,8 +2150,6 @@ export default Object.freeze({
     "文件夹里的文件太多：只列出了前面的一部分。",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "上面的表单配置第一个池体。如果不止一个，把其余的加在这里：每个都有各自的传感器、控制和过滤。",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "供水与回水的温差说明回路是否真的在放热；压力是唯一偶尔需要手动补充的东西。没有必填项：仅凭状态，卡片就能显示锅炉的开与关，不会给出它没有的数字。",
   "The group decides where the alert is watched.": "由分组决定在哪里监视该提醒。",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "首页的提醒磁贴——门窗、电池、漏水——只有在真的有事要说时才会自己亮起。在这里选择它们监视哪些传感器并起一个清爽的名字，或者为一个或多个实体创建自定义提醒，可设置条件、手动填写的状态和自选图标。",

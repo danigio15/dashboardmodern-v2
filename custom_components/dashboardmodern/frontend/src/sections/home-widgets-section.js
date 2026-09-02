@@ -45,9 +45,9 @@ import {
 } from "../core/scaldabagno-model.js";
 import {
   CHIAVE_CALDAIA,
-  entitaDellaCaldaia,
-  letturaCaldaia,
-  normalizzaCaldaia,
+  entitaDelleCaldaie,
+  lettureCaldaie,
+  normalizzaCaldaie,
   verdettoPressione,
 } from "../core/impianti-termici.js";
 import {
@@ -1733,39 +1733,52 @@ function scaldabagnoModel(states) {
  * e' meglio che accorgersene da una doccia fredda. */
 function caldaiaModel(states) {
   const config = readJson(CHIAVE_CALDAIA, {});
-  const entita = entitaDellaCaldaia(config);
+  const entita = entitaDelleCaldaie(config);
   if (!entita.length) return null;
   const fuori = widgetExcludedEntities();
   if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
-  const lettura = letturaCaldaia(config, states, root.resolveEntity || ((value) => value));
+  const dati = normalizzaCaldaie(config);
+  const letture = lettureCaldaie(config, states, root.resolveEntity || ((value) => value));
+  /* Con piu' di una caldaia (#281) il numero grande e la didascalia sono
+   * quelli della prima che ha qualcosa da dire — quella accesa, se ce n'e' una
+   * — e le righe della finestra le portano tutte, col nome davanti. */
+  const accesa = letture.find((riga) => riga.acceso === true || riga.fiamma === true);
+  const lettura = accesa || letture[0];
+  if (!lettura) return null;
   const pressione = verdettoPressione(lettura.pressione);
+  const piuDiUna = letture.length > 1;
 
   const rows = [];
-  const dato = normalizzaCaldaia(config);
-  if (clean(dato.fiamma) || clean(dato.stato))
-    rows.push({
-      glyph: "🔥",
-      name: t("Bruciatore", "Burner"),
-      entity: clean(dato.fiamma) || clean(dato.stato),
-      on: lettura.fiamma === true || lettura.acceso === true,
-      value:
-        lettura.fiamma === true || lettura.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
-    });
-  const misura = (campo, testo, glyph, valore, cifre, unita) => {
-    if (valore == null) return;
-    rows.push({
-      glyph,
-      name: testo,
-      entity: clean(dato[campo]),
-      raw: valore,
-      value: `${formatNumber(valore, cifre)}${unita}`,
-    });
-  };
-  misura("mandata", t("Mandata", "Flow"), "🌡️", lettura.mandata, 1, "°");
-  misura("ritorno", t("Ritorno", "Return"), "🌡️", lettura.ritorno, 1, "°");
-  misura("acquaCalda", t("Acqua calda", "Hot water"), "🚿", lettura.acquaCalda, 1, "°");
-  misura("pressione", t("Pressione", "Pressure"), "📊", lettura.pressione, 1, " bar");
-  misura("modulazione", t("Modulazione", "Modulation"), "📶", lettura.modulazione, 0, "%");
+  letture.forEach((riga, indice) => {
+    const dato = dati[indice] || {};
+    /* Il nome davanti solo quando ce n'e' piu' d'una: con una sola sarebbe
+     * ripetuto su ogni riga e non distinguerebbe niente. */
+    const suo = (testo) =>
+      piuDiUna ? `${clean(riga.name) || `${t("Caldaia", "Boiler")} ${indice + 1}`} · ${testo}` : testo;
+    if (clean(dato.fiamma) || clean(dato.stato))
+      rows.push({
+        glyph: "🔥",
+        name: suo(t("Bruciatore", "Burner")),
+        entity: clean(dato.fiamma) || clean(dato.stato),
+        on: riga.fiamma === true || riga.acceso === true,
+        value: riga.fiamma === true || riga.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
+      });
+    const misura = (campo, testo, glyph, valore, cifre, unita) => {
+      if (valore == null) return;
+      rows.push({
+        glyph,
+        name: suo(testo),
+        entity: clean(dato[campo]),
+        raw: valore,
+        value: `${formatNumber(valore, cifre)}${unita}`,
+      });
+    };
+    misura("mandata", t("Mandata", "Flow"), "🌡️", riga.mandata, 1, "°");
+    misura("ritorno", t("Ritorno", "Return"), "🌡️", riga.ritorno, 1, "°");
+    misura("acquaCalda", t("Acqua calda", "Hot water"), "🚿", riga.acquaCalda, 1, "°");
+    misura("pressione", t("Pressione", "Pressure"), "📊", riga.pressione, 1, " bar");
+    misura("modulazione", t("Modulazione", "Modulation"), "📶", riga.modulazione, 0, "%");
+  });
   if (!rows.length) return null;
 
   const acceso = lettura.fiamma === true || lettura.acceso === true;

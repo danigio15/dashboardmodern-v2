@@ -12,26 +12,35 @@
 
 export default Object.freeze({
   maintainer: "sorumlu",
+  "Add boiler": "Kombi ekle",
   "Assign the report to yourself on GitHub": "Bildirimi GitHub'da kendine ata",
   "Connect GitHub to write under this report.": "Bu bildirimin altına yazmak için GitHub'ı bağla.",
+  "Dashboard language": "Panonun dili",
+  "Day zone": "Gündüz bölgesi",
+  "Home Assistant language": "Home Assistant'ın dili",
   "I'll take it": "Ben bakarım",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Home Assistant'ın dilinde bırakılırsa pano, bakan kişinin profilini izler. Bir dil seçmek onu bu panoya sabitler; Home Assistant başka bir dil konuşsa bile.",
   "Message sent.": "Mesaj gönderildi.",
+  "No boiler configured": "Kombi tanımlı değil",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "Kombi tanımlı değil: ayarlardaki Isı yönetimi sekmesinden ekle.",
   Release: "Bırak",
   "Released.": "Bırakıldı.",
   "Send the message": "Mesajı gönder",
   Taken: "Üstlenildi",
   "Taken by": "Üstlenen",
   "Taken.": "Üstlenildi artık.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "Gidiş ile dönüş arasındaki fark, devrenin gerçekten ısı verip vermediğini söyler; basınç ise arada bir elle tamamlanması gereken tek şeydir. Hiçbir alan zorunlu değil: yalnızca durumla kart kombiyi açık ya da kapalı gösterir, sahip olmadığı sayılar olmadan. Birden fazlaysa — bölge başına bir tane — buraya ekle; sayfada aralarında geçiş için bir sıra çıkar.",
+  "Unit": "Birim",
   "Write here: the message goes under the report, under your name.":
     "Buraya yaz: mesaj senin adınla bildirimin altına gider.",
   " — configured": " — yapılandırıldı",
   "Any type": "Her tür",
   "Call-for-heat entity": "Isı talebi varlığı",
   "Came from a dashboard: the reply goes back into it": "Bir panodan geldi: yanıt oraya geri döner",
-  "Dashboard language": "Panonun dili",
   "Everything on the repository": "Depodaki her şey",
-  "Home Assistant language": "Home Assistant'ın dili",
-  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Home Assistant'ın dilinde bırakılırsa pano, bakan kişinin profilini izler. Bir dil seçmek onu bu panoya sabitler; Home Assistant başka bir dil konuşsa bile.",
   "Nothing came in today.": "Bugün hiçbir şey gelmedi.",
   Solve: "Çöz",
   "The entity that reports the boiler's call for heat, on or off.":
@@ -736,7 +745,6 @@ export default Object.freeze({
     "Karşılaştırma, kaydedilen ikinci haftadan itibaren kullanılabilir",
   "Compatible lights only": "Yalnızca uyumlu ışıklar",
   Computer: "Bilgisayar",
-  "Condensing boiler": "Yoğuşmalı kombi",
   Config: "Yapılandırma",
   Configuration: "Yapılandırma",
   CONFIGURATION: "YAPILANDIRMA",
@@ -2186,8 +2194,6 @@ export default Object.freeze({
     "Klasörde çok fazla dosya var: yalnızca ilkleri listeleniyor.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Yukarıdaki form ilk havuzu yapılandırır. Birden fazlaysa ötekileri buraya ekle: her birinin kendi sensörleri, kumandaları ve filtrasyonu olur.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "Gidiş ile dönüş arasındaki fark, devrenin gerçekten ısı verip vermediğini söyler; basınç ise arada bir elle tamamlanması gereken tek şeydir. Hiçbir alan zorunlu değil: yalnızca durumla kart kombiyi açık ya da kapalı gösterir, sahip olmadığı sayılar olmadan.",
   "The group decides where the alert is watched.": "Uyarının nerede izleneceğine grup karar verir.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "Ana sayfadaki uyarı kartları — açıklıklar, piller, su baskını — yalnızca söyleyecek bir şeyleri olduğunda kendiliğinden yanar. Burada hangi sensörleri gözleyeceklerini temiz bir adla seçersin ya da bir veya birden çok varlık için koşullu, elle yazılmış durumlu ve istediğin simgeye sahip özel bir uyarı oluşturursun.",

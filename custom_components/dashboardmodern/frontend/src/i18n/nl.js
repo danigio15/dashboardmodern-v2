@@ -12,19 +12,28 @@
 
 export default Object.freeze({
   maintainer: "beheerder",
+  "Add boiler": "Ketel toevoegen",
   "Assign the report to yourself on GitHub": "Wijs de melding op GitHub aan jezelf toe",
   "Connect GitHub to write under this report.": "Koppel GitHub om onder deze melding te schrijven.",
   "Dashboard language": "Taal van het dashboard",
+  "Day zone": "Dagzone",
   "Home Assistant language": "Taal van Home Assistant",
   "I'll take it": "Ik pak hem op",
-  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Blijft hij op de taal van Home Assistant, dan volgt het dashboard het profiel van wie er kijkt. Kies je er een, dan ligt hij vast voor dit dashboard, ook als Home Assistant een andere taal spreekt.",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Blijft hij op de taal van Home Assistant, dan volgt het dashboard het profiel van wie er kijkt. Kies je er een, dan ligt hij vast voor dit dashboard, ook als Home Assistant een andere taal spreekt.",
   "Message sent.": "Bericht verstuurd.",
+  "No boiler configured": "Geen ketel ingesteld",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "Geen ketel ingesteld: voeg er een toe via het tabblad Warmtebeheer in de instellingen.",
   Release: "Loslaten",
   "Released.": "Losgelaten.",
   "Send the message": "Verstuur het bericht",
   Taken: "Opgepakt",
   "Taken by": "Opgepakt door",
   "Taken.": "Opgepakt.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "Het verschil tussen aanvoer en retour zegt of het circuit echt warmte afgeeft; de druk is het enige dat af en toe met de hand moet worden bijgevuld. Geen veld is verplicht: met alleen de status toont de kaart de ketel aan of uit, zonder getallen die zij niet heeft. Heb je er meer dan één — één per zone — voeg ze hier toe en de pagina krijgt een rij om te wisselen.",
+  "Unit": "Toestel",
   "Write here: the message goes under the report, under your name.":
     "Schrijf hier: het bericht komt onder de melding, op jouw naam.",
   " — configured": " — geconfigureerd",
@@ -740,7 +749,6 @@ export default Object.freeze({
     "De vergelijking is beschikbaar vanaf de tweede vastgelegde week",
   "Compatible lights only": "Alleen compatibele lampen",
   Computer: "Computer",
-  "Condensing boiler": "Condensatieketel",
   Config: "Config",
   Configuration: "Configuratie",
   CONFIGURATION: "CONFIGURATIE",
@@ -2197,8 +2205,6 @@ export default Object.freeze({
     "De map bevat te veel bestanden: alleen de eerste worden getoond.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Het formulier hierboven stelt het eerste bad in. Heb je er meer, voeg de andere hier toe: elk heeft eigen sensoren, eigen bediening en eigen filtratie.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "Het verschil tussen aanvoer en retour zegt of het circuit echt warmte afgeeft; de druk is het enige dat af en toe met de hand moet worden bijgevuld. Geen veld is verplicht: met alleen de status toont de kaart de ketel aan of uit, zonder getallen die zij niet heeft.",
   "The group decides where the alert is watched.":
     "De groep bepaalt waar de melding wordt bewaakt.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":

@@ -177,6 +177,47 @@ export function normalizzaCaldaia(stored) {
   return fuori;
 }
 
+/* Le caldaie di casa, che possono essere piu' d'una (#281).
+ *
+ * «Avendo una casa composta da due appartamenti uniti ho due caldaie, una per
+ * la zona giorno e una per la zona notte.»
+ *
+ * La chiave resta la stessa e accetta tutte e due le forme: chi ne aveva una
+ * la ritrova dov'era, senza migrazioni e senza perdere niente. Chi ne aggiunge
+ * una seconda scrive una lista, e da li' in poi e' una lista.
+ */
+export function normalizzaCaldaie(stored) {
+  const righe = Array.isArray(stored)
+    ? stored
+    : stored && typeof stored === "object"
+      ? [stored]
+      : [];
+  return (
+    righe
+      .map((riga, indice) => ({
+        ...normalizzaCaldaia(riga),
+        id: clean(riga?.id) || `caldaia-${indice + 1}`,
+      }))
+      /* Una riga senza nemmeno un'entita' non e' una caldaia a meta': e' una
+       * riga vuota, e disegnarla vorrebbe dire una macchina che non dice
+       * niente. Quella appena aggiunta vive nell'editor finche' non si compila. */
+      .filter((riga) => CASELLE_CALDAIA.some(({ campo }) => riga[campo]))
+  );
+}
+
+/** Le entita' di tutte le caldaie. */
+export function entitaDelleCaldaie(stored) {
+  return normalizzaCaldaie(stored).flatMap((riga) => entitaDellaCaldaia(riga));
+}
+
+/** Le letture di tutte le caldaie, nell'ordine in cui sono scritte. */
+export function lettureCaldaie(stored, states = {}, resolve = (value) => value) {
+  return normalizzaCaldaie(stored).map((riga) => ({
+    ...letturaCaldaia(riga, states, resolve),
+    id: riga.id,
+  }));
+}
+
 /** Le entita' che la caldaia tiene d'occhio. */
 export function entitaDellaCaldaia(config) {
   const dato = normalizzaCaldaia(config);

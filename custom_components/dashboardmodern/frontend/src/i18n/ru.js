@@ -12,27 +12,36 @@
 
 export default Object.freeze({
   maintainer: "сопровождающий",
+  "Add boiler": "Добавить котёл",
   "Assign the report to yourself on GitHub": "Назначить обращение себе на GitHub",
   "Connect GitHub to write under this report.":
     "Подключите GitHub, чтобы писать под этим обращением.",
+  "Dashboard language": "Язык панели",
+  "Day zone": "Дневная зона",
+  "Home Assistant language": "Язык Home Assistant",
   "I'll take it": "Беру себе",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Оставленная на языке Home Assistant, панель следует профилю того, кто смотрит. Выбор языка закрепляет его за этой панелью, даже если Home Assistant говорит на другом.",
   "Message sent.": "Сообщение отправлено.",
+  "No boiler configured": "Котёл не настроен",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "Котёл не настроен: добавьте его на вкладке «Управление теплом» в настройках.",
   Release: "Отпустить",
   "Released.": "Отпущено.",
   "Send the message": "Отправить сообщение",
   Taken: "В работе",
   "Taken by": "В работе у",
   "Taken.": "Взято в работу.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "Разница между подачей и обраткой показывает, действительно ли контур отдаёт тепло; давление — единственное, что время от времени нужно подкачивать вручную. Ни одно поле не обязательно: даже с одним состоянием карточка покажет котёл включённым или выключенным, без чисел, которых у неё нет. Если их несколько — по одному на зону — добавьте их здесь, и на странице появится ряд для переключения.",
+  "Unit": "Устройство",
   "Write here: the message goes under the report, under your name.":
     "Пишите здесь: сообщение уйдёт под обращение, от вашего имени.",
   " — configured": " — настроена",
   "Any type": "Любой вид",
   "Call-for-heat entity": "Сущность запроса тепла",
   "Came from a dashboard: the reply goes back into it": "Пришло с панели: ответ вернётся туда же",
-  "Dashboard language": "Язык панели",
   "Everything on the repository": "Всё, что есть в репозитории",
-  "Home Assistant language": "Язык Home Assistant",
-  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Оставленная на языке Home Assistant, панель следует профилю того, кто смотрит. Выбор языка закрепляет его за этой панелью, даже если Home Assistant говорит на другом.",
   "Nothing came in today.": "Сегодня ничего не пришло.",
   Solve: "Решено",
   "The entity that reports the boiler's call for heat, on or off.":
@@ -737,7 +746,6 @@ export default Object.freeze({
     "Сравнение доступно начиная со второй записанной недели",
   "Compatible lights only": "Только совместимые светильники",
   Computer: "Компьютер",
-  "Condensing boiler": "Конденсационный котёл",
   Config: "Настройки",
   Configuration: "Настройка",
   CONFIGURATION: "НАСТРОЙКА",
@@ -2195,8 +2203,6 @@ export default Object.freeze({
     "В папке слишком много файлов: показаны только первые.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Форма выше настраивает первую чашу. Если их несколько, добавьте остальные здесь: у каждой свои датчики, управление и фильтрация.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "Разница между подачей и обраткой показывает, действительно ли контур отдаёт тепло; давление — единственное, что время от времени нужно подкачивать вручную. Ни одно поле не обязательно: даже с одним состоянием карточка покажет котёл включённым или выключенным, без чисел, которых у неё нет.",
   "The group decides where the alert is watched.":
     "Группа определяет, где отслеживается оповещение.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":

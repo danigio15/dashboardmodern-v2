@@ -12,19 +12,28 @@
 
 export default Object.freeze({
   maintainer: "관리자",
+  "Add boiler": "보일러 추가",
   "Assign the report to yourself on GitHub": "GitHub에서 이 제보를 본인에게 배정",
   "Connect GitHub to write under this report.": "이 제보에 글을 쓰려면 GitHub를 연결하세요.",
   "Dashboard language": "대시보드 언어",
+  "Day zone": "주간 구역",
   "Home Assistant language": "Home Assistant 언어",
   "I'll take it": "제가 맡을게요",
-  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Home Assistant 언어로 두면 대시보드는 보고 있는 사람의 프로필을 따릅니다. 하나를 고르면 이 대시보드에 고정되며, Home Assistant가 다른 언어를 쓰더라도 그대로입니다.",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Home Assistant 언어로 두면 대시보드는 보고 있는 사람의 프로필을 따릅니다. 하나를 고르면 이 대시보드에 고정되며, Home Assistant가 다른 언어를 쓰더라도 그대로입니다.",
   "Message sent.": "메시지를 보냈습니다.",
+  "No boiler configured": "보일러가 설정되지 않았습니다",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "보일러가 설정되지 않았습니다. 설정의 열 관리 탭에서 추가하세요.",
   Release: "놓기",
   "Released.": "맡기를 그만두었습니다.",
   "Send the message": "메시지 보내기",
   Taken: "담당 중",
   "Taken by": "담당자",
   "Taken.": "맡았습니다.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "공급과 환수의 차이는 회로가 실제로 열을 내보내는지 알려 줍니다. 압력은 가끔 손으로 보충해야 하는 유일한 항목입니다. 필수 항목은 없습니다. 상태만으로도 카드는 보일러의 켜짐과 꺼짐을 보여 주며, 없는 숫자는 만들지 않습니다. 두 대 이상이면 — 구역마다 한 대씩 — 여기에 추가하면 페이지에 전환할 줄이 생깁니다.",
+  "Unit": "기기",
   "Write here: the message goes under the report, under your name.":
     "여기에 쓰세요. 메시지는 본인 이름으로 제보 아래에 올라갑니다.",
   " — configured": " — 설정됨",
@@ -731,7 +740,6 @@ export default Object.freeze({
     "비교는 기록된 두 번째 주부터 볼 수 있습니다",
   "Compatible lights only": "호환되는 조명만",
   Computer: "컴퓨터",
-  "Condensing boiler": "콘덴싱 보일러",
   Config: "설정",
   Configuration: "설정",
   CONFIGURATION: "설정",
@@ -2176,8 +2184,6 @@ export default Object.freeze({
     "폴더에 파일이 너무 많습니다. 앞쪽 것만 표시합니다.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "위 양식은 첫 번째 수조를 설정합니다. 여러 개라면 나머지는 여기에 추가하세요. 각각 자체 센서와 조작, 여과를 가집니다.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "공급과 환수의 차이는 회로가 실제로 열을 내보내는지 알려 줍니다. 압력은 가끔 손으로 보충해야 하는 유일한 항목입니다. 필수 항목은 없습니다. 상태만으로도 카드는 보일러의 켜짐과 꺼짐을 보여 주며, 없는 숫자는 만들지 않습니다.",
   "The group decides where the alert is watched.": "알림을 어디에서 감시할지는 그룹이 정합니다.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "홈의 알림 타일(열림, 배터리, 누수)은 전할 말이 있을 때만 스스로 켜집니다. 여기서 어떤 센서를 지켜볼지 깔끔한 이름과 함께 고르거나, 조건과 직접 적은 상태, 원하는 아이콘으로 하나 이상의 엔터티에 사용자 지정 알림을 만듭니다.",

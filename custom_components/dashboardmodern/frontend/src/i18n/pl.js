@@ -12,19 +12,28 @@
 
 export default Object.freeze({
   maintainer: "opiekun",
+  "Add boiler": "Dodaj kocioł",
   "Assign the report to yourself on GitHub": "Przypisz zgłoszenie do siebie na GitHubie",
   "Connect GitHub to write under this report.": "Połącz GitHub, aby pisać pod tym zgłoszeniem.",
   "Dashboard language": "Język pulpitu",
+  "Day zone": "Strefa dzienna",
   "Home Assistant language": "Język Home Assistanta",
   "I'll take it": "Biorę to",
-  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Pozostawiony na języku Home Assistanta pulpit podąża za profilem tego, kto patrzy. Wybranie jednego przypina go do tego pulpitu, nawet gdy Home Assistant mówi w innym języku.",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Pozostawiony na języku Home Assistanta pulpit podąża za profilem tego, kto patrzy. Wybranie jednego przypina go do tego pulpitu, nawet gdy Home Assistant mówi w innym języku.",
   "Message sent.": "Wiadomość wysłana.",
+  "No boiler configured": "Nie skonfigurowano kotła",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "Nie skonfigurowano kotła: dodaj go w zakładce Zarządzanie ciepłem w ustawieniach.",
   Release: "Zostaw",
   "Released.": "Zwolnione.",
   "Send the message": "Wyślij wiadomość",
   Taken: "Wzięte",
   "Taken by": "Zajmuje się",
   "Taken.": "Wzięte na siebie.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "Różnica między zasilaniem a powrotem mówi, czy obieg naprawdę oddaje ciepło; ciśnienie to jedyna rzecz, którą co jakiś czas trzeba uzupełnić ręcznie. Żadne pole nie jest wymagane: z samym stanem karta pokazuje kocioł włączony lub wyłączony, bez liczb, których nie ma. Jeśli masz więcej niż jeden — po jednym na strefę — dodaj je tutaj, a na stronie pojawi się rząd do przełączania.",
+  "Unit": "Urządzenie",
   "Write here: the message goes under the report, under your name.":
     "Napisz tutaj: wiadomość trafi pod zgłoszenie, w twoim imieniu.",
   " — configured": " — skonfigurowana",
@@ -739,7 +748,6 @@ export default Object.freeze({
     "Porównanie jest dostępne od drugiego zapisanego tygodnia",
   "Compatible lights only": "Tylko zgodne światła",
   Computer: "Komputer",
-  "Condensing boiler": "Kocioł kondensacyjny",
   Config: "Konfig",
   Configuration: "Konfiguracja",
   CONFIGURATION: "KONFIGURACJA",
@@ -2192,8 +2200,6 @@ export default Object.freeze({
     "Folder ma za dużo plików: pokazano tylko pierwsze.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Formularz powyżej konfiguruje pierwszą nieckę. Jeśli masz ich więcej, dodaj pozostałe tutaj: każda ma własne czujniki, sterowanie i filtrację.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "Różnica między zasilaniem a powrotem mówi, czy obieg naprawdę oddaje ciepło; ciśnienie to jedyna rzecz, którą co jakiś czas trzeba uzupełnić ręcznie. Żadne pole nie jest wymagane: z samym stanem karta pokazuje kocioł włączony lub wyłączony, bez liczb, których nie ma.",
   "The group decides where the alert is watched.": "Grupa decyduje, gdzie alert jest nadzorowany.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "Kafelki powiadomień na stronie głównej — otwarcia, baterie, zalania — zapalają się same tylko wtedy, gdy mają coś do powiedzenia. Tutaj wybierasz, jakich czujników pilnują, nadając im czytelną nazwę, albo tworzysz własne powiadomienie dla jednej lub kilku encji, z warunkiem, ręcznie wpisanym stanem i wybraną ikoną.",

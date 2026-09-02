@@ -12,19 +12,28 @@
 
 export default Object.freeze({
   maintainer: "mainteneur",
+  "Add boiler": "Ajouter une chaudière",
   "Assign the report to yourself on GitHub": "Assigne le signalement à toi-même sur GitHub",
   "Connect GitHub to write under this report.": "Connecte GitHub pour écrire sous ce signalement.",
   "Dashboard language": "Langue du tableau de bord",
+  "Day zone": "Zone jour",
   "Home Assistant language": "Langue de Home Assistant",
   "I'll take it": "Je m'en occupe",
-  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Laissée sur la langue de Home Assistant, la plancha suit le profil de celui qui regarde. En choisir une la fixe pour ce tableau de bord, même quand Home Assistant parle une autre langue.",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
+    "Laissée sur la langue de Home Assistant, la plancha suit le profil de celui qui regarde. En choisir une la fixe pour ce tableau de bord, même quand Home Assistant parle une autre langue.",
   "Message sent.": "Message envoyé.",
+  "No boiler configured": "Aucune chaudière configurée",
+  "No boiler configured: add one from the Thermal management tab in settings.":
+    "Aucune chaudière configurée : ajoute-la depuis l'onglet Gestion thermique des réglages.",
   Release: "Laisser",
   "Released.": "Laissé.",
   "Send the message": "Envoyer le message",
   Taken: "Pris en charge",
   "Taken by": "Pris en charge par",
   "Taken.": "Pris en charge.",
+  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
+    "L'écart entre départ et retour dit si le circuit cède vraiment de la chaleur ; la pression est la seule chose à compléter de temps en temps à la main. Aucun champ n'est obligatoire : avec le seul état, la carte montre la chaudière allumée ou éteinte, sans chiffres qu'elle n'a pas. Si tu en as plusieurs — une par zone — ajoute-les ici et la page se dote d'une rangée pour passer de l'une à l'autre.",
+  "Unit": "Unité",
   "Write here: the message goes under the report, under your name.":
     "Écris ici : le message part sous le signalement, à ton nom.",
   " — configured": " — configurée",
@@ -743,7 +752,6 @@ export default Object.freeze({
     "La comparaison est disponible à partir de la deuxième semaine enregistrée",
   "Compatible lights only": "Lumières compatibles uniquement",
   Computer: "Ordinateur",
-  "Condensing boiler": "Chaudière à condensation",
   Config: "Config",
   Configuration: "Configuration",
   CONFIGURATION: "CONFIGURATION",
@@ -2207,8 +2215,6 @@ export default Object.freeze({
     "Le dossier contient trop de fichiers : seuls les premiers sont affichés.",
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Le formulaire ci-dessus configure le premier bassin. Si tu en as plusieurs, ajoute les autres ici : chacun a ses propres capteurs, commandes et filtration.",
-  "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have.":
-    "L'écart entre départ et retour dit si le circuit cède vraiment de la chaleur ; la pression est la seule chose à compléter de temps en temps à la main. Aucun champ n'est obligatoire : avec le seul état, la carte montre la chaudière allumée ou éteinte, sans chiffres qu'elle n'a pas.",
   "The group decides where the alert is watched.": "Le groupe décide où l'alerte est surveillée.",
   "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
     "Les tuiles d’alerte de l’accueil — ouvertures, batteries, inondations — ne s’allument d’elles-mêmes que lorsqu’elles ont quelque chose à dire. Ici tu choisis les capteurs qu’elles surveillent, avec un nom propre, ou tu crées une alerte personnalisée sur une ou plusieurs entités, avec condition, état écrit à la main et icône au choix.",
