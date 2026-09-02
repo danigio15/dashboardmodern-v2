@@ -302,7 +302,10 @@ test("una tessera sola, con dentro i due pezzi interi", async () => {
   /* Chi aveva gia' ordinato o nascosto le due vecchie non deve perdere la
    * scelta: i nomi si traducono in lettura, senza riscrivere la
    * configurazione. */
-  assert.match(source, /const TESSERE_RINOMINATE = Object\.freeze\(\{ todo: "agenda", calendario: "agenda" \}\)/);
+  assert.match(
+    source,
+    /const TESSERE_RINOMINATE = Object\.freeze\(\{ todo: "agenda", calendario: "agenda" \}\)/,
+  );
   assert.match(source, /function nascosteDiOggi\(nascoste\)/);
 
   const editor = await readFile(
@@ -406,9 +409,8 @@ test("la spiegazione del calendario non se la prende quella degli avvisi", async
  */
 
 test("i tasti seguono quello che il calendario accetta davvero", async () => {
-  const { CAPACITA, capacitaDelCalendario, eventoCancellabile, eventoModificabile } = await import(
-    "../src/core/calendario-model.js"
-  );
+  const { CAPACITA, capacitaDelCalendario, eventoCancellabile, eventoModificabile } =
+    await import("../src/core/calendario-model.js");
   assert.deepEqual({ ...CAPACITA }, { CREA: 1, CANCELLA: 2, MODIFICA: 4 });
   const tutto = capacitaDelCalendario({ attributes: { supported_features: 7 } });
   assert.deepEqual({ ...tutto }, { crea: true, cancella: true, modifica: true });
@@ -467,9 +469,8 @@ test("solo la porta HTTP porta l'uid, e per questo la si prova per prima", async
 });
 
 test("una bozza torna evento senza spostare niente di un giorno", async () => {
-  const { bozzaDaEvento, bozzaNuova, messaggioDellEvento } = await import(
-    "../src/core/calendario-model.js"
-  );
+  const { bozzaDaEvento, bozzaNuova, messaggioDellEvento } =
+    await import("../src/core/calendario-model.js");
   const ferie = {
     entity: "calendar.casa",
     uid: "u2",
@@ -502,10 +503,7 @@ test("il modulo si lamenta invece di mandare una cosa storta", async () => {
   const base = bozzaNuova("calendar.casa", new Date(2026, 8, 1, 10, 0).getTime());
   assert.match(messaggioDellEvento(base).errore, /titolo/i);
   assert.match(messaggioDellEvento({ ...base, entity: "", summary: "X" }).errore, /calendario/i);
-  assert.match(
-    messaggioDellEvento({ ...base, summary: "X", giornoInizio: "" }).errore,
-    /data/i,
-  );
+  assert.match(messaggioDellEvento({ ...base, summary: "X", giornoInizio: "" }).errore, /data/i);
   /* Un impegno che finisce prima di cominciare non si manda: Home Assistant lo
    * rifiuterebbe, e il rifiuto arriverebbe come una parola in inglese. */
   assert.match(
@@ -532,10 +530,7 @@ test("i tre comandi passano il ponte, e si vedono scritti per intero", async () 
   for (const comando of ["create", "update", "delete"])
     assert.match(modifica, new RegExp(`type: "calendar/event/${comando}"`), comando);
 
-  const ponte = await readFile(
-    new URL("../src/legacy/bridge-socket.js", import.meta.url),
-    "utf8",
-  );
+  const ponte = await readFile(new URL("../src/legacy/bridge-socket.js", import.meta.url), "utf8");
   for (const comando of ["create", "update", "delete"])
     assert.match(ponte, new RegExp(`"calendar/event/${comando}"`), comando);
 });
@@ -584,9 +579,8 @@ test("il gettone si va a prendere in un posto solo", async () => {
  */
 
 test("una cosa da fare con una data entra nell'agenda, e resta una cosa da fare", async () => {
-  const { agendaPerGiorno, oraDellEvento, scadenzeDelleListe, voceConScadenza } = await import(
-    "../src/core/calendario-model.js"
-  );
+  const { agendaPerGiorno, oraDellEvento, scadenzeDelleListe, voceConScadenza } =
+    await import("../src/core/calendario-model.js");
   const giorno = (scarto) => {
     const quando = new Date(ADESSO + scarto * 86400000);
     const due = (numero) => String(numero).padStart(2, "0");
@@ -664,7 +658,10 @@ test("la stessa riga non compare due volte nella stessa pagina", async () => {
   );
   /* Chi ha una data la mostra nell'agenda; la lista li' sotto tiene le cose
    * senza data. Due righe uguali in due posti sono una riga di troppo. */
-  assert.match(source, /const senzaData = \(items \|\| \[\]\)\.filter\(\(item\) => !voceConScadenza\(item\)\)/);
+  assert.match(
+    source,
+    /const senzaData = \(items \|\| \[\]\)\.filter\(\(item\) => !voceConScadenza\(item\)\)/,
+  );
   // E la riga della scadenza porta la casella, non i tasti dell'appuntamento.
   assert.match(source, /if \(riga\.tipo === "scadenza"\)/);
   assert.match(source, /data-scadenza="true"[\s\S]{0,400}?data-dm-todo-check/);
@@ -693,9 +690,8 @@ test("la stessa riga non compare due volte nella stessa pagina", async () => {
  */
 
 test("una cosa da fare si apre col suo titolo e la sua scadenza", async () => {
-  const { bozzaCosaNuova, bozzaDaVoce, campiDellaCosa } = await import(
-    "../src/core/calendario-model.js"
-  );
+  const { bozzaCosaNuova, bozzaDaVoce, campiDellaCosa } =
+    await import("../src/core/calendario-model.js");
   const lista = { id: "t1", name: "Casa", entity: "todo.casa" };
   const conData = bozzaDaVoce({ uid: "a2", summary: "Idraulico", due: "2026-09-02" }, lista);
   assert.equal(conData.tipo, "cosa");
@@ -803,6 +799,39 @@ test("un appuntamento per domani non e' un trattino", () => {
   });
 });
 
+test("domani resta domani anche nel giorno in cui cambia l'ora", () => {
+  /* «Domani» era «adesso piu' ventiquattro ore», e le due cose coincidono
+   * quasi sempre — per questo la differenza si scopre tardi.
+   *
+   * Il giorno in cui si torna all'ora solare dura venticinque ore: a
+   * mezzanotte e mezza, sommandone ventiquattro, si resta sulla stessa data.
+   * «Domani» diventava uguale a «oggi», e l'appuntamento di domani finiva
+   * contato fra quelli piu' in la' — cioe' proprio il trattino da cui questa
+   * tessera era partita, ricomparso due volte l'anno.
+   *
+   * Il fuso si sceglie qui perche' la prova possa dire qualcosa: in UTC il
+   * salto non esiste e il difetto non si vedrebbe mai. */
+  const prima = process.env.TZ;
+  process.env.TZ = "America/New_York";
+  try {
+    // 2026-11-01 00:30 ora legale della costa est: quel giorno l'ora torna
+    // indietro, e mezzogiorno del 2 e' l'appuntamento di domani.
+    const mezzanotteEMezza = Date.parse("2026-11-01T04:30:00Z");
+    const domaniAMezzogiorno = {
+      ...unImpegno(0, 12),
+      inizio: Date.parse("2026-11-02T17:00:00Z"),
+      fine: Date.parse("2026-11-02T18:00:00Z"),
+    };
+    assert.deepEqual(contoDellaTessera([domaniAMezzogiorno], [], mezzanotteEMezza), {
+      quante: 1,
+      quando: "domani",
+    });
+  } finally {
+    if (prima === undefined) delete process.env.TZ;
+    else process.env.TZ = prima;
+  }
+});
+
 test("oggi vince su domani finche' oggi ha qualcosa", () => {
   assert.deepEqual(contoDellaTessera([unImpegno(0, 18), unImpegno(1, 12)], [], ADESSO), {
     quante: 1,
@@ -890,10 +919,7 @@ test("una lista senza nome prende quello che Home Assistant le ha gia' dato", as
       attributes: { friendly_name: "Lista della spesa" },
     },
   };
-  assert.equal(
-    nomeDellEntita("todo.lista_della_spesa", "", stati),
-    "Lista della spesa",
-  );
+  assert.equal(nomeDellEntita("todo.lista_della_spesa", "", stati), "Lista della spesa");
   // Il nome scelto a mano vince comunque: e' una preferenza esplicita.
   assert.equal(nomeDellEntita("todo.lista_della_spesa", "Spesa", stati), "Spesa");
   /* Senza nemmeno il nome di Home Assistant resta l'indirizzo, ma ripulito:

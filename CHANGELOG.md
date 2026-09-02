@@ -53,6 +53,15 @@ caratteri grandi quello che affermava a caratteri piccoli.
   ciclo va fino in fondo — quindi una pagina piu' piccola costa una richiesta
   in piu', non una riga in meno.
 
+- **«Domani» resta domani anche nel giorno in cui cambia l'ora.** Era «adesso
+  piu' ventiquattro ore», e le due cose coincidono quasi sempre — per questo la
+  differenza si scopriva tardi. Il giorno in cui si torna all'ora solare ne
+  dura venticinque: a mezzanotte e mezza, sommandone ventiquattro, si resta
+  sulla stessa data, «domani» diventava uguale a «oggi», e l'appuntamento di
+  domani finiva contato fra quelli piu' in la'. Cioe' proprio il trattino da
+  cui questa tessera era partita, che sarebbe ricomparso due volte l'anno.
+  Adesso i giorni si contano come li conta il calendario.
+
 ### Sulle prove
 
 - Due prove nuove percorrono la lettura per davvero, con un corpo che arriva a

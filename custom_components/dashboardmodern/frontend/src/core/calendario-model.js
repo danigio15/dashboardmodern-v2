@@ -91,9 +91,6 @@ export function istanteDi(valore) {
   return { istante: Number.isFinite(istante) ? istante : null, tuttoIlGiorno: false };
 }
 
-/** Quanto dura un giorno, in millisecondi. */
-const GIORNO = 86400000;
-
 /** Il giorno di un istante, come chiave: «2026-09-02» nel fuso di chi guarda. */
 export function chiaveDelGiorno(istante) {
   const quando = new Date(istante);
@@ -451,9 +448,27 @@ export function scadenzeDelleListe(blocchi) {
  *
  * @returns {{quante: number, quando: "oggi"|"domani"|"avanti"|null}}
  */
+/* Domani e' il giorno di calendario dopo, non ventiquattro ore dopo.
+ *
+ * Le due cose coincidono quasi sempre, e per questo la differenza si scopre
+ * tardi: nei giorni in cui cambia l'ora, no. Dove si torna all'ora solare il
+ * giorno dura venticinque ore, e sommare ventiquattro ore a mezzanotte e mezza
+ * lascia sulla stessa data — cosi' «domani» diventa uguale a «oggi», e un
+ * appuntamento di domani finisce contato fra quelli piu' in la'. Dove si passa
+ * all'ora legale il giorno ne dura ventitre', e sommandone ventiquattro poco
+ * prima di mezzanotte si salta domani del tutto.
+ *
+ * `setDate` invece conta i giorni come li conta il calendario, e i mesi e gli
+ * anni li fa girare da solo. */
+function ilGiornoDopo(istante) {
+  const quando = new Date(istante);
+  quando.setDate(quando.getDate() + 1);
+  return quando;
+}
+
 export function contoDellaTessera(eventi, scadenze, adesso = Date.now()) {
   const oggi = chiaveDelGiorno(adesso);
-  const domani = chiaveDelGiorno(adesso + GIORNO);
+  const domani = chiaveDelGiorno(ilGiornoDopo(adesso));
   const impegni = eventiDaQui(eventi, adesso);
   const dovute = Array.isArray(scadenze) ? scadenze : [];
   const quelDdi = (giorno) =>
