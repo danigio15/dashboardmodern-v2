@@ -5,11 +5,17 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## 1.4.5-beta.11
+## 1.4.5-beta.10
 
 «Basta che quando arriva un messaggio sulla chat parte una notifica di Home
 Assistant.» Ecco il campanello — e, gia' che il filo doveva diventare una
 conversazione vera, la meta' che mancava: da qui adesso si risponde.
+
+«Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non
+serviva a niente.
+
+E due cose viste dal vero: otto elettrodomestici con otto prese uguali al posto
+del loro disegno, e un'apertura che spariva senza dire perche'.
 
 ### Nuovo
 
@@ -65,45 +71,6 @@ conversazione vera, la meta' che mancava: da qui adesso si risponde.
   dalla pagina lo vede senza che nessuno glielo scriva, e in testa alla riga
   c'e' il nome di chi l'ha presa. Ci si puo' ripensare con lo stesso tasto.
 
-### Tolto
-
-- **Il campo «come ricontattarti».** Diceva il vero — «resta in casa», e nella
-  pagina pubblica non finiva davvero — ma in casa non lo leggeva nessuno: la
-  console del manutentore legge GitHub, dove quel campo non arriva mai.
-  Chiedere un indirizzo e-mail per poi non farne niente e' la peggiore delle
-  tre strade possibili: si conserva un dato personale, non serve a nessuno, e
-  chi lo scrive crede di essere raggiungibile. La risposta arriva sotto la
-  segnalazione, dove adesso si scrive nei due sensi, e il campanello avvisa
-  quando c'e'.
-
-  I recapiti gia' scritti spariscono dal disco alla prima accensione: toglierlo
-  dal modulo non sarebbe bastato, perche' quello che era gia' stato scritto
-  sarebbe rimasto li' finche' quel ticket non cadeva dal fondo dello store.
-
-### Corretto
-
-- **La risposta della console non partiva piu'.** Da quando il cruscotto e'
-  una pagina della barra invece di una finestra, il campo del testo veniva
-  cercato dentro la finestra — dove non c'e' piu' — e «Rispondi» usciva alla
-  riga dopo senza dire niente. I tasti che chiudevano e basta continuavano a
-  funzionare, il che rendeva il guasto ancora piu' difficile da vedere.
-
-- **«In lavorazione» era una supposizione.** Lo stato si deduceva dal fatto che
-  qualcuno avesse commentato, perche' un segno vero non c'era, e sbagliava nel
-  verso peggiore: bastava una domanda di chiarimento per far risultare presa in
-  carico una segnalazione che nessuno aveva ancora guardato. Adesso il segno lo
-  scrive il tasto, e i commenti tornano a essere commenti.
-
-## 1.4.5-beta.10
-
-«Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non
-serviva a niente.
-
-E due cose viste dal vero: otto elettrodomestici con otto prese uguali al posto
-del loro disegno, e un'apertura che spariva senza dire perche'.
-
-### Nuovo
-
 - **La tessera delle segnalazioni in Home, e c'e' solo per te.** Il numero
   grande e' quello che resta **da lavorare** — non quante ne sono arrivate in
   tutto, che e' storia e non chiede niente — e sotto c'e' la ripartizione: «3
@@ -158,7 +125,34 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   Home, ad alta voce per la console — dove qualcuno sta guardando e un guasto
   va detto.
 
+### Tolto
+
+- **Il campo «come ricontattarti».** Diceva il vero — «resta in casa», e nella
+  pagina pubblica non finiva davvero — ma in casa non lo leggeva nessuno: la
+  console del manutentore legge GitHub, dove quel campo non arriva mai.
+  Chiedere un indirizzo e-mail per poi non farne niente e' la peggiore delle
+  tre strade possibili: si conserva un dato personale, non serve a nessuno, e
+  chi lo scrive crede di essere raggiungibile. La risposta arriva sotto la
+  segnalazione, dove adesso si scrive nei due sensi, e il campanello avvisa
+  quando c'e'.
+
+  I recapiti gia' scritti spariscono dal disco alla prima accensione: toglierlo
+  dal modulo non sarebbe bastato, perche' quello che era gia' stato scritto
+  sarebbe rimasto li' finche' quel ticket non cadeva dal fondo dello store.
+
 ### Corretto
+
+- **La risposta della console non partiva piu'.** Da quando il cruscotto e'
+  una pagina della barra invece di una finestra, il campo del testo veniva
+  cercato dentro la finestra — dove non c'e' piu' — e «Rispondi» usciva alla
+  riga dopo senza dire niente. I tasti che chiudevano e basta continuavano a
+  funzionare, il che rendeva il guasto ancora piu' difficile da vedere.
+
+- **«In lavorazione» era una supposizione.** Lo stato si deduceva dal fatto che
+  qualcuno avesse commentato, perche' un segno vero non c'era, e sbagliava nel
+  verso peggiore: bastava una domanda di chiarimento per far risultare presa in
+  carico una segnalazione che nessuno aveva ancora guardato. Adesso il segno lo
+  scrive il tasto, e i commenti tornano a essere commenti.
 
 - **Le segnalazioni aperte dalla plancia adesso hanno la loro etichetta.**
   Arrivavano nude accanto a quelle dei moduli di GitHub, che l'etichetta se la
