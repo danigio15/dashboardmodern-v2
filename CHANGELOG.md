@@ -172,6 +172,26 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
 
 ### Corretto
 
+- **Le finestre Giornaliera e Mensile mostrano il periodo, non l'istante.** «I
+  popup giornaliera e mensile non riportano i dati corretti: portano quelli
+  attualmente in consumo.» La finestra sapeva in che periodo era stata aperta —
+  lo scriveva perfino in testata, GIORNO, MESE — e poi mostrava i watt di
+  adesso, con sotto «kWh oggi» anche guardando il mese: il periodo decideva la
+  scritta e non i numeri. Adesso decide i numeri. In Istantaneo resta com'era —
+  watt grandi, kilowattora di oggi sotto — e nel Giorno e nel Mese si invertono:
+  il numero grande è l'energia di quel periodo, sotto ci sono i watt di adesso.
+  Anche il totale in testata, l'ordine delle carte e le barre seguono il periodo
+  che si sta guardando.
+- **E il cerchio degli elettrodomestici non segna più zero.** «Segna 0, non il
+  valore reale giornaliero e mensile» — mentre la sua stessa finestra sommava
+  chilowattora veri. Il flusso cercava il contatore del periodo in una casella
+  sola (`daily_energy_entity`), la finestra ne guardava anche un'altra
+  (`daily`), e un apparecchio nato dal guscio vecchio ha la seconda e non la
+  prima: il cerchio non trovava niente da sommare e restava a zero. È la stessa
+  disparità già sanata per i watt, dove le caselle guardate sono cinque; qui
+  erano rimaste una. Il contatore proprio del gruppo, quando c'è, continua a
+  comandare sulla somma — anche quando dice zero, perché nel Giorno e nel Mese
+  uno zero è una misura vera.
 - **La casella «Entità caldaia» adesso dice a cosa serve.** Il suo titolo dice
   di che tipo è — «switch, facoltativa» — e non a cosa serve. Sotto c'è ora la
   riga che lo dice: è l'entità che rileva il consenso di accensione e

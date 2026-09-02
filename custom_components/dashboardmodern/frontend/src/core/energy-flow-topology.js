@@ -104,10 +104,35 @@ export function flowStageLoads(loads = []) {
  * "this month" would show a number that is wrong by years. Turning a cumulative
  * meter into a period value is the Recorder's job, as a delta between two
  * `sum` samples; see docs/ENERGY_RECORDER_PARITY.md. */
-export function flowPeriodEntity(load = {}, period = "instant") {
-  if (period === "day") return clean(load.daily_energy_entity);
-  if (period === "month") return clean(load.monthly_energy_entity);
-  return clean(load.power_entity);
+/* Le caselle in cui puo' stare il contatore di un periodo.
+ *
+ * «Il cerchio del carico elettrodomestici segna 0, non il valore reale
+ * giornaliero e mensile»: dentro c'erano apparecchi che nella loro finestra
+ * dicevano kilowattora veri. La finestra leggeva `daily`, questa funzione
+ * leggeva solo `daily_energy_entity`, e un apparecchio nato dal guscio vecchio
+ * ha la prima e non la seconda — quindi il cerchio non trovava niente da
+ * sommare e restava a zero mentre la sua stessa finestra contava.
+ *
+ * E' la stessa disparita' gia' sanata per i watt, dove `campoDiPotenza`
+ * guarda cinque nomi: qui i nomi erano rimasti uno. */
+const CASELLE_DEL_PERIODO = Object.freeze({
+  day: ["daily_energy_entity", "daily"],
+  month: ["monthly_energy_entity", "monthly"],
+});
+
+export function flowPeriodEntity(load = {}, period = "instant", states = null) {
+  if (period !== "day" && period !== "month") return clean(load.power_entity);
+  const scritte = [];
+  for (const campo of CASELLE_DEL_PERIODO[period]) {
+    const id = clean(load?.[campo]);
+    /* Solo un vero entity_id: qualche modello storico teneva in `daily` il
+     * numero dei kilowattora, e un numero non e' un'entita' da leggere. */
+    if (/^[a-z_]+\.[a-z0-9_]+$/i.test(id) && !scritte.includes(id)) scritte.push(id);
+  }
+  if (!scritte.length || !states) return scritte[0] || "";
+  /* Fra piu' caselle scritte vince quella che un numero ce l'ha davvero, come
+   * per i watt: chiedere chi risponde invece di indovinare chi dovrebbe. */
+  return scritte.find((id) => stateNumber(states, id) !== null) || scritte[0];
 }
 
 /* The cumulative meter the Recorder computes a period delta from, and the
@@ -290,7 +315,7 @@ export function campoDiPotenza(load, states = null) {
 }
 
 function periodValue(load, period, states, recorderValues, { implicita = true } = {}) {
-  const canonica = flowPeriodEntity(load, period);
+  const canonica = flowPeriodEntity(load, period, states);
   /* `campoDiPotenza` guarda gia' `power_entity` per prima, quindi provarla a
    * parte non aggiungeva niente: toglieva soltanto la possibilita' di
    * accorgersi che quella casella non risponde e che un'altra si'. */
