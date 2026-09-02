@@ -620,6 +620,9 @@ test("il sommario conta quello che resta da lavorare, non tutto", () => {
     true,
     () => {
       assert.deepEqual(sommarioConsole(), {
+        // Senza data non si conta ne' fra le nuove di oggi ne' fra le ferme.
+        oggi: 0,
+        vecchie: 0,
         quante: 3,
         nuove: 2,
         inLavorazione: 1,
@@ -639,4 +642,67 @@ test("senza coda ancora letta il sommario tace invece di dire zero", () => {
   conLaCoda(null, true, () => {
     assert.equal(sommarioConsole(), null);
   });
+});
+
+test("il sommario dice quante sono arrivate oggi e quante sono ferme", () => {
+  const adesso = Date.now();
+  const giorniFa = (quanti) => new Date(adesso - quanti * 86400000).toISOString();
+  conLaCoda(
+    [
+      inCoda({ number: 1, state: "inviato", created_at: new Date(adesso).toISOString() }),
+      inCoda({ number: 2, state: "inviato", created_at: giorniFa(2) }),
+      inCoda({ number: 3, state: "in-carico", created_at: giorniFa(60) }),
+      // Chiusa e vecchia: non e' «ferma», e' finita.
+      inCoda({ number: 4, state: "risolto", created_at: giorniFa(90) }),
+    ],
+    true,
+    () => {
+      const conto = sommarioConsole();
+      assert.equal(conto.oggi, 1, "«oggi» non conta quelle di oggi");
+      assert.equal(conto.vecchie, 1, "«ferme» conta anche quelle chiuse, o salta le aperte");
+    },
+  );
+});
+
+test("una senza data non diventa ne' di oggi ne' ferma", () => {
+  /* Non sapere quando e' nata non la rende vecchia, e nemmeno nuova: contarla
+   * da una parte o dall'altra vorrebbe dire inventare un dato che non c'e'. */
+  conLaCoda([inCoda({ state: "inviato", created_at: "" })], true, () => {
+    const conto = sommarioConsole();
+    assert.equal(conto.oggi, 0);
+    assert.equal(conto.vecchie, 0);
+    assert.equal(conto.quante, 1, "e pero' resta da lavorare");
+  });
+});
+
+test("«oggi» regge il giorno in cui cambia l'ora", () => {
+  /* Lo stesso inciampo gia' trovato sull'Agenda: sottrarre ventiquattro ore
+   * per dire «ieri» sbaglia dove il giorno ne dura venticinque. Qui si
+   * confrontano due date di calendario, e questa prova lo tiene fermo. */
+  const prima = process.env.TZ;
+  process.env.TZ = "America/New_York";
+  try {
+    // 2026-11-01 00:30 ora legale: quel giorno l'ora torna indietro.
+    const adesso = Date.parse("2026-11-01T04:30:00Z");
+    const stato = statoVivo();
+    const salva = { queue: stato.queue, console: stato.console, now: Date.now };
+    stato.console = true;
+    stato.queue = [
+      // Nata alle 23:30 dello stesso giorno locale, cioe' oggi.
+      inCoda({ number: 1, state: "inviato", created_at: "2026-11-02T03:30:00Z" }),
+      // Nata il giorno prima: non e' di oggi.
+      inCoda({ number: 2, state: "inviato", created_at: "2026-10-31T16:00:00Z" }),
+    ];
+    Date.now = () => adesso;
+    try {
+      assert.equal(sommarioConsole().oggi, 1);
+    } finally {
+      Date.now = salva.now;
+      stato.queue = salva.queue;
+      stato.console = salva.console;
+    }
+  } finally {
+    if (prima === undefined) delete process.env.TZ;
+    else process.env.TZ = prima;
+  }
 });

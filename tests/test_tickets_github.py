@@ -1050,3 +1050,29 @@ async def test_una_risposta_oltre_il_tetto_lo_dice(
     with pytest.raises(GitHubError) as guasto:
         await github_client._request(hass, "GET", "https://api.github.com/x")
     assert guasto.value.code == "too_large"
+
+
+async def test_la_coda_porta_quando_e_stata_aperta(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Il giorno lo decide il browser, ma la data gliela deve dare qualcuno."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("state=closed", [])
+    github.answer(
+        "state=open",
+        [
+            {
+                "number": 1,
+                "title": "[Bug]: x",
+                "body": "x",
+                "state": "open",
+                "created_at": "2026-09-02T08:15:00Z",
+            },
+            # Senza data non si inventa niente: resta vuota, e chi conta i
+            # giorni la salta invece di contarla come «oggi».
+            {"number": 2, "title": "[Bug]: y", "body": "y", "state": "open"},
+        ],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert [voce["created_at"] for voce in coda] == ["2026-09-02T08:15:00Z", ""]

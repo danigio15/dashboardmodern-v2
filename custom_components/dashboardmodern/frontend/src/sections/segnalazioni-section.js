@@ -718,11 +718,46 @@ const CODA_FRESCA = 10 * 60 * 1000;
  * loro, e non e' una preferenza da spegnere ma una cosa che non li riguarda.
  * Cosi' «solo per me» e' garantito da come e' fatto, non da un interruttore
  * che qualcuno potrebbe accendere. */
+/* Da quanti giorni una segnalazione aperta si considera ferma. Trenta: sotto
+ * quel mese c'e' ancora l'aria di una cosa in corso, sopra e' una che nessuno
+ * ha piu' guardato — ed e' quella che il cruscotto deve far notare. */
+const GIORNI_VECCHIA = 30;
+
+/* Il giorno di un istante nel fuso di chi guarda, come chiave.
+ *
+ * «Oggi» si decide confrontando due date di calendario, non due numeri di
+ * millisecondi: sottrarre ventiquattro ore sbaglia nei giorni in cui l'ora
+ * cambia — un giorno ne dura venticinque, un altro ventitre' — ed e' la stessa
+ * trappola gia' trovata sulla tessera dell'Agenda. */
+function giornoDi(istante) {
+  const quando = new Date(istante);
+  if (!Number.isFinite(quando.getTime())) return "";
+  const mese = String(quando.getMonth() + 1).padStart(2, "0");
+  const giorno = String(quando.getDate()).padStart(2, "0");
+  return `${quando.getFullYear()}-${mese}-${giorno}`;
+}
+
 export function sommarioConsole() {
   if (!state.console || !Array.isArray(state.queue)) return null;
   const daLavorare = state.queue.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
   const perTipo = (tipo) => daLavorare.filter((ticket) => clean(ticket.type) === tipo).length;
+  const adesso = Date.now();
+  const oggi = giornoDi(adesso);
+  const nate = (ticket) => Date.parse(clean(ticket.created_at));
+  /* La soglia delle ferme e' una durata, non un confine di calendario: qui i
+   * millisecondi vanno bene, ed e' il motivo per cui «oggi» invece no. */
+  const limite = adesso - GIORNI_VECCHIA * 86400000;
   return {
+    /* Chi non porta la data non si conta ne' fra le nuove di oggi ne' fra le
+     * ferme: non sapere quando e' nata non la rende vecchia. */
+    oggi: state.queue.filter((ticket) => {
+      const quando = nate(ticket);
+      return Number.isFinite(quando) && giornoDi(quando) === oggi;
+    }).length,
+    vecchie: daLavorare.filter((ticket) => {
+      const quando = nate(ticket);
+      return Number.isFinite(quando) && quando < limite;
+    }).length,
     quante: daLavorare.length,
     nuove: daLavorare.filter((ticket) => clean(ticket.state) === "inviato").length,
     inLavorazione: daLavorare.filter((ticket) => clean(ticket.state) === "in-carico").length,

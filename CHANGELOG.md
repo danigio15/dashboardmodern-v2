@@ -19,9 +19,23 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   grande e' quello che resta **da lavorare** — non quante ne sono arrivate in
   tutto, che e' storia e non chiede niente — e sotto c'e' la ripartizione: «3
   difetti · 2 idee · 1 aiuto». Si accende quando qualcosa aspetta una
-  risposta; toccandola si apre una finestra con i tre conti — nuove, in
-  lavorazione, chiuse — e la porta verso il cruscotto, invece di rifare la
-  console in miniatura dentro una finestra larga un palmo.
+  risposta; toccandola si apre una finestra con la lettura del tempo, i tre
+  conti — nuove, in lavorazione, chiuse — e la porta verso il cruscotto, invece
+  di rifare la console in miniatura dentro una finestra larga un palmo.
+
+- **La finestra dice quante ne sono arrivate oggi e quante sono ferme.** «2
+  arrivate oggi · 2 ferme da oltre un mese»: e' la domanda che dai tre conti
+  non si legge. La seconda meta' e' quella che pesa — un conto fermo non si
+  muove da solo, e in una colonna di numeri passerebbe inosservato proprio
+  perche' non cambia mai.
+
+  «Oggi» si decide confrontando due date di **calendario**, non due numeri di
+  millisecondi: sottrarre ventiquattro ore sbaglia nei giorni in cui l'ora
+  cambia — uno ne dura venticinque, un altro ventitre' — ed e' la stessa
+  trappola trovata sulla tessera dell'Agenda. Una prova la tiene chiusa.
+
+  Chi non porta la data non si conta ne' fra le nuove di oggi ne' fra le ferme:
+  non sapere quando e' nata non la rende vecchia.
 
   Quella finestra non porta il verdetto delle altre tessere. Quella riga la
   scrive il motore che legge gli stati di casa — «acceso», «in corso», «qui non

@@ -4372,17 +4372,33 @@ function detailBody(widget, states) {
      * palmo, e rispondere vuol dire leggere il filo, guardare gli allegati e
      * scrivere. Il posto c'e' gia'; qui ci sta il conto e la porta. */
     const conto = widget.conto || {};
+    /* La lettura del tempo, che e' la domanda che non si legge dai tre conti:
+     * quante ne sono arrivate oggi, e quante stanno li' da un mese senza che
+     * nessuno le abbia piu' guardate. La seconda e' quella che pesa — un conto
+     * fermo non si muove da solo, e in una colonna di numeri passerebbe
+     * inosservato proprio perche' non cambia mai. */
+    const pezzi = [];
+    if (conto.oggi) pezzi.push(t(`${conto.oggi} arrivate oggi`, `${conto.oggi} arrived today`));
+    if (conto.vecchie) {
+      pezzi.push(
+        t(`${conto.vecchie} ferme da oltre un mese`, `${conto.vecchie} stuck for over a month`),
+      );
+    }
+    const lettura = pezzi.length
+      ? pezzi.join("  ·  ")
+      : t("Niente di nuovo oggi, e niente di fermo.", "Nothing new today, nothing stuck.");
     const righe = [
       [t("Nuove", "New"), conto.nuove],
       [t("In lavorazione", "In progress"), conto.inLavorazione],
       [t("Chiuse", "Closed"), conto.chiuse],
     ];
-    return `<div class="dm-w-caselle">${righe
-      .map(
-        ([nome, quante]) =>
-          `<div class="dm-w-casella"><b>${Number(quante) || 0}</b><small>${esc(nome)}</small></div>`,
-      )
-      .join("")}</div>
+    return `<p class="dm-w-lettura">${esc(lettura)}</p>
+      <div class="dm-w-caselle">${righe
+        .map(
+          ([nome, quante]) =>
+            `<div class="dm-w-casella"><b>${Number(quante) || 0}</b><small>${esc(nome)}</small></div>`,
+        )
+        .join("")}</div>
       <button type="button" class="dm-w-porta" data-dm-apri-cruscotto>${esc(
         t("Apri il cruscotto", "Open the console"),
       )}</button>`;
@@ -5600,6 +5616,11 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 /* La porta verso il cruscotto: un tasto pieno, del colore della tessera. Con
    il vestito delle righe sembrava una barra grigia — cioe' una cosa disabilitata
    invece dell'unico gesto che questa finestra offre. */
+/* La lettura del tempo: una riga sola, sopra i conti, in inchiostro pieno —
+   e' una frase da leggere, non un'etichetta da scorrere. */
+#dm-widget-popup .dm-w-lettura{
+  margin:0 0 10px;font-size:13px;font-weight:700;
+  color:var(--text,#0f172a);line-height:1.35}
 #dm-widget-popup .dm-w-porta{
   width:100%;margin-top:10px;padding:11px 14px;border:0;border-radius:14px;
   cursor:pointer;font-size:13px;font-weight:800;color:#fff;

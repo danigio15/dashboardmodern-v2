@@ -640,6 +640,12 @@ async def _async_issues_page(
                 "origin": "plancia" if TICKET_MARKER in corpo else "github",
                 "issue_url": str(issue.get("html_url") or ""),
                 "author": str((issue.get("user") or {}).get("login") or ""),
+                # Quando e' stata aperta, come GitHub la scrive (ISO 8601, UTC).
+                # Il giorno lo decide il browser, che e' l'unico a sapere in che
+                # fuso sta chi guarda: «oggi» a Roma e «oggi» a Auckland non
+                # sono lo stesso intervallo, e deciderlo qui sarebbe deciderlo
+                # nel fuso del server.
+                "created_at": str(issue.get("created_at") or ""),
                 "comments": commenti,
                 "attachments": len(attachments_in(corpo)),
             }
