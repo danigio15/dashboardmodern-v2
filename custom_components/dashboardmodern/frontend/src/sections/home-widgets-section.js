@@ -35,6 +35,54 @@ import {
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
+import {
+  SCALDABAGNI_KEY,
+  entitaDiUnoScaldabagno,
+  lettureScaldabagni,
+} from "../core/scaldabagno-model.js";
+import {
+  CHIAVE_CALDAIA,
+  entitaDellaCaldaia,
+  letturaCaldaia,
+  normalizzaCaldaia,
+  verdettoPressione,
+} from "../core/impianti-termici.js";
+import {
+  CHIAVE_UPS,
+  daQuandoUps,
+  entitaDellUps,
+  letturaUps,
+  normalizzaUps,
+} from "../core/ups-model.js";
+import {
+  CALENDARI_KEY,
+  GIORNI_AVANTI,
+  eventiDaQui,
+  inCorso,
+  minutiAllEvento,
+  normalizzaCalendari,
+  oraDellEvento,
+  parseCalendarApiEvents,
+  parseCalendarEventsResponse,
+  agendaPerGiorno,
+  chiaveDelGiorno,
+  etichettaDelGiorno,
+  scadenzeDelleListe,
+  voceConScadenza,
+  prossimiEventi,
+} from "../core/calendario-model.js";
+import {
+  azioneDellaCosaMarkup,
+  azioneDellaScadenzaMarkup,
+  azioniDellEventoMarkup,
+  bozzaAperta,
+  chiaveDellEvento,
+  dichiaraCalendari,
+  moduloMarkup,
+  registraOspiteCalendario,
+  registraRilettura,
+  tastoNuovoMarkup,
+} from "./calendario-modifica-section.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -49,7 +97,12 @@ import {
 import { doorOpenCall } from "../core/security-door-model.js";
 import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
-import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
+import {
+  contactEntity,
+  inferriataEntity,
+  isWindowOnly,
+  windowOpenFromState,
+} from "../core/shutter-window.js";
 import {
   CHIAVE_VERSI,
   apertaSecondoVerso,
@@ -58,6 +111,7 @@ import {
   versoInvertito,
 } from "../core/verso-aperture.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
+import { passoDellUnita, scalaDellUnita } from "../core/scala-clima.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
 import { loadCameraFrame } from "./live-ui-section.js";
@@ -69,6 +123,8 @@ import {
   esc,
   formatNumber,
   installStyle,
+  chiediAHomeAssistant,
+  gettoneDiAccesso,
   lexicalGlobal,
   locale,
   readClimateUnits,
@@ -91,6 +147,12 @@ const STALE_MS = 30000;
 /* Quanto si aspetta prima di richiedere le voci a una lista che ha appena
  * risposto con un errore — o non ha risposto affatto. */
 const RETRY_MS = 20000;
+/* Un appuntamento non cambia ogni mezzo minuto come una lista della spesa:
+ * cinque minuti bastano, e sono cinque richieste l'ora invece di centoventi. */
+const CALENDARIO_STALE_MS = 300000;
+/* Quanti giorni entrano nella finestra della Home. Oltre due settimane non e'
+ * piu' «cosa ho in programma»: e' un'agenda, e per quella c'e' la sezione. */
+const GIORNI_NEL_PANNELLO = 14;
 const MAX_VISIBLE_ITEMS = 8;
 const MAX_DETAIL_ROWS = 14;
 
@@ -101,6 +163,10 @@ const state = (root[KEY] ||= {
   signature: "",
   escape: false,
   lists: new Map(), // entity -> { items, fetchedAt, inflight }
+  /* Gli eventi letti, per calendario (#259). Stanno accanto alle liste ToDo e
+   * non dentro: sono due servizi diversi e due risposte diverse, e mescolarle
+   * vorrebbe dire una mappa in cui meta' delle voci ha campi che non usa. */
+  calendari: new Map(), // entity -> { eventi, fetchedAt, inflight, failedAt }
   cameraTimer: 0,
   cameraUrls: new Map(), // entity -> object URL della tessera, MAI quelli del muro
   /* Quali righe hanno il pannello della rotella aperto. Sta qui e non nel
@@ -130,6 +196,11 @@ export function configuredTodoLists() {
   return normalizeTodoLists(readJson(TODO_CONFIG_KEY, []));
 }
 
+/** I calendari scelti (#259). */
+export function calendariConfigurati() {
+  return normalizzaCalendari(readJson(CALENDARI_KEY, []));
+}
+
 /* ── letture ──────────────────────────────────────────────────────────── */
 
 function stateOf(states, entity) {
@@ -148,40 +219,6 @@ function numOf(states, entity) {
 }
 
 /* ── il filo delle liste ToDo ─────────────────────────────────────────── */
-
-function askHomeAssistant(payload, timeout = 8000) {
-  return new Promise((resolve, reject) => {
-    const socket = lexicalGlobal("ws");
-    const pending = lexicalGlobal("pendingWsCallbacks");
-    if (!socket || socket.readyState !== 1 || !pending) {
-      reject(new Error("socket"));
-      return;
-    }
-    let id = 0;
-    try {
-      id = root.eval("msgId++");
-    } catch (_error) {
-      reject(new Error("msgId"));
-      return;
-    }
-    const timer = root.setTimeout?.(() => {
-      delete pending[id];
-      reject(new Error("timeout"));
-    }, timeout);
-    pending[id] = (message) => {
-      root.clearTimeout?.(timer);
-      if (message?.success === false) reject(new Error(clean(message?.error?.message) || "todo"));
-      else resolve(message?.result);
-    };
-    try {
-      socket.send(JSON.stringify({ ...payload, id }));
-    } catch (error) {
-      root.clearTimeout?.(timer);
-      delete pending[id];
-      reject(error);
-    }
-  });
-}
 
 function record(entity) {
   let value = state.lists.get(entity);
@@ -205,7 +242,7 @@ async function fetchItems(entity, { force = false } = {}) {
   cache.inflight = true;
   let riuscita = false;
   try {
-    const result = await askHomeAssistant({
+    const result = await chiediAHomeAssistant({
       type: "call_service",
       domain: "todo",
       service: "get_items",
@@ -224,6 +261,148 @@ async function fetchItems(entity, { force = false } = {}) {
   // Un fallimento non ha cambiato niente da disegnare: ridisegnare lo stesso
   // vorrebbe dire richiedere di nuovo, subito.
   if (riuscita) schedule();
+}
+
+/* ── il filo dei calendari (#259) ──────────────────────────────────────
+ *
+ * Stesso mestiere del filo delle liste, altro servizio: lo stato di un
+ * `calendar.*` e' `on`/`off` e negli attributi porta un evento solo, quindi
+ * l'elenco lo si chiede a `calendar.get_events`. La finestra e' un mese: una
+ * richiesta sola per calendario, e copre il «cosa ho questo mese». */
+function schedaCalendario(entity) {
+  let valore = state.calendari.get(entity);
+  if (!valore) {
+    valore = { eventi: null, fetchedAt: 0, inflight: false, failedAt: 0 };
+    state.calendari.set(entity, valore);
+  }
+  return valore;
+}
+
+/* L'ora scritta come la vuole il servizio: «2026-09-01 14:00:00», locale.
+ * Un ISO con la Z chiederebbe a Home Assistant una finestra spostata dal fuso
+ * di chi guarda, e il primo giorno dell'elenco sarebbe quello sbagliato. */
+function orarioPerIlServizio(istante) {
+  const quando = new Date(istante);
+  const due = (numero) => String(numero).padStart(2, "0");
+  return `${quando.getFullYear()}-${due(quando.getMonth() + 1)}-${due(quando.getDate())} ${due(
+    quando.getHours(),
+  )}:${due(quando.getMinutes())}:${due(quando.getSeconds())}`;
+}
+
+/* Gli eventi, chiesti dove portano anche il loro nome proprio.
+ *
+ * Due strade, e non e' un ripiego: e' che una delle due porta l'`uid` e
+ * l'altra no.
+ *
+ *   - `/api/calendars/<entita>` e' quella che usa il pannello Calendario di
+ *     Home Assistant, e restituisce `uid` e `recurrence_id`. Senza quelli un
+ *     evento si puo' guardare ma non toccare: non c'e' modo di dire QUALE
+ *     modificare, e i tasti «modifica» e «elimina» non compaiono nemmeno.
+ *   - il servizio `calendar.get_events` restituisce solo inizio, fine,
+ *     titolo, descrizione e luogo. Basta a leggere, e funziona dove la porta
+ *     HTTP non risponde.
+ *
+ * La porta HTTP, dentro Home Assistant, non risponde a mani nude: la plancia
+ * servita dall'integrazione non possiede nessun gettone e ogni chiamata REST
+ * torna 401 — e' la stessa ragione per cui la foto dell'auto viaggia sul
+ * socket. Percio' il percorso si fa FIRMARE dal socket (`auth/sign_path`, lo
+ * stesso che il guscio usa per le immagini) e poi si chiede firmato. Chi ha un
+ * gettone lungo — la pagina servita da sola — lo usa e basta.
+ *
+ * Se nessuna delle due strade porta a casa qualcosa, resta il servizio: si
+ * vede l'agenda per intero, si perde solo la possibilita' di scriverci.
+ */
+async function percorsoFirmato(percorso) {
+  try {
+    const risposta = await chiediAHomeAssistant({
+      type: "auth/sign_path",
+      path: percorso,
+      expires: 30,
+    });
+    return clean(risposta?.path) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+async function eventiDallaPortaHttp(entity, da, a) {
+  if (typeof root.fetch !== "function") return null;
+  const percorso = `/api/calendars/${encodeURIComponent(entity)}?start=${encodeURIComponent(
+    new Date(da).toISOString(),
+  )}&end=${encodeURIComponent(new Date(a).toISOString())}`;
+  const gettone = gettoneDiAccesso();
+  const firmato = gettone ? "" : await percorsoFirmato(percorso);
+  const risposta = await root.fetch(firmato || percorso, {
+    headers: gettone ? { Authorization: `Bearer ${gettone}` } : {},
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!risposta.ok) return null;
+  return parseCalendarApiEvents(await risposta.json(), entity);
+}
+
+async function fetchEventi(entity, { force = false } = {}) {
+  const scheda = schedaCalendario(entity);
+  const adesso = Date.now();
+  if (scheda.inflight) return;
+  if (!force && scheda.eventi && adesso - scheda.fetchedAt < CALENDARIO_STALE_MS) return;
+  /* Come per le liste: dopo un errore si aspetta, o col socket giu' il disegno
+   * chiederebbe, la richiesta fallirebbe, il fallimento farebbe ridisegnare, e
+   * il giro ripartirebbe a ogni fotogramma. */
+  if (!force && !scheda.eventi && adesso - scheda.failedAt < RETRY_MS) return;
+  scheda.inflight = true;
+  let riuscita = false;
+  const fino = adesso + GIORNI_AVANTI * 86400000;
+  try {
+    let letti = null;
+    try {
+      letti = await eventiDallaPortaHttp(entity, adesso, fino);
+    } catch (_error) {
+      letti = null;
+    }
+    if (letti === null) {
+      const result = await chiediAHomeAssistant({
+        type: "call_service",
+        domain: "calendar",
+        service: "get_events",
+        target: { entity_id: entity },
+        service_data: {
+          start_date_time: orarioPerIlServizio(adesso),
+          end_date_time: orarioPerIlServizio(fino),
+        },
+        return_response: true,
+      });
+      letti = parseCalendarEventsResponse(result, entity);
+    }
+    scheda.eventi = letti;
+    scheda.fetchedAt = Date.now();
+    scheda.failedAt = 0;
+    riuscita = true;
+  } catch (error) {
+    scheda.failedAt = Date.now();
+    root.console?.warn?.("[DashboardModern] calendar events", error);
+  }
+  scheda.inflight = false;
+  if (riuscita) schedule();
+}
+
+/** Gli eventi di tutti i calendari scelti, in fila. Serve anche alla pagina. */
+export function eventiDeiCalendari() {
+  const scelti = calendariConfigurati();
+  const eventi = [];
+  let inArrivo = false;
+  for (const calendario of scelti) {
+    const scheda = schedaCalendario(calendario.entity);
+    if (scheda.eventi === null) inArrivo = true;
+    for (const evento of scheda.eventi || [])
+      eventi.push({ ...evento, calendario: calendario.name || calendario.entity, colore: calendario.colore });
+  }
+  return { eventi, inArrivo, scelti };
+}
+
+/** Chiede gli eventi a tutti i calendari scelti. */
+export function aggiornaCalendari(opzioni) {
+  for (const calendario of calendariConfigurati()) fetchEventi(calendario.entity, opzioni);
 }
 
 async function callHa(domain, servizio, payload) {
@@ -333,7 +512,11 @@ function todoModel() {
   });
   const percent = total ? Math.round(((total - pending) / total) * 100) : 0;
   return {
-    key: "todo",
+    /* Non piu' una tessera: una delle due meta' dell'Agenda (#259). Il nome
+     * dice quale parte e', non quale mattonella — mattonella non ne ha piu'
+     * una sua, e lasciarle una `key` la farebbe cercare in un catalogo dove
+     * non c'e'. */
+    parte: "cose",
     accent: "#059669",
     icon: "✅",
     label: t("Da fare", "To-do"),
@@ -344,6 +527,104 @@ function todoModel() {
     ring: percent,
     attiva: pending > 0,
     blocks,
+  };
+}
+
+/* Le parole del calendario, dette qui e non nel nucleo: il raccoglitore delle
+ * traduzioni guarda le sezioni, e una `t()` scritta dentro `src/core` non
+ * finirebbe nei cataloghi — «Oggi» resterebbe italiano per tutti. */
+function paroleDelCalendario() {
+  return {
+    oggi: t("Oggi", "Today"),
+    domani: t("Domani", "Tomorrow"),
+    tuttoIlGiorno: t("Tutto il giorno", "All day"),
+    daFare: t("Da fare", "To-do"),
+    inRitardo: t("In ritardo", "Overdue"),
+  };
+}
+
+/* La tessera del calendario (#259).
+ *
+ * «Magari visualizzando gli ultimi 2 eventi su widget che cliccandoci si apre
+ * una lista giorni/giorno e un elenco tipo come gia' esistente Da Fare.»
+ *
+ * I due eventi stanno nella didascalia, con la loro ora davanti — e' la riga
+ * che scorre, la stessa in cui le Luci dicono quali sono accese — perche' un
+ * appuntamento senza il titolo non e' un appuntamento, e il titolo e' una
+ * parola, non un numero. Il numero grande e' quanti ne restano oggi: quello
+ * risponde a «sono libero stasera?» prima ancora di leggere.
+ */
+/* Le liste grezze, per chi deve contare le scadenze senza disegnare niente. */
+function blocchiDelleListe() {
+  const fuori = widgetExcludedEntities();
+  return configuredTodoLists()
+    .filter((list) => widgetIncludes(list.entity, fuori))
+    .map((list) => ({ list, items: record(list.entity).items }));
+}
+
+function calendarioModel() {
+  const { eventi, inArrivo, scelti } = eventiDeiCalendari();
+  if (!scelti.length) return null;
+  const adesso = Date.now();
+  const lingua = locale();
+  const parole = paroleDelCalendario();
+  const restano = eventiDaQui(eventi, adesso);
+  const primi = prossimiEventi(eventi, adesso, 2);
+  const oggi = chiaveDelGiorno(adesso);
+  const diOggi = restano.filter(
+    (evento) => chiaveDelGiorno(evento.inizio) === oggi || inCorso(evento, adesso),
+  );
+  /* Anche le scadenze contano: «3 oggi» sopra un'agenda che di righe per oggi
+   * ne mostra quattro sarebbe un numero che smentisce quello che c'e' sotto.
+   * Quelle in ritardo entrano nel conto di oggi, perche' e' oggi che vanno
+   * fatte. */
+  const scadenzeOggi = scadenzeDelleListe(blocchiDelleListe()).filter(
+    (voce) => chiaveDelGiorno(voce.inizio) <= oggi,
+  ).length;
+
+  /* Un evento nella didascalia: quando comincia e come si chiama. Il giorno si
+   * scrive solo se non e' oggi — «Oggi 20:00» davanti a ogni riga sarebbe una
+   * parola ripetuta che non distingue niente. */
+  const scritto = (evento) => {
+    const titolo = clean(evento.summary) || t("Senza titolo", "Untitled");
+    if (inCorso(evento, adesso)) return `${t("Adesso", "Now")} · ${titolo}`;
+    const giorno = chiaveDelGiorno(evento.inizio);
+    const quando = evento.tuttoIlGiorno
+      ? ""
+      : oraDellEvento(evento, parole, lingua).split(" ")[0];
+    const dove =
+      giorno === oggi ? quando : `${etichettaDelGiorno(giorno, adesso, parole, lingua)}${quando ? ` ${quando}` : ""}`;
+    return dove ? `${dove} · ${titolo}` : titolo;
+  };
+
+  const didascalia = () => {
+    if (!primi.length)
+      return inArrivo ? t("Caricamento…", "Loading…") : t("Niente in programma", "Nothing scheduled");
+    return primi.map(scritto).join("  ·  ");
+  };
+
+  return {
+    // L'altra meta' dell'Agenda (#259): gli impegni. Vedi `todoModel` sopra.
+    parte: "impegni",
+    accent: "#6366f1",
+    icon: "📅",
+    label: t("Impegni", "Appointments"),
+    /* Quanti ne restano oggi, non quanti ce ne sono in tutto: «diciotto» non
+     * dice se stasera si e' liberi, «due oggi» si'. */
+    value: (() => {
+      const quante = diOggi.length + scadenzeOggi;
+      return quante ? t(`${quante} oggi`, `${quante} today`) : "—";
+    })(),
+    caption: didascalia(),
+    /* Nessun anello: una percentuale di appuntamenti non vuol dire niente, e
+     * un cerchio pieno a caso e' peggio di un cerchio che non c'e'. */
+    ring: null,
+    // La tessera si accende mentre un evento sta succedendo.
+    attiva: primi.length > 0 && inCorso(primi[0], adesso),
+    primi,
+    eventi: restano,
+    inArrivo,
+    calendari: scelti,
   };
 }
 
@@ -402,6 +683,7 @@ function rigaClima(states, unit) {
   const elenco = (valori) => (Array.isArray(valori) ? valori.map(clean).filter(Boolean) : []);
   const numero = (valore, difetto = null) =>
     Number.isFinite(Number(valore)) ? Number(valore) : difetto;
+  const scala = scalaDellUnita(attributi);
   return {
     entity,
     name: clean(unit?.name) || entity,
@@ -416,9 +698,14 @@ function rigaClima(states, unit) {
     modi: elenco(attributi.hvac_modes),
     ventole: elenco(attributi.fan_modes),
     ventola: clean(attributi.fan_mode),
-    minima: numero(attributi.min_temp, 5),
-    massima: numero(attributi.max_temp, 35),
-    passo: numero(attributi.target_temp_step, 0.5) || 0.5,
+    /* Fin dove il pannello lascia andare l'obiettivo: la scala e' quella che
+     * l'unita' dichiara, e la regola sta nel nucleo insieme a quella della
+     * pagina Clima — erano due copie della stessa cosa, e una delle due si
+     * fermava a trentacinque gradi anche davanti a una pompa di calore che
+     * ne dichiara settanta (#252). */
+    minima: scala[0],
+    massima: scala[1],
+    passo: passoDellUnita(attributi, 0.5),
     umidita: numero(attributi.current_humidity),
     azione: clean(attributi.hvac_action),
     /* Che macchina e', non solo cosa sta facendo adesso: un termosifone
@@ -492,15 +779,27 @@ function coversModel(states) {
        * solo i sensori di apertura non aveva modo di vedere a colpo d'occhio
        * quali infissi ha lasciato aperti — che e' esattamente la cosa che si
        * vuole sapere uscendo di casa. */
-      if (isWindowOnly(item))
+      if (isWindowOnly(item)) {
+        /* I contatti possono essere due (#254): l'infisso dentro e
+         * l'inferriata fuori. Sono due cose che si aprono per conto loro, e in
+         * Home vanno elencate separate — una grata lasciata aperta e una
+         * finestra lasciata aperta non sono la stessa notizia. Chi ne ha
+         * dichiarato uno solo vede una riga sola, come prima. */
+        const nome = clean(item?.name);
         return [
-          {
+          [contactEntity(item), nome, false],
+          [inferriataEntity(item), nome, true],
+        ]
+          .filter(([entita]) => entita)
+          .map(([entita, etichetta, grata]) => ({
             item,
-            voce: { entity: contactEntity(item), kind: "", down: "" },
-            etichetta: clean(item?.name) || clean(contactEntity(item)),
+            voce: { entity: entita, kind: "", down: "" },
+            etichetta: grata
+              ? `${etichetta || entita} · ${t("Inferriata", "Grate")}`
+              : etichetta || entita,
             soloSensore: true,
-          },
-        ];
+          }));
+      }
       return coverEntries(item).map((voce) => ({
         item,
         voce,
@@ -1299,6 +1598,388 @@ function solarThermalModel(states) {
  * avere un interruttore invece di una scritta. */
 const COMANDI_PISCINA = Object.freeze({ pumpEnt: "🔄", heatEnt: "🔥", lightEnt: "💡" });
 
+/* La tessera dello scaldabagno (#253).
+ *
+ * «La card attuale e' fantastica ma pensata per il solare termico»: quella
+ * guarda il salto fra le sonde, perche' li' il calore arriva dal sole e la
+ * domanda e' se la pompa conviene farla girare. Qui il calore arriva da una
+ * resistenza che si paga, e la domanda e' un'altra: quanto manca all'acqua
+ * calda. Percio' il numero grande e' la temperatura dell'acqua e l'anello e'
+ * la distanza dall'obiettivo — non una percentuale inventata.
+ */
+export function configuredScaldabagni() {
+  return readJson(SCALDABAGNI_KEY, []);
+}
+
+const GLIFI_SCALDABAGNO = Object.freeze({
+  interruttore: "🔌",
+  temperatura: "🌡️",
+  obiettivo: "🎯",
+  potenza: "⚡",
+  energia: "📅",
+});
+
+function scaldabagnoModel(states) {
+  const fuori = widgetExcludedEntities();
+  const letture = lettureScaldabagni(
+    configuredScaldabagni(),
+    states,
+    root.resolveEntity || ((value) => value),
+  ).filter((lettura) =>
+    /* L'interruttore «nel widget»: basta che UNA delle caselle sia rimasta
+     * dentro perche' la riga abbia ancora qualcosa da dire in Home. */
+    entitaDiUnoScaldabagno(lettura).some((entity) => widgetIncludes(entity, fuori)),
+  );
+  if (!letture.length) return null;
+
+  const piuDiUno = letture.length > 1;
+  const nomeDi = (lettura, indice) =>
+    clean(lettura.name) || `${t("Scaldabagno", "Water heater")} ${indice + 1}`;
+  const etichetta = (lettura, indice, testo) =>
+    piuDiUno ? `${nomeDi(lettura, indice)} · ${testo}` : testo;
+
+  const rows = [];
+  letture.forEach((lettura, indice) => {
+    if (lettura.comandabile)
+      rows.push({
+        glyph: GLIFI_SCALDABAGNO.interruttore,
+        name: etichetta(lettura, indice, t("Resistenza", "Heating element")),
+        entity: lettura.comandabile,
+        on: lettura.acceso === true,
+        value: lettura.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
+        /* Un interruttore, non una scritta — salvo che quella entita' sia fra
+         * quelle che si guardano e basta. */
+        comando: siComanda(lettura.comandabile),
+      });
+    const misura = (chiave, testo, valore, cifre, unita) => {
+      if (valore == null) return;
+      rows.push({
+        glyph: GLIFI_SCALDABAGNO[chiave],
+        name: etichetta(lettura, indice, testo),
+        entity: clean(lettura[chiave === "temperatura" ? "entity" : chiave]) || lettura.entity,
+        raw: valore,
+        value: `${formatNumber(valore, cifre)}${unita}`,
+      });
+    };
+    misura("temperatura", t("Acqua adesso", "Water now"), lettura.temperatura, 1, "°");
+    misura("obiettivo", t("Obiettivo", "Target"), lettura.obiettivo, 1, "°");
+    misura("potenza", t("Consumo", "Power"), lettura.potenza, 0, " W");
+    misura("energia", t("Oggi", "Today"), lettura.energia, 1, " kWh");
+  });
+  if (!rows.length) return null;
+
+  /* Chi parla in grande: la prima riga che ha una temperatura dell'acqua. Se
+   * nessuno ce l'ha — c'e' solo il rele' — parla l'interruttore, che qualcosa
+   * da dire ce l'ha. */
+  const testa = letture.find((lettura) => lettura.temperatura != null) || letture[0];
+  const acceso = letture.some((lettura) => lettura.acceso === true);
+  const scalda = letture.some((lettura) => lettura.stato === "scalda");
+  const didascalia = () => {
+    if (testa.stato === "spento") return t("Spento", "Off");
+    if (testa.stato === "pronto") return t("Acqua pronta", "Water ready");
+    if (testa.stato === "scalda") {
+      if (testa.obiettivo == null) return t("Sta scaldando", "Heating");
+      /* Il numero si tira fuori prima: la chiave di traduzione deve essere una
+       * frase con un buco — «Scalda verso ${meta}°» — non un pezzo di codice
+       * che nessun traduttore puo' leggere. */
+      const meta = formatNumber(testa.obiettivo, 0);
+      return t(`Scalda verso ${meta}°`, `Heating to ${meta}°`);
+    }
+    return "";
+  };
+  return {
+    key: "scaldabagno",
+    accent: "#ea580c",
+    icon: "🚿",
+    label: t("Scaldabagno", "Water heater"),
+    value:
+      testa.temperatura != null
+        ? `${formatNumber(testa.temperatura, 1)}°`
+        : acceso
+          ? t("Acceso", "On")
+          : t("Spento", "Off"),
+    caption: didascalia(),
+    /* L'anello dice quanto manca all'acqua calda, che e' la sola cosa per cui
+     * si guarda uno scaldabagno. Senza obiettivo non c'e' corsa: niente
+     * anello, invece di un cerchio pieno a caso. */
+    ring: testa.quota == null ? null : Math.round(testa.quota * 100),
+    // La tessera si accende mentre la resistenza lavora, non quando e' finita.
+    attiva: scalda,
+    /* Le letture per unita', accanto alle righe: la frase della finestra parla
+     * di acqua calda e di gradi che mancano, non del numero di caselle accese
+     * — contando le righe direbbe «uno su otto in funzione», che di uno
+     * scaldabagno non e' una notizia. */
+    unita: letture,
+    rows,
+  };
+}
+
+/* La tessera della caldaia (#253).
+ *
+ * Di una caldaia non si guarda una temperatura: si guarda il SALTO fra
+ * mandata e ritorno, perche' due numeri vicini su una caldaia accesa vogliono
+ * dire che l'acqua gira senza scaldare niente. E si guarda la pressione, che
+ * e' l'unica cosa di quell'impianto che ogni tanto chiede di alzarsi dal
+ * divano: sotto il bar il pressostato blocca tutto, e accorgersene dalla Home
+ * e' meglio che accorgersene da una doccia fredda. */
+function caldaiaModel(states) {
+  const config = readJson(CHIAVE_CALDAIA, {});
+  const entita = entitaDellaCaldaia(config);
+  if (!entita.length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
+  const lettura = letturaCaldaia(config, states, root.resolveEntity || ((value) => value));
+  const pressione = verdettoPressione(lettura.pressione);
+
+  const rows = [];
+  const dato = normalizzaCaldaia(config);
+  if (clean(dato.fiamma) || clean(dato.stato))
+    rows.push({
+      glyph: "🔥",
+      name: t("Bruciatore", "Burner"),
+      entity: clean(dato.fiamma) || clean(dato.stato),
+      on: lettura.fiamma === true || lettura.acceso === true,
+      value:
+        lettura.fiamma === true || lettura.acceso === true
+          ? t("Acceso", "On")
+          : t("Spento", "Off"),
+    });
+  const misura = (campo, testo, glyph, valore, cifre, unita) => {
+    if (valore == null) return;
+    rows.push({
+      glyph,
+      name: testo,
+      entity: clean(dato[campo]),
+      raw: valore,
+      value: `${formatNumber(valore, cifre)}${unita}`,
+    });
+  };
+  misura("mandata", t("Mandata", "Flow"), "🌡️", lettura.mandata, 1, "°");
+  misura("ritorno", t("Ritorno", "Return"), "🌡️", lettura.ritorno, 1, "°");
+  misura("acquaCalda", t("Acqua calda", "Hot water"), "🚿", lettura.acquaCalda, 1, "°");
+  misura("pressione", t("Pressione", "Pressure"), "📊", lettura.pressione, 1, " bar");
+  misura("modulazione", t("Modulazione", "Modulation"), "📶", lettura.modulazione, 0, "%");
+  if (!rows.length) return null;
+
+  const acceso = lettura.fiamma === true || lettura.acceso === true;
+  const didascalia = () => {
+    if (pressione === "bassa")
+      return t("Pressione bassa: rabbocca", "Pressure low: top it up");
+    if (lettura.salto != null) {
+      /* Il numero si tira fuori prima: la chiave di traduzione deve essere una
+       * frase con un buco, non un pezzo di codice. */
+      const salto = formatNumber(lettura.salto, 1);
+      return t(`Salto ${salto}°`, `Delta ${salto}°`);
+    }
+    return acceso ? t("Bruciatore acceso", "Burner on") : t("Bruciatore spento", "Burner off");
+  };
+  return {
+    key: "caldaia",
+    accent: "#ef4444",
+    icon: "🔥",
+    label: t("Caldaia", "Boiler"),
+    value:
+      lettura.mandata != null
+        ? `${formatNumber(lettura.mandata, 1)}°`
+        : acceso
+          ? t("Accesa", "On")
+          : t("Spenta", "Off"),
+    caption: didascalia(),
+    ring: lettura.modulazione == null ? null : Math.round(lettura.modulazione),
+    // La tessera si accende quando il bruciatore lavora.
+    attiva: acceso,
+    /* Una pressione sotto il minimo e' l'unica cosa di questa pagina che
+     * chiede di fare qualcosa: la tessera lo dice col suo alone, come le
+     * altre quando c'e' da guardare. */
+    alert: pressione === "bassa",
+    lettura,
+    rows,
+  };
+}
+
+/* La tessera del gruppo di continuita' (#256).
+ *
+ * «Vedere se c'e' tensione o no, lo stato della batteria e il carico»: tre
+ * domande, e la prima comanda le altre due. A rete presente la carica e' una
+ * conferma tranquilla — sta al cento per cento perche' non e' successo niente
+ * — e la tessera sta zitta col numero della batteria. Quando la rete cade
+ * quelle stesse cifre diventano un conto alla rovescia, e allora il numero
+ * grande e' l'autonomia: e' l'unica cosa che in quel momento si vuole sapere.
+ *
+ * Percio' la tessera non mostra sempre lo stesso valore. Non e' un capriccio:
+ * un UPS si guarda due volte in tutta la sua vita, e una delle due e' al buio.
+ */
+function upsModel(states) {
+  const config = readJson(CHIAVE_UPS, {});
+  const entita = entitaDellUps(config);
+  if (!entita.length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
+  const lettura = letturaUps(config, states, root.resolveEntity || ((value) => value));
+  const dato = normalizzaUps(config);
+
+  const rows = [];
+  const casella = clean(dato.rete) || clean(dato.stato);
+  if (casella)
+    rows.push({
+      glyph: "🔌",
+      name: t("Rete elettrica", "Mains power"),
+      entity: casella,
+      on: lettura.rete === true,
+      value:
+        lettura.rete === true
+          ? t("Presente", "Present")
+          : lettura.rete === false
+            ? t("Manca", "Missing")
+            : t("Sconosciuta", "Unknown"),
+    });
+  const misura = (campo, testo, glyph, valore, cifre, unita) => {
+    if (valore == null) return;
+    rows.push({
+      glyph,
+      name: testo,
+      entity: clean(dato[campo]),
+      raw: valore,
+      value: `${formatNumber(valore, cifre)}${unita}`,
+    });
+  };
+  misura("batteria", t("Batteria", "Battery"), "🔋", lettura.batteria, 0, "%");
+  misura("carico", t("Carico", "Load"), "📊", lettura.carico, 0, "%");
+  misura("autonomia", t("Autonomia residua", "Runtime left"), "⏳", lettura.autonomia, 0, " min");
+  misura("tensione", t("Tensione", "Voltage"), "⚡", lettura.tensione, 0, " V");
+  misura("potenza", t("Potenza", "Power"), "🔥", lettura.potenza, 0, " W");
+  misura("temperatura", t("Temperatura", "Temperature"), "🌡️", lettura.temperatura, 1, "°");
+  if (!rows.length) return null;
+
+  const aBatteria = lettura.rete === false;
+  const didascalia = () => {
+    if (aBatteria) {
+      /* Il numero si tira fuori prima: la chiave di traduzione dev'essere una
+       * frase con un buco, non un pezzo di codice. */
+      if (lettura.batteria != null) {
+        const carica = formatNumber(lettura.batteria, 0);
+        return t(`Va a batteria · ${carica}%`, `On battery · ${carica}%`);
+      }
+      return t("Va a batteria", "On battery");
+    }
+    if (lettura.rete === true) {
+      if (lettura.scarica) return t("Batteria scarica", "Battery low");
+      if (lettura.carico != null) {
+        const carico = formatNumber(lettura.carico, 0);
+        return t(`Rete presente · carico ${carico}%`, `Mains present · load ${carico}%`);
+      }
+      return t("Rete presente", "Mains present");
+    }
+    return t("Non risponde", "Not answering");
+  };
+  return {
+    key: "ups",
+    accent: "#0ea5e9",
+    icon: "🔋",
+    label: t("Continuità", "Backup power"),
+    /* A rete caduta parla l'autonomia, perche' e' il tempo che resta; a rete
+     * presente parla la batteria, perche' e' la conferma che il tempo c'e'. */
+    value:
+      aBatteria && lettura.autonomia != null
+        ? `${formatNumber(lettura.autonomia, 0)} min`
+        : lettura.batteria != null
+          ? `${formatNumber(lettura.batteria, 0)}%`
+          : lettura.rete === true
+            ? t("In rete", "On mains")
+            : t("A batteria", "On battery"),
+    caption: didascalia(),
+    // L'anello e' la carica: quanto tempo c'e' ancora dentro quella scatola.
+    ring: lettura.batteria == null ? null : Math.round(lettura.batteria),
+    // La tessera si accende quando la casa sta andando a batteria.
+    attiva: aBatteria,
+    /* L'alone: la rete caduta, o la batteria sotto la soglia anche a rete
+     * presente — che vuol dire che non ha finito di ricaricarsi dal guasto di
+     * prima, e il prossimo la trova impreparata. */
+    alert: lettura.allarme === true,
+    lettura,
+    da: daQuandoUps(config, states, root.resolveEntity || ((value) => value)),
+    rows,
+  };
+}
+
+/* Una cosa sola: l'agenda (#259).
+ *
+ * «Devono essere un'unica sezione: nel calendario ci sono gli appuntamenti,
+ * invece cose da fare e' una lista. O crei un widget popup unico con tutte e
+ * due le sezioni.»
+ *
+ * Ha ragione, ed erano due tessere che si somigliavano troppo: due mattonelle
+ * vicine con la stessa faccia — un elenco di righe con un titolo sopra — che
+ * chiedevano a chi guarda di ricordarsi quale era quale. Ma non sono la stessa
+ * cosa, e nemmeno vanno mescolate in un elenco solo: un appuntamento succede
+ * a un'ora e non si spunta, una cosa da fare si spunta e un'ora non ce l'ha.
+ *
+ * Percio' una tessera, e dentro due blocchi che restano riconoscibili: sopra
+ * gli IMPEGNI, giorno per giorno, con la loro ora; sotto le COSE DA FARE, con
+ * la loro casella da spuntare. Una finestra sola in cui si legge la giornata
+ * intera invece di aprirne due per farsene un'idea.
+ *
+ * Il numero grande e' quello che si guarda di sfuggita — quanti impegni
+ * restano oggi — e la didascalia porta i due prossimi piu' quante cose
+ * restano da fare. */
+function agendaModel(states) {
+  const calendario = calendarioModel();
+  const cose = todoModel(states);
+  if (!calendario && !cose) return null;
+
+  const daFare = cose ? contaDaFare(cose) : 0;
+  const adesso = Date.now();
+  const inCorsoAdesso = Boolean(
+    calendario?.primi?.length && inCorso(calendario.primi[0], adesso),
+  );
+
+  /* La didascalia dice le due cose insieme quando ci sono tutte e due: «17:30
+   * Dentista · 4 da fare». Con una sola resta quella, senza il puntino che
+   * separerebbe da niente. */
+  const pezzi = [];
+  if (calendario && calendario.primi.length) pezzi.push(calendario.caption);
+  else if (calendario) pezzi.push(calendario.caption);
+  if (daFare) pezzi.push(t(`${daFare} da fare`, `${daFare} to do`));
+  else if (cose) pezzi.push(t("Tutto fatto", "All done"));
+
+  return {
+    key: "agenda",
+    accent: "#6366f1",
+    icon: "📅",
+    label: t("Agenda", "Agenda"),
+    /* Il numero grande resta quello degli impegni di oggi quando c'e' un
+     * calendario; chi ha solo le liste vede quante cose gli restano, che per
+     * lui e' la stessa domanda. */
+    value: calendario ? calendario.value : String(daFare),
+    caption: pezzi.filter(Boolean).join("  ·  "),
+    /* Nessun anello: mescolare la percentuale di cose spuntate con gli
+     * appuntamenti darebbe un cerchio che non risponde a niente. */
+    ring: null,
+    // Si accende mentre un impegno sta succedendo, o se resta qualcosa da fare.
+    attiva: inCorsoAdesso || daFare > 0,
+    /* I due pezzi restano interi: la finestra li disegna uno sotto l'altro, e
+     * ognuno tiene i gesti che aveva — la matita sugli impegni, la spunta
+     * sulle cose da fare. */
+    calendario,
+    cose,
+    // Quello che serve al racconto della finestra, senza doverlo ripescare.
+    primi: calendario?.primi || [],
+    eventi: calendario?.eventi || [],
+    inArrivo: Boolean(calendario?.inArrivo),
+    calendari: calendario?.calendari || [],
+    daFare,
+    blocks: cose?.blocks || [],
+  };
+}
+
+/* Quante cose restano da fare, in tutte le liste. */
+function contaDaFare(tessera) {
+  return (tessera.blocks || []).reduce(
+    (somma, blocco) => somma + pendingTodoItems(blocco.items || []).length,
+    0,
+  );
+}
+
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
@@ -1960,10 +2641,46 @@ export function evidenzaModel(states) {
  * dalla media query del foglio, non da un giro di JavaScript. */
 const MODI_COMPATTO = Object.freeze(["mai", "auto", "sempre"]);
 
+/* Le tessere che hanno cambiato nome, e cosa sono diventate.
+ *
+ * «Da fare» e «Calendario» erano due mattonelle e adesso sono una sola,
+ * «Agenda» (#259). Chi le aveva gia' ordinate o nascoste ha i vecchi nomi
+ * scritti in `cd_widgets`: senza tradurli, chi aveva nascosto «Da fare» si
+ * ritroverebbe l'agenda in Home senza averla chiesta, e chi aveva messo il
+ * calendario per primo se lo ritroverebbe in fondo.
+ *
+ * La traduzione si fa in lettura e non si riscrive la configurazione: cosi'
+ * una plancia aperta con la versione vecchia continua a leggere la sua, e
+ * nessuno perde niente tornando indietro. */
+const TESSERE_RINOMINATE = Object.freeze({ todo: "agenda", calendario: "agenda" });
+
+function nomeDiOggi(chiave) {
+  const nome = clean(chiave);
+  return TESSERE_RINOMINATE[nome] || nome;
+}
+
+/* Nascosta la nuova solo se erano nascoste TUTTE le vecchie: chi ne aveva
+ * spenta una sola vuole ancora vedere l'altra meta', e quella meta' adesso
+ * vive dentro l'agenda. */
+function nascosteDiOggi(nascoste) {
+  const dentro = new Set(nascoste.map(clean).filter(Boolean));
+  const vecchie = Object.keys(TESSERE_RINOMINATE);
+  const fuori = new Set(dentro);
+  for (const vecchia of vecchie) fuori.delete(vecchia);
+  if (vecchie.every((vecchia) => dentro.has(vecchia))) fuori.add("agenda");
+  return [...fuori];
+}
+
 export function widgetPreferences() {
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
-  const hidden = Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [];
-  const order = Array.isArray(stored?.order) ? stored.order.map(clean).filter(Boolean) : [];
+  const hidden = nascosteDiOggi(
+    Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [],
+  );
+  const order = [
+    ...new Set(
+      (Array.isArray(stored?.order) ? stored.order.map(clean).filter(Boolean) : []).map(nomeDiOggi),
+    ),
+  ];
   const excluded = Array.isArray(stored?.excluded)
     ? stored.excluded.map(clean).filter(Boolean)
     : [];
@@ -2105,7 +2822,7 @@ function widgetModels(states) {
   return applyWidgetPreferences(
     [
       evidenzaModel(states),
-      todoModel(states),
+      agendaModel(states),
       lightsModel(states),
       climateModel(states),
       coversModel(states),
@@ -2117,6 +2834,9 @@ function widgetModels(states) {
       evModel(states),
       robotsModel(states),
       solarThermalModel(states),
+      scaldabagnoModel(states),
+      caldaiaModel(states),
+      upsModel(states),
       minipcModel(states),
       poolModel(states),
       preseModel(states),
@@ -2422,6 +3142,16 @@ function percentualeDellaRiga(riga) {
   return trovata ? Number(trovata[1]) : null;
 }
 
+/* La frase della casella da spuntare, scritta una volta sola.
+ *
+ * Il titolo si tira fuori prima: scritta con tre nomi di variabile diversi —
+ * `item`, `riga`, `evento` — il raccoglitore delle traduzioni ne farebbe tre
+ * chiavi per la stessa frase, e i cataloghi tre righe da tradurre uguali. */
+export function segnaFatta(titolo) {
+  const nome = clean(titolo);
+  return t(`Segna fatta: ${nome}`, `Mark done: ${nome}`);
+}
+
 function todoItemMarkup(list, item, today) {
   const done = item.status === "completed";
   const dueDay = item.due ? item.due.slice(0, 10) : "";
@@ -2432,8 +3162,9 @@ function todoItemMarkup(list, item, today) {
   return `<li class="dm-todo-item${done ? " is-done" : ""}">
       <button type="button" class="dm-todo-check" data-dm-todo-check data-dm-todo-list="${esc(list.id)}"
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
-        aria-label="${esc(t(`Segna fatta: ${item.summary}`, `Mark done: ${item.summary}`))}"${done ? " disabled" : ""}></button>
+        aria-label="${esc(segnaFatta(item.summary))}"${done ? " disabled" : ""}></button>
       <span class="dm-todo-text">${esc(item.summary)}${due}</span>
+      ${azioneDellaCosaMarkup(item, list)}
       <button type="button" class="dm-todo-del" data-dm-todo-del data-dm-todo-list="${esc(list.id)}"
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
         title="${esc(t("Togli dalla lista", "Remove from the list"))}"
@@ -2441,12 +3172,46 @@ function todoItemMarkup(list, item, today) {
     </li>`;
 }
 
+/* Le cose da fare, disegnate dove serve.
+ *
+ * La stessa lista che sta nella finestra della Home serve anche alla pagina
+ * dell'Agenda: e' un pezzo solo, con gli stessi gesti — la spunta, il cestino,
+ * la riga per scrivere — perche' due elenchi da spuntare sarebbero due modi di
+ * spuntare, e uno dei due prima o poi si dimenticherebbe di ricaricare. */
+/* Le scadenze delle liste, per chi disegna l'agenda.
+ *
+ * La pagina le chiede come le chiede la finestra: una cosa da fare con una
+ * data e' un impegno di quel giorno, e le liste sono le stesse. */
+export function scadenzeDaFare() {
+  const cose = todoModel(allStates());
+  return cose ? scadenzeDelleListe(cose.blocks) : [];
+}
+
+/* Le liste, col nome con cui si chiamano: servono al modulo per far scegliere
+ * dove finisce una cosa nuova. */
+export function listeConNome() {
+  return configuredTodoLists().map((list, index) => ({
+    id: list.id,
+    entity: list.entity,
+    name: clean(list.name) || `${t("Lista", "List")} ${index + 1}`,
+  }));
+}
+
+export function bloccoDaFareMarkup() {
+  const cose = todoModel(allStates());
+  return cose ? todoDetail(cose) : "";
+}
+
 function todoDetail(widget) {
   const today = localToday();
   return widget.blocks
     .map(({ list, items }) => {
-      const open = pendingTodoItems(items || []);
-      const shown = (items || [])
+      /* Le cose con una data stanno nell'agenda, nel loro giorno (#259): qui
+       * restano quelle che un giorno non ce l'hanno. Mostrarle in tutti e due
+       * i posti sarebbe la stessa riga due volte nella stessa pagina. */
+      const senzaData = (items || []).filter((item) => !voceConScadenza(item));
+      const open = pendingTodoItems(senzaData);
+      const shown = senzaData
         .filter((item) => item.status !== "completed" || item.localDone)
         .slice(0, MAX_VISIBLE_ITEMS);
       const extra = open.length - shown.filter((item) => item.status !== "completed").length;
@@ -2474,6 +3239,132 @@ function todoDetail(widget) {
       return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(clean(list.name) || list.entity)}</span>${body}${scrivi}</div>`;
     })
     .join("");
+}
+
+/* Il pannello del calendario (#259): un giorno per volta.
+ *
+ * «Cliccandoci si apre una lista giorni/giorno e un elenco tipo come gia'
+ * esistente Da Fare»: la stessa forma — un titolo di blocco e sotto le righe
+ * — con la differenza che qui il titolo e' un giorno e le righe hanno un'ora.
+ * Le stesse parole che si usano parlando: «Oggi», «Domani», e poi la data. */
+/* Una riga dell'agenda: un appuntamento o una scadenza.
+ *
+ * Sono due cose diverse e si vedono diverse. L'appuntamento porta la sua ora e
+ * i tasti per spostarlo o cancellarlo; la scadenza porta la casella da
+ * spuntare, perche' una cosa da fare non si sposta: si fa. */
+function rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari) {
+  if (riga.tipo === "scadenza")
+    return `<li class="dm-cal-evento" data-scadenza="true">
+      <span class="dm-cal-ora">${esc(oraDellEvento(riga, parole, lingua))}</span>
+      <button type="button" class="dm-todo-check" data-dm-todo-check
+        data-dm-todo-list="${esc(riga.listaId)}" data-dm-todo-uid="${esc(riga.uid)}"
+        data-dm-todo-summary="${esc(riga.summary)}"
+        aria-label="${esc(segnaFatta(riga.summary))}"></button>
+      <span class="dm-cal-testo">
+        <b>${esc(riga.summary || t("Senza titolo", "Untitled"))}</b>
+        <small>${esc(riga.lista)}</small>
+      </span>
+      ${azioneDellaScadenzaMarkup(riga)}
+    </li>`;
+  const ora = inCorso(riga, adesso);
+  return `<li class="dm-cal-evento" data-adesso="${ora}">
+    <span class="dm-cal-ora">${esc(oraDellEvento(riga, parole, lingua))}</span>
+    <span class="dm-cal-testo">
+      <b>${esc(riga.summary || t("Senza titolo", "Untitled"))}</b>
+      ${
+        /* Il luogo e il calendario di provenienza stanno sotto, e solo se ci
+         * sono: una riga vuota sotto ogni titolo farebbe un elenco alto il
+         * doppio per niente. */
+        riga.location || piuCalendari
+          ? `<small>${esc(
+              [piuCalendari ? riga.calendario : "", riga.location].filter(Boolean).join(" · "),
+            )}</small>`
+          : ""
+      }
+    </span>
+    ${ora ? `<span class="dm-cal-adesso">${esc(t("Adesso", "Now"))}</span>` : ""}
+    ${azioniDellEventoMarkup(riga, chiaveDellEvento(riga))}
+  </li>`;
+}
+
+/* Il pannello dell'agenda (#259): un giorno per volta, appuntamenti e scadenze.
+ *
+ * «Cliccandoci si apre una lista giorni/giorno e un elenco tipo come gia'
+ * esistente Da Fare»: la stessa forma — un titolo di blocco e sotto le righe —
+ * con la differenza che qui il titolo e' un giorno. E dentro ci sono tutte e
+ * due le cose che quel giorno riguardano: quello che succede a un'ora e quello
+ * che scade. */
+function calendarioDetail(widget, scadenze = []) {
+  const adesso = Date.now();
+  const lingua = locale();
+  const parole = paroleDelCalendario();
+  const piuCalendari = widget.calendari.length > 1;
+  const { ritardo, giorni } = agendaPerGiorno(widget.eventi, scadenze, adesso);
+  /* Il modulo sa quali calendari ci sono da chi lo disegna: e' lo stesso
+   * elenco in Home e nella pagina, e passarglielo in un attributo vorrebbe
+   * dire un JSON dentro il documento. */
+  dichiaraCalendari(widget.calendari);
+  const modulo = moduloMarkup(widget.calendari, listeConNome());
+  /* Il tasto sta in cima e non in fondo: la finestra scorre, e in fondo a
+   * un'agenda di due settimane il tasto per segnare un impegno e' un tasto che
+   * non si trova. */
+  const nuovo = bozzaAperta() ? "" : tastoNuovoMarkup(widget.calendari);
+  const testa = nuovo ? `<div class="dm-cal-fondo">${nuovo}</div>` : "";
+
+  /* Quello che e' scaduto sta in cima, in un blocco suo: una cosa da fare di
+   * martedi' scorso non appartiene a martedi' scorso — nessuno scorre indietro
+   * per trovarla — appartiene ad adesso. */
+  const arretrati = ritardo.length
+    ? `<div class="dm-w-block" data-dm-ritardo="true">
+        <span class="dm-w-block-title">⚠️ ${esc(parole.inRitardo)}</span>
+        <ul class="dm-cal-lista">${ritardo
+          .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
+          .join("")}</ul>
+      </div>`
+    : "";
+
+  if (!giorni.length && !arretrati)
+    return `${modulo}${testa}<p class="dm-w-empty">${esc(
+      widget.inArrivo
+        ? t("Caricamento…", "Loading…")
+        : t("✨ Niente in programma", "✨ Nothing scheduled"),
+    )}</p>`;
+
+  const elenco = giorni
+    .slice(0, GIORNI_NEL_PANNELLO)
+    .map(
+      ({ giorno, eventi }) => `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
+        etichettaDelGiorno(giorno, adesso, parole, lingua),
+      )}</span><ul class="dm-cal-lista">${eventi
+        .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
+        .join("")}</ul></div>`,
+    )
+    .join("");
+  return `${modulo}${testa}${arretrati}${elenco}`;
+}
+
+function agendaDetail(widget, states) {
+  /* Le scadenze delle liste entrano nell'agenda, nel loro giorno: una cosa da
+   * fare con una data E' un impegno di quel giorno. */
+  const scadenze = scadenzeDelleListe(widget.blocks);
+  const impegni = widget.calendario
+    ? calendarioDetail(widget.calendario, scadenze)
+    : /* Senza calendari, le scadenze un posto ce l'hanno lo stesso: sono
+       * l'agenda di chi tiene solo le liste. */
+      scadenze.length
+      ? calendarioDetail({ eventi: [], calendari: [], inArrivo: false }, scadenze)
+      : "";
+  const cose = widget.cose ? todoDetail(widget.cose) : "";
+  if (!impegni) return cose;
+  if (!cose) return impegni;
+  return `<div class="dm-ag-parte" data-dm-ag="impegni">
+      <h5 class="dm-ag-titolo">📅 ${esc(t("Impegni", "Appointments"))}</h5>
+      ${impegni}
+    </div>
+    <div class="dm-ag-parte" data-dm-ag="cose">
+      <h5 class="dm-ag-titolo">✅ ${esc(t("Da fare", "To-do"))}</h5>
+      ${cose}
+    </div>`;
 }
 
 function lightsDetail(widget) {
@@ -3041,6 +3932,9 @@ function pilloleDelloStato(widget) {
  * acceso/spento restano alle pillole, i comandi restano comandi. */
 const CHIAVI_A_CARTE = new Set([
   "evidenza",
+  "scaldabagno",
+  "caldaia",
+  "ups",
   "ev",
   "solare",
   "piscina",
@@ -3410,7 +4304,14 @@ function detailBody(widget, states) {
   return `${verdettoEFrase(widget)}
     ${caselleDelleMisure(widget)}
     ${pilloleDelloStato(widget)}
-    ${comandi ? `<h4 class="dm-w-titoletto">${esc(titoloDelBlocco(comandi))}</h4>${comandi}` : ""}`;
+    ${
+      comandi
+        ? `${(() => {
+            const titolo = titoloDelBlocco(comandi, widget.key);
+            return titolo ? `<h4 class="dm-w-titoletto">${esc(titolo)}</h4>` : "";
+          })()}${comandi}`
+        : ""
+    }`;
 }
 
 /* Il titolo dice cosa c'e' sotto, e non sempre sono comandi.
@@ -3422,13 +4323,18 @@ function detailBody(widget, states) {
  * esiste. Si guarda cosa c'e' davvero nel blocco invece di deciderlo a
  * tavolino: se c'e' qualcosa da premere sono comandi, altrimenti sono letture.
  */
-function titoloDelBlocco(markup) {
+function titoloDelBlocco(markup, chiave = "") {
+  /* L'Agenda non porta ne' comandi ne' letture, e non porta nemmeno un titolo:
+   * i suoi due pezzi — «Impegni» e «Da fare» — si annunciano da soli, e una
+   * riga «AGENDA» sopra due titoli sarebbe il nome della finestra scritto una
+   * seconda volta. */
+  if (chiave === "agenda") return "";
   const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
   return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
 
 function detailRows(widget, states) {
-  if (widget.key === "todo") return todoDetail(widget);
+  if (widget.key === "agenda") return agendaDetail(widget, states);
   if (widget.key === "luci") return lightsDetail(widget);
   if (widget.key === "clima") return climateDetail(widget);
   if (widget.key === "tapparelle") return coversDetail(widget);
@@ -3437,7 +4343,11 @@ function detailRows(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
-  if (["ev", "solare", "piscina", "prese", "irrigazione", "robot"].includes(widget.key))
+  if (
+    ["ev", "solare", "scaldabagno", "caldaia", "ups", "piscina", "prese", "irrigazione", "robot"].includes(
+      widget.key,
+    )
+  )
     return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
@@ -3470,6 +4380,10 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   temperatura: "temp",
   ev: "ev",
   solare: "boiler",
+  scaldabagno: "boiler",
+  caldaia: "boiler",
+  ups: "ups",
+  agenda: "calendario",
   piscina: "piscina",
   irrigazione: "irrigazione",
   robot: "robot",
@@ -3841,6 +4755,7 @@ export function renderHomeWidgets() {
   sincronizzaPopup(models, states);
 
   for (const list of configuredTodoLists()) fetchItems(list.entity);
+  aggiornaCalendari();
   // La tessera delle telecamere appena disegnata (o ridisegnata) chiede i suoi
   // fotogrammi; chiusa, restituisce timer e object URL.
   if (state.expanded === "telecamere") aggiornaTelecamere();
@@ -4326,6 +5241,16 @@ function stateChangeTouchesTodo(event) {
   const changed = new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
   if (!changed.size) return false;
   return configuredTodoLists().some((list) => changed.has(list.entity));
+}
+
+/* Lo stato di un `calendar.*` cambia quando un evento comincia o finisce: e'
+ * il momento in cui l'elenco e' vecchio, e va riletto senza aspettare che
+ * scada da solo. */
+function ilCambioTocaUnCalendario(event) {
+  const valori = event?.detail?.entity_ids || [event?.detail?.entity_id];
+  const cambiate = new Set((Array.isArray(valori) ? valori : [valori]).map(clean).filter(Boolean));
+  if (!cambiate.size) return false;
+  return calendariConfigurati().some((voce) => cambiate.has(voce.entity));
 }
 
 /* ── stile ────────────────────────────────────────────────────────────── */
@@ -4859,38 +5784,38 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   #dm-widget-popup .dm-w-row .dm-w-door:active{transform:none}
 }
 /* La riga per scrivere: una casella e un piu', larghi quanto la lista. */
-#dm-widget-popup .dm-todo-add{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-add{
   display:flex;gap:8px;margin:9px 0 2px}
-#dm-widget-popup .dm-todo-new{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-new{
   flex:1 1 auto;min-width:0;height:38px;padding:0 13px;border-radius:13px;
   border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
   font:inherit;font-size:13px;font-weight:700;color:var(--text,#0f172a);
   transition:border-color .18s ease,box-shadow .18s ease}
-#dm-widget-popup .dm-todo-new::placeholder{color:var(--text-dim,#94a3b8);font-weight:600}
-#dm-widget-popup .dm-todo-new:focus{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-new::placeholder{color:var(--text-dim,#94a3b8);font-weight:600}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-new:focus{
   outline:none;border-color:var(--dm-widget-accent,#0ea5e9);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)}
-#dm-widget-popup .dm-todo-plus{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-plus{
   flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;
   border:0;border-radius:13px;cursor:pointer;
   background:var(--dm-widget-accent,#0ea5e9);color:#fff;
   font:inherit;font-size:19px;font-weight:800;line-height:1;
   box-shadow:0 8px 18px -10px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent);
   transition:transform .15s ease,filter .18s ease}
-#dm-widget-popup .dm-todo-plus:hover{filter:brightness(1.06)}
-#dm-widget-popup .dm-todo-plus:active{transform:scale(.94)}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-plus:hover{filter:brightness(1.06)}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-plus:active{transform:scale(.94)}
 /* Il cestino sta in fondo alla riga e si fa vedere quando serve: sempre sul
    telefono, dove non c'e' un puntatore da avvicinare. */
-#dm-widget-popup .dm-todo-del{
+:is(#dm-widget-popup,#page-calendario) .dm-todo-del{
   flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;
   margin-left:auto;border:0;border-radius:10px;cursor:pointer;
   background:transparent;font-size:14px;line-height:1;opacity:.35;
   transition:opacity .18s ease,background .18s ease}
-#dm-widget-popup .dm-todo-item:hover .dm-todo-del{opacity:1}
-#dm-widget-popup .dm-todo-del:hover{background:#fee2e2;opacity:1}
-@media(hover:none){#dm-widget-popup .dm-todo-del{opacity:.7}}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-item:hover .dm-todo-del{opacity:1}
+:is(#dm-widget-popup,#page-calendario) .dm-todo-del:hover{background:#fee2e2;opacity:1}
+@media(hover:none){:is(#dm-widget-popup,#page-calendario) .dm-todo-del{opacity:.7}}
 @media(prefers-reduced-motion:reduce){
-  #dm-widget-popup .dm-todo-plus:active{transform:none}
+  :is(#dm-widget-popup,#page-calendario) .dm-todo-plus:active{transform:none}
 }
 #dm-widget-popup .dm-w-block-title{
   padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
@@ -5355,32 +6280,84 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   background:linear-gradient(0deg,rgba(2,6,15,.72),transparent)}
 
 /* Le voci ToDo dentro il dettaglio. */
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-check{
+/* ── il calendario (#259): un giorno per volta ─────────────────────────
+ *
+ * Stesso passo delle cose da fare — stessa spaziatura, stesso blocco col suo
+ * titolo — perche' e' l'elenco a cui si e' chiesto di assomigliare. L'ora sta
+ * a sinistra in colonna sua: incolonnata si legge di sfuggita, in mezzo al
+ * titolo va cercata. */
+/* I due pezzi dell'Agenda (#259): impegni sopra, cose da fare sotto. Il
+   titolo di ognuno e' quello che li tiene distinti — mescolarli in un elenco
+   solo darebbe righe che si somigliano e non fanno la stessa cosa. */
+:is(#dm-widgets,#dm-widget-popup) .dm-ag-parte + .dm-ag-parte{
+  margin-top:18px;padding-top:16px;border-top:1px solid var(--card-border,#e2e8f0)}
+:is(#dm-widgets,#dm-widget-popup) .dm-ag-titolo{
+  margin:0 0 10px;font-size:12px;font-weight:900;letter-spacing:.4px;
+  color:var(--text-color,#0f172a)}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-lista{list-style:none;margin:0;padding:0 2px;display:grid;gap:9px}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento{
+  display:flex;align-items:flex-start;gap:11px;min-width:0}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-ora{
+  flex:0 0 auto;min-width:78px;font-size:11.5px;font-weight:800;line-height:1.5;
+  font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b);padding-top:1px}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-testo{display:grid;gap:1px;min-width:0;flex:1}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-testo b{
+  font-size:13px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-testo small{
+  font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);overflow-wrap:anywhere}
+/* Quello che sta succedendo adesso si stacca dagli altri: e' la riga per cui
+   si e' aperta la finestra. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-adesso="true"] .dm-cal-ora,
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-adesso="true"] .dm-cal-testo b{
+  color:var(--dm-widget-accent,#6366f1)}
+/* Il fondo del pannello, dove sta il tasto per segnare un impegno nuovo. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-fondo{display:flex;justify-content:center;padding:6px 0 2px}
+/* Una scadenza dentro l'agenda (#259): la casella al posto dei tasti, e la
+   parola «Da fare» dove gli altri hanno l'ora. Si vede che e' un'altra cosa
+   senza doverla leggere. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-scadenza="true"] .dm-cal-ora{
+  color:var(--dm-widget-accent,#6366f1);opacity:.85}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento[data-scadenza="true"] .dm-todo-check{
+  margin-top:0;flex:0 0 19px;width:19px;height:19px}
+/* Quello che e' scaduto: il blocco si stacca dagli altri, perche' e' la riga
+   per cui si apre l'agenda. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-w-block[data-dm-ritardo="true"] .dm-w-block-title{
+  color:#b91c1c}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-w-block[data-dm-ritardo="true"] .dm-cal-ora{
+  color:#b91c1c;opacity:1}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-adesso{
+  flex:0 0 auto;align-self:center;padding:3px 9px;border-radius:999px;
+  font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#fff;
+  background:var(--dm-widget-accent,#6366f1)}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check{
   position:relative;flex:0 0 21px;width:21px;height:21px;margin-top:1px;border-radius:50%;cursor:pointer;
   border:2px solid color-mix(in srgb,var(--text-dim,#94a3b8) 55%,transparent);background:transparent;padding:0;
   transition:border-color .2s ease,background .25s ease,transform .15s ease}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-check:hover{border-color:var(--dm-widget-accent,#059669);transform:scale(1.08)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-check::after{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check:hover{border-color:var(--dm-widget-accent,#059669);transform:scale(1.08)}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check::after{
   content:"✓";position:absolute;inset:0;display:grid;place-items:center;
   color:#fff;font-size:12px;font-weight:900;opacity:0;transform:scale(.4);
   transition:opacity .2s ease,transform .25s cubic-bezier(.16,1,.3,1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-check{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-check{
   border-color:var(--dm-widget-accent,#059669);background:var(--dm-widget-accent,#059669)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-check::after{opacity:1;transform:scale(1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-text{min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-text{color:var(--text-dim,#94a3b8);text-decoration:line-through}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-due{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-check::after{opacity:1;transform:scale(1)}
+/* Il testo si prende lo spazio che avanza, cosi' la matita e il cestino
+   restano insieme a destra: senza, la matita resta attaccata alla parola e il
+   cestino se ne va da solo in fondo. */
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-text{flex:1;min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-item.is-done .dm-todo-text{color:var(--text-dim,#94a3b8);text-decoration:line-through}
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-due{
   display:inline-flex;align-items:center;gap:3px;margin-left:7px;padding:1px 7px;border-radius:999px;
   background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e8edf3);
   font-size:10.5px;font-weight:800;color:var(--text-dim,#64748b);white-space:nowrap;vertical-align:1px}
-:is(#dm-widgets,#dm-widget-popup) .dm-todo-due[data-overdue="true"]{
+:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-due[data-overdue="true"]{
   background:rgba(244,63,94,.10);border-color:rgba(244,63,94,.30);color:#be123c}
 
 @media (prefers-reduced-motion:reduce){
-  :is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron,:is(#dm-widgets,#dm-widget-popup) .dm-todo-check,
-  :is(#dm-widgets,#dm-widget-popup) .dm-todo-check::after,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch i,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron,:is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check,
+  :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-todo-check::after,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch i,
   :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip,:is(#dm-widgets,#dm-widget-popup) .dm-w-cam img,
   :is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{transition:none}
   :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail,:is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-w-row,
@@ -5506,6 +6483,17 @@ export function installHomeWidgetsSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  /* Il modulo del calendario ridisegna la finestra quando si apre, si chiude o
+   * si lamenta, e ci fa rileggere gli eventi dopo ogni scrittura: e' lui che
+   * sa quando qualcosa e' cambiato, non noi. */
+  registraOspiteCalendario(() => schedule());
+  registraRilettura((opzioni) => {
+    aggiornaCalendari(opzioni);
+    /* Dopo una modifica si rileggono anche le voci: una scadenza spostata
+     * cambia il giorno in cui la riga compare, e senza rilettura resterebbe
+     * dov'era finche' non cambia qualcos'altro. */
+    for (const list of configuredTodoLists()) fetchItems(list.entity, { force: true });
+  });
   doc.addEventListener("click", onClick);
   bindEscape();
   doc.addEventListener("change", onChange);
@@ -5534,6 +6522,10 @@ export function installHomeWidgetsSection() {
   root.addEventListener?.("dashboardmodern:state-changed", (event) => {
     if (!stateChangeTouchesTodo(event)) return;
     for (const list of configuredTodoLists()) fetchItems(list.entity, { force: true });
+  });
+  root.addEventListener?.("dashboardmodern:state-changed", (event) => {
+    if (!ilCambioTocaUnCalendario(event)) return;
+    aggiornaCalendari({ force: true });
   });
   doc.addEventListener(
     "click",

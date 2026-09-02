@@ -61,8 +61,18 @@ function installStyles() {
         bottom:calc(90px + var(--dm-fondo-di-sistema))!important
       }
       .bottom-nav-bar{isolation:isolate!important}
-      .bottom-nav-bar .tab{color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
-      .bottom-nav-bar .tab .icon,.bottom-nav-bar .tab .text{opacity:.78!important;transition:opacity .16s ease,color .16s ease!important}
+      /* «Le icone sono poco leggibili, troppo chiare»: la voce a riposo
+       * portava questo grigio al 70% di opacita', che sul bianco della barra
+       * fa tre a uno — sotto la soglia di leggibilita'. Piu' scuro e quasi
+       * pieno ne fa cinque e nove, e la voce aperta resta distinguibile lo
+       * stesso: la stacca il fondo scuro della sua pastiglia, non lo
+       * sbiadimento delle altre. */
+      /* I selettori portano "nav.tabs" davanti perche' il foglio del guscio
+       * scrive "nav.tabs.bottom-nav-bar .tab .text{opacity:.7!important}":
+       * senza quel prefisso questa regola perde, e infatti perdeva. */
+      nav.tabs.bottom-nav-bar .tab{color:#3d4d66!important}
+      html[data-theme="dark"] nav.tabs.bottom-nav-bar .tab,html.dark nav.tabs.bottom-nav-bar .tab,body[data-theme="dark"] nav.tabs.bottom-nav-bar .tab,body.dark nav.tabs.bottom-nav-bar .tab,.dark nav.tabs.bottom-nav-bar .tab{color:#cbd5e1!important}
+      nav.tabs.bottom-nav-bar .tab .icon,nav.tabs.bottom-nav-bar .tab .text{opacity:.96!important;transition:opacity .16s ease,color .16s ease!important}
       /* Il disegno di casa sta nella casella del simbolo, alla sua misura.
        *
        * Il guscio spegneva i simboli con grayscale(1) e opacita' a meta': era una
@@ -71,10 +81,19 @@ function installStyles() {
        * qual e' quella aperta — ma abbastanza da riconoscerle; quella aperta
        * torna a colori pieni. */
       .bottom-nav-bar .tab .icon>.dm-oggetto{width:24px;height:24px;display:block;margin:0 auto}
-      nav.tabs.bottom-nav-bar .tab .icon:has(>.dm-oggetto){filter:grayscale(.85) opacity(.72)!important}
+      /* Un velo solo, non due che si moltiplicano.
+       *
+       * Il simbolo stava gia' a .78 di opacita' per la regola qui sopra, e
+       * questa gliene metteva sopra un altro — .72 — su una figura portata a
+       * quasi monocroma: 0,56 di opacita' su un disegno senza colore, che e'
+       * il «troppo chiare» arrivato dal campo. Adesso il grigio e' un accenno
+       * e il colore si riconosce; a dire qual e' la voce aperta ci pensano il
+       * fondo della pastiglia e il nome, che sono segnali piu' forti di uno
+       * sbiadimento. */
+      nav.tabs.bottom-nav-bar .tab .icon:has(>.dm-oggetto){filter:grayscale(.28) saturate(1.06) contrast(1.04)!important}
       nav.tabs.bottom-nav-bar .tab.active .icon:has(>.dm-oggetto){filter:none!important}
       .bottom-nav-bar .tab.active{color:var(--text,#0f172a)!important}
-      .bottom-nav-bar .tab.active .icon,.bottom-nav-bar .tab.active .text{opacity:1!important}
+      nav.tabs.bottom-nav-bar .tab.active .icon,nav.tabs.bottom-nav-bar .tab.active .text{opacity:1!important}
       html[data-theme="dark"] .bottom-nav-bar,html.dark .bottom-nav-bar,body[data-theme="dark"] .bottom-nav-bar,body.dark .bottom-nav-bar,.dark .bottom-nav-bar{background:rgba(19,28,48,.94)!important;border-color:#40506f!important;box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.07)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important}
       html[data-theme="dark"] .bottom-nav-bar .tab,html.dark .bottom-nav-bar .tab,body[data-theme="dark"] .bottom-nav-bar .tab,body.dark .bottom-nav-bar .tab,.dark .bottom-nav-bar .tab{color:#cbd5e1!important}
       html[data-theme="dark"] .bottom-nav-bar .tab .text,html.dark .bottom-nav-bar .tab .text,body[data-theme="dark"] .bottom-nav-bar .tab .text,body.dark .bottom-nav-bar .tab .text,.dark .bottom-nav-bar .tab .text{color:#cbd5e1!important;opacity:.92!important;text-shadow:0 1px 2px rgba(0,0,0,.35)!important}

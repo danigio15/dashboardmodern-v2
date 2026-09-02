@@ -63,6 +63,15 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   // plancia servita dall'integrazione non possiede nessun token e ogni
   // chiamata REST del browser risponde 401.
   "dashboardmodern/www/upload",
+  // Il calendario si guarda e si tocca (#259): l'elenco degli eventi viene
+  // dalla porta HTTP firmata, ma segnare, spostare e cancellare un impegno
+  // sono tre messaggi sul socket. Senza, dentro il pannello di Home Assistant
+  // rispondevano «Message type not permitted through the bridge» e la matita
+  // non faceva niente — mentre sulla pagina legacy, che il ponte non ce l'ha,
+  // funzionava.
+  "calendar/event/create",
+  "calendar/event/update",
+  "calendar/event/delete",
   // Le segnalazioni. Stessa ragione dell'upload, e una in piu': la chiave del
   // manutentore sta nelle opzioni del config entry e la chiamata verso il
   // relay la fa il backend, quindi qui passa la domanda e non il segreto.

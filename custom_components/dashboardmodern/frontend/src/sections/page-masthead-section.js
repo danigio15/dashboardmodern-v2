@@ -104,6 +104,23 @@ const PAGES = Object.freeze([
     it: ["Energia", "Produzione · Consumi · Report"],
     en: ["Energy", "Production · Consumption · Report"],
   },
+  /* Il gruppo di continuita' (#256) e' nato con la sua pagina, e
+   * l'intestazione nasce con lei: una sezione nuova entra qui il giorno
+   * stesso, non alla prima segnalazione. */
+  {
+    id: "page-ups",
+    tint: ["14,165,233", "34,197,94"],
+    it: ["Continuità", "Rete · Batteria · Carico"],
+    en: ["Backup power", "Mains · Battery · Load"],
+  },
+  /* Il calendario (#259) nasce con la sua pagina, e l'intestazione nasce con
+   * lei: gli impegni di oggi e dei giorni che vengono. */
+  {
+    id: "page-calendario",
+    tint: ["99,102,241", "14,165,233"],
+    it: ["Agenda", "Impegni · Da fare · Prossimi giorni"],
+    en: ["Agenda", "Appointments · To-do · Coming days"],
+  },
   {
     id: "page-appliances-main",
     tint: ["14,165,233", "99,102,241"],
@@ -144,9 +161,41 @@ const PAGES = Object.freeze([
   },
 ]);
 
+/* Una pagina che cambia identita' sotto i piedi.
+ *
+ * Quasi tutte le pagine si chiamano sempre allo stesso modo, e il nome sta
+ * nella tabella qui sopra. La sezione termica no: dietro la stessa pagina ci
+ * possono essere il solare, lo scaldabagno o la caldaia, e scrivere «Impianto
+ * solare termico» sopra una caldaia e' il nome di un'altra macchina.
+ *
+ * L'intestazione resta di questo modulo — un padrone solo — ma un'altra
+ * sezione puo' dirgli come si chiama la pagina adesso. Il produttore torna
+ * `{title, subtitle}` oppure niente, e in quel caso vale la tabella. */
+const TITOLI_SU_MISURA = new Map();
+
+export function registraTitoloDiPagina(id, produttore) {
+  const chiave = clean(id);
+  if (!chiave) return false;
+  if (typeof produttore === "function") TITOLI_SU_MISURA.set(chiave, produttore);
+  else TITOLI_SU_MISURA.delete(chiave);
+  return true;
+}
+
 function labelsFor(page) {
   /* The pair is authored it/en; `t` turns it into the active language. */
-  return { title: t(page.it[0], page.en[0]), subtitle: t(page.it[1], page.en[1]) };
+  const difetto = { title: t(page.it[0], page.en[0]), subtitle: t(page.it[1], page.en[1]) };
+  const produttore = TITOLI_SU_MISURA.get(page.id);
+  if (!produttore) return difetto;
+  try {
+    const scelto = produttore();
+    if (!scelto) return difetto;
+    return {
+      title: clean(scelto.title) || difetto.title,
+      subtitle: clean(scelto.subtitle) || difetto.subtitle,
+    };
+  } catch (_error) {
+    return difetto;
+  }
 }
 
 /* The heading opens the page, and the way back opens the heading. Pages used to

@@ -13,7 +13,10 @@
  *
  * Ogni disegno sta in una griglia di 32x32 e si porta dietro le proprie
  * sfumature. Due tessere che mostrano lo stesso oggetto ripetono gli stessi
- * identificatori: sono definizioni identiche, quindi il disegno non cambia.
+ * identificatori: le definizioni sono identiche, quindi il disegno non cambia
+ * — ma perche' quella frase sia vera bisogna che a rispondere ci sia una
+ * definizione DISEGNATA, e non era garantito: vedi «il foglio delle
+ * sfumature» in fondo al file, che e' il pezzo che lo garantisce.
  * Le tessere che uno si costruisce da se' ("custom-...") non hanno un oggetto
  * nostro: per quelle resta il simbolo scelto da chi le ha fatte.
  */
@@ -85,6 +88,43 @@ const OGGETTI = Object.freeze({
       <path d="M16 2.8v3.2M16 26v3.2M29.2 16H26M6 16H2.8M25.4 6.6l-2.2 2.2M8.8 23.2l-2.2 2.2M25.4 25.4l-2.2-2.2M8.8 8.8 6.6 6.6"/></g>
     <circle cx="16" cy="16" r="7.4" fill="url(#dmoSole)"/>
     <path d="M11.9 11.5a5.5 5.5 0 0 0-1.6 3.3" stroke="#fff" stroke-opacity=".7" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+
+  /* Lo scaldabagno: il serbatoio di lamiera, l'acqua calda che sale dal fondo,
+   * la spia della resistenza. Non e' il sole del solare termico — quello scalda
+   * da fuori, questo da dentro, e si vede. */
+  scaldabagno: `<defs>
+      <linearGradient id="dmoScaldC" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset=".45" stop-color="#dbe3ec"/>
+        <stop offset="1" stop-color="#9aa9bb"/></linearGradient>
+      <linearGradient id="dmoScaldA" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#ea580c"/><stop offset=".55" stop-color="#f97316"/>
+        <stop offset="1" stop-color="#fbbf24"/></linearGradient></defs>
+    ${OMBRA(16, 29.4, 6.4)}
+    <rect x="8.4" y="3.4" width="15.2" height="24" rx="7" fill="url(#dmoScaldC)"/>
+    <path d="M10.6 15.6h10.8v6.6a5.4 5.4 0 0 1-5.4 5.4 5.4 5.4 0 0 1-5.4-5.4Z" fill="url(#dmoScaldA)"/>
+    <rect x="13.6" y="1.6" width="4.8" height="2.6" rx="1.3" fill="#94a3b8"/>
+    <path d="M11.2 8a4.6 4.6 0 0 1 2.8-2.8" stroke="#fff" stroke-opacity=".85" stroke-width="1.6"
+      fill="none" stroke-linecap="round"/>
+    <circle cx="20.4" cy="11.4" r="1.5" fill="#ef4444"/>
+    <path d="M11.6 28.4v2M20.4 28.4v2" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round"/>`,
+
+  /* La caldaia: la scocca a muro, l'oblo' del bruciatore con la fiamma dentro,
+   * i due attacchi sotto. Non e' il serbatoio dello scaldabagno — quella
+   * scalda e basta, questa serve anche i termosifoni. */
+  caldaia: `<defs>
+      <linearGradient id="dmoCaldC" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#dbe3ec"/>
+        <stop offset="1" stop-color="#a9b6c6"/></linearGradient>
+      <radialGradient id="dmoCaldF" cx=".5" cy="1" r=".9">
+        <stop offset="0" stop-color="#fde68a"/><stop offset=".5" stop-color="#fb923c"/>
+        <stop offset="1" stop-color="#ea580c"/></radialGradient></defs>
+    ${OMBRA(16, 28.8, 7.2)}
+    <rect x="4.6" y="4.2" width="22.8" height="21" rx="3.4" fill="url(#dmoCaldC)"/>
+    <rect x="7.4" y="6.8" width="17.2" height="4.2" rx="1.8" fill="#f8fafc"/>
+    <circle cx="22" cy="8.9" r="1.4" fill="#38bdf8"/>
+    <rect x="10.4" y="13.4" width="11.2" height="8.4" rx="2.2" fill="#0b1220"/>
+    <path d="M16 15.4c1.6 1.5 2.4 2.7 2.4 3.7a2.4 2.4 0 0 1-4.8 0c0-.7.3-1.4.9-2 .1.8.5 1.2 1.1 1.3-.2-1.2 0-2.2.4-3Z" fill="url(#dmoCaldF)"/>
+    <path d="M9.6 25.2v3M22.4 25.2v3" stroke="#94a3b8" stroke-width="1.9" stroke-linecap="round"/>`,
 
   /* La porta: pannello, maniglia, e il pavimento sotto. */
   aperture: `<defs>
@@ -247,6 +287,50 @@ const OGGETTI = Object.freeze({
     <g fill="#64748b"><rect x="14.2" y="14.6" width="4.4" height="2.4" rx="1"/>
       <rect x="14.2" y="18.4" width="7.6" height="2.2" rx="1"/></g>
     <path d="M6.6 10.4h18.8" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/>`,
+
+  /* Il gruppo di continuita' (#256): la scatola nera col pannello davanti, la
+   * batteria dentro che si vede dal livello, e la spia della rete. Non e' la
+   * batteria del telefono — quella e' una carica che scende e basta, questa e'
+   * una scatola attaccata al muro che regge la casa quando la corrente cade. */
+  ups: `<defs>
+      <linearGradient id="dmoUpsS" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#64748b"/><stop offset=".45" stop-color="#334155"/>
+        <stop offset="1" stop-color="#0f172a"/></linearGradient>
+      <linearGradient id="dmoUpsB" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#16a34a"/><stop offset=".6" stop-color="#4ade80"/>
+        <stop offset="1" stop-color="#bbf7d0"/></linearGradient></defs>
+    ${OMBRA(16, 28.8, 7.6)}
+    <rect x="7.4" y="4.2" width="17.2" height="23.4" rx="3" fill="url(#dmoUpsS)"/>
+    <rect x="9.6" y="6.6" width="12.8" height="7.4" rx="1.8" fill="#0b1220"/>
+    <rect x="10.8" y="8.4" width="7.4" height="3.8" rx="1" fill="url(#dmoUpsB)"/>
+    <circle cx="20.6" cy="10.3" r="1.3" fill="#22c55e"/>
+    <path d="M16.6 16.6 13.4 22h2.6l-.8 4 3.6-5.8h-2.6Z" fill="#fbbf24"/>
+    <g fill="#94a3b8"><rect x="9.6" y="24.2" width="4.6" height="2" rx="1"/>
+      <rect x="17.8" y="24.2" width="4.6" height="2" rx="1"/></g>
+    <path d="M9.6 5.6h12.8" stroke="#fff" stroke-opacity=".4" stroke-width="1.2"/>`,
+
+  /* L'agenda (#259): il blocco di fogli, la testata colorata coi due anelli,
+   * il giorno segnato — e la spunta nell'angolo, perche' questa tessera porta
+   * tutte e due le cose: quello che succede a un'ora e quello che si spunta. */
+  agenda: `<defs>
+      <linearGradient id="dmoCalT" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#818cf8"/><stop offset=".55" stop-color="#6366f1"/>
+        <stop offset="1" stop-color="#4338ca"/></linearGradient>
+      <linearGradient id="dmoCalF" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e2e8f0"/></linearGradient></defs>
+    ${OMBRA(16, 28.6, 8.6)}
+    <rect x="4.2" y="6.2" width="23.6" height="21.2" rx="3.4" fill="url(#dmoCalF)"/>
+    <path d="M4.2 9.6a3.4 3.4 0 0 1 3.4-3.4h16.8a3.4 3.4 0 0 1 3.4 3.4v3.2H4.2Z" fill="url(#dmoCalT)"/>
+    <g stroke="#64748b" stroke-width="2.2" stroke-linecap="round">
+      <path d="M10.6 3.2v4.4M21.4 3.2v4.4"/></g>
+    <rect x="8.6" y="16.4" width="5.2" height="4.4" rx="1.2" fill="#c7d2fe"/>
+    <rect x="16.4" y="16.4" width="7" height="4.4" rx="1.2" fill="#e2e8f0"/>
+    <rect x="8.6" y="22.4" width="7" height="3" rx="1.2" fill="#e2e8f0"/>
+    <circle cx="21.6" cy="23.4" r="3.4" fill="#22c55e"/>
+    <path d="m20 23.4 1.1 1.2 2.2-2.4" stroke="#fff" stroke-width="1.5" fill="none"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M5.8 8.4a2.6 2.6 0 0 1 2-1.8" stroke="#fff" stroke-opacity=".7" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>`,
 
   /* La presa: mascherina chiara e i due fori, come quella della sezione. */
   prese: `<defs>
@@ -416,3 +500,84 @@ export function haOggettoWidget(chiave) {
 }
 
 export const CHIAVI_OGGETTI = Object.freeze(Object.keys(OGGETTI));
+
+/* ── il foglio delle sfumature ────────────────────────────────────────────
+ *
+ * «Le icone presenti sia sulla navbar che nel menu config sono poco
+ * leggibili, troppo chiare.» Non erano chiare: erano MEZZE.
+ *
+ * Ogni disegno si porta dentro le proprie sfumature, e due disegni uguali
+ * ripetono gli stessi identificatori — era una scelta, ed era scritta qui
+ * sopra: «sono definizioni identiche, quindi il disegno non cambia». Il
+ * ragionamento pero' saltava un pezzo. In una pagina, a un identificatore
+ * ripetuto risponde SEMPRE il primo che lo porta, in ordine di documento; e
+ * il primo, per meta' dei disegni, sta dentro una voce di barra che la
+ * configurazione tiene a `display:none`. Una sfumatura dentro un ramo non
+ * disegnato non dipinge niente: il riferimento cade nel vuoto, e del
+ * lampadario o del termometro resta soltanto l'ombra sotto — che e'
+ * l'ellisse grigia chiara, l'unica parte senza sfumatura.
+ *
+ * Da qui il «troppo chiare»: chi guardava vedeva un residuo pallido, non un
+ * disegno spento.
+ *
+ * La riparazione sfrutta la stessa regola invece di subirla. Le definizioni
+ * si raccolgono una volta sola in un foglio che sta in cima al documento ed
+ * e' sempre disegnato: essendo il primo, e' lui a rispondere a tutti. Il
+ * markup delle singole tessere non cambia di un carattere — e questo conta,
+ * perche' le sezioni decidono se ridisegnare confrontando il markup che
+ * hanno appena scritto con quello di prima: identificatori diversi a ogni
+ * giro vorrebbero dire ridisegnare per sempre.
+ */
+
+/* Le definizioni di un disegno, senza il resto. */
+function definizioniDi(disegno) {
+  const apre = disegno.indexOf("<defs>");
+  if (apre < 0) return "";
+  const chiude = disegno.indexOf("</defs>", apre);
+  if (chiude < 0) return "";
+  return disegno.slice(apre + "<defs>".length, chiude);
+}
+
+/* Una sfumatura per volta, col suo identificatore: dentro i `defs` di questi
+ * disegni non c'e' altro che sfumature lineari e radiali. */
+const SFUMATURA = /<(linear|radial)Gradient\b[^>]*\bid="([^"]+)"[^>]*>[\s\S]*?<\/\1Gradient>/g;
+
+/* Ogni sfumatura una volta sola: due disegni che dichiarano lo stesso
+ * identificatore lo dichiarano identico, e la prima copia basta per tutti. */
+function raccogliDefinizioni() {
+  const viste = new Set();
+  const pezzi = [];
+  for (const disegno of Object.values(OGGETTI)) {
+    const dentro = definizioniDi(disegno);
+    if (!dentro) continue;
+    for (const trovata of dentro.matchAll(SFUMATURA)) {
+      const id = trovata[2];
+      if (viste.has(id)) continue;
+      viste.add(id);
+      pezzi.push(trovata[0]);
+    }
+  }
+  return { markup: pezzi.join(""), ids: Object.freeze([...viste]) };
+}
+
+const FOGLIO = raccogliDefinizioni();
+const FOGLIO_DEFS = FOGLIO.markup;
+
+/** Gli identificatori che il foglio dichiara: serve alle prove. */
+export function identificatoriDelFoglio() {
+  return FOGLIO.ids;
+}
+
+export const ID_FOGLIO_OGGETTI = "dm-oggetti-defs";
+
+/**
+ * Il foglio con tutte le sfumature dei disegni.
+ *
+ * Va messo per PRIMO dentro il corpo della pagina e non va mai nascosto con
+ * `display:none`: e' misura zero, non occupa spazio e non prende il dito, ma
+ * resta disegnato — che e' l'unica condizione perche' le sue sfumature
+ * dipingano davvero.
+ */
+export function foglioDegliOggetti() {
+  return `<svg id="${ID_FOGLIO_OGGETTI}" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none"><defs>${FOGLIO_DEFS}</defs></svg>`;
+}
