@@ -16,8 +16,15 @@ serviva a niente.
   grande e' quello che resta **da lavorare** — non quante ne sono arrivate in
   tutto, che e' storia e non chiede niente — e sotto c'e' la ripartizione: «3
   difetti · 2 idee · 1 aiuto». Si accende quando qualcosa aspetta una
-  risposta; toccandola si apre il cruscotto, invece di rifare la console in
-  miniatura dentro una finestra larga un palmo.
+  risposta; toccandola si apre una finestra con i tre conti — nuove, in
+  lavorazione, chiuse — e la porta verso il cruscotto, invece di rifare la
+  console in miniatura dentro una finestra larga un palmo.
+
+  Quella finestra non porta il verdetto delle altre tessere. Quella riga la
+  scrive il motore che legge gli stati di casa — «acceso», «in corso», «qui non
+  c'e' ancora niente» — e su una coda di segnalazioni non ha niente da leggere:
+  usciva «Qui non c'e' ancora niente» sopra sette segnalazioni da lavorare,
+  cioe' il contrario di quello che la finestra stessa mostrava due righe sotto.
 
   «Solo per me» sta scritto in come e' fatta, non in un interruttore: il suo
   modello torna `null` per chiunque non tenga la repository, quindi per gli

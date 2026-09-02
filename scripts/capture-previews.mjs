@@ -149,6 +149,24 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-widget-popup",
+    title: "Segnalazioni \u00b7 la finestra della tessera",
+    both: true,
+    setup: () => {
+      window.__dmPreviewTickets("widget");
+      window.__dmPreview.tab("home");
+      /* Come per le altre tessere: si dice al modulo quale vuole aperta e la
+         si lascia disegnare, perche' premerla dal di fuori non sopravvive al
+         ridisegno del cambio pagina. */
+      setTimeout(() => {
+        const stato = window.__DASHBOARDMODERN_HOME_WIDGETS__;
+        if (stato) stato.expanded = "segnalazioni";
+        window.dispatchEvent(new Event("resize"));
+      }, 2400);
+    },
+    settle: 3600,
+  },
+  {
     id: "segnalazioni-difetti",
     title: "Segnalazioni \u00b7 i difetti da lavorare",
     both: true,

@@ -4360,22 +4360,32 @@ function detailBody(widget, states) {
    * Qui ci sta il conto e la porta per arrivarci — duplicare la console in
    * miniatura vorrebbe dire tenerne allineate due. */
   if (widget.key === "segnalazioni") {
+    /* Niente verdetto generico qui sopra. Quella riga la scrive il motore che
+     * legge gli stati di casa — «acceso», «in corso», «qui non c'e' ancora
+     * niente» — e su una coda di segnalazioni non ha niente da leggere: usciva
+     * «Qui non c'e' ancora niente» sopra sette segnalazioni da lavorare, cioe'
+     * il contrario di quello che la finestra stessa mostrava due righe sotto.
+     * Meglio dire meno che dire il falso, e il conto grande la tessera lo porta
+     * gia' in copertina.
+     *
+     * E le segnalazioni non si lavorano da qui: questa finestra e' larga un
+     * palmo, e rispondere vuol dire leggere il filo, guardare gli allegati e
+     * scrivere. Il posto c'e' gia'; qui ci sta il conto e la porta. */
     const conto = widget.conto || {};
     const righe = [
       [t("Nuove", "New"), conto.nuove],
       [t("In lavorazione", "In progress"), conto.inLavorazione],
       [t("Chiuse", "Closed"), conto.chiuse],
     ];
-    return `${verdettoEFrase(widget)}
-      <div class="dm-w-caselle">${righe
-        .map(
-          ([nome, quante]) =>
-            `<div class="dm-w-casella"><b>${Number(quante) || 0}</b><small>${esc(nome)}</small></div>`,
-        )
-        .join("")}</div>
-      <button type="button" class="dm-w-riga dm-tkt-apri-console" data-dm-apri-cruscotto>
-        <span>${esc(t("Apri il cruscotto", "Open the console"))}</span>
-      </button>`;
+    return `<div class="dm-w-caselle">${righe
+      .map(
+        ([nome, quante]) =>
+          `<div class="dm-w-casella"><b>${Number(quante) || 0}</b><small>${esc(nome)}</small></div>`,
+      )
+      .join("")}</div>
+      <button type="button" class="dm-w-porta" data-dm-apri-cruscotto>${esc(
+        t("Apri il cruscotto", "Open the console"),
+      )}</button>`;
   }
   const comandi = detailRows(widget, states);
   return `${verdettoEFrase(widget)}
@@ -5587,6 +5597,14 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   text-transform:uppercase;color:var(--text-dim,#94a3b8)}
 #dm-widget-popup .dm-w-caselle{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+/* La porta verso il cruscotto: un tasto pieno, del colore della tessera. Con
+   il vestito delle righe sembrava una barra grigia — cioe' una cosa disabilitata
+   invece dell'unico gesto che questa finestra offre. */
+#dm-widget-popup .dm-w-porta{
+  width:100%;margin-top:10px;padding:11px 14px;border:0;border-radius:14px;
+  cursor:pointer;font-size:13px;font-weight:800;color:#fff;
+  background:var(--dm-widget-accent,#0ea5e9)}
+#dm-widget-popup .dm-w-porta:hover{filter:brightness(1.08)}
 #dm-widget-popup .dm-w-casella{
   display:grid;gap:2px;padding:10px 11px;border-radius:14px;
   border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
