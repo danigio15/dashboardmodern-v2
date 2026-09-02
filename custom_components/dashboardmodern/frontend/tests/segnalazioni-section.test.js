@@ -15,6 +15,7 @@ import { ALLOWED_MESSAGE_TYPES } from "../src/legacy/bridge-socket.js";
 import {
   DIAGNOSTIC_KEYS,
   FILTRI_ID,
+  allegatiMarkup,
   appenaApertaMarkup,
   WS_TYPES,
   codaVoceMarkup,
@@ -406,4 +407,35 @@ test("ogni voce della coda offre di vedere tutto", () => {
   const markup = codaVoceMarkup(inCoda({ number: 77 }));
   assert.ok(markup.includes('data-dm-filo="77"'));
   assert.ok(markup.includes('aria-expanded="false"'));
+});
+
+test("un'immagine che non carica lascia il rimando, non un'eccezione", () => {
+  /* Succede spesso: la CSP di Home Assistant blocca l'immagine, oppure GitHub
+   * non risponde. Il ripiego deve mettere la classe «rotto» sul contenitore,
+   * che e' quello che trasforma il riquadro vuoto in una riga con il link.
+   *
+   * Prima toglieva l'immagine e POI cercava il genitore — che a quel punto e'
+   * `null`, perche' l'immagine non e' piu' attaccata a niente. Il gestore
+   * moriva li' e la classe non arrivava mai. Nel browser non lo si vede: la
+   * console del browser di solito non ce l'ha davanti nessuno. */
+  const markup = allegatiMarkup([
+    { kind: "image", url: "https://github.com/user-attachments/assets/x", name: "schermata" },
+  ]);
+  const gestore = markup.match(/onerror="([^"]*)"/);
+  assert.ok(gestore, "l'immagine non ha nessun ripiego");
+
+  const classi = [];
+  const genitore = { classList: { add: (nome) => classi.push(nome) } };
+  let staccata = false;
+  const immagine = {
+    parentElement: genitore,
+    remove() {
+      staccata = true;
+      this.parentElement = null;
+    },
+  };
+  new Function(gestore[1]).call(immagine);
+
+  assert.ok(staccata, "l'immagine rotta e' rimasta al suo posto");
+  assert.deepEqual(classi, ["rotto"], "il contenitore non e' stato segnato come rotto");
 });

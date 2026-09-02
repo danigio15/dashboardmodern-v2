@@ -1022,7 +1022,7 @@ function segniMarkup(ticket) {
   return segni.join("");
 }
 
-function allegatiMarkup(allegati) {
+export function allegatiMarkup(allegati) {
   if (!Array.isArray(allegati) || !allegati.length) return "";
   return `<div class="dm-tkt-allegati">${allegati
     .map((allegato) => {
@@ -1038,7 +1038,7 @@ function allegatiMarkup(allegati) {
              target="_blank" rel="noreferrer noopener">
             <img src="${esc(url)}" alt="${esc(nome || t("Allegato", "Attachment"))}"
                  loading="lazy"
-                 onerror="this.remove();this.parentElement.classList.add('rotto')">
+                 onerror="const p=this.parentElement;this.remove();p&&p.classList.add('rotto')">
             <span>${esc(nome || t("Apri l'immagine", "Open the image"))}</span>
           </a>`;
       }
