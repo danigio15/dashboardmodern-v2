@@ -40,6 +40,29 @@ vera non e' mai comparso.
   voce e' nascosta. Dentro il cruscotto sarebbe stato un interruttore che,
   spegnendosi, si porta via la strada per riaccenderlo.
 
+- **Il cerchio degli elettrodomestici segnava 0 mentre la sua finestra diceva
+  13,7 kWh.** Sullo stesso schermo, a un tocco di distanza. Il cerchio di
+  gruppo ha una regola: il contatore suo — la pinza sulla linea — vince sulla
+  somma di quello che ha dentro, perche' e' piu' preciso. E ne aveva una
+  seconda: nel Giorno e nel Mese uno zero del contatore vale come misura vera.
+
+  La seconda era stata scritta per non inventare numeri che il contatore del
+  gruppo non conferma, ed e' una preoccupazione giusta — solo che proteggeva
+  dal pericolo sbagliato. Quando il contatore dice zero e dentro ci sono
+  apparecchi che hanno consumato, quello zero non e' una misura: e' una casella
+  che non risponde, e il cerchio si mette a contraddire la propria finestra.
+  Adesso lo zero cede alla somma in tutti e tre i periodi, come gia' faceva nei
+  watt.
+
+  Il caso che la vecchia regola difendeva non aveva bisogno di una regola: il
+  carico che oggi non e' partito ha i figli a zero anche loro, la somma fa
+  zero, e zero resta.
+
+  E il paniere del Recorder adesso risolve anche gli apparecchi, non i soli
+  carichi: i figli di un cerchio di gruppo sono apparecchi, e cercarli in un
+  paniere che contiene solo i carichi voleva dire una somma che non trovava
+  niente.
+
 - **La coda che non arriva adesso lo dice.** Il giro zitto — quello che la Home
   fa da sola per la tessera — inghiottiva l'errore per non mettere un avviso
   rosso in faccia a chi non aveva chiesto niente. Giusto, ma «zitto» era
