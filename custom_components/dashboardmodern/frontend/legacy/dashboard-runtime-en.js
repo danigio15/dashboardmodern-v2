@@ -5177,7 +5177,18 @@ let _cdStatiArrivati = false;
 function cdBootStatiArrivati() { _cdStatiArrivati = true; }
 function _cdStatiPronti() {
     if (_cdStatiArrivati) return true;
-    try { if (!window.__DASHBOARDMODERN_HOSTED__ && !LONG_LIVED_TOKEN) return true; } catch (e) { return true; }
+    try {
+        /* Niente gettone e nessuna plancia ospitata: non c'e' nessuna casa da
+         * aspettare, e il wizard del primo avvio non deve restare dietro il
+         * velo. */
+        if (!window.__DASHBOARDMODERN_HOSTED__ && !LONG_LIVED_TOKEN) return true;
+        /* E si aspetta solo finche' c'e' un filo vivo che deve ancora
+         * rispondere. Se il filo non c'e', o si e' chiuso, o e' caduto, non
+         * arrivera' nessuno stato: tenere il velo su per la scadenza intera
+         * sarebbe far pagare a chi guarda un'attesa senza speranza. */
+        if (!ws) return true;
+        if (ws.readyState === 2 || ws.readyState === 3) return true;
+    } catch (e) { return true; }
     return false;
 }
 function _cdPlanciaPronta() { return _cdModuliPronti() && _cdFogliPronti() && _cdStatiPronti(); }

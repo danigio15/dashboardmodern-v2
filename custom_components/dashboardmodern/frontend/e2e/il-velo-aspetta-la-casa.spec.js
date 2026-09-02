@@ -49,22 +49,44 @@ const velo = (page) =>
 /* Il filo non deve rispondere da solo: cosi' l'unico modo in cui il velo puo'
  * andarsene e' quello che la prova decide. Si tiene da parte la consegna degli
  * stati per farla scattare a comando. */
-const filoMuto = (page) =>
+/* Un filo vivo che non risponde.
+ *
+ * Il velo aspetta solo finche' c'e' qualcuno che deve rispondere: un filo
+ * caduto non si aspetta, e infatti sul banco la connessione vera non si apre
+ * nemmeno. Qui se ne mette uno finto che resta aperto e tace, e che consegna
+ * gli stati quando lo decide la prova. */
+const filoVivoEMuto = (page) =>
   page.addInitScript(() => {
     globalThis.__DM_STATI__ = null;
-    const Vero = globalThis.WebSocket;
-    function Muta(url) {
-      const s = new Vero(url);
+    function Finto(url) {
+      this.url = url;
+      this.readyState = 1;
+      this.onmessage = null;
+      this.onopen = null;
+      this.onclose = null;
+      this.onerror = null;
       globalThis.__DM_STATI__ = (elenco) => {
         try {
-          s.onmessage?.({ data: JSON.stringify({ id: 7, type: "result", result: elenco }) });
+          this.onmessage?.({ data: JSON.stringify({ id: 7, type: "result", result: elenco }) });
         } catch (_e) {}
       };
-      return s;
+      setTimeout(() => {
+        try {
+          this.onopen?.({});
+        } catch (_e) {}
+      }, 0);
     }
-    Muta.prototype = Vero.prototype;
-    Object.assign(Muta, Vero);
-    globalThis.WebSocket = Muta;
+    Finto.prototype.send = function () {};
+    Finto.prototype.close = function () {
+      this.readyState = 3;
+    };
+    Finto.prototype.addEventListener = function () {};
+    Finto.prototype.removeEventListener = function () {};
+    Finto.CONNECTING = 0;
+    Finto.OPEN = 1;
+    Finto.CLOSING = 2;
+    Finto.CLOSED = 3;
+    globalThis.WebSocket = Finto;
   });
 
 test.setTimeout(90_000);
@@ -72,7 +94,7 @@ test.setTimeout(90_000);
 test("il velo resta finche' la casa non ha risposto, e poi se ne va", async ({
   page,
 }, testInfo) => {
-  await filoMuto(page);
+  await filoVivoEMuto(page);
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.waitForFunction(() => typeof globalThis.cdHideBoot === "function", null, {
     timeout: 60_000,
@@ -91,7 +113,7 @@ test("il velo resta finche' la casa non ha risposto, e poi se ne va", async ({
 });
 
 test("una casa che non risponde non tiene il velo per sempre", async ({ page }, testInfo) => {
-  await filoMuto(page);
+  await filoVivoEMuto(page);
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.waitForFunction(() => typeof globalThis.cdHideBoot === "function", null, {
     timeout: 60_000,
