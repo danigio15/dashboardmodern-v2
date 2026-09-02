@@ -31,6 +31,7 @@ import re
 # quella riga sollevava un NameError alla prima coda aperta dalla console.
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
+from urllib.parse import quote
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -86,6 +87,43 @@ def configured() -> bool:
     return bool(GITHUB_CLIENT_ID)
 
 
+#: Quanto del messaggio di GitHub si riporta. Sono frasi corte; il tetto c'e'
+#: perche' quel testo finisce dritto sotto la segnalazione di chi ha scritto.
+_MAX_MOTIVO = 200
+
+
+def _motivo(corpo: bytes) -> str:
+    """Cosa dice GitHub del rifiuto, se lo dice.
+
+    Con ogni 4xx GitHub manda un `message` che il piu' delle volte e' esatto —
+    «Resource not accessible by integration» quando l'App non e' installata
+    sulla repository, «API rate limit exceeded» quando si e' insistito troppo.
+    Buttarlo via voleva dire mostrare «permessi o limite orario» e lasciare a
+    chi legge il compito di indovinare quale dei due: due strade opposte dietro
+    la stessa frase, una che si risolve con un'installazione e una aspettando.
+    """
+    try:
+        letto = json.loads(corpo or b"{}")
+    except ValueError:
+        return ""
+    if not isinstance(letto, dict):
+        return ""
+    return str(letto.get("message") or "")[:_MAX_MOTIVO].strip()
+
+
+def _guasto(status: int, corpo: bytes) -> GitHubError:
+    """Il guasto da sollevare per una risposta che non e' andata bene."""
+    motivo = _motivo(corpo)
+    coda = f" GitHub dice: {motivo}" if motivo else ""
+    if status == 401:
+        return GitHubError("unauthorized", f"Autorizzazione GitHub scaduta.{coda}")
+    if status == 403:
+        return GitHubError("forbidden", f"GitHub ha rifiutato.{coda}")
+    if status == 404:
+        return GitHubError("not_found", f"Non trovato su GitHub.{coda}")
+    return GitHubError("http", f"GitHub ha risposto {status}.{coda}")
+
+
 async def _leggi_col_tetto(flusso: Any) -> bytes:
     """Il corpo intero, o un guasto — mai un pezzo spacciato per il tutto.
 
@@ -128,16 +166,8 @@ async def _request(
             method, url, headers=headers, json=payload, timeout=_TIMEOUT
         ) as answer:
             corpo = await _leggi_col_tetto(answer.content)
-            if answer.status == 401:
-                raise GitHubError("unauthorized", "Autorizzazione GitHub scaduta.")
-            if answer.status == 403:
-                raise GitHubError(
-                    "forbidden", "GitHub ha rifiutato: permessi o limite orario."
-                )
-            if answer.status == 404:
-                raise GitHubError("not_found", "Non trovato su GitHub.")
             if answer.status >= 400:
-                raise GitHubError("http", f"GitHub ha risposto {answer.status}.")
+                raise _guasto(answer.status, corpo)
             try:
                 return json.loads(corpo or b"{}")
             except ValueError as errore:
@@ -335,9 +365,14 @@ def _senza_allegati(text: str) -> str:
 def issue_body(ticket: Mapping[str, Any]) -> str:
     """Il corpo della issue: quello che l'utente ha scritto, piu' la diagnostica.
 
-    Il contatto non c'e', e non e' una dimenticanza: una issue e' una pagina
-    pubblica, e chi ha scritto il proprio indirizzo lo ha scritto a una
-    persona. Resta in casa, dove il manutentore lo legge dalla console.
+    Un recapito non c'e' — non nel corpo e non altrove — e non e' una
+    dimenticanza. Il modulo lo chiedeva, «resta in casa», ed era vero: non
+    finiva nella pagina pubblica. Solo che in casa non lo leggeva nessuno,
+    perche' la console del manutentore legge GitHub. Chiedere un indirizzo
+    e-mail per poi non farne niente e' la peggiore delle tre strade possibili:
+    si conserva un dato personale, non serve a nessuno, e chi lo scrive crede
+    di essere raggiungibile. La risposta arriva sotto la segnalazione, dove il
+    filo si legge e si scrive nei due sensi.
     """
     righe = [str(ticket.get("body") or ""), ""]
     diagnostica = ticket.get("diagnostics") or {}
@@ -380,6 +415,43 @@ _ETICHETTE_TIPO = {
 }
 
 
+#: Il blocco che `issue_body` scrive, riletto al contrario. Su GitHub quelle
+#: righe sono una scheda che si apre; dentro la plancia erano testo crudo —
+#: «<details><summary>Diagnostica</summary>» e cinque righe di asterischi —
+#: buttate in mezzo a quello che l'utente aveva scritto. Chi legge la coda si
+#: trovava la parte che conta annegata nella parte che il programma ha aggiunto.
+_DIAGNOSTICA = re.compile(
+    r"<details>\s*<summary>\s*Diagnostica\s*</summary>(.*?)</details>",
+    re.IGNORECASE | re.DOTALL,
+)
+_VOCE_DIAGNOSTICA = re.compile(r"^\s*-\s*\*\*(.+?)\*\*:\s*(.*)$", re.MULTILINE)
+
+#: Quanto si tiene di un valore. Lo `user_agent` di un browser moderno arriva a
+#: duecento caratteri, e nella riga della coda vale quanto il resto insieme.
+_MAX_VALORE = 300
+
+
+def diagnostica_in(corpo: str) -> tuple[str, dict[str, str]]:
+    """Il testo dell'utente, e la diagnostica come dati invece che come markup.
+
+    Torna i due pezzi separati: quello che la persona ha scritto — che e' la
+    ragione per cui la segnalazione esiste — e le voci che la plancia ha
+    aggiunto, che restano utili ma non devono coprirlo.
+    """
+    if not isinstance(corpo, str) or not corpo:
+        return "", {}
+    trovato = _DIAGNOSTICA.search(corpo)
+    if not trovato:
+        return corpo.strip(), {}
+    voci = {
+        chiave.strip()[:80]: valore.strip()[:_MAX_VALORE]
+        for chiave, valore in _VOCE_DIAGNOSTICA.findall(trovato.group(1))
+        if chiave.strip()
+    }
+    resto = corpo[: trovato.start()] + corpo[trovato.end() :]
+    return "\n".join(riga.rstrip() for riga in resto.splitlines()).strip(), voci
+
+
 def _tipo_e_titolo(issue: Mapping[str, Any]) -> tuple[str, str]:
     """Il tipo della segnalazione, e il titolo ripulito dal prefisso.
 
@@ -410,8 +482,14 @@ async def async_create_issue(
 
     Senza etichette, e non per dimenticanza: GitHub le scarta quando a
     scriverle e' qualcuno che sulla repository non ha i permessi, cioe'
-    esattamente chi apre le segnalazioni. Le mette il manutentore dalla
-    console, che i permessi ce li ha.
+    esattamente chi apre le segnalazioni. Mandarle sarebbe stato scrivere una
+    riga che non arriva, e credere di averla scritta.
+
+    Le mette invece `.github/workflows/label-issues.yml`, che gira con il
+    gettone della repository e i permessi ce li ha: legge il prefisso del
+    titolo — `[Bug]`, `[Feature]`, `[Aiuto]`, gli stessi che i moduli di GitHub
+    usano da sempre — e applica l'etichetta. Succede subito, per tutti, e senza
+    dipendere dall'avere una dashboard accesa da qualche parte.
     """
     creata = await _request(
         hass,
@@ -424,6 +502,24 @@ async def async_create_issue(
     if not isinstance(numero, int):
         raise GitHubError("no_issue", "GitHub non ha aperto la segnalazione.")
     return {"number": numero, "url": str(creata.get("html_url") or "")}
+
+
+def _incaricati(issue: Mapping[str, Any]) -> list[str]:
+    """I nomi di chi ha preso in carico la segnalazione, se qualcuno l'ha fatto."""
+    grezzi = issue.get("assignees")
+    if not isinstance(grezzi, list):
+        # GitHub manda `assignee` singolo accanto ad `assignees` per compatibilita'
+        # con la sua API di dieci anni fa. Quando la lista manca, quello resta.
+        uno = issue.get("assignee")
+        grezzi = [uno] if isinstance(uno, Mapping) else []
+    nomi: list[str] = []
+    for voce in grezzi:
+        if not isinstance(voce, Mapping):
+            continue
+        nome = str(voce.get("login") or "").strip()
+        if nome and nome not in nomi:
+            nomi.append(nome)
+    return nomi
 
 
 def _state_from_issue(issue: Mapping[str, Any], risposta: str) -> str:
@@ -525,9 +621,11 @@ async def async_issue_thread(
                         "attachments": attachments_in(testo),
                     }
                 )
+    testo, diagnostica = diagnostica_in(_senza_allegati(corpo))
     return {
         "number": int(issue.get("number") or number),
-        "body": _senza_allegati(corpo),
+        "body": testo,
+        "diagnostics": diagnostica,
         "attachments": attachments_in(corpo),
         "comments": commenti,
         "issue_url": str(issue.get("html_url") or ""),
@@ -553,6 +651,32 @@ async def async_comment(
         payload={"body": body},
     )
     return {"url": str(creato.get("html_url") or "")}
+
+
+async def async_assign_issue(
+    hass: HomeAssistant, token: str, number: int, *, login: str, take: bool = True
+) -> None:
+    """Prendi in carico la segnalazione, o lasciala. E' l'assegnazione di GitHub.
+
+    Si scrive l'elenco intero invece di aggiungere e togliere un nome:
+    l'indirizzo che aggiunge e quello che toglie sono due, e in una casa con
+    un manutentore solo «chi ce l'ha in carico» e' una cosa sola. Scrivere
+    l'elenco dice esattamente quello che si vuole — o lui, o nessuno — e non
+    lascia mai due assegnatari per una svista.
+
+    Assegnare chiede di poter scrivere sulla repository, e infatti questo lo
+    puo' fare solo la console. GitHub, a chi non ne ha il diritto, l'elenco lo
+    scarta in silenzio — come fa con le etichette — quindi il permesso va
+    verificato prima di qui, non dedotto da una risposta che torna comunque
+    verde.
+    """
+    await _request(
+        hass,
+        "PATCH",
+        f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}",
+        token=token,
+        payload={"assignees": [login] if take else []},
+    )
 
 
 async def async_close_issue(
@@ -613,24 +737,32 @@ async def _async_issues_page(
         if not isinstance(issue, dict) or "pull_request" in issue:
             continue
         corpo = str(issue.get("body") or "")
+        testo, diagnostica = diagnostica_in(
+            _senza_allegati(corpo.replace(TICKET_MARKER, ""))
+        )
         tipo, titolo = _tipo_e_titolo(issue)
         # Quanti commenti ci sono si sa dall'elenco, senza aprire niente: e' il
         # segno che dice quali valga la pena guardare.
         commenti = int(issue.get("comments") or 0)
+        incaricati = _incaricati(issue)
         voce_stato = _state_from_issue(issue, "")
-        if voce_stato == STATE_SENT and commenti:
-            # CHI ha commentato, qui, non si sa: l'elenco di GitHub non lo dice
-            # e chiederlo vorrebbe dire una chiamata per ogni riga. Vale allora
-            # il segno che c'e': una aperta su cui si e' gia' parlato e' in
-            # lavorazione, una muta e' ancora da guardare. Nella plancia di chi
-            # ha segnalato lo stato resta quello esatto, perche' li' il filo si
-            # apre per davvero e i commenti si leggono uno per uno.
+        if voce_stato == STATE_SENT and incaricati:
+            # «In lavorazione» adesso ha un segno vero: l'assegnazione, che il
+            # tasto «Prendo in carico» scrive su GitHub e che l'elenco riporta
+            # senza chiedere niente in piu'.
+            #
+            # Prima lo si deduceva dai commenti — una aperta su cui si era gia'
+            # parlato era in lavorazione — perche' un segno vero non c'era. Era
+            # una supposizione, e sbagliava nel verso peggiore: bastava una
+            # domanda di chiarimento per far risultare presa in carico una
+            # segnalazione che nessuno aveva ancora guardato.
             voce_stato = STATE_TRIAGED
         coda.append(
             {
                 "number": int(issue.get("number") or 0),
                 "title": titolo,
-                "body": _senza_allegati(corpo.replace(TICKET_MARKER, "")),
+                "body": testo,
+                "diagnostics": diagnostica,
                 "type": tipo,
                 "state": voce_stato,
                 # Da dove viene: la riga invisibile nel corpo la mette solo la
@@ -640,7 +772,17 @@ async def _async_issues_page(
                 "origin": "plancia" if TICKET_MARKER in corpo else "github",
                 "issue_url": str(issue.get("html_url") or ""),
                 "author": str((issue.get("user") or {}).get("login") or ""),
+                # Quando e' stata aperta, come GitHub la scrive (ISO 8601, UTC).
+                # Il giorno lo decide il browser, che e' l'unico a sapere in che
+                # fuso sta chi guarda: «oggi» a Roma e «oggi» a Auckland non
+                # sono lo stesso intervallo, e deciderlo qui sarebbe deciderlo
+                # nel fuso del server.
+                "created_at": str(issue.get("created_at") or ""),
                 "comments": commenti,
+                # Chi l'ha presa in carico, se qualcuno l'ha fatto. Il
+                # cruscotto ne ha bisogno per sapere se il tasto va disegnato
+                # premuto, e per dire il nome quando i manutentori sono due.
+                "assignees": incaricati,
                 "attachments": len(attachments_in(corpo)),
             }
         )
@@ -683,3 +825,74 @@ async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
         hass, token, stato="closed", quante=_PER_PAGINA, per="updated", pagina=1
     )
     return [*aperte, *chiuse]
+
+
+# Quante righe si guardano in un giro del campanello. Cinquanta segnalazioni
+# toccate in cinque minuti non succede: il tetto c'e' perche' la prima
+# accensione, che chiede senza `since`, non si porti dietro l'intera storia
+# della repository per poi buttarla via.
+_PER_PAGINA_AVVISI = 50
+
+
+async def async_updated_since(
+    hass: HomeAssistant, token: str, *, since: str = ""
+) -> list[dict[str, Any]]:
+    """Cosa si e' mosso da un certo momento in poi. Una richiesta, non venti.
+
+    E' il giro del campanello, e la forma conta piu' del contenuto. Rileggere
+    una per una le segnalazioni aperte per scoprire se qualcuno ha scritto
+    sarebbe stato venti richieste ogni cinque minuti — duecentoquaranta all'ora
+    — per sentirsi rispondere quasi sempre «no». GitHub un modo per chiederlo
+    in una volta ce l'ha: `since`, che restituisce solo quello che e' cambiato
+    dopo quel momento, e nell'elenco c'e' gia' il numero dei commenti.
+
+    Quel numero e' tutto quello che serve. Non dice **chi** ha scritto — per
+    saperlo bisognerebbe aprire i commenti, cioe' tornare a una chiamata per
+    riga — ma dice **quanti**, e chi tiene il conto di quanti ne aveva visti
+    sa che ne sono arrivati di nuovi. Chi li ha scritti si legge aprendo il
+    filo, che e' esattamente il gesto che il campanello serve a provocare.
+
+    L'ordine e' `updated` decrescente: se un giorno le righe non ci stessero in
+    una pagina, quelle che restano fuori sono le meno recenti, non a caso.
+    """
+    query = [
+        "state=all",
+        "sort=updated",
+        "direction=desc",
+        f"per_page={_PER_PAGINA_AVVISI}",
+    ]
+    if since:
+        query.append(f"since={quote(since, safe='')}")
+    righe = await _request(
+        hass,
+        "GET",
+        f"{GITHUB_API}/repos/{REPOSITORY}/issues?{'&'.join(query)}",
+        token=token,
+    )
+    if not isinstance(righe, list):
+        return []
+    fuori: list[dict[str, Any]] = []
+    for riga in righe:
+        if not isinstance(riga, dict) or "pull_request" in riga:
+            continue
+        numero = int(riga.get("number") or 0)
+        if not numero:
+            continue
+        _, titolo = _tipo_e_titolo(riga)
+        fuori.append(
+            {
+                "number": numero,
+                "title": titolo,
+                "comments": int(riga.get("comments") or 0),
+                "state": str(riga.get("state") or "open"),
+                "updated_at": str(riga.get("updated_at") or ""),
+                "issue_url": str(riga.get("html_url") or ""),
+                "author": str((riga.get("user") or {}).get("login") or ""),
+                "origin": (
+                    "plancia"
+                    if TICKET_MARKER in str(riga.get("body") or "")
+                    else "github"
+                ),
+            }
+        )
+    return fuori

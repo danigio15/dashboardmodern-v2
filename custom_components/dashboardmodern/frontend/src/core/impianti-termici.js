@@ -41,23 +41,22 @@ export const ETICHETTE_TERMICHE = Object.freeze({
  * ha ragione — il nome vecchio era quello di uno dei tre impianti, e chi ha
  * solo la caldaia si trovava la sua macchina dentro una voce che parlava di
  * pannelli solari. */
-export const NOME_SEZIONE = Object.freeze(["Gestione termica", "Thermal management"]);
-export const BRICIOLA_SEZIONE = Object.freeze([
-  "Solare · Scaldabagno · Caldaia",
-  "Solar · Water heater · Boiler",
-]);
-
 /* Il titolo della pagina segue quello che si sta guardando quando c'e' una
  * macchina sola: senza linguette, il titolo e' l'unica cosa che dice cosa si
  * sta guardando. Con due o tre lo dicono le linguette, e allora il titolo
- * torna a essere il nome della sezione. */
+ * torna a essere il nome della sezione — che sta qui sotto la stessa chiave
+ * `sezione`, insieme ai casi che ricopre, invece che sciolto per conto suo:
+ * l'estrattore riconosce le tabelle di coppie, e una coppia sciolta gli
+ * passava davanti senza che nessuno se ne accorgesse. */
 export const TITOLI_TERMICI = Object.freeze({
+  sezione: ["Gestione termica", "Thermal management"],
   solare: ["Impianto solare termico", "Solar thermal plant"],
   scaldabagno: ["Scaldabagno elettrico", "Electric water heater"],
   caldaia: ["Caldaia", "Boiler"],
 });
 
 export const BRICIOLE_TERMICHE = Object.freeze({
+  sezione: ["Solare · Scaldabagno · Caldaia", "Solar · Water heater · Boiler"],
   solare: [
     "Circuito primario · Boiler · Ricircolo sanitario",
     "Primary loop · Tank · Recirculation",
@@ -65,6 +64,15 @@ export const BRICIOLE_TERMICHE = Object.freeze({
   scaldabagno: ["Acqua calda · Resistenza · Consumo", "Hot water · Element · Consumption"],
   caldaia: ["Mandata · Ritorno · Pressione", "Flow · Return · Pressure"],
 });
+
+/* Come si chiama la sezione, adesso che non e' piu' una macchina sola.
+ *
+ * «La sezione non si deve chiamare piu' Solare termico ma Gestione termica»:
+ * ha ragione — il nome vecchio era quello di uno dei tre impianti, e chi ha
+ * solo la caldaia si trovava la sua macchina dentro una voce che parlava di
+ * pannelli solari. */
+export const NOME_SEZIONE = TITOLI_TERMICI.sezione;
+export const BRICIOLA_SEZIONE = BRICIOLE_TERMICHE.sezione;
 
 const clean = (value) => String(value ?? "").trim();
 
@@ -175,6 +183,47 @@ export function normalizzaCaldaia(stored) {
   const fuori = { name: clean(dato.name) };
   for (const { campo } of CASELLE_CALDAIA) fuori[campo] = clean(dato[campo]);
   return fuori;
+}
+
+/* Le caldaie di casa, che possono essere piu' d'una (#281).
+ *
+ * «Avendo una casa composta da due appartamenti uniti ho due caldaie, una per
+ * la zona giorno e una per la zona notte.»
+ *
+ * La chiave resta la stessa e accetta tutte e due le forme: chi ne aveva una
+ * la ritrova dov'era, senza migrazioni e senza perdere niente. Chi ne aggiunge
+ * una seconda scrive una lista, e da li' in poi e' una lista.
+ */
+export function normalizzaCaldaie(stored) {
+  const righe = Array.isArray(stored)
+    ? stored
+    : stored && typeof stored === "object"
+      ? [stored]
+      : [];
+  return (
+    righe
+      .map((riga, indice) => ({
+        ...normalizzaCaldaia(riga),
+        id: clean(riga?.id) || `caldaia-${indice + 1}`,
+      }))
+      /* Una riga senza nemmeno un'entita' non e' una caldaia a meta': e' una
+       * riga vuota, e disegnarla vorrebbe dire una macchina che non dice
+       * niente. Quella appena aggiunta vive nell'editor finche' non si compila. */
+      .filter((riga) => CASELLE_CALDAIA.some(({ campo }) => riga[campo]))
+  );
+}
+
+/** Le entita' di tutte le caldaie. */
+export function entitaDelleCaldaie(stored) {
+  return normalizzaCaldaie(stored).flatMap((riga) => entitaDellaCaldaia(riga));
+}
+
+/** Le letture di tutte le caldaie, nell'ordine in cui sono scritte. */
+export function lettureCaldaie(stored, states = {}, resolve = (value) => value) {
+  return normalizzaCaldaie(stored).map((riga) => ({
+    ...letturaCaldaia(riga, states, resolve),
+    id: riga.id,
+  }));
 }
 
 /** Le entita' che la caldaia tiene d'occhio. */

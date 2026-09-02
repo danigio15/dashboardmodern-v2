@@ -68,7 +68,11 @@ const USER_DATA_VERSION = 1;
  * entita' `calendar.*` si guardano, con che nome e di che colore. Sono la
  * casa, non il telefono: chi li sceglie dal tablet non deve rifarlo dal
  * telefono per vedere gli stessi impegni. */
-export const CONFIG_KEYS_REVISION = 18;
+/* La revisione 19 aggiunge le sezioni che si fa l'utente (`cd_sezioni_mie`,
+ * #262): titolo, icona e le entita' che ci ha messo dentro. Sono la casa nel
+ * senso piu' letterale — le ha disegnate lui — e non viaggiare vorrebbe dire
+ * rifarle su ogni dispositivo. */
+export const CONFIG_KEYS_REVISION = 19;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -176,6 +180,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_caldaia",
   "cd_ups",
   "cd_calendari",
+  // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.
+  "cd_sezioni_mie",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

@@ -82,6 +82,9 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "dashboardmodern/tickets/queue",
   "dashboardmodern/tickets/answer",
   "dashboardmodern/tickets/thread",
+  "dashboardmodern/tickets/reply",
+  "dashboardmodern/tickets/take",
+  "dashboardmodern/tickets/unread",
   "dashboardmodern/tickets/auth/start",
   "dashboardmodern/tickets/auth/poll",
   "dashboardmodern/tickets/auth/forget",
@@ -187,11 +190,7 @@ export function createBridgeSocket({
 
       if (!permitted.has(type)) {
         onDenied(type);
-        this._fail(
-          id,
-          "not_allowed",
-          `Message type not permitted through the bridge: ${type}`,
-        );
+        this._fail(id, "not_allowed", `Message type not permitted through the bridge: ${type}`);
         return;
       }
 
@@ -218,11 +217,7 @@ export function createBridgeSocket({
         const { id: _ignored, ...payload } = message;
         this._reply(id, await connection.sendMessagePromise(payload));
       } catch (error) {
-        this._fail(
-          id,
-          error?.code || "bridge_error",
-          error?.message || String(error),
-        );
+        this._fail(id, error?.code || "bridge_error", error?.message || String(error));
       }
     }
 

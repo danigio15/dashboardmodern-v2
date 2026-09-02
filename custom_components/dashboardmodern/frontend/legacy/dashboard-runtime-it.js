@@ -1073,7 +1073,7 @@ async function connect() {
       } catch(e) { console.warn('[Sync] pull check:', e); }
       return;
     }
-    if(m.type === 'result' && Array.isArray(m.result)) { m.result.forEach(s => STATES[s.entity_id] = s); render(); }
+    if(m.type === 'result' && Array.isArray(m.result)) { m.result.forEach(s => STATES[s.entity_id] = s); render(); try { cdBootStatiArrivati(); } catch(e) {} }
     if(m.type === 'event' && m.event.event_type === 'state_changed') { 
         if(m.event.data.new_state) STATES[m.event.data.entity_id] = m.event.data.new_state; else delete STATES[m.event.data.entity_id];
         cdRenderSoon(); 
@@ -5199,7 +5199,41 @@ function _cdFogliPronti() {
         return true;
     } catch (e) { return true; }
 }
-function _cdPlanciaPronta() { return _cdModuliPronti() && _cdFogliPronti(); }
+/* E la terza condizione: che la casa abbia risposto.
+ *
+ * Il velo aspettava i moduli e i fogli — cioe' che la plancia fosse pronta a
+ * disegnare — ma non che ci fosse qualcosa da disegnare. Il risultato,
+ * cronometrato sul filmato fotogramma per fotogramma: plancia in scena all'8,9
+ * e casa vera all'11,1. Due secondi e due decimi con zeri, «Caricamento...»,
+ * sei tessere invece di tredici, la persona grigia e «Sconosciuto» — e in cima
+ * la riga che diceva «tutto tranquillo» mentre le Aperture chiedevano
+ * attenzione. Poi tutto si rimpaginava sotto gli occhi.
+ *
+ * La prima risposta di Home Assistant agli stati e' il momento in cui la
+ * plancia ha davvero qualcosa da raccontare. Chi non ha nessuna casa da
+ * aspettare — niente gettone, primo avvio col wizard — non aspetta affatto, o
+ * il wizard resterebbe dietro il velo. E se la casa non risponde ci pensa la
+ * stessa scadenza degli otto secondi che copre gia' moduli e fogli: nessuna
+ * rete nuova da mantenere. */
+let _cdStatiArrivati = false;
+function cdBootStatiArrivati() { _cdStatiArrivati = true; }
+function _cdStatiPronti() {
+    if (_cdStatiArrivati) return true;
+    try {
+        /* Niente gettone e nessuna plancia ospitata: non c'e' nessuna casa da
+         * aspettare, e il wizard del primo avvio non deve restare dietro il
+         * velo. */
+        if (!window.__DASHBOARDMODERN_HOSTED__ && !LONG_LIVED_TOKEN) return true;
+        /* E si aspetta solo finche' c'e' un filo vivo che deve ancora
+         * rispondere. Se il filo non c'e', o si e' chiuso, o e' caduto, non
+         * arrivera' nessuno stato: tenere il velo su per la scadenza intera
+         * sarebbe far pagare a chi guarda un'attesa senza speranza. */
+        if (!ws) return true;
+        if (ws.readyState === 2 || ws.readyState === 3) return true;
+    } catch (e) { return true; }
+    return false;
+}
+function _cdPlanciaPronta() { return _cdModuliPronti() && _cdFogliPronti() && _cdStatiPronti(); }
 function _cdTogliIlVelo() {
     if (_cdBootDone) return; _cdBootDone = true;
     // Il momento che conta per chi guarda, segnato dove succede davvero.

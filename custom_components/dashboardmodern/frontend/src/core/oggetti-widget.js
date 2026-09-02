@@ -482,6 +482,48 @@ const OGGETTI = Object.freeze({
     <rect x="4.4" y="17.6" width="10.8" height="9.8" rx="2.8" fill="#cbd5e1"/>
     <path d="M6.8 7.4a3.4 3.4 0 0 1 2.4-1.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.5"
       fill="none" stroke-linecap="round"/>`,
+
+  /* Le sezioni che si fa l'utente: due carte impilate e la stella di chi le ha
+   * scelte. Non il triangolo di «custom», che e' quello degli avvisi fatti in
+   * casa e vuol dire pericolo: due cose diverse non portano lo stesso oggetto,
+   * ed e' la regola che una prova sorveglia da quando Energia e Azioni avevano
+   * lo stesso fulmine. */
+  mie: `<defs>
+      <linearGradient id="dmoMie" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#c4b5fd"/><stop offset=".55" stop-color="#8b5cf6"/>
+        <stop offset="1" stop-color="#5b21b6"/></linearGradient>
+      <linearGradient id="dmoMieStella" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fef3c7"/><stop offset=".5" stop-color="#fbbf24"/>
+        <stop offset="1" stop-color="#b45309"/></linearGradient></defs>
+    ${OMBRA(16, 28, 9)}
+    <rect x="6.4" y="6.2" width="18.4" height="12.4" rx="3" fill="#cbd5e1"/>
+    <rect x="4.6" y="10.4" width="18.4" height="14.2" rx="3.2" fill="url(#dmoMie)"/>
+    <path d="M7.2 13.4a3.2 3.2 0 0 1 2.4-1.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>
+    <g fill="#fff" opacity=".85">
+      <rect x="7.4" y="17.2" width="9.4" height="1.8" rx=".9"/>
+      <rect x="7.4" y="20.6" width="6.4" height="1.8" rx=".9"/>
+    </g>
+    <path d="M24.2 13.4l1.7 3.5 3.9.6-2.8 2.7.7 3.8-3.5-1.8-3.5 1.8.7-3.8-2.8-2.7 3.9-.6Z"
+      fill="url(#dmoMieStella)" stroke="#fff" stroke-opacity=".45" stroke-width=".8"/>`,
+
+  /* Le segnalazioni: la nuvoletta di chi scrive, con la pastiglia di quelle
+   * che aspettano una risposta. */
+  segnalazioni: `<defs>
+      <linearGradient id="dmoSegn" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#bae6fd"/><stop offset=".55" stop-color="#0ea5e9"/>
+        <stop offset="1" stop-color="#075985"/></linearGradient>
+      <linearGradient id="dmoSegnRosso" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fca5a5"/><stop offset="1" stop-color="#b91c1c"/></linearGradient></defs>
+    ${OMBRA(16, 28, 9)}
+    <path d="M6.4 5.6h19.2a3 3 0 0 1 3 3v10.6a3 3 0 0 1-3 3H15.8l-5.6 4.3v-4.3H6.4a3 3 0 0 1-3-3V8.6a3 3 0 0 1 3-3Z"
+      fill="url(#dmoSegn)"/>
+    <path d="M6.6 8.6a2.6 2.6 0 0 1 2-1.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>
+    <g fill="#fff" opacity=".9">
+      <circle cx="11" cy="14" r="1.7"/><circle cx="16" cy="14" r="1.7"/><circle cx="21" cy="14" r="1.7"/>
+    </g>
+    <circle cx="25.6" cy="7.4" r="4.2" fill="url(#dmoSegnRosso)" stroke="#fff" stroke-width="1.2"/>`,
 });
 
 /* Il disegno della tessera, pronto da mettere dentro la pastiglia.

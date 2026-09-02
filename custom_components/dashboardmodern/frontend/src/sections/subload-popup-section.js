@@ -11,6 +11,7 @@
  *
  * Event driven: it wraps the popup opener, with no polling and no observer.
  */
+import { applianceArtwork } from "../core/appliance-artwork.js";
 import { subloadPopupModel } from "../core/subload-popup-model.js";
 import { flowStageModel, subloadsOf } from "../core/energy-flow-topology.js";
 import { onRunHoldExpiry } from "../core/appliance-view-model.js";
@@ -60,10 +61,14 @@ function loadForGroup(groupId) {
 
 /* Which period the circle was clicked in, so the title reads like the rest of
  * the dashboard: "CUCINA · ISTANTANEO". */
+function periodOf(groupId) {
+  return /_(day|month)$/.exec(clean(groupId))?.[1] || "instant";
+}
+
 function periodLabel(groupId) {
-  const match = /_(day|month)$/.exec(clean(groupId));
-  if (match?.[1] === "day") return t("GIORNO", "DAY");
-  if (match?.[1] === "month") return t("MESE", "MONTH");
+  const periodo = periodOf(groupId);
+  if (periodo === "day") return t("GIORNO", "DAY");
+  if (periodo === "month") return t("MESE", "MONTH");
   return t("ISTANTANEO", "INSTANT");
 }
 
@@ -95,17 +100,32 @@ function element(tag, className = "", text = "") {
  * Il segno del disegno gia' fatto serve: per un `mdi:` il motore scrive
  * `innerHTML`, e riscriverlo a ogni giro di stati rifarebbe quel pezzetto di
  * albero venti volte al minuto senza che nulla sia cambiato. */
-function iconInto(target, icon) {
+function iconInto(target, icon, visual = "") {
   if (!target) return target;
   const token = clean(icon);
-  if (target.dataset.dmSubloadIcon === token) return target;
-  target.dataset.dmSubloadIcon = token;
+  const tipo = clean(visual);
+  const firma = `${tipo}§${token}`;
+  if (target.dataset.dmSubloadIcon === firma) return target;
+  target.dataset.dmSubloadIcon = firma;
+  /* Il ritratto del catalogo prima dell'emoji.
+   *
+   * «Nel popup energetico dei carichi elettrodomestici le icone riportate non
+   * sono quelle inserite»: otto apparecchi e otto prese uguali. Il tipo
+   * — lavatrice, forno, frigorifero — un disegno ce l'ha, ed e' lo stesso che
+   * mostra la sezione Elettrodomestici e l'elenco della scheda Carichi. Due
+   * posti che parlano della stessa lavatrice devono mostrare la stessa
+   * lavatrice. Chi un tipo non ce l'ha tiene il carattere che aveva. */
+  const ritratto = tipo ? applianceArtwork(tipo, 24) : "";
+  if (ritratto) {
+    target.innerHTML = ritratto;
+    return target;
+  }
   writeIconGlyph(target, icon, { size: 24, kind: "load" });
   return target;
 }
 
-function iconSpan(className, icon) {
-  return iconInto(element("span", className), icon);
+function iconSpan(className, icon, visual = "") {
+  return iconInto(element("span", className), icon, visual);
 }
 
 /* La carta si costruisce vuota e la riempie `aggiornaCarta`: cosi' quello che
@@ -184,10 +204,10 @@ function aggiornaCarta(node, item, model) {
   poniDato(node, "dmSubloadName", clean(item.name));
   poniStile(node, "--dm-subload-color", item.color);
   poniStile(node, "--dm-subload-tint", item.tint);
-  iconInto(node.querySelector(".dm-subload-icon"), item.icon);
+  iconInto(node.querySelector(".dm-subload-icon"), item.icon, item.visual);
   poniTesto(node.querySelector(".dm-subload-name"), item.name);
   poniTesto(node.querySelector(".dm-subload-state"), ETICHETTE()[item.state]);
-  poniTesto(node.querySelector(".dm-subload-power"), item.powerText);
+  poniTesto(node.querySelector(".dm-subload-power"), item.valoreText);
   scriviIlGiorno(node, item);
   poniStile(
     node.querySelector(".dm-subload-meter-fill"),
@@ -207,11 +227,14 @@ function aggiornaCarta(node, item, model) {
  * quella riga, e le carte restano dove sono. */
 function scriviIlGiorno(node, item) {
   const riga = node.querySelector(".dm-subload-daily");
-  if (!item.dailyText) {
+  if (!item.sottoText) {
     riga?.remove?.();
     return;
   }
-  const testo = `${item.dailyText} ${t("oggi", "today")}`;
+  /* La parola la mette qui chi disegna: il modello sceglie QUALE numero va
+   * sotto, non come si chiama in questa lingua. */
+  const quando = item.sottoQuando === "adesso" ? t("adesso", "now") : t("oggi", "today");
+  const testo = `${item.sottoText} ${quando}`;
   if (riga) {
     if (riga.textContent !== testo) riga.textContent = testo;
     return;
@@ -404,6 +427,9 @@ export function renderSubloadPopup(groupId = state.group) {
     children: subloadsOf(load, loads, Array.isArray(appliances) ? appliances : []),
     states: allStates(),
     locale: locale(),
+    /* Il periodo in cui il cerchio e' stato toccato decide i numeri, non solo
+     * la scritta in testata: vedi `subloadPopupModel`. */
+    period: periodOf(groupId),
   });
 
   /* La testata del modale — nome, icona, periodo — si riscrive solo quando c'e'

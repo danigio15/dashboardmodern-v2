@@ -23,8 +23,7 @@ moduli su GitHub gia' usano. La terza e' quella su cui vale la pena tornare
 dopo le prime segnalazioni vere: una richiesta di assistenza porta il nome
 delle stanze e a volte le foto di casa, e finisce su una pagina che chiunque
 puo' leggere. Oggi la scelta e' **dirlo forte prima di spedire**, non
-nasconderlo — e il recapito, che e' l'unica cosa davvero personale, non parte
-comunque.
+nasconderlo.
 
 ## Il vincolo che decide la forma
 
@@ -90,8 +89,19 @@ Un ticket che parte porta con se':
 
 Non viaggia mai: l'URL di Home Assistant, token o credenziali di qualunque
 tipo, l'elenco delle entita', la posizione, il nome degli utenti HA,
-l'indirizzo e-mail dell'account. E **non viaggia il recapito**, anche quando
-l'utente lo scrive: quello resta in casa, per la console.
+l'indirizzo e-mail dell'account.
+
+E **un recapito non si chiede piu' affatto**. Il modulo aveva una casella
+«come ricontattarti», con scritto «resta in casa», ed era vero: non finiva
+nella pagina pubblica. Solo che in casa non lo leggeva nessuno — la console del
+manutentore legge GitHub, dove quel campo non arriva mai. Chiedere un indirizzo
+e-mail per poi non farne niente e' la peggiore delle tre strade possibili: si
+conserva un dato personale, non serve a nessuno, e chi lo scrive crede di
+essere raggiungibile. La risposta arriva sotto la segnalazione, dove il filo si
+legge e si scrive nei due sensi, e il campanello avvisa quando c'e'. I recapiti
+gia' scritti dalle versioni precedenti spariscono dal disco alla prima
+accensione: toglierlo dal modulo non basta, perche' quello che era gia' stato
+scritto sarebbe rimasto li'.
 
 La diagnostica e' quella dichiarata sopra e nient'altro: e' una lista chiusa
 nel codice, non un `dict` raccolto a runtime.
@@ -207,10 +217,6 @@ suo nome, e chiunque potra' leggerla. La finestra lo scrive sopra il tasto
 «invia», accanto a cosa esattamente viene mandato — non e' una cosa da far
 scoprire dopo.
 
-Una sola cosa non passa mai di la': il **recapito**. Chi ha scritto il proprio
-indirizzo lo ha scritto a una persona, non a una pagina indicizzata dai motori
-di ricerca: resta in casa, dove il manutentore lo legge dalla console.
-
 Questo pesa soprattutto sul tipo `assistenza`, che e' quello che porta il nome
 delle stanze e a volte le foto. Vale la pena rivederlo dopo le prime
 segnalazioni vere: la scelta di oggi e' dirlo forte, non nasconderlo.
@@ -296,6 +302,152 @@ e la chiusura e' la chiusura su GitHub, con `state_reason` `completed` per una
 risolta e `not_planned` per una archiviata. Un posto solo, non due da tenere
 allineati.
 
+## Il campanello, e la conversazione nei due sensi
+
+Il filo di una segnalazione era gia' percorribile in tutte e due le direzioni,
+ma solo da un lato: il manutentore scriveva dalla console, e chi aveva
+segnalato leggeva. Per rispondere doveva aprire github.com — cioe' uscire
+proprio dal posto che questa finestra esiste per non fargli lasciare. Adesso
+c'e' `tickets/reply`: il commento parte **col gettone di chi scrive**, mai con
+quello della console, e solo sotto una segnalazione che risulta sua nel
+deposito locale.
+
+Restava il problema piu' grosso, che non era tecnico: un canale che chiede di
+essere sorvegliato a vista non e' un canale, e' una bacheca. Una domanda
+scritta alle nove restava muta fino a quando al manutentore veniva in mente di
+controllare; una risposta scritta a mezzogiorno restava non letta fino al
+prossimo giro di chi l'aveva chiesta.
+
+Il campanello (`ticket_watch.py`) e' la risposta, e sono quattro scelte.
+
+**Una richiesta ogni cinque minuti, non una per segnalazione.** Rileggere venti
+issue per scoprire se qualcuno ha scritto sarebbe stato duecentoquaranta
+richieste all'ora per sentirsi dire quasi sempre di no. L'elenco filtrato per
+`since` — `GET /issues?state=all&sort=updated&since=…` — torna solo quello che
+si e' mosso e porta gia' `comments`: se il numero e' cresciuto, qualcuno ha
+scritto. Dodici richieste all'ora in tutto. Il gettone e' **obbligatorio** per
+questo giro, e non per farsi riconoscere — la repository e' pubblica — ma per
+il tetto: senza, dodici all'ora su un limite di sessanta che il controllo
+aggiornamenti e la `sync` gia' intaccano vorrebbe dire un campanello che verso
+sera smette di suonare, cioe' peggio di uno che non c'e'.
+
+**Il segno di quello che si e' letto sta su disco.** In memoria avrebbe voluto
+dire risuonare per messaggi vecchi a ogni riavvio di Home Assistant, che con
+questa plancia vuol dire a ogni aggiornamento.
+
+**I propri messaggi non suonano.** Quando la plancia scrive un commento — la
+risposta della console, il messaggio di chi ha segnalato — alza il segno di uno
+da se'. Uno, e non «quanti ce ne sono adesso»: saperlo vorrebbe dire rileggere
+la issue, cioe' una richiesta in piu' per ogni risposta scritta.
+
+**Chi sente cosa.** Chi tiene la repository sente tutto, comprese le
+segnalazioni appena aperte: e' il suo mestiere, ed e' quello che il cruscotto
+mostra. Chi la plancia la usa e basta sente solo le proprie — le altre sono
+conversazioni fra sconosciuti — ma **tutte le proprie**, anche quelle gia'
+chiuse. Li' la domanda non e' «cosa devo rileggere» ma «quali conversazioni
+sono mie», e una risposta arrivata sotto una segnalazione chiusa la settimana
+prima e' esattamente il messaggio che non si vuole perdere.
+
+Quello che suona e' doppio, e serve a due persone diverse:
+
+* `hass.bus` riceve `dashboardmodern_messaggio`, con numero, titolo, quanti
+  messaggi, se la novita' e' la segnalazione stessa, chi l'ha aperta e
+  l'indirizzo della issue. E' per chi le automazioni le scrive: il telefono,
+  un altoparlante, una luce che cambia colore. Non impone niente.
+* Una notifica di Home Assistant, quella della campanella, con
+  `notification_id` per numero di segnalazione — due messaggi sotto la stessa
+  non fanno due campanelle da chiudere una per una. E' per chi automazioni non
+  ne scrive e vuole lo stesso sapere che qualcuno ha scritto.
+
+Il giro non si aggiunge a quello da mezz'ora, gli sta accanto: fanno due
+mestieri di costo diverso. Quello lungo rilegge le segnalazioni una per una e
+riprova le consegne — pesa, e ogni cinque minuti sarebbero centinaia di
+richieste all'ora. Quello corto e' una richiesta sola e risponde all'unica
+domanda che non puo' aspettare mezz'ora. Quando il campanello trova qualcosa
+per **chi ha segnalato**, chiama subito la `sync`: la notifica dice «c'e' un
+messaggio», e se aprendo la plancia non ci fosse ancora sarebbe una bugia con
+trenta minuti di scadenza.
+
+## Quello che il campanello lascia dietro
+
+Il campanello suona e passa. E' un evento, e un evento non lo si puo' guardare
+mezz'ora dopo: chi apre la plancia il mattino dopo — o chi il telefono non
+l'aveva in tasca — troverebbe la coda esattamente come prima, senza nessun
+segno di cosa e' successo la notte.
+
+Quindi il taccuino tiene, accanto ai segni, un elenco delle **conversazioni non
+lette**: numero, titolo, quanti messaggi, quando. Lo riempie il giro del
+campanello con quello per cui ha appena suonato, e lo svuota `tickets/thread` —
+aprire il filo e' averlo letto.
+
+Sta nel backend e non nel browser per una ragione precisa: **le plance di una
+casa sono piu' di una**. Segnarlo nel browser avrebbe voluto dire che chi legge
+la risposta dal telefono, passando davanti al tablet in cucina, ritrova lo
+stesso pallino ad aspettarlo — e un pallino che non si spegne smette di voler
+dire qualcosa dopo due giorni.
+
+`tickets/unread` lo restituisce, e non chiede niente a GitHub: e' roba che il
+giro da cinque minuti ha gia' visto passare. Chiederlo di la' avrebbe voluto
+dire una richiesta ogni volta che qualcuno guarda la Home.
+
+Si vede in tre posti, e sono tre livelli di dettaglio:
+
+* **il widget in Home**, in cima alla finestra e sopra i conti, coi titoli
+  delle prime tre — un numero da solo direbbe «due» senza dire di cosa, e per
+  decidere se aprire il cruscotto adesso o dopo cena servono i titoli;
+* **la riga nel cruscotto**, con la pastiglia d'accento accanto agli altri
+  segni: gli altri sono contorno — quanti allegati, chi ce l'ha in carico — e
+  questo invece chiede di essere aperto;
+* **la riga di chi ha segnalato**, dove il segno dice «risposta» perche' da
+  quel lato la domanda e' un'altra.
+
+Il conto e' sempre di **conversazioni**, non di messaggi: chi guarda vuole
+sapere quante porte ha da aprire. Quante frasi ci siano dietro lo dice il filo,
+che e' il posto dove si leggono.
+
+## Presa in carico
+
+«In lavorazione» era una supposizione: lo stato si deduceva dal fatto che
+qualcuno avesse commentato, perche' un segno vero non c'era. Sbagliava nel
+verso peggiore — bastava una domanda di chiarimento per far risultare presa in
+carico una segnalazione che nessuno aveva ancora guardato.
+
+Il segno adesso c'e', e non e' inventato qui: e' **l'assegnazione di GitHub**.
+Il tasto del cruscotto scrive `assignees`, la issue compare fra quelle del
+manutentore, e chi passa dalla pagina lo vede senza che nessuno glielo scriva.
+Un'etichetta apposta avrebbe voluto dire un segno che esiste solo dentro questa
+plancia, e una repository che dice una cosa diversa da quello che il cruscotto
+mostra.
+
+Si scrive l'elenco intero invece di aggiungere e togliere un nome: l'indirizzo
+che aggiunge e quello che toglie sono due, e «chi ce l'ha in carico» qui e' una
+cosa sola. Scrivere l'elenco dice esattamente quello che si vuole — o lui, o
+nessuno — e non lascia mai due assegnatari per una svista.
+
+Prendere in carico non lascia commenti. E' un gesto di chi organizza il lavoro,
+non un messaggio a chi ha segnalato: notificarlo vorrebbe dire far vibrare un
+telefono per dire «l'ho vista».
+
+## L'etichetta la mette la repository, non chi segnala
+
+Una segnalazione aperta dalla plancia arriva **senza etichetta**, e non e' un
+difetto del giro: GitHub le etichette le scarta quando a scriverle e' qualcuno
+che sulla repository non ha i permessi — cioe' esattamente chi apre le
+segnalazioni. Mandarle sarebbe stato scrivere una riga che non arriva, e
+credere di averla scritta.
+
+Le mette `.github/workflows/label-issues.yml`, che gira col gettone della
+repository: legge il prefisso del titolo — `[Bug]`, `[Feature]`, `[Aiuto]`, gli
+stessi che i moduli di GitHub usano da sempre — e applica `bug`, `enhancement`
+o `question`. Chi un'etichetta ce l'ha gia' non si tocca: quella se l'e' presa
+dal suo modulo, e sovrascrivere una scelta fatta sarebbe peggio del non fare
+niente.
+
+L'alternativa era farlo fare al cruscotto del manutentore, col suo gettone.
+Sarebbe dipeso dall'avere una dashboard aperta: una segnalazione arrivata di
+notte sarebbe rimasta nuda fino al mattino, e chi guarda l'elenco su GitHub —
+non tutti guardano il cruscotto — l'avrebbe vista cosi'.
+
 ## L'applicazione, e com'e' registrata
 
 E' una **GitHub App** — «DashboardModern Segnalazioni», di @danigio15 — con un
@@ -306,10 +458,22 @@ dell'App.
 
 **Non c'e' nessuna chiave privata**, da nessuna parte. Servirebbe per
 autenticarsi *come* l'App — generare installation token, ricevere webhook — e
-qui non succede mai: si parla sempre e solo a nome di chi ha autorizzato. Al
-primo salvataggio GitHub avvisa che «devi generare una chiave privata per
-installare l'App»: e' vero per chi la installa, e questa non ha bisogno di
-essere installata da nessuno.
+qui non succede mai: si parla sempre e solo a nome di chi ha autorizzato.
+
+**L'App pero' va installata su questa repository, una volta sola.** Qui c'era
+scritto il contrario, ed era sbagliato: leggere i dati pubblici — chi ha
+autorizzato, l'elenco delle issue — un gettone di GitHub App lo fa comunque, ed
+e' per questo che la console si accendeva e mostrava tutto. **Scrivere** no: per
+aprire una issue serve che l'App sia installata sulla repository di
+destinazione. Senza, GitHub risponde `403` con
+`Resource not accessible by integration`, e la segnalazione resta in casa con
+quel motivo scritto sotto.
+
+L'installazione la fa il proprietario della repository, una volta, dalla pagina
+dell'App (*Install App*). Non e' una concessione a chi segnala: chi segnala
+autorizza per se' col codice, come sempre, e la sua issue esce a suo nome
+perche' su una repository pubblica aprire una issue e' cosa che qualunque
+account puo' fare.
 
 Le tre caselle che contano, nella registrazione:
 
@@ -323,8 +487,8 @@ L'alternativa scartata era un'**applicazione OAuth** con scope `public_repo`.
 Funziona identica — gli endpoint del device flow sono gli stessi, cambia solo
 `GITHUB_SCOPE` — ma quello scope da' accesso in scrittura a *tutte* le
 repository pubbliche di chi autorizza, per aprire una segnalazione. La App
-chiede quello che serve e nient'altro, e non viene installata sulle repository
-di nessuno.
+chiede quello che serve e nient'altro, e si installa su una repository sola:
+questa.
 
 ## Il limite da dire subito
 

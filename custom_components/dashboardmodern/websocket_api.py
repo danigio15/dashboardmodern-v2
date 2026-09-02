@@ -49,7 +49,6 @@ from .github_client import DevicePending, GitHubError
 from .github_tokens import async_get_token_store
 from .ticket_store import (
     MAX_BODY,
-    MAX_CONTACT,
     MAX_REPLY,
     MAX_TITLE,
     TICKET_TYPES,
@@ -63,8 +62,11 @@ from .tickets import (
     async_finish_auth,
     async_forget_auth,
     async_queue,
+    async_reply,
     async_sync_states,
+    async_take,
     async_thread,
+    async_unread,
 )
 from .tickets import (
     enabled as tickets_enabled,
@@ -88,6 +90,9 @@ TYPE_TICKET_SYNC = f"{DOMAIN}/tickets/sync"
 TYPE_TICKET_QUEUE = f"{DOMAIN}/tickets/queue"
 TYPE_TICKET_ANSWER = f"{DOMAIN}/tickets/answer"
 TYPE_TICKET_THREAD = f"{DOMAIN}/tickets/thread"
+TYPE_TICKET_REPLY = f"{DOMAIN}/tickets/reply"
+TYPE_TICKET_TAKE = f"{DOMAIN}/tickets/take"
+TYPE_TICKET_UNREAD = f"{DOMAIN}/tickets/unread"
 TYPE_TICKET_AUTH_START = f"{DOMAIN}/tickets/auth/start"
 TYPE_TICKET_AUTH_POLL = f"{DOMAIN}/tickets/auth/poll"
 TYPE_TICKET_AUTH_FORGET = f"{DOMAIN}/tickets/auth/forget"
@@ -407,9 +412,6 @@ async def async_list_tickets(
         vol.Required("ticket_type"): vol.In(sorted(TICKET_TYPES)),
         vol.Required("title"): vol.All(str, vol.Length(min=1, max=MAX_TITLE * 2)),
         vol.Required("body"): vol.All(str, vol.Length(min=1, max=MAX_BODY * 2)),
-        vol.Optional("contact", default=""): vol.All(
-            str, vol.Length(max=MAX_CONTACT * 2)
-        ),
         vol.Optional("diagnostics", default=dict): {
             str: vol.Any(str, int, float, bool)
         },
@@ -436,7 +438,6 @@ async def async_create_ticket(
             ticket_type=msg["ticket_type"],
             title=msg["title"],
             body=msg["body"],
-            contact=msg["contact"],
             diagnostics=msg["diagnostics"],
             opened_by=_caller_id(connection),
         )
@@ -575,18 +576,108 @@ async def async_ticket_thread(
 ) -> None:
     """Il filo di una segnalazione: testo, commenti e allegati.
 
-    Serve a non dover uscire dalla console per capire cosa e' successo: la
-    foto che chi segnala ha allegato vive in un commento, e senza leggere i
-    commenti una segnalazione con dentro tutto sembrerebbe nuda.
+    Serve a non dover uscire dalla plancia per capire cosa e' successo: la foto
+    che chi segnala ha allegato vive in un commento, e senza leggere i commenti
+    una segnalazione con dentro tutto sembrerebbe nuda.
+
+    Non e' riservato alla console. Lo apre anche chi ha segnalato, sulla sua,
+    per leggere la risposta restando qui: mandarlo su github.com per leggerla
+    sarebbe farlo uscire proprio dal posto che questa finestra esiste per non
+    fargli lasciare. Non c'e' niente da proteggere — la issue e' una pagina
+    pubblica, e chiunque puo' aprirla in un browser.
     """
-    if await _console_denied(hass, connection, msg):
-        return
     try:
         filo = await async_thread(hass, _caller_id(connection), msg["number"])
     except GitHubError as errore:
         connection.send_error(msg["id"], errore.code, str(errore))
         return
     connection.send_result(msg["id"], filo)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_TICKET_REPLY,
+        vol.Required("number"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Required("message"): vol.All(str, vol.Length(max=MAX_REPLY * 2)),
+    }
+)
+@websocket_api.async_response
+async def async_reply_ticket_command(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Scrivi sotto una segnalazione tua, restando nella plancia.
+
+    Non passa dalla console. Chi risponde qui e' chi ha segnalato, e scrive
+    sotto la sua: fino a ieri per aggiungere una riga doveva aprire github.com,
+    che e' esattamente il posto che questa finestra esiste per non fargli
+    aprire. Di chi sia la segnalazione lo verifica `async_reply`, che ha in
+    mano il deposito; qui si controlla solo che chi chiama la plancia la possa
+    usare.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    try:
+        fatto = await async_reply(
+            hass,
+            user_id=_caller_id(connection),
+            number=msg["number"],
+            message=msg["message"],
+        )
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    connection.send_result(msg["id"], fatto)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_TICKET_TAKE,
+        vol.Required("number"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("take", default=True): bool,
+    }
+)
+@websocket_api.async_response
+async def async_take_ticket_command(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Prendi in carico una segnalazione, o lasciala."""
+    if await _console_denied(hass, connection, msg):
+        return
+    try:
+        fatto = await async_take(
+            hass,
+            user_id=_caller_id(connection),
+            number=msg["number"],
+            take=msg["take"],
+        )
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    connection.send_result(msg["id"], fatto)
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_TICKET_UNREAD})
+@websocket_api.async_response
+async def async_ticket_unread(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Le conversazioni con messaggi nuovi che nessuno ha ancora aperto.
+
+    Non esce di casa: e' l'elenco che il campanello ha gia' riempito nel suo
+    giro. Chiedere qui a GitHub vorrebbe dire una richiesta ogni volta che
+    qualcuno guarda la Home.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    connection.send_result(msg["id"], {"messages": await async_unread(hass)})
 
 
 # ─── Collegare il proprio account GitHub ─────────────────────────────────────
@@ -699,6 +790,9 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_ticket_queue,
         async_answer_ticket_command,
         async_ticket_thread,
+        async_reply_ticket_command,
+        async_take_ticket_command,
+        async_ticket_unread,
         async_ticket_auth_start,
         async_ticket_auth_poll,
         async_ticket_auth_forget,

@@ -34,6 +34,11 @@ const state = (root[KEY] ||= {
   auth: null,
   authTimer: 0,
   queue: null,
+  /* Le conversazioni dove qualcuno ha scritto e nessuno ha ancora aperto il
+   * filo. L'elenco lo tiene il backend — il campanello lo riempie nel suo giro
+   * — perche' le plance di una casa sono piu' di una: letto dal telefono vuol
+   * dire letto anche per il tablet in cucina. */
+  nonLetti: [],
   /* La segnalazione appena aperta, finche' non la si congeda. Serve al
    * riquadro che spiega come allegare foto e video: e' il momento in cui chi
    * ha appena scritto ha ancora il file sotto mano. */
@@ -44,12 +49,16 @@ const state = (root[KEY] ||= {
   fili: {},
   filiInCorso: {},
   filtro: "aperte",
+  tipoCoda: "",
+  queueAt: 0,
+  syncAt: 0,
+  codaTimer: 0,
   tab: "nuova",
   tipo: "bug",
   /* Quello che si sta scrivendo. Sta qui e non solo nel DOM perche' ogni
    * ridisegno rifa' il modulo da capo: senza, cambiare tipo a meta' frase
    * cancellava la frase. */
-  bozza: { title: "", body: "", contact: "" },
+  bozza: { title: "", body: "" },
   busy: false,
   avviso: "",
   config: null,
@@ -62,6 +71,9 @@ const WS_SYNC = "dashboardmodern/tickets/sync";
 const WS_QUEUE = "dashboardmodern/tickets/queue";
 const WS_ANSWER = "dashboardmodern/tickets/answer";
 const WS_THREAD = "dashboardmodern/tickets/thread";
+const WS_REPLY = "dashboardmodern/tickets/reply";
+const WS_TAKE = "dashboardmodern/tickets/take";
+const WS_UNREAD = "dashboardmodern/tickets/unread";
 const WS_AUTH_START = "dashboardmodern/tickets/auth/start";
 const WS_AUTH_POLL = "dashboardmodern/tickets/auth/poll";
 const WS_AUTH_FORGET = "dashboardmodern/tickets/auth/forget";
@@ -78,6 +90,9 @@ export const WS_TYPES = Object.freeze([
   WS_QUEUE,
   WS_ANSWER,
   WS_THREAD,
+  WS_REPLY,
+  WS_TAKE,
+  WS_UNREAD,
   WS_AUTH_START,
   WS_AUTH_POLL,
   WS_AUTH_FORGET,
@@ -98,7 +113,6 @@ export const DIAGNOSTIC_KEYS = Object.freeze([
  * mano prima dell'invio, li' a fermare la richiesta. */
 const MAX_TITOLO = 120;
 const MAX_CORPO = 4000;
-const MAX_CONTATTO = 190;
 
 /* I tre tipi. Ognuno porta la sua spiegazione e il suo suggerimento, perche'
  * la differenza fra «non funziona» e «vorrei che facesse» la sa chi scrive
@@ -506,7 +520,13 @@ const CSS = `
   font-size:13px; font-weight:800; background:var(--accent,#0ea5e9); color:#fff;
   transition:transform .18s cubic-bezier(.34,1.56,.64,1), filter .2s; }
 .dm-tkt-btn:hover { transform:translateY(-2px); filter:brightness(1.05); }
-.dm-tkt-btn[disabled] { opacity:.5; cursor:default; transform:none; }
+/* Spento vuol dire spento anche quando il tasto e' quello pieno: la sola
+   trasparenza lasciava un rettangolo azzurro su fondo scuro, che continua a
+   leggersi come «premimi». Perde il colore e prende quello neutro, cosi' la
+   differenza fra «non ancora» e «adesso si'» si vede da lontano. */
+.dm-tkt-btn[disabled] { opacity:.55; cursor:default; transform:none; filter:none;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
+  border:1px solid var(--card-border,#e2e8f0); }
 .dm-tkt-btn.chiaro { background:var(--surface-3,#f1f5f9); color:var(--text,#0f172a);
   border:1px solid var(--card-border,#e2e8f0); }
 .dm-tkt-avviso { padding:11px 14px; border-radius:14px; font-size:13px;
@@ -523,6 +543,17 @@ const CSS = `
 .dm-tkt-collegato { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
   justify-content:space-between; }
 a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
+
+/* La scheda tecnica: le versioni in evidenza, il resto sottovoce. */
+.dm-tkt-scheda { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; }
+.dm-tkt-versione { display:inline-flex; align-items:center; gap:5px;
+  padding:3px 9px; border-radius:50px; font-size:11px; font-weight:800;
+  background:rgba(14,165,233,0.14); color:var(--text,#0f172a);
+  border:1px solid rgba(14,165,233,0.3); }
+.dm-tkt-versione b { opacity:.7; font-size:10px; letter-spacing:.06em; }
+.dm-tkt-dato { padding:3px 9px; border-radius:50px; font-size:11px; font-weight:600;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
+  border:1px solid var(--card-border,#e2e8f0); }
 
 /* L'elenco, di qua e di la'. */
 .dm-tkt-elenco { display:flex; flex-direction:column; gap:12px; }
@@ -564,17 +595,33 @@ a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
 
 /* Il cruscotto: i tre numeri e i filtri. */
 .dm-tkt-kpi { margin-bottom:0; }
+/* Due file: lo stato sopra, il tipo sotto. La seconda sta piu' vicina alla
+   prima che all'elenco, cosi' si legge come una coppia e non come due cose
+   che capitano di seguito. */
 .dm-tkt-filtri { display:flex; gap:8px; flex-wrap:wrap; }
+.dm-tkt-filtri + .dm-tkt-filtri { margin-top:6px; }
 .dm-tkt-filtro { padding:7px 14px; border-radius:50px; cursor:pointer;
   border:1px solid var(--card-border,#e2e8f0); background:var(--surface-3,#f1f5f9);
-  color:var(--text-dim,#64748b); font-size:12px; font-weight:700; }
+  color:var(--text-dim,#64748b); font-size:12px; font-weight:700;
+  display:inline-flex; align-items:center; gap:7px; }
 .dm-tkt-filtro.attivo { background:var(--accent,#0ea5e9); color:#fff;
   border-color:transparent; }
+/* Il conto: dentro il tasto, ma di peso minore del nome — e' un dato, non
+   un'etichetta, e non deve rubare la lettura. */
+.dm-tkt-quanti { font-size:11px; font-weight:800; opacity:.75;
+  padding:1px 6px; border-radius:50px; background:rgba(100,116,139,.18); }
+.dm-tkt-filtro.attivo .dm-tkt-quanti { background:rgba(255,255,255,.25); opacity:1; }
 
 /* I segni sulla scheda, e il filo che si apre sotto. */
 .dm-tkt-segno { font-size:11px; font-weight:800; padding:3px 8px; border-radius:9px;
   background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
   white-space:nowrap; }
+/* Il segno di «c'e' qualcosa da leggere» prende il colore d'accento: gli altri
+   segni sono contorno — quanti allegati, chi ce l'ha in carico — e questo
+   invece chiede di essere aperto. Alla pari con loro sarebbe stato l'unico che
+   chiede qualcosa vestito come quelli che non chiedono niente. */
+.dm-tkt-segno.nuovo { background:color-mix(in srgb, var(--accent,#38bdf8) 20%, transparent);
+  color:var(--accent,#38bdf8); }
 .dm-tkt-filo { display:flex; flex-direction:column; gap:10px; margin-top:11px; }
 .dm-tkt-filo-attesa { padding:14px; text-align:center; font-size:12px;
   color:var(--text-dim,#64748b); }
@@ -622,7 +669,20 @@ function tesseraMarkup() {
         ),
       )}</div>
     </div>
-    <div class="cfg-card-arrow">›</div>`;
+    <div class="cfg-card-arrow">›</div>
+    ${
+      /* L'interruttore della voce «Cruscotto» nella barra, e sta qui perche' qui
+       * sta la sua scheda. Compare solo per chi la voce ce l'ha: agli altri
+       * offrirebbe di spegnere una cosa che non hanno. Chi ce l'ha deve poterla
+       * togliere dalla barra come qualunque altra pagina — e senza questa riga
+       * non potrebbe, perche' e' una voce che nasce a runtime e le fasce del
+       * guscio non la conoscono. */
+      /* La chiave scritta per esteso e non `CRUSCOTTO_TAB`: la prova che
+       * pretende un interruttore per ogni voce della barra legge i sorgenti, e
+       * una costante non la sa risolvere qui. Scriverla vuol dire restare
+       * dentro quella rete invece di scivolarci fuori senza accorgersene. */
+      state.console ? root.cdSecToggleHtml?.("cruscotto") || "" : ""
+    }`;
 }
 
 function installaTessera() {
@@ -671,13 +731,25 @@ function finestra() {
   return modale;
 }
 
-export function apri() {
+export function apri(dove = "") {
   const modale = finestra();
   if (!modale) return;
   state.avviso = "";
+  /* La linguetta si sceglie da fuori solo se esiste per chi guarda: la console
+   * la vede il manutentore, e chiederla senza averla lascerebbe la finestra su
+   * una scheda che non c'e'. */
+  if (dove === "mie" || dove === "nuova") state.tab = dove;
   modale.classList.add("show");
   disegna();
   ricarica();
+  /* E si va a vedere se nel frattempo qualcuno ha risposto.
+   *
+   * `ricarica()` legge quello che c'e' in casa: le risposte scritte su GitHub
+   * non ci sono ancora, e ci arrivavano solo premendo «Aggiorna» o al giro di
+   * mezz'ora. Chi apriva le sue segnalazioni per vedere se c'era una risposta
+   * — cioe' l'unico motivo per cui uno le apre — trovava quello che gia'
+   * sapeva, e doveva chiudere e riaprire. */
+  sincronizza({ zitta: true });
 }
 
 export function chiudi() {
@@ -689,6 +761,129 @@ export function chiudi() {
   doc?.getElementById?.("dm-tkt-modal")?.classList.remove("show");
 }
 
+/* Ogni quanto la coda si va a riprendere da sola, per il widget in Home. Dieci
+ * minuti: le segnalazioni non arrivano al secondo, e ogni giro e' una chiamata
+ * a GitHub. Aprire la console la riprende comunque, quindi chi la guarda vede
+ * sempre l'ultima. */
+const CODA_FRESCA = 10 * 60 * 1000;
+
+/* E qualcuno che li conti, quei dieci minuti.
+ *
+ * La soglia da sola e' un freno, non un orologio: dice «non richiedere se hai
+ * gia' chiesto da poco», e in una plancia lasciata aperta su un tablet nessuno
+ * chiedeva piu' niente. I conti restavano fermi per ore, con l'aria di essere
+ * quelli di adesso — e una segnalazione arrivata a mezzogiorno non si sarebbe
+ * vista fino a che qualcuno non toccava qualcosa.
+ *
+ * Il battito parte solo per chi ha la console: per tutti gli altri non c'e'
+ * nessuna tessera da tenere fresca, e sarebbe una chiamata a vuoto ogni dieci
+ * minuti per sempre. */
+function battitoDellaCoda() {
+  fermaBattito();
+  state.codaTimer = root.setInterval?.(async () => {
+    /* Fermo mentre la pagina non si vede: una plancia in secondo piano non ha
+     * nessuno che la guardi, e chiedere a GitHub per una tessera che nessuno
+     * sta leggendo e' una chiamata buttata ogni dieci minuti per sempre. Al
+     * ritorno la coda e' vecchia di un giro, e il giro dopo la riprende. */
+    if (!state.console || doc?.hidden) return;
+    await caricaCoda({ zitta: true });
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:segnalazioni-coda"));
+  }, CODA_FRESCA);
+}
+
+function fermaBattito() {
+  if (state.codaTimer) root.clearInterval?.(state.codaTimer);
+  state.codaTimer = 0;
+}
+
+/* Quello che il widget della Home ha bisogno di sapere, e nient'altro.
+ *
+ * Torna `null` per chiunque non tenga la repository: la tessera non esiste per
+ * loro, e non e' una preferenza da spegnere ma una cosa che non li riguarda.
+ * Cosi' «solo per me» e' garantito da come e' fatto, non da un interruttore
+ * che qualcuno potrebbe accendere. */
+/* Da quanti giorni una segnalazione aperta si considera ferma. Trenta: sotto
+ * quel mese c'e' ancora l'aria di una cosa in corso, sopra e' una che nessuno
+ * ha piu' guardato — ed e' quella che il cruscotto deve far notare. */
+const GIORNI_VECCHIA = 30;
+
+/* I tipi che un nome ce l'hanno. Quello che non e' fra questi non e' un errore:
+ * e' una issue aperta a mano su GitHub, dove il tipo non si scrive. */
+const TIPI_NOTI = ["bug", "feature", "assistenza"];
+
+/* Il giorno di un istante nel fuso di chi guarda, come chiave.
+ *
+ * «Oggi» si decide confrontando due date di calendario, non due numeri di
+ * millisecondi: sottrarre ventiquattro ore sbaglia nei giorni in cui l'ora
+ * cambia — un giorno ne dura venticinque, un altro ventitre' — ed e' la stessa
+ * trappola gia' trovata sulla tessera dell'Agenda. */
+function giornoDi(istante) {
+  const quando = new Date(istante);
+  if (!Number.isFinite(quando.getTime())) return "";
+  const mese = String(quando.getMonth() + 1).padStart(2, "0");
+  const giorno = String(quando.getDate()).padStart(2, "0");
+  return `${quando.getFullYear()}-${mese}-${giorno}`;
+}
+
+export function sommarioConsole() {
+  if (!state.console || !Array.isArray(state.queue)) return null;
+  const daLavorare = state.queue.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
+  const perTipo = (tipo) => daLavorare.filter((ticket) => clean(ticket.type) === tipo).length;
+  const adesso = Date.now();
+  const oggi = giornoDi(adesso);
+  const nate = (ticket) => Date.parse(clean(ticket.created_at));
+  /* La soglia delle ferme e' una durata, non un confine di calendario: qui i
+   * millisecondi vanno bene, ed e' il motivo per cui «oggi» invece no. */
+  const limite = adesso - GIORNI_VECCHIA * 86400000;
+  const diOggi = state.queue.filter((ticket) => {
+    const quando = nate(ticket);
+    return Number.isFinite(quando) && giornoDi(quando) === oggi;
+  });
+  return {
+    /* Chi non porta la data non si conta ne' fra le nuove di oggi ne' fra le
+     * ferme: non sapere quando e' nata non la rende vecchia. */
+    oggi: diOggi.length,
+    /* Di che genere sono quelle di oggi. Sapere che ne sono arrivate due non
+     * dice se la giornata e' andata storta o se qualcuno ha avuto due idee:
+     * un difetto e un'idea chiedono cose diverse a chi legge. */
+    oggiPerTipo: {
+      bug: diOggi.filter((ticket) => clean(ticket.type) === "bug").length,
+      feature: diOggi.filter((ticket) => clean(ticket.type) === "feature").length,
+      assistenza: diOggi.filter((ticket) => clean(ticket.type) === "assistenza").length,
+      /* Le arrivate oggi senza tipo hanno un posto anche loro. Sommare i tre
+       * generi e fermarsi li' vorrebbe dire dire «oggi niente» in una giornata
+       * in cui sono arrivate due issue aperte a mano su GitHub, che un tipo
+       * non ce l'hanno: il conto grande direbbe due e l'elenco sotto zero. */
+      senza: diOggi.filter((ticket) => !TIPI_NOTI.includes(clean(ticket.type))).length,
+    },
+    vecchie: daLavorare.filter((ticket) => {
+      const quando = nate(ticket);
+      return Number.isFinite(quando) && quando < limite;
+    }).length,
+    quante: daLavorare.length,
+    nuove: daLavorare.filter((ticket) => clean(ticket.state) === "inviato").length,
+    inLavorazione: daLavorare.filter((ticket) => clean(ticket.state) === "in-carico").length,
+    chiuse: state.queue.length - daLavorare.length,
+    bug: perTipo("bug"),
+    feature: perTipo("feature"),
+    assistenza: perTipo("assistenza"),
+    /* Chi ha scritto e nessuno ha ancora letto. E' l'unica riga del sommario
+     * che non si ricava dalla coda: la coda dice quante segnalazioni ci sono,
+     * non se sotto una di quelle e' comparso un messaggio da ieri sera. Quello
+     * lo sa il campanello, e lo tiene lui.
+     *
+     * Conversazioni, non messaggi: chi guarda vuole sapere quante porte ha da
+     * aprire, non quante frasi ci sono dietro. Quante siano lo dice il filo. */
+    nonLetti: state.nonLetti.length,
+    conversazioni: state.nonLetti.map((voce) => ({
+      number: Number(voce?.number) || 0,
+      title: clean(voce?.title),
+      messages: Number(voce?.messages) || 1,
+      opened: Boolean(voce?.opened),
+    })),
+  };
+}
+
 async function ricarica() {
   try {
     const risposta = await chiedi(WS_LIST);
@@ -696,6 +891,20 @@ async function ricarica() {
     state.delivery = Boolean(risposta?.delivery);
     state.console = Boolean(risposta?.console);
     if (risposta?.account) state.account = risposta.account;
+    /* Chi ha la console porta anche la coda, perche' il widget in Home la
+     * mostra senza che nessuno abbia aperto niente. Non a ogni giro pero': una
+     * chiamata a GitHub per ogni ridisegno sarebbe uno spreco, e la coda non
+     * cambia da un secondo all'altro. */
+    if (state.console) {
+      await caricaCoda({ zitta: true });
+      /* La Home si e' gia' disegnata mentre questa richiesta era per aria, e a
+       * quel punto il sommario era ancora nullo: la tessera non e' stata messa.
+       * Senza questo avviso restava fuori fino al primo evento che facesse
+       * ridisegnare la griglia per un'altra ragione — cioe' comparire per caso,
+       * che e' peggio del non comparire. */
+      root.dispatchEvent?.(new CustomEvent("dashboardmodern:segnalazioni-coda"));
+      if (!state.codaTimer) battitoDellaCoda();
+    }
   } catch (_error) {
     /* La finestra si apre lo stesso: quello che c'e' da scrivere si scrive
      * anche senza aver letto l'elenco, e l'elenco si riprende da solo. */
@@ -711,7 +920,6 @@ function schede() {
     ["nuova", t("Nuova", "New")],
     ["mie", t("Le mie", "Mine")],
   ];
-  if (state.console) voci.push(["console", t("Console", "Console")]);
   return `<div class="dm-tkt-tabs">${voci
     .map(
       ([id, nome]) =>
@@ -768,19 +976,6 @@ function moduloMarkup() {
         placeholder="${esc(scelto.corpo())}">${esc(state.bozza.body)}</textarea>
       <div class="dm-tkt-conta" data-dm-tkt="conta">${state.bozza.body.length} / ${MAX_CORPO}</div>
     </div>
-    <div class="dm-tkt-campo">
-      <label for="dm-tkt-contatto">${esc(
-        t("Come ricontattarti (facoltativo)", "How to reach you (optional)"),
-      )}</label>
-      <input id="dm-tkt-contatto" type="text" maxlength="${MAX_CONTATTO}"
-        autocomplete="off" value="${esc(state.bozza.contact)}"
-        placeholder="${esc(
-          t(
-            "Resta in casa: non finisce nella pagina pubblica",
-            "Stays at home: it does not go on the public page",
-          ),
-        )}">
-    </div>
     <div class="dm-tkt-passo">${esc(t("3 · Cosa parte", "3 · What gets sent"))}</div>
     <details class="dm-tkt-diag">
       <summary>${esc(
@@ -801,8 +996,8 @@ function moduloMarkup() {
       <span class="dm-tkt-pubblica-ico" aria-hidden="true">🌍</span>
       <span>${esc(
         t(
-          "La segnalazione diventa una pagina pubblica su github.com, aperta a tuo nome: chiunque potra' leggerla. Il recapito qui sopra no: quello resta in casa.",
-          "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.",
+          "La segnalazione diventa una pagina pubblica su github.com, aperta a tuo nome: chiunque potra' leggerla. La risposta arriva qui, sotto la discussione.",
+          "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.",
         ),
       )}</span>
     </div>
@@ -820,6 +1015,46 @@ function statoMarkup(stato) {
   } ${esc(voce.nome())}</span>`;
 }
 
+/* La meta' che mancava: da qui si risponde, senza uscire.
+ *
+ * Fino a ieri il filo si poteva leggere ma non scrivere. Chi aveva segnalato
+ * leggeva la risposta del manutentore dentro la propria plancia e poi, per
+ * dire «ho provato, non funziona lo stesso», doveva aprire github.com — cioe'
+ * uscire proprio dal posto che questa finestra esiste per non fargli lasciare.
+ *
+ * Compare solo col filo aperto: una casella di scrittura sotto ognuna delle
+ * dodici segnalazioni dell'elenco sarebbe stata dodici caselle vuote. E solo
+ * a chi ha collegato GitHub, perche' il commento parte a nome suo: senza
+ * firma non c'e' niente da mandare, e un tasto che risponde «collega GitHub»
+ * dopo che hai scritto e' un tasto che ti fa perdere quello che hai scritto.
+ */
+function mioCampoMarkup(numero) {
+  if (!numero || !state.fili[numero]) return "";
+  if (!state.account.connected) {
+    return `<div class="dm-tkt-filo-attesa">${esc(
+      t(
+        "Collega GitHub per scrivere sotto questa segnalazione.",
+        "Connect GitHub to write under this report.",
+      ),
+    )}</div>`;
+  }
+  return `
+    <div class="dm-tkt-campo">
+      <textarea id="dm-tkt-mio-${numero}" rows="3" placeholder="${esc(
+        t(
+          "Scrivi qui: il messaggio finisce sotto la segnalazione, a nome tuo.",
+          "Write here: the message goes under the report, under your name.",
+        ),
+      )}"></textarea>
+    </div>
+    <div class="dm-tkt-azioni">
+      <button type="button" class="dm-tkt-btn" data-dm-scrivi="${numero}"
+        data-dm-serve-testo="${numero}" data-dm-campo="dm-tkt-mio-${numero}" disabled>${esc(
+          t("Manda il messaggio", "Send the message"),
+        )}</button>
+    </div>`;
+}
+
 export function voceMarkup(ticket) {
   const tipo = TIPI.find((voce) => voce.id === ticket.type) || TIPI[0];
   const data = ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : "";
@@ -827,22 +1062,47 @@ export function voceMarkup(ticket) {
   const errore = ticket.delivery_error
     ? `<div class="dm-tkt-voce-pie">⚠︎ ${esc(ticket.delivery_error)}</div>`
     : "";
-  const issue = ticket.issue_url
-    ? `<a class="dm-tkt-link" href="${esc(
-        ticket.issue_url,
-      )}" target="_blank" rel="noreferrer noopener">${esc(
-        t("Vedi la discussione", "See the discussion"),
-      )}</a>`
+  /* La discussione si apre qui, non su github.com. Portare fuori chi voleva
+   * solo leggere la risposta vorrebbe dire mandarlo via proprio dal posto che
+   * questa finestra esiste per non fargli lasciare — e la risposta la si legge
+   * senza permessi, perche' la issue e' una pagina pubblica. Il rimando a
+   * GitHub resta, ma accanto, per chi ci vuole andare davvero. */
+  const numero = Number(ticket.remote_id) || 0;
+  const aperto = Boolean(state.fili[numero] || state.filiInCorso[numero]);
+  const issue = numero
+    ? `<button type="button" class="dm-tkt-tolgi" data-dm-filo="${numero}"
+         aria-expanded="${aperto}">${esc(
+           aperto
+             ? t("Nascondi tutto", "Hide everything")
+             : t("Vedi la discussione", "See the discussion"),
+         )}</button>
+       <a class="dm-tkt-link" href="${esc(
+         clean(ticket.issue_url),
+       )}" target="_blank" rel="noreferrer noopener">${esc(
+         t("Apri su GitHub", "Open on GitHub"),
+       )}</a>`
     : "";
   return `
     <div class="dm-tkt-voce">
       <div class="dm-tkt-voce-testa">
         <span>${tipo.icona}</span>
         <span class="dm-tkt-voce-tit">${esc(ticket.title)}</span>
+        ${
+          nonLetto(numero)
+            ? `<span class="dm-tkt-segno nuovo" title="${esc(
+                t("Messaggi nuovi", "New messages"),
+              )}">🔵 ${esc(t("risposta", "reply"))}</span>`
+            : ""
+        }
         ${statoMarkup(ticket.state)}
       </div>
-      <p class="dm-tkt-voce-corpo">${esc(ticket.body)}</p>
-      ${risposta}
+      ${
+        aperto
+          ? `${filoMarkup(numero)}${mioCampoMarkup(numero)}`
+          : `<p class="dm-tkt-voce-corpo">${esc(ticket.body)}</p>${diagnosticaMarkup(
+              ticket.diagnostics,
+            )}${risposta}`
+      }
       ${errore}
       <div class="dm-tkt-voce-pie">
         <span>${esc(data)}</span>
@@ -930,19 +1190,28 @@ function elencoMarkup() {
  * cifra sola per colonna, e una cifra sola si legge meglio scritta grande che
  * disegnata. */
 
-export const FILTRI_ID = Object.freeze([
-  "aperte",
-  "chiuse",
-  "tutte",
-  "bug",
-  "feature",
-  "assistenza",
-]);
+/* Due domande, due file di tasti.
+ *
+ * Stavano tutti su una riga sola, a scelta singola, e quello faceva sembrare
+ * «Da lavorare» e «Difetti» due risposte alla stessa domanda. Non lo sono:
+ * premendo «Difetti» si perdeva lo stato e arrivavano anche i difetti gia'
+ * chiusi — mentre la cosa che si cerca aprendo la console e' quasi sempre
+ * «i difetti **aperti**», che con una riga sola non si poteva chiedere.
+ *
+ * Adesso lo stato e il tipo sono due assi che si incrociano, e sotto ogni
+ * tasto del tipo c'e' il suo conto, calcolato dentro lo stato scelto: si vede
+ * quanto c'e' da lavorare per genere prima ancora di premere. */
+export const FILTRI_STATO_ID = Object.freeze(["aperte", "chiuse", "tutte"]);
+export const FILTRI_TIPO_ID = Object.freeze(["", "bug", "feature", "assistenza"]);
 
-const FILTRI = [
+const FILTRI_STATO = [
   { id: "aperte", nome: () => t("Da lavorare", "To work on") },
   { id: "chiuse", nome: () => t("Chiuse", "Closed") },
   { id: "tutte", nome: () => t("Tutte", "All") },
+];
+
+const FILTRI_TIPO = [
+  { id: "", nome: () => t("Ogni tipo", "Any type") },
   { id: "bug", nome: () => t("Difetti", "Bugs") },
   { id: "feature", nome: () => t("Idee", "Ideas") },
   { id: "assistenza", nome: () => t("Aiuto", "Help") },
@@ -982,28 +1251,61 @@ function colonneMarkup(coda) {
     .join("")}</div>`;
 }
 
-function filtriMarkup() {
-  return `<div class="dm-tkt-filtri">${FILTRI.map(
-    (filtro) =>
-      `<button type="button" class="dm-tkt-filtro${
-        state.filtro === filtro.id ? " attivo" : ""
-      }" data-dm-filtro="${filtro.id}" aria-pressed="${
-        state.filtro === filtro.id
-      }">${esc(filtro.nome())}</button>`,
-  ).join("")}</div>`;
-}
-
 const CHIUSA = ["risolto", "chiuso"];
 
-export function filtra(coda, filtro = state.filtro) {
-  if (filtro === "tutte") return coda;
+function perStato(coda, filtro) {
   if (filtro === "aperte") {
     return coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
   }
   if (filtro === "chiuse") {
     return coda.filter((ticket) => CHIUSA.includes(clean(ticket.state)));
   }
-  return coda.filter((ticket) => clean(ticket.type) === filtro);
+  return coda;
+}
+
+function filaMarkup(voci, scelto, attributo) {
+  return `<div class="dm-tkt-filtri">${voci
+    .map((filtro) => {
+      const attivo = scelto === filtro.id;
+      /* Il conto sta sotto i tasti del tipo e non sotto quelli dello stato:
+       * li' lo direbbe due volte, perche' le tre cifre grandi qui sopra sono
+       * gia' il conto per stato. */
+      const conto = Number.isFinite(filtro.quante)
+        ? `<span class="dm-tkt-quanti">${filtro.quante}</span>`
+        : "";
+      return `<button type="button" class="dm-tkt-filtro${attivo ? " attivo" : ""}"
+        ${attributo}="${filtro.id}" aria-pressed="${attivo}">${esc(
+          filtro.nome(),
+        )}${conto}</button>`;
+    })
+    .join("")}</div>`;
+}
+
+function filtriMarkup(coda) {
+  /* I conti del tipo si contano DENTRO lo stato scelto: con «Da lavorare»
+   * acceso, «Difetti 6» vuol dire sei difetti da lavorare, non sei difetti in
+   * tutta la storia della repository. E' il numero che serve a decidere cosa
+   * premere. */
+  const dentroLoStato = perStato(coda, state.filtro);
+  const conIlConto = FILTRI_TIPO.map((filtro) => ({
+    ...filtro,
+    quante: filtro.id
+      ? dentroLoStato.filter((ticket) => clean(ticket.type) === filtro.id).length
+      : dentroLoStato.length,
+  }));
+  return (
+    filaMarkup(FILTRI_STATO, state.filtro, "data-dm-filtro") +
+    filaMarkup(conIlConto, state.tipoCoda, "data-dm-tipo-coda")
+  );
+}
+
+export function filtra(coda, filtro = state.filtro, tipo = state.tipoCoda) {
+  const perLoStato = perStato(coda, filtro);
+  /* Tipo vuoto vuol dire «ogni tipo», non «quelle senza tipo»: le seconde si
+   * riconoscono dalla pastiglia grigia, e nasconderle dietro il tasto che
+   * significa «non filtrare» le renderebbe irraggiungibili. */
+  if (!tipo) return perLoStato;
+  return perLoStato.filter((ticket) => clean(ticket.type) === tipo);
 }
 
 function quandoMarkup(ticket) {
@@ -1030,6 +1332,26 @@ function segniMarkup(ticket) {
   if (commenti) {
     segni.push(
       `<span class="dm-tkt-segno" title="${esc(t("Commenti", "Comments"))}">💬 ${commenti}</span>`,
+    );
+  }
+  if (nonLetto(ticket.number)) {
+    /* Il pallino sulla riga, e non solo il conto nel widget: aperto il
+     * cruscotto, quello che aspetta risposta si deve vedere senza cercarlo
+     * riga per riga. Si spegne aprendo il filo, che e' il gesto che lo legge. */
+    segni.push(
+      `<span class="dm-tkt-segno nuovo" title="${esc(
+        t("Messaggi nuovi", "New messages"),
+      )}">🔵 ${esc(t("nuovo", "new"))}</span>`,
+    );
+  }
+  const incaricati = Array.isArray(ticket.assignees) ? ticket.assignees.map(clean) : [];
+  if (incaricati.length) {
+    /* Il nome, e non solo il simbolo: il giorno che i manutentori sono due,
+     * «presa in carico» senza dire da chi e' l'informazione a meta'. */
+    segni.push(
+      `<span class="dm-tkt-segno" title="${esc(t("Presa in carico", "Taken"))}">🙋 ${esc(
+        incaricati.join(", "),
+      )}</span>`,
     );
   }
   return segni.join("");
@@ -1084,6 +1406,7 @@ function filoMarkup(numero) {
         t("Il testo della segnalazione", "The text of the report"),
       )}</div>
       <p class="dm-tkt-voce-corpo">${esc(clean(filo.body))}</p>
+      ${diagnosticaMarkup(filo.diagnostics)}
       ${allegatiMarkup(filo.attachments)}
     </div>`;
   const filaCommenti = commenti.length
@@ -1093,7 +1416,17 @@ function filoMarkup(numero) {
             <div class="dm-tkt-commento${commento.maintainer ? " mio" : ""}">
               <div class="dm-tkt-commento-testa">
                 <b>${esc(clean(commento.author))}</b>
-                ${commento.maintainer ? `<span class="dm-tkt-segno">${esc(t("tu", "you"))}</span>` : ""}
+                ${
+                  commento.maintainer
+                    ? `<span class="dm-tkt-segno">${esc(
+                        /* «tu» solo a chi tiene la repository. Da quando il
+                         * filo lo legge anche chi ha segnalato, quella
+                         * pastiglia gli diceva che la risposta del manutentore
+                         * l'aveva scritta lui. */
+                        state.console ? t("tu", "you") : t("manutentore", "maintainer"),
+                      )}</span>`
+                    : ""
+                }
                 <span>${esc(quandoLeggibile(commento.at))}</span>
               </div>
               <p class="dm-tkt-voce-corpo">${esc(clean(commento.body))}</p>
@@ -1146,23 +1479,112 @@ function invitoRisposta(ticket) {
   );
 }
 
+/* La scheda tecnica, in ordine di quanto serve.
+ *
+ * Chi legge una segnalazione ha due domande, e in quest'ordine: «che versione
+ * ha» e «dove stava». Il resto — la lingua, il browser — serve una volta su
+ * venti, e messo alla pari copriva le prime due: cinque righe uguali fra loro,
+ * con l'unica che conta in mezzo.
+ *
+ * Le due che contano prendono una pastiglia con la loro etichetta breve; le
+ * altre restano sotto, piu' piccole. Lo `user_agent` non si mostra intero — e'
+ * lungo quanto tutto il resto insieme — ma il nome del browser si legge da
+ * solo, e per il resto c'e' la pagina della issue. */
+const VERSIONI = [
+  ["integration_version", "DM"],
+  ["ha_version", "HA"],
+];
+
+function nomeDelBrowser(agente) {
+  const teste = [
+    [/edg\/([\d.]+)/i, "Edge"],
+    [/opr\/([\d.]+)/i, "Opera"],
+    [/firefox\/([\d.]+)/i, "Firefox"],
+    [/chrome\/([\d.]+)/i, "Chrome"],
+    [/version\/([\d.]+).*safari/i, "Safari"],
+  ];
+  for (const [forma, nome] of teste) {
+    const trovato = forma.exec(agente);
+    /* Solo la prima cifra: «Chrome 152» dice quello che serve, «152.0.0.0» in
+     * piu' dice soltanto degli zeri. */
+    if (trovato) return `${nome} ${String(trovato[1]).split(".")[0]}`;
+  }
+  return "";
+}
+
+export function diagnosticaMarkup(diagnostica) {
+  if (!diagnostica || typeof diagnostica !== "object") return "";
+  const preso = new Set();
+  const forti = VERSIONI.filter(([chiave]) => clean(diagnostica[chiave])).map(([chiave, breve]) => {
+    preso.add(chiave);
+    return `<span class="dm-tkt-versione"><b>${esc(breve)}</b>${esc(
+      clean(diagnostica[chiave]),
+    )}</span>`;
+  });
+  const deboli = [];
+  for (const [chiave, valore] of Object.entries(diagnostica)) {
+    if (preso.has(chiave)) continue;
+    const testo = clean(valore);
+    if (!testo) continue;
+    /* Il browser al posto della sua carta d'identita' completa. */
+    const corto = chiave === "user_agent" ? nomeDelBrowser(testo) : testo;
+    if (corto) deboli.push(`<span class="dm-tkt-dato">${esc(corto)}</span>`);
+  }
+  if (!forti.length && !deboli.length) return "";
+  return `<div class="dm-tkt-scheda">${forti.join("")}${deboli.join("")}</div>`;
+}
+
 export function codaVoceMarkup(ticket) {
   const numero = Number(ticket.number) || 0;
   const tipo = tipoInCoda(clean(ticket.type));
   const chiusa = CHIUSA.includes(clean(ticket.state));
   const aperto = Boolean(state.fili[numero] || state.filiInCorso[numero]);
+  /* I tasti che scrivono partono spenti e si accendono quando c'e' del testo.
+   * Prima erano sempre premibili e rispondevano «Scrivi una risposta»: un
+   * rimprovero al posto di un invito, per un errore che il tasto poteva
+   * semplicemente non lasciar commettere.
+   *
+   * Quelli che chiudono e basta restano accesi: chiudere senza scrivere e' un
+   * gesto legittimo — «non e' un difetto», «era gia' risolta» — e pretendere un
+   * commento per farlo vorrebbe dire chiedere di scrivere per forza. */
+  const scrive = ` data-dm-serve-testo="${numero}" disabled`;
+  /* Prendere in carico e' l'assegnazione di GitHub, non un'etichetta
+   * inventata qui: chi passa dalla pagina della issue lo vede senza che
+   * nessuno glielo scriva, e il cruscotto e la repository dicono la stessa
+   * cosa. Su una chiusa il tasto non c'e': non si prende in carico quello che
+   * e' gia' finito. */
+  const incaricati = Array.isArray(ticket.assignees) ? ticket.assignees.map(clean) : [];
+  const presa = incaricati.length > 0;
+  const carico = chiusa
+    ? ""
+    : `<button type="button" class="dm-tkt-btn${presa ? "" : " chiaro"}"
+          data-dm-carico="${numero}" data-dm-prendi="${presa ? "" : "1"}"
+          aria-pressed="${presa}" title="${esc(
+            presa
+              ? `${t("In carico a", "Taken by")} ${incaricati.join(", ")}`
+              : t(
+                  "Assegna la segnalazione a te su GitHub",
+                  "Assign the report to yourself on GitHub",
+                ),
+          )}">${esc(
+            presa ? t("Lascia", "Release") : t("Prendo in carico", "I'll take it"),
+          )}</button>`;
   const azioni = chiusa
     ? `<button type="button" class="dm-tkt-btn chiaro"
-         data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
+         data-dm-rispondi="${numero}" data-dm-chiudi=""${scrive}>${esc(
            t("Aggiungi una risposta", "Add a reply"),
          )}</button>`
     : `
       <button type="button" class="dm-tkt-btn chiaro"
-        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(t("Rispondi", "Reply"))}</button>
+        data-dm-rispondi="${numero}" data-dm-chiudi=""${scrive}>${esc(
+          t("Rispondi", "Reply"),
+        )}</button>
       <button type="button" class="dm-tkt-btn"
-        data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
+        data-dm-rispondi="${numero}" data-dm-chiudi="risolto"${scrive}>${esc(
           t("Rispondi e risolvi", "Reply and solve"),
         )}</button>
+      <button type="button" class="dm-tkt-btn chiaro"
+        data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(t("Risolvi", "Solve"))}</button>
       <button type="button" class="dm-tkt-btn chiaro"
         data-dm-rispondi="${numero}" data-dm-chiudi="chiuso">${esc(
           t("Archivia", "Archive"),
@@ -1189,16 +1611,28 @@ export function codaVoceMarkup(ticket) {
              t("Apri su GitHub", "Open on GitHub"),
            )}</a>
       </div>
-      ${aperto ? filoMarkup(numero) : `<p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>`}
+      ${
+        aperto
+          ? filoMarkup(numero)
+          : `<p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>${diagnosticaMarkup(
+              ticket.diagnostics,
+            )}`
+      }
       <div class="dm-tkt-campo">
         <textarea id="dm-tkt-risposta-${numero}" rows="3"
           placeholder="${esc(invitoRisposta(ticket))}"></textarea>
       </div>
-      <div class="dm-tkt-azioni">${azioni}</div>
+      <div class="dm-tkt-azioni">${carico}${azioni}</div>
     </div>`;
 }
 
 function vuotoMarkup() {
+  /* Col tipo acceso il vuoto e' quasi sempre colpa sua, non dello stato:
+   * dirlo evita di guardare una coda vuota chiedendosi dove siano finite le
+   * altre trentanove. */
+  if (state.tipoCoda) {
+    return t("Niente di questo tipo, qui.", "Nothing of this kind here.");
+  }
   if (state.filtro === "aperte") {
     return t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.");
   }
@@ -1219,7 +1653,7 @@ function consoleMarkup() {
     : `<div class="dm-tkt-vuoto">${esc(vuotoMarkup())}</div>`;
   return `
     ${colonneMarkup(coda)}
-    ${filtriMarkup()}
+    ${filtriMarkup(coda)}
     ${elenco}
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="ricarica-coda" ${
@@ -1229,16 +1663,129 @@ function consoleMarkup() {
 }
 
 /** La riga sotto il titolo: dove sei, e con che account. */
+/* ─── Il cruscotto: una pagina, non una finestra ──────────────────────────
+ *
+ * Stava dentro il popup delle segnalazioni, come terza linguetta. Ma la coda
+ * del manutentore non e' una cosa che si sbircia: si legge un titolo, si apre
+ * il filo, si guarda una foto, si scrive una risposta — e tutto questo dentro
+ * un riquadro largo un palmo vuol dire scorrere per fare qualunque cosa.
+ *
+ * Adesso e' una pagina sua, con la sua voce nella barra, e ci sta tutto a
+ * schermo intero. La voce c'e' **solo per chi tiene la repository**: non e'
+ * un'impostazione da spegnere, e' che per gli altri quella pagina non ha niente
+ * dentro. Chi ce l'ha la puo' nascondere come tutte le altre.
+ */
+
+const CRUSCOTTO_TAB = "cruscotto";
+const CRUSCOTTO_PAGE_ID = "page-cruscotto";
+
+function ultimaPagina() {
+  const pagine = doc?.querySelectorAll?.(".page");
+  return pagine?.length ? pagine[pagine.length - 1] : null;
+}
+
+function creaPaginaCruscotto() {
+  if (!doc) return null;
+  const gia = doc.getElementById(CRUSCOTTO_PAGE_ID);
+  if (gia) return gia;
+  const sorella = ultimaPagina();
+  if (!sorella?.parentElement) return null;
+  const pagina = doc.createElement("section");
+  pagina.className = "page";
+  pagina.id = CRUSCOTTO_PAGE_ID;
+  pagina.innerHTML = `<div class="dm-tkt-plancia" data-dm-cruscotto></div>`;
+  sorella.after(pagina);
+  return pagina;
+}
+
+function creaVoceCruscotto() {
+  if (!doc) return null;
+  const gia = doc.querySelector(`.tab[data-tab="${CRUSCOTTO_TAB}"]`);
+  if (gia) return gia;
+  const barra = doc.querySelector("nav.tabs");
+  if (!barra) return null;
+  const voce = doc.createElement("button");
+  voce.className = "tab";
+  voce.dataset.tab = CRUSCOTTO_TAB;
+  voce.id = `tab-${CRUSCOTTO_TAB}`;
+  voce.innerHTML = `<span class="icon">🎫</span><span class="text">${esc(
+    t("Cruscotto", "Console"),
+  )}</span>`;
+  /* Il gestore che il runtime lega alle voci lo lega una volta sola, al
+   * caricamento: questa arriva dopo e il suo tocco se lo gestisce da se'. Fa la
+   * stessa identica cosa, perche' due modi di cambiare pagina sarebbero due
+   * pagine attive quando non tornano. */
+  voce.addEventListener("click", () => {
+    for (const nodo of doc.querySelectorAll(".tab")) nodo.classList.remove("active");
+    for (const nodo of doc.querySelectorAll(".page")) nodo.classList.remove("active");
+    voce.classList.add("active");
+    creaPaginaCruscotto()?.classList.add("active");
+    if (root.navigator?.vibrate) root.navigator.vibrate(5);
+    /* Aprendola si va a vedere se e' cambiato qualcosa: e' il gesto con cui si
+     * chiede «cosa c'e' di nuovo», e rispondere con quello di dieci minuti fa
+     * sarebbe rispondere a un'altra domanda. */
+    caricaCoda({ zitta: true });
+    disegnaCruscotto();
+  });
+  barra.append(voce);
+  return voce;
+}
+
+/* La voce si nasconde come tutte le altre: `cdApplyNavVis` sa quali voci
+ * esistono da una mappa sua, e una che non c'e' resta sempre accesa qualunque
+ * cosa dica la configurazione. */
+function insegnaLaVisibilitaDelCruscotto() {
+  const precedente = root.cdNavVisMap;
+  if (typeof precedente !== "function" || precedente.__dmCruscotto) return;
+  const avvolta = function cdNavVisMap(...args) {
+    const mappa = precedente.apply(this, args) || {};
+    return { ...mappa, [CRUSCOTTO_TAB]: CRUSCOTTO_TAB };
+  };
+  avvolta.__dmCruscotto = true;
+  avvolta.__dmPrevious = precedente;
+  root.cdNavVisMap = avvolta;
+}
+
+/* La pagina esiste solo per chi tiene la repository, e sparisce se quel
+ * riconoscimento cade — chi si scollega non deve restare con una voce nella
+ * barra che apre una pagina vuota. */
+export function sistemaIlCruscotto() {
+  if (!doc) return;
+  if (!state.console) {
+    doc.querySelector(`.tab[data-tab="${CRUSCOTTO_TAB}"]`)?.remove();
+    doc.getElementById(CRUSCOTTO_PAGE_ID)?.remove();
+    return;
+  }
+  creaPaginaCruscotto();
+  creaVoceCruscotto();
+  insegnaLaVisibilitaDelCruscotto();
+  disegnaCruscotto();
+}
+
+function disegnaCruscotto() {
+  const dentro = doc?.querySelector?.("[data-dm-cruscotto]");
+  if (!dentro) return;
+  const quante = Array.isArray(state.queue) ? state.queue.length : 0;
+  dentro.innerHTML = `
+    <div class="cfg-hero dm-tkt-hero">
+      <div class="cfg-hero-ico" aria-hidden="true">🎫</div>
+      <div class="cfg-hero-txt">
+        <div class="cfg-hero-title">${esc(t("Cruscotto", "Console"))}</div>
+        <div class="cfg-hero-sub">${esc(
+          `${t("Tutto quello che c'e' sulla repository", "Everything on the repository")} · ${quante}`,
+        )}</div>
+      </div>
+    </div>
+    ${avvisoMarkup()}
+    ${consoleMarkup()}`;
+  agganciaEventi(dentro);
+}
+
 function sottotitolo() {
   /* Il pezzo che cambia si attacca FUORI da `t()`. Dentro finirebbe nella
    * chiave — una chiave diversa per ogni conteggio e per ogni login — e a
    * runtime nessun catalogo l'avrebbe mai contenuta: ogni lingua ricadrebbe
    * sull'inglese proprio in questa riga. */
-  if (state.tab === "console") {
-    const quante = Array.isArray(state.queue) ? state.queue.length : 0;
-    const testa = t("Tutto quello che c'e' sulla repository", "Everything on the repository");
-    return `${testa} · ${quante}`;
-  }
   if (state.account.connected) {
     return `${t("Le tue richieste", "Your requests")} · ${state.account.login}`;
   }
@@ -1251,18 +1798,18 @@ function sottotitolo() {
 function disegna() {
   const modale = doc?.getElementById?.("dm-tkt-modal");
   if (!modale) return;
-  modale.querySelector('[data-dm-tkt="titolo"]').textContent =
-    state.tab === "console" ? t("Cruscotto", "Console") : t("Segnalazioni", "Reports");
+  modale.querySelector('[data-dm-tkt="titolo"]').textContent = t("Segnalazioni", "Reports");
   modale.querySelector('[data-dm-tkt="sottotitolo"]').textContent = sottotitolo();
   modale.querySelector('[data-dm-tkt="chiudi"]').textContent = t("Chiudi", "Close");
   const corpo = modale.querySelector('[data-dm-tkt="corpo"]');
-  let pannello = "";
-  if (state.tab === "mie") pannello = elencoMarkup();
-  else if (state.tab === "console") pannello = consoleMarkup();
-  else pannello = moduloMarkup();
+  const pannello = state.tab === "mie" ? elencoMarkup() : moduloMarkup();
   corpo.innerHTML = schede() + avvisoMarkup() + codiceMarkup() + pannello;
   agganciaEventi(corpo);
   if (state.tab === "nuova") mostraDiagnostica(corpo);
+  /* La pagina del cruscotto vive fuori da questa finestra, ma legge lo stesso
+   * stato: quando qui cambia qualcosa — una risposta pubblicata, la coda
+   * riletta — anche lei va rifatta, o le due mostrerebbero cose diverse. */
+  disegnaCruscotto();
 }
 
 async function mostraDiagnostica(corpo) {
@@ -1296,7 +1843,6 @@ function raccogliBozza() {
   state.bozza = {
     title: modale.querySelector("#dm-tkt-campo-titolo")?.value ?? "",
     body: modale.querySelector("#dm-tkt-corpo")?.value ?? "",
-    contact: modale.querySelector("#dm-tkt-contatto")?.value ?? "",
   };
 }
 
@@ -1307,7 +1853,6 @@ function agganciaEventi(corpo) {
       state.tab = bottone.dataset.dmTab;
       state.avviso = "";
       disegna();
-      if (state.tab === "console" && state.queue === null) caricaCoda();
     });
   });
   corpo.querySelectorAll("[data-dm-tipo]").forEach((bottone) => {
@@ -1323,8 +1868,35 @@ function agganciaEventi(corpo) {
       disegna();
     });
   });
+  /* Si accendono mentre si scrive, e non a un ridisegno: rifare il markup a
+   * ogni tasto premuto vorrebbe dire perdere il punto del cursore e la
+   * selezione, cioe' rompere proprio la cosa che si sta usando. Qui si tocca
+   * solo `disabled`, che il testo non lo sfiora. */
+  corpo.querySelectorAll("[data-dm-serve-testo]").forEach((bottone) => {
+    const numero = bottone.dataset.dmServeTesto;
+    /* Il campo della console e quello di chi ha segnalato sono due, e il
+     * secondo lo dice il tasto: senza, la casella nuova sarebbe rimasta con un
+     * tasto che si accende guardando il campo di un'altra. */
+    const campo = corpo.querySelector(`#${bottone.dataset.dmCampo || `dm-tkt-risposta-${numero}`}`);
+    if (!campo) return;
+    const aggiorna = () => {
+      bottone.disabled = !clean(campo.value);
+    };
+    campo.addEventListener("input", aggiorna);
+    aggiorna();
+  });
+  corpo.querySelectorAll("[data-dm-tipo-coda]").forEach((bottone) => {
+    bottone.addEventListener("click", () => {
+      state.tipoCoda = bottone.dataset.dmTipoCoda;
+      disegna();
+    });
+  });
   corpo.querySelector('[data-dm-tkt="invia"]')?.addEventListener("click", invia);
-  corpo.querySelector('[data-dm-tkt="aggiorna"]')?.addEventListener("click", sincronizza);
+  /* Senza la lambda l'ascoltatore passerebbe l'Event come opzioni: oggi
+   * funzionerebbe per caso — un Event non ha `zitta`, quindi vale il difetto —
+   * ma e' un caso, e il giorno che l'opzione cambia nome smette di essere
+   * fortunato senza che niente lo dica. */
+  corpo.querySelector('[data-dm-tkt="aggiorna"]')?.addEventListener("click", () => sincronizza());
   corpo.querySelectorAll("[data-dm-tolgi]").forEach((bottone) => {
     bottone.addEventListener("click", () => elimina(bottone.dataset.dmTolgi));
   });
@@ -1334,6 +1906,14 @@ function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-rispondi]").forEach((bottone) => {
     bottone.addEventListener("click", () =>
       rispondi(bottone.dataset.dmRispondi, bottone.dataset.dmChiudi),
+    );
+  });
+  corpo.querySelectorAll("[data-dm-scrivi]").forEach((bottone) => {
+    bottone.addEventListener("click", () => scrivi(bottone.dataset.dmScrivi));
+  });
+  corpo.querySelectorAll("[data-dm-carico]").forEach((bottone) => {
+    bottone.addEventListener("click", () =>
+      prendiInCarico(bottone.dataset.dmCarico, bottone.dataset.dmPrendi === "1"),
     );
   });
   corpo.querySelector('[data-dm-tkt="congeda"]')?.addEventListener("click", () => {
@@ -1356,7 +1936,6 @@ async function invia() {
   raccogliBozza();
   const titolo = clean(state.bozza.title);
   const corpo = clean(state.bozza.body);
-  const contatto = clean(state.bozza.contact);
   /* Il primo filtro e' qui, e serve a chi scrive: la stessa risposta dal
    * backend arriverebbe in italiano e dopo un giro sulla rete. */
   if (!titolo) {
@@ -1378,10 +1957,9 @@ async function invia() {
       ticket_type: state.tipo,
       title: titolo,
       body: corpo,
-      contact: contatto,
       diagnostics: await diagnostica(),
     });
-    state.bozza = { title: "", body: "", contact: "" };
+    state.bozza = { title: "", body: "" };
     const aperta = risposta?.ticket || {};
     state.appena =
       risposta?.delivered && aperta.issue_url
@@ -1418,20 +1996,60 @@ async function invia() {
   }
 }
 
-async function sincronizza() {
-  state.busy = true;
-  disegna();
+/* Ogni quanto le risposte si vanno a riprendere da sole all'apertura. Un
+ * minuto: aprire e richiudere la finestra tre volte di fila non deve voler dire
+ * tre giri completi verso GitHub, e in un minuto non e' cambiato niente. */
+const RISPOSTE_FRESCHE = 60 * 1000;
+
+async function sincronizza({ zitta = false } = {}) {
+  /* Zitta e' il giro che la finestra fa da sola quando si apre: si salta se e'
+   * appena stato fatto, non accende la rotella e se la rete e' giu' non dice
+   * niente — chi ha solo aperto una finestra non ha chiesto niente, e un avviso
+   * rosso in faccia all'apertura sarebbe una risposta a una domanda che nessuno
+   * ha fatto. Ad alta voce e' il tasto «Aggiorna», dove qualcuno ha chiesto. */
+  if (zitta && Date.now() - state.syncAt < RISPOSTE_FRESCHE) return;
+  if (!zitta) {
+    state.busy = true;
+    disegna();
+  }
   try {
     const risposta = await chiedi(WS_SYNC);
     state.tickets = Array.isArray(risposta?.tickets) ? risposta.tickets : state.tickets;
     state.delivery = Boolean(risposta?.delivery);
+    state.syncAt = Date.now();
+    await caricaNonLetti();
   } catch (errore) {
-    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+    if (!zitta) {
+      state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+    }
   } finally {
     state.busy = false;
     installaTessera();
     disegna();
   }
+}
+
+/* Chi ha scritto, e nessuno ha ancora letto.
+ *
+ * Non chiede niente a GitHub: e' l'elenco che il campanello ha gia' riempito
+ * nel suo giro da cinque minuti. Sta accanto agli altri due giri invece che in
+ * uno suo perche' costa quanto una lettura di un file, e perche' serve a
+ * entrambi i lati — a chi tiene la repository e a chi aspetta una risposta.
+ *
+ * Zitta sempre: e' un contorno, e se non arriva non c'e' niente da dire. */
+async function caricaNonLetti() {
+  try {
+    const risposta = await chiedi(WS_UNREAD);
+    state.nonLetti = Array.isArray(risposta?.messages) ? risposta.messages : [];
+  } catch {
+    /* Nessun avviso: un pallino che non compare e' meno peggio di un errore
+     * rosso per una cosa che nessuno ha chiesto. */
+  }
+}
+
+/** Se sotto questa segnalazione c'e' un messaggio non ancora letto. */
+function nonLetto(numero) {
+  return state.nonLetti.some((voce) => Number(voce?.number) === Number(numero));
 }
 
 async function elimina(id) {
@@ -1444,15 +2062,26 @@ async function elimina(id) {
   await ricarica();
 }
 
-async function caricaCoda() {
+/* Un giro solo per due mestieri, perche' due funzioni che chiedono la stessa
+ * cosa a GitHub finiscono sempre per rispondere in modo diverso.
+ *
+ * `zitta` e' il giro che la Home fa da sola per il widget: si salta se la coda
+ * e' ancora fresca, e se GitHub non risponde non dice niente — chi non ha
+ * chiesto niente non deve vedersi comparire un avviso. Ad alta voce e' il giro
+ * della console, dove qualcuno sta guardando e vuole sapere. */
+async function caricaCoda({ zitta = false } = {}) {
+  if (zitta && Array.isArray(state.queue) && Date.now() - state.queueAt < CODA_FRESCA) return;
   try {
     const risposta = await chiedi(WS_QUEUE);
     state.queue = Array.isArray(risposta?.tickets) ? risposta.tickets : [];
+    state.queueAt = Date.now();
+    await caricaNonLetti();
   } catch (errore) {
+    if (zitta) return;
     state.queue = [];
     state.avviso = `!${clean(errore?.message) || t("Coda non raggiungibile.", "Queue unreachable.")}`;
   }
-  disegna();
+  if (!zitta) disegna();
 }
 
 /**
@@ -1475,6 +2104,10 @@ async function apriFilo(numero) {
   disegna();
   try {
     state.fili[chiave] = await chiedi(WS_THREAD, { number: Number(chiave) });
+    /* Il backend l'ha gia' segnata letta: qui si toglie il pallino subito,
+     * invece di lasciarlo acceso sotto gli occhi di chi sta leggendo fino al
+     * prossimo giro. */
+    state.nonLetti = state.nonLetti.filter((voce) => Number(voce?.number) !== Number(chiave));
   } catch (errore) {
     state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
   } finally {
@@ -1483,19 +2116,72 @@ async function apriFilo(numero) {
   }
 }
 
+/* Dove sta scritto quello che si sta per mandare.
+ *
+ * Si cerca nel documento e non dentro la finestra, perche' da quando il
+ * cruscotto e' una pagina della barra il campo della console **non e' piu'
+ * dentro `#dm-tkt-modal`**: cercarlo li' tornava sempre vuoto, e «Rispondi»
+ * usciva dalla funzione alla riga dopo senza dire niente. I tasti che
+ * chiudevano e basta continuavano a funzionare, il che rendeva il guasto
+ * ancora piu' difficile da vedere. Gli identificativi sono unici nel
+ * documento, quindi cercare largo qui e' cercare esatto. */
+function campoDi(identificativo) {
+  return clean(doc?.getElementById?.(identificativo)?.value);
+}
+
+async function scrivi(numero) {
+  const issue = Number(numero) || 0;
+  if (!issue) return;
+  const testo = campoDi(`dm-tkt-mio-${issue}`);
+  if (!testo) return;
+  state.busy = true;
+  disegna();
+  try {
+    await chiedi(WS_REPLY, { number: issue, message: testo });
+    state.avviso = t("Messaggio mandato.", "Message sent.");
+    /* Il filo letto un attimo fa non contiene la riga appena scritta: si
+     * butta, e si rilegge aprendolo. Rimetterla a mano nell'elenco vorrebbe
+     * dire mostrare una versione della conversazione che non e' quella vera. */
+    delete state.fili[String(issue)];
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+  } finally {
+    state.busy = false;
+    disegna();
+  }
+}
+
+async function prendiInCarico(numero, prendi) {
+  const issue = Number(numero) || 0;
+  if (!issue) return;
+  state.busy = true;
+  disegna();
+  try {
+    await chiedi(WS_TAKE, { number: issue, take: Boolean(prendi) });
+    state.avviso = prendi ? t("Presa in carico.", "Taken.") : t("Lasciata libera.", "Released.");
+    /* La coda va riletta: l'assegnazione la porta GitHub, e riscriverla qui a
+     * mano vorrebbe dire un cruscotto che dice una cosa e la repository
+     * un'altra al primo aggiornamento andato storto. */
+    state.queue = null;
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+  } finally {
+    state.busy = false;
+    if (state.queue === null) await caricaCoda();
+    else disegna();
+  }
+}
+
 async function rispondi(numero, chiusura) {
   const issue = Number(numero) || 0;
   if (!issue) return;
-  const modale = doc?.getElementById?.("dm-tkt-modal");
-  const testo = clean(modale?.querySelector(`#dm-tkt-risposta-${issue}`)?.value);
-  /* Archiviare senza scrivere niente ha senso — «non e' un difetto» — ma
-   * rispondere senza testo no: sarebbe un commento vuoto sotto la
-   * segnalazione di qualcuno. */
-  if (!testo && !chiusura) {
-    state.avviso = `!${t("Scrivi una risposta.", "Write a reply.")}`;
-    disegna();
-    return;
-  }
+  const testo = campoDi(`dm-tkt-risposta-${issue}`);
+  /* Chiudere senza scrivere ha senso — «non e' un difetto», «era gia'
+   * risolta». Rispondere senza testo no: sarebbe un commento vuoto sotto la
+   * segnalazione di qualcuno. I tasti che scrivono nascono spenti apposta, e
+   * questa riga resta come rete: un tasto premuto da tastiera o da un'altra
+   * strada non deve poter pubblicare il vuoto. */
+  if (!testo && !chiusura) return;
   state.busy = true;
   disegna();
   try {
@@ -1527,6 +2213,17 @@ export function installSegnalazioniSection() {
   root.addEventListener?.("dashboardmodern:runtime-ready", prova);
   /* La pagina Configurazione esiste dall'inizio nel documento, ma la griglia
    * viene riempita dal runtime: si riprova quando la si apre. */
+  /* Il tasto sta dentro la finestra di una tessera della Home, che e' roba di
+   * un altro modulo. Ad ascoltarlo pero' e' questa sezione, perche' e' lei che
+   * possiede il cruscotto: il widget disegna la porta, non la apre. */
+  doc.addEventListener("click", (event) => {
+    if (!event.target?.closest?.("[data-dm-apri-cruscotto]")) return;
+    /* Il cruscotto adesso e' una pagina: si va li', invece di aprire una
+     * finestra sopra la Home. Il tocco sulla voce fa gia' tutto — cambia
+     * pagina, rilegge la coda, ridisegna — e rifarlo qui vorrebbe dire due
+     * strade da tenere uguali. */
+    doc.querySelector(`.tab[data-tab="${CRUSCOTTO_TAB}"]`)?.click();
+  });
   doc.addEventListener(
     "click",
     (event) => {
@@ -1537,13 +2234,19 @@ export function installSegnalazioniSection() {
     true,
   );
   prova();
-  root.DashboardModernSegnalazioni = Object.freeze({ apri, chiudi });
+  root.DashboardModernSegnalazioni = Object.freeze({
+    apri,
+    chiudi,
+    // Serve al generatore delle anteprime: semina lo stato, poi chiede la pagina.
+    sistema: sistemaIlCruscotto,
+  });
   return state;
 }
 
 /** Seme per le prove: dimentica l'installazione e la finestra. */
 export function uninstallSegnalazioniSection() {
   fermaAttesa();
+  fermaBattito();
   state.auth = null;
   doc?.getElementById?.("dm-tkt-modal")?.remove();
   doc?.getElementById?.("dm-tkt-card")?.remove();

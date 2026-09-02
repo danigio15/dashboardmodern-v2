@@ -35,6 +35,9 @@ import {
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
+/* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
+ * di rifare il giro verso GitHub per conto suo. */
+import { sommarioConsole } from "./segnalazioni-section.js";
 import {
   SCALDABAGNI_KEY,
   entitaDiUnoScaldabagno,
@@ -42,9 +45,9 @@ import {
 } from "../core/scaldabagno-model.js";
 import {
   CHIAVE_CALDAIA,
-  entitaDellaCaldaia,
-  letturaCaldaia,
-  normalizzaCaldaia,
+  entitaDelleCaldaie,
+  lettureCaldaie,
+  normalizzaCaldaie,
   verdettoPressione,
 } from "../core/impianti-termici.js";
 import {
@@ -590,17 +593,19 @@ function calendarioModel() {
     const titolo = clean(evento.summary) || t("Senza titolo", "Untitled");
     if (inCorso(evento, adesso)) return `${t("Adesso", "Now")} · ${titolo}`;
     const giorno = chiaveDelGiorno(evento.inizio);
-    const quando = evento.tuttoIlGiorno
-      ? ""
-      : oraDellEvento(evento, parole, lingua).split(" ")[0];
+    const quando = evento.tuttoIlGiorno ? "" : oraDellEvento(evento, parole, lingua).split(" ")[0];
     const dove =
-      giorno === oggi ? quando : `${etichettaDelGiorno(giorno, adesso, parole, lingua)}${quando ? ` ${quando}` : ""}`;
+      giorno === oggi
+        ? quando
+        : `${etichettaDelGiorno(giorno, adesso, parole, lingua)}${quando ? ` ${quando}` : ""}`;
     return dove ? `${dove} · ${titolo}` : titolo;
   };
 
   const didascalia = () => {
     if (!primi.length)
-      return inArrivo ? t("Caricamento…", "Loading…") : t("Niente in programma", "Nothing scheduled");
+      return inArrivo
+        ? t("Caricamento…", "Loading…")
+        : t("Niente in programma", "Nothing scheduled");
     return primi.map(scritto).join("  ·  ");
   };
 
@@ -871,9 +876,7 @@ function securityModel(states) {
   const fuori = widgetExcludedEntities();
   const alarm = stateOf(states, "dm.security_centrale_allarme");
   /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
-  const doors = configuredSecurityDoors().filter((door) =>
-    widgetIncludes(door.entity, fuori),
-  );
+  const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
   // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
   // telecamere, da sole, sono gia' la loro tessera.
   if (!alarm && !doors.length) return null;
@@ -1730,47 +1733,60 @@ function scaldabagnoModel(states) {
  * e' meglio che accorgersene da una doccia fredda. */
 function caldaiaModel(states) {
   const config = readJson(CHIAVE_CALDAIA, {});
-  const entita = entitaDellaCaldaia(config);
+  const entita = entitaDelleCaldaie(config);
   if (!entita.length) return null;
   const fuori = widgetExcludedEntities();
   if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
-  const lettura = letturaCaldaia(config, states, root.resolveEntity || ((value) => value));
+  const dati = normalizzaCaldaie(config);
+  const letture = lettureCaldaie(config, states, root.resolveEntity || ((value) => value));
+  /* Con piu' di una caldaia (#281) il numero grande e la didascalia sono
+   * quelli della prima che ha qualcosa da dire — quella accesa, se ce n'e' una
+   * — e le righe della finestra le portano tutte, col nome davanti. */
+  const accesa = letture.find((riga) => riga.acceso === true || riga.fiamma === true);
+  const lettura = accesa || letture[0];
+  if (!lettura) return null;
   const pressione = verdettoPressione(lettura.pressione);
+  const piuDiUna = letture.length > 1;
 
   const rows = [];
-  const dato = normalizzaCaldaia(config);
-  if (clean(dato.fiamma) || clean(dato.stato))
-    rows.push({
-      glyph: "🔥",
-      name: t("Bruciatore", "Burner"),
-      entity: clean(dato.fiamma) || clean(dato.stato),
-      on: lettura.fiamma === true || lettura.acceso === true,
-      value:
-        lettura.fiamma === true || lettura.acceso === true
-          ? t("Acceso", "On")
-          : t("Spento", "Off"),
-    });
-  const misura = (campo, testo, glyph, valore, cifre, unita) => {
-    if (valore == null) return;
-    rows.push({
-      glyph,
-      name: testo,
-      entity: clean(dato[campo]),
-      raw: valore,
-      value: `${formatNumber(valore, cifre)}${unita}`,
-    });
-  };
-  misura("mandata", t("Mandata", "Flow"), "🌡️", lettura.mandata, 1, "°");
-  misura("ritorno", t("Ritorno", "Return"), "🌡️", lettura.ritorno, 1, "°");
-  misura("acquaCalda", t("Acqua calda", "Hot water"), "🚿", lettura.acquaCalda, 1, "°");
-  misura("pressione", t("Pressione", "Pressure"), "📊", lettura.pressione, 1, " bar");
-  misura("modulazione", t("Modulazione", "Modulation"), "📶", lettura.modulazione, 0, "%");
+  letture.forEach((riga, indice) => {
+    const dato = dati[indice] || {};
+    /* Il nome davanti solo quando ce n'e' piu' d'una: con una sola sarebbe
+     * ripetuto su ogni riga e non distinguerebbe niente. */
+    const suo = (testo) =>
+      piuDiUna
+        ? `${clean(riga.name) || `${t("Caldaia", "Boiler")} ${indice + 1}`} · ${testo}`
+        : testo;
+    if (clean(dato.fiamma) || clean(dato.stato))
+      rows.push({
+        glyph: "🔥",
+        name: suo(t("Bruciatore", "Burner")),
+        entity: clean(dato.fiamma) || clean(dato.stato),
+        on: riga.fiamma === true || riga.acceso === true,
+        value:
+          riga.fiamma === true || riga.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
+      });
+    const misura = (campo, testo, glyph, valore, cifre, unita) => {
+      if (valore == null) return;
+      rows.push({
+        glyph,
+        name: suo(testo),
+        entity: clean(dato[campo]),
+        raw: valore,
+        value: `${formatNumber(valore, cifre)}${unita}`,
+      });
+    };
+    misura("mandata", t("Mandata", "Flow"), "🌡️", riga.mandata, 1, "°");
+    misura("ritorno", t("Ritorno", "Return"), "🌡️", riga.ritorno, 1, "°");
+    misura("acquaCalda", t("Acqua calda", "Hot water"), "🚿", riga.acquaCalda, 1, "°");
+    misura("pressione", t("Pressione", "Pressure"), "📊", riga.pressione, 1, " bar");
+    misura("modulazione", t("Modulazione", "Modulation"), "📶", riga.modulazione, 0, "%");
+  });
   if (!rows.length) return null;
 
   const acceso = lettura.fiamma === true || lettura.acceso === true;
   const didascalia = () => {
-    if (pressione === "bassa")
-      return t("Pressione bassa: rabbocca", "Pressure low: top it up");
+    if (pressione === "bassa") return t("Pressione bassa: rabbocca", "Pressure low: top it up");
     if (lettura.salto != null) {
       /* Il numero si tira fuori prima: la chiave di traduzione deve essere una
        * frase con un buco, non un pezzo di codice. */
@@ -1935,9 +1951,7 @@ function agendaModel(states) {
 
   const daFare = cose ? contaDaFare(cose) : 0;
   const adesso = Date.now();
-  const inCorsoAdesso = Boolean(
-    calendario?.primi?.length && inCorso(calendario.primi[0], adesso),
-  );
+  const inCorsoAdesso = Boolean(calendario?.primi?.length && inCorso(calendario.primi[0], adesso));
 
   /* La didascalia dice le due cose insieme quando ci sono tutte e due: «17:30
    * Dentista · 4 da fare». Con una sola resta quella, senza il puntino che
@@ -2175,7 +2189,14 @@ const CASELLE_MINIPC = Object.freeze([
     unita: "°",
     cifre: 1,
   },
-  { ref: "dm.server_temperature", it: "Temperatura", en: "Temperature", glyph: "🌡️", unita: "°", cifre: 1 },
+  {
+    ref: "dm.server_temperature",
+    it: "Temperatura",
+    en: "Temperature",
+    glyph: "🌡️",
+    unita: "°",
+    cifre: 1,
+  },
   {
     ref: "dm.server_potenza_raspberry_server",
     it: "Potenza",
@@ -2429,7 +2450,7 @@ function openingsModel(states) {
     accent: "#dc2626",
     icon: "🚪",
     alert: true,
-    label: t("Aperture", "Openings"),
+    label: t("Porte/Finestre", "Doors/Windows"),
     value: String(open.length),
     caption: open[0] ? open[0].name : "",
     ring: Math.round((open.length / rows.length) * 100),
@@ -2823,11 +2844,44 @@ export function planciaConfigurata() {
   return Boolean(luci && Object.keys(luci).length);
 }
 
+/* La tessera delle segnalazioni, e c'e' solo per chi tiene la repository.
+ *
+ * `sommarioConsole()` torna `null` per chiunque altro: la tessera non esiste
+ * per loro, e non e' una preferenza spenta ma una cosa che non li riguarda —
+ * cosi' «solo per me» sta scritto in come e' fatta, non in un interruttore che
+ * qualcuno potrebbe accendere per sbaglio.
+ *
+ * Il numero grande e' quello che resta da lavorare, che e' la domanda con cui
+ * si guarda la Home: non quante ne sono arrivate in tutto, che e' storia. */
+function segnalazioniModel() {
+  const conto = sommarioConsole();
+  if (!conto) return null;
+  const pezzi = [];
+  if (conto.bug) pezzi.push(t(`${conto.bug} difetti`, `${conto.bug} bugs`));
+  if (conto.feature) pezzi.push(t(`${conto.feature} idee`, `${conto.feature} ideas`));
+  if (conto.assistenza) pezzi.push(t(`${conto.assistenza} aiuto`, `${conto.assistenza} help`));
+  return {
+    key: "segnalazioni",
+    accent: "#0ea5e9",
+    icon: "🎫",
+    label: t("Segnalazioni", "Reports"),
+    value: String(conto.quante),
+    /* Senza niente da lavorare la didascalia non elenca zeri: dice che non c'e'
+     * niente, che e' la risposta. */
+    caption: pezzi.length ? pezzi.join("  ·  ") : t("Niente da lavorare", "Nothing to work on"),
+    ring: null,
+    // Si accende quando c'e' qualcosa che aspetta una risposta.
+    attiva: conto.quante > 0,
+    conto,
+  };
+}
+
 function widgetModels(states) {
   if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
     [
       evidenzaModel(states),
+      segnalazioniModel(),
       agendaModel(states),
       lightsModel(states),
       climateModel(states),
@@ -3348,11 +3402,12 @@ function calendarioDetail(widget, scadenze = []) {
   const elenco = giorni
     .slice(0, GIORNI_NEL_PANNELLO)
     .map(
-      ({ giorno, eventi }) => `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
-        etichettaDelGiorno(giorno, adesso, parole, lingua),
-      )}</span><ul class="dm-cal-lista">${eventi
-        .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
-        .join("")}</ul></div>`,
+      ({ giorno, eventi }) =>
+        `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
+          etichettaDelGiorno(giorno, adesso, parole, lingua),
+        )}</span><ul class="dm-cal-lista">${eventi
+          .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
+          .join("")}</ul></div>`,
     )
     .join("");
   return `${modulo}${testa}${arretrati}${elenco}`;
@@ -4315,6 +4370,130 @@ function verdettoEFrase(widget) {
  * prima: li' ci sono gli interruttori, e quelli non si toccano — cambia il
  * posto, non quello che fanno. */
 function detailBody(widget, states) {
+  /* Le segnalazioni non si lavorano da qui. La finestra della tessera e'
+   * larga un palmo, e rispondere a una issue vuol dire leggere il filo, gli
+   * allegati, e scrivere: il posto per farlo esiste gia' ed e' il Cruscotto.
+   * Qui ci sta il conto e la porta per arrivarci — duplicare la console in
+   * miniatura vorrebbe dire tenerne allineate due. */
+  if (widget.key === "segnalazioni") {
+    /* Niente verdetto generico qui sopra. Quella riga la scrive il motore che
+     * legge gli stati di casa — «acceso», «in corso», «qui non c'e' ancora
+     * niente» — e su una coda di segnalazioni non ha niente da leggere: usciva
+     * «Qui non c'e' ancora niente» sopra sette segnalazioni da lavorare, cioe'
+     * il contrario di quello che la finestra stessa mostrava due righe sotto.
+     * Meglio dire meno che dire il falso, e il conto grande la tessera lo porta
+     * gia' in copertina.
+     *
+     * E le segnalazioni non si lavorano da qui: questa finestra e' larga un
+     * palmo, e rispondere vuol dire leggere il filo, guardare gli allegati e
+     * scrivere. Il posto c'e' gia'; qui ci sta il conto e la porta. */
+    const conto = widget.conto || {};
+    /* La lettura del tempo, che e' la domanda che non si legge dai tre conti:
+     * quante ne sono arrivate oggi, e quante stanno li' da un mese senza che
+     * nessuno le abbia piu' guardate. La seconda e' quella che pesa — un conto
+     * fermo non si muove da solo, e in una colonna di numeri passerebbe
+     * inosservato proprio perche' non cambia mai. */
+    /* Cosa e' arrivato oggi, per genere. Sapere che ne sono arrivate due non
+     * dice se la giornata e' andata storta o se qualcuno ha avuto due idee: un
+     * difetto e un'idea chiedono cose diverse a chi legge.
+     *
+     * Il conto sta dopo il nome, come sui filtri del cruscotto, e non prima:
+     * «1 difetti» sarebbe sbagliato in italiano e in mezza Europa, e mettere
+     * il numero in coda toglie il problema invece di raddoppiare le stringhe
+     * per il singolare. */
+    const oggiPerTipo = conto.oggiPerTipo || {};
+    const generi = [
+      ["bug", "🐞", t("Difetti", "Bugs")],
+      ["feature", "✨", t("Idee", "Ideas")],
+      ["assistenza", "💬", t("Aiuto", "Help")],
+      ["senza", "•", t("Senza tipo", "Untyped")],
+    ].filter(([id]) => Number(oggiPerTipo[id]) > 0);
+    const oggiMarkup = generi.length
+      ? `<div class="dm-w-oggi"><span class="dm-w-oggi-lbl">${esc(t("Oggi", "Today"))}</span>${generi
+          .map(
+            ([id, icona, nome]) =>
+              `<span class="dm-w-genere"><span aria-hidden="true">${icona}</span>${esc(
+                nome,
+              )}<b>${Number(oggiPerTipo[id])}</b></span>`,
+          )
+          .join("")}</div>`
+      : `<p class="dm-w-lettura">${esc(t("Oggi non e' arrivato niente.", "Nothing came in today."))}</p>`;
+    const ferme = conto.vecchie
+      ? `<p class="dm-w-lettura">${esc(
+          t(`${conto.vecchie} ferme da oltre un mese`, `${conto.vecchie} stuck for over a month`),
+        )}</p>`
+      : "";
+    /* Chi ha scritto e nessuno ha ancora letto, in cima a tutto.
+     *
+     * E' l'unica riga di questa finestra che chiede qualcosa: i conti dicono
+     * com'e' messa la coda, questa dice che c'e' una persona che aspetta una
+     * risposta. Sta sopra apposta, ed e' la sola che porta i titoli — un
+     * numero da solo direbbe «due» senza dire di cosa, e per decidere se
+     * aprire il cruscotto adesso o dopo cena servono i titoli.
+     *
+     * Tre e non tutte: questa finestra e' larga un palmo, e una giornata
+     * storta la riempirebbe di righe fino a nascondere i conti. Le altre si
+     * contano in coda.
+     *
+     * Il conto e' di **conversazioni**, non di messaggi: chi guarda vuole
+     * sapere quante porte ha da aprire. Quante frasi ci siano dietro lo dice
+     * il filo, che e' il posto dove si leggono. */
+    const conversazioni = Array.isArray(conto.conversazioni) ? conto.conversazioni : [];
+    const MOSTRATE = 3;
+    const chatMarkup = conversazioni.length
+      ? `<div class="dm-w-chat">
+          <div class="dm-w-chat-testa">
+            <span aria-hidden="true">💬</span>
+            <b>${esc(
+              t(
+                `${conversazioni.length} con messaggi nuovi`,
+                `${conversazioni.length} with new messages`,
+              ),
+            )}</b>
+          </div>
+          ${conversazioni
+            .slice(-MOSTRATE)
+            .reverse()
+            .map(
+              (voce) => `
+                <div class="dm-w-chat-riga">
+                  <span class="dm-w-chat-tit">${esc(
+                    clean(voce?.title) || `#${Number(voce?.number) || 0}`,
+                  )}</span>
+                  <span class="dm-w-chat-n">${
+                    voce?.opened ? "✦" : Number(voce?.messages) || 1
+                  }</span>
+                </div>`,
+            )
+            .join("")}
+          ${
+            conversazioni.length > MOSTRATE
+              ? `<div class="dm-w-chat-altre">${esc(
+                  t(
+                    `e altre ${conversazioni.length - MOSTRATE}`,
+                    `and ${conversazioni.length - MOSTRATE} more`,
+                  ),
+                )}</div>`
+              : ""
+          }
+        </div>`
+      : "";
+    const righe = [
+      [t("Nuove", "New"), conto.nuove],
+      [t("In lavorazione", "In progress"), conto.inLavorazione],
+      [t("Chiuse", "Closed"), conto.chiuse],
+    ];
+    return `${chatMarkup}${oggiMarkup}${ferme}
+      <div class="dm-w-caselle">${righe
+        .map(
+          ([nome, quante]) =>
+            `<div class="dm-w-casella"><b>${Number(quante) || 0}</b><small>${esc(nome)}</small></div>`,
+        )
+        .join("")}</div>
+      <button type="button" class="dm-w-porta" data-dm-apri-cruscotto>${esc(
+        t("Apri il cruscotto", "Open the console"),
+      )}</button>`;
+  }
   const comandi = detailRows(widget, states);
   return `${verdettoEFrase(widget)}
     ${caselleDelleMisure(widget)}
@@ -4359,9 +4538,17 @@ function detailRows(widget, states) {
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
   if (
-    ["ev", "solare", "scaldabagno", "caldaia", "ups", "piscina", "prese", "irrigazione", "robot"].includes(
-      widget.key,
-    )
+    [
+      "ev",
+      "solare",
+      "scaldabagno",
+      "caldaia",
+      "ups",
+      "piscina",
+      "prese",
+      "irrigazione",
+      "robot",
+    ].includes(widget.key)
   )
     return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
@@ -4797,6 +4984,21 @@ function popupHost() {
   });
   doc.body.append(host);
   return host;
+}
+
+/* «Apri il cruscotto» sta dentro la finestra di questa tessera, e quella
+ * finestra va chiusa prima che l'altra si apra. Le due stanno sullo stesso
+ * piano — `z-index: 9999` tutte e due — e la piu' giovane copre l'altra: il
+ * tasto sembrava non fare niente, perche' il cruscotto si apriva dietro.
+ *
+ * Chiude chi possiede: la sezione delle segnalazioni apre la propria finestra,
+ * questo file chiude la propria. Toccare il DOM altrui — o importarsi a
+ * vicenda, visto che e' questo file a importare quello — sarebbe la strada per
+ * romperle tutte e due insieme. */
+function ascoltaLaPorta() {
+  doc?.addEventListener?.("click", (event) => {
+    if (event.target?.closest?.("[data-dm-apri-cruscotto]")) chiudiPopup();
+  });
 }
 
 function chiudiPopup() {
@@ -5517,6 +5719,56 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   text-transform:uppercase;color:var(--text-dim,#94a3b8)}
 #dm-widget-popup .dm-w-caselle{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+/* La porta verso il cruscotto: un tasto pieno, del colore della tessera. Con
+   il vestito delle righe sembrava una barra grigia — cioe' una cosa disabilitata
+   invece dell'unico gesto che questa finestra offre. */
+/* La lettura del tempo: una riga sola, sopra i conti, in inchiostro pieno —
+   e' una frase da leggere, non un'etichetta da scorrere. */
+#dm-widget-popup .dm-w-lettura{
+  margin:0 0 10px;font-size:13px;font-weight:700;
+  color:var(--text,#0f172a);line-height:1.35}
+/* Cosa e' arrivato oggi: l'etichetta a sinistra, poi una pastiglia per genere
+   con il suo conto in coda al nome — «Difetti 1», come i filtri del cruscotto,
+   che toglie di mezzo il singolare e il plurale. */
+#dm-widget-popup .dm-w-oggi{
+  display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px}
+#dm-widget-popup .dm-w-oggi-lbl{
+  font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-genere{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:50px;
+  font-size:12px;font-weight:700;color:var(--text,#0f172a);
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,transparent)}
+#dm-widget-popup .dm-w-genere b{opacity:.8}
+/* Le conversazioni che aspettano. Un riquadro suo, in inchiostro d'accento,
+   perche' e' la sola cosa di questa finestra che chiede di essere aperta: alla
+   pari con i conti sarebbe passata per un'altra statistica. */
+#dm-widget-popup .dm-w-chat{
+  margin:0 0 11px;padding:10px 11px;border-radius:14px;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 28%,transparent)}
+#dm-widget-popup .dm-w-chat-testa{
+  display:flex;align-items:center;gap:6px;margin-bottom:7px;
+  font-size:12px;color:var(--text,#0f172a)}
+#dm-widget-popup .dm-w-chat-riga{
+  display:flex;align-items:center;gap:8px;padding:3px 0;
+  font-size:12px;color:var(--text,#0f172a)}
+/* Il titolo per intero non ci sta, e mandarlo a capo farebbe righe di altezza
+   diversa: si taglia, e chi vuole leggerlo apre il cruscotto. */
+#dm-widget-popup .dm-w-chat-tit{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dm-widget-popup .dm-w-chat-n{
+  flex:none;min-width:18px;padding:1px 6px;border-radius:50px;text-align:center;
+  font-size:11px;font-weight:800;color:#fff;
+  background:var(--dm-widget-accent,#0ea5e9);font-variant-numeric:tabular-nums}
+#dm-widget-popup .dm-w-chat-altre{
+  margin-top:5px;font-size:11px;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-porta{
+  width:100%;margin-top:10px;padding:11px 14px;border:0;border-radius:14px;
+  cursor:pointer;font-size:13px;font-weight:800;color:#fff;
+  background:var(--dm-widget-accent,#0ea5e9)}
+#dm-widget-popup .dm-w-porta:hover{filter:brightness(1.08)}
 #dm-widget-popup .dm-w-casella{
   display:grid;gap:2px;padding:10px 11px;border-radius:14px;
   border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
@@ -6524,8 +6776,13 @@ export function installHomeWidgetsSection() {
     // Una tapparella appena aggiunta in configurazione deve avere la sua
     // tessera subito, non al prossimo evento di stato.
     "dashboardmodern:editor-rendered",
+    /* La coda delle segnalazioni arriva da GitHub, quindi dopo che la Home si
+       e' gia' disegnata: la sua tessera va messa quando la risposta atterra,
+       non al primo evento che passi di li' per un'altra ragione. */
+    "dashboardmodern:segnalazioni-coda",
   ])
     root.addEventListener?.(eventName, schedule);
+  ascoltaLaPorta();
   /* La storia delle ore precedenti arriva quando arriva, e la finestra non
    * l'aspetta per aprirsi: si apre col numero che c'e' gia'. Quando la
    * risposta atterra, pero', il racconto ha due righe in piu' da dire — «piu'

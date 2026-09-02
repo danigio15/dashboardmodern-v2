@@ -15,8 +15,10 @@ import test from "node:test";
 import { ALLOWED_MESSAGE_TYPES } from "../src/legacy/bridge-socket.js";
 import {
   DIAGNOSTIC_KEYS,
-  FILTRI_ID,
+  FILTRI_STATO_ID,
+  FILTRI_TIPO_ID,
   allegatiMarkup,
+  sommarioConsole,
   appenaApertaMarkup,
   WS_TYPES,
   codaVoceMarkup,
@@ -34,7 +36,7 @@ test("ogni messaggio che la finestra manda passa dal ponte", () => {
   }
 });
 
-test("i dieci comandi sono quelli che il backend registra", () => {
+test("i tredici comandi sono quelli che il backend registra", () => {
   assert.deepEqual([...WS_TYPES].sort(), [
     "dashboardmodern/tickets/answer",
     "dashboardmodern/tickets/auth/forget",
@@ -44,8 +46,11 @@ test("i dieci comandi sono quelli che il backend registra", () => {
     "dashboardmodern/tickets/delete",
     "dashboardmodern/tickets/list",
     "dashboardmodern/tickets/queue",
+    "dashboardmodern/tickets/reply",
     "dashboardmodern/tickets/sync",
+    "dashboardmodern/tickets/take",
     "dashboardmodern/tickets/thread",
+    "dashboardmodern/tickets/unread",
   ]);
 });
 
@@ -123,15 +128,32 @@ test("una segnalazione senza risposta non disegna il riquadro della risposta", (
   assert.ok(voceMarkup(ticket({ reply: "Riprodotta." })).includes("dm-tkt-risposta"));
 });
 
-test("il link alla discussione compare solo quando c'e'", () => {
-  assert.ok(!voceMarkup(ticket()).includes("dm-tkt-link"));
-  const promossa = voceMarkup(
+test("la discussione si apre qui, e il rimando a GitHub resta accanto", () => {
+  /* Una bozza non e' ancora una discussione: non c'e' niente da aprire. */
+  assert.ok(!voceMarkup(ticket()).includes("data-dm-filo"));
+
+  const partita = voceMarkup(
+    ticket({
+      remote_id: "9",
+      issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/9",
+    }),
+  );
+  /* Il filo si legge dentro la plancia: portare fuori chi voleva solo vedere
+   * la risposta vorrebbe dire mandarlo via dal posto che questa finestra
+   * esiste per non fargli lasciare. */
+  assert.ok(partita.includes('data-dm-filo="9"'), "la discussione non si apre qui");
+  /* E chi ci vuole andare davvero ha ancora la sua porta. */
+  assert.ok(partita.includes("dm-tkt-link"), "il rimando a GitHub e' sparito");
+  assert.ok(partita.includes('rel="noreferrer noopener"'));
+});
+
+test("il filo serve il numero, non solo l'indirizzo", () => {
+  /* Senza numero non si puo' chiedere niente a GitHub: meglio nessun tasto che
+   * un tasto che non puo' funzionare. */
+  const senzaNumero = voceMarkup(
     ticket({ issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/9" }),
   );
-  assert.ok(promossa.includes("dm-tkt-link"));
-  /* Un link che si apre altrove non deve poter toccare la finestra che lo ha
-   * aperto. */
-  assert.ok(promossa.includes('rel="noreferrer noopener"'));
+  assert.ok(!senzaNumero.includes("data-dm-filo"));
 });
 
 test("la consegna fallita si legge sulla segnalazione", () => {
@@ -250,25 +272,68 @@ test("i filtri per tipo tengono solo il loro tipo", () => {
     inCoda({ number: 2, type: "feature" }),
     inCoda({ number: 3, type: "assistenza" }),
   ];
-  for (const [filtro, atteso] of [
+  for (const [tipo, atteso] of [
     ["bug", [1]],
     ["feature", [2]],
     ["assistenza", [3]],
   ]) {
     assert.deepEqual(
-      filtra(coda, filtro).map((ticket) => ticket.number),
+      filtra(coda, "tutte", tipo).map((ticket) => ticket.number),
       atteso,
-      `il filtro ${filtro} non tiene quello che deve`,
+      `il filtro ${tipo} non tiene quello che deve`,
     );
   }
 });
 
+test("lo stato e il tipo si incrociano invece di scacciarsi", () => {
+  /* Il motivo per cui sono due file e non una: «i difetti aperti» e' la cosa
+   * che si cerca aprendo la console, e con una riga sola non si poteva
+   * chiedere — premendo «Difetti» si perdeva «Da lavorare» e arrivavano anche
+   * i difetti gia' chiusi. */
+  const coda = [
+    inCoda({ number: 1, type: "bug", state: "inviato" }),
+    inCoda({ number: 2, type: "bug", state: "risolto" }),
+    inCoda({ number: 3, type: "feature", state: "inviato" }),
+    inCoda({ number: 4, type: "feature", state: "chiuso" }),
+  ];
+  assert.deepEqual(
+    filtra(coda, "aperte", "bug").map((ticket) => ticket.number),
+    [1],
+    "«difetti da lavorare» non tiene solo quelli",
+  );
+  assert.deepEqual(
+    filtra(coda, "chiuse", "feature").map((ticket) => ticket.number),
+    [4],
+    "«idee chiuse» non tiene solo quelle",
+  );
+});
+
+test("«ogni tipo» non filtra, e non vuol dire «senza tipo»", () => {
+  /* Il tasto vuoto significa «non filtrare». Se filtrasse su `type === ""` le
+   * uniche a passare sarebbero quelle senza tipo, cioe' l'esatto contrario. */
+  const coda = [
+    inCoda({ number: 1, type: "bug" }),
+    inCoda({ number: 2, type: "" }),
+    inCoda({ number: 3, type: "feature" }),
+  ];
+  assert.deepEqual(
+    filtra(coda, "tutte", "").map((ticket) => ticket.number),
+    [1, 2, 3],
+  );
+});
+
 test("ogni filtro dichiarato sa rispondere", () => {
   /* Un filtro nell'elenco che nessun ramo di `filtra` riconosce sarebbe un
-   * tasto che svuota la coda senza dire perche'. */
+   * tasto che svuota la coda senza dire perche'. Le due file si provano
+   * incrociate, che e' come si usano. */
   const coda = [inCoda({ type: "bug", state: "inviato" })];
-  for (const filtro of FILTRI_ID) {
-    assert.ok(Array.isArray(filtra(coda, filtro)), `${filtro} non torna un elenco`);
+  for (const stato of FILTRI_STATO_ID) {
+    for (const tipo of FILTRI_TIPO_ID) {
+      assert.ok(
+        Array.isArray(filtra(coda, stato, tipo)),
+        `${stato} + ${tipo || "ogni tipo"} non torna un elenco`,
+      );
+    }
   }
 });
 
@@ -532,4 +597,380 @@ test("il collegamento dopo un invio non cancella il «Salvata»", async () => {
     testo.includes("await collega({ salvata: true })"),
     "l'invio non dice a `collega` che c'e' gia' una segnalazione salvata",
   );
+});
+
+/* ─── Il widget della Home ───────────────────────────────────────────────── */
+
+const statoVivo = () => globalThis.__DASHBOARDMODERN_SEGNALAZIONI__;
+
+function conLaCoda(coda, console, prova) {
+  const stato = statoVivo();
+  const prima = { queue: stato.queue, console: stato.console };
+  stato.queue = coda;
+  stato.console = console;
+  try {
+    prova();
+  } finally {
+    stato.queue = prima.queue;
+    stato.console = prima.console;
+  }
+}
+
+test("senza console il sommario non esiste, e quindi nemmeno la tessera", () => {
+  /* E' la garanzia del «solo per me», e sta qui invece che in un interruttore:
+   * un interruttore lo si puo' accendere per sbaglio, questo no. Il modello
+   * della tessera torna `null` su un sommario nullo, quindi in Home non
+   * compare proprio — non compare vuota, non compare a zero. */
+  conLaCoda([inCoda({ state: "inviato" })], false, () => {
+    assert.equal(sommarioConsole(), null, "il sommario esce anche senza console");
+  });
+});
+
+test("il sommario conta quello che resta da lavorare, non tutto", () => {
+  /* E' il numero con cui si guarda la Home: «quanto mi resta», non «quante ne
+   * sono arrivate in tutto», che e' storia e non chiede niente. */
+  conLaCoda(
+    [
+      inCoda({ number: 1, type: "bug", state: "inviato" }),
+      inCoda({ number: 2, type: "bug", state: "in-carico" }),
+      inCoda({ number: 3, type: "feature", state: "inviato" }),
+      inCoda({ number: 4, type: "assistenza", state: "risolto" }),
+      inCoda({ number: 5, type: "bug", state: "chiuso" }),
+    ],
+    true,
+    () => {
+      assert.deepEqual(sommarioConsole(), {
+        // Senza data non si conta ne' fra le nuove di oggi ne' fra le ferme.
+        oggi: 0,
+        oggiPerTipo: { bug: 0, feature: 0, assistenza: 0, senza: 0 },
+        vecchie: 0,
+        quante: 3,
+        nuove: 2,
+        inLavorazione: 1,
+        chiuse: 2,
+        bug: 2,
+        feature: 1,
+        assistenza: 0,
+        // Nessuno ha scritto: nessuna conversazione da aprire.
+        nonLetti: 0,
+        conversazioni: [],
+      });
+    },
+  );
+});
+
+test("senza coda ancora letta il sommario tace invece di dire zero", () => {
+  /* Zero e «non lo so ancora» sono due cose diverse, e la seconda detta come
+   * la prima e' una bugia con l'aria di un dato: la tessera direbbe «niente da
+   * lavorare» mentre nessuno ha ancora chiesto niente a GitHub. */
+  conLaCoda(null, true, () => {
+    assert.equal(sommarioConsole(), null);
+  });
+});
+
+test("il sommario dice quante sono arrivate oggi e quante sono ferme", () => {
+  const adesso = Date.now();
+  const giorniFa = (quanti) => new Date(adesso - quanti * 86400000).toISOString();
+  conLaCoda(
+    [
+      inCoda({ number: 1, state: "inviato", created_at: new Date(adesso).toISOString() }),
+      inCoda({ number: 2, state: "inviato", created_at: giorniFa(2) }),
+      inCoda({ number: 3, state: "in-carico", created_at: giorniFa(60) }),
+      // Chiusa e vecchia: non e' «ferma», e' finita.
+      inCoda({ number: 4, state: "risolto", created_at: giorniFa(90) }),
+    ],
+    true,
+    () => {
+      const conto = sommarioConsole();
+      assert.equal(conto.oggi, 1, "«oggi» non conta quelle di oggi");
+      assert.equal(conto.vecchie, 1, "«ferme» conta anche quelle chiuse, o salta le aperte");
+    },
+  );
+});
+
+test("una senza data non diventa ne' di oggi ne' ferma", () => {
+  /* Non sapere quando e' nata non la rende vecchia, e nemmeno nuova: contarla
+   * da una parte o dall'altra vorrebbe dire inventare un dato che non c'e'. */
+  conLaCoda([inCoda({ state: "inviato", created_at: "" })], true, () => {
+    const conto = sommarioConsole();
+    assert.equal(conto.oggi, 0);
+    assert.equal(conto.vecchie, 0);
+    assert.equal(conto.quante, 1, "e pero' resta da lavorare");
+  });
+});
+
+test("«oggi» regge il giorno in cui cambia l'ora", () => {
+  /* Lo stesso inciampo gia' trovato sull'Agenda: sottrarre ventiquattro ore
+   * per dire «ieri» sbaglia dove il giorno ne dura venticinque. Qui si
+   * confrontano due date di calendario, e questa prova lo tiene fermo. */
+  const prima = process.env.TZ;
+  process.env.TZ = "America/New_York";
+  try {
+    // 2026-11-01 00:30 ora legale: quel giorno l'ora torna indietro.
+    const adesso = Date.parse("2026-11-01T04:30:00Z");
+    const stato = statoVivo();
+    const salva = { queue: stato.queue, console: stato.console, now: Date.now };
+    stato.console = true;
+    stato.queue = [
+      // Nata alle 23:30 dello stesso giorno locale, cioe' oggi.
+      inCoda({ number: 1, state: "inviato", created_at: "2026-11-02T03:30:00Z" }),
+      // Nata il giorno prima: non e' di oggi.
+      inCoda({ number: 2, state: "inviato", created_at: "2026-10-31T16:00:00Z" }),
+    ];
+    Date.now = () => adesso;
+    try {
+      assert.equal(sommarioConsole().oggi, 1);
+    } finally {
+      Date.now = salva.now;
+      stato.queue = salva.queue;
+      stato.console = salva.console;
+    }
+  } finally {
+    if (prima === undefined) delete process.env.TZ;
+    else process.env.TZ = prima;
+  }
+});
+
+test("il sommario dice di che genere sono quelle di oggi", () => {
+  const oggi = new Date().toISOString();
+  conLaCoda(
+    [
+      inCoda({ number: 1, type: "bug", state: "inviato", created_at: oggi }),
+      inCoda({ number: 2, type: "bug", state: "inviato", created_at: oggi }),
+      inCoda({ number: 3, type: "feature", state: "inviato", created_at: oggi }),
+      // Aperta a mano su GitHub, senza tipo: ha un posto anche lei.
+      inCoda({ number: 4, type: "", state: "inviato", created_at: oggi }),
+      // Di ieri: non entra in nessun genere di oggi.
+      inCoda({
+        number: 5,
+        type: "assistenza",
+        state: "inviato",
+        created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      }),
+    ],
+    true,
+    () => {
+      const conto = sommarioConsole();
+      assert.equal(conto.oggi, 4);
+      assert.deepEqual(conto.oggiPerTipo, { bug: 2, feature: 1, assistenza: 0, senza: 1 });
+    },
+  );
+});
+
+test("i generi di oggi tornano il conto di oggi, senza perderne per strada", () => {
+  /* Sommare i tre tipi noti e fermarsi li' vorrebbe dire dire «oggi niente» in
+   * una giornata di sole issue aperte a mano su GitHub, che un tipo non ce
+   * l'hanno: il conto grande direbbe due e l'elenco sotto zero. */
+  const oggi = new Date().toISOString();
+  conLaCoda(
+    [
+      inCoda({ number: 1, type: "", state: "inviato", created_at: oggi }),
+      inCoda({ number: 2, type: "boh", state: "inviato", created_at: oggi }),
+    ],
+    true,
+    () => {
+      const conto = sommarioConsole();
+      const somma = Object.values(conto.oggiPerTipo).reduce((a, b) => a + b, 0);
+      assert.equal(somma, conto.oggi, "i generi non tornano il conto di oggi");
+      assert.equal(conto.oggiPerTipo.senza, 2);
+    },
+  );
+});
+
+test("i tasti che scrivono nascono spenti, quelli che chiudono no", () => {
+  /* Prima erano tutti premibili e la risposta al vuoto era «Scrivi una
+   * risposta»: un rimprovero al posto di un invito, per un errore che il tasto
+   * poteva semplicemente non lasciar commettere.
+   *
+   * Chiudere senza scrivere invece e' un gesto legittimo — «non e' un
+   * difetto», «era gia' risolta» — e pretendere un commento per farlo vorrebbe
+   * dire chiedere di scrivere per forza. */
+  const voce = codaVoceMarkup(inCoda({ number: 7, state: "inviato" }));
+  const tasti = [...voce.matchAll(/<button[^>]*data-dm-rispondi="7"[^>]*>/g)].map((m) => m[0]);
+  assert.equal(tasti.length, 4, "i tasti della riga non sono piu' quattro");
+
+  const spenti = tasti.filter((tasto) => tasto.includes("disabled"));
+  assert.equal(spenti.length, 2, "i tasti spenti in partenza non sono due");
+  for (const tasto of spenti) {
+    assert.ok(
+      tasto.includes("data-dm-serve-testo"),
+      "un tasto nasce spento senza dire che aspetta del testo",
+    );
+  }
+
+  /* E i due che restano accesi chiudono davvero: uno risolve, l'altro
+   * archivia. Un tasto acceso che non chiude niente sarebbe un tasto che
+   * pubblica il vuoto. */
+  const accesi = tasti.filter((tasto) => !tasto.includes("disabled"));
+  assert.deepEqual(accesi.map((tasto) => tasto.match(/data-dm-chiudi="([^"]*)"/)[1]).sort(), [
+    "chiuso",
+    "risolto",
+  ]);
+});
+
+test("su una gia' chiusa il solo tasto che c'e' aspetta del testo", () => {
+  /* Li' l'unico gesto e' aggiungere una risposta, e una risposta vuota non e'
+   * una risposta. */
+  const voce = codaVoceMarkup(inCoda({ number: 9, state: "risolto" }));
+  const tasti = [...voce.matchAll(/<button[^>]*data-dm-rispondi="9"[^>]*>/g)].map((m) => m[0]);
+  assert.equal(tasti.length, 1);
+  assert.ok(tasti[0].includes("disabled"));
+  assert.ok(tasti[0].includes("data-dm-serve-testo"));
+});
+
+/* ─── Prendere in carico, e rispondere dalla propria plancia ───────────────
+ *
+ * Due gesti che prima non c'erano, e uno che c'era e non funzionava: il campo
+ * della risposta della console si cercava dentro `#dm-tkt-modal`, e da quando
+ * il cruscotto e' una pagina della barra li' non c'e' piu'.
+ */
+
+test("prendere in carico e' l'assegnazione di GitHub, non un'etichetta inventata", () => {
+  const libera = codaVoceMarkup(inCoda({ number: 7, state: "inviato" }));
+  const tasto = libera.match(/<button[^>]*data-dm-carico="7"[^>]*>/)[0];
+  assert.ok(tasto.includes('data-dm-prendi="1"'), "il tasto non prende in carico");
+  assert.ok(tasto.includes('aria-pressed="false"'));
+
+  const presa = codaVoceMarkup(inCoda({ number: 7, state: "inviato", assignees: ["danigio15"] }));
+  const lascia = presa.match(/<button[^>]*data-dm-carico="7"[^>]*>/)[0];
+  /* Premuto lo stesso tasto, il gesto si inverte: ci si puo' ripensare. */
+  assert.ok(lascia.includes('data-dm-prendi=""'), "presa in carico, il tasto non la lascia");
+  assert.ok(lascia.includes('aria-pressed="true"'));
+});
+
+test("chi ce l'ha in carico si legge in testa alla riga", () => {
+  /* Il nome, e non solo il simbolo: il giorno che i manutentori sono due,
+   * «presa in carico» senza dire da chi e' l'informazione a meta'. */
+  assert.ok(codaVoceMarkup(inCoda({ assignees: ["danigio15"] })).includes("🙋 danigio15"));
+  assert.ok(!codaVoceMarkup(inCoda({ assignees: [] })).includes("🙋"));
+  assert.ok(!codaVoceMarkup(inCoda()).includes("🙋"));
+});
+
+test("una segnalazione gia' chiusa non si prende in carico", () => {
+  /* Non si prende in carico quello che e' gia' finito: il tasto sarebbe un
+   * gesto senza seguito. */
+  assert.ok(!codaVoceMarkup(inCoda({ number: 9, state: "risolto" })).includes("data-dm-carico"));
+});
+
+test("il nome di chi ha in carico non diventa markup", () => {
+  const markup = codaVoceMarkup(inCoda({ assignees: ['"><b>oops</b>'] }));
+  assert.ok(!markup.includes("<b>oops"));
+});
+
+function conIlFilo(numero, filo, account, prova) {
+  const stato = statoVivo();
+  const prima = { filo: stato.fili[numero], account: stato.account };
+  if (filo) stato.fili[numero] = filo;
+  else delete stato.fili[numero];
+  stato.account = account;
+  try {
+    prova();
+  } finally {
+    if (prima.filo) stato.fili[numero] = prima.filo;
+    else delete stato.fili[numero];
+    stato.account = prima.account;
+  }
+}
+
+test("chi ha segnalato risponde da qui, col filo aperto", () => {
+  /* Era la meta' che mancava: il filo si leggeva ma non si scriveva, e per
+   * aggiungere una riga bisognava aprire github.com — cioe' uscire dal posto
+   * che questa finestra esiste per non far lasciare. */
+  const voce = ticket({ remote_id: "9", issue_url: "https://github.com/x/y/issues/9" });
+
+  conIlFilo(9, null, { connected: true, login: "anna" }, () => {
+    /* Col filo chiuso no: una casella sotto ognuna delle dodici segnalazioni
+     * dell'elenco sarebbe stata dodici caselle vuote. */
+    assert.ok(!voceMarkup(voce).includes("data-dm-scrivi"));
+  });
+
+  conIlFilo(9, { body: "x", comments: [] }, { connected: true, login: "anna" }, () => {
+    const markup = voceMarkup(voce);
+    assert.ok(markup.includes('data-dm-scrivi="9"'), "manca il tasto per mandare");
+    assert.ok(markup.includes('id="dm-tkt-mio-9"'), "manca la casella");
+    /* Il tasto nasce spento e guarda LA SUA casella, non quella della console:
+     * senza `data-dm-campo` avrebbe cercato `#dm-tkt-risposta-9`, che in
+     * questa pagina non esiste, e sarebbe rimasto spento per sempre. */
+    const tasto = markup.match(/<button[^>]*data-dm-scrivi="9"[^>]*>/)[0];
+    assert.ok(tasto.includes("disabled"));
+    assert.ok(tasto.includes('data-dm-campo="dm-tkt-mio-9"'));
+  });
+});
+
+test("senza GitHub collegato si legge il perche', non un tasto che non puo' funzionare", () => {
+  /* Il commento parte a nome di chi scrive: senza firma non c'e' niente da
+   * mandare, e un tasto che se ne accorge dopo e' un tasto che fa perdere
+   * quello che si e' scritto. */
+  const voce = ticket({ remote_id: "9", issue_url: "https://github.com/x/y/issues/9" });
+  conIlFilo(9, { body: "x", comments: [] }, { connected: false, login: "" }, () => {
+    const markup = voceMarkup(voce);
+    assert.ok(!markup.includes("data-dm-scrivi"));
+    assert.ok(markup.includes("Collega GitHub"));
+  });
+});
+
+test("il modulo non chiede piu' un recapito, e non ne porta uno", async () => {
+  /* C'era una casella «come ricontattarti», e diceva il vero: restava in casa,
+   * nella pagina pubblica non finiva. Solo che in casa non la leggeva nessuno
+   * — la console del manutentore legge GitHub — e chiedere un indirizzo e-mail
+   * per poi non farne niente e' la peggiore delle tre strade: si conserva un
+   * dato personale, non serve a nessuno, e chi lo scrive crede di essere
+   * raggiungibile. La risposta arriva sotto la segnalazione, e il campanello
+   * avvisa quando c'e'.
+   *
+   * Si legge il sorgente perche' quello che va provato e' l'assenza: un campo
+   * che non c'e' non si puo' interrogare. */
+  const sorgente = await readFile(
+    new URL("../src/sections/segnalazioni-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.ok(!sorgente.includes("dm-tkt-contatto"), "la casella del recapito e' tornata");
+  assert.ok(!/\bcontact\b/.test(sorgente), "qualcosa manda ancora un recapito");
+  assert.ok(!sorgente.includes("MAX_CONTATTO"));
+});
+
+function conINonLetti(nonLetti, prova) {
+  const stato = statoVivo();
+  const prima = stato.nonLetti;
+  stato.nonLetti = nonLetti;
+  try {
+    prova();
+  } finally {
+    stato.nonLetti = prima;
+  }
+}
+
+test("chi ha scritto si vede sulla riga, prima ancora di aprirla", () => {
+  /* Il campanello suona e passa: un evento non lo si puo' guardare mezz'ora
+   * dopo. Il pallino invece resta, ed e' quello che chi apre il cruscotto
+   * legge senza dover scorrere riga per riga. */
+  conINonLetti([{ number: 7, title: "x", messages: 2 }], () => {
+    assert.ok(codaVoceMarkup(inCoda({ number: 7 })).includes("🔵"));
+    assert.ok(!codaVoceMarkup(inCoda({ number: 8 })).includes("🔵"));
+  });
+});
+
+test("e sul lato di chi aspetta una risposta", () => {
+  const voce = ticket({ remote_id: "9", issue_url: "https://github.com/x/y/issues/9" });
+  conINonLetti([{ number: 9, title: "x", messages: 1 }], () => {
+    assert.ok(voceMarkup(voce).includes("🔵"));
+  });
+  conINonLetti([], () => {
+    assert.ok(!voceMarkup(voce).includes("🔵"));
+  });
+});
+
+test("il sommario porta le conversazioni, non solo il conto", () => {
+  /* Il widget mostra i titoli: un numero da solo direbbe «due» senza dire di
+   * cosa, e per decidere se aprire il cruscotto adesso o dopo cena servono i
+   * titoli. */
+  conLaCoda([inCoda({ number: 1, state: "inviato" })], true, () => {
+    conINonLetti([{ number: 1, title: "le tapparelle", messages: 3 }], () => {
+      const conto = sommarioConsole();
+      assert.equal(conto.nonLetti, 1);
+      assert.deepEqual(conto.conversazioni, [
+        { number: 1, title: "le tapparelle", messages: 3, opened: false },
+      ]);
+    });
+  });
 });

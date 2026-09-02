@@ -121,7 +121,6 @@ async def _bozza(hass: HomeAssistant, **kwargs: Any) -> dict[str, Any]:
         "ticket_type": TYPE_BUG,
         "title": "Le tapparelle non si fermano",
         "body": "Premo stop e continuano a scendere.",
-        "contact": "anna@example.com",
         "diagnostics": {"ha_version": "2026.8.0"},
         "opened_by": "anna",
     }
@@ -312,22 +311,77 @@ async def test_la_issue_nasce_col_gettone_di_chi_ha_scritto(
     assert github.calls[0]["token"] == "gho_bruno"
 
 
-async def test_il_contatto_non_finisce_nella_pagina_pubblica(
+async def test_un_recapito_non_si_chiede_e_non_si_conserva(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Una issue e' pubblica. Chi ha scritto il proprio indirizzo lo ha
-    scritto a una persona, e resta in casa per la console."""
+    """Il campo «come ricontattarti» non esiste piu', a nessun livello.
+
+    C'era, e diceva il vero: restava in casa, e nella pagina pubblica non
+    finiva. Solo che in casa non lo leggeva nessuno — la console del
+    manutentore legge GitHub — e chiedere un indirizzo e-mail per poi non farne
+    niente e' la peggiore delle tre strade: si conserva un dato personale, non
+    serve a nessuno, e chi lo scrive crede di essere raggiungibile.
+    """
     _entry(hass)
     await _collega(hass, "anna")
     github.answer(
         "/issues", {"number": 7, "html_url": "https://github.com/x/y/issues/7"}
     )
-    await _bozza(hass, contact="anna@example.com")
+    with pytest.raises(TypeError):
+        await _bozza(hass, contact="anna@example.com")
+
+    ticket = await _bozza(hass)
+    assert "contact" not in ticket
     await tickets.async_deliver_pending(hass)
     corpo = github.calls[0]["payload"]
-    assert "anna@example.com" not in repr(corpo)
     assert "2026.8.0" in corpo["body"]
     assert TICKET_MARKER in corpo["body"]
+
+
+async def test_i_recapiti_gia_scritti_spariscono_dal_disco(
+    hass: HomeAssistant,
+) -> None:
+    """Toglierlo dal modulo non basta: quello che c'e' gia' sta sul disco.
+
+    Chi la plancia ce l'ha da mesi si porta dietro i recapiti scritti dalle
+    versioni precedenti, e senza questo resterebbero li' finche' quei ticket
+    non cadono dal fondo dello store.
+    """
+    from homeassistant.helpers.storage import Store
+
+    from custom_components.dashboardmodern.ticket_store import (
+        STORAGE_KEY,
+        STORAGE_VERSION,
+        TicketStore,
+    )
+
+    deposito: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+    await deposito.async_save(
+        {
+            "installation_id": "abc",
+            "tickets": [
+                {
+                    "id": "t1",
+                    "opened_by": "anna",
+                    "type": TYPE_BUG,
+                    "title": "vecchia",
+                    "body": "x",
+                    "contact": "anna@example.com",
+                    "state": STATE_DRAFT,
+                    "created_at": 1,
+                    "updated_at": 1,
+                }
+            ],
+        }
+    )
+
+    store = TicketStore(hass)
+    await store.async_load()
+    assert "contact" not in store.list(opened_by="anna")[0]
+
+    # E sparisce davvero dal file, non solo da quello che si legge.
+    rimasto = await Store(hass, STORAGE_VERSION, STORAGE_KEY).async_load()
+    assert "contact" not in rimasto["tickets"][0]
 
 
 async def test_la_issue_nasce_senza_etichette(
@@ -643,27 +697,42 @@ async def test_un_titolo_di_solo_prefisso_resta_intero(
     assert coda[0]["type"] == "feature"
 
 
-async def test_una_aperta_con_commenti_e_gia_in_lavorazione(
+async def test_in_lavorazione_e_quella_presa_in_carico(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Chi ha commentato l'elenco non lo dice: vale il segno che c'e'."""
+    """«In lavorazione» e' l'assegnazione, non il fatto che qualcuno abbia parlato.
+
+    Prima lo si deduceva dai commenti, perche' un segno vero non c'era, e la
+    deduzione sbagliava nel verso peggiore: una domanda di chiarimento faceva
+    risultare presa in carico una segnalazione che nessuno aveva guardato.
+    Adesso il segno c'e' — lo scrive il tasto «Prendo in carico» — e i commenti
+    tornano a essere quello che sono: commenti.
+    """
     _entry(hass)
     await _collega(hass, "dani", maintainer=True)
     github.answer(
         "/issues?state=open",
         [
-            {"number": 1, "title": "muta", "body": "x", "state": "open", "comments": 0},
             {
-                "number": 2,
-                "title": "parlata",
+                "number": 1,
+                "title": "parlata ma di nessuno",
                 "body": "x",
                 "state": "open",
                 "comments": 2,
+            },
+            {
+                "number": 2,
+                "title": "presa in carico",
+                "body": "x",
+                "state": "open",
+                "comments": 0,
+                "assignees": [{"login": "danigio15"}],
             },
         ],
     )
     coda = await tickets.async_queue(hass, "dani")
     assert [voce["state"] for voce in coda] == ["inviato", "in-carico"]
+    assert [voce["assignees"] for voce in coda] == [[], ["danigio15"]]
 
 
 async def test_una_pull_request_non_e_una_segnalazione(
@@ -855,16 +924,33 @@ async def test_il_filo_deduce_lo_stato_dal_commento_del_manutentore(
     assert (await tickets.async_thread(hass, "dani", 42))["state"] == STATE_TRIAGED
 
 
-async def test_il_filo_chiede_i_permessi(
+async def test_il_filo_lo_legge_anche_chi_non_tiene_la_coda(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Il filo e' la coda di tutti: passa dallo stesso cancello."""
+    """Chi ha segnalato apre il filo sulla sua, per leggere la risposta qui.
+
+    Prima quel «vedi la discussione» lo portava su github.com, cioe' fuori
+    proprio dal posto che questa finestra esiste per non fargli lasciare. Non
+    c'e' niente da proteggere: la issue e' una pagina pubblica.
+    """
     _entry(hass)
     await _collega(hass, "anna", maintainer=False)
-    with pytest.raises(GitHubError) as errore:
-        await tickets.async_thread(hass, "anna", 42)
-    assert errore.value.code == "not_console"
-    assert github.calls == []
+    github.answer("/issues/42", {"number": 42, "body": "x", "state": "open"})
+    filo = await tickets.async_thread(hass, "anna", 42)
+    assert filo["number"] == 42
+    # Col suo gettone, che serve solo al limite orario: leggere non lo chiede.
+    assert github.calls[0]["token"] == "gho_anna"
+
+
+async def test_il_filo_si_legge_anche_senza_aver_collegato_niente(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Leggere non chiede permessi, e la repository e' pubblica."""
+    _entry(hass)
+    github.answer("/issues/42", {"number": 42, "body": "x", "state": "open"})
+    filo = await tickets.async_thread(hass, "senza-gettone", 42)
+    assert filo["number"] == 42
+    assert github.calls[0]["token"] == ""
 
 
 async def test_la_coda_dice_quanti_allegati_ci_sono(
@@ -1050,3 +1136,105 @@ async def test_una_risposta_oltre_il_tetto_lo_dice(
     with pytest.raises(GitHubError) as guasto:
         await github_client._request(hass, "GET", "https://api.github.com/x")
     assert guasto.value.code == "too_large"
+
+
+async def test_la_coda_porta_quando_e_stata_aperta(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Il giorno lo decide il browser, ma la data gliela deve dare qualcuno."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("state=closed", [])
+    github.answer(
+        "state=open",
+        [
+            {
+                "number": 1,
+                "title": "[Bug]: x",
+                "body": "x",
+                "state": "open",
+                "created_at": "2026-09-02T08:15:00Z",
+            },
+            # Senza data non si inventa niente: resta vuota, e chi conta i
+            # giorni la salta invece di contarla come «oggi».
+            {"number": 2, "title": "[Bug]: y", "body": "y", "state": "open"},
+        ],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert [voce["created_at"] for voce in coda] == ["2026-09-02T08:15:00Z", ""]
+
+
+async def test_il_rifiuto_di_github_riporta_quello_che_github_dice(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """«Permessi o limite orario» sono due strade opposte dietro una frase sola.
+
+    Una si risolve installando l'App sulla repository, l'altra aspettando. Il
+    `message` di GitHub lo dice, e buttarlo via lasciava a chi legge il compito
+    di indovinare.
+    """
+    corpo = json.dumps({"message": "Resource not accessible by integration"}).encode()
+    monkeypatch.setattr(
+        github_client,
+        "async_get_clientsession",
+        lambda _hass: _Sessione(_Risposta([corpo], status=403)),
+    )
+    with pytest.raises(GitHubError) as guasto:
+        await github_client._request(hass, "POST", "https://api.github.com/x")
+    assert guasto.value.code == "forbidden"
+    assert "Resource not accessible by integration" in str(guasto.value)
+
+
+async def test_un_rifiuto_muto_resta_leggibile(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Senza `message` non si attacca una coda vuota alla frase."""
+    monkeypatch.setattr(
+        github_client,
+        "async_get_clientsession",
+        lambda _hass: _Sessione(_Risposta([b"non e' json"], status=404)),
+    )
+    with pytest.raises(GitHubError) as guasto:
+        await github_client._request(hass, "GET", "https://api.github.com/x")
+    assert str(guasto.value) == "Non trovato su GitHub."
+
+
+async def test_la_diagnostica_torna_come_dati_non_come_markup(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Su GitHub e' una scheda che si apre; dentro la plancia era testo crudo.
+
+    «<details><summary>Diagnostica</summary>» e cinque righe di asterischi
+    finivano in mezzo a quello che l'utente aveva scritto, e la parte che conta
+    annegava in quella che il programma ha aggiunto.
+    """
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    corpo = (
+        "Test versione 1.4.5 beta 9\n\n"
+        "<details><summary>Diagnostica</summary>\n\n"
+        "- **ha_version**: 2026.8.3\n"
+        "- **integration_version**: 1.4.5-beta.9\n"
+        "- **locale**: it\n\n"
+        "</details>\n"
+        f"{TICKET_MARKER}"
+    )
+    github.answer("state=closed", [])
+    github.answer(
+        "state=open",
+        [{"number": 280, "title": "[Bug]: Prova", "body": corpo, "state": "open"}],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert coda[0]["body"] == "Test versione 1.4.5 beta 9"
+    assert coda[0]["diagnostics"] == {
+        "ha_version": "2026.8.3",
+        "integration_version": "1.4.5-beta.9",
+        "locale": "it",
+    }
+
+
+def test_un_corpo_senza_diagnostica_resta_intero() -> None:
+    """Una issue aperta a mano su GitHub non ha nessuna scheda da togliere."""
+    testo, voci = github_client.diagnostica_in("si richiede di separare le aperture")
+    assert testo == "si richiede di separare le aperture"
+    assert voci == {}

@@ -237,6 +237,7 @@ const CATALOG_MODULES = Object.freeze([
   "src/core/device-model.js",
   "src/core/robot-model.js",
   "src/core/cover-kind.js",
+  "src/core/impianti-termici.js",
 ]);
 
 /*

@@ -5,6 +5,438 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.10
+
+«Basta che quando arriva un messaggio sulla chat parte una notifica di Home
+Assistant.» Ecco il campanello — e, gia' che il filo doveva diventare una
+conversazione vera, la meta' che mancava: da qui adesso si risponde.
+
+«Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non
+serviva a niente.
+
+E due cose viste dal vero: otto elettrodomestici con otto prese uguali al posto
+del loro disegno, e un'apertura che spariva senza dire perche'.
+
+### Nuovo
+
+- **Quando qualcuno scrive, Home Assistant lo dice.** Ogni cinque minuti la
+  plancia va a vedere se sotto una segnalazione e' comparso un messaggio, e se
+  c'e' suona in due modi: una notifica di Home Assistant — quella della
+  campanella, che non chiede di configurare niente — e un evento sul bus,
+  `dashboardmodern_messaggio`, per chi la vuole far finire sul telefono, su un
+  altoparlante o su una luce che cambia colore.
+
+  Chi tiene la repository sente tutto, comprese le segnalazioni appena aperte.
+  Chi la plancia la usa e basta sente solo le proprie: le altre sono
+  conversazioni fra sconosciuti, e riceverle sarebbe stato ricevere lo spam di
+  un tracker. Le proprie pero' **tutte**, anche quelle gia' chiuse — una
+  risposta arrivata sotto una segnalazione chiusa la settimana prima e'
+  esattamente il messaggio che non si vuole perdere.
+
+  Tre cose che il campanello non fa, e sono le tre che l'avrebbero fatto
+  spegnere il primo giorno. Non suona al primo avvio, dove tutto quello che
+  c'e' e' gia' successo. Non risuona a ogni riavvio di Home Assistant, perche'
+  il segno di quello che si e' letto sta su disco e non in memoria. E non suona
+  per la frase che si e' appena battuta: quando la plancia scrive un commento,
+  alza il segno da se'.
+
+  Costa **una richiesta ogni cinque minuti**, non una per segnalazione:
+  l'elenco filtrato per `since` porta gia' il numero dei commenti, e se e'
+  cresciuto qualcuno ha scritto. Dodici richieste all'ora contro le cinquemila
+  che un account collegato concede.
+
+- **Chi ha segnalato risponde dalla sua plancia.** Sotto la discussione aperta
+  c'e' la casella per scrivere, e il messaggio parte a nome suo — mai a nome
+  della console. Fino a ieri il filo si poteva leggere ma non scrivere: per
+  dire «ho provato, non funziona lo stesso» bisognava aprire github.com, cioe'
+  uscire proprio dal posto che quella finestra esiste per non far lasciare.
+
+- **Il widget dice chi aspetta una risposta.** In cima alla finestra, prima dei
+  conti, le conversazioni dove qualcuno ha scritto e nessuno ha ancora aperto:
+  «💬 2 con messaggi nuovi», con i titoli e quanti messaggi sono. Il campanello
+  suona e passa — un evento non lo si puo' guardare mezz'ora dopo — e questo
+  invece resta, per chi apre la plancia dopo che il telefono ha vibrato o dopo
+  che il telefono non era in tasca.
+
+  Il conto e' di **conversazioni**, non di messaggi: chi guarda vuole sapere
+  quante porte ha da aprire; quante frasi ci siano dietro lo dice il filo. Lo
+  stesso segno compare sulla riga nel cruscotto e su quella di chi ha
+  segnalato, e si spegne aprendo la discussione — su tutte le plance della
+  casa, perche' l'elenco lo tiene Home Assistant e non il browser: chi legge
+  dal telefono e poi passa davanti al tablet in cucina non ritrova lo stesso
+  pallino ad aspettarlo.
+
+- **«Prendo in carico», sul cruscotto.** E' l'assegnazione di GitHub, non
+  un'etichetta inventata qui: la segnalazione compare fra le tue, chi passa
+  dalla pagina lo vede senza che nessuno glielo scriva, e in testa alla riga
+  c'e' il nome di chi l'ha presa. Ci si puo' ripensare con lo stesso tasto.
+
+- **La tessera delle segnalazioni in Home, e c'e' solo per te.** Il numero
+  grande e' quello che resta **da lavorare** — non quante ne sono arrivate in
+  tutto, che e' storia e non chiede niente — e sotto c'e' la ripartizione: «3
+  difetti · 2 idee · 1 aiuto». Si accende quando qualcosa aspetta una
+  risposta; toccandola si apre una finestra con la lettura del tempo, i tre
+  conti — nuove, in lavorazione, chiuse — e la porta verso il cruscotto, invece
+  di rifare la console in miniatura dentro una finestra larga un palmo.
+
+- **La finestra dice cosa e' arrivato oggi, per genere, e quante sono ferme.**
+  «Oggi: 🐞 Difetti 1 · 💬 Aiuto 1», e sotto «2 ferme da oltre un mese». Sapere
+  che ne sono arrivate due non dice se la giornata e' andata storta o se
+  qualcuno ha avuto due idee: un difetto e un'idea chiedono cose diverse a chi
+  legge. Il conto sta dopo il nome, come sui filtri del cruscotto — «1 difetti»
+  sarebbe sbagliato in italiano e in mezza Europa, e mettere il numero in coda
+  toglie il problema invece di raddoppiare le stringhe per il singolare. Anche
+  le arrivate oggi **senza tipo** hanno la loro pastiglia: sommare i tre generi
+  noti e fermarsi li' vorrebbe dire dire «oggi niente» in una giornata di sole
+  issue aperte a mano su GitHub. E' la domanda che dai tre conti non si legge. La seconda meta' e' quella che pesa — un conto fermo non si
+  muove da solo, e in una colonna di numeri passerebbe inosservato proprio
+  perche' non cambia mai.
+
+  «Oggi» si decide confrontando due date di **calendario**, non due numeri di
+  millisecondi: sottrarre ventiquattro ore sbaglia nei giorni in cui l'ora
+  cambia — uno ne dura venticinque, un altro ventitre' — ed e' la stessa
+  trappola trovata sulla tessera dell'Agenda. Una prova la tiene chiusa.
+
+  Chi non porta la data non si conta ne' fra le nuove di oggi ne' fra le ferme:
+  non sapere quando e' nata non la rende vecchia.
+
+  Quella finestra non porta il verdetto delle altre tessere. Quella riga la
+  scrive il motore che legge gli stati di casa — «acceso», «in corso», «qui non
+  c'e' ancora niente» — e su una coda di segnalazioni non ha niente da leggere:
+  usciva «Qui non c'e' ancora niente» sopra sette segnalazioni da lavorare,
+  cioe' il contrario di quello che la finestra stessa mostrava due righe sotto.
+
+  «Solo per me» sta scritto in come e' fatta, non in un interruttore: il suo
+  modello torna `null` per chiunque non tenga la repository, quindi per gli
+  altri la tessera non esiste — non compare vuota, non compare a zero. Un
+  interruttore lo si potrebbe accendere per sbaglio, questo no. La riga nel
+  catalogo «ordina e accendi» c'e' lo stesso, perche' chi la vede deve poterla
+  spostare e spegnere come le altre.
+
+  La coda si va a riprendere da sola al massimo ogni dieci minuti: le
+  segnalazioni non arrivano al secondo, e ogni giro e' una chiamata a GitHub.
+  Se la rete non risponde la tessera **non compare**, invece di dire zero: «non
+  lo so ancora» e «non c'e' niente» sono due cose diverse, e la seconda detta
+  al posto della prima e' una bugia con l'aria di un dato.
+
+- **Un giro solo per due mestieri.** La coda la chiedevano due funzioni
+  diverse, e due funzioni che chiedono la stessa cosa a GitHub finiscono sempre
+  per rispondere in modo diverso. Adesso e' una, con due modi: zitta per la
+  Home, ad alta voce per la console — dove qualcuno sta guardando e un guasto
+  va detto.
+
+### Tolto
+
+- **Il campo «come ricontattarti».** Diceva il vero — «resta in casa», e nella
+  pagina pubblica non finiva davvero — ma in casa non lo leggeva nessuno: la
+  console del manutentore legge GitHub, dove quel campo non arriva mai.
+  Chiedere un indirizzo e-mail per poi non farne niente e' la peggiore delle
+  tre strade possibili: si conserva un dato personale, non serve a nessuno, e
+  chi lo scrive crede di essere raggiungibile. La risposta arriva sotto la
+  segnalazione, dove adesso si scrive nei due sensi, e il campanello avvisa
+  quando c'e'.
+
+  I recapiti gia' scritti spariscono dal disco alla prima accensione: toglierlo
+  dal modulo non sarebbe bastato, perche' quello che era gia' stato scritto
+  sarebbe rimasto li' finche' quel ticket non cadeva dal fondo dello store.
+
+### Corretto
+
+- **La risposta della console non partiva piu'.** Da quando il cruscotto e'
+  una pagina della barra invece di una finestra, il campo del testo veniva
+  cercato dentro la finestra — dove non c'e' piu' — e «Rispondi» usciva alla
+  riga dopo senza dire niente. I tasti che chiudevano e basta continuavano a
+  funzionare, il che rendeva il guasto ancora piu' difficile da vedere.
+
+- **«In lavorazione» era una supposizione.** Lo stato si deduceva dal fatto che
+  qualcuno avesse commentato, perche' un segno vero non c'era, e sbagliava nel
+  verso peggiore: bastava una domanda di chiarimento per far risultare presa in
+  carico una segnalazione che nessuno aveva ancora guardato. Adesso il segno lo
+  scrive il tasto, e i commenti tornano a essere commenti.
+
+- **Le segnalazioni aperte dalla plancia adesso hanno la loro etichetta.**
+  Arrivavano nude accanto a quelle dei moduli di GitHub, che l'etichetta se la
+  prendono da sole. Non era una dimenticanza: GitHub le scarta quando a
+  scriverle e' chi sulla repository non ha i permessi — cioe' esattamente chi
+  segnala — e mandarle sarebbe stato scrivere una riga che non arriva. Adesso
+  le mette un workflow della repository, che i permessi ce li ha: legge il
+  prefisso del titolo e applica `bug`, `enhancement` o `question`. Chi
+  un'etichetta ce l'ha gia' non si tocca.
+
+- **Le risposte si vedono aprendo la finestra, senza premere niente.** Aprirla
+  leggeva solo quello che c'era in casa: le risposte scritte su GitHub
+  arrivavano premendo «Aggiorna», o al giro di mezz'ora. Chi apriva le proprie
+  segnalazioni per vedere se c'era una risposta — cioe' l'unico motivo per cui
+  uno le apre — trovava quello che gia' sapeva, e doveva chiudere e riaprire la
+  plancia. Adesso l'apertura se le va a riprendere da sola, al massimo una
+  volta al minuto, senza rotella e senza avvisi se la rete e' giu': chi ha solo
+  aperto una finestra non ha chiesto niente.
+
+- **Quando GitHub rifiuta, adesso si legge perche'.** Un `403` usciva come
+  «permessi o limite orario»: due strade opposte dietro una frase sola — una si
+  risolve con un'installazione, l'altra aspettando — e a chi legge restava il
+  compito di indovinare. Con ogni rifiuto GitHub manda un `message` che quasi
+  sempre e' esatto («Resource not accessible by integration»), e veniva buttato
+  via. Adesso arriva fino alla riga sotto la segnalazione.
+
+- **La tessera compariva per caso, o non compariva.** La Home si disegna mentre
+  la richiesta verso GitHub e' ancora per aria, e a quel punto il sommario e'
+  nullo: la tessera non veniva messa, e restava fuori fino al primo evento che
+  facesse ridisegnare la griglia per un'altra ragione. Adesso l'arrivo della
+  coda e' esso stesso l'evento.
+
+- **E i suoi conti restavano fermi.** La soglia dei dieci minuti era un freno,
+  non un orologio: diceva «non richiedere se hai gia' chiesto da poco», e in una
+  plancia lasciata aperta su un tablet nessuno chiedeva piu' niente. Adesso c'e'
+  un battito che quei dieci minuti li conta — solo per chi ha la console, e
+  fermo mentre la pagina non si vede.
+
+- **«Apri il cruscotto» sembrava non fare niente.** Le due finestre stanno sullo
+  stesso piano e la piu' giovane copre l'altra: il cruscotto si apriva dietro
+  quella della tessera. Adesso la tessera chiude la propria prima che l'altra
+  si apra.
+
+### Il cruscotto
+
+- **Non e' piu' una finestra: e' una pagina, con la sua voce nella barra.** La
+  coda del manutentore non e' una cosa che si sbircia — si legge un titolo, si
+  apre il filo, si guarda una foto, si scrive una risposta — e tutto questo
+  dentro un riquadro largo un palmo vuol dire scorrere per fare qualunque cosa.
+  Adesso ci sta tutto a schermo intero.
+
+  La voce c'e' **solo per chi tiene la repository**, e non e' un'impostazione da
+  spegnere: per gli altri quella pagina non avrebbe niente dentro. Chi ce l'ha
+  la puo' nascondere dalla barra come qualunque altra, dall'interruttore nella
+  scheda Segnalazioni — e se il riconoscimento cade, la voce e la pagina se ne
+  vanno da sole invece di restare li' vuote.
+
+  La finestra delle segnalazioni torna a due linguette, «Nuova» e «Le mie»: e'
+  il posto di chi segnala, e non ha piu' dentro il posto di chi risponde.
+
+
+- **I tasti che scrivono nascono spenti, e si accendono col testo.** Erano
+  sempre premibili, e alla pressione a vuoto rispondevano «Scrivi una
+  risposta»: un rimprovero al posto di un invito, per un errore che il tasto
+  poteva semplicemente non lasciar commettere. Spento adesso vuol dire spento
+  anche per il tasto pieno — la sola trasparenza lasciava un rettangolo azzurro
+  che continuava a leggersi come «premimi».
+
+- **E c'e' «Risolvi», che chiude e basta.** Chiudere senza scrivere e' un gesto
+  legittimo — «non e' un difetto», «era gia' risolta» — e prima l'unico modo di
+  farlo era «Archivia», che pero' dice un'altra cosa: archiviata vuol dire
+  lasciata li', risolta vuol dire fatta. Ora la riga ne ha quattro: due che
+  scrivono e aspettano il testo, due che chiudono subito.
+
+
+- **Lo stato e il tipo sono due file di tasti, e si incrociano.** Stavano tutti
+  su una riga sola a scelta singola, e quello faceva sembrare «Da lavorare» e
+  «Difetti» due risposte alla stessa domanda. Non lo sono: premendo «Difetti»
+  si perdeva lo stato e arrivavano anche i difetti gia' chiusi — mentre la cosa
+  che si cerca aprendo la console e' quasi sempre «i difetti **aperti**», che
+  con una riga sola non si poteva proprio chiedere.
+
+  Adesso sopra c'e' lo stato — Da lavorare, Chiuse, Tutte — e sotto il tipo —
+  Ogni tipo, Difetti, Idee, Aiuto. Si accendono insieme, e «Da lavorare» piu'
+  «Difetti» da' i difetti da lavorare.
+
+- **E sotto ogni tipo c'e' il suo conto, dentro lo stato scelto.** Con «Da
+  lavorare» acceso, «Difetti 3» vuol dire tre difetti da lavorare, non tre
+  difetti in tutta la storia della repository: e' il numero che serve a
+  decidere cosa premere, e si legge prima di premere.
+
+- **«Ogni tipo» non vuol dire «senza tipo».** Il tasto vuoto significa «non
+  filtrare»; se filtrasse davvero sul tipo vuoto, le uniche a passare sarebbero
+  le segnalazioni senza tipo — l'esatto contrario. Quelle si riconoscono dalla
+  pastiglia grigia, e restano raggiungibili.
+
+- **Il messaggio di coda vuota dice chi sta tagliando.** Col tipo acceso il
+  vuoto e' quasi sempre colpa sua, non dello stato: dirlo evita di guardare una
+  coda vuota chiedendosi dove siano finite le altre trentanove.
+
+### Nuovo
+
+- **Le entità del clima si raggruppano per stanza.** «Ho sette termosifoni con
+  valvola smart, ognuna con una o più entità VTherm: almeno si raddoppiano,
+  quattordici o più da mostrare nella sezione. Poterle raggruppare per stanza
+  aiuta a organizzare il contenuto.» (#261) Si raggruppava per piano soltanto,
+  e la ragione era buona: con un'unità per stanza un titolo di stanza vuol dire
+  un titolo sopra ogni singola carta, e la stanza sulla carta c'è già scritta.
+  Quella ragione cade quando le unità per stanza sono più d'una — lì il titolo
+  dice dove finisce una stanza e comincia l'altra, che dalle carte in fila non
+  si vede. Quindi la stessa regola del piano, che un titolo lo stampa solo se
+  sopra c'è più di un piano: la stanza si intitola quando almeno una ne tiene
+  più di una. Chi ne ha una per stanza vede esattamente quello che vedeva.
+- **La lingua si sceglie dalle Impostazioni.** «Vorrei poter modificare la
+  lingua senza ereditare necessariamente quella di HA: io ho HA in inglese
+  perché mi aiuta per lo sviluppo, ma la plancia la vorrei in italiano per
+  renderla fruibile agli altri componenti della famiglia.» (#263) Il motore
+  c'era già tutto, e in `i18n-section.js` c'era perfino scritto «così la pagina
+  delle impostazioni può cambiare lingua senza ricaricare»: mancava la pagina
+  delle impostazioni. Adesso c'è, con «Lingua di Home Assistant» che non è una
+  quattordicesima lingua ma l'assenza di scelta — sceglierla cancella la
+  preferenza e la plancia torna a seguire il profilo di chi guarda.
+- **E dentro Home Assistant quella scelta adesso vale.** Non sarebbe bastata la
+  tendina: la lingua che l'ospite inietta era il primo candidato, e dentro HA
+  c'è sempre, quindi una scelta salvata non avrebbe vinto mai. Una preferenza
+  esplicita batte un valore di serie, come dappertutto qui: chi non ne ha una
+  ricade esattamente su quello che vedeva prima.
+
+- **Il locale caldaia tiene più di una caldaia.** «Ho due caldaie, la dashboard
+  ne configura una sola.» Adesso `cd_caldaia` accetta sia l'oggetto di prima
+  sia una lista, e chi ne aveva una la ritrova dov'era senza toccare niente. Da
+  lì in su sono diventati plurali insieme i quattro strati che servivano: il
+  configuratore mostra una lista con nome, aggiungi e rimuovi; la pagina, con
+  più d'una, mette sopra le letture una fila di macchine — «Zona giorno ● |
+  Zona notte» — e si tocca per cambiare scena; la tessera in Home le somma e
+  prefissa ogni riga col nome della macchina, perché due righe «Mandata» una
+  sotto l'altra non dicono di chi sono. Con una caldaia sola la fila non
+  compare: sarebbe un interruttore con una posizione.
+
+- **E la testata del Clima le conta tutte.** «La doppia caldaia va inserita
+  anche nella sezione clima.» Ne raccontava una — un `.find()` — e con due
+  configurate mostrava la prima. Ora c'è una casella per macchina, «Zona giorno
+  · Accesa · da 1 h» accanto a «Zona notte · Spenta», e le fonti sono due
+  perché nessuna basta: l'elenco libero dello Stato termico, dove una caldaia
+  si riconosce dal nome, e la Gestione termica, dove ogni macchina ha il suo
+  nome e la casella che dice acceso o spento. L'unione è per entità, non per
+  nome: la stessa caldaia dichiarata in tutti e due i posti resta una.
+
+- **L'indirizzo RTSP di una telecamera ha la sua casella.** «Ho una telecamera
+  con flusso video su rtsp://…, non c'è possibilità di configurazione.» La
+  casella non è un lettore, e non finge di esserlo: **nessun browser apre
+  rtsp://**, il flusso deve passare da qualcosa che sta dalla parte del server.
+  È il pezzo che mancava per arrivarci — l'indirizzo si scrive e si salva, da
+  lì si legge il nome che go2rtc dà a quel flusso e lo si propone nel campo che
+  accende WebRTC, e a chi go2rtc non ce l'ha la scheda dice l'unica cosa da
+  sapere con il collegamento che la fa. La password non esce: accanto al campo
+  si legge cosa se n'è capito — «192.168.5.30:8556 · flusso «Salone» · con
+  credenziali» — mentre la riga da copiare, che va in un file di
+  configurazione e non a schermo, le credenziali le porta tutte.
+
+- **Le sezioni che si fa l'utente.** «Dare la possibilità di creare sezioni
+  custom dove inserire le proprie entità: avrei potuto inserire quelle dell'UPS
+  senza attendere la sezione apposita.» Non una sezione «Custom» che le
+  contiene tutte, ma una voce nella barra per ognuna, col titolo e l'icona che
+  le ha dato chi l'ha fatta. La pagina è onesta su quello che sa: mette le
+  righe in fila, dice come stanno, e mette l'interruttore **solo dove c'è
+  qualcosa da accendere** — chiamare `toggle` su un sensore non fa niente, e un
+  interruttore che non fa niente è peggio di nessun interruttore.
+  L'intestazione la disegna chi disegna quella di tutte le altre pagine, o
+  sarebbero le uniche a vedersi come pagine di serie B. Il limite è otto: la
+  barra ne tiene già sedici, e la trentesima non si vedrebbe più.
+
+- **Il radar meteo, sopra le previsioni dei sette giorni.** «Visualizzare il
+  radar riferito alla zona prescelta (tramite longitudine e latitudine o
+  comune) e nel relativo raggio di 30 km.» Il motore è aritmetica — Web
+  Mercator, la proiezione di tutte le mappe a tessere — e da un punto e da un
+  raggio ricava lo zoom e i quadratini da scaricare, col punto scelto al
+  centro. Il posto si sceglie in tre modi e nessuno chiama nessuno: le
+  coordinate scritte a mano, una **zona di Home Assistant** — hanno un nome e
+  delle coordinate, e sono la risposta al «oppure il comune» — oppure, se non
+  si dice niente, casa. Raggio trenta chilometri di serie.
+
+  L'immagine può arrivare da un'entità `camera.*` o `image.*` del proprio Home
+  Assistant, e allora da casa non esce niente; oppure da un servizio di
+  tessere, con il suo indirizzo a modello `{z}/{x}/{y}`. Quell'indirizzo lo
+  mette chi installa e non lo mettiamo noi: cablare un servizio che non si è
+  potuto interrogare nemmeno una volta sarebbe spedire una promessa. Al suo
+  posto c'è un tasto **Prova**, che scarica un quadratino vero e dice se è
+  arrivato.
+
+### Corretto
+
+- **Le finestre Giornaliera e Mensile mostrano il periodo, non l'istante.** «I
+  popup giornaliera e mensile non riportano i dati corretti: portano quelli
+  attualmente in consumo.» La finestra sapeva in che periodo era stata aperta —
+  lo scriveva perfino in testata, GIORNO, MESE — e poi mostrava i watt di
+  adesso, con sotto «kWh oggi» anche guardando il mese: il periodo decideva la
+  scritta e non i numeri. Adesso decide i numeri. In Istantaneo resta com'era —
+  watt grandi, kilowattora di oggi sotto — e nel Giorno e nel Mese si invertono:
+  il numero grande è l'energia di quel periodo, sotto ci sono i watt di adesso.
+  Anche il totale in testata, l'ordine delle carte e le barre seguono il periodo
+  che si sta guardando.
+- **E il cerchio degli elettrodomestici non segna più zero.** «Segna 0, non il
+  valore reale giornaliero e mensile» — mentre la sua stessa finestra sommava
+  chilowattora veri. Il flusso cercava il contatore del periodo in una casella
+  sola (`daily_energy_entity`), la finestra ne guardava anche un'altra
+  (`daily`), e un apparecchio nato dal guscio vecchio ha la seconda e non la
+  prima: il cerchio non trovava niente da sommare e restava a zero. È la stessa
+  disparità già sanata per i watt, dove le caselle guardate sono cinque; qui
+  erano rimaste una. Il contatore proprio del gruppo, quando c'è, continua a
+  comandare sulla somma — anche quando dice zero, perché nel Giorno e nel Mese
+  uno zero è una misura vera.
+- **La casella «Entità caldaia» adesso dice a cosa serve.** Il suo titolo dice
+  di che tipo è — «switch, facoltativa» — e non a cosa serve. Sotto c'è ora la
+  riga che lo dice: è l'entità che rileva il consenso di accensione e
+  spegnimento della caldaia.
+- **E lo Stato termico dice cosa sono le sue voci.** Parlava di «voci sotto le
+  stanze del popup Caldo», cioè del posto in cui vanno a finire, che si scopre
+  dopo. Adesso dice quello che serve sapere prima: sono le entità della parte
+  termica di cui vuoi sapere se sono accese o spente.
+- **E l'icona scelta si vede.** Nella stessa riga la casella dell'icona era
+  larga dieci pixel: il tasto del catalogo se ne prendeva quarantadue su
+  cinquantadue, e di quello che si era scelto non restava niente da vedere —
+  solo il tasto blu, che sembrava dire «icona non impostata».
+- **Nel popup dei carichi ogni elettrodomestico ha il suo disegno.** «Le icone
+  riportate non sono quelle inserite»: otto apparecchi e otto prese uguali. Il
+  tipo — lavatrice, forno, frigorifero — arrivava fin dentro la finestra e
+  veniva buttato via, e restava il ripiego. Adesso c'e' il ritratto del
+  catalogo, lo stesso che mostrano la sezione Elettrodomestici e l'elenco della
+  scheda Carichi: due posti che parlano della stessa lavatrice devono mostrare
+  la stessa lavatrice. Chi un tipo non ce l'ha tiene il carattere che aveva.
+- **Un'apertura senza entita' adesso dice che non si vedra'.** «Se si creano
+  piu' aperture scompare l'interruttore del widget e non compare nel widget.»
+  Il meccanismo era sano — provate due aperture con la loro entita', tutte e
+  due hanno l'interruttore e tutte e due si vedono — ma una riga senza entita'
+  non compare da nessuna parte, e lo diceva soltanto con un «nessuna entita'»
+  grigio identico a ogni altro dettaglio. Adesso lo dice per intero, e si vede
+  che e' un avviso.
+
+- **La Gestione termica parlava italiano anche in francese.** Scegliendo la
+  lingua, la barra passava a Maison, Programme, Énergie — e in mezzo restava
+  «Gestione termica». Non era una voce sola: erano nove parole, tutto il
+  vocabolario di quella sezione, e nessuna arrivava ai cataloghi. La regola
+  scritta nell'architettura presa dalla parte sbagliata — il raccoglitore
+  guarda `src/sections/`, e quelle coppie vivevano nel nucleo. Il raccoglitore
+  aveva già la valvola per i moduli puri con tabelle bilingui; il modulo
+  termico ci entra, e le due coppie che restavano fuori — sciolte, una per
+  conto suo — sono andate nelle mappe dei casi che ricoprono.
+
+- **Due cose diverse non si chiamano più tutte e due «Aperture».** «Cambia nome
+  ad Aperture nei widget dove si inseriscono i sensori porta: chiamali
+  Porte/Finestre, altrimenti si confonde con le altre aperture. Quelle nella
+  sezione Sicurezza chiamale comandi apri porte/cancelli.» I contatti che
+  dicono se una finestra è aperta e i pulsanti che aprono un cancello portavano
+  lo stesso nome. Il nome nuovo arriva anche dove lo stampa il guscio
+  vendorizzato — l'intestazione della fisarmonica e la voce del menu del Quadro
+  Avvisi — e il nome vecchio resta come **alias**: quella tabella è quello che
+  stampiamo *e* quello con cui riconosciamo le righe già salvate, e
+  rinominarla e basta faceva perdere il gruppo a ogni riga. Un avviso senza
+  gruppo, al riavvio, sparisce.
+
+- **Una finestra che non sa da quando non dice più il primo gennaio 1970.** «6
+  aperte su 10… la più vecchia da 20698 giorni.» Chi costruisce le righe mette
+  `daQuando: null` quando Home Assistant non dice da quando, e la guardia
+  sembrava giusta: finito, e non nel futuro. Ma `Number(null)` fa zero, e zero
+  è finito e minore di adesso. Non sapere da quando è una risposta: quella riga
+  non entra nel conto, e se nessuna lo sa la frase finisce dopo il conto delle
+  aperte.
+
+- **Vuoto non è l'equatore.** Nel radar, `Number("")` fa zero, e zero è una
+  latitudine buonissima: quella dell'equatore. Una casella lasciata vuota
+  diventava un punto nell'oceano al largo dell'Africa, e il radar ci andava
+  davvero — con la faccia di uno che ha fatto quello che gli era stato chiesto.
+
+- **Nella barra le sezioni proprie stanno prima di Config.** Config è la voce
+  che si tocca di rado, e lasciarla in mezzo alla fila metteva le sezioni di
+  casa dietro l'impostazione: prima le stanze, poi gli attrezzi.
+
+- **E nel menu stretto della configurazione i nomi lunghi non si troncano più a
+  metà parola.** «Comandi apri porte/cancelli» diventava «Comandi apri porte/».
+  Lì va la stessa cosa detta corta — «Apri porte/cancelli» — come
+  «Elettrodom.» sta per «Elettrodomestici»; in testa alla sezione il nome resta
+  per esteso.
+
 ## 1.4.5-beta.9
 
 Il cruscotto della beta.8 si apriva e diceva «Risposta illeggibile», con tre

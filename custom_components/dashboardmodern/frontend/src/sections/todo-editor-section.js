@@ -50,6 +50,14 @@ function activeTab() {
 function catalogoTessere() {
   return [
     ["evidenza", "⭐", t("In evidenza", "Highlights")],
+    /* Le segnalazioni: la riga sta qui per tutti, ma la tessera in Home la
+     * vede solo chi tiene la repository — il suo modello torna `null` per
+     * chiunque altro. Chi non ha la console trova quindi un interruttore che
+     * governa una cosa che non gli comparirebbe comunque, ed e' preferibile
+     * al contrario: chi ce l'ha deve poterla spostare e spegnere come le
+     * altre, e una tessera senza la sua riga qui non si puo' ne' ordinare ne'
+     * nascondere. */
+    ["segnalazioni", "🎫", t("Segnalazioni", "Reports")],
     /* Impegni e cose da fare stanno in una tessera sola (#259): erano due
      * mattonelle con la stessa faccia, e chi guardava doveva ricordarsi quale
      * era quale. Dentro restano due blocchi, perche' un appuntamento succede a
@@ -79,7 +87,7 @@ function catalogoTessere() {
     ["piscina", "🏊", t("Piscina", "Pool")],
     ["prese", "🔌", t("Prese", "Sockets")],
     ["irrigazione", "💧", t("Irrigazione", "Irrigation")],
-    ["aperture", "🚪", t("Aperture", "Openings")],
+    ["aperture", "🚪", t("Porte/Finestre", "Doors/Windows")],
     /* Il gruppo di continuita' (#256): non e' la tessera delle batterie —
      * quella conta le pile dei sensori, questa dice se la casa ha corrente. */
     ["ups", "🔌", t("Continuità", "Backup power")],
@@ -154,7 +162,10 @@ function tessereMarkup() {
   ${compattoMarkup()}
   <div class="ed-list dm-widget-pref-list">${rows
     .map(
-      ([key, icon, label], index) => `<div class="ed-row dm-widget-pref" data-widget-key="${esc(key)}">
+      (
+        [key, icon, label],
+        index,
+      ) => `<div class="ed-row dm-widget-pref" data-widget-key="${esc(key)}">
         <span class="dm-widget-pref-icon" aria-hidden="true">${oggettoWidget(key, icon)}</span>
         <span class="ed-row-main"><strong class="ed-row-new">${esc(label)}</strong></span>
         <button type="button" class="ed-del dm-widget-move" data-widget-up aria-label="${t("Più in alto", "Move up")}"${index === 0 ? " disabled" : ""}>▲</button>

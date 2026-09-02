@@ -69,7 +69,6 @@ CLOSED_STATES = frozenset({STATE_RESOLVED, STATE_CLOSED})
 
 MAX_TITLE = 120
 MAX_BODY = 4000
-MAX_CONTACT = 190
 MAX_REPLY = 4000
 MAX_TICKETS = 100
 
@@ -150,7 +149,6 @@ def public_ticket(ticket: Mapping[str, Any]) -> dict[str, Any]:
         "type": ticket.get("type", TYPE_BUG),
         "title": ticket.get("title", ""),
         "body": ticket.get("body", ""),
-        "contact": ticket.get("contact", ""),
         "state": ticket.get("state", STATE_DRAFT),
         "created_at": int(ticket.get("created_at", 0) or 0),
         "updated_at": int(ticket.get("updated_at", 0) or 0),
@@ -192,11 +190,36 @@ class TicketStore:
                 "tickets": tickets if isinstance(tickets, list) else [],
             }
         self._loaded = True
+        buttato = self._butta_i_recapiti()
         if not self._data["installation_id"]:
             import uuid
 
             self._data["installation_id"] = uuid.uuid4().hex
+            buttato = True
+        if buttato:
             await self._async_save()
+
+    def _butta_i_recapiti(self) -> bool:
+        """Cancella dal disco i recapiti scritti dalle versioni precedenti.
+
+        Il campo «come ricontattarti» c'era ma non lo leggeva nessuno: restava
+        in casa — questo era vero — e la console del manutentore legge GitHub,
+        dove il recapito non arriva. Chiedere un indirizzo e-mail per poi non
+        farne niente e' la cosa peggiore fra le tre possibili: si conserva un
+        dato personale, non serve a nessuno, e chi lo scrive crede di essere
+        raggiungibile.
+
+        Toglierlo dal modulo non basta: quello che e' gia' stato scritto sta
+        sul disco di chi la plancia ce l'ha da mesi, e resterebbe li' finche'
+        quel ticket non cade dal fondo dello store. Qui sparisce alla prima
+        accensione della versione che l'ha tolto.
+        """
+        buttato = False
+        for ticket in self._tickets():
+            if "contact" in ticket:
+                del ticket["contact"]
+                buttato = True
+        return buttato
 
     async def _async_save(self) -> None:
         await self._store.async_save(self._data)
@@ -247,18 +270,33 @@ class TicketStore:
             if ticket.get("state") == STATE_DRAFT
         ]
 
-    def remote_ids(self) -> list[str]:
+    def remote_ids(self, *, every: bool = False) -> list[str]:
         """Gli identificativi remoti di cui ha senso chiedere lo stato.
 
         Un ticket gia' chiuso non si richiede piu': la console non lo
-        riaprira', e ogni giro di sync costa una richiesta a chi ospita il
-        relay.
+        riaprira', e ogni giro di sync costa una richiesta.
+
+        Con ``every`` ci sono anche i chiusi, e serve al campanello. Li' la
+        domanda e' un'altra — non «cosa devo rileggere», ma «quali
+        conversazioni sono mie» — e una risposta arrivata sotto una
+        segnalazione chiusa la settimana prima e' esattamente il messaggio che
+        non si vuole perdere. Non costa niente: quel giro e' una richiesta
+        sola, e questo elenco serve solo a scartare le righe degli altri.
         """
         return [
             str(ticket.get("remote_id"))
             for ticket in self._tickets()
-            if ticket.get("remote_id") and ticket.get("state") not in CLOSED_STATES
+            if ticket.get("remote_id")
+            and (every or ticket.get("state") not in CLOSED_STATES)
         ]
+
+    def owns_remote(self, opened_by: str, remote_id: str) -> bool:
+        """Se questa segnalazione, su GitHub, l'ha aperta proprio questo utente."""
+        return any(
+            str(ticket.get("remote_id")) == str(remote_id)
+            and ticket.get("opened_by", "") == opened_by
+            for ticket in self._tickets()
+        )
 
     def _make_room(self) -> None:
         """Tieni lo store sotto il tetto, cedendo prima i ticket gia' chiusi."""
@@ -288,7 +326,6 @@ class TicketStore:
         ticket_type: str,
         title: str,
         body: str,
-        contact: str = "",
         diagnostics: Mapping[str, Any] | None = None,
         opened_by: str = "",
     ) -> dict[str, Any]:
@@ -315,7 +352,6 @@ class TicketStore:
             "type": ticket_type,
             "title": titolo,
             "body": corpo,
-            "contact": _clean(contact, MAX_CONTACT).replace("\n", " "),
             "state": STATE_DRAFT,
             "created_at": now,
             "updated_at": now,

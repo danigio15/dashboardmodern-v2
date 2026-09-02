@@ -205,6 +205,13 @@ const LOCALE_IDENTITIES = {
     "Recirculation",
     "Saturation",
     "Script",
+    /* Une section reste une section: e' la stessa parola in tutte e due, e
+       «rubrique» qui direbbe un'altra cosa. */
+    "Section",
+    /* Le coordinate: si scrivono cosi' in francese da prima che ci fosse
+       l'inglese. */
+    "Latitude",
+    "Longitude",
     "Session",
     "Sessions",
     "Total",
@@ -214,6 +221,11 @@ const LOCALE_IDENTITIES = {
     "Zone",
   ]),
   de: new Set([
+    /* «optional» e' la parola tedesca corrente: tradurla peggiorerebbe.
+       */
+    "Name (optional)",
+    /* E il raggio si scrive cosi' anche in tedesco. */
+    "Radius (km)",
     "Polo",
     "💨 Wind",
     "${value} offline",
@@ -259,6 +271,9 @@ const LOCALE_IDENTITIES = {
     "Zone",
   ]),
   pt: new Set([
+    /* Le coordinate si scrivono cosi' anche in portoghese. */
+    "Latitude",
+    "Longitude",
     "Casual",
     "Natural",
     "Polo",

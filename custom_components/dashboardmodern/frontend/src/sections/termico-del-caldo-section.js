@@ -23,6 +23,7 @@ import {
   t,
   wrapFunction,
 } from "./shared.js";
+import { normalizzaCaldaie } from "../core/impianti-termici.js";
 import { openIconPicker } from "./icon-engine-section.js";
 
 const KEY = "__DASHBOARDMODERN_TERMICO_CALDO__";
@@ -168,38 +169,101 @@ export function disegnaPannello() {
  * segue la voce caldaia di `cd_termico_caldo` — quella col nome che lo dice —
  * e quando e' accesa racconta anche da quanto. Senza una caldaia configurata,
  * niente pillola. */
-/* Lo stato della caldaia per chi lo racconta altrove: la testata della
- * sezione Clima («mostrare lo stato caldaia, e se accesa da quanto»).
- * Senza una voce caldaia configurata torna null e chi chiede non disegna. */
-export function statoCaldaia() {
-  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
-  if (!caldaia) return null;
-  const stato = statoDi(caldaia.entity);
+function comeSta(nome, entity) {
+  const stato = statoDi(entity);
   const acceso = stato === "on";
   const noto = Boolean(stato) && !["unavailable", "unknown"].includes(stato);
-  const da = acceso ? daQuanto(allStates()?.[entitaViva(caldaia.entity)]?.last_changed) : "";
-  return { nome: caldaia.name, acceso, noto, da };
+  const da = acceso ? daQuanto(allStates()?.[entitaViva(entity)]?.last_changed) : "";
+  return { nome, entity, acceso, noto, da };
+}
+
+/* Tutte le caldaie, per chi le racconta altrove: la testata della sezione
+ * Clima («mostrare lo stato caldaia, e se accesa da quanto»), e adesso al
+ * plurale — «la doppia caldaia va inserita anche nella sezione clima».
+ *
+ * Le fonti sono due e nessuna delle due basta da sola. `cd_termico_caldo` e'
+ * l'elenco libero dello Stato termico, dove una caldaia si riconosce dal nome;
+ * `cd_caldaia` e' la Gestione termica di #281, dove ogni macchina ha un nome
+ * suo e una casella «stato» che dice proprio acceso o spento. Chi ha
+ * configurato «Zona giorno» e «Zona notte» di la' se le aspetta qui, e chi ha
+ * sempre usato l'elenco libero non deve accorgersi di niente.
+ *
+ * L'unione e' per entita' risolta, non per nome: la stessa caldaia dichiarata
+ * in tutti e due i posti e' una caldaia sola, e comparire due volte nella
+ * testata sarebbe peggio che non comparire.
+ */
+export function statiDelleCaldaie() {
+  const viste = new Set();
+  const caldaie = [];
+  const aggiungi = (nome, entity) => {
+    const vera = entitaViva(entity);
+    if (!clean(entity) || viste.has(vera)) return;
+    viste.add(vera);
+    caldaie.push(comeSta(nome, entity));
+  };
+  for (const voce of vociAttuali())
+    if (REGEX_CALDAIA.test(voce.name)) aggiungi(voce.name, voce.entity);
+  for (const riga of normalizzaCaldaie(root.cdCfg?.("cd_caldaia")))
+    aggiungi(clean(riga.name) || t("Caldaia", "Boiler"), riga.stato);
+  return caldaie;
+}
+
+/* La prima, per chi ne racconta una sola — la pillola sotto il meteo. */
+export function statoCaldaia() {
+  return statiDelleCaldaie()[0] || null;
 }
 
 export function pillolaDellaCaldaia() {
   const banner = doc?.getElementById?.("caldaia-banner");
   if (!banner) return false;
-  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
-  if (!caldaia) {
-    banner.classList.remove("show");
-    return true;
-  }
-  const acceso = statoDi(caldaia.entity) === "on";
-  banner.classList.toggle("show", acceso);
+  const caldaie = statiDelleCaldaie();
+  const accese = caldaie.filter((caldaia) => caldaia.acceso);
+  banner.classList.toggle("show", accese.length > 0);
   const testo = banner.querySelector(".caldaia-banner-text");
-  if (testo) {
-    const da = acceso ? daQuanto(allStates()?.[entitaViva(caldaia.entity)]?.last_changed) : "";
-    testo.textContent = `${t("Caldaia accesa", "Furnace on")}${da ? ` · ${da}` : ""}`;
+  if (testo && accese.length) {
+    /* Con una caldaia sola la pillola resta la frase di sempre: dire il nome
+     * di una macchina quando ce n'e' una serve a distinguerla da chi? Da due
+     * in su il nome e' l'unica cosa che manca — «Zona notte accesa» mentre la
+     * testata del Clima dice la stessa cosa — e quando ne lavorano piu' d'una
+     * il conto vale piu' dei nomi in fila. Il numero sta in coda, che e' il
+     * modo di contare senza doverne accordare il plurale. */
+    const prima = accese[0];
+    const quando = prima.da ? ` · ${prima.da}` : "";
+    testo.textContent =
+      caldaie.length < 2
+        ? `${t("Caldaia accesa", "Furnace on")}${quando}`
+        : accese.length === 1
+          ? `${prima.nome} · ${t("Accesa", "On")}${quando}`
+          : `${t("Caldaie accese", "Boilers on")} ${accese.length}`;
   }
   return true;
 }
 
 /* ── La scheda in configurazione ─────────────────────────────────────── */
+
+/* La casella «Entità caldaia» del guscio, che una spiegazione non ce l'ha.
+ *
+ * «Questa descrizione la devi mettere qua»: e' la casella dove va l'entita'
+ * che dice se la caldaia sta lavorando, e il suo nome — «switch, facoltativa»
+ * — racconta di che tipo e' e non a cosa serve. La riga si aggiunge sotto,
+ * dentro lo stesso riquadro, perche' il guscio non si tocca a mano.
+ *
+ * Si riconosce dal `data-ref`, che e' l'aggancio con cui il guscio stesso la
+ * salva: il titolo cambia con la lingua, quello no. */
+function spiegaLaCasellaCaldaia(corpo) {
+  const casella = corpo?.querySelector?.('[data-ref="switch.caldaia"]');
+  const riquadro = casella?.closest?.(".ed-slot");
+  if (!riquadro || riquadro.querySelector("[data-dm-termico-aiuto]")) return false;
+  const riga = doc.createElement("div");
+  riga.className = "ed-hint dm-termico-aiuto";
+  riga.dataset.dmTermicoAiuto = "";
+  riga.textContent = t(
+    "L'entità che rileva il consenso di accensione e spegnimento della caldaia.",
+    "The entity that reports the boiler's call for heat, on or off.",
+  );
+  riquadro.append(riga);
+  return true;
+}
 
 function rigaEditor(voce, indice) {
   const nodo = doc.createElement("div");
@@ -209,7 +273,7 @@ function rigaEditor(voce, indice) {
     `<span class="ed-form-row dm-termico-icona-riga"><input class="ed-input dm-termico-icona" maxlength="24" value="${esc(voce.icon || "")}" placeholder="🔥" aria-label="${t("Icona", "Icon")}">` +
     `<button type="button" class="dm-termico-icona-btn" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span>` +
     `<input class="ed-input dm-termico-nome" value="${esc(voce.name || "")}" placeholder="${t("Nome (es. Caldaia)", "Name (e.g. Boiler)")}">` +
-    `<span class="ed-form-row dm-termico-presa"><input class="ed-input ed-slot-in mono dm-termico-entita" value="${esc(voce.entity || "")}" placeholder="switch.caldaia">` +
+    `<span class="ed-form-row dm-termico-presa"><input class="ed-input ed-slot-in mono dm-termico-entita" value="${esc(voce.entity || "")}" placeholder="switch.caldaia" aria-label="${t("Entità del consenso", "Call-for-heat entity")}" title="${t("L'entità che dice se è acceso o spento", "The entity that says whether it is on or off")}">` +
     `<button type="button" class="dm-entity-picker" aria-label="${t("Seleziona", "Select")}">🔍</button></span>` +
     `<button type="button" class="ed-del dm-termico-via" aria-label="${t("Elimina", "Delete")}">🗑️</button>`;
   nodo.dataset.indice = String(indice);
@@ -240,6 +304,7 @@ function montaEditor() {
     corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => nodo.remove());
     return false;
   }
+  spiegaLaCasellaCaldaia(corpo);
   const blocco = aggiungi.parentElement || corpo;
   corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => {
     if (!blocco.contains(nodo)) nodo.remove();
@@ -255,9 +320,14 @@ function montaEditor() {
   );
   carta.innerHTML =
     `<div class="ed-sec-title">🔥 ${t("Stato termico (Caldo)", "Thermal status (Heat)")}</div>` +
+    /* La spiegazione dice cosa sono queste voci, non dove finiscono.
+     *
+     * Parlava di «voci sotto le stanze del popup Caldo»: e' il posto in cui
+     * vanno a finire, e lo si scopre dopo. Quello che serve sapere prima e'
+     * che cosa ci si mette dentro. */
     `<div class="ed-hint">${t(
-      "Le voci sotto le stanze del popup Caldo: caldaia, pompe, aspiratori — quello che vuoi. Ogni voce si salva appena cambia; senza voci il pannello sparisce.",
-      "The rows under the rooms of the Heat popup: boiler, pumps, fans — whatever you need. Every row saves as it changes; with no rows the panel disappears.",
+      "Le entità della parte termica di cui vuoi sapere se sono accese o spente: caldaia, pompe, aspiratori — quello che ti serve. Ogni voce dice acceso o spento nel popup Caldo, sotto le stanze. Senza voci il pannello non compare.",
+      "The entities on the heating side you want to know are on or off: boiler, pumps, fans — whatever you need. Every row says on or off in the Heat popup, under the rooms. With no rows the panel does not appear.",
     )}</div>` +
     `<div class="dm-termico-righe"></div>` +
     `<button type="button" class="ed-btn-add dm-termico-aggiungi">＋ ${t("Aggiungi voce", "Add row")}</button>`;
@@ -298,11 +368,20 @@ function montaEditor() {
 const STILE = `
 .ns-thermal-state .dm-termico-da{display:block;font-size:9px;font-weight:700;opacity:.75;letter-spacing:.3px}
 .dm-termico-carta{margin-top:14px}
+/* La spiegazione della casella caldaia sta dentro il suo riquadro, fra il
+   titolo e la casella: prima si legge a cosa serve, poi la si compila. Ha la
+   voce di una nota — piccola e smorzata — perche' non deve competere con la
+   casella che spiega. */
+.dm-termico-aiuto{margin:2px 0 8px;font-size:12px;line-height:1.4;color:var(--secondary-text-color,#64748b)}
 .dm-termico-righe{display:grid;gap:8px;margin:10px 0}
-.dm-termico-riga{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}
+/* La prima colonna tiene la casella dell'icona E il tasto del catalogo: a
+   52 px il tasto ne prende 42 e alla casella ne restano dieci, cioe' l'icona
+   scelta non si vedeva — restava solo il tasto blu, e sembrava che l'icona
+   non ci fosse. Adesso la colonna e' larga quanto le due cose che contiene. */
+.dm-termico-riga{display:grid;grid-template-columns:96px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}
 .dm-termico-riga .dm-termico-icona{text-align:center;padding-inline:4px}
 .dm-termico-icona-riga{display:flex;gap:6px;min-width:0}
-.dm-termico-icona-riga .dm-termico-icona{flex:1 1 auto;min-width:0}
+.dm-termico-icona-riga .dm-termico-icona{flex:1 1 auto;min-width:0;font-size:17px}
 .dm-termico-icona-btn{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:12px;background:linear-gradient(145deg,#12aee4,#047faf);color:#fff;font-size:15px;cursor:pointer}
 .dm-termico-riga .dm-termico-presa{display:flex;gap:6px}
 .dm-termico-riga .dm-termico-presa .dm-termico-entita{flex:1;min-width:0}

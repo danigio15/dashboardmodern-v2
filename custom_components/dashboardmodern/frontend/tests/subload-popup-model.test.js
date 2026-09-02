@@ -210,3 +210,120 @@ test("the popup names the circle it was opened from, with its period", () => {
   assert.equal(model.icon, "🍳");
   assert.equal(model.id, "cucina");
 });
+
+/* ── ogni apparecchio col suo disegno ──────────────────────────────────────
+ *
+ * «Nel popup energetico dei carichi elettrodomestici le icone riportate non
+ * sono quelle inserite»: otto apparecchi e otto prese uguali. Il tipo arrivava
+ * fin qui e veniva buttato via. */
+
+test("il tipo dell'elettrodomestico arriva fino alla carta", () => {
+  const model = subloadPopupModel({
+    load: KITCHEN,
+    children: [
+      { id: "lav", name: "Lavatrice", device_type: "lavatrice" },
+      { id: "fri", name: "Frigorifero", type: "frigorifero" },
+      { id: "cnd", name: "Condizionatore", visual_key: "condizionatori" },
+      { id: "gen", name: "Frog" },
+    ],
+    states: {},
+  });
+  const di = (id) => model.items.find((item) => item.id === id);
+  assert.equal(di("lav").visual, "lavatrice");
+  assert.equal(di("fri").visual, "frigorifero");
+  /* Il campo del catalogo vince sul tipo, come nell'elenco della scheda
+   * Carichi: e' quello che chi configura ha scelto a mano. */
+  assert.equal(di("cnd").visual, "condizionatori");
+  // Chi un tipo non ce l'ha non ne riceve uno inventato: resta il carattere.
+  assert.equal(di("gen").visual, "");
+  assert.equal(di("gen").icon, "🔌");
+});
+
+test("le due schede che parlano della stessa lavatrice la leggono allo stesso modo", async () => {
+  /* L'elenco della scheda Carichi risolveva gia' il tipo cosi'; il popup no, e
+   * per questo mostravano due lavatrici diverse. La regola e' una sola, e
+   * queste due righe la tengono uguale nei due posti. */
+  const { readFile } = await import("node:fs/promises");
+  const regola = /visual_key \|\| child\.visual \|\| child\.device_type \|\| child\.type/;
+  for (const dove of ["../src/core/energy-loads-config.js", "../src/core/subload-popup-model.js"]) {
+    const fonte = await readFile(new URL(dove, import.meta.url), "utf8");
+    assert.match(fonte, regola, dove);
+  }
+});
+
+/* ── il periodo decide i numeri, non solo la scritta ───────────────────────
+ *
+ * «I popup giornaliera e mensile non riportano i dati corretti: portano quelli
+ * attualmente in consumo.» La finestra scriveva GIORNO o MESE in testata e poi
+ * mostrava i watt di adesso, con sotto «kWh oggi» anche guardando il mese. */
+
+const CASA = { id: "elettro", name: "Elettrodomestici", icon: "🔌", color: "#0ea5e9" };
+const DENTRO = [
+  { id: "cond", name: "Condizionatore", power: "sensor.cond_power", daily: "sensor.cond_day", monthly: "sensor.cond_month" },
+  { id: "frigo", name: "Frigorifero", power: "sensor.frigo_power", daily: "sensor.frigo_day", monthly: "sensor.frigo_month" },
+];
+const STATI = {
+  "sensor.cond_power": { state: "1170" },
+  "sensor.cond_day": { state: "7.5" },
+  "sensor.cond_month": { state: "41.2" },
+  "sensor.frigo_power": { state: "84" },
+  "sensor.frigo_day": { state: "0.7" },
+  "sensor.frigo_month": { state: "21" },
+};
+const perPeriodo = (period) =>
+  subloadPopupModel({ load: CASA, children: DENTRO, states: STATI, period });
+
+test("in ISTANTANEO il numero grande sono i watt, e sotto i kWh di oggi", () => {
+  const model = perPeriodo("instant");
+  const cond = model.items.find((item) => item.id === "cond");
+  assert.equal(cond.valoreText, "1,17 kW");
+  assert.equal(cond.sottoText, "7,5 kWh");
+  assert.equal(cond.sottoQuando, "oggi");
+  assert.equal(model.totalText, "1,25 kW");
+});
+
+test("nel GIORNO il numero grande è l'energia di oggi, e sotto i watt di adesso", () => {
+  const model = perPeriodo("day");
+  const cond = model.items.find((item) => item.id === "cond");
+  assert.equal(cond.valoreText, "7,5 kWh");
+  assert.equal(cond.sottoText, "1,17 kW");
+  assert.equal(cond.sottoQuando, "adesso");
+  // Il totale in testata è la somma di quel periodo, non dei watt.
+  assert.equal(model.totalText, "8,2 kWh");
+});
+
+test("nel MESE il numero grande è l'energia del mese", () => {
+  const model = perPeriodo("month");
+  assert.equal(model.items.find((item) => item.id === "cond").valoreText, "41,2 kWh");
+  assert.equal(model.items.find((item) => item.id === "frigo").valoreText, "21,0 kWh");
+  assert.equal(model.totalText, "62,2 kWh");
+});
+
+test("l'ordine e la barra seguono il periodo che si sta guardando", () => {
+  /* Nel Giorno il condizionatore ha consumato piu' del frigo, e la barra
+   * confronta dentro il periodo: ordinare per watt lascerebbe in cima chi in
+   * questo momento tira di piu', che nel Mese non vuol dire niente. */
+  const mese = perPeriodo("month");
+  assert.deepEqual(mese.items.map((item) => item.id), ["cond", "frigo"]);
+  assert.equal(mese.items[0].share, 1);
+  assert.ok(Math.abs(mese.items[1].share - 21 / 41.2) < 1e-9);
+});
+
+test("un periodo sconosciuto non inventa numeri: resta l'istantaneo", () => {
+  assert.equal(perPeriodo("settimana").periodo, "instant");
+  assert.equal(perPeriodo().periodo, "instant");
+});
+
+test("un apparecchio senza contatore del mese non finisce nel totale", () => {
+  /* Non lo si conta come zero: «non lo so» e «non ha consumato» sono due cose
+   * diverse, e la seconda detta al posto della prima fa una somma piu' bassa
+   * del vero senza dirlo. */
+  const model = subloadPopupModel({
+    load: CASA,
+    children: [...DENTRO, { id: "muto", name: "Frog", power: "sensor.muto_power" }],
+    states: { ...STATI, "sensor.muto_power": { state: "0" } },
+    period: "month",
+  });
+  assert.equal(model.items.find((item) => item.id === "muto").valore, null);
+  assert.equal(model.totalText, "62,2 kWh");
+});

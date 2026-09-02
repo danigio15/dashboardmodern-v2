@@ -125,7 +125,7 @@ const TARGETS = [
     settle: 900,
     modal: true,
     setup: () => {
-      window.__dmPreviewTickets("console");
+      window.__dmPreviewTickets("pagina");
     },
   },
   {
@@ -139,6 +139,44 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-widget",
+    title: "Segnalazioni \u00b7 la tessera in Home",
+    both: true,
+    settle: 1200,
+    setup: () => {
+      window.__dmPreviewTickets("widget");
+      window.__dmPreview.tab("home");
+    },
+  },
+  {
+    id: "segnalazioni-widget-popup",
+    title: "Segnalazioni \u00b7 la finestra della tessera",
+    both: true,
+    setup: () => {
+      window.__dmPreviewTickets("widget");
+      window.__dmPreview.tab("home");
+      /* Come per le altre tessere: si dice al modulo quale vuole aperta e la
+         si lascia disegnare, perche' premerla dal di fuori non sopravvive al
+         ridisegno del cambio pagina. */
+      setTimeout(() => {
+        const stato = window.__DASHBOARDMODERN_HOME_WIDGETS__;
+        if (stato) stato.expanded = "segnalazioni";
+        window.dispatchEvent(new Event("resize"));
+      }, 2400);
+    },
+    settle: 3600,
+  },
+  {
+    id: "segnalazioni-difetti",
+    title: "Segnalazioni \u00b7 i difetti da lavorare",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("difetti");
+    },
+  },
+  {
     id: "segnalazioni-filo",
     title: "Segnalazioni · il filo di una segnalazione",
     both: true,
@@ -146,6 +184,16 @@ const TARGETS = [
     modal: true,
     setup: () => {
       window.__dmPreviewTickets("filo");
+    },
+  },
+  {
+    id: "segnalazioni-mio-filo",
+    title: "Segnalazioni · la mia discussione, e la casella per rispondere",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("miofilo");
     },
   },
   {
@@ -1248,6 +1296,14 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/197",
           author: "marco-b",
           origin: "plancia",
+          diagnostics: {
+            integration_version: "1.4.5-beta.9",
+            ha_version: "2026.8.3",
+            locale: "it",
+            panel_section: "ev",
+            user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/152.0.0.0",
+          },
+          created_at: new Date(Date.now()).toISOString(),
           comments: 2,
           attachments: 1,
         },
@@ -1260,6 +1316,13 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/196",
           author: "chiara-r",
           origin: "plancia",
+          diagnostics: {
+            integration_version: "1.4.5-beta.8",
+            ha_version: "2026.8.3",
+            locale: "it",
+            panel_section: "config",
+          },
+          created_at: new Date(Date.now()).toISOString(),
           comments: 1,
           attachments: 0,
         },
@@ -1272,8 +1335,17 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
           author: "anna-g",
           origin: "plancia",
+          diagnostics: {
+            integration_version: "1.4.5-beta.7",
+            ha_version: "2026.7.1",
+            locale: "it",
+            panel_section: "shutters",
+            user_agent: "Mozilla/5.0 (iPhone) Version/18.2 Safari/605.1",
+          },
+          created_at: new Date(Date.now() - 70 * GIORNO).toISOString(),
           comments: 2,
           attachments: 2,
+          assignees: ["danigio15"],
         },
         {
           number: 191,
@@ -1284,6 +1356,12 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/191",
           author: "luca-t",
           origin: "plancia",
+          diagnostics: {
+            integration_version: "1.4.5-beta.9",
+            ha_version: "2026.8.3",
+            locale: "en",
+          },
+          created_at: new Date(Date.now() - 3 * GIORNO).toISOString(),
           comments: 1,
           attachments: 0,
         },
@@ -1296,6 +1374,12 @@ async function bootPage(context, cameraStill, vehicleStill) {
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/186",
           author: "anna-g",
           origin: "plancia",
+          diagnostics: {
+            integration_version: "1.4.5-beta.5",
+            ha_version: "2026.6.2",
+            locale: "it",
+          },
+          created_at: new Date(Date.now() - 20 * GIORNO).toISOString(),
           comments: 3,
           attachments: 0,
         },
@@ -1306,10 +1390,12 @@ async function bootPage(context, cameraStill, vehicleStill) {
           body: "La telecamera si vede in Home Assistant ma nella pagina Sicurezza resta nera.",
           state: "in-carico",
           origin: "github",
+          created_at: new Date(Date.now() - 45 * GIORNO).toISOString(),
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/232",
           author: "andyz68",
           comments: 3,
           attachments: 0,
+          assignees: ["danigio15"],
         },
         {
           number: 266,
@@ -1318,6 +1404,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           body: "Sarebbe comodo vedere il radar accanto alle previsioni, nella stessa pagina.",
           state: "inviato",
           origin: "github",
+          created_at: new Date(Date.now() - 1 * GIORNO).toISOString(),
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/266",
           author: "pier08-byte",
           comments: 0,
@@ -1328,8 +1415,9 @@ async function bootPage(context, cameraStill, vehicleStill) {
           type: "",
           title: "[Feature]:",
           body: "Il modulo e' partito col titolo vuoto: nessuna etichetta, nessun prefisso da leggere.",
-          state: "in-carico",
+          state: "inviato",
           origin: "github",
+          created_at: new Date(Date.now() - 5 * GIORNO).toISOString(),
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/249",
           author: "nictes75",
           comments: 2,
@@ -1337,7 +1425,8 @@ async function bootPage(context, cameraStill, vehicleStill) {
         },
       ];
       const collegato = dove !== "collega" && dove !== "codice";
-      const daManutentore = dove === "console" || dove === "filo" || dove === "chiuse";
+      const daManutentore =
+        dove === "console" || dove === "filo" || dove === "chiuse" || dove === "difetti";
       const account = collegato
         ? { connected: true, login: "anna-g", maintainer: daManutentore }
         : { connected: false, login: "", maintainer: false };
@@ -1385,6 +1474,55 @@ async function bootPage(context, cameraStill, vehicleStill) {
             },
           ],
         },
+        "dashboardmodern/tickets/thread/194": {
+          number: 194,
+          body: "Premo stop dalla pagina Finestre e continuano a scendere fino in fondo. Con due Shelly 2PM su tre succede sempre.",
+          attachments: [],
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
+          state: "in-carico",
+          diagnostics: {
+            integration_version: "1.4.5-beta.7",
+            ha_version: "2026.7.1",
+            locale: "it",
+            panel_section: "shutters",
+          },
+          comments: [
+            {
+              id: "1",
+              author: "danigio15",
+              maintainer: true,
+              at: "2026-08-31T18:10:00Z",
+              body: "Riprodotta: il comando stop parte, ma la seconda tapparella lo ignora. Sto guardando come il rele' riporta la posizione.",
+              attachments: [],
+            },
+            {
+              id: "2",
+              author: "anna-g",
+              maintainer: false,
+              at: "2026-09-01T07:55:00Z",
+              body: "Ho aggiornato il firmware dello Shelly e non e' cambiato niente. Se serve provo a togliere l'altra tapparella dal gruppo.",
+              attachments: [],
+            },
+          ],
+        },
+        "dashboardmodern/tickets/unread": {
+          messages: [
+            {
+              number: 197,
+              title: "La foto dell'auto torna quella di prima dopo il salvataggio",
+              messages: 2,
+              at: "2026-09-01T09:02:00Z",
+              opened: false,
+            },
+            {
+              number: 266,
+              title: "aggiunta radar meteo assieme al meteo",
+              messages: 1,
+              at: "2026-09-01T09:10:00Z",
+              opened: true,
+            },
+          ],
+        },
         "dashboardmodern/tickets/auth/start": {
           user_code: "WDJB-MJHT",
           device_code: "finto",
@@ -1416,14 +1554,35 @@ async function bootPage(context, cameraStill, vehicleStill) {
             ? "mie"
             : dove === "collega"
               ? "nuova"
-              : dove === "allegati"
+              : dove === "allegati" || dove === "miofilo"
                 ? "mie"
-                : dove === "filo" || dove === "chiuse"
+                : dove === "filo" || dove === "chiuse" || dove === "difetti"
                   ? "console"
                   : dove;
-        stato.fili = {};
+        stato.fili =
+          dove === "miofilo" ? { 194: risposte["dashboardmodern/tickets/thread/194"] } : {};
+        /* Nella vista «le mie» c'e' anche la propria, col filo chiuso: e' il
+           caso che il pallino serve a mostrare. In «miofilo» no — quel filo e'
+           aperto davanti agli occhi, e averlo aperto e' averlo letto. */
+        stato.nonLetti = [
+          ...risposte["dashboardmodern/tickets/unread"].messages,
+          ...(dove === "mie"
+            ? [
+                {
+                  number: 194,
+                  title: "Le tapparelle non si fermano a meta'",
+                  messages: 1,
+                  at: "2026-09-01T09:20:00Z",
+                  opened: false,
+                },
+              ]
+            : []),
+        ];
         stato.filiInCorso = {};
-        stato.queue = dove === "console" || dove === "filo" || dove === "chiuse" ? coda : null;
+        stato.queue =
+          dove === "console" || dove === "filo" || dove === "chiuse" || dove === "difetti"
+            ? coda
+            : null;
         stato.auth =
           dove === "codice"
             ? {
@@ -1438,18 +1597,56 @@ async function bootPage(context, cameraStill, vehicleStill) {
           dove === "codice" ? "Salvata. Manca solo la firma: autorizza GitHub e parte." : "";
         stato.tipo = "bug";
         stato.filtro = dove === "chiuse" ? "chiuse" : "aperte";
+        stato.tipoCoda = dove === "difetti" ? "bug" : "";
         stato.bozza =
           dove === "nuova"
             ? {
                 title: "Le tapparelle non si fermano a meta'",
                 body: "Premo stop dalla pagina Finestre e continuano a scendere fino in fondo.\n\nSuccede con due Shelly 2PM su tre. La terza si ferma dove deve.",
-                contact: "",
               }
-            : { title: "", body: "", contact: "" };
+            : { title: "", body: "" };
+      }
+      if (dove === "pagina" || dove === "chiuse" || dove === "difetti" || dove === "filo") {
+        /* Il cruscotto e' una pagina della barra: si semina lo stato, si lascia
+           che la sezione la costruisca, e si va li' invece di aprire la
+           finestra delle segnalazioni. */
+        if (stato) {
+          stato.console = true;
+          stato.queue = coda;
+          stato.queueAt = Date.now();
+          stato.nonLetti = risposte["dashboardmodern/tickets/unread"].messages;
+          stato.filtro = dove === "chiuse" ? "chiuse" : "aperte";
+          stato.tipoCoda = dove === "difetti" ? "bug" : "";
+          if (dove === "filo") stato.fili = { 197: risposte["dashboardmodern/tickets/thread"] };
+        }
+        window.DashboardModernSegnalazioni?.sistema?.();
+        setTimeout(() => document.querySelector('.tab[data-tab="cruscotto"]')?.click(), 300);
+        return;
+      }
+      if (dove === "widget") {
+        // La tessera vive in Home: qui si semina soltanto quello che le serve.
+        if (stato) {
+          stato.console = true;
+          stato.queue = coda;
+          stato.queueAt = Date.now();
+          stato.nonLetti = risposte["dashboardmodern/tickets/unread"].messages;
+        }
+        return;
       }
       window.DashboardModernSegnalazioni?.apri();
       if (dove === "filo" && stato) {
         stato.fili = { 197: risposte["dashboardmodern/tickets/thread"] };
+      }
+      if (dove === "miofilo") {
+        /* Una frase gia' battuta nella casella: a vuoto la chat sembrerebbe
+           una casella qualunque, e il tasto — che si accende col testo —
+           resterebbe spento proprio nella foto che serve a mostrarlo. */
+        setTimeout(() => {
+          const campo = document.getElementById("dm-tkt-mio-194");
+          if (!campo) return;
+          campo.value = "Provo a togliere l'altra tapparella dal gruppo e ti dico.";
+          campo.dispatchEvent(new Event("input", { bubbles: true }));
+        }, 200);
       }
     };
 

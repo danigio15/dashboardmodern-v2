@@ -41,6 +41,21 @@ function mappaDelGuscio() {
   return [...corpo.matchAll(/(\w+)\s*:\s*'[\w-]+'/g)].map((riscontro) => riscontro[1]);
 }
 
+/* La chiave che governa le voci di un modulo, quando le voci sono tante e i
+ * loro nomi si calcolano.
+ *
+ * Le sezioni che si fa l'utente (#262) sono N, e la chiave di ognuna nasce dal
+ * suo id: `dataset.tab` non porta una costante da leggere. Ma la domanda che
+ * questa prova fa non e' «come si chiama quella voce», e' «chi la spegne» — e
+ * la risposta e' scritta lo stesso, nella riga con cui il modulo interroga
+ * `cd_sections`. Quella e' la chiave che deve avere il suo interruttore. */
+function chiaveDiGoverno(fonte) {
+  const riscontro = /\[\s*([A-Z_][\w]*)\s*\]\s*===\s*false/.exec(fonte);
+  if (!riscontro) return null;
+  const dichiarazione = new RegExp(`\\b${riscontro[1]}\\s*=\\s*"([\\w-]+)"`).exec(fonte);
+  return dichiarazione?.[1] || null;
+}
+
 /* Le voci che i moduli aggiungono a runtime: si riconoscono dal gesto con cui
  * nascono — si cerca la barra del guscio e si scrive `dataset.tab`. */
 function vociDeiModuli() {
@@ -50,8 +65,18 @@ function vociDeiModuli() {
     for (const riscontro of fonte.matchAll(/\w+\.dataset\.tab\s*=\s*(\w+);/g)) {
       const costante = riscontro[1];
       const dichiarazione = new RegExp(`\\b${costante}\\s*=\\s*"([\\w-]+)"`).exec(fonte);
-      assert.ok(dichiarazione, `${nome}: non trovo cosa vale ${costante}`);
-      voci.push({ nome, chiave: dichiarazione[1] });
+      if (dichiarazione) {
+        voci.push({ nome, chiave: dichiarazione[1] });
+        continue;
+      }
+      /* Nome calcolato: allora deve dire chi lo spegne, o non lo spegne
+       * nessuno — che e' esattamente il buco che questa prova tiene chiuso. */
+      const governo = chiaveDiGoverno(fonte);
+      assert.ok(
+        governo,
+        `${nome}: la voce nasce con un nome calcolato (${costante}) e il modulo non dice quale chiave di cd_sections la spegne`,
+      );
+      voci.push({ nome, chiave: governo });
     }
   }
   return voci;

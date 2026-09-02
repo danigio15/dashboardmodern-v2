@@ -1,0 +1,60 @@
+# Etichetta le segnalazioni che arrivano dalla plancia.
+#
+# I moduli di GitHub l'etichetta la mettono da soli — sta scritta in
+# `.github/ISSUE_TEMPLATE/*.yml`. Le segnalazioni aperte dalla dashboard no, e
+# non per dimenticanza: **GitHub scarta le etichette scritte da chi sulla
+# repository non ha i permessi**, cioe' esattamente da chi apre le
+# segnalazioni. Mandarle sarebbe stato scrivere una riga che non arriva.
+#
+# Quindi le mette qui il `GITHUB_TOKEN`, che i permessi ce li ha. Il tipo si
+# legge dal prefisso del titolo, che i moduli usano da sempre e che la plancia
+# scrive uguale: `[Bug]`, `[Feature]`, `[Aiuto]`.
+#
+# L'alternativa era farlo fare al cruscotto del manutentore, con il suo
+# gettone. Sarebbe dipeso dall'avere una dashboard aperta: una segnalazione
+# arrivata di notte sarebbe rimasta senza etichetta fino al mattino, e chi
+# guarda l'elenco su GitHub — non tutti guardano il cruscotto — l'avrebbe vista
+# nuda. Qui invece succede subito, per tutti, e senza niente acceso in casa.
+
+name: Etichetta le segnalazioni
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  etichetta:
+    runs-on: ubuntu-latest
+    # Chi ha gia' un'etichetta se l'e' presa dal suo modulo: non si tocca.
+    # Sovrascrivere una scelta fatta sarebbe peggio del non fare niente.
+    if: ${{ github.event.issue.labels[0] == null }}
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            /* Il prefisso, e nient'altro: il titolo lo scrive una persona, e
+               cercare parole dentro la frase vorrebbe dire etichettare
+               «non e' un bug» come un bug. */
+            const prefissi = [
+              ["[bug]", "bug"],
+              ["[feature]", "enhancement"],
+              ["[aiuto]", "question"],
+              ["[help]", "question"],
+            ];
+            const titolo = (context.payload.issue.title || "").trim().toLowerCase();
+            const trovato = prefissi.find(([prefisso]) => titolo.startsWith(prefisso));
+            if (!trovato) {
+              core.info(`Nessun prefisso da leggere in «${context.payload.issue.title}».`);
+              return;
+            }
+            const [, etichetta] = trovato;
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              labels: [etichetta],
+            });
+            core.info(`#${context.payload.issue.number} etichettata «${etichetta}».`);

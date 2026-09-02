@@ -190,3 +190,38 @@ test("bulk power acts on the visible zone only and skips units already in that s
   assert.match(source, /if \(!reading\.known \|\| reading\.on === wantsOn\) continue;/);
   assert.match(source, /root\.toggleClima\(unit\.entity, zone\)/);
 });
+
+/* ── le stanze, quando distinguono qualcosa (#261) ─────────────────────────
+ *
+ * «Ho sette termosifoni con valvola smart, ognuna con una o piu' entita'
+ * VTherm: almeno si raddoppiano, quattordici o piu' da mostrare. Poterle
+ * raggruppare per stanza aiuta a organizzare il contenuto.» */
+
+test("le stanze si intitolano quando almeno una tiene piu' di un'unità", async () => {
+  const { stanzeDaIntitolare } = await loadSection();
+  /* Il caso della segnalazione: valvola e VTherm nella stessa stanza. */
+  assert.equal(
+    stanzeDaIntitolare([
+      { room: "Salone" },
+      { room: "Salone" },
+      { room: "Cucina" },
+    ]),
+    true,
+  );
+  /* Un'unita' per stanza no: il titolo direbbe quello che la carta dice gia',
+   * e raddoppierebbe l'altezza dell'elenco senza aggiungere niente. */
+  assert.equal(stanzeDaIntitolare([{ room: "Salone" }, { room: "Cucina" }]), false);
+  // Le unita' senza stanza non fanno gruppo, e non contano fra loro.
+  assert.equal(stanzeDaIntitolare([{ room: "" }, { room: "" }, { room: "Salone" }]), false);
+  assert.equal(stanzeDaIntitolare([]), false);
+  assert.equal(stanzeDaIntitolare(null), false);
+});
+
+test("il titolo della stanza sta dentro il piano, sotto il suo", () => {
+  /* Il piano apre il capitolo, la stanza dice dove finisce una e comincia
+   * l'altra: due gradini, non due titoli uguali. */
+  assert.match(source, /<div class="dm-cl-room">/);
+  assert.match(source, /\.dm-cl-room\{/);
+  // E la stanza non stampa il filo del piano: separa i piani, non le stanze.
+  assert.doesNotMatch(source, /\.dm-cl-room::after\{content:""/);
+});

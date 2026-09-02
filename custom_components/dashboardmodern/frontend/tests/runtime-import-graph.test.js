@@ -583,8 +583,34 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // liste ToDo si configuravano nella scheda dei widget, che risponde a
   // un'altra domanda — quali tessere vedere in Home — e la sezione Agenda
   // restava l'unica voce della barra senza il suo interruttore.
+  // 201 con la scelta della lingua (`sections/lingua-section.js`): «vorrei
+  // poter modificare la lingua dalle impostazioni senza ereditare
+  // necessariamente quella di HA» (#263). Il motore c'era gia' tutto in
+  // `core/i18n.js` — questa e' la riga da cui dirlo, e vive fuori da li'
+  // perche' il raccoglitore delle traduzioni guarda le sezioni.
+  // 203 con l'indirizzo RTSP delle telecamere (`core/telecamera-rtsp.js` e
+  // `sections/telecamera-rtsp-section.js`): «ho una telecamera con flusso
+  // video su rtsp://…, non c'e' possibilita' di configurazione» (#284). Il
+  // modulo puro legge l'indirizzo — host, percorso, il nome che go2rtc dà a
+  // quel flusso — e la sezione e' la casella dove scriverlo, accanto a quella
+  // del flusso che il guscio disegna gia'.
+  // 206 con le sezioni che si fa l'utente (`core/sezioni-mie.js`,
+  // `sections/sezioni-mie-section.js`, `sections/sezioni-mie-editor-section.js`):
+  // «dare la possibilita' di creare sezioni custom, dove poter inserire le
+  // proprie entita' a piacimento — avrei potuto inserire quelle dell'UPS senza
+  // attendere la sezione apposita» (#262). Tre moduli come le altre pagine
+  // nate a runtime: il modello puro, la pagina, la scheda che la configura.
+  // 207 col radar meteo (`sections/radar-meteo-section.js`): «visualizzare il
+  // radar meteo… assieme al meteo, affianco al meteo dei 7 giorni» (#266). Un
+  // modulo solo, e nessun modello puro nuovo: l'immagine la porta il
+  // caricatore delle telecamere, che c'era gia'.
+  // 208 col motore del radar (`core/radar-mappa.js`): «veniva chiesto di
+  // inserire coordinate oppure il comune, pensa a un motore per poter
+  // scegliere il posto» (#266). Web Mercator, e null'altro: da un punto e da
+  // un raggio escono lo zoom e i quadratini. Sta nel nucleo perche' e'
+  // aritmetica, e l'aritmetica si prova senza rete.
   assert.ok(
-    relative.length <= 200,
+    relative.length <= 208,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -618,6 +644,20 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * win that race. Same discipline: English shell only, alarm nodes only,
    * silent while the page is hidden.
    *
+   * The sixth keeps the Segnalazioni tile of the Home deck honest. Its counts
+   * come from GitHub, and GitHub pushes nothing: without a beat the numbers
+   * freeze at whatever they were when the page was opened, wearing the face of
+   * the numbers of right now — which is worse than showing nothing. Ten
+   * minutes, and the same discipline as the rest: only for the account that
+   * holds the repository (nobody else has that tile), silent while the page is
+   * hidden, and stopped when the section is uninstalled.
+   *
+   * The seventh is the weather radar (#266). A radar is a picture that changes
+   * on its own — the national ones refresh every five or ten minutes — and
+   * nothing pushes a new frame at the page. Same discipline as the camera
+   * tile, and for the same reason: one minute, only while the forecast window
+   * is open, and the timer stops itself the moment it finds that window shut.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -631,6 +671,8 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/live-ui-section.js",
       "src/sections/people-section.js",
       "src/sections/pool-extra-section.js",
+      "src/sections/radar-meteo-section.js",
+      "src/sections/segnalazioni-section.js",
     ],
   );
 

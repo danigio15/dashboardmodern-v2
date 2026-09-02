@@ -485,16 +485,59 @@ function readQueryLocale() {
 }
 
 /**
+ * La lingua che Home Assistant dichiara per chi sta guardando.
+ *
+ * L'ospite la inietta nel documento: e' l'unica fonte che conosce la lingua
+ * del PROFILO di chi ha fatto accesso, e non la variante con cui il documento
+ * e' stato costruito. Serve a parte perche' `documentElement.lang` non la
+ * conserva: appena si sceglie una lingua a mano, `applyDocumentLocale` scrive
+ * li' quella scelta, e da quel momento il documento racconta la scelta invece
+ * della provenienza.
+ */
+/* La lingua che il documento dichiarava PRIMA che qualcuno la cambiasse.
+ *
+ * Si legge una volta sola, all'importazione di questo modulo, che avviene
+ * prima di qualunque `applyDocumentLocale`: da quel momento in poi
+ * `documentElement.lang` racconta la scelta, non la provenienza, e chiederglielo
+ * dopo vorrebbe dire farsi rispondere con la propria voce. */
+const LINGUA_DI_PARTENZA = (() => {
+  try {
+    return normalizeLocaleTag(root.document?.documentElement?.lang);
+  } catch (_error) {
+    return "";
+  }
+})();
+
+export function hostLocale() {
+  for (const candidato of [root[LOCALE_OVERRIDE_GLOBAL], LINGUA_DI_PARTENZA]) {
+    const normalizzata = normalizeLocaleTag(candidato);
+    if (normalizzata && isSupportedLocale(normalizzata)) return resolveLocale(normalizzata);
+  }
+  return "";
+}
+
+/**
  * Detect the locale to start from.
  *
- * The host injects the Home Assistant user language into the hosted document,
- * which is why the global override wins: it is the only source that knows the
- * signed-in user's profile language rather than the document build variant.
+ * La scelta salvata viene per prima, e questo e' cambiato (#263).
+ *
+ * Prima veniva prima la lingua iniettata dall'ospite, con una ragione buona:
+ * e' l'unica che conosce il profilo di chi ha fatto accesso invece della
+ * variante del documento. Ma dentro Home Assistant quella lingua c'e' SEMPRE,
+ * quindi una scelta salvata non poteva vincere mai — «vorrei poter modificare
+ * la lingua dalle impostazioni senza ereditare necessariamente quella di HA:
+ * io ho HA in inglese perche' mi aiuta per lo sviluppo, ma la plancia la
+ * vorrei in italiano per la famiglia».
+ *
+ * Una preferenza esplicita batte un valore di serie, come dappertutto in
+ * questa plancia. Chi non ne ha una salvata ricade esattamente su quello che
+ * vedeva prima: la lingua dell'ospite, e poi tutto il resto nello stesso
+ * ordine.
  */
 export function detectLocale() {
   const candidates = [
-    root[LOCALE_OVERRIDE_GLOBAL],
     readStoredLocale(),
+    root[LOCALE_OVERRIDE_GLOBAL],
     readQueryLocale(),
     root.document?.documentElement?.lang,
     /dashboard-en\.html$/i.test(String(root.location?.pathname || "")) ? "en" : "",

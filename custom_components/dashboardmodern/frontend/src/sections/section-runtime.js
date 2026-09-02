@@ -43,6 +43,7 @@ import { installQuickClimateEditorSection } from "./quick-climate-editor-section
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
+import { installTelecameraRtsp } from "./telecamera-rtsp-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
 import { installPopupClimaDistingue } from "./il-popup-del-clima-distingue-section.js";
@@ -95,6 +96,10 @@ import { installUpsSection } from "./ups-section.js";
 import { installCalendarioSection } from "./calendario-section.js";
 import { installUpsEditor } from "./ups-editor-section.js";
 import { installAgendaEditorSection } from "./agenda-editor-section.js";
+import { installLinguaSection } from "./lingua-section.js";
+import { installSezioniMie } from "./sezioni-mie-section.js";
+import { installSezioniMieEditor } from "./sezioni-mie-editor-section.js";
+import { installRadarMeteo } from "./radar-meteo-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { activeLocale, allStates, clean, english, section, t, wrapFunction } from "./shared.js";
@@ -811,6 +816,9 @@ export function installSectionRuntime() {
      * la vetrina che costruisce lo scheletro in cui si inseriscono. */
     installSecurityDoorsSection();
     installSecurityDoorsEditorSection();
+    /* L'indirizzo RTSP nella scheda delle telecamere: si mette accanto al
+     * campo del flusso, che e' del guscio, e va installato dopo di lui. */
+    installTelecameraRtsp();
     /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();
@@ -915,6 +923,16 @@ export function installSectionRuntime() {
      * le configura le pensa nello stesso momento. */
     installCalendarioSection();
     installAgendaEditorSection();
+    /* La lingua si sceglie fra le Impostazioni (#263): il motore c'era gia',
+     * mancava la riga da cui dirlo. */
+    installLinguaSection();
+    /* Le sezioni che si fa l'utente: la pagina prima della sua scheda, come
+     * per la Continuita' — la scheda chiama la pagina per ridisegnarla. */
+    installSezioniMie();
+    installSezioniMieEditor();
+    /* Il radar meteo dentro la finestra delle previsioni: si aggancia al
+     * guscio che quella finestra la disegna gia'. */
+    installRadarMeteo();
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();

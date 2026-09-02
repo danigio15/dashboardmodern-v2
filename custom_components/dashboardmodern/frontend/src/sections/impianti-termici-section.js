@@ -29,9 +29,9 @@ import {
   ETICHETTE_TERMICHE,
   NOME_SEZIONE,
   TITOLI_TERMICI,
-  entitaDellaCaldaia,
+  entitaDelleCaldaie,
   impiantiScelti,
-  letturaCaldaia,
+  lettureCaldaie,
   servonoLinguette,
   tabAttiva,
   verdettoPressione,
@@ -58,7 +58,7 @@ import {
 
 const KEY = "__DASHBOARDMODERN_IMPIANTI_TERMICI__";
 const STYLE_ID = "dm-impianti-termici-style";
-const state = (root[KEY] ||= { installed: false, frame: 0, tab: "", firma: "" });
+const state = (root[KEY] ||= { installed: false, frame: 0, tab: "", firma: "", quale: {} });
 
 const PAGINA = "page-boiler";
 
@@ -70,7 +70,7 @@ function scaldabagniConfigurati() {
 }
 
 function caldaiaConfigurata() {
-  return entitaDellaCaldaia(readJson(CHIAVE_CALDAIA, {})).length > 0;
+  return entitaDelleCaldaie(readJson(CHIAVE_CALDAIA, {})).length > 0;
 }
 
 /* Il solare risulta configurato se qualcuna delle sue caselle e' mappata: e'
@@ -207,7 +207,36 @@ function scenaScaldabagno(letture) {
   </div>`;
 }
 
+/* Quale macchina di questo tipo si sta guardando.
+ *
+ * Quella scelta l'ultima volta se c'e' ancora; altrimenti la prima. Chi
+ * cancella la caldaia che stava guardando non deve restare su una scena
+ * vuota. */
+function macchinaScelta(tipo, righe) {
+  if (!righe.length) return "";
+  const salvata = clean(state.quale?.[tipo]);
+  return righe.some((riga) => riga.id === salvata) ? salvata : righe[0].id;
+}
+
+function filaDelleMacchine(righe, scelta) {
+  if (righe.length < 2) return "";
+  return `<div class="dm-it-quali" role="tablist">${righe
+    .map(
+      (riga, indice) => `<button type="button" class="dm-it-quale" data-dm-it-quale="${esc(riga.id)}"
+        role="tab" aria-selected="${riga.id === scelta}"${riga.id === scelta ? ' data-on="true"' : ""}
+        >${esc(clean(riga.name) || `${t("Macchina", "Unit")} ${indice + 1}`)}</button>`,
+    )
+    .join("")}</div>`;
+}
+
 function scenaCaldaia(lettura) {
+  if (!lettura)
+    return `<div class="dm-it-vuoto">${esc(
+      t(
+        "Nessuna caldaia configurata: aggiungila dalla scheda Gestione termica della configurazione.",
+        "No boiler configured: add one from the Thermal management tab in settings.",
+      ),
+    )}</div>`;
   const acceso = lettura.acceso === true || lettura.fiamma === true;
   const pressione = verdettoPressione(lettura.pressione);
   const salto = lettura.salto;
@@ -342,8 +371,14 @@ export function renderImpiantiTermici() {
     attiva === "scaldabagno"
       ? lettureScaldabagni(readJson(SCALDABAGNI_KEY, []), states, resolve)
       : [];
-  const caldaia = attiva === "caldaia" ? letturaCaldaia(readJson(CHIAVE_CALDAIA, {}), states, resolve) : null;
-  const firma = JSON.stringify([scelti, attiva, letture, caldaia]);
+  const caldaie =
+    attiva === "caldaia" ? lettureCaldaie(readJson(CHIAVE_CALDAIA, {}), states, resolve) : [];
+  /* Quale delle macchine di questo tipo si sta guardando: la scelta e' per
+   * tipo, cosi' passando da Caldaia a Scaldabagno e tornando indietro non si
+   * torna sempre alla prima. */
+  const quali = attiva === "caldaia" ? caldaie : letture;
+  const scelta = macchinaScelta(attiva, quali);
+  const firma = JSON.stringify([scelti, attiva, letture, caldaie, scelta]);
   if (firma === state.firma) return true;
   state.firma = firma;
 
@@ -391,7 +426,15 @@ export function renderImpiantiTermici() {
       else box.append(mia);
     }
     mia.hidden = false;
-    const markup = attiva === "caldaia" ? scenaCaldaia(caldaia) : scenaScaldabagno(letture);
+    /* Con piu' macchine dello stesso tipo, la fila dei nomi sopra la scena:
+     * «ho due caldaie, una per la zona giorno e una per la zona notte» (#281).
+     * Con una sola non compare — un selettore fra una cosa sola e' un tasto
+     * che non sceglie niente. E vale per tutti e due i tipi: gli scaldabagni
+     * erano gia' una lista in configurazione, ma la pagina ne disegnava uno. */
+    const dentro = quali.find((riga) => riga.id === scelta) || quali[0] || null;
+    const markup =
+      filaDelleMacchine(quali, scelta) +
+      (attiva === "caldaia" ? scenaCaldaia(dentro) : scenaScaldabagno(dentro ? [dentro] : []));
     if (mia.dataset.dmItTipo !== attiva || mia.innerHTML !== markup) {
       mia.dataset.dmItTipo = attiva;
       mia.innerHTML = markup;
@@ -455,6 +498,17 @@ function schedule() {
 }
 
 function onClick(event) {
+  const quale = event.target?.closest?.("[data-dm-it-quale]");
+  if (quale) {
+    event.preventDefault();
+    const tipo = tabAttiva(impiantiDiCasa(), state.tab);
+    if (tipo) {
+      state.quale = { ...(state.quale || {}), [tipo]: clean(quale.dataset.dmItQuale) };
+      state.firma = "";
+      renderImpiantiTermici();
+    }
+    return;
+  }
   const tab = event.target?.closest?.("[data-dm-it-tab]");
   if (tab) {
     event.preventDefault();
@@ -503,6 +557,21 @@ function installStyles() {
       font:inherit;font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
       color:#3d4d66;transition:background .25s ease,color .25s ease,box-shadow .25s ease}
     #${PAGINA} .dm-it-tab-ic{display:grid;place-items:center;flex:0 0 auto}
+
+    /* ── la fila delle macchine dello stesso tipo ────────────────────────
+     * Piu' piccola delle linguette qui sopra, perche' e' una scelta dentro
+     * una scelta: prima che macchina, poi quale delle sue. */
+    #${PAGINA} .dm-it-quali{
+      display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+    #${PAGINA} .dm-it-quale{
+      border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);
+      border-radius:999px;padding:7px 14px;font:inherit;font-size:12px;font-weight:800;
+      color:var(--text-dim,#64748b);cursor:pointer;
+      transition:background .2s ease,color .2s ease,border-color .2s ease}
+    #${PAGINA} .dm-it-quale:hover{border-color:#fb923c}
+    #${PAGINA} .dm-it-quale[data-on="true"]{
+      background:linear-gradient(135deg,#fb923c,#ea580c);border-color:transparent;color:#fff;
+      box-shadow:0 6px 16px -8px rgba(234,88,12,.8)}
     #${PAGINA} .dm-it-tab:hover{background:rgba(255,255,255,.7)}
     #${PAGINA} .dm-it-tab[data-on="true"]{
       background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff;
