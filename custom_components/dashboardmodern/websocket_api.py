@@ -575,12 +575,16 @@ async def async_ticket_thread(
 ) -> None:
     """Il filo di una segnalazione: testo, commenti e allegati.
 
-    Serve a non dover uscire dalla console per capire cosa e' successo: la
-    foto che chi segnala ha allegato vive in un commento, e senza leggere i
-    commenti una segnalazione con dentro tutto sembrerebbe nuda.
+    Serve a non dover uscire dalla plancia per capire cosa e' successo: la foto
+    che chi segnala ha allegato vive in un commento, e senza leggere i commenti
+    una segnalazione con dentro tutto sembrerebbe nuda.
+
+    Non e' riservato alla console. Lo apre anche chi ha segnalato, sulla sua,
+    per leggere la risposta restando qui: mandarlo su github.com per leggerla
+    sarebbe farlo uscire proprio dal posto che questa finestra esiste per non
+    fargli lasciare. Non c'e' niente da proteggere — la issue e' una pagina
+    pubblica, e chiunque puo' aprirla in un browser.
     """
-    if await _console_denied(hass, connection, msg):
-        return
     try:
         filo = await async_thread(hass, _caller_id(connection), msg["number"])
     except GitHubError as errore:

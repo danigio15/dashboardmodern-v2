@@ -855,16 +855,33 @@ async def test_il_filo_deduce_lo_stato_dal_commento_del_manutentore(
     assert (await tickets.async_thread(hass, "dani", 42))["state"] == STATE_TRIAGED
 
 
-async def test_il_filo_chiede_i_permessi(
+async def test_il_filo_lo_legge_anche_chi_non_tiene_la_coda(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Il filo e' la coda di tutti: passa dallo stesso cancello."""
+    """Chi ha segnalato apre il filo sulla sua, per leggere la risposta qui.
+
+    Prima quel «vedi la discussione» lo portava su github.com, cioe' fuori
+    proprio dal posto che questa finestra esiste per non fargli lasciare. Non
+    c'e' niente da proteggere: la issue e' una pagina pubblica.
+    """
     _entry(hass)
     await _collega(hass, "anna", maintainer=False)
-    with pytest.raises(GitHubError) as errore:
-        await tickets.async_thread(hass, "anna", 42)
-    assert errore.value.code == "not_console"
-    assert github.calls == []
+    github.answer("/issues/42", {"number": 42, "body": "x", "state": "open"})
+    filo = await tickets.async_thread(hass, "anna", 42)
+    assert filo["number"] == 42
+    # Col suo gettone, che serve solo al limite orario: leggere non lo chiede.
+    assert github.calls[0]["token"] == "gho_anna"
+
+
+async def test_il_filo_si_legge_anche_senza_aver_collegato_niente(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Leggere non chiede permessi, e la repository e' pubblica."""
+    _entry(hass)
+    github.answer("/issues/42", {"number": 42, "body": "x", "state": "open"})
+    filo = await tickets.async_thread(hass, "senza-gettone", 42)
+    assert filo["number"] == 42
+    assert github.calls[0]["token"] == ""
 
 
 async def test_la_coda_dice_quanti_allegati_ci_sono(
@@ -1111,3 +1128,44 @@ async def test_un_rifiuto_muto_resta_leggibile(
     with pytest.raises(GitHubError) as guasto:
         await github_client._request(hass, "GET", "https://api.github.com/x")
     assert str(guasto.value) == "Non trovato su GitHub."
+
+
+async def test_la_diagnostica_torna_come_dati_non_come_markup(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Su GitHub e' una scheda che si apre; dentro la plancia era testo crudo.
+
+    «<details><summary>Diagnostica</summary>» e cinque righe di asterischi
+    finivano in mezzo a quello che l'utente aveva scritto, e la parte che conta
+    annegava in quella che il programma ha aggiunto.
+    """
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    corpo = (
+        "Test versione 1.4.5 beta 9\n\n"
+        "<details><summary>Diagnostica</summary>\n\n"
+        "- **ha_version**: 2026.8.3\n"
+        "- **integration_version**: 1.4.5-beta.9\n"
+        "- **locale**: it\n\n"
+        "</details>\n"
+        f"{TICKET_MARKER}"
+    )
+    github.answer("state=closed", [])
+    github.answer(
+        "state=open",
+        [{"number": 280, "title": "[Bug]: Prova", "body": corpo, "state": "open"}],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert coda[0]["body"] == "Test versione 1.4.5 beta 9"
+    assert coda[0]["diagnostics"] == {
+        "ha_version": "2026.8.3",
+        "integration_version": "1.4.5-beta.9",
+        "locale": "it",
+    }
+
+
+def test_un_corpo_senza_diagnostica_resta_intero() -> None:
+    """Una issue aperta a mano su GitHub non ha nessuna scheda da togliere."""
+    testo, voci = github_client.diagnostica_in("si richiede di separare le aperture")
+    assert testo == "si richiede di separare le aperture"
+    assert voci == {}

@@ -534,6 +534,17 @@ const CSS = `
   justify-content:space-between; }
 a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
 
+/* La scheda tecnica: le versioni in evidenza, il resto sottovoce. */
+.dm-tkt-scheda { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; }
+.dm-tkt-versione { display:inline-flex; align-items:center; gap:5px;
+  padding:3px 9px; border-radius:50px; font-size:11px; font-weight:800;
+  background:rgba(14,165,233,0.14); color:var(--text,#0f172a);
+  border:1px solid rgba(14,165,233,0.3); }
+.dm-tkt-versione b { opacity:.7; font-size:10px; letter-spacing:.06em; }
+.dm-tkt-dato { padding:3px 9px; border-radius:50px; font-size:11px; font-weight:600;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
+  border:1px solid var(--card-border,#e2e8f0); }
+
 /* L'elenco, di qua e di la'. */
 .dm-tkt-elenco { display:flex; flex-direction:column; gap:12px; }
 .dm-tkt-voce { border:1px solid var(--card-border,#e2e8f0); border-radius:18px;
@@ -983,12 +994,25 @@ export function voceMarkup(ticket) {
   const errore = ticket.delivery_error
     ? `<div class="dm-tkt-voce-pie">⚠︎ ${esc(ticket.delivery_error)}</div>`
     : "";
-  const issue = ticket.issue_url
-    ? `<a class="dm-tkt-link" href="${esc(
-        ticket.issue_url,
-      )}" target="_blank" rel="noreferrer noopener">${esc(
-        t("Vedi la discussione", "See the discussion"),
-      )}</a>`
+  /* La discussione si apre qui, non su github.com. Portare fuori chi voleva
+   * solo leggere la risposta vorrebbe dire mandarlo via proprio dal posto che
+   * questa finestra esiste per non fargli lasciare — e la risposta la si legge
+   * senza permessi, perche' la issue e' una pagina pubblica. Il rimando a
+   * GitHub resta, ma accanto, per chi ci vuole andare davvero. */
+  const numero = Number(ticket.remote_id) || 0;
+  const aperto = Boolean(state.fili[numero] || state.filiInCorso[numero]);
+  const issue = numero
+    ? `<button type="button" class="dm-tkt-tolgi" data-dm-filo="${numero}"
+         aria-expanded="${aperto}">${esc(
+           aperto
+             ? t("Nascondi tutto", "Hide everything")
+             : t("Vedi la discussione", "See the discussion"),
+         )}</button>
+       <a class="dm-tkt-link" href="${esc(
+         clean(ticket.issue_url),
+       )}" target="_blank" rel="noreferrer noopener">${esc(
+         t("Apri su GitHub", "Open on GitHub"),
+       )}</a>`
     : "";
   return `
     <div class="dm-tkt-voce">
@@ -997,8 +1021,13 @@ export function voceMarkup(ticket) {
         <span class="dm-tkt-voce-tit">${esc(ticket.title)}</span>
         ${statoMarkup(ticket.state)}
       </div>
-      <p class="dm-tkt-voce-corpo">${esc(ticket.body)}</p>
-      ${risposta}
+      ${
+        aperto
+          ? filoMarkup(numero)
+          : `<p class="dm-tkt-voce-corpo">${esc(ticket.body)}</p>${diagnosticaMarkup(
+              ticket.diagnostics,
+            )}${risposta}`
+      }
       ${errore}
       <div class="dm-tkt-voce-pie">
         <span>${esc(data)}</span>
@@ -1282,6 +1311,7 @@ function filoMarkup(numero) {
         t("Il testo della segnalazione", "The text of the report"),
       )}</div>
       <p class="dm-tkt-voce-corpo">${esc(clean(filo.body))}</p>
+      ${diagnosticaMarkup(filo.diagnostics)}
       ${allegatiMarkup(filo.attachments)}
     </div>`;
   const filaCommenti = commenti.length
@@ -1344,6 +1374,61 @@ function invitoRisposta(ticket) {
   );
 }
 
+/* La scheda tecnica, in ordine di quanto serve.
+ *
+ * Chi legge una segnalazione ha due domande, e in quest'ordine: «che versione
+ * ha» e «dove stava». Il resto — la lingua, il browser — serve una volta su
+ * venti, e messo alla pari copriva le prime due: cinque righe uguali fra loro,
+ * con l'unica che conta in mezzo.
+ *
+ * Le due che contano prendono una pastiglia con la loro etichetta breve; le
+ * altre restano sotto, piu' piccole. Lo `user_agent` non si mostra intero — e'
+ * lungo quanto tutto il resto insieme — ma il nome del browser si legge da
+ * solo, e per il resto c'e' la pagina della issue. */
+const VERSIONI = [
+  ["integration_version", "DM"],
+  ["ha_version", "HA"],
+];
+
+function nomeDelBrowser(agente) {
+  const teste = [
+    [/edg\/([\d.]+)/i, "Edge"],
+    [/opr\/([\d.]+)/i, "Opera"],
+    [/firefox\/([\d.]+)/i, "Firefox"],
+    [/chrome\/([\d.]+)/i, "Chrome"],
+    [/version\/([\d.]+).*safari/i, "Safari"],
+  ];
+  for (const [forma, nome] of teste) {
+    const trovato = forma.exec(agente);
+    /* Solo la prima cifra: «Chrome 152» dice quello che serve, «152.0.0.0» in
+     * piu' dice soltanto degli zeri. */
+    if (trovato) return `${nome} ${String(trovato[1]).split(".")[0]}`;
+  }
+  return "";
+}
+
+export function diagnosticaMarkup(diagnostica) {
+  if (!diagnostica || typeof diagnostica !== "object") return "";
+  const preso = new Set();
+  const forti = VERSIONI.filter(([chiave]) => clean(diagnostica[chiave])).map(([chiave, breve]) => {
+    preso.add(chiave);
+    return `<span class="dm-tkt-versione"><b>${esc(breve)}</b>${esc(
+      clean(diagnostica[chiave]),
+    )}</span>`;
+  });
+  const deboli = [];
+  for (const [chiave, valore] of Object.entries(diagnostica)) {
+    if (preso.has(chiave)) continue;
+    const testo = clean(valore);
+    if (!testo) continue;
+    /* Il browser al posto della sua carta d'identita' completa. */
+    const corto = chiave === "user_agent" ? nomeDelBrowser(testo) : testo;
+    if (corto) deboli.push(`<span class="dm-tkt-dato">${esc(corto)}</span>`);
+  }
+  if (!forti.length && !deboli.length) return "";
+  return `<div class="dm-tkt-scheda">${forti.join("")}${deboli.join("")}</div>`;
+}
+
 export function codaVoceMarkup(ticket) {
   const numero = Number(ticket.number) || 0;
   const tipo = tipoInCoda(clean(ticket.type));
@@ -1400,7 +1485,13 @@ export function codaVoceMarkup(ticket) {
              t("Apri su GitHub", "Open on GitHub"),
            )}</a>
       </div>
-      ${aperto ? filoMarkup(numero) : `<p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>`}
+      ${
+        aperto
+          ? filoMarkup(numero)
+          : `<p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>${diagnosticaMarkup(
+              ticket.diagnostics,
+            )}`
+      }
       <div class="dm-tkt-campo">
         <textarea id="dm-tkt-risposta-${numero}" rows="3"
           placeholder="${esc(invitoRisposta(ticket))}"></textarea>

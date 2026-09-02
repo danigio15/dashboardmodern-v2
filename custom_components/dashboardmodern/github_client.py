@@ -409,6 +409,43 @@ _ETICHETTE_TIPO = {
 }
 
 
+#: Il blocco che `issue_body` scrive, riletto al contrario. Su GitHub quelle
+#: righe sono una scheda che si apre; dentro la plancia erano testo crudo —
+#: «<details><summary>Diagnostica</summary>» e cinque righe di asterischi —
+#: buttate in mezzo a quello che l'utente aveva scritto. Chi legge la coda si
+#: trovava la parte che conta annegata nella parte che il programma ha aggiunto.
+_DIAGNOSTICA = re.compile(
+    r"<details>\s*<summary>\s*Diagnostica\s*</summary>(.*?)</details>",
+    re.IGNORECASE | re.DOTALL,
+)
+_VOCE_DIAGNOSTICA = re.compile(r"^\s*-\s*\*\*(.+?)\*\*:\s*(.*)$", re.MULTILINE)
+
+#: Quanto si tiene di un valore. Lo `user_agent` di un browser moderno arriva a
+#: duecento caratteri, e nella riga della coda vale quanto il resto insieme.
+_MAX_VALORE = 300
+
+
+def diagnostica_in(corpo: str) -> tuple[str, dict[str, str]]:
+    """Il testo dell'utente, e la diagnostica come dati invece che come markup.
+
+    Torna i due pezzi separati: quello che la persona ha scritto — che e' la
+    ragione per cui la segnalazione esiste — e le voci che la plancia ha
+    aggiunto, che restano utili ma non devono coprirlo.
+    """
+    if not isinstance(corpo, str) or not corpo:
+        return "", {}
+    trovato = _DIAGNOSTICA.search(corpo)
+    if not trovato:
+        return corpo.strip(), {}
+    voci = {
+        chiave.strip()[:80]: valore.strip()[:_MAX_VALORE]
+        for chiave, valore in _VOCE_DIAGNOSTICA.findall(trovato.group(1))
+        if chiave.strip()
+    }
+    resto = corpo[: trovato.start()] + corpo[trovato.end() :]
+    return "\n".join(riga.rstrip() for riga in resto.splitlines()).strip(), voci
+
+
 def _tipo_e_titolo(issue: Mapping[str, Any]) -> tuple[str, str]:
     """Il tipo della segnalazione, e il titolo ripulito dal prefisso.
 
@@ -554,9 +591,11 @@ async def async_issue_thread(
                         "attachments": attachments_in(testo),
                     }
                 )
+    testo, diagnostica = diagnostica_in(_senza_allegati(corpo))
     return {
         "number": int(issue.get("number") or number),
-        "body": _senza_allegati(corpo),
+        "body": testo,
+        "diagnostics": diagnostica,
         "attachments": attachments_in(corpo),
         "comments": commenti,
         "issue_url": str(issue.get("html_url") or ""),
@@ -642,6 +681,9 @@ async def _async_issues_page(
         if not isinstance(issue, dict) or "pull_request" in issue:
             continue
         corpo = str(issue.get("body") or "")
+        testo, diagnostica = diagnostica_in(
+            _senza_allegati(corpo.replace(TICKET_MARKER, ""))
+        )
         tipo, titolo = _tipo_e_titolo(issue)
         # Quanti commenti ci sono si sa dall'elenco, senza aprire niente: e' il
         # segno che dice quali valga la pena guardare.
@@ -659,7 +701,8 @@ async def _async_issues_page(
             {
                 "number": int(issue.get("number") or 0),
                 "title": titolo,
-                "body": _senza_allegati(corpo.replace(TICKET_MARKER, "")),
+                "body": testo,
+                "diagnostics": diagnostica,
                 "type": tipo,
                 "state": voce_stato,
                 # Da dove viene: la riga invisibile nel corpo la mette solo la

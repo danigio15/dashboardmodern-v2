@@ -178,14 +178,26 @@ async def async_queue(hass: HomeAssistant, user_id: str) -> list[dict[str, Any]]
 async def async_thread(
     hass: HomeAssistant, user_id: str, number: int
 ) -> dict[str, Any]:
-    """Il filo intero di una segnalazione, per chi tiene la coda.
+    """Il filo intero di una segnalazione: testo, commenti, allegati.
 
-    Una richiesta sola, e solo quando la console apre quella segnalazione:
+    Una richiesta sola, e solo quando qualcuno apre quella segnalazione:
     chiedere i commenti di tutte e cinquanta in un colpo vorrebbe dire
     cinquanta chiamate per guardarne una.
+
+    Lo leggono in due, e per due ragioni diverse. Il manutentore lo apre dalla
+    coda, su qualunque segnalazione. Chi ha segnalato lo apre sulle **sue**,
+    per vedere la risposta senza uscire dalla plancia: prima quel «vedi la
+    discussione» lo portava su github.com, cioe' fuori proprio dal posto che
+    questa finestra esiste per non fargli lasciare.
+
+    Il gettone e' quello di chi chiede, quando ce l'ha, e serve solo al limite
+    orario: la repository e' pubblica e le issue si leggono comunque. Chi non
+    ha collegato niente legge lo stesso — leggere non chiede permessi.
     """
-    token = await async_console_token(hass, user_id)
-    return await github_client.async_issue_thread(hass, token, int(number))
+    gettoni = await async_get_token_store(hass)
+    return await github_client.async_issue_thread(
+        hass, gettoni.token(user_id), int(number)
+    )
 
 
 async def async_answer(

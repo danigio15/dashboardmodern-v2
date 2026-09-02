@@ -125,15 +125,32 @@ test("una segnalazione senza risposta non disegna il riquadro della risposta", (
   assert.ok(voceMarkup(ticket({ reply: "Riprodotta." })).includes("dm-tkt-risposta"));
 });
 
-test("il link alla discussione compare solo quando c'e'", () => {
-  assert.ok(!voceMarkup(ticket()).includes("dm-tkt-link"));
-  const promossa = voceMarkup(
+test("la discussione si apre qui, e il rimando a GitHub resta accanto", () => {
+  /* Una bozza non e' ancora una discussione: non c'e' niente da aprire. */
+  assert.ok(!voceMarkup(ticket()).includes("data-dm-filo"));
+
+  const partita = voceMarkup(
+    ticket({
+      remote_id: "9",
+      issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/9",
+    }),
+  );
+  /* Il filo si legge dentro la plancia: portare fuori chi voleva solo vedere
+   * la risposta vorrebbe dire mandarlo via dal posto che questa finestra
+   * esiste per non fargli lasciare. */
+  assert.ok(partita.includes('data-dm-filo="9"'), "la discussione non si apre qui");
+  /* E chi ci vuole andare davvero ha ancora la sua porta. */
+  assert.ok(partita.includes("dm-tkt-link"), "il rimando a GitHub e' sparito");
+  assert.ok(partita.includes('rel="noreferrer noopener"'));
+});
+
+test("il filo serve il numero, non solo l'indirizzo", () => {
+  /* Senza numero non si puo' chiedere niente a GitHub: meglio nessun tasto che
+   * un tasto che non puo' funzionare. */
+  const senzaNumero = voceMarkup(
     ticket({ issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/9" }),
   );
-  assert.ok(promossa.includes("dm-tkt-link"));
-  /* Un link che si apre altrove non deve poter toccare la finestra che lo ha
-   * aperto. */
-  assert.ok(promossa.includes('rel="noreferrer noopener"'));
+  assert.ok(!senzaNumero.includes("data-dm-filo"));
 });
 
 test("la consegna fallita si legge sulla segnalazione", () => {
