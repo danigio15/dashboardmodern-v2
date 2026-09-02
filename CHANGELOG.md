@@ -5,6 +5,65 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.11
+
+«Basta che quando arriva un messaggio sulla chat parte una notifica di Home
+Assistant.» Ecco il campanello — e, gia' che il filo doveva diventare una
+conversazione vera, la meta' che mancava: da qui adesso si risponde.
+
+### Nuovo
+
+- **Quando qualcuno scrive, Home Assistant lo dice.** Ogni cinque minuti la
+  plancia va a vedere se sotto una segnalazione e' comparso un messaggio, e se
+  c'e' suona in due modi: una notifica di Home Assistant — quella della
+  campanella, che non chiede di configurare niente — e un evento sul bus,
+  `dashboardmodern_messaggio`, per chi la vuole far finire sul telefono, su un
+  altoparlante o su una luce che cambia colore.
+
+  Chi tiene la repository sente tutto, comprese le segnalazioni appena aperte.
+  Chi la plancia la usa e basta sente solo le proprie: le altre sono
+  conversazioni fra sconosciuti, e riceverle sarebbe stato ricevere lo spam di
+  un tracker. Le proprie pero' **tutte**, anche quelle gia' chiuse — una
+  risposta arrivata sotto una segnalazione chiusa la settimana prima e'
+  esattamente il messaggio che non si vuole perdere.
+
+  Tre cose che il campanello non fa, e sono le tre che l'avrebbero fatto
+  spegnere il primo giorno. Non suona al primo avvio, dove tutto quello che
+  c'e' e' gia' successo. Non risuona a ogni riavvio di Home Assistant, perche'
+  il segno di quello che si e' letto sta su disco e non in memoria. E non suona
+  per la frase che si e' appena battuta: quando la plancia scrive un commento,
+  alza il segno da se'.
+
+  Costa **una richiesta ogni cinque minuti**, non una per segnalazione:
+  l'elenco filtrato per `since` porta gia' il numero dei commenti, e se e'
+  cresciuto qualcuno ha scritto. Dodici richieste all'ora contro le cinquemila
+  che un account collegato concede.
+
+- **Chi ha segnalato risponde dalla sua plancia.** Sotto la discussione aperta
+  c'e' la casella per scrivere, e il messaggio parte a nome suo — mai a nome
+  della console. Fino a ieri il filo si poteva leggere ma non scrivere: per
+  dire «ho provato, non funziona lo stesso» bisognava aprire github.com, cioe'
+  uscire proprio dal posto che quella finestra esiste per non far lasciare.
+
+- **«Prendo in carico», sul cruscotto.** E' l'assegnazione di GitHub, non
+  un'etichetta inventata qui: la segnalazione compare fra le tue, chi passa
+  dalla pagina lo vede senza che nessuno glielo scriva, e in testa alla riga
+  c'e' il nome di chi l'ha presa. Ci si puo' ripensare con lo stesso tasto.
+
+### Corretto
+
+- **La risposta della console non partiva piu'.** Da quando il cruscotto e'
+  una pagina della barra invece di una finestra, il campo del testo veniva
+  cercato dentro la finestra — dove non c'e' piu' — e «Rispondi» usciva alla
+  riga dopo senza dire niente. I tasti che chiudevano e basta continuavano a
+  funzionare, il che rendeva il guasto ancora piu' difficile da vedere.
+
+- **«In lavorazione» era una supposizione.** Lo stato si deduceva dal fatto che
+  qualcuno avesse commentato, perche' un segno vero non c'era, e sbagliava nel
+  verso peggiore: bastava una domanda di chiarimento per far risultare presa in
+  carico una segnalazione che nessuno aveva ancora guardato. Adesso il segno lo
+  scrive il tasto, e i commenti tornano a essere commenti.
+
 ## 1.4.5-beta.10
 
 «Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non

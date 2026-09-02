@@ -36,7 +36,7 @@ test("ogni messaggio che la finestra manda passa dal ponte", () => {
   }
 });
 
-test("i dieci comandi sono quelli che il backend registra", () => {
+test("i dodici comandi sono quelli che il backend registra", () => {
   assert.deepEqual([...WS_TYPES].sort(), [
     "dashboardmodern/tickets/answer",
     "dashboardmodern/tickets/auth/forget",
@@ -46,7 +46,9 @@ test("i dieci comandi sono quelli che il backend registra", () => {
     "dashboardmodern/tickets/delete",
     "dashboardmodern/tickets/list",
     "dashboardmodern/tickets/queue",
+    "dashboardmodern/tickets/reply",
     "dashboardmodern/tickets/sync",
+    "dashboardmodern/tickets/take",
     "dashboardmodern/tickets/thread",
   ]);
 });
@@ -810,4 +812,95 @@ test("su una gia' chiusa il solo tasto che c'e' aspetta del testo", () => {
   assert.equal(tasti.length, 1);
   assert.ok(tasti[0].includes("disabled"));
   assert.ok(tasti[0].includes("data-dm-serve-testo"));
+});
+
+/* ─── Prendere in carico, e rispondere dalla propria plancia ───────────────
+ *
+ * Due gesti che prima non c'erano, e uno che c'era e non funzionava: il campo
+ * della risposta della console si cercava dentro `#dm-tkt-modal`, e da quando
+ * il cruscotto e' una pagina della barra li' non c'e' piu'.
+ */
+
+test("prendere in carico e' l'assegnazione di GitHub, non un'etichetta inventata", () => {
+  const libera = codaVoceMarkup(inCoda({ number: 7, state: "inviato" }));
+  const tasto = libera.match(/<button[^>]*data-dm-carico="7"[^>]*>/)[0];
+  assert.ok(tasto.includes('data-dm-prendi="1"'), "il tasto non prende in carico");
+  assert.ok(tasto.includes('aria-pressed="false"'));
+
+  const presa = codaVoceMarkup(inCoda({ number: 7, state: "inviato", assignees: ["danigio15"] }));
+  const lascia = presa.match(/<button[^>]*data-dm-carico="7"[^>]*>/)[0];
+  /* Premuto lo stesso tasto, il gesto si inverte: ci si puo' ripensare. */
+  assert.ok(lascia.includes('data-dm-prendi=""'), "presa in carico, il tasto non la lascia");
+  assert.ok(lascia.includes('aria-pressed="true"'));
+});
+
+test("chi ce l'ha in carico si legge in testa alla riga", () => {
+  /* Il nome, e non solo il simbolo: il giorno che i manutentori sono due,
+   * «presa in carico» senza dire da chi e' l'informazione a meta'. */
+  assert.ok(codaVoceMarkup(inCoda({ assignees: ["danigio15"] })).includes("🙋 danigio15"));
+  assert.ok(!codaVoceMarkup(inCoda({ assignees: [] })).includes("🙋"));
+  assert.ok(!codaVoceMarkup(inCoda()).includes("🙋"));
+});
+
+test("una segnalazione gia' chiusa non si prende in carico", () => {
+  /* Non si prende in carico quello che e' gia' finito: il tasto sarebbe un
+   * gesto senza seguito. */
+  assert.ok(!codaVoceMarkup(inCoda({ number: 9, state: "risolto" })).includes("data-dm-carico"));
+});
+
+test("il nome di chi ha in carico non diventa markup", () => {
+  const markup = codaVoceMarkup(inCoda({ assignees: ['"><b>oops</b>'] }));
+  assert.ok(!markup.includes("<b>oops"));
+});
+
+function conIlFilo(numero, filo, account, prova) {
+  const stato = statoVivo();
+  const prima = { filo: stato.fili[numero], account: stato.account };
+  if (filo) stato.fili[numero] = filo;
+  else delete stato.fili[numero];
+  stato.account = account;
+  try {
+    prova();
+  } finally {
+    if (prima.filo) stato.fili[numero] = prima.filo;
+    else delete stato.fili[numero];
+    stato.account = prima.account;
+  }
+}
+
+test("chi ha segnalato risponde da qui, col filo aperto", () => {
+  /* Era la meta' che mancava: il filo si leggeva ma non si scriveva, e per
+   * aggiungere una riga bisognava aprire github.com — cioe' uscire dal posto
+   * che questa finestra esiste per non far lasciare. */
+  const voce = ticket({ remote_id: "9", issue_url: "https://github.com/x/y/issues/9" });
+
+  conIlFilo(9, null, { connected: true, login: "anna" }, () => {
+    /* Col filo chiuso no: una casella sotto ognuna delle dodici segnalazioni
+     * dell'elenco sarebbe stata dodici caselle vuote. */
+    assert.ok(!voceMarkup(voce).includes("data-dm-scrivi"));
+  });
+
+  conIlFilo(9, { body: "x", comments: [] }, { connected: true, login: "anna" }, () => {
+    const markup = voceMarkup(voce);
+    assert.ok(markup.includes('data-dm-scrivi="9"'), "manca il tasto per mandare");
+    assert.ok(markup.includes('id="dm-tkt-mio-9"'), "manca la casella");
+    /* Il tasto nasce spento e guarda LA SUA casella, non quella della console:
+     * senza `data-dm-campo` avrebbe cercato `#dm-tkt-risposta-9`, che in
+     * questa pagina non esiste, e sarebbe rimasto spento per sempre. */
+    const tasto = markup.match(/<button[^>]*data-dm-scrivi="9"[^>]*>/)[0];
+    assert.ok(tasto.includes("disabled"));
+    assert.ok(tasto.includes('data-dm-campo="dm-tkt-mio-9"'));
+  });
+});
+
+test("senza GitHub collegato si legge il perche', non un tasto che non puo' funzionare", () => {
+  /* Il commento parte a nome di chi scrive: senza firma non c'e' niente da
+   * mandare, e un tasto che se ne accorge dopo e' un tasto che fa perdere
+   * quello che si e' scritto. */
+  const voce = ticket({ remote_id: "9", issue_url: "https://github.com/x/y/issues/9" });
+  conIlFilo(9, { body: "x", comments: [] }, { connected: false, login: "" }, () => {
+    const markup = voceMarkup(voce);
+    assert.ok(!markup.includes("data-dm-scrivi"));
+    assert.ok(markup.includes("Collega GitHub"));
+  });
 });

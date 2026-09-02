@@ -63,7 +63,9 @@ from .tickets import (
     async_finish_auth,
     async_forget_auth,
     async_queue,
+    async_reply,
     async_sync_states,
+    async_take,
     async_thread,
 )
 from .tickets import (
@@ -88,6 +90,8 @@ TYPE_TICKET_SYNC = f"{DOMAIN}/tickets/sync"
 TYPE_TICKET_QUEUE = f"{DOMAIN}/tickets/queue"
 TYPE_TICKET_ANSWER = f"{DOMAIN}/tickets/answer"
 TYPE_TICKET_THREAD = f"{DOMAIN}/tickets/thread"
+TYPE_TICKET_REPLY = f"{DOMAIN}/tickets/reply"
+TYPE_TICKET_TAKE = f"{DOMAIN}/tickets/take"
 TYPE_TICKET_AUTH_START = f"{DOMAIN}/tickets/auth/start"
 TYPE_TICKET_AUTH_POLL = f"{DOMAIN}/tickets/auth/poll"
 TYPE_TICKET_AUTH_FORGET = f"{DOMAIN}/tickets/auth/forget"
@@ -593,6 +597,73 @@ async def async_ticket_thread(
     connection.send_result(msg["id"], filo)
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_TICKET_REPLY,
+        vol.Required("number"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Required("message"): vol.All(str, vol.Length(max=MAX_REPLY * 2)),
+    }
+)
+@websocket_api.async_response
+async def async_reply_ticket_command(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Scrivi sotto una segnalazione tua, restando nella plancia.
+
+    Non passa dalla console. Chi risponde qui e' chi ha segnalato, e scrive
+    sotto la sua: fino a ieri per aggiungere una riga doveva aprire github.com,
+    che e' esattamente il posto che questa finestra esiste per non fargli
+    aprire. Di chi sia la segnalazione lo verifica `async_reply`, che ha in
+    mano il deposito; qui si controlla solo che chi chiama la plancia la possa
+    usare.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    try:
+        fatto = await async_reply(
+            hass,
+            user_id=_caller_id(connection),
+            number=msg["number"],
+            message=msg["message"],
+        )
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    connection.send_result(msg["id"], fatto)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_TICKET_TAKE,
+        vol.Required("number"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("take", default=True): bool,
+    }
+)
+@websocket_api.async_response
+async def async_take_ticket_command(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Prendi in carico una segnalazione, o lasciala."""
+    if await _console_denied(hass, connection, msg):
+        return
+    try:
+        fatto = await async_take(
+            hass,
+            user_id=_caller_id(connection),
+            number=msg["number"],
+            take=msg["take"],
+        )
+    except GitHubError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    connection.send_result(msg["id"], fatto)
+
+
 # ─── Collegare il proprio account GitHub ─────────────────────────────────────
 #
 # Lo stesso giro che HACS fa gia' fare a chiunque installi la plancia: un
@@ -703,6 +774,8 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_ticket_queue,
         async_answer_ticket_command,
         async_ticket_thread,
+        async_reply_ticket_command,
+        async_take_ticket_command,
         async_ticket_auth_start,
         async_ticket_auth_poll,
         async_ticket_auth_forget,

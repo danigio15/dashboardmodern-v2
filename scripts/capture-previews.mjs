@@ -187,6 +187,16 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-mio-filo",
+    title: "Segnalazioni · la mia discussione, e la casella per rispondere",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("miofilo");
+    },
+  },
+  {
     id: "segnalazioni-allegati",
     title: "Segnalazioni · foto e video, appena spedita",
     both: true,
@@ -1335,6 +1345,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           created_at: new Date(Date.now() - 70 * GIORNO).toISOString(),
           comments: 2,
           attachments: 2,
+          assignees: ["danigio15"],
         },
         {
           number: 191,
@@ -1384,6 +1395,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           author: "andyz68",
           comments: 3,
           attachments: 0,
+          assignees: ["danigio15"],
         },
         {
           number: 266,
@@ -1403,7 +1415,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           type: "",
           title: "[Feature]:",
           body: "Il modulo e' partito col titolo vuoto: nessuna etichetta, nessun prefisso da leggere.",
-          state: "in-carico",
+          state: "inviato",
           origin: "github",
           created_at: new Date(Date.now() - 5 * GIORNO).toISOString(),
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/249",
@@ -1462,6 +1474,37 @@ async function bootPage(context, cameraStill, vehicleStill) {
             },
           ],
         },
+        "dashboardmodern/tickets/thread/194": {
+          number: 194,
+          body: "Premo stop dalla pagina Finestre e continuano a scendere fino in fondo. Con due Shelly 2PM su tre succede sempre.",
+          attachments: [],
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
+          state: "in-carico",
+          diagnostics: {
+            integration_version: "1.4.5-beta.7",
+            ha_version: "2026.7.1",
+            locale: "it",
+            panel_section: "shutters",
+          },
+          comments: [
+            {
+              id: "1",
+              author: "danigio15",
+              maintainer: true,
+              at: "2026-08-31T18:10:00Z",
+              body: "Riprodotta: il comando stop parte, ma la seconda tapparella lo ignora. Sto guardando come il rele' riporta la posizione.",
+              attachments: [],
+            },
+            {
+              id: "2",
+              author: "anna-g",
+              maintainer: false,
+              at: "2026-09-01T07:55:00Z",
+              body: "Ho aggiornato il firmware dello Shelly e non e' cambiato niente. Se serve provo a togliere l'altra tapparella dal gruppo.",
+              attachments: [],
+            },
+          ],
+        },
         "dashboardmodern/tickets/auth/start": {
           user_code: "WDJB-MJHT",
           device_code: "finto",
@@ -1493,12 +1536,13 @@ async function bootPage(context, cameraStill, vehicleStill) {
             ? "mie"
             : dove === "collega"
               ? "nuova"
-              : dove === "allegati"
+              : dove === "allegati" || dove === "miofilo"
                 ? "mie"
                 : dove === "filo" || dove === "chiuse" || dove === "difetti"
                   ? "console"
                   : dove;
-        stato.fili = {};
+        stato.fili =
+          dove === "miofilo" ? { 194: risposte["dashboardmodern/tickets/thread/194"] } : {};
         stato.filiInCorso = {};
         stato.queue =
           dove === "console" || dove === "filo" || dove === "chiuse" || dove === "difetti"

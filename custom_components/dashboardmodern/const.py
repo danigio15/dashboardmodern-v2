@@ -88,3 +88,22 @@ TICKET_SYNC_BATCH = 20
 # Chi non vuole che la plancia parli con nessuno fuori di casa lo spegne, e le
 # segnalazioni restano una cosa fra lui e il suo Home Assistant.
 OPTION_TICKETS_ENABLED = "tickets_enabled"
+
+# ─── Il campanello ───────────────────────────────────────────────────────────
+#
+# Il filo di una segnalazione e' gia' una conversazione nei due sensi. Quello
+# che mancava e' sapere che qualcuno ha scritto senza tenere la plancia aperta
+# a guardarla: una domanda arrivata alle nove restava senza risposta fino a
+# quando al manutentore veniva in mente di controllare.
+#
+# Cinque minuti, e costa una richiesta a giro — l'elenco filtrato per `since`,
+# che GitHub restituisce gia' scremato. Dodici richieste all'ora in tutto,
+# contro le cinquemila che un gettone concede: e' il giro piu' leggero di
+# tutta l'integrazione, ed e' anche quello che si sente di piu'.
+TICKET_WATCH_INTERVAL = 5 * 60
+
+# L'evento sul bus quando arriva un messaggio nuovo. Serve a chi vuole
+# decidersi da se' cosa succede — il telefono, un altoparlante, una luce — e
+# convive con la notifica di Home Assistant, che invece c'e' per chi
+# automazioni non ne scrive.
+EVENT_TICKET_MESSAGE = f"{DOMAIN}_messaggio"

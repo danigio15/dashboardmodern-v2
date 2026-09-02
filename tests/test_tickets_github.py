@@ -643,27 +643,42 @@ async def test_un_titolo_di_solo_prefisso_resta_intero(
     assert coda[0]["type"] == "feature"
 
 
-async def test_una_aperta_con_commenti_e_gia_in_lavorazione(
+async def test_in_lavorazione_e_quella_presa_in_carico(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Chi ha commentato l'elenco non lo dice: vale il segno che c'e'."""
+    """«In lavorazione» e' l'assegnazione, non il fatto che qualcuno abbia parlato.
+
+    Prima lo si deduceva dai commenti, perche' un segno vero non c'era, e la
+    deduzione sbagliava nel verso peggiore: una domanda di chiarimento faceva
+    risultare presa in carico una segnalazione che nessuno aveva guardato.
+    Adesso il segno c'e' — lo scrive il tasto «Prendo in carico» — e i commenti
+    tornano a essere quello che sono: commenti.
+    """
     _entry(hass)
     await _collega(hass, "dani", maintainer=True)
     github.answer(
         "/issues?state=open",
         [
-            {"number": 1, "title": "muta", "body": "x", "state": "open", "comments": 0},
             {
-                "number": 2,
-                "title": "parlata",
+                "number": 1,
+                "title": "parlata ma di nessuno",
                 "body": "x",
                 "state": "open",
                 "comments": 2,
+            },
+            {
+                "number": 2,
+                "title": "presa in carico",
+                "body": "x",
+                "state": "open",
+                "comments": 0,
+                "assignees": [{"login": "danigio15"}],
             },
         ],
     )
     coda = await tickets.async_queue(hass, "dani")
     assert [voce["state"] for voce in coda] == ["inviato", "in-carico"]
+    assert [voce["assignees"] for voce in coda] == [[], ["danigio15"]]
 
 
 async def test_una_pull_request_non_e_una_segnalazione(

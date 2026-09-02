@@ -247,18 +247,33 @@ class TicketStore:
             if ticket.get("state") == STATE_DRAFT
         ]
 
-    def remote_ids(self) -> list[str]:
+    def remote_ids(self, *, every: bool = False) -> list[str]:
         """Gli identificativi remoti di cui ha senso chiedere lo stato.
 
         Un ticket gia' chiuso non si richiede piu': la console non lo
-        riaprira', e ogni giro di sync costa una richiesta a chi ospita il
-        relay.
+        riaprira', e ogni giro di sync costa una richiesta.
+
+        Con ``every`` ci sono anche i chiusi, e serve al campanello. Li' la
+        domanda e' un'altra — non «cosa devo rileggere», ma «quali
+        conversazioni sono mie» — e una risposta arrivata sotto una
+        segnalazione chiusa la settimana prima e' esattamente il messaggio che
+        non si vuole perdere. Non costa niente: quel giro e' una richiesta
+        sola, e questo elenco serve solo a scartare le righe degli altri.
         """
         return [
             str(ticket.get("remote_id"))
             for ticket in self._tickets()
-            if ticket.get("remote_id") and ticket.get("state") not in CLOSED_STATES
+            if ticket.get("remote_id")
+            and (every or ticket.get("state") not in CLOSED_STATES)
         ]
+
+    def owns_remote(self, opened_by: str, remote_id: str) -> bool:
+        """Se questa segnalazione, su GitHub, l'ha aperta proprio questo utente."""
+        return any(
+            str(ticket.get("remote_id")) == str(remote_id)
+            and ticket.get("opened_by", "") == opened_by
+            for ticket in self._tickets()
+        )
 
     def _make_room(self) -> None:
         """Tieni lo store sotto il tetto, cedendo prima i ticket gia' chiusi."""

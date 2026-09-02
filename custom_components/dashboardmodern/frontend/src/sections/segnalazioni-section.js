@@ -66,6 +66,8 @@ const WS_SYNC = "dashboardmodern/tickets/sync";
 const WS_QUEUE = "dashboardmodern/tickets/queue";
 const WS_ANSWER = "dashboardmodern/tickets/answer";
 const WS_THREAD = "dashboardmodern/tickets/thread";
+const WS_REPLY = "dashboardmodern/tickets/reply";
+const WS_TAKE = "dashboardmodern/tickets/take";
 const WS_AUTH_START = "dashboardmodern/tickets/auth/start";
 const WS_AUTH_POLL = "dashboardmodern/tickets/auth/poll";
 const WS_AUTH_FORGET = "dashboardmodern/tickets/auth/forget";
@@ -82,6 +84,8 @@ export const WS_TYPES = Object.freeze([
   WS_QUEUE,
   WS_ANSWER,
   WS_THREAD,
+  WS_REPLY,
+  WS_TAKE,
   WS_AUTH_START,
   WS_AUTH_POLL,
   WS_AUTH_FORGET,
@@ -998,6 +1002,46 @@ function statoMarkup(stato) {
   } ${esc(voce.nome())}</span>`;
 }
 
+/* La meta' che mancava: da qui si risponde, senza uscire.
+ *
+ * Fino a ieri il filo si poteva leggere ma non scrivere. Chi aveva segnalato
+ * leggeva la risposta del manutentore dentro la propria plancia e poi, per
+ * dire «ho provato, non funziona lo stesso», doveva aprire github.com — cioe'
+ * uscire proprio dal posto che questa finestra esiste per non fargli lasciare.
+ *
+ * Compare solo col filo aperto: una casella di scrittura sotto ognuna delle
+ * dodici segnalazioni dell'elenco sarebbe stata dodici caselle vuote. E solo
+ * a chi ha collegato GitHub, perche' il commento parte a nome suo: senza
+ * firma non c'e' niente da mandare, e un tasto che risponde «collega GitHub»
+ * dopo che hai scritto e' un tasto che ti fa perdere quello che hai scritto.
+ */
+function mioCampoMarkup(numero) {
+  if (!numero || !state.fili[numero]) return "";
+  if (!state.account.connected) {
+    return `<div class="dm-tkt-filo-attesa">${esc(
+      t(
+        "Collega GitHub per scrivere sotto questa segnalazione.",
+        "Connect GitHub to write under this report.",
+      ),
+    )}</div>`;
+  }
+  return `
+    <div class="dm-tkt-campo">
+      <textarea id="dm-tkt-mio-${numero}" rows="3" placeholder="${esc(
+        t(
+          "Scrivi qui: il messaggio finisce sotto la segnalazione, a nome tuo.",
+          "Write here: the message goes under the report, under your name.",
+        ),
+      )}"></textarea>
+    </div>
+    <div class="dm-tkt-azioni">
+      <button type="button" class="dm-tkt-btn" data-dm-scrivi="${numero}"
+        data-dm-serve-testo="${numero}" data-dm-campo="dm-tkt-mio-${numero}" disabled>${esc(
+          t("Manda il messaggio", "Send the message"),
+        )}</button>
+    </div>`;
+}
+
 export function voceMarkup(ticket) {
   const tipo = TIPI.find((voce) => voce.id === ticket.type) || TIPI[0];
   const data = ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : "";
@@ -1034,7 +1078,7 @@ export function voceMarkup(ticket) {
       </div>
       ${
         aperto
-          ? filoMarkup(numero)
+          ? `${filoMarkup(numero)}${mioCampoMarkup(numero)}`
           : `<p class="dm-tkt-voce-corpo">${esc(ticket.body)}</p>${diagnosticaMarkup(
               ticket.diagnostics,
             )}${risposta}`
@@ -1270,6 +1314,16 @@ function segniMarkup(ticket) {
       `<span class="dm-tkt-segno" title="${esc(t("Commenti", "Comments"))}">💬 ${commenti}</span>`,
     );
   }
+  const incaricati = Array.isArray(ticket.assignees) ? ticket.assignees.map(clean) : [];
+  if (incaricati.length) {
+    /* Il nome, e non solo il simbolo: il giorno che i manutentori sono due,
+     * «presa in carico» senza dire da chi e' l'informazione a meta'. */
+    segni.push(
+      `<span class="dm-tkt-segno" title="${esc(t("Presa in carico", "Taken"))}">🙋 ${esc(
+        incaricati.join(", "),
+      )}</span>`,
+    );
+  }
   return segni.join("");
 }
 
@@ -1332,7 +1386,17 @@ function filoMarkup(numero) {
             <div class="dm-tkt-commento${commento.maintainer ? " mio" : ""}">
               <div class="dm-tkt-commento-testa">
                 <b>${esc(clean(commento.author))}</b>
-                ${commento.maintainer ? `<span class="dm-tkt-segno">${esc(t("tu", "you"))}</span>` : ""}
+                ${
+                  commento.maintainer
+                    ? `<span class="dm-tkt-segno">${esc(
+                        /* «tu» solo a chi tiene la repository. Da quando il
+                         * filo lo legge anche chi ha segnalato, quella
+                         * pastiglia gli diceva che la risposta del manutentore
+                         * l'aveva scritta lui. */
+                        state.console ? t("tu", "you") : t("manutentore", "maintainer"),
+                      )}</span>`
+                    : ""
+                }
                 <span>${esc(quandoLeggibile(commento.at))}</span>
               </div>
               <p class="dm-tkt-voce-corpo">${esc(clean(commento.body))}</p>
@@ -1454,6 +1518,27 @@ export function codaVoceMarkup(ticket) {
    * gesto legittimo — «non e' un difetto», «era gia' risolta» — e pretendere un
    * commento per farlo vorrebbe dire chiedere di scrivere per forza. */
   const scrive = ` data-dm-serve-testo="${numero}" disabled`;
+  /* Prendere in carico e' l'assegnazione di GitHub, non un'etichetta
+   * inventata qui: chi passa dalla pagina della issue lo vede senza che
+   * nessuno glielo scriva, e il cruscotto e la repository dicono la stessa
+   * cosa. Su una chiusa il tasto non c'e': non si prende in carico quello che
+   * e' gia' finito. */
+  const incaricati = Array.isArray(ticket.assignees) ? ticket.assignees.map(clean) : [];
+  const presa = incaricati.length > 0;
+  const carico = chiusa
+    ? ""
+    : `<button type="button" class="dm-tkt-btn${presa ? "" : " chiaro"}"
+          data-dm-carico="${numero}" data-dm-prendi="${presa ? "" : "1"}"
+          aria-pressed="${presa}" title="${esc(
+            presa
+              ? `${t("In carico a", "Taken by")} ${incaricati.join(", ")}`
+              : t(
+                  "Assegna la segnalazione a te su GitHub",
+                  "Assign the report to yourself on GitHub",
+                ),
+          )}">${esc(
+            presa ? t("Lascia", "Release") : t("Prendo in carico", "I'll take it"),
+          )}</button>`;
   const azioni = chiusa
     ? `<button type="button" class="dm-tkt-btn chiaro"
          data-dm-rispondi="${numero}" data-dm-chiudi=""${scrive}>${esc(
@@ -1507,7 +1592,7 @@ export function codaVoceMarkup(ticket) {
         <textarea id="dm-tkt-risposta-${numero}" rows="3"
           placeholder="${esc(invitoRisposta(ticket))}"></textarea>
       </div>
-      <div class="dm-tkt-azioni">${azioni}</div>
+      <div class="dm-tkt-azioni">${carico}${azioni}</div>
     </div>`;
 }
 
@@ -1760,7 +1845,10 @@ function agganciaEventi(corpo) {
    * solo `disabled`, che il testo non lo sfiora. */
   corpo.querySelectorAll("[data-dm-serve-testo]").forEach((bottone) => {
     const numero = bottone.dataset.dmServeTesto;
-    const campo = corpo.querySelector(`#dm-tkt-risposta-${numero}`);
+    /* Il campo della console e quello di chi ha segnalato sono due, e il
+     * secondo lo dice il tasto: senza, la casella nuova sarebbe rimasta con un
+     * tasto che si accende guardando il campo di un'altra. */
+    const campo = corpo.querySelector(`#${bottone.dataset.dmCampo || `dm-tkt-risposta-${numero}`}`);
     if (!campo) return;
     const aggiorna = () => {
       bottone.disabled = !clean(campo.value);
@@ -1789,6 +1877,14 @@ function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-rispondi]").forEach((bottone) => {
     bottone.addEventListener("click", () =>
       rispondi(bottone.dataset.dmRispondi, bottone.dataset.dmChiudi),
+    );
+  });
+  corpo.querySelectorAll("[data-dm-scrivi]").forEach((bottone) => {
+    bottone.addEventListener("click", () => scrivi(bottone.dataset.dmScrivi));
+  });
+  corpo.querySelectorAll("[data-dm-carico]").forEach((bottone) => {
+    bottone.addEventListener("click", () =>
+      prendiInCarico(bottone.dataset.dmCarico, bottone.dataset.dmPrendi === "1"),
     );
   });
   corpo.querySelector('[data-dm-tkt="congeda"]')?.addEventListener("click", () => {
@@ -1964,11 +2060,66 @@ async function apriFilo(numero) {
   }
 }
 
+/* Dove sta scritto quello che si sta per mandare.
+ *
+ * Si cerca nel documento e non dentro la finestra, perche' da quando il
+ * cruscotto e' una pagina della barra il campo della console **non e' piu'
+ * dentro `#dm-tkt-modal`**: cercarlo li' tornava sempre vuoto, e «Rispondi»
+ * usciva dalla funzione alla riga dopo senza dire niente. I tasti che
+ * chiudevano e basta continuavano a funzionare, il che rendeva il guasto
+ * ancora piu' difficile da vedere. Gli identificativi sono unici nel
+ * documento, quindi cercare largo qui e' cercare esatto. */
+function campoDi(identificativo) {
+  return clean(doc?.getElementById?.(identificativo)?.value);
+}
+
+async function scrivi(numero) {
+  const issue = Number(numero) || 0;
+  if (!issue) return;
+  const testo = campoDi(`dm-tkt-mio-${issue}`);
+  if (!testo) return;
+  state.busy = true;
+  disegna();
+  try {
+    await chiedi(WS_REPLY, { number: issue, message: testo });
+    state.avviso = t("Messaggio mandato.", "Message sent.");
+    /* Il filo letto un attimo fa non contiene la riga appena scritta: si
+     * butta, e si rilegge aprendolo. Rimetterla a mano nell'elenco vorrebbe
+     * dire mostrare una versione della conversazione che non e' quella vera. */
+    delete state.fili[String(issue)];
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+  } finally {
+    state.busy = false;
+    disegna();
+  }
+}
+
+async function prendiInCarico(numero, prendi) {
+  const issue = Number(numero) || 0;
+  if (!issue) return;
+  state.busy = true;
+  disegna();
+  try {
+    await chiedi(WS_TAKE, { number: issue, take: Boolean(prendi) });
+    state.avviso = prendi ? t("Presa in carico.", "Taken.") : t("Lasciata libera.", "Released.");
+    /* La coda va riletta: l'assegnazione la porta GitHub, e riscriverla qui a
+     * mano vorrebbe dire un cruscotto che dice una cosa e la repository
+     * un'altra al primo aggiornamento andato storto. */
+    state.queue = null;
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+  } finally {
+    state.busy = false;
+    if (state.queue === null) await caricaCoda();
+    else disegna();
+  }
+}
+
 async function rispondi(numero, chiusura) {
   const issue = Number(numero) || 0;
   if (!issue) return;
-  const modale = doc?.getElementById?.("dm-tkt-modal");
-  const testo = clean(modale?.querySelector(`#dm-tkt-risposta-${issue}`)?.value);
+  const testo = campoDi(`dm-tkt-risposta-${issue}`);
   /* Chiudere senza scrivere ha senso — «non e' un difetto», «era gia'
    * risolta». Rispondere senza testo no: sarebbe un commento vuoto sotto la
    * segnalazione di qualcuno. I tasti che scrivono nascono spenti apposta, e

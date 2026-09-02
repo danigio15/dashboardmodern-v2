@@ -31,6 +31,7 @@ import re
 # quella riga sollevava un NameError alla prima coda aperta dalla console.
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
+from urllib.parse import quote
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -498,6 +499,24 @@ async def async_create_issue(
     return {"number": numero, "url": str(creata.get("html_url") or "")}
 
 
+def _incaricati(issue: Mapping[str, Any]) -> list[str]:
+    """I nomi di chi ha preso in carico la segnalazione, se qualcuno l'ha fatto."""
+    grezzi = issue.get("assignees")
+    if not isinstance(grezzi, list):
+        # GitHub manda `assignee` singolo accanto ad `assignees` per compatibilita'
+        # con la sua API di dieci anni fa. Quando la lista manca, quello resta.
+        uno = issue.get("assignee")
+        grezzi = [uno] if isinstance(uno, Mapping) else []
+    nomi: list[str] = []
+    for voce in grezzi:
+        if not isinstance(voce, Mapping):
+            continue
+        nome = str(voce.get("login") or "").strip()
+        if nome and nome not in nomi:
+            nomi.append(nome)
+    return nomi
+
+
 def _state_from_issue(issue: Mapping[str, Any], risposta: str) -> str:
     """Lo stato che la plancia mostra, dedotto dalla issue.
 
@@ -629,6 +648,32 @@ async def async_comment(
     return {"url": str(creato.get("html_url") or "")}
 
 
+async def async_assign_issue(
+    hass: HomeAssistant, token: str, number: int, *, login: str, take: bool = True
+) -> None:
+    """Prendi in carico la segnalazione, o lasciala. E' l'assegnazione di GitHub.
+
+    Si scrive l'elenco intero invece di aggiungere e togliere un nome:
+    l'indirizzo che aggiunge e quello che toglie sono due, e in una casa con
+    un manutentore solo «chi ce l'ha in carico» e' una cosa sola. Scrivere
+    l'elenco dice esattamente quello che si vuole — o lui, o nessuno — e non
+    lascia mai due assegnatari per una svista.
+
+    Assegnare chiede di poter scrivere sulla repository, e infatti questo lo
+    puo' fare solo la console. GitHub, a chi non ne ha il diritto, l'elenco lo
+    scarta in silenzio — come fa con le etichette — quindi il permesso va
+    verificato prima di qui, non dedotto da una risposta che torna comunque
+    verde.
+    """
+    await _request(
+        hass,
+        "PATCH",
+        f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}",
+        token=token,
+        payload={"assignees": [login] if take else []},
+    )
+
+
 async def async_close_issue(
     hass: HomeAssistant, token: str, number: int, *, planned: bool = True
 ) -> None:
@@ -694,14 +739,18 @@ async def _async_issues_page(
         # Quanti commenti ci sono si sa dall'elenco, senza aprire niente: e' il
         # segno che dice quali valga la pena guardare.
         commenti = int(issue.get("comments") or 0)
+        incaricati = _incaricati(issue)
         voce_stato = _state_from_issue(issue, "")
-        if voce_stato == STATE_SENT and commenti:
-            # CHI ha commentato, qui, non si sa: l'elenco di GitHub non lo dice
-            # e chiederlo vorrebbe dire una chiamata per ogni riga. Vale allora
-            # il segno che c'e': una aperta su cui si e' gia' parlato e' in
-            # lavorazione, una muta e' ancora da guardare. Nella plancia di chi
-            # ha segnalato lo stato resta quello esatto, perche' li' il filo si
-            # apre per davvero e i commenti si leggono uno per uno.
+        if voce_stato == STATE_SENT and incaricati:
+            # «In lavorazione» adesso ha un segno vero: l'assegnazione, che il
+            # tasto «Prendo in carico» scrive su GitHub e che l'elenco riporta
+            # senza chiedere niente in piu'.
+            #
+            # Prima lo si deduceva dai commenti — una aperta su cui si era gia'
+            # parlato era in lavorazione — perche' un segno vero non c'era. Era
+            # una supposizione, e sbagliava nel verso peggiore: bastava una
+            # domanda di chiarimento per far risultare presa in carico una
+            # segnalazione che nessuno aveva ancora guardato.
             voce_stato = STATE_TRIAGED
         coda.append(
             {
@@ -725,6 +774,10 @@ async def _async_issues_page(
                 # nel fuso del server.
                 "created_at": str(issue.get("created_at") or ""),
                 "comments": commenti,
+                # Chi l'ha presa in carico, se qualcuno l'ha fatto. Il
+                # cruscotto ne ha bisogno per sapere se il tasto va disegnato
+                # premuto, e per dire il nome quando i manutentori sono due.
+                "assignees": incaricati,
                 "attachments": len(attachments_in(corpo)),
             }
         )
@@ -767,3 +820,74 @@ async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
         hass, token, stato="closed", quante=_PER_PAGINA, per="updated", pagina=1
     )
     return [*aperte, *chiuse]
+
+
+# Quante righe si guardano in un giro del campanello. Cinquanta segnalazioni
+# toccate in cinque minuti non succede: il tetto c'e' perche' la prima
+# accensione, che chiede senza `since`, non si porti dietro l'intera storia
+# della repository per poi buttarla via.
+_PER_PAGINA_AVVISI = 50
+
+
+async def async_updated_since(
+    hass: HomeAssistant, token: str, *, since: str = ""
+) -> list[dict[str, Any]]:
+    """Cosa si e' mosso da un certo momento in poi. Una richiesta, non venti.
+
+    E' il giro del campanello, e la forma conta piu' del contenuto. Rileggere
+    una per una le segnalazioni aperte per scoprire se qualcuno ha scritto
+    sarebbe stato venti richieste ogni cinque minuti — duecentoquaranta all'ora
+    — per sentirsi rispondere quasi sempre «no». GitHub un modo per chiederlo
+    in una volta ce l'ha: `since`, che restituisce solo quello che e' cambiato
+    dopo quel momento, e nell'elenco c'e' gia' il numero dei commenti.
+
+    Quel numero e' tutto quello che serve. Non dice **chi** ha scritto — per
+    saperlo bisognerebbe aprire i commenti, cioe' tornare a una chiamata per
+    riga — ma dice **quanti**, e chi tiene il conto di quanti ne aveva visti
+    sa che ne sono arrivati di nuovi. Chi li ha scritti si legge aprendo il
+    filo, che e' esattamente il gesto che il campanello serve a provocare.
+
+    L'ordine e' `updated` decrescente: se un giorno le righe non ci stessero in
+    una pagina, quelle che restano fuori sono le meno recenti, non a caso.
+    """
+    query = [
+        "state=all",
+        "sort=updated",
+        "direction=desc",
+        f"per_page={_PER_PAGINA_AVVISI}",
+    ]
+    if since:
+        query.append(f"since={quote(since, safe='')}")
+    righe = await _request(
+        hass,
+        "GET",
+        f"{GITHUB_API}/repos/{REPOSITORY}/issues?{'&'.join(query)}",
+        token=token,
+    )
+    if not isinstance(righe, list):
+        return []
+    fuori: list[dict[str, Any]] = []
+    for riga in righe:
+        if not isinstance(riga, dict) or "pull_request" in riga:
+            continue
+        numero = int(riga.get("number") or 0)
+        if not numero:
+            continue
+        _, titolo = _tipo_e_titolo(riga)
+        fuori.append(
+            {
+                "number": numero,
+                "title": titolo,
+                "comments": int(riga.get("comments") or 0),
+                "state": str(riga.get("state") or "open"),
+                "updated_at": str(riga.get("updated_at") or ""),
+                "issue_url": str(riga.get("html_url") or ""),
+                "author": str((riga.get("user") or {}).get("login") or ""),
+                "origin": (
+                    "plancia"
+                    if TICKET_MARKER in str(riga.get("body") or "")
+                    else "github"
+                ),
+            }
+        )
+    return fuori

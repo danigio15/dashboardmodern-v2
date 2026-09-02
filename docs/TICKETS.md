@@ -296,6 +296,95 @@ e la chiusura e' la chiusura su GitHub, con `state_reason` `completed` per una
 risolta e `not_planned` per una archiviata. Un posto solo, non due da tenere
 allineati.
 
+## Il campanello, e la conversazione nei due sensi
+
+Il filo di una segnalazione era gia' percorribile in tutte e due le direzioni,
+ma solo da un lato: il manutentore scriveva dalla console, e chi aveva
+segnalato leggeva. Per rispondere doveva aprire github.com — cioe' uscire
+proprio dal posto che questa finestra esiste per non fargli lasciare. Adesso
+c'e' `tickets/reply`: il commento parte **col gettone di chi scrive**, mai con
+quello della console, e solo sotto una segnalazione che risulta sua nel
+deposito locale.
+
+Restava il problema piu' grosso, che non era tecnico: un canale che chiede di
+essere sorvegliato a vista non e' un canale, e' una bacheca. Una domanda
+scritta alle nove restava muta fino a quando al manutentore veniva in mente di
+controllare; una risposta scritta a mezzogiorno restava non letta fino al
+prossimo giro di chi l'aveva chiesta.
+
+Il campanello (`ticket_watch.py`) e' la risposta, e sono quattro scelte.
+
+**Una richiesta ogni cinque minuti, non una per segnalazione.** Rileggere venti
+issue per scoprire se qualcuno ha scritto sarebbe stato duecentoquaranta
+richieste all'ora per sentirsi dire quasi sempre di no. L'elenco filtrato per
+`since` — `GET /issues?state=all&sort=updated&since=…` — torna solo quello che
+si e' mosso e porta gia' `comments`: se il numero e' cresciuto, qualcuno ha
+scritto. Dodici richieste all'ora in tutto. Il gettone e' **obbligatorio** per
+questo giro, e non per farsi riconoscere — la repository e' pubblica — ma per
+il tetto: senza, dodici all'ora su un limite di sessanta che il controllo
+aggiornamenti e la `sync` gia' intaccano vorrebbe dire un campanello che verso
+sera smette di suonare, cioe' peggio di uno che non c'e'.
+
+**Il segno di quello che si e' letto sta su disco.** In memoria avrebbe voluto
+dire risuonare per messaggi vecchi a ogni riavvio di Home Assistant, che con
+questa plancia vuol dire a ogni aggiornamento.
+
+**I propri messaggi non suonano.** Quando la plancia scrive un commento — la
+risposta della console, il messaggio di chi ha segnalato — alza il segno di uno
+da se'. Uno, e non «quanti ce ne sono adesso»: saperlo vorrebbe dire rileggere
+la issue, cioe' una richiesta in piu' per ogni risposta scritta.
+
+**Chi sente cosa.** Chi tiene la repository sente tutto, comprese le
+segnalazioni appena aperte: e' il suo mestiere, ed e' quello che il cruscotto
+mostra. Chi la plancia la usa e basta sente solo le proprie — le altre sono
+conversazioni fra sconosciuti — ma **tutte le proprie**, anche quelle gia'
+chiuse. Li' la domanda non e' «cosa devo rileggere» ma «quali conversazioni
+sono mie», e una risposta arrivata sotto una segnalazione chiusa la settimana
+prima e' esattamente il messaggio che non si vuole perdere.
+
+Quello che suona e' doppio, e serve a due persone diverse:
+
+* `hass.bus` riceve `dashboardmodern_messaggio`, con numero, titolo, quanti
+  messaggi, se la novita' e' la segnalazione stessa, chi l'ha aperta e
+  l'indirizzo della issue. E' per chi le automazioni le scrive: il telefono,
+  un altoparlante, una luce che cambia colore. Non impone niente.
+* Una notifica di Home Assistant, quella della campanella, con
+  `notification_id` per numero di segnalazione — due messaggi sotto la stessa
+  non fanno due campanelle da chiudere una per una. E' per chi automazioni non
+  ne scrive e vuole lo stesso sapere che qualcuno ha scritto.
+
+Il giro non si aggiunge a quello da mezz'ora, gli sta accanto: fanno due
+mestieri di costo diverso. Quello lungo rilegge le segnalazioni una per una e
+riprova le consegne — pesa, e ogni cinque minuti sarebbero centinaia di
+richieste all'ora. Quello corto e' una richiesta sola e risponde all'unica
+domanda che non puo' aspettare mezz'ora. Quando il campanello trova qualcosa
+per **chi ha segnalato**, chiama subito la `sync`: la notifica dice «c'e' un
+messaggio», e se aprendo la plancia non ci fosse ancora sarebbe una bugia con
+trenta minuti di scadenza.
+
+## Presa in carico
+
+«In lavorazione» era una supposizione: lo stato si deduceva dal fatto che
+qualcuno avesse commentato, perche' un segno vero non c'era. Sbagliava nel
+verso peggiore — bastava una domanda di chiarimento per far risultare presa in
+carico una segnalazione che nessuno aveva ancora guardato.
+
+Il segno adesso c'e', e non e' inventato qui: e' **l'assegnazione di GitHub**.
+Il tasto del cruscotto scrive `assignees`, la issue compare fra quelle del
+manutentore, e chi passa dalla pagina lo vede senza che nessuno glielo scriva.
+Un'etichetta apposta avrebbe voluto dire un segno che esiste solo dentro questa
+plancia, e una repository che dice una cosa diversa da quello che il cruscotto
+mostra.
+
+Si scrive l'elenco intero invece di aggiungere e togliere un nome: l'indirizzo
+che aggiunge e quello che toglie sono due, e «chi ce l'ha in carico» qui e' una
+cosa sola. Scrivere l'elenco dice esattamente quello che si vuole — o lui, o
+nessuno — e non lascia mai due assegnatari per una svista.
+
+Prendere in carico non lascia commenti. E' un gesto di chi organizza il lavoro,
+non un messaggio a chi ha segnalato: notificarlo vorrebbe dire far vibrare un
+telefono per dire «l'ho vista».
+
 ## L'etichetta la mette la repository, non chi segnala
 
 Una segnalazione aperta dalla plancia arriva **senza etichetta**, e non e' un
