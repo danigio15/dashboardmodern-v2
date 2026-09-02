@@ -281,6 +281,68 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   esplicita batte un valore di serie, come dappertutto qui: chi non ne ha una
   ricade esattamente su quello che vedeva prima.
 
+- **Il locale caldaia tiene più di una caldaia.** «Ho due caldaie, la dashboard
+  ne configura una sola.» Adesso `cd_caldaia` accetta sia l'oggetto di prima
+  sia una lista, e chi ne aveva una la ritrova dov'era senza toccare niente. Da
+  lì in su sono diventati plurali insieme i quattro strati che servivano: il
+  configuratore mostra una lista con nome, aggiungi e rimuovi; la pagina, con
+  più d'una, mette sopra le letture una fila di macchine — «Zona giorno ● |
+  Zona notte» — e si tocca per cambiare scena; la tessera in Home le somma e
+  prefissa ogni riga col nome della macchina, perché due righe «Mandata» una
+  sotto l'altra non dicono di chi sono. Con una caldaia sola la fila non
+  compare: sarebbe un interruttore con una posizione.
+
+- **E la testata del Clima le conta tutte.** «La doppia caldaia va inserita
+  anche nella sezione clima.» Ne raccontava una — un `.find()` — e con due
+  configurate mostrava la prima. Ora c'è una casella per macchina, «Zona giorno
+  · Accesa · da 1 h» accanto a «Zona notte · Spenta», e le fonti sono due
+  perché nessuna basta: l'elenco libero dello Stato termico, dove una caldaia
+  si riconosce dal nome, e la Gestione termica, dove ogni macchina ha il suo
+  nome e la casella che dice acceso o spento. L'unione è per entità, non per
+  nome: la stessa caldaia dichiarata in tutti e due i posti resta una.
+
+- **L'indirizzo RTSP di una telecamera ha la sua casella.** «Ho una telecamera
+  con flusso video su rtsp://…, non c'è possibilità di configurazione.» La
+  casella non è un lettore, e non finge di esserlo: **nessun browser apre
+  rtsp://**, il flusso deve passare da qualcosa che sta dalla parte del server.
+  È il pezzo che mancava per arrivarci — l'indirizzo si scrive e si salva, da
+  lì si legge il nome che go2rtc dà a quel flusso e lo si propone nel campo che
+  accende WebRTC, e a chi go2rtc non ce l'ha la scheda dice l'unica cosa da
+  sapere con il collegamento che la fa. La password non esce: accanto al campo
+  si legge cosa se n'è capito — «192.168.5.30:8556 · flusso «Salone» · con
+  credenziali» — mentre la riga da copiare, che va in un file di
+  configurazione e non a schermo, le credenziali le porta tutte.
+
+- **Le sezioni che si fa l'utente.** «Dare la possibilità di creare sezioni
+  custom dove inserire le proprie entità: avrei potuto inserire quelle dell'UPS
+  senza attendere la sezione apposita.» Non una sezione «Custom» che le
+  contiene tutte, ma una voce nella barra per ognuna, col titolo e l'icona che
+  le ha dato chi l'ha fatta. La pagina è onesta su quello che sa: mette le
+  righe in fila, dice come stanno, e mette l'interruttore **solo dove c'è
+  qualcosa da accendere** — chiamare `toggle` su un sensore non fa niente, e un
+  interruttore che non fa niente è peggio di nessun interruttore.
+  L'intestazione la disegna chi disegna quella di tutte le altre pagine, o
+  sarebbero le uniche a vedersi come pagine di serie B. Il limite è otto: la
+  barra ne tiene già sedici, e la trentesima non si vedrebbe più.
+
+- **Il radar meteo, sopra le previsioni dei sette giorni.** «Visualizzare il
+  radar riferito alla zona prescelta (tramite longitudine e latitudine o
+  comune) e nel relativo raggio di 30 km.» Il motore è aritmetica — Web
+  Mercator, la proiezione di tutte le mappe a tessere — e da un punto e da un
+  raggio ricava lo zoom e i quadratini da scaricare, col punto scelto al
+  centro. Il posto si sceglie in tre modi e nessuno chiama nessuno: le
+  coordinate scritte a mano, una **zona di Home Assistant** — hanno un nome e
+  delle coordinate, e sono la risposta al «oppure il comune» — oppure, se non
+  si dice niente, casa. Raggio trenta chilometri di serie.
+
+  L'immagine può arrivare da un'entità `camera.*` o `image.*` del proprio Home
+  Assistant, e allora da casa non esce niente; oppure da un servizio di
+  tessere, con il suo indirizzo a modello `{z}/{x}/{y}`. Quell'indirizzo lo
+  mette chi installa e non lo mettiamo noi: cablare un servizio che non si è
+  potuto interrogare nemmeno una volta sarebbe spedire una promessa. Al suo
+  posto c'è un tasto **Prova**, che scarica un quadratino vero e dice se è
+  arrivato.
+
 ### Corretto
 
 - **Le finestre Giornaliera e Mensile mostrano il periodo, non l'istante.** «I
@@ -329,6 +391,51 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   non compare da nessuna parte, e lo diceva soltanto con un «nessuna entita'»
   grigio identico a ogni altro dettaglio. Adesso lo dice per intero, e si vede
   che e' un avviso.
+
+- **La Gestione termica parlava italiano anche in francese.** Scegliendo la
+  lingua, la barra passava a Maison, Programme, Énergie — e in mezzo restava
+  «Gestione termica». Non era una voce sola: erano nove parole, tutto il
+  vocabolario di quella sezione, e nessuna arrivava ai cataloghi. La regola
+  scritta nell'architettura presa dalla parte sbagliata — il raccoglitore
+  guarda `src/sections/`, e quelle coppie vivevano nel nucleo. Il raccoglitore
+  aveva già la valvola per i moduli puri con tabelle bilingui; il modulo
+  termico ci entra, e le due coppie che restavano fuori — sciolte, una per
+  conto suo — sono andate nelle mappe dei casi che ricoprono.
+
+- **Due cose diverse non si chiamano più tutte e due «Aperture».** «Cambia nome
+  ad Aperture nei widget dove si inseriscono i sensori porta: chiamali
+  Porte/Finestre, altrimenti si confonde con le altre aperture. Quelle nella
+  sezione Sicurezza chiamale comandi apri porte/cancelli.» I contatti che
+  dicono se una finestra è aperta e i pulsanti che aprono un cancello portavano
+  lo stesso nome. Il nome nuovo arriva anche dove lo stampa il guscio
+  vendorizzato — l'intestazione della fisarmonica e la voce del menu del Quadro
+  Avvisi — e il nome vecchio resta come **alias**: quella tabella è quello che
+  stampiamo *e* quello con cui riconosciamo le righe già salvate, e
+  rinominarla e basta faceva perdere il gruppo a ogni riga. Un avviso senza
+  gruppo, al riavvio, sparisce.
+
+- **Una finestra che non sa da quando non dice più il primo gennaio 1970.** «6
+  aperte su 10… la più vecchia da 20698 giorni.» Chi costruisce le righe mette
+  `daQuando: null` quando Home Assistant non dice da quando, e la guardia
+  sembrava giusta: finito, e non nel futuro. Ma `Number(null)` fa zero, e zero
+  è finito e minore di adesso. Non sapere da quando è una risposta: quella riga
+  non entra nel conto, e se nessuna lo sa la frase finisce dopo il conto delle
+  aperte.
+
+- **Vuoto non è l'equatore.** Nel radar, `Number("")` fa zero, e zero è una
+  latitudine buonissima: quella dell'equatore. Una casella lasciata vuota
+  diventava un punto nell'oceano al largo dell'Africa, e il radar ci andava
+  davvero — con la faccia di uno che ha fatto quello che gli era stato chiesto.
+
+- **Nella barra le sezioni proprie stanno prima di Config.** Config è la voce
+  che si tocca di rado, e lasciarla in mezzo alla fila metteva le sezioni di
+  casa dietro l'impostazione: prima le stanze, poi gli attrezzi.
+
+- **E nel menu stretto della configurazione i nomi lunghi non si troncano più a
+  metà parola.** «Comandi apri porte/cancelli» diventava «Comandi apri porte/».
+  Lì va la stessa cosa detta corta — «Apri porte/cancelli» — come
+  «Elettrodom.» sta per «Elettrodomestici»; in testa alla sezione il nome resta
+  per esteso.
 
 ## 1.4.5-beta.9
 
