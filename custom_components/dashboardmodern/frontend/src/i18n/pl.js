@@ -12,13 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} z nowymi wiadomościami",
+  "or, from a tile service": "albo z usługi kafelków",
+  "Where": "Gdzie",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "Adres to ten, który publikuje twoja usługa, z {z}/{x}/{y} zamiast numerów kafelka. «Sprawdź» pobiera jeden i mówi, czy dociera.",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "Brakuje adresu albo nie ma w nim {z}/{x}/{y}.",
+  "Testing…": "Sprawdzam…",
+  "Test": "Sprawdź",
+  "Radius (km)": "Promień (km)",
+  "No answer within eight seconds.": "Brak odpowiedzi w osiem sekund.",
+  "Longitude": "Długość",
+  "Latitude": "Szerokość",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "Nie dociera. Sprawdź adres i to, czy usługa pozwala się stąd czytać.",
+  "It arrives: the tile is there.": "Dociera: kafelek jest.",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "Współrzędne wpisane ręcznie wygrywają ze wszystkim; zostaw je puste, a liczy się strefa powyżej, a bez żadnego wyboru — dom. Dla miejsca, które nie jest twoim domem, utwórz mu strefę w Home Assistancie: pojawi się na liście pod swoją nazwą.",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "Encja camera lub image twojego własnego Home Assistanta: klatka przychodzi z twojego serwera i nic nie wychodzi z domu. Kto wprowadził radar swoją integracją, ma już tę encję.",
   "Where it is raining now": "Gdzie teraz pada",
-  "Weather radar (camera or image entity)":
-    "Radar pogodowy (encja camera lub image)",
   "Weather radar": "Radar pogodowy",
   "The radar is not reporting.": "Radar nie odpowiada.",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "Radar pochodzi z twojego Home Assistanta, a nie z usługi z zewnątrz: wprowadź ten, który chcesz, i wybierz tutaj encję, która powstanie. Pojawia się w tym oknie, nad prognozą.",
   "Door & gate openers": "Sterowanie drzwiami i bramami",
   "silent": "milczące",
   "on out of": "włączone z",

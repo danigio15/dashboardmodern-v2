@@ -12,13 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} с новыми сообщениями",
+  "or, from a tile service": "или из сервиса плиток",
+  "Where": "Где",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "Адрес — тот, который публикует ваш сервис, с {z}/{x}/{y} вместо номеров плитки. «Проверить» скачает одну и скажет, дошла ли она.",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "Адреса нет, или в нём отсутствует {z}/{x}/{y}.",
+  "Testing…": "Проверяю…",
+  "Test": "Проверить",
+  "Radius (km)": "Радиус (км)",
+  "No answer within eight seconds.": "Нет ответа за восемь секунд.",
+  "Longitude": "Долгота",
+  "Latitude": "Широта",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "Не приходит. Проверьте адрес и то, разрешает ли сервис читать себя отсюда.",
+  "It arrives: the tile is there.": "Приходит: плитка на месте.",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "Координаты, вписанные вручную, важнее всего; оставите пустыми — берётся зона выше, а без всякого выбора — дом. Для места, которое не ваш дом, заведите ему зону в Home Assistant: она появится в списке под своим именем.",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "Сущность camera или image вашего собственного Home Assistant: кадр приходит с вашего сервера, и из дома ничего не уходит. У того, кто завёл радар через его интеграцию, сущность уже есть.",
   "Where it is raining now": "Где сейчас идёт дождь",
-  "Weather radar (camera or image entity)":
-    "Метеорадар (сущность camera или image)",
   "Weather radar": "Метеорадар",
   "The radar is not reporting.": "Радар не отвечает.",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "Радар приходит из вашего Home Assistant, а не со стороннего сервиса: подключите тот, который хотите, и выберите здесь появившуюся сущность. Он показывается в этом окне, над прогнозом.",
   "Door & gate openers": "Открывание дверей и ворот",
   "silent": "молчат",
   "on out of": "включено из",

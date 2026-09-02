@@ -12,13 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} برسائل جديدة",
+  "or, from a tile service": "أو من خدمة مربّعات",
+  "Where": "أين",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "العنوان هو الذي تنشره خدمتك، مع {z}/{x}/{y} بدل أرقام المربّع. زر «جرّب» ينزّل واحداً ويخبرك إن وصل.",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "العنوان ناقص، أو لا يحوي {z}/{x}/{y}.",
+  "Testing…": "أجرّب…",
+  "Test": "جرّب",
+  "Radius (km)": "نصف القطر (كم)",
+  "No answer within eight seconds.": "لا جواب خلال ثماني ثوانٍ.",
+  "Longitude": "خط الطول",
+  "Latitude": "خط العرض",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "لا تصل. تحقّق من العنوان، ومن أن الخدمة تسمح بالقراءة من هنا.",
+  "It arrives: the tile is there.": "وصلت: المربّع موجود.",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "الإحداثيات المكتوبة يدوياً تسبق كل شيء؛ إن تركتها فارغة فالمنطقة أعلاه هي المعتمدة، وبلا أي اختيار فالبيت. ولمكان ليس بيتك، أنشئ له منطقة في Home Assistant: يظهر في القائمة باسمه.",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "كيان camera أو image من Home Assistant الخاص بك: تأتي الصورة من خادمك ولا يخرج شيء من البيت. من أدخل الرادار عبر تكامله فالكيان عنده أصلاً.",
   "Where it is raining now": "أين تُمطر الآن",
-  "Weather radar (camera or image entity)":
-    "رادار الطقس (كيان camera أو image)",
   "Weather radar": "رادار الطقس",
   "The radar is not reporting.": "الرادار لا يستجيب.",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "يأتي الرادار من Home Assistant الخاص بك، لا من خدمة خارجية: أدخِل ما تشاء منها واختر هنا الكيان الناتج. يظهر في هذه النافذة، فوق التوقّعات.",
   "Door & gate openers": "أوامر فتح الأبواب والبوّابات",
   "silent": "صامتة",
   "on out of": "تعمل من",

@@ -604,8 +604,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // radar meteo… assieme al meteo, affianco al meteo dei 7 giorni» (#266). Un
   // modulo solo, e nessun modello puro nuovo: l'immagine la porta il
   // caricatore delle telecamere, che c'era gia'.
+  // 208 col motore del radar (`core/radar-mappa.js`): «veniva chiesto di
+  // inserire coordinate oppure il comune, pensa a un motore per poter
+  // scegliere il posto» (#266). Web Mercator, e null'altro: da un punto e da
+  // un raggio escono lo zoom e i quadratini. Sta nel nucleo perche' e'
+  // aritmetica, e l'aritmetica si prova senza rete.
   assert.ok(
-    relative.length <= 207,
+    relative.length <= 208,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -12,13 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} met nieuwe berichten",
+  "or, from a tile service": "of van een tegeldienst",
+  "Where": "Waar",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "Het adres is dat wat je dienst publiceert, met {z}/{x}/{y} in plaats van de tegelnummers. «Testen» haalt er een op en zegt of hij aankomt.",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "Het adres ontbreekt, of er staat geen {z}/{x}/{y} in.",
+  "Testing…": "Bezig…",
+  "Test": "Testen",
+  "Radius (km)": "Straal (km)",
+  "No answer within eight seconds.": "Geen antwoord binnen acht seconden.",
+  "Longitude": "Lengtegraad",
+  "Latitude": "Breedtegraad",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "Hij komt niet aan. Controleer het adres, en of de dienst zich van hieraf laat lezen.",
+  "It arrives: the tile is there.": "Hij komt aan: de tegel is er.",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "Met de hand ingevulde coördinaten winnen van alles; laat je ze leeg, dan geldt de zone hierboven, en zonder keuze geldt thuis. Voor een plek die niet je huis is, maak er een zone voor in Home Assistant: die verschijnt in de lijst onder zijn eigen naam.",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "Een camera- of image-entiteit van je eigen Home Assistant: het beeld komt van je eigen server en er verlaat niets het huis. Wie de radar met zijn integratie binnenhaalde, heeft de entiteit al.",
   "Where it is raining now": "Waar het nu regent",
-  "Weather radar (camera or image entity)":
-    "Weerradar (camera- of image-entiteit)",
   "Weather radar": "Weerradar",
   "The radar is not reporting.": "De radar meldt zich niet.",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "De radar komt van je eigen Home Assistant, niet van een dienst van buiten: haal binnen welke je wilt en kies hier de entiteit die eruit komt. Hij verschijnt in dit venster, boven de verwachting.",
   "Door & gate openers": "Deur- & poortopeners",
   "silent": "stil",
   "on out of": "aan van",

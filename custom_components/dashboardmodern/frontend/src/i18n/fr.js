@@ -12,13 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} avec des messages récents",
+  "or, from a tile service": "ou depuis un service de tuiles",
+  "Where": "Où",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "L'adresse est celle que publie ton service, avec {z}/{x}/{y} à la place des numéros de tuile. « Tester » en télécharge une et te dit si elle arrive.",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "L'adresse manque, ou n'a pas de {z}/{x}/{y} dedans.",
+  "Testing…": "J'essaie…",
+  "Test": "Tester",
+  "Radius (km)": "Rayon (km)",
+  "No answer within eight seconds.": "Aucune réponse en huit secondes.",
+  "Longitude": "Longitude",
+  "Latitude": "Latitude",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "Elle n'arrive pas. Vérifie l'adresse, et que le service se laisse lire depuis ici.",
+  "It arrives: the tile is there.": "Elle arrive : la tuile est là.",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "Les coordonnées écrites à la main l'emportent sur tout ; laisse-les vides et c'est la zone ci-dessus, et sans aucun choix c'est la maison. Pour un endroit qui n'est pas chez toi, crée-lui une zone dans Home Assistant : elle apparaîtra dans la liste sous son nom.",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "Une entité camera ou image de ton propre Home Assistant : l'image vient de ton serveur et rien ne sort de la maison. Qui a fait entrer le radar avec son intégration a déjà l'entité.",
   "Where it is raining now": "Où il pleut en ce moment",
-  "Weather radar (camera or image entity)":
-    "Radar météo (entité camera ou image)",
   "Weather radar": "Radar météo",
   "The radar is not reporting.": "Le radar ne répond pas.",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "Le radar vient de ton propre Home Assistant, pas d'un service extérieur : fais entrer celui que tu veux et choisis ici l'entité qui en sort. Il apparaît dans cette fenêtre, au-dessus des prévisions.",
   "Door & gate openers": "Commandes portes & portails",
   "silent": "muettes",
   "on out of": "allumées sur",

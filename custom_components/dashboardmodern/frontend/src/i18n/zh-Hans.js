@@ -12,12 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} 条有新消息",
+  "or, from a tile service": "或者，来自瓦片服务",
+  "Where": "在哪",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "地址是你要用的服务公布的那个，把瓦片编号的位置写成 {z}/{x}/{y}。「测试」会下载一块，告诉你能不能到。",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "地址缺失，或者里面没有 {z}/{x}/{y}。",
+  "Testing…": "测试中…",
+  "Test": "测试",
+  "Radius (km)": "半径（公里）",
+  "No answer within eight seconds.": "八秒内没有回应。",
+  "Longitude": "经度",
+  "Latitude": "纬度",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "到不了。检查地址，以及这个服务是否允许从这里读取。",
+  "It arrives: the tile is there.": "能到：瓦片在。",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "手写的坐标压倒一切；留空就用上面的区域，什么都不选就用家。不是你家的地方，在 Home Assistant 里给它建一个区域：它会带着自己的名字出现在列表里。",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "你自己 Home Assistant 里的 camera 或 image 实体：画面来自你自己的服务器，什么都不会离开家。用集成把雷达接进来的人，实体已经有了。",
   "Where it is raining now": "现在哪里在下雨",
-  "Weather radar (camera or image entity)": "天气雷达（camera 或 image 实体）",
   "Weather radar": "天气雷达",
   "The radar is not reporting.": "雷达没有响应。",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "雷达来自你自己的 Home Assistant，而不是外部服务：把你想用的接进来，然后在这里选它生成的实体。它会出现在这个窗口里，预报的上方。",
   "Door & gate openers": "开门与开闸按钮",
   "silent": "无响应",
   "on out of": "开，共",

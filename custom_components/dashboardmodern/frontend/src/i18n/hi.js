@@ -12,12 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} में नए संदेश",
+  "or, from a tile service": "या किसी टाइल सेवा से",
+  "Where": "कहाँ",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "पता वही है जो आपकी सेवा प्रकाशित करती है, टाइल के अंकों की जगह {z}/{x}/{y} लिखकर। «जाँचें» एक टाइल उतारता है और बताता है कि आई या नहीं।",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "पता नहीं है, या उसमें {z}/{x}/{y} नहीं है।",
+  "Testing…": "जाँच रहा हूँ…",
+  "Test": "जाँचें",
+  "Radius (km)": "त्रिज्या (किमी)",
+  "No answer within eight seconds.": "आठ सेकंड में कोई जवाब नहीं।",
+  "Longitude": "देशांतर",
+  "Latitude": "अक्षांश",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "नहीं आती। पता जाँचिए, और यह भी कि सेवा यहाँ से पढ़ने देती है या नहीं।",
+  "It arrives: the tile is there.": "आ रही है: टाइल मौजूद है।",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "हाथ से लिखे निर्देशांक सब पर भारी हैं; खाली छोड़ें तो ऊपर वाला ज़ोन चलेगा, और कुछ न चुनें तो घर। जो जगह आपका घर नहीं है, उसके लिए Home Assistant में एक ज़ोन बनाइए: वह सूची में अपने नाम से आ जाएगी।",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "आपके अपने Home Assistant की एक camera या image इकाई: फ़्रेम आपके सर्वर से आता है और घर से कुछ बाहर नहीं जाता। जिसने अपनी इंटीग्रेशन से रडार अंदर लाया है, उसके पास इकाई पहले से है।",
   "Where it is raining now": "अभी कहाँ बारिश हो रही है",
-  "Weather radar (camera or image entity)": "मौसम रडार (camera या image इकाई)",
   "Weather radar": "मौसम रडार",
   "The radar is not reporting.": "रडार जवाब नहीं दे रहा।",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "रडार आपके अपने Home Assistant से आता है, बाहर की किसी सेवा से नहीं: जो चाहें उसे अंदर लाएँ और यहाँ बनने वाली इकाई चुनें। यह इसी विंडो में, पूर्वानुमान के ऊपर दिखता है।",
   "Door & gate openers": "दरवाज़ा और गेट खोलने के बटन",
   "silent": "चुप",
   "on out of": "चालू, कुल",

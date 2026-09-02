@@ -12,13 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} yeni mesajlı",
+  "or, from a tile service": "ya da bir karo servisinden",
+  "Where": "Nerede",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "Adres, kullandığın servisin yayımladığı adrestir; karo numaralarının yerine {z}/{x}/{y} yazılır. «Dene» bir tane indirir ve gelip gelmediğini söyler.",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "Adres eksik ya da içinde {z}/{x}/{y} yok.",
+  "Testing…": "Deniyorum…",
+  "Test": "Dene",
+  "Radius (km)": "Yarıçap (km)",
+  "No answer within eight seconds.": "Sekiz saniyede yanıt yok.",
+  "Longitude": "Boylam",
+  "Latitude": "Enlem",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "Gelmiyor. Adresi ve servisin buradan okunmaya izin verip vermediğini kontrol et.",
+  "It arrives: the tile is there.": "Geliyor: karo yerinde.",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "Elle yazılan koordinatlar her şeye üstün gelir; boş bırakırsan yukarıdaki bölge geçerli olur, hiçbir seçim yoksa ev. Evin olmayan bir yer için Home Assistant'ta ona bir bölge tanımla: listede kendi adıyla çıkar.",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "Kendi Home Assistant'ının bir camera ya da image varlığı: kare senin sunucundan gelir ve evden hiçbir şey çıkmaz. Radarı kendi entegrasyonuyla içeri almış olanın varlığı zaten vardır.",
   "Where it is raining now": "Şu anda nereye yağıyor",
-  "Weather radar (camera or image entity)":
-    "Hava radarı (camera veya image varlığı)",
   "Weather radar": "Hava radarı",
   "The radar is not reporting.": "Radar yanıt vermiyor.",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "Radar kendi Home Assistant'ından gelir, dışarıdaki bir servisten değil: istediğini içeri al ve çıkan varlığı burada seç. Bu pencerede, tahminin üstünde görünür.",
   "Door & gate openers": "Kapı & bahçe kapısı kumandaları",
   "silent": "sessiz",
   "on out of": "açık /",

@@ -12,12 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "새 메시지 ${conversazioni.length}건",
+  "or, from a tile service": "또는 타일 서비스에서",
+  "Where": "어디",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "주소는 쓰려는 서비스가 공개한 것이며, 타일 번호 자리에 {z}/{x}/{y}를 씁니다. «시험»은 하나를 내려받아 도착했는지 알려 줍니다.",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "주소가 없거나 {z}/{x}/{y}가 들어 있지 않습니다.",
+  "Testing…": "시험 중…",
+  "Test": "시험",
+  "Radius (km)": "반경 (km)",
+  "No answer within eight seconds.": "8초 안에 응답이 없습니다.",
+  "Longitude": "경도",
+  "Latitude": "위도",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "도착하지 않습니다. 주소와, 그 서비스가 여기서 읽도록 허용하는지 확인하세요.",
+  "It arrives: the tile is there.": "도착합니다: 타일이 있습니다.",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "손으로 적은 좌표가 무엇보다 우선입니다. 비워 두면 위의 구역이, 아무것도 고르지 않으면 집이 쓰입니다. 집이 아닌 곳은 Home Assistant에 구역을 만들어 두세요. 그 이름으로 목록에 나타납니다.",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "당신 자신의 Home Assistant에 있는 camera 또는 image 엔터티입니다. 화면은 당신의 서버에서 오고, 집 밖으로는 아무것도 나가지 않습니다. 통합으로 레이더를 들여온 사람은 이미 그 엔터티를 갖고 있습니다.",
   "Where it is raining now": "지금 비가 오는 곳",
-  "Weather radar (camera or image entity)": "기상 레이더 (camera 또는 image 엔터티)",
   "Weather radar": "기상 레이더",
   "The radar is not reporting.": "레이더가 응답하지 않습니다.",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "레이더는 외부 서비스가 아니라 당신의 Home Assistant에서 옵니다. 원하는 것을 들여온 뒤 생성된 엔터티를 여기서 고르세요. 이 창의 예보 위에 나타납니다.",
   "Door & gate openers": "문·대문 열기 버튼",
   "silent": "무응답",
   "on out of": "켜짐 /",

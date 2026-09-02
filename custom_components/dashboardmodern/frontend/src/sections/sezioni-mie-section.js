@@ -127,7 +127,14 @@ function ensureVoce(sezione) {
   /* Il gestore che il guscio lega alle voci lo lega una volta sola, al
    * caricamento: questa arriva dopo e il suo tocco se lo gestisce da se'. */
   voce.addEventListener("click", () => apri(sezione, voce));
-  barra.append(voce);
+  /* Prima di Config, non in fondo. Config e' la voce che si tocca di rado, e
+   * lasciarla in mezzo alla fila metteva le sezioni di casa dietro
+   * l'impostazione — che e' l'ordine sbagliato: prima le stanze, poi gli
+   * attrezzi. Se un domani il guscio togliesse quella voce, si torna in coda
+   * invece di non comparire. */
+  const config = barra.querySelector('.tab[data-tab="config"]');
+  if (config) config.before(voce);
+  else barra.append(voce);
   return voce;
 }
 

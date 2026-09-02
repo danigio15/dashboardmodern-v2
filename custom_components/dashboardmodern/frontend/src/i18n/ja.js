@@ -12,12 +12,28 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "新着メッセージ ${conversazioni.length} 件",
+  "or, from a tile service": "または、タイルサービスから",
+  "Where": "どこ",
+  "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
+    "アドレスは使うサービスが公開しているもので、タイルの番号のところに {z}/{x}/{y} と書きます。「試す」はひとつ落としてきて、届いたかどうかを教えます。",
+  "The address is missing, or has no {z}/{x}/{y} in it.":
+    "アドレスがないか、{z}/{x}/{y} が入っていません。",
+  "Testing…": "試しています…",
+  "Test": "試す",
+  "Radius (km)": "半径（km）",
+  "No answer within eight seconds.": "八秒待っても応答がありません。",
+  "Longitude": "経度",
+  "Latitude": "緯度",
+  "It does not arrive. Check the address, and that the service lets this page read it.":
+    "届きません。アドレスと、そのサービスがここからの読み取りを許しているかを確かめてください。",
+  "It arrives: the tile is there.": "届きました。タイルがあります。",
+  "Coordinates typed by hand win over everything; leave them empty and the zone above is used, and with no choice at all it is home. For somewhere that is not your house, give it a zone in Home Assistant: it shows up in the list under its own name.":
+    "手で書いた座標がすべてに優先します。空のままなら上のゾーン、何も選ばなければ自宅です。自宅でない場所は、Home Assistant にゾーンを作ってください。その名前で一覧に出ます。",
+  "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.":
+    "自分の Home Assistant の camera または image エンティティです。画像は自分のサーバーから届き、家の外へは何も出ません。統合でレーダーを取り込んだ人は、すでにそのエンティティを持っています。",
   "Where it is raining now": "いま雨が降っている場所",
-  "Weather radar (camera or image entity)": "気象レーダー（camera または image エンティティ）",
   "Weather radar": "気象レーダー",
   "The radar is not reporting.": "レーダーが応答していません。",
-  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
-    "レーダーは外部のサービスではなく、あなた自身の Home Assistant から届きます。使いたいものを取り込み、できたエンティティをここで選んでください。この画面の、予報の上に出ます。",
   "Door & gate openers": "ドア・ゲートの開錠操作",
   "silent": "無応答",
   "on out of": "オン／",
