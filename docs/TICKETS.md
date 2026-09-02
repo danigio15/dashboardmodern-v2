@@ -254,10 +254,18 @@ l'etichetta che il manutentore mette a mano. Quando nessuno dei due dice niente
 il tipo resta **vuoto**, con una pastiglia grigia: chiamarle tutte «difetto»
 sarebbe comodo e falso.
 
-Due chiamate a ogni aggiornamento, non una. `state=all` su una pagina sola vuol
+Gli aperti e i chiusi si chiedono separati: `state=all` su una pagina sola vuol
 dire che, appena i chiusi passano il centinaio, gli aperti piu' vecchi escono
-dall'elenco senza che nessuno lo dica. Gli aperti si chiedono **tutti**; i
-chiusi sono storia, e bastano i cinquanta piu' freschi.
+dall'elenco senza che nessuno lo dica.
+
+E gli aperti si chiedono **a pagine, fino in fondo**. Cento per volta non basta
+a dire «tutti»: quell'indirizzo restituisce anche le pull request, che di li' si
+scartano ma il posto in pagina se lo prendono. Per sapere se una pagina era
+piena si guarda quante righe **grezze** ha mandato GitHub, non quante ne sono
+rimaste dopo lo scarto — una pagina di cento fatta di novantanove PR
+sembrerebbe altrimenti la fine dell'elenco. Il tetto e' dieci pagine, perche'
+un ciclo che si fida di dove finisce l'elenco altrui e' un ciclo che un giorno
+non finisce. I chiusi restano una pagina sola: sono storia.
 
 Chi ha commentato, nell'elenco, GitHub non lo dice — e chiederlo vorrebbe dire
 una chiamata per ogni riga. Vale allora il segno che c'e': un'aperta su cui si

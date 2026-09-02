@@ -549,21 +549,34 @@ async def async_close_issue(
     )
 
 
+# Quante pagine si arriva a chiedere per gli aperti. Cento per pagina, quindi
+# mille: oltre quella soglia il problema di chi tiene la repository non e' piu'
+# la paginazione. Il tetto c'e' perche' un ciclo che si fida di dove finisce
+# l'elenco altrui e' un ciclo che un giorno non finisce.
+_PAGINE_MAX = 10
+
+
 async def _async_issues_page(
-    hass: HomeAssistant, token: str, *, stato: str, quante: int, per: str
-) -> list[dict[str, Any]]:
-    """Una pagina di issue, gia' ridotta a quello che la console mostra."""
+    hass: HomeAssistant, token: str, *, stato: str, quante: int, per: str, pagina: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Una pagina di issue, gia' ridotta a quello che la console mostra.
+
+    Torna anche quante righe grezze ha mandato GitHub, e serve: le pull request
+    si scartano qui dentro, quindi la lunghezza dell'elenco ridotto non dice se
+    la pagina era piena. Senza quel numero, una pagina di cento fatta di
+    novantanove PR sembrerebbe la fine dell'elenco.
+    """
     from .ticket_store import STATE_SENT, STATE_TRIAGED
 
     issues = await _request(
         hass,
         "GET",
         f"{GITHUB_API}/repos/{REPOSITORY}/issues?state={stato}&per_page={quante}"
-        f"&sort={per}&direction=desc",
+        f"&sort={per}&direction=desc&page={pagina}",
         token=token,
     )
     if not isinstance(issues, list):
-        return []
+        return [], 0
     coda: list[dict[str, Any]] = []
     for issue in issues:
         if not isinstance(issue, dict) or "pull_request" in issue:
@@ -600,7 +613,7 @@ async def _async_issues_page(
                 "attachments": len(attachments_in(corpo)),
             }
         )
-    return coda
+    return coda, len(issues)
 
 
 async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
@@ -611,15 +624,31 @@ async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
     sono la maggioranza, e lo resteranno per un pezzo — non possono essere
     proprio quelle che spariscono. Da dove viene ognuna lo dice `origin`.
 
-    Due chiamate invece di una, e non per distrazione: `state=all` su una
-    pagina sola vuol dire che, appena i chiusi passano il centinaio, gli aperti
-    piu' vecchi escono dall'elenco senza che nessuno lo dica. Gli aperti si
-    chiedono tutti; i chiusi sono storia, e bastano i piu' freschi.
+    Gli aperti e i chiusi si chiedono separati, e non per distrazione:
+    `state=all` su una pagina sola vuol dire che, appena i chiusi passano il
+    centinaio, gli aperti piu' vecchi escono dall'elenco senza che nessuno lo
+    dica.
+
+    E gli aperti si chiedono **a pagine**, fino in fondo. Cento per volta non
+    basta a dire «tutti»: quell'indirizzo di GitHub restituisce anche le pull
+    request, che di qui si scartano ma la loro riga in pagina se la prendono,
+    quindi il centinaio si esaurisce prima di quanto sembri. Fermarsi alla
+    prima pagina avrebbe rifatto, un po' piu' in la', lo stesso danno che
+    `state=all` faceva subito.
+
+    I chiusi restano una pagina sola: sono storia, e bastano i piu' freschi.
     """
-    aperte = await _async_issues_page(
-        hass, token, stato="open", quante=100, per="created"
-    )
-    chiuse = await _async_issues_page(
-        hass, token, stato="closed", quante=50, per="updated"
+    aperte: list[dict[str, Any]] = []
+    for pagina in range(1, _PAGINE_MAX + 1):
+        voci, grezze = await _async_issues_page(
+            hass, token, stato="open", quante=100, per="created", pagina=pagina
+        )
+        aperte += voci
+        # Una pagina non piena e' l'ultima. E' l'unico segnale che si ha senza
+        # leggere l'intestazione `Link`, che questo client non conserva.
+        if grezze < 100:
+            break
+    chiuse, _ = await _async_issues_page(
+        hass, token, stato="closed", quante=50, per="updated", pagina=1
     )
     return [*aperte, *chiuse]

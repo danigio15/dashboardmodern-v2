@@ -330,15 +330,28 @@ function contoMarkup() {
     </div>`;
 }
 
-async function collega() {
-  state.avviso = "";
+/* `salvata` dice che si arriva qui subito dopo un invio, con la segnalazione
+ * gia' al sicuro in casa. Cambia due cose, e tutte e due contano.
+ *
+ * L'avviso «Salvata...» non si cancella: e' la ragione per cui il codice sta
+ * comparendo, e senza quella riga il codice arriverebbe senza il suo perche'.
+ *
+ * E se l'autorizzazione non parte — GitHub irraggiungibile, per dire — dire
+ * soltanto «non riuscita» farebbe credere di aver perso quello che si era
+ * appena scritto. La risposta naturale a quel messaggio e' riscrivere tutto da
+ * capo, e ritrovarsi due segnalazioni uguali. */
+async function collega({ salvata = false } = {}) {
+  if (!salvata) state.avviso = "";
   try {
     const avvio = await chiedi(WS_AUTH_START);
     state.auth = avvio;
     disegna();
     attendiAutorizzazione(avvio);
   } catch (errore) {
-    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+    const guasto = clean(errore?.message) || t("Non riuscita.", "It did not work.");
+    state.avviso = salvata
+      ? `!${t("Salvata, ma l'autorizzazione non e' partita:", "Saved, but the authorization did not start:")} ${guasto} ${t("Riprova da «Le mie».", "Try again from «Mine».")}`
+      : `!${guasto}`;
     disegna();
   }
 }
@@ -1115,6 +1128,24 @@ function provenienzaMarkup(ticket) {
   )}">🐙 ${esc(t("da GitHub", "from GitHub"))}</span>`;
 }
 
+/* Il segnaposto dice dove va a finire quello che si sta per scrivere, e su una
+ * issue aperta a mano su GitHub la risposta li' resta: promettere che chi ha
+ * segnalato «la trova nella sua plancia» sarebbe falso proprio per le voci che
+ * questa versione ha appena aggiunto, e farebbe credere al manutentore di aver
+ * avvisato qualcuno che invece non e' stato avvisato. */
+function invitoRisposta(ticket) {
+  if (clean(ticket.origin) === "plancia") {
+    return t(
+      "La risposta finisce sotto la segnalazione, e chi l'ha aperta la trova nella sua plancia.",
+      "The reply goes under the report, and whoever opened it finds it in their own dashboard.",
+    );
+  }
+  return t(
+    "La risposta finisce sotto la segnalazione, su GitHub: chi l'ha aperta la legge li'.",
+    "The reply goes under the report, on GitHub: whoever opened it reads it there.",
+  );
+}
+
 export function codaVoceMarkup(ticket) {
   const numero = Number(ticket.number) || 0;
   const tipo = tipoInCoda(clean(ticket.type));
@@ -1161,12 +1192,7 @@ export function codaVoceMarkup(ticket) {
       ${aperto ? filoMarkup(numero) : `<p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>`}
       <div class="dm-tkt-campo">
         <textarea id="dm-tkt-risposta-${numero}" rows="3"
-          placeholder="${esc(
-            t(
-              "La risposta finisce sotto la segnalazione, e chi l'ha aperta la trova nella sua plancia.",
-              "The reply goes under the report, and whoever opened it finds it in their own dashboard.",
-            ),
-          )}"></textarea>
+          placeholder="${esc(invitoRisposta(ticket))}"></textarea>
       </div>
       <div class="dm-tkt-azioni">${azioni}</div>
     </div>`;
@@ -1388,7 +1414,7 @@ async function invia() {
   } finally {
     state.busy = false;
     await ricarica();
-    if (chiediAutorizzazione) await collega();
+    if (chiediAutorizzazione) await collega({ salvata: true });
   }
 }
 

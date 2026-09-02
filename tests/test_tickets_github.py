@@ -901,3 +901,63 @@ async def test_la_coda_dice_quanti_allegati_ci_sono(
     ]
     # E l'indirizzo lungo non sporca il testo che la coda mostra.
     assert "user-attachments" not in coda[0]["body"]
+
+
+def _aperte(numeri: list[int], *, pr: int = 0) -> list[dict[str, Any]]:
+    """Una pagina finta: tante issue, e tante pull request che rubano posto."""
+    voci: list[dict[str, Any]] = [
+        {"number": n, "title": f"[Bug]: {n}", "body": "x", "state": "open"}
+        for n in numeri
+    ]
+    voci += [
+        {
+            "number": 9000 + i,
+            "title": "una PR",
+            "body": "x",
+            "state": "open",
+            "pull_request": {"url": "..."},
+        }
+        for i in range(pr)
+    ]
+    return voci
+
+
+async def test_gli_aperti_si_chiedono_a_pagine_fino_in_fondo(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Cento per volta non basta a dire «tutti».
+
+    Quell'indirizzo di GitHub restituisce anche le pull request, che di qui si
+    scartano ma la loro riga in pagina se la prendono. Chi contasse le sole
+    issue rimaste vedrebbe una pagina non piena e si fermerebbe: novanta issue
+    e dieci PR fanno cento, e dopo c'e' dell'altro.
+    """
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    # I chiusi per primi: il loro indirizzo contiene anche «page=1», e il
+    # doppione risponde al primo frammento che combacia.
+    github.answer("state=closed", [])
+    github.answer(
+        "state=open&per_page=100&sort=created&direction=desc&page=1",
+        _aperte(list(range(1, 91)), pr=10),
+    )
+    github.answer(
+        "state=open&per_page=100&sort=created&direction=desc&page=2",
+        _aperte([200, 201]),
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert len(coda) == 92
+    assert [voce["number"] for voce in coda][-2:] == [200, 201]
+
+
+async def test_una_pagina_non_piena_e_l_ultima(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Non si chiedono dieci pagine quando la prima gia' finisce l'elenco."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("state=closed", [])
+    github.answer("state=open", _aperte([1, 2, 3]))
+    await tickets.async_queue(hass, "dani")
+    aperti = [c for c in github.calls if "state=open" in c["url"]]
+    assert len(aperti) == 1, "ha chiesto pagine oltre la fine dell'elenco"

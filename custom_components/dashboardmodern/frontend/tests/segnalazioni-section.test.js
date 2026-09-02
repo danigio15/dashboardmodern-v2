@@ -493,3 +493,43 @@ test("la bozza si rilegge dal campo, non dall'intestazione", async () => {
     "legge ancora l'intestazione della finestra",
   );
 });
+
+test("l'invito a rispondere non promette la plancia a chi non ce l'ha", async () => {
+  /* Su una issue aperta a mano su GitHub la risposta li' resta. Dire al
+   * manutentore che «chi l'ha aperta la trova nella sua plancia» sarebbe falso
+   * proprio per le voci appena aggiunte, e gli farebbe credere di aver
+   * avvisato qualcuno che invece non e' stato avvisato. */
+  const dalla = codaVoceMarkup(inCoda({ origin: "plancia" }));
+  assert.ok(dalla.includes("la trova nella sua plancia"), "l'invito di sempre e' sparito");
+
+  const daGithub = codaVoceMarkup(inCoda({ origin: "github" }));
+  assert.ok(
+    !daGithub.includes("la trova nella sua plancia"),
+    "promette la plancia a una issue aperta su GitHub",
+  );
+  assert.ok(daGithub.includes("su GitHub"), "non dice dove finisce davvero la risposta");
+});
+
+test("il collegamento dopo un invio non cancella il «Salvata»", async () => {
+  /* La segnalazione e' gia' al sicuro in casa. Se l'autorizzazione non parte —
+   * GitHub irraggiungibile — dire soltanto «non riuscita» farebbe credere di
+   * aver perso quello che si era appena scritto, e la risposta naturale a quel
+   * messaggio e' riscrivere tutto da capo: due segnalazioni uguali. */
+  const testo = await sorgente();
+  const dentro = testo.slice(
+    testo.indexOf("async function collega("),
+    testo.indexOf("function fermaAttesa("),
+  );
+  assert.ok(
+    /if \(!salvata\) state\.avviso = "";/.test(dentro),
+    "cancella l'avviso anche quando arriva da un invio appena salvato",
+  );
+  assert.ok(
+    dentro.includes("Salvata, ma l'autorizzazione non e' partita:"),
+    "il guasto non dice piu' che la segnalazione e' al sicuro",
+  );
+  assert.ok(
+    testo.includes("await collega({ salvata: true })"),
+    "l'invio non dice a `collega` che c'e' gia' una segnalazione salvata",
+  );
+});

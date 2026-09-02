@@ -119,8 +119,25 @@ scrivere.
 
 - **Gli aperti piu' vecchi non spariscono senza dirlo.** Una pagina sola con
   `state=all` vuol dire che, appena i chiusi passano il centinaio, gli aperti
-  di prima escono dall'elenco in silenzio. Adesso gli aperti si chiedono tutti;
-  i chiusi sono storia e bastano i cinquanta piu' freschi.
+  di prima escono dall'elenco in silenzio. Adesso gli aperti si chiedono a
+  pagine, fino in fondo — e serviva davvero: quell'indirizzo di GitHub
+  restituisce anche le pull request, che di li' si scartano ma il posto in
+  pagina se lo prendono, quindi il centinaio finisce prima di quanto sembri. I
+  chiusi restano una pagina sola: sono storia, e bastano i cinquanta piu'
+  freschi.
+
+- **Il segnaposto della risposta non promette piu' la plancia a chi non ce
+  l'ha.** Su una issue aperta a mano su GitHub la risposta li' resta, ma il
+  riquadro diceva lo stesso «chi l'ha aperta la trova nella sua plancia»: falso
+  proprio per le voci che questa versione ha appena aggiunto, e per il
+  manutentore vuol dire credere di aver avvisato qualcuno che non e' stato
+  avvisato.
+
+- **Se l'autorizzazione non parte, «Salvata» resta scritto.** La segnalazione
+  a quel punto e' gia' al sicuro in casa. Dire soltanto «non riuscita» — GitHub
+  irraggiungibile, per dire — farebbe credere di aver perso quello che si era
+  appena scritto, e la risposta naturale a quel messaggio e' riscrivere tutto
+  da capo, per ritrovarsi due segnalazioni uguali.
 
 - **L'allegato che non carica lascia il link, non un riquadro rotto.** Il
   ripiego staccava l'immagine e *poi* cercava il contenitore — che a quel punto
