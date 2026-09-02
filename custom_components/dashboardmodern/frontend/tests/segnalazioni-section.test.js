@@ -974,3 +974,50 @@ test("il sommario porta le conversazioni, non solo il conto", () => {
     });
   });
 });
+
+test("la pagina del cruscotto la mette l'applicazione, non lo script delle foto", async () => {
+  /* `sistemaIlCruscotto` era scritta, esportata e appesa a
+   * `DashboardModernSegnalazioni.sistema` — e da li' la chiamava soltanto
+   * `capture-previews.mjs`. Nelle fotografie il cruscotto c'era; in una casa
+   * vera non e' mai comparso, ne' come voce della barra ne' dentro la finestra
+   * delle segnalazioni, perche' nessuno la chiamava mai.
+   *
+   * E' il modo peggiore di sbagliare: la galleria che doveva far vedere il
+   * lavoro faceva il lavoro al posto dell'applicazione, e mostrava una cosa
+   * che non esisteva.
+   *
+   * Qui si pretende una chiamata vera dentro il modulo — non la
+   * dichiarazione, non la riga che la espone — cosi' che toglierla di nuovo
+   * costi una prova rossa invece di un giro di fotografie riuscito. */
+  const sorgente = await readFile(
+    new URL("../src/sections/segnalazioni-section.js", import.meta.url),
+    "utf8",
+  );
+  const chiamate = sorgente
+    .split("\n")
+    .filter((riga) => /(^|[^.\w])sistemaIlCruscotto\(\)/.test(riga))
+    .filter((riga) => !riga.includes("export function"));
+  assert.ok(
+    chiamate.length >= 1,
+    "nessuno chiama sistemaIlCruscotto(): il cruscotto esiste solo nelle foto",
+  );
+});
+
+test("l'interruttore del cruscotto non sta dentro la scheda della configurazione", async () => {
+  /* Quel markup e' un `<button style="width:100%">`, fatto per stare in cima a
+   * un pannello dell'editor. Dentro la scheda — che e' una riga in orizzontale
+   * — quel «100%» diventava una pretesa di tutta la larghezza, e il testo
+   * accanto si stringeva a una parola per riga. Si vedeva solo sul telefono di
+   * chi la console ce l'ha davvero, cioe' su un dispositivo solo al mondo. */
+  const sorgente = await readFile(
+    new URL("../src/sections/segnalazioni-section.js", import.meta.url),
+    "utf8",
+  );
+  const inizio = sorgente.indexOf("function tesseraMarkup");
+  assert.ok(inizio > 0, "tesseraMarkup non trovata");
+  /* Solo il corpo della funzione: la graffa a inizio riga che la chiude. La
+     funzione accanto l'interruttore lo nomina per mestiere, ed e' il posto
+     giusto in cui nominarlo. */
+  const scheda = sorgente.slice(inizio, sorgente.indexOf("\n}\n", inizio));
+  assert.ok(!scheda.includes("cdSecToggleHtml"), "l'interruttore e' tornato dentro la scheda");
+});

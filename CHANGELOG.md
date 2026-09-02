@@ -5,6 +5,49 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.11
+
+Tre cose viste su un telefono, e la piu' grossa e' che il cruscotto in una casa
+vera non e' mai comparso.
+
+### Corretto
+
+- **Il cruscotto non lo metteva nessuno.** La funzione che crea la voce nella
+  barra e la sua pagina era scritta, esportata e appesa a
+  `DashboardModernSegnalazioni.sistema` — e da li' la chiamava soltanto lo
+  script che fa le fotografie della galleria. Nelle foto il cruscotto c'era; in
+  una casa vera non compariva ne' nella barra ne' dentro la finestra delle
+  segnalazioni, che intanto la sua scheda «console» l'aveva persa. E' il modo
+  peggiore di sbagliare: la galleria che doveva far vedere il lavoro lo faceva
+  al posto dell'applicazione, e mostrava una cosa che non esisteva.
+
+  Adesso la mette `ricarica()`, appena sa chi sta guardando — prima di chiedere
+  la coda a GitHub, cosi' una rete lenta non la fa comparire in ritardo. E c'e'
+  una prova che pretende una chiamata vera dentro il modulo: toglierla di nuovo
+  costa una prova rossa invece di un giro di fotografie riuscito.
+
+- **La scheda «Segnalazioni» era illeggibile.** L'interruttore che nasconde il
+  cruscotto dalla barra stava dentro la scheda della configurazione, e quel
+  markup e' un `<button style="width:100%">` fatto per stare in cima a un
+  pannello dell'editor — e' cosi' che lo usano prese, robot, UPS e agenda.
+  Dentro una scheda, che e' una riga in orizzontale, quel «100%» diventava una
+  pretesa di tutta la larghezza: il testo accanto si stringeva a **una parola
+  per riga**. Si vedeva solo sul telefono di chi la console ce l'ha davvero,
+  cioe' su un dispositivo solo al mondo.
+
+  L'interruttore adesso sta nella finestra delle segnalazioni, che e' larga e
+  si apre dalla scheda: e' l'unico posto sempre raggiungibile anche quando la
+  voce e' nascosta. Dentro il cruscotto sarebbe stato un interruttore che,
+  spegnendosi, si porta via la strada per riaccenderlo.
+
+- **La coda che non arriva adesso lo dice.** Il giro zitto — quello che la Home
+  fa da sola per la tessera — inghiottiva l'errore per non mettere un avviso
+  rosso in faccia a chi non aveva chiesto niente. Giusto, ma «zitto» era
+  diventato «fai finta di niente»: il cruscotto restava una pagina vuota e la
+  tessera in Home non compariva, tutte e due senza una parola sul perche'.
+  Adesso il motivo si scrive comunque, e il cruscotto lo mostra invece di
+  restare bianco.
+
 ## 1.4.5-beta.10
 
 «Basta che quando arriva un messaggio sulla chat parte una notifica di Home
