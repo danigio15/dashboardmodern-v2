@@ -45,6 +45,7 @@ const state = (root[KEY] ||= {
   filiInCorso: {},
   filtro: "aperte",
   tipoCoda: "",
+  queueAt: 0,
   tab: "nuova",
   tipo: "bug",
   /* Quello che si sta scrivendo. Sta qui e non solo nel DOM perche' ogni
@@ -682,10 +683,15 @@ function finestra() {
   return modale;
 }
 
-export function apri() {
+export function apri(dove = "") {
   const modale = finestra();
   if (!modale) return;
   state.avviso = "";
+  /* La linguetta si sceglie da fuori solo se esiste per chi guarda: la console
+   * la vede il manutentore, e chiederla senza averla lascerebbe la finestra su
+   * una scheda che non c'e'. */
+  if (dove === "console" && state.console) state.tab = "console";
+  else if (dove === "mie" || dove === "nuova") state.tab = dove;
   modale.classList.add("show");
   disegna();
   ricarica();
@@ -700,6 +706,33 @@ export function chiudi() {
   doc?.getElementById?.("dm-tkt-modal")?.classList.remove("show");
 }
 
+/* Ogni quanto la coda si va a riprendere da sola, per il widget in Home. Dieci
+ * minuti: le segnalazioni non arrivano al secondo, e ogni giro e' una chiamata
+ * a GitHub. Aprire la console la riprende comunque, quindi chi la guarda vede
+ * sempre l'ultima. */
+const CODA_FRESCA = 10 * 60 * 1000;
+
+/* Quello che il widget della Home ha bisogno di sapere, e nient'altro.
+ *
+ * Torna `null` per chiunque non tenga la repository: la tessera non esiste per
+ * loro, e non e' una preferenza da spegnere ma una cosa che non li riguarda.
+ * Cosi' «solo per me» e' garantito da come e' fatto, non da un interruttore
+ * che qualcuno potrebbe accendere. */
+export function sommarioConsole() {
+  if (!state.console || !Array.isArray(state.queue)) return null;
+  const daLavorare = state.queue.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
+  const perTipo = (tipo) => daLavorare.filter((ticket) => clean(ticket.type) === tipo).length;
+  return {
+    quante: daLavorare.length,
+    nuove: daLavorare.filter((ticket) => clean(ticket.state) === "inviato").length,
+    inLavorazione: daLavorare.filter((ticket) => clean(ticket.state) === "in-carico").length,
+    chiuse: state.queue.length - daLavorare.length,
+    bug: perTipo("bug"),
+    feature: perTipo("feature"),
+    assistenza: perTipo("assistenza"),
+  };
+}
+
 async function ricarica() {
   try {
     const risposta = await chiedi(WS_LIST);
@@ -707,6 +740,11 @@ async function ricarica() {
     state.delivery = Boolean(risposta?.delivery);
     state.console = Boolean(risposta?.console);
     if (risposta?.account) state.account = risposta.account;
+    /* Chi ha la console porta anche la coda, perche' il widget in Home la
+     * mostra senza che nessuno abbia aperto niente. Non a ogni giro pero': una
+     * chiamata a GitHub per ogni ridisegno sarebbe uno spreco, e la coda non
+     * cambia da un secondo all'altro. */
+    if (state.console) await caricaCoda({ zitta: true });
   } catch (_error) {
     /* La finestra si apre lo stesso: quello che c'e' da scrivere si scrive
      * anche senza aver letto l'elenco, e l'elenco si riprende da solo. */
@@ -1509,15 +1547,25 @@ async function elimina(id) {
   await ricarica();
 }
 
-async function caricaCoda() {
+/* Un giro solo per due mestieri, perche' due funzioni che chiedono la stessa
+ * cosa a GitHub finiscono sempre per rispondere in modo diverso.
+ *
+ * `zitta` e' il giro che la Home fa da sola per il widget: si salta se la coda
+ * e' ancora fresca, e se GitHub non risponde non dice niente — chi non ha
+ * chiesto niente non deve vedersi comparire un avviso. Ad alta voce e' il giro
+ * della console, dove qualcuno sta guardando e vuole sapere. */
+async function caricaCoda({ zitta = false } = {}) {
+  if (zitta && Array.isArray(state.queue) && Date.now() - state.queueAt < CODA_FRESCA) return;
   try {
     const risposta = await chiedi(WS_QUEUE);
     state.queue = Array.isArray(risposta?.tickets) ? risposta.tickets : [];
+    state.queueAt = Date.now();
   } catch (errore) {
+    if (zitta) return;
     state.queue = [];
     state.avviso = `!${clean(errore?.message) || t("Coda non raggiungibile.", "Queue unreachable.")}`;
   }
-  disegna();
+  if (!zitta) disegna();
 }
 
 /**
@@ -1592,6 +1640,14 @@ export function installSegnalazioniSection() {
   root.addEventListener?.("dashboardmodern:runtime-ready", prova);
   /* La pagina Configurazione esiste dall'inizio nel documento, ma la griglia
    * viene riempita dal runtime: si riprova quando la si apre. */
+  /* Il tasto sta dentro la finestra di una tessera della Home, che e' roba di
+   * un altro modulo. Ad ascoltarlo pero' e' questa sezione, perche' e' lei che
+   * sa aprire la propria finestra: il widget disegna la porta, non la apre. */
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-dm-apri-cruscotto]")) {
+      apri("console");
+    }
+  });
   doc.addEventListener(
     "click",
     (event) => {

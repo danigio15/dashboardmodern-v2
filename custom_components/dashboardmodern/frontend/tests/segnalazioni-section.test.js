@@ -18,6 +18,7 @@ import {
   FILTRI_STATO_ID,
   FILTRI_TIPO_ID,
   allegatiMarkup,
+  sommarioConsole,
   appenaApertaMarkup,
   WS_TYPES,
   codaVoceMarkup,
@@ -576,4 +577,66 @@ test("il collegamento dopo un invio non cancella il «Salvata»", async () => {
     testo.includes("await collega({ salvata: true })"),
     "l'invio non dice a `collega` che c'e' gia' una segnalazione salvata",
   );
+});
+
+/* ─── Il widget della Home ───────────────────────────────────────────────── */
+
+const statoVivo = () => globalThis.__DASHBOARDMODERN_SEGNALAZIONI__;
+
+function conLaCoda(coda, console, prova) {
+  const stato = statoVivo();
+  const prima = { queue: stato.queue, console: stato.console };
+  stato.queue = coda;
+  stato.console = console;
+  try {
+    prova();
+  } finally {
+    stato.queue = prima.queue;
+    stato.console = prima.console;
+  }
+}
+
+test("senza console il sommario non esiste, e quindi nemmeno la tessera", () => {
+  /* E' la garanzia del «solo per me», e sta qui invece che in un interruttore:
+   * un interruttore lo si puo' accendere per sbaglio, questo no. Il modello
+   * della tessera torna `null` su un sommario nullo, quindi in Home non
+   * compare proprio — non compare vuota, non compare a zero. */
+  conLaCoda([inCoda({ state: "inviato" })], false, () => {
+    assert.equal(sommarioConsole(), null, "il sommario esce anche senza console");
+  });
+});
+
+test("il sommario conta quello che resta da lavorare, non tutto", () => {
+  /* E' il numero con cui si guarda la Home: «quanto mi resta», non «quante ne
+   * sono arrivate in tutto», che e' storia e non chiede niente. */
+  conLaCoda(
+    [
+      inCoda({ number: 1, type: "bug", state: "inviato" }),
+      inCoda({ number: 2, type: "bug", state: "in-carico" }),
+      inCoda({ number: 3, type: "feature", state: "inviato" }),
+      inCoda({ number: 4, type: "assistenza", state: "risolto" }),
+      inCoda({ number: 5, type: "bug", state: "chiuso" }),
+    ],
+    true,
+    () => {
+      assert.deepEqual(sommarioConsole(), {
+        quante: 3,
+        nuove: 2,
+        inLavorazione: 1,
+        chiuse: 2,
+        bug: 2,
+        feature: 1,
+        assistenza: 0,
+      });
+    },
+  );
+});
+
+test("senza coda ancora letta il sommario tace invece di dire zero", () => {
+  /* Zero e «non lo so ancora» sono due cose diverse, e la seconda detta come
+   * la prima e' una bugia con l'aria di un dato: la tessera direbbe «niente da
+   * lavorare» mentre nessuno ha ancora chiesto niente a GitHub. */
+  conLaCoda(null, true, () => {
+    assert.equal(sommarioConsole(), null);
+  });
 });

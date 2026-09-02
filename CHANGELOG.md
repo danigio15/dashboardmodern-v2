@@ -10,6 +10,34 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 «Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non
 serviva a niente.
 
+### Nuovo
+
+- **La tessera delle segnalazioni in Home, e c'e' solo per te.** Il numero
+  grande e' quello che resta **da lavorare** — non quante ne sono arrivate in
+  tutto, che e' storia e non chiede niente — e sotto c'e' la ripartizione: «3
+  difetti · 2 idee · 1 aiuto». Si accende quando qualcosa aspetta una
+  risposta; toccandola si apre il cruscotto, invece di rifare la console in
+  miniatura dentro una finestra larga un palmo.
+
+  «Solo per me» sta scritto in come e' fatta, non in un interruttore: il suo
+  modello torna `null` per chiunque non tenga la repository, quindi per gli
+  altri la tessera non esiste — non compare vuota, non compare a zero. Un
+  interruttore lo si potrebbe accendere per sbaglio, questo no. La riga nel
+  catalogo «ordina e accendi» c'e' lo stesso, perche' chi la vede deve poterla
+  spostare e spegnere come le altre.
+
+  La coda si va a riprendere da sola al massimo ogni dieci minuti: le
+  segnalazioni non arrivano al secondo, e ogni giro e' una chiamata a GitHub.
+  Se la rete non risponde la tessera **non compare**, invece di dire zero: «non
+  lo so ancora» e «non c'e' niente» sono due cose diverse, e la seconda detta
+  al posto della prima e' una bugia con l'aria di un dato.
+
+- **Un giro solo per due mestieri.** La coda la chiedevano due funzioni
+  diverse, e due funzioni che chiedono la stessa cosa a GitHub finiscono sempre
+  per rispondere in modo diverso. Adesso e' una, con due modi: zitta per la
+  Home, ad alta voce per la console — dove qualcuno sta guardando e un guasto
+  va detto.
+
 ### Il cruscotto
 
 - **Lo stato e il tipo sono due file di tasti, e si incrociano.** Stavano tutti

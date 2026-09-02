@@ -35,6 +35,9 @@ import {
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
+/* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
+ * di rifare il giro verso GitHub per conto suo. */
+import { sommarioConsole } from "./segnalazioni-section.js";
 import {
   SCALDABAGNI_KEY,
   entitaDiUnoScaldabagno,
@@ -590,17 +593,19 @@ function calendarioModel() {
     const titolo = clean(evento.summary) || t("Senza titolo", "Untitled");
     if (inCorso(evento, adesso)) return `${t("Adesso", "Now")} · ${titolo}`;
     const giorno = chiaveDelGiorno(evento.inizio);
-    const quando = evento.tuttoIlGiorno
-      ? ""
-      : oraDellEvento(evento, parole, lingua).split(" ")[0];
+    const quando = evento.tuttoIlGiorno ? "" : oraDellEvento(evento, parole, lingua).split(" ")[0];
     const dove =
-      giorno === oggi ? quando : `${etichettaDelGiorno(giorno, adesso, parole, lingua)}${quando ? ` ${quando}` : ""}`;
+      giorno === oggi
+        ? quando
+        : `${etichettaDelGiorno(giorno, adesso, parole, lingua)}${quando ? ` ${quando}` : ""}`;
     return dove ? `${dove} · ${titolo}` : titolo;
   };
 
   const didascalia = () => {
     if (!primi.length)
-      return inArrivo ? t("Caricamento…", "Loading…") : t("Niente in programma", "Nothing scheduled");
+      return inArrivo
+        ? t("Caricamento…", "Loading…")
+        : t("Niente in programma", "Nothing scheduled");
     return primi.map(scritto).join("  ·  ");
   };
 
@@ -871,9 +876,7 @@ function securityModel(states) {
   const fuori = widgetExcludedEntities();
   const alarm = stateOf(states, "dm.security_centrale_allarme");
   /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
-  const doors = configuredSecurityDoors().filter((door) =>
-    widgetIncludes(door.entity, fuori),
-  );
+  const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
   // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
   // telecamere, da sole, sono gia' la loro tessera.
   if (!alarm && !doors.length) return null;
@@ -1746,9 +1749,7 @@ function caldaiaModel(states) {
       entity: clean(dato.fiamma) || clean(dato.stato),
       on: lettura.fiamma === true || lettura.acceso === true,
       value:
-        lettura.fiamma === true || lettura.acceso === true
-          ? t("Acceso", "On")
-          : t("Spento", "Off"),
+        lettura.fiamma === true || lettura.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
     });
   const misura = (campo, testo, glyph, valore, cifre, unita) => {
     if (valore == null) return;
@@ -1769,8 +1770,7 @@ function caldaiaModel(states) {
 
   const acceso = lettura.fiamma === true || lettura.acceso === true;
   const didascalia = () => {
-    if (pressione === "bassa")
-      return t("Pressione bassa: rabbocca", "Pressure low: top it up");
+    if (pressione === "bassa") return t("Pressione bassa: rabbocca", "Pressure low: top it up");
     if (lettura.salto != null) {
       /* Il numero si tira fuori prima: la chiave di traduzione deve essere una
        * frase con un buco, non un pezzo di codice. */
@@ -1935,9 +1935,7 @@ function agendaModel(states) {
 
   const daFare = cose ? contaDaFare(cose) : 0;
   const adesso = Date.now();
-  const inCorsoAdesso = Boolean(
-    calendario?.primi?.length && inCorso(calendario.primi[0], adesso),
-  );
+  const inCorsoAdesso = Boolean(calendario?.primi?.length && inCorso(calendario.primi[0], adesso));
 
   /* La didascalia dice le due cose insieme quando ci sono tutte e due: «17:30
    * Dentista · 4 da fare». Con una sola resta quella, senza il puntino che
@@ -2175,7 +2173,14 @@ const CASELLE_MINIPC = Object.freeze([
     unita: "°",
     cifre: 1,
   },
-  { ref: "dm.server_temperature", it: "Temperatura", en: "Temperature", glyph: "🌡️", unita: "°", cifre: 1 },
+  {
+    ref: "dm.server_temperature",
+    it: "Temperatura",
+    en: "Temperature",
+    glyph: "🌡️",
+    unita: "°",
+    cifre: 1,
+  },
   {
     ref: "dm.server_potenza_raspberry_server",
     it: "Potenza",
@@ -2823,11 +2828,44 @@ export function planciaConfigurata() {
   return Boolean(luci && Object.keys(luci).length);
 }
 
+/* La tessera delle segnalazioni, e c'e' solo per chi tiene la repository.
+ *
+ * `sommarioConsole()` torna `null` per chiunque altro: la tessera non esiste
+ * per loro, e non e' una preferenza spenta ma una cosa che non li riguarda —
+ * cosi' «solo per me» sta scritto in come e' fatta, non in un interruttore che
+ * qualcuno potrebbe accendere per sbaglio.
+ *
+ * Il numero grande e' quello che resta da lavorare, che e' la domanda con cui
+ * si guarda la Home: non quante ne sono arrivate in tutto, che e' storia. */
+function segnalazioniModel() {
+  const conto = sommarioConsole();
+  if (!conto) return null;
+  const pezzi = [];
+  if (conto.bug) pezzi.push(t(`${conto.bug} difetti`, `${conto.bug} bugs`));
+  if (conto.feature) pezzi.push(t(`${conto.feature} idee`, `${conto.feature} ideas`));
+  if (conto.assistenza) pezzi.push(t(`${conto.assistenza} aiuto`, `${conto.assistenza} help`));
+  return {
+    key: "segnalazioni",
+    accent: "#0ea5e9",
+    icon: "🎫",
+    label: t("Segnalazioni", "Reports"),
+    value: String(conto.quante),
+    /* Senza niente da lavorare la didascalia non elenca zeri: dice che non c'e'
+     * niente, che e' la risposta. */
+    caption: pezzi.length ? pezzi.join("  ·  ") : t("Niente da lavorare", "Nothing to work on"),
+    ring: null,
+    // Si accende quando c'e' qualcosa che aspetta una risposta.
+    attiva: conto.quante > 0,
+    conto,
+  };
+}
+
 function widgetModels(states) {
   if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
     [
       evidenzaModel(states),
+      segnalazioniModel(),
       agendaModel(states),
       lightsModel(states),
       climateModel(states),
@@ -3348,11 +3386,12 @@ function calendarioDetail(widget, scadenze = []) {
   const elenco = giorni
     .slice(0, GIORNI_NEL_PANNELLO)
     .map(
-      ({ giorno, eventi }) => `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
-        etichettaDelGiorno(giorno, adesso, parole, lingua),
-      )}</span><ul class="dm-cal-lista">${eventi
-        .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
-        .join("")}</ul></div>`,
+      ({ giorno, eventi }) =>
+        `<div class="dm-w-block"><span class="dm-w-block-title">${esc(
+          etichettaDelGiorno(giorno, adesso, parole, lingua),
+        )}</span><ul class="dm-cal-lista">${eventi
+          .map((riga) => rigaAgendaMarkup(riga, adesso, parole, lingua, piuCalendari))
+          .join("")}</ul></div>`,
     )
     .join("");
   return `${modulo}${testa}${arretrati}${elenco}`;
@@ -4315,6 +4354,29 @@ function verdettoEFrase(widget) {
  * prima: li' ci sono gli interruttori, e quelli non si toccano — cambia il
  * posto, non quello che fanno. */
 function detailBody(widget, states) {
+  /* Le segnalazioni non si lavorano da qui. La finestra della tessera e'
+   * larga un palmo, e rispondere a una issue vuol dire leggere il filo, gli
+   * allegati, e scrivere: il posto per farlo esiste gia' ed e' il Cruscotto.
+   * Qui ci sta il conto e la porta per arrivarci — duplicare la console in
+   * miniatura vorrebbe dire tenerne allineate due. */
+  if (widget.key === "segnalazioni") {
+    const conto = widget.conto || {};
+    const righe = [
+      [t("Nuove", "New"), conto.nuove],
+      [t("In lavorazione", "In progress"), conto.inLavorazione],
+      [t("Chiuse", "Closed"), conto.chiuse],
+    ];
+    return `${verdettoEFrase(widget)}
+      <div class="dm-w-caselle">${righe
+        .map(
+          ([nome, quante]) =>
+            `<div class="dm-w-casella"><b>${Number(quante) || 0}</b><small>${esc(nome)}</small></div>`,
+        )
+        .join("")}</div>
+      <button type="button" class="dm-w-riga dm-tkt-apri-console" data-dm-apri-cruscotto>
+        <span>${esc(t("Apri il cruscotto", "Open the console"))}</span>
+      </button>`;
+  }
   const comandi = detailRows(widget, states);
   return `${verdettoEFrase(widget)}
     ${caselleDelleMisure(widget)}
@@ -4359,9 +4421,17 @@ function detailRows(widget, states) {
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
   if (
-    ["ev", "solare", "scaldabagno", "caldaia", "ups", "piscina", "prese", "irrigazione", "robot"].includes(
-      widget.key,
-    )
+    [
+      "ev",
+      "solare",
+      "scaldabagno",
+      "caldaia",
+      "ups",
+      "piscina",
+      "prese",
+      "irrigazione",
+      "robot",
+    ].includes(widget.key)
   )
     return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);

@@ -139,6 +139,16 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-widget",
+    title: "Segnalazioni \u00b7 la tessera in Home",
+    both: true,
+    settle: 1200,
+    setup: () => {
+      window.__dmPreviewTickets("widget");
+      window.__dmPreview.tab("home");
+    },
+  },
+  {
     id: "segnalazioni-difetti",
     title: "Segnalazioni \u00b7 i difetti da lavorare",
     both: true,
@@ -1461,6 +1471,15 @@ async function bootPage(context, cameraStill, vehicleStill) {
                 contact: "",
               }
             : { title: "", body: "", contact: "" };
+      }
+      if (dove === "widget") {
+        // La tessera vive in Home: qui si semina soltanto quello che le serve.
+        if (stato) {
+          stato.console = true;
+          stato.queue = coda;
+          stato.queueAt = Date.now();
+        }
+        return;
       }
       window.DashboardModernSegnalazioni?.apri();
       if (dove === "filo" && stato) {
