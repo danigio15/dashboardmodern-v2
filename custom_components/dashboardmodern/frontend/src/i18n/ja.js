@@ -12,11 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — 設定済み",
+  "Any type": "種類を問わず",
   "Came from a dashboard: the reply goes back into it": "ダッシュボードから届いたもの: 返信はそこに戻ります",
   "Everything on the repository": "リポジトリにあるものすべて",
   "from a dashboard": "ダッシュボードから",
   "from GitHub": "GitHub から",
   "Nothing closed yet.": "まだ閉じたものはありません。",
+  "Nothing of this kind here.": "ここにはこの種類のものがありません。",
   "Opened directly on GitHub: the reply stays there": "GitHub で直接開かれたもの: 返信はそこに残ります",
   "Saved, but the authorization did not start:": "保存しましたが、認可は始まりませんでした:",
   "The reply goes under the report, on GitHub: whoever opened it reads it there.": "返信は GitHub の報告の下に付きます: 開いた人はそこで読みます。",

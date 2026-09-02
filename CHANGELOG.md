@@ -5,6 +5,38 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.10
+
+«Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non
+serviva a niente.
+
+### Il cruscotto
+
+- **Lo stato e il tipo sono due file di tasti, e si incrociano.** Stavano tutti
+  su una riga sola a scelta singola, e quello faceva sembrare «Da lavorare» e
+  «Difetti» due risposte alla stessa domanda. Non lo sono: premendo «Difetti»
+  si perdeva lo stato e arrivavano anche i difetti gia' chiusi — mentre la cosa
+  che si cerca aprendo la console e' quasi sempre «i difetti **aperti**», che
+  con una riga sola non si poteva proprio chiedere.
+
+  Adesso sopra c'e' lo stato — Da lavorare, Chiuse, Tutte — e sotto il tipo —
+  Ogni tipo, Difetti, Idee, Aiuto. Si accendono insieme, e «Da lavorare» piu'
+  «Difetti» da' i difetti da lavorare.
+
+- **E sotto ogni tipo c'e' il suo conto, dentro lo stato scelto.** Con «Da
+  lavorare» acceso, «Difetti 3» vuol dire tre difetti da lavorare, non tre
+  difetti in tutta la storia della repository: e' il numero che serve a
+  decidere cosa premere, e si legge prima di premere.
+
+- **«Ogni tipo» non vuol dire «senza tipo».** Il tasto vuoto significa «non
+  filtrare»; se filtrasse davvero sul tipo vuoto, le uniche a passare sarebbero
+  le segnalazioni senza tipo — l'esatto contrario. Quelle si riconoscono dalla
+  pastiglia grigia, e restano raggiungibili.
+
+- **Il messaggio di coda vuota dice chi sta tagliando.** Col tipo acceso il
+  vuoto e' quasi sempre colpa sua, non dello stato: dirlo evita di guardare una
+  coda vuota chiedendosi dove siano finite le altre trentanove.
+
 ## 1.4.5-beta.9
 
 Il cruscotto della beta.8 si apriva e diceva «Risposta illeggibile», con tre

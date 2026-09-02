@@ -15,7 +15,8 @@ import test from "node:test";
 import { ALLOWED_MESSAGE_TYPES } from "../src/legacy/bridge-socket.js";
 import {
   DIAGNOSTIC_KEYS,
-  FILTRI_ID,
+  FILTRI_STATO_ID,
+  FILTRI_TIPO_ID,
   allegatiMarkup,
   appenaApertaMarkup,
   WS_TYPES,
@@ -250,25 +251,68 @@ test("i filtri per tipo tengono solo il loro tipo", () => {
     inCoda({ number: 2, type: "feature" }),
     inCoda({ number: 3, type: "assistenza" }),
   ];
-  for (const [filtro, atteso] of [
+  for (const [tipo, atteso] of [
     ["bug", [1]],
     ["feature", [2]],
     ["assistenza", [3]],
   ]) {
     assert.deepEqual(
-      filtra(coda, filtro).map((ticket) => ticket.number),
+      filtra(coda, "tutte", tipo).map((ticket) => ticket.number),
       atteso,
-      `il filtro ${filtro} non tiene quello che deve`,
+      `il filtro ${tipo} non tiene quello che deve`,
     );
   }
 });
 
+test("lo stato e il tipo si incrociano invece di scacciarsi", () => {
+  /* Il motivo per cui sono due file e non una: «i difetti aperti» e' la cosa
+   * che si cerca aprendo la console, e con una riga sola non si poteva
+   * chiedere — premendo «Difetti» si perdeva «Da lavorare» e arrivavano anche
+   * i difetti gia' chiusi. */
+  const coda = [
+    inCoda({ number: 1, type: "bug", state: "inviato" }),
+    inCoda({ number: 2, type: "bug", state: "risolto" }),
+    inCoda({ number: 3, type: "feature", state: "inviato" }),
+    inCoda({ number: 4, type: "feature", state: "chiuso" }),
+  ];
+  assert.deepEqual(
+    filtra(coda, "aperte", "bug").map((ticket) => ticket.number),
+    [1],
+    "«difetti da lavorare» non tiene solo quelli",
+  );
+  assert.deepEqual(
+    filtra(coda, "chiuse", "feature").map((ticket) => ticket.number),
+    [4],
+    "«idee chiuse» non tiene solo quelle",
+  );
+});
+
+test("«ogni tipo» non filtra, e non vuol dire «senza tipo»", () => {
+  /* Il tasto vuoto significa «non filtrare». Se filtrasse su `type === ""` le
+   * uniche a passare sarebbero quelle senza tipo, cioe' l'esatto contrario. */
+  const coda = [
+    inCoda({ number: 1, type: "bug" }),
+    inCoda({ number: 2, type: "" }),
+    inCoda({ number: 3, type: "feature" }),
+  ];
+  assert.deepEqual(
+    filtra(coda, "tutte", "").map((ticket) => ticket.number),
+    [1, 2, 3],
+  );
+});
+
 test("ogni filtro dichiarato sa rispondere", () => {
   /* Un filtro nell'elenco che nessun ramo di `filtra` riconosce sarebbe un
-   * tasto che svuota la coda senza dire perche'. */
+   * tasto che svuota la coda senza dire perche'. Le due file si provano
+   * incrociate, che e' come si usano. */
   const coda = [inCoda({ type: "bug", state: "inviato" })];
-  for (const filtro of FILTRI_ID) {
-    assert.ok(Array.isArray(filtra(coda, filtro)), `${filtro} non torna un elenco`);
+  for (const stato of FILTRI_STATO_ID) {
+    for (const tipo of FILTRI_TIPO_ID) {
+      assert.ok(
+        Array.isArray(filtra(coda, stato, tipo)),
+        `${stato} + ${tipo || "ogni tipo"} non torna un elenco`,
+      );
+    }
   }
 });
 

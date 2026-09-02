@@ -139,6 +139,16 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-difetti",
+    title: "Segnalazioni \u00b7 i difetti da lavorare",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("difetti");
+    },
+  },
+  {
     id: "segnalazioni-filo",
     title: "Segnalazioni · il filo di una segnalazione",
     both: true,
@@ -1337,7 +1347,8 @@ async function bootPage(context, cameraStill, vehicleStill) {
         },
       ];
       const collegato = dove !== "collega" && dove !== "codice";
-      const daManutentore = dove === "console" || dove === "filo" || dove === "chiuse";
+      const daManutentore =
+        dove === "console" || dove === "filo" || dove === "chiuse" || dove === "difetti";
       const account = collegato
         ? { connected: true, login: "anna-g", maintainer: daManutentore }
         : { connected: false, login: "", maintainer: false };
@@ -1418,12 +1429,15 @@ async function bootPage(context, cameraStill, vehicleStill) {
               ? "nuova"
               : dove === "allegati"
                 ? "mie"
-                : dove === "filo" || dove === "chiuse"
+                : dove === "filo" || dove === "chiuse" || dove === "difetti"
                   ? "console"
                   : dove;
         stato.fili = {};
         stato.filiInCorso = {};
-        stato.queue = dove === "console" || dove === "filo" || dove === "chiuse" ? coda : null;
+        stato.queue =
+          dove === "console" || dove === "filo" || dove === "chiuse" || dove === "difetti"
+            ? coda
+            : null;
         stato.auth =
           dove === "codice"
             ? {
@@ -1438,6 +1452,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           dove === "codice" ? "Salvata. Manca solo la firma: autorizza GitHub e parte." : "";
         stato.tipo = "bug";
         stato.filtro = dove === "chiuse" ? "chiuse" : "aperte";
+        stato.tipoCoda = dove === "difetti" ? "bug" : "";
         stato.bozza =
           dove === "nuova"
             ? {

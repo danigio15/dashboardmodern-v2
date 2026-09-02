@@ -12,11 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — 설정됨",
+  "Any type": "모든 유형",
   "Came from a dashboard: the reply goes back into it": "대시보드에서 온 것: 답변이 그곳으로 돌아갑니다",
   "Everything on the repository": "저장소에 있는 모든 것",
   "from a dashboard": "대시보드에서",
   "from GitHub": "GitHub에서",
   "Nothing closed yet.": "아직 닫힌 것이 없습니다.",
+  "Nothing of this kind here.": "여기에는 이런 종류가 없습니다.",
   "Opened directly on GitHub: the reply stays there": "GitHub에서 직접 열린 것: 답변은 그곳에 남습니다",
   "Saved, but the authorization did not start:": "저장했지만 인증이 시작되지 않았습니다:",
   "The reply goes under the report, on GitHub: whoever opened it reads it there.": "답변은 GitHub의 보고 아래에 달립니다: 연 사람은 그곳에서 읽습니다.",

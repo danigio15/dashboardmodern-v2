@@ -12,11 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — 已配置",
+  "Any type": "任意类型",
   "Came from a dashboard: the reply goes back into it": "来自某个面板：回复会回到那里",
   "Everything on the repository": "仓库里的全部内容",
   "from a dashboard": "来自面板",
   "from GitHub": "来自 GitHub",
   "Nothing closed yet.": "还没有已关闭的内容。",
+  "Nothing of this kind here.": "这里没有这一类的内容。",
   "Opened directly on GitHub: the reply stays there": "直接在 GitHub 上开的：回复会留在那里",
   "Saved, but the authorization did not start:": "已保存，但授权没有启动：",
   "The reply goes under the report, on GitHub: whoever opened it reads it there.": "回复会写在 GitHub 上该报告的下面：开这条的人在那里读到。",

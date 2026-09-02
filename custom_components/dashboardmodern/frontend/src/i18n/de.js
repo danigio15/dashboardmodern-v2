@@ -12,11 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — konfiguriert",
+  "Any type": "Jede Art",
   "Came from a dashboard: the reply goes back into it": "Aus einem Dashboard gekommen: die Antwort geht dorthin zurück",
   "Everything on the repository": "Alles im Repository",
   "from a dashboard": "aus einem Dashboard",
   "from GitHub": "von GitHub",
   "Nothing closed yet.": "Noch nichts geschlossen.",
+  "Nothing of this kind here.": "Hier nichts dieser Art.",
   "Opened directly on GitHub: the reply stays there": "Direkt auf GitHub eröffnet: die Antwort bleibt dort",
   "Saved, but the authorization did not start:": "Gespeichert, aber die Autorisierung ist nicht gestartet:",
   "The reply goes under the report, on GitHub: whoever opened it reads it there.": "Die Antwort steht unter der Meldung, auf GitHub: wer sie eröffnet hat, liest sie dort.",

@@ -44,6 +44,7 @@ const state = (root[KEY] ||= {
   fili: {},
   filiInCorso: {},
   filtro: "aperte",
+  tipoCoda: "",
   tab: "nuova",
   tipo: "bug",
   /* Quello che si sta scrivendo. Sta qui e non solo nel DOM perche' ogni
@@ -564,12 +565,22 @@ a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
 
 /* Il cruscotto: i tre numeri e i filtri. */
 .dm-tkt-kpi { margin-bottom:0; }
+/* Due file: lo stato sopra, il tipo sotto. La seconda sta piu' vicina alla
+   prima che all'elenco, cosi' si legge come una coppia e non come due cose
+   che capitano di seguito. */
 .dm-tkt-filtri { display:flex; gap:8px; flex-wrap:wrap; }
+.dm-tkt-filtri + .dm-tkt-filtri { margin-top:6px; }
 .dm-tkt-filtro { padding:7px 14px; border-radius:50px; cursor:pointer;
   border:1px solid var(--card-border,#e2e8f0); background:var(--surface-3,#f1f5f9);
-  color:var(--text-dim,#64748b); font-size:12px; font-weight:700; }
+  color:var(--text-dim,#64748b); font-size:12px; font-weight:700;
+  display:inline-flex; align-items:center; gap:7px; }
 .dm-tkt-filtro.attivo { background:var(--accent,#0ea5e9); color:#fff;
   border-color:transparent; }
+/* Il conto: dentro il tasto, ma di peso minore del nome — e' un dato, non
+   un'etichetta, e non deve rubare la lettura. */
+.dm-tkt-quanti { font-size:11px; font-weight:800; opacity:.75;
+  padding:1px 6px; border-radius:50px; background:rgba(100,116,139,.18); }
+.dm-tkt-filtro.attivo .dm-tkt-quanti { background:rgba(255,255,255,.25); opacity:1; }
 
 /* I segni sulla scheda, e il filo che si apre sotto. */
 .dm-tkt-segno { font-size:11px; font-weight:800; padding:3px 8px; border-radius:9px;
@@ -930,19 +941,28 @@ function elencoMarkup() {
  * cifra sola per colonna, e una cifra sola si legge meglio scritta grande che
  * disegnata. */
 
-export const FILTRI_ID = Object.freeze([
-  "aperte",
-  "chiuse",
-  "tutte",
-  "bug",
-  "feature",
-  "assistenza",
-]);
+/* Due domande, due file di tasti.
+ *
+ * Stavano tutti su una riga sola, a scelta singola, e quello faceva sembrare
+ * «Da lavorare» e «Difetti» due risposte alla stessa domanda. Non lo sono:
+ * premendo «Difetti» si perdeva lo stato e arrivavano anche i difetti gia'
+ * chiusi — mentre la cosa che si cerca aprendo la console e' quasi sempre
+ * «i difetti **aperti**», che con una riga sola non si poteva chiedere.
+ *
+ * Adesso lo stato e il tipo sono due assi che si incrociano, e sotto ogni
+ * tasto del tipo c'e' il suo conto, calcolato dentro lo stato scelto: si vede
+ * quanto c'e' da lavorare per genere prima ancora di premere. */
+export const FILTRI_STATO_ID = Object.freeze(["aperte", "chiuse", "tutte"]);
+export const FILTRI_TIPO_ID = Object.freeze(["", "bug", "feature", "assistenza"]);
 
-const FILTRI = [
+const FILTRI_STATO = [
   { id: "aperte", nome: () => t("Da lavorare", "To work on") },
   { id: "chiuse", nome: () => t("Chiuse", "Closed") },
   { id: "tutte", nome: () => t("Tutte", "All") },
+];
+
+const FILTRI_TIPO = [
+  { id: "", nome: () => t("Ogni tipo", "Any type") },
   { id: "bug", nome: () => t("Difetti", "Bugs") },
   { id: "feature", nome: () => t("Idee", "Ideas") },
   { id: "assistenza", nome: () => t("Aiuto", "Help") },
@@ -982,28 +1002,61 @@ function colonneMarkup(coda) {
     .join("")}</div>`;
 }
 
-function filtriMarkup() {
-  return `<div class="dm-tkt-filtri">${FILTRI.map(
-    (filtro) =>
-      `<button type="button" class="dm-tkt-filtro${
-        state.filtro === filtro.id ? " attivo" : ""
-      }" data-dm-filtro="${filtro.id}" aria-pressed="${
-        state.filtro === filtro.id
-      }">${esc(filtro.nome())}</button>`,
-  ).join("")}</div>`;
-}
-
 const CHIUSA = ["risolto", "chiuso"];
 
-export function filtra(coda, filtro = state.filtro) {
-  if (filtro === "tutte") return coda;
+function perStato(coda, filtro) {
   if (filtro === "aperte") {
     return coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
   }
   if (filtro === "chiuse") {
     return coda.filter((ticket) => CHIUSA.includes(clean(ticket.state)));
   }
-  return coda.filter((ticket) => clean(ticket.type) === filtro);
+  return coda;
+}
+
+function filaMarkup(voci, scelto, attributo) {
+  return `<div class="dm-tkt-filtri">${voci
+    .map((filtro) => {
+      const attivo = scelto === filtro.id;
+      /* Il conto sta sotto i tasti del tipo e non sotto quelli dello stato:
+       * li' lo direbbe due volte, perche' le tre cifre grandi qui sopra sono
+       * gia' il conto per stato. */
+      const conto = Number.isFinite(filtro.quante)
+        ? `<span class="dm-tkt-quanti">${filtro.quante}</span>`
+        : "";
+      return `<button type="button" class="dm-tkt-filtro${attivo ? " attivo" : ""}"
+        ${attributo}="${filtro.id}" aria-pressed="${attivo}">${esc(
+          filtro.nome(),
+        )}${conto}</button>`;
+    })
+    .join("")}</div>`;
+}
+
+function filtriMarkup(coda) {
+  /* I conti del tipo si contano DENTRO lo stato scelto: con «Da lavorare»
+   * acceso, «Difetti 6» vuol dire sei difetti da lavorare, non sei difetti in
+   * tutta la storia della repository. E' il numero che serve a decidere cosa
+   * premere. */
+  const dentroLoStato = perStato(coda, state.filtro);
+  const conIlConto = FILTRI_TIPO.map((filtro) => ({
+    ...filtro,
+    quante: filtro.id
+      ? dentroLoStato.filter((ticket) => clean(ticket.type) === filtro.id).length
+      : dentroLoStato.length,
+  }));
+  return (
+    filaMarkup(FILTRI_STATO, state.filtro, "data-dm-filtro") +
+    filaMarkup(conIlConto, state.tipoCoda, "data-dm-tipo-coda")
+  );
+}
+
+export function filtra(coda, filtro = state.filtro, tipo = state.tipoCoda) {
+  const perLoStato = perStato(coda, filtro);
+  /* Tipo vuoto vuol dire «ogni tipo», non «quelle senza tipo»: le seconde si
+   * riconoscono dalla pastiglia grigia, e nasconderle dietro il tasto che
+   * significa «non filtrare» le renderebbe irraggiungibili. */
+  if (!tipo) return perLoStato;
+  return perLoStato.filter((ticket) => clean(ticket.type) === tipo);
 }
 
 function quandoMarkup(ticket) {
@@ -1199,6 +1252,12 @@ export function codaVoceMarkup(ticket) {
 }
 
 function vuotoMarkup() {
+  /* Col tipo acceso il vuoto e' quasi sempre colpa sua, non dello stato:
+   * dirlo evita di guardare una coda vuota chiedendosi dove siano finite le
+   * altre trentanove. */
+  if (state.tipoCoda) {
+    return t("Niente di questo tipo, qui.", "Nothing of this kind here.");
+  }
   if (state.filtro === "aperte") {
     return t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.");
   }
@@ -1219,7 +1278,7 @@ function consoleMarkup() {
     : `<div class="dm-tkt-vuoto">${esc(vuotoMarkup())}</div>`;
   return `
     ${colonneMarkup(coda)}
-    ${filtriMarkup()}
+    ${filtriMarkup(coda)}
     ${elenco}
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="ricarica-coda" ${
@@ -1320,6 +1379,12 @@ function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-filtro]").forEach((bottone) => {
     bottone.addEventListener("click", () => {
       state.filtro = bottone.dataset.dmFiltro;
+      disegna();
+    });
+  });
+  corpo.querySelectorAll("[data-dm-tipo-coda]").forEach((bottone) => {
+    bottone.addEventListener("click", () => {
+      state.tipoCoda = bottone.dataset.dmTipoCoda;
       disegna();
     });
   });

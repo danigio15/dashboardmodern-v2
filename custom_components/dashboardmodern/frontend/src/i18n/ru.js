@@ -12,11 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — настроена",
+  "Any type": "Любой вид",
   "Came from a dashboard: the reply goes back into it": "Пришло с панели: ответ вернётся туда же",
   "Everything on the repository": "Всё, что есть в репозитории",
   "from a dashboard": "с панели",
   "from GitHub": "с GitHub",
   "Nothing closed yet.": "Пока ничего не закрыто.",
+  "Nothing of this kind here.": "Здесь ничего такого нет.",
   "Opened directly on GitHub: the reply stays there": "Открыто прямо на GitHub: ответ останется там",
   "Saved, but the authorization did not start:": "Сохранено, но авторизация не началась:",
   "The reply goes under the report, on GitHub: whoever opened it reads it there.": "Ответ появится под обращением, на GitHub: тот, кто его открыл, прочтёт его там.",

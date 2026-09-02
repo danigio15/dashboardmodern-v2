@@ -12,11 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — yapılandırıldı",
+  "Any type": "Her tür",
   "Came from a dashboard: the reply goes back into it": "Bir panodan geldi: yanıt oraya geri döner",
   "Everything on the repository": "Depodaki her şey",
   "from a dashboard": "bir panodan",
   "from GitHub": "GitHub'dan",
   "Nothing closed yet.": "Henüz kapatılan bir şey yok.",
+  "Nothing of this kind here.": "Burada bu türden bir şey yok.",
   "Opened directly on GitHub: the reply stays there": "Doğrudan GitHub'da açıldı: yanıt orada kalır",
   "Saved, but the authorization did not start:": "Kaydedildi, ama yetkilendirme başlamadı:",
   "The reply goes under the report, on GitHub: whoever opened it reads it there.": "Yanıt bildirimin altına, GitHub'a gider: açan kişi orada okur.",

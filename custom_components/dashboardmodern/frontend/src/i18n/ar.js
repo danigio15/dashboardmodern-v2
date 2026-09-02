@@ -12,11 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — مُهيّأة",
+  "Any type": "أي نوع",
   "Came from a dashboard: the reply goes back into it": "وردت من لوحة تحكم: يعود الرد إليها",
   "Everything on the repository": "كل ما في المستودع",
   "from a dashboard": "من لوحة تحكم",
   "from GitHub": "من GitHub",
   "Nothing closed yet.": "لا شيء مغلق حتى الآن.",
+  "Nothing of this kind here.": "لا شيء من هذا النوع هنا.",
   "Opened directly on GitHub: the reply stays there": "فُتحت مباشرة على GitHub: يبقى الرد هناك",
   "Saved, but the authorization did not start:": "حُفظت، لكن التفويض لم يبدأ:",
   "The reply goes under the report, on GitHub: whoever opened it reads it there.": "يُنشر الرد أسفل البلاغ على GitHub: من فتحه يقرأه هناك.",
