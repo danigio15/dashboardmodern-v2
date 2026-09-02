@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "새 메시지 ${conversazioni.length}건",
+  "silent": "무응답",
+  "on out of": "켜짐 /",
+  "off the bar": "막대 밖",
+  "entity": "엔터티",
+  "entities": "엔터티",
+  "Your sections": "내 섹션",
+  "The entities": "엔터티",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "여덟 개입니다. 막대는 이보다 많으면 읽을 수 없게 됩니다.",
+  "Show it in the bar": "막대에 표시",
+  "Section title": "섹션 제목",
+  "Section": "섹션",
+  "Playing": "재생 중",
+  "Not reporting": "응답 없음",
+  "None reporting": "응답하는 것이 없습니다",
+  "Name (optional)": "이름 (선택)",
+  "Add section": "섹션 추가",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "나만의 섹션은 제목과 거기에 넣은 엔터티입니다. 다른 것들처럼 막대에 나타나고, 지금 어떤 상태인지 알려 주며, 켤 수 있는 것은 켭니다. 이 대시보드가 아직 그리지 않는 것들을 위한 자리이고, 무엇도 빼앗지 않습니다. 전용 섹션이 오는 날 이건 지우면 됩니다.",
   "and ${conversazioni.length - MOSTRATE} more": "외 ${conversazioni.length - MOSTRATE}건",
   new: "새 글",
   "New messages": "새 메시지",

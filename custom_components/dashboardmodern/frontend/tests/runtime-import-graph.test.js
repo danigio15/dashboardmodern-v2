@@ -594,8 +594,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // modulo puro legge l'indirizzo — host, percorso, il nome che go2rtc dà a
   // quel flusso — e la sezione e' la casella dove scriverlo, accanto a quella
   // del flusso che il guscio disegna gia'.
+  // 206 con le sezioni che si fa l'utente (`core/sezioni-mie.js`,
+  // `sections/sezioni-mie-section.js`, `sections/sezioni-mie-editor-section.js`):
+  // «dare la possibilita' di creare sezioni custom, dove poter inserire le
+  // proprie entita' a piacimento — avrei potuto inserire quelle dell'UPS senza
+  // attendere la sezione apposita» (#262). Tre moduli come le altre pagine
+  // nate a runtime: il modello puro, la pagina, la scheda che la configura.
   assert.ok(
-    relative.length <= 203,
+    relative.length <= 206,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

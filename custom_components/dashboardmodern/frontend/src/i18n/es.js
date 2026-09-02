@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} con mensajes nuevos",
+  "silent": "mudas",
+  "on out of": "encendidas de",
+  "off the bar": "fuera de la barra",
+  "entity": "entidad",
+  "entities": "entidades",
+  "Your sections": "Tus secciones",
+  "The entities": "Las entidades",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "Son ocho: la barra no aguanta más sin volverse ilegible.",
+  "Show it in the bar": "Mostrarla en la barra",
+  "Section title": "Título de la sección",
+  "Section": "Sección",
+  "Playing": "En reproducción",
+  "Not reporting": "No responde",
+  "None reporting": "Ninguna responde",
+  "Name (optional)": "Nombre (opcional)",
+  "Add section": "Añadir sección",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "Una sección tuya es un título y las entidades que pones dentro: aparece en la barra como las demás, dice cómo están y enciende las que se encienden. Es para lo que este panel todavía no dibuja — y no quita nada: el día que llegue la sección hecha a propósito, esta la puedes quitar.",
   "and ${conversazioni.length - MOSTRATE} more": "y ${conversazioni.length - MOSTRATE} más",
   new: "nuevo",
   "New messages": "Mensajes nuevos",

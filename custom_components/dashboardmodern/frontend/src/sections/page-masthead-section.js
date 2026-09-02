@@ -173,6 +173,27 @@ const PAGES = Object.freeze([
  * `{title, subtitle}` oppure niente, e in quel caso vale la tabella. */
 const TITOLI_SU_MISURA = new Map();
 
+/* Le pagine che nascono mentre la plancia gira.
+ *
+ * La tabella qui sopra e' l'elenco delle pagine che questa plancia disegna, e
+ * per anni sono state tutte scritte prima di partire. Le sezioni che si fa
+ * l'utente (#262) no: nascono quando le crea lui, sono N e portano nomi suoi.
+ * Senza un posto dove annunciarsi resterebbero le uniche pagine senza
+ * intestazione — cioe' le uniche che si vedono come pagine di serie B. */
+const PAGINE_A_RUNTIME = new Map();
+
+export function registraPaginaARuntime(id, pagina) {
+  const chiave = clean(id);
+  if (!chiave) return false;
+  if (pagina) PAGINE_A_RUNTIME.set(chiave, { ...pagina, id: chiave });
+  else PAGINE_A_RUNTIME.delete(chiave);
+  return true;
+}
+
+function tuttePagine() {
+  return PAGINE_A_RUNTIME.size ? [...PAGES, ...PAGINE_A_RUNTIME.values()] : PAGES;
+}
+
 export function registraTitoloDiPagina(id, produttore) {
   const chiave = clean(id);
   if (!chiave) return false;
@@ -470,9 +491,10 @@ function applyMasthead(piano) {
  * follows a tab change reaches the one that comes up. The first pass still
  * builds them all, so a page opened without a click already has its heading. */
 function pagesToRender() {
-  if (!state.seeded) return PAGES;
+  const tutte = tuttePagine();
+  if (!state.seeded) return tutte;
   const active = doc?.querySelector?.(".page.active");
-  const page = active?.id ? PAGES.find((candidate) => candidate.id === active.id) : null;
+  const page = active?.id ? tutte.find((candidate) => candidate.id === active.id) : null;
   return page ? [page] : [];
 }
 

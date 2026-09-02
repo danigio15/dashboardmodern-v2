@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} برسائل جديدة",
+  "silent": "صامتة",
+  "on out of": "تعمل من",
+  "off the bar": "خارج الشريط",
+  "entity": "كيان",
+  "entities": "كيانات",
+  "Your sections": "أقسامك",
+  "The entities": "الكيانات",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "صارت ثمانية: لا يحتمل الشريط أكثر من ذلك دون أن يصير غير مقروء.",
+  "Show it in the bar": "أظهره في الشريط",
+  "Section title": "عنوان القسم",
+  "Section": "قسم",
+  "Playing": "قيد التشغيل",
+  "Not reporting": "لا يستجيب",
+  "None reporting": "لا شيء يستجيب",
+  "Name (optional)": "الاسم (اختياري)",
+  "Add section": "أضِف قسماً",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "قسمك الخاص هو عنوان والكيانات التي تضعها فيه: يظهر في الشريط كالبقية، ويقول كيف حالها، ويشغّل ما يمكن تشغيله. إنه لما لا ترسمه هذه اللوحة بعد — ولا يأخذ شيئاً: يوم يصل القسم المصنوع خصيصاً يمكنك إزالة هذا.",
   "and ${conversazioni.length - MOSTRATE} more": "و${conversazioni.length - MOSTRATE} أخرى",
   new: "جديد",
   "New messages": "رسائل جديدة",

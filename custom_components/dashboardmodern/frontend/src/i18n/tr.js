@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} yeni mesajlı",
+  "silent": "sessiz",
+  "on out of": "açık /",
+  "off the bar": "çubuğun dışında",
+  "entity": "varlık",
+  "entities": "varlık",
+  "Your sections": "Bölümlerin",
+  "The entities": "Varlıklar",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "Sekiz oldu: çubuk okunmaz hale gelmeden daha fazlasını taşımaz.",
+  "Show it in the bar": "Çubukta göster",
+  "Section title": "Bölümün başlığı",
+  "Section": "Bölüm",
+  "Playing": "Çalıyor",
+  "Not reporting": "Yanıt vermiyor",
+  "None reporting": "Hiçbiri yanıt vermiyor",
+  "Name (optional)": "Ad (isteğe bağlı)",
+  "Add section": "Bölüm ekle",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "Kendi bölümün bir başlık ve içine koyduğun varlıklardır: diğerleri gibi çubukta görünür, nasıl olduklarını söyler ve açılabilenleri açar. Bu panonun henüz çizmediği şeyler içindir — ve hiçbir şeyi elinden almaz: asıl bölüm geldiği gün bunu kaldırabilirsin.",
   "and ${conversazioni.length - MOSTRATE} more": "ve ${conversazioni.length - MOSTRATE} tane daha",
   new: "yeni",
   "New messages": "Yeni mesajlar",

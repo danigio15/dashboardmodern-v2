@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} 条有新消息",
+  "silent": "无响应",
+  "on out of": "开，共",
+  "off the bar": "不在导航栏",
+  "entity": "个实体",
+  "entities": "个实体",
+  "Your sections": "你的分区",
+  "The entities": "实体",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "已经八个了：再多导航栏就看不清了。",
+  "Show it in the bar": "在导航栏中显示",
+  "Section title": "分区标题",
+  "Section": "分区",
+  "Playing": "播放中",
+  "Not reporting": "没有响应",
+  "None reporting": "没有一个在响应",
+  "Name (optional)": "名称（可选）",
+  "Add section": "添加分区",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "你自己的分区，就是一个标题加上你放进去的实体：它像其他分区一样出现在导航栏里，说明它们现在如何，并把能开关的开关掉。它是为这个面板还没画出来的东西准备的——而且什么也不会拿走：等专门的分区做好那天，这个可以删掉。",
   "and ${conversazioni.length - MOSTRATE} more": "另有 ${conversazioni.length - MOSTRATE} 条",
   new: "新",
   "New messages": "新消息",

@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} में नए संदेश",
+  "silent": "चुप",
+  "on out of": "चालू, कुल",
+  "off the bar": "पट्टी से बाहर",
+  "entity": "इकाई",
+  "entities": "इकाइयाँ",
+  "Your sections": "आपके खंड",
+  "The entities": "इकाइयाँ",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "आठ हो गए: पट्टी इससे ज़्यादा नहीं सँभालती, पढ़ी नहीं जाएगी।",
+  "Show it in the bar": "इसे पट्टी में दिखाएँ",
+  "Section title": "खंड का शीर्षक",
+  "Section": "खंड",
+  "Playing": "चल रहा है",
+  "Not reporting": "जवाब नहीं देती",
+  "None reporting": "कोई जवाब नहीं दे रही",
+  "Name (optional)": "नाम (वैकल्पिक)",
+  "Add section": "खंड जोड़ें",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "आपका अपना खंड एक शीर्षक है और वे इकाइयाँ जो आप उसमें रखते हैं: यह बाकियों की तरह पट्टी में दिखता है, बताता है कि वे कैसी हैं, और जो चालू हो सकती हैं उन्हें चालू करता है। यह उन चीज़ों के लिए है जो यह डैशबोर्ड अभी नहीं बनाता — और यह कुछ नहीं छीनता: जिस दिन असली खंड आएगा, इसे हटा सकते हैं।",
   "and ${conversazioni.length - MOSTRATE} more": "और ${conversazioni.length - MOSTRATE} अन्य",
   new: "नया",
   "New messages": "नए संदेश",

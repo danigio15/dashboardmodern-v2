@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "新着メッセージ ${conversazioni.length} 件",
+  "silent": "無応答",
+  "on out of": "オン／",
+  "off the bar": "バーの外",
+  "entity": "エンティティ",
+  "entities": "エンティティ",
+  "Your sections": "あなたのセクション",
+  "The entities": "エンティティ",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "これで八つです。バーはこれ以上入れると読めなくなります。",
+  "Show it in the bar": "バーに表示する",
+  "Section title": "セクションのタイトル",
+  "Section": "セクション",
+  "Playing": "再生中",
+  "Not reporting": "応答なし",
+  "None reporting": "どれも応答していません",
+  "Name (optional)": "名前（任意）",
+  "Add section": "セクションを追加",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "自分のセクションとは、タイトルとそこに入れたエンティティのことです。ほかと同じようにバーに並び、いまどうなっているかを伝え、切り替えられるものは切り替えます。このダッシュボードがまだ描いていないもののためにあり、何も奪いません。専用のセクションが来た日に、これは外せます。",
   "and ${conversazioni.length - MOSTRATE} more": "ほか ${conversazioni.length - MOSTRATE} 件",
   new: "新着",
   "New messages": "新しいメッセージ",

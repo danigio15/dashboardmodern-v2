@@ -205,6 +205,9 @@ const LOCALE_IDENTITIES = {
     "Recirculation",
     "Saturation",
     "Script",
+    /* Une section reste une section: e' la stessa parola in tutte e due, e
+       «rubrique» qui direbbe un'altra cosa. */
+    "Section",
     "Session",
     "Sessions",
     "Total",
@@ -214,6 +217,9 @@ const LOCALE_IDENTITIES = {
     "Zone",
   ]),
   de: new Set([
+    /* «optional» e' la parola tedesca corrente: tradurla peggiorerebbe.
+       */
+    "Name (optional)",
     "Polo",
     "💨 Wind",
     "${value} offline",

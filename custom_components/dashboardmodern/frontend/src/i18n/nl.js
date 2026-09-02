@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} met nieuwe berichten",
+  "silent": "stil",
+  "on out of": "aan van",
+  "off the bar": "buiten de balk",
+  "entity": "entiteit",
+  "entities": "entiteiten",
+  "Your sections": "Jouw secties",
+  "The entities": "De entiteiten",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "Dat zijn er acht: meer past er niet in de balk zonder onleesbaar te worden.",
+  "Show it in the bar": "Toon hem in de balk",
+  "Section title": "Titel van de sectie",
+  "Section": "Sectie",
+  "Playing": "Speelt af",
+  "Not reporting": "Meldt zich niet",
+  "None reporting": "Geen enkele meldt zich",
+  "Name (optional)": "Naam (optioneel)",
+  "Add section": "Sectie toevoegen",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "Een eigen sectie is een titel en de entiteiten die je erin zet: hij verschijnt in de balk zoals de andere, zegt hoe ze ervoor staan en schakelt wat te schakelen valt. Hij is er voor wat dit dashboard nog niet tekent — en hij neemt niets weg: de dag dat de echte sectie komt, kun je deze weghalen.",
   "and ${conversazioni.length - MOSTRATE} more": "en nog ${conversazioni.length - MOSTRATE}",
   new: "nieuw",
   "New messages": "Nieuwe berichten",

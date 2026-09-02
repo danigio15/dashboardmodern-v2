@@ -12,6 +12,25 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} с новыми сообщениями",
+  "silent": "молчат",
+  "on out of": "включено из",
+  "off the bar": "вне панели",
+  "entity": "сущность",
+  "entities": "сущностей",
+  "Your sections": "Ваши разделы",
+  "The entities": "Сущности",
+  "That is eight: the bar cannot hold more without becoming unreadable.":
+    "Их восемь: больше панель не выдержит, не став нечитаемой.",
+  "Show it in the bar": "Показывать на панели",
+  "Section title": "Заголовок раздела",
+  "Section": "Раздел",
+  "Playing": "Воспроизводится",
+  "Not reporting": "Не отвечает",
+  "None reporting": "Никто не отвечает",
+  "Name (optional)": "Название (необязательно)",
+  "Add section": "Добавить раздел",
+  "A section of your own is a title and the entities you put in it: it shows up in the bar like the others, says how they are doing and switches the ones that switch. It is for the things this dashboard does not draw yet — and it takes nothing away: the day the proper section arrives, you can remove this one.":
+    "Свой раздел — это заголовок и сущности, которые вы в него положили: он появляется на панели как остальные, говорит, как они себя чувствуют, и включает то, что включается. Он для того, чего эта панель пока не рисует, — и ничего не отнимает: в день, когда придёт раздел, сделанный специально, этот можно убрать.",
   "and ${conversazioni.length - MOSTRATE} more": "и ещё ${conversazioni.length - MOSTRATE}",
   new: "новое",
   "New messages": "Новые сообщения",

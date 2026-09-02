@@ -69,6 +69,11 @@ export const TAB_SECTION_KEYS = Object.freeze({
    * `cd_sections` — che e' esattamente quello che questa fascia scrive. */
   agenda: "calendario",
   ups: "ups",
+  /* Le sezioni che si fa l'utente (#262). La fascia ne spegne le voci tutte
+   * insieme — quali comparire nella barra lo dice la spunta sulla riga di
+   * ognuna, che e' una proprieta' della sezione e non una preferenza di
+   * visibilita' del guscio. La chiave e' quella che legge la loro pagina. */
+  mie: "mie",
 });
 
 /* Tabs that hold no configuration to save: diagnostics is read-only, the
