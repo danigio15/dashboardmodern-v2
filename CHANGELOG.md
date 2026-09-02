@@ -10,8 +10,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 Il cruscotto della beta.8 si apriva e diceva «Risposta illeggibile», con tre
 zeri e nessuna segnalazione. Non era GitHub: era la plancia che leggeva male.
 
+E l'Agenda diceva «—» sopra una riga che diceva «Domani 12:00»: negava a
+caratteri grandi quello che affermava a caratteri piccoli.
+
 ### Corretto
 
+- **Un appuntamento per domani non e' un trattino.** «Ho creato un appuntamento
+  per domani ma sia nel widget che nel popup esce un —.» Il numero grande
+  dell'Agenda contava soltanto oggi, e a oggi vuoto si arrendeva: un trattino —
+  che vuol dire «non lo so» — sopra una didascalia che diceva «Domani 12:00 ·
+  afsfsf». Negava a caratteri grandi quello che affermava a caratteri piccoli.
+  Adesso guarda avanti: «1 domani» quando il primo cade domani, «3 in arrivo»
+  quando cade piu' in la' — scrivere il giorno vorrebbe dire «venerdi' 4
+  settembre» al posto di un numero, e quando cade lo dice gia' la riga sotto. Il
+  trattino resta soltanto per quando non c'e' davvero niente, dove e' vero.
+- **«TODO.LISTA_DELLA_SPESA» non e' un nome.** Chi non scriveva un nome nella
+  scheda si ritrovava l'entity_id crudo in cima al blocco delle cose da fare,
+  per giunta gridato in maiuscolo dal vestito del titolo. Il nome ce l'ha gia'
+  Home Assistant — `friendly_name` — ed e' quello che l'utente ha scritto di
+  la'. Vale per le liste, per i calendari nella legenda e per il calendario
+  scritto sotto ogni impegno. Senza nemmeno quello resta l'indirizzo, ma
+  ripulito: stanghette in spazi e la prima lettera alzata.
 - **La console si apre e mostra le segnalazioni.** Il corpo delle risposte di
   GitHub veniva letto con `StreamReader.read(n)`, che non legge n byte: aspetta
   che il buffer non sia vuoto e restituisce quello che ci trova, cioe' il primo

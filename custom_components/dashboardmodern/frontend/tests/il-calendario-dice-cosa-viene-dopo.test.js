@@ -13,8 +13,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
+import { nomeDellEntita } from "../src/sections/shared.js";
+
 import {
   CALENDARI_KEY,
+  contoDellaTessera,
   GIORNI_AVANTI,
   chiaveDelGiorno,
   etichettaDelGiorno,
@@ -665,8 +668,13 @@ test("la stessa riga non compare due volte nella stessa pagina", async () => {
   // E la riga della scadenza porta la casella, non i tasti dell'appuntamento.
   assert.match(source, /if \(riga\.tipo === "scadenza"\)/);
   assert.match(source, /data-scadenza="true"[\s\S]{0,400}?data-dm-todo-check/);
-  // Il conteggio della tessera le comprende, o smentirebbe quello che c'e' sotto.
-  assert.match(source, /const scadenzeOggi = scadenzeDelleListe\(blocchiDelleListe\(\)\)/);
+  /* Il conteggio della tessera le comprende, o smentirebbe quello che c'e'
+   * sotto: le scadenze arrivano al nucleo insieme agli impegni. Che poi le
+   * conti giuste lo prova «le scadenze contano come gli impegni». */
+  assert.match(
+    source,
+    /contoDellaTessera\(eventi, scadenzeDelleListe\(blocchiDelleListe\(\)\), adesso\)/,
+  );
 
   const sezione = await readFile(
     new URL("../src/sections/calendario-section.js", import.meta.url),
@@ -758,4 +766,154 @@ test("il modulo delle cose da fare e' lo stesso di quello degli impegni", async 
   /* Un cestino solo per riga: le righe delle liste ce l'hanno gia', e due
    * cestini sulla stessa riga sarebbero due modi di togliere la stessa cosa. */
   assert.doesNotMatch(modifica, /data-dm-calm-cosa-elimina/);
+});
+
+/* ── il numero grande della tessera ──────────────────────────────────────
+ *
+ * «Ho creato un appuntamento per domani ma sia nel widget che nel popup esce
+ * un —.» Contava soltanto oggi, e a oggi vuoto si arrendeva: un trattino
+ * sopra una didascalia che diceva «Domani 12:00 · afsfsf». Il trattino vuol
+ * dire «non lo so», e negava a caratteri grandi quello che la riga sotto
+ * affermava a caratteri piccoli.
+ *
+ * ADESSO e' il primo settembre alle 14: oggi e' l'1, domani il 2. */
+
+const conta = (giorni, ore) => new Date(2026, 8, 1 + giorni, ore, 0, 0).getTime();
+const unImpegno = (giorni, ore, summary = "afsfsf") => ({
+  entity: "calendar.famiglia",
+  summary,
+  inizio: conta(giorni, ore),
+  fine: conta(giorni, ore + 1),
+  tuttoIlGiorno: false,
+});
+const unaScadenza = (giorni) => ({
+  tipo: "scadenza",
+  summary: "Pagare il bollo",
+  inizio: conta(giorni, 0),
+  fine: conta(giorni, 0),
+  tuttoIlGiorno: true,
+});
+
+test("un appuntamento per domani non e' un trattino", () => {
+  /* Il caso segnalato, esatto: un solo impegno, domani a mezzogiorno, e
+   * nessuna cosa da fare rimasta. */
+  assert.deepEqual(contoDellaTessera([unImpegno(1, 12)], [], ADESSO), {
+    quante: 1,
+    quando: "domani",
+  });
+});
+
+test("oggi vince su domani finche' oggi ha qualcosa", () => {
+  assert.deepEqual(contoDellaTessera([unImpegno(0, 18), unImpegno(1, 12)], [], ADESSO), {
+    quante: 1,
+    quando: "oggi",
+  });
+});
+
+test("un impegno gia' cominciato e ancora in corso e' di oggi", () => {
+  /* Comincia alle 13 e finisce alle 15: alle 14 sta ancora succedendo, e
+   * nascondere la riunione dentro cui si guarda la plancia sarebbe il difetto
+   * contro cui e' scritto tutto questo file. */
+  const inCorsoAdesso = {
+    entity: "calendar.famiglia",
+    summary: "Riunione",
+    inizio: conta(0, 13),
+    fine: conta(0, 15),
+    tuttoIlGiorno: false,
+  };
+  assert.deepEqual(contoDellaTessera([inCorsoAdesso], [], ADESSO), {
+    quante: 1,
+    quando: "oggi",
+  });
+});
+
+test("domani conta le sue, non tutte quelle che restano", () => {
+  const eventi = [unImpegno(1, 9), unImpegno(1, 16), unImpegno(4, 9)];
+  assert.deepEqual(contoDellaTessera(eventi, [], ADESSO), { quante: 2, quando: "domani" });
+});
+
+test("piu' in la' di domani il conto e' di tutto quello che resta", () => {
+  /* Scrivere il giorno vorrebbe dire «venerdi' 4 settembre» al posto di un
+   * numero: quando cade il primo lo dice gia' la riga sotto. */
+  assert.deepEqual(contoDellaTessera([unImpegno(3, 9), unImpegno(5, 9)], [], ADESSO), {
+    quante: 2,
+    quando: "avanti",
+  });
+});
+
+test("le scadenze contano come gli impegni, oggi e domani", () => {
+  assert.deepEqual(contoDellaTessera([], [unaScadenza(1)], ADESSO), {
+    quante: 1,
+    quando: "domani",
+  });
+  /* Una scaduta tre giorni fa e' roba di oggi: e' oggi che va fatta. */
+  assert.deepEqual(contoDellaTessera([], [unaScadenza(-3)], ADESSO), {
+    quante: 1,
+    quando: "oggi",
+  });
+});
+
+test("il trattino resta per quando non c'e' davvero niente", () => {
+  assert.deepEqual(contoDellaTessera([], [], ADESSO), { quante: 0, quando: null });
+  /* E per quello che e' gia' passato: un impegno di ieri non e' in arrivo. */
+  assert.deepEqual(contoDellaTessera([unImpegno(-2, 9)], [], ADESSO), {
+    quante: 0,
+    quando: null,
+  });
+});
+
+test("le parole del numero le mette la sezione, non il nucleo", async () => {
+  /* Il raccoglitore delle traduzioni guarda `src/sections`: una `t()` scritta
+   * nel nucleo non finirebbe nei cataloghi, e «domani» resterebbe italiano per
+   * tutti. Il nucleo torna la forma, la sezione la veste — e le tre parole
+   * stanno li', dove si possono raccogliere. */
+  const sezione = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  for (const parola of ["oggi", "domani", "in arrivo"])
+    assert.match(sezione, new RegExp(`\\$\\{quante\\} ${parola}`));
+  assert.match(sezione, /contoDellaTessera\(eventi,/);
+});
+
+/* ── il nome, non l'indirizzo ──────────────────────────────────────────── */
+
+test("una lista senza nome prende quello che Home Assistant le ha gia' dato", async () => {
+  /* «TODO.LISTA_DELLA_SPESA» in cima al blocco delle cose da fare: chi non
+   * scrive un nome nella scheda vedeva l'entity_id crudo, per giunta gridato
+   * in maiuscolo dal vestito del titolo. Il nome ce l'ha gia' Home Assistant,
+   * ed e' quello che l'utente ha scritto di la'. */
+  const stati = {
+    "todo.lista_della_spesa": {
+      entity_id: "todo.lista_della_spesa",
+      state: "0",
+      attributes: { friendly_name: "Lista della spesa" },
+    },
+  };
+  assert.equal(
+    nomeDellEntita("todo.lista_della_spesa", "", stati),
+    "Lista della spesa",
+  );
+  // Il nome scelto a mano vince comunque: e' una preferenza esplicita.
+  assert.equal(nomeDellEntita("todo.lista_della_spesa", "Spesa", stati), "Spesa");
+  /* Senza nemmeno il nome di Home Assistant resta l'indirizzo, ma ripulito:
+   * stanghette in spazi e la prima lettera alzata. */
+  assert.equal(nomeDellEntita("calendar.riunioni_di_lavoro", "", {}), "Riunioni di lavoro");
+  assert.equal(nomeDellEntita("", "", {}), "");
+});
+
+test("la tessera e la pagina chiamano le liste e i calendari per nome", async () => {
+  const tessere = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(tessere, /clean\(list\.name\) \|\| list\.entity/);
+  assert.doesNotMatch(tessere, /calendario\.name \|\| calendario\.entity/);
+  assert.match(tessere, /nomeDellEntita\(calendario\.entity, calendario\.name\)/);
+  const pagina = await readFile(
+    new URL("../src/sections/calendario-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(pagina, /clean\(voce\.name\) \|\| voce\.entity/);
+  assert.match(pagina, /nomeDellEntita\(voce\.entity, voce\.name\)/);
 });

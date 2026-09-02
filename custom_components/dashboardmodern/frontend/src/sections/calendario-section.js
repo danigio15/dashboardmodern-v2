@@ -48,7 +48,17 @@ import {
   registraOspiteCalendario,
   tastoNuovoMarkup,
 } from "./calendario-modifica-section.js";
-import { clean, doc, esc, installStyle, locale, readJson, root, t } from "./shared.js";
+import {
+  clean,
+  doc,
+  esc,
+  installStyle,
+  locale,
+  nomeDellEntita,
+  readJson,
+  root,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CALENDARIO_SECTION__";
 const state = (root[KEY] ||= { installed: false, frame: 0, firma: "", giorno: "" });
@@ -388,7 +398,9 @@ function dipingi() {
    * davvero: una voce che spiega un colore assente e' una riga in piu' da
    * leggere per niente. */
   const vociLegenda = [
-    ...(piuCalendari ? calendari.map((voce) => [voce.tinta, clean(voce.name) || voce.entity]) : []),
+    ...(piuCalendari
+      ? calendari.map((voce) => [voce.tinta, nomeDellEntita(voce.entity, voce.name)])
+      : []),
     ...(scadenze.length ? [[TINTA_SCADENZA, t("Da fare", "To-do")]] : []),
   ];
   const legenda = vociLegenda.length

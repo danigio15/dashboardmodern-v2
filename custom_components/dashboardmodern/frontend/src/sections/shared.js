@@ -353,7 +353,9 @@ export function gettoneDiAccesso() {
     const collegamento = readJson("cd_connection", {});
     valori.push(collegamento.token, collegamento.access_token);
   } catch (_error) {}
-  return valori.map(clean).find((valore) => valore && valore !== "__dashboardmodern_hosted__") || "";
+  return (
+    valori.map(clean).find((valore) => valore && valore !== "__dashboardmodern_hosted__") || ""
+  );
 }
 
 /* Una domanda a Home Assistant, sulla presa che il guscio ha gia' aperto.
@@ -447,6 +449,29 @@ export function setLexicalGlobal(name, value) {
  * The returned map is the runtime's own object. Callers read it; writing to it
  * would write into the mirror of Home Assistant itself.
  */
+/**
+ * Come si chiama un'entita' quando chi configura non le ha dato un nome.
+ *
+ * «TODO.LISTA_DELLA_SPESA» al posto di «Lista della spesa»: il ripiego era
+ * l'entity_id crudo, che e' un indirizzo e non un nome — e nella tessera
+ * finiva anche gridato in maiuscolo. Home Assistant il nome ce l'ha gia',
+ * `friendly_name`, ed e' quello che l'utente ha scritto di la'. Solo se manca
+ * pure quello si torna all'indirizzo, ripulito: le stanghette diventano spazi
+ * e la prima lettera si alza.
+ */
+export function nomeDellEntita(entity, scelto, states) {
+  const suo = clean(scelto);
+  if (suo) return suo;
+  const id = clean(entity);
+  if (!id) return "";
+  const mappa = states && typeof states === "object" ? states : allStates();
+  const amichevole = clean(mappa?.[id]?.attributes?.friendly_name);
+  if (amichevole) return amichevole;
+  const coda = id.split(".").slice(1).join(".").replaceAll("_", " ").trim();
+  if (!coda) return id;
+  return coda.charAt(0).toUpperCase() + coda.slice(1);
+}
+
 export function allStates() {
   const raw = lexicalGlobal("_RAW_STATES");
   const registry = raw && typeof raw === "object" ? raw : lexicalGlobal("STATES");
