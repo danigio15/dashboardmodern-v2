@@ -129,6 +129,16 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-chiuse",
+    title: "Segnalazioni · il cruscotto, quelle chiuse",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("chiuse");
+    },
+  },
+  {
     id: "segnalazioni-filo",
     title: "Segnalazioni · il filo di una segnalazione",
     both: true,
@@ -149,8 +159,18 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-codice",
+    title: "Segnalazioni · il codice, dopo l'invio",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("codice");
+    },
+  },
+  {
     id: "segnalazioni-collega",
-    title: "Segnalazioni · collegare GitHub",
+    title: "Segnalazioni · il modulo, senza chiedere niente",
     both: true,
     settle: 900,
     modal: true,
@@ -1185,7 +1205,8 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "in-carico",
           created_at: ORA - 2 * GIORNO,
           remote_id: "194",
-          reply: "Riprodotta: il comando stop parte, ma la seconda tapparella lo ignora. Sto guardando come il rele' riporta la posizione.",
+          reply:
+            "Riprodotta: il comando stop parte, ma la seconda tapparella lo ignora. Sto guardando come il rele' riporta la posizione.",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
           delivery_error: "",
           diagnostics: {},
@@ -1226,6 +1247,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "inviato",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/197",
           author: "marco-b",
+          origin: "plancia",
           comments: 2,
           attachments: 1,
         },
@@ -1237,6 +1259,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "inviato",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/196",
           author: "chiara-r",
+          origin: "plancia",
           comments: 1,
           attachments: 0,
         },
@@ -1248,6 +1271,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "in-carico",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/194",
           author: "anna-g",
+          origin: "plancia",
           comments: 2,
           attachments: 2,
         },
@@ -1259,6 +1283,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "inviato",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/191",
           author: "luca-t",
+          origin: "plancia",
           comments: 1,
           attachments: 0,
         },
@@ -1270,12 +1295,49 @@ async function bootPage(context, cameraStill, vehicleStill) {
           state: "risolto",
           issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/186",
           author: "anna-g",
+          origin: "plancia",
           comments: 3,
           attachments: 0,
         },
+        {
+          number: 232,
+          type: "bug",
+          title: "Cam RING",
+          body: "La telecamera si vede in Home Assistant ma nella pagina Sicurezza resta nera.",
+          state: "in-carico",
+          origin: "github",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/232",
+          author: "andyz68",
+          comments: 3,
+          attachments: 0,
+        },
+        {
+          number: 266,
+          type: "feature",
+          title: "aggiunta radar meteo assieme al meteo",
+          body: "Sarebbe comodo vedere il radar accanto alle previsioni, nella stessa pagina.",
+          state: "inviato",
+          origin: "github",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/266",
+          author: "pier08-byte",
+          comments: 0,
+          attachments: 0,
+        },
+        {
+          number: 249,
+          type: "",
+          title: "[Feature]:",
+          body: "Il modulo e' partito col titolo vuoto: nessuna etichetta, nessun prefisso da leggere.",
+          state: "in-carico",
+          origin: "github",
+          issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/249",
+          author: "nictes75",
+          comments: 2,
+          attachments: 0,
+        },
       ];
-      const collegato = dove !== "collega";
-      const daManutentore = dove === "console" || dove === "filo";
+      const collegato = dove !== "collega" && dove !== "codice";
+      const daManutentore = dove === "console" || dove === "filo" || dove === "chiuse";
       const account = collegato
         ? { connected: true, login: "anna-g", maintainer: daManutentore }
         : { connected: false, login: "", maintainer: false };
@@ -1350,20 +1412,32 @@ async function bootPage(context, cameraStill, vehicleStill) {
               }
             : null;
         stato.tab =
-          dove === "collega"
-            ? "nuova"
-            : dove === "allegati"
-              ? "mie"
-              : dove === "filo"
-                ? "console"
-                : dove;
+          dove === "codice"
+            ? "mie"
+            : dove === "collega"
+              ? "nuova"
+              : dove === "allegati"
+                ? "mie"
+                : dove === "filo" || dove === "chiuse"
+                  ? "console"
+                  : dove;
         stato.fili = {};
         stato.filiInCorso = {};
-        stato.queue = dove === "console" || dove === "filo" ? coda : null;
-        stato.auth = null;
-        stato.avviso = "";
+        stato.queue = dove === "console" || dove === "filo" || dove === "chiuse" ? coda : null;
+        stato.auth =
+          dove === "codice"
+            ? {
+                user_code: "7990-137F",
+                device_code: "finto",
+                verification_uri: "https://github.com/login/device",
+                interval: 5,
+                expires_in: 900,
+              }
+            : null;
+        stato.avviso =
+          dove === "codice" ? "Salvata. Manca solo la firma: autorizza GitHub e parte." : "";
         stato.tipo = "bug";
-        stato.filtro = "aperte";
+        stato.filtro = dove === "chiuse" ? "chiuse" : "aperte";
         stato.bozza =
           dove === "nuova"
             ? {

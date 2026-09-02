@@ -13,6 +13,16 @@
  * Le caselle del solare restano dove sono, nel guscio: sono quelle di sempre e
  * cambiarle di posto vorrebbe dire spostare la configurazione di chi ce l'ha
  * gia'. Qui si aggiunge quello che prima non c'era.
+ *
+ * E si aggiunge diviso. «La sezione solare termico non e' suddivisa con le
+ * altre cose aggiunte, caldaia e scaldabagno: nel config voglio le
+ * sottosezioni per configurare quelle, non creare confusione.» Era una colonna
+ * sola: tredici caselle di pannelli solari, poi lo scaldabagno, poi la
+ * caldaia, tutto di seguito, e chi cercava la sua macchina scorreva quelle
+ * degli altri. Adesso in cima ci sono le stesse linguette che ha la pagina —
+ * una per macchina scelta — e sotto c'e' soltanto quella accesa. Le caselle
+ * del solare, che sono del guscio, vengono portate dentro la loro: restano le
+ * sue, cambia la stanza.
  */
 import {
   CASELLE_CALDAIA,
@@ -21,6 +31,7 @@ import {
   ETICHETTE_TERMICHE,
   TIPI_TERMICI,
   normalizzaCaldaia,
+  servonoLinguette,
 } from "../core/impianti-termici.js";
 import {
   SCALDABAGNI_KEY,
@@ -44,7 +55,7 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_IMPIANTI_TERMICI_EDITOR__";
-const state = (root[KEY] ||= { installed: false, aperto: -1, firma: "" });
+const state = (root[KEY] ||= { installed: false, aperto: -1, firma: "", linguetta: "" });
 
 /* La scheda del solare del guscio: e' li' che questa roba deve comparire,
  * perche' e' li' che chi configura va a cercare l'acqua calda. */
@@ -293,38 +304,123 @@ function scaldabagnoMarkup() {
 
 /* ── il disegno della scheda ──────────────────────────────────────────── */
 
+/* I disegnini delle linguette: gli stessi della pagina, perche' sono le stesse
+ * tre macchine e riconoscerle due volte in due modi e' una cosa in piu' da
+ * imparare. */
+const ICONE_LINGUETTA = Object.freeze({
+  solare: "🌞",
+  scaldabagno: "🚿",
+  caldaia: "🔥",
+});
+
+/* Quale macchina si sta configurando adesso.
+ *
+ * Quella scelta l'ultima volta, se e' ancora fra quelle che ci sono: chi toglie
+ * la spunta alla macchina che stava guardando non deve restare su una scheda
+ * vuota. Altrimenti la prima. */
+function linguettaAttiva(scelti) {
+  if (!scelti.length) return "";
+  const scelta = clean(state.linguetta);
+  return scelti.includes(scelta) ? scelta : scelti[0];
+}
+
+function linguetteMarkup(scelti, attiva) {
+  if (!servonoLinguette(scelti)) return "";
+  return `<div class="dm-it-ed-strip" role="tablist">${scelti
+    .map(
+      (tipo) => `<button type="button" class="dm-it-ed-tab" data-dm-it-ed-tab="${esc(tipo)}"
+        role="tab" aria-selected="${tipo === attiva}"${tipo === attiva ? ' data-on="true"' : ""}>
+        <span aria-hidden="true">${ICONE_LINGUETTA[tipo] || ""}</span>
+        <span>${esc(t(...ETICHETTE_TERMICHE[tipo]))}</span>
+      </button>`,
+    )
+    .join("")}</div>`;
+}
+
+/* Il pannello della macchina accesa. Il solare non ha markup suo: le sue
+ * caselle sono quelle del guscio, e qui si prepara soltanto il posto dove
+ * andranno a stare. */
+function pannelloMarkup(attiva) {
+  if (attiva === "solare") return `<div class="dm-it-ed-pannello" data-dm-it-ed-posto="solare"></div>`;
+  if (attiva === "scaldabagno")
+    return `<div class="dm-it-ed-pannello">${scaldabagnoMarkup()}</div>`;
+  if (attiva === "caldaia") return `<div class="dm-it-ed-pannello">${caldaiaMarkup()}</div>`;
+  return "";
+}
+
 function corpoMarkup() {
-  const scelti = new Set(impiantiDiCasa());
-  return `<div class="dm-it-ed">${sceltaMarkup()}${
-    scelti.has("scaldabagno") ? scaldabagnoMarkup() : ""
-  }${scelti.has("caldaia") ? caldaiaMarkup() : ""}</div>`;
+  const scelti = impiantiDiCasa();
+  const attiva = linguettaAttiva(scelti);
+  return `<div class="dm-it-ed">${sceltaMarkup()}${linguetteMarkup(scelti, attiva)}${pannelloMarkup(attiva)}</div>`;
+}
+
+/* Le caselle del solare, che il guscio disegna da se'.
+ *
+ * Sono l'unico accordion rimasto in piedi su questa scheda: `edFilterSez`
+ * nasconde con uno stile in linea quelli delle altre sezioni, e chi tiene in
+ * ordine la configurazione li porta via. Si riconosce percio' da quello che
+ * NON ha addosso, e non dal titolo, che cambia con la lingua e col nome che la
+ * sezione si e' presa. */
+function caselleDelSolare(body) {
+  return (
+    [...body.querySelectorAll(":scope details.ed-acc")].find(
+      (nodo) => nodo.style.display !== "none",
+    ) || null
+  );
 }
 
 export function ensureImpiantiTermiciEditor() {
   const body = doc?.getElementById("ed-body");
   if (!body || schedaAttiva() !== SCHEDA) return false;
-  const firma = JSON.stringify([
-    impiantiDiCasa(),
-    state.aperto,
-    scaldabagni(),
-    caldaia(),
-  ]);
+  const scelti = impiantiDiCasa();
+  const attiva = linguettaAttiva(scelti);
+  const firma = JSON.stringify([scelti, attiva, state.aperto, scaldabagni(), caldaia()]);
   let blocco = body.querySelector(":scope > .dm-it-ed");
-  if (blocco && firma === state.firma) return true;
-  state.firma = firma;
-  const markup = corpoMarkup();
-  if (!blocco) {
-    const guscio = doc.createElement("div");
-    guscio.innerHTML = markup;
-    blocco = guscio.firstElementChild;
-    /* In fondo alla scheda: sopra restano le caselle del solare, che sono
-     * quelle che chi ha gia' configurato si aspetta di trovare per prime. */
-    body.append(blocco);
-  } else {
-    const guscio = doc.createElement("div");
-    guscio.innerHTML = markup;
-    blocco.replaceWith(guscio.firstElementChild);
+  const caselle = caselleDelSolare(body);
+  if (blocco && firma === state.firma && (attiva !== "solare" || caselle?.closest(".dm-it-ed"))) {
+    sistemaLeCaselleDelSolare(body, attiva);
+    return true;
   }
+  state.firma = firma;
+  /* Le caselle del solare si mettono in salvo PRIMA di rifare il blocco.
+   *
+   * Sono un nodo del guscio che noi ospitiamo: quando la linguetta accesa era
+   * il solare stavano dentro il blocco, e rifare il blocco le buttava via
+   * insieme a lui — si passava a «Scaldabagno», si tornava indietro, e le
+   * tredici caselle non c'erano piu'. Tornano figlie del corpo della scheda
+   * per il tempo del ricambio, e da li' le riprende chi le sistema. */
+  if (caselle && caselle.parentElement !== body) body.append(caselle);
+  const guscio = doc.createElement("div");
+  guscio.innerHTML = corpoMarkup();
+  const nuovo = guscio.firstElementChild;
+  if (blocco) blocco.replaceWith(nuovo);
+  /* In fondo alla scheda: sopra resta la fascia della visibilita', che e' del
+   * guscio e sta in cima a ogni scheda. */
+  else body.append(nuovo);
+  sistemaLeCaselleDelSolare(body, attiva);
+  return true;
+}
+
+/* Le caselle del solare vanno dove sta la linguetta accesa.
+ *
+ * Sono un nodo del guscio, non un pezzo di markup nostro: non si copiano — si
+ * spostano, o le si perderebbe la memoria di cosa c'e' scritto dentro mentre
+ * lo si sta scrivendo. Quando la linguetta accesa e' un'altra, o il solare non
+ * e' nemmeno fra le macchine scelte, restano nel documento ma non si vedono:
+ * con `hidden` e non con uno stile in linea, perche' chi tiene in ordine la
+ * configurazione porta via gli accordion che trova con `display:none` addosso,
+ * e questo dovra' tornare. */
+function sistemaLeCaselleDelSolare(body, attiva) {
+  const caselle = caselleDelSolare(body) || body.querySelector(":scope details.ed-acc");
+  if (!caselle) return false;
+  const posto = body.querySelector('[data-dm-it-ed-posto="solare"]');
+  if (posto) {
+    if (caselle.parentElement !== posto) posto.append(caselle);
+    caselle.hidden = false;
+    caselle.open = true;
+    return true;
+  }
+  caselle.hidden = true;
   return true;
 }
 
@@ -336,6 +432,15 @@ function ridisegna() {
 function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || !body.contains(event.target)) return;
+
+  /* ── le linguette delle macchine ── */
+  const linguetta = event.target.closest("[data-dm-it-ed-tab]");
+  if (linguetta) {
+    event.preventDefault();
+    state.linguetta = clean(linguetta.dataset.dmItEdTab);
+    ridisegna();
+    return;
+  }
 
   /* ── la scelta ── */
   const leva = event.target.closest("[data-dm-it-scelta]");
@@ -486,6 +591,43 @@ function installStyles() {
         box-shadow:0 2px 6px rgba(15,23,42,.25);transition:transform .25s cubic-bezier(.16,1,.3,1)}
       #ed-body .dm-it-ed-lev[data-on="true"]{background:linear-gradient(135deg,#fb923c,#ea580c)}
       #ed-body .dm-it-ed-lev[data-on="true"] i{transform:translateX(20px)}
+      /* ── le linguette delle macchine ──────────────────────────────────
+         Stessa forma di quelle della pagina, in piccolo: e' lo stesso gesto
+         sulla stessa scelta, e due forme per la stessa cosa sono una forma di
+         troppo da imparare. */
+      #ed-body .dm-it-ed-strip{
+        display:flex;gap:6px;padding:5px;margin:16px 0 4px;border-radius:16px;
+        background:var(--bg-sculpted,#f0f4f8);border:1px solid var(--card-border,#e2e8f0)}
+      #ed-body .dm-it-ed-tab{
+        flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+        padding:10px 10px;border:0;border-radius:12px;background:transparent;cursor:pointer;
+        font:inherit;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+        color:var(--text-dim,#64748b);
+        transition:background .25s ease,color .25s ease,box-shadow .25s ease}
+      #ed-body .dm-it-ed-tab:hover{background:rgba(255,255,255,.7)}
+      #ed-body .dm-it-ed-tab[data-on="true"]{
+        background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff;
+        box-shadow:0 8px 20px -8px rgba(234,88,12,.75)}
+      /* Il pannello della macchina accesa: il primo titolo non ha il filo
+         sopra, perche' il filo separava due macchine incolonnate e adesso ce
+         n'e' una sola alla volta. */
+      /* Il primo titolo del blocco non ha il filo sopra: quel filo separava
+         due macchine incolonnate, e adesso in colonna non c'e' piu' niente da
+         separare — sopra c'e' solo la fascia della sezione. */
+      #ed-body .dm-it-ed > .ed-sec-title:first-child,
+      #ed-body .dm-it-ed-pannello > .ed-sec-title:first-child{
+        margin-top:14px;padding-top:0;border-top:0}
+      /* Le caselle del solare in riposo: sparite ma ancora nel documento.
+         Con uno stile in linea le porterebbe via chi tiene in ordine la
+         configurazione — toglie gli accordion che trova con display:none
+         addosso — e quando la linguetta torna sul solare non ci sarebbe piu'
+         niente da rimettere. L'attributo non lascia stile in linea; la regola
+         serve perche' il vestito del guscio darebbe comunque un display a
+         quel nodo, e vincerebbe lui. */
+      #ed-body details.ed-acc[hidden]{display:none!important}
+      @media(max-width:560px){
+        #ed-body .dm-it-ed-tab{font-size:10.5px;padding:9px 6px;letter-spacing:.03em}
+      }
     `,
   );
 }

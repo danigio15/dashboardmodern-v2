@@ -266,37 +266,50 @@ async function diagnostica() {
  * Il gettone non passa mai da qui. Da questa parte si sa chi ha autorizzato e
  * se e' lui a tenere la repository; il resto lo tiene il backend. */
 
-function statoCollegamento() {
-  if (!state.delivery) {
-    return `<div class="dm-tkt-avviso">${esc(
-      t(
-        "L'invio non e' configurato su questa plancia: la segnalazione resta qui e partira' da sola quando lo sara'.",
-        "Sending is not configured on this dashboard: the report stays here and will be sent on its own once it is.",
-      ),
-    )}</div>`;
-  }
-  if (state.auth) {
-    return `
-      <div class="dm-tkt-avviso dm-tkt-device">
-        <div>${esc(
-          t(
-            "Apri github.com/login/device e digita questo codice:",
-            "Open github.com/login/device and type this code:",
-          ),
-        )}</div>
-        <div class="dm-tkt-codice">${esc(state.auth.user_code)}</div>
-        <div class="dm-tkt-azioni">
-          <a class="dm-tkt-btn" href="${esc(state.auth.verification_uri)}"
-             target="_blank" rel="noreferrer noopener">${esc(t("Apri GitHub", "Open GitHub"))}</a>
-          <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="annulla">${esc(
-            t("Annulla", "Cancel"),
-          )}</button>
-        </div>
-      </div>`;
-  }
+/* Il codice da digitare, quando il giro e' in corso.
+ *
+ * Sta in cima al corpo, non dentro il modulo: si chiede l'autorizzazione nel
+ * momento in cui serve — dopo che la segnalazione e' stata scritta e salvata —
+ * e non prima di aver mostrato niente. Un blocco di accesso davanti a un
+ * modulo vuoto e' una porta con la serratura messa davanti alla vetrina: chi
+ * la trova pensa «vabbe', vado su GitHub», ed e' esattamente il contrario di
+ * quello che questa finestra serve a evitare.
+ */
+function codiceMarkup() {
+  if (!state.auth) return "";
+  const codice = clean(state.auth.user_code);
+  /* L'indirizzo si porta dietro il codice. GitHub non promette di
+   * precompilarlo, quindi il codice resta bello grande qui sopra: se il
+   * parametro viene ignorato si digita, come prima, e non si e' perso niente. */
+  const dove = `${clean(state.auth.verification_uri) || "https://github.com/login/device"}?user_code=${encodeURIComponent(codice)}`;
+  return `
+    <div class="dm-tkt-avviso dm-tkt-device">
+      <div>${esc(
+        t(
+          "Un passaggio solo, e non te lo chiedera' mai piu': apri github.com/login/device e digita questo codice.",
+          "One step, and you will never be asked again: open github.com/login/device and type this code.",
+        ),
+      )}</div>
+      <div class="dm-tkt-codice">${esc(codice)}</div>
+      <div class="dm-tkt-azioni">
+        <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="annulla">${esc(
+          t("Annulla", "Cancel"),
+        )}</button>
+        <a class="dm-tkt-btn" href="${esc(dove)}"
+           target="_blank" rel="noreferrer noopener">${esc(t("Apri GitHub", "Open GitHub"))}</a>
+      </div>
+    </div>`;
+}
+
+/* Il conto collegato, dove non da' fastidio: in fondo all'elenco delle
+ * proprie segnalazioni, non davanti al modulo. Chi vuole collegarsi prima di
+ * scrivere puo' farlo da qui; a tutti gli altri non viene chiesto niente
+ * finche' non premono invia. */
+function contoMarkup() {
+  if (!state.delivery) return "";
   if (state.account.connected) {
     return `
-      <div class="dm-tkt-avviso dm-tkt-collegato">
+      <div class="dm-tkt-conto">
         <span>${esc(t("Collegato come", "Connected as"))} <b>${esc(state.account.login)}</b></span>
         <button type="button" class="dm-tkt-tolgi" data-dm-tkt="scollega">${esc(
           t("Scollega", "Disconnect"),
@@ -304,30 +317,41 @@ function statoCollegamento() {
       </div>`;
   }
   return `
-    <div class="dm-tkt-avviso">
-      <div>${esc(
+    <div class="dm-tkt-conto">
+      <span>${esc(
         t(
-          "Per inviare serve il tuo account GitHub: lo stesso che ti ha gia' chiesto HACS, con lo stesso codice da digitare.",
-          "Sending needs your GitHub account: the same one HACS already asked you for, with the same code to type.",
+          "Le segnalazioni partono a tuo nome: la prima volta serve un passaggio su GitHub.",
+          "Reports go out under your name: the first time takes one step on GitHub.",
         ),
-      )}</div>
-      <div class="dm-tkt-azioni">
-        <button type="button" class="dm-tkt-btn" data-dm-tkt="collega">${esc(
-          t("Collega GitHub", "Connect GitHub"),
-        )}</button>
-      </div>
+      )}</span>
+      <button type="button" class="dm-tkt-tolgi" data-dm-tkt="collega">${esc(
+        t("Collega GitHub", "Connect GitHub"),
+      )}</button>
     </div>`;
 }
 
-async function collega() {
-  state.avviso = "";
+/* `salvata` dice che si arriva qui subito dopo un invio, con la segnalazione
+ * gia' al sicuro in casa. Cambia due cose, e tutte e due contano.
+ *
+ * L'avviso «Salvata...» non si cancella: e' la ragione per cui il codice sta
+ * comparendo, e senza quella riga il codice arriverebbe senza il suo perche'.
+ *
+ * E se l'autorizzazione non parte — GitHub irraggiungibile, per dire — dire
+ * soltanto «non riuscita» farebbe credere di aver perso quello che si era
+ * appena scritto. La risposta naturale a quel messaggio e' riscrivere tutto da
+ * capo, e ritrovarsi due segnalazioni uguali. */
+async function collega({ salvata = false } = {}) {
+  if (!salvata) state.avviso = "";
   try {
     const avvio = await chiedi(WS_AUTH_START);
     state.auth = avvio;
     disegna();
     attendiAutorizzazione(avvio);
   } catch (errore) {
-    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+    const guasto = clean(errore?.message) || t("Non riuscita.", "It did not work.");
+    state.avviso = salvata
+      ? `!${t("Salvata, ma l'autorizzazione non e' partita:", "Saved, but the authorization did not start:")} ${guasto} ${t("Riprova da «Le mie».", "Try again from «Mine».")}`
+      : `!${guasto}`;
     disegna();
   }
 }
@@ -533,6 +557,10 @@ a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
   padding:34px 14px; text-align:center; font-size:13px;
   color:var(--text-dim,#64748b); }
 .dm-tkt-vuoto-ico { font-size:38px; opacity:.55; }
+.dm-tkt-conto { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  justify-content:space-between; padding:10px 13px; border-radius:13px;
+  background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
+  font-size:12px; line-height:1.45; }
 
 /* Il cruscotto: i tre numeri e i filtri. */
 .dm-tkt-kpi { margin-bottom:0; }
@@ -715,14 +743,22 @@ function moduloMarkup() {
         <span class="dm-tkt-tipo-ds">${esc(tipo.che())}</span>
       </button>`,
   ).join("");
+  const nonConfigurato = state.delivery
+    ? ""
+    : `<div class="dm-tkt-nota"><span class="dm-tkt-nota-ico" aria-hidden="true">💤</span><span>${esc(
+        t(
+          "L'invio non e' configurato su questa plancia: la segnalazione resta qui e partira' da sola quando lo sara'.",
+          "Sending is not configured on this dashboard: the report stays here and will be sent on its own once it is.",
+        ),
+      )}</span></div>`;
   return `
-    ${statoCollegamento()}
+    ${nonConfigurato}
     <div class="dm-tkt-passo">${esc(t("1 · Di che si tratta", "1 · What is it about"))}</div>
     <div class="dm-tkt-tipi">${tipi}</div>
     <div class="dm-tkt-passo">${esc(t("2 · Raccontalo", "2 · Tell it"))}</div>
     <div class="dm-tkt-campo">
-      <label for="dm-tkt-titolo">${esc(t("Titolo", "Title"))}</label>
-      <input id="dm-tkt-titolo" type="text" maxlength="${MAX_TITOLO}"
+      <label for="dm-tkt-campo-titolo">${esc(t("Titolo", "Title"))}</label>
+      <input id="dm-tkt-campo-titolo" type="text" maxlength="${MAX_TITOLO}"
         autocomplete="off" placeholder="${esc(scelto.titolo())}"
         value="${esc(state.bozza.title)}">
     </div>
@@ -773,13 +809,7 @@ function moduloMarkup() {
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn" data-dm-tkt="invia" ${
         state.busy ? "disabled" : ""
-      }>${esc(
-        state.busy
-          ? t("Invio…", "Sending…")
-          : state.account.connected || !state.delivery
-            ? t("Invia", "Send")
-            : t("Salva e collega GitHub", "Save and connect GitHub"),
-      )}</button>
+      }>${esc(state.busy ? t("Invio…", "Sending…") : t("Invia", "Send"))}</button>
     </div>`;
 }
 
@@ -876,11 +906,13 @@ function elencoMarkup() {
         <button type="button" class="dm-tkt-btn" data-dm-tab="nuova">${esc(
           t("Aprine una", "Open one"),
         )}</button>
-      </div>`;
+      </div>
+      ${contoMarkup()}`;
   }
   return `
     ${appenaApertaMarkup()}
     <div class="dm-tkt-elenco">${state.tickets.map(voceMarkup).join("")}</div>
+    ${contoMarkup()}
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="aggiorna" ${
         state.busy ? "disabled" : ""
@@ -900,6 +932,7 @@ function elencoMarkup() {
 
 export const FILTRI_ID = Object.freeze([
   "aperte",
+  "chiuse",
   "tutte",
   "bug",
   "feature",
@@ -908,11 +941,26 @@ export const FILTRI_ID = Object.freeze([
 
 const FILTRI = [
   { id: "aperte", nome: () => t("Da lavorare", "To work on") },
+  { id: "chiuse", nome: () => t("Chiuse", "Closed") },
   { id: "tutte", nome: () => t("Tutte", "All") },
   { id: "bug", nome: () => t("Difetti", "Bugs") },
   { id: "feature", nome: () => t("Idee", "Ideas") },
   { id: "assistenza", nome: () => t("Aiuto", "Help") },
 ];
+
+/* Una segnalazione aperta a mano su GitHub non ha nessun tipo scritto da
+ * nessuna parte. Mostrarla come un difetto sarebbe comodo e falso: prende una
+ * pastiglia grigia che non dice niente, che e' esattamente quello che si sa. */
+const TIPO_IGNOTO = {
+  id: "",
+  icona: "•",
+  rgb: "113,113,122",
+  nome: () => t("Senza tipo", "Untyped"),
+};
+
+function tipoInCoda(id) {
+  return TIPI.find((voce) => voce.id === id) || TIPO_IGNOTO;
+}
 
 export function contaColonne(coda) {
   return COLONNE.map((colonna) => ({
@@ -945,13 +993,15 @@ function filtriMarkup() {
   ).join("")}</div>`;
 }
 
+const CHIUSA = ["risolto", "chiuso"];
+
 export function filtra(coda, filtro = state.filtro) {
   if (filtro === "tutte") return coda;
   if (filtro === "aperte") {
-    return coda.filter((ticket) => {
-      const stato = clean(ticket.state);
-      return stato !== "risolto" && stato !== "chiuso";
-    });
+    return coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
+  }
+  if (filtro === "chiuse") {
+    return coda.filter((ticket) => CHIUSA.includes(clean(ticket.state)));
   }
   return coda.filter((ticket) => clean(ticket.type) === filtro);
 }
@@ -979,15 +1029,13 @@ function segniMarkup(ticket) {
   }
   if (commenti) {
     segni.push(
-      `<span class="dm-tkt-segno" title="${esc(
-        t("Commenti", "Comments"),
-      )}">💬 ${commenti}</span>`,
+      `<span class="dm-tkt-segno" title="${esc(t("Commenti", "Comments"))}">💬 ${commenti}</span>`,
     );
   }
   return segni.join("");
 }
 
-function allegatiMarkup(allegati) {
+export function allegatiMarkup(allegati) {
   if (!Array.isArray(allegati) || !allegati.length) return "";
   return `<div class="dm-tkt-allegati">${allegati
     .map((allegato) => {
@@ -1003,7 +1051,7 @@ function allegatiMarkup(allegati) {
              target="_blank" rel="noreferrer noopener">
             <img src="${esc(url)}" alt="${esc(nome || t("Allegato", "Attachment"))}"
                  loading="lazy"
-                 onerror="this.remove();this.parentElement.classList.add('rotto')">
+                 onerror="const p=this.parentElement;this.remove();p&&p.classList.add('rotto')">
             <span>${esc(nome || t("Apri l'immagine", "Open the image"))}</span>
           </a>`;
       }
@@ -1059,10 +1107,49 @@ function filoMarkup(numero) {
   return `<div class="dm-tkt-filo">${corpo}${filaCommenti}</div>`;
 }
 
+/* Dove finisce la risposta. Su una segnalazione nata dalla plancia chi ha
+ * scritto se la ritrova anche dentro la sua dashboard, al primo giro di sync;
+ * su una aperta a mano su GitHub la trovera' solo su GitHub, dove l'ha
+ * scritta. Cambia come raggiungi la persona, non cosa puoi fare qui. */
+function provenienzaMarkup(ticket) {
+  if (clean(ticket.origin) === "plancia") {
+    return `<span class="dm-tkt-segno" title="${esc(
+      t(
+        "Arrivata da una dashboard: la risposta le torna dentro",
+        "Came from a dashboard: the reply goes back into it",
+      ),
+    )}">🏠 ${esc(t("dalla plancia", "from a dashboard"))}</span>`;
+  }
+  return `<span class="dm-tkt-segno" title="${esc(
+    t(
+      "Aperta direttamente su GitHub: la risposta resta li'",
+      "Opened directly on GitHub: the reply stays there",
+    ),
+  )}">🐙 ${esc(t("da GitHub", "from GitHub"))}</span>`;
+}
+
+/* Il segnaposto dice dove va a finire quello che si sta per scrivere, e su una
+ * issue aperta a mano su GitHub la risposta li' resta: promettere che chi ha
+ * segnalato «la trova nella sua plancia» sarebbe falso proprio per le voci che
+ * questa versione ha appena aggiunto, e farebbe credere al manutentore di aver
+ * avvisato qualcuno che invece non e' stato avvisato. */
+function invitoRisposta(ticket) {
+  if (clean(ticket.origin) === "plancia") {
+    return t(
+      "La risposta finisce sotto la segnalazione, e chi l'ha aperta la trova nella sua plancia.",
+      "The reply goes under the report, and whoever opened it finds it in their own dashboard.",
+    );
+  }
+  return t(
+    "La risposta finisce sotto la segnalazione, su GitHub: chi l'ha aperta la legge li'.",
+    "The reply goes under the report, on GitHub: whoever opened it reads it there.",
+  );
+}
+
 export function codaVoceMarkup(ticket) {
   const numero = Number(ticket.number) || 0;
-  const tipo = tipoAttivo(clean(ticket.type));
-  const chiusa = ["risolto", "chiuso"].includes(clean(ticket.state));
+  const tipo = tipoInCoda(clean(ticket.type));
+  const chiusa = CHIUSA.includes(clean(ticket.state));
   const aperto = Boolean(state.fili[numero] || state.filiInCorso[numero]);
   const azioni = chiusa
     ? `<button type="button" class="dm-tkt-btn chiaro"
@@ -1071,9 +1158,7 @@ export function codaVoceMarkup(ticket) {
          )}</button>`
     : `
       <button type="button" class="dm-tkt-btn chiaro"
-        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
-          t("Rispondi", "Reply"),
-        )}</button>
+        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(t("Rispondi", "Reply"))}</button>
       <button type="button" class="dm-tkt-btn"
         data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
           t("Rispondi e risolvi", "Reply and solve"),
@@ -1085,13 +1170,16 @@ export function codaVoceMarkup(ticket) {
   return `
     <div class="dm-tkt-voce dm-tkt-lavoro" style="--tk-rgb:${tipo.rgb};">
       <div class="dm-tkt-voce-testa">
-        <span class="dm-tkt-tipo-pill" aria-hidden="true">${tipo.icona}</span>
+        <span class="dm-tkt-tipo-pill" role="img" aria-label="${esc(
+          tipo.nome(),
+        )}" title="${esc(tipo.nome())}">${tipo.icona}</span>
         <span class="dm-tkt-voce-tit">${esc(clean(ticket.title))}</span>
         ${segniMarkup(ticket)}
         ${statoMarkup(clean(ticket.state) || "inviato")}
       </div>
       <div class="dm-tkt-voce-pie">
         <span>${quandoMarkup(ticket)}</span>
+        ${provenienzaMarkup(ticket)}
         <button type="button" class="dm-tkt-tolgi" data-dm-filo="${numero}"
           aria-expanded="${aperto}">${esc(
             aperto ? t("Nascondi tutto", "Hide everything") : t("Vedi tutto", "See everything"),
@@ -1104,15 +1192,20 @@ export function codaVoceMarkup(ticket) {
       ${aperto ? filoMarkup(numero) : `<p class="dm-tkt-voce-corpo">${esc(clean(ticket.body))}</p>`}
       <div class="dm-tkt-campo">
         <textarea id="dm-tkt-risposta-${numero}" rows="3"
-          placeholder="${esc(
-            t(
-              "La risposta finisce sotto la segnalazione, e chi l'ha aperta la trova nella sua plancia.",
-              "The reply goes under the report, and whoever opened it finds it in their own dashboard.",
-            ),
-          )}"></textarea>
+          placeholder="${esc(invitoRisposta(ticket))}"></textarea>
       </div>
       <div class="dm-tkt-azioni">${azioni}</div>
     </div>`;
+}
+
+function vuotoMarkup() {
+  if (state.filtro === "aperte") {
+    return t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.");
+  }
+  if (state.filtro === "chiuse") {
+    return t("Ancora niente di chiuso.", "Nothing closed yet.");
+  }
+  return t("Niente con questo filtro.", "Nothing under this filter.");
 }
 
 function consoleMarkup() {
@@ -1123,11 +1216,7 @@ function consoleMarkup() {
   const scelte = filtra(coda);
   const elenco = scelte.length
     ? `<div class="dm-tkt-elenco">${scelte.map(codaVoceMarkup).join("")}</div>`
-    : `<div class="dm-tkt-vuoto">${esc(
-        state.filtro === "aperte"
-          ? t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.")
-          : t("Niente con questo filtro.", "Nothing under this filter."),
-      )}</div>`;
+    : `<div class="dm-tkt-vuoto">${esc(vuotoMarkup())}</div>`;
   return `
     ${colonneMarkup(coda)}
     ${filtriMarkup()}
@@ -1147,10 +1236,7 @@ function sottotitolo() {
    * sull'inglese proprio in questa riga. */
   if (state.tab === "console") {
     const quante = Array.isArray(state.queue) ? state.queue.length : 0;
-    const testa = t(
-      "Le segnalazioni arrivate dalle plance",
-      "Reports arrived from the dashboards",
-    );
+    const testa = t("Tutto quello che c'e' sulla repository", "Everything on the repository");
     return `${testa} · ${quante}`;
   }
   if (state.account.connected) {
@@ -1174,7 +1260,7 @@ function disegna() {
   if (state.tab === "mie") pannello = elencoMarkup();
   else if (state.tab === "console") pannello = consoleMarkup();
   else pannello = moduloMarkup();
-  corpo.innerHTML = schede() + avvisoMarkup() + pannello;
+  corpo.innerHTML = schede() + avvisoMarkup() + codiceMarkup() + pannello;
   agganciaEventi(corpo);
   if (state.tab === "nuova") mostraDiagnostica(corpo);
 }
@@ -1197,12 +1283,18 @@ async function mostraDiagnostica(corpo) {
 
 /* ─── I gesti ──────────────────────────────────────────────────────────── */
 
-/** Metti in salvo quello che c'e' scritto, prima di rifare il modulo. */
+/** Metti in salvo quello che c'e' scritto, prima di rifare il modulo.
+ *
+ * La guardia guarda il campo del titolo perche' e' il primo del modulo: se non
+ * c'e' quello, il modulo non e' sulla pagina — si sta guardando «Le mie» o la
+ * console — e raccogliere vorrebbe dire scrivere tre stringhe vuote sopra una
+ * bozza che invece esiste.
+ */
 function raccogliBozza() {
   const modale = doc?.getElementById?.("dm-tkt-modal");
-  if (!modale?.querySelector("#dm-tkt-titolo")) return;
+  if (!modale?.querySelector("#dm-tkt-campo-titolo")) return;
   state.bozza = {
-    title: modale.querySelector("#dm-tkt-titolo")?.value ?? "",
+    title: modale.querySelector("#dm-tkt-campo-titolo")?.value ?? "",
     body: modale.querySelector("#dm-tkt-corpo")?.value ?? "",
     contact: modale.querySelector("#dm-tkt-contatto")?.value ?? "",
   };
@@ -1279,6 +1371,7 @@ async function invia() {
   }
   state.busy = true;
   state.avviso = "";
+  let chiediAutorizzazione = false;
   disegna();
   try {
     const risposta = await chiedi(WS_CREATE, {
@@ -1294,18 +1387,34 @@ async function invia() {
       risposta?.delivered && aperta.issue_url
         ? { numero: clean(aperta.remote_id), url: clean(aperta.issue_url) }
         : null;
-    state.avviso = risposta?.delivered
-      ? t("Inviata. Grazie.", "Sent. Thank you.")
-      : t(
-          "Salvata. Partira' da sola appena il servizio risponde.",
-          "Saved. It will be sent as soon as the service answers.",
-        );
+    /* Tre esiti, e uno solo chiede qualcosa.
+     *
+     * Partita: fatto. Salvata e basta — l'invio non e' configurato, o la rete
+     * non c'era: riparte da sola. Salvata ma manca la firma: si chiede
+     * l'autorizzazione ADESSO, che e' il momento in cui ha un motivo, e con la
+     * segnalazione gia' al sicuro. Chi si ferma qui non perde niente: parte da
+     * sola appena collega. */
+    if (risposta?.delivered) {
+      state.avviso = t("Inviata. Grazie.", "Sent. Thank you.");
+    } else if (state.delivery && !state.account.connected) {
+      state.avviso = t(
+        "Salvata. Manca solo la firma: autorizza GitHub e parte.",
+        "Saved. Only the signature is missing: authorize GitHub and it goes.",
+      );
+      chiediAutorizzazione = true;
+    } else {
+      state.avviso = t(
+        "Salvata. Partira' da sola appena l'invio sara' configurato.",
+        "Saved. It will be sent on its own once sending is configured.",
+      );
+    }
     state.tab = "mie";
   } catch (errore) {
     state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
   } finally {
     state.busy = false;
     await ricarica();
+    if (chiediAutorizzazione) await collega({ salvata: true });
   }
 }
 

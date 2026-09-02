@@ -25,6 +25,11 @@ from __future__ import annotations
 import json
 import logging
 import re
+
+# `Mapping` serve a tempo di esecuzione, non solo al controllo dei tipi: la
+# lettura delle etichette lo usa in un `isinstance`. Sotto `TYPE_CHECKING`
+# quella riga sollevava un NameError alla prima coda aperta dalla console.
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -40,8 +45,6 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
@@ -332,6 +335,52 @@ def issue_title(ticket: Mapping[str, Any]) -> str:
     return f"{prefisso}: {ticket.get('title') or ''}"[:240]
 
 
+# Il tipo di una segnalazione non e' un campo di GitHub. Sta in due posti che
+# su questa repository esistono da prima della plancia: il prefisso del titolo,
+# che i moduli di GitHub mettono da soli, e l'etichetta, che il manutentore
+# mette a mano. Si guardano tutti e due, in quest'ordine, e se nessuno dei due
+# dice niente il tipo resta vuoto — che e' meglio di sceglierne uno a caso.
+_PREFISSI_TIPO = {
+    "[bug]": "bug",
+    "[feature]": "feature",
+    "[aiuto]": "assistenza",
+    "[help]": "assistenza",
+}
+_ETICHETTE_TIPO = {
+    "bug": "bug",
+    "difetto": "bug",
+    "enhancement": "feature",
+    "feature": "feature",
+    "feature request": "feature",
+    "question": "assistenza",
+    "help wanted": "assistenza",
+    "support": "assistenza",
+}
+
+
+def _tipo_e_titolo(issue: Mapping[str, Any]) -> tuple[str, str]:
+    """Il tipo della segnalazione, e il titolo ripulito dal prefisso.
+
+    Il prefisso si toglie perche' accanto al titolo la console disegna gia' la
+    pastiglia del tipo: lasciarlo vorrebbe dire scrivere «difetto» due volte
+    sulla stessa riga. Si toglie pero' solo quando dopo resta qualcosa: c'e'
+    chi apre la issue e il titolo lo lascia al prefisso, e in quel caso una
+    riga vuota sarebbe peggio di una riga ridondante.
+    """
+    titolo = str(issue.get("title") or "").strip()
+    piatto = titolo.casefold()
+    for prefisso, tipo in _PREFISSI_TIPO.items():
+        if piatto.startswith(prefisso):
+            resto = titolo[len(prefisso) :].lstrip(" :").strip()
+            return tipo, resto or titolo
+    for etichetta in issue.get("labels") or []:
+        nome = etichetta.get("name") if isinstance(etichetta, Mapping) else etichetta
+        tipo = _ETICHETTE_TIPO.get(str(nome or "").strip().casefold())
+        if tipo:
+            return tipo, titolo
+    return "", titolo
+
+
 async def async_create_issue(
     hass: HomeAssistant, token: str, ticket: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -500,41 +549,106 @@ async def async_close_issue(
     )
 
 
-async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
-    """Le segnalazioni nate dalla plancia, per la console del manutentore.
+# Quante pagine si arriva a chiedere per gli aperti. Cento per pagina, quindi
+# mille: oltre quella soglia il problema di chi tiene la repository non e' piu'
+# la paginazione. Il tetto c'e' perche' un ciclo che si fida di dove finisce
+# l'elenco altrui e' un ciclo che un giorno non finisce.
+_PAGINE_MAX = 10
 
-    Si riconoscono dalla riga invisibile nel corpo, non da un'etichetta: chi le
-    apre non ha i permessi per etichettare, e GitHub gliele scarterebbe.
+
+async def _async_issues_page(
+    hass: HomeAssistant, token: str, *, stato: str, quante: int, per: str, pagina: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Una pagina di issue, gia' ridotta a quello che la console mostra.
+
+    Torna anche quante righe grezze ha mandato GitHub, e serve: le pull request
+    si scartano qui dentro, quindi la lunghezza dell'elenco ridotto non dice se
+    la pagina era piena. Senza quel numero, una pagina di cento fatta di
+    novantanove PR sembrerebbe la fine dell'elenco.
     """
+    from .ticket_store import STATE_SENT, STATE_TRIAGED
+
     issues = await _request(
         hass,
         "GET",
-        f"{GITHUB_API}/repos/{REPOSITORY}/issues?state=all&per_page=50&sort=created"
-        "&direction=desc",
+        f"{GITHUB_API}/repos/{REPOSITORY}/issues?state={stato}&per_page={quante}"
+        f"&sort={per}&direction=desc&page={pagina}",
         token=token,
     )
     if not isinstance(issues, list):
-        return []
+        return [], 0
     coda: list[dict[str, Any]] = []
     for issue in issues:
         if not isinstance(issue, dict) or "pull_request" in issue:
             continue
         corpo = str(issue.get("body") or "")
-        if TICKET_MARKER not in corpo:
-            continue
-        allegati = attachments_in(corpo)
+        tipo, titolo = _tipo_e_titolo(issue)
+        # Quanti commenti ci sono si sa dall'elenco, senza aprire niente: e' il
+        # segno che dice quali valga la pena guardare.
+        commenti = int(issue.get("comments") or 0)
+        voce_stato = _state_from_issue(issue, "")
+        if voce_stato == STATE_SENT and commenti:
+            # CHI ha commentato, qui, non si sa: l'elenco di GitHub non lo dice
+            # e chiederlo vorrebbe dire una chiamata per ogni riga. Vale allora
+            # il segno che c'e': una aperta su cui si e' gia' parlato e' in
+            # lavorazione, una muta e' ancora da guardare. Nella plancia di chi
+            # ha segnalato lo stato resta quello esatto, perche' li' il filo si
+            # apre per davvero e i commenti si leggono uno per uno.
+            voce_stato = STATE_TRIAGED
         coda.append(
             {
                 "number": int(issue.get("number") or 0),
-                "title": str(issue.get("title") or ""),
+                "title": titolo,
                 "body": _senza_allegati(corpo.replace(TICKET_MARKER, "")),
-                "state": _state_from_issue(issue, ""),
+                "type": tipo,
+                "state": voce_stato,
+                # Da dove viene: la riga invisibile nel corpo la mette solo la
+                # plancia. Non cambia cosa si puo' fare — si risponde e si
+                # chiude allo stesso modo — ma dice se chi ha scritto la
+                # risposta se la ritrovera' anche dentro la sua dashboard.
+                "origin": "plancia" if TICKET_MARKER in corpo else "github",
                 "issue_url": str(issue.get("html_url") or ""),
                 "author": str((issue.get("user") or {}).get("login") or ""),
-                # Quanti ce ne sono si sa dall'elenco, senza aprire niente: e'
-                # il segno che dice quali valga la pena guardare.
-                "comments": int(issue.get("comments") or 0),
-                "attachments": len(allegati),
+                "comments": commenti,
+                "attachments": len(attachments_in(corpo)),
             }
         )
-    return coda
+    return coda, len(issues)
+
+
+async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
+    """Tutta la coda del manutentore: quello che c'e' sulla repository.
+
+    Non piu' le sole segnalazioni nate dalla plancia. Chi tiene la repository
+    ha un posto solo da guardare, e le issue aperte a mano su GitHub — che oggi
+    sono la maggioranza, e lo resteranno per un pezzo — non possono essere
+    proprio quelle che spariscono. Da dove viene ognuna lo dice `origin`.
+
+    Gli aperti e i chiusi si chiedono separati, e non per distrazione:
+    `state=all` su una pagina sola vuol dire che, appena i chiusi passano il
+    centinaio, gli aperti piu' vecchi escono dall'elenco senza che nessuno lo
+    dica.
+
+    E gli aperti si chiedono **a pagine**, fino in fondo. Cento per volta non
+    basta a dire «tutti»: quell'indirizzo di GitHub restituisce anche le pull
+    request, che di qui si scartano ma la loro riga in pagina se la prendono,
+    quindi il centinaio si esaurisce prima di quanto sembri. Fermarsi alla
+    prima pagina avrebbe rifatto, un po' piu' in la', lo stesso danno che
+    `state=all` faceva subito.
+
+    I chiusi restano una pagina sola: sono storia, e bastano i piu' freschi.
+    """
+    aperte: list[dict[str, Any]] = []
+    for pagina in range(1, _PAGINE_MAX + 1):
+        voci, grezze = await _async_issues_page(
+            hass, token, stato="open", quante=100, per="created", pagina=pagina
+        )
+        aperte += voci
+        # Una pagina non piena e' l'ultima. E' l'unico segnale che si ha senza
+        # leggere l'intestazione `Link`, che questo client non conserva.
+        if grezze < 100:
+            break
+    chiuse, _ = await _async_issues_page(
+        hass, token, stato="closed", quante=50, per="updated", pagina=1
+    )
+    return [*aperte, *chiuse]

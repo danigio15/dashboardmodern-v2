@@ -577,8 +577,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // stato che torna indietro, e il cruscotto di chi risponde. Un modulo solo:
   // il canale verso Home Assistant e' il ponte che c'e' gia', e la chiamata
   // verso GitHub la fa il backend.
+  // 200 con la scheda dell'Agenda (`sections/agenda-editor-section.js`):
+  // «calendario, per configurarlo devi toglierlo dalla parte widget, crea una
+  // sezione a se' nel menu e metti calendario e cose da fare». I calendari e le
+  // liste ToDo si configuravano nella scheda dei widget, che risponde a
+  // un'altra domanda — quali tessere vedere in Home — e la sezione Agenda
+  // restava l'unica voce della barra senza il suo interruttore.
   assert.ok(
-    relative.length <= 199,
+    relative.length <= 200,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
