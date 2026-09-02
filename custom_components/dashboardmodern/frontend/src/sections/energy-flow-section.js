@@ -4,7 +4,7 @@ import {
   flowStageModel,
 } from "../core/energy-flow-topology.js";
 import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
-import { wattsFromState } from "../core/signed-energy.js";
+import { applySignedSources, wattsFromState } from "../core/signed-energy.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
 import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads, plantModel } from "../core/energy-plants.js";
 import {
@@ -789,17 +789,66 @@ export function refreshEnergyFlows() {
  * aspettava un ritardo, aspettava una passata che non sarebbe mai arrivata.
  *
  * Qui la decisione la prende chi la sa, a ogni passata: l'impianto scelto dice
- * se il sole e la batteria ce li ha, e le bolle seguono. */
+ * se il sole e la batteria ce li ha, e le bolle seguono.
+ *
+ * Due cose, pero', non si possono sbagliare.
+ *
+ * La prima: la potenza non e' sempre nella casella `power`. Chi ha dichiarato
+ * un sensore unico col segno (`battery.signed.power`) o due sensori, uno per
+ * verso (`power` e `power_discharge`), la casella di sempre ce l'ha vuota — e
+ * la lettura buona la ricava `applySignedSources`. Guardare il campo grezzo
+ * avrebbe nascosto la batteria a chi ce l'ha e funziona. Si guarda quindi il
+ * modello risolto, che e' lo stesso che poi la disegna.
+ *
+ * La seconda: una bolla che se ne va si porta dietro le sue linee. Nasconderla
+ * e basta lasciava i tratteggi appesi al vuoto — il guscio, che di suo ne
+ * nascondeva sedici a mano, questo lo faceva. Qui non c'e' un elenco da tenere
+ * aggiornato: si guarda il nome di ogni linea, e chi nomina una sorgente che
+ * non c'e' se ne va con lei. Cosi' valgono anche le viste giorno e mese, che
+ * nell'elenco del guscio non c'erano. */
 function mostraBolleDellImpianto(impianto) {
-  const bolle = [
-    ["n-solar", clean(impianto?.solar?.power)],
-    ["n-battery", clean(impianto?.battery?.power)],
-  ];
-  for (const [id, configurata] of bolle) {
-    for (const nodo of doc?.querySelectorAll?.(`#${id}`) || []) {
-      setStyleProperty(nodo, "display", configurata ? "" : "none");
+  const risolto = applySignedSources(impianto || {});
+  const assente = {
+    solar: !clean(risolto?.solar?.power),
+    battery: !clean(risolto?.battery?.power),
+  };
+  if (!assente.solar && !assente.battery) {
+    for (const nodo of doc?.querySelectorAll?.("[data-dm-impianto-nasconde]") || []) {
+      riportaInScena(nodo);
+    }
+    return;
+  }
+  const nomina = (id, sorgente) => id.includes(sorgente);
+  for (const nodo of doc?.querySelectorAll?.(SELETTORE_DEL_FLUSSO) || []) {
+    const id = String(nodo.id || "").toLowerCase();
+    const via =
+      (assente.solar && nomina(id, "solar")) || (assente.battery && nomina(id, "battery"));
+    if (via) {
+      /* Con la stessa forza di chi la mostra: `exposeConnector` scrive
+       * `display:inline` con importanza sulle linee vive, e questa passata
+       * viene dopo la sua. */
+      setStyleProperty(nodo, "display", "none", "important");
+      scriviDatoSeCambia(nodo, "dmImpiantoNasconde", "true");
+    } else {
+      riportaInScena(nodo);
     }
   }
+}
+
+/* Le bolle del sole e della batteria, e ogni linea del flusso che le nomini —
+ * in tutte le viste, desktop e telefono, istante, giorno e mese. */
+const SELETTORE_DEL_FLUSSO =
+  "#page-energy [id^='n-solar'],#page-energy [id^='n-battery']," +
+  "#page-energy [id^='m-n-solar'],#page-energy [id^='m-n-battery']," +
+  "#page-energy [id*='line-']";
+
+/* Si toglie solo quello che si e' messo: il `display` sulle linee vive e' di
+ * `exposeConnector`, e cancellarlo quando non e' nostro gli farebbe rifare il
+ * lavoro a ogni passata. */
+function riportaInScena(nodo) {
+  if (nodo?.dataset?.dmImpiantoNasconde !== "true") return;
+  nodo.style.removeProperty("display");
+  delete nodo.dataset.dmImpiantoNasconde;
 }
 
 function schedule() {
