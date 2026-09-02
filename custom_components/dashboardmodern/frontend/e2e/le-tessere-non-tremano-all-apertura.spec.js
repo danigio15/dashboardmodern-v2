@@ -110,7 +110,9 @@ test("apertura, tempesta di stati e chiusura non muovono una tessera", async ({
   await avvia(page, testInfo);
 
   const prima = await fotografa(page);
-  expect(prima.map((t) => t.chiave)).toEqual(["todo", "prese"]);
+  /* «todo» e' diventata «agenda»: impegni e cose da fare sono una cosa sola.
+   * La griglia e' la stessa di prima, cambia il nome della prima tessera. */
+  expect(prima.map((t) => t.chiave)).toEqual(["agenda", "prese"]);
 
   // 1. L'apertura: il popup sale, la griglia non si accorge di niente.
   await page.locator('#dm-widgets .dm-tile[data-dm-widget="prese"]').click();

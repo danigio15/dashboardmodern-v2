@@ -60,7 +60,14 @@ async function avvia(page, testInfo) {
   }, VOCI);
   await page.waitForTimeout(1600);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
-  await page.locator('#dm-widgets .dm-tile[data-dm-widget="todo"]').click();
+  /* La tessera si chiama Agenda, adesso.
+   *
+   * Impegni e cose da fare sono diventati una cosa sola: la tessera «todo» non
+   * esiste piu' e le sue righe stanno nell'Agenda, con le stesse classi —
+   * `dm-todo-item`, la casella, il testo, il cestino. Quello che questa prova
+   * sorveglia non e' cambiato di una virgola: dentro la finestra di un widget
+   * si tocca senza uscirne. E' cambiato solo dietro quale tessera si entra. */
+  await page.locator('#dm-widgets .dm-tile[data-dm-widget="agenda"]').click();
   await expect(page.locator("#dm-widget-popup .dm-todo-item").first()).toBeVisible();
 }
 

@@ -5,6 +5,259 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.7
+
+«Come velocita' non e' migliorato nulla, siamo sempre uguali.» Aveva ragione, e
+questa volta il tempo si e' andato a cercare col profilatore invece che a
+indovinarlo. Non stava dove si era guardato per sei versioni.
+
+E arriva anche il modo di dirlo senza uscire dalla plancia.
+
+### Nuovo
+
+- **La finestra puo' avere anche l'inferriata.** «La card delle finestre e'
+  fantastica, ma non riesco ad adattarla alla mia situazione perche' non ho le
+  tapparelle. Sarebbe possibile una card che consideri due sensori di contatto,
+  uno per le inferriate esterne e uno per gli infissi interni?» Accanto al
+  sensore dell'infisso c'e' adesso quello dell'inferriata, e la card li disegna
+  tutti e due: la grata sta davanti al vetro e si impacchetta di lato, l'infisso
+  sta dietro e rientra verso i cardini. I quattro stati si distinguono a colpo
+  d'occhio — tutto chiuso, grata aperta, finestra aperta, tutto aperto — e la
+  pastiglia dice quale, perche' «Aperta» da solo non rispondeva alla domanda per
+  cui si sono messi due sensori. Chi non ha inferriate non vede niente di nuovo:
+  la casella vuota lascia la card esattamente com'era. (#254)
+- **E una riga con le sole grate si salva.** Valeva gia' per il solo contatto
+  dell'infisso — «ho le persiane manuali, pero' ho i sensori di apertura» — e
+  vale per lo stesso motivo: la riga non comanda niente, ma ha qualcosa da dire.
+- **In Home i due contatti sono due righe.** Una grata lasciata aperta e una
+  finestra lasciata aperta non sono la stessa notizia, e uscendo di casa e'
+  proprio quella la differenza che si vuole leggere.
+- **Il verso girato vale per entrambi.** Chi ha un contatto che sta a ON da
+  chiuso (#244) lo elenca come sempre: il verso e' un fatto del filo, non del
+  tipo di apertura.
+- **Lo scaldabagno elettrico ha la sua tessera.** «Ho un impianto fotovoltaico
+  ed ho sfruttato uno scaldabagno per l'acqua calda sanitaria. La card attuale
+  e' fantastica ma pensata per il solare termico.» Adesso c'e' la sua: le
+  quattro caselle chieste — interruttore, temperatura dell'acqua, obiettivo,
+  consumo — piu' l'energia di oggi. Il numero grande e' l'acqua, l'anello dice
+  quanto manca all'obiettivo, e la tessera si accende mentre la resistenza
+  lavora. La differenza col solare non e' la forma della card: li' il calore
+  arriva dal sole e si guarda il salto fra le sonde, qui arriva da una
+  resistenza che si paga e si guarda quando ci sara' l'acqua calda. (#253)
+- **E con un `water_heater` di Home Assistant non c'e' niente da compilare.**
+  Basta la prima casella: stato, temperatura e obiettivo li dichiara l'entita'
+  stessa, e «Rileva da Home Assistant» la trova da sola. Le altre restano per
+  chi lo scaldabagno se l'e' messo insieme da un rele' e due sonde.
+- **L'obiettivo si legge anche da un termostato.** «Target preso dall'entita'
+  del termostato»: li' l'obiettivo non e' lo stato — lo stato e' la modalita' —
+  ma un attributo, e la casella lo cerca in tutti e due i posti.
+- **La sezione termica ha tre anime, non una.** Si chiamava «Solare termico» e
+  disegnava un impianto solo: pannello sul tetto, pompa, accumulo. Ma l'acqua
+  calda in casa la fanno tre macchine diverse — il sole, una resistenza, una
+  caldaia a gas — e quasi nessuno ne ha una sola: chi ha il fotovoltaico e lo
+  scaldabagno apriva quella pagina e ci trovava un pannello che non ha. Adesso
+  nella scheda Solare si spunta quello che si ha davvero, e la pagina prende la
+  forma di quello che si e' spuntato. Con due o tre compaiono in alto le
+  linguette, le stesse di Freddo e Caldo nella pagina Clima. (#253)
+- **Due scene nuove, nella stessa lingua della prima.** Lo scaldabagno ha il
+  suo serbatoio in piedi, con l'acqua calda che sale dal fondo — l'altezza del
+  riempimento e' quanto manca all'obiettivo — e le tre spire della resistenza
+  che si accendono quando lavora. La caldaia ha la scocca a muro con la fiamma
+  nell'oblo', la mandata e il ritorno che corrono al radiatore e il salto fra i
+  due, che e' la misura che dice se l'impianto sta davvero cedendo calore.
+- **La pressione bassa si vede prima di accorgersene.** Sotto il bar la
+  targhetta batte e compare la riga che dice perche': e' l'unica cosa di quella
+  pagina che ogni tanto chiede di alzarsi dal divano.
+- **La pagina si chiama come la macchina che si sta guardando.** «Impianto
+  solare termico» sopra una caldaia era il nome di un'altra macchina.
+- **Chi non sceglie non perde niente.** Una plancia gia' configurata col solare
+  continua a mostrarlo esattamente come prima: la domanda e' nuova, e le
+  risposte di ieri valgono ancora.
+- **La sezione si chiama «Gestione termica».** Il nome vecchio era quello di
+  una delle tre macchine: chi ha solo la caldaia trovava la sua dentro una voce
+  che parlava di pannelli solari. Cambia nella barra in basso e nella scheda
+  della configurazione; chi la sezione se l'era rinominata a mano tiene il nome
+  che ha scelto.
+- **Anche la caldaia ha la sua tessera e la sua finestra.** Il numero grande e'
+  la mandata, la didascalia il salto fra mandata e ritorno — che e' la misura
+  per cui si guarda una caldaia — e la pressione sotto il bar accende la
+  tessera e la fa comparire fra quelle che chiedono attenzione. La finestra
+  dice perche': «l'acqua gira senza cedere calore» quando mandata e ritorno
+  sono quasi uguali, «sotto il minimo, la caldaia puo' bloccarsi» quando manca
+  pressione.
+- **Con tutti e tre gli impianti le tessere sono tre**, ognuna con la sua
+  finestra, e tutte e tre portano alla stessa sezione: da li' si passa
+  dall'una all'altra con le linguette.
+- **Senza sonde funziona lo stesso, ed e' una scelta libera.** «Prevedi sia per
+  la caldaia che per lo scaldabagno anche il semplice utilizzo senza sonde di
+  temperatura.» Nessuna casella e' obbligatoria. Con il solo interruttore lo
+  scaldabagno dice acceso e spento, il serbatoio si riempie tutto e parla il
+  colore — caldo mentre la resistenza lavora, acciaio quando e' ferma —
+  invece di mostrarsi vuoto, che sarebbe dire «non c'e' acqua calda». Con il
+  solo stato la caldaia accende il suo oblo' e mostra il circuito che si
+  scalda.
+- **E le targhette senza numero non si disegnano.** Cinque riquadri con «--»
+  non sono una scheda spoglia: sono cinque promesse non mantenute. Le caselle
+  che non ci sono non lasciano un buco, lasciano posto.
+- **La pastiglia nomina quello che sta davvero leggendo.** Chi mappa il
+  bruciatore legge «bruciatore acceso»; chi mappa solo lo stato legge «caldaia
+  accesa», perche' un bruciatore che nessuno ha mappato non si puo' citare.
+
+### Nuovo: le segnalazioni
+
+- **Segnala un difetto, proponi un'idea, chiedi aiuto — dalla Configurazione.**
+  Fino a ieri, per segnalare qualcosa, bisognava uscire da Home Assistant,
+  aprire GitHub, farsi un account se non ce l'aveva, e compilare un modulo che
+  chiede la versione dell'integrazione — che chi segnala non sa, e che la
+  plancia invece conosce benissimo.
+
+  Adesso c'e' una tessera in Configurazione. Il modulo e' in tre passi, e il
+  primo e' la domanda che conta: **di che si tratta**. Tre schede con la loro
+  spiegazione — «Non funziona», «Vorrei che facesse», «Non ci riesco» — perche'
+  la differenza fra un difetto e un'idea la sa chi scrive solo se gliela si
+  racconta, e una segnalazione ben incasellata e' meta' del lavoro di chi la
+  legge. Titolo e descrizione cambiano suggerimento col tipo scelto: a chi
+  chiede aiuto non si domanda «cosa ti aspettavi».
+
+- **La diagnostica la compila la plancia.** Versione dell'integrazione,
+  versione di Home Assistant, lingua, pagina, browser: le cose che lei sa e chi
+  segnala no. Si vedono tutte prima di premere invia, sotto «cosa parte» —
+  quello che esce di casa non e' una cosa da far scoprire dopo.
+
+- **Serve il tuo account GitHub, ed e' quello che hai gia'.** La plancia si
+  scarica da HACS, e HACS un account GitHub lo chiede gia' — con la stessa
+  identica autorizzazione, il codice da digitare su `github.com/login/device`.
+  Chi e' arrivato fin qui quel giro l'ha gia' fatto una volta.
+
+  Il gettone resta nel backend di Home Assistant e non passa mai dal browser.
+  Si scollega dalla plancia, e si revoca del tutto da GitHub.
+
+- **La risposta torna dentro la plancia.** La segnalazione diventa una issue a
+  tuo nome; quando arriva una risposta, lo stato cambia da solo — «presa in
+  carico», «risolta», «archiviata» — e la risposta si legge da «Le mie», senza
+  chiedere niente a nessuno.
+
+- **Foto e video.** GitHub non ha un'API per allegarli a una issue, e non e'
+  una svista: e' una scelta loro, per contenere gli abusi. Quindi la plancia
+  non finge di spedirli — appena la segnalazione e' aperta, un tasto porta alla
+  sua pagina, dove si trascinano nel riquadro della risposta. Il momento e'
+  quello giusto: chi ha appena scritto ha ancora il file sotto mano.
+
+- **Una issue e' una pagina pubblica, e la plancia lo dice** sopra il tasto
+  invia, non dopo. L'unica cosa che non parte mai e' il recapito: chi scrive il
+  proprio indirizzo lo scrive a una persona, non a una pagina indicizzata.
+
+### Piu' veloce
+
+- **Un secondo e sei decimi in meno all'avvio.** Profilando la partenza con la
+  CPU rallentata quattro volte — un telefono di fascia media — **una sola
+  funzione si mangiava 789 millisecondi su 6800**, dentro un modulo che scrive
+  tre variabili CSS e non disegna niente.
+
+  Non era il suo codice: erano quindici chiamate a cinquantadue millisecondi
+  l'una. Il giro era, per ogni pagina: guarda dove va l'intestazione, scrivila,
+  rileggi quanto e' larga. Ogni scrittura invalida lo stile, e ogni lettura che
+  le viene dietro obbliga il browser a **ricalcolarlo tutto** prima di
+  rispondere. Nove pagine, nove ricalcoli completi.
+
+  Adesso i quattro tempi si fanno per tutte le pagine prima di passare al
+  successivo — si legge dove vanno tutte, si scrivono tutte, si misurano tutte,
+  si applicano tutte: **due ricalcoli invece di nove**, e la spesa non cresce
+  piu' col numero delle pagine. Misurato sullo stesso banco, tre giri per parte:
+  **da 6693 a 5060 millisecondi**. Il modulo passa da 789 a 53.
+
+- **Il flusso dell'energia tace, quando non c'e' niente da dire.** E' la cosa
+  piu' indaffarata della plancia: gira piu' di una volta al secondo, per tre
+  viste, e riscriveva gli attributi di ogni bolla e di ogni linea **col valore
+  che avevano gia'**. Un `data-` riscritto uguale e' comunque una scrittura:
+  sveglia ogni osservatore della pagina e invalida lo stile del nodo.
+
+  Contate col popup dell'Auto aperto e gli stati fermi: **1777 scritture in
+  quattro secondi**, tutte dietro il velo. Adesso sono 297, e quelle che restano
+  non sono piu' del flusso.
+
+### Corretto
+
+- **La scala del clima la dichiara il termostato, non la plancia.** «Ho una
+  pompa di calore Samsung, il sensore mi gestisce la temperatura di uscita
+  dell'acqua dai 40 gradi fino a 70 massimo. Quando vado a inserire nel menu
+  clima l'entita', mi mette in predefinito 10-28 gradi e non sono riuscito a
+  capire come si modifica la scala.» Non c'era modo: i due estremi erano scritti
+  nel codice — sedici e trenta per il Freddo, dieci e ventotto per il Caldo — e
+  valevano per tutti. Con quella barra il pomello restava incollato al fondo e
+  quarantacinque gradi non si potevano nemmeno sfiorare. Adesso la barra legge
+  `min_temp` e `max_temp` dell'entita', che Home Assistant pubblica gia': quella
+  pompa disegna da 40 a 70, e il dito arriva dove serve. Chi non li dichiara
+  tiene la scala di prima, identica. (#252)
+- **E si muove del passo che l'unita' accetta.** Un termostato che lavora a
+  mezzi gradi riceveva comunque gradi interi, perche' il trascinamento
+  arrotondava sempre all'unita'. Adesso segue `target_temp_step`; chi non lo
+  dichiara resta al grado intero, che e' quello che la plancia ha sempre fatto.
+- **Il ritaglio non taglia piu' l'estremo che si stava cercando.** Al rilascio
+  il grado veniva riportato dentro i limiti arrotondando il minimo all'intero
+  superiore: un'unita' che dichiara 40,5 non arrivava mai al proprio minimo.
+- **La stessa regola in un posto solo.** La pagina Clima e il pannello della
+  Home tenevano due copie della scala, e si fermavano a numeri diversi: adesso
+  la calcola il nucleo, e le due si comportano uguale.
+- **Le icone della barra e della configurazione erano mezze, non chiare.** «Le
+  icone presenti sia sulla navbar che nel menu config sono poco leggibili,
+  troppo chiare.» Non era il colore: meta' di quei disegni non veniva dipinta.
+  Ogni oggetto si porta dentro le proprie sfumature e disegni uguali ripetono
+  gli stessi identificatori; in una pagina pero' a un identificatore ripetuto
+  risponde sempre il PRIMO che lo porta, e per meta' dei disegni quel primo sta
+  dentro una voce di barra che la configurazione tiene a `display:none`. Una
+  sfumatura in un ramo non disegnato non dipinge niente: del lampadario, del
+  termometro, del fulmine e della goccia restava soltanto l'ombra grigia sotto.
+  Adesso le sfumature stanno in un foglio unico in cima al documento, sempre
+  disegnato, ed e' lui a rispondere a tutti: nella colonna della configurazione
+  tornano interi Energia, EV, Sicurezza, MiniPC, Temperatura, Piscina,
+  Irrigazione, Luci, Prese, Elettrodomestici e Aperture.
+- **E sulla barra il velo era doppio.** Le voci a riposo stavano a `opacity:.78`
+  e sopra ci passava un `grayscale(.85) opacity(.72)`: i due si moltiplicano,
+  cioe' 0,56 di opacita' su una figura quasi senza colore. Adesso il velo e'
+  uno solo e il grigio un accenno; a dire qual e' la pagina aperta ci pensano la
+  pastiglia scura e il nome, che sono segnali piu' forti di uno sbiadimento.
+- **E il nome sotto il disegno si legge.** Era il grigio tenue al 70% di
+  opacita': sul bianco della barra fa 2,7 a uno, sotto la soglia di
+  leggibilita'. Adesso ne fa 7,7. Stesso conto per i nomi nella colonna della
+  configurazione.
+
+- **La bolla della batteria non sparisce piu' cambiando impianto.** Il guscio
+  nasconde e rimostra le bolle del sole e della batteria guardando quali entita'
+  sono mappate — ma quella funzione la chiama **una volta sola, su un timer
+  all'avvio**. Cambiando impianto le entita' cambiano sotto i piedi e nessuno la
+  rifa': chi passava a una casa senza batteria e poi tornava alla propria
+  trovava la bolla sparita, e non tornava piu' finche' non ricaricava la pagina.
+
+  E' il «improvvisamente scompare tutto» segnalato. Adesso la decisione la
+  prende chi la sa — l'impianto scelto — a ogni passata.
+
+- **Il foglio di ogni finestra sta su un livello suo.** La sfocatura del velo
+  rilegge lo sfondo: ogni scrittura dietro la finestra e' una sfocatura da
+  rifare, e finche' il contenuto del foglio sta nello stesso livello viene
+  ridipinto insieme a lei — e' il lampo bianco che si vede sul telefono. La
+  promozione era stata data alla sola finestra dei carichi; il motivo non era
+  mai stato suo, e adesso vale per tutte e undici. Nessuna di loro ha figli
+  fissi che un livello nuovo strapperebbe alla finestra del browser: verificato
+  aprendole una per una.
+### Sulle prove
+
+Le segnalazioni portano **cinquantasei prove nuove** fra backend e finestra.
+Due meritano di essere raccontate, perche' sorvegliano cose che si vedrebbero
+tardi e male: che ognuno dei comandi che la finestra manda sia fra quelli che
+il ponte lascia passare — un tipo dimenticato la' e' un refuso che si scopre
+solo in un browser vero — e che la diagnostica sia una **lista chiusa**, con un
+controllo che nessuna delle sue chiavi somigli a un dato di casa. Quella lista
+va riletta ogni volta che qualcuno la allarga, ed e' l'unica cosa che decide
+cosa esce di casa.
+
+La prova che sorvegliava la bolla della batteria **cadeva due volte su otto gia'
+prima di questa versione**, e restava verde solo perche' i controlli hanno due
+tentativi di riserva. Non stava aspettando un ritardo: aspettava una passata che
+non sarebbe mai arrivata. Chiusa la corsa, passa sedici volte su sedici, e una
+prova nuova la sorveglia in modo secco — senza la correzione cade quattro volte
+su quattro.
+
 ## 1.4.5-beta.6
 
 «Guarda, cambia intestazione, quindi c'e' qualcosa di duplicato» — due

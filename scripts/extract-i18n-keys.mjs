@@ -164,6 +164,21 @@ function declaredLiteral(source, name) {
       else if (char === quote) quote = "";
       continue;
     }
+    /* Comments are skipped whole. A table may carry an explanation next to a
+     * row, and an apostrophe inside it — «l'intestazione», «e' nato» — would
+     * otherwise open a string that never closes, and the scan would run off
+     * the end of the file reporting the table as unterminated. */
+    if (char === "/" && source[at + 1] === "/") {
+      const fine = source.indexOf("\n", at);
+      at = fine < 0 ? source.length : fine;
+      continue;
+    }
+    if (char === "/" && source[at + 1] === "*") {
+      const fine = source.indexOf("*/", at + 2);
+      if (fine < 0) break;
+      at = fine + 1;
+      continue;
+    }
     if (char === '"' || char === "'" || char === "`") quote = char;
     else if ("([{".includes(char)) depth += 1;
     else if (")]}".includes(char)) depth -= 1;

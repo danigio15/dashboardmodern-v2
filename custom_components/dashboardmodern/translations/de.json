@@ -21,13 +21,15 @@
           "allowed_users": "Zugelassene Benutzer",
           "register_lovelace_dashboard": "Auch als Home-Assistant-Dashboard registrieren",
           "admin_only": "Nur für Administratoren sichtbar",
-          "check_updates": "Nach neuen Versionen suchen"
+          "check_updates": "Nach neuen Versionen suchen",
+          "tickets_enabled": "Meldungen aus dem Dashboard"
         },
         "data_description": {
           "allowed_users": "Nur ein Sichtbarkeitsfilter der Oberfläche. Für Daten und Dienste gelten weiterhin die Home-Assistant-Berechtigungen.",
           "register_lovelace_dashboard": "Das Dashboard wird angelegt, sobald ein Administrator DashboardModern zum ersten Mal öffnet.",
           "admin_only": "Nativer Home-Assistant-Filter; für Konten ohne Administratorrechte hat er Vorrang.",
-          "check_updates": "Fragt GitHub jede halbe Stunde, ob eine neuere Version veröffentlicht wurde, und zeigt sie unter Einstellungen → Updates. Ausschalten, damit das Panel gar nicht ins Internet geht; das Dashboard selbst braucht es nie."
+          "check_updates": "Fragt GitHub jede halbe Stunde, ob eine neuere Version veröffentlicht wurde, und zeigt sie unter Einstellungen → Updates. Ausschalten, damit das Panel gar nicht ins Internet geht; das Dashboard selbst braucht es nie.",
+          "tickets_enabled": "Erlaubt allen, die das Dashboard nutzen, einen Fehler zu melden, eine Idee vorzuschlagen oder um Hilfe zu bitten, ohne es zu verlassen. Die Meldung wird zu einem öffentlichen Issue auf GitHub, im eigenen Namen — mit demselben Konto, nach dem HACS bereits gefragt hat. Ausgeschaltet verlässt nichts das Haus."
         }
       }
     }

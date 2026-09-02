@@ -1,7 +1,8 @@
 import {
-  allStates,
+allStates,
   clean,
   doc,
+  gettoneDiAccesso,
   readJson,
   root,
   section,
@@ -106,19 +107,6 @@ function cacheBusted(path) {
   }
 }
 
-function authToken() {
-  const values = [
-    root.DASHBOARDMODERN_AUTH_TOKEN,
-    root.__DASHBOARDMODERN_REAL_TOKEN__,
-    root.LONG_LIVED_TOKEN,
-    root.HA_TOKEN,
-  ];
-  try {
-    const connection = readJson("cd_connection", {});
-    values.push(connection.token, connection.access_token);
-  } catch (_error) {}
-  return values.map(clean).find((value) => value && value !== "__dashboardmodern_hosted__") || "";
-}
 
 function replaceCameraObjectUrl(chiave, nextUrl, registry = state.cameraUrls) {
   const previous = registry.get(chiave);
@@ -218,7 +206,7 @@ export async function loadCameraFrame(camera, image, registry = state.cameraUrls
   // entity_picture normally carries its own camera token. Use the current
   // dashboard origin instead of the legacy HA_HTTP_URL so hosted/Nabu Casa
   // dashboards cannot accidentally request a different host.
-  const token = authToken();
+  const token = gettoneDiAccesso();
   if (typeof root.fetch === "function" && token) {
     try {
       const response = await root.fetch(url, {

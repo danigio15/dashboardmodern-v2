@@ -185,6 +185,185 @@ const nomeDi = (riga) => String(riga?.name || "").trim();
 /* ─────────────────────────── le frasi, una per sezione ───────────────────── */
 
 const FRASI = Object.freeze({
+  /* Lo scaldabagno (#253) non si racconta contando righe.
+   *
+   * La frase generica dice «uno su otto in funzione» perche' conta le righe
+   * della tessera, e le righe qui sono le caselle: due interruttori e sei
+   * misure. Ma di uno scaldabagno non si vuole sapere quante caselle sono
+   * accese: si vuole sapere se c'e' acqua calda, e quanta ne manca. */
+  scaldabagno: (tr, _righe, tessera) => {
+    const unita = Array.isArray(tessera?.unita) ? tessera.unita : [];
+    if (!unita.length) return tr("Qui non c'e' ancora niente.", "Nothing configured here yet.");
+    const gradi = (valore) => numero(valore, 1);
+    if (unita.length === 1) {
+      const solo = unita[0];
+      if (solo.stato === "spento")
+        return solo.temperatura == null
+          ? tr("E' spento.", "It is off.")
+          : tr(
+              `Spento, l'acqua e' a ${gradi(solo.temperatura)}°.`,
+              `Off, the water is at ${gradi(solo.temperatura)}°.`,
+            );
+      if (solo.stato === "pronto")
+        return tr(
+          `Acqua pronta a ${gradi(solo.temperatura)}°.`,
+          `Water ready at ${gradi(solo.temperatura)}°.`,
+        );
+      if (solo.stato === "scalda") {
+        if (solo.temperatura == null || solo.obiettivo == null)
+          return tr("Sta scaldando.", "Heating.");
+        const mancano = gradi(Math.max(0, solo.obiettivo - solo.temperatura));
+        return tr(
+          `L'acqua e' a ${gradi(solo.temperatura)}°: ne mancano ${mancano} all'obiettivo.`,
+          `The water is at ${gradi(solo.temperatura)}°: ${mancano} to go.`,
+        );
+      }
+      return tr("Non risponde.", "Not answering.");
+    }
+    const scaldano = unita.filter((riga) => riga.stato === "scalda").length;
+    const pronti = unita.filter((riga) => riga.stato === "pronto").length;
+    if (scaldano)
+      return tr(
+        `${scaldano} su ${unita.length} stanno scaldando.`,
+        `${scaldano} of ${unita.length} are heating.`,
+      );
+    if (pronti === unita.length) return tr("Acqua pronta ovunque.", "Water ready everywhere.");
+    return tr(
+      `${pronti} su ${unita.length} con l'acqua pronta.`,
+      `${pronti} of ${unita.length} with hot water.`,
+    );
+  },
+  /* La caldaia (#253) non si racconta col numero di caselle accese.
+   *
+   * La cosa che si vuole sapere e' se l'impianto sta davvero cedendo calore —
+   * il salto fra mandata e ritorno — e se la pressione regge. Un «tre su
+   * cinque in funzione» qui non risponderebbe a nessuna delle due. */
+  caldaia: (tr, _righe, tessera) => {
+    const lettura = tessera?.lettura;
+    if (!lettura) return tr("Qui non c'e' ancora niente.", "Nothing configured here yet.");
+    if (lettura.pressione != null && lettura.pressione < 1)
+      return tr(
+        `Pressione a ${numero(lettura.pressione, 1)} bar: sotto il minimo, la caldaia puo' bloccarsi.`,
+        `Pressure at ${numero(lettura.pressione, 1)} bar: below minimum, the boiler may lock out.`,
+      );
+    const acceso = lettura.fiamma === true || lettura.acceso === true;
+    if (!acceso) return tr("Il bruciatore e' spento.", "The burner is off.");
+    if (lettura.salto == null) return tr("Il bruciatore sta lavorando.", "The burner is running.");
+    if (lettura.salto < 3)
+      return tr(
+        `Mandata e ritorno quasi uguali (${numero(lettura.salto, 1)}°): l'acqua gira senza cedere calore.`,
+        `Flow and return nearly equal (${numero(lettura.salto, 1)}°): water circulates without giving off heat.`,
+      );
+    return tr(
+      `Cede ${numero(lettura.salto, 1)}° fra mandata e ritorno.`,
+      `Giving off ${numero(lettura.salto, 1)}° between flow and return.`,
+    );
+  },
+  /* Il gruppo di continuita' (#256) non si racconta contando righe.
+   *
+   * Le righe sono le sue caselle — rete, batteria, carico, autonomia — e
+   * «due su sei in funzione» non e' una notizia. La notizia e' una sola, e
+   * cambia di segno: o la corrente c'e', e allora si dice quanta riserva
+   * c'e' dietro; o la corrente e' caduta, e allora si dice da quanto e per
+   * quanto ancora. */
+  ups: (tr, _righe, tessera, adesso = Date.now()) => {
+    const lettura = tessera?.lettura;
+    if (!lettura) return tr("Qui non c'e' ancora niente.", "Nothing configured here yet.");
+    const carica = lettura.batteria == null ? null : numero(lettura.batteria, 0);
+    if (lettura.rete === false) {
+      /* Da quanto siamo al buio: e' la prima cosa che si vuole sapere, e il
+       * momento del cambio lo porta l'entita' stessa. */
+      const da = Number(tessera?.da);
+      const quando = Number.isFinite(da) ? ` ${daQuanto((adesso - da) / 60000, tr)}` : "";
+      if (lettura.autonomia != null)
+        return tr(
+          `Manca la corrente${quando}: restano ${numero(lettura.autonomia, 0)} minuti di batteria.`,
+          `Mains is out${quando}: ${numero(lettura.autonomia, 0)} minutes of battery left.`,
+        );
+      if (carica != null)
+        return tr(
+          `Manca la corrente${quando}: la batteria e' al ${carica}%.`,
+          `Mains is out${quando}: the battery is at ${carica}%.`,
+        );
+      return tr(`Manca la corrente${quando}.`, `Mains is out${quando}.`);
+    }
+    if (lettura.rete !== true) return tr("Non risponde.", "Not answering.");
+    if (lettura.scarica)
+      return carica == null
+        ? tr(
+            "La corrente c'e', ma la batteria e' scarica: adesso non reggerebbe.",
+            "Mains is on, but the battery is low: it would not hold right now.",
+          )
+        : tr(
+            `La corrente c'e', ma la batteria e' al ${carica}%: adesso non reggerebbe.`,
+            `Mains is on, but the battery is at ${carica}%: it would not hold right now.`,
+          );
+    const carico =
+      lettura.carico == null
+        ? ""
+        : tr(
+            `, con un carico del ${numero(lettura.carico, 0)}%`,
+            `, at ${numero(lettura.carico, 0)}% load`,
+          );
+    if (carica == null) return tr(`La corrente c'e'${carico}.`, `Mains is on${carico}.`);
+    return tr(
+      `La corrente c'e' e la batteria e' al ${carica}%${carico}.`,
+      `Mains is on and the battery is at ${carica}%${carico}.`,
+    );
+  },
+  /* L'agenda (#259) non si racconta contando righe.
+   *
+   * «Sette cose in programma» non e' una risposta: la domanda e' «cosa ho
+   * adesso, cosa viene dopo, e cosa mi resta da fare». Sono due mezze
+   * risposte da unire in una frase sola — e quando una delle due meta' non
+   * c'e', la frase e' l'altra e basta, senza una virgola appesa al vuoto. */
+  agenda: (tr, _righe, tessera, adesso = Date.now()) => {
+    const primi = Array.isArray(tessera?.primi) ? tessera.primi : [];
+    const daFare = Number(tessera?.daFare) || 0;
+    const titolo = (evento) =>
+      String(evento?.summary || "").trim() || tr("un impegno", "an appointment");
+    const cose = daFare
+      ? tr(
+          `Restano ${daFare} cos${daFare === 1 ? "a" : "e"} da fare.`,
+          `${daFare} thing${daFare === 1 ? "" : "s"} left to do.`,
+        )
+      : "";
+
+    if (!primi.length) {
+      if (tessera?.inArrivo) return tr("Sto guardando l'agenda.", "Checking the calendar.");
+      const vuoto = tr("Non c'e' niente in programma.", "Nothing scheduled.");
+      return cose ? `${vuoto} ${cose}` : vuoto;
+    }
+    const [testa, dopo] = primi;
+    const primo = titolo(testa);
+    const secondo = dopo ? titolo(dopo) : "";
+    let impegni;
+    if (testa.inizio <= adesso && testa.fine > adesso)
+      impegni = dopo
+        ? tr(
+            `«${primo}» e' in corso; poi tocca a «${secondo}».`,
+            `“${primo}” is under way; then “${secondo}”.`,
+          )
+        : tr(`«${primo}» e' in corso.`, `“${primo}” is under way.`);
+    else {
+      const minuti = Math.max(0, Math.round((testa.inizio - adesso) / 60000));
+      /* Finche' e' un'attesa si dice in minuti, che e' come si risponde a
+       * «quanto manca». Piu' in la' i minuti smettono di essere una risposta. */
+      if (minuti <= 90)
+        impegni = tr(
+          `«${primo}» comincia fra ${minuti} minut${minuti === 1 ? "o" : "i"}.`,
+          `“${primo}” starts in ${minuti} min.`,
+        );
+      else
+        impegni = dopo
+          ? tr(
+              `Il prossimo e' «${primo}», poi «${secondo}».`,
+              `Next up is “${primo}”, then “${secondo}”.`,
+            )
+          : tr(`Il prossimo e' «${primo}».`, `Next up is “${primo}”.`);
+    }
+    return cose ? `${impegni} ${cose}` : impegni;
+  },
   luci: (tr, righe) => {
     const accese = conta(righe, acceso);
     if (!accese) return tr("Sono tutte spente.", "Every light is off.");
@@ -386,6 +565,14 @@ const BRICIOLE = Object.freeze({
     ["Circuito primario", "Boiler", "Ricircolo sanitario"],
     ["Primary loop", "Tank", "Recirculation"],
   ],
+  scaldabagno: [
+    ["Acqua calda", "Resistenza", "Consumo"],
+    ["Hot water", "Element", "Consumption"],
+  ],
+  caldaia: [
+    ["Mandata", "Ritorno", "Pressione"],
+    ["Flow", "Return", "Pressure"],
+  ],
   piscina: [
     ["Qualita' dell'acqua", "Filtrazione", "Riscaldamento"],
     ["Water quality", "Filtering", "Heating"],
@@ -401,6 +588,14 @@ const BRICIOLE = Object.freeze({
   batterie: [
     ["Livelli", "Soglie", "Autonomia"],
     ["Levels", "Thresholds", "Runtime"],
+  ],
+  agenda: [
+    ["Impegni", "Da fare", "Prossimi giorni"],
+    ["Appointments", "To-do", "Coming days"],
+  ],
+  ups: [
+    ["Rete", "Batteria", "Carico"],
+    ["Mains", "Battery", "Load"],
   ],
   allagamenti: [
     ["Sonde", "Perdite", "Controllo"],

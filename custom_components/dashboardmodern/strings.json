@@ -21,13 +21,15 @@
           "allowed_users": "Allowed users",
           "register_lovelace_dashboard": "Also register as a Home Assistant dashboard",
           "admin_only": "Visible to administrators only",
-          "check_updates": "Check for new versions"
+          "check_updates": "Check for new versions",
+          "tickets_enabled": "Reports from the dashboard"
         },
         "data_description": {
           "allowed_users": "UI visibility filter only. Home Assistant permissions still govern data and service access.",
           "register_lovelace_dashboard": "The dashboard is created the first time an administrator opens DashboardModern.",
           "admin_only": "Native Home Assistant filter; it takes precedence for non-administrator accounts.",
-          "check_updates": "Asks GitHub every half hour whether a newer release is out, and shows it under Settings → Updates. Turn it off to keep the panel from reaching the internet at all; the dashboard itself never needs it."
+          "check_updates": "Asks GitHub every half hour whether a newer release is out, and shows it under Settings → Updates. Turn it off to keep the panel from reaching the internet at all; the dashboard itself never needs it.",
+          "tickets_enabled": "Lets anyone using the dashboard report a bug, suggest a feature or ask for help without leaving it. The report becomes a public issue on GitHub, opened under their own account — the same one HACS already asked them for. Turn it off and nothing leaves the house."
         }
       }
     }

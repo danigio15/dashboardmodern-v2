@@ -23,24 +23,10 @@ import {
   resolveMessage,
   wwwListMessage,
 } from "../core/media-picker.js";
-import { clean, doc, esc, installStyle, lexicalGlobal, readJson, root, t } from "./shared.js";
+import { clean, doc, esc, gettoneDiAccesso, installStyle, lexicalGlobal, readJson, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_MEDIA_PICKER__";
 const state = (root[KEY] ||= { installed: false });
-
-function authToken() {
-  const values = [
-    root.DASHBOARDMODERN_AUTH_TOKEN,
-    root.__DASHBOARDMODERN_REAL_TOKEN__,
-    root.LONG_LIVED_TOKEN,
-    root.HA_TOKEN,
-  ];
-  try {
-    const connection = readJson("cd_connection", {});
-    values.push(connection.token, connection.access_token);
-  } catch (_error) {}
-  return values.map(clean).find((value) => value && value !== "__dashboardmodern_hosted__") || "";
-}
 
 /* La richiesta passa dal collegamento gia' aperto.
  *
@@ -138,7 +124,7 @@ export async function storeImage(blob, name) {
   }
   const body = new FormData();
   body.append("file", blob, name);
-  const token = authToken();
+  const token = gettoneDiAccesso();
   const response = await fetch("/api/image/upload", {
     method: "POST",
     body,

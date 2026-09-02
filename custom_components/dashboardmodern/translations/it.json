@@ -21,13 +21,15 @@
           "allowed_users": "Utenti autorizzati",
           "register_lovelace_dashboard": "Registra anche come plancia Home Assistant",
           "admin_only": "Visibile solo agli amministratori",
-          "check_updates": "Controlla le nuove versioni"
+          "check_updates": "Controlla le nuove versioni",
+          "tickets_enabled": "Segnalazioni dalla plancia"
         },
         "data_description": {
           "allowed_users": "Solo filtro di visibilità UI. Dati e servizi restano soggetti ai permessi Home Assistant dell'utente autenticato.",
           "register_lovelace_dashboard": "La plancia viene creata alla prima apertura effettuata da un amministratore.",
           "admin_only": "Filtro nativo Home Assistant; prevale sulla selezione utenti per gli account non amministratori.",
-          "check_updates": "Chiede a GitHub ogni mezz'ora se è uscita una versione più recente, e la mostra in Impostazioni → Aggiornamenti. Spegnilo per non far parlare la plancia con l'esterno: per funzionare non le serve."
+          "check_updates": "Chiede a GitHub ogni mezz'ora se è uscita una versione più recente, e la mostra in Impostazioni → Aggiornamenti. Spegnilo per non far parlare la plancia con l'esterno: per funzionare non le serve.",
+          "tickets_enabled": "Permette a chi usa la plancia di segnalare un difetto, proporre un'idea o chiedere aiuto senza uscirne. La segnalazione diventa una issue pubblica su GitHub, aperta a nome suo — lo stesso account che HACS gli ha già chiesto. Spento, non esce niente di casa."
         }
       }
     }
