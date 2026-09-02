@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "아래 숫자는 마지막으로 성공한 조회의 것입니다.",
   "I could not read the queue:": "목록을 읽지 못했습니다:",
   "Reading the queue…": "목록을 읽는 중…",
   "${conversazioni.length} with new messages": "새 메시지 ${conversazioni.length}건",

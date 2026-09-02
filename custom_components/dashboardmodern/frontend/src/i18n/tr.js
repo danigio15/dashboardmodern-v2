@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "Aşağıdaki sayılar son başarılı okumadan.",
   "I could not read the queue:": "Listeyi okuyamadım:",
   "Reading the queue…": "Liste okunuyor…",
   "${conversazioni.length} with new messages": "${conversazioni.length} yeni mesajlı",

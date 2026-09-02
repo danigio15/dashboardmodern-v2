@@ -2047,6 +2047,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "The monthly Report entries (Energy → Analysis): free name, icon and entity.",
   "The monthly Report entries in Energy → Analysis: name, icon and entity (monthly kWh) of your choice.",
   "The name appears in the dashboard header.",
+  "The numbers below are from the last successful read.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.",
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.",
   "the other plants have their own, and this save does not touch them",

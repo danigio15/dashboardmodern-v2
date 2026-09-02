@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.": "الأرقام أدناه من آخر قراءة ناجحة.",
   "I could not read the queue:": "تعذّرت قراءة القائمة:",
   "Reading the queue…": "أقرأ القائمة…",
   "${conversazioni.length} with new messages": "${conversazioni.length} برسائل جديدة",

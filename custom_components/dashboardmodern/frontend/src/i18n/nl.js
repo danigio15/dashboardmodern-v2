@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "De cijfers hieronder komen uit de laatste geslaagde uitlezing.",
   "I could not read the queue:": "Ik kon de wachtrij niet lezen:",
   "Reading the queue…": "Wachtrij wordt gelezen…",
   "${conversazioni.length} with new messages": "${conversazioni.length} met nieuwe berichten",

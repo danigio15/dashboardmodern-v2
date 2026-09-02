@@ -1790,7 +1790,36 @@ export function sistemaIlCruscotto() {
   creaPaginaCruscotto();
   creaVoceCruscotto();
   insegnaLaVisibilitaDelCruscotto();
+  /* E si riapplica la visibilita' salvata, adesso che la mappa conosce questa
+   * voce e la voce esiste. Il guscio la applica una volta sola, all'avvio;
+   * questa arriva dopo — la crea `ricarica()`, quando GitHub ha detto chi
+   * guarda — e senza questa riga chi l'aveva nascosta se la ritrovava nella
+   * barra a ogni ricarica della pagina, fino a un gesto qualunque che facesse
+   * ripassare il guscio. Cioe' un interruttore che sembra non funzionare. */
+  root.cdApplyNavVis?.();
   disegnaCruscotto();
+}
+
+/* Il motivo per cui la coda non e' arrivata, quando non e' arrivata.
+ *
+ * Sta sopra l'elenco e non al posto suo, perche' i due casi sono diversi e
+ * tutti e due veri. Alla prima accensione non c'e' niente da mostrare, e resta
+ * solo il motivo. Ma se una coda era gia' arrivata e a fallire e' stata la
+ * rilettura, l'elenco vecchio si tiene — meglio numeri di dieci minuti fa che
+ * una pagina bianca — e allora bisogna dire che sono di dieci minuti fa. Prima
+ * l'elenco vecchio restava li' con l'aria di essere fresco e il motivo non lo
+ * leggeva nessuno. */
+function guastoDellaCoda() {
+  if (!state.codaErrore) return "";
+  const cache = Array.isArray(state.queue)
+    ? ` ${t(
+        "I numeri qui sotto sono quelli dell'ultima lettura riuscita.",
+        "The numbers below are from the last successful read.",
+      )}`
+    : "";
+  return `<div class="dm-tkt-vuoto">${esc(
+    `${t("Non sono riuscito a leggere la coda:", "I could not read the queue:")} ${state.codaErrore}${cache}`,
+  )}</div>`;
 }
 
 function disegnaCruscotto() {
@@ -1808,14 +1837,13 @@ function disegnaCruscotto() {
       </div>
     </div>
     ${avvisoMarkup()}
+    ${guastoDellaCoda()}
     ${
       Array.isArray(state.queue)
         ? consoleMarkup()
-        : `<div class="dm-tkt-vuoto">${esc(
-            state.codaErrore
-              ? `${t("Non sono riuscito a leggere la coda:", "I could not read the queue:")} ${state.codaErrore}`
-              : t("Sto leggendo la coda…", "Reading the queue…"),
-          )}</div>`
+        : state.codaErrore
+          ? ""
+          : `<div class="dm-tkt-vuoto">${esc(t("Sto leggendo la coda…", "Reading the queue…"))}</div>`
     }`;
   agganciaEventi(dentro);
 }
@@ -2129,7 +2157,28 @@ async function caricaCoda({ zitta = false } = {}) {
     state.queue = [];
     state.avviso = `!${motivo}`;
   }
-  if (!zitta) disegna();
+  if (zitta) aggiornaIlCruscotto();
+  else disegna();
+}
+
+/* Il ridisegno del cruscotto dopo un giro zitto.
+ *
+ * «Zitto» voleva dire «non ridisegnare», e per la finestra va bene: nessuno
+ * l'ha aperta. Ma il cruscotto e' una pagina, e puo' essere aperta davanti
+ * agli occhi mentre il battito da dieci minuti porta la coda nuova: restava
+ * ferma su quella vecchia a tempo indefinito. Anche aprendola: il tocco
+ * disegna subito con quello che c'e' e chiede la coda, che arriva dopo.
+ *
+ * Non si ridisegna sopra le dita di nessuno. Se in una casella c'e' del testo,
+ * qualcuno sta scrivendo una risposta: rifare il markup vorrebbe dire
+ * cancellargliela. La coda nuova aspetta il ridisegno successivo — che arriva
+ * appena manda, perche' quello e' un giro ad alta voce. */
+function aggiornaIlCruscotto() {
+  const dentro = doc?.querySelector?.("[data-dm-cruscotto]");
+  if (!dentro) return;
+  const scrivendo = [...dentro.querySelectorAll("textarea")].some((campo) => clean(campo.value));
+  if (scrivendo) return;
+  disegnaCruscotto();
 }
 
 /**

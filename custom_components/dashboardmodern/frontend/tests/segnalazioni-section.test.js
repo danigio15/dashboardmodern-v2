@@ -1021,3 +1021,44 @@ test("l'interruttore del cruscotto non sta dentro la scheda della configurazione
   const scheda = sorgente.slice(inizio, sorgente.indexOf("\n}\n", inizio));
   assert.ok(!scheda.includes("cdSecToggleHtml"), "l'interruttore e' tornato dentro la scheda");
 });
+
+test("la voce del cruscotto riapplica la visibilita' salvata (segnalato in revisione)", async () => {
+  /* Il guscio applica `cd_sections` una volta sola, all'avvio. La voce del
+   * cruscotto nasce dopo — la crea `ricarica()`, quando GitHub ha detto chi
+   * guarda — quindi chi l'aveva nascosta se la ritrovava nella barra a ogni
+   * ricarica, fino a un gesto qualunque che facesse ripassare il guscio.
+   * Cioe' un interruttore che sembra non funzionare. */
+  const sorgente = await readFile(
+    new URL("../src/sections/segnalazioni-section.js", import.meta.url),
+    "utf8",
+  );
+  const sistema = sorgente.slice(
+    sorgente.indexOf("export function sistemaIlCruscotto"),
+    sorgente.indexOf("\n}\n", sorgente.indexOf("export function sistemaIlCruscotto")),
+  );
+  assert.ok(sistema.includes("creaVoceCruscotto()"), "sistemaIlCruscotto non trovata");
+  assert.ok(sistema.includes("cdApplyNavVis"), "la visibilita' salvata non viene riapplicata");
+});
+
+test("il giro zitto ridisegna il cruscotto, ma non sopra le dita di nessuno", async () => {
+  /* «Zitto» voleva dire «non ridisegnare», e per la finestra va bene: nessuno
+   * l'ha aperta. Il cruscotto invece e' una pagina, e restava fermo sulla coda
+   * vecchia a tempo indefinito — anche appena aperto, perche' il tocco disegna
+   * subito e la coda arriva dopo.
+   *
+   * Ridisegnarlo sempre pero' vorrebbe dire cancellare la risposta che qualcuno
+   * sta scrivendo, ogni dieci minuti. */
+  const sorgente = await readFile(
+    new URL("../src/sections/segnalazioni-section.js", import.meta.url),
+    "utf8",
+  );
+  const inizio = sorgente.indexOf("async function caricaCoda");
+  const carica = sorgente.slice(inizio, sorgente.indexOf("\n}\n", inizio));
+  assert.ok(carica.includes("aggiornaIlCruscotto()"), "il giro zitto non ridisegna il cruscotto");
+
+  const guardia = sorgente.slice(
+    sorgente.indexOf("function aggiornaIlCruscotto"),
+    sorgente.indexOf("\n}\n", sorgente.indexOf("function aggiornaIlCruscotto")),
+  );
+  assert.ok(guardia.includes("textarea"), "il ridisegno non guarda chi sta scrivendo");
+});

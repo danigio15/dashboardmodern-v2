@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.": "下面的数字来自最后一次成功的读取。",
   "I could not read the queue:": "读不到队列：",
   "Reading the queue…": "正在读取队列…",
   "${conversazioni.length} with new messages": "${conversazioni.length} 条有新消息",

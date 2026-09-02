@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "Die Zahlen unten stammen aus der letzten gelungenen Abfrage.",
   "I could not read the queue:": "Die Liste war nicht lesbar:",
   "Reading the queue…": "Liste wird gelesen…",
   "${conversazioni.length} with new messages": "${conversazioni.length} mit neuen Nachrichten",
