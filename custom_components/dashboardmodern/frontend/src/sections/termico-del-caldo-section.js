@@ -201,6 +201,30 @@ export function pillolaDellaCaldaia() {
 
 /* ── La scheda in configurazione ─────────────────────────────────────── */
 
+/* La casella «Entità caldaia» del guscio, che una spiegazione non ce l'ha.
+ *
+ * «Questa descrizione la devi mettere qua»: e' la casella dove va l'entita'
+ * che dice se la caldaia sta lavorando, e il suo nome — «switch, facoltativa»
+ * — racconta di che tipo e' e non a cosa serve. La riga si aggiunge sotto,
+ * dentro lo stesso riquadro, perche' il guscio non si tocca a mano.
+ *
+ * Si riconosce dal `data-ref`, che e' l'aggancio con cui il guscio stesso la
+ * salva: il titolo cambia con la lingua, quello no. */
+function spiegaLaCasellaCaldaia(corpo) {
+  const casella = corpo?.querySelector?.('[data-ref="switch.caldaia"]');
+  const riquadro = casella?.closest?.(".ed-slot");
+  if (!riquadro || riquadro.querySelector("[data-dm-termico-aiuto]")) return false;
+  const riga = doc.createElement("div");
+  riga.className = "ed-hint dm-termico-aiuto";
+  riga.dataset.dmTermicoAiuto = "";
+  riga.textContent = t(
+    "L'entità che rileva il consenso di accensione e spegnimento della caldaia.",
+    "The entity that reports the boiler's call for heat, on or off.",
+  );
+  riquadro.append(riga);
+  return true;
+}
+
 function rigaEditor(voce, indice) {
   const nodo = doc.createElement("div");
   nodo.className = "dm-termico-riga";
@@ -240,6 +264,7 @@ function montaEditor() {
     corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => nodo.remove());
     return false;
   }
+  spiegaLaCasellaCaldaia(corpo);
   const blocco = aggiungi.parentElement || corpo;
   corpo.querySelectorAll("[data-dm-termico-caldo]").forEach((nodo) => {
     if (!blocco.contains(nodo)) nodo.remove();
@@ -255,16 +280,14 @@ function montaEditor() {
   );
   carta.innerHTML =
     `<div class="ed-sec-title">🔥 ${t("Stato termico (Caldo)", "Thermal status (Heat)")}</div>` +
-    /* La spiegazione dice cosa scrivere, non dove finisce.
+    /* La spiegazione dice cosa sono queste voci, non dove finiscono.
      *
-     * «Modifichi il testo che non si capisce e scrivi: inserire entita' che
-     * rileva il consenso di accensione spegnimento caldaia.» Aveva ragione:
-     * parlava di «voci sotto le stanze del popup Caldo» — che e' il posto in
-     * cui vanno a finire, e lo si scopre dopo — invece di dire cosa mettere
-     * nella casella che si ha davanti. */
+     * Parlava di «voci sotto le stanze del popup Caldo»: e' il posto in cui
+     * vanno a finire, e lo si scopre dopo. Quello che serve sapere prima e'
+     * che cosa ci si mette dentro. */
     `<div class="ed-hint">${t(
-      "Inserisci l'entità che rileva il consenso di accensione e spegnimento della caldaia: la voce dice acceso o spento nel popup Caldo, sotto le stanze. Allo stesso modo puoi aggiungere pompe, aspiratori o altro. Senza voci il pannello non compare.",
-      "Add the entity that reports the boiler's call for heat, on or off: the row says which in the Heat popup, under the rooms. In the same way you can add pumps, fans or anything else. With no rows the panel does not appear.",
+      "Le entità della parte termica di cui vuoi sapere se sono accese o spente: caldaia, pompe, aspiratori — quello che ti serve. Ogni voce dice acceso o spento nel popup Caldo, sotto le stanze. Senza voci il pannello non compare.",
+      "The entities on the heating side you want to know are on or off: boiler, pumps, fans — whatever you need. Every row says on or off in the Heat popup, under the rooms. With no rows the panel does not appear.",
     )}</div>` +
     `<div class="dm-termico-righe"></div>` +
     `<button type="button" class="ed-btn-add dm-termico-aggiungi">＋ ${t("Aggiungi voce", "Add row")}</button>`;
@@ -305,6 +328,11 @@ function montaEditor() {
 const STILE = `
 .ns-thermal-state .dm-termico-da{display:block;font-size:9px;font-weight:700;opacity:.75;letter-spacing:.3px}
 .dm-termico-carta{margin-top:14px}
+/* La spiegazione della casella caldaia sta dentro il suo riquadro, fra il
+   titolo e la casella: prima si legge a cosa serve, poi la si compila. Ha la
+   voce di una nota — piccola e smorzata — perche' non deve competere con la
+   casella che spiega. */
+.dm-termico-aiuto{margin:2px 0 8px;font-size:12px;line-height:1.4;color:var(--secondary-text-color,#64748b)}
 .dm-termico-righe{display:grid;gap:8px;margin:10px 0}
 /* La prima colonna tiene la casella dell'icona E il tasto del catalogo: a
    52 px il tasto ne prende 42 e alla casella ne restano dieci, cioe' l'icona
