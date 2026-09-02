@@ -209,7 +209,7 @@ function rigaEditor(voce, indice) {
     `<span class="ed-form-row dm-termico-icona-riga"><input class="ed-input dm-termico-icona" maxlength="24" value="${esc(voce.icon || "")}" placeholder="🔥" aria-label="${t("Icona", "Icon")}">` +
     `<button type="button" class="dm-termico-icona-btn" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span>` +
     `<input class="ed-input dm-termico-nome" value="${esc(voce.name || "")}" placeholder="${t("Nome (es. Caldaia)", "Name (e.g. Boiler)")}">` +
-    `<span class="ed-form-row dm-termico-presa"><input class="ed-input ed-slot-in mono dm-termico-entita" value="${esc(voce.entity || "")}" placeholder="switch.caldaia">` +
+    `<span class="ed-form-row dm-termico-presa"><input class="ed-input ed-slot-in mono dm-termico-entita" value="${esc(voce.entity || "")}" placeholder="switch.caldaia" aria-label="${t("Entità del consenso", "Call-for-heat entity")}" title="${t("L'entità che dice se è acceso o spento", "The entity that says whether it is on or off")}">` +
     `<button type="button" class="dm-entity-picker" aria-label="${t("Seleziona", "Select")}">🔍</button></span>` +
     `<button type="button" class="ed-del dm-termico-via" aria-label="${t("Elimina", "Delete")}">🗑️</button>`;
   nodo.dataset.indice = String(indice);
@@ -255,9 +255,16 @@ function montaEditor() {
   );
   carta.innerHTML =
     `<div class="ed-sec-title">🔥 ${t("Stato termico (Caldo)", "Thermal status (Heat)")}</div>` +
+    /* La spiegazione dice cosa scrivere, non dove finisce.
+     *
+     * «Modifichi il testo che non si capisce e scrivi: inserire entita' che
+     * rileva il consenso di accensione spegnimento caldaia.» Aveva ragione:
+     * parlava di «voci sotto le stanze del popup Caldo» — che e' il posto in
+     * cui vanno a finire, e lo si scopre dopo — invece di dire cosa mettere
+     * nella casella che si ha davanti. */
     `<div class="ed-hint">${t(
-      "Le voci sotto le stanze del popup Caldo: caldaia, pompe, aspiratori — quello che vuoi. Ogni voce si salva appena cambia; senza voci il pannello sparisce.",
-      "The rows under the rooms of the Heat popup: boiler, pumps, fans — whatever you need. Every row saves as it changes; with no rows the panel disappears.",
+      "Inserisci l'entità che rileva il consenso di accensione e spegnimento della caldaia: la voce dice acceso o spento nel popup Caldo, sotto le stanze. Allo stesso modo puoi aggiungere pompe, aspiratori o altro. Senza voci il pannello non compare.",
+      "Add the entity that reports the boiler's call for heat, on or off: the row says which in the Heat popup, under the rooms. In the same way you can add pumps, fans or anything else. With no rows the panel does not appear.",
     )}</div>` +
     `<div class="dm-termico-righe"></div>` +
     `<button type="button" class="ed-btn-add dm-termico-aggiungi">＋ ${t("Aggiungi voce", "Add row")}</button>`;
@@ -299,10 +306,14 @@ const STILE = `
 .ns-thermal-state .dm-termico-da{display:block;font-size:9px;font-weight:700;opacity:.75;letter-spacing:.3px}
 .dm-termico-carta{margin-top:14px}
 .dm-termico-righe{display:grid;gap:8px;margin:10px 0}
-.dm-termico-riga{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}
+/* La prima colonna tiene la casella dell'icona E il tasto del catalogo: a
+   52 px il tasto ne prende 42 e alla casella ne restano dieci, cioe' l'icona
+   scelta non si vedeva — restava solo il tasto blu, e sembrava che l'icona
+   non ci fosse. Adesso la colonna e' larga quanto le due cose che contiene. */
+.dm-termico-riga{display:grid;grid-template-columns:96px minmax(0,1fr) minmax(0,1.4fr) 38px;gap:8px;align-items:center}
 .dm-termico-riga .dm-termico-icona{text-align:center;padding-inline:4px}
 .dm-termico-icona-riga{display:flex;gap:6px;min-width:0}
-.dm-termico-icona-riga .dm-termico-icona{flex:1 1 auto;min-width:0}
+.dm-termico-icona-riga .dm-termico-icona{flex:1 1 auto;min-width:0;font-size:17px}
 .dm-termico-icona-btn{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:12px;background:linear-gradient(145deg,#12aee4,#047faf);color:#fff;font-size:15px;cursor:pointer}
 .dm-termico-riga .dm-termico-presa{display:flex;gap:6px}
 .dm-termico-riga .dm-termico-presa .dm-termico-entita{flex:1;min-width:0}

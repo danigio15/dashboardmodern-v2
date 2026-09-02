@@ -147,6 +147,16 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
 
 ### Corretto
 
+- **Lo Stato termico dice cosa scrivere nella casella.** «Modifichi il testo che
+  non si capisce e scrivi: inserire entità che rileva il consenso di accensione
+  spegnimento caldaia.» Il testo parlava di «voci sotto le stanze del popup
+  Caldo» — che è dove vanno a finire, e lo si scopre dopo — invece di dire cosa
+  mettere nella casella che si ha davanti. Adesso lo dice, e il resto (pompe,
+  aspiratori, quello che serve) viene dopo.
+- **E l'icona scelta si vede.** Nella stessa riga la casella dell'icona era
+  larga dieci pixel: il tasto del catalogo se ne prendeva quarantadue su
+  cinquantadue, e di quello che si era scelto non restava niente da vedere —
+  solo il tasto blu, che sembrava dire «icona non impostata».
 - **Nel popup dei carichi ogni elettrodomestico ha il suo disegno.** «Le icone
   riportate non sono quelle inserite»: otto apparecchi e otto prese uguali. Il
   tipo — lavatrice, forno, frigorifero — arrivava fin dentro la finestra e
