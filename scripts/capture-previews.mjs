@@ -1505,6 +1505,24 @@ async function bootPage(context, cameraStill, vehicleStill) {
             },
           ],
         },
+        "dashboardmodern/tickets/unread": {
+          messages: [
+            {
+              number: 197,
+              title: "La foto dell'auto torna quella di prima dopo il salvataggio",
+              messages: 2,
+              at: "2026-09-01T09:02:00Z",
+              opened: false,
+            },
+            {
+              number: 266,
+              title: "aggiunta radar meteo assieme al meteo",
+              messages: 1,
+              at: "2026-09-01T09:10:00Z",
+              opened: true,
+            },
+          ],
+        },
         "dashboardmodern/tickets/auth/start": {
           user_code: "WDJB-MJHT",
           device_code: "finto",
@@ -1543,6 +1561,23 @@ async function bootPage(context, cameraStill, vehicleStill) {
                   : dove;
         stato.fili =
           dove === "miofilo" ? { 194: risposte["dashboardmodern/tickets/thread/194"] } : {};
+        /* Nella vista «le mie» c'e' anche la propria, col filo chiuso: e' il
+           caso che il pallino serve a mostrare. In «miofilo» no — quel filo e'
+           aperto davanti agli occhi, e averlo aperto e' averlo letto. */
+        stato.nonLetti = [
+          ...risposte["dashboardmodern/tickets/unread"].messages,
+          ...(dove === "mie"
+            ? [
+                {
+                  number: 194,
+                  title: "Le tapparelle non si fermano a meta'",
+                  messages: 1,
+                  at: "2026-09-01T09:20:00Z",
+                  opened: false,
+                },
+              ]
+            : []),
+        ];
         stato.filiInCorso = {};
         stato.queue =
           dove === "console" || dove === "filo" || dove === "chiuse" || dove === "difetti"
@@ -1579,6 +1614,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           stato.console = true;
           stato.queue = coda;
           stato.queueAt = Date.now();
+          stato.nonLetti = risposte["dashboardmodern/tickets/unread"].messages;
           stato.filtro = dove === "chiuse" ? "chiuse" : "aperte";
           stato.tipoCoda = dove === "difetti" ? "bug" : "";
           if (dove === "filo") stato.fili = { 197: risposte["dashboardmodern/tickets/thread"] };
@@ -1593,12 +1629,24 @@ async function bootPage(context, cameraStill, vehicleStill) {
           stato.console = true;
           stato.queue = coda;
           stato.queueAt = Date.now();
+          stato.nonLetti = risposte["dashboardmodern/tickets/unread"].messages;
         }
         return;
       }
       window.DashboardModernSegnalazioni?.apri();
       if (dove === "filo" && stato) {
         stato.fili = { 197: risposte["dashboardmodern/tickets/thread"] };
+      }
+      if (dove === "miofilo") {
+        /* Una frase gia' battuta nella casella: a vuoto la chat sembrerebbe
+           una casella qualunque, e il tasto — che si accende col testo —
+           resterebbe spento proprio nella foto che serve a mostrarlo. */
+        setTimeout(() => {
+          const campo = document.getElementById("dm-tkt-mio-194");
+          if (!campo) return;
+          campo.value = "Provo a togliere l'altra tapparella dal gruppo e ti dico.";
+          campo.dispatchEvent(new Event("input", { bubbles: true }));
+        }, 200);
       }
     };
 

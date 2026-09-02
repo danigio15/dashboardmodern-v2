@@ -45,6 +45,21 @@ conversazione vera, la meta' che mancava: da qui adesso si risponde.
   dire «ho provato, non funziona lo stesso» bisognava aprire github.com, cioe'
   uscire proprio dal posto che quella finestra esiste per non far lasciare.
 
+- **Il widget dice chi aspetta una risposta.** In cima alla finestra, prima dei
+  conti, le conversazioni dove qualcuno ha scritto e nessuno ha ancora aperto:
+  «💬 2 con messaggi nuovi», con i titoli e quanti messaggi sono. Il campanello
+  suona e passa — un evento non lo si puo' guardare mezz'ora dopo — e questo
+  invece resta, per chi apre la plancia dopo che il telefono ha vibrato o dopo
+  che il telefono non era in tasca.
+
+  Il conto e' di **conversazioni**, non di messaggi: chi guarda vuole sapere
+  quante porte ha da aprire; quante frasi ci siano dietro lo dice il filo. Lo
+  stesso segno compare sulla riga nel cruscotto e su quella di chi ha
+  segnalato, e si spegne aprendo la discussione — su tutte le plance della
+  casa, perche' l'elenco lo tiene Home Assistant e non il browser: chi legge
+  dal telefono e poi passa davanti al tablet in cucina non ritrova lo stesso
+  pallino ad aspettarlo.
+
 - **«Prendo in carico», sul cruscotto.** E' l'assegnazione di GitHub, non
   un'etichetta inventata qui: la segnalazione compare fra le tue, chi passa
   dalla pagina lo vede senza che nessuno glielo scriva, e in testa alla riga

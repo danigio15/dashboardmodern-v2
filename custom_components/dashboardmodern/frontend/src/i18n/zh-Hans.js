@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} 条有新消息",
+  "and ${conversazioni.length - MOSTRATE} more": "另有 ${conversazioni.length - MOSTRATE} 条",
+  new: "新",
+  "New messages": "新消息",
+  reply: "回复",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "反馈会以你的名义变成 github.com 上的公开页面，任何人都能读到。回复会回到这里，在讨论下面。",
   maintainer: "维护者",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "已认领。",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "供水与回水的温差说明回路是否真的在放热；压力是唯一偶尔需要手动补充的东西。没有必填项：仅凭状态，卡片就能显示锅炉的开与关，不会给出它没有的数字。如果不止一台——每个区域一台——在这里添加，页面上就会出现切换用的一行。",
-  "Unit": "设备",
+  Unit: "设备",
   "Write here: the message goes under the report, under your name.":
     "在这里写：消息会以你的名义发到反馈下面。",
   " — configured": " — 已配置",

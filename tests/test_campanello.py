@@ -33,6 +33,7 @@ from custom_components.dashboardmodern.ticket_store import (
     async_get_ticket_store,
 )
 from custom_components.dashboardmodern.ticket_watch import (
+    MAX_NON_LETTE,
     MAX_SEGNI,
     TicketWatch,
     async_get_watch,
@@ -461,3 +462,109 @@ async def test_prendere_in_carico_e_della_console(
         await tickets.async_take(hass, user_id="anna", number=8)
     assert errore.value.code == "not_console"
     assert github.calls == []
+
+
+# ─── Le conversazioni da leggere ─────────────────────────────────────────────
+
+
+async def test_quello_per_cui_ha_suonato_resta_in_elenco(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Il campanello suona e passa: l'elenco e' quello che resta.
+
+    Un evento non lo si puo' guardare mezz'ora dopo. Chi apre la plancia dopo
+    che il telefono ha vibrato — o dopo che il telefono non era in tasca — deve
+    trovare scritto cosa lo aspetta.
+    """
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("/issues?", [_riga(1, commenti=1), _riga(2, commenti=1)])
+    await tickets.async_watch_messages(hass)
+    assert await tickets.async_unread(hass) == []
+
+    github.answer(
+        "/issues?",
+        [
+            _riga(1, commenti=3, quando="2026-09-05T08:00:00Z"),
+            _riga(2, commenti=1),
+        ],
+    )
+    await tickets.async_watch_messages(hass)
+    da_leggere = await tickets.async_unread(hass)
+    assert [(voce["number"], voce["messages"]) for voce in da_leggere] == [(1, 2)]
+
+
+async def test_due_messaggi_sotto_la_stessa_fanno_una_riga_sola(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Chi guarda vuole sapere quante porte ha da aprire, non quante frasi."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("/issues?", [_riga(1, commenti=1)])
+    await tickets.async_watch_messages(hass)
+
+    github.answer("/issues?", [_riga(1, commenti=2, quando="2026-09-05T08:00:00Z")])
+    await tickets.async_watch_messages(hass)
+    github.answer("/issues?", [_riga(1, commenti=4, quando="2026-09-06T08:00:00Z")])
+    await tickets.async_watch_messages(hass)
+
+    da_leggere = await tickets.async_unread(hass)
+    assert len(da_leggere) == 1
+    assert da_leggere[0]["messages"] == 3
+
+
+async def test_aprire_il_filo_lo_toglie_dall_elenco(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Aprirlo e' averlo letto, e vale per tutte le plance della casa.
+
+    Il segno si toglie qui e non nel browser: chi legge la risposta dal
+    telefono e poi passa davanti al tablet in cucina non deve ritrovare lo
+    stesso pallino ad aspettarlo.
+    """
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("/issues?", [_riga(1, commenti=1)])
+    await tickets.async_watch_messages(hass)
+    github.answer("/issues?", [_riga(1, commenti=2, quando="2026-09-05T08:00:00Z")])
+    await tickets.async_watch_messages(hass)
+    assert len(await tickets.async_unread(hass)) == 1
+
+    github.answer("/issues/1", {"number": 1, "title": "x", "body": "y", "comments": 0})
+    await tickets.async_thread(hass, "dani", 1)
+    assert await tickets.async_unread(hass) == []
+
+
+async def test_l_elenco_sopravvive_al_riavvio(hass: HomeAssistant) -> None:
+    """Chi apre la plancia il mattino dopo trova quello che e' arrivato la notte."""
+    watch = TicketWatch(hass)
+    await watch.async_load()
+    await watch.async_segna_nuovi(
+        [{"number": 9, "title": "le tapparelle", "messages": 2}],
+        quando="2026-09-09T09:00:00Z",
+    )
+
+    dopo = TicketWatch(hass)
+    await dopo.async_load()
+    assert dopo.non_lette() == [
+        {
+            "number": 9,
+            "title": "le tapparelle",
+            "messages": 2,
+            "at": "2026-09-09T09:00:00Z",
+            "opened": False,
+        }
+    ]
+
+
+async def test_l_elenco_non_cresce_senza_fine(hass: HomeAssistant) -> None:
+    """Cinquanta e' gia' una giornata storta: oltre, il numero smette di dire."""
+    watch = TicketWatch(hass)
+    await watch.async_load()
+    await watch.async_segna_nuovi(
+        [{"number": numero, "title": "x"} for numero in range(1, MAX_NON_LETTE + 21)],
+        quando="2026-09-09T09:00:00Z",
+    )
+    numeri = [voce["number"] for voce in watch.non_lette()]
+    assert len(numeri) == MAX_NON_LETTE
+    assert min(numeri) == 21

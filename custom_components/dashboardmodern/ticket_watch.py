@@ -56,6 +56,11 @@ DATA_WATCH = "ticket_watch"
 #: troppo, ed e' il verso giusto in cui sbagliare.
 MAX_SEGNI = 300
 
+#: Quante conversazioni non lette si tengono in elenco. Cinquanta e' gia' una
+#: giornata storta: oltre, il numero smette di dire qualcosa e comincia solo a
+#: crescere.
+MAX_NON_LETTE = 50
+
 
 class TicketWatch:
     """Il taccuino di quello che si e' gia' letto."""
@@ -66,7 +71,7 @@ class TicketWatch:
 
         self.hass = hass
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
-        self._data: dict[str, Any] = {"since": "", "seen": {}}
+        self._data: dict[str, Any] = {"since": "", "seen": {}, "nuovi": {}}
         self._loaded = False
 
     async def async_load(self) -> None:
@@ -76,6 +81,7 @@ class TicketWatch:
         stored = await self._store.async_load()
         if isinstance(stored, dict):
             seen = stored.get("seen")
+            nuovi = stored.get("nuovi")
             self._data = {
                 "since": str(stored.get("since") or ""),
                 "seen": {
@@ -84,6 +90,13 @@ class TicketWatch:
                         seen.items() if isinstance(seen, dict) else ()
                     )
                     if str(numero).isdigit()
+                },
+                "nuovi": {
+                    str(numero): voce
+                    for numero, voce in (
+                        nuovi.items() if isinstance(nuovi, dict) else ()
+                    )
+                    if str(numero).isdigit() and isinstance(voce, dict)
                 },
             }
         self._loaded = True
@@ -197,6 +210,80 @@ class TicketWatch:
         self._data["since"] = piu_recente or adesso
         self._sfoltisci()
         await self._async_save()
+
+    def _nuovi(self) -> dict[str, Any]:
+        nuovi = self._data.setdefault("nuovi", {})
+        if not isinstance(nuovi, dict):  # pragma: no cover - file manomesso
+            nuovi = {}
+            self._data["nuovi"] = nuovi
+        return nuovi
+
+    def non_lette(self) -> list[dict[str, Any]]:
+        """Le conversazioni dove qualcuno ha scritto e nessuno ha ancora letto.
+
+        Il campanello suona e passa: e' un evento, e un evento non si puo'
+        guardare mezz'ora dopo. Questo invece resta, ed e' quello che il widget
+        mostra a chi apre la plancia dopo che il telefono ha vibrato — o dopo
+        che il telefono non era in tasca.
+
+        In ordine, la piu' recente per ultima: e' l'ordine di una
+        conversazione, non di una classifica.
+        """
+        voci = [
+            {
+                "number": int(numero),
+                "title": str(voce.get("title") or ""),
+                "messages": int(voce.get("messages") or 1),
+                "at": str(voce.get("at") or ""),
+                "opened": bool(voce.get("opened")),
+            }
+            for numero, voce in self._nuovi().items()
+        ]
+        return sorted(voci, key=lambda voce: (voce["at"], voce["number"]))
+
+    async def async_segna_nuovi(
+        self, nuovi: Iterable[Mapping[str, Any]], *, quando: str = ""
+    ) -> None:
+        """Metti in elenco quello per cui il campanello ha appena suonato.
+
+        Due messaggi sotto la stessa segnalazione fanno una riga sola, con il
+        conto che sale: chi guarda vuole sapere quante **conversazioni** lo
+        aspettano, non quante frasi. Sono due domande diverse, e la seconda la
+        risponde il filo quando lo si apre.
+        """
+        elenco = self._nuovi()
+        cambiato = False
+        for voce in nuovi:
+            numero = str(int(voce.get("number") or 0))
+            if numero == "0":
+                continue
+            gia = elenco.get(numero)
+            quanti = int(voce.get("messages") or 1)
+            elenco[numero] = {
+                "title": str(voce.get("title") or ""),
+                "messages": (int(gia.get("messages") or 0) if gia else 0) + quanti,
+                "at": quando or str(voce.get("at") or ""),
+                "opened": bool(voce.get("opened")) or bool(gia and gia.get("opened")),
+            }
+            cambiato = True
+        if not cambiato:
+            return
+        if len(elenco) > MAX_NON_LETTE:
+            tenute = sorted(elenco, key=int, reverse=True)[:MAX_NON_LETTE]
+            self._data["nuovi"] = {numero: elenco[numero] for numero in tenute}
+        await self._async_save()
+
+    async def async_letta(self, number: int) -> bool:
+        """Il filo e' stato aperto: quella conversazione non e' piu' da leggere.
+
+        Si segna qui e non nel browser perche' le plance sono piu' di una: chi
+        legge la risposta dal telefono e poi passa davanti al tablet in cucina
+        non deve ritrovare lo stesso pallino ad aspettarlo.
+        """
+        if self._nuovi().pop(str(int(number)), None) is None:
+            return False
+        await self._async_save()
+        return True
 
     async def async_ho_scritto(self, number: int) -> None:
         """Il messaggio l'ho scritto io: alza il segno, cosi' non suona.

@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} с новыми сообщениями",
+  "and ${conversazioni.length - MOSTRATE} more": "и ещё ${conversazioni.length - MOSTRATE}",
+  new: "новое",
+  "New messages": "Новые сообщения",
+  reply: "ответ",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Обращение становится публичной страницей на github.com, открытой от вашего имени: прочитать её сможет кто угодно. Ответ возвращается сюда, под обсуждение.",
   maintainer: "сопровождающий",
@@ -36,7 +41,7 @@ export default Object.freeze({
   "Taken.": "Взято в работу.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Разница между подачей и обраткой показывает, действительно ли контур отдаёт тепло; давление — единственное, что время от времени нужно подкачивать вручную. Ни одно поле не обязательно: даже с одним состоянием карточка покажет котёл включённым или выключенным, без чисел, которых у неё нет. Если их несколько — по одному на зону — добавьте их здесь, и на странице появится ряд для переключения.",
-  "Unit": "Устройство",
+  Unit: "Устройство",
   "Write here: the message goes under the report, under your name.":
     "Пишите здесь: сообщение уйдёт под обращение, от вашего имени.",
   " — configured": " — настроена",

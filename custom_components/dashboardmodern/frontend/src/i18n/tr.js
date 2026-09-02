@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} yeni mesajlı",
+  "and ${conversazioni.length - MOSTRATE} more": "ve ${conversazioni.length - MOSTRATE} tane daha",
+  new: "yeni",
+  "New messages": "Yeni mesajlar",
+  reply: "yanıt",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Bildirim github.com'da senin adına açılmış herkese açık bir sayfa olur: isteyen okuyabilir. Yanıt buraya, tartışmanın altına döner.",
   maintainer: "sorumlu",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "Üstlenildi artık.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Gidiş ile dönüş arasındaki fark, devrenin gerçekten ısı verip vermediğini söyler; basınç ise arada bir elle tamamlanması gereken tek şeydir. Hiçbir alan zorunlu değil: yalnızca durumla kart kombiyi açık ya da kapalı gösterir, sahip olmadığı sayılar olmadan. Birden fazlaysa — bölge başına bir tane — buraya ekle; sayfada aralarında geçiş için bir sıra çıkar.",
-  "Unit": "Birim",
+  Unit: "Birim",
   "Write here: the message goes under the report, under your name.":
     "Buraya yaz: mesaj senin adınla bildirimin altına gider.",
   " — configured": " — yapılandırıldı",

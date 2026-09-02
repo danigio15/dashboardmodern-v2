@@ -1754,14 +1754,17 @@ function caldaiaModel(states) {
     /* Il nome davanti solo quando ce n'e' piu' d'una: con una sola sarebbe
      * ripetuto su ogni riga e non distinguerebbe niente. */
     const suo = (testo) =>
-      piuDiUna ? `${clean(riga.name) || `${t("Caldaia", "Boiler")} ${indice + 1}`} · ${testo}` : testo;
+      piuDiUna
+        ? `${clean(riga.name) || `${t("Caldaia", "Boiler")} ${indice + 1}`} · ${testo}`
+        : testo;
     if (clean(dato.fiamma) || clean(dato.stato))
       rows.push({
         glyph: "🔥",
         name: suo(t("Bruciatore", "Burner")),
         entity: clean(dato.fiamma) || clean(dato.stato),
         on: riga.fiamma === true || riga.acceso === true,
-        value: riga.fiamma === true || riga.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
+        value:
+          riga.fiamma === true || riga.acceso === true ? t("Acceso", "On") : t("Spento", "Off"),
       });
     const misura = (campo, testo, glyph, valore, cifre, unita) => {
       if (valore == null) return;
@@ -4420,12 +4423,67 @@ function detailBody(widget, states) {
           t(`${conto.vecchie} ferme da oltre un mese`, `${conto.vecchie} stuck for over a month`),
         )}</p>`
       : "";
+    /* Chi ha scritto e nessuno ha ancora letto, in cima a tutto.
+     *
+     * E' l'unica riga di questa finestra che chiede qualcosa: i conti dicono
+     * com'e' messa la coda, questa dice che c'e' una persona che aspetta una
+     * risposta. Sta sopra apposta, ed e' la sola che porta i titoli — un
+     * numero da solo direbbe «due» senza dire di cosa, e per decidere se
+     * aprire il cruscotto adesso o dopo cena servono i titoli.
+     *
+     * Tre e non tutte: questa finestra e' larga un palmo, e una giornata
+     * storta la riempirebbe di righe fino a nascondere i conti. Le altre si
+     * contano in coda.
+     *
+     * Il conto e' di **conversazioni**, non di messaggi: chi guarda vuole
+     * sapere quante porte ha da aprire. Quante frasi ci siano dietro lo dice
+     * il filo, che e' il posto dove si leggono. */
+    const conversazioni = Array.isArray(conto.conversazioni) ? conto.conversazioni : [];
+    const MOSTRATE = 3;
+    const chatMarkup = conversazioni.length
+      ? `<div class="dm-w-chat">
+          <div class="dm-w-chat-testa">
+            <span aria-hidden="true">💬</span>
+            <b>${esc(
+              t(
+                `${conversazioni.length} con messaggi nuovi`,
+                `${conversazioni.length} with new messages`,
+              ),
+            )}</b>
+          </div>
+          ${conversazioni
+            .slice(-MOSTRATE)
+            .reverse()
+            .map(
+              (voce) => `
+                <div class="dm-w-chat-riga">
+                  <span class="dm-w-chat-tit">${esc(
+                    clean(voce?.title) || `#${Number(voce?.number) || 0}`,
+                  )}</span>
+                  <span class="dm-w-chat-n">${
+                    voce?.opened ? "✦" : Number(voce?.messages) || 1
+                  }</span>
+                </div>`,
+            )
+            .join("")}
+          ${
+            conversazioni.length > MOSTRATE
+              ? `<div class="dm-w-chat-altre">${esc(
+                  t(
+                    `e altre ${conversazioni.length - MOSTRATE}`,
+                    `and ${conversazioni.length - MOSTRATE} more`,
+                  ),
+                )}</div>`
+              : ""
+          }
+        </div>`
+      : "";
     const righe = [
       [t("Nuove", "New"), conto.nuove],
       [t("In lavorazione", "In progress"), conto.inLavorazione],
       [t("Chiuse", "Closed"), conto.chiuse],
     ];
-    return `${oggiMarkup}${ferme}
+    return `${chatMarkup}${oggiMarkup}${ferme}
       <div class="dm-w-caselle">${righe
         .map(
           ([nome, quante]) =>
@@ -5683,6 +5741,29 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 12%,transparent);
   border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,transparent)}
 #dm-widget-popup .dm-w-genere b{opacity:.8}
+/* Le conversazioni che aspettano. Un riquadro suo, in inchiostro d'accento,
+   perche' e' la sola cosa di questa finestra che chiede di essere aperta: alla
+   pari con i conti sarebbe passata per un'altra statistica. */
+#dm-widget-popup .dm-w-chat{
+  margin:0 0 11px;padding:10px 11px;border-radius:14px;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 28%,transparent)}
+#dm-widget-popup .dm-w-chat-testa{
+  display:flex;align-items:center;gap:6px;margin-bottom:7px;
+  font-size:12px;color:var(--text,#0f172a)}
+#dm-widget-popup .dm-w-chat-riga{
+  display:flex;align-items:center;gap:8px;padding:3px 0;
+  font-size:12px;color:var(--text,#0f172a)}
+/* Il titolo per intero non ci sta, e mandarlo a capo farebbe righe di altezza
+   diversa: si taglia, e chi vuole leggerlo apre il cruscotto. */
+#dm-widget-popup .dm-w-chat-tit{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dm-widget-popup .dm-w-chat-n{
+  flex:none;min-width:18px;padding:1px 6px;border-radius:50px;text-align:center;
+  font-size:11px;font-weight:800;color:#fff;
+  background:var(--dm-widget-accent,#0ea5e9);font-variant-numeric:tabular-nums}
+#dm-widget-popup .dm-w-chat-altre{
+  margin-top:5px;font-size:11px;color:var(--text-dim,#64748b)}
 #dm-widget-popup .dm-w-porta{
   width:100%;margin-top:10px;padding:11px 14px;border:0;border-radius:14px;
   cursor:pointer;font-size:13px;font-weight:800;color:#fff;

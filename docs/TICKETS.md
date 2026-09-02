@@ -368,6 +368,43 @@ per **chi ha segnalato**, chiama subito la `sync`: la notifica dice «c'e' un
 messaggio», e se aprendo la plancia non ci fosse ancora sarebbe una bugia con
 trenta minuti di scadenza.
 
+## Quello che il campanello lascia dietro
+
+Il campanello suona e passa. E' un evento, e un evento non lo si puo' guardare
+mezz'ora dopo: chi apre la plancia il mattino dopo — o chi il telefono non
+l'aveva in tasca — troverebbe la coda esattamente come prima, senza nessun
+segno di cosa e' successo la notte.
+
+Quindi il taccuino tiene, accanto ai segni, un elenco delle **conversazioni non
+lette**: numero, titolo, quanti messaggi, quando. Lo riempie il giro del
+campanello con quello per cui ha appena suonato, e lo svuota `tickets/thread` —
+aprire il filo e' averlo letto.
+
+Sta nel backend e non nel browser per una ragione precisa: **le plance di una
+casa sono piu' di una**. Segnarlo nel browser avrebbe voluto dire che chi legge
+la risposta dal telefono, passando davanti al tablet in cucina, ritrova lo
+stesso pallino ad aspettarlo — e un pallino che non si spegne smette di voler
+dire qualcosa dopo due giorni.
+
+`tickets/unread` lo restituisce, e non chiede niente a GitHub: e' roba che il
+giro da cinque minuti ha gia' visto passare. Chiederlo di la' avrebbe voluto
+dire una richiesta ogni volta che qualcuno guarda la Home.
+
+Si vede in tre posti, e sono tre livelli di dettaglio:
+
+* **il widget in Home**, in cima alla finestra e sopra i conti, coi titoli
+  delle prime tre — un numero da solo direbbe «due» senza dire di cosa, e per
+  decidere se aprire il cruscotto adesso o dopo cena servono i titoli;
+* **la riga nel cruscotto**, con la pastiglia d'accento accanto agli altri
+  segni: gli altri sono contorno — quanti allegati, chi ce l'ha in carico — e
+  questo invece chiede di essere aperto;
+* **la riga di chi ha segnalato**, dove il segno dice «risposta» perche' da
+  quel lato la domanda e' un'altra.
+
+Il conto e' sempre di **conversazioni**, non di messaggi: chi guarda vuole
+sapere quante porte ha da aprire. Quante frasi ci siano dietro lo dice il filo,
+che e' il posto dove si leggono.
+
 ## Presa in carico
 
 «In lavorazione» era una supposizione: lo stato si deduceva dal fatto che

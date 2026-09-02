@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "新着メッセージ ${conversazioni.length} 件",
+  "and ${conversazioni.length - MOSTRATE} more": "ほか ${conversazioni.length - MOSTRATE} 件",
+  new: "新着",
+  "New messages": "新しいメッセージ",
+  reply: "返事",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "報告はあなたの名前で github.com の公開ページになり、誰でも読めます。返事はここ、話の下に戻ってきます。",
   maintainer: "メンテナー",
@@ -36,7 +41,7 @@ export default Object.freeze({
   "Taken.": "担当になりました。",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "往きと戻りの差は回路が実際に熱を出しているかを示します。圧力だけは時々手で補充する必要があります。必須の欄はありません。状態だけでもカードはボイラーの運転と停止を示し、持っていない数値は出しません。 複数ある場合は — ゾーンごとに一台 — ここに追加すると、ページに切り替えの列が出ます。",
-  "Unit": "機器",
+  Unit: "機器",
   "Write here: the message goes under the report, under your name.":
     "ここに書いてください。メッセージはあなたの名前で報告の下に届きます。",
   " — configured": " — 設定済み",

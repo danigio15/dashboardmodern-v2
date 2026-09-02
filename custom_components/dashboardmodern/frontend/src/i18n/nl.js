@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} met nieuwe berichten",
+  "and ${conversazioni.length - MOSTRATE} more": "en nog ${conversazioni.length - MOSTRATE}",
+  new: "nieuw",
+  "New messages": "Nieuwe berichten",
+  reply: "antwoord",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "De melding wordt een openbare pagina op github.com, op jouw naam geopend: iedereen kan hem lezen. Het antwoord komt hier terug, onder de discussie.",
   maintainer: "beheerder",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "Opgepakt.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Het verschil tussen aanvoer en retour zegt of het circuit echt warmte afgeeft; de druk is het enige dat af en toe met de hand moet worden bijgevuld. Geen veld is verplicht: met alleen de status toont de kaart de ketel aan of uit, zonder getallen die zij niet heeft. Heb je er meer dan één — één per zone — voeg ze hier toe en de pagina krijgt een rij om te wisselen.",
-  "Unit": "Toestel",
+  Unit: "Toestel",
   "Write here: the message goes under the report, under your name.":
     "Schrijf hier: het bericht komt onder de melding, op jouw naam.",
   " — configured": " — geconfigureerd",

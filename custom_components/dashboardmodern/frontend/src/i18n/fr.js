@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} avec des messages récents",
+  "and ${conversazioni.length - MOSTRATE} more": "et ${conversazioni.length - MOSTRATE} autres",
+  new: "nouveau",
+  "New messages": "Nouveaux messages",
+  reply: "réponse",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Le signalement devient une page publique sur github.com, ouverte à ton nom : n'importe qui pourra la lire. La réponse revient ici, sous la discussion.",
   maintainer: "mainteneur",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "Pris en charge.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "L'écart entre départ et retour dit si le circuit cède vraiment de la chaleur ; la pression est la seule chose à compléter de temps en temps à la main. Aucun champ n'est obligatoire : avec le seul état, la carte montre la chaudière allumée ou éteinte, sans chiffres qu'elle n'a pas. Si tu en as plusieurs — une par zone — ajoute-les ici et la page se dote d'une rangée pour passer de l'une à l'autre.",
-  "Unit": "Unité",
+  Unit: "Unité",
   "Write here: the message goes under the report, under your name.":
     "Écris ici : le message part sous le signalement, à ton nom.",
   " — configured": " — configurée",

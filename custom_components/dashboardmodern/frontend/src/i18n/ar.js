@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} برسائل جديدة",
+  "and ${conversazioni.length - MOSTRATE} more": "و${conversazioni.length - MOSTRATE} أخرى",
+  new: "جديد",
+  "New messages": "رسائل جديدة",
+  reply: "رد",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "يصبح البلاغ صفحة عامة على github.com، مفتوحة باسمك: سيتمكن أي شخص من قراءتها. يصلك الرد هنا، أسفل النقاش.",
   maintainer: "المشرف",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "تم تولّيه.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "الفرق بين الذهاب والعودة يبيّن إن كانت الدائرة تمنح حرارة فعلاً؛ أما الضغط فهو الشيء الوحيد الذي يحتاج أحياناً إلى تعبئة يدوية. لا حقل إلزامي: بالحالة وحدها تعرض البطاقة الغلاية تعمل أو مطفأة، بلا أرقام لا تملكها. وإن كان لديك أكثر من واحد — واحد لكل منطقة — فأضِفها هنا، وتظهر في الصفحة صفٌّ للتنقل بينها.",
-  "Unit": "وحدة",
+  Unit: "وحدة",
   "Write here: the message goes under the report, under your name.":
     "اكتب هنا: تُنشر الرسالة تحت البلاغ باسمك.",
   " — configured": " — مُهيّأة",

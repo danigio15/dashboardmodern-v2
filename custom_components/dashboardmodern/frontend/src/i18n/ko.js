@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "새 메시지 ${conversazioni.length}건",
+  "and ${conversazioni.length - MOSTRATE} more": "외 ${conversazioni.length - MOSTRATE}건",
+  new: "새 글",
+  "New messages": "새 메시지",
+  reply: "답변",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "제보는 본인 이름으로 github.com의 공개 페이지가 되며 누구나 읽을 수 있습니다. 답변은 이곳, 대화 아래로 돌아옵니다.",
   maintainer: "관리자",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "맡았습니다.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "공급과 환수의 차이는 회로가 실제로 열을 내보내는지 알려 줍니다. 압력은 가끔 손으로 보충해야 하는 유일한 항목입니다. 필수 항목은 없습니다. 상태만으로도 카드는 보일러의 켜짐과 꺼짐을 보여 주며, 없는 숫자는 만들지 않습니다. 두 대 이상이면 — 구역마다 한 대씩 — 여기에 추가하면 페이지에 전환할 줄이 생깁니다.",
-  "Unit": "기기",
+  Unit: "기기",
   "Write here: the message goes under the report, under your name.":
     "여기에 쓰세요. 메시지는 본인 이름으로 제보 아래에 올라갑니다.",
   " — configured": " — 설정됨",

@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} में नए संदेश",
+  "and ${conversazioni.length - MOSTRATE} more": "और ${conversazioni.length - MOSTRATE} अन्य",
+  new: "नया",
+  "New messages": "नए संदेश",
+  reply: "जवाब",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "रिपोर्ट github.com पर आपके नाम से खुला एक सार्वजनिक पृष्ठ बन जाती है: कोई भी उसे पढ़ सकेगा। जवाब यहीं, चर्चा के नीचे आता है।",
   maintainer: "अनुरक्षक",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "संभाल ली।",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "सप्लाई और वापसी का अंतर बताता है कि सर्किट सचमुच गर्मी दे रहा है या नहीं; दबाव ही एकमात्र चीज़ है जिसे कभी-कभी हाथ से भरना पड़ता है। कोई भी खाना ज़रूरी नहीं: सिर्फ़ स्थिति से कार्ड बॉयलर को चालू या बंद दिखाता है, उन नंबरों के बिना जो उसके पास नहीं हैं। एक से ज़्यादा हों — हर क्षेत्र के लिए एक — तो उन्हें यहाँ जोड़ें, और पन्ने पर उनके बीच बदलने की पंक्ति आ जाएगी।",
-  "Unit": "इकाई",
+  Unit: "इकाई",
   "Write here: the message goes under the report, under your name.":
     "यहाँ लिखें: संदेश रिपोर्ट के नीचे, आपके नाम से जाएगा।",
   " — configured": " — कॉन्फ़िगर किया गया",

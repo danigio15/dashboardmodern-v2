@@ -34,6 +34,11 @@ const state = (root[KEY] ||= {
   auth: null,
   authTimer: 0,
   queue: null,
+  /* Le conversazioni dove qualcuno ha scritto e nessuno ha ancora aperto il
+   * filo. L'elenco lo tiene il backend — il campanello lo riempie nel suo giro
+   * — perche' le plance di una casa sono piu' di una: letto dal telefono vuol
+   * dire letto anche per il tablet in cucina. */
+  nonLetti: [],
   /* La segnalazione appena aperta, finche' non la si congeda. Serve al
    * riquadro che spiega come allegare foto e video: e' il momento in cui chi
    * ha appena scritto ha ancora il file sotto mano. */
@@ -68,6 +73,7 @@ const WS_ANSWER = "dashboardmodern/tickets/answer";
 const WS_THREAD = "dashboardmodern/tickets/thread";
 const WS_REPLY = "dashboardmodern/tickets/reply";
 const WS_TAKE = "dashboardmodern/tickets/take";
+const WS_UNREAD = "dashboardmodern/tickets/unread";
 const WS_AUTH_START = "dashboardmodern/tickets/auth/start";
 const WS_AUTH_POLL = "dashboardmodern/tickets/auth/poll";
 const WS_AUTH_FORGET = "dashboardmodern/tickets/auth/forget";
@@ -86,6 +92,7 @@ export const WS_TYPES = Object.freeze([
   WS_THREAD,
   WS_REPLY,
   WS_TAKE,
+  WS_UNREAD,
   WS_AUTH_START,
   WS_AUTH_POLL,
   WS_AUTH_FORGET,
@@ -609,6 +616,12 @@ a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
 .dm-tkt-segno { font-size:11px; font-weight:800; padding:3px 8px; border-radius:9px;
   background:var(--surface-3,#f1f5f9); color:var(--text-dim,#64748b);
   white-space:nowrap; }
+/* Il segno di «c'e' qualcosa da leggere» prende il colore d'accento: gli altri
+   segni sono contorno — quanti allegati, chi ce l'ha in carico — e questo
+   invece chiede di essere aperto. Alla pari con loro sarebbe stato l'unico che
+   chiede qualcosa vestito come quelli che non chiedono niente. */
+.dm-tkt-segno.nuovo { background:color-mix(in srgb, var(--accent,#38bdf8) 20%, transparent);
+  color:var(--accent,#38bdf8); }
 .dm-tkt-filo { display:flex; flex-direction:column; gap:10px; margin-top:11px; }
 .dm-tkt-filo-attesa { padding:14px; text-align:center; font-size:12px;
   color:var(--text-dim,#64748b); }
@@ -854,6 +867,20 @@ export function sommarioConsole() {
     bug: perTipo("bug"),
     feature: perTipo("feature"),
     assistenza: perTipo("assistenza"),
+    /* Chi ha scritto e nessuno ha ancora letto. E' l'unica riga del sommario
+     * che non si ricava dalla coda: la coda dice quante segnalazioni ci sono,
+     * non se sotto una di quelle e' comparso un messaggio da ieri sera. Quello
+     * lo sa il campanello, e lo tiene lui.
+     *
+     * Conversazioni, non messaggi: chi guarda vuole sapere quante porte ha da
+     * aprire, non quante frasi ci sono dietro. Quante siano lo dice il filo. */
+    nonLetti: state.nonLetti.length,
+    conversazioni: state.nonLetti.map((voce) => ({
+      number: Number(voce?.number) || 0,
+      title: clean(voce?.title),
+      messages: Number(voce?.messages) || 1,
+      opened: Boolean(voce?.opened),
+    })),
   };
 }
 
@@ -1060,6 +1087,13 @@ export function voceMarkup(ticket) {
       <div class="dm-tkt-voce-testa">
         <span>${tipo.icona}</span>
         <span class="dm-tkt-voce-tit">${esc(ticket.title)}</span>
+        ${
+          nonLetto(numero)
+            ? `<span class="dm-tkt-segno nuovo" title="${esc(
+                t("Messaggi nuovi", "New messages"),
+              )}">🔵 ${esc(t("risposta", "reply"))}</span>`
+            : ""
+        }
         ${statoMarkup(ticket.state)}
       </div>
       ${
@@ -1298,6 +1332,16 @@ function segniMarkup(ticket) {
   if (commenti) {
     segni.push(
       `<span class="dm-tkt-segno" title="${esc(t("Commenti", "Comments"))}">💬 ${commenti}</span>`,
+    );
+  }
+  if (nonLetto(ticket.number)) {
+    /* Il pallino sulla riga, e non solo il conto nel widget: aperto il
+     * cruscotto, quello che aspetta risposta si deve vedere senza cercarlo
+     * riga per riga. Si spegne aprendo il filo, che e' il gesto che lo legge. */
+    segni.push(
+      `<span class="dm-tkt-segno nuovo" title="${esc(
+        t("Messaggi nuovi", "New messages"),
+      )}">🔵 ${esc(t("nuovo", "new"))}</span>`,
     );
   }
   const incaricati = Array.isArray(ticket.assignees) ? ticket.assignees.map(clean) : [];
@@ -1973,6 +2017,7 @@ async function sincronizza({ zitta = false } = {}) {
     state.tickets = Array.isArray(risposta?.tickets) ? risposta.tickets : state.tickets;
     state.delivery = Boolean(risposta?.delivery);
     state.syncAt = Date.now();
+    await caricaNonLetti();
   } catch (errore) {
     if (!zitta) {
       state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
@@ -1982,6 +2027,29 @@ async function sincronizza({ zitta = false } = {}) {
     installaTessera();
     disegna();
   }
+}
+
+/* Chi ha scritto, e nessuno ha ancora letto.
+ *
+ * Non chiede niente a GitHub: e' l'elenco che il campanello ha gia' riempito
+ * nel suo giro da cinque minuti. Sta accanto agli altri due giri invece che in
+ * uno suo perche' costa quanto una lettura di un file, e perche' serve a
+ * entrambi i lati — a chi tiene la repository e a chi aspetta una risposta.
+ *
+ * Zitta sempre: e' un contorno, e se non arriva non c'e' niente da dire. */
+async function caricaNonLetti() {
+  try {
+    const risposta = await chiedi(WS_UNREAD);
+    state.nonLetti = Array.isArray(risposta?.messages) ? risposta.messages : [];
+  } catch {
+    /* Nessun avviso: un pallino che non compare e' meno peggio di un errore
+     * rosso per una cosa che nessuno ha chiesto. */
+  }
+}
+
+/** Se sotto questa segnalazione c'e' un messaggio non ancora letto. */
+function nonLetto(numero) {
+  return state.nonLetti.some((voce) => Number(voce?.number) === Number(numero));
 }
 
 async function elimina(id) {
@@ -2007,6 +2075,7 @@ async function caricaCoda({ zitta = false } = {}) {
     const risposta = await chiedi(WS_QUEUE);
     state.queue = Array.isArray(risposta?.tickets) ? risposta.tickets : [];
     state.queueAt = Date.now();
+    await caricaNonLetti();
   } catch (errore) {
     if (zitta) return;
     state.queue = [];
@@ -2035,6 +2104,10 @@ async function apriFilo(numero) {
   disegna();
   try {
     state.fili[chiave] = await chiedi(WS_THREAD, { number: Number(chiave) });
+    /* Il backend l'ha gia' segnata letta: qui si toglie il pallino subito,
+     * invece di lasciarlo acceso sotto gli occhi di chi sta leggendo fino al
+     * prossimo giro. */
+    state.nonLetti = state.nonLetti.filter((voce) => Number(voce?.number) !== Number(chiave));
   } catch (errore) {
     state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
   } finally {

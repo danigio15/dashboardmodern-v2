@@ -36,7 +36,7 @@ test("ogni messaggio che la finestra manda passa dal ponte", () => {
   }
 });
 
-test("i dodici comandi sono quelli che il backend registra", () => {
+test("i tredici comandi sono quelli che il backend registra", () => {
   assert.deepEqual([...WS_TYPES].sort(), [
     "dashboardmodern/tickets/answer",
     "dashboardmodern/tickets/auth/forget",
@@ -50,6 +50,7 @@ test("i dodici comandi sono quelli che il backend registra", () => {
     "dashboardmodern/tickets/sync",
     "dashboardmodern/tickets/take",
     "dashboardmodern/tickets/thread",
+    "dashboardmodern/tickets/unread",
   ]);
 });
 
@@ -650,6 +651,9 @@ test("il sommario conta quello che resta da lavorare, non tutto", () => {
         bug: 2,
         feature: 1,
         assistenza: 0,
+        // Nessuno ha scritto: nessuna conversazione da aprire.
+        nonLetti: 0,
+        conversazioni: [],
       });
     },
   );
@@ -923,4 +927,50 @@ test("il modulo non chiede piu' un recapito, e non ne porta uno", async () => {
   assert.ok(!sorgente.includes("dm-tkt-contatto"), "la casella del recapito e' tornata");
   assert.ok(!/\bcontact\b/.test(sorgente), "qualcosa manda ancora un recapito");
   assert.ok(!sorgente.includes("MAX_CONTATTO"));
+});
+
+function conINonLetti(nonLetti, prova) {
+  const stato = statoVivo();
+  const prima = stato.nonLetti;
+  stato.nonLetti = nonLetti;
+  try {
+    prova();
+  } finally {
+    stato.nonLetti = prima;
+  }
+}
+
+test("chi ha scritto si vede sulla riga, prima ancora di aprirla", () => {
+  /* Il campanello suona e passa: un evento non lo si puo' guardare mezz'ora
+   * dopo. Il pallino invece resta, ed e' quello che chi apre il cruscotto
+   * legge senza dover scorrere riga per riga. */
+  conINonLetti([{ number: 7, title: "x", messages: 2 }], () => {
+    assert.ok(codaVoceMarkup(inCoda({ number: 7 })).includes("🔵"));
+    assert.ok(!codaVoceMarkup(inCoda({ number: 8 })).includes("🔵"));
+  });
+});
+
+test("e sul lato di chi aspetta una risposta", () => {
+  const voce = ticket({ remote_id: "9", issue_url: "https://github.com/x/y/issues/9" });
+  conINonLetti([{ number: 9, title: "x", messages: 1 }], () => {
+    assert.ok(voceMarkup(voce).includes("🔵"));
+  });
+  conINonLetti([], () => {
+    assert.ok(!voceMarkup(voce).includes("🔵"));
+  });
+});
+
+test("il sommario porta le conversazioni, non solo il conto", () => {
+  /* Il widget mostra i titoli: un numero da solo direbbe «due» senza dire di
+   * cosa, e per decidere se aprire il cruscotto adesso o dopo cena servono i
+   * titoli. */
+  conLaCoda([inCoda({ number: 1, state: "inviato" })], true, () => {
+    conINonLetti([{ number: 1, title: "le tapparelle", messages: 3 }], () => {
+      const conto = sommarioConsole();
+      assert.equal(conto.nonLetti, 1);
+      assert.deepEqual(conto.conversazioni, [
+        { number: 1, title: "le tapparelle", messages: 3, opened: false },
+      ]);
+    });
+  });
 });

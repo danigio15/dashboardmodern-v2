@@ -202,9 +202,15 @@ async def async_thread(
     ha collegato niente legge lo stesso — leggere non chiede permessi.
     """
     gettoni = await async_get_token_store(hass)
-    return await github_client.async_issue_thread(
+    filo = await github_client.async_issue_thread(
         hass, gettoni.token(user_id), int(number)
     )
+    # Aprirlo e' averlo letto, e il segno si toglie qui invece che nel browser
+    # perche' le plance sono piu' di una: chi legge la risposta dal telefono e
+    # poi passa davanti al tablet in cucina non deve ritrovare lo stesso
+    # pallino ad aspettarlo.
+    await (await async_get_watch(hass)).async_letta(int(number))
+    return filo
 
 
 async def async_answer(
@@ -305,6 +311,18 @@ async def async_reply(
     return {"sent": True}
 
 
+async def async_unread(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Le conversazioni con messaggi nuovi che nessuno ha ancora aperto.
+
+    Non chiede niente a GitHub: e' quello che il campanello ha gia' visto
+    passare, e chiederlo di nuovo a ogni ridisegno della Home vorrebbe dire
+    una richiesta ogni volta che si guarda una tessera.
+    """
+    if not enabled(hass):
+        return []
+    return (await async_get_watch(hass)).non_lette()
+
+
 # ─── Il campanello ───────────────────────────────────────────────────────────
 
 
@@ -399,6 +417,11 @@ async def async_watch_messages(hass: HomeAssistant) -> list[dict[str, Any]]:
         return []
     nuovi = watch.nuovi(righe, mie=mie)
     await watch.async_ricorda(righe, adesso=_adesso())
+    # Il campanello suona e passa: e' un evento, e un evento non lo si puo'
+    # guardare mezz'ora dopo. Quello che resta e' questo elenco, ed e' quello
+    # che la plancia mostra a chi la apre dopo che il telefono ha vibrato — o
+    # dopo che il telefono non era in tasca.
+    await watch.async_segna_nuovi(nuovi, quando=_adesso())
     for riga in nuovi:
         _suona(hass, riga, console=console)
     if nuovi and not console:
@@ -493,6 +516,7 @@ __all__ = [
     "async_sync_states",
     "async_take",
     "async_thread",
+    "async_unread",
     "async_watch_messages",
     "enabled",
 ]

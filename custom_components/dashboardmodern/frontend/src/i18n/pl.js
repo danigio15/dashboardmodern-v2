@@ -11,6 +11,11 @@
  */
 
 export default Object.freeze({
+  "${conversazioni.length} with new messages": "${conversazioni.length} z nowymi wiadomościami",
+  "and ${conversazioni.length - MOSTRATE} more": "i jeszcze ${conversazioni.length - MOSTRATE}",
+  new: "nowe",
+  "New messages": "Nowe wiadomości",
+  reply: "odpowiedź",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Zgłoszenie staje się publiczną stroną na github.com, otwartą w twoim imieniu: każdy będzie mógł ją przeczytać. Odpowiedź wraca tutaj, pod dyskusją.",
   maintainer: "opiekun",
@@ -35,7 +40,7 @@ export default Object.freeze({
   "Taken.": "Wzięte na siebie.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Różnica między zasilaniem a powrotem mówi, czy obieg naprawdę oddaje ciepło; ciśnienie to jedyna rzecz, którą co jakiś czas trzeba uzupełnić ręcznie. Żadne pole nie jest wymagane: z samym stanem karta pokazuje kocioł włączony lub wyłączony, bez liczb, których nie ma. Jeśli masz więcej niż jeden — po jednym na strefę — dodaj je tutaj, a na stronie pojawi się rząd do przełączania.",
-  "Unit": "Urządzenie",
+  Unit: "Urządzenie",
   "Write here: the message goes under the report, under your name.":
     "Napisz tutaj: wiadomość trafi pod zgłoszenie, w twoim imieniu.",
   " — configured": " — skonfigurowana",

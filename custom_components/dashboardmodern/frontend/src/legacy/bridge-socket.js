@@ -84,6 +84,7 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "dashboardmodern/tickets/thread",
   "dashboardmodern/tickets/reply",
   "dashboardmodern/tickets/take",
+  "dashboardmodern/tickets/unread",
   "dashboardmodern/tickets/auth/start",
   "dashboardmodern/tickets/auth/poll",
   "dashboardmodern/tickets/auth/forget",

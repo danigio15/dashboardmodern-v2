@@ -66,6 +66,7 @@ from .tickets import (
     async_sync_states,
     async_take,
     async_thread,
+    async_unread,
 )
 from .tickets import (
     enabled as tickets_enabled,
@@ -91,6 +92,7 @@ TYPE_TICKET_ANSWER = f"{DOMAIN}/tickets/answer"
 TYPE_TICKET_THREAD = f"{DOMAIN}/tickets/thread"
 TYPE_TICKET_REPLY = f"{DOMAIN}/tickets/reply"
 TYPE_TICKET_TAKE = f"{DOMAIN}/tickets/take"
+TYPE_TICKET_UNREAD = f"{DOMAIN}/tickets/unread"
 TYPE_TICKET_AUTH_START = f"{DOMAIN}/tickets/auth/start"
 TYPE_TICKET_AUTH_POLL = f"{DOMAIN}/tickets/auth/poll"
 TYPE_TICKET_AUTH_FORGET = f"{DOMAIN}/tickets/auth/forget"
@@ -659,6 +661,25 @@ async def async_take_ticket_command(
     connection.send_result(msg["id"], fatto)
 
 
+@websocket_api.websocket_command({vol.Required("type"): TYPE_TICKET_UNREAD})
+@websocket_api.async_response
+async def async_ticket_unread(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Le conversazioni con messaggi nuovi che nessuno ha ancora aperto.
+
+    Non esce di casa: e' l'elenco che il campanello ha gia' riempito nel suo
+    giro. Chiedere qui a GitHub vorrebbe dire una richiesta ogni volta che
+    qualcuno guarda la Home.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    connection.send_result(msg["id"], {"messages": await async_unread(hass)})
+
+
 # ─── Collegare il proprio account GitHub ─────────────────────────────────────
 #
 # Lo stesso giro che HACS fa gia' fare a chiunque installi la plancia: un
@@ -771,6 +792,7 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_ticket_thread,
         async_reply_ticket_command,
         async_take_ticket_command,
+        async_ticket_unread,
         async_ticket_auth_start,
         async_ticket_auth_poll,
         async_ticket_auth_forget,
