@@ -407,6 +407,17 @@ export function normalizeDevice(input = {}, section, context = {}) {
   }
   if (input.stream || input.stream_url || input.url)
     base.stream = String(input.stream || input.stream_url || input.url);
+  /* L'indirizzo RTSP della telecamera (#284).
+   *
+   * Vale la riga qui sotto sul contatto dell'infisso, ed e' la quarta volta:
+   * un campo non dichiarato qui sparisce alla prima normalizzazione. Non e'
+   * `stream`, che e' il nome del flusso dentro go2rtc: e' l'indirizzo della
+   * telecamera, quello che si legge sul suo pannello, e i due si somigliano
+   * abbastanza da confonderli se stessero nella stessa casella. */
+  if (section === "cameras") {
+    const rtsp = String(input.rtsp || "").trim();
+    if (rtsp) base.rtsp = rtsp;
+  }
   /* Il contatto dell'infisso di una tapparella.
    *
    * Il modello tiene solo i campi che conosce, ed e' giusto cosi': e' quello che

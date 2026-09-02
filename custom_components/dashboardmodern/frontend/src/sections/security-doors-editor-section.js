@@ -272,7 +272,7 @@ export function ensureDoorsEditorTab() {
   const tab = doc.createElement("button");
   tab.className = "ed-tab";
   tab.dataset.tab = DOORS_EDITOR_TAB;
-  tab.textContent = `🚪 ${t("Aperture", "Openings")}`;
+  tab.textContent = `🚪 ${t("Comandi apri porte/cancelli", "Door and gate openers")}`;
   tab.addEventListener("click", () => root.editorSwitch?.(DOORS_EDITOR_TAB));
   const prima = tabs.querySelector('.ed-tab[data-tab="runtime"]');
   if (prima) prima.before(tab);

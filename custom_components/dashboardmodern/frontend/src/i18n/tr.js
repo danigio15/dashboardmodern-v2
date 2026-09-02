@@ -11,6 +11,25 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "Kapılar/Pencereler",
+  "Door and gate openers": "Kapı ve bahçe kapısı kumandaları",
+  "Alarm · Cameras · Doors and gates":
+    "Alarm · Kameralar · Kapılar ve bahçe kapıları",
+  "with credentials": "kimlik bilgileriyle",
+  "stream": "akış",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Kameranın akış adresi, elinizde varsa. Burada durur ki kaybolmasın ve yukarıdaki alanı doldurabilesiniz.",
+  "Open it": "Aç",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "go2rtc ya da Frigate kullanıyorsanız bu satırı onların dosyasında «streams:» altına koyun:",
+  "Copy": "Kopyala",
+  "Copied": "Kopyalandı",
+  "Camera RTSP address": "Kameranın RTSP adresi",
+  "Boilers on": "Yanan kombiler",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Home Assistant'a bu adresle bir Generic kamera ekleyin, çıkan varlığı da varlık alanına yapıştırın.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Tarayıcı rtsp:// adresini kendi başına açamaz: akışı bir şeyin yeniden paketlemesi gerekir. İki yol var, biri yeter.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Bildirim github.com'da senin adına açılmış herkese açık bir sayfa olur: isteyen okuyabilir. Yanıt buraya, tartışmanın altına döner.",
   maintainer: "sorumlu",
@@ -496,7 +515,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Soğutma ve ısıtma",
   "Air fryer": "Airfryer",
   Alarm: "Alarm",
-  "Alarm · Cameras · Openings": "Alarm · Kameralar · Açıklıklar",
   "Alarm · Total": "Alarm · Toplam",
   "Alarm status": "Alarm durumu",
   "Alarm system and video surveillance": "Alarm sistemi ve kamera izleme",

@@ -109,7 +109,7 @@ function doorMarkup(door) {
 function blockMarkup(doors) {
   return `<div class="dm-sec-doors-head">
       <span class="dm-sec-doors-ic" aria-hidden="true">🚪</span>
-      <h3>${esc(t("Aperture", "Openings"))}</h3>
+      <h3>${esc(t("Comandi apri porte/cancelli", "Door and gate openers"))}</h3>
       <span class="dm-sec-doors-hint">${esc(t("Il tocco chiede conferma; col PIN, il codice.", "A tap asks to confirm; with a PIN, the code."))}</span>
     </div>
     <div class="dm-door-grid">${doors.map(doorMarkup).join("")}</div>`;

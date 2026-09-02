@@ -582,8 +582,8 @@ const BRICIOLE = Object.freeze({
     ["Zones", "Schedules", "Rain"],
   ],
   aperture: [
-    ["Porte e finestre", "Sorveglianza"],
-    ["Doors and windows", "Watch"],
+    ["Contatti", "Sorveglianza"],
+    ["Contacts", "Watch"],
   ],
   batterie: [
     ["Livelli", "Soglie", "Autonomia"],

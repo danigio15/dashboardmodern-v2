@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "Двери/Окна",
+  "Door and gate openers": "Открывание дверей и ворот",
+  "Alarm · Cameras · Doors and gates": "Охрана · Камеры · Двери и ворота",
+  "with credentials": "с учётными данными",
+  "stream": "поток",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Адрес потока камеры, если он у вас есть. Он здесь, чтобы не потерялся и чтобы заполнить поле выше.",
+  "Open it": "Открыть",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Если у вас go2rtc или Frigate, добавьте эту строку под «streams:» в их файл:",
+  "Copy": "Копировать",
+  "Copied": "Скопировано",
+  "Camera RTSP address": "RTSP-адрес камеры",
+  "Boilers on": "Котлы работают",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Добавьте в Home Assistant камеру Generic с этим адресом, а появившуюся сущность вставьте в поле сущности.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Браузер не открывает rtsp:// сам по себе: поток должен кто-то переупаковать. Два пути, и хватит одного.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Обращение становится публичной страницей на github.com, открытой от вашего имени: прочитать её сможет кто угодно. Ответ возвращается сюда, под обсуждение.",
   maintainer: "сопровождающий",
@@ -496,7 +514,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Кондиционирование и отопление",
   "Air fryer": "Аэрогриль",
   Alarm: "Охрана",
-  "Alarm · Cameras · Openings": "Охрана · Камеры · Проёмы",
   "Alarm · Total": "Охрана · Всего",
   "Alarm status": "Состояние охраны",
   "Alarm system and video surveillance": "Охранная система и видеонаблюдение",

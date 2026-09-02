@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "Türen/Fenster",
+  "Door and gate openers": "Tür- und Toröffner",
+  "Alarm · Cameras · Doors and gates": "Alarm · Kameras · Türen und Tore",
+  "with credentials": "mit Zugangsdaten",
+  "stream": "Stream",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Die Stream-Adresse der Kamera, falls du sie hast. Sie steht hier, um sie zu behalten und das Feld darüber auszufüllen.",
+  "Open it": "Öffnen",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Wenn du go2rtc oder Frigate nutzt, trage diese Zeile unter „streams:“ in deren Datei ein:",
+  "Copy": "Kopieren",
+  "Copied": "Kopiert",
+  "Camera RTSP address": "RTSP-Adresse der Kamera",
+  "Boilers on": "Kessel in Betrieb",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Füge in Home Assistant eine Generic-Kamera mit dieser Adresse hinzu und trage die entstandene Entität oben im Entitätsfeld ein.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Ein Browser kann rtsp:// nicht von sich aus öffnen: irgendetwas muss den Stream neu verpacken. Zwei Wege, und einer genügt.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Die Meldung wird eine öffentliche Seite auf github.com, in deinem Namen eröffnet: jeder kann sie lesen. Die Antwort kommt hierher zurück, unter die Diskussion.",
   maintainer: "Betreuer",
@@ -500,7 +518,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Klimatisierung und Heizung",
   "Air fryer": "Heißluftfritteuse",
   Alarm: "Alarmanlage",
-  "Alarm · Cameras · Openings": "Alarmanlage · Kameras · Öffnungen",
   "Alarm · Total": "Alarmanlage · Gesamt",
   "Alarm status": "Alarmstatus",
   "Alarm system and video surveillance": "Alarmanlage und Videoüberwachung",

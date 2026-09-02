@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "Deuren/Ramen",
+  "Door and gate openers": "Deur- en poortopeners",
+  "Alarm · Cameras · Doors and gates": "Alarm · Camera's · Deuren en poorten",
+  "with credentials": "met inloggegevens",
+  "stream": "videostream",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Het streamadres van de camera, als je het hebt. Het staat hier om het te bewaren en het veld hierboven in te vullen.",
+  "Open it": "Openen",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Gebruik je go2rtc of Frigate, zet deze regel dan onder “streams:” in hun bestand:",
+  "Copy": "Kopiëren",
+  "Copied": "Gekopieerd",
+  "Camera RTSP address": "RTSP-adres van de camera",
+  "Boilers on": "Ketels aan",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Voeg in Home Assistant een Generic-camera toe met dit adres en plak de entiteit die eruit komt in het entiteitsveld.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Een browser opent rtsp:// niet uit zichzelf: iets moet de stream opnieuw inpakken. Twee wegen, en één is genoeg.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "De melding wordt een openbare pagina op github.com, op jouw naam geopend: iedereen kan hem lezen. Het antwoord komt hier terug, onder de discussie.",
   maintainer: "beheerder",
@@ -497,7 +515,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Koeling en verwarming",
   "Air fryer": "Airfryer",
   Alarm: "Alarm",
-  "Alarm · Cameras · Openings": "Alarm · Camera's · Openingen",
   "Alarm · Total": "Alarm · Totaal",
   "Alarm status": "Alarmstatus",
   "Alarm system and video surveillance": "Alarmsysteem en camerabewaking",

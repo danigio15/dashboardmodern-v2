@@ -588,8 +588,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // necessariamente quella di HA» (#263). Il motore c'era gia' tutto in
   // `core/i18n.js` — questa e' la riga da cui dirlo, e vive fuori da li'
   // perche' il raccoglitore delle traduzioni guarda le sezioni.
+  // 203 con l'indirizzo RTSP delle telecamere (`core/telecamera-rtsp.js` e
+  // `sections/telecamera-rtsp-section.js`): «ho una telecamera con flusso
+  // video su rtsp://…, non c'e' possibilita' di configurazione» (#284). Il
+  // modulo puro legge l'indirizzo — host, percorso, il nome che go2rtc dà a
+  // quel flusso — e la sezione e' la casella dove scriverlo, accanto a quella
+  // del flusso che il guscio disegna gia'.
   assert.ok(
-    relative.length <= 201,
+    relative.length <= 203,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

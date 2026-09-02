@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "문/창문",
+  "Door and gate openers": "문·대문 열기 버튼",
+  "Alarm · Cameras · Doors and gates": "경보 · 카메라 · 문과 대문",
+  "with credentials": "인증 정보 포함",
+  "stream": "스트림",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "카메라의 스트림 주소입니다. 있다면 여기에 두어 잃지 않고 위 칸을 채우는 데 씁니다.",
+  "Open it": "열기",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "go2rtc나 Frigate를 쓴다면 이 줄을 그 파일의 «streams:» 아래에 넣으세요:",
+  "Copy": "복사",
+  "Copied": "복사됨",
+  "Camera RTSP address": "카메라 RTSP 주소",
+  "Boilers on": "가동 중인 보일러",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Home Assistant에 이 주소로 Generic 카메라를 추가하고, 생성된 엔터티를 엔터티 칸에 붙여 넣으세요.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "브라우저는 rtsp://를 스스로 열지 못합니다. 스트림을 무언가가 다시 포장해 주어야 합니다. 길은 둘, 하나면 충분합니다.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "제보는 본인 이름으로 github.com의 공개 페이지가 되며 누구나 읽을 수 있습니다. 답변은 이곳, 대화 아래로 돌아옵니다.",
   maintainer: "관리자",
@@ -490,7 +508,6 @@ export default Object.freeze({
   "Air conditioning and heating": "냉방과 난방",
   "Air fryer": "에어프라이어",
   Alarm: "경보",
-  "Alarm · Cameras · Openings": "경보 · 카메라 · 개구부",
   "Alarm · Total": "경보 · 전체",
   "Alarm status": "경보 상태",
   "Alarm system and video surveillance": "경보 시스템과 영상 감시",

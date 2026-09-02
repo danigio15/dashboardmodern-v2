@@ -131,8 +131,8 @@ const PAGES = Object.freeze([
   {
     id: "page-security",
     tint: ["190,18,60", "249,115,22"],
-    it: ["Sistema di sicurezza", "Antifurto · Telecamere · Aperture"],
-    en: ["Security system", "Alarm · Cameras · Openings"],
+    it: ["Sistema di sicurezza", "Antifurto · Telecamere · Porte e cancelli"],
+    en: ["Security system", "Alarm · Cameras · Doors and gates"],
     fold: ".sec-header, .dm-sec-mast-ic, .dm-sec-mast-copy",
   },
   /* Solare termico e MiniPC avevano l'intestazione che hanno ispirato tutte le

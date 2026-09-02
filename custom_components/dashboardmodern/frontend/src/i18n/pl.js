@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "Drzwi/Okna",
+  "Door and gate openers": "Sterowanie drzwiami i bramami",
+  "Alarm · Cameras · Doors and gates": "Alarm · Kamery · Drzwi i bramy",
+  "with credentials": "z danymi logowania",
+  "stream": "strumień",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Adres strumienia kamery, jeśli go masz. Jest tutaj, żeby go zachować i wypełnić pole powyżej.",
+  "Open it": "Otwórz",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Jeśli używasz go2rtc lub Frigate, wstaw tę linię pod „streams:” w ich pliku:",
+  "Copy": "Kopiuj",
+  "Copied": "Skopiowano",
+  "Camera RTSP address": "Adres RTSP kamery",
+  "Boilers on": "Włączone kotły",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Dodaj w Home Assistancie kamerę Generic z tym adresem, a encję, która powstanie, wklej w pole encji.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Przeglądarka sama nie otworzy rtsp://: coś musi przepakować strumień. Dwie drogi, wystarczy jedna.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Zgłoszenie staje się publiczną stroną na github.com, otwartą w twoim imieniu: każdy będzie mógł ją przeczytać. Odpowiedź wraca tutaj, pod dyskusją.",
   maintainer: "opiekun",
@@ -498,7 +516,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Klimatyzacja i ogrzewanie",
   "Air fryer": "Frytkownica beztłuszczowa",
   Alarm: "Alarm",
-  "Alarm · Cameras · Openings": "Alarm · Kamery · Otwory",
   "Alarm · Total": "Alarm · Razem",
   "Alarm status": "Stan alarmu",
   "Alarm system and video surveillance": "System alarmowy i monitoring wideo",

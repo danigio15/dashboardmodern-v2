@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "Puertas/Ventanas",
+  "Door and gate openers": "Mandos de puertas y cancelas",
+  "Alarm · Cameras · Doors and gates": "Alarma · Cámaras · Puertas y cancelas",
+  "with credentials": "con credenciales",
+  "stream": "flujo",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "La dirección del flujo de la cámara, si la tienes. Está aquí para guardarla y para rellenar el campo de arriba.",
+  "Open it": "Ábrela",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Si usas go2rtc o Frigate, pon esta línea bajo «streams:» en su archivo:",
+  "Copy": "Copiar",
+  "Copied": "Copiada",
+  "Camera RTSP address": "Dirección RTSP de la cámara",
+  "Boilers on": "Calderas encendidas",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Añade una cámara Genérica en Home Assistant con esta dirección y pega en el campo de entidad la que salga.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Un navegador no puede abrir rtsp:// por sí solo: algo tiene que reempaquetar el flujo. Dos caminos, y basta con uno.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "El informe se convierte en una página pública en github.com, abierta a tu nombre: cualquiera podrá leerla. La respuesta vuelve aquí, bajo la discusión.",
   maintainer: "mantenedor",
@@ -497,7 +515,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Aire acondicionado y calefacción",
   "Air fryer": "Freidora de aire",
   Alarm: "Alarma",
-  "Alarm · Cameras · Openings": "Alarma · Cámaras · Aperturas",
   "Alarm · Total": "Alarma · Total",
   "Alarm status": "Estado de la alarma",
   "Alarm system and video surveillance": "Sistema de alarma y videovigilancia",

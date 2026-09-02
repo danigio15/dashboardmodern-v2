@@ -189,8 +189,8 @@ test("le briciole del solare termico sono quelle disegnate", () => {
     "Ricircolo sanitario",
   ]);
   assert.deepEqual(bricioleDellaSezione("energia"), ["Produzione", "Consumi", "Report"]);
-  assert.deepEqual(bricioleDellaSezione("aperture", (_it, en) => en), [
-    "Doors and windows",
-    "Watch",
-  ]);
+  /* La tessera adesso si chiama «Porte/Finestre» — «altrimenti si confonde con
+   * le altre aperture» — e la briciola non ripete il titolo: dice cosa sta
+   * guardando, che sono i contatti. */
+  assert.deepEqual(bricioleDellaSezione("aperture", (_it, en) => en), ["Contacts", "Watch"]);
 });

@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "门/窗",
+  "Door and gate openers": "开门与开闸按钮",
+  "Alarm · Cameras · Doors and gates": "安防 · 摄像头 · 门与大门",
+  "with credentials": "带凭据",
+  "stream": "视频流",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "摄像头的视频流地址，有就填。放在这里是为了留个底，也为了填上面那一栏。",
+  "Open it": "打开",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "如果你用 go2rtc 或 Frigate，把这一行放到它们文件的「streams:」下面：",
+  "Copy": "复制",
+  "Copied": "已复制",
+  "Camera RTSP address": "摄像头 RTSP 地址",
+  "Boilers on": "运行中的锅炉",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "在 Home Assistant 中用这个地址添加一个 Generic 摄像头，再把生成的实体粘贴到实体栏里。",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "浏览器无法自行打开 rtsp://：需要有东西把视频流重新封装。两条路，走通一条就够。",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "反馈会以你的名义变成 github.com 上的公开页面，任何人都能读到。回复会回到这里，在讨论下面。",
   maintainer: "维护者",
@@ -481,7 +499,6 @@ export default Object.freeze({
   "Air conditioning and heating": "制冷与供暖",
   "Air fryer": "空气炸锅",
   Alarm: "报警",
-  "Alarm · Cameras · Openings": "报警 · 摄像头 · 门窗",
   "Alarm · Total": "报警 · 合计",
   "Alarm status": "报警状态",
   "Alarm system and video surveillance": "报警系统与视频监控",

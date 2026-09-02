@@ -2447,7 +2447,7 @@ function openingsModel(states) {
     accent: "#dc2626",
     icon: "🚪",
     alert: true,
-    label: t("Aperture", "Openings"),
+    label: t("Porte/Finestre", "Doors/Windows"),
     value: String(open.length),
     caption: open[0] ? open[0].name : "",
     ring: Math.round((open.length / rows.length) * 100),

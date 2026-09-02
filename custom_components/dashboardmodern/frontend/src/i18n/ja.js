@@ -11,6 +11,24 @@
  */
 
 export default Object.freeze({
+  "Doors/Windows": "ドア／窓",
+  "Door and gate openers": "ドア・ゲートの開錠操作",
+  "Alarm · Cameras · Doors and gates": "防犯 · カメラ · ドアとゲート",
+  "with credentials": "認証情報あり",
+  "stream": "ストリーム",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "カメラのストリームアドレスです（あれば）。控えとして残し、上の欄を埋めるためにここにあります。",
+  "Open it": "開く",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "go2rtc や Frigate を使っているなら、この行をそれらのファイルの「streams:」の下に置いてください:",
+  "Copy": "コピー",
+  "Copied": "コピーしました",
+  "Camera RTSP address": "カメラの RTSP アドレス",
+  "Boilers on": "運転中のボイラー",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Home Assistant にこのアドレスで Generic カメラを追加し、できたエンティティをエンティティ欄に貼り付けてください。",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "ブラウザーは rtsp:// を自力では開けません。ストリームを何かが包み直す必要があります。道はふたつ、どちらか一方で足ります。",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "報告はあなたの名前で github.com の公開ページになり、誰でも読めます。返事はここ、話の下に戻ってきます。",
   maintainer: "メンテナー",
@@ -495,7 +513,6 @@ export default Object.freeze({
   "Air conditioning and heating": "冷房と暖房",
   "Air fryer": "ノンフライヤー",
   Alarm: "警報",
-  "Alarm · Cameras · Openings": "警報 · カメラ · 開口部",
   "Alarm · Total": "警報 · 合計",
   "Alarm status": "警報の状態",
   "Alarm system and video surveillance": "警報システムと映像監視",

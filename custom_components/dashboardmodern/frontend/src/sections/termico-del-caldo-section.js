@@ -23,6 +23,7 @@ import {
   t,
   wrapFunction,
 } from "./shared.js";
+import { normalizzaCaldaie } from "../core/impianti-termici.js";
 import { openIconPicker } from "./icon-engine-section.js";
 
 const KEY = "__DASHBOARDMODERN_TERMICO_CALDO__";
@@ -168,33 +169,72 @@ export function disegnaPannello() {
  * segue la voce caldaia di `cd_termico_caldo` — quella col nome che lo dice —
  * e quando e' accesa racconta anche da quanto. Senza una caldaia configurata,
  * niente pillola. */
-/* Lo stato della caldaia per chi lo racconta altrove: la testata della
- * sezione Clima («mostrare lo stato caldaia, e se accesa da quanto»).
- * Senza una voce caldaia configurata torna null e chi chiede non disegna. */
-export function statoCaldaia() {
-  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
-  if (!caldaia) return null;
-  const stato = statoDi(caldaia.entity);
+function comeSta(nome, entity) {
+  const stato = statoDi(entity);
   const acceso = stato === "on";
   const noto = Boolean(stato) && !["unavailable", "unknown"].includes(stato);
-  const da = acceso ? daQuanto(allStates()?.[entitaViva(caldaia.entity)]?.last_changed) : "";
-  return { nome: caldaia.name, acceso, noto, da };
+  const da = acceso ? daQuanto(allStates()?.[entitaViva(entity)]?.last_changed) : "";
+  return { nome, entity, acceso, noto, da };
+}
+
+/* Tutte le caldaie, per chi le racconta altrove: la testata della sezione
+ * Clima («mostrare lo stato caldaia, e se accesa da quanto»), e adesso al
+ * plurale — «la doppia caldaia va inserita anche nella sezione clima».
+ *
+ * Le fonti sono due e nessuna delle due basta da sola. `cd_termico_caldo` e'
+ * l'elenco libero dello Stato termico, dove una caldaia si riconosce dal nome;
+ * `cd_caldaia` e' la Gestione termica di #281, dove ogni macchina ha un nome
+ * suo e una casella «stato» che dice proprio acceso o spento. Chi ha
+ * configurato «Zona giorno» e «Zona notte» di la' se le aspetta qui, e chi ha
+ * sempre usato l'elenco libero non deve accorgersi di niente.
+ *
+ * L'unione e' per entita' risolta, non per nome: la stessa caldaia dichiarata
+ * in tutti e due i posti e' una caldaia sola, e comparire due volte nella
+ * testata sarebbe peggio che non comparire.
+ */
+export function statiDelleCaldaie() {
+  const viste = new Set();
+  const caldaie = [];
+  const aggiungi = (nome, entity) => {
+    const vera = entitaViva(entity);
+    if (!clean(entity) || viste.has(vera)) return;
+    viste.add(vera);
+    caldaie.push(comeSta(nome, entity));
+  };
+  for (const voce of vociAttuali())
+    if (REGEX_CALDAIA.test(voce.name)) aggiungi(voce.name, voce.entity);
+  for (const riga of normalizzaCaldaie(root.cdCfg?.("cd_caldaia")))
+    aggiungi(clean(riga.name) || t("Caldaia", "Boiler"), riga.stato);
+  return caldaie;
+}
+
+/* La prima, per chi ne racconta una sola — la pillola sotto il meteo. */
+export function statoCaldaia() {
+  return statiDelleCaldaie()[0] || null;
 }
 
 export function pillolaDellaCaldaia() {
   const banner = doc?.getElementById?.("caldaia-banner");
   if (!banner) return false;
-  const caldaia = vociAttuali().find((voce) => REGEX_CALDAIA.test(voce.name));
-  if (!caldaia) {
-    banner.classList.remove("show");
-    return true;
-  }
-  const acceso = statoDi(caldaia.entity) === "on";
-  banner.classList.toggle("show", acceso);
+  const caldaie = statiDelleCaldaie();
+  const accese = caldaie.filter((caldaia) => caldaia.acceso);
+  banner.classList.toggle("show", accese.length > 0);
   const testo = banner.querySelector(".caldaia-banner-text");
-  if (testo) {
-    const da = acceso ? daQuanto(allStates()?.[entitaViva(caldaia.entity)]?.last_changed) : "";
-    testo.textContent = `${t("Caldaia accesa", "Furnace on")}${da ? ` · ${da}` : ""}`;
+  if (testo && accese.length) {
+    /* Con una caldaia sola la pillola resta la frase di sempre: dire il nome
+     * di una macchina quando ce n'e' una serve a distinguerla da chi? Da due
+     * in su il nome e' l'unica cosa che manca — «Zona notte accesa» mentre la
+     * testata del Clima dice la stessa cosa — e quando ne lavorano piu' d'una
+     * il conto vale piu' dei nomi in fila. Il numero sta in coda, che e' il
+     * modo di contare senza doverne accordare il plurale. */
+    const prima = accese[0];
+    const quando = prima.da ? ` · ${prima.da}` : "";
+    testo.textContent =
+      caldaie.length < 2
+        ? `${t("Caldaia accesa", "Furnace on")}${quando}`
+        : accese.length === 1
+          ? `${prima.nome} · ${t("Accesa", "On")}${quando}`
+          : `${t("Caldaie accese", "Boilers on")} ${accese.length}`;
   }
   return true;
 }
