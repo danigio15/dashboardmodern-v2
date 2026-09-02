@@ -12,6 +12,14 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} avec des messages récents",
+  "Where it is raining now": "Où il pleut en ce moment",
+  "Weather radar (camera or image entity)":
+    "Radar météo (entité camera ou image)",
+  "Weather radar": "Radar météo",
+  "The radar is not reporting.": "Le radar ne répond pas.",
+  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
+    "Le radar vient de ton propre Home Assistant, pas d'un service extérieur : fais entrer celui que tu veux et choisis ici l'entité qui en sort. Il apparaît dans cette fenêtre, au-dessus des prévisions.",
+  "Door & gate openers": "Commandes portes & portails",
   "silent": "muettes",
   "on out of": "allumées sur",
   "off the bar": "hors de la barre",

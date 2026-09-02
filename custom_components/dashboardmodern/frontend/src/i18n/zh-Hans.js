@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} 条有新消息",
+  "Where it is raining now": "现在哪里在下雨",
+  "Weather radar (camera or image entity)": "天气雷达（camera 或 image 实体）",
+  "Weather radar": "天气雷达",
+  "The radar is not reporting.": "雷达没有响应。",
+  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
+    "雷达来自你自己的 Home Assistant，而不是外部服务：把你想用的接进来，然后在这里选它生成的实体。它会出现在这个窗口里，预报的上方。",
+  "Door & gate openers": "开门与开闸按钮",
   "silent": "无响应",
   "on out of": "开，共",
   "off the bar": "不在导航栏",

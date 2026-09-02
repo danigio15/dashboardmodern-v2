@@ -600,8 +600,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // proprie entita' a piacimento — avrei potuto inserire quelle dell'UPS senza
   // attendere la sezione apposita» (#262). Tre moduli come le altre pagine
   // nate a runtime: il modello puro, la pagina, la scheda che la configura.
+  // 207 col radar meteo (`sections/radar-meteo-section.js`): «visualizzare il
+  // radar meteo… assieme al meteo, affianco al meteo dei 7 giorni» (#266). Un
+  // modulo solo, e nessun modello puro nuovo: l'immagine la porta il
+  // caricatore delle telecamere, che c'era gia'.
   assert.ok(
-    relative.length <= 206,
+    relative.length <= 207,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -643,6 +647,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * holds the repository (nobody else has that tile), silent while the page is
    * hidden, and stopped when the section is uninstalled.
    *
+   * The seventh is the weather radar (#266). A radar is a picture that changes
+   * on its own — the national ones refresh every five or ten minutes — and
+   * nothing pushes a new frame at the page. Same discipline as the camera
+   * tile, and for the same reason: one minute, only while the forecast window
+   * is open, and the timer stops itself the moment it finds that window shut.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -656,6 +666,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/live-ui-section.js",
       "src/sections/people-section.js",
       "src/sections/pool-extra-section.js",
+      "src/sections/radar-meteo-section.js",
       "src/sections/segnalazioni-section.js",
     ],
   );

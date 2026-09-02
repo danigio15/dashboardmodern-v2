@@ -12,6 +12,14 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "${conversazioni.length} yeni mesajlı",
+  "Where it is raining now": "Şu anda nereye yağıyor",
+  "Weather radar (camera or image entity)":
+    "Hava radarı (camera veya image varlığı)",
+  "Weather radar": "Hava radarı",
+  "The radar is not reporting.": "Radar yanıt vermiyor.",
+  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
+    "Radar kendi Home Assistant'ından gelir, dışarıdaki bir servisten değil: istediğini içeri al ve çıkan varlığı burada seç. Bu pencerede, tahminin üstünde görünür.",
+  "Door & gate openers": "Kapı & bahçe kapısı kumandaları",
   "silent": "sessiz",
   "on out of": "açık /",
   "off the bar": "çubuğun dışında",

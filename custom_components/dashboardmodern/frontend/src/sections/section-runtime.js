@@ -99,6 +99,7 @@ import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installLinguaSection } from "./lingua-section.js";
 import { installSezioniMie } from "./sezioni-mie-section.js";
 import { installSezioniMieEditor } from "./sezioni-mie-editor-section.js";
+import { installRadarMeteo } from "./radar-meteo-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { activeLocale, allStates, clean, english, section, t, wrapFunction } from "./shared.js";
@@ -929,6 +930,9 @@ export function installSectionRuntime() {
      * per la Continuita' — la scheda chiama la pagina per ridisegnarla. */
     installSezioniMie();
     installSezioniMieEditor();
+    /* Il radar meteo dentro la finestra delle previsioni: si aggancia al
+     * guscio che quella finestra la disegna gia'. */
+    installRadarMeteo();
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();

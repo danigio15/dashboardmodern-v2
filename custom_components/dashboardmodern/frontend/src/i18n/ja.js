@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "新着メッセージ ${conversazioni.length} 件",
+  "Where it is raining now": "いま雨が降っている場所",
+  "Weather radar (camera or image entity)": "気象レーダー（camera または image エンティティ）",
+  "Weather radar": "気象レーダー",
+  "The radar is not reporting.": "レーダーが応答していません。",
+  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
+    "レーダーは外部のサービスではなく、あなた自身の Home Assistant から届きます。使いたいものを取り込み、できたエンティティをここで選んでください。この画面の、予報の上に出ます。",
+  "Door & gate openers": "ドア・ゲートの開錠操作",
   "silent": "無応答",
   "on out of": "オン／",
   "off the bar": "バーの外",

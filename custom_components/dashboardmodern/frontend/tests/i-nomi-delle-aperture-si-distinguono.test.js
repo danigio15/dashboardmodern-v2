@@ -27,9 +27,16 @@ test("i sensori di porte e finestre si chiamano Porte/Finestre, ovunque si scelg
 });
 
 test("i comandi della Sicurezza dicono cosa aprono", () => {
-  const atteso = /t\("Comandi apri porte\/cancelli", "Door and gate openers"\)/;
-  assert.match(leggi("sections/security-doors-section.js"), atteso);
-  assert.match(leggi("sections/security-doors-editor-section.js"), atteso);
+  assert.match(
+    leggi("sections/security-doors-section.js"),
+    /t\("Comandi apri porte\/cancelli", "Door and gate openers"\)/,
+  );
+  /* Nel menu stretto della configurazione la stessa cosa si dice corta, o si
+   * tronca a meta' parola. */
+  assert.match(
+    leggi("sections/security-doors-editor-section.js"),
+    /t\("Apri porte\/cancelli", "Door & gate openers"\)/,
+  );
   /* E la briciola della pagina non dice piu' «Aperture». */
   assert.match(
     leggi("sections/page-masthead-section.js"),

@@ -272,7 +272,11 @@ export function ensureDoorsEditorTab() {
   const tab = doc.createElement("button");
   tab.className = "ed-tab";
   tab.dataset.tab = DOORS_EDITOR_TAB;
-  tab.textContent = `🚪 ${t("Comandi apri porte/cancelli", "Door and gate openers")}`;
+  /* Nel menu della configurazione le voci stanno in colonna e strette: il nome
+   * per esteso — quello che sta in testa alla sezione — si troncava a meta'
+   * parola. Qui va la stessa cosa detta corta, come «Elettrodom.» sta per
+   * «Elettrodomestici». */
+  tab.textContent = `🚪 ${t("Apri porte/cancelli", "Door & gate openers")}`;
   tab.addEventListener("click", () => root.editorSwitch?.(DOORS_EDITOR_TAB));
   const prima = tabs.querySelector('.ed-tab[data-tab="runtime"]');
   if (prima) prima.before(tab);

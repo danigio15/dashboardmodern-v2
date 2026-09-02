@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   "${conversazioni.length} with new messages": "새 메시지 ${conversazioni.length}건",
+  "Where it is raining now": "지금 비가 오는 곳",
+  "Weather radar (camera or image entity)": "기상 레이더 (camera 또는 image 엔터티)",
+  "Weather radar": "기상 레이더",
+  "The radar is not reporting.": "레이더가 응답하지 않습니다.",
+  "The radar comes from your own Home Assistant, not from an outside service: bring in whichever one you want and pick the entity it creates here. It shows up in this window, above the forecast.":
+    "레이더는 외부 서비스가 아니라 당신의 Home Assistant에서 옵니다. 원하는 것을 들여온 뒤 생성된 엔터티를 여기서 고르세요. 이 창의 예보 위에 나타납니다.",
+  "Door & gate openers": "문·대문 열기 버튼",
   "silent": "무응답",
   "on out of": "켜짐 /",
   "off the bar": "막대 밖",
