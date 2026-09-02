@@ -119,7 +119,17 @@ test("la pompa che dichiara 40-70 disegna 40-70, chi non dichiara niente non cam
     null,
     { timeout: 15000 },
   );
-  await page.locator('#page-clima .clima-page-mode-btn[data-dm-cl-zone="caldo"]').click();
+  /* Qui non si tocca nessun interruttore, ed e' giusto cosi'.
+   *
+   * Questa casa ha solo macchine che scaldano: una zona sola. E la plancia,
+   * da molto prima di questa prova, con una zona sola l'interruttore
+   * Caldo/Freddo non lo mostra — non c'e' niente fra cui scegliere, e i due
+   * tasti restano nel documento ma fuori vista. La pagina si apre gia' sulla
+   * zona che ha le macchine.
+   *
+   * La prova cliccava quel tasto e restava ad aspettare per due minuti e
+   * mezzo che diventasse visibile: non lo sarebbe mai diventato. Quello che
+   * qui si guarda — la scala che la pompa dichiara — si vede senza. */
 
   const pompa = page.locator('#page-clima [data-dm-cl="climate.pompa"]');
   await expect(pompa).toBeVisible({ timeout: 10000 });

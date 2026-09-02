@@ -62,8 +62,11 @@ async function avvia(page, testInfo) {
   }, VOCI);
   await page.waitForTimeout(1600);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  /* La tessera si chiama Agenda: impegni e cose da fare sono diventati una
+   * cosa sola, e le righe stanno li' dentro con le stesse classi. Cambia dove
+   * si entra, non cosa si guarda. */
   await page
-    .locator('#dm-widgets .dm-tile[data-dm-widget="todo"]')
+    .locator('#dm-widgets .dm-tile[data-dm-widget="agenda"]')
     .evaluate((nodo) => nodo.click());
   await expect(page.locator("#dm-widget-popup .dm-todo-item").first()).toBeVisible();
 }
