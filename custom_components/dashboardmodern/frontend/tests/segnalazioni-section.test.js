@@ -9,6 +9,7 @@
  */
 
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { ALLOWED_MESSAGE_TYPES } from "../src/legacy/bridge-socket.js";
@@ -438,4 +439,57 @@ test("un'immagine che non carica lascia il rimando, non un'eccezione", () => {
 
   assert.ok(staccata, "l'immagine rotta e' rimasta al suo posto");
   assert.deepEqual(classi, ["rotto"], "il contenitore non e' stato segnato come rotto");
+});
+
+const sorgente = () =>
+  readFile(new URL("../src/sections/segnalazioni-section.js", import.meta.url), "utf8");
+
+test("nessun id compare due volte nella finestra", async () => {
+  /* L'intestazione della finestra e il campo «Titolo» si chiamavano tutti e
+   * due `dm-tkt-titolo`. `querySelector` restituisce il primo in ordine di
+   * documento — l'intestazione — e un `<div>` non ha `.value`: il titolo
+   * scritto si leggeva sempre come stringa vuota, e il modulo rispondeva
+   * «Manca il titolo» a chi il titolo l'aveva appena messo.
+   *
+   * Un id ripetuto e' HTML non valido, e il modo in cui si rompe e' proprio
+   * questo: silenzioso, e a distanza dal punto in cui e' stato scritto. */
+  const testo = await sorgente();
+  const visti = new Map();
+  for (const trovato of testo.matchAll(/\bid="([^"$]+)"/g)) {
+    const id = trovato[1];
+    visti.set(id, (visti.get(id) ?? 0) + 1);
+  }
+  const doppi = [...visti].filter(([, quante]) => quante > 1).map(([id]) => id);
+  assert.deepEqual(doppi, [], `id ripetuti: ${doppi.join(", ")}`);
+});
+
+test("ogni «for» di un'etichetta trova il suo campo", async () => {
+  /* Un'etichetta che indica un id che non esiste — o che esiste ma su un
+   * `<div>` — e' un'etichetta che non da' fuoco a niente quando la si preme. */
+  const testo = await sorgente();
+  const campi = new Set(
+    [...testo.matchAll(/<(?:input|textarea|select)\s+id="([^"$]+)"/g)].map((m) => m[1]),
+  );
+  const etichette = [...testo.matchAll(/<label for="([^"$]+)"/g)].map((m) => m[1]);
+  assert.ok(etichette.length, "nessuna etichetta trovata: la prova non sta guardando niente");
+  for (const bersaglio of etichette) {
+    assert.ok(campi.has(bersaglio), `l'etichetta «${bersaglio}» non indica nessun campo`);
+  }
+});
+
+test("la bozza si rilegge dal campo, non dall'intestazione", async () => {
+  /* La guardia di `raccogliBozza` deve cercare qualcosa che esiste SOLO
+   * quando il modulo e' sulla pagina. Se cercasse l'intestazione — che c'e'
+   * sempre — raccoglierebbe anche da «Le mie» e dalla console, scrivendo tre
+   * stringhe vuote sopra una bozza che invece esiste. */
+  const testo = await sorgente();
+  const dentro = testo.slice(
+    testo.indexOf("function raccogliBozza()"),
+    testo.indexOf("function agganciaEventi("),
+  );
+  assert.ok(dentro.includes("#dm-tkt-campo-titolo"), "non legge il campo del titolo");
+  assert.ok(
+    !/querySelector\("#dm-tkt-titolo"\)/.test(dentro),
+    "legge ancora l'intestazione della finestra",
+  );
 });

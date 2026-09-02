@@ -744,8 +744,8 @@ function moduloMarkup() {
     <div class="dm-tkt-tipi">${tipi}</div>
     <div class="dm-tkt-passo">${esc(t("2 · Raccontalo", "2 · Tell it"))}</div>
     <div class="dm-tkt-campo">
-      <label for="dm-tkt-titolo">${esc(t("Titolo", "Title"))}</label>
-      <input id="dm-tkt-titolo" type="text" maxlength="${MAX_TITOLO}"
+      <label for="dm-tkt-campo-titolo">${esc(t("Titolo", "Title"))}</label>
+      <input id="dm-tkt-campo-titolo" type="text" maxlength="${MAX_TITOLO}"
         autocomplete="off" placeholder="${esc(scelto.titolo())}"
         value="${esc(state.bozza.title)}">
     </div>
@@ -1257,12 +1257,18 @@ async function mostraDiagnostica(corpo) {
 
 /* ─── I gesti ──────────────────────────────────────────────────────────── */
 
-/** Metti in salvo quello che c'e' scritto, prima di rifare il modulo. */
+/** Metti in salvo quello che c'e' scritto, prima di rifare il modulo.
+ *
+ * La guardia guarda il campo del titolo perche' e' il primo del modulo: se non
+ * c'e' quello, il modulo non e' sulla pagina — si sta guardando «Le mie» o la
+ * console — e raccogliere vorrebbe dire scrivere tre stringhe vuote sopra una
+ * bozza che invece esiste.
+ */
 function raccogliBozza() {
   const modale = doc?.getElementById?.("dm-tkt-modal");
-  if (!modale?.querySelector("#dm-tkt-titolo")) return;
+  if (!modale?.querySelector("#dm-tkt-campo-titolo")) return;
   state.bozza = {
-    title: modale.querySelector("#dm-tkt-titolo")?.value ?? "",
+    title: modale.querySelector("#dm-tkt-campo-titolo")?.value ?? "",
     body: modale.querySelector("#dm-tkt-corpo")?.value ?? "",
     contact: modale.querySelector("#dm-tkt-contatto")?.value ?? "",
   };

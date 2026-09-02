@@ -63,6 +63,16 @@ scrivere.
 
 ### Corretto
 
+- **Il titolo si prende davvero.** «Manca il titolo» anche a chi il titolo
+  l'aveva appena scritto: la finestra e il campo si chiamavano tutti e due
+  `dm-tkt-titolo`, e `querySelector` restituisce il primo in ordine di
+  documento — l'intestazione, che essendo un `<div>` non ha nessun valore da
+  leggere. Il campo adesso ha un id suo. Di rimbalzo tornano a posto altre due
+  cose che dipendevano dallo stesso equivoco: premere l'etichetta «Titolo» ora
+  da' fuoco al campo, e cambiare linguetta non svuota piu' la bozza. Un id
+  ripetuto e' HTML non valido, e si rompe cosi': in silenzio, lontano dal punto
+  in cui e' stato scritto.
+
 - **La colonna «In lavorazione» non e' piu' sempre zero.** Chi ha commentato,
   nell'elenco, GitHub non lo dice — e chiederlo vorrebbe dire una chiamata per
   ogni riga. Vale allora il segno che c'e': un'aperta su cui si e' gia' parlato
