@@ -723,6 +723,10 @@ const CODA_FRESCA = 10 * 60 * 1000;
  * ha piu' guardato — ed e' quella che il cruscotto deve far notare. */
 const GIORNI_VECCHIA = 30;
 
+/* I tipi che un nome ce l'hanno. Quello che non e' fra questi non e' un errore:
+ * e' una issue aperta a mano su GitHub, dove il tipo non si scrive. */
+const TIPI_NOTI = ["bug", "feature", "assistenza"];
+
 /* Il giorno di un istante nel fuso di chi guarda, come chiave.
  *
  * «Oggi» si decide confrontando due date di calendario, non due numeri di
@@ -747,13 +751,27 @@ export function sommarioConsole() {
   /* La soglia delle ferme e' una durata, non un confine di calendario: qui i
    * millisecondi vanno bene, ed e' il motivo per cui «oggi» invece no. */
   const limite = adesso - GIORNI_VECCHIA * 86400000;
+  const diOggi = state.queue.filter((ticket) => {
+    const quando = nate(ticket);
+    return Number.isFinite(quando) && giornoDi(quando) === oggi;
+  });
   return {
     /* Chi non porta la data non si conta ne' fra le nuove di oggi ne' fra le
      * ferme: non sapere quando e' nata non la rende vecchia. */
-    oggi: state.queue.filter((ticket) => {
-      const quando = nate(ticket);
-      return Number.isFinite(quando) && giornoDi(quando) === oggi;
-    }).length,
+    oggi: diOggi.length,
+    /* Di che genere sono quelle di oggi. Sapere che ne sono arrivate due non
+     * dice se la giornata e' andata storta o se qualcuno ha avuto due idee:
+     * un difetto e un'idea chiedono cose diverse a chi legge. */
+    oggiPerTipo: {
+      bug: diOggi.filter((ticket) => clean(ticket.type) === "bug").length,
+      feature: diOggi.filter((ticket) => clean(ticket.type) === "feature").length,
+      assistenza: diOggi.filter((ticket) => clean(ticket.type) === "assistenza").length,
+      /* Le arrivate oggi senza tipo hanno un posto anche loro. Sommare i tre
+       * generi e fermarsi li' vorrebbe dire dire «oggi niente» in una giornata
+       * in cui sono arrivate due issue aperte a mano su GitHub, che un tipo
+       * non ce l'hanno: il conto grande direbbe due e l'elenco sotto zero. */
+      senza: diOggi.filter((ticket) => !TIPI_NOTI.includes(clean(ticket.type))).length,
+    },
     vecchie: daLavorare.filter((ticket) => {
       const quando = nate(ticket);
       return Number.isFinite(quando) && quando < limite;

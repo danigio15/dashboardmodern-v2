@@ -23,9 +23,16 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   conti — nuove, in lavorazione, chiuse — e la porta verso il cruscotto, invece
   di rifare la console in miniatura dentro una finestra larga un palmo.
 
-- **La finestra dice quante ne sono arrivate oggi e quante sono ferme.** «2
-  arrivate oggi · 2 ferme da oltre un mese»: e' la domanda che dai tre conti
-  non si legge. La seconda meta' e' quella che pesa — un conto fermo non si
+- **La finestra dice cosa e' arrivato oggi, per genere, e quante sono ferme.**
+  «Oggi: 🐞 Difetti 1 · 💬 Aiuto 1», e sotto «2 ferme da oltre un mese». Sapere
+  che ne sono arrivate due non dice se la giornata e' andata storta o se
+  qualcuno ha avuto due idee: un difetto e un'idea chiedono cose diverse a chi
+  legge. Il conto sta dopo il nome, come sui filtri del cruscotto — «1 difetti»
+  sarebbe sbagliato in italiano e in mezza Europa, e mettere il numero in coda
+  toglie il problema invece di raddoppiare le stringhe per il singolare. Anche
+  le arrivate oggi **senza tipo** hanno la loro pastiglia: sommare i tre generi
+  noti e fermarsi li' vorrebbe dire dire «oggi niente» in una giornata di sole
+  issue aperte a mano su GitHub. E' la domanda che dai tre conti non si legge. La seconda meta' e' quella che pesa — un conto fermo non si
   muove da solo, e in una colonna di numeri passerebbe inosservato proprio
   perche' non cambia mai.
 

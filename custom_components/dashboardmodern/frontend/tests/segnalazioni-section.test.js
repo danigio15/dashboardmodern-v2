@@ -622,6 +622,7 @@ test("il sommario conta quello che resta da lavorare, non tutto", () => {
       assert.deepEqual(sommarioConsole(), {
         // Senza data non si conta ne' fra le nuove di oggi ne' fra le ferme.
         oggi: 0,
+        oggiPerTipo: { bug: 0, feature: 0, assistenza: 0, senza: 0 },
         vecchie: 0,
         quante: 3,
         nuove: 2,
@@ -705,4 +706,50 @@ test("«oggi» regge il giorno in cui cambia l'ora", () => {
     if (prima === undefined) delete process.env.TZ;
     else process.env.TZ = prima;
   }
+});
+
+test("il sommario dice di che genere sono quelle di oggi", () => {
+  const oggi = new Date().toISOString();
+  conLaCoda(
+    [
+      inCoda({ number: 1, type: "bug", state: "inviato", created_at: oggi }),
+      inCoda({ number: 2, type: "bug", state: "inviato", created_at: oggi }),
+      inCoda({ number: 3, type: "feature", state: "inviato", created_at: oggi }),
+      // Aperta a mano su GitHub, senza tipo: ha un posto anche lei.
+      inCoda({ number: 4, type: "", state: "inviato", created_at: oggi }),
+      // Di ieri: non entra in nessun genere di oggi.
+      inCoda({
+        number: 5,
+        type: "assistenza",
+        state: "inviato",
+        created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      }),
+    ],
+    true,
+    () => {
+      const conto = sommarioConsole();
+      assert.equal(conto.oggi, 4);
+      assert.deepEqual(conto.oggiPerTipo, { bug: 2, feature: 1, assistenza: 0, senza: 1 });
+    },
+  );
+});
+
+test("i generi di oggi tornano il conto di oggi, senza perderne per strada", () => {
+  /* Sommare i tre tipi noti e fermarsi li' vorrebbe dire dire «oggi niente» in
+   * una giornata di sole issue aperte a mano su GitHub, che un tipo non ce
+   * l'hanno: il conto grande direbbe due e l'elenco sotto zero. */
+  const oggi = new Date().toISOString();
+  conLaCoda(
+    [
+      inCoda({ number: 1, type: "", state: "inviato", created_at: oggi }),
+      inCoda({ number: 2, type: "boh", state: "inviato", created_at: oggi }),
+    ],
+    true,
+    () => {
+      const conto = sommarioConsole();
+      const somma = Object.values(conto.oggiPerTipo).reduce((a, b) => a + b, 0);
+      assert.equal(somma, conto.oggi, "i generi non tornano il conto di oggi");
+      assert.equal(conto.oggiPerTipo.senza, 2);
+    },
+  );
 });

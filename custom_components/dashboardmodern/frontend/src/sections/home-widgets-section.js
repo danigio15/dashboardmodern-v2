@@ -4377,22 +4377,42 @@ function detailBody(widget, states) {
      * nessuno le abbia piu' guardate. La seconda e' quella che pesa — un conto
      * fermo non si muove da solo, e in una colonna di numeri passerebbe
      * inosservato proprio perche' non cambia mai. */
-    const pezzi = [];
-    if (conto.oggi) pezzi.push(t(`${conto.oggi} arrivate oggi`, `${conto.oggi} arrived today`));
-    if (conto.vecchie) {
-      pezzi.push(
-        t(`${conto.vecchie} ferme da oltre un mese`, `${conto.vecchie} stuck for over a month`),
-      );
-    }
-    const lettura = pezzi.length
-      ? pezzi.join("  ·  ")
-      : t("Niente di nuovo oggi, e niente di fermo.", "Nothing new today, nothing stuck.");
+    /* Cosa e' arrivato oggi, per genere. Sapere che ne sono arrivate due non
+     * dice se la giornata e' andata storta o se qualcuno ha avuto due idee: un
+     * difetto e un'idea chiedono cose diverse a chi legge.
+     *
+     * Il conto sta dopo il nome, come sui filtri del cruscotto, e non prima:
+     * «1 difetti» sarebbe sbagliato in italiano e in mezza Europa, e mettere
+     * il numero in coda toglie il problema invece di raddoppiare le stringhe
+     * per il singolare. */
+    const oggiPerTipo = conto.oggiPerTipo || {};
+    const generi = [
+      ["bug", "🐞", t("Difetti", "Bugs")],
+      ["feature", "✨", t("Idee", "Ideas")],
+      ["assistenza", "💬", t("Aiuto", "Help")],
+      ["senza", "•", t("Senza tipo", "Untyped")],
+    ].filter(([id]) => Number(oggiPerTipo[id]) > 0);
+    const oggiMarkup = generi.length
+      ? `<div class="dm-w-oggi"><span class="dm-w-oggi-lbl">${esc(t("Oggi", "Today"))}</span>${generi
+          .map(
+            ([id, icona, nome]) =>
+              `<span class="dm-w-genere"><span aria-hidden="true">${icona}</span>${esc(
+                nome,
+              )}<b>${Number(oggiPerTipo[id])}</b></span>`,
+          )
+          .join("")}</div>`
+      : `<p class="dm-w-lettura">${esc(t("Oggi non e' arrivato niente.", "Nothing came in today."))}</p>`;
+    const ferme = conto.vecchie
+      ? `<p class="dm-w-lettura">${esc(
+          t(`${conto.vecchie} ferme da oltre un mese`, `${conto.vecchie} stuck for over a month`),
+        )}</p>`
+      : "";
     const righe = [
       [t("Nuove", "New"), conto.nuove],
       [t("In lavorazione", "In progress"), conto.inLavorazione],
       [t("Chiuse", "Closed"), conto.chiuse],
     ];
-    return `<p class="dm-w-lettura">${esc(lettura)}</p>
+    return `${oggiMarkup}${ferme}
       <div class="dm-w-caselle">${righe
         .map(
           ([nome, quante]) =>
@@ -5621,6 +5641,20 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-lettura{
   margin:0 0 10px;font-size:13px;font-weight:700;
   color:var(--text,#0f172a);line-height:1.35}
+/* Cosa e' arrivato oggi: l'etichetta a sinistra, poi una pastiglia per genere
+   con il suo conto in coda al nome — «Difetti 1», come i filtri del cruscotto,
+   che toglie di mezzo il singolare e il plurale. */
+#dm-widget-popup .dm-w-oggi{
+  display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px}
+#dm-widget-popup .dm-w-oggi-lbl{
+  font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-genere{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:50px;
+  font-size:12px;font-weight:700;color:var(--text,#0f172a);
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,transparent)}
+#dm-widget-popup .dm-w-genere b{opacity:.8}
 #dm-widget-popup .dm-w-porta{
   width:100%;margin-top:10px;padding:11px 14px;border:0;border-radius:14px;
   cursor:pointer;font-size:13px;font-weight:800;color:#fff;
