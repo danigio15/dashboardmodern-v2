@@ -58,7 +58,16 @@ vera non e' mai comparso.
   carico che oggi non e' partito ha i figli a zero anche loro, la somma fa
   zero, e zero resta.
 
-  E il paniere del Recorder adesso risolve anche gli apparecchi, non i soli
+  E il paniere del Recorder adesso risolve anche gli apparecchi **nascosti dal
+  Report**. `show_in_report: false` dice «non voglio vederlo nel Report», e per
+  il Report va benissimo; ma un apparecchio nascosto li' puo' stare lo stesso
+  dentro un cerchio di gruppo, e se il suo unico strumento e' un contatore di
+  vita il periodo glielo puo' dare solo il Recorder. Erano due domande diverse
+  — «cosa disegna il Report» e «da dove leggo i periodi del flusso» — infilate
+  in una risposta sola. Il Report non se ne accorge: quello che si allarga sono
+  i valori, indicizzati per entita', non l'elenco che il Report disegna.
+
+  E il paniere del Recorder risolve anche gli apparecchi, non i soli
   carichi: i figli di un cerchio di gruppo sono apparecchi, e cercarli in un
   paniere che contiene solo i carichi voleva dire una somma che non trovava
   niente.

@@ -7,14 +7,44 @@ import {
   isCumulativeEnergyEntity,
 } from "../core/period-service.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
-import { DEFAULT_EXPORT_RATE, DEFAULT_IMPORT_RATE, importRateEntity, resolveRate } from "../core/energy-calculations.js";
-import { allStates, clean, dashboardStore, doc, english, esc, finite, formatNumber, installStyle, onEditorRedraw, readJson, root, scriviSeCambia, scriviTestoSeCambia, section, selectedPeriod, t, wrapFunction } from "./shared.js";
+import {
+  DEFAULT_EXPORT_RATE,
+  DEFAULT_IMPORT_RATE,
+  importRateEntity,
+  resolveRate,
+} from "../core/energy-calculations.js";
+import {
+  allStates,
+  clean,
+  dashboardStore,
+  doc,
+  english,
+  esc,
+  finite,
+  formatNumber,
+  installStyle,
+  onEditorRedraw,
+  readJson,
+  root,
+  scriviSeCambia,
+  scriviTestoSeCambia,
+  section,
+  selectedPeriod,
+  t,
+  wrapFunction,
+} from "./shared.js";
 import {
   isHostedDashboard,
   sanitizeHostedCredentials,
   waitForHostedBridge,
 } from "../transport/hosted-bridge-guard.js";
-import { IMPIANTO_SCELTO_KEY, PLANT_GROUPS, pickPlant, plantList, plantModel } from "../core/energy-plants.js";
+import {
+  IMPIANTO_SCELTO_KEY,
+  PLANT_GROUPS,
+  pickPlant,
+  plantList,
+  plantModel,
+} from "../core/energy-plants.js";
 import { persistEnergyField as writeEnergyField } from "../core/energy-writer.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { BUILD_INFO } from "../../legacy/build-info.js";
@@ -294,12 +324,11 @@ async function loadEnergyLoadsDay(date) {
   return broker.valuesForPlans(plans, date, allStates());
 }
 
-async function loadDevicePeriod(kind, date) {
-  const devices = canonicalDevices();
-  const plans = devices.flatMap((item, index) => {
+function pianiPerIDispositivi(elenco, kind, prefisso = "report-device") {
+  return elenco.flatMap((item, index) => {
     const history = clean(item.history);
     const entity = clean(item.entity);
-    const key = clean(item.key) || `report-device-${index}`;
+    const key = clean(item.key) ? `${prefisso}:${clean(item.key)}` : `${prefisso}-${index}`;
     if (history && item.cumulative !== false) {
       return [{ key, entity: history, source: history, kind, direct: false }];
     }
@@ -312,6 +341,45 @@ async function loadDevicePeriod(kind, date) {
     }
     return [];
   });
+}
+
+/* Gli apparecchi che il Report non mostra, ma un cerchio del flusso puo'
+ * contenere (segnalato in revisione).
+ *
+ * `show_in_report: false` dice «non voglio vederlo nel Report», e per il
+ * Report va benissimo. Ma un apparecchio nascosto li' puo' stare lo stesso
+ * dentro un cerchio di gruppo del flusso, e se il suo unico strumento e' un
+ * contatore di vita il periodo glielo puo' dare solo il Recorder: senza questi
+ * piani, quell'apparecchio al suo cerchio non porta niente.
+ *
+ * Il Report resta esattamente com'era. Quello che si allarga sono i **valori**,
+ * che il paniere indicizza per entita'; l'elenco `devices` — quello che il
+ * Report disegna — non li vede passare. Erano due domande diverse infilate in
+ * una risposta sola, e tenerle separate costa una passata in piu' del Recorder
+ * soltanto a chi ha davvero apparecchi nascosti.
+ *
+ * Si passa dalla stessa `canonicalReportDevices`, con il permesso forzato: la
+ * risoluzione dell'entita' e del contatore di vita e' delicata, e riscriverla
+ * qui accanto vorrebbe dire due regole che un giorno divergono. */
+function dispositiviFuoriDalReport(devices) {
+  const build = root.DashboardModernModules?.data?.canonicalReportDevices;
+  if (typeof build !== "function") return [];
+  const nascosti = section("appliances", []).filter((item) => item?.show_in_report === false);
+  if (!nascosti.length) return [];
+  const gia = new Set(devices.map((item) => clean(item.entity)).filter(Boolean));
+  return build(
+    nascosti.map((item) => ({ ...item, show_in_report: true })),
+    [],
+    allStates(),
+  ).filter((item) => clean(item.entity) && !gia.has(clean(item.entity)));
+}
+
+async function loadDevicePeriod(kind, date) {
+  const devices = canonicalDevices();
+  const plans = [
+    ...pianiPerIDispositivi(devices, kind),
+    ...pianiPerIDispositivi(dispositiviFuoriDalReport(devices), kind, "flow-hidden"),
+  ];
   if (!plans.length) return { devices, values: new Map() };
   const byKey = await broker.valuesForPlans(plans, date, allStates());
   const values = new Map();
@@ -522,9 +590,13 @@ function applyReportOverview(bundle) {
    * scrive il testo, col cartello che ferma la mano del guscio. */
   const cerchio = doc?.getElementById("ed-auto-circle");
   if (cerchio) {
-    if (cerchio.dataset && cerchio.dataset.dmPadrone !== "moduli") cerchio.dataset.dmPadrone = "moduli";
+    if (cerchio.dataset && cerchio.dataset.dmPadrone !== "moduli")
+      cerchio.dataset.dmPadrone = "moduli";
     const giro = 2 * Math.PI * 32;
-    cerchio.setAttribute("stroke-dasharray", `${((auto / 100) * giro).toFixed(1)} ${giro.toFixed(1)}`);
+    cerchio.setAttribute(
+      "stroke-dasharray",
+      `${((auto / 100) * giro).toFixed(1)} ${giro.toFixed(1)}`,
+    );
   }
   const circle = doc?.getElementById("ed-auto-circle");
   if (circle) circle.setAttribute("stroke-dasharray", `${(201 * auto) / 100} 201`);
