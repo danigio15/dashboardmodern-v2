@@ -754,6 +754,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Createte token": "Create token",
   "crei un avviso su qualsiasi entità, con nome, condizione e icona a scelta.": "you can create an alert on any entity, with your own name, condition and icon.",
   "Cronologia Cambiamenti": "Change history",
+  "Cruscotto": "Console",
   "Ctrl Solare": "Solar control",
   "Cucina": "Kitchen",
   "Cumulativo. Giorno e Mese si calcolano da qui come differenza Recorder, quindi non serve un sensore per periodo.": "Cumulative. Day and Month are calculated from it as a Recorder difference, so no per-period sensor is needed.",

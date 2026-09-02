@@ -106,6 +106,22 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
 
 ### Il cruscotto
 
+- **Non e' piu' una finestra: e' una pagina, con la sua voce nella barra.** La
+  coda del manutentore non e' una cosa che si sbircia — si legge un titolo, si
+  apre il filo, si guarda una foto, si scrive una risposta — e tutto questo
+  dentro un riquadro largo un palmo vuol dire scorrere per fare qualunque cosa.
+  Adesso ci sta tutto a schermo intero.
+
+  La voce c'e' **solo per chi tiene la repository**, e non e' un'impostazione da
+  spegnere: per gli altri quella pagina non avrebbe niente dentro. Chi ce l'ha
+  la puo' nascondere dalla barra come qualunque altra, dall'interruttore nella
+  scheda Segnalazioni — e se il riconoscimento cade, la voce e la pagina se ne
+  vanno da sole invece di restare li' vuote.
+
+  La finestra delle segnalazioni torna a due linguette, «Nuova» e «Le mie»: e'
+  il posto di chi segnala, e non ha piu' dentro il posto di chi risponde.
+
+
 - **I tasti che scrivono nascono spenti, e si accendono col testo.** Erano
   sempre premibili, e alla pressione a vuoto rispondevano «Scrivi una
   risposta»: un rimprovero al posto di un invito, per un errore che il tasto

@@ -125,7 +125,7 @@ const TARGETS = [
     settle: 900,
     modal: true,
     setup: () => {
-      window.__dmPreviewTickets("console");
+      window.__dmPreviewTickets("pagina");
     },
   },
   {
@@ -1527,6 +1527,22 @@ async function bootPage(context, cameraStill, vehicleStill) {
                 contact: "",
               }
             : { title: "", body: "", contact: "" };
+      }
+      if (dove === "pagina" || dove === "chiuse" || dove === "difetti" || dove === "filo") {
+        /* Il cruscotto e' una pagina della barra: si semina lo stato, si lascia
+           che la sezione la costruisca, e si va li' invece di aprire la
+           finestra delle segnalazioni. */
+        if (stato) {
+          stato.console = true;
+          stato.queue = coda;
+          stato.queueAt = Date.now();
+          stato.filtro = dove === "chiuse" ? "chiuse" : "aperte";
+          stato.tipoCoda = dove === "difetti" ? "bug" : "";
+          if (dove === "filo") stato.fili = { 197: risposte["dashboardmodern/tickets/thread"] };
+        }
+        window.DashboardModernSegnalazioni?.sistema?.();
+        setTimeout(() => document.querySelector('.tab[data-tab="cruscotto"]')?.click(), 300);
+        return;
       }
       if (dove === "widget") {
         // La tessera vive in Home: qui si semina soltanto quello che le serve.

@@ -653,7 +653,20 @@ function tesseraMarkup() {
         ),
       )}</div>
     </div>
-    <div class="cfg-card-arrow">›</div>`;
+    <div class="cfg-card-arrow">›</div>
+    ${
+      /* L'interruttore della voce «Cruscotto» nella barra, e sta qui perche' qui
+       * sta la sua scheda. Compare solo per chi la voce ce l'ha: agli altri
+       * offrirebbe di spegnere una cosa che non hanno. Chi ce l'ha deve poterla
+       * togliere dalla barra come qualunque altra pagina — e senza questa riga
+       * non potrebbe, perche' e' una voce che nasce a runtime e le fasce del
+       * guscio non la conoscono. */
+      /* La chiave scritta per esteso e non `CRUSCOTTO_TAB`: la prova che
+       * pretende un interruttore per ogni voce della barra legge i sorgenti, e
+       * una costante non la sa risolvere qui. Scriverla vuol dire restare
+       * dentro quella rete invece di scivolarci fuori senza accorgersene. */
+      state.console ? root.cdSecToggleHtml?.("cruscotto") || "" : ""
+    }`;
 }
 
 function installaTessera() {
@@ -709,8 +722,7 @@ export function apri(dove = "") {
   /* La linguetta si sceglie da fuori solo se esiste per chi guarda: la console
    * la vede il manutentore, e chiederla senza averla lascerebbe la finestra su
    * una scheda che non c'e'. */
-  if (dove === "console" && state.console) state.tab = "console";
-  else if (dove === "mie" || dove === "nuova") state.tab = dove;
+  if (dove === "mie" || dove === "nuova") state.tab = dove;
   modale.classList.add("show");
   disegna();
   ricarica();
@@ -878,7 +890,6 @@ function schede() {
     ["nuova", t("Nuova", "New")],
     ["mie", t("Le mie", "Mine")],
   ];
-  if (state.console) voci.push(["console", t("Console", "Console")]);
   return `<div class="dm-tkt-tabs">${voci
     .map(
       ([id, nome]) =>
@@ -1537,16 +1548,129 @@ function consoleMarkup() {
 }
 
 /** La riga sotto il titolo: dove sei, e con che account. */
+/* ─── Il cruscotto: una pagina, non una finestra ──────────────────────────
+ *
+ * Stava dentro il popup delle segnalazioni, come terza linguetta. Ma la coda
+ * del manutentore non e' una cosa che si sbircia: si legge un titolo, si apre
+ * il filo, si guarda una foto, si scrive una risposta — e tutto questo dentro
+ * un riquadro largo un palmo vuol dire scorrere per fare qualunque cosa.
+ *
+ * Adesso e' una pagina sua, con la sua voce nella barra, e ci sta tutto a
+ * schermo intero. La voce c'e' **solo per chi tiene la repository**: non e'
+ * un'impostazione da spegnere, e' che per gli altri quella pagina non ha niente
+ * dentro. Chi ce l'ha la puo' nascondere come tutte le altre.
+ */
+
+const CRUSCOTTO_TAB = "cruscotto";
+const CRUSCOTTO_PAGE_ID = "page-cruscotto";
+
+function ultimaPagina() {
+  const pagine = doc?.querySelectorAll?.(".page");
+  return pagine?.length ? pagine[pagine.length - 1] : null;
+}
+
+function creaPaginaCruscotto() {
+  if (!doc) return null;
+  const gia = doc.getElementById(CRUSCOTTO_PAGE_ID);
+  if (gia) return gia;
+  const sorella = ultimaPagina();
+  if (!sorella?.parentElement) return null;
+  const pagina = doc.createElement("section");
+  pagina.className = "page";
+  pagina.id = CRUSCOTTO_PAGE_ID;
+  pagina.innerHTML = `<div class="dm-tkt-plancia" data-dm-cruscotto></div>`;
+  sorella.after(pagina);
+  return pagina;
+}
+
+function creaVoceCruscotto() {
+  if (!doc) return null;
+  const gia = doc.querySelector(`.tab[data-tab="${CRUSCOTTO_TAB}"]`);
+  if (gia) return gia;
+  const barra = doc.querySelector("nav.tabs");
+  if (!barra) return null;
+  const voce = doc.createElement("button");
+  voce.className = "tab";
+  voce.dataset.tab = CRUSCOTTO_TAB;
+  voce.id = `tab-${CRUSCOTTO_TAB}`;
+  voce.innerHTML = `<span class="icon">🎫</span><span class="text">${esc(
+    t("Cruscotto", "Console"),
+  )}</span>`;
+  /* Il gestore che il runtime lega alle voci lo lega una volta sola, al
+   * caricamento: questa arriva dopo e il suo tocco se lo gestisce da se'. Fa la
+   * stessa identica cosa, perche' due modi di cambiare pagina sarebbero due
+   * pagine attive quando non tornano. */
+  voce.addEventListener("click", () => {
+    for (const nodo of doc.querySelectorAll(".tab")) nodo.classList.remove("active");
+    for (const nodo of doc.querySelectorAll(".page")) nodo.classList.remove("active");
+    voce.classList.add("active");
+    creaPaginaCruscotto()?.classList.add("active");
+    if (root.navigator?.vibrate) root.navigator.vibrate(5);
+    /* Aprendola si va a vedere se e' cambiato qualcosa: e' il gesto con cui si
+     * chiede «cosa c'e' di nuovo», e rispondere con quello di dieci minuti fa
+     * sarebbe rispondere a un'altra domanda. */
+    caricaCoda({ zitta: true });
+    disegnaCruscotto();
+  });
+  barra.append(voce);
+  return voce;
+}
+
+/* La voce si nasconde come tutte le altre: `cdApplyNavVis` sa quali voci
+ * esistono da una mappa sua, e una che non c'e' resta sempre accesa qualunque
+ * cosa dica la configurazione. */
+function insegnaLaVisibilitaDelCruscotto() {
+  const precedente = root.cdNavVisMap;
+  if (typeof precedente !== "function" || precedente.__dmCruscotto) return;
+  const avvolta = function cdNavVisMap(...args) {
+    const mappa = precedente.apply(this, args) || {};
+    return { ...mappa, [CRUSCOTTO_TAB]: CRUSCOTTO_TAB };
+  };
+  avvolta.__dmCruscotto = true;
+  avvolta.__dmPrevious = precedente;
+  root.cdNavVisMap = avvolta;
+}
+
+/* La pagina esiste solo per chi tiene la repository, e sparisce se quel
+ * riconoscimento cade — chi si scollega non deve restare con una voce nella
+ * barra che apre una pagina vuota. */
+export function sistemaIlCruscotto() {
+  if (!doc) return;
+  if (!state.console) {
+    doc.querySelector(`.tab[data-tab="${CRUSCOTTO_TAB}"]`)?.remove();
+    doc.getElementById(CRUSCOTTO_PAGE_ID)?.remove();
+    return;
+  }
+  creaPaginaCruscotto();
+  creaVoceCruscotto();
+  insegnaLaVisibilitaDelCruscotto();
+  disegnaCruscotto();
+}
+
+function disegnaCruscotto() {
+  const dentro = doc?.querySelector?.("[data-dm-cruscotto]");
+  if (!dentro) return;
+  const quante = Array.isArray(state.queue) ? state.queue.length : 0;
+  dentro.innerHTML = `
+    <div class="cfg-hero dm-tkt-hero">
+      <div class="cfg-hero-ico" aria-hidden="true">🎫</div>
+      <div class="cfg-hero-txt">
+        <div class="cfg-hero-title">${esc(t("Cruscotto", "Console"))}</div>
+        <div class="cfg-hero-sub">${esc(
+          `${t("Tutto quello che c'e' sulla repository", "Everything on the repository")} · ${quante}`,
+        )}</div>
+      </div>
+    </div>
+    ${avvisoMarkup()}
+    ${consoleMarkup()}`;
+  agganciaEventi(dentro);
+}
+
 function sottotitolo() {
   /* Il pezzo che cambia si attacca FUORI da `t()`. Dentro finirebbe nella
    * chiave — una chiave diversa per ogni conteggio e per ogni login — e a
    * runtime nessun catalogo l'avrebbe mai contenuta: ogni lingua ricadrebbe
    * sull'inglese proprio in questa riga. */
-  if (state.tab === "console") {
-    const quante = Array.isArray(state.queue) ? state.queue.length : 0;
-    const testa = t("Tutto quello che c'e' sulla repository", "Everything on the repository");
-    return `${testa} · ${quante}`;
-  }
   if (state.account.connected) {
     return `${t("Le tue richieste", "Your requests")} · ${state.account.login}`;
   }
@@ -1559,18 +1683,18 @@ function sottotitolo() {
 function disegna() {
   const modale = doc?.getElementById?.("dm-tkt-modal");
   if (!modale) return;
-  modale.querySelector('[data-dm-tkt="titolo"]').textContent =
-    state.tab === "console" ? t("Cruscotto", "Console") : t("Segnalazioni", "Reports");
+  modale.querySelector('[data-dm-tkt="titolo"]').textContent = t("Segnalazioni", "Reports");
   modale.querySelector('[data-dm-tkt="sottotitolo"]').textContent = sottotitolo();
   modale.querySelector('[data-dm-tkt="chiudi"]').textContent = t("Chiudi", "Close");
   const corpo = modale.querySelector('[data-dm-tkt="corpo"]');
-  let pannello = "";
-  if (state.tab === "mie") pannello = elencoMarkup();
-  else if (state.tab === "console") pannello = consoleMarkup();
-  else pannello = moduloMarkup();
+  const pannello = state.tab === "mie" ? elencoMarkup() : moduloMarkup();
   corpo.innerHTML = schede() + avvisoMarkup() + codiceMarkup() + pannello;
   agganciaEventi(corpo);
   if (state.tab === "nuova") mostraDiagnostica(corpo);
+  /* La pagina del cruscotto vive fuori da questa finestra, ma legge lo stesso
+   * stato: quando qui cambia qualcosa — una risposta pubblicata, la coda
+   * riletta — anche lei va rifatta, o le due mostrerebbero cose diverse. */
+  disegnaCruscotto();
 }
 
 async function mostraDiagnostica(corpo) {
@@ -1615,7 +1739,6 @@ function agganciaEventi(corpo) {
       state.tab = bottone.dataset.dmTab;
       state.avviso = "";
       disegna();
-      if (state.tab === "console" && state.queue === null) caricaCoda();
     });
   });
   corpo.querySelectorAll("[data-dm-tipo]").forEach((bottone) => {
@@ -1885,11 +2008,14 @@ export function installSegnalazioniSection() {
    * viene riempita dal runtime: si riprova quando la si apre. */
   /* Il tasto sta dentro la finestra di una tessera della Home, che e' roba di
    * un altro modulo. Ad ascoltarlo pero' e' questa sezione, perche' e' lei che
-   * sa aprire la propria finestra: il widget disegna la porta, non la apre. */
+   * possiede il cruscotto: il widget disegna la porta, non la apre. */
   doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.("[data-dm-apri-cruscotto]")) {
-      apri("console");
-    }
+    if (!event.target?.closest?.("[data-dm-apri-cruscotto]")) return;
+    /* Il cruscotto adesso e' una pagina: si va li', invece di aprire una
+     * finestra sopra la Home. Il tocco sulla voce fa gia' tutto — cambia
+     * pagina, rilegge la coda, ridisegna — e rifarlo qui vorrebbe dire due
+     * strade da tenere uguali. */
+    doc.querySelector(`.tab[data-tab="${CRUSCOTTO_TAB}"]`)?.click();
   });
   doc.addEventListener(
     "click",
@@ -1901,7 +2027,12 @@ export function installSegnalazioniSection() {
     true,
   );
   prova();
-  root.DashboardModernSegnalazioni = Object.freeze({ apri, chiudi });
+  root.DashboardModernSegnalazioni = Object.freeze({
+    apri,
+    chiudi,
+    // Serve al generatore delle anteprime: semina lo stato, poi chiede la pagina.
+    sistema: sistemaIlCruscotto,
+  });
   return state;
 }
 
