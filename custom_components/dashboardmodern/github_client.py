@@ -476,8 +476,14 @@ async def async_create_issue(
 
     Senza etichette, e non per dimenticanza: GitHub le scarta quando a
     scriverle e' qualcuno che sulla repository non ha i permessi, cioe'
-    esattamente chi apre le segnalazioni. Le mette il manutentore dalla
-    console, che i permessi ce li ha.
+    esattamente chi apre le segnalazioni. Mandarle sarebbe stato scrivere una
+    riga che non arriva, e credere di averla scritta.
+
+    Le mette invece `.github/workflows/label-issues.yml`, che gira con il
+    gettone della repository e i permessi ce li ha: legge il prefisso del
+    titolo — `[Bug]`, `[Feature]`, `[Aiuto]`, gli stessi che i moduli di GitHub
+    usano da sempre — e applica l'etichetta. Succede subito, per tutti, e senza
+    dipendere dall'avere una dashboard accesa da qualche parte.
     """
     creata = await _request(
         hass,

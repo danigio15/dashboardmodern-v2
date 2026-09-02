@@ -296,6 +296,26 @@ e la chiusura e' la chiusura su GitHub, con `state_reason` `completed` per una
 risolta e `not_planned` per una archiviata. Un posto solo, non due da tenere
 allineati.
 
+## L'etichetta la mette la repository, non chi segnala
+
+Una segnalazione aperta dalla plancia arriva **senza etichetta**, e non e' un
+difetto del giro: GitHub le etichette le scarta quando a scriverle e' qualcuno
+che sulla repository non ha i permessi — cioe' esattamente chi apre le
+segnalazioni. Mandarle sarebbe stato scrivere una riga che non arriva, e
+credere di averla scritta.
+
+Le mette `.github/workflows/label-issues.yml`, che gira col gettone della
+repository: legge il prefisso del titolo — `[Bug]`, `[Feature]`, `[Aiuto]`, gli
+stessi che i moduli di GitHub usano da sempre — e applica `bug`, `enhancement`
+o `question`. Chi un'etichetta ce l'ha gia' non si tocca: quella se l'e' presa
+dal suo modulo, e sovrascrivere una scelta fatta sarebbe peggio del non fare
+niente.
+
+L'alternativa era farlo fare al cruscotto del manutentore, col suo gettone.
+Sarebbe dipeso dall'avere una dashboard aperta: una segnalazione arrivata di
+notte sarebbe rimasta nuda fino al mattino, e chi guarda l'elenco su GitHub —
+non tutti guardano il cruscotto — l'avrebbe vista cosi'.
+
 ## L'applicazione, e com'e' registrata
 
 E' una **GitHub App** — «DashboardModern Segnalazioni», di @danigio15 — con un

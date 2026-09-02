@@ -71,6 +71,15 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
 
 ### Corretto
 
+- **Le segnalazioni aperte dalla plancia adesso hanno la loro etichetta.**
+  Arrivavano nude accanto a quelle dei moduli di GitHub, che l'etichetta se la
+  prendono da sole. Non era una dimenticanza: GitHub le scarta quando a
+  scriverle e' chi sulla repository non ha i permessi — cioe' esattamente chi
+  segnala — e mandarle sarebbe stato scrivere una riga che non arriva. Adesso
+  le mette un workflow della repository, che i permessi ce li ha: legge il
+  prefisso del titolo e applica `bug`, `enhancement` o `question`. Chi
+  un'etichetta ce l'ha gia' non si tocca.
+
 - **Le risposte si vedono aprendo la finestra, senza premere niente.** Aprirla
   leggeva solo quello che c'era in casa: le risposte scritte su GitHub
   arrivavano premendo «Aggiorna», o al giro di mezz'ora. Chi apriva le proprie
