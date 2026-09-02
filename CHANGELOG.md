@@ -5,6 +5,95 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.8
+
+Le segnalazioni sono arrivate nella beta.7. Questa e' la versione che le mette
+alla prova su quello che c'e' davvero: cinquantuno issue gia' aperte, e un
+modulo che chiedeva un'autorizzazione prima ancora di sapere cosa uno voleva
+scrivere.
+
+### Le segnalazioni, seconda mano
+
+- **Il modulo non chiede piu' niente prima di lasciarti scrivere.** Il blocco
+  «Collega GitHub» stava in cima, prima che uno avesse messo giu' una riga. Era
+  una serratura davanti alla vetrina: chi la trovava pensava «vabbe', vado su
+  GitHub», ed e' esattamente il contrario di quello che questa finestra serve a
+  evitare. La segnalazione da fare la si perdeva li'.
+
+  Adesso l'ordine e' l'unico che regge. Tipo, titolo, descrizione, invia — e
+  alla pressione la segnalazione **e' gia' salvata in casa**. Solo a quel
+  punto, se manca la firma, compare il codice, con scritto perche': «Salvata.
+  Manca solo la firma: autorizza GitHub e parte.» L'autorizzazione arriva
+  quando ha un motivo, col lavoro gia' al sicuro. Chi si ferma li' non perde
+  niente: la bozza resta e parte da sola al primo collegamento.
+
+  Chi vuole collegarsi prima di scrivere puo' ancora farlo: la riga sta in
+  fondo a «Le mie», dove si guarda chi si e', non dove si scrive.
+
+- **Il codice si digita una volta sola, e non torna piu'.** Il gettone resta
+  nel deposito di Home Assistant — un utente di HA, un account GitHub — e
+  sopravvive ai riavvii, alle ricariche e agli aggiornamenti. Non scade,
+  perche' l'App e' registrata per non farlo scadere.
+
+- **Il cruscotto guarda tutta la repository.** Mostrava le sole segnalazioni
+  nate dalla plancia, riconosciute da una riga invisibile nel corpo. Su questa
+  repository sono cinquantuno issue, e quelle nate dalla plancia erano zero: il
+  cruscotto era una stanza vuota accanto a una casa piena, e restavano due
+  posti da guardare invece di uno.
+
+  Adesso arrivano tutte, e da dove viene ognuna resta scritto — 🏠 dalla
+  plancia, 🐙 da GitHub. Non cambia cosa ci si puo' fare: si risponde e si
+  chiude identico sulle due. Cambia una cosa sola, ed e' quella che vale la
+  pena sapere prima di scrivere: la risposta a una nata dalla plancia torna
+  **dentro** la dashboard di chi ha segnalato, quella a una issue aperta su
+  GitHub resta dove e' stata scritta.
+
+- **Il filtro «Chiuse», accanto a «Da lavorare».** Due meta' che non perdono
+  niente per strada — una prova lo tiene fermo, perche' quello che sfuggisse a
+  tutti e due sarebbe uno stato sparito senza che nessuno se ne accorga.
+
+- **Il tipo si legge dal titolo e dall'etichetta.** Non e' un campo di GitHub,
+  e si deduce da due posti che qui esistono da prima della plancia: il prefisso
+  che i moduli mettono da soli — `[Bug]`, `[Feature]`, `[Aiuto]` — e
+  l'etichetta messa a mano, `bug` o `enhancement`. Sulle cinquantuno di oggi
+  funzionano tutte e due. Quando nessuno dei due dice niente il tipo resta
+  vuoto, con una pastiglia grigia: chiamarle tutte «difetto» sarebbe comodo e
+  falso. Il prefisso poi sparisce dal titolo, perche' accanto c'e' gia' la
+  pastiglia che lo dice.
+
+### Corretto
+
+- **La colonna «In lavorazione» non e' piu' sempre zero.** Chi ha commentato,
+  nell'elenco, GitHub non lo dice — e chiederlo vorrebbe dire una chiamata per
+  ogni riga. Vale allora il segno che c'e': un'aperta su cui si e' gia' parlato
+  e' in lavorazione. Nella plancia di chi ha segnalato lo stato resta quello
+  esatto, perche' li' il filo si apre per davvero.
+
+- **Gli aperti piu' vecchi non spariscono senza dirlo.** Una pagina sola con
+  `state=all` vuol dire che, appena i chiusi passano il centinaio, gli aperti
+  di prima escono dall'elenco in silenzio. Adesso gli aperti si chiedono tutti;
+  i chiusi sono storia e bastano i cinquanta piu' freschi.
+
+- **L'allegato che non carica lascia il link, non un riquadro rotto.** Il
+  ripiego staccava l'immagine e *poi* cercava il contenitore — che a quel punto
+  non c'e' piu' — quindi moriva li' e la riga col rimando non compariva mai.
+  Succede tutte le volte che la CSP di Home Assistant blocca l'immagine di
+  GitHub, cioe' spesso, e non lo si vedeva: l'eccezione finiva nella console
+  del browser.
+
+- **La pastiglia del tipo si fa leggere.** Era `aria-hidden`: chi non distingue
+  i colori non aveva modo di sapere se una riga fosse un difetto o un'idea.
+
+### Sulle prove
+
+- Le anteprime delle segnalazioni entrano in galleria per davvero. I bersagli
+  c'erano gia' nello script, ma gli scatti non erano mai stati committati: chi
+  apriva `docs/preview` trovava tutte le sezioni tranne queste. Trentasei file,
+  nove schermate per due temi e due formati.
+- Una prova prende il ripiego dell'immagine dal markup e lo esegue davvero su
+  un'immagine che si stacca: sul codice di prima fallisce.
+- 1865 prove frontend, 197 pytest.
+
 ## 1.4.5-beta.7
 
 «Come velocita' non e' migliorato nulla, siamo sempre uguali.» Aveva ragione, e
