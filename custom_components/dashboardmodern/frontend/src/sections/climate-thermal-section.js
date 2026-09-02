@@ -429,9 +429,22 @@ function cardMarkup(unit, labels) {
     </article>`;
 }
 
-/* Group by floor only. The legacy grouping printed one heading per room, which
- * on this layout means a heading above every single card; the room already has
- * its own line inside the card. */
+/* Per piano, e dentro il piano per stanza — ma la stanza solo quando serve.
+ *
+ * Si raggruppava per piano soltanto, e la ragione era buona: con un'unita' per
+ * stanza un titolo di stanza vuol dire un titolo sopra ogni singola carta, e
+ * la stanza sulla carta c'e' gia' scritta.
+ *
+ * Quella ragione cade quando le unita' per stanza sono piu' d'una: «ho sette
+ * termosifoni con valvola smart, ognuna con una o piu' entita' VTherm, quindi
+ * almeno si raddoppiano — quattordici o piu' da mostrare. Poterle raggruppare
+ * per stanza aiuta a organizzare il contenuto» (#261). Li' il titolo non
+ * ripete la carta: dice dove finisce una stanza e comincia l'altra, che dalle
+ * carte in fila non si vede.
+ *
+ * Quindi la stessa regola del piano, che un titolo lo stampa solo se sopra c'e'
+ * piu' di un piano: la stanza si intitola quando almeno una tiene piu' di
+ * un'unita'. Chi ne ha una per stanza vede esattamente quello che vedeva. */
 /* Quale stanza viene prima, secondo la configurazione.
  *
  * L'ordine lo decide chi ci abita, nella scheda Stanze, e la risposta la da'
@@ -476,19 +489,44 @@ function groupedMarkup(units, labels) {
    * stanze ma poi l'ordinamento non me lo ritrovo da nessuna parte, tipo
    * nelle pagine delle luci, clima, tapparelle» — qui non lo ritrovava. */
   const stanza = ordineStanze();
+  const conStanze = stanzeDaIntitolare(units);
   return keys
     .map((floor) => {
-      const cards = groups
+      const ordinate = groups
         .get(floor)
         .slice()
-        .sort((sinistra, destra) => stanza(sinistra.room) - stanza(destra.room))
-        .map((unit) => cardMarkup(unit, labels))
-        .join("");
+        .sort((sinistra, destra) => stanza(sinistra.room) - stanza(destra.room));
       const heading =
         floor && keys.length > 1 ? `<div class="dm-cl-floor">🏢 ${esc(floor)}</div>` : "";
-      return `${heading}${cards}`;
+      if (!conStanze) return `${heading}${ordinate.map((unit) => cardMarkup(unit, labels)).join("")}`;
+      let ultima = null;
+      const corpo = ordinate
+        .map((unit) => {
+          const nome = clean(unit.room);
+          const titolo =
+            nome && nome !== ultima ? `<div class="dm-cl-room">${esc(nome)}</div>` : "";
+          ultima = nome || ultima;
+          return `${titolo}${cardMarkup(unit, labels)}`;
+        })
+        .join("");
+      return `${heading}${corpo}`;
     })
     .join("");
+}
+
+/* Se le stanze meritano un titolo: quando almeno una ne tiene piu' d'una.
+ *
+ * Con un'unita' per stanza il titolo direbbe quello che la carta dice gia', e
+ * raddoppierebbe l'altezza dell'elenco senza aggiungere niente. */
+export function stanzeDaIntitolare(units) {
+  const conta = new Map();
+  for (const unit of Array.isArray(units) ? units : []) {
+    const nome = clean(unit?.room);
+    if (!nome) continue;
+    conta.set(nome, (conta.get(nome) || 0) + 1);
+  }
+  for (const quante of conta.values()) if (quante > 1) return true;
+  return false;
 }
 
 /* ── rendering ────────────────────────────────────────────────────────── */
@@ -1407,6 +1445,15 @@ function climateCss() {
   font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--dm-cl-dim)
 }
 .dm-cl-floor::after{content:"";flex:1;height:1px;background:var(--dm-cl-line)}
+/* Il titolo della stanza sta un gradino sotto quello del piano: stessa fila
+   larga tutta la griglia, ma con la voce di chi dice «da qui in giu' e' il
+   Salone» e non di chi apre un capitolo. Il filo non ce l'ha: quello separa i
+   piani, e ripeterlo dentro farebbe due righe orizzontali per ogni stanza. */
+.dm-cl-room{
+  grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:10px 2px 0;
+  font-size:12.5px;font-weight:800;letter-spacing:.2px;color:var(--dm-cl-text)
+}
+.dm-cl-room::before{content:"";width:4px;height:14px;border-radius:2px;background:rgb(var(--dm-cl-zone))}
 .dm-cl-empty{
   grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:34px 18px;
   border:1px dashed var(--dm-cl-line);border-radius:22px;background:var(--dm-cl-soft);text-align:center

@@ -11,6 +11,9 @@
 
 export const SOURCE_INDEX = Object.freeze({
   " — configurata": " — configured",
+  "Lasciandola sulla lingua di Home Assistant la plancia segue il profilo di chi guarda. Sceglierne una la fissa per questa dashboard, anche se Home Assistant parla un'altra lingua.": "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.",
+  "Lingua della plancia": "Dashboard language",
+  "Lingua di Home Assistant": "Home Assistant language",
   "— Altre zone —": "— Other zones —",
   "— kWh da FV": "— kWh from PV",
   "— kWh dalla rete": "— kWh from the grid",

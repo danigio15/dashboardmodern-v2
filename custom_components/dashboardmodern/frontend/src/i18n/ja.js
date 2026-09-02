@@ -15,7 +15,10 @@ export default Object.freeze({
   "Assign the report to yourself on GitHub": "GitHub で報告を自分に割り当てる",
   "Connect GitHub to write under this report.":
     "この報告に書き込むには GitHub を連携してください。",
+  "Dashboard language": "ダッシュボードの言語",
+  "Home Assistant language": "Home Assistant の言語",
   "I'll take it": "担当する",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Home Assistant の言語のままにしておくと、ダッシュボードは見ている人のプロフィールに従います。ひとつ選ぶとこのダッシュボードに固定され、Home Assistant が別の言語でもそのままです。",
   "Message sent.": "メッセージを送りました。",
   Release: "担当を外れる",
   "Released.": "担当を外れました。",

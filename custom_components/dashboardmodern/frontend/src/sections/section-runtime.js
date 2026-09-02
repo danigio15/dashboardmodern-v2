@@ -95,6 +95,7 @@ import { installUpsSection } from "./ups-section.js";
 import { installCalendarioSection } from "./calendario-section.js";
 import { installUpsEditor } from "./ups-editor-section.js";
 import { installAgendaEditorSection } from "./agenda-editor-section.js";
+import { installLinguaSection } from "./lingua-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { activeLocale, allStates, clean, english, section, t, wrapFunction } from "./shared.js";
@@ -915,6 +916,9 @@ export function installSectionRuntime() {
      * le configura le pensa nello stesso momento. */
     installCalendarioSection();
     installAgendaEditorSection();
+    /* La lingua si sceglie fra le Impostazioni (#263): il motore c'era gia',
+     * mancava la riga da cui dirlo. */
+    installLinguaSection();
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();

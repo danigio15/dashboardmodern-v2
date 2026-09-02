@@ -28,7 +28,10 @@ export default Object.freeze({
   "Any type": "أي نوع",
   "Call-for-heat entity": "كيان طلب التدفئة",
   "Came from a dashboard: the reply goes back into it": "وردت من لوحة تحكم: يعود الرد إليها",
+  "Dashboard language": "لغة اللوحة",
   "Everything on the repository": "كل ما في المستودع",
+  "Home Assistant language": "لغة Home Assistant",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "إذا تُركت على لغة Home Assistant فإن اللوحة تتبع ملف من ينظر إليها. واختيار لغة يثبّتها لهذه اللوحة، حتى لو كان Home Assistant يتكلم لغة أخرى.",
   "Nothing came in today.": "لم يصل شيء اليوم.",
   Solve: "حُلَّت",
   "The entity that reports the boiler's call for heat, on or off.":

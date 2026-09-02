@@ -28,7 +28,10 @@ export default Object.freeze({
   "Any type": "Her tür",
   "Call-for-heat entity": "Isı talebi varlığı",
   "Came from a dashboard: the reply goes back into it": "Bir panodan geldi: yanıt oraya geri döner",
+  "Dashboard language": "Panonun dili",
   "Everything on the repository": "Depodaki her şey",
+  "Home Assistant language": "Home Assistant'ın dili",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Home Assistant'ın dilinde bırakılırsa pano, bakan kişinin profilini izler. Bir dil seçmek onu bu panoya sabitler; Home Assistant başka bir dil konuşsa bile.",
   "Nothing came in today.": "Bugün hiçbir şey gelmedi.",
   Solve: "Çöz",
   "The entity that reports the boiler's call for heat, on or off.":

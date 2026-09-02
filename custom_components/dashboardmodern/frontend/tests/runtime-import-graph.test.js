@@ -583,8 +583,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // liste ToDo si configuravano nella scheda dei widget, che risponde a
   // un'altra domanda — quali tessere vedere in Home — e la sezione Agenda
   // restava l'unica voce della barra senza il suo interruttore.
+  // 201 con la scelta della lingua (`sections/lingua-section.js`): «vorrei
+  // poter modificare la lingua dalle impostazioni senza ereditare
+  // necessariamente quella di HA» (#263). Il motore c'era gia' tutto in
+  // `core/i18n.js` — questa e' la riga da cui dirlo, e vive fuori da li'
+  // perche' il raccoglitore delle traduzioni guarda le sezioni.
   assert.ok(
-    relative.length <= 200,
+    relative.length <= 201,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

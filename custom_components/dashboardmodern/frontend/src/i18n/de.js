@@ -15,7 +15,10 @@ export default Object.freeze({
   "Assign the report to yourself on GitHub": "Weise die Meldung dir selbst auf GitHub zu",
   "Connect GitHub to write under this report.":
     "Verbinde GitHub, um unter dieser Meldung zu schreiben.",
+  "Dashboard language": "Sprache des Dashboards",
+  "Home Assistant language": "Sprache von Home Assistant",
   "I'll take it": "Ich übernehme",
+  "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.": "Bleibt sie auf der Sprache von Home Assistant, folgt das Dashboard dem Profil der Person, die gerade hinsieht. Wählst du eine aus, ist sie für dieses Dashboard festgelegt — auch wenn Home Assistant eine andere Sprache spricht.",
   "Message sent.": "Nachricht gesendet.",
   Release: "Abgeben",
   "Released.": "Abgegeben.",
