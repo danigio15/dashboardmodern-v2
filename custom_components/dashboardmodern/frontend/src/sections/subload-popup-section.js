@@ -61,10 +61,14 @@ function loadForGroup(groupId) {
 
 /* Which period the circle was clicked in, so the title reads like the rest of
  * the dashboard: "CUCINA · ISTANTANEO". */
+function periodOf(groupId) {
+  return /_(day|month)$/.exec(clean(groupId))?.[1] || "instant";
+}
+
 function periodLabel(groupId) {
-  const match = /_(day|month)$/.exec(clean(groupId));
-  if (match?.[1] === "day") return t("GIORNO", "DAY");
-  if (match?.[1] === "month") return t("MESE", "MONTH");
+  const periodo = periodOf(groupId);
+  if (periodo === "day") return t("GIORNO", "DAY");
+  if (periodo === "month") return t("MESE", "MONTH");
   return t("ISTANTANEO", "INSTANT");
 }
 
@@ -203,7 +207,7 @@ function aggiornaCarta(node, item, model) {
   iconInto(node.querySelector(".dm-subload-icon"), item.icon, item.visual);
   poniTesto(node.querySelector(".dm-subload-name"), item.name);
   poniTesto(node.querySelector(".dm-subload-state"), ETICHETTE()[item.state]);
-  poniTesto(node.querySelector(".dm-subload-power"), item.powerText);
+  poniTesto(node.querySelector(".dm-subload-power"), item.valoreText);
   scriviIlGiorno(node, item);
   poniStile(
     node.querySelector(".dm-subload-meter-fill"),
@@ -223,11 +227,14 @@ function aggiornaCarta(node, item, model) {
  * quella riga, e le carte restano dove sono. */
 function scriviIlGiorno(node, item) {
   const riga = node.querySelector(".dm-subload-daily");
-  if (!item.dailyText) {
+  if (!item.sottoText) {
     riga?.remove?.();
     return;
   }
-  const testo = `${item.dailyText} ${t("oggi", "today")}`;
+  /* La parola la mette qui chi disegna: il modello sceglie QUALE numero va
+   * sotto, non come si chiama in questa lingua. */
+  const quando = item.sottoQuando === "adesso" ? t("adesso", "now") : t("oggi", "today");
+  const testo = `${item.sottoText} ${quando}`;
   if (riga) {
     if (riga.textContent !== testo) riga.textContent = testo;
     return;
@@ -420,6 +427,9 @@ export function renderSubloadPopup(groupId = state.group) {
     children: subloadsOf(load, loads, Array.isArray(appliances) ? appliances : []),
     states: allStates(),
     locale: locale(),
+    /* Il periodo in cui il cerchio e' stato toccato decide i numeri, non solo
+     * la scritta in testata: vedi `subloadPopupModel`. */
+    period: periodOf(groupId),
   });
 
   /* La testata del modale — nome, icona, periodo — si riscrive solo quando c'e'
