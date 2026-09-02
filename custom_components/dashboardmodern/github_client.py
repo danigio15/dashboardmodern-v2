@@ -365,9 +365,14 @@ def _senza_allegati(text: str) -> str:
 def issue_body(ticket: Mapping[str, Any]) -> str:
     """Il corpo della issue: quello che l'utente ha scritto, piu' la diagnostica.
 
-    Il contatto non c'e', e non e' una dimenticanza: una issue e' una pagina
-    pubblica, e chi ha scritto il proprio indirizzo lo ha scritto a una
-    persona. Resta in casa, dove il manutentore lo legge dalla console.
+    Un recapito non c'e' — non nel corpo e non altrove — e non e' una
+    dimenticanza. Il modulo lo chiedeva, «resta in casa», ed era vero: non
+    finiva nella pagina pubblica. Solo che in casa non lo leggeva nessuno,
+    perche' la console del manutentore legge GitHub. Chiedere un indirizzo
+    e-mail per poi non farne niente e' la peggiore delle tre strade possibili:
+    si conserva un dato personale, non serve a nessuno, e chi lo scrive crede
+    di essere raggiungibile. La risposta arriva sotto la segnalazione, dove il
+    filo si legge e si scrive nei due sensi.
     """
     righe = [str(ticket.get("body") or ""), ""]
     diagnostica = ticket.get("diagnostics") or {}

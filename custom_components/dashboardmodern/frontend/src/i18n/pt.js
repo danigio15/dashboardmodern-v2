@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "O relato torna-se uma página pública no github.com, aberta em teu nome: qualquer pessoa poderá lê-la. A resposta volta para aqui, sob a discussão.",
   maintainer: "responsável",
   "Assign the report to yourself on GitHub": "Atribui o relato a ti no GitHub",
   "Connect GitHub to write under this report.": "Liga o GitHub para escrever sob este relato.",
@@ -1179,7 +1181,6 @@ export default Object.freeze({
   Hot: "Calor",
   "Hot water": "Água quente",
   House: "Casa",
-  "How to reach you (optional)": "Como te contactar (opcional)",
   "How to read the Energy configuration": "Como ler a configuração de Energia",
   Hue: "Matiz",
   humidity: "humidade",
@@ -2085,7 +2086,6 @@ export default Object.freeze({
   "State · Battery · Map": "Estado · Bateria · Mapa",
   "State (optional)": "Estado (opcional)",
   "State or programme": "Estado ou programa",
-  "Stays at home: it does not go on the public page": "Fica em casa: não vai para a página pública",
   Still: "Parado",
   Stop: "Parar",
   Stopped: "Parada",
@@ -2243,8 +2243,6 @@ export default Object.freeze({
   "The readings": "As medições",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "A resposta fica por baixo do relato, e quem o abriu encontra-a no seu próprio painel.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "O relato torna-se uma página pública no github.com, aberta em teu nome: qualquer pessoa poderá lê-la. O contacto acima não: esse fica em casa.",
   "The rest of the popup": "O resto da janela",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "A divisão onde está: alimenta a página Divisões e aqui não muda nada.",

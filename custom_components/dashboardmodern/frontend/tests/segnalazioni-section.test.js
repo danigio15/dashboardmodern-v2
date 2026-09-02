@@ -904,3 +904,23 @@ test("senza GitHub collegato si legge il perche', non un tasto che non puo' funz
     assert.ok(markup.includes("Collega GitHub"));
   });
 });
+
+test("il modulo non chiede piu' un recapito, e non ne porta uno", async () => {
+  /* C'era una casella «come ricontattarti», e diceva il vero: restava in casa,
+   * nella pagina pubblica non finiva. Solo che in casa non la leggeva nessuno
+   * — la console del manutentore legge GitHub — e chiedere un indirizzo e-mail
+   * per poi non farne niente e' la peggiore delle tre strade: si conserva un
+   * dato personale, non serve a nessuno, e chi lo scrive crede di essere
+   * raggiungibile. La risposta arriva sotto la segnalazione, e il campanello
+   * avvisa quando c'e'.
+   *
+   * Si legge il sorgente perche' quello che va provato e' l'assenza: un campo
+   * che non c'e' non si puo' interrogare. */
+  const sorgente = await readFile(
+    new URL("../src/sections/segnalazioni-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.ok(!sorgente.includes("dm-tkt-contatto"), "la casella del recapito e' tornata");
+  assert.ok(!/\bcontact\b/.test(sorgente), "qualcosa manda ancora un recapito");
+  assert.ok(!sorgente.includes("MAX_CONTATTO"));
+});

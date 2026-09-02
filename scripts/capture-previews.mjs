@@ -1568,9 +1568,8 @@ async function bootPage(context, cameraStill, vehicleStill) {
             ? {
                 title: "Le tapparelle non si fermano a meta'",
                 body: "Premo stop dalla pagina Finestre e continuano a scendere fino in fondo.\n\nSuccede con due Shelly 2PM su tre. La terza si ferma dove deve.",
-                contact: "",
               }
-            : { title: "", body: "", contact: "" };
+            : { title: "", body: "" };
       }
       if (dove === "pagina" || dove === "chiuse" || dove === "difetti" || dove === "filo") {
         /* Il cruscotto e' una pagina della barra: si semina lo stato, si lascia

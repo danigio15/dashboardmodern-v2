@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "報告はあなたの名前で github.com の公開ページになり、誰でも読めます。返事はここ、話の下に戻ってきます。",
   maintainer: "メンテナー",
   "Assign the report to yourself on GitHub": "GitHub で報告を自分に割り当てる",
   "Connect GitHub to write under this report.":
@@ -1177,7 +1179,6 @@ export default Object.freeze({
   Hot: "暑い",
   "Hot water": "給湯",
   House: "家",
-  "How to reach you (optional)": "連絡先（任意）",
   "How to read the Energy configuration": "エネルギー設定の読み方",
   Hue: "色相",
   humidity: "湿度",
@@ -2076,7 +2077,6 @@ export default Object.freeze({
   "State · Battery · Map": "状態・バッテリー・マップ",
   "State (optional)": "状態（任意）",
   "State or programme": "状態またはプログラム",
-  "Stays at home: it does not go on the public page": "自宅に残ります。公開ページには出ません",
   Still: "静止中",
   Stop: "停止",
   Stopped: "停止中",
@@ -2232,8 +2232,6 @@ export default Object.freeze({
   "The readings": "計測値",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "返信は報告の下に付き、報告した人は自分のダッシュボードで見つけられます。",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "報告は github.com の公開ページになり、あなたの名前で開かれます。誰でも読めます。上の連絡先は入りません——それは自宅に残ります。",
   "The rest of the popup": "ポップアップのその他",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "設置されている部屋です。部屋ページで使われ、ここでは何も変わりません。",

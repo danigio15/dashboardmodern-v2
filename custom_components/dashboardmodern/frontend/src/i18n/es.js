@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "El informe se convierte en una página pública en github.com, abierta a tu nombre: cualquiera podrá leerla. La respuesta vuelve aquí, bajo la discusión.",
   maintainer: "mantenedor",
   "Assign the report to yourself on GitHub": "Asigna el informe a ti mismo en GitHub",
   "Connect GitHub to write under this report.": "Conecta GitHub para escribir bajo este informe.",
@@ -1181,7 +1183,6 @@ export default Object.freeze({
   Hot: "Calor",
   "Hot water": "Agua caliente",
   House: "Casa",
-  "How to reach you (optional)": "Cómo contactarte (opcional)",
   "How to read the Energy configuration": "Cómo leer la configuración de Energía",
   Hue: "Tono",
   humidity: "humedad",
@@ -2088,7 +2089,6 @@ export default Object.freeze({
   "State · Battery · Map": "Estado · Batería · Mapa",
   "State (optional)": "Estado (opcional)",
   "State or programme": "Estado o programa",
-  "Stays at home: it does not go on the public page": "Se queda en casa: no va a la página pública",
   Still: "Quieto",
   Stop: "Detener",
   Stopped: "Parada",
@@ -2246,8 +2246,6 @@ export default Object.freeze({
   "The readings": "Las medidas",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "La respuesta va debajo del informe, y quien lo abrió la encuentra en su propio panel.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "El informe se convierte en una página pública en github.com, abierta a tu nombre: cualquiera podrá leerla. El contacto de arriba no: ese se queda en casa.",
   "The rest of the popup": "El resto de la ventana",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "La habitación donde está: alimenta la página Habitaciones y aquí no cambia nada.",

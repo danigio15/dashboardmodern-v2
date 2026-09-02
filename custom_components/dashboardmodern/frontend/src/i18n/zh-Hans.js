@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "反馈会以你的名义变成 github.com 上的公开页面，任何人都能读到。回复会回到这里，在讨论下面。",
   maintainer: "维护者",
   "Assign the report to yourself on GitHub": "在 GitHub 上把该反馈指派给自己",
   "Connect GitHub to write under this report.": "连接 GitHub 才能在这条反馈下留言。",
@@ -1155,7 +1157,6 @@ export default Object.freeze({
   Hot: "偏热",
   "Hot water": "热水",
   House: "住宅",
-  "How to reach you (optional)": "如何联系你（可选）",
   "How to read the Energy configuration": "如何看懂“能源”设置",
   Hue: "色相",
   humidity: "湿度",
@@ -2032,7 +2033,6 @@ export default Object.freeze({
   "State · Battery · Map": "状态 · 电量 · 地图",
   "State (optional)": "状态（可选）",
   "State or programme": "状态或程序",
-  "Stays at home: it does not go on the public page": "留在本地：不会出现在公开页面上",
   Still: "静止",
   Stop: "停止",
   Stopped: "已停止",
@@ -2187,8 +2187,6 @@ export default Object.freeze({
   "The readings": "读数",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "回复会出现在反馈下方，提交的人在自己的面板里就能看到。",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "反馈会成为 github.com 上的公开页面，以你的名义提交：任何人都能阅读。上面的联系方式不会：那留在本地。",
   "The rest of the popup": "弹窗的其余部分",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "它所在的房间：用于房间页面，在这里不改变任何设置。",

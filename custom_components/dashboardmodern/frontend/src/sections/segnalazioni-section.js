@@ -53,7 +53,7 @@ const state = (root[KEY] ||= {
   /* Quello che si sta scrivendo. Sta qui e non solo nel DOM perche' ogni
    * ridisegno rifa' il modulo da capo: senza, cambiare tipo a meta' frase
    * cancellava la frase. */
-  bozza: { title: "", body: "", contact: "" },
+  bozza: { title: "", body: "" },
   busy: false,
   avviso: "",
   config: null,
@@ -106,7 +106,6 @@ export const DIAGNOSTIC_KEYS = Object.freeze([
  * mano prima dell'invio, li' a fermare la richiesta. */
 const MAX_TITOLO = 120;
 const MAX_CORPO = 4000;
-const MAX_CONTATTO = 190;
 
 /* I tre tipi. Ognuno porta la sua spiegazione e il suo suggerimento, perche'
  * la differenza fra «non funziona» e «vorrei che facesse» la sa chi scrive
@@ -950,19 +949,6 @@ function moduloMarkup() {
         placeholder="${esc(scelto.corpo())}">${esc(state.bozza.body)}</textarea>
       <div class="dm-tkt-conta" data-dm-tkt="conta">${state.bozza.body.length} / ${MAX_CORPO}</div>
     </div>
-    <div class="dm-tkt-campo">
-      <label for="dm-tkt-contatto">${esc(
-        t("Come ricontattarti (facoltativo)", "How to reach you (optional)"),
-      )}</label>
-      <input id="dm-tkt-contatto" type="text" maxlength="${MAX_CONTATTO}"
-        autocomplete="off" value="${esc(state.bozza.contact)}"
-        placeholder="${esc(
-          t(
-            "Resta in casa: non finisce nella pagina pubblica",
-            "Stays at home: it does not go on the public page",
-          ),
-        )}">
-    </div>
     <div class="dm-tkt-passo">${esc(t("3 · Cosa parte", "3 · What gets sent"))}</div>
     <details class="dm-tkt-diag">
       <summary>${esc(
@@ -983,8 +969,8 @@ function moduloMarkup() {
       <span class="dm-tkt-pubblica-ico" aria-hidden="true">🌍</span>
       <span>${esc(
         t(
-          "La segnalazione diventa una pagina pubblica su github.com, aperta a tuo nome: chiunque potra' leggerla. Il recapito qui sopra no: quello resta in casa.",
-          "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.",
+          "La segnalazione diventa una pagina pubblica su github.com, aperta a tuo nome: chiunque potra' leggerla. La risposta arriva qui, sotto la discussione.",
+          "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.",
         ),
       )}</span>
     </div>
@@ -1813,7 +1799,6 @@ function raccogliBozza() {
   state.bozza = {
     title: modale.querySelector("#dm-tkt-campo-titolo")?.value ?? "",
     body: modale.querySelector("#dm-tkt-corpo")?.value ?? "",
-    contact: modale.querySelector("#dm-tkt-contatto")?.value ?? "",
   };
 }
 
@@ -1907,7 +1892,6 @@ async function invia() {
   raccogliBozza();
   const titolo = clean(state.bozza.title);
   const corpo = clean(state.bozza.body);
-  const contatto = clean(state.bozza.contact);
   /* Il primo filtro e' qui, e serve a chi scrive: la stessa risposta dal
    * backend arriverebbe in italiano e dopo un giro sulla rete. */
   if (!titolo) {
@@ -1929,10 +1913,9 @@ async function invia() {
       ticket_type: state.tipo,
       title: titolo,
       body: corpo,
-      contact: contatto,
       diagnostics: await diagnostica(),
     });
-    state.bozza = { title: "", body: "", contact: "" };
+    state.bozza = { title: "", body: "" };
     const aperta = risposta?.ticket || {};
     state.appena =
       risposta?.delivered && aperta.issue_url

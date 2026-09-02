@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "Обращение становится публичной страницей на github.com, открытой от вашего имени: прочитать её сможет кто угодно. Ответ возвращается сюда, под обсуждение.",
   maintainer: "сопровождающий",
   "Assign the report to yourself on GitHub": "Назначить обращение себе на GitHub",
   "Connect GitHub to write under this report.":
@@ -1179,7 +1181,6 @@ export default Object.freeze({
   Hot: "Жарко",
   "Hot water": "Горячая вода",
   House: "Дом",
-  "How to reach you (optional)": "Как с вами связаться (необязательно)",
   "How to read the Energy configuration": "Как читать настройку «Энергии»",
   Hue: "Оттенок",
   humidity: "влажность",
@@ -2082,8 +2083,6 @@ export default Object.freeze({
   "State · Battery · Map": "Статус · Батарея · Карта",
   "State (optional)": "Состояние (необязательно)",
   "State or programme": "Состояние или программа",
-  "Stays at home: it does not go on the public page":
-    "Остаётся дома: на публичную страницу не попадёт",
   Still: "Неподвижен",
   Stop: "Остановить",
   Stopped: "Остановлена",
@@ -2242,8 +2241,6 @@ export default Object.freeze({
   "The readings": "Показания",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "Ответ появится под обращением, и тот, кто его открыл, найдёт его в своей панели.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "Обращение становится публичной страницей на github.com, открытой от вашего имени: прочитать её сможет любой. Контакт выше — нет: он остаётся дома.",
   "The rest of the popup": "Остальное в окне",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "Комната, где это находится: используется на странице комнат и здесь ничего не меняет.",

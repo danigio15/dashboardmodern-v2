@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "Zgłoszenie staje się publiczną stroną na github.com, otwartą w twoim imieniu: każdy będzie mógł ją przeczytać. Odpowiedź wraca tutaj, pod dyskusją.",
   maintainer: "opiekun",
   "Assign the report to yourself on GitHub": "Przypisz zgłoszenie do siebie na GitHubie",
   "Connect GitHub to write under this report.": "Połącz GitHub, aby pisać pod tym zgłoszeniem.",
@@ -1180,7 +1182,6 @@ export default Object.freeze({
   Hot: "Gorąco",
   "Hot water": "Ciepła woda",
   House: "Dom",
-  "How to reach you (optional)": "Jak się z tobą skontaktować (opcjonalnie)",
   "How to read the Energy configuration": "Jak czytać konfigurację Energii",
   Hue: "Barwa",
   humidity: "wilgotność",
@@ -2079,8 +2080,6 @@ export default Object.freeze({
   "State · Battery · Map": "Stan · Bateria · Mapa",
   "State (optional)": "Stan (opcjonalnie)",
   "State or programme": "Stan lub program",
-  "Stays at home: it does not go on the public page":
-    "Zostaje w domu: nie trafia na publiczną stronę",
   Still: "W bezruchu",
   Stop: "Zatrzymaj",
   Stopped: "Zatrzymana",
@@ -2238,8 +2237,6 @@ export default Object.freeze({
   "The readings": "Pomiary",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "Odpowiedź trafia pod zgłoszenie, a osoba, która je otworzyła, znajdzie ją w swoim panelu.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "Zgłoszenie staje się publiczną stroną na github.com, otwartą w twoim imieniu: każdy będzie mógł je przeczytać. Kontakt powyżej nie: ten zostaje w domu.",
   "The rest of the popup": "Reszta okna",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "Pokój, w którym się znajduje: zasila stronę Pokoje i nic tu nie zmienia.",

@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "रिपोर्ट github.com पर आपके नाम से खुला एक सार्वजनिक पृष्ठ बन जाती है: कोई भी उसे पढ़ सकेगा। जवाब यहीं, चर्चा के नीचे आता है।",
   maintainer: "अनुरक्षक",
   "Assign the report to yourself on GitHub": "GitHub पर रिपोर्ट खुद को सौंपें",
   "Connect GitHub to write under this report.": "इस रिपोर्ट के नीचे लिखने के लिए GitHub जोड़ें।",
@@ -1172,7 +1174,6 @@ export default Object.freeze({
   Hot: "गरम",
   "Hot water": "गर्म पानी",
   House: "घर",
-  "How to reach you (optional)": "आपसे कैसे संपर्क करें (वैकल्पिक)",
   "How to read the Energy configuration": "ऊर्जा कॉन्फ़िगरेशन कैसे पढ़ें",
   Hue: "रंगत",
   humidity: "नमी",
@@ -2065,8 +2066,6 @@ export default Object.freeze({
   "State · Battery · Map": "स्थिति · बैटरी · नक्शा",
   "State (optional)": "स्थिति (वैकल्पिक)",
   "State or programme": "स्थिति या प्रोग्राम",
-  "Stays at home: it does not go on the public page":
-    "घर पर ही रहता है: सार्वजनिक पृष्ठ पर नहीं जाता",
   Still: "स्थिर",
   Stop: "रोकें",
   Stopped: "रुकी हुई",
@@ -2222,8 +2221,6 @@ export default Object.freeze({
   "The readings": "माप",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "उत्तर रिपोर्ट के नीचे लगता है, और जिसने उसे खोला था वह अपने डैशबोर्ड में पा लेता है।",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "रिपोर्ट github.com पर एक सार्वजनिक पृष्ठ बन जाती है, आपके नाम से खुली: इसे कोई भी पढ़ सकेगा। ऊपर दिया संपर्क नहीं: वह घर पर ही रहता है।",
   "The rest of the popup": "पॉपअप का बाकी हिस्सा",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "वह कमरा जहाँ यह है: यह कमरे पृष्ठ को भरता है, यहाँ कुछ नहीं बदलता।",

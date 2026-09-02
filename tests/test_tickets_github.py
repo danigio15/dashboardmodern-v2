@@ -121,7 +121,6 @@ async def _bozza(hass: HomeAssistant, **kwargs: Any) -> dict[str, Any]:
         "ticket_type": TYPE_BUG,
         "title": "Le tapparelle non si fermano",
         "body": "Premo stop e continuano a scendere.",
-        "contact": "anna@example.com",
         "diagnostics": {"ha_version": "2026.8.0"},
         "opened_by": "anna",
     }
@@ -312,22 +311,77 @@ async def test_la_issue_nasce_col_gettone_di_chi_ha_scritto(
     assert github.calls[0]["token"] == "gho_bruno"
 
 
-async def test_il_contatto_non_finisce_nella_pagina_pubblica(
+async def test_un_recapito_non_si_chiede_e_non_si_conserva(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Una issue e' pubblica. Chi ha scritto il proprio indirizzo lo ha
-    scritto a una persona, e resta in casa per la console."""
+    """Il campo «come ricontattarti» non esiste piu', a nessun livello.
+
+    C'era, e diceva il vero: restava in casa, e nella pagina pubblica non
+    finiva. Solo che in casa non lo leggeva nessuno — la console del
+    manutentore legge GitHub — e chiedere un indirizzo e-mail per poi non farne
+    niente e' la peggiore delle tre strade: si conserva un dato personale, non
+    serve a nessuno, e chi lo scrive crede di essere raggiungibile.
+    """
     _entry(hass)
     await _collega(hass, "anna")
     github.answer(
         "/issues", {"number": 7, "html_url": "https://github.com/x/y/issues/7"}
     )
-    await _bozza(hass, contact="anna@example.com")
+    with pytest.raises(TypeError):
+        await _bozza(hass, contact="anna@example.com")
+
+    ticket = await _bozza(hass)
+    assert "contact" not in ticket
     await tickets.async_deliver_pending(hass)
     corpo = github.calls[0]["payload"]
-    assert "anna@example.com" not in repr(corpo)
     assert "2026.8.0" in corpo["body"]
     assert TICKET_MARKER in corpo["body"]
+
+
+async def test_i_recapiti_gia_scritti_spariscono_dal_disco(
+    hass: HomeAssistant,
+) -> None:
+    """Toglierlo dal modulo non basta: quello che c'e' gia' sta sul disco.
+
+    Chi la plancia ce l'ha da mesi si porta dietro i recapiti scritti dalle
+    versioni precedenti, e senza questo resterebbero li' finche' quei ticket
+    non cadono dal fondo dello store.
+    """
+    from homeassistant.helpers.storage import Store
+
+    from custom_components.dashboardmodern.ticket_store import (
+        STORAGE_KEY,
+        STORAGE_VERSION,
+        TicketStore,
+    )
+
+    deposito: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+    await deposito.async_save(
+        {
+            "installation_id": "abc",
+            "tickets": [
+                {
+                    "id": "t1",
+                    "opened_by": "anna",
+                    "type": TYPE_BUG,
+                    "title": "vecchia",
+                    "body": "x",
+                    "contact": "anna@example.com",
+                    "state": STATE_DRAFT,
+                    "created_at": 1,
+                    "updated_at": 1,
+                }
+            ],
+        }
+    )
+
+    store = TicketStore(hass)
+    await store.async_load()
+    assert "contact" not in store.list(opened_by="anna")[0]
+
+    # E sparisce davvero dal file, non solo da quello che si legge.
+    rimasto = await Store(hass, STORAGE_VERSION, STORAGE_KEY).async_load()
+    assert "contact" not in rimasto["tickets"][0]
 
 
 async def test_la_issue_nasce_senza_etichette(

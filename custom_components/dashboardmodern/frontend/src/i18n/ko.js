@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "제보는 본인 이름으로 github.com의 공개 페이지가 되며 누구나 읽을 수 있습니다. 답변은 이곳, 대화 아래로 돌아옵니다.",
   maintainer: "관리자",
   "Assign the report to yourself on GitHub": "GitHub에서 이 제보를 본인에게 배정",
   "Connect GitHub to write under this report.": "이 제보에 글을 쓰려면 GitHub를 연결하세요.",
@@ -1171,7 +1173,6 @@ export default Object.freeze({
   Hot: "더움",
   "Hot water": "온수",
   House: "집",
-  "How to reach you (optional)": "연락 방법 (선택)",
   "How to read the Energy configuration": "에너지 설정 읽는 법",
   Hue: "색조",
   humidity: "습도",
@@ -2064,8 +2065,6 @@ export default Object.freeze({
   "State · Battery · Map": "상태 · 배터리 · 지도",
   "State (optional)": "상태 (선택)",
   "State or programme": "상태 또는 프로그램",
-  "Stays at home: it does not go on the public page":
-    "집에 남습니다: 공개 페이지에 올라가지 않습니다",
   Still: "정지",
   Stop: "정지",
   Stopped: "정지됨",
@@ -2221,8 +2220,6 @@ export default Object.freeze({
   "The readings": "측정값",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "답변은 제보 아래에 달리고, 제보한 사람은 자기 대시보드에서 찾습니다.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "제보는 github.com의 공개 페이지가 되며 당신의 이름으로 열립니다: 누구나 읽을 수 있습니다. 위의 연락처는 아닙니다 — 그것은 집에 남습니다.",
   "The rest of the popup": "팝업의 나머지",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "놓여 있는 방입니다. 방 페이지에 쓰이며 여기서는 아무것도 바뀌지 않습니다.",

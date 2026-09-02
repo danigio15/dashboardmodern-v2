@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "Die Meldung wird eine öffentliche Seite auf github.com, in deinem Namen eröffnet: jeder kann sie lesen. Die Antwort kommt hierher zurück, unter die Diskussion.",
   maintainer: "Betreuer",
   "Assign the report to yourself on GitHub": "Weise die Meldung dir selbst auf GitHub zu",
   "Connect GitHub to write under this report.":
@@ -1187,7 +1189,6 @@ export default Object.freeze({
   Hot: "Warm",
   "Hot water": "Warmwasser",
   House: "Haus",
-  "How to reach you (optional)": "Wie wir dich erreichen (optional)",
   "How to read the Energy configuration": "So liest man die Energie-Konfiguration",
   Hue: "Farbton",
   humidity: "Luftfeuchte",
@@ -2089,8 +2090,6 @@ export default Object.freeze({
   "State · Battery · Map": "Zustand · Batterie · Karte",
   "State (optional)": "Zustand (optional)",
   "State or programme": "Zustand oder Programm",
-  "Stays at home: it does not go on the public page":
-    "Bleibt zu Hause: kommt nicht auf die öffentliche Seite",
   Still: "Ruhend",
   Stop: "Stoppen",
   Stopped: "Angehalten",
@@ -2250,8 +2249,6 @@ export default Object.freeze({
   "The readings": "Die Messwerte",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "Die Antwort landet unter der Meldung, und wer sie geöffnet hat, findet sie im eigenen Dashboard.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "Die Meldung wird zu einer öffentlichen Seite auf github.com, in deinem Namen: Jede und jeder kann sie lesen. Die Kontaktangabe oben nicht: die bleibt zu Hause.",
   "The rest of the popup": "Der Rest des Fensters",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "Der Raum, in dem es steht: speist die Räume-Seite und ändert hier nichts.",

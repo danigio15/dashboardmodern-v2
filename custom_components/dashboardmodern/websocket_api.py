@@ -49,7 +49,6 @@ from .github_client import DevicePending, GitHubError
 from .github_tokens import async_get_token_store
 from .ticket_store import (
     MAX_BODY,
-    MAX_CONTACT,
     MAX_REPLY,
     MAX_TITLE,
     TICKET_TYPES,
@@ -411,9 +410,6 @@ async def async_list_tickets(
         vol.Required("ticket_type"): vol.In(sorted(TICKET_TYPES)),
         vol.Required("title"): vol.All(str, vol.Length(min=1, max=MAX_TITLE * 2)),
         vol.Required("body"): vol.All(str, vol.Length(min=1, max=MAX_BODY * 2)),
-        vol.Optional("contact", default=""): vol.All(
-            str, vol.Length(max=MAX_CONTACT * 2)
-        ),
         vol.Optional("diagnostics", default=dict): {
             str: vol.Any(str, int, float, bool)
         },
@@ -440,7 +436,6 @@ async def async_create_ticket(
             ticket_type=msg["ticket_type"],
             title=msg["title"],
             body=msg["body"],
-            contact=msg["contact"],
             diagnostics=msg["diagnostics"],
             opened_by=_caller_id(connection),
         )

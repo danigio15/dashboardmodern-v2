@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "Bildirim github.com'da senin adına açılmış herkese açık bir sayfa olur: isteyen okuyabilir. Yanıt buraya, tartışmanın altına döner.",
   maintainer: "sorumlu",
   "Assign the report to yourself on GitHub": "Bildirimi GitHub'da kendine ata",
   "Connect GitHub to write under this report.": "Bu bildirimin altına yazmak için GitHub'ı bağla.",
@@ -1178,7 +1180,6 @@ export default Object.freeze({
   Hot: "Sıcak",
   "Hot water": "Sıcak su",
   House: "Ev",
-  "How to reach you (optional)": "Sana nasıl ulaşalım (isteğe bağlı)",
   "How to read the Energy configuration": "Enerji yapılandırması nasıl okunur",
   Hue: "Renk tonu",
   humidity: "nem",
@@ -2075,7 +2076,6 @@ export default Object.freeze({
   "State · Battery · Map": "Durum · Pil · Harita",
   "State (optional)": "Durum (isteğe bağlı)",
   "State or programme": "Durum veya program",
-  "Stays at home: it does not go on the public page": "Evde kalır: herkese açık sayfaya gitmez",
   Still: "Hareketsiz",
   Stop: "Durdur",
   Stopped: "Durduruldu",
@@ -2231,8 +2231,6 @@ export default Object.freeze({
   "The readings": "Ölçümler",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "Yanıt bildirimin altına düşer, açan kişi de kendi panosunda bulur.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "Bildirim github.com'da herkese açık bir sayfaya dönüşür ve senin adına açılır: isteyen herkes okuyabilir. Yukarıdaki iletişim bilgisi değil: o evde kalır.",
   "The rest of the popup": "Pencerenin geri kalanı",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "Bulunduğu oda: Odalar sayfasını besler, burada hiçbir şeyi değiştirmez.",

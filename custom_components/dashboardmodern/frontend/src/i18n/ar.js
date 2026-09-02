@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "يصبح البلاغ صفحة عامة على github.com، مفتوحة باسمك: سيتمكن أي شخص من قراءتها. يصلك الرد هنا، أسفل النقاش.",
   maintainer: "المشرف",
   "Assign the report to yourself on GitHub": "أسنِد البلاغ إلى نفسك على GitHub",
   "Connect GitHub to write under this report.": "اربط GitHub للكتابة تحت هذا البلاغ.",
@@ -1165,7 +1167,6 @@ export default Object.freeze({
   Hot: "حار",
   "Hot water": "ماء ساخن",
   House: "المنزل",
-  "How to reach you (optional)": "كيف نتواصل معك (اختياري)",
   "How to read the Energy configuration": "كيف تُقرأ إعدادات الطاقة",
   Hue: "درجة اللون",
   humidity: "الرطوبة",
@@ -2055,7 +2056,6 @@ export default Object.freeze({
   "State · Battery · Map": "الحالة · البطارية · الخريطة",
   "State (optional)": "الحالة (اختياري)",
   "State or programme": "الحالة أو البرنامج",
-  "Stays at home: it does not go on the public page": "يبقى في المنزل: لن يظهر في الصفحة العامة",
   Still: "ثابت",
   Stop: "إيقاف",
   Stopped: "متوقفة",
@@ -2210,8 +2210,6 @@ export default Object.freeze({
   "The readings": "القياسات",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "يظهر الرد أسفل البلاغ، ومن فتحه يجده في لوحة التحكم الخاصة به.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "يتحول البلاغ إلى صفحة عامة على github.com تُفتح باسمك: سيتمكن أي شخص من قراءتها. أما وسيلة التواصل أعلاه فلا: تلك تبقى في المنزل.",
   "The rest of the popup": "بقية النافذة",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "الغرفة التي يوجد فيها: تُستخدم في صفحة الغرف ولا تغيّر شيئًا هنا.",

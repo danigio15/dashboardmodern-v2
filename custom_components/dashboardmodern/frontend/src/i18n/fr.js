@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "Le signalement devient une page publique sur github.com, ouverte à ton nom : n'importe qui pourra la lire. La réponse revient ici, sous la discussion.",
   maintainer: "mainteneur",
   "Assign the report to yourself on GitHub": "Assigne le signalement à toi-même sur GitHub",
   "Connect GitHub to write under this report.": "Connecte GitHub pour écrire sous ce signalement.",
@@ -1187,7 +1189,6 @@ export default Object.freeze({
   Hot: "Chaud",
   "Hot water": "Eau chaude",
   House: "Maison",
-  "How to reach you (optional)": "Comment te recontacter (facultatif)",
   "How to read the Energy configuration": "Comment lire la configuration Énergie",
   Hue: "Teinte",
   humidity: "humidité",
@@ -2094,8 +2095,6 @@ export default Object.freeze({
   "State · Battery · Map": "État · Batterie · Carte",
   "State (optional)": "État (facultatif)",
   "State or programme": "État ou programme",
-  "Stays at home: it does not go on the public page":
-    "Reste à la maison : n'ira pas sur la page publique",
   Still: "Immobile",
   Stop: "Arrêter",
   Stopped: "Arrêté",
@@ -2253,8 +2252,6 @@ export default Object.freeze({
   "The readings": "Les mesures",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "La réponse se place sous le signalement, et qui l'a ouvert la retrouve dans son propre tableau de bord.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "Le signalement devient une page publique sur github.com, ouverte en ton nom : n'importe qui pourra la lire. Pas le contact ci-dessus : celui-là reste à la maison.",
   "The rest of the popup": "Le reste de la fenêtre",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "La pièce où elle se trouve : elle alimente la page Pièces et ne change rien ici.",

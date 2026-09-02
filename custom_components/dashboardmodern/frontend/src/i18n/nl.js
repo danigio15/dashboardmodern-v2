@@ -11,6 +11,8 @@
  */
 
 export default Object.freeze({
+  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
+    "De melding wordt een openbare pagina op github.com, op jouw naam geopend: iedereen kan hem lezen. Het antwoord komt hier terug, onder de discussie.",
   maintainer: "beheerder",
   "Assign the report to yourself on GitHub": "Wijs de melding op GitHub aan jezelf toe",
   "Connect GitHub to write under this report.": "Koppel GitHub om onder deze melding te schrijven.",
@@ -1182,7 +1184,6 @@ export default Object.freeze({
   Hot: "Warm",
   "Hot water": "Warm water",
   House: "Huis",
-  "How to reach you (optional)": "Hoe we je bereiken (optioneel)",
   "How to read the Energy configuration": "Hoe je de energieconfiguratie leest",
   Hue: "Kleurtoon",
   humidity: "vochtigheid",
@@ -2083,8 +2084,6 @@ export default Object.freeze({
   "State · Battery · Map": "Status · Batterij · Kaart",
   "State (optional)": "Status (optioneel)",
   "State or programme": "Status of programma",
-  "Stays at home: it does not go on the public page":
-    "Blijft thuis: komt niet op de openbare pagina",
   Still: "Stil",
   Stop: "Stoppen",
   Stopped: "Gestopt",
@@ -2244,8 +2243,6 @@ export default Object.freeze({
   "The readings": "De metingen",
   "The reply goes under the report, and whoever opened it finds it in their own dashboard.":
     "Het antwoord komt onder de melding, en wie hem opende vindt het in zijn eigen dashboard.",
-  "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The contact above does not: that stays at home.":
-    "De melding wordt een openbare pagina op github.com, op jouw naam: iedereen kan hem lezen. Het contactgegeven hierboven niet: dat blijft thuis.",
   "The rest of the popup": "De rest van het venster",
   "The room it sits in: it feeds the Rooms page and changes nothing here.":
     "De kamer waarin het staat: het voedt de Kamers-pagina en verandert hier niets.",

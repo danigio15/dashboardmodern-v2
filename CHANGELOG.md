@@ -50,6 +50,21 @@ conversazione vera, la meta' che mancava: da qui adesso si risponde.
   dalla pagina lo vede senza che nessuno glielo scriva, e in testa alla riga
   c'e' il nome di chi l'ha presa. Ci si puo' ripensare con lo stesso tasto.
 
+### Tolto
+
+- **Il campo «come ricontattarti».** Diceva il vero — «resta in casa», e nella
+  pagina pubblica non finiva davvero — ma in casa non lo leggeva nessuno: la
+  console del manutentore legge GitHub, dove quel campo non arriva mai.
+  Chiedere un indirizzo e-mail per poi non farne niente e' la peggiore delle
+  tre strade possibili: si conserva un dato personale, non serve a nessuno, e
+  chi lo scrive crede di essere raggiungibile. La risposta arriva sotto la
+  segnalazione, dove adesso si scrive nei due sensi, e il campanello avvisa
+  quando c'e'.
+
+  I recapiti gia' scritti spariscono dal disco alla prima accensione: toglierlo
+  dal modulo non sarebbe bastato, perche' quello che era gia' stato scritto
+  sarebbe rimasto li' finche' quel ticket non cadeva dal fondo dello store.
+
 ### Corretto
 
 - **La risposta della console non partiva piu'.** Da quando il cruscotto e'

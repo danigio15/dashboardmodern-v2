@@ -23,8 +23,7 @@ moduli su GitHub gia' usano. La terza e' quella su cui vale la pena tornare
 dopo le prime segnalazioni vere: una richiesta di assistenza porta il nome
 delle stanze e a volte le foto di casa, e finisce su una pagina che chiunque
 puo' leggere. Oggi la scelta e' **dirlo forte prima di spedire**, non
-nasconderlo — e il recapito, che e' l'unica cosa davvero personale, non parte
-comunque.
+nasconderlo.
 
 ## Il vincolo che decide la forma
 
@@ -90,8 +89,19 @@ Un ticket che parte porta con se':
 
 Non viaggia mai: l'URL di Home Assistant, token o credenziali di qualunque
 tipo, l'elenco delle entita', la posizione, il nome degli utenti HA,
-l'indirizzo e-mail dell'account. E **non viaggia il recapito**, anche quando
-l'utente lo scrive: quello resta in casa, per la console.
+l'indirizzo e-mail dell'account.
+
+E **un recapito non si chiede piu' affatto**. Il modulo aveva una casella
+«come ricontattarti», con scritto «resta in casa», ed era vero: non finiva
+nella pagina pubblica. Solo che in casa non lo leggeva nessuno — la console del
+manutentore legge GitHub, dove quel campo non arriva mai. Chiedere un indirizzo
+e-mail per poi non farne niente e' la peggiore delle tre strade possibili: si
+conserva un dato personale, non serve a nessuno, e chi lo scrive crede di
+essere raggiungibile. La risposta arriva sotto la segnalazione, dove il filo si
+legge e si scrive nei due sensi, e il campanello avvisa quando c'e'. I recapiti
+gia' scritti dalle versioni precedenti spariscono dal disco alla prima
+accensione: toglierlo dal modulo non basta, perche' quello che era gia' stato
+scritto sarebbe rimasto li'.
 
 La diagnostica e' quella dichiarata sopra e nient'altro: e' una lista chiusa
 nel codice, non un `dict` raccolto a runtime.
@@ -206,10 +216,6 @@ Una issue e' **una pagina pubblica**. Chi apre una segnalazione la pubblica a
 suo nome, e chiunque potra' leggerla. La finestra lo scrive sopra il tasto
 «invia», accanto a cosa esattamente viene mandato — non e' una cosa da far
 scoprire dopo.
-
-Una sola cosa non passa mai di la': il **recapito**. Chi ha scritto il proprio
-indirizzo lo ha scritto a una persona, non a una pagina indicizzata dai motori
-di ricerca: resta in casa, dove il manutentore lo legge dalla console.
 
 Questo pesa soprattutto sul tipo `assistenza`, che e' quello che porta il nome
 delle stanze e a volte le foto. Vale la pena rivederlo dopo le prime
