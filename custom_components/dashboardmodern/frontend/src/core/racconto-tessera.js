@@ -423,9 +423,15 @@ const FRASI = Object.freeze({
       `${aperte.length} apert${aperte.length === 1 ? "a" : "e"} su ${righe.length}: ${elenco}${altre}.`,
       `${aperte.length} open out of ${righe.length}: ${elenco}${altre}.`,
     );
+    /* `daQuando` e' `null` quando Home Assistant non dice da quando: un
+     * contatto appena adottato, o uno stato arrivato senza `last_changed`.
+     * `Number(null)` pero' fa zero, che e' un numero finito e minore di
+     * adesso — passava la guardia e usciva «la piu' vecchia da 20698 giorni»,
+     * cioe' il primo gennaio 1970. Non sapere da quando e' una risposta:
+     * quella riga non entra nel conto. */
     const momenti = aperte
-      .map((riga) => Number(riga?.daQuando))
-      .filter((quando) => Number.isFinite(quando) && quando <= adesso);
+      .map((riga) => (riga?.daQuando == null ? NaN : Number(riga.daQuando)))
+      .filter((quando) => Number.isFinite(quando) && quando > 0 && quando <= adesso);
     if (!momenti.length) return testa;
     // la piu' vecchia: e' quella che conta se qualcuno se n'e' dimenticata
     const quanto = daQuanto((adesso - Math.min(...momenti)) / 60000, tr);
