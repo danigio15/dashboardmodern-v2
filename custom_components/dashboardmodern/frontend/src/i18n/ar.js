@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — مُهيّأة",
+  "Came from a dashboard: the reply goes back into it": "وردت من لوحة تحكم: يعود الرد إليها",
+  "Everything on the repository": "كل ما في المستودع",
+  "from a dashboard": "من لوحة تحكم",
+  "from GitHub": "من GitHub",
+  "Nothing closed yet.": "لا شيء مغلق حتى الآن.",
+  "Opened directly on GitHub: the reply stays there": "فُتحت مباشرة على GitHub: يبقى الرد هناك",
+  "Untyped": "بلا نوع",
   "— Choose —": "— اختر —",
   "— kWh from PV": "— كيلوواط·ساعة من الشمسية",
   "— kWh from the grid": "— كيلوواط·ساعة من الشبكة",
@@ -1640,7 +1647,6 @@ export default Object.freeze({
   "Report opened": "فُتح البلاغ",
   "Report saved": "تم حفظ التقرير",
   "Reports": "البلاغات",
-  "Reports arrived from the dashboards": "البلاغات الواردة من لوحات التحكم",
   "Reports go out under your name: the first time takes one step on GitHub.": "تُرسَل البلاغات باسمك: في المرة الأولى تلزم خطوة واحدة على GitHub.",
   "Reset": "إعادة الضبط",
   "Reset all": "امحُ الكل",

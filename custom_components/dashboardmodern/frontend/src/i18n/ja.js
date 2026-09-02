@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — 設定済み",
+  "Came from a dashboard: the reply goes back into it": "ダッシュボードから届いたもの: 返信はそこに戻ります",
+  "Everything on the repository": "リポジトリにあるものすべて",
+  "from a dashboard": "ダッシュボードから",
+  "from GitHub": "GitHub から",
+  "Nothing closed yet.": "まだ閉じたものはありません。",
+  "Opened directly on GitHub: the reply stays there": "GitHub で直接開かれたもの: 返信はそこに残ります",
+  "Untyped": "種類なし",
   "— Choose —": "— 選択 —",
   "— kWh from PV": "— 太陽光から kWh",
   "— kWh from the grid": "— 系統から kWh",
@@ -1640,7 +1647,6 @@ export default Object.freeze({
   "Report opened": "報告を作成しました",
   "Report saved": "レポートを保存しました",
   "Reports": "報告",
-  "Reports arrived from the dashboards": "各ダッシュボードから届いた報告",
   "Reports go out under your name: the first time takes one step on GitHub.": "報告はあなたの名前で送られます。初回だけ GitHub での操作が一度必要です。",
   "Reset": "元に戻す",
   "Reset all": "すべて消去",

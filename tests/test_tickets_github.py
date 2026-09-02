@@ -524,14 +524,14 @@ async def test_la_console_chiede_i_permessi_sulla_repository(
     assert github.calls == []
 
 
-async def test_la_coda_mostra_solo_le_segnalazioni_nate_dalla_plancia(
+async def test_la_coda_mostra_tutto_e_dice_da_dove_viene(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Si riconoscono dalla riga invisibile, non da un'etichetta."""
+    """Anche le issue aperte a mano su GitHub: sono la maggioranza."""
     _entry(hass)
     await _collega(hass, "dani", maintainer=True)
     github.answer(
-        "/issues?",
+        "/issues?state=open",
         [
             {
                 "number": 1,
@@ -552,9 +552,116 @@ async def test_la_coda_mostra_solo_le_segnalazioni_nate_dalla_plancia(
         ],
     )
     coda = await tickets.async_queue(hass, "dani")
-    assert [voce["number"] for voce in coda] == [1]
+    assert [voce["number"] for voce in coda] == [1, 2]
+    assert [voce["origin"] for voce in coda] == ["plancia", "github"]
     # La riga invisibile non si mostra a chi legge la coda.
     assert TICKET_MARKER not in coda[0]["body"]
+
+
+async def test_gli_aperti_e_i_chiusi_si_chiedono_separati(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Una pagina sola nasconderebbe gli aperti vecchi senza dirlo."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer(
+        "/issues?state=open",
+        [{"number": 9, "title": "[Bug]: viva", "body": "x", "state": "open"}],
+    )
+    github.answer(
+        "/issues?state=closed",
+        [
+            {
+                "number": 4,
+                "title": "[Feature]: fatta",
+                "body": "x",
+                "state": "closed",
+                "state_reason": "completed",
+            },
+        ],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert [(voce["number"], voce["state"]) for voce in coda] == [
+        (9, "inviato"),
+        (4, "risolto"),
+    ]
+    # Gli aperti si chiedono tutti; i chiusi sono storia e bastano i freschi.
+    indirizzi = [chiamata["url"] for chiamata in github.calls]
+    assert any("state=open&per_page=100" in url for url in indirizzi)
+    assert any("state=closed&per_page=50" in url for url in indirizzi)
+
+
+async def test_il_tipo_arriva_dal_prefisso_o_dall_etichetta(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Due posti che su questa repository esistono da prima della plancia."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer(
+        "/issues?state=open",
+        [
+            {"number": 1, "title": "[Bug]: rotto", "body": "x", "state": "open"},
+            {"number": 2, "title": "[Feature]: idea", "body": "x", "state": "open"},
+            {"number": 3, "title": "[Aiuto]: come si fa", "body": "x", "state": "open"},
+            {
+                "number": 4,
+                "title": "Senza prefisso",
+                "body": "x",
+                "state": "open",
+                "labels": [{"name": "enhancement"}],
+            },
+            {"number": 5, "title": "Niente di niente", "body": "x", "state": "open"},
+        ],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert [voce["type"] for voce in coda] == [
+        "bug",
+        "feature",
+        "assistenza",
+        "feature",
+        # Nessun segno: meglio vuoto che sceglierne uno a caso.
+        "",
+    ]
+    # Il prefisso sparisce dal titolo: accanto c'e' gia' la pastiglia del tipo.
+    assert [voce["title"] for voce in coda][:3] == ["rotto", "idea", "come si fa"]
+
+
+async def test_un_titolo_di_solo_prefisso_resta_intero(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """C'e' chi apre la issue e il titolo lo lascia al modulo."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer(
+        "/issues?state=open",
+        [{"number": 1, "title": "[Feature]:", "body": "x", "state": "open"}],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert coda[0]["title"] == "[Feature]:"
+    assert coda[0]["type"] == "feature"
+
+
+async def test_una_aperta_con_commenti_e_gia_in_lavorazione(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Chi ha commentato l'elenco non lo dice: vale il segno che c'e'."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer(
+        "/issues?state=open",
+        [
+            {"number": 1, "title": "muta", "body": "x", "state": "open", "comments": 0},
+            {
+                "number": 2,
+                "title": "parlata",
+                "body": "x",
+                "state": "open",
+                "comments": 2,
+            },
+        ],
+    )
+    coda = await tickets.async_queue(hass, "dani")
+    assert [voce["state"] for voce in coda] == ["inviato", "in-carico"]
 
 
 async def test_una_pull_request_non_e_una_segnalazione(
@@ -765,7 +872,7 @@ async def test_la_coda_dice_quanti_allegati_ci_sono(
     _entry(hass)
     await _collega(hass, "dani", maintainer=True)
     github.answer(
-        "/issues?",
+        "/issues?state=open",
         [
             {
                 "number": 1,

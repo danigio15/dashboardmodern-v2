@@ -235,12 +235,41 @@ una repository dove l'App non e' installata riceve la risposta nella forma
 proprietario si ritroverebbe senza la sua coda per una ragione che con i suoi
 permessi non c'entra niente.
 
-Mostra le segnalazioni nate dalle plance — si riconoscono da una riga
-invisibile nel corpo, non da un'etichetta, perche' GitHub le etichette le
-scarta quando a scriverle e' chi i permessi non li ha, cioe' esattamente chi
-apre le segnalazioni. Da li' si risponde: la risposta e' un commento sotto la
-issue, quindi la legge chi ha segnalato — dentro la sua plancia, al primo giro
-di sync — e la legge chiunque passi da GitHub. Un posto solo, non due da tenere
+Mostra **tutto quello che c'e' sulla repository**, non le sole segnalazioni
+nate dalle plance. Le issue aperte a mano su GitHub oggi sono la maggioranza, e
+lo resteranno per un pezzo: se fossero proprio quelle a mancare, la console
+sarebbe meta' console, e resterebbero due posti da guardare invece di uno.
+
+Da dove viene ognuna resta scritto — `origin`, `plancia` oppure `github` — e la
+riga invisibile nel corpo e' il segno che lo dice. Cambia una cosa sola, e non
+cosa si puo' fare: la risposta a una segnalazione nata dalla plancia torna
+**dentro** la dashboard di chi ha scritto, al primo giro di sync; quella a una
+issue aperta su GitHub resta dove e' stata scritta. Rispondere e chiudere
+funzionano identici sulle due.
+
+Il tipo non e' un campo di GitHub, e la console lo deduce da due posti che su
+questa repository esistono da prima della plancia: il prefisso del titolo
+(`[Bug]`, `[Feature]`, `[Aiuto]`) che i moduli di GitHub mettono da soli, e
+l'etichetta che il manutentore mette a mano. Quando nessuno dei due dice niente
+il tipo resta **vuoto**, con una pastiglia grigia: chiamarle tutte «difetto»
+sarebbe comodo e falso.
+
+Due chiamate a ogni aggiornamento, non una. `state=all` su una pagina sola vuol
+dire che, appena i chiusi passano il centinaio, gli aperti piu' vecchi escono
+dall'elenco senza che nessuno lo dica. Gli aperti si chiedono **tutti**; i
+chiusi sono storia, e bastano i cinquanta piu' freschi.
+
+Chi ha commentato, nell'elenco, GitHub non lo dice — e chiederlo vorrebbe dire
+una chiamata per ogni riga. Vale allora il segno che c'e': un'aperta su cui si
+e' gia' parlato la console la conta **in lavorazione**, una muta e' ancora da
+guardare. Nella plancia di chi ha segnalato lo stato resta quello esatto,
+perche' li' il filo si apre per davvero e i commenti si leggono uno per uno.
+
+I filtri dividono la coda in due meta' che non perdono niente per strada —
+**Da lavorare** e **Chiuse** — piu' **Tutte** e i tre per tipo. Da ogni riga si
+risponde, si risolve o si archivia: la risposta e' un commento sotto la issue,
+e la chiusura e' la chiusura su GitHub, con `state_reason` `completed` per una
+risolta e `not_planned` per una archiviata. Un posto solo, non due da tenere
 allineati.
 
 ## L'applicazione, e com'e' registrata

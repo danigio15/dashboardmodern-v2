@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — कॉन्फ़िगर किया गया",
+  "Came from a dashboard: the reply goes back into it": "एक डैशबोर्ड से आई: जवाब उसी में वापस जाता है",
+  "Everything on the repository": "रिपॉज़िटरी में जो कुछ भी है",
+  "from a dashboard": "डैशबोर्ड से",
+  "from GitHub": "GitHub से",
+  "Nothing closed yet.": "अभी तक कुछ भी बंद नहीं हुआ।",
+  "Opened directly on GitHub: the reply stays there": "सीधे GitHub पर खोली गई: जवाब वहीं रहता है",
+  "Untyped": "बिना प्रकार",
   "— Choose —": "— चुनें —",
   "— kWh from PV": "— सौर से kWh",
   "— kWh from the grid": "— ग्रिड से kWh",
@@ -1640,7 +1647,6 @@ export default Object.freeze({
   "Report opened": "रिपोर्ट खुल गई",
   "Report saved": "रिपोर्ट सहेजी गई",
   "Reports": "रिपोर्ट",
-  "Reports arrived from the dashboards": "डैशबोर्ड से आई रिपोर्ट",
   "Reports go out under your name: the first time takes one step on GitHub.": "रिपोर्ट आपके नाम से जाती हैं: पहली बार GitHub पर एक कदम चाहिए।",
   "Reset": "रीसेट",
   "Reset all": "सब मिटाएँ",

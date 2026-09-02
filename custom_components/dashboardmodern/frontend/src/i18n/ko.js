@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — 설정됨",
+  "Came from a dashboard: the reply goes back into it": "대시보드에서 온 것: 답변이 그곳으로 돌아갑니다",
+  "Everything on the repository": "저장소에 있는 모든 것",
+  "from a dashboard": "대시보드에서",
+  "from GitHub": "GitHub에서",
+  "Nothing closed yet.": "아직 닫힌 것이 없습니다.",
+  "Opened directly on GitHub: the reply stays there": "GitHub에서 직접 열린 것: 답변은 그곳에 남습니다",
+  "Untyped": "유형 없음",
   "— Choose —": "— 선택 —",
   "— kWh from PV": "— 태양광에서 kWh",
   "— kWh from the grid": "— 계통에서 kWh",
@@ -1640,7 +1647,6 @@ export default Object.freeze({
   "Report opened": "제보가 열렸습니다",
   "Report saved": "보고서를 저장했습니다",
   "Reports": "제보",
-  "Reports arrived from the dashboards": "각 대시보드에서 들어온 제보",
   "Reports go out under your name: the first time takes one step on GitHub.": "제보는 당신의 이름으로 나갑니다. 처음 한 번만 GitHub에서 한 단계가 필요합니다.",
   "Reset": "초기화",
   "Reset all": "전체 지우기",

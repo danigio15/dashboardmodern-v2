@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — 已配置",
+  "Came from a dashboard: the reply goes back into it": "来自某个面板：回复会回到那里",
+  "Everything on the repository": "仓库里的全部内容",
+  "from a dashboard": "来自面板",
+  "from GitHub": "来自 GitHub",
+  "Nothing closed yet.": "还没有已关闭的内容。",
+  "Opened directly on GitHub: the reply stays there": "直接在 GitHub 上开的：回复会留在那里",
+  "Untyped": "无类型",
   "— Choose —": "— 选择 —",
   "— kWh from PV": "— 来自光伏的 kWh",
   "— kWh from the grid": "— 来自电网的 kWh",
@@ -1640,7 +1647,6 @@ export default Object.freeze({
   "Report opened": "反馈已提交",
   "Report saved": "报表已保存",
   "Reports": "反馈",
-  "Reports arrived from the dashboards": "从各个面板发来的反馈",
   "Reports go out under your name: the first time takes one step on GitHub.": "反馈以你的名义提交：第一次需要在 GitHub 上完成一步。",
   "Reset": "重置",
   "Reset all": "全部清空",

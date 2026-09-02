@@ -28,10 +28,7 @@ test("ogni messaggio che la finestra manda passa dal ponte", () => {
    * risponderebbe «Message type not permitted through the bridge», e la
    * segnalazione morirebbe fra il browser e il backend. */
   for (const tipo of WS_TYPES) {
-    assert.ok(
-      ALLOWED_MESSAGE_TYPES.includes(tipo),
-      `${tipo} non e' nell'allowlist del ponte`,
-    );
+    assert.ok(ALLOWED_MESSAGE_TYPES.includes(tipo), `${tipo} non e' nell'allowlist del ponte`);
   }
 });
 
@@ -66,10 +63,13 @@ test("la diagnostica che la finestra puo' mandare e' una lista chiusa", () => {
   /* Le chiavi devono stare dentro quelle che il backend dichiara in
    * ticket_store.DIAGNOSTIC_KEYS. Qui ce ne sono cinque su sei: il metodo di
    * installazione il browser non lo sa, e non si inventa. */
-  assert.deepEqual(
-    [...DIAGNOSTIC_KEYS].sort(),
-    ["ha_version", "integration_version", "locale", "panel_section", "user_agent"],
-  );
+  assert.deepEqual([...DIAGNOSTIC_KEYS].sort(), [
+    "ha_version",
+    "integration_version",
+    "locale",
+    "panel_section",
+    "user_agent",
+  ]);
 });
 
 test("nessuna chiave della diagnostica somiglia a un dato di casa", () => {
@@ -147,7 +147,6 @@ test("ogni stato ha una sua etichetta", () => {
   }
 });
 
-
 /* ─── Il cruscotto ─────────────────────────────────────────────────────────
  *
  * Tre numeri e un elenco filtrabile. Quello che si prova qui e' che i numeri
@@ -164,6 +163,7 @@ function inCoda(overrides = {}) {
     body: "Premo stop e continuano a scendere.",
     state: "inviato",
     author: "anna-hub",
+    origin: "plancia",
     issue_url: "https://github.com/danigio15/dashboardmodern-v2/issues/1",
     ...overrides,
   };
@@ -215,6 +215,33 @@ test("«tutte» non toglie niente", () => {
   assert.equal(filtra(coda, "tutte").length, 1);
 });
 
+test("il filtro «chiuse» tiene solo quelle chiuse", () => {
+  const coda = [
+    inCoda({ number: 1, state: "inviato" }),
+    inCoda({ number: 2, state: "in-carico" }),
+    inCoda({ number: 3, state: "risolto" }),
+    inCoda({ number: 4, state: "chiuso" }),
+  ];
+  assert.deepEqual(
+    filtra(coda, "chiuse").map((ticket) => ticket.number),
+    [3, 4],
+  );
+});
+
+test("«aperte» e «chiuse» insieme fanno la coda intera", () => {
+  /* Due tasti che si dividono l'elenco senza perdere niente per strada: se
+   * un giorno uno stato nuovo non finisse ne' di qua ne' di la', sparirebbe
+   * da tutti e due i filtri senza che nessuno se ne accorga. */
+  const coda = ["bozza", "inviato", "in-carico", "risolto", "chiuso"].map((state, indice) =>
+    inCoda({ number: indice + 1, state }),
+  );
+  const divise = [...filtra(coda, "aperte"), ...filtra(coda, "chiuse")];
+  assert.deepEqual(
+    divise.map((ticket) => ticket.number).sort((a, b) => a - b),
+    [1, 2, 3, 4, 5],
+  );
+});
+
 test("i filtri per tipo tengono solo il loro tipo", () => {
   const coda = [
     inCoda({ number: 1, type: "bug" }),
@@ -241,6 +268,37 @@ test("ogni filtro dichiarato sa rispondere", () => {
   for (const filtro of FILTRI_ID) {
     assert.ok(Array.isArray(filtra(coda, filtro)), `${filtro} non torna un elenco`);
   }
+});
+
+test("una senza tipo non si traveste da difetto", () => {
+  /* Le issue aperte a mano su GitHub spesso non hanno nessun tipo. Prendere
+   * il primo dell'elenco vorrebbe dire chiamarle tutte «difetto», che e'
+   * comodo e falso. */
+  const ignota = codaVoceMarkup(inCoda({ type: "" }));
+  assert.ok(!ignota.includes("🐞"), "una senza tipo mostra la coccinella");
+  assert.ok(ignota.includes("--tk-rgb:113,113,122"), "manca la pastiglia grigia");
+  const difetto = codaVoceMarkup(inCoda({ type: "bug" }));
+  assert.ok(difetto.includes("🐞"), "un difetto ha perso la sua icona");
+});
+
+test("la coda dice se una segnalazione arriva da una plancia o da GitHub", () => {
+  /* Non cambia cosa puoi fare — si risponde e si chiude allo stesso modo —
+   * ma dice se chi ha scritto la risposta se la ritrovera' nella dashboard. */
+  const dalla = codaVoceMarkup(inCoda({ origin: "plancia" }));
+  assert.ok(dalla.includes("🏠"), "manca il segno della plancia");
+  const daGithub = codaVoceMarkup(inCoda({ origin: "github" }));
+  assert.ok(daGithub.includes("🐙"), "manca il segno di GitHub");
+  assert.ok(!daGithub.includes("🏠"), "una da GitHub si dice anche dalla plancia");
+});
+
+test("anche una aperta a mano su GitHub si puo' rispondere e chiudere", () => {
+  /* E' il punto di tutto il lavoro: un posto solo da guardare. Se le voci
+   * venute da GitHub arrivassero senza tasti, la console tornerebbe a essere
+   * meta' console. */
+  const voce = codaVoceMarkup(inCoda({ origin: "github", type: "", number: 232 }));
+  assert.ok(voce.includes('data-dm-rispondi="232"'), "non si puo' rispondere");
+  assert.ok(voce.includes('data-dm-chiudi="risolto"'), "non si puo' risolvere");
+  assert.ok(voce.includes('data-dm-chiudi="chiuso"'), "non si puo' archiviare");
 });
 
 test("una segnalazione chiusa non offre di richiuderla", () => {
@@ -277,7 +335,6 @@ test("ogni voce della coda porta il numero della issue nei suoi tasti", () => {
   assert.ok(markup.includes('data-dm-rispondi="77"'));
   assert.ok(markup.includes('id="dm-tkt-risposta-77"'));
 });
-
 
 /* ─── Foto e video ─────────────────────────────────────────────────────────
  *
@@ -317,7 +374,6 @@ test("un indirizzo che arriva dal backend non diventa markup", () => {
   assert.ok(!markup.includes("<script>"));
   assert.ok(markup.includes("&lt;script"));
 });
-
 
 /* ─── Vedere tutto ─────────────────────────────────────────────────────────
  *

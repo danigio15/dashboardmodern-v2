@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — yapılandırıldı",
+  "Came from a dashboard: the reply goes back into it": "Bir panodan geldi: yanıt oraya geri döner",
+  "Everything on the repository": "Depodaki her şey",
+  "from a dashboard": "bir panodan",
+  "from GitHub": "GitHub'dan",
+  "Nothing closed yet.": "Henüz kapatılan bir şey yok.",
+  "Opened directly on GitHub: the reply stays there": "Doğrudan GitHub'da açıldı: yanıt orada kalır",
+  "Untyped": "Türsüz",
   "— Choose —": "— Seç —",
   "— kWh from PV": "— GES'ten kWh",
   "— kWh from the grid": "— şebekeden kWh",
@@ -1640,7 +1647,6 @@ export default Object.freeze({
   "Report opened": "Bildirim açıldı",
   "Report saved": "Rapor kaydedildi",
   "Reports": "Bildirimler",
-  "Reports arrived from the dashboards": "Panolardan gelen bildirimler",
   "Reports go out under your name: the first time takes one step on GitHub.": "Bildirimler senin adına gider: ilk seferde GitHub'da tek bir adım gerekiyor.",
   "Reset": "Sıfırla",
   "Reset all": "Hepsini sil",

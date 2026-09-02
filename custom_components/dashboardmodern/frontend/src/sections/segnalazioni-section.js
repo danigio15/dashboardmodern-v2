@@ -296,9 +296,7 @@ function codiceMarkup() {
           t("Annulla", "Cancel"),
         )}</button>
         <a class="dm-tkt-btn" href="${esc(dove)}"
-           target="_blank" rel="noreferrer noopener">${esc(
-             t("Apri GitHub", "Open GitHub"),
-           )}</a>
+           target="_blank" rel="noreferrer noopener">${esc(t("Apri GitHub", "Open GitHub"))}</a>
       </div>
     </div>`;
 }
@@ -312,9 +310,7 @@ function contoMarkup() {
   if (state.account.connected) {
     return `
       <div class="dm-tkt-conto">
-        <span>${esc(t("Collegato come", "Connected as"))} <b>${esc(
-          state.account.login,
-        )}</b></span>
+        <span>${esc(t("Collegato come", "Connected as"))} <b>${esc(state.account.login)}</b></span>
         <button type="button" class="dm-tkt-tolgi" data-dm-tkt="scollega">${esc(
           t("Scollega", "Disconnect"),
         )}</button>
@@ -923,6 +919,7 @@ function elencoMarkup() {
 
 export const FILTRI_ID = Object.freeze([
   "aperte",
+  "chiuse",
   "tutte",
   "bug",
   "feature",
@@ -931,11 +928,26 @@ export const FILTRI_ID = Object.freeze([
 
 const FILTRI = [
   { id: "aperte", nome: () => t("Da lavorare", "To work on") },
+  { id: "chiuse", nome: () => t("Chiuse", "Closed") },
   { id: "tutte", nome: () => t("Tutte", "All") },
   { id: "bug", nome: () => t("Difetti", "Bugs") },
   { id: "feature", nome: () => t("Idee", "Ideas") },
   { id: "assistenza", nome: () => t("Aiuto", "Help") },
 ];
+
+/* Una segnalazione aperta a mano su GitHub non ha nessun tipo scritto da
+ * nessuna parte. Mostrarla come un difetto sarebbe comodo e falso: prende una
+ * pastiglia grigia che non dice niente, che e' esattamente quello che si sa. */
+const TIPO_IGNOTO = {
+  id: "",
+  icona: "•",
+  rgb: "113,113,122",
+  nome: () => t("Senza tipo", "Untyped"),
+};
+
+function tipoInCoda(id) {
+  return TIPI.find((voce) => voce.id === id) || TIPO_IGNOTO;
+}
 
 export function contaColonne(coda) {
   return COLONNE.map((colonna) => ({
@@ -968,13 +980,15 @@ function filtriMarkup() {
   ).join("")}</div>`;
 }
 
+const CHIUSA = ["risolto", "chiuso"];
+
 export function filtra(coda, filtro = state.filtro) {
   if (filtro === "tutte") return coda;
   if (filtro === "aperte") {
-    return coda.filter((ticket) => {
-      const stato = clean(ticket.state);
-      return stato !== "risolto" && stato !== "chiuso";
-    });
+    return coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
+  }
+  if (filtro === "chiuse") {
+    return coda.filter((ticket) => CHIUSA.includes(clean(ticket.state)));
   }
   return coda.filter((ticket) => clean(ticket.type) === filtro);
 }
@@ -1002,9 +1016,7 @@ function segniMarkup(ticket) {
   }
   if (commenti) {
     segni.push(
-      `<span class="dm-tkt-segno" title="${esc(
-        t("Commenti", "Comments"),
-      )}">💬 ${commenti}</span>`,
+      `<span class="dm-tkt-segno" title="${esc(t("Commenti", "Comments"))}">💬 ${commenti}</span>`,
     );
   }
   return segni.join("");
@@ -1082,10 +1094,31 @@ function filoMarkup(numero) {
   return `<div class="dm-tkt-filo">${corpo}${filaCommenti}</div>`;
 }
 
+/* Dove finisce la risposta. Su una segnalazione nata dalla plancia chi ha
+ * scritto se la ritrova anche dentro la sua dashboard, al primo giro di sync;
+ * su una aperta a mano su GitHub la trovera' solo su GitHub, dove l'ha
+ * scritta. Cambia come raggiungi la persona, non cosa puoi fare qui. */
+function provenienzaMarkup(ticket) {
+  if (clean(ticket.origin) === "plancia") {
+    return `<span class="dm-tkt-segno" title="${esc(
+      t(
+        "Arrivata da una dashboard: la risposta le torna dentro",
+        "Came from a dashboard: the reply goes back into it",
+      ),
+    )}">🏠 ${esc(t("dalla plancia", "from a dashboard"))}</span>`;
+  }
+  return `<span class="dm-tkt-segno" title="${esc(
+    t(
+      "Aperta direttamente su GitHub: la risposta resta li'",
+      "Opened directly on GitHub: the reply stays there",
+    ),
+  )}">🐙 ${esc(t("da GitHub", "from GitHub"))}</span>`;
+}
+
 export function codaVoceMarkup(ticket) {
   const numero = Number(ticket.number) || 0;
-  const tipo = tipoAttivo(clean(ticket.type));
-  const chiusa = ["risolto", "chiuso"].includes(clean(ticket.state));
+  const tipo = tipoInCoda(clean(ticket.type));
+  const chiusa = CHIUSA.includes(clean(ticket.state));
   const aperto = Boolean(state.fili[numero] || state.filiInCorso[numero]);
   const azioni = chiusa
     ? `<button type="button" class="dm-tkt-btn chiaro"
@@ -1094,9 +1127,7 @@ export function codaVoceMarkup(ticket) {
          )}</button>`
     : `
       <button type="button" class="dm-tkt-btn chiaro"
-        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(
-          t("Rispondi", "Reply"),
-        )}</button>
+        data-dm-rispondi="${numero}" data-dm-chiudi="">${esc(t("Rispondi", "Reply"))}</button>
       <button type="button" class="dm-tkt-btn"
         data-dm-rispondi="${numero}" data-dm-chiudi="risolto">${esc(
           t("Rispondi e risolvi", "Reply and solve"),
@@ -1108,13 +1139,16 @@ export function codaVoceMarkup(ticket) {
   return `
     <div class="dm-tkt-voce dm-tkt-lavoro" style="--tk-rgb:${tipo.rgb};">
       <div class="dm-tkt-voce-testa">
-        <span class="dm-tkt-tipo-pill" aria-hidden="true">${tipo.icona}</span>
+        <span class="dm-tkt-tipo-pill" role="img" aria-label="${esc(
+          tipo.nome(),
+        )}" title="${esc(tipo.nome())}">${tipo.icona}</span>
         <span class="dm-tkt-voce-tit">${esc(clean(ticket.title))}</span>
         ${segniMarkup(ticket)}
         ${statoMarkup(clean(ticket.state) || "inviato")}
       </div>
       <div class="dm-tkt-voce-pie">
         <span>${quandoMarkup(ticket)}</span>
+        ${provenienzaMarkup(ticket)}
         <button type="button" class="dm-tkt-tolgi" data-dm-filo="${numero}"
           aria-expanded="${aperto}">${esc(
             aperto ? t("Nascondi tutto", "Hide everything") : t("Vedi tutto", "See everything"),
@@ -1138,6 +1172,16 @@ export function codaVoceMarkup(ticket) {
     </div>`;
 }
 
+function vuotoMarkup() {
+  if (state.filtro === "aperte") {
+    return t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.");
+  }
+  if (state.filtro === "chiuse") {
+    return t("Ancora niente di chiuso.", "Nothing closed yet.");
+  }
+  return t("Niente con questo filtro.", "Nothing under this filter.");
+}
+
 function consoleMarkup() {
   if (state.queue === null) {
     return `<div class="dm-tkt-vuoto">${esc(t("Carico la coda…", "Loading the queue…"))}</div>`;
@@ -1146,11 +1190,7 @@ function consoleMarkup() {
   const scelte = filtra(coda);
   const elenco = scelte.length
     ? `<div class="dm-tkt-elenco">${scelte.map(codaVoceMarkup).join("")}</div>`
-    : `<div class="dm-tkt-vuoto">${esc(
-        state.filtro === "aperte"
-          ? t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.")
-          : t("Niente con questo filtro.", "Nothing under this filter."),
-      )}</div>`;
+    : `<div class="dm-tkt-vuoto">${esc(vuotoMarkup())}</div>`;
   return `
     ${colonneMarkup(coda)}
     ${filtriMarkup()}
@@ -1170,10 +1210,7 @@ function sottotitolo() {
    * sull'inglese proprio in questa riga. */
   if (state.tab === "console") {
     const quante = Array.isArray(state.queue) ? state.queue.length : 0;
-    const testa = t(
-      "Le segnalazioni arrivate dalle plance",
-      "Reports arrived from the dashboards",
-    );
+    const testa = t("Tutto quello che c'e' sulla repository", "Everything on the repository");
     return `${testa} · ${quante}`;
   }
   if (state.account.connected) {

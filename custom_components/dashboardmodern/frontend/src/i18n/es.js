@@ -12,6 +12,13 @@
 
 export default Object.freeze({
   " — configured": " — configurada",
+  "Came from a dashboard: the reply goes back into it": "Llegó desde un panel: la respuesta vuelve allí",
+  "Everything on the repository": "Todo lo que hay en el repositorio",
+  "from a dashboard": "desde un panel",
+  "from GitHub": "desde GitHub",
+  "Nothing closed yet.": "Todavía nada cerrado.",
+  "Opened directly on GitHub: the reply stays there": "Abierta directamente en GitHub: la respuesta se queda allí",
+  "Untyped": "Sin tipo",
   "— Choose —": "— Elegir —",
   "— kWh from PV": "— kWh de la FV",
   "— kWh from the grid": "— kWh de la red",
@@ -1640,7 +1647,6 @@ export default Object.freeze({
   "Report opened": "Informe abierto",
   "Report saved": "Informe guardado",
   "Reports": "Informes",
-  "Reports arrived from the dashboards": "Informes llegados desde los paneles",
   "Reports go out under your name: the first time takes one step on GitHub.": "Los informes salen a tu nombre: la primera vez hace falta un paso en GitHub.",
   "Reset": "Restablecer",
   "Reset all": "Borrarlo todo",
