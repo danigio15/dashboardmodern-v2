@@ -11,19 +11,23 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "下の数字は最後に成功した読み取りのものです。",
+  "I could not read the queue:": "一覧を読めませんでした:",
+  "Reading the queue…": "一覧を読んでいます…",
   "${conversazioni.length} with new messages": "新着メッセージ ${conversazioni.length} 件",
   "or, from a tile service": "または、タイルサービスから",
-  "Where": "どこ",
+  Where: "どこ",
   "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
     "アドレスは使うサービスが公開しているもので、タイルの番号のところに {z}/{x}/{y} と書きます。「試す」はひとつ落としてきて、届いたかどうかを教えます。",
   "The address is missing, or has no {z}/{x}/{y} in it.":
     "アドレスがないか、{z}/{x}/{y} が入っていません。",
   "Testing…": "試しています…",
-  "Test": "試す",
+  Test: "試す",
   "Radius (km)": "半径（km）",
   "No answer within eight seconds.": "八秒待っても応答がありません。",
-  "Longitude": "経度",
-  "Latitude": "緯度",
+  Longitude: "経度",
+  Latitude: "緯度",
   "It does not arrive. Check the address, and that the service lets this page read it.":
     "届きません。アドレスと、そのサービスがここからの読み取りを許しているかを確かめてください。",
   "It arrives: the tile is there.": "届きました。タイルがあります。",
@@ -35,19 +39,19 @@ export default Object.freeze({
   "Weather radar": "気象レーダー",
   "The radar is not reporting.": "レーダーが応答していません。",
   "Door & gate openers": "ドア・ゲートの開錠操作",
-  "silent": "無応答",
+  silent: "無応答",
   "on out of": "オン／",
   "off the bar": "バーの外",
-  "entity": "エンティティ",
-  "entities": "エンティティ",
+  entity: "エンティティ",
+  entities: "エンティティ",
   "Your sections": "あなたのセクション",
   "The entities": "エンティティ",
   "That is eight: the bar cannot hold more without becoming unreadable.":
     "これで八つです。バーはこれ以上入れると読めなくなります。",
   "Show it in the bar": "バーに表示する",
   "Section title": "セクションのタイトル",
-  "Section": "セクション",
-  "Playing": "再生中",
+  Section: "セクション",
+  Playing: "再生中",
   "Not reporting": "応答なし",
   "None reporting": "どれも応答していません",
   "Name (optional)": "名前（任意）",

@@ -11,19 +11,23 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "De cijfers hieronder komen uit de laatste geslaagde uitlezing.",
+  "I could not read the queue:": "Ik kon de wachtrij niet lezen:",
+  "Reading the queue…": "Wachtrij wordt gelezen…",
   "${conversazioni.length} with new messages": "${conversazioni.length} met nieuwe berichten",
   "or, from a tile service": "of van een tegeldienst",
-  "Where": "Waar",
+  Where: "Waar",
   "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
     "Het adres is dat wat je dienst publiceert, met {z}/{x}/{y} in plaats van de tegelnummers. «Testen» haalt er een op en zegt of hij aankomt.",
   "The address is missing, or has no {z}/{x}/{y} in it.":
     "Het adres ontbreekt, of er staat geen {z}/{x}/{y} in.",
   "Testing…": "Bezig…",
-  "Test": "Testen",
+  Test: "Testen",
   "Radius (km)": "Straal (km)",
   "No answer within eight seconds.": "Geen antwoord binnen acht seconden.",
-  "Longitude": "Lengtegraad",
-  "Latitude": "Breedtegraad",
+  Longitude: "Lengtegraad",
+  Latitude: "Breedtegraad",
   "It does not arrive. Check the address, and that the service lets this page read it.":
     "Hij komt niet aan. Controleer het adres, en of de dienst zich van hieraf laat lezen.",
   "It arrives: the tile is there.": "Hij komt aan: de tegel is er.",
@@ -35,19 +39,19 @@ export default Object.freeze({
   "Weather radar": "Weerradar",
   "The radar is not reporting.": "De radar meldt zich niet.",
   "Door & gate openers": "Deur- & poortopeners",
-  "silent": "stil",
+  silent: "stil",
   "on out of": "aan van",
   "off the bar": "buiten de balk",
-  "entity": "entiteit",
-  "entities": "entiteiten",
+  entity: "entiteit",
+  entities: "entiteiten",
   "Your sections": "Jouw secties",
   "The entities": "De entiteiten",
   "That is eight: the bar cannot hold more without becoming unreadable.":
     "Dat zijn er acht: meer past er niet in de balk zonder onleesbaar te worden.",
   "Show it in the bar": "Toon hem in de balk",
   "Section title": "Titel van de sectie",
-  "Section": "Sectie",
-  "Playing": "Speelt af",
+  Section: "Sectie",
+  Playing: "Speelt af",
   "Not reporting": "Meldt zich niet",
   "None reporting": "Geen enkele meldt zich",
   "Name (optional)": "Naam (optioneel)",

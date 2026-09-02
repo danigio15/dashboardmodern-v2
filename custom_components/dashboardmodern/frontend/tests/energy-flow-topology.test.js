@@ -766,16 +766,28 @@ test("fra due caselle che rispondono vince quella che non dice zero", () => {
   );
 });
 
-/* Nel Giorno e nel Mese uno zero e' una misura, non un buco (segnalato in
- * revisione): il contatore di un carico che oggi non e' partito dice zero, e
- * mostrare al posto suo la somma dei figli sarebbe inventare. */
-test("il ripiego dello zero vale per i watt, non per i periodi", () => {
+/* Il ripiego dello zero vale in tutti e tre i periodi.
+ *
+ * In revisione si era deciso il contrario: nel Giorno e nel Mese uno zero e'
+ * una misura, e mostrare al posto suo la somma dei figli sarebbe inventare un
+ * numero che il contatore del gruppo non conferma. E' una ragione vera, ma
+ * protegge dal pericolo sbagliato — dal campo e' arrivato il caso opposto:
+ * cerchio a «0,0 kWh» e finestra dello stesso cerchio a «13,7 kWh», sullo
+ * stesso schermo. Li' non c'e' nessun numero inventato da cui difendersi:
+ * c'e' una contraddizione visibile, ed e' peggio.
+ *
+ * Il caso che quella regola proteggeva — il carico che oggi non e' partito —
+ * si protegge da se', e la prova qui sotto lo mostra: i figli sono a zero
+ * anche loro, la somma fa zero, e zero resta. */
+test("il ripiego dello zero vale in tutti i periodi, non solo per i watt", () => {
   const gruppo = {
     id: "elettro",
     power_entity: "sensor.gruppo_w",
     daily_energy_entity: "sensor.gruppo_oggi",
   };
-  const figli = [{ id: "lav", power_entity: "sensor.lav_w", daily_energy_entity: "sensor.lav_oggi" }];
+  const figli = [
+    { id: "lav", power_entity: "sensor.lav_w", daily_energy_entity: "sensor.lav_oggi" },
+  ];
   const stati = {
     "sensor.gruppo_w": { state: "0", attributes: { unit_of_measurement: "W" } },
     "sensor.lav_w": { state: "612", attributes: { unit_of_measurement: "W" } },
@@ -784,10 +796,19 @@ test("il ripiego dello zero vale per i watt, non per i periodi", () => {
   };
   // Istantaneo: lo zero del gruppo e' una casella ferma, si guarda dentro.
   assert.equal(readingFor(gruppo, figli, "instant", stati).value, 612);
-  // Giorno: lo zero e' il contatore del gruppo, e resta zero.
+  // Giorno: e' la stessa casella ferma, e dentro c'e' chi ha consumato.
   const oggi = readingFor(gruppo, figli, "day", stati);
-  assert.equal(oggi.value, 0);
-  assert.equal(oggi.source, "direct");
+  assert.ok(Math.abs(oggi.value - 1.4) < 1e-9, `giorno: ${oggi.value}`);
+  assert.equal(oggi.source, "sum");
+
+  // E la giornata in cui davvero non e' partito niente resta zero.
+  const ferma = {
+    ...stati,
+    "sensor.lav_oggi": { state: "0", attributes: { unit_of_measurement: "kWh" } },
+  };
+  const spento = readingFor(gruppo, figli, "day", ferma);
+  assert.equal(spento.value, 0);
+  assert.equal(spento.source, "direct");
 });
 
 /* ── il cerchio di gruppo nel Giorno e nel Mese ────────────────────────────
@@ -809,11 +830,9 @@ test("il contatore di periodo si legge anche dalla casella del guscio vecchio", 
   /* E fra le due vince quella che risponde: e' la stessa regola dei watt, dove
    * una casella ferma non deve zittire quella viva. */
   assert.equal(
-    flowPeriodEntity(
-      { daily_energy_entity: "sensor.muta", daily: "sensor.viva" },
-      "day",
-      { "sensor.viva": { state: "3.5" } },
-    ),
+    flowPeriodEntity({ daily_energy_entity: "sensor.muta", daily: "sensor.viva" }, "day", {
+      "sensor.viva": { state: "3.5" },
+    }),
     "sensor.viva",
   );
   // Un numero scritto al posto di un'entità non è un'entità da leggere.
@@ -823,8 +842,18 @@ test("il contatore di periodo si legge anche dalla casella del guscio vecchio", 
 test("il cerchio somma i suoi apparecchi anche nel Giorno e nel Mese", () => {
   const gruppo = { id: "elettro", name: "Elettrodomestici", metadata: { flow_group: "elettro" } };
   const dentro = [
-    { id: "a", daily: "sensor.a_day", monthly: "sensor.a_month", metadata: { beta27_subload_group: "elettro" } },
-    { id: "b", daily: "sensor.b_day", monthly: "sensor.b_month", metadata: { beta27_subload_group: "elettro" } },
+    {
+      id: "a",
+      daily: "sensor.a_day",
+      monthly: "sensor.a_month",
+      metadata: { beta27_subload_group: "elettro" },
+    },
+    {
+      id: "b",
+      daily: "sensor.b_day",
+      monthly: "sensor.b_month",
+      metadata: { beta27_subload_group: "elettro" },
+    },
   ];
   const stati = {
     "sensor.a_day": { state: "0.3" },
@@ -841,10 +870,13 @@ test("il cerchio somma i suoi apparecchi anche nel Giorno e nel Mese", () => {
   assert.ok(Math.abs(mese.value - 22.7) < 1e-9, `mese: ${mese.value}`);
 });
 
-test("il contatore del gruppo, quando c'è, resta lui a comandare", () => {
+test("il contatore del gruppo comanda finche' misura, e uno zero non e' misurare", () => {
   /* La somma e' un ripiego per chi un contatore suo non ce l'ha: una pinza
-   * sulla linea e' piu' precisa della somma delle prese, e nel Giorno e nel
-   * Mese uno zero e' una misura vera — il carico che oggi non e' partito. */
+   * sulla linea e' piu' precisa della somma delle prese, e finche' quella
+   * pinza dice un numero e' lei a comandare — anche se non torna con la somma.
+   *
+   * Uno zero no. E' il caso arrivato dal campo: il cerchio segnava «0,0 kWh» e
+   * la sua stessa finestra, un tocco piu' in la', «13,7 kWh». */
   const gruppo = {
     id: "elettro",
     daily_energy_entity: "sensor.gruppo_day",
@@ -853,8 +885,93 @@ test("il contatore del gruppo, quando c'è, resta lui a comandare", () => {
   const dentro = [
     { id: "a", daily: "sensor.a_day", metadata: { beta27_subload_group: "elettro" } },
   ];
-  const stati = { "sensor.gruppo_day": { state: "0" }, "sensor.a_day": { state: "0.3" } };
-  const letto = readingFor(gruppo, subloadsOf(gruppo, [], dentro), "day", stati, null);
-  assert.equal(letto.source, "direct");
-  assert.equal(letto.value, 0);
+  const figli = subloadsOf(gruppo, [], dentro);
+
+  const misura = readingFor(
+    gruppo,
+    figli,
+    "day",
+    { "sensor.gruppo_day": { state: "2" }, "sensor.a_day": { state: "0.3" } },
+    null,
+  );
+  assert.equal(misura.source, "direct", "una pinza che misura vince sulla somma");
+  assert.equal(misura.value, 2);
+
+  const buco = readingFor(
+    gruppo,
+    figli,
+    "day",
+    { "sensor.gruppo_day": { state: "0" }, "sensor.a_day": { state: "0.3" } },
+    null,
+  );
+  assert.equal(buco.source, "sum", "lo zero contraddetto da chi sta dentro non e' una misura");
+  assert.ok(Math.abs(buco.value - 0.3) < 1e-9, `giorno: ${buco.value}`);
+
+  const spento = readingFor(
+    gruppo,
+    figli,
+    "day",
+    { "sensor.gruppo_day": { state: "0" }, "sensor.a_day": { state: "0" } },
+    null,
+  );
+  assert.equal(spento.source, "direct", "nessuno ha mentito: zero resta zero");
+  assert.equal(spento.value, 0);
+});
+
+/* Il caso arrivato dal campo, per intero: la scena del Giorno e del Mese con
+ * dentro quello che la finestra degli elettrodomestici mostrava davvero.
+ *
+ * Nelle fotografie il cerchio segnava «0,0 kWh» e la finestra dello stesso
+ * cerchio, un tocco piu' in la', «13,7 kWh» nel Giorno e «31,1 kWh» nel Mese.
+ * Due letture della stessa cosa sullo stesso schermo. */
+test("il cerchio del gruppo non contraddice la propria finestra", () => {
+  const loads = [
+    {
+      id: "elettro",
+      name: "Elettrodomestici",
+      order: 0,
+      daily_energy_entity: "sensor.gruppo_day",
+      monthly_energy_entity: "sensor.gruppo_month",
+      metadata: { flow_group: "elettro" },
+    },
+  ];
+  const appliances = [
+    {
+      id: "clima",
+      daily: "sensor.clima_day",
+      monthly: "sensor.clima_month",
+      metadata: { beta27_subload_group: "elettro" },
+    },
+    {
+      id: "lavast",
+      daily: "sensor.lavast_day",
+      monthly: "sensor.lavast_month",
+      metadata: { beta27_subload_group: "elettro" },
+    },
+    {
+      id: "frigo",
+      daily: "sensor.frigo_day",
+      monthly: "sensor.frigo_month",
+      metadata: { beta27_subload_group: "elettro" },
+    },
+  ];
+  /* Il contatore del gruppo tace a zero; gli apparecchi dentro no. */
+  const states = {
+    "sensor.gruppo_day": { state: "0" },
+    "sensor.gruppo_month": { state: "0" },
+    "sensor.clima_day": { state: "10.5" },
+    "sensor.lavast_day": { state: "1.0" },
+    "sensor.frigo_day": { state: "1.0" },
+    "sensor.clima_month": { state: "25.5" },
+    "sensor.lavast_month": { state: "1.0" },
+    "sensor.frigo_month": { state: "2.1" },
+  };
+
+  const giorno = flowStageModel({ loads, appliances, states, period: "day" });
+  assert.equal(giorno.nodes[0].source, "sum");
+  assert.ok(Math.abs(giorno.nodes[0].value - 12.5) < 1e-9, `giorno: ${giorno.nodes[0].value}`);
+
+  const mese = flowStageModel({ loads, appliances, states, period: "month" });
+  assert.equal(mese.nodes[0].source, "sum");
+  assert.ok(Math.abs(mese.nodes[0].value - 28.6) < 1e-9, `mese: ${mese.nodes[0].value}`);
 });

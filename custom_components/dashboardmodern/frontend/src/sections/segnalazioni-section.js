@@ -34,6 +34,12 @@ const state = (root[KEY] ||= {
   auth: null,
   authTimer: 0,
   queue: null,
+  /* Perche' la coda non e' arrivata, quando non e' arrivata. Il giro zitto
+   * inghiottiva l'errore per non disturbare chi non aveva chiesto niente — ed
+   * e' giusto — ma cosi' il cruscotto restava vuoto senza dire perche', e il
+   * widget non compariva senza dire perche'. Il motivo non urla: aspetta nel
+   * posto dove qualcuno andra' a cercarlo. */
+  codaErrore: "",
   /* Le conversazioni dove qualcuno ha scritto e nessuno ha ancora aperto il
    * filo. L'elenco lo tiene il backend — il campanello lo riempie nel suo giro
    * — perche' le plance di una casa sono piu' di una: letto dal telefono vuol
@@ -669,20 +675,31 @@ function tesseraMarkup() {
         ),
       )}</div>
     </div>
-    <div class="cfg-card-arrow">›</div>
-    ${
-      /* L'interruttore della voce «Cruscotto» nella barra, e sta qui perche' qui
-       * sta la sua scheda. Compare solo per chi la voce ce l'ha: agli altri
-       * offrirebbe di spegnere una cosa che non hanno. Chi ce l'ha deve poterla
-       * togliere dalla barra come qualunque altra pagina — e senza questa riga
-       * non potrebbe, perche' e' una voce che nasce a runtime e le fasce del
-       * guscio non la conoscono. */
-      /* La chiave scritta per esteso e non `CRUSCOTTO_TAB`: la prova che
-       * pretende un interruttore per ogni voce della barra legge i sorgenti, e
-       * una costante non la sa risolvere qui. Scriverla vuol dire restare
-       * dentro quella rete invece di scivolarci fuori senza accorgersene. */
-      state.console ? root.cdSecToggleHtml?.("cruscotto") || "" : ""
-    }`;
+    <div class="cfg-card-arrow">›</div>`;
+}
+
+/* L'interruttore della voce «Cruscotto» nella barra.
+ *
+ * **Non dentro la scheda.** Quel markup e' un `<button style="width:100%">`,
+ * fatto per stare in cima a un pannello dell'editor — e' cosi' che lo usano
+ * prese, robot, UPS e agenda. Dentro la scheda della configurazione, che e' una
+ * riga in orizzontale, quel «100%» diventava una pretesa di tutta la larghezza:
+ * il testo accanto si stringeva a una parola per riga, e la scheda diventava
+ * illeggibile. Si vedeva solo sul telefono di chi la console ce l'ha davvero,
+ * cioe' su un dispositivo solo al mondo.
+ *
+ * Sta nella finestra delle segnalazioni, che e' larga e si apre dalla scheda:
+ * e' l'unico posto sempre raggiungibile anche quando la voce e' nascosta.
+ * Metterlo dentro il cruscotto sarebbe stato un interruttore che, spegnendosi,
+ * si porta via la strada per riaccenderlo.
+ *
+ * La chiave scritta per esteso e non `CRUSCOTTO_TAB`: la prova che pretende un
+ * interruttore per ogni voce della barra legge i sorgenti, e una costante non
+ * la sa risolvere qui.
+ */
+function interruttoreDelCruscotto() {
+  if (!state.console) return "";
+  return root.cdSecToggleHtml?.("cruscotto") || "";
 }
 
 function installaTessera() {
@@ -891,6 +908,20 @@ async function ricarica() {
     state.delivery = Boolean(risposta?.delivery);
     state.console = Boolean(risposta?.console);
     if (risposta?.account) state.account = risposta.account;
+    /* La pagina della barra si mette qui, appena si sa chi guarda.
+     *
+     * Prima non la metteva nessuno. `sistemaIlCruscotto` era scritta,
+     * esportata e appesa a `DashboardModernSegnalazioni.sistema`, e da li' la
+     * chiamava soltanto lo script che fa le fotografie della galleria: nelle
+     * foto il cruscotto c'era, in una casa vera non e' mai comparso. E' il modo
+     * peggiore di sbagliare, perche' la prova che avrebbe dovuto accorgersene
+     * era proprio quella che faceva il lavoro al posto dell'applicazione.
+     *
+     * Va prima della coda e non dopo: la voce nella barra si puo' mettere
+     * subito, e aspettare la risposta di GitHub per disegnare un pulsante
+     * vorrebbe dire che una rete lenta la fa comparire con dieci secondi di
+     * ritardo — o non comparire affatto se quella richiesta fallisce. */
+    sistemaIlCruscotto();
     /* Chi ha la console porta anche la coda, perche' il widget in Home la
      * mostra senza che nessuno abbia aperto niente. Non a ogni giro pero': una
      * chiamata a GitHub per ogni ridisegno sarebbe uno spreco, e la coda non
@@ -1759,7 +1790,36 @@ export function sistemaIlCruscotto() {
   creaPaginaCruscotto();
   creaVoceCruscotto();
   insegnaLaVisibilitaDelCruscotto();
+  /* E si riapplica la visibilita' salvata, adesso che la mappa conosce questa
+   * voce e la voce esiste. Il guscio la applica una volta sola, all'avvio;
+   * questa arriva dopo — la crea `ricarica()`, quando GitHub ha detto chi
+   * guarda — e senza questa riga chi l'aveva nascosta se la ritrovava nella
+   * barra a ogni ricarica della pagina, fino a un gesto qualunque che facesse
+   * ripassare il guscio. Cioe' un interruttore che sembra non funzionare. */
+  root.cdApplyNavVis?.();
   disegnaCruscotto();
+}
+
+/* Il motivo per cui la coda non e' arrivata, quando non e' arrivata.
+ *
+ * Sta sopra l'elenco e non al posto suo, perche' i due casi sono diversi e
+ * tutti e due veri. Alla prima accensione non c'e' niente da mostrare, e resta
+ * solo il motivo. Ma se una coda era gia' arrivata e a fallire e' stata la
+ * rilettura, l'elenco vecchio si tiene — meglio numeri di dieci minuti fa che
+ * una pagina bianca — e allora bisogna dire che sono di dieci minuti fa. Prima
+ * l'elenco vecchio restava li' con l'aria di essere fresco e il motivo non lo
+ * leggeva nessuno. */
+function guastoDellaCoda() {
+  if (!state.codaErrore) return "";
+  const cache = Array.isArray(state.queue)
+    ? ` ${t(
+        "I numeri qui sotto sono quelli dell'ultima lettura riuscita.",
+        "The numbers below are from the last successful read.",
+      )}`
+    : "";
+  return `<div class="dm-tkt-vuoto">${esc(
+    `${t("Non sono riuscito a leggere la coda:", "I could not read the queue:")} ${state.codaErrore}${cache}`,
+  )}</div>`;
 }
 
 function disegnaCruscotto() {
@@ -1777,7 +1837,14 @@ function disegnaCruscotto() {
       </div>
     </div>
     ${avvisoMarkup()}
-    ${consoleMarkup()}`;
+    ${guastoDellaCoda()}
+    ${
+      Array.isArray(state.queue)
+        ? consoleMarkup()
+        : state.codaErrore
+          ? ""
+          : `<div class="dm-tkt-vuoto">${esc(t("Sto leggendo la coda…", "Reading the queue…"))}</div>`
+    }`;
   agganciaEventi(dentro);
 }
 
@@ -1803,7 +1870,8 @@ function disegna() {
   modale.querySelector('[data-dm-tkt="chiudi"]').textContent = t("Chiudi", "Close");
   const corpo = modale.querySelector('[data-dm-tkt="corpo"]');
   const pannello = state.tab === "mie" ? elencoMarkup() : moduloMarkup();
-  corpo.innerHTML = schede() + avvisoMarkup() + codiceMarkup() + pannello;
+  corpo.innerHTML =
+    schede() + interruttoreDelCruscotto() + avvisoMarkup() + codiceMarkup() + pannello;
   agganciaEventi(corpo);
   if (state.tab === "nuova") mostraDiagnostica(corpo);
   /* La pagina del cruscotto vive fuori da questa finestra, ma legge lo stesso
@@ -2075,13 +2143,42 @@ async function caricaCoda({ zitta = false } = {}) {
     const risposta = await chiedi(WS_QUEUE);
     state.queue = Array.isArray(risposta?.tickets) ? risposta.tickets : [];
     state.queueAt = Date.now();
+    state.codaErrore = "";
     await caricaNonLetti();
   } catch (errore) {
+    const motivo = clean(errore?.message) || t("Coda non raggiungibile.", "Queue unreachable.");
+    /* Il motivo si scrive sempre, anche nel giro zitto. Zitto vuol dire «non
+     * mettere un avviso rosso in faccia a chi non ha chiesto niente», non
+     * «fai finta che vada tutto bene»: senza questa riga il cruscotto restava
+     * una pagina vuota e la tessera in Home non compariva, tutte e due senza
+     * una parola su cosa fosse andato storto. */
+    state.codaErrore = motivo;
     if (zitta) return;
     state.queue = [];
-    state.avviso = `!${clean(errore?.message) || t("Coda non raggiungibile.", "Queue unreachable.")}`;
+    state.avviso = `!${motivo}`;
   }
-  if (!zitta) disegna();
+  if (zitta) aggiornaIlCruscotto();
+  else disegna();
+}
+
+/* Il ridisegno del cruscotto dopo un giro zitto.
+ *
+ * «Zitto» voleva dire «non ridisegnare», e per la finestra va bene: nessuno
+ * l'ha aperta. Ma il cruscotto e' una pagina, e puo' essere aperta davanti
+ * agli occhi mentre il battito da dieci minuti porta la coda nuova: restava
+ * ferma su quella vecchia a tempo indefinito. Anche aprendola: il tocco
+ * disegna subito con quello che c'e' e chiede la coda, che arriva dopo.
+ *
+ * Non si ridisegna sopra le dita di nessuno. Se in una casella c'e' del testo,
+ * qualcuno sta scrivendo una risposta: rifare il markup vorrebbe dire
+ * cancellargliela. La coda nuova aspetta il ridisegno successivo — che arriva
+ * appena manda, perche' quello e' un giro ad alta voce. */
+function aggiornaIlCruscotto() {
+  const dentro = doc?.querySelector?.("[data-dm-cruscotto]");
+  if (!dentro) return;
+  const scrivendo = [...dentro.querySelectorAll("textarea")].some((campo) => clean(campo.value));
+  if (scrivendo) return;
+  disegnaCruscotto();
 }
 
 /**

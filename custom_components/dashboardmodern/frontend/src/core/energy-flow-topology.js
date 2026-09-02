@@ -388,22 +388,28 @@ export function readingFor(load, children, period, states, recorderValues) {
   const own = periodValue(load, period, states, recorderValues, {
     implicita: !children.length,
   });
-  /* Uno zero non e' una misura, e' un buco.
+  /* Uno zero non e' una misura, e' un buco. In tutti e tre i periodi.
    *
    * Il sensore proprio del cerchio vince sulla somma, e finche' misura e'
-   * giusto cosi'. Ma quando dice ZERO e dentro ci sono apparecchi che tirano
-   * davvero, quello zero non e' la verita': e' una casella che non risponde.
-   * E il cerchio si metteva a contraddire la propria finestra sulla stessa
-   * schermata — «0 W» fuori, «838 W» dentro. A zero si guarda cosa c'e'
-   * dentro; se anche dentro non tira nessuno, zero resta zero.
+   * giusto cosi': una pinza sulla linea e' piu' precisa della somma delle
+   * prese. Ma quando dice ZERO e dentro ci sono apparecchi che hanno consumato
+   * davvero, quello zero non e' la verita': e' una casella che non risponde. E
+   * il cerchio si mette a contraddire la propria finestra sulla stessa
+   * schermata.
    *
-   * Vale per i watt e basta. Nel Giorno e nel Mese uno zero e' una misura vera
-   * — il contatore di stanotte, il carico che oggi non e' partito — e
-   * scambiarlo per un buco vorrebbe dire mostrare al posto suo la somma dei
-   * figli, cioe' dare per buono un numero che il contatore del gruppo non
-   * conferma. */
-  const zeroSospetto = period === "instant";
-  if (own.value !== null && (own.value !== 0 || !zeroSospetto))
+   * Prima questo valeva per i soli watt. Nel Giorno e nel Mese uno zero si
+   * prendeva per buono, con la ragione che «il contatore del gruppo non
+   * conferma la somma dei figli» — ed e' una ragione vera, ma protegge dal
+   * pericolo sbagliato. Dal campo e' arrivato il caso opposto: cerchio a
+   * «0,0 kWh», finestra dello stesso cerchio a «13,7 kWh», sullo stesso
+   * schermo. Non c'e' nessun numero inventato da cui difendersi li': c'e' una
+   * contraddizione visibile, ed e' peggio.
+   *
+   * Il caso che quella regola voleva proteggere resta protetto e non serviva
+   * una regola apposta: il carico che oggi non e' partito ha i figli a zero
+   * anche loro, la somma fa zero, e zero resta. Cambia soltanto il caso in cui
+   * il contatore dice zero e chi sta dentro dice di no. */
+  if (own.value !== null && own.value !== 0)
     return { ...own, source: "direct", children: children.length };
   if (!children.length) return { ...own, source: "direct", children: 0 };
   let total = null;

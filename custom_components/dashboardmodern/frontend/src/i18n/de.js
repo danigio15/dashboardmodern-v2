@@ -11,20 +11,23 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "Die Zahlen unten stammen aus der letzten gelungenen Abfrage.",
+  "I could not read the queue:": "Die Liste war nicht lesbar:",
+  "Reading the queue…": "Liste wird gelesen…",
   "${conversazioni.length} with new messages": "${conversazioni.length} mit neuen Nachrichten",
   "or, from a tile service": "oder von einem Kacheldienst",
-  "Where": "Wo",
+  Where: "Wo",
   "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
     "Die Adresse ist die, die dein Dienst veröffentlicht, mit {z}/{x}/{y} anstelle der Kachelnummern. «Testen» lädt eine herunter und sagt dir, ob sie ankommt.",
   "The address is missing, or has no {z}/{x}/{y} in it.":
     "Die Adresse fehlt, oder es steht kein {z}/{x}/{y} darin.",
   "Testing…": "Teste…",
-  "Test": "Testen",
+  Test: "Testen",
   "Radius (km)": "Radius (km)",
-  "No answer within eight seconds.":
-    "Keine Antwort innerhalb von acht Sekunden.",
-  "Longitude": "Längengrad",
-  "Latitude": "Breitengrad",
+  "No answer within eight seconds.": "Keine Antwort innerhalb von acht Sekunden.",
+  Longitude: "Längengrad",
+  Latitude: "Breitengrad",
   "It does not arrive. Check the address, and that the service lets this page read it.":
     "Sie kommt nicht an. Prüfe die Adresse und ob der Dienst diese Seite lesen lässt.",
   "It arrives: the tile is there.": "Sie kommt an: die Kachel ist da.",
@@ -36,19 +39,19 @@ export default Object.freeze({
   "Weather radar": "Wetterradar",
   "The radar is not reporting.": "Der Radar meldet sich nicht.",
   "Door & gate openers": "Tür- & Toröffner",
-  "silent": "stumm",
+  silent: "stumm",
   "on out of": "an von",
   "off the bar": "nicht in der Leiste",
-  "entity": "Entität",
-  "entities": "Entitäten",
+  entity: "Entität",
+  entities: "Entitäten",
   "Your sections": "Deine Bereiche",
   "The entities": "Die Entitäten",
   "That is eight: the bar cannot hold more without becoming unreadable.":
     "Das sind acht: mehr fasst die Leiste nicht, ohne unleserlich zu werden.",
   "Show it in the bar": "In der Leiste zeigen",
   "Section title": "Titel des Bereichs",
-  "Section": "Bereich",
-  "Playing": "Läuft",
+  Section: "Bereich",
+  Playing: "Läuft",
   "Not reporting": "Meldet sich nicht",
   "None reporting": "Keine meldet sich",
   "Name (optional)": "Name (optional)",

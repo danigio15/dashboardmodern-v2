@@ -295,13 +295,20 @@ function vehiclePopupTarget() {
 
 function stageModel(period) {
   const loads = configuredLoads();
+  const appliances = configuredAppliances();
   return flowStageModel({
     loads,
-    appliances: configuredAppliances(),
+    appliances,
     flowNodes: flowNodeOverrides(),
     states: allStates(),
     period,
-    recorderValues: period === "instant" ? null : recorderValuesFor(loads, period),
+    /* Anche gli apparecchi, non solo i carichi: quando il cerchio di gruppo
+     * somma quello che ha dentro, i figli sono apparecchi — e cercarli in un
+     * paniere che contiene i soli carichi vuol dire una somma che non trova
+     * niente. Il paniere del Recorder e' l'unico posto dove un apparecchio
+     * misurato dal solo contatore di vita ha un numero per oggi. */
+    recorderValues:
+      period === "instant" ? null : recorderValuesFor([...loads, ...appliances], period),
     locale: locale(),
     wallbox: vehiclePopupTarget(),
   });

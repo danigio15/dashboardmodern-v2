@@ -11,19 +11,23 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "Los números de abajo son de la última lectura correcta.",
+  "I could not read the queue:": "No he podido leer la cola:",
+  "Reading the queue…": "Leyendo la cola…",
   "${conversazioni.length} with new messages": "${conversazioni.length} con mensajes nuevos",
   "or, from a tile service": "o desde un servicio de teselas",
-  "Where": "Dónde",
+  Where: "Dónde",
   "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
     "La dirección es la que publica tu servicio, con {z}/{x}/{y} en lugar de los números de la tesela. «Probar» descarga una y te dice si llega.",
   "The address is missing, or has no {z}/{x}/{y} in it.":
     "Falta la dirección, o no lleva {z}/{x}/{y} dentro.",
   "Testing…": "Probando…",
-  "Test": "Probar",
+  Test: "Probar",
   "Radius (km)": "Radio (km)",
   "No answer within eight seconds.": "Sin respuesta en ocho segundos.",
-  "Longitude": "Longitud",
-  "Latitude": "Latitud",
+  Longitude: "Longitud",
+  Latitude: "Latitud",
   "It does not arrive. Check the address, and that the service lets this page read it.":
     "No llega. Comprueba la dirección, y que el servicio deje leerlo desde aquí.",
   "It arrives: the tile is there.": "Llega: la tesela está ahí.",
@@ -35,19 +39,19 @@ export default Object.freeze({
   "Weather radar": "Radar meteorológico",
   "The radar is not reporting.": "El radar no responde.",
   "Door & gate openers": "Mandos de puertas y cancelas",
-  "silent": "mudas",
+  silent: "mudas",
   "on out of": "encendidas de",
   "off the bar": "fuera de la barra",
-  "entity": "entidad",
-  "entities": "entidades",
+  entity: "entidad",
+  entities: "entidades",
   "Your sections": "Tus secciones",
   "The entities": "Las entidades",
   "That is eight: the bar cannot hold more without becoming unreadable.":
     "Son ocho: la barra no aguanta más sin volverse ilegible.",
   "Show it in the bar": "Mostrarla en la barra",
   "Section title": "Título de la sección",
-  "Section": "Sección",
-  "Playing": "En reproducción",
+  Section: "Sección",
+  Playing: "En reproducción",
   "Not reporting": "No responde",
   "None reporting": "Ninguna responde",
   "Name (optional)": "Nombre (opcional)",

@@ -11,19 +11,23 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "Les chiffres ci-dessous datent de la dernière lecture réussie.",
+  "I could not read the queue:": "Je n'ai pas pu lire la file :",
+  "Reading the queue…": "Lecture de la file…",
   "${conversazioni.length} with new messages": "${conversazioni.length} avec des messages récents",
   "or, from a tile service": "ou depuis un service de tuiles",
-  "Where": "Où",
+  Where: "Où",
   "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
     "L'adresse est celle que publie ton service, avec {z}/{x}/{y} à la place des numéros de tuile. « Tester » en télécharge une et te dit si elle arrive.",
   "The address is missing, or has no {z}/{x}/{y} in it.":
     "L'adresse manque, ou n'a pas de {z}/{x}/{y} dedans.",
   "Testing…": "J'essaie…",
-  "Test": "Tester",
+  Test: "Tester",
   "Radius (km)": "Rayon (km)",
   "No answer within eight seconds.": "Aucune réponse en huit secondes.",
-  "Longitude": "Longitude",
-  "Latitude": "Latitude",
+  Longitude: "Longitude",
+  Latitude: "Latitude",
   "It does not arrive. Check the address, and that the service lets this page read it.":
     "Elle n'arrive pas. Vérifie l'adresse, et que le service se laisse lire depuis ici.",
   "It arrives: the tile is there.": "Elle arrive : la tuile est là.",
@@ -35,19 +39,19 @@ export default Object.freeze({
   "Weather radar": "Radar météo",
   "The radar is not reporting.": "Le radar ne répond pas.",
   "Door & gate openers": "Commandes portes & portails",
-  "silent": "muettes",
+  silent: "muettes",
   "on out of": "allumées sur",
   "off the bar": "hors de la barre",
-  "entity": "entité",
-  "entities": "entités",
+  entity: "entité",
+  entities: "entités",
   "Your sections": "Tes sections",
   "The entities": "Les entités",
   "That is eight: the bar cannot hold more without becoming unreadable.":
     "Cela fait huit : la barre n'en tient pas plus sans devenir illisible.",
   "Show it in the bar": "L'afficher dans la barre",
   "Section title": "Titre de la section",
-  "Section": "Section",
-  "Playing": "En lecture",
+  Section: "Section",
+  Playing: "En lecture",
   "Not reporting": "Ne répond pas",
   "None reporting": "Aucune ne répond",
   "Name (optional)": "Nom (facultatif)",

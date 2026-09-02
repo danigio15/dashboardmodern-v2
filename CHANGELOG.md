@@ -5,6 +5,81 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.11
+
+Tre cose viste su un telefono, e la piu' grossa e' che il cruscotto in una casa
+vera non e' mai comparso.
+
+### Corretto
+
+- **Il cruscotto non lo metteva nessuno.** La funzione che crea la voce nella
+  barra e la sua pagina era scritta, esportata e appesa a
+  `DashboardModernSegnalazioni.sistema` — e da li' la chiamava soltanto lo
+  script che fa le fotografie della galleria. Nelle foto il cruscotto c'era; in
+  una casa vera non compariva ne' nella barra ne' dentro la finestra delle
+  segnalazioni, che intanto la sua scheda «console» l'aveva persa. E' il modo
+  peggiore di sbagliare: la galleria che doveva far vedere il lavoro lo faceva
+  al posto dell'applicazione, e mostrava una cosa che non esisteva.
+
+  Adesso la mette `ricarica()`, appena sa chi sta guardando — prima di chiedere
+  la coda a GitHub, cosi' una rete lenta non la fa comparire in ritardo. E c'e'
+  una prova che pretende una chiamata vera dentro il modulo: toglierla di nuovo
+  costa una prova rossa invece di un giro di fotografie riuscito.
+
+- **La scheda «Segnalazioni» era illeggibile.** L'interruttore che nasconde il
+  cruscotto dalla barra stava dentro la scheda della configurazione, e quel
+  markup e' un `<button style="width:100%">` fatto per stare in cima a un
+  pannello dell'editor — e' cosi' che lo usano prese, robot, UPS e agenda.
+  Dentro una scheda, che e' una riga in orizzontale, quel «100%» diventava una
+  pretesa di tutta la larghezza: il testo accanto si stringeva a **una parola
+  per riga**. Si vedeva solo sul telefono di chi la console ce l'ha davvero,
+  cioe' su un dispositivo solo al mondo.
+
+  L'interruttore adesso sta nella finestra delle segnalazioni, che e' larga e
+  si apre dalla scheda: e' l'unico posto sempre raggiungibile anche quando la
+  voce e' nascosta. Dentro il cruscotto sarebbe stato un interruttore che,
+  spegnendosi, si porta via la strada per riaccenderlo.
+
+- **Il cerchio degli elettrodomestici segnava 0 mentre la sua finestra diceva
+  13,7 kWh.** Sullo stesso schermo, a un tocco di distanza. Il cerchio di
+  gruppo ha una regola: il contatore suo — la pinza sulla linea — vince sulla
+  somma di quello che ha dentro, perche' e' piu' preciso. E ne aveva una
+  seconda: nel Giorno e nel Mese uno zero del contatore vale come misura vera.
+
+  La seconda era stata scritta per non inventare numeri che il contatore del
+  gruppo non conferma, ed e' una preoccupazione giusta — solo che proteggeva
+  dal pericolo sbagliato. Quando il contatore dice zero e dentro ci sono
+  apparecchi che hanno consumato, quello zero non e' una misura: e' una casella
+  che non risponde, e il cerchio si mette a contraddire la propria finestra.
+  Adesso lo zero cede alla somma in tutti e tre i periodi, come gia' faceva nei
+  watt.
+
+  Il caso che la vecchia regola difendeva non aveva bisogno di una regola: il
+  carico che oggi non e' partito ha i figli a zero anche loro, la somma fa
+  zero, e zero resta.
+
+  E il paniere del Recorder adesso risolve anche gli apparecchi **nascosti dal
+  Report**. `show_in_report: false` dice «non voglio vederlo nel Report», e per
+  il Report va benissimo; ma un apparecchio nascosto li' puo' stare lo stesso
+  dentro un cerchio di gruppo, e se il suo unico strumento e' un contatore di
+  vita il periodo glielo puo' dare solo il Recorder. Erano due domande diverse
+  — «cosa disegna il Report» e «da dove leggo i periodi del flusso» — infilate
+  in una risposta sola. Il Report non se ne accorge: quello che si allarga sono
+  i valori, indicizzati per entita', non l'elenco che il Report disegna.
+
+  E il paniere del Recorder risolve anche gli apparecchi, non i soli
+  carichi: i figli di un cerchio di gruppo sono apparecchi, e cercarli in un
+  paniere che contiene solo i carichi voleva dire una somma che non trovava
+  niente.
+
+- **La coda che non arriva adesso lo dice.** Il giro zitto — quello che la Home
+  fa da sola per la tessera — inghiottiva l'errore per non mettere un avviso
+  rosso in faccia a chi non aveva chiesto niente. Giusto, ma «zitto» era
+  diventato «fai finta di niente»: il cruscotto restava una pagina vuota e la
+  tessera in Home non compariva, tutte e due senza una parola sul perche'.
+  Adesso il motivo si scrive comunque, e il cruscotto lo mostra invece di
+  restare bianco.
+
 ## 1.4.5-beta.10
 
 «Basta che quando arriva un messaggio sulla chat parte una notifica di Home

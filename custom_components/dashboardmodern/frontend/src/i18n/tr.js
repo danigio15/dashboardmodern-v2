@@ -11,19 +11,23 @@
  */
 
 export default Object.freeze({
+  "The numbers below are from the last successful read.":
+    "Aşağıdaki sayılar son başarılı okumadan.",
+  "I could not read the queue:": "Listeyi okuyamadım:",
+  "Reading the queue…": "Liste okunuyor…",
   "${conversazioni.length} with new messages": "${conversazioni.length} yeni mesajlı",
   "or, from a tile service": "ya da bir karo servisinden",
-  "Where": "Nerede",
+  Where: "Nerede",
   "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
     "Adres, kullandığın servisin yayımladığı adrestir; karo numaralarının yerine {z}/{x}/{y} yazılır. «Dene» bir tane indirir ve gelip gelmediğini söyler.",
   "The address is missing, or has no {z}/{x}/{y} in it.":
     "Adres eksik ya da içinde {z}/{x}/{y} yok.",
   "Testing…": "Deniyorum…",
-  "Test": "Dene",
+  Test: "Dene",
   "Radius (km)": "Yarıçap (km)",
   "No answer within eight seconds.": "Sekiz saniyede yanıt yok.",
-  "Longitude": "Boylam",
-  "Latitude": "Enlem",
+  Longitude: "Boylam",
+  Latitude: "Enlem",
   "It does not arrive. Check the address, and that the service lets this page read it.":
     "Gelmiyor. Adresi ve servisin buradan okunmaya izin verip vermediğini kontrol et.",
   "It arrives: the tile is there.": "Geliyor: karo yerinde.",
@@ -35,19 +39,19 @@ export default Object.freeze({
   "Weather radar": "Hava radarı",
   "The radar is not reporting.": "Radar yanıt vermiyor.",
   "Door & gate openers": "Kapı & bahçe kapısı kumandaları",
-  "silent": "sessiz",
+  silent: "sessiz",
   "on out of": "açık /",
   "off the bar": "çubuğun dışında",
-  "entity": "varlık",
-  "entities": "varlık",
+  entity: "varlık",
+  entities: "varlık",
   "Your sections": "Bölümlerin",
   "The entities": "Varlıklar",
   "That is eight: the bar cannot hold more without becoming unreadable.":
     "Sekiz oldu: çubuk okunmaz hale gelmeden daha fazlasını taşımaz.",
   "Show it in the bar": "Çubukta göster",
   "Section title": "Bölümün başlığı",
-  "Section": "Bölüm",
-  "Playing": "Çalıyor",
+  Section: "Bölüm",
+  Playing: "Çalıyor",
   "Not reporting": "Yanıt vermiyor",
   "None reporting": "Hiçbiri yanıt vermiyor",
   "Name (optional)": "Ad (isteğe bağlı)",
