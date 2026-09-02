@@ -104,7 +104,11 @@ test.describe("avvisi delle Aperture", () => {
      * contratto vero e' che ci siano tutti quelli che il Quadro Avvisi
      * sorveglia, e nient'altro. */
     await expect(gruppo.locator("option")).toHaveText([
-      /Aperture|Openings/,
+      /* Il gruppo si chiama «Porte/Finestre» da quando i contatti delle
+       * finestre e i comandi che aprono i cancelli hanno smesso di chiamarsi
+       * tutti e due «Aperture». Il gruppo e la chiave `win` non cambiano: e'
+       * cambiata la parola stampata. */
+      /Porte\/Finestre|Doors\/Windows/,
       /Batterie|Batteries/,
       /Luci|Lights/,
       /Clima|Climate/,

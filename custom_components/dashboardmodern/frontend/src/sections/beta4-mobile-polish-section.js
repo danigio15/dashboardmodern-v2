@@ -79,6 +79,9 @@ const OGGETTO_DELLA_SCHEDA = Object.freeze({
   ups: "ups",
   runtime: "runtime",
   telecamere: "telecamere",
+  /* Le sezioni che si fa l'utente (#262): questa colonna vuole un disegno per
+   * ogni voce, e la prova che lo sorveglia falliva sull'unica senza. */
+  mie: "mie",
 });
 
 const FLOW_LOADS = Object.freeze({
