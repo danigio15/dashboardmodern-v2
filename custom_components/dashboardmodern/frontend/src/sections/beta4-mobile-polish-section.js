@@ -679,23 +679,6 @@ function installStyles() {
      * aggiungiamo, con gli stessi 0.4s della dissolvenza. */
     .modal-wrapper{transition:visibility 0s .4s,opacity .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease!important}
     .modal-wrapper.show{transition:opacity .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease!important}
-    /* Il foglio su un livello suo, mentre e' in scena.
-     *
-     * La sfocatura del velo rilegge lo sfondo: ogni scrittura dietro la
-     * finestra e' una sfocatura da rifare, e finche' il contenuto del foglio
-     * sta nello stesso livello viene ridipinto insieme a lei. Dietro il popup
-     * dell'auto, aperto dal cerchio della Wallbox, sono state contate
-     * millesettecento scritture in quattro secondi con gli stati fermi: e' da
-     * li' che veniva il lampo.
-     *
-     * La promozione era stata data alla sola finestra dei carichi, quando il
-     * lampo si e' visto li'. Ma il motivo non era mai stato suo: vale per ogni
-     * finestra che si apra su una pagina viva, e l'auto, il clima, lo storico e
-     * la lavatrice stanno tutte nella stessa condizione. Undici finestre, e
-     * nessuna ha figli fissi che un livello nuovo strapperebbe alla
-     * finestra del browser: verificato aprendole tutte. Vale solo mentre la
-     * finestra e' in scena, e non tocca la trasformazione dell'animazione. */
-    .modal-wrapper.show>.modal-card{will-change:transform}
     /* E la stessa cosa vale per la barra in basso.
      *
      * Anche lei non tiene il vetro smerigliato mentre e' ritirata, e anche lei

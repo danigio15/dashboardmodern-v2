@@ -647,8 +647,18 @@ export function configSempreUltima(scope = doc) {
  * tutta la dashboard e continuo a vedere icone che non sono nostre.» Sono gli
  * stessi oggetti delle tessere e del menu della configurazione: una famiglia
  * sola, dal primo all'ultimo angolo della plancia. */
+/* Le pagine nate dopo questa tabella entrano qui il giorno stesso.
+ *
+ * Il calendario e il gruppo di continuita' sono arrivati con i loro disegni
+ * gia' fatti — stanno nelle tessere della Home — ma nessuno li aveva
+ * presentati alla barra: restavano gli unici due posti della plancia con
+ * l'emoji del telefono, 📅 e 🔌, in mezzo a diciotto disegni di casa. E' il
+ * genere di cosa che si vede solo quando i due lavori si incontrano: presi uno
+ * per volta, tutt'e due erano a posto. */
 const OGGETTO_DELLA_PAGINA = Object.freeze({
   home: "home",
+  calendario: "agenda",
+  ups: "ups",
   energy: "energia",
   "appliances-main": "elettrodomestici",
   ev: "ev",

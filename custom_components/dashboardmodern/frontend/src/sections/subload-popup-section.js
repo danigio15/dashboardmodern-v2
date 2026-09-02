@@ -441,11 +441,26 @@ function installStyles() {
     "dm-subload-popup-style",
     `
     #subloads-list[data-dm-subload-owner="beta30"]{display:block!important}
-    /* Il foglio su un livello suo non e' piu' qui: il motivo non era mai stato
-     * dei carichi. Ogni finestra che si apra su una pagina viva sta nella
-     * stessa condizione — il velo sfocato rilegge lo sfondo, e il contenuto del
-     * foglio viene ridipinto insieme a lui — quindi la regola vale per tutte e
-     * sta dove stanno le altre regole del velo, in beta4-mobile-polish. */
+    /* Il foglio della finestra su un livello suo.
+     *
+     * Questa e' l'unica delle tre correzioni che non ho potuto verificare da
+     * qui, e va detto: il lampo bianco e' un fatto del telefono, e in prova il
+     * disegno lo fa la CPU, dove non succede.
+     *
+     * Quello che si e' misurato: dentro la finestra, a riposo, le scritture
+     * sono zero — quindi non e' piu' lei a muoversi. DIETRO la finestra sono
+     * undici in quattro secondi: l'orologio, il puntino della connessione, il
+     * flusso dell'energia. E il velo del modale ha una sfocatura di venti pixel
+     * che rilegge lo sfondo: ogni scrittura dietro e' una sfocatura da rifare, e
+     * le due cose vanno insieme nello stesso livello.
+     *
+     * Promuovendo il foglio a livello suo, quello che c'e' scritto sopra non
+     * viene ridipinto insieme allo sfondo sfocato. La sfocatura resta com'era:
+     * cambia solo chi la paga. E si dichiara solo mentre la finestra e' in
+     * scena — un livello tenuto vivo a finestra chiusa e' memoria buttata — e
+     * senza toccare la trasformazione, che e' quella dell'animazione di
+     * apertura. */
+    #subloads-modal.modal-wrapper.show>.modal-card{will-change:transform}
     #subloads-title[data-dm-subload-title]{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}
     .dm-subload-title-icon{font-size:26px;line-height:1}
     .dm-subload-title-icon .dm-icon-engine-glyph,.dm-subload-summary-icon .dm-icon-engine-glyph,.dm-subload-icon .dm-icon-engine-glyph{font-size:inherit!important;height:auto!important}
