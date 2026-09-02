@@ -5,6 +5,43 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.9
+
+Il cruscotto della beta.8 si apriva e diceva «Risposta illeggibile», con tre
+zeri e nessuna segnalazione. Non era GitHub: era la plancia che leggeva male.
+
+### Corretto
+
+- **La console si apre e mostra le segnalazioni.** Il corpo delle risposte di
+  GitHub veniva letto con `StreamReader.read(n)`, che non legge n byte: aspetta
+  che il buffer non sia vuoto e restituisce quello che ci trova, cioe' il primo
+  pezzo arrivato. Su una risposta corta — una issue, un commento — il primo
+  pezzo e' tutto, e per questo ogni altra cosa funzionava. Sull'elenco delle
+  issue di una repository viva no: il corpo arrivava mozzato a meta',
+  `json.loads` falliva, e la console diceva «Risposta illeggibile» su una
+  risposta che GitHub aveva mandato intera.
+
+  Adesso si legge fino alla fine, un pezzo per volta, e il tetto dei 512 KB si
+  controlla mentre si legge: chi lo supera lo sente dire, invece di ritrovarsi
+  un troncamento travestito da JSON rotto — che e' il modo peggiore di
+  superarlo, perche' manda a cercare il guasto dove non e'.
+
+- **E la pagina scende da cento a cinquanta.** Una issue nell'elenco pesa
+  qualche kilobyte fra indirizzi, autore, etichette e reazioni: cento sfiorano
+  quel tetto, e sfiorarlo vorrebbe dire una console che il giorno delle
+  centouno issue smette di aprirsi per un motivo che con le segnalazioni non
+  c'entra niente. Il numero di pagine non e' un limite a cosa si vede — il
+  ciclo va fino in fondo — quindi una pagina piu' piccola costa una richiesta
+  in piu', non una riga in meno.
+
+### Sulle prove
+
+- Due prove nuove percorrono la lettura per davvero, con un corpo che arriva a
+  pezzi come arriva sul filo. Nessuna prova poteva prendere questo guasto
+  prima: tutte sostituiscono la chiamata di rete in blocco — che e' giusto,
+  provano cosa il modulo chiede e cosa ne fa — e cosi' la lettura non veniva
+  mai percorsa. Falliscono tutte e due sul codice di prima.
+
 ## 1.4.5-beta.8
 
 Le segnalazioni sono arrivate nella beta.7. Questa e' la versione che le mette

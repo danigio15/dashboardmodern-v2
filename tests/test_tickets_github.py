@@ -11,6 +11,7 @@ che tutto il resto — intestazioni, tetti, percorsi — resta il codice vero.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -586,9 +587,10 @@ async def test_gli_aperti_e_i_chiusi_si_chiedono_separati(
         (4, "risolto"),
     ]
     # Gli aperti si chiedono tutti; i chiusi sono storia e bastano i freschi.
+    quante = github_client._PER_PAGINA
     indirizzi = [chiamata["url"] for chiamata in github.calls]
-    assert any("state=open&per_page=100" in url for url in indirizzi)
-    assert any("state=closed&per_page=50" in url for url in indirizzi)
+    assert any(f"state=open&per_page={quante}" in url for url in indirizzi)
+    assert any(f"state=closed&per_page={quante}" in url for url in indirizzi)
 
 
 async def test_il_tipo_arriva_dal_prefisso_o_dall_etichetta(
@@ -925,28 +927,31 @@ def _aperte(numeri: list[int], *, pr: int = 0) -> list[dict[str, Any]]:
 async def test_gli_aperti_si_chiedono_a_pagine_fino_in_fondo(
     hass: HomeAssistant, github: FakeGitHub
 ) -> None:
-    """Cento per volta non basta a dire «tutti».
+    """Una pagina per volta non basta a dire «tutti».
 
     Quell'indirizzo di GitHub restituisce anche le pull request, che di qui si
     scartano ma la loro riga in pagina se la prendono. Chi contasse le sole
-    issue rimaste vedrebbe una pagina non piena e si fermerebbe: novanta issue
-    e dieci PR fanno cento, e dopo c'e' dell'altro.
+    issue rimaste vedrebbe una pagina non piena e si fermerebbe, mentre dietro
+    c'e' dell'altro.
     """
     _entry(hass)
     await _collega(hass, "dani", maintainer=True)
+    quante = github_client._PER_PAGINA
+    pr = 10
+    issue = quante - pr
     # I chiusi per primi: il loro indirizzo contiene anche «page=1», e il
     # doppione risponde al primo frammento che combacia.
     github.answer("state=closed", [])
     github.answer(
-        "state=open&per_page=100&sort=created&direction=desc&page=1",
-        _aperte(list(range(1, 91)), pr=10),
+        f"per_page={quante}&sort=created&direction=desc&page=1",
+        _aperte(list(range(1, issue + 1)), pr=pr),
     )
     github.answer(
-        "state=open&per_page=100&sort=created&direction=desc&page=2",
+        f"per_page={quante}&sort=created&direction=desc&page=2",
         _aperte([200, 201]),
     )
     coda = await tickets.async_queue(hass, "dani")
-    assert len(coda) == 92
+    assert len(coda) == issue + 2
     assert [voce["number"] for voce in coda][-2:] == [200, 201]
 
 
@@ -961,3 +966,87 @@ async def test_una_pagina_non_piena_e_l_ultima(
     await tickets.async_queue(hass, "dani")
     aperti = [c for c in github.calls if "state=open" in c["url"]]
     assert len(aperti) == 1, "ha chiesto pagine oltre la fine dell'elenco"
+
+
+# ─── La lettura della risposta ───────────────────────────────────────────────
+#
+# Tutte le prove qui sopra sostituiscono `_request` in blocco, che e' giusto:
+# provano cosa il modulo chiede a GitHub e cosa ne fa. Ma cosi' la lettura del
+# corpo non viene mai percorsa, ed e' proprio li' che si nascondeva il guasto
+# che svuotava la console. Queste due la percorrono davvero.
+
+
+class _Flusso:
+    """Un corpo che arriva a pezzi, come arriva sul filo davvero."""
+
+    def __init__(self, pezzi: list[bytes]) -> None:
+        self._pezzi = pezzi
+
+    async def iter_chunked(self, _quanti: int) -> Any:
+        for pezzo in self._pezzi:
+            yield pezzo
+
+
+class _Risposta:
+    def __init__(self, pezzi: list[bytes], status: int = 200) -> None:
+        self.content = _Flusso(pezzi)
+        self.status = status
+
+    async def __aenter__(self) -> _Risposta:
+        return self
+
+    async def __aexit__(self, *_: Any) -> bool:
+        return False
+
+
+class _Sessione:
+    def __init__(self, risposta: _Risposta) -> None:
+        self._risposta = risposta
+
+    def request(self, *_args: Any, **_kwargs: Any) -> _Risposta:
+        return self._risposta
+
+
+async def test_una_risposta_lunga_si_legge_intera(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Il corpo arriva a pezzi, e va ricomposto tutto prima di leggerlo.
+
+    `StreamReader.read(n)` non legge n byte: aspetta che il buffer non sia
+    vuoto e restituisce quello che ci trova, cioe' il primo pezzo. Sull'elenco
+    delle issue di una repository viva il corpo tornava mozzato, `json.loads`
+    falliva, e la console diceva «Risposta illeggibile» su una risposta che
+    GitHub aveva mandato intera.
+    """
+    atteso = [{"number": n, "title": "x" * 200} for n in range(50)]
+    grezzo = json.dumps(atteso).encode()
+    # A pezzi, come sul filo: nessuno di questi da solo e' JSON valido.
+    pezzi = [grezzo[i : i + 1024] for i in range(0, len(grezzo), 1024)]
+    assert len(pezzi) > 1, "la prova non sta spezzando niente"
+    monkeypatch.setattr(
+        github_client,
+        "async_get_clientsession",
+        lambda _hass: _Sessione(_Risposta(pezzi)),
+    )
+    letto = await github_client._request(hass, "GET", "https://api.github.com/x")
+    assert letto == atteso
+
+
+async def test_una_risposta_oltre_il_tetto_lo_dice(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Il tetto si controlla mentre si legge, e chi lo supera lo sente dire.
+
+    Un troncamento silenzioso travestito da JSON rotto e' il modo peggiore di
+    superarlo: manda a cercare il guasto dove non e'.
+    """
+    troppo = github_client._MAX_RESPONSE_BYTES + 1
+    pezzi = [b"x" * 65536] * (troppo // 65536 + 1)
+    monkeypatch.setattr(
+        github_client,
+        "async_get_clientsession",
+        lambda _hass: _Sessione(_Risposta(pezzi)),
+    )
+    with pytest.raises(GitHubError) as guasto:
+        await github_client._request(hass, "GET", "https://api.github.com/x")
+    assert guasto.value.code == "too_large"
