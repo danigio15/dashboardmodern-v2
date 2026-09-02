@@ -163,12 +163,14 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
 
 ### Corretto
 
-- **Lo Stato termico dice cosa scrivere nella casella.** «Modifichi il testo che
-  non si capisce e scrivi: inserire entità che rileva il consenso di accensione
-  spegnimento caldaia.» Il testo parlava di «voci sotto le stanze del popup
-  Caldo» — che è dove vanno a finire, e lo si scopre dopo — invece di dire cosa
-  mettere nella casella che si ha davanti. Adesso lo dice, e il resto (pompe,
-  aspiratori, quello che serve) viene dopo.
+- **La casella «Entità caldaia» adesso dice a cosa serve.** Il suo titolo dice
+  di che tipo è — «switch, facoltativa» — e non a cosa serve. Sotto c'è ora la
+  riga che lo dice: è l'entità che rileva il consenso di accensione e
+  spegnimento della caldaia.
+- **E lo Stato termico dice cosa sono le sue voci.** Parlava di «voci sotto le
+  stanze del popup Caldo», cioè del posto in cui vanno a finire, che si scopre
+  dopo. Adesso dice quello che serve sapere prima: sono le entità della parte
+  termica di cui vuoi sapere se sono accese o spente.
 - **E l'icona scelta si vede.** Nella stessa riga la casella dell'icona era
   larga dieci pixel: il tasto del catalogo se ne prendeva quarantadue su
   cinquantadue, e di quello che si era scelto non restava niente da vedere —
