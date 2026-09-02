@@ -5,6 +5,71 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.9
+
+Il cruscotto della beta.8 si apriva e diceva «Risposta illeggibile», con tre
+zeri e nessuna segnalazione. Non era GitHub: era la plancia che leggeva male.
+
+E l'Agenda diceva «—» sopra una riga che diceva «Domani 12:00»: negava a
+caratteri grandi quello che affermava a caratteri piccoli.
+
+### Corretto
+
+- **Un appuntamento per domani non e' un trattino.** «Ho creato un appuntamento
+  per domani ma sia nel widget che nel popup esce un —.» Il numero grande
+  dell'Agenda contava soltanto oggi, e a oggi vuoto si arrendeva: un trattino —
+  che vuol dire «non lo so» — sopra una didascalia che diceva «Domani 12:00 ·
+  afsfsf». Negava a caratteri grandi quello che affermava a caratteri piccoli.
+  Adesso guarda avanti: «1 domani» quando il primo cade domani, «3 in arrivo»
+  quando cade piu' in la' — scrivere il giorno vorrebbe dire «venerdi' 4
+  settembre» al posto di un numero, e quando cade lo dice gia' la riga sotto. Il
+  trattino resta soltanto per quando non c'e' davvero niente, dove e' vero.
+- **«TODO.LISTA_DELLA_SPESA» non e' un nome.** Chi non scriveva un nome nella
+  scheda si ritrovava l'entity_id crudo in cima al blocco delle cose da fare,
+  per giunta gridato in maiuscolo dal vestito del titolo. Il nome ce l'ha gia'
+  Home Assistant — `friendly_name` — ed e' quello che l'utente ha scritto di
+  la'. Vale per le liste, per i calendari nella legenda e per il calendario
+  scritto sotto ogni impegno. Senza nemmeno quello resta l'indirizzo, ma
+  ripulito: stanghette in spazi e la prima lettera alzata.
+- **La console si apre e mostra le segnalazioni.** Il corpo delle risposte di
+  GitHub veniva letto con `StreamReader.read(n)`, che non legge n byte: aspetta
+  che il buffer non sia vuoto e restituisce quello che ci trova, cioe' il primo
+  pezzo arrivato. Su una risposta corta — una issue, un commento — il primo
+  pezzo e' tutto, e per questo ogni altra cosa funzionava. Sull'elenco delle
+  issue di una repository viva no: il corpo arrivava mozzato a meta',
+  `json.loads` falliva, e la console diceva «Risposta illeggibile» su una
+  risposta che GitHub aveva mandato intera.
+
+  Adesso si legge fino alla fine, un pezzo per volta, e il tetto dei 512 KB si
+  controlla mentre si legge: chi lo supera lo sente dire, invece di ritrovarsi
+  un troncamento travestito da JSON rotto — che e' il modo peggiore di
+  superarlo, perche' manda a cercare il guasto dove non e'.
+
+- **E la pagina scende da cento a cinquanta.** Una issue nell'elenco pesa
+  qualche kilobyte fra indirizzi, autore, etichette e reazioni: cento sfiorano
+  quel tetto, e sfiorarlo vorrebbe dire una console che il giorno delle
+  centouno issue smette di aprirsi per un motivo che con le segnalazioni non
+  c'entra niente. Il numero di pagine non e' un limite a cosa si vede — il
+  ciclo va fino in fondo — quindi una pagina piu' piccola costa una richiesta
+  in piu', non una riga in meno.
+
+- **«Domani» resta domani anche nel giorno in cui cambia l'ora.** Era «adesso
+  piu' ventiquattro ore», e le due cose coincidono quasi sempre — per questo la
+  differenza si scopriva tardi. Il giorno in cui si torna all'ora solare ne
+  dura venticinque: a mezzanotte e mezza, sommandone ventiquattro, si resta
+  sulla stessa data, «domani» diventava uguale a «oggi», e l'appuntamento di
+  domani finiva contato fra quelli piu' in la'. Cioe' proprio il trattino da
+  cui questa tessera era partita, che sarebbe ricomparso due volte l'anno.
+  Adesso i giorni si contano come li conta il calendario.
+
+### Sulle prove
+
+- Due prove nuove percorrono la lettura per davvero, con un corpo che arriva a
+  pezzi come arriva sul filo. Nessuna prova poteva prendere questo guasto
+  prima: tutte sostituiscono la chiamata di rete in blocco — che e' giusto,
+  provano cosa il modulo chiede e cosa ne fa — e cosi' la lettura non veniva
+  mai percorsa. Falliscono tutte e due sul codice di prima.
+
 ## 1.4.5-beta.8
 
 Le segnalazioni sono arrivate nella beta.7. Questa e' la versione che le mette

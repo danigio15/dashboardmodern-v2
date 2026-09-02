@@ -51,6 +51,7 @@ _LOGGER = logging.getLogger(__name__)
 
 _TIMEOUT = 20
 _MAX_RESPONSE_BYTES = 512 * 1024
+_CHUNK_BYTES = 64 * 1024
 
 #: Il numero di issue che si rileggono in una volta sola, e quante risposte si
 #: guardano dentro ognuna. Chi ha scritto quaranta commenti sotto la stessa
@@ -85,6 +86,29 @@ def configured() -> bool:
     return bool(GITHUB_CLIENT_ID)
 
 
+async def _leggi_col_tetto(flusso: Any) -> bytes:
+    """Il corpo intero, o un guasto — mai un pezzo spacciato per il tutto.
+
+    `StreamReader.read(n)` non legge n byte: aspetta che il buffer non sia
+    vuoto e restituisce quello che ci trova, cioe' il primo pezzo arrivato.
+    Su una risposta lunga — l'elenco delle issue di una repository viva — il
+    corpo tornava mozzato a meta', `json.loads` falliva, e la console diceva
+    «Risposta illeggibile» su una risposta che GitHub aveva mandato intera.
+
+    Qui si legge fino alla fine, un pezzo per volta, e il tetto si controlla
+    mentre si legge: chi supera il limite lo sente dire, e non si ritrova un
+    troncamento travestito da JSON rotto.
+    """
+    pezzi: list[bytes] = []
+    quanti = 0
+    async for pezzo in flusso.iter_chunked(_CHUNK_BYTES):
+        quanti += len(pezzo)
+        if quanti > _MAX_RESPONSE_BYTES:
+            raise GitHubError("too_large", "Risposta troppo grande.")
+        pezzi.append(pezzo)
+    return b"".join(pezzi)
+
+
 async def _request(
     hass: HomeAssistant,
     method: str,
@@ -103,9 +127,7 @@ async def _request(
         async with session.request(
             method, url, headers=headers, json=payload, timeout=_TIMEOUT
         ) as answer:
-            corpo = await answer.content.read(_MAX_RESPONSE_BYTES + 1)
-            if len(corpo) > _MAX_RESPONSE_BYTES:
-                raise GitHubError("too_large", "Risposta troppo grande.")
+            corpo = await _leggi_col_tetto(answer.content)
             if answer.status == 401:
                 raise GitHubError("unauthorized", "Autorizzazione GitHub scaduta.")
             if answer.status == 403:
@@ -549,11 +571,20 @@ async def async_close_issue(
     )
 
 
-# Quante pagine si arriva a chiedere per gli aperti. Cento per pagina, quindi
+# Quante issue per pagina. Cinquanta e non cento, che pure GitHub accetterebbe:
+# una issue nell'elenco pesa qualche kilobyte fra indirizzi, autore, etichette
+# e reazioni, e cento sfiorano il tetto dei 512 KB che questo client si e'
+# dato. Sfiorarlo vorrebbe dire una console che il giorno delle centouno issue
+# smette di aprirsi, per un motivo che con le segnalazioni non c'entra niente.
+# Il numero di pagine non e' un limite a cosa si vede: il ciclo va fino in
+# fondo, e una pagina piccola costa una richiesta in piu', non una riga in meno.
+_PER_PAGINA = 50
+
+# Quante pagine si arriva a chiedere per gli aperti. Cinquanta per venti fanno
 # mille: oltre quella soglia il problema di chi tiene la repository non e' piu'
 # la paginazione. Il tetto c'e' perche' un ciclo che si fida di dove finisce
 # l'elenco altrui e' un ciclo che un giorno non finisce.
-_PAGINE_MAX = 10
+_PAGINE_MAX = 20
 
 
 async def _async_issues_page(
@@ -641,14 +672,14 @@ async def async_queue(hass: HomeAssistant, token: str) -> list[dict[str, Any]]:
     aperte: list[dict[str, Any]] = []
     for pagina in range(1, _PAGINE_MAX + 1):
         voci, grezze = await _async_issues_page(
-            hass, token, stato="open", quante=100, per="created", pagina=pagina
+            hass, token, stato="open", quante=_PER_PAGINA, per="created", pagina=pagina
         )
         aperte += voci
         # Una pagina non piena e' l'ultima. E' l'unico segnale che si ha senza
         # leggere l'intestazione `Link`, che questo client non conserva.
-        if grezze < 100:
+        if grezze < _PER_PAGINA:
             break
     chiuse, _ = await _async_issues_page(
-        hass, token, stato="closed", quante=50, per="updated", pagina=1
+        hass, token, stato="closed", quante=_PER_PAGINA, per="updated", pagina=1
     )
     return [*aperte, *chiuse]

@@ -66,6 +66,7 @@ import {
   parseCalendarEventsResponse,
   agendaPerGiorno,
   chiaveDelGiorno,
+  contoDellaTessera,
   etichettaDelGiorno,
   scadenzeDelleListe,
   voceConScadenza,
@@ -123,6 +124,7 @@ import {
   esc,
   formatNumber,
   installStyle,
+  nomeDellEntita,
   chiediAHomeAssistant,
   gettoneDiAccesso,
   lexicalGlobal,
@@ -395,7 +397,11 @@ export function eventiDeiCalendari() {
     const scheda = schedaCalendario(calendario.entity);
     if (scheda.eventi === null) inArrivo = true;
     for (const evento of scheda.eventi || [])
-      eventi.push({ ...evento, calendario: calendario.name || calendario.entity, colore: calendario.colore });
+      eventi.push({
+        ...evento,
+        calendario: nomeDellEntita(calendario.entity, calendario.name),
+        colore: calendario.colore,
+      });
   }
   return { eventi, inArrivo, scelti };
 }
@@ -571,16 +577,11 @@ function calendarioModel() {
   const restano = eventiDaQui(eventi, adesso);
   const primi = prossimiEventi(eventi, adesso, 2);
   const oggi = chiaveDelGiorno(adesso);
-  const diOggi = restano.filter(
-    (evento) => chiaveDelGiorno(evento.inizio) === oggi || inCorso(evento, adesso),
-  );
   /* Anche le scadenze contano: «3 oggi» sopra un'agenda che di righe per oggi
    * ne mostra quattro sarebbe un numero che smentisce quello che c'e' sotto.
-   * Quelle in ritardo entrano nel conto di oggi, perche' e' oggi che vanno
-   * fatte. */
-  const scadenzeOggi = scadenzeDelleListe(blocchiDelleListe()).filter(
-    (voce) => chiaveDelGiorno(voce.inizio) <= oggi,
-  ).length;
+   * Quanto contare, e da quale giorno, lo decide il nucleo: qui si mettono
+   * soltanto le parole. */
+  const conto = contoDellaTessera(eventi, scadenzeDelleListe(blocchiDelleListe()), adesso);
 
   /* Un evento nella didascalia: quando comincia e come si chiama. Il giorno si
    * scrive solo se non e' oggi — «Oggi 20:00» davanti a ogni riga sarebbe una
@@ -610,10 +611,15 @@ function calendarioModel() {
     icon: "📅",
     label: t("Impegni", "Appointments"),
     /* Quanti ne restano oggi, non quanti ce ne sono in tutto: «diciotto» non
-     * dice se stasera si e' liberi, «due oggi» si'. */
+     * dice se stasera si e' liberi, «due oggi» si'. E a oggi vuoto si guarda
+     * avanti invece di dire «non lo so»: vedi `contoDellaTessera`. */
     value: (() => {
-      const quante = diOggi.length + scadenzeOggi;
-      return quante ? t(`${quante} oggi`, `${quante} today`) : "—";
+      const { quante, quando } = conto;
+      if (quando === "oggi") return t(`${quante} oggi`, `${quante} today`);
+      if (quando === "domani") return t(`${quante} domani`, `${quante} tomorrow`);
+      if (quando === "avanti") return t(`${quante} in arrivo`, `${quante} coming up`);
+      /* Il trattino resta per quando non c'e' davvero niente: li' e' vero. */
+      return "—";
     })(),
     caption: didascalia(),
     /* Nessun anello: una percentuale di appuntamenti non vuol dire niente, e
@@ -3189,11 +3195,20 @@ export function scadenzeDaFare() {
 
 /* Le liste, col nome con cui si chiamano: servono al modulo per far scegliere
  * dove finisce una cosa nuova. */
+/* Come si chiama una lista quando chi configura non le ha dato un nome.
+ *
+ * «TODO.LISTA_DELLA_SPESA» in cima al blocco delle cose da fare: era
+ * l'entity_id crudo, per giunta gridato in maiuscolo dal vestito del titolo.
+ * Il nome ce l'ha gia' Home Assistant, ed e' quello scritto di la'. */
+function nomeDellaLista(list) {
+  return nomeDellEntita(list?.entity, list?.name);
+}
+
 export function listeConNome() {
   return configuredTodoLists().map((list, index) => ({
     id: list.id,
     entity: list.entity,
-    name: clean(list.name) || `${t("Lista", "List")} ${index + 1}`,
+    name: nomeDellEntita(list.entity, list.name) || `${t("Lista", "List")} ${index + 1}`,
   }));
 }
 
@@ -3232,11 +3247,11 @@ function todoDetail(widget) {
         <input type="text" class="dm-todo-new" data-dm-todo-new="${esc(list.id)}"
           value="${esc(state.bozze.get(list.id) || "")}" maxlength="200"
           placeholder="${esc(t("Aggiungi una cosa da fare…", "Add something to do…"))}"
-          aria-label="${esc(t(`Aggiungi a ${clean(list.name) || list.entity}`, `Add to ${clean(list.name) || list.entity}`))}">
+          aria-label="${esc(t(`Aggiungi a ${nomeDellaLista(list)}`, `Add to ${nomeDellaLista(list)}`))}">
         <button type="button" class="dm-todo-plus" data-dm-todo-add="${esc(list.id)}"
           title="${esc(t("Aggiungi", "Add"))}" aria-label="${esc(t("Aggiungi", "Add"))}">＋</button>
       </div>`;
-      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(clean(list.name) || list.entity)}</span>${body}${scrivi}</div>`;
+      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(nomeDellaLista(list))}</span>${body}${scrivi}</div>`;
     })
     .join("");
 }

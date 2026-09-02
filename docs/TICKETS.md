@@ -258,14 +258,30 @@ Gli aperti e i chiusi si chiedono separati: `state=all` su una pagina sola vuol
 dire che, appena i chiusi passano il centinaio, gli aperti piu' vecchi escono
 dall'elenco senza che nessuno lo dica.
 
-E gli aperti si chiedono **a pagine, fino in fondo**. Cento per volta non basta
-a dire «tutti»: quell'indirizzo restituisce anche le pull request, che di li' si
+E gli aperti si chiedono **a pagine, fino in fondo**. Una pagina non basta a
+dire «tutti»: quell'indirizzo restituisce anche le pull request, che di li' si
 scartano ma il posto in pagina se lo prendono. Per sapere se una pagina era
 piena si guarda quante righe **grezze** ha mandato GitHub, non quante ne sono
-rimaste dopo lo scarto — una pagina di cento fatta di novantanove PR
-sembrerebbe altrimenti la fine dell'elenco. Il tetto e' dieci pagine, perche'
-un ciclo che si fida di dove finisce l'elenco altrui e' un ciclo che un giorno
-non finisce. I chiusi restano una pagina sola: sono storia.
+rimaste dopo lo scarto — una pagina piena di sole PR sembrerebbe altrimenti la
+fine dell'elenco. Il tetto e' venti pagine, perche' un ciclo che si fida di
+dove finisce l'elenco altrui e' un ciclo che un giorno non finisce. I chiusi
+restano una pagina sola: sono storia.
+
+La pagina e' di **cinquanta**, non di cento che pure GitHub accetterebbe. Una
+issue nell'elenco pesa qualche kilobyte fra indirizzi, autore, etichette e
+reazioni, e cento sfiorano il tetto dei 512 KB che il client si e' dato:
+sfiorarlo vorrebbe dire una console che il giorno delle centouno issue smette
+di aprirsi, per un motivo che con le segnalazioni non c'entra niente. Il numero
+di pagine non e' un limite a cosa si vede, quindi una pagina piccola costa una
+richiesta in piu', non una riga in meno.
+
+E il corpo della risposta si legge **fino alla fine**, un pezzo per volta.
+`StreamReader.read(n)` non legge n byte: aspetta che il buffer non sia vuoto e
+restituisce quello che ci trova, cioe' il primo pezzo arrivato. Sull'elenco di
+una repository viva il corpo tornava mozzato a meta', `json.loads` falliva, e
+la console diceva «Risposta illeggibile» su una risposta che GitHub aveva
+mandato intera. Il tetto si controlla mentre si legge, cosi' chi lo supera lo
+sente dire invece di ritrovarsi un troncamento travestito da JSON rotto.
 
 Chi ha commentato, nell'elenco, GitHub non lo dice — e chiederlo vorrebbe dire
 una chiamata per ogni riga. Vale allora il segno che c'e': un'aperta su cui si

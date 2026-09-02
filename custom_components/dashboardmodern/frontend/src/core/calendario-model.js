@@ -427,6 +427,70 @@ export function scadenzeDelleListe(blocchi) {
   return ordinaEventi(fuori);
 }
 
+/**
+ * Cosa dice il numero grande della tessera dell'Agenda.
+ *
+ * «Ho creato un appuntamento per domani ma sia nel widget che nel popup esce
+ * un —.» Il trattino e' il segno di «non lo so», e stava sopra una didascalia
+ * che diceva «Domani 12:00 · afsfsf»: negava a caratteri grandi quello che
+ * affermava a caratteri piccoli. Contava soltanto oggi, e a oggi vuoto si
+ * arrendeva invece di guardare avanti.
+ *
+ * Domani ha il suo conto, come oggi: e' il giorno che si sta per guardare, e
+ * dirlo per nome e' l'informazione che serve. Piu' in la' il conto passa a
+ * tutto quello che resta, perche' scrivere il giorno vorrebbe dire «venerdi' 4
+ * settembre» al posto di un numero — e quando cade il primo lo dice gia' la
+ * riga sotto al numero.
+ *
+ * Torna la forma, non le parole: le parole le mette chi disegna, perche' il
+ * raccoglitore delle traduzioni guarda le sezioni e una `t()` scritta qui non
+ * finirebbe nei cataloghi.
+ *
+ * @returns {{quante: number, quando: "oggi"|"domani"|"avanti"|null}}
+ */
+/* Domani e' il giorno di calendario dopo, non ventiquattro ore dopo.
+ *
+ * Le due cose coincidono quasi sempre, e per questo la differenza si scopre
+ * tardi: nei giorni in cui cambia l'ora, no. Dove si torna all'ora solare il
+ * giorno dura venticinque ore, e sommare ventiquattro ore a mezzanotte e mezza
+ * lascia sulla stessa data — cosi' «domani» diventa uguale a «oggi», e un
+ * appuntamento di domani finisce contato fra quelli piu' in la'. Dove si passa
+ * all'ora legale il giorno ne dura ventitre', e sommandone ventiquattro poco
+ * prima di mezzanotte si salta domani del tutto.
+ *
+ * `setDate` invece conta i giorni come li conta il calendario, e i mesi e gli
+ * anni li fa girare da solo. */
+function ilGiornoDopo(istante) {
+  const quando = new Date(istante);
+  quando.setDate(quando.getDate() + 1);
+  return quando;
+}
+
+export function contoDellaTessera(eventi, scadenze, adesso = Date.now()) {
+  const oggi = chiaveDelGiorno(adesso);
+  const domani = chiaveDelGiorno(ilGiornoDopo(adesso));
+  const impegni = eventiDaQui(eventi, adesso);
+  const dovute = Array.isArray(scadenze) ? scadenze : [];
+  const quelDdi = (giorno) =>
+    impegni.filter((evento) => chiaveDelGiorno(evento.inizio) === giorno).length +
+    dovute.filter((voce) => chiaveDelGiorno(voce.inizio) === giorno).length;
+
+  /* Un evento cominciato ieri e ancora in corso e' di oggi: e' adesso che
+   * riguarda chi guarda. E le scadenze passate pure — e' oggi che vanno
+   * fatte, non il giorno in cui sono scadute. */
+  const oggiConta =
+    impegni.filter((evento) => chiaveDelGiorno(evento.inizio) === oggi || inCorso(evento, adesso))
+      .length + dovute.filter((voce) => chiaveDelGiorno(voce.inizio) <= oggi).length;
+  if (oggiConta) return { quante: oggiConta, quando: "oggi" };
+
+  const domaniConta = quelDdi(domani);
+  if (domaniConta) return { quante: domaniConta, quando: "domani" };
+
+  const restanti =
+    impegni.length + dovute.filter((voce) => chiaveDelGiorno(voce.inizio) > oggi).length;
+  return restanti ? { quante: restanti, quando: "avanti" } : { quante: 0, quando: null };
+}
+
 /** Se questa voce ha una data, e quindi vive nell'agenda invece che in fondo. */
 export function voceConScadenza(voce) {
   return istanteDi(voce?.due).istante !== null;
