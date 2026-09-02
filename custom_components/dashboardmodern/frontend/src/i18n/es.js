@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Conecta GitHub para escribir bajo este informe.",
   "Dashboard language": "Idioma del panel",
   "Day zone": "Zona de día",
+  "Electric water heater": "Termo eléctrico",
+  "Flow · Return · Pressure": "Ida · Retorno · Presión",
   "Home Assistant language": "Idioma de Home Assistant",
+  "Hot water · Element · Consumption": "Agua caliente · Resistencia · Consumo",
   "I'll take it": "Me encargo",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Dejándolo en el idioma de Home Assistant el panel sigue el perfil de quien está mirando. Elegir uno lo fija para este panel, aunque Home Assistant hable otro idioma.",
@@ -27,14 +30,19 @@ export default Object.freeze({
   "No boiler configured": "Ninguna caldera configurada",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Ninguna caldera configurada: añádela desde la pestaña Gestión térmica de los ajustes.",
+  "Primary loop · Tank · Recirculation":
+    "Circuito primario · Acumulador · Recirculación",
   Release: "Soltar",
   "Released.": "Liberado.",
   "Send the message": "Enviar el mensaje",
+  "Solar thermal plant": "Instalación solar térmica",
+  "Solar · Water heater · Boiler": "Solar · Termo · Caldera",
   Taken: "A cargo",
   "Taken by": "A cargo de",
   "Taken.": "Asumido.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "La diferencia entre ida y retorno dice si el circuito está cediendo calor de verdad; la presión es lo único que de vez en cuando hay que rellenar a mano. Ningún campo es obligatorio: solo con el estado la tarjeta muestra la caldera encendida o apagada, sin números que no tiene. Si tienes más de una — una por zona — añádelas aquí y en la página aparece la fila para pasar de una a otra.",
+  "Thermal management": "Gestión térmica",
   "Unit": "Unidad",
   "Write here: the message goes under the report, under your name.":
     "Escribe aquí: el mensaje va bajo el informe, a tu nombre.",

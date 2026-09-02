@@ -686,6 +686,14 @@ function installStyles() {
          serve perche' il vestito del guscio darebbe comunque un display a
          quel nodo, e vincerebbe lui. */
       #ed-body details.ed-acc[hidden]{display:none!important}
+      /* Nome e entita' incolonnati nella riga della caldaia. Il guscio lascia
+         i due pezzi in linea, e con due caldaie in fila il nome finiva
+         appiccicato all'id — «Zona giornobinary_sensor.c1_stato». Sono due
+         informazioni diverse: quale macchina e' e da dove legge. */
+      #ed-body .dm-caldaia-row .ed-row-main{display:block;min-width:0}
+      #ed-body .dm-caldaia-row .ed-row-new,
+      #ed-body .dm-caldaia-row .ed-row-old{display:block;overflow:hidden;text-overflow:ellipsis}
+      #ed-body .dm-caldaia-row .ed-row-old{margin-top:3px;color:var(--text-dim,#64748b)}
       @media(max-width:560px){
         #ed-body .dm-it-ed-tab{font-size:10.5px;padding:9px 6px;letter-spacing:.03em}
       }

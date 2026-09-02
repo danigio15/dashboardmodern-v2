@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "اربط GitHub للكتابة تحت هذا البلاغ.",
   "Dashboard language": "لغة اللوحة",
   "Day zone": "منطقة النهار",
+  "Electric water heater": "سخّان كهربائي",
+  "Flow · Return · Pressure": "ذهاب · عودة · ضغط",
   "Home Assistant language": "لغة Home Assistant",
+  "Hot water · Element · Consumption": "ماء ساخن · مقاومة · استهلاك",
   "I'll take it": "سأتولّاه",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "إذا تُركت على لغة Home Assistant فإن اللوحة تتبع ملف من ينظر إليها. واختيار لغة يثبّتها لهذه اللوحة، حتى لو كان Home Assistant يتكلم لغة أخرى.",
@@ -27,14 +30,19 @@ export default Object.freeze({
   "No boiler configured": "لا يوجد مرجل مُعد",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "لا يوجد مرجل مُعد: أضِفه من تبويب إدارة التدفئة في الإعدادات.",
+  "Primary loop · Tank · Recirculation":
+    "الدائرة الابتدائية · الخزان · إعادة التدوير",
   Release: "تخلَّ عنه",
   "Released.": "تم التخلي عنه.",
   "Send the message": "أرسل الرسالة",
+  "Solar thermal plant": "منظومة شمسية حرارية",
+  "Solar · Water heater · Boiler": "شمسي · سخّان · غلاية",
   Taken: "قيد التولّي",
   "Taken by": "بعهدة",
   "Taken.": "تم تولّيه.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "الفرق بين الذهاب والعودة يبيّن إن كانت الدائرة تمنح حرارة فعلاً؛ أما الضغط فهو الشيء الوحيد الذي يحتاج أحياناً إلى تعبئة يدوية. لا حقل إلزامي: بالحالة وحدها تعرض البطاقة الغلاية تعمل أو مطفأة، بلا أرقام لا تملكها. وإن كان لديك أكثر من واحد — واحد لكل منطقة — فأضِفها هنا، وتظهر في الصفحة صفٌّ للتنقل بينها.",
+  "Thermal management": "إدارة الحرارة",
   "Unit": "وحدة",
   "Write here: the message goes under the report, under your name.":
     "اكتب هنا: تُنشر الرسالة تحت البلاغ باسمك.",

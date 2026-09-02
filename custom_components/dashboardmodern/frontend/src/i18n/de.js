@@ -20,7 +20,10 @@ export default Object.freeze({
     "Verbinde GitHub, um unter dieser Meldung zu schreiben.",
   "Dashboard language": "Sprache des Dashboards",
   "Day zone": "Tagzone",
+  "Electric water heater": "Elektrischer Warmwasserbereiter",
+  "Flow · Return · Pressure": "Vorlauf · Rücklauf · Druck",
   "Home Assistant language": "Sprache von Home Assistant",
+  "Hot water · Element · Consumption": "Warmwasser · Heizstab · Verbrauch",
   "I'll take it": "Ich übernehme",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Bleibt sie auf der Sprache von Home Assistant, folgt das Dashboard dem Profil der Person, die gerade hinsieht. Wählst du eine aus, ist sie für dieses Dashboard festgelegt — auch wenn Home Assistant eine andere Sprache spricht.",
@@ -28,14 +31,18 @@ export default Object.freeze({
   "No boiler configured": "Kein Kessel eingerichtet",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Kein Kessel eingerichtet: füge ihn im Reiter Wärmeverwaltung der Einstellungen hinzu.",
+  "Primary loop · Tank · Recirculation": "Primärkreis · Speicher · Zirkulation",
   Release: "Abgeben",
   "Released.": "Abgegeben.",
   "Send the message": "Nachricht senden",
+  "Solar thermal plant": "Solarthermieanlage",
+  "Solar · Water heater · Boiler": "Solar · Warmwasserbereiter · Kessel",
   Taken: "Übernommen",
   "Taken by": "Übernommen von",
   "Taken.": "Übernommen.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Der Abstand zwischen Vorlauf und Rücklauf sagt, ob der Kreis wirklich Wärme abgibt; der Druck ist das Einzige, was gelegentlich von Hand nachgefüllt werden muss. Kein Feld ist Pflicht: Schon mit dem Zustand zeigt die Karte den Kessel an oder aus, ohne Zahlen, die sie nicht hat. Bei mehreren — einer pro Zone — trägst du sie hier ein, und die Seite bekommt eine Reihe zum Umschalten.",
+  "Thermal management": "Wärmemanagement",
   "Unit": "Gerät",
   "Write here: the message goes under the report, under your name.":
     "Schreib hier: die Nachricht steht unter der Meldung, in deinem Namen.",

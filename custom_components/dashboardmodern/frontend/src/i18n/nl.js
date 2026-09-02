@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Koppel GitHub om onder deze melding te schrijven.",
   "Dashboard language": "Taal van het dashboard",
   "Day zone": "Dagzone",
+  "Electric water heater": "Elektrische boiler",
+  "Flow · Return · Pressure": "Aanvoer · Retour · Druk",
   "Home Assistant language": "Taal van Home Assistant",
+  "Hot water · Element · Consumption": "Warm water · Element · Verbruik",
   "I'll take it": "Ik pak hem op",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Blijft hij op de taal van Home Assistant, dan volgt het dashboard het profiel van wie er kijkt. Kies je er een, dan ligt hij vast voor dit dashboard, ook als Home Assistant een andere taal spreekt.",
@@ -27,14 +30,19 @@ export default Object.freeze({
   "No boiler configured": "Geen ketel ingesteld",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Geen ketel ingesteld: voeg er een toe via het tabblad Warmtebeheer in de instellingen.",
+  "Primary loop · Tank · Recirculation":
+    "Primair circuit · Boilervat · Circulatie",
   Release: "Loslaten",
   "Released.": "Losgelaten.",
   "Send the message": "Verstuur het bericht",
+  "Solar thermal plant": "Thermische zonne-installatie",
+  "Solar · Water heater · Boiler": "Zon · Boiler · Ketel",
   Taken: "Opgepakt",
   "Taken by": "Opgepakt door",
   "Taken.": "Opgepakt.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Het verschil tussen aanvoer en retour zegt of het circuit echt warmte afgeeft; de druk is het enige dat af en toe met de hand moet worden bijgevuld. Geen veld is verplicht: met alleen de status toont de kaart de ketel aan of uit, zonder getallen die zij niet heeft. Heb je er meer dan één — één per zone — voeg ze hier toe en de pagina krijgt een rij om te wisselen.",
+  "Thermal management": "Warmtebeheer",
   "Unit": "Toestel",
   "Write here: the message goes under the report, under your name.":
     "Schrijf hier: het bericht komt onder de melding, op jouw naam.",

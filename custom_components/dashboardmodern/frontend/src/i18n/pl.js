@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Połącz GitHub, aby pisać pod tym zgłoszeniem.",
   "Dashboard language": "Język pulpitu",
   "Day zone": "Strefa dzienna",
+  "Electric water heater": "Elektryczny podgrzewacz wody",
+  "Flow · Return · Pressure": "Zasilanie · Powrót · Ciśnienie",
   "Home Assistant language": "Język Home Assistanta",
+  "Hot water · Element · Consumption": "Ciepła woda · Grzałka · Zużycie",
   "I'll take it": "Biorę to",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Pozostawiony na języku Home Assistanta pulpit podąża za profilem tego, kto patrzy. Wybranie jednego przypina go do tego pulpitu, nawet gdy Home Assistant mówi w innym języku.",
@@ -27,14 +30,19 @@ export default Object.freeze({
   "No boiler configured": "Nie skonfigurowano kotła",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Nie skonfigurowano kotła: dodaj go w zakładce Zarządzanie ciepłem w ustawieniach.",
+  "Primary loop · Tank · Recirculation":
+    "Obieg pierwotny · Zasobnik · Cyrkulacja",
   Release: "Zostaw",
   "Released.": "Zwolnione.",
   "Send the message": "Wyślij wiadomość",
+  "Solar thermal plant": "Instalacja solarna",
+  "Solar · Water heater · Boiler": "Solar · Podgrzewacz · Kocioł",
   Taken: "Wzięte",
   "Taken by": "Zajmuje się",
   "Taken.": "Wzięte na siebie.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Różnica między zasilaniem a powrotem mówi, czy obieg naprawdę oddaje ciepło; ciśnienie to jedyna rzecz, którą co jakiś czas trzeba uzupełnić ręcznie. Żadne pole nie jest wymagane: z samym stanem karta pokazuje kocioł włączony lub wyłączony, bez liczb, których nie ma. Jeśli masz więcej niż jeden — po jednym na strefę — dodaj je tutaj, a na stronie pojawi się rząd do przełączania.",
+  "Thermal management": "Zarządzanie ciepłem",
   "Unit": "Urządzenie",
   "Write here: the message goes under the report, under your name.":
     "Napisz tutaj: wiadomość trafi pod zgłoszenie, w twoim imieniu.",

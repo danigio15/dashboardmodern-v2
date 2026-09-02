@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Connecte GitHub pour écrire sous ce signalement.",
   "Dashboard language": "Langue du tableau de bord",
   "Day zone": "Zone jour",
+  "Electric water heater": "Chauffe-eau électrique",
+  "Flow · Return · Pressure": "Départ · Retour · Pression",
   "Home Assistant language": "Langue de Home Assistant",
+  "Hot water · Element · Consumption": "Eau chaude · Résistance · Consommation",
   "I'll take it": "Je m'en occupe",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Laissée sur la langue de Home Assistant, la plancha suit le profil de celui qui regarde. En choisir une la fixe pour ce tableau de bord, même quand Home Assistant parle une autre langue.",
@@ -27,14 +30,18 @@ export default Object.freeze({
   "No boiler configured": "Aucune chaudière configurée",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Aucune chaudière configurée : ajoute-la depuis l'onglet Gestion thermique des réglages.",
+  "Primary loop · Tank · Recirculation": "Circuit primaire · Ballon · Bouclage",
   Release: "Laisser",
   "Released.": "Laissé.",
   "Send the message": "Envoyer le message",
+  "Solar thermal plant": "Installation solaire thermique",
+  "Solar · Water heater · Boiler": "Solaire · Chauffe-eau · Chaudière",
   Taken: "Pris en charge",
   "Taken by": "Pris en charge par",
   "Taken.": "Pris en charge.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "L'écart entre départ et retour dit si le circuit cède vraiment de la chaleur ; la pression est la seule chose à compléter de temps en temps à la main. Aucun champ n'est obligatoire : avec le seul état, la carte montre la chaudière allumée ou éteinte, sans chiffres qu'elle n'a pas. Si tu en as plusieurs — une par zone — ajoute-les ici et la page se dote d'une rangée pour passer de l'une à l'autre.",
+  "Thermal management": "Gestion thermique",
   "Unit": "Unité",
   "Write here: the message goes under the report, under your name.":
     "Écris ici : le message part sous le signalement, à ton nom.",

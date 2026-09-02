@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Bu bildirimin altına yazmak için GitHub'ı bağla.",
   "Dashboard language": "Panonun dili",
   "Day zone": "Gündüz bölgesi",
+  "Electric water heater": "Elektrikli termosifon",
+  "Flow · Return · Pressure": "Gidiş · Dönüş · Basınç",
   "Home Assistant language": "Home Assistant'ın dili",
+  "Hot water · Element · Consumption": "Sıcak su · Rezistans · Tüketim",
   "I'll take it": "Ben bakarım",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant'ın dilinde bırakılırsa pano, bakan kişinin profilini izler. Bir dil seçmek onu bu panoya sabitler; Home Assistant başka bir dil konuşsa bile.",
@@ -27,14 +30,19 @@ export default Object.freeze({
   "No boiler configured": "Kombi tanımlı değil",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Kombi tanımlı değil: ayarlardaki Isı yönetimi sekmesinden ekle.",
+  "Primary loop · Tank · Recirculation":
+    "Birincil devre · Boyler · Sirkülasyon",
   Release: "Bırak",
   "Released.": "Bırakıldı.",
   "Send the message": "Mesajı gönder",
+  "Solar thermal plant": "Güneş enerjili ısıtma tesisatı",
+  "Solar · Water heater · Boiler": "Güneş · Termosifon · Kombi",
   Taken: "Üstlenildi",
   "Taken by": "Üstlenen",
   "Taken.": "Üstlenildi artık.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Gidiş ile dönüş arasındaki fark, devrenin gerçekten ısı verip vermediğini söyler; basınç ise arada bir elle tamamlanması gereken tek şeydir. Hiçbir alan zorunlu değil: yalnızca durumla kart kombiyi açık ya da kapalı gösterir, sahip olmadığı sayılar olmadan. Birden fazlaysa — bölge başına bir tane — buraya ekle; sayfada aralarında geçiş için bir sıra çıkar.",
+  "Thermal management": "Isı yönetimi",
   "Unit": "Birim",
   "Write here: the message goes under the report, under your name.":
     "Buraya yaz: mesaj senin adınla bildirimin altına gider.",

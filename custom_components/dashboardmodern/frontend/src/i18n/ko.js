@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "이 제보에 글을 쓰려면 GitHub를 연결하세요.",
   "Dashboard language": "대시보드 언어",
   "Day zone": "주간 구역",
+  "Electric water heater": "전기 온수기",
+  "Flow · Return · Pressure": "공급 · 환수 · 압력",
   "Home Assistant language": "Home Assistant 언어",
+  "Hot water · Element · Consumption": "온수 · 히터 · 사용량",
   "I'll take it": "제가 맡을게요",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant 언어로 두면 대시보드는 보고 있는 사람의 프로필을 따릅니다. 하나를 고르면 이 대시보드에 고정되며, Home Assistant가 다른 언어를 쓰더라도 그대로입니다.",
@@ -27,14 +30,18 @@ export default Object.freeze({
   "No boiler configured": "보일러가 설정되지 않았습니다",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "보일러가 설정되지 않았습니다. 설정의 열 관리 탭에서 추가하세요.",
+  "Primary loop · Tank · Recirculation": "1차 회로 · 저탕조 · 순환",
   Release: "놓기",
   "Released.": "맡기를 그만두었습니다.",
   "Send the message": "메시지 보내기",
+  "Solar thermal plant": "태양열 설비",
+  "Solar · Water heater · Boiler": "태양열 · 온수기 · 보일러",
   Taken: "담당 중",
   "Taken by": "담당자",
   "Taken.": "맡았습니다.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "공급과 환수의 차이는 회로가 실제로 열을 내보내는지 알려 줍니다. 압력은 가끔 손으로 보충해야 하는 유일한 항목입니다. 필수 항목은 없습니다. 상태만으로도 카드는 보일러의 켜짐과 꺼짐을 보여 주며, 없는 숫자는 만들지 않습니다. 두 대 이상이면 — 구역마다 한 대씩 — 여기에 추가하면 페이지에 전환할 줄이 생깁니다.",
+  "Thermal management": "열 관리",
   "Unit": "기기",
   "Write here: the message goes under the report, under your name.":
     "여기에 쓰세요. 메시지는 본인 이름으로 제보 아래에 올라갑니다.",

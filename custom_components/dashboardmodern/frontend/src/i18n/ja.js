@@ -20,7 +20,10 @@ export default Object.freeze({
     "この報告に書き込むには GitHub を連携してください。",
   "Dashboard language": "ダッシュボードの言語",
   "Day zone": "昼のゾーン",
+  "Electric water heater": "電気給湯器",
+  "Flow · Return · Pressure": "往き · 戻り · 圧力",
   "Home Assistant language": "Home Assistant の言語",
+  "Hot water · Element · Consumption": "給湯 · ヒーター · 消費量",
   "I'll take it": "担当する",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant の言語のままにしておくと、ダッシュボードは見ている人のプロフィールに従います。ひとつ選ぶとこのダッシュボードに固定され、Home Assistant が別の言語でもそのままです。",
@@ -28,14 +31,18 @@ export default Object.freeze({
   "No boiler configured": "ボイラーは未設定です",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "ボイラーは未設定です。設定の「熱管理」タブから追加してください。",
+  "Primary loop · Tank · Recirculation": "一次回路 · 貯湯タンク · 循環",
   Release: "担当を外れる",
   "Released.": "担当を外れました。",
   "Send the message": "メッセージを送る",
+  "Solar thermal plant": "太陽熱設備",
+  "Solar · Water heater · Boiler": "太陽熱 · 給湯器 · ボイラー",
   Taken: "担当中",
   "Taken by": "担当",
   "Taken.": "担当になりました。",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "往きと戻りの差は回路が実際に熱を出しているかを示します。圧力だけは時々手で補充する必要があります。必須の欄はありません。状態だけでもカードはボイラーの運転と停止を示し、持っていない数値は出しません。 複数ある場合は — ゾーンごとに一台 — ここに追加すると、ページに切り替えの列が出ます。",
+  "Thermal management": "熱管理",
   "Unit": "機器",
   "Write here: the message goes under the report, under your name.":
     "ここに書いてください。メッセージはあなたの名前で報告の下に届きます。",

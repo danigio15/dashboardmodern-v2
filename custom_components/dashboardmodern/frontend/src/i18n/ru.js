@@ -20,7 +20,10 @@ export default Object.freeze({
     "Подключите GitHub, чтобы писать под этим обращением.",
   "Dashboard language": "Язык панели",
   "Day zone": "Дневная зона",
+  "Electric water heater": "Электрический водонагреватель",
+  "Flow · Return · Pressure": "Подача · Обратка · Давление",
   "Home Assistant language": "Язык Home Assistant",
+  "Hot water · Element · Consumption": "Горячая вода · ТЭН · Расход",
   "I'll take it": "Беру себе",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Оставленная на языке Home Assistant, панель следует профилю того, кто смотрит. Выбор языка закрепляет его за этой панелью, даже если Home Assistant говорит на другом.",
@@ -28,14 +31,19 @@ export default Object.freeze({
   "No boiler configured": "Котёл не настроен",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Котёл не настроен: добавьте его на вкладке «Управление теплом» в настройках.",
+  "Primary loop · Tank · Recirculation":
+    "Первичный контур · Бак · Рециркуляция",
   Release: "Отпустить",
   "Released.": "Отпущено.",
   "Send the message": "Отправить сообщение",
+  "Solar thermal plant": "Солнечная тепловая установка",
+  "Solar · Water heater · Boiler": "Солнце · Бойлер · Котёл",
   Taken: "В работе",
   "Taken by": "В работе у",
   "Taken.": "Взято в работу.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Разница между подачей и обраткой показывает, действительно ли контур отдаёт тепло; давление — единственное, что время от времени нужно подкачивать вручную. Ни одно поле не обязательно: даже с одним состоянием карточка покажет котёл включённым или выключенным, без чисел, которых у неё нет. Если их несколько — по одному на зону — добавьте их здесь, и на странице появится ряд для переключения.",
+  "Thermal management": "Управление теплом",
   "Unit": "Устройство",
   "Write here: the message goes under the report, under your name.":
     "Пишите здесь: сообщение уйдёт под обращение, от вашего имени.",

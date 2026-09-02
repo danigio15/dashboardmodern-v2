@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "इस रिपोर्ट के नीचे लिखने के लिए GitHub जोड़ें।",
   "Dashboard language": "डैशबोर्ड की भाषा",
   "Day zone": "दिन का क्षेत्र",
+  "Electric water heater": "बिजली का वॉटर हीटर",
+  "Flow · Return · Pressure": "सप्लाई · वापसी · दबाव",
   "Home Assistant language": "Home Assistant की भाषा",
+  "Hot water · Element · Consumption": "गर्म पानी · हीटिंग एलिमेंट · खपत",
   "I'll take it": "मैं संभालता हूँ",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant की भाषा पर छोड़ने पर डैशबोर्ड उसी की प्रोफ़ाइल का अनुसरण करता है जो देख रहा है। कोई एक चुनने पर वह इस डैशबोर्ड के लिए तय हो जाती है, भले ही Home Assistant दूसरी भाषा बोले।",
@@ -27,14 +30,19 @@ export default Object.freeze({
   "No boiler configured": "कोई बॉयलर सेट नहीं",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "कोई बॉयलर सेट नहीं: सेटिंग्स के ऊष्मा प्रबंधन टैब से जोड़ें।",
+  "Primary loop · Tank · Recirculation":
+    "प्राथमिक सर्किट · टंकी · पुनःपरिसंचरण",
   Release: "छोड़ें",
   "Released.": "छोड़ दी गई।",
   "Send the message": "संदेश भेजें",
+  "Solar thermal plant": "सौर तापीय संयंत्र",
+  "Solar · Water heater · Boiler": "सौर · वॉटर हीटर · बॉयलर",
   Taken: "संभाली गई",
   "Taken by": "किसने संभाली",
   "Taken.": "संभाल ली।",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "सप्लाई और वापसी का अंतर बताता है कि सर्किट सचमुच गर्मी दे रहा है या नहीं; दबाव ही एकमात्र चीज़ है जिसे कभी-कभी हाथ से भरना पड़ता है। कोई भी खाना ज़रूरी नहीं: सिर्फ़ स्थिति से कार्ड बॉयलर को चालू या बंद दिखाता है, उन नंबरों के बिना जो उसके पास नहीं हैं। एक से ज़्यादा हों — हर क्षेत्र के लिए एक — तो उन्हें यहाँ जोड़ें, और पन्ने पर उनके बीच बदलने की पंक्ति आ जाएगी।",
+  "Thermal management": "ताप प्रबंधन",
   "Unit": "इकाई",
   "Write here: the message goes under the report, under your name.":
     "यहाँ लिखें: संदेश रिपोर्ट के नीचे, आपके नाम से जाएगा।",

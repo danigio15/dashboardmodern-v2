@@ -19,7 +19,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "连接 GitHub 才能在这条反馈下留言。",
   "Dashboard language": "面板语言",
   "Day zone": "日间区域",
+  "Electric water heater": "电热水器",
+  "Flow · Return · Pressure": "供水 · 回水 · 压力",
   "Home Assistant language": "Home Assistant 的语言",
+  "Hot water · Element · Consumption": "热水 · 加热棒 · 用量",
   "I'll take it": "我来处理",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "保持在 Home Assistant 的语言上，面板会跟随正在查看的人的配置。选定一种就会固定给这个面板，即使 Home Assistant 说的是另一种语言。",
@@ -27,14 +30,18 @@ export default Object.freeze({
   "No boiler configured": "未配置锅炉",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "未配置锅炉：请在设置的“热管理”标签页里添加。",
+  "Primary loop · Tank · Recirculation": "一次回路 · 储水罐 · 循环",
   Release: "放手",
   "Released.": "已放手。",
   "Send the message": "发送消息",
+  "Solar thermal plant": "太阳能热水系统",
+  "Solar · Water heater · Boiler": "太阳能 · 热水器 · 锅炉",
   Taken: "已认领",
   "Taken by": "认领人",
   "Taken.": "已认领。",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "供水与回水的温差说明回路是否真的在放热；压力是唯一偶尔需要手动补充的东西。没有必填项：仅凭状态，卡片就能显示锅炉的开与关，不会给出它没有的数字。如果不止一台——每个区域一台——在这里添加，页面上就会出现切换用的一行。",
+  "Thermal management": "热能管理",
   "Unit": "设备",
   "Write here: the message goes under the report, under your name.":
     "在这里写：消息会以你的名义发到反馈下面。",
