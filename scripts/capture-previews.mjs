@@ -149,8 +149,18 @@ const TARGETS = [
     },
   },
   {
+    id: "segnalazioni-codice",
+    title: "Segnalazioni · il codice, dopo l'invio",
+    both: true,
+    settle: 900,
+    modal: true,
+    setup: () => {
+      window.__dmPreviewTickets("codice");
+    },
+  },
+  {
     id: "segnalazioni-collega",
-    title: "Segnalazioni · collegare GitHub",
+    title: "Segnalazioni · il modulo, senza chiedere niente",
     both: true,
     settle: 900,
     modal: true,
@@ -1274,7 +1284,7 @@ async function bootPage(context, cameraStill, vehicleStill) {
           attachments: 0,
         },
       ];
-      const collegato = dove !== "collega";
+      const collegato = dove !== "collega" && dove !== "codice";
       const daManutentore = dove === "console" || dove === "filo";
       const account = collegato
         ? { connected: true, login: "anna-g", maintainer: daManutentore }
@@ -1350,7 +1360,9 @@ async function bootPage(context, cameraStill, vehicleStill) {
               }
             : null;
         stato.tab =
-          dove === "collega"
+          dove === "codice"
+            ? "mie"
+            : dove === "collega"
             ? "nuova"
             : dove === "allegati"
               ? "mie"
@@ -1360,8 +1372,20 @@ async function bootPage(context, cameraStill, vehicleStill) {
         stato.fili = {};
         stato.filiInCorso = {};
         stato.queue = dove === "console" || dove === "filo" ? coda : null;
-        stato.auth = null;
-        stato.avviso = "";
+        stato.auth =
+          dove === "codice"
+            ? {
+                user_code: "7990-137F",
+                device_code: "finto",
+                verification_uri: "https://github.com/login/device",
+                interval: 5,
+                expires_in: 900,
+              }
+            : null;
+        stato.avviso =
+          dove === "codice"
+            ? "Salvata. Manca solo la firma: autorizza GitHub e parte."
+            : "";
         stato.tipo = "bug";
         stato.filtro = "aperte";
         stato.bozza =
