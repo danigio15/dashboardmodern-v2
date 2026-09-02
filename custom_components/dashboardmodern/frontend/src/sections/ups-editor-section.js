@@ -3,11 +3,14 @@
  * «Chiedo se c'e' la possibilita' di gestire un UPS: vedere se c'e' tensione o
  * no, lo stato della batteria e il carico.»
  *
- * Le caselle stanno nella scheda «Energia» e non fra le tessere della Home,
- * perche' un UPS non e' un widget: e' la corrente di casa, ed e' li' che chi
- * configura va a cercarla. Nella scheda dei widget si sceglie SE mostrarlo;
- * qui si dice COSA guardare — che sono due domande diverse e vanno in due
- * posti diversi.
+ * Le caselle avevano una coda della scheda «Energia», perche' un UPS e' la
+ * corrente di casa. Adesso hanno una scheda loro, e non per ordine: la
+ * Continuita' ha una pagina sua nella barra, e una pagina senza una scheda e'
+ * una voce che non si puo' nascondere — la fascia verde di «Energia» e' di
+ * Energia, e toccarla spegneva l'altra. In cima a questa c'e' la sua.
+ *
+ * Nella scheda dei widget si sceglie SE mostrare la tessera; qui si dice COSA
+ * guardare — che sono due domande diverse e vanno in due posti diversi.
  *
  * Nessuna casella e' obbligatoria e nemmeno tutte insieme servono. Chi ha NUT
  * ne compila una — lo stato — e quella stringa dice gia' rete e batteria
@@ -36,8 +39,12 @@ import {
 const KEY = "__DASHBOARDMODERN_UPS_EDITOR__";
 const state = (root[KEY] ||= { installed: false, firma: "" });
 
-/* La scheda «Energia» del guscio: la corrente di casa si configura li'. */
-const SCHEDA = "sez1";
+export const UPS_EDITOR_TAB = "ups";
+
+/* La chiave con cui la sezione si accende e si spegne: la stessa che legge la
+ * pagina della continuita', o si scriverebbe una preferenza che nessuno
+ * guarda. */
+const CHIAVE_SEZIONE = "ups";
 
 function schedaAttiva() {
   return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
@@ -106,10 +113,31 @@ function campiMarkup(config) {
   }).join("");
 }
 
+/* ── l'interruttore della sezione ─────────────────────────────────────────
+ *
+ * E' la fascia del guscio, non una nostra: stesso disegno, stesso gestore,
+ * stessa chiave. Averne una nostra vorrebbe dire due interruttori per la
+ * stessa decisione, e due modi di scriverla. */
+function fasciaMarkup() {
+  try {
+    return root.cdSecToggleHtml?.(CHIAVE_SEZIONE) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+function sezioneNascosta() {
+  try {
+    return root.cdCfg?.("cd_sections")?.[CHIAVE_SEZIONE] === false;
+  } catch (_error) {
+    return false;
+  }
+}
+
 function corpoMarkup() {
   const config = configurazione();
-  return `<div class="dm-ups-ed">
-  <div class="ed-sec-title dm-ups-ed-sep">🔌 ${esc(t("Gruppo di continuità (UPS)", "Uninterruptible power supply"))}</div>
+  return `${fasciaMarkup()}<div class="dm-ups-ed">
+  <div class="ed-sec-title">🔌 ${esc(t("Gruppo di continuità (UPS)", "Uninterruptible power supply"))}</div>
   <div class="ed-intro">${esc(
     t(
       "A rete presente la tessera mostra la carica della batteria; quando la corrente cade mostra i minuti che restano e si accende. Nessuna casella è obbligatoria: con il solo stato di NUT la tessera sa già dire se c'è tensione.",
@@ -140,29 +168,27 @@ function corpoMarkup() {
 
 export function ensureUpsEditor() {
   const body = doc?.getElementById("ed-body");
-  if (!body || schedaAttiva() !== SCHEDA) return false;
-  const firma = JSON.stringify(configurazione());
-  let blocco = body.querySelector(":scope > .dm-ups-ed");
-  if (blocco && firma === state.firma) return true;
-  state.firma = firma;
-  const guscio = doc.createElement("div");
-  guscio.innerHTML = corpoMarkup();
-  const nuovo = guscio.firstElementChild;
-  if (blocco) blocco.replaceWith(nuovo);
-  /* In fondo alla scheda: sopra restano i consumi, che sono quello per cui
-   * questa scheda si apre tutti i giorni. L'UPS si compila una volta sola. */
-  else body.append(nuovo);
+  if (!body || schedaAttiva() !== UPS_EDITOR_TAB) return false;
+  /* La fascia fa parte della firma: toccandola la preferenza cambia davvero,
+   * ma senza il suo valore qui niente sarebbe cambiato da ridisegnare e la
+   * fascia resterebbe verde fino al cambio di linguetta. */
+  const firma = `${JSON.stringify(configurazione())}|${sezioneNascosta()}`;
+  if (body.dataset.dmUpsEditor === firma && body.querySelector(".dm-ups-ed")) return true;
+  body.dataset.dmUpsEditor = firma;
+  body.innerHTML = corpoMarkup();
+  body.dataset.renderer = "ups";
   return true;
 }
 
 function ridisegna() {
-  state.firma = "";
+  const body = doc?.getElementById("ed-body");
+  if (body) delete body.dataset.dmUpsEditor;
   ensureUpsEditor();
 }
 
 function onClick(event) {
   const body = doc?.getElementById("ed-body");
-  if (!body || !body.contains(event.target)) return;
+  if (!body || schedaAttiva() !== UPS_EDITOR_TAB || !body.contains(event.target)) return;
   const pick = event.target.closest("[data-dm-ups-pick]");
   if (pick) {
     event.preventDefault();
@@ -183,12 +209,24 @@ function onClick(event) {
   }
 }
 
+export function ensureUpsEditorTab() {
+  const linguette = doc?.querySelector(".ed-tab")?.parentElement;
+  if (!linguette || linguette.querySelector(`.ed-tab[data-tab="${UPS_EDITOR_TAB}"]`)) return false;
+  const linguetta = doc.createElement("button");
+  linguetta.className = "ed-tab";
+  linguetta.dataset.tab = UPS_EDITOR_TAB;
+  linguetta.textContent = `🔌 ${t("Continuità", "Backup power")}`;
+  linguetta.addEventListener("click", () => root.editorSwitch?.(UPS_EDITOR_TAB));
+  const prima = linguette.querySelector('.ed-tab[data-tab="runtime"]');
+  if (prima) prima.before(linguetta);
+  else linguette.append(linguetta);
+  return true;
+}
+
 function installStyles() {
   installStyle(
     "dm-ups-editor-style",
     `
-      #ed-body .dm-ups-ed-sep{margin-top:24px;padding-top:16px;
-        border-top:1px solid var(--card-border,#e2e8f0)}
       /* La spunta del verso girato sta su una riga sua, con la scritta accanto
          alla casella e non sopra: e' una domanda si'/no, non un campo. */
       #ed-body .dm-ups-ed-verso .ed-form-row{align-items:center;gap:10px}
@@ -203,13 +241,26 @@ export function installUpsEditor() {
   state.installed = true;
   installStyles();
   doc.addEventListener("click", onClick);
-  wrapFunction("apriConfigEntita", "__dmUpsEditor", () => ensureUpsEditor());
+  /* La linguetta si mette appena il pannello nasce, non al primo ridisegno:
+   * chi apre la configurazione e chiede subito questa scheda la troverebbe
+   * altrimenti assente, e resterebbe su nessuna scheda. */
+  wrapFunction("apriConfigEntita", "__dmUpsEditor", () => {
+    ensureUpsEditorTab();
+    ensureUpsEditor();
+  });
+  ensureUpsEditorTab();
   onEditorRedraw("__dmUpsEditor", () => {
-    root.queueMicrotask?.(() => ensureUpsEditor());
+    root.queueMicrotask?.(() => {
+      ensureUpsEditorTab();
+      ensureUpsEditor();
+    });
   });
   for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:editor-rendered"])
     root.addEventListener?.(evento, () => {
-      root.queueMicrotask?.(() => ensureUpsEditor());
+      root.queueMicrotask?.(() => {
+        ensureUpsEditorTab();
+        ensureUpsEditor();
+      });
     });
   ensureUpsEditor();
   return true;

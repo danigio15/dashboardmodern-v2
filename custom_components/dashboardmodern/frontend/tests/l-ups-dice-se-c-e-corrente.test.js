@@ -246,14 +246,21 @@ test("una scatola senza sonde disegna quello che sa, non quello che le manca", a
   assert.match(sezione, /function targhetta\([^)]*\)\s*\{\s*if \(valore == null\) return "";/);
 });
 
-test("le caselle si configurano nella scheda dell'energia, non fra i widget", async () => {
+test("le caselle si configurano in una scheda loro, non fra i widget", async () => {
   const editor = await readFile(
     new URL("../src/sections/ups-editor-section.js", import.meta.url),
     "utf8",
   );
-  /* Un UPS non e' un widget: e' la corrente di casa, ed e' nella scheda
-   * «Energia» che chi configura va a cercarla. */
-  assert.match(editor, /const SCHEDA = "sez1"/);
+  /* Un UPS non e' un widget: nella scheda dei widget si sceglie SE mostrare la
+   * tessera, qui si dice COSA guardare. Le caselle erano una coda della scheda
+   * «Energia» — «nel config manca completamente la parte per configurare il
+   * gruppo di continuita'» — e li' non le trovava nessuno; adesso hanno una
+   * scheda loro, con in cima l'interruttore della sezione, che dalla coda
+   * dell'Energia non poteva esserci: quella fascia e' dell'Energia. */
+  assert.match(editor, /export const UPS_EDITOR_TAB = "ups"/);
+  assert.match(editor, /const CHIAVE_SEZIONE = "ups"/);
+  assert.match(editor, /cdSecToggleHtml\?\.\(CHIAVE_SEZIONE\)/);
+  assert.doesNotMatch(editor, /"sez1"/);
   // E ogni casella del modello ha la sua etichetta: nessuna resta senza.
   for (const { campo } of CASELLE_UPS)
     assert.ok(new RegExp(`^\\s{2}${campo}: \\[`, "m").test(editor), campo);

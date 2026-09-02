@@ -62,6 +62,13 @@ export const TAB_SECTION_KEYS = Object.freeze({
    * «manca proprio la possibilita' di nascondere la sezione». La chiave e'
    * quella che il modulo delle stanze insegna a `cdNavVisMap`. */
   stanze: "stanze",
+  /* L'Agenda e la Continuita' sono arrivate dopo, con una pagina nella barra e
+   * nessuna scheda dove mettere l'interruttore: erano le due voci che non si
+   * potevano nascondere. Le loro chiavi non stanno in `cdNavVisMap` perche'
+   * quelle due voci le crea il runtime e se le governa da solo, leggendo
+   * `cd_sections` — che e' esattamente quello che questa fascia scrive. */
+  agenda: "calendario",
+  ups: "ups",
 });
 
 /* Tabs that hold no configuration to save: diagnostics is read-only, the

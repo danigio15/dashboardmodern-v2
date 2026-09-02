@@ -38,6 +38,8 @@ const TAB_ICONS = Object.freeze({
   people: "👥",
   robot: "🤖",
   doors: "🚪",
+  agenda: "📅",
+  ups: "🔌",
 });
 
 /* Quale disegno di casa porta ogni scheda della configurazione.
@@ -73,6 +75,8 @@ const OGGETTO_DELLA_SCHEDA = Object.freeze({
   people: "persone",
   robot: "robot",
   doors: "aperture",
+  agenda: "agenda",
+  ups: "ups",
   runtime: "runtime",
   telecamere: "telecamere",
 });

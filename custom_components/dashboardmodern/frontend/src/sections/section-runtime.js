@@ -94,6 +94,7 @@ import { installImpiantiTermiciEditor } from "./impianti-termici-editor-section.
 import { installUpsSection } from "./ups-section.js";
 import { installCalendarioSection } from "./calendario-section.js";
 import { installUpsEditor } from "./ups-editor-section.js";
+import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { activeLocale, allStates, clean, english, section, t, wrapFunction } from "./shared.js";
@@ -904,15 +905,16 @@ export function installSectionRuntime() {
     installImpiantiTermiciSection();
     installImpiantiTermiciEditor();
     /* Il gruppo di continuita' (#256) ha una pagina sua, come le altre
-     * macchine della casa, e si configura nella scheda «Energia»: un UPS e' la
-     * corrente di casa, non un impianto termico. La pagina prima della scheda,
-     * cosi' la scheda trova gia' cosa ridisegnare quando si salva. */
+     * macchine della casa, e una scheda sua nella configurazione: era una coda
+     * della scheda «Energia», e li' non la trovava nessuno. La pagina prima
+     * della scheda, cosi' la scheda trova gia' cosa ridisegnare quando salva. */
     installUpsSection();
     installUpsEditor();
-    /* Il calendario (#259) ha una pagina sua accanto alla Home: le sue
-     * caselle stanno nella scheda Widget, insieme alle liste ToDo, che e'
-     * l'elenco a cui e' stato chiesto di assomigliare. */
+    /* Il calendario (#259) ha una pagina sua accanto alla Home, e con le liste
+     * ToDo una scheda sola nella configurazione: sono la stessa pagina, e chi
+     * le configura le pensa nello stesso momento. */
     installCalendarioSection();
+    installAgendaEditorSection();
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();
