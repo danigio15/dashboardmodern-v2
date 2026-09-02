@@ -5,7 +5,13 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## 1.4.6
+## 1.4.5-beta.7
+
+«Come velocita' non e' migliorato nulla, siamo sempre uguali.» Aveva ragione, e
+questa volta il tempo si e' andato a cercare col profilatore invece che a
+indovinarlo. Non stava dove si era guardato per sei versioni.
+
+E arriva anche il modo di dirlo senza uscire dalla plancia.
 
 ### Nuovo
 
@@ -97,59 +103,6 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   bruciatore legge «bruciatore acceso»; chi mappa solo lo stato legge «caldaia
   accesa», perche' un bruciatore che nessuno ha mappato non si puo' citare.
 
-### Corretto
-
-- **La scala del clima la dichiara il termostato, non la plancia.** «Ho una
-  pompa di calore Samsung, il sensore mi gestisce la temperatura di uscita
-  dell'acqua dai 40 gradi fino a 70 massimo. Quando vado a inserire nel menu
-  clima l'entita', mi mette in predefinito 10-28 gradi e non sono riuscito a
-  capire come si modifica la scala.» Non c'era modo: i due estremi erano scritti
-  nel codice — sedici e trenta per il Freddo, dieci e ventotto per il Caldo — e
-  valevano per tutti. Con quella barra il pomello restava incollato al fondo e
-  quarantacinque gradi non si potevano nemmeno sfiorare. Adesso la barra legge
-  `min_temp` e `max_temp` dell'entita', che Home Assistant pubblica gia': quella
-  pompa disegna da 40 a 70, e il dito arriva dove serve. Chi non li dichiara
-  tiene la scala di prima, identica. (#252)
-- **E si muove del passo che l'unita' accetta.** Un termostato che lavora a
-  mezzi gradi riceveva comunque gradi interi, perche' il trascinamento
-  arrotondava sempre all'unita'. Adesso segue `target_temp_step`; chi non lo
-  dichiara resta al grado intero, che e' quello che la plancia ha sempre fatto.
-- **Il ritaglio non taglia piu' l'estremo che si stava cercando.** Al rilascio
-  il grado veniva riportato dentro i limiti arrotondando il minimo all'intero
-  superiore: un'unita' che dichiara 40,5 non arrivava mai al proprio minimo.
-- **La stessa regola in un posto solo.** La pagina Clima e il pannello della
-  Home tenevano due copie della scala, e si fermavano a numeri diversi: adesso
-  la calcola il nucleo, e le due si comportano uguale.
-- **Le icone della barra e della configurazione erano mezze, non chiare.** «Le
-  icone presenti sia sulla navbar che nel menu config sono poco leggibili,
-  troppo chiare.» Non era il colore: meta' di quei disegni non veniva dipinta.
-  Ogni oggetto si porta dentro le proprie sfumature e disegni uguali ripetono
-  gli stessi identificatori; in una pagina pero' a un identificatore ripetuto
-  risponde sempre il PRIMO che lo porta, e per meta' dei disegni quel primo sta
-  dentro una voce di barra che la configurazione tiene a `display:none`. Una
-  sfumatura in un ramo non disegnato non dipinge niente: del lampadario, del
-  termometro, del fulmine e della goccia restava soltanto l'ombra grigia sotto.
-  Adesso le sfumature stanno in un foglio unico in cima al documento, sempre
-  disegnato, ed e' lui a rispondere a tutti: nella colonna della configurazione
-  tornano interi Energia, EV, Sicurezza, MiniPC, Temperatura, Piscina,
-  Irrigazione, Luci, Prese, Elettrodomestici e Aperture.
-- **E sulla barra il velo era doppio.** Le voci a riposo stavano a `opacity:.78`
-  e sopra ci passava un `grayscale(.85) opacity(.72)`: i due si moltiplicano,
-  cioe' 0,56 di opacita' su una figura quasi senza colore. Adesso il velo e'
-  uno solo e il grigio un accenno; a dire qual e' la pagina aperta ci pensano la
-  pastiglia scura e il nome, che sono segnali piu' forti di uno sbiadimento.
-- **E il nome sotto il disegno si legge.** Era il grigio tenue al 70% di
-  opacita': sul bianco della barra fa 2,7 a uno, sotto la soglia di
-  leggibilita'. Adesso ne fa 7,7. Stesso conto per i nomi nella colonna della
-  configurazione.
-## 1.4.5-beta.7
-
-«Come velocita' non e' migliorato nulla, siamo sempre uguali.» Aveva ragione, e
-questa volta il tempo si e' andato a cercare col profilatore invece che a
-indovinarlo. Non stava dove si era guardato per sei versioni.
-
-E arriva anche il modo di dirlo senza uscire dalla plancia.
-
 ### Nuovo: le segnalazioni
 
 - **Segnala un difetto, proponi un'idea, chiedi aiuto — dalla Configurazione.**
@@ -225,6 +178,50 @@ E arriva anche il modo di dirlo senza uscire dalla plancia.
 
 ### Corretto
 
+- **La scala del clima la dichiara il termostato, non la plancia.** «Ho una
+  pompa di calore Samsung, il sensore mi gestisce la temperatura di uscita
+  dell'acqua dai 40 gradi fino a 70 massimo. Quando vado a inserire nel menu
+  clima l'entita', mi mette in predefinito 10-28 gradi e non sono riuscito a
+  capire come si modifica la scala.» Non c'era modo: i due estremi erano scritti
+  nel codice — sedici e trenta per il Freddo, dieci e ventotto per il Caldo — e
+  valevano per tutti. Con quella barra il pomello restava incollato al fondo e
+  quarantacinque gradi non si potevano nemmeno sfiorare. Adesso la barra legge
+  `min_temp` e `max_temp` dell'entita', che Home Assistant pubblica gia': quella
+  pompa disegna da 40 a 70, e il dito arriva dove serve. Chi non li dichiara
+  tiene la scala di prima, identica. (#252)
+- **E si muove del passo che l'unita' accetta.** Un termostato che lavora a
+  mezzi gradi riceveva comunque gradi interi, perche' il trascinamento
+  arrotondava sempre all'unita'. Adesso segue `target_temp_step`; chi non lo
+  dichiara resta al grado intero, che e' quello che la plancia ha sempre fatto.
+- **Il ritaglio non taglia piu' l'estremo che si stava cercando.** Al rilascio
+  il grado veniva riportato dentro i limiti arrotondando il minimo all'intero
+  superiore: un'unita' che dichiara 40,5 non arrivava mai al proprio minimo.
+- **La stessa regola in un posto solo.** La pagina Clima e il pannello della
+  Home tenevano due copie della scala, e si fermavano a numeri diversi: adesso
+  la calcola il nucleo, e le due si comportano uguale.
+- **Le icone della barra e della configurazione erano mezze, non chiare.** «Le
+  icone presenti sia sulla navbar che nel menu config sono poco leggibili,
+  troppo chiare.» Non era il colore: meta' di quei disegni non veniva dipinta.
+  Ogni oggetto si porta dentro le proprie sfumature e disegni uguali ripetono
+  gli stessi identificatori; in una pagina pero' a un identificatore ripetuto
+  risponde sempre il PRIMO che lo porta, e per meta' dei disegni quel primo sta
+  dentro una voce di barra che la configurazione tiene a `display:none`. Una
+  sfumatura in un ramo non disegnato non dipinge niente: del lampadario, del
+  termometro, del fulmine e della goccia restava soltanto l'ombra grigia sotto.
+  Adesso le sfumature stanno in un foglio unico in cima al documento, sempre
+  disegnato, ed e' lui a rispondere a tutti: nella colonna della configurazione
+  tornano interi Energia, EV, Sicurezza, MiniPC, Temperatura, Piscina,
+  Irrigazione, Luci, Prese, Elettrodomestici e Aperture.
+- **E sulla barra il velo era doppio.** Le voci a riposo stavano a `opacity:.78`
+  e sopra ci passava un `grayscale(.85) opacity(.72)`: i due si moltiplicano,
+  cioe' 0,56 di opacita' su una figura quasi senza colore. Adesso il velo e'
+  uno solo e il grigio un accenno; a dire qual e' la pagina aperta ci pensano la
+  pastiglia scura e il nome, che sono segnali piu' forti di uno sbiadimento.
+- **E il nome sotto il disegno si legge.** Era il grigio tenue al 70% di
+  opacita': sul bianco della barra fa 2,7 a uno, sotto la soglia di
+  leggibilita'. Adesso ne fa 7,7. Stesso conto per i nomi nella colonna della
+  configurazione.
+
 - **La bolla della batteria non sparisce piu' cambiando impianto.** Il guscio
   nasconde e rimostra le bolle del sole e della batteria guardando quali entita'
   sono mappate — ma quella funzione la chiama **una volta sola, su un timer
@@ -243,7 +240,6 @@ E arriva anche il modo di dirlo senza uscire dalla plancia.
   mai stato suo, e adesso vale per tutte e undici. Nessuna di loro ha figli
   fissi che un livello nuovo strapperebbe alla finestra del browser: verificato
   aprendole una per una.
-
 ### Sulle prove
 
 Le segnalazioni portano **cinquantasei prove nuove** fra backend e finestra.
