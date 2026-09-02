@@ -149,6 +149,7 @@ def main() -> None:
         'import "../src/sections/beta25-real-device-fixes-section.js";\n'
         'import "../src/sections/beta25-compatibility-section.js";\n'
         'import "../src/sections/beta26-real-device-stability-section.js";\n'
+        'import "../src/sections/segnalazioni-section.js";\n'
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

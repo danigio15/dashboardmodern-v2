@@ -11,6 +11,52 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 questa volta il tempo si e' andato a cercare col profilatore invece che a
 indovinarlo. Non stava dove si era guardato per sei versioni.
 
+E arriva anche il modo di dirlo senza uscire dalla plancia.
+
+### Nuovo: le segnalazioni
+
+- **Segnala un difetto, proponi un'idea, chiedi aiuto — dalla Configurazione.**
+  Fino a ieri, per segnalare qualcosa, bisognava uscire da Home Assistant,
+  aprire GitHub, farsi un account se non ce l'aveva, e compilare un modulo che
+  chiede la versione dell'integrazione — che chi segnala non sa, e che la
+  plancia invece conosce benissimo.
+
+  Adesso c'e' una tessera in Configurazione. Il modulo e' in tre passi, e il
+  primo e' la domanda che conta: **di che si tratta**. Tre schede con la loro
+  spiegazione — «Non funziona», «Vorrei che facesse», «Non ci riesco» — perche'
+  la differenza fra un difetto e un'idea la sa chi scrive solo se gliela si
+  racconta, e una segnalazione ben incasellata e' meta' del lavoro di chi la
+  legge. Titolo e descrizione cambiano suggerimento col tipo scelto: a chi
+  chiede aiuto non si domanda «cosa ti aspettavi».
+
+- **La diagnostica la compila la plancia.** Versione dell'integrazione,
+  versione di Home Assistant, lingua, pagina, browser: le cose che lei sa e chi
+  segnala no. Si vedono tutte prima di premere invia, sotto «cosa parte» —
+  quello che esce di casa non e' una cosa da far scoprire dopo.
+
+- **Serve il tuo account GitHub, ed e' quello che hai gia'.** La plancia si
+  scarica da HACS, e HACS un account GitHub lo chiede gia' — con la stessa
+  identica autorizzazione, il codice da digitare su `github.com/login/device`.
+  Chi e' arrivato fin qui quel giro l'ha gia' fatto una volta.
+
+  Il gettone resta nel backend di Home Assistant e non passa mai dal browser.
+  Si scollega dalla plancia, e si revoca del tutto da GitHub.
+
+- **La risposta torna dentro la plancia.** La segnalazione diventa una issue a
+  tuo nome; quando arriva una risposta, lo stato cambia da solo — «presa in
+  carico», «risolta», «archiviata» — e la risposta si legge da «Le mie», senza
+  chiedere niente a nessuno.
+
+- **Foto e video.** GitHub non ha un'API per allegarli a una issue, e non e'
+  una svista: e' una scelta loro, per contenere gli abusi. Quindi la plancia
+  non finge di spedirli — appena la segnalazione e' aperta, un tasto porta alla
+  sua pagina, dove si trascinano nel riquadro della risposta. Il momento e'
+  quello giusto: chi ha appena scritto ha ancora il file sotto mano.
+
+- **Una issue e' una pagina pubblica, e la plancia lo dice** sopra il tasto
+  invia, non dopo. L'unica cosa che non parte mai e' il recapito: chi scrive il
+  proprio indirizzo lo scrive a una persona, non a una pagina indicizzata.
+
 ### Piu' veloce
 
 - **Un secondo e sei decimi in meno all'avvio.** Profilando la partenza con la
@@ -62,6 +108,15 @@ indovinarlo. Non stava dove si era guardato per sei versioni.
   aprendole una per una.
 
 ### Sulle prove
+
+Le segnalazioni portano **cinquantasei prove nuove** fra backend e finestra.
+Due meritano di essere raccontate, perche' sorvegliano cose che si vedrebbero
+tardi e male: che ognuno dei comandi che la finestra manda sia fra quelli che
+il ponte lascia passare — un tipo dimenticato la' e' un refuso che si scopre
+solo in un browser vero — e che la diagnostica sia una **lista chiusa**, con un
+controllo che nessuna delle sue chiavi somigli a un dato di casa. Quella lista
+va riletta ogni volta che qualcuno la allarga, ed e' l'unica cosa che decide
+cosa esce di casa.
 
 La prova che sorvegliava la bolla della batteria **cadeva due volte su otto gia'
 prima di questa versione**, e restava verde solo perche' i controlli hanno due

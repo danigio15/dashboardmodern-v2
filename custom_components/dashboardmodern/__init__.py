@@ -74,6 +74,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await async_register_frontend(hass, entry.entry_id)
     entry.async_on_unload(entry.add_update_listener(_reload_on_options_change))
     if _primary_entry(hass, entry):
+        # Le segnalazioni sono dell'installazione, non della singola plancia:
+        # chi ne ha due non ha due code, e il giro periodico lo tiene la stessa
+        # plancia che porta l'avviso di aggiornamento.
+        from .tickets import async_setup_tickets
+
+        await async_setup_tickets(hass, entry)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

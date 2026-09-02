@@ -529,8 +529,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 186 col verso delle aperture (#244, `core/verso-aperture.js`): il conto
   // puro dei sensori girati (ON = chiuso) e delle tapparelle girate
   // (100 = chiusa), condiviso da widget, pagine e runtime.
+  // 187 con le segnalazioni (`segnalazioni-section.js`): la tessera in
+  // Configurazione da cui si apre un difetto, un'idea o una richiesta di
+  // aiuto senza uscire dalla plancia, e l'elenco di quelle gia' aperte con lo
+  // stato che torna indietro. Un modulo solo: il canale verso Home Assistant
+  // e' il ponte che c'e' gia', e la chiamata verso l'esterno la fa il backend.
   assert.ok(
-    relative.length <= 186,
+    relative.length <= 187,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

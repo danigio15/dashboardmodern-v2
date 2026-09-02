@@ -15,7 +15,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN, NAME, OPTION_CHECK_UPDATES
+from .const import DOMAIN, NAME, OPTION_CHECK_UPDATES, OPTION_TICKETS_ENABLED
 
 OPTION_ADMIN_ONLY = "admin_only"
 OPTION_ALLOWED_USERS = "allowed_users"
@@ -120,6 +120,16 @@ class DashboardModernOptionsFlow(config_entries.OptionsFlow):
                         OPTION_CHECK_UPDATES,
                         default=self.config_entry.options.get(
                             OPTION_CHECK_UPDATES, True
+                        ),
+                    ): bool,
+                    # Le segnalazioni valgono per l'installazione, quindi
+                    # stanno accanto al controllo aggiornamenti e per la stessa
+                    # ragione: sono le due sole cose che parlano fuori di casa,
+                    # e chi non le vuole le spegne nello stesso posto.
+                    vol.Optional(
+                        OPTION_TICKETS_ENABLED,
+                        default=self.config_entry.options.get(
+                            OPTION_TICKETS_ENABLED, True
                         ),
                     ): bool,
                 }
