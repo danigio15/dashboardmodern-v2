@@ -38,7 +38,7 @@ import {
 import { climateIsOff } from "../core/climate-power.js";
 import { roomOrderRank } from "../core/room-overview.js";
 import { chiamaClima, commutaClima } from "./climate-power-section.js";
-import { statoCaldaia } from "./termico-del-caldo-section.js";
+import { statiDelleCaldaie } from "./termico-del-caldo-section.js";
 import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
   activeLocale,
@@ -682,15 +682,29 @@ function paintSummary(shell, units, states, labels) {
    * sezione caldo» — fra i condizionatori non c'entra niente. */
   const caldaiaEl = shell.querySelector("[data-dm-cl-caldaia]");
   if (caldaiaEl) {
-    let caldaia = null;
+    let caldaie = [];
     try {
-      if (zone === "caldo") caldaia = statoCaldaia();
+      if (zone === "caldo") caldaie = statiDelleCaldaie();
     } catch (_error) {}
-    caldaiaEl.hidden = !caldaia;
-    if (caldaia) {
-      const nomeEl = caldaiaEl.querySelector("[data-dm-cl-caldaia-nome]");
+    /* Una casella per macchina — «la doppia caldaia va inserita anche nella
+     * sezione clima». La prima e' quella disegnata qui sopra, le altre sono
+     * sue copie: la forma la decide un posto solo, e con una caldaia sola
+     * resta esattamente la testata di prima. Quella del guscio non si toglie
+     * mai, che e' lo stampo da cui nascono le altre: si nasconde. */
+    const caselle = [...shell.querySelectorAll("[data-dm-cl-caldaia]")];
+    while (caselle.length < caldaie.length) {
+      const copia = caldaiaEl.cloneNode(true);
+      caselle.at(-1).after(copia);
+      caselle.push(copia);
+    }
+    for (const avanzata of caselle.splice(Math.max(1, caldaie.length))) avanzata.remove();
+    caselle.forEach((casella, indice) => {
+      const caldaia = caldaie[indice];
+      casella.hidden = !caldaia;
+      if (!caldaia) return;
+      const nomeEl = casella.querySelector("[data-dm-cl-caldaia-nome]");
       if (nomeEl) nomeEl.textContent = caldaia.nome || t("Caldaia", "Boiler");
-      const statoEl = caldaiaEl.querySelector("[data-dm-cl-caldaia-stato]");
+      const statoEl = casella.querySelector("[data-dm-cl-caldaia-stato]");
       if (statoEl) {
         const da = caldaia.da;
         statoEl.textContent = !caldaia.noto
@@ -700,7 +714,7 @@ function paintSummary(shell, units, states, labels) {
             : t("Spenta", "Off");
         statoEl.style.color = caldaia.noto && caldaia.acceso ? "#f97316" : "";
       }
-    }
+    });
   }
   const subtitle = shell.querySelector("[data-dm-cl-sub]");
   if (subtitle) {

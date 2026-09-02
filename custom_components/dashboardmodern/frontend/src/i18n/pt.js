@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "novo",
   "New messages": "Mensagens novas",
   reply: "resposta",
+  "Doors/Windows": "Portas/Janelas",
+  "Door and gate openers": "Comandos de portas e portões",
+  "Alarm · Cameras · Doors and gates": "Alarme · Câmaras · Portas e portões",
+  "with credentials": "com credenciais",
+  stream: "fluxo",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "O endereço do fluxo da câmara, se o tiveres. Está aqui para o guardar e para preencher o campo acima.",
+  "Open it": "Abrir",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Se usas go2rtc ou Frigate, põe esta linha sob «streams:» no ficheiro deles:",
+  Copy: "Copiar",
+  Copied: "Copiada",
+  "Camera RTSP address": "Endereço RTSP da câmara",
+  "Boilers on": "Caldeiras ligadas",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Adiciona uma câmara Genérica no Home Assistant com este endereço e cola no campo da entidade a que daí sair.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Um navegador não abre rtsp:// sozinho: alguém tem de reempacotar o fluxo. Dois caminhos, e basta um.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "O relato torna-se uma página pública no github.com, aberta em teu nome: qualquer pessoa poderá lê-la. A resposta volta para aqui, sob a discussão.",
   maintainer: "responsável",
@@ -24,7 +42,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Liga o GitHub para escrever sob este relato.",
   "Dashboard language": "Idioma do painel",
   "Day zone": "Zona de dia",
+  "Electric water heater": "Termoacumulador elétrico",
+  "Flow · Return · Pressure": "Ida · Retorno · Pressão",
   "Home Assistant language": "Idioma do Home Assistant",
+  "Hot water · Element · Consumption": "Água quente · Resistência · Consumo",
   "I'll take it": "Fico com ele",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Deixado no idioma do Home Assistant o painel segue o perfil de quem está a olhar. Escolher um fixa-o para este painel, mesmo que o Home Assistant fale outro idioma.",
@@ -32,15 +53,19 @@ export default Object.freeze({
   "No boiler configured": "Nenhuma caldeira configurada",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Nenhuma caldeira configurada: adiciona-a no separador Gestão térmica das definições.",
+  "Primary loop · Tank · Recirculation": "Circuito primário · Acumulador · Recirculação",
   Release: "Largar",
   "Released.": "Largado.",
   "Send the message": "Enviar a mensagem",
+  "Solar thermal plant": "Instalação solar térmica",
+  "Solar · Water heater · Boiler": "Solar · Termoacumulador · Caldeira",
   Taken: "A cargo",
   "Taken by": "A cargo de",
   "Taken.": "Assumido.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "A diferença entre ida e retorno diz se o circuito está mesmo a ceder calor; a pressão é a única coisa que de vez em quando precisa de ser reposta à mão. Nenhum campo é obrigatório: só com o estado o cartão mostra a caldeira ligada ou desligada, sem números que não tem. Se tiveres mais do que uma — uma por zona — acrescenta-as aqui e a página ganha a fila para passar de uma à outra.",
   Unit: "Unidade",
+  "Thermal management": "Gestão térmica",
   "Write here: the message goes under the report, under your name.":
     "Escreve aqui: a mensagem vai sob o relato, em teu nome.",
   " — configured": " — configurada",
@@ -492,7 +517,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Ar condicionado e aquecimento",
   "Air fryer": "Fritadeira de ar",
   Alarm: "Alarme",
-  "Alarm · Cameras · Openings": "Alarme · Câmaras · Aberturas",
   "Alarm · Total": "Alarme · Total",
   "Alarm status": "Estado do alarme",
   "Alarm system and video surveillance": "Sistema de alarme e videovigilância",

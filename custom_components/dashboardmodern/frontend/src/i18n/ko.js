@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "새 글",
   "New messages": "새 메시지",
   reply: "답변",
+  "Doors/Windows": "문/창문",
+  "Door and gate openers": "문·대문 열기 버튼",
+  "Alarm · Cameras · Doors and gates": "경보 · 카메라 · 문과 대문",
+  "with credentials": "인증 정보 포함",
+  stream: "스트림",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "카메라의 스트림 주소입니다. 있다면 여기에 두어 잃지 않고 위 칸을 채우는 데 씁니다.",
+  "Open it": "열기",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "go2rtc나 Frigate를 쓴다면 이 줄을 그 파일의 «streams:» 아래에 넣으세요:",
+  Copy: "복사",
+  Copied: "복사됨",
+  "Camera RTSP address": "카메라 RTSP 주소",
+  "Boilers on": "가동 중인 보일러",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Home Assistant에 이 주소로 Generic 카메라를 추가하고, 생성된 엔터티를 엔터티 칸에 붙여 넣으세요.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "브라우저는 rtsp://를 스스로 열지 못합니다. 스트림을 무언가가 다시 포장해 주어야 합니다. 길은 둘, 하나면 충분합니다.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "제보는 본인 이름으로 github.com의 공개 페이지가 되며 누구나 읽을 수 있습니다. 답변은 이곳, 대화 아래로 돌아옵니다.",
   maintainer: "관리자",
@@ -24,7 +42,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "이 제보에 글을 쓰려면 GitHub를 연결하세요.",
   "Dashboard language": "대시보드 언어",
   "Day zone": "주간 구역",
+  "Electric water heater": "전기 온수기",
+  "Flow · Return · Pressure": "공급 · 환수 · 압력",
   "Home Assistant language": "Home Assistant 언어",
+  "Hot water · Element · Consumption": "온수 · 히터 · 사용량",
   "I'll take it": "제가 맡을게요",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant 언어로 두면 대시보드는 보고 있는 사람의 프로필을 따릅니다. 하나를 고르면 이 대시보드에 고정되며, Home Assistant가 다른 언어를 쓰더라도 그대로입니다.",
@@ -32,15 +53,19 @@ export default Object.freeze({
   "No boiler configured": "보일러가 설정되지 않았습니다",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "보일러가 설정되지 않았습니다. 설정의 열 관리 탭에서 추가하세요.",
+  "Primary loop · Tank · Recirculation": "1차 회로 · 저탕조 · 순환",
   Release: "놓기",
   "Released.": "맡기를 그만두었습니다.",
   "Send the message": "메시지 보내기",
+  "Solar thermal plant": "태양열 설비",
+  "Solar · Water heater · Boiler": "태양열 · 온수기 · 보일러",
   Taken: "담당 중",
   "Taken by": "담당자",
   "Taken.": "맡았습니다.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "공급과 환수의 차이는 회로가 실제로 열을 내보내는지 알려 줍니다. 압력은 가끔 손으로 보충해야 하는 유일한 항목입니다. 필수 항목은 없습니다. 상태만으로도 카드는 보일러의 켜짐과 꺼짐을 보여 주며, 없는 숫자는 만들지 않습니다. 두 대 이상이면 — 구역마다 한 대씩 — 여기에 추가하면 페이지에 전환할 줄이 생깁니다.",
   Unit: "기기",
+  "Thermal management": "열 관리",
   "Write here: the message goes under the report, under your name.":
     "여기에 쓰세요. 메시지는 본인 이름으로 제보 아래에 올라갑니다.",
   " — configured": " — 설정됨",
@@ -488,7 +513,6 @@ export default Object.freeze({
   "Air conditioning and heating": "냉방과 난방",
   "Air fryer": "에어프라이어",
   Alarm: "경보",
-  "Alarm · Cameras · Openings": "경보 · 카메라 · 개구부",
   "Alarm · Total": "경보 · 전체",
   "Alarm status": "경보 상태",
   "Alarm system and video surveillance": "경보 시스템과 영상 감시",

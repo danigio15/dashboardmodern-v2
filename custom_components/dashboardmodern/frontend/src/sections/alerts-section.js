@@ -27,7 +27,15 @@ const state = (root[KEY] ||= { installed: false, listeners: false });
  * quelle stampate sulle intestazioni, cosi' una riga si riconosce da dove si
  * trova. */
 const GROUPS = Object.freeze([
-  ["win", "🚪", "Aperture", "Openings"],
+  /* «Cambia nome ad Aperture nei widget dove si inseriscono i sensori porta:
+   * chiamali Porte/Finestre, altrimenti si confonde con le altre aperture» —
+   * le altre sono i comandi che aprono cancelli, nella Sicurezza. La quinta
+   * casella e' il nome di prima: l'intestazione del guscio vendorizzato dice
+   * ancora «Aperture», e questa tabella serve a due padroni — e' quello che
+   * stampiamo *e* quello con cui riconosciamo le righe gia' li'. Senza gli
+   * alias il gruppo di una riga smetteva di riconoscersi il giorno del
+   * cambio di nome. */
+  ["win", "🚪", "Porte/Finestre", "Doors/Windows", ["Aperture", "Openings"]],
   ["batt", "🔋", "Batterie", "Batteries"],
   ["luci", "💡", "Luci", "Lights"],
   ["clima", "❄️", "Clima", "Climate"],
@@ -168,8 +176,8 @@ function groupFromRow(row) {
   const stored = clean(row.dataset.alertGroup);
   if (GROUP_KEYS.has(stored)) return stored;
   const summary = clean(row.closest("details")?.querySelector("summary")?.textContent).toLowerCase();
-  const found = GROUPS.find(([, , it, en]) =>
-    [it, en].some((label) => summary.includes(label.toLowerCase())),
+  const found = GROUPS.find(([, , it, en, alias = []]) =>
+    [it, en, ...alias].some((label) => summary.includes(label.toLowerCase())),
   );
   if (found) return found[0];
   const entity = rowEntity(row);
@@ -337,6 +345,37 @@ export function openAlertEditor(row) {
   });
 }
 
+/* Il guscio vendorizzato stampa i suoi nomi di gruppo, e uno non va piu' bene:
+ * l'intestazione della fisarmonica e la voce del menu dicono «Aperture», che e'
+ * la parola dei comandi che aprono i cancelli. Qui dentro si inseriscono i
+ * sensori di porte e finestre, ed e' quello il nome giusto.
+ *
+ * Si riscrive il nodo di testo, non tutta l'intestazione: accanto c'e' il
+ * contatore, e rifare il nodo intero se lo porterebbe via. E si riscrive solo
+ * quello che porta ancora il nome vecchio, che e' anche il modo di non rifare
+ * il lavoro a ogni ridisegno. */
+function rinominaIGruppi(body) {
+  for (const [key, icon, it, en, alias = []] of GROUPS) {
+    if (!alias.length) continue;
+    const nome = `${icon} ${t(it, en)}`;
+    const vecchi = alias.map((label) => label.toLowerCase());
+    const eVecchio = (testo) => vecchi.some((label) => testo.toLowerCase().includes(label));
+    for (const testa of body.querySelectorAll("summary.ed-acc-head")) {
+      const primo = testa.firstChild;
+      if (primo?.nodeType !== 3 || !eVecchio(clean(primo.textContent))) continue;
+      primo.textContent = `${nome} `;
+    }
+    /* La voce del menu porta anche il tipo di sensore fra parentesi: si cambia
+     * il nome, la parentesi resta sua. */
+    for (const voce of body.querySelectorAll(`option[value="${key}"]`)) {
+      const testo = clean(voce.textContent);
+      if (!eVecchio(testo)) continue;
+      const coda = testo.match(/\([^)]*\)\s*$/)?.[0] || "";
+      voce.textContent = coda ? `${nome} ${coda}` : nome;
+    }
+  }
+}
+
 export function normalizeAlertsEditor() {
   // La scheda degli avvisi non ha piu' una linguetta sua: vive in fondo a
   // quella dei widget. Chiedere «quale linguetta e' attiva» non dice piu'
@@ -345,6 +384,7 @@ export function normalizeAlertsEditor() {
   const body = doc.getElementById("ed-body");
   if (!body) return false;
   riparaAggiunteTolte();
+  rinominaIGruppi(body);
   body.querySelectorAll(".ed-row").forEach((row) => {
     const entity = rowEntity(row);
     if (!entity) {

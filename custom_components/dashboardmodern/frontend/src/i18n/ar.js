@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "جديد",
   "New messages": "رسائل جديدة",
   reply: "رد",
+  "Doors/Windows": "أبواب/نوافذ",
+  "Door and gate openers": "أوامر فتح الأبواب والبوّابات",
+  "Alarm · Cameras · Doors and gates": "إنذار · كاميرات · أبواب وبوّابات",
+  "with credentials": "مع بيانات اعتماد",
+  stream: "بثّ",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "عنوان بثّ الكاميرا، إن كان لديك. يبقى هنا كي لا يضيع وكي تملأ به الخانة أعلاه.",
+  "Open it": "افتحها",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "إن كنت تستخدم go2rtc أو Frigate فضع هذا السطر تحت «streams:» في ملفهما:",
+  Copy: "نسخ",
+  Copied: "نُسخ",
+  "Camera RTSP address": "عنوان RTSP للكاميرا",
+  "Boilers on": "غلايات تعمل",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "أضِف في Home Assistant كاميرا Generic بهذا العنوان، ثم الصق الكيان الناتج في خانة الكيان.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "المتصفّح لا يفتح rtsp:// وحده: لا بدّ لشيء أن يعيد تغليف البثّ. طريقان، ويكفي واحد.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "يصبح البلاغ صفحة عامة على github.com، مفتوحة باسمك: سيتمكن أي شخص من قراءتها. يصلك الرد هنا، أسفل النقاش.",
   maintainer: "المشرف",
@@ -24,7 +42,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "اربط GitHub للكتابة تحت هذا البلاغ.",
   "Dashboard language": "لغة اللوحة",
   "Day zone": "منطقة النهار",
+  "Electric water heater": "سخّان كهربائي",
+  "Flow · Return · Pressure": "ذهاب · عودة · ضغط",
   "Home Assistant language": "لغة Home Assistant",
+  "Hot water · Element · Consumption": "ماء ساخن · مقاومة · استهلاك",
   "I'll take it": "سأتولّاه",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "إذا تُركت على لغة Home Assistant فإن اللوحة تتبع ملف من ينظر إليها. واختيار لغة يثبّتها لهذه اللوحة، حتى لو كان Home Assistant يتكلم لغة أخرى.",
@@ -32,15 +53,19 @@ export default Object.freeze({
   "No boiler configured": "لا يوجد مرجل مُعد",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "لا يوجد مرجل مُعد: أضِفه من تبويب إدارة التدفئة في الإعدادات.",
+  "Primary loop · Tank · Recirculation": "الدائرة الابتدائية · الخزان · إعادة التدوير",
   Release: "تخلَّ عنه",
   "Released.": "تم التخلي عنه.",
   "Send the message": "أرسل الرسالة",
+  "Solar thermal plant": "منظومة شمسية حرارية",
+  "Solar · Water heater · Boiler": "شمسي · سخّان · غلاية",
   Taken: "قيد التولّي",
   "Taken by": "بعهدة",
   "Taken.": "تم تولّيه.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "الفرق بين الذهاب والعودة يبيّن إن كانت الدائرة تمنح حرارة فعلاً؛ أما الضغط فهو الشيء الوحيد الذي يحتاج أحياناً إلى تعبئة يدوية. لا حقل إلزامي: بالحالة وحدها تعرض البطاقة الغلاية تعمل أو مطفأة، بلا أرقام لا تملكها. وإن كان لديك أكثر من واحد — واحد لكل منطقة — فأضِفها هنا، وتظهر في الصفحة صفٌّ للتنقل بينها.",
   Unit: "وحدة",
+  "Thermal management": "إدارة الحرارة",
   "Write here: the message goes under the report, under your name.":
     "اكتب هنا: تُنشر الرسالة تحت البلاغ باسمك.",
   " — configured": " — مُهيّأة",
@@ -484,7 +509,6 @@ export default Object.freeze({
   "Air conditioning and heating": "التكييف والتدفئة",
   "Air fryer": "قلاية هوائية",
   Alarm: "الإنذار",
-  "Alarm · Cameras · Openings": "الإنذار · الكاميرات · الفتحات",
   "Alarm · Total": "الإنذار · الإجمالي",
   "Alarm status": "حالة الإنذار",
   "Alarm system and video surveillance": "نظام الإنذار والمراقبة بالفيديو",

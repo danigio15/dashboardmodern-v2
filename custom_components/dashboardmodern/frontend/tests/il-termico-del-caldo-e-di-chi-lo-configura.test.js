@@ -13,6 +13,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { readFileSync } from "node:fs";
+
 import { vociTermiche } from "../src/sections/termico-del-caldo-section.js";
 
 test("senza config e senza entita' storiche, nessuna voce: il pannello sparisce", () => {
@@ -47,4 +49,100 @@ test("la config comanda, e le voci storpie non passano", () => {
 
 test("una voce senza icona prende la fiamma, non il vuoto", () => {
   assert.equal(vociTermiche([{ name: "Caldaia", entity: "switch.c" }])[0].icon, "🔥");
+});
+
+/* «La doppia caldaia va inserita la possibilita' di aggiungere piu' caldaie
+ * anche nella sezione clima»: la testata del Clima raccontava una caldaia
+ * sola, e con due configurate ne mostrava la prima e basta. Le fonti sono
+ * due — l'elenco libero dello Stato termico e la Gestione termica di #281 —
+ * e nessuna delle due, da sola, e' quello che l'utente ha configurato. */
+test("le caldaie si contano tutte, e le due fonti si uniscono", async () => {
+  const magazzino = new Map([
+    [
+      "cd_termico_caldo",
+      JSON.stringify([
+        { name: "Caldaia zona giorno", entity: "switch.c1" },
+        { name: "Pompa termocamino", entity: "switch.pompa" },
+      ]),
+    ],
+  ]);
+  const prima = {
+    localStorage: globalThis.localStorage,
+    cdCfg: globalThis.cdCfg,
+    __HASS__: globalThis.__HASS__,
+  };
+  globalThis.localStorage = { getItem: (chiave) => magazzino.get(chiave) ?? null };
+  globalThis.cdCfg = (chiave) =>
+    chiave === "cd_caldaia"
+      ? [
+          { id: "notte", name: "Zona notte", stato: "binary_sensor.c2" },
+          /* Una macchina senza casella di stato non ha niente da dire qui. */
+          { id: "muta", name: "Senza stato", mandata: "sensor.m" },
+        ]
+      : null;
+  globalThis.__HASS__ = {
+    states: {
+      "switch.c1": { state: "on", last_changed: new Date().toISOString() },
+      "binary_sensor.c2": { state: "off" },
+    },
+  };
+  try {
+    const { statiDelleCaldaie, statoCaldaia } = await import(
+      "../src/sections/termico-del-caldo-section.js"
+    );
+    const caldaie = statiDelleCaldaie();
+    assert.deepEqual(
+      caldaie.map((caldaia) => caldaia.nome),
+      ["Caldaia zona giorno", "Zona notte"],
+    );
+    /* La pompa termocamino non e' una caldaia: il pannello la mostra, la
+     * testata del Clima no. */
+    assert.equal(caldaie.length, 2);
+    assert.equal(caldaie[0].acceso, true);
+    assert.equal(caldaie[1].acceso, false);
+    /* Chi ne racconta una sola prende la prima, come faceva prima. */
+    assert.equal(statoCaldaia().nome, "Caldaia zona giorno");
+  } finally {
+    for (const [chiave, valore] of Object.entries(prima)) {
+      if (valore === undefined) delete globalThis[chiave];
+      else globalThis[chiave] = valore;
+    }
+  }
+});
+
+test("la stessa caldaia dichiarata in tutti e due i posti compare una volta", async () => {
+  const prima = {
+    localStorage: globalThis.localStorage,
+    cdCfg: globalThis.cdCfg,
+    __HASS__: globalThis.__HASS__,
+  };
+  globalThis.localStorage = {
+    getItem: () => JSON.stringify([{ name: "Caldaia", entity: "switch.unica" }]),
+  };
+  globalThis.cdCfg = (chiave) =>
+    chiave === "cd_caldaia" ? [{ id: "u", name: "Caldaia a gas", stato: "switch.unica" }] : null;
+  globalThis.__HASS__ = { states: { "switch.unica": { state: "on" } } };
+  try {
+    const { statiDelleCaldaie } = await import("../src/sections/termico-del-caldo-section.js");
+    const caldaie = statiDelleCaldaie();
+    assert.equal(caldaie.length, 1);
+    /* Vince il nome di chi e' arrivato prima: l'elenco libero. Comparire due
+     * volte nella testata sarebbe peggio che comparire col nome dell'altro. */
+    assert.equal(caldaie[0].nome, "Caldaia");
+  } finally {
+    for (const [chiave, valore] of Object.entries(prima)) {
+      if (valore === undefined) delete globalThis[chiave];
+      else globalThis[chiave] = valore;
+    }
+  }
+});
+
+test("la testata del Clima fa una casella per macchina", () => {
+  const sorgente = readFileSync(
+    new URL("../src/sections/climate-thermal-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sorgente, /statiDelleCaldaie\(\)/);
+  /* La casella del guscio non si toglie mai: e' lo stampo delle altre. */
+  assert.match(sorgente, /caselle\.splice\(Math\.max\(1, caldaie\.length\)\)/);
 });

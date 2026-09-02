@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "yeni",
   "New messages": "Yeni mesajlar",
   reply: "yanıt",
+  "Doors/Windows": "Kapılar/Pencereler",
+  "Door and gate openers": "Kapı ve bahçe kapısı kumandaları",
+  "Alarm · Cameras · Doors and gates": "Alarm · Kameralar · Kapılar ve bahçe kapıları",
+  "with credentials": "kimlik bilgileriyle",
+  stream: "akış",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Kameranın akış adresi, elinizde varsa. Burada durur ki kaybolmasın ve yukarıdaki alanı doldurabilesiniz.",
+  "Open it": "Aç",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "go2rtc ya da Frigate kullanıyorsanız bu satırı onların dosyasında «streams:» altına koyun:",
+  Copy: "Kopyala",
+  Copied: "Kopyalandı",
+  "Camera RTSP address": "Kameranın RTSP adresi",
+  "Boilers on": "Yanan kombiler",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Home Assistant'a bu adresle bir Generic kamera ekleyin, çıkan varlığı da varlık alanına yapıştırın.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Tarayıcı rtsp:// adresini kendi başına açamaz: akışı bir şeyin yeniden paketlemesi gerekir. İki yol var, biri yeter.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Bildirim github.com'da senin adına açılmış herkese açık bir sayfa olur: isteyen okuyabilir. Yanıt buraya, tartışmanın altına döner.",
   maintainer: "sorumlu",
@@ -24,7 +42,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Bu bildirimin altına yazmak için GitHub'ı bağla.",
   "Dashboard language": "Panonun dili",
   "Day zone": "Gündüz bölgesi",
+  "Electric water heater": "Elektrikli termosifon",
+  "Flow · Return · Pressure": "Gidiş · Dönüş · Basınç",
   "Home Assistant language": "Home Assistant'ın dili",
+  "Hot water · Element · Consumption": "Sıcak su · Rezistans · Tüketim",
   "I'll take it": "Ben bakarım",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant'ın dilinde bırakılırsa pano, bakan kişinin profilini izler. Bir dil seçmek onu bu panoya sabitler; Home Assistant başka bir dil konuşsa bile.",
@@ -32,15 +53,19 @@ export default Object.freeze({
   "No boiler configured": "Kombi tanımlı değil",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Kombi tanımlı değil: ayarlardaki Isı yönetimi sekmesinden ekle.",
+  "Primary loop · Tank · Recirculation": "Birincil devre · Boyler · Sirkülasyon",
   Release: "Bırak",
   "Released.": "Bırakıldı.",
   "Send the message": "Mesajı gönder",
+  "Solar thermal plant": "Güneş enerjili ısıtma tesisatı",
+  "Solar · Water heater · Boiler": "Güneş · Termosifon · Kombi",
   Taken: "Üstlenildi",
   "Taken by": "Üstlenen",
   "Taken.": "Üstlenildi artık.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Gidiş ile dönüş arasındaki fark, devrenin gerçekten ısı verip vermediğini söyler; basınç ise arada bir elle tamamlanması gereken tek şeydir. Hiçbir alan zorunlu değil: yalnızca durumla kart kombiyi açık ya da kapalı gösterir, sahip olmadığı sayılar olmadan. Birden fazlaysa — bölge başına bir tane — buraya ekle; sayfada aralarında geçiş için bir sıra çıkar.",
   Unit: "Birim",
+  "Thermal management": "Isı yönetimi",
   "Write here: the message goes under the report, under your name.":
     "Buraya yaz: mesaj senin adınla bildirimin altına gider.",
   " — configured": " — yapılandırıldı",
@@ -493,7 +518,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Soğutma ve ısıtma",
   "Air fryer": "Airfryer",
   Alarm: "Alarm",
-  "Alarm · Cameras · Openings": "Alarm · Kameralar · Açıklıklar",
   "Alarm · Total": "Alarm · Toplam",
   "Alarm status": "Alarm durumu",
   "Alarm system and video surveillance": "Alarm sistemi ve kamera izleme",

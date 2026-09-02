@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "新",
   "New messages": "新消息",
   reply: "回复",
+  "Doors/Windows": "门/窗",
+  "Door and gate openers": "开门与开闸按钮",
+  "Alarm · Cameras · Doors and gates": "安防 · 摄像头 · 门与大门",
+  "with credentials": "带凭据",
+  stream: "视频流",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "摄像头的视频流地址，有就填。放在这里是为了留个底，也为了填上面那一栏。",
+  "Open it": "打开",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "如果你用 go2rtc 或 Frigate，把这一行放到它们文件的「streams:」下面：",
+  Copy: "复制",
+  Copied: "已复制",
+  "Camera RTSP address": "摄像头 RTSP 地址",
+  "Boilers on": "运行中的锅炉",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "在 Home Assistant 中用这个地址添加一个 Generic 摄像头，再把生成的实体粘贴到实体栏里。",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "浏览器无法自行打开 rtsp://：需要有东西把视频流重新封装。两条路，走通一条就够。",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "反馈会以你的名义变成 github.com 上的公开页面，任何人都能读到。回复会回到这里，在讨论下面。",
   maintainer: "维护者",
@@ -24,7 +42,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "连接 GitHub 才能在这条反馈下留言。",
   "Dashboard language": "面板语言",
   "Day zone": "日间区域",
+  "Electric water heater": "电热水器",
+  "Flow · Return · Pressure": "供水 · 回水 · 压力",
   "Home Assistant language": "Home Assistant 的语言",
+  "Hot water · Element · Consumption": "热水 · 加热棒 · 用量",
   "I'll take it": "我来处理",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "保持在 Home Assistant 的语言上，面板会跟随正在查看的人的配置。选定一种就会固定给这个面板，即使 Home Assistant 说的是另一种语言。",
@@ -32,15 +53,19 @@ export default Object.freeze({
   "No boiler configured": "未配置锅炉",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "未配置锅炉：请在设置的“热管理”标签页里添加。",
+  "Primary loop · Tank · Recirculation": "一次回路 · 储水罐 · 循环",
   Release: "放手",
   "Released.": "已放手。",
   "Send the message": "发送消息",
+  "Solar thermal plant": "太阳能热水系统",
+  "Solar · Water heater · Boiler": "太阳能 · 热水器 · 锅炉",
   Taken: "已认领",
   "Taken by": "认领人",
   "Taken.": "已认领。",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "供水与回水的温差说明回路是否真的在放热；压力是唯一偶尔需要手动补充的东西。没有必填项：仅凭状态，卡片就能显示锅炉的开与关，不会给出它没有的数字。如果不止一台——每个区域一台——在这里添加，页面上就会出现切换用的一行。",
   Unit: "设备",
+  "Thermal management": "热能管理",
   "Write here: the message goes under the report, under your name.":
     "在这里写：消息会以你的名义发到反馈下面。",
   " — configured": " — 已配置",
@@ -479,7 +504,6 @@ export default Object.freeze({
   "Air conditioning and heating": "制冷与供暖",
   "Air fryer": "空气炸锅",
   Alarm: "报警",
-  "Alarm · Cameras · Openings": "报警 · 摄像头 · 门窗",
   "Alarm · Total": "报警 · 合计",
   "Alarm status": "报警状态",
   "Alarm system and video surveillance": "报警系统与视频监控",

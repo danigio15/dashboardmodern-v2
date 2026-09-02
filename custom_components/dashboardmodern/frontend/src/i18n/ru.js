@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "новое",
   "New messages": "Новые сообщения",
   reply: "ответ",
+  "Doors/Windows": "Двери/Окна",
+  "Door and gate openers": "Открывание дверей и ворот",
+  "Alarm · Cameras · Doors and gates": "Охрана · Камеры · Двери и ворота",
+  "with credentials": "с учётными данными",
+  stream: "поток",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Адрес потока камеры, если он у вас есть. Он здесь, чтобы не потерялся и чтобы заполнить поле выше.",
+  "Open it": "Открыть",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Если у вас go2rtc или Frigate, добавьте эту строку под «streams:» в их файл:",
+  Copy: "Копировать",
+  Copied: "Скопировано",
+  "Camera RTSP address": "RTSP-адрес камеры",
+  "Boilers on": "Котлы работают",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Добавьте в Home Assistant камеру Generic с этим адресом, а появившуюся сущность вставьте в поле сущности.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Браузер не открывает rtsp:// сам по себе: поток должен кто-то переупаковать. Два пути, и хватит одного.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Обращение становится публичной страницей на github.com, открытой от вашего имени: прочитать её сможет кто угодно. Ответ возвращается сюда, под обсуждение.",
   maintainer: "сопровождающий",
@@ -25,7 +43,10 @@ export default Object.freeze({
     "Подключите GitHub, чтобы писать под этим обращением.",
   "Dashboard language": "Язык панели",
   "Day zone": "Дневная зона",
+  "Electric water heater": "Электрический водонагреватель",
+  "Flow · Return · Pressure": "Подача · Обратка · Давление",
   "Home Assistant language": "Язык Home Assistant",
+  "Hot water · Element · Consumption": "Горячая вода · ТЭН · Расход",
   "I'll take it": "Беру себе",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Оставленная на языке Home Assistant, панель следует профилю того, кто смотрит. Выбор языка закрепляет его за этой панелью, даже если Home Assistant говорит на другом.",
@@ -33,15 +54,19 @@ export default Object.freeze({
   "No boiler configured": "Котёл не настроен",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Котёл не настроен: добавьте его на вкладке «Управление теплом» в настройках.",
+  "Primary loop · Tank · Recirculation": "Первичный контур · Бак · Рециркуляция",
   Release: "Отпустить",
   "Released.": "Отпущено.",
   "Send the message": "Отправить сообщение",
+  "Solar thermal plant": "Солнечная тепловая установка",
+  "Solar · Water heater · Boiler": "Солнце · Бойлер · Котёл",
   Taken: "В работе",
   "Taken by": "В работе у",
   "Taken.": "Взято в работу.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Разница между подачей и обраткой показывает, действительно ли контур отдаёт тепло; давление — единственное, что время от времени нужно подкачивать вручную. Ни одно поле не обязательно: даже с одним состоянием карточка покажет котёл включённым или выключенным, без чисел, которых у неё нет. Если их несколько — по одному на зону — добавьте их здесь, и на странице появится ряд для переключения.",
   Unit: "Устройство",
+  "Thermal management": "Управление теплом",
   "Write here: the message goes under the report, under your name.":
     "Пишите здесь: сообщение уйдёт под обращение, от вашего имени.",
   " — configured": " — настроена",
@@ -493,7 +518,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Кондиционирование и отопление",
   "Air fryer": "Аэрогриль",
   Alarm: "Охрана",
-  "Alarm · Cameras · Openings": "Охрана · Камеры · Проёмы",
   "Alarm · Total": "Охрана · Всего",
   "Alarm status": "Состояние охраны",
   "Alarm system and video surveillance": "Охранная система и видеонаблюдение",

@@ -87,7 +87,7 @@ function catalogoTessere() {
     ["piscina", "🏊", t("Piscina", "Pool")],
     ["prese", "🔌", t("Prese", "Sockets")],
     ["irrigazione", "💧", t("Irrigazione", "Irrigation")],
-    ["aperture", "🚪", t("Aperture", "Openings")],
+    ["aperture", "🚪", t("Porte/Finestre", "Doors/Windows")],
     /* Il gruppo di continuita' (#256): non e' la tessera delle batterie —
      * quella conta le pile dei sensori, questa dice se la casa ha corrente. */
     ["ups", "🔌", t("Continuità", "Backup power")],

@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "neu",
   "New messages": "Neue Nachrichten",
   reply: "Antwort",
+  "Doors/Windows": "Türen/Fenster",
+  "Door and gate openers": "Tür- und Toröffner",
+  "Alarm · Cameras · Doors and gates": "Alarm · Kameras · Türen und Tore",
+  "with credentials": "mit Zugangsdaten",
+  stream: "Stream",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Die Stream-Adresse der Kamera, falls du sie hast. Sie steht hier, um sie zu behalten und das Feld darüber auszufüllen.",
+  "Open it": "Öffnen",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Wenn du go2rtc oder Frigate nutzt, trage diese Zeile unter „streams:“ in deren Datei ein:",
+  Copy: "Kopieren",
+  Copied: "Kopiert",
+  "Camera RTSP address": "RTSP-Adresse der Kamera",
+  "Boilers on": "Kessel in Betrieb",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Füge in Home Assistant eine Generic-Kamera mit dieser Adresse hinzu und trage die entstandene Entität oben im Entitätsfeld ein.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Ein Browser kann rtsp:// nicht von sich aus öffnen: irgendetwas muss den Stream neu verpacken. Zwei Wege, und einer genügt.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "Die Meldung wird eine öffentliche Seite auf github.com, in deinem Namen eröffnet: jeder kann sie lesen. Die Antwort kommt hierher zurück, unter die Diskussion.",
   maintainer: "Betreuer",
@@ -25,7 +43,10 @@ export default Object.freeze({
     "Verbinde GitHub, um unter dieser Meldung zu schreiben.",
   "Dashboard language": "Sprache des Dashboards",
   "Day zone": "Tagzone",
+  "Electric water heater": "Elektrischer Warmwasserbereiter",
+  "Flow · Return · Pressure": "Vorlauf · Rücklauf · Druck",
   "Home Assistant language": "Sprache von Home Assistant",
+  "Hot water · Element · Consumption": "Warmwasser · Heizstab · Verbrauch",
   "I'll take it": "Ich übernehme",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Bleibt sie auf der Sprache von Home Assistant, folgt das Dashboard dem Profil der Person, die gerade hinsieht. Wählst du eine aus, ist sie für dieses Dashboard festgelegt — auch wenn Home Assistant eine andere Sprache spricht.",
@@ -33,15 +54,19 @@ export default Object.freeze({
   "No boiler configured": "Kein Kessel eingerichtet",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Kein Kessel eingerichtet: füge ihn im Reiter Wärmeverwaltung der Einstellungen hinzu.",
+  "Primary loop · Tank · Recirculation": "Primärkreis · Speicher · Zirkulation",
   Release: "Abgeben",
   "Released.": "Abgegeben.",
   "Send the message": "Nachricht senden",
+  "Solar thermal plant": "Solarthermieanlage",
+  "Solar · Water heater · Boiler": "Solar · Warmwasserbereiter · Kessel",
   Taken: "Übernommen",
   "Taken by": "Übernommen von",
   "Taken.": "Übernommen.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Der Abstand zwischen Vorlauf und Rücklauf sagt, ob der Kreis wirklich Wärme abgibt; der Druck ist das Einzige, was gelegentlich von Hand nachgefüllt werden muss. Kein Feld ist Pflicht: Schon mit dem Zustand zeigt die Karte den Kessel an oder aus, ohne Zahlen, die sie nicht hat. Bei mehreren — einer pro Zone — trägst du sie hier ein, und die Seite bekommt eine Reihe zum Umschalten.",
   Unit: "Gerät",
+  "Thermal management": "Wärmemanagement",
   "Write here: the message goes under the report, under your name.":
     "Schreib hier: die Nachricht steht unter der Meldung, in deinem Namen.",
   " — configured": " — konfiguriert",
@@ -498,7 +523,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Klimatisierung und Heizung",
   "Air fryer": "Heißluftfritteuse",
   Alarm: "Alarmanlage",
-  "Alarm · Cameras · Openings": "Alarmanlage · Kameras · Öffnungen",
   "Alarm · Total": "Alarmanlage · Gesamt",
   "Alarm status": "Alarmstatus",
   "Alarm system and video surveillance": "Alarmanlage und Videoüberwachung",

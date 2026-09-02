@@ -41,23 +41,22 @@ export const ETICHETTE_TERMICHE = Object.freeze({
  * ha ragione — il nome vecchio era quello di uno dei tre impianti, e chi ha
  * solo la caldaia si trovava la sua macchina dentro una voce che parlava di
  * pannelli solari. */
-export const NOME_SEZIONE = Object.freeze(["Gestione termica", "Thermal management"]);
-export const BRICIOLA_SEZIONE = Object.freeze([
-  "Solare · Scaldabagno · Caldaia",
-  "Solar · Water heater · Boiler",
-]);
-
 /* Il titolo della pagina segue quello che si sta guardando quando c'e' una
  * macchina sola: senza linguette, il titolo e' l'unica cosa che dice cosa si
  * sta guardando. Con due o tre lo dicono le linguette, e allora il titolo
- * torna a essere il nome della sezione. */
+ * torna a essere il nome della sezione — che sta qui sotto la stessa chiave
+ * `sezione`, insieme ai casi che ricopre, invece che sciolto per conto suo:
+ * l'estrattore riconosce le tabelle di coppie, e una coppia sciolta gli
+ * passava davanti senza che nessuno se ne accorgesse. */
 export const TITOLI_TERMICI = Object.freeze({
+  sezione: ["Gestione termica", "Thermal management"],
   solare: ["Impianto solare termico", "Solar thermal plant"],
   scaldabagno: ["Scaldabagno elettrico", "Electric water heater"],
   caldaia: ["Caldaia", "Boiler"],
 });
 
 export const BRICIOLE_TERMICHE = Object.freeze({
+  sezione: ["Solare · Scaldabagno · Caldaia", "Solar · Water heater · Boiler"],
   solare: [
     "Circuito primario · Boiler · Ricircolo sanitario",
     "Primary loop · Tank · Recirculation",
@@ -65,6 +64,15 @@ export const BRICIOLE_TERMICHE = Object.freeze({
   scaldabagno: ["Acqua calda · Resistenza · Consumo", "Hot water · Element · Consumption"],
   caldaia: ["Mandata · Ritorno · Pressione", "Flow · Return · Pressure"],
 });
+
+/* Come si chiama la sezione, adesso che non e' piu' una macchina sola.
+ *
+ * «La sezione non si deve chiamare piu' Solare termico ma Gestione termica»:
+ * ha ragione — il nome vecchio era quello di uno dei tre impianti, e chi ha
+ * solo la caldaia si trovava la sua macchina dentro una voce che parlava di
+ * pannelli solari. */
+export const NOME_SEZIONE = TITOLI_TERMICI.sezione;
+export const BRICIOLA_SEZIONE = BRICIOLE_TERMICHE.sezione;
 
 const clean = (value) => String(value ?? "").trim();
 

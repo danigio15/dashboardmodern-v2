@@ -43,6 +43,7 @@ import { installQuickClimateEditorSection } from "./quick-climate-editor-section
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
+import { installTelecameraRtsp } from "./telecamera-rtsp-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
 import { installPopupClimaDistingue } from "./il-popup-del-clima-distingue-section.js";
@@ -812,6 +813,9 @@ export function installSectionRuntime() {
      * la vetrina che costruisce lo scheletro in cui si inseriscono. */
     installSecurityDoorsSection();
     installSecurityDoorsEditorSection();
+    /* L'indirizzo RTSP nella scheda delle telecamere: si mette accanto al
+     * campo del flusso, che e' del guscio, e va installato dopo di lui. */
+    installTelecameraRtsp();
     /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();

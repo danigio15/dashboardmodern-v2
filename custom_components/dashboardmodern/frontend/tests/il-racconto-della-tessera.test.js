@@ -189,8 +189,31 @@ test("le briciole del solare termico sono quelle disegnate", () => {
     "Ricircolo sanitario",
   ]);
   assert.deepEqual(bricioleDellaSezione("energia"), ["Produzione", "Consumi", "Report"]);
-  assert.deepEqual(bricioleDellaSezione("aperture", (_it, en) => en), [
-    "Doors and windows",
-    "Watch",
-  ]);
+  /* La tessera adesso si chiama «Porte/Finestre» — «altrimenti si confonde con
+   * le altre aperture» — e la briciola non ripete il titolo: dice cosa sta
+   * guardando, che sono i contatti. */
+  assert.deepEqual(bricioleDellaSezione("aperture", (_it, en) => en), ["Contacts", "Watch"]);
+});
+
+/* «La piu' vecchia da 20698 giorni», cioe' il primo gennaio 1970.
+ *
+ * Chi costruisce le righe mette `daQuando: null` quando Home Assistant non
+ * dice da quando — un contatto appena adottato, o uno stato arrivato senza
+ * `last_changed`. `Number(null)` pero' fa zero, e zero e' un numero finito e
+ * minore di adesso: passava la guardia e usciva l'inizio dei tempi. */
+test("una riga che non sa da quando non inventa una data", () => {
+  const righe = [
+    { name: "Finestra bagno", on: true, daQuando: null },
+    { name: "Grata 2", on: true },
+    { name: "Porta cucina", on: false },
+  ];
+  const frase = fraseDellaTessera({ key: "aperture", rows: righe });
+  assert.match(frase, /2 apert[ae] su 3/);
+  assert.doesNotMatch(frase, /vecchia/);
+  /* Con una data vera la frase torna, e conta solo quella. */
+  const conData = fraseDellaTessera({
+    key: "aperture",
+    rows: [{ ...righe[0], daQuando: Date.now() - 3600000 }, righe[1], righe[2]],
+  });
+  assert.match(conData, /La piu' vecchia da un'ora/);
 });

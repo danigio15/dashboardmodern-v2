@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "नया",
   "New messages": "नए संदेश",
   reply: "जवाब",
+  "Doors/Windows": "दरवाज़े/खिड़कियाँ",
+  "Door and gate openers": "दरवाज़ा और गेट खोलने के बटन",
+  "Alarm · Cameras · Doors and gates": "अलार्म · कैमरे · दरवाज़े और गेट",
+  "with credentials": "क्रेडेंशियल के साथ",
+  stream: "स्ट्रीम",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "कैमरे का स्ट्रीम पता, अगर आपके पास है। यह यहाँ इसलिए है कि सँभला रहे और ऊपर वाला खाना भरा जा सके।",
+  "Open it": "इसे खोलें",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "अगर आप go2rtc या Frigate चलाते हैं, तो यह पंक्ति उनकी फ़ाइल में «streams:» के नीचे रखें:",
+  Copy: "कॉपी करें",
+  Copied: "कॉपी हो गया",
+  "Camera RTSP address": "कैमरे का RTSP पता",
+  "Boilers on": "चालू बॉयलर",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Home Assistant में इस पते के साथ एक Generic कैमरा जोड़ें, और जो इकाई बने उसे इकाई वाले खाने में चिपकाएँ।",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "ब्राउज़र rtsp:// अपने आप नहीं खोलता: स्ट्रीम को किसी को दोबारा पैक करना पड़ता है। दो रास्ते हैं, एक ही काफ़ी है।",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "रिपोर्ट github.com पर आपके नाम से खुला एक सार्वजनिक पृष्ठ बन जाती है: कोई भी उसे पढ़ सकेगा। जवाब यहीं, चर्चा के नीचे आता है।",
   maintainer: "अनुरक्षक",
@@ -24,7 +42,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "इस रिपोर्ट के नीचे लिखने के लिए GitHub जोड़ें।",
   "Dashboard language": "डैशबोर्ड की भाषा",
   "Day zone": "दिन का क्षेत्र",
+  "Electric water heater": "बिजली का वॉटर हीटर",
+  "Flow · Return · Pressure": "सप्लाई · वापसी · दबाव",
   "Home Assistant language": "Home Assistant की भाषा",
+  "Hot water · Element · Consumption": "गर्म पानी · हीटिंग एलिमेंट · खपत",
   "I'll take it": "मैं संभालता हूँ",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant की भाषा पर छोड़ने पर डैशबोर्ड उसी की प्रोफ़ाइल का अनुसरण करता है जो देख रहा है। कोई एक चुनने पर वह इस डैशबोर्ड के लिए तय हो जाती है, भले ही Home Assistant दूसरी भाषा बोले।",
@@ -32,15 +53,19 @@ export default Object.freeze({
   "No boiler configured": "कोई बॉयलर सेट नहीं",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "कोई बॉयलर सेट नहीं: सेटिंग्स के ऊष्मा प्रबंधन टैब से जोड़ें।",
+  "Primary loop · Tank · Recirculation": "प्राथमिक सर्किट · टंकी · पुनःपरिसंचरण",
   Release: "छोड़ें",
   "Released.": "छोड़ दी गई।",
   "Send the message": "संदेश भेजें",
+  "Solar thermal plant": "सौर तापीय संयंत्र",
+  "Solar · Water heater · Boiler": "सौर · वॉटर हीटर · बॉयलर",
   Taken: "संभाली गई",
   "Taken by": "किसने संभाली",
   "Taken.": "संभाल ली।",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "सप्लाई और वापसी का अंतर बताता है कि सर्किट सचमुच गर्मी दे रहा है या नहीं; दबाव ही एकमात्र चीज़ है जिसे कभी-कभी हाथ से भरना पड़ता है। कोई भी खाना ज़रूरी नहीं: सिर्फ़ स्थिति से कार्ड बॉयलर को चालू या बंद दिखाता है, उन नंबरों के बिना जो उसके पास नहीं हैं। एक से ज़्यादा हों — हर क्षेत्र के लिए एक — तो उन्हें यहाँ जोड़ें, और पन्ने पर उनके बीच बदलने की पंक्ति आ जाएगी।",
   Unit: "इकाई",
+  "Thermal management": "ताप प्रबंधन",
   "Write here: the message goes under the report, under your name.":
     "यहाँ लिखें: संदेश रिपोर्ट के नीचे, आपके नाम से जाएगा।",
   " — configured": " — कॉन्फ़िगर किया गया",
@@ -489,7 +514,6 @@ export default Object.freeze({
   "Air conditioning and heating": "एयर कंडीशनिंग और तापन",
   "Air fryer": "एयर फ़्रायर",
   Alarm: "अलार्म",
-  "Alarm · Cameras · Openings": "अलार्म · कैमरे · खुलने वाले हिस्से",
   "Alarm · Total": "अलार्म · कुल",
   "Alarm status": "अलार्म की स्थिति",
   "Alarm system and video surveillance": "अलार्म प्रणाली और वीडियो निगरानी",

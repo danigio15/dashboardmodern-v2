@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "nieuw",
   "New messages": "Nieuwe berichten",
   reply: "antwoord",
+  "Doors/Windows": "Deuren/Ramen",
+  "Door and gate openers": "Deur- en poortopeners",
+  "Alarm · Cameras · Doors and gates": "Alarm · Camera's · Deuren en poorten",
+  "with credentials": "met inloggegevens",
+  stream: "videostream",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "Het streamadres van de camera, als je het hebt. Het staat hier om het te bewaren en het veld hierboven in te vullen.",
+  "Open it": "Openen",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "Gebruik je go2rtc of Frigate, zet deze regel dan onder “streams:” in hun bestand:",
+  Copy: "Kopiëren",
+  Copied: "Gekopieerd",
+  "Camera RTSP address": "RTSP-adres van de camera",
+  "Boilers on": "Ketels aan",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Voeg in Home Assistant een Generic-camera toe met dit adres en plak de entiteit die eruit komt in het entiteitsveld.",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "Een browser opent rtsp:// niet uit zichzelf: iets moet de stream opnieuw inpakken. Twee wegen, en één is genoeg.",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "De melding wordt een openbare pagina op github.com, op jouw naam geopend: iedereen kan hem lezen. Het antwoord komt hier terug, onder de discussie.",
   maintainer: "beheerder",
@@ -24,7 +42,10 @@ export default Object.freeze({
   "Connect GitHub to write under this report.": "Koppel GitHub om onder deze melding te schrijven.",
   "Dashboard language": "Taal van het dashboard",
   "Day zone": "Dagzone",
+  "Electric water heater": "Elektrische boiler",
+  "Flow · Return · Pressure": "Aanvoer · Retour · Druk",
   "Home Assistant language": "Taal van Home Assistant",
+  "Hot water · Element · Consumption": "Warm water · Element · Verbruik",
   "I'll take it": "Ik pak hem op",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Blijft hij op de taal van Home Assistant, dan volgt het dashboard het profiel van wie er kijkt. Kies je er een, dan ligt hij vast voor dit dashboard, ook als Home Assistant een andere taal spreekt.",
@@ -32,15 +53,19 @@ export default Object.freeze({
   "No boiler configured": "Geen ketel ingesteld",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "Geen ketel ingesteld: voeg er een toe via het tabblad Warmtebeheer in de instellingen.",
+  "Primary loop · Tank · Recirculation": "Primair circuit · Boilervat · Circulatie",
   Release: "Loslaten",
   "Released.": "Losgelaten.",
   "Send the message": "Verstuur het bericht",
+  "Solar thermal plant": "Thermische zonne-installatie",
+  "Solar · Water heater · Boiler": "Zon · Boiler · Ketel",
   Taken: "Opgepakt",
   "Taken by": "Opgepakt door",
   "Taken.": "Opgepakt.",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "Het verschil tussen aanvoer en retour zegt of het circuit echt warmte afgeeft; de druk is het enige dat af en toe met de hand moet worden bijgevuld. Geen veld is verplicht: met alleen de status toont de kaart de ketel aan of uit, zonder getallen die zij niet heeft. Heb je er meer dan één — één per zone — voeg ze hier toe en de pagina krijgt een rij om te wisselen.",
   Unit: "Toestel",
+  "Thermal management": "Warmtebeheer",
   "Write here: the message goes under the report, under your name.":
     "Schrijf hier: het bericht komt onder de melding, op jouw naam.",
   " — configured": " — geconfigureerd",
@@ -494,7 +519,6 @@ export default Object.freeze({
   "Air conditioning and heating": "Koeling en verwarming",
   "Air fryer": "Airfryer",
   Alarm: "Alarm",
-  "Alarm · Cameras · Openings": "Alarm · Camera's · Openingen",
   "Alarm · Total": "Alarm · Totaal",
   "Alarm status": "Alarmstatus",
   "Alarm system and video surveillance": "Alarmsysteem en camerabewaking",

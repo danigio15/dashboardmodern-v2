@@ -16,6 +16,24 @@ export default Object.freeze({
   new: "新着",
   "New messages": "新しいメッセージ",
   reply: "返事",
+  "Doors/Windows": "ドア／窓",
+  "Door and gate openers": "ドア・ゲートの開錠操作",
+  "Alarm · Cameras · Doors and gates": "防犯 · カメラ · ドアとゲート",
+  "with credentials": "認証情報あり",
+  stream: "ストリーム",
+  "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
+    "カメラのストリームアドレスです（あれば）。控えとして残し、上の欄を埋めるためにここにあります。",
+  "Open it": "開く",
+  "If you run go2rtc or Frigate, put this line under “streams:” in their file:":
+    "go2rtc や Frigate を使っているなら、この行をそれらのファイルの「streams:」の下に置いてください:",
+  Copy: "コピー",
+  Copied: "コピーしました",
+  "Camera RTSP address": "カメラの RTSP アドレス",
+  "Boilers on": "運転中のボイラー",
+  "Add a Generic camera in Home Assistant with this address, then paste the entity it creates into the entity field.":
+    "Home Assistant にこのアドレスで Generic カメラを追加し、できたエンティティをエンティティ欄に貼り付けてください。",
+  "A browser cannot open rtsp:// on its own: something has to repackage the stream. Two ways, and one is enough.":
+    "ブラウザーは rtsp:// を自力では開けません。ストリームを何かが包み直す必要があります。道はふたつ、どちらか一方で足ります。",
   "The report becomes a public page on github.com, opened under your name: anyone will be able to read it. The reply comes back here, under the discussion.":
     "報告はあなたの名前で github.com の公開ページになり、誰でも読めます。返事はここ、話の下に戻ってきます。",
   maintainer: "メンテナー",
@@ -25,7 +43,10 @@ export default Object.freeze({
     "この報告に書き込むには GitHub を連携してください。",
   "Dashboard language": "ダッシュボードの言語",
   "Day zone": "昼のゾーン",
+  "Electric water heater": "電気給湯器",
+  "Flow · Return · Pressure": "往き · 戻り · 圧力",
   "Home Assistant language": "Home Assistant の言語",
+  "Hot water · Element · Consumption": "給湯 · ヒーター · 消費量",
   "I'll take it": "担当する",
   "Left on the Home Assistant language the dashboard follows the profile of whoever is looking. Picking one pins it for this dashboard, even when Home Assistant speaks another language.":
     "Home Assistant の言語のままにしておくと、ダッシュボードは見ている人のプロフィールに従います。ひとつ選ぶとこのダッシュボードに固定され、Home Assistant が別の言語でもそのままです。",
@@ -33,15 +54,19 @@ export default Object.freeze({
   "No boiler configured": "ボイラーは未設定です",
   "No boiler configured: add one from the Thermal management tab in settings.":
     "ボイラーは未設定です。設定の「熱管理」タブから追加してください。",
+  "Primary loop · Tank · Recirculation": "一次回路 · 貯湯タンク · 循環",
   Release: "担当を外れる",
   "Released.": "担当を外れました。",
   "Send the message": "メッセージを送る",
+  "Solar thermal plant": "太陽熱設備",
+  "Solar · Water heater · Boiler": "太陽熱 · 給湯器 · ボイラー",
   Taken: "担当中",
   "Taken by": "担当",
   "Taken.": "担当になりました。",
   "The gap between flow and return says whether the circuit is really giving off heat; pressure is the one thing that occasionally needs topping up by hand. No field is required: with just the state the card shows the boiler on or off, without numbers it does not have. With more than one — one per zone — add them here and the page grows a row to switch between them.":
     "往きと戻りの差は回路が実際に熱を出しているかを示します。圧力だけは時々手で補充する必要があります。必須の欄はありません。状態だけでもカードはボイラーの運転と停止を示し、持っていない数値は出しません。 複数ある場合は — ゾーンごとに一台 — ここに追加すると、ページに切り替えの列が出ます。",
   Unit: "機器",
+  "Thermal management": "熱管理",
   "Write here: the message goes under the report, under your name.":
     "ここに書いてください。メッセージはあなたの名前で報告の下に届きます。",
   " — configured": " — 設定済み",
@@ -493,7 +518,6 @@ export default Object.freeze({
   "Air conditioning and heating": "冷房と暖房",
   "Air fryer": "ノンフライヤー",
   Alarm: "警報",
-  "Alarm · Cameras · Openings": "警報 · カメラ · 開口部",
   "Alarm · Total": "警報 · 合計",
   "Alarm status": "警報の状態",
   "Alarm system and video surveillance": "警報システムと映像監視",
