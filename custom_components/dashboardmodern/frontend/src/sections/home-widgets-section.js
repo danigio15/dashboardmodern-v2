@@ -206,6 +206,9 @@ const state = (root[KEY] ||= {
    * il nero e il rinfresco senza fine. Ricordando cosa si e' scritto, il
    * confronto torna a essere fra due testi che si assomigliano davvero. */
   corpo: { chiave: "", markup: "" },
+  /* Le animazioni messe in pausa mentre la finestra copre la plancia, per
+   * poterle far ripartire quando si chiude. */
+  ferme: [],
 });
 
 export function configuredTodoLists() {
@@ -5082,6 +5085,54 @@ function ascoltaLaPorta() {
   });
 }
 
+/* ── dietro il velo non si muove niente ───────────────────────────────────
+ *
+ * Con la finestra aperta restavano vive nove animazioni infinite sotto il
+ * velo: le due macchie del fondale, il puntino del «vivo», la fiamma e il
+ * battito della caldaia, il respiro di due tessere, due avvisi. Nessuna di
+ * quelle si vede — sono coperte — e ognuna, a ogni suo fotogramma, obbliga a
+ * rifare la sfocatura di tutto lo schermo. Sessanta volte al secondo, per
+ * guardare una finestra ferma: e' il lavoro che sul telefono fa saltare i
+ * fotogrammi, ed e' meta' del tremolio.
+ *
+ * Si fermano dove sono e ripartono da li' alla chiusura: in pausa, non spente.
+ *
+ * Si fa da qui e non con una riga di foglio di stile perche' quelle animazioni
+ * sono dichiarate `!important` da chi le possiede, e vincerla a colpi di
+ * specificita' vorrebbe dire una guerra che si riapre a ogni sezione nuova.
+ * Le transizioni si lasciano correre: durano un attimo e finiscono da sole.
+ */
+
+/** Quali animazioni vanno fermate: quelle vive, con un nome, e fuori. */
+export function animazioniDaFermare(animazioni, dentro) {
+  return [...(animazioni || [])].filter((anim) => {
+    if (!anim || anim.playState !== "running" || !anim.animationName) return false;
+    const bersaglio = anim.effect?.target;
+    return Boolean(bersaglio) && !dentro(bersaglio);
+  });
+}
+
+function fermaCioCheStaDietro(host) {
+  if (!host || typeof doc?.getAnimations !== "function") return 0;
+  const ferme = animazioniDaFermare(doc.getAnimations(), (nodo) => host.contains(nodo));
+  for (const anim of ferme) {
+    try {
+      anim.pause();
+      state.ferme.push(anim);
+    } catch (_error) {}
+  }
+  return ferme.length;
+}
+
+function riparteCioCheStaDietro() {
+  for (const anim of state.ferme) {
+    try {
+      anim.play();
+    } catch (_error) {}
+  }
+  state.ferme = [];
+}
+
 function chiudiPopup() {
   state.expanded = "";
   state.corpo = { chiave: "", markup: "" };
@@ -5091,6 +5142,7 @@ function chiudiPopup() {
     host.replaceChildren();
   }
   doc?.documentElement?.classList?.remove("dm-widget-popup-open");
+  riparteCioCheStaDietro();
   fermaTimerTelecamere();
   schedule();
 }
@@ -5105,6 +5157,7 @@ function sincronizzaPopup(models, states) {
       host.replaceChildren();
       state.corpo = { chiave: "", markup: "" };
       doc?.documentElement?.classList?.remove("dm-widget-popup-open");
+      riparteCioCheStaDietro();
     }
     return false;
   }
@@ -5135,6 +5188,9 @@ function sincronizzaPopup(models, states) {
       body.dataset.dmFresh = "true";
     }
   }
+  /* A ogni giro, non solo all'apertura: un avviso che si accende mentre la
+   * finestra e' aperta comincia a battere adesso, e nessuno l'aveva fermato. */
+  fermaCioCheStaDietro(host);
   return true;
 }
 
@@ -5563,14 +5619,36 @@ function installStyles() {
  * del modal-wrapper, la card con l'angolo largo e l'ombra profonda del
  * modal-card. Sempre al centro — anche sul telefono: un foglio che sale dal
  * fondo e' un'altra lingua, e qui si parla quella di casa. */
+/* Il velo e' un elemento suo, e la card non ci sta dentro.
+ *
+ * «Verifica di nuovo problema flicker su apertura widget»: nel video la
+ * finestra aperta perde per un paio di centesimi la card bianca E la sua
+ * testata — resta il solo corpo, sospeso sul fondale sfocato — e poi torna.
+ * Piu' volte al secondo.
+ *
+ * Non e' il disegno che si rifa': e' il compositore. Chiedendo a Chromium
+ * l'elenco degli strati, con la finestra aperta, #dm-widget-popup risulta
+ * un unico strato di tutto lo schermo — e ci sono dipinti dentro la card e la
+ * testata, mentre il corpo, che scorre, ha uno strato suo. Lo backdrop-filter e'
+ * quello che obbliga a tenerli insieme: sfocare cio' che sta dietro
+ * significa ridisegnare quello strato ogni volta che dietro si muove
+ * qualcosa. Quando un fotogramma arriva prima che il ridisegno sia finito,
+ * di quello strato non c'e' niente — card e testata spariscono — e il corpo,
+ * che ha il suo, resta. E' esattamente quello che si vede.
+ *
+ * Qui il velo diventa un ::before: sfoca lui, e la card gli e' sorella
+ * invece che figlia. Il ridisegno del velo non puo' piu' portarsi via la
+ * finestra. */
 #dm-widget-popup{
   position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  padding:20px;
-  background:color-mix(in srgb,var(--bg-sculpted,#e6ebf1) 62%,rgba(15,23,42,.34));
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:20px;background:transparent;
   animation:dmWidgetPopupIn .2s ease-out}
-:root:is([data-theme="dark"]) #dm-widget-popup,
-html[data-theme="dark"] #dm-widget-popup{background:color-mix(in srgb,#060a14 74%,rgba(2,6,15,.9))}
+#dm-widget-popup::before{
+  content:"";position:absolute;inset:0;
+  background:color-mix(in srgb,var(--bg-sculpted,#e6ebf1) 62%,rgba(15,23,42,.34));
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+:root:is([data-theme="dark"]) #dm-widget-popup::before,
+html[data-theme="dark"] #dm-widget-popup::before{background:color-mix(in srgb,#060a14 74%,rgba(2,6,15,.9))}
 #dm-widget-popup[hidden]{display:none}
 /* Una conferma sta sopra a chi la chiede (#275).
  *
@@ -5610,6 +5688,9 @@ html.dm-widget-popup-open{overflow:hidden}
    * alta al massimo quanto lo schermo, l'intestazione sta ferma in cima e la
    * lista sotto scorre da sola. */
   display:flex;flex-direction:column;
+  /* Sopra il velo, che adesso e' un fratello posizionato: senza questo la
+   * sfocatura coprirebbe la finestra invece di starle dietro. */
+  position:relative;z-index:1;
   width:min(560px,100%);max-height:min(80dvh,760px);margin:0;
   border:1px solid var(--card-border,#e8edf3);border-radius:28px;
   background:var(--card-bg,#fff);
