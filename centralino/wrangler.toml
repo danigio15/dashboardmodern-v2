@@ -1,0 +1,22 @@
+# Il centralino della chat di assistenza. Il progetto sta in ../docs/CHAT.md,
+# le istruzioni per metterlo su in README.md.
+
+name = "centralino"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# L'archivio: due tabelle, linee e messaggi. L'identificativo lo stampa
+# `wrangler d1 create centralino` e va incollato qui — e' l'unica riga di
+# questo file che cambia da persona a persona.
+[[d1_databases]]
+binding = "DB"
+database_name = "centralino"
+database_id = "DA-INCOLLARE-DOPO-wrangler-d1-create"
+
+# Le linee ferme da sei mesi se ne vanno da sole, una volta al giorno alle 4.
+[triggers]
+crons = ["0 4 * * *"]
+
+# La chiave della console NON sta qui: sta fra i segreti, e si mette con
+#     wrangler secret put CHIAVE_CONSOLE
+# Un segreto dentro un file di configurazione e' un segreto dentro un commit.

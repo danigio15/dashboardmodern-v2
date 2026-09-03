@@ -109,22 +109,41 @@ nel codice, non un `dict` raccolto a runtime.
 L'utente vede cosa sta per partire prima di premere invio. Questo non e' un
 dettaglio di cortesia: e' la condizione perche' la cosa sia difendibile.
 
-## Perche' non c'e' un servizio di mezzo
+## Perche' la segnalazione non passa da un servizio di mezzo
 
 La prima versione di questo progetto prevedeva un relay: un piccolo servizio da
 tenere in piedi, con un database, un segreto da custodire e una superficie da
 difendere dagli abusi. Serviva a raggiungere le persone che su GitHub non
 c'erano.
 
-Quelle persone non esistono. **La plancia si scarica da HACS, e HACS un account
-GitHub lo chiede gia'** — chiede anche la stessa identica autorizzazione, il
-codice da digitare su `github.com/login/device`. Chi ha questa plancia
+Per **una segnalazione** non serve. La plancia si scarica da HACS, e HACS un
+account GitHub lo chiede gia' — chiede anche la stessa identica autorizzazione,
+il codice da digitare su `github.com/login/device`. Chi ha questa plancia
 installata quel giro l'ha gia' fatto una volta, e lo riconosce.
 
 Quindi la segnalazione va dritta dove deve andare: diventa una issue di questa
 repository, aperta a nome di chi l'ha scritta. Niente servizio, niente
 database, niente segreto, niente antispam da scrivere: quello di GitHub e' gia'
 li'. E il manutentore le riceve dove riceve tutto il resto.
+
+### Dove questo ragionamento non arriva
+
+Questa sezione, com'era scritta prima, diceva una cosa piu' larga: che un
+servizio di mezzo **non serve mai**. Era sbagliato, e l'errore era nella
+domanda.
+
+«Riusciamo a raggiungere quella persona?» — a quella, GitHub risponde bene. Ma
+la domanda che conta per chi chiede aiuto e' un'altra: **«e' giusto che una
+richiesta di aiuto diventi un cartello pubblico?»** Chi chiede aiuto incolla un
+pezzo di configurazione, il nome delle proprie entita', a volte una foto della
+propria casa; e chi guarda la plancia non e' sempre chi l'ha installata. Una
+issue e' pubblica per sempre, ed e' giusto che lo sia per un difetto — non per
+una conversazione.
+
+Percio' la chat di assistenza un servizio di mezzo ce l'ha, ed e' il
+[centralino](CHAT.md). Le due porte restano due, e ognuna fa il suo: il difetto
+e l'idea diventano una issue, la richiesta di aiuto resta una conversazione
+privata.
 
 ## Il giro dell'autorizzazione
 
