@@ -4,7 +4,18 @@ La buca delle lettere fra la casa di chi chiede aiuto e chi mantiene la
 plancia. Un Worker e un database, e niente altro. Il perche' e la forma stanno
 in [`../docs/CHAT.md`](../docs/CHAT.md); qui c'e' solo come si mette su.
 
-## Metterlo su, la prima volta
+## Due strade, stesso risultato
+
+Il centralino finisce comunque sui server di Cloudflare: quello che cambia e'
+solo da dove si premono i pulsanti.
+
+* **Dal browser**, sul sito di Cloudflare: nessun programma da installare,
+  nessun comando da digitare. Sta [piu' sotto](#la-stessa-cosa-dal-browser-senza-installare-niente),
+  ed e' la strada da prendere se `node --version` non risponde niente.
+* **Dal terminale**, con `wrangler`: qui sotto. Piu' rapida, ma vuole Node
+  installato sul computer da cui si parte.
+
+## Metterlo su dal terminale
 
 Serve un account Cloudflare. La fascia gratuita basta e avanza: 100.000
 richieste al giorno, e una plancia ne fa **dodici all'ora**.
@@ -57,6 +68,78 @@ curl https://centralino.<tuo-nome>.workers.dev/salute
 `custom_components/dashboardmodern/const.py`, alla voce `CHAT_CENTRALINO`. E la
 chiave della console va nella configurazione del **tuo** Home Assistant, non in
 quella degli altri: e' la stessa che hai messo al punto 3.
+
+## La stessa cosa dal browser, senza installare niente
+
+Serve solo un account Cloudflare e questa pagina aperta di fianco. Nessun
+terminale, nessun programma da scaricare: i nomi dei pulsanti su
+`dash.cloudflare.com` cambiano ogni tanto, quindi qui sono descritti anche per
+quello che fanno.
+
+**1. L'archivio.** Barra a sinistra → **Storage & Databases** → **D1 SQL
+Database** → **Create** (o *Create database*). Nome: `centralino`. Crea.
+
+**2. Le due tabelle.** Dentro il database appena creato, linguetta **Console**
+(la casella dove si scrivono query). Apri
+[`schema.sql`](schema.sql), copia **tutto** il contenuto, incollalo nella
+casella ed esegui. Alla fine, nella linguetta **Tables**, devono comparire
+`linee` e `messaggi`.
+
+**3. Il Worker.** Barra a sinistra → **Workers & Pages** (o **Compute**) →
+**Create** → **Start with Hello World** → nome: `centralino` → **Deploy**.
+Nasce vuoto, col codice di esempio: va bene, si sostituisce dopo.
+
+Il nome decide l'indirizzo: `centralino` diventa
+`https://centralino.<tuo-nome>.workers.dev`.
+
+**4. Attaccare l'archivio al Worker.** Nel Worker → **Settings** →
+**Bindings** → **Add** → **D1 database**.
+
+* Variable name: **`DB`** — esattamente questo, in maiuscolo. E' il nome con
+  cui il codice lo cerca: sbagliarlo vuol dire un Worker che parte e non trova
+  niente.
+* Database: `centralino`.
+
+**5. La chiave della console.** Sempre in **Settings** → **Variables and
+Secrets** → **Add** → tipo **Secret**.
+
+* Nome: **`CHIAVE_CONSOLE`**
+* Valore: una stringa lunga e casuale, **solo lettere e numeri**, almeno
+  quaranta caratteri. Va bene quella che genera un gestore di password. Se
+  preferisci farla al volo: nel browser premi `F12`, linguetta **Console**,
+  incolla questa riga e premi Invio —
+
+  ```js
+  [...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,"0")).join("")
+  ```
+
+  Stampa 64 caratteri: quelli.
+
+**Copiala e tienila da parte: serve due volte** — qui, e nelle opzioni della
+plancia sul tuo Home Assistant. Dopo il salvataggio Cloudflare non la mostra
+piu'.
+
+**6. Il codice.** Nel Worker → **Edit code** (o *Quick edit*). Cancella tutto
+quello che c'e' nell'editor, apri [`src/index.js`](src/index.js), copia tutto,
+incolla, e premi **Deploy**.
+
+**7. La pulizia automatica.** **Settings** → **Triggers** (o *Trigger Events*)
+→ **Cron Triggers** → **Add** → `0 4 * * *`. E' il giro che cancella le linee
+ferme da sei mesi. Si puo' anche saltare: senza, quelle linee restano.
+
+**8. La prova.** Apri in una scheda del browser:
+
+```
+https://centralino.<tuo-nome>.workers.dev/salute
+```
+
+Deve rispondere `{"vivo":true}`. Se risponde quello, il centralino c'e'.
+
+**9. Le due cose che restano.** L'indirizzo del punto 8 va scritto in
+`custom_components/dashboardmodern/const.py`, alla voce `CHAT_CENTRALINO`; la
+chiave del punto 5 va nelle opzioni del **tuo** Home Assistant, in
+*Impostazioni → Dispositivi e servizi → DashboardModern → Configura →*
+«Chiave della console assistenza».
 
 ## Prima di aprirlo al mondo
 
