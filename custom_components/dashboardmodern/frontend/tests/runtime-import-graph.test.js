@@ -609,8 +609,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scegliere il posto» (#266). Web Mercator, e null'altro: da un punto e da
   // un raggio escono lo zoom e i quadratini. Sta nel nucleo perche' e'
   // aritmetica, e l'aritmetica si prova senza rete.
+  // 209 col giudizio sul contenuto delle sezioni
+  // (`core/contenuto-delle-sezioni.js`): «tutte le sezioni devono nascere come
+  // nascoste, solo se si inserisce entita' in una sezione diventa visibile».
+  // Cosa riempie una sezione lo dicono in due — chi la accende e chi la spegne
+  // — e due elenchi che rispondono alla stessa domanda prima o poi rispondono
+  // in modo diverso: allora una sezione configurata sparisce. Sta nel nucleo
+  // perche' e' una lettura del magazzino e null'altro, e si prova su un
+  // magazzino finto.
   assert.ok(
-    relative.length <= 208,
+    relative.length <= 209,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

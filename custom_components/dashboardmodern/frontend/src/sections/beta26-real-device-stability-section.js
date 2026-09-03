@@ -5,6 +5,11 @@ import { applianceArtwork } from "../core/appliance-artwork.js";
 import { TAB_SECTION_KEYS, activeTab as schedaAttiva } from "./config-uniformity-section.js";
 import { canonicalApplianceVisualKey } from "../core/device-model.js";
 import {
+  contenutoDelleSezioni,
+  sezioniGovernate,
+} from "../core/contenuto-delle-sezioni.js";
+import { sectionForEditorSlot } from "../core/editor-slots.js";
+import {
   renderBeta25TemperatureCards,
   temperatureEntries,
 } from "./beta25-real-device-fixes-section.js";
@@ -461,53 +466,63 @@ export function rememberManualVisibility(key) {
   return true;
 }
 
+/* Il magazzino visto da qui.
+ *
+ * `readJson` restituisce il ripiego quando il valore non e' JSON, e una delle
+ * chiavi che contano — la foto dell'auto — e' una stringa e basta: senza
+ * questa riga la sezione Auto risultava vuota a chi ha solo caricato la foto. */
+function magazzino(chiave) {
+  const grezzo = root.localStorage?.getItem?.(chiave);
+  if (grezzo === null || grezzo === undefined || grezzo === "") return null;
+  try {
+    return JSON.parse(grezzo);
+  } catch (_error) {
+    return grezzo;
+  }
+}
+
+/* Le sezioni che hanno qualcosa dentro. Il giudizio sta tutto in
+ * `core/contenuto-delle-sezioni.js`; qui si aggiunge la sola cosa che quella
+ * regola non governa, e cioe' la Home — che non si spegne mai, ma si accende
+ * quando ci si mette qualcosa. */
 export function legacyVisibilityTargets() {
-  const targets = new Set();
-  if (listConfigured("cd_stanze", (room) => Boolean(clean(room?.temp) || clean(room?.hum))))
-    targets.add("temp");
-  if (listConfigured("cd_cameras")) targets.add("security");
-  if (objectHasValues("cd_luci")) targets.add("home");
-  if (listConfigured("cd_appliances")) targets.add("appliances");
-  if (listConfigured("cd_clima_units")) targets.add("clima");
-  if (listConfigured("cd_tapparelle")) targets.add("tapparelle");
-  if (listConfigured("cd_piscina") || objectHasValues("cd_piscina")) targets.add("piscina");
-  if (listConfigured("cd_irrigazione") || objectHasValues("cd_irrigazione"))
-    targets.add("irrigazione");
-  if (
-    listConfigured("cd_loads") ||
-    objectHasValues("cd_energy_model") ||
-    objectHasValues("cd_flow_nodes") ||
-    objectHasValues("cd_subloads_extra")
-  )
-    targets.add("energy");
-  if (listConfigured("cd_ev_cars") || clean(root.localStorage?.getItem?.("cd_ev_image")))
-    targets.add("ev");
+  const { piene } = contenutoDelleSezioni(magazzino);
+  const targets = new Set(piene);
 
-  /* Le sezioni nate dai moduli — Stanze, Luci, Prese, Aspirapolvere — hanno
-   * la stessa regola delle undici del guscio: contano come configurate se
-   * hanno qualcosa da mostrare. Una stanza e' una riga qualsiasi (puo' vivere
-   * di solo nome e icona, senza entita'). */
-  const unaRiga = (row) => Boolean(row);
-  if (listConfigured("cd_stanze", unaRiga)) targets.add("stanze");
-  if (objectHasValues("cd_luci")) targets.add("luci");
-  if (listConfigured("cd_prese", unaRiga)) targets.add("prese");
-  if (listConfigured("cd_robot", unaRiga)) targets.add("robot");
+  const luci = magazzino("cd_luci");
+  if (luci && typeof luci === "object" && Object.keys(luci).length) targets.add("home");
 
-  const overrides = readJson("cd_entity_overrides", {});
-  for (const [slot, value] of Object.entries(overrides || {})) {
+  /* Una casella dell'editor che non appartiene a nessuna sezione disegnata sta
+   * in Home: e' li' che il guscio mette quello che non ha una pagina sua. */
+  const caselle = magazzino("cd_entity_overrides");
+  for (const [slot, value] of Object.entries(caselle || {})) {
     if (!clean(value).includes(".")) continue;
-    const token = clean(slot).toLowerCase();
-    if (/boiler|solare_term|solar_thermal/.test(token)) targets.add("boiler");
-    else if (/ev|wallbox|auto/.test(token)) targets.add("ev");
-    else if (/camera|alarm|security|sicurezza/.test(token)) targets.add("security");
-    else if (/clima|climate|thermostat|termo/.test(token)) targets.add("clima");
-    else if (/temp|humid/.test(token)) targets.add("temp");
-    else if (/server|minipc|cpu|ram|disk/.test(token)) targets.add("server");
-    else if (/grid|rete|solar|fv|battery|batt|energy|energia|house|casa/.test(token))
-      targets.add("energy");
-    else targets.add("home");
+    if (!sectionForEditorSlot(String(slot))) targets.add("home");
   }
   return [...targets];
+}
+
+/* Una sezione vuota non sta nella barra.
+ *
+ * «tutte le sezioni devono nascere come nascoste, solo se si inserisce entita'
+ * in una sezione diventa visibile.» Il verso dell'accensione c'era gia'; questo
+ * e' l'altro, e ha due freni.
+ *
+ * Il primo: **su un magazzino che sembra vuoto non si spegne niente.** Se
+ * nessuna delle sezioni governate ha contenuto, o siamo su una plancia appena
+ * installata — e li' ha gia' fatto tutto la semina del guscio, che le nasce
+ * spente — oppure la configurazione condivisa non e' ancora arrivata da Home
+ * Assistant. Nel secondo caso spegnere vorrebbe dire scrivere «tutto nascosto»
+ * nella configurazione di tutti i dispositivi, per un magazzino che di li' a
+ * un secondo si riempie. Non si spegne: al massimo si perde un giro.
+ *
+ * Il secondo: **una scelta fatta a mano non si tocca.** Chi ha premuto la
+ * fascia verde su una sezione ha detto la sua, e questa regola non risponde. */
+function sezioniDaSpegnere() {
+  const { piene, vuote } = contenutoDelleSezioni(magazzino);
+  if (!piene.size) return [];
+  const manual = manualVisibilityChoices();
+  return [...vuote].filter((chiave) => manual[chiave] !== true);
 }
 
 /* La chiave di sezione della scheda aperta adesso, se ne governa una.
@@ -545,6 +560,16 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true, es
     next[key] = true;
     changed = true;
   }
+  /* E l'altro verso: quella che non ha niente dentro esce dalla barra. La
+   * sezione appena salvata non si spegne mai in questo giro — salvare e'
+   * esprimersi, e la scheda puo' aver scritto in un posto che questa regola
+   * legge un istante dopo. */
+  for (const key of sezioniDaSpegnere()) {
+    if (key === espressa) continue;
+    if (next[key] === false) continue;
+    next[key] = false;
+    changed = true;
+  }
   if (changed) {
     writeJsonIfChanged("cd_sections", next, { sync });
     root.cdApplyNavVis?.();
@@ -553,14 +578,18 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true, es
   return changed;
 }
 
-/* L'esordio delle quattro sezioni dei moduli, speculare a `cdSecBoot`: il
- * guscio semina le sue undici voci — mai decisa e senza contenuto = spenta —
- * ma quelle nate dai moduli (Stanze, Luci, Prese, Aspirapolvere) non le
- * conosce. Senza questa semina, dopo un reset totale la barra le teneva
- * accese su una plancia completamente vuota. Semina e basta: le voci gia'
- * decise — a mano o da un giro precedente — non si toccano, e accendere le
- * sezioni configurate resta il mestiere della riparazione qui sopra, che
- * corre al salvataggio e non all'avvio. */
+/* L'esordio: ogni sezione nasce spenta se non ha niente dentro.
+ *
+ * Il guscio semina le sue undici voci, ma quelle nate dai moduli (Stanze,
+ * Luci, Prese, Aspirapolvere) non le conosce: senza questa semina, dopo un
+ * reset totale la barra le teneva accese su una plancia completamente vuota.
+ * Adesso la semina copre tutte le sezioni governate, le undici comprese: se il
+ * guscio le ha gia' scritte non cambia niente, e se un domani ne aggiunge una
+ * che il guscio non conosce nasce spenta come tutte le altre.
+ *
+ * Semina e basta: una voce gia' scritta — a mano o da un giro precedente — non
+ * si tocca. Accenderla e spegnerla al cambio di contenuto e' il mestiere della
+ * riparazione qui sopra. */
 export function seedModernSectionVisibility() {
   const visibility = readJson("cd_sections", {});
   const next = visibility && typeof visibility === "object" && !Array.isArray(visibility)
@@ -568,7 +597,7 @@ export function seedModernSectionVisibility() {
     : {};
   const targets = legacyVisibilityTargets();
   let changed = false;
-  for (const key of ["stanze", "luci", "prese", "robot"]) {
+  for (const key of sezioniGovernate()) {
     if (key in next) continue;
     next[key] = targets.includes(key);
     changed = true;
@@ -1380,8 +1409,21 @@ export function installBeta26RealDeviceStability() {
   root.setTimeout?.(() => {
     try {
       seedModernSectionVisibility();
+      /* Le sezioni svuotate — o accese da una versione che accendeva tutto —
+       * escono dalla barra qui: la semina guarda solo le chiavi che ancora non
+       * esistono, e da sola non le avrebbe mai riguardate. */
+      ensureConfiguredSectionsVisible({ render: false });
     } catch (_error) {}
   }, 400);
+  /* La configurazione condivisa arriva da Home Assistant dopo l'avvio: prima
+   * che arrivi il magazzino e' vuoto e la regola sta ferma di proposito. Al
+   * suo arrivo si guarda di nuovo, adesso che c'e' qualcosa da guardare. */
+  root.addEventListener?.("dashboardmodern:persistence-restored", () => {
+    try {
+      seedModernSectionVisibility();
+      ensureConfiguredSectionsVisible({ render: false });
+    } catch (_error) {}
+  });
   state.installed = true;
   return true;
 }
