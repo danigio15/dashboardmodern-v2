@@ -623,8 +623,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // sola». La regola è una sola perché è la terza volta che serve — impianti
   // dell'energia, impianti solari, aree d'allarme — e tre copie sono tre
   // occasioni di rispondere diverso.
+  // 215 con l'adattamento allo schermo (`core/fondo-di-sistema.js`, #249: le
+  // zone sicure non esistono dentro una cornice, e il numero si va a prendere
+  // dove esiste) e con l'orologio (`sections/orologio-section.js`, #272:
+  // «sarebbe carino avere l'orologio, magari vicino al meteo»).
   assert.ok(
-    relative.length <= 213,
+    relative.length <= 215,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

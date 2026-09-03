@@ -30,26 +30,35 @@ header.dm-testata-col-meteo .header-left-wrap{flex:0 0 auto;min-width:0}
    E staccata dal nome della casa: appiccicata sembrava una parte del nome,
    non un'altra cosa. Il margine cresce con la finestra — su uno schermo largo
    lo spazio c'e', e due blocchi lontani si leggono come due blocchi. */
-header.dm-testata-col-meteo .weather-widget{
-  flex:0 1 auto;min-width:0;order:0;
-  margin:0 0 0 clamp(18px,4.5vw,72px);padding:8px 14px;border-radius:20px;gap:12px;
-  box-shadow:none;background:var(--surface-2,#f8fafc);
-  border:1px solid var(--card-border,#e8edf3);
+/* Il nome della casa si prende la sua riga, e il riquadro va a capo sotto:
+   e' quello che vuol dire «passa il titolo e sotto fai la riga». */
+header.dm-testata-col-meteo{flex-wrap:wrap;row-gap:8px}
+header.dm-testata-col-meteo .dm-testata-riga{
+  flex:1 1 100%;order:9;display:flex;align-items:center;gap:10px;min-width:0;
+  padding:6px 12px;border-radius:16px;
+  background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e8edf3);
   transition:border-color .2s ease,background .2s ease}
-header.dm-testata-col-meteo .weather-widget:hover{
-  transform:none;box-shadow:none;
+header.dm-testata-col-meteo .dm-testata-riga:hover{
   border-color:color-mix(in srgb,var(--accent,#0ea5e9) 38%,var(--card-border,#e8edf3));
   background:color-mix(in srgb,var(--accent,#0ea5e9) 6%,var(--surface-2,#f8fafc))}
+/* Dentro il riquadro non ci sono altri riquadri: il bordo e il fondo sono del
+   riquadro, e il meteo ci sta dentro nudo. */
+header.dm-testata-col-meteo .weather-widget{
+  flex:1 1 auto;min-width:0;order:0;
+  margin:0;padding:0;border:0;border-radius:0;background:none;gap:10px;
+  box-shadow:none}
+header.dm-testata-col-meteo .weather-widget:hover{
+  transform:none;box-shadow:none;background:none}
 /* Il cerchio che ruotava dietro la card aveva trecento pixel di diametro:
    dentro una fascia alta sessanta e' solo una macchia. */
 header.dm-testata-col-meteo .weather-widget::before{display:none}
 header.dm-testata-col-meteo .w-left{gap:11px;flex:0 1 auto;min-width:0}
-header.dm-testata-col-meteo .w-icon{font-size:30px;animation:none;filter:none}
+header.dm-testata-col-meteo .w-icon{font-size:22px;animation:none;filter:none}
 /* Temperatura e cielo su una riga sola: in colonna la fascia cresceva in
    altezza, che e' esattamente quello che si voleva togliere. */
 header.dm-testata-col-meteo .w-temp-wrap{
   flex-direction:row;align-items:baseline;gap:9px;min-width:0}
-header.dm-testata-col-meteo .w-temp{font-size:26px}
+header.dm-testata-col-meteo .w-temp{font-size:19px}
 header.dm-testata-col-meteo .w-state{
   margin-top:0;font-size:10.5px;letter-spacing:1px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -60,7 +69,7 @@ header.dm-testata-col-meteo .w-right{
   flex-direction:row;align-items:center;gap:6px;flex-wrap:wrap;
   justify-content:flex-start}
 header.dm-testata-col-meteo .w-detail{
-  padding:5px 10px;font-size:11px;gap:5px;box-shadow:none;
+  padding:3px 8px;font-size:10.5px;gap:4px;box-shadow:none;
   background:var(--card-bg,#fff);border-color:var(--card-border,#e8edf3)}
 /* La percepita non si nasconde mai.
  *
@@ -80,7 +89,7 @@ header.dm-testata-col-meteo .w-detail{
  * meta' in larghezza e non costa niente in altezza, perche' la fascia e' gia'
  * alta quanto il tasto del menu. */
 @media(max-width:768px){
-  header.dm-testata-col-meteo{flex-wrap:nowrap;gap:7px;padding:10px 12px;text-align:left}
+  header.dm-testata-col-meteo{flex-wrap:wrap;gap:7px;row-gap:6px;padding:10px 12px;text-align:left}
   header.dm-testata-col-meteo .header-left-wrap{flex:1 1 auto;min-width:0;gap:7px}
   header.dm-testata-col-meteo .ha-menu-btn{
     flex:0 0 auto;width:34px;height:34px;padding:0;border-radius:12px}
@@ -96,9 +105,10 @@ header.dm-testata-col-meteo .w-detail{
      lo si lascia decidere, si misura come se le sue righe stessero tutte su
      una — e si prendeva duecento pixel per starne su due da centotrenta,
      lasciando al nome della casa lo spazio per «SM…». */
+  header.dm-testata-col-meteo .dm-testata-riga{padding:5px 10px;gap:8px}
   header.dm-testata-col-meteo .weather-widget{
-    flex:0 0 auto;max-width:138px;flex-wrap:wrap;row-gap:0;column-gap:6px;
-    margin:0;padding:4px 9px;border-radius:14px}
+    flex:1 1 auto;min-width:0;flex-wrap:wrap;row-gap:0;column-gap:6px;
+    margin:0;padding:0;border:0}
   header.dm-testata-col-meteo .w-left{flex:1 0 100%;gap:5px}
   header.dm-testata-col-meteo .w-icon{font-size:18px}
   header.dm-testata-col-meteo .w-temp{font-size:15px}
@@ -209,23 +219,44 @@ function avvolgiLeParole(meteo) {
 }
 
 /** Porta la striscia del meteo dentro l'intestazione, dopo il nome della casa. */
+/* Il riquadro sotto il titolo.
+ *
+ * «Passa il titolo dashboard e sotto fai la riga con meteo e orologio, ma
+ * devono stare nello stesso quadrato e non deve essere grande.»
+ *
+ * Prima erano due pastiglie in fila accanto al nome della casa, ognuna col suo
+ * bordo: due cornici per due cose che si guardano insieme. Adesso il nome sta
+ * sulla sua riga e sotto c'è UN riquadro, che è questo — il bordo e il fondo
+ * sono suoi, e quello che ci sta dentro non ne ha più. Chi ci si mette dentro
+ * lo chiede qui: averne due che se lo disegnano vorrebbe dire due riquadri
+ * sovrapposti al primo giro storto. */
+export function rigaDellaTestata() {
+  const header = testata();
+  if (!header) return null;
+  let riga = header.querySelector(":scope > .dm-testata-riga");
+  if (riga) return riga;
+  riga = doc.createElement("div");
+  riga.className = "dm-testata-riga";
+  const nome = header.querySelector(".header-left-wrap");
+  if (nome) nome.after(riga);
+  else header.append(riga);
+  return riga;
+}
+
 function sposta() {
   const header = testata();
   const meteo = doc?.querySelector?.(".weather-widget");
   if (!header || !meteo) return false;
   avvolgiLeParole(meteo);
-  if (meteo.parentElement === header) {
-    /* Gia' al suo posto, ma la classe puo' essersi persa per strada: senza,
-     * il meteo dentro la fascia torna alla taglia da card intera — icona a
-     * settanta, temperatura a cinquantadue — e sfonda i margini («il meteo
-     * in alto si vede male»). La classe si riafferma, non si presuppone. */
-    header.classList.add("dm-testata-col-meteo");
-    return false;
-  }
-  const nome = header.querySelector(".header-left-wrap");
-  if (nome) nome.after(meteo);
-  else header.prepend(meteo);
+  const riga = rigaDellaTestata();
+  if (!riga) return false;
+  /* La classe si riafferma, non si presuppone: senza, il meteo dentro la
+   * fascia torna alla taglia da card intera — icona a settanta, temperatura a
+   * cinquantadue — e sfonda i margini. */
   header.classList.add("dm-testata-col-meteo");
+  if (meteo.parentElement === riga) return false;
+  /* Primo nel riquadro: il meteo prima, l'ora dopo. */
+  riga.prepend(meteo);
   return true;
 }
 

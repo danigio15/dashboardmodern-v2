@@ -45,6 +45,7 @@ import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
 import { installTelecameraRtsp } from "./telecamera-rtsp-section.js";
 import { installCentraliAllarmeEditor } from "./centrali-allarme-editor-section.js";
+import { installOrologio } from "./orologio-section.js";
 import { installTelecameraVivo } from "./telecamera-vivo-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
@@ -823,6 +824,7 @@ export function installSectionRuntime() {
     installTelecameraRtsp();
     installTelecameraVivo();
     installCentraliAllarmeEditor();
+    installOrologio();
     /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();

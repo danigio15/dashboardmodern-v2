@@ -13,6 +13,7 @@
 export default Object.freeze({
   openings: "개",
   Openers: "열기",
+  "Time and date": "시각과 날짜",
   "Alarm · Cameras": "경보 · 카메라",
   "1 opening": "1개",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":

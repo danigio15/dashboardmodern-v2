@@ -13,6 +13,7 @@
 export default Object.freeze({
   openings: "ouvertures",
   Openers: "Ouvertures",
+  "Time and date": "Heure et date",
   "Alarm · Cameras": "Alarme · Caméras",
   "1 opening": "1 ouverture",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":

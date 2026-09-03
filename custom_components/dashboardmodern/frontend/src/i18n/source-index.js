@@ -1573,6 +1573,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Operaio": "Worker",
   "Oppure scrivi un'emoji qui sotto — o lascia vuoto per le iniziali del nome.": "Or type an emoji below — or leave it empty for the initials of the name.",
   "oppure, da un servizio di tessere": "or, from a tile service",
+  "Ora e data": "Time and date",
   "Ore automatiche (temperatura / 2)": "Automatic hours (temperature / 2)",
   "Ore di filtrazione": "Filtration hours",
   "OSO": "WSW",

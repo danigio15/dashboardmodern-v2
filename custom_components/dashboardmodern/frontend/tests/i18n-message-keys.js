@@ -2165,6 +2165,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Tick the lights this popup should show.",
   "Tick this if the mains field is a power-failure sensor: on when the power is OUT.",
   "Tick what you actually have: the page shows only that, and with two or three the tabs appear at the top to switch between them.",
+  "Time and date",
   "Time left",
   "TIME REMAINING",
   "Time to home",

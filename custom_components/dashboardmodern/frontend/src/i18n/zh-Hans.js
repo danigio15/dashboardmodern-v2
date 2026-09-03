@@ -13,6 +13,7 @@
 export default Object.freeze({
   openings: "处",
   Openers: "开门",
+  "Time and date": "时间和日期",
   "Alarm · Cameras": "报警 · 摄像头",
   "1 opening": "1 处",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
