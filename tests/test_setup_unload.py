@@ -97,6 +97,7 @@ async def test_admin_only_option_hides_the_panel(
         update: bool,
         asset_version: str,
         static_url_path: str,
+        variants: list[str] | None = None,
     ) -> None:
         captured["admin_only"] = bool(entry.options.get(OPTION_ADMIN_ONLY, False))
 
@@ -153,3 +154,60 @@ async def test_multiple_plance_have_own_paths(hass: HomeAssistant) -> None:
     assert cfg["entry_ids"] == ["entry-b"]
     assert cfg["instance_id"] == "entry-b"
     assert cfg["primary"] is False
+
+
+@pytest.mark.asyncio
+async def test_unload_scarica_la_piattaforma_solo_da_chi_l_ha_montata(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L'erede della primaria non ha mai montato l'avviso di aggiornamento.
+
+    Quando la primaria veniva tolta, l'erede ripartiva scoprendosi primaria e
+    allo scarico chiedeva di smontare una piattaforma mai montata: Home
+    Assistant rispondeva «Config entry was never loaded!» nel registro.
+    """
+    import custom_components.dashboardmodern.frontend as frontend_module
+    from custom_components.dashboardmodern import DATA_UPDATE_ENTRY
+
+    async def fake_unregister(_hass: HomeAssistant, _entry_id: str) -> None:
+        return None
+
+    monkeypatch.setattr(
+        frontend_module, "async_unregister_frontend_entry", fake_unregister
+    )
+    scaricate: list[str] = []
+
+    async def fake_unload(entry: MockConfigEntry, _platforms: list[str]) -> bool:
+        scaricate.append(entry.entry_id)
+        return True
+
+    monkeypatch.setattr(hass.config_entries, "async_unload_platforms", fake_unload)
+
+    entry = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    entry.add_to_hass(hass)
+    # Primaria per identificativo, ma la piattaforma non l'ha montata nessuno.
+    assert await async_unload_entry(hass, entry) is True
+    assert scaricate == []
+
+    # Chi l'ha montata la scarica, e il segno se ne va con lei.
+    hass.data.setdefault(DOMAIN, {})[DATA_UPDATE_ENTRY] = "entry-1"
+    assert await async_unload_entry(hass, entry) is True
+    assert scaricate == ["entry-1"]
+    assert DATA_UPDATE_ENTRY not in hass.data[DOMAIN]
+
+
+@pytest.mark.asyncio
+async def test_le_plance_legacy_si_leggono_fuori_dal_loop(hass: HomeAssistant) -> None:
+    """`is_dir` e `glob` sono disco: si leggono nell'executor e si passano giu'."""
+    import inspect
+
+    from custom_components.dashboardmodern import frontend as frontend_module
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, entry_id="entry-a", title="Casa", data={"primary": True}
+    )
+    entry.add_to_hass(hass)
+    cfg = frontend_module._panel_config(hass, entry, variants=["dashboard.html"])
+    assert cfg["legacy_variants"] == ["dashboard.html"]
+    sorgente = inspect.getsource(frontend_module)
+    assert "variants = await hass.async_add_executor_job(legacy_variants)" in sorgente

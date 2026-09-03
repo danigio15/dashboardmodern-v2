@@ -171,7 +171,14 @@ class ChatStore:
         arriva a chi risponde come una persona nuova, e la conversazione
         ripartirebbe da capo senza che nessuno l'abbia chiesto. Chi vuole
         sparire davvero passa dal centralino, e quel giro cancella tutti e due.
+
+        Una copia gia' vuota non si riscrive: il giro dei quindici secondi
+        passa di qui a ogni battito per una linea che non c'e' piu', e una
+        scrittura su disco per dire «niente» quattro volte al minuto e' il
+        modo di consumare la scheda di un Raspberry.
         """
+        if not self._dati.get("messaggi") and not self._dati.get("letto"):
+            return
         self._dati["messaggi"] = []
         self._dati["letto"] = 0
         await self._async_salva()
@@ -193,8 +200,17 @@ class ChatStore:
         ]
 
     async def async_letto(self) -> None:
-        """Aprire la chat e' averla letta."""
-        self._dati["letto"] = self.ultimo()
+        """Aprire la chat e' averla letta.
+
+        Si scrive su disco solo se il segnalibro si e' mosso davvero. La
+        finestra aperta rilegge ogni quindici secondi, e quasi sempre non e'
+        arrivato niente: salvare lo stesso voleva dire una scrittura ogni
+        battito per dire quello che c'era gia' scritto.
+        """
+        ultimo = self.ultimo()
+        if int(self._dati.get("letto") or 0) == ultimo:
+            return
+        self._dati["letto"] = ultimo
         await self._async_salva()
 
 

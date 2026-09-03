@@ -271,3 +271,31 @@ test("la semina non ridecide una voce già scritta", () =>
     seedModernSectionVisibility();
     assert.equal(leggi().piscina, true);
   }));
+
+test("un'entita' aggiunta a mano riempie la sua sezione", () => {
+  /* «Le entita' che uno si aggiunge dove vuole» stanno in una chiave sola,
+   * con dentro la sezione. Senza guardarla, una sezione che vive solo di
+   * quelle risultava vuota: al salvataggio dell'entita' appena aggiunta la
+   * scheda spariva dalla barra — proprio quella dove la si era messa. */
+  const { piene, vuote } = contenutoDelleSezioni(
+    magazzino({ cd_entita_mie: [{ entity: "sensor.nas_temp", sezione: "server" }] }),
+  );
+  assert.ok(piene.has("server"));
+  assert.ok(!vuote.has("server"));
+  /* Una sezione che questa regola non governa non si inventa. */
+  const altra = contenutoDelleSezioni(
+    magazzino({ cd_entita_mie: [{ entity: "sensor.x", sezione: "agenda" }] }),
+  );
+  assert.ok(!altra.piene.has("agenda"));
+});
+
+test("le porte non tengono in barra la scheda Sicurezza", () => {
+  /* Dalla 1.4.5 le porte si disegnano nella loro pagina, che si accende e si
+   * spegne da sola: contarle ancora come contenuto di Sicurezza teneva in
+   * barra una scheda vuota a chi ha solo le porte. */
+  assert.ok(!MAGAZZINO_DELLE_SEZIONI.security.chiavi.includes("cd_security_doors"));
+  const { piene } = contenutoDelleSezioni(
+    magazzino({ cd_security_doors: [{ name: "Porta", entity: "binary_sensor.porta" }] }),
+  );
+  assert.ok(!piene.has("security"));
+});

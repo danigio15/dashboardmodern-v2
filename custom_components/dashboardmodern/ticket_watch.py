@@ -300,6 +300,32 @@ class TicketWatch:
         self._sfoltisci()
         await self._async_save()
 
+    def conosce(self, number: int) -> bool:
+        """Se il taccuino ha un segno per questa segnalazione.
+
+        Serve a chi sta per scrivere: alzare il segno di uno ha senso solo
+        partendo da un conto vero. Partire da zero per una issue che ne ha
+        cinque avrebbe detto «uno», e al giro dopo gli altri quattro sarebbero
+        suonati come messaggi nuovi — per la propria risposta.
+        """
+        return str(int(number)) in self._seen()
+
+    async def async_vista(self, number: int, quanti: int) -> None:
+        """Prendi nota di dove sta una segnalazione, senza suonare.
+
+        E' il gesto di chi sa gia' cosa c'e' sotto: chi l'ha appena aperta da
+        qui (zero commenti, e sono i suoi), chi ha appena letto il filo
+        intero, chi ha appena risposto e ha chiesto il conto. Da questo
+        segno in poi suona solo quello che arriva dopo.
+        """
+        numero = str(int(number))
+        seen = self._seen()
+        if seen.get(numero) == int(quanti):
+            return
+        seen[numero] = int(quanti)
+        self._sfoltisci()
+        await self._async_save()
+
     def _sfoltisci(self) -> None:
         """Tieni il taccuino sotto il tetto: restano i numeri piu' alti."""
         seen = self._seen()

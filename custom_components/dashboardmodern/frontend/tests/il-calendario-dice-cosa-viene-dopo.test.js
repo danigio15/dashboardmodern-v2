@@ -22,12 +22,14 @@ import {
   chiaveDelGiorno,
   etichettaDelGiorno,
   eventiDaQui,
+  giornoPiu,
   inCorso,
   isCalendarEntity,
   istanteDi,
   minutiAllEvento,
   normalizzaCalendari,
   oraDellEvento,
+  orarioDi,
   PAROLE_CALENDARIO,
   ordinaEventi,
   parseCalendarEventsResponse,
@@ -942,4 +944,51 @@ test("la tessera e la pagina chiamano le liste e i calendari per nome", async ()
   );
   assert.doesNotMatch(pagina, /clean\(voce\.name\) \|\| voce\.entity/);
   assert.match(pagina, /nomeDellEntita\(voce\.entity, voce\.name\)/);
+});
+
+test("«Domani» resta domani anche nel giorno del cambio d'ora", () => {
+  /* La tessera era gia' stata corretta; l'etichetta dei gruppi e la striscia
+   * dei sette giorni sommavano ancora ventiquattro ore. Nel giorno che ne dura
+   * venticinque «Domani» si chiamava con la sua data e la striscia mostrava
+   * oggi due volte; in quello che ne dura ventitre' domani si saltava. */
+  const prima = process.env.TZ;
+  process.env.TZ = "America/New_York";
+  try {
+    // 2026-11-01 00:30 ora legale della costa est: quel giorno dura 25 ore.
+    const mezzanotteEMezza = Date.parse("2026-11-01T04:30:00Z");
+    assert.equal(etichettaDelGiorno("2026-11-02", mezzanotteEMezza), "Domani");
+    const striscia = Array.from({ length: 7 }, (_, passo) =>
+      chiaveDelGiorno(giornoPiu(mezzanotteEMezza, passo)),
+    );
+    assert.deepEqual(striscia, [
+      "2026-11-01",
+      "2026-11-02",
+      "2026-11-03",
+      "2026-11-04",
+      "2026-11-05",
+      "2026-11-06",
+      "2026-11-07",
+    ]);
+    // 2026-03-07 23:30: la notte dopo l'ora salta avanti, e domani e' l'8.
+    const primaDelSalto = Date.parse("2026-03-08T04:30:00Z");
+    assert.equal(chiaveDelGiorno(giornoPiu(primaDelSalto, 1)), "2026-03-08");
+  } finally {
+    if (prima === undefined) delete process.env.TZ;
+    else process.env.TZ = prima;
+  }
+});
+
+test("l'ora d'inizio in inglese tiene il PM", async () => {
+  /* La didascalia della Home tagliava l'intervallo al primo spazio: in
+   * inglese «02:30 PM – 03:30 PM» diventava «02:30», e le due e mezza del
+   * pomeriggio si leggevano come le due di notte. */
+  const dueEMezza = new Date(2026, 8, 1, 14, 30).getTime();
+  assert.equal(orarioDi(dueEMezza, "en-US"), "02:30 PM");
+  assert.equal(orarioDi(dueEMezza, "it-IT"), "14:30");
+  const sorgente = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(sorgente, /oraDellEvento\([^)]*\)\.split\(/);
+  assert.match(sorgente, /orarioDi\(evento\.inizio, lingua\)/);
 });

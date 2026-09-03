@@ -721,3 +721,32 @@ async def test_senza_centralino_la_porta_non_si_disegna(
     assert chat.accesa(hass) is False
     stato = await chat.async_stato(hass)
     assert stato["enabled"] is False
+
+
+async def test_un_giro_senza_novita_non_scrive_su_disco(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """La finestra aperta rilegge ogni quindici secondi, e quasi sempre non
+    e' arrivato niente: salvare lo stesso voleva dire una scrittura su disco
+    a ogni battito per dire quello che c'era gia' scritto.
+    """
+    from unittest.mock import AsyncMock, patch
+
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    await chat.async_scrivi(hass, "una domanda")
+    store = await async_get_chat_store(hass)
+    with patch.object(store._store, "async_save", new=AsyncMock()) as salva:
+        for _ in range(4):
+            await chat.async_conversazione(hass)
+        assert salva.call_count == 0
+
+        # La conversazione sparisce dal centralino: la prima rilettura se ne
+        # accorge e butta la copia — una scrittura, e poi basta.
+        linea = (await store.async_identita())["casa"]
+        await chat.async_butta(hass, linea)
+        await chat.async_conversazione(hass)
+        assert salva.call_count == 1
+        for _ in range(3):
+            await chat.async_conversazione(hass)
+            await chat.async_guarda(hass)
+        assert salva.call_count == 1

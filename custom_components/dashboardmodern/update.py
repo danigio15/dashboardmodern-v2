@@ -193,12 +193,23 @@ def installa_da_zip(cartella: Path, dati: bytes, versione: str) -> None:
             if scarto.exists():
                 shutil.rmtree(scarto)
         nuova.mkdir()
-        archivio.extractall(nuova)
+        try:
+            archivio.extractall(nuova)
+        except Exception:
+            # Un'estrazione a meta' — disco pieno, archivio guasto — non deve
+            # lasciare dentro `custom_components` una cartella col manifest di
+            # questo stesso dominio: il caricatore di Home Assistant la
+            # vedrebbe come una seconda integrazione, e al riavvio potrebbe
+            # preferirla a quella vera, che e' sana. Via subito, e poi
+            # l'errore.
+            shutil.rmtree(nuova, ignore_errors=True)
+            raise
     cartella.rename(vecchia)
     try:
         nuova.rename(cartella)
     except OSError:
         vecchia.rename(cartella)
+        shutil.rmtree(nuova, ignore_errors=True)
         raise
     # A scambio riuscito la vecchia e' solo spazzatura: se il disco non la
     # lascia togliere adesso, l'installazione e' comunque fatta — annunciarla

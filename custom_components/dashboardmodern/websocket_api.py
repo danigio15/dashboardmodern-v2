@@ -171,6 +171,52 @@ def _deny(connection: Any, msg: dict[str, Any]) -> None:
     )
 
 
+async def _entry_for_profile(hass: HomeAssistant, profile: str) -> Any:
+    """La plancia a cui appartiene un profilo di configurazione, se c'e'.
+
+    Il profilo e' la chiave del negozio condiviso e non porta l'entry_id: si
+    risale alla plancia con la stessa mappa che assegna i profili al pannello,
+    piu' la memoria del negozio per chi ha cambiato nome nel frattempo.
+    """
+    from .frontend import _config_profile
+
+    store = await async_get_config_store(hass)
+    ricordi = store.entry_profiles()
+    for entry in _entries(hass):
+        if profile in (_config_profile(hass, entry), ricordi.get(entry.entry_id)):
+            return entry
+    return None
+
+
+async def _config_authorized(
+    hass: HomeAssistant, connection: Any, msg: dict[str, Any]
+) -> bool:
+    """Se chi chiama puo' toccare la configurazione che sta chiedendo.
+
+    Il profilo e' un campo libero, e senza entry_id `_authorized` chiedeva solo
+    «puo' usare una plancia qualsiasi?». Con due plance e due liste di utenti
+    diverse, chi era in lista sulla seconda poteva leggere — e azzerare, con
+    `reset` — la configurazione della prima chiamando questi comandi a mano.
+    Qui la domanda e' sulla plancia che quel profilo porta davvero: chi non
+    puo' usarla non la legge e non la scrive, con o senza entry_id.
+    """
+    entry_id = msg.get("entry_id")
+    if entry_id and not _authorized(hass, connection, entry_id):
+        return False
+    user = getattr(connection, "user", None)
+    if user is not None and getattr(user, "is_admin", False):
+        return True
+    entries = _entries(hass)
+    if not entries:
+        return True
+    padrona = await _entry_for_profile(hass, str(msg.get("profile") or PRIMARY_PROFILE))
+    if padrona is None:
+        # Un profilo che nessuna plancia porta non e' di nessuno: lo tocca
+        # solo l'amministratore, che e' gia' passato qui sopra.
+        return False
+    return _may_use(padrona, user)
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): TYPE_GET,
@@ -185,7 +231,7 @@ async def async_get_config(
     msg: dict[str, Any],
 ) -> None:
     """Return the shared snapshot of one plancia."""
-    if not _authorized(hass, connection, msg.get("entry_id")):
+    if not await _config_authorized(hass, connection, msg):
         _deny(connection, msg)
         return
     store = await async_get_config_store(hass)
@@ -221,7 +267,7 @@ async def async_set_config(
     msg: dict[str, Any],
 ) -> None:
     """Store a snapshot for one plancia."""
-    if not _authorized(hass, connection, msg.get("entry_id")):
+    if not await _config_authorized(hass, connection, msg):
         _deny(connection, msg)
         return
     store = await async_get_config_store(hass)
@@ -258,7 +304,7 @@ async def async_restore_config(
     msg: dict[str, Any],
 ) -> None:
     """Promote a kept revision of one plancia back to current."""
-    if not _authorized(hass, connection, msg.get("entry_id")):
+    if not await _config_authorized(hass, connection, msg):
         _deny(connection, msg)
         return
     store = await async_get_config_store(hass)
@@ -595,9 +641,14 @@ async def async_ticket_thread(
     Non e' riservato alla console. Lo apre anche chi ha segnalato, sulla sua,
     per leggere la risposta restando qui: mandarlo su github.com per leggerla
     sarebbe farlo uscire proprio dal posto che questa finestra esiste per non
-    fargli lasciare. Non c'e' niente da proteggere — la issue e' una pagina
-    pubblica, e chiunque puo' aprirla in un browser.
+    fargli lasciare. La issue e' una pagina pubblica, ma questo comando non e'
+    solo una lettura: aprire il filo toglie il segno di non letto a tutta la
+    casa. Quindi la stessa domanda degli altri comandi — chi puo' usare la
+    plancia — vale anche qui, e chi non puo' non spegne i pallini degli altri.
     """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
     try:
         filo = await async_thread(hass, _caller_id(connection), msg["number"])
     except GitHubError as errore:

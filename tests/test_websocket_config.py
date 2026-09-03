@@ -370,3 +370,64 @@ async def test_una_plancia_aperta_resta_aperta(hass: HomeAssistant) -> None:
     chiunque = StubConnection(hass, is_admin=False)
     letto = await _command(hass, chiunque, {"type": TYPE_GET}, 1)
     assert letto["snapshot"]["values"] == VALUES
+
+
+async def test_chi_e_in_lista_su_una_plancia_non_tocca_l_altra(
+    hass: HomeAssistant,
+) -> None:
+    """Il profilo e' un campo libero, e il permesso vale sulla plancia giusta.
+
+    Con due plance e due liste diverse, chi era in lista sulla seconda poteva
+    chiamare questi comandi a mano col profilo della prima — leggerla, e
+    azzerarla con `reset` — perche' bastava poter usare una plancia qualsiasi.
+    """
+    from custom_components.dashboardmodern import frontend as frontend_module
+
+    _plancia(hass, allowed_users=["user-2"])
+    mare = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="entry-2",
+        title="Mare",
+        data={"name": "Mare", "primary": False},
+        options={"allowed_users": ["user-1"]},
+    )
+    mare.add_to_hass(hass)
+    store = await async_get_config_store(hass)
+    await store.async_set(PRIMARY_PROFILE, VALUES, keys_revision=2)
+    profilo_mare = frontend_module._config_profile(hass, mare)
+    assert profilo_mare != PRIMARY_PROFILE
+
+    # `SimpleUser` e' "user-1": in lista solo sul Mare.
+    ospite = StubConnection(hass, is_admin=False)
+    codice, _ = await _errore(hass, ospite, {"type": TYPE_GET}, 1)
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+    codice, _ = await _errore(
+        hass,
+        ospite,
+        {
+            "type": TYPE_SET,
+            "reset": True,
+            "snapshot": {"values": {}, "keys_revision": 2},
+        },
+        2,
+    )
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+    codice, _ = await _errore(hass, ospite, {"type": TYPE_RESTORE, "revision": 1}, 3)
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+    # Nemmeno passando dall'identificativo della propria plancia col profilo
+    # dell'altra.
+    codice, _ = await _errore(
+        hass, ospite, {"type": TYPE_GET, "entry_id": "entry-2"}, 4
+    )
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+    stored = await store.async_get(PRIMARY_PROFILE)
+    assert stored["snapshot"]["values"] == VALUES
+
+    # La propria invece si legge, come e' sempre stato.
+    letto = await _command(
+        hass,
+        ospite,
+        {"type": TYPE_GET, "profile": profilo_mare, "entry_id": "entry-2"},
+        5,
+    )
+    assert letto["profile"] == profilo_mare
