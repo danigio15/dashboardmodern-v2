@@ -282,9 +282,7 @@ async def test_un_invio_senza_rilettura_non_scavalca_il_segnalibro(
     # L'invio riesce, la rilettura no: si rompe solo la seconda.
     vera = centralino.__call__
 
-    async def rompi_la_rilettura(
-        casa: Any, metodo: str, via: str, **resto: Any
-    ) -> Any:
+    async def rompi_la_rilettura(casa: Any, metodo: str, via: str, **resto: Any) -> Any:
         if metodo == "GET":
             raise ChatError("unreachable", "Centralino non raggiungibile.")
         return await vera(casa, metodo, via, **resto)
