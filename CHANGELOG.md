@@ -5,6 +5,45 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.5-beta.12
+
+Le sezioni vuote escono dalla barra, e il Cruscotto perde un pulsante che non
+decideva niente.
+
+### Cambiato
+
+- **Una sezione vuota non sta nella barra.** «tutte le sezioni devono nascere
+  come nascoste, solo se si inserisce entita' in una sezione diventa visibile.»
+
+  Meta' della regola c'era gia' e funzionava: alla prima accensione le voci
+  nascono spente, e salvare in una scheda riaccende la sezione in cui si e'
+  appena messo qualcosa. Mancava l'altra meta', perche' quella derivazione
+  corre **una volta sola per chiave**: una sezione svuotata restava nella barra
+  per sempre, con la sua pagina vuota dentro, e una accesa da una versione che
+  accendeva tutto pure.
+
+  Adesso cosa riempie una sezione e' scritto in un posto solo, e lo leggono
+  tutti e due i versi. Lo spegnimento ha tre freni: non tocca una chiave che
+  non sa giudicare (Home, Agenda, Continuita', Cruscotto e le sezioni che si fa
+  l'utente restano dove sono — le ultime quattro si nascondono gia' da sole, e
+  Home e' la pagina dove si atterra); non spegne niente finche' la
+  configurazione condivisa non e' arrivata da Home Assistant, perche' prima che
+  arrivi ogni sezione sembra vuota; e non torna mai su una scelta fatta a mano.
+
+  Nel farlo l'elenco di cosa conta come «configurato» e' diventato piu'
+  completo: la caldaia, le porte dell'antifurto, i programmi della lavatrice, i
+  gruppi dell'energia. Erano sezioni che si potevano riempire senza che nessuno
+  se ne accorgesse, e adesso che il verso dello spegnimento esiste non
+  accorgersene vorrebbe dire farle sparire a chi le aveva configurate.
+
+- **Il Cruscotto non ha piu' l'interruttore.** La fascia verde offre una scelta
+  fra vedere una voce e non vederla. Quella voce compare solo a chi tiene la
+  repository — «solo a me esce il cruscotto nella navbar, ad utenti normali non
+  esce e quindi quel pulsante non ha senso» — e chi la tiene la vuole: era un
+  interruttore che una persona sola al mondo poteva toccare, per spegnersi da
+  sola la pagina che aveva chiesto. Chi la fascia l'aveva gia' toccata tiene la
+  sua preferenza: nessuno si ritrova la voce riaccesa dall'aggiornamento.
+
 ## 1.4.5-beta.11
 
 Tre cose viste su un telefono, e la piu' grossa e' che il cruscotto in una casa
