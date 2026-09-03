@@ -539,6 +539,38 @@ export function segnaSoloLettura(entity, bloccata) {
   return writeJsonIfChanged(CHIAVE_SOLO_LETTURA, mappa, { sync: false });
 }
 
+/* ── salvare una riga vuol dire salvarle tutte ────────────────────────────── */
+
+/* Le schede a righe — le entita' in evidenza, le persone, i robot, le piscine,
+ * le sezioni che si fa l'utente — hanno un salvataggio per riga e, in fondo
+ * alla scheda, un unico «Salva sezione» che li preme tutti uno dopo l'altro.
+ *
+ * Preso alla lettera, un salvataggio per riga li' non funziona: il primo
+ * scrive e ridisegna la scheda, e il ridisegno stacca dal documento i bottoni
+ * che non hanno ancora avuto il loro turno — i loro tocchi cadono nel vuoto — e
+ * riscrive le caselle delle righe dopo con quello che c'e' in memoria, che e'
+ * appunto quello che non era ancora stato salvato. Da fuori si vede cosi': «la
+ * prima entita' la memorizza, dalla seconda no» (#288).
+ *
+ * Chi disegna le righe le legge quindi tutte prima di scrivere. Il gesto
+ * diventa idempotente: il primo tocco salva tutta la scheda, e quelli dopo non
+ * hanno piu' niente da aggiungere.
+ *
+ * `attributo` e' il `data-*` che porta la posizione della riga, `leggi(riga,
+ * voce)` legge una riga sola, e `tieni(bozza, voce)` — facoltativo — dice se
+ * quella bozza vale piu' di quello che c'e' gia' scritto.
+ */
+export function righeDelDocumento(body, attributo, lista, leggi, tieni) {
+  const next = Array.isArray(lista) ? lista.slice() : [];
+  for (const riga of body?.querySelectorAll?.(`[${attributo}]`) || []) {
+    const posizione = Number(riga.getAttribute(attributo));
+    if (!Number.isFinite(posizione) || !next[posizione]) continue;
+    const bozza = leggi(riga, next[posizione], posizione);
+    if (!tieni || tieni(bozza, next[posizione], posizione)) next[posizione] = bozza;
+  }
+  return next;
+}
+
 export function writeJsonIfChanged(key, value, { sync = true } = {}) {
   const serialized = JSON.stringify(value);
   if (root.localStorage?.getItem(key) === serialized) return false;

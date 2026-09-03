@@ -26,6 +26,7 @@ import {
   esc,
   installStyle,
   onEditorRedraw,
+  righeDelDocumento,
   readJson,
   root,
   t,
@@ -203,6 +204,35 @@ function stanzeDiCasa() {
   } catch (_error) {
     return [];
   }
+}
+
+/* Un'entita' scritta per intero: `dominio.nome`. E' la stessa regola che il
+ * salvataggio mostra come errore, e serve anche a decidere quali bozze delle
+ * altre righe valga la pena tenere. */
+const ENTITA_INTERA = /^[a-z_]+\.\w+$/i;
+
+/* Quello che una riga dice adesso, non quello che diceva quando la scheda e'
+ * stata disegnata. */
+function leggiEvidenza(riga, voce) {
+  const letta = { ...voce };
+  for (const campo of riga.querySelectorAll("[data-evid-field]"))
+    letta[clean(campo.dataset.evidField)] = clean(campo.value);
+  return letta;
+}
+
+/* Tutte le righe della scheda, lette dal documento prima di scrivere: e'
+ * quello che rende il salvataggio di una riga buono per tutta la scheda —
+ * vedi `righeDelDocumento`. La bozza di una riga vale se porta un'entita' intera,
+ * oppure se quella salvata era vuota: una riga appena aggiunta non deve
+ * perdere il nome appena scritto solo perche' l'entita' arriva dopo. */
+function evidenzeDalDocumento(body, voci) {
+  return righeDelDocumento(
+    body,
+    "data-evid-index",
+    voci,
+    leggiEvidenza,
+    (bozza, voce) => ENTITA_INTERA.test(bozza.entity) || !clean(voce.entity),
+  );
 }
 
 function rigaEvidenzaMarkup(voce, index) {
@@ -423,6 +453,10 @@ function onClick(event) {
     if (!Number.isFinite(index) || !voci[index]) return;
     if (event.target.closest("[data-evid-edit]")) {
       event.preventDefault();
+      /* La matita ridisegna la scheda, e il ridisegno riscrive le caselle con
+       * quello che c'e' in memoria: prima di ridisegnare, in memoria ci va
+       * quello che c'e' scritto. */
+      salvaEvidenze(evidenzeDalDocumento(body, voci));
       state.evidAperto = state.evidAperto === index ? -1 : index;
       ridisegna();
       return;
@@ -439,12 +473,13 @@ function onClick(event) {
     }
     if (event.target.closest("[data-evid-save]")) {
       event.preventDefault();
-      const next = voci.slice();
-      const letta = { ...voci[index] };
-      for (const campo of rigaEvid.querySelectorAll("[data-evid-field]"))
-        letta[clean(campo.dataset.evidField)] = clean(campo.value);
+      /* Il tasto in fondo alla scheda preme questo bottone e quelli delle
+       * altre righe, uno dopo l'altro: il primo tocco deve quindi salvare
+       * tutto quello che c'e' scritto, non solo la propria riga. */
+      const next = evidenzeDalDocumento(body, voci);
+      const letta = leggiEvidenza(rigaEvid, voci[index]);
       const errore = rigaEvid.querySelector("[data-evid-error]");
-      if (!/^[a-z_]+\.\w+$/i.test(letta.entity)) {
+      if (!ENTITA_INTERA.test(letta.entity)) {
         if (errore)
           errore.textContent = t(
             "Serve un'entità valida (dominio.nome).",
