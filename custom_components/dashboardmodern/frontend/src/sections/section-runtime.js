@@ -102,6 +102,8 @@ import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installLinguaSection } from "./lingua-section.js";
 import { installSezioniMie } from "./sezioni-mie-section.js";
 import { installSezioniMieEditor } from "./sezioni-mie-editor-section.js";
+import { installEntitaMie } from "./entita-mie-section.js";
+import { installEntitaMieEditor } from "./entita-mie-editor-section.js";
 import { installRadarMeteo } from "./radar-meteo-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
@@ -936,6 +938,10 @@ export function installSectionRuntime() {
      * per la Continuita' — la scheda chiama la pagina per ridisegnarla. */
     installSezioniMie();
     installSezioniMieEditor();
+    /* Le entita' che uno si aggiunge dove vuole (#271): il disegno prima
+     * della scheda che lo compila, come per le sezioni proprie. */
+    installEntitaMie();
+    installEntitaMieEditor();
     /* Il radar meteo dentro la finestra delle previsioni: si aggancia al
      * guscio che quella finestra la disegna gia'. */
     installRadarMeteo();

@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "ouvertures",
+  "over the limit": "au-delà de la limite",
+  "no page": "aucune page",
+  "Your own entities": "Tes entités",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "Certaines pages sont des listes — Lumières, Prises, Caméras — et là on a toujours pu ajouter une entité de plus. D'autres sont faites de cases au rôle précis : l'Énergie a un réseau et un photovoltaïque, la Sécurité une centrale d'alarme, et pour un capteur de plus il n'y avait pas de place. Ici il y en a : choisis l'entité, sur quelle page la faire apparaître, comment l'appeler et avec quelle icône. Elle apparaît en bas de la page choisie, et celles qui s'allument s'allument.",
+  "On which page": "Sur quelle page",
+  "No entities added yet.": "Aucune entité ajoutée pour l'instant.",
+  "New entity": "Nouvelle entité",
+  "Choose the page": "Choisir la page",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "Sur une page il en apparaît douze au plus : au-delà ce n'est plus « quelque chose en plus », c'est une liste — et pour cela il y a « Tes sections ».",
   "Tank": "Ballon",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Avec ça la page gagne un bouton : l'état dit si elle travaille, celui-ci la commande.",

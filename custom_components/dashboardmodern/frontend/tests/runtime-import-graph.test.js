@@ -627,8 +627,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // zone sicure non esistono dentro una cornice, e il numero si va a prendere
   // dove esiste) e con l'orologio (`sections/orologio-section.js`, #272:
   // «sarebbe carino avere l'orologio, magari vicino al meteo»).
+  // 218 con le entita' che uno si aggiunge dove vuole (`core/entita-mie.js`,
+  // `sections/entita-mie-section.js`, `sections/entita-mie-editor-section.js`,
+  // #271): «in alcune schede non e' possibile inserire entita' o sensori
+  // personalizzati... modificando il nome, icona, stanza di destinazione». La
+  // stessa forma delle sezioni proprie — modello puro, disegno, scheda — ma la
+  // scheda e' una sola per tutte le pagine: quale pagina e' un campo della
+  // voce, non una scheda in piu' per ognuna.
   assert.ok(
-    relative.length <= 215,
+    relative.length <= 218,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "открываний",
+  "over the limit": "сверх предела",
+  "no page": "без страницы",
+  "Your own entities": "Ваши сущности",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "Некоторые страницы — это списки: Свет, Розетки, Камеры, — и там всегда можно было добавить ещё одну сущность. Другие собраны из ячеек с определённой ролью: у Энергии есть сеть и солнечные панели, у Безопасности — панель охраны, и для лишнего датчика места не было. Здесь оно есть: выберите сущность, на какой странице её показывать, как её назвать и с каким значком. Она появится внизу выбранной страницы, а то, что включается, — включается.",
+  "On which page": "На какой странице",
+  "No entities added yet.": "Пока не добавлено ни одной сущности.",
+  "New entity": "Новая сущность",
+  "Choose the page": "Выберите страницу",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "На одной странице показываются не больше двенадцати: дальше это уже не «что-то ещё», а список — и для этого есть «Ваши разделы».",
   "Tank": "Бак",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "С ним на странице появляется выключатель: состояние говорит, работает ли он, а этот им командует.",

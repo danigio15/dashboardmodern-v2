@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "खोलने",
+  "over the limit": "सीमा से ऊपर",
+  "no page": "कोई पेज नहीं",
+  "Your own entities": "आपकी एंटिटीज़",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "कुछ पेज सूचियाँ हैं — रोशनी, सॉकेट, कैमरे — और वहाँ एक और एंटिटी जोड़ना हमेशा मुमकिन था। बाकी तय भूमिका वाले खानों से बने हैं: ऊर्जा में ग्रिड और सोलर है, सुरक्षा में अलार्म पैनल, और एक अतिरिक्त सेंसर के लिए जगह नहीं थी। यहाँ जगह है: एंटिटी चुनें, वह किस पेज पर दिखे, उसका नाम क्या हो और कौन-सा आइकन। यह चुने हुए पेज के नीचे दिखती है, और जो चालू होती हैं वे चालू होती हैं।",
+  "On which page": "किस पेज पर",
+  "No entities added yet.": "अभी तक कोई एंटिटी नहीं जोड़ी गई।",
+  "New entity": "नई एंटिटी",
+  "Choose the page": "पेज चुनें",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "एक पेज पर ज़्यादा से ज़्यादा बारह दिखते हैं: उससे आगे यह «कुछ और» नहीं रह जाता, वह एक सूची बन जाती है — और उसके लिए «आपके सेक्शन» हैं।",
   "Tank": "टंकी",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "इससे पेज को एक स्विच मिलता है: स्थिति बताती है कि चल रहा है या नहीं, यह उसे चलाता है।",

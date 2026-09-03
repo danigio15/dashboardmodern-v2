@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "فتحات",
+  "over the limit": "فوق الحد",
+  "no page": "بلا صفحة",
+  "Your own entities": "كياناتك",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "بعض الصفحات قوائم — الإضاءة والمقابس والكاميرات — وفيها كان يمكن دائمًا إضافة كيان آخر. وأخرى مبنية من خانات لكل منها دور محدّد: الطاقة لها شبكة وألواح شمسية، والأمن لوحة إنذار، ولم يكن هناك مكان لمستشعر إضافي. هنا يوجد مكان: اختر الكيان، وفي أي صفحة يظهر، وبأي اسم وأي أيقونة. يظهر في أسفل الصفحة التي تختارها، وما يمكن تشغيله يُشغَّل.",
+  "On which page": "في أي صفحة",
+  "No entities added yet.": "لم تُضَف أي كيانات بعد.",
+  "New entity": "كيان جديد",
+  "Choose the page": "اختر الصفحة",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "يظهر في الصفحة الواحدة اثنا عشر عنصرًا على الأكثر: وما بعد ذلك لم يعد «شيئًا إضافيًا»، بل صار قائمة — ولهذا هناك «أقسامك».",
   "Tank": "خزّان",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "بهذا تكسب الصفحة مفتاحًا: الحالة تقول إن كان يعمل، وهذا يأمره.",

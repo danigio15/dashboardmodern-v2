@@ -76,6 +76,12 @@ const USER_DATA_VERSION = 1;
  * (`cd_porte_conferma`, #275): «poter decidere se attivare la doppia conferma
  * d'apertura o meno, per essere più celeri». È una scelta sulla casa, non sul
  * dispositivo: chi la spegne dal telefono la vuole spenta anche dal tablet. */
+/* La revisione 24 aggiunge le entità che uno si aggiunge dove vuole
+ * (`cd_entita_mie`, #271). «Sarebbe carino avere la possibilità d'aggiungere
+ * le entità o sensori personalizzati in ogni scheda»: quell'elenco dice quali
+ * sono, su quale pagina compaiono e come si chiamano. È una scelta sulla
+ * plancia, come le sezioni proprie che le stanno accanto — chi la fa dal
+ * tablet la vuole anche sul telefono. */
 /* La revisione 22 aggiunge come si vede l'energia in Home con più impianti
  * (`cd_energia_tessere`, #286): una tessera sola con la somma, o una per
  * impianto. È una scelta sulla plancia, non su questo dispositivo — chi la fa
@@ -91,7 +97,7 @@ const USER_DATA_VERSION = 1;
  * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
  * da sempre: se la scelta restasse su un dispositivo solo, il telefono
  * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
-export const CONFIG_KEYS_REVISION = 23;
+export const CONFIG_KEYS_REVISION = 24;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -211,6 +217,9 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.
   "cd_sezioni_mie",
+  // Le entita' aggiunte a una pagina che c'e' gia' (#271): quale entita', su
+  // quale scheda, con che nome e che icona.
+  "cd_entita_mie",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

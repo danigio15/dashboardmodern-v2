@@ -97,7 +97,7 @@ test("la scelta viaggia con la configurazione, come tutte le altre", () => {
    * #285, che sono la stessa cosa per la centrale; la 22 come si vede
    * l'energia in Home con piu' impianti, #286; la 23 la doppia conferma
    * delle aperture, #275.) */
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 23/);
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 24/);
 });
 
 test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () => {

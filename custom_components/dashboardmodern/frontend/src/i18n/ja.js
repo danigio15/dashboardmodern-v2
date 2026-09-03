@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "か所",
+  "over the limit": "上限超え",
+  "no page": "ページ未選択",
+  "Your own entities": "自分のエンティティ",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "一覧になっているページ — 照明、コンセント、カメラ — では、エンティティを追加するのはもともとできました。ほかのページは役割の決まった枠でできていて、エネルギーには系統と太陽光、セキュリティには警報パネルがあり、センサーをもう1つ置く場所はありませんでした。ここにはあります。エンティティを選び、どのページに出すか、名前とアイコンを決めてください。選んだページのいちばん下に表示され、操作できるものは操作できます。",
+  "On which page": "どのページに",
+  "No entities added yet.": "まだエンティティを追加していません。",
+  "New entity": "新しいエンティティ",
+  "Choose the page": "ページを選ぶ",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "1つのページに表示されるのは最大12個までです。それを超えると「もうひとつ」ではなく一覧になります — そのためには「自分のセクション」があります。",
   "Tank": "タンク",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "これがあるとページにスイッチが出ます: 状態は動いているかを言い、これは動かします。",

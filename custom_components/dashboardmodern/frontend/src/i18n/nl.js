@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "openingen",
+  "over the limit": "boven de limiet",
+  "no page": "geen pagina",
+  "Your own entities": "Jouw entiteiten",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "Sommige pagina's zijn lijsten — Licht, Stopcontacten, Camera's — en daar kon je altijd al een entiteit toevoegen. Andere bestaan uit vakken met een vaste rol: Energie heeft een net en zonnepanelen, Beveiliging een alarmcentrale, en voor één sensor extra was geen plek. Hier wel: kies de entiteit, op welke pagina ze verschijnt, hoe ze heet en met welk pictogram. Ze verschijnt onderaan de gekozen pagina, en wat te schakelen valt, schakelt.",
+  "On which page": "Op welke pagina",
+  "No entities added yet.": "Nog geen entiteiten toegevoegd.",
+  "New entity": "Nieuwe entiteit",
+  "Choose the page": "Kies de pagina",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "Op één pagina verschijnen er hoogstens twaalf: daarboven is het niet meer «iets extra's», het is een lijst — en daarvoor bestaan «Jouw secties».",
   "Tank": "Boilervat",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Hiermee krijgt de pagina een schakelaar: de toestand zegt of hij werkt, deze bedient hem.",

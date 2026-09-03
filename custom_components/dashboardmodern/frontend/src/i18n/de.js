@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "Öffnungen",
+  "over the limit": "über dem Limit",
+  "no page": "keine Seite",
+  "Your own entities": "Deine Entitäten",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "Manche Seiten sind Listen — Licht, Steckdosen, Kameras — und dort konnte man schon immer eine Entität mehr hinzufügen. Andere bestehen aus Feldern mit fester Rolle: Energie hat ein Netz und eine Photovoltaik, Sicherheit eine Alarmzentrale, und für einen Sensor mehr war kein Platz. Hier ist er: wähle die Entität, auf welcher Seite sie erscheinen soll, wie sie heißen und welches Symbol sie tragen soll. Sie erscheint unten auf der gewählten Seite, und was sich schalten lässt, lässt sich schalten.",
+  "On which page": "Auf welcher Seite",
+  "No entities added yet.": "Noch keine Entitäten hinzugefügt.",
+  "New entity": "Neue Entität",
+  "Choose the page": "Seite wählen",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "Auf einer Seite erscheinen höchstens zwölf: darüber hinaus ist es nicht mehr «etwas mehr», sondern eine Liste — und dafür gibt es «Deine Bereiche».",
   "Tank": "Speicher",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Damit bekommt die Seite einen Schalter: der Zustand sagt, ob er arbeitet, dieser hier befiehlt ihm.",

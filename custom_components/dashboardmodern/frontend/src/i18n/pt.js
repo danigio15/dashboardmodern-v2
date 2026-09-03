@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "aberturas",
+  "over the limit": "acima do limite",
+  "no page": "sem página",
+  "Your own entities": "As tuas entidades",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "Algumas páginas são listas — Luzes, Tomadas, Câmaras — e aí sempre se pôde acrescentar mais uma entidade. Outras são feitas de caixas com um papel definido: a Energia tem uma rede e um fotovoltaico, a Segurança uma central de alarme, e para mais um sensor não havia lugar. Aqui há: escolhe a entidade, em que página aparece, como se chama e com que ícone. Aparece no fim da página que escolheres, e as que se ligam ligam-se.",
+  "On which page": "Em que página",
+  "No entities added yet.": "Ainda não adicionaste nenhuma entidade.",
+  "New entity": "Entidade nova",
+  "Choose the page": "Escolhe a página",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "Numa página aparecem no máximo doze: para além disso já não é «mais uma coisa», é uma lista — e para isso há «As tuas secções».",
   "Tank": "Depósito",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Com isto a página ganha um botão: o estado diz se está a trabalhar, este comanda-a.",

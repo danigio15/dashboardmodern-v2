@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "개",
+  "over the limit": "한도 초과",
+  "no page": "페이지 없음",
+  "Your own entities": "내 엔티티",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "목록으로 된 페이지 — 조명, 콘센트, 카메라 — 에서는 엔티티를 하나 더 추가하는 일이 늘 가능했습니다. 다른 페이지는 역할이 정해진 칸으로 이루어져 있어서, 에너지에는 계통과 태양광이, 보안에는 경보 패널이 있고 센서를 하나 더 둘 자리는 없었습니다. 여기에는 있습니다. 엔티티를 고르고, 어느 페이지에 나타낼지, 무엇이라 부를지, 어떤 아이콘을 쓸지 정하세요. 고른 페이지의 맨 아래에 나타나고, 켜지는 것은 켜집니다.",
+  "On which page": "어느 페이지에",
+  "No entities added yet.": "아직 추가된 엔티티가 없습니다.",
+  "New entity": "새 엔티티",
+  "Choose the page": "페이지 선택",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "한 페이지에는 최대 열두 개까지만 표시됩니다. 그 이상은 «하나 더»가 아니라 목록이며 — 그것을 위해 «내 섹션»이 있습니다.",
   "Tank": "저탕조",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "이것이 있으면 페이지에 스위치가 생깁니다: 상태는 도는지를 말하고, 이건 그것을 움직입니다.",

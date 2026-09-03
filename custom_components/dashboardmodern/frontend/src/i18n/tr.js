@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "açılış",
+  "over the limit": "sınırın üstünde",
+  "no page": "sayfa yok",
+  "Your own entities": "Kendi varlıkların",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "Bazı sayfalar birer listedir — Işıklar, Prizler, Kameralar — ve orada bir varlık daha eklemek her zaman mümkündü. Diğerleri belirli bir rolü olan kutulardan oluşur: Enerji'nin bir şebekesi ve bir güneş tesisi, Güvenlik'in bir alarm paneli var, ve fazladan bir sensöre yer yoktu. Burada var: varlığı seç, hangi sayfada görüneceğini, adını ve simgesini belirle. Seçtiğin sayfanın en altında görünür, ve açılabilenler açılır.",
+  "On which page": "Hangi sayfada",
+  "No entities added yet.": "Henüz hiç varlık eklenmedi.",
+  "New entity": "Yeni varlık",
+  "Choose the page": "Sayfayı seç",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "Bir sayfada en fazla on iki tanesi görünür: ötesi artık «bir şey daha» değil, bir listedir — ve bunun için «Kendi bölümlerin» var.",
   "Tank": "Boyler",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Bununla sayfa bir düğme kazanır: durum çalışıp çalışmadığını söyler, bu onu komuta eder.",

@@ -12,6 +12,17 @@
 
 export default Object.freeze({
   openings: "处",
+  "over the limit": "超出上限",
+  "no page": "未选页面",
+  "Your own entities": "你的实体",
+  "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
+    "有些页面本来就是清单——灯光、插座、摄像头——在那里一直都可以再加一个实体。另一些由角色固定的格子组成：能源有电网和光伏，安防有报警主机，多出来的传感器没有位置。这里有位置：选好实体，选它出现在哪个页面，取个名字，配个图标。它会出现在所选页面的最下面，能开关的照样能开关。",
+  "On which page": "放在哪个页面",
+  "No entities added yet.": "还没有添加任何实体。",
+  "New entity": "新实体",
+  "Choose the page": "选择页面",
+  "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
+    "一个页面上最多显示十二个：超过之后就不再是「多一样东西」，而是一份清单——那是「你的分区」该做的事。",
   "Tank": "水箱",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "有了它，页面会多一个开关：状态说明它是否在工作，这个则指挥它。",
