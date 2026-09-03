@@ -7,6 +7,48 @@
   var hasInstanceQuery = false;
   var hasHostQuery = false;
 
+  /* La tenda sulla barra, prima che la barra esista.
+   *
+   * «Resta sempre la barra totale, per poi diventare come l'ho configurata:
+   * dura quattro o cinque secondi.» Misurato sulla plancia vera: a 648 ms la
+   * barra si dipinge con tutte le voci del guscio e la configurazione non c'e'
+   * ancora; a 675 ms il guscio ne scrive una sua, ricavata da quali sezioni
+   * hanno contenuto — e in quel momento non ne ha nessuna; a 846 ms arriva
+   * quella vera; a 1431 ms compaiono le voci dei moduli, non filtrate. Quattro
+   * forme, e tre erano false.
+   *
+   * La regola sta qui, e qui per una ragione di tempo. Il foglio di stile della
+   * plancia il guscio lo carica apposta a bassa priorita' (`media="print"`
+   * finche' non e' arrivato), e misurando si vede che arriva DOPO che la barra
+   * si e' gia' dipinta: una tenda che cala dopo non copre niente. Questo
+   * preludio invece e' uno script che blocca, in cima al corpo del documento:
+   * e' il primo codice nostro che gira, prima del guscio e prima di qualunque
+   * modulo.
+   *
+   * Il segno lo mette la sezione della barra quando la configurazione della
+   * casa e' nota, o quando ha aspettato abbastanza. Se i moduli non
+   * arrivassero affatto la barra resterebbe coperta — ma in quel caso resta su
+   * anche il velo d'avvio, che i moduli li aspetta, e sotto non c'e' niente da
+   * vedere. */
+  function installaLaTendaDellaBarra() {
+    try {
+      if (document.getElementById("dm-tenda-barra")) return;
+      var stile = document.createElement("style");
+      stile.id = "dm-tenda-barra";
+      /* Invisibile e intoccabile. Un elemento con opacita' zero riceve i
+       * tocchi lo stesso, e la barra sta fissa in fondo allo schermo sopra a
+       * quello che c'e' sotto: senza questa riga, per il tempo della tenda un
+       * dito sul fondo della pagina finirebbe su una barra che non si vede. */
+      stile.textContent =
+        'html:not([data-dm-barra="pronta"]) nav.tabs.bottom-nav-bar' +
+        "{opacity:0!important;pointer-events:none!important}";
+      (document.head || document.documentElement).appendChild(stile);
+    } catch (_errore) {
+      /* Senza tenda si torna al difetto, non a qualcosa di peggio. */
+    }
+  }
+  installaLaTendaDellaBarra();
+
   function lightAddFormMarkup() {
     var isEnglish =
       document.documentElement.lang === "en" ||

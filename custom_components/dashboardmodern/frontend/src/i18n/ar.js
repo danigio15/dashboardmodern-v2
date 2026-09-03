@@ -952,6 +952,8 @@ export default Object.freeze({
   Confirm: "تأكيد",
   "Confirm ✓": "أكّد ✓",
   "Confirm opening?": "تأكيد الفتح؟",
+  "Confirm?": "تأكيد؟",
+  "Add an emoji": "أضف رمزًا تعبيريًا",
   "Connect GitHub": "ربط GitHub",
   Connected: "متصل",
   "Connected as": "متصل باسم",

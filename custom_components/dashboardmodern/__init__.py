@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .const import DOMAIN
+
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
@@ -20,6 +22,12 @@ if TYPE_CHECKING:
 # L'unica piattaforma e' l'avviso di aggiornamento, e la porta una plancia
 # sola: chi ne ha due non deve ritrovarsi due voci per la stessa versione.
 PLATFORMS: list[str] = ["update"]
+
+# Quale plancia ha montato la piattaforma. Si scarica solo da quella: chiederlo
+# a una voce che non l'ha mai montata fa sollevare a Home Assistant un
+# «Config entry was never loaded!» — succedeva all'erede, quando la primaria
+# veniva tolta e lei ripartiva scoprendosi primaria senza esserlo mai stata.
+DATA_UPDATE_ENTRY = "update_entry"
 
 
 def _primary_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -86,6 +94,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # spegne l'una puo' voler tenere accesa l'altra.
         await async_setup_chat(hass, entry)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        hass.data.setdefault(DOMAIN, {})[DATA_UPDATE_ENTRY] = entry.entry_id
     return True
 
 
@@ -120,7 +129,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Remove this entry's panel registration."""
     from .frontend import async_unregister_frontend_entry
 
-    if _primary_entry(hass, entry):
-        await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    scaricata = True
+    if domain_data.get(DATA_UPDATE_ENTRY) == entry.entry_id:
+        scaricata = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        if scaricata:
+            domain_data.pop(DATA_UPDATE_ENTRY, None)
     await async_unregister_frontend_entry(hass, entry.entry_id)
-    return True
+    return scaricata

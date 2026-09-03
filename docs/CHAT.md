@@ -120,6 +120,46 @@ vede l'elenco delle conversazioni e si risponde; senza, non si vede niente.
 Non e' un ruolo, e' una chiave: se un giorno i manutentori sono due, sono due
 chiavi.
 
+**La coda si tiene pulita.** Ogni conversazione dell'elenco ha un cestino, e ce
+n'e' uno anche sopra il filo aperto. Cancella davvero e per tutti e due: la
+linea sparisce dal centralino e con lei quello che si erano detti, quindi
+sparisce anche dalla plancia di quella casa. Serve perche' una coda dove non si
+butta via niente si riempie di prove, di domande gia' risolte e di righe aperte
+per sbaglio, finche' quella vera non si trova piu' — ed e' il verso giusto
+della promessa fatta prima della prima riga: quello che si scrive li' non resta
+in giro per sempre.
+
+Due tocchi e non uno: il primo arma il cestino e chiede conferma sul tasto
+stesso, il secondo cancella. Una conversazione cancellata non si rimette a
+posto, e in un elenco dove si scorre col dito un cestino che cancella al primo
+tocco butta via prima o poi quella sbagliata.
+
+**Come fa la casa ad accorgersene.** Il centralino, a chi chiede una linea che
+non c'e' piu', risponde `aperta: false`, e quel dato non si butta via: la casa
+lo riceve e manda via la propria copia — al primo giro dei cinque minuti, o
+appena qualcuno riapre la finestra. Vale anche per le linee che se ne vanno da
+sole dopo sei mesi di silenzio, ed e' la stessa promessa detta dall'altro capo:
+quello che si scrive li' non resta in giro per sempre.
+
+Chi scrive prima di aver riletto riapre la linea senza accorgersi di niente, e
+allora e' il centralino a dire che e' **nata adesso**: se una copia c'era gia',
+vuol dire che qualcuno l'aveva cancellata, e le frasi vecchie se ne vanno prima
+che le nuove si mettano in fila. Senza, questa casa si sarebbe vista una
+conversazione che chi risponde non ha — con dentro proprio le righe cancellate.
+
+**E un messaggio non sopravvive alla linea che l'ha ospitato.** Fra il
+controllo «la linea esiste?» e la scrittura ci sta una cancellazione: il
+messaggio finirebbe in archivio legato a niente, e li' resterebbe per sempre,
+perche' la potatura notturna cerca i messaggi passando dalle linee. La
+scrittura e' un'istruzione sola che il controllo se lo porta dentro — o la
+linea c'e' nel momento in cui si scrive, o non si scrive niente.
+
+**La finestra aperta si aggiorna da sola**, ogni quindici secondi, e ridisegna
+solo quando e' arrivato davvero qualcosa. Il giro dei cinque minuti del backend
+resta quello che era — serve al campanello, non allo schermo — e chiusa la
+finestra non chiede piu' niente: una plancia accesa tutto il giorno in cucina
+non deve bussare al centralino per una conversazione che nessuno sta guardando.
+
 ## Cosa viaggia, e cosa non viaggia
 
 Viaggia **solo quello che la persona ha scritto**, piu' tre cose che servono a
@@ -153,7 +193,8 @@ Chi apre la chat per la prima volta legge, prima di scrivere:
 > la lingua. Puoi cancellare la conversazione quando vuoi.
 
 E il tasto per cancellarla c'e' davvero: cancella la casa dal centralino, non
-solo dallo schermo.
+solo dallo schermo. Lo stesso vale dall'altro capo — chi risponde puo' buttare
+via una conversazione, e quello che butta via sparisce da tutti e due i lati.
 
 ## Quello che questa chat non e'
 

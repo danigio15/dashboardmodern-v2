@@ -409,8 +409,6 @@ export function readingFor(load, children, period, states, recorderValues) {
    * una regola apposta: il carico che oggi non e' partito ha i figli a zero
    * anche loro, la somma fa zero, e zero resta. Cambia soltanto il caso in cui
    * il contatore dice zero e chi sta dentro dice di no. */
-  if (own.value !== null && own.value !== 0)
-    return { ...own, source: "direct", children: children.length };
   if (!children.length) return { ...own, source: "direct", children: 0 };
   let total = null;
   for (const child of children) {
@@ -419,7 +417,43 @@ export function readingFor(load, children, period, states, recorderValues) {
     total = (total ?? 0) + value;
   }
   if (total === null || total === 0) return { ...own, source: "direct", children: children.length };
+  if (own.value !== null && !contatoreSottoIFigli(own.value, total))
+    return { ...own, source: "direct", children: children.length };
   return { entity: own.entity, value: total, source: "sum", children: children.length };
+}
+
+/* Un padre non consuma meno dei suoi figli.
+ *
+ * Lo zero era il caso facile, ed e' stato sistemato: una casella a zero con
+ * dentro apparecchi che hanno consumato non e' una misura, e' una casella che
+ * non risponde. Dal campo e' tornato lo stesso difetto un passo piu' in la',
+ * col numero al posto dello zero: cerchio a «0,2 kWh», finestra dello stesso
+ * cerchio a «12,0 kWh». Stessa schermata, stessa contraddizione, e la regola
+ * di prima non scattava perche' 0,2 non e' zero.
+ *
+ * Zero non era la cosa da guardare. La cosa da guardare e' che una pinza sulla
+ * linea, per come e' fatta, misura tutto quello che le passa sotto: il suo
+ * numero non puo' essere piu' piccolo della somma di cio' che ha dentro. Se lo
+ * e', quella casella non sta misurando il gruppo — sta misurando altro, di
+ * solito un apparecchio solo finito li' per sbaglio. E allora vince la somma,
+ * che e' il numero che la finestra mostra e che almeno e' un minimo vero.
+ *
+ * Il margine e' del cinque per cento e serve a non far ballare il cerchio: la
+ * pinza e i contatori dei figli non campionano nello stesso istante, e senza
+ * margine un ritardo di qualche secondo cambierebbe la sorgente avanti e
+ * indietro. Sotto quella soglia non e' piu' ritardo: e' un'altra grandezza.
+ *
+ * Il caso che la regola dello zero proteggeva resta protetto e non serve
+ * nominarlo: il gruppo fermo ha i figli a zero, la somma fa zero, e si esce
+ * prima di arrivare qui. */
+const MARGINE_DEL_CONTATORE = 0.95;
+
+export function contatoreSottoIFigli(proprio, somma) {
+  if (!Number.isFinite(proprio) || !Number.isFinite(somma)) return false;
+  /* Segni opposti non si confrontano per grandezza: un contatore con segno
+   * racconta un verso, e la somma dei figli un altro. */
+  if (somma <= 0) return false;
+  return proprio < somma * MARGINE_DEL_CONTATORE;
 }
 
 /* Only values the user actually saved override the canonical Load. The

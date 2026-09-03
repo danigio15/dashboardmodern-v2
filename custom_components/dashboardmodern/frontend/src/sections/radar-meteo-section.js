@@ -123,6 +123,11 @@ function finestraAperta() {
   return modale.offsetParent !== null;
 }
 
+/* Il blocco che c'e' gia', senza fabbricarlo. */
+function bloccoEsistente() {
+  return finestra()?.querySelector?.(`.${BLOCCO}`) || null;
+}
+
 function blocco() {
   const modale = finestra();
   if (!modale) return null;
@@ -193,6 +198,26 @@ function daTessere(scelto, nodo) {
   /* Si ridisegna solo se il quadro e' cambiato davvero: rifare le immagini a
    * ogni giro le farebbe lampeggiare mentre si guarda. */
   const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${misure.latoPx}x${misure.altoPx},${scelto.modello},${scelto.fondo}`;
+  let attesi = 0;
+  let arrivati = 0;
+  let persi = 0;
+  const segnala = (immagine, riuscito) => {
+    if (riuscito) arrivati += 1;
+    else {
+      persi += 1;
+      immagine.remove();
+    }
+    if (arrivati) {
+      nodo.dataset.dmRadar = "vivo";
+      return;
+    }
+    /* Nessuno arrivato e nessuno piu' in volo: il radar non risponde, e la
+     * firma si azzera perche' il giro dopo ci riprovi. */
+    if (persi >= attesi) {
+      nodo.dataset.dmRadar = "muto";
+      dove.dataset.dmFirma = "";
+    }
+  };
   if (dove.dataset.dmFirma !== firma) {
     dove.dataset.dmFirma = firma;
     const pezzi = [];
@@ -210,12 +235,27 @@ function daTessere(scelto, nodo) {
         immagine.style.cssText = `left:${tessera.sx}px;top:${tessera.sy}px;width:${tessera.lato}px;height:${tessera.lato}px`;
         /* Un quadratino che non arriva e' un buco, non un errore: il servizio
          * non copre tutto il mondo, e ai bordi manca per costruzione. */
-        immagine.addEventListener("error", () => immagine.remove(), { once: true });
+        immagine.addEventListener("error", () => segnala(immagine, false), { once: true });
+        immagine.addEventListener("load", () => segnala(immagine, true), { once: true });
         pezzi.push(immagine);
       }
     }
     dove.replaceChildren(...pezzi);
-    nodo.dataset.dmRadar = pezzi.length ? "vivo" : "muto";
+    /* «Vivo» quando un quadratino e' arrivato, non quando l'abbiamo chiesto.
+     *
+     * Qui si contavano le immagini create, che e' un'altra cosa: se il
+     * servizio non risponde le immagini se ne vanno una per una dal loro
+     * `error`, il riquadro resta vuoto — e il blocco continuava a dire
+     * «vivo», che nasconde la frase che spiega. Un radar configurato che non
+     * arriva mostrava un rettangolo grigio muto, senza una parola.
+     *
+     * E se non arriva nessuno si cancella la firma: senza, il giro
+     * successivo troverebbe lo stesso disegno e non riproverebbe mai piu'. */
+    attesi = pezzi.length;
+    arrivati = 0;
+    persi = 0;
+    nodo.dataset.dmRadar = pezzi.length ? "attesa" : "muto";
+    if (!pezzi.length) dove.dataset.dmFirma = "";
   }
 
   const nota = nodo.querySelector(".dm-radar-nota");
@@ -227,12 +267,24 @@ function daTessere(scelto, nodo) {
 
 export function disegnaRadar() {
   const scelto = radarScelto();
-  const nodo = blocco();
-  if (!nodo) return false;
+  /* Senza radar configurato non si disegna niente — e non si fabbrica
+   * nemmeno il posto dove disegnarlo.
+   *
+   * Prima il blocco nasceva comunque e poi si metteva `hidden`, e non
+   * bastava: `hidden` e' l'ultima riga del foglio del browser, e qui sopra
+   * c'e' una regola nostra con `display:grid` che la batte. Il risultato,
+   * in una casa che il radar non l'ha mai configurato, era un riquadro
+   * grigio dentro le previsioni con l'immagine rotta e scritto «il radar
+   * non sta rispondendo» — un errore per una cosa che nessuno aveva
+   * chiesto. Adesso se non c'e' niente da mostrare il blocco se ne va, e
+   * la regola col `display:none` che vince e' li' sotto per il caso in cui
+   * qualcuno lo lasci indietro. */
   if (!scelto) {
-    nodo.hidden = true;
+    bloccoEsistente()?.remove();
     return false;
   }
+  const nodo = blocco();
+  if (!nodo) return false;
   nodo.hidden = false;
   nodo.dataset.dmModo = scelto.modo;
   const nome = nodo.querySelector(".dm-radar-nome");
@@ -454,6 +506,13 @@ function installStyles() {
     "dm-radar-meteo",
     `
       #weather-modal .dm-radar-blocco{display:grid;gap:8px;margin-bottom:14px}
+      /* Una regola nostra col display batte l'attributo hidden del browser:
+         senza questa riga, nascondere il blocco non lo nascondeva. */
+      #weather-modal .dm-radar-blocco[hidden]{display:none!important}
+      /* Mentre i quadratini arrivano non si dice ne' l'una ne' l'altra cosa:
+         l'immagine rotta e la frase dell'errore restano tutte e due fuori. */
+      #weather-modal .dm-radar-blocco[data-dm-radar="attesa"] .dm-radar-img{display:none}
+      #weather-modal .dm-radar-blocco[data-dm-radar="attesa"] .dm-radar-muto{display:none}
       #weather-modal .dm-radar-testa{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
       #weather-modal .dm-radar-testa strong{
         font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;

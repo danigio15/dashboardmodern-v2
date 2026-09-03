@@ -180,7 +180,14 @@ async def async_manda(
     nome: str = "",
     lingua: str = "",
 ) -> dict[str, Any]:
-    """Manda un messaggio. Il primo apre la conversazione."""
+    """Manda un messaggio. Il primo apre la conversazione.
+
+    Torna due cose: il messaggio, e se la linea sia **nata con questo
+    messaggio**. La seconda serve a chi tiene la copia in casa: se una copia
+    c'era gia' e la linea e' rinata adesso, vuol dire che nel frattempo
+    qualcuno l'aveva cancellata, e quella copia parla di un filo che non esiste
+    piu'.
+    """
     pulito = str(testo or "").strip()[:CHAT_MAX_TESTO]
     if not pulito:
         raise ChatError("empty", "Non c'e' niente da mandare.")
@@ -196,7 +203,10 @@ async def async_manda(
         corpo={"testo": pulito, "nome": str(nome or "")},
     )
     messaggio = risposta.get("messaggio")
-    return messaggio if isinstance(messaggio, dict) else {}
+    return {
+        "messaggio": messaggio if isinstance(messaggio, dict) else {},
+        "nuova": bool(risposta.get("nuova")),
+    }
 
 
 async def async_leggi(
@@ -215,6 +225,17 @@ async def async_leggi(
         chiave=str(identita.get("segreto") or ""),
         intestazioni={"X-Casa": str(identita.get("casa") or ""), **await _note(hass)},
     )
+    # Il centralino dice anche se la linea e' ancora aperta, e qui e' un fatto
+    # che non si puo' buttare via. Questa funzione la chiama solo chi la chat
+    # l'ha gia' aperta: sentirsi rispondere «non c'e' nessuna linea» vuol dire
+    # una cosa sola — la conversazione non esiste piu', perche' chi risponde
+    # l'ha cancellata o perche' sono passati i sei mesi di silenzio.
+    #
+    # Ignorarlo, com'era prima, lasciava la copia in casa intatta per sempre:
+    # una conversazione cancellata da una parte e ancora li', leggibile, dopo
+    # che alla persona era stato promesso il contrario.
+    if risposta.get("aperta") is False:
+        raise ChatError("gone", "La conversazione non c'e' piu'.")
     righe = risposta.get("messaggi")
     return (
         [riga for riga in righe if isinstance(riga, dict)]
@@ -270,6 +291,23 @@ async def async_filo(
     )
 
 
+async def async_cestina(hass: HomeAssistant, chiave: str, linea: str) -> bool:
+    """Butta via una conversazione, dalla parte di chi risponde.
+
+    Cancella tutto: la linea sparisce dal centralino, e con lei quello che si
+    erano detti. Il centralino risponde di si' anche su una linea che non c'e'
+    piu' — chi cancella vuole che non ci sia, e se non c'e' gia' il risultato
+    e' quello.
+    """
+    risposta = await _chiama(
+        hass,
+        "DELETE",
+        f"/console/conversazioni/{str(linea or '')}",
+        chiave=chiave,
+    )
+    return bool(risposta.get("cancellata"))
+
+
 async def async_rispondi(
     hass: HomeAssistant, chiave: str, linea: str, testo: str
 ) -> dict[str, Any]:
@@ -291,6 +329,7 @@ async def async_rispondi(
 __all__ = [
     "ChatError",
     "async_cancella",
+    "async_cestina",
     "async_conversazioni",
     "async_filo",
     "async_leggi",

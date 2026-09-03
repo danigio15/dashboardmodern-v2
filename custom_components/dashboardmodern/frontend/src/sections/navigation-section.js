@@ -8,6 +8,8 @@ const state = (root[KEY] ||= {
   scroller: null,
   autoHide: 0,
   behaviour: false,
+  barraScoperta: false,
+  scadenza: 0,
 });
 
 /* The dock is sized on its content (`width:max-content`), so with every section
@@ -703,6 +705,110 @@ export function disegniNellaBarra(scope = doc) {
   return messi;
 }
 
+/* ── la barra non mostra una forma che poi si rimangia ──────────────────── */
+
+/* «Resta sempre la barra totale, per poi diventare come l'ho configurata: dura
+ * quattro o cinque secondi.»
+ *
+ * Misurato sulla plancia vera, dall'avvio. A 648 ms la barra si dipinge con
+ * tutte e nove le voci del guscio, e `cd_sections` non esiste ancora. A 675 ms
+ * il guscio ne scrive una sua — la ricava guardando quali sezioni hanno
+ * contenuto, e in quel momento non ne ha nessuna: «spegnile tutte». A 783 ms
+ * la barra diventa due voci. A 846 ms il magazzino proietta la configurazione
+ * vera, e a 983 ms la barra ne mostra tre. A 1431 ms arrivano le voci che
+ * mettono i moduli — Stanze, Luci, Prese, Robot — e arrivano non filtrate. A
+ * 1505 ms si assesta su quattro. Quattro forme, e tre erano false.
+ *
+ * Il perche': il guscio applica la visibilita' delle voci **a tempo** — subito,
+ * a 1,5 s, poi ogni tre secondi — mentre la configurazione arriva quando
+ * arriva. Le due cose non si aspettano.
+ *
+ * In locale non si vede, e per un motivo che spiega perche' nessuno se n'era
+ * accorto: il velo d'avvio resta su fino a 1731 ms e copre tutto
+ * l'assestamento. Ma il velo aspetta i moduli, i fogli di stile e gli stati —
+ * NON la configurazione — e in una casa dove la configurazione viene da Home
+ * Assistant sulla rete si alza prima, lasciando scoperta la barra sbagliata.
+ *
+ * Il velo non si tocca. Il momento in cui si alza e' quello che la Diagnostica
+ * misura e dichiara, e allungarlo vorrebbe dire peggiorare un numero vero per
+ * far sembrare risolta una cosa di un altro genere. Si copre la barra, che e'
+ * l'unica che sta mentendo, e la si scopre quando sa cosa mostrare.
+ */
+
+/* Passata questa, la barra si mostra com'e'. Una plancia che non riesce a
+ * leggere la sua configurazione deve avere una barra lo stesso: quella di serie
+ * e' meglio di nessuna. */
+export const ATTESA_MASSIMA_DELLA_BARRA = 2500;
+
+/* Se la configurazione della casa e' arrivata.
+ *
+ * Non basta che il magazzino esista: nasce con `visibility: {}` e `sections:
+ * {}`, e un magazzino appena nato risponde «tutto visibile» come risponderebbe
+ * una casa che non ha configurato niente. Le due cose vanno distinte, o si
+ * scopre la barra su un'ipotesi.
+ *
+ * Il segno e' che dentro ci sia qualcosa. Una casa configurata ha delle sezioni
+ * o delle preferenze di visibilita' — almeno una delle due, e quasi sempre
+ * tutte e due. Una casa che non ha ancora configurato niente non ha ne' l'una
+ * ne' l'altra, e li' la barra di serie e' la risposta giusta: si scopre subito,
+ * perche' non c'e' niente che possa smentirla. */
+export function laConfigurazioneSiConosce(magazzino = root.DashboardModernModules?.store) {
+  try {
+    const stato = magazzino?.getState?.();
+    if (!stato || typeof stato !== "object") return false;
+    const quante = (dentro) =>
+      dentro && typeof dentro === "object" ? Object.keys(dentro).length : 0;
+    return quante(stato.visibility) > 0 || quante(stato.sections) > 0;
+  } catch (_errore) {
+    return false;
+  }
+}
+
+/* La tenda e' gia' calata: `dashboard-runtime.css` copre la barra finche' il
+ * documento non porta il segno, e quel foglio il guscio lo carica dalla testa —
+ * cioe' prima che la barra esista. Qui si toglie il segno, e basta. */
+function scopriLaBarra() {
+  state.barraScoperta = true;
+  if (state.scadenza) {
+    root.clearTimeout?.(state.scadenza);
+    state.scadenza = 0;
+  }
+  if (doc?.documentElement) doc.documentElement.dataset.dmBarra = "pronta";
+}
+
+/** La visibilita' delle voci adesso, senza aspettare il giro del guscio. */
+function applicaLaVisibilita() {
+  try {
+    root.cdApplyNavVis?.();
+  } catch (_errore) {
+    /* Il guscio potrebbe non essere ancora arrivato: si riprova al prossimo
+       richiamo, che e' comunque prima del suo giro. */
+  }
+}
+
+function forseScopri() {
+  if (state.barraScoperta) return false;
+  if (!laConfigurazioneSiConosce()) return false;
+  applicaLaVisibilita();
+  scopriLaBarra();
+  return true;
+}
+
+function installaLAttesaDellaBarra() {
+  for (const evento of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:persistence-restored",
+    "dashboardmodern:state-changed",
+  ])
+    root.addEventListener?.(evento, () => forseScopri());
+  state.scadenza = root.setTimeout?.(() => {
+    applicaLaVisibilita();
+    scopriLaBarra();
+  }, ATTESA_MASSIMA_DELLA_BARRA);
+  forseScopri();
+}
+
 function accodaDopo(nome) {
   const originale = root[nome];
   if (typeof originale !== "function" || originale.__dmConfigUltima) return false;
@@ -715,6 +821,30 @@ function accodaDopo(nome) {
     return esito;
   };
   avvolta.__dmConfigUltima = true;
+  root[nome] = avvolta;
+  return true;
+}
+
+/* Una voce appena messa si filtra subito, non al giro dopo.
+ *
+ * Le voci che aggiungono i moduli — Stanze, Luci, Prese, Robot, il cruscotto —
+ * arrivano dopo quelle del guscio, e il guscio le filtra al suo giro: misurato,
+ * comparivano non filtrate a 1431 ms e sparivano a 1505 ms. Settantaquattro
+ * millisecondi in cui la barra mostra la voce di una sezione spenta.
+ *
+ * L'aggancio e' `render`, che e' la funzione che rifa' la plancia e dentro cui
+ * quelle voci nascono: niente sorveglianti e niente timer, che e' la regola di
+ * questo modulo e di questa barra. */
+function filtraDopo(nome) {
+  const originale = root[nome];
+  if (typeof originale !== "function" || originale.__dmVisibilitaSubito) return false;
+  const avvolta = function (...argomenti) {
+    const esito = originale.apply(this, argomenti);
+    applicaLaVisibilita();
+    return esito;
+  };
+  avvolta.__dmVisibilitaSubito = true;
+  avvolta.__dmPrevious = originale;
   root[nome] = avvolta;
   return true;
 }
@@ -790,10 +920,19 @@ export function installNavigationSection() {
   /* E poco dopo l'avvio: il pannello di Home Assistant finisce di impaginarsi
    * dopo di noi, e una misura presa troppo presto è uno zero. */
   for (const attesa of [400, 1500]) root.setTimeout?.(() => misuraIlFondoDiSistema(), attesa);
+  /* Il foglio prima di tutto: la tenda e' una regola di stile, e metterla
+   * senza il foglio vorrebbe dire scriverla su un attributo che non tinge
+   * niente — la barra resterebbe scoperta proprio nei millisecondi che si
+   * volevano coprire. */
+  installStyles();
   applyNavbarMode();
+  installaLAttesaDellaBarra();
   configSempreUltima();
   accodaDopo("cdApplyNavOrder");
   accodaDopo("cdApplyNavVis");
+  filtraDopo("render");
+  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
+    root.addEventListener?.(evento, () => filtraDopo("render"));
   /* La configurazione condivisa, arrivando, riscrive le chiavi: se quella
    * dell'altro dispositivo non la porta, qui resterebbe vuota e la barra
    * tornerebbe a scomparsa da sola. */
@@ -811,7 +950,6 @@ export function installNavigationSection() {
    * a quelle, senza sorveglianti ne' timer: e' la stessa regola con cui questo
    * modulo tiene il resto della barra. */
   disegniNellaBarra();
-  installStyles();
   installBarBehaviour();
   if (!installScroller()) {
     doc.addEventListener("DOMContentLoaded", () => installScroller(), { once: true });

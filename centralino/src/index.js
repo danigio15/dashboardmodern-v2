@@ -173,15 +173,35 @@ async function sfoltisci(env, id) {
     .run();
 }
 
+/* Scrivere una riga, e solo se la linea c'e' ancora.
+ *
+ * Il controllo sta DENTRO l'inserimento, e non e' pignoleria. Prima erano due
+ * momenti staccati — «la linea esiste?» e poi «scrivi» — e fra i due ci sta
+ * una cancellazione: chi risponde butta via la conversazione nell'istante in
+ * cui la casa sta scrivendo, e il messaggio finisce in archivio legato a una
+ * linea che non esiste piu'.
+ *
+ * Quella riga poi non se ne va mai: `messaggi.linea` non ha un vincolo verso
+ * `linee` — aggiungerlo adesso vorrebbe dire una migrazione su un archivio gia'
+ * in piedi — e la potatura notturna cerca i messaggi vecchi passando dalle
+ * linee, quindi un orfano non lo raggiunge nessuno. Parole di una persona,
+ * conservate per sempre in un servizio che promette il contrario.
+ *
+ * `INSERT … SELECT … WHERE EXISTS` invece e' un'istruzione sola: o la linea c'e'
+ * nel momento in cui si scrive, o non si scrive niente. Torna `null` in quel
+ * caso, e chi chiama lo dice a chi ha scritto. */
 async function scrivi(env, id, da, testo) {
   const adesso = Date.now();
   const messo = await env.DB.prepare(
-    "INSERT INTO messaggi (linea, da, testo, scritto_il) VALUES (?, ?, ?, ?) RETURNING id",
+    `INSERT INTO messaggi (linea, da, testo, scritto_il)
+     SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM linee WHERE id = ?)
+     RETURNING id`,
   )
-    .bind(id, da, testo, adesso)
+    .bind(id, da, testo, adesso, id)
     .first();
+  if (!messo) return null;
   await sfoltisci(env, id);
-  return { id: Number(messo?.id || 0), da, testo, scritto_il: adesso };
+  return { id: Number(messo.id || 0), da, testo, scritto_il: adesso };
 }
 
 async function messaggiDopo(env, id, dopo) {
@@ -231,7 +251,14 @@ async function sportelloDellaCasa(richiesta, env, url) {
       await aggiornaLeNote(env, id, note);
     }
     const messaggio = await scrivi(env, id, "casa", testo);
-    return json({ messaggio });
+    if (!messaggio) return male(404, "la conversazione non c'e' piu'");
+    /* «Nata adesso» e' un'informazione che serve dall'altra parte: se la casa
+     * aveva gia' una copia della conversazione e la linea e' rinata con questo
+     * messaggio, vuol dire che nel frattempo qualcuno l'aveva cancellata — e
+     * quella copia parla di un filo che non esiste piu'. Senza questo, la casa
+     * incollerebbe le frasi nuove in fondo alle vecchie e si vedrebbe una
+     * conversazione che chi risponde non ha. */
+    return json({ messaggio, nuova: stato === "assente" });
   }
 
   /* Da qui in giu' la linea deve esserci gia': non si legge e non si cancella
@@ -314,7 +341,32 @@ async function sportelloDellaConsole(richiesta, env, url) {
     const esiste = await env.DB.prepare("SELECT id FROM linee WHERE id = ?").bind(linea).first();
     if (!esiste) return male(404, "linea sconosciuta");
     const messaggio = await scrivi(env, linea, "console", testo);
+    if (!messaggio) return male(404, "linea sconosciuta");
     return json({ messaggio });
+  }
+
+  /* Buttare via una conversazione, dalla parte di chi risponde.
+   *
+   * La casa puo' cancellare la propria da sempre; chi risponde non poteva
+   * cancellare niente, e una coda dove non si butta via nulla si riempie di
+   * prove, di domande gia' risolte e di righe aperte per sbaglio finche' quella
+   * vera non si trova piu'.
+   *
+   * Cancella tutto: la linea sparisce, e con lei quello che si erano detti.
+   * Non e' una scortesia verso la casa — la conversazione era gia' finita — ed
+   * e' l'unico modo di mantenere la promessa che sta scritta nella plancia:
+   * quello che si scrive qui non resta in giro per sempre.
+   *
+   * Su una linea che non c'e' piu' risponde di si' lo stesso, e non 404 come
+   * fa la risposta: chi cancella vuole che non ci sia, e se non c'e' gia' il
+   * risultato e' quello. Un errore, li', direbbe che qualcosa non ha
+   * funzionato mentre invece era gia' a posto. */
+  if (richiesta.method === "DELETE") {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM messaggi WHERE linea = ?").bind(linea),
+      env.DB.prepare("DELETE FROM linee WHERE id = ?").bind(linea),
+    ]);
+    return json({ cancellata: true });
   }
 
   if (richiesta.method !== "GET") return male(405, "metodo non previsto");
@@ -360,6 +412,12 @@ export default {
         "DELETE FROM messaggi WHERE linea IN (SELECT id FROM linee WHERE vista_il < ?)",
       ).bind(limite),
       env.DB.prepare("DELETE FROM linee WHERE vista_il < ?").bind(limite),
+      /* E i messaggi che non appartengono piu' a nessuna linea. `scrivi` non
+       * ne fabbrica piu' — l'inserimento controlla la linea nella stessa
+       * istruzione — ma quelli nati prima di quel controllo sono li', e non li
+       * raggiunge nessun'altra query: la potatura di sopra passa dalle linee, e
+       * una linea che non c'e' non porta a niente. */
+      env.DB.prepare("DELETE FROM messaggi WHERE linea NOT IN (SELECT id FROM linee)"),
     ]);
   },
 };

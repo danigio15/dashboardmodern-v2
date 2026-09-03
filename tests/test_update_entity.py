@@ -29,6 +29,8 @@ import zipfile
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components/dashboardmodern"
 UPDATE = COMPONENT / "update.py"
@@ -321,3 +323,32 @@ def test_il_riavvio_si_chiede_dal_posto_standard() -> None:
         passo = voce["fix_flow"]["step"]["confirm"]
         assert voce["title"], percorso.name
         assert "{version}" in passo["description"], percorso.name
+
+
+def test_un_estrazione_fallita_non_lascia_una_seconda_integrazione(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Disco pieno a meta' estrazione: la cartella d'appoggio se ne va.
+
+    Restava `.dashboardmodern-nuovo` dentro `custom_components`, col manifest
+    di questo stesso dominio: il caricatore di Home Assistant la vedeva come
+    una seconda integrazione e al riavvio poteva preferirla a quella vera.
+    """
+    cartella = _cartella_installata(tmp_path)
+    dati = _zip_di_release("1.3.9")
+
+    def esplode(
+        self: zipfile.ZipFile, path: str = "", *_a: object, **_k: object
+    ) -> None:
+        (Path(path) / "manifest.json").write_text("{}")
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(zipfile.ZipFile, "extractall", esplode)
+    try:
+        installa_da_zip(cartella, dati, "1.3.9")
+    except OSError:
+        pass
+    else:  # pragma: no cover - il fallimento atteso e' l'eccezione
+        raise AssertionError("l'estrazione doveva fallire")
+    assert sorted(p.name for p in cartella.parent.iterdir()) == ["dashboardmodern"]
+    assert (cartella / "vecchio.py").exists()

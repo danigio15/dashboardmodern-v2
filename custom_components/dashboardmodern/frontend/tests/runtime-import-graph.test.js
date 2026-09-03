@@ -665,8 +665,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   //   importa non viene mai caricato, ed e' esattamente il difetto del
   //   cruscotto della beta.10 — nelle fotografie c'era, in una casa vera non
   //   e' mai comparso.
+  // 226 con l'indirizzo di casa (`core/indirizzo-di-casa.js`,
+  // `sections/indirizzo-di-casa-section.js`): «storico internet da' errore».
+  // «Failed to fetch» non e' una risposta, e' una richiesta che non e' mai
+  // arrivata da nessuna parte: la plancia ospitata vive in una cornice
+  // `srcdoc`, il cui `location.host` e' vuoto, e il guscio — non sapendo dove
+  // sta — costruisce l'indirizzo indovinando `LOCAL_IP`. Misurato dentro la
+  // cornice con la plancia vera: `http://homeassistant.local:8123`, che e' un
+  // host che quasi nessuno ha e che comunque parla in chiaro a una pagina in
+  // https. Il nucleo e' l'aritmetica della riparazione — dato un indirizzo, la
+  // base del documento e l'host che il documento ha o non ha, qual e'
+  // l'indirizzo giusto — e si prova senza rete; la sezione e' il gradino su
+  // `fetch` dove quella riparazione si applica, perche' la riga sbagliata sta
+  // dentro una funzione del guscio e avvolgerla per nome arriverebbe troppo
+  // tardi.
   assert.ok(
-    relative.length <= 224,
+    relative.length <= 226,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -722,6 +736,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * page is the one on screen AND something is actually playing — either of
    * those stops being true and the timer dies.
    *
+   * The ninth is the chat di assistenza. The centralino is a letterbox, not a
+   * push channel: nothing in Home Assistant fires when the person at the other
+   * end writes back, and the backend's five-minute round only rings the bell —
+   * it redraws nothing. Without a beat the open window shows whatever was
+   * there when it opened, and the answer arrives only by closing and reopening
+   * it, which is what happened. Fifteen seconds, and the same discipline as
+   * the rest: only while the chat window is open, it redraws only when
+   * something actually changed, and the timer stops itself the moment it finds
+   * that window shut.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -730,6 +754,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
     [
+      "src/sections/assistenza-section.js",
       "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",

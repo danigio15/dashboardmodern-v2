@@ -460,11 +460,13 @@ export function scadenzeDelleListe(blocchi) {
  *
  * `setDate` invece conta i giorni come li conta il calendario, e i mesi e gli
  * anni li fa girare da solo. */
-function ilGiornoDopo(istante) {
+export function giornoPiu(istante, giorni) {
   const quando = new Date(istante);
-  quando.setDate(quando.getDate() + 1);
+  quando.setDate(quando.getDate() + giorni);
   return quando;
 }
+
+const ilGiornoDopo = (istante) => giornoPiu(istante, 1);
 
 export function contoDellaTessera(eventi, scadenze, adesso = Date.now()) {
   const oggi = chiaveDelGiorno(adesso);
@@ -645,7 +647,9 @@ export function etichettaDelGiorno(
   const dette = { ...PAROLE_CALENDARIO, ...(parole || {}) };
   const oggi = chiaveDelGiorno(adesso);
   if (giorno === oggi) return dette.oggi;
-  const domani = chiaveDelGiorno(adesso + 86400000);
+  /* Non `+ 86400000`: nel giorno del cambio d'ora ventiquattro ore non sono
+   * un giorno, e «Domani» finiva per chiamarsi con la sua data. */
+  const domani = chiaveDelGiorno(ilGiornoDopo(adesso));
   if (giorno === domani) return dette.domani;
   const [anno, mese, numero] = clean(giorno).split("-").map(Number);
   if (!Number.isFinite(anno)) return clean(giorno);
@@ -661,7 +665,8 @@ export function etichettaDelGiorno(
   }
 }
 
-function orarioDi(istante, lingua) {
+/** L'ora di un istante, breve, nella lingua di chi guarda: «14:30», «02:30 PM». */
+export function orarioDi(istante, lingua) {
   try {
     return new Date(istante).toLocaleTimeString(lingua || undefined, {
       hour: "2-digit",

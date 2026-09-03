@@ -306,6 +306,136 @@ test("la console non risponde a una linea che non esiste", async () => {
   assert.equal(stato, 404);
 });
 
+test("chi risponde può buttare via una conversazione, per intero", async () => {
+  const env = ambiente();
+  await scrive(env, "era solo una prova");
+  await chiama(env, {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "POST",
+    chiave: CHIAVE_CONSOLE,
+    corpo: { testo: "va bene" },
+  });
+  const via = await chiama(env, {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "DELETE",
+    chiave: CHIAVE_CONSOLE,
+  });
+  assert.equal(via.stato, 200);
+  assert.equal(via.corpo.cancellata, true);
+  assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi")[0].q, 0);
+  assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM linee")[0].q, 0);
+});
+
+test("buttare via una conversazione non tocca quella di un'altra casa", async () => {
+  const env = ambiente();
+  await scrive(env, "la mia domanda");
+  await scrive(env, "la domanda dell'altra", ALTRA, `${SEGRETO}-altro`);
+  await chiama(env, {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "DELETE",
+    chiave: CHIAVE_CONSOLE,
+  });
+  const righe = env.DB.interroga("SELECT id FROM linee");
+  assert.deepEqual(
+    righe.map((r) => r.id),
+    [ALTRA],
+  );
+  assert.equal(
+    env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi WHERE linea = ?", ALTRA)[0].q,
+    1,
+  );
+});
+
+test("senza la chiave non si butta via niente", async () => {
+  /* La cancellazione è la cosa che non si può rimettere a posto: se passasse
+   * senza chiave, chiunque conosca l'indirizzo del centralino potrebbe
+   * svuotare la coda di tutti. */
+  const env = ambiente();
+  await scrive(env, "una domanda che deve restare");
+  for (const chiave of ["", "sbagliata", `${CHIAVE_CONSOLE}x`]) {
+    const { stato } = await chiama(env, {
+      via: `/console/conversazioni/${CASA}`,
+      metodo: "DELETE",
+      chiave,
+    });
+    assert.equal(stato, 403, `"${chiave}" è passata`);
+  }
+  assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM linee")[0].q, 1);
+});
+
+test("un messaggio non sopravvive alla linea che l'ha ospitato", async () => {
+  /* Fra «la linea esiste?» e «scrivi» ci sta una cancellazione: il messaggio
+   * finiva in archivio legato a una linea che non c'era più, e lì restava per
+   * sempre — la potatura notturna cerca i messaggi passando dalle linee, e un
+   * orfano non lo raggiunge nessuno. Parole di una persona, conservate per
+   * sempre in un servizio che promette il contrario. */
+  const env = ambiente();
+  await scrive(env, "una domanda");
+  // La linea sparisce sotto le mani di chi sta per scrivere.
+  env.DB.interroga("DELETE FROM linee WHERE id = ?", CASA);
+  const prima = env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi")[0].q;
+
+  const risposta = await chiama(env, {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "POST",
+    chiave: CHIAVE_CONSOLE,
+    corpo: { testo: "una risposta che non ha più dove andare" },
+  });
+  assert.equal(risposta.stato, 404);
+  assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi")[0].q, prima);
+});
+
+test("la potatura raccoglie anche gli orfani rimasti da prima", async () => {
+  /* `scrivi` non ne fabbrica più, ma quelli nati prima del controllo sono lì e
+   * non li raggiunge nessun'altra query. */
+  const env = ambiente();
+  await scrive(env, "una domanda");
+  env.DB.interroga(
+    "INSERT INTO messaggi (linea, da, testo, scritto_il) VALUES (?, 'casa', 'orfano', ?)",
+    `casa_${"f".repeat(32)}`,
+    Date.now(),
+  );
+  assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi")[0].q, 2);
+
+  await centralino.scheduled({}, env);
+  const restati = env.DB.interroga("SELECT testo FROM messaggi");
+  assert.deepEqual(
+    restati.map((r) => r.testo),
+    ["una domanda"],
+  );
+});
+
+test("il primo messaggio dice che la linea è nata adesso", async () => {
+  /* Serve dall'altra parte: se la casa aveva già una copia della conversazione
+   * e la linea è rinata con questo messaggio, vuol dire che nel frattempo
+   * qualcuno l'aveva cancellata. */
+  const env = ambiente();
+  const primo = await scrive(env, "la prima");
+  assert.equal(primo.corpo.nuova, true);
+  const secondo = await scrive(env, "la seconda");
+  assert.equal(secondo.corpo.nuova, false);
+
+  await chiama(env, {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "DELETE",
+    chiave: CHIAVE_CONSOLE,
+  });
+  const dopo = await scrive(env, "e adesso ricomincio");
+  assert.equal(dopo.corpo.nuova, true);
+});
+
+test("buttare via una conversazione già andata non è un errore", async () => {
+  /* Chi cancella vuole che non ci sia. Se non c'è già, il risultato è quello:
+   * un 404 direbbe che qualcosa non ha funzionato mentre era a posto. */
+  const { stato, corpo } = await chiama(ambiente(), {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "DELETE",
+    chiave: CHIAVE_CONSOLE,
+  });
+  assert.equal(stato, 200);
+  assert.equal(corpo.cancellata, true);
+});
+
 /* ─── Le linee che non parlano più ───────────────────────────────────────── */
 
 test("una linea ferma da sei mesi se ne va, conversazione compresa", async () => {

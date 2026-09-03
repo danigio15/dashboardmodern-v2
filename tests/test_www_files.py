@@ -166,10 +166,33 @@ def test_upload_un_nome_fuori_alfabeto_tiene_la_sua_estensione(tmp_path: Path) -
     assert esito == {"path": "/local/dashboardmodern/foto.jpg"}
 
 
-def test_upload_riconosce_svg_e_webp(tmp_path: Path) -> None:
-    from custom_components.dashboardmodern.www_files import save_www_upload
+def test_upload_rifiuta_svg_e_riconosce_webp(tmp_path: Path) -> None:
+    """Un SVG non e' una bitmap: e' un documento, e puo' portare uno script.
 
-    svg = b'<svg xmlns="http://www.w3.org/2000/svg"></svg>'
-    assert save_www_upload(str(tmp_path), "auto.svg", svg) is not None
+    Home Assistant lo servirebbe da `/local/` sulla propria origine, dove
+    stanno i gettoni di chi lo apre. Chi ne vuole uno lo copia in `www` a
+    mano; da qui passano solo formati che il browser disegna e non esegue.
+    """
+    from custom_components.dashboardmodern.www_files import (
+        IMAGE_SUFFIXES,
+        save_www_upload,
+    )
+
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+    assert save_www_upload(str(tmp_path), "auto.svg", svg) is None
+    assert not (tmp_path / "dashboardmodern").exists()
+    # Nel selettore pero' si elenca ancora: quello che c'e' gia' non sparisce.
+    assert ".svg" in IMAGE_SUFFIXES
     webp = b"RIFF" + b"\x00\x00\x00\x00" + b"WEBP" + b"\x00" * 8
     assert save_www_upload(str(tmp_path), "auto.webp", webp) is not None
+
+
+def test_un_byte_nullo_nel_percorso_non_e_un_traceback(tmp_path: Path) -> None:
+    """Non e' un guasto del disco: e' una richiesta che non porta da nessuna
+    parte, e si risponde come a ogni altro percorso fuori posto.
+    """
+    from custom_components.dashboardmodern.www_files import list_www_folder
+
+    (tmp_path / "www").mkdir()
+    assert list_www_folder(str(tmp_path / "www"), "x\x00y") is None
+    assert list_www_folder(str(tmp_path / "www\x00"), "")["available"] is False

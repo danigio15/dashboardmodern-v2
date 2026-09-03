@@ -11,8 +11,8 @@ solo in casa d'altri.
   deve far suonare niente: e' il modo sicuro di farlo spegnere a tutti.
 * **Cancellare cancella davvero**, anche dal centralino: e' scritto nella
   plancia prima che qualcuno scriva la prima riga.
-* **Chi non ha la chiave non risponde a nessuno.** La console della chat non si
-  deduce, si ha o non si ha.
+* **Chi non ha la chiave non risponde a nessuno**, e non butta via niente. La
+  console della chat non si deduce, si ha o non si ha.
 
 Il centralino non viene mai chiamato davvero: al suo posto c'e' `_chiama`.
 """
@@ -86,7 +86,8 @@ class FintoCentralino:
         if casa in self.segreti and self.segreti[casa] != segreto:
             raise ChatError("forbidden", "Il centralino ha rifiutato.")
         if metodo == "POST":
-            if casa not in self.segreti:
+            nuova = casa not in self.segreti
+            if nuova:
                 self.segreti[casa] = segreto
                 self.linee[casa] = []
             self.note[casa] = {k: v for k, v in testate.items() if k.startswith("X-")}
@@ -98,7 +99,7 @@ class FintoCentralino:
             }
             self.prossimo += 1
             self.linee[casa].append(messaggio)
-            return {"messaggio": messaggio}
+            return {"messaggio": messaggio, "nuova": nuova}
         if metodo == "DELETE":
             self.linee.pop(casa, None)
             self.segreti.pop(casa, None)
@@ -125,6 +126,10 @@ class FintoCentralino:
                 ]
             }
         linea = pezzi[2]
+        if metodo == "DELETE":
+            self.linee.pop(linea, None)
+            self.segreti.pop(linea, None)
+            return {"cancellata": True}
         if metodo == "POST":
             messaggio = {
                 "id": self.prossimo,
@@ -541,6 +546,108 @@ async def test_con_la_chiave_si_vede_la_coda_e_si_risponde(
     assert [riga["testo"] for riga in filo] == ["una domanda", "una risposta"]
 
 
+async def test_chi_risponde_puo_buttare_via_una_conversazione(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Una coda dove non si butta via niente si riempie e non serve piu'.
+
+    Prove, domande gia' risolte, righe aperte per sbaglio: senza un cestino
+    restano li' per sempre, e quella vera non si trova piu'.
+    """
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    await chat.async_scrivi(hass, "era solo una prova")
+    coda = await chat.async_coda(hass)
+    assert len(coda) == 1
+
+    assert await chat.async_butta(hass, coda[0]["id"]) is True
+    assert await chat.async_coda(hass) == []
+    assert ("DELETE", f"/console/conversazioni/{coda[0]['id']}") in centralino.chiamate
+
+
+async def test_senza_chiave_non_si_butta_via_niente(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """La cancellazione e' la cosa che non si rimette a posto.
+
+    Se passasse senza chiave, chiunque amministri casa propria potrebbe
+    svuotare la coda di tutti — e i comandi della console si chiamano anche
+    senza finestra aperta.
+    """
+    _entry(hass)
+    await chat.async_scrivi(hass, "una domanda che deve restare")
+    with pytest.raises(ChatError):
+        await chat.async_butta(hass, "casa_x")
+    assert ("DELETE", "/console/conversazioni/casa_x") not in centralino.chiamate
+
+
+async def test_cancellata_dalla_console_sparisce_anche_dalla_casa(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Cancellare da una parte deve cancellare da tutte e due.
+
+    Il centralino, a chi chiede una linea che non c'e' piu', risponde
+    «aperta: false». Buttare via quel dato lasciava la copia in casa intatta per
+    sempre: una conversazione cancellata e ancora li', leggibile, dopo che alla
+    persona era stato promesso il contrario.
+    """
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    await chat.async_scrivi(hass, "una domanda")
+    store = await async_get_chat_store(hass)
+    linea = (await store.async_identita())["casa"]
+    centralino.risponde(linea, "una risposta")
+    await chat.async_conversazione(hass)
+    assert len(store.messaggi()) == 2
+
+    await chat.async_butta(hass, linea)
+    filo = await chat.async_conversazione(hass)
+    assert filo["messages"] == []
+    assert store.messaggi() == []
+    # E non e' un guasto: e' quello che doveva succedere.
+    assert not filo["error"]
+
+
+async def test_anche_il_giro_dei_cinque_minuti_se_ne_accorge(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Senza, la copia resterebbe li' finche' qualcuno non apre la finestra."""
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    await chat.async_scrivi(hass, "una domanda")
+    store = await async_get_chat_store(hass)
+    linea = (await store.async_identita())["casa"]
+    await chat.async_butta(hass, linea)
+
+    suonate = _ascolta(hass)
+    assert await chat.async_guarda(hass) == []
+    await hass.async_block_till_done()
+    assert store.messaggi() == []
+    # Non e' arrivato niente da leggere: non suona niente.
+    assert suonate == []
+    assert _campanelle(hass) == []
+
+
+async def test_scrivere_dopo_una_cancellazione_non_incolla_il_vecchio(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """La linea rinasce col messaggio nuovo, e la copia di prima se ne va.
+
+    Chi scrive prima di aver riletto riapre la linea senza accorgersi di
+    niente. Se la copia restasse, questa casa si vedrebbe una conversazione che
+    chi risponde non ha — con dentro proprio le righe che erano state
+    cancellate.
+    """
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    await chat.async_scrivi(hass, "la prima domanda")
+    store = await async_get_chat_store(hass)
+    linea = (await store.async_identita())["casa"]
+    centralino.risponde(linea, "la prima risposta")
+    await chat.async_conversazione(hass)
+    assert len(store.messaggi()) == 2
+
+    await chat.async_butta(hass, linea)
+    await chat.async_scrivi(hass, "una domanda nuova")
+    assert [riga["testo"] for riga in store.messaggi()] == ["una domanda nuova"]
+
+
 # ─── Spegnerla ───────────────────────────────────────────────────────────────
 
 
@@ -589,6 +696,8 @@ async def test_con_la_chat_spenta_non_si_risponde_nemmeno(
         await chat.async_apri(hass, "casa_x")
     with pytest.raises(ChatError):
         await chat.async_replica(hass, "casa_x", "ciao")
+    with pytest.raises(ChatError):
+        await chat.async_butta(hass, "casa_x")
     assert centralino.chiamate == []
 
 
@@ -612,3 +721,32 @@ async def test_senza_centralino_la_porta_non_si_disegna(
     assert chat.accesa(hass) is False
     stato = await chat.async_stato(hass)
     assert stato["enabled"] is False
+
+
+async def test_un_giro_senza_novita_non_scrive_su_disco(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """La finestra aperta rilegge ogni quindici secondi, e quasi sempre non
+    e' arrivato niente: salvare lo stesso voleva dire una scrittura su disco
+    a ogni battito per dire quello che c'era gia' scritto.
+    """
+    from unittest.mock import AsyncMock, patch
+
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    await chat.async_scrivi(hass, "una domanda")
+    store = await async_get_chat_store(hass)
+    with patch.object(store._store, "async_save", new=AsyncMock()) as salva:
+        for _ in range(4):
+            await chat.async_conversazione(hass)
+        assert salva.call_count == 0
+
+        # La conversazione sparisce dal centralino: la prima rilettura se ne
+        # accorge e butta la copia — una scrittura, e poi basta.
+        linea = (await store.async_identita())["casa"]
+        await chat.async_butta(hass, linea)
+        await chat.async_conversazione(hass)
+        assert salva.call_count == 1
+        for _ in range(3):
+            await chat.async_conversazione(hass)
+            await chat.async_guarda(hass)
+        assert salva.call_count == 1

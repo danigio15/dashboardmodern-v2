@@ -380,8 +380,9 @@ async def test_chi_ha_segnalato_risponde_col_proprio_gettone(
     assert await tickets.async_reply(
         hass, user_id="anna", number=12, message="  Ho provato, niente.  "
     ) == {"sent": True}
-    scritta = github.calls[-1]
-    assert scritta["method"] == "POST"
+    # Dopo il commento il campanello chiede il conto — la 12 non la conosceva
+    # — quindi l'ultima chiamata e' una lettura: quella che scrive e' la POST.
+    scritta = next(c for c in reversed(github.calls) if c["method"] == "POST")
     assert scritta["url"].endswith("/issues/12/comments")
     assert scritta["token"] == "gho_anna"
     assert scritta["payload"] == {"body": "Ho provato, niente."}
@@ -568,3 +569,101 @@ async def test_l_elenco_non_cresce_senza_fine(hass: HomeAssistant) -> None:
     numeri = [voce["number"] for voce in watch.non_lette()]
     assert len(numeri) == MAX_NON_LETTE
     assert min(numeri) == 21
+
+
+# ─── Le cose proprie non suonano ─────────────────────────────────────────────
+
+
+async def test_la_propria_segnalazione_appena_partita_non_suona(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Chi apre una segnalazione da qui non deve sentirsela annunciare.
+
+    La consegna non diceva niente al campanello: al giro dopo la issue nuova
+    risultava «mai vista», e a chi l'aveva appena scritta arrivava «Nuova
+    segnalazione» — la sua — con tanto di pallino fra le non lette.
+    """
+    _entry(hass)
+    await _collega(hass, "anna")
+    await _mia(hass, 1)
+    github.answer("/issues?", [_riga(1, commenti=0)])
+    await tickets.async_watch_messages(hass)
+
+    github.answer(
+        "/issues", {"number": 2, "html_url": "https://github.com/x/y/issues/2"}
+    )
+    store = await async_get_ticket_store(hass)
+    await store.async_create(
+        ticket_type=TYPE_BUG, title="la seconda", body="Non va.", opened_by="anna"
+    )
+    assert await tickets.async_deliver_pending(hass) == 1
+
+    suonate = _ascolta(hass)
+    github.answer(
+        "/issues?",
+        [_riga(1, commenti=0), _riga(2, commenti=0, quando="2026-09-09T09:00:00Z")],
+    )
+    assert await tickets.async_watch_messages(hass) == []
+    await hass.async_block_till_done()
+    assert suonate == []
+    assert (await async_get_watch(hass)).non_lette() == []
+
+
+async def test_rispondere_a_una_segnalazione_che_il_campanello_non_conosce(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Il segno si alza da un conto vero, non da zero.
+
+    Una issue fuori dalle cinquanta piu' recenti non sta nel taccuino: dopo
+    la risposta il segno diceva «uno» per una issue che ne aveva cinque, e al
+    giro dopo gli altri quattro suonavano come nuovi — per la propria risposta.
+    """
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("/issues?", [_riga(4, commenti=1)])
+    await tickets.async_watch_messages(hass)
+
+    github.answer("/issues/12/comments", {})
+    github.answer("/issues/12", {"number": 12, "comments": 5})
+    await tickets.async_answer(hass, user_id="dani", number=12, reply="Guardo.")
+    # Il conto lo si chiede a GitHub una volta, dopo aver scritto — e solo
+    # perche' il taccuino non aveva questa issue.
+    assert [
+        chiamata["method"]
+        for chiamata in github.calls
+        if "/issues/12" in chiamata["url"]
+    ] == ["POST", "GET"]
+
+    github.answer(
+        "/issues?",
+        [_riga(4, commenti=1), _riga(12, commenti=5, quando="2026-09-09T09:00:00Z")],
+    )
+    assert await tickets.async_watch_messages(hass) == []
+
+
+async def test_aprire_il_filo_prende_nota_di_dove_sta(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Letto il filo intero, da li' in poi suona solo quello che arriva dopo."""
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    github.answer("/issues?", [_riga(4, commenti=1)])
+    await tickets.async_watch_messages(hass)
+
+    github.answer(
+        "/issues/12/comments",
+        [{"id": 1, "body": "uno", "user": {"login": "anna-hub"}}],
+    )
+    github.answer(
+        "/issues/12", {"number": 12, "comments": 5, "state": "open", "body": "x"}
+    )
+    await tickets.async_thread(hass, "dani", 12)
+
+    github.answer(
+        "/issues?",
+        [_riga(4, commenti=1), _riga(12, commenti=6, quando="2026-09-09T09:00:00Z")],
+    )
+    nuovi = await tickets.async_watch_messages(hass)
+    assert [(voce["number"], voce["messages"], voce["opened"]) for voce in nuovi] == [
+        (12, 1, False)
+    ]

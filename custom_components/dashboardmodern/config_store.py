@@ -282,6 +282,19 @@ class DashboardConfigStore:
     def _entry_profiles(self) -> dict[str, Any]:
         return self._data.setdefault("entry_profiles", {})
 
+    def entry_profiles(self) -> dict[str, str]:
+        """Quale profilo usa davvero ogni plancia, per chi deve risalire.
+
+        E' la memoria che segue i cambi di nome: chi controlla i permessi sul
+        profilo chiesto la guarda per non scambiare una plancia rinominata per
+        un profilo di nessuno.
+        """
+        return {
+            str(entry_id): str(profile)
+            for entry_id, profile in self._entry_profiles().items()
+            if profile
+        }
+
     def _resolve(self, profile: str, entry_id: str | None) -> tuple[str, str | None]:
         """Return the profile this config entry actually uses.
 

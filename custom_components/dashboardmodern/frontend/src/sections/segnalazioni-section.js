@@ -1890,7 +1890,7 @@ function sottotitolo() {
   );
 }
 
-function disegna() {
+function disegnaLaFinestra() {
   const modale = doc?.getElementById?.("dm-tkt-modal");
   if (!modale) return;
   modale.querySelector('[data-dm-tkt="titolo"]').textContent = t("Segnalazioni", "Reports");
@@ -1901,9 +1901,34 @@ function disegna() {
   corpo.innerHTML = schede() + avvisoMarkup() + codiceMarkup() + pannello;
   agganciaEventi(corpo);
   if (state.tab === "nuova") mostraDiagnostica(corpo);
-  /* La pagina del cruscotto vive fuori da questa finestra, ma legge lo stesso
-   * stato: quando qui cambia qualcosa — una risposta pubblicata, la coda
-   * riletta — anche lei va rifatta, o le due mostrerebbero cose diverse. */
+}
+
+/* Ridisegnare vuol dire ridisegnare tutti e due i posti, e nessuno dei due
+ * comanda sull'altro.
+ *
+ * «Tab nel cruscotto non funziona, non mi fa selezionare Difetti e nemmeno In
+ * lavorazione.» I tasti erano collegati e il tocco arrivava: metteva
+ * `state.filtro` e chiamava questa. Ma questa cominciava cercando
+ * `#dm-tkt-modal` e, non trovandolo, tornava indietro alla riga dopo — mentre
+ * il cruscotto lo ridisegnava l’ultima riga, quella che non veniva mai
+ * eseguita.
+ *
+ * La finestra delle segnalazioni la costruisce `apri()`, che parte dalla
+ * tessera in Configurazione. Chi apre il cruscotto dalla barra quella tessera
+ * non la tocca: nel documento non c’è nessun `#dm-tkt-modal`, e non ci deve
+ * essere. Cioè il filtro non rispondeva mai a chi usava la pagina per quello
+ * per cui esiste; rispondeva soltanto a chi, nella stessa sessione, avesse
+ * aperto e chiuso la finestra almeno una volta.
+ *
+ * E il difetto era largo quanto la funzione: dietro `disegna()` ci stanno
+ * anche il filo che si apre, la risposta appena mandata, la segnalazione
+ * chiusa. Sul cruscotto nessuna di quelle si vedeva finire.
+ *
+ * Adesso la finestra e la pagina sono due disegni indipendenti: ciascuno
+ * guarda se ha un posto dove stare, e chi non ce l’ha non impedisce all’altro
+ * di esistere. */
+function disegna() {
+  disegnaLaFinestra();
   disegnaCruscotto();
 }
 

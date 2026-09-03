@@ -975,3 +975,80 @@ test("il cerchio del gruppo non contraddice la propria finestra", () => {
   assert.equal(mese.nodes[0].source, "sum");
   assert.ok(Math.abs(mese.nodes[0].value - 28.6) < 1e-9, `mese: ${mese.nodes[0].value}`);
 });
+
+/* ── il contatore che dice meno dei suoi figli ──────────────────────────────
+ *
+ * «Calcolo energia giornaliera e mensile su elettrodomestici di nuovo
+ * sbagliata»: cerchio a «0,2 kWh», finestra dello stesso cerchio a «12,0 kWh»,
+ * sullo stesso schermo.
+ *
+ * E' lo stesso difetto dello zero, col numero al posto dello zero — e la
+ * regola di prima non scattava, perche' 0,2 non e' zero. Zero non era la cosa
+ * da guardare: una pinza sulla linea misura tutto quello che le passa sotto, e
+ * il suo numero non puo' essere piu' piccolo della somma di cio' che ha
+ * dentro. Se lo e', quella casella sta misurando altro.
+ */
+test("un contatore che dice meno dei suoi figli non sta misurando il gruppo", () => {
+  const gruppo = {
+    id: "elettro",
+    daily_energy_entity: "sensor.gruppo_oggi",
+    monthly_energy_entity: "sensor.gruppo_mese",
+  };
+  const figli = [
+    { id: "cond", daily_energy_entity: "sensor.cond_oggi", monthly_energy_entity: "sensor.cond_mese" },
+    { id: "lavast", daily_energy_entity: "sensor.lavast_oggi", monthly_energy_entity: "sensor.lavast_mese" },
+    { id: "frigo", daily_energy_entity: "sensor.frigo_oggi", monthly_energy_entity: "sensor.frigo_mese" },
+  ];
+  const kwh = (valore) => ({ state: String(valore), attributes: { unit_of_measurement: "kWh" } });
+  const stati = {
+    // Il numero visto dal vero: 0,2 fuori, 11,3 dentro.
+    "sensor.gruppo_oggi": kwh(0.2),
+    "sensor.cond_oggi": kwh(9.4),
+    "sensor.lavast_oggi": kwh(1.0),
+    "sensor.frigo_oggi": kwh(0.9),
+    "sensor.gruppo_mese": kwh(3.1),
+    "sensor.cond_mese": kwh(36.6),
+    "sensor.lavast_mese": kwh(4.2),
+    "sensor.frigo_mese": kwh(3.1),
+  };
+  const oggi = readingFor(gruppo, figli, "day", stati, null);
+  assert.ok(Math.abs(oggi.value - 11.3) < 1e-9, `giorno: ${oggi.value}`);
+  assert.equal(oggi.source, "sum");
+  const mese = readingFor(gruppo, figli, "month", stati, null);
+  assert.ok(Math.abs(mese.value - 43.9) < 1e-9, `mese: ${mese.value}`);
+  assert.equal(mese.source, "sum");
+});
+
+test("una pinza vera vince sulla somma, anche quando misura di piu'", () => {
+  /* E' il motivo per cui il contatore del gruppo esiste: prende anche quello
+   * che nessuno ha modellato come figlio. Finche' sta sopra, comanda lui. */
+  const gruppo = { id: "elettro", daily_energy_entity: "sensor.gruppo_oggi" };
+  const figli = [{ id: "cond", daily_energy_entity: "sensor.cond_oggi" }];
+  const kwh = (valore) => ({ state: String(valore), attributes: { unit_of_measurement: "kWh" } });
+  const letto = readingFor(
+    gruppo,
+    figli,
+    "day",
+    { "sensor.gruppo_oggi": kwh(14.2), "sensor.cond_oggi": kwh(9.4) },
+    null,
+  );
+  assert.equal(letto.value, 14.2);
+  assert.equal(letto.source, "direct");
+});
+
+test("il cerchio non balla per qualche secondo di ritardo fra i campioni", () => {
+  /* La pinza e i contatori dei figli non campionano nello stesso istante:
+   * senza margine, un contatore appena sotto la somma farebbe cambiare
+   * sorgente avanti e indietro a ogni giro. */
+  const gruppo = { id: "elettro", daily_energy_entity: "sensor.gruppo_oggi" };
+  const figli = [{ id: "cond", daily_energy_entity: "sensor.cond_oggi" }];
+  const kwh = (valore) => ({ state: String(valore), attributes: { unit_of_measurement: "kWh" } });
+  const letto = readingFor(
+    gruppo,
+    figli,
+    "day",
+    { "sensor.gruppo_oggi": kwh(11.9), "sensor.cond_oggi": kwh(12.0) },
+    null,
+  );
+  assert.equal(letto.source, "direct", "un pelo sotto e' ritardo, non un'altra grandezza");
+});

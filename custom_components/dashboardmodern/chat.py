@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 from .chat_client import (
     ChatError,
     async_cancella,
+    async_cestina,
     async_conversazioni,
     async_filo,
     async_leggi,
@@ -148,12 +149,19 @@ async def async_conversazione(
             arrivati = await async_leggi(hass, identita, dopo=store.ultimo())
             await store.async_aggiungi(arrivati)
         except ChatError as errore:
-            # Il centralino giu' non deve voler dire una schermata vuota: la
-            # copia locale esiste apposta, e chi apre la chat la vede lo stesso.
-            # Il guasto si dice, ma accanto alla conversazione, non al posto suo:
-            # sollevare qui buttava via anche quello che c'era gia' letto.
-            guasto = str(errore)
-            _LOGGER.debug("Chat: rilettura non riuscita", exc_info=True)
+            if errore.code == "gone":
+                # La conversazione non esiste piu' nel centralino: l'ha
+                # cancellata chi risponde, o se ne sono andati i sei mesi di
+                # silenzio. Va via anche di qua, e non e' una perdita: e'
+                # esattamente quello che era stato promesso.
+                await store.async_dimentica()
+            else:
+                # Il centralino giu' non deve voler dire una schermata vuota: la
+                # copia locale esiste apposta, e chi apre la chat la vede lo
+                # stesso. Il guasto si dice accanto alla conversazione, non al
+                # posto suo: sollevare qui buttava via anche il gia' letto.
+                guasto = str(errore)
+                _LOGGER.debug("Chat: rilettura non riuscita", exc_info=True)
     if not zitta:
         await store.async_letto()
     return {
@@ -186,9 +194,16 @@ async def async_scrivi(
     # — nei cinque minuti fra un giro e l'altro ci sta benissimo — e quella
     # risposta non verrebbe chiesta mai piu': persa, in silenzio, per sempre.
     prima = store.ultimo()
-    messaggio = await async_manda(
-        hass, identita, testo, nome=store.nome(), lingua=lingua
-    )
+    esito = await async_manda(hass, identita, testo, nome=store.nome(), lingua=lingua)
+    messaggio = esito.get("messaggio") or {}
+    if esito.get("nuova") and store.messaggi():
+        # La linea e' nata con questo messaggio, ma una copia c'era gia': vuol
+        # dire che nel frattempo qualcuno l'ha cancellata dal centralino. Le
+        # frasi vecchie parlano di un filo che non esiste piu', e incollarci
+        # sotto quelle nuove darebbe a questa casa una conversazione che chi
+        # risponde non ha — con dentro le righe che erano state cancellate.
+        await store.async_dimentica()
+        prima = 0
     try:
         # Il centralino rida' anche il messaggio appena scritto, quindi questa
         # rilettura porta indietro sia le risposte in sospeso sia la propria
@@ -298,6 +313,23 @@ async def async_replica(hass: HomeAssistant, linea: str, testo: str) -> dict[str
     return await async_rispondi(hass, _chiave_di_chi_risponde(hass), linea, testo)
 
 
+async def async_butta(hass: HomeAssistant, linea: str) -> bool:
+    """Butta via una conversazione, dalla coda di chi risponde.
+
+    La casa la propria puo' cancellarla da sempre; chi risponde non poteva
+    cancellare niente, e una coda dove non si butta via nulla si riempie di
+    prove, di domande gia' risolte e di righe aperte per sbaglio, finche'
+    quella vera non si trova piu'.
+
+    Cancella davvero, e per tutti e due: la linea sparisce dal centralino e con
+    lei quello che si erano detti. Sparisce anche dalla plancia di quella casa
+    — la conversazione era finita — ed e' il verso giusto della promessa
+    scritta prima della prima riga: quello che si scrive li' non resta in giro
+    per sempre.
+    """
+    return await async_cestina(hass, _chiave_di_chi_risponde(hass), linea)
+
+
 # ─── Il campanello ───────────────────────────────────────────────────────────
 
 
@@ -349,7 +381,17 @@ async def async_guarda(hass: HomeAssistant) -> list[dict[str, Any]]:
     if not store.aperta():
         return []
     identita = await store.async_identita()
-    arrivati = await async_leggi(hass, identita, dopo=store.ultimo())
+    try:
+        arrivati = await async_leggi(hass, identita, dopo=store.ultimo())
+    except ChatError as errore:
+        if errore.code != "gone":
+            raise
+        # Il giro dei cinque minuti e' anche il modo in cui questa casa scopre
+        # che la conversazione non c'e' piu': senza, la copia resterebbe li'
+        # finche' qualcuno non apre la finestra. Non suona niente — non e'
+        # arrivato niente da leggere.
+        await store.async_dimentica()
+        return []
     aggiunti = await store.async_aggiungi(arrivati)
     dalla_console = [riga for riga in aggiunti if riga.get("da") == "console"]
     if dalla_console:
@@ -395,6 +437,7 @@ __all__ = [
     "ChatError",
     "accesa",
     "async_apri",
+    "async_butta",
     "async_coda",
     "async_conversazione",
     "async_dimentica",

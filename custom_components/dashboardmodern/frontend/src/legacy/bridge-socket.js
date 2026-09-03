@@ -98,6 +98,7 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "dashboardmodern/chat/queue",
   "dashboardmodern/chat/open",
   "dashboardmodern/chat/answer",
+  "dashboardmodern/chat/drop",
   "auth/sign_path",
 ]);
 

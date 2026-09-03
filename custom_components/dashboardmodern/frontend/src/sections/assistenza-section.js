@@ -36,6 +36,7 @@ const WS_FORGET = "dashboardmodern/chat/forget";
 const WS_QUEUE = "dashboardmodern/chat/queue";
 const WS_OPEN = "dashboardmodern/chat/open";
 const WS_ANSWER = "dashboardmodern/chat/answer";
+const WS_DROP = "dashboardmodern/chat/drop";
 
 /* Esportati perche' una prova li tenga accanto all'allowlist del ponte. Un
  * tipo non elencato la' non arriva a Home Assistant e la finestra risponde
@@ -49,6 +50,7 @@ export const WS_TYPES = Object.freeze([
   WS_QUEUE,
   WS_OPEN,
   WS_ANSWER,
+  WS_DROP,
 ]);
 
 /** Lo stesso tetto che il backend e il centralino applicano. */
@@ -68,6 +70,10 @@ const state = {
   tab: "mia",
   busy: false,
   avviso: "",
+  /* La conversazione col cestino gia' armato: il primo tocco arma, il secondo
+   * cancella. Una sola, perche' armarne due insieme vorrebbe dire due tasti
+   * rossi accanto e nessuno che sappia piu' quale stava per premere. */
+  daButtare: "",
   /* Quello che si sta scrivendo, perche' un ridisegno non se lo porti via. */
   bozza: "",
 };
@@ -128,8 +134,17 @@ export function avvertenzaMarkup() {
     </div>`;
 }
 
-export function messaggioMarkup(riga) {
-  const mio = clean(riga?.da) !== "console";
+/* Un messaggio, dalla parte giusta.
+ *
+ * «Mio» dipende da chi guarda, e questa finestra la guardano in due. Nella
+ * propria conversazione le proprie frasi sono quelle della casa; nella coda di
+ * chi risponde sono quelle della console — e li' il verso era rovesciato: le
+ * domande della casa comparivano a destra e in verde, come se se le fosse
+ * scritte da solo chi stava leggendo, e le proprie risposte a sinistra e in
+ * grigio. Una conversazione letta al contrario. */
+export function messaggioMarkup(riga, dallaConsole = false) {
+  const daConsole = clean(riga?.da) === "console";
+  const mio = dallaConsole ? daConsole : !daConsole;
   const ora = quando(riga?.scritto_il);
   return `
     <div class="dm-chat-riga ${mio ? "mia" : "sua"}">
@@ -144,7 +159,7 @@ export function messaggioMarkup(riga) {
  *
  * Il vuoto non e' una schermata bianca: e' l'invito a scrivere la prima riga,
  * perche' una chat vuota e una chat rotta si somigliano troppo. */
-export function filoMarkup(messaggi) {
+export function filoMarkup(messaggi, dallaConsole = false) {
   const righe = Array.isArray(messaggi) ? messaggi : [];
   if (!righe.length) {
     return `
@@ -159,7 +174,7 @@ export function filoMarkup(messaggi) {
       </div>`;
   }
   return `<div class="dm-chat-filo" data-dm-chat="filo">${righe
-    .map(messaggioMarkup)
+    .map((riga) => messaggioMarkup(riga, dallaConsole))
     .join("")}</div>`;
 }
 
@@ -172,6 +187,101 @@ export function filoMarkup(messaggi) {
  * l'errore e sotto una casella pulita: chi aveva appena incollato mezzo file di
  * configurazione doveva riscriverlo per riprovare, che e' il modo piu' sicuro
  * di far smettere di riprovare. */
+/* ─── Le emoji ──────────────────────────────────────────────────────────
+ *
+ * «Ecco mancano le emoji :) :) :)»
+ *
+ * Una chat di assistenza le vuole per la ragione per cui le vuole qualunque
+ * chat: una frase scritta di corsa suona piu' secca di com'e' stata pensata, e
+ * chi legge dall'altra parte non ha il tono di voce per correggerla. Un pollice
+ * in su chiude uno scambio meglio di «ok».
+ *
+ * L'elenco e' corto e scelto, non un catalogo: in una finestra di assistenza
+ * servono facce, mani, e le cose di casa di cui si sta parlando. Un catalogo
+ * intero vorrebbe dire una ricerca, una tastiera e un pannello che copre la
+ * conversazione — e mille segni per trovarne cinque.
+ *
+ * Niente tonalita' di pelle e niente sequenze composte: un'emoji sola per
+ * segno, che e' quello che il campo e il centralino si passano senza sorprese.
+ */
+export const EMOJI_DELLA_CHAT = Object.freeze([
+  "🙂",
+  "😀",
+  "😅",
+  "😉",
+  "😊",
+  "🤔",
+  "😐",
+  "😕",
+  "😢",
+  "😱",
+  "👍",
+  "👎",
+  "🙏",
+  "👏",
+  "💪",
+  "🤝",
+  "👋",
+  "🤞",
+  "✅",
+  "❌",
+  "⚠️",
+  "❓",
+  "❗",
+  "💡",
+  "🔧",
+  "🔌",
+  "🔋",
+  "📷",
+  "📎",
+  "🏠",
+  "🚗",
+  "☀️",
+  "🌧️",
+  "🔥",
+  "❄️",
+  "💧",
+  "🎉",
+  "❤️",
+  "⏳",
+  "📅",
+]);
+
+/**
+ * Il testo con dentro l'emoji, e dove va a finire il cursore.
+ *
+ * Si mette dove sta il cursore e non in fondo: chi ha scritto una frase e
+ * torna indietro a metterci una faccia si aspetta che vada li'. Con del testo
+ * selezionato l'emoji lo sostituisce, che e' quello che fa qualunque campo.
+ *
+ * E il tetto si rispetta prima di scrivere, non dopo: il campo ha un massimo,
+ * e un'emoji che lo sfonda deve non entrare — non entrare a meta', che
+ * significherebbe spezzare un segno in due pezzi che non vogliono dire niente.
+ */
+export function conLEmoji(testo = "", emoji = "", inizio = null, fine = null, massimo = Infinity) {
+  const base = String(testo ?? "");
+  const segno = String(emoji ?? "");
+  const dentro = (valore, difetto) =>
+    Number.isInteger(valore) && valore >= 0 ? Math.min(valore, base.length) : difetto;
+  const da = dentro(inizio, base.length);
+  const a = Math.max(da, dentro(fine, da));
+  if (!segno) return { testo: base, cursore: a, pieno: false };
+  const prossimo = `${base.slice(0, da)}${segno}${base.slice(a)}`;
+  if (prossimo.length > massimo) return { testo: base, cursore: a, pieno: true };
+  return { testo: prossimo, cursore: da + segno.length, pieno: false };
+}
+
+function emojiMarkup() {
+  return `
+    <div class="dm-chat-emoji" data-dm-chat="emoji" hidden>
+      ${EMOJI_DELLA_CHAT.map(
+        (segno) =>
+          `<button type="button" class="dm-chat-emoji-uno" data-dm-emoji="${esc(segno)}"
+             tabindex="-1" aria-label="${esc(segno)}">${esc(segno)}</button>`,
+      ).join("")}
+    </div>`;
+}
+
 function casellaMarkup(dove) {
   const bozza = state.bozza || "";
   const rimasti = MAX_TESTO - bozza.length;
@@ -180,7 +290,11 @@ function casellaMarkup(dove) {
       <textarea id="${dove}" rows="3" maxlength="${MAX_TESTO}" placeholder="${esc(
         t("Scrivi il tuo messaggio…", "Write your message…"),
       )}">${esc(bozza)}</textarea>
+      ${emojiMarkup()}
       <div class="dm-chat-sotto">
+        <button type="button" class="dm-chat-emoji-apri" data-dm-chat="emoji-apri"
+          aria-expanded="false" aria-label="${esc(t("Metti un'emoji", "Add an emoji"))}"
+          title="${esc(t("Metti un'emoji", "Add an emoji"))}">🙂</button>
         <span class="dm-chat-rimasti" data-dm-chat="rimasti">${rimasti}</span>
         <button type="button" class="dm-chat-btn" data-dm-chat="manda"
           ${state.busy ? "disabled" : ""}>${esc(
@@ -238,14 +352,40 @@ function miaMarkup() {
   )}${cancella}`;
 }
 
-/* L'elenco, per chi risponde. */
-function codaMarkup() {
-  if (!state.conversazioni.length) {
+/* Il cestino di una conversazione, per chi risponde.
+ *
+ * Due tocchi e non uno. Una conversazione cancellata non si rimette a posto —
+ * sparisce dal centralino e dalla plancia di quella casa — e un cestino che
+ * cancella al primo tocco, in un elenco dove si scorre col dito, e' un cestino
+ * che prima o poi butta via la conversazione sbagliata. Il primo tocco arma e
+ * chiede conferma sul tasto stesso; il secondo cancella.
+ *
+ * `lungo` e' per quando il tasto sta da solo sopra un filo aperto, dove una
+ * paletta senza parole non direbbe di quale conversazione si parla. */
+function buttaMarkup(linea, lungo = false) {
+  const armato = state.daButtare === linea;
+  const titolo = t("Cancella la conversazione", "Delete the conversation");
+  const scritta = armato ? t("Confermi?", "Confirm?") : lungo ? titolo : "🗑";
+  return `
+    <button type="button" class="dm-chat-butta${armato ? " armato" : ""}${
+      lungo ? " lungo" : ""
+    }" data-dm-chat-butta="${esc(linea)}" ${state.busy ? "disabled" : ""}
+      title="${esc(titolo)}" aria-label="${esc(titolo)}">${esc(scritta)}</button>`;
+}
+
+/* L'elenco, per chi risponde.
+ *
+ * Prende le conversazioni invece di leggerle dallo stato — come `filoMarkup` —
+ * cosi' una prova puo' chiedergli una riga e guardare cosa ne esce senza dover
+ * far finta di avere una finestra aperta. */
+export function codaMarkup(conversazioni = state.conversazioni) {
+  const righe = Array.isArray(conversazioni) ? conversazioni : [];
+  if (!righe.length) {
     return `<div class="dm-chat-vuoto">${esc(
       t("Nessuna conversazione aperta.", "No open conversation."),
     )}</div>`;
   }
-  return `<div class="dm-chat-coda">${state.conversazioni
+  return `<div class="dm-chat-coda">${righe
     .map((voce) => {
       const linea = clean(voce?.id);
       const nome = clean(voce?.nome) || linea.slice(0, 12);
@@ -253,17 +393,23 @@ function codaMarkup() {
       const note = [clean(voce?.versione), clean(voce?.ha), clean(voce?.lingua)]
         .filter(Boolean)
         .join(" · ");
+      /* La riga non e' piu' un solo tasto: dentro ce ne stanno due, e un
+       * tasto dentro un tasto non e' markup valido — il browser lo srotola e
+       * il cestino finisce fuori dalla riga. Quindi un contenitore, e i due
+       * tasti dentro. */
       return `
-        <button type="button" class="dm-chat-voce${
-          state.linea === linea ? " aperta" : ""
-        }" data-dm-chat-linea="${esc(linea)}">
-          <div class="dm-chat-voce-testa">
-            <span class="dm-chat-voce-nm">${esc(nome)}</span>
-            ${nonLetti ? `<span class="dm-chat-segno">${nonLetti}</span>` : ""}
-          </div>
-          <div class="dm-chat-voce-ult">${esc(clean(voce?.ultimo))}</div>
-          ${note ? `<div class="dm-chat-voce-note">${esc(note)}</div>` : ""}
-        </button>`;
+        <div class="dm-chat-voce${state.linea === linea ? " aperta" : ""}">
+          <button type="button" class="dm-chat-voce-apri"
+            data-dm-chat-linea="${esc(linea)}">
+            <div class="dm-chat-voce-testa">
+              <span class="dm-chat-voce-nm">${esc(nome)}</span>
+              ${nonLetti ? `<span class="dm-chat-segno">${nonLetti}</span>` : ""}
+            </div>
+            <div class="dm-chat-voce-ult">${esc(clean(voce?.ultimo))}</div>
+            ${note ? `<div class="dm-chat-voce-note">${esc(note)}</div>` : ""}
+          </button>
+          ${buttaMarkup(linea)}
+        </div>`;
     })
     .join("")}</div>`;
 }
@@ -271,12 +417,13 @@ function codaMarkup() {
 function consoleMarkup() {
   if (!state.linea) return codaMarkup();
   return `
-    <div class="dm-chat-azioni">
+    <div class="dm-chat-azioni fra">
       <button type="button" class="dm-chat-btn chiaro" data-dm-chat="indietro">${esc(
         t("← Tutte le conversazioni", "← All conversations"),
       )}</button>
+      ${buttaMarkup(state.linea, true)}
     </div>
-    ${filoMarkup(state.filo)}
+    ${filoMarkup(state.filo, true)}
     ${casellaMarkup("dm-chat-console")}`;
 }
 
@@ -374,12 +521,18 @@ export function apri() {
   const modale = finestra();
   if (!modale) return;
   state.avviso = "";
+  /* Un cestino armato non sopravvive alla finestra: riaprirla e trovare
+   * «Confermi?» gia' acceso vorrebbe dire che il primo tocco cancella. */
+  state.daButtare = "";
   modale.classList.add("show");
   disegna();
   ricarica();
+  accendiIlGiro();
 }
 
 export function chiudi() {
+  spegniIlGiro();
+  state.daButtare = "";
   doc?.getElementById?.("dm-chat-modal")?.classList.remove("show");
 }
 
@@ -398,9 +551,32 @@ function disegna() {
   );
   modale.querySelector('[data-dm-chat="chiudi"]').textContent = t("Chiudi", "Close");
   const corpo = modale.querySelector('[data-dm-chat="corpo"]');
+  /* Dov'era il cursore, prima che il corpo venisse rifatto.
+   *
+   * Il giro che porta le risposte nuove ridisegna la finestra, e ridisegnarla
+   * vuol dire buttare via la casella e rifarla: senza questo, a chi stava
+   * scrivendo il cursore saltava fuori dal campo a meta' frase, ogni volta che
+   * dall'altra parte arrivava qualcosa. La bozza si teneva gia'; quello che si
+   * perdeva era il punto in cui si era. */
+  const attivo = doc?.activeElement;
+  const dovEro =
+    attivo?.id && corpo.contains(attivo) && typeof attivo.selectionStart === "number"
+      ? { id: attivo.id, da: attivo.selectionStart, a: attivo.selectionEnd }
+      : null;
   const dentro = state.console && state.tab === "coda" ? consoleMarkup() : miaMarkup();
   corpo.innerHTML = schedeMarkup() + avvisoMarkup() + dentro;
   agganciaEventi(corpo);
+  if (dovEro) {
+    const tornato = doc.getElementById(dovEro.id);
+    if (tornato) {
+      tornato.focus({ preventScroll: true });
+      try {
+        tornato.setSelectionRange(dovEro.da, dovEro.a);
+      } catch (_errore) {
+        /* Un campo che il cursore non lo tiene: basta avergli ridato il fuoco. */
+      }
+    }
+  }
   /* La chat si legge dal fondo: l'ultima frase e' quella che interessa, e
    * aprire una conversazione lunga in cima vorrebbe dire scorrere ogni volta
    * per arrivare al punto. */
@@ -413,6 +589,7 @@ function agganciaEventi(corpo) {
     bottone.addEventListener("click", () => {
       state.tab = bottone.dataset.dmChatTab;
       state.linea = "";
+      state.daButtare = "";
       disegna();
       if (state.tab === "coda") caricaCoda();
     });
@@ -420,11 +597,15 @@ function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-chat-linea]").forEach((bottone) => {
     bottone.addEventListener("click", () => apriLinea(bottone.dataset.dmChatLinea));
   });
+  corpo.querySelectorAll("[data-dm-chat-butta]").forEach((bottone) => {
+    bottone.addEventListener("click", () => butta(bottone.dataset.dmChatButta));
+  });
   corpo
     .querySelector('[data-dm-chat="indietro"]')
     ?.addEventListener("click", () => {
       state.linea = "";
       state.filo = [];
+      state.daButtare = "";
       disegna();
       caricaCoda();
     });
@@ -438,7 +619,42 @@ function agganciaEventi(corpo) {
       state.name = clean(comeMiChiamo.value);
     });
   }
+  const pannello = corpo.querySelector('[data-dm-chat="emoji"]');
+  const apriEmoji = corpo.querySelector('[data-dm-chat="emoji-apri"]');
   const campo = corpo.querySelector("textarea");
+  if (pannello && apriEmoji && campo) {
+    apriEmoji.addEventListener("click", () => {
+      const chiuso = pannello.hidden;
+      pannello.hidden = !chiuso;
+      apriEmoji.setAttribute("aria-expanded", String(chiuso));
+      if (chiuso) campo.focus();
+    });
+    /* Un solo ascoltatore per tutte le emoji, e sul pannello: sono quaranta, e
+     * quaranta ascoltatori si rifanno a ogni ridisegno. */
+    pannello.addEventListener("mousedown", (evento) => {
+      /* Prima del `click`, cosi' la casella non perde il fuoco e il cursore
+       * resta dov'era: senza, l'emoji finirebbe sempre in fondo. */
+      if (evento.target.closest("[data-dm-emoji]")) evento.preventDefault();
+    });
+    pannello.addEventListener("click", (evento) => {
+      const scelta = evento.target.closest("[data-dm-emoji]");
+      if (!scelta) return;
+      const esito = conLEmoji(
+        campo.value,
+        scelta.dataset.dmEmoji,
+        campo.selectionStart,
+        campo.selectionEnd,
+        MAX_TESTO,
+      );
+      if (esito.pieno) return;
+      campo.value = esito.testo;
+      campo.setSelectionRange?.(esito.cursore, esito.cursore);
+      campo.focus();
+      /* Lo stesso evento che scrivere a mano fa partire: da li' passano la
+       * bozza tenuta da parte e il conto dei caratteri rimasti. */
+      campo.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
   if (campo) {
     campo.addEventListener("input", () => {
       state.bozza = campo.value;
@@ -454,6 +670,110 @@ function agganciaEventi(corpo) {
       }
     });
   }
+}
+
+/* ─── Il giro che tiene la finestra viva ────────────────────────────────── */
+
+/* Ogni quanto la finestra aperta va a vedere se e' arrivato qualcosa.
+ *
+ * «La risposta non si refresh, devo uscire e rientrare»: la finestra leggeva
+ * una volta all'apertura e poi restava ferma. Il giro dei cinque minuti del
+ * backend c'era gia', ma quello serve al campanello — suona e basta, non
+ * ridisegna niente — e cinque minuti davanti a una chat aperta sono
+ * un'eternita'.
+ *
+ * Quindici secondi, e solo mentre la finestra e' aperta: chiusa non chiede
+ * niente, perche' una plancia accesa tutto il giorno in cucina non deve
+ * bussare al centralino per una conversazione che nessuno sta guardando. */
+const RINFRESCO = 15000;
+
+let giro = 0;
+
+/* Un giro per volta, e mai due sovrapposti.
+ *
+ * Quindici secondi sono tanti finche' il centralino risponde. Il giorno che ci
+ * mette venti, il battito successivo parte mentre il primo e' ancora per aria:
+ * due richieste in volo, e vince quella che torna per ultima — che non e'
+ * detto sia la piu' recente. */
+let inVolo = false;
+
+function accendiIlGiro() {
+  spegniIlGiro();
+  giro = root.setInterval?.(() => {
+    if (!doc?.getElementById?.("dm-chat-modal")?.classList.contains("show")) {
+      spegniIlGiro();
+      return;
+    }
+    /* Pagina nascosta, giro fermo. Non e' per risparmiare: leggere la propria
+     * conversazione vuol dire averla letta, e il segnalibro si sposta. Una
+     * finestra dimenticata aperta in una scheda in fondo si mangiava le
+     * risposte — le metteva in copia, le segnava lette, e il giro dei cinque
+     * minuti che deve suonare la campanella trovava che non era arrivato
+     * niente di nuovo. La risposta c'era, e nessuno lo sapeva. */
+    if (doc?.hidden) return;
+    rinfresca();
+  }, RINFRESCO);
+}
+
+function spegniIlGiro() {
+  if (giro) root.clearInterval?.(giro);
+  giro = 0;
+}
+
+/** Il segno di una lista: quanti sono e dov'e' arrivata. */
+const segno = (righe) =>
+  `${righe.length}:${Number(righe[righe.length - 1]?.id) || 0}`;
+
+/* Va a vedere, e ridisegna solo se c'e' qualcosa da ridisegnare.
+ *
+ * Il confronto non e' un risparmio di cicli: ridisegnare rifa' la casella, e
+ * rifare la casella quattro volte al minuto mentre qualcuno scrive e' il modo
+ * di rendere la finestra inusabile. Se non e' cambiato niente, non si tocca
+ * niente. */
+async function rinfresca() {
+  if (state.busy || inVolo || !state.enabled) return;
+  /* Da dove si e' partiti. Fra la domanda e la risposta ci sta un dito che
+   * cambia scheda o apre un'altra conversazione: senza questo appunto, il filo
+   * di una casa finiva sotto il nome di un'altra — la richiesta era partita per
+   * A, ma quando torna la finestra sta mostrando B, e le frasi di A si
+   * scrivevano li' dentro come se fossero sue. */
+  const dovEro = { console: state.console, tab: state.tab, linea: state.linea };
+  const stessoPosto = () =>
+    state.console === dovEro.console &&
+    state.tab === dovEro.tab &&
+    state.linea === dovEro.linea;
+  inVolo = true;
+  try {
+    if (dovEro.console && dovEro.tab === "coda") {
+      if (dovEro.linea) {
+        const filo = await chiedi(WS_OPEN, { line: dovEro.linea });
+        const righe = Array.isArray(filo?.messages) ? filo.messages : [];
+        if (!stessoPosto() || segno(righe) === segno(state.filo)) return;
+        state.filo = righe;
+      } else {
+        const coda = await chiedi(WS_QUEUE);
+        const righe = Array.isArray(coda?.conversations) ? coda.conversations : [];
+        if (!stessoPosto()) return;
+        if (JSON.stringify(righe) === JSON.stringify(state.conversazioni)) return;
+        state.conversazioni = righe;
+      }
+    } else {
+      const filo = await chiedi(WS_THREAD);
+      const righe = Array.isArray(filo?.messages) ? filo.messages : [];
+      if (!stessoPosto() || segno(righe) === segno(state.messages)) return;
+      state.messages = righe;
+      state.unread = 0;
+      installaTessera();
+    }
+  } catch (_errore) {
+    /* Un giro automatico che non riesce non dice niente. Chi non ha chiesto
+     * niente non deve vedersi comparire un errore da solo, e al giro dopo il
+     * centralino magari risponde. */
+    return;
+  } finally {
+    inVolo = false;
+  }
+  disegna();
 }
 
 /* ─── Le richieste ──────────────────────────────────────────────────────── */
@@ -503,6 +823,7 @@ async function apriLinea(linea) {
   if (!nome) return;
   state.linea = nome;
   state.filo = [];
+  state.daButtare = "";
   disegna();
   try {
     const filo = await chiedi(WS_OPEN, { line: nome });
@@ -552,6 +873,43 @@ async function manda() {
     state.busy = false;
     disegna();
   }
+}
+
+/* Buttare via una conversazione, dalla parte di chi risponde.
+ *
+ * Il primo tocco arma e basta. Il secondo cancella davvero, e cancella per
+ * tutti e due: la linea sparisce dal centralino, e con lei quello che si erano
+ * detti. La coda si rilegge subito dopo, perche' quello che si vede in elenco
+ * dev'essere quello che c'e' — non quello che questa finestra crede. */
+async function butta(linea) {
+  const nome = clean(linea);
+  if (!nome) return;
+  if (state.daButtare !== nome) {
+    state.daButtare = nome;
+    disegna();
+    return;
+  }
+  state.daButtare = "";
+  state.busy = true;
+  state.avviso = "";
+  disegna();
+  try {
+    await chiedi(WS_DROP, { line: nome });
+    state.conversazioni = state.conversazioni.filter(
+      (voce) => clean(voce?.id) !== nome,
+    );
+    if (state.linea === nome) {
+      state.linea = "";
+      state.filo = [];
+    }
+    state.avviso = t("Conversazione cancellata.", "Conversation deleted.");
+  } catch (errore) {
+    state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
+  } finally {
+    state.busy = false;
+    disegna();
+  }
+  await caricaCoda();
 }
 
 async function cancella() {
@@ -623,13 +981,33 @@ const CSS = `
   font-size:13px; resize:vertical; }
 .dm-chat-sotto { display:flex; align-items:center; justify-content:space-between;
   gap:10px; margin-top:8px; }
+.dm-chat-emoji-apri { width:34px; height:34px; padding:0; flex:0 0 auto;
+  border-radius:50%; border:1px solid var(--card-border,#e2e8f0);
+  background:var(--surface-3,#f1f5f9); font-size:17px; line-height:1;
+  cursor:pointer; }
+.dm-chat-emoji-apri[aria-expanded="true"] { background:var(--accent,#22c55e);
+  border-color:transparent; }
+/* Il conto dei caratteri prende lo spazio in mezzo, cosi' il tasto delle
+   emoji resta a sinistra e «Manda» a destra dove sono sempre stati. */
+.dm-chat-sotto .dm-chat-rimasti { flex:1 1 auto; text-align:right; }
+.dm-chat-emoji { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;
+  padding:8px; border-radius:14px; background:var(--surface-3,#f1f5f9);
+  border:1px solid var(--card-border,#e2e8f0); max-height:148px;
+  overflow-y:auto; }
+.dm-chat-emoji[hidden] { display:none; }
+.dm-chat-emoji-uno { width:34px; height:34px; padding:0; border:0;
+  border-radius:10px; background:transparent; font-size:19px; line-height:1;
+  cursor:pointer; }
+.dm-chat-emoji-uno:hover { background:var(--surface-2,#fff); }
 .dm-chat-rimasti { font-size:11px; color:var(--text-dim,#64748b); }
 .dm-chat-btn { padding:9px 18px; border-radius:50px; cursor:pointer; border:0;
   background:var(--accent,#22c55e); color:#fff; font-size:13px; font-weight:700; }
 .dm-chat-btn[disabled] { opacity:.6; cursor:default; }
 .dm-chat-btn.chiaro { background:var(--surface-3,#f1f5f9);
   color:var(--text-dim,#64748b); border:1px solid var(--card-border,#e2e8f0); }
-.dm-chat-azioni { display:flex; justify-content:flex-end; }
+.dm-chat-azioni { display:flex; justify-content:flex-end; align-items:center;
+  gap:10px; }
+.dm-chat-azioni.fra { justify-content:space-between; }
 
 .dm-chat-avviso { padding:9px 13px; border-radius:14px; font-size:12px;
   background:rgba(34,197,94,0.12); color:#15803d; }
@@ -638,16 +1016,32 @@ const CSS = `
 /* L'elenco di chi risponde. */
 .dm-chat-coda { display:flex; flex-direction:column; gap:8px; max-height:52vh;
   overflow-y:auto; }
-.dm-chat-voce { display:grid; gap:3px; padding:11px 13px; border-radius:16px;
-  cursor:pointer; text-align:left; font:inherit;
-  border:1px solid var(--card-border,#e2e8f0); background:var(--surface-3,#f1f5f9);
-  color:var(--text,#0f172a); }
+.dm-chat-voce { display:flex; align-items:center; gap:8px; padding:11px 13px;
+  border-radius:16px; border:1px solid var(--card-border,#e2e8f0);
+  background:var(--surface-3,#f1f5f9); color:var(--text,#0f172a); }
 .dm-chat-voce.aperta { border-color:var(--accent,#22c55e); }
+/* Il tasto che apre prende tutta la riga tranne il cestino;
+   min-width:0 e' quello che lascia accorciare l'ultima frase invece di far
+   debordare la riga. */
+.dm-chat-voce-apri { flex:1 1 auto; min-width:0; display:grid; gap:3px; padding:0;
+  border:0; background:none; color:inherit; font:inherit; text-align:left;
+  cursor:pointer; }
 .dm-chat-voce-testa { display:flex; align-items:center; gap:8px; }
 .dm-chat-voce-nm { font-size:13px; font-weight:800; }
 .dm-chat-voce-ult { font-size:12px; color:var(--text-dim,#64748b);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dm-chat-voce-note { font-size:10px; color:var(--text-dim,#64748b); opacity:.8; }
+/* Il cestino: grigio finche' e' solo un tasto, rosso quando e' armato e il
+   tocco dopo cancella per davvero. */
+.dm-chat-butta { flex-shrink:0; padding:7px 11px; border-radius:12px;
+  cursor:pointer; font:inherit; font-size:12px; font-weight:700; line-height:1;
+  border:1px solid var(--card-border,#e2e8f0); background:var(--surface-2,#fff);
+  color:var(--text-dim,#64748b); }
+.dm-chat-butta.lungo { padding:9px 16px; border-radius:50px; }
+.dm-chat-butta.armato { background:rgba(239,68,68,0.12); color:#b91c1c;
+  border-color:rgba(239,68,68,0.35); }
+.dm-chat-butta[disabled] { opacity:.6; cursor:default; }
+
 .dm-chat-segno, .dm-chat-badge { min-width:18px; height:18px; padding:0 6px;
   border-radius:999px; background:var(--accent,#22c55e); color:#fff;
   font-size:10px; font-weight:900; display:inline-grid; place-items:center; }
@@ -679,6 +1073,8 @@ export function installAssistenzaSection() {
 
 /** Seme per le prove: dimentica l'installazione e la finestra. */
 export function uninstallAssistenzaSection() {
+  spegniIlGiro();
+  inVolo = false;
   doc?.getElementById?.("dm-chat-modal")?.remove();
   doc?.getElementById?.("dm-chat-card")?.remove();
   state.installed = false;
@@ -689,6 +1085,10 @@ export function uninstallAssistenzaSection() {
   state.linea = "";
   state.filo = [];
   state.tab = "mia";
+  state.daButtare = "";
+  state.busy = false;
+  state.avviso = "";
+  state.bozza = "";
 }
 
 installAssistenzaSection();

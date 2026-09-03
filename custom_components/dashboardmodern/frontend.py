@@ -181,14 +181,22 @@ def _panel_config(
     *,
     asset_version: str | None = None,
     static_url_path: str | None = None,
+    variants: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Build the panel config snapshot for one plancia."""
+    """Build the panel config snapshot for one plancia.
+
+    `variants` e' l'elenco delle plance legacy sul disco: chi lo ha gia' letto
+    nell'executor lo passa, cosi' questa funzione — che gira nel loop — non
+    tocca il disco. Senza, lo legge da se', ed e' il caso delle prove.
+    """
     from .config_flow import OPTION_ADMIN_ONLY, OPTION_REGISTER_LOVELACE
 
     if asset_version is None:
         asset_version = _frontend_asset_version()
     if static_url_path is None:
         static_url_path = f"{STATIC_URL_PATH}/{asset_version}"
+    if variants is None:
+        variants = legacy_variants()
     return {
         "entry_ids": [entry.entry_id],
         "instance_id": entry.entry_id,
@@ -196,7 +204,7 @@ def _panel_config(
         "title": entry.title or "DashboardModern",
         "primary": _entry_is_primary(hass, entry),
         "static_base": static_url_path,
-        "legacy_variants": legacy_variants(),
+        "legacy_variants": list(variants),
         "allowed_user_ids": _allowed_user_ids(entry),
         "register_lovelace_dashboard": bool(
             entry.options.get(OPTION_REGISTER_LOVELACE, True)
@@ -221,6 +229,7 @@ def _register_or_update_panel(
     update: bool,
     asset_version: str,
     static_url_path: str,
+    variants: list[str] | None = None,
 ) -> None:
     """Register or update the custom panel for one plancia."""
     from homeassistant.components import frontend
@@ -238,6 +247,7 @@ def _register_or_update_panel(
             entry,
             asset_version=asset_version,
             static_url_path=static_url_path,
+            variants=variants,
         ),
         require_admin=bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
         show_in_sidebar=True,
@@ -343,6 +353,9 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
 
     asset_version = await hass.async_add_executor_job(_frontend_asset_version)
     static_url_path = f"{STATIC_URL_PATH}/{asset_version}"
+    # Anche l'elenco delle plance legacy e' una lettura del disco (`is_dir`,
+    # `glob`): si fa qui, fuori dal loop, e si passa giu' gia' letto.
+    variants = await hass.async_add_executor_job(legacy_variants)
 
     await _ensure_static_registered(hass, domain_data, static_url_path)
     _ensure_dashboard_card_registered(hass, domain_data, static_url_path)
@@ -360,6 +373,7 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
         update=old_path == new_path,
         asset_version=asset_version,
         static_url_path=static_url_path,
+        variants=variants,
     )
     paths[entry_id] = new_path
 
