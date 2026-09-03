@@ -107,6 +107,7 @@ import { installEntitaMieEditor } from "./entita-mie-editor-section.js";
 import { installMediaPlayer } from "./media-player-section.js";
 import { installMediaEditor } from "./media-player-editor-section.js";
 import { installMediaInAzioni } from "./media-in-azioni-section.js";
+import { installIndirizzoDiCasa } from "./indirizzo-di-casa-section.js";
 import { installStanzePerNome } from "./stanze-per-nome-section.js";
 import { installRadarMeteo } from "./radar-meteo-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
@@ -760,6 +761,11 @@ export function installSectionRuntime() {
 
   root[INSTALLING_KEY] = true;
   try {
+    /* Prima di tutto: una domanda a Home Assistant che parte con l'indirizzo
+     * sbagliato non arriva, e chi la fa non se ne accorge — «Failed to fetch»
+     * al posto dello storico. Si ripara la sola cosa che serve, e si ripara
+     * prima che qualcuno chieda. */
+    installIndirizzoDiCasa();
     // Language first: every section below reads its copy while it renders, so
     // the locale has to be settled before the first of them runs.
     installI18nSection();
