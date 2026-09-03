@@ -665,8 +665,18 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   //   importa non viene mai caricato, ed e' esattamente il difetto del
   //   cruscotto della beta.10 — nelle fotografie c'era, in una casa vera non
   //   e' mai comparso.
+  // 226 con l'indirizzo di casa (`core/indirizzo-di-casa.js`,
+  // `sections/indirizzo-di-casa-section.js`): «storico internet da' errore».
+  // «Failed to fetch» non e' una risposta, e' una richiesta mai partita: la
+  // plancia ospitata vive in una cornice `srcdoc`, il cui `location.host` e'
+  // vuoto, e l'indirizzo che il guscio si costruisce da li' e' `http://`. Il
+  // nucleo e' l'aritmetica della riparazione — data una stringa e una base,
+  // qual e' l'indirizzo giusto — e si prova senza rete; la sezione e' il
+  // gradino su `fetch` dove quella riparazione si applica, perche' la riga
+  // sbagliata sta dentro una funzione del guscio e avvolgerla per nome
+  // arriverebbe troppo tardi.
   assert.ok(
-    relative.length <= 224,
+    relative.length <= 226,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -640,6 +640,7 @@ function applyDeviceRows(bundle) {
     if (eur) eur.textContent = `${formatNumber(value * bundle.rates.importPrice, 2)} €`;
     const fill = row.querySelector(".ed-dev-bar-fill,.ed-dev-bar");
     if (fill) fill.style.width = `${Math.min(100, (value / maximum) * 100)}%`;
+    scriviLaQuota(row, splitFor(bundle.month, value));
     row.querySelectorAll(".ed-dev-live,.ed-dev-total-live,.ed-dev-name small").forEach((node) => {
       node.hidden = true;
     });
@@ -647,12 +648,39 @@ function applyDeviceRows(bundle) {
   setText("ed-dev-total", kwh(total));
 }
 
+/* La riga di sotto — «☀️ tot kWh 🔌 tot kWh» — parla dello stesso numero.
+ *
+ * «Valori wallbox nel report sballati»: sulla riga della Wallbox c'era scritto
+ * «☀️ 1188.7 kWh 🔌 184.0 kWh» e, tre centimetri a destra, «0,0 kWh». Due
+ * numeri sulla stessa riga che si contraddicono, e uno dei due era il
+ * contatore di vita della colonnina.
+ *
+ * La ragione e' che questa funzione si prendeva meta' riga. Il guscio disegna
+ * il numero a destra e la quota qui sotto dallo stesso valore, e finche' li
+ * scrive lui sono d'accordo; poi si passa di qui e si riscrive il numero a
+ * destra col valore del Recorder — che e' quello giusto, perche' il guscio nel
+ * mese corrente si perde il delta quando la sua chiamata allo storico
+ * fallisce. La quota pero' restava quella di prima, cioe' calcolata sul
+ * contatore intero.
+ *
+ * Chi possiede il numero possiede la riga: la quota si rifa' con la stessa
+ * spartizione che usa la scheda del dispositivo, sullo stesso valore. */
+export function scriviLaQuota(row, quota) {
+  const riga = row.querySelector(".ed-dev-name div");
+  if (!riga) return;
+  const pezzi = riga.querySelectorAll("span");
+  if (pezzi.length < 2) return;
+  pezzi[0].textContent = `☀️ ${formatNumber(quota.solar, 1)} kWh`;
+  pezzi[1].textContent = `🔌 ${formatNumber(quota.grid, 1)} kWh`;
+  riga.dataset.dmQuota = VERSION;
+}
+
 function valueFrom(values, entity) {
   const value = values instanceof Map ? values.get(entity) : values?.[entity];
   return Number.isFinite(Number(value)) ? Number(value) : null;
 }
 
-function splitFor(period, value) {
+export function splitFor(period, value) {
   const house = finite(period?.house);
   const grid = finite(period?.gridImport);
   const gridShare = house > 0 ? Math.max(0, Math.min(1, grid / house)) : 1;
