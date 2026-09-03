@@ -107,6 +107,7 @@ import { installEntitaMieEditor } from "./entita-mie-editor-section.js";
 import { installMediaPlayer } from "./media-player-section.js";
 import { installMediaEditor } from "./media-player-editor-section.js";
 import { installMediaInAzioni } from "./media-in-azioni-section.js";
+import { installStanzePerNome } from "./stanze-per-nome-section.js";
 import { installRadarMeteo } from "./radar-meteo-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
@@ -950,6 +951,9 @@ export function installSectionRuntime() {
     installMediaPlayer();
     installMediaEditor();
     installMediaInAzioni();
+    /* Una stanza si mostra col suo nome: gli elenchi del guscio scrivevano
+     * l'identificativo che la tendina salva. */
+    installStanzePerNome();
     /* Il radar meteo dentro la finestra delle previsioni: si aggancia al
      * guscio che quella finestra la disegna gia'. */
     installRadarMeteo();

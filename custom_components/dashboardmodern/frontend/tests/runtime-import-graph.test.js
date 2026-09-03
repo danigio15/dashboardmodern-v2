@@ -642,8 +642,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // modulo e' quello che veste il tasto delle Azioni rapide: e' un'altra
   // superficie, con un altro padrone — il guscio disegna quella griglia — e
   // metterlo dentro la pagina avrebbe voluto dire una pagina che tocca la Home.
+  // 223 con la stanza detta col suo nome (`sections/stanze-per-nome-section.js`):
+  // «verifica inoltre perche' esce sotto room etc». La tendina delle stanze
+  // salva l'id — e' l'unica cosa che regge un rinominamento — ma gli elenchi
+  // del guscio vendorizzato stampano quello che trovano, e quel guscio non si
+  // tocca: la riparazione e' di superficie per forza, e sta in un modulo solo
+  // invece che in tre punti diversi.
   assert.ok(
-    relative.length <= 222,
+    relative.length <= 223,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
