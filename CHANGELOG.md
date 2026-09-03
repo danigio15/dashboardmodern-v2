@@ -7,10 +7,57 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.4.5-beta.12
 
-Le sezioni vuote escono dalla barra, e il Cruscotto perde un pulsante che non
-decideva niente.
+Le sezioni vuote escono dalla barra, il Cruscotto perde un pulsante che non
+decideva niente, e arriva la chat di assistenza — quella vera, che non passa
+da GitHub.
+
+### Aggiunto
+
+- **Una chat di assistenza, privata, senza account.**
+
+      «io avevo chiesto una chat di assistenza che non deve passare per
+       github. e' come se fosse una chat teams»
+
+  Quello che c'era era un'altra cosa: le Segnalazioni aprono una issue e sotto
+  quella si scrivono commenti. Un filo, non una conversazione — e per scriverci
+  serve un account GitHub, e quello che si scrive resta pubblico per sempre.
+  Per un difetto va bene, anzi e' giusto. Non va per chi chiede aiuto: chi
+  chiede aiuto incolla un pezzo di configurazione, il nome delle proprie
+  entita', a volte una foto di casa sua. E chi guarda la plancia non e' sempre
+  chi l'ha installata.
+
+  Adesso in Configurazione c'e' la tessera **Assistenza**: una finestra con i
+  messaggi in fila e la casella sotto, Invio manda e Maiuscolo+Invio va a capo,
+  come in qualunque chat. Prima della prima riga si legge dove finisce quello
+  che si scrive, e il tasto per cancellare la conversazione cancella davvero —
+  anche dall'altra parte, non solo dallo schermo.
+
+  Sotto c'e' il **centralino**, un servizio minuscolo che chi mantiene la
+  plancia tiene su: e' il punto d'incontro fra due case che altrimenti non si
+  parlerebbero. Non sa chi sia nessuno — una casa e' 128 bit di caso che si e'
+  fabbricata da sola, e del suo segreto il centralino tiene solo l'impronta.
+  Insieme al messaggio partono tre cose e nessuna in piu': la versione della
+  plancia, quella di Home Assistant e la lingua.
+
+  Il campanello e' lo stesso delle segnalazioni ma ha il suo evento,
+  `dashboardmodern_chat`: un'automazione puo' voler suonare per una risposta
+  dell'assistenza e stare zitta per un commento su una issue.
+
+  Chi non vuole che la plancia parli con nessuno fuori di casa la spegne dalle
+  opzioni, come le segnalazioni. Il progetto sta in `docs/CHAT.md`.
 
 ### Cambiato
+
+- **Il Cruscotto separa quelle prese in carico da quelle ancora ferme.**
+
+      «voglio un filtro anche con quelle in lavorazione, voglio capire cosa ho
+       preso in carico e quelle ancora da prendere in carico»
+
+  Le tre cifre in cima lo dicevano gia', ma erano numeri da leggere e basta:
+  l'unico filtro aperto era «Da lavorare», che le mette insieme. Adesso ci sono
+  «Nuove» e «In lavorazione», e sono esattamente quelle due cifre — stesso
+  nome, cosi' non si dubita che sia lo stesso numero.
+
 
 - **Una sezione vuota non sta nella barra.** «tutte le sezioni devono nascere
   come nascoste, solo se si inserisce entita' in una sezione diventa visibile.»

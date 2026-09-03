@@ -20,6 +20,13 @@ import { runSteps, stepReporter } from "../src/core/runtime-steps.js";
 import { DashboardStore } from "../src/core/dashboard-store.js";
 import { daProvare, diagnosi, siSveglia, strategieDellaTelecamera } from "../src/core/strategie-telecamera.js";
 import { renderPreseEditor } from "../src/sections/prese-section.js";
+/* La chat di assistenza si installa da se', come le altre sezioni: l'import e'
+ * qui perche' il grafo di produzione parte da questo file, e un modulo che
+ * nessuno importa e' un modulo che non viene mai caricato — il difetto del
+ * cruscotto della beta.10, che nelle fotografie c'era e in una casa vera no.
+ * `apriAssistenza` non serve a questo file: serve a poterlo provare, e a dare
+ * al grafo un arco che si vede. */
+import { apri as apriAssistenza } from "../src/sections/assistenza-section.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createEntityPickerField, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { energyWriteInFlight, flushEnergyWrites, persistEnergyField, persistSignedSource } from "../src/core/energy-writer.js";
@@ -864,6 +871,10 @@ function mountLoadsEditor(target, editId = "") {
 
 const DashboardModernModules = Object.freeze({
   version: MODULES_VERSION,
+  /* La porta della chat di assistenza, per chi la vuole aprire da fuori — il
+   * widget in Home, una scorciatoia, le fotografie della galleria. Il modulo
+   * si installa da se': questa e' la maniglia, non l'interruttore. */
+  apriAssistenza,
   data: Object.freeze({
     canonicalReportDevices,
     getDeviceDisplayName,
