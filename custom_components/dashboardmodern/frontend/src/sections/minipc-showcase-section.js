@@ -43,7 +43,17 @@
  * legacy `setRing()` already uses to colour these three gauges, and the 20-100
  * window plus the 75 °C notch the runtime itself draws the temperature arc in.
  */
-import { allStates, clean, doc, installStyle, lexicalGlobal, root, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  installStyle,
+  lexicalGlobal,
+  readJson,
+  root,
+  t,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_MINIPC_SHOWCASE__";
 const STYLE_ID = "dm-minipc-showcase-style";
@@ -197,12 +207,24 @@ export function tempWording(text) {
  * accettano le forme che i sensori veri usano davvero. Se non e' stata
  * compilata nessuna delle quattro non si dice OFFLINE: si dice che non e'
  * configurata, che e' l'unica cosa vera. */
-export const CASELLE_DI_RETE = Object.freeze([
-  "dm.server_raggiungibilita_google",
+/* La casella che resta: e' quella che il guscio legge dappertutto — la
+ * pastiglia in cima, la card «Connettivita'» e il popup dei sette giorni —
+ * quindi tenendo lei lo storico continua a funzionare senza toccarlo. Il nome
+ * che portava («Raggiungibilita' Google») era di una casella fra quattro; da
+ * sola si chiama Internet. */
+export const CASELLA_DI_RETE = "dm.server_raggiungibilita_google";
+
+/* Le tre che facevano la stessa domanda. Non si leggono piu' dalla scheda —
+ * spariscono da li' — ma si continuano a leggere dalla configurazione, perche'
+ * chi aveva riempito una di queste e non l'altra deve continuare a vedere il
+ * suo stato finche' il travaso non e' passato di la'. */
+export const CASELLE_VECCHIE = Object.freeze([
   "dm.server_stato_internet",
   "dm.server_ping_internet",
   "dm.server_internet_lavanderia",
 ]);
+
+export const CASELLE_DI_RETE = Object.freeze([CASELLA_DI_RETE, ...CASELLE_VECCHIE]);
 
 const CONNESSO = new Set([
   "on",
@@ -251,6 +273,65 @@ export function reteDelleCaselle(leggi, caselle = CASELLE_DI_RETE) {
     if (detta !== null) return { casella, online: detta };
   }
   return { casella: "", online: null };
+}
+
+/* ── una casella sola, e il suo travaso ────────────────────────────────────
+ *
+ * «Non ne mettere 4 che dicono la stessa cosa, mettine 1 solo che poi
+ * restituisce lo stato in alto e mostra la card con il popup che ti dà tutti
+ * gli stati precedenti.»
+ *
+ * Quattro caselle per una domanda sola sono quattro modi di sbagliarla: chi
+ * compila ne riempie una, e le altre tre restano li' a far credere che manchi
+ * qualcosa. Nella scheda ne resta una, si chiama Internet, e quello che era
+ * scritto nelle altre si sposta dentro di lei — una volta, e solo se lei e'
+ * vuota. Poi tutto il resto funziona da se': la pastiglia in cima la legge, la
+ * card «Connettivita'» apre lo storico dei sette giorni che il guscio disegna
+ * gia', e quello storico legge la stessa casella. */
+
+function overrides() {
+  const vivi = lexicalGlobal("ENTITY_OVERRIDES");
+  if (vivi && typeof vivi === "object") return vivi;
+  const scritti = readJson("cd_entity_overrides", {});
+  return scritti && typeof scritti === "object" ? scritti : {};
+}
+
+/** Quale entità è scritta in una casella. */
+export function entitaDellaCasella(riferimento) {
+  return clean(overrides()[riferimento]);
+}
+
+/** Come restano le mappature dopo il travaso, o `null` se non c'era niente da
+ * spostare né da ripulire. */
+export function dopoIlTravaso(scritte, casella = CASELLA_DI_RETE, vecchie = CASELLE_VECCHIE) {
+  const dentro = scritte && typeof scritte === "object" ? scritte : null;
+  if (!dentro) return null;
+  const restanti = vecchie.filter((vecchia) => clean(dentro[vecchia]));
+  if (!restanti.length) return null;
+  const prossime = { ...dentro };
+  /* Si sposta, non si copia: due caselle con la stessa entita' dentro sono di
+   * nuovo due caselle che dicono la stessa cosa, ed e' quello da cui si
+   * scappa. Le tre vecchie se ne vanno anche quando la buona e' gia' piena:
+   * non le legge piu' niente e non le offre piu' nessuno, e una mappatura che
+   * nessuno legge e' un pezzo sparso. */
+  if (!clean(dentro[casella])) prossime[casella] = clean(dentro[restanti[0]]);
+  for (const vecchia of vecchie) delete prossime[vecchia];
+  return prossime;
+}
+
+export function portaAvantiLaCasella() {
+  const scritte = readJson("cd_entity_overrides", {});
+  const prossime = dopoIlTravaso(scritte);
+  if (!prossime) return false;
+  writeJsonIfChanged("cd_entity_overrides", prossime);
+  /* Valido subito anche per il guscio, che tiene la sua copia in memoria:
+   * senza questa riga lo stato tornava giusto solo al ricaricamento. */
+  const vivi = lexicalGlobal("ENTITY_OVERRIDES");
+  if (vivi && typeof vivi === "object") {
+    if (clean(prossime[CASELLA_DI_RETE])) vivi[CASELLA_DI_RETE] = clean(prossime[CASELLA_DI_RETE]);
+    for (const vecchia of CASELLE_VECCHIE) delete vivi[vecchia];
+  }
+  return true;
 }
 
 /** Connectivity, read from the badge class the render loop rewrites per tick. */
@@ -726,6 +807,7 @@ function pageVisible() {
 export function installMinipcShowcaseSection() {
   if (!doc) return;
   installStyle(STYLE_ID, minipcShowcaseCss());
+  portaAvantiLaCasella();
   if (!state.listeners) {
     state.listeners = true;
     for (const eventName of [
@@ -735,9 +817,15 @@ export function installMinipcShowcaseSection() {
     ]) {
       root.addEventListener?.(eventName, () => {
         bindAutoHide();
+        portaAvantiLaCasella();
         scheduleMinipcShowcase();
       });
     }
+    /* Il travaso aspetta che la configurazione sia arrivata: su un secondo
+     * dispositivo le caselle nascono vuote e arrivano dopo, e travasare prima
+     * vorrebbe dire travasare il niente. */
+    for (const evento of ["dashboardmodern:states-ready", "dashboardmodern:persistence-restored"])
+      root.addEventListener?.(evento, portaAvantiLaCasella);
     // The bars, the temperature arc and the badges repaint through the legacy
     // render loop, so the scene follows the same events instead of a timer.
     root.addEventListener?.("dashboardmodern:state-changed", () => {

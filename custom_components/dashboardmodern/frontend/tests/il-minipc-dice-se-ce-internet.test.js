@@ -42,6 +42,55 @@ test("quello che non dice niente non dice «no»", async () => {
     assert.equal(letturaDellaRete(muto), null, String(muto));
 });
 
+test("nella scheda la casella dell'internet è una sola, e si chiama Internet", async () => {
+  const { CASELLA_DI_RETE, CASELLE_VECCHIE } =
+    await import("../src/sections/minipc-showcase-section.js");
+  /* «Non ne mettere 4 che dicono la stessa cosa, mettine 1 solo.» Quella che
+   * resta è la sola che il guscio legge dappertutto — la pastiglia in cima, la
+   * card «Connettività» e il popup dei sette giorni — quindi tenendo lei lo
+   * storico continua a funzionare senza toccarlo. */
+  assert.equal(CASELLA_DI_RETE, "dm.server_raggiungibilita_google");
+  assert.deepEqual(CASELLE_VECCHIE, [
+    "dm.server_stato_internet",
+    "dm.server_ping_internet",
+    "dm.server_internet_lavanderia",
+  ]);
+  /* Il menu dei parametri non le offre più, e la sopravvissuta cambia nome:
+   * «Raggiungibilità Google» era il nome di una casella fra quattro. */
+  const polish = leggi("sections/editor-polish-section.js");
+  assert.match(polish, /!CASELLE_VECCHIE\.includes\(item\.ref\)/);
+  assert.match(polish, /ref === CASELLA_DI_RETE\s*\?\s*t\("Internet", "Internet"\)/);
+});
+
+test("quello che stava nelle tre vecchie si sposta nell'unica che resta", async () => {
+  const { dopoIlTravaso } = await import("../src/sections/minipc-showcase-section.js");
+  /* Il caso della segnalazione: compilata «Stato Internet», la buona vuota. */
+  assert.deepEqual(dopoIlTravaso({ "dm.server_stato_internet": "binary_sensor.x" }), {
+    "dm.server_raggiungibilita_google": "binary_sensor.x",
+  });
+  /* Si sposta, non si copia: due caselle con la stessa entità dentro sono di
+   * nuovo due caselle che dicono la stessa cosa. */
+  assert.deepEqual(
+    dopoIlTravaso({
+      "dm.server_raggiungibilita_google": "binary_sensor.a",
+      "dm.server_ping_internet": "sensor.b",
+    }),
+    { "dm.server_raggiungibilita_google": "binary_sensor.a" },
+  );
+  /* Niente da fare: non si riscrive la configurazione per niente. */
+  assert.equal(dopoIlTravaso({ "dm.server_raggiungibilita_google": "binary_sensor.a" }), null);
+  assert.equal(dopoIlTravaso({}), null);
+  assert.equal(dopoIlTravaso(null), null);
+  /* E quello che non c'entra resta dov'è. */
+  assert.deepEqual(
+    dopoIlTravaso({ "dm.server_cpu": "sensor.cpu", "dm.server_ping_internet": "sensor.p" }),
+    {
+      "dm.server_cpu": "sensor.cpu",
+      "dm.server_raggiungibilita_google": "sensor.p",
+    },
+  );
+});
+
 test("si legge la prima casella compilata, non sempre la stessa", async () => {
   const { reteDelleCaselle, CASELLE_DI_RETE } =
     await import("../src/sections/minipc-showcase-section.js");
