@@ -701,6 +701,80 @@ const LETTURE = Object.freeze({
       punti,
     };
   },
+
+  /* La musica (#269) e' la sola sezione in cui la lettura ha gia' le parole
+   * pronte: il titolo del brano. Non c'e' niente da dedurre da una soglia — o
+   * sta suonando qualcosa, e allora si dice cosa, o non sta suonando niente. */
+  media: (tr, tessera) => {
+    const righe = Array.isArray(tessera?.lettori) ? tessera.lettori : [];
+    if (!righe.length)
+      return {
+        tono: VERDETTI.bene,
+        frase: tr("Nessun lettore configurato.", "No player set up."),
+        punti: [],
+      };
+    const suonano = righe.filter((r) => r?.suona === true);
+    const spenti = righe.filter((r) => r?.spento === true).length;
+    const muti = righe.filter((r) => r?.muto === true).length;
+    const punti = [];
+    if (muti)
+      punti.push(
+        muti === 1
+          ? tr("Uno non risponde", "One is not reporting")
+          : tr(`${muti} non rispondono`, `${muti} are not reporting`),
+      );
+    if (spenti && !suonano.length)
+      punti.push(
+        spenti === 1
+          ? tr("Uno e' spento", "One is off")
+          : tr(`${spenti} spenti`, `${spenti} are off`),
+      );
+    if (!suonano.length) {
+      const pausa = righe.filter((r) => r?.inPausa === true);
+      if (pausa.length)
+        return {
+          tono: VERDETTI.bene,
+          frase:
+            pausa.length === 1
+              ? tr(`${pulito(pausa[0]?.nome)} e' in pausa.`, `${pulito(pausa[0]?.nome)} is paused.`)
+              : tr(`${pausa.length} lettori in pausa.`, `${pausa.length} players paused.`),
+          punti,
+        };
+      return {
+        tono: VERDETTI.bene,
+        frase: tr("Non sta suonando niente.", "Nothing is playing."),
+        punti,
+      };
+    }
+    /* Quello che si voleva sapere: cosa sta suonando, e dove. Con una cassa
+     * sola il posto e' superfluo — c'e' una cassa; con due il titolo da solo
+     * non basta a capire da che stanza arriva. */
+    const primo = suonano[0];
+    const pezzo = [pulito(primo?.titolo), pulito(primo?.artista)].filter(Boolean).join(" — ");
+    if (suonano.length === 1)
+      return {
+        tono: VERDETTI.corso,
+        frase: pezzo
+          ? tr(
+              `${pulito(primo?.nome)} sta suonando ${pezzo}.`,
+              `${pulito(primo?.nome)} is playing ${pezzo}.`,
+            )
+          : tr(`${pulito(primo?.nome)} sta suonando.`, `${pulito(primo?.nome)} is playing.`),
+        punti,
+      };
+    /* Con piu' di una cassa il titolo non lo dice questa frase: la didascalia
+     * della tessera li elenca tutti — e' il suo mestiere, ed e' quello che si
+     * era chiesto — e ripeterli qui vorrebbe dire la stessa riga due volte a
+     * due dita di distanza. */
+    return {
+      tono: VERDETTI.corso,
+      frase: tr(
+        `${suonano.length} casse stanno suonando.`,
+        `${suonano.length} speakers are playing.`,
+      ),
+      punti,
+    };
+  },
 });
 
 /* ── la porta d'ingresso ───────────────────────────────────────────────── */

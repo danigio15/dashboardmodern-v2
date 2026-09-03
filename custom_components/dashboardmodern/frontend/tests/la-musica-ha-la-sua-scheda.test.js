@@ -275,3 +275,89 @@ test("il disegno della cassa è di casa, e la scheda viaggia con la plancia", as
   assert.match(runtime, /installMediaEditor\(\);/);
   assert.match(runtime, /installMediaInAzioni\(\);/);
 });
+
+/* ── la tessera in Home ─────────────────────────────────────────────────
+ *
+ * «Per media player pensa anche a un widget che ti dica cosa è in
+ * riproduzione.» È l'unica tessera del ponte in cui il numero grande non è la
+ * risposta: quante casse suonano si vede, quello che si vuole sapere è cosa.
+ */
+
+test("la tessera dice cosa sta suonando, non solo quante casse", () => {
+  const ponte = leggi("sections/home-widgets-section.js");
+  /* La didascalia porta titolo e artista, e con più di una cassa anche dove:
+   * due titoli di fila senza il posto sono due titoli e basta. */
+  assert.match(ponte, /function cosaSuona\(riga, conIlPosto\)/);
+  assert.match(
+    ponte,
+    /const pezzo = \[titoloDelLettore\(riga\), riga\.artista\]\.filter\(Boolean\)\.join\(" — "\);/,
+  );
+  assert.match(ponte, /const conIlPosto = suonano\.length > 1;/);
+  /* E la tessera è iscritta all'elenco ordina/accendi, o esisterebbe in Home
+   * senza potersi né spostare né spegnere. */
+  assert.match(
+    leggi("sections/todo-editor-section.js"),
+    /\["media", "🔊", t\("Musica", "Media"\)\]/,
+  );
+  /* Dalla finestra si arriva alla sezione. */
+  assert.match(ponte, /media: "media",\n\}\);/);
+});
+
+test("la finestra della tessera non ripete la stessa riga due volte", () => {
+  const ponte = leggi("sections/home-widgets-section.js");
+  /* Le pastiglie dello stato direbbero «Salotto · SO WHAT» sopra un lettore
+   * che dice già Salotto, So What e Miles Davis, con la copertina accanto. */
+  assert.doesNotMatch(ponte, /value: titoloDelLettore\(riga\),/);
+  assert.match(ponte, /lettori: righe,/);
+  /* E i tasti dentro la finestra sono quelli della pagina: un secondo disegno
+   * con un secondo gestore vorrebbe dire due modi di mettere in pausa. */
+  assert.match(ponte, /\$\{comandiMediaMarkup\(riga\)\}/);
+  assert.match(
+    leggi("sections/media-player-section.js"),
+    /export function comandiMediaMarkup\(riga\)/,
+  );
+});
+
+test("la lettura della finestra dice cosa suona, e quando non suona lo dice", async () => {
+  const { analisiDellaSezione } = await import("../src/core/analisi-sezione.js");
+  const it = (italiano) => italiano;
+  const en = (_italiano, inglese) => inglese;
+  const tessera = (lettori) => ({ key: "media", lettori });
+
+  const uno = analisiDellaSezione(
+    tessera([{ nome: "Salotto", suona: true, titolo: "So What", artista: "Miles Davis" }]),
+    it,
+  );
+  assert.equal(uno.frase, "Salotto sta suonando So What — Miles Davis.");
+
+  /* Con più di una cassa il titolo non lo dice la frase: lo dice la
+   * didascalia, che li elenca tutti — ed è il suo mestiere. */
+  const due = analisiDellaSezione(
+    tessera([
+      { nome: "Salotto", suona: true, titolo: "So What" },
+      { nome: "Cucina", suona: true, titolo: "Caterpillar" },
+    ]),
+    it,
+  );
+  assert.equal(due.frase, "2 casse stanno suonando.");
+  assert.deepEqual(due.punti, []);
+
+  /* In pausa non è «non sta suonando niente»: è un'altra cosa, e si dice. */
+  assert.match(
+    analisiDellaSezione(tessera([{ nome: "Salotto", inPausa: true }]), it).frase,
+    /in pausa/,
+  );
+  assert.equal(
+    analisiDellaSezione(tessera([{ nome: "Salotto", spento: true }]), it).frase,
+    "Non sta suonando niente.",
+  );
+  assert.deepEqual(analisiDellaSezione(tessera([{ nome: "Salotto", spento: true }]), it).punti, [
+    "Uno e' spento",
+  ]);
+  /* Muto non è spento: uno che non risponde va detto, non contato fra i fermi. */
+  assert.deepEqual(analisiDellaSezione(tessera([{ nome: "X", muto: true }]), it).punti, [
+    "Uno non risponde",
+  ]);
+  /* E senza lettori non si inventa una frase su una casa senza casse. */
+  assert.equal(analisiDellaSezione(tessera([]), en).frase, "No player set up.");
+});

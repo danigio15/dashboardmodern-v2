@@ -87,6 +87,7 @@ function catalogoTessere() {
     ["caldaia", "🔥", t("Caldaia", "Boiler")],
     ["piscina", "🏊", t("Piscina", "Pool")],
     ["prese", "🔌", t("Prese", "Sockets")],
+    ["media", "🔊", t("Musica", "Media")],
     ["irrigazione", "💧", t("Irrigazione", "Irrigation")],
     ["aperture", "🚪", t("Porte/Finestre", "Doors/Windows")],
     /* Il gruppo di continuita' (#256): non e' la tessera delle batterie —

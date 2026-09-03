@@ -136,7 +136,7 @@ function sottotitolo(righe) {
   return t("Nessuno in riproduzione", "Nothing playing");
 }
 
-function parolaDiStato(riga) {
+export function parolaDiStatoDelLettore(riga) {
   if (riga.muto) return t("Non risponde", "Not reporting");
   if (riga.suona) return t("In riproduzione", "Playing");
   if (riga.inPausa) return t("In pausa", "Paused");
@@ -149,11 +149,11 @@ function parolaDiStato(riga) {
  * Quando non c'è un titolo si dice la sorgente o l'applicazione — «Spotify»,
  * «Radio Deejay» — che è comunque un'informazione. Inventare «Sconosciuto»
  * non lo è. */
-function titoloDi(riga) {
-  return riga.titolo || riga.sorgente || riga.applicazione || parolaDiStato(riga);
+export function titoloDelLettore(riga) {
+  return riga.titolo || riga.sorgente || riga.applicazione || parolaDiStatoDelLettore(riga);
 }
 
-function sottoDi(riga) {
+export function sottoDelLettore(riga) {
   const pezzi = [riga.artista, riga.album].filter(Boolean);
   if (pezzi.length) return pezzi.join(" · ");
   if (riga.titolo && riga.applicazione) return riga.applicazione;
@@ -182,6 +182,23 @@ const GLIFI = Object.freeze({
   muto: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.4h3.4L12 5.2v13.6L7.4 14.6H4Z" fill="currentColor"/><path d="m16 9.6 4.4 4.8M20.4 9.6 16 14.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
   voce: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.4h3.4L12 5.2v13.6L7.4 14.6H4Z" fill="currentColor"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.3 6.8a7.6 7.6 0 0 1 0 10.4" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/></svg>`,
 });
+
+/* I comandi di un lettore, in una riga.
+ *
+ * Li disegna questo modulo e li ascolta questo modulo — il gestore sta sul
+ * documento, non sulla pagina — cosi' gli stessi tasti funzionano anche dentro
+ * la finestra della tessera in Home, che e' l'altro posto da cui si comanda la
+ * musica. Un secondo disegno con un secondo gestore vorrebbe dire due modi di
+ * mettere in pausa, e prima o poi due modi diversi. */
+export function comandiMediaMarkup(riga) {
+  const centro = riga.suona ? GLIFI.pausa : GLIFI.suona;
+  return `<div class="dm-mp-comandi">
+    ${riga.puo.precedente ? tastoMarkup(riga, "precedente", t("Brano precedente", "Previous track"), GLIFI.precedente) : ""}
+    ${tastoMarkup(riga, "centro", riga.suona ? t("Pausa", "Pause") : t("Riproduci", "Play"), centro)}
+    ${riga.puo.successivo ? tastoMarkup(riga, "successivo", t("Brano successivo", "Next track"), GLIFI.successivo) : ""}
+    ${riga.puo.spegni && !riga.spento ? tastoMarkup(riga, "spegni", t("Spegni", "Turn off"), GLIFI.spegni) : ""}
+  </div>`;
+}
 
 function copertinaMarkup(riga) {
   if (riga.copertina)
@@ -244,7 +261,6 @@ function sorgenteMarkup(riga) {
 }
 
 function cardMarkup(riga) {
-  const centro = riga.suona ? GLIFI.pausa : GLIFI.suona;
   /* «Ha una copertina» sta scritto sulla card e non si deduce con `:has()`:
    * quella regola sui WebView di qualche telefono non c'e', e la card sarebbe
    * rimasta col testo scuro sopra il fondale scuro. */
@@ -254,17 +270,12 @@ function cardMarkup(riga) {
     <div class="dm-mp-arte-box">${copertinaMarkup(riga)}</div>
     <div class="dm-mp-testo">
       <span class="dm-mp-dove">${esc(riga.nome)}${
-        riga.stato ? ` · ${esc(parolaDiStato(riga))}` : ""
+        riga.stato ? ` · ${esc(parolaDiStatoDelLettore(riga))}` : ""
       }</span>
-      <strong class="dm-mp-titolo">${esc(titoloDi(riga))}</strong>
-      <span class="dm-mp-sotto">${esc(sottoDi(riga))}</span>
+      <strong class="dm-mp-titolo">${esc(titoloDelLettore(riga))}</strong>
+      <span class="dm-mp-sotto">${esc(sottoDelLettore(riga))}</span>
       ${barraMarkup(riga)}
-      <div class="dm-mp-comandi">
-        ${riga.puo.precedente ? tastoMarkup(riga, "precedente", t("Brano precedente", "Previous track"), GLIFI.precedente) : ""}
-        ${tastoMarkup(riga, "centro", riga.suona ? t("Pausa", "Pause") : t("Riproduci", "Play"), centro)}
-        ${riga.puo.successivo ? tastoMarkup(riga, "successivo", t("Brano successivo", "Next track"), GLIFI.successivo) : ""}
-        ${riga.puo.spegni && !riga.spento ? tastoMarkup(riga, "spegni", t("Spegni", "Turn off"), GLIFI.spegni) : ""}
-      </div>
+      ${comandiMediaMarkup(riga)}
       ${volumeMarkup(riga)}
       ${sorgenteMarkup(riga)}
     </div>

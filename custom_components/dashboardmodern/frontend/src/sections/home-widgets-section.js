@@ -99,6 +99,8 @@ import {
   tastoNuovoMarkup,
 } from "./calendario-modifica-section.js";
 import { normalizzaPrese } from "../core/prese-model.js";
+import { CHIAVE_MEDIA, lettoriConfigurati, lettureDeiLettori } from "../core/media-player.js";
+import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
@@ -2220,6 +2222,51 @@ function preseModel(states) {
   };
 }
 
+/* Cosa sta suonando in casa (#269).
+ *
+ * «Per media player pensa anche a un widget che ti dica cosa e' in
+ * riproduzione»: e' la sola tessera del ponte in cui il numero grande non e'
+ * la risposta. Quante casse stanno suonando si sa in un colpo d'occhio; quello
+ * che si vuole sapere e' CHE COSA — e quello sta nella didascalia, che scorre
+ * quando non ci sta. Con piu' di una cassa accesa la didascalia dice anche
+ * dove: «Salotto: So What», perche' due titoli di fila senza il posto sono due
+ * titoli e basta. */
+function cosaSuona(riga, conIlPosto) {
+  const pezzo = [titoloDelLettore(riga), riga.artista].filter(Boolean).join(" — ");
+  return conIlPosto ? `${riga.nome}: ${pezzo}` : pezzo;
+}
+
+function mediaModel(states) {
+  const lettori = lettoriConfigurati(readJson(CHIAVE_MEDIA, []));
+  if (!lettori.length) return null;
+  const fuori = widgetExcludedEntities();
+  const dentro = lettori.filter((voce) => widgetIncludes(voce.entity, fuori));
+  if (!dentro.length) return null;
+  const righe = lettureDeiLettori(dentro, states, root.resolveEntity || ((valore) => valore));
+  const suonano = righe.filter((riga) => riga.suona);
+  const conIlPosto = suonano.length > 1;
+  return {
+    key: "media",
+    accent: "#8b5cf6",
+    icon: "🔊",
+    label: t("Musica", "Media"),
+    value: String(suonano.length),
+    caption: suonano.length
+      ? suonano.map((riga) => cosaSuona(riga, conIlPosto)).join(" · ")
+      : t("Nessuno in riproduzione", "Nothing playing"),
+    ring: righe.length ? Math.round((suonano.length / righe.length) * 100) : null,
+    attiva: suonano.length > 0,
+    /* Le letture intere viaggiano con la tessera: la finestra ci disegna un
+     * lettore per cassa, con la copertina e i comandi.
+     *
+     * Niente `rows`, invece: le pastiglie dello stato direbbero «Salotto · SO
+     * WHAT» sopra un lettore che dice gia' Salotto, So What e Miles Davis, con
+     * la copertina accanto. La stessa cosa scritta due volte a due dita di
+     * distanza si legge come un errore. */
+    lettori: righe,
+  };
+}
+
 /* Le caselle del MiniPC che la tessera sa raccontare, nell'ordine in cui
  * contano: prima quanto sta lavorando, poi quanto scotta e quanto tira, poi la
  * linea. Sono gli stessi riferimenti della sua scheda: chi li ha mappati una
@@ -2441,6 +2488,35 @@ function rowsDetail(widget) {
            aria-label="${esc(row.name)}"><i></i></button>`,
       );
     })
+    .join("");
+}
+
+/* Il lettore, dentro la finestra della tessera (#269).
+ *
+ * La stessa copertina e gli stessi tasti della pagina, in piccolo: i tasti li
+ * disegna e li ascolta il modulo della musica — il suo gestore sta sul
+ * documento — quindi qui non c'e' un secondo modo di mettere in pausa. Il
+ * fondo sfocato invece resta alla pagina: dentro una finestra larga un palmo
+ * sarebbe una macchia di colore sotto tre righe di testo. */
+function mediaDetail(widget) {
+  return (widget.lettori || [])
+    .map(
+      (riga) => `<div class="dm-w-media" data-suona="${riga.suona}" data-muta="${riga.muto}">
+      ${
+        riga.copertina
+          ? `<img class="dm-w-media-arte" src="${esc(riga.copertina)}" alt="" aria-hidden="true">`
+          : `<span class="dm-w-media-arte dm-w-media-vuota" aria-hidden="true">${
+              riga.icona ? esc(riga.icona) : oggettoWidget("media")
+            }</span>`
+      }
+      <span class="dm-w-media-testo">
+        <small class="dm-w-media-dove">${esc(riga.nome)}</small>
+        <strong class="dm-w-media-titolo">${esc(titoloDelLettore(riga))}</strong>
+        <small class="dm-w-media-sotto">${esc(sottoDelLettore(riga))}</small>
+      </span>
+      ${comandiMediaMarkup(riga)}
+    </div>`,
+    )
     .join("");
 }
 
@@ -2974,6 +3050,7 @@ function widgetModels(states) {
       minipcModel(states),
       poolModel(states),
       preseModel(states),
+      mediaModel(states),
       irrigationModel(states),
       openingsModel(states),
       batteriesModel(states),
@@ -4635,6 +4712,7 @@ function detailRows(widget, states) {
     ].includes(widget.key)
   )
     return rowsDetail(widget);
+  if (widget.key === "media") return mediaDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
@@ -4674,6 +4752,7 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   irrigazione: "irrigazione",
   robot: "robot",
   minipc: "server",
+  media: "media",
 });
 
 /* La voce della sezione, ma solo se ci si puo' davvero andare.
@@ -5823,6 +5902,31 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
  * accennata, cosi' si capisce da lontano di cosa si sta parlando, e il verdetto
  * ci mette il suo colore: verde quando non c'e' niente da fare, ambra quando
  * qualcosa sta lavorando, rosso quando qualcuno deve guardarci. */
+/* Il lettore dentro la finestra: copertina quadrata, due righe di testo e i
+   tasti sotto. Su una finestra larga un palmo i tasti non ci stanno in fila
+   col resto, e mandarli a capo e' meglio che stringerli. */
+#dm-widget-popup .dm-w-media{
+  display:grid;grid-template-columns:56px minmax(0,1fr);gap:11px;align-items:center;
+  padding:11px;border-radius:16px;margin-bottom:9px;
+  background:var(--bg-sculpted,#f0f4f8);border:1px solid var(--card-border,#e2e8f0)}
+#dm-widget-popup .dm-w-media[data-muta="true"]{opacity:.6}
+#dm-widget-popup .dm-w-media-arte{
+  width:56px;height:56px;border-radius:13px;object-fit:cover;
+  background:var(--card-bg,#fff);box-shadow:0 8px 16px -10px rgba(2,6,23,.6)}
+#dm-widget-popup .dm-w-media-vuota{display:grid;place-items:center;font-size:24px}
+#dm-widget-popup .dm-w-media-vuota .dm-oggetto{width:34px;height:34px}
+#dm-widget-popup .dm-w-media-testo{display:grid;gap:2px;min-width:0}
+#dm-widget-popup .dm-w-media-dove{
+  font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-media-titolo{
+  font-size:13.5px;font-weight:800;color:var(--text,#0f172a);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dm-widget-popup .dm-w-media-sotto{
+  font-size:11px;font-weight:600;color:var(--text-dim,#64748b);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dm-widget-popup .dm-w-media .dm-mp-comandi{
+  grid-column:1/-1;display:flex;gap:7px;margin:2px 0 0;flex-wrap:wrap}
 #dm-widget-popup .dm-w-racconto{
   display:grid;gap:11px;margin:0 0 18px;padding:15px 16px 14px;
   border-radius:18px;
