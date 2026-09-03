@@ -136,6 +136,12 @@ test("anche la maniglia che tira fuori la barra sta sopra i tasti", async ({ pag
   )
     test.skip(true, "questo schermo non ha la maniglia");
 
+  /* La stessa attesa della prova qui sopra, e per la stessa ragione: la
+   * plancia rimisura la fascia di sistema a 1500 millisecondi, e se quella
+   * passata cade fra le due letture riscrive la variabile che qui si finge —
+   * il telefono coi tasti torna un telefono senza, e la maniglia sembra non
+   * essersi mossa. Mancava solo qui, ed e' il rosso che andava e veniva. */
+  await laMisuraSiFerma(page);
   await fingiIlFondoDiSistema(page, 0);
   const aRiposo = await altezzaDalFondo(page, maniglia);
   await fingiIlFondoDiSistema(page, 48);

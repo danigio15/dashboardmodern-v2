@@ -121,7 +121,7 @@ test("il meteo sta nell'intestazione, accanto al nome della casa", async ({ page
   expect(distanza).toBeLessThanOrEqual(12);
 });
 
-test("da telefono la fascia in alto sta su una riga, e la connessione e' un puntino", async ({
+test("da telefono la fascia in alto non sfilaccia, e la connessione e' un puntino", async ({
   page,
 }, testInfo) => {
   test.setTimeout(120_000);
@@ -129,12 +129,32 @@ test("da telefono la fascia in alto sta su una riga, e la connessione e' un punt
   await avvia(page, testInfo);
   const fascia = await page.evaluate(() => {
     const testata = document.querySelector("header:not(.dm-page-mast)");
-    const alto = (nodo) => Math.round(nodo.getBoundingClientRect().top);
     const figli = [...testata.children].filter((n) => n.getBoundingClientRect().width > 0);
+    /* Le righe si riconoscono da quando due figli si SOVRAPPONGONO in
+     * verticale, non da quando cominciano alla stessa altezza. Il puntino
+     * della connessione e' tredici pixel centrati in una riga alta trentaquattro:
+     * il suo bordo di sopra sta undici pixel piu' in basso di quello dei
+     * fratelli, e contando le righe per `top` diventava una riga sua. */
+    const righe = [];
+    for (const nodo of figli) {
+      const box = nodo.getBoundingClientRect();
+      const riga = righe.find((r) => box.top < r.basso - 1 && box.bottom > r.alto + 1);
+      if (riga) {
+        riga.alto = Math.min(riga.alto, box.top);
+        riga.basso = Math.max(riga.basso, box.bottom);
+        riga.figli.push(nodo);
+      } else righe.push({ alto: box.top, basso: box.bottom, figli: [nodo] });
+    }
+    righe.sort((a, b) => a.alto - b.alto);
+    const suDiSe = (nodo) => nodo.matches(".dm-testata-riga, .dm-testata-riga *");
     return {
       strabordo: testata.scrollWidth > testata.clientWidth + 1,
-      // Una riga sola: nessun figlio comincia sotto la meta' della fascia.
-      aCapo: figli.some((n) => alto(n) > alto(testata) + testata.clientHeight / 2),
+      quanteRighe: righe.length,
+      /* Sulla prima riga NON ci deve stare l'orologio: quella e' la riga del
+       * nome, col puntino e il tasto dell'editor, e se ci finisse dentro anche
+       * la striscia vorrebbe dire che si sono accavallate. */
+      orologioNellaPrima: (righe[0]?.figli || []).some(suDiSe),
+      orologioSotto: (righe[1]?.figli || []).every(suDiSe),
       parola: getComputedStyle(document.getElementById("conn-text")).clipPath,
       puntino: Boolean(testata.querySelector(".live-dot")),
       nomeIntero:
@@ -143,7 +163,13 @@ test("da telefono la fascia in alto sta su una riga, e la connessione e' un punt
     };
   });
   expect(fascia.strabordo).toBe(false);
-  expect(fascia.aCapo).toBe(false);
+  /* Due righe, e non una: l'orologio col meteo sta **sotto il titolo** da
+   * quando e' arrivato (#272), e questa prova pretendeva ancora la riga sola
+   * del 1.3.1. Quello che protegge resta lo stesso — la fascia non sfilaccia —
+   * ma il numero giusto adesso e' due, e la terza riga sarebbe lo sfilacciamento. */
+  expect(fascia.quanteRighe).toBe(2);
+  expect(fascia.orologioNellaPrima).toBe(false);
+  expect(fascia.orologioSotto).toBe(true);
   expect(fascia.puntino).toBe(true);
   // La parola resta nel documento per chi si fa leggere la pagina, ma non si vede.
   expect(fascia.parola).toContain("inset");
