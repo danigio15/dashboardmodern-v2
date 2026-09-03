@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "bütün tesislerin toplamı",
+  "each one named after its plant": "her biri kendi tesisinin adıyla",
+  "One tile per plant": "Tesis başına bir tane",
+  "One single tile": "Tek bir karo",
   "Your alarm areas": "Alarm bölgelerin",
   "Save area": "Bölgeyi kaydet",
   "Night zone": "Gece bölgesi",

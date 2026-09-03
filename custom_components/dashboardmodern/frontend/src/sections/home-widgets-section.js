@@ -58,6 +58,17 @@ import {
   normalizzaUps,
 } from "../core/ups-model.js";
 import {
+  TESSERA_PER_IMPIANTO,
+  TESSERE_IMPIANTI_KEY,
+  comeSiVedeLEnergia,
+  plantIsConfigured,
+  plantKey,
+  plantLabel,
+  plantList,
+  sommaLetture,
+  sommaNumeri,
+} from "../core/energy-plants.js";
+import {
   CALENDARI_KEY,
   GIORNI_AVANTI,
   eventiDaQui,
@@ -961,32 +972,44 @@ function wattsOf(states, entity) {
   return wattsFromState(stateOf(states, entity));
 }
 
-function energyModel(states) {
-  const model = section("energy", {}) || {};
+/* Le letture dei quattro gruppi di UN impianto.
+ *
+ * `slot` è la mappatura di sempre, e vale solo per il primo impianto: gli
+ * altri non hanno slot — sono nati dopo — e leggono le entità che si sono
+ * scritte nel loro gruppo. Senza questa distinzione il secondo impianto, coi
+ * campi vuoti, avrebbe letto le entità del primo e detto gli stessi numeri. */
+function lettureDellImpianto(states, impianto, primo) {
   const readings = ENERGY_SLOTS.map(([group, field, slot]) => ({
     group,
-    watts: wattsOf(states, clean(model?.[group]?.[field]) || slot),
+    watts: wattsOf(states, clean(impianto?.[group]?.[field]) || (primo ? slot : "")),
   }));
-  const house = readings.find((row) => row.group === "house")?.watts ?? null;
-  const today = numOf(states, clean(model?.house?.daily_energy) || "dm.energy_consumo_casa_oggi");
+  const soc = numOf(
+    states,
+    clean(impianto?.battery?.soc) || (primo ? "dm.energy_stato_carica_batteria" : ""),
+  );
   const rows = readings.filter((row) => row.watts != null);
-  /* Quanto e' piena la batteria, adesso. Dal campo: «nel widget fotovoltaico
-   * inserire anche la percentuale batteria attuale». Lo stato di carica ha
-   * gia' il suo slot — e' quello che racconta «piena fra un'ora» — e la
-   * casella Batteria lo dice accanto ai watt; senza la potenza mappata, la
-   * percentuale basta da sola a far esistere la casella. */
-  const soc = numOf(states, clean(model?.battery?.soc) || "dm.energy_stato_carica_batteria");
   if (soc != null) {
     const batteria = rows.find((row) => row.group === "battery");
     if (batteria) batteria.soc = soc;
     else rows.push({ group: "battery", watts: null, soc });
   }
+  return {
+    rows,
+    house: readings.find((row) => row.group === "house")?.watts ?? null,
+    today: numOf(
+      states,
+      clean(impianto?.house?.daily_energy) || (primo ? "dm.energy_consumo_casa_oggi" : ""),
+    ),
+  };
+}
+
+function tesseraEnergia(rows, house, today, { key = "energia", label } = {}) {
   if (house == null && !rows.length) return null;
   return {
-    key: "energia",
+    key,
     accent: "#f97316",
     icon: "⚡",
-    label: t("Energia", "Energy"),
+    label: label || t("Energia", "Energy"),
     value: formatWatts(house),
     caption:
       today == null
@@ -996,6 +1019,54 @@ function energyModel(states) {
     rows,
     today,
   };
+}
+
+/* Le tessere dell'energia: una, o una per impianto (#286).
+ *
+ * «Ho due appartamenti uniti con due contatori separati. Tutto bene nella
+ * sezione energia ma il widget in Home page è solo quello del primo impianto.»
+ * Con un impianto solo esce esattamente la tessera di prima, con la stessa
+ * chiave: chi non ha chiesto niente non si accorge che questa funzione è
+ * cambiata. */
+function energyModels(states) {
+  const documento = section("energy", {}) || {};
+  const impianti = plantList(documento);
+  const configurati = impianti.filter(
+    (impianto, indice) => indice === 0 || plantIsConfigured(impianto),
+  );
+  const letture = configurati.map((impianto, indice) =>
+    lettureDellImpianto(states, impianto, indice === 0),
+  );
+  if (configurati.length < 2) {
+    const sola = letture[0] || { rows: [], house: null, today: null };
+    return [tesseraEnergia(sola.rows, sola.house, sola.today)].filter(Boolean);
+  }
+  /* La scelta è una parola, non un oggetto: si legge com'è scritta — come
+   * `cd_energy_plant`, che è la casella vicina di casa. */
+  if (
+    comeSiVedeLEnergia(root.localStorage?.getItem?.(TESSERE_IMPIANTI_KEY)) === TESSERA_PER_IMPIANTO
+  ) {
+    /* Una per impianto. La prima tiene la chiave di sempre, così l'ordine e la
+     * visibilità che si erano già scelti restano suoi; le altre portano il
+     * loro id, come fanno le tariffe e i contatori. */
+    return configurati
+      .map((impianto, indice) =>
+        tesseraEnergia(letture[indice].rows, letture[indice].house, letture[indice].today, {
+          key: plantKey("energia", impianto, indice),
+          label: plantLabel(impianto, indice, t("Impianto", "Plant")),
+        }),
+      )
+      .filter(Boolean);
+  }
+  /* Una sola, con la somma: è quello che una Home dice — quanto consuma la
+   * casa — e chi ha unito due appartamenti ha una casa sola. */
+  return [
+    tesseraEnergia(
+      sommaLetture(letture.map((lettura) => lettura.rows)),
+      sommaNumeri(letture.map((lettura) => lettura.house)),
+      sommaNumeri(letture.map((lettura) => lettura.today)),
+    ),
+  ].filter(Boolean);
 }
 
 function appliancesModel(states) {
@@ -2888,7 +2959,7 @@ function widgetModels(states) {
       coversModel(states),
       securityModel(states),
       camerasModel(states),
-      energyModel(states),
+      ...energyModels(states),
       appliancesModel(states),
       temperatureModel(states),
       evModel(states),
@@ -4017,11 +4088,21 @@ const CHIAVI_A_CARTE = new Set([
   "elettrodomestici",
 ]);
 
+/* La tessera dell'energia, qualunque impianto racconti.
+ *
+ * Con più impianti la prima tiene la chiave di sempre e le altre portano il
+ * loro id attaccato (#286): chi decideva guardando la chiave «energia» deve
+ * riconoscere anche le sue sorelle, altrimenti la seconda tessera esce senza
+ * caselle, senza il verso della batteria e senza il suo popup. */
+const eUnaTesseraEnergia = (chiave) =>
+  clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
+
 function carteDalleRighe(widget) {
   const chiave = clean(widget.key);
-  if (!(CHIAVI_A_CARTE.has(chiave) || chiave.startsWith("custom-"))) return [];
+  if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
+    return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
-  if (chiave === "energia") {
+  if (eUnaTesseraEnergia(chiave)) {
     const nomi = {
       house: t("Casa", "House"),
       solar: t("Solare", "Solar"),
@@ -4277,7 +4358,7 @@ function corsaMarkup(widget) {
  * da chiedere, e infatti quelle sezioni una lettura nel tempo non ce l'hanno.
  */
 function entitaDelRacconto(widget) {
-  if (widget?.key === "energia") {
+  if (eUnaTesseraEnergia(widget?.key)) {
     const energia = section("energy", {}) || {};
     /* Mentre la batteria si carica, la domanda non e' piu' «quanto consuma la
      * casa» ma «quando e' piena». Il racconto segue allora lo stato di carica,
@@ -4330,7 +4411,7 @@ function verdettoEFrase(widget) {
    * conosce i numeri di adesso, e il motore ci si adegua. */
   const batteria = widget?.rows?.find?.((r) => r?.group === "battery")?.watts;
   const conSoggetto =
-    widget?.key === "energia" && Number(batteria) < -10
+    eUnaTesseraEnergia(widget?.key) && Number(batteria) < -10
       ? { ...widget, soggetto: "carica" }
       : widget;
   const lettura = analisiDellaSezione(
@@ -4534,7 +4615,7 @@ function detailRows(widget, states) {
   if (widget.key === "tapparelle") return coversDetail(widget);
   if (widget.key === "sicurezza") return securityDetail(widget, states);
   if (widget.key === "telecamere") return camerasDetail(widget);
-  if (widget.key === "energia") return energyDetail(widget);
+  if (eUnaTesseraEnergia(widget.key)) return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
   if (

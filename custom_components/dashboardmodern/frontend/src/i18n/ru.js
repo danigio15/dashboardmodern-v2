@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "сумма всех установок",
+  "each one named after its plant": "каждая с именем своей",
+  "One tile per plant": "По одной на установку",
+  "One single tile": "Одна общая плитка",
   "Your alarm areas": "Ваши зоны охраны",
   "Save area": "Сохранить зону",
   "Night zone": "Ночная зона",

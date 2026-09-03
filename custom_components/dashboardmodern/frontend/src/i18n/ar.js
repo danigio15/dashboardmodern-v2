@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "مجموع كل المنظومات",
+  "each one named after its plant": "كلٌّ باسم منظومته",
+  "One tile per plant": "واحدة لكل منظومة",
+  "One single tile": "بطاقة واحدة فقط",
   "Your alarm areas": "مناطق الإنذار لديك",
   "Save area": "حفظ المنطقة",
   "Night zone": "المنطقة الليلية",

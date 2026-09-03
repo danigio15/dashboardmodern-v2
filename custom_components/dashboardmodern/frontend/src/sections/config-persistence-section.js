@@ -72,6 +72,10 @@ const USER_DATA_VERSION = 1;
  * #262): titolo, icona e le entita' che ci ha messo dentro. Sono la casa nel
  * senso piu' letterale — le ha disegnate lui — e non viaggiare vorrebbe dire
  * rifarle su ogni dispositivo. */
+/* La revisione 22 aggiunge come si vede l'energia in Home con più impianti
+ * (`cd_energia_tessere`, #286): una tessera sola con la somma, o una per
+ * impianto. È una scelta sulla plancia, non su questo dispositivo — chi la fa
+ * dal tablet la vuole anche sul telefono, come l'ordine delle tessere. */
 /* La revisione 21 aggiunge le aree d'allarme (`cd_centrali`,
  * `cd_centrale_scelta`, #285). Stessa ragione degli impianti solari, e stessa
  * forma: l'elenco dice quali sono le aree, la scelta dice quale sta nella
@@ -83,7 +87,7 @@ const USER_DATA_VERSION = 1;
  * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
  * da sempre: se la scelta restasse su un dispositivo solo, il telefono
  * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
-export const CONFIG_KEYS_REVISION = 21;
+export const CONFIG_KEYS_REVISION = 22;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -195,6 +199,8 @@ export const CONFIG_KEYS = Object.freeze([
   // Le aree d'allarme e quale di loro il tastierino comanda (#285).
   "cd_centrali",
   "cd_centrale_scelta",
+  // Come si vede l'energia in Home con più impianti: somma o una per impianto (#286).
+  "cd_energia_tessere",
   "cd_ups",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.

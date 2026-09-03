@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "모든 설비의 합계",
+  "each one named after its plant": "각각 자기 설비의 이름으로",
+  "One tile per plant": "설비마다 하나씩",
+  "One single tile": "타일 하나만",
   "Your alarm areas": "내 경보 구역",
   "Save area": "구역 저장",
   "Night zone": "밤 구역",

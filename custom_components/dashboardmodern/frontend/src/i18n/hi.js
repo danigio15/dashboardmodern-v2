@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "सभी संयंत्रों का जोड़",
+  "each one named after its plant": "हर एक अपने संयंत्र के नाम से",
+  "One tile per plant": "हर संयंत्र के लिए एक",
+  "One single tile": "सिर्फ़ एक टाइल",
   "Your alarm areas": "आपके अलार्म क्षेत्र",
   "Save area": "क्षेत्र सहेजें",
   "Night zone": "रात का ज़ोन",

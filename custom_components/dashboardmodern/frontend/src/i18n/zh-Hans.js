@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "所有系统的总和",
+  "each one named after its plant": "每张都用各自系统的名字",
+  "One tile per plant": "每套系统一张",
+  "One single tile": "只用一张卡片",
   "Your alarm areas": "你的警戒区域",
   "Save area": "保存区域",
   "Night zone": "夜间区",

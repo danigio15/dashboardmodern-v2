@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "die Summe aller Anlagen",
+  "each one named after its plant": "jede mit dem Namen ihrer Anlage",
+  "One tile per plant": "Eine pro Anlage",
+  "One single tile": "Eine einzige Kachel",
   "Your alarm areas": "Deine Alarmbereiche",
   "Save area": "Bereich speichern",
   "Night zone": "Nachtbereich",

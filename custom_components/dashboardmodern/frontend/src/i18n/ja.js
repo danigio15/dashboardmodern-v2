@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "the total of every plant": "すべての設備の合計",
+  "each one named after its plant": "それぞれに設備の名前",
+  "One tile per plant": "設備ごとに一つ",
+  "One single tile": "タイルは一つだけ",
   "Your alarm areas": "あなたの警戒エリア",
   "Save area": "エリアを保存",
   "Night zone": "夜のゾーン",
