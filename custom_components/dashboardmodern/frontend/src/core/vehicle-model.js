@@ -64,9 +64,35 @@ export const VEHICLE_FIELDS = Object.freeze([
   "brand",
   "model",
   "icon",
+  "tipo",
   VEHICLE_PHOTO_FIELDS.idle,
   VEHICLE_PHOTO_FIELDS.plugged,
 ]);
+
+/* Che motore ha (#208).
+ *
+ * «E' possibile scegliere a monte se visualizzare un'auto elettrica o classica
+ * con i sensori disponibili?» La pagina Auto era nata elettrica e basta:
+ * batteria, wallbox, sessione di ricarica. Chi ha un'auto a benzina aveva gli
+ * stessi sensori di tutti — carburante, autonomia, odometro, portiere — e
+ * nessun posto dove metterli. Il tipo si sceglie per vettura, perche' in un
+ * garage possono starci tutte e due.
+ *
+ * Vuoto vuol dire elettrica: e' quello che ogni auto configurata finora e', e
+ * non le si chiede di dichiararlo. */
+export const TIPI_MOTORE = Object.freeze(["elettrica", "termica", "ibrida"]);
+
+export function tipoMotore(valore) {
+  const voce = clean(valore).toLowerCase();
+  if (voce === "termica" || voce === "ibrida") return voce;
+  return "";
+}
+
+/** Se questa vettura va (anche) a carburante: termica o ibrida. */
+export const vaACarburante = (car = {}) => tipoMotore(car?.tipo) !== "";
+
+/** Se questa vettura ha (anche) una batteria da ricaricare: elettrica o ibrida. */
+export const siRicarica = (car = {}) => tipoMotore(car?.tipo) !== "termica";
 
 const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
 const array = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
@@ -113,6 +139,7 @@ export function normalizeVehicle(input = {}, index = 0) {
     brand: clean(source.brand),
     model: clean(source.model),
     icon: clean(source.icon),
+    tipo: tipoMotore(source.tipo),
     [VEHICLE_OVERRIDES_FIELD]: Object.fromEntries(
       Object.entries(overrides)
         .map(([chiave, valore]) => [clean(chiave), clean(valore)])

@@ -90,6 +90,7 @@ import { installHomeWidgetsSection } from "./home-widgets-section.js";
 import { installTodoEditorSection } from "./todo-editor-section.js";
 import { installWidgetEntityChoiceSection } from "./widget-entity-choice-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
+import { installAutoTermica } from "./auto-termica-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
@@ -98,6 +99,10 @@ import { installImpiantiTermiciEditor } from "./impianti-termici-editor-section.
 import { installUpsSection } from "./ups-section.js";
 import { installCalendarioSection } from "./calendario-section.js";
 import { installUpsEditor } from "./ups-editor-section.js";
+import { installAllerte } from "./allerte-section.js";
+import { installAllerteEditor } from "./allerte-editor-section.js";
+import { installRifiuti } from "./rifiuti-section.js";
+import { installRifiutiEditor } from "./rifiuti-editor-section.js";
 import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installLinguaSection } from "./lingua-section.js";
 import { installSezioniMie } from "./sezioni-mie-section.js";
@@ -925,6 +930,10 @@ export function installSectionRuntime() {
     // The skin installs after the EV owner so the vehicle picker it restyles is
     // already mounted, and re-renders itself on the same runtime events.
     installEvShowcaseSection();
+    /* L'auto a benzina (#208) si appoggia alla pagina EV gia' vestita: le
+     * sue caselle entrano nella stessa scheda, e il suo quadro prende il
+     * posto di quello della ricarica quando il motore non e' elettrico. */
+    installAutoTermica();
     installSolarThermalDesignSection();
     /* Dopo il disegno del solare: le linguette e le due scene nuove gli si
      * mettono accanto, e per farlo devono trovarlo gia' al suo posto. */
@@ -936,6 +945,13 @@ export function installSectionRuntime() {
      * della scheda, cosi' la scheda trova gia' cosa ridisegnare quando salva. */
     installUpsSection();
     installUpsEditor();
+    /* Le allerte (#296) e la raccolta differenziata (#293): due pagine nate
+     * a runtime come la Continuita', ognuna con la sua scheda. La pagina
+     * prima della scheda, cosi' la scheda trova gia' cosa ridisegnare. */
+    installAllerte();
+    installAllerteEditor();
+    installRifiuti();
+    installRifiutiEditor();
     /* Il calendario (#259) ha una pagina sua accanto alla Home, e con le liste
      * ToDo una scheda sola nella configurazione: sono la stessa pagina, e chi
      * le configura le pensa nello stesso momento. */
@@ -1029,8 +1045,13 @@ export function installSectionRuntime() {
         "backup-editor",
         "ev",
         "ev-showcase",
+        "auto-termica",
         "solar-thermal-design",
         "minipc-showcase",
+        "allerte",
+        "allerte-editor",
+        "rifiuti",
+        "rifiuti-editor",
         "beta27-release-stability",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,

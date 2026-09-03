@@ -101,7 +101,11 @@ const USER_DATA_VERSION = 1;
  * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
  * da sempre: se la scelta restasse su un dispositivo solo, il telefono
  * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
-export const CONFIG_KEYS_REVISION = 25;
+/* La revisione 26 aggiunge la soglia di chiusura delle tapparelle
+ * (`cd_tapparelle_soglia`, #298), le allerte (`cd_allerte`, #296) e la raccolta
+ * differenziata (`cd_rifiuti`, #293): tre cose configurate una volta per tutta
+ * la casa, che il telefono e il tablet devono leggere uguali. */
+export const CONFIG_KEYS_REVISION = 26;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -249,6 +253,13 @@ export const CONFIG_KEYS = Object.freeze([
    * dare fastidio a nessuno. */
   "cd_visual_prefer_image",
   "cd_tapparelle",
+  // Sotto che percentuale una tapparella conta come chiusa (#298).
+  "cd_tapparelle_soglia",
+  // Le allerte (#296): quali sensori guardare per terremoti, meteo, fulmini,
+  // pollini, comfort e voli.
+  "cd_allerte",
+  // La raccolta differenziata (#293): i materiali e da dove si legge il ritiro.
+  "cd_rifiuti",
   "cd_piscina",
   "cd_irrigazione",
   "cd_robot",

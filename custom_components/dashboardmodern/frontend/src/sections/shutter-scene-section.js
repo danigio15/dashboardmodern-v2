@@ -1,5 +1,7 @@
 import {
+  CHIAVE_SOGLIA_CHIUSA,
   coverClosedPercent,
+  coverClosedThreshold,
   coverEntries,
   coverIsAwning,
   coverIsSideways,
@@ -282,9 +284,17 @@ function signature(views) {
  * finestra disegnata tutta coperta. Dove una posizione c'e', comanda lei: e'
  * quella che si sta guardando.
  */
+/* Sotto quanto una tapparella conta come chiusa (#298): una soglia sola per
+ * tutta la casa, scritta nella scheda Finestre. Zero e' il comportamento di
+ * sempre. Si rilegge a ogni giro perche' e' una casella che si tocca dal vivo
+ * e il disegno deve seguirla subito. */
+function sogliaChiusa() {
+  return coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0));
+}
+
 function statoVisibile(view) {
   if (view.moving) return view.status;
-  if (view.hasPosition) return view.position > 0 ? "open" : "closed";
+  if (view.hasPosition) return view.position > sogliaChiusa() ? "open" : "closed";
   return view.status;
 }
 
@@ -308,7 +318,10 @@ function summaryText(views) {
    * e solo quando qualcuna e' davvero aperta. */
   const tutte = views.flatMap(coperture).filter((view) => !view.soloInfisso);
   const moving = tutte.filter((view) => view.moving).length;
-  const open = tutte.filter((view) => !view.moving && view.position > 0).length;
+  /* Lo spiraglio sotto la soglia (#298) e' una tapparella chiusa anche qui: il
+   * conto in cima e la pastiglia della card devono dire la stessa cosa. */
+  const soglia = sogliaChiusa();
+  const open = tutte.filter((view) => !view.moving && view.position > soglia).length;
   const closed = tutte.length - moving - open;
   const parts = [];
   if (open) parts.push(open === 1 ? t("1 aperta", "1 open") : t(`${open} aperte`, `${open} open`));

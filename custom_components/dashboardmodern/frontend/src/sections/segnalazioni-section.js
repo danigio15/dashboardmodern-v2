@@ -199,7 +199,9 @@ const COLONNE = [
     id: "inviato",
     icona: "📥",
     rgb: "14,165,233",
-    nome: () => t("Nuove", "New"),
+    /* «Da lavorare», non «Nuove»: e' la cifra di quelle che nessuno ha ancora
+     * preso, e porta lo stesso nome del tasto che le mostra qui sotto. */
+    nome: () => t("Da lavorare", "To work on"),
     tiene: (stato) => stato === "inviato",
   },
   {
@@ -1224,19 +1226,13 @@ function elencoMarkup() {
  * Adesso lo stato e il tipo sono due assi che si incrociano, e sotto ogni
  * tasto del tipo c'e' il suo conto, calcolato dentro lo stato scelto: si vede
  * quanto c'e' da lavorare per genere prima ancora di premere. */
-export const FILTRI_STATO_ID = Object.freeze([
-  "aperte",
-  "nuove",
-  "in-carico",
-  "chiuse",
-  "tutte",
-]);
+export const FILTRI_STATO_ID = Object.freeze(["aperte", "in-carico", "chiuse", "tutte"]);
 export const FILTRI_TIPO_ID = Object.freeze(["", "bug", "feature", "assistenza"]);
 
 const FILTRI_STATO = [
+  /* Gli stessi nomi delle cifre grandi qui sopra, apposta: premere «Da
+   * lavorare» mostra esattamente quelle contate li'. */
   { id: "aperte", nome: () => t("Da lavorare", "To work on") },
-  /* Gli stessi nomi delle due cifre grandi qui sopra, apposta. */
-  { id: "nuove", nome: () => t("Nuove", "New") },
   { id: "in-carico", nome: () => t("In lavorazione", "Being worked on") },
   { id: "chiuse", nome: () => t("Chiuse", "Closed") },
   { id: "tutte", nome: () => t("Tutte", "All") },
@@ -1286,25 +1282,27 @@ function colonneMarkup(coda) {
 const CHIUSA = ["risolto", "chiuso"];
 
 /* «Voglio capire cosa ho preso in carico e quelle ancora da prendere in
- * carico.» Erano due numeri che si leggevano e non si potevano premere: le tre
- * cifre grandi in cima dicono 18 nuove e 6 in lavorazione, ma l'unico filtro
- * era «Da lavorare», che le mette insieme — e le sei prese in carico
- * annegavano fra le diciotto ancora ferme.
+ * carico.» Le cifre grandi in cima dicono 3 da lavorare e 5 in lavorazione, e
+ * i tasti qui sotto sono esattamente quelle cifre: premere «Da lavorare»
+ * lascia le tre lette un dito piu' su, premere «In lavorazione» le cinque.
  *
- * I due tasti nuovi sono esattamente quelle due cifre: premere «Nuove» lascia
- * le diciotto lette un dito piu' su, premere «In lavorazione» le sei. Per
- * questo portano lo stesso nome del conto invece di uno piu' bello: due parole
- * diverse per lo stesso numero, a un centimetro di distanza, farebbero
- * chiedere se sia lo stesso numero. */
+ * «Da lavorare» un tempo le metteva insieme — tutte le aperte — e accanto
+ * c'era un terzo tasto, «Nuove», per le sole non prese. Segnalato cosi': «il
+ * filtro da lavorare / in lavorazione non va, ci sono richieste prese in
+ * carico ed esce da lavorare». Aveva ragione: una segnalazione che qualcuno
+ * ha gia' preso in carico non e' piu' da lavorare, e' in lavorazione. Il
+ * tasto adesso dice quello che il suo nome promette, e quello in piu' — che
+ * diceva la stessa cosa con un'altra parola — se n'e' andato. */
 function perStato(coda, filtro) {
   const aperte = coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
-  if (filtro === "aperte") return aperte;
   /* Presa in carico vuol dire assegnata: e' la stessa regola con cui la coda
-   * calcola lo stato, e con cui il conto grande qui sopra fa sei. */
+   * calcola lo stato, e con cui il conto grande qui sopra conta. */
   if (filtro === "in-carico") {
     return aperte.filter((ticket) => clean(ticket.state) === "in-carico");
   }
-  if (filtro === "nuove") {
+  /* «nuove» e' il nome vecchio dello stesso tasto: chi l'aveva ancora sotto il
+   * dito trova le stesse righe. */
+  if (filtro === "aperte" || filtro === "nuove") {
     return aperte.filter((ticket) => clean(ticket.state) !== "in-carico");
   }
   if (filtro === "chiuse") {
@@ -2017,6 +2015,13 @@ function agganciaEventi(corpo) {
    * ma e' un caso, e il giorno che l'opzione cambia nome smette di essere
    * fortunato senza che niente lo dica. */
   corpo.querySelector('[data-dm-tkt="aggiorna"]')?.addEventListener("click", () => sincronizza());
+  /* Il tasto «Aggiorna» del cruscotto era disegnato e non collegato a niente:
+   * «se premo aggiorna non mi carica le nuove, devo chiudere e riaprire».
+   * Quello della finestra rilegge le proprie segnalazioni; questo rilegge la
+   * coda, ad alta voce — con la rotella, e se GitHub non risponde lo dice. */
+  corpo
+    .querySelector('[data-dm-tkt="ricarica-coda"]')
+    ?.addEventListener("click", () => caricaCoda());
   corpo.querySelectorAll("[data-dm-tolgi]").forEach((bottone) => {
     bottone.addEventListener("click", () => elimina(bottone.dataset.dmTolgi));
   });

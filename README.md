@@ -68,7 +68,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
 - [Dove vive la configurazione](#dove-vive-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Gestione termica](#gestione-termica) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [Continuità](#continuità) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Gestione termica](#gestione-termica) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [Continuità](#continuità) · [Allerte](#allerte) · [Rifiuti](#rifiuti) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
 - [Segnalazioni e assistenza](#segnalazioni-e-assistenza)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
@@ -380,6 +380,8 @@ Profilo veicolo con **marchio e modello** dal catalogo di **37 marche** — serv
 
 Più veicoli convivono, ognuno con il suo profilo e la sua identità: rinominare un'auto non le fa perdere la foto. Con due vetture configurate la tessera della Home le racconta **entrambe**, e porta in evidenza la carica più bassa. Le linguette per passare da un'auto all'altra ci sono anche **dentro il popup**. Il **cavo collegato** si può dichiarare con una casella, invece di lasciarlo dedurre dal testo dello stato — e quando il cavo è attaccato **la foto cambia**, se ne hai configurata una seconda con il cavo inserito.
 
+**Anche l'auto a benzina.** Nella scheda dell'auto, sotto il nome, una tendina dice se il motore è **elettrico, termico o ibrido** — e vale per quella vettura, in un garage possono starci tutte e due. Con un motore termico la pagina non mostra la ricarica, e al suo posto c'è il **serbatoio**, con intorno le portiere, il motore, i finestrini, l'allarme, la batteria di servizio, l'olio, la temperatura esterna, l'ultimo viaggio, il carburante consumato e la pressione dei pneumatici: ognuno dal sensore che l'integrazione dell'auto espone, e nessuno obbligatorio. Un'ibrida tiene tutti e due i quadri. In Home la tessera legge il carburante quando non c'è una batteria.
+
 DashboardModern non sostituisce l'integrazione del veicolo o della wallbox: ne presenta le entità.
 
 ---
@@ -452,6 +454,8 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 - **Anche solo il sensore basta.** Chi ha persiane manuali e nessun motore può inserire il solo contatto: ne esce una card che disegna lo stesso serramento, con le ante che si scostano, e sotto nessun comando — perché su una persiana manuale Apri/Ferma/Chiudi non arriverebbe da nessuna parte. Nel conteggio in cima quelle finestre hanno una voce loro.
 - **Tende e tapparelle su due relè** sono supportate: una copertura comandata da due interruttori separati, e le tende da sole con il loro verso.
 - Una finestra con più coperture resta **una sola card**, non tre.
+- **Una tapparella socchiusa conta come chiusa.** Nella scheda Finestre si imposta una **soglia in percentuale**: ferma a quel valore o sotto, la tapparella è chiusa nella pagina, nella scena e nella tessera in Home. Chi lascia un 10% per far passare l'aria non si sente dire che è aperta. Zero è il comportamento di sempre.
+- **Infisso con inferriata.** La grata si disegna davanti all'infisso, con le sbarre che si scostano: si apre prima delle ante e si chiude dopo.
 
 ---
 
@@ -466,7 +470,7 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 
 E **si sceglie quali modalità vedere**: la centrale dice cosa accetta, quello che serve davvero lo dice chi la usa. Toglierne una la nasconde e non cambia niente di quello che la centrale sa fare; lo sblocco resta sempre.
 
-**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home. Dove l'integrazione lo espone — le **Arlo**, per esempio — la miniatura è **video dal vivo** e non un'istantanea ferma.
+**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home. Dove l'integrazione lo espone — le **Arlo**, per esempio — la miniatura è **video dal vivo** e non un'istantanea ferma. Se il flusso non parte — una telecamera che dorme — la tessera **torna alle istantanee** e riprova dopo un minuto, invece di lasciare un'immagine rotta; un flusso che si ferma in silenzio si riconosce e si riapre.
 
 **Più di una centrale.** Chi ha due impianti d'allarme — casa e magazzino, piano di sopra e di sotto — li dichiara entrambi: ognuno con il suo nome, i suoi tasti e le sue modalità.
 
@@ -591,6 +595,24 @@ Il gruppo di continuità: rete, batteria, carico e l'autonomia che resta.
 **Nessuna casella è obbligatoria.** Con il solo stato di NUT — «OL» in linea, «OB» a batteria, «LB» batteria scarica — la plancia sa già dire se c'è tensione. Le altre servono a chi l'UPS lo legge da un'integrazione che espone un sensore per cosa.
 
 In Home la tessera mostra la carica quando la corrente c'è, e **i minuti che restano quando cade**.
+
+---
+
+## Allerte
+
+Terremoti, avvisi della protezione civile, fulmini, pollini, comfort termico e aerei sopra casa: **sei fonti, un livello solo** — quiete, nota, attenzione, allarme. Ogni fonte è il sensore che la sua integrazione ha già portato in Home Assistant (INGV Earthquakes, Meteoalarm o i bollettini della Protezione Civile, Blitzortung, Thermal Comfort, Flightradar24, un sensore dei pollini qualsiasi).
+
+**Nessuna casella è obbligatoria** e ognuna basta da sola: la pagina mostra solo le fonti che ci sono. Una fonte che non risponde non è quiete, e la pagina lo dice. La plancia non chiama nessun servizio: legge quello che c'è.
+
+In Home la tessera conta le allerte in corso e si accende dall'«attenzione» in su.
+
+---
+
+## Rifiuti
+
+La raccolta differenziata: **un bidone per materiale**, e per ognuno il sensore o il calendario che dice quando passa il ritiro. La pagina risponde alla domanda della sera — cosa metto fuori stasera — e la tessera in Home si accende il giorno prima.
+
+Chi ha **un calendario solo**, con un evento per ritiro, lo mette nella casella in fondo alla scheda: il materiale si indovina dal nome dell'evento.
 
 ---
 
@@ -780,6 +802,7 @@ Quello che la Home legge per conto suo, prima delle tessere:
 | **Allarme** (`alarm_control_panel.*`) | la centrale che la Home mostra e comanda |
 | **Interruttore antifurto** (`switch.*`) | per chi l'antifurto ce l'ha come interruttore e non come centrale |
 | **Script apertura cancello** | il cancello raggiungibile dalla Home |
+| **Radar meteo: luogo e servizio** | il posto della mappa — «Casa», una zona o le coordinate — e da chi arrivano le tessere della pioggia: RainViewer con OpenStreetMap o Carto come fondo, oppure un indirizzo tuo con `{z}/{x}/{y}`. Finché non scegli un servizio la plancia non bussa a nessuno |
 
 ### ⚡ Energia
 
@@ -836,7 +859,7 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 - **Luci**: entità (`light.`, `switch.`, `input_boolean.`, `fan.`, `group.`), nome, stanza — chiesta subito quando aggiungi una luce — e ordine.
 - **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo**, **Caldo** o entrambi per una pompa di calore. Qui si configura anche il **tasto Clima rapido** della Home — modalità, temperatura e ventola — con le sole modalità che le unità configurate accettano davvero; un campo lasciato vuoto vuol dire «non toccare».
-- **Finestre**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso** e percentuali dei preset. Il solo sensore basta per una persiana manuale.
+- **Finestre**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso**, **inferriata** e percentuali dei preset. Il solo sensore basta per una persiana manuale. In cima alla scheda la **soglia di chiusura**: ferma a quella percentuale o sotto, una tapparella conta come chiusa.
 
 ### 🤖 Aspirapolvere · ✅ Cose da fare · 🚪 Aperture
 
@@ -876,7 +899,7 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 - **Piscina**: temperatura, pH, cloro con le soglie, pompa, riscaldamento, luce.
 - **Irrigazione**: zone con valvola, minuti, stanza, orario, **umidità del terreno** con le sue soglie, blocco pioggia e meteo.
-- **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità.
+- **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità. La tendina **Motore** — elettrica, termica, ibrida — vale per quella vettura: con un motore termico la pagina mostra il serbatoio al posto della ricarica, e fra le entità dell'auto ci sono le caselle di carburante, motore, portiere, finestrini, allarme, batteria di servizio, olio, temperatura esterna, ultimo viaggio, carburante consumato e pneumatici.
 
 ### 🌞 Gestione termica
 
@@ -926,6 +949,11 @@ CPU, RAM, disco, temperatura CPU, uptime della macchina e di Home Assistant, con
 
 - **Calendari** `calendar.*`, ognuno con nome e **colore** — è il colore con cui i suoi impegni compaiono nella pagina.
 - **Liste** `todo.*` da mostrare accanto agli impegni.
+
+### ⚠️ Allerte · ♻️ Rifiuti
+
+- **Allerte**: per ogni categoria — terremoti, protezione civile, fulmini, pollini, comfort termico, voli — il sensore della sua integrazione, con la distanza o la magnitudo facoltative dove esistono. Nessuna casella è obbligatoria.
+- **Rifiuti**: un materiale per riga — organico, carta, plastica, vetro, indifferenziato e gli altri — con il sensore o il `calendar.*` del ritiro; in fondo il **calendario unico** per chi ne ha uno solo.
 
 ### ✨ Le tue entità · 🗂️ Le tue sezioni
 

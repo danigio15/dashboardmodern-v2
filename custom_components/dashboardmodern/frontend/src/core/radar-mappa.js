@@ -203,8 +203,16 @@ export function luogoDelRadar(config = {}, states = {}, casa = {}) {
   const dellaCasa = states?.["zone.home"]?.attributes || {};
   const lat = latitudine(dellaCasa.latitude ?? casa.latitude);
   const lon = longitudine(dellaCasa.longitude ?? casa.longitude);
+  /* Il nome lo da' la zona; quando la casa arriva dalla configurazione di Home
+   * Assistant — `get_config`, che porta `location_name` — si usa quello: e' la
+   * stessa parola che sta in cima alla plancia. */
   if (lat !== null && lon !== null)
-    return { lat, lon, da: "casa", nome: stringa(dellaCasa.friendly_name) };
+    return {
+      lat,
+      lon,
+      da: "casa",
+      nome: stringa(dellaCasa.friendly_name) || stringa(casa.location_name),
+    };
   return null;
 }
 
@@ -226,4 +234,109 @@ export function zoneDisponibili(states = {}) {
       nome: stringa(stato?.attributes?.friendly_name) || id.slice(5),
     }))
     .sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+/* ── i servizi che si possono scegliere ──────────────────────────────────
+ *
+ * «Il meteo radar non va: se metto casa non si vede nulla.»
+ *
+ * Non si vedeva niente perche' non c'era niente da cui prendere i quadratini:
+ * il posto si sceglieva — casa, una zona, due coordinate — ma l'indirizzo del
+ * servizio andava scritto a mano, e chi non lo sa scrivere si trovava un radar
+ * che sapeva DOVE guardare e non COSA. Un radar cosi' e' una cornice vuota.
+ *
+ * Qui ci sono i servizi che si conoscono, come dati: il nome, l'indirizzo a
+ * modello e, per chi ne ha bisogno, da dove si prende il fotogramma piu'
+ * recente. Sono una tendina nella configurazione, non un ripiego silenzioso:
+ * finche' non se ne sceglie uno la plancia non bussa a nessuno di loro, perche'
+ * i quadratini che si chiedono dicono a chi li serve quale pezzo di mondo si
+ * sta guardando. Chi lo sceglie lo sa, ed e' scritto accanto alla tendina.
+ *
+ * RainViewer pubblica un elenco di fotogrammi — ogni dieci minuti uno — e i
+ * quadratini di ciascuno stanno sotto il percorso che l'elenco indica: senza
+ * quell'elenco non c'e' indirizzo, ed e' per questo che il modello porta
+ * `{host}` e `{path}` oltre ai soliti `{z}/{x}/{y}`. La tavolozza 2 e' quella
+ * blu che usa il suo stesso sito, sfumata e con la neve.
+ */
+export const SERVIZI_RADAR = Object.freeze({
+  rainviewer: Object.freeze({
+    nome: "RainViewer",
+    elenco: "https://api.rainviewer.com/public/weather-maps.json",
+    modello: "{host}{path}/256/{z}/{x}/{y}/2/1_1.png",
+    /* Ogni quanto l'elenco vale la pena di rileggerlo: i fotogrammi nascono
+     * ogni dieci minuti, e rileggerlo piu' spesso e' chiedere la stessa cosa. */
+    ogni: 10 * 60 * 1000,
+  }),
+});
+
+/* Le mappe di fondo fra cui scegliere. Un radar senza una mappa sotto e' una
+ * macchia colorata: si vede che piove, non si vede dove. */
+export const FONDI_MAPPA = Object.freeze({
+  osm: Object.freeze({
+    nome: "OpenStreetMap",
+    modello: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  }),
+  carto: Object.freeze({
+    nome: "CARTO (chiara)",
+    modello: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+  }),
+});
+
+/**
+ * Il fotogramma piu' recente dell'elenco di RainViewer.
+ *
+ * L'elenco ha la forma `{ host, radar: { past: [{ time, path }], nowcast: [...] } }`:
+ * si prende l'ultimo dei passati, che e' l'ultimo misurato — i «nowcast» sono
+ * previsioni, e un radar che mostra una previsione spacciandola per il presente
+ * dice una cosa che non e' successa. Con un elenco storto si torna `null`, e
+ * chi disegna sa che non c'e' niente da chiedere.
+ */
+export function fotogrammaRainViewer(elenco) {
+  const host = stringa(elenco?.host);
+  const passati = Array.isArray(elenco?.radar?.past) ? elenco.radar.past : [];
+  const ultimo = [...passati].reverse().find((voce) => stringa(voce?.path));
+  if (!host || !ultimo) return null;
+  const quando = Number(ultimo.time);
+  return {
+    host: host.replace(/\/+$/, ""),
+    path: stringa(ultimo.path),
+    time: Number.isFinite(quando) ? quando : null,
+  };
+}
+
+/**
+ * Il modello di indirizzo di un servizio, col suo fotogramma dentro.
+ *
+ * Torna stringa vuota quando il servizio non si conosce o il fotogramma manca:
+ * un modello a meta' chiederebbe quadratini a un indirizzo che non esiste.
+ */
+export function modelloDelServizio(servizio, fotogramma = null) {
+  const scelto = SERVIZI_RADAR[stringa(servizio)];
+  if (!scelto) return "";
+  let modello = scelto.modello;
+  if (modello.includes("{host}") || modello.includes("{path}")) {
+    const host = stringa(fotogramma?.host);
+    const path = stringa(fotogramma?.path);
+    if (!host || !path) return "";
+    modello = modello.replaceAll("{host}", host).replaceAll("{path}", path);
+  }
+  return /\{[zxy]\}/.test(modello) ? modello : "";
+}
+
+/**
+ * Il modello della mappa di fondo, dalla configurazione.
+ *
+ * `fondo` e' una chiave della tendina — `osm`, `carto` — oppure `modello` con
+ * l'indirizzo scritto in `fondoModello`. Chi aveva scritto l'indirizzo dentro
+ * `fondo` stesso, com'era prima della tendina, continua a vederlo: un
+ * indirizzo con i segnaposto e' un modello, comunque sia arrivato.
+ */
+export function modelloDelFondo(config = {}) {
+  const fondo = stringa(config?.fondo);
+  const preset = FONDI_MAPPA[fondo];
+  if (preset) return preset.modello;
+  const mio = stringa(config?.fondoModello);
+  if (fondo === "modello") return /\{[zxy]\}/.test(mio) ? mio : "";
+  if (/\{[zxy]\}/.test(fondo)) return fondo;
+  return "";
 }

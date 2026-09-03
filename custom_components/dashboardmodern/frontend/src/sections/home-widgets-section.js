@@ -101,10 +101,29 @@ import {
 } from "./calendario-modifica-section.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { CHIAVE_MEDIA, lettoriConfigurati, lettureDeiLettori } from "../core/media-player.js";
+import {
+  CHIAVE_ALLERTE,
+  allerteAttive,
+  almeno,
+  categorieConfigurate,
+  entitaDelleAllerte,
+  letturaAllerte,
+  livelloMassimo,
+} from "../core/allerte-model.js";
+import { categoriaDelleAllerte, fraseDellAllerta } from "./allerte-section.js";
+import {
+  CHIAVE_RIFIUTI,
+  entitaDeiRifiuti,
+  letturaRifiuti,
+  rifiutiConfigurati,
+} from "../core/rifiuti-model.js";
+import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
 import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
+  CHIAVE_SOGLIA_CHIUSA,
+  coverClosedThreshold,
   coverEntries,
   coverKindLabel,
   coverPositionChoices,
@@ -853,12 +872,19 @@ function coversModel(states) {
       const position = posizioneSecondoVerso(Number(current?.attributes?.current_position), girata);
       /* Il contatto parla la sua lingua — `on` e' aperto — e non ha posizione:
        * chiederla a lui vorrebbe dire inventarla. */
+      /* Dove una posizione c'e', comanda lei — e sotto la soglia di casa
+       * (#298) uno spiraglio e' una tapparella chiusa: «le imposto al 10%
+       * per un minimo passaggio d'aria, ma il sistema le rileva aperte». Lo
+       * stato di Home Assistant resta per chi la posizione non la dichiara. */
       const open = soloSensore
         ? apertaSecondoVerso(
             windowOpenFromState(current?.state),
             insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
           ) === true
-        : raw === "open" || raw === "opening" || (Number.isFinite(position) && position > 0);
+        : raw === "opening" ||
+          (Number.isFinite(position)
+            ? position > coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0))
+            : raw === "open");
       return {
         soloSensore: Boolean(soloSensore),
         entity,
@@ -1237,6 +1263,10 @@ function letturaVettura(states, auto, fuori, indice) {
     carica = misura(riferimento);
     if (carica) break;
   }
+  /* L'auto a benzina (#208): senza una batteria da leggere, il livello che
+   * la tessera mostra e' il carburante — stessa scala, stessa domanda. */
+  const serbatoio = carica ? null : misura("dm.ev_carburante");
+  if (!carica && serbatoio) carica = serbatoio;
   const autonomia = misura("dm.ev_autonomia");
   const stato = misura("dm.ev_stato_ricarica");
   if (!carica && !autonomia) return null;
@@ -1251,6 +1281,7 @@ function letturaVettura(states, auto, fuori, indice) {
   return {
     nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
     percentuale,
+    carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
     kw: sbircia("dm.ev_potenza_ricarica"),
@@ -1372,6 +1403,10 @@ function letturaAttiva(states, fuori) {
     carica = misura(riferimento);
     if (carica) break;
   }
+  /* L'auto a benzina (#208): senza una batteria da leggere, il livello che
+   * la tessera mostra e' il carburante — stessa scala, stessa domanda. */
+  const serbatoio = carica ? null : misura("dm.ev_carburante");
+  if (!carica && serbatoio) carica = serbatoio;
   const autonomia = misura("dm.ev_autonomia");
   const stato = misura("dm.ev_stato_ricarica");
   if (!carica && !autonomia) return null;
@@ -1381,6 +1416,7 @@ function letturaAttiva(states, fuori) {
   return {
     nome: "",
     percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
+    carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
     kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
@@ -1394,8 +1430,8 @@ function righeVettura(lettura, conNome) {
   const prefisso = conNome && lettura.nome ? `${lettura.nome} · ` : "";
   if (lettura.percentuale != null)
     righe.push({
-      glyph: "🔋",
-      name: `${prefisso}${t("Carica", "Charge")}`,
+      glyph: lettura.carburante ? "⛽" : "🔋",
+      name: `${prefisso}${lettura.carburante ? t("Carburante", "Fuel") : t("Carica", "Charge")}`,
       value: `${Math.round(lettura.percentuale)}%`,
     });
   if (lettura.km != null)
@@ -2983,6 +3019,100 @@ function segnalazioniModel() {
   };
 }
 
+/* La tessera delle allerte (#296).
+ *
+ * Il numero grande e' quante fonti hanno qualcosa da dire, e la tessera si
+ * accende con la prima: e' l'unica cosa che una tessera deve sapere. Le righe
+ * dentro portano ogni fonte con la sua frase, e il livello — che la finestra
+ * usa per la sua frase — arriva dal modello, non si rifa' qui. */
+function allerteModel(states) {
+  const config = readJson(CHIAVE_ALLERTE, {});
+  if (!categorieConfigurate(config).length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entitaDelleAllerte(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const letture = letturaAllerte(config, states, root.resolveEntity || ((value) => value));
+  const attive = allerteAttive(letture);
+  const livello = livelloMassimo(letture);
+  const rows = letture.map((lettura) => ({
+    glyph: categoriaDelleAllerte(lettura.chiave).icona,
+    name: clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome,
+    entity: lettura.entity,
+    value: fraseDellAllerta(lettura),
+    livello: lettura.livello,
+  }));
+  return {
+    key: "allerte",
+    accent: "#f59e0b",
+    icon: "⚠️",
+    label: t("Allerte", "Alerts"),
+    value: attive.length ? String(attive.length) : "OK",
+    caption: attive.length
+      ? attive
+          .map((lettura) => clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome)
+          .join(" · ")
+      : t("Tutto tranquillo", "All quiet"),
+    ring: null,
+    /* Accesa alla prima fonte che ha qualcosa da dire; l'alone da attenzione
+     * in su, che e' quando vale la pena alzare la testa. */
+    attiva: attive.length > 0,
+    alert: almeno(livello, "attenzione"),
+    livello,
+    letture,
+    rows,
+  };
+}
+
+/* La tessera della raccolta differenziata (#293).
+ *
+ * Il numero grande e' la parola del quando — «Domani» — e la didascalia dice
+ * cosa: e' la risposta alla domanda della sera. Si accende il giorno prima e
+ * il giorno stesso, che sono i due momenti in cui serve vederla. */
+function rifiutiModel(states) {
+  const config = readJson(CHIAVE_RIFIUTI, {});
+  if (!rifiutiConfigurati(config)) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entitaDeiRifiuti(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const lettura = letturaRifiuti(config, states, root.resolveEntity || ((value) => value));
+  const dalCalendario =
+    lettura.calendario && lettura.calendario.giorni !== null && lettura.calendario.giorni >= 0
+      ? [{ ...lettura.calendario, nome: lettura.calendario.nome }]
+      : [];
+  const prossimi = (lettura.prossimi.length ? lettura.prossimi : dalCalendario).map((riga) => ({
+    name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
+    quando: riga.quando,
+    giorni: riga.giorni,
+  }));
+  const primo = prossimi[0] || null;
+  const rigaDi = (riga, glyph) => ({
+    glyph,
+    name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
+    entity: riga.entity,
+    value: parolaDelQuando(riga),
+    quando: riga.quando,
+    giorni: riga.giorni,
+  });
+  const rows = [
+    ...lettura.righe.map((riga) => rigaDi(riga, riga.icona)),
+    ...(lettura.calendario ? [rigaDi(lettura.calendario, "📅")] : []),
+  ];
+  const primaRiga = lettura.prossimi[0] || dalCalendario[0] || null;
+  return {
+    key: "rifiuti",
+    accent: "#22c55e",
+    icon: "♻️",
+    label: t("Rifiuti", "Waste"),
+    value: primaRiga ? parolaDelQuando(primaRiga) : "—",
+    caption: primo
+      ? prossimi.map((riga) => riga.name).join(" · ")
+      : t("Nessuna data in vista", "No date in sight"),
+    ring: null,
+    attiva: Boolean(primo && (primo.quando === "oggi" || primo.quando === "domani")),
+    alert: false,
+    prossimi,
+    rows,
+  };
+}
+
 function widgetModels(states) {
   if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
@@ -3008,6 +3138,8 @@ function widgetModels(states) {
       poolModel(states),
       preseModel(states),
       mediaModel(states),
+      allerteModel(states),
+      rifiutiModel(states),
       irrigationModel(states),
       batteriesModel(states),
       floodModel(states),
@@ -4074,6 +4206,8 @@ const CHIAVI_A_CARTE = new Set([
   "energia",
   "temperatura",
   "batterie",
+  "allerte",
+  "rifiuti",
   "elettrodomestici",
 ]);
 
@@ -4659,6 +4793,8 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   irrigazione: "irrigazione",
   robot: "robot",
   minipc: "server",
+  allerte: "allerte",
+  rifiuti: "rifiuti",
   media: "media",
 });
 

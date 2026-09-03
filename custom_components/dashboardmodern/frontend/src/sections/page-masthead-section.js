@@ -113,6 +113,20 @@ const PAGES = Object.freeze([
     it: ["Continuità", "Rete · Batteria · Carico"],
     en: ["Backup power", "Mains · Battery · Load"],
   },
+  /* Le allerte, #296, e la raccolta differenziata, #293, nascono con la
+   * loro pagina, e la testata nasce con loro. */
+  {
+    id: "page-allerte",
+    tint: ["245,158,11", "239,68,68"],
+    it: ["Allerte", "Terremoti · Meteo · Fulmini · Pollini · Voli"],
+    en: ["Alerts", "Earthquakes · Weather · Lightning · Pollen · Flights"],
+  },
+  {
+    id: "page-rifiuti",
+    tint: ["34,197,94", "14,165,233"],
+    it: ["Rifiuti", "Raccolta differenziata · Prossimi ritiri"],
+    en: ["Waste", "Recycling · Next collections"],
+  },
   /* Il calendario (#259) nasce con la sua pagina, e l'intestazione nasce con
    * lei: gli impegni di oggi e dei giorni che vengono. */
   {

@@ -269,7 +269,7 @@ test("il disegno della cassa è di casa, e la scheda viaggia con la plancia", as
   assert.match(leggi("sections/navigation-section.js"), /media: "media",/);
   const persistenza = leggi("sections/config-persistence-section.js");
   assert.match(persistenza, /"cd_media_player",/);
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 25/);
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 26/);
   const runtime = leggi("sections/section-runtime.js");
   assert.match(runtime, /installMediaPlayer\(\);/);
   assert.match(runtime, /installMediaEditor\(\);/);

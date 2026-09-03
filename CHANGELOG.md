@@ -5,6 +5,99 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.6-beta.1
+
+Tre sezioni in piu' e sei cose viste sul campo. Le sezioni sono le Allerte
+(#296), i Rifiuti (#293) e l'auto che va a benzina (#208). Le cose viste sul
+campo sono il radar che con «Casa» non mostrava niente, le telecamere Arlo con
+il quadratino azzurro (#294), la tapparella socchiusa che contava come aperta
+(#298), l'inferriata che si perdeva in modifica (#297), e il cruscotto delle
+segnalazioni che non ricaricava e metteva le prese in carico fra quelle da
+lavorare.
+
+### Aggiunto
+
+- **Le allerte hanno una pagina (#296).**
+
+      «Presenza di allerte varie: terremoti INGV, thermal comfort zona,
+       concentrazione pollini, concentrazione fulmini zona, avvisi
+       protezione civile, Flightradar24 di zona.»
+
+  Sei fonti, ognuna dal sensore che la sua integrazione ha gia' portato in
+  Home Assistant, ridotte a un livello solo: quiete, nota, attenzione,
+  allarme. Nessuna casella e' obbligatoria e ognuna basta da sola; la pagina
+  mostra solo le fonti che ci sono, e la tessera in Home conta quelle in
+  corso e si accende dall'«attenzione» in su. Una fonte muta non e' quiete:
+  la pagina lo dice. La plancia non chiama nessun servizio, legge quello che
+  c'e'.
+
+- **La raccolta differenziata ha una pagina (#293).** Un bidone per
+  materiale, e per ognuno il sensore o il calendario che dice quando passa il
+  ritiro. La pagina risponde alla domanda della sera — cosa metto fuori
+  stasera — e la tessera in Home si accende il giorno prima. Chi ha un
+  calendario solo, con un evento per ritiro, lo mette nella casella in fondo
+  e il materiale si indovina dal nome dell'evento.
+
+- **L'auto che va a benzina (#208).**
+
+      «Ho la mia auto che ha i sensori di livello carburante, odometro,
+       autonomia e portiere: e' possibile scegliere a monte se
+       visualizzare un'auto elettrica o classica con i sensori
+       disponibili?»
+
+  Nella scheda dell'auto, sotto il nome, una tendina dice se il motore e'
+  elettrico, termico o ibrido. Vale per quella vettura: in un garage possono
+  starci tutte e due. Con un motore termico la pagina Auto non mostra piu'
+  la ricarica — batteria, wallbox, sessione, target — e al suo posto c'e' il
+  serbatoio, con intorno le portiere, il motore, i finestrini, l'allarme, la
+  batteria di servizio, l'olio, la temperatura esterna, l'ultimo viaggio, il
+  carburante consumato e la pressione dei pneumatici. Le caselle nuove stanno
+  fra le entita' dell'auto, con la stessa lente e lo stesso cestino delle
+  altre. La tessera in Home legge il carburante quando non c'e' una batteria,
+  e lo dice con la pompa al posto della spina.
+
+- **Il radar ha una tendina dei servizi.** Nella scheda Home si sceglie da
+  chi arrivano le tessere della pioggia — RainViewer, con OpenStreetMap o
+  Carto come fondo — oppure «Un indirizzo mio» con {z}/{x}/{y}; «Prova» ne
+  scarica una e dice se arriva. Finche' non se ne sceglie uno la plancia non
+  bussa a nessuno, e la nota accanto lo dice.
+
+- **Le tapparelle hanno una soglia di chiusura (#298).** Nella scheda
+  Finestre un numero: ferma a quella percentuale o sotto, la tapparella
+  conta come chiusa nella pagina, nella scena e nella tessera in Home. Chi
+  lascia un 10% per far passare l'aria non si sente dire che e' aperta. Zero
+  e' il comportamento di sempre.
+
+### Corretto
+
+- **Il radar con «Casa» non mostrava niente.** La plancia sapeva dove sta
+  casa solo se il guscio le passava `hass.config`, e nel riquadro ospitato
+  non arriva: ora lo chiede al socket con `get_config` e se lo tiene. E senza
+  un servizio delle tessere non aveva da chi chiedere la pioggia: da qui la
+  tendina.
+
+- **Le telecamere Arlo non lasciano piu' il quadratino azzurro (#294).** Il
+  flusso di una telecamera che dorme non parte al primo colpo, e l'immagine
+  restava rotta — ritentata ogni quattro secondi. Un flusso caduto ora si
+  mette in pausa per un minuto e la tessera torna alle istantanee; allo
+  scadere si riprova. E un flusso che si ferma in silenzio — gli stessi pixel
+  per trenta secondi — si riconosce e si riapre, invece di restare con la
+  vista congelata. Mentre si aspetta il primo fotogramma, la tessera lo
+  scrive.
+
+- **L'infisso con inferriata si rilegge in modifica (#297).** La seconda
+  entita' si perdeva al salvataggio, perche' la normalizzazione del
+  dispositivo la lasciava cadere; ora resta. E l'inferriata si anima come una
+  grata — le sbarre che si scostano — prima delle ante quando si apre, e
+  dopo quando si chiude.
+
+- **Il cruscotto delle segnalazioni ricarica con «Aggiorna».** Il tasto non
+  faceva niente: bisognava chiudere e riaprire per vedere le nuove.
+
+- **«Da lavorare» non mostra piu' le segnalazioni prese in carico.** Una
+  segnalazione presa in carico sta in lavorazione, e i filtri lo dicono:
+  aperte, in lavorazione, chiuse, tutte.
+
 ## 1.4.5
 
 Tredici passaggi di prova diventati una versione sola. Dentro ci sono cinque

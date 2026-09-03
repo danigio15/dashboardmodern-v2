@@ -72,16 +72,29 @@ test("vivo vuol dire che Home Assistant sta dando un fotogramma", () => {
   assert.equal(radarVivo(null, {}), false);
 });
 
-test("il fotogramma arriva dal proprio Home Assistant, non da un servizio di terzi", () => {
+test("il fotogramma arriva dal proprio Home Assistant, e un servizio solo se scelto", () => {
   /* Il fotogramma passa dal caricatore delle telecamere, che chiede
    * `entity_picture` al proprio Home Assistant col proprio token. */
   assert.match(sorgente, /import \{ loadCameraFrame \} from "\.\/live-ui-section\.js";/);
-  /* E nessun indirizzo di servizio cablato: né la Protezione Civile né altri.
-   * Cablare l'indirizzo di un servizio mai interrogato sarebbe spedire una
-   * promessa; al suo posto c'e' una casella e un tasto che la prova. */
-  assert.doesNotMatch(sorgente, /protezionecivile|radar-api|tilecache|openstreetmap|cartocdn/i);
+  /* Nessun indirizzo di servizio cablato qui dentro: quelli che si conoscono
+   * stanno nel nucleo come DATI di una tendina, e la sola richiesta che esce
+   * di casa parte da `aggiornaFotogramma`, che senza un servizio dichiarato
+   * e scelto non fa niente. Chi sceglie un servizio lo sa, e sa cosa quel
+   * servizio viene a sapere: sta scritto accanto alla tendina. */
+  assert.doesNotMatch(
+    sorgente,
+    /protezionecivile\.it|radar-api\.|tilecache\.|openstreetmap\.org|cartocdn\.com|rainviewer\.com/i,
+  );
+  assert.match(sorgente, /const dichiarato = SERVIZI_RADAR\[servizio\];[\s\S]{0,400}root\.fetch\(dichiarato\.elenco/);
+  assert.equal((sorgente.match(/root\.fetch\(/g) || []).length, 1, "una richiesta sola esce di casa");
+  assert.match(sorgente, /la plancia non bussa a nessuno/);
   assert.match(sorgente, /data-dm-radar-prova/);
   assert.match(sorgente, /export function provaLIndirizzo/);
+  /* Senza scelta non c'e' radar; con un servizio scelto c'e'; e l'entita' di
+   * casa vince comunque sul servizio. */
+  assert.equal(radarScelto({}), null);
+  assert.equal(radarScelto({ servizio: "rainviewer" }).modo, "mappa");
+  assert.equal(radarScelto({ servizio: "rainviewer", entity: "camera.radar" }).modo, "entita");
 });
 
 test("il radar si aggiorna solo mentre la finestra è aperta", () => {

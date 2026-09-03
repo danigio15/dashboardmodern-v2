@@ -104,7 +104,8 @@ test("il muro chiede il flusso a chi è dal vivo, e fotogrammi a tutti gli altri
   );
   /* Il ramo sta davanti al caricatore dei fotogrammi: chi è dal vivo non passa
    * di lì, e chi non lo è non cambia niente. */
-  assert.match(sorgente, /if \(vuoleIlVivo\(camera\) && \(await avviaIlFlusso\(/);
+  assert.match(sorgente, /if \(vuoleIlVivo\(camera\) && !flussoInPausa\(image\)\) \{/);
+  assert.match(sorgente, /if \(await avviaIlFlusso\(camera, image, picture, registry\)\) return true;/);
   /* E il flusso non si riattacca a ogni giro del cronometro. */
   assert.match(sorgente, /if \(stessoFlusso\(image, indirizzo\)\) return true;/);
   /* Se il flusso non parte, l'istantanea resta la rete sotto: il segno se ne
