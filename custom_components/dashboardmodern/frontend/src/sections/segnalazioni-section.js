@@ -678,29 +678,21 @@ function tesseraMarkup() {
     <div class="cfg-card-arrow">›</div>`;
 }
 
-/* L'interruttore della voce «Cruscotto» nella barra.
+/* Il Cruscotto non ha l'interruttore, e non e' una dimenticanza.
  *
- * **Non dentro la scheda.** Quel markup e' un `<button style="width:100%">`,
- * fatto per stare in cima a un pannello dell'editor — e' cosi' che lo usano
- * prese, robot, UPS e agenda. Dentro la scheda della configurazione, che e' una
- * riga in orizzontale, quel «100%» diventava una pretesa di tutta la larghezza:
- * il testo accanto si stringeva a una parola per riga, e la scheda diventava
- * illeggibile. Si vedeva solo sul telefono di chi la console ce l'ha davvero,
- * cioe' su un dispositivo solo al mondo.
+ * Ce l'aveva, in cima alla finestra delle segnalazioni: la stessa fascia verde
+ * di tutte le altre sezioni. Ma quella fascia serve a scegliere fra vedere una
+ * voce e non vederla, e qui la scelta non c'e': «solo a me esce il cruscotto
+ * nella navbar, ad utenti normali non esce e quindi quel pulsante non ha
+ * senso». La voce compare a chi tiene la repository e a nessun altro — e chi
+ * la tiene la vuole. Un interruttore che una persona sola al mondo puo'
+ * toccare, per spegnere la pagina che quella stessa persona ha chiesto, e' una
+ * riga di interfaccia che non decide niente.
  *
- * Sta nella finestra delle segnalazioni, che e' larga e si apre dalla scheda:
- * e' l'unico posto sempre raggiungibile anche quando la voce e' nascosta.
- * Metterlo dentro il cruscotto sarebbe stato un interruttore che, spegnendosi,
- * si porta via la strada per riaccenderlo.
- *
- * La chiave scritta per esteso e non `CRUSCOTTO_TAB`: la prova che pretende un
- * interruttore per ogni voce della barra legge i sorgenti, e una costante non
- * la sa risolvere qui.
+ * `insegnaLaVisibilitaDelCruscotto` resta: insegna la chiave al guscio, cosi'
+ * una preferenza gia' scritta da chi la fascia l'aveva toccata continua a
+ * valere e nessuno si ritrova la voce riaccesa dall'aggiornamento.
  */
-function interruttoreDelCruscotto() {
-  if (!state.console) return "";
-  return root.cdSecToggleHtml?.("cruscotto") || "";
-}
 
 function installaTessera() {
   const griglia = doc?.querySelector?.("#page-config .cfg-grid");
@@ -1870,8 +1862,7 @@ function disegna() {
   modale.querySelector('[data-dm-tkt="chiudi"]').textContent = t("Chiudi", "Close");
   const corpo = modale.querySelector('[data-dm-tkt="corpo"]');
   const pannello = state.tab === "mie" ? elencoMarkup() : moduloMarkup();
-  corpo.innerHTML =
-    schede() + interruttoreDelCruscotto() + avvisoMarkup() + codiceMarkup() + pannello;
+  corpo.innerHTML = schede() + avvisoMarkup() + codiceMarkup() + pannello;
   agganciaEventi(corpo);
   if (state.tab === "nuova") mostraDiagnostica(corpo);
   /* La pagina del cruscotto vive fuori da questa finestra, ma legge lo stesso

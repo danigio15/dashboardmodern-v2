@@ -82,6 +82,24 @@ function vociDeiModuli() {
   return voci;
 }
 
+/* L'unica voce senza interruttore, e il perché scritto qui perché non si
+ * possa aggiungerne una seconda per distrazione.
+ *
+ * Il Cruscotto non compare a chi usa la plancia: la sua voce nasce solo per
+ * chi tiene la repository — «solo a me esce il cruscotto nella navbar, ad
+ * utenti normali non esce e quindi quel pulsante non ha senso». Una fascia
+ * verde offre una scelta fra vedere e non vedere; qui la scelta non c'è,
+ * perché la voce c'è per una persona sola e quella persona la vuole. Il
+ * Cruscotto si governa da sé: appare col permesso di scrittura sulla
+ * repository e sparisce quando quel permesso non c'è.
+ *
+ * Chi domani volesse aggiungere una riga a questa lista deve poter scrivere
+ * la stessa frase per la sua voce: non «l'interruttore non ci sta», ma «per
+ * questa voce l'interruttore non decide niente». */
+const SENZA_INTERRUTTORE = new Map([
+  ["cruscotto", "compare solo a chi tiene la repository, e si governa da sé"],
+]);
+
 /* Dove si può spegnere una sezione: la tabella che mette la fascia del guscio
  * sulle schede che da sole non ce l'hanno, e le fasce che una scheda si stampa
  * da sé chiamando il guscio con la sua chiave. */
@@ -106,11 +124,26 @@ test("ogni voce nata a runtime ha la sua scheda con l'interruttore", () => {
   const interruttori = chiaviConInterruttore();
   const voci = vociDeiModuli();
   assert.ok(voci.length >= 6, "le voci create a runtime non si trovano più");
-  for (const { nome, chiave } of voci)
+  for (const { nome, chiave } of voci) {
+    if (SENZA_INTERRUTTORE.has(chiave)) continue;
     assert.ok(
       interruttori.has(chiave),
       `${nome} mette "${chiave}" nella barra, ma nessuna scheda la può nascondere`,
     );
+  }
+});
+
+test("le voci senza interruttore sono quelle dichiarate, e non una di più", () => {
+  /* La lista è un permesso, non una scusa: vale solo per le voci che sono
+   * ancora nella barra, e ognuna deve avere il suo perché scritto. */
+  const nellaBarra = new Set(vociDeiModuli().map(({ chiave }) => chiave));
+  for (const [chiave, perche] of SENZA_INTERRUTTORE) {
+    assert.ok(
+      nellaBarra.has(chiave),
+      `"${chiave}" non è più una voce della barra: la riga qui sopra non serve più`,
+    );
+    assert.ok(perche.length > 20, `"${chiave}" è dichiarata senza dire perché`);
+  }
 });
 
 test("l'Agenda e la Continuità sono fra quelle che si possono nascondere", () => {
