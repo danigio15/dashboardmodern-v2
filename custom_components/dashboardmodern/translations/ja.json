@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Home Assistant のダッシュボードとしても登録する",
           "admin_only": "管理者にだけ表示する",
           "check_updates": "新しいバージョンを確認する",
-          "tickets_enabled": "ダッシュボードからの報告"
+          "tickets_enabled": "ダッシュボードからの報告",
+          "chat_enabled": "サポートチャット",
+          "chat_console_key": "サポートコンソールのキー"
         },
         "data_description": {
           "allowed_users": "画面上の表示フィルターだけです。データとサービスへのアクセスは引き続き Home Assistant の権限に従います。",
           "register_lovelace_dashboard": "ダッシュボードは、管理者が DashboardModern を初めて開いたときに作成されます。",
           "admin_only": "Home Assistant 本来のフィルターです。管理者以外のアカウントではこちらが優先されます。",
           "check_updates": "30分ごとに GitHub へ新しいリリースの有無を尋ね、「設定 → アップデート」に表示します。パネルを一切インターネットに出さないようにするにはオフにしてください。ダッシュボード自体には不要です。",
-          "tickets_enabled": "ダッシュボードを使う人が、そこから離れずに不具合の報告・要望・サポートの依頼をできるようにします。報告は GitHub の公開 issue になり、本人の名前で開かれます——HACS がすでに求めたのと同じアカウントです。オフにすると、家から何も出ていきません。"
+          "tickets_enabled": "ダッシュボードを使う人が、そこから離れずに不具合の報告・要望・サポートの依頼をできるようにします。報告は GitHub の公開 issue になり、本人の名前で開かれます——HACS がすでに求めたのと同じアカウントです。オフにすると、家から何も出ていきません。",
+          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
+          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
         }
       }
     }

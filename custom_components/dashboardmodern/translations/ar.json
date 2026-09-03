@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "سجّلها أيضًا كلوحة في Home Assistant",
           "admin_only": "تظهر للمديرين فقط",
           "check_updates": "التحقق من الإصدارات الجديدة",
-          "tickets_enabled": "البلاغات من لوحة التحكم"
+          "tickets_enabled": "البلاغات من لوحة التحكم",
+          "chat_enabled": "دردشة المساعدة",
+          "chat_console_key": "مفتاح وحدة تحكم المساعدة"
         },
         "data_description": {
           "allowed_users": "مرشِّح ظهور في الواجهة فقط. أما البيانات والخدمات فتبقى خاضعة لصلاحيات Home Assistant.",
           "register_lovelace_dashboard": "تُنشأ اللوحة عند أول فتح لـ DashboardModern من قِبل مدير.",
           "admin_only": "مرشِّح Home Assistant الأصلي؛ وهو المقدَّم على الحسابات غير الإدارية.",
           "check_updates": "يسأل GitHub كل نصف ساعة عمّا إذا صدر إصدار أحدث، ويعرضه في الإعدادات ← التحديثات. أوقفه كي لا تتصل اللوحة بالإنترنت إطلاقًا؛ فاللوحة نفسها لا تحتاج إليه.",
-          "tickets_enabled": "يتيح لمن يستخدم لوحة التحكم الإبلاغ عن خلل أو اقتراح فكرة أو طلب المساعدة دون مغادرتها. يتحول البلاغ إلى issue عامة على GitHub تُفتح باسمه، بالحساب نفسه الذي طلبه HACS من قبل. وعند الإيقاف لا يخرج شيء من المنزل."
+          "tickets_enabled": "يتيح لمن يستخدم لوحة التحكم الإبلاغ عن خلل أو اقتراح فكرة أو طلب المساعدة دون مغادرتها. يتحول البلاغ إلى issue عامة على GitHub تُفتح باسمه، بالحساب نفسه الذي طلبه HACS من قبل. وعند الإيقاف لا يخرج شيء من المنزل.",
+          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
+          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
         }
       }
     }

@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Registra anche come plancia Home Assistant",
           "admin_only": "Visibile solo agli amministratori",
           "check_updates": "Controlla le nuove versioni",
-          "tickets_enabled": "Segnalazioni dalla plancia"
+          "tickets_enabled": "Segnalazioni dalla plancia",
+          "chat_enabled": "Chat di assistenza",
+          "chat_console_key": "Chiave della console assistenza"
         },
         "data_description": {
           "allowed_users": "Solo filtro di visibilità UI. Dati e servizi restano soggetti ai permessi Home Assistant dell'utente autenticato.",
           "register_lovelace_dashboard": "La plancia viene creata alla prima apertura effettuata da un amministratore.",
           "admin_only": "Filtro nativo Home Assistant; prevale sulla selezione utenti per gli account non amministratori.",
           "check_updates": "Chiede a GitHub ogni mezz'ora se è uscita una versione più recente, e la mostra in Impostazioni → Aggiornamenti. Spegnilo per non far parlare la plancia con l'esterno: per funzionare non le serve.",
-          "tickets_enabled": "Permette a chi usa la plancia di segnalare un difetto, proporre un'idea o chiedere aiuto senza uscirne. La segnalazione diventa una issue pubblica su GitHub, aperta a nome suo — lo stesso account che HACS gli ha già chiesto. Spento, non esce niente di casa."
+          "tickets_enabled": "Permette a chi usa la plancia di segnalare un difetto, proporre un'idea o chiedere aiuto senza uscirne. La segnalazione diventa una issue pubblica su GitHub, aperta a nome suo — lo stesso account che HACS gli ha già chiesto. Spento, non esce niente di casa.",
+          "chat_enabled": "Una conversazione privata con chi mantiene la plancia, per chiedere aiuto senza aprire una issue pubblica e senza nessun account. Passa da un servizio suo, non da GitHub. Spenta, non esce niente di casa.",
+          "chat_console_key": "Lasciala vuota. Serve a UNA installazione al mondo — quella di chi la plancia la mantiene — per leggere le chat di tutti e rispondere. È la stessa chiave messa fra i segreti del centralino."
         }
       }
     }

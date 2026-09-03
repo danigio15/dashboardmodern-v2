@@ -15,7 +15,14 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN, NAME, OPTION_CHECK_UPDATES, OPTION_TICKETS_ENABLED
+from .const import (
+    DOMAIN,
+    NAME,
+    OPTION_CHAT_CONSOLE_KEY,
+    OPTION_CHAT_ENABLED,
+    OPTION_CHECK_UPDATES,
+    OPTION_TICKETS_ENABLED,
+)
 
 OPTION_ADMIN_ONLY = "admin_only"
 OPTION_ALLOWED_USERS = "allowed_users"
@@ -132,6 +139,31 @@ class DashboardModernOptionsFlow(config_entries.OptionsFlow):
                             OPTION_TICKETS_ENABLED, True
                         ),
                     ): bool,
+                    # La chat di assistenza: la terza cosa che parla fuori di
+                    # casa, e quindi la terza che si spegne qui.
+                    vol.Optional(
+                        OPTION_CHAT_ENABLED,
+                        default=self.config_entry.options.get(
+                            OPTION_CHAT_ENABLED, True
+                        ),
+                    ): bool,
+                    # La chiave con cui si RISPONDE alle chat di tutti. Questa
+                    # casella la riempie un Home Assistant solo al mondo, quello
+                    # di chi la plancia la mantiene; per tutti gli altri resta
+                    # vuota, e vuota vuol dire «io le chat le mando, non le
+                    # ricevo».
+                    #
+                    # Non e' un ruolo che si possa dedurre. La console delle
+                    # segnalazioni si accende da sola perche' e' GitHub a dire
+                    # chi tiene la repository; il centralino non conosce
+                    # nessuno, e sa distinguere solo chi ha la chiave da chi
+                    # non ce l'ha.
+                    vol.Optional(
+                        OPTION_CHAT_CONSOLE_KEY,
+                        default=self.config_entry.options.get(
+                            OPTION_CHAT_CONSOLE_KEY, ""
+                        ),
+                    ): str,
                 }
             )
         return self.async_show_form(step_id="init", data_schema=schema)

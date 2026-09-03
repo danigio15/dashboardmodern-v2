@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Enregistrer aussi comme tableau de bord Home Assistant",
           "admin_only": "Visible uniquement par les administrateurs",
           "check_updates": "Rechercher les nouvelles versions",
-          "tickets_enabled": "Signalements depuis le tableau de bord"
+          "tickets_enabled": "Signalements depuis le tableau de bord",
+          "chat_enabled": "Chat d'assistance",
+          "chat_console_key": "Clé de la console d'assistance"
         },
         "data_description": {
           "allowed_users": "Filtre d'affichage uniquement. Les données et les services restent soumis aux permissions Home Assistant.",
           "register_lovelace_dashboard": "Le tableau de bord est créé à la première ouverture par un administrateur.",
           "admin_only": "Filtre natif Home Assistant ; il l'emporte pour les comptes non administrateurs.",
           "check_updates": "Demande à GitHub toutes les demi-heures si une version plus récente est parue, et l'affiche dans Paramètres → Mises à jour. Désactivez-le pour que le panneau ne sorte pas sur internet ; le tableau de bord n'en a jamais besoin.",
-          "tickets_enabled": "Permet à qui utilise le tableau de bord de signaler un bogue, proposer une idée ou demander de l'aide sans en sortir. Le signalement devient un ticket public sur GitHub, ouvert en son nom — le même compte que HACS lui a déjà demandé. Désactivé, rien ne sort de la maison."
+          "tickets_enabled": "Permet à qui utilise le tableau de bord de signaler un bogue, proposer une idée ou demander de l'aide sans en sortir. Le signalement devient un ticket public sur GitHub, ouvert en son nom — le même compte que HACS lui a déjà demandé. Désactivé, rien ne sort de la maison.",
+          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
+          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
         }
       }
     }

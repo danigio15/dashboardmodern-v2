@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Home Assistant panosu olarak da kaydet",
           "admin_only": "Yalnızca yöneticilere görünür",
           "check_updates": "Yeni sürümleri denetle",
-          "tickets_enabled": "Panodan bildirimler"
+          "tickets_enabled": "Panodan bildirimler",
+          "chat_enabled": "Destek sohbeti",
+          "chat_console_key": "Destek konsolu anahtarı"
         },
         "data_description": {
           "allowed_users": "Yalnızca arayüz görünürlüğü süzgeci. Veriler ve servisler Home Assistant izinlerine bağlı kalır.",
           "register_lovelace_dashboard": "Pano, bir yönetici DashboardModern'i ilk kez açtığında oluşturulur.",
           "admin_only": "Home Assistant'ın kendi süzgeci; yönetici olmayan hesaplarda o üstün gelir.",
           "check_updates": "Her yarım saatte bir GitHub'a daha yeni bir sürüm çıkıp çıkmadığını sorar ve Ayarlar → Güncellemeler altında gösterir. Panelin internete hiç çıkmaması için kapatın; panonun buna ihtiyacı yoktur.",
-          "tickets_enabled": "Panoyu kullanan herkesin panodan çıkmadan hata bildirmesini, fikir önermesini ya da yardım istemesini sağlar. Bildirim GitHub'da herkese açık bir issue olur, kendi adına açılır — HACS'ın zaten istediği hesapla. Kapalıyken evden hiçbir şey çıkmaz."
+          "tickets_enabled": "Panoyu kullanan herkesin panodan çıkmadan hata bildirmesini, fikir önermesini ya da yardım istemesini sağlar. Bildirim GitHub'da herkese açık bir issue olur, kendi adına açılır — HACS'ın zaten istediği hesapla. Kapalıyken evden hiçbir şey çıkmaz.",
+          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
+          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
         }
       }
     }

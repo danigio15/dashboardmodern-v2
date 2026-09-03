@@ -88,6 +88,16 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "dashboardmodern/tickets/auth/start",
   "dashboardmodern/tickets/auth/poll",
   "dashboardmodern/tickets/auth/forget",
+  // La chat di assistenza. Stessa forma delle segnalazioni e stessa ragione:
+  // il segreto della casa e la chiave della console stanno nel backend, e di
+  // qui passano solo parole scritte da una persona.
+  "dashboardmodern/chat/state",
+  "dashboardmodern/chat/thread",
+  "dashboardmodern/chat/send",
+  "dashboardmodern/chat/forget",
+  "dashboardmodern/chat/queue",
+  "dashboardmodern/chat/open",
+  "dashboardmodern/chat/answer",
   "auth/sign_path",
 ]);
 
