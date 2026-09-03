@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "açılış",
+  Openers: "Açıcılar",
+  "Alarm · Cameras": "Alarm · Kameralar",
+  "1 opening": "1 açılış",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "İlk dokunuşta açmak için kapat: kendi kapısını günde on kez açan onayı ezbere bilir. PIN bir onay değildir ve kalır: korumalı bir kapı onu istemeye devam eder.",
   "Open — asks for the PIN": "Aç — PIN ister",
@@ -124,8 +128,6 @@ export default Object.freeze({
   "New messages": "Yeni mesajlar",
   reply: "yanıt",
   "Doors/Windows": "Kapılar/Pencereler",
-  "Door and gate openers": "Kapı ve bahçe kapısı kumandaları",
-  "Alarm · Cameras · Doors and gates": "Alarm · Kameralar · Kapılar ve bahçe kapıları",
   "with credentials": "kimlik bilgileriyle",
   stream: "akış",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":

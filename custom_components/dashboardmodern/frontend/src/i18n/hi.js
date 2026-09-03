@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "खोलने",
+  Openers: "खोलने वाले",
+  "Alarm · Cameras": "अलार्म · कैमरे",
+  "1 opening": "1 खोलना",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "पहले ही स्पर्श पर खोलने के लिए इसे बंद कर दें: जो अपना फाटक दिन में दस बार खोलता है उसे पुष्टि याद हो जाती है। PIN पुष्टि नहीं है और बना रहता है: सुरक्षित दरवाज़ा उसे माँगता रहेगा।",
   "Open — asks for the PIN": "खोलें — PIN माँगता है",
@@ -122,8 +126,6 @@ export default Object.freeze({
   "New messages": "नए संदेश",
   reply: "जवाब",
   "Doors/Windows": "दरवाज़े/खिड़कियाँ",
-  "Door and gate openers": "दरवाज़ा और गेट खोलने के बटन",
-  "Alarm · Cameras · Doors and gates": "अलार्म · कैमरे · दरवाज़े और गेट",
   "with credentials": "क्रेडेंशियल के साथ",
   stream: "स्ट्रीम",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":

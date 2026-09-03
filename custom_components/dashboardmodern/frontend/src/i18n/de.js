@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "Öffnungen",
+  Openers: "Öffner",
+  "Alarm · Cameras": "Alarmanlage · Kameras",
+  "1 opening": "1 Öffnung",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "Schalte es aus, um beim ersten Tippen zu öffnen: wer seine eigene Haustür zehnmal am Tag öffnet, kennt die Rückfrage auswendig. Eine PIN ist keine Rückfrage und bleibt: eine geschützte Tür fragt weiter danach.",
   "Open — asks for the PIN": "Öffnen — fragt nach der PIN",
@@ -124,8 +128,6 @@ export default Object.freeze({
   "New messages": "Neue Nachrichten",
   reply: "Antwort",
   "Doors/Windows": "Türen/Fenster",
-  "Door and gate openers": "Tür- und Toröffner",
-  "Alarm · Cameras · Doors and gates": "Alarm · Kameras · Türen und Tore",
   "with credentials": "mit Zugangsdaten",
   stream: "Stream",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":

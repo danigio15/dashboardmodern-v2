@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "处",
+  Openers: "开门",
+  "Alarm · Cameras": "报警 · 摄像头",
+  "1 opening": "1 处",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "想一触即开就把它关掉：每天开自家大门十次的人，早把确认背下来了。PIN 不是确认，会保留：受保护的门仍然会问。",
   "Open — asks for the PIN": "打开 — 会先问 PIN",
@@ -122,8 +126,6 @@ export default Object.freeze({
   "New messages": "新消息",
   reply: "回复",
   "Doors/Windows": "门/窗",
-  "Door and gate openers": "开门与开闸按钮",
-  "Alarm · Cameras · Doors and gates": "安防 · 摄像头 · 门与大门",
   "with credentials": "带凭据",
   stream: "视频流",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":

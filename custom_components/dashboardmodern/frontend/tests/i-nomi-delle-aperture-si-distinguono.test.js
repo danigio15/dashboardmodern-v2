@@ -26,10 +26,12 @@ test("i sensori di porte e finestre si chiamano Porte/Finestre, ovunque si scelg
   assert.match(leggi("sections/alerts-section.js"), /\["win", "🚪", "Porte\/Finestre", "Doors\/Windows"/);
 });
 
-test("i comandi della Sicurezza dicono cosa aprono", () => {
+test("i comandi delle aperture dicono cosa aprono", () => {
+  /* Adesso sono una pagina loro (#275): il nome per esteso sta nella sua
+   * intestazione, che e' dove lo si legge arrivandoci. */
   assert.match(
     leggi("sections/security-doors-section.js"),
-    /t\("Comandi apri porte\/cancelli", "Door and gate openers"\)/,
+    /it: \["Apri porte\/cancelli", sottotitolo\(doors0\)\]/,
   );
   /* Nel menu stretto della configurazione la stessa cosa si dice corta, o si
    * tronca a meta' parola. */
@@ -37,11 +39,10 @@ test("i comandi della Sicurezza dicono cosa aprono", () => {
     leggi("sections/security-doors-editor-section.js"),
     /t\("Apri porte\/cancelli", "Door & gate openers"\)/,
   );
-  /* E la briciola della pagina non dice piu' «Aperture». */
-  assert.match(
-    leggi("sections/page-masthead-section.js"),
-    /"Antifurto · Telecamere · Porte e cancelli"/,
-  );
+  /* E la Sicurezza non le promette piu': se ne sono andate, e il sottotitolo
+   * lo dice — prometterle dove non ci sono e' peggio del nome vecchio. */
+  assert.match(leggi("sections/page-masthead-section.js"), /"Antifurto · Telecamere"\]/);
+  assert.doesNotMatch(leggi("sections/page-masthead-section.js"), /Porte e cancelli/);
 });
 
 test("il nome vecchio resta come alias: le righe gia' salvate non perdono il gruppo", async () => {

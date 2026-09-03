@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "か所",
+  Openers: "開閉",
+  "Alarm · Cameras": "防犯 · カメラ",
+  "1 opening": "1 か所",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "最初のタップで開けたいときは切ってください: 自分の門を日に十回開ける人は確認を覚えています。PIN は確認ではないので残ります: 守られた扉はこれからも聞いてきます。",
   "Open — asks for the PIN": "開ける — PIN を聞きます",
@@ -124,8 +128,6 @@ export default Object.freeze({
   "New messages": "新しいメッセージ",
   reply: "返事",
   "Doors/Windows": "ドア／窓",
-  "Door and gate openers": "ドア・ゲートの開錠操作",
-  "Alarm · Cameras · Doors and gates": "防犯 · カメラ · ドアとゲート",
   "with credentials": "認証情報あり",
   stream: "ストリーム",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":

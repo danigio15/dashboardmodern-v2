@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "개",
+  Openers: "열기",
+  "Alarm · Cameras": "경보 · 카메라",
+  "1 opening": "1개",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "첫 터치로 열려면 끄세요: 자기 대문을 하루에 열 번 여는 사람은 확인을 외우고 있습니다. PIN은 확인이 아니라서 그대로 남습니다: 보호된 문은 계속 물어봅니다.",
   "Open — asks for the PIN": "열기 — PIN을 물어봅니다",
@@ -124,8 +128,6 @@ export default Object.freeze({
   "New messages": "새 메시지",
   reply: "답변",
   "Doors/Windows": "문/창문",
-  "Door and gate openers": "문·대문 열기 버튼",
-  "Alarm · Cameras · Doors and gates": "경보 · 카메라 · 문과 대문",
   "with credentials": "인증 정보 포함",
   stream: "스트림",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":

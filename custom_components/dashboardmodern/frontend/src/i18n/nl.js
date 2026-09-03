@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "openingen",
+  Openers: "Deuropeners",
+  "Alarm · Cameras": "Alarm · Camera's",
+  "1 opening": "1 deuropener",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "Zet het uit om bij de eerste tik te openen: wie zijn eigen voordeur tien keer per dag opent, kent de bevestiging uit het hoofd. Een pincode is geen bevestiging en blijft: een beveiligde deur vraagt er nog steeds om.",
   "Open — asks for the PIN": "Openen — vraagt de pincode",
@@ -124,8 +128,6 @@ export default Object.freeze({
   "New messages": "Nieuwe berichten",
   reply: "antwoord",
   "Doors/Windows": "Deuren/Ramen",
-  "Door and gate openers": "Deur- en poortopeners",
-  "Alarm · Cameras · Doors and gates": "Alarm · Camera's · Deuren en poorten",
   "with credentials": "met inloggegevens",
   stream: "videostream",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":

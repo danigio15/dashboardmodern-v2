@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  openings: "فتحات",
+  Openers: "الفتّاحات",
+  "Alarm · Cameras": "الإنذار · الكاميرات",
+  "1 opening": "فتحة واحدة",
   "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
     "أطفئه لتفتح من أول لمسة: من يفتح بابه عشر مرات في اليوم يحفظ التأكيد عن ظهر قلب. رمز PIN ليس تأكيدًا ويبقى: الباب المحمي يظل يطلبه.",
   "Open — asks for the PIN": "فتح — يطلب رمز PIN",
@@ -121,8 +125,6 @@ export default Object.freeze({
   "New messages": "رسائل جديدة",
   reply: "رد",
   "Doors/Windows": "أبواب/نوافذ",
-  "Door and gate openers": "أوامر فتح الأبواب والبوّابات",
-  "Alarm · Cameras · Doors and gates": "إنذار · كاميرات · أبواب وبوّابات",
   "with credentials": "مع بيانات اعتماد",
   stream: "بثّ",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
