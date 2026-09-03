@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "내 경보 구역",
+  "Save area": "구역 저장",
+  "Night zone": "밤 구역",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "패널이 집을 구역으로 나눈다면 — 낮 구역과 밤 구역, 집과 작업장 — 두 번째를 여기에 추가하세요: 지금 있는 것은 그대로 목록으로 옮겨가고, 페이지에는 각자의 상태와 함께 오갈 수 있는 줄이 생깁니다.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "구역마다 자기 경계 모드를 가진 별도의 Home Assistant 패널입니다. “지금 페이지에”라고 표시된 것을 다이얼과 키패드가 조작합니다: 다른 구역 옆의 눈을 누르면 그것이 대신 화면에 올라옵니다.",
+  "Armed · ${modo}": "경계 중 · ${modo}",
+  Area: "구역",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "alarm_control_panel.* 엔티티: 페이지는 거기에서 받아들이는 경계 모드를 읽고, 거기로 명령을 보냅니다.",
+  "Alarm panel": "경보 패널",
+  "Add area": "구역 추가",
+  "Add a second alarm area": "두 번째 경보 구역 추가",
+  "A valid alarm_control_panel.* entity is required.":
+    "올바른 alarm_control_panel.* 엔티티가 필요합니다.",
   "on the page now": "지금 페이지에",
+  "💾 Area saved": "💾 구역을 저장했습니다",
+  "🛡️ Area on the page": "🛡️ 구역을 페이지에",
   fields: "칸",
   field: "칸",
   "Your solar plants": "내 태양열 설비",

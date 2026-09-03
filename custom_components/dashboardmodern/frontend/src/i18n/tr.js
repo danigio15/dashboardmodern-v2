@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "Alarm bölgelerin",
+  "Save area": "Bölgeyi kaydet",
+  "Night zone": "Gece bölgesi",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "Panel evi bölgelere ayırıyorsa — gündüz ve gece bölgesi, ev ve atölye — ikincisini buraya ekle: şu an sahip olduğun olduğu gibi listeye geçer ve sayfada, her biri kendi durumuyla, aralarında geçiş için bir sıra belirir.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "Her bölge kendi kurulum modlarına sahip ayrı bir Home Assistant panelidir. «şu an sayfada» yazan, kadranın ve tuş takımının komut verdiğidir: bir başkasının yanındaki göz onu onun yerine ekrana getirir.",
+  "Armed · ${modo}": "Kurulu · ${modo}",
+  Area: "Bölge",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "Bir alarm_control_panel.* varlığı: sayfa kabul ettiği kurulum modlarını ondan okur ve komutları ona gönderir.",
+  "Alarm panel": "Alarm paneli",
+  "Add area": "Bölge ekle",
+  "Add a second alarm area": "İkinci bir alarm bölgesi ekle",
+  "A valid alarm_control_panel.* entity is required.":
+    "Geçerli bir alarm_control_panel.* varlığı gerekiyor.",
   "on the page now": "şu an sayfada",
+  "💾 Area saved": "💾 Bölge kaydedildi",
+  "🛡️ Area on the page": "🛡️ Bölge sayfada",
   fields: "alan",
   field: "alan",
   "Your solar plants": "Güneş tesislerin",

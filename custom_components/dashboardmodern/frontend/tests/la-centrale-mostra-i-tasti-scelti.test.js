@@ -93,8 +93,9 @@ test("la scelta viaggia con la configurazione, come tutte le altre", () => {
    * elettrico, #253; la 16 la scelta degli impianti termici e la caldaia,
    * sempre #253; la 17 il gruppo di continuita', #256; la 18 i calendari,
    * #259; la 19 le sezioni che si fa l'utente, #262; la 20 gli impianti
-   * solari, che adesso possono essere piu' d'uno.) */
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 20/);
+   * solari, che adesso possono essere piu' d'uno; la 21 le aree d'allarme,
+   * #285, che sono la stessa cosa per la centrale.) */
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 21/);
 });
 
 test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () => {

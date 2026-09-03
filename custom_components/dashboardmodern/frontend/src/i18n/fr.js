@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "Tes zones d'alarme",
+  "Save area": "Enregistrer la zone",
+  "Night zone": "Zone nuit",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "Si la centrale découpe la maison en zones — zone jour et zone nuit, maison et atelier — ajoute la seconde ici : celle que tu as passe dans la liste telle quelle, et la page affiche une rangée pour passer de l'une à l'autre, chacune avec son état.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "Chaque zone est une centrale Home Assistant à part, avec ses propres armements. Celle marquée « à l'écran maintenant » est celle que le cadran et le clavier commandent : l'œil à côté d'une autre l'amène à l'écran à sa place.",
+  "Armed · ${modo}": "Armée · ${modo}",
+  Area: "Zone",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "Une entité alarm_control_panel.* : la page y lit les armements qu'elle accepte et lui envoie les commandes.",
+  "Alarm panel": "Centrale d'alarme",
+  "Add area": "Ajouter une zone",
+  "Add a second alarm area": "Ajouter une deuxième zone d'alarme",
+  "A valid alarm_control_panel.* entity is required.":
+    "Il faut une entité alarm_control_panel.* valide.",
   "on the page now": "à l'écran maintenant",
+  "💾 Area saved": "💾 Zone enregistrée",
+  "🛡️ Area on the page": "🛡️ Zone à l'écran",
   fields: "champs",
   field: "champ",
   "Your solar plants": "Tes installations solaires",

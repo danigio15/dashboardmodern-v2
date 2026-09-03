@@ -21,6 +21,16 @@
  * stessa domanda sono tre occasioni di rispondere diverso.
  */
 
+import {
+  caselleDi,
+  corrente,
+  elencoConCorrente,
+  entitaDiTutte,
+  nomeProgressivo,
+  normalizzaVoce,
+  overridesPerScelto,
+} from "./piu-di-uno.js";
+
 /** La chiave in cui vive la scelta. */
 export const CHIAVE_IMPIANTI = "cd_impianti_termici";
 
@@ -363,15 +373,12 @@ export const CASELLE_SOLARE = Object.freeze([
   },
 ]);
 
+/* I riferimenti delle tredici caselle, per la regola comune. */
+const REFS_SOLARE = Object.freeze(CASELLE_SOLARE.map((riga) => riga.ref));
+
 /** Le mappature `dm.boiler_*` di un elenco di override, ripulite. */
 export function caselleSolariDa(overrides) {
-  const dato = overrides && typeof overrides === "object" ? overrides : {};
-  const fuori = {};
-  for (const { ref } of CASELLE_SOLARE) {
-    const entita = clean(dato[ref]);
-    if (entita) fuori[ref] = entita;
-  }
-  return fuori;
+  return caselleDi(overrides, REFS_SOLARE);
 }
 
 /* L'id del primo impianto non si sceglie: è quello, sempre. È la stessa
@@ -381,12 +388,7 @@ export const PRIMO_SOLARE = "solare";
 
 /** Un impianto solare, ripulito. */
 export function normalizzaSolare(stored, indice = 0) {
-  const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-  return {
-    id: clean(dato.id) || (indice === 0 ? PRIMO_SOLARE : `${PRIMO_SOLARE}-${indice + 1}`),
-    nome: clean(dato.nome || dato.name),
-    caselle: caselleSolariDa(dato.caselle),
-  };
+  return normalizzaVoce(stored, indice, REFS_SOLARE, PRIMO_SOLARE);
 }
 
 /**
@@ -399,41 +401,22 @@ export function normalizzaSolare(stored, indice = 0) {
  * fratelli fermi in attesa del proprio turno.
  */
 export function impiantiSolari(stored, overrides = {}, scelto = "") {
-  const attuali = caselleSolariDa(overrides);
-  const righe = Array.isArray(stored) ? stored : [];
-  if (!righe.length) {
-    if (!Object.keys(attuali).length) return [];
-    return [{ id: PRIMO_SOLARE, nome: "", caselle: attuali, corrente: true }];
-  }
-  const lista = righe.map((riga, indice) => normalizzaSolare(riga, indice));
-  /* Quale sta a schermo: quello che dice la scelta, e se non dice niente —
-   * o dice un impianto cancellato — il primo. Le mappature valgono più della
-   * copia in lista: sono quelle che la scena legge davvero. */
-  const quale = lista.some((riga) => riga.id === clean(scelto)) ? clean(scelto) : lista[0].id;
-  return lista.map((riga) => ({
-    ...riga,
-    caselle: riga.id === quale && Object.keys(attuali).length ? attuali : riga.caselle,
-    corrente: riga.id === quale,
-  }));
+  return elencoConCorrente(stored, overrides, scelto, REFS_SOLARE, PRIMO_SOLARE);
 }
 
 /** L'impianto che si sta guardando. */
 export function solareCorrente(lista) {
-  return (Array.isArray(lista) ? lista : []).find((riga) => riga?.corrente) || null;
+  return corrente(lista);
 }
 
 /** Il nome da mostrare per un impianto, che un nome ce l'ha sempre. */
 export function nomeDelSolare(impianto, indice = 0, parole = ["Solare termico", "Solar thermal"]) {
-  const suo = clean(impianto?.nome);
-  if (suo) return suo;
-  return indice === 0 ? parole[0] : `${parole[0]} ${indice + 1}`;
+  return nomeProgressivo(impianto, indice, parole[0]);
 }
 
 /** Le entità di tutti gli impianti solari. */
 export function entitaDeiSolari(lista) {
-  return (Array.isArray(lista) ? lista : []).flatMap((riga) =>
-    Object.values(riga?.caselle || {}).filter(Boolean),
-  );
+  return entitaDiTutte(lista);
 }
 
 /**
@@ -445,12 +428,5 @@ export function entitaDeiSolari(lista) {
  * scena mostrerebbe una sonda del vicino.
  */
 export function overridesPerSolare(overrides, impianto) {
-  const dato = overrides && typeof overrides === "object" ? overrides : {};
-  const fuori = { ...dato };
-  const caselle = caselleSolariDa(impianto?.caselle);
-  for (const { ref } of CASELLE_SOLARE) {
-    if (caselle[ref]) fuori[ref] = caselle[ref];
-    else delete fuori[ref];
-  }
-  return fuori;
+  return overridesPerScelto(overrides, impianto, REFS_SOLARE);
 }

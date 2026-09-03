@@ -44,6 +44,7 @@ import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
 import { installTelecameraRtsp } from "./telecamera-rtsp-section.js";
+import { installCentraliAllarmeEditor } from "./centrali-allarme-editor-section.js";
 import { installTelecameraVivo } from "./telecamera-vivo-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
@@ -821,6 +822,7 @@ export function installSectionRuntime() {
      * campo del flusso, che e' del guscio, e va installato dopo di lui. */
     installTelecameraRtsp();
     installTelecameraVivo();
+    installCentraliAllarmeEditor();
     /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();

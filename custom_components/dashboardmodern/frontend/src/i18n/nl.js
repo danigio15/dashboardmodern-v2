@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "Jouw alarmgebieden",
+  "Save area": "Gebied opslaan",
+  "Night zone": "Nachtzone",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "Splitst de centrale het huis in gebieden — dagzone en nachtzone, huis en loods — voeg de tweede hier toe: die je nu hebt gaat precies zoals hij is in de lijst, en op de pagina verschijnt een rij om te wisselen, elk met zijn eigen toestand.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "Elk gebied is een eigen Home Assistant-centrale, met eigen inschakelingen. Die met “nu op de pagina” is wat de wijzerplaat en het toetsenbord bedienen: het oog naast een ander haalt dat in zijn plaats op het scherm.",
+  "Armed · ${modo}": "Ingeschakeld · ${modo}",
+  Area: "Gebied",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "Een alarm_control_panel.*-entiteit: de pagina leest daaruit welke inschakelingen zij aanneemt en stuurt haar de opdrachten.",
+  "Alarm panel": "Alarmcentrale",
+  "Add area": "Gebied toevoegen",
+  "Add a second alarm area": "Een tweede alarmgebied toevoegen",
+  "A valid alarm_control_panel.* entity is required.":
+    "Er is een geldige alarm_control_panel.*-entiteit nodig.",
   "on the page now": "nu op de pagina",
+  "💾 Area saved": "💾 Gebied opgeslagen",
+  "🛡️ Area on the page": "🛡️ Gebied op de pagina",
   fields: "velden",
   field: "veld",
   "Your solar plants": "Jouw zonne-installaties",

@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "Tus áreas de alarma",
+  "Save area": "Guardar área",
+  "Night zone": "Zona de noche",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "Si la central parte la casa en áreas —zona de día y zona de noche, casa y nave— añade aquí la segunda: la que tienes ahora pasa a la lista tal cual, y en la página aparece la fila para cambiar de una a otra, cada una con su estado.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "Cada área es una central de Home Assistant con sus propios armados. La marcada «en pantalla ahora» es la que el cuadrante y el teclado están mandando: el ojo junto a otra la trae a pantalla en su lugar.",
+  "Armed · ${modo}": "Armada · ${modo}",
+  Area: "Área",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "Una entidad alarm_control_panel.*: la página lee de ella los armados que acepta y le manda los comandos.",
+  "Alarm panel": "Central de alarma",
+  "Add area": "Añadir área",
+  "Add a second alarm area": "Añadir una segunda área de alarma",
+  "A valid alarm_control_panel.* entity is required.":
+    "Hace falta una entidad alarm_control_panel.* válida.",
   "on the page now": "en pantalla ahora",
+  "💾 Area saved": "💾 Área guardada",
+  "🛡️ Area on the page": "🛡️ Área en pantalla",
   fields: "casillas",
   field: "casilla",
   "Your solar plants": "Tus instalaciones solares",

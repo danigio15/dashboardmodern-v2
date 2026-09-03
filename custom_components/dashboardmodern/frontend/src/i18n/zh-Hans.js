@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "你的警戒区域",
+  "Save area": "保存区域",
+  "Night zone": "夜间区",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "如果主机把家分成了几个区域——白天区和夜间区、住宅和车间——把第二个加在这里：现在这个会原样进入列表，页面上也会出现一排用来切换，各自带着自己的状态。",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "每个区域都是一台独立的 Home Assistant 主机，各有自己的布防方式。标着“当前在页面上”的那个，就是表盘和键盘正在操作的：点另一个旁边的眼睛，就换成它出现在屏幕上。",
+  "Armed · ${modo}": "已布防 · ${modo}",
+  Area: "区域",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "一个 alarm_control_panel.* 实体：页面从它读取可用的布防方式，并把命令发给它。",
+  "Alarm panel": "报警主机",
+  "Add area": "添加区域",
+  "Add a second alarm area": "再添加一个警戒区域",
+  "A valid alarm_control_panel.* entity is required.":
+    "需要一个有效的 alarm_control_panel.* 实体。",
   "on the page now": "当前在页面上",
+  "💾 Area saved": "💾 已保存该区域",
+  "🛡️ Area on the page": "🛡️ 该区域已上页面",
   fields: "个字段",
   field: "个字段",
   "Your solar plants": "你的太阳能系统",

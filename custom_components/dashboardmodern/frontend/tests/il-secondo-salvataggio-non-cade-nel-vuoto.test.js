@@ -104,6 +104,7 @@ const SCHEDE = [
   ["../src/sections/impianti-termici-editor-section.js", "data-caldaia-save", "le caldaie"],
   ["../src/sections/impianti-termici-editor-section.js", "data-scald-save", "gli scaldabagni"],
   ["../src/sections/impianti-termici-editor-section.js", "data-solare-save", "gli impianti solari"],
+  ["../src/sections/centrali-allarme-editor-section.js", "data-area-save", "le aree d'allarme"],
 ];
 
 for (const [percorso, tasto, nome] of SCHEDE) {

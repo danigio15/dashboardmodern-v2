@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "Deine Alarmbereiche",
+  "Save area": "Bereich speichern",
+  "Night zone": "Nachtbereich",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "Wenn die Zentrale das Haus in Bereiche teilt — Tagbereich und Nachtbereich, Haus und Halle — füge den zweiten hier hinzu: der vorhandene wandert genau so, wie er ist, in die Liste, und auf der Seite erscheint eine Reihe zum Wechseln, jeder mit seinem eigenen Zustand.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "Jeder Bereich ist eine eigene Home-Assistant-Zentrale mit eigenen Scharfschaltungen. Der mit „jetzt auf der Seite“ markierte ist der, den das Rundinstrument und das Tastenfeld gerade bedienen: das Auge neben einem anderen holt ihn an seiner Stelle auf den Schirm.",
+  "Armed · ${modo}": "Scharf · ${modo}",
+  Area: "Bereich",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "Eine alarm_control_panel.*-Entität: die Seite liest daraus, welche Scharfschaltungen sie annimmt, und schickt ihr die Befehle.",
+  "Alarm panel": "Alarmzentrale",
+  "Add area": "Bereich hinzufügen",
+  "Add a second alarm area": "Einen zweiten Alarmbereich hinzufügen",
+  "A valid alarm_control_panel.* entity is required.":
+    "Es braucht eine gültige alarm_control_panel.*-Entität.",
   "on the page now": "jetzt auf der Seite",
+  "💾 Area saved": "💾 Bereich gespeichert",
+  "🛡️ Area on the page": "🛡️ Bereich auf der Seite",
   fields: "Felder",
   field: "Feld",
   "Your solar plants": "Deine Solaranlagen",

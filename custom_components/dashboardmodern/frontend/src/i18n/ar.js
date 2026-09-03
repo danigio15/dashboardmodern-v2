@@ -11,7 +11,24 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "مناطق الإنذار لديك",
+  "Save area": "حفظ المنطقة",
+  "Night zone": "المنطقة الليلية",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "إن كانت اللوحة تقسم البيت إلى مناطق — منطقة نهارية وأخرى ليلية، بيت وورشة — أضف الثانية هنا: التي لديك تنتقل إلى القائمة كما هي، ويظهر في الصفحة صفٌّ للتنقل بينها، لكلٍّ حالتها.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "كل منطقة لوحة مستقلة في Home Assistant، بأوضاع تسليحها الخاصة. المؤشَّرة بـ«على الصفحة الآن» هي التي يتحكم بها القرص ولوحة المفاتيح: العين بجانب أخرى تُحضرها إلى الشاشة مكانها.",
+  "Armed · ${modo}": "مسلَّحة · ${modo}",
+  Area: "منطقة",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "كيان alarm_control_panel.*: تقرأ منه الصفحة أوضاع التسليح التي يقبلها وترسل إليه الأوامر.",
+  "Alarm panel": "لوحة الإنذار",
+  "Add area": "إضافة منطقة",
+  "Add a second alarm area": "إضافة منطقة إنذار ثانية",
+  "A valid alarm_control_panel.* entity is required.": "يلزم كيان alarm_control_panel.* صالح.",
   "on the page now": "على الصفحة الآن",
+  "💾 Area saved": "💾 حُفظت المنطقة",
+  "🛡️ Area on the page": "🛡️ المنطقة على الصفحة",
   fields: "خانات",
   field: "خانة",
   "Your solar plants": "منظوماتك الشمسية",

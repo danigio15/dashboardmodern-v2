@@ -616,8 +616,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // ricava l'indirizzo del flusso da quello dell'istantanea, che e' aritmetica
   // di stringhe e si prova senza rete; la sezione e' la casella che accende il
   // flusso su una telecamera, accanto a quella dell'RTSP.
+  // 213 con le aree d'allarme (#285) e la regola che le governa
+  // (`core/piu-di-uno.js`, `core/alarm-panel.js` che già c'era,
+  // `sections/centrali-allarme-editor-section.js`): «si può inserire soltanto
+  // un alarm_control_panel, ma se si hanno 2 aree la pagina ne gestisce una
+  // sola». La regola è una sola perché è la terza volta che serve — impianti
+  // dell'energia, impianti solari, aree d'allarme — e tre copie sono tre
+  // occasioni di rispondere diverso.
   assert.ok(
-    relative.length <= 210,
+    relative.length <= 213,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

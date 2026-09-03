@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "あなたの警戒エリア",
+  "Save area": "エリアを保存",
+  "Night zone": "夜のゾーン",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "パネルが家をエリアに分けているなら — 昼のゾーンと夜のゾーン、母屋と作業場 — 二つめをここに足してください: いまのものはそのまま一覧に移り、ページにはそれぞれの状態つきで切り替えの並びが出ます。",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "エリアごとに独立した Home Assistant のパネルがあり、それぞれの警戒モードを持ちます。「いまページに表示中」と付いているものを、ダイヤルとキーパッドが操作しています: 別のエリアの横の目を押すと、そちらが代わりに画面に出ます。",
+  "Armed · ${modo}": "警戒中 · ${modo}",
+  Area: "エリア",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "alarm_control_panel.* のエンティティ: ページはそこから受け付ける警戒モードを読み、そこへコマンドを送ります。",
+  "Alarm panel": "警報パネル",
+  "Add area": "エリアを追加",
+  "Add a second alarm area": "二つめの警戒エリアを追加",
+  "A valid alarm_control_panel.* entity is required.":
+    "有効な alarm_control_panel.* のエンティティが必要です。",
   "on the page now": "いまページに表示中",
+  "💾 Area saved": "💾 エリアを保存しました",
+  "🛡️ Area on the page": "🛡️ エリアをページに",
   fields: "項目",
   field: "項目",
   "Your solar plants": "あなたのソーラー設備",

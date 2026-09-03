@@ -72,13 +72,18 @@ const USER_DATA_VERSION = 1;
  * #262): titolo, icona e le entita' che ci ha messo dentro. Sono la casa nel
  * senso piu' letterale — le ha disegnate lui — e non viaggiare vorrebbe dire
  * rifarle su ogni dispositivo. */
+/* La revisione 21 aggiunge le aree d'allarme (`cd_centrali`,
+ * `cd_centrale_scelta`, #285). Stessa ragione degli impianti solari, e stessa
+ * forma: l'elenco dice quali sono le aree, la scelta dice quale sta nella
+ * mappatura `dm.security_centrale_allarme` — cioè quale il tastierino comanda.
+ * Le due vanno insieme, e la mappatura viaggia da sempre. */
 /* La revisione 20 aggiunge gli impianti solari (`cd_solari`, `cd_solare_scelto`).
  * «Solare termico continua ad avere un solo impianto»: adesso ce ne può essere
  * più d'uno, e vanno insieme — l'elenco dice quali sono, la scelta dice quale
  * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
  * da sempre: se la scelta restasse su un dispositivo solo, il telefono
  * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
-export const CONFIG_KEYS_REVISION = 20;
+export const CONFIG_KEYS_REVISION = 21;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -187,6 +192,9 @@ export const CONFIG_KEYS = Object.freeze([
   // Gli impianti solari e quale di loro sta in pagina (#253 → più d'uno).
   "cd_solari",
   "cd_solare_scelto",
+  // Le aree d'allarme e quale di loro il tastierino comanda (#285).
+  "cd_centrali",
+  "cd_centrale_scelta",
   "cd_ups",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.

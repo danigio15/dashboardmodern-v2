@@ -11,7 +11,24 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "आपके अलार्म क्षेत्र",
+  "Save area": "क्षेत्र सहेजें",
+  "Night zone": "रात का ज़ोन",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "अगर पैनल घर को क्षेत्रों में बाँटता है — दिन का ज़ोन और रात का ज़ोन, घर और गोदाम — दूसरा यहाँ जोड़ें: जो अभी है वह ज्यों का त्यों सूची में चला जाता है, और पेज पर उनके बीच बदलने की पंक्ति आ जाती है, हर एक अपनी स्थिति के साथ।",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "हर क्षेत्र अपने आर्मिंग मोड वाला अलग Home Assistant पैनल है। जिस पर «अभी पेज पर» लिखा है, उसी को डायल और कीपैड कमांड कर रहे हैं: किसी दूसरे के पास वाली आँख उसे उसकी जगह स्क्रीन पर ले आती है।",
+  "Armed · ${modo}": "सक्रिय · ${modo}",
+  Area: "क्षेत्र",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "एक alarm_control_panel.* एंटिटी: पेज उससे पढ़ता है कि वह कौन-से आर्मिंग स्वीकारती है, और कमांड उसी को भेजता है।",
+  "Alarm panel": "अलार्म पैनल",
+  "Add area": "क्षेत्र जोड़ें",
+  "Add a second alarm area": "दूसरा अलार्म क्षेत्र जोड़ें",
+  "A valid alarm_control_panel.* entity is required.": "एक वैध alarm_control_panel.* एंटिटी चाहिए।",
   "on the page now": "अभी पेज पर",
+  "💾 Area saved": "💾 क्षेत्र सहेजा गया",
+  "🛡️ Area on the page": "🛡️ क्षेत्र पेज पर",
   fields: "खाने",
   field: "खाना",
   "Your solar plants": "आपके सौर संयंत्र",

@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "Twoje strefy alarmu",
+  "Save area": "Zapisz strefę",
+  "Night zone": "Strefa nocna",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "Jeśli centrala dzieli dom na strefy — strefa dzienna i nocna, dom i hala — dodaj tu drugą: ta, którą masz, przechodzi na listę taka, jaka jest, a na stronie pojawia się rząd do przełączania, każda ze swoim stanem.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "Każda strefa to osobna centrala Home Assistant, z własnymi uzbrojeniami. Ta oznaczona „teraz na stronie” to ta, którą sterują tarcza i klawiatura: oko obok innej wprowadza ją na ekran w jej miejsce.",
+  "Armed · ${modo}": "Uzbrojona · ${modo}",
+  Area: "Strefa",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "Encja alarm_control_panel.*: strona odczytuje z niej, jakie uzbrojenia przyjmuje, i wysyła do niej polecenia.",
+  "Alarm panel": "Centrala alarmowa",
+  "Add area": "Dodaj strefę",
+  "Add a second alarm area": "Dodaj drugą strefę alarmu",
+  "A valid alarm_control_panel.* entity is required.":
+    "Potrzebna jest poprawna encja alarm_control_panel.*.",
   "on the page now": "teraz na stronie",
+  "💾 Area saved": "💾 Strefa zapisana",
+  "🛡️ Area on the page": "🛡️ Strefa na stronie",
   fields: "pola",
   field: "pole",
   "Your solar plants": "Twoje instalacje solarne",

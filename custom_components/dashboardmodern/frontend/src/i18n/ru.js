@@ -11,7 +11,25 @@
  */
 
 export default Object.freeze({
+  "Your alarm areas": "Ваши зоны охраны",
+  "Save area": "Сохранить зону",
+  "Night zone": "Ночная зона",
+  "If the panel splits the house into areas — day zone and night zone, house and workshop — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them, each with its own state.":
+    "Если панель делит дом на зоны — дневная и ночная, дом и мастерская — добавьте вторую здесь: та, что есть, переходит в список как есть, а на странице появляется ряд для переключения, у каждой свой статус.",
+  "Every area is a Home Assistant panel of its own, with its own arming modes. The one marked “on the page now” is what the dial and the keypad are commanding: the eye beside another one brings it on screen in its place.":
+    "Каждая зона — это отдельная панель Home Assistant со своими режимами постановки. Та, что помечена «сейчас на странице», — это та, которой управляют циферблат и клавиатура: глаз рядом с другой выводит её на экран вместо неё.",
+  "Armed · ${modo}": "Под охраной · ${modo}",
+  Area: "Зона",
+  "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it.":
+    "Сущность alarm_control_panel.*: страница читает из неё, какие постановки она принимает, и шлёт ей команды.",
+  "Alarm panel": "Панель охраны",
+  "Add area": "Добавить зону",
+  "Add a second alarm area": "Добавить вторую зону охраны",
+  "A valid alarm_control_panel.* entity is required.":
+    "Нужна корректная сущность alarm_control_panel.*.",
   "on the page now": "сейчас на странице",
+  "💾 Area saved": "💾 Зона сохранена",
+  "🛡️ Area on the page": "🛡️ Зона на странице",
   fields: "полей",
   field: "поле",
   "Your solar plants": "Ваши солнечные установки",

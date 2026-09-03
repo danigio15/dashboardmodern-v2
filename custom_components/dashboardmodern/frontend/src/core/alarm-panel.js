@@ -21,6 +21,8 @@
  * risponde. Non tocca il documento e non chiama servizi.
  */
 
+import { corrente, elencoConCorrente, nomeProgressivo, overridesPerScelto } from "./piu-di-uno.js";
+
 /* I bit di alarm_control_panel, come li definisce Home Assistant. */
 export const ALARM_FEATURES = Object.freeze({
   home: 1,
@@ -204,4 +206,54 @@ export function alarmVisibleModes(stateObj, stored) {
    * si puo' solo spegnere non e' quello che uno voleva chiedere: se la scelta
    * cancella ogni inserimento la si ignora. */
   return restano.length > 1 ? restano : tutte;
+}
+
+/* ── più di una centrale: le aree (#285) ──────────────────────────────── */
+
+/* «Nella sezione sicurezza si può inserire soltanto un alarm_control_panel, ma
+ * se si hanno 2 aree la pagina ne gestisce una sola. Sarebbe funzionale poter
+ * mettere più pannelli, come l'inserimento di telecamere.»
+ *
+ * Le centrali che spezzano la casa in aree — zona giorno e zona notte, casa e
+ * capannone — in Home Assistant sono due entità distinte, ognuna con i suoi
+ * inserimenti e il suo stato. La plancia ne leggeva una sola perché la centrale
+ * viveva in una mappatura sola, `dm.security_centrale_allarme`, che è anche
+ * quella che il tastierino usa per mandare il comando.
+ *
+ * Vale la regola di `piu-di-uno.js`, la stessa del solare: non si sposta
+ * niente. Quella che si comanda è sempre quella scritta nella mappatura, e
+ * passare a un'altra area vuol dire scriverci la sua — così il tastierino, la
+ * tessera della Home e il servizio che parte continuano a leggere l'unico posto
+ * che hanno sempre letto, e leggono l'area che si sta guardando.
+ */
+export const RIF_CENTRALE = "dm.security_centrale_allarme";
+export const CHIAVE_CENTRALI = "cd_centrali";
+export const CHIAVE_CENTRALE_SCELTA = "cd_centrale_scelta";
+export const PRIMA_CENTRALE = "centrale";
+
+const REFS_CENTRALE = Object.freeze([RIF_CENTRALE]);
+
+/** Le centrali di casa, con segnata quella che si sta guardando. */
+export function centraliAllarme(stored, overrides = {}, scelta = "") {
+  return elencoConCorrente(stored, overrides, scelta, REFS_CENTRALE, PRIMA_CENTRALE);
+}
+
+/** L'entità di una centrale dell'elenco. */
+export function entitaDellaCentrale(centrale) {
+  return String(centrale?.caselle?.[RIF_CENTRALE] || "").trim();
+}
+
+/** Quella che si sta guardando. */
+export function centraleCorrente(lista) {
+  return corrente(lista);
+}
+
+/** Il nome da mostrare, che c'è sempre. */
+export function nomeDellaCentrale(centrale, indice = 0, base = "Area") {
+  return nomeProgressivo(centrale, indice, base);
+}
+
+/** Le mappature da scrivere per passare a un'altra area. */
+export function overridesPerCentrale(overrides, centrale) {
+  return overridesPerScelto(overrides, centrale, REFS_CENTRALE);
 }
