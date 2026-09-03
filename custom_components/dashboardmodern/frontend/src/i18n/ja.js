@@ -130,6 +130,8 @@ export default Object.freeze({
     "エンティティを選ぶまで、この開口部はどこにも表示されません。セクションにもタイルにも出ず、「ウィジェットに表示」のスイッチも現れません。",
   "from a dashboard": "ダッシュボードから",
   "from GitHub": "GitHub から",
+  "No report left to take on.": "引き受ける報告はもうありません。",
+  "You have nothing in progress.": "対応中のものはありません。",
   "Nothing closed yet.": "まだ閉じたものはありません。",
   "Nothing of this kind here.": "ここにはこの種類のものがありません。",
   "Nothing to work on": "対応するものはありません",

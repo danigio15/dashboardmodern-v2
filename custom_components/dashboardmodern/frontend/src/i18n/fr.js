@@ -129,6 +129,8 @@ export default Object.freeze({
     "Tant que tu ne choisis pas l'entité, cette ouverture ne se voit nulle part : ni dans la section, ni sur la tuile, et l'interrupteur « dans le widget » n'apparaît pas.",
   "from a dashboard": "depuis un tableau de bord",
   "from GitHub": "depuis GitHub",
+  "No report left to take on.": "Plus aucun signalement à prendre en charge.",
+  "You have nothing in progress.": "Tu n'as rien en cours.",
   "Nothing closed yet.": "Rien de clos pour l'instant.",
   "Nothing of this kind here.": "Rien de ce genre ici.",
   "Nothing to work on": "Rien à traiter",

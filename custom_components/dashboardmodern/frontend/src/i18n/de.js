@@ -130,6 +130,8 @@ export default Object.freeze({
     "Solange du keine Entität wählst, ist diese Öffnung nirgends zu sehen: weder im Bereich noch auf der Kachel, und der Schalter „im Widget“ erscheint nicht.",
   "from a dashboard": "aus einem Dashboard",
   "from GitHub": "von GitHub",
+  "No report left to take on.": "Keine Meldung mehr zu übernehmen.",
+  "You have nothing in progress.": "Du hast nichts in Arbeit.",
   "Nothing closed yet.": "Noch nichts geschlossen.",
   "Nothing of this kind here.": "Hier nichts dieser Art.",
   "Nothing to work on": "Nichts zu tun",

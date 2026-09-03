@@ -129,6 +129,8 @@ export default Object.freeze({
     "엔터티를 고르기 전에는 이 출입구가 어디에도 보이지 않습니다. 섹션에도 타일에도 나오지 않고, '위젯에 표시' 스위치도 나타나지 않습니다.",
   "from a dashboard": "대시보드에서",
   "from GitHub": "GitHub에서",
+  "No report left to take on.": "맡을 제보가 남아 있지 않습니다.",
+  "You have nothing in progress.": "진행 중인 것이 없습니다.",
   "Nothing closed yet.": "아직 닫힌 것이 없습니다.",
   "Nothing of this kind here.": "여기에는 이런 종류가 없습니다.",
   "Nothing to work on": "처리할 것이 없습니다",

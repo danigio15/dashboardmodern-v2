@@ -126,6 +126,8 @@ export default Object.freeze({
     "ما دمت لم تختر الكيان فلن يظهر هذا المنفذ في أي مكان: لا في القسم ولا في البطاقة، ولن يظهر مفتاح «في الأداة».",
   "from a dashboard": "من لوحة تحكم",
   "from GitHub": "من GitHub",
+  "No report left to take on.": "لم يبق أي بلاغ لتولّيه.",
+  "You have nothing in progress.": "ليس لديك أي شيء قيد العمل.",
   "Nothing closed yet.": "لا شيء مغلق حتى الآن.",
   "Nothing of this kind here.": "لا شيء من هذا النوع هنا.",
   "Nothing to work on": "لا شيء للعمل عليه",

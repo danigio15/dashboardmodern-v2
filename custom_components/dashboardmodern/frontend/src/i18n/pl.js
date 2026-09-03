@@ -130,6 +130,8 @@ export default Object.freeze({
     "Dopóki nie wybierzesz encji, tego otworu nigdzie nie widać: ani w sekcji, ani na kafelku, a przełącznik „w widżecie” się nie pojawia.",
   "from a dashboard": "z panelu",
   "from GitHub": "z GitHuba",
+  "No report left to take on.": "Nie ma już zgłoszeń do przejęcia.",
+  "You have nothing in progress.": "Nie masz nic w toku.",
   "Nothing closed yet.": "Jeszcze nic nie zamknięto.",
   "Nothing of this kind here.": "Nic takiego tutaj.",
   "Nothing to work on": "Nic do zrobienia",

@@ -130,6 +130,8 @@ export default Object.freeze({
     "Пока вы не выбрали сущность, этот проём нигде не виден: ни в разделе, ни на плитке, и переключатель «в виджете» не появляется.",
   "from a dashboard": "с панели",
   "from GitHub": "с GitHub",
+  "No report left to take on.": "Больше нет сообщений, которые нужно взять.",
+  "You have nothing in progress.": "У вас ничего нет в работе.",
   "Nothing closed yet.": "Пока ничего не закрыто.",
   "Nothing of this kind here.": "Здесь ничего такого нет.",
   "Nothing to work on": "Работать не над чем",

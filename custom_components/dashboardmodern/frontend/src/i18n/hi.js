@@ -128,6 +128,8 @@ export default Object.freeze({
     "जब तक आप इकाई नहीं चुनते, यह द्वार कहीं नहीं दिखेगा: न अनुभाग में, न टाइल पर, और «विजेट में» वाला स्विच भी नहीं आएगा।",
   "from a dashboard": "डैशबोर्ड से",
   "from GitHub": "GitHub से",
+  "No report left to take on.": "लेने के लिए कोई रिपोर्ट बाकी नहीं है।",
+  "You have nothing in progress.": "आपके पास कुछ भी चल रहा नहीं है।",
   "Nothing closed yet.": "अभी तक कुछ भी बंद नहीं हुआ।",
   "Nothing of this kind here.": "यहाँ इस तरह का कुछ नहीं।",
   "Nothing to work on": "काम करने को कुछ नहीं",

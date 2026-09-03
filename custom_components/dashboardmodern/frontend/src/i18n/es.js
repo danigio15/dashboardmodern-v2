@@ -129,6 +129,8 @@ export default Object.freeze({
     "Hasta que no elijas la entidad esta apertura no se ve en ninguna parte: ni en la sección, ni en la tarjeta, y el interruptor «en el widget» no aparece.",
   "from a dashboard": "desde un panel",
   "from GitHub": "desde GitHub",
+  "No report left to take on.": "No queda ningún informe por asumir.",
+  "You have nothing in progress.": "No tienes nada en curso.",
   "Nothing closed yet.": "Todavía nada cerrado.",
   "Nothing of this kind here.": "Nada de este tipo por aquí.",
   "Nothing to work on": "Nada por hacer",

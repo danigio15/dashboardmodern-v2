@@ -129,6 +129,8 @@ export default Object.freeze({
     "Zolang je geen entiteit kiest is deze opening nergens te zien: niet in de sectie, niet op de tegel, en de schakelaar 'in de widget' verschijnt niet.",
   "from a dashboard": "vanaf een dashboard",
   "from GitHub": "vanaf GitHub",
+  "No report left to take on.": "Geen melding meer om op te pakken.",
+  "You have nothing in progress.": "Je hebt niets onderhanden.",
   "Nothing closed yet.": "Nog niets gesloten.",
   "Nothing of this kind here.": "Hier niets van dit soort.",
   "Nothing to work on": "Niets te doen",

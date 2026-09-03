@@ -1224,11 +1224,20 @@ function elencoMarkup() {
  * Adesso lo stato e il tipo sono due assi che si incrociano, e sotto ogni
  * tasto del tipo c'e' il suo conto, calcolato dentro lo stato scelto: si vede
  * quanto c'e' da lavorare per genere prima ancora di premere. */
-export const FILTRI_STATO_ID = Object.freeze(["aperte", "chiuse", "tutte"]);
+export const FILTRI_STATO_ID = Object.freeze([
+  "aperte",
+  "nuove",
+  "in-carico",
+  "chiuse",
+  "tutte",
+]);
 export const FILTRI_TIPO_ID = Object.freeze(["", "bug", "feature", "assistenza"]);
 
 const FILTRI_STATO = [
   { id: "aperte", nome: () => t("Da lavorare", "To work on") },
+  /* Gli stessi nomi delle due cifre grandi qui sopra, apposta. */
+  { id: "nuove", nome: () => t("Nuove", "New") },
+  { id: "in-carico", nome: () => t("In lavorazione", "Being worked on") },
   { id: "chiuse", nome: () => t("Chiuse", "Closed") },
   { id: "tutte", nome: () => t("Tutte", "All") },
 ];
@@ -1276,9 +1285,27 @@ function colonneMarkup(coda) {
 
 const CHIUSA = ["risolto", "chiuso"];
 
+/* «Voglio capire cosa ho preso in carico e quelle ancora da prendere in
+ * carico.» Erano due numeri che si leggevano e non si potevano premere: le tre
+ * cifre grandi in cima dicono 18 nuove e 6 in lavorazione, ma l'unico filtro
+ * era «Da lavorare», che le mette insieme — e le sei prese in carico
+ * annegavano fra le diciotto ancora ferme.
+ *
+ * I due tasti nuovi sono esattamente quelle due cifre: premere «Nuove» lascia
+ * le diciotto lette un dito piu' su, premere «In lavorazione» le sei. Per
+ * questo portano lo stesso nome del conto invece di uno piu' bello: due parole
+ * diverse per lo stesso numero, a un centimetro di distanza, farebbero
+ * chiedere se sia lo stesso numero. */
 function perStato(coda, filtro) {
-  if (filtro === "aperte") {
-    return coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
+  const aperte = coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
+  if (filtro === "aperte") return aperte;
+  /* Presa in carico vuol dire assegnata: e' la stessa regola con cui la coda
+   * calcola lo stato, e con cui il conto grande qui sopra fa sei. */
+  if (filtro === "in-carico") {
+    return aperte.filter((ticket) => clean(ticket.state) === "in-carico");
+  }
+  if (filtro === "nuove") {
+    return aperte.filter((ticket) => clean(ticket.state) !== "in-carico");
   }
   if (filtro === "chiuse") {
     return coda.filter((ticket) => CHIUSA.includes(clean(ticket.state)));
@@ -1658,6 +1685,15 @@ function vuotoMarkup() {
   }
   if (state.filtro === "aperte") {
     return t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.");
+  }
+  if (state.filtro === "nuove") {
+    return t(
+      "Nessuna segnalazione ancora da prendere in carico.",
+      "No report left to take on.",
+    );
+  }
+  if (state.filtro === "in-carico") {
+    return t("Non hai niente in lavorazione.", "You have nothing in progress.");
   }
   if (state.filtro === "chiuse") {
     return t("Ancora niente di chiuso.", "Nothing closed yet.");

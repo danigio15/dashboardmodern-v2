@@ -125,6 +125,8 @@ export default Object.freeze({
     "在选择实体之前，这个出入口哪里都看不到：版块里没有，磁贴上也没有，“显示在小组件”的开关也不会出现。",
   "from a dashboard": "来自面板",
   "from GitHub": "来自 GitHub",
+  "No report left to take on.": "没有待接手的反馈了。",
+  "You have nothing in progress.": "你没有正在处理的内容。",
   "Nothing closed yet.": "还没有已关闭的内容。",
   "Nothing of this kind here.": "这里没有这一类的内容。",
   "Nothing to work on": "没有待处理的内容",

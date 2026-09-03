@@ -128,6 +128,8 @@ export default Object.freeze({
     "Varlığı seçmediğin sürece bu açıklık hiçbir yerde görünmez: ne bölümde, ne kartta; «widget'ta» anahtarı da çıkmaz.",
   "from a dashboard": "bir panodan",
   "from GitHub": "GitHub'dan",
+  "No report left to take on.": "Üstlenilecek bildirim kalmadı.",
+  "You have nothing in progress.": "Üzerinde çalıştığın bir şey yok.",
   "Nothing closed yet.": "Henüz kapatılan bir şey yok.",
   "Nothing of this kind here.": "Burada bu türden bir şey yok.",
   "Nothing to work on": "Yapılacak bir şey yok",
