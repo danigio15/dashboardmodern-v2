@@ -121,11 +121,15 @@ EVENT_TICKET_MESSAGE = f"{DOMAIN}_messaggio"
 # fra due case che altrimenti non si parlerebbero. Il progetto sta in
 # docs/CHAT.md, il servizio in centralino/.
 
-#: L'indirizzo del centralino. Lo stampa `wrangler deploy`, ed e' l'unica cosa
-#: di tutto questo giro che non si puo' indovinare: finche' resta vuoto la chat
-#: non c'e' e la plancia non la mostra, invece di mostrare una porta che non si
-#: apre.
-CHAT_CENTRALINO = ""
+#: L'indirizzo del centralino: e' l'unica cosa di tutto questo giro che non si
+#: puo' indovinare, e finche' resta vuoto la chat non c'e' e la plancia non la
+#: mostra — meglio nessuna porta che una porta che non si apre.
+#:
+#: Il giorno che il centralino cambia casa — un dominio proprio invece di
+#: `workers.dev` — si cambia questa riga e basta: il Worker risponde su tutti
+#: gli indirizzi che gli si attaccano, quindi le plance che non si aggiornano
+#: continuano a parlare col vecchio.
+CHAT_CENTRALINO = "https://centralino.daniello-giovanni.workers.dev"
 
 #: Ogni quanto la casa va a vedere se e' arrivata una risposta. Come il
 #: campanello delle segnalazioni: una richiesta sola, cinque minuti, dodici
