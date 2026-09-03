@@ -129,7 +129,7 @@ EVENT_TICKET_MESSAGE = f"{DOMAIN}_messaggio"
 #: `workers.dev` — si cambia questa riga e basta: il Worker risponde su tutti
 #: gli indirizzi che gli si attaccano, quindi le plance che non si aggiornano
 #: continuano a parlare col vecchio.
-CHAT_CENTRALINO = "https://centralino.daniello-giovanni.workers.dev"
+CHAT_CENTRALINO = "https://centralino.danigio15.workers.dev"
 
 #: Ogni quanto la casa va a vedere se e' arrivata una risposta. Come il
 #: campanello delle segnalazioni: una richiesta sola, cinque minuti, dodici
