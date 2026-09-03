@@ -12,9 +12,13 @@
  * trasmette solo su richiesta e un flusso continuo non ce l'ha.
  *
  * Questa prova apre una telecamera fatta come una Ring — Home Assistant
- * dichiara `frontend_stream_type` e l'apparecchio e' fermo — e pretende che le
- * due strade impossibili vengano saltate, con il loro perche' scritto nei
- * registri, invece di essere aspettate.
+ * dichiara `frontend_stream_type` e l'apparecchio e' fermo — e pretende che la
+ * strada impossibile venga saltata, con il suo perche' scritto nei registri,
+ * invece di essere aspettata, e che il giro intero resti sotto il secondo.
+ *
+ * Delle due saltate ne e' rimasta una: il MJPEG adesso si prova anche a chi
+ * dorme, ed e' la strada che ha ridato il video alle Arlo. Il perche' sta
+ * accanto all'asserzione che lo pretende.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
@@ -71,8 +75,21 @@ test("una telecamera che dorme non fa aspettare le strade impossibili", async ({
 
   const cam = registri.filter((riga) => riga.startsWith("[Cam]"));
   expect(cam).toContain("[Cam] – WebRTC: senza-nome-di-flusso");
-  expect(cam).toContain("[Cam] – MJPEG: telecamera-che-dorme");
-  /* Sei secondi era il conto delle due attese buttate. Un secondo e' larghezza
-   * abbondante per un giro che non deve aspettare piu' niente. */
+  /* Il MJPEG adesso si prova, anche a chi dorme.
+   *
+   * Era la seconda strada saltata, e il salto sembrava un risparmio: una
+   * telecamera che trasmette su richiesta non ha un flusso continuo da dare.
+   * Ma quel salto veniva deciso PRIMA di provare l'HLS, e se l'HLS regge a
+   * MJPEG non ci si arriva comunque — non risparmiava niente, e valeva solo
+   * nel momento in cui l'HLS aveva appena fallito, cioe' esattamente quando
+   * un'altra strada dal vivo serve. Chi dorme finiva sulle istantanee, due
+   * fotogrammi al secondo chiesti dal browser, mentre il proxy di Home
+   * Assistant gliene darebbe altrettanti spingendoli lui: «dalla card YAML si
+   * muove, dalla plancia no», visto dal vero su una Arlo. */
+  expect(cam).not.toContain("[Cam] – MJPEG: telecamera-che-dorme");
+  expect(cam.some((riga) => riga.startsWith("[Cam] MJPEG"))).toBe(true);
+  /* E il conto dei secondi regge lo stesso, che e' il motivo per cui questa
+   * prova esiste: sei secondi erano le due attese buttate, e provare il MJPEG
+   * a una telecamera senza WebSocket non ne aggiunge nemmeno uno. */
   expect(durata).toBeLessThan(1000);
 });

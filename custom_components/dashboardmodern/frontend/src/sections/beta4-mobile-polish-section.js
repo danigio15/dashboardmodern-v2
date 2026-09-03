@@ -40,6 +40,11 @@ const TAB_ICONS = Object.freeze({
   doors: "🚪",
   agenda: "📅",
   ups: "🔌",
+  /* Le due della beta.12: la Musica (#269) e le entita' che uno si aggiunge
+   * (#271). Senza il loro simbolo qui la linguetta restava intera anche dove
+   * la colonna si stringe, ed e' lo stesso difetto delle quattro sopra. */
+  media: "🔊",
+  entita: "⭐",
 });
 
 /* Quale disegno di casa porta ogni scheda della configurazione.
@@ -82,6 +87,13 @@ const OGGETTO_DELLA_SCHEDA = Object.freeze({
   /* Le sezioni che si fa l'utente (#262): questa colonna vuole un disegno per
    * ogni voce, e la prova che lo sorveglia falliva sull'unica senza. */
   mie: "mie",
+  /* La Musica (#269) e le entita' che uno si aggiunge (#271) sono arrivate
+   * dopo, e per la seconda volta la stessa prova ha trovato una voce nuda:
+   * una scheda nuova porta la sua pagina e la sua tessera, e si dimentica
+   * questa tabella perche' non e' dove si lavora. La stella e' quella delle
+   * evidenze — le due cose sono la stessa famiglia, entita' scelte a mano. */
+  media: "media",
+  entita: "evidenza",
 });
 
 const FLOW_LOADS = Object.freeze({

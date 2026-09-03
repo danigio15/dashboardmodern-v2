@@ -111,11 +111,14 @@ async function boot(page, variant, testInfo) {
        legge la scheda Luci — e dalla scheda degli avvisi e' uscito. */
     localStorage.setItem(
       "cd_gruppi_extra",
-      JSON.stringify({ win: ["binary_sensor.finestra_salone"] }),
+      /* Il gruppo delle aperture non c'e' piu' — la sua tessera era un
+       doppione di Finestre — e la matita degli avvisi va provata su un
+       gruppo che il Quadro Avvisi sorveglia davvero. */
+      JSON.stringify({ batt: ["sensor.pila_salone"] }),
     );
     localStorage.setItem(
       "cd_avvisi_names_extra",
-      JSON.stringify({ "binary_sensor.finestra_salone": "Finestra salone" }),
+      JSON.stringify({ "sensor.pila_salone": "Pila salone" }),
     );
     localStorage.setItem("cd_luci", JSON.stringify({ "light.salone": "Luce salone" }));
     localStorage.setItem("cd_luci_rooms", JSON.stringify({ "light.salone": "Salone" }));
@@ -265,11 +268,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(alertContract.closeRadius).toBe(applianceContract.closeRadius);
     expect(alertContract.footerPosition).toBe(applianceContract.footerPosition);
     expect(Math.abs(alertContract.width - applianceContract.width)).toBeLessThanOrEqual(2);
-    await expect(alertEditor.locator('input[name="entity"]')).toHaveValue(
-      "binary_sensor.finestra_salone",
-    );
-    await alertEditor.locator('input[name="name"]').fill("Finestra del salone");
-    await alertEditor.locator('select[name="group"]').selectOption("win");
+    await expect(alertEditor.locator('input[name="entity"]')).toHaveValue("sensor.pila_salone");
+    await alertEditor.locator('input[name="name"]').fill("Pila del salone");
+    await alertEditor.locator('select[name="group"]').selectOption("batt");
     await alertEditor.locator('button[type="submit"]').click();
     await expect(alertEditor).toHaveCount(0);
     await expect
@@ -282,8 +283,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       .toEqual({
         // La luce configurata nella scheda Luci si registra da sé fra i
         // gruppi sorvegliati: è il runtime che ce la mette, e resta lì.
-        groups: { luci: ["light.salone"], win: ["binary_sensor.finestra_salone"] },
-        names: { "binary_sensor.finestra_salone": "Finestra del salone" },
+        groups: { luci: ["light.salone"], batt: ["sensor.pila_salone"] },
+        names: { "sensor.pila_salone": "Pila del salone" },
       });
 
     await openEditor(page, "luci");

@@ -139,11 +139,29 @@ test.describe("MiniPC page redesign", () => {
     await expect(page.locator(".dm-srvx-temp-txt")).toHaveText("Alta — Controllare");
   });
 
-  test("the page follows the connectivity badge and fills the live trace", async ({
+  test("the page follows the configured internet box and fills the live trace", async ({
     page,
   }, testInfo) => {
+    /* The page used to follow `#waw-net-badge`, which the shell painted from
+       whatever it had. That is how it came to read OFFLINE in a house where
+       everything was mapped and the line was up: the badge was one of four
+       equivalent boxes and the card read a different one. There is one box now,
+       and it is the source: with it filled in the page says on or off, with it
+       empty it says nothing at all — claiming ONLINE on an empty box is the
+       same lie in the other direction. */
     await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
-    await bootNamespacedDashboard(page, "dashboard.html", testInfo, seedWith(MAPPED));
+    await bootNamespacedDashboard(page, "dashboard.html", testInfo, {
+      ...seedWith({ ...MAPPED, "dm.server_raggiungibilita_google": "binary_sensor.internet" }),
+    });
+    await page.evaluate(() => {
+      const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+      if (raw)
+        raw["binary_sensor.internet"] = {
+          entity_id: "binary_sensor.internet",
+          state: "on",
+          attributes: { friendly_name: "Raggiungibilità Google", device_class: "connectivity" },
+        };
+    });
     await openServerPage(page);
     await expect(page.locator("#page-server")).toHaveAttribute("data-dm-srv-net", "on");
 
@@ -163,11 +181,26 @@ test.describe("MiniPC page redesign", () => {
     );
 
     await page.evaluate(() => {
-      const badge = document.getElementById("waw-net-badge");
-      if (badge) badge.className = "srv-status-badge offline";
+      const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+      if (raw) raw["binary_sensor.internet"].state = "off";
       window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
     });
     await expect(page.locator("#page-server")).toHaveAttribute("data-dm-srv-net", "off");
+    await expect(page.locator("#v-srv-net-status")).toHaveText("OFFLINE");
+  });
+
+  test("with no internet box the page says nothing rather than guessing", async ({
+    page,
+  }, testInfo) => {
+    /* The complaint that started this: OFFLINE on a machine reporting CPU, RAM
+       and disk, with the line up. Nobody had told the card anything — and a
+       card that answers a question it was never asked is wrong whichever
+       answer it gives. */
+    await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+    await bootNamespacedDashboard(page, "dashboard.html", testInfo, seedWith(MAPPED));
+    await openServerPage(page);
+    await expect(page.locator("#v-srv-net-status")).toHaveText("NON CONFIGURATO");
+    expect(await page.locator("#page-server").getAttribute("data-dm-srv-net")).toBeFalsy();
   });
 
   test("a block the auto-hide empties takes its heading with it", async ({ page }, testInfo) => {

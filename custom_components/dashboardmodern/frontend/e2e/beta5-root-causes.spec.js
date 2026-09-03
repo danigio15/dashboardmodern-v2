@@ -203,7 +203,10 @@ for (const variant of PRIMARY) {
     await expect(page.locator("#ed-body button", { hasText: /^⚡$/ })).toHaveCount(0);
     await page.locator("#ed-avv-grp").selectOption("custom");
     await expect(page.locator("#ed-avv-custom")).toBeVisible();
-    await page.locator("#ed-avv-grp").selectOption("win");
+    /* Un gruppo qualunque che non sia «custom»: il campo dell'entita' libera
+       deve tornare a nascondersi. Erano le Aperture, che come gruppo d'avviso
+       non esistono piu'. */
+    await page.locator("#ed-avv-grp").selectOption("batt");
     await expect(page.locator("#ed-avv-custom")).toBeHidden();
     await expect(page.locator("#ed-body button", { hasText: /^⚡$/ })).toHaveCount(0);
 
