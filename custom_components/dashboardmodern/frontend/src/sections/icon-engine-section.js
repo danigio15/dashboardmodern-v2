@@ -34,6 +34,9 @@ const ACTION_BUILTINS = Object.freeze({
   toggle: "mdi:toggle-switch-outline",
   script: "mdi:script-text-play",
   scene: "mdi:movie-open",
+  /* Un lettore fra le azioni (#269): senza la sua riga prendeva la stella di
+   * ripiego, cioe' il segno di «non so cos'e' questo». */
+  media: "mdi:speaker",
 });
 
 const ACTION_BUILTIN_COLORS = Object.freeze({
@@ -42,6 +45,7 @@ const ACTION_BUILTIN_COLORS = Object.freeze({
   clima: "#0ea5e9",
   antifurto: "#7c3aed",
   lavatrice: "#0ea5e9",
+  media: "#8b5cf6",
 });
 
 function normalizeKind(value) {

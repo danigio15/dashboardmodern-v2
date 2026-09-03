@@ -24,16 +24,19 @@ const EN = (_italiano, inglese) => inglese;
 test("Energia: col sole che avanza non dice «nessuna in funzione»", () => {
   /* I numeri della schermata: casa 574 W, solare 2,16 kW, rete 41 W,
    * batteria -1,47 kW (il segno meno vuol dire che si sta caricando). */
-  const esito = analisiDellaSezione({
-    key: "energia",
-    today: 2,
-    rows: [
-      { group: "house", watts: 574 },
-      { group: "solar", watts: 2160 },
-      { group: "grid", watts: 41 },
-      { group: "battery", watts: -1470 },
-    ],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "energia",
+      today: 2,
+      rows: [
+        { group: "house", watts: 574 },
+        { group: "solar", watts: 2160 },
+        { group: "grid", watts: 41 },
+        { group: "battery", watts: -1470 },
+      ],
+    },
+    IT,
+  );
   assert.ok(esito, "l'Energia deve avere una sua lettura");
   assert.doesNotMatch(esito.frase, /nessuna in funzione/i);
   assert.match(esito.frase, /2,16 kW/, "deve dire quanto fa il sole");
@@ -49,39 +52,48 @@ test("Energia: col sole che avanza non dice «nessuna in funzione»", () => {
 });
 
 test("Energia: quando il sole non basta dice quanto ne copre", () => {
-  const esito = analisiDellaSezione({
-    key: "energia",
-    rows: [
-      { group: "house", watts: 2000 },
-      { group: "solar", watts: 500 },
-      { group: "grid", watts: 1500 },
-    ],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "energia",
+      rows: [
+        { group: "house", watts: 2000 },
+        { group: "solar", watts: 500 },
+        { group: "grid", watts: 1500 },
+      ],
+    },
+    IT,
+  );
   assert.match(esito.frase, /25%/, "500 su 2000 e' un quarto");
   assert.ok(esito.punti.some((p) => /Dalla rete arrivano 1,50 kW/.test(p)));
 });
 
 test("Energia: di notte non parla di sole", () => {
-  const esito = analisiDellaSezione({
-    key: "energia",
-    rows: [
-      { group: "house", watts: 300 },
-      { group: "solar", watts: 0 },
-      { group: "grid", watts: 300 },
-    ],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "energia",
+      rows: [
+        { group: "house", watts: 300 },
+        { group: "solar", watts: 0 },
+        { group: "grid", watts: 300 },
+      ],
+    },
+    IT,
+  );
   assert.match(esito.frase, /senza sole/);
   assert.doesNotMatch(esito.frase, /copre/);
 });
 
 test("Sicurezza: con l'antifurto non dice che non c'e' niente", () => {
-  const esito = analisiDellaSezione({
-    key: "sicurezza",
-    alarm: true,
-    armed: false,
-    triggered: false,
-    doors: [{ name: "Portoncino" }, { name: "Garage" }],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "sicurezza",
+      alarm: true,
+      armed: false,
+      triggered: false,
+      doors: [{ name: "Portoncino" }, { name: "Garage" }],
+    },
+    IT,
+  );
   assert.doesNotMatch(esito.frase, /non c'e' ancora niente/i);
   assert.match(esito.frase, /disinserito/i);
   assert.ok(esito.punti.some((p) => /2 ingressi sorvegliati/.test(p)));
@@ -97,18 +109,24 @@ test("Sicurezza: quando suona il tono e' rosso", () => {
 });
 
 test("Temperatura: dice la differenza, non solo la media", () => {
-  const esito = analisiDellaSezione({
-    key: "temperatura",
-    rows: [
-      { name: "Salone", temperature: 27.1, humidity: 48 },
-      { name: "Cucina", temperature: 24.4, humidity: 52 },
-      { name: "Garage", temperature: 21.8, humidity: 60 },
-    ],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "temperatura",
+      rows: [
+        { name: "Salone", temperature: 27.1, humidity: 48 },
+        { name: "Cucina", temperature: 24.4, humidity: 52 },
+        { name: "Garage", temperature: 21.8, humidity: 60 },
+      ],
+    },
+    IT,
+  );
   assert.match(esito.frase, /Salone/, "la piu' calda si nomina");
   assert.match(esito.frase, /5,3°/, "27,1 meno 21,8");
   assert.match(esito.frase, /3 stanze/);
-  assert.ok(esito.punti.some((p) => /Garage/.test(p)), "la piu' fredda sta nei punti");
+  assert.ok(
+    esito.punti.some((p) => /Garage/.test(p)),
+    "la piu' fredda sta nei punti",
+  );
 });
 
 test("Temperatura: con una stanza sola non parla di differenze", () => {
@@ -121,14 +139,17 @@ test("Temperatura: con una stanza sola non parla di differenze", () => {
 });
 
 test("Elettrodomestici: nomina quelli accesi e somma i watt", () => {
-  const esito = analisiDellaSezione({
-    key: "elettrodomestici",
-    rows: [
-      { name: "Lavatrice", mode: "running", watts: 1200 },
-      { name: "Lavastoviglie", mode: "running", watts: 800 },
-      { name: "Forno", mode: "off", watts: 0 },
-    ],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "elettrodomestici",
+      rows: [
+        { name: "Lavatrice", mode: "running", watts: 1200 },
+        { name: "Lavastoviglie", mode: "running", watts: 800 },
+        { name: "Forno", mode: "off", watts: 0 },
+      ],
+    },
+    IT,
+  );
   assert.equal(esito.tono, VERDETTI.corso);
   assert.match(esito.frase, /Lavatrice e Lavastoviglie/);
   assert.match(esito.frase, /su 3/);
@@ -136,13 +157,16 @@ test("Elettrodomestici: nomina quelli accesi e somma i watt", () => {
 });
 
 test("Piscina: il pH fuori norma vince sulla temperatura", () => {
-  const esito = analisiDellaSezione({
-    key: "piscina",
-    rows: [
-      { name: "Acqua", raw: 27.5 },
-      { name: "pH", raw: 8.1 },
-    ],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "piscina",
+      rows: [
+        { name: "Acqua", raw: 27.5 },
+        { name: "pH", raw: 8.1 },
+      ],
+    },
+    IT,
+  );
   assert.equal(esito.tono, VERDETTI.guarda);
   assert.match(esito.frase, /pH e' fuori norma/);
   assert.match(esito.frase, /27,5°/);
@@ -155,24 +179,33 @@ test("Auto: sotto il venti per cento e staccata, e' da guardare", () => {
 });
 
 test("Irrigazione: dice quale zona sta bagnando", () => {
-  const esito = analisiDellaSezione({
-    key: "irrigazione",
-    rows: [{ name: "Prato", on: true }, { name: "Siepe", on: false }],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "irrigazione",
+      rows: [
+        { name: "Prato", on: true },
+        { name: "Siepe", on: false },
+      ],
+    },
+    IT,
+  );
   assert.equal(esito.tono, VERDETTI.corso);
   assert.match(esito.frase, /Prato sta bagnando/);
   assert.match(esito.frase, /2 zone/);
 });
 
 test("Solare termico: dice il salto fra le sonde", () => {
-  const esito = analisiDellaSezione({
-    key: "solare",
-    attiva: true,
-    rows: [
-      { name: "Pannello", temperature: 68 },
-      { name: "Accumulo", temperature: 44 },
-    ],
-  }, IT);
+  const esito = analisiDellaSezione(
+    {
+      key: "solare",
+      attiva: true,
+      rows: [
+        { name: "Pannello", temperature: 68 },
+        { name: "Accumulo", temperature: 44 },
+      ],
+    },
+    IT,
+  );
   assert.equal(esito.tono, VERDETTI.corso);
   assert.match(esito.frase, /24,0°/);
 });
@@ -183,16 +216,35 @@ test("chi non ha una lettura riceve niente, non una frase sbagliata", () => {
 
 test("ogni lettura risponde anche in inglese, e con un'altra frase", () => {
   const casi = {
-    energia: { rows: [{ group: "house", watts: 500 }, { group: "solar", watts: 900 }] },
-    solare: { attiva: false, rows: [{ name: "P", temperature: 30 }, { name: "A", temperature: 20 }] },
+    energia: {
+      rows: [
+        { group: "house", watts: 500 },
+        { group: "solar", watts: 900 },
+      ],
+    },
+    solare: {
+      attiva: false,
+      rows: [
+        { name: "P", temperature: 30 },
+        { name: "A", temperature: 20 },
+      ],
+    },
     sicurezza: { alarm: true, armed: true, doors: [{ name: "X" }] },
-    temperatura: { rows: [{ name: "A", temperature: 20 }, { name: "B", temperature: 24 }] },
+    temperatura: {
+      rows: [
+        { name: "A", temperature: 20 },
+        { name: "B", temperature: 24 },
+      ],
+    },
     elettrodomestici: { rows: [{ name: "A", mode: "running", watts: 100 }] },
     telecamere: { rows: [{ name: "Ingresso" }] },
     ev: { ring: 80, attiva: true, rows: [] },
     robot: { rows: [{ name: "Robi", cleaning: true }] },
     piscina: { rows: [{ name: "Acqua", raw: 26 }] },
     irrigazione: { rows: [{ name: "Prato", on: true }] },
+    media: {
+      lettori: [{ nome: "Salotto", suona: true, titolo: "So What", artista: "Miles Davis" }],
+    },
   };
   for (const chiave of SEZIONI_LETTE) {
     const tessera = { key: chiave, ...(casi[chiave] || { rows: [] }) };
@@ -214,7 +266,15 @@ test("le sezioni senza lettura propria sono solo quelle che ne hanno gia' una", 
    * e li' e' giusta: sono tutte fatte di cose che si accendono e si spengono.
    * Questa prova esiste perche' se domani nasce una sezione nuova, e nessuno
    * le scrive la lettura, non finisca a caso nel ripiego generico. */
-  const conFraseAltrove = ["luci", "clima", "tapparelle", "aperture", "batterie", "allagamenti", "todo"];
+  const conFraseAltrove = [
+    "luci",
+    "clima",
+    "tapparelle",
+    "aperture",
+    "batterie",
+    "allagamenti",
+    "todo",
+  ];
   const tutte = [...SEZIONI_LETTE, ...conFraseAltrove].sort();
   assert.deepEqual(tutte, [
     "allagamenti",
@@ -226,6 +286,7 @@ test("le sezioni senza lettura propria sono solo quelle che ne hanno gia' una", 
     "ev",
     "irrigazione",
     "luci",
+    "media",
     "piscina",
     "robot",
     "sicurezza",
@@ -277,8 +338,14 @@ test("il modello dice quando il consumo e' fuori dal solito", () => {
     esito.punti.some((p) => /Piu' alto del solito per quest'ora/.test(p)),
     `manca il confronto col solito: ${JSON.stringify(esito.punti)}`,
   );
-  assert.ok(esito.punti.some((p) => /900 W/.test(p)), "dice quanto fa adesso");
-  assert.ok(esito.punti.some((p) => /300 W/.test(p)), "e quanto fa di solito");
+  assert.ok(
+    esito.punti.some((p) => /900 W/.test(p)),
+    "dice quanto fa adesso",
+  );
+  assert.ok(
+    esito.punti.some((p) => /300 W/.test(p)),
+    "e quanto fa di solito",
+  );
 });
 
 test("quando e' il solito non spreca una riga per dirlo", () => {
@@ -357,7 +424,12 @@ test("sul rumore non annuncia nessuna salita", () => {
 test("il modello non aggiunge mai piu' di due righe", () => {
   const punti = storia(13, 5 * MINUTO, (i) => 50 + i);
   const senza = analisiDellaSezione({ key: "ev", ring: 62, attiva: true, rows: [] }, IT, ADESSO);
-  const con = analisiDellaSezione({ key: "ev", ring: 62, attiva: true, rows: [] }, IT, ADESSO, punti);
+  const con = analisiDellaSezione(
+    { key: "ev", ring: 62, attiva: true, rows: [] },
+    IT,
+    ADESSO,
+    punti,
+  );
   assert.ok(
     con.punti.length - senza.punti.length <= 2,
     "scriverle tutte trasforma la finestra in un bollettino",

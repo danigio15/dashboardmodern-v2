@@ -609,22 +609,64 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scegliere il posto» (#266). Web Mercator, e null'altro: da un punto e da
   // un raggio escono lo zoom e i quadratini. Sta nel nucleo perche' e'
   // aritmetica, e l'aritmetica si prova senza rete.
-  // 210 con la chat di assistenza (`sections/assistenza-section.js`): «io avevo
-  // chiesto una chat di assistenza che non deve passare per github, e' come se
-  // fosse una chat teams». Un modulo solo, e l'import sta in `modules-entry`
-  // perche' il grafo parte di li': un modulo che nessuno importa non viene mai
-  // caricato, ed e' esattamente il difetto del cruscotto della beta.10 — nelle
-  // fotografie c'era, in una casa vera non e' mai comparso.
-  // 209 col giudizio sul contenuto delle sezioni
-  // (`core/contenuto-delle-sezioni.js`): «tutte le sezioni devono nascere come
-  // nascoste, solo se si inserisce entita' in una sezione diventa visibile».
-  // Cosa riempie una sezione lo dicono in due — chi la accende e chi la spegne
-  // — e due elenchi che rispondono alla stessa domanda prima o poi rispondono
-  // in modo diverso: allora una sezione configurata sparisce. Sta nel nucleo
-  // perche' e' una lettura del magazzino e null'altro, e si prova su un
-  // magazzino finto.
+  // 210 col video dal vivo delle telecamere (`core/telecamera-dal-vivo.js`,
+  // `sections/telecamera-vivo-section.js`): «le telecamere Arlo dalla sezione
+  // Sicurezza si vedono solo come istantanea, il video non si muove — con una
+  // card YAML e `camera_view: live` si vede sempre in trasmissione». Il nucleo
+  // ricava l'indirizzo del flusso da quello dell'istantanea, che e' aritmetica
+  // di stringhe e si prova senza rete; la sezione e' la casella che accende il
+  // flusso su una telecamera, accanto a quella dell'RTSP.
+  // 213 con le aree d'allarme (#285) e la regola che le governa
+  // (`core/piu-di-uno.js`, `core/alarm-panel.js` che già c'era,
+  // `sections/centrali-allarme-editor-section.js`): «si può inserire soltanto
+  // un alarm_control_panel, ma se si hanno 2 aree la pagina ne gestisce una
+  // sola». La regola è una sola perché è la terza volta che serve — impianti
+  // dell'energia, impianti solari, aree d'allarme — e tre copie sono tre
+  // occasioni di rispondere diverso.
+  // 215 con l'adattamento allo schermo (`core/fondo-di-sistema.js`, #249: le
+  // zone sicure non esistono dentro una cornice, e il numero si va a prendere
+  // dove esiste) e con l'orologio (`sections/orologio-section.js`, #272:
+  // «sarebbe carino avere l'orologio, magari vicino al meteo»).
+  // 218 con le entita' che uno si aggiunge dove vuole (`core/entita-mie.js`,
+  // `sections/entita-mie-section.js`, `sections/entita-mie-editor-section.js`,
+  // #271): «in alcune schede non e' possibile inserire entita' o sensori
+  // personalizzati... modificando il nome, icona, stanza di destinazione». La
+  // stessa forma delle sezioni proprie — modello puro, disegno, scheda — ma la
+  // scheda e' una sola per tutte le pagine: quale pagina e' un campo della
+  // voce, non una scheda in piu' per ognuna.
+  // 222 con la musica (`core/media-player.js`, `sections/media-player-section.js`,
+  // `sections/media-player-editor-section.js`, `sections/media-in-azioni-section.js`,
+  // #269): «sarebbe carino una sezione dedicata ai dispositivi Media Player…
+  // la possibilita' di aggiungerli anche nelle Azioni rapide, sarebbe figo se
+  // lo sfondo fosse l'anteprima di cio' che viene riprodotto». Il quarto
+  // modulo e' quello che veste il tasto delle Azioni rapide: e' un'altra
+  // superficie, con un altro padrone — il guscio disegna quella griglia — e
+  // metterlo dentro la pagina avrebbe voluto dire una pagina che tocca la Home.
+  // 223 con la stanza detta col suo nome (`sections/stanze-per-nome-section.js`):
+  // «verifica inoltre perche' esce sotto room etc». La tendina delle stanze
+  // salva l'id — e' l'unica cosa che regge un rinominamento — ma gli elenchi
+  // del guscio vendorizzato stampano quello che trovano, e quel guscio non si
+  // tocca: la riparazione e' di superficie per forza, e sta in un modulo solo
+  // invece che in tre punti diversi.
+  // 224 con le due sezioni della beta.12. Il tetto di prima portava uno di
+  // scarto, e queste due lo riempiono esatto:
+  // — il giudizio sul contenuto delle sezioni
+  //   (`core/contenuto-delle-sezioni.js`): «tutte le sezioni devono nascere
+  //   come nascoste, solo se si inserisce entita' in una sezione diventa
+  //   visibile». Cosa riempie una sezione lo dicono in due — chi la accende e
+  //   chi la spegne — e due elenchi che rispondono alla stessa domanda prima o
+  //   poi rispondono in modo diverso: allora una sezione configurata sparisce.
+  //   Sta nel nucleo perche' e' una lettura del magazzino e null'altro, e si
+  //   prova su un magazzino finto.
+  // — la chat di assistenza (`sections/assistenza-section.js`): «io avevo
+  //   chiesto una chat di assistenza che non deve passare per github, e' come
+  //   se fosse una chat teams». Un modulo solo, e l'import sta in
+  //   `modules-entry` perche' il grafo parte di li': un modulo che nessuno
+  //   importa non viene mai caricato, ed e' esattamente il difetto del
+  //   cruscotto della beta.10 — nelle fotografie c'era, in una casa vera non
+  //   e' mai comparso.
   assert.ok(
-    relative.length <= 210,
+    relative.length <= 224,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -672,6 +714,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * tile, and for the same reason: one minute, only while the forecast window
    * is open, and the timer stops itself the moment it finds that window shut.
    *
+   * The eighth is the progress bar of a media player (#269). Home Assistant
+   * says at which second the track was when it measured it, and then says
+   * nothing more until something else changes: nobody pushes the mere passing
+   * of time, so without a beat the bar sits still on a track that is moving.
+   * One second, and the same discipline as the rest: only while the Musica
+   * page is the one on screen AND something is actually playing — either of
+   * those stops being true and the timer dies.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -683,6 +733,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",
+      "src/sections/media-player-section.js",
       "src/sections/people-section.js",
       "src/sections/pool-extra-section.js",
       "src/sections/radar-meteo-section.js",

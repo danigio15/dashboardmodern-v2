@@ -344,6 +344,25 @@ const OGGETTI = Object.freeze({
       <rect x="17" y="12.6" width="2.6" height="6.8" rx="1.3"/></g>
     <path d="M8.4 8.6a6 6 0 0 1 3.4-2" stroke="#fff" stroke-opacity=".8" stroke-width="1.7" fill="none" stroke-linecap="round"/>`,
 
+  /* Il diffusore (#269): cassa scura, il cono del woofer che prende la luce,
+     il tweeter sopra e il riflesso sullo spigolo. Un altoparlante e' l'unico
+     modo di disegnare «musica» che non sia una nota fluttuante: la nota e' un
+     simbolo, questa e' una cosa che sta in salotto. */
+  media: `<defs>
+      <linearGradient id="dmoCassa" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#64748b"/><stop offset=".5" stop-color="#1e293b"/>
+        <stop offset="1" stop-color="#0b1220"/></linearGradient>
+      <radialGradient id="dmoCono" cx=".38" cy=".3" r=".8">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset=".5" stop-color="#94a3b8"/>
+        <stop offset="1" stop-color="#334155"/></radialGradient></defs>
+    ${OMBRA(16, 28.6, 7.6)}
+    <rect x="7.6" y="3.4" width="16.8" height="24" rx="4.4" fill="url(#dmoCassa)"/>
+    <circle cx="16" cy="19.6" r="5.8" fill="url(#dmoCono)"/>
+    <circle cx="16" cy="19.6" r="2.1" fill="#0b1220" opacity=".55"/>
+    <circle cx="16" cy="9.8" r="2.7" fill="url(#dmoCono)"/>
+    <circle cx="16" cy="9.8" r=".95" fill="#0b1220" opacity=".5"/>
+    <path d="M10 6.2a3.2 3.2 0 0 1 2.2-1.5" stroke="#fff" stroke-opacity=".62" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+
   /* In evidenza: la stella, con il suo lucido in alto a sinistra. */
   evidenza: `<defs>
       <linearGradient id="dmoStella" x1="0" y1="0" x2="1" y2="1">

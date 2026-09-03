@@ -44,6 +44,9 @@ import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
 import { installTelecameraRtsp } from "./telecamera-rtsp-section.js";
+import { installCentraliAllarmeEditor } from "./centrali-allarme-editor-section.js";
+import { installOrologio } from "./orologio-section.js";
+import { installTelecameraVivo } from "./telecamera-vivo-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installTermicoDelCaldo } from "./termico-del-caldo-section.js";
 import { installPopupClimaDistingue } from "./il-popup-del-clima-distingue-section.js";
@@ -99,6 +102,12 @@ import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installLinguaSection } from "./lingua-section.js";
 import { installSezioniMie } from "./sezioni-mie-section.js";
 import { installSezioniMieEditor } from "./sezioni-mie-editor-section.js";
+import { installEntitaMie } from "./entita-mie-section.js";
+import { installEntitaMieEditor } from "./entita-mie-editor-section.js";
+import { installMediaPlayer } from "./media-player-section.js";
+import { installMediaEditor } from "./media-player-editor-section.js";
+import { installMediaInAzioni } from "./media-in-azioni-section.js";
+import { installStanzePerNome } from "./stanze-per-nome-section.js";
 import { installRadarMeteo } from "./radar-meteo-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
@@ -819,6 +828,9 @@ export function installSectionRuntime() {
     /* L'indirizzo RTSP nella scheda delle telecamere: si mette accanto al
      * campo del flusso, che e' del guscio, e va installato dopo di lui. */
     installTelecameraRtsp();
+    installTelecameraVivo();
+    installCentraliAllarmeEditor();
+    installOrologio();
     /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();
@@ -930,6 +942,18 @@ export function installSectionRuntime() {
      * per la Continuita' — la scheda chiama la pagina per ridisegnarla. */
     installSezioniMie();
     installSezioniMieEditor();
+    /* Le entita' che uno si aggiunge dove vuole (#271): il disegno prima
+     * della scheda che lo compila, come per le sezioni proprie. */
+    installEntitaMie();
+    installEntitaMieEditor();
+    /* La musica (#269): la pagina, la scheda che dichiara i lettori, e la
+     * copertina addosso al tasto nelle Azioni rapide. */
+    installMediaPlayer();
+    installMediaEditor();
+    installMediaInAzioni();
+    /* Una stanza si mostra col suo nome: gli elenchi del guscio scrivevano
+     * l'identificativo che la tendina salva. */
+    installStanzePerNome();
     /* Il radar meteo dentro la finestra delle previsioni: si aggancia al
      * guscio che quella finestra la disegna gia'. */
     installRadarMeteo();

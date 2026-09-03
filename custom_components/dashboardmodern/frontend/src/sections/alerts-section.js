@@ -19,23 +19,23 @@ const state = (root[KEY] ||= { installed: false, listeners: false });
 /* I gruppi del Quadro Avvisi, chiamati come li chiama la plancia.
  *
  * Questa finestra offriva un elenco suo — Sicurezza, Elettrodomestici, Altro —
- * che nel Quadro Avvisi non esiste: le liste sorvegliate sono Aperture,
- * Batterie, Luci, Clima e Riscaldamento. Un avviso delle Aperture non trovava
- * quindi il proprio gruppo nell'elenco, veniva salvato sotto "Altro" e al
- * riavvio spariva, perche' al caricamento nessuno legge un gruppo che non
- * esiste. Le chiavi qui sotto sono le stesse del runtime, e le etichette sono
- * quelle stampate sulle intestazioni, cosi' una riga si riconosce da dove si
- * trova. */
+ * che nel Quadro Avvisi non esiste: le liste sorvegliate sono Batterie, Luci,
+ * Clima e Riscaldamento. Un avviso non trovava quindi il proprio gruppo
+ * nell'elenco, veniva salvato sotto "Altro" e al riavvio spariva, perche' al
+ * caricamento nessuno legge un gruppo che non esiste. Le chiavi qui sotto sono
+ * le stesse del runtime, e le etichette sono quelle stampate sulle
+ * intestazioni, cosi' una riga si riconosce da dove si trova. */
+/* Le aperture, che erano la prima riga, non ci sono piu': «viene gia' gestito
+ * da Finestre, se li si mette il sensore finestra dice quale e' aperto, quindi
+ * e' un duplicato». La loro lista non alimenta nessuna tessera, e la scheda
+ * degli avvisi non la offre piu' — offrirla vorrebbe dire far riempire una
+ * lista che nessuno legge, che e' la ragione per cui luci, clima e
+ * riscaldamento se ne erano andati prima di lei.
+ *
+ * Il commento sta sopra la tabella e non dentro: il raccoglitore delle
+ * traduzioni legge questo letterale, e una parola seguita da una parentesi gli
+ * sembra una chiamata di funzione. */
 const GROUPS = Object.freeze([
-  /* «Cambia nome ad Aperture nei widget dove si inseriscono i sensori porta:
-   * chiamali Porte/Finestre, altrimenti si confonde con le altre aperture» —
-   * le altre sono i comandi che aprono cancelli, nella Sicurezza. La quinta
-   * casella e' il nome di prima: l'intestazione del guscio vendorizzato dice
-   * ancora «Aperture», e questa tabella serve a due padroni — e' quello che
-   * stampiamo *e* quello con cui riconosciamo le righe gia' li'. Senza gli
-   * alias il gruppo di una riga smetteva di riconoscersi il giorno del
-   * cambio di nome. */
-  ["win", "🚪", "Porte/Finestre", "Doors/Windows", ["Aperture", "Openings"]],
   ["batt", "🔋", "Batterie", "Batteries"],
   ["luci", "💡", "Luci", "Lights"],
   ["clima", "❄️", "Clima", "Climate"],
@@ -175,7 +175,9 @@ function configuredGroups() {
 function groupFromRow(row) {
   const stored = clean(row.dataset.alertGroup);
   if (GROUP_KEYS.has(stored)) return stored;
-  const summary = clean(row.closest("details")?.querySelector("summary")?.textContent).toLowerCase();
+  const summary = clean(
+    row.closest("details")?.querySelector("summary")?.textContent,
+  ).toLowerCase();
   const found = GROUPS.find(([, , it, en, alias = []]) =>
     [it, en, ...alias].some((label) => summary.includes(label.toLowerCase())),
   );
@@ -299,8 +301,12 @@ export function openAlertEditor(row) {
   doc.body.append(modal);
   const form = modal.querySelector("[data-form]");
   const close = () => modal.remove();
-  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
-  modal.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
+  modal
+    .querySelectorAll("[data-close],[data-cancel]")
+    .forEach((button) => button.addEventListener("click", close));
+  modal
+    .querySelector("[data-pick]")
+    .addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
   form.elements.group.addEventListener("change", () => {
     /* Chi non ha scelto un'icona sua continua a seguire il gruppo: cambiando
      * gruppo si aggiorna anche il campo. Chi una scelta l'ha fatta se la
@@ -328,7 +334,10 @@ export function openAlertEditor(row) {
     const group = clean(form.elements.group.value) || oldGroup;
     const error = form.querySelector("[data-error]");
     if (!name || !/^[a-z_]+\.[a-z0-9_]+$/i.test(entity)) {
-      error.textContent = t("Inserisci un nome e un'entità valida.", "Enter a name and a valid entity.");
+      error.textContent = t(
+        "Inserisci un nome e un'entità valida.",
+        "Enter a name and a valid entity.",
+      );
       return;
     }
     persistAlert({
@@ -345,37 +354,6 @@ export function openAlertEditor(row) {
   });
 }
 
-/* Il guscio vendorizzato stampa i suoi nomi di gruppo, e uno non va piu' bene:
- * l'intestazione della fisarmonica e la voce del menu dicono «Aperture», che e'
- * la parola dei comandi che aprono i cancelli. Qui dentro si inseriscono i
- * sensori di porte e finestre, ed e' quello il nome giusto.
- *
- * Si riscrive il nodo di testo, non tutta l'intestazione: accanto c'e' il
- * contatore, e rifare il nodo intero se lo porterebbe via. E si riscrive solo
- * quello che porta ancora il nome vecchio, che e' anche il modo di non rifare
- * il lavoro a ogni ridisegno. */
-function rinominaIGruppi(body) {
-  for (const [key, icon, it, en, alias = []] of GROUPS) {
-    if (!alias.length) continue;
-    const nome = `${icon} ${t(it, en)}`;
-    const vecchi = alias.map((label) => label.toLowerCase());
-    const eVecchio = (testo) => vecchi.some((label) => testo.toLowerCase().includes(label));
-    for (const testa of body.querySelectorAll("summary.ed-acc-head")) {
-      const primo = testa.firstChild;
-      if (primo?.nodeType !== 3 || !eVecchio(clean(primo.textContent))) continue;
-      primo.textContent = `${nome} `;
-    }
-    /* La voce del menu porta anche il tipo di sensore fra parentesi: si cambia
-     * il nome, la parentesi resta sua. */
-    for (const voce of body.querySelectorAll(`option[value="${key}"]`)) {
-      const testo = clean(voce.textContent);
-      if (!eVecchio(testo)) continue;
-      const coda = testo.match(/\([^)]*\)\s*$/)?.[0] || "";
-      voce.textContent = coda ? `${nome} ${coda}` : nome;
-    }
-  }
-}
-
 export function normalizeAlertsEditor() {
   // La scheda degli avvisi non ha piu' una linguetta sua: vive in fondo a
   // quella dei widget. Chiedere «quale linguetta e' attiva» non dice piu'
@@ -384,7 +362,6 @@ export function normalizeAlertsEditor() {
   const body = doc.getElementById("ed-body");
   if (!body) return false;
   riparaAggiunteTolte();
-  rinominaIGruppi(body);
   body.querySelectorAll(".ed-row").forEach((row) => {
     const entity = rowEntity(row);
     if (!entity) {

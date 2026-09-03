@@ -43,7 +43,17 @@
  * legacy `setRing()` already uses to colour these three gauges, and the 20-100
  * window plus the 75 °C notch the runtime itself draws the temperature arc in.
  */
-import { clean, doc, installStyle, lexicalGlobal, root, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  installStyle,
+  lexicalGlobal,
+  readJson,
+  root,
+  t,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_MINIPC_SHOWCASE__";
 const STYLE_ID = "dm-minipc-showcase-style";
@@ -155,7 +165,9 @@ export function levelName(level) {
  * drawn one yet. The scale follows the arc instead of re-deriving the reading.
  */
 export function tempFraction(scope = doc) {
-  const dash = clean(scope?.getElementById?.("srv-temp-circle")?.getAttribute?.("stroke-dasharray"));
+  const dash = clean(
+    scope?.getElementById?.("srv-temp-circle")?.getAttribute?.("stroke-dasharray"),
+  );
   const [drawn, gap] = dash.split(/[\s,]+/).map(Number);
   if (!Number.isFinite(drawn) || !Number.isFinite(gap) || drawn + gap <= 0) return 0;
   return Math.max(0, Math.min(1, drawn / (drawn + gap)));
@@ -176,6 +188,150 @@ export function tempLevel(text) {
 /** The same wording without its marker, so the badge can draw its own dot. */
 export function tempWording(text) {
   return clean(clean(text).replace(/^[🔴🟡🟢]\s*/u, ""));
+}
+
+/* ── c'e' internet, e chi lo dice ──────────────────────────────────────────
+ *
+ * «Verifica offline: i dati sono stati inseriti tutti nella sezione e internet
+ * e' online.» La pastiglia diceva OFFLINE su una macchina che stava mandando
+ * CPU, RAM e disco — cioe' rispondeva benissimo.
+ *
+ * La ragione: il guscio legge UNA casella sola, `dm.server_raggiungibilita_google`,
+ * e da quella decide. Ma la sezione ne offre quattro che dicono la stessa cosa
+ * — Stato Internet, Ping Internet, Raggiungibilita' Google, Internet lavanderia
+ * — e chi compila la scheda ne riempie quella che ha. Riempite le altre tre,
+ * la quarta resta vuota, e una casella vuota diventava «OFFLINE»: una notizia
+ * sulla connessione ricavata dal fatto che nessuno l'ha data.
+ *
+ * Qui si legge quella che c'e', nell'ordine in cui la sezione le elenca, e si
+ * accettano le forme che i sensori veri usano davvero. Se non e' stata
+ * compilata nessuna delle quattro non si dice OFFLINE: si dice che non e'
+ * configurata, che e' l'unica cosa vera. */
+/* La casella che resta: e' quella che il guscio legge dappertutto — la
+ * pastiglia in cima, la card «Connettivita'» e il popup dei sette giorni —
+ * quindi tenendo lei lo storico continua a funzionare senza toccarlo. Il nome
+ * che portava («Raggiungibilita' Google») era di una casella fra quattro; da
+ * sola si chiama Internet. */
+export const CASELLA_DI_RETE = "dm.server_raggiungibilita_google";
+
+/* Le tre che facevano la stessa domanda. Non si leggono piu' dalla scheda —
+ * spariscono da li' — ma si continuano a leggere dalla configurazione, perche'
+ * chi aveva riempito una di queste e non l'altra deve continuare a vedere il
+ * suo stato finche' il travaso non e' passato di la'. */
+export const CASELLE_VECCHIE = Object.freeze([
+  "dm.server_stato_internet",
+  "dm.server_ping_internet",
+  "dm.server_internet_lavanderia",
+]);
+
+export const CASELLE_DI_RETE = Object.freeze([CASELLA_DI_RETE, ...CASELLE_VECCHIE]);
+
+const CONNESSO = new Set([
+  "on",
+  "connected",
+  "connesso",
+  "online",
+  "up",
+  "ok",
+  "true",
+  "home",
+  "1",
+]);
+const SCONNESSO = new Set([
+  "off",
+  "disconnected",
+  "non connesso",
+  "offline",
+  "down",
+  "false",
+  "not_home",
+  "0",
+]);
+
+/**
+ * Se c'e' internet, secondo una casella.
+ *
+ * Torna `true`, `false`, oppure `null` — e `null` vuol dire «questa casella non
+ * lo dice», che e' diverso da «no».
+ */
+export function letturaDellaRete(stato) {
+  const grezzo = clean(stato).toLowerCase();
+  if (!grezzo || grezzo === "unavailable" || grezzo === "unknown") return null;
+  if (CONNESSO.has(grezzo)) return true;
+  if (SCONNESSO.has(grezzo)) return false;
+  /* Il sensore dell'integrazione Ping non dice «on»: dice quanti millisecondi
+   * ci ha messo il giro. Un tempo di andata e ritorno vuol dire che dall'altra
+   * parte qualcuno ha risposto. */
+  const numero = Number(grezzo.replace(",", "."));
+  return Number.isFinite(numero) ? true : null;
+}
+
+/** La prima casella compilata che dice qualcosa, e cosa dice. */
+export function reteDelleCaselle(leggi, caselle = CASELLE_DI_RETE) {
+  for (const casella of caselle) {
+    const detta = letturaDellaRete(leggi(casella));
+    if (detta !== null) return { casella, online: detta };
+  }
+  return { casella: "", online: null };
+}
+
+/* ── una casella sola, e il suo travaso ────────────────────────────────────
+ *
+ * «Non ne mettere 4 che dicono la stessa cosa, mettine 1 solo che poi
+ * restituisce lo stato in alto e mostra la card con il popup che ti dà tutti
+ * gli stati precedenti.»
+ *
+ * Quattro caselle per una domanda sola sono quattro modi di sbagliarla: chi
+ * compila ne riempie una, e le altre tre restano li' a far credere che manchi
+ * qualcosa. Nella scheda ne resta una, si chiama Internet, e quello che era
+ * scritto nelle altre si sposta dentro di lei — una volta, e solo se lei e'
+ * vuota. Poi tutto il resto funziona da se': la pastiglia in cima la legge, la
+ * card «Connettivita'» apre lo storico dei sette giorni che il guscio disegna
+ * gia', e quello storico legge la stessa casella. */
+
+function overrides() {
+  const vivi = lexicalGlobal("ENTITY_OVERRIDES");
+  if (vivi && typeof vivi === "object") return vivi;
+  const scritti = readJson("cd_entity_overrides", {});
+  return scritti && typeof scritti === "object" ? scritti : {};
+}
+
+/** Quale entità è scritta in una casella. */
+export function entitaDellaCasella(riferimento) {
+  return clean(overrides()[riferimento]);
+}
+
+/** Come restano le mappature dopo il travaso, o `null` se non c'era niente da
+ * spostare né da ripulire. */
+export function dopoIlTravaso(scritte, casella = CASELLA_DI_RETE, vecchie = CASELLE_VECCHIE) {
+  const dentro = scritte && typeof scritte === "object" ? scritte : null;
+  if (!dentro) return null;
+  const restanti = vecchie.filter((vecchia) => clean(dentro[vecchia]));
+  if (!restanti.length) return null;
+  const prossime = { ...dentro };
+  /* Si sposta, non si copia: due caselle con la stessa entita' dentro sono di
+   * nuovo due caselle che dicono la stessa cosa, ed e' quello da cui si
+   * scappa. Le tre vecchie se ne vanno anche quando la buona e' gia' piena:
+   * non le legge piu' niente e non le offre piu' nessuno, e una mappatura che
+   * nessuno legge e' un pezzo sparso. */
+  if (!clean(dentro[casella])) prossime[casella] = clean(dentro[restanti[0]]);
+  for (const vecchia of vecchie) delete prossime[vecchia];
+  return prossime;
+}
+
+export function portaAvantiLaCasella() {
+  const scritte = readJson("cd_entity_overrides", {});
+  const prossime = dopoIlTravaso(scritte);
+  if (!prossime) return false;
+  writeJsonIfChanged("cd_entity_overrides", prossime);
+  /* Valido subito anche per il guscio, che tiene la sua copia in memoria:
+   * senza questa riga lo stato tornava giusto solo al ricaricamento. */
+  const vivi = lexicalGlobal("ENTITY_OVERRIDES");
+  if (vivi && typeof vivi === "object") {
+    if (clean(prossime[CASELLA_DI_RETE])) vivi[CASELLA_DI_RETE] = clean(prossime[CASELLA_DI_RETE]);
+    for (const vecchia of CASELLE_VECCHIE) delete vivi[vecchia];
+  }
+  return true;
 }
 
 /** Connectivity, read from the badge class the render loop rewrites per tick. */
@@ -361,7 +517,12 @@ function mountTrace(page) {
 const GROUPS = Object.freeze([
   { block: ".srv-temp-card", card: ".srv-temp-card", it: "Termica", en: "Thermal" },
   { block: ".srv-tel-grid", card: ".srv-tel-card", it: "Telemetria", en: "Telemetry" },
-  { block: ".srv-status-grid", card: ".srv-status-card", it: "Rete e impianto", en: "Network & plant" },
+  {
+    block: ".srv-status-grid",
+    card: ".srv-status-card",
+    it: "Rete e impianto",
+    en: "Network & plant",
+  },
 ]);
 
 function mountHeadings(page) {
@@ -403,9 +564,11 @@ function syncHeadings(page) {
  * configuration could take away, because the slot lives in Energia and not in
  * this page. They now follow the same rule as every other card: gone while
  * their entity is unmapped, back the moment it is mapped. */
+/* La rete non ha una casella: ne ha quattro, e basta che ne sia compilata una.
+ * Guardarne una sola faceva sparire la card a chi aveva riempito le altre. */
 const STATUS_CARD_SLOTS = Object.freeze([
-  { id: "waw-net-badge", slot: "dm.server_raggiungibilita_google" },
-  { id: "waw-inv-badge", slot: "dm.energy_stato_rete" },
+  { id: "waw-net-badge", slots: CASELLE_DI_RETE },
+  { id: "waw-inv-badge", slots: ["dm.energy_stato_rete"] },
 ]);
 
 function slotIsMapped(slot) {
@@ -415,10 +578,10 @@ function slotIsMapped(slot) {
 }
 
 function syncStatusCards(page) {
-  for (const { id, slot } of STATUS_CARD_SLOTS) {
+  for (const { id, slots } of STATUS_CARD_SLOTS) {
     const card = page.querySelector(`#${id}`)?.closest(".srv-status-card");
     if (!card) continue;
-    const display = slotIsMapped(slot) ? "" : "none";
+    const display = slots.some((slot) => slotIsMapped(slot)) ? "" : "none";
     if (card.style.display !== display) card.style.display = display;
   }
 }
@@ -551,9 +714,62 @@ export function renderMinipcShowcase() {
     }
   }
 
+  raddrizzaLaRete(page);
   const net = networkState(doc);
   if (page.dataset.dmSrvNet !== net) page.dataset.dmSrvNet = net;
   return true;
+}
+
+/* Lo stato dello stato di una entita', come lo tiene il guscio. */
+function statoDellaCasella(riferimento) {
+  const overrides = lexicalGlobal("ENTITY_OVERRIDES") || {};
+  const entity = clean(overrides[riferimento]);
+  if (!entity) return "";
+  return clean(allStates()?.[entity]?.state);
+}
+
+/* La pastiglia della rete, riscritta dopo il guscio.
+ *
+ * Il giro di disegno del guscio la ridipinge a ogni battito leggendo la sua
+ * unica casella: qui si ripassa dopo, con la lettura onesta. Si scrive solo
+ * quando il testo cambia davvero — questa funzione passa a ogni giro, e
+ * riscrivere lo stesso testo vorrebbe dire invalidare una pastiglia sessanta
+ * volte al secondo. */
+export function raddrizzaLaRete(page = doc?.getElementById?.("page-server")) {
+  if (!page) return "";
+  const { online } = reteDelleCaselle(statoDellaCasella);
+  const parola =
+    online === true
+      ? t("ONLINE", "ONLINE")
+      : online === false
+        ? t("OFFLINE", "OFFLINE")
+        : t("NON CONFIGURATO", "NOT CONFIGURED");
+  const lunga =
+    online === true
+      ? t("CONNESSO", "CONNECTED")
+      : online === false
+        ? t("NON CONNESSO", "NOT CONNECTED")
+        : t("NESSUNA CASELLA COMPILATA", "NO BOX FILLED IN");
+  for (const id of ["v-srv-net-status", "v-srv-net-status2"]) {
+    const nodo = doc?.getElementById?.(id);
+    if (nodo && nodo.textContent !== parola) nodo.textContent = parola;
+  }
+  for (const id of ["v-srv-net-text", "v-srv-net-text2"]) {
+    const nodo = doc?.getElementById?.(id);
+    if (nodo && nodo.textContent !== lunga) nodo.textContent = lunga;
+  }
+  const badge = doc?.getElementById?.("waw-net-badge");
+  if (badge) {
+    const veste =
+      online === null ? "srv-status-badge" : `srv-status-badge ${online ? "online" : "offline"}`;
+    if (badge.className !== veste) badge.className = veste;
+    const punto = badge.querySelector(".srv-status-indicator");
+    /* Grigio quando non si sa: il rosso e' un allarme, e qui non c'e' niente
+     * di allarmante — c'e' una casella vuota. */
+    const colore = online === null ? "#94a3b8" : online ? "#10b981" : "#ef4444";
+    if (punto && punto.style.background !== colore) punto.style.background = colore;
+  }
+  return online === null ? "" : online ? "on" : "off";
 }
 
 /* The auto-hide is what empties a block, and all it does is write an inline
@@ -591,6 +807,7 @@ function pageVisible() {
 export function installMinipcShowcaseSection() {
   if (!doc) return;
   installStyle(STYLE_ID, minipcShowcaseCss());
+  portaAvantiLaCasella();
   if (!state.listeners) {
     state.listeners = true;
     for (const eventName of [
@@ -600,9 +817,15 @@ export function installMinipcShowcaseSection() {
     ]) {
       root.addEventListener?.(eventName, () => {
         bindAutoHide();
+        portaAvantiLaCasella();
         scheduleMinipcShowcase();
       });
     }
+    /* Il travaso aspetta che la configurazione sia arrivata: su un secondo
+     * dispositivo le caselle nascono vuote e arrivano dopo, e travasare prima
+     * vorrebbe dire travasare il niente. */
+    for (const evento of ["dashboardmodern:states-ready", "dashboardmodern:persistence-restored"])
+      root.addEventListener?.(evento, portaAvantiLaCasella);
     // The bars, the temperature arc and the badges repaint through the legacy
     // render loop, so the scene follows the same events instead of a timer.
     root.addEventListener?.("dashboardmodern:state-changed", () => {

@@ -58,6 +58,17 @@ import {
   normalizzaUps,
 } from "../core/ups-model.js";
 import {
+  TESSERA_PER_IMPIANTO,
+  TESSERE_IMPIANTI_KEY,
+  comeSiVedeLEnergia,
+  plantIsConfigured,
+  plantKey,
+  plantLabel,
+  plantList,
+  sommaLetture,
+  sommaNumeri,
+} from "../core/energy-plants.js";
+import {
   CALENDARI_KEY,
   GIORNI_AVANTI,
   eventiDaQui,
@@ -88,6 +99,8 @@ import {
   tastoNuovoMarkup,
 } from "./calendario-modifica-section.js";
 import { normalizzaPrese } from "../core/prese-model.js";
+import { CHIAVE_MEDIA, lettoriConfigurati, lettureDeiLettori } from "../core/media-player.js";
+import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
@@ -195,6 +208,9 @@ const state = (root[KEY] ||= {
    * il nero e il rinfresco senza fine. Ricordando cosa si e' scritto, il
    * confronto torna a essere fra due testi che si assomigliano davvero. */
   corpo: { chiave: "", markup: "" },
+  /* Le animazioni messe in pausa mentre la finestra copre la plancia, per
+   * poterle far ripartire quando si chiude. */
+  ferme: [],
 });
 
 export function configuredTodoLists() {
@@ -961,32 +977,44 @@ function wattsOf(states, entity) {
   return wattsFromState(stateOf(states, entity));
 }
 
-function energyModel(states) {
-  const model = section("energy", {}) || {};
+/* Le letture dei quattro gruppi di UN impianto.
+ *
+ * `slot` è la mappatura di sempre, e vale solo per il primo impianto: gli
+ * altri non hanno slot — sono nati dopo — e leggono le entità che si sono
+ * scritte nel loro gruppo. Senza questa distinzione il secondo impianto, coi
+ * campi vuoti, avrebbe letto le entità del primo e detto gli stessi numeri. */
+function lettureDellImpianto(states, impianto, primo) {
   const readings = ENERGY_SLOTS.map(([group, field, slot]) => ({
     group,
-    watts: wattsOf(states, clean(model?.[group]?.[field]) || slot),
+    watts: wattsOf(states, clean(impianto?.[group]?.[field]) || (primo ? slot : "")),
   }));
-  const house = readings.find((row) => row.group === "house")?.watts ?? null;
-  const today = numOf(states, clean(model?.house?.daily_energy) || "dm.energy_consumo_casa_oggi");
+  const soc = numOf(
+    states,
+    clean(impianto?.battery?.soc) || (primo ? "dm.energy_stato_carica_batteria" : ""),
+  );
   const rows = readings.filter((row) => row.watts != null);
-  /* Quanto e' piena la batteria, adesso. Dal campo: «nel widget fotovoltaico
-   * inserire anche la percentuale batteria attuale». Lo stato di carica ha
-   * gia' il suo slot — e' quello che racconta «piena fra un'ora» — e la
-   * casella Batteria lo dice accanto ai watt; senza la potenza mappata, la
-   * percentuale basta da sola a far esistere la casella. */
-  const soc = numOf(states, clean(model?.battery?.soc) || "dm.energy_stato_carica_batteria");
   if (soc != null) {
     const batteria = rows.find((row) => row.group === "battery");
     if (batteria) batteria.soc = soc;
     else rows.push({ group: "battery", watts: null, soc });
   }
+  return {
+    rows,
+    house: readings.find((row) => row.group === "house")?.watts ?? null,
+    today: numOf(
+      states,
+      clean(impianto?.house?.daily_energy) || (primo ? "dm.energy_consumo_casa_oggi" : ""),
+    ),
+  };
+}
+
+function tesseraEnergia(rows, house, today, { key = "energia", label } = {}) {
   if (house == null && !rows.length) return null;
   return {
-    key: "energia",
+    key,
     accent: "#f97316",
     icon: "⚡",
-    label: t("Energia", "Energy"),
+    label: label || t("Energia", "Energy"),
     value: formatWatts(house),
     caption:
       today == null
@@ -996,6 +1024,54 @@ function energyModel(states) {
     rows,
     today,
   };
+}
+
+/* Le tessere dell'energia: una, o una per impianto (#286).
+ *
+ * «Ho due appartamenti uniti con due contatori separati. Tutto bene nella
+ * sezione energia ma il widget in Home page è solo quello del primo impianto.»
+ * Con un impianto solo esce esattamente la tessera di prima, con la stessa
+ * chiave: chi non ha chiesto niente non si accorge che questa funzione è
+ * cambiata. */
+function energyModels(states) {
+  const documento = section("energy", {}) || {};
+  const impianti = plantList(documento);
+  const configurati = impianti.filter(
+    (impianto, indice) => indice === 0 || plantIsConfigured(impianto),
+  );
+  const letture = configurati.map((impianto, indice) =>
+    lettureDellImpianto(states, impianto, indice === 0),
+  );
+  if (configurati.length < 2) {
+    const sola = letture[0] || { rows: [], house: null, today: null };
+    return [tesseraEnergia(sola.rows, sola.house, sola.today)].filter(Boolean);
+  }
+  /* La scelta è una parola, non un oggetto: si legge com'è scritta — come
+   * `cd_energy_plant`, che è la casella vicina di casa. */
+  if (
+    comeSiVedeLEnergia(root.localStorage?.getItem?.(TESSERE_IMPIANTI_KEY)) === TESSERA_PER_IMPIANTO
+  ) {
+    /* Una per impianto. La prima tiene la chiave di sempre, così l'ordine e la
+     * visibilità che si erano già scelti restano suoi; le altre portano il
+     * loro id, come fanno le tariffe e i contatori. */
+    return configurati
+      .map((impianto, indice) =>
+        tesseraEnergia(letture[indice].rows, letture[indice].house, letture[indice].today, {
+          key: plantKey("energia", impianto, indice),
+          label: plantLabel(impianto, indice, t("Impianto", "Plant")),
+        }),
+      )
+      .filter(Boolean);
+  }
+  /* Una sola, con la somma: è quello che una Home dice — quanto consuma la
+   * casa — e chi ha unito due appartamenti ha una casa sola. */
+  return [
+    tesseraEnergia(
+      sommaLetture(letture.map((lettura) => lettura.rows)),
+      sommaNumeri(letture.map((lettura) => lettura.house)),
+      sommaNumeri(letture.map((lettura) => lettura.today)),
+    ),
+  ].filter(Boolean);
 }
 
 function appliancesModel(states) {
@@ -2146,6 +2222,51 @@ function preseModel(states) {
   };
 }
 
+/* Cosa sta suonando in casa (#269).
+ *
+ * «Per media player pensa anche a un widget che ti dica cosa e' in
+ * riproduzione»: e' la sola tessera del ponte in cui il numero grande non e'
+ * la risposta. Quante casse stanno suonando si sa in un colpo d'occhio; quello
+ * che si vuole sapere e' CHE COSA — e quello sta nella didascalia, che scorre
+ * quando non ci sta. Con piu' di una cassa accesa la didascalia dice anche
+ * dove: «Salotto: So What», perche' due titoli di fila senza il posto sono due
+ * titoli e basta. */
+function cosaSuona(riga, conIlPosto) {
+  const pezzo = [titoloDelLettore(riga), riga.artista].filter(Boolean).join(" — ");
+  return conIlPosto ? `${riga.nome}: ${pezzo}` : pezzo;
+}
+
+function mediaModel(states) {
+  const lettori = lettoriConfigurati(readJson(CHIAVE_MEDIA, []));
+  if (!lettori.length) return null;
+  const fuori = widgetExcludedEntities();
+  const dentro = lettori.filter((voce) => widgetIncludes(voce.entity, fuori));
+  if (!dentro.length) return null;
+  const righe = lettureDeiLettori(dentro, states, root.resolveEntity || ((valore) => valore));
+  const suonano = righe.filter((riga) => riga.suona);
+  const conIlPosto = suonano.length > 1;
+  return {
+    key: "media",
+    accent: "#8b5cf6",
+    icon: "🔊",
+    label: t("Musica", "Media"),
+    value: String(suonano.length),
+    caption: suonano.length
+      ? suonano.map((riga) => cosaSuona(riga, conIlPosto)).join(" · ")
+      : t("Nessuno in riproduzione", "Nothing playing"),
+    ring: righe.length ? Math.round((suonano.length / righe.length) * 100) : null,
+    attiva: suonano.length > 0,
+    /* Le letture intere viaggiano con la tessera: la finestra ci disegna un
+     * lettore per cassa, con la copertina e i comandi.
+     *
+     * Niente `rows`, invece: le pastiglie dello stato direbbero «Salotto · SO
+     * WHAT» sopra un lettore che dice gia' Salotto, So What e Miles Davis, con
+     * la copertina accanto. La stessa cosa scritta due volte a due dita di
+     * distanza si legge come un errore. */
+    lettori: righe,
+  };
+}
+
 /* Le caselle del MiniPC che la tessera sa raccontare, nell'ordine in cui
  * contano: prima quanto sta lavorando, poi quanto scotta e quanto tira, poi la
  * linea. Sono gli stessi riferimenti della sua scheda: chi li ha mappati una
@@ -2370,14 +2491,49 @@ function rowsDetail(widget) {
     .join("");
 }
 
+/* Il lettore, dentro la finestra della tessera (#269).
+ *
+ * La stessa copertina e gli stessi tasti della pagina, in piccolo: i tasti li
+ * disegna e li ascolta il modulo della musica — il suo gestore sta sul
+ * documento — quindi qui non c'e' un secondo modo di mettere in pausa. Il
+ * fondo sfocato invece resta alla pagina: dentro una finestra larga un palmo
+ * sarebbe una macchia di colore sotto tre righe di testo. */
+function mediaDetail(widget) {
+  return (widget.lettori || [])
+    .map(
+      (riga) => `<div class="dm-w-media" data-suona="${riga.suona}" data-muta="${riga.muto}">
+      ${
+        riga.copertina
+          ? `<img class="dm-w-media-arte" src="${esc(riga.copertina)}" alt="" aria-hidden="true">`
+          : `<span class="dm-w-media-arte dm-w-media-vuota" aria-hidden="true">${
+              riga.icona ? esc(riga.icona) : oggettoWidget("media")
+            }</span>`
+      }
+      <span class="dm-w-media-testo">
+        <small class="dm-w-media-dove">${esc(riga.nome)}</small>
+        <strong class="dm-w-media-titolo">${esc(titoloDelLettore(riga))}</strong>
+        <small class="dm-w-media-sotto">${esc(sottoDelLettore(riga))}</small>
+      </span>
+      ${comandiMediaMarkup(riga)}
+    </div>`,
+    )
+    .join("");
+}
+
 /* ── i widget del Quadro Avvisi ───────────────────────────────────────── */
 
 /* Il ponte ha preso il posto del Quadro Avvisi, che dalla Home e' uscito del
- * tutto: le sue liste sorvegliate — aperture, batterie, allagamenti, avvisi
+ * tutto: le sue liste sorvegliate — batterie, allagamenti, avvisi
  * personalizzati — sono queste tessere, che come le card di prima compaiono
  * solo quando hanno qualcosa da dire. Le liste e le regole di conteggio sono
  * LE STESSE del runtime (`GRUPPI_MONITORAGGIO`, il matcher degli avvisi
- * custom), cosi' numero e voci combaciano sempre. */
+ * custom), cosi' numero e voci combaciano sempre.
+ *
+ * Le aperture avevano la loro, ed e' stata tolta: «viene gia' gestito da
+ * Finestre, se li si mette il sensore finestra dice quale e' aperto, quindi e'
+ * un duplicato». Vero — la tessera Finestre legge i contatti delle coperture
+ * e nomina quelle aperte — e due tessere che rispondono alla stessa domanda
+ * sono due occasioni di rispondere diverso. */
 
 function gruppoEntita(chiave) {
   try {
@@ -2393,7 +2549,7 @@ function gruppoEntita(chiave) {
 
 function friendlyName(states, entity) {
   /* Prima il nome che la persona ha scritto in configurazione, poi quello di
-   * Home Assistant. Il widget delle aperture mostrava «Sensore Porta/finestra
+   * Home Assistant. Le tessere degli avvisi mostravano «Sensore Porta/finestra
    * Camera matrimoniale Batteria» — il nome di fabbrica — anche a chi quella
    * riga l'aveva battezzata: il nome scelto sta in `cd_avvisi_names_extra`,
    * ed e' lo stesso posto da cui lo leggono il Quadro Avvisi e gli
@@ -2404,59 +2560,6 @@ function friendlyName(states, entity) {
     entity.split(".")[1]?.replaceAll("_", " ") ||
     entity
   );
-}
-
-function openingsModel(states) {
-  const entities = gruppoEntita("win");
-  if (!entities.length) return null;
-  const rows = entities.map((entity) => {
-    const stato = stateOf(states, entity);
-    /* Da quando sta cosi'. Home Assistant lo sa, e per un contatto e' un dato
-     * onesto: cambia quando la finestra si apre o si chiude, non a ogni
-     * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
-     * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
-    const daQuando = Date.parse(stato?.last_changed ?? "");
-    /* Il sensore girato (#244) sta a ON quando la finestra e' CHIUSA. Un
-     * sensore muto (unavailable/unknown) non e' una finestra: girato o no,
-     * non si conta — o il verso girato trasformava il silenzio in allarme. */
-    const grezzo = clean(stato?.state).toLowerCase();
-    const vivo = grezzo === "on" || grezzo === "off";
-    const aperta = vivo
-      ? apertaSecondoVerso(
-          grezzo === "on",
-          insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
-        ) === true
-      : false;
-    const nome = friendlyName(states, entity);
-    return {
-      entity,
-      name: nome,
-      on: aperta,
-      /* Da quando le aperture non fanno piu' lista sotto, la pillola e'
-       * il loro posto: porta l'icona scelta e la parola, non solo il colore. */
-      glyph: iconaApertura({ entity, name: nome }),
-      value: aperta ? t("Aperta", "Open") : t("Chiusa", "Closed"),
-      daQuando: Number.isFinite(daQuando) ? daQuando : null,
-    };
-  });
-  const open = rows.filter((row) => row.on);
-  if (!open.length) return null;
-  /* Le aperte in testa: «dice due porte aperte ma sotto ne mostra una» — la
-   * seconda stava sotto la piega, in mezzo a ventotto chiuse. L'ordine fra
-   * pari resta quello del gruppo (il sort e' stabile). */
-  const ordinate = [...rows].sort((a, b) => Number(b.on) - Number(a.on));
-  return {
-    key: "aperture",
-    accent: "#dc2626",
-    icon: "🚪",
-    alert: true,
-    label: t("Porte/Finestre", "Doors/Windows"),
-    value: String(open.length),
-    caption: open[0] ? open[0].name : "",
-    ring: Math.round((open.length / rows.length) * 100),
-    rows: ordinate,
-    open,
-  };
 }
 
 function batteriesModel(states) {
@@ -2798,10 +2901,10 @@ function gruppiScelti() {
 
 /* Se questa plancia e' stata configurata da qualcuno.
  *
- * Le tessere degli avvisi — aperture, batterie, allagamenti — non nascono dalla
+ * Le tessere degli avvisi — batterie, allagamenti — non nascono dalla
  * configurazione: nascono dal rilevamento, cioe' da quello che Home Assistant
  * ha in casa. Su una plancia appena creata questo voleva dire trovarsi in Home
- * il ponte gia' acceso, con «2 aperte su 30», sotto il messaggio che dice il
+ * il ponte gia' acceso, con «2 batterie scariche», sotto il messaggio che dice il
  * contrario — «non hai ancora collegato le tue entita', quindi le card sono
  * nascoste» — e con dentro la casa dell'altra plancia. Chi ne apre una nuova la
  * vuole vuota: «doveva crearne una ex novo sciolta dall'altra».
@@ -2888,7 +2991,7 @@ function widgetModels(states) {
       coversModel(states),
       securityModel(states),
       camerasModel(states),
-      energyModel(states),
+      ...energyModels(states),
       appliancesModel(states),
       temperatureModel(states),
       evModel(states),
@@ -2900,8 +3003,8 @@ function widgetModels(states) {
       minipcModel(states),
       poolModel(states),
       preseModel(states),
+      mediaModel(states),
       irrigationModel(states),
-      openingsModel(states),
       batteriesModel(states),
       floodModel(states),
       ...customAlertModels(states),
@@ -3811,46 +3914,6 @@ function temperatureDetail() {
   return "";
 }
 
-/* L'icona di un'apertura, quando chi l'ha configurata ne ha scelta una.
- *
- * Il ripiego resta quello di prima — si indovina dal nome se e' una porta o
- * una finestra — perche' chi non ha scelto niente deve continuare a vedere
- * quello che vedeva. Chi invece l'icona l'ha scelta in configurazione se la
- * ritrova qui: e' l'unico posto dove quelle undici righe si distinguono.
- *
- * La scelta puo' essere un nome mdi, perche' il selettore delle icone e' quello
- * del motore e scrive quello: stampato come testo si leggeva `mdi:gate` al
- * posto del disegno. Chi sa disegnarlo e' il motore, e lo si chiede a lui. */
-function iconaApertura(row) {
-  const scelta = clean(readJson("cd_avvisi_icone", {})?.[clean(row.entity)]);
-  if (scelta && /^mdi:/i.test(scelta)) {
-    const disegnata = root.DashboardModernIconEngine?.markup?.("action", scelta, {
-      size: 20,
-    });
-    if (disegnata) return disegnata;
-  }
-  if (scelta) return esc(scelta);
-  /* Il disegno di casa anche quando nessuno ha scelto un'icona.
-   *
-   * Qui si tornava all'emoji del sistema — la porta e la finestra che ogni
-   * telefono disegna a modo suo — proprio nelle pillole che si guardano di
-   * corsa: «continuo a vedere icone che non sono nostre». Il catalogo la porta
-   * e la finestra ce le ha; si chiedono a lui. */
-  const canonica = /porta|cancell|door|gate/i.test(row.name)
-    ? "mdi:door-closed"
-    : "mdi:window-closed-variant";
-  const disegnata = root.DashboardModernIconEngine?.markup?.("action", canonica, { size: 20 });
-  if (disegnata) return disegnata;
-  return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
-}
-
-/* Le aperture sono acceso/spento col nome: vivono nelle pillole de «Lo
- * stato» — aperte accese, chiuse smorte — e nelle caselle dei conteggi.
- * L'icona scelta per riga resta a `iconaApertura`, che serve le pillole. */
-function openingsDetail() {
-  return "";
-}
-
 /* Ogni batteria col suo livello e' una casella de «Le misure». */
 function batteriesDetail() {
   return "";
@@ -3944,13 +4007,6 @@ function summaryChips(widget) {
       [t("la più calda", "warmest"), `${formatNumber(Math.max(...gradi), 1)}°`],
     ];
   }
-  if (widget.key === "aperture") {
-    const aperte = righe.filter((riga) => riga?.on).length;
-    return [
-      [t("aperte", "open"), String(aperte)],
-      [t("chiuse", "closed"), String(righe.length - aperte)],
-    ];
-  }
   return [];
 }
 
@@ -3973,7 +4029,7 @@ function pilloleDelloStato(widget) {
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
   /* Dodici e non otto: da quando le righe acceso/spento non fanno piu' lista
    * sotto, le pillole sono l'unico posto dove si leggono — una casa con
-   * undici aperture le deve vedere tutte. */
+   * undici finestre le deve vedere tutte. */
   const voci = righe
     .filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name))
     .slice(0, 12);
@@ -4017,11 +4073,21 @@ const CHIAVI_A_CARTE = new Set([
   "elettrodomestici",
 ]);
 
+/* La tessera dell'energia, qualunque impianto racconti.
+ *
+ * Con più impianti la prima tiene la chiave di sempre e le altre portano il
+ * loro id attaccato (#286): chi decideva guardando la chiave «energia» deve
+ * riconoscere anche le sue sorelle, altrimenti la seconda tessera esce senza
+ * caselle, senza il verso della batteria e senza il suo popup. */
+const eUnaTesseraEnergia = (chiave) =>
+  clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
+
 function carteDalleRighe(widget) {
   const chiave = clean(widget.key);
-  if (!(CHIAVI_A_CARTE.has(chiave) || chiave.startsWith("custom-"))) return [];
+  if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
+    return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
-  if (chiave === "energia") {
+  if (eUnaTesseraEnergia(chiave)) {
     const nomi = {
       house: t("Casa", "House"),
       solar: t("Solare", "Solar"),
@@ -4277,7 +4343,7 @@ function corsaMarkup(widget) {
  * da chiedere, e infatti quelle sezioni una lettura nel tempo non ce l'hanno.
  */
 function entitaDelRacconto(widget) {
-  if (widget?.key === "energia") {
+  if (eUnaTesseraEnergia(widget?.key)) {
     const energia = section("energy", {}) || {};
     /* Mentre la batteria si carica, la domanda non e' piu' «quanto consuma la
      * casa» ma «quando e' piena». Il racconto segue allora lo stato di carica,
@@ -4330,7 +4396,7 @@ function verdettoEFrase(widget) {
    * conosce i numeri di adesso, e il motore ci si adegua. */
   const batteria = widget?.rows?.find?.((r) => r?.group === "battery")?.watts;
   const conSoggetto =
-    widget?.key === "energia" && Number(batteria) < -10
+    eUnaTesseraEnergia(widget?.key) && Number(batteria) < -10
       ? { ...widget, soggetto: "carica" }
       : widget;
   const lettura = analisiDellaSezione(
@@ -4534,7 +4600,7 @@ function detailRows(widget, states) {
   if (widget.key === "tapparelle") return coversDetail(widget);
   if (widget.key === "sicurezza") return securityDetail(widget, states);
   if (widget.key === "telecamere") return camerasDetail(widget);
-  if (widget.key === "energia") return energyDetail(widget);
+  if (eUnaTesseraEnergia(widget.key)) return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
   if (
@@ -4551,7 +4617,7 @@ function detailRows(widget, states) {
     ].includes(widget.key)
   )
     return rowsDetail(widget);
-  if (widget.key === "aperture") return openingsDetail(widget);
+  if (widget.key === "media") return mediaDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
   if (widget.key.startsWith("custom-")) return customDetail(widget);
@@ -4567,8 +4633,8 @@ function detailRows(widget, states) {
  * Le tessere che una sezione non ce l'hanno non stanno in questo elenco, e per
  * loro il tasto non c'e': batterie, allagamenti e cose da fare vivono soltanto
  * in Home, e un tasto che non porta da nessuna parte e' una promessa che
- * nessuno mantiene. Telecamere e aperture portano a Sicurezza, che e' la
- * sezione che le contiene davvero. */
+ * nessuno mantiene. Le telecamere portano a Sicurezza, che e' la sezione che
+ * le contiene davvero. */
 const SEZIONE_DEL_WIDGET = Object.freeze({
   luci: "luci",
   prese: "prese",
@@ -4576,7 +4642,6 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   tapparelle: "tapparelle",
   sicurezza: "security",
   telecamere: "security",
-  aperture: "security",
   energia: "energy",
   elettrodomestici: "appliances-main",
   temperatura: "temp",
@@ -4590,6 +4655,7 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   irrigazione: "irrigazione",
   robot: "robot",
   minipc: "server",
+  media: "media",
 });
 
 /* La voce della sezione, ma solo se ci si puo' davvero andare.
@@ -5001,6 +5067,54 @@ function ascoltaLaPorta() {
   });
 }
 
+/* ── dietro il velo non si muove niente ───────────────────────────────────
+ *
+ * Con la finestra aperta restavano vive nove animazioni infinite sotto il
+ * velo: le due macchie del fondale, il puntino del «vivo», la fiamma e il
+ * battito della caldaia, il respiro di due tessere, due avvisi. Nessuna di
+ * quelle si vede — sono coperte — e ognuna, a ogni suo fotogramma, obbliga a
+ * rifare la sfocatura di tutto lo schermo. Sessanta volte al secondo, per
+ * guardare una finestra ferma: e' il lavoro che sul telefono fa saltare i
+ * fotogrammi, ed e' meta' del tremolio.
+ *
+ * Si fermano dove sono e ripartono da li' alla chiusura: in pausa, non spente.
+ *
+ * Si fa da qui e non con una riga di foglio di stile perche' quelle animazioni
+ * sono dichiarate `!important` da chi le possiede, e vincerla a colpi di
+ * specificita' vorrebbe dire una guerra che si riapre a ogni sezione nuova.
+ * Le transizioni si lasciano correre: durano un attimo e finiscono da sole.
+ */
+
+/** Quali animazioni vanno fermate: quelle vive, con un nome, e fuori. */
+export function animazioniDaFermare(animazioni, dentro) {
+  return [...(animazioni || [])].filter((anim) => {
+    if (!anim || anim.playState !== "running" || !anim.animationName) return false;
+    const bersaglio = anim.effect?.target;
+    return Boolean(bersaglio) && !dentro(bersaglio);
+  });
+}
+
+function fermaCioCheStaDietro(host) {
+  if (!host || typeof doc?.getAnimations !== "function") return 0;
+  const ferme = animazioniDaFermare(doc.getAnimations(), (nodo) => host.contains(nodo));
+  for (const anim of ferme) {
+    try {
+      anim.pause();
+      state.ferme.push(anim);
+    } catch (_error) {}
+  }
+  return ferme.length;
+}
+
+function riparteCioCheStaDietro() {
+  for (const anim of state.ferme) {
+    try {
+      anim.play();
+    } catch (_error) {}
+  }
+  state.ferme = [];
+}
+
 function chiudiPopup() {
   state.expanded = "";
   state.corpo = { chiave: "", markup: "" };
@@ -5010,6 +5124,7 @@ function chiudiPopup() {
     host.replaceChildren();
   }
   doc?.documentElement?.classList?.remove("dm-widget-popup-open");
+  riparteCioCheStaDietro();
   fermaTimerTelecamere();
   schedule();
 }
@@ -5024,6 +5139,7 @@ function sincronizzaPopup(models, states) {
       host.replaceChildren();
       state.corpo = { chiave: "", markup: "" };
       doc?.documentElement?.classList?.remove("dm-widget-popup-open");
+      riparteCioCheStaDietro();
     }
     return false;
   }
@@ -5054,6 +5170,9 @@ function sincronizzaPopup(models, states) {
       body.dataset.dmFresh = "true";
     }
   }
+  /* A ogni giro, non solo all'apertura: un avviso che si accende mentre la
+   * finestra e' aperta comincia a battere adesso, e nessuno l'aveva fermato. */
+  fermaCioCheStaDietro(host);
   return true;
 }
 
@@ -5482,15 +5601,52 @@ function installStyles() {
  * del modal-wrapper, la card con l'angolo largo e l'ombra profonda del
  * modal-card. Sempre al centro — anche sul telefono: un foglio che sale dal
  * fondo e' un'altra lingua, e qui si parla quella di casa. */
+/* Il velo e' un elemento suo, e la card non ci sta dentro.
+ *
+ * «Verifica di nuovo problema flicker su apertura widget»: nel video la
+ * finestra aperta perde per un paio di centesimi la card bianca E la sua
+ * testata — resta il solo corpo, sospeso sul fondale sfocato — e poi torna.
+ * Piu' volte al secondo.
+ *
+ * Non e' il disegno che si rifa': e' il compositore. Chiedendo a Chromium
+ * l'elenco degli strati, con la finestra aperta, #dm-widget-popup risulta
+ * un unico strato di tutto lo schermo — e ci sono dipinti dentro la card e la
+ * testata, mentre il corpo, che scorre, ha uno strato suo. Lo backdrop-filter e'
+ * quello che obbliga a tenerli insieme: sfocare cio' che sta dietro
+ * significa ridisegnare quello strato ogni volta che dietro si muove
+ * qualcosa. Quando un fotogramma arriva prima che il ridisegno sia finito,
+ * di quello strato non c'e' niente — card e testata spariscono — e il corpo,
+ * che ha il suo, resta. E' esattamente quello che si vede.
+ *
+ * Qui il velo diventa un ::before: sfoca lui, e la card gli e' sorella
+ * invece che figlia. Il ridisegno del velo non puo' piu' portarsi via la
+ * finestra. */
 #dm-widget-popup{
   position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  padding:20px;
-  background:color-mix(in srgb,var(--bg-sculpted,#e6ebf1) 62%,rgba(15,23,42,.34));
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:20px;background:transparent;
   animation:dmWidgetPopupIn .2s ease-out}
-:root:is([data-theme="dark"]) #dm-widget-popup,
-html[data-theme="dark"] #dm-widget-popup{background:color-mix(in srgb,#060a14 74%,rgba(2,6,15,.9))}
+#dm-widget-popup::before{
+  content:"";position:absolute;inset:0;
+  background:color-mix(in srgb,var(--bg-sculpted,#e6ebf1) 62%,rgba(15,23,42,.34));
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+:root:is([data-theme="dark"]) #dm-widget-popup::before,
+html[data-theme="dark"] #dm-widget-popup::before{background:color-mix(in srgb,#060a14 74%,rgba(2,6,15,.9))}
 #dm-widget-popup[hidden]{display:none}
+/* Una conferma sta sopra a chi la chiede (#275).
+ *
+ * «Dalla home cliccando sicurezza mostra le porte per aprire, si clicca il
+ * lucchetto e il popup di conferma non viene mostrato perché accavallato dal
+ * primo popup.» Vero, e la ragione è scritta poco più su: due veli sullo stesso
+ * piano — z-index 9999 tutti e due — e vince il più giovane nel documento.
+ * Il velo delle conferme sta nel guscio vendorizzato, cioè PRIMA di questo, che
+ * nasce a runtime: la conferma si apriva davvero, sotto. Il tocco sul tasto
+ * «Conferma» arrivava al corpo di questa finestra.
+ *
+ * Chiudere questa finestra prima di chiedere sarebbe stato l'altro modo, ed è
+ * peggio: annullando si perde l'elenco delle porte e bisogna riaprirlo. Una
+ * domanda che aspetta una risposta sta sopra tutto, ed è vero per ogni
+ * conferma e ogni tastierino, non solo per le porte. */
+#confirm-modal,#custom-keypad,#dm-door-keypad{z-index:10050!important}
 @keyframes dmWidgetPopupIn{from{opacity:0}to{opacity:1}}
 html.dm-widget-popup-open{overflow:hidden}
 /* La stessa veste delle altre finestre della plancia.
@@ -5514,6 +5670,9 @@ html.dm-widget-popup-open{overflow:hidden}
    * alta al massimo quanto lo schermo, l'intestazione sta ferma in cima e la
    * lista sotto scorre da sola. */
   display:flex;flex-direction:column;
+  /* Sopra il velo, che adesso e' un fratello posizionato: senza questo la
+   * sfocatura coprirebbe la finestra invece di starle dietro. */
+  position:relative;z-index:1;
   width:min(560px,100%);max-height:min(80dvh,760px);margin:0;
   border:1px solid var(--card-border,#e8edf3);border-radius:28px;
   background:var(--card-bg,#fff);
@@ -5646,6 +5805,31 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
  * accennata, cosi' si capisce da lontano di cosa si sta parlando, e il verdetto
  * ci mette il suo colore: verde quando non c'e' niente da fare, ambra quando
  * qualcosa sta lavorando, rosso quando qualcuno deve guardarci. */
+/* Il lettore dentro la finestra: copertina quadrata, due righe di testo e i
+   tasti sotto. Su una finestra larga un palmo i tasti non ci stanno in fila
+   col resto, e mandarli a capo e' meglio che stringerli. */
+#dm-widget-popup .dm-w-media{
+  display:grid;grid-template-columns:56px minmax(0,1fr);gap:11px;align-items:center;
+  padding:11px;border-radius:16px;margin-bottom:9px;
+  background:var(--bg-sculpted,#f0f4f8);border:1px solid var(--card-border,#e2e8f0)}
+#dm-widget-popup .dm-w-media[data-muta="true"]{opacity:.6}
+#dm-widget-popup .dm-w-media-arte{
+  width:56px;height:56px;border-radius:13px;object-fit:cover;
+  background:var(--card-bg,#fff);box-shadow:0 8px 16px -10px rgba(2,6,23,.6)}
+#dm-widget-popup .dm-w-media-vuota{display:grid;place-items:center;font-size:24px}
+#dm-widget-popup .dm-w-media-vuota .dm-oggetto{width:34px;height:34px}
+#dm-widget-popup .dm-w-media-testo{display:grid;gap:2px;min-width:0}
+#dm-widget-popup .dm-w-media-dove{
+  font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-media-titolo{
+  font-size:13.5px;font-weight:800;color:var(--text,#0f172a);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dm-widget-popup .dm-w-media-sotto{
+  font-size:11px;font-weight:600;color:var(--text-dim,#64748b);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dm-widget-popup .dm-w-media .dm-mp-comandi{
+  grid-column:1/-1;display:flex;gap:7px;margin:2px 0 0;flex-wrap:wrap}
 #dm-widget-popup .dm-w-racconto{
   display:grid;gap:11px;margin:0 0 18px;padding:15px 16px 14px;
   border-radius:18px;

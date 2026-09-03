@@ -197,16 +197,9 @@ function caricoDelPrimoImpianto(load) {
  * sull'elettrodomestico e si salva la SUA sezione, per lo stesso percorso che
  * usa la modale dell'editor Elettrodomestici. Il carico non si sporca: la riga
  * che compare qui sotto è già persistita di là. */
-async function assegnaElettrodomestico(panel, load, index) {
-  if (load.children.length >= MAX_SUBLOADS) return false;
-  const list = elettrodomestici();
-  const device = list[index];
-  if (!device) return false;
-  const group = clean(load.group) || clean(load.id);
-  list[index] = {
-    ...device,
-    metadata: { ...(device.metadata || {}), beta27_subload_group: group },
-  };
+/* La sezione Elettrodomestici riscritta: la stessa strada per chi entra in un
+ * cerchio e per chi ne esce. */
+async function scriviElettrodomestici(list) {
   const store = dashboardStore();
   if (store?.replaceSection) await store.replaceSection("appliances", list);
   else {
@@ -217,6 +210,50 @@ async function assegnaElettrodomestico(panel, load, index) {
   root.renderAppliances?.();
   root.renderApplianceSection?.(true);
   root.dmRefreshEnergyFlows?.();
+}
+
+/* Togliere un elettrodomestico dal cerchio non vuol dire cancellarlo.
+ *
+ * «Dalla sezione energia carichi non si possono eliminare gli elettrodomestici
+ * inseriti in un carico»: il cestino mancava del tutto sulle righe «da
+ * Elettrodomestici», e l'assegnazione era a senso unico. Quello che si toglie
+ * è il cartellino che lo lega a questo cerchio — l'apparecchio resta
+ * configurato nella sua sezione, con i suoi sensori, e torna disponibile per
+ * un altro cerchio. Cancellarlo davvero è un gesto della sua sezione, non di
+ * questa. */
+async function togliElettrodomestico(panel, load, child, index) {
+  const list = elettrodomestici();
+  const at = list.findIndex(
+    (device) =>
+      device &&
+      (clean(device.id) === clean(child.id) ||
+        (!clean(device.id) && clean(device.name) === clean(child.name))),
+  );
+  if (at >= 0) {
+    const { beta27_subload_group: _via, ...resto } = list[at].metadata || {};
+    list[at] = { ...list[at], metadata: resto };
+    await scriviElettrodomestici(list);
+  }
+  /* La riga se ne va anche dal modello che si ha in mano: una rilettura non la
+   * rimetterebbe, ma con modifiche non salvate la rilettura non si fa. */
+  const suo = load.children.indexOf(child);
+  load.children.splice(suo < 0 ? index : suo, 1);
+  if (!state.dirty) state.model = null;
+  render(panel);
+  return true;
+}
+
+async function assegnaElettrodomestico(panel, load, index) {
+  if (load.children.length >= MAX_SUBLOADS) return false;
+  const list = elettrodomestici();
+  const device = list[index];
+  if (!device) return false;
+  const group = clean(load.group) || clean(load.id);
+  list[index] = {
+    ...device,
+    metadata: { ...(device.metadata || {}), beta27_subload_group: group },
+  };
+  await scriviElettrodomestici(list);
   state.picking = "";
   if (state.dirty) {
     /* Un modello con modifiche in mano non si butta: la riga nuova si aggiunge
@@ -378,6 +415,26 @@ function subloadRow(panel, load, child, index) {
       [child.power, child.daily, child.total].filter(Boolean).join(" · ") ||
       t("nessuna entità", "no entity yet");
     row.append(element("span", "dm-loads-source-tag", t("da Elettrodomestici", "from Appliances")));
+    /* Si può anche toglierlo. Non si può modificarlo — quello si fa nella sua
+     * sezione, ed è il senso del cartellino qui accanto — ma restare
+     * incastrato nel cerchio in cui è finito non era una scelta di nessuno. */
+    const stacca = element("button", "ed-del", "🗑️");
+    stacca.type = "button";
+    stacca.dataset.dmSubloadUnassign = "true";
+    stacca.title = t("Togli dal carico", "Remove from the load");
+    stacca.setAttribute(
+      "aria-label",
+      t(`Togli ${child.name} dal carico`, `Remove ${child.name} from the load`),
+    );
+    stacca.addEventListener("click", () => {
+      const domanda = t(
+        `Tolgo "${child.name}" da questo carico? Resta configurato in Elettrodomestici.`,
+        `Remove "${child.name}" from this load? It stays configured under Appliances.`,
+      );
+      if (root.confirm && !root.confirm(domanda)) return;
+      togliElettrodomestico(panel, load, child, index);
+    });
+    row.append(stacca);
     return [row];
   }
 
@@ -495,6 +552,15 @@ function loadCard(panel, load, index, total) {
    * but nothing said what they were, or that the icon could be picked. */
   const identity = element("section", "dm-loads-identity");
 
+  /* La via rapida sta in cima, non in fondo.
+   *
+   * «Il menu a tendina cerchio = stanza va spostato in alto quando si sceglie
+   * il nome del carico»: è la domanda che viene prima di tutte — questo
+   * cerchio è una stanza, o è una linea? — e stava sotto l'elenco dei
+   * dispositivi, dove la trovava solo chi scorreva fino in fondo. Chi sceglie
+   * una stanza si è già dato il nome del carico, quindi il nome lo prende da
+   * lì: era la seconda metà della stessa richiesta. */
+  const stanze = stanzeDiCasa();
   const nameField = element("label", "ed-slot dm-loads-field");
   nameField.append(element("span", "ed-slot-lbl", t("Nome del carico", "Load name")));
   const name = doc.createElement("input");
@@ -507,6 +573,45 @@ function loadCard(panel, load, index, total) {
     markDirty(panel);
   });
   nameField.append(name);
+
+  let roomField = null;
+  if (stanze.length && caricoDelPrimoImpianto(load)) {
+    const riga = element("label", "ed-slot dm-loads-field dm-loads-room-circle");
+    riga.append(element("span", "ed-slot-lbl", `🛋️ ${t("Cerchio = stanza", "Circle = room")}`));
+    const scelta = doc.createElement("select");
+    scelta.className = "ed-input";
+    scelta.dataset.dmLoadRoom = "true";
+    const salvata = stanzaDelCerchio(load);
+    scelta.append(new Option(`— ${t("Nessuna", "None")} —`, ""));
+    for (const stanza of stanze) {
+      const valore = clean(stanza.id || stanza.name);
+      scelta.append(new Option(stanza.name, valore, false, valore === salvata));
+    }
+    scelta.addEventListener("change", async () => {
+      await impostaStanzaDelCerchio(load, scelta.value);
+      /* Il cerchio è quella stanza: il nome è quello della stanza. Togliendo
+       * la scelta il nome resta com'è — è già il nome di qualcosa. */
+      const scelto = stanze.find((stanza) => clean(stanza.id || stanza.name) === scelta.value);
+      if (!scelto) return;
+      load.name = clean(scelto.name);
+      name.value = load.name;
+      /* Ridisegnare va bene: la scelta è già stata scritta, e il titolo della
+       * scheda e la bolla di anteprima portano il nome nuovo. */
+      markDirty(panel);
+    });
+    riga.append(scelta);
+    riga.append(
+      element(
+        "small",
+        "",
+        t(
+          "Gli elettrodomestici di quella stanza entrano nel cerchio da soli, anche quelli configurati domani; chi sta già in un altro cerchio non si conta due volte.",
+          "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.",
+        ),
+      ),
+    );
+    roomField = riga;
+  }
 
   const iconField = element("label", "ed-slot dm-loads-field");
   iconField.append(element("span", "ed-slot-lbl", t("Icona", "Icon")));
@@ -565,7 +670,10 @@ function loadCard(panel, load, index, total) {
   });
   colorField.append(color);
 
-  identity.append(nameField, iconField, colorField);
+  /* Il nome, la stanza quando c'è, poi icona e colore. */
+  identity.append(nameField);
+  if (roomField) identity.append(roomField);
+  identity.append(iconField, colorField);
   body.append(identity);
 
   const visible = element("label", "dm-loads-switch");
@@ -666,34 +774,6 @@ function loadCard(panel, load, index, total) {
       ),
     ),
   );
-  /* La via rapida: il cerchio segue una stanza intera. */
-  const stanze = stanzeDiCasa();
-  if (stanze.length && caricoDelPrimoImpianto(load)) {
-    const riga = element("label", "ed-slot dm-loads-room-circle");
-    riga.append(element("span", "ed-slot-lbl", `🛋️ ${t("Cerchio = stanza", "Circle = room")}`));
-    const scelta = doc.createElement("select");
-    scelta.className = "ed-input";
-    const salvata = stanzaDelCerchio(load);
-    scelta.append(new Option(`— ${t("Nessuna", "None")} —`, ""));
-    for (const stanza of stanze) {
-      const valore = clean(stanza.id || stanza.name);
-      scelta.append(new Option(stanza.name, valore, false, valore === salvata));
-    }
-    scelta.addEventListener("change", () => impostaStanzaDelCerchio(load, scelta.value));
-    riga.append(scelta);
-    riga.append(
-      element(
-        "small",
-        "",
-        t(
-          "Gli elettrodomestici di quella stanza entrano nel cerchio da soli, anche quelli configurati domani; chi sta già in un altro cerchio non si conta due volte.",
-          "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.",
-        ),
-      ),
-    );
-    children.append(riga);
-  }
-
   const list = element("div", "ed-list");
   if (!load.children.length)
     list.append(element("div", "ed-empty", t("Nessun dispositivo.", "No appliance yet.")));

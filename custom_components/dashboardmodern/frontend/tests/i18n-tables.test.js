@@ -43,6 +43,10 @@ const REACHED_OTHERWISE = new Set([
   "shared.js",
   "beta11-real-device-polish-section.js",
   "robot-section.js",
+  /* `impianti-termici-editor-section.js` disegna `CASELLE_SOLARE`, che sta in
+   * `src/core/impianti-termici.js` — già fra i cataloghi importati, e con le
+   * righe nella forma `{ it, en }` che l'estrattore riconosce da sé. */
+  "impianti-termici-editor-section.js",
 ]);
 
 /* L'elenco si legge dal sorgente, non si importa: l'estrattore riscrive i file

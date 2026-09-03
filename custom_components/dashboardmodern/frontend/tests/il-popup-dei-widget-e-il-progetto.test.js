@@ -21,10 +21,7 @@ import { applianceHeroArtwork } from "../src/core/appliance-hero-artwork.js";
 import { applianceArtwork, canonicalArtworkType } from "../src/core/appliance-artwork.js";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
-const WIDGETS = readFileSync(
-  join(QUI, "..", "src", "sections", "home-widgets-section.js"),
-  "utf8",
-);
+const WIDGETS = readFileSync(join(QUI, "..", "src", "sections", "home-widgets-section.js"), "utf8");
 
 test("l'auto in carica dice a che ora arriva al traguardo, come la pagina EV", () => {
   /* I numeri VERI del campo: 53% di carica, 1.61 kW di potenza, traguardo
@@ -81,7 +78,6 @@ test("le letture del popup sono caselle e pillole, non un elenco di righe", () =
     "function energyDetail",
     "function temperatureDetail",
     "function batteriesDetail",
-    "function openingsDetail",
     "function customDetail",
   ]) {
     const corpo = WIDGETS.slice(WIDGETS.indexOf(funzione), WIDGETS.indexOf(funzione) + 400);

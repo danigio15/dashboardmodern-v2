@@ -409,34 +409,6 @@ const FRASI = Object.freeze({
       `${aperte} of ${righe.length} are up.`,
     );
   },
-  /* «La finestra della cucina e' aperta da 14 minuti»: il progetto chiede di
-   * dire da quanto, e per un contatto lo si puo' dire senza inventarlo — Home
-   * Assistant sa da quando sta cosi', e quel momento cambia solo quando la
-   * finestra si apre o si chiude. */
-  aperture: (tr, righe, _tessera, adesso = Date.now()) => {
-    const aperte = righe.filter(acceso);
-    if (!aperte.length) return tr("E' tutto chiuso.", "Everything is closed.");
-    const nomi = aperte.map(nomeDi).filter(Boolean);
-    const elenco = nomi.slice(0, 2).join(tr(" e ", " and "));
-    const altre = nomi.length > 2 ? tr(" e altre", " and others") : "";
-    const testa = tr(
-      `${aperte.length} apert${aperte.length === 1 ? "a" : "e"} su ${righe.length}: ${elenco}${altre}.`,
-      `${aperte.length} open out of ${righe.length}: ${elenco}${altre}.`,
-    );
-    /* `daQuando` e' `null` quando Home Assistant non dice da quando: un
-     * contatto appena adottato, o uno stato arrivato senza `last_changed`.
-     * `Number(null)` pero' fa zero, che e' un numero finito e minore di
-     * adesso — passava la guardia e usciva «la piu' vecchia da 20698 giorni»,
-     * cioe' il primo gennaio 1970. Non sapere da quando e' una risposta:
-     * quella riga non entra nel conto. */
-    const momenti = aperte
-      .map((riga) => (riga?.daQuando == null ? NaN : Number(riga.daQuando)))
-      .filter((quando) => Number.isFinite(quando) && quando > 0 && quando <= adesso);
-    if (!momenti.length) return testa;
-    // la piu' vecchia: e' quella che conta se qualcuno se n'e' dimenticata
-    const quanto = daQuanto((adesso - Math.min(...momenti)) / 60000, tr);
-    return tr(`${testa} La piu' vecchia ${quanto}.`, `${testa} The oldest one ${quanto}.`);
-  },
   batterie: (tr, righe) => {
     const livelli = numeriDi(righe, "level");
     if (!livelli.length) return tr("Nessuna batteria risponde.", "No battery is reporting.");
@@ -586,10 +558,6 @@ const BRICIOLE = Object.freeze({
   irrigazione: [
     ["Zone", "Programmi", "Pioggia"],
     ["Zones", "Schedules", "Rain"],
-  ],
-  aperture: [
-    ["Contatti", "Sorveglianza"],
-    ["Contacts", "Watch"],
   ],
   batterie: [
     ["Livelli", "Soglie", "Autonomia"],

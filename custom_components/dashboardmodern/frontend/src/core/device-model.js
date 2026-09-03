@@ -417,6 +417,14 @@ export function normalizeDevice(input = {}, section, context = {}) {
   if (section === "cameras") {
     const rtsp = String(input.rtsp || "").trim();
     if (rtsp) base.rtsp = rtsp;
+    /* «Dal vivo»: la tessera del muro chiede il flusso continuo invece di un
+     * fotogramma ogni quattro secondi. Spento non e' «campo assente» — una
+     * telecamera che era dal vivo e non lo e' piu' deve restare spenta anche
+     * dopo un ricarico — quindi qui passa anche il falso, purche' la scelta
+     * sia stata fatta. */
+    if (input.vivo !== undefined && input.vivo !== null && input.vivo !== "")
+      base.vivo =
+        input.vivo === true || input.vivo === "true" || input.vivo === 1 || input.vivo === "1";
   }
   /* Il contatto dell'infisso di una tapparella.
    *

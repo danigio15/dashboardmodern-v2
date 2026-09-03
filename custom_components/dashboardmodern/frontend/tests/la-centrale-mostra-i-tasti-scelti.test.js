@@ -92,8 +92,12 @@ test("la scelta viaggia con la configurazione, come tutte le altre", () => {
    * (La 14 aggiunge il verso girato dei sensori, #244; la 15 lo scaldabagno
    * elettrico, #253; la 16 la scelta degli impianti termici e la caldaia,
    * sempre #253; la 17 il gruppo di continuita', #256; la 18 i calendari,
-   * #259; la 19 le sezioni che si fa l'utente, #262.) */
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 19/);
+   * #259; la 19 le sezioni che si fa l'utente, #262; la 20 gli impianti
+   * solari, che adesso possono essere piu' d'uno; la 21 le aree d'allarme,
+   * #285, che sono la stessa cosa per la centrale; la 22 come si vede
+   * l'energia in Home con piu' impianti, #286; la 23 la doppia conferma
+   * delle aperture, #275.) */
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 25/);
 });
 
 test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () => {

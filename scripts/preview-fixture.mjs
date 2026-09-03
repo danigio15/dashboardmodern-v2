@@ -492,6 +492,134 @@ push("camera.giardino", "streaming", {
   supported_features: 2,
 });
 
+/* ── le sezioni nate nelle beta ───────────────────────────────────────────── */
+
+/* I lettori musicali (#269). Tre bastano a mostrare i tre stati che la scheda
+   disegna: uno che suona con la sua copertina, uno con la radio — che di
+   copertina non ne ha e di brano successivo nemmeno — e uno spento. Le
+   bandiere sono quelle vere di Home Assistant: la scheda disegna solo i tasti
+   che il lettore dichiara di saper eseguire. */
+const SA_COMPLETO = 23999; /* pausa, cerca, volume, muto, prec/succ, on/off, sorgente, stop, play */
+const SA_RADIO = 16781; /* pausa, volume, muto, on/off, play — niente prec/succ */
+const SA_SPENTO = 388; /* volume, on/off */
+
+push("media_player.salone", "playing", {
+  friendly_name: "Salone",
+  media_title: "Nuvole bianche",
+  media_artist: "Ludovico Einaudi",
+  media_album_name: "Una mattina",
+  entity_picture: "/api/dm_album/salone.png",
+  media_duration: 342,
+  media_position: 137,
+  media_position_updated_at: new Date(Date.now() - 4_000).toISOString(),
+  volume_level: 0.42,
+  is_volume_muted: false,
+  source: "Spotify",
+  source_list: ["Spotify", "Radio", "Bluetooth"],
+  supported_features: SA_COMPLETO,
+});
+push("media_player.cucina", "playing", {
+  friendly_name: "Cucina",
+  media_title: "Radio Deejay",
+  media_artist: "Deejay Chiama Italia",
+  volume_level: 0.28,
+  source: "Radio",
+  supported_features: SA_RADIO,
+});
+push("media_player.camera", "off", {
+  friendly_name: "Camera",
+  volume_level: 0.2,
+  supported_features: SA_SPENTO,
+});
+
+/* Il gruppo di continuita' (#256). Lo stato di NUT da solo basterebbe: «OL»
+   vuol dire rete presente. Gli altri sensori sono per chi li ha separati. */
+push("sensor.ups_status", "OL", { friendly_name: "UPS stato" });
+push("binary_sensor.ups_rete", "on", { friendly_name: "UPS rete", device_class: "power" });
+push("sensor.ups_battery_charge", 100, {
+  friendly_name: "UPS carica batteria",
+  unit_of_measurement: "%",
+  device_class: "battery",
+  state_class: "measurement",
+});
+push("sensor.ups_load", 23, {
+  friendly_name: "UPS carico",
+  unit_of_measurement: "%",
+  state_class: "measurement",
+});
+push("sensor.ups_runtime", 48, {
+  friendly_name: "UPS autonomia",
+  unit_of_measurement: "min",
+  device_class: "duration",
+});
+push("sensor.ups_input_voltage", 231.4, {
+  friendly_name: "UPS tensione di rete",
+  unit_of_measurement: "V",
+  device_class: "voltage",
+  state_class: "measurement",
+});
+push("sensor.ups_power", 74, {
+  friendly_name: "UPS potenza assorbita",
+  unit_of_measurement: "W",
+  device_class: "power",
+  state_class: "measurement",
+});
+push("sensor.ups_temperature", 31.6, {
+  friendly_name: "UPS temperatura",
+  unit_of_measurement: "\u00b0C",
+  device_class: "temperature",
+  state_class: "measurement",
+});
+
+/* Le prese. Il modem e' fra quelle che si guardano e basta: e' il motivo per
+   cui hanno una sezione loro invece di stare fra le luci. */
+push("switch.presa_tv", "on", { friendly_name: "TV salotto", device_class: "outlet" });
+push("switch.presa_firestick", "on", { friendly_name: "Firestick", device_class: "outlet" });
+push("switch.presa_modem", "on", { friendly_name: "Modem", device_class: "outlet" });
+push("switch.presa_camera", "off", { friendly_name: "Presa camera", device_class: "outlet" });
+
+/* I calendari. Gli impegni veri arrivano dalla rotta REST /api/calendars/. */
+push("calendar.famiglia", "on", {
+  friendly_name: "Famiglia",
+  message: "Cena dai nonni",
+  all_day: false,
+  start_time: new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 19).replace("T", " "),
+  end_time: new Date(Date.now() + 5 * 3_600_000).toISOString().slice(0, 19).replace("T", " "),
+  supported_features: 7,
+});
+push("calendar.lavoro", "off", {
+  friendly_name: "Lavoro",
+  message: "Riunione settimanale",
+  all_day: false,
+  supported_features: 7,
+});
+
+/* Le entita' che uno si aggiunge dove vuole (#271) e quelle di una sezione
+   tutta sua: roba che la plancia non disegna ancora, ed e' il punto. */
+push("sensor.cisterna_livello", 68, {
+  friendly_name: "Livello cisterna",
+  unit_of_measurement: "%",
+  state_class: "measurement",
+});
+push("sensor.contatore_acqua", 128.4, {
+  friendly_name: "Contatore acqua",
+  unit_of_measurement: "m\u00b3",
+  state_class: "total_increasing",
+});
+push("binary_sensor.cancello_pedonale", "off", {
+  friendly_name: "Cancello pedonale",
+  device_class: "door",
+});
+push("sensor.acquario_temperatura", 25.6, {
+  friendly_name: "Acquario temperatura",
+  unit_of_measurement: "\u00b0C",
+  device_class: "temperature",
+  state_class: "measurement",
+});
+push("sensor.acquario_ph", 7.2, { friendly_name: "Acquario pH", state_class: "measurement" });
+push("switch.acquario_luce", "on", { friendly_name: "Luce acquario" });
+push("switch.acquario_pompa", "on", { friendly_name: "Pompa acquario" });
+
 export const haStates = states;
 
 /* ───────────────────────────── Dashboard config ───────────────────────────── */
@@ -1038,6 +1166,13 @@ export const seed = {
     tapparelle: true,
     irrigazione: true,
     piscina: true,
+    /* Le sezioni nate nelle beta: musica, aperture, continuita', agenda e
+       prese. Senza queste la barra le nasconde e la galleria non le vede. */
+    media: true,
+    porte: true,
+    ups: true,
+    calendario: true,
+    prese: true,
   },
 };
 
@@ -1110,6 +1245,79 @@ export const extraStorage = {
   ],
   /* La stanza detta sulla singola entita' (1.3): e' quello che riempie la
    * pagina di una stanza con cio' che nessuna scheda le chiedeva. */
+  /* I lettori musicali (#269): il primo ha anche la sua stanza, cosi' la
+   * didascalia della tessera dice dove sta suonando. */
+  cd_media_player: [
+    { id: "media-salone", entity: "media_player.salone", nome: "Salone", room_id: "room-soggiorno" },
+    { id: "media-cucina", entity: "media_player.cucina", nome: "Cucina", room_id: "room-cucina" },
+    { id: "media-camera", entity: "media_player.camera", nome: "Camera", room_id: "room-camera" },
+  ],
+  /* Il gruppo di continuita' (#256). */
+  cd_ups: {
+    name: "UPS rack",
+    stato: "sensor.ups_status",
+    rete: "binary_sensor.ups_rete",
+    batteria: "sensor.ups_battery_charge",
+    carico: "sensor.ups_load",
+    autonomia: "sensor.ups_runtime",
+    tensione: "sensor.ups_input_voltage",
+    potenza: "sensor.ups_power",
+    temperatura: "sensor.ups_temperature",
+  },
+  /* Le prese: il modem si guarda e basta. */
+  cd_prese: [
+    { entity: "switch.presa_tv", name: "TV salotto", icon: "\ud83d\udcfa", room_id: "room-soggiorno" },
+    { entity: "switch.presa_firestick", name: "Firestick", icon: "\ud83c\udfac", room_id: "room-soggiorno" },
+    { entity: "switch.presa_modem", name: "Modem", icon: "\ud83d\udce1", room_id: "room-studio" },
+    { entity: "switch.presa_camera", name: "Presa camera", icon: "\ud83d\udd0c", room_id: "room-camera" },
+  ],
+  cd_solo_lettura: ["switch.presa_modem"],
+  /* I calendari dell'Agenda: le liste delle cose da fare sono in cd_todo. */
+  cd_calendari: [
+    { entity: "calendar.famiglia", name: "Famiglia" },
+    { entity: "calendar.lavoro", name: "Lavoro" },
+  ],
+  /* Le entita' che uno si aggiunge in fondo a una scheda che non le prevedeva
+   * (#271): qui il livello della cisterna finisce nell'Irrigazione. */
+  cd_entita_mie: [
+    {
+      id: "mia-cisterna",
+      entity: "sensor.cisterna_livello",
+      nome: "Cisterna",
+      icona: "\ud83d\udeb0",
+      sezione: "irrigazione",
+    },
+    {
+      id: "mia-acqua",
+      entity: "sensor.contatore_acqua",
+      nome: "Contatore acqua",
+      icona: "\ud83d\udca7",
+      sezione: "energy",
+    },
+    {
+      id: "mia-pedonale",
+      entity: "binary_sensor.cancello_pedonale",
+      nome: "Cancello pedonale",
+      icona: "\ud83d\udeaa",
+      sezione: "security",
+    },
+  ],
+  /* Una sezione tutta sua: un titolo e le entita' che ci si mettono dentro. */
+  cd_sezioni_mie: [
+    {
+      /* L'id e' nudo: la chiave della voce nella barra la fa la plancia,
+       * anteponendogli «mia-». */
+      id: "acquario",
+      titolo: "Acquario",
+      icona: "\ud83d\udc1f",
+      voci: [
+        { nome: "Temperatura", entity: "sensor.acquario_temperatura", icona: "\ud83c\udf21\ufe0f" },
+        { nome: "pH", entity: "sensor.acquario_ph", icona: "\u2697\ufe0f" },
+        { nome: "Luce", entity: "switch.acquario_luce", icona: "\ud83d\udca1" },
+        { nome: "Pompa", entity: "switch.acquario_pompa", icona: "\ud83c\udf0a" },
+      ],
+    },
+  ],
   cd_stanze_entita: {
     "binary_sensor.finestra_cucina": "room-cucina",
     "binary_sensor.porta_ingresso": "room-garage",

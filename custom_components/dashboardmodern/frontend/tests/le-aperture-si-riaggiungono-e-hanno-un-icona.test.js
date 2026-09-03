@@ -37,8 +37,12 @@ function leggi(chiave) {
 
 test("un'apertura che sta in tutt'e due le liste resta aggiunta", () => {
   magazzino.clear();
-  scrivi("cd_gruppi_extra", { win: ["binary_sensor.finestra_bagno", "binary_sensor.porta_garage"] });
-  scrivi("cd_gruppi_removed", { win: ["binary_sensor.finestra_bagno", "binary_sensor.lucernario"] });
+  scrivi("cd_gruppi_extra", {
+    win: ["binary_sensor.finestra_bagno", "binary_sensor.porta_garage"],
+  });
+  scrivi("cd_gruppi_removed", {
+    win: ["binary_sensor.finestra_bagno", "binary_sensor.lucernario"],
+  });
   assert.equal(riparaAggiunteTolte(), true);
   /* Chi e' stato rimesso esce dalla lista dei tolti; chi e' stato tolto e
    * basta ci resta — non e' compito di questo giro riportarlo indietro. */
@@ -67,8 +71,10 @@ test("la riparazione guarda ogni gruppo, non solo le aperture", () => {
 test("l'icona e' quella scelta, o quella del gruppo se non se n'e' scelta", () => {
   magazzino.clear();
   scrivi("cd_avvisi_icone", { "binary_sensor.finestra_bagno": "🪟" });
-  assert.equal(alertIcon("binary_sensor.finestra_bagno", "win"), "🪟");
-  assert.equal(alertIcon("binary_sensor.porta_garage", "win"), "🚪");
+  assert.equal(alertIcon("binary_sensor.finestra_bagno", "allag"), "🪟");
+  /* `win` non e' piu' un gruppo sorvegliato: il ripiego di gruppo si prova su
+   * uno che c'e'. */
+  assert.equal(alertIcon("binary_sensor.allagamento", "allag"), "💧");
   assert.equal(alertIcon("sensor.batteria_garage", "batt"), "🔋");
   /* Un'entita' senza gruppo riconosciuto non resta muta. */
   assert.equal(alertIcon("sensor.qualcosa", "boh"), "🔔");

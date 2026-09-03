@@ -58,7 +58,11 @@ test("every offered locale reaches a catalog, its own or a bridged one", async (
     const bridge = localeBridge(code);
     return !bridge || !shipped.has(bridge);
   });
-  assert.deepEqual(stranded, [], `locales offered with no reachable catalog: ${stranded.join(", ")}`);
+  assert.deepEqual(
+    stranded,
+    [],
+    `locales offered with no reachable catalog: ${stranded.join(", ")}`,
+  );
 });
 
 test("catalogs answer the whole corpus", async () => {
@@ -80,7 +84,11 @@ test("catalogs invent no keys of their own", async () => {
     /* A key that is no longer in the corpus is dead weight the loader still
      * ships, and usually means a `t()` call site was reworded without the
      * catalogs following. */
-    assert.deepEqual(unknown, [], `${name} has keys outside the corpus: ${unknown.slice(0, 5).join(" | ")}`);
+    assert.deepEqual(
+      unknown,
+      [],
+      `${name} has keys outside the corpus: ${unknown.slice(0, 5).join(" | ")}`,
+    );
   }
 });
 
@@ -92,7 +100,11 @@ test("a translation keeps every placeholder its key declares", async () => {
       const actual = (value.match(PLACEHOLDER) || []).slice().sort();
       /* Order may change — languages put the number in different places — but
        * a dropped placeholder would render "unidades" with no number at all. */
-      assert.deepEqual(actual, expected, `${name}: "${key}" -> "${value}" changed its placeholders`);
+      assert.deepEqual(
+        actual,
+        expected,
+        `${name}: "${key}" -> "${value}" changed its placeholders`,
+      );
     }
   }
 });
@@ -109,7 +121,11 @@ test("no translation is left as its English source", async () => {
        * not in the next, so those exceptions are declared per locale. */
       .filter(([key]) => !(LOCALE_IDENTITIES[name.replace(/\.js$/, "")] || new Set()).has(key))
       .map(([key]) => key);
-    assert.deepEqual(untouched, [], `${name} left untranslated: ${untouched.slice(0, 8).join(" | ")}`);
+    assert.deepEqual(
+      untouched,
+      [],
+      `${name} left untranslated: ${untouched.slice(0, 8).join(" | ")}`,
+    );
   }
 });
 
@@ -129,6 +145,11 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   /* Il nome della rete di casa: dove non si scrive in un altro alfabeto si
    * scrive cosi' e basta. */
   "Wi-Fi",
+  /* Le due parole della rete: mezza Europa le scrive cosi', e dove non e' vero
+   * — russo, turco, arabo, hindi, giapponese, coreano, cinese — il catalogo di
+   * quella lingua le traduce lo stesso: questa riga permette, non impone. */
+  "ONLINE",
+  "OFFLINE",
   /* Le sigle del MiniPC: si scrivono cosi' in mezzo mondo, e dove non e' vero
    * — russo, giapponese, arabo — il catalogo di quella lingua le traduce. */
   "CPU",
@@ -177,6 +198,8 @@ const LOCALE_IDENTITIES = {
     "Total",
   ]),
   fr: new Set([
+    /* La modulation d'une chaudière se dit comme en anglais. */
+    "Modulation (%)",
     "Polo",
     "Robot",
     "Robots",
@@ -212,6 +235,11 @@ const LOCALE_IDENTITIES = {
        l'inglese. */
     "Latitude",
     "Longitude",
+    /* Le volume d'un haut-parleur et la source d'entrée: les deux mots
+       français s'écrivent comme en anglais, et «niveau sonore» sous un
+       curseur dirait la même chose en plus long. */
+    "Volume",
+    "Source",
     "Session",
     "Sessions",
     "Total",
@@ -222,10 +250,12 @@ const LOCALE_IDENTITIES = {
   ]),
   de: new Set([
     /* «optional» e' la parola tedesca corrente: tradurla peggiorerebbe.
-       */
+     */
     "Name (optional)",
     /* E il raggio si scrive cosi' anche in tedesco. */
     "Radius (km)",
+    /* La modulazione di una caldaia si chiama Modulation anche in tedesco. */
+    "Modulation (%)",
     "Polo",
     "💨 Wind",
     "${value} offline",
@@ -283,8 +313,12 @@ const LOCALE_IDENTITIES = {
     "Magenta",
     "Script",
     "Total",
+    /* O volume de uma coluna escreve-se assim tambem em portugues. */
+    "Volume",
   ]),
   nl: new Set([
+    /* Het volume van een speaker heet in het Nederlands ook zo. */
+    "Volume",
     "Casual",
     "Polo",
     "Robot",
@@ -366,9 +400,7 @@ const LOCALE_IDENTITIES = {
     "ideal",
     "Program",
   ]),
-  ko: new Set([
-    "TV",
-  ]),
+  ko: new Set(["TV"]),
   /* ar, hi, ja and zh-Hans share no word with English: nothing to declare. */
 };
 
@@ -376,7 +408,11 @@ test("the source index points at keys the catalogs answer", () => {
   const dangling = Object.entries(SOURCE_INDEX)
     .filter(([, english]) => !KEYS.has(english))
     .map(([italian]) => italian);
-  assert.deepEqual(dangling, [], `source index entries with no corpus key: ${dangling.slice(0, 5).join(" | ")}`);
+  assert.deepEqual(
+    dangling,
+    [],
+    `source index entries with no corpus key: ${dangling.slice(0, 5).join(" | ")}`,
+  );
 });
 
 test("the source index maps Italian onto English, not onto itself", () => {

@@ -10,7 +10,11 @@ class ClassList {
     this.node = node;
   }
   #set() {
-    return new Set(String(this.node.className || "").split(/\s+/).filter(Boolean));
+    return new Set(
+      String(this.node.className || "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
   }
   add(...names) {
     const set = this.#set();
@@ -338,7 +342,10 @@ test("the panel is the only renderer: an older list is cleared, not stacked on",
 
 test("the labelled fields stay stacked on a phone, where they were unreadable", () => {
   render();
-  const css = globalThis.document.head.descendants().map((node) => node.textContent).join("\n");
+  const css = globalThis.document.head
+    .descendants()
+    .map((node) => node.textContent)
+    .join("\n");
   const narrow = css.slice(css.indexOf("@media(max-width:640px)"));
   // The phone is exactly the case this change targets: no narrow variant may
   // put name, icon and colour back on one row.
@@ -383,17 +390,22 @@ test("an mdi icon is drawn as a glyph, in the preview and in the picker button",
 
 test("the panel stays hidden when another Energy tab is open", () => {
   render();
-  const css = globalThis.document.head.descendants().map((node) => node.textContent).join("\n");
+  const css = globalThis.document.head
+    .descendants()
+    .map((node) => node.textContent)
+    .join("\n");
   // The editor set `display:block` unconditionally, which defeats the panel's
   // own `hidden` attribute: the section then showed under Flows & entities too.
-  assert.match(css, /\[data-energy-panel="loads"\]\[data-dm-loads-editor="true"\]:not\(\[hidden\]\)/);
+  assert.match(
+    css,
+    /\[data-energy-panel="loads"\]\[data-dm-loads-editor="true"\]:not\(\[hidden\]\)/,
+  );
   assert.doesNotMatch(
     css,
     /\[data-dm-loads-editor="true"\]\{display:block/,
     "no unconditional display rule survives",
   );
 });
-
 
 /* ── «＋ Scegli da Elettrodomestici» ─────────────────────────────────────── */
 
@@ -432,7 +444,12 @@ test("picking a configured appliance writes its subload metadata through the app
   // Solo l'elettrodomestico libero è proposto: la lavatrice ha già un carico.
   const choices = panel.querySelectorAll("[data-dm-appliance-choice]");
   assert.equal(choices.length, 1);
-  const written = choices[0].textContent + choices[0].descendants().map((node) => node.textContent).join("");
+  const written =
+    choices[0].textContent +
+    choices[0]
+      .descendants()
+      .map((node) => node.textContent)
+      .join("");
   assert.match(written, /Forno/);
 
   choices[0].click();
@@ -488,7 +505,10 @@ test("a load of another plant explains why appliances cannot be picked for it", 
   sections.appliances = [{ id: "appl-forno", name: "Forno", power_entity: "sensor.forno_power" }];
   render();
 
-  assert.deepEqual(cards().map((card) => card.dataset.dmLoad), ["altro"]);
+  assert.deepEqual(
+    cards().map((card) => card.dataset.dmLoad),
+    ["altro"],
+  );
   // Gli elettrodomestici non hanno un campo impianto: niente pulsante qui,
   // e al suo posto la riga che spiega il perché.
   assert.equal(panel.querySelector("[data-dm-subload-pick]"), null);
@@ -498,4 +518,95 @@ test("a load of another plant explains why appliances cannot be picked for it", 
 
   storage.delete("cd_energy_plant");
   delete sections.energy;
+});
+
+/* ── togliere un elettrodomestico dal cerchio, e la stanza in cima ───────── */
+
+/* «Dalla sezione energia carichi non si possono eliminare gli elettrodomestici
+ * inseriti in un carico», e «il menu a tendina cerchio = stanza va spostato in
+ * alto quando si sceglie il nome del carico; se viene selezionata una stanza il
+ * nome prende quello della stanza selezionata».
+ *
+ * Il guscio delle prove non ha `Option`, che il selettore della stanza usa
+ * come lo usa il documento vero: una casella con un valore e un'etichetta. */
+/* `new Option(...)` è una voce di tendina come le altre: si costruisce con la
+ * stessa fabbrica del resto del guscio, invece di rifarne una a metà. */
+globalThis.Option = class {
+  constructor(text = "", value = "", _def = false, selected = false) {
+    const node = document.createElement("option");
+    node.textContent = text;
+    node.value = value;
+    node.selected = selected;
+    return node;
+  }
+};
+
+test("un elettrodomestico si può togliere dal carico senza cancellarlo", async () => {
+  resetEditor();
+  sections.loads = [{ id: "cucina", name: "Cucina", order: 0, power_entity: "sensor.cucina" }];
+  sections.appliances = [
+    {
+      id: "appl-forno",
+      name: "Forno",
+      power_entity: "sensor.forno_power",
+      metadata: { beta27_subload_group: "cucina", altro: "resta" },
+    },
+  ];
+  render();
+
+  const row = panel.querySelector('[data-dm-subload-source="appliance"]');
+  assert.ok(row, "la riga «da Elettrodomestici» c'è");
+  /* Modificarlo no — si fa nella sua sezione — ma toglierlo sì. */
+  assert.equal(row.querySelector("[data-dm-subload-edit]"), null);
+  const stacca = row.querySelector("[data-dm-subload-unassign]");
+  assert.ok(stacca, "senza cestino l'elettrodomestico resta incastrato nel cerchio");
+
+  stacca.click();
+  await tick();
+
+  /* L'apparecchio è ancora lì, con i suoi sensori e il resto dei suoi dati:
+   * quello che se n'è andato è il cartellino del cerchio. */
+  assert.equal(sections.appliances.length, 1);
+  assert.equal(sections.appliances[0].power_entity, "sensor.forno_power");
+  assert.equal(sections.appliances[0].metadata.beta27_subload_group, undefined);
+  assert.equal(sections.appliances[0].metadata.altro, "resta");
+  /* E torna scegliibile per un altro cerchio. */
+  render();
+  assert.equal(panel.querySelector('[data-dm-subload-source="appliance"]'), null);
+  panel.querySelector("[data-dm-subload-pick]").click();
+  assert.equal(panel.querySelectorAll("[data-dm-appliance-choice]").length, 1);
+});
+
+test("la stanza si sceglie sotto il nome, e il nome la segue", async () => {
+  resetEditor();
+  sections.rooms = [
+    { id: "cucina", name: "Cucina" },
+    { id: "bagno", name: "Bagno" },
+  ];
+  sections.loads = [{ id: "carico-1", name: "Carico 1", order: 0, power_entity: "sensor.uno" }];
+  sections.appliances = [];
+  render();
+
+  /* L'ordine dei campi: la domanda «questo cerchio è una stanza?» viene prima
+   * dell'icona e del colore, non dopo l'elenco dei dispositivi. */
+  const campi = panel
+    .querySelector(".dm-loads-identity")
+    .children.map((nodo) => nodo.querySelector(".ed-slot-lbl")?.textContent || "");
+  assert.equal(campi[0], "Nome del carico");
+  assert.match(campi[1], /Cerchio = stanza/);
+  assert.match(campi[2], /Icona/);
+
+  const scelta = panel.querySelector("[data-dm-load-room]");
+  assert.ok(scelta, "la tendina della stanza non è nel blocco dell'identità");
+  scelta.value = "bagno";
+  await scelta.dispatch("change");
+  await tick();
+
+  /* La scelta è scritta sul carico canonico… */
+  assert.equal(sections.loads[0].metadata.flow_room, "bagno");
+  /* …e il nome è quello della stanza, nella casella e nel titolo. */
+  assert.equal(panel.querySelector("[data-dm-load-name]").value, "Bagno");
+  assert.equal(previewName(cards()[0]), "Bagno");
+
+  delete sections.rooms;
 });

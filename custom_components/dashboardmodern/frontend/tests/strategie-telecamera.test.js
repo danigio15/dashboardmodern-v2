@@ -61,10 +61,21 @@ test("una telecamera che dorme ha piu' tempo per svegliarsi", () => {
   );
 });
 
-test("a una telecamera che dorme non si chiede un flusso continuo", () => {
+test("anche a chi dorme si prova il flusso continuo, prima di arrendersi alle istantanee", () => {
+  /* Il salto stava PRIMA dell'HLS, e se l'HLS regge a MJPEG non ci si arriva
+   * comunque: valeva soltanto quando l'HLS aveva appena fallito, cioe' quando
+   * un'altra strada dal vivo e' l'unica cosa che resta. Chi dorme finiva sulle
+   * istantanee chieste dal browser mentre il proxy di Home Assistant gliele
+   * avrebbe spinte da solo — che e' quello che fa `camera_view: live`, e il
+   * confronto si e' visto dal vero su una Arlo. */
   const strade = strategieDellaTelecamera({}, RING);
-  assert.equal(strada(strade, "MJPEG").salta, "telecamera-che-dorme");
-  assert.deepEqual(nomiDa(daProvare(strade)), ["HLS", "Istantanee"]);
+  assert.equal(strada(strade, "MJPEG").salta, undefined);
+  assert.deepEqual(nomiDa(daProvare(strade)), ["HLS", "MJPEG", "Istantanee"]);
+  /* E ha piu' tempo di una telecamera di casa: il primo fotogramma arriva
+   * dopo la sveglia. */
+  assert.equal(strada(strade, "MJPEG").attesa, ATTESE.MJPEG_SVEGLIA);
+  assert.equal(strada(strategieDellaTelecamera({}, LOCALE), "MJPEG").attesa, ATTESE.MJPEG);
+  assert.ok(ATTESE.MJPEG_SVEGLIA > ATTESE.MJPEG);
 });
 
 test("le istantanee restano sempre, che e' l'ultima rete", () => {

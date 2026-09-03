@@ -17,6 +17,7 @@ import {
   normalizeSecurityDoors,
 } from "../core/security-door-model.js";
 import { normalizzaPrese } from "../core/prese-model.js";
+import { registraPaginaARuntime, renderPageMastheads } from "./page-masthead-section.js";
 import {
   activeLocale,
   allStates,
@@ -34,6 +35,25 @@ const KEY = "__DASHBOARDMODERN_SECURITY_DOORS__";
 const STYLE_ID = "dm-security-doors-style";
 const KEYPAD_ID = "dm-door-keypad";
 export const SECURITY_DOORS_CONFIG_KEY = "cd_security_doors";
+
+/* Chiedere conferma prima di aprire, o no (#275).
+ *
+ * «Sarebbe carino la possibilità in configurazione di decidere se attivare la
+ * doppia conferma d'apertura o meno, per essere più celeri all'apertura.»
+ *
+ * Di serie la conferma c'è: un cancello che si apre al primo tocco sbagliato è
+ * un cancello aperto, e chi tocca per sbaglio se ne accorge dopo. Ma chi apre
+ * il proprio portone dieci volte al giorno la conferma la conosce a memoria, e
+ * per lui è solo un tocco in più.
+ *
+ * Il PIN non è una conferma e non si spegne da qui: quella è una chiave, e una
+ * porta protetta continua a chiederla. */
+export const SECURITY_DOORS_CONFIRM_KEY = "cd_porte_conferma";
+
+/** Se il tocco su un'apertura chiede conferma. Spento solo se lo si è detto. */
+export function siChiedeConferma() {
+  return readJson(SECURITY_DOORS_CONFIRM_KEY, true) !== false;
+}
 
 const state = (root[KEY] ||= {
   installed: false,
@@ -109,10 +129,93 @@ function doorMarkup(door) {
 function blockMarkup(doors) {
   return `<div class="dm-sec-doors-head">
       <span class="dm-sec-doors-ic" aria-hidden="true">🚪</span>
-      <h3>${esc(t("Comandi apri porte/cancelli", "Door and gate openers"))}</h3>
       <span class="dm-sec-doors-hint">${esc(t("Il tocco chiede conferma; col PIN, il codice.", "A tap asks to confirm; with a PIN, the code."))}</span>
     </div>
     <div class="dm-door-grid">${doors.map(doorMarkup).join("")}</div>`;
+}
+
+/* Quante aperture ci sono, detto nell'intestazione della pagina. */
+function sottotitolo(doors) {
+  if (!doors.length) return t("Nessuna apertura configurata", "No opening configured");
+  return doors.length === 1
+    ? t("1 apertura", "1 opening")
+    : `${doors.length} ${t("aperture", "openings")}`;
+}
+
+/* ── la pagina, che è una sezione a sé (#275) ─────────────────────────── */
+
+/* «Si richiede di separare le aperture con la sicurezza.»
+ *
+ * Le aperture stavano dentro la Sicurezza perché è lì che erano nate, fra
+ * l'antifurto e le telecamere. Ma un cancello non è una telecamera: chi apre il
+ * portone lo fa dieci volte al giorno e non gli interessa se l'antifurto è
+ * inserito, e chi guarda l'antifurto non vuole i comandi di apertura sotto il
+ * quadrante. Sono due cose, e adesso sono due pagine.
+ *
+ * La voce nella barra si spegne come tutte le altre: legge `cd_sections` con la
+ * stessa chiave che scrive la fascia della visibilità.
+ */
+export const APERTURE_TAB = "porte";
+const PAGINA_APERTURE = "page-porte";
+
+function funzioneAccesa() {
+  const sezioni = readJson("cd_sections", {});
+  return !(sezioni && typeof sezioni === "object" && sezioni[APERTURE_TAB] === false);
+}
+
+function ultimaPagina() {
+  const pagine = doc?.querySelectorAll?.(".page");
+  return pagine?.length ? pagine[pagine.length - 1] : null;
+}
+
+function ensurePagina() {
+  if (!doc) return null;
+  let pagina = doc.getElementById(PAGINA_APERTURE);
+  if (pagina) return pagina;
+  const sorella = ultimaPagina();
+  if (!sorella?.parentElement) return null;
+  pagina = doc.createElement("section");
+  pagina.className = "page";
+  pagina.id = PAGINA_APERTURE;
+  pagina.innerHTML = `<div class="dm-porte-wrap"></div>`;
+  sorella.after(pagina);
+  return pagina;
+}
+
+function apri(voce) {
+  for (const nodo of doc.querySelectorAll(".tab")) nodo.classList.remove("active");
+  for (const nodo of doc.querySelectorAll(".page")) nodo.classList.remove("active");
+  voce.classList.add("active");
+  ensurePagina()?.classList.add("active");
+  try {
+    renderPageMastheads();
+  } catch (_error) {}
+  root.scrollTo?.({ top: 0, behavior: "instant" });
+}
+
+function ensureVoce() {
+  if (!doc) return null;
+  let voce = doc.querySelector(`.tab[data-tab="${APERTURE_TAB}"]`);
+  if (voce) return voce;
+  const barra = doc.querySelector("nav.tabs");
+  if (!barra) return null;
+  voce = doc.createElement("button");
+  voce.className = "tab";
+  voce.dataset.tab = APERTURE_TAB;
+  voce.id = `tab-${APERTURE_TAB}`;
+  voce.innerHTML = `<span class="icon">🚪</span><span class="text">${esc(
+    t("Apri porte", "Openers"),
+  )}</span>`;
+  /* Accanto alla Sicurezza, da cui esce: chi la cercava lì la trova lì
+   * accanto. Se un domani il guscio togliesse quella voce, si va prima di
+   * Config invece di non comparire. */
+  const sicurezza = barra.querySelector('.tab[data-tab="security"]');
+  const config = barra.querySelector('.tab[data-tab="config"]');
+  if (sicurezza) sicurezza.after(voce);
+  else if (config) config.before(voce);
+  else barra.append(voce);
+  voce.addEventListener("click", () => apri(voce));
+  return voce;
 }
 
 /* ── rendering ────────────────────────────────────────────────────────── */
@@ -129,7 +232,26 @@ function ensureBlock(shell) {
 }
 
 export function renderSecurityDoors() {
-  const shell = doc?.querySelector?.("#page-security .dm-sec-shell");
+  const doors0 = configuredSecurityDoors();
+  const accesa = funzioneAccesa();
+  /* La voce e la pagina esistono finché ci sono aperture da comandare: senza,
+   * sarebbe una voce nella barra che porta a una pagina vuota. */
+  const voce =
+    doors0.length && accesa
+      ? ensureVoce()
+      : doc?.querySelector?.(`.tab[data-tab="${APERTURE_TAB}"]`);
+  if (voce) voce.style.display = doors0.length && accesa ? "" : "none";
+  const pagina = doors0.length ? ensurePagina() : doc?.getElementById?.(PAGINA_APERTURE);
+  if (pagina) {
+    registraPaginaARuntime(PAGINA_APERTURE, {
+      /* Le due tinte della fascia, come le porta ogni altra pagina: azzurro e
+       * blu, i colori della Sicurezza da cui questa esce. */
+      tint: ["14,165,233", "37,99,235"],
+      it: ["Apri porte/cancelli", sottotitolo(doors0)],
+      en: ["Door and gate openers", sottotitolo(doors0)],
+    });
+  }
+  const shell = pagina?.querySelector?.(".dm-porte-wrap") || null;
   if (!shell) return false;
   const doors = configuredSecurityDoors();
   if (!doors.length) {
@@ -140,7 +262,9 @@ export function renderSecurityDoors() {
   const block = ensureBlock(shell);
   const signature = [
     activeLocale(),
-    ...doors.map((door) => [door.id, door.name, door.entity, door.icon, Boolean(door.pin)].join("~")),
+    ...doors.map((door) =>
+      [door.id, door.name, door.entity, door.icon, Boolean(door.pin)].join("~"),
+    ),
   ].join("|");
   if (state.signature !== signature || !block.querySelector(".dm-door-grid")) {
     state.signature = signature;
@@ -329,15 +453,20 @@ function onClick(event) {
   const door = doorById(card.dataset.dmDoor);
   if (!door || state.busy.has(door.id)) return;
   if (door.pin) openKeypad(door);
-  else confirmAndOpen(door);
+  else if (siChiedeConferma()) confirmAndOpen(door);
+  /* Senza conferma si apre e basta: è la scelta di chi apre il proprio portone
+   * dieci volte al giorno. */
+  else openDoor(door);
 }
 
-function securityVisible() {
-  return Boolean(doc?.getElementById?.("page-security")?.classList?.contains("active"));
+function paginaVisibile() {
+  return Boolean(doc?.getElementById?.(PAGINA_APERTURE)?.classList?.contains("active"));
 }
 
 function installStyles() {
-  installStyle(STYLE_ID, `
+  installStyle(
+    STYLE_ID,
+    `
 .dm-sec-doors{display:flex;flex-direction:column;gap:12px}
 .dm-sec-doors-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 4px}
 .dm-sec-doors-ic{font-size:20px}
@@ -370,7 +499,8 @@ function installStyles() {
   display:block;margin:6px 0 0;color:var(--error-color,#dc2626);
   font-size:12px;font-weight:800;text-align:center}
 #${KEYPAD_ID} .keypad-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-`);
+`,
+  );
 }
 
 export function installSecurityDoorsSection() {
@@ -380,7 +510,13 @@ export function installSecurityDoorsSection() {
   doc.addEventListener("click", onClick);
   // Dopo ogni ridisegno della sezione: la vetrina rifa' lo scheletro e questo
   // blocco si rimette al suo posto, fra la centrale e le telecamere.
-  const agganciaRender = () => wrapFunction("renderSecurity", "__dmSecurityDoors", schedule);
+  /* Il blocco non vive più dentro la Sicurezza: la voce e la pagina nascono
+   * col giro generale del disegno, come le altre pagine a runtime. */
+  const agganciaRender = () => {
+    wrapFunction("renderSecurity", "__dmSecurityDoors", schedule);
+    wrapFunction("render", "__dmSecurityDoorsGiro", schedule);
+    wrapFunction("cdApplyNavVis", "__dmSecurityDoorsVis", schedule);
+  };
   agganciaRender();
   for (const eventName of [
     "dashboardmodern:legacy-ready",
@@ -395,16 +531,17 @@ export function installSecurityDoorsSection() {
     });
   }
   root.addEventListener?.("dashboardmodern:state-changed", () => {
-    if (securityVisible()) schedule();
+    if (paginaVisibile()) schedule();
   });
   doc.addEventListener(
     "click",
     (event) => {
-      if (event.target?.closest?.('[data-tab="security"]')) root.queueMicrotask?.(schedule);
+      if (event.target?.closest?.(`[data-tab="${APERTURE_TAB}"]`)) root.queueMicrotask?.(schedule);
     },
     true,
   );
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", schedule, { once: true });
+  if (doc.readyState === "loading")
+    doc.addEventListener("DOMContentLoaded", schedule, { once: true });
   else schedule();
 }
 

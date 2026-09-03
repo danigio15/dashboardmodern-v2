@@ -49,6 +49,7 @@ import {
   installStyle,
   onEditorRedraw,
   readJson,
+  righeDelDocumento,
   root,
   t,
   writeJsonIfChanged,
@@ -542,17 +543,17 @@ function bodyMarkup(people) {
  * con una casella svuotata per sbaglio sarebbe peggio del silenzio. La riga su
  * cui si sta agendo la legge chi chiama, che sa anche come dirle di no. */
 function raccogliRighe(body, people, esclusa = -1) {
-  const next = people.slice();
-  for (const riga of body?.querySelectorAll?.("[data-person-index]") || []) {
-    const posizione = Number(riga.dataset.personIndex);
-    if (!Number.isFinite(posizione) || !people[posizione] || posizione === esclusa) continue;
-    const bozza = leggiRiga(riga, people[posizione]);
-    /* La bozza vince se la sua entita' regge — o se quella salvata non c'era
-     * comunque: la persona APPENA creata, ancora senza entita', non deve
-     * perdere il nome appena scritto solo perche' l'entita' arriva dopo. */
-    if (ENTITY_RE.test(bozza.entity) || !clean(people[posizione].entity)) next[posizione] = bozza;
-  }
-  return next;
+  /* La bozza vince se la sua entita' regge — o se quella salvata non c'era
+   * comunque: la persona APPENA creata, ancora senza entita', non deve perdere
+   * il nome appena scritto solo perche' l'entita' arriva dopo. */
+  return righeDelDocumento(
+    body,
+    "data-person-index",
+    people,
+    leggiRiga,
+    (bozza, person, posizione) =>
+      posizione !== esclusa && (ENTITY_RE.test(bozza.entity) || !clean(person.entity)),
+  );
 }
 
 function leggiRiga(riga, person) {
