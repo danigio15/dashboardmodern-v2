@@ -134,7 +134,12 @@ incolla, e premi **Deploy**.
 
 **7. La pulizia automatica.** **Settings** → **Triggers** (o *Trigger Events*)
 → **Cron Triggers** → **Add** → `0 4 * * *`. E' il giro che cancella le linee
-ferme da sei mesi. Si puo' anche saltare: senza, quelle linee restano.
+ferme da sei mesi e raccoglie i messaggi rimasti senza linea.
+
+Metterlo conviene. Il `[triggers]` scritto in `wrangler.toml` vale solo per chi
+distribuisce con `wrangler`: chi ha incollato il codice dalla pagina di
+Cloudflare non ha nessun giro notturno finche' non lo aggiunge a mano, e senza
+quel giro la promessa dei sei mesi non la mantiene nessuno.
 
 **8. La prova.** Apri in una scheda del browser:
 

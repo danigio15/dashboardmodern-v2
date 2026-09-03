@@ -251,3 +251,30 @@ test("un giro che non trova niente di nuovo non ridisegna", () => {
   /* E se ridisegna, il cursore torna dov'era. */
   assert.match(sorgente, /setSelectionRange\(dovEro\.da, dovEro\.a\)/);
 });
+
+test("la pagina nascosta ferma il giro", () => {
+  /* Leggere la propria conversazione vuol dire averla letta, e il segnalibro si
+   * sposta. Una finestra dimenticata aperta in una scheda in fondo si mangiava
+   * le risposte — le metteva in copia, le segnava lette — e il giro dei cinque
+   * minuti che deve suonare la campanella trovava che non era arrivato niente
+   * di nuovo. La risposta c'era, e nessuno lo sapeva. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/assistenza-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sorgente, /if \(doc\?\.hidden\) return;/);
+});
+
+test("una risposta che arriva tardi non finisce sotto il nome sbagliato", () => {
+  /* Fra la domanda e la risposta ci sta un dito che apre un'altra
+   * conversazione: senza un appunto di dov'era partita, il filo di una casa
+   * finisce sotto il nome di un'altra. E due giri sovrapposti li vince quello
+   * che torna per ultimo, che non è detto sia il più recente. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/assistenza-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sorgente, /const stessoPosto = \(\) =>/);
+  assert.match(sorgente, /if \(!stessoPosto\(\)/);
+  assert.match(sorgente, /if \(state\.busy \|\| inVolo \|\| !state\.enabled\) return;/);
+});

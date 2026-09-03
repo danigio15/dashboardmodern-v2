@@ -363,6 +363,67 @@ test("senza la chiave non si butta via niente", async () => {
   assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM linee")[0].q, 1);
 });
 
+test("un messaggio non sopravvive alla linea che l'ha ospitato", async () => {
+  /* Fra «la linea esiste?» e «scrivi» ci sta una cancellazione: il messaggio
+   * finiva in archivio legato a una linea che non c'era più, e lì restava per
+   * sempre — la potatura notturna cerca i messaggi passando dalle linee, e un
+   * orfano non lo raggiunge nessuno. Parole di una persona, conservate per
+   * sempre in un servizio che promette il contrario. */
+  const env = ambiente();
+  await scrive(env, "una domanda");
+  // La linea sparisce sotto le mani di chi sta per scrivere.
+  env.DB.interroga("DELETE FROM linee WHERE id = ?", CASA);
+  const prima = env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi")[0].q;
+
+  const risposta = await chiama(env, {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "POST",
+    chiave: CHIAVE_CONSOLE,
+    corpo: { testo: "una risposta che non ha più dove andare" },
+  });
+  assert.equal(risposta.stato, 404);
+  assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi")[0].q, prima);
+});
+
+test("la potatura raccoglie anche gli orfani rimasti da prima", async () => {
+  /* `scrivi` non ne fabbrica più, ma quelli nati prima del controllo sono lì e
+   * non li raggiunge nessun'altra query. */
+  const env = ambiente();
+  await scrive(env, "una domanda");
+  env.DB.interroga(
+    "INSERT INTO messaggi (linea, da, testo, scritto_il) VALUES (?, 'casa', 'orfano', ?)",
+    `casa_${"f".repeat(32)}`,
+    Date.now(),
+  );
+  assert.equal(env.DB.interroga("SELECT COUNT(*) AS q FROM messaggi")[0].q, 2);
+
+  await centralino.scheduled({}, env);
+  const restati = env.DB.interroga("SELECT testo FROM messaggi");
+  assert.deepEqual(
+    restati.map((r) => r.testo),
+    ["una domanda"],
+  );
+});
+
+test("il primo messaggio dice che la linea è nata adesso", async () => {
+  /* Serve dall'altra parte: se la casa aveva già una copia della conversazione
+   * e la linea è rinata con questo messaggio, vuol dire che nel frattempo
+   * qualcuno l'aveva cancellata. */
+  const env = ambiente();
+  const primo = await scrive(env, "la prima");
+  assert.equal(primo.corpo.nuova, true);
+  const secondo = await scrive(env, "la seconda");
+  assert.equal(secondo.corpo.nuova, false);
+
+  await chiama(env, {
+    via: `/console/conversazioni/${CASA}`,
+    metodo: "DELETE",
+    chiave: CHIAVE_CONSOLE,
+  });
+  const dopo = await scrive(env, "e adesso ricomincio");
+  assert.equal(dopo.corpo.nuova, true);
+});
+
 test("buttare via una conversazione già andata non è un errore", async () => {
   /* Chi cancella vuole che non ci sia. Se non c'è già, il risultato è quello:
    * un 404 direbbe che qualcosa non ha funzionato mentre era a posto. */

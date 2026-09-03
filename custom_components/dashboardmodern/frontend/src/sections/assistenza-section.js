@@ -551,6 +551,14 @@ const RINFRESCO = 15000;
 
 let giro = 0;
 
+/* Un giro per volta, e mai due sovrapposti.
+ *
+ * Quindici secondi sono tanti finche' il centralino risponde. Il giorno che ci
+ * mette venti, il battito successivo parte mentre il primo e' ancora per aria:
+ * due richieste in volo, e vince quella che torna per ultima — che non e'
+ * detto sia la piu' recente. */
+let inVolo = false;
+
 function accendiIlGiro() {
   spegniIlGiro();
   giro = root.setInterval?.(() => {
@@ -558,6 +566,13 @@ function accendiIlGiro() {
       spegniIlGiro();
       return;
     }
+    /* Pagina nascosta, giro fermo. Non e' per risparmiare: leggere la propria
+     * conversazione vuol dire averla letta, e il segnalibro si sposta. Una
+     * finestra dimenticata aperta in una scheda in fondo si mangiava le
+     * risposte — le metteva in copia, le segnava lette, e il giro dei cinque
+     * minuti che deve suonare la campanella trovava che non era arrivato
+     * niente di nuovo. La risposta c'era, e nessuno lo sapeva. */
+    if (doc?.hidden) return;
     rinfresca();
   }, RINFRESCO);
 }
@@ -578,24 +593,36 @@ const segno = (righe) =>
  * di rendere la finestra inusabile. Se non e' cambiato niente, non si tocca
  * niente. */
 async function rinfresca() {
-  if (state.busy || !state.enabled) return;
+  if (state.busy || inVolo || !state.enabled) return;
+  /* Da dove si e' partiti. Fra la domanda e la risposta ci sta un dito che
+   * cambia scheda o apre un'altra conversazione: senza questo appunto, il filo
+   * di una casa finiva sotto il nome di un'altra — la richiesta era partita per
+   * A, ma quando torna la finestra sta mostrando B, e le frasi di A si
+   * scrivevano li' dentro come se fossero sue. */
+  const dovEro = { console: state.console, tab: state.tab, linea: state.linea };
+  const stessoPosto = () =>
+    state.console === dovEro.console &&
+    state.tab === dovEro.tab &&
+    state.linea === dovEro.linea;
+  inVolo = true;
   try {
-    if (state.console && state.tab === "coda") {
-      if (state.linea) {
-        const filo = await chiedi(WS_OPEN, { line: state.linea });
+    if (dovEro.console && dovEro.tab === "coda") {
+      if (dovEro.linea) {
+        const filo = await chiedi(WS_OPEN, { line: dovEro.linea });
         const righe = Array.isArray(filo?.messages) ? filo.messages : [];
-        if (segno(righe) === segno(state.filo)) return;
+        if (!stessoPosto() || segno(righe) === segno(state.filo)) return;
         state.filo = righe;
       } else {
         const coda = await chiedi(WS_QUEUE);
         const righe = Array.isArray(coda?.conversations) ? coda.conversations : [];
+        if (!stessoPosto()) return;
         if (JSON.stringify(righe) === JSON.stringify(state.conversazioni)) return;
         state.conversazioni = righe;
       }
     } else {
       const filo = await chiedi(WS_THREAD);
       const righe = Array.isArray(filo?.messages) ? filo.messages : [];
-      if (segno(righe) === segno(state.messages)) return;
+      if (!stessoPosto() || segno(righe) === segno(state.messages)) return;
       state.messages = righe;
       state.unread = 0;
       installaTessera();
@@ -605,6 +632,8 @@ async function rinfresca() {
      * niente non deve vedersi comparire un errore da solo, e al giro dopo il
      * centralino magari risponde. */
     return;
+  } finally {
+    inVolo = false;
   }
   disegna();
 }
@@ -889,6 +918,7 @@ export function installAssistenzaSection() {
 /** Seme per le prove: dimentica l'installazione e la finestra. */
 export function uninstallAssistenzaSection() {
   spegniIlGiro();
+  inVolo = false;
   doc?.getElementById?.("dm-chat-modal")?.remove();
   doc?.getElementById?.("dm-chat-card")?.remove();
   state.installed = false;
