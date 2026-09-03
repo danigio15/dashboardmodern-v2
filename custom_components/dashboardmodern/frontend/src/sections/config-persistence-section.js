@@ -592,6 +592,7 @@ export function sharedReconcileAction({
   localConfigured = false,
   pendingAt = 0,
   syncedRevision = 0,
+  chiaviDaTenere = [],
 } = {}) {
   const normalized = snapshot ? normalizeSharedSnapshot(snapshot) : null;
   if (!normalized) return localConfigured ? "push-local" : "none";
@@ -615,7 +616,46 @@ export function sharedReconcileAction({
     Number(syncedRevision) === Number(normalized.revision)
   )
     return "push-local";
+  /* La copia remota e' piu' avanti, ma qui c'e' una modifica appena fatta.
+   *
+   * «Metto l'entita', faccio salva, e non me la mette nella plancia»: prima si
+   * tornava «restore-remote», cioe' la copia remota — che quella modifica non
+   * ce l'ha — copriva tutto, in silenzio. E bastava che un'altra plancia della
+   * stessa casa avesse spinto qualcosa nel frattempo perche' succedesse: il
+   * telefono in mano e il tablet in cucina sono due dispositivi, e chi
+   * configura ne ha quasi sempre due aperti.
+   *
+   * Buttare via una modifica appena fatta e' il modo peggiore di risolvere un
+   * conflitto, perche' non lo risolve: lo nasconde. Adesso si fondono, e la
+   * regola e' quella che chiunque si aspetta — la copia remota vale per tutto,
+   * tranne dove questo dispositivo ha appena scritto. Poi si rispinge, cosi'
+   * anche gli altri vedono la modifica.
+   *
+   * Senza chiavi in sospeso non cambia niente: e' il caso di chi non ha toccato
+   * nulla, e li' la copia remota vince come prima. */
+  if (Number(pendingAt) > 0 && localConfigured && chiaviDaTenere.length > 0)
+    return "merge-local";
   return "restore-remote";
+}
+
+/**
+ * I valori da tenere: la copia remota, tranne dove questo dispositivo ha
+ * appena scritto.
+ *
+ * Solo le chiavi dichiarate, e solo quelle che qui hanno davvero un valore: una
+ * chiave in sospeso che localmente non esiste piu' vuol dire una cancellazione,
+ * e una cancellazione si rispetta togliendola anche dalla copia fusa.
+ */
+export function conLeModificheInSospeso(remoti = {}, locali = {}, daTenere = []) {
+  const uscita = { ...(remoti && typeof remoti === "object" ? remoti : {}) };
+  for (const chiave of Array.isArray(daTenere) ? daTenere : []) {
+    const nome = String(chiave || "");
+    if (!nome || !CONFIG_KEYS.includes(nome)) continue;
+    const mio = locali?.[nome];
+    if (mio === undefined || mio === null) delete uscita[nome];
+    else uscita[nome] = mio;
+  }
+  return uscita;
 }
 
 function readMeta(storage = root.localStorage) {
@@ -772,7 +812,26 @@ function sharedRestoreRevision(revision) {
  * flag, that decides whether those edits may overwrite the shared copy. Pushing
  * still waits for a successful read.
  */
-function markPending({ schedule = true } = {}) {
+/* QUALI chiavi sono in sospeso, non solo da quando.
+ *
+ * «Metto l'entita', faccio salva, e non me la mette nella plancia»: succedeva
+ * perche' una modifica locale fatta sopra una revisione che nel frattempo era
+ * cambiata perdeva per intero — `restore-remote` — e la copia remota, che
+ * quella modifica non ce l'ha, tornava sopra. In silenzio.
+ *
+ * Sapere quali chiavi ha toccato questo dispositivo permette di non buttarle:
+ * si prende la copia remota per tutto il resto e si tiene la propria dove si e'
+ * appena scritto. L'insieme e' piccolo per costruzione — sono le chiavi
+ * dichiarate — e si azzera appena la copia propria e' arrivata dall'altra
+ * parte. */
+function chiaviInSospeso(meta = readMeta()) {
+  const scritte = Array.isArray(meta.pending_keys) ? meta.pending_keys : [];
+  const vive = new Set(scritte.filter((chiave) => CONFIG_KEYS.includes(String(chiave))));
+  for (const chiave of state.dirtyKeys || []) vive.add(chiave);
+  return [...vive];
+}
+
+function markPending({ schedule = true, key = "" } = {}) {
   if (
     state.resetting ||
     state.hydrating ||
@@ -782,12 +841,20 @@ function markPending({ schedule = true } = {}) {
     return state.dirtyAt;
   const now = Date.now();
   state.dirtyAt = now;
-  writeMeta({ pending_at: now });
+  if (!state.dirtyKeys) state.dirtyKeys = new Set();
+  const nome = String(key || "");
+  if (nome && CONFIG_KEYS.includes(nome)) state.dirtyKeys.add(nome);
+  writeMeta({ pending_at: now, pending_keys: chiaviInSospeso() });
   if (schedule && state.hydrated && hostedBridge()) schedulePush();
   return now;
 }
 
-function queuePendingFromStorage() {
+function queuePendingFromStorage(key = "") {
+  const nome = String(key || "");
+  if (nome && CONFIG_KEYS.includes(nome)) {
+    if (!state.dirtyKeys) state.dirtyKeys = new Set();
+    state.dirtyKeys.add(nome);
+  }
   if (state.dirtyMarkTimer) return;
   state.dirtyMarkTimer =
     root.setTimeout?.(() => {
@@ -799,11 +866,13 @@ function queuePendingFromStorage() {
 
 function rememberSynced(revision, updatedAt) {
   state.dirtyAt = 0;
+  state.dirtyKeys = new Set();
   state.remoteRevision = Number(revision) || 0;
   writeMeta({
     synced_at: Number(updatedAt) || Date.now(),
     synced_revision: state.remoteRevision,
     pending_at: 0,
+    pending_keys: [],
   });
 }
 
@@ -1070,6 +1139,7 @@ async function hydrateShared() {
   state.remoteRevision = stored?.revision || 0;
   state.remoteConfigured = Boolean(stored && meaningfulConfigValues(stored.values));
   const localConfigured = state.hydrated ? meaningfulLocal(local) : state.localWasConfigured;
+  const daTenere = chiaviInSospeso(meta);
   const action = sharedReconcileAction({
     snapshot: stored,
     recoverable,
@@ -1077,10 +1147,19 @@ async function hydrateShared() {
     localConfigured,
     pendingAt,
     syncedRevision,
+    chiaviDaTenere: daTenere,
   });
 
   if (action === "push-local") return await pushShared();
   if (action === "restore-remote") return applySharedSnapshot(stored);
+  if (action === "merge-local") {
+    /* La copia remota per tutto, la propria dove si e' appena scritto — e poi
+     * si rispinge, cosi' la modifica arriva anche agli altri dispositivi
+     * invece di restare su questo. */
+    const fusi = conLeModificheInSospeso(stored.values, local, daTenere);
+    applySharedSnapshot({ ...stored, values: fusi });
+    return await pushShared();
+  }
   if (action === "auto-recover") {
     console.warn("[DashboardModern] shared configuration was empty; restoring the kept revision");
     const restored = await sharedRestoreRevision(recoverable[0].revision);
@@ -1233,7 +1312,7 @@ function installStorageMutationBridge() {
       !root.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
       !root.__DASHBOARDMODERN_CONFIG_RESETTING__
     )
-      queuePendingFromStorage();
+      queuePendingFromStorage(key);
     return result;
   };
   storage.removeItem = function dashboardModernPersistentRemoveItem(key) {
@@ -1249,7 +1328,7 @@ function installStorageMutationBridge() {
       !root.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
       !root.__DASHBOARDMODERN_CONFIG_RESETTING__
     )
-      queuePendingFromStorage();
+      queuePendingFromStorage(key);
     return result;
   };
   storage.__dmPersistenceMutationBridge = true;
