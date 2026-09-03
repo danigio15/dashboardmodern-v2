@@ -960,6 +960,7 @@ export default Object.freeze({
   Confirm: "확인",
   "Confirm ✓": "확인 ✓",
   "Confirm opening?": "열기를 확인할까요?",
+  "Confirm?": "확인할까요?",
   "Connect GitHub": "GitHub 연결",
   Connected: "연결됨",
   "Connected as": "연결된 계정",

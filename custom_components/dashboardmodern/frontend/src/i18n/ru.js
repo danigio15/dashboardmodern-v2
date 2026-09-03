@@ -967,6 +967,7 @@ export default Object.freeze({
   Confirm: "Подтвердить",
   "Confirm ✓": "Подтвердить ✓",
   "Confirm opening?": "Подтвердить открытие?",
+  "Confirm?": "Подтвердить?",
   "Connect GitHub": "Подключить GitHub",
   Connected: "Подключено",
   "Connected as": "Подключено как",

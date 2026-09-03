@@ -5,6 +5,54 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Aggiunto
+
+- **Le conversazioni dell'assistenza si possono buttare via.**
+
+      «si ma mi devi dare la possibilita' di eliminare anche la
+       conversazione»
+
+  Nella scheda «Conversazioni» ogni riga ha un cestino, e ce n'e' uno anche
+  sopra il filo aperto. Cancella davvero e per tutti e due: la linea sparisce
+  dal centralino e con lei quello che si erano detti, quindi sparisce anche
+  dalla plancia di quella casa.
+
+  Serve perche' una coda dove non si butta via niente si riempie di prove, di
+  domande gia' risolte e di righe aperte per sbaglio, finche' quella vera non
+  si trova piu'. Ed e' il verso giusto della promessa fatta prima della prima
+  riga: quello che si scrive li' non resta in giro per sempre.
+
+  Due tocchi e non uno — il primo arma il cestino e chiede conferma sul tasto
+  stesso, il secondo cancella — perche' una conversazione cancellata non si
+  rimette a posto, e in un elenco dove si scorre col dito un cestino che
+  cancella al primo tocco butta via prima o poi quella sbagliata.
+
+### Corretto
+
+- **La chat aperta si aggiorna da sola.**
+
+      «la risposta non si refresh devo uscire e rientrare»
+
+  La finestra leggeva una volta all'apertura e poi restava ferma: la risposta
+  arrivava solo chiudendo e riaprendo. Il giro dei cinque minuti del backend
+  c'era gia', ma quello serve al campanello — suona e basta, non ridisegna
+  niente.
+
+  Adesso guarda ogni quindici secondi, e ridisegna soltanto quando e' arrivato
+  davvero qualcosa: chi sta scrivendo non si vede rifare la casella sotto le
+  dita, e se ridisegna il cursore torna dov'era. Chiusa la finestra non chiede
+  piu' niente, cosi' una plancia accesa tutto il giorno in cucina non bussa al
+  centralino per una conversazione che nessuno sta guardando.
+
+- **Nella coda di chi risponde le bolle stavano dalla parte sbagliata.**
+
+  Le domande della casa comparivano a destra e in verde — come se se le fosse
+  scritte da solo chi stava leggendo — e le proprie risposte a sinistra e in
+  grigio: una conversazione letta al contrario. «Mio» dipende da chi guarda, e
+  questa finestra la guardano in due.
+
 ## 1.4.5-beta.12
 
 Cinque richieste lette insieme e cinque sezioni nuove, le sezioni vuote che

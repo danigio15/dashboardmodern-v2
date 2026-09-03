@@ -270,6 +270,23 @@ async def async_filo(
     )
 
 
+async def async_cestina(hass: HomeAssistant, chiave: str, linea: str) -> bool:
+    """Butta via una conversazione, dalla parte di chi risponde.
+
+    Cancella tutto: la linea sparisce dal centralino, e con lei quello che si
+    erano detti. Il centralino risponde di si' anche su una linea che non c'e'
+    piu' — chi cancella vuole che non ci sia, e se non c'e' gia' il risultato
+    e' quello.
+    """
+    risposta = await _chiama(
+        hass,
+        "DELETE",
+        f"/console/conversazioni/{str(linea or '')}",
+        chiave=chiave,
+    )
+    return bool(risposta.get("cancellata"))
+
+
 async def async_rispondi(
     hass: HomeAssistant, chiave: str, linea: str, testo: str
 ) -> dict[str, Any]:
@@ -291,6 +308,7 @@ async def async_rispondi(
 __all__ = [
     "ChatError",
     "async_cancella",
+    "async_cestina",
     "async_conversazioni",
     "async_filo",
     "async_leggi",

@@ -1,13 +1,16 @@
 /* La chat di assistenza: il contratto verso il backend e verso il ponte, e le
- * due cose che dal browser non si vedono finche' non e' tardi.
+ * cose che dal browser non si vedono finche' non e' tardi.
  *
  * Quello che si prova qui non e' il disegno — quello lo prova un browser vero
- * — ma tre cose che in casa d'altri si scoprirebbero male: un tipo di
- * messaggio non ammesso dal ponte, un modulo che nessuno importa e che quindi
- * non si carica mai, e il patto sulla riservatezza che sparisce da sotto la
- * casella dove si sta per raccontare un guaio di casa propria.
+ * — ma le cose che in casa d'altri si scoprirebbero male: un tipo di messaggio
+ * non ammesso dal ponte, un modulo che nessuno importa e che quindi non si
+ * carica mai, il patto sulla riservatezza che sparisce da sotto la casella
+ * dove si sta per raccontare un guaio di casa propria, una bolla dalla parte
+ * sbagliata quando a leggere e' chi risponde, e una finestra che resta ferma
+ * mentre dall'altro capo qualcuno ha gia' risposto.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -16,6 +19,7 @@ import {
   MAX_TESTO,
   WS_TYPES,
   avvertenzaMarkup,
+  codaMarkup,
   filoMarkup,
   messaggioMarkup,
   quando,
@@ -33,7 +37,7 @@ test("ogni messaggio che la chat manda passa dal ponte", () => {
   }
 });
 
-test("i sette comandi sono quelli che il backend registra", async () => {
+test("gli otto comandi sono quelli che il backend registra", async () => {
   const backend = await readFile(
     new URL("../../websocket_api.py", import.meta.url),
     "utf8",
@@ -45,7 +49,7 @@ test("i sette comandi sono quelli che il backend registra", async () => {
       `${tipo} non è registrato dal backend`,
     );
   }
-  assert.equal(WS_TYPES.length, 7);
+  assert.equal(WS_TYPES.length, 8);
 });
 
 test("nessun comando della chat porta un segreto", () => {
@@ -138,4 +142,112 @@ test("il tetto del messaggio è lo stesso del backend e del centralino", async (
     "utf8",
   );
   assert.match(centralino, new RegExp(`testo: ${MAX_TESTO},`));
+});
+
+test("ogni conversazione della coda si può buttare via", () => {
+  /* Una coda dove non si butta via niente si riempie di prove, di domande già
+   * risolte e di righe aperte per sbaglio, finché quella vera non si trova
+   * più. Il cestino deve stare su ogni riga, non solo sulla prima. */
+  const coda = codaMarkup([
+    { id: `casa_${"a".repeat(32)}`, nome: "Giovanni", ultimo: "test" },
+    { id: `casa_${"b".repeat(32)}`, ultimo: "un'altra" },
+  ]);
+  const cestini = coda.match(/data-dm-chat-butta="casa_/g) || [];
+  assert.equal(cestini.length, 2);
+});
+
+test("il tasto che apre e il cestino non sono uno dentro l'altro", () => {
+  /* Un <button> dentro un <button> non è markup valido: il browser lo srotola,
+   * e il cestino finisce fuori dalla riga — dove non lo trova nessuno. */
+  const coda = codaMarkup([{ id: `casa_${"c".repeat(32)}`, ultimo: "ciao" }]);
+  const apre = coda.indexOf("dm-chat-voce-apri");
+  const chiude = coda.indexOf("</button>", apre);
+  const cestino = coda.indexOf("data-dm-chat-butta");
+  assert.ok(apre > -1 && cestino > -1);
+  assert.ok(chiude < cestino, "il cestino sta dentro il tasto che apre la riga");
+});
+
+test("il cestino chiede conferma prima di cancellare", () => {
+  /* Una conversazione cancellata non si rimette a posto: sparisce dal
+   * centralino e dalla plancia di quella casa. In un elenco dove si scorre col
+   * dito, un cestino che cancella al primo tocco butta via prima o poi la
+   * conversazione sbagliata. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/assistenza-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sorgente, /state\.daButtare !== nome/);
+  assert.match(sorgente, /Confermi\?/);
+});
+
+test("il nome di una casa non si porta dentro del markup nemmeno in coda", () => {
+  /* Il nome lo scrive un'altra casa: quello che una casa scrive non deve poter
+   * disegnare niente nella plancia di chi risponde. */
+  const coda = codaMarkup([
+    {
+      id: `casa_${"d".repeat(32)}`,
+      nome: '<img src=x onerror="alert(1)">',
+      ultimo: "<script>",
+    },
+  ]);
+  assert.ok(!coda.includes("<img"), "il nome è passato intero");
+  assert.ok(!coda.includes("<script>"), "l'ultima frase è passata intera");
+});
+
+test("nella coda di chi risponde le bolle stanno dalla parte giusta", () => {
+  /* «Mio» dipende da chi guarda, e questa finestra la guardano in due. Nella
+   * coda le domande della casa comparivano a destra e in verde — come se se le
+   * fosse scritte da solo chi stava leggendo — e le proprie risposte a
+   * sinistra: una conversazione letta al contrario. */
+  const domanda = { da: "casa", testo: "non mi si vede la temperatura" };
+  const risposta = { da: "console", testo: "guarda nella scheda Stanze" };
+  assert.match(messaggioMarkup(domanda), /dm-chat-riga mia/);
+  assert.match(messaggioMarkup(risposta), /dm-chat-riga sua/);
+  assert.match(messaggioMarkup(domanda, true), /dm-chat-riga sua/);
+  assert.match(messaggioMarkup(risposta, true), /dm-chat-riga mia/);
+});
+
+test("il filo di chi risponde passa il verso a ogni bolla", () => {
+  const filo = filoMarkup(
+    [
+      { da: "casa", testo: "una domanda" },
+      { da: "console", testo: "una risposta" },
+    ],
+    true,
+  );
+  assert.equal((filo.match(/dm-chat-riga sua/g) || []).length, 1);
+  assert.equal((filo.match(/dm-chat-riga mia/g) || []).length, 1);
+  assert.ok(filo.indexOf("dm-chat-riga sua") < filo.indexOf("dm-chat-riga mia"));
+});
+
+test("la finestra aperta si aggiorna da sola, e chiusa non chiede niente", () => {
+  /* «La risposta non si refresh, devo uscire e rientrare»: la finestra leggeva
+   * una volta all'apertura e poi restava ferma. Il giro dei cinque minuti del
+   * backend serve al campanello, non a ridisegnare — e cinque minuti davanti a
+   * una chat aperta sono un'eternità. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/assistenza-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sorgente, /const RINFRESCO = \d+;/);
+  const quanto = Number(/const RINFRESCO = (\d+);/.exec(sorgente)?.[1]);
+  assert.ok(quanto >= 5000 && quanto <= 60000, `${quanto} non è un ritmo da chat`);
+  /* Aprire accende il giro, chiudere lo spegne: una plancia accesa tutto il
+   * giorno in cucina non deve bussare al centralino per una conversazione che
+   * nessuno sta guardando. */
+  assert.match(sorgente, /modale\.classList\.add\("show"\);[\s\S]{0,120}accendiIlGiro\(\)/);
+  assert.match(sorgente, /export function chiudi\(\) \{\s*spegniIlGiro\(\);/);
+});
+
+test("un giro che non trova niente di nuovo non ridisegna", () => {
+  /* Ridisegnare rifà la casella: farlo quattro volte al minuto mentre qualcuno
+   * scrive è il modo di rendere la finestra inusabile. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/assistenza-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sorgente, /segno\(righe\) === segno\(state\.filo\)/);
+  assert.match(sorgente, /segno\(righe\) === segno\(state\.messages\)/);
+  /* E se ridisegna, il cursore torna dov'era. */
+  assert.match(sorgente, /setSelectionRange\(dovEro\.da, dovEro\.a\)/);
 });

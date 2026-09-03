@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 from .chat_client import (
     ChatError,
     async_cancella,
+    async_cestina,
     async_conversazioni,
     async_filo,
     async_leggi,
@@ -298,6 +299,23 @@ async def async_replica(hass: HomeAssistant, linea: str, testo: str) -> dict[str
     return await async_rispondi(hass, _chiave_di_chi_risponde(hass), linea, testo)
 
 
+async def async_butta(hass: HomeAssistant, linea: str) -> bool:
+    """Butta via una conversazione, dalla coda di chi risponde.
+
+    La casa la propria puo' cancellarla da sempre; chi risponde non poteva
+    cancellare niente, e una coda dove non si butta via nulla si riempie di
+    prove, di domande gia' risolte e di righe aperte per sbaglio, finche'
+    quella vera non si trova piu'.
+
+    Cancella davvero, e per tutti e due: la linea sparisce dal centralino e con
+    lei quello che si erano detti. Sparisce anche dalla plancia di quella casa
+    — la conversazione era finita — ed e' il verso giusto della promessa
+    scritta prima della prima riga: quello che si scrive li' non resta in giro
+    per sempre.
+    """
+    return await async_cestina(hass, _chiave_di_chi_risponde(hass), linea)
+
+
 # ─── Il campanello ───────────────────────────────────────────────────────────
 
 
@@ -395,6 +413,7 @@ __all__ = [
     "ChatError",
     "accesa",
     "async_apri",
+    "async_butta",
     "async_coda",
     "async_conversazione",
     "async_dimentica",

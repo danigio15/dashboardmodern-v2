@@ -317,6 +317,30 @@ async function sportelloDellaConsole(richiesta, env, url) {
     return json({ messaggio });
   }
 
+  /* Buttare via una conversazione, dalla parte di chi risponde.
+   *
+   * La casa puo' cancellare la propria da sempre; chi risponde non poteva
+   * cancellare niente, e una coda dove non si butta via nulla si riempie di
+   * prove, di domande gia' risolte e di righe aperte per sbaglio finche' quella
+   * vera non si trova piu'.
+   *
+   * Cancella tutto: la linea sparisce, e con lei quello che si erano detti.
+   * Non e' una scortesia verso la casa — la conversazione era gia' finita — ed
+   * e' l'unico modo di mantenere la promessa che sta scritta nella plancia:
+   * quello che si scrive qui non resta in giro per sempre.
+   *
+   * Su una linea che non c'e' piu' risponde di si' lo stesso, e non 404 come
+   * fa la risposta: chi cancella vuole che non ci sia, e se non c'e' gia' il
+   * risultato e' quello. Un errore, li', direbbe che qualcosa non ha
+   * funzionato mentre invece era gia' a posto. */
+  if (richiesta.method === "DELETE") {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM messaggi WHERE linea = ?").bind(linea),
+      env.DB.prepare("DELETE FROM linee WHERE id = ?").bind(linea),
+    ]);
+    return json({ cancellata: true });
+  }
+
   if (richiesta.method !== "GET") return male(405, "metodo non previsto");
 
   const dopo = Number(url.searchParams.get("dopo") || 0) || 0;

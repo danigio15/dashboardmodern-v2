@@ -103,6 +103,7 @@ TYPE_CHAT_FORGET = f"{DOMAIN}/chat/forget"
 TYPE_CHAT_QUEUE = f"{DOMAIN}/chat/queue"
 TYPE_CHAT_OPEN = f"{DOMAIN}/chat/open"
 TYPE_CHAT_ANSWER = f"{DOMAIN}/chat/answer"
+TYPE_CHAT_DROP = f"{DOMAIN}/chat/drop"
 
 TYPE_TICKET_AUTH_START = f"{DOMAIN}/tickets/auth/start"
 TYPE_TICKET_AUTH_POLL = f"{DOMAIN}/tickets/auth/poll"
@@ -898,6 +899,35 @@ async def async_chat_answer(
     connection.send_result(msg["id"], {"message": messaggio})
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_CHAT_DROP,
+        vol.Required("line"): vol.All(str, vol.Length(min=1, max=64)),
+    }
+)
+@websocket_api.async_response
+async def async_chat_drop(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Butta via una conversazione dalla coda di chi risponde.
+
+    Serve la chiave della console come per rispondere, e per la stessa ragione
+    piu' una: la cancellazione e' la cosa che non si rimette a posto.
+    """
+    from .chat import ChatError, async_butta
+
+    if _console_chat_denied(hass, connection, msg):
+        return
+    try:
+        connection.send_result(
+            msg["id"], {"dropped": await async_butta(hass, msg["line"])}
+        )
+    except ChatError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+
+
 # ─── Collegare il proprio account GitHub ─────────────────────────────────────
 #
 # Lo stesso giro che HACS fa gia' fare a chiunque installi la plancia: un
@@ -1018,6 +1048,7 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_chat_queue,
         async_chat_open,
         async_chat_answer,
+        async_chat_drop,
         async_ticket_auth_start,
         async_ticket_auth_poll,
         async_ticket_auth_forget,

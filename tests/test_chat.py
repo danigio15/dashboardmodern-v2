@@ -11,8 +11,8 @@ solo in casa d'altri.
   deve far suonare niente: e' il modo sicuro di farlo spegnere a tutti.
 * **Cancellare cancella davvero**, anche dal centralino: e' scritto nella
   plancia prima che qualcuno scriva la prima riga.
-* **Chi non ha la chiave non risponde a nessuno.** La console della chat non si
-  deduce, si ha o non si ha.
+* **Chi non ha la chiave non risponde a nessuno**, e non butta via niente. La
+  console della chat non si deduce, si ha o non si ha.
 
 Il centralino non viene mai chiamato davvero: al suo posto c'e' `_chiama`.
 """
@@ -125,6 +125,10 @@ class FintoCentralino:
                 ]
             }
         linea = pezzi[2]
+        if metodo == "DELETE":
+            self.linee.pop(linea, None)
+            self.segreti.pop(linea, None)
+            return {"cancellata": True}
         if metodo == "POST":
             messaggio = {
                 "id": self.prossimo,
@@ -541,6 +545,40 @@ async def test_con_la_chiave_si_vede_la_coda_e_si_risponde(
     assert [riga["testo"] for riga in filo] == ["una domanda", "una risposta"]
 
 
+async def test_chi_risponde_puo_buttare_via_una_conversazione(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Una coda dove non si butta via niente si riempie e non serve piu'.
+
+    Prove, domande gia' risolte, righe aperte per sbaglio: senza un cestino
+    restano li' per sempre, e quella vera non si trova piu'.
+    """
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    await chat.async_scrivi(hass, "era solo una prova")
+    coda = await chat.async_coda(hass)
+    assert len(coda) == 1
+
+    assert await chat.async_butta(hass, coda[0]["id"]) is True
+    assert await chat.async_coda(hass) == []
+    assert ("DELETE", f"/console/conversazioni/{coda[0]['id']}") in centralino.chiamate
+
+
+async def test_senza_chiave_non_si_butta_via_niente(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """La cancellazione e' la cosa che non si rimette a posto.
+
+    Se passasse senza chiave, chiunque amministri casa propria potrebbe
+    svuotare la coda di tutti — e i comandi della console si chiamano anche
+    senza finestra aperta.
+    """
+    _entry(hass)
+    await chat.async_scrivi(hass, "una domanda che deve restare")
+    with pytest.raises(ChatError):
+        await chat.async_butta(hass, "casa_x")
+    assert ("DELETE", "/console/conversazioni/casa_x") not in centralino.chiamate
+
+
 # ─── Spegnerla ───────────────────────────────────────────────────────────────
 
 
@@ -589,6 +627,8 @@ async def test_con_la_chat_spenta_non_si_risponde_nemmeno(
         await chat.async_apri(hass, "casa_x")
     with pytest.raises(ChatError):
         await chat.async_replica(hass, "casa_x", "ciao")
+    with pytest.raises(ChatError):
+        await chat.async_butta(hass, "casa_x")
     assert centralino.chiamate == []
 
 

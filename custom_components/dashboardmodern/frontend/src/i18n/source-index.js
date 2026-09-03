@@ -736,6 +736,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Conferma ✓": "Confirm ✓",
   "Conferma opzionale": "Optional confirmation",
   "Confermi l'apertura?": "Confirm opening?",
+  "Confermi?": "Confirm?",
   "Configura Entità": "Configure entities",
   "Configura le entità di ogni sezione con le": "Configure each section with",
   "Configura prima almeno una stanza nella sezione Stanze.": "Configure at least one room first in the Rooms section.",

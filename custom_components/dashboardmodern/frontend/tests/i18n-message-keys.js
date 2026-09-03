@@ -693,6 +693,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Confirm",
   "Confirm ✓",
   "Confirm opening?",
+  "Confirm?",
   "Connect GitHub",
   "Connect GitHub to write under this report.",
   "Connected",

@@ -722,6 +722,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * page is the one on screen AND something is actually playing — either of
    * those stops being true and the timer dies.
    *
+   * The ninth is the chat di assistenza. The centralino is a letterbox, not a
+   * push channel: nothing in Home Assistant fires when the person at the other
+   * end writes back, and the backend's five-minute round only rings the bell —
+   * it redraws nothing. Without a beat the open window shows whatever was
+   * there when it opened, and the answer arrives only by closing and reopening
+   * it, which is what happened. Fifteen seconds, and the same discipline as
+   * the rest: only while the chat window is open, it redraws only when
+   * something actually changed, and the timer stops itself the moment it finds
+   * that window shut.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -730,6 +740,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
     [
+      "src/sections/assistenza-section.js",
       "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",
