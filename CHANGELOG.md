@@ -5,11 +5,18 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## 1.4.5-beta.13
+## 1.4.5
 
-Due cose chieste guardando la chat funzionare: buttare via una conversazione
-dalla coda di chi risponde, e una finestra che non resta ferma mentre
-dall'altro capo qualcuno ha gia' risposto.
+Tredici passaggi di prova diventati una versione sola. Dentro ci sono cinque
+sezioni nuove — Musica, Agenda, Tapparelle rifatte, Sicurezza, MiniPC — le
+segnalazioni che nascono dalla plancia invece che da GitHub, il cruscotto di
+chi le riceve, la chat di assistenza privata col suo centralino, le sezioni
+vuote che non ingombrano piu' la barra, e una lunga fila di difetti visti su
+telefoni e tablet veri.
+
+Le note qui sotto sono quelle delle tredici prove, rimesse in fila per
+argomento invece che per data: quello che e' stato aggiunto, quello che e'
+cambiato, quello che e' stato tolto, quello che e' stato corretto.
 
 ### Aggiunto
 
@@ -32,38 +39,6 @@ dall'altro capo qualcuno ha gia' risposto.
   stesso, il secondo cancella — perche' una conversazione cancellata non si
   rimette a posto, e in un elenco dove si scorre col dito un cestino che
   cancella al primo tocco butta via prima o poi quella sbagliata.
-
-### Corretto
-
-- **La chat aperta si aggiorna da sola.**
-
-      «la risposta non si refresh devo uscire e rientrare»
-
-  La finestra leggeva una volta all'apertura e poi restava ferma: la risposta
-  arrivava solo chiudendo e riaprendo. Il giro dei cinque minuti del backend
-  c'era gia', ma quello serve al campanello — suona e basta, non ridisegna
-  niente.
-
-  Adesso guarda ogni quindici secondi, e ridisegna soltanto quando e' arrivato
-  davvero qualcosa: chi sta scrivendo non si vede rifare la casella sotto le
-  dita, e se ridisegna il cursore torna dov'era. Chiusa la finestra non chiede
-  piu' niente, cosi' una plancia accesa tutto il giorno in cucina non bussa al
-  centralino per una conversazione che nessuno sta guardando.
-
-- **Nella coda di chi risponde le bolle stavano dalla parte sbagliata.**
-
-  Le domande della casa comparivano a destra e in verde — come se se le fosse
-  scritte da solo chi stava leggendo — e le proprie risposte a sinistra e in
-  grigio: una conversazione letta al contrario. «Mio» dipende da chi guarda, e
-  questa finestra la guardano in due.
-
-## 1.4.5-beta.12
-
-Cinque richieste lette insieme e cinque sezioni nuove, le sezioni vuote che
-escono dalla barra, e la chat di assistenza — quella vera, che non passa da
-GitHub.
-
-### Aggiunto
 
 - **La Musica ha la sua sezione, e la copertina fa da sfondo.**
 
@@ -141,177 +116,6 @@ GitHub.
 
   Chi non vuole che la plancia parli con nessuno fuori di casa la spegne dalle
   opzioni, come le segnalazioni. Il progetto sta in `docs/CHAT.md`.
-
-### Cambiato
-
-- **La finestra di una tessera ha smesso di tremolare.** Non era un difetto di
-  disegno ma di composizione: la card e il velo sfocato stavano nello stesso
-  strato, e ogni valore che cambiava dietro obbligava il browser a rifare
-  l'intero riquadro sfocato. Il velo e' passato a uno pseudo-elemento — la card
-  gli e' sorella, non figlia — e le animazioni che restano dietro si mettono in
-  pausa mentre la finestra e' aperta.
-
-- **La stanza si mostra col suo nome, mai col suo identificativo.** «Verifica
-  inoltre perche' esce sotto room etc»: sotto «Tapparella salone» c'era scritto
-  «🏠 room_mt8vpz7m». La tendina salva l'id — e' l'unica cosa che regge un
-  rinominamento — ma gli elenchi del guscio stampano quello che trovano. E c'e'
-  la meta' che non si vedeva: con un id in mano la domanda «di che piano e'
-  questa stanza?» tornava «nessuno», e le tapparelle di una casa a due piani
-  finivano tutte nello stesso gruppo.
-
-- **Nella scheda Finestre la stanza sta in alto, accanto al nome**, con la sua
-  etichetta: stava in fondo, senza dire cosa fosse.
-
-- **Il MiniPC dice OFFLINE solo quando qualcuno gliel'ha detto.** Con tutto
-  configurato e l'internet acceso scriveva OFFLINE: le caselle equivalenti per
-  la connettivita' erano quattro e la card ne leggeva una sola. Adesso **ce n'e'
-  una**, si chiama Internet, accetta un `binary_sensor`, uno stato a parole o i
-  millisecondi di un ping — e quello che stava nelle altre tre e' stato
-  travasato dentro, non buttato. Lo stato sta in alto e la card apre lo storico.
-
-- **La pagina Gestione termica mostra le entita' configurate** (#274): solare,
-  scaldabagno e caldaia in una pagina sola, ognuna col suo blocco e i comandi
-  dove si vedono i valori.
-
-- **Il Cruscotto separa quelle prese in carico da quelle ancora ferme.**
-
-      «voglio un filtro anche con quelle in lavorazione, voglio capire cosa ho
-       preso in carico e quelle ancora da prendere in carico»
-
-  Le tre cifre in cima lo dicevano gia', ma erano numeri da leggere e basta:
-  l'unico filtro aperto era «Da lavorare», che le mette insieme. Adesso ci sono
-  «Nuove» e «In lavorazione», e sono esattamente quelle due cifre — stesso
-  nome, cosi' non si dubita che sia lo stesso numero.
-
-
-- **Una sezione vuota non sta nella barra.** «tutte le sezioni devono nascere
-  come nascoste, solo se si inserisce entita' in una sezione diventa visibile.»
-
-  Meta' della regola c'era gia' e funzionava: alla prima accensione le voci
-  nascono spente, e salvare in una scheda riaccende la sezione in cui si e'
-  appena messo qualcosa. Mancava l'altra meta', perche' quella derivazione
-  corre **una volta sola per chiave**: una sezione svuotata restava nella barra
-  per sempre, con la sua pagina vuota dentro, e una accesa da una versione che
-  accendeva tutto pure.
-
-  Adesso cosa riempie una sezione e' scritto in un posto solo, e lo leggono
-  tutti e due i versi. Lo spegnimento ha tre freni: non tocca una chiave che
-  non sa giudicare (Home, Agenda, Continuita', Cruscotto e le sezioni che si fa
-  l'utente restano dove sono — le ultime quattro si nascondono gia' da sole, e
-  Home e' la pagina dove si atterra); non spegne niente finche' la
-  configurazione condivisa non e' arrivata da Home Assistant, perche' prima che
-  arrivi ogni sezione sembra vuota; e non torna mai su una scelta fatta a mano.
-
-  Nel farlo l'elenco di cosa conta come «configurato» e' diventato piu'
-  completo: la caldaia, le porte dell'antifurto, i programmi della lavatrice, i
-  gruppi dell'energia. Erano sezioni che si potevano riempire senza che nessuno
-  se ne accorgesse, e adesso che il verso dello spegnimento esiste non
-  accorgersene vorrebbe dire farle sparire a chi le aveva configurate.
-
-- **Il Cruscotto non ha piu' l'interruttore.** La fascia verde offre una scelta
-  fra vedere una voce e non vederla. Quella voce compare solo a chi tiene la
-  repository — «solo a me esce il cruscotto nella navbar, ad utenti normali non
-  esce e quindi quel pulsante non ha senso» — e chi la tiene la vuole: era un
-  interruttore che una persona sola al mondo poteva toccare, per spegnersi da
-  sola la pagina che aveva chiesto. Chi la fascia l'aveva gia' toccata tiene la
-  sua preferenza: nessuno si ritrova la voce riaccesa dall'aggiornamento.
-
-### Rimosso
-
-- **La tessera d'avviso «Porte/Finestre».** «Viene gia' gestito da Finestre, se
-  li si mette il sensore finestra dice quale e' aperto, quindi e' un
-  duplicato»: la didascalia della tessera Finestre **nomina** le aperte, non le
-  conta soltanto. Se ne vanno con lei il suo gruppo negli avvisi, la sua riga
-  nel catalogo delle tessere e il rilevamento automatico che la riempiva.
-
-## 1.4.5-beta.11
-
-Tre cose viste su un telefono, e la piu' grossa e' che il cruscotto in una casa
-vera non e' mai comparso.
-
-### Corretto
-
-- **Il cruscotto non lo metteva nessuno.** La funzione che crea la voce nella
-  barra e la sua pagina era scritta, esportata e appesa a
-  `DashboardModernSegnalazioni.sistema` — e da li' la chiamava soltanto lo
-  script che fa le fotografie della galleria. Nelle foto il cruscotto c'era; in
-  una casa vera non compariva ne' nella barra ne' dentro la finestra delle
-  segnalazioni, che intanto la sua scheda «console» l'aveva persa. E' il modo
-  peggiore di sbagliare: la galleria che doveva far vedere il lavoro lo faceva
-  al posto dell'applicazione, e mostrava una cosa che non esisteva.
-
-  Adesso la mette `ricarica()`, appena sa chi sta guardando — prima di chiedere
-  la coda a GitHub, cosi' una rete lenta non la fa comparire in ritardo. E c'e'
-  una prova che pretende una chiamata vera dentro il modulo: toglierla di nuovo
-  costa una prova rossa invece di un giro di fotografie riuscito.
-
-- **La scheda «Segnalazioni» era illeggibile.** L'interruttore che nasconde il
-  cruscotto dalla barra stava dentro la scheda della configurazione, e quel
-  markup e' un `<button style="width:100%">` fatto per stare in cima a un
-  pannello dell'editor — e' cosi' che lo usano prese, robot, UPS e agenda.
-  Dentro una scheda, che e' una riga in orizzontale, quel «100%» diventava una
-  pretesa di tutta la larghezza: il testo accanto si stringeva a **una parola
-  per riga**. Si vedeva solo sul telefono di chi la console ce l'ha davvero,
-  cioe' su un dispositivo solo al mondo.
-
-  L'interruttore adesso sta nella finestra delle segnalazioni, che e' larga e
-  si apre dalla scheda: e' l'unico posto sempre raggiungibile anche quando la
-  voce e' nascosta. Dentro il cruscotto sarebbe stato un interruttore che,
-  spegnendosi, si porta via la strada per riaccenderlo.
-
-- **Il cerchio degli elettrodomestici segnava 0 mentre la sua finestra diceva
-  13,7 kWh.** Sullo stesso schermo, a un tocco di distanza. Il cerchio di
-  gruppo ha una regola: il contatore suo — la pinza sulla linea — vince sulla
-  somma di quello che ha dentro, perche' e' piu' preciso. E ne aveva una
-  seconda: nel Giorno e nel Mese uno zero del contatore vale come misura vera.
-
-  La seconda era stata scritta per non inventare numeri che il contatore del
-  gruppo non conferma, ed e' una preoccupazione giusta — solo che proteggeva
-  dal pericolo sbagliato. Quando il contatore dice zero e dentro ci sono
-  apparecchi che hanno consumato, quello zero non e' una misura: e' una casella
-  che non risponde, e il cerchio si mette a contraddire la propria finestra.
-  Adesso lo zero cede alla somma in tutti e tre i periodi, come gia' faceva nei
-  watt.
-
-  Il caso che la vecchia regola difendeva non aveva bisogno di una regola: il
-  carico che oggi non e' partito ha i figli a zero anche loro, la somma fa
-  zero, e zero resta.
-
-  E il paniere del Recorder adesso risolve anche gli apparecchi **nascosti dal
-  Report**. `show_in_report: false` dice «non voglio vederlo nel Report», e per
-  il Report va benissimo; ma un apparecchio nascosto li' puo' stare lo stesso
-  dentro un cerchio di gruppo, e se il suo unico strumento e' un contatore di
-  vita il periodo glielo puo' dare solo il Recorder. Erano due domande diverse
-  — «cosa disegna il Report» e «da dove leggo i periodi del flusso» — infilate
-  in una risposta sola. Il Report non se ne accorge: quello che si allarga sono
-  i valori, indicizzati per entita', non l'elenco che il Report disegna.
-
-  E il paniere del Recorder risolve anche gli apparecchi, non i soli
-  carichi: i figli di un cerchio di gruppo sono apparecchi, e cercarli in un
-  paniere che contiene solo i carichi voleva dire una somma che non trovava
-  niente.
-
-- **La coda che non arriva adesso lo dice.** Il giro zitto — quello che la Home
-  fa da sola per la tessera — inghiottiva l'errore per non mettere un avviso
-  rosso in faccia a chi non aveva chiesto niente. Giusto, ma «zitto» era
-  diventato «fai finta di niente»: il cruscotto restava una pagina vuota e la
-  tessera in Home non compariva, tutte e due senza una parola sul perche'.
-  Adesso il motivo si scrive comunque, e il cruscotto lo mostra invece di
-  restare bianco.
-
-## 1.4.5-beta.10
-
-«Basta che quando arriva un messaggio sulla chat parte una notifica di Home
-Assistant.» Ecco il campanello — e, gia' che il filo doveva diventare una
-conversazione vera, la meta' che mancava: da qui adesso si risponde.
-
-«Mi metti un filtro tra bug e features nel mio cruscotto.» C'era gia', e non
-serviva a niente.
-
-E due cose viste dal vero: otto elettrodomestici con otto prese uguali al posto
-del loro disegno, e un'apertura che spariva senza dire perche'.
-
-### Nuovo
 
 - **Quando qualcuno scrive, Home Assistant lo dice.** Ogni cinque minuti la
   plancia va a vedere se sotto una segnalazione e' comparso un messaggio, e se
@@ -419,79 +223,6 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   Home, ad alta voce per la console — dove qualcuno sta guardando e un guasto
   va detto.
 
-### Tolto
-
-- **Il campo «come ricontattarti».** Diceva il vero — «resta in casa», e nella
-  pagina pubblica non finiva davvero — ma in casa non lo leggeva nessuno: la
-  console del manutentore legge GitHub, dove quel campo non arriva mai.
-  Chiedere un indirizzo e-mail per poi non farne niente e' la peggiore delle
-  tre strade possibili: si conserva un dato personale, non serve a nessuno, e
-  chi lo scrive crede di essere raggiungibile. La risposta arriva sotto la
-  segnalazione, dove adesso si scrive nei due sensi, e il campanello avvisa
-  quando c'e'.
-
-  I recapiti gia' scritti spariscono dal disco alla prima accensione: toglierlo
-  dal modulo non sarebbe bastato, perche' quello che era gia' stato scritto
-  sarebbe rimasto li' finche' quel ticket non cadeva dal fondo dello store.
-
-### Corretto
-
-- **La risposta della console non partiva piu'.** Da quando il cruscotto e'
-  una pagina della barra invece di una finestra, il campo del testo veniva
-  cercato dentro la finestra — dove non c'e' piu' — e «Rispondi» usciva alla
-  riga dopo senza dire niente. I tasti che chiudevano e basta continuavano a
-  funzionare, il che rendeva il guasto ancora piu' difficile da vedere.
-
-- **«In lavorazione» era una supposizione.** Lo stato si deduceva dal fatto che
-  qualcuno avesse commentato, perche' un segno vero non c'era, e sbagliava nel
-  verso peggiore: bastava una domanda di chiarimento per far risultare presa in
-  carico una segnalazione che nessuno aveva ancora guardato. Adesso il segno lo
-  scrive il tasto, e i commenti tornano a essere commenti.
-
-- **Le segnalazioni aperte dalla plancia adesso hanno la loro etichetta.**
-  Arrivavano nude accanto a quelle dei moduli di GitHub, che l'etichetta se la
-  prendono da sole. Non era una dimenticanza: GitHub le scarta quando a
-  scriverle e' chi sulla repository non ha i permessi — cioe' esattamente chi
-  segnala — e mandarle sarebbe stato scrivere una riga che non arriva. Adesso
-  le mette un workflow della repository, che i permessi ce li ha: legge il
-  prefisso del titolo e applica `bug`, `enhancement` o `question`. Chi
-  un'etichetta ce l'ha gia' non si tocca.
-
-- **Le risposte si vedono aprendo la finestra, senza premere niente.** Aprirla
-  leggeva solo quello che c'era in casa: le risposte scritte su GitHub
-  arrivavano premendo «Aggiorna», o al giro di mezz'ora. Chi apriva le proprie
-  segnalazioni per vedere se c'era una risposta — cioe' l'unico motivo per cui
-  uno le apre — trovava quello che gia' sapeva, e doveva chiudere e riaprire la
-  plancia. Adesso l'apertura se le va a riprendere da sola, al massimo una
-  volta al minuto, senza rotella e senza avvisi se la rete e' giu': chi ha solo
-  aperto una finestra non ha chiesto niente.
-
-- **Quando GitHub rifiuta, adesso si legge perche'.** Un `403` usciva come
-  «permessi o limite orario»: due strade opposte dietro una frase sola — una si
-  risolve con un'installazione, l'altra aspettando — e a chi legge restava il
-  compito di indovinare. Con ogni rifiuto GitHub manda un `message` che quasi
-  sempre e' esatto («Resource not accessible by integration»), e veniva buttato
-  via. Adesso arriva fino alla riga sotto la segnalazione.
-
-- **La tessera compariva per caso, o non compariva.** La Home si disegna mentre
-  la richiesta verso GitHub e' ancora per aria, e a quel punto il sommario e'
-  nullo: la tessera non veniva messa, e restava fuori fino al primo evento che
-  facesse ridisegnare la griglia per un'altra ragione. Adesso l'arrivo della
-  coda e' esso stesso l'evento.
-
-- **E i suoi conti restavano fermi.** La soglia dei dieci minuti era un freno,
-  non un orologio: diceva «non richiedere se hai gia' chiesto da poco», e in una
-  plancia lasciata aperta su un tablet nessuno chiedeva piu' niente. Adesso c'e'
-  un battito che quei dieci minuti li conta — solo per chi ha la console, e
-  fermo mentre la pagina non si vede.
-
-- **«Apri il cruscotto» sembrava non fare niente.** Le due finestre stanno sullo
-  stesso piano e la piu' giovane copre l'altra: il cruscotto si apriva dietro
-  quella della tessera. Adesso la tessera chiude la propria prima che l'altra
-  si apra.
-
-### Il cruscotto
-
 - **Non e' piu' una finestra: e' una pagina, con la sua voce nella barra.** La
   coda del manutentore non e' una cosa che si sbircia — si legge un titolo, si
   apre il filo, si guarda una foto, si scrive una risposta — e tutto questo
@@ -546,8 +277,6 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
 - **Il messaggio di coda vuota dice chi sta tagliando.** Col tipo acceso il
   vuoto e' quasi sempre colpa sua, non dello stato: dirlo evita di guardare una
   coda vuota chiedendosi dove siano finite le altre trentanove.
-
-### Nuovo
 
 - **Le entità del clima si raggruppano per stanza.** «Ho sette termosifoni con
   valvola smart, ognuna con una o più entità VTherm: almeno si raddoppiano,
@@ -637,7 +366,490 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   posto c'è un tasto **Prova**, che scarica un quadratino vero e dice se è
   arrivato.
 
+- **Il modulo non chiede piu' niente prima di lasciarti scrivere.** Il blocco
+  «Collega GitHub» stava in cima, prima che uno avesse messo giu' una riga. Era
+  una serratura davanti alla vetrina: chi la trovava pensava «vabbe', vado su
+  GitHub», ed e' esattamente il contrario di quello che questa finestra serve a
+  evitare. La segnalazione da fare la si perdeva li'.
+
+  Adesso l'ordine e' l'unico che regge. Tipo, titolo, descrizione, invia — e
+  alla pressione la segnalazione **e' gia' salvata in casa**. Solo a quel
+  punto, se manca la firma, compare il codice, con scritto perche': «Salvata.
+  Manca solo la firma: autorizza GitHub e parte.» L'autorizzazione arriva
+  quando ha un motivo, col lavoro gia' al sicuro. Chi si ferma li' non perde
+  niente: la bozza resta e parte da sola al primo collegamento.
+
+  Chi vuole collegarsi prima di scrivere puo' ancora farlo: la riga sta in
+  fondo a «Le mie», dove si guarda chi si e', non dove si scrive.
+
+- **Il codice si digita una volta sola, e non torna piu'.** Il gettone resta
+  nel deposito di Home Assistant — un utente di HA, un account GitHub — e
+  sopravvive ai riavvii, alle ricariche e agli aggiornamenti. Non scade,
+  perche' l'App e' registrata per non farlo scadere.
+
+- **Il cruscotto guarda tutta la repository.** Mostrava le sole segnalazioni
+  nate dalla plancia, riconosciute da una riga invisibile nel corpo. Su questa
+  repository sono cinquantuno issue, e quelle nate dalla plancia erano zero: il
+  cruscotto era una stanza vuota accanto a una casa piena, e restavano due
+  posti da guardare invece di uno.
+
+  Adesso arrivano tutte, e da dove viene ognuna resta scritto — 🏠 dalla
+  plancia, 🐙 da GitHub. Non cambia cosa ci si puo' fare: si risponde e si
+  chiude identico sulle due. Cambia una cosa sola, ed e' quella che vale la
+  pena sapere prima di scrivere: la risposta a una nata dalla plancia torna
+  **dentro** la dashboard di chi ha segnalato, quella a una issue aperta su
+  GitHub resta dove e' stata scritta.
+
+- **Il filtro «Chiuse», accanto a «Da lavorare».** Due meta' che non perdono
+  niente per strada — una prova lo tiene fermo, perche' quello che sfuggisse a
+  tutti e due sarebbe uno stato sparito senza che nessuno se ne accorga.
+
+- **Il tipo si legge dal titolo e dall'etichetta.** Non e' un campo di GitHub,
+  e si deduce da due posti che qui esistono da prima della plancia: il prefisso
+  che i moduli mettono da soli — `[Bug]`, `[Feature]`, `[Aiuto]` — e
+  l'etichetta messa a mano, `bug` o `enhancement`. Sulle cinquantuno di oggi
+  funzionano tutte e due. Quando nessuno dei due dice niente il tipo resta
+  vuoto, con una pastiglia grigia: chiamarle tutte «difetto» sarebbe comodo e
+  falso. Il prefisso poi sparisce dal titolo, perche' accanto c'e' gia' la
+  pastiglia che lo dice.
+
+- **L'Agenda ha la sua scheda nella configurazione.** «Calendario, per
+  configurarlo devi toglierlo dalla parte widget: crea una sezione a se' nel
+  menu e metti calendario e cose da fare. Nei widget deve esserci solo
+  l'interruttore.» I calendari e le liste ToDo erano finiti nella scheda dei
+  widget, che risponde a una domanda sola — quali tessere vedere in Home e in
+  che ordine — e per configurare l'agenda bisognava passare di li'. Adesso hanno
+  la loro, «📅 Agenda», con i due elenchi uno sotto l'altro; nella scheda dei
+  widget restano gli interruttori delle tessere e basta. (#259)
+- **E la Continuita' pure.** Le caselle dell'UPS erano una coda della scheda
+  «Energia»: «nel config manca completamente la parte per configurare il gruppo
+  di continuita'». Non mancava, ma stava dove nessuno la cercava — e senza una
+  scheda sua non poteva avere il suo interruttore, perche' la fascia verde
+  dell'Energia e' dell'Energia. (#256)
+- **La Gestione termica si configura una macchina alla volta.** «La sezione
+  solare termico non e' suddivisa con le altre cose aggiunte, caldaia e
+  scaldabagno: nel config voglio le sottosezioni per configurare quelle, non
+  creare confusione.» Era una colonna sola — tredici caselle di pannelli
+  solari, poi lo scaldabagno, poi la caldaia — e chi cercava la sua macchina
+  scorreva quelle degli altri. In cima ci sono adesso le stesse linguette che
+  ha la pagina, una per macchina spuntata, e sotto c'e' soltanto quella accesa.
+  (#253)
+
+- **La finestra puo' avere anche l'inferriata.** «La card delle finestre e'
+  fantastica, ma non riesco ad adattarla alla mia situazione perche' non ho le
+  tapparelle. Sarebbe possibile una card che consideri due sensori di contatto,
+  uno per le inferriate esterne e uno per gli infissi interni?» Accanto al
+  sensore dell'infisso c'e' adesso quello dell'inferriata, e la card li disegna
+  tutti e due: la grata sta davanti al vetro e si impacchetta di lato, l'infisso
+  sta dietro e rientra verso i cardini. I quattro stati si distinguono a colpo
+  d'occhio — tutto chiuso, grata aperta, finestra aperta, tutto aperto — e la
+  pastiglia dice quale, perche' «Aperta» da solo non rispondeva alla domanda per
+  cui si sono messi due sensori. Chi non ha inferriate non vede niente di nuovo:
+  la casella vuota lascia la card esattamente com'era. (#254)
+- **E una riga con le sole grate si salva.** Valeva gia' per il solo contatto
+  dell'infisso — «ho le persiane manuali, pero' ho i sensori di apertura» — e
+  vale per lo stesso motivo: la riga non comanda niente, ma ha qualcosa da dire.
+- **In Home i due contatti sono due righe.** Una grata lasciata aperta e una
+  finestra lasciata aperta non sono la stessa notizia, e uscendo di casa e'
+  proprio quella la differenza che si vuole leggere.
+- **Il verso girato vale per entrambi.** Chi ha un contatto che sta a ON da
+  chiuso (#244) lo elenca come sempre: il verso e' un fatto del filo, non del
+  tipo di apertura.
+- **Lo scaldabagno elettrico ha la sua tessera.** «Ho un impianto fotovoltaico
+  ed ho sfruttato uno scaldabagno per l'acqua calda sanitaria. La card attuale
+  e' fantastica ma pensata per il solare termico.» Adesso c'e' la sua: le
+  quattro caselle chieste — interruttore, temperatura dell'acqua, obiettivo,
+  consumo — piu' l'energia di oggi. Il numero grande e' l'acqua, l'anello dice
+  quanto manca all'obiettivo, e la tessera si accende mentre la resistenza
+  lavora. La differenza col solare non e' la forma della card: li' il calore
+  arriva dal sole e si guarda il salto fra le sonde, qui arriva da una
+  resistenza che si paga e si guarda quando ci sara' l'acqua calda. (#253)
+- **E con un `water_heater` di Home Assistant non c'e' niente da compilare.**
+  Basta la prima casella: stato, temperatura e obiettivo li dichiara l'entita'
+  stessa, e «Rileva da Home Assistant» la trova da sola. Le altre restano per
+  chi lo scaldabagno se l'e' messo insieme da un rele' e due sonde.
+- **L'obiettivo si legge anche da un termostato.** «Target preso dall'entita'
+  del termostato»: li' l'obiettivo non e' lo stato — lo stato e' la modalita' —
+  ma un attributo, e la casella lo cerca in tutti e due i posti.
+- **La sezione termica ha tre anime, non una.** Si chiamava «Solare termico» e
+  disegnava un impianto solo: pannello sul tetto, pompa, accumulo. Ma l'acqua
+  calda in casa la fanno tre macchine diverse — il sole, una resistenza, una
+  caldaia a gas — e quasi nessuno ne ha una sola: chi ha il fotovoltaico e lo
+  scaldabagno apriva quella pagina e ci trovava un pannello che non ha. Adesso
+  nella scheda Solare si spunta quello che si ha davvero, e la pagina prende la
+  forma di quello che si e' spuntato. Con due o tre compaiono in alto le
+  linguette, le stesse di Freddo e Caldo nella pagina Clima. (#253)
+- **Due scene nuove, nella stessa lingua della prima.** Lo scaldabagno ha il
+  suo serbatoio in piedi, con l'acqua calda che sale dal fondo — l'altezza del
+  riempimento e' quanto manca all'obiettivo — e le tre spire della resistenza
+  che si accendono quando lavora. La caldaia ha la scocca a muro con la fiamma
+  nell'oblo', la mandata e il ritorno che corrono al radiatore e il salto fra i
+  due, che e' la misura che dice se l'impianto sta davvero cedendo calore.
+- **La pressione bassa si vede prima di accorgersene.** Sotto il bar la
+  targhetta batte e compare la riga che dice perche': e' l'unica cosa di quella
+  pagina che ogni tanto chiede di alzarsi dal divano.
+- **La pagina si chiama come la macchina che si sta guardando.** «Impianto
+  solare termico» sopra una caldaia era il nome di un'altra macchina.
+- **Chi non sceglie non perde niente.** Una plancia gia' configurata col solare
+  continua a mostrarlo esattamente come prima: la domanda e' nuova, e le
+  risposte di ieri valgono ancora.
+- **La sezione si chiama «Gestione termica».** Il nome vecchio era quello di
+  una delle tre macchine: chi ha solo la caldaia trovava la sua dentro una voce
+  che parlava di pannelli solari. Cambia nella barra in basso e nella scheda
+  della configurazione; chi la sezione se l'era rinominata a mano tiene il nome
+  che ha scelto.
+- **Anche la caldaia ha la sua tessera e la sua finestra.** Il numero grande e'
+  la mandata, la didascalia il salto fra mandata e ritorno — che e' la misura
+  per cui si guarda una caldaia — e la pressione sotto il bar accende la
+  tessera e la fa comparire fra quelle che chiedono attenzione. La finestra
+  dice perche': «l'acqua gira senza cedere calore» quando mandata e ritorno
+  sono quasi uguali, «sotto il minimo, la caldaia puo' bloccarsi» quando manca
+  pressione.
+- **Con tutti e tre gli impianti le tessere sono tre**, ognuna con la sua
+  finestra, e tutte e tre portano alla stessa sezione: da li' si passa
+  dall'una all'altra con le linguette.
+- **Senza sonde funziona lo stesso, ed e' una scelta libera.** «Prevedi sia per
+  la caldaia che per lo scaldabagno anche il semplice utilizzo senza sonde di
+  temperatura.» Nessuna casella e' obbligatoria. Con il solo interruttore lo
+  scaldabagno dice acceso e spento, il serbatoio si riempie tutto e parla il
+  colore — caldo mentre la resistenza lavora, acciaio quando e' ferma —
+  invece di mostrarsi vuoto, che sarebbe dire «non c'e' acqua calda». Con il
+  solo stato la caldaia accende il suo oblo' e mostra il circuito che si
+  scalda.
+- **E le targhette senza numero non si disegnano.** Cinque riquadri con «--»
+  non sono una scheda spoglia: sono cinque promesse non mantenute. Le caselle
+  che non ci sono non lasciano un buco, lasciano posto.
+- **La pastiglia nomina quello che sta davvero leggendo.** Chi mappa il
+  bruciatore legge «bruciatore acceso»; chi mappa solo lo stato legge «caldaia
+  accesa», perche' un bruciatore che nessuno ha mappato non si puo' citare.
+
+- **Segnala un difetto, proponi un'idea, chiedi aiuto — dalla Configurazione.**
+  Fino a ieri, per segnalare qualcosa, bisognava uscire da Home Assistant,
+  aprire GitHub, farsi un account se non ce l'aveva, e compilare un modulo che
+  chiede la versione dell'integrazione — che chi segnala non sa, e che la
+  plancia invece conosce benissimo.
+
+  Adesso c'e' una tessera in Configurazione. Il modulo e' in tre passi, e il
+  primo e' la domanda che conta: **di che si tratta**. Tre schede con la loro
+  spiegazione — «Non funziona», «Vorrei che facesse», «Non ci riesco» — perche'
+  la differenza fra un difetto e un'idea la sa chi scrive solo se gliela si
+  racconta, e una segnalazione ben incasellata e' meta' del lavoro di chi la
+  legge. Titolo e descrizione cambiano suggerimento col tipo scelto: a chi
+  chiede aiuto non si domanda «cosa ti aspettavi».
+
+- **La diagnostica la compila la plancia.** Versione dell'integrazione,
+  versione di Home Assistant, lingua, pagina, browser: le cose che lei sa e chi
+  segnala no. Si vedono tutte prima di premere invia, sotto «cosa parte» —
+  quello che esce di casa non e' una cosa da far scoprire dopo.
+
+- **Serve il tuo account GitHub, ed e' quello che hai gia'.** La plancia si
+  scarica da HACS, e HACS un account GitHub lo chiede gia' — con la stessa
+  identica autorizzazione, il codice da digitare su `github.com/login/device`.
+  Chi e' arrivato fin qui quel giro l'ha gia' fatto una volta.
+
+  Il gettone resta nel backend di Home Assistant e non passa mai dal browser.
+  Si scollega dalla plancia, e si revoca del tutto da GitHub.
+
+- **La risposta torna dentro la plancia.** La segnalazione diventa una issue a
+  tuo nome; quando arriva una risposta, lo stato cambia da solo — «presa in
+  carico», «risolta», «archiviata» — e la risposta si legge da «Le mie», senza
+  chiedere niente a nessuno.
+
+- **Foto e video.** GitHub non ha un'API per allegarli a una issue, e non e'
+  una svista: e' una scelta loro, per contenere gli abusi. Quindi la plancia
+  non finge di spedirli — appena la segnalazione e' aperta, un tasto porta alla
+  sua pagina, dove si trascinano nel riquadro della risposta. Il momento e'
+  quello giusto: chi ha appena scritto ha ancora il file sotto mano.
+
+- **Una issue e' una pagina pubblica, e la plancia lo dice** sopra il tasto
+  invia, non dopo. L'unica cosa che non parte mai e' il recapito: chi scrive il
+  proprio indirizzo lo scrive a una persona, non a una pagina indicizzata.
+
+- **La Diagnostica dice quando la plancia e' pronta, e dove va il tempo.** La
+  riga «Boot» mostra quanto ci mette il velo ad andarsene, quando e' arrivato
+  l'ultimo file, e quanto tempo passa DOPO che la rete ha finito. Se il grosso
+  sta prima e' la rete; se sta dopo sono analisi ed esecuzione, dove ne' il
+  pacchetto ne' la compressione arrivano. Serve a smettere di tirare a
+  indovinare su una macchina che non e' la mia.
+
+- **La plancia arriva in un pacchetto, non in centosettantanove file.** «Impiega
+  ancora troppo tempo in caricamento, soprattutto in primo avvio.» Non era il
+  velo: al primo avvio il browser scaricava centosettantanove file JavaScript
+  per quattro megabyte. Non in fila — il documento li precarica tutti insieme —
+  ma su HTTP/1.1 il browser ne serve sei per volta, ed erano una trentina di
+  ondate prima di avere tutto. Adesso sono tre file. Restano fuori i tredici
+  cataloghi delle lingue, quasi due megabyte a una casa che ne parla una sola:
+  arriva solo quella che serve. Se il pacchetto manca, la plancia parte lo
+  stesso dai sorgenti — e la Diagnostica runtime dice quale delle due strade sta
+  usando.
+
+### Cambiato
+
+- **La finestra di una tessera ha smesso di tremolare.** Non era un difetto di
+  disegno ma di composizione: la card e il velo sfocato stavano nello stesso
+  strato, e ogni valore che cambiava dietro obbligava il browser a rifare
+  l'intero riquadro sfocato. Il velo e' passato a uno pseudo-elemento — la card
+  gli e' sorella, non figlia — e le animazioni che restano dietro si mettono in
+  pausa mentre la finestra e' aperta.
+
+- **La stanza si mostra col suo nome, mai col suo identificativo.** «Verifica
+  inoltre perche' esce sotto room etc»: sotto «Tapparella salone» c'era scritto
+  «🏠 room_mt8vpz7m». La tendina salva l'id — e' l'unica cosa che regge un
+  rinominamento — ma gli elenchi del guscio stampano quello che trovano. E c'e'
+  la meta' che non si vedeva: con un id in mano la domanda «di che piano e'
+  questa stanza?» tornava «nessuno», e le tapparelle di una casa a due piani
+  finivano tutte nello stesso gruppo.
+
+- **Nella scheda Finestre la stanza sta in alto, accanto al nome**, con la sua
+  etichetta: stava in fondo, senza dire cosa fosse.
+
+- **Il MiniPC dice OFFLINE solo quando qualcuno gliel'ha detto.** Con tutto
+  configurato e l'internet acceso scriveva OFFLINE: le caselle equivalenti per
+  la connettivita' erano quattro e la card ne leggeva una sola. Adesso **ce n'e'
+  una**, si chiama Internet, accetta un `binary_sensor`, uno stato a parole o i
+  millisecondi di un ping — e quello che stava nelle altre tre e' stato
+  travasato dentro, non buttato. Lo stato sta in alto e la card apre lo storico.
+
+- **La pagina Gestione termica mostra le entita' configurate** (#274): solare,
+  scaldabagno e caldaia in una pagina sola, ognuna col suo blocco e i comandi
+  dove si vedono i valori.
+
+- **Il Cruscotto separa quelle prese in carico da quelle ancora ferme.**
+
+      «voglio un filtro anche con quelle in lavorazione, voglio capire cosa ho
+       preso in carico e quelle ancora da prendere in carico»
+
+  Le tre cifre in cima lo dicevano gia', ma erano numeri da leggere e basta:
+  l'unico filtro aperto era «Da lavorare», che le mette insieme. Adesso ci sono
+  «Nuove» e «In lavorazione», e sono esattamente quelle due cifre — stesso
+  nome, cosi' non si dubita che sia lo stesso numero.
+
+
+- **Una sezione vuota non sta nella barra.** «tutte le sezioni devono nascere
+  come nascoste, solo se si inserisce entita' in una sezione diventa visibile.»
+
+  Meta' della regola c'era gia' e funzionava: alla prima accensione le voci
+  nascono spente, e salvare in una scheda riaccende la sezione in cui si e'
+  appena messo qualcosa. Mancava l'altra meta', perche' quella derivazione
+  corre **una volta sola per chiave**: una sezione svuotata restava nella barra
+  per sempre, con la sua pagina vuota dentro, e una accesa da una versione che
+  accendeva tutto pure.
+
+  Adesso cosa riempie una sezione e' scritto in un posto solo, e lo leggono
+  tutti e due i versi. Lo spegnimento ha tre freni: non tocca una chiave che
+  non sa giudicare (Home, Agenda, Continuita', Cruscotto e le sezioni che si fa
+  l'utente restano dove sono — le ultime quattro si nascondono gia' da sole, e
+  Home e' la pagina dove si atterra); non spegne niente finche' la
+  configurazione condivisa non e' arrivata da Home Assistant, perche' prima che
+  arrivi ogni sezione sembra vuota; e non torna mai su una scelta fatta a mano.
+
+  Nel farlo l'elenco di cosa conta come «configurato» e' diventato piu'
+  completo: la caldaia, le porte dell'antifurto, i programmi della lavatrice, i
+  gruppi dell'energia. Erano sezioni che si potevano riempire senza che nessuno
+  se ne accorgesse, e adesso che il verso dello spegnimento esiste non
+  accorgersene vorrebbe dire farle sparire a chi le aveva configurate.
+
+- **Il Cruscotto non ha piu' l'interruttore.** La fascia verde offre una scelta
+  fra vedere una voce e non vederla. Quella voce compare solo a chi tiene la
+  repository — «solo a me esce il cruscotto nella navbar, ad utenti normali non
+  esce e quindi quel pulsante non ha senso» — e chi la tiene la vuole: era un
+  interruttore che una persona sola al mondo poteva toccare, per spegnersi da
+  sola la pagina che aveva chiesto. Chi la fascia l'aveva gia' toccata tiene la
+  sua preferenza: nessuno si ritrova la voce riaccesa dall'aggiornamento.
+
+- **Un secondo e sei decimi in meno all'avvio.** Profilando la partenza con la
+  CPU rallentata quattro volte — un telefono di fascia media — **una sola
+  funzione si mangiava 789 millisecondi su 6800**, dentro un modulo che scrive
+  tre variabili CSS e non disegna niente.
+
+  Non era il suo codice: erano quindici chiamate a cinquantadue millisecondi
+  l'una. Il giro era, per ogni pagina: guarda dove va l'intestazione, scrivila,
+  rileggi quanto e' larga. Ogni scrittura invalida lo stile, e ogni lettura che
+  le viene dietro obbliga il browser a **ricalcolarlo tutto** prima di
+  rispondere. Nove pagine, nove ricalcoli completi.
+
+  Adesso i quattro tempi si fanno per tutte le pagine prima di passare al
+  successivo — si legge dove vanno tutte, si scrivono tutte, si misurano tutte,
+  si applicano tutte: **due ricalcoli invece di nove**, e la spesa non cresce
+  piu' col numero delle pagine. Misurato sullo stesso banco, tre giri per parte:
+  **da 6693 a 5060 millisecondi**. Il modulo passa da 789 a 53.
+
+- **Il flusso dell'energia tace, quando non c'e' niente da dire.** E' la cosa
+  piu' indaffarata della plancia: gira piu' di una volta al secondo, per tre
+  viste, e riscriveva gli attributi di ogni bolla e di ogni linea **col valore
+  che avevano gia'**. Un `data-` riscritto uguale e' comunque una scrittura:
+  sveglia ogni osservatore della pagina e invalida lo stile del nodo.
+
+  Contate col popup dell'Auto aperto e gli stati fermi: **1777 scritture in
+  quattro secondi**, tutte dietro il velo. Adesso sono 297, e quelle che restano
+  non sono piu' del flusso.
+
+### Rimosso
+
+- **La tessera d'avviso «Porte/Finestre».** «Viene gia' gestito da Finestre, se
+  li si mette il sensore finestra dice quale e' aperto, quindi e' un
+  duplicato»: la didascalia della tessera Finestre **nomina** le aperte, non le
+  conta soltanto. Se ne vanno con lei il suo gruppo negli avvisi, la sua riga
+  nel catalogo delle tessere e il rilevamento automatico che la riempiva.
+
+- **Il campo «come ricontattarti».** Diceva il vero — «resta in casa», e nella
+  pagina pubblica non finiva davvero — ma in casa non lo leggeva nessuno: la
+  console del manutentore legge GitHub, dove quel campo non arriva mai.
+  Chiedere un indirizzo e-mail per poi non farne niente e' la peggiore delle
+  tre strade possibili: si conserva un dato personale, non serve a nessuno, e
+  chi lo scrive crede di essere raggiungibile. La risposta arriva sotto la
+  segnalazione, dove adesso si scrive nei due sensi, e il campanello avvisa
+  quando c'e'.
+
+  I recapiti gia' scritti spariscono dal disco alla prima accensione: toglierlo
+  dal modulo non sarebbe bastato, perche' quello che era gia' stato scritto
+  sarebbe rimasto li' finche' quel ticket non cadeva dal fondo dello store.
+
 ### Corretto
+
+- **La chat aperta si aggiorna da sola.**
+
+      «la risposta non si refresh devo uscire e rientrare»
+
+  La finestra leggeva una volta all'apertura e poi restava ferma: la risposta
+  arrivava solo chiudendo e riaprendo. Il giro dei cinque minuti del backend
+  c'era gia', ma quello serve al campanello — suona e basta, non ridisegna
+  niente.
+
+  Adesso guarda ogni quindici secondi, e ridisegna soltanto quando e' arrivato
+  davvero qualcosa: chi sta scrivendo non si vede rifare la casella sotto le
+  dita, e se ridisegna il cursore torna dov'era. Chiusa la finestra non chiede
+  piu' niente, cosi' una plancia accesa tutto il giorno in cucina non bussa al
+  centralino per una conversazione che nessuno sta guardando.
+
+- **Nella coda di chi risponde le bolle stavano dalla parte sbagliata.**
+
+  Le domande della casa comparivano a destra e in verde — come se se le fosse
+  scritte da solo chi stava leggendo — e le proprie risposte a sinistra e in
+  grigio: una conversazione letta al contrario. «Mio» dipende da chi guarda, e
+  questa finestra la guardano in due.
+
+- **Il cruscotto non lo metteva nessuno.** La funzione che crea la voce nella
+  barra e la sua pagina era scritta, esportata e appesa a
+  `DashboardModernSegnalazioni.sistema` — e da li' la chiamava soltanto lo
+  script che fa le fotografie della galleria. Nelle foto il cruscotto c'era; in
+  una casa vera non compariva ne' nella barra ne' dentro la finestra delle
+  segnalazioni, che intanto la sua scheda «console» l'aveva persa. E' il modo
+  peggiore di sbagliare: la galleria che doveva far vedere il lavoro lo faceva
+  al posto dell'applicazione, e mostrava una cosa che non esisteva.
+
+  Adesso la mette `ricarica()`, appena sa chi sta guardando — prima di chiedere
+  la coda a GitHub, cosi' una rete lenta non la fa comparire in ritardo. E c'e'
+  una prova che pretende una chiamata vera dentro il modulo: toglierla di nuovo
+  costa una prova rossa invece di un giro di fotografie riuscito.
+
+- **La scheda «Segnalazioni» era illeggibile.** L'interruttore che nasconde il
+  cruscotto dalla barra stava dentro la scheda della configurazione, e quel
+  markup e' un `<button style="width:100%">` fatto per stare in cima a un
+  pannello dell'editor — e' cosi' che lo usano prese, robot, UPS e agenda.
+  Dentro una scheda, che e' una riga in orizzontale, quel «100%» diventava una
+  pretesa di tutta la larghezza: il testo accanto si stringeva a **una parola
+  per riga**. Si vedeva solo sul telefono di chi la console ce l'ha davvero,
+  cioe' su un dispositivo solo al mondo.
+
+  L'interruttore adesso sta nella finestra delle segnalazioni, che e' larga e
+  si apre dalla scheda: e' l'unico posto sempre raggiungibile anche quando la
+  voce e' nascosta. Dentro il cruscotto sarebbe stato un interruttore che,
+  spegnendosi, si porta via la strada per riaccenderlo.
+
+- **Il cerchio degli elettrodomestici segnava 0 mentre la sua finestra diceva
+  13,7 kWh.** Sullo stesso schermo, a un tocco di distanza. Il cerchio di
+  gruppo ha una regola: il contatore suo — la pinza sulla linea — vince sulla
+  somma di quello che ha dentro, perche' e' piu' preciso. E ne aveva una
+  seconda: nel Giorno e nel Mese uno zero del contatore vale come misura vera.
+
+  La seconda era stata scritta per non inventare numeri che il contatore del
+  gruppo non conferma, ed e' una preoccupazione giusta — solo che proteggeva
+  dal pericolo sbagliato. Quando il contatore dice zero e dentro ci sono
+  apparecchi che hanno consumato, quello zero non e' una misura: e' una casella
+  che non risponde, e il cerchio si mette a contraddire la propria finestra.
+  Adesso lo zero cede alla somma in tutti e tre i periodi, come gia' faceva nei
+  watt.
+
+  Il caso che la vecchia regola difendeva non aveva bisogno di una regola: il
+  carico che oggi non e' partito ha i figli a zero anche loro, la somma fa
+  zero, e zero resta.
+
+  E il paniere del Recorder adesso risolve anche gli apparecchi **nascosti dal
+  Report**. `show_in_report: false` dice «non voglio vederlo nel Report», e per
+  il Report va benissimo; ma un apparecchio nascosto li' puo' stare lo stesso
+  dentro un cerchio di gruppo, e se il suo unico strumento e' un contatore di
+  vita il periodo glielo puo' dare solo il Recorder. Erano due domande diverse
+  — «cosa disegna il Report» e «da dove leggo i periodi del flusso» — infilate
+  in una risposta sola. Il Report non se ne accorge: quello che si allarga sono
+  i valori, indicizzati per entita', non l'elenco che il Report disegna.
+
+  E il paniere del Recorder risolve anche gli apparecchi, non i soli
+  carichi: i figli di un cerchio di gruppo sono apparecchi, e cercarli in un
+  paniere che contiene solo i carichi voleva dire una somma che non trovava
+  niente.
+
+- **La coda che non arriva adesso lo dice.** Il giro zitto — quello che la Home
+  fa da sola per la tessera — inghiottiva l'errore per non mettere un avviso
+  rosso in faccia a chi non aveva chiesto niente. Giusto, ma «zitto» era
+  diventato «fai finta di niente»: il cruscotto restava una pagina vuota e la
+  tessera in Home non compariva, tutte e due senza una parola sul perche'.
+  Adesso il motivo si scrive comunque, e il cruscotto lo mostra invece di
+  restare bianco.
+
+- **La risposta della console non partiva piu'.** Da quando il cruscotto e'
+  una pagina della barra invece di una finestra, il campo del testo veniva
+  cercato dentro la finestra — dove non c'e' piu' — e «Rispondi» usciva alla
+  riga dopo senza dire niente. I tasti che chiudevano e basta continuavano a
+  funzionare, il che rendeva il guasto ancora piu' difficile da vedere.
+
+- **«In lavorazione» era una supposizione.** Lo stato si deduceva dal fatto che
+  qualcuno avesse commentato, perche' un segno vero non c'era, e sbagliava nel
+  verso peggiore: bastava una domanda di chiarimento per far risultare presa in
+  carico una segnalazione che nessuno aveva ancora guardato. Adesso il segno lo
+  scrive il tasto, e i commenti tornano a essere commenti.
+
+- **Le segnalazioni aperte dalla plancia adesso hanno la loro etichetta.**
+  Arrivavano nude accanto a quelle dei moduli di GitHub, che l'etichetta se la
+  prendono da sole. Non era una dimenticanza: GitHub le scarta quando a
+  scriverle e' chi sulla repository non ha i permessi — cioe' esattamente chi
+  segnala — e mandarle sarebbe stato scrivere una riga che non arriva. Adesso
+  le mette un workflow della repository, che i permessi ce li ha: legge il
+  prefisso del titolo e applica `bug`, `enhancement` o `question`. Chi
+  un'etichetta ce l'ha gia' non si tocca.
+
+- **Le risposte si vedono aprendo la finestra, senza premere niente.** Aprirla
+  leggeva solo quello che c'era in casa: le risposte scritte su GitHub
+  arrivavano premendo «Aggiorna», o al giro di mezz'ora. Chi apriva le proprie
+  segnalazioni per vedere se c'era una risposta — cioe' l'unico motivo per cui
+  uno le apre — trovava quello che gia' sapeva, e doveva chiudere e riaprire la
+  plancia. Adesso l'apertura se le va a riprendere da sola, al massimo una
+  volta al minuto, senza rotella e senza avvisi se la rete e' giu': chi ha solo
+  aperto una finestra non ha chiesto niente.
+
+- **Quando GitHub rifiuta, adesso si legge perche'.** Un `403` usciva come
+  «permessi o limite orario»: due strade opposte dietro una frase sola — una si
+  risolve con un'installazione, l'altra aspettando — e a chi legge restava il
+  compito di indovinare. Con ogni rifiuto GitHub manda un `message` che quasi
+  sempre e' esatto («Resource not accessible by integration»), e veniva buttato
+  via. Adesso arriva fino alla riga sotto la segnalazione.
+
+- **La tessera compariva per caso, o non compariva.** La Home si disegna mentre
+  la richiesta verso GitHub e' ancora per aria, e a quel punto il sommario e'
+  nullo: la tessera non veniva messa, e restava fuori fino al primo evento che
+  facesse ridisegnare la griglia per un'altra ragione. Adesso l'arrivo della
+  coda e' esso stesso l'evento.
+
+- **E i suoi conti restavano fermi.** La soglia dei dieci minuti era un freno,
+  non un orologio: diceva «non richiedere se hai gia' chiesto da poco», e in una
+  plancia lasciata aperta su un tablet nessuno chiedeva piu' niente. Adesso c'e'
+  un battito che quei dieci minuti li conta — solo per chi ha la console, e
+  fermo mentre la pagina non si vede.
+
+- **«Apri il cruscotto» sembrava non fare niente.** Le due finestre stanno sullo
+  stesso piano e la piu' giovane copre l'altra: il cruscotto si apriva dietro
+  quella della tessera. Adesso la tessera chiude la propria prima che l'altra
+  si apra.
 
 - **Le finestre Giornaliera e Mensile mostrano il periodo, non l'istante.** «I
   popup giornaliera e mensile non riportano i dati corretti: portano quelli
@@ -731,16 +943,6 @@ del loro disegno, e un'apertura che spariva senza dire perche'.
   «Elettrodom.» sta per «Elettrodomestici»; in testa alla sezione il nome resta
   per esteso.
 
-## 1.4.5-beta.9
-
-Il cruscotto della beta.8 si apriva e diceva «Risposta illeggibile», con tre
-zeri e nessuna segnalazione. Non era GitHub: era la plancia che leggeva male.
-
-E l'Agenda diceva «—» sopra una riga che diceva «Domani 12:00»: negava a
-caratteri grandi quello che affermava a caratteri piccoli.
-
-### Corretto
-
 - **Un appuntamento per domani non e' un trattino.** «Ho creato un appuntamento
   per domani ma sia nel widget che nel popup esce un —.» Il numero grande
   dell'Agenda contava soltanto oggi, e a oggi vuoto si arrendeva: un trattino —
@@ -787,96 +989,6 @@ caratteri grandi quello che affermava a caratteri piccoli.
   domani finiva contato fra quelli piu' in la'. Cioe' proprio il trattino da
   cui questa tessera era partita, che sarebbe ricomparso due volte l'anno.
   Adesso i giorni si contano come li conta il calendario.
-
-### Sulle prove
-
-- Due prove nuove percorrono la lettura per davvero, con un corpo che arriva a
-  pezzi come arriva sul filo. Nessuna prova poteva prendere questo guasto
-  prima: tutte sostituiscono la chiamata di rete in blocco — che e' giusto,
-  provano cosa il modulo chiede e cosa ne fa — e cosi' la lettura non veniva
-  mai percorsa. Falliscono tutte e due sul codice di prima.
-
-## 1.4.5-beta.8
-
-Le segnalazioni sono arrivate nella beta.7. Questa e' la versione che le mette
-alla prova su quello che c'e' davvero: cinquantuno issue gia' aperte, e un
-modulo che chiedeva un'autorizzazione prima ancora di sapere cosa uno voleva
-scrivere.
-
-### Le segnalazioni, seconda mano
-
-- **Il modulo non chiede piu' niente prima di lasciarti scrivere.** Il blocco
-  «Collega GitHub» stava in cima, prima che uno avesse messo giu' una riga. Era
-  una serratura davanti alla vetrina: chi la trovava pensava «vabbe', vado su
-  GitHub», ed e' esattamente il contrario di quello che questa finestra serve a
-  evitare. La segnalazione da fare la si perdeva li'.
-
-  Adesso l'ordine e' l'unico che regge. Tipo, titolo, descrizione, invia — e
-  alla pressione la segnalazione **e' gia' salvata in casa**. Solo a quel
-  punto, se manca la firma, compare il codice, con scritto perche': «Salvata.
-  Manca solo la firma: autorizza GitHub e parte.» L'autorizzazione arriva
-  quando ha un motivo, col lavoro gia' al sicuro. Chi si ferma li' non perde
-  niente: la bozza resta e parte da sola al primo collegamento.
-
-  Chi vuole collegarsi prima di scrivere puo' ancora farlo: la riga sta in
-  fondo a «Le mie», dove si guarda chi si e', non dove si scrive.
-
-- **Il codice si digita una volta sola, e non torna piu'.** Il gettone resta
-  nel deposito di Home Assistant — un utente di HA, un account GitHub — e
-  sopravvive ai riavvii, alle ricariche e agli aggiornamenti. Non scade,
-  perche' l'App e' registrata per non farlo scadere.
-
-- **Il cruscotto guarda tutta la repository.** Mostrava le sole segnalazioni
-  nate dalla plancia, riconosciute da una riga invisibile nel corpo. Su questa
-  repository sono cinquantuno issue, e quelle nate dalla plancia erano zero: il
-  cruscotto era una stanza vuota accanto a una casa piena, e restavano due
-  posti da guardare invece di uno.
-
-  Adesso arrivano tutte, e da dove viene ognuna resta scritto — 🏠 dalla
-  plancia, 🐙 da GitHub. Non cambia cosa ci si puo' fare: si risponde e si
-  chiude identico sulle due. Cambia una cosa sola, ed e' quella che vale la
-  pena sapere prima di scrivere: la risposta a una nata dalla plancia torna
-  **dentro** la dashboard di chi ha segnalato, quella a una issue aperta su
-  GitHub resta dove e' stata scritta.
-
-- **Il filtro «Chiuse», accanto a «Da lavorare».** Due meta' che non perdono
-  niente per strada — una prova lo tiene fermo, perche' quello che sfuggisse a
-  tutti e due sarebbe uno stato sparito senza che nessuno se ne accorga.
-
-- **Il tipo si legge dal titolo e dall'etichetta.** Non e' un campo di GitHub,
-  e si deduce da due posti che qui esistono da prima della plancia: il prefisso
-  che i moduli mettono da soli — `[Bug]`, `[Feature]`, `[Aiuto]` — e
-  l'etichetta messa a mano, `bug` o `enhancement`. Sulle cinquantuno di oggi
-  funzionano tutte e due. Quando nessuno dei due dice niente il tipo resta
-  vuoto, con una pastiglia grigia: chiamarle tutte «difetto» sarebbe comodo e
-  falso. Il prefisso poi sparisce dal titolo, perche' accanto c'e' gia' la
-  pastiglia che lo dice.
-
-### Le schede della configurazione
-
-- **L'Agenda ha la sua scheda nella configurazione.** «Calendario, per
-  configurarlo devi toglierlo dalla parte widget: crea una sezione a se' nel
-  menu e metti calendario e cose da fare. Nei widget deve esserci solo
-  l'interruttore.» I calendari e le liste ToDo erano finiti nella scheda dei
-  widget, che risponde a una domanda sola — quali tessere vedere in Home e in
-  che ordine — e per configurare l'agenda bisognava passare di li'. Adesso hanno
-  la loro, «📅 Agenda», con i due elenchi uno sotto l'altro; nella scheda dei
-  widget restano gli interruttori delle tessere e basta. (#259)
-- **E la Continuita' pure.** Le caselle dell'UPS erano una coda della scheda
-  «Energia»: «nel config manca completamente la parte per configurare il gruppo
-  di continuita'». Non mancava, ma stava dove nessuno la cercava — e senza una
-  scheda sua non poteva avere il suo interruttore, perche' la fascia verde
-  dell'Energia e' dell'Energia. (#256)
-- **La Gestione termica si configura una macchina alla volta.** «La sezione
-  solare termico non e' suddivisa con le altre cose aggiunte, caldaia e
-  scaldabagno: nel config voglio le sottosezioni per configurare quelle, non
-  creare confusione.» Era una colonna sola — tredici caselle di pannelli
-  solari, poi lo scaldabagno, poi la caldaia — e chi cercava la sua macchina
-  scorreva quelle degli altri. In cima ci sono adesso le stesse linguette che
-  ha la pagina, una per macchina spuntata, e sotto c'e' soltanto quella accesa.
-  (#253)
-
-### Corretto
 
 - **Le sezioni che non si potevano nascondere.** «Verifica tutta la repository e
   vedi dove nella sezione c'e' il tasto "visibile e nascondi": lo deve
@@ -940,189 +1052,6 @@ scrivere.
 - **La pastiglia del tipo si fa leggere.** Era `aria-hidden`: chi non distingue
   i colori non aveva modo di sapere se una riga fosse un difetto o un'idea.
 
-### Sulle prove
-
-- Le anteprime delle segnalazioni entrano in galleria per davvero. I bersagli
-  c'erano gia' nello script, ma gli scatti non erano mai stati committati: chi
-  apriva `docs/preview` trovava tutte le sezioni tranne queste. Trentasei file,
-  nove schermate per due temi e due formati.
-- Una prova prende il ripiego dell'immagine dal markup e lo esegue davvero su
-  un'immagine che si stacca: sul codice di prima fallisce.
-- 1865 prove frontend, 197 pytest.
-
-## 1.4.5-beta.7
-
-«Come velocita' non e' migliorato nulla, siamo sempre uguali.» Aveva ragione, e
-questa volta il tempo si e' andato a cercare col profilatore invece che a
-indovinarlo. Non stava dove si era guardato per sei versioni.
-
-E arriva anche il modo di dirlo senza uscire dalla plancia.
-
-### Nuovo
-
-- **La finestra puo' avere anche l'inferriata.** «La card delle finestre e'
-  fantastica, ma non riesco ad adattarla alla mia situazione perche' non ho le
-  tapparelle. Sarebbe possibile una card che consideri due sensori di contatto,
-  uno per le inferriate esterne e uno per gli infissi interni?» Accanto al
-  sensore dell'infisso c'e' adesso quello dell'inferriata, e la card li disegna
-  tutti e due: la grata sta davanti al vetro e si impacchetta di lato, l'infisso
-  sta dietro e rientra verso i cardini. I quattro stati si distinguono a colpo
-  d'occhio — tutto chiuso, grata aperta, finestra aperta, tutto aperto — e la
-  pastiglia dice quale, perche' «Aperta» da solo non rispondeva alla domanda per
-  cui si sono messi due sensori. Chi non ha inferriate non vede niente di nuovo:
-  la casella vuota lascia la card esattamente com'era. (#254)
-- **E una riga con le sole grate si salva.** Valeva gia' per il solo contatto
-  dell'infisso — «ho le persiane manuali, pero' ho i sensori di apertura» — e
-  vale per lo stesso motivo: la riga non comanda niente, ma ha qualcosa da dire.
-- **In Home i due contatti sono due righe.** Una grata lasciata aperta e una
-  finestra lasciata aperta non sono la stessa notizia, e uscendo di casa e'
-  proprio quella la differenza che si vuole leggere.
-- **Il verso girato vale per entrambi.** Chi ha un contatto che sta a ON da
-  chiuso (#244) lo elenca come sempre: il verso e' un fatto del filo, non del
-  tipo di apertura.
-- **Lo scaldabagno elettrico ha la sua tessera.** «Ho un impianto fotovoltaico
-  ed ho sfruttato uno scaldabagno per l'acqua calda sanitaria. La card attuale
-  e' fantastica ma pensata per il solare termico.» Adesso c'e' la sua: le
-  quattro caselle chieste — interruttore, temperatura dell'acqua, obiettivo,
-  consumo — piu' l'energia di oggi. Il numero grande e' l'acqua, l'anello dice
-  quanto manca all'obiettivo, e la tessera si accende mentre la resistenza
-  lavora. La differenza col solare non e' la forma della card: li' il calore
-  arriva dal sole e si guarda il salto fra le sonde, qui arriva da una
-  resistenza che si paga e si guarda quando ci sara' l'acqua calda. (#253)
-- **E con un `water_heater` di Home Assistant non c'e' niente da compilare.**
-  Basta la prima casella: stato, temperatura e obiettivo li dichiara l'entita'
-  stessa, e «Rileva da Home Assistant» la trova da sola. Le altre restano per
-  chi lo scaldabagno se l'e' messo insieme da un rele' e due sonde.
-- **L'obiettivo si legge anche da un termostato.** «Target preso dall'entita'
-  del termostato»: li' l'obiettivo non e' lo stato — lo stato e' la modalita' —
-  ma un attributo, e la casella lo cerca in tutti e due i posti.
-- **La sezione termica ha tre anime, non una.** Si chiamava «Solare termico» e
-  disegnava un impianto solo: pannello sul tetto, pompa, accumulo. Ma l'acqua
-  calda in casa la fanno tre macchine diverse — il sole, una resistenza, una
-  caldaia a gas — e quasi nessuno ne ha una sola: chi ha il fotovoltaico e lo
-  scaldabagno apriva quella pagina e ci trovava un pannello che non ha. Adesso
-  nella scheda Solare si spunta quello che si ha davvero, e la pagina prende la
-  forma di quello che si e' spuntato. Con due o tre compaiono in alto le
-  linguette, le stesse di Freddo e Caldo nella pagina Clima. (#253)
-- **Due scene nuove, nella stessa lingua della prima.** Lo scaldabagno ha il
-  suo serbatoio in piedi, con l'acqua calda che sale dal fondo — l'altezza del
-  riempimento e' quanto manca all'obiettivo — e le tre spire della resistenza
-  che si accendono quando lavora. La caldaia ha la scocca a muro con la fiamma
-  nell'oblo', la mandata e il ritorno che corrono al radiatore e il salto fra i
-  due, che e' la misura che dice se l'impianto sta davvero cedendo calore.
-- **La pressione bassa si vede prima di accorgersene.** Sotto il bar la
-  targhetta batte e compare la riga che dice perche': e' l'unica cosa di quella
-  pagina che ogni tanto chiede di alzarsi dal divano.
-- **La pagina si chiama come la macchina che si sta guardando.** «Impianto
-  solare termico» sopra una caldaia era il nome di un'altra macchina.
-- **Chi non sceglie non perde niente.** Una plancia gia' configurata col solare
-  continua a mostrarlo esattamente come prima: la domanda e' nuova, e le
-  risposte di ieri valgono ancora.
-- **La sezione si chiama «Gestione termica».** Il nome vecchio era quello di
-  una delle tre macchine: chi ha solo la caldaia trovava la sua dentro una voce
-  che parlava di pannelli solari. Cambia nella barra in basso e nella scheda
-  della configurazione; chi la sezione se l'era rinominata a mano tiene il nome
-  che ha scelto.
-- **Anche la caldaia ha la sua tessera e la sua finestra.** Il numero grande e'
-  la mandata, la didascalia il salto fra mandata e ritorno — che e' la misura
-  per cui si guarda una caldaia — e la pressione sotto il bar accende la
-  tessera e la fa comparire fra quelle che chiedono attenzione. La finestra
-  dice perche': «l'acqua gira senza cedere calore» quando mandata e ritorno
-  sono quasi uguali, «sotto il minimo, la caldaia puo' bloccarsi» quando manca
-  pressione.
-- **Con tutti e tre gli impianti le tessere sono tre**, ognuna con la sua
-  finestra, e tutte e tre portano alla stessa sezione: da li' si passa
-  dall'una all'altra con le linguette.
-- **Senza sonde funziona lo stesso, ed e' una scelta libera.** «Prevedi sia per
-  la caldaia che per lo scaldabagno anche il semplice utilizzo senza sonde di
-  temperatura.» Nessuna casella e' obbligatoria. Con il solo interruttore lo
-  scaldabagno dice acceso e spento, il serbatoio si riempie tutto e parla il
-  colore — caldo mentre la resistenza lavora, acciaio quando e' ferma —
-  invece di mostrarsi vuoto, che sarebbe dire «non c'e' acqua calda». Con il
-  solo stato la caldaia accende il suo oblo' e mostra il circuito che si
-  scalda.
-- **E le targhette senza numero non si disegnano.** Cinque riquadri con «--»
-  non sono una scheda spoglia: sono cinque promesse non mantenute. Le caselle
-  che non ci sono non lasciano un buco, lasciano posto.
-- **La pastiglia nomina quello che sta davvero leggendo.** Chi mappa il
-  bruciatore legge «bruciatore acceso»; chi mappa solo lo stato legge «caldaia
-  accesa», perche' un bruciatore che nessuno ha mappato non si puo' citare.
-
-### Nuovo: le segnalazioni
-
-- **Segnala un difetto, proponi un'idea, chiedi aiuto — dalla Configurazione.**
-  Fino a ieri, per segnalare qualcosa, bisognava uscire da Home Assistant,
-  aprire GitHub, farsi un account se non ce l'aveva, e compilare un modulo che
-  chiede la versione dell'integrazione — che chi segnala non sa, e che la
-  plancia invece conosce benissimo.
-
-  Adesso c'e' una tessera in Configurazione. Il modulo e' in tre passi, e il
-  primo e' la domanda che conta: **di che si tratta**. Tre schede con la loro
-  spiegazione — «Non funziona», «Vorrei che facesse», «Non ci riesco» — perche'
-  la differenza fra un difetto e un'idea la sa chi scrive solo se gliela si
-  racconta, e una segnalazione ben incasellata e' meta' del lavoro di chi la
-  legge. Titolo e descrizione cambiano suggerimento col tipo scelto: a chi
-  chiede aiuto non si domanda «cosa ti aspettavi».
-
-- **La diagnostica la compila la plancia.** Versione dell'integrazione,
-  versione di Home Assistant, lingua, pagina, browser: le cose che lei sa e chi
-  segnala no. Si vedono tutte prima di premere invia, sotto «cosa parte» —
-  quello che esce di casa non e' una cosa da far scoprire dopo.
-
-- **Serve il tuo account GitHub, ed e' quello che hai gia'.** La plancia si
-  scarica da HACS, e HACS un account GitHub lo chiede gia' — con la stessa
-  identica autorizzazione, il codice da digitare su `github.com/login/device`.
-  Chi e' arrivato fin qui quel giro l'ha gia' fatto una volta.
-
-  Il gettone resta nel backend di Home Assistant e non passa mai dal browser.
-  Si scollega dalla plancia, e si revoca del tutto da GitHub.
-
-- **La risposta torna dentro la plancia.** La segnalazione diventa una issue a
-  tuo nome; quando arriva una risposta, lo stato cambia da solo — «presa in
-  carico», «risolta», «archiviata» — e la risposta si legge da «Le mie», senza
-  chiedere niente a nessuno.
-
-- **Foto e video.** GitHub non ha un'API per allegarli a una issue, e non e'
-  una svista: e' una scelta loro, per contenere gli abusi. Quindi la plancia
-  non finge di spedirli — appena la segnalazione e' aperta, un tasto porta alla
-  sua pagina, dove si trascinano nel riquadro della risposta. Il momento e'
-  quello giusto: chi ha appena scritto ha ancora il file sotto mano.
-
-- **Una issue e' una pagina pubblica, e la plancia lo dice** sopra il tasto
-  invia, non dopo. L'unica cosa che non parte mai e' il recapito: chi scrive il
-  proprio indirizzo lo scrive a una persona, non a una pagina indicizzata.
-
-### Piu' veloce
-
-- **Un secondo e sei decimi in meno all'avvio.** Profilando la partenza con la
-  CPU rallentata quattro volte — un telefono di fascia media — **una sola
-  funzione si mangiava 789 millisecondi su 6800**, dentro un modulo che scrive
-  tre variabili CSS e non disegna niente.
-
-  Non era il suo codice: erano quindici chiamate a cinquantadue millisecondi
-  l'una. Il giro era, per ogni pagina: guarda dove va l'intestazione, scrivila,
-  rileggi quanto e' larga. Ogni scrittura invalida lo stile, e ogni lettura che
-  le viene dietro obbliga il browser a **ricalcolarlo tutto** prima di
-  rispondere. Nove pagine, nove ricalcoli completi.
-
-  Adesso i quattro tempi si fanno per tutte le pagine prima di passare al
-  successivo — si legge dove vanno tutte, si scrivono tutte, si misurano tutte,
-  si applicano tutte: **due ricalcoli invece di nove**, e la spesa non cresce
-  piu' col numero delle pagine. Misurato sullo stesso banco, tre giri per parte:
-  **da 6693 a 5060 millisecondi**. Il modulo passa da 789 a 53.
-
-- **Il flusso dell'energia tace, quando non c'e' niente da dire.** E' la cosa
-  piu' indaffarata della plancia: gira piu' di una volta al secondo, per tre
-  viste, e riscriveva gli attributi di ogni bolla e di ogni linea **col valore
-  che avevano gia'**. Un `data-` riscritto uguale e' comunque una scrittura:
-  sveglia ogni osservatore della pagina e invalida lo stile del nodo.
-
-  Contate col popup dell'Auto aperto e gli stati fermi: **1777 scritture in
-  quattro secondi**, tutte dietro il velo. Adesso sono 297, e quelle che restano
-  non sono piu' del flusso.
-
-### Corretto
-
 - **La scala del clima la dichiara il termostato, non la plancia.** «Ho una
   pompa di calore Samsung, il sensore mi gestisce la temperatura di uscita
   dell'acqua dai 40 gradi fino a 70 massimo. Quando vado a inserire nel menu
@@ -1185,31 +1114,6 @@ E arriva anche il modo di dirlo senza uscire dalla plancia.
   mai stato suo, e adesso vale per tutte e undici. Nessuna di loro ha figli
   fissi che un livello nuovo strapperebbe alla finestra del browser: verificato
   aprendole una per una.
-### Sulle prove
-
-Le segnalazioni portano **cinquantasei prove nuove** fra backend e finestra.
-Due meritano di essere raccontate, perche' sorvegliano cose che si vedrebbero
-tardi e male: che ognuno dei comandi che la finestra manda sia fra quelli che
-il ponte lascia passare — un tipo dimenticato la' e' un refuso che si scopre
-solo in un browser vero — e che la diagnostica sia una **lista chiusa**, con un
-controllo che nessuna delle sue chiavi somigli a un dato di casa. Quella lista
-va riletta ogni volta che qualcuno la allarga, ed e' l'unica cosa che decide
-cosa esce di casa.
-
-La prova che sorvegliava la bolla della batteria **cadeva due volte su otto gia'
-prima di questa versione**, e restava verde solo perche' i controlli hanno due
-tentativi di riserva. Non stava aspettando un ritardo: aspettava una passata che
-non sarebbe mai arrivata. Chiusa la corsa, passa sedici volte su sedici, e una
-prova nuova la sorveglia in modo secco — senza la correzione cade quattro volte
-su quattro.
-
-## 1.4.5-beta.6
-
-«Guarda, cambia intestazione, quindi c'e' qualcosa di duplicato» — due
-schermate dello stesso minuto, la stessa finestra, due intestazioni diverse. Era
-vero, e sotto c'era di peggio.
-
-### Corretto
 
 - **Due sezioni si riavvolgevano a vicenda, all'infinito.** La finestra dei
   carichi e la stabilita' Beta 27 avvolgono tutt'e due `apriSubLoads`, e nessuna
@@ -1231,38 +1135,6 @@ vero, e sotto c'era di peggio.
   non compressi · servito br»: una deduzione dai pesi e una risposta del server,
   opposte, in fila. Quando c'e' la risposta letta, la deduzione si toglie.
 
-### Provato ma non verificabile da qui
-
-- **Il foglio della finestra su un livello suo.** Dentro la finestra, a riposo,
-  le scritture sono zero; dietro sono undici in quattro secondi — l'orologio, il
-  puntino della connessione, il flusso. E il velo del modale ha una sfocatura
-  che rilegge lo sfondo: ogni scrittura dietro e' una sfocatura da rifare, e le
-  due cose stanno nello stesso livello. Promuovendo il foglio a livello suo, il
-  suo contenuto non viene ridipinto insieme allo sfondo. E' un fatto del
-  telefono, e in prova il disegno lo fa la CPU: qui non si riproduce.
-
-### Sulla velocita', per essere chiari
-
-I numeri della Diagnostica dicono dove sta il tempo, e non e' dove si e'
-guardato finora: **ultimo file a 2,9 s, velo via a 3,2 s** — cioe' 2,9 secondi
-prima che l'ultimo file sia pronto e 0,4 dopo. E il Transfer dice «dalla
-cache»: i file non li sta scaricando, li sta **leggendo e interpretando**. Sono
-4,9 MB di codice, di cui 2 in un pezzo solo.
-
-E' per questo che ne' meno richieste (beta.1) ne' meno byte sul filo (beta.2)
-hanno spostato niente, e non lo sposta nemmeno questa: il tempo se ne va a
-interpretare ed eseguire, e l'unica cosa che lo tocca e' **eseguire meno roba
-all'avvio** — montare per prime le sezioni della pagina che si vede e lasciare
-indietro le altre. E' un lavoro grosso e a se', non un ritocco.
-
-## 1.4.5-beta.5
-
-Il lampo del popup, di nuovo — e stavolta con la causa giusta. Nella beta.4 gli
-stati erano corretti e le carte restavano al loro posto, ma il lampo bianco
-c'era ancora: sei volte in nove secondi.
-
-### Corretto
-
 - **Il popup non riscrive piu' quello che non e' cambiato.** I due fotogrammi ai
   lati del lampo erano identici: fra prima e dopo non cambiava un pixel. Non
   stava cambiando niente, e il livello si ridipingeva lo stesso — perche' la
@@ -1275,13 +1147,6 @@ c'era ancora: sei volte in nove secondi.
   fotogramma resta bianco. Adesso si confronta prima di scrivere, e in
   classifica si sposta solo la carta che non e' al suo posto: **a stati fermi le
   scritture sono zero.**
-
-## 1.4.5-beta.4
-
-Un filmato di ventotto secondi, guardato fotogramma per fotogramma. Dentro
-c'erano tre cose, e nessuna delle tre era quella che si cercava da tre beta.
-
-### Corretto
 
 - **La plancia non si ricarica piu' da sola.** A quattro secondi dall'apertura
   lo schermo diventa bianco, il velo di avvio torna su, e la plancia riparte
@@ -1338,26 +1203,6 @@ c'erano tre cose, e nessuna delle tre era quella che si cercava da tre beta.
   `off_delay_minutes` scade nessuno manda niente — e' il tempo che passa — e una
   finestra lasciata aperta sarebbe rimasta a dire IN FUNZIONE.
 
-### Da sapere
-
-- Le tre chiavi che le legge solo l'avvio — il marchio, i nomi delle luci, le
-  unita' clima — quando cambiano da un altro dispositivo fanno ancora ricaricare
-  la pagina: scriverle in memoria e lasciare lo schermo a dire la cosa di prima
-  sarebbe peggio. Sono i pochi casi rimasti, e la differenza con prima e' che
-  adesso il ricaricamento e' l'eccezione invece della regola.
-- Un apparecchio il cui unico segnale e' un binary_sensor generico acceso, a
-  zero watt, adesso dice STANDBY invece di IN FUNZIONE — la stessa parola che
-  dice gia' la sua carta. Per i cicli che passano da zero watt c'e'
-  `off_delay_minutes`, che adesso vale in tutt'e due i posti.
-
-## 1.4.5-beta.3
-
-La compressione della beta.2 funziona — confermato dal campo: `content-encoding:
-br`, 366 kB al posto di 2007. Ed e' ancora lento. Quindi ne' le richieste ne' i
-byte erano la causa, e questa versione non prova a indovinare la terza: misura.
-
-### Corretto
-
 - **La riga «Transfer» non dichiara piu' cose che non ha misurato.** Diceva «non
   compressi» di una plancia che arrivava compressa: il peso del corpo com'e'
   arrivato non e' sempre disponibile, e quel vuoto finiva nel ramo sbagliato. E'
@@ -1366,23 +1211,6 @@ byte erano la causa, e questa versione non prova a indovinare la terza: misura.
   soprattutto va a CHIEDERE al server come e' arrivato davvero il file, invece
   di dedurlo: la riga si completa da sola con «servito br» o «servito in
   chiaro».
-
-### Nuovo
-
-- **La Diagnostica dice quando la plancia e' pronta, e dove va il tempo.** La
-  riga «Boot» mostra quanto ci mette il velo ad andarsene, quando e' arrivato
-  l'ultimo file, e quanto tempo passa DOPO che la rete ha finito. Se il grosso
-  sta prima e' la rete; se sta dopo sono analisi ed esecuzione, dove ne' il
-  pacchetto ne' la compressione arrivano. Serve a smettere di tirare a
-  indovinare su una macchina che non e' la mia.
-
-## 1.4.5-beta.2
-
-La beta di prima aveva ridotto le richieste da centosettantanove a tre, e dal
-campo e' tornato «nulla e' cambiato». Era vero: le richieste non erano il
-problema.
-
-### Corretto
 
 - **La plancia arriva compressa: 4,9 MB diventano 1,2.** La Diagnostica diceva
   «impacchettati (3 file)», quindi il pacchetto funzionava — ma i byte erano
@@ -1409,31 +1237,73 @@ chiede davvero all'avvio, non i centosettantanove sorgenti sciolti che servono
 al solo ripiego. Si scarica una volta per aggiornamento, e si risparmia a ogni
 apertura.
 
-## 1.4.5-beta.1
-
-Una beta per provare l'avvio impacchettato prima di darlo a tutti. Chi non
-chiede le versioni beta non la riceve.
-
-### Nuovo
-
-- **La plancia arriva in un pacchetto, non in centosettantanove file.** «Impiega
-  ancora troppo tempo in caricamento, soprattutto in primo avvio.» Non era il
-  velo: al primo avvio il browser scaricava centosettantanove file JavaScript
-  per quattro megabyte. Non in fila — il documento li precarica tutti insieme —
-  ma su HTTP/1.1 il browser ne serve sei per volta, ed erano una trentina di
-  ondate prima di avere tutto. Adesso sono tre file. Restano fuori i tredici
-  cataloghi delle lingue, quasi due megabyte a una casa che ne parla una sola:
-  arriva solo quella che serve. Se il pacchetto manca, la plancia parte lo
-  stesso dai sorgenti — e la Diagnostica runtime dice quale delle due strade sta
-  usando.
-
-### Corretto
-
 - **Le caselle del popup Lavatrice si scelgono dalla riga.** Nella finestra
   «Modifica azione» ogni casella portava due tasti azzurri con la lente,
   appaiati, e nessuno dei due era il modo giusto: in tutta la plancia
   un'entita' si sceglie dalla riga stessa. Quella passata pero' girava solo
   dentro le fisarmoniche delle Sezioni, e questa carta sta altrove.
+
+### Da sapere
+
+- Due prove nuove percorrono la lettura per davvero, con un corpo che arriva a
+  pezzi come arriva sul filo. Nessuna prova poteva prendere questo guasto
+  prima: tutte sostituiscono la chiamata di rete in blocco — che e' giusto,
+  provano cosa il modulo chiede e cosa ne fa — e cosi' la lettura non veniva
+  mai percorsa. Falliscono tutte e due sul codice di prima.
+
+- Le anteprime delle segnalazioni entrano in galleria per davvero. I bersagli
+  c'erano gia' nello script, ma gli scatti non erano mai stati committati: chi
+  apriva `docs/preview` trovava tutte le sezioni tranne queste. Trentasei file,
+  nove schermate per due temi e due formati.
+- Una prova prende il ripiego dell'immagine dal markup e lo esegue davvero su
+  un'immagine che si stacca: sul codice di prima fallisce.
+- 1865 prove frontend, 197 pytest.
+
+Le segnalazioni portano **cinquantasei prove nuove** fra backend e finestra.
+Due meritano di essere raccontate, perche' sorvegliano cose che si vedrebbero
+tardi e male: che ognuno dei comandi che la finestra manda sia fra quelli che
+il ponte lascia passare — un tipo dimenticato la' e' un refuso che si scopre
+solo in un browser vero — e che la diagnostica sia una **lista chiusa**, con un
+controllo che nessuna delle sue chiavi somigli a un dato di casa. Quella lista
+va riletta ogni volta che qualcuno la allarga, ed e' l'unica cosa che decide
+cosa esce di casa.
+
+La prova che sorvegliava la bolla della batteria **cadeva due volte su otto gia'
+prima di questa versione**, e restava verde solo perche' i controlli hanno due
+tentativi di riserva. Non stava aspettando un ritardo: aspettava una passata che
+non sarebbe mai arrivata. Chiusa la corsa, passa sedici volte su sedici, e una
+prova nuova la sorveglia in modo secco — senza la correzione cade quattro volte
+su quattro.
+
+- **Il foglio della finestra su un livello suo.** Dentro la finestra, a riposo,
+  le scritture sono zero; dietro sono undici in quattro secondi — l'orologio, il
+  puntino della connessione, il flusso. E il velo del modale ha una sfocatura
+  che rilegge lo sfondo: ogni scrittura dietro e' una sfocatura da rifare, e le
+  due cose stanno nello stesso livello. Promuovendo il foglio a livello suo, il
+  suo contenuto non viene ridipinto insieme allo sfondo. E' un fatto del
+  telefono, e in prova il disegno lo fa la CPU: qui non si riproduce.
+
+I numeri della Diagnostica dicono dove sta il tempo, e non e' dove si e'
+guardato finora: **ultimo file a 2,9 s, velo via a 3,2 s** — cioe' 2,9 secondi
+prima che l'ultimo file sia pronto e 0,4 dopo. E il Transfer dice «dalla
+cache»: i file non li sta scaricando, li sta **leggendo e interpretando**. Sono
+4,9 MB di codice, di cui 2 in un pezzo solo.
+
+E' per questo che ne' meno richieste (beta.1) ne' meno byte sul filo (beta.2)
+hanno spostato niente, e non lo sposta nemmeno questa: il tempo se ne va a
+interpretare ed eseguire, e l'unica cosa che lo tocca e' **eseguire meno roba
+all'avvio** — montare per prime le sezioni della pagina che si vede e lasciare
+indietro le altre. E' un lavoro grosso e a se', non un ritocco.
+
+- Le tre chiavi che le legge solo l'avvio — il marchio, i nomi delle luci, le
+  unita' clima — quando cambiano da un altro dispositivo fanno ancora ricaricare
+  la pagina: scriverle in memoria e lasciare lo schermo a dire la cosa di prima
+  sarebbe peggio. Sono i pochi casi rimasti, e la differenza con prima e' che
+  adesso il ricaricamento e' l'eccezione invece della regola.
+- Un apparecchio il cui unico segnale e' un binary_sensor generico acceso, a
+  zero watt, adesso dice STANDBY invece di IN FUNZIONE — la stessa parola che
+  dice gia' la sua carta. Per i cicli che passano da zero watt c'e'
+  `off_delay_minutes`, che adesso vale in tutt'e due i posti.
 
 ## 1.4.4
 

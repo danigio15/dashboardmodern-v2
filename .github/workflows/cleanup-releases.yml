@@ -4,6 +4,11 @@
 # nell'interfaccia, con il rischio di togliere quello sbagliato. Qui si elenca
 # cosa conservare, si lancia prima in anteprima e solo dopo si esegue davvero.
 #
+# Tocca soltanto quello che non è una versione stabile: la numerazione pre-1.0
+# e ogni pre-release, beta e rc di qualunque versione. Le stabili non hanno il
+# trattino e questo workflow non sa cancellarle — è una garanzia, non una
+# dimenticanza, e chi la togliesse si prenderebbe il rischio che porta con sé.
+#
 # Si avvia da Actions → "Pulizia release" → Run workflow.
 #
 # Il file è volutamente autosufficiente: non dipende da nessuno script del
@@ -14,9 +19,9 @@ on:
   workflow_dispatch:
     inputs:
       keep:
-        description: "Tag da conservare, separati da spazi"
-        required: true
-        default: "v0.15.25 v1.0.0-rc.1 v1.0.0-rc.2 v1.0.0-rc.3"
+        description: "Tag da conservare, separati da spazi (vuoto = nessuno)"
+        required: false
+        default: ""
       apply:
         description: "Esegui davvero (senza spunta è solo un'anteprima)"
         type: boolean
@@ -51,21 +56,24 @@ jobs:
           declare -A KEEP=()
           for tag in $KEEP_LIST; do KEEP["$tag"]=1; done
 
-          # Tutto ciò che appartiene alla numerazione pre-1.0 e non è stato messo
-          # al riparo. La 1.0.0 e ogni versione successiva non corrispondono ai
-          # pattern, quindi non sono cancellabili nemmeno per errore di battitura.
+          # Cancellabile è soltanto ciò che non è una versione stabile: la
+          # numerazione pre-1.0, e ogni pre-release — beta e rc, di qualunque
+          # versione. Una versione stabile non ha il trattino, quindi non
+          # corrisponde a nessuno dei pattern e non è cancellabile nemmeno per
+          # errore di battitura: è la sola garanzia che questo workflow offre, e
+          # va tenuta. Chi volesse davvero togliere una stabile lo faccia a mano,
+          # una per una, guardandola in faccia.
           is_purgeable() {
             [ -n "${KEEP[$1]:-}" ] && return 1
             case "$1" in
               v0.*|0.*) return 0 ;;
-              v1.0.0-beta.*|1.0.0-beta.*) return 0 ;;
-              v1.0.0-rc.*|1.0.0-rc.*) return 0 ;;
+              *-beta.*|*-rc.*) return 0 ;;
               *) return 1 ;;
             esac
           }
 
           echo "Repository : $REPO"
-          echo "Conservo   : $KEEP_LIST"
+          echo "Conservo   : ${KEEP_LIST:-(niente)}"
           if [ "$APPLY" = "true" ]; then
             echo "Modalità   : ESECUZIONE (irreversibile)"
           else
@@ -116,7 +124,7 @@ jobs:
           {
             echo "## Pulizia release"
             echo
-            echo "- Conservati: \`$KEEP_LIST\`"
+            echo "- Conservati: \`${KEEP_LIST:-(niente)}\`"
             echo "- Release da eliminare: **${#targets_releases[@]}**"
             echo "- Tag da eliminare: **${#targets_tags[@]}**"
             echo "- Release stabili superstiti: **$survivors_stable**"
