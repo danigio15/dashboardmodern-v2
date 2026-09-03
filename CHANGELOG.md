@@ -16,7 +16,10 @@ telefoni e tablet veri.
 
 Le note qui sotto sono quelle delle tredici prove, rimesse in fila per
 argomento invece che per data: quello che e' stato aggiunto, quello che e'
-cambiato, quello che e' stato tolto, quello che e' stato corretto.
+cambiato, quello che e' stato tolto, quello che e' stato corretto. In cima a
+«Corretto» ci sono anche cinque difetti visti sull'ultima beta e sistemati
+senza passare da una beta loro: il radar, i conti degli elettrodomestici e
+della Wallbox, lo storico della connettivita' e i filtri del cruscotto.
 
 ### Aggiunto
 
@@ -706,6 +709,115 @@ cambiato, quello che e' stato tolto, quello che e' stato corretto.
   sarebbe rimasto li' finche' quel ticket non cadeva dal fondo dello store.
 
 ### Corretto
+
+- **Il radar meteo usciva anche senza essere stato configurato, e
+  configurato non diceva la verita'.**
+
+      «radar da errore quando non configurato non deve uscire proprio e anche
+       quando configurato da errore»
+
+  Due difetti nello stesso riquadro, e il secondo nascondeva il primo.
+
+  Senza configurazione il blocco nasceva comunque e poi si metteva `hidden` —
+  che non basta: `hidden` e' l'ultima riga del foglio del browser, e sopra
+  c'era una regola nostra col `display` che la batte. Dentro le previsioni
+  restava un rettangolo grigio con l'immagine rotta e scritto «il radar non
+  sta rispondendo»: un errore per una cosa che nessuno aveva chiesto. Adesso
+  il posto dove disegnare non si fabbrica nemmeno.
+
+  Configurato, il blocco si diceva «vivo» contando le immagini **create**, che
+  e' un'altra cosa da quelle **arrivate**: se il servizio non risponde i
+  quadratini se ne vanno uno per uno, il riquadro resta vuoto, e la frase che
+  spiegherebbe restava nascosta perche' il blocco si dichiarava sano. Adesso
+  si contano i caricamenti veri: finche' sono in volo non si mostra ne'
+  l'immagine rotta ne' la frase, al primo che arriva il radar e' vivo, e se
+  non arriva nessuno lo dice — e si prepara a riprovare al giro dopo.
+
+- **Il cerchio di un carico diceva 0,2 kWh e la sua finestra 12,0.** Lo stesso
+  difetto della beta.11, tornato con un numero al posto dello zero.
+
+      «calcolo energia giornaliera e mensile su elettrodomestici di nuovo
+       sbagliata»
+
+  La regola scritta allora guardava lo zero, e 0,2 non e' zero. Ma zero non
+  era la cosa da guardare: una pinza sulla linea, per come e' fatta, misura
+  tutto quello che le passa sotto, e il suo numero **non puo' essere piu'
+  piccolo della somma di cio' che ha dentro**. Se lo e', quella casella non
+  sta misurando il gruppo — sta misurando altro, di solito un apparecchio solo
+  finito li' per sbaglio.
+
+  Adesso vince la somma, che e' il numero che la finestra mostra. Con un
+  margine del cinque per cento, perche' la pinza e i contatori dei figli non
+  leggono nello stesso istante e senza margine il cerchio ballerebbe avanti e
+  indietro per qualche secondo di ritardo.
+
+- **Sulla riga della Wallbox due numeri si contraddicevano guardandosi.**
+
+      «valori wallbox nel report sballati»
+
+  In Attivita' dispositivi: «1188,7 kWh dal sole e 184,0 dalla rete» e, tre
+  centimetri a destra sulla stessa riga, «0,0 kWh». Millequattrocento
+  chilowattora in un mese, per un'auto che in quel mese non aveva caricato.
+
+  Il guscio disegna il numero a destra e la quota sotto dallo stesso valore, e
+  finche' li scrive lui sono d'accordo. Poi la plancia riscriveva **meta'
+  riga**: correggeva il numero a destra col valore del Recorder e lasciava la
+  quota calcolata sul contatore di vita della colonnina. Adesso chi possiede
+  il numero possiede la riga.
+
+- **Lo storico della connettivita' diceva «Failed to fetch».**
+
+      «storico internet da errore»
+
+  «Failed to fetch» non e' una risposta: non e' un 401 e non e' un 404, e' una
+  richiesta che non e' mai arrivata da nessuna parte. Sulla stessa richiesta
+  c'erano tre guasti, e ognuno da solo bastava.
+
+  Home Assistant ospita la plancia in una cornice che eredita l'origine di chi
+  la contiene ma non il suo indirizzo: da li' la plancia **non sa dove sta**, e
+  il guscio, per costruire l'indirizzo a cui chiedere, indovina. Misurato
+  dentro la cornice: `http://homeassistant.local:8123` — il nome giusto in una
+  casa su cento, e in tutte le altre un host che non esiste, o che parla in
+  chiaro mentre la pagina viaggia in https, e allora il browser blocca senza
+  nemmeno provarci. Poi: la plancia ospitata non ha un gettone ma un segnale
+  che dice «i cookie bastano», e spedirlo come credenziale si prende un 401 su
+  una richiesta che sarebbe passata da sola. E infine la domanda nominava una
+  **casella della plancia** invece dell'entita' che ci sta dentro, che il
+  Recorder non conosce.
+
+  Adesso le domande a Home Assistant partono da casa: l'indirizzo si risolve
+  contro il documento che ospita — che e' il motivo per cui tutto il resto
+  della plancia ha sempre funzionato — l'autorizzazione finta non parte, e la
+  casella diventa la sua entita'. Una plancia che il suo indirizzo ce l'ha, o
+  che e' stata aperta da un file su disco, non viene toccata.
+
+  Lo stesso rimedio ripara un'altra chiamata rotta dalla stessa causa: quella
+  che trasforma i contatori di vita in «oggi» e «questo mese». Falliva in
+  silenzio, ed e' da li' che arrivavano i chilowattora della Wallbox.
+
+- **Nel cruscotto i filtri non si selezionavano.**
+
+      «tab nel cruscotto tiket non funziona non mi fa selezionare difetti etc e
+       nemmeno in lavorazione»
+
+  I tasti erano collegati e il tocco arrivava. Ma il ridisegno cominciava
+  cercando la finestra delle segnalazioni e, non trovandola, tornava indietro
+  prima di arrivare alla riga che ridisegna il cruscotto. Quella finestra la
+  costruisce chi apre la tessera in Configurazione: chi arriva al cruscotto
+  dalla barra non la tocca, quindi nel documento non c'e' — e non ci deve
+  essere. Il filtro non rispondeva **mai** a chi usava la pagina per quello per
+  cui esiste; rispondeva soltanto a chi, nella stessa sessione, avesse aperto e
+  chiuso la finestra almeno una volta.
+
+  E non erano solo i filtri: dietro lo stesso ridisegno ci sono il filo che si
+  apre, la risposta appena mandata, la segnalazione chiusa. Sul cruscotto
+  nessuna di quelle si vedeva finire. Adesso la finestra e la pagina sono due
+  disegni indipendenti, e chi non ha un posto dove stare non impedisce
+  all'altro di esistere.
+
+  Le fotografie della galleria non se ne erano accorte perche' seminavano il
+  filtro gia' scelto prima di far disegnare la pagina: nella foto il filtro era
+  acceso senza che nessuno l'avesse mai premuto. La prova nuova preme davvero.
 
 - **La chat aperta si aggiorna da sola.**
 

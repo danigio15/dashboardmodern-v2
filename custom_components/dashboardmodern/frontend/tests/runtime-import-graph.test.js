@@ -667,14 +667,18 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   //   e' mai comparso.
   // 226 con l'indirizzo di casa (`core/indirizzo-di-casa.js`,
   // `sections/indirizzo-di-casa-section.js`): «storico internet da' errore».
-  // «Failed to fetch» non e' una risposta, e' una richiesta mai partita: la
-  // plancia ospitata vive in una cornice `srcdoc`, il cui `location.host` e'
-  // vuoto, e l'indirizzo che il guscio si costruisce da li' e' `http://`. Il
-  // nucleo e' l'aritmetica della riparazione — data una stringa e una base,
-  // qual e' l'indirizzo giusto — e si prova senza rete; la sezione e' il
-  // gradino su `fetch` dove quella riparazione si applica, perche' la riga
-  // sbagliata sta dentro una funzione del guscio e avvolgerla per nome
-  // arriverebbe troppo tardi.
+  // «Failed to fetch» non e' una risposta, e' una richiesta che non e' mai
+  // arrivata da nessuna parte: la plancia ospitata vive in una cornice
+  // `srcdoc`, il cui `location.host` e' vuoto, e il guscio — non sapendo dove
+  // sta — costruisce l'indirizzo indovinando `LOCAL_IP`. Misurato dentro la
+  // cornice con la plancia vera: `http://homeassistant.local:8123`, che e' un
+  // host che quasi nessuno ha e che comunque parla in chiaro a una pagina in
+  // https. Il nucleo e' l'aritmetica della riparazione — dato un indirizzo, la
+  // base del documento e l'host che il documento ha o non ha, qual e'
+  // l'indirizzo giusto — e si prova senza rete; la sezione e' il gradino su
+  // `fetch` dove quella riparazione si applica, perche' la riga sbagliata sta
+  // dentro una funzione del guscio e avvolgerla per nome arriverebbe troppo
+  // tardi.
   assert.ok(
     relative.length <= 226,
     `production graph unexpectedly grew to ${relative.length} modules`,
