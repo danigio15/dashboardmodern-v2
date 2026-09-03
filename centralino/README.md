@@ -77,7 +77,16 @@ terminale, nessun programma da scaricare: i nomi dei pulsanti su
 quello che fanno.
 
 **1. L'archivio.** Barra a sinistra → **Storage & Databases** → **D1 SQL
-Database** → **Create** (o *Create database*). Nome: `centralino`. Crea.
+Database** → **Create** (o *Create database*). Nome: `centralino`.
+
+Nella stessa schermata c'e' **Specifica giurisdizione**: scegliendo **EU**,
+Cloudflare garantisce che i dati restino su server europei. Qui dentro
+finiscono le conversazioni di chi chiede aiuto — testo scritto da persone — e
+quella garanzia si puo' dare **solo adesso**: dopo, per cambiarla, il database
+va rifatto da capo. L'alternativa (*Luogo*, la posizione automatica) funziona
+identica, e' solo una garanzia in meno.
+
+Poi **Crea**.
 
 **2. Le due tabelle.** Dentro il database appena creato, linguetta **Console**
 (la casella dove si scrivono query). Apri
