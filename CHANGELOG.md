@@ -5,7 +5,11 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non rilasciato
+## 1.4.5-beta.13
+
+Due cose chieste guardando la chat funzionare: buttare via una conversazione
+dalla coda di chi risponde, e una finestra che non resta ferma mentre
+dall'altro capo qualcuno ha gia' risposto.
 
 ### Aggiunto
 
