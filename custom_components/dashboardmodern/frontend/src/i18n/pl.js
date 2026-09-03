@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "teraz na stronie",
+  fields: "pola",
+  field: "pole",
+  "Your solar plants": "Twoje instalacje solarne",
+  "Water pressure (bar)": "Ciśnienie wody (bar)",
+  Upstairs: "Na górze",
+  "Temperature probe 3 (°C)": "Czujnik temperatury 3 (°C)",
+  "Temperature probe 2 (°C)": "Czujnik temperatury 2 (°C)",
+  "Temperature probe 1 (°C)": "Czujnik temperatury 1 (°C)",
+  "Temperature delta (°C)": "Różnica temperatur (°C)",
+  "Solar switch": "Wyłącznik solarny",
+  "Solar pump state": "Stan pompy solarnej",
+  "Solar pump sensor": "Czujnik pompy solarnej",
+  "Solar pump (manual)": "Pompa solarna (ręcznie)",
+  "Solar controller": "Sterownik solarny",
+  "Show on the page": "Pokaż na stronie",
+  "Save plant": "Zapisz instalację",
+  "Safety valve (cover)": "Zawór bezpieczeństwa (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "Jeśli masz dwie instalacje solarne — dwa dachy, dwa zasobniki — dodaj tu drugą: ta, którą masz teraz, przechodzi na listę taka, jaka jest, a na stronie pojawia się rząd do przełączania.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "Każda instalacja ma swoich trzynaście pól. Ta oznaczona „teraz na stronie” to to, co pokazują strona Solary i kafelek na Home: oko obok innej wprowadza ją na ekran w jej miejsce.",
+  "Boiler switch": "Wyłącznik bojlera",
+  "Boiler heater power (W)": "Moc grzałki bojlera (W)",
+  "Add solar plant": "Dodaj instalację solarną",
+  "Add a second solar plant": "Dodaj drugą instalację solarną",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "Kafelek na ścianie pokazuje ciągły strumień zamiast zdjęcia co cztery sekundy — to właśnie robi „camera_view: live”. Trzyma otwarte połączenie, dopóki patrzysz na sekcję Bezpieczeństwo: włącz to dla kamer, które chcesz widzieć w ruchu.",
+  "🌞 Plant on the page": "🌞 Instalacja na stronie",
+  "💾 Plant saved": "💾 Instalacja zapisana",
   "Live video on the tile": "Wideo na żywo na kafelku",
   "Remove from the load": "Usuń z odbiornika",
   "Remove ${child.name} from the load": "Usuń ${child.name} z odbiornika",

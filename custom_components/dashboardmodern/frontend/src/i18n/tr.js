@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "şu an sayfada",
+  fields: "alan",
+  field: "alan",
+  "Your solar plants": "Güneş tesislerin",
+  "Water pressure (bar)": "Su basıncı (bar)",
+  Upstairs: "Üst kat",
+  "Temperature probe 3 (°C)": "Sıcaklık sondası 3 (°C)",
+  "Temperature probe 2 (°C)": "Sıcaklık sondası 2 (°C)",
+  "Temperature probe 1 (°C)": "Sıcaklık sondası 1 (°C)",
+  "Temperature delta (°C)": "Sıcaklık farkı (°C)",
+  "Solar switch": "Güneş anahtarı",
+  "Solar pump state": "Güneş pompasının durumu",
+  "Solar pump sensor": "Güneş pompası sensörü",
+  "Solar pump (manual)": "Güneş pompası (elle)",
+  "Solar controller": "Güneş kontrol ünitesi",
+  "Show on the page": "Sayfada göster",
+  "Save plant": "Tesisi kaydet",
+  "Safety valve (cover)": "Emniyet vanası (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "İki güneş tesisin varsa — iki çatı, iki depo — ikincisini buraya ekle: şu an sahip olduğun olduğu gibi listeye geçer ve sayfada aralarında geçiş için bir sıra belirir.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "Her tesisin kendi on üç alanı var. «şu an sayfada» yazan, Güneş Enerjisi sayfasının ve Ana ekrandaki karonun gösterdiğidir: bir başkasının yanındaki göz onu onun yerine ekrana getirir.",
+  "Boiler switch": "Boyler anahtarı",
+  "Boiler heater power (W)": "Boyler rezistans gücü (W)",
+  "Add solar plant": "Güneş tesisi ekle",
+  "Add a second solar plant": "İkinci bir güneş tesisi ekle",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "Duvardaki karo, dört saniyede bir kare yerine sürekli akışı gösterir — «camera_view: live» tam bunu yapar. Güvenlik bölümüne baktığın sürece bir bağlantıyı açık tutar: hareket ederken görmek istediğin kameralarda aç.",
+  "🌞 Plant on the page": "🌞 Sayfadaki tesis",
+  "💾 Plant saved": "💾 Tesis kaydedildi",
   "Live video on the tile": "Karoda canlı video",
   "Remove from the load": "Yükten çıkar",
   "Remove ${child.name} from the load": "${child.name} yükten çıkarılsın",

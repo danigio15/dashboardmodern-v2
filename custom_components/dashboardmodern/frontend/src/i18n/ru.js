@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "сейчас на странице",
+  fields: "полей",
+  field: "поле",
+  "Your solar plants": "Ваши солнечные установки",
+  "Water pressure (bar)": "Давление воды (бар)",
+  Upstairs: "Наверху",
+  "Temperature probe 3 (°C)": "Датчик температуры 3 (°C)",
+  "Temperature probe 2 (°C)": "Датчик температуры 2 (°C)",
+  "Temperature probe 1 (°C)": "Датчик температуры 1 (°C)",
+  "Temperature delta (°C)": "Разница температур (°C)",
+  "Solar switch": "Солнечный выключатель",
+  "Solar pump state": "Состояние солнечного насоса",
+  "Solar pump sensor": "Датчик солнечного насоса",
+  "Solar pump (manual)": "Солнечный насос (вручную)",
+  "Solar controller": "Солнечный контроллер",
+  "Show on the page": "Показать на странице",
+  "Save plant": "Сохранить установку",
+  "Safety valve (cover)": "Предохранительный клапан (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "Если у вас две солнечные установки — две крыши, два бака — добавьте вторую здесь: та, что есть сейчас, переходит в список как есть, а на странице появляется ряд для переключения.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "У каждой установки свои тринадцать полей. Та, что помечена «сейчас на странице», — это то, что показывают страница «Солнечный коллектор» и плитка на главной: глаз рядом с другой выводит её на экран вместо неё.",
+  "Boiler switch": "Выключатель бойлера",
+  "Boiler heater power (W)": "Мощность ТЭНа бойлера (Вт)",
+  "Add solar plant": "Добавить солнечную установку",
+  "Add a second solar plant": "Добавить вторую солнечную установку",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "Плитка на стене показывает непрерывный поток вместо снимка раз в четыре секунды — это и делает «camera_view: live». Она держит соединение открытым, пока вы смотрите раздел «Безопасность»: включите её для тех камер, которые хотите видеть в движении.",
+  "🌞 Plant on the page": "🌞 Установка на странице",
+  "💾 Plant saved": "💾 Установка сохранена",
   "Live video on the tile": "Живое видео на плитке",
   "Remove from the load": "Убрать из нагрузки",
   "Remove ${child.name} from the load": "Убрать ${child.name} из нагрузки",

@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "अभी पेज पर",
+  fields: "खाने",
+  field: "खाना",
+  "Your solar plants": "आपके सौर संयंत्र",
+  "Water pressure (bar)": "पानी का दबाव (bar)",
+  Upstairs: "ऊपर की मंज़िल",
+  "Temperature probe 3 (°C)": "तापमान प्रोब 3 (°C)",
+  "Temperature probe 2 (°C)": "तापमान प्रोब 2 (°C)",
+  "Temperature probe 1 (°C)": "तापमान प्रोब 1 (°C)",
+  "Temperature delta (°C)": "तापमान अंतर (°C)",
+  "Solar switch": "सौर स्विच",
+  "Solar pump state": "सौर पंप की स्थिति",
+  "Solar pump sensor": "सौर पंप सेंसर",
+  "Solar pump (manual)": "सौर पंप (हाथ से)",
+  "Solar controller": "सौर नियंत्रक",
+  "Show on the page": "पेज पर दिखाएँ",
+  "Save plant": "संयंत्र सहेजें",
+  "Safety valve (cover)": "सुरक्षा वाल्व (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "अगर आपके पास दो सौर संयंत्र हैं — दो छतें, दो टंकियाँ — दूसरा यहाँ जोड़ें: जो अभी है वह ज्यों का त्यों सूची में चला जाता है, और पेज पर उनके बीच बदलने की पंक्ति आ जाती है।",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "हर संयंत्र के अपने तेरह खाने हैं। जिस पर «अभी पेज पर» लिखा है, वही सौर तापीय पेज और होम की टाइल दिखा रहे हैं: किसी दूसरे के पास वाली आँख उसे उसकी जगह स्क्रीन पर ले आती है।",
+  "Boiler switch": "बॉयलर स्विच",
+  "Boiler heater power (W)": "बॉयलर हीटर की पावर (W)",
+  "Add solar plant": "सौर संयंत्र जोड़ें",
+  "Add a second solar plant": "दूसरा सौर संयंत्र जोड़ें",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "दीवार की टाइल हर चार सेकंड में एक तस्वीर के बजाय लगातार स्ट्रीम दिखाती है — «camera_view: live» यही करता है। जब तक आप सुरक्षा अनुभाग देख रहे हैं, यह एक कनेक्शन खुला रखती है: जिन कैमरों को चलते हुए देखना है उन पर इसे चालू करें।",
+  "🌞 Plant on the page": "🌞 पेज पर संयंत्र",
+  "💾 Plant saved": "💾 संयंत्र सहेजा गया",
   "Live video on the tile": "टाइल पर लाइव वीडियो",
   "Remove from the load": "लोड से हटाएँ",
   "Remove ${child.name} from the load": "${child.name} को लोड से हटाएँ",

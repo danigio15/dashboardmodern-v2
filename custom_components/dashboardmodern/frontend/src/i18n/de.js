@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "jetzt auf der Seite",
+  fields: "Felder",
+  field: "Feld",
+  "Your solar plants": "Deine Solaranlagen",
+  "Water pressure (bar)": "Wasserdruck (bar)",
+  Upstairs: "Oben",
+  "Temperature probe 3 (°C)": "Temperaturfühler 3 (°C)",
+  "Temperature probe 2 (°C)": "Temperaturfühler 2 (°C)",
+  "Temperature probe 1 (°C)": "Temperaturfühler 1 (°C)",
+  "Temperature delta (°C)": "Temperaturdifferenz (°C)",
+  "Solar switch": "Solarschalter",
+  "Solar pump state": "Zustand der Solarpumpe",
+  "Solar pump sensor": "Solarpumpensensor",
+  "Solar pump (manual)": "Solarpumpe (manuell)",
+  "Solar controller": "Solarregler",
+  "Show on the page": "Auf der Seite zeigen",
+  "Save plant": "Anlage speichern",
+  "Safety valve (cover)": "Sicherheitsventil (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "Wenn du zwei Solaranlagen hast — zwei Dächer, zwei Speicher — füge die zweite hier hinzu: die vorhandene wandert genau so, wie sie ist, in die Liste, und auf der Seite erscheint eine Reihe zum Wechseln.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "Jede Anlage hat ihre eigenen dreizehn Felder. Die mit „jetzt auf der Seite“ markierte ist das, was die Seite Solarthermie und die Kachel auf Home zeigen: das Auge neben einer anderen holt sie an ihrer Stelle auf den Schirm.",
+  "Boiler switch": "Boilerschalter",
+  "Boiler heater power (W)": "Leistung Boilerheizstab (W)",
+  "Add solar plant": "Solaranlage hinzufügen",
+  "Add a second solar plant": "Eine zweite Solaranlage hinzufügen",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "Die Kachel an der Wand zeigt den laufenden Stream statt alle vier Sekunden ein Standbild — genau das macht „camera_view: live“. Sie hält eine Verbindung offen, solange du den Bereich Sicherheit ansiehst: schalte es für die Kameras ein, die du sich bewegen sehen willst.",
+  "🌞 Plant on the page": "🌞 Anlage auf der Seite",
+  "💾 Plant saved": "💾 Anlage gespeichert",
   "Live video on the tile": "Livevideo auf der Kachel",
   "Remove from the load": "Aus dem Verbraucher entfernen",
   "Remove ${child.name} from the load": "${child.name} aus dem Verbraucher entfernen",

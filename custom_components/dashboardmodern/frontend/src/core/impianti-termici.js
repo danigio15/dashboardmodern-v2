@@ -287,3 +287,170 @@ export function verdettoPressione(bar) {
   if (valore > 2.5) return "alta";
   return "buona";
 }
+
+/* ── il solare, che può essere più d'uno ───────────────────────────────── */
+
+/* «Solare termico continua ad avere un solo impianto: non è stata aggiunta la
+ * possibilità di gestire più impianti.»
+ *
+ * Era l'ultima macchina rimasta singola. Gli scaldabagni sono una lista da
+ * sempre, le caldaie lo sono diventate (#281), e il solare no: le sue tredici
+ * caselle sono mappature `dm.boiler_*` dentro `cd_entity_overrides`, e di
+ * quelle ce n'è una serie sola.
+ *
+ * La regola davanti a tutte è la stessa degli impianti dell'energia: NON SI
+ * SPOSTA NIENTE. Chi ha un solare solo non ha una lista, non ha un id, non ha
+ * niente da migrare — le sue caselle restano dove sono sempre state e questa
+ * parte del modulo non si accorge nemmeno di lui. La lista nasce quando si
+ * aggiunge il secondo impianto, e da lì in poi contiene tutti e due.
+ *
+ * Quello che si vede a schermo è sempre l'impianto scritto nelle mappature:
+ * scegliere un altro impianto vuol dire scriverci il suo. Nessuno intercetta
+ * niente — la scena del guscio, la tessera della Home, la sincronizzazione e
+ * il rilevamento automatico continuano a leggere l'unico posto che hanno
+ * sempre letto, e leggono l'impianto che si sta guardando.
+ */
+export const CHIAVE_SOLARI = "cd_solari";
+export const CHIAVE_SOLARE_SCELTO = "cd_solare_scelto";
+
+/* Le tredici caselle del solare, con le stesse parole della scheda del guscio:
+ * sono le mappature che la scena legge, e sono queste e non altre. */
+export const CASELLE_SOLARE = Object.freeze([
+  {
+    ref: "dm.boiler_sonda_temperatura_1",
+    it: "Sonda temperatura 1 (°C)",
+    en: "Temperature probe 1 (°C)",
+  },
+  {
+    ref: "dm.boiler_sonda_temperatura_2",
+    it: "Sonda temperatura 2 (°C)",
+    en: "Temperature probe 2 (°C)",
+  },
+  {
+    ref: "dm.boiler_sonda_temperatura_3",
+    it: "Sonda temperatura 3 (°C)",
+    en: "Temperature probe 3 (°C)",
+  },
+  {
+    ref: "dm.boiler_delta_temperatura",
+    it: "Delta temperatura (°C)",
+    en: "Temperature delta (°C)",
+  },
+  { ref: "dm.boiler_pressione_acqua", it: "Pressione acqua (bar)", en: "Water pressure (bar)" },
+  {
+    ref: "dm.boiler_potenza_resistenza_boiler",
+    it: "Potenza resistenza boiler (W)",
+    en: "Boiler heater power (W)",
+  },
+  { ref: "dm.boiler_pompa_solare", it: "Pompa solare (manuale)", en: "Solar pump (manual)" },
+  { ref: "dm.boiler_stato_pompa_solare", it: "Stato pompa solare", en: "Solar pump state" },
+  { ref: "dm.boiler_sensore_pompa_solare", it: "Sensore pompa solare", en: "Solar pump sensor" },
+  {
+    ref: "dm.boiler_centralina_solare_termico",
+    it: "Centralina solare termico",
+    en: "Solar controller",
+  },
+  {
+    ref: "dm.boiler_interruttore_solare_termico",
+    it: "Interruttore solare termico",
+    en: "Solar switch",
+  },
+  { ref: "dm.boiler_interruttore_boiler", it: "Interruttore boiler", en: "Boiler switch" },
+  {
+    ref: "dm.boiler_valvola_di_sicurezza",
+    it: "Valvola di sicurezza (cover)",
+    en: "Safety valve (cover)",
+  },
+]);
+
+/** Le mappature `dm.boiler_*` di un elenco di override, ripulite. */
+export function caselleSolariDa(overrides) {
+  const dato = overrides && typeof overrides === "object" ? overrides : {};
+  const fuori = {};
+  for (const { ref } of CASELLE_SOLARE) {
+    const entita = clean(dato[ref]);
+    if (entita) fuori[ref] = entita;
+  }
+  return fuori;
+}
+
+/* L'id del primo impianto non si sceglie: è quello, sempre. È la stessa
+ * regola degli impianti dell'energia, e per la stessa ragione — chi c'era
+ * prima ha un id senza che nessuno gliel'abbia scritto. */
+export const PRIMO_SOLARE = "solare";
+
+/** Un impianto solare, ripulito. */
+export function normalizzaSolare(stored, indice = 0) {
+  const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  return {
+    id: clean(dato.id) || (indice === 0 ? PRIMO_SOLARE : `${PRIMO_SOLARE}-${indice + 1}`),
+    nome: clean(dato.nome || dato.name),
+    caselle: caselleSolariDa(dato.caselle),
+  };
+}
+
+/**
+ * Gli impianti solari di casa.
+ *
+ * Con la lista vuota — cioè per chiunque non abbia mai chiesto il secondo —
+ * esce un impianto solo, quello scritto nelle mappature: senza id inventati e
+ * senza niente da salvare. Appena la lista esiste, l'impianto che si sta
+ * guardando è quello che porta le mappature adesso, e gli altri sono suoi
+ * fratelli fermi in attesa del proprio turno.
+ */
+export function impiantiSolari(stored, overrides = {}, scelto = "") {
+  const attuali = caselleSolariDa(overrides);
+  const righe = Array.isArray(stored) ? stored : [];
+  if (!righe.length) {
+    if (!Object.keys(attuali).length) return [];
+    return [{ id: PRIMO_SOLARE, nome: "", caselle: attuali, corrente: true }];
+  }
+  const lista = righe.map((riga, indice) => normalizzaSolare(riga, indice));
+  /* Quale sta a schermo: quello che dice la scelta, e se non dice niente —
+   * o dice un impianto cancellato — il primo. Le mappature valgono più della
+   * copia in lista: sono quelle che la scena legge davvero. */
+  const quale = lista.some((riga) => riga.id === clean(scelto)) ? clean(scelto) : lista[0].id;
+  return lista.map((riga) => ({
+    ...riga,
+    caselle: riga.id === quale && Object.keys(attuali).length ? attuali : riga.caselle,
+    corrente: riga.id === quale,
+  }));
+}
+
+/** L'impianto che si sta guardando. */
+export function solareCorrente(lista) {
+  return (Array.isArray(lista) ? lista : []).find((riga) => riga?.corrente) || null;
+}
+
+/** Il nome da mostrare per un impianto, che un nome ce l'ha sempre. */
+export function nomeDelSolare(impianto, indice = 0, parole = ["Solare termico", "Solar thermal"]) {
+  const suo = clean(impianto?.nome);
+  if (suo) return suo;
+  return indice === 0 ? parole[0] : `${parole[0]} ${indice + 1}`;
+}
+
+/** Le entità di tutti gli impianti solari. */
+export function entitaDeiSolari(lista) {
+  return (Array.isArray(lista) ? lista : []).flatMap((riga) =>
+    Object.values(riga?.caselle || {}).filter(Boolean),
+  );
+}
+
+/**
+ * Le mappature da scrivere per far vedere un altro impianto.
+ *
+ * Torna l'oggetto degli override completo, non solo le tredici caselle: le
+ * altre mappature — l'auto, il server, l'energia — restano quelle che erano, e
+ * quelle del solare che l'impianto scelto non usa se ne vanno, altrimenti la
+ * scena mostrerebbe una sonda del vicino.
+ */
+export function overridesPerSolare(overrides, impianto) {
+  const dato = overrides && typeof overrides === "object" ? overrides : {};
+  const fuori = { ...dato };
+  const caselle = caselleSolariDa(impianto?.caselle);
+  for (const { ref } of CASELLE_SOLARE) {
+    if (caselle[ref]) fuori[ref] = caselle[ref];
+    else delete fuori[ref];
+  }
+  return fuori;
+}

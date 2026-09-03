@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "على الصفحة الآن",
+  fields: "خانات",
+  field: "خانة",
+  "Your solar plants": "منظوماتك الشمسية",
+  "Water pressure (bar)": "ضغط الماء (بار)",
+  Upstairs: "الطابق العلوي",
+  "Temperature probe 3 (°C)": "مجس الحرارة 3 (°م)",
+  "Temperature probe 2 (°C)": "مجس الحرارة 2 (°م)",
+  "Temperature probe 1 (°C)": "مجس الحرارة 1 (°م)",
+  "Temperature delta (°C)": "فرق الحرارة (°م)",
+  "Solar switch": "المفتاح الشمسي",
+  "Solar pump state": "حالة المضخة الشمسية",
+  "Solar pump sensor": "حسّاس المضخة الشمسية",
+  "Solar pump (manual)": "المضخة الشمسية (يدويًا)",
+  "Solar controller": "وحدة التحكم الشمسية",
+  "Show on the page": "أظهرها على الصفحة",
+  "Save plant": "حفظ المنظومة",
+  "Safety valve (cover)": "صمام الأمان (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "إن كانت لديك منظومتان شمسيتان — سطحان، خزّانان — أضف الثانية هنا: التي لديك الآن تنتقل إلى القائمة كما هي، وتظهر في الصفحة صفٌّ للتنقل بينهما.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "لكل منظومة خاناتها الثلاث عشرة. المؤشَّرة بـ«على الصفحة الآن» هي ما تعرضه صفحة الطاقة الشمسية الحرارية وبطاقة الرئيسية: العين بجانب أخرى تُحضرها إلى الشاشة مكانها.",
+  "Boiler switch": "مفتاح السخّان",
+  "Boiler heater power (W)": "قدرة سخّان المرجل (واط)",
+  "Add solar plant": "إضافة منظومة شمسية",
+  "Add a second solar plant": "إضافة منظومة شمسية ثانية",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "تعرض بطاقة الجدار البثَّ المستمر بدل صورة كل أربع ثوانٍ — وهذا ما يفعله «camera_view: live». تُبقي اتصالًا مفتوحًا ما دمت تنظر إلى قسم الأمان: فعّلها للكاميرات التي تريد رؤيتها تتحرك.",
+  "🌞 Plant on the page": "🌞 المنظومة على الصفحة",
+  "💾 Plant saved": "💾 حُفظت المنظومة",
   "Live video on the tile": "فيديو مباشر على البطاقة",
   "Remove from the load": "إزالة من الحِمل",
   "Remove ${child.name} from the load": "إزالة ${child.name} من الحِمل",

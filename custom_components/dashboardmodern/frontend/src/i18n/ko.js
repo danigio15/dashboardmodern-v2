@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "지금 페이지에",
+  fields: "칸",
+  field: "칸",
+  "Your solar plants": "내 태양열 설비",
+  "Water pressure (bar)": "수압 (bar)",
+  Upstairs: "위층",
+  "Temperature probe 3 (°C)": "온도 센서 3 (°C)",
+  "Temperature probe 2 (°C)": "온도 센서 2 (°C)",
+  "Temperature probe 1 (°C)": "온도 센서 1 (°C)",
+  "Temperature delta (°C)": "온도 차 (°C)",
+  "Solar switch": "태양열 스위치",
+  "Solar pump state": "태양열 펌프 상태",
+  "Solar pump sensor": "태양열 펌프 센서",
+  "Solar pump (manual)": "태양열 펌프 (수동)",
+  "Solar controller": "태양열 컨트롤러",
+  "Show on the page": "페이지에 보이기",
+  "Save plant": "설비 저장",
+  "Safety valve (cover)": "안전 밸브 (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "태양열 설비가 둘이라면 — 지붕 둘, 탱크 둘 — 두 번째를 여기에 추가하세요: 지금 있는 것은 그대로 목록으로 옮겨가고, 페이지에는 서로 오갈 수 있는 줄이 생깁니다.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "설비마다 자기 열세 칸이 있습니다. “지금 페이지에”라고 표시된 것이 태양열 페이지와 홈 타일이 보여 주는 것입니다: 다른 설비 옆의 눈을 누르면 그것이 대신 화면에 올라옵니다.",
+  "Boiler switch": "보일러 스위치",
+  "Boiler heater power (W)": "보일러 히터 전력 (W)",
+  "Add solar plant": "태양열 설비 추가",
+  "Add a second solar plant": "두 번째 태양열 설비 추가",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "벽의 타일이 4초마다 정지 화면 대신 연속 스트림을 보여줍니다 — “camera_view: live”가 하는 일과 같습니다. 보안 섹션을 보고 있는 동안 연결을 열어 둡니다: 움직이는 모습을 보고 싶은 카메라에서 켜세요.",
+  "🌞 Plant on the page": "🌞 페이지에 올린 설비",
+  "💾 Plant saved": "💾 설비를 저장했습니다",
   "Live video on the tile": "타일에 실시간 영상",
   "Remove from the load": "부하에서 빼기",
   "Remove ${child.name} from the load": "${child.name}을(를) 부하에서 빼기",

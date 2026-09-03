@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "nu op de pagina",
+  fields: "velden",
+  field: "veld",
+  "Your solar plants": "Jouw zonne-installaties",
+  "Water pressure (bar)": "Waterdruk (bar)",
+  Upstairs: "Boven",
+  "Temperature probe 3 (°C)": "Temperatuurvoeler 3 (°C)",
+  "Temperature probe 2 (°C)": "Temperatuurvoeler 2 (°C)",
+  "Temperature probe 1 (°C)": "Temperatuurvoeler 1 (°C)",
+  "Temperature delta (°C)": "Temperatuurverschil (°C)",
+  "Solar switch": "Zonneschakelaar",
+  "Solar pump state": "Toestand zonnepomp",
+  "Solar pump sensor": "Sensor zonnepomp",
+  "Solar pump (manual)": "Zonnepomp (handmatig)",
+  "Solar controller": "Zonneregelaar",
+  "Show on the page": "Op de pagina tonen",
+  "Save plant": "Installatie opslaan",
+  "Safety valve (cover)": "Veiligheidsventiel (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "Heb je twee zonne-installaties — twee daken, twee vaten — voeg de tweede hier toe: die je nu hebt gaat precies zoals hij is in de lijst, en op de pagina verschijnt een rij om te wisselen.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "Elke installatie heeft haar eigen dertien velden. Die met “nu op de pagina” is wat de pagina Zonneboiler en de tegel op Home laten zien: het oog naast een andere haalt die in haar plaats op het scherm.",
+  "Boiler switch": "Schakelaar boiler",
+  "Boiler heater power (W)": "Vermogen boilerweerstand (W)",
+  "Add solar plant": "Zonne-installatie toevoegen",
+  "Add a second solar plant": "Een tweede zonne-installatie toevoegen",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "De tegel op de muur toont de doorlopende stream in plaats van elke vier seconden een stilstaand beeld — dat is wat “camera_view: live” doet. Hij houdt een verbinding open zolang je naar de sectie Beveiliging kijkt: zet het aan voor de camera's die je wilt zien bewegen.",
+  "🌞 Plant on the page": "🌞 Installatie op de pagina",
+  "💾 Plant saved": "💾 Installatie opgeslagen",
   "Live video on the tile": "Live video op de tegel",
   "Remove from the load": "Uit de verbruiker halen",
   "Remove ${child.name} from the load": "${child.name} uit de verbruiker halen",

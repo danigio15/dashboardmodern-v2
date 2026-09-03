@@ -26,12 +26,17 @@ import {
   BRICIOLE_TERMICHE,
   CHIAVE_CALDAIA,
   CHIAVE_IMPIANTI,
+  CHIAVE_SOLARE_SCELTO,
+  CHIAVE_SOLARI,
   ETICHETTE_TERMICHE,
   NOME_SEZIONE,
   TITOLI_TERMICI,
   entitaDelleCaldaie,
   impiantiScelti,
+  impiantiSolari,
   lettureCaldaie,
+  nomeDelSolare,
+  overridesPerSolare,
   servonoLinguette,
   tabAttiva,
   verdettoPressione,
@@ -54,6 +59,7 @@ import {
   siComanda,
   t,
   wrapFunction,
+  writeJsonIfChanged,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_IMPIANTI_TERMICI__";
@@ -218,11 +224,65 @@ function macchinaScelta(tipo, righe) {
   return righe.some((riga) => riga.id === salvata) ? salvata : righe[0].id;
 }
 
+/* Gli impianti solari, che possono essere più d'uno.
+ *
+ * Quello che la scena disegna è sempre l'impianto scritto nelle mappature
+ * `dm.boiler_*`: passare a un altro vuol dire scriverci il suo. Nessuno
+ * intercetta niente — la scena del guscio continua a leggere l'unico posto che
+ * ha sempre letto, e legge l'impianto che si sta guardando. */
+function impiantiSolariDiCasa() {
+  return impiantiSolari(
+    readJson(CHIAVE_SOLARI, []),
+    readJson("cd_entity_overrides", {}),
+    clean(root.localStorage?.getItem?.(CHIAVE_SOLARE_SCELTO)),
+  );
+}
+
+function passaAlSolare(id) {
+  const lista = impiantiSolariDiCasa();
+  const scelto = lista.find((riga) => riga.id === clean(id));
+  if (!scelto || scelto.corrente) return false;
+  /* L'impianto che esce di scena si porta via le sue caselle: sono quelle che
+   * stanno nelle mappature adesso, e senza rimetterle in elenco andrebbero
+   * perse alla prima scrittura di quello che entra. */
+  const prima = lista.map((riga) => ({ id: riga.id, nome: riga.nome, caselle: riga.caselle }));
+  writeJsonIfChanged(CHIAVE_SOLARI, prima);
+  root.localStorage?.setItem?.(CHIAVE_SOLARE_SCELTO, scelto.id);
+  const prossime = overridesPerSolare(readJson("cd_entity_overrides", {}), scelto);
+  writeJsonIfChanged("cd_entity_overrides", prossime);
+  /* Il guscio tiene la sua copia in memoria, ed è quella che il proxy degli
+   * stati consulta a ogni lettura. */
+  try {
+    root.cdApplyCanonicalOverrides?.(prossime);
+  } catch (_error) {}
+  try {
+    root.render?.();
+  } catch (_error) {}
+  return true;
+}
+
+function filaDegliSolari(lista) {
+  if (lista.length < 2) return "";
+  return `<div class="dm-it-quali" role="tablist">${lista
+    .map(
+      (
+        riga,
+        indice,
+      ) => `<button type="button" class="dm-it-quale" data-dm-it-solare="${esc(riga.id)}"
+        role="tab" aria-selected="${riga.corrente === true}"${riga.corrente ? ' data-on="true"' : ""}
+        >${esc(nomeDelSolare(riga, indice, [t("Solare termico", "Solar thermal"), ""]))}</button>`,
+    )
+    .join("")}</div>`;
+}
+
 function filaDelleMacchine(righe, scelta) {
   if (righe.length < 2) return "";
   return `<div class="dm-it-quali" role="tablist">${righe
     .map(
-      (riga, indice) => `<button type="button" class="dm-it-quale" data-dm-it-quale="${esc(riga.id)}"
+      (
+        riga,
+        indice,
+      ) => `<button type="button" class="dm-it-quale" data-dm-it-quale="${esc(riga.id)}"
         role="tab" aria-selected="${riga.id === scelta}"${riga.id === scelta ? ' data-on="true"' : ""}
         >${esc(clean(riga.name) || `${t("Macchina", "Unit")} ${indice + 1}`)}</button>`,
     )
@@ -378,7 +438,8 @@ export function renderImpiantiTermici() {
    * torna sempre alla prima. */
   const quali = attiva === "caldaia" ? caldaie : letture;
   const scelta = macchinaScelta(attiva, quali);
-  const firma = JSON.stringify([scelti, attiva, letture, caldaie, scelta]);
+  const solari = attiva === "solare" ? impiantiSolariDiCasa() : [];
+  const firma = JSON.stringify([scelti, attiva, letture, caldaie, scelta, solari]);
   if (firma === state.firma) return true;
   state.firma = firma;
 
@@ -416,6 +477,24 @@ export function renderImpiantiTermici() {
   if (page.dataset.dmItAltrove !== String(altrove)) page.dataset.dmItAltrove = String(altrove);
   const legacy = scenaLegacy(page);
   if (legacy) legacy.hidden = altrove;
+
+  /* Con più di un impianto solare, la fila dei nomi sopra la scena: è lo
+   * stesso gesto delle caldaie, e la scena sotto è sempre quella — cambia
+   * l'impianto che le sta dando i numeri. */
+  let filaSolare = box.querySelector(":scope > .dm-it-quali-solare");
+  if (attiva === "solare" && solari.length > 1) {
+    if (!filaSolare) {
+      filaSolare = doc.createElement("div");
+      filaSolare.className = "dm-it-quali-solare";
+      if (legacy) legacy.before(filaSolare);
+      else box.prepend(filaSolare);
+    }
+    filaSolare.hidden = false;
+    const markup = filaDegliSolari(solari);
+    if (filaSolare.innerHTML !== markup) filaSolare.innerHTML = markup;
+  } else if (filaSolare) {
+    filaSolare.hidden = true;
+  }
 
   let mia = box.querySelector(":scope > .dm-it-stage");
   if (attiva && attiva !== "solare") {
@@ -498,6 +577,15 @@ function schedule() {
 }
 
 function onClick(event) {
+  const solare = event.target?.closest?.("[data-dm-it-solare]");
+  if (solare) {
+    event.preventDefault();
+    if (passaAlSolare(clean(solare.dataset.dmItSolare))) {
+      state.firma = "";
+      renderImpiantiTermici();
+    }
+    return;
+  }
   const quale = event.target?.closest?.("[data-dm-it-quale]");
   if (quale) {
     event.preventDefault();
@@ -563,6 +651,9 @@ function installStyles() {
      * una scelta: prima che macchina, poi quale delle sue. */
     #${PAGINA} .dm-it-quali{
       display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+    /* La stessa fila, sopra la scena del guscio invece che dentro la nostra. */
+    #${PAGINA} .dm-it-quali-solare{margin:0 0 12px}
+    #${PAGINA} .dm-it-quali-solare .dm-it-quali{margin:0}
     #${PAGINA} .dm-it-quale{
       border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);
       border-radius:999px;padding:7px 14px;font:inherit;font-size:12px;font-weight:800;

@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "いまページに表示中",
+  fields: "項目",
+  field: "項目",
+  "Your solar plants": "あなたのソーラー設備",
+  "Water pressure (bar)": "水圧 (bar)",
+  Upstairs: "上の階",
+  "Temperature probe 3 (°C)": "温度センサー 3 (°C)",
+  "Temperature probe 2 (°C)": "温度センサー 2 (°C)",
+  "Temperature probe 1 (°C)": "温度センサー 1 (°C)",
+  "Temperature delta (°C)": "温度差 (°C)",
+  "Solar switch": "ソーラーのスイッチ",
+  "Solar pump state": "ソーラーポンプの状態",
+  "Solar pump sensor": "ソーラーポンプのセンサー",
+  "Solar pump (manual)": "ソーラーポンプ (手動)",
+  "Solar controller": "ソーラー制御装置",
+  "Show on the page": "ページに表示",
+  "Save plant": "設備を保存",
+  "Safety valve (cover)": "安全弁 (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "ソーラー設備が二つ — 屋根が二つ、タンクが二つ — あるなら、二つめをここに足してください: いまのものはそのまま一覧に移り、ページには切り替えの並びが出ます。",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "設備ごとに十三の項目があります。「いまページに表示中」と付いているものが、太陽熱のページとホームのタイルに出ているものです: 別の設備の横の目を押すと、そちらが代わりに画面に出ます。",
+  "Boiler switch": "貯湯タンクのスイッチ",
+  "Boiler heater power (W)": "貯湯ヒーターの電力 (W)",
+  "Add solar plant": "ソーラー設備を追加",
+  "Add a second solar plant": "二つめのソーラー設備を追加",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "壁のタイルが、4秒ごとの静止画ではなく連続した映像を映します — 「camera_view: live」がするのと同じことです。セキュリティのページを見ているあいだ接続を開いたままにします: 動いているところを見たいカメラで有効にしてください。",
+  "🌞 Plant on the page": "🌞 ページに出す設備",
+  "💾 Plant saved": "💾 設備を保存しました",
   "Live video on the tile": "タイルでライブ映像",
   "Remove from the load": "負荷から外す",
   "Remove ${child.name} from the load": "${child.name} をこの負荷から外す",

@@ -97,6 +97,13 @@ const SCHEDE = [
   ["../src/sections/todo-editor-section.js", "data-evid-save", "le entità in evidenza"],
   ["../src/sections/people-editor-section.js", "data-person-save", "le persone"],
   ["../src/sections/sezioni-mie-editor-section.js", "data-mia-save", "le sezioni proprie"],
+  /* La Gestione termica ne ha tre in una scheda sola: caldaie, scaldabagni e
+   * impianti solari. Le prime due sono state trovate rotte allo stesso modo —
+   * «ho due caldaie, una per zona» e la seconda non si memorizzava — e sono la
+   * prova che questo difetto si sposta finché la regola sta in più copie. */
+  ["../src/sections/impianti-termici-editor-section.js", "data-caldaia-save", "le caldaie"],
+  ["../src/sections/impianti-termici-editor-section.js", "data-scald-save", "gli scaldabagni"],
+  ["../src/sections/impianti-termici-editor-section.js", "data-solare-save", "gli impianti solari"],
 ];
 
 for (const [percorso, tasto, nome] of SCHEDE) {

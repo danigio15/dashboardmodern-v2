@@ -72,7 +72,13 @@ const USER_DATA_VERSION = 1;
  * #262): titolo, icona e le entita' che ci ha messo dentro. Sono la casa nel
  * senso piu' letterale — le ha disegnate lui — e non viaggiare vorrebbe dire
  * rifarle su ogni dispositivo. */
-export const CONFIG_KEYS_REVISION = 19;
+/* La revisione 20 aggiunge gli impianti solari (`cd_solari`, `cd_solare_scelto`).
+ * «Solare termico continua ad avere un solo impianto»: adesso ce ne può essere
+ * più d'uno, e vanno insieme — l'elenco dice quali sono, la scelta dice quale
+ * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
+ * da sempre: se la scelta restasse su un dispositivo solo, il telefono
+ * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
+export const CONFIG_KEYS_REVISION = 20;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -178,6 +184,9 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_scaldabagni",
   "cd_impianti_termici",
   "cd_caldaia",
+  // Gli impianti solari e quale di loro sta in pagina (#253 → più d'uno).
+  "cd_solari",
+  "cd_solare_scelto",
   "cd_ups",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.

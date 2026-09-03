@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "no ecrã agora",
+  fields: "campos",
+  field: "campo",
+  "Your solar plants": "As tuas instalações solares",
+  "Water pressure (bar)": "Pressão da água (bar)",
+  Upstairs: "Andar de cima",
+  "Temperature probe 3 (°C)": "Sonda de temperatura 3 (°C)",
+  "Temperature probe 2 (°C)": "Sonda de temperatura 2 (°C)",
+  "Temperature probe 1 (°C)": "Sonda de temperatura 1 (°C)",
+  "Temperature delta (°C)": "Delta de temperatura (°C)",
+  "Solar switch": "Interruptor solar",
+  "Solar pump state": "Estado da bomba solar",
+  "Solar pump sensor": "Sensor da bomba solar",
+  "Solar pump (manual)": "Bomba solar (manual)",
+  "Solar controller": "Central solar",
+  "Show on the page": "Mostrar no ecrã",
+  "Save plant": "Guardar instalação",
+  "Safety valve (cover)": "Válvula de segurança (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "Se tens duas instalações solares — dois telhados, dois depósitos — adiciona a segunda aqui: a que tens passa para a lista tal como está, e na página aparece a fila para trocar entre elas.",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "Cada instalação tem os seus treze campos. A marcada «no ecrã agora» é o que a página Solar térmico e o cartão do Início estão a mostrar: o olho ao lado de outra traz essa para o ecrã no lugar dela.",
+  "Boiler switch": "Interruptor do termoacumulador",
+  "Boiler heater power (W)": "Potência da resistência do termoacumulador (W)",
+  "Add solar plant": "Adicionar instalação solar",
+  "Add a second solar plant": "Adicionar uma segunda instalação solar",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "O cartão do mural mostra o fluxo contínuo em vez de uma foto a cada quatro segundos — é o que faz «camera_view: live». Mantém uma ligação aberta enquanto olhas para a secção Segurança: liga-o nas câmaras que queres ver mexer.",
+  "🌞 Plant on the page": "🌞 Instalação no ecrã",
+  "💾 Plant saved": "💾 Instalação guardada",
   "Live video on the tile": "Vídeo ao vivo no cartão",
   "Remove from the load": "Retirar da carga",
   "Remove ${child.name} from the load": "Retirar ${child.name} da carga",

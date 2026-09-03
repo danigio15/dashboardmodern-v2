@@ -11,8 +11,36 @@
  */
 
 export default Object.freeze({
+  "on the page now": "当前在页面上",
+  fields: "个字段",
+  field: "个字段",
+  "Your solar plants": "你的太阳能系统",
+  "Water pressure (bar)": "水压 (bar)",
+  Upstairs: "楼上",
+  "Temperature probe 3 (°C)": "温度探头 3 (°C)",
+  "Temperature probe 2 (°C)": "温度探头 2 (°C)",
+  "Temperature probe 1 (°C)": "温度探头 1 (°C)",
+  "Temperature delta (°C)": "温差 (°C)",
+  "Solar switch": "太阳能开关",
+  "Solar pump state": "太阳能泵状态",
+  "Solar pump sensor": "太阳能泵传感器",
+  "Solar pump (manual)": "太阳能泵（手动）",
+  "Solar controller": "太阳能控制器",
+  "Show on the page": "在页面上显示",
+  "Save plant": "保存这套系统",
+  "Safety valve (cover)": "安全阀 (cover)",
+  "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.":
+    "如果你有两套太阳能系统——两个屋顶、两个水箱——把第二套加在这里：现在这套会原样进入列表，页面上也会出现一排用来切换。",
+  "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.":
+    "每套系统都有自己的十三个字段。标着“当前在页面上”的那套，就是“太阳能”页面和首页卡片正在显示的：点另一套旁边的眼睛，就换成它出现在屏幕上。",
+  "Boiler switch": "水箱开关",
+  "Boiler heater power (W)": "水箱电加热功率 (W)",
+  "Add solar plant": "添加太阳能系统",
+  "Add a second solar plant": "再添加一套太阳能系统",
   "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
     "墙面卡片显示连续的视频流，而不是每四秒一张静态图——这正是“camera_view: live”所做的事。看“安防”页面时它会保持一条连接：给想看到画面动起来的摄像头打开它。",
+  "🌞 Plant on the page": "🌞 页面上的这套系统",
+  "💾 Plant saved": "💾 已保存这套系统",
   "Live video on the tile": "卡片上显示实时画面",
   "Remove from the load": "移出负载",
   "Remove ${child.name} from the load": "把 ${child.name} 移出该负载",
