@@ -609,8 +609,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scegliere il posto» (#266). Web Mercator, e null'altro: da un punto e da
   // un raggio escono lo zoom e i quadratini. Sta nel nucleo perche' e'
   // aritmetica, e l'aritmetica si prova senza rete.
+  // 210 col video dal vivo delle telecamere (`core/telecamera-dal-vivo.js`,
+  // `sections/telecamera-vivo-section.js`): «le telecamere Arlo dalla sezione
+  // Sicurezza si vedono solo come istantanea, il video non si muove — con una
+  // card YAML e `camera_view: live` si vede sempre in trasmissione». Il nucleo
+  // ricava l'indirizzo del flusso da quello dell'istantanea, che e' aritmetica
+  // di stringhe e si prova senza rete; la sezione e' la casella che accende il
+  // flusso su una telecamera, accanto a quella dell'RTSP.
   assert.ok(
-    relative.length <= 208,
+    relative.length <= 210,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

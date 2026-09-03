@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
+    "Плитка на стене показывает непрерывный поток вместо снимка раз в четыре секунды — это и делает «camera_view: live». Она держит соединение открытым, пока вы смотрите раздел «Безопасность»: включите её для тех камер, которые хотите видеть в движении.",
+  "Live video on the tile": "Живое видео на плитке",
   "Remove from the load": "Убрать из нагрузки",
   "Remove ${child.name} from the load": "Убрать ${child.name} из нагрузки",
   'Remove "${child.name}" from this load? It stays configured under Appliances.':

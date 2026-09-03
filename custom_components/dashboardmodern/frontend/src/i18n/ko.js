@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "The wall tile shows the continuous stream instead of a still every four seconds — this is what “camera_view: live” does. It holds a connection open while you are looking at the Security section: turn it on for the cameras you want to see moving.":
+    "벽의 타일이 4초마다 정지 화면 대신 연속 스트림을 보여줍니다 — “camera_view: live”가 하는 일과 같습니다. 보안 섹션을 보고 있는 동안 연결을 열어 둡니다: 움직이는 모습을 보고 싶은 카메라에서 켜세요.",
+  "Live video on the tile": "타일에 실시간 영상",
   "Remove from the load": "부하에서 빼기",
   "Remove ${child.name} from the load": "${child.name}을(를) 부하에서 빼기",
   'Remove "${child.name}" from this load? It stays configured under Appliances.':
