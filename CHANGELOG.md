@@ -7,11 +7,55 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.4.5-beta.12
 
-Le sezioni vuote escono dalla barra, il Cruscotto perde un pulsante che non
-decideva niente, e arriva la chat di assistenza — quella vera, che non passa
-da GitHub.
+Cinque richieste lette insieme e cinque sezioni nuove, le sezioni vuote che
+escono dalla barra, e la chat di assistenza — quella vera, che non passa da
+GitHub.
 
 ### Aggiunto
+
+- **La Musica ha la sua sezione, e la copertina fa da sfondo.**
+
+      «sarebbe carino una sezione dedicata ai dispositivi Media Player… la
+       possibilita' di aggiungerli anche nelle Azioni rapide, sarebbe figo se
+       lo sfondo fosse l'anteprima di cio' che viene riprodotto»
+
+  I lettori dichiarati in configurazione hanno una scheda ciascuno, con titolo,
+  artista, la barra del tempo che avanza da sola, il volume e la sorgente. I
+  tasti sono quelli che il lettore **sa eseguire davvero**: se non ha il brano
+  successivo quel tasto non viene disegnato, e una radio non finge di poterlo
+  saltare.
+
+  Da qui si mettono anche fra le Azioni rapide della Home: li' il tasto prende
+  la copertina come sfondo, e premerlo mette in pausa o fa ripartire. In Home
+  la tessera dice quanti stanno suonando e **cosa** — titolo, artista e in che
+  stanza.
+
+- **Le entita' che uno si aggiunge dove vuole.**
+
+      «in alcune schede non e' possibile inserire entita' o sensori
+       personalizzati… modificando il nome, icona, stanza di destinazione»
+
+  Alcune schede sono elenchi — Luci, Prese, Telecamere — e li' un'entita' in
+  piu' si e' sempre potuta aggiungere. Altre sono fatte di caselle con un ruolo
+  preciso: l'Energia ha una rete e un fotovoltaico, la Sicurezza una centrale,
+  e per un sensore in piu' non c'era posto. Adesso c'e': si sceglie l'entita',
+  in quale scheda farla comparire, come chiamarla e con che icona, e compare in
+  fondo a quella pagina.
+
+- **Le aperture sono una sezione a se'** (#275). Portone, porta di casa,
+  cancello: uscivano dalla Sicurezza col nome «Aperture», che e' lo stesso dei
+  sensori che dicono se una finestra e' aperta — due cose diverse con lo stesso
+  nome, e si confondevano. Adesso sono una pagina loro, **Apri
+  porte/cancelli**, e si aprono da dove si vedono. La conferma si puo'
+  spegnere.
+
+- **L'orologio, nello stesso riquadro del meteo** (#272). «Sarebbe carino avere
+  l'orologio, magari vicino al meteo»: ora e giorno, sotto il titolo, dove si
+  guarda gia'.
+
+- **Piu' di una centrale d'allarme** (#285), **la tessera Energia per ogni
+  impianto** (#286), **il solare termico con piu' impianti**, e **il video dal
+  vivo delle telecamere Arlo** invece dell'istantanea ferma.
 
 - **Una chat di assistenza, privata, senza account.**
 
@@ -47,6 +91,35 @@ da GitHub.
   opzioni, come le segnalazioni. Il progetto sta in `docs/CHAT.md`.
 
 ### Cambiato
+
+- **La finestra di una tessera ha smesso di tremolare.** Non era un difetto di
+  disegno ma di composizione: la card e il velo sfocato stavano nello stesso
+  strato, e ogni valore che cambiava dietro obbligava il browser a rifare
+  l'intero riquadro sfocato. Il velo e' passato a uno pseudo-elemento — la card
+  gli e' sorella, non figlia — e le animazioni che restano dietro si mettono in
+  pausa mentre la finestra e' aperta.
+
+- **La stanza si mostra col suo nome, mai col suo identificativo.** «Verifica
+  inoltre perche' esce sotto room etc»: sotto «Tapparella salone» c'era scritto
+  «🏠 room_mt8vpz7m». La tendina salva l'id — e' l'unica cosa che regge un
+  rinominamento — ma gli elenchi del guscio stampano quello che trovano. E c'e'
+  la meta' che non si vedeva: con un id in mano la domanda «di che piano e'
+  questa stanza?» tornava «nessuno», e le tapparelle di una casa a due piani
+  finivano tutte nello stesso gruppo.
+
+- **Nella scheda Finestre la stanza sta in alto, accanto al nome**, con la sua
+  etichetta: stava in fondo, senza dire cosa fosse.
+
+- **Il MiniPC dice OFFLINE solo quando qualcuno gliel'ha detto.** Con tutto
+  configurato e l'internet acceso scriveva OFFLINE: le caselle equivalenti per
+  la connettivita' erano quattro e la card ne leggeva una sola. Adesso **ce n'e'
+  una**, si chiama Internet, accetta un `binary_sensor`, uno stato a parole o i
+  millisecondi di un ping — e quello che stava nelle altre tre e' stato
+  travasato dentro, non buttato. Lo stato sta in alto e la card apre lo storico.
+
+- **La pagina Gestione termica mostra le entita' configurate** (#274): solare,
+  scaldabagno e caldaia in una pagina sola, ognuna col suo blocco e i comandi
+  dove si vedono i valori.
 
 - **Il Cruscotto separa quelle prese in carico da quelle ancora ferme.**
 
@@ -90,6 +163,14 @@ da GitHub.
   interruttore che una persona sola al mondo poteva toccare, per spegnersi da
   sola la pagina che aveva chiesto. Chi la fascia l'aveva gia' toccata tiene la
   sua preferenza: nessuno si ritrova la voce riaccesa dall'aggiornamento.
+
+### Rimosso
+
+- **La tessera d'avviso «Porte/Finestre».** «Viene gia' gestito da Finestre, se
+  li si mette il sensore finestra dice quale e' aperto, quindi e' un
+  duplicato»: la didascalia della tessera Finestre **nomina** le aperte, non le
+  conta soltanto. Se ne vanno con lei il suo gruppo negli avvisi, la sua riga
+  nel catalogo delle tessere e il rilevamento automatico che la riempiva.
 
 ## 1.4.5-beta.11
 
