@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "부하에서 빼기",
+  "Remove ${child.name} from the load": "${child.name}을(를) 부하에서 빼기",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    "“${child.name}”을(를) 이 부하에서 뺄까요? 가전 설정은 그대로 남습니다.",
   "The numbers below are from the last successful read.":
     "아래 숫자는 마지막으로 성공한 조회의 것입니다.",
   "I could not read the queue:": "목록을 읽지 못했습니다:",

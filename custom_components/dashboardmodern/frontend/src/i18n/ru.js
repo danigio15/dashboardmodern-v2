@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "Убрать из нагрузки",
+  "Remove ${child.name} from the load": "Убрать ${child.name} из нагрузки",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    "Убрать «${child.name}» из этой нагрузки? Прибор останется настроенным в «Приборах».",
   "The numbers below are from the last successful read.":
     "Цифры ниже — с последнего удачного чтения.",
   "I could not read the queue:": "Не удалось прочитать очередь:",

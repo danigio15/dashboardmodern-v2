@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "Usuń z odbiornika",
+  "Remove ${child.name} from the load": "Usuń ${child.name} z odbiornika",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    "Usunąć „${child.name}” z tego odbiornika? Pozostanie skonfigurowane w Urządzeniach.",
   "The numbers below are from the last successful read.":
     "Liczby poniżej pochodzą z ostatniego udanego odczytu.",
   "I could not read the queue:": "Nie udało się odczytać kolejki:",

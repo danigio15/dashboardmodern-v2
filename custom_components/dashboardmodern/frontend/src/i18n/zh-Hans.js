@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "移出负载",
+  "Remove ${child.name} from the load": "把 ${child.name} 移出该负载",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    "把“${child.name}”移出这个负载？它在“家电”里的配置会保留。",
   "The numbers below are from the last successful read.": "下面的数字来自最后一次成功的读取。",
   "I could not read the queue:": "读不到队列：",
   "Reading the queue…": "正在读取队列…",

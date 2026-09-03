@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "Uit de verbruiker halen",
+  "Remove ${child.name} from the load": "${child.name} uit de verbruiker halen",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    'Haal ik "${child.name}" uit deze verbruiker? Het blijft ingesteld onder Apparaten.',
   "The numbers below are from the last successful read.":
     "De cijfers hieronder komen uit de laatste geslaagde uitlezing.",
   "I could not read the queue:": "Ik kon de wachtrij niet lezen:",

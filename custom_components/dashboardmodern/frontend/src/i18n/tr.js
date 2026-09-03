@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "Yükten çıkar",
+  "Remove ${child.name} from the load": "${child.name} yükten çıkarılsın",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    '"${child.name}" bu yükten çıkarılsın mı? Cihazlar bölümünde yapılandırılmış kalır.',
   "The numbers below are from the last successful read.":
     "Aşağıdaki sayılar son başarılı okumadan.",
   "I could not read the queue:": "Listeyi okuyamadım:",

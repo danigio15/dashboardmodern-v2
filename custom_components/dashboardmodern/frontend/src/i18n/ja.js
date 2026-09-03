@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "負荷から外す",
+  "Remove ${child.name} from the load": "${child.name} をこの負荷から外す",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    "「${child.name}」をこの負荷から外しますか？ 家電の設定はそのまま残ります。",
   "The numbers below are from the last successful read.":
     "下の数字は最後に成功した読み取りのものです。",
   "I could not read the queue:": "一覧を読めませんでした:",

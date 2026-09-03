@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "Retirer de la charge",
+  "Remove ${child.name} from the load": "Retirer ${child.name} de la charge",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    "Retirer « ${child.name} » de cette charge ? Il reste configuré dans Appareils.",
   "The numbers below are from the last successful read.":
     "Les chiffres ci-dessous datent de la dernière lecture réussie.",
   "I could not read the queue:": "Je n'ai pas pu lire la file :",

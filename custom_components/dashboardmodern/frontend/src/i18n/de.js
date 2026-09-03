@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "Aus dem Verbraucher entfernen",
+  "Remove ${child.name} from the load": "${child.name} aus dem Verbraucher entfernen",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    "„${child.name}“ aus diesem Verbraucher entfernen? Das Gerät bleibt unter „Geräte“ eingerichtet.",
   "The numbers below are from the last successful read.":
     "Die Zahlen unten stammen aus der letzten gelungenen Abfrage.",
   "I could not read the queue:": "Die Liste war nicht lesbar:",

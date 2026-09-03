@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "लोड से हटाएँ",
+  "Remove ${child.name} from the load": "${child.name} को लोड से हटाएँ",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    '"${child.name}" को इस लोड से हटाएँ? यह उपकरणों में कॉन्फ़िगर रहेगा।',
   "The numbers below are from the last successful read.": "नीचे के आंकड़े पिछली सफल पढ़ाई के हैं।",
   "I could not read the queue:": "सूची नहीं पढ़ी जा सकी:",
   "Reading the queue…": "सूची पढ़ रहा हूँ…",

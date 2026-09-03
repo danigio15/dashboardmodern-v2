@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Remove from the load": "إزالة من الحِمل",
+  "Remove ${child.name} from the load": "إزالة ${child.name} من الحِمل",
+  'Remove "${child.name}" from this load? It stays configured under Appliances.':
+    'هل تُزال "${child.name}" من هذا الحِمل؟ تبقى مضبوطة في الأجهزة.',
   "The numbers below are from the last successful read.": "الأرقام أدناه من آخر قراءة ناجحة.",
   "I could not read the queue:": "تعذّرت قراءة القائمة:",
   "Reading the queue…": "أقرأ القائمة…",
