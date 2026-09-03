@@ -521,6 +521,9 @@ export function apri() {
   const modale = finestra();
   if (!modale) return;
   state.avviso = "";
+  /* Un cestino armato non sopravvive alla finestra: riaprirla e trovare
+   * «Confermi?» gia' acceso vorrebbe dire che il primo tocco cancella. */
+  state.daButtare = "";
   modale.classList.add("show");
   disegna();
   ricarica();
@@ -529,6 +532,7 @@ export function apri() {
 
 export function chiudi() {
   spegniIlGiro();
+  state.daButtare = "";
   doc?.getElementById?.("dm-chat-modal")?.classList.remove("show");
 }
 

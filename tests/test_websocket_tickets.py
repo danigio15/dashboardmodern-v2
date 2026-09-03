@@ -39,6 +39,7 @@ from custom_components.dashboardmodern.websocket_api import (
     TYPE_TICKET_DELETE,
     TYPE_TICKET_LIST,
     TYPE_TICKET_QUEUE,
+    TYPE_TICKET_THREAD,
     async_register_websocket_api,
 )
 
@@ -373,5 +374,19 @@ async def test_chi_non_puo_usare_la_plancia_non_collega_niente(
         StubConnection(hass, is_admin=False, user_id="ospite"),
         {"type": TYPE_TICKET_AUTH_START},
         1,
+    )
+    assert code == websocket_api.const.ERR_UNAUTHORIZED
+
+
+async def test_chi_non_puo_usare_la_plancia_non_apre_il_filo(
+    hass: HomeAssistant,
+) -> None:
+    """Aprire il filo spegne il pallino di tutta la casa: non e' una lettura
+    qualsiasi, e chiede lo stesso permesso degli altri comandi.
+    """
+    _entry(hass, admin_only=True)
+    estraneo = StubConnection(hass, is_admin=False, user_id="ospite")
+    code, _ = await _refused(
+        hass, estraneo, {"type": TYPE_TICKET_THREAD, "number": 7}, 1
     )
     assert code == websocket_api.const.ERR_UNAUTHORIZED

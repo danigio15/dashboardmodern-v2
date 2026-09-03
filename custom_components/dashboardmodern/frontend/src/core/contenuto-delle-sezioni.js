@@ -35,6 +35,7 @@
  */
 
 import { sectionForEditorSlot } from "./editor-slots.js";
+import { CHIAVE_ENTITA_MIE, sezioniConEntita } from "./entita-mie.js";
 
 /** Un valore che somiglia a un'entita': `dominio.oggetto`. */
 const paresEntita = (valore) => typeof valore === "string" && valore.trim().includes(".");
@@ -84,7 +85,10 @@ export const MAGAZZINO_DELLE_SEZIONI = Object.freeze({
     testi: ["cd_ev_image"],
   }),
   boiler: Object.freeze({ chiavi: ["cd_caldaia", "cd_scaldabagni", "cd_impianti_termici"] }),
-  security: Object.freeze({ chiavi: ["cd_cameras", "cd_security_doors"] }),
+  /* Le porte non stanno piu' qui: dalla 1.4.5 si disegnano nella loro pagina,
+   * che si accende e si spegne da sola. Contarle ancora come contenuto di
+   * Sicurezza teneva in barra una scheda vuota a chi ha solo le porte. */
+  security: Object.freeze({ chiavi: ["cd_cameras"] }),
   /* Il MiniPC si configura solo dalle caselle dell'editor: nessuna chiave sua,
    * e le entita' arrivano tutte da `cd_entity_overrides`. */
   server: Object.freeze({ chiavi: [] }),
@@ -141,6 +145,14 @@ export function contenutoDelleSezioni(leggi) {
       const sezione = sectionForEditorSlot(String(casella));
       if (sezione && MAGAZZINO_DELLE_SEZIONI[sezione]) piene.add(sezione);
     }
+
+  /* Le entita' che uno si aggiunge dove vuole: stanno in una chiave sola, con
+   * dentro la sezione a cui appartengono. Senza questo giro una sezione che
+   * vive solo di quelle risultava vuota, e il salvataggio dell'entita' appena
+   * aggiunta la toglieva dalla barra — proprio la sezione dove la si era
+   * appena messa. */
+  for (const sezione of sezioniConEntita(leggi(CHIAVE_ENTITA_MIE)))
+    if (MAGAZZINO_DELLE_SEZIONI[sezione]) piene.add(sezione);
 
   const vuote = new Set(sezioniGovernate().filter((sezione) => !piene.has(sezione)));
   return { piene, vuote };

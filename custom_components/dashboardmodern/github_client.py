@@ -537,6 +537,55 @@ def _state_from_issue(issue: Mapping[str, Any], risposta: str) -> str:
     return STATE_TRIAGED if risposta else STATE_SENT
 
 
+async def _ultimi_commenti(
+    hass: HomeAssistant, number: int, quanti: int, *, token: str = ""
+) -> list[dict[str, Any]]:
+    """Gli ultimi commenti di una issue, dal piu' vecchio al piu' nuovo.
+
+    GitHub li da' dal primo in poi, trenta per pagina. Chiedere la prima
+    pagina e basta — com'era — voleva dire che dal trentunesimo commento in
+    poi la risposta piu' recente non si vedeva mai: il campanello suonava per
+    un messaggio che il filo non mostrava, e lo stato dedotto dal commento del
+    manutentore restava fermo a settimane prima. Si chiede l'ultima pagina, e
+    se da sola non arriva a trenta anche quella prima: due richieste al
+    massimo, e sono le ultime trenta davvero.
+    """
+    if quanti <= 0:
+        return []
+    ultima = max(1, -(-int(quanti) // MAX_COMMENTS))
+    raccolti: list[dict[str, Any]] = []
+    for pagina in (ultima, ultima - 1):
+        if pagina < 1:
+            break
+        grezzi = await _request(
+            hass,
+            "GET",
+            f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}"
+            f"/comments?per_page={MAX_COMMENTS}&page={pagina}",
+            token=token,
+        )
+        letti = (
+            [commento for commento in grezzi if isinstance(commento, dict)]
+            if isinstance(grezzi, list)
+            else []
+        )
+        raccolti = letti + raccolti
+        if len(raccolti) >= MAX_COMMENTS:
+            break
+    return raccolti[-MAX_COMMENTS:]
+
+
+async def async_comment_count(hass: HomeAssistant, token: str, number: int) -> int:
+    """Quanti commenti ha una issue adesso. Una richiesta, e solo il numero."""
+    issue = await _request(
+        hass,
+        "GET",
+        f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}",
+        token=token,
+    )
+    return int(issue.get("comments") or 0) if isinstance(issue, dict) else 0
+
+
 async def async_read_issue(
     hass: HomeAssistant, number: int, *, token: str = ""
 ) -> dict[str, Any]:
@@ -553,21 +602,13 @@ async def async_read_issue(
         token=token,
     )
     risposta = ""
-    if int(issue.get("comments") or 0) > 0:
-        commenti = await _request(
-            hass,
-            "GET",
-            f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}"
-            f"/comments?per_page={MAX_COMMENTS}",
-            token=token,
-        )
-        if isinstance(commenti, list):
-            for commento in reversed(commenti[-MAX_COMMENTS:]):
-                if not isinstance(commento, dict):
-                    continue
-                if str(commento.get("author_association")) in MAINTAINER_ASSOCIATIONS:
-                    risposta = str(commento.get("body") or "")
-                    break
+    commenti = await _ultimi_commenti(
+        hass, int(number), int(issue.get("comments") or 0), token=token
+    )
+    for commento in reversed(commenti):
+        if str(commento.get("author_association")) in MAINTAINER_ASSOCIATIONS:
+            risposta = str(commento.get("body") or "")
+            break
     return {
         "number": int(issue.get("number") or number),
         "state": _state_from_issue(issue, risposta),
@@ -596,31 +637,21 @@ async def async_issue_thread(
         token=token,
     )
     corpo = str(issue.get("body") or "").replace(TICKET_MARKER, "")
+    quanti = int(issue.get("comments") or 0)
     commenti: list[dict[str, Any]] = []
-    if int(issue.get("comments") or 0) > 0:
-        grezzi = await _request(
-            hass,
-            "GET",
-            f"{GITHUB_API}/repos/{REPOSITORY}/issues/{int(number)}"
-            f"/comments?per_page={MAX_COMMENTS}",
-            token=token,
+    for commento in await _ultimi_commenti(hass, int(number), quanti, token=token):
+        testo = str(commento.get("body") or "")
+        commenti.append(
+            {
+                "id": str(commento.get("id") or ""),
+                "author": str((commento.get("user") or {}).get("login") or ""),
+                "maintainer": str(commento.get("author_association"))
+                in MAINTAINER_ASSOCIATIONS,
+                "at": str(commento.get("created_at") or ""),
+                "body": _senza_allegati(testo),
+                "attachments": attachments_in(testo),
+            }
         )
-        if isinstance(grezzi, list):
-            for commento in grezzi[-MAX_COMMENTS:]:
-                if not isinstance(commento, dict):
-                    continue
-                testo = str(commento.get("body") or "")
-                commenti.append(
-                    {
-                        "id": str(commento.get("id") or ""),
-                        "author": str((commento.get("user") or {}).get("login") or ""),
-                        "maintainer": str(commento.get("author_association"))
-                        in MAINTAINER_ASSOCIATIONS,
-                        "at": str(commento.get("created_at") or ""),
-                        "body": _senza_allegati(testo),
-                        "attachments": attachments_in(testo),
-                    }
-                )
     testo, diagnostica = diagnostica_in(_senza_allegati(corpo))
     return {
         "number": int(issue.get("number") or number),
@@ -628,6 +659,9 @@ async def async_issue_thread(
         "diagnostics": diagnostica,
         "attachments": attachments_in(corpo),
         "comments": commenti,
+        # Quanti ne ha davvero, non quanti se ne mostrano: serve al campanello
+        # per prendere nota di dove sta questa segnalazione.
+        "comment_count": quanti,
         "issue_url": str(issue.get("html_url") or ""),
         "state": _state_from_issue(
             issue,

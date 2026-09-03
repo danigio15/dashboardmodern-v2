@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 DATA_TICKET_UNSUB = "ticket_sync_unsub"
+#: Da quale segnalazione riparte il prossimo giro di sync.
+DATA_SYNC_CURSOR = "ticket_sync_cursor"
 DATA_WATCH_UNSUB = "ticket_watch_unsub"
 
 
@@ -135,6 +137,11 @@ async def async_deliver_pending(hass: HomeAssistant, *, user_id: str = "") -> in
         await tickets.async_mark_sent(
             ticket["id"], str(aperta["number"]), issue_url=aperta["url"]
         )
+        # Il campanello la conosce da subito, e senza suonare: e' partita da
+        # qui, con zero commenti sotto. Senza questa riga al giro dopo
+        # risultava «mai vista», e chi l'aveva appena scritta si sentiva
+        # notificare «Nuova segnalazione» — la propria.
+        await (await async_get_watch(hass)).async_vista(int(aperta["number"]), 0)
         partiti += 1
     return partiti
 
@@ -144,9 +151,17 @@ async def async_sync_states(hass: HomeAssistant) -> int:
     if not enabled(hass):
         return 0
     tickets = await async_get_ticket_store(hass)
-    numeri = tickets.remote_ids()[:TICKET_SYNC_BATCH]
-    if not numeri:
+    tutti = tickets.remote_ids()
+    if not tutti:
         return 0
+    # Un giro parte da dove si era fermato quello prima. Prendere sempre le
+    # prime venti voleva dire che con ventuno segnalazioni aperte la
+    # ventunesima non veniva riletta mai — ne' il suo stato ne' la risposta —
+    # finche' una delle altre non si chiudeva.
+    domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
+    da = int(domain_data.get(DATA_SYNC_CURSOR) or 0) % len(tutti)
+    numeri = (tutti[da:] + tutti[:da])[:TICKET_SYNC_BATCH]
+    domain_data[DATA_SYNC_CURSOR] = (da + len(numeri)) % len(tutti)
     gettoni = await async_get_token_store(hass)
     token = gettoni.any_token()
     aggiornamenti: list[dict[str, Any]] = []
@@ -205,11 +220,18 @@ async def async_thread(
     filo = await github_client.async_issue_thread(
         hass, gettoni.token(user_id), int(number)
     )
+    watch = await async_get_watch(hass)
+    # Chi ha letto il filo intero sa dove sta: se il campanello questa
+    # segnalazione non la conosceva — non era fra le cinquanta piu' recenti, o
+    # il taccuino l'aveva lasciata cadere — da adesso suona solo per quello
+    # che arriva dopo, invece di contare come nuovo tutto quello che c'era.
+    if not watch.conosce(int(number)):
+        await watch.async_vista(int(number), int(filo.get("comment_count") or 0))
     # Aprirlo e' averlo letto, e il segno si toglie qui invece che nel browser
     # perche' le plance sono piu' di una: chi legge la risposta dal telefono e
     # poi passa davanti al tablet in cucina non deve ritrovare lo stesso
     # pallino ad aspettarlo.
-    await (await async_get_watch(hass)).async_letta(int(number))
+    await watch.async_letta(int(number))
     return filo
 
 
@@ -233,7 +255,7 @@ async def async_answer(
         await github_client.async_comment(hass, token, number, reply.strip())
         fatto["commented"] = True
         # Il campanello non suona per quello che si e' appena scritto.
-        await (await async_get_watch(hass)).async_ho_scritto(int(number))
+        await _ho_scritto(hass, token, int(number))
     if close in {"risolto", "chiuso"}:
         await github_client.async_close_issue(
             hass, token, number, planned=close == "risolto"
@@ -307,8 +329,26 @@ async def async_reply(
         if not tickets.owns_remote(user_id, str(int(number))):
             raise GitHubError("not_yours", "Questa segnalazione non e' tua.")
     await github_client.async_comment(hass, token, int(number), testo[:MAX_REPLY])
-    await (await async_get_watch(hass)).async_ho_scritto(int(number))
+    await _ho_scritto(hass, token, int(number))
     return {"sent": True}
+
+
+async def _ho_scritto(hass: HomeAssistant, token: str, number: int) -> None:
+    """Il messaggio l'ho scritto io: il campanello non deve suonarlo.
+
+    Se il campanello quella segnalazione la conosce basta alzare il segno di
+    uno. Se non la conosce — non era fra le cinquanta piu' recenti, o il
+    taccuino l'aveva lasciata cadere — alzare da zero avrebbe detto «uno» per
+    una issue che ne ha cinque, e al giro dopo gli altri quattro sarebbero
+    suonati come messaggi nuovi, per la propria risposta. Li' si chiede il
+    conto vero: una richiesta in piu', ma solo in quel caso.
+    """
+    watch = await async_get_watch(hass)
+    if watch.conosce(number):
+        await watch.async_ho_scritto(number)
+        return
+    quanti = await github_client.async_comment_count(hass, token, number)
+    await watch.async_vista(number, quanti)
 
 
 async def async_unread(hass: HomeAssistant) -> list[dict[str, Any]]:

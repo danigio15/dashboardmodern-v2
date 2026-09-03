@@ -1238,3 +1238,92 @@ def test_un_corpo_senza_diagnostica_resta_intero() -> None:
     testo, voci = github_client.diagnostica_in("si richiede di separare le aperture")
     assert testo == "si richiede di separare le aperture"
     assert voci == {}
+
+
+async def test_il_filo_legge_gli_ultimi_commenti_non_i_primi(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """GitHub li da' dal primo in poi, trenta per pagina.
+
+    Chiedere la prima pagina e basta voleva dire che dal trentunesimo commento
+    in poi la risposta piu' recente non si vedeva mai: il campanello suonava
+    per un messaggio che il filo non mostrava, e lo stato dedotto dal commento
+    del manutentore restava fermo a settimane prima.
+    """
+    _entry(hass)
+    await _collega(hass, "dani", maintainer=True)
+    vecchi = [
+        {
+            "id": numero,
+            "body": f"commento {numero}",
+            "user": {"login": "anna-g"},
+            "author_association": "NONE",
+            "created_at": "2026-09-01T10:00:00Z",
+        }
+        for numero in range(1, 31)
+    ]
+    ultimo = {
+        "id": 31,
+        "body": "L'ultima risposta.",
+        "user": {"login": "danigio15"},
+        "author_association": "OWNER",
+        "created_at": "2026-09-02T10:00:00Z",
+    }
+    github.answer("page=2", [ultimo])
+    github.answer("page=1", vecchi)
+    github.answer(
+        "/issues/42",
+        {
+            "number": 42,
+            "state": "open",
+            "comments": 31,
+            "body": "Il corpo.",
+            "html_url": "https://github.com/x/y/issues/42",
+        },
+    )
+    filo = await tickets.async_thread(hass, "dani", 42)
+    assert filo["comment_count"] == 31
+    assert len(filo["comments"]) == 30
+    assert filo["comments"][-1]["body"] == "L'ultima risposta."
+    assert filo["comments"][0]["body"] == "commento 2"
+    pagine = [
+        chiamata["url"].rsplit("page=", 1)[-1]
+        for chiamata in github.calls
+        if "/comments" in chiamata["url"]
+    ]
+    assert pagine == ["2", "1"]
+
+    # E la sincronia vede quella risposta, non una di trenta commenti fa.
+    letta = await github_client.async_read_issue(hass, 42, token="gho_dani")
+    assert letta["reply"] == "L'ultima risposta."
+
+
+async def test_la_sincronia_gira_su_tutte_le_segnalazioni(
+    hass: HomeAssistant, github: FakeGitHub, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Venti per giro, ma il giro dopo riparte da dove si era fermato.
+
+    Prendere sempre le prime venti voleva dire che con ventuno aperte la
+    ventunesima non veniva riletta mai, finche' una delle altre non si
+    chiudeva.
+    """
+    _entry(hass)
+    await _collega(hass, "anna")
+    store = await async_get_ticket_store(hass)
+    # Venticinque in fila: il freno sulle segnalazioni troppo frequenti qui
+    # non c'entra, e si toglie.
+    monkeypatch.setattr(type(store), "_too_frequent", lambda _self, _now: False)
+    for numero in range(1, 26):
+        bozza = await _bozza(hass, title=f"la {numero}")
+        await store.async_mark_sent(bozza["id"], str(numero))
+    github.answer("/issues/", {"state": "open", "comments": 0})
+
+    await tickets.async_sync_states(hass)
+    primi = [chiamata["url"].rsplit("/", 1)[-1] for chiamata in github.calls]
+    github.calls.clear()
+    await tickets.async_sync_states(hass)
+    secondi = [chiamata["url"].rsplit("/", 1)[-1] for chiamata in github.calls]
+
+    assert len(primi) == 20 and len(secondi) == 20
+    assert secondi[:5] == ["21", "22", "23", "24", "25"]
+    assert set(primi) | set(secondi) == {str(numero) for numero in range(1, 26)}

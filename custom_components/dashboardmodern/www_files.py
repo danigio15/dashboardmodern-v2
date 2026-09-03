@@ -21,6 +21,14 @@ IMAGE_SUFFIXES = frozenset(
     {".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".svg"}
 )
 
+# Quelle che si possono anche CARICARE da qui. L'SVG no: e' un documento, non
+# una bitmap, e Home Assistant lo serve da `/local/` sulla propria origine —
+# uno `<script>` dentro un SVG aperto dal browser gira con i gettoni di chi
+# lo apre. Chi ne ha uno lo copia in `www` a mano, come prima; il selettore lo
+# elenca lo stesso. Da questo sportello passano solo formati che il browser
+# disegna e non esegue.
+UPLOAD_SUFFIXES = frozenset(IMAGE_SUFFIXES - {".svg"})
+
 # Una cartella con migliaia di file non deve diventare un messaggio enorme.
 MAX_ENTRIES = 500
 
@@ -49,15 +57,18 @@ def list_www_folder(root: str, relative: str = "") -> dict[str, Any] | None:
     """
     try:
         base = Path(root).resolve(strict=True)
-    except OSError:
+    except (OSError, ValueError):
         return _vuota(False)
     if not base.is_dir():
         return _vuota(False)
 
     chiesto = relative.strip("/")
+    # `ValueError` e' un byte nullo nel percorso: non e' un guasto del disco,
+    # e' una richiesta che non porta da nessuna parte — e non deve diventare
+    # un traceback nel registro di casa.
     try:
         target = (base / chiesto).resolve(strict=True) if chiesto else base
-    except OSError:
+    except (OSError, ValueError):
         return None
     if target != base and base not in target.parents:
         return None
@@ -156,10 +167,7 @@ _FIRME_IMMAGINE = (
 def _sembra_immagine(payload: bytes) -> bool:
     if any(payload.startswith(firma) for firma in _FIRME_IMMAGINE):
         return payload[8:12] == b"WEBP" if payload.startswith(b"RIFF") else True
-    if payload[4:12] in (b"ftypavif", b"ftypavis"):  # AVIF
-        return True
-    testa = payload[:256].lstrip()
-    return testa.startswith((b"<?xml", b"<svg"))  # SVG
+    return payload[4:12] in (b"ftypavif", b"ftypavis")  # AVIF
 
 
 def save_www_upload(root: str, filename: str, payload: bytes) -> dict[str, Any] | None:
@@ -171,7 +179,7 @@ def save_www_upload(root: str, filename: str, payload: bytes) -> dict[str, Any] 
     sparire sotto quella di oggi.
     """
     nome = _sanitize_name(filename)
-    if Path(nome).suffix not in IMAGE_SUFFIXES:
+    if Path(nome).suffix not in UPLOAD_SUFFIXES:
         return None
     if not payload or len(payload) > MAX_UPLOAD_BYTES:
         return None

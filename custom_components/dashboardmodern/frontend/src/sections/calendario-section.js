@@ -25,6 +25,7 @@ import {
   chiaveDelGiorno,
   etichettaDelGiorno,
   eventiDaQui,
+  giornoPiu,
   inCorso,
   oraDellEvento,
 } from "../core/calendario-model.js";
@@ -216,7 +217,9 @@ function fasciaMarkup(giorni, adesso, lingua, calendari) {
   const perChiave = new Map(giorni.map((voce) => [voce.giorno, voce.eventi]));
   const celle = [];
   for (let passo = 0; passo < GIORNI_NELLA_FASCIA; passo += 1) {
-    const quando = adesso + passo * 86400000;
+    /* Giorni di calendario, non multipli di ventiquattro ore: nel giorno del
+     * cambio d'ora la striscia mostrava oggi due volte e saltava il settimo. */
+    const quando = giornoPiu(adesso, passo).getTime();
     const chiave = chiaveDelGiorno(quando);
     const eventi = perChiave.get(chiave) || [];
     const data = new Date(quando);

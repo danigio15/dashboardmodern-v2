@@ -819,6 +819,85 @@ della Wallbox, lo storico della connettivita' e i filtri del cruscotto.
   filtro gia' scelto prima di far disegnare la pagina: nella foto il filtro era
   acceso senza che nessuno l'avesse mai premuto. La prova nuova preme davvero.
 
+- **Le foto si caricano in ogni formato tranne SVG.** Un SVG e' un
+  documento, non una bitmap, e puo' portare uno script: Home Assistant lo
+  serve da `/local/` sulla propria origine, dove stanno i gettoni di chi lo
+  apre. Da quello sportello passano solo formati che il browser disegna e non
+  esegue; quelli gia' in `www` restano elencati nel selettore.
+
+- **I comandi di configurazione rispettano la lista utenti della plancia
+  giusta.** Il profilo e' un campo libero: con due plance e due liste diverse,
+  chi era in lista sulla seconda poteva chiamare `config/get` e `config/set` a
+  mano col profilo della prima — leggerla, e azzerarla. Adesso il permesso si
+  chiede sulla plancia che quel profilo porta davvero.
+
+- **Aprire il filo di una segnalazione chiede lo stesso permesso degli altri
+  comandi.** Era l'unico senza: la issue e' pubblica, ma aprire il filo spegne
+  il pallino di tutta la casa, e chi non puo' usare la plancia non deve
+  spegnere i pallini degli altri.
+
+- **Un'entita' aggiunta a mano non spegne piu' la sua sezione.** La regola
+  delle sezioni vuote non leggeva `cd_entita_mie`: una sezione che viveva
+  solo di quelle risultava vuota, e il salvataggio dell'entita' appena
+  aggiunta la toglieva dalla barra — proprio la sezione dove la si era messa.
+
+- **Le porte non tengono in barra la scheda Sicurezza.** Dalla 1.4.5 si
+  disegnano nella loro pagina, che si accende e si spegne da sola; contarle
+  ancora come contenuto di Sicurezza lasciava una scheda vuota a chi ha solo
+  le porte.
+
+- **Il campanello delle segnalazioni non suona piu' per cose proprie.** Chi
+  aveva gia' una segnalazione e ne apriva un'altra si sentiva annunciare
+  «Nuova segnalazione» — la sua — perche' la consegna non lo diceva al
+  taccuino. E rispondere a una issue che il taccuino non conosceva alzava il
+  segno da zero: al giro dopo gli altri commenti suonavano come nuovi, per la
+  propria risposta. Adesso la consegna prende nota, chi apre il filo prende
+  nota, e chi risponde a una issue sconosciuta chiede il conto vero.
+
+- **Il filo legge gli ultimi commenti, non i primi trenta.** GitHub li da'
+  dal primo in poi, trenta per pagina: dal trentunesimo in poi la risposta
+  piu' recente non si vedeva mai, e lo stato dedotto dal commento del
+  manutentore restava fermo a settimane prima. Si chiede l'ultima pagina, e
+  se non basta anche quella prima.
+
+- **La sincronia delle segnalazioni gira su tutte.** Prendeva sempre le prime
+  venti: con ventuno aperte la ventunesima non veniva riletta mai. Ogni giro
+  riparte da dove si era fermato quello prima.
+
+- **La chat non scrive piu' su disco a ogni battito.** La finestra aperta
+  rilegge ogni quindici secondi, e il segnalibro si salvava lo stesso anche
+  quando non si era mosso: una scrittura ogni battito per dire quello che
+  c'era gia' scritto. Si salva solo quando cambia qualcosa.
+
+- **Il cestino della coda si disarma chiudendo la finestra.** Un cestino
+  armato sopravviveva alla chiusura: riaprendo, «Confermi?» era gia' acceso e
+  il primo tocco cancellava.
+
+- **«Domani» e la striscia dei sette giorni nel giorno del cambio d'ora.** La
+  tessera era gia' stata corretta; l'etichetta dei gruppi dell'Agenda e la
+  striscia sommavano ancora ventiquattro ore. Nel giorno che ne dura
+  venticinque «Domani» si chiamava con la sua data e la striscia mostrava oggi
+  due volte; in quello che ne dura ventitre' domani si saltava.
+
+- **L'ora d'inizio in inglese tiene il PM.** La didascalia della Home
+  tagliava l'intervallo al primo spazio: «02:30 PM – 03:30 PM» diventava
+  «02:30», e le due e mezza del pomeriggio si leggevano come le due di notte.
+
+- **Un'installazione dallo zip fallita a meta' non lascia una seconda
+  integrazione.** Con il disco pieno durante l'estrazione restava
+  `.dashboardmodern-nuovo` dentro `custom_components`, col manifest di questo
+  stesso dominio: al riavvio il caricatore poteva preferirla a quella vera.
+  La cartella d'appoggio se ne va prima dell'errore.
+
+- **Con due plance, togliere la primaria non lascia piu' un errore nel
+  registro.** L'erede ripartiva scoprendosi primaria e allo scarico chiedeva
+  di smontare l'avviso di aggiornamento che non aveva mai montato: «Config
+  entry was never loaded!» nel registro. Si scarica solo da chi l'ha montato.
+
+- **Due piccole cose del backend.** Un byte nullo nel percorso del selettore
+  delle foto non e' piu' un traceback ma una risposta come le altre; e
+  l'elenco delle plance legacy si legge nell'executor invece che nel loop.
+
 - **La chat aperta si aggiorna da sola.**
 
       «la risposta non si refresh devo uscire e rientrare»

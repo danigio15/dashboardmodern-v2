@@ -178,6 +178,13 @@ test("il cestino chiede conferma prima di cancellare", () => {
   );
   assert.match(sorgente, /state\.daButtare !== nome/);
   assert.match(sorgente, /Confermi\?/);
+  /* E un cestino armato non sopravvive alla finestra: riaprirla e trovare
+   * «Confermi?» gia' acceso vorrebbe dire che il primo tocco cancella. */
+  assert.match(sorgente, /state\.daButtare = "";\s*modale\.classList\.add\("show"\)/);
+  assert.match(
+    sorgente,
+    /export function chiudi\(\) \{\s*spegniIlGiro\(\);\s*state\.daButtare = "";/,
+  );
 });
 
 test("il nome di una casa non si porta dentro del markup nemmeno in coda", () => {

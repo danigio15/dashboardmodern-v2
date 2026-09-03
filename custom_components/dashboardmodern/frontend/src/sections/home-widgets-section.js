@@ -76,6 +76,7 @@ import {
   minutiAllEvento,
   normalizzaCalendari,
   oraDellEvento,
+  orarioDi,
   parseCalendarApiEvents,
   parseCalendarEventsResponse,
   agendaPerGiorno,
@@ -609,7 +610,10 @@ function calendarioModel() {
     const titolo = clean(evento.summary) || t("Senza titolo", "Untitled");
     if (inCorso(evento, adesso)) return `${t("Adesso", "Now")} · ${titolo}`;
     const giorno = chiaveDelGiorno(evento.inizio);
-    const quando = evento.tuttoIlGiorno ? "" : oraDellEvento(evento, parole, lingua).split(" ")[0];
+    /* L'ora d'inizio si chiede da sola, non tagliando l'intervallo al primo
+     * spazio: in inglese «02:30 PM – 03:30 PM» perdeva il PM, e le 14:30
+     * si leggevano come le due di notte. */
+    const quando = evento.tuttoIlGiorno ? "" : orarioDi(evento.inizio, lingua);
     const dove =
       giorno === oggi
         ? quando
