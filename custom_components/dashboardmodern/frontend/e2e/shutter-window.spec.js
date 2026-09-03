@@ -451,6 +451,7 @@ test("le tre caselle stanno sotto la tapparella, non in fondo al pannello", asyn
       /aggiungi tapparella/i.test(nodo.children.length ? "" : nodo.textContent || ""),
     );
     return {
+      nome: posto("ed-tp-name"),
       ent: posto("ed-tp-ent"),
       tenda: posto("ed-tp-tenda"),
       tendasole: posto("ed-tp-tendasole"),
@@ -465,11 +466,16 @@ test("le tre caselle stanno sotto la tapparella, non in fondo al pannello", asyn
     expect(valore, `${nome} non e' nel pannello`).toBeGreaterThan(-1);
   }
 
-  // Prima la tapparella, poi le sue tre compagne, poi la stanza.
+  /* La stanza sta in alto, accanto al nome: «la stanza la devi spostare in
+   * alto dove si sceglie il nome e devi indicare che e' la stanza». Stava in
+   * coda, nuda, e chi compilava arrivava alla fine per scoprire di doverla
+   * scegliere — sempre che capisse che quel menu era la stanza. */
+  expect(posti.room, "la stanza subito dopo il nome").toBeGreaterThan(posti.nome);
+  expect(posti.room, "la stanza prima delle caselle della meccanica").toBeLessThan(posti.ent);
+  // Poi la tapparella e le sue tre compagne, nell'ordine in cui si compilano.
   expect(posti.tenda, "tenda dopo la tapparella").toBeGreaterThan(posti.ent);
   expect(posti.tendasole, "tenda da sole dopo la tenda").toBeGreaterThan(posti.tenda);
   expect(posti.contact, "sensore dopo la tenda da sole").toBeGreaterThan(posti.tendasole);
-  expect(posti.room, "la stanza resta in coda alle caselle").toBeGreaterThan(posti.contact);
 
   // E tutte e tre dentro il modulo: mai dopo i due pulsanti.
   for (const chiave of ["tenda", "tendasole", "contact"]) {

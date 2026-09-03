@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Ook registreren als Home Assistant-dashboard",
           "admin_only": "Alleen zichtbaar voor beheerders",
           "check_updates": "Controleren op nieuwe versies",
-          "tickets_enabled": "Meldingen vanuit het dashboard"
+          "tickets_enabled": "Meldingen vanuit het dashboard",
+          "chat_enabled": "Ondersteuningschat",
+          "chat_console_key": "Sleutel van de ondersteuningsconsole"
         },
         "data_description": {
           "allowed_users": "Alleen een zichtbaarheidsfilter van de interface. Voor gegevens en services gelden nog steeds de rechten van Home Assistant.",
           "register_lovelace_dashboard": "Het dashboard wordt aangemaakt zodra een beheerder DashboardModern voor het eerst opent.",
           "admin_only": "Ingebouwd filter van Home Assistant; het wint voor accounts zonder beheerdersrechten.",
           "check_updates": "Vraagt GitHub elk half uur of er een nieuwere release is en toont die bij Instellingen → Updates. Zet het uit zodat het paneel helemaal niet het internet op gaat; het dashboard heeft het nooit nodig.",
-          "tickets_enabled": "Laat iedereen die het dashboard gebruikt een fout melden, een idee opperen of hulp vragen zonder het te verlaten. De melding wordt een openbaar issue op GitHub, op eigen naam — hetzelfde account dat HACS al vroeg. Uitgeschakeld verlaat er niets het huis."
+          "tickets_enabled": "Laat iedereen die het dashboard gebruikt een fout melden, een idee opperen of hulp vragen zonder het te verlaten. De melding wordt een openbaar issue op GitHub, op eigen naam — hetzelfde account dat HACS al vroeg. Uitgeschakeld verlaat er niets het huis.",
+          "chat_enabled": "Een privégesprek met degene die het dashboard onderhoudt, om hulp te vragen zonder een openbaar issue te openen en zonder enig account. Het loopt via een eigen dienst, niet via GitHub. Uitgeschakeld verlaat er niets het huis.",
+          "chat_console_key": "Laat hem leeg. Hij is voor ÉÉN installatie ter wereld — die van degene die het dashboard onderhoudt — om ieders gesprekken te lezen en te beantwoorden. Het is dezelfde sleutel die bij de secrets van de relay is gezet."
         }
       }
     }

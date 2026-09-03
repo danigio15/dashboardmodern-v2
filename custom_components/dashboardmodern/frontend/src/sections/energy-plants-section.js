@@ -18,6 +18,10 @@
  */
 import {
   PRIMO_IMPIANTO,
+  TESSERA_PER_IMPIANTO,
+  TESSERA_SOMMA,
+  TESSERE_IMPIANTI_KEY,
+  comeSiVedeLEnergia,
   configuredPlants,
   dropPlantLoads,
   nuovoImpianto,
@@ -27,6 +31,7 @@ import {
   storedPlants,
 } from "../core/energy-plants.js";
 import { IMPIANTO_SCELTO_KEY, impiantoScelto, scheduleEnergyRefresh } from "./energy-section.js";
+import { renderHomeWidgets } from "./home-widgets-section.js";
 import {
   clean,
   dashboardStore,
@@ -98,9 +103,11 @@ function scegli(id) {
    * e' chi la possiede — l'ingresso dei moduli — che ascolta questo
    * annuncio. */
   try {
-    root.dispatchEvent?.(new CustomEvent("dashboardmodern:energy-plant-changed", {
-      detail: { plant: clean(id) },
-    }));
+    root.dispatchEvent?.(
+      new CustomEvent("dashboardmodern:energy-plant-changed", {
+        detail: { plant: clean(id) },
+      }),
+    );
   } catch (_error) {}
   root.render?.();
   schedule();
@@ -168,7 +175,8 @@ function ensureConfigTabs() {
   }
   const corrente = pickPlant(lista, scelto);
   const indice = lista.findIndex((voce) => voce.id === scelto);
-  const firma = `${lista.map((voce, index) => `${voce.id}:${plantLabel(voce, index, NOME())}`).join("|")}§${scelto}`;
+  const come = comeSiVedeLEnergia(root.localStorage?.getItem?.(TESSERE_IMPIANTI_KEY));
+  const firma = `${lista.map((voce, index) => `${voce.id}:${plantLabel(voce, index, NOME())}`).join("|")}§${scelto}§${come}`;
   if (riga.dataset.firma === firma) return;
   riga.dataset.firma = firma;
   const primo = !corrente || corrente.id === PRIMO_IMPIANTO;
@@ -186,6 +194,7 @@ function ensureConfigTabs() {
         placeholder="${esc(plantLabel({}, Math.max(0, indice), NOME()))}"
         value="${esc(clean(corrente?.name))}">
     </label>
+    ${sceltaTessereMarkup(lista)}
     ${
       primo
         ? `<p class="dm-imp-cfg-nota">${esc(
@@ -198,6 +207,39 @@ function ensureConfigTabs() {
             t("Elimina questo impianto", "Delete this plant"),
           )}</button>`
     }`;
+}
+
+/* Come si vede l'energia in Home, con più di un impianto (#286).
+ *
+ * «Tutto bene nella sezione energia ma il widget in Home page è solo quello del
+ * primo impianto. Suggerisco di scegliere se avere un widget solo (con la somma
+ * di tutti gli impianti) oppure un widget per ogni impianto.»
+ *
+ * La scelta è quella suggerita, ed è una scelta perché le due risposte sono
+ * tutte e due giuste. Con un impianto solo non compare: non c'è niente da
+ * scegliere, e una domanda senza risposte è solo una riga in più da leggere. */
+function sceltaTessereMarkup(lista) {
+  if (lista.length < 2) return "";
+  const come = comeSiVedeLEnergia(root.localStorage?.getItem?.(TESSERE_IMPIANTI_KEY));
+  const voce = (valore, etichetta, sotto) =>
+    `<button type="button" class="dm-imp-tessera" data-dm-tessere="${esc(valore)}"
+      aria-pressed="${come === valore}"${come === valore ? ' data-on="true"' : ""}>
+      <b>${esc(etichetta)}</b><small>${esc(sotto)}</small></button>`;
+  return `<div class="ed-slot dm-imp-cfg-tessere">
+    <span class="ed-slot-lbl">${esc(t("In Home", "On Home"))}</span>
+    <div class="dm-imp-tessere">
+      ${voce(
+        TESSERA_SOMMA,
+        t("Una tessera sola", "One single tile"),
+        t("la somma di tutti gli impianti", "the total of every plant"),
+      )}
+      ${voce(
+        TESSERA_PER_IMPIANTO,
+        t("Una per impianto", "One tile per plant"),
+        t("ognuna col nome del suo", "each one named after its plant"),
+      )}
+    </div>
+  </div>`;
 }
 
 /* ───────────────────────────── scrivere e togliere ──────────────────────── */
@@ -269,6 +311,22 @@ export function installEnergyPlantsSection() {
   state.installed = true;
   installStyles();
   doc.addEventListener("click", (event) => {
+    const tessere = event.target?.closest?.("[data-dm-tessere]");
+    if (tessere) {
+      /* Non è configurazione dell'impianto: è come si vuole vedere la Home, e
+       * la Home si rifà subito per farlo vedere. */
+      root.localStorage?.setItem?.(
+        TESSERE_IMPIANTI_KEY,
+        clean(tessere.getAttribute("data-dm-tessere")),
+      );
+      root.cdMarkDirty?.();
+      root.cdSyncPush?.();
+      schedule();
+      try {
+        renderHomeWidgets();
+      } catch (_error) {}
+      return;
+    }
     const pillola = event.target?.closest?.("[data-dm-impianto]");
     if (pillola) {
       scegli(pillola.getAttribute("data-dm-impianto"));
@@ -317,6 +375,20 @@ function installStyles() {
       .dm-imp-cfg-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
       .dm-imp-cfg-intro{margin:0!important}
       .dm-imp-cfg-nome{display:grid;gap:5px}
+      /* La scelta di come si vede l'energia in Home (#286): due voci larghe,
+         perché si legge cosa fa ognuna prima di premerla. */
+      .dm-imp-cfg-tessere{display:grid;gap:6px}
+      .dm-imp-tessere{display:flex;gap:8px;flex-wrap:wrap}
+      .dm-imp-tessera{
+        flex:1 1 180px;display:grid;gap:2px;justify-items:start;text-align:left;
+        padding:9px 13px;border-radius:14px;font:inherit;cursor:pointer;
+        border:1px solid var(--card-border,#e2e8f0);background:var(--card-background-color,#fff);
+        color:inherit}
+      .dm-imp-tessera b{font-size:12.5px;font-weight:800}
+      .dm-imp-tessera small{font-size:11px;font-weight:700;opacity:.68}
+      .dm-imp-tessera[data-on="true"]{
+        border-color:var(--primary-color,#0ea5e9);
+        box-shadow:0 0 0 1px var(--primary-color,#0ea5e9) inset}
       .dm-imp-cfg-nota{margin:0;color:var(--secondary-text-color,#94a3b8);font-size:11px;font-weight:700;line-height:1.4}
       .dm-imp-cfg-del{justify-self:start;padding:8px 14px;border:1px solid rgba(185,28,28,.35);border-radius:999px;background:transparent;color:#b91c1c;font:inherit;font-size:11px;font-weight:800;letter-spacing:.6px;cursor:pointer}
       .dm-imp-cfg-del:hover{background:rgba(185,28,28,.08)}

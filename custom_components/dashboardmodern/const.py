@@ -107,3 +107,56 @@ TICKET_WATCH_INTERVAL = 5 * 60
 # convive con la notifica di Home Assistant, che invece c'e' per chi
 # automazioni non ne scrive.
 EVENT_TICKET_MESSAGE = f"{DOMAIN}_messaggio"
+
+# ─── La chat di assistenza ───────────────────────────────────────────────────
+#
+# Le segnalazioni diventano issue pubbliche, ed e' giusto che sia cosi': un
+# difetto deve restare scritto e ritrovabile. Chiedere aiuto e' un'altra cosa.
+# Chi chiede aiuto incolla un pezzo di configurazione, il nome delle proprie
+# entita', a volte una foto di casa sua — e chi guarda la plancia non e' sempre
+# chi l'ha installata e su GitHub un account ce l'ha.
+#
+# Percio' la chat non passa da GitHub. Passa dal centralino: un servizio
+# minuscolo che chi mantiene la plancia tiene su, e che fa da punto d'incontro
+# fra due case che altrimenti non si parlerebbero. Il progetto sta in
+# docs/CHAT.md, il servizio in centralino/.
+
+#: L'indirizzo del centralino: e' l'unica cosa di tutto questo giro che non si
+#: puo' indovinare, e finche' resta vuoto la chat non c'e' e la plancia non la
+#: mostra — meglio nessuna porta che una porta che non si apre.
+#:
+#: Il giorno che il centralino cambia casa — un dominio proprio invece di
+#: `workers.dev` — si cambia questa riga e basta: il Worker risponde su tutti
+#: gli indirizzi che gli si attaccano, quindi le plance che non si aggiornano
+#: continuano a parlare col vecchio.
+CHAT_CENTRALINO = "https://centralino.danigio15.workers.dev"
+
+#: Ogni quanto la casa va a vedere se e' arrivata una risposta. Come il
+#: campanello delle segnalazioni: una richiesta sola, cinque minuti, dodici
+#: all'ora. Il centralino ne regge centomila al giorno.
+CHAT_WATCH_INTERVAL = 5 * 60
+
+#: Quanto puo' essere lungo un messaggio. Lo stesso numero che il centralino
+#: taglia dall'altra parte: dirlo qui serve a non far scrivere un muro per poi
+#: consegnarne meta'.
+CHAT_MAX_TESTO = 4000
+
+#: Quanti messaggi la casa tiene su disco. La conversazione vera sta nel
+#: centralino; questa e' la copia che si legge senza rete e che fa da memoria
+#: fra un riavvio e l'altro.
+CHAT_MAX_STORIA = 200
+
+#: La chiave con cui si leggono e si scrivono TUTTE le conversazioni. Sta nelle
+#: opzioni di un Home Assistant solo al mondo — quello di chi la plancia la
+#: mantiene — e nei segreti del Worker. Non e' un ruolo, e' una chiave: il
+#: giorno che i manutentori sono due, sono due chiavi.
+OPTION_CHAT_CONSOLE_KEY = "chat_console_key"
+
+#: Chi non vuole che la plancia parli con nessuno fuori di casa spegne anche
+#: questa, come le segnalazioni.
+OPTION_CHAT_ENABLED = "chat_enabled"
+
+#: L'evento sul bus quando arriva una risposta. Gemello di quello delle
+#: segnalazioni, e separato apposta: un'automazione puo' voler suonare per una
+#: risposta dell'assistenza e stare zitta per un commento su una issue.
+EVENT_CHAT_MESSAGE = f"{DOMAIN}_chat"

@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>La dashboard completa per Home Assistant: si configura a video, funziona su telefono, tablet e desktop.</strong><br>
-  Persone · Stanze · Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Luci · Clima · Temperatura · Finestre · Sicurezza · Solare termico · Piscina · Irrigazione · Aspirapolvere · Server
+  Persone · Stanze · Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Luci · Clima · Temperatura · Finestre · Sicurezza · Apri porte/cancelli · Gestione termica · Piscina · Irrigazione · Aspirapolvere · Musica · Prese · Continuità · Agenda · MiniPC
 </p>
 
 <p align="center">
@@ -52,7 +52,7 @@
 Le entità restano entità Home Assistant: DashboardModern si occupa di presentazione, aggregazioni, storico e comandi. Non serve costruire decine di card Lovelace, non serve scrivere YAML.
 
 - **Nessun token da incollare, nessun file da scaricare, nessun `configuration.yaml` da modificare.** Il pannello passa alla plancia la sessione già autenticata di Home Assistant.
-- **Tutto si configura dall'editor visuale**, dentro la plancia stessa: ventidue schede, un pulsante di salvataggio per pannello.
+- **Tutto si configura dall'editor visuale**, dentro la plancia stessa: ventinove schede, un pulsante di salvataggio per pannello.
 - **La configurazione vive dentro Home Assistant**, in un archivio condiviso dell'integrazione: la stessa per tutti gli utenti e per tutti i dispositivi, con backup e ripristino da file.
 - **Due modi di guardare la casa**: per tipo — tutte le luci, tutte le tapparelle — oppure **per stanza**, con una pagina per ogni ambiente.
 - **Italiano e inglese**, scelti dalla lingua del profilo Home Assistant.
@@ -68,7 +68,8 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
 - [Dove vive la configurazione](#dove-vive-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-telecamere-e-aperture) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Aspirapolvere](#aspirapolvere) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Gestione termica](#gestione-termica) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [Continuità](#continuità) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
+- [Segnalazioni e assistenza](#segnalazioni-e-assistenza)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
 - [Come vengono calcolati i numeri](#come-vengono-calcolati-i-numeri)
@@ -153,6 +154,8 @@ Ogni plancia è una **config entry**: puoi averne più di una, con configurazion
 | **Icona** | icona del pannello |
 | **Utenti abilitati** | limita la visibilità della plancia ad alcuni account Home Assistant |
 | **Posizione nella barra** | ordine rispetto alle altre voci |
+| **Controlla le nuove versioni** | l'unica uscita verso internet dell'integrazione: un controllo ogni mezz'ora verso GitHub. Spento, non contatta più nessuno |
+| **Chiave della console assistenza** | serve solo a chi mantiene la plancia, per leggere le conversazioni della [chat di assistenza](#la-chat-di-assistenza). Chi la installa in casa propria la lascia vuota: la chat funziona lo stesso |
 
 ### Cosa registra l'integrazione
 
@@ -180,8 +183,9 @@ Ordine consigliato (o revisione dopo l'autorilevamento):
 5. **Temperatura** — associa temperatura e umidità alle stanze già create.
 6. **Luci, Clima, Finestre** — assegna ogni entità alla stanza corretta.
 7. **Persone** — chi abita la casa, con il ritratto e i sensori del telefono.
-8. **Auto, Sicurezza, Piscina, Irrigazione, Aspirapolvere, MiniPC** — abilita solo ciò che usi.
-9. **Widget, Azioni rapide, personalizzazione** — cosa compare in Home, icone, ordine della barra.
+8. **Auto, Sicurezza, Apri porte/cancelli, Gestione termica, Piscina, Irrigazione, Aspirapolvere, Musica, Prese, Continuità, Agenda, MiniPC** — abilita solo ciò che usi: una sezione senza entità non compare nella barra.
+9. **Le tue entità** e **Le tue sezioni** — per quello che le schede pronte non prevedono.
+10. **Widget, Avvisi, Azioni rapide, personalizzazione** — cosa compare in Home, icone, ordine della barra.
 
 Ogni pannello dell'editor ha il proprio pulsante di salvataggio — **SALVA MODIFICHE**, **Salva sezione**, **Salva energia**, **Salva carichi** — e va premuto prima di cambiare scheda o chiudere l'editor.
 
@@ -219,7 +223,7 @@ Restano legate al singolo dispositivo solo le preferenze che hanno senso solo l�
 
 La Home è la pagina di apertura, ed è fatta di tre fasce sotto un'intestazione che dice già molto.
 
-**L'intestazione.** Su una riga sola: nome della casa, **meteo** — temperatura esterna, condizione, umidità e vento — stato della connessione e configurazione. Il meteo legge il servizio di Home Assistant, oppure la **tua stazione personale** se gliela colleghi: in quel caso i valori sono i tuoi sensori, non una previsione. Lo stato della connessione è **un puntino**, non una frase: la parola resta scritta per chi la pagina se la fa leggere a voce.
+**L'intestazione.** Su una riga sola: nome della casa, **orologio**, **meteo** — temperatura esterna, condizione, umidità e vento — stato della connessione e configurazione. L'ora sta nello stesso riquadro del meteo, che è dove si guarda già. Il meteo legge il servizio di Home Assistant, oppure la **tua stazione personale** se gliela colleghi: in quel caso i valori sono i tuoi sensori, non una previsione. Lo stato della connessione è **un puntino**, non una frase: la parola resta scritta per chi la pagina se la fa leggere a voce.
 
 **Le persone.** Chi abita la casa, con il ritratto, la zona in cui si trova — Casa, Fuori, o il nome della zona — la batteria del telefono e da quanto tempo è lì. Chi sta rientrando mostra **distanza e minuti che mancano**; chi ha la batteria agli sgoccioli la mostra in rosso. La card si apre e racconta tutto quello che il telefono sa: indirizzo, attività, WiFi, direzione, orologio.
 
@@ -289,6 +293,8 @@ Ogni sezione ha la sua icona — Home la casa, Stanze la porta, come in configur
 Sei viste, scelte dalle linguette in cima: **Istantanea**, **Giornaliera**, **Mensile**, **Report**, **Analisi**, **Temperature**.
 
 > **Più impianti sotto lo stesso tetto.** Se la casa è l'unione di due appartamenti — due misuratori, due gruppi di carichi — le linguette in cima all'Energia scelgono di quale casa si parla. Ogni impianto ha il suo nome, i suoi misuratori e i suoi carichi, **fino a otto per impianto**, non otto in tutto. Con un impianto solo le linguette non compaiono affatto, e chi ha una casa sola non deve migrare niente.
+>
+> In Home la tessera **Energia** ne tiene conto: con più impianti configurati mostra **una riga per impianto**, invece di un totale che non corrisponde a nessuna delle due case.
 
 ### Flusso live (Istantanea)
 
@@ -370,7 +376,7 @@ Il dettaglio elenca **tutte le entità mappate** su quell'apparecchio con il lor
 | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev-light.webp" alt="Sezione auto elettrica in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev.webp" alt="Sezione auto elettrica in tema scuro"> |
 | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev-mobile-light.webp" alt="Sezione auto elettrica su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev-mobile.webp" alt="Sezione auto elettrica su telefono, tema scuro" width="230"> |
 
-Profilo veicolo con **marchio e modello** dal catalogo di **38 marche** — servite dall'integrazione, con i loro colori ufficiali, senza chiamare nessun CDN — oppure la tua foto. Stato di carica, autonomia, odometro, km dall'ultima ricarica, **sessione di ricarica** con quota solare, tensione e temperatura della wallbox, target di carica e **console modalità** (Spento / Solar / Min+Sol / Fast) quando l'integrazione le espone.
+Profilo veicolo con **marchio e modello** dal catalogo di **37 marche** — servite dall'integrazione, con i loro colori ufficiali, senza chiamare nessun CDN — oppure la tua foto. Stato di carica, autonomia, odometro, km dall'ultima ricarica, **sessione di ricarica** con quota solare, tensione e temperatura della wallbox, target di carica e **console modalità** (Spento / Solar / Min+Sol / Fast) quando l'integrazione le espone.
 
 Più veicoli convivono, ognuno con il suo profilo e la sua identità: rinominare un'auto non le fa perdere la foto. Con due vetture configurate la tessera della Home le racconta **entrambe**, e porta in evidenza la carica più bassa. Le linguette per passare da un'auto all'altra ci sono anche **dentro il popup**. Il **cavo collegato** si può dichiarare con una casella, invece di lasciarlo dedurre dal testo dello stato — e quando il cavo è attaccato **la foto cambia**, se ne hai configurata una seconda con il cavo inserito.
 
@@ -449,7 +455,7 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 
 ---
 
-## Sicurezza, telecamere e aperture
+## Sicurezza e telecamere
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
@@ -460,9 +466,13 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 
 E **si sceglie quali modalità vedere**: la centrale dice cosa accetta, quello che serve davvero lo dice chi la usa. Toglierne una la nasconde e non cambia niente di quello che la centrale sa fare; lo sblocco resta sempre.
 
-**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home.
+**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home. Dove l'integrazione lo espone — le **Arlo**, per esempio — la miniatura è **video dal vivo** e non un'istantanea ferma.
 
-**Le aperture**: portoni, serrature e cancelli, con il comando di apertura e — dove serve — il **PIN** prima di aprire.
+**Più di una centrale.** Chi ha due impianti d'allarme — casa e magazzino, piano di sopra e di sotto — li dichiara entrambi: ognuno con il suo nome, i suoi tasti e le sue modalità.
+
+> **La tessera d'avviso «Porte/Finestre» non c'è più.** Diceva la stessa cosa della sezione Finestre, che con il sensore collegato dice anche *quale* è aperta: era un doppione, ed è stata tolta con il suo gruppo negli avvisi e il rilevamento che la riempiva.
+
+**Le aperture non stanno più qui**: portoni, serrature e cancelli sono una sezione a sé — [Apri porte/cancelli](#apri-portecancelli) — perché il nome si confondeva con i sensori degli infissi.
 
 | Dettaglio avvisi |
 | --- |
@@ -472,14 +482,37 @@ Porte, finestre, allagamenti, fumo e batterie scariche vivono nei **gruppi di av
 
 ---
 
-## Solare termico
+## Apri porte/cancelli
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-light.webp" alt="Sezione solare termico in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal.webp" alt="Sezione solare termico in tema scuro"> |
-| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-mobile-light.webp" alt="Sezione solare termico su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-mobile.webp" alt="Sezione solare termico su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors-light.webp" alt="Sezione apri porte e cancelli in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors.webp" alt="Sezione apri porte e cancelli in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors-mobile-light.webp" alt="Sezione apri porte e cancelli su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors-mobile.webp" alt="Sezione apri porte e cancelli su telefono, tema scuro" width="230"> |
 
-L'impianto disegnato in vista isometrica: pannelli, circuito, accumulo e valvole. Ogni sonda dice **cosa misura**, e la pompa si anima quando circola davvero.
+Portone, porta di casa, cancello. **Una sezione a sé**, uscita dalla Sicurezza: portava lo stesso nome dei sensori che dicono se una finestra è aperta, e le due cose si confondevano.
+
+Ogni apertura ha la sua card; il tocco chiede conferma e, se imposti un PIN, il codice. La conferma si può spegnere.
+
+---
+
+## Gestione termica
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-light.webp" alt="Sezione gestione termica in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal.webp" alt="Sezione gestione termica in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-mobile-light.webp" alt="Sezione gestione termica su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-mobile.webp" alt="Sezione gestione termica su telefono, tema scuro" width="230"> |
+
+Tutto quello che in casa scalda l'acqua sta **in una pagina sola**, con un blocco per macchina e i comandi dove si vedono i valori. Prima il solare termico aveva una sezione sua e le altre due non ne avevano nessuna.
+
+| Blocco | Cosa mostra |
+| --- | --- |
+| **Solare termico** | l'impianto disegnato in vista isometrica: pannelli, circuito, accumulo e valvole. Ogni sonda dice **cosa misura** — pannello, accumulo basso, accumulo alto — e la pompa si anima quando circola davvero |
+| **Scaldabagno** | temperatura dell'acqua, obiettivo, interruttore della resistenza e consumo |
+| **Caldaia** | mandata, ritorno e pressione del circuito, con le zone che serve |
+
+**Più di un impianto solare.** Chi ha due campi di pannelli — la casa e la dependance — li dichiara entrambi: ognuno con il suo nome, le sue sonde e la sua pompa.
+
+Lo scaldabagno può anche essere quello che Home Assistant già conosce come `water_heater.*`: in quel caso la plancia lo **rileva** invece di farsi riempire casella per casella.
 
 ---
 
@@ -507,14 +540,84 @@ Le zone con la loro valvola, i minuti di ciascuna, l'orario di partenza e il **b
 
 ---
 
-## Aspirapolvere
+## Robot
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-light.webp" alt="Sezione aspirapolvere in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot.webp" alt="Sezione aspirapolvere in tema scuro"> |
-| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile-light.webp" alt="Sezione aspirapolvere su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile.webp" alt="Sezione aspirapolvere su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-light.webp" alt="Sezione robot in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot.webp" alt="Sezione robot in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile-light.webp" alt="Sezione robot su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile.webp" alt="Sezione robot su telefono, tema scuro" width="230"> |
 
 I robot di casa con stato, batteria, potenza di aspirazione e i comandi — avvio, pausa, rientro alla base. Ogni robot ha la sua stanza, scelta da una tendina, e la mappa quando l'integrazione la espone.
+
+---
+
+## Musica
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media-light.webp" alt="Sezione musica in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media.webp" alt="Sezione musica in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media-mobile-light.webp" alt="Sezione musica su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media-mobile.webp" alt="Sezione musica su telefono, tema scuro" width="230"> |
+
+I lettori dichiarati in configurazione hanno **una scheda ciascuno**, e come sfondo la copertina di quello che stanno suonando. Titolo, artista, la barra del tempo che avanza da sola, il volume e la sorgente.
+
+**I tasti sono quelli che il lettore sa eseguire davvero**: se non ha il brano successivo quel tasto non viene disegnato, e una radio non finge di poterlo saltare.
+
+I lettori si possono anche mettere fra le **Azioni rapide** della Home: lì il tasto prende la copertina come sfondo, e premerlo mette in pausa o fa ripartire. In Home la tessera **Musica** dice quanti stanno suonando e cosa — titolo, artista e in che stanza.
+
+---
+
+## Prese
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets-light.webp" alt="Sezione prese in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets.webp" alt="Sezione prese in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets-mobile-light.webp" alt="Sezione prese su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets-mobile.webp" alt="Sezione prese su telefono, tema scuro" width="230"> |
+
+La TV del salotto, il Firestick, il modem. Si accendono e si spengono come le luci, ma **stanno per conto loro**: così «spegni tutte le luci» non spegne il modem.
+
+Ogni presa ha nome, icona e stanza, e l'interruttore **«si vede ma non si comanda»** per quelle che non vanno toccate.
+
+---
+
+## Continuità
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups-light.webp" alt="Sezione continuità in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups.webp" alt="Sezione continuità in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups-mobile-light.webp" alt="Sezione continuità su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups-mobile.webp" alt="Sezione continuità su telefono, tema scuro" width="230"> |
+
+Il gruppo di continuità: rete, batteria, carico e l'autonomia che resta.
+
+**Nessuna casella è obbligatoria.** Con il solo stato di NUT — «OL» in linea, «OB» a batteria, «LB» batteria scarica — la plancia sa già dire se c'è tensione. Le altre servono a chi l'UPS lo legge da un'integrazione che espone un sensore per cosa.
+
+In Home la tessera mostra la carica quando la corrente c'è, e **i minuti che restano quando cade**.
+
+---
+
+## Agenda
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda-light.webp" alt="Sezione agenda in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda.webp" alt="Sezione agenda in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda-mobile-light.webp" alt="Sezione agenda su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda-mobile.webp" alt="Sezione agenda su telefono, tema scuro" width="230"> |
+
+Gli impegni e le cose da fare nella stessa pagina, in due blocchi: un appuntamento succede a un'ora e non si spunta, una cosa da fare si spunta e un'ora non ce l'ha.
+
+La striscia dei giorni in cima dice **dove c'è qualcosa** prima ancora di leggere; sotto, gli impegni raggruppati per giorno con il colore del calendario da cui vengono. Gli impegni si creano e si modificano da qui, se il calendario lo permette.
+
+---
+
+## Le tue sezioni
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/my-section-light.webp" alt="Una sezione creata dall'utente in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/my-section.webp" alt="Una sezione creata dall'utente in tema scuro"> |
+
+Una sezione tua è **un titolo e le entità che ci metti dentro**: compare nella barra come le altre, dice come stanno e accende quelle che si accendono.
+
+Serve quando in casa c'è qualcosa che la plancia non disegna ancora — un acquario, una serra, un impianto che nessuna scheda prevede. E non toglie niente: il giorno che arriva la sezione fatta apposta, questa si può togliere.
+
+Per una singola entità in più c'è **Le tue entità**: si sceglie l'entità, in quale pagina farla comparire, come chiamarla e con che icona, e compare in fondo a quella pagina.
 
 ---
 
@@ -527,14 +630,71 @@ I robot di casa con stato, batteria, potenza di aspirazione e i comandi — avvi
 
 La macchina disegnata in 3D con **CPU, RAM e disco** come barre che crescono, il **termometro della CPU** con giudizio e limite, la telemetria (consumo, uptime, Speedtest download e upload), il **carico CPU live** e la riga di rete con connettività e stato dell'inverter.
 
+> **La connettività è una casella sola, e si chiama Internet.** Erano quattro caselle che facevano la stessa domanda, e la card ne leggeva una: chi aveva riempito una delle altre tre vedeva **OFFLINE** con tutto configurato e la linea che funzionava. Adesso ce n'è una, accetta un `binary_sensor`, uno stato a parole (`on`, `connesso`, `online`, `up`, `ok`) oppure i millisecondi di un ping. Quello che stava nelle vecchie tre continua a essere letto finché non lo sposti: nessuno perde lo stato che aveva.
+
+---
+
+# Segnalazioni e assistenza
+
+Dalla plancia si può **scrivere a chi la sviluppa** senza uscire da Home Assistant. Ci sono due strade, e sono due cose diverse di proposito.
+
+## Le segnalazioni
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/segnalazioni-nuova-light.webp" alt="Nuova segnalazione, tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/segnalazioni-nuova.webp" alt="Nuova segnalazione, tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/segnalazioni-nuova-mobile-light.webp" alt="Nuova segnalazione su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/segnalazioni-nuova-mobile.webp" alt="Nuova segnalazione su telefono, tema scuro" width="230"> |
+
+Un **difetto** è una cosa che deve restare scritta, pubblica e ritrovabile: le segnalazioni aprono una issue sulla repository, e sotto quella si commenta.
+
+- **Difetti**, **Chiuse** e **Le mie** dividono la coda; ogni voce apre il suo filo con i commenti.
+- Si allegano **foto e video** direttamente dal telefono.
+- Il **codice** dell'installazione e i dati di **runtime** si allegano con un tocco, così non vanno ricopiati a mano.
+- Per scrivere serve **collegare un account GitHub**, una volta sola.
+- Chi mantiene la plancia ha un **cruscotto** con le due cifre che contano — **Nuove** e **In lavorazione** — e i due tasti che filtrano esattamente quelle.
+
+<table>
+<tr>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/segnalazioni-difetti-light.webp" alt="Elenco dei difetti"><br><sub>Difetti</sub></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/segnalazioni-filo-light.webp" alt="Il filo di una segnalazione"><br><sub>Il filo</sub></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/segnalazioni-cruscotto-light.webp" alt="Cruscotto delle segnalazioni"><br><sub>Cruscotto</sub></td>
+</tr>
+</table>
+
+## La chat di assistenza
+
+> «Io avevo chiesto una chat di assistenza che non deve passare per GitHub. È come se fosse una chat Teams.»
+
+Un difetto va bene pubblico. **Una richiesta di aiuto no**: chi chiede aiuto incolla un pezzo di configurazione, il nome delle proprie entità, a volte una foto di casa sua. E chi guarda la plancia non è sempre chi l'ha installata — è anche chi in quella casa ci vive, e su GitHub non c'è mai stato.
+
+Quindi la chat è **una conversazione privata**, e non passa da GitHub:
+
+- **Non serve nessun account.** L'identità nasce da sola col primo messaggio: una casa è centoventotto bit di caso che si è fabbricata da sola.
+- **Il centralino non sa chi sei.** Sta fuori dall'integrazione, non conserva nomi, e del segreto della tua casa tiene solo l'impronta. Una linea nasce solo quando qualcuno **scrive**, mai quando legge.
+- **Il segreto non esce dal backend** di Home Assistant: il browser non lo vede.
+- **Il patto sulla riservatezza sta prima della prima riga**, non nascosto in fondo.
+- **Il tasto che cancella cancella davvero**, anche dal centralino.
+
+Il progetto per esteso è in [`docs/CHAT.md`](docs/CHAT.md).
+
+> **Per chi mantiene una plancia propria.** La chat funziona in uscita senza configurare niente. Per **leggere** le conversazioni serve incollare la chiave del proprio centralino in *Impostazioni → Dispositivi e servizi → DashboardModern → Configura → «Chiave della console assistenza»*.
+
 ---
 # Editor Dashboard: tutte le configurazioni
 
-L'editor è un'unica finestra con **ventidue schede**, una per area, elencate in **colonna** sulla sinistra: si vedono tutte insieme, senza scorrere una fila. Da telefono tenuto in piedi la colonna si stringe al solo simbolo e il nome ricompare appena giri lo schermo; chi un simbolo non lo riconosce lo legge tenendo premuto.
+L'editor è un'unica finestra con **ventinove schede**, una per area, elencate in **colonna** sulla sinistra: si vedono tutte insieme, senza scorrere una fila. Da telefono tenuto in piedi la colonna si stringe al solo simbolo e il nome ricompare appena giri lo schermo; chi un simbolo non lo riconosce lo legge tenendo premuto.
 
 Tutte le configurazioni descritte qui sono **visuali**: nessun YAML.
 
-`Impostazioni` · `Home` · `Energia` · `EV` · `Solare` · `Sicurezza` · `MiniPC` · `Temperatura` · `Azioni` · `Clima` · `Piscina` · `Irrigazione` · `Finestre` · `Stanze` · `Luci` · `Elettrodom.` · `Aperture` · `Backup` · `Widget` · `Aspirapolvere` · `Persone` · `Runtime`
+| | Schede |
+| --- | --- |
+| **La casa** | `⚙️ Impostazioni` · `🛋️ Stanze` · `👥 Persone` |
+| **Le sezioni** | `🏠 Home e meteo` · `⚡ Energia` · `🧺 Elettrodom.` · `🌡️ Temperatura` · `💡 Luci` · `❄️ Clima` · `🪟 Finestre` · `🛡️ Sicurezza` · `🚪 Apri porte/cancelli` · `🌞 Gestione termica` · `🚗 EV` · `🏊 Piscina` · `💧 Irrigazione` · `🤖 Aspirapolvere` · `🎵 Musica` · `🔌 Prese` · `🔋 Continuità` · `📅 Agenda` · `🖥️ MiniPC` |
+| **La Home** | `🧩 Widget` (che tiene anche le **cose da fare**) · `🔔 Avvisi` · `⚡ Azioni rapide` |
+| **Il tuo** | `✨ Le tue entità` · `🗂️ Le tue sezioni` |
+| **Servizio** | `💾 Backup` · `🩺 Runtime` |
+
+> **Una sezione vuota non sta nella barra.** Ogni sezione nasce nascosta e **si accende da sola** appena riceve la prima entità configurata; svuotata, torna a nascondersi. Lo spegnimento automatico ha tre freni: non tocca una scheda che non sa giudicare, non spegne niente finché la configurazione condivisa non è arrivata da Home Assistant, e **non torna mai su una scelta fatta a mano** dal pulsante verde in testa alla scheda.
 
 > Le schermate qui sotto sono in **tema chiaro**; l'editor segue il tema della plancia, quindi in tema scuro le stesse schede appaiono scure — c'è una galleria in fondo al capitolo.
 
@@ -590,18 +750,36 @@ Ogni persona ha un'entità (`person.*`, o `device_tracker.*` per chi non ha crea
 
 | Scelta | Opzioni |
 | --- | --- |
-| **Persona** | uomo, donna, neutro, ragazzo, ragazza, anziano |
-| **Capelli** | lisci, barba, ricci, rossi, bianchi, calvo |
+| **Persona** | uomo, donna, neutro, ragazzo, ragazza, anziano, anziana |
+| **Capelli** | lisci, ricci, calvo |
 | **Carnagione** | cinque tonalità |
-| **Vestito** | ventinove: ufficio, medico, cuoco, smoking, velo, pompiere, poliziotto, muratore, operaio, meccanico, contadino, pilota, astronauta, giudice, supereroe, scienziato, insegnante, studente, informatico, artista, cantante, guardia, detective, turbante, supercattivo, mago, fata, vampiro, elfo |
+| **Vestito** | trentaquattro: ufficio, medico, cuoco, smoking, velo, pompiere, poliziotto, muratore, operaio, meccanico, contadino, pilota, astronauta, giudice, supereroe, scienziato, insegnante, studente, informatico, artista, cantante, guardia, detective, turbante, supercattivo, mago, fata, vampiro, elfo, casual, saluto, polo, camicia, attesa — più «nessuno» |
 
-Sono **oltre tremila combinazioni**, e sono libere davvero: «ricci» e «cuoco» insieme si possono, perché la testa scelta viene riscalata e incollata sul busto scelto. Nel costruttore ogni pastiglia è **il tuo ritratto con quel pezzo addosso**, non un'icona generica; e c'è il 🎲 per il caso.
+Sono **oltre tremilaseicento combinazioni**, e sono libere davvero: «ricci» e «cuoco» insieme si possono, perché la testa scelta viene riscalata e incollata sul busto scelto. Nel costruttore ogni pastiglia è **il tuo ritratto con quel pezzo addosso**, non un'icona generica; e c'è il 🎲 per il caso.
 
-I ritratti sono i render 3D di **Fluent Emoji** (Microsoft, licenza MIT), **vendorizzati nell'integrazione**: 396 immagini, 3,2 MB, nessuna rete a runtime. Chi preferisce può mettere una **foto vera**, che vince sul ritratto.
+I ritratti sono i render 3D di **Fluent Emoji** (Microsoft, licenza MIT), **vendorizzati nell'integrazione**: 445 immagini, 3,6 MB, nessuna rete a runtime. Chi preferisce può mettere una **foto vera**, che vince sul ritratto.
 
 > **Respirano e sbattono le ciglia.** Il respiro è CSS. Il battito lo disegna la plancia sopra gli occhi trovati in fase di build, prendendo il colore dalla guancia della persona stessa così che combaci con qualunque carnagione: dura trecento millisecondi, poi la tela torna ferma — una plancia con quattro persone non disegna niente. L'espressione la decide quello che la plancia già sa: chi è a casa ha gli occhi che ridono, chi ha la batteria agli sgoccioli ha le palpebre pesanti.
 
 **I sensori del telefono si trovano da soli**: batteria, stato di carica, indirizzo, attività, WiFi, orologio, distanza, tempo di rientro e direzione.
+
+### 🏠 Home e meteo
+
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-home-light.webp" alt="Editor - home e meteo" width="100%">
+
+Quello che la Home legge per conto suo, prima delle tessere:
+
+| Campo | A cosa serve |
+| --- | --- |
+| **Meteo** (`weather.*`) | la previsione nella fascia in alto |
+| **Stazione meteo: temperatura esterna** | se la colleghi, in fascia va **il tuo sensore** invece della previsione |
+| **Stazione meteo: umidità** | idem, per l'umidità |
+| **Stazione meteo: temperatura percepita** | la percepita, quando la tua stazione la calcola |
+| **Stazione meteo: velocità vento** | il vento in fascia |
+| **Stazione meteo: direzione vento** | la direzione, in gradi o a lettere |
+| **Allarme** (`alarm_control_panel.*`) | la centrale che la Home mostra e comanda |
+| **Interruttore antifurto** (`switch.*`) | per chi l'antifurto ce l'ha come interruttore e non come centrale |
+| **Script apertura cancello** | il cancello raggiungibile dalla Home |
 
 ### ⚡ Energia
 
@@ -700,6 +878,69 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 - **Irrigazione**: zone con valvola, minuti, stanza, orario, **umidità del terreno** con le sue soglie, blocco pioggia e meteo.
 - **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità.
 
+### 🌞 Gestione termica
+
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-thermal-light.webp" alt="Editor - gestione termica" width="100%">
+
+Tre macchine, tre elenchi, e si aggiunge quello che si ha:
+
+- **I tuoi impianti solari** — nome, sonde (**pannello solare**, **accumulo basso**, **accumulo alto**), pompa e suo stato, delta temperatura, pressione acqua, valvola di sicurezza, centralina e interruttore. **Se ne può aggiungere più di uno**, per chi ha due campi di pannelli.
+- **Scaldabagno** — temperatura dell'acqua, obiettivo, interruttore della resistenza, consumo ed energia di oggi. Il tasto **«Rileva da Home Assistant»** prende quello che HA conosce già come `water_heater.*`, invece di far riempire le caselle a mano.
+- **Caldaia** — cosa c'è nel locale caldaia: mandata, ritorno, pressione del circuito e le zone servite.
+
+Ogni blocco ha il suo **«Mostra in pagina»**: si configura una macchina senza per forza mostrarla.
+
+### 🛡️ Sicurezza
+
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-security-light.webp" alt="Editor - sicurezza" width="100%">
+
+- **Le centrali d'allarme**, anche **più di una**: nome ed entità `alarm_control_panel.*` per ciascuna.
+- **Quali modalità mostrare** di ognuna: la centrale dice cosa accetta, tu dici cosa ti serve vedere. Toglierne una la nasconde e non cambia quello che la centrale sa fare; lo sblocco resta sempre.
+- **Le telecamere**, con nome, stanza e — dove l'integrazione lo espone — il **flusso dal vivo** invece dell'istantanea.
+
+### 🖥️ MiniPC
+
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-server-light.webp" alt="Editor - minipc" width="100%">
+
+CPU, RAM, disco, temperatura CPU, uptime della macchina e di Home Assistant, consumo, Speedtest (download, upload, ping) e **Internet**.
+
+> **Internet è una casella sola.** Accetta un `binary_sensor`, uno stato a parole o i millisecondi di un ping. Le tre vecchie caselle equivalenti non si compilano più, ma continuano a essere lette finché non travasi il valore: chi le aveva riempite non perde lo stato.
+
+### 🎵 Musica · 🔌 Prese · 🔋 Continuità
+
+<table>
+<tr>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-media-light.webp" alt="Editor - musica"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-sockets-light.webp" alt="Editor - prese"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ups-light.webp" alt="Editor - continuità"></td>
+</tr>
+</table>
+
+- **Musica**: i lettori `media_player.*` che vuoi vedere, con nome facoltativo e icona. I tasti che compariranno sono **quelli che il lettore dichiara di saper eseguire**, non un set fisso.
+- **Prese**: entità, nome, icona, stanza e l'interruttore **«si vede ma non si comanda»** per quelle che non vanno toccate.
+- **Continuità**: il gruppo UPS con stato della rete, carica della batteria, carico, autonomia in minuti e tensione d'ingresso. **Nessuna casella è obbligatoria**: col solo stato di NUT — `OL` in linea, `OB` a batteria, `LB` batteria scarica — la plancia sa già dire se c'è tensione. C'è anche l'interruttore **«il sensore dice il contrario»**, per chi ha il segnale invertito.
+
+### 📅 Agenda
+
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-agenda-light.webp" alt="Editor - agenda" width="100%">
+
+- **Calendari** `calendar.*`, ognuno con nome e **colore** — è il colore con cui i suoi impegni compaiono nella pagina.
+- **Liste** `todo.*` da mostrare accanto agli impegni.
+
+### ✨ Le tue entità · 🗂️ Le tue sezioni
+
+<table>
+<tr>
+<td width="50%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-my-entities-light.webp" alt="Editor - le tue entità"></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-my-sections-light.webp" alt="Editor - le tue sezioni"></td>
+</tr>
+</table>
+
+Le schede fatte di caselle con un ruolo preciso — l'Energia ha una rete e un fotovoltaico — non avevano posto per un sensore in più. Adesso ce l'hanno.
+
+- **Le tue entità**: entità, **in quale scheda** farla comparire, nome e icona. Finisce in fondo a quella pagina, senza toccare il resto.
+- **Le tue sezioni**: una pagina tutta tua — titolo, icona, **«mostrala nella barra»** — e dentro le entità che vuoi, ognuna con nome e icona. Serve quando in casa c'è qualcosa che la plancia non disegna ancora: un acquario, una serra, un impianto che nessuna scheda prevede.
+
 ### 💾 Backup e ripristino
 
 | Tema chiaro | Tema scuro |
@@ -725,6 +966,10 @@ L'ultima scheda è di diagnostica: versione della plancia, stato del bridge di a
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-robot.webp" alt="Editor Aspirapolvere in tema scuro"><br><sub>Aspirapolvere</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-todo.webp" alt="Editor Cose da fare in tema scuro"><br><sub>Cose da fare</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-doors.webp" alt="Editor Aperture in tema scuro"><br><sub>Aperture</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-pool.webp" alt="Editor Piscina in tema scuro"><br><sub>Piscina</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-irrigation.webp" alt="Editor Irrigazione in tema scuro"><br><sub>Irrigazione</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ev.webp" alt="Editor Auto elettrica in tema scuro"><br><sub>Auto elettrica</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-alerts.webp" alt="Editor Widget in tema scuro"><br><sub>Widget e avvisi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-quick-actions.webp" alt="Editor Azioni rapide in tema scuro"><br><sub>Azioni rapide</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-backup.webp" alt="Editor Backup in tema scuro"><br><sub>Backup</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-home.webp" alt="Editor Home in tema scuro"><br><sub>Home e meteo</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-thermal.webp" alt="Editor Gestione termica in tema scuro"><br><sub>Gestione termica</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-security.webp" alt="Editor Sicurezza in tema scuro"><br><sub>Sicurezza</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-server.webp" alt="Editor MiniPC in tema scuro"><br><sub>MiniPC</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-media.webp" alt="Editor Musica in tema scuro"><br><sub>Musica</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-sockets.webp" alt="Editor Prese in tema scuro"><br><sub>Prese</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ups.webp" alt="Editor Continuità in tema scuro"><br><sub>Continuità</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-agenda.webp" alt="Editor Agenda in tema scuro"><br><sub>Agenda</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-my-entities.webp" alt="Editor Le tue entità in tema scuro"><br><sub>Le tue entità</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-my-sections.webp" alt="Editor Le tue sezioni in tema scuro"><br><sub>Le tue sezioni</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-autodetect.webp" alt="Editor Autorilevamento in tema scuro"><br><sub>Autorilevamento</sub></td><td width="33%"></td></tr>
 </table>
 
 </details>

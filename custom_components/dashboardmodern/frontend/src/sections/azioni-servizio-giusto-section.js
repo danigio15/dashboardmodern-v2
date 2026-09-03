@@ -44,6 +44,15 @@ const SERVIZI = Object.freeze({
   /* La serratura non si scambia con un servizio solo: si chiude o si apre, e
    * quale dei due dipende da com'e' messa adesso. */
   lock: (stato) => (clean(stato).toLowerCase() === "locked" ? "unlock" : "lock"),
+  /* Un lettore ce l'ha, `media_player.toggle`, e fa una cosa che nessuno
+   * voleva: spegne la cassa. Da un tasto con sopra la copertina del disco che
+   * sta girando (#269) ci si aspetta la pausa — e da un lettore spento, che si
+   * accenda, perche' mettere in pausa una cassa spenta non da' errore e non fa
+   * niente. */
+  media_player: (stato) =>
+    ["off", "standby", "unavailable", "unknown", ""].includes(clean(stato).toLowerCase())
+      ? "turn_on"
+      : "media_play_pause",
 });
 
 /** Il servizio giusto per questa entita', o "" se `toggle` va gia' bene. */

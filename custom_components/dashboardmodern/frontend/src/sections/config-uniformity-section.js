@@ -74,6 +74,14 @@ export const TAB_SECTION_KEYS = Object.freeze({
    * ognuna, che e' una proprieta' della sezione e non una preferenza di
    * visibilita' del guscio. La chiave e' quella che legge la loro pagina. */
   mie: "mie",
+  /* Le aperture sono uscite dalla Sicurezza e hanno una voce loro (#275): la
+   * fascia va sulla loro scheda, con la chiave che legge la loro pagina —
+   * scriverne un'altra vorrebbe dire una preferenza che nessuno legge. */
+  doors: "porte",
+  /* La musica (#269) nasce con la sua pagina e la sua scheda: la chiave e'
+   * quella che legge la pagina dei lettori, e la fascia la spegne come tutte
+   * le altre voci della barra. */
+  media: "media",
 });
 
 /* Tabs that hold no configuration to save: diagnostics is read-only, the
@@ -370,7 +378,9 @@ export function ensureSaveFooter(body = editorBody(), tab = activeTab()) {
   const salvaAuto = body.querySelector("[data-ev-save-car]");
   const etichetta = footer.querySelector(".dm-save-footer-btn");
   if (etichetta) {
-    const testo = salvaAuto ? clean(salvaAuto.textContent) : `💾 ${t("Salva sezione", "Save section")}`;
+    const testo = salvaAuto
+      ? clean(salvaAuto.textContent)
+      : `💾 ${t("Salva sezione", "Save section")}`;
     if (testo && etichetta.textContent !== testo) etichetta.textContent = testo;
   }
   // Always the last thing on the tab, whatever the tab appended after it.

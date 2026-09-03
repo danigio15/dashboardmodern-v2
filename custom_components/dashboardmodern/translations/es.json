@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Registrar también como panel de Home Assistant",
           "admin_only": "Visible solo para administradores",
           "check_updates": "Buscar versiones nuevas",
-          "tickets_enabled": "Informes desde el panel"
+          "tickets_enabled": "Informes desde el panel",
+          "chat_enabled": "Chat de asistencia",
+          "chat_console_key": "Clave de la consola de asistencia"
         },
         "data_description": {
           "allowed_users": "Solo es un filtro de visibilidad de la interfaz. Los datos y los servicios siguen sujetos a los permisos de Home Assistant.",
           "register_lovelace_dashboard": "El panel se crea la primera vez que un administrador abre DashboardModern.",
           "admin_only": "Filtro nativo de Home Assistant; prevalece para las cuentas que no son de administrador.",
           "check_updates": "Pregunta a GitHub cada media hora si hay una versión más reciente y la muestra en Ajustes → Actualizaciones. Desactívalo para que el panel no salga a internet; el tablero no lo necesita.",
-          "tickets_enabled": "Permite a quien usa el panel informar de un fallo, proponer una idea o pedir ayuda sin salir de él. El informe se convierte en una incidencia pública en GitHub, abierta a su nombre — la misma cuenta que HACS ya le pidió. Apagado, no sale nada de casa."
+          "tickets_enabled": "Permite a quien usa el panel informar de un fallo, proponer una idea o pedir ayuda sin salir de él. El informe se convierte en una incidencia pública en GitHub, abierta a su nombre — la misma cuenta que HACS ya le pidió. Apagado, no sale nada de casa.",
+          "chat_enabled": "Una conversación privada con quien mantiene el panel, para pedir ayuda sin abrir una incidencia pública y sin ninguna cuenta. Pasa por un servicio propio, no por GitHub. Apagada, no sale nada de casa.",
+          "chat_console_key": "Déjala vacía. Sirve a UNA instalación en el mundo — la de quien mantiene el panel — para leer los chats de todos y responder. Es la misma clave puesta entre los secretos del relé."
         }
       }
     }

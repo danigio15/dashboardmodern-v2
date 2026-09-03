@@ -252,6 +252,46 @@ test("il filtro «chiuse» tiene solo quelle chiuse", () => {
   );
 });
 
+test("«nuove» e «in lavorazione» dividono quelle da lavorare", () => {
+  /* «Voglio capire cosa ho preso in carico e quelle ancora da prendere in
+   * carico.» I due tasti sono le due cifre grandi in cima al cruscotto: chi
+   * legge «6 in lavorazione» e preme il tasto deve trovare quelle sei, non
+   * cinque e nemmeno sette. */
+  const coda = [
+    inCoda({ number: 1, state: "inviato" }),
+    inCoda({ number: 2, state: "in-carico" }),
+    inCoda({ number: 3, state: "bozza" }),
+    inCoda({ number: 4, state: "risolto" }),
+    inCoda({ number: 5, state: "chiuso" }),
+  ];
+  assert.deepEqual(
+    filtra(coda, "in-carico").map((ticket) => ticket.number),
+    [2],
+  );
+  assert.deepEqual(
+    filtra(coda, "nuove").map((ticket) => ticket.number),
+    [1, 3],
+  );
+});
+
+test("«nuove» e «in lavorazione» insieme fanno esattamente «da lavorare»", () => {
+  /* I due tasti nuovi si spartiscono le aperte senza perderne nessuna e senza
+   * contarne una due volte: se un domani nascesse uno stato aperto che non e'
+   * ne' nuovo ne' preso in carico, sparirebbe da tutti e due i tasti pur
+   * restando nel conto grande — e sarebbe una riga introvabile. */
+  const coda = ["bozza", "inviato", "in-carico", "risolto", "chiuso"].map((state, indice) =>
+    inCoda({ number: indice + 1, state }),
+  );
+  const spartite = [...filtra(coda, "nuove"), ...filtra(coda, "in-carico")];
+  assert.deepEqual(
+    spartite.map((ticket) => ticket.number).sort((a, b) => a - b),
+    filtra(coda, "aperte")
+      .map((ticket) => ticket.number)
+      .sort((a, b) => a - b),
+  );
+  assert.equal(new Set(spartite.map((t) => t.number)).size, spartite.length);
+});
+
 test("«aperte» e «chiuse» insieme fanno la coda intera", () => {
   /* Due tasti che si dividono l'elenco senza perdere niente per strada: se
    * un giorno uno stato nuovo non finisse ne' di qua ne' di la', sparirebbe

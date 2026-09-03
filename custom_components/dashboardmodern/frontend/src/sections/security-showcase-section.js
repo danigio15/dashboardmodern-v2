@@ -31,10 +31,17 @@
 import {
   ALARM_DISARM,
   ALARM_MODE_CHOICE_KEY,
+  CHIAVE_CENTRALE_SCELTA,
+  CHIAVE_CENTRALI,
+  RIF_CENTRALE,
   alarmActiveMode,
   alarmCodeNeeded,
   alarmModes,
   alarmVisibleModes,
+  centraliAllarme,
+  entitaDellaCentrale,
+  nomeDellaCentrale,
+  overridesPerCentrale,
 } from "../core/alarm-panel.js";
 import {
   activeLocale,
@@ -49,6 +56,7 @@ import {
   root,
   section,
   t,
+  writeJsonIfChanged,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SECURITY_SHOWCASE__";
@@ -72,6 +80,17 @@ const copy = () => ({
   title: sectionName(),
   subtitle: t("Antifurto e videosorveglianza", "Alarm system and video surveillance"),
   alarmCap: t("Stato antifurto", "Alarm status"),
+  /* Il nome di ripiego di un'area senza nome, e come si dice come sta.
+   *
+   * Sotto il nome ci va uno STATO, non un comando: «Sblocca» è l'etichetta del
+   * tasto che disinserisce, e letta lì diceva a chi guarda di premere invece
+   * di dirgli che quell'area è a riposo. */
+  area: t("Area", "Area"),
+  /* Un trattino non è una parola: chiedere a tredici traduttori come si dice
+   * «—» è il modo di avere tredici trattini diversi. */
+  areaMuta: "—",
+  areaSpenta: t("Disinserita", "Disarmed"),
+  areaAccesa: (modo) => t(`Inserita · ${modo}`, `Armed · ${modo}`),
   loading: t("CARICAMENTO", "LOADING"),
   modes: {
     home: { label: t("Casa", "Home"), hint: t("Solo perimetro", "Perimeter only") },
@@ -117,7 +136,8 @@ export function securityCameras() {
     } catch (_error) {}
   }
   const canonical = section("cameras", null);
-  const values = Array.isArray(canonical) && canonical.length ? canonical : readJson("cd_cameras", []);
+  const values =
+    Array.isArray(canonical) && canonical.length ? canonical : readJson("cd_cameras", []);
   return Array.isArray(values) ? values : [];
 }
 
@@ -155,9 +175,93 @@ function cameraModels(cameras = securityCameras()) {
 
 /* ── markup ───────────────────────────────────────────────────────────── */
 
+/* ── le aree: più di una centrale (#285) ──────────────────────────────── */
+
+/* «Se si hanno 2 aree la pagina ne gestisce una sola. Sarebbe funzionale poter
+ * mettere più pannelli, come l'inserimento di telecamere.»
+ *
+ * Quella che si comanda è sempre quella scritta nella mappatura di sempre:
+ * passare a un'altra area vuol dire scriverci la sua, e il tastierino, il
+ * servizio che parte e la tessera della Home continuano a leggere l'unico posto
+ * che hanno sempre letto. Vale la regola di `piu-di-uno.js`. */
+function centraliDiCasa() {
+  return centraliAllarme(
+    readJson(CHIAVE_CENTRALI, []),
+    readJson("cd_entity_overrides", {}),
+    clean(root.localStorage?.getItem?.(CHIAVE_CENTRALE_SCELTA)),
+  );
+}
+
+function passaAllAreaAllarme(id) {
+  const lista = centraliDiCasa();
+  const scelta = lista.find((riga) => riga.id === clean(id));
+  if (!scelta || scelta.corrente) return false;
+  /* Quella che esce di scena si porta via la sua mappatura: è quella che sta
+   * negli override adesso, e senza rimetterla in elenco andrebbe persa alla
+   * prima scrittura di quella che entra. */
+  writeJsonIfChanged(
+    CHIAVE_CENTRALI,
+    lista.map((riga) => ({ id: riga.id, nome: riga.nome, caselle: riga.caselle })),
+  );
+  root.localStorage?.setItem?.(CHIAVE_CENTRALE_SCELTA, scelta.id);
+  const prossime = overridesPerCentrale(readJson("cd_entity_overrides", {}), scelta);
+  writeJsonIfChanged("cd_entity_overrides", prossime);
+  try {
+    root.cdApplyCanonicalOverrides?.(prossime);
+  } catch (_error) {}
+  try {
+    root.render?.();
+  } catch (_error) {}
+  return true;
+}
+
+/* La fila delle aree, sopra il quadrante. Ogni area porta il suo nome e come
+ * sta adesso: con due aree si vuole sapere se l'altra è inserita senza dover
+ * passare di là, e un selettore che dice solo i nomi non lo direbbe. */
+function filaDelleAree(lista, labels) {
+  if (lista.length < 2) return "";
+  const states = allStates();
+  return `<div class="dm-sec-aree" role="tablist">${lista
+    .map((riga, indice) => {
+      const stato = states?.[entitaDellaCentrale(riga)];
+      const modo = alarmActiveMode(stato?.state);
+      const acceso = clean(stato?.state).toLowerCase().startsWith("armed");
+      const testi = labels.modes[modo] || null;
+      let come = labels.areaMuta;
+      if (acceso) come = testi ? labels.areaAccesa(testi.label) : labels.areaSpenta;
+      else if (stato) come = labels.areaSpenta;
+      return `<button type="button" class="dm-sec-area" data-dm-area="${esc(riga.id)}"
+        role="tab" aria-selected="${riga.corrente === true}"${riga.corrente ? ' data-on="true"' : ""}
+        data-armata="${acceso}">
+        <b>${esc(nomeDellaCentrale(riga, indice, labels.area))}</b>
+        <small>${esc(come)}</small>
+      </button>`;
+    })
+    .join("")}</div>`;
+}
+
+function syncAree(shell, labels) {
+  const lista = centraliDiCasa();
+  const stage = shell.querySelector("#alarm-stage");
+  if (!stage) return false;
+  let fila = shell.querySelector("[data-dm-sec-aree]");
+  if (lista.length < 2) {
+    fila?.remove();
+    return false;
+  }
+  if (!fila) {
+    fila = doc.createElement("div");
+    fila.dataset.dmSecAree = "true";
+    stage.before(fila);
+  }
+  const markup = filaDelleAree(lista, labels);
+  if (fila.innerHTML !== markup) fila.innerHTML = markup;
+  return true;
+}
+
 /* Lo stato della centrale, con l'entita' risolta come la risolve il runtime. */
 function alarmStateObject() {
-  const riferimento = "dm.security_centrale_allarme";
+  const riferimento = RIF_CENTRALE;
   let risolto = riferimento;
   try {
     risolto = clean(root.resolveEntity?.(riferimento)) || riferimento;
@@ -323,7 +427,9 @@ function requestCameraFrames() {
 }
 
 function cardsSignature(models) {
-  return JSON.stringify(models.map((model) => [model.slug, model.entity, model.name, model.channel]));
+  return JSON.stringify(
+    models.map((model) => [model.slug, model.entity, model.name, model.channel]),
+  );
 }
 
 /**
@@ -352,6 +458,8 @@ export function renderSecurity() {
   /* I tasti seguono la centrale: cambiare integrazione — o mapparla per la
    * prima volta — cambia quello che accetta, e la fila si rifa'. */
   syncModes(shell, labels);
+  /* E la fila delle aree, quando ce n'è più d'una. */
+  syncAree(shell, labels);
 
   const models = cameraModels();
   // A rebuilt wall is a wall of empty <img> elements: whatever frame the live
@@ -377,7 +485,8 @@ export function renderSecurity() {
   const meta = shell.querySelector("[data-dm-cam-meta]");
   if (meta) {
     const channels = total === 1 ? labels.channelsOne : labels.channels(total);
-    const detail = online === total ? labels.activeCount(online) : labels.offlineCount(total - online);
+    const detail =
+      online === total ? labels.activeCount(online) : labels.offlineCount(total - online);
     meta.textContent = total ? `${channels} · ${detail}` : "";
   }
 
@@ -386,7 +495,8 @@ export function renderSecurity() {
     const live = total > 0 && online > 0;
     pill.dataset.live = live ? "1" : "0";
     const text = pill.querySelector("b");
-    if (text) text.textContent = total === 0 ? labels.cctvNone : live ? labels.cctvOn : labels.cctvOff;
+    if (text)
+      text.textContent = total === 0 ? labels.cctvNone : live ? labels.cctvOn : labels.cctvOff;
   }
   return true;
 }
@@ -405,6 +515,16 @@ function openCamera(card) {
 
 function onShellClick(event) {
   const target = event.target;
+  const area = target?.closest?.("[data-dm-area]");
+  if (area) {
+    event.preventDefault();
+    if (passaAllAreaAllarme(clean(area.dataset.dmArea))) {
+      try {
+        renderSecurity();
+      } catch (_error) {}
+    }
+    return;
+  }
   if (target?.closest?.("[data-dm-open-config]")) {
     event.preventDefault();
     root.apriConfigEntita?.();
@@ -479,8 +599,7 @@ function publishAlarmHelpers() {
   root.dmAlarmModes = () => modiVisibili().map((voce) => voce.mode);
   /* Quelle che la centrale ACCETTA, scelta o non scelta: e' l'elenco che la
    * configurazione deve poter spuntare. */
-  root.dmAlarmSupportedModes = () =>
-    alarmModes(alarmStateObject()).map((voce) => voce.mode);
+  root.dmAlarmSupportedModes = () => alarmModes(alarmStateObject()).map((voce) => voce.mode);
 }
 
 export function installSecurityShowcaseSection() {
@@ -667,6 +786,23 @@ function securityCss() {
   color:var(--dm-sec-dim);text-transform:uppercase
 }
 .dm-sec-timer.show{display:inline-flex}
+
+/* Le aree (#285): la fila sopra il quadrante, con lo stato di ognuna.
+   Con due aree si vuole sapere se l'altra è inserita senza passare di là. */
+.dm-sec-aree{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.dm-sec-area{
+  flex:1 1 140px;display:flex;flex-direction:column;gap:2px;align-items:flex-start;
+  padding:9px 13px;border-radius:14px;font:inherit;text-align:left;cursor:pointer;
+  border:1px solid var(--dm-sec-border);background:var(--surface-2,#f8fafc);color:inherit
+}
+.dm-sec-area b{font-size:12.5px;font-weight:800;letter-spacing:.01em}
+.dm-sec-area small{font-size:11px;font-weight:700;opacity:.68}
+.dm-sec-area[data-armata="true"]{border-color:rgba(16,185,129,.55)}
+.dm-sec-area[data-armata="true"] small{color:#059669;opacity:1}
+.dm-sec-area[data-on="true"]{
+  border-color:var(--primary-color,#0ea5e9);
+  box-shadow:0 0 0 1px var(--primary-color,#0ea5e9) inset
+}
 
 /* keypad — keeps the legacy .alarm-mode-btn contract */
 .dm-sec-modes{

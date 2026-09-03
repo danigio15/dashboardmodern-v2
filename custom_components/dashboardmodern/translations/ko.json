@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Home Assistant 대시보드로도 등록",
           "admin_only": "관리자에게만 표시",
           "check_updates": "새 버전 확인",
-          "tickets_enabled": "대시보드에서 보내는 제보"
+          "tickets_enabled": "대시보드에서 보내는 제보",
+          "chat_enabled": "지원 채팅",
+          "chat_console_key": "지원 콘솔 키"
         },
         "data_description": {
           "allowed_users": "화면 표시 필터일 뿐입니다. 데이터와 서비스 접근은 여전히 Home Assistant 권한을 따릅니다.",
           "register_lovelace_dashboard": "대시보드는 관리자가 DashboardModern을 처음 열 때 만들어집니다.",
           "admin_only": "Home Assistant 자체 필터입니다. 관리자가 아닌 계정에서는 이쪽이 우선합니다.",
           "check_updates": "30분마다 GitHub에 새 릴리스가 있는지 물어보고 설정 → 업데이트에 표시합니다. 패널이 인터넷에 전혀 나가지 않게 하려면 끄세요. 대시보드 자체에는 필요하지 않습니다.",
-          "tickets_enabled": "대시보드를 쓰는 누구나 대시보드를 벗어나지 않고 결함을 알리거나, 제안하거나, 도움을 요청할 수 있게 합니다. 제보는 GitHub의 공개 이슈가 되며 본인 이름으로 열립니다 — HACS가 이미 요구한 바로 그 계정입니다. 끄면 집 밖으로 아무것도 나가지 않습니다."
+          "tickets_enabled": "대시보드를 쓰는 누구나 대시보드를 벗어나지 않고 결함을 알리거나, 제안하거나, 도움을 요청할 수 있게 합니다. 제보는 GitHub의 공개 이슈가 되며 본인 이름으로 열립니다 — HACS가 이미 요구한 바로 그 계정입니다. 끄면 집 밖으로 아무것도 나가지 않습니다.",
+          "chat_enabled": "대시보드를 관리하는 사람과의 비공개 대화입니다. 공개 이슈를 열지 않고, 계정도 없이 도움을 요청할 수 있습니다. GitHub이 아니라 전용 서비스를 거칩니다. 꺼두면 집 밖으로 아무것도 나가지 않습니다.",
+          "chat_console_key": "비워 두세요. 세상에 단 하나의 설치 — 대시보드를 관리하는 사람의 것 — 가 모두의 채팅을 읽고 답하기 위한 것입니다. 중계 서비스의 시크릿에 넣은 것과 같은 키입니다."
         }
       }
     }

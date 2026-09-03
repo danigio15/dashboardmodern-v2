@@ -12,10 +12,7 @@
  * Fare il contrario — chiedere tutto prima di creare qualcosa — e' il modo in
  * cui una finestra di configurazione diventa un modulo da compilare.
  */
-import {
-  MASSIMO_SEZIONI,
-  normalizzaSezioni,
-} from "../core/sezioni-mie.js";
+import { MASSIMO_SEZIONI, normalizzaSezioni } from "../core/sezioni-mie.js";
 import { CHIAVE_SEZIONI_MIE, ridisegnaSezioniMie, SEZIONI_MIE_TAB } from "./sezioni-mie-section.js";
 import {
   clean,
@@ -23,6 +20,7 @@ import {
   esc,
   installStyle,
   onEditorRedraw,
+  righeDelDocumento,
   readJson,
   root,
   t,
@@ -215,6 +213,16 @@ function leggiLaRiga(riga) {
   return letto;
 }
 
+/* Tutte le righe della scheda come sono adesso nel documento.
+ *
+ * Il tasto «Salva sezione» in fondo preme il salvataggio di ogni riga uno
+ * dopo l'altro: il primo scrive e ridisegna, e il ridisegno stacca gli altri
+ * bottoni dal documento. Chi scrive per primo, quindi, scrive per tutti —
+ * vedi `righeDelDocumento`. */
+function sezioniDalDocumento(body) {
+  return righeDelDocumento(body, "data-mia-sezione", sezioni(), (riga) => leggiLaRiga(riga));
+}
+
 function sostituisci(indice, voce) {
   const lista = sezioni().slice();
   lista[indice] = voce;
@@ -295,7 +303,9 @@ function onClick(event) {
 
   if (event.target.closest("[data-mia-save]")) {
     event.preventDefault();
-    sostituisci(indice, leggiLaRiga(riga));
+    const lista = sezioniDalDocumento(body);
+    lista[indice] = leggiLaRiga(riga);
+    salva(lista);
     ridisegna();
     root.edToast?.(t("💾 Sezione salvata", "💾 Section saved"));
   }

@@ -191,9 +191,18 @@ test("la caldaia col solo stato accende l'oblo' e si nomina per quello che legge
     source,
     /const brucia = lettura\.fiamma === true \|\| \(lettura\.fiamma == null && lettura\.acceso === true\)/,
   );
-  // E la pastiglia nomina quello che si sta leggendo davvero.
-  assert.match(source, /lettura\.fiamma != null/);
-  assert.ok(source.includes("Caldaia accesa"));
+  /* E la pastiglia non attribuisce mai una lettura che non c'e'.
+   *
+   * Prima diceva «Bruciatore acceso» a chi il bruciatore l'aveva mappato e
+   * «Caldaia accesa» a chi aveva solo lo stato — ma compariva soltanto per chi
+   * non aveva ne' sonde ne' pressione, e con le sonde lo stato non si vedeva
+   * («non mostra lo stato standby/in funzione», #274). Adesso c'e' sempre e
+   * dice della macchina, non del bruciatore: «In funzione», «A riposo», e
+   * «Stato non mappato» a chi non ha mappato niente — che e' l'unica risposta
+   * onesta quando non si sa. */
+  assert.match(source, /t\("In funzione", "Running"\)/);
+  assert.match(source, /t\("A riposo", "Standby"\)/);
+  assert.match(source, /t\("Stato non mappato", "State not mapped"\)/);
 });
 
 test("le due chiavi nuove viaggiano con la configurazione", async () => {

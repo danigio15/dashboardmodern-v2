@@ -62,7 +62,10 @@ test("il tempo si dice come lo direbbe una persona", () => {
   assert.equal(daQuanto(180), "da 3 ore");
   assert.equal(daQuanto(60 * 24 * 2), "da 2 giorni");
   assert.equal(daQuanto(0), "da poco");
-  assert.equal(daQuanto(80, (_it, en) => en), "for 1h 20m");
+  assert.equal(
+    daQuanto(80, (_it, en) => en),
+    "for 1h 20m",
+  );
 });
 
 /* Una tapparella dice di essere aperta con `open`, non con la posizione: il
@@ -96,7 +99,10 @@ test("le cose da fare si contano da dove stanno davvero", () => {
     ],
   };
   assert.equal(fraseDellaTessera(conListe), "2 cose ancora da fare.");
-  assert.equal(fraseDellaTessera({ key: "todo", blocks: [{ items: [] }] }), "Non c'e' niente da fare.");
+  assert.equal(
+    fraseDellaTessera({ key: "todo", blocks: [{ items: [] }] }),
+    "Non c'e' niente da fare.",
+  );
 });
 
 /* Non tutte le righe dicono `on`: un elettrodomestico dice `mode: "running"`,
@@ -128,7 +134,10 @@ test("la frase conta quello che c'e' davvero", () => {
     fraseDellaTessera(luci),
     "2 luci accese su 5: Lampadario Salone e Faretti Cucina e altre.".replace(" e altre", ""),
   );
-  assert.equal(fraseDellaTessera({ key: "luci", rows: [{ on: false }, { on: false }] }), "Sono tutte spente.");
+  assert.equal(
+    fraseDellaTessera({ key: "luci", rows: [{ on: false }, { on: false }] }),
+    "Sono tutte spente.",
+  );
 });
 
 test("il clima dice quanto manca all'obiettivo, e quando non manca niente lo dice", () => {
@@ -157,7 +166,10 @@ test("le sonde che non trovano acqua lo dicono in positivo", () => {
   assert.equal(fraseDellaTessera(asciutto), "Nessuna perdita. Tutte e 6 le sonde hanno risposto.");
   const bagnato = {
     key: "allagamenti",
-    rows: [{ on: true, name: "Lavanderia" }, { on: false, name: "Bagno" }],
+    rows: [
+      { on: true, name: "Lavanderia" },
+      { on: false, name: "Bagno" },
+    ],
   };
   assert.match(fraseDellaTessera(bagnato), /C'e' acqua: Lavanderia\./);
 });
@@ -177,7 +189,10 @@ test("le batterie dicono qual e' la piu' bassa, col suo nome", () => {
 /* Una sezione senza una frase sua non resta muta, e una sezione vuota lo dice
  * invece di far vedere un buco. */
 test("chi non ha una frase sua ne ha comunque una", () => {
-  assert.match(fraseDellaTessera({ key: "piscina", rows: [{ on: true }, { on: false }] }), /1 su 2/);
+  assert.match(
+    fraseDellaTessera({ key: "piscina", rows: [{ on: true }, { on: false }] }),
+    /1 su 2/,
+  );
   assert.equal(fraseDellaTessera({ key: "piscina", rows: [] }), "Qui non c'e' ancora niente.");
 });
 
@@ -189,31 +204,18 @@ test("le briciole del solare termico sono quelle disegnate", () => {
     "Ricircolo sanitario",
   ]);
   assert.deepEqual(bricioleDellaSezione("energia"), ["Produzione", "Consumi", "Report"]);
-  /* La tessera adesso si chiama «Porte/Finestre» — «altrimenti si confonde con
-   * le altre aperture» — e la briciola non ripete il titolo: dice cosa sta
-   * guardando, che sono i contatti. */
-  assert.deepEqual(bricioleDellaSezione("aperture", (_it, en) => en), ["Contacts", "Watch"]);
+  /* Chi non ha briciole non ne riceve di inventate: la tessera dei contatti
+   * non c'e' piu' — la sua notizia la da' Finestre — e con lei se ne sono
+   * andate le sue. */
+  assert.deepEqual(bricioleDellaSezione("aperture"), []);
 });
 
-/* «La piu' vecchia da 20698 giorni», cioe' il primo gennaio 1970.
+/* La riga che non sapeva da quando se n'e' andata con la sua tessera.
  *
- * Chi costruisce le righe mette `daQuando: null` quando Home Assistant non
- * dice da quando — un contatto appena adottato, o uno stato arrivato senza
- * `last_changed`. `Number(null)` pero' fa zero, e zero e' un numero finito e
- * minore di adesso: passava la guardia e usciva l'inizio dei tempi. */
-test("una riga che non sa da quando non inventa una data", () => {
-  const righe = [
-    { name: "Finestra bagno", on: true, daQuando: null },
-    { name: "Grata 2", on: true },
-    { name: "Porta cucina", on: false },
-  ];
-  const frase = fraseDellaTessera({ key: "aperture", rows: righe });
-  assert.match(frase, /2 apert[ae] su 3/);
-  assert.doesNotMatch(frase, /vecchia/);
-  /* Con una data vera la frase torna, e conta solo quella. */
-  const conData = fraseDellaTessera({
-    key: "aperture",
-    rows: [{ ...righe[0], daQuando: Date.now() - 3600000 }, righe[1], righe[2]],
-  });
-  assert.match(conData, /La piu' vecchia da un'ora/);
-});
+ * «La piu' vecchia da 20698 giorni», cioe' il primo gennaio 1970: era la
+ * tessera dei contatti a dire da quanto una finestra era aperta, e a
+ * inciampare su un `daQuando` mancante — `Number(null)` fa zero, che e' un
+ * numero finito e minore di adesso. Quella tessera non c'e' piu' («viene gia'
+ * gestito da Finestre... quindi e' un duplicato»), e con lei la frase e la sua
+ * trappola. Resta scritto qui perche' il giorno in cui qualcuno rimettera' un
+ * «da quanto» in una tessera, sappia dove aveva gia' sbagliato. */

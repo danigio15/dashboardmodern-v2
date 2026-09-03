@@ -286,3 +286,68 @@ export function dropPlantLoads(loads = [], plantId) {
     (load) => clean(load?.[LOAD_PLANT_FIELD]) !== id,
   );
 }
+
+/* ── la tessera della Home, con più di un impianto (#286) ──────────────── */
+
+/* «Ho fatto due impianti diversi avendo due appartamenti uniti con due
+ * contatori separati. Tutto bene nella sezione energia ma il widget in Home
+ * page è solo quello del primo impianto. Suggerisco di scegliere se avere un
+ * widget solo (con la somma di tutti gli impianti) oppure un widget per ogni
+ * impianto.»
+ *
+ * La tessera leggeva i quattro gruppi al primo livello, che sono quelli del
+ * primo impianto: il secondo contatore non compariva da nessuna parte, e chi
+ * guardava la Home vedeva metà della propria casa senza che niente lo dicesse.
+ *
+ * La scelta è quella suggerita, ed è una scelta perché le due risposte sono
+ * tutte e due giuste: chi ha unito due appartamenti vuole sapere quanto
+ * consuma la casa — una tessera, un numero — e chi tiene i due contatori
+ * separati per pagarli separati vuole vederli separati. Di serie la somma:
+ * è quello che una Home dice, e chi vuole il dettaglio ce l'ha in un tocco. */
+export const TESSERE_IMPIANTI_KEY = "cd_energia_tessere";
+export const TESSERA_SOMMA = "somma";
+export const TESSERA_PER_IMPIANTO = "una-per-impianto";
+
+/** Come si vuole vedere l'energia in Home. Con un impianto solo non cambia niente. */
+export function comeSiVedeLEnergia(stored) {
+  return clean(stored) === TESSERA_PER_IMPIANTO ? TESSERA_PER_IMPIANTO : TESSERA_SOMMA;
+}
+
+/**
+ * La somma di più letture, gruppo per gruppo.
+ *
+ * `letture` è una lista di `[{group, watts, soc}]`, una per impianto. Un
+ * gruppo che nessun impianto misura resta fuori: sommare due `null` non fa
+ * zero, fa «non lo sappiamo», e uno zero scritto grande sopra una casa che
+ * consuma è peggio di un trattino.
+ *
+ * La percentuale della batteria non si somma — due batterie al 50% non fanno
+ * il 100% — si fa la media di quelle che ce l'hanno.
+ */
+export function sommaLetture(letture = []) {
+  const per = new Map();
+  for (const riga of letture.flat()) {
+    if (!riga || !riga.group) continue;
+    const voce = per.get(riga.group) || { group: riga.group, watts: null, soc: null, quante: 0 };
+    if (typeof riga.watts === "number" && Number.isFinite(riga.watts))
+      voce.watts = (voce.watts ?? 0) + riga.watts;
+    if (typeof riga.soc === "number" && Number.isFinite(riga.soc)) {
+      voce.soc = (voce.soc ?? 0) + riga.soc;
+      voce.quante += 1;
+    }
+    per.set(riga.group, voce);
+  }
+  return [...per.values()]
+    .map(({ group, watts, soc, quante }) => {
+      const riga = { group, watts };
+      if (quante > 0) riga.soc = soc / quante;
+      return riga;
+    })
+    .filter((riga) => riga.watts != null || riga.soc != null);
+}
+
+/** La somma di più numeri, dove nessun numero vuol dire `null` e non zero. */
+export function sommaNumeri(valori = []) {
+  const veri = valori.filter((valore) => typeof valore === "number" && Number.isFinite(valore));
+  return veri.length ? veri.reduce((totale, valore) => totale + valore, 0) : null;
+}

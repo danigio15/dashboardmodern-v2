@@ -18,7 +18,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -699,9 +699,147 @@ const TARGETS = [
   },
   {
     id: "editor-alerts",
-    title: "Editor · avvisi",
+    title: "Editor \u00b7 avvisi",
     setup: () => {
       window.__dmPreview.editor("avvisi");
+    },
+  },
+
+  /* ── le sezioni nate nelle beta ─────────────────────────────────────────
+     Musica, Apri porte/cancelli, Continuit\u00e0, Agenda e Prese avevano il
+     codice e la scheda, e nella galleria non c'erano: chi guardava il README
+     vedeva una plancia ferma a due versioni prima. */
+  {
+    id: "media",
+    title: "Musica",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("media");
+    },
+    settle: 1200,
+  },
+  {
+    id: "doors",
+    title: "Apri porte/cancelli",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("porte");
+    },
+  },
+  {
+    id: "ups",
+    title: "Continuit\u00e0",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("ups");
+    },
+  },
+  {
+    id: "agenda",
+    title: "Agenda",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("calendario");
+    },
+    settle: 2200,
+  },
+  {
+    id: "sockets",
+    title: "Prese",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("prese");
+    },
+  },
+  {
+    /* Una sezione fatta dall'utente: compare nella barra come le altre, e la
+       sua voce porta il titolo che le ha dato lui. */
+    id: "my-section",
+    title: "Una sezione tua",
+    setup: () => {
+      window.__dmPreview.tab("mia-acquario");
+    },
+  },
+  {
+    id: "editor-media",
+    title: "Editor \u00b7 musica",
+    setup: () => {
+      window.__dmPreview.editor("media");
+    },
+  },
+  {
+    id: "editor-ups",
+    title: "Editor \u00b7 continuit\u00e0",
+    setup: () => {
+      window.__dmPreview.editor("ups");
+    },
+  },
+  {
+    id: "editor-agenda",
+    title: "Editor \u00b7 agenda",
+    setup: () => {
+      window.__dmPreview.editor("agenda");
+    },
+  },
+  {
+    id: "editor-sockets",
+    title: "Editor \u00b7 prese",
+    setup: () => {
+      window.__dmPreview.editor("prese");
+    },
+  },
+  {
+    id: "editor-my-entities",
+    title: "Editor \u00b7 le tue entit\u00e0",
+    setup: () => {
+      window.__dmPreview.editor("entita");
+    },
+  },
+  {
+    id: "editor-my-sections",
+    title: "Editor \u00b7 le tue sezioni",
+    setup: () => {
+      window.__dmPreview.editor("mie");
+    },
+  },
+  {
+    /* Il mazzo delle tessere da solo, senza il resto della Home: e' l'unica
+       fotografia che le mostra tutte insieme, ed e' quella che serve a chi
+       vuole vedere cosa la Home sa dire senza aprire niente. */
+    id: "widgets-grid",
+    title: "Le tessere della Home",
+    element: "#dm-widgets",
+    setup: () => {
+      window.__dmPreview.tab("home");
+    },
+    settle: 2400,
+  },
+  {
+    id: "editor-home",
+    title: "Editor \u00b7 home e meteo",
+    setup: () => {
+      window.__dmPreview.editor("sez0");
+    },
+  },
+  {
+    id: "editor-thermal",
+    title: "Editor \u00b7 gestione termica",
+    setup: () => {
+      window.__dmPreview.editor("sez3");
+    },
+  },
+  {
+    id: "editor-security",
+    title: "Editor \u00b7 sicurezza",
+    setup: () => {
+      window.__dmPreview.editor("sez4");
+    },
+  },
+  {
+    id: "editor-server",
+    title: "Editor \u00b7 minipc",
+    setup: () => {
+      window.__dmPreview.editor("sez6");
     },
   },
 ];
@@ -1008,7 +1146,7 @@ function installMockBackend(page) {
 /* Home Assistant REST fallbacks used by the legacy runtime when a WebSocket
    answer is unavailable. Without them the previews log 404s and some cards keep
    their loading state. */
-async function installRestRoutes(page, cameraStill, vehicleStill) {
+async function installRestRoutes(page, cameraStill, vehicleStill, albumStill) {
   const byId = new Map(haStates.map((item) => [item.entity_id, item]));
 
   await page.route("**/api/**", async (route) => {
@@ -1021,6 +1159,41 @@ async function installRestRoutes(page, cameraStill, vehicleStill) {
 
     if (url.pathname.startsWith("/api/dm_preview/") && vehicleStill)
       return route.fulfill({ contentType: "image/png", body: vehicleStill });
+
+    /* La copertina del brano: la scheda Musica la usa come sfondo, e senza
+       un'immagine vera non si vedrebbe cosa la sezione fa davvero. */
+    if (url.pathname.startsWith("/api/dm_album/") && albumStill)
+      return route.fulfill({ contentType: "image/png", body: albumStill });
+
+    /* Gli impegni dell'Agenda: la stessa risposta che dà il pannello
+       Calendario di Home Assistant, con un impegno oggi e due nei giorni
+       che seguono. */
+    if (url.pathname.startsWith("/api/calendars/")) {
+      const entity = decodeURIComponent(url.pathname.split("/api/calendars/")[1] || "");
+      const giorno = 86_400_000;
+      const iso = (offset) => new Date(Date.now() + offset).toISOString();
+      const eventi = {
+        "calendar.famiglia": [
+          { summary: "Cena dai nonni", start: iso(3 * 3_600_000), end: iso(5 * 3_600_000) },
+          { summary: "Saggio di danza", start: iso(giorno + 3_600_000), end: iso(giorno + 2 * 3_600_000) },
+          { summary: "Gita al lago", start: iso(3 * giorno), end: iso(3 * giorno + 8 * 3_600_000) },
+        ],
+        "calendar.lavoro": [
+          { summary: "Riunione settimanale", start: iso(giorno + 5 * 3_600_000), end: iso(giorno + 6 * 3_600_000) },
+          { summary: "Consegna preventivo", start: iso(2 * giorno), end: iso(2 * giorno + 3_600_000) },
+        ],
+      };
+      return json(
+        (eventi[entity] || []).map((evento) => ({
+          summary: evento.summary,
+          description: "",
+          location: "",
+          uid: `${entity}-${evento.summary}`,
+          start: { dateTime: evento.start },
+          end: { dateTime: evento.end },
+        })),
+      );
+    }
 
     if (url.pathname.startsWith("/api/history/period/")) {
       const start = Date.parse(decodeURIComponent(url.pathname.split("/api/history/period/")[1]));
@@ -1177,10 +1350,25 @@ async function renderVehicleStill(browser) {
   return buffer;
 }
 
-async function bootPage(context, cameraStill, vehicleStill) {
+async function renderAlbumStill(browser) {
+  const page = await browser.newPage({ viewport: { width: 600, height: 600 } });
+  await page.setContent(`<!doctype html><html><body style="margin:0">
+    <div style="width:600px;height:600px;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:18px;font-family:system-ui,sans-serif;color:#f8fafc;
+      background:linear-gradient(135deg,#7c3aed,#db2777 58%,#f97316)">
+      <div style="font-size:120px">\u266a</div>
+      <div style="font-size:26px;font-weight:700;letter-spacing:.02em">Una mattina</div>
+      <div style="font-size:16px;opacity:.82;letter-spacing:.18em">LUDOVICO EINAUDI</div>
+    </div></body></html>`);
+  const buffer = await page.screenshot({ type: "png" });
+  await page.close();
+  return buffer;
+}
+
+async function bootPage(context, cameraStill, vehicleStill, albumStill) {
   const page = await context.newPage();
   page.on("pageerror", (error) => console.warn("  ! page error:", error.message.slice(0, 160)));
-  await installRestRoutes(page, cameraStill, vehicleStill);
+  await installRestRoutes(page, cameraStill, vehicleStill, albumStill);
   await installRoutes(page);
   await installMockBackend(page);
 
@@ -1880,13 +2068,26 @@ async function main() {
 
   try {
     await waitForPort(PORT);
-    /* Svuotare la cartella ha senso solo per una passata che la riempie tutta.
-     * Una passata parziale — un tema solo, o `--only` — cancellerebbe il lavoro
-     * dell'altra: e' esattamente cosi' che una galleria chiara si e' portata via
-     * quella scura. Chi vuole davvero ripartire da zero lo chiede con `--fresh`. */
-    const partial = Boolean(THEME) || ONLY.length > 0;
-    if (KEEP === false && (FRESH || !partial)) {
+    /* Svuotare la cartella ha senso solo per la roba che questa passata
+     * riscrive.
+     *
+     * La regola prima era «una passata intera puo' cancellare tutto», e non e'
+     * vera: una passata senza `--theme` scrive solo i nomi senza suffisso, e i
+     * `-light` non li tocca — ma glieli cancellava lo stesso, e la galleria
+     * chiara spariva dalla cartella di lavoro. E' successo davvero, subito dopo
+     * averla generata: sono quaranta minuti che se ne vanno in silenzio, e in
+     * git ci si accorge solo di file spariti.
+     *
+     * Adesso si cancella per nome: chi scrive i `-light` toglie i `-light`, chi
+     * scrive gli altri toglie gli altri. `--fresh` resta il modo di dire
+     * «voglio davvero la cartella vuota», e `--only` non cancella niente perche'
+     * riempie solo qualche casella. */
+    const suo = (nome) => (THEME === "light" ? nome.endsWith("-light.webp") : !nome.endsWith("-light.webp"));
+    if (KEEP === false && FRESH) {
       await rm(OUT_DIR, { recursive: true, force: true });
+    } else if (KEEP === false && ONLY.length === 0) {
+      const presenti = existsSync(OUT_DIR) ? await readdir(OUT_DIR) : [];
+      for (const nome of presenti.filter(suo)) await rm(path.join(OUT_DIR, nome), { force: true });
     }
     await mkdir(OUT_DIR, { recursive: true });
 
@@ -1898,6 +2099,7 @@ async function main() {
 
     const cameraStill = await renderCameraStill(browser);
     const vehicleStill = await renderVehicleStill(browser);
+    const albumStill = await renderAlbumStill(browser);
     const encode = await createEncoder(browser);
     const targets = ONLY.length ? TARGETS.filter((item) => ONLY.includes(item.id)) : TARGETS;
     console.log(
@@ -1926,7 +2128,7 @@ async function main() {
         colorScheme: THEME === "light" ? "light" : "dark",
         reducedMotion: "reduce",
       });
-      const page = await bootPage(context, cameraStill, vehicleStill);
+      const page = await bootPage(context, cameraStill, vehicleStill, albumStill);
       console.log(`\n${label}:`);
       for (const target of scoped) {
         const suffix = `${label === "mobile" ? "-mobile" : ""}${THEME ? `-${THEME}` : ""}`;

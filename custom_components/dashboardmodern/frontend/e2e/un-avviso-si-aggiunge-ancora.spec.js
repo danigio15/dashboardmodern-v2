@@ -1,12 +1,22 @@
-/* Un'apertura si aggiunge sempre, e con la sua icona (#229).
+/* Un avviso si aggiunge sempre, e con la sua icona (#229) — e la tessera lo
+ * chiama col nome scelto, non con quello di fabbrica (#231).
  *
  * «Ne ho inserita una giorni fa, se provo ad aggiungerne altre non me le
  * salva.» Il salvataggio moriva in silenzio quando la lista salvata non era
  * piu' una lista — un salvataggio corrotto, un backup di un'altra versione — e
  * il tasto sembrava non fare niente. E l'icona si poteva scegliere solo per
- * gli avvisi personalizzati: per le Aperture il campo non c'era proprio.
+ * gli avvisi personalizzati.
  *
- * La prova parte dallo stato peggiore — lista corrotta E un'entita' tolta in
+ * Le due prove nascevano sul gruppo delle aperture, che non c'e' piu': «viene
+ * gia' gestito da Finestre, se li si mette il sensore finestra dice quale e'
+ * aperto, quindi e' un duplicato». Quello che difendevano pero' non era il
+ * gruppo — era il salvataggio, che e' uno solo per tutti, e la regola sul nome,
+ * che sta in `friendlyName` e vale per ogni tessera d'avviso. Perche' restino
+ * difese si spostano sulle Batterie, che quel salvataggio e quella tessera
+ * ce li hanno ancora: sarebbe stato piu' comodo cancellarle, ed e' esattamente
+ * il motivo per cui non si fa.
+ *
+ * La prima parte dallo stato peggiore — lista corrotta E un'entita' tolta in
  * passato che si riaggiunge — e pretende che due aggiunte di fila entrino,
  * sopravvivano al ricaricamento, e portino l'icona scelta.
  */
@@ -31,7 +41,7 @@ const SEME = {
   visibility: {},
 };
 
-test("due aperture di fila entrano anche partendo da uno stato sporco", async ({
+test("due avvisi di fila entrano anche partendo da uno stato sporco", async ({
   page,
 }, testInfo) => {
   test.setTimeout(150_000);
@@ -46,9 +56,9 @@ test("due aperture di fila entrano anche partendo da uno stato sporco", async ({
      * che non e' piu' una lista. */
     localStorage.setItem(
       "cd_gruppi_removed",
-      JSON.stringify({ win: ["binary_sensor.porta_2", "binary_sensor.contatto_vecchio"] }),
+      JSON.stringify({ batt: ["binary_sensor.pila_2", "binary_sensor.pila_vecchia"] }),
     );
-    localStorage.setItem("cd_gruppi_extra", JSON.stringify({ win: { rotta: true } }));
+    localStorage.setItem("cd_gruppi_extra", JSON.stringify({ batt: { rotta: true } }));
   });
 
   const aggiungi = async (ent, nome) => {
@@ -60,12 +70,12 @@ test("due aperture di fila entrano anche partendo da uno stato sporco", async ({
     await page.waitForTimeout(350);
     return page.evaluate(
       ({ ent, nome }) => {
-        document.getElementById("ed-avv-grp").value = "win";
+        document.getElementById("ed-avv-grp").value = "batt";
         document.getElementById("ed-avv-ent").value = ent;
         document.getElementById("ed-avv-name").value = nome;
         const icona = document.getElementById("ed-avv-icon");
         const iconaVisibile = Boolean(icona && icona.offsetParent !== null);
-        if (icona) icona.value = "🚪";
+        if (icona) icona.value = "🔋";
         window.edAddAvviso();
         return { iconaVisibile };
       },
@@ -73,11 +83,11 @@ test("due aperture di fila entrano anche partendo da uno stato sporco", async ({
     );
   };
 
-  const prima = await aggiungi("binary_sensor.porta_1", "Portoncino");
-  /* L'icona si sceglie anche per un'apertura, non solo per i personalizzati. */
+  const prima = await aggiungi("binary_sensor.pila_1", "Pila del salotto");
+  /* L'icona si sceglie per ogni avviso, non solo per i personalizzati. */
   expect(prima.iconaVisibile).toBe(true);
   await page.waitForTimeout(300);
-  await aggiungi("binary_sensor.porta_2", "Finestra studio");
+  await aggiungi("binary_sensor.pila_2", "Pila dello studio");
   await page.waitForTimeout(500);
 
   await page.reload();
@@ -88,17 +98,17 @@ test("due aperture di fila entrano anche partendo da uno stato sporco", async ({
     extra: JSON.parse(localStorage.getItem("cd_gruppi_extra") || "{}"),
     icone: JSON.parse(localStorage.getItem("cd_avvisi_icone") || "{}"),
     nomi: JSON.parse(localStorage.getItem("cd_avvisi_names_extra") || "{}"),
-    vive: window.eval("typeof GRUPPI_MONITORAGGIO!=='undefined' ? GRUPPI_MONITORAGGIO.win : null"),
+    vive: window.eval("typeof GRUPPI_MONITORAGGIO!=='undefined' ? GRUPPI_MONITORAGGIO.batt : null"),
   }));
-  expect(dopo.extra.win).toEqual(["binary_sensor.porta_1", "binary_sensor.porta_2"]);
-  expect(dopo.vive).toContain("binary_sensor.porta_1");
-  expect(dopo.vive).toContain("binary_sensor.porta_2");
-  expect(dopo.icone["binary_sensor.porta_1"]).toBe("🚪");
+  expect(dopo.extra.batt).toEqual(["binary_sensor.pila_1", "binary_sensor.pila_2"]);
+  expect(dopo.vive).toContain("binary_sensor.pila_1");
+  expect(dopo.vive).toContain("binary_sensor.pila_2");
+  expect(dopo.icone["binary_sensor.pila_1"]).toBe("🔋");
   /* E il nome scelto e' rimasto: e' quello che i widget devono mostrare. */
-  expect(dopo.nomi["binary_sensor.porta_1"]).toBe("Portoncino");
+  expect(dopo.nomi["binary_sensor.pila_1"]).toBe("Pila del salotto");
 });
 
-test("il widget delle aperture usa il nome scelto, non quello di fabbrica", async ({
+test("la tessera di un avviso usa il nome scelto, non quello di fabbrica", async ({
   page,
 }, testInfo) => {
   /* #231: in Home compariva «Sensore Porta/finestra Camera matrimoniale
@@ -117,19 +127,25 @@ test("il widget delle aperture usa il nome scelto, non quello di fabbrica", asyn
   });
   await page.evaluate(() => {
     const stati = eval("_RAW_STATES");
-    stati["binary_sensor.sensore_porta_finestra_camera"] = {
-      entity_id: "binary_sensor.sensore_porta_finestra_camera",
-      state: "on",
-      attributes: { friendly_name: "Sensore Porta/finestra Camera matrimoniale" },
+    /* Sotto il venti per cento: e' la soglia a cui la tessera si accende, e
+     * senza una pila scarica non c'e' niente da nominare. */
+    stati["sensor.sensore_porta_finestra_camera_batteria"] = {
+      entity_id: "sensor.sensore_porta_finestra_camera_batteria",
+      state: "8",
+      attributes: {
+        friendly_name: "Sensore Porta/finestra Camera matrimoniale Batteria",
+        device_class: "battery",
+        unit_of_measurement: "%",
+      },
       last_changed: new Date().toISOString(),
     };
     localStorage.setItem(
       "cd_gruppi_extra",
-      JSON.stringify({ win: ["binary_sensor.sensore_porta_finestra_camera"] }),
+      JSON.stringify({ batt: ["sensor.sensore_porta_finestra_camera_batteria"] }),
     );
     localStorage.setItem(
       "cd_avvisi_names_extra",
-      JSON.stringify({ "binary_sensor.sensore_porta_finestra_camera": "Porta camera" }),
+      JSON.stringify({ "sensor.sensore_porta_finestra_camera_batteria": "Porta camera" }),
     );
     /* La prova legge la didascalia della tessera piena: sul telefono la
      * modalita' compatta (Auto) la nasconderebbe, e qui non e' lei l'imputata. */
@@ -137,23 +153,23 @@ test("il widget delle aperture usa il nome scelto, non quello di fabbrica", asyn
     /* Il gruppo vivo si costruisce all'avvio: qui si semina dopo, quindi si
      * aggiorna anche lui — e' quello che fa il salvataggio vero. */
     window.eval(
-      "if (typeof GRUPPI_MONITORAGGIO!=='undefined' && !GRUPPI_MONITORAGGIO.win.includes('binary_sensor.sensore_porta_finestra_camera')) GRUPPI_MONITORAGGIO.win.push('binary_sensor.sensore_porta_finestra_camera')",
+      "if (typeof GRUPPI_MONITORAGGIO!=='undefined' && !GRUPPI_MONITORAGGIO.batt.includes('sensor.sensore_porta_finestra_camera_batteria')) GRUPPI_MONITORAGGIO.batt.push('sensor.sensore_porta_finestra_camera_batteria')",
     );
     window.applyStates?.();
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
   });
   await page.waitForTimeout(1600);
 
-  const tessera = page.locator('#dm-widgets .dm-tile[data-dm-widget="aperture"]');
+  const tessera = page.locator('#dm-widgets .dm-tile[data-dm-widget="batterie"]');
   await expect(tessera).toBeVisible();
-  /* Gia' la tessera: la didascalia e' il nome della prima aperta. */
+  /* Gia' la tessera: la didascalia e' il nome della piu' scarica. */
   expect(await tessera.innerText()).toContain("Porta camera");
 
   await tessera.click();
   await page.waitForTimeout(400);
-  const finestra = page.locator('#dm-widget-popup [data-dm-widget-detail="aperture"]');
+  const finestra = page.locator('#dm-widget-popup [data-dm-widget-detail="batterie"]');
   await expect(finestra).toBeVisible();
   const testo = await finestra.innerText();
   expect(testo).toContain("Porta camera");
-  expect(testo).not.toContain("Sensore Porta/finestra Camera matrimoniale");
+  expect(testo).not.toContain("Sensore Porta/finestra Camera matrimoniale Batteria");
 });

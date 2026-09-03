@@ -78,9 +78,13 @@ test("togliere una chiave non alza la revisione", async () => {
    * caldaia (#253, `cd_impianti_termici` e `cd_caldaia`), la 17 col gruppo di
    * continuita' (#256, `cd_ups`), la 18 coi calendari (#259,
    * `cd_calendari`), la 19 con le sezioni che si fa l'utente (#262,
-   * `cd_sezioni_mie`). Quelle tolte restano fuori dall'elenco, che e' quello
-   * che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 19);
+   * `cd_sezioni_mie`), la 20 con gli impianti solari (`cd_solari` e
+   * `cd_solare_scelto`), che adesso possono essere piu' d'uno, la 21 con le
+   * aree d'allarme (#285, `cd_centrali` e `cd_centrale_scelta`), la 22 con
+   * come si vede l'energia in Home (#286, `cd_energia_tessere`), la 23 con la
+   * doppia conferma delle aperture (#275, `cd_porte_conferma`). Quelle tolte
+   * restano fuori dall'elenco, che e' quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 25);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

@@ -22,14 +22,18 @@
           "register_lovelace_dashboard": "Enregistrer aussi comme tableau de bord Home Assistant",
           "admin_only": "Visible uniquement par les administrateurs",
           "check_updates": "Rechercher les nouvelles versions",
-          "tickets_enabled": "Signalements depuis le tableau de bord"
+          "tickets_enabled": "Signalements depuis le tableau de bord",
+          "chat_enabled": "Chat d'assistance",
+          "chat_console_key": "Clé de la console d'assistance"
         },
         "data_description": {
           "allowed_users": "Filtre d'affichage uniquement. Les données et les services restent soumis aux permissions Home Assistant.",
           "register_lovelace_dashboard": "Le tableau de bord est créé à la première ouverture par un administrateur.",
           "admin_only": "Filtre natif Home Assistant ; il l'emporte pour les comptes non administrateurs.",
           "check_updates": "Demande à GitHub toutes les demi-heures si une version plus récente est parue, et l'affiche dans Paramètres → Mises à jour. Désactivez-le pour que le panneau ne sorte pas sur internet ; le tableau de bord n'en a jamais besoin.",
-          "tickets_enabled": "Permet à qui utilise le tableau de bord de signaler un bogue, proposer une idée ou demander de l'aide sans en sortir. Le signalement devient un ticket public sur GitHub, ouvert en son nom — le même compte que HACS lui a déjà demandé. Désactivé, rien ne sort de la maison."
+          "tickets_enabled": "Permet à qui utilise le tableau de bord de signaler un bogue, proposer une idée ou demander de l'aide sans en sortir. Le signalement devient un ticket public sur GitHub, ouvert en son nom — le même compte que HACS lui a déjà demandé. Désactivé, rien ne sort de la maison.",
+          "chat_enabled": "Une conversation privée avec la personne qui maintient le tableau de bord, pour demander de l'aide sans ouvrir de ticket public et sans aucun compte. Cela passe par un service dédié, pas par GitHub. Désactivée, rien ne sort de la maison.",
+          "chat_console_key": "Laisse-la vide. Elle sert à UNE installation au monde — celle de la personne qui maintient le tableau de bord — pour lire les discussions de tous et y répondre. C'est la même clé placée parmi les secrets du relais."
         }
       }
     }

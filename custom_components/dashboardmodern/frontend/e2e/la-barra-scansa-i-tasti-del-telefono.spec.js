@@ -49,6 +49,21 @@ async function fingiIlFondoDiSistema(page, pixel) {
   await page.waitForTimeout(600);
 }
 
+/* La plancia rimisura la fascia poco dopo l'avvio — a 400 e a 1500
+ * millisecondi, perche' il pannello di Home Assistant finisce di impaginarsi
+ * dopo di noi e una misura presa troppo presto e' uno zero. Quella seconda
+ * passata riscrive la stessa variabile che qui si finge: se cade in mezzo alla
+ * prova, il telefono coi tasti torna un telefono senza, e la prova accusa la
+ * barra di non essersi mossa.
+ *
+ * Non e' un difetto della plancia ed e' sempre stato li' dentro: si vedeva
+ * come un rosso che va e viene, e i tentativi automatici lo rimettevano in
+ * piedi. Si aspetta che l'ultima misura sia passata, e da quel momento la
+ * variabile e' della prova. */
+async function laMisuraSiFerma(page) {
+  await page.waitForTimeout(1800);
+}
+
 test("la barra si alza esattamente di quello che il sistema si prende", async ({
   page,
 }, testInfo) => {
@@ -59,6 +74,7 @@ test("la barra si alza esattamente di quello che il sistema si prende", async ({
   /* La barra ferma: e' come parte, e su un telefono e' quella che si vede. */
   await page.evaluate(() => document.body.classList.add("cd-nav-fixed"));
   await expect(page.locator("nav.tabs.bottom-nav-bar")).toBeVisible({ timeout: 20_000 });
+  await laMisuraSiFerma(page);
 
   /* Senza niente da scansare la barra sta dov'e' sempre stata: chi non ha i
    * tasti non deve vedersela sollevata per un difetto che non ha. */
@@ -84,6 +100,7 @@ test("lo spazio sotto l'ultima card cresce insieme alla barra", async ({ page },
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
   await page.evaluate(() => document.body.classList.add("cd-nav-fixed"));
+  await laMisuraSiFerma(page);
 
   const spazioInFondo = () =>
     page.evaluate(() => Math.round(parseFloat(getComputedStyle(document.body).paddingBottom) || 0));
@@ -119,6 +136,12 @@ test("anche la maniglia che tira fuori la barra sta sopra i tasti", async ({ pag
   )
     test.skip(true, "questo schermo non ha la maniglia");
 
+  /* La stessa attesa della prova qui sopra, e per la stessa ragione: la
+   * plancia rimisura la fascia di sistema a 1500 millisecondi, e se quella
+   * passata cade fra le due letture riscrive la variabile che qui si finge —
+   * il telefono coi tasti torna un telefono senza, e la maniglia sembra non
+   * essersi mossa. Mancava solo qui, ed e' il rosso che andava e veniva. */
+  await laMisuraSiFerma(page);
   await fingiIlFondoDiSistema(page, 0);
   const aRiposo = await altezzaDalFondo(page, maniglia);
   await fingiIlFondoDiSistema(page, 48);

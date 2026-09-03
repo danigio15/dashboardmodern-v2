@@ -77,9 +77,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Le segnalazioni sono dell'installazione, non della singola plancia:
         # chi ne ha due non ha due code, e il giro periodico lo tiene la stessa
         # plancia che porta l'avviso di aggiornamento.
+        from .chat import async_setup_chat
         from .tickets import async_setup_tickets
 
         await async_setup_tickets(hass, entry)
+        # La chat sta accanto alle segnalazioni e non dentro: sono due porte
+        # diverse — una issue pubblica e una conversazione privata — e chi
+        # spegne l'una puo' voler tenere accesa l'altra.
+        await async_setup_chat(hass, entry)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

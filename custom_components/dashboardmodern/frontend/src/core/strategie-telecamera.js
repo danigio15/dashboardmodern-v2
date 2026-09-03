@@ -44,6 +44,11 @@ export const ATTESE = Object.freeze({
   HLS_LOCALE: 10_000,
   HLS_SVEGLIA: 25_000,
   MJPEG: 3_000,
+  /* Il primo fotogramma di chi dorme arriva dopo la sveglia, e a questo punto
+   * l'HLS ha gia' aspettato la sua: qui bastano pochi secondi in piu' — il
+   * proxy risponde appena ha un'immagine, e se non ne ha nemmeno una restano
+   * le istantanee, che sono subito dopo. */
+  MJPEG_SVEGLIA: 8_000,
 });
 
 /* Le integrazioni le cui telecamere si accendono su richiesta.
@@ -121,11 +126,25 @@ export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
       sveglia: dorme,
     });
 
-  /* MJPEG vuole un flusso continuo dal proxy: una telecamera che dorme non ce
-   * l'ha, e l'attesa finisce sempre a vuoto. Meglio andare dritti alle
-   * istantanee, che per lei sono la cosa giusta. */
-  if (dorme) strade.push({ nome: "MJPEG", salta: "telecamera-che-dorme" });
-  else strade.push({ nome: "MJPEG", attesa: ATTESE.MJPEG });
+  /* MJPEG si prova sempre, anche per chi dorme.
+   *
+   * Qui si saltava: una telecamera che dorme non ha un flusso continuo da dare
+   * e l'attesa — si diceva — finisce a vuoto. Ma il salto veniva deciso PRIMA
+   * di provare l'HLS, e se l'HLS regge a MJPEG non ci si arriva comunque:
+   * quel salto non risparmiava niente, e valeva soltanto nel momento in cui
+   * l'HLS aveva appena fallito — cioe' esattamente quando un'altra strada dal
+   * vivo serve. Chi dorme finiva sulle istantanee, due fotogrammi al secondo
+   * chiesti dal browser, mentre il proxy di Home Assistant gliene avrebbe
+   * dati altrettanti spingendoli da solo: e' quello che fa la card
+   * `picture-entity` con `camera_view: live`, ed e' il confronto che si e'
+   * visto dal vero su una Arlo — «dalla card YAML si muove, dalla plancia no».
+   *
+   * Costa tre secondi, e solo a chi e' gia' rimasto senza video. */
+  strade.push({
+    nome: "MJPEG",
+    attesa: dorme ? ATTESE.MJPEG_SVEGLIA : ATTESE.MJPEG,
+    sveglia: dorme,
+  });
 
   /* Le istantanee non si saltano mai: sono l'ultima rete, e non hanno attesa
    * perche' o il fotogramma arriva o non arriva. */

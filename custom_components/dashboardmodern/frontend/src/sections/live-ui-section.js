@@ -1,5 +1,12 @@
 import {
-allStates,
+  flussoDaIstantanea,
+  percorsoDelFlusso,
+  stessoFlusso,
+  vuoleIlVivo,
+} from "../core/telecamera-dal-vivo.js";
+import {
+  allStates,
+  chiediAHomeAssistant,
   clean,
   doc,
   gettoneDiAccesso,
@@ -14,6 +21,7 @@ const state = (root[KEY] ||= {
   frame: 0,
   previousCameraRefresh: null,
   cameraUrls: new Map(),
+  firme: new Map(),
   cameraTimer: 0,
   building: false,
 });
@@ -98,7 +106,10 @@ function cacheBusted(path) {
   const raw = clean(path);
   if (!raw) return "";
   try {
-    const url = new URL(raw, doc?.baseURI || root.location?.href || "http://dashboardmodern.invalid/");
+    const url = new URL(
+      raw,
+      doc?.baseURI || root.location?.href || "http://dashboardmodern.invalid/",
+    );
     url.searchParams.set("dm_t", String(Date.now()));
     return url.href;
   } catch (_error) {
@@ -106,7 +117,6 @@ function cacheBusted(path) {
     return `${raw}${separator}dm_t=${Date.now()}`;
   }
 }
-
 
 function replaceCameraObjectUrl(chiave, nextUrl, registry = state.cameraUrls) {
   const previous = registry.get(chiave);
@@ -179,10 +189,70 @@ function chiaveImmagine(image, entity) {
  * degli object URL stanno qui una volta sola. Ogni chiamante porta il SUO
  * registro degli URL: revocare il blob dell'altro mentre e' ancora sullo
  * schermo lo farebbe diventare un rettangolo grigio. */
+/* Il percorso del flusso firmato dal socket, per chi non ha `entity_picture`.
+ *
+ * Un `<img>` non puo' portare un'intestazione `Authorization`, quindi il
+ * gettone deve stare nell'indirizzo: o e' quello che la foto si porta gia'
+ * dietro, o lo mette Home Assistant firmando il percorso. Le firme si tengono
+ * finche' valgono, che sono quattro ore: rifarle a ogni giro del cronometro
+ * sarebbe un messaggio sul socket ogni quattro secondi per telecamera. */
+const FIRMA_DURA_MS = 3 * 60 * 60 * 1000;
+
+async function flussoFirmato(entity) {
+  const percorso = percorsoDelFlusso(entity);
+  if (!percorso) return "";
+  state.firme ||= new Map();
+  const avuta = state.firme.get(entity);
+  if (avuta && avuta.quando > Date.now() - FIRMA_DURA_MS) return avuta.url;
+  try {
+    const risposta = await chiediAHomeAssistant({
+      type: "auth/sign_path",
+      path: percorso,
+      expires: 4 * 60 * 60,
+    });
+    const url = clean(risposta?.path);
+    if (url) state.firme.set(entity, { url, quando: Date.now() });
+    return url;
+  } catch (_error) {
+    return "";
+  }
+}
+
+/* Una telecamera «dal vivo»: il flusso continuo, appeso all'immagine una volta
+ * sola.
+ *
+ * Un MJPEG e' una risposta che non finisce: riassegnare `src` la chiude e la
+ * riapre, e il cronometro del muro passa ogni quattro secondi. Percio' qui si
+ * guarda prima se quel flusso e' gia' quello appeso, e in quel caso non si
+ * tocca niente — l'immagine si sta gia' muovendo da sola. */
+async function avviaIlFlusso(camera, image, picture) {
+  const indirizzo = flussoDaIstantanea(picture) || (await flussoFirmato(camera.entity));
+  if (!indirizzo) return false;
+  if (stessoFlusso(image, indirizzo)) return true;
+  image.dataset.dmCameraStream = indirizzo;
+  image.dataset.dmCameraEntity = camera.entity;
+  if (image.dataset.dmCameraState !== "ready") image.dataset.dmCameraState = "loading";
+  image.onload = () => {
+    image.dataset.dmCameraState = "ready";
+  };
+  image.onerror = () => {
+    /* Il flusso non e' partito: l'istantanea resta la rete sotto, e al giro
+     * dopo il caricatore ci ricasca da solo perche' il segno se n'e' andato. */
+    delete image.dataset.dmCameraStream;
+    image.dataset.dmCameraState = "unavailable";
+  };
+  image.src = indirizzo;
+  return true;
+}
+
 export async function loadCameraFrame(camera, image, registry = state.cameraUrls) {
   if (!image) return false;
   const current = allStates()?.[camera.entity];
   const picture = clean(current?.attributes?.entity_picture);
+  /* Chi e' stato messo dal vivo prende il flusso, e da li' in poi si muove da
+   * solo: il resto di questa funzione e' il mestiere dei fotogrammi. */
+  if (vuoleIlVivo(camera) && (await avviaIlFlusso(camera, image, picture))) return true;
+  if (image.dataset.dmCameraStream) delete image.dataset.dmCameraStream;
   if (!picture) {
     image.dataset.dmCameraState = "unavailable";
     return false;
@@ -286,7 +356,8 @@ function stopCameraTimer() {
 }
 
 export function syncCameraTimer() {
-  const wanted = securityVisible() && doc?.visibilityState !== "hidden" && configuredCameras().length > 0;
+  const wanted =
+    securityVisible() && doc?.visibilityState !== "hidden" && configuredCameras().length > 0;
   if (!wanted) {
     stopCameraTimer();
     return false;
@@ -344,7 +415,11 @@ export function installLiveUiSection() {
   if (state.installed) return;
   state.installed = true;
 
-  for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
+  for (const eventName of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "pageshow",
+  ]) {
     root.addEventListener?.(eventName, () => {
       installCameraOwner();
       scheduleLiveUiSync();

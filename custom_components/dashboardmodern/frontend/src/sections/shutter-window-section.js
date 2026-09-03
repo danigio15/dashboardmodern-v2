@@ -277,6 +277,42 @@ function caselle() {
   ];
 }
 
+/* La stanza, in cima e col suo nome scritto sopra.
+ *
+ * «La stanza la devi spostare in alto dove si sceglie il nome e devi indicare
+ * che e' la stanza.» Il guscio la stampa come un `<select>` nudo, senza
+ * etichetta, subito dopo la casella dell'entita': con le sei caselle che
+ * questo modulo aggiunge in mezzo finiva undici campi piu' giu', fra la
+ * posizione preferita e la spunta delle percentuali invertite — una tendina
+ * che diceva «Salone» senza dire di cosa.
+ *
+ * Va dove si decide di che riga si tratta: sotto il nome, prima di tutto il
+ * resto. E si porta un'etichetta, come ogni altra casella della scheda.
+ */
+function vestiLaStanza(body) {
+  const room = body?.querySelector?.("#ed-tp-room");
+  const nome = body?.querySelector?.("#ed-tp-name");
+  if (!room || !nome) return false;
+  let riquadro = room.closest("label.ed-slot");
+  if (!riquadro) {
+    riquadro = doc.createElement("label");
+    riquadro.className = "ed-slot dm-tw-slot";
+    riquadro.dataset.dmTwSlot = "ed-tp-room";
+    const testa = doc.createElement("span");
+    testa.className = "ed-slot-lbl";
+    testa.textContent = t("Stanza", "Room");
+    room.before(riquadro);
+    riquadro.append(testa, room);
+    /* Il margine se lo prende il riquadro: il `<select>` lo portava addosso, e
+     * dentro l'etichetta diventava uno stacco in mezzo alla casella. */
+    room.style.marginBottom = "0";
+  }
+  /* Subito dopo il nome, a ogni giro: il guscio ristampa il modulo da capo
+   * quando l'elenco cambia, e la tendina tornerebbe in fondo. */
+  if (nome.nextElementSibling !== riquadro) nome.after(riquadro);
+  return true;
+}
+
 /* La casella della posizione preferita (#200): un numero, non un'entita' —
  * niente lente. 0 = chiusa, 100 = aperta; e' la voce con la stella nella
  * tendina della card, non l'unica percentuale che si puo' scegliere. */
@@ -331,6 +367,9 @@ function ancoraSottoLaPrincipale(body) {
 }
 
 export function ensureContactField(body = doc?.getElementById("ed-body")) {
+  /* Prima la stanza: sale in cima, e le sei caselle qui sotto si mettono in
+   * fila dopo l'entita' senza trovarsela in mezzo. */
+  vestiLaStanza(body);
   const ancora = ancoraSottoLaPrincipale(body);
   if (!ancora) return false;
   let ultimo = ancora;

@@ -1,3 +1,4 @@
+import { fondoDiSistema, inPixel } from "../core/fondo-di-sistema.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import { clean, doc, installStyle, root, t } from "./shared.js";
 
@@ -520,10 +521,11 @@ export function hideNavigation() {
 export function scheduleNavigationAutoHide(delay = AUTO_HIDE_MS) {
   clearAutoHide();
   if (navFixed() || !touchNavigation()) return false;
-  state.autoHide = root.setTimeout?.(() => {
-    state.autoHide = 0;
-    hideNavigation();
-  }, delay) || 0;
+  state.autoHide =
+    root.setTimeout?.(() => {
+      state.autoHide = 0;
+      hideNavigation();
+    }, delay) || 0;
   return Boolean(state.autoHide);
 }
 
@@ -677,6 +679,7 @@ const OGGETTO_DELLA_PAGINA = Object.freeze({
   aperture: "aperture",
   doors: "aperture",
   telecamere: "telecamere",
+  media: "media",
   config: "impostazioni",
 });
 
@@ -716,9 +719,77 @@ function accodaDopo(nome) {
   return true;
 }
 
+/* ── il fondo che si prende il sistema (#249) ──────────────────────────── */
+
+/* Quanto vale `env(safe-area-inset-bottom)` in UN documento, misurato invece
+ * che chiesto: non c'è un modo di leggere una variabile d'ambiente da
+ * JavaScript, ma c'è di mettere un elemento alto quanto lei e guardare quanto è
+ * venuto. Il riquadro non si vede e non si tocca: nasce, si misura, se ne va. */
+function insetDi(documento) {
+  try {
+    const dove = documento?.body || documento?.documentElement;
+    if (!dove) return 0;
+    const sonda = documento.createElement("div");
+    sonda.style.cssText =
+      "position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);" +
+      "pointer-events:none;visibility:hidden";
+    dove.append(sonda);
+    const alto = sonda.getBoundingClientRect().height;
+    sonda.remove();
+    return alto;
+  } catch (_error) {
+    return 0;
+  }
+}
+
+/* Quanto spazio l'ospite lascia già libero sotto la nostra cornice. Se un
+ * giorno Home Assistant scanserà i tasti per conto suo, qui non si aggiungerà
+ * più niente invece di alzare la barra due volte. */
+function giaLasciatoSotto(cima) {
+  try {
+    const cornice = root.frameElement;
+    if (!cornice || !cima?.documentElement) return 0;
+    const suo = cornice.getBoundingClientRect();
+    return cima.documentElement.clientHeight - suo.bottom;
+  } catch (_error) {
+    return 0;
+  }
+}
+
+/* La plancia ospitata vive in una cornice, e dentro una cornice le zone sicure
+ * rispondono sempre zero: il numero si va a prendere dove esiste. Il documento
+ * in cima è della stessa origine — la cornice è `srcdoc` — ma se un giorno non
+ * lo fosse, leggerlo lancia e qui si resta a quello che si ha. */
+export function misuraIlFondoDiSistema() {
+  if (!doc?.documentElement) return 0;
+  const proprio = insetDi(doc);
+  let ospite = 0;
+  let lasciato = 0;
+  try {
+    const cima = root.top && root.top !== root ? root.top.document : null;
+    if (cima) {
+      ospite = insetDi(cima);
+      lasciato = giaLasciatoSotto(cima);
+    }
+  } catch (_error) {
+    /* Cornice di un'altra origine: non c'è niente da chiedere. */
+  }
+  const valore = fondoDiSistema(proprio, ospite, lasciato);
+  doc.documentElement.style.setProperty("--dm-fondo-di-sistema", inPixel(valore));
+  return valore;
+}
+
 export function installNavigationSection() {
   if (!doc || state.installed) return;
   state.installed = true;
+  misuraIlFondoDiSistema();
+  /* Si rimisura quando lo schermo cambia forma: girare il telefono, aprire la
+   * tastiera, entrare a schermo intero cambiano la fascia di sistema. */
+  for (const evento of ["resize", "orientationchange", "pageshow"])
+    root.addEventListener?.(evento, () => misuraIlFondoDiSistema());
+  /* E poco dopo l'avvio: il pannello di Home Assistant finisce di impaginarsi
+   * dopo di noi, e una misura presa troppo presto è uno zero. */
+  for (const attesa of [400, 1500]) root.setTimeout?.(() => misuraIlFondoDiSistema(), attesa);
   applyNavbarMode();
   configSempreUltima();
   accodaDopo("cdApplyNavOrder");

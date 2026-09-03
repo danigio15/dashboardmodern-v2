@@ -44,7 +44,7 @@ from .config_store import (
     SnapshotTooLargeError,
     async_get_config_store,
 )
-from .const import DOMAIN
+from .const import CHAT_MAX_TESTO, DOMAIN
 from .github_client import DevicePending, GitHubError
 from .github_tokens import async_get_token_store
 from .ticket_store import (
@@ -93,6 +93,17 @@ TYPE_TICKET_THREAD = f"{DOMAIN}/tickets/thread"
 TYPE_TICKET_REPLY = f"{DOMAIN}/tickets/reply"
 TYPE_TICKET_TAKE = f"{DOMAIN}/tickets/take"
 TYPE_TICKET_UNREAD = f"{DOMAIN}/tickets/unread"
+# La chat di assistenza. Sono comandi suoi e non delle segnalazioni: le due
+# porte sono diverse — una issue pubblica e una conversazione privata — e chi
+# legge questa lista deve vederlo senza aprire i file.
+TYPE_CHAT_STATE = f"{DOMAIN}/chat/state"
+TYPE_CHAT_THREAD = f"{DOMAIN}/chat/thread"
+TYPE_CHAT_SEND = f"{DOMAIN}/chat/send"
+TYPE_CHAT_FORGET = f"{DOMAIN}/chat/forget"
+TYPE_CHAT_QUEUE = f"{DOMAIN}/chat/queue"
+TYPE_CHAT_OPEN = f"{DOMAIN}/chat/open"
+TYPE_CHAT_ANSWER = f"{DOMAIN}/chat/answer"
+
 TYPE_TICKET_AUTH_START = f"{DOMAIN}/tickets/auth/start"
 TYPE_TICKET_AUTH_POLL = f"{DOMAIN}/tickets/auth/poll"
 TYPE_TICKET_AUTH_FORGET = f"{DOMAIN}/tickets/auth/forget"
@@ -680,6 +691,213 @@ async def async_ticket_unread(
     connection.send_result(msg["id"], {"messages": await async_unread(hass)})
 
 
+# ─── La chat di assistenza ───────────────────────────────────────────────────
+#
+# Quello che le segnalazioni non potevano essere: una conversazione privata fra
+# chi chiede aiuto e chi la plancia la mantiene, che non diventa una issue
+# pubblica e non chiede nessun account. Passa dal centralino (`centralino/`),
+# il progetto sta in docs/CHAT.md.
+#
+# Nessuno di questi comandi porta un segreto. Il segreto della casa e la chiave
+# della console stanno nel backend, e di qui passano solo parole scritte da una
+# persona.
+
+
+def _chat_denied(hass: HomeAssistant, connection: Any, msg: dict[str, Any]) -> bool:
+    """Chi puo' usare questa plancia puo' scrivere all'assistenza.
+
+    Non serve essere amministratore: chiedere aiuto e' esattamente la cosa che
+    fa chi non amministra niente, e riservarla a chi ha le chiavi di casa
+    vorrebbe dire toglierla proprio a chi la userebbe.
+    """
+    if _authorized(hass, connection, None):
+        return False
+    _deny(connection, msg)
+    return True
+
+
+def _console_chat_denied(
+    hass: HomeAssistant, connection: Any, msg: dict[str, Any]
+) -> bool:
+    """Per rispondere servono due cose: le chiavi di casa e quelle del centralino.
+
+    La chiave del centralino sta nelle opzioni di un Home Assistant solo al
+    mondo. Amministratore da solo non basta: l'amministratore di casa propria
+    non e' chi risponde alle chat di tutti.
+    """
+    from .chat import e_la_console
+
+    if not _is_admin(connection):
+        connection.send_error(
+            msg["id"],
+            websocket_api.const.ERR_UNAUTHORIZED,
+            "Le chat di assistenza sono riservate agli amministratori.",
+        )
+        return True
+    if not e_la_console(hass):
+        connection.send_error(
+            msg["id"],
+            websocket_api.const.ERR_UNAUTHORIZED,
+            "Questa plancia non risponde alle chat di assistenza.",
+        )
+        return True
+    return False
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_CHAT_STATE})
+@websocket_api.async_response
+async def async_chat_state(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Se la chat c'e', se c'e' un pallino, e sotto che nome si scrive.
+
+    Non esce di casa: serve a decidere se disegnare la porta, e disegnarla non
+    puo' costare una chiamata al centralino ogni volta che qualcuno apre la
+    Configurazione.
+    """
+    from .chat import async_stato
+
+    if _chat_denied(hass, connection, msg):
+        return
+    connection.send_result(msg["id"], await async_stato(hass))
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_CHAT_THREAD})
+@websocket_api.async_response
+async def async_chat_thread(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """La propria conversazione, riletta dal centralino."""
+    from .chat import ChatError, async_conversazione
+
+    if _chat_denied(hass, connection, msg):
+        return
+    try:
+        connection.send_result(msg["id"], await async_conversazione(hass))
+    except ChatError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_CHAT_SEND,
+        vol.Required("message"): vol.All(str, vol.Length(min=1, max=CHAT_MAX_TESTO)),
+        vol.Optional("name", default=""): vol.All(str, vol.Length(max=60)),
+        # La lingua di chi sta scrivendo, non quella del server. In una casa
+        # dove ognuno ha la sua — o dove la plancia parla una lingua diversa da
+        # Home Assistant — la coda diceva la lingua sbagliata, e chi risponde si
+        # ritrovava a scrivere in una lingua che quella persona non usa.
+        vol.Optional("locale", default=""): vol.All(str, vol.Length(max=12)),
+    }
+)
+@websocket_api.async_response
+async def async_chat_send(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Manda un messaggio all'assistenza. Il primo apre la conversazione."""
+    from .chat import ChatError, async_scrivi
+
+    if _chat_denied(hass, connection, msg):
+        return
+    try:
+        messaggio = await async_scrivi(
+            hass, msg["message"], nome=msg["name"], lingua=msg["locale"]
+        )
+    except ChatError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    connection.send_result(msg["id"], {"message": messaggio})
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_CHAT_FORGET})
+@websocket_api.async_response
+async def async_chat_forget(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Cancella la conversazione: di qua e dal centralino."""
+    from .chat import async_dimentica
+
+    if _chat_denied(hass, connection, msg):
+        return
+    connection.send_result(msg["id"], {"forgotten": await async_dimentica(hass)})
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_CHAT_QUEUE})
+@websocket_api.async_response
+async def async_chat_queue(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Le conversazioni aperte, per chi risponde."""
+    from .chat import ChatError, async_coda
+
+    if _console_chat_denied(hass, connection, msg):
+        return
+    try:
+        connection.send_result(msg["id"], {"conversations": await async_coda(hass)})
+    except ChatError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_CHAT_OPEN,
+        vol.Required("line"): vol.All(str, vol.Length(min=1, max=64)),
+    }
+)
+@websocket_api.async_response
+async def async_chat_open(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Una conversazione intera, per chi risponde."""
+    from .chat import ChatError, async_apri
+
+    if _console_chat_denied(hass, connection, msg):
+        return
+    try:
+        filo = await async_apri(hass, msg["line"])
+        connection.send_result(msg["id"], {"messages": filo})
+    except ChatError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_CHAT_ANSWER,
+        vol.Required("line"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("message"): vol.All(str, vol.Length(min=1, max=CHAT_MAX_TESTO)),
+    }
+)
+@websocket_api.async_response
+async def async_chat_answer(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Rispondi a una casa."""
+    from .chat import ChatError, async_replica
+
+    if _console_chat_denied(hass, connection, msg):
+        return
+    try:
+        messaggio = await async_replica(hass, msg["line"], msg["message"])
+    except ChatError as errore:
+        connection.send_error(msg["id"], errore.code, str(errore))
+        return
+    connection.send_result(msg["id"], {"message": messaggio})
+
+
 # ─── Collegare il proprio account GitHub ─────────────────────────────────────
 #
 # Lo stesso giro che HACS fa gia' fare a chiunque installi la plancia: un
@@ -793,6 +1011,13 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_reply_ticket_command,
         async_take_ticket_command,
         async_ticket_unread,
+        async_chat_state,
+        async_chat_thread,
+        async_chat_send,
+        async_chat_forget,
+        async_chat_queue,
+        async_chat_open,
+        async_chat_answer,
         async_ticket_auth_start,
         async_ticket_auth_poll,
         async_ticket_auth_forget,

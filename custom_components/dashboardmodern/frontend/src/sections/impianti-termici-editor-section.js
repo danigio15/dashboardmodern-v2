@@ -26,10 +26,19 @@
  */
 import {
   CASELLE_CALDAIA,
+  CASELLE_SOLARE,
+  USCITE_CALDAIA,
   CHIAVE_CALDAIA,
   CHIAVE_IMPIANTI,
+  CHIAVE_SOLARE_SCELTO,
+  CHIAVE_SOLARI,
   ETICHETTE_TERMICHE,
   TIPI_TERMICI,
+  PRIMO_SOLARE,
+  caselleSolariDa,
+  impiantiSolari,
+  nomeDelSolare,
+  overridesPerSolare,
   servonoLinguette,
 } from "../core/impianti-termici.js";
 import {
@@ -47,6 +56,7 @@ import {
   installStyle,
   onEditorRedraw,
   readJson,
+  righeDelDocumento,
   root,
   t,
   wrapFunction,
@@ -54,7 +64,14 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_IMPIANTI_TERMICI_EDITOR__";
-const state = (root[KEY] ||= { installed: false, aperto: -1, calAperto: -1, firma: "", linguetta: "" });
+const state = (root[KEY] ||= {
+  installed: false,
+  aperto: -1,
+  calAperto: -1,
+  firma: "",
+  linguetta: "",
+  solAperto: -1,
+});
 
 /* La scheda del solare del guscio: e' li' che questa roba deve comparire,
  * perche' e' li' che chi configura va a cercare l'acqua calda. */
@@ -127,18 +144,76 @@ function sceltaMarkup() {
 
 /* ── la caldaia ───────────────────────────────────────────────────────── */
 
+/* Le caselle della caldaia, con le loro parole.
+ *
+ * Le righe sono oggetti `{it, en, esempio, aiutoIt, aiutoEn}` e non tuple:
+ * l'estrattore delle traduzioni sa leggere una tabella dichiarata qui — è in
+ * `SECTION_TABLES` — ma deve poter dire dove stanno l'italiano e l'inglese, e
+ * `[["Stato della caldaia", "Boiler state"], "esempio"]` non glielo dice. In
+ * tupla queste etichette erano fuori dai cataloghi: tredici lingue le
+ * leggevano in italiano, e nessuno se ne accorgeva perché l'inglese è anche il
+ * ripiego legittimo.
+ *
+ * Le ultime tre — l'interruttore e le due elettrovalvole — sono quelle chieste
+ * dal campo con la segnalazione sulla pagina Caldaia.
+ *
+ * Il commento sta qui e non fra le righe: chi legge questa tabella per portarla
+ * nei cataloghi la prende com'è scritta, e una parentesi dentro un commento in
+ * mezzo all'oggetto gli sembra una chiamata di funzione. */
 const CAMPI_CALDAIA = Object.freeze({
-  stato: [
-    ["Stato della caldaia", "Boiler state"],
-    "binary_sensor.caldaia",
-    ["Da solo basta: acceso e spento, senza numeri.", "Enough on its own: on and off, no numbers."],
-  ],
-  fiamma: [["Bruciatore acceso", "Burner on"], "binary_sensor.caldaia_fiamma"],
-  mandata: [["Temperatura di mandata", "Flow temperature"], "sensor.caldaia_mandata"],
-  ritorno: [["Temperatura di ritorno", "Return temperature"], "sensor.caldaia_ritorno"],
-  acquaCalda: [["Acqua calda sanitaria", "Domestic hot water"], "sensor.caldaia_acs"],
-  pressione: [["Pressione del circuito (bar)", "Circuit pressure (bar)"], "sensor.caldaia_pressione"],
-  modulazione: [["Modulazione (%)", "Modulation (%)"], "sensor.caldaia_modulazione"],
+  stato: {
+    it: "Stato della caldaia",
+    en: "Boiler state",
+    esempio: "binary_sensor.caldaia",
+    aiutoIt: "Da solo basta: acceso e spento, senza numeri.",
+    aiutoEn: "Enough on its own: on and off, no numbers.",
+  },
+  fiamma: { it: "Bruciatore acceso", en: "Burner on", esempio: "binary_sensor.caldaia_fiamma" },
+  mandata: {
+    it: "Temperatura di mandata",
+    en: "Flow temperature",
+    esempio: "sensor.caldaia_mandata",
+  },
+  ritorno: {
+    it: "Temperatura di ritorno",
+    en: "Return temperature",
+    esempio: "sensor.caldaia_ritorno",
+  },
+  acquaCalda: {
+    it: "Acqua calda sanitaria",
+    en: "Domestic hot water",
+    esempio: "sensor.caldaia_acs",
+  },
+  pressione: {
+    it: "Pressione del circuito (bar)",
+    en: "Circuit pressure (bar)",
+    esempio: "sensor.caldaia_pressione",
+  },
+  modulazione: {
+    it: "Modulazione (%)",
+    en: "Modulation (%)",
+    esempio: "sensor.caldaia_modulazione",
+  },
+  interruttore: {
+    it: "Interruttore (accende e spegne)",
+    en: "Switch (turns it on and off)",
+    esempio: "switch.caldaia",
+    aiutoIt: "Con questa la pagina prende il tasto: lo stato dice se lavora, questo la comanda.",
+    aiutoEn:
+      "With this the page grows a switch: the state says whether it is working, this one commands it.",
+  },
+  valvola: {
+    it: "Elettrovalvola di riciclo",
+    en: "Recirculation solenoid valve",
+    esempio: "switch.valvola_riscaldamento",
+    aiutoIt: "Da come sta si capisce dove va il calore: al riscaldamento o al sanitario.",
+    aiutoEn: "Where the heat is going is told by how it sits: to the heating or to the hot water.",
+  },
+  valvola2: {
+    it: "Seconda elettrovalvola",
+    en: "Second solenoid valve",
+    esempio: "switch.valvola_sanitario",
+  },
 });
 
 /* Le righe grezze delle caldaie (#281): una appena aggiunta e' vuota, e la
@@ -163,16 +238,158 @@ function salvaCaldaie(voci) {
   } catch (_error) {}
 }
 
+/* ── gli impianti solari, che possono essere più d'uno ────────────────── */
+
+/* «Solare termico continua ad avere un solo impianto: non è stata aggiunta la
+ * possibilità di gestire più impianti.»
+ *
+ * Finché ce n'è uno solo qui non c'è niente: ci sono le tredici caselle del
+ * guscio, quelle di sempre, e sotto un tasto. Premendolo, l'impianto che c'è
+ * viene messo in lista com'è — non si sposta niente, non si perde niente — e
+ * accanto ne nasce un secondo. Da lì in poi la lista è la padrona delle
+ * caselle, e quelle del guscio si tolgono di mezzo: due porte per lo stesso
+ * dato sono il modo di avere due risposte diverse.
+ *
+ * Quello che si vede in pagina è sempre l'impianto scritto nelle mappature
+ * `dm.boiler_*`: scegliere un altro impianto vuol dire scriverci il suo, e la
+ * scena del guscio, la tessera della Home e il rilevamento automatico
+ * continuano a leggere l'unico posto che hanno sempre letto. */
+function solari() {
+  return impiantiSolari(
+    readJson(CHIAVE_SOLARI, []),
+    readJson("cd_entity_overrides", {}),
+    clean(root.localStorage?.getItem?.(CHIAVE_SOLARE_SCELTO)),
+  );
+}
+
+function salvaSolari(lista, scelto) {
+  const righe = (Array.isArray(lista) ? lista : []).map((riga) => ({
+    id: clean(riga?.id),
+    nome: clean(riga?.nome),
+    caselle: caselleSolariDa(riga?.caselle),
+  }));
+  writeJsonIfChanged(CHIAVE_SOLARI, righe);
+  const quale = clean(scelto) || clean(righe[0]?.id);
+  const acceso = righe.find((riga) => riga.id === quale) || righe[0] || null;
+  if (acceso) {
+    root.localStorage?.setItem?.(CHIAVE_SOLARE_SCELTO, acceso.id);
+    /* Le mappature sono quello che la scena legge: l'impianto acceso ci
+     * scrive le sue, e le caselle che non usa se ne vanno — altrimenti la
+     * scena mostrerebbe una sonda del vicino. */
+    const prossime = overridesPerSolare(readJson("cd_entity_overrides", {}), acceso);
+    writeJsonIfChanged("cd_entity_overrides", prossime);
+    /* Il guscio tiene la sua copia in memoria, ed è quella che il proxy degli
+     * stati consulta a ogni lettura: senza rimettergliela, la scena avrebbe
+     * continuato a mostrare l'impianto di prima fino al ricarico. */
+    try {
+      root.cdApplyCanonicalOverrides?.(prossime);
+    } catch (_error) {}
+  }
+  try {
+    root.render?.();
+  } catch (_error) {}
+  try {
+    renderImpiantiTermici();
+  } catch (_error) {}
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
+}
+
+function caselleSolare(index, voce) {
+  return CASELLE_SOLARE.map(({ ref, it, en }) => {
+    const id = `dm-solare-${index}-${ref.replace(/\W+/g, "_")}`;
+    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(it, en))}</span>
+      <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-solare-field="${esc(ref)}"
+        value="${esc(clean(voce?.caselle?.[ref]))}" placeholder="sensor.qualcosa" autocomplete="off"
+        spellcheck="false"><button type="button" class="dm-entity-picker" data-solare-pick="${id}"
+        aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span></label>`;
+  }).join("");
+}
+
+function rigaSolareMarkup(voce, index) {
+  const aperto = state.solAperto === index;
+  const quante = Object.keys(voce?.caselle || {}).length;
+  return `<article class="ed-row dm-todo-ed-row dm-solare-row" data-solare-index="${index}" data-open="${aperto}">
+    <div class="dm-todo-ed-head">
+      <span class="dm-todo-ed-icon" aria-hidden="true">🌞</span>
+      <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDelSolare(voce, index, [t("Solare termico", "Solar thermal"), ""]))}</strong><small class="ed-row-old">${
+        voce?.corrente
+          ? esc(t("in pagina adesso", "on the page now"))
+          : `${quante} ${esc(quante === 1 ? t("casella", "field") : t("caselle", "fields"))}`
+      }</small></span>
+      ${
+        voce?.corrente
+          ? ""
+          : `<button type="button" class="ed-del dm-solare-mostra" data-solare-mostra aria-label="${t("Mostra in pagina", "Show on the page")}" title="${t("Mostra in pagina", "Show on the page")}">👁️</button>`
+      }
+      <button type="button" class="ed-del dm-todo-ed-edit" data-solare-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
+      <button type="button" class="ed-del dm-todo-ed-del" data-solare-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
+    </div>
+    <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-solare-${index}-nome" class="ed-input" data-solare-nome value="${esc(clean(voce?.nome))}" placeholder="${esc(t("Casa di sopra", "Upstairs"))}"></span></label>
+      ${caselleSolare(index, voce)}
+      <button type="button" class="ed-save-btn" data-solare-save>💾 ${esc(t("Salva impianto", "Save plant"))}</button>
+    </div>
+  </article>`;
+}
+
+function solareMarkup() {
+  const lista = solari();
+  if (!lista.length || (lista.length === 1 && !readJson(CHIAVE_SOLARI, []).length)) {
+    /* Un impianto solo, e le caselle del guscio qui sopra: qui basta la porta
+     * per il secondo. */
+    return `<div class="dm-it-ed-solari"><button type="button" class="ed-btn-add" data-solare-add>＋ ${esc(
+      t("Aggiungi un secondo impianto solare", "Add a second solar plant"),
+    )}</button>
+    <div class="ed-intro">${esc(
+      t(
+        "Se hai due impianti solari — due tetti, due accumuli — aggiungi il secondo qui: quello che hai adesso passa in elenco così com'è, e in pagina compare la fila per passare dall'uno all'altro.",
+        "If you have two solar plants — two roofs, two tanks — add the second one here: the one you have now moves into the list exactly as it is, and the page grows a row to switch between them.",
+      ),
+    )}</div></div>`;
+  }
+  return `<div class="dm-it-ed-solari"><div class="ed-sec-title dm-it-ed-sep">🌞 ${esc(
+    t("I tuoi impianti solari", "Your solar plants"),
+  )}</div>
+  <div class="ed-intro">${esc(
+    t(
+      "Ogni impianto ha le sue tredici caselle. Quello segnato «in pagina adesso» è ciò che la pagina Solare termico e la tessera della Home stanno mostrando: l'occhio accanto a un altro lo porta a schermo al posto suo.",
+      "Every plant has its own thirteen fields. The one marked “on the page now” is what the Solar thermal page and the Home tile are showing: the eye beside another one brings it on screen in its place.",
+    ),
+  )}</div>
+  <div class="ed-list dm-todo-ed-list dm-solare-list">${lista
+    .map((voce, index) => rigaSolareMarkup(voce, index))
+    .join("")}</div>
+  <button type="button" class="ed-btn-add" data-solare-add>＋ ${esc(
+    t("Aggiungi impianto solare", "Add solar plant"),
+  )}</button></div>`;
+}
+
+/** L'id dell'impianto che sta in pagina adesso. */
+function solareAcceso(lista) {
+  return clean((Array.isArray(lista) ? lista : []).find((riga) => riga?.corrente)?.id);
+}
+
+function leggiSolare(riga, voce) {
+  const letta = { ...voce, caselle: { ...(voce?.caselle || {}) } };
+  const nome = riga.querySelector("[data-solare-nome]");
+  if (nome) letta.nome = clean(nome.value);
+  for (const campo of riga.querySelectorAll("[data-solare-field]"))
+    letta.caselle[clean(campo.dataset.solareField)] = clean(campo.value);
+  return letta;
+}
+
 function caselleCaldaia(index, voce) {
   return CASELLE_CALDAIA.map(({ campo }) => {
-    const [etichetta, esempio, aiuto] = CAMPI_CALDAIA[campo];
+    const { it, en, esempio, aiutoIt, aiutoEn } = CAMPI_CALDAIA[campo];
     const id = `dm-caldaia-${index}-${campo}`;
-    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(...etichetta))}</span>
+    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(it, en))}</span>
       <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-caldaia-field="${esc(campo)}"
         value="${esc(clean(voce?.[campo]))}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
         type="button" class="dm-entity-picker" data-caldaia-pick="${id}"
         aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>${
-          aiuto ? `<small>${esc(t(...aiuto))}</small>` : ""
+          aiutoIt ? `<small>${esc(t(aiutoIt, aiutoEn))}</small>` : ""
         }</label>`;
   }).join("");
 }
@@ -181,7 +398,10 @@ function rigaCaldaiaMarkup(voce, index) {
   const aperto = state.calAperto === index;
   const nome = clean(voce?.name) || `${t("Caldaia", "Boiler")} ${index + 1}`;
   const sotto =
-    clean(voce?.stato) || clean(voce?.fiamma) || clean(voce?.mandata) || t("nessuna entità", "no entity");
+    clean(voce?.stato) ||
+    clean(voce?.fiamma) ||
+    clean(voce?.mandata) ||
+    t("nessuna entità", "no entity");
   return `<article class="ed-row dm-todo-ed-row dm-caldaia-row" data-caldaia-index="${index}" data-open="${aperto}">
     <div class="dm-todo-ed-head">
       <span class="dm-todo-ed-icon" aria-hidden="true">🔥</span>
@@ -192,6 +412,25 @@ function rigaCaldaiaMarkup(voce, index) {
     <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
       <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-caldaia-${index}-name" class="ed-input" data-caldaia-field="name" value="${esc(clean(voce?.name))}" placeholder="${esc(t("Zona giorno", "Day zone"))}"></span></label>
       ${caselleCaldaia(index, voce)}
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(
+        t("All'uscita c'è", "At the outlet there is"),
+      )}</span>
+        <span class="ed-form-row"><select class="ed-input" data-caldaia-field="uscita">${USCITE_CALDAIA.map(
+          (uscita) =>
+            `<option value="${esc(uscita)}"${
+              (clean(voce?.uscita) || USCITE_CALDAIA[0]) === uscita ? " selected" : ""
+            }>${esc(
+              uscita === "boiler"
+                ? t("Un boiler d'accumulo", "A storage tank")
+                : t("I radiatori", "The radiators"),
+            )}</option>`,
+        ).join("")}</select></span>
+        <small>${esc(
+          t(
+            "Cambia il disegno all'altro capo del tubo: chi ha una caldaia che serve solo l'accumulo ci vedeva un termosifone che non ha.",
+            "It changes the drawing at the other end of the pipe: whoever has a boiler serving only the tank was shown a radiator they do not have.",
+          ),
+        )}</small></label>
       <button type="button" class="ed-save-btn" data-caldaia-save>💾 ${esc(t("Salva caldaia", "Save boiler"))}</button>
     </div>
   </article>`;
@@ -279,24 +518,24 @@ function caselleScaldabagno(index, voce) {
       "sensor.scaldabagno_energia_oggi",
       "",
     ],
-  ].map(([campo, etichetta, esempio, aiuto]) => {
-    const id = `dm-scald-${index}-${campo}`;
-    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(etichetta)}</span>
+  ]
+    .map(([campo, etichetta, esempio, aiuto]) => {
+      const id = `dm-scald-${index}-${campo}`;
+      return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(etichetta)}</span>
       <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-scald-field="${campo}"
         value="${esc(clean(voce?.[campo]))}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
         type="button" class="dm-entity-picker" data-scald-pick="${id}"
         aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>${
           aiuto ? `<small>${esc(aiuto)}</small>` : ""
         }</label>`;
-  }).join("");
+    })
+    .join("");
 }
 
 function rigaScaldabagnoMarkup(voce, index) {
   const aperto = state.aperto === index;
   const nome =
-    clean(voce?.name) ||
-    clean(voce?.entity) ||
-    `${t("Scaldabagno", "Water heater")} ${index + 1}`;
+    clean(voce?.name) || clean(voce?.entity) || `${t("Scaldabagno", "Water heater")} ${index + 1}`;
   const sotto =
     clean(voce?.entity) || clean(voce?.interruttore) || t("nessuna entità", "no entity");
   return `<article class="ed-row dm-todo-ed-row dm-scald-row" data-scald-index="${index}" data-open="${aperto}">
@@ -330,7 +569,6 @@ function scaldabagnoMarkup() {
   <button type="button" class="ed-btn-add" data-scald-add>＋ ${t("Aggiungi scaldabagno", "Add water heater")}</button>
   <button type="button" class="ed-btn-add" data-scald-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>`;
 }
-
 
 /* ── il disegno della scheda ──────────────────────────────────────────── */
 
@@ -371,7 +609,8 @@ function linguetteMarkup(scelti, attiva) {
  * caselle sono quelle del guscio, e qui si prepara soltanto il posto dove
  * andranno a stare. */
 function pannelloMarkup(attiva) {
-  if (attiva === "solare") return `<div class="dm-it-ed-pannello" data-dm-it-ed-posto="solare"></div>`;
+  if (attiva === "solare")
+    return `<div class="dm-it-ed-pannello" data-dm-it-ed-posto="solare">${solareMarkup()}</div>`;
   if (attiva === "scaldabagno")
     return `<div class="dm-it-ed-pannello">${scaldabagnoMarkup()}</div>`;
   if (attiva === "caldaia") return `<div class="dm-it-ed-pannello">${caldaiaMarkup()}</div>`;
@@ -404,7 +643,16 @@ export function ensureImpiantiTermiciEditor() {
   if (!body || schedaAttiva() !== SCHEDA) return false;
   const scelti = impiantiDiCasa();
   const attiva = linguettaAttiva(scelti);
-  const firma = JSON.stringify([scelti, attiva, state.aperto, state.calAperto, scaldabagni(), caldaie()]);
+  const firma = JSON.stringify([
+    scelti,
+    attiva,
+    state.aperto,
+    state.calAperto,
+    state.solAperto,
+    scaldabagni(),
+    caldaie(),
+    solari(),
+  ]);
   let blocco = body.querySelector(":scope > .dm-it-ed");
   const caselle = caselleDelSolare(body);
   if (blocco && firma === state.firma && (attiva !== "solare" || caselle?.closest(".dm-it-ed"))) {
@@ -444,8 +692,12 @@ function sistemaLeCaselleDelSolare(body, attiva) {
   const caselle = caselleDelSolare(body) || body.querySelector(":scope details.ed-acc");
   if (!caselle) return false;
   const posto = body.querySelector('[data-dm-it-ed-posto="solare"]');
-  if (posto) {
-    if (caselle.parentElement !== posto) posto.append(caselle);
+  /* Con la lista degli impianti le caselle del guscio si tolgono di mezzo: da
+   * quel momento sono le stesse dell'impianto in pagina, e due porte per lo
+   * stesso dato sono il modo di avere due risposte diverse. */
+  const lista = readJson(CHIAVE_SOLARI, []);
+  if (posto && !(Array.isArray(lista) && lista.length)) {
+    if (caselle.parentElement !== posto) posto.prepend(caselle);
     caselle.hidden = false;
     caselle.open = true;
     return true;
@@ -457,6 +709,21 @@ function sistemaLeCaselleDelSolare(body, attiva) {
 function ridisegna() {
   state.firma = "";
   ensureImpiantiTermiciEditor();
+}
+
+/* Quello che una riga dice adesso, non quello che diceva al disegno. */
+function leggiCaldaia(riga, voce) {
+  const letta = { ...voce };
+  for (const campo of riga.querySelectorAll("[data-caldaia-field]"))
+    letta[clean(campo.dataset.caldaiaField)] = clean(campo.value);
+  return letta;
+}
+
+function leggiScaldabagno(riga, voce) {
+  const letta = { ...voce };
+  for (const campo of riga.querySelectorAll("[data-scald-field]"))
+    letta[clean(campo.dataset.scaldField)] = clean(campo.value);
+  return letta;
 }
 
 function onClick(event) {
@@ -498,6 +765,96 @@ function onClick(event) {
     if (input) root.wzPickEntity?.(input);
     return;
   }
+  /* ── gli impianti solari ── */
+  if (event.target.closest("[data-solare-add]")) {
+    event.preventDefault();
+    const lista = solari();
+    /* La prima volta: quello che c'è passa in elenco così com'è, e accanto ne
+     * nasce un secondo. Non si sposta niente — le mappature restano quelle. */
+    const prima = lista.length
+      ? lista.map((riga) => ({ id: riga.id, nome: riga.nome, caselle: riga.caselle }))
+      : [
+          {
+            id: PRIMO_SOLARE,
+            nome: "",
+            caselle: caselleSolariDa(readJson("cd_entity_overrides", {})),
+          },
+        ];
+    const nuovo = { id: `${PRIMO_SOLARE}-${Date.now().toString(36)}`, nome: "", caselle: {} };
+    state.solAperto = prima.length;
+    /* L'impianto in pagina non cambia: si aggiunge, non si passa. */
+    salvaSolari(
+      [...prima, nuovo],
+      clean(root.localStorage?.getItem?.(CHIAVE_SOLARE_SCELTO)) || prima[0].id,
+    );
+    ridisegna();
+    return;
+  }
+  const pickSolare = event.target.closest("[data-solare-pick]");
+  if (pickSolare) {
+    event.preventDefault();
+    const input = body.querySelector(`#${CSS.escape(clean(pickSolare.dataset.solarePick))}`);
+    if (input) root.wzPickEntity?.(input);
+    return;
+  }
+  const rigaSolare = event.target.closest("[data-solare-index]");
+  if (rigaSolare) {
+    const lista = solari();
+    const indice = Number(rigaSolare.dataset.solareIndex);
+    if (!Number.isFinite(indice) || !lista[indice]) return;
+    if (event.target.closest("[data-solare-edit]")) {
+      event.preventDefault();
+      /* Aprire un'altra riga non butta via quello che si stava scrivendo in
+       * questa: il ridisegno riscrive le caselle con quello che c'è in
+       * memoria, quindi prima in memoria ci va quello che c'è scritto. */
+      salvaSolari(
+        righeDelDocumento(body, "data-solare-index", lista, leggiSolare),
+        solareAcceso(lista),
+      );
+      state.solAperto = state.solAperto === indice ? -1 : indice;
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-solare-mostra]")) {
+      event.preventDefault();
+      salvaSolari(
+        righeDelDocumento(body, "data-solare-index", lista, leggiSolare),
+        lista[indice].id,
+      );
+      ridisegna();
+      root.edToast?.(t("🌞 Impianto in pagina", "🌞 Plant on the page"));
+      return;
+    }
+    if (event.target.closest("[data-solare-del]")) {
+      event.preventDefault();
+      const nome = nomeDelSolare(lista[indice], indice, [t("Solare termico", "Solar thermal"), ""]);
+      if (root.confirm && !root.confirm(t(`Tolgo "${nome}"?`, `Remove "${nome}"?`))) return;
+      const restano = lista.filter((_voce, posto) => posto !== indice);
+      state.solAperto = -1;
+      /* Rimasto uno solo, la lista non serve più: le sue caselle sono già
+       * nelle mappature, ed è esattamente da dove si era partiti. */
+      if (restano.length <= 1) {
+        const solo = restano[0] || lista[indice === 0 ? 1 : 0];
+        salvaSolari(solo ? [solo] : [], solo?.id);
+        writeJsonIfChanged(CHIAVE_SOLARI, []);
+      } else {
+        salvaSolari(restano, lista[indice].corrente ? restano[0].id : solareAcceso(lista));
+      }
+      ridisegna();
+      return;
+    }
+    if (event.target.closest("[data-solare-save]")) {
+      event.preventDefault();
+      const prossimi = righeDelDocumento(body, "data-solare-index", lista, leggiSolare);
+      prossimi[indice] = leggiSolare(rigaSolare, lista[indice]);
+      state.solAperto = -1;
+      salvaSolari(prossimi, solareAcceso(lista));
+      ridisegna();
+      root.edToast?.(t("💾 Impianto salvato", "💾 Plant saved"));
+    }
+    return;
+  }
+
   const rigaCaldaia = event.target.closest("[data-caldaia-index]");
   if (rigaCaldaia) {
     const indice = Number(rigaCaldaia.dataset.caldaiaIndex);
@@ -519,10 +876,12 @@ function onClick(event) {
     }
     if (event.target.closest("[data-caldaia-save]")) {
       event.preventDefault();
-      const prossime = vociCaldaia.slice();
-      const letta = { ...vociCaldaia[indice] };
-      for (const campo of rigaCaldaia.querySelectorAll("[data-caldaia-field]"))
-        letta[clean(campo.dataset.caldaiaField)] = clean(campo.value);
+      /* Il tasto in fondo alla scheda preme questo e quelli delle altre righe,
+       * uno dopo l'altro: il primo ridisegna e stacca gli altri dal documento,
+       * quindi il primo tocco deve salvare tutto quello che c'è scritto — vedi
+       * `righeDelDocumento`. Con due caldaie, la seconda non si memorizzava. */
+      const prossime = righeDelDocumento(body, "data-caldaia-index", vociCaldaia, leggiCaldaia);
+      const letta = leggiCaldaia(rigaCaldaia, vociCaldaia[indice]);
       prossime[indice] = letta;
       state.calAperto = -1;
       salvaCaldaie(prossime);
@@ -590,10 +949,9 @@ function onClick(event) {
     }
     if (event.target.closest("[data-scald-save]")) {
       event.preventDefault();
-      const next = voci.slice();
-      const letta = { ...voci[index] };
-      for (const campo of rigaScald.querySelectorAll("[data-scald-field]"))
-        letta[clean(campo.dataset.scaldField)] = clean(campo.value);
+      /* Come per le caldaie: si leggono tutte le righe prima di scrivere. */
+      const next = righeDelDocumento(body, "data-scald-index", voci, leggiScaldabagno);
+      const letta = leggiScaldabagno(rigaScald, voci[index]);
       const errore = rigaScald.querySelector("[data-scald-error]");
       /* Una riga senza nemmeno una casella non ha niente da mostrare, e in
        * Home diventerebbe una tessera vuota. Basta UNA: quale, lo decide chi
@@ -625,7 +983,6 @@ function onClick(event) {
     }
     return;
   }
-
 }
 
 function installStyles() {
@@ -706,7 +1063,9 @@ export function installImpiantiTermiciEditor() {
   state.installed = true;
   installStyles();
   doc.addEventListener("click", onClick);
-  wrapFunction("apriConfigEntita", "__dmImpiantiTermiciEditor", () => ensureImpiantiTermiciEditor());
+  wrapFunction("apriConfigEntita", "__dmImpiantiTermiciEditor", () =>
+    ensureImpiantiTermiciEditor(),
+  );
   onEditorRedraw("__dmImpiantiTermiciEditor", () => {
     root.queueMicrotask?.(() => ensureImpiantiTermiciEditor());
   });

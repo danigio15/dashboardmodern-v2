@@ -128,11 +128,14 @@ const PAGES = Object.freeze([
     en: ["Appliances", "Cycles · Consumption · Each device's state"],
     fold: ".dm-appl-brand",
   },
+  /* Le porte e i cancelli sono usciti dalla Sicurezza: hanno la loro pagina
+   * (#275), e lasciarli scritti nel sottotitolo vorrebbe dire prometterli dove
+   * non ci sono più. */
   {
     id: "page-security",
     tint: ["190,18,60", "249,115,22"],
-    it: ["Sistema di sicurezza", "Antifurto · Telecamere · Porte e cancelli"],
-    en: ["Security system", "Alarm · Cameras · Doors and gates"],
+    it: ["Sistema di sicurezza", "Antifurto · Telecamere"],
+    en: ["Security system", "Alarm · Cameras"],
     fold: ".sec-header, .dm-sec-mast-ic, .dm-sec-mast-copy",
   },
   /* Solare termico e MiniPC avevano l'intestazione che hanno ispirato tutte le
