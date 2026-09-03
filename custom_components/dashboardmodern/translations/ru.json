@@ -32,8 +32,8 @@
           "admin_only": "Встроенный фильтр Home Assistant; для учётных записей без прав администратора он имеет приоритет.",
           "check_updates": "Каждые полчаса спрашивает у GitHub, вышел ли более новый выпуск, и показывает его в «Настройки → Обновления». Отключите, чтобы панель вообще не выходила в интернет: самой панели это не нужно.",
           "tickets_enabled": "Позволяет любому, кто пользуется панелью, сообщить об ошибке, предложить идею или попросить помощи, не выходя из неё. Обращение становится публичной issue на GitHub, открытой от его имени — с той же учётной записью, которую уже запросил HACS. Выключено — ничего не покидает дом.",
-          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
-          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
+          "chat_enabled": "Личный разговор с тем, кто поддерживает панель: попросить помощи, не заводя публичную задачу и без какой-либо учётной записи. Идёт через собственный сервис, а не через GitHub. Выключено — из дома ничего не уходит.",
+          "chat_console_key": "Оставьте пустым. Это нужно ОДНОЙ установке в мире — той, что принадлежит человеку, поддерживающему панель, — чтобы читать чаты всех и отвечать. Это тот же ключ, что записан в секретах ретранслятора."
         }
       }
     }

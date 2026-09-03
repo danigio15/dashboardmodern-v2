@@ -84,12 +84,26 @@ Alla prima apertura della chat la casa si fabbrica da sola due numeri casuali e
 li tiene su disco:
 
 * un **nome di casa** — 128 bit, `casa_9f3a…` — che non dice niente di nessuno;
-* un **segreto** — 256 bit — che non esce mai da quella casa.
+* un **segreto** — 256 bit — che dimostra al centralino di essere la stessa
+  casa di ieri.
 
 Al primo messaggio il centralino vede quel nome per la prima volta, si scrive
 l'impronta del segreto (`sha256`) e da li' in poi apre solo a chi la sa. Nessuna
 registrazione, nessuna email, nessun account: chi chiede aiuto non deve fare
 niente prima di scrivere.
+
+**Cosa vuol dire davvero, e cosa no.** Il segreto non finisce nel browser e non
+finisce nell'archivio: la plancia non lo vede mai — parla col proprio Home
+Assistant, che e' quello che lo custodisce — e nel database c'e' solo la sua
+impronta, quindi chi si trovasse in mano l'archivio non potrebbe scrivere a nome
+di nessuno.
+
+Ma il segreto **viaggia**. Ogni richiesta lo porta al centralino come
+`Authorization: Bearer`, ed e' li' che viene confrontato: dentro TLS, e a un
+servizio che e' lo stesso a cui si sta scrivendo, ma ci va. Dire «non esce mai
+dalla casa» — come diceva questa pagina fino a ieri — era comodo e falso. Per
+non farlo viaggiare servirebbe una firma invece di una password, ed e' una cosa
+che si puo' fare: non e' stata fatta, e finche' non lo e' va detto cosi'.
 
 Il nome della casa e' irrobustito da 128 bit di caso: indovinarlo per prendersi
 la conversazione di un altro non e' una cosa che si prova.

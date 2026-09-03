@@ -181,7 +181,10 @@ test("la sezione svuotata esce dalla barra", () =>
       cd_tapparelle: [{ name: "Salone", entity: "cover.salone" }],
     },
     (leggi) => {
-      assert.equal(ensureConfiguredSectionsVisible({ sync: false, render: false }), true);
+      assert.equal(
+        ensureConfiguredSectionsVisible({ sync: false, render: false, spegni: true }),
+        true,
+      );
       const visibilita = leggi();
       assert.equal(visibilita.tapparelle, true, "le tapparelle configurate devono restare");
       assert.equal(visibilita.piscina, false, "la piscina svuotata deve sparire");
@@ -189,17 +192,35 @@ test("la sezione svuotata esce dalla barra", () =>
     },
   ));
 
-test("su un magazzino non ancora arrivato non si spegne niente", () => {
+test("il giro dell'avvio non spegne niente", () => {
   /* Il freno che conta. La configurazione condivisa arriva da Home Assistant
-   * qualche istante dopo l'avvio: prima che arrivi ogni sezione sembra vuota,
-   * e spegnerle vorrebbe dire scrivere «tutto nascosto» nella configurazione
-   * di tutti i dispositivi della casa. */
+   * qualche istante dopo l'avvio: prima che arrivi, ogni sezione sembra vuota
+   * anche a chi ne ha dieci configurate, e spegnerle vorrebbe dire scrivere
+   * «tutto nascosto» nella configurazione di tutti i dispositivi della casa.
+   *
+   * Il giro dell'avvio chiama senza `spegni`, e quello basta: non si indovina
+   * dal contenuto se il magazzino sia arrivato — lo dice chi chiama. */
   conMagazzino({ cd_sections: { energy: true, temp: true, security: true } }, (leggi) => {
     ensureConfiguredSectionsVisible({ sync: false, render: false });
     const visibilita = leggi();
     assert.equal(visibilita.energy, true);
     assert.equal(visibilita.temp, true);
     assert.equal(visibilita.security, true);
+  });
+});
+
+test("anche l'ultima sezione rimasta si spegne quando la si svuota", () => {
+  /* Il caso che la prima stesura sbagliava. Il freno era indovinato dal
+   * contenuto — «se non c'e' niente da nessuna parte, il magazzino non e'
+   * ancora arrivato» — e chi svuotava l'ULTIMA sezione che gli restava faceva
+   * scendere quel conto a zero: il freno scattava, e quella sezione restava
+   * nella barra vuota per sempre, perche' ogni giro dopo trovava di nuovo zero.
+   *
+   * E' esattamente la cosa che la regola doveva risolvere, quindi e' esattamente
+   * la cosa che non poteva restare indovinata. */
+  conMagazzino({ cd_sections: { tapparelle: true } }, (leggi) => {
+    ensureConfiguredSectionsVisible({ sync: false, render: false, spegni: true });
+    assert.equal(leggi().tapparelle, false);
   });
 });
 
@@ -211,7 +232,7 @@ test("una sezione accesa a mano resta accesa anche se è vuota", () =>
       cd_tapparelle: [{ name: "Salone", entity: "cover.salone" }],
     },
     (leggi) => {
-      ensureConfiguredSectionsVisible({ sync: false, render: false });
+      ensureConfiguredSectionsVisible({ sync: false, render: false, spegni: true });
       assert.equal(leggi().piscina, true, "una scelta fatta a mano non si tocca");
     },
   ));
@@ -226,7 +247,12 @@ test("la sezione appena salvata non si spegne nello stesso giro", () => {
       cd_tapparelle: [{ name: "Salone", entity: "cover.salone" }],
     },
     (leggi) => {
-      ensureConfiguredSectionsVisible({ sync: false, render: false, espressa: "piscina" });
+      ensureConfiguredSectionsVisible({
+        sync: false,
+        render: false,
+        espressa: "piscina",
+        spegni: true,
+      });
       assert.equal(leggi().piscina, true);
     },
   );

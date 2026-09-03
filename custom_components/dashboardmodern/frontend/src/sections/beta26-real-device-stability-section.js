@@ -476,21 +476,31 @@ export function legacyVisibilityTargets() {
  *
  * «tutte le sezioni devono nascere come nascoste, solo se si inserisce entita'
  * in una sezione diventa visibile.» Il verso dell'accensione c'era gia'; questo
- * e' l'altro, e ha due freni.
+ * e' l'altro, e la domanda difficile non e' quali sezioni siano vuote — quella
+ * la risponde `core/contenuto-delle-sezioni.js` — ma **quando e' lecito
+ * crederci**.
  *
- * Il primo: **su un magazzino che sembra vuoto non si spegne niente.** Se
- * nessuna delle sezioni governate ha contenuto, o siamo su una plancia appena
- * installata — e li' ha gia' fatto tutto la semina del guscio, che le nasce
- * spente — oppure la configurazione condivisa non e' ancora arrivata da Home
- * Assistant. Nel secondo caso spegnere vorrebbe dire scrivere «tutto nascosto»
- * nella configurazione di tutti i dispositivi, per un magazzino che di li' a
- * un secondo si riempie. Non si spegne: al massimo si perde un giro.
+ * Perche' la configurazione condivisa arriva da Home Assistant qualche istante
+ * dopo l'avvio, e prima che arrivi ogni sezione sembra vuota. Spegnerle in quel
+ * momento vorrebbe dire scrivere «tutto nascosto» nella configurazione di tutti
+ * i dispositivi della casa, per un magazzino che di li' a un secondo si riempie.
  *
- * Il secondo: **una scelta fatta a mano non si tocca.** Chi ha premuto la
- * fascia verde su una sezione ha detto la sua, e questa regola non risponde. */
+ * La prima stesura lo indovinava dal contenuto — «se non c'e' niente da nessuna
+ * parte, allora non e' ancora arrivato» — e sbagliava proprio il caso che la
+ * regola doveva risolvere: chi svuota **l'ultima** sezione che gli restava fa
+ * scendere quel conto a zero, il freno scatta, e quella sezione resta nella
+ * barra vuota per sempre, perche' ogni giro dopo trova di nuovo zero.
+ *
+ * Adesso non si indovina: lo dice chi chiama. Lo spegnimento corre quando la
+ * configurazione condivisa e' atterrata, e quando qualcuno ha appena salvato in
+ * una scheda — due momenti in cui il magazzino c'e' di sicuro, qualunque cosa
+ * contenga. All'avvio no, e li' non serve: sulla plancia nuova le voci nascono
+ * gia' spente dalla semina.
+ *
+ * Resta il secondo freno, che non e' cambiato: **una scelta fatta a mano non si
+ * tocca.** Chi ha premuto la fascia verde su una sezione ha detto la sua. */
 function sezioniDaSpegnere() {
-  const { piene, vuote } = contenutoDelleSezioni(magazzino);
-  if (!piene.size) return [];
+  const { vuote } = contenutoDelleSezioni(magazzino);
   const manual = manualVisibilityChoices();
   return [...vuote].filter((chiave) => manual[chiave] !== true);
 }
@@ -504,7 +514,15 @@ function chiaveDellaSchedaAperta() {
   return TAB_SECTION_KEYS[tab] || extra[tab] || "";
 }
 
-export function ensureConfiguredSectionsVisible({ sync = true, render = true, espressa = "" } = {}) {
+export function ensureConfiguredSectionsVisible({
+  sync = true,
+  render = true,
+  espressa = "",
+  /* Se questo giro puo' anche SPEGNERE. Accenderle e' sempre lecito — al
+   * massimo si accende una sezione che ha contenuto — mentre spegnerle chiede
+   * di sapere che il magazzino c'e' davvero, e quello lo sa solo chi chiama. */
+  spegni = false,
+} = {}) {
   let changed = false;
   const store = dashboardStore();
   if (store?.getState && store?.ensureSectionVisibleForData) {
@@ -534,7 +552,7 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true, es
    * sezione appena salvata non si spegne mai in questo giro — salvare e'
    * esprimersi, e la scheda puo' aver scritto in un posto che questa regola
    * legge un istante dopo. */
-  for (const key of sezioniDaSpegnere()) {
+  for (const key of spegni ? sezioniDaSpegnere() : []) {
     if (key === espressa) continue;
     if (next[key] === false) continue;
     next[key] = false;
@@ -589,7 +607,9 @@ function scheduleVisibilityRepair(delay = 80, espressa = "") {
   state.visibilityTimer = root.setTimeout?.(() => {
     state.visibilityTimer = 0;
     state.visibilityEspressa = "";
-    ensureConfiguredSectionsVisible({ espressa });
+    /* Qualcuno ha appena salvato in una scheda: il magazzino ce l'ha davanti,
+     * e una sezione che risulta vuota adesso e' vuota per davvero. */
+    ensureConfiguredSectionsVisible({ espressa, spegni: true });
   }, delay);
 }
 
@@ -1379,9 +1399,8 @@ export function installBeta26RealDeviceStability() {
   root.setTimeout?.(() => {
     try {
       seedModernSectionVisibility();
-      /* Le sezioni svuotate — o accese da una versione che accendeva tutto —
-       * escono dalla barra qui: la semina guarda solo le chiavi che ancora non
-       * esistono, e da sola non le avrebbe mai riguardate. */
+      /* All'avvio si accende soltanto: la configurazione condivisa non e'
+       * ancora atterrata, e da qui una sezione piena sembra vuota. */
       ensureConfiguredSectionsVisible({ render: false });
     } catch (_error) {}
   }, 400);
@@ -1390,8 +1409,11 @@ export function installBeta26RealDeviceStability() {
    * suo arrivo si guarda di nuovo, adesso che c'e' qualcosa da guardare. */
   root.addEventListener?.("dashboardmodern:persistence-restored", () => {
     try {
+      /* Da adesso il magazzino c'e', qualunque cosa contenga — anche se e'
+       * vuoto, perche' vuoto e' una risposta e non un'attesa. Questo e' il
+       * primo momento in cui spegnere una sezione dice la verita'. */
       seedModernSectionVisibility();
-      ensureConfiguredSectionsVisible({ render: false });
+      ensureConfiguredSectionsVisible({ render: false, spegni: true });
     } catch (_error) {}
   });
   state.installed = true;

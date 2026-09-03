@@ -157,6 +157,43 @@ test("venti messaggi in un'ora bastano", async () => {
   assert.equal(troppo.stato, 429);
 });
 
+const casaACaso = () =>
+  `casa_${[...Array(32)].map(() => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("")}`;
+
+test("non si possono fabbricare linee all'infinito", async () => {
+  /* Il buco che il limite orario da solo non chiudeva: chi si inventa un
+   * identificativo nuovo a ogni richiesta prendeva ogni volta il ramo «linea
+   * assente», dove i venti messaggi all'ora non venivano nemmeno guardati. Un
+   * cliente solo, senza nessun segreto, poteva riempire il database di stanze
+   * finte finché la quota non finiva — e a quel punto la chat non funzionava
+   * più per nessuna casa vera. */
+  const env = ambiente();
+  for (let i = 0; i < perLeProve.LIMITI.nuoveAllOra; i += 1) {
+    const esito = await scrive(env, `apro la ${i}`, casaACaso(), SEGRETO);
+    assert.equal(esito.stato, 200, `la linea ${i} è stata rifiutata`);
+  }
+  const oltre = await scrive(env, "e questa no", casaACaso(), SEGRETO);
+  assert.equal(oltre.stato, 429);
+  assert.equal(
+    env.DB.interroga("SELECT COUNT(*) AS q FROM linee")[0].q,
+    perLeProve.LIMITI.nuoveAllOra,
+  );
+});
+
+test("il tetto sulle linee nuove non ferma chi ce l'ha già", async () => {
+  /* Il limite è sulle nascite, non sulle conversazioni: una casa che scrive da
+   * ieri non deve trovare la porta chiusa perché oggi qualcuno ha aperto
+   * sessanta linee. */
+  const env = ambiente();
+  await scrive(env, "la mia prima");
+  env.DB.interroga("UPDATE linee SET aperta_il = ?", Date.now() - 2 * 60 * 60 * 1000);
+  for (let i = 0; i < perLeProve.LIMITI.nuoveAllOra; i += 1) {
+    await scrive(env, `rumore ${i}`, casaACaso(), SEGRETO);
+  }
+  const mia = await scrive(env, "la mia seconda");
+  assert.equal(mia.stato, 200, "una linea già aperta è stata bloccata dal tetto");
+});
+
 test("la conversazione non diventa un archivio", async () => {
   const env = ambiente();
   /* Si scrive dalla console per non incontrare il limite orario della casa:

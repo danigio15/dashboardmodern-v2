@@ -57,6 +57,8 @@ class FintoCentralino:
         self.note: dict[str, dict[str, str]] = {}
         self.chiamate: list[tuple[str, str]] = []
         self.prossimo = 1
+        # Quanti ne da' per volta, come il centralino vero.
+        self.pagina = 100
         self.guasto: ChatError | None = None
 
     async def __call__(
@@ -133,7 +135,9 @@ class FintoCentralino:
             self.prossimo += 1
             self.linee.setdefault(linea, []).append(messaggio)
             return {"messaggio": messaggio}
-        return {"messaggi": self.linee.get(linea, [])}
+        dopo = int(via.split("dopo=")[-1] or 0) if "dopo=" in via else 0
+        righe = [m for m in self.linee.get(linea, []) if m["id"] > dopo]
+        return {"messaggi": righe[: self.pagina]}
 
     # ── comodita' per le prove ───────────────────────────────────────────
     def risponde(self, casa: str, testo: str) -> None:
@@ -257,19 +261,71 @@ async def test_la_risposta_arriva_dentro_la_plancia(
     ]
 
 
+async def test_un_invio_senza_rilettura_non_scavalca_il_segnalibro(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Il ramo del guasto non rimette il difetto che l'altro ha tolto.
+
+    Se il messaggio parte e la rilettura subito dopo non riesce, mettere in
+    copia la sola frase appena scritta sposterebbe il segnalibro oltre una
+    risposta ancora da leggere: lo stesso buco, nel ramo dove nessuno guarda.
+    Meglio non scrivere niente e lasciare che il giro dei cinque minuti porti
+    indietro tutto quanto, nell'ordine giusto.
+    """
+    _entry(hass)
+    await chat.async_scrivi(hass, "prima")
+    store = await async_get_chat_store(hass)
+    identita = await store.async_identita()
+    segnalibro = store.ultimo()
+    centralino.risponde(identita["casa"], "una risposta in sospeso")
+
+    # L'invio riesce, la rilettura no: si rompe solo la seconda.
+    vera = centralino.__call__
+
+    async def rompi_la_rilettura(
+        casa: Any, metodo: str, via: str, **resto: Any
+    ) -> Any:
+        if metodo == "GET":
+            raise ChatError("unreachable", "Centralino non raggiungibile.")
+        return await vera(casa, metodo, via, **resto)
+
+    from custom_components.dashboardmodern import chat_client
+
+    chat_client._chiama = rompi_la_rilettura
+    try:
+        await chat.async_scrivi(hass, "seconda")
+    finally:
+        chat_client._chiama = vera
+
+    assert store.ultimo() == segnalibro, "il segnalibro e' avanzato al buio"
+    filo = await chat.async_conversazione(hass)
+    assert [riga["testo"] for riga in filo["messages"]] == [
+        "prima",
+        "una risposta in sospeso",
+        "seconda",
+    ]
+
+
 async def test_la_copia_si_legge_anche_senza_rete(
     hass: HomeAssistant, centralino: FintoCentralino
 ) -> None:
     """Il centralino giu' non deve voler dire una schermata vuota.
 
-    La conversazione vera sta di la', ma quella che si e' gia' letta sta qui: e'
-    la ragione per cui la copia esiste.
+    La conversazione vera sta di la', ma quella gia' letta sta qui: e' la
+    ragione per cui la copia esiste. Vale sul giro **interattivo** — quello di
+    chi apre la finestra adesso — e non solo su quello automatico: la prima
+    stesura sollevava il guasto prima di costruire la risposta, e chi apriva la
+    chat con la rete giu' vedeva un errore sopra una conversazione vuota, con la
+    copia intatta sul disco a mezzo metro di distanza.
+
+    Il guasto si dice lo stesso, ma accanto ai messaggi, non al posto loro.
     """
     _entry(hass)
     await chat.async_scrivi(hass, "una domanda")
     centralino.guasto = ChatError("unreachable", "Centralino non raggiungibile.")
-    filo = await chat.async_conversazione(hass, zitta=True)
+    filo = await chat.async_conversazione(hass)
     assert [riga["testo"] for riga in filo["messages"]] == ["una domanda"]
+    assert filo["error"]
 
 
 async def test_un_messaggio_arrivato_due_volte_si_vede_una(
@@ -338,10 +394,10 @@ async def test_non_suona_per_le_proprie_frasi_riscaricate(
     await chat.async_scrivi(hass, "una domanda mia")
     store = await async_get_chat_store(hass)
     identita = await store.async_identita()
-    # La cancellazione non arriva al centralino: la copia si svuota, il filo no.
-    centralino.guasto = ChatError("unreachable", "Centralino non raggiungibile.")
-    await chat.async_dimentica(hass)
-    centralino.guasto = None
+    # La copia locale si svuota e il filo di la' resta: succede quando la copia
+    # si perde — un ripristino, un profilo nuovo, un magazzino azzerato — e il
+    # giro dopo riscarica tutto, comprese le frasi di chi abita qui.
+    await store.async_dimentica()
 
     suonate = _ascolta(hass)
     riscaricati = await chat.async_guarda(hass)
@@ -398,20 +454,67 @@ async def test_cancellare_cancella_anche_dal_centralino(
     assert identita["casa"] not in centralino.linee
 
 
-async def test_cancellare_pulisce_lo_schermo_anche_se_il_centralino_e_giu(
+async def test_una_cancellazione_non_riuscita_si_dice(
     hass: HomeAssistant, centralino: FintoCentralino
 ) -> None:
-    """Lasciare i messaggi sotto gli occhi di chi ha appena chiesto di non
-    vederli piu' sarebbe la peggiore delle due meta'."""
+    """«Cancellato» non si dice se non e' cancellato.
+
+    La prima stesura, quando il centralino non rispondeva, cancellava lo stesso
+    la copia locale e tornava `True`: la plancia scriveva «conversazione
+    cancellata» e il filo restava intero di la' — con dentro quello che una
+    persona aveva appena chiesto di far sparire — e il giro dei cinque minuti se
+    lo riportava in casa poco dopo. Una cancellazione promessa, una finta fatta,
+    e i messaggi che tornano.
+
+    Adesso il guasto arriva a chi ha premuto, e non si tocca niente: la copia
+    resta com'e' rimasto il filo. Riprovare si puo'; credere di aver cancellato
+    no.
+    """
     _entry(hass)
     await chat.async_scrivi(hass, "cancellami")
-    centralino.guasto = ChatError("unreachable", "Centralino non raggiungibile.")
-    assert await chat.async_dimentica(hass) is True
     store = await async_get_chat_store(hass)
-    assert store.messaggi() == []
+    identita = await store.async_identita()
+    centralino.guasto = ChatError("unreachable", "Centralino non raggiungibile.")
+
+    with pytest.raises(ChatError):
+        await chat.async_dimentica(hass)
+
+    assert [riga["testo"] for riga in store.messaggi()] == ["cancellami"]
+    assert identita["casa"] in centralino.linee
 
 
-# ─── Chi risponde ────────────────────────────────────────────────────────────
+async def test_una_risposta_arrivata_mentre_si_scriveva_non_si_perde(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Il segnalibro non scavalca quello che non ha ancora letto.
+
+    Fra un giro e l'altro passano cinque minuti, e in quei cinque minuti ci sta
+    benissimo che l'assistenza risponda mentre chi ha chiesto sta ancora
+    scrivendo. Il numero che il centralino da' al messaggio nuovo e' piu' alto
+    di quella risposta: mettendolo in copia e basta, il segnalibro la
+    scavalcava, e da li' in poi si chiedeva sempre «dopo» un numero che l'aveva
+    gia' superata.
+
+    Quella risposta non sarebbe stata chiesta mai piu': persa, in silenzio, per
+    sempre — e chi aspettava avrebbe continuato ad aspettare una frase gia'
+    scritta.
+    """
+    _entry(hass)
+    await chat.async_scrivi(hass, "come faccio?")
+    store = await async_get_chat_store(hass)
+    identita = await store.async_identita()
+
+    # L'assistenza risponde adesso, prima del prossimo giro dei cinque minuti.
+    centralino.risponde(identita["casa"], "guarda nella scheda Stanze")
+    # E chi ha chiesto, senza saperlo, scrive ancora.
+    await chat.async_scrivi(hass, "sono ancora qui")
+
+    filo = await chat.async_conversazione(hass)
+    assert [riga["testo"] for riga in filo["messages"]] == [
+        "come faccio?",
+        "guarda nella scheda Stanze",
+        "sono ancora qui",
+    ]
 
 
 async def test_senza_chiave_non_si_risponde_a_nessuno(
@@ -441,6 +544,54 @@ async def test_con_la_chiave_si_vede_la_coda_e_si_risponde(
 
 
 # ─── Spegnerla ───────────────────────────────────────────────────────────────
+
+
+async def test_la_console_legge_anche_oltre_la_prima_pagina(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Il centralino ne da' cento per volta e ne conserva duecento.
+
+    Chiedere la prima pagina e fermarsi vorrebbe dire che dalla centunesima in
+    poi non si leggono mai — nemmeno riaprendo la conversazione, perche' si
+    riaprirebbe sulle stesse cento — mentre la coda continua a segnalarle come
+    non lette. Chi risponde vedrebbe un pallino su messaggi che non riesce a
+    raggiungere.
+    """
+    _entry(hass, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    centralino.pagina = 10
+    await chat.async_scrivi(hass, "la prima")
+    store = await async_get_chat_store(hass)
+    linea = (await store.async_identita())["casa"]
+    for i in range(24):
+        centralino.risponde(linea, f"risposta {i}")
+
+    filo = await chat.async_apri(hass, linea)
+    assert len(filo) == 25
+    assert filo[0]["testo"] == "la prima"
+    assert filo[-1]["testo"] == "risposta 23"
+    # E nessuna riga contata due volte.
+    assert len({riga["id"] for riga in filo}) == 25
+
+
+async def test_con_la_chat_spenta_non_si_risponde_nemmeno(
+    hass: HomeAssistant, centralino: FintoCentralino
+) -> None:
+    """Spegnere promette che non esce niente di casa, e vale anche per chi
+    risponde.
+
+    I comandi della console guardavano solo se la chiave ci fosse. Con
+    l'interruttore su spento la tessera sparisce al ridisegno, ma una finestra
+    gia' aperta — o una chiamata diretta ai comandi — avrebbe continuato a
+    parlare col centralino: la promessa dell'opzione valeva per meta'.
+    """
+    _entry(hass, chat_enabled=False, **{OPTION_CHAT_CONSOLE_KEY: "chiave-vera"})
+    with pytest.raises(ChatError):
+        await chat.async_coda(hass)
+    with pytest.raises(ChatError):
+        await chat.async_apri(hass, "casa_x")
+    with pytest.raises(ChatError):
+        await chat.async_replica(hass, "casa_x", "ciao")
+    assert centralino.chiamate == []
 
 
 async def test_spenta_non_esce_niente_di_casa(

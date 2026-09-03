@@ -19,6 +19,19 @@ const LIMITI = Object.freeze({
   etichetta: 40,
   /* Chi ne scrive piu' di venti in un'ora non sta chiedendo aiuto. */
   alOra: 20,
+  /* Quante linee possono NASCERE in un'ora, in tutto il centralino.
+   *
+   * Il limite dei venti messaggi vale per una linea che esiste gia'. Chi si
+   * fabbrica un identificativo nuovo a ogni richiesta prendeva ogni volta il
+   * ramo «linea assente», dove quel limite non veniva nemmeno guardato: un
+   * cliente solo, senza nessun segreto, poteva riempire il database di stanze
+   * finte finche' la quota non finiva, e a quel punto la chat non funzionava
+   * piu' per nessuna casa vera.
+   *
+   * Sessanta all'ora e' larghissimo per una plancia — le case nuove che aprono
+   * una chat nella stessa ora si contano sulle dita — e stretto abbastanza da
+   * rendere quel gioco inutile. */
+  nuoveAllOra: 60,
   /* Una chat di assistenza non e' un archivio: oltre questi, i piu' vecchi se
    * ne vanno. */
   storia: 200,
@@ -127,6 +140,16 @@ async function aggiornaLeNote(env, id, note) {
     .run();
 }
 
+async function troppeLineeNuove(env) {
+  const da = Date.now() - ORA;
+  const riga = await env.DB.prepare(
+    "SELECT COUNT(*) AS quante FROM linee WHERE aperta_il > ?",
+  )
+    .bind(da)
+    .first();
+  return Number(riga?.quante || 0) >= LIMITI.nuoveAllOra;
+}
+
 async function troppiMessaggi(env, id) {
   const da = Date.now() - ORA;
   const riga = await env.DB.prepare(
@@ -200,8 +223,10 @@ async function sportelloDellaCasa(richiesta, env, url) {
   if (richiesta.method === "POST") {
     const testo = testoPulito(corpo?.testo, LIMITI.testo);
     if (!testo) return male(400, "messaggio vuoto");
-    if (stato === "assente") await apriLaLinea(env, id, segreto, note);
-    else {
+    if (stato === "assente") {
+      if (await troppeLineeNuove(env)) return male(429, "troppe conversazioni nuove");
+      await apriLaLinea(env, id, segreto, note);
+    } else {
       if (await troppiMessaggi(env, id)) return male(429, "troppi messaggi in un'ora");
       await aggiornaLeNote(env, id, note);
     }

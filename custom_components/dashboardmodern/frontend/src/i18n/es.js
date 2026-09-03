@@ -2652,4 +2652,6 @@ export default Object.freeze({
   "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "Lo que escribas aquí llega a quien mantiene el panel, y a nadie más. No pasa por GitHub y no se hace público. Junto al mensaje solo se envían la versión del panel, la de Home Assistant y el idioma. Puedes eliminar la conversación cuando quieras.",
   "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "Escribe a quien mantiene el panel: una conversación privada, sin pasar por GitHub",
   "Write your message…": "Escribe tu mensaje…",
+  "Leave empty if you prefer": "Déjalo vacío si lo prefieres",
+  "Your name (optional)": "Cómo te llamas (opcional)",
 });

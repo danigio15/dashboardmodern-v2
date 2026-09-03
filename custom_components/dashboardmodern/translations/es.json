@@ -32,8 +32,8 @@
           "admin_only": "Filtro nativo de Home Assistant; prevalece para las cuentas que no son de administrador.",
           "check_updates": "Pregunta a GitHub cada media hora si hay una versión más reciente y la muestra en Ajustes → Actualizaciones. Desactívalo para que el panel no salga a internet; el tablero no lo necesita.",
           "tickets_enabled": "Permite a quien usa el panel informar de un fallo, proponer una idea o pedir ayuda sin salir de él. El informe se convierte en una incidencia pública en GitHub, abierta a su nombre — la misma cuenta que HACS ya le pidió. Apagado, no sale nada de casa.",
-          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
-          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
+          "chat_enabled": "Una conversación privada con quien mantiene el panel, para pedir ayuda sin abrir una incidencia pública y sin ninguna cuenta. Pasa por un servicio propio, no por GitHub. Apagada, no sale nada de casa.",
+          "chat_console_key": "Déjala vacía. Sirve a UNA instalación en el mundo — la de quien mantiene el panel — para leer los chats de todos y responder. Es la misma clave puesta entre los secretos del relé."
         }
       }
     }

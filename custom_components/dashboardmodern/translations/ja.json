@@ -32,8 +32,8 @@
           "admin_only": "Home Assistant 本来のフィルターです。管理者以外のアカウントではこちらが優先されます。",
           "check_updates": "30分ごとに GitHub へ新しいリリースの有無を尋ね、「設定 → アップデート」に表示します。パネルを一切インターネットに出さないようにするにはオフにしてください。ダッシュボード自体には不要です。",
           "tickets_enabled": "ダッシュボードを使う人が、そこから離れずに不具合の報告・要望・サポートの依頼をできるようにします。報告は GitHub の公開 issue になり、本人の名前で開かれます——HACS がすでに求めたのと同じアカウントです。オフにすると、家から何も出ていきません。",
-          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
-          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
+          "chat_enabled": "ダッシュボードを管理している人との個人的な会話です。公開のイシューを立てず、アカウントも要らずに助けを求められます。GitHub ではなく専用のサービスを通ります。オフにすると、家から何も出ていきません。",
+          "chat_console_key": "空のままにしてください。これは世界でひとつの導入 — ダッシュボードを管理している人のもの — が全員のチャットを読んで返信するためのものです。中継サービスのシークレットに設定したものと同じ鍵です。"
         }
       }
     }

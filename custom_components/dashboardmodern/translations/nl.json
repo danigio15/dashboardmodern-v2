@@ -32,8 +32,8 @@
           "admin_only": "Ingebouwd filter van Home Assistant; het wint voor accounts zonder beheerdersrechten.",
           "check_updates": "Vraagt GitHub elk half uur of er een nieuwere release is en toont die bij Instellingen → Updates. Zet het uit zodat het paneel helemaal niet het internet op gaat; het dashboard heeft het nooit nodig.",
           "tickets_enabled": "Laat iedereen die het dashboard gebruikt een fout melden, een idee opperen of hulp vragen zonder het te verlaten. De melding wordt een openbaar issue op GitHub, op eigen naam — hetzelfde account dat HACS al vroeg. Uitgeschakeld verlaat er niets het huis.",
-          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
-          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
+          "chat_enabled": "Een privégesprek met degene die het dashboard onderhoudt, om hulp te vragen zonder een openbaar issue te openen en zonder enig account. Het loopt via een eigen dienst, niet via GitHub. Uitgeschakeld verlaat er niets het huis.",
+          "chat_console_key": "Laat hem leeg. Hij is voor ÉÉN installatie ter wereld — die van degene die het dashboard onderhoudt — om ieders gesprekken te lezen en te beantwoorden. Het is dezelfde sleutel die bij de secrets van de relay is gezet."
         }
       }
     }

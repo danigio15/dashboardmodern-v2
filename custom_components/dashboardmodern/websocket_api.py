@@ -787,6 +787,11 @@ async def async_chat_thread(
         vol.Required("type"): TYPE_CHAT_SEND,
         vol.Required("message"): vol.All(str, vol.Length(min=1, max=CHAT_MAX_TESTO)),
         vol.Optional("name", default=""): vol.All(str, vol.Length(max=60)),
+        # La lingua di chi sta scrivendo, non quella del server. In una casa
+        # dove ognuno ha la sua — o dove la plancia parla una lingua diversa da
+        # Home Assistant — la coda diceva la lingua sbagliata, e chi risponde si
+        # ritrovava a scrivere in una lingua che quella persona non usa.
+        vol.Optional("locale", default=""): vol.All(str, vol.Length(max=12)),
     }
 )
 @websocket_api.async_response
@@ -801,7 +806,9 @@ async def async_chat_send(
     if _chat_denied(hass, connection, msg):
         return
     try:
-        messaggio = await async_scrivi(hass, msg["message"], nome=msg["name"])
+        messaggio = await async_scrivi(
+            hass, msg["message"], nome=msg["name"], lingua=msg["locale"]
+        )
     except ChatError as errore:
         connection.send_error(msg["id"], errore.code, str(errore))
         return

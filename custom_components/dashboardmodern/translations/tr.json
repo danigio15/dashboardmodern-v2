@@ -32,8 +32,8 @@
           "admin_only": "Home Assistant'ın kendi süzgeci; yönetici olmayan hesaplarda o üstün gelir.",
           "check_updates": "Her yarım saatte bir GitHub'a daha yeni bir sürüm çıkıp çıkmadığını sorar ve Ayarlar → Güncellemeler altında gösterir. Panelin internete hiç çıkmaması için kapatın; panonun buna ihtiyacı yoktur.",
           "tickets_enabled": "Panoyu kullanan herkesin panodan çıkmadan hata bildirmesini, fikir önermesini ya da yardım istemesini sağlar. Bildirim GitHub'da herkese açık bir issue olur, kendi adına açılır — HACS'ın zaten istediği hesapla. Kapalıyken evden hiçbir şey çıkmaz.",
-          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
-          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
+          "chat_enabled": "Panoyu sürdüren kişiyle özel bir konuşma: herkese açık bir kayıt açmadan ve hiçbir hesap olmadan yardım istemek için. GitHub'dan değil, kendi servisinden geçer. Kapalıyken evden hiçbir şey çıkmaz.",
+          "chat_console_key": "Boş bırak. Dünyada TEK bir kurulum için — panoyu sürdüren kişininki — herkesin sohbetlerini okuyup yanıtlamaya yarar. Aktarıcının gizli değerlerine konan anahtarın aynısıdır."
         }
       }
     }

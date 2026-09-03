@@ -2641,4 +2641,6 @@ export default Object.freeze({
   "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "To, co tu napiszesz, trafia do osoby utrzymującej pulpit i do nikogo więcej. Nie przechodzi przez GitHub i nie staje się publiczne. Razem z wiadomością wysyłane są tylko wersja pulpitu, wersja Home Assistanta i język. Rozmowę możesz usunąć, kiedy zechcesz.",
   "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "Napisz do osoby, która utrzymuje pulpit: prywatna rozmowa, z pominięciem GitHuba",
   "Write your message…": "Napisz swoją wiadomość…",
+  "Leave empty if you prefer": "Zostaw puste, jeśli wolisz",
+  "Your name (optional)": "Jak masz na imię (opcjonalnie)",
 });

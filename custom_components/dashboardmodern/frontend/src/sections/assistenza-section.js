@@ -26,14 +26,8 @@
  * Sono la stessa cosa guardata dai due capi, e due finestre gemelle da tenere
  * uguali sarebbero due finestre che un giorno divergono.
  */
-import {
-  clean,
-  doc,
-  esc,
-  installStyle,
-  root,
-  t,
-} from "./shared.js";
+import { getLocale } from "../core/i18n.js";
+import { clean, doc, esc, installStyle, root, t } from "./shared.js";
 
 const WS_STATE = "dashboardmodern/chat/state";
 const WS_THREAD = "dashboardmodern/chat/thread";
@@ -74,7 +68,18 @@ const state = {
   tab: "mia",
   busy: false,
   avviso: "",
+  /* Quello che si sta scrivendo, perche' un ridisegno non se lo porti via. */
+  bozza: "",
 };
+
+/** La lingua che questa plancia sta mostrando, non quella del server. */
+function lingua() {
+  try {
+    return clean(getLocale()) || "";
+  } catch (_errore) {
+    return "";
+  }
+}
 
 function broker() {
   return root.DashboardModernEnergyService?.broker || null;
@@ -158,13 +163,23 @@ export function filoMarkup(messaggi) {
     .join("")}</div>`;
 }
 
-function casellaMarkup(dove, quanti) {
-  const rimasti = MAX_TESTO - Number(quanti || 0);
+/* La casella, con dentro quello che si stava scrivendo.
+ *
+ * La bozza si tiene nello stato e si ristampa a ogni ridisegno. Prima no: il
+ * ridisegno che accende la rotella rifaceva tutto il corpo della finestra, e la
+ * casella tornava vuota mentre la richiesta era ancora per aria. Se poi quella
+ * falliva — Home Assistant occupato, centralino irraggiungibile — compariva
+ * l'errore e sotto una casella pulita: chi aveva appena incollato mezzo file di
+ * configurazione doveva riscriverlo per riprovare, che e' il modo piu' sicuro
+ * di far smettere di riprovare. */
+function casellaMarkup(dove) {
+  const bozza = state.bozza || "";
+  const rimasti = MAX_TESTO - bozza.length;
   return `
     <div class="dm-chat-campo">
       <textarea id="${dove}" rows="3" maxlength="${MAX_TESTO}" placeholder="${esc(
         t("Scrivi il tuo messaggio…", "Write your message…"),
-      )}"></textarea>
+      )}">${esc(bozza)}</textarea>
       <div class="dm-chat-sotto">
         <span class="dm-chat-rimasti" data-dm-chat="rimasti">${rimasti}</span>
         <button type="button" class="dm-chat-btn" data-dm-chat="manda"
@@ -183,6 +198,31 @@ function avvisoMarkup() {
   )}</div>`;
 }
 
+/* Come farsi chiamare.
+ *
+ * Il centralino ha sempre avuto il campo, lo schema una colonna e il documento
+ * la frase «chi vuole farsi chiamare per nome puo' scriverlo» — e in tutto
+ * questo non c'era **nessun posto dove scriverlo**. Ogni messaggio partiva
+ * senza nome, e chi risponde vedeva una coda di `casa_9f3a…` tutte uguali,
+ * indistinguibili anche quando erano tre conversazioni di tre persone diverse.
+ *
+ * Facoltativo davvero: si lascia vuoto e non succede niente, e chi lo compila
+ * non deve premere Salva — il nome parte col messaggio dopo. Sta sopra la
+ * casella e non dentro un menu, perche' una cosa che si scrive una volta sola
+ * nascosta in un menu non la trova nessuno. */
+function nomeMarkup() {
+  return `
+    <div class="dm-chat-nome">
+      <label for="dm-chat-comechiamo">${esc(
+        t("Come ti chiami (facoltativo)", "Your name (optional)"),
+      )}</label>
+      <input id="dm-chat-comechiamo" type="text" maxlength="60"
+        value="${esc(state.name)}" placeholder="${esc(
+          t("Lascia vuoto se preferisci", "Leave empty if you prefer"),
+        )}">
+    </div>`;
+}
+
 /* La mia conversazione. */
 function miaMarkup() {
   const patto = state.messages.length ? "" : avvertenzaMarkup();
@@ -193,7 +233,9 @@ function miaMarkup() {
          )}</button>
        </div>`
     : "";
-  return `${patto}${filoMarkup(state.messages)}${casellaMarkup("dm-chat-mio", 0)}${cancella}`;
+  return `${patto}${filoMarkup(state.messages)}${nomeMarkup()}${casellaMarkup(
+    "dm-chat-mio",
+  )}${cancella}`;
 }
 
 /* L'elenco, per chi risponde. */
@@ -235,7 +277,7 @@ function consoleMarkup() {
       )}</button>
     </div>
     ${filoMarkup(state.filo)}
-    ${casellaMarkup("dm-chat-console", 0)}`;
+    ${casellaMarkup("dm-chat-console")}`;
 }
 
 function schedeMarkup() {
@@ -390,9 +432,16 @@ function agganciaEventi(corpo) {
   corpo
     .querySelector('[data-dm-chat="cancella"]')
     ?.addEventListener("click", () => cancella());
+  const comeMiChiamo = corpo.querySelector("#dm-chat-comechiamo");
+  if (comeMiChiamo) {
+    comeMiChiamo.addEventListener("input", () => {
+      state.name = clean(comeMiChiamo.value);
+    });
+  }
   const campo = corpo.querySelector("textarea");
   if (campo) {
     campo.addEventListener("input", () => {
+      state.bozza = campo.value;
       const rimasti = corpo.querySelector('[data-dm-chat="rimasti"]');
       if (rimasti) rimasti.textContent = String(MAX_TESTO - campo.value.length);
     });
@@ -479,16 +528,25 @@ async function manda() {
   if (!testo) return;
   state.busy = true;
   state.avviso = "";
+  state.bozza = testo;
   disegna();
   try {
     if (console_) {
       await chiedi(WS_ANSWER, { line: state.linea, message: testo });
+      state.bozza = "";
       await apriLinea(state.linea);
     } else {
-      await chiedi(WS_SEND, { message: testo, name: state.name });
+      /* La lingua di CHI STA SCRIVENDO, non quella del server. In una casa dove
+       * ognuno ha la sua, o dove la plancia parla una lingua diversa da Home
+       * Assistant, la coda diceva la lingua sbagliata — e chi risponde si
+       * ritrovava a scrivere in una lingua che quella persona non usa. */
+      await chiedi(WS_SEND, { message: testo, name: state.name, locale: lingua() });
+      state.bozza = "";
       await caricaFilo();
     }
   } catch (errore) {
+    /* La bozza resta: chi ha appena incollato mezzo file di configurazione non
+     * deve riscriverlo per riprovare. */
     state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
   } finally {
     state.busy = false;
@@ -553,6 +611,12 @@ const CSS = `
   color:var(--text-dim,#64748b); font-size:13px; text-align:center; }
 .dm-chat-vuoto-ico { font-size:26px; }
 
+.dm-chat-nome { display:grid; gap:5px; }
+.dm-chat-nome label { font-size:11px; font-weight:700; color:var(--text-dim,#64748b); }
+.dm-chat-nome input { width:100%; box-sizing:border-box; padding:9px 13px;
+  border-radius:14px; border:1px solid var(--card-border,#e2e8f0);
+  background:var(--surface-2,#fff); color:var(--text,#0f172a); font:inherit;
+  font-size:13px; }
 .dm-chat-campo textarea { width:100%; box-sizing:border-box; padding:11px 13px;
   border-radius:14px; border:1px solid var(--card-border,#e2e8f0);
   background:var(--surface-2,#fff); color:var(--text,#0f172a); font:inherit;

@@ -32,8 +32,8 @@
           "admin_only": "Home Assistant का अपना फ़िल्टर; गैर-प्रशासक खातों पर यही मान्य होता है।",
           "check_updates": "हर आधे घंटे में GitHub से पूछता है कि कोई नया रिलीज़ आया है या नहीं, और उसे सेटिंग्स → अपडेट में दिखाता है. पैनल को इंटरनेट से बिल्कुल बाहर न जाने देने के लिए इसे बंद करें; डैशबोर्ड को इसकी कभी ज़रूरत नहीं.",
           "tickets_enabled": "डैशबोर्ड इस्तेमाल करने वाले किसी को भी उसे छोड़े बिना गड़बड़ी बताने, सुझाव देने या मदद माँगने देता है। रिपोर्ट GitHub पर एक सार्वजनिक issue बन जाती है, उनके अपने नाम से — वही खाता जो HACS पहले ही माँग चुका है। बंद होने पर घर से कुछ बाहर नहीं जाता।",
-          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
-          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
+          "chat_enabled": "जो इस डैशबोर्ड को बनाए रखता है, उसके साथ निजी बातचीत — सार्वजनिक issue खोले बिना और बिना किसी खाते के मदद माँगने के लिए। यह GitHub से नहीं, अपनी अलग सेवा से होकर जाता है। बंद होने पर घर से कुछ भी बाहर नहीं जाता।",
+          "chat_console_key": "इसे खाली छोड़ें। यह दुनिया के एक ही इंस्टॉलेशन के लिए है — उसका जो डैशबोर्ड बनाए रखता है — ताकि वह सबकी बातचीत पढ़ सके और उत्तर दे सके। यह वही कुंजी है जो रिले के सीक्रेट में रखी गई थी।"
         }
       }
     }

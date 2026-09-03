@@ -7,10 +7,11 @@ mantiene. Sta in `centralino/`, il progetto in `docs/CHAT.md`.
 Tre cose che questo file tratta con cura, e sono le stesse tre di
 `github_client.py`, perche' sono le stesse tre di ogni chiamata verso fuori.
 
-* **Il segreto della casa non esce mai dal backend.** Nasce nel deposito, viene
-  scritto in un'intestazione, e il browser non lo vede in nessun momento: la
-  plancia chiede «manda questo messaggio», non «manda questo messaggio con
-  questo segreto».
+* **Il segreto della casa non passa dal browser.** Nasce nel deposito, viene
+  scritto in un'intestazione qui, e la plancia non lo vede in nessun momento:
+  chiede «manda questo messaggio», non «manda questo messaggio con questo
+  segreto». Al centralino invece ci va — e' cosi' che si fa riconoscere — e
+  quello e' scritto in `docs/CHAT.md` invece di essere lasciato intendere.
 * **Le risposte hanno un tetto.** Un servizio raggiungibile da fuori casa non
   deve poter decidere quanta memoria occupa dentro casa. Vale per GitHub e vale
   per il centralino, che pure e' nostro: il giorno che qualcuno si mette in

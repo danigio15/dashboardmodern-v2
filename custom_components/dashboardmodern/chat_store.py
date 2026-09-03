@@ -5,8 +5,13 @@ Tre cose su disco, e nessuna di piu'.
 * **L'identita' della casa.** Un identificativo di 128 bit e un segreto di 256,
   fabbricati qui la prima volta che serve la chat e mai piu' toccati. Non
   vengono da nessun account e non dicono niente di nessuno: il centralino sa
-  che la linea `casa_9f3a…` ha scritto, e non ha modo di sapere altro. Il
-  segreto **non esce mai da questa casa**: fuori ne va solo l'impronta.
+  che la linea `casa_9f3a…` ha scritto, e non ha modo di sapere altro.
+
+  Il segreto non finisce nel browser e non finisce nell'archivio del
+  centralino, dove ne resta solo l'impronta. Ma **viaggia**: ogni richiesta lo
+  porta come `Authorization: Bearer`, ed e' li' che viene confrontato. Dentro
+  TLS, e verso il servizio a cui si sta scrivendo — ma ci va, e dire il
+  contrario sarebbe piu' comodo che vero.
 
 * **La copia della conversazione.** Il filo vero sta nel centralino; questa e'
   la copia locale, quella che si legge senza rete e che sopravvive al riavvio

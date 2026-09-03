@@ -54,8 +54,22 @@ DATA_CHAT_UNSUB = "chat_unsub"
 
 
 def _entry(hass: HomeAssistant) -> Any:
-    voci = list(hass.config_entries.async_entries(DOMAIN))
-    return voci[0] if voci else None
+    """La plancia che tiene le opzioni della chat.
+
+    La chat e' dell'installazione, non della singola plancia, e le sue opzioni
+    stanno sulla voce primaria — la stessa che tiene le segnalazioni e il
+    controllo aggiornamenti. Prendere la prima dell'elenco funziona finche' le
+    plance sono una o due; con tre, dopo aver cancellato l'originale, la
+    primaria si ricalcola per identificativo minimo e puo' non essere la prima:
+    li' spegnere la chat non avrebbe effetto e la chiave della console non si
+    troverebbe.
+    """
+    from . import _primary_entry
+
+    for voce in hass.config_entries.async_entries(DOMAIN):
+        if _primary_entry(hass, voce):
+            return voce
+    return None
 
 
 def accesa(hass: HomeAssistant) -> bool:
@@ -127,14 +141,18 @@ async def async_conversazione(
     store = await async_get_chat_store(hass)
     if not accesa(hass):
         return {"enabled": False, "messages": []}
+    guasto = ""
     if store.aperta():
         identita = await store.async_identita()
         try:
             arrivati = await async_leggi(hass, identita, dopo=store.ultimo())
             await store.async_aggiungi(arrivati)
-        except ChatError:
-            if not zitta:
-                raise
+        except ChatError as errore:
+            # Il centralino giu' non deve voler dire una schermata vuota: la
+            # copia locale esiste apposta, e chi apre la chat la vede lo stesso.
+            # Il guasto si dice, ma accanto alla conversazione, non al posto suo:
+            # sollevare qui buttava via anche quello che c'era gia' letto.
+            guasto = str(errore)
             _LOGGER.debug("Chat: rilettura non riuscita", exc_info=True)
     if not zitta:
         await store.async_letto()
@@ -143,11 +161,12 @@ async def async_conversazione(
         "opened": store.aperta(),
         "name": store.nome(),
         "messages": store.messaggi(),
+        "error": guasto,
     }
 
 
 async def async_scrivi(
-    hass: HomeAssistant, testo: str, *, nome: str = ""
+    hass: HomeAssistant, testo: str, *, nome: str = "", lingua: str = ""
 ) -> dict[str, Any]:
     """Manda un messaggio a chi mantiene la plancia.
 
@@ -161,8 +180,33 @@ async def async_scrivi(
     if nome:
         await store.async_chiamami(nome)
     identita = await store.async_identita()
-    messaggio = await async_manda(hass, identita, testo, nome=store.nome())
-    await store.async_aggiungi([messaggio])
+    # Da dove eravamo rimasti, PRIMA di scrivere. Il numero che il centralino
+    # da' al messaggio nuovo e' piu' alto di tutti, quindi metterlo in copia e
+    # basta sposterebbe il segnalibro oltre una risposta arrivata nel frattempo
+    # — nei cinque minuti fra un giro e l'altro ci sta benissimo — e quella
+    # risposta non verrebbe chiesta mai piu': persa, in silenzio, per sempre.
+    prima = store.ultimo()
+    messaggio = await async_manda(
+        hass, identita, testo, nome=store.nome(), lingua=lingua
+    )
+    try:
+        # Il centralino rida' anche il messaggio appena scritto, quindi questa
+        # rilettura porta indietro sia le risposte in sospeso sia la propria
+        # frase, in ordine: il segnalibro avanza di uno per volta e non salta.
+        await store.async_aggiungi(await async_leggi(hass, identita, dopo=prima))
+    except ChatError:
+        # Il messaggio e' partito: quello che non e' riuscito e' rileggere.
+        #
+        # E qui non si mette niente in copia, per la stessa ragione per cui la
+        # rilettura esiste: la propria frase ha il numero piu' alto di tutti, e
+        # metterla da sola sposterebbe il segnalibro oltre una risposta ancora
+        # da leggere — cioe' rifarebbe, nel ramo del guasto, il difetto che
+        # questa funzione e' stata riscritta per togliere.
+        #
+        # Non comparira' subito sullo schermo, e va bene: la finestra rilegge
+        # dopo ogni invio, e comunque il giro dei cinque minuti ripassa di li'
+        # e porta indietro sia la frase sia quello che c'era prima.
+        _LOGGER.debug("Chat: rilettura dopo l'invio non riuscita", exc_info=True)
     # Scrivere e' aver letto: il pallino non si accende per la propria frase.
     await store.async_letto()
     return messaggio
@@ -179,16 +223,14 @@ async def async_dimentica(hass: HomeAssistant) -> bool:
     store = await async_get_chat_store(hass)
     if store.aperta():
         identita = await store.async_identita()
-        try:
-            await async_cancella(hass, identita)
-        except ChatError:
-            # La copia locale si cancella comunque: il centralino butta da solo
-            # le linee ferme da sei mesi, e lasciare i messaggi sullo schermo di
-            # chi ha appena chiesto di non vederli piu' sarebbe la cosa peggiore
-            # delle due.
-            _LOGGER.debug(
-                "Chat: cancellazione sul centralino non riuscita", exc_info=True
-            )
+        # Se il centralino non risponde, il guasto si dice e non si tocca
+        # niente. La prima stesura cancellava lo stesso la copia locale e
+        # rispondeva «fatto»: era la peggiore delle risposte possibili, perche'
+        # il filo restava intero di la' — con dentro quello che una persona
+        # aveva appena chiesto di far sparire — e il giro dei cinque minuti se
+        # lo riportava in casa poco dopo. Detto altrimenti: si prometteva una
+        # cancellazione, se ne faceva una finta, e i messaggi tornavano.
+        await async_cancella(hass, identita)
     await store.async_dimentica()
     return True
 
@@ -196,28 +238,64 @@ async def async_dimentica(hass: HomeAssistant) -> bool:
 # ─── Il lato di chi risponde ─────────────────────────────────────────────────
 
 
-async def async_coda(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """Le conversazioni aperte, per chi risponde."""
+def _chiave_di_chi_risponde(hass: HomeAssistant) -> str:
+    """La chiave, e il permesso di usarla.
+
+    Due domande e non una. La prima e' se questa plancia risponda alle chat, e
+    la dice la chiave. La seconda e' se la chat sia accesa: spegnerla promette
+    che «non esce niente di casa», e la promessa vale anche per chi risponde —
+    senza questo controllo un amministratore con una finestra gia' aperta, o
+    una chiamata diretta ai comandi, avrebbe continuato a parlare col
+    centralino con l'interruttore su spento.
+    """
+    if not accesa(hass):
+        raise ChatError("disabled", "La chat non e' disponibile su questa plancia.")
     chiave = chiave_console(hass)
     if not chiave:
         raise ChatError("forbidden", "Questa plancia non risponde alle chat.")
-    return await async_conversazioni(hass, chiave)
+    return chiave
+
+
+async def async_coda(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Le conversazioni aperte, per chi risponde."""
+    return await async_conversazioni(hass, _chiave_di_chi_risponde(hass))
+
+
+#: Quante pagine si e' disposti a chiedere per una conversazione sola. Il
+#: centralino ne tiene duecento messaggi e ne da' cento per volta: due giri
+#: bastano, il terzo e' il margine perche' quei due numeri non si tocchino.
+MAX_PAGINE = 4
 
 
 async def async_apri(hass: HomeAssistant, linea: str) -> list[dict[str, Any]]:
-    """Una conversazione intera, per chi risponde."""
-    chiave = chiave_console(hass)
-    if not chiave:
-        raise ChatError("forbidden", "Questa plancia non risponde alle chat.")
-    return await async_filo(hass, chiave, linea)
+    """Una conversazione intera, per chi risponde.
+
+    Intera davvero: il centralino ne da' cento per volta e ne conserva
+    duecento, quindi chiedere la prima pagina e fermarsi vorrebbe dire che
+    dalla centunesima in poi non si leggono mai — nemmeno riaprendo, perche' si
+    riaprirebbe sulle stesse cento. Si chiede una pagina dopo l'altra finche'
+    una non porta piu' niente di nuovo.
+    """
+    chiave = _chiave_di_chi_risponde(hass)
+    filo: list[dict[str, Any]] = []
+    dopo = 0
+    for _giro in range(MAX_PAGINE):
+        pagina = await async_filo(hass, chiave, linea, dopo=dopo)
+        # Si tiene solo quello che viene davvero dopo il segnalibro. Chiedere
+        # «dopo N» e fidarsi che la risposta lo rispetti basterebbe finche' i due
+        # lati restano d'accordo; il giorno che non lo fossero, il filo si
+        # riempirebbe di righe doppie e nessuno saprebbe perche'.
+        avanti = [riga for riga in pagina if int(riga.get("id") or 0) > dopo]
+        if not avanti:
+            break
+        filo.extend(avanti)
+        dopo = max(int(riga.get("id") or 0) for riga in avanti)
+    return filo
 
 
 async def async_replica(hass: HomeAssistant, linea: str, testo: str) -> dict[str, Any]:
     """Rispondi a una casa."""
-    chiave = chiave_console(hass)
-    if not chiave:
-        raise ChatError("forbidden", "Questa plancia non risponde alle chat.")
-    return await async_rispondi(hass, chiave, linea, testo)
+    return await async_rispondi(hass, _chiave_di_chi_risponde(hass), linea, testo)
 
 
 # ─── Il campanello ───────────────────────────────────────────────────────────

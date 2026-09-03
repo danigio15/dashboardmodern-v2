@@ -32,8 +32,8 @@
           "admin_only": "Home Assistant 自带的过滤；对非管理员账号以它为准。",
           "check_updates": "每半小时向 GitHub 询问是否有更新的版本，并显示在“设置 → 更新”中。关闭后面板完全不联网；仪表板本身并不需要它。",
           "tickets_enabled": "让使用面板的人不必离开面板即可报告缺陷、提出建议或寻求帮助。反馈会成为 GitHub 上的公开 issue，以其本人的名义提交——正是 HACS 早已要求的那个账号。关闭后，任何内容都不会离开本地。",
-          "chat_enabled": "A private conversation with whoever maintains the dashboard, to ask for help without opening a public issue and without any account. It goes through a service of its own, not GitHub. Turned off, nothing leaves the house.",
-          "chat_console_key": "Leave it empty. It is for ONE installation in the world — the one belonging to whoever maintains the dashboard — to read everyone's chats and answer. It is the same key set among the relay's secrets."
+          "chat_enabled": "与维护此仪表板的人的私密对话，用来求助，无需公开的 issue，也无需任何账号。它经过一个专属服务，而不是 GitHub。关闭后，家里的任何东西都不会外流。",
+          "chat_console_key": "留空。它只服务于世界上的一个安装 —— 维护此仪表板的那个人 —— 用来阅读所有人的对话并回复。就是放进中继服务密钥里的那把钥匙。"
         }
       }
     }
