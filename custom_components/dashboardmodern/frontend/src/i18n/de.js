@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
+    "Schalte es aus, um beim ersten Tippen zu öffnen: wer seine eigene Haustür zehnmal am Tag öffnet, kennt die Rückfrage auswendig. Eine PIN ist keine Rückfrage und bleibt: eine geschützte Tür fragt weiter danach.",
+  "Open — asks for the PIN": "Öffnen — fragt nach der PIN",
+  "Ask to confirm before opening": "Vor dem Öffnen nachfragen",
   "the total of every plant": "die Summe aller Anlagen",
   "each one named after its plant": "jede mit dem Namen ihrer Anlage",
   "One tile per plant": "Eine pro Anlage",

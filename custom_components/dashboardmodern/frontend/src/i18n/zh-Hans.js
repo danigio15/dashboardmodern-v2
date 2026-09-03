@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
+    "想一触即开就把它关掉：每天开自家大门十次的人，早把确认背下来了。PIN 不是确认，会保留：受保护的门仍然会问。",
+  "Open — asks for the PIN": "打开 — 会先问 PIN",
+  "Ask to confirm before opening": "打开前先确认",
   "the total of every plant": "所有系统的总和",
   "each one named after its plant": "每张都用各自系统的名字",
   "One tile per plant": "每套系统一张",

@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
+    "첫 터치로 열려면 끄세요: 자기 대문을 하루에 열 번 여는 사람은 확인을 외우고 있습니다. PIN은 확인이 아니라서 그대로 남습니다: 보호된 문은 계속 물어봅니다.",
+  "Open — asks for the PIN": "열기 — PIN을 물어봅니다",
+  "Ask to confirm before opening": "열기 전에 확인 묻기",
   "the total of every plant": "모든 설비의 합계",
   "each one named after its plant": "각각 자기 설비의 이름으로",
   "One tile per plant": "설비마다 하나씩",

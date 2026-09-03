@@ -35,6 +35,25 @@ const STYLE_ID = "dm-security-doors-style";
 const KEYPAD_ID = "dm-door-keypad";
 export const SECURITY_DOORS_CONFIG_KEY = "cd_security_doors";
 
+/* Chiedere conferma prima di aprire, o no (#275).
+ *
+ * «Sarebbe carino la possibilità in configurazione di decidere se attivare la
+ * doppia conferma d'apertura o meno, per essere più celeri all'apertura.»
+ *
+ * Di serie la conferma c'è: un cancello che si apre al primo tocco sbagliato è
+ * un cancello aperto, e chi tocca per sbaglio se ne accorge dopo. Ma chi apre
+ * il proprio portone dieci volte al giorno la conferma la conosce a memoria, e
+ * per lui è solo un tocco in più.
+ *
+ * Il PIN non è una conferma e non si spegne da qui: quella è una chiave, e una
+ * porta protetta continua a chiederla. */
+export const SECURITY_DOORS_CONFIRM_KEY = "cd_porte_conferma";
+
+/** Se il tocco su un'apertura chiede conferma. Spento solo se lo si è detto. */
+export function siChiedeConferma() {
+  return readJson(SECURITY_DOORS_CONFIRM_KEY, true) !== false;
+}
+
 const state = (root[KEY] ||= {
   installed: false,
   frame: 0,
@@ -140,7 +159,9 @@ export function renderSecurityDoors() {
   const block = ensureBlock(shell);
   const signature = [
     activeLocale(),
-    ...doors.map((door) => [door.id, door.name, door.entity, door.icon, Boolean(door.pin)].join("~")),
+    ...doors.map((door) =>
+      [door.id, door.name, door.entity, door.icon, Boolean(door.pin)].join("~"),
+    ),
   ].join("|");
   if (state.signature !== signature || !block.querySelector(".dm-door-grid")) {
     state.signature = signature;
@@ -329,7 +350,10 @@ function onClick(event) {
   const door = doorById(card.dataset.dmDoor);
   if (!door || state.busy.has(door.id)) return;
   if (door.pin) openKeypad(door);
-  else confirmAndOpen(door);
+  else if (siChiedeConferma()) confirmAndOpen(door);
+  /* Senza conferma si apre e basta: è la scelta di chi apre il proprio portone
+   * dieci volte al giorno. */
+  else openDoor(door);
 }
 
 function securityVisible() {
@@ -337,7 +361,9 @@ function securityVisible() {
 }
 
 function installStyles() {
-  installStyle(STYLE_ID, `
+  installStyle(
+    STYLE_ID,
+    `
 .dm-sec-doors{display:flex;flex-direction:column;gap:12px}
 .dm-sec-doors-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 4px}
 .dm-sec-doors-ic{font-size:20px}
@@ -370,7 +396,8 @@ function installStyles() {
   display:block;margin:6px 0 0;color:var(--error-color,#dc2626);
   font-size:12px;font-weight:800;text-align:center}
 #${KEYPAD_ID} .keypad-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-`);
+`,
+  );
 }
 
 export function installSecurityDoorsSection() {
@@ -404,7 +431,8 @@ export function installSecurityDoorsSection() {
     },
     true,
   );
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", schedule, { once: true });
+  if (doc.readyState === "loading")
+    doc.addEventListener("DOMContentLoaded", schedule, { once: true });
   else schedule();
 }
 

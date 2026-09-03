@@ -5572,6 +5572,21 @@ function installStyles() {
 :root:is([data-theme="dark"]) #dm-widget-popup,
 html[data-theme="dark"] #dm-widget-popup{background:color-mix(in srgb,#060a14 74%,rgba(2,6,15,.9))}
 #dm-widget-popup[hidden]{display:none}
+/* Una conferma sta sopra a chi la chiede (#275).
+ *
+ * «Dalla home cliccando sicurezza mostra le porte per aprire, si clicca il
+ * lucchetto e il popup di conferma non viene mostrato perché accavallato dal
+ * primo popup.» Vero, e la ragione è scritta poco più su: due veli sullo stesso
+ * piano — z-index 9999 tutti e due — e vince il più giovane nel documento.
+ * Il velo delle conferme sta nel guscio vendorizzato, cioè PRIMA di questo, che
+ * nasce a runtime: la conferma si apriva davvero, sotto. Il tocco sul tasto
+ * «Conferma» arrivava al corpo di questa finestra.
+ *
+ * Chiudere questa finestra prima di chiedere sarebbe stato l'altro modo, ed è
+ * peggio: annullando si perde l'elenco delle porte e bisogna riaprirlo. Una
+ * domanda che aspetta una risposta sta sopra tutto, ed è vero per ogni
+ * conferma e ogni tastierino, non solo per le porte. */
+#confirm-modal,#custom-keypad,#dm-door-keypad{z-index:10050!important}
 @keyframes dmWidgetPopupIn{from{opacity:0}to{opacity:1}}
 html.dm-widget-popup-open{overflow:hidden}
 /* La stessa veste delle altre finestre della plancia.

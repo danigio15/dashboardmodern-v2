@@ -72,6 +72,10 @@ const USER_DATA_VERSION = 1;
  * #262): titolo, icona e le entita' che ci ha messo dentro. Sono la casa nel
  * senso piu' letterale — le ha disegnate lui — e non viaggiare vorrebbe dire
  * rifarle su ogni dispositivo. */
+/* La revisione 23 aggiunge la doppia conferma delle aperture
+ * (`cd_porte_conferma`, #275): «poter decidere se attivare la doppia conferma
+ * d'apertura o meno, per essere più celeri». È una scelta sulla casa, non sul
+ * dispositivo: chi la spegne dal telefono la vuole spenta anche dal tablet. */
 /* La revisione 22 aggiunge come si vede l'energia in Home con più impianti
  * (`cd_energia_tessere`, #286): una tessera sola con la somma, o una per
  * impianto. È una scelta sulla plancia, non su questo dispositivo — chi la fa
@@ -87,7 +91,7 @@ const USER_DATA_VERSION = 1;
  * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
  * da sempre: se la scelta restasse su un dispositivo solo, il telefono
  * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
-export const CONFIG_KEYS_REVISION = 22;
+export const CONFIG_KEYS_REVISION = 23;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -201,6 +205,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_centrale_scelta",
   // Come si vede l'energia in Home con più impianti: somma o una per impianto (#286).
   "cd_energia_tessere",
+  // Se il tocco su un'apertura chiede conferma (#275).
+  "cd_porte_conferma",
   "cd_ups",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.

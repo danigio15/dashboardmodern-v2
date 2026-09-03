@@ -34,6 +34,7 @@ import {
 } from "../core/room-overview.js";
 import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
 import { pageCardMarkup } from "./lights-page-section.js";
+import { configuredSecurityDoors } from "./security-doors-section.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
   allStates,
@@ -410,8 +411,42 @@ function accesa(entity, states) {
  * quello che si accende ha il suo interruttore qui, e la scritta sotto il nome
  * dice com'e' andata; il resto della riga continua a portare nella sezione, per
  * chi vuole fare di piu'. */
-function rowMarkup(item, blocco, states) {
+/* Le aperture configurate, per entità (#275).
+ *
+ * «Le aperture assegnate alle stanze: quando si entra nella sezione stanze e si
+ * seleziona la stanza mostra la card dell'apertura ma non permette l'apertura —
+ * se si clicca ti porta nella home.» Vero: un'entità assegnata a mano finisce
+ * nel blocco «Altro», e quel blocco riporta in Home, che è l'unico posto che le
+ * contiene tutte. Per un comando che apre un cancello è la risposta sbagliata:
+ * non si vuole andare da nessuna parte, si vuole aprire.
+ *
+ * La riga di un'apertura porta quindi il segno delle aperture, e da lì in poi
+ * è la sezione che le disegna a occuparsene — conferma, PIN e attesa comprese.
+ * Nessuno reimplementa niente: si dice solo di chi è quel tocco. */
+function aperturePerEntita() {
+  const per = new Map();
+  try {
+    for (const porta of configuredSecurityDoors()) {
+      const entita = clean(porta?.entity);
+      if (entita) per.set(entita, porta);
+    }
+  } catch (_error) {}
+  return per;
+}
+
+function rowMarkup(item, blocco, states, aperture = aperturePerEntita()) {
   const entity = entitaVoce(item);
+  const porta = aperture.get(entity);
+  if (porta)
+    return `<article class="dm-stanze-card dm-stanze-voce dm-stanze-apertura" data-dm-door="${esc(porta.id)}" role="button" tabindex="0">
+    <div class="dm-stanze-card-row">
+      <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
+      <span class="dm-stanze-title"><b>${esc(clean(porta.name) || nomeVoce(item, states))}</b><s>${esc(
+        porta.pin ? t("Apri — chiede il PIN", "Open — asks for the PIN") : t("Apri", "Open"),
+      )}</s></span>
+      <span class="dm-stanze-vai" aria-hidden="true">${porta.pin ? "🔒" : "›"}</span>
+    </div>
+  </article>`;
   const tocco = siPuoAccendere(entity)
     ? `<button type="button" class="dm-stanze-tocca" data-dm-stanza-tocca="${esc(entity)}" role="switch" aria-checked="${accesa(entity, states) ? "true" : "false"}" aria-label="${esc(nomeVoce(item, states))}"><span class="dm-stanze-tocca-pallino"></span></button>`
     : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;
@@ -652,6 +687,10 @@ function apriLaVoce(entity) {
 }
 
 function handleClick(event) {
+  /* Il tocco su un'apertura è di chi le disegna: qui si sta soltanto in
+   * disparte, come già si fa per l'interruttore dentro la riga. Senza questo
+   * la riga porterebbe altrove mentre la conferma si apre. */
+  if (event.target?.closest?.("[data-dm-door]")) return;
   const pillola = event.target?.closest?.("[data-dm-stanza]");
   if (pillola) {
     state.room = pillola.getAttribute("data-dm-stanza") || "";

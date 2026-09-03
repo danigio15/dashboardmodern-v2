@@ -11,7 +11,12 @@ import {
   isDoorEntity,
   normalizeDoorPin,
 } from "../core/security-door-model.js";
-import { entitaDellePrese, iconaPortaMarkup } from "./security-doors-section.js";
+import {
+  entitaDellePrese,
+  iconaPortaMarkup,
+  SECURITY_DOORS_CONFIRM_KEY,
+  siChiedeConferma,
+} from "./security-doors-section.js";
 import { openIconPicker } from "./icon-engine-section.js";
 import {
   clean,
@@ -95,7 +100,19 @@ function bodyMarkup(doors) {
       ? doors.map((door, index) => rigaMarkup(door, index)).join("")
       : `<div class="ed-empty">${t("Nessuna apertura configurata", "No opening configured")}</div>`
   }</div>
-  <button type="button" class="ed-btn-add" data-door-add>＋ ${t("Aggiungi apertura", "Add opening")}</button>`;
+  <button type="button" class="ed-btn-add" data-door-add>＋ ${t("Aggiungi apertura", "Add opening")}</button>
+  <label class="dm-door-ed-conferma">
+    <input type="checkbox" data-door-conferma${siChiedeConferma() ? " checked" : ""}>
+    <span>
+      <b>${esc(t("Chiedi conferma prima di aprire", "Ask to confirm before opening"))}</b>
+      <small>${esc(
+        t(
+          "Spegnila per aprire al primo tocco: chi apre il proprio portone dieci volte al giorno la conferma la sa a memoria. Il PIN non è una conferma e resta: una porta protetta continua a chiederlo.",
+          "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.",
+        ),
+      )}</small>
+    </span>
+  </label>`;
 }
 
 function leggiRiga(riga, door) {
@@ -111,6 +128,7 @@ export function ensureDoorsEditor() {
   const doors = grezze();
   const firma = [
     state.aperto,
+    siChiedeConferma(),
     ...doors.map((door) => `${door?.id}~${door?.name}~${door?.entity}~${door?.icon}~${door?.pin}`),
   ].join("|");
   if (body.dataset.dmDoorsEditor === firma && body.querySelector(".dm-door-ed-list")) return true;
@@ -142,6 +160,14 @@ function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== DOORS_EDITOR_TAB || !body.contains(event.target)) return;
 
+  const conferma = event.target.closest("[data-door-conferma]");
+  if (conferma) {
+    /* Si scrive quello che la casella dice adesso: la spunta l'ha già girata
+     * il browser, e leggerla è più onesto che ricavarla. */
+    writeJsonIfChanged(SECURITY_DOORS_CONFIRM_KEY, conferma.checked === true);
+    ridisegna();
+    return;
+  }
   if (event.target.closest("[data-door-add]")) {
     event.preventDefault();
     /* La riga nuova nasce vuota e quindi non normalizzabile: si scrive grezza,
@@ -289,6 +315,16 @@ function installStyles() {
     "dm-door-editor-style",
     `
       #ed-body .dm-door-ed-list{display:grid;gap:8px;margin-bottom:10px}
+      /* L'interruttore della doppia conferma (#275), sotto l'elenco: è una
+         scelta su tutte le aperture, non su una. */
+      #ed-body .dm-door-ed-conferma{
+        display:flex;gap:9px;align-items:flex-start;margin-top:10px;padding:9px 11px;
+        border-radius:12px;background:var(--bg-sculpted,#f0f4f8);
+        border:1px solid var(--card-border,#e2e8f0);cursor:pointer}
+      #ed-body .dm-door-ed-conferma input{flex:0 0 auto;width:18px;height:18px;margin:1px 0 0;cursor:pointer}
+      #ed-body .dm-door-ed-conferma b{display:block;font-size:12.5px;font-weight:800;color:var(--text,#0f172a)}
+      #ed-body .dm-door-ed-conferma small{
+        display:block;margin-top:3px;font-size:11px;line-height:1.45;color:var(--text-dim,#64748b)}
       #ed-body .dm-door-ed-row{display:block!important;padding:0!important;overflow:hidden}
       #ed-body .dm-door-ed-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
       /* Il nome e l'entita' erano incollati: «dopo salvato, nome porta e'

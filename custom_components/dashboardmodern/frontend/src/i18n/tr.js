@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Turn it off to open on the first tap: whoever opens their own front door ten times a day knows the confirmation by heart. A PIN is not a confirmation and stays: a protected door keeps asking for it.":
+    "İlk dokunuşta açmak için kapat: kendi kapısını günde on kez açan onayı ezbere bilir. PIN bir onay değildir ve kalır: korumalı bir kapı onu istemeye devam eder.",
+  "Open — asks for the PIN": "Aç — PIN ister",
+  "Ask to confirm before opening": "Açmadan önce onay iste",
   "the total of every plant": "bütün tesislerin toplamı",
   "each one named after its plant": "her biri kendi tesisinin adıyla",
   "One tile per plant": "Tesis başına bir tane",
