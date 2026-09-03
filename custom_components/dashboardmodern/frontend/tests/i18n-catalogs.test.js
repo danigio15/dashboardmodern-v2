@@ -177,6 +177,8 @@ const LOCALE_IDENTITIES = {
     "Total",
   ]),
   fr: new Set([
+    /* La modulation d'une chaudière se dit comme en anglais. */
+    "Modulation (%)",
     "Polo",
     "Robot",
     "Robots",
@@ -226,6 +228,8 @@ const LOCALE_IDENTITIES = {
     "Name (optional)",
     /* E il raggio si scrive cosi' anche in tedesco. */
     "Radius (km)",
+    /* La modulazione di una caldaia si chiama Modulation anche in tedesco. */
+    "Modulation (%)",
     "Polo",
     "💨 Wind",
     "${value} offline",

@@ -31,8 +31,13 @@ header.dm-testata-col-meteo .header-left-wrap{flex:0 0 auto;min-width:0}
    non un'altra cosa. Il margine cresce con la finestra — su uno schermo largo
    lo spazio c'e', e due blocchi lontani si leggono come due blocchi. */
 /* Il nome della casa si prende la sua riga, e il riquadro va a capo sotto:
-   e' quello che vuol dire «passa il titolo e sotto fai la riga». */
+   e' quello che vuol dire «passa il titolo e sotto fai la riga».
+   E il nome sta al centro: il tasto del menu resta a sinistra, lo stato del
+   ponte e l'ingranaggio a destra, e in mezzo c'e' il nome — che e' l'unica
+   cosa che si legge da lontano. */
 header.dm-testata-col-meteo{flex-wrap:wrap;row-gap:8px}
+header.dm-testata-col-meteo .header-left-wrap{flex:1 1 auto;min-width:0}
+header.dm-testata-col-meteo .brand-text{flex:1 1 auto;min-width:0;text-align:center}
 header.dm-testata-col-meteo .dm-testata-riga{
   flex:1 1 100%;order:9;display:flex;align-items:center;gap:10px;min-width:0;
   padding:6px 12px;border-radius:16px;
@@ -53,7 +58,22 @@ header.dm-testata-col-meteo .weather-widget:hover{
    dentro una fascia alta sessanta e' solo una macchia. */
 header.dm-testata-col-meteo .weather-widget::before{display:none}
 header.dm-testata-col-meteo .w-left{gap:11px;flex:0 1 auto;min-width:0}
-header.dm-testata-col-meteo .w-icon{font-size:22px;animation:none;filter:none}
+/* Il simbolo del meteo sta in una casella di misura fissa.
+ *
+ * Le condizioni non sono tutte emoji della stessa larghezza — «☀️» e «⛅» sono
+ * larghe una, «💨» e «🌨️» un'altra — e nebbia e grandine non sono nemmeno
+ * emoji: sono un blocchetto animato di cinque righe, che dentro una fascia
+ * alta quaranta si prendeva lo spazio di una card. Con la casella fissa il
+ * riquadro non cambia forma al cambiare del tempo, che è l'unica cosa che
+ * conta qui: la testata non deve saltare perché è arrivata la pioggia. */
+header.dm-testata-col-meteo .w-icon{
+  flex:0 0 auto;width:26px;height:26px;display:grid;place-items:center;overflow:hidden;
+  font-size:22px;line-height:1;animation:none;filter:none}
+/* La nebbia e la grandine, in scala: sono cinque righe disegnate, e dentro la
+   casella ci stanno rimpicciolite invece che tagliate. */
+header.dm-testata-col-meteo .w-icon .w-fog-anim{
+  width:22px;height:16px;gap:2px;transform:none}
+header.dm-testata-col-meteo .w-icon .fog-line{height:2px;border-radius:2px}
 /* Temperatura e cielo su una riga sola: in colonna la fascia cresceva in
    altezza, che e' esattamente quello che si voleva togliere. */
 header.dm-testata-col-meteo .w-temp-wrap{
@@ -93,7 +113,7 @@ header.dm-testata-col-meteo .w-detail{
   header.dm-testata-col-meteo .header-left-wrap{flex:1 1 auto;min-width:0;gap:7px}
   header.dm-testata-col-meteo .ha-menu-btn{
     flex:0 0 auto;width:34px;height:34px;padding:0;border-radius:12px}
-  header.dm-testata-col-meteo .brand-text{min-width:0}
+  header.dm-testata-col-meteo .brand-text{min-width:0;text-align:center}
   header.dm-testata-col-meteo .brand-text p{display:none}
   header.dm-testata-col-meteo .brand-text h1{
     font-size:14px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -107,19 +127,26 @@ header.dm-testata-col-meteo .w-detail{
      lasciando al nome della casa lo spazio per «SM…». */
   header.dm-testata-col-meteo .dm-testata-riga{padding:5px 10px;gap:8px}
   header.dm-testata-col-meteo .weather-widget{
-    flex:1 1 auto;min-width:0;flex-wrap:wrap;row-gap:0;column-gap:6px;
+    flex:1 1 auto;min-width:0;flex-wrap:nowrap;row-gap:0;column-gap:8px;
     margin:0;padding:0;border:0}
-  header.dm-testata-col-meteo .w-left{flex:1 0 100%;gap:5px}
-  header.dm-testata-col-meteo .w-icon{font-size:18px}
+  /* Tutto su una riga sola, anche sul telefono.
+     «Vista smartphone: metti vento e pioggia affianco a meteo, così diventa
+     meno spessa la testata.» Prima la temperatura stava sopra e i numeri
+     sotto, e il riquadro veniva alto il doppio — aveva senso quando il meteo
+     divideva la riga col nome della casa e aveva centotrenta pixel; adesso il
+     riquadro ha tutta la larghezza, e i numeri ci stanno accanto. */
+  header.dm-testata-col-meteo .w-left{flex:0 0 auto;gap:6px}
+  header.dm-testata-col-meteo .w-icon{width:20px;height:20px;font-size:17px}
+  header.dm-testata-col-meteo .w-icon .w-fog-anim{width:17px;height:12px;gap:1.5px}
   header.dm-testata-col-meteo .w-temp{font-size:15px}
   header.dm-testata-col-meteo .w-state{display:none}
-  /* I numeri vanno a capo: due ci stanno in riga, e chi ha mappato anche la
-     percepita se la ritrova sotto invece di non trovarla piu'. */
+  /* I numeri non si stringono: o ci stanno interi o non ci stanno. Tagliarli
+     a metà — «💧 41%» e mezzo soffio di vento — è peggio che non averli. */
   header.dm-testata-col-meteo .w-right{
-    flex:1 0 100%;flex-direction:row;align-items:center;
-    column-gap:8px;row-gap:0;flex-wrap:wrap}
+    flex:0 0 auto;flex-direction:row;align-items:center;
+    column-gap:8px;row-gap:0;flex-wrap:nowrap}
   header.dm-testata-col-meteo .w-detail{
-    padding:0;font-size:10px;gap:3px;background:none;border:0;line-height:1.3;
+    flex:0 0 auto;padding:0;font-size:10px;gap:3px;background:none;border:0;line-height:1.3;
     white-space:nowrap}
   /* «Umidita'» e «Vento» le dicono gia' la goccia e il soffio. */
   header.dm-testata-col-meteo .dm-meteo-parola{display:none}
@@ -137,8 +164,15 @@ header.dm-testata-col-meteo .w-detail{
  * e' sempre lo stesso: dove c'e' la percepita era lei a sparire, cioe' un
  * dato che il riquadro aveva e non mostrava piu'. Una riga che si accorcia si
  * legge lo stesso; una riga che non c'e' non si legge affatto. */
+/* Quel tetto adesso non serve piu', e faceva danno.
+ *
+ * Serviva quando il meteo divideva la riga col nome della casa: la sua
+ * larghezza era quella che mancava al nome. Adesso il nome sta sulla sua riga
+ * e il riquadro ha tutta la larghezza sotto — il tetto restava, e a centododici
+ * pixel il vento finiva fuori dal riquadro e veniva tagliato via, che e' la
+ * riga che non si legge affatto di cui parla il commento qui sopra. */
 @media(max-width:560px){
-  header.dm-testata-col-meteo .weather-widget{max-width:112px;padding:4px 8px}
+  header.dm-testata-col-meteo .weather-widget{max-width:none;padding:0}
 }
 /* Lo stato della connessione e' un puntino, non una frase.
  *

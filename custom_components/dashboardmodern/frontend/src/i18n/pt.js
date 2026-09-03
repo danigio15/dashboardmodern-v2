@@ -12,6 +12,31 @@
 
 export default Object.freeze({
   openings: "aberturas",
+  "Tank": "Depósito",
+  "With this the page grows a switch: the state says whether it is working, this one commands it.":
+    "Com isto a página ganha um botão: o estado diz se está a trabalhar, este comanda-a.",
+  "Where the heat is going is told by how it sits: to the heating or to the hot water.":
+    "Pela posição vê-se para onde vai o calor: para o aquecimento ou para a água quente.",
+  "Turn the boiler on or off": "Ligar ou desligar a caldeira",
+  "The radiators": "Os radiadores",
+  "Switch (turns it on and off)": "Interruptor (liga e desliga)",
+  "State not mapped": "Estado não atribuído",
+  "Solenoid valve 2": "Eletroválvula 2",
+  "Solenoid valve": "Eletroválvula",
+  "Second solenoid valve": "Segunda eletroválvula",
+  "Return temperature": "Temperatura de retorno",
+  "Recirculation solenoid valve": "Eletroválvula de recirculação",
+  "Modulation (%)": "Modulação (%)",
+  "It changes the drawing at the other end of the pipe: whoever has a boiler serving only the tank was shown a radiator they do not have.":
+    "Muda o desenho na outra ponta do tubo: quem tem uma caldeira que só serve o depósito via um radiador que não tem.",
+  "Flow temperature": "Temperatura de ida",
+  "Enough on its own: on and off, no numbers.":
+    "Basta ela sozinha: ligado e desligado, sem números.",
+  "Domestic hot water": "Água quente sanitária",
+  "Circuit pressure (bar)": "Pressão do circuito (bar)",
+  "Boiler state": "Estado da caldeira",
+  "At the outlet there is": "À saída há",
+  "A storage tank": "Um depósito",
   Openers: "Aberturas",
   "Time and date": "Hora e data",
   "Alarm · Cameras": "Alarme · Câmaras",
@@ -757,8 +782,6 @@ export default Object.freeze({
   Blue: "Azul",
   Boiler: "Termoacumulador",
   "Boiler element power (W)": "Potência da resistência do termoacumulador (W)",
-  "Boiler off": "Caldeira desligada",
-  "Boiler on": "Caldeira ligada",
   "Boiler power": "Potência do termoacumulador",
   Boost: "Reforço",
   Bottom: "Baixo",

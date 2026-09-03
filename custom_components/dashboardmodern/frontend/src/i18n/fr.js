@@ -12,6 +12,31 @@
 
 export default Object.freeze({
   openings: "ouvertures",
+  "Tank": "Ballon",
+  "With this the page grows a switch: the state says whether it is working, this one commands it.":
+    "Avec ça la page gagne un bouton : l'état dit si elle travaille, celui-ci la commande.",
+  "Where the heat is going is told by how it sits: to the heating or to the hot water.":
+    "Sa position dit où va la chaleur : au chauffage ou à l'eau chaude.",
+  "Turn the boiler on or off": "Allumer ou éteindre la chaudière",
+  "The radiators": "Les radiateurs",
+  "Switch (turns it on and off)": "Interrupteur (allume et éteint)",
+  "State not mapped": "État non renseigné",
+  "Solenoid valve 2": "Électrovanne 2",
+  "Solenoid valve": "Électrovanne",
+  "Second solenoid valve": "Deuxième électrovanne",
+  "Return temperature": "Température de retour",
+  "Recirculation solenoid valve": "Électrovanne de recirculation",
+  "Modulation (%)": "Modulation (%)",
+  "It changes the drawing at the other end of the pipe: whoever has a boiler serving only the tank was shown a radiator they do not have.":
+    "Cela change le dessin à l'autre bout du tuyau : qui a une chaudière qui ne sert que le ballon voyait un radiateur qu'il n'a pas.",
+  "Flow temperature": "Température de départ",
+  "Enough on its own: on and off, no numbers.":
+    "Elle suffit seule : allumé et éteint, sans chiffres.",
+  "Domestic hot water": "Eau chaude sanitaire",
+  "Circuit pressure (bar)": "Pression du circuit (bar)",
+  "Boiler state": "État de la chaudière",
+  "At the outlet there is": "À la sortie il y a",
+  "A storage tank": "Un ballon",
   Openers: "Ouvertures",
   "Time and date": "Heure et date",
   "Alarm · Cameras": "Alarme · Caméras",
@@ -763,8 +788,6 @@ export default Object.freeze({
   Blue: "Bleu",
   Boiler: "Ballon",
   "Boiler element power (W)": "Puissance de la résistance du chauffe-eau (W)",
-  "Boiler off": "Chaudière éteinte",
-  "Boiler on": "Chaudière allumée",
   "Boiler power": "Puissance du ballon",
   Boost: "Boost",
   Bottom: "Bas",

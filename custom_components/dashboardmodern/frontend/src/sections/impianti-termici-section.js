@@ -289,6 +289,62 @@ function filaDelleMacchine(righe, scelta) {
     .join("")}</div>`;
 }
 
+/* Le elettrovalvole di riciclo, sul tubo (#274).
+ *
+ * «Non mostra le elettrovalvole di riciclo»: sono quelle che smistano l'acqua
+ * fra il riscaldamento e il sanitario, e da come stanno si capisce dove sta
+ * andando il calore — che è metà di quello che si viene a guardare qui. Una
+ * valvola che nessuno ha mappato non compare: non è una valvola chiusa, è una
+ * valvola che non c'è. */
+function valvoleMarkup(lettura) {
+  const valvole = Array.isArray(lettura.valvole) ? lettura.valvole : [];
+  if (!valvole.length) return "";
+  const posti = ["left:50%;top:62%", "left:50%;top:24%"];
+  return valvole
+    .map(
+      (valvola, indice) => `<div class="dm-it-nodo" style="${posti[indice] || posti[0]}">
+      <span class="dm-it-valvola" data-aperta="${valvola.acceso === true}" aria-hidden="true"><i></i></span>
+      <span class="dm-it-nome">${esc(
+        indice === 0
+          ? t("Elettrovalvola", "Solenoid valve")
+          : t("Elettrovalvola 2", "Solenoid valve 2"),
+      )}</span>
+      <span class="dm-it-valvola-stato">${esc(
+        valvola.acceso === true
+          ? t("Aperta", "Open")
+          : valvola.acceso === false
+            ? t("Chiusa", "Closed")
+            : /* Un trattino non è una parola da tradurre. */ "—",
+      )}</span>
+    </div>`,
+    )
+    .join("");
+}
+
+/* L'interruttore e lo stato, in fondo alla scena (#274).
+ *
+ * «Non permette accensione/spegnimento della caldaia, non mostra lo stato
+ * standby/in funzione.» Lo stato lo si dice sempre — prima compariva solo per
+ * chi non aveva né sonde né pressione — e il tasto compare a chi ha mappato un
+ * interruttore: senza, sarebbe un tasto che non comanda niente. */
+function interruttoreMarkup(lettura) {
+  const lavora = lettura.inFunzione;
+  const stato = `<span class="dm-it-stato-caldaia" data-lavora="${lavora === true}">${esc(
+    lavora === true
+      ? t("In funzione", "Running")
+      : lavora === false
+        ? t("A riposo", "Standby")
+        : t("Stato non mappato", "State not mapped"),
+  )}</span>`;
+  const tasto = clean(lettura.interruttore)
+    ? `<button type="button" class="dm-it-lev-caldaia" data-dm-it-caldaia="${esc(
+        lettura.interruttore,
+      )}" role="switch" aria-checked="${lettura.interruttoreAcceso === true}"
+      aria-label="${esc(t("Accendi o spegni la caldaia", "Turn the boiler on or off"))}"><i></i></button>`
+    : "";
+  return `<div class="dm-it-comandi-caldaia">${stato}${tasto}</div>`;
+}
+
 function scenaCaldaia(lettura) {
   if (!lettura)
     return `<div class="dm-it-vuoto">${esc(
@@ -337,9 +393,21 @@ function scenaCaldaia(lettura) {
     </div>
 
     <div class="dm-it-nodo" style="left:84%;top:59%">
-      <div class="dm-it-radiatore" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-      <span class="dm-it-nome">${esc(t("Impianto", "Circuit"))}</span>
+      ${
+        /* «Richiesta di visualizzare o radiatore o boiler» (#274): la scena
+         * disegnava sempre un radiatore, e chi ha una caldaia che serve solo
+         * l'accumulo ci vedeva un termosifone che non ha. */
+        lettura.uscita === "boiler"
+          ? `<div class="dm-it-accumulo" aria-hidden="true"><i></i></div>`
+          : `<div class="dm-it-radiatore" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>`
+      }
+      <span class="dm-it-nome">${esc(
+        lettura.uscita === "boiler" ? t("Boiler", "Tank") : t("Impianto", "Circuit"),
+      )}</span>
     </div>
+
+    ${valvoleMarkup(lettura)}
+    ${interruttoreMarkup(lettura)}
 
     ${nodoTarghetta("left:64%;top:20%", t("Mandata", "Flow"), lettura.mandata, "°C", "#f43f5e")}
     ${nodoTarghetta("left:64%;top:80%", t("Ritorno", "Return"), lettura.ritorno, "°C", "#38bdf8")}
@@ -361,26 +429,6 @@ function scenaCaldaia(lettura) {
             <span class="dm-it-salto" data-cede="${salto >= 3}">
               ${esc(t("Salto", "Delta"))} <b>${esc(NUMERO(salto))}°</b>
             </span>
-          </div>`
-    }
-
-    ${
-      conSonde || lettura.pressione != null
-        ? ""
-        : `<div class="dm-it-nodo" style="left:57%;top:41%">
-            <span class="dm-it-salto" data-cede="${acceso}">${esc(
-              /* Si nomina quello che si sta leggendo davvero: chi ha mappato il
-               * bruciatore legge il bruciatore, chi ha mappato solo lo stato
-               * legge la caldaia. Dire «bruciatore» a chi non ce l'ha mappato
-               * sarebbe attribuirgli una lettura che non ha. */
-              lettura.fiamma != null
-                ? acceso
-                  ? t("Bruciatore acceso", "Burner on")
-                  : t("Bruciatore spento", "Burner off")
-                : acceso
-                  ? t("Caldaia accesa", "Boiler on")
-                  : t("Caldaia spenta", "Boiler off"),
-            )}</span>
           </div>`
     }
 
@@ -577,6 +625,24 @@ function schedule() {
 }
 
 function onClick(event) {
+  /* L'interruttore della caldaia (#274): chiama il servizio e basta, senza
+   * ridisegnare — il ridisegno arriva col cambio di stato, e allora o conferma
+   * o corregge. Ridisegnare adesso rileggerebbe lo stato vecchio. */
+  const caldaia = event.target?.closest?.("[data-dm-it-caldaia]");
+  if (caldaia) {
+    event.preventDefault();
+    const entity = clean(caldaia.dataset.dmItCaldaia);
+    const dominio = entity.split(".")[0];
+    if (!dominio) return;
+    root.navigator?.vibrate?.(8);
+    const acceso = caldaia.getAttribute("aria-checked") === "true";
+    caldaia.setAttribute("aria-checked", acceso ? "false" : "true");
+    try {
+      root.dmCallHaService?.(dominio, "toggle", { entity_id: entity }) ??
+        root.callService?.({ domain: dominio, service: "toggle", data: { entity_id: entity } });
+    } catch (_error) {}
+    return;
+  }
   const solare = event.target?.closest?.("[data-dm-it-solare]");
   if (solare) {
     event.preventDefault();
@@ -649,6 +715,43 @@ function installStyles() {
     /* ── la fila delle macchine dello stesso tipo ────────────────────────
      * Piu' piccola delle linguette qui sopra, perche' e' una scelta dentro
      * una scelta: prima che macchina, poi quale delle sue. */
+    /* Le elettrovalvole, l'interruttore e lo stato (#274). */
+    #${PAGINA} .dm-it-valvola{
+      display:grid;place-items:center;width:34px;height:34px;border-radius:11px;
+      background:var(--card-bg,#fff);border:2px solid var(--card-border,#e2e8f0)}
+    #${PAGINA} .dm-it-valvola>i{
+      width:14px;height:14px;border-radius:50%;background:#cbd5e1;transition:background .2s ease}
+    #${PAGINA} .dm-it-valvola[data-aperta="true"]{border-color:#34d399}
+    #${PAGINA} .dm-it-valvola[data-aperta="true"]>i{background:#34d399}
+    #${PAGINA} .dm-it-valvola-stato{
+      display:block;margin-top:2px;font-size:10px;font-weight:800;letter-spacing:.05em;
+      text-transform:uppercase;color:var(--text-dim,#64748b)}
+    #${PAGINA} .dm-it-comandi-caldaia{
+      position:absolute;left:50%;bottom:10px;transform:translateX(-50%);
+      display:flex;align-items:center;gap:10px;z-index:3}
+    #${PAGINA} .dm-it-stato-caldaia{
+      padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;
+      letter-spacing:.06em;text-transform:uppercase;
+      background:var(--card-bg,#fff);border:1px solid var(--card-border,#e2e8f0);
+      color:var(--text-dim,#64748b)}
+    #${PAGINA} .dm-it-stato-caldaia[data-lavora="true"]{
+      border-color:rgba(249,115,22,.5);color:#ea580c}
+    #${PAGINA} .dm-it-lev-caldaia{
+      width:52px;height:30px;border-radius:999px;border:1px solid var(--card-border,#e2e8f0);
+      background:var(--card-bg,#fff);cursor:pointer;padding:0;position:relative}
+    #${PAGINA} .dm-it-lev-caldaia>i{
+      position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+      background:#cbd5e1;transition:transform .18s ease,background .18s ease}
+    #${PAGINA} .dm-it-lev-caldaia[aria-checked="true"]{border-color:rgba(249,115,22,.55)}
+    #${PAGINA} .dm-it-lev-caldaia[aria-checked="true"]>i{transform:translateX(22px);background:#f97316}
+    /* L'accumulo all'uscita, per chi ha scelto il boiler invece dei radiatori. */
+    #${PAGINA} .dm-it-accumulo{
+      width:46px;height:66px;border-radius:16px;position:relative;
+      background:linear-gradient(180deg,#f8fafc,#e2e8f0);
+      border:2px solid var(--card-border,#cbd5e1)}
+    #${PAGINA} .dm-it-accumulo>i{
+      position:absolute;left:6px;right:6px;bottom:6px;height:40%;border-radius:10px;
+      background:linear-gradient(180deg,rgba(251,146,60,.85),rgba(249,115,22,.95))}
     #${PAGINA} .dm-it-quali{
       display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
     /* La stessa fila, sopra la scena del guscio invece che dentro la nostra. */

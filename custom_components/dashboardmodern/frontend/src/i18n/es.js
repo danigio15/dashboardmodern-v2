@@ -12,6 +12,31 @@
 
 export default Object.freeze({
   openings: "aperturas",
+  "Tank": "Acumulador",
+  "With this the page grows a switch: the state says whether it is working, this one commands it.":
+    "Con esto la página gana un interruptor: el estado dice si trabaja, este la manda.",
+  "Where the heat is going is told by how it sits: to the heating or to the hot water.":
+    "Por cómo está se ve adónde va el calor: a la calefacción o al agua caliente.",
+  "Turn the boiler on or off": "Encender o apagar la caldera",
+  "The radiators": "Los radiadores",
+  "Switch (turns it on and off)": "Interruptor (enciende y apaga)",
+  "State not mapped": "Estado sin asignar",
+  "Solenoid valve 2": "Electroválvula 2",
+  "Solenoid valve": "Electroválvula",
+  "Second solenoid valve": "Segunda electroválvula",
+  "Return temperature": "Temperatura de retorno",
+  "Recirculation solenoid valve": "Electroválvula de recirculación",
+  "Modulation (%)": "Modulación (%)",
+  "It changes the drawing at the other end of the pipe: whoever has a boiler serving only the tank was shown a radiator they do not have.":
+    "Cambia el dibujo al otro extremo del tubo: quien tiene una caldera que solo sirve al acumulador veía un radiador que no tiene.",
+  "Flow temperature": "Temperatura de ida",
+  "Enough on its own: on and off, no numbers.":
+    "Basta ella sola: encendido y apagado, sin números.",
+  "Domestic hot water": "Agua caliente sanitaria",
+  "Circuit pressure (bar)": "Presión del circuito (bar)",
+  "Boiler state": "Estado de la caldera",
+  "At the outlet there is": "A la salida hay",
+  "A storage tank": "Un acumulador",
   Openers: "Aperturas",
   "Time and date": "Hora y fecha",
   "Alarm · Cameras": "Alarma · Cámaras",
@@ -759,8 +784,6 @@ export default Object.freeze({
   Blue: "Azul",
   Boiler: "Acumulador",
   "Boiler element power (W)": "Potencia de la resistencia del calentador (W)",
-  "Boiler off": "Caldera apagada",
-  "Boiler on": "Caldera encendida",
   "Boiler power": "Potencia del acumulador",
   Boost: "Refuerzo",
   Bottom: "Abajo",

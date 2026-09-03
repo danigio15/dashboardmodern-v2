@@ -27,6 +27,7 @@
 import {
   CASELLE_CALDAIA,
   CASELLE_SOLARE,
+  USCITE_CALDAIA,
   CHIAVE_CALDAIA,
   CHIAVE_IMPIANTI,
   CHIAVE_SOLARE_SCELTO,
@@ -143,21 +144,76 @@ function sceltaMarkup() {
 
 /* ── la caldaia ───────────────────────────────────────────────────────── */
 
+/* Le caselle della caldaia, con le loro parole.
+ *
+ * Le righe sono oggetti `{it, en, esempio, aiutoIt, aiutoEn}` e non tuple:
+ * l'estrattore delle traduzioni sa leggere una tabella dichiarata qui — è in
+ * `SECTION_TABLES` — ma deve poter dire dove stanno l'italiano e l'inglese, e
+ * `[["Stato della caldaia", "Boiler state"], "esempio"]` non glielo dice. In
+ * tupla queste etichette erano fuori dai cataloghi: tredici lingue le
+ * leggevano in italiano, e nessuno se ne accorgeva perché l'inglese è anche il
+ * ripiego legittimo.
+ *
+ * Le ultime tre — l'interruttore e le due elettrovalvole — sono quelle chieste
+ * dal campo con la segnalazione sulla pagina Caldaia.
+ *
+ * Il commento sta qui e non fra le righe: chi legge questa tabella per portarla
+ * nei cataloghi la prende com'è scritta, e una parentesi dentro un commento in
+ * mezzo all'oggetto gli sembra una chiamata di funzione. */
 const CAMPI_CALDAIA = Object.freeze({
-  stato: [
-    ["Stato della caldaia", "Boiler state"],
-    "binary_sensor.caldaia",
-    ["Da solo basta: acceso e spento, senza numeri.", "Enough on its own: on and off, no numbers."],
-  ],
-  fiamma: [["Bruciatore acceso", "Burner on"], "binary_sensor.caldaia_fiamma"],
-  mandata: [["Temperatura di mandata", "Flow temperature"], "sensor.caldaia_mandata"],
-  ritorno: [["Temperatura di ritorno", "Return temperature"], "sensor.caldaia_ritorno"],
-  acquaCalda: [["Acqua calda sanitaria", "Domestic hot water"], "sensor.caldaia_acs"],
-  pressione: [
-    ["Pressione del circuito (bar)", "Circuit pressure (bar)"],
-    "sensor.caldaia_pressione",
-  ],
-  modulazione: [["Modulazione (%)", "Modulation (%)"], "sensor.caldaia_modulazione"],
+  stato: {
+    it: "Stato della caldaia",
+    en: "Boiler state",
+    esempio: "binary_sensor.caldaia",
+    aiutoIt: "Da solo basta: acceso e spento, senza numeri.",
+    aiutoEn: "Enough on its own: on and off, no numbers.",
+  },
+  fiamma: { it: "Bruciatore acceso", en: "Burner on", esempio: "binary_sensor.caldaia_fiamma" },
+  mandata: {
+    it: "Temperatura di mandata",
+    en: "Flow temperature",
+    esempio: "sensor.caldaia_mandata",
+  },
+  ritorno: {
+    it: "Temperatura di ritorno",
+    en: "Return temperature",
+    esempio: "sensor.caldaia_ritorno",
+  },
+  acquaCalda: {
+    it: "Acqua calda sanitaria",
+    en: "Domestic hot water",
+    esempio: "sensor.caldaia_acs",
+  },
+  pressione: {
+    it: "Pressione del circuito (bar)",
+    en: "Circuit pressure (bar)",
+    esempio: "sensor.caldaia_pressione",
+  },
+  modulazione: {
+    it: "Modulazione (%)",
+    en: "Modulation (%)",
+    esempio: "sensor.caldaia_modulazione",
+  },
+  interruttore: {
+    it: "Interruttore (accende e spegne)",
+    en: "Switch (turns it on and off)",
+    esempio: "switch.caldaia",
+    aiutoIt: "Con questa la pagina prende il tasto: lo stato dice se lavora, questo la comanda.",
+    aiutoEn:
+      "With this the page grows a switch: the state says whether it is working, this one commands it.",
+  },
+  valvola: {
+    it: "Elettrovalvola di riciclo",
+    en: "Recirculation solenoid valve",
+    esempio: "switch.valvola_riscaldamento",
+    aiutoIt: "Da come sta si capisce dove va il calore: al riscaldamento o al sanitario.",
+    aiutoEn: "Where the heat is going is told by how it sits: to the heating or to the hot water.",
+  },
+  valvola2: {
+    it: "Seconda elettrovalvola",
+    en: "Second solenoid valve",
+    esempio: "switch.valvola_sanitario",
+  },
 });
 
 /* Le righe grezze delle caldaie (#281): una appena aggiunta e' vuota, e la
@@ -326,14 +382,14 @@ function leggiSolare(riga, voce) {
 
 function caselleCaldaia(index, voce) {
   return CASELLE_CALDAIA.map(({ campo }) => {
-    const [etichetta, esempio, aiuto] = CAMPI_CALDAIA[campo];
+    const { it, en, esempio, aiutoIt, aiutoEn } = CAMPI_CALDAIA[campo];
     const id = `dm-caldaia-${index}-${campo}`;
-    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(...etichetta))}</span>
+    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(it, en))}</span>
       <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-caldaia-field="${esc(campo)}"
         value="${esc(clean(voce?.[campo]))}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
         type="button" class="dm-entity-picker" data-caldaia-pick="${id}"
         aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>${
-          aiuto ? `<small>${esc(t(...aiuto))}</small>` : ""
+          aiutoIt ? `<small>${esc(t(aiutoIt, aiutoEn))}</small>` : ""
         }</label>`;
   }).join("");
 }
@@ -356,6 +412,25 @@ function rigaCaldaiaMarkup(voce, index) {
     <div class="dm-todo-ed-body"${aperto ? "" : " hidden"}>
       <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-caldaia-${index}-name" class="ed-input" data-caldaia-field="name" value="${esc(clean(voce?.name))}" placeholder="${esc(t("Zona giorno", "Day zone"))}"></span></label>
       ${caselleCaldaia(index, voce)}
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(
+        t("All'uscita c'è", "At the outlet there is"),
+      )}</span>
+        <span class="ed-form-row"><select class="ed-input" data-caldaia-field="uscita">${USCITE_CALDAIA.map(
+          (uscita) =>
+            `<option value="${esc(uscita)}"${
+              (clean(voce?.uscita) || USCITE_CALDAIA[0]) === uscita ? " selected" : ""
+            }>${esc(
+              uscita === "boiler"
+                ? t("Un boiler d'accumulo", "A storage tank")
+                : t("I radiatori", "The radiators"),
+            )}</option>`,
+        ).join("")}</select></span>
+        <small>${esc(
+          t(
+            "Cambia il disegno all'altro capo del tubo: chi ha una caldaia che serve solo l'accumulo ci vedeva un termosifone che non ha.",
+            "It changes the drawing at the other end of the pipe: whoever has a boiler serving only the tank was shown a radiator they do not have.",
+          ),
+        )}</small></label>
       <button type="button" class="ed-save-btn" data-caldaia-save>💾 ${esc(t("Salva caldaia", "Save boiler"))}</button>
     </div>
   </article>`;

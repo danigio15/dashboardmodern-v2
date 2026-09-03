@@ -139,6 +139,11 @@ const SECTION_TABLES = Object.freeze([
   { file: "energy-guidance-section.js", name: "CLASH_LABELS", rows: "values", at: [0, 1] },
   { file: "energy-section.js", name: "TOTAL_FIELDS", rows: "items", at: [3, 4] },
   { file: "il-popup-della-lavatrice-section.js", name: "CASELLE", rows: "items", at: ["it", "en"] },
+  /* Le caselle della caldaia e i loro aiuti (#253, #274): erano scritte in
+     tupla e stavano fuori dai cataloghi — tredici lingue le leggevano in
+     italiano. */
+  { file: "impianti-termici-editor-section.js", name: "CAMPI_CALDAIA", rows: "values", at: ["it", "en"] },
+  { file: "impianti-termici-editor-section.js", name: "CAMPI_CALDAIA", rows: "values", at: ["aiutoIt", "aiutoEn"] },
   { file: "lights-scene-section.js", name: "SWATCHES", rows: "items", at: ["it", "en"] },
   { file: "people-section.js", name: "ACTIVITY_LABELS", rows: "values", at: [0, 1] },
   { file: "lights-scene-section.js", name: "KELVIN_PRESETS", rows: "items", at: ["it", "en"] },

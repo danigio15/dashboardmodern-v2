@@ -12,6 +12,31 @@
 
 export default Object.freeze({
   openings: "открываний",
+  "Tank": "Бак",
+  "With this the page grows a switch: the state says whether it is working, this one commands it.":
+    "С ним на странице появляется выключатель: состояние говорит, работает ли он, а этот им командует.",
+  "Where the heat is going is told by how it sits: to the heating or to the hot water.":
+    "По её положению видно, куда идёт тепло: на отопление или на горячую воду.",
+  "Turn the boiler on or off": "Включить или выключить котёл",
+  "The radiators": "Радиаторы",
+  "Switch (turns it on and off)": "Выключатель (включает и выключает)",
+  "State not mapped": "Состояние не задано",
+  "Solenoid valve 2": "Электроклапан 2",
+  "Solenoid valve": "Электроклапан",
+  "Second solenoid valve": "Второй электроклапан",
+  "Return temperature": "Температура обратки",
+  "Recirculation solenoid valve": "Электроклапан рециркуляции",
+  "Modulation (%)": "Модуляция (%)",
+  "It changes the drawing at the other end of the pipe: whoever has a boiler serving only the tank was shown a radiator they do not have.":
+    "Меняет рисунок на другом конце трубы: у кого котёл обслуживает только бак, видел радиатор, которого у него нет.",
+  "Flow temperature": "Температура подачи",
+  "Enough on its own: on and off, no numbers.":
+    "Его одного достаточно: включён и выключен, без цифр.",
+  "Domestic hot water": "Горячая вода",
+  "Circuit pressure (bar)": "Давление контура (бар)",
+  "Boiler state": "Состояние котла",
+  "At the outlet there is": "На выходе стоит",
+  "A storage tank": "Бак-накопитель",
   Openers: "Открывание",
   "Time and date": "Время и дата",
   "Alarm · Cameras": "Сигнализация · Камеры",
@@ -758,8 +783,6 @@ export default Object.freeze({
   Blue: "Синий",
   Boiler: "Бойлер",
   "Boiler element power (W)": "Мощность ТЭНа бойлера (Вт)",
-  "Boiler off": "Котёл выключен",
-  "Boiler on": "Котёл включён",
   "Boiler power": "Мощность бойлера",
   Boost: "Ускорение",
   Bottom: "Низ",

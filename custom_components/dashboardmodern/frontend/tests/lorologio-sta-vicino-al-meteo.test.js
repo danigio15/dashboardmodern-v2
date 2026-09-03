@@ -69,6 +69,26 @@ test("sta nello stesso riquadro del meteo, sotto il titolo", () => {
    * staccata da un filo e basta. */
   assert.match(meteo, /\.weather-widget\{[\s\S]{0,160}border:0;/);
   assert.match(sorgente, /border-left:1px solid var\(--card-border,#e8edf3\)/);
+  /* Il nome della casa sta al centro: il tasto del menu a sinistra, lo stato
+   * del ponte e l'ingranaggio a destra, e in mezzo l'unica cosa che si legge
+   * da lontano. */
+  assert.match(meteo, /\.brand-text\{flex:1 1 auto;min-width:0;text-align:center\}/);
+  /* E il simbolo del meteo sta in una casella di misura fissa: le condizioni
+   * non sono tutte emoji della stessa larghezza, e nebbia e grandine non sono
+   * nemmeno emoji — sono un blocchetto animato di cinque righe. Senza la
+   * casella la testata saltava perché era arrivata la pioggia. */
+  assert.match(meteo, /\.w-icon\{[\s\S]{0,120}width:26px;height:26px/);
+  assert.match(meteo, /\.w-icon \.w-fog-anim\{/);
+  /* «Vista smartphone: metti vento e pioggia affianco a meteo, così diventa
+   * meno spessa la testata»: tutto su una riga sola, e i numeri non si
+   * stringono — o ci stanno interi o vanno a capo, perché tagliarli a metà è
+   * peggio che non averli. */
+  assert.match(meteo, /\.weather-widget\{[\s\S]{0,120}flex-wrap:nowrap/);
+  assert.match(meteo, /\.w-right\{\s*flex:0 0 auto/);
+  /* E il tetto di larghezza che serviva quando il meteo divideva la riga col
+   * nome della casa non c'è più: a centododici pixel il vento finiva fuori dal
+   * riquadro e veniva tagliato via. */
+  assert.match(meteo, /max-width:none;padding:0\}/);
   /* Sul telefono resta il numero e la data se ne va. */
   assert.match(sorgente, /@media \(max-width:560px\)[\s\S]{0,240}dm-orologio-data\{display:none\}/);
   /* E si può spegnere: chi ha l'ora in cima allo schermo può non volerla due

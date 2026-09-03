@@ -125,6 +125,10 @@ function installStyles() {
       /* Dentro il riquadro non c'è un secondo riquadro: il bordo e il fondo
          sono del riquadro, e l'ora ci sta dentro nuda, staccata dal meteo da
          un filo e basta. */
+      /* L'ora sta a destra del riquadro. Il margine automatico si prende lo
+         spazio libero, e va bene finché il meteo non ne ha bisogno: i suoi
+         numeri infatti non si stringono più — o ci stanno interi o vanno a
+         capo — così l'ora può stare in fondo senza mangiarsi il vento. */
       header .dm-orologio{
         flex:0 0 auto;display:grid;justify-items:end;gap:0;margin-left:auto;
         padding:0 0 0 10px;border-left:1px solid var(--card-border,#e8edf3)}

@@ -163,6 +163,21 @@ export const CHIAVE_CALDAIA = "cd_caldaia";
 export const CASELLE_CALDAIA = Object.freeze([
   { campo: "stato", tipo: "acceso" },
   { campo: "fiamma", tipo: "acceso" },
+  /* L'interruttore che la accende e la spegne (#274).
+   *
+   * «Non permette accensione/spegnimento della caldaia»: la pagina leggeva e
+   * basta. Lo stato dice se la macchina lavora, ma non la comanda — sono due
+   * entita' diverse, e chi ha un `switch` sulla caldaia lo vuole sotto le dita
+   * dove la guarda invece che in un'altra pagina. */
+  { campo: "interruttore", tipo: "acceso" },
+  /* Le elettrovalvole di riciclo (#274).
+   *
+   * «Non mostra le elettrovalvole di riciclo»: sono quelle che smistano
+   * l'acqua fra il riscaldamento e il sanitario, e da come stanno si capisce
+   * dove sta andando il calore — che e' meta' di quello che si viene a
+   * guardare su questa pagina. Due, perche' due sono in un impianto normale. */
+  { campo: "valvola", tipo: "acceso" },
+  { campo: "valvola2", tipo: "acceso" },
   { campo: "mandata", tipo: "gradi" },
   { campo: "ritorno", tipo: "gradi" },
   { campo: "acquaCalda", tipo: "gradi" },
@@ -187,11 +202,21 @@ const numero = (valore) => {
   return Number.isFinite(dato) ? dato : null;
 };
 
+/* Cosa c'è all'altro capo del tubo (#274).
+ *
+ * «Richiesta di visualizzare o radiatore o boiler»: la scena disegnava sempre
+ * un radiatore, e chi ha una caldaia che serve solo l'accumulo sanitario ci
+ * vedeva un termosifone che non ha. Sono due impianti diversi e si dicono con
+ * due disegni diversi; di serie i radiatori, che è il caso comune. */
+export const USCITE_CALDAIA = Object.freeze(["radiatori", "boiler"]);
+
 /** La configurazione della caldaia, ripulita. */
 export function normalizzaCaldaia(stored) {
   const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
   const fuori = { name: clean(dato.name) };
   for (const { campo } of CASELLE_CALDAIA) fuori[campo] = clean(dato[campo]);
+  const uscita = clean(dato.uscita).toLowerCase();
+  fuori.uscita = USCITE_CALDAIA.includes(uscita) ? uscita : USCITE_CALDAIA[0];
   return fuori;
 }
 
@@ -268,8 +293,33 @@ export function letturaCaldaia(config, states = {}, resolve = (value) => value) 
   const fiammaEntita = leggi(dato.fiamma);
   const fiamma = accesoCaldaia(fiammaEntita?.state);
   const acceso = accesoCaldaia(statoEntita?.state);
+  const interruttore = accesoCaldaia(leggi(dato.interruttore)?.state);
   return {
     name: dato.name,
+    uscita: dato.uscita,
+    /* L'interruttore, per comandarla: l'entita' e il suo stato viaggiano
+     * insieme perche' chi disegna il tasto deve sapere tutte e due — quale
+     * chiamare e come dipingerlo. */
+    interruttore: dato.interruttore,
+    interruttoreAcceso: interruttore,
+    /* Le elettrovalvole, con dentro solo quelle mappate: una valvola che non
+     * c'e' non e' una valvola chiusa. */
+    valvole: [
+      { entity: dato.valvola, acceso: accesoCaldaia(leggi(dato.valvola)?.state) },
+      { entity: dato.valvola2, acceso: accesoCaldaia(leggi(dato.valvola2)?.state) },
+    ].filter((voce) => clean(voce.entity)),
+    /* Come si chiama quello che sta facendo adesso: e' la lettura che la
+     * pagina non diceva quando c'erano le sonde («non mostra lo stato
+     * standby/in funzione»). In funzione se brucia o se e' accesa; a riposo se
+     * lo sappiamo e non lo e'; niente se nessuno l'ha mappata. */
+    inFunzione:
+      fiamma === true
+        ? true
+        : acceso === true
+          ? true
+          : fiamma === false || acceso === false
+            ? false
+            : null,
     /* La fiamma accesa e' gia' una caldaia accesa: chi mappa solo il bruciatore
      * non deve mappare anche uno stato per vedere la sua macchina viva. */
     acceso: acceso ?? (fiamma === true ? true : fiamma === false ? null : null),
