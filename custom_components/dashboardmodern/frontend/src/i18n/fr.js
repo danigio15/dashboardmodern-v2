@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "ouvertures",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "Les tuiles d’alerte de l’accueil — batteries, inondations — ne s’allument d’elles-mêmes que lorsqu’elles ont quelque chose à dire. Ici tu choisis les capteurs qu’elles surveillent, avec un nom propre, ou tu crées une alerte personnalisée sur une ou plusieurs entités, avec condition, état écrit à la main et icône au choix. Les portes et les fenêtres ne sont plus ici : c’est la tuile Fenêtres qui les dit, avec les contacts des volets.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "Choisis quelles tuiles apparaissent sur la page Home et dans quel ordre. Les tuiles d'alerte — batteries, fuites d'eau et alertes personnalisées — n'apparaissent d'elles-mêmes que lorsqu'elles ont quelque chose à dire.",
   "playing": "en lecture",
   "Volume": "Volume",
   "Unmute": "Rétablir le son",
@@ -184,7 +188,6 @@ export default Object.freeze({
   new: "nouveau",
   "New messages": "Nouveaux messages",
   reply: "réponse",
-  "Doors/Windows": "Portes/Fenêtres",
   "with credentials": "avec identifiants",
   stream: "flux",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -906,8 +909,6 @@ export default Object.freeze({
   "Choose the photo": "Choisir la photo",
   "Choose the position": "Choisir la position",
   "Choose where to look": "Choisir où chercher",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "Choisis quelles tuiles apparaissent sur la page Home et dans quel ordre. Les tuiles d'alerte — ouvertures, batteries, fuites d'eau et alertes personnalisées — n'apparaissent d'elles-mêmes que lorsqu'elles ont quelque chose à dire.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "Choisir affecte l'appareil à cette charge : il reste configuré dans sa section et apparaît ici comme ligne « depuis Appareils ».",
   "Circle = room": "Cercle = pièce",
@@ -927,7 +928,6 @@ export default Object.freeze({
   "Close all": "Tout fermer",
   "Close icon picker": "Fermer le sélecteur d'icônes",
   "Close without saving": "Fermer sans enregistrer",
-  closed: "fermés",
   Closed: "Fermé",
   CLOSED: "FERMÉ",
   Closing: "Fermeture",
@@ -2408,8 +2408,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Le formulaire ci-dessus configure le premier bassin. Si tu en as plusieurs, ajoute les autres ici : chacun a ses propres capteurs, commandes et filtration.",
   "The group decides where the alert is watched.": "Le groupe décide où l'alerte est surveillée.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "Les tuiles d’alerte de l’accueil — ouvertures, batteries, inondations — ne s’allument d’elles-mêmes que lorsqu’elles ont quelque chose à dire. Ici tu choisis les capteurs qu’elles surveillent, avec un nom propre, ou tu crées une alerte personnalisée sur une ou plusieurs entités, avec condition, état écrit à la main et icône au choix.",
   "The Home Assistant entity is missing in the Cameras tab":
     "L'entité Home Assistant est absente de l'onglet Caméras",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

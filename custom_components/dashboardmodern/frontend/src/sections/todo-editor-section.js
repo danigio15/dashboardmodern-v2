@@ -89,7 +89,6 @@ function catalogoTessere() {
     ["prese", "🔌", t("Prese", "Sockets")],
     ["media", "🔊", t("Musica", "Media")],
     ["irrigazione", "💧", t("Irrigazione", "Irrigation")],
-    ["aperture", "🚪", t("Porte/Finestre", "Doors/Windows")],
     /* Il gruppo di continuita' (#256): non e' la tessera delle batterie —
      * quella conta le pile dei sensori, questa dice se la casa ha corrente. */
     ["ups", "🔌", t("Continuità", "Backup power")],
@@ -158,8 +157,8 @@ function compattoMarkup() {
 function tessereMarkup() {
   const { hidden, rows } = tessereOrdinate();
   return `<div class="ed-intro">${t(
-    "Scegli quali tessere vedere in Home e in che ordine. Le tessere degli avvisi — aperture, batterie, allagamenti e avvisi personalizzati — compaiono da sole solo quando hanno qualcosa da dire.",
-    "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.",
+    "Scegli quali tessere vedere in Home e in che ordine. Le tessere degli avvisi — batterie, allagamenti e avvisi personalizzati — compaiono da sole solo quando hanno qualcosa da dire.",
+    "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.",
   )}</div>
   ${compattoMarkup()}
   <div class="ed-list dm-widget-pref-list">${rows
@@ -365,13 +364,19 @@ function rifinisciAvvisi(body) {
  * sezione vera — le luci sono quelle della scheda Luci, il clima quelle della
  * scheda Clima — percio' elencarle di nuovo qui non serviva a nessuno: era
  * una lista che si poteva riempire senza che cambiasse niente da nessuna
- * parte. Restano i gruppi che una tessera ce l'hanno ancora: aperture,
- * batterie e gli avvisi personalizzati.
+ * parte. Restano i gruppi che una tessera ce l'hanno ancora: batterie e gli
+ * avvisi personalizzati.
+ *
+ * Le aperture (`win`) si sono aggiunte alla lista degli orfani: «viene gia'
+ * gestito da Finestre, se li si mette il sensore finestra dice quale e'
+ * aperto, quindi e' un duplicato». La tessera Finestre legge i contatti delle
+ * coperture e nomina quelle aperte; questa lista sorvegliava gli stessi
+ * sensori per dire la stessa cosa in un'altra tessera.
  *
  * Il gruppo di un accordion si legge dal suo stesso cestino — `edDelAvviso`
  * porta la chiave come primo argomento — cosi' non serve indovinarlo dal
  * titolo, che cambia con la lingua. */
-const GRUPPI_ORFANI = Object.freeze(["luci", "clima", "risc", "tapp"]);
+const GRUPPI_ORFANI = Object.freeze(["luci", "clima", "risc", "tapp", "win"]);
 
 function potaGruppiOrfani(body) {
   for (const gruppo of GRUPPI_ORFANI) {
@@ -385,8 +390,8 @@ function potaGruppiOrfani(body) {
   const intro = body.querySelector(".dm-avvisi-ed-sep ~ .ed-intro");
   if (intro)
     intro.textContent = t(
-      "Le tessere d'avviso della Home — aperture, batterie, allagamenti — si accendono da sole solo quando hanno qualcosa da dire. Qui scegli quali sensori sorvegliano, con un nome pulito, oppure crei un avviso personalizzato su una o più entità, con condizione, stato a mano e icona a scelta.",
-      "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.",
+      "Le tessere d'avviso della Home — batterie, allagamenti — si accendono da sole solo quando hanno qualcosa da dire. Qui scegli quali sensori sorvegliano, con un nome pulito, oppure crei un avviso personalizzato su una o più entità, con condizione, stato a mano e icona a scelta. Le porte e le finestre non stanno più qui: le dice la tessera Finestre, con i contatti delle coperture.",
+      "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.",
     );
 }
 

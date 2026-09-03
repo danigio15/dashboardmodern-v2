@@ -2523,11 +2523,17 @@ function mediaDetail(widget) {
 /* ── i widget del Quadro Avvisi ───────────────────────────────────────── */
 
 /* Il ponte ha preso il posto del Quadro Avvisi, che dalla Home e' uscito del
- * tutto: le sue liste sorvegliate — aperture, batterie, allagamenti, avvisi
+ * tutto: le sue liste sorvegliate — batterie, allagamenti, avvisi
  * personalizzati — sono queste tessere, che come le card di prima compaiono
  * solo quando hanno qualcosa da dire. Le liste e le regole di conteggio sono
  * LE STESSE del runtime (`GRUPPI_MONITORAGGIO`, il matcher degli avvisi
- * custom), cosi' numero e voci combaciano sempre. */
+ * custom), cosi' numero e voci combaciano sempre.
+ *
+ * Le aperture avevano la loro, ed e' stata tolta: «viene gia' gestito da
+ * Finestre, se li si mette il sensore finestra dice quale e' aperto, quindi e'
+ * un duplicato». Vero — la tessera Finestre legge i contatti delle coperture
+ * e nomina quelle aperte — e due tessere che rispondono alla stessa domanda
+ * sono due occasioni di rispondere diverso. */
 
 function gruppoEntita(chiave) {
   try {
@@ -2543,7 +2549,7 @@ function gruppoEntita(chiave) {
 
 function friendlyName(states, entity) {
   /* Prima il nome che la persona ha scritto in configurazione, poi quello di
-   * Home Assistant. Il widget delle aperture mostrava «Sensore Porta/finestra
+   * Home Assistant. Le tessere degli avvisi mostravano «Sensore Porta/finestra
    * Camera matrimoniale Batteria» — il nome di fabbrica — anche a chi quella
    * riga l'aveva battezzata: il nome scelto sta in `cd_avvisi_names_extra`,
    * ed e' lo stesso posto da cui lo leggono il Quadro Avvisi e gli
@@ -2554,59 +2560,6 @@ function friendlyName(states, entity) {
     entity.split(".")[1]?.replaceAll("_", " ") ||
     entity
   );
-}
-
-function openingsModel(states) {
-  const entities = gruppoEntita("win");
-  if (!entities.length) return null;
-  const rows = entities.map((entity) => {
-    const stato = stateOf(states, entity);
-    /* Da quando sta cosi'. Home Assistant lo sa, e per un contatto e' un dato
-     * onesto: cambia quando la finestra si apre o si chiude, non a ogni
-     * campionamento. E' la cosa che il progetto chiede di dire — «da quanto» —
-     * e questa e' l'unica sezione dove la si puo' dire senza inventarla. */
-    const daQuando = Date.parse(stato?.last_changed ?? "");
-    /* Il sensore girato (#244) sta a ON quando la finestra e' CHIUSA. Un
-     * sensore muto (unavailable/unknown) non e' una finestra: girato o no,
-     * non si conta — o il verso girato trasformava il silenzio in allarme. */
-    const grezzo = clean(stato?.state).toLowerCase();
-    const vivo = grezzo === "on" || grezzo === "off";
-    const aperta = vivo
-      ? apertaSecondoVerso(
-          grezzo === "on",
-          insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
-        ) === true
-      : false;
-    const nome = friendlyName(states, entity);
-    return {
-      entity,
-      name: nome,
-      on: aperta,
-      /* Da quando le aperture non fanno piu' lista sotto, la pillola e'
-       * il loro posto: porta l'icona scelta e la parola, non solo il colore. */
-      glyph: iconaApertura({ entity, name: nome }),
-      value: aperta ? t("Aperta", "Open") : t("Chiusa", "Closed"),
-      daQuando: Number.isFinite(daQuando) ? daQuando : null,
-    };
-  });
-  const open = rows.filter((row) => row.on);
-  if (!open.length) return null;
-  /* Le aperte in testa: «dice due porte aperte ma sotto ne mostra una» — la
-   * seconda stava sotto la piega, in mezzo a ventotto chiuse. L'ordine fra
-   * pari resta quello del gruppo (il sort e' stabile). */
-  const ordinate = [...rows].sort((a, b) => Number(b.on) - Number(a.on));
-  return {
-    key: "aperture",
-    accent: "#dc2626",
-    icon: "🚪",
-    alert: true,
-    label: t("Porte/Finestre", "Doors/Windows"),
-    value: String(open.length),
-    caption: open[0] ? open[0].name : "",
-    ring: Math.round((open.length / rows.length) * 100),
-    rows: ordinate,
-    open,
-  };
 }
 
 function batteriesModel(states) {
@@ -2948,10 +2901,10 @@ function gruppiScelti() {
 
 /* Se questa plancia e' stata configurata da qualcuno.
  *
- * Le tessere degli avvisi — aperture, batterie, allagamenti — non nascono dalla
+ * Le tessere degli avvisi — batterie, allagamenti — non nascono dalla
  * configurazione: nascono dal rilevamento, cioe' da quello che Home Assistant
  * ha in casa. Su una plancia appena creata questo voleva dire trovarsi in Home
- * il ponte gia' acceso, con «2 aperte su 30», sotto il messaggio che dice il
+ * il ponte gia' acceso, con «2 batterie scariche», sotto il messaggio che dice il
  * contrario — «non hai ancora collegato le tue entita', quindi le card sono
  * nascoste» — e con dentro la casa dell'altra plancia. Chi ne apre una nuova la
  * vuole vuota: «doveva crearne una ex novo sciolta dall'altra».
@@ -3052,7 +3005,6 @@ function widgetModels(states) {
       preseModel(states),
       mediaModel(states),
       irrigationModel(states),
-      openingsModel(states),
       batteriesModel(states),
       floodModel(states),
       ...customAlertModels(states),
@@ -3962,46 +3914,6 @@ function temperatureDetail() {
   return "";
 }
 
-/* L'icona di un'apertura, quando chi l'ha configurata ne ha scelta una.
- *
- * Il ripiego resta quello di prima — si indovina dal nome se e' una porta o
- * una finestra — perche' chi non ha scelto niente deve continuare a vedere
- * quello che vedeva. Chi invece l'icona l'ha scelta in configurazione se la
- * ritrova qui: e' l'unico posto dove quelle undici righe si distinguono.
- *
- * La scelta puo' essere un nome mdi, perche' il selettore delle icone e' quello
- * del motore e scrive quello: stampato come testo si leggeva `mdi:gate` al
- * posto del disegno. Chi sa disegnarlo e' il motore, e lo si chiede a lui. */
-function iconaApertura(row) {
-  const scelta = clean(readJson("cd_avvisi_icone", {})?.[clean(row.entity)]);
-  if (scelta && /^mdi:/i.test(scelta)) {
-    const disegnata = root.DashboardModernIconEngine?.markup?.("action", scelta, {
-      size: 20,
-    });
-    if (disegnata) return disegnata;
-  }
-  if (scelta) return esc(scelta);
-  /* Il disegno di casa anche quando nessuno ha scelto un'icona.
-   *
-   * Qui si tornava all'emoji del sistema — la porta e la finestra che ogni
-   * telefono disegna a modo suo — proprio nelle pillole che si guardano di
-   * corsa: «continuo a vedere icone che non sono nostre». Il catalogo la porta
-   * e la finestra ce le ha; si chiedono a lui. */
-  const canonica = /porta|cancell|door|gate/i.test(row.name)
-    ? "mdi:door-closed"
-    : "mdi:window-closed-variant";
-  const disegnata = root.DashboardModernIconEngine?.markup?.("action", canonica, { size: 20 });
-  if (disegnata) return disegnata;
-  return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
-}
-
-/* Le aperture sono acceso/spento col nome: vivono nelle pillole de «Lo
- * stato» — aperte accese, chiuse smorte — e nelle caselle dei conteggi.
- * L'icona scelta per riga resta a `iconaApertura`, che serve le pillole. */
-function openingsDetail() {
-  return "";
-}
-
 /* Ogni batteria col suo livello e' una casella de «Le misure». */
 function batteriesDetail() {
   return "";
@@ -4095,13 +4007,6 @@ function summaryChips(widget) {
       [t("la più calda", "warmest"), `${formatNumber(Math.max(...gradi), 1)}°`],
     ];
   }
-  if (widget.key === "aperture") {
-    const aperte = righe.filter((riga) => riga?.on).length;
-    return [
-      [t("aperte", "open"), String(aperte)],
-      [t("chiuse", "closed"), String(righe.length - aperte)],
-    ];
-  }
   return [];
 }
 
@@ -4124,7 +4029,7 @@ function pilloleDelloStato(widget) {
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
   /* Dodici e non otto: da quando le righe acceso/spento non fanno piu' lista
    * sotto, le pillole sono l'unico posto dove si leggono — una casa con
-   * undici aperture le deve vedere tutte. */
+   * undici finestre le deve vedere tutte. */
   const voci = righe
     .filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name))
     .slice(0, 12);
@@ -4713,7 +4618,6 @@ function detailRows(widget, states) {
   )
     return rowsDetail(widget);
   if (widget.key === "media") return mediaDetail(widget);
-  if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
   if (widget.key.startsWith("custom-")) return customDetail(widget);
@@ -4729,8 +4633,8 @@ function detailRows(widget, states) {
  * Le tessere che una sezione non ce l'hanno non stanno in questo elenco, e per
  * loro il tasto non c'e': batterie, allagamenti e cose da fare vivono soltanto
  * in Home, e un tasto che non porta da nessuna parte e' una promessa che
- * nessuno mantiene. Telecamere e aperture portano a Sicurezza, che e' la
- * sezione che le contiene davvero. */
+ * nessuno mantiene. Le telecamere portano a Sicurezza, che e' la sezione che
+ * le contiene davvero. */
 const SEZIONE_DEL_WIDGET = Object.freeze({
   luci: "luci",
   prese: "prese",
@@ -4738,7 +4642,6 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   tapparelle: "tapparelle",
   sicurezza: "security",
   telecamere: "security",
-  aperture: "security",
   energia: "energy",
   elettrodomestici: "appliances-main",
   temperatura: "temp",

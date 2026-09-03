@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "открываний",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "Плитки оповещений на главной — батареи, протечки — загораются сами только тогда, когда им есть что сказать. Здесь выбирается, за какими датчиками они следят, с понятным именем, или создаётся своё оповещение на одну или несколько сущностей — с условием, вручную заданным состоянием и значком на выбор. Дверей и окон здесь больше нет: о них говорит плитка «Окна», по контактам жалюзи.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "Выберите, какие плитки видны на главной и в каком порядке. Плитки оповещений — батареи, протечки и свои оповещения — появляются сами только тогда, когда им есть что сказать.",
   "playing": "играют",
   "Volume": "Громкость",
   "Unmute": "Включить звук",
@@ -184,7 +188,6 @@ export default Object.freeze({
   new: "новое",
   "New messages": "Новые сообщения",
   reply: "ответ",
-  "Doors/Windows": "Двери/Окна",
   "with credentials": "с учётными данными",
   stream: "поток",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -900,8 +903,6 @@ export default Object.freeze({
   "Choose the photo": "Выбрать фото",
   "Choose the position": "Выберите положение",
   "Choose where to look": "Выберите, где искать",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "Выберите, какие плитки видны на главной и в каком порядке. Плитки оповещений — двери, батареи, протечки и свои оповещения — появляются сами только тогда, когда им есть что сказать.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "Выбор закрепляет прибор за этой нагрузкой: он остаётся настроенным в своём разделе и появляется здесь строкой «из Приборов».",
   "Circle = room": "Круг = комната",
@@ -921,7 +922,6 @@ export default Object.freeze({
   "Close all": "Закрыть все",
   "Close icon picker": "Закрыть выбор значков",
   "Close without saving": "Закрыть без сохранения",
-  closed: "закрыто",
   Closed: "Закрыта",
   CLOSED: "ЗАКРЫТА",
   Closing: "Закрывается",
@@ -2397,8 +2397,6 @@ export default Object.freeze({
     "Форма выше настраивает первую чашу. Если их несколько, добавьте остальные здесь: у каждой свои датчики, управление и фильтрация.",
   "The group decides where the alert is watched.":
     "Группа определяет, где отслеживается оповещение.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "Плитки оповещений на главной — открытия, батареи, протечки — загораются сами только тогда, когда им есть что сказать. Здесь выбирается, за какими датчиками они следят, с понятным именем, или создаётся своё оповещение на одну или несколько сущностей — с условием, вручную заданным состоянием и значком на выбор.",
   "The Home Assistant entity is missing in the Cameras tab":
     "На вкладке «Камеры» отсутствует объект Home Assistant",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

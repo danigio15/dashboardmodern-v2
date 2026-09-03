@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "açılış",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "Ana sayfadaki uyarı kartları — piller, su baskını — yalnızca söyleyecek bir şeyleri olduğunda kendiliğinden yanar. Burada hangi sensörleri gözleyeceklerini temiz bir adla seçersin ya da bir veya birden çok varlık için koşullu, elle yazılmış durumlu ve istediğin simgeye sahip özel bir uyarı oluşturursun. Kapılar ve pencereler artık burada değil: onları panjur kontaklarıyla Pencereler karosu söyler.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "Home'da hangi karoların görüneceğini ve sırasını seç. Uyarı karoları — piller, su kaçakları ve özel uyarılar — yalnızca söyleyecekleri bir şey olduğunda kendiliğinden görünür.",
   "playing": "çalıyor",
   "Volume": "Ses",
   "Unmute": "Sesi aç",
@@ -183,7 +187,6 @@ export default Object.freeze({
   new: "yeni",
   "New messages": "Yeni mesajlar",
   reply: "yanıt",
-  "Doors/Windows": "Kapılar/Pencereler",
   "with credentials": "kimlik bilgileriyle",
   stream: "akış",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -898,8 +901,6 @@ export default Object.freeze({
   "Choose the photo": "Fotoğrafı seç",
   "Choose the position": "Konumu seçin",
   "Choose where to look": "Nereye bakılacağını seç",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "Home'da hangi karoların görüneceğini ve sırasını seç. Uyarı karoları — kapılar, piller, su kaçakları ve özel uyarılar — yalnızca söyleyecekleri bir şey olduğunda kendiliğinden görünür.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "Seçmek cihazı bu yüke atar: kendi bölümünde yapılandırılmış kalır ve burada «Cihazlardan» satırı olarak görünür.",
   "Circle = room": "Daire = oda",
@@ -919,7 +920,6 @@ export default Object.freeze({
   "Close all": "Tümünü kapat",
   "Close icon picker": "Simge seçiciyi kapat",
   "Close without saving": "Kaydetmeden kapat",
-  closed: "kapalı",
   Closed: "Kapalı",
   CLOSED: "KAPALI",
   Closing: "Kapanıyor",
@@ -2387,8 +2387,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Yukarıdaki form ilk havuzu yapılandırır. Birden fazlaysa ötekileri buraya ekle: her birinin kendi sensörleri, kumandaları ve filtrasyonu olur.",
   "The group decides where the alert is watched.": "Uyarının nerede izleneceğine grup karar verir.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "Ana sayfadaki uyarı kartları — açıklıklar, piller, su baskını — yalnızca söyleyecek bir şeyleri olduğunda kendiliğinden yanar. Burada hangi sensörleri gözleyeceklerini temiz bir adla seçersin ya da bir veya birden çok varlık için koşullu, elle yazılmış durumlu ve istediğin simgeye sahip özel bir uyarı oluşturursun.",
   "The Home Assistant entity is missing in the Cameras tab":
     "Kameralar sekmesinde Home Assistant varlığı eksik",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

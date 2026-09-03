@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "खोलने",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "होम की अलर्ट टाइलें — बैटरियाँ, पानी का रिसाव — तभी अपने आप जगती हैं जब उनके पास कहने को कुछ हो। यहाँ आप चुनते हैं कि वे कौन-से सेंसर देखें, एक साफ़ नाम के साथ, या एक या अधिक एंटिटी पर शर्त, हाथ से लिखी स्थिति और अपनी पसंद के आइकन के साथ कस्टम अलर्ट बनाते हैं। दरवाज़े और खिड़कियाँ अब यहाँ नहीं हैं: उन्हें खिड़कियाँ टाइल बताती है, परदों के संपर्कों से।",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "चुनें कि होम पर कौन-सी टाइलें दिखें और किस क्रम में। अलर्ट टाइलें — बैटरियाँ, पानी रिसाव और कस्टम अलर्ट — केवल तभी अपने आप दिखती हैं जब उनके पास कहने को कुछ हो।",
   "playing": "चल रहे हैं",
   "Volume": "वॉल्यूम",
   "Unmute": "म्यूट हटाएँ",
@@ -181,7 +185,6 @@ export default Object.freeze({
   new: "नया",
   "New messages": "नए संदेश",
   reply: "जवाब",
-  "Doors/Windows": "दरवाज़े/खिड़कियाँ",
   "with credentials": "क्रेडेंशियल के साथ",
   stream: "स्ट्रीम",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -892,8 +895,6 @@ export default Object.freeze({
   "Choose the photo": "तस्वीर चुनें",
   "Choose the position": "स्थिति चुनें",
   "Choose where to look": "चुनें कि कहाँ देखना है",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "चुनें कि होम पर कौन-सी टाइलें दिखें और किस क्रम में। अलर्ट टाइलें — द्वार, बैटरियाँ, पानी रिसाव और कस्टम अलर्ट — केवल तभी अपने आप दिखती हैं जब उनके पास कहने को कुछ हो।",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "चुनने से उपकरण इस लोड को सौंपा जाता है: वह अपने अनुभाग में विन्यस्त रहता है और यहाँ «उपकरणों से» पंक्ति के रूप में दिखता है।",
   "Circle = room": "वृत्त = कमरा",
@@ -913,7 +914,6 @@ export default Object.freeze({
   "Close all": "सब बंद करें",
   "Close icon picker": "आइकन चयनकर्ता बंद करें",
   "Close without saving": "बिना सहेजे बंद करें",
-  closed: "बंद",
   Closed: "बंद",
   CLOSED: "बंद",
   Closing: "बंद हो रहा है",
@@ -2375,8 +2375,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "ऊपर का फ़ॉर्म पहला टैंक कॉन्फ़िगर करता है। एक से ज़्यादा हों तो बाकी यहाँ जोड़ें: हर एक के अपने सेंसर, नियंत्रण और निस्पंदन होते हैं।",
   "The group decides where the alert is watched.": "समूह तय करता है कि चेतावनी कहाँ देखी जाती है।",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "होम की अलर्ट टाइलें — खुले दरवाज़े-खिड़कियाँ, बैटरियाँ, पानी का रिसाव — तभी अपने आप जगती हैं जब उनके पास कहने को कुछ हो। यहाँ आप चुनते हैं कि वे कौन-से सेंसर देखें, एक साफ़ नाम के साथ, या एक या अधिक एंटिटी पर शर्त, हाथ से लिखी स्थिति और अपनी पसंद के आइकन के साथ कस्टम अलर्ट बनाते हैं।",
   "The Home Assistant entity is missing in the Cameras tab":
     "कैमरा टैब में Home Assistant एंटिटी मौजूद नहीं है",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

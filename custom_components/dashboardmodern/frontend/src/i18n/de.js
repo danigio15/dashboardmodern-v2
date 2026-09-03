@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "Öffnungen",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "Die Hinweiskacheln der Startseite — Batterien, Wasser — leuchten von selbst nur auf, wenn sie etwas zu sagen haben. Hier wählst du, welche Sensoren sie beobachten, mit einem sauberen Namen, oder du legst einen eigenen Hinweis auf eine oder mehrere Entitäten an, mit Bedingung, selbst geschriebenem Zustand und einem Symbol deiner Wahl. Türen und Fenster sind nicht mehr hier: die Kachel Fenster sagt sie, aus den Kontakten der Behänge.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "Wähle, welche Kacheln auf der Home-Seite erscheinen und in welcher Reihenfolge. Die Hinweis-Kacheln — Batterien, Wasserlecks und eigene Hinweise — erscheinen nur von selbst, wenn sie etwas zu sagen haben.",
   "playing": "laufen",
   "Volume": "Lautstärke",
   "Unmute": "Ton an",
@@ -183,7 +187,6 @@ export default Object.freeze({
   new: "neu",
   "New messages": "Neue Nachrichten",
   reply: "Antwort",
-  "Doors/Windows": "Türen/Fenster",
   "with credentials": "mit Zugangsdaten",
   stream: "Stream",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -907,8 +910,6 @@ export default Object.freeze({
   "Choose the photo": "Foto auswählen",
   "Choose the position": "Position wählen",
   "Choose where to look": "Wähle, wo gesucht wird",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "Wähle, welche Kacheln auf der Home-Seite erscheinen und in welcher Reihenfolge. Die Hinweis-Kacheln — Öffnungen, Batterien, Wasserlecks und eigene Hinweise — erscheinen nur von selbst, wenn sie etwas zu sagen haben.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "Die Wahl ordnet das Gerät dieser Last zu: es bleibt in seinem Bereich konfiguriert und erscheint hier als Zeile „aus Geräte“.",
   "Circle = room": "Kreis = Raum",
@@ -928,7 +929,6 @@ export default Object.freeze({
   "Close all": "Alle schließen",
   "Close icon picker": "Symbolauswahl schließen",
   "Close without saving": "Schließen ohne zu speichern",
-  closed: "geschlossen",
   Closed: "Geschlossen",
   CLOSED: "GESCHLOSSEN",
   Closing: "Schließt",
@@ -2403,8 +2403,6 @@ export default Object.freeze({
     "Das Formular oben konfiguriert das erste Becken. Hast du mehrere, ergänze die anderen hier: jedes hat eigene Sensoren, eigene Bedienung und eigene Filterung.",
   "The group decides where the alert is watched.":
     "Die Gruppe bestimmt, wo die Meldung überwacht wird.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "Die Hinweiskacheln der Startseite — Öffnungen, Batterien, Wasser — leuchten von selbst nur auf, wenn sie etwas zu sagen haben. Hier wählst du, welche Sensoren sie beobachten, mit einem sauberen Namen, oder du legst einen eigenen Hinweis auf eine oder mehrere Entitäten an, mit Bedingung, selbst geschriebenem Zustand und einem Symbol deiner Wahl.",
   "The Home Assistant entity is missing in the Cameras tab":
     "In der Registerkarte Kameras fehlt die Home-Assistant-Entität",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

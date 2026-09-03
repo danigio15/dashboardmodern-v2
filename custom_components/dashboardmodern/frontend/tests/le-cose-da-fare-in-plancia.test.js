@@ -79,9 +79,8 @@ test("la risposta di get_items si legge intera e una risposta storta e' una list
 });
 
 test("cd_todo viaggia nella configurazione condivisa, alla revisione 6", async () => {
-  const { CONFIG_KEYS, CONFIG_KEYS_REVISION } = await import(
-    "../src/sections/config-persistence-section.js"
-  );
+  const { CONFIG_KEYS, CONFIG_KEYS_REVISION } =
+    await import("../src/sections/config-persistence-section.js");
   assert.ok(CONFIG_KEYS.includes("cd_todo"));
   assert.ok(CONFIG_KEYS_REVISION >= 6);
 });
@@ -144,8 +143,12 @@ test("il ponte ha preso il posto del Quadro Avvisi, con le sue stesse liste e re
   const sezione = leggi("sections/home-widgets-section.js");
   // Le liste sorvegliate sono quelle del runtime, non una copia.
   assert.match(sezione, /GRUPPI_MONITORAGGIO/);
-  for (const modello of ["openingsModel", "batteriesModel", "floodModel", "customAlertModels"])
+  for (const modello of ["batteriesModel", "floodModel", "customAlertModels"])
     assert.match(sezione, new RegExp(`function ${modello}`), modello);
+  /* Le aperture avevano la loro e non ce l'hanno piu': «viene gia' gestito da
+   * Finestre, se li si mette il sensore finestra dice quale e' aperto, quindi
+   * e' un duplicato». */
+  assert.doesNotMatch(sezione, /function openingsModel/);
   // Il Quadro non si nasconde piu' a disegno fatto: dal documento e' uscito,
   // percio' qui non c'e' piu' niente da assorbire.
   assert.doesNotMatch(sezione, /assorbiQuadroAvvisi|dm-assorbito/);
@@ -159,16 +162,17 @@ test("il ponte ha preso il posto del Quadro Avvisi, con le sue stesse liste e re
 
   // Le preferenze: nascoste fuori, ordine scelto prima, custom insieme.
   const { applyWidgetPreferences } = await import("../src/sections/home-widgets-section.js");
-  const models = [
-    { key: "todo" },
-    { key: "luci" },
-    { key: "custom-0" },
-    { key: "custom-1" },
-  ];
+  const models = [{ key: "todo" }, { key: "luci" }, { key: "custom-0" }, { key: "custom-1" }];
   const sistemati = applyWidgetPreferences(models, { hidden: ["luci", "custom"], order: ["todo"] });
-  assert.deepEqual(sistemati.map((widget) => widget.key), ["todo"]);
+  assert.deepEqual(
+    sistemati.map((widget) => widget.key),
+    ["todo"],
+  );
   const ordinati = applyWidgetPreferences(models, { hidden: [], order: ["custom", "todo"] });
-  assert.deepEqual(ordinati.map((widget) => widget.key), ["custom-0", "custom-1", "todo", "luci"]);
+  assert.deepEqual(
+    ordinati.map((widget) => widget.key),
+    ["custom-0", "custom-1", "todo", "luci"],
+  );
 });
 
 test("i dettagli comandano davvero, con le icone di cio' che raccontano", () => {
@@ -205,9 +209,8 @@ test("le miniature delle telecamere hanno il loro timer, con la disciplina del m
 });
 
 test("cd_widgets viaggia nella configurazione condivisa, alla revisione 7", async () => {
-  const { CONFIG_KEYS, CONFIG_KEYS_REVISION } = await import(
-    "../src/sections/config-persistence-section.js"
-  );
+  const { CONFIG_KEYS, CONFIG_KEYS_REVISION } =
+    await import("../src/sections/config-persistence-section.js");
   assert.ok(CONFIG_KEYS.includes("cd_widgets"));
   assert.ok(CONFIG_KEYS_REVISION >= 7);
 });

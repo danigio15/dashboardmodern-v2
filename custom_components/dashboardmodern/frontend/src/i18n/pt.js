@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "aberturas",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "Os mosaicos de aviso do Início — baterias, inundações — acendem-se sozinhos apenas quando têm algo a dizer. Aqui escolhes que sensores vigiam, com um nome limpo, ou crias um aviso personalizado sobre uma ou mais entidades, com condição, estado escrito à mão e ícone à escolha. As portas e as janelas já não estão aqui: di-las o mosaico Janelas, com os contactos dos estores.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "Escolhe que mosaicos aparecem na Home e por que ordem. Os mosaicos de avisos — baterias, inundações e avisos personalizados — só aparecem sozinhos quando têm algo a dizer.",
   "playing": "em reprodução",
   "Volume": "Volume",
   "Unmute": "Repor o som",
@@ -184,7 +188,6 @@ export default Object.freeze({
   new: "novo",
   "New messages": "Mensagens novas",
   reply: "resposta",
-  "Doors/Windows": "Portas/Janelas",
   "with credentials": "com credenciais",
   stream: "fluxo",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -900,8 +903,6 @@ export default Object.freeze({
   "Choose the photo": "Escolher a foto",
   "Choose the position": "Escolha a posição",
   "Choose where to look": "Escolher onde procurar",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "Escolhe que mosaicos aparecem na Home e por que ordem. Os mosaicos de avisos — aberturas, baterias, inundações e avisos personalizados — só aparecem sozinhos quando têm algo a dizer.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "Escolher atribui o eletrodoméstico a esta carga: ele continua configurado na sua seção e aparece aqui como linha «de Eletrodomésticos».",
   "Circle = room": "Círculo = divisão",
@@ -921,7 +922,6 @@ export default Object.freeze({
   "Close all": "Fechar todas",
   "Close icon picker": "Fechar o seletor de ícones",
   "Close without saving": "Fechar sem guardar",
-  closed: "fechadas",
   Closed: "Fechada",
   CLOSED: "FECHADA",
   Closing: "A fechar",
@@ -2399,8 +2399,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "O formulário acima configura o primeiro tanque. Se tiveres mais do que um, acrescenta os outros aqui: cada um tem os seus sensores, comandos e filtragem.",
   "The group decides where the alert is watched.": "O grupo decide onde o aviso é vigiado.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "Os mosaicos de aviso do Início — aberturas, baterias, inundações — acendem-se sozinhos apenas quando têm algo a dizer. Aqui escolhes que sensores vigiam, com um nome limpo, ou crias um aviso personalizado sobre uma ou mais entidades, com condição, estado escrito à mão e ícone à escolha.",
   "The Home Assistant entity is missing in the Cameras tab":
     "Falta a entidade do Home Assistant no separador Câmaras",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "otwarcia",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "Kafelki powiadomień na stronie głównej — baterie, zalania — zapalają się same tylko wtedy, gdy mają coś do powiedzenia. Tutaj wybierasz, jakich czujników pilnują, nadając im czytelną nazwę, albo tworzysz własne powiadomienie dla jednej lub kilku encji, z warunkiem, ręcznie wpisanym stanem i wybraną ikoną. Drzwi i okna już tu nie są: mówi je kafelek Okna, z kontaktów rolet.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "Wybierz, które kafelki widać na stronie Home i w jakiej kolejności. Kafelki ostrzeżeń — baterie, zalania i własne alerty — pojawiają się same tylko wtedy, gdy mają coś do powiedzenia.",
   "playing": "grają",
   "Volume": "Głośność",
   "Unmute": "Wyłącz wyciszenie",
@@ -183,7 +187,6 @@ export default Object.freeze({
   new: "nowe",
   "New messages": "Nowe wiadomości",
   reply: "odpowiedź",
-  "Doors/Windows": "Drzwi/Okna",
   "with credentials": "z danymi logowania",
   stream: "strumień",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -901,8 +904,6 @@ export default Object.freeze({
   "Choose the photo": "Wybierz zdjęcie",
   "Choose the position": "Wybierz pozycję",
   "Choose where to look": "Wybierz, gdzie szukać",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "Wybierz, które kafelki widać na stronie Home i w jakiej kolejności. Kafelki ostrzeżeń — wejścia, baterie, zalania i własne alerty — pojawiają się same tylko wtedy, gdy mają coś do powiedzenia.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "Wybór przypisuje sprzęt do tego obciążenia: pozostaje skonfigurowany w swojej sekcji, a tu pojawia się jako wiersz „ze Sprzętów”.",
   "Circle = room": "Okrąg = pokój",
@@ -922,7 +923,6 @@ export default Object.freeze({
   "Close all": "Zamknij wszystkie",
   "Close icon picker": "Zamknij wybór ikon",
   "Close without saving": "Zamknij bez zapisywania",
-  closed: "zamknięte",
   Closed: "Zamknięta",
   CLOSED: "ZAMKNIĘTA",
   Closing: "Zamyka się",
@@ -2392,8 +2392,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "Formularz powyżej konfiguruje pierwszą nieckę. Jeśli masz ich więcej, dodaj pozostałe tutaj: każda ma własne czujniki, sterowanie i filtrację.",
   "The group decides where the alert is watched.": "Grupa decyduje, gdzie alert jest nadzorowany.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "Kafelki powiadomień na stronie głównej — otwarcia, baterie, zalania — zapalają się same tylko wtedy, gdy mają coś do powiedzenia. Tutaj wybierasz, jakich czujników pilnują, nadając im czytelną nazwę, albo tworzysz własne powiadomienie dla jednej lub kilku encji, z warunkiem, ręcznie wpisanym stanem i wybraną ikoną.",
   "The Home Assistant entity is missing in the Cameras tab":
     "W karcie Kamery brakuje encji Home Assistant",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

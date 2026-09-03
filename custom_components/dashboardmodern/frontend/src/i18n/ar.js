@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "فتحات",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "بطاقات التنبيه في الرئيسية — البطاريات وتسرب المياه — تضيء من تلقاء نفسها فقط عندما يكون لديها ما تقوله. هنا تختار المستشعرات التي تراقبها، باسم نظيف، أو تنشئ تنبيهًا مخصصًا على كيان واحد أو أكثر، بشرط وحالة تكتبها بنفسك وأيقونة من اختيارك. الأبواب والنوافذ لم تعد هنا: تقولها بطاقة النوافذ، من ملامسات الستائر.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "اختر أي البطاقات تظهر في الصفحة الرئيسية وبأي ترتيب. بطاقات التنبيه — البطاريات والتسربات والتنبيهات المخصصة — تظهر وحدها فقط عندما يكون لديها ما تقوله.",
   "playing": "قيد التشغيل",
   "Volume": "مستوى الصوت",
   "Unmute": "إلغاء الكتم",
@@ -180,7 +184,6 @@ export default Object.freeze({
   new: "جديد",
   "New messages": "رسائل جديدة",
   reply: "رد",
-  "Doors/Windows": "أبواب/نوافذ",
   "with credentials": "مع بيانات اعتماد",
   stream: "بثّ",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -885,8 +888,6 @@ export default Object.freeze({
   "Choose the photo": "اختر الصورة",
   "Choose the position": "اختر الوضعية",
   "Choose where to look": "اختر مكان البحث",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "اختر أي البطاقات تظهر في الصفحة الرئيسية وبأي ترتيب. بطاقات التنبيه — الأبواب والبطاريات والتسربات والتنبيهات المخصصة — تظهر وحدها فقط عندما يكون لديها ما تقوله.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "الاختيار يسند الجهاز إلى هذا الحمل: يبقى مضبوطًا في قسمه ويظهر هنا كسطر «من الأجهزة».",
   "Circle = room": "الدائرة = غرفة",
@@ -906,7 +907,6 @@ export default Object.freeze({
   "Close all": "إغلاق الكل",
   "Close icon picker": "أغلق منتقي الأيقونات",
   "Close without saving": "أغلق دون حفظ",
-  closed: "مغلقة",
   Closed: "مغلقة",
   CLOSED: "مغلقة",
   Closing: "قيد الإغلاق",
@@ -2363,8 +2363,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "النموذج أعلاه يهيّئ الحوض الأول. فإن كان لديك أكثر من واحد، أضِف البقية هنا: لكلٍّ منها حساساتها وعناصر تحكمها وترشيحها.",
   "The group decides where the alert is watched.": "تحدد المجموعة أين تتم مراقبة التنبيه.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "بطاقات التنبيه في الرئيسية — الفتحات والبطاريات وتسرب المياه — تضيء من تلقاء نفسها فقط عندما يكون لديها ما تقوله. هنا تختار المستشعرات التي تراقبها، باسم نظيف، أو تنشئ تنبيهًا مخصصًا على كيان واحد أو أكثر، بشرط وحالة تكتبها بنفسك وأيقونة من اختيارك.",
   "The Home Assistant entity is missing in the Cameras tab":
     "الكيان الخاص بـ Home Assistant مفقود في تبويب الكاميرات",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

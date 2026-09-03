@@ -13,12 +13,6 @@
  * elenco: si confronta cio' che c'e' in casa con cio' che si e' gia' visto, e
  * solo il nuovo si aggiunge. Chi toglie un sensore lo ritrova tolto — il
  * registro se lo ricorda — ed e' la stessa regola delle altre liste.
- *
- * Lo stesso confronto ripara un buco vecchio delle Aperture: le porte e le
- * finestre scoperte DOPO il primo avvio non entravano piu' da sole. Qui le
- * aperture nuove — `device_class` door, window, opening, garage_door — si
- * aggiungono al gruppo `win` con lo stesso meccanismo, rispettando le
- * rimozioni dell'utente in `cd_gruppi_removed.win`.
  */
 import {
   activeLocale,
@@ -145,58 +139,16 @@ export function syncSmokeGroup({ rileva = false } = {}) {
   return entities;
 }
 
-/* ── le aperture che arrivano dopo ───────────────────────────────────────── */
-
-/** Le classi con cui Home Assistant dichiara porte, finestre e cancelli. */
-export const OPENING_DEVICE_CLASSES = Object.freeze(["door", "window", "opening", "garage_door"]);
-
-/** Un contatto di apertura, come lo dichiara Home Assistant. */
-export function isOpeningSensor(entityId, stato) {
-  if (!clean(entityId).startsWith("binary_sensor.")) return false;
-  return OPENING_DEVICE_CLASSES.includes(clean(stato?.attributes?.device_class).toLowerCase());
-}
-
-/**
- * Le aperture mai viste prima. «Gia' vista» e' un'apertura che sta nel gruppo
- * vivo, fra le aggiunte dell'utente o fra le sue rimozioni: quelle non si
- * toccano — soprattutto le rimozioni, che sono una scelta e non un vuoto da
- * riempire. Pura come la sorella del fumo, e per la stessa ragione.
- */
-export function newOpenings(extras = {}, removed = {}, states = {}, giaNelGruppo = []) {
-  const conosciute = new Set(
-    [
-      ...(Array.isArray(extras.win) ? extras.win : []),
-      ...(Array.isArray(removed.win) ? removed.win : []),
-      ...(Array.isArray(giaNelGruppo) ? giaNelGruppo : []),
-    ]
-      .map(clean)
-      .filter(Boolean),
-  );
-  return Object.entries(states)
-    .filter(([id, stato]) => isOpeningSensor(id, stato))
-    .map(([id]) => clean(id))
-    .filter((id) => id && !conosciute.has(id));
-}
-
-/** Aggiunge al gruppo `win` le aperture scoperte dopo il primo avvio. */
-export function syncNewOpenings() {
-  const groups = watchedGroups();
-  if (!groups || !Array.isArray(groups.win)) return [];
-  const extras = readJson("cd_gruppi_extra", {}) || {};
-  const removed = readJson("cd_gruppi_removed", {}) || {};
-  const nuove = newOpenings(extras, removed, allStates(), groups.win);
-  if (!nuove.length) return [];
-  const lista = Array.isArray(extras.win) ? extras.win.map(clean).filter(Boolean) : [];
-  writeJsonIfChanged(
-    "cd_gruppi_extra",
-    { ...extras, win: [...new Set([...lista, ...nuove])] },
-    { sync: false },
-  );
-  /* Valide subito anche nel runtime, senza aspettare un ricaricamento: e' la
-   * stessa mossa del tasto «aggiungi avviso» del guscio. */
-  for (const id of nuove) if (!groups.win.includes(id)) groups.win.push(id);
-  return nuove;
-}
+/* Le aperture che arrivavano dopo non arrivano piu'.
+ *
+ * Qui c'era il gemello del rilevamento del fumo: porte e finestre scoperte
+ * dopo il primo avvio entravano da sole nel gruppo `win`, che alimentava la
+ * tessera d'avviso Porte/Finestre. Quella tessera non c'e' piu' — «viene gia'
+ * gestito da Finestre, se li si mette il sensore finestra dice quale e'
+ * aperto, quindi e' un duplicato» — e riempire una lista che nessuno legge
+ * costava un giro del documento a ogni cambio di stato, per niente.
+ *
+ * Il rilevamento del fumo resta: quello una tessera ce l'ha, e una pagina. */
 
 /* ── la voce nella configurazione ────────────────────────────────────────── */
 
@@ -354,10 +306,7 @@ export function renderSmokeBlock() {
   const nomi = readJson("cd_avvisi_names_extra", {}) || {};
   const states = allStates();
   const block = ensureBlock(shell);
-  const signature = [
-    activeLocale(),
-    ...entities.map((id) => `${id}~${clean(nomi[id])}`),
-  ].join("|");
+  const signature = [activeLocale(), ...entities.map((id) => `${id}~${clean(nomi[id])}`)].join("|");
   if (state.signature !== signature || !block.querySelector(".dm-smoke-grid")) {
     state.signature = signature;
     block.innerHTML = blockMarkup(entities, nomi, states);
@@ -387,7 +336,9 @@ export function renderSmokeBlock() {
 }
 
 function installStyles() {
-  installStyle(STYLE_ID, `
+  installStyle(
+    STYLE_ID,
+    `
 .dm-sec-smoke{display:flex;flex-direction:column;gap:12px}
 .dm-sec-smoke-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 4px}
 .dm-sec-smoke-ic{font-size:20px}
@@ -419,7 +370,8 @@ function installStyles() {
 .dm-smoke-row.is-alarm .dm-smoke-state{color:var(--error-color,#dc2626);font-weight:800}
 .dm-smoke-row.is-alarm .dm-smoke-ic{animation:dmSmokePulse 1.1s ease-in-out infinite}
 @keyframes dmSmokePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-`);
+`,
+  );
 }
 
 /* ── il giro che guarda ──────────────────────────────────────────────────── */
@@ -429,7 +381,6 @@ export function refreshSmokeAlerts({ rileva = false } = {}) {
   ensureGroupOptions();
   if (rileva) {
     syncSmokeGroup({ rileva: true });
-    syncNewOpenings();
   }
   ensureSmokeEditorRows();
   return renderSmokeBlock();

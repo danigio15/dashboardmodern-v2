@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "개",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "홈의 알림 타일(배터리, 누수)은 전할 말이 있을 때만 스스로 켜집니다. 여기서 어떤 센서를 지켜볼지 깔끔한 이름과 함께 고르거나, 조건과 직접 적은 상태, 원하는 아이콘으로 하나 이상의 엔터티에 사용자 지정 알림을 만듭니다. 문과 창은 더 이상 여기에 없습니다. 블라인드의 접점으로 「창문」 타일이 알려 줍니다.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "홈에 표시할 타일과 순서를 선택하세요. 알림 타일(배터리, 누수, 사용자 지정 알림)은 알릴 것이 있을 때만 스스로 나타납니다.",
   "playing": "개 재생 중",
   "Volume": "볼륨",
   "Unmute": "음소거 해제",
@@ -183,7 +187,6 @@ export default Object.freeze({
   new: "새 글",
   "New messages": "새 메시지",
   reply: "답변",
-  "Doors/Windows": "문/창문",
   "with credentials": "인증 정보 포함",
   stream: "스트림",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -893,8 +896,6 @@ export default Object.freeze({
   "Choose the photo": "사진 선택",
   "Choose the position": "위치 선택",
   "Choose where to look": "어디에서 찾을지 선택",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "홈에 표시할 타일과 순서를 선택하세요. 알림 타일(문 열림, 배터리, 누수, 사용자 지정 알림)은 알릴 것이 있을 때만 스스로 나타납니다.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "선택하면 가전이 이 부하에 배정됩니다: 가전은 자체 섹션에 그대로 구성되고, 여기에는 «가전에서» 행으로 나타납니다.",
   "Circle = room": "원 = 방",
@@ -914,7 +915,6 @@ export default Object.freeze({
   "Close all": "전체 닫기",
   "Close icon picker": "아이콘 고르기 닫기",
   "Close without saving": "저장하지 않고 닫기",
-  closed: "닫힘",
   Closed: "닫힘",
   CLOSED: "닫힘",
   Closing: "닫는 중",
@@ -2376,8 +2376,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "위 양식은 첫 번째 수조를 설정합니다. 여러 개라면 나머지는 여기에 추가하세요. 각각 자체 센서와 조작, 여과를 가집니다.",
   "The group decides where the alert is watched.": "알림을 어디에서 감시할지는 그룹이 정합니다.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "홈의 알림 타일(열림, 배터리, 누수)은 전할 말이 있을 때만 스스로 켜집니다. 여기서 어떤 센서를 지켜볼지 깔끔한 이름과 함께 고르거나, 조건과 직접 적은 상태, 원하는 아이콘으로 하나 이상의 엔터티에 사용자 지정 알림을 만듭니다.",
   "The Home Assistant entity is missing in the Cameras tab":
     "카메라 탭에 Home Assistant 엔터티가 없습니다",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

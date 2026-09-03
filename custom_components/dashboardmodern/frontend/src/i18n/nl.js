@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "openingen",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "De meldingstegels op Home — batterijen, wateroverlast — lichten alleen vanzelf op als ze iets te melden hebben. Hier kies je welke sensoren ze in de gaten houden, met een nette naam, of maak je een eigen melding op een of meer entiteiten, met voorwaarde, zelf ingetypte toestand en een icoon naar keuze. Deuren en ramen staan hier niet meer: die zegt de tegel Ramen, met de contacten van de zonwering.",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "Kies welke tegels op Home verschijnen en in welke volgorde. De meldingstegels — batterijen, lekkages en eigen meldingen — verschijnen alleen vanzelf wanneer ze iets te melden hebben.",
   "playing": "spelen",
   "Volume": "Volume",
   "Unmute": "Dempen opheffen",
@@ -183,7 +187,6 @@ export default Object.freeze({
   new: "nieuw",
   "New messages": "Nieuwe berichten",
   reply: "antwoord",
-  "Doors/Windows": "Deuren/Ramen",
   "with credentials": "met inloggegevens",
   stream: "videostream",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -902,8 +905,6 @@ export default Object.freeze({
   "Choose the photo": "Foto kiezen",
   "Choose the position": "Kies de stand",
   "Choose where to look": "Kies waar er gezocht wordt",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "Kies welke tegels op Home verschijnen en in welke volgorde. De meldingstegels — openingen, batterijen, lekkages en eigen meldingen — verschijnen alleen vanzelf wanneer ze iets te melden hebben.",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "Kiezen wijst het apparaat aan deze last toe: het blijft in zijn eigen sectie geconfigureerd en verschijnt hier als rij “uit Apparaten”.",
   "Circle = room": "Cirkel = kamer",
@@ -923,7 +924,6 @@ export default Object.freeze({
   "Close all": "Alles sluiten",
   "Close icon picker": "Pictogramkiezer sluiten",
   "Close without saving": "Sluiten zonder op te slaan",
-  closed: "gesloten",
   Closed: "Dicht",
   CLOSED: "DICHT",
   Closing: "Sluit",
@@ -2398,8 +2398,6 @@ export default Object.freeze({
     "Het formulier hierboven stelt het eerste bad in. Heb je er meer, voeg de andere hier toe: elk heeft eigen sensoren, eigen bediening en eigen filtratie.",
   "The group decides where the alert is watched.":
     "De groep bepaalt waar de melding wordt bewaakt.",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "De meldingstegels op Home — openingen, batterijen, wateroverlast — lichten alleen vanzelf op als ze iets te melden hebben. Hier kies je welke sensoren ze in de gaten houden, met een nette naam, of maak je een eigen melding op een of meer entiteiten, met voorwaarde, zelf ingetypte toestand en een icoon naar keuze.",
   "The Home Assistant entity is missing in the Cameras tab":
     "De Home Assistant-entiteit ontbreekt op het tabblad Camera's",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

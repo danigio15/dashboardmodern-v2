@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "处",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "首页的提醒磁贴——电池、漏水——只有在真的有事要说时才会自己亮起。在这里选择它们监视哪些传感器并起一个清爽的名字，或者为一个或多个实体创建自定义提醒，可设置条件、手动填写的状态和自选图标。门窗不在这里了：由「窗户」磁贴用卷帘的触点来说。",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "选择主页上显示哪些磁贴以及顺序。提醒磁贴（电池、漏水和自定义提醒）只有在有情况时才会自动出现。",
   "playing": "个在播放",
   "Volume": "音量",
   "Unmute": "取消静音",
@@ -181,7 +185,6 @@ export default Object.freeze({
   new: "新",
   "New messages": "新消息",
   reply: "回复",
-  "Doors/Windows": "门/窗",
   "with credentials": "带凭据",
   stream: "视频流",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -878,8 +881,6 @@ export default Object.freeze({
   "Choose the photo": "选择照片",
   "Choose the position": "选择位置",
   "Choose where to look": "选择从哪里查找",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "选择主页上显示哪些磁贴以及顺序。提醒磁贴（门窗、电池、漏水和自定义提醒）只有在有情况时才会自动出现。",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "选择即把家电分配给该负载：它仍在自己的板块中配置，并在此处显示为「来自家电」行。",
   "Circle = room": "圆圈 = 房间",
@@ -899,7 +900,6 @@ export default Object.freeze({
   "Close all": "全部关闭",
   "Close icon picker": "关闭图标选择器",
   "Close without saving": "不保存直接关闭",
-  closed: "已关闭",
   Closed: "已关",
   CLOSED: "已关",
   Closing: "正在关闭",
@@ -2341,8 +2341,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "上面的表单配置第一个池体。如果不止一个，把其余的加在这里：每个都有各自的传感器、控制和过滤。",
   "The group decides where the alert is watched.": "由分组决定在哪里监视该提醒。",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "首页的提醒磁贴——门窗、电池、漏水——只有在真的有事要说时才会自己亮起。在这里选择它们监视哪些传感器并起一个清爽的名字，或者为一个或多个实体创建自定义提醒，可设置条件、手动填写的状态和自选图标。",
   "The Home Assistant entity is missing in the Cameras tab":
     "摄像头选项卡中缺少 Home Assistant 实体",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":

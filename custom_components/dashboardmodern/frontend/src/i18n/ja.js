@@ -12,6 +12,10 @@
 
 export default Object.freeze({
   openings: "か所",
+  "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
+    "ホームの通知タイル（電池・浸水）は、伝えることがあるときだけひとりでに点灯します。ここでは、どのセンサーを見張るかをわかりやすい名前とともに選ぶか、条件・手入力の状態・好きなアイコンを指定して、ひとつ以上のエンティティにカスタム通知を作れます。ドアと窓はもうここにはありません。シャッターの接点から、「窓」のタイルが伝えます。",
+  "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
+    "ホームに表示するタイルと順序を選びます。警告タイル（電池・水漏れ・カスタム警告）は、伝えることがあるときだけ自動的に現れます。",
   "playing": "再生中",
   "Volume": "音量",
   "Unmute": "ミュート解除",
@@ -183,7 +187,6 @@ export default Object.freeze({
   new: "新着",
   "New messages": "新しいメッセージ",
   reply: "返事",
-  "Doors/Windows": "ドア／窓",
   "with credentials": "認証情報あり",
   stream: "ストリーム",
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.":
@@ -900,8 +903,6 @@ export default Object.freeze({
   "Choose the photo": "写真を選ぶ",
   "Choose the position": "位置を選ぶ",
   "Choose where to look": "どこから探すかを選ぶ",
-  "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.":
-    "ホームに表示するタイルと順序を選びます。警告タイル（開口部・電池・水漏れ・カスタム警告）は、伝えることがあるときだけ自動的に現れます。",
   "Choosing assigns the appliance to this load: it stays configured in its own section, and shows up here as a “from Appliances” row.":
     "選ぶとその家電がこの負荷に割り当てられます：家電は自分のセクションに設定されたまま、ここには「家電から」の行として現れます。",
   "Circle = room": "サークル = 部屋",
@@ -921,7 +922,6 @@ export default Object.freeze({
   "Close all": "すべて閉じる",
   "Close icon picker": "アイコン選択を閉じる",
   "Close without saving": "保存せずに閉じる",
-  closed: "閉",
   Closed: "閉",
   CLOSED: "閉",
   Closing: "閉じています",
@@ -2388,8 +2388,6 @@ export default Object.freeze({
   "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.":
     "上のフォームは 1 つ目の浴槽を設定します。複数ある場合はここに追加してください。それぞれにセンサー・操作・ろ過があります。",
   "The group decides where the alert is watched.": "通知をどこで監視するかはグループが決めます。",
-  "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.":
-    "ホームの通知タイル（開閉・電池・浸水）は、伝えることがあるときだけひとりでに点灯します。ここでは、どのセンサーを見張るかをわかりやすい名前とともに選ぶか、条件・手入力の状態・好きなアイコンを指定して、ひとつ以上のエンティティにカスタム通知を作れます。",
   "The Home Assistant entity is missing in the Cameras tab":
     "カメラタブに Home Assistant のエンティティがありません",
   "The home robots — vacuums and lawn mowers: state, battery, controls and map. Each robot gets its own card in the Robot section.":
