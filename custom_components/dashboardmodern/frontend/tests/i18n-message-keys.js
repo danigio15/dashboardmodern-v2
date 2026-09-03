@@ -367,6 +367,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Add a reply",
   "Add a second alarm area",
   "Add a second solar plant",
+  "Add an emoji",
   "Add appliance",
   "Add appliance button not found",
   "Add area",

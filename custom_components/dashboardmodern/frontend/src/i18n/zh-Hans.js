@@ -944,6 +944,7 @@ export default Object.freeze({
   "Confirm ✓": "确认 ✓",
   "Confirm opening?": "确认开门？",
   "Confirm?": "确认？",
+  "Add an emoji": "添加表情",
   "Connect GitHub": "连接 GitHub",
   Connected: "已连接",
   "Connected as": "已连接账号",

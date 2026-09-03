@@ -35,8 +35,13 @@
       if (document.getElementById("dm-tenda-barra")) return;
       var stile = document.createElement("style");
       stile.id = "dm-tenda-barra";
+      /* Invisibile e intoccabile. Un elemento con opacita' zero riceve i
+       * tocchi lo stesso, e la barra sta fissa in fondo allo schermo sopra a
+       * quello che c'e' sotto: senza questa riga, per il tempo della tenda un
+       * dito sul fondo della pagina finirebbe su una barra che non si vede. */
       stile.textContent =
-        'html:not([data-dm-barra="pronta"]) nav.tabs.bottom-nav-bar{opacity:0!important}';
+        'html:not([data-dm-barra="pronta"]) nav.tabs.bottom-nav-bar' +
+        "{opacity:0!important;pointer-events:none!important}";
       (document.head || document.documentElement).appendChild(stile);
     } catch (_errore) {
       /* Senza tenda si torna al difetto, non a qualcosa di peggio. */

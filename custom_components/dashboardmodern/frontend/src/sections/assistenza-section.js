@@ -187,6 +187,101 @@ export function filoMarkup(messaggi, dallaConsole = false) {
  * l'errore e sotto una casella pulita: chi aveva appena incollato mezzo file di
  * configurazione doveva riscriverlo per riprovare, che e' il modo piu' sicuro
  * di far smettere di riprovare. */
+/* ─── Le emoji ──────────────────────────────────────────────────────────
+ *
+ * «Ecco mancano le emoji :) :) :)»
+ *
+ * Una chat di assistenza le vuole per la ragione per cui le vuole qualunque
+ * chat: una frase scritta di corsa suona piu' secca di com'e' stata pensata, e
+ * chi legge dall'altra parte non ha il tono di voce per correggerla. Un pollice
+ * in su chiude uno scambio meglio di «ok».
+ *
+ * L'elenco e' corto e scelto, non un catalogo: in una finestra di assistenza
+ * servono facce, mani, e le cose di casa di cui si sta parlando. Un catalogo
+ * intero vorrebbe dire una ricerca, una tastiera e un pannello che copre la
+ * conversazione — e mille segni per trovarne cinque.
+ *
+ * Niente tonalita' di pelle e niente sequenze composte: un'emoji sola per
+ * segno, che e' quello che il campo e il centralino si passano senza sorprese.
+ */
+export const EMOJI_DELLA_CHAT = Object.freeze([
+  "🙂",
+  "😀",
+  "😅",
+  "😉",
+  "😊",
+  "🤔",
+  "😐",
+  "😕",
+  "😢",
+  "😱",
+  "👍",
+  "👎",
+  "🙏",
+  "👏",
+  "💪",
+  "🤝",
+  "👋",
+  "🤞",
+  "✅",
+  "❌",
+  "⚠️",
+  "❓",
+  "❗",
+  "💡",
+  "🔧",
+  "🔌",
+  "🔋",
+  "📷",
+  "📎",
+  "🏠",
+  "🚗",
+  "☀️",
+  "🌧️",
+  "🔥",
+  "❄️",
+  "💧",
+  "🎉",
+  "❤️",
+  "⏳",
+  "📅",
+]);
+
+/**
+ * Il testo con dentro l'emoji, e dove va a finire il cursore.
+ *
+ * Si mette dove sta il cursore e non in fondo: chi ha scritto una frase e
+ * torna indietro a metterci una faccia si aspetta che vada li'. Con del testo
+ * selezionato l'emoji lo sostituisce, che e' quello che fa qualunque campo.
+ *
+ * E il tetto si rispetta prima di scrivere, non dopo: il campo ha un massimo,
+ * e un'emoji che lo sfonda deve non entrare — non entrare a meta', che
+ * significherebbe spezzare un segno in due pezzi che non vogliono dire niente.
+ */
+export function conLEmoji(testo = "", emoji = "", inizio = null, fine = null, massimo = Infinity) {
+  const base = String(testo ?? "");
+  const segno = String(emoji ?? "");
+  const dentro = (valore, difetto) =>
+    Number.isInteger(valore) && valore >= 0 ? Math.min(valore, base.length) : difetto;
+  const da = dentro(inizio, base.length);
+  const a = Math.max(da, dentro(fine, da));
+  if (!segno) return { testo: base, cursore: a, pieno: false };
+  const prossimo = `${base.slice(0, da)}${segno}${base.slice(a)}`;
+  if (prossimo.length > massimo) return { testo: base, cursore: a, pieno: true };
+  return { testo: prossimo, cursore: da + segno.length, pieno: false };
+}
+
+function emojiMarkup() {
+  return `
+    <div class="dm-chat-emoji" data-dm-chat="emoji" hidden>
+      ${EMOJI_DELLA_CHAT.map(
+        (segno) =>
+          `<button type="button" class="dm-chat-emoji-uno" data-dm-emoji="${esc(segno)}"
+             tabindex="-1" aria-label="${esc(segno)}">${esc(segno)}</button>`,
+      ).join("")}
+    </div>`;
+}
+
 function casellaMarkup(dove) {
   const bozza = state.bozza || "";
   const rimasti = MAX_TESTO - bozza.length;
@@ -195,7 +290,11 @@ function casellaMarkup(dove) {
       <textarea id="${dove}" rows="3" maxlength="${MAX_TESTO}" placeholder="${esc(
         t("Scrivi il tuo messaggio…", "Write your message…"),
       )}">${esc(bozza)}</textarea>
+      ${emojiMarkup()}
       <div class="dm-chat-sotto">
+        <button type="button" class="dm-chat-emoji-apri" data-dm-chat="emoji-apri"
+          aria-expanded="false" aria-label="${esc(t("Metti un'emoji", "Add an emoji"))}"
+          title="${esc(t("Metti un'emoji", "Add an emoji"))}">🙂</button>
         <span class="dm-chat-rimasti" data-dm-chat="rimasti">${rimasti}</span>
         <button type="button" class="dm-chat-btn" data-dm-chat="manda"
           ${state.busy ? "disabled" : ""}>${esc(
@@ -516,7 +615,42 @@ function agganciaEventi(corpo) {
       state.name = clean(comeMiChiamo.value);
     });
   }
+  const pannello = corpo.querySelector('[data-dm-chat="emoji"]');
+  const apriEmoji = corpo.querySelector('[data-dm-chat="emoji-apri"]');
   const campo = corpo.querySelector("textarea");
+  if (pannello && apriEmoji && campo) {
+    apriEmoji.addEventListener("click", () => {
+      const chiuso = pannello.hidden;
+      pannello.hidden = !chiuso;
+      apriEmoji.setAttribute("aria-expanded", String(chiuso));
+      if (chiuso) campo.focus();
+    });
+    /* Un solo ascoltatore per tutte le emoji, e sul pannello: sono quaranta, e
+     * quaranta ascoltatori si rifanno a ogni ridisegno. */
+    pannello.addEventListener("mousedown", (evento) => {
+      /* Prima del `click`, cosi' la casella non perde il fuoco e il cursore
+       * resta dov'era: senza, l'emoji finirebbe sempre in fondo. */
+      if (evento.target.closest("[data-dm-emoji]")) evento.preventDefault();
+    });
+    pannello.addEventListener("click", (evento) => {
+      const scelta = evento.target.closest("[data-dm-emoji]");
+      if (!scelta) return;
+      const esito = conLEmoji(
+        campo.value,
+        scelta.dataset.dmEmoji,
+        campo.selectionStart,
+        campo.selectionEnd,
+        MAX_TESTO,
+      );
+      if (esito.pieno) return;
+      campo.value = esito.testo;
+      campo.setSelectionRange?.(esito.cursore, esito.cursore);
+      campo.focus();
+      /* Lo stesso evento che scrivere a mano fa partire: da li' passano la
+       * bozza tenuta da parte e il conto dei caratteri rimasti. */
+      campo.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
   if (campo) {
     campo.addEventListener("input", () => {
       state.bozza = campo.value;
@@ -843,6 +977,24 @@ const CSS = `
   font-size:13px; resize:vertical; }
 .dm-chat-sotto { display:flex; align-items:center; justify-content:space-between;
   gap:10px; margin-top:8px; }
+.dm-chat-emoji-apri { width:34px; height:34px; padding:0; flex:0 0 auto;
+  border-radius:50%; border:1px solid var(--card-border,#e2e8f0);
+  background:var(--surface-3,#f1f5f9); font-size:17px; line-height:1;
+  cursor:pointer; }
+.dm-chat-emoji-apri[aria-expanded="true"] { background:var(--accent,#22c55e);
+  border-color:transparent; }
+/* Il conto dei caratteri prende lo spazio in mezzo, cosi' il tasto delle
+   emoji resta a sinistra e «Manda» a destra dove sono sempre stati. */
+.dm-chat-sotto .dm-chat-rimasti { flex:1 1 auto; text-align:right; }
+.dm-chat-emoji { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;
+  padding:8px; border-radius:14px; background:var(--surface-3,#f1f5f9);
+  border:1px solid var(--card-border,#e2e8f0); max-height:148px;
+  overflow-y:auto; }
+.dm-chat-emoji[hidden] { display:none; }
+.dm-chat-emoji-uno { width:34px; height:34px; padding:0; border:0;
+  border-radius:10px; background:transparent; font-size:19px; line-height:1;
+  cursor:pointer; }
+.dm-chat-emoji-uno:hover { background:var(--surface-2,#fff); }
 .dm-chat-rimasti { font-size:11px; color:var(--text-dim,#64748b); }
 .dm-chat-btn { padding:9px 18px; border-radius:50px; cursor:pointer; border:0;
   background:var(--accent,#22c55e); color:#fff; font-size:13px; font-weight:700; }

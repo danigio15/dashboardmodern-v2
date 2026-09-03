@@ -1383,6 +1383,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Messaggio mandato.": "Message sent.",
   "Meteo": "Weather",
   "Meteo, avvisi, azioni rapide": "Weather, alerts, quick actions",
+  "Metti un'emoji": "Add an emoji",
   "Microonde": "Microwave",
   "Min": "Low",
   "MiniPC": "Server",
