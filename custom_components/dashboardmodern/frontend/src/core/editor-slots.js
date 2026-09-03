@@ -52,6 +52,13 @@ export function sectionForEditorSlot(slot) {
     "dm.server_": "server",
     "dm.boiler_": "boiler",
     "dm.security_": "security",
+    /* Le caselle della lavatrice: programma, fase, tempo rimanente, gli
+     * script dei programmi rapidi. Sono la scheda di un elettrodomestico, e
+     * finche' questa mappa serviva solo ad accendere una sezione la loro
+     * assenza non si vedeva. Adesso che una sezione senza contenuto si spegne
+     * anche, la loro assenza vorrebbe dire togliere gli Elettrodomestici a chi
+     * la lavatrice l'ha mappata di li'. */
+    "dm.lavatrice_": "appliances",
   });
   return Object.entries(family).find(([prefix]) => slot.startsWith(prefix))?.[1] || null;
 }

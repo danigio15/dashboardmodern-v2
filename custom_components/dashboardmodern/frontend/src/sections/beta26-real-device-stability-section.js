@@ -408,36 +408,6 @@ function installStableTemperatureOwners() {
   return installed;
 }
 
-function hasEntityLikeValue(value) {
-  if (Array.isArray(value)) return value.some(hasEntityLikeValue);
-  if (value && typeof value === "object")
-    return Object.entries(value).some(
-      ([key, child]) =>
-        key !== "metadata" &&
-        (/ent|entity|power|energy|soc|camera|stream|switch|sensor|clima|temp|humid/i.test(key)
-          ? hasEntityLikeValue(child)
-          : typeof child === "object" && hasEntityLikeValue(child)),
-    );
-  return typeof value === "string" && value.trim().includes(".");
-}
-
-function listConfigured(key, predicate = hasEntityLikeValue) {
-  const value = readJson(key, null);
-  if (Array.isArray(value)) return value.some(predicate);
-  if (value && typeof value === "object") return predicate(value);
-  return false;
-}
-
-function objectHasValues(key) {
-  const value = readJson(key, null);
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      Object.keys(value).length,
-  );
-}
-
 /* Nascosta a mano vuol dire nascosta.
  *
  * Nella mappa delle visibilita' un `false` puo' voler dire due cose opposte:

@@ -95,6 +95,27 @@ test("le due sezioni senza chiave propria si riempiono dalle caselle dell'editor
   assert.ok(conTemp.piene.has("stanze"), "una stanza non accende le Stanze");
 });
 
+test("le caselle dell'editor accendono la sezione a cui appartengono", () => {
+  /* Il vecchio giudizio smistava le caselle a naso, cercando parole nel loro
+   * nome: la temperatura della batteria dell'inverter, quella della CPU e
+   * quella della lavatrice finivano tutte e tre in Temperature. Finché serviva
+   * solo ad accendere si vedeva poco; adesso che una sezione vuota si spegne,
+   * sbagliare sezione vuol dire spegnere quella giusta. */
+  const dove = (casella) => {
+    const { piene } = contenutoDelleSezioni(
+      magazzino({ cd_entity_overrides: { [casella]: "sensor.x" } }),
+    );
+    return [...piene];
+  };
+  assert.deepEqual(dove("dm.energy_temperatura_batteria"), ["energy"]);
+  assert.deepEqual(dove("dm.server_temperatura_cpu"), ["server"]);
+  assert.deepEqual(dove("dm.lavatrice_temperatura"), ["appliances"]);
+  assert.deepEqual(dove("dm.boiler_sonda_temperatura_1"), ["boiler"]);
+  /* Il meteo della Home non ha una pagina fra quelle governate: nessuna si
+   * accende, e soprattutto nessuna si spegne per colpa sua. */
+  assert.deepEqual(dove("dm.home_meteo_temperatura"), []);
+});
+
 test("una stanza di solo nome accende le Stanze e non Temperature", () => {
   /* Una stanza può vivere di nome e icona: è una riga della pagina Stanze, ma
    * non ha niente da dire alla pagina Temperature. */
