@@ -145,6 +145,11 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   /* Il nome della rete di casa: dove non si scrive in un altro alfabeto si
    * scrive cosi' e basta. */
   "Wi-Fi",
+  /* Le due parole della rete: mezza Europa le scrive cosi', e dove non e' vero
+   * — russo, turco, arabo, hindi, giapponese, coreano, cinese — il catalogo di
+   * quella lingua le traduce lo stesso: questa riga permette, non impone. */
+  "ONLINE",
+  "OFFLINE",
   /* Le sigle del MiniPC: si scrivono cosi' in mezzo mondo, e dove non e' vero
    * — russo, giapponese, arabo — il catalogo di quella lingua le traduce. */
   "CPU",

@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "खोलने",
+  "ONLINE": "ऑनलाइन",
+  "OFFLINE": "ऑफ़लाइन",
+  "NOT CONNECTED": "जुड़ा नहीं है",
+  "NOT CONFIGURED": "कॉन्फ़िगर नहीं",
+  "NO BOX FILLED IN": "कोई खाना नहीं भरा",
+  "CONNECTED": "जुड़ा है",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "होम की अलर्ट टाइलें — बैटरियाँ, पानी का रिसाव — तभी अपने आप जगती हैं जब उनके पास कहने को कुछ हो। यहाँ आप चुनते हैं कि वे कौन-से सेंसर देखें, एक साफ़ नाम के साथ, या एक या अधिक एंटिटी पर शर्त, हाथ से लिखी स्थिति और अपनी पसंद के आइकन के साथ कस्टम अलर्ट बनाते हैं। दरवाज़े और खिड़कियाँ अब यहाँ नहीं हैं: उन्हें खिड़कियाँ टाइल बताती है, परदों के संपर्कों से।",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

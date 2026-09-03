@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "处",
+  "ONLINE": "在线",
+  "OFFLINE": "离线",
+  "NOT CONNECTED": "未连接",
+  "NOT CONFIGURED": "未配置",
+  "NO BOX FILLED IN": "没有填写任何格子",
+  "CONNECTED": "已连接",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "首页的提醒磁贴——电池、漏水——只有在真的有事要说时才会自己亮起。在这里选择它们监视哪些传感器并起一个清爽的名字，或者为一个或多个实体创建自定义提醒，可设置条件、手动填写的状态和自选图标。门窗不在这里了：由「窗户」磁贴用卷帘的触点来说。",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "açılış",
+  "ONLINE": "ÇEVRİMİÇİ",
+  "OFFLINE": "ÇEVRİMDIŞI",
+  "NOT CONNECTED": "BAĞLI DEĞİL",
+  "NOT CONFIGURED": "YAPILANDIRILMADI",
+  "NO BOX FILLED IN": "HİÇBİR KUTU DOLDURULMADI",
+  "CONNECTED": "BAĞLI",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "Ana sayfadaki uyarı kartları — piller, su baskını — yalnızca söyleyecek bir şeyleri olduğunda kendiliğinden yanar. Burada hangi sensörleri gözleyeceklerini temiz bir adla seçersin ya da bir veya birden çok varlık için koşullu, elle yazılmış durumlu ve istediğin simgeye sahip özel bir uyarı oluşturursun. Kapılar ve pencereler artık burada değil: onları panjur kontaklarıyla Pencereler karosu söyler.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

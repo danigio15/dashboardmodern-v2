@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "openingen",
+  "ONLINE": "ONLINE",
+  "OFFLINE": "OFFLINE",
+  "NOT CONNECTED": "NIET VERBONDEN",
+  "NOT CONFIGURED": "NIET INGESTELD",
+  "NO BOX FILLED IN": "GEEN VELD INGEVULD",
+  "CONNECTED": "VERBONDEN",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "De meldingstegels op Home — batterijen, wateroverlast — lichten alleen vanzelf op als ze iets te melden hebben. Hier kies je welke sensoren ze in de gaten houden, met een nette naam, of maak je een eigen melding op een of meer entiteiten, met voorwaarde, zelf ingetypte toestand en een icoon naar keuze. Deuren en ramen staan hier niet meer: die zegt de tegel Ramen, met de contacten van de zonwering.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

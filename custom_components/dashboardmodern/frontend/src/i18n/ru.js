@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "открываний",
+  "ONLINE": "В СЕТИ",
+  "OFFLINE": "НЕ В СЕТИ",
+  "NOT CONNECTED": "НЕТ СВЯЗИ",
+  "NOT CONFIGURED": "НЕ НАСТРОЕНО",
+  "NO BOX FILLED IN": "НИ ОДНО ПОЛЕ НЕ ЗАПОЛНЕНО",
+  "CONNECTED": "ЕСТЬ СВЯЗЬ",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "Плитки оповещений на главной — батареи, протечки — загораются сами только тогда, когда им есть что сказать. Здесь выбирается, за какими датчиками они следят, с понятным именем, или создаётся своё оповещение на одну или несколько сущностей — с условием, вручную заданным состоянием и значком на выбор. Дверей и окон здесь больше нет: о них говорит плитка «Окна», по контактам жалюзи.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

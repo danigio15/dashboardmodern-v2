@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "فتحات",
+  "ONLINE": "متصل",
+  "OFFLINE": "غير متصل",
+  "NOT CONNECTED": "غير متصل بالإنترنت",
+  "NOT CONFIGURED": "غير مُعدّ",
+  "NO BOX FILLED IN": "لم تُملأ أي خانة",
+  "CONNECTED": "متصل بالإنترنت",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "بطاقات التنبيه في الرئيسية — البطاريات وتسرب المياه — تضيء من تلقاء نفسها فقط عندما يكون لديها ما تقوله. هنا تختار المستشعرات التي تراقبها، باسم نظيف، أو تنشئ تنبيهًا مخصصًا على كيان واحد أو أكثر، بشرط وحالة تكتبها بنفسك وأيقونة من اختيارك. الأبواب والنوافذ لم تعد هنا: تقولها بطاقة النوافذ، من ملامسات الستائر.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

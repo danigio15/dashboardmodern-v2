@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "Öffnungen",
+  "ONLINE": "ONLINE",
+  "OFFLINE": "OFFLINE",
+  "NOT CONNECTED": "NICHT VERBUNDEN",
+  "NOT CONFIGURED": "NICHT EINGERICHTET",
+  "NO BOX FILLED IN": "KEIN FELD AUSGEFÜLLT",
+  "CONNECTED": "VERBUNDEN",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "Die Hinweiskacheln der Startseite — Batterien, Wasser — leuchten von selbst nur auf, wenn sie etwas zu sagen haben. Hier wählst du, welche Sensoren sie beobachten, mit einem sauberen Namen, oder du legst einen eigenen Hinweis auf eine oder mehrere Entitäten an, mit Bedingung, selbst geschriebenem Zustand und einem Symbol deiner Wahl. Türen und Fenster sind nicht mehr hier: die Kachel Fenster sagt sie, aus den Kontakten der Behänge.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

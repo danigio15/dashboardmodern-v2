@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "aperturas",
+  "ONLINE": "ONLINE",
+  "OFFLINE": "OFFLINE",
+  "NOT CONNECTED": "SIN CONEXIÓN",
+  "NOT CONFIGURED": "SIN CONFIGURAR",
+  "NO BOX FILLED IN": "NINGUNA CASILLA RELLENADA",
+  "CONNECTED": "CONECTADO",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "Las tarjetas de aviso del Inicio — baterías, inundaciones — se encienden solas únicamente cuando tienen algo que decir. Aquí eliges qué sensores vigilan, con un nombre limpio, o creas un aviso personalizado sobre una o varias entidades, con condición, estado escrito a mano e icono a elegir. Las puertas y las ventanas ya no están aquí: las dice la ficha Ventanas, con los contactos de las persianas.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

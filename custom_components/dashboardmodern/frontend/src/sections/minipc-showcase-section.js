@@ -43,7 +43,7 @@
  * legacy `setRing()` already uses to colour these three gauges, and the 20-100
  * window plus the 75 °C notch the runtime itself draws the temperature arc in.
  */
-import { clean, doc, installStyle, lexicalGlobal, root, t } from "./shared.js";
+import { allStates, clean, doc, installStyle, lexicalGlobal, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_MINIPC_SHOWCASE__";
 const STYLE_ID = "dm-minipc-showcase-style";
@@ -155,7 +155,9 @@ export function levelName(level) {
  * drawn one yet. The scale follows the arc instead of re-deriving the reading.
  */
 export function tempFraction(scope = doc) {
-  const dash = clean(scope?.getElementById?.("srv-temp-circle")?.getAttribute?.("stroke-dasharray"));
+  const dash = clean(
+    scope?.getElementById?.("srv-temp-circle")?.getAttribute?.("stroke-dasharray"),
+  );
   const [drawn, gap] = dash.split(/[\s,]+/).map(Number);
   if (!Number.isFinite(drawn) || !Number.isFinite(gap) || drawn + gap <= 0) return 0;
   return Math.max(0, Math.min(1, drawn / (drawn + gap)));
@@ -176,6 +178,79 @@ export function tempLevel(text) {
 /** The same wording without its marker, so the badge can draw its own dot. */
 export function tempWording(text) {
   return clean(clean(text).replace(/^[🔴🟡🟢]\s*/u, ""));
+}
+
+/* ── c'e' internet, e chi lo dice ──────────────────────────────────────────
+ *
+ * «Verifica offline: i dati sono stati inseriti tutti nella sezione e internet
+ * e' online.» La pastiglia diceva OFFLINE su una macchina che stava mandando
+ * CPU, RAM e disco — cioe' rispondeva benissimo.
+ *
+ * La ragione: il guscio legge UNA casella sola, `dm.server_raggiungibilita_google`,
+ * e da quella decide. Ma la sezione ne offre quattro che dicono la stessa cosa
+ * — Stato Internet, Ping Internet, Raggiungibilita' Google, Internet lavanderia
+ * — e chi compila la scheda ne riempie quella che ha. Riempite le altre tre,
+ * la quarta resta vuota, e una casella vuota diventava «OFFLINE»: una notizia
+ * sulla connessione ricavata dal fatto che nessuno l'ha data.
+ *
+ * Qui si legge quella che c'e', nell'ordine in cui la sezione le elenca, e si
+ * accettano le forme che i sensori veri usano davvero. Se non e' stata
+ * compilata nessuna delle quattro non si dice OFFLINE: si dice che non e'
+ * configurata, che e' l'unica cosa vera. */
+export const CASELLE_DI_RETE = Object.freeze([
+  "dm.server_raggiungibilita_google",
+  "dm.server_stato_internet",
+  "dm.server_ping_internet",
+  "dm.server_internet_lavanderia",
+]);
+
+const CONNESSO = new Set([
+  "on",
+  "connected",
+  "connesso",
+  "online",
+  "up",
+  "ok",
+  "true",
+  "home",
+  "1",
+]);
+const SCONNESSO = new Set([
+  "off",
+  "disconnected",
+  "non connesso",
+  "offline",
+  "down",
+  "false",
+  "not_home",
+  "0",
+]);
+
+/**
+ * Se c'e' internet, secondo una casella.
+ *
+ * Torna `true`, `false`, oppure `null` — e `null` vuol dire «questa casella non
+ * lo dice», che e' diverso da «no».
+ */
+export function letturaDellaRete(stato) {
+  const grezzo = clean(stato).toLowerCase();
+  if (!grezzo || grezzo === "unavailable" || grezzo === "unknown") return null;
+  if (CONNESSO.has(grezzo)) return true;
+  if (SCONNESSO.has(grezzo)) return false;
+  /* Il sensore dell'integrazione Ping non dice «on»: dice quanti millisecondi
+   * ci ha messo il giro. Un tempo di andata e ritorno vuol dire che dall'altra
+   * parte qualcuno ha risposto. */
+  const numero = Number(grezzo.replace(",", "."));
+  return Number.isFinite(numero) ? true : null;
+}
+
+/** La prima casella compilata che dice qualcosa, e cosa dice. */
+export function reteDelleCaselle(leggi, caselle = CASELLE_DI_RETE) {
+  for (const casella of caselle) {
+    const detta = letturaDellaRete(leggi(casella));
+    if (detta !== null) return { casella, online: detta };
+  }
+  return { casella: "", online: null };
 }
 
 /** Connectivity, read from the badge class the render loop rewrites per tick. */
@@ -361,7 +436,12 @@ function mountTrace(page) {
 const GROUPS = Object.freeze([
   { block: ".srv-temp-card", card: ".srv-temp-card", it: "Termica", en: "Thermal" },
   { block: ".srv-tel-grid", card: ".srv-tel-card", it: "Telemetria", en: "Telemetry" },
-  { block: ".srv-status-grid", card: ".srv-status-card", it: "Rete e impianto", en: "Network & plant" },
+  {
+    block: ".srv-status-grid",
+    card: ".srv-status-card",
+    it: "Rete e impianto",
+    en: "Network & plant",
+  },
 ]);
 
 function mountHeadings(page) {
@@ -403,9 +483,11 @@ function syncHeadings(page) {
  * configuration could take away, because the slot lives in Energia and not in
  * this page. They now follow the same rule as every other card: gone while
  * their entity is unmapped, back the moment it is mapped. */
+/* La rete non ha una casella: ne ha quattro, e basta che ne sia compilata una.
+ * Guardarne una sola faceva sparire la card a chi aveva riempito le altre. */
 const STATUS_CARD_SLOTS = Object.freeze([
-  { id: "waw-net-badge", slot: "dm.server_raggiungibilita_google" },
-  { id: "waw-inv-badge", slot: "dm.energy_stato_rete" },
+  { id: "waw-net-badge", slots: CASELLE_DI_RETE },
+  { id: "waw-inv-badge", slots: ["dm.energy_stato_rete"] },
 ]);
 
 function slotIsMapped(slot) {
@@ -415,10 +497,10 @@ function slotIsMapped(slot) {
 }
 
 function syncStatusCards(page) {
-  for (const { id, slot } of STATUS_CARD_SLOTS) {
+  for (const { id, slots } of STATUS_CARD_SLOTS) {
     const card = page.querySelector(`#${id}`)?.closest(".srv-status-card");
     if (!card) continue;
-    const display = slotIsMapped(slot) ? "" : "none";
+    const display = slots.some((slot) => slotIsMapped(slot)) ? "" : "none";
     if (card.style.display !== display) card.style.display = display;
   }
 }
@@ -551,9 +633,62 @@ export function renderMinipcShowcase() {
     }
   }
 
+  raddrizzaLaRete(page);
   const net = networkState(doc);
   if (page.dataset.dmSrvNet !== net) page.dataset.dmSrvNet = net;
   return true;
+}
+
+/* Lo stato dello stato di una entita', come lo tiene il guscio. */
+function statoDellaCasella(riferimento) {
+  const overrides = lexicalGlobal("ENTITY_OVERRIDES") || {};
+  const entity = clean(overrides[riferimento]);
+  if (!entity) return "";
+  return clean(allStates()?.[entity]?.state);
+}
+
+/* La pastiglia della rete, riscritta dopo il guscio.
+ *
+ * Il giro di disegno del guscio la ridipinge a ogni battito leggendo la sua
+ * unica casella: qui si ripassa dopo, con la lettura onesta. Si scrive solo
+ * quando il testo cambia davvero — questa funzione passa a ogni giro, e
+ * riscrivere lo stesso testo vorrebbe dire invalidare una pastiglia sessanta
+ * volte al secondo. */
+export function raddrizzaLaRete(page = doc?.getElementById?.("page-server")) {
+  if (!page) return "";
+  const { online } = reteDelleCaselle(statoDellaCasella);
+  const parola =
+    online === true
+      ? t("ONLINE", "ONLINE")
+      : online === false
+        ? t("OFFLINE", "OFFLINE")
+        : t("NON CONFIGURATO", "NOT CONFIGURED");
+  const lunga =
+    online === true
+      ? t("CONNESSO", "CONNECTED")
+      : online === false
+        ? t("NON CONNESSO", "NOT CONNECTED")
+        : t("NESSUNA CASELLA COMPILATA", "NO BOX FILLED IN");
+  for (const id of ["v-srv-net-status", "v-srv-net-status2"]) {
+    const nodo = doc?.getElementById?.(id);
+    if (nodo && nodo.textContent !== parola) nodo.textContent = parola;
+  }
+  for (const id of ["v-srv-net-text", "v-srv-net-text2"]) {
+    const nodo = doc?.getElementById?.(id);
+    if (nodo && nodo.textContent !== lunga) nodo.textContent = lunga;
+  }
+  const badge = doc?.getElementById?.("waw-net-badge");
+  if (badge) {
+    const veste =
+      online === null ? "srv-status-badge" : `srv-status-badge ${online ? "online" : "offline"}`;
+    if (badge.className !== veste) badge.className = veste;
+    const punto = badge.querySelector(".srv-status-indicator");
+    /* Grigio quando non si sa: il rosso e' un allarme, e qui non c'e' niente
+     * di allarmante — c'e' una casella vuota. */
+    const colore = online === null ? "#94a3b8" : online ? "#10b981" : "#ef4444";
+    if (punto && punto.style.background !== colore) punto.style.background = colore;
+  }
+  return online === null ? "" : online ? "on" : "off";
 }
 
 /* The auto-hide is what empties a block, and all it does is write an inline

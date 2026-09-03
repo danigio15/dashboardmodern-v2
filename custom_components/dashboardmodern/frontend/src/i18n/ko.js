@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "개",
+  "ONLINE": "온라인",
+  "OFFLINE": "오프라인",
+  "NOT CONNECTED": "연결 안 됨",
+  "NOT CONFIGURED": "설정 안 됨",
+  "NO BOX FILLED IN": "입력된 항목 없음",
+  "CONNECTED": "연결됨",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "홈의 알림 타일(배터리, 누수)은 전할 말이 있을 때만 스스로 켜집니다. 여기서 어떤 센서를 지켜볼지 깔끔한 이름과 함께 고르거나, 조건과 직접 적은 상태, 원하는 아이콘으로 하나 이상의 엔터티에 사용자 지정 알림을 만듭니다. 문과 창은 더 이상 여기에 없습니다. 블라인드의 접점으로 「창문」 타일이 알려 줍니다.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":

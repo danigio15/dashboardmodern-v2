@@ -12,6 +12,12 @@
 
 export default Object.freeze({
   openings: "か所",
+  "ONLINE": "オンライン",
+  "OFFLINE": "オフライン",
+  "NOT CONNECTED": "未接続",
+  "NOT CONFIGURED": "未設定",
+  "NO BOX FILLED IN": "入力された欄がありません",
+  "CONNECTED": "接続中",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "ホームの通知タイル（電池・浸水）は、伝えることがあるときだけひとりでに点灯します。ここでは、どのセンサーを見張るかをわかりやすい名前とともに選ぶか、条件・手入力の状態・好きなアイコンを指定して、ひとつ以上のエンティティにカスタム通知を作れます。ドアと窓はもうここにはありません。シャッターの接点から、「窓」のタイルが伝えます。",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
