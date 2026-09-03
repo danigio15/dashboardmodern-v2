@@ -68,7 +68,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
 - [Dove vive la configurazione](#dove-vive-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-telecamere-e-aperture) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Aspirapolvere](#aspirapolvere) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [Continuità](#continuità) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
 - [Come vengono calcolati i numeri](#come-vengono-calcolati-i-numeri)
@@ -449,7 +449,7 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 
 ---
 
-## Sicurezza, telecamere e aperture
+## Sicurezza e telecamere
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
@@ -462,13 +462,26 @@ E **si sceglie quali modalità vedere**: la centrale dice cosa accetta, quello c
 
 **Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home.
 
-**Le aperture**: portoni, serrature e cancelli, con il comando di apertura e — dove serve — il **PIN** prima di aprire.
+**Le aperture non stanno più qui**: portoni, serrature e cancelli sono una sezione a sé — [Apri porte/cancelli](#apri-portecancelli) — perché il nome si confondeva con i sensori degli infissi.
 
 | Dettaglio avvisi |
 | --- |
 | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/alerts-popup-light.webp" alt="Dettaglio avvisi in tema chiaro" width="49%"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/alerts-popup.webp" alt="Dettaglio avvisi in tema scuro" width="49%"> |
 
 Porte, finestre, allagamenti, fumo e batterie scariche vivono nei **gruppi di avvisi**, che compaiono come tessere in Home. Ogni avviso si muove come quello che significa: la porta si apre sul cardine, la batteria cala di livello, l'antifurto pulsa.
+
+---
+
+## Apri porte/cancelli
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors-light.webp" alt="Sezione apri porte e cancelli in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors.webp" alt="Sezione apri porte e cancelli in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors-mobile-light.webp" alt="Sezione apri porte e cancelli su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/doors-mobile.webp" alt="Sezione apri porte e cancelli su telefono, tema scuro" width="230"> |
+
+Portone, porta di casa, cancello. **Una sezione a sé**, uscita dalla Sicurezza: portava lo stesso nome dei sensori che dicono se una finestra è aperta, e le due cose si confondevano.
+
+Ogni apertura ha la sua card; il tocco chiede conferma e, se imposti un PIN, il codice. La conferma si può spegnere.
 
 ---
 
@@ -507,14 +520,84 @@ Le zone con la loro valvola, i minuti di ciascuna, l'orario di partenza e il **b
 
 ---
 
-## Aspirapolvere
+## Robot
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-light.webp" alt="Sezione aspirapolvere in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot.webp" alt="Sezione aspirapolvere in tema scuro"> |
-| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile-light.webp" alt="Sezione aspirapolvere su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile.webp" alt="Sezione aspirapolvere su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-light.webp" alt="Sezione robot in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot.webp" alt="Sezione robot in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile-light.webp" alt="Sezione robot su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile.webp" alt="Sezione robot su telefono, tema scuro" width="230"> |
 
 I robot di casa con stato, batteria, potenza di aspirazione e i comandi — avvio, pausa, rientro alla base. Ogni robot ha la sua stanza, scelta da una tendina, e la mappa quando l'integrazione la espone.
+
+---
+
+## Musica
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media-light.webp" alt="Sezione musica in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media.webp" alt="Sezione musica in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media-mobile-light.webp" alt="Sezione musica su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/media-mobile.webp" alt="Sezione musica su telefono, tema scuro" width="230"> |
+
+I lettori dichiarati in configurazione hanno **una scheda ciascuno**, e come sfondo la copertina di quello che stanno suonando. Titolo, artista, la barra del tempo che avanza da sola, il volume e la sorgente.
+
+**I tasti sono quelli che il lettore sa eseguire davvero**: se non ha il brano successivo quel tasto non viene disegnato, e una radio non finge di poterlo saltare.
+
+I lettori si possono anche mettere fra le **Azioni rapide** della Home: lì il tasto prende la copertina come sfondo, e premerlo mette in pausa o fa ripartire. In Home la tessera **Musica** dice quanti stanno suonando e cosa — titolo, artista e in che stanza.
+
+---
+
+## Prese
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets-light.webp" alt="Sezione prese in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets.webp" alt="Sezione prese in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets-mobile-light.webp" alt="Sezione prese su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/sockets-mobile.webp" alt="Sezione prese su telefono, tema scuro" width="230"> |
+
+La TV del salotto, il Firestick, il modem. Si accendono e si spengono come le luci, ma **stanno per conto loro**: così «spegni tutte le luci» non spegne il modem.
+
+Ogni presa ha nome, icona e stanza, e l'interruttore **«si vede ma non si comanda»** per quelle che non vanno toccate.
+
+---
+
+## Continuità
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups-light.webp" alt="Sezione continuità in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups.webp" alt="Sezione continuità in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups-mobile-light.webp" alt="Sezione continuità su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ups-mobile.webp" alt="Sezione continuità su telefono, tema scuro" width="230"> |
+
+Il gruppo di continuità: rete, batteria, carico e l'autonomia che resta.
+
+**Nessuna casella è obbligatoria.** Con il solo stato di NUT — «OL» in linea, «OB» a batteria, «LB» batteria scarica — la plancia sa già dire se c'è tensione. Le altre servono a chi l'UPS lo legge da un'integrazione che espone un sensore per cosa.
+
+In Home la tessera mostra la carica quando la corrente c'è, e **i minuti che restano quando cade**.
+
+---
+
+## Agenda
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda-light.webp" alt="Sezione agenda in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda.webp" alt="Sezione agenda in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda-mobile-light.webp" alt="Sezione agenda su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/agenda-mobile.webp" alt="Sezione agenda su telefono, tema scuro" width="230"> |
+
+Gli impegni e le cose da fare nella stessa pagina, in due blocchi: un appuntamento succede a un'ora e non si spunta, una cosa da fare si spunta e un'ora non ce l'ha.
+
+La striscia dei giorni in cima dice **dove c'è qualcosa** prima ancora di leggere; sotto, gli impegni raggruppati per giorno con il colore del calendario da cui vengono. Gli impegni si creano e si modificano da qui, se il calendario lo permette.
+
+---
+
+## Le tue sezioni
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/my-section-light.webp" alt="Una sezione creata dall'utente in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/my-section.webp" alt="Una sezione creata dall'utente in tema scuro"> |
+
+Una sezione tua è **un titolo e le entità che ci metti dentro**: compare nella barra come le altre, dice come stanno e accende quelle che si accendono.
+
+Serve quando in casa c'è qualcosa che la plancia non disegna ancora — un acquario, una serra, un impianto che nessuna scheda prevede. E non toglie niente: il giorno che arriva la sezione fatta apposta, questa si può togliere.
+
+Per una singola entità in più c'è **Le tue entità**: si sceglie l'entità, in quale pagina farla comparire, come chiamarla e con che icona, e compare in fondo a quella pagina.
 
 ---
 
