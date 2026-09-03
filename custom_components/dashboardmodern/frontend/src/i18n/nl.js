@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "openingen",
+  "playing": "spelen",
+  "Volume": "Volume",
+  "Unmute": "Dempen opheffen",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "De spelers die je hier opgeeft krijgen een eigen pagina, met de hoes van wat ze spelen als achtergrond. De knoppen die verschijnen zijn die welke de speler echt kan: geen volgend nummer, geen knop daarvoor. Je kunt ze ook bij de snelle acties op de Home zetten: daar neemt de tegel de hoes als achtergrond, en een tik pauzeert of hervat.",
+  "Source": "Bron",
+  "Save player": "Speler opslaan",
+  "Previous track": "Vorig nummer",
+  "Play": "Afspelen",
+  "Nothing playing": "Niets speelt",
+  "No media player configured.": "Geen mediaspeler ingesteld.",
+  "Next track": "Volgend nummer",
+  "New player": "Nieuwe speler",
+  "Mute": "Dempen",
+  "Media player": "Mediaspeler",
+  "Add player": "Speler toevoegen",
+  "1 playing": "1 speelt",
   "over the limit": "boven de limiet",
+  "💾 Player saved": "💾 Speler opgeslagen",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Kies de speler: de tegel neemt de hoes van wat er speelt, en een tik pauzeert of hervat.",
   "no page": "geen pagina",
   "Your own entities": "Jouw entiteiten",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "açılış",
+  "playing": "çalıyor",
+  "Volume": "Ses",
+  "Unmute": "Sesi aç",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "Burada tanımladığın oynatıcıların kendi sayfası olur, arka planında da çaldıkları şeyin kapağı. Görünen düğmeler oynatıcının gerçekten yapabildikleridir: sonraki parça yoksa o düğme çizilmez. Onları Ana sayfadaki Hızlı işlemler arasına da koyabilirsin: orada kutucuk kapağı arka plan yapar, dokununca duraklatır ya da devam ettirir.",
+  "Source": "Kaynak",
+  "Save player": "Oynatıcıyı kaydet",
+  "Previous track": "Önceki parça",
+  "Play": "Oynat",
+  "Nothing playing": "Hiçbir şey çalmıyor",
+  "No media player configured.": "Yapılandırılmış oynatıcı yok.",
+  "Next track": "Sonraki parça",
+  "New player": "Yeni oynatıcı",
+  "Mute": "Sesi kapat",
+  "Media player": "Medya oynatıcı",
+  "Add player": "Oynatıcı ekle",
+  "1 playing": "1 çalıyor",
   "over the limit": "sınırın üstünde",
+  "💾 Player saved": "💾 Oynatıcı kaydedildi",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Oynatıcıyı seç: kutucuk çalan şeyin kapağını alır, dokununca duraklatır ya da devam ettirir.",
   "no page": "sayfa yok",
   "Your own entities": "Kendi varlıkların",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

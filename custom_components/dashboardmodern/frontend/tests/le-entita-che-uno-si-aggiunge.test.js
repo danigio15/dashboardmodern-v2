@@ -206,7 +206,7 @@ test("la scelta viaggia con la plancia, come le sezioni proprie", () => {
   const persistenza = leggi("sections/config-persistence-section.js");
   assert.equal(CHIAVE_ENTITA_MIE, "cd_entita_mie");
   assert.match(persistenza, /"cd_entita_mie",/);
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 24/);
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 25/);
   /* E la plancia le installa: senza questo non le disegnerebbe nessuno. */
   const runtime = leggi("sections/section-runtime.js");
   assert.match(runtime, /installEntitaMie\(\);/);

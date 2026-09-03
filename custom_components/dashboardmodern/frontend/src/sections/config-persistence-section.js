@@ -76,6 +76,10 @@ const USER_DATA_VERSION = 1;
  * (`cd_porte_conferma`, #275): «poter decidere se attivare la doppia conferma
  * d'apertura o meno, per essere più celeri». È una scelta sulla casa, non sul
  * dispositivo: chi la spegne dal telefono la vuole spenta anche dal tablet. */
+/* La revisione 25 aggiunge i lettori multimediali (`cd_media_player`, #269):
+ * quali casse ci sono, come si chiamano e in che stanza stanno. È una scelta
+ * sulla plancia — chi dichiara il lettore del salotto dal tablet lo vuole
+ * anche sul telefono, come tutte le altre macchine di casa. */
 /* La revisione 24 aggiunge le entità che uno si aggiunge dove vuole
  * (`cd_entita_mie`, #271). «Sarebbe carino avere la possibilità d'aggiungere
  * le entità o sensori personalizzati in ogni scheda»: quell'elenco dice quali
@@ -97,7 +101,7 @@ const USER_DATA_VERSION = 1;
  * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
  * da sempre: se la scelta restasse su un dispositivo solo, il telefono
  * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
-export const CONFIG_KEYS_REVISION = 24;
+export const CONFIG_KEYS_REVISION = 25;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -220,6 +224,8 @@ export const CONFIG_KEYS = Object.freeze([
   // Le entita' aggiunte a una pagina che c'e' gia' (#271): quale entita', su
   // quale scheda, con che nome e che icona.
   "cd_entita_mie",
+  // I lettori multimediali (#269): quali casse ci sono e come si chiamano.
+  "cd_media_player",
   // I sensori di fumo gia' visti: il rilevamento non li ripropone due volte.
   "cd_fumo_rilevato",
   "cd_ev_cars",

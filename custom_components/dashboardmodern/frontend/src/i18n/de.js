@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "Öffnungen",
+  "playing": "laufen",
+  "Volume": "Lautstärke",
+  "Unmute": "Ton an",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "Die Player, die du hier einträgst, bekommen eine eigene Seite, mit dem Cover dessen, was gerade läuft, als Hintergrund. Es erscheinen nur die Tasten, die der Player wirklich beherrscht: kein nächster Titel, keine Taste dafür. Du kannst sie auch unter die Schnellaktionen der Startseite legen: dort nimmt die Kachel das Cover als Hintergrund, und ein Tippen pausiert oder spielt weiter.",
+  "Source": "Quelle",
+  "Save player": "Player speichern",
+  "Previous track": "Vorheriger Titel",
+  "Play": "Abspielen",
+  "Nothing playing": "Nichts läuft",
+  "No media player configured.": "Kein Medienspieler eingerichtet.",
+  "Next track": "Nächster Titel",
+  "New player": "Neuer Player",
+  "Mute": "Stumm",
+  "Media player": "Medienspieler",
+  "Add player": "Player hinzufügen",
+  "1 playing": "1 läuft",
   "over the limit": "über dem Limit",
+  "💾 Player saved": "💾 Player gespeichert",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Wähle den Player: die Kachel nimmt das Cover von dem, was gerade läuft, und ein Tippen pausiert oder spielt weiter.",
   "no page": "keine Seite",
   "Your own entities": "Deine Entitäten",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

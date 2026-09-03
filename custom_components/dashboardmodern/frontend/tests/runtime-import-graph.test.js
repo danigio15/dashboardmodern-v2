@@ -634,8 +634,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // stessa forma delle sezioni proprie — modello puro, disegno, scheda — ma la
   // scheda e' una sola per tutte le pagine: quale pagina e' un campo della
   // voce, non una scheda in piu' per ognuna.
+  // 222 con la musica (`core/media-player.js`, `sections/media-player-section.js`,
+  // `sections/media-player-editor-section.js`, `sections/media-in-azioni-section.js`,
+  // #269): «sarebbe carino una sezione dedicata ai dispositivi Media Player…
+  // la possibilita' di aggiungerli anche nelle Azioni rapide, sarebbe figo se
+  // lo sfondo fosse l'anteprima di cio' che viene riprodotto». Il quarto
+  // modulo e' quello che veste il tasto delle Azioni rapide: e' un'altra
+  // superficie, con un altro padrone — il guscio disegna quella griglia — e
+  // metterlo dentro la pagina avrebbe voluto dire una pagina che tocca la Home.
   assert.ok(
-    relative.length <= 218,
+    relative.length <= 222,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -683,6 +691,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * tile, and for the same reason: one minute, only while the forecast window
    * is open, and the timer stops itself the moment it finds that window shut.
    *
+   * The eighth is the progress bar of a media player (#269). Home Assistant
+   * says at which second the track was when it measured it, and then says
+   * nothing more until something else changes: nobody pushes the mere passing
+   * of time, so without a beat the bar sits still on a track that is moving.
+   * One second, and the same discipline as the rest: only while the Musica
+   * page is the one on screen AND something is actually playing — either of
+   * those stops being true and the timer dies.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -694,6 +710,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",
+      "src/sections/media-player-section.js",
       "src/sections/people-section.js",
       "src/sections/pool-extra-section.js",
       "src/sections/radar-meteo-section.js",

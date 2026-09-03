@@ -104,6 +104,9 @@ import { installSezioniMie } from "./sezioni-mie-section.js";
 import { installSezioniMieEditor } from "./sezioni-mie-editor-section.js";
 import { installEntitaMie } from "./entita-mie-section.js";
 import { installEntitaMieEditor } from "./entita-mie-editor-section.js";
+import { installMediaPlayer } from "./media-player-section.js";
+import { installMediaEditor } from "./media-player-editor-section.js";
+import { installMediaInAzioni } from "./media-in-azioni-section.js";
 import { installRadarMeteo } from "./radar-meteo-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
@@ -942,6 +945,11 @@ export function installSectionRuntime() {
      * della scheda che lo compila, come per le sezioni proprie. */
     installEntitaMie();
     installEntitaMieEditor();
+    /* La musica (#269): la pagina, la scheda che dichiara i lettori, e la
+     * copertina addosso al tasto nelle Azioni rapide. */
+    installMediaPlayer();
+    installMediaEditor();
+    installMediaInAzioni();
     /* Il radar meteo dentro la finestra delle previsioni: si aggancia al
      * guscio che quella finestra la disegna gia'. */
     installRadarMeteo();

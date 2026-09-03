@@ -78,6 +78,10 @@ export const TAB_SECTION_KEYS = Object.freeze({
    * fascia va sulla loro scheda, con la chiave che legge la loro pagina —
    * scriverne un'altra vorrebbe dire una preferenza che nessuno legge. */
   doors: "porte",
+  /* La musica (#269) nasce con la sua pagina e la sua scheda: la chiave e'
+   * quella che legge la pagina dei lettori, e la fascia la spegne come tutte
+   * le altre voci della barra. */
+  media: "media",
 });
 
 /* Tabs that hold no configuration to save: diagnostics is read-only, the

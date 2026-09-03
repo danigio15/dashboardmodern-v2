@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "खोलने",
+  "playing": "चल रहे हैं",
+  "Volume": "वॉल्यूम",
+  "Unmute": "म्यूट हटाएँ",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "यहाँ जो प्लेयर आप जोड़ते हैं उनका अपना पेज बनता है, और पृष्ठभूमि में वही कवर होता है जो अभी बज रहा है। वही बटन दिखते हैं जो प्लेयर सचमुच कर सकता है: अगला ट्रैक नहीं है तो वह बटन भी नहीं। इन्हें होम की त्वरित क्रियाओं में भी रख सकते हैं: वहाँ टाइल कवर को पृष्ठभूमि बनाती है, और छूने पर रुकती या फिर चलने लगती है।",
+  "Source": "स्रोत",
+  "Save player": "प्लेयर सहेजें",
+  "Previous track": "पिछला ट्रैक",
+  "Play": "चलाएँ",
+  "Nothing playing": "कुछ नहीं चल रहा",
+  "No media player configured.": "कोई मीडिया प्लेयर कॉन्फ़िगर नहीं है।",
+  "Next track": "अगला ट्रैक",
+  "New player": "नया प्लेयर",
+  "Mute": "म्यूट करें",
+  "Media player": "मीडिया प्लेयर",
+  "Add player": "प्लेयर जोड़ें",
+  "1 playing": "1 चल रहा है",
   "over the limit": "सीमा से ऊपर",
+  "💾 Player saved": "💾 प्लेयर सहेजा गया",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 प्लेयर चुनें: टाइल पर जो चल रहा है उसका कवर आ जाएगा, और छूने पर रुक जाएगा या फिर चलने लगेगा।",
   "no page": "कोई पेज नहीं",
   "Your own entities": "आपकी एंटिटीज़",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

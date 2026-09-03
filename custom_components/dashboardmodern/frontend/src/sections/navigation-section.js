@@ -679,6 +679,7 @@ const OGGETTO_DELLA_PAGINA = Object.freeze({
   aperture: "aperture",
   doors: "aperture",
   telecamere: "telecamere",
+  media: "media",
   config: "impostazioni",
 });
 

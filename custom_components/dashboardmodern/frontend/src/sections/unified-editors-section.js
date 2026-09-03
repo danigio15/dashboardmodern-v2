@@ -21,6 +21,14 @@ import {
 const KEY = "__DASHBOARDMODERN_UNIFIED_EDITORS_SECTION__";
 const state = (root[KEY] ||= { installed: false });
 
+/* L'ultima riga e' il lettore multimediale, chiesto in #269. Senza la sua voce
+ * qui, un'azione di quel tipo aperta in modifica non trovava se stessa nella
+ * tendina: il browser sceglieva la prima, e salvando la trasformava in
+ * un'altra cosa.
+ *
+ * Il commento sta sopra la tabella e non dentro: il raccoglitore delle
+ * traduzioni legge questo letterale, e una parola seguita da una parentesi —
+ * «multimediale (#269)» — gli sembra una chiamata di funzione. */
 const ACTION_TYPES = Object.freeze([
   ["builtin_luci", "💡", "Gestione Luci", "Lights control"],
   ["builtin_clima", "❄️", "Clima", "Climate"],
@@ -29,6 +37,7 @@ const ACTION_TYPES = Object.freeze([
   ["toggle", "⚡", "Toggle entità", "Toggle entity"],
   ["script", "▶️", "Script", "Script"],
   ["scene", "🎬", "Scena", "Scene"],
+  ["media", "🔊", "Lettore multimediale", "Media player"],
 ]);
 
 function normalizeClimateList(values) {

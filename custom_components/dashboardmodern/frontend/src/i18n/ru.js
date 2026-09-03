@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "открываний",
+  "playing": "играют",
+  "Volume": "Громкость",
+  "Unmute": "Включить звук",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "Плееры, которые вы здесь объявите, получают собственную страницу, а фоном — обложку того, что они играют. Появляются только те кнопки, которые плеер действительно умеет: нет следующего трека — нет и кнопки. Их можно поставить и в Быстрые действия на главной: там плитка берёт обложку фоном, а касание ставит на паузу или продолжает.",
+  "Source": "Источник",
+  "Save player": "Сохранить плеер",
+  "Previous track": "Предыдущий трек",
+  "Play": "Воспроизвести",
+  "Nothing playing": "Ничего не играет",
+  "No media player configured.": "Ни одного плеера не настроено.",
+  "Next track": "Следующий трек",
+  "New player": "Новый плеер",
+  "Mute": "Выключить звук",
+  "Media player": "Медиаплеер",
+  "Add player": "Добавить плеер",
+  "1 playing": "1 играет",
   "over the limit": "сверх предела",
+  "💾 Player saved": "💾 Плеер сохранён",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Выберите плеер: плитка возьмёт обложку того, что играет, а касание поставит на паузу или продолжит.",
   "no page": "без страницы",
   "Your own entities": "Ваши сущности",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

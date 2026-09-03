@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "aperturas",
+  "playing": "en reproducción",
+  "Volume": "Volumen",
+  "Unmute": "Activar el sonido",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "Los reproductores que declares aquí tienen una página propia, con la portada de lo que están sonando como fondo. Los botones que aparecen son los que el reproductor sabe hacer de verdad: si no tiene pista siguiente, ese botón no se dibuja. También puedes ponerlos entre las Acciones rápidas de la Home: ahí el botón toma la portada como fondo, y al tocarlo pausa o reanuda.",
+  "Source": "Fuente",
+  "Save player": "Guardar reproductor",
+  "Previous track": "Pista anterior",
+  "Play": "Reproducir",
+  "Nothing playing": "Nada en reproducción",
+  "No media player configured.": "Ningún reproductor configurado.",
+  "Next track": "Pista siguiente",
+  "New player": "Reproductor nuevo",
+  "Mute": "Silenciar",
+  "Media player": "Reproductor multimedia",
+  "Add player": "Añadir reproductor",
+  "1 playing": "1 en reproducción",
   "over the limit": "pasa del límite",
+  "💾 Player saved": "💾 Reproductor guardado",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Elige el reproductor: el botón toma la portada de lo que está sonando, y al tocarlo pausa o reanuda.",
   "no page": "sin página",
   "Your own entities": "Tus entidades",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

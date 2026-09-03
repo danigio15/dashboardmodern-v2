@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "aberturas",
+  "playing": "em reprodução",
+  "Volume": "Volume",
+  "Unmute": "Repor o som",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "Os leitores que declaras aqui têm uma página só deles, com a capa do que estão a tocar como fundo. Os botões que aparecem são os que o leitor sabe mesmo fazer: sem faixa seguinte, sem esse botão. Também os podes pôr nas Ações rápidas da Home: aí o botão fica com a capa como fundo, e tocar nele pausa ou retoma.",
+  "Source": "Fonte",
+  "Save player": "Guardar leitor",
+  "Previous track": "Faixa anterior",
+  "Play": "Reproduzir",
+  "Nothing playing": "Nada em reprodução",
+  "No media player configured.": "Nenhum leitor configurado.",
+  "Next track": "Faixa seguinte",
+  "New player": "Leitor novo",
+  "Mute": "Silenciar",
+  "Media player": "Leitor multimédia",
+  "Add player": "Adicionar leitor",
+  "1 playing": "1 em reprodução",
   "over the limit": "acima do limite",
+  "💾 Player saved": "💾 Leitor guardado",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Escolhe o leitor: o botão fica com a capa do que está a tocar, e tocar nele pausa ou retoma.",
   "no page": "sem página",
   "Your own entities": "As tuas entidades",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

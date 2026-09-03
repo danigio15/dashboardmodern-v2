@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "개",
+  "playing": "개 재생 중",
+  "Volume": "볼륨",
+  "Unmute": "음소거 해제",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "여기에 등록한 플레이어는 전용 페이지를 갖고, 재생 중인 앨범 아트가 배경이 됩니다. 나타나는 버튼은 그 플레이어가 실제로 할 수 있는 것뿐입니다. 다음 트랙이 없으면 그 버튼도 없습니다. 홈의 빠른 작업에 넣을 수도 있습니다. 거기서는 타일이 앨범 아트를 배경으로 삼고, 누르면 일시정지하거나 다시 재생합니다.",
+  "Source": "입력",
+  "Save player": "플레이어 저장",
+  "Previous track": "이전 트랙",
+  "Play": "재생",
+  "Nothing playing": "재생 중인 항목 없음",
+  "No media player configured.": "설정된 미디어 플레이어가 없습니다.",
+  "Next track": "다음 트랙",
+  "New player": "새 플레이어",
+  "Mute": "음소거",
+  "Media player": "미디어 플레이어",
+  "Add player": "플레이어 추가",
+  "1 playing": "1개 재생 중",
   "over the limit": "한도 초과",
+  "💾 Player saved": "💾 플레이어 저장됨",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 플레이어를 고르세요. 타일에 재생 중인 앨범 아트가 들어가고, 누르면 일시정지하거나 다시 재생합니다.",
   "no page": "페이지 없음",
   "Your own entities": "내 엔티티",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

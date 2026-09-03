@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "か所",
+  "playing": "再生中",
+  "Volume": "音量",
+  "Unmute": "ミュート解除",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "ここで登録したプレーヤーには専用のページができ、再生中のジャケットが背景になります。表示されるボタンは、そのプレーヤーが実際にできるものだけです。次の曲がなければ、そのボタンも出ません。ホームのクイックアクションに置くこともできます。そこではタイルがジャケットを背景にし、押すと一時停止または再開します。",
+  "Source": "入力",
+  "Save player": "プレーヤーを保存",
+  "Previous track": "前の曲",
+  "Play": "再生",
+  "Nothing playing": "再生していません",
+  "No media player configured.": "メディアプレーヤーが設定されていません。",
+  "Next track": "次の曲",
+  "New player": "新しいプレーヤー",
+  "Mute": "ミュート",
+  "Media player": "メディアプレーヤー",
+  "Add player": "プレーヤーを追加",
+  "1 playing": "1つ再生中",
   "over the limit": "上限超え",
+  "💾 Player saved": "💾 プレーヤーを保存しました",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 プレーヤーを選んでください。タイルには再生中のジャケットが入り、押すと一時停止または再開します。",
   "no page": "ページ未選択",
   "Your own entities": "自分のエンティティ",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

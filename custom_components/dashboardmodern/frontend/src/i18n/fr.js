@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "ouvertures",
+  "playing": "en lecture",
+  "Volume": "Volume",
+  "Unmute": "Rétablir le son",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "Les lecteurs que tu déclares ici ont une page à eux, avec la pochette de ce qu'ils jouent en fond. Les boutons affichés sont ceux que le lecteur sait vraiment faire : pas de piste suivante, pas de bouton. Tu peux aussi les mettre parmi les Actions rapides de l'accueil : là, la tuile prend la pochette en fond, et un appui met en pause ou relance.",
+  "Source": "Source",
+  "Save player": "Enregistrer le lecteur",
+  "Previous track": "Piste précédente",
+  "Play": "Lire",
+  "Nothing playing": "Rien en lecture",
+  "No media player configured.": "Aucun lecteur configuré.",
+  "Next track": "Piste suivante",
+  "New player": "Nouveau lecteur",
+  "Mute": "Couper le son",
+  "Media player": "Lecteur multimédia",
+  "Add player": "Ajouter un lecteur",
+  "1 playing": "1 en lecture",
   "over the limit": "au-delà de la limite",
+  "💾 Player saved": "💾 Lecteur enregistré",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Choisis le lecteur : la tuile prend la pochette de ce qui joue, et un appui met en pause ou relance.",
   "no page": "aucune page",
   "Your own entities": "Tes entités",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

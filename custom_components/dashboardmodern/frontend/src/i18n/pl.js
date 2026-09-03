@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "otwarcia",
+  "playing": "grają",
+  "Volume": "Głośność",
+  "Unmute": "Wyłącz wyciszenie",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "Odtwarzacze, które tu zadeklarujesz, dostają własną stronę, a w tle okładkę tego, co grają. Pojawiają się tylko te przyciski, które odtwarzacz naprawdę potrafi: nie ma następnego utworu, nie ma przycisku. Możesz je też wstawić między Szybkie akcje na Home: tam kafelek bierze okładkę jako tło, a dotknięcie wstrzymuje lub wznawia.",
+  "Source": "Źródło",
+  "Save player": "Zapisz odtwarzacz",
+  "Previous track": "Poprzedni utwór",
+  "Play": "Odtwórz",
+  "Nothing playing": "Nic nie gra",
+  "No media player configured.": "Nie skonfigurowano żadnego odtwarzacza.",
+  "Next track": "Następny utwór",
+  "New player": "Nowy odtwarzacz",
+  "Mute": "Wycisz",
+  "Media player": "Odtwarzacz multimedialny",
+  "Add player": "Dodaj odtwarzacz",
+  "1 playing": "1 gra",
   "over the limit": "ponad limit",
+  "💾 Player saved": "💾 Odtwarzacz zapisany",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 Wybierz odtwarzacz: kafelek przejmie okładkę tego, co gra, a dotknięcie wstrzyma lub wznowi.",
   "no page": "bez strony",
   "Your own entities": "Twoje encje",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

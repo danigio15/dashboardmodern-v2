@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "处",
+  "playing": "个在播放",
+  "Volume": "音量",
+  "Unmute": "取消静音",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "在这里登记的播放器会有自己的页面，背景就是正在播放的封面。出现的按钮只有该播放器真正能做的：没有下一曲，就不画那个按钮。你也可以把它们放进首页的快捷操作：那里的磁贴会用封面做底图，点一下就暂停或继续。",
+  "Source": "输入源",
+  "Save player": "保存播放器",
+  "Previous track": "上一曲",
+  "Play": "播放",
+  "Nothing playing": "没有在播放",
+  "No media player configured.": "没有配置任何媒体播放器。",
+  "Next track": "下一曲",
+  "New player": "新播放器",
+  "Mute": "静音",
+  "Media player": "媒体播放器",
+  "Add player": "添加播放器",
+  "1 playing": "1 个在播放",
   "over the limit": "超出上限",
+  "💾 Player saved": "💾 播放器已保存",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 选择播放器：磁贴会用正在播放的封面做底图，点一下就暂停或继续。",
   "no page": "未选页面",
   "Your own entities": "你的实体",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":

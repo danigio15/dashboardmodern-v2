@@ -12,7 +12,27 @@
 
 export default Object.freeze({
   openings: "فتحات",
+  "playing": "قيد التشغيل",
+  "Volume": "مستوى الصوت",
+  "Unmute": "إلغاء الكتم",
+  "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
+    "المشغّلات التي تعلنها هنا تحصل على صفحة خاصة بها، وخلفيتها غلاف ما تشغّله. الأزرار التي تظهر هي ما يقدر عليه المشغّل فعلًا: لا مقطع تالٍ، لا زر له. ويمكنك أيضًا وضعها بين الإجراءات السريعة في الرئيسية: هناك يتخذ الزر الغلاف خلفيةً، ولمسه يوقف مؤقتًا أو يستأنف.",
+  "Source": "المصدر",
+  "Save player": "احفظ المشغّل",
+  "Previous track": "المقطع السابق",
+  "Play": "تشغيل",
+  "Nothing playing": "لا شيء قيد التشغيل",
+  "No media player configured.": "لا يوجد مشغّل وسائط مُعدّ.",
+  "Next track": "المقطع التالي",
+  "New player": "مشغّل جديد",
+  "Mute": "كتم الصوت",
+  "Media player": "مشغّل وسائط",
+  "Add player": "أضف مشغّلًا",
+  "1 playing": "واحد قيد التشغيل",
   "over the limit": "فوق الحد",
+  "💾 Player saved": "💾 تم حفظ المشغّل",
+  "🔊 Pick the player: the tile takes the artwork of whatever is playing, and tapping it pauses or resumes.":
+    "🔊 اختر المشغّل: يأخذ الزر غلاف ما يُشغَّل الآن، ولمسه يوقف مؤقتًا أو يستأنف.",
   "no page": "بلا صفحة",
   "Your own entities": "كياناتك",
   "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.":
