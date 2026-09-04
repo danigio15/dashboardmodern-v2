@@ -346,8 +346,11 @@ function casella(id, etichetta, esempio) {
   holder.className = "dm-tw-slot";
   holder.dataset.dmTwSlot = id;
   holder.dataset.dmTwEtichetta = etichetta;
+  /* La riga porta anche la classe di tutte le righe di campo del guscio: e'
+   * quella che il decoratore delle entita' e chi prova la scheda cercano per
+   * trovare la pastiglia accanto alla casella. */
   holder.innerHTML =
-    '<div class="dm-tw-campo" style="display:flex; gap:8px; margin-bottom:6px;">' +
+    '<div class="dm-tw-campo ed-form-row" style="display:flex; gap:8px; margin-bottom:6px;">' +
     `<input id="${id}" class="ed-input mono" style="flex:1;" autocomplete="off" data-entity-input="true"` +
     ` placeholder="${esempio}">` +
     `<button type="button" class="dm-entity-picker" data-entity-target="${id}"` +
