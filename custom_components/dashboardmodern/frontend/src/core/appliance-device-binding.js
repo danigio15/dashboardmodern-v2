@@ -27,6 +27,17 @@ const clean = (value) => String(value ?? "").trim();
 const lower = (value) => clean(value).toLowerCase();
 const domainOf = (entityId) => lower(entityId).split(".")[0];
 
+/* Un nome ridotto all'osso, per confrontarne due: minuscolo, senza accenti,
+ * senza separatori. Serve a riconoscere l'interruttore che porta il nome del
+ * dispositivo, che e' una cosa che le integrazioni fanno tutte e che nessuna
+ * lista di parole puo' sapere in anticipo. */
+const nomeRidotto = (value) =>
+  lower(value)
+    .normalize("NFKD")
+    .replaceAll(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[^a-z0-9]+/g, " ")
+    .trim();
+
 const ENERGY_UNITS = new Set(["kwh", "wh", "mwh"]);
 const POWER_UNITS = new Set(["w", "kw"]);
 
@@ -188,18 +199,43 @@ const ROLES = Object.freeze([
   },
   {
     key: "control_entity",
-    score(entity, clues) {
+    /* Il tasto acceso/spento, che e' il piu' difficile da indovinare.
+     *
+     * Una lavatrice connessa espone dieci interruttori — pausa, prelavaggio,
+     * acquaplus, un risciacquo in piu', due, il vapore, le ore notturne — e
+     * uno solo accende la macchina. Le liste di parole sotto sono utili ma
+     * parlano una lingua: su una casa italiana, «Pausa» non e' `pause` e
+     * «Prelavaggio» non e' `prewash`, e tutti gli interruttori finivano a
+     * pari punteggio, col tasto scelto in pratica a sorte.
+     *
+     * Il segnale che non dipende dalla lingua e' un altro: l'interruttore
+     * principale porta il nome del dispositivo. hOn chiama «Lavatrice»
+     * l'interruttore della lavatrice, Home Connect chiama «Forno» quello del
+     * forno; le opzioni del programma no, quelle hanno il loro nome. Vale
+     * piu' di ogni parola, quindi pesa piu' di ogni parola. */
+    score(entity, clues, states, contesto) {
       const domain = domainOf(entity.entity_id);
       if (!["switch", "light", "fan", "input_boolean"].includes(domain)) return null;
       let score = domain === "switch" ? 6 : 3;
+      const suo = nomeRidotto(entity.name);
+      const del = nomeRidotto(contesto?.deviceName);
+      if (suo && del && suo === del) score += 9;
       if (
-        /\b(wash|start|run|power|on off|onoff|main|operation|dry|cook|oven|dish|remote start|working)\b/.test(
+        /\b(wash|start|run|power|on off|onoff|main|operation|dry|cook|oven|dish|remote start|working|avvio|avvia|accensione|accendi|marcia|funzionamento)\b/.test(
           clues,
         )
       )
         score += 5;
       if (
         /\b(pause|child lock|lock|eco|steam|delay|extra|silent|anti|dose|dosage|led|light|buzzer|sound|remote control|keep fresh|night|standby|auto)\b/.test(
+          clues,
+        )
+      )
+        score -= 4;
+      /* Le stesse, come le scrive un Home Assistant in italiano. Radici e non
+       * parole intere: «risciacquo» e «risciacqui» sono la stessa opzione. */
+      if (
+        /(pausa|prelavagg|risciacqu|vapore|acquaplus|ammollo|notturn|blocco|bambin|antipiega|stiro|detersiv|ritard|sporco|silenzios|centrifug|temperatur|programm|efficienz|capacit|carico|lingua)/.test(
           clues,
         )
       )
@@ -262,8 +298,9 @@ function candidates(entities = []) {
  * punteggio vince quella con l'id piu' corto, che di solito e' la piu'
  * semplice — «energy_total» prima di «energy_total_water».
  */
-export function proposeRoles(entities = [], states = {}, { type = "" } = {}) {
+export function proposeRoles(entities = [], states = {}, { type = "", deviceName = "" } = {}) {
   const cold = COLD_TYPES.has(lower(type));
+  const contesto = { deviceName };
   const taken = new Set();
   const proposal = {};
   for (const role of ROLES) {
@@ -271,7 +308,7 @@ export function proposeRoles(entities = [], states = {}, { type = "" } = {}) {
     let best = null;
     for (const entity of candidates(entities)) {
       if (taken.has(entity.entity_id)) continue;
-      const score = role.score(entity, entityClues(entity), states);
+      const score = role.score(entity, entityClues(entity), states, contesto);
       if (score == null || score <= 0) continue;
       if (
         !best ||
@@ -429,7 +466,10 @@ export function bindApplianceToDevice(
     if (room) next.room_id = room;
   }
 
-  const proposal = proposeRoles(entities, states, { type: next.visual_key });
+  const proposal = proposeRoles(entities, states, {
+    type: next.visual_key,
+    deviceName: device.name,
+  });
   const filled = [];
   const kept = [];
   for (const [role, entity] of Object.entries(proposal)) {
