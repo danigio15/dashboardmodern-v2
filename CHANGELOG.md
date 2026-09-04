@@ -116,7 +116,7 @@ benzina e i tasti del robot lavapavimenti (#306).
   l'ordine scelto per «Energia», tutte hanno «Apri sezione», e il tasto apre
   la scheda dell'impianto giusto.
 
-- **Seguito di #281: la seconda caldaia non si selezionava.** La fila dei
+- **Seguito di #281, e #314: la seconda caldaia non si selezionava.** La fila dei
   nomi stava sotto la scena, che e' assoluta e copre tutto il palco: i nomi si
   vedevano attraverso, ma il tocco arrivava alla scena. La fila sta sopra.
 
