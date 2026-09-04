@@ -2925,4 +2925,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "«हाइलाइट» सारांश में रहने के बजाय, इस एंटिटी को होम पर अपनी टाइल मिलती है, जो टैप करने पर उस पर खुलती है।",
   "Its own tile on Home": "होम पर अपनी टाइल",
   "What it shows": "क्या दिखाए",
+  "Support the project": "प्रोजेक्ट का समर्थन करें",
+  "Donate with PayPal": "PayPal से दान करें",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern स्वतंत्र और ओपन सोर्स है, खाली समय में बनाया गया: न प्रायोजक, न सदस्यता, न डेटा संग्रह। एक दान से सुधार, समस्याओं के जवाब और असली डिवाइस पर परीक्षण जारी रहते हैं।",
 });

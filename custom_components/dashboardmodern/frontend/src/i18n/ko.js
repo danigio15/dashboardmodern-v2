@@ -2922,4 +2922,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "«주목» 요약에 들어가는 대신 이 엔티티는 홈에 자기 타일을 갖고, 탭하면 그 엔티티가 열립니다.",
   "Its own tile on Home": "홈에 자기 타일",
   "What it shows": "표시할 내용",
+  "Support the project": "프로젝트 후원",
+  "Donate with PayPal": "PayPal로 기부",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern은 여가 시간에 만드는 독립 오픈소스 프로젝트입니다. 스폰서도, 구독도, 데이터 수집도 없습니다. 기부는 수정, 문의 답변, 실제 기기 테스트를 이어가게 합니다.",
 });

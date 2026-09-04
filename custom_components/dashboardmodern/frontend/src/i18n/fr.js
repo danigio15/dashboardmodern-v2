@@ -2964,4 +2964,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "Au lieu de figurer dans le résumé « À la une », cette entité a sa propre tuile sur l'Accueil, qui s'ouvre sur elle au toucher.",
   "Its own tile on Home": "Sa propre tuile sur l'Accueil",
   "What it shows": "Ce qu'elle affiche",
+  "Support the project": "Soutenir le projet",
+  "Donate with PayPal": "Faire un don avec PayPal",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern est indépendant et open source, fait sur le temps libre : pas de sponsors, pas d'abonnements, aucune donnée collectée. Un don fait vivre les correctifs, les réponses aux signalements et les tests sur de vrais appareils.",
 });

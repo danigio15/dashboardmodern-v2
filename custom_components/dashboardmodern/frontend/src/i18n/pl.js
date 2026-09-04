@@ -2946,4 +2946,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "Zamiast tkwić w podsumowaniu «Wyróżnione», ta encja ma własny kafelek na Home, który po dotknięciu otwiera się na niej.",
   "Its own tile on Home": "Własny kafelek na Home",
   "What it shows": "Co pokazuje",
+  "Support the project": "Wesprzyj projekt",
+  "Donate with PayPal": "Wesprzyj przez PayPal",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern jest niezależny i open source, tworzony w wolnym czasie: bez sponsorów, bez subskrypcji, bez zbierania danych. Darowizna utrzymuje poprawki, odpowiedzi na zgłoszenia i testy na prawdziwych urządzeniach.",
 });

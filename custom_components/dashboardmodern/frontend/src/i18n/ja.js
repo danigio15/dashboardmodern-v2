@@ -2938,4 +2938,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "「注目」のまとめに入る代わりに、このエンティティはホームに専用のタイルを持ち、タップするとそれが開きます。",
   "Its own tile on Home": "ホームに専用タイル",
   "What it shows": "表示する内容",
+  "Support the project": "プロジェクトを支援",
+  "Donate with PayPal": "PayPal で寄付",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern は余暇に作られた独立したオープンソースのプロジェクトです。スポンサーも、購読も、データ収集もありません。寄付は修正、報告への返答、実機でのテストを続ける力になります。",
 });

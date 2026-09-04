@@ -2911,4 +2911,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "بدلًا من الظهور في ملخص «المميزة»، يحصل هذا الكيان على بطاقة خاصة به في الرئيسية تُفتح عليه عند اللمس.",
   "Its own tile on Home": "بطاقة خاصة بها في الرئيسية",
   "What it shows": "ما تعرضه",
+  "Support the project": "ادعم المشروع",
+  "Donate with PayPal": "تبرّع عبر PayPal",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern مشروع مستقل ومفتوح المصدر، يُصنع في وقت الفراغ: لا رعاة، لا اشتراكات، لا جمع للبيانات. التبرع يُبقي التصحيحات والردود على البلاغات والاختبارات على الأجهزة الحقيقية مستمرة.",
 });

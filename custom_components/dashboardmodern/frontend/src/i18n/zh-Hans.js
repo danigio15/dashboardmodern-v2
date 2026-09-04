@@ -2883,4 +2883,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "这个实体不再挤在“重点关注”摘要里，而是在首页拥有自己的磁贴，点按即打开它。",
   "Its own tile on Home": "首页上独立磁贴",
   "What it shows": "显示内容",
+  "Support the project": "支持这个项目",
+  "Donate with PayPal": "通过 PayPal 捐赠",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern 是独立的开源项目，在业余时间开发：没有赞助商，没有订阅，不收集数据。捐赠让修复、问题回复和真机测试得以继续。",
 });

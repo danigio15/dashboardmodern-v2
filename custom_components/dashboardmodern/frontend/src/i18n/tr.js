@@ -2935,4 +2935,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "«Öne çıkanlar» özetinde durmak yerine bu varlık Ana Sayfada kendi karosunu alır; dokununca onun üzerinde açılır.",
   "Its own tile on Home": "Ana Sayfada kendi karosu",
   "What it shows": "Ne gösterir",
+  "Support the project": "Projeyi destekle",
+  "Donate with PayPal": "PayPal ile bağış yap",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern bağımsız ve açık kaynaklıdır, boş zamanlarda yapılır: sponsor yok, abonelik yok, veri toplama yok. Bir bağış düzeltmeleri, bildirimlere yanıtları ve gerçek cihazlardaki testleri sürdürür.",
 });

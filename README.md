@@ -1282,6 +1282,8 @@ DashboardModern è un progetto **indipendente e open source**, sviluppato e mant
 
 **Una donazione è gradita e fa la differenza concreta**: più il progetto è sostenuto, più tempo posso dedicare a rispondere alle Issue, ad assistere chi ha problemi di configurazione, a testare su dispositivi reali e a pubblicare correzioni in fretta.
 
+Il tasto è anche **dentro la plancia**: nella configurazione, in fondo alla colonna delle schede e in «Impostazioni».
+
 Grazie a chi ha già sostenuto DashboardModern: è **davvero apprezzato**! A chi usa questa integrazione: ci metto parecchia energia e parecchia passione. Se puoi permettertelo, dai anche tu una piccola spinta e diventa sostenitore.
 
 <p align="center">

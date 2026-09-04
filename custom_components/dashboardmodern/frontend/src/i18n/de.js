@@ -2959,4 +2959,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "Statt in der Zusammenfassung „Im Blick“ zu stehen, bekommt diese Entität ihre eigene Kachel auf Home, die sich beim Antippen auf sie öffnet.",
   "Its own tile on Home": "Eigene Kachel auf Home",
   "What it shows": "Was sie zeigt",
+  "Support the project": "Projekt unterstützen",
+  "Donate with PayPal": "Mit PayPal spenden",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern ist unabhängig und Open Source, gemacht in der Freizeit: keine Sponsoren, keine Abos, keine Datensammlung. Eine Spende hält Korrekturen, Antworten auf Meldungen und Tests auf echten Geräten am Laufen.",
 });

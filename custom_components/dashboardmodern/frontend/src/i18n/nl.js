@@ -2949,4 +2949,7 @@ export default Object.freeze({
   "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "In plaats van in de samenvatting «Uitgelicht» te staan, krijgt deze entiteit een eigen tegel op Home, die bij aanraken op haar opent.",
   "Its own tile on Home": "Eigen tegel op Home",
   "What it shows": "Wat hij toont",
+  "Support the project": "Steun het project",
+  "Donate with PayPal": "Doneren met PayPal",
+  "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern is onafhankelijk en open source, gemaakt in de vrije tijd: geen sponsors, geen abonnementen, geen gegevens verzameld. Een donatie houdt de fixes, de antwoorden op meldingen en de tests op echte apparaten gaande.",
 });

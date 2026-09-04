@@ -67,6 +67,11 @@ lavorare.
   vetture a benzina, «Auto elettrica» nel titolo e nella scheda era una
   bugia per meta' del garage.
 
+- **«Sostieni il progetto» nella configurazione.** In fondo alla colonna
+  delle schede una pastiglia PayPal, e in «Impostazioni» una card con due
+  righe di perche': il progetto e' indipendente e vive di tempo libero. Il
+  collegamento e' uno, lo stesso del README, e si apre in una scheda nuova.
+
 - **I widget della Home si personalizzano (#303).**
 
       «Il widget temperatura come il clima visualizzano la temperatura

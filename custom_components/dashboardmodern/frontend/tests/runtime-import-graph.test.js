@@ -714,6 +714,8 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 241 con la valvola TRV (`core/valvola-trv.js`, `sections/trv-editor-section.js`,
   // #300): quanto e' aperta e quanto chiusa, dalla sua entita' o dagli
   // attributi dell'unita', con la casella nella scheda del clima.
+  // 242 con «Sostieni il progetto» (`sections/sostieni-il-progetto-section.js`):
+  // la pastiglia PayPal nella colonna delle schede e la card in Impostazioni.
   assert.ok(
     relative.length <= 245,
     `production graph unexpectedly grew to ${relative.length} modules`,
