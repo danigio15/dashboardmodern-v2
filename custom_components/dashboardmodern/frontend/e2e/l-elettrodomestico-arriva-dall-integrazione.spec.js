@@ -38,7 +38,7 @@ const CATALOGO = {
       domain: "hon",
       name: "hOn",
       custom: true,
-      devices: 1,
+      devices: 2,
       entries: [{ entry_id: "hon-1", title: "Hoover", state: "loaded" }],
     },
   ],
@@ -53,6 +53,18 @@ const CATALOGO = {
       area_id: "",
       area: "",
       entities: 2,
+      disabled: false,
+    },
+    {
+      id: "td-1",
+      name: "Asciugatrice",
+      manufacturer: "Hoover",
+      model: "H-DRY 500",
+      integration: "hon",
+      integrations: ["hon"],
+      area_id: "a1",
+      area: "Lavanderia",
+      entities: 3,
       disabled: false,
     },
     {
@@ -89,6 +101,19 @@ const CATALOGO = {
     ent("switch.lavatrice_pause", "Pause", { translation_key: "pause" }),
     ent("select.lavatrice_program", "Program", { category: "config" }),
     ent("sensor.lavatrice_rssi", "RSSI", { category: "diagnostic", unit: "dBm" }),
+    /* L'asciugatrice non ha nessuna presa smart sotto: niente watt, e la sola
+     * cosa che parla e' la parola della fase. */
+    ent("sensor.asciugatrice_machine_status", "Machine status", {
+      device_id: "td-1",
+      translation_key: "washing_modes",
+    }),
+    ent("sensor.asciugatrice_remaining_time", "Remaining time", {
+      device_id: "td-1",
+      translation_key: "remaining_time",
+      unit: "min",
+      device_class: "duration",
+    }),
+    ent("switch.asciugatrice_dry", "Dry", { device_id: "td-1", translation_key: "dry" }),
     ent("switch.presa_frigo", "", { device_id: "plug-1", platform: "shelly" }),
     ent("sensor.presa_frigo_power", "Power", {
       device_id: "plug-1",
@@ -155,6 +180,21 @@ const STATI = [
     entity_id: "sensor.lavatrice_rssi",
     state: "-61",
     attributes: { friendly_name: "Lavatrice RSSI", unit_of_measurement: "dBm" },
+  },
+  {
+    entity_id: "sensor.asciugatrice_machine_status",
+    state: "drying",
+    attributes: { friendly_name: "Asciugatrice Machine status" },
+  },
+  {
+    entity_id: "sensor.asciugatrice_remaining_time",
+    state: "18",
+    attributes: { friendly_name: "Asciugatrice Remaining time", unit_of_measurement: "min" },
+  },
+  {
+    entity_id: "switch.asciugatrice_dry",
+    state: "on",
+    attributes: { friendly_name: "Asciugatrice Dry" },
   },
   { entity_id: "switch.presa_frigo", state: "on", attributes: { friendly_name: "Presa frigo" } },
   {
@@ -383,5 +423,64 @@ for (const variant of PRIMARY) {
     await expect(
       diagnostica.locator('[data-dm-apde-entity="sensor.lavatrice_rssi"]'),
     ).toContainText("-61 dBm");
+  });
+}
+
+for (const variant of PRIMARY) {
+  test(`${variant}: senza sensore di potenza, la fase del programma dice IN FUNZIONE`, async ({
+    page,
+  }, testInfo) => {
+    /* Dal campo: «prevedi che se non viene messo il sensore potenza il cambio
+     * stato acceso e in funzione lo devi capire dagli stati dei programmi».
+     * L'asciugatrice di questo catalogo non ha nessuna presa smart sotto: se
+     * la card leggesse solo i watt direbbe SPENTO per tutto il ciclo. */
+    test.setTimeout(150_000);
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "L'editor intero è più lento su WebKit");
+    await boot(page, variant, testInfo);
+    await page.evaluate(() => {
+      window.apriConfigEntita();
+      window.editorSwitch("appliances");
+    });
+    await page.locator("#ed-body [data-dm-integ-add]").click();
+    const menu = page.locator("#dm-integ-menu");
+    await menu.locator('.dm-integ-item[data-domain="hon"]').click();
+    await menu.locator('.dm-integ-device[data-device-id="td-1"]').click();
+    await menu.locator("[data-preview] [data-confirm]").click();
+    await expect(page.locator("#dm-appliance-editor-modal")).toBeVisible();
+
+    /* Nessuna casella della potenza: non c'era niente da metterci. Lo stato e
+     * il tempo rimanente si', e sono quelli che devono bastare. */
+    await expect(page.locator('#dm-appliance-editor-modal input[name="power_entity"]')).toHaveValue(
+      "",
+    );
+    await expect(page.locator('#dm-appliance-editor-modal input[name="state_entity"]')).toHaveValue(
+      "sensor.asciugatrice_machine_status",
+    );
+    await page.locator("#dm-appliance-editor-modal [data-close]").click();
+
+    await page.evaluate(() => {
+      document.getElementById("editor-modal")?.remove();
+      document.querySelector('.tab[data-tab="appliances-main"]')?.click();
+    });
+    const card = page
+      .locator(".dm-ap-card[data-appliance-id]", { hasText: "Asciugatrice" })
+      .first();
+    await expect(card).toBeVisible({ timeout: 15000 });
+    await expect(card).toContainText(/IN FUNZIONE|RUNNING/);
+
+    /* E quando il ciclo finisce, la stessa parola la spegne. */
+    await page.evaluate(() => {
+      const finita = {
+        entity_id: "sensor.asciugatrice_machine_status",
+        state: "end",
+        attributes: { friendly_name: "Asciugatrice Machine status" },
+      };
+      _RAW_STATES[finita.entity_id] = structuredClone(finita);
+      STATES[finita.entity_id] = structuredClone(finita);
+      window.renderApplianceSection?.(true);
+      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed"));
+    });
+    await expect(card).toContainText(/SPENTO|OFF/, { timeout: 15000 });
   });
 }
