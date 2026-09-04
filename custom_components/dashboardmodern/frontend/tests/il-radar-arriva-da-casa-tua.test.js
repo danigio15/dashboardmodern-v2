@@ -30,7 +30,13 @@ test("si sceglie un'entità, e deve essere una che porta un'immagine", () => {
   assert.equal(radarScelto({ entity: "camera.radar_dpc" }).modo, "entita");
   assert.equal(radarScelto({ entity: "image.radar" }).modo, "entita");
   /* Un sensore non ha un fotogramma da dare: non e' un radar. */
-  assert.equal(radarScelto({ entity: "sensor.pioggia" }), null);
+  /* Un'entita' che non e' un'immagine non fa un radar da sola: ma il radar e'
+   * stato toccato, e allora vale il servizio di serie. Chi non l'ha mai
+   * toccato non se lo trova nelle previsioni. */
+  assert.equal(radarScelto({ entity: "sensor.pioggia" })?.modo, "mappa");
+  assert.equal(radarScelto({}), null);
+  assert.equal(radarScelto({ zona: "", raggio: "" }), null);
+  assert.equal(radarScelto({ servizio: "nessuno", zona: "zone.casa" }), null);
 });
 
 test("l'entità vince sul servizio di tessere: non esce di casa", () => {
@@ -49,11 +55,16 @@ test("il raggio di serie è quello della segnalazione, e non si va oltre il ragi
   assert.equal(radarScelto({ entity: "camera.r", raggio: 60 }).raggio, 60);
 });
 
-test("senza scelta, o con una scritta storta, non c'è radar", () => {
-  for (const stored of [{}, null, undefined, { entity: "" }, { entity: "nondominio" }])
+test("senza scelta non c'è radar; una scritta storta ricade sul servizio di serie", () => {
+  for (const stored of [{}, null, undefined, { entity: "" }, { zona: "", raggio: "" }])
     assert.equal(radarScelto(stored), null);
-  /* Un indirizzo senza segnaposto chiederebbe sempre lo stesso quadratino. */
-  assert.equal(radarScelto({ modello: "https://esempio/radar.png" }), null);
+  /* Chi ha toccato il radar — anche scrivendoci una cosa storta — ha il
+   * servizio di serie: un'entita' che non e' un'immagine e un indirizzo senza
+   * segnaposto non fanno un radar da soli, e RainViewer entra al loro posto. */
+  assert.equal(radarScelto({ entity: "nondominio" })?.modo, "mappa");
+  assert.equal(radarScelto({ modello: "https://esempio/radar.png" })?.servizio, "rainviewer");
+  /* «Nessuno» e' una scelta, e vale: niente servizio, niente radar. */
+  assert.equal(radarScelto({ servizio: "nessuno", zona: "zone.casa" }), null);
 });
 
 test("vivo vuol dire che Home Assistant sta dando un fotogramma", () => {
@@ -68,7 +79,7 @@ test("vivo vuol dire che Home Assistant sta dando un fotogramma", () => {
   );
   /* Un'entita' che non porta immagini non e' viva nemmeno se ha una foto
    * addosso: non e' un radar, e `radarScelto` non la sceglie proprio. */
-  assert.equal(radarScelto({ entity: "person.tizio" }), null);
+  assert.notEqual(radarScelto({ entity: "person.tizio" })?.modo, "entita");
   assert.equal(radarVivo(null, {}), false);
 });
 

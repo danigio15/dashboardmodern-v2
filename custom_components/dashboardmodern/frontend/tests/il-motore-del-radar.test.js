@@ -220,8 +220,11 @@ test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async 
    * ancora; un indirizzo senza segnaposto non e' un modello. */
   assert.equal(modelloDelFondo({ fondo: "https://mio/{z}/{x}/{y}.png" }), "https://mio/{z}/{x}/{y}.png");
   assert.equal(modelloDelFondo({ fondo: "modello", fondoModello: "https://fisso.png" }), "");
-  assert.equal(modelloDelFondo({ fondo: "" }), "");
-  assert.equal(modelloDelFondo({}), "");
+  /* Senza scelta la mappa sotto e' CARTO; «nessuna» e' una scelta. */
+  assert.equal(modelloDelFondo({ fondo: "" }), FONDI_MAPPA.carto.modello);
+  assert.equal(modelloDelFondo({}), FONDI_MAPPA.carto.modello);
+  assert.equal(modelloDelFondo({ fondo: "nessuna" }), "");
+  assert.equal(modelloDelFondo({ fondo: "boh" }), "");
 });
 
 test("casa arrivata da get_config porta il suo nome", () => {

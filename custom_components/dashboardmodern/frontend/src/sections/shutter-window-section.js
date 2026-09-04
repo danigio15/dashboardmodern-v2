@@ -613,7 +613,7 @@ function installStyles() {
        e poi si scosta la grata. Su una card che ha la grata, l'anta che si
        chiude aspetta che la grata abbia finito, e la grata che si apre aspetta
        che le ante siano rientrate. Senza grata non cambia niente: il ritardo
-       sta solo sotto `[data-dm-grata]`. */
+       sta solo sotto «data-dm-grata». */
     html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata][data-dm-infisso-stato="chiuso"] .dm-tw-anta{
       transition-delay:.9s!important}
     html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata="aperta"] .dm-tw-grata-meta{

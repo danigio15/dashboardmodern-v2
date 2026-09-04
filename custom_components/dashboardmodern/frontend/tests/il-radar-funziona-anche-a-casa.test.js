@@ -26,7 +26,11 @@ const sorgente = readFileSync(
 );
 
 test("da dove arrivano i quadratini: la tendina, un indirizzo proprio, o niente", () => {
-  assert.equal(servizioScelto({}), "");
+  /* Di serie la pioggia arriva da RainViewer: «se metto casa non si vede nulla»
+   * finisce qui. Chi non vuole nessun servizio lo dice con «nessuno». */
+  assert.equal(servizioScelto({}), "rainviewer");
+  assert.equal(servizioScelto({ servizio: "nessuno" }), "");
+  assert.equal(servizioScelto({ servizio: "none" }), "");
   assert.equal(servizioScelto({ servizio: "rainviewer" }), "rainviewer");
   assert.equal(servizioScelto({ servizio: "modello", modello: "https://e/{z}/{x}/{y}.png" }), "modello");
   /* «Un indirizzo mio» senza indirizzo non e' una scelta. */

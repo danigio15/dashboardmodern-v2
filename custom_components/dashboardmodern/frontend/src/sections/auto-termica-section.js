@@ -27,6 +27,7 @@
 import { CASELLE_TERMICHE, RIFERIMENTI_TERMICI, letturaTermica } from "../core/auto-termica.js";
 import { TIPI_MOTORE, tipoMotore } from "../core/vehicle-model.js";
 import { activeVehicle, bozzaAperta, editedVehicle } from "./ev-section.js";
+import { registraTitoloDiPagina, renderPageMastheads } from "./page-masthead-section.js";
 import {
   allStates,
   clean,
@@ -48,6 +49,22 @@ const ARC_RADIUS = 50;
 const ARC_LENGTH = 2 * Math.PI * ARC_RADIUS;
 
 /* ── le parole ────────────────────────────────────────────────────────── */
+
+/* L'intestazione della pagina dice di che auto parla: «Carica · Autonomia ·
+ * Wallbox» sopra un serbatoio sarebbe una bugia. */
+export function titoloDellaPagina(tipo = tipoMotore(activeVehicle()?.tipo)) {
+  if (tipo === "termica")
+    return {
+      title: t("Auto", "Car"),
+      subtitle: t("Carburante · Autonomia · Portiere", "Fuel · Range · Doors"),
+    };
+  if (tipo === "ibrida")
+    return {
+      title: t("Auto ibrida", "Hybrid car"),
+      subtitle: t("Carica · Carburante · Autonomia", "Charge · Fuel · Range"),
+    };
+  return null;
+}
 
 export function nomeDelMotore(tipo) {
   if (tipo === "termica") return t("Termica (benzina, diesel, GPL)", "Combustion (petrol, diesel, LPG)");
@@ -112,6 +129,9 @@ export function mettiLeCaselle() {
     (voce) => Array.isArray(voce?.slots) && voce.slots.some((slot) => slot?.ref === "dm.ev_batteria_auto"),
   );
   if (!sezione) return false;
+  /* La scheda si chiama «Auto», non «Auto elettrica»: da qui passano anche
+   * le vetture a benzina, e il titolo della pagina dice la stessa cosa. */
+  if (/auto elettrica|electric/i.test(String(sezione.label || ""))) sezione.label = `🚗 ${t("Auto", "Car")}`;
   let aggiunte = 0;
   for (const voce of CASELLE_TERMICHE) {
     if (sezione.slots.some((slot) => slot?.ref === voce.ref)) continue;
@@ -261,7 +281,12 @@ function dipingi() {
   const auto = activeVehicle();
   const tipo = tipoMotore(auto?.tipo);
   const motore = tipo || "elettrica";
-  if (page.dataset.dmMotore !== motore) page.dataset.dmMotore = motore;
+  if (page.dataset.dmMotore !== motore) {
+    page.dataset.dmMotore = motore;
+    try {
+      renderPageMastheads();
+    } catch (_error) {}
+  }
   let blocco = page.querySelector(":scope .dm-termica");
   if (!tipo) {
     if (blocco) blocco.remove();
@@ -356,7 +381,9 @@ function installStyles() {
     #page-ev .dm-termica-pillola[data-tono="spento"]{color:var(--text-dim,#64748b)}
 
     #page-ev .dm-termica-quadro{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
-    #page-ev .dm-termica-serbatoio{position:relative;width:132px;height:132px;display:grid;place-items:center}
+    #page-ev .dm-termica-serbatoio{
+      position:relative;width:140px;height:140px;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:2px;text-align:center}
     #page-ev .dm-termica-serbatoio svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
     #page-ev .dm-termica-arc-track{stroke:var(--surface-3,#e2e8f0)}
     #page-ev .dm-termica-arc{stroke:#f59e0b;transition:stroke-dasharray .8s cubic-bezier(.16,1,.3,1)}
@@ -366,7 +393,7 @@ function installStyles() {
       color:var(--text,#0f172a);font-variant-numeric:tabular-nums}
     #page-ev .dm-termica-serbatoio b i{font-style:normal;font-size:.5em;margin-left:1px;opacity:.75}
     #page-ev .dm-termica-serbatoio span{
-      position:absolute;bottom:22px;font-size:10px;font-weight:900;letter-spacing:.08em;
+      position:relative;font-size:9.5px;font-weight:900;letter-spacing:.08em;
       text-transform:uppercase;color:var(--text-dim,#64748b)}
     #page-ev .dm-termica-serbatoio[data-riserva="true"] span{color:#dc2626}
     #page-ev .dm-termica-righe{display:grid;gap:6px;min-width:0}
@@ -399,6 +426,7 @@ export function installAutoTermica() {
   if (!doc || state.installed) return false;
   state.installed = true;
   installStyles();
+  registraTitoloDiPagina("page-ev", () => titoloDellaPagina());
   mettiLeCaselle();
   doc.addEventListener("click", onClick);
   wrapFunction("apriConfigEntita", "__dmAutoTermica", () => {

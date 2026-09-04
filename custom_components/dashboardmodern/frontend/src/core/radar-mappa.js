@@ -331,12 +331,22 @@ export function modelloDelServizio(servizio, fotogramma = null) {
  * `fondo` stesso, com'era prima della tendina, continua a vederlo: un
  * indirizzo con i segnaposto e' un modello, comunque sia arrivato.
  */
+/* Quello che c'e' di serie: la pioggia da RainViewer, la mappa sotto da CARTO.
+ * «Se metto casa non si vede nulla» era una cornice vuota perche' nessun
+ * servizio era scelto; adesso il radar parte con questi, e chi non vuole che
+ * la plancia bussi a nessuno sceglie «Nessuno» apposta. */
+export const SERVIZIO_DI_SERIE = "rainviewer";
+export const FONDO_DI_SERIE = "carto";
+export const NIENTE = Object.freeze(["nessuno", "nessuna", "none"]);
+
 export function modelloDelFondo(config = {}) {
   const fondo = stringa(config?.fondo);
+  if (NIENTE.includes(fondo.toLowerCase())) return "";
   const preset = FONDI_MAPPA[fondo];
   if (preset) return preset.modello;
   const mio = stringa(config?.fondoModello);
   if (fondo === "modello") return /\{[zxy]\}/.test(mio) ? mio : "";
   if (/\{[zxy]\}/.test(fondo)) return fondo;
+  if (!fondo) return FONDI_MAPPA[FONDO_DI_SERIE].modello;
   return "";
 }

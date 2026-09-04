@@ -88,8 +88,8 @@ const PAGES = Object.freeze([
   {
     id: "page-ev",
     tint: ["34,197,94", "14,165,233"],
-    it: ["Auto elettrica", "Carica · Autonomia · Wallbox"],
-    en: ["Electric vehicle", "Charge · Range · Wallbox"],
+    it: ["Auto", "Carica · Autonomia · Wallbox"],
+    en: ["Car", "Charge · Range · Wallbox"],
   },
   {
     id: "page-clima",

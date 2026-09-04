@@ -394,11 +394,33 @@ function heroMarkup() {
   </section>`;
 }
 
-function groupMarkup(view, count) {
-  const suffix = count === 1 ? t("tapparella", "shutter") : t("tapparelle", "shutters");
+/* Il conto di un gruppo dice cosa c'e' davvero (#299): una finestra col solo
+ * sensore di contatto non e' una tapparella, e «1 tapparella» sopra una
+ * persiana a mano era una bugia. Le tapparelle e le finestre si contano a
+ * parte, e ognuna compare solo se c'e'. */
+export function contoDelGruppo(views) {
+  const elenco = Array.isArray(views) ? views : [];
+  return {
+    tapparelle: elenco.filter((view) => !view?.soloInfisso).length,
+    finestre: elenco.filter((view) => Boolean(view?.soloInfisso)).length,
+  };
+}
+
+export function paroleDelConto(conto) {
+  const dato =
+    typeof conto === "number" ? { tapparelle: conto, finestre: 0 } : conto || { tapparelle: 0, finestre: 0 };
+  const parti = [];
+  const n = dato.tapparelle || 0;
+  const f = dato.finestre || 0;
+  if (n) parti.push(n === 1 ? t("1 tapparella", "1 shutter") : t(`${n} tapparelle`, `${n} shutters`));
+  if (f) parti.push(f === 1 ? t("1 finestra", "1 window") : t(`${f} finestre`, `${f} windows`));
+  return parti.join(" · ");
+}
+
+function groupMarkup(view, conto) {
   return `<div class="dm-tapp-group" role="heading" aria-level="3">
     <span class="dm-tapp-group-label">${esc(groupLabel(view))}</span>
-    <span class="dm-tapp-group-count">${count} ${esc(suffix)}</span>
+    <span class="dm-tapp-group-count">${esc(paroleDelConto(conto))}</span>
   </div>`;
 }
 
@@ -547,7 +569,7 @@ function gridMarkup(views) {
   views.forEach((view) => {
     if (grouped && groupKey(view) !== lastKey) {
       lastKey = groupKey(view);
-      markup += groupMarkup(view, views.filter((other) => groupKey(other) === lastKey).length);
+      markup += groupMarkup(view, contoDelGruppo(views.filter((other) => groupKey(other) === lastKey)));
     }
     markup += cardMarkup(view);
   });

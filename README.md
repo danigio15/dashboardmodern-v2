@@ -802,7 +802,7 @@ Quello che la Home legge per conto suo, prima delle tessere:
 | **Allarme** (`alarm_control_panel.*`) | la centrale che la Home mostra e comanda |
 | **Interruttore antifurto** (`switch.*`) | per chi l'antifurto ce l'ha come interruttore e non come centrale |
 | **Script apertura cancello** | il cancello raggiungibile dalla Home |
-| **Radar meteo: luogo e servizio** | il posto della mappa — «Casa», una zona o le coordinate — e da chi arrivano le tessere della pioggia: RainViewer con OpenStreetMap o Carto come fondo, oppure un indirizzo tuo con `{z}/{x}/{y}`. Finché non scegli un servizio la plancia non bussa a nessuno |
+| **Radar meteo: luogo e servizio** | il posto della mappa — «Casa», una zona o le coordinate — e da chi arrivano le tessere della pioggia: di serie **RainViewer** con **CARTO** come fondo, oppure OpenStreetMap o un indirizzo tuo con `{z}/{x}/{y}`. Chi non vuole che la plancia bussi a nessun servizio sceglie «Nessuno» |
 
 ### ⚡ Energia
 

@@ -39,10 +39,10 @@
  * radar sapeva DOVE guardare e non COSA, e per chi non sa scrivere un
  * indirizzo di tessere era una cornice vuota. Adesso i servizi che si
  * conoscono stanno in `core/radar-mappa.js` come dati — RainViewer per la
- * pioggia, OpenStreetMap o CARTO per la mappa sotto — e si scelgono. Si
- * SCELGONO: finche' la tendina dice «nessuno» la plancia non bussa a nessun
- * servizio, e accanto alla tendina sta scritto cosa quel servizio viene a
- * sapere (la zona che si guarda). L'indirizzo proprio resta, per chi ne ha
+ * pioggia, OpenStreetMap o CARTO per la mappa sotto — e di serie sono gia'
+ * scelti: basta dire dove. Chi non vuole che la plancia bussi a nessun
+ * servizio sceglie «Nessuno», e accanto alla tendina sta scritto cosa quel
+ * servizio viene a sapere (la zona che si guarda). L'indirizzo proprio resta, per chi ne ha
  * un altro, e resta anche il pulsante che scarica un quadratino e dice se e'
  * arrivato: chi sceglie sa in un secondo se funziona, invece di scoprirlo la
  * prima volta che piove.
@@ -53,7 +53,10 @@
  */
 import {
   FONDI_MAPPA,
+  FONDO_DI_SERIE,
+  NIENTE,
   SERVIZI_RADAR,
+  SERVIZIO_DI_SERIE,
   finestraDiTessere,
   fotogrammaRainViewer,
   luogoDelRadar,
@@ -132,10 +135,19 @@ function salva(prossima) {
  * `servizio` salvato: l'indirizzo con i segnaposto basta a dire «il mio». */
 export function servizioScelto(grezzo = {}) {
   const servizio = clean(grezzo?.servizio);
+  if (NIENTE.includes(servizio.toLowerCase())) return "";
   if (SERVIZI_RADAR[servizio]) return servizio;
   const mio = /\{[zxy]\}/.test(clean(grezzo?.modello));
   if (servizio === "modello") return mio ? "modello" : "";
-  return !servizio && mio ? "modello" : "";
+  if (!servizio) return mio ? "modello" : SERVIZIO_DI_SERIE;
+  return "";
+}
+
+/* Se qualcuno ha mai toccato il radar. Una casa che non l'ha configurato non
+ * se lo trova nelle previsioni: il servizio di serie vale per chi ha aperto la
+ * scheda e scelto un posto, non per tutti. */
+function radarToccato(grezzo) {
+  return Object.values(grezzo || {}).some((valore) => clean(valore) !== "");
 }
 
 /** Cosa e' stato scelto, ripulito. */
@@ -160,7 +172,7 @@ export function radarScelto(stored = configurazione()) {
    * gia' il radar dentro Home Assistant. */
   if (entity.includes(".") && CON_IMMAGINE.has(entity.split(".")[0]))
     return { ...scelto, modo: "entita" };
-  if (servizio) return { ...scelto, modo: "mappa" };
+  if (servizio && radarToccato(grezzo)) return { ...scelto, modo: "mappa" };
   return null;
 }
 
@@ -541,7 +553,7 @@ function zoneMarkup(scelta) {
  * tradurre. */
 function serviziMarkup(scelta) {
   const voci = [
-    `<option value=""${scelta ? "" : " selected"}>${esc(t("— Nessuno —", "— None —"))}</option>`,
+    `<option value="nessuno"${scelta ? "" : " selected"}>${esc(t("— Nessuno —", "— None —"))}</option>`,
     ...Object.entries(SERVIZI_RADAR).map(
       ([chiave, servizio]) =>
         `<option value="${esc(chiave)}"${chiave === scelta ? " selected" : ""}>${esc(servizio.nome)}</option>`,
@@ -557,9 +569,10 @@ function serviziMarkup(scelta) {
  * dentro `fondo` prima della tendina e' «un indirizzo mio». */
 function fondoScelto(config) {
   const fondo = clean(config.fondo);
+  if (NIENTE.includes(fondo.toLowerCase())) return "";
   if (FONDI_MAPPA[fondo]) return fondo;
   if (fondo === "modello" || /\{[zxy]\}/.test(fondo) || clean(config.fondoModello)) return "modello";
-  return "";
+  return FONDO_DI_SERIE;
 }
 
 function fondoMio(config) {
@@ -569,7 +582,7 @@ function fondoMio(config) {
 
 function fondiMarkup(scelta) {
   const voci = [
-    `<option value=""${scelta ? "" : " selected"}>${esc(t("Nessuna", "None"))}</option>`,
+    `<option value="nessuna"${scelta ? "" : " selected"}>${esc(t("Nessuna", "None"))}</option>`,
     ...Object.entries(FONDI_MAPPA).map(
       ([chiave, fondo]) =>
         `<option value="${esc(chiave)}"${chiave === scelta ? " selected" : ""}>${esc(fondo.nome)}</option>`,
@@ -630,14 +643,14 @@ function casellaMarkup(config) {
       type="button" class="dm-radar-prova" data-dm-radar-prova>${esc(t("Prova", "Test"))}</button></span>
     <small class="dm-radar-esito" data-dm-radar-esito>${esc(
       t(
-        "Scegli un servizio dalla tendina, oppure «Un indirizzo mio» e scrivi quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
-        "Pick a service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
+        "Di serie la pioggia arriva da RainViewer e la mappa da CARTO: basta scegliere dove. Puoi cambiare servizio dalla tendina, oppure «Un indirizzo mio» e scrivere quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
+        "Out of the box the rain comes from RainViewer and the map from CARTO: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
       ),
     )}</small>
     <small>${esc(
       t(
-        "Scegliendo un servizio, il browser gli chiede i quadratini della zona che guardi: quel servizio sa quindi che zona è. Finché non scegli niente, la plancia non bussa a nessuno.",
-        "When you pick a service, the browser asks it for the tiles of the area you are looking at: that service then knows which area it is. Until you pick one, the dashboard knocks on nobody's door.",
+        "Il browser chiede al servizio i quadratini della zona che guardi: quel servizio sa quindi che zona è. Scegli «Nessuno» e la plancia non bussa a nessuno.",
+        "The browser asks the service for the tiles of the area you are looking at: that service then knows which area it is. Pick «None» and the dashboard knocks on nobody's door.",
       ),
     )}</small>
     <div class="dm-radar-dove">

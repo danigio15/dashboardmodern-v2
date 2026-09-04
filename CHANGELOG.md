@@ -56,11 +56,16 @@ lavorare.
   altre. La tessera in Home legge il carburante quando non c'e' una batteria,
   e lo dice con la pompa al posto della spina.
 
-- **Il radar ha una tendina dei servizi.** Nella scheda Home si sceglie da
-  chi arrivano le tessere della pioggia — RainViewer, con OpenStreetMap o
-  Carto come fondo — oppure «Un indirizzo mio» con {z}/{x}/{y}; «Prova» ne
-  scarica una e dice se arriva. Finche' non se ne sceglie uno la plancia non
-  bussa a nessuno, e la nota accanto lo dice.
+- **Il radar ha un servizio di serie.** La pioggia arriva da RainViewer e la
+  mappa sotto da CARTO senza dover scegliere niente: basta dire dove. Nella
+  scheda Home si puo' cambiare — OpenStreetMap, oppure «Un indirizzo mio» con
+  {z}/{x}/{y}; «Prova» ne scarica una e dice se arriva — e chi non vuole che
+  la plancia bussi a nessun servizio sceglie «Nessuno». Una casa che il radar
+  non l'ha mai toccato non se lo trova nelle previsioni.
+
+- **La pagina dell'auto si chiama «Auto».** Da quando ci passano anche le
+  vetture a benzina, «Auto elettrica» nel titolo e nella scheda era una
+  bugia per meta' del garage.
 
 - **Le tapparelle hanno una soglia di chiusura (#298).** Nella scheda
   Finestre un numero: ferma a quella percentuale o sotto, la tapparella
@@ -90,6 +95,10 @@ lavorare.
   dispositivo la lasciava cadere; ora resta. E l'inferriata si anima come una
   grata — le sbarre che si scostano — prima delle ante quando si apre, e
   dopo quando si chiude.
+
+- **Il conto in cima a un gruppo di finestre non inventa tapparelle (#299).**
+  Una persiana a mano con il solo sensore di contatto leggeva «1 tapparella»:
+  le tapparelle e le finestre si contano a parte, e ognuna compare solo se c'e'.
 
 - **Il cruscotto delle segnalazioni ricarica con «Aggiorna».** Il tasto non
   faceva niente: bisognava chiudere e riaprire per vedere le nuove.

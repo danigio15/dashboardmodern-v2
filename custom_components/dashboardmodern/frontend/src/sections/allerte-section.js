@@ -465,11 +465,13 @@ function installStyles() {
     ${P} .dm-allerta::before{
       content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
       background:var(--dm-allerta-colore,#94a3b8)}
-    ${P} .dm-allerta-testa{display:flex;align-items:center;gap:8px;min-width:0}
+    /* Il nome della fonte si legge intero: «Protezione civile» e «Voli sopra
+       casa» vanno su due righe piuttosto che finire in «PROTE…». */
+    ${P} .dm-allerta-testa{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
     ${P} .dm-allerta-ic{font-size:18px;flex:0 0 auto}
     ${P} .dm-allerta-nome{
-      flex:1 1 auto;min-width:0;font-size:12px;font-weight:900;letter-spacing:.04em;
-      text-transform:uppercase;color:var(--text,#0f172a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      flex:1 1 90px;min-width:0;font-size:12px;font-weight:900;letter-spacing:.04em;line-height:1.15;
+      text-transform:uppercase;color:var(--text,#0f172a);overflow-wrap:anywhere}
     ${P} .dm-allerta-livello{
       flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
       padding:3px 8px;border-radius:999px;color:#fff;background:var(--dm-allerta-colore,#94a3b8)}
