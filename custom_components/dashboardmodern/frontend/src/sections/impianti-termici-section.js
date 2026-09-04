@@ -757,6 +757,15 @@ function installStyles() {
     /* La stessa fila, sopra la scena del guscio invece che dentro la nostra. */
     #${PAGINA} .dm-it-quali-solare{margin:0 0 12px}
     #${PAGINA} .dm-it-quali-solare .dm-it-quali{margin:0}
+    /* La fila dei nomi sta sopra la scena anche per il dito (#281, dal
+       campo: «vedo i due tab relativi alle due caldaie ma non mi fa
+       selezionare il secondo»). La scena e' assoluta e copre tutto il palco,
+       fila compresa: i nomi si vedevano attraverso il suo fondo trasparente,
+       ma il tocco arrivava alla scena e non a loro. Rialzata sopra i nodi
+       — che arrivano a quattro — e staccata dal bordo tondo del palco, si
+       tocca e si legge. */
+    #${PAGINA} .dm-it-stage>.dm-it-quali{
+      position:relative;z-index:6;margin:0;padding:14px 18px 0}
     #${PAGINA} .dm-it-quale{
       border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);
       border-radius:999px;padding:7px 14px;font:inherit;font-size:12px;font-weight:800;

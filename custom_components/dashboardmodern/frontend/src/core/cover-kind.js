@@ -182,6 +182,22 @@ export function coverClosedThreshold(raw) {
   return Math.round(Math.max(0, Math.min(SOGLIA_CHIUSA_MASSIMA, value)));
 }
 
+/* La soglia di UNA copertura (dal campo, dopo la #298).
+ *
+ * «La percentuale di chiusura la devi spostare nella configurazione di quella
+ * finestra: ognuno puo' avere una percentuale differente.» Ha ragione: la
+ * tapparella della camera si lascia al dieci per l'aria, quella del salone si
+ * chiude del tutto. La riga ha la sua soglia; chi non la scrive prende quella
+ * di casa, che resta come valore di serie. Zero scritto apposta vale zero. */
+export function sogliaDellaCopertura(item, globale = 0) {
+  const propria = item?.soglia;
+  if (propria !== null && propria !== undefined && String(propria).trim() !== "") {
+    const valore = Number(propria);
+    if (Number.isFinite(valore)) return coverClosedThreshold(valore);
+  }
+  return coverClosedThreshold(globale);
+}
+
 /** Se a questa posizione la copertura conta come chiusa; `null` senza posizione. */
 export function coverIsClosedAt(position, soglia = 0) {
   const value = Number(position);

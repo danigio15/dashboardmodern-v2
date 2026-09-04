@@ -330,3 +330,231 @@ test("la pagina del robot non si sceglie una larghezza sua", async () => {
     assert.doesNotMatch(dichiarazione, /\d{3,4}px/, `larghezza scritta a mano: ${dichiarazione}`);
   }
 });
+
+/* ── i comandi a parte del robot (#306) ────────────────────────────────── */
+
+import {
+  COMANDI_MASSIMI,
+  comandiDelRobot,
+  comandiSuggeriti,
+  comandoDelRobot,
+  DOMINI_COMANDO,
+  elencoComandi,
+  genereDelComando,
+  nomeDelComando,
+} from "../src/core/robot-model.js";
+import { readFile } from "node:fs/promises";
+
+const ROBOROCK = "vacuum.roborock_qrevo_edge_series";
+const casaRoborock = {
+  [ROBOROCK]: stato("docked", { friendly_name: "Roborock Qrevo Edge Series", battery_level: 100 }),
+  "button.roborock_qrevo_edge_series_asp_e_lav": stato("unknown", {
+    friendly_name: "Roborock Qrevo Edge Series Asp e lav",
+  }),
+  "button.roborock_qrevo_edge_series_pulizia_completa": stato("2026-09-03T10:00:00+00:00", {
+    friendly_name: "Roborock Qrevo Edge Series Pulizia completa",
+  }),
+  "button.roborock_qrevo_edge_series_solo_aspirazione": stato("unknown", {
+    friendly_name: "Roborock Qrevo Edge Series Solo aspirazione",
+  }),
+  "button.roborock_qrevo_edge_series_solo_lavaggio": stato("unavailable", {
+    friendly_name: "Roborock Qrevo Edge Series Solo lavaggio",
+  }),
+  "select.roborock_qrevo_edge_series_mop_mode": stato("standard", {
+    friendly_name: "Roborock Qrevo Edge Series Mop mode",
+    options: ["standard", "deep", "deep_plus"],
+  }),
+  "switch.roborock_qrevo_edge_series_child_lock": stato("off", {
+    friendly_name: "Roborock Qrevo Edge Series Child lock",
+  }),
+  "button.roborock_qrevo_edge_series_reset_sensor_consumable": stato("unknown", {
+    friendly_name: "Roborock Qrevo Edge Series Reset sensor consumable",
+  }),
+  /* Un'altra casa: non c'entra, e non si propone. */
+  "button.cancello_apri": stato("unknown", { friendly_name: "Cancello apri" }),
+  "sensor.roborock_qrevo_edge_series_battery": stato("100", {
+    friendly_name: "Roborock Qrevo Edge Series Battery",
+  }),
+};
+
+test("i comandi a parte sono tasti, tendine e interruttori, e restano dopo la normalizzazione (#306)", () => {
+  /* «Le varie entita' del robot continuano a non essere visibili: da solo la
+   * modalita' aspirazione.» I programmi del Roborock sono `button.*` a parte:
+   * la configurazione li tiene, nell'ordine scritto, una volta sola, e scarta
+   * cio' che non si puo' comandare. */
+  assert.equal(genereDelComando("button.a"), "tasto");
+  assert.equal(genereDelComando("input_button.a"), "tasto");
+  assert.equal(genereDelComando("script.a"), "tasto");
+  assert.equal(genereDelComando("scene.a"), "tasto");
+  assert.equal(genereDelComando("select.a"), "tendina");
+  assert.equal(genereDelComando("input_select.a"), "tendina");
+  assert.equal(genereDelComando("switch.a"), "interruttore");
+  assert.equal(genereDelComando("input_boolean.a"), "interruttore");
+  assert.equal(genereDelComando("sensor.a"), "");
+  assert.equal(genereDelComando(""), "");
+  assert.equal(Object.keys(DOMINI_COMANDO).length, 8);
+
+  assert.deepEqual(
+    elencoComandi(["button.b", " select.c ", "sensor.no", "button.b", "", null, { entity: "switch.d" }]),
+    ["button.b", "select.c", "switch.d"],
+  );
+  /* Anche scritto come testo, com'e' quando passa da una casella nascosta. */
+  assert.deepEqual(elencoComandi("button.b, select.c;switch.d\nsensor.no"), [
+    "button.b",
+    "select.c",
+    "switch.d",
+  ]);
+  assert.deepEqual(elencoComandi(undefined), []);
+  /* Non piu' di dodici: una scheda e' una scheda. */
+  const tanti = Array.from({ length: 20 }, (_v, i) => `button.t${i}`);
+  assert.equal(elencoComandi(tanti).length, COMANDI_MASSIMI);
+
+  const [robot] = normalizeRobots([
+    { entity: ROBOROCK, comandi: ["button.roborock_qrevo_edge_series_asp_e_lav", "sensor.no"] },
+  ]);
+  assert.deepEqual(robot.comandi, ["button.roborock_qrevo_edge_series_asp_e_lav"]);
+  /* E chi salva col nome inglese non perde niente. */
+  assert.deepEqual(normalizeRobots([{ entity: "vacuum.a", commands: "button.x" }])[0].comandi, [
+    "button.x",
+  ]);
+  assert.deepEqual(normalizeRobots([{ entity: "vacuum.a" }])[0].comandi, []);
+});
+
+test("il nome del comando non ripete il nome del robot (#306)", () => {
+  const robot = { entity: ROBOROCK };
+  assert.equal(
+    nomeDelComando("button.roborock_qrevo_edge_series_asp_e_lav", robot, casaRoborock),
+    "Asp e lav",
+  );
+  assert.equal(
+    nomeDelComando("select.roborock_qrevo_edge_series_mop_mode", robot, casaRoborock),
+    "Mop mode",
+  );
+  /* Senza friendly_name si legge la coda dell'id, resa leggibile. */
+  assert.equal(nomeDelComando("button.roborock_qrevo_edge_series_solo_lavaggio", robot, {}), "Solo lavaggio");
+  /* Un nome che non comincia col robot resta com'e'. */
+  assert.equal(nomeDelComando("button.cancello_apri", robot, casaRoborock), "Cancello apri");
+  /* E il nome che e' solo il nome del robot non diventa vuoto. */
+  assert.equal(
+    nomeDelComando("switch.x", robot, { "switch.x": stato("on", { friendly_name: "Roborock Qrevo Edge Series" }) }),
+    "Roborock Qrevo Edge Series",
+  );
+});
+
+test("i comandi come stanno adesso, e il servizio dietro ognuno (#306)", () => {
+  const robot = {
+    entity: ROBOROCK,
+    comandi: [
+      "button.roborock_qrevo_edge_series_asp_e_lav",
+      "button.roborock_qrevo_edge_series_solo_lavaggio",
+      "select.roborock_qrevo_edge_series_mop_mode",
+      "switch.roborock_qrevo_edge_series_child_lock",
+      "input_select.mancante",
+    ],
+  };
+  const voci = comandiDelRobot(robot, casaRoborock);
+  assert.deepEqual(
+    voci.map((voce) => [voce.entity.split(".")[0], voce.genere, voce.name, voce.available]),
+    [
+      /* Un tasto mai premuto sta su «unknown», ed e' un tasto che funziona. */
+      ["button", "tasto", "Asp e lav", true],
+      ["button", "tasto", "Solo lavaggio", false],
+      ["select", "tendina", "Mop mode", true],
+      ["switch", "interruttore", "Child lock", true],
+      ["input_select", "tendina", "Mancante", false],
+    ],
+  );
+  assert.deepEqual(voci[2].opzioni, ["standard", "deep", "deep_plus"]);
+  assert.equal(voci[2].scelta, "standard");
+  assert.equal(voci[3].acceso, false);
+  assert.equal(voci[0].acceso, null);
+  /* E la vista del robot li porta con se'. */
+  assert.equal(robotView(robot, casaRoborock).comandi.length, 5);
+
+  assert.deepEqual(comandoDelRobot(voci[0]), {
+    domain: "button",
+    service: "press",
+    data: { entity_id: "button.roborock_qrevo_edge_series_asp_e_lav" },
+  });
+  assert.deepEqual(comandoDelRobot(voci[2], "deep"), {
+    domain: "select",
+    service: "select_option",
+    data: { entity_id: "select.roborock_qrevo_edge_series_mop_mode", option: "deep" },
+  });
+  assert.equal(comandoDelRobot(voci[2], ""), null);
+  assert.deepEqual(comandoDelRobot(voci[3]), {
+    domain: "switch",
+    service: "toggle",
+    data: { entity_id: "switch.roborock_qrevo_edge_series_child_lock" },
+  });
+  assert.deepEqual(comandoDelRobot({ entity: "script.pulizia" }), {
+    domain: "script",
+    service: "turn_on",
+    data: { entity_id: "script.pulizia" },
+  });
+  assert.deepEqual(comandoDelRobot({ entity: "input_button.x" }), {
+    domain: "input_button",
+    service: "press",
+    data: { entity_id: "input_button.x" },
+  });
+  assert.equal(comandoDelRobot({ entity: "sensor.x" }), null);
+});
+
+test("i comandi accanto al robot si propongono, quelli gia' scelti no (#306)", () => {
+  const proposte = comandiSuggeriti(
+    { entity: ROBOROCK, comandi: ["button.roborock_qrevo_edge_series_asp_e_lav"] },
+    casaRoborock,
+  );
+  /* Prima i tasti, poi le tendine, poi gli interruttori; il gia' scelto non
+   * c'e'; il cancello di un'altra casa e il sensore della batteria nemmeno. */
+  assert.deepEqual(proposte, [
+    "button.roborock_qrevo_edge_series_pulizia_completa",
+    "button.roborock_qrevo_edge_series_reset_sensor_consumable",
+    "button.roborock_qrevo_edge_series_solo_aspirazione",
+    "button.roborock_qrevo_edge_series_solo_lavaggio",
+    "select.roborock_qrevo_edge_series_mop_mode",
+    "switch.roborock_qrevo_edge_series_child_lock",
+  ]);
+  /* Anche quando l'id non coincide, il nome basta: e' cosi' che Home
+   * Assistant chiama le entita' di uno stesso dispositivo. */
+  const perNome = comandiSuggeriti(
+    { entity: "vacuum.robottino" },
+    {
+      "vacuum.robottino": stato("docked", { friendly_name: "Piano terra" }),
+      "button.qualcosa_altro": stato("unknown", { friendly_name: "Piano terra Pulizia completa" }),
+      "button.pianoterra": stato("unknown", { friendly_name: "Piano terrazzo" }),
+    },
+  );
+  assert.deepEqual(perNome, ["button.qualcosa_altro"]);
+  assert.deepEqual(comandiSuggeriti({ entity: "" }, casaRoborock), []);
+});
+
+test("la scheda e la configurazione portano i comandi a parte (#306)", async () => {
+  const scheda = await readFile(new URL("../src/sections/robot-section.js", import.meta.url), "utf8");
+  /* I tasti e gli interruttori sotto i comandi di sempre, le tendine accanto
+   * all'aspirazione; l'interruttore dice se e' acceso, e chi non risponde e'
+   * spento. */
+  assert.match(scheda, /data-dm-robot-cmd="\$\{esc\(voce\.entity\)\}"/);
+  assert.match(scheda, /aria-pressed="\$\{voce\.acceso === true\}"/);
+  assert.match(scheda, /data-dm-robot-tendina="\$\{esc\(voce\.entity\)\}"/);
+  assert.match(scheda, /\$\{comandiTendineMarkup\(view\)\}/);
+  assert.match(scheda, /class="dm-robot-actions dm-robot-comandi" data-dm-robot-comandi/);
+  /* Il tocco chiama il servizio giusto, e la tendina la sua entita'. */
+  assert.match(scheda, /callService\(comandoDelRobot\(voce\)\)/);
+  assert.match(scheda, /callService\(comandoDelRobot\(voce, tendina\.value\)\)/);
+  /* La firma li conosce: un comando aggiunto rifa' la scheda. */
+  assert.match(scheda, /\(view\.comandi \|\| \[\]\)\s*\.map\(\(voce\) => `\$\{voce\.entity\}:\$\{voce\.name\}:\$\{voce\.available\}/);
+
+  const scheda2 = await readFile(new URL("../src/sections/robot-editor-section.js", import.meta.url), "utf8");
+  assert.match(scheda2, /data-robot-field="comandi"/);
+  /* Le pastiglie: proposte col piu', scelte con la croce, e il piu' della casella. */
+  assert.match(scheda2, /chipMarkup\(entity, "robot-cmd-sug", "＋", robot, states\)/);
+  assert.match(scheda2, /chipMarkup\(entity, "robot-cmd-del", "✕", robot, states\)/);
+  assert.match(scheda2, /data-robot-cmd-add/);
+  assert.match(scheda2, /event\.target\.closest\("\[data-robot-cmd-sug\]"\)/);
+  assert.match(scheda2, /event\.target\.closest\("\[data-robot-cmd-del\]"\)/);
+  assert.match(scheda2, /comandiSuggeriti\(robot, states\)/);
+  /* La scelta si salva subito, con quello che c'e' scritto nelle altre caselle. */
+  assert.match(scheda2, /const letta = leggiRiga\(riga, robots\[index\]\);/);
+  assert.match(scheda2, /next\[index\] = \{ \.\.\.letta, comandi \};/);
+});

@@ -1,6 +1,6 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, scriviSeCambia, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
-import { VEHICLE_KEY_FIELD } from "../core/vehicle-model.js";
+import { VEHICLE_KEY_FIELD, tipoMotore } from "../core/vehicle-model.js";
 import { bozzaAperta, editedVehicle, profiles, salvaAuto } from "./ev-section.js";
 
 globalThis.__DM_20260815C__ = true;
@@ -52,6 +52,72 @@ const CAR_MODELS = Object.freeze({
   "XPeng": ["G6", "G9", "P7", "P7+", "L03"],
 });
 
+/* Le auto che vanno a carburante (dal campo, dopo la #208).
+ *
+ * «Aggiungi tutti i modelli auto con la selezione delle auto normali non
+ * elettriche: adesso se seleziono Jeep mi da' solo veicoli ibridi ed
+ * elettrici.» La pagina Auto e' nata elettrica e il catalogo con lei: una
+ * Renegade a benzina non aveva una riga da scegliere. Qui ci sono le famiglie
+ * a benzina, diesel e GPL vendute in Europa negli ultimi dieci anni, per le
+ * stesse marche; la tendina le mostra in un gruppo a parte, e mette per primo
+ * il gruppo del motore che la vettura dichiara. Chi era solo elettrico —
+ * Tesla, Polestar, BYD… — non ha niente da aggiungere, ed e' giusto cosi'. */
+const CAR_MODELS_TERMICI = Object.freeze({
+  "Abarth": ["500", "595", "695", "124 Spider", "Punto"],
+  "Alfa Romeo": ["Giulia", "Stelvio", "Tonale", "Giulietta", "MiTo", "4C"],
+  "Audi": ["A1", "A3", "A4", "A5", "A6", "A7", "A8", "Q2", "Q3", "Q5", "Q7", "Q8", "TT", "R8"],
+  "BMW": ["Serie 1", "Serie 2", "Serie 3", "Serie 4", "Serie 5", "Serie 7", "Serie 8", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "Z4", "M2", "M3", "M4"],
+  "BYD": [],
+  "Citroën": ["C1", "C3", "C3 Aircross", "C4", "C4 X", "C5 Aircross", "C5 X", "Berlingo", "SpaceTourer", "Jumpy", "Jumper"],
+  "Cupra": ["Formentor", "Leon", "Leon Sportstourer", "Ateca", "Terramar"],
+  "Dacia": ["Sandero", "Sandero Stepway", "Logan", "Duster", "Jogger", "Bigster", "Lodgy", "Dokker"],
+  "DS": ["DS 3", "DS 4", "DS 7", "DS 9"],
+  "Fiat": ["Panda", "Grande Panda", "500", "500X", "500L", "600", "Tipo", "Punto", "Doblò", "Qubo", "Fiorino", "Scudo", "Ulysse", "Ducato"],
+  "Ford": ["Fiesta", "Focus", "Puma", "Kuga", "Mondeo", "EcoSport", "Mustang", "Ranger", "Bronco", "S-Max", "Galaxy", "Tourneo Courier", "Tourneo Connect", "Tourneo Custom", "Transit Custom", "Transit"],
+  "Honda": ["Jazz", "Civic", "Civic Type R", "HR-V", "ZR-V", "CR-V"],
+  "Hyundai": ["i10", "i20", "i20 N", "i30", "Bayon", "Kona", "Tucson", "Santa Fe", "Staria", "ix20", "ix35", "i40"],
+  "Jeep": ["Avenger", "Renegade", "Compass", "Cherokee", "Grand Cherokee", "Wrangler", "Gladiator", "Commander", "Wagoneer"],
+  "Kia": ["Picanto", "Rio", "Stonic", "Ceed", "Ceed Sportswagon", "ProCeed", "XCeed", "Sportage", "Sorento", "Niro", "Soul", "Stinger", "Carens", "Venga", "Optima"],
+  "Lancia": ["Ypsilon", "Delta", "Musa", "Thema", "Voyager"],
+  "Leapmotor": [],
+  "Lexus": ["IS", "LC", "RC", "GS"],
+  "Mazda": ["Mazda2", "Mazda3", "Mazda6", "CX-3", "CX-30", "CX-5", "CX-60", "CX-80", "MX-5"],
+  "Mercedes-Benz": ["Classe A", "Classe B", "Classe C", "Classe E", "Classe S", "CLA", "CLS", "GLA", "GLB", "GLC", "GLE", "GLS", "Classe G", "Classe T", "Classe V", "Vito", "Citan", "SL", "AMG GT"],
+  "MG": ["MG3", "ZS", "HS"],
+  "MINI": ["Cooper", "Cooper Cabrio", "Countryman", "Clubman", "Paceman"],
+  "Nissan": ["Micra", "Juke", "Qashqai", "X-Trail", "Navara", "Townstar", "Note", "Pulsar", "Pathfinder", "370Z", "GT-R"],
+  "Opel": ["Corsa", "Astra", "Astra Sports Tourer", "Mokka", "Crossland", "Grandland", "Frontera", "Insignia", "Zafira", "Combo", "Vivaro", "Movano", "Adam", "Karl", "Meriva"],
+  "Peugeot": ["108", "208", "2008", "308", "308 SW", "3008", "408", "5008", "508", "Rifter", "Partner", "Traveller", "Expert", "Boxer"],
+  "Polestar": [],
+  "Porsche": ["911", "718 Boxster", "718 Cayman", "Macan", "Cayenne", "Panamera"],
+  "Renault": ["Twingo", "Clio", "Captur", "Megane", "Arkana", "Austral", "Symbioz", "Espace", "Rafale", "Kadjar", "Koleos", "Scenic", "Talisman", "Kangoo", "Trafic", "Master"],
+  "SEAT": ["Mii", "Ibiza", "Arona", "Leon", "Leon Sportstourer", "Ateca", "Tarraco", "Alhambra"],
+  "Škoda": ["Citigo", "Fabia", "Scala", "Kamiq", "Octavia", "Karoq", "Kodiaq", "Superb", "Rapid", "Yeti"],
+  "Smart": ["ForTwo", "ForFour"],
+  "Subaru": ["Impreza", "XV", "Crosstrek", "Forester", "Outback", "Levorg", "BRZ", "WRX"],
+  "Suzuki": ["Celerio", "Ignis", "Swift", "Swift Sport", "Baleno", "Vitara", "S-Cross", "Jimny", "Across"],
+  "Tesla": [],
+  "Toyota": ["Aygo", "Aygo X", "Yaris", "Yaris Cross", "GR Yaris", "Corolla", "Corolla Touring Sports", "C-HR", "RAV4", "Hilux", "Land Cruiser", "Proace", "Proace City", "GR86", "GR Supra", "Auris", "Avensis", "Verso"],
+  "Volkswagen": ["up!", "Polo", "Golf", "Golf Variant", "T-Cross", "Taigo", "T-Roc", "Tiguan", "Tayron", "Touareg", "Passat", "Passat Variant", "Arteon", "Touran", "Sharan", "Caddy", "Multivan", "Transporter", "Caravelle", "California", "Amarok", "Scirocco", "Beetle"],
+  "Volvo": ["XC40", "XC60", "XC90", "V40", "V60", "V90", "S60", "S90"],
+  "XPeng": [],
+});
+
+/* I due gruppi di una marca, senza doppioni fra loro. */
+function gruppiPerMarca(brand) {
+  const nome = clean(brand);
+  const elettriche = CAR_MODELS[nome] || [];
+  const termiche = (CAR_MODELS_TERMICI[nome] || []).filter((model) => !elettriche.includes(model));
+  return { elettriche, termiche };
+}
+
+/* Il motore che la vettura dichiara (#208): decide quale gruppo sta in cima. */
+function motoreDichiarato(vehicle = {}) {
+  const proprio = tipoMotore(vehicle?.tipo);
+  if (proprio) return proprio;
+  return tipoMotore(doc?.querySelector?.("#ed-body select[data-ev-tipo]")?.value);
+}
+
 function actualVersion() {
   const info = root.DashboardModernModules?.diagnostics?.BUILD_INFO;
   return clean(info?.dashboardVersion || info?.integrationVersion || "");
@@ -62,7 +128,8 @@ function normalizedModel(value) {
 }
 
 function modelsForBrand(brand) {
-  return CAR_MODELS[clean(brand)] || [];
+  const { elettriche, termiche } = gruppiPerMarca(brand);
+  return [...elettriche, ...termiche];
 }
 
 function modelBelongsToBrand(brand, value) {
@@ -77,8 +144,8 @@ function modelBelongsToBrand(brand, value) {
 function brandForModel(value) {
   const token = normalizedModel(value);
   if (!token) return "";
-  for (const [brand, models] of Object.entries(CAR_MODELS)) {
-    if (models.some((model) => {
+  for (const brand of Object.keys(CAR_MODELS)) {
+    if (modelsForBrand(brand).some((model) => {
       const candidate = normalizedModel(model);
       return token === candidate || token.includes(candidate) || candidate.includes(token);
     })) return brand;
@@ -98,11 +165,21 @@ function effectiveModel(vehicle = {}) {
   return byName ? clean(vehicle.name) : "";
 }
 
-function modelOptions(brand, selected = "") {
+function modelOptions(brand, selected = "", tipo = "") {
   const current = clean(selected);
-  const values = [...modelsForBrand(brand)];
-  if (current && !values.includes(current)) values.unshift(current);
-  return [`<option value="">— ${t("Seleziona modello", "Choose model")} —</option>`, ...values.map((model) => `<option value="${esc(model)}" ${model === current ? "selected" : ""}>${esc(model)}</option>`)].join("");
+  const { elettriche, termiche } = gruppiPerMarca(brand);
+  const voce = (model) => `<option value="${esc(model)}" ${model === current ? "selected" : ""}>${esc(model)}</option>`;
+  const gruppo = (etichetta, values) =>
+    values.length ? `<optgroup label="${esc(etichetta)}">${values.map(voce).join("")}</optgroup>` : "";
+  /* Un modello gia' salvato che il catalogo non conosce resta scelto: un
+   * aggiornamento non deve rendere immodificabile una scheda. */
+  const fuoriCatalogo = current && !elettriche.includes(current) && !termiche.includes(current) ? voce(current) : "";
+  const aCarburante = gruppo(t("Benzina, diesel, GPL", "Petrol, diesel, LPG"), termiche);
+  const aBatteria = gruppo(t("Elettriche e ibride", "Electric and hybrid"), elettriche);
+  /* Il gruppo del motore dichiarato sta in cima: chi ha detto «termica» non
+   * deve scorrere le elettriche per trovare la sua. */
+  const ordinati = tipoMotore(tipo) === "termica" ? [aCarburante, aBatteria] : [aBatteria, aCarburante];
+  return [`<option value="">— ${t("Seleziona modello", "Choose model")} —</option>`, fuoriCatalogo, ...ordinati].join("");
 }
 
 function emitChange(input) {
@@ -586,7 +663,7 @@ function ensureEvAppearanceEditor() {
    * tendina si apre sulla riga che chiede di scegliere. */
   const brand = effectiveBrand(visual) || clean(visual.brand);
   const model = effectiveModel(visual);
-  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand><option value="">— ${t("Seleziona marchio", "Choose brand")} —</option>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello elettrico / ibrido", "Electric / hybrid model")}</span><select class="ed-input" data-model>${modelOptions(brand, model)}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
+  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand><option value="">— ${t("Seleziona marchio", "Choose brand")} —</option>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello", "Model")}</span><select class="ed-input" data-model>${modelOptions(brand, model, motoreDichiarato(visual))}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
   // The accordion is found by its own EV slots rather than by its wording, so a
   // renamed section still gets the panel. It exists: the guard above returned
   // early otherwise, which is what keeps this placement the only one.
@@ -634,7 +711,11 @@ function ensureEvAppearanceEditor() {
   };
   brandSelect.addEventListener("change", () => {
     const previous = clean(modelSelect.value);
-    modelSelect.innerHTML = modelOptions(brandSelect.value, modelBelongsToBrand(brandSelect.value, previous) ? previous : "");
+    modelSelect.innerHTML = modelOptions(
+      brandSelect.value,
+      modelBelongsToBrand(brandSelect.value, previous) ? previous : "",
+      motoreDichiarato(visual),
+    );
     refreshPreview();
   });
   modelSelect.addEventListener("change", refreshPreview);
@@ -655,7 +736,7 @@ function ensureEvAppearanceEditor() {
       const liveBrand = clean(livePanel?.querySelector("select[data-brand]")?.value);
       const liveModel = clean(livePanel?.querySelector("select[data-model]")?.value);
       if (!liveBrand) throw new Error(t("Seleziona un brand auto.", "Choose a car brand."));
-      if (!liveModel) throw new Error(t("Seleziona un modello elettrico o ibrido.", "Choose an electric or hybrid model."));
+      if (!liveModel) throw new Error(t("Seleziona un modello.", "Choose a model."));
       if (!modelBelongsToBrand(liveBrand, liveModel)) throw new Error(t("Il modello selezionato non appartiene al marchio scelto.", "The selected model does not belong to the chosen brand."));
       await saveEvAppearance(liveBrand, liveModel);
       panel.dataset.saved = "true";

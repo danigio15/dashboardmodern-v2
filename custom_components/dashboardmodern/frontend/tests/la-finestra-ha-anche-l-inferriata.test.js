@@ -217,10 +217,73 @@ test("la grata si chiude a sbarre trasversali, e prima della finestra (#297)", a
     "utf8",
   );
   assert.match(sezione, /\.tapp-win\[data-dm-grata="chiusa"\] \.dm-tw-grata-meta\{\s*transform:scaleX\(1\)/);
-  assert.match(sezione, /repeating-linear-gradient\(180deg,\s*rgba\(51,65,85,0\) 0 18px,rgba\(51,65,85,\.88\) 18px 21px\)/);
+  assert.match(
+    sezione,
+    /repeating-linear-gradient\(180deg,\s*rgba\(148,163,184,0\) 0 18px,rgba\(148,163,184,\.92\) 18px 21px\)/,
+  );
   assert.match(
     sezione,
     /\.tapp-win\[data-dm-grata\]\[data-dm-infisso-stato="chiuso"\] \.dm-tw-anta\{\s*transition-delay:\.9s/,
   );
   assert.match(sezione, /\.tapp-win\[data-dm-grata="aperta"\] \.dm-tw-grata-meta\{\s*transition-delay:\.9s/);
+});
+
+test("le sbarre sono di un grigio chiaro e sfumato, non scure (dal campo)", async () => {
+  /* «Le grate vanno benissimo ma essendo molto scure quando sono chiuse e la
+   * finestra e' aperta visivamente non e' il massimo: un grigio sfumato
+   * sarebbe meglio.» Il ferro e' grigio chiaro dappertutto, e dove il browser
+   * sa mascherare la sbarra e' una tinta che va dal chiaro in alto al pieno in
+   * basso: il ritaglio a sbarre lo fa la maschera, il colore e' un fondo solo.
+   * Chi non sa mascherare tiene la stessa forma senza la sfumatura. */
+  const sezione = await readFile(
+    new URL("../src/sections/shutter-window-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.equal(/51,65,85/.test(sezione), false, "il grigio scuro di prima non c'e' piu'");
+  assert.match(sezione, /\.dm-tw-grata-meta\{[^}]*rgba\(148,163,184,\.9\) 0 3px/);
+  assert.match(sezione, /@supports \(mask-image:linear-gradient\(#000,#000\)\) or \(-webkit-mask-image:linear-gradient\(#000,#000\)\)\{/);
+  /* Dentro il ramo con la maschera: il fondo e' la sfumatura, la maschera le sbarre. */
+  const ramo = sezione.slice(sezione.indexOf("@supports (mask-image"));
+  assert.match(ramo, /linear-gradient\(180deg,#e2e8f0 0%,#b4bfcd 55%,#8593a7 100%\)!important/);
+  assert.match(ramo, /-webkit-mask-image:\s*repeating-linear-gradient\(90deg,#000 0 3px,transparent 3px 21px\)/);
+  assert.match(ramo, /mask-image:\s*repeating-linear-gradient\(90deg,#000 0 3px,transparent 3px 21px\)/);
+  /* Da chiusa, anche le traverse sono nella maschera, ogni ventuno pixel. */
+  assert.match(
+    ramo,
+    /\[data-dm-grata="chiusa"\] \.dm-tw-grata-meta\{[\s\S]*?repeating-linear-gradient\(180deg,transparent 0 18px,#000 18px 21px\)/,
+  );
+  /* E la sfumatura non porta piu' l'ombra pensata per il colore pieno. */
+  assert.match(ramo, /filter:none!important/);
+});
+
+test("la finestra di modifica ha la casella della grata e la soglia della riga (dal campo)", async () => {
+  /* «Se entro poi in modifica della finestra (dopo averla definita) non ho
+   * piu' la possibilita' di modificare l'entita' dell'inferriata.» La finestra
+   * di modifica nasceva prima della grata e non l'aveva mai avuta: la riga la
+   * portava con se' da `...item`, ma cambiarla o toglierla voleva dire
+   * cancellare la riga e rifarla. Adesso la casella c'e', col suo cercatore,
+   * e con lei la soglia di questa finestra — «ognuno puo' avere una
+   * percentuale differente» — che in modifica mancava allo stesso modo. */
+  const editor = await readFile(
+    new URL("../src/sections/unified-editors-section.js", import.meta.url),
+    "utf8",
+  );
+  const modale = editor.slice(editor.indexOf("function openShutterEditor("));
+  assert.match(modale, /name="inferriata" value="\$\{esc\(inferriataEntity\(item\)\)\}"/);
+  assert.match(modale, /data-pick-inferriata/);
+  assert.match(modale, /\["\[data-pick-inferriata\]", "inferriata"\]/);
+  assert.match(modale, /inferriata: clean\(form\.elements\.inferriata\?\.value\)/);
+  /* Vuota, la grata non resta come casella vuota sulla riga. */
+  assert.match(modale, /if \(!list\[index\]\.inferriata\) delete list\[index\]\.inferriata;/);
+  /* E la grata e' un contatto: vale la regola del contatto. */
+  assert.match(modale, /const grata = clean\(list\[index\]\.inferriata\);/);
+  assert.match(modale, /\(contatto && !contattoValido\) \|\| !grataValida/);
+  /* La soglia della riga: stessa etichetta, stesso segnaposto e stesso tetto
+   * della casella che si compila quando la riga nasce. */
+  assert.match(modale, /name="soglia" value="\$\{esc\(sogliaRiga\)\}"/);
+  assert.match(modale, /max="\$\{SOGLIA_CHIUSA_MASSIMA\}"/);
+  assert.match(modale, /t\("Chiusa sotto il \(%\)", "Closed below \(%\)"\)/);
+  assert.match(modale, /t\("come la casa", "as the house"\)/);
+  assert.match(modale, /list\[index\]\.soglia = coverClosedThreshold\(testoSoglia\);/);
+  assert.match(modale, /else delete list\[index\]\.soglia;/);
 });

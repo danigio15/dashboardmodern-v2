@@ -1096,6 +1096,16 @@ export function installEnergyLoadsEditor() {
   );
   for (const name of ["dashboardmodern:runtime-ready", "dashboardmodern:legacy-ready"])
     root.addEventListener?.(name, scheduleRender);
+  /* Cambiato impianto, cambiano i carichi (#292, dal campo): «passando da un
+   * impianto all'altro con la scheda Carichi aperta si vedono ancora i carichi
+   * dell'impianto precedente». Il modello in mano era di quell'altro impianto:
+   * si butta — salvarlo adesso vorrebbe dire scriverlo nell'impianto sbagliato
+   * — e si rilegge quello giusto. */
+  root.addEventListener?.("dashboardmodern:energy-plant-changed", () => {
+    state.model = null;
+    state.dirty = false;
+    scheduleRender();
+  });
   scheduleRender();
 }
 

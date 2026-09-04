@@ -174,3 +174,17 @@ test("e gli stati arrivati dopo vengono comunque visti", () => {
   assert.deepEqual(floodEntities({}, {}, {}, false).entities, [], "senza stati non trova niente");
   assert.deepEqual(floodEntities({}, {}, states, false).entities, ["binary_sensor.perdita"]);
 });
+
+test("la tessera in Home legge l'ELENCO dei sensori, non l'oggetto che lo porta (dal campo)", () => {
+  /* «Lo stato sensore allagamento, quando attivo, non segnala lo stato
+   * allagamento nei widget.» `floodEntities` risponde `{ entities, primoAvvio }`
+   * e la tessera prendeva l'oggetto intero per l'elenco: `Array.isArray` era
+   * falso e la tessera non nasceva mai, nemmeno col sensore bagnato. */
+  const widgets = leggi("sections/home-widgets-section.js");
+  const modello = widgets.slice(widgets.indexOf("function floodModel("));
+  assert.match(modello, /\(\{ entities \} = floodEntities\(/);
+  assert.match(modello, /if \(!Array\.isArray\(entities\) \|\| !entities\.length\) return null;/);
+  /* La forma della risposta, per non ricascarci. */
+  const risposta = floodEntities({ [FLOOD_GROUP]: ["binary_sensor.perdita_lavello"] }, {}, {}, true);
+  assert.deepEqual(risposta, { entities: ["binary_sensor.perdita_lavello"], primoAvvio: false });
+});

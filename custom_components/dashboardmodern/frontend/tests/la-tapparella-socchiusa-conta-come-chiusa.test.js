@@ -18,6 +18,7 @@ import {
   SOGLIA_CHIUSA_MASSIMA,
   coverClosedThreshold,
   coverIsClosedAt,
+  sogliaDellaCopertura,
 } from "../src/core/cover-kind.js";
 
 const leggi = (percorso) => readFile(new URL(`../src/${percorso}`, import.meta.url), "utf8");
@@ -56,14 +57,28 @@ test("al dieci per cento e' chiusa se la soglia dice dieci, aperta se non dice n
 test("la pagina Finestre e la tessera in Home leggono la stessa soglia", async () => {
   const scena = await leggi("sections/shutter-scene-section.js");
   assert.match(scena, /coverClosedThreshold\(readJson\(CHIAVE_SOGLIA_CHIUSA, 0\)\)/);
-  /* La pastiglia della card e il conto in cima passano tutti e due dalla soglia. */
-  assert.match(scena, /view\.position > sogliaChiusa\(\) \? "open" : "closed"/);
-  assert.match(scena, /!view\.moving && view\.position > soglia/);
+  /* Ogni riga porta la sua soglia, o quella di casa (dal campo: «ognuno puo'
+   * avere una percentuale differente»); la pastiglia della card e il conto in
+   * cima passano tutti e due da quella. */
+  assert.match(scena, /soglia: sogliaDellaCopertura\(item, sogliaChiusa\(\)\)/);
+  assert.match(scena, /view\.position > sogliaDi\(view\) \? "open" : "closed"/);
+  assert.match(scena, /!view\.moving && view\.position > sogliaDi\(view\)/);
   const widgets = await leggi("sections/home-widgets-section.js");
-  assert.match(widgets, /position > coverClosedThreshold\(readJson\(CHIAVE_SOGLIA_CHIUSA, 0\)\)/);
+  assert.match(widgets, /position > sogliaDellaCopertura\(item, readJson\(CHIAVE_SOGLIA_CHIUSA, 0\)\)/);
   /* E dove la posizione c'e' comanda lei: lo stato «open» di Home Assistant
    * non riapre una tapparella che la soglia dice chiusa. */
-  assert.match(widgets, /Number\.isFinite\(position\)\s*\?\s*position > coverClosedThreshold/);
+  assert.match(widgets, /Number\.isFinite\(position\)\s*\?\s*position > sogliaDellaCopertura/);
+  /* La riga: la sua soglia vince, vuota vale quella di casa, zero scritto e' zero. */
+  assert.equal(sogliaDellaCopertura({ soglia: 15 }, 10), 15);
+  assert.equal(sogliaDellaCopertura({ soglia: "" }, 10), 10);
+  assert.equal(sogliaDellaCopertura({}, 10), 10);
+  assert.equal(sogliaDellaCopertura({ soglia: 0 }, 10), 0);
+  assert.equal(sogliaDellaCopertura({ soglia: 90 }, 10), 50, "oltre la meta' non e' uno spiraglio");
+  const scheda = await leggi("sections/shutter-window-section.js");
+  assert.match(scheda, /id="ed-tp-soglia-riga"/);
+  const crud = await leggi("sections/editor-crud-section.js");
+  assert.match(crud, /const soglia = sogliaScritta\(doc\.getElementById\("ed-tp-soglia-riga"\)\?\.value\);/);
+  assert.match(crud, /soglia: clean\(doc\.getElementById\("ed-tp-soglia-riga"\)\?\.value\),/);
 });
 
 test("la soglia si scrive nella scheda Finestre e viaggia con la configurazione", async () => {

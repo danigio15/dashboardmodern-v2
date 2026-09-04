@@ -22,6 +22,15 @@ test("il collegamento e' quello del README e del tasto Sponsor, e si apre in una
   assert.match(sezione, /export function ensureCard\(\)/);
   assert.match(sezione, /const SCHEDA_IMPOSTAZIONI = "visib";/);
   assert.equal((sezione.match(/https:\/\//g) || []).length, 1, "un indirizzo solo, scritto una volta");
+  /* La pastiglia e la card non portano a PayPal: aprono la finestra che
+   * racconta il progetto, e li' c'e' il tasto. */
+  assert.match(sezione, /guscio\.innerHTML = portaMarkup\(\s*"dm-sostieni-pastiglia"/);
+  assert.match(sezione, /\$\{portaMarkup\("dm-sostieni-tasto"/);
+  assert.match(sezione, /closest\?\.\("\[data-dm-sostieni-apri\]"\)\) \{\s*event\.preventDefault\(\);\s*apri\(\);/);
+  assert.match(sezione, /export function apri\(\)/);
+  const finestra = sezione.slice(sezione.indexOf("function finestra()"), sezione.indexOf("export function apri()"));
+  assert.match(finestra, /linkMarkup\("dm-sostieni-tasto"/, "il collegamento a PayPal sta nella finestra");
+  assert.match(finestra, /TESTO_DEL_PERCHE\(\)/);
 });
 
 test("il modulo e' installato dal runtime, con la lingua e le altre preferenze", async () => {

@@ -22,6 +22,17 @@ function installReleaseStyles() {
         background:linear-gradient(135deg,var(--text,#0f172a),var(--green,#16a34a))!important;
         -webkit-background-clip:text!important;background-clip:text!important;
         -webkit-text-fill-color:transparent!important}
+      /* Lo sfondo animato sta sul suo livello (dal campo: la CPU del mini PC).
+       *
+       * Le due macchie sfumate dietro la plancia si muovono per sempre, fuori
+       * da ogni pagina, con un blur di cento pixel su meta' dello schermo.
+       * Promosse a livello composito il browser le sposta senza rasterizzarle
+       * di nuovo a ogni fotogramma; e chi ha chiesto al sistema di ridurre le
+       * animazioni le trova ferme, che e' quello che ha chiesto. */
+      .animated-mesh-bg::before,.animated-mesh-bg::after{will-change:transform}
+      @media (prefers-reduced-motion:reduce){
+        .animated-mesh-bg::before,.animated-mesh-bg::after{animation-play-state:paused!important}
+      }
     `,
   );
   // This owner is intentionally last in the cascade even when the module was

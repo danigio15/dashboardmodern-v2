@@ -65,6 +65,7 @@ import {
   TESSERA_PER_IMPIANTO,
   TESSERE_IMPIANTI_KEY,
   comeSiVedeLEnergia,
+  PRIMO_IMPIANTO,
   plantIsConfigured,
   plantKey,
   plantLabel,
@@ -128,7 +129,7 @@ import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   CHIAVE_SOGLIA_CHIUSA,
-  coverClosedThreshold,
+  sogliaDellaCopertura,
   coverEntries,
   coverKindLabel,
   coverPositionChoices,
@@ -901,7 +902,7 @@ function coversModel(states) {
           ) === true
         : raw === "opening" ||
           (Number.isFinite(position)
-            ? position > coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0))
+            ? position > sogliaDellaCopertura(item, readJson(CHIAVE_SOGLIA_CHIUSA, 0))
             : raw === "open");
       return {
         soloSensore: Boolean(soloSensore),
@@ -1056,13 +1057,16 @@ function lettureDellImpianto(states, impianto, primo) {
   };
 }
 
-function tesseraEnergia(rows, house, today, { key = "energia", label } = {}) {
+function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "" } = {}) {
   if (house == null && !rows.length) return null;
   return {
     key,
     accent: "#f97316",
     icon: "⚡",
     label: label || t("Energia", "Energy"),
+    /* Di quale impianto parla: la sua finestra porta alla sezione aperta su
+     * di lui, non su quello che era rimasto acceso (#286, dal campo). */
+    impianto: clean(impianto),
     value: formatWatts(house),
     caption:
       today == null
@@ -1107,6 +1111,7 @@ function energyModels(states) {
         tesseraEnergia(letture[indice].rows, letture[indice].house, letture[indice].today, {
           key: plantKey("energia", impianto, indice),
           label: plantLabel(impianto, indice, t("Impianto", "Plant")),
+          impianto: clean(impianto?.id) || PRIMO_IMPIANTO,
         }),
       )
       .filter(Boolean);
@@ -2677,12 +2682,16 @@ function batteriesModel(states) {
 function floodModel(states) {
   let entities = [];
   try {
-    entities = floodEntities(
+    /* `floodEntities` risponde con l'elenco E il segno del primo avvio, e qui
+     * serve l'elenco. Preso com'era — l'oggetto intero — non era mai un
+     * elenco, e la tessera non compariva nemmeno col sensore bagnato (dal
+     * campo: «quando attivo non segnala lo stato allagamento nei widget»). */
+    ({ entities } = floodEntities(
       readJson("cd_gruppi_extra", {}),
       readJson("cd_gruppi_removed", {}),
       states,
       true,
-    );
+    ));
   } catch (_error) {
     return null;
   }
@@ -2990,12 +2999,16 @@ export function widgetIncludes(entity, excluded = widgetExcludedEntities()) {
  * Gli avvisi personalizzati si governano insieme, sotto la chiave `custom`. */
 export function applyWidgetPreferences(models, preferences = widgetPreferences()) {
   const hidden = new Set(preferences.hidden);
+  /* Le tessere energia degli altri impianti (#286) seguono la posizione di
+   * «Energia»: prima solo la prima la seguiva e le altre restavano in coda. */
   const chiave = (widget) =>
     widget.key.startsWith("custom-")
       ? "custom"
       : widget.key.startsWith("evidenza-")
         ? "evidenza"
-        : widget.key;
+        : eUnaTesseraEnergia(widget.key)
+          ? "energia"
+          : widget.key;
   const rank = (widget) => {
     const nome = chiave(widget);
     const index = preferences.order.indexOf(nome);
@@ -4981,7 +4994,8 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
  * le scrive `display:none` addosso — e portarci sarebbe peggio che non
  * offrirlo: si aprirebbe una pagina che l'utente ha deciso di non avere. */
 function voceDellaSezione(chiave) {
-  const tab = SEZIONE_DEL_WIDGET[clean(chiave)];
+  /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
+  const tab = SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(chiave) ? "energia" : clean(chiave)];
   if (!tab) return null;
   const voce = doc?.querySelector?.(`.tab[data-tab="${tab}"]`);
   if (!voce || voce.style?.display === "none") return null;
@@ -4998,7 +5012,9 @@ function bricioleDelWidget(widget) {
 function detailMarkup(widget, states) {
   const vaiAllaSezione = voceDellaSezione(widget.key)
     ? `<footer class="dm-w-piede">
-        <button type="button" class="dm-w-vai" data-dm-w-sezione="${esc(widget.key)}">
+        <button type="button" class="dm-w-vai" data-dm-w-sezione="${esc(widget.key)}"${
+          widget.impianto ? ` data-dm-w-impianto="${esc(widget.impianto)}"` : ""
+        }>
           ${esc(t("Apri sezione", "Open section"))} <span aria-hidden="true">→</span>
         </button>
       </footer>`
@@ -5780,6 +5796,13 @@ function onClick(event) {
   if (sezione) {
     event.preventDefault();
     const voce = voceDellaSezione(sezione.dataset.dmWSezione);
+    /* La tessera di un impianto apre la sezione SU quell'impianto: chi tiene
+     * le linguette lo sceglie come se fosse stata premuta la sua (#286). */
+    const impianto = clean(sezione.dataset.dmWImpianto);
+    if (impianto)
+      root.dispatchEvent?.(
+        new CustomEvent("dashboardmodern:energy-plant-requested", { detail: { plant: impianto } }),
+      );
     chiudiPopup();
     voce?.click();
     return;

@@ -448,8 +448,20 @@ function install() {
       scheduleTemperatureRepair();
     });
   }
+  /* Un giro per fotogramma e solo a pagina a schermo (dal campo: la CPU).
+   * Girava a ogni evento di stato, rileggendo il testo di ogni nodo della
+   * pagina Temperature anche quando la pagina era nascosta: lavoro che nessuno
+   * vedeva, decine di volte al minuto. Il fotogramma e' lo stesso
+   * dell'osservatore di sopra, cosi' i due non si sommano. */
   root.addEventListener?.("dashboardmodern:state-changed", () => {
-    hideTemperatureProgressCopy();
+    if (!doc?.getElementById("page-temp")?.classList.contains("active")) return;
+    if (state.temperatureFrame) return;
+    state.temperatureFrame =
+      root.requestAnimationFrame?.(() => {
+        state.temperatureFrame = 0;
+        hideTemperatureProgressCopy();
+      }) || 0;
+    if (!state.temperatureFrame) hideTemperatureProgressCopy();
   });
   root.addEventListener?.("click", scheduleCanonicalModalClaim, true);
   doc.addEventListener("click", scheduleTemperatureRepairFromEvent, true);

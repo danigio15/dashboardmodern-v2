@@ -43,7 +43,14 @@ import {
   indirizzoRiparato,
   versoLApi,
 } from "../core/indirizzo-di-casa.js";
-import { doc, root } from "./shared.js";
+import {
+  domandaDallIndirizzo,
+  domandaStatisticheDallaDomanda,
+  eUnoStoricoRest,
+  rispostaComeRest,
+  rispostaDalleStatistiche,
+} from "../core/storico-rest.js";
+import { chiediAHomeAssistant, doc, gettoneDiAccesso, lexicalGlobal, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_INDIRIZZO_DI_CASA__";
 const state = (root[KEY] ||= { installed: false });
@@ -99,6 +106,72 @@ export function initRiparato(init) {
   return { ...(init || {}), headers: intestazioni };
 }
 
+/* ─── Lo storico REST passa dal socket ────────────────────────────────────
+ *
+ * Riparato l'indirizzo, la chiamata REST allo storico ha ancora un modo di
+ * fallire, ed e' il piu' rumoroso: dentro il pannello di Home Assistant la
+ * plancia non ha nessun gettone, il `Bearer` finto viene tolto qui sopra, e la
+ * richiesta parte nuda. Home Assistant risponde 401 e suona la campanella —
+ * «Login attempt or request with invalid authentication from 127.0.0.1», che
+ * da Nabu Casa e' l'indirizzo di tutti. Il guscio lo storico lo chiede in dieci
+ * posti, uno dei quali ogni dieci minuti (la derivazione dei totali): dieci
+ * campanelle e nessun dato.
+ *
+ * Il socket del guscio e' autenticato e conosce la stessa domanda. Allora la
+ * si traduce: l'indirizzo REST diventa `history/history_during_period`, e la
+ * risposta torna nella forma del REST, in una `Response` vera. Il guscio non
+ * se ne accorge. Chi ha un gettone vero (la pagina fuori dal pannello) e vede
+ * il socket chiuso continua col REST; chi non ce l'ha riceve un 502 pulito, che
+ * il guscio gia' tratta come «niente dati», e nessuna campanella. */
+export const ATTESA_STORICO_MS = 30_000;
+
+function socketPronto() {
+  const socket = lexicalGlobal("ws");
+  return Boolean(socket && socket.readyState === 1 && lexicalGlobal("pendingWsCallbacks"));
+}
+
+function rispostaJson(corpo, status = 200) {
+  const testo = JSON.stringify(corpo);
+  if (typeof root.Response === "function") {
+    return new root.Response(testo, {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => corpo,
+    text: async () => testo,
+  };
+}
+
+/** Lo storico REST servito dal socket; `null` se questa richiesta non e' uno storico. */
+export function storicoViaSocket(indirizzo, ripiego) {
+  if (!eUnoStoricoRest(indirizzo)) return null;
+  const domanda = domandaDallIndirizzo(indirizzo);
+  if (!domanda) return null;
+  if (!socketPronto()) return gettoneDiAccesso() ? ripiego() : Promise.resolve(rispostaJson([], 502));
+  const dallaStoria = () =>
+    chiediAHomeAssistant(domanda, ATTESA_STORICO_MS).then((risultato) =>
+      rispostaComeRest(risultato, domanda.entity_ids),
+    );
+  /* Un periodo lungo — la derivazione dei totali dall'inizio dell'anno, i
+   * popup di una settimana — pesa sul server se lo si chiede come storia
+   * grezza: si chiedono le statistiche, e alla storia si torna solo per le
+   * entita' che non ne hanno (dal campo: la CPU del mini PC). */
+  const statistiche = domandaStatisticheDallaDomanda(domanda);
+  const righe = statistiche
+    ? chiediAHomeAssistant(statistiche, ATTESA_STORICO_MS).then((risultato) => {
+        const tradotte = rispostaDalleStatistiche(risultato, domanda.entity_ids, statistiche.period);
+        return tradotte.length === domanda.entity_ids.length ? tradotte : dallaStoria();
+      })
+    : dallaStoria();
+  return righe
+    .then((elenco) => rispostaJson(elenco))
+    .catch(() => (gettoneDiAccesso() ? ripiego() : rispostaJson([], 502)));
+}
+
 export function installIndirizzoDiCasa() {
   if (state.installed) return false;
   const originale = root.fetch;
@@ -118,7 +191,12 @@ export function installIndirizzoDiCasa() {
        sarebbe vuota per sempre. */
     const conNome = conLEntitaVera(riparato, (nome) => root.resolveEntity?.(nome));
     const initNuovo = initRiparato(init);
-    return originale.call(this, conNome || riparato, initNuovo || init);
+    const finale = conNome || riparato;
+    const viaSocket = storicoViaSocket(finale, () =>
+      originale.call(this, finale, initNuovo || init),
+    );
+    if (viaSocket) return viaSocket;
+    return originale.call(this, finale, initNuovo || init);
   };
   nostra.__dmIndirizzoDiCasa = true;
   nostra.__dmPrevious = originale;

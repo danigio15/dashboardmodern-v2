@@ -12,6 +12,7 @@
  * arrivate dopo.
  */
 import {
+  comandoDelRobot,
   drawableRobots,
   robotActions,
   robotCommand,
@@ -156,6 +157,43 @@ function fanMarkup(view) {
     <select data-dm-robot-fan aria-label="${esc(t("Potenza di aspirazione", "Suction power"))}">${options}</select></label>`;
 }
 
+/* I comandi a parte del robot (#306): i tasti e gli interruttori sotto ai
+ * comandi di sempre, le tendine accanto a quella dell'aspirazione. «Da solo la
+ * modalita' aspirazione»: un robot che lava ha anche i suoi programmi, e sono
+ * entita' a parte che la scheda non vedeva. */
+function comandiTastiMarkup(view) {
+  const voci = (view.comandi || []).filter((voce) => voce.genere !== "tendina");
+  if (!voci.length) return "";
+  return voci
+    .map((voce) => {
+      const interruttore = voce.genere === "interruttore";
+      const premuto = interruttore ? ` aria-pressed="${voce.acceso === true}"` : "";
+      const glifo = interruttore ? "⏻" : "✦";
+      return `<button type="button" class="dm-robot-btn dm-robot-cmd" data-dm-robot-cmd="${esc(voce.entity)}" data-dm-robot-cmd-genere="${esc(voce.genere)}"${premuto}${voce.available ? "" : " disabled"} title="${esc(voce.name)}">
+          <span aria-hidden="true">${glifo}</span><span class="dm-robot-btn-tx">${esc(voce.name)}</span>
+        </button>`;
+    })
+    .join("");
+}
+
+function comandiTendineMarkup(view) {
+  const voci = (view.comandi || []).filter((voce) => voce.genere === "tendina");
+  return voci
+    .map((voce) => {
+      const opzioni = voce.opzioni.length ? voce.opzioni : voce.scelta ? [voce.scelta] : [];
+      if (!opzioni.length) return "";
+      const options = opzioni
+        .map(
+          (opzione) =>
+            `<option value="${esc(opzione)}"${opzione === voce.scelta ? " selected" : ""}>${esc(opzione)}</option>`,
+        )
+        .join("");
+      return `<label class="dm-robot-fan dm-robot-tendina"><span>${esc(voce.name)}</span>
+    <select data-dm-robot-tendina="${esc(voce.entity)}" aria-label="${esc(voce.name)}"${voce.available ? "" : " disabled"}>${options}</select></label>`;
+    })
+    .join("");
+}
+
 function mapMarkup(view) {
   if (!view.mapEntity)
     return `<div class="dm-robot-map dm-vuota" data-dm-robot-map><span class="dm-robot-map-hint">${esc(t("Nessuna mappa collegata", "No map linked"))}</span></div>`;
@@ -202,9 +240,15 @@ function cardMarkup(view) {
     <div class="dm-robot-meta">
       ${batteryMarkup(view)}
       ${fanMarkup(view)}
+      ${comandiTendineMarkup(view)}
     </div>
     <p class="dm-robot-error" data-dm-robot-error${view.error ? "" : " hidden"}>${esc(view.error)}</p>
     <div class="dm-robot-actions">${actions}</div>
+    ${
+      comandiTastiMarkup(view)
+        ? `<div class="dm-robot-actions dm-robot-comandi" data-dm-robot-comandi>${comandiTastiMarkup(view)}</div>`
+        : ""
+    }
   </article>`;
 }
 
@@ -227,6 +271,12 @@ function signatureOf(views) {
          * markup: quando compare — il sensore a parte che arriva dopo — la
          * scheda va rifatta, non solo aggiornata. */
         view.battery === null ? "" : "batt",
+        /* I comandi a parte (#306): quali sono, come si chiamano, che opzioni
+         * hanno e se rispondono. Lo stato di un interruttore e la scelta di
+         * una tendina invece si aggiornano sul posto. */
+        (view.comandi || [])
+          .map((voce) => `${voce.entity}:${voce.name}:${voce.available}:${voce.opzioni.join("/")}`)
+          .join("+"),
       ].join("~"),
     )
     .join("|");
@@ -252,6 +302,18 @@ function syncCard(card, view) {
   // Mai riscrivere una scelta mentre la si sta facendo.
   if (fan && fan !== doc.activeElement && view.fanSpeed && fan.value !== view.fanSpeed)
     fan.value = view.fanSpeed;
+  /* I comandi a parte (#306): l'interruttore segue il suo stato, la tendina
+   * la sua scelta — con la stessa cura per chi la sta toccando. */
+  for (const voce of view.comandi || []) {
+    if (voce.genere === "interruttore") {
+      const tasto = card.querySelector(`[data-dm-robot-cmd="${CSS.escape(voce.entity)}"]`);
+      if (tasto) tasto.setAttribute("aria-pressed", String(voce.acceso === true));
+    } else if (voce.genere === "tendina") {
+      const tendina = card.querySelector(`[data-dm-robot-tendina="${CSS.escape(voce.entity)}"]`);
+      if (tendina && tendina !== doc.activeElement && voce.scelta && tendina.value !== voce.scelta)
+        tendina.value = voce.scelta;
+    }
+  }
 
   const error = card.querySelector("[data-dm-robot-error]");
   if (error) {
@@ -581,13 +643,25 @@ export function handleRobotClick(event) {
     event.preventDefault();
     return apriMappaRobot(mappa.dataset.dmRobotMapOpen);
   }
+  /* Un comando a parte (#306): si preme, si accende o si inverte, secondo
+   * cosa e'. Lo stato che ne segue arriva da Home Assistant col prossimo giro. */
+  const comando = event.target?.closest?.("[data-dm-robot-cmd]");
+  if (comando) {
+    const voce = vistaDi(comando)?.comandi?.find(
+      (item) => item.entity === clean(comando.dataset.dmRobotCmd),
+    );
+    if (!voce) return false;
+    event.preventDefault();
+    if (root.navigator?.vibrate) root.navigator.vibrate(12);
+    if (voce.genere === "interruttore")
+      comando.setAttribute("aria-pressed", String(voce.acceso !== true));
+    callService(comandoDelRobot(voce));
+    schedule();
+    return true;
+  }
   const button = event.target?.closest?.("[data-dm-robot-act]");
   if (!button) return false;
-  const card = button.closest("[data-dm-robot]");
-  const entity = clean(card?.dataset.dmRobot);
-  const view = configuredRobots()
-    .map((robot) => robotView(robot, allStates()))
-    .find((item) => item.entity === entity);
+  const view = vistaDi(button);
   if (!view) return false;
   event.preventDefault();
   if (root.navigator?.vibrate) root.navigator.vibrate(12);
@@ -596,13 +670,32 @@ export function handleRobotClick(event) {
   return true;
 }
 
+/* Il robot a cui appartiene un pezzo della scheda, come sta adesso. */
+function vistaDi(nodo) {
+  const entity = clean(nodo?.closest?.("[data-dm-robot]")?.dataset.dmRobot);
+  if (!entity) return null;
+  return (
+    configuredRobots()
+      .map((robot) => robotView(robot, allStates()))
+      .find((item) => item.entity === entity) || null
+  );
+}
+
 function handleFanChange(event) {
+  /* Una tendina a parte (#306): la scelta va alla sua entita', non al robot. */
+  const tendina = event.target?.closest?.("[data-dm-robot-tendina]");
+  if (tendina) {
+    const voce = vistaDi(tendina)?.comandi?.find(
+      (item) => item.entity === clean(tendina.dataset.dmRobotTendina),
+    );
+    if (!voce) return;
+    callService(comandoDelRobot(voce, tendina.value));
+    schedule();
+    return;
+  }
   const select = event.target?.closest?.("[data-dm-robot-fan]");
   if (!select) return;
-  const entity = clean(select.closest("[data-dm-robot]")?.dataset.dmRobot);
-  const view = configuredRobots()
-    .map((robot) => robotView(robot, allStates()))
-    .find((item) => item.entity === entity);
+  const view = vistaDi(select);
   if (!view) return;
   callService(robotFanCommand(view, select.value));
   schedule();
@@ -725,6 +818,14 @@ function installStyles() {
       #page-robot .dm-robot-btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:9px 6px;border:1px solid var(--divider-color,#dbe4ee);border-radius:13px;background:var(--card-bg,#fff);font:inherit;font-size:11px;font-weight:800;cursor:pointer;color:var(--text,#0f172a)}
       #page-robot .dm-robot-btn:hover{border-color:#0ea5e9}
       #page-robot .dm-robot-btn span[aria-hidden]{font-size:16px}
+      /* I comandi a parte (#306): una fila sotto quelli di sempre, separata da
+         un filo; l'interruttore acceso si vede dal bordo e dal fondo. */
+      #page-robot .dm-robot-comandi{margin-top:8px;padding-top:10px;border-top:1px dashed var(--divider-color,#dbe4ee)}
+      #page-robot .dm-robot-cmd .dm-robot-btn-tx{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      #page-robot .dm-robot-cmd[aria-pressed="true"]{border-color:#0ea5e9;background:color-mix(in srgb,#0ea5e9 14%,var(--card-bg,#fff));color:#0369a1}
+      #page-robot .dm-robot-cmd[disabled]{opacity:.45;cursor:not-allowed}
+      #page-robot .dm-robot-tendina{margin-left:0}
+      #page-robot .dm-robot-tendina select{max-width:160px}
       #page-robot .dm-robot-empty{grid-column:1/-1}
       @media(prefers-reduced-motion:reduce){#page-robot .dm-robot-batt-shell b{transition:none}}
     `,

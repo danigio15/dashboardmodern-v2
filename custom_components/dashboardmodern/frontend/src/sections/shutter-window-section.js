@@ -336,18 +336,43 @@ function casellaPreset() {
   return holder;
 }
 
+/* La stessa forma della casella del guscio («Entita' tapparella»): la casella
+ * nuda con la lente, e il nome glielo scrive la carta delle entita', che lo
+ * conosce per id. Con un'etichetta propria la carta trattava il campo da gia'
+ * intitolato: la matita finiva su una riga a se' sopra la casella, e sette
+ * campi della scheda non stavano in riga con il primo (visto sul campo). */
 function casella(id, etichetta, esempio) {
-  const holder = doc.createElement("label");
-  holder.className = "ed-slot dm-tw-slot";
+  const holder = doc.createElement("div");
+  holder.className = "dm-tw-slot";
   holder.dataset.dmTwSlot = id;
+  holder.dataset.dmTwEtichetta = etichetta;
   holder.innerHTML =
-    `<span class="ed-slot-lbl">${etichetta}</span>` +
-    '<span class="ed-form-row">' +
-    `<input id="${id}" class="ed-input mono" autocomplete="off" data-entity-input="true"` +
+    '<div class="dm-tw-campo" style="display:flex; gap:8px; margin-bottom:6px;">' +
+    `<input id="${id}" class="ed-input mono" style="flex:1;" autocomplete="off" data-entity-input="true"` +
     ` placeholder="${esempio}">` +
     `<button type="button" class="dm-entity-picker" data-entity-target="${id}"` +
     ` aria-label="${t("Seleziona entità", "Choose entity")}">🔍</button>` +
-    "</span>";
+    "</div>";
+  return holder;
+}
+
+/* La soglia di chiusura di QUESTA riga (dal campo, dopo la #298): «ognuno puo'
+ * avere una percentuale differente». Vuota, vale quella di casa scritta in
+ * cima alla scheda. */
+function casellaSogliaRiga() {
+  const holder = doc.createElement("label");
+  holder.className = "ed-slot dm-tw-slot";
+  holder.dataset.dmTwSlot = "ed-tp-soglia-riga";
+  holder.innerHTML =
+    `<span class="ed-slot-lbl">${esc(t("Chiusa sotto il (%)", "Closed below (%)"))}</span>` +
+    `<input id="ed-tp-soglia-riga" class="ed-input" type="number" min="0" max="${SOGLIA_CHIUSA_MASSIMA}" step="1"` +
+    ` placeholder="${esc(t("come la casa", "as the house"))}" autocomplete="off">` +
+    `<small>${esc(
+      t(
+        "Solo per questa finestra: ferma a questa percentuale o sotto conta come chiusa. Vuota, vale la soglia di casa scritta in cima.",
+        "For this window only: resting at this percentage or below counts as closed. Empty, the house threshold at the top applies.",
+      ),
+    )}</small>`;
   return holder;
 }
 
@@ -392,13 +417,13 @@ export function ensureSogliaField(body = doc?.getElementById("ed-body")) {
     riquadro.className = "ed-slot dm-tw-slot dm-tw-soglia";
     riquadro.dataset.dmTwSoglia = "true";
     riquadro.innerHTML =
-      `<span class="ed-slot-lbl">${esc(t("Chiusa sotto il (%)", "Closed below (%)"))}</span>` +
+      `<span class="ed-slot-lbl">${esc(t("Chiusa sotto il (%), di serie", "Closed below (%), by default"))}</span>` +
       `<input id="ed-tp-soglia" class="ed-input" type="number" min="0" max="${SOGLIA_CHIUSA_MASSIMA}" step="1"` +
       ' placeholder="0" autocomplete="off">' +
       `<small>${esc(
         t(
-          "Una tapparella ferma a questa percentuale o sotto conta come chiusa, in pagina e in Home: chi lascia uno spiraglio del 10% per l'aria non se le sente dire aperte. Zero è il comportamento di sempre.",
-          "A shutter resting at this percentage or below counts as closed, on the page and on Home: whoever leaves a 10% gap for air is not told they are open. Zero is the behaviour of always.",
+          "Una tapparella ferma a questa percentuale o sotto conta come chiusa, in pagina e in Home: chi lascia uno spiraglio del 10% per l'aria non se le sente dire aperte. Vale per tutte le finestre che non hanno una soglia propria nella loro riga. Zero è il comportamento di sempre.",
+          "A shutter resting at this percentage or below counts as closed, on the page and on Home: whoever leaves a 10% gap for air is not told they are open. It applies to every window without a threshold of its own in its row. Zero is the behaviour of always.",
         ),
       )}</small>`;
     const campo = riquadro.querySelector("#ed-tp-soglia");
@@ -438,7 +463,7 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
       campo = casella(id, etichetta, esempio);
       aggiunte += 1;
     } else {
-      campo = campo.closest("label, .ed-slot") || campo;
+      campo = campo.closest("[data-dm-tw-slot], label, .ed-slot") || campo;
     }
     /* Si rimette in fila a ogni giro: una casella stampata al posto sbagliato
      * da una versione precedente torna dove deve stare senza doverla rifare. */
@@ -449,6 +474,17 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
     let campo = body.querySelector("#ed-tp-preset");
     if (!campo) {
       campo = casellaPreset();
+      aggiunte += 1;
+    } else {
+      campo = campo.closest("label, .ed-slot") || campo;
+    }
+    if (ultimo.nextElementSibling !== campo) ultimo.after?.(campo);
+    ultimo = campo;
+  }
+  {
+    let campo = body.querySelector("#ed-tp-soglia-riga");
+    if (!campo) {
+      campo = casellaSogliaRiga();
       aggiunte += 1;
     } else {
       campo = campo.closest("label, .ed-slot") || campo;
@@ -578,13 +614,16 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .dm-tw-grata-meta{
       position:absolute!important;top:0!important;bottom:0!important;width:50%!important;
       transition:transform 1s cubic-bezier(.3,.7,.2,1)!important;
-      /* Sbarre verticali rade piu' due traverse: si vede attraverso. */
+      /* Sbarre verticali rade piu' due traverse: si vede attraverso.
+         Il ferro e' grigio chiaro (dal campo: «essendo molto scure, quando
+         sono chiuse e la finestra e' aperta visivamente non e' il massimo»):
+         una grata si legge dal disegno delle sbarre, non dal nero. */
       background:
         repeating-linear-gradient(90deg,
-          rgba(51,65,85,.82) 0 3px,rgba(51,65,85,0) 3px 21px),
-        linear-gradient(180deg,rgba(51,65,85,0) 0 21%,rgba(51,65,85,.82) 21% 24%,
-          rgba(51,65,85,0) 24% 74%,rgba(51,65,85,.82) 74% 77%,rgba(51,65,85,0) 77%)!important;
-      filter:drop-shadow(1px 1px 0 rgba(255,255,255,.35))!important}
+          rgba(148,163,184,.9) 0 3px,rgba(148,163,184,0) 3px 21px),
+        linear-gradient(180deg,rgba(148,163,184,0) 0 21%,rgba(148,163,184,.9) 21% 24%,
+          rgba(148,163,184,0) 24% 74%,rgba(148,163,184,.9) 74% 77%,rgba(148,163,184,0) 77%)!important;
+      filter:drop-shadow(1px 1px 0 rgba(255,255,255,.55))!important}
     html body #page-tapparelle#page-tapparelle .dm-tw-grata-sx{left:0!important;transform-origin:left center!important}
     html body #page-tapparelle#page-tapparelle .dm-tw-grata-dx{right:0!important;transform-origin:right center!important}
     /* Aperta: le due meta' si ammucchiano contro i loro stipiti e il vetro
@@ -603,9 +642,40 @@ function installStyles() {
       transform:scaleX(1)!important;
       background:
         repeating-linear-gradient(90deg,
-          rgba(51,65,85,.88) 0 3px,rgba(51,65,85,0) 3px 21px),
+          rgba(148,163,184,.92) 0 3px,rgba(148,163,184,0) 3px 21px),
         repeating-linear-gradient(180deg,
-          rgba(51,65,85,0) 0 18px,rgba(51,65,85,.88) 18px 21px)!important}
+          rgba(148,163,184,0) 0 18px,rgba(148,163,184,.92) 18px 21px)!important}
+    /* Il grigio sfumato (dal campo: «secondo me un grigio sfumato sarebbe
+       meglio»). Dove il browser sa mascherare, la sbarra non e' una tinta
+       piena ma va dal chiaro in alto al pieno in basso, con un filo di luce
+       sul bordo: e' il ferro zincato controluce, e si legge tanto sul vetro
+       aperto quanto sulle ante chiuse. Il ritaglio a sbarre lo fa la
+       maschera, il colore e' un fondo solo; chi non sa mascherare tiene le
+       sbarre grigie di sopra, che sono la stessa forma senza la sfumatura. */
+    @supports (mask-image:linear-gradient(#000,#000)) or (-webkit-mask-image:linear-gradient(#000,#000)){
+      html body #page-tapparelle#page-tapparelle .dm-tw-grata-meta{
+        background:
+          repeating-linear-gradient(90deg,rgba(255,255,255,.7) 0 1px,rgba(255,255,255,0) 1px 21px),
+          linear-gradient(180deg,#e2e8f0 0%,#b4bfcd 55%,#8593a7 100%)!important;
+        filter:none!important;
+        -webkit-mask-image:
+          repeating-linear-gradient(90deg,#000 0 3px,transparent 3px 21px),
+          linear-gradient(180deg,transparent 0 21%,#000 21% 24%,transparent 24% 74%,#000 74% 77%,transparent 77%);
+        mask-image:
+          repeating-linear-gradient(90deg,#000 0 3px,transparent 3px 21px),
+          linear-gradient(180deg,transparent 0 21%,#000 21% 24%,transparent 24% 74%,#000 74% 77%,transparent 77%)}
+      html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata="chiusa"] .dm-tw-grata-meta{
+        background:
+          repeating-linear-gradient(90deg,rgba(255,255,255,.7) 0 1px,rgba(255,255,255,0) 1px 21px),
+          repeating-linear-gradient(180deg,rgba(255,255,255,0) 0 18px,rgba(255,255,255,.7) 18px 19px,rgba(255,255,255,0) 19px 21px),
+          linear-gradient(180deg,#e2e8f0 0%,#b4bfcd 55%,#8593a7 100%)!important;
+        -webkit-mask-image:
+          repeating-linear-gradient(90deg,#000 0 3px,transparent 3px 21px),
+          repeating-linear-gradient(180deg,transparent 0 18px,#000 18px 21px);
+        mask-image:
+          repeating-linear-gradient(90deg,#000 0 3px,transparent 3px 21px),
+          repeating-linear-gradient(180deg,transparent 0 18px,#000 18px 21px)}
+    }
     /* Prima la grata, poi la finestra (#297).
      *
      * Le due cose si muovono nell'ordine in cui le si tocca davvero: chiudendo,

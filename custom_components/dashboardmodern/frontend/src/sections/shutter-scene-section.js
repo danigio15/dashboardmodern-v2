@@ -3,6 +3,7 @@ import {
   coverClosedPercent,
   coverClosedThreshold,
   coverEntries,
+  sogliaDellaCopertura,
   coverIsAwning,
   coverIsSideways,
   coverKind,
@@ -155,6 +156,8 @@ function coverView(item = {}, distingui = false) {
     moving: status === "opening" || status === "closing",
     preset: coverPresetPosition(item),
     down: giu,
+    /* La soglia di chiusura di questa riga, o quella di casa. */
+    soglia: sogliaDellaCopertura(item, sogliaChiusa()),
   };
 }
 
@@ -292,9 +295,14 @@ function sogliaChiusa() {
   return coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0));
 }
 
+/* La soglia di una vista: la sua se la porta, se no quella di casa. */
+function sogliaDi(view) {
+  return Number.isFinite(Number(view?.soglia)) ? Number(view.soglia) : sogliaChiusa();
+}
+
 function statoVisibile(view) {
   if (view.moving) return view.status;
-  if (view.hasPosition) return view.position > sogliaChiusa() ? "open" : "closed";
+  if (view.hasPosition) return view.position > sogliaDi(view) ? "open" : "closed";
   return view.status;
 }
 
@@ -320,8 +328,7 @@ function summaryText(views) {
   const moving = tutte.filter((view) => view.moving).length;
   /* Lo spiraglio sotto la soglia (#298) e' una tapparella chiusa anche qui: il
    * conto in cima e la pastiglia della card devono dire la stessa cosa. */
-  const soglia = sogliaChiusa();
-  const open = tutte.filter((view) => !view.moving && view.position > soglia).length;
+  const open = tutte.filter((view) => !view.moving && view.position > sogliaDi(view)).length;
   const closed = tutte.length - moving - open;
   const parts = [];
   if (open) parts.push(open === 1 ? t("1 aperta", "1 open") : t(`${open} aperte`, `${open} open`));

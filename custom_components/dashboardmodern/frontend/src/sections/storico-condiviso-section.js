@@ -23,7 +23,7 @@
  */
 
 import { chiaveDellIntervallo, intervalloDa } from "../core/periodo-storico.js";
-import { normalizeHistoryRows } from "./history-section.js";
+import { leggiStorico, normalizeHistoryRows } from "./history-section.js";
 import { clean, root } from "./shared.js";
 
 const KEY = "__dmStoricoCondiviso";
@@ -48,16 +48,9 @@ async function chiedi(entity, scelta) {
   /* `scelta` e' un numero di ore, come e' sempre stato, oppure un intervallo
    * da quando a quando (#302): la domanda al Recorder e' la stessa. */
   const intervallo = intervalloDa(scelta) || intervalloDa(3);
-  const risposta = await broker.request({
-    type: "history/history_during_period",
-    start_time: new Date(intervallo.start).toISOString(),
-    end_time: new Date(intervallo.end).toISOString(),
-    entity_ids: [entity],
-    include_start_time_state: true,
-    significant_changes_only: false,
-    minimal_response: true,
-    no_attributes: true,
-  });
+  /* La stessa lettura del popup: storia fino a tre giorni, statistiche oltre,
+   * con la pazienza che il periodo merita (#302, dal campo). */
+  const risposta = await leggiStorico(broker, entity, intervallo);
   return normalizeHistoryRows(risposta, entity);
 }
 
