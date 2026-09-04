@@ -268,3 +268,118 @@ test("«heating» e «cleaning» sono modi di dire che sta lavorando", () => {
   assert.equal(conStato("running", 0), "running");
   assert.equal(conStato("idle", 0), "off");
 });
+
+/* Senza sensore di potenza, lo stato del programma decide da solo.
+ *
+ * Dal campo: «prevedi che se non viene messo il sensore potenza il cambio
+ * stato acceso e in funzione lo devi capire dagli stati dei programmi». Una
+ * lavatrice connessa spesso non ha nessuna presa smart sotto: i watt non
+ * esistono, e l'unica cosa che parla e' la parola che l'integrazione
+ * pubblica. Qui ci sono le parole vere di cinque integrazioni.
+ */
+const senzaWatt = (stato) => ({
+  device: { id: "hon-washer", name: "Lavatrice", state_entity: "sensor.lavatrice_machine_status" },
+  states: { "sensor.lavatrice_machine_status": { state: stato, attributes: {} } },
+});
+
+function modoSenzaWatt(stato) {
+  const { device: d, states: s } = senzaWatt(stato);
+  return createApplianceViewModel(d, s, [], "it", { holds: new Map() }).mode;
+}
+
+test("senza watt, le fasi di un ciclo dicono IN FUNZIONE", () => {
+  /* hOn: il modo macchina e le quattro fasi che si vedono su una Hoover. */
+  for (const parola of ["running", "washing", "rinse", "spin", "drying", "steam"]) {
+    assert.equal(modoSenzaWatt(parola), "running", `hOn «${parola}»`);
+  }
+  /* Home Connect scrive Run, Miele in_use, SmartThings wash e weightSensing,
+   * e ognuno con le sue maiuscole e i suoi underscore. */
+  for (const parola of ["Run", "in_use", "inUse", "wash", "weightSensing", "PreWash", "Cooking"]) {
+    assert.equal(modoSenzaWatt(parola), "running", `«${parola}»`);
+  }
+});
+
+test("senza watt, pronta e finita dicono SPENTO", () => {
+  for (const parola of [
+    "ready",
+    "end",
+    "finished",
+    "Finished",
+    "program_ended",
+    "off",
+    "initial",
+  ]) {
+    assert.equal(modoSenzaWatt(parola), "off", `«${parola}»`);
+  }
+});
+
+test("senza watt, in pausa e avvio ritardato dicono STANDBY e non SPENTO", () => {
+  /* «Acceso ma fermo» e' una risposta vera: la macchina non sta lavorando, ma
+   * dire SPENTO a un ciclo in pausa o programmato per le tre di notte
+   * significa far sparire dalla plancia un bucato che c'e'. */
+  for (const parola of [
+    "pause",
+    "Pause",
+    "scheduled",
+    "delayed_start",
+    "DelayedStart",
+    "programmed",
+    "waiting_to_start",
+  ]) {
+    assert.equal(modoSenzaWatt(parola), "standby", `«${parola}»`);
+  }
+});
+
+test("una parola che non conosciamo lascia parlare i watt", () => {
+  /* Il vocabolario non indovina: se la parola non e' fra quelle note, la
+   * decisione torna dov'era, alla potenza. */
+  assert.equal(modoSenzaWatt("mistero_totale"), "off");
+  const model = createApplianceViewModel(
+    { id: "x", state_entity: "sensor.s", power_entity: "sensor.p", threshold_run: 5 },
+    {
+      "sensor.s": { state: "mistero_totale", attributes: {} },
+      "sensor.p": { state: "1900", attributes: { unit_of_measurement: "W" } },
+    },
+    [],
+    "it",
+    { holds: new Map() },
+  );
+  assert.equal(model.mode, "running");
+});
+
+test("i watt e la parola non si contraddicono: comanda chi dice che si sta lavorando", () => {
+  const conWatt = (stato, watt) =>
+    createApplianceViewModel(
+      { id: "y", state_entity: "sensor.s", power_entity: "sensor.p", threshold_run: 5 },
+      {
+        "sensor.s": { state: stato, attributes: {} },
+        "sensor.p": { state: String(watt), attributes: { unit_of_measurement: "W" } },
+      },
+      [],
+      "it",
+      { holds: new Map() },
+    ).mode;
+  /* L'asciugatura della lavastoviglie: zero watt, ma il ciclo non e' finito. */
+  assert.equal(conWatt("drying", 0), "running");
+  /* Uno stato «finito» rimasto indietro non spegne una macchina che tira. */
+  assert.equal(conWatt("finished", 1900), "running");
+  /* E fermo davvero e' fermo. */
+  assert.equal(conWatt("finished", 0), "off");
+});
+
+test("lo stato si sceglie da solo quando nessuno l'ha configurato", () => {
+  /* Una configurazione vecchia ha solo la lista `entities`: il sensore della
+   * fase si riconosce dal nome piu' la parola che dice adesso. */
+  const model = createApplianceViewModel(
+    { id: "z", entities: ["sensor.lavatrice_program_phase", "sensor.lavatrice_rssi"] },
+    {
+      "sensor.lavatrice_program_phase": { state: "spin", attributes: {} },
+      "sensor.lavatrice_rssi": { state: "-61", attributes: { unit_of_measurement: "dBm" } },
+    },
+    [],
+    "it",
+    { holds: new Map() },
+  );
+  assert.equal(model.stateEntity, "sensor.lavatrice_program_phase");
+  assert.equal(model.mode, "running");
+});

@@ -105,44 +105,220 @@ function applyRunHold({ key, mode, delayMinutes, explicitOff, now, holds }) {
   return "running";
 }
 
-/* `heating` e `cleaning` sono le parole di due mondi che qui mancavano: il
- * termostato che sta scaldando (`hvac_action`) e l'aspirapolvere che sta
- * pulendo. Le conosceva la finestra dei sotto-carichi, che aveva una regola
- * sua; adesso che la regola e' una sola, se non stessero qui un termosifone in
- * fase bassa o un robot che torna alla base direbbero SPENTO mentre stanno
- * lavorando — su tutt'e due le schermate. */
-const semanticStateValues = new Set([
-  "playing",
-  "heat",
-  "heating",
-  "cool",
-  "cleaning",
-  "open",
-  "opening",
+/* Le parole con cui un elettrodomestico dice cosa sta facendo.
+ *
+ * Dal campo: «prevedi che se non viene messo il sensore potenza, il cambio
+ * stato acceso e in funzione lo devi capire dagli stati dei programmi».
+ * Aveva ragione, ed era rotto: il vocabolario conosceva «running» e basta,
+ * cosi' una lavatrice hOn a meta' lavaggio — che dice «washing», poi
+ * «rinse», poi «spin» — cadeva in fondo alla scala e usciva SPENTA. Con la
+ * presa smart non si notava, perche' i watt rispondevano al posto suo; senza,
+ * la card era muta per tutto il ciclo.
+ *
+ * Le parole non se le inventa nessuno: sono quelle che le integrazioni vere
+ * pubblicano. hOn dice `running` sul modo macchina e `washing`, `rinse`,
+ * `spin`, `drying` sulla fase; Home Connect dice `run`, `ready`, `finished`,
+ * `delayedstart`; Miele `in_use`, `programmed`, `waiting_to_start`,
+ * `program_ended`; SmartThings `wash`, `rinse`, `spin`, `weightsensing`; LG
+ * ThinQ `power_off`, `initial`, `end`. Il confronto ignora trattini,
+ * underscore e spazi, che sono l'unica cosa su cui non vanno mai d'accordo.
+ *
+ * Tre elenchi e non due, perche' le parole dicono tre cose diverse:
+ * — LAVORA: il ciclo sta girando, e la card dice IN FUNZIONE;
+ * — ASPETTA: la macchina e' accesa ma ferma — in pausa, con l'avvio
+ *   ritardato, programmata e non ancora partita — e la card dice STANDBY,
+ *   che e' la verita': spento sarebbe una bugia, in funzione pure;
+ * — FERMA: pronta, finita, spenta, e la card dice SPENTO.
+ * Una parola che non sta in nessuno dei tre non decide niente e lascia
+ * parlare i watt, com'e' sempre stato.
+ */
+const senzaSeparatori = (value) =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/[\s_\-.]+/g, "");
+
+const PAROLE_CHE_LAVORANO = Object.freeze([
+  // Il modo macchina, come lo dicono le integrazioni.
   "running",
+  "run",
+  "inuse",
   "active",
-  "off",
-  "closed",
-  "stopped",
-  "idle",
-  "standby",
-  "ready",
-  "pronta",
-  "pronto",
+  "started",
+  "start",
+  "inprogress",
+  "operating",
+  "working",
+  "aborting",
+  "cancelling",
+  /* hOn scrive `ending` negli ultimi minuti, prima di tornare `ready`. Il
+   * ciclo non e' finito: l'oblo' e' ancora chiuso e il bucato e' dentro.
+   * Meglio dire IN FUNZIONE un minuto di troppo che dire finito un minuto
+   * troppo presto a chi sta aspettando per stendere. */
+  "ending",
+  // Le fasi di un ciclo: lavaggio, risciacquo, centrifuga, asciugatura.
+  "washing",
+  "wash",
+  "mainwash",
+  "prewash",
+  "rinse",
+  "rinsing",
+  "spin",
+  "spinning",
+  "spinrinse",
+  "drying",
+  "dry",
+  "tumbling",
+  "tumble",
+  "steam",
+  "soak",
+  "soaking",
+  "airwash",
+  "refresh",
+  "weighting",
+  "weightsensing",
+  "sensing",
+  "detecting",
+  // Quelle che scaldano o raffreddano: forno, lavastoviglie, pompa di calore.
+  "heating",
+  "heat",
+  "preheat",
+  "preheating",
+  "cooking",
+  "baking",
+  "roasting",
+  "grilling",
+  "boiling",
+  "cooling",
+  "cool",
+  "freezing",
+  "defrosting",
+  // Le due che c'erano gia', di altri due mondi: il lettore e l'aspirapolvere.
+  "playing",
+  "cleaning",
+  "opening",
+  "open",
+  // In italiano, per chi rinomina gli stati o usa un template.
+  "infunzione",
+  "incorso",
+  "avviato",
+  "attivo",
+  "funzionamento",
+  "lavaggio",
+  "prelavaggio",
+  "risciacquo",
+  "centrifuga",
+  "asciugatura",
+  "ammollo",
+  "riscaldamento",
+  "cottura",
+  "raffreddamento",
+  "inlavaggio",
 ]);
 
-/* Le parole con cui uno stato dice «sto lavorando». */
-const ACTIVE_STATE_VALUES = Object.freeze([
-  "playing",
-  "heat",
-  "heating",
-  "cool",
-  "cleaning",
-  "open",
-  "opening",
-  "running",
-  "active",
+const PAROLE_CHE_ASPETTANO = Object.freeze([
+  /* «Standby» dice esattamente STANDBY: la macchina e' accesa e non sta
+   * lavorando. Stava fra le parole ferme, e una lavastoviglie che lo dichiara
+   * usciva SPENTA. */
+  "standby",
+  "pause",
+  "paused",
+  "pausing",
+  "hold",
+  "onhold",
+  "rinsehold",
+  "suspended",
+  "scheduled",
+  "programmed",
+  "delayedstart",
+  "delayed",
+  "waitingtostart",
+  "waiting",
+  "queued",
+  /* Un guasto non e' uno spegnimento. Dire SPENTO a una macchina in errore
+   * nasconde il guasto; STANDBY la lascia in vista, e la parola vera si
+   * legge nel dettaglio. */
+  "error",
+  "errore",
+  "guasto",
+  "dooropen",
+  "doorisopen",
+  "setprogram",
+  "selected",
+  "inpausa",
+  "pausa",
+  "sospeso",
+  "programmato",
+  "avvioritardato",
+  "inattesa",
+  "attesa",
+  "portaaperta",
+  "differita",
 ]);
+
+const PAROLE_CHE_STANNO_FERME = Object.freeze([
+  "off",
+  "poweroff",
+  "poweredoff",
+  "poweroffed",
+  "closed",
+  "stopped",
+  "stop",
+  "idle",
+  "ready",
+  "readytostart",
+  "inactive",
+  "initial",
+  "sleep",
+  "none",
+  "nostate",
+  "notconnected",
+  "disconnected",
+  "end",
+  "ended",
+  "finish",
+  "finished",
+  "complete",
+  "completed",
+  "done",
+  "programended",
+  "endprogrammed",
+  "programmeended",
+  "drycomplete",
+  "abort",
+  "aborted",
+  "spento",
+  "fermo",
+  "pronta",
+  "pronto",
+  "inattivo",
+  "finito",
+  "terminato",
+  "completato",
+  "fine",
+  "concluso",
+  "scollegato",
+]);
+
+const insieme = (parole) => new Set(parole.map(senzaSeparatori));
+const LAVORANO = insieme(PAROLE_CHE_LAVORANO);
+const ASPETTANO = insieme(PAROLE_CHE_ASPETTANO);
+const FERME = insieme(PAROLE_CHE_STANNO_FERME);
+
+/** Cosa dice una parola di stato: `running`, `standby`, `off` o niente. */
+export function letturaDelloStato(value) {
+  const parola = senzaSeparatori(value);
+  if (!parola) return "";
+  if (LAVORANO.has(parola)) return "running";
+  if (ASPETTANO.has(parola)) return "standby";
+  if (FERME.has(parola)) return "off";
+  return "";
+}
+
+/* Quali sensori possono fare da stato quando nessuno l'ha scelto: quelli che
+ * si chiamano stato, fase o simili E che in questo momento dicono una parola
+ * che il vocabolario conosce. Il nome da solo non basta — `sensor.stato_wifi`
+ * si chiama stato e non parla di cicli — e la parola da sola nemmeno. */
+const semanticStateValues = new Set([...LAVORANO, ...ASPETTANO, ...FERME]);
 
 function inferSemanticStateEntity(device = {}, states = {}) {
   const entries = (device?.entities || []).map(entityId).filter(Boolean);
@@ -152,8 +328,7 @@ function inferSemanticStateEntity(device = {}, states = {}) {
   const semanticSensor = entries.find((id) => {
     if (!/^(sensor|binary_sensor)\./.test(id)) return false;
     if (!/(?:^|[._-])(state|status|phase|fase)(?:[._-]|$)/i.test(id)) return false;
-    const value = clean(states?.[id]?.state).toLowerCase();
-    return semanticStateValues.has(value);
+    return semanticStateValues.has(senzaSeparatori(states?.[id]?.state));
   });
   if (semanticSensor) return semanticSensor;
 
@@ -236,13 +411,17 @@ export function createApplianceViewModel(
     /^binary_sensor\./.test(stateEntity) &&
     /(?:^|[._-])(running|active|activity|operating|working)(?:[._-]|$)/i.test(stateEntity);
 
+  /* Cosa dice la parola dello stato, se ne dice una che conosciamo. */
+  const dettoDalloStato = Boolean(stateEntity) ? letturaDelloStato(configuredState) : "";
+
   const explicitRunning =
-    ACTIVE_STATE_VALUES.includes(configuredState) || (activityBinary && configuredState === "on");
+    dettoDalloStato === "running" || (activityBinary && configuredState === "on");
+
+  const explicitWaiting = dettoDalloStato === "standby";
 
   const explicitlyOff =
     Boolean(stateEntity) &&
-    (["off", "closed", "stopped", "idle"].includes(configuredState) ||
-      (activityBinary && configuredState === "off"));
+    (dettoDalloStato === "off" || (activityBinary && configuredState === "off"));
   const genericOn = configuredState === "on" || controlState === "on";
   const sampledMode =
     unavailable && watts == null
@@ -251,7 +430,9 @@ export function createApplianceViewModel(
         ? "off"
         : explicitRunning || (watts != null && watts >= run)
           ? "running"
-          : genericOn || (watts != null && watts >= standby)
+          : /* «Acceso ma fermo» e' una risposta, e senza watt e' l'unica che
+             * un ciclo in pausa o con l'avvio ritardato merita. */
+            explicitWaiting || genericOn || (watts != null && watts >= standby)
             ? "standby"
             : "off";
   const mode = applyRunHold({

@@ -20,6 +20,9 @@ import {
   writeJsonIfChanged,
 } from "./shared.js";
 import { catalogLabel } from "../core/personalization-catalog.js";
+import { bindApplianceToDevice, bindingLabel } from "../core/appliance-device-binding.js";
+import { APPLIANCE_BINDING_FIELDS } from "../core/device-model.js";
+import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_APPLIANCE_EDITOR_SECTION__";
@@ -349,6 +352,160 @@ function updateEditType(modal, key) {
   }
 }
 
+/* Il blocco «Integrazione» in cima alla finestra di modifica.
+ *
+ * E' la stessa finestra di prima con, sopra le caselle, il dispositivo da cui
+ * l'apparecchio arriva: quale integrazione, quale dispositivo, quante entita'.
+ * Da qui si collega un apparecchio nato a mano — e le caselle vuote si
+ * compilano da sole — o si cambia dispositivo, o si scollega. Il collegamento
+ * viaggia in campi nascosti del modulo e si salva col tasto in fondo, come
+ * tutto il resto: niente si scrive prima di quel tasto. */
+const ROLE_WORDS = Object.freeze({
+  power_entity: ["potenza", "power"],
+  daily_energy_entity: ["energia giornaliera", "daily energy"],
+  monthly_energy_entity: ["energia mensile", "monthly energy"],
+  total_energy_entity: ["energia totale", "total energy"],
+  last_energy_entity: ["consumo dell'ultimo ciclo", "last cycle energy"],
+  state_entity: ["stato programma", "program state"],
+  remaining_entity: ["tempo rimanente", "remaining time"],
+  cycle_duration_entity: ["durata programma", "program duration"],
+  temperature_entity: ["temperatura", "temperature"],
+  temperature_entity_2: ["seconda temperatura", "second temperature"],
+  control_entity: ["comando", "control"],
+  alert_entity: ["allarme", "alarm"],
+  last_start_entity: ["avvio dell'ultimo ciclo", "last cycle start"],
+  last_cost_entity: ["costo dell'ultimo ciclo", "last cycle cost"],
+});
+
+function roleWord(role) {
+  const pair = ROLE_WORDS[role];
+  return pair ? t(pair[0], pair[1]) : "";
+}
+
+function bindingMarkup(device = {}) {
+  const hidden = APPLIANCE_BINDING_FIELDS.map(
+    (key) => `<input type="hidden" name="${key}" value="${esc(device[key] ?? "")}">`,
+  ).join("");
+  const snapshot = Array.isArray(device.device_entities) ? device.device_entities : [];
+  return `<section class="dm-appliance-binding" data-binding data-bound="${clean(device.device_id) ? "true" : "false"}">
+    ${hidden}<input type="hidden" name="device_entities" value="${esc(JSON.stringify(snapshot))}">
+    <div class="dm-appliance-binding-text"><strong data-binding-title></strong><small data-binding-note></small></div>
+    <div class="dm-appliance-binding-actions">
+      <button type="button" class="ed-btn-add dm-appliance-binding-link" data-binding-link></button>
+      <button type="button" class="ed-btn-add dm-appliance-binding-unlink" data-binding-unlink>✂️ ${t("Scollega", "Unlink")}</button>
+    </div>
+  </section>`;
+}
+
+function bindingSnapshot(values) {
+  try {
+    const parsed = JSON.parse(values.device_entities || "[]");
+    return Array.isArray(parsed) ? parsed.map(clean).filter((id) => id.includes(".")) : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function paintBinding(modal, form, note = "") {
+  const box = modal.querySelector("[data-binding]");
+  if (!box) return;
+  const values = Object.fromEntries(new FormData(form).entries());
+  const bound = Boolean(clean(values.device_id));
+  box.dataset.bound = String(bound);
+  const title = box.querySelector("[data-binding-title]");
+  const small = box.querySelector("[data-binding-note]");
+  const link = box.querySelector("[data-binding-link]");
+  if (bound) {
+    const label = bindingLabel(
+      { ...values, device_entities: bindingSnapshot(values) },
+      activeLocale(),
+    );
+    title.textContent = `🔗 ${clean(values.device_name) || t("Dispositivo collegato", "Linked device")}${label ? ` · ${label}` : ""}`;
+    small.textContent =
+      note ||
+      t(
+        "Nel dettaglio dell'apparecchio escono tutte le entità del dispositivo; qui sotto quelle che disegnano la card.",
+        "The appliance detail shows every entity of the device; below, the ones that draw the card.",
+      );
+    link.textContent = `🔁 ${t("Cambia dispositivo", "Change device")}`;
+  } else {
+    title.textContent = `🔗 ${t("Collega a un'integrazione", "Link to an integration")}`;
+    small.textContent =
+      note ||
+      t(
+        "hOn, Home Connect, Miele, LG ThinQ, una presa Shelly…: scegli il dispositivo e le caselle vuote si compilano da sole. Quelle scritte a mano restano.",
+        "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.",
+      );
+    link.textContent = `🔗 ${t("Scegli il dispositivo", "Pick the device")}`;
+  }
+}
+
+function wireBinding(modal, form, device) {
+  const box = modal.querySelector("[data-binding]");
+  if (!box) return;
+  paintBinding(modal, form);
+  box.querySelector("[data-binding-link]")?.addEventListener("click", () => {
+    apriMenuIntegrazioni({
+      onScelto({ integration, device: chosen, entities, outside }) {
+        const values = Object.fromEntries(new FormData(form).entries());
+        const icon = editorVisualKey(values.icon) || deviceVisualKey(device);
+        const draft = { ...device, ...values, icon, visual_key: icon, device_type: icon };
+        const rooms = section("rooms", readJson("cd_stanze", []));
+        const { appliance, filled } = bindApplianceToDevice(draft, {
+          integration,
+          device: chosen,
+          entities,
+          outside,
+          states: allStates(),
+          rooms,
+        });
+        for (const key of APPLIANCE_BINDING_FIELDS) {
+          if (form.elements[key]) form.elements[key].value = appliance[key] ?? "";
+        }
+        form.elements.device_entities.value = JSON.stringify(appliance.device_entities || []);
+        for (const role of filled) {
+          const field = form.elements[role];
+          if (field && !clean(field.value)) field.value = appliance[role];
+        }
+        if (form.elements.name && !clean(form.elements.name.value))
+          form.elements.name.value = appliance.name;
+        if (appliance.visual_key !== icon) updateEditType(modal, appliance.visual_key);
+        const room = form.elements.room_id;
+        if (room && !clean(room.value) && appliance.room_id) room.value = appliance.room_id;
+        if (filled.some((role) => CARD_FIELD_KEYS.includes(role)))
+          modal.querySelector(".dm-appliance-card-fields")?.setAttribute("open", "");
+        const words = filled.map(roleWord).filter(Boolean);
+        const count = words.length;
+        const list = words.join(", ");
+        paintBinding(
+          modal,
+          form,
+          count
+            ? t(`Compilate ${count} caselle: ${list}.`, `Filled ${count} fields: ${list}.`)
+            : t(
+                "Nessuna casella vuota da compilare: quelle scritte a mano restano.",
+                "No empty field to fill in: the ones written by hand stay.",
+              ),
+        );
+      },
+    });
+  });
+  box.querySelector("[data-binding-unlink]")?.addEventListener("click", () => {
+    for (const key of APPLIANCE_BINDING_FIELDS) {
+      if (form.elements[key]) form.elements[key].value = "";
+    }
+    form.elements.device_entities.value = "[]";
+    paintBinding(
+      modal,
+      form,
+      t(
+        "Scollegato: le caselle restano come sono, e si salva col tasto in fondo.",
+        "Unlinked: the fields stay as they are, and the button at the bottom saves.",
+      ),
+    );
+  });
+}
+
 export function openApplianceEditor(index) {
   const device = appliances()[index];
   if (!device) return false;
@@ -369,6 +526,7 @@ export function openApplianceEditor(index) {
   modal.innerHTML = `<section class="dm-section-dialog dm-appliance-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-appliance-editor-title">
     <header><strong id="dm-appliance-editor-title">🔌 ${t("Modifica elettrodomestico", "Edit appliance")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
     <form data-form>
+      ${bindingMarkup(device)}
       <div class="dm-modal-grid dm-appliance-main-fields">
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
         <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><input type="hidden" name="icon" value="${esc(visual)}"><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="canonical-picker" aria-hidden="false"></span><button type="button" class="ed-input dm-appliance-type-trigger" data-type-trigger aria-haspopup="listbox"></button></span><small>${t("Usa lo stesso catalogo e la stessa icona azzurra della prima configurazione.", "Uses the same catalog and blue icon as the first configuration.")}</small></label>
@@ -393,6 +551,7 @@ export function openApplianceEditor(index) {
   const form = modal.querySelector("[data-form]");
   const close = () => modal.remove();
   updateEditType(modal, visual);
+  wireBinding(modal, form, device);
   modal.querySelector("[data-type-trigger]")?.addEventListener("click", () => {
     openTypePicker({
       selected: form.elements.icon.value,
@@ -487,6 +646,16 @@ export function openApplianceEditor(index) {
       last_energy_entity: clean(values.last_energy_entity),
       last_cost_entity: clean(values.last_cost_entity),
     };
+    /* Il collegamento all'integrazione, com'e' nei campi nascosti: vuoto
+     * vuol dire scollegato, e i campi spariscono invece di restare a meta'. */
+    for (const key of APPLIANCE_BINDING_FIELDS) {
+      const value = clean(values[key]);
+      if (value) next[key] = value;
+      else delete next[key];
+    }
+    const snapshot = bindingSnapshot(values);
+    if (clean(values.device_id) && snapshot.length) next.device_entities = snapshot;
+    else delete next.device_entities;
     if (next.threshold_standby === "") delete next.threshold_standby;
     for (const key of [
       "cycle_minutes",
@@ -527,6 +696,17 @@ function installStyles() {
     .dm-appliance-type-trigger{display:grid!important;grid-template-columns:38px minmax(0,1fr) 22px!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:58px!important;padding:8px 12px!important;text-align:left!important;cursor:pointer!important;color:var(--text,#0f172a)!important;background:var(--card-background-color,#fff)!important}
     .dm-appliance-type-trigger-icon{display:grid!important;place-items:center!important;width:36px!important;height:36px!important;color:#0ea5e9!important}.dm-appliance-type-trigger-icon svg{width:30px!important;height:30px!important}.dm-appliance-type-trigger-label{min-width:0!important;font-weight:750!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-appliance-type-chevron{font-size:20px!important;justify-self:end!important}
     .dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:hidden!important}
+    .dm-appliance-binding{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px 12px!important;align-items:center!important;margin:0 0 12px!important;padding:12px 14px!important;border-radius:16px!important;border:1px dashed color-mix(in srgb,#0ea5e9 45%,transparent)!important;background:color-mix(in srgb,#0ea5e9 7%,transparent)!important}
+    .dm-appliance-binding[data-bound="true"]{border-style:solid!important}
+    .dm-appliance-binding-text{display:grid!important;gap:3px!important;min-width:0!important}
+    .dm-appliance-binding-text strong{font-size:13px!important;font-weight:850!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    .dm-appliance-binding-text small{font-size:11px!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important;font-weight:600!important}
+    .dm-appliance-binding-actions{display:flex!important;flex-direction:column!important;gap:6px!important;min-width:max-content!important}
+    .dm-appliance-binding-actions .ed-btn-add{box-sizing:border-box!important;width:100%!important;margin:0!important;padding:10px 16px!important;font-size:11px!important;letter-spacing:.8px!important;white-space:nowrap!important;overflow:visible!important}
+    .dm-appliance-binding-link{background:linear-gradient(135deg,#0ea5e9,#0369a1)!important}
+    .dm-appliance-binding-unlink{background:#94a3b8!important}
+    .dm-appliance-binding[data-bound="false"] .dm-appliance-binding-unlink{display:none!important}
+    @media(max-width:520px){.dm-appliance-binding{grid-template-columns:minmax(0,1fr)!important}.dm-appliance-binding-actions{flex-direction:row!important}.dm-appliance-binding-actions .ed-btn-add{flex:1 1 auto!important}}
     .dm-appliance-flow-suggestion{display:block!important;margin-top:3px!important;color:#16a34a!important;font-weight:750!important}
     .dm-appliance-flow-suggestion[hidden]{display:none!important}
     .dm-appliance-card-fields{margin-top:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 45%,transparent)!important;overflow:hidden!important}

@@ -30,7 +30,9 @@ for (const file of fogli) {
      * una forma sua, e imporle questa sarebbero due padroni sulla stessa
      * misura. */
     for (const regola of coda.match(/^\.modal-card[^{\n]*\{/gm) || [])
-      if (/border-radius|padding/.test(coda.slice(coda.indexOf(regola), coda.indexOf(regola) + 400)))
+      if (
+        /border-radius|padding/.test(coda.slice(coda.indexOf(regola), coda.indexOf(regola) + 400))
+      )
         assert.match(regola, /:not\(\.ed-shell\)/, `${regola} deve lasciar stare l'editor`);
 
     /* Chi ha chiesto meno movimento non lo riceve. */
@@ -42,3 +44,24 @@ for (const file of fogli) {
     assert.match(coda, /html\[data-theme="dark"\] \.modal-wrapper/);
   });
 }
+
+/* «Lavatrice Lavatrice», visto sulla macchina vera.
+ *
+ * hOn battezza l'interruttore principale col nome della macchina, e Home
+ * Assistant ci mette davanti il nome del dispositivo: il friendly name e'
+ * «Lavatrice Lavatrice». La finestra toglie dalle etichette le parole del
+ * nome dell'apparecchio — in cima c'e' gia' scritto di chi si parla — e li'
+ * non restava niente, quindi si ripiegava sul nome intero, doppio.
+ */
+test("l'interruttore che porta il nome della macchina si dice una volta sola", () => {
+  const sorgente = readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../src/sections/appliance-detail-popup-section.js",
+    ),
+    "utf8",
+  );
+  assert.match(sorgente, /senzaDoppioni/);
+  assert.match(sorgente, /pezzo\.toLowerCase\(\) !== tutte\[i - 1\]\.toLowerCase\(\)/);
+  assert.doesNotMatch(sorgente, /const pulito = parole\.join\(" "\)\.trim\(\);/);
+});

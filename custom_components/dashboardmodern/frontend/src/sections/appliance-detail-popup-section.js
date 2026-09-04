@@ -12,10 +12,27 @@
  * Il guscio disegna la sua lista e questo modulo la riveste subito dopo:
  * stessa finestra, stesso apri e chiudi, nessun secondo padrone.
  */
-import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
+import { deviceEntityGroups } from "../core/appliance-device-binding.js";
+import {
+  applianceModelForIndex,
+  buildCardMarkup,
+  cardLabels,
+} from "./appliance-showcase-section.js";
+import { entitaDelDispositivo } from "./appliance-integration-section.js";
+import {
+  activeLocale,
+  allStates,
+  chiediAHomeAssistant,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  root,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_APPLIANCE_DETAIL_POPUP__";
-const state = (root[KEY] ||= { installed: false });
+const state = (root[KEY] ||= { installed: false, aperto: null });
 
 const STATI_MUTI = /^(unknown|unavailable|none|)$/i;
 const DOMINI_INTERRUTTORE = /^(switch|light|input_boolean|fan)\./;
@@ -121,12 +138,24 @@ function nomeDellaLettura(entity, nome, unit, tokenElettrodomestico, usate) {
  * dell'elettrodomestico tolto — la finestra dice gia' in cima di chi parla. */
 function nomeInParole(nome, tokenElettrodomestico) {
   const via = new Set(tokenElettrodomestico);
-  const parole = clean(nome)
+  const tutte = clean(nome)
     .replaceAll(/[_\-.]+/g, " ")
     .split(/\s+/)
-    .filter((pezzo) => pezzo && !via.has(pezzo.toLowerCase()));
-  const pulito = parole.join(" ").trim();
-  return pulito || clean(nome);
+    .filter(Boolean);
+  const pulito = tutte
+    .filter((pezzo) => !via.has(pezzo.toLowerCase()))
+    .join(" ")
+    .trim();
+  if (pulito) return pulito;
+  /* Non e' rimasto niente perche' l'entita' si chiama come l'apparecchio: e'
+   * l'interruttore principale, quello che hOn e Home Connect battezzano col
+   * nome della macchina. Home Assistant ci mette davanti anche il nome del
+   * dispositivo, e la finestra scriveva «Lavatrice Lavatrice». Si dice una
+   * volta sola. */
+  const senzaDoppioni = tutte.filter(
+    (pezzo, i) => i === 0 || pezzo.toLowerCase() !== tutte[i - 1].toLowerCase(),
+  );
+  return senzaDoppioni.join(" ") || clean(nome);
 }
 
 /* Le parole del nome dell'elettrodomestico, per toglierle dalle etichette. */
@@ -185,45 +214,27 @@ function famiglie(appliance) {
   return { misure: misure.slice(0, 12), pillole: pillole.slice(0, 12), comandi };
 }
 
-/* La frase: cosa sta facendo, quanto tira, e quanto ha fatto oggi. */
-function racconto(appliance, misure) {
-  const stato = root.cdApplStatus?.(appliance) || { cls: "off", label: "", w: null };
-  const nome = clean(root.cdApplianceDisplayName?.(appliance)) || clean(appliance?.name) || "";
-  const oggi = misure.find(
-    (m) => /oggi|today|daily|giorn/i.test(`${m.entity} ${m.nome}`) && /kwh/i.test(m.valore),
-  );
-  const codaOggi = oggi
-    ? t(`; oggi ha fatto ${oggi.valore}.`, `; today it did ${oggi.valore}.`)
-    : ".";
-  if (stato.cls === "run") {
-    return {
-      tono: "corso",
-      parola: t("In corso", "Running"),
-      frase:
-        (stato.w != null
-          ? t(
-              `${nome} è in funzione e sta tirando ${Math.round(stato.w)} W`,
-              `${nome} is running and drawing ${Math.round(stato.w)} W`,
-            )
-          : t(`${nome} è in funzione`, `${nome} is running`)) + codaOggi,
-    };
-  }
-  if (stato.cls === "standby") {
-    return {
-      tono: "bene",
-      parola: t("Tutto regolare", "All good"),
-      frase:
-        t(
-          `${nome} è in standby${stato.w != null ? ` a ${Math.round(stato.w)} W` : ""}`,
-          `${nome} is on standby${stato.w != null ? ` at ${Math.round(stato.w)} W` : ""}`,
-        ) + codaOggi,
-    };
-  }
-  return {
-    tono: "bene",
-    parola: t("Tutto regolare", "All good"),
-    frase: t(`${nome} è spento`, `${nome} is off`) + codaOggi,
-  };
+/* I tasti della card, dentro la finestra.
+ *
+ * Nella sezione li ascolta il guscio della vetrina, che qui non c'e': la
+ * card sarebbe identica e morta. Sono due, e fanno quello che fanno di la'. */
+function agganciaLaCard(vetrina, model) {
+  const card = vetrina.querySelector(".dm-ap-card");
+  if (!card) return;
+  /* Dentro la finestra la card non porta da nessuna parte: e' gia' aperta. */
+  card.removeAttribute("role");
+  card.removeAttribute("tabindex");
+  card.setAttribute("aria-hidden", "false");
+  vetrina.querySelector("[data-dm-power-toggle]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const entity = clean(model?.action?.entity);
+    if (entity) root.cdApplEntTog?.(entity, event.currentTarget);
+  });
+  vetrina.querySelector("[data-dm-history]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const nodo = event.currentTarget;
+    apriStorico(event, clean(nodo.dataset.dmHistory), clean(nodo.dataset.dmHistoryName));
+  });
 }
 
 function apriStorico(event, entity, nome) {
@@ -236,18 +247,28 @@ function riveste(indice) {
   const lista = doc?.getElementById?.("details-list");
   const appliance = root.getAppliances?.()?.[indice];
   if (!lista || !appliance) return false;
-  const { misure, pillole, comandi } = famiglie(appliance);
-  const storia = racconto(appliance, misure);
+  state.aperto = indice;
 
   lista.replaceChildren();
   lista.dataset.dmApdeOwner = "moduli";
 
-  const testa = doc.createElement("section");
-  testa.className = "dm-apde-racconto";
-  testa.dataset.dmVerdetto = storia.tono;
-  testa.innerHTML = `<span class="dm-apde-verdetto">${esc(storia.parola)}</span>
-    <p class="dm-apde-frase">${esc(storia.frase)}</p>`;
-  lista.append(testa);
+  /* In cima, la stessa card della sezione.
+   *
+   * «Il popup widget e' bruttissimo, lo devi ridisegnare con le informazioni
+   * del singolo elettrodomestico in funzione, riportando la stessa card della
+   * sezione.» Non una seconda versione che somiglia a quella e col tempo
+   * diverge: proprio quella, disegnata dalla stessa funzione con lo stesso
+   * modello. Il ritratto che si muove, la fase, l'anello, i watt, l'ultimo
+   * ciclo — e sotto, quello che sulla card non ci stava. */
+  const model = applianceModelForIndex(indice);
+  if (model) {
+    const vetrina = doc.createElement("div");
+    vetrina.className = "dm-appl-shell dm-apde-vetrina";
+    vetrina.dataset.view = "grid";
+    vetrina.innerHTML = buildCardMarkup(model, cardLabels());
+    agganciaLaCard(vetrina, model);
+    lista.append(vetrina);
+  }
 
   const titoletto = (parole) => {
     const nodo = doc.createElement("h4");
@@ -256,6 +277,20 @@ function riveste(indice) {
     return nodo;
   };
 
+  const collegato =
+    Boolean(clean(appliance.device_id)) || Boolean(appliance.device_entities?.length);
+  if (collegato) {
+    try {
+      vesteIntegrazione(lista, appliance, mostrateDallaCard(appliance, model), titoletto);
+    } catch (errore) {
+      root.console?.warn?.("[DashboardModern] dettaglio integrazione", errore);
+    }
+    return true;
+  }
+
+  /* Chi non ha un'integrazione tiene i blocchi di sempre: la card in cima
+   * racconta lo stato, e qui sotto restano le sue entita' una per una. */
+  const { misure, pillole, comandi } = famiglie(appliance);
   if (misure.length) {
     lista.append(titoletto(t("Le misure", "The readings")));
     const griglia = doc.createElement("div");
@@ -316,6 +351,235 @@ function riveste(indice) {
     }
   }
   return true;
+}
+
+/* Quello che la card in cima disegna gia': non si ripete sotto.
+ *
+ * Sono le caselle dei ruoli piu' le entita' da cui vengono la fase, i gradi,
+ * i giri e il programma — cioe' la striscia del programma. */
+function mostrateDallaCard(appliance, model) {
+  const viste = new Set();
+  const aggiungi = (voce) => {
+    const id = clean(voce);
+    if (id.includes(".")) viste.add(id);
+  };
+  for (const casella of [
+    "control_entity",
+    "power_entity",
+    "remaining_entity",
+    "temperature_entity",
+    "temperature_entity_2",
+    "state_entity",
+  ])
+    aggiungi(appliance?.[casella]);
+  for (const chip of model?.program?.chips || []) aggiungi(chip.entity);
+  aggiungi(model?.program?.phase?.entity);
+  for (const id of model?.program?.considerate || []) aggiungi(id);
+  return [...viste];
+}
+
+/* Tutte le entita' del dispositivo, per chi arriva da un'integrazione.
+ *
+ * «Ogni elettrodomestico avra' sicuramente tutte le sue informazioni.» La
+ * parte curata qui sopra legge le caselle della card; questa legge il
+ * dispositivo intero — dal catalogo se e' gia' arrivato, altrimenti dalla
+ * memoria presa al momento del collegamento — e lo divide in quattro: lo
+ * stato, le letture, i comandi con i loro tasti veri (interruttori, menu,
+ * numeri, pulsanti) e in fondo la diagnostica, chiusa, perche' la potenza
+ * del Wi-Fi non e' una notizia sulla lavatrice. Quello che la parte curata
+ * mostra gia' non si ripete. */
+function comanda(payload) {
+  return chiediAHomeAssistant({ type: "call_service", ...payload }).catch((error) =>
+    root.console?.warn?.("[DashboardModern] comando integrazione", error),
+  );
+}
+
+function tastoDelComando(voce) {
+  const controllo = voce.control;
+  if (!controllo) return null;
+  const [domain] = voce.entity.split(".");
+  if (controllo.kind === "select") {
+    const menu = doc.createElement("select");
+    menu.className = "dm-apde-menu";
+    menu.setAttribute("aria-label", voce.name);
+    for (const opzione of controllo.options) {
+      const riga = doc.createElement("option");
+      riga.value = opzione;
+      riga.textContent = opzione.replaceAll("_", " ");
+      riga.selected = opzione === controllo.current;
+      menu.append(riga);
+    }
+    menu.addEventListener("change", () =>
+      comanda({
+        domain: "select",
+        service: "select_option",
+        target: { entity_id: voce.entity },
+        service_data: { option: menu.value },
+      }),
+    );
+    return menu;
+  }
+  if (controllo.kind === "number") {
+    const campo = doc.createElement("input");
+    campo.type = "number";
+    campo.className = "dm-apde-numero";
+    campo.setAttribute("aria-label", voce.name);
+    if (controllo.min != null) campo.min = controllo.min;
+    if (controllo.max != null) campo.max = controllo.max;
+    if (controllo.step != null) campo.step = controllo.step;
+    campo.value = controllo.current;
+    campo.addEventListener("change", () => {
+      const valore = Number(campo.value);
+      if (!Number.isFinite(valore)) return;
+      comanda({
+        domain: "number",
+        service: "set_value",
+        target: { entity_id: voce.entity },
+        service_data: { value: valore },
+      });
+    });
+    return campo;
+  }
+  const tasto = doc.createElement("button");
+  tasto.type = "button";
+  if (controllo.kind === "press") {
+    tasto.className = "dm-apde-tasto";
+    tasto.textContent = "▶";
+    tasto.setAttribute("aria-label", `${t("Esegui", "Run")} ${voce.name}`);
+    tasto.addEventListener("click", (event) => {
+      event.stopPropagation();
+      comanda({ domain, service: "press", target: { entity_id: voce.entity } });
+    });
+    return tasto;
+  }
+  tasto.className = `dm-apde-tasto${controllo.on ? " on" : ""}`;
+  tasto.textContent = controllo.on ? "OFF" : "ON";
+  tasto.setAttribute("aria-label", voce.name);
+  tasto.addEventListener("click", (event) => {
+    event.stopPropagation();
+    root.cdApplEntTog?.(voce.entity, tasto);
+  });
+  return tasto;
+}
+
+function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
+  const deviceId = clean(appliance?.device_id);
+  const memoria = Array.isArray(appliance?.device_entities) ? appliance.device_entities : [];
+  if (!deviceId && !memoria.length) return;
+  const catalogo = deviceId ? entitaDelDispositivo(deviceId) : null;
+  const delDispositivo = catalogo || memoria.map((entity_id) => ({ entity_id: clean(entity_id) }));
+  /* Le caselle scritte fuori dal dispositivo — la presa smart, i sensori
+   * fatti in casa — sono dell'apparecchio quanto le altre: se non entrassero
+   * qui sparirebbero dalla finestra appena si collega un'integrazione. */
+  const gia = new Set(delDispositivo.map((voce) => clean(voce.entity_id)));
+  const records = [
+    ...delDispositivo,
+    ...entita(appliance)
+      .filter((id) => !gia.has(id))
+      .map((entity_id) => ({ entity_id })),
+  ];
+  const gruppi = deviceEntityGroups(records, allStates(), {
+    mapped: giaMostrate,
+    locale: activeLocale(),
+    readOnly: false,
+  });
+  const nuove = (voci) => voci.filter((voce) => !voce.mapped);
+  const stato = nuove(gruppi.state);
+  const letture = nuove(gruppi.readings);
+  const comandi = gruppi.controls.filter((voce) => !voce.mapped || voce.control?.kind !== "toggle");
+  const diagnostica = gruppi.diagnostics;
+  if (!stato.length && !letture.length && !comandi.length && !diagnostica.length) return;
+
+  const testa = doc.createElement("section");
+  testa.className = "dm-apde-integrazione";
+  testa.dataset.dmApdeSource = catalogo ? "catalogo" : "memoria";
+  const nome = clean(appliance.integration_name) || clean(appliance.integration);
+  const chi = [appliance.device_manufacturer, appliance.device_model]
+    .map(clean)
+    .filter(Boolean)
+    .join(" ");
+  testa.innerHTML = `<strong>🔗 ${esc(t("Dall'integrazione", "From the integration"))}${nome ? ` ${esc(nome)}` : ""}</strong>${chi ? `<span>${esc(chi)}</span>` : ""}`;
+  lista.append(testa);
+
+  if (stato.length) {
+    lista.append(titoletto(t("Lo stato del dispositivo", "The device state")));
+    const fila = doc.createElement("div");
+    fila.className = "dm-apde-pillole";
+    for (const voce of stato) {
+      const nodo = doc.createElement("button");
+      nodo.type = "button";
+      nodo.className = "dm-apde-pillola";
+      nodo.dataset.acceso = voce.on ? "true" : "false";
+      nodo.dataset.dmApdeEntity = voce.entity;
+      nodo.innerHTML = `${esc(voce.name)} <b>${esc(voce.value)}</b>`;
+      nodo.addEventListener("click", (event) => apriStorico(event, voce.entity, voce.name));
+      fila.append(nodo);
+    }
+    lista.append(fila);
+  }
+  if (letture.length) {
+    lista.append(titoletto(t("Le letture del dispositivo", "The device readings")));
+    const griglia = doc.createElement("div");
+    griglia.className = "dm-apde-caselle";
+    for (const voce of letture) {
+      const casella = doc.createElement("button");
+      casella.type = "button";
+      casella.className = "dm-apde-casella hist-clickable";
+      casella.dataset.dmApdeEntity = voce.entity;
+      casella.innerHTML = `<span class="dm-apde-casella-ic" aria-hidden="true">📈</span><b>${esc(voce.value)}</b><span>${esc(voce.name)}</span>`;
+      casella.addEventListener("click", (event) => apriStorico(event, voce.entity, voce.name));
+      griglia.append(casella);
+    }
+    lista.append(griglia);
+  }
+  const rigaDiComando = (voce) => {
+    const riga = doc.createElement("div");
+    riga.className = "dm-apde-comando";
+    riga.dataset.dmApdeEntity = voce.entity;
+    const etichetta = doc.createElement("span");
+    etichetta.className = "dm-apde-comando-nome";
+    etichetta.textContent = voce.name;
+    riga.append(etichetta);
+    const tasto = tastoDelComando(voce);
+    if (tasto) riga.append(tasto);
+    return riga;
+  };
+  if (comandi.length) {
+    lista.append(titoletto(t("I comandi del dispositivo", "The device controls")));
+    for (const voce of comandi) lista.append(rigaDiComando(voce));
+  }
+  if (diagnostica.length) {
+    const cassetto = doc.createElement("details");
+    cassetto.className = "dm-apde-diagnostica";
+    const sommario = doc.createElement("summary");
+    sommario.textContent = `${t("Diagnostica", "Diagnostics")} · ${diagnostica.length}`;
+    cassetto.append(sommario);
+    for (const voce of diagnostica) {
+      if (voce.control) {
+        cassetto.append(rigaDiComando(voce));
+        continue;
+      }
+      const riga = doc.createElement("button");
+      riga.type = "button";
+      riga.className = "dm-apde-pillola";
+      riga.dataset.acceso = voce.on ? "true" : "false";
+      riga.dataset.dmApdeEntity = voce.entity;
+      riga.innerHTML = `${esc(voce.name)} <b>${esc(voce.value)}</b>`;
+      riga.addEventListener("click", (event) => apriStorico(event, voce.entity, voce.name));
+      cassetto.append(riga);
+    }
+    lista.append(cassetto);
+  }
+}
+
+/* Il catalogo arriva dopo la finestra: se e' ancora aperta, si riveste. */
+function alCatalogo() {
+  if (state.aperto == null) return;
+  const modal = doc?.getElementById?.("details-modal");
+  if (!modal?.classList?.contains("show")) return;
+  try {
+    riveste(state.aperto);
+  } catch (_errore) {}
 }
 
 function aggancia() {
@@ -394,6 +658,30 @@ function css() {
       flex:0 0 auto;min-width:48px;height:32px;border:0;border-radius:10px;cursor:pointer;
       font-size:12px;font-weight:900;background:rgba(14,165,233,.14);color:#0284c7}
     #details-list .dm-apde-tasto.on{background:#0ea5e9;color:#fff}
+    #details-list .dm-apde-vetrina{display:block;gap:0;padding:0;margin:0 0 4px}
+    #details-list .dm-apde-vetrina .appl-wide-card.dm-ap-card{cursor:default;box-shadow:none;transform:none!important}
+    #details-list .dm-apde-vetrina .appl-wide-card.dm-ap-card:hover{transform:none;box-shadow:none}
+    #details-list .dm-apde-integrazione{
+      display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:18px 0 2px;
+      padding:10px 12px;border-radius:14px;
+      border:1px solid color-mix(in srgb,#0ea5e9 30%,transparent);
+      background:color-mix(in srgb,#0ea5e9 7%,transparent)}
+    #details-list .dm-apde-integrazione strong{font-size:12.5px;font-weight:900;color:#0369a1}
+    #details-list .dm-apde-integrazione span{font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
+    #details-list .dm-apde-menu,#details-list .dm-apde-numero{
+      flex:0 1 55%;min-width:0;max-width:220px;height:32px;padding:0 8px;border-radius:10px;
+      border:1px solid var(--card-border,#e2e8f0);background:var(--surface-2,#f8fafc);
+      color:var(--text,#0f172a);font:inherit;font-size:12px;font-weight:700}
+    #details-list .dm-apde-numero{flex-basis:96px;text-align:right;font-variant-numeric:tabular-nums}
+    #details-list .dm-apde-diagnostica{
+      margin:14px 0 0;padding:0 12px 6px;border-radius:14px;
+      border:1px solid var(--card-border,#e2e8f0);background:var(--surface-2,#f8fafc)}
+    #details-list .dm-apde-diagnostica>summary{
+      padding:10px 0;cursor:pointer;list-style:none;font-size:9.5px;font-weight:900;
+      letter-spacing:1.7px;text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+    #details-list .dm-apde-diagnostica>summary::-webkit-details-marker{display:none}
+    #details-list .dm-apde-diagnostica>.dm-apde-pillola{margin:0 6px 6px 0}
+    #details-list .dm-apde-diagnostica>.dm-apde-comando{margin:0 0 6px}
     @media(max-width:420px){#details-list .dm-apde-caselle{grid-template-columns:repeat(2,minmax(0,1fr))}}
   `;
 }
@@ -406,6 +694,7 @@ export function installApplianceDetailPopupSection() {
   for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"]) {
     root.addEventListener?.(eventName, aggancia);
   }
+  root.addEventListener?.("dashboardmodern:integrations-catalog", alCatalogo);
 }
 
 if (doc?.readyState === "loading") {
