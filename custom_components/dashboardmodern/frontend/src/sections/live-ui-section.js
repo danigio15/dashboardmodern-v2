@@ -1,5 +1,13 @@
 import {
+  LATO_IMPRONTA,
+  OGNI_SGUARDO_MS,
+  creaSorveglianza,
+  improntaDeiPixel,
+} from "../core/flusso-fermo.js";
+import {
   flussoDaIstantanea,
+  flussoInPausa,
+  mettiInPausaIlFlusso,
   percorsoDelFlusso,
   stessoFlusso,
   vuoleIlVivo,
@@ -14,6 +22,15 @@ import {
   root,
   section,
 } from "./shared.js";
+import { fermaIVideo, provaIlVideo } from "./telecamera-webrtc-section.js";
+
+/* L'immagine ha mostrato almeno un fotogramma: da qui in poi un flusso che
+ * cade non la fa sparire — resta l'ultimo fotogramma, non un lampo di nero. */
+function segnaFotogramma(image) {
+  if (!image?.dataset) return;
+  image.dataset.dmCameraState = "ready";
+  image.dataset.dmCameraFrame = "1";
+}
 
 const KEY = "__DASHBOARDMODERN_LIVE_UI_SECTION__";
 const state = (root[KEY] ||= {
@@ -24,6 +41,12 @@ const state = (root[KEY] ||= {
   firme: new Map(),
   cameraTimer: 0,
   building: false,
+  /* La sorveglianza dei flussi fermi (#294): la memoria delle impronte, la
+   * tela su cui si misurano, e l'ora dell'ultimo sguardo. */
+  sorveglianza: null,
+  tela: null,
+  ultimoSguardo: 0,
+  sorveglianzaNegata: false,
 });
 
 function unique(values) {
@@ -225,23 +248,40 @@ async function flussoFirmato(entity) {
  * riapre, e il cronometro del muro passa ogni quattro secondi. Percio' qui si
  * guarda prima se quel flusso e' gia' quello appeso, e in quel caso non si
  * tocca niente — l'immagine si sta gia' muovendo da sola. */
-async function avviaIlFlusso(camera, image, picture) {
+async function avviaIlFlusso(camera, image, picture, registry = state.cameraUrls) {
   const indirizzo = flussoDaIstantanea(picture) || (await flussoFirmato(camera.entity));
   if (!indirizzo) return false;
   if (stessoFlusso(image, indirizzo)) return true;
   image.dataset.dmCameraStream = indirizzo;
   image.dataset.dmCameraEntity = camera.entity;
   if (image.dataset.dmCameraState !== "ready") image.dataset.dmCameraState = "loading";
-  image.onload = () => {
-    image.dataset.dmCameraState = "ready";
-  };
+  image.onload = () => segnaFotogramma(image);
   image.onerror = () => {
-    /* Il flusso non e' partito: l'istantanea resta la rete sotto, e al giro
-     * dopo il caricatore ci ricasca da solo perche' il segno se n'e' andato. */
+    /* Il flusso non e' partito (#294).
+     *
+     * Qui si toglieva solo il segno e si lasciava l'immagine com'era: con
+     * dentro un indirizzo che non ha risposto — cioe' un'immagine rotta, che
+     * su iPhone e' «un quadratino azzurro» — e al giro dopo la si richiedeva
+     * uguale, ogni quattro secondi. Una telecamera in cloud che dorme non
+     * risponde al primo colpo, e cosi' non rispondeva mai.
+     *
+     * Adesso il flusso si mette in pausa per un minuto e al suo posto torna
+     * l'istantanea, che per quelle telecamere arriva quasi sempre. Allo
+     * scadere si riprova: nel frattempo la telecamera puo' essersi svegliata. */
     delete image.dataset.dmCameraStream;
+    mettiInPausaIlFlusso(image);
     image.dataset.dmCameraState = "unavailable";
+    ripiegaSullIstantanea(camera, image, registry);
   };
   image.src = indirizzo;
+  return true;
+}
+
+/* L'istantanea al posto del flusso, quando il flusso non c'e' piu'. */
+function ripiegaSullIstantanea(camera, image, registry = state.cameraUrls) {
+  const picture = clean(allStates()?.[camera.entity]?.attributes?.entity_picture);
+  if (!picture) return false;
+  caricaIstantanea(camera, image, registry, picture).catch(() => {});
   return true;
 }
 
@@ -250,14 +290,31 @@ export async function loadCameraFrame(camera, image, registry = state.cameraUrls
   const current = allStates()?.[camera.entity];
   const picture = clean(current?.attributes?.entity_picture);
   /* Chi e' stato messo dal vivo prende il flusso, e da li' in poi si muove da
-   * solo: il resto di questa funzione e' il mestiere dei fotogrammi. */
-  if (vuoleIlVivo(camera) && (await avviaIlFlusso(camera, image, picture))) return true;
+   * solo: il resto di questa funzione e' il mestiere dei fotogrammi. Un flusso
+   * appena caduto pero' resta in pausa (#294): per un minuto la tessera vive
+   * di istantanee, e poi ci si riprova. */
+  if (vuoleIlVivo(camera)) {
+    /* L'istantanea prima, come rete sotto: il flusso di una telecamera che
+     * dorme arriva dopo dieci secondi, e fino ad allora la tessera resterebbe
+     * un rettangolo nero. Il browser tiene a schermo la foto finche' il
+     * primo fotogramma del flusso non e' arrivato davvero. */
+    if (picture && image.dataset.dmCameraState !== "ready" && !image.dataset.dmCameraStream)
+      await caricaIstantanea(camera, image, registry, picture);
+    /* Il video vero, quando Home Assistant dichiara una strada — WebRTC o
+     * HLS: per una telecamera in cloud il MJPEG e' una foto ferma. */
+    if (await provaIlVideo(camera, image)) return true;
+    if (!flussoInPausa(image) && (await avviaIlFlusso(camera, image, picture, registry))) return true;
+  }
   if (image.dataset.dmCameraStream) delete image.dataset.dmCameraStream;
   if (!picture) {
     image.dataset.dmCameraState = "unavailable";
     return false;
   }
+  return caricaIstantanea(camera, image, registry, picture);
+}
 
+/* Un fotogramma, preso dal proxy di Home Assistant e messo nell'immagine. */
+async function caricaIstantanea(camera, image, registry, picture) {
   const url = cacheBusted(picture);
   const chiave = chiaveImmagine(image, camera.entity);
   ripulisciChiaviMorte(registry);
@@ -289,16 +346,14 @@ export async function loadCameraFrame(camera, image, registry = state.cameraUrls
         if (objectUrl) {
           replaceCameraObjectUrl(chiave, objectUrl, registry);
           image.src = objectUrl;
-          image.dataset.dmCameraState = "ready";
+          segnaFotogramma(image);
           return true;
         }
       }
     } catch (_error) {}
   }
 
-  image.onload = () => {
-    image.dataset.dmCameraState = "ready";
-  };
+  image.onload = () => segnaFotogramma(image);
   image.onerror = () => {
     image.dataset.dmCameraState = "unavailable";
   };
@@ -309,6 +364,53 @@ export async function loadCameraFrame(camera, image, registry = state.cameraUrls
 
 function loadCameraImage(camera) {
   return loadCameraFrame(camera, doc?.getElementById(cameraSlug(camera)));
+}
+
+/* I flussi che si sono fermati (#294).
+ *
+ * «Si blocca la visione.» Un MJPEG che smette di spingere fotogrammi non da'
+ * nessun errore: l'immagine resta sull'ultimo, con LIVE acceso sopra. Ogni
+ * dieci secondi si guarda se i pixel di ogni flusso cambiano; se un flusso e'
+ * uguale a se stesso da mezzo minuto lo si molla, si torna alle istantanee e
+ * fra un minuto si riprova. La regola sta in `core/flusso-fermo.js`; qui c'e'
+ * solo la tela su cui misurare. */
+export function sorvegliaIFlussi(adesso = Date.now()) {
+  if (!doc || state.sorveglianzaNegata) return 0;
+  if (adesso - state.ultimoSguardo < OGNI_SGUARDO_MS) return 0;
+  state.ultimoSguardo = adesso;
+  const vive = [...(doc.querySelectorAll?.("img[data-dm-camera-stream]") || [])].filter(
+    (image) => image.dataset.dmCameraState === "ready",
+  );
+  if (!vive.length) return 0;
+  state.sorveglianza ||= creaSorveglianza();
+  let fermate = 0;
+  for (const image of vive) {
+    const chiave = chiaveImmagine(image, clean(image.dataset.dmCameraEntity));
+    let impronta = "";
+    try {
+      state.tela ||= doc.createElement("canvas");
+      state.tela.width = LATO_IMPRONTA;
+      state.tela.height = LATO_IMPRONTA;
+      const tela = state.tela.getContext("2d", { willReadFrequently: true });
+      tela.drawImage(image, 0, 0, LATO_IMPRONTA, LATO_IMPRONTA);
+      impronta = improntaDeiPixel(tela.getImageData(0, 0, LATO_IMPRONTA, LATO_IMPRONTA).data);
+    } catch (_error) {
+      /* Una tela che non si lascia leggere — un'immagine di un'altra origine
+       * la sporca — non si legge piu': la sorveglianza si spegne e i flussi
+       * restano come sono, che e' esattamente com'era prima. */
+      state.sorveglianzaNegata = true;
+      return fermate;
+    }
+    if (state.sorveglianza.osserva(chiave, impronta, adesso) !== "fermo") continue;
+    state.sorveglianza.dimentica(chiave);
+    delete image.dataset.dmCameraStream;
+    mettiInPausaIlFlusso(image, adesso);
+    const entity = clean(image.dataset.dmCameraEntity);
+    const camera = configuredCameras().find((voce) => voce.entity === entity) || { entity };
+    ripiegaSullIstantanea(camera, image, state.cameraUrls);
+    fermate += 1;
+  }
+  return fermate;
 }
 
 function securityVisible() {
@@ -350,6 +452,9 @@ export async function refreshCameraThumbnails({ force = false } = {}) {
 const CAMERA_REFRESH_MS = 4000;
 
 function stopCameraTimer() {
+  /* Via dalla pagina, i video si spengono: una connessione WebRTC per
+   * telecamera che nessuno guarda e' banda buttata. */
+  fermaIVideo();
   if (!state.cameraTimer) return;
   root.clearInterval?.(state.cameraTimer);
   state.cameraTimer = 0;
@@ -369,6 +474,7 @@ export function syncCameraTimer() {
         stopCameraTimer();
         return;
       }
+      sorvegliaIFlussi();
       refreshCameraThumbnails();
     }, CAMERA_REFRESH_MS) || 0;
   return Boolean(state.cameraTimer);

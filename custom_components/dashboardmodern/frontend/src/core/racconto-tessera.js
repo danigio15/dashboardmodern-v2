@@ -317,6 +317,57 @@ const FRASI = Object.freeze({
    * adesso, cosa viene dopo, e cosa mi resta da fare». Sono due mezze
    * risposte da unire in una frase sola — e quando una delle due meta' non
    * c'e', la frase e' l'altra e basta, senza una virgola appesa al vuoto. */
+  /* Le allerte (#296) si raccontano per chi ha qualcosa da dire, non contando
+   * righe: «due su sei in funzione» non e' una notizia, «fulmini a otto
+   * chilometri» si'. I nomi arrivano gia' nella lingua giusta dalle righe. */
+  allerte: (tr, righe) => {
+    if (!righe.length) return tr("Qui non c'e' ancora niente.", "Nothing configured here yet.");
+    const attive = righe.filter((riga) =>
+      ["nota", "attenzione", "allarme"].includes(riga?.livello),
+    );
+    const mute = righe.filter((riga) => riga?.livello === "ignoto").length;
+    if (!attive.length) {
+      if (mute === 1)
+        return tr(
+          "Tutto tranquillo, ma una fonte non risponde.",
+          "All quiet, but one source is not answering.",
+        );
+      if (mute > 1)
+        return tr(
+          `Tutto tranquillo, ma ${mute} fonti non rispondono.`,
+          `All quiet, but ${mute} sources are not answering.`,
+        );
+      return tr(
+        "Tutto tranquillo: nessuna fonte ha qualcosa da dire.",
+        "All quiet: no source has anything to say.",
+      );
+    }
+    const elenco = attive.map((riga) => `${riga.name} (${riga.value})`).join(", ");
+    if (attive.some((riga) => riga.livello === "allarme"))
+      return tr(`Allarme: ${elenco}.`, `Alarm: ${elenco}.`);
+    if (attive.some((riga) => riga.livello === "attenzione"))
+      return tr(`Attenzione: ${elenco}.`, `Watch out: ${elenco}.`);
+    return tr(`Da notare: ${elenco}.`, `Worth noting: ${elenco}.`);
+  },
+  /* La raccolta differenziata (#293): la frase e' la risposta alla domanda
+   * della sera, e la parola del quando arriva gia' tradotta dalla tessera. */
+  rifiuti: (tr, _righe, tessera) => {
+    const prossimi = Array.isArray(tessera?.prossimi) ? tessera.prossimi : [];
+    if (!prossimi.length) return tr("Nessun ritiro in vista.", "No collection in sight.");
+    const nomi = prossimi
+      .map((riga) => riga.name)
+      .filter(Boolean)
+      .join(", ");
+    const quando = String(tessera?.value || "").trim();
+    if (prossimi[0].quando === "oggi")
+      return tr(`Oggi ritirano ${nomi}.`, `Today they collect ${nomi}.`);
+    if (prossimi[0].quando === "domani")
+      return tr(
+        `Domani ritirano ${nomi}: stasera va fuori.`,
+        `Tomorrow they collect ${nomi}: it goes out tonight.`,
+      );
+    return tr(`Prossimo ritiro ${quando}: ${nomi}.`, `Next collection ${quando}: ${nomi}.`);
+  },
   agenda: (tr, _righe, tessera, adesso = Date.now()) => {
     const primi = Array.isArray(tessera?.primi) ? tessera.primi : [];
     const daFare = Number(tessera?.daFare) || 0;
@@ -574,6 +625,14 @@ const BRICIOLE = Object.freeze({
   allagamenti: [
     ["Sonde", "Perdite", "Controllo"],
     ["Probes", "Leaks", "Checks"],
+  ],
+  allerte: [
+    ["Terremoti", "Meteo", "Fulmini"],
+    ["Earthquakes", "Weather", "Lightning"],
+  ],
+  rifiuti: [
+    ["Materiali", "Prossimo ritiro", "Calendario"],
+    ["Materials", "Next collection", "Calendar"],
   ],
 });
 

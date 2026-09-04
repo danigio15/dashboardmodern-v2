@@ -156,6 +156,39 @@ export function coverSlotDownRelay(item = {}, campo = "entity") {
   return coverDownRelay({ entity: item?.[slot.campo], down: item?.[slot.giu] });
 }
 
+/* Sotto quanto una tapparella conta come chiusa (#298).
+ *
+ * «Vorrei poter definire un valore percentuale, es. 10%, per considerare le
+ * tapparelle chiuse: di solito le imposto cosi' per mantenere un minimo il
+ * passaggio d'aria, ma il sistema le rileva aperte.» Home Assistant dice
+ * «aperta» a qualunque posizione sopra lo zero, e ha ragione lui: c'e' uno
+ * spiraglio. Ma per chi guarda la Home una tapparella al dieci per cento e'
+ * chiusa — l'ha messa cosi' apposta — e sentirsi dire «3 aperte» la sera con
+ * tutte le tapparelle giu' e' il genere di cosa che fa smettere di guardare
+ * il numero.
+ *
+ * La soglia e' una sola per tutta la casa: e' un'abitudine, non una proprieta'
+ * della singola tapparella. Vale nella stessa scala del cursore — 0 chiusa,
+ * 100 aperta — e non va oltre la meta': a cinquanta per cento non e' piu' uno
+ * spiraglio, e una soglia che dice «chiusa» a una tapparella a mezz'asta
+ * direbbe una cosa che non si vede. Zero e' il comportamento di sempre. */
+export const CHIAVE_SOGLIA_CHIUSA = "cd_tapparelle_soglia";
+export const SOGLIA_CHIUSA_MASSIMA = 50;
+
+export function coverClosedThreshold(raw) {
+  if (raw === null || raw === undefined || String(raw).trim() === "") return 0;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(Math.max(0, Math.min(SOGLIA_CHIUSA_MASSIMA, value)));
+}
+
+/** Se a questa posizione la copertura conta come chiusa; `null` senza posizione. */
+export function coverIsClosedAt(position, soglia = 0) {
+  const value = Number(position);
+  if (position === null || position === undefined || !Number.isFinite(value)) return null;
+  return value <= coverClosedThreshold(soglia);
+}
+
 /** Quanto e' coperta la finestra, da 0 (tutta aperta) a 100. */
 export function coverClosedPercent(position) {
   const value = Number(position);

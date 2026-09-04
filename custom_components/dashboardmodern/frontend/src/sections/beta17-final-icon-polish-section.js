@@ -92,7 +92,18 @@ function bindTemperatureProgressGuard() {
   state.temperatureObserver?.disconnect?.();
   state.temperaturePage = page;
   if (typeof root.MutationObserver === "function") {
-    state.temperatureObserver = new root.MutationObserver(hideTemperatureProgressCopy);
+    /* Un giro per fotogramma, non uno per mutazione: la pagina si riscrive a
+     * raffiche, e rileggere ogni volta tutti i suoi nodi era uno dei
+     * rallentamenti sul telefono (#304). */
+    const unGiroPerFotogramma = () => {
+      if (state.temperatureFrame) return;
+      state.temperatureFrame = root.requestAnimationFrame?.(() => {
+        state.temperatureFrame = 0;
+        hideTemperatureProgressCopy();
+      }) || 0;
+      if (!state.temperatureFrame) hideTemperatureProgressCopy();
+    };
+    state.temperatureObserver = new root.MutationObserver(unGiroPerFotogramma);
     state.temperatureObserver.observe(page, {
       subtree: true,
       childList: true,

@@ -45,6 +45,15 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "recorder/list_statistic_ids",
   "camera/stream",
   "camera_thumbnail",
+  // Il video vero delle telecamere (#294): il WebRTC come lo parla Home
+  // Assistant. L'offerta e' una sottoscrizione — session, answer, candidate
+  // arrivano come eventi sullo stesso id — e il ponte la consegna cosi'.
+  // Senza queste quattro voci, dentro il pannello (e da Nabu Casa) il popup
+  // moriva con «Message type not permitted through the bridge».
+  "camera/webrtc/offer",
+  "camera/webrtc/candidate",
+  "camera/webrtc/get_client_config",
+  "camera/web_rtc_offer",
   "frontend/get_user_data",
   "frontend/set_user_data",
   // Shared plancia configuration. frontend/*_user_data stays allowed only so
@@ -223,6 +232,10 @@ export function createBridgeSocket({
         this._unsubscribe(message);
         return;
       }
+      if (type === "camera/webrtc/offer") {
+        await this._subscribeMessage(message);
+        return;
+      }
 
       try {
         const { id: _ignored, ...payload } = message;
@@ -243,6 +256,28 @@ export function createBridgeSocket({
         this._reply(id, null);
       } catch (error) {
         this._fail(id, "subscribe_failed", error?.message || String(error));
+      }
+    }
+
+    /* Una sottoscrizione a un comando: la risposta e' `success` e poi gli
+     * eventi arrivano con lo stesso id finche' qualcuno non la chiude. E'
+     * quello che fa il frontend di Home Assistant per il WebRTC, e il guscio
+     * lo aspetta cosi' — il suo gestore porta `keepAlive`. */
+    async _subscribeMessage(message) {
+      const { id, ...payload } = message;
+      if (typeof connection.subscribeMessage !== "function") {
+        this._fail(id, "unsupported", "The panel connection cannot subscribe to messages.");
+        return;
+      }
+      try {
+        const unsubscribe = await connection.subscribeMessage(
+          (event) => this._deliver({ id, type: "event", event }),
+          payload,
+        );
+        this._subscriptions.set(id, unsubscribe);
+        this._reply(id, null);
+      } catch (error) {
+        this._fail(id, error?.code || "subscribe_failed", error?.message || String(error));
       }
     }
 

@@ -179,3 +179,48 @@ test("le quattro parole della pastiglia", async () => {
     paroleDelSerramento({ stato: "infisso", inferriata: {}, infisso: { open: true } }).length > 0,
   );
 });
+
+test("l'inferriata sopravvive alla normalizzazione della riga (#297)", async () => {
+  /* «Nella configurazione mi permette di inserire le due entita', ma se vado
+   * poi in modifica vedo solamente l'infisso, e nell'animazione vedo solo
+   * quando chiudo la finestra.» I due sintomi sono lo stesso campo perso nello
+   * stesso punto: la scheda salvava `inferriata`, il modello canonico tiene
+   * solo i campi che conosce, e questo non lo conosceva. La riga tornava
+   * senza grata alla prima normalizzazione — cioe' subito. */
+  const { normalizeDevice } = await import("../src/core/device-model.js");
+  const riga = normalizeDevice(
+    {
+      name: "Camera",
+      entity: "cover.camera",
+      contact: "binary_sensor.finestra_camera",
+      inferriata: "binary_sensor.inferriata_camera",
+    },
+    "covers",
+    { rooms: [], index: 0 },
+  );
+  assert.equal(riga.contact, "binary_sensor.finestra_camera");
+  assert.equal(riga.inferriata, "binary_sensor.inferriata_camera");
+  assert.equal(inferriataEntity(riga), "binary_sensor.inferriata_camera");
+  /* E chi non ha la grata non si ritrova una casella vuota addosso. */
+  const senza = normalizeDevice({ entity: "cover.salone" }, "covers", { rooms: [], index: 0 });
+  assert.equal("inferriata" in senza, false);
+});
+
+test("la grata si chiude a sbarre trasversali, e prima della finestra (#297)", async () => {
+  /* «Sarebbe ottimale vedere l'inferriata che si chiude, a barre trasversali
+   * sull'immagine, e poi la finestra.» Da chiusa le due meta' si incontrano e
+   * le traverse corrono da bordo a bordo; e l'ordine e' quello delle mani:
+   * chiudendo si tira la grata e poi si accostano le ante, aprendo si spingono
+   * le ante e poi si scosta la grata. Senza grata dichiarata niente ritardo. */
+  const sezione = await readFile(
+    new URL("../src/sections/shutter-window-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezione, /\.tapp-win\[data-dm-grata="chiusa"\] \.dm-tw-grata-meta\{\s*transform:scaleX\(1\)/);
+  assert.match(sezione, /repeating-linear-gradient\(180deg,\s*rgba\(51,65,85,0\) 0 18px,rgba\(51,65,85,\.88\) 18px 21px\)/);
+  assert.match(
+    sezione,
+    /\.tapp-win\[data-dm-grata\]\[data-dm-infisso-stato="chiuso"\] \.dm-tw-anta\{\s*transition-delay:\.9s/,
+  );
+  assert.match(sezione, /\.tapp-win\[data-dm-grata="aperta"\] \.dm-tw-grata-meta\{\s*transition-delay:\.9s/);
+});

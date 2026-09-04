@@ -58,8 +58,8 @@ test("il radar a tessere dice «vivo» solo quando un quadratino e' arrivato", (
   /* Non si conta piu' quello che si e' chiesto. */
   assert.doesNotMatch(tessere, /pezzi\.length \? "vivo"/);
   /* Si ascoltano tutte e due le risposte, non solo il fallimento. */
-  assert.match(tessere, /addEventListener\("load", \(\) => segnala\(immagine, true\)/);
-  assert.match(tessere, /addEventListener\("error", \(\) => segnala\(immagine, false\)/);
+  assert.match(tessere, /addEventListener\("load", \(\) => segnala\(immagine, true, dellaPioggia\)/);
+  assert.match(tessere, /addEventListener\("error", \(\) => segnala\(immagine, false, dellaPioggia\)/);
   /* Il primo che arriva accende; quando sono finiti e non e' arrivato
    * nessuno, il blocco lo dice. */
   assert.match(tessere, /if \(arrivati\) \{\s*nodo\.dataset\.dmRadar = "vivo";/);

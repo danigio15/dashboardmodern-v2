@@ -29,6 +29,7 @@
  * Irrigation redesign did.
  */
 import { canonicalClimateType } from "../core/device-model.js";
+import { letturaValvola } from "../core/valvola-trv.js";
 import {
   gradoNellaScala,
   passoDellUnita,
@@ -181,6 +182,8 @@ export function climateUnits() {
         entity,
         name: clean(unit?.name) || entity,
         room: unitRoom(unit, rooms),
+        /* La valvola termostatica (#300): l'entita' a parte, se c'e'. */
+        valvola: clean(unit?.valvola),
         zone,
         cardId: `card-${entity.replaceAll(".", "-")}${extra ? `--${zone}` : ""}`,
         index,
@@ -412,6 +415,11 @@ function cardMarkup(unit, labels) {
         <span>${esc(labels.room)} <b data-dm-cl-ambient>--°</b></span>
         <span data-dm-cl-high>${high}°</span>
       </div>
+      <div class="dm-cl-valvola" data-dm-cl-valvola hidden aria-hidden="true">
+        <span class="dm-cl-valvola-lbl">${esc(t("Valvola", "Valve"))}</span>
+        <span class="dm-cl-valvola-rail"><span class="dm-cl-valvola-fill" data-dm-cl-valvola-fill></span></span>
+        <span class="dm-cl-valvola-num" data-dm-cl-valvola-testo></span>
+      </div>
       <div class="dm-cl-foot">
         <button type="button" class="dm-cl-modes" data-dm-cl-modes aria-label="${esc(labels.modesAria)}"
           onclick="event.stopPropagation(); apriClimaPopup('${entity}')">
@@ -541,7 +549,9 @@ function ensureSkeleton(host, labels) {
 }
 
 function signature(units) {
-  return JSON.stringify(units.map((unit) => [unit.entity, unit.name, unit.room, unit.zone]));
+  return JSON.stringify(
+    units.map((unit) => [unit.entity, unit.name, unit.room, unit.zone, unit.valvola || ""]),
+  );
 }
 
 function syncGrid(grid, units, labels) {
@@ -628,7 +638,31 @@ function paintCard(card, unit, reading, labels) {
     if (ambientRatio !== null) mark.style.left = `${(ambientRatio * 100).toFixed(1)}%`;
   }
 
+  paintValvola(card, unit, reading);
   paintSpark(card, unit, reading);
+}
+
+/* La valvola termostatica (#300): quanto e' aperta e quanto chiusa, dalla
+ * sua entita' o dagli attributi dell'unita'. Senza niente la riga non c'e'. */
+function paintValvola(card, unit, reading) {
+  const riga = card.querySelector("[data-dm-cl-valvola]");
+  if (!riga) return;
+  const valvola = letturaValvola({
+    stato: unit.valvola ? resolvedState(unit.valvola, allStates()) : null,
+    attributi: reading?.attributi,
+  });
+  riga.hidden = !valvola;
+  riga.setAttribute("aria-hidden", valvola ? "false" : "true");
+  if (!valvola) return;
+  const fill = riga.querySelector("[data-dm-cl-valvola-fill]");
+  if (fill) fill.style.width = `${valvola.aperta}%`;
+  const testo = riga.querySelector("[data-dm-cl-valvola-testo]");
+  if (testo)
+    testo.textContent = `${t(`${valvola.aperta}% aperta`, `${valvola.aperta}% open`)} · ${t(
+      `${valvola.chiusa}% chiusa`,
+      `${valvola.chiusa}% closed`,
+    )}`;
+  riga.dataset.dmAperta = String(valvola.aperta);
 }
 
 function paintSpark(card, unit, reading) {
@@ -1557,6 +1591,12 @@ function climateCss() {
 .dm-cl-legend>span:nth-child(2){font-size:12.5px}
 .dm-cl-legend b{color:var(--dm-cl-text);font-weight:800;font-size:13.5px}
 
+.dm-cl-valvola{display:flex;align-items:center;gap:8px;margin:2px 0 6px;font-size:11px;font-weight:800;color:var(--text-dim,#64748b)}
+.dm-cl-valvola[hidden]{display:none}
+.dm-cl-valvola-lbl{flex:0 0 auto;letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.dm-cl-valvola-rail{flex:1 1 auto;height:8px;border-radius:999px;background:color-mix(in srgb,var(--text-dim,#64748b) 16%,transparent);overflow:hidden}
+.dm-cl-valvola-fill{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f97316,#ef4444);transition:width .6s cubic-bezier(.16,1,.3,1)}
+.dm-cl-valvola-num{flex:0 0 auto;font-variant-numeric:tabular-nums;color:var(--text,#0f172a)}
 .dm-cl-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dm-cl-modes{
   display:inline-flex;align-items:center;gap:7px;min-width:0;flex:0 1 auto;padding:8px 13px 8px 10px;cursor:pointer;

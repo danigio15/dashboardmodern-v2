@@ -104,6 +104,9 @@ const copy = () => ({
   rec: "REC",
   live: "LIVE",
   noSignal: t("Nessun segnale", "No signal"),
+  /* La telecamera risponde ma il fotogramma no (#294): la telecamera in cloud
+   * che dorme, o il flusso che e' caduto e sta aspettando di riprovare. */
+  noFrame: t("In attesa del fotogramma", "Waiting for a frame"),
   channelsOne: t("1 canale", "1 channel"),
   channels: (value) => t(`${value} canali`, `${value} channels`),
   activeCount: (value) => t(`${value} attivi`, `${value} live`),
@@ -893,6 +896,20 @@ function securityCss() {
   transition:transform .6s cubic-bezier(.16,1,.3,1),filter .35s ease
 }
 .dm-cam:hover .dm-cam-feed>img{transform:scale(1.05)}
+/* Un fotogramma che non e' arrivato non si mostra (#294): l'immagine rotta
+   di Safari e' «un quadratino azzurro» in mezzo alla tessera. Resta il fondo
+   scuro del video, e una riga che dice cosa si sta aspettando. */
+.dm-cam-feed>video.dm-cam-video{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
+  pointer-events:none;background:#0b1220;transition:opacity .35s ease}
+.dm-cam-feed[data-dm-video="on"]>video.dm-cam-video{opacity:1}
+.dm-cam-feed>img[data-dm-camera-state="unavailable"]:not([data-dm-camera-frame]){opacity:0}
+.dm-cam-feed:has(>img[data-dm-camera-state="unavailable"]:not([data-dm-camera-frame]))::after{
+  content:${cssString(t("In attesa del fotogramma", "Waiting for a frame"))};
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;
+  font-family:var(--dm-sec-mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;
+  color:rgba(226,238,251,.7);white-space:nowrap;pointer-events:none
+}
 .dm-cam-frame{position:absolute;inset:9px;z-index:3;pointer-events:none;opacity:.45;transition:opacity .35s ease}
 .dm-cam-frame::before,.dm-cam-frame::after{
   content:"";position:absolute;width:15px;height:15px;border:2px solid rgba(226,238,251,.8)

@@ -17,18 +17,27 @@
  * Niente qui scrive dati: la posizione della tapparella resta di chi la
  * disegnava, il contatto si legge e basta.
  */
-import { coverEntries, coverKindLabel } from "../core/cover-kind.js";
+import {
+  CHIAVE_SOGLIA_CHIUSA,
+  SOGLIA_CHIUSA_MASSIMA,
+  coverClosedThreshold,
+  coverEntries,
+  coverKindLabel,
+} from "../core/cover-kind.js";
 import { contactEntity, inferriataEntity, serramentoModel } from "../core/shutter-window.js";
 import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
+import { renderHomeWidgets } from "./home-widgets-section.js";
 import {
   allStates,
   clean,
   dashboardStore,
   doc,
+  esc,
   installStyle,
   readJson,
   root,
   t,
+  writeJsonIfChanged,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SHUTTER_WINDOW__";
@@ -366,7 +375,56 @@ function ancoraSottoLaPrincipale(body) {
   return nodo || null;
 }
 
+/* La soglia di chiusura (#298), in cima alla scheda: e' di tutta la casa, non
+ * di una riga, quindi sta prima dell'elenco e non dentro il modulo di una
+ * tapparella.
+ *
+ * «Vorrei poter definire un valore percentuale, es. 10%, per considerare le
+ * tapparelle chiuse: le imposto cosi' per mantenere un minimo il passaggio
+ * d'aria, ma il sistema le rileva aperte.» Si scrive e vale subito: la pagina
+ * Finestre e la tessera in Home rileggono la chiave a ogni giro. */
+export function ensureSogliaField(body = doc?.getElementById("ed-body")) {
+  const intro = body?.querySelector?.(".ed-intro");
+  if (!intro || !body.querySelector("#ed-tp-name")) return false;
+  let riquadro = body.querySelector("[data-dm-tw-soglia]");
+  if (!riquadro) {
+    riquadro = doc.createElement("label");
+    riquadro.className = "ed-slot dm-tw-slot dm-tw-soglia";
+    riquadro.dataset.dmTwSoglia = "true";
+    riquadro.innerHTML =
+      `<span class="ed-slot-lbl">${esc(t("Chiusa sotto il (%)", "Closed below (%)"))}</span>` +
+      `<input id="ed-tp-soglia" class="ed-input" type="number" min="0" max="${SOGLIA_CHIUSA_MASSIMA}" step="1"` +
+      ' placeholder="0" autocomplete="off">' +
+      `<small>${esc(
+        t(
+          "Una tapparella ferma a questa percentuale o sotto conta come chiusa, in pagina e in Home: chi lascia uno spiraglio del 10% per l'aria non se le sente dire aperte. Zero è il comportamento di sempre.",
+          "A shutter resting at this percentage or below counts as closed, on the page and on Home: whoever leaves a 10% gap for air is not told they are open. Zero is the behaviour of always.",
+        ),
+      )}</small>`;
+    const campo = riquadro.querySelector("#ed-tp-soglia");
+    campo.value = String(coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0)) || "");
+    /* Si salva mentre si scrive: e' un numero solo, e un tasto «Salva» per un
+     * numero solo sarebbe un gesto in piu' per niente. */
+    campo.addEventListener("change", () => {
+      const soglia = coverClosedThreshold(campo.value);
+      campo.value = soglia ? String(soglia) : "";
+      writeJsonIfChanged(CHIAVE_SOGLIA_CHIUSA, soglia);
+      try {
+        root.renderTapparelle?.();
+      } catch (_error) {}
+      try {
+        renderHomeWidgets();
+      } catch (_error) {}
+      schedule();
+    });
+  }
+  if (intro.nextElementSibling !== riquadro) intro.after(riquadro);
+  return true;
+}
+
 export function ensureContactField(body = doc?.getElementById("ed-body")) {
+  /* La soglia di chiusura (#298) sta sopra tutto: e' della casa, non della riga. */
+  ensureSogliaField(body);
   /* Prima la stanza: sale in cima, e le sei caselle qui sotto si mettono in
    * fila dopo l'entita' senza trovarsela in mezzo. */
   vestiLaStanza(body);
@@ -536,6 +594,32 @@ function installStyles() {
        tirata da parte. */
     html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata="aperta"] .dm-tw-grata-meta{
       transform:scaleX(.16)!important}
+    /* Le sbarre trasversali (#297): «sarebbe ottimale vedere l'inferriata che
+       si chiude, a barre trasversali sull'immagine». Da chiusa le due meta' si
+       incontrano nel mezzo e le traverse corrono da bordo a bordo; e per non
+       lasciarle al buio quando la finestra dietro e' chiusa, la grata porta
+       un filo di luce sulla sbarra. */
+    html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata="chiusa"] .dm-tw-grata-meta{
+      transform:scaleX(1)!important;
+      background:
+        repeating-linear-gradient(90deg,
+          rgba(51,65,85,.88) 0 3px,rgba(51,65,85,0) 3px 21px),
+        repeating-linear-gradient(180deg,
+          rgba(51,65,85,0) 0 18px,rgba(51,65,85,.88) 18px 21px)!important}
+    /* Prima la grata, poi la finestra (#297).
+     *
+     * Le due cose si muovono nell'ordine in cui le si tocca davvero: chiudendo,
+       si tira la grata e poi si accostano le ante; aprendo, si spingono le ante
+       e poi si scosta la grata. Su una card che ha la grata, l'anta che si
+       chiude aspetta che la grata abbia finito, e la grata che si apre aspetta
+       che le ante siano rientrate. Senza grata non cambia niente: il ritardo
+       sta solo sotto «data-dm-grata». */
+    html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata][data-dm-infisso-stato="chiuso"] .dm-tw-anta{
+      transition-delay:.9s!important}
+    html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata="aperta"] .dm-tw-grata-meta{
+      transition-delay:.9s!important}
+    html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-grata="aperta"][data-dm-infisso-stato="chiuso"] .dm-tw-grata-meta{
+      transition-delay:0s!important}
 
     /* Con due pastiglie il nome tiene la sua riga e lo stato va a capo. */
     html body #page-tapparelle#page-tapparelle .tapp-head[data-dm-tw-pills="due"]{
@@ -549,6 +633,12 @@ function installStyles() {
       background:rgba(245,158,11,.18)!important;border-color:rgba(245,158,11,.34)!important;color:#b45309!important}
 
     #ed-body .dm-tw-contact-slot{display:block!important;margin-top:10px!important}
+    /* La soglia (#298): una casella stretta col suo aiuto sotto, e senza la
+       matita — non e' un'etichetta da rinominare, e' un numero da scrivere. */
+    #ed-body .dm-tw-soglia{display:block;margin:6px 0 12px}
+    #ed-body .dm-tw-soglia #ed-tp-soglia{max-width:140px}
+    #ed-body .dm-tw-soglia small{
+      display:block;margin:4px 2px 0;font-size:11px;line-height:1.45;color:var(--text-dim,#64748b)}
   `,
   );
 }

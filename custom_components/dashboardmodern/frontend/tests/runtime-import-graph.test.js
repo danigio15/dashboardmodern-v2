@@ -679,8 +679,45 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `fetch` dove quella riparazione si applica, perche' la riga sbagliata sta
   // dentro una funzione del guscio e avvolgerla per nome arriverebbe troppo
   // tardi.
+  // 227 con il flusso che si ferma (`core/flusso-fermo.js`, #294): «si blocca
+  // la visione». Un MJPEG che smette di spingere fotogrammi non da' nessun
+  // evento, e l'unico modo di accorgersene e' guardare i pixel: l'impronta e'
+  // aritmetica sui byte e la sorveglianza una memoria di impronte con la loro
+  // ora, e tutte e due si provano senza una telecamera in casa. La tela su cui
+  // si misura sta nel caricatore delle telecamere, che c'era gia'.
+  // 230 con le allerte (`core/allerte-model.js`, `sections/allerte-section.js`,
+  // `sections/allerte-editor-section.js`, #296): «terremoti INGV, comfort
+  // termico, pollini, fulmini, avvisi di protezione civile, Flightradar24 di
+  // zona». Sei fonti che parlano sei lingue — una magnitudo, un colore, un
+  // conteggio, una parola — e il modello le riduce a un livello solo, che e'
+  // l'unica cosa che una tessera deve sapere. Stessa forma delle altre pagine
+  // nate a runtime: il modello puro, la pagina, la scheda.
+  // 233 con la raccolta differenziata (`core/rifiuti-model.js`,
+  // `sections/rifiuti-section.js`, `sections/rifiuti-editor-section.js`, #293):
+  // «un sistema per la raccolta differenziata rifiuti». Il modello sa leggere
+  // una data da un sensore o da un calendario — nei dialetti in cui le
+  // integrazioni la scrivono — e dire «domani», che e' la parola che si cerca
+  // la sera; la pagina e la scheda sono le solite due.
+  // 235 con l'auto che va a benzina (`core/auto-termica.js`,
+  // `sections/auto-termica-section.js`, #208): «e' possibile scegliere a monte
+  // se visualizzare un'auto elettrica o classica con i sensori disponibili?».
+  // Il modello legge carburante, portiere, motore e il resto nei dialetti
+  // delle integrazioni; la sezione mette la scelta nella scheda dell'auto e
+  // il quadro termico nella pagina, al posto della ricarica.
+  // 237 con il video vero delle telecamere (`core/telecamera-webrtc.js`,
+  // `sections/telecamera-webrtc-section.js`, #294): il WebRTC come lo parla
+  // Home Assistant, negoziato con i server ICE di casa, nelle tessere e nel
+  // popup; e l'HLS per chi lo dichiara. Il MJPEG resta come rete sotto.
+  // 239 con il periodo dello storico (`core/periodo-storico.js`,
+  // `sections/storico-connettivita-section.js`, #302): i periodi di serie e
+  // l'intervallo da quando a quando in ogni finestra dove si vede uno storico.
+  // 241 con la valvola TRV (`core/valvola-trv.js`, `sections/trv-editor-section.js`,
+  // #300): quanto e' aperta e quanto chiusa, dalla sua entita' o dagli
+  // attributi dell'unita', con la casella nella scheda del clima.
+  // 242 con «Sostieni il progetto» (`sections/sostieni-il-progetto-section.js`):
+  // la pastiglia PayPal nella colonna delle schede e la card in Impostazioni.
   assert.ok(
-    relative.length <= 226,
+    relative.length <= 245,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

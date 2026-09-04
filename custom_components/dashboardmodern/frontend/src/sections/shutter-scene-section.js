@@ -1,5 +1,7 @@
 import {
+  CHIAVE_SOGLIA_CHIUSA,
   coverClosedPercent,
+  coverClosedThreshold,
   coverEntries,
   coverIsAwning,
   coverIsSideways,
@@ -282,9 +284,17 @@ function signature(views) {
  * finestra disegnata tutta coperta. Dove una posizione c'e', comanda lei: e'
  * quella che si sta guardando.
  */
+/* Sotto quanto una tapparella conta come chiusa (#298): una soglia sola per
+ * tutta la casa, scritta nella scheda Finestre. Zero e' il comportamento di
+ * sempre. Si rilegge a ogni giro perche' e' una casella che si tocca dal vivo
+ * e il disegno deve seguirla subito. */
+function sogliaChiusa() {
+  return coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0));
+}
+
 function statoVisibile(view) {
   if (view.moving) return view.status;
-  if (view.hasPosition) return view.position > 0 ? "open" : "closed";
+  if (view.hasPosition) return view.position > sogliaChiusa() ? "open" : "closed";
   return view.status;
 }
 
@@ -308,7 +318,10 @@ function summaryText(views) {
    * e solo quando qualcuna e' davvero aperta. */
   const tutte = views.flatMap(coperture).filter((view) => !view.soloInfisso);
   const moving = tutte.filter((view) => view.moving).length;
-  const open = tutte.filter((view) => !view.moving && view.position > 0).length;
+  /* Lo spiraglio sotto la soglia (#298) e' una tapparella chiusa anche qui: il
+   * conto in cima e la pastiglia della card devono dire la stessa cosa. */
+  const soglia = sogliaChiusa();
+  const open = tutte.filter((view) => !view.moving && view.position > soglia).length;
   const closed = tutte.length - moving - open;
   const parts = [];
   if (open) parts.push(open === 1 ? t("1 aperta", "1 open") : t(`${open} aperte`, `${open} open`));
@@ -381,11 +394,33 @@ function heroMarkup() {
   </section>`;
 }
 
-function groupMarkup(view, count) {
-  const suffix = count === 1 ? t("tapparella", "shutter") : t("tapparelle", "shutters");
+/* Il conto di un gruppo dice cosa c'e' davvero (#299): una finestra col solo
+ * sensore di contatto non e' una tapparella, e «1 tapparella» sopra una
+ * persiana a mano era una bugia. Le tapparelle e le finestre si contano a
+ * parte, e ognuna compare solo se c'e'. */
+export function contoDelGruppo(views) {
+  const elenco = Array.isArray(views) ? views : [];
+  return {
+    tapparelle: elenco.filter((view) => !view?.soloInfisso).length,
+    finestre: elenco.filter((view) => Boolean(view?.soloInfisso)).length,
+  };
+}
+
+export function paroleDelConto(conto) {
+  const dato =
+    typeof conto === "number" ? { tapparelle: conto, finestre: 0 } : conto || { tapparelle: 0, finestre: 0 };
+  const parti = [];
+  const n = dato.tapparelle || 0;
+  const f = dato.finestre || 0;
+  if (n) parti.push(n === 1 ? t("1 tapparella", "1 shutter") : t(`${n} tapparelle`, `${n} shutters`));
+  if (f) parti.push(f === 1 ? t("1 finestra", "1 window") : t(`${f} finestre`, `${f} windows`));
+  return parti.join(" · ");
+}
+
+function groupMarkup(view, conto) {
   return `<div class="dm-tapp-group" role="heading" aria-level="3">
     <span class="dm-tapp-group-label">${esc(groupLabel(view))}</span>
-    <span class="dm-tapp-group-count">${count} ${esc(suffix)}</span>
+    <span class="dm-tapp-group-count">${esc(paroleDelConto(conto))}</span>
   </div>`;
 }
 
@@ -534,7 +569,7 @@ function gridMarkup(views) {
   views.forEach((view) => {
     if (grouped && groupKey(view) !== lastKey) {
       lastKey = groupKey(view);
-      markup += groupMarkup(view, views.filter((other) => groupKey(other) === lastKey).length);
+      markup += groupMarkup(view, contoDelGruppo(views.filter((other) => groupKey(other) === lastKey)));
     }
     markup += cardMarkup(view);
   });

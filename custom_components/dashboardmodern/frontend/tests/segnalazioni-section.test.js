@@ -221,7 +221,10 @@ test("un conteggio su una coda vuota e' zero, non un buco", () => {
   );
 });
 
-test("il filtro «da lavorare» toglie quelle chiuse", () => {
+test("il filtro «da lavorare» toglie le chiuse e quelle gia' prese in carico", () => {
+  /* «Il filtro da lavorare / in lavorazione non va: ci sono richieste prese in
+   * carico ed esce da lavorare.» Una segnalazione che qualcuno ha gia' preso
+   * non e' piu' da lavorare: e' in lavorazione, e sta nell'altro tasto. */
   const coda = [
     inCoda({ number: 1, state: "inviato" }),
     inCoda({ number: 2, state: "in-carico" }),
@@ -230,8 +233,15 @@ test("il filtro «da lavorare» toglie quelle chiuse", () => {
   ];
   assert.deepEqual(
     filtra(coda, "aperte").map((ticket) => ticket.number),
-    [1, 2],
+    [1],
   );
+  /* Il nome vecchio dello stesso tasto mostra le stesse righe. */
+  assert.deepEqual(
+    filtra(coda, "nuove").map((ticket) => ticket.number),
+    [1],
+  );
+  /* E il tasto «Nuove» non c'e' piu': diceva la stessa cosa con un'altra parola. */
+  assert.deepEqual([...FILTRI_STATO_ID], ["aperte", "in-carico", "chiuse", "tutte"]);
 });
 
 test("«tutte» non toglie niente", () => {
@@ -252,7 +262,7 @@ test("il filtro «chiuse» tiene solo quelle chiuse", () => {
   );
 });
 
-test("«nuove» e «in lavorazione» dividono quelle da lavorare", () => {
+test("«da lavorare» e «in lavorazione» dividono le aperte", () => {
   /* «Voglio capire cosa ho preso in carico e quelle ancora da prendere in
    * carico.» I due tasti sono le due cifre grandi in cima al cruscotto: chi
    * legge «6 in lavorazione» e preme il tasto deve trovare quelle sei, non
@@ -269,40 +279,39 @@ test("«nuove» e «in lavorazione» dividono quelle da lavorare", () => {
     [2],
   );
   assert.deepEqual(
-    filtra(coda, "nuove").map((ticket) => ticket.number),
+    filtra(coda, "aperte").map((ticket) => ticket.number),
     [1, 3],
   );
 });
 
-test("«nuove» e «in lavorazione» insieme fanno esattamente «da lavorare»", () => {
-  /* I due tasti nuovi si spartiscono le aperte senza perderne nessuna e senza
-   * contarne una due volte: se un domani nascesse uno stato aperto che non e'
-   * ne' nuovo ne' preso in carico, sparirebbe da tutti e due i tasti pur
-   * restando nel conto grande — e sarebbe una riga introvabile. */
+test("«da lavorare», «in lavorazione» e «chiuse» insieme fanno la coda intera", () => {
+  /* Tre tasti che si dividono l'elenco senza perdere niente per strada e senza
+   * contare una riga due volte: se un giorno uno stato nuovo non finisse in
+   * nessuno dei tre, sparirebbe da tutti i filtri senza che nessuno se ne
+   * accorga — e sarebbe una riga introvabile. */
   const coda = ["bozza", "inviato", "in-carico", "risolto", "chiuso"].map((state, indice) =>
     inCoda({ number: indice + 1, state }),
   );
-  const spartite = [...filtra(coda, "nuove"), ...filtra(coda, "in-carico")];
-  assert.deepEqual(
-    spartite.map((ticket) => ticket.number).sort((a, b) => a - b),
-    filtra(coda, "aperte")
-      .map((ticket) => ticket.number)
-      .sort((a, b) => a - b),
-  );
-  assert.equal(new Set(spartite.map((t) => t.number)).size, spartite.length);
-});
-
-test("«aperte» e «chiuse» insieme fanno la coda intera", () => {
-  /* Due tasti che si dividono l'elenco senza perdere niente per strada: se
-   * un giorno uno stato nuovo non finisse ne' di qua ne' di la', sparirebbe
-   * da tutti e due i filtri senza che nessuno se ne accorga. */
-  const coda = ["bozza", "inviato", "in-carico", "risolto", "chiuso"].map((state, indice) =>
-    inCoda({ number: indice + 1, state }),
-  );
-  const divise = [...filtra(coda, "aperte"), ...filtra(coda, "chiuse")];
+  const divise = [
+    ...filtra(coda, "aperte"),
+    ...filtra(coda, "in-carico"),
+    ...filtra(coda, "chiuse"),
+  ];
   assert.deepEqual(
     divise.map((ticket) => ticket.number).sort((a, b) => a - b),
     [1, 2, 3, 4, 5],
+  );
+  assert.equal(new Set(divise.map((t) => t.number)).size, divise.length);
+});
+
+test("il tasto «Aggiorna» del cruscotto rilegge la coda", async () => {
+  /* «Se premo aggiorna non mi carica le nuove, devo chiudere e riaprire.» Il
+   * tasto era disegnato — `ricarica-coda` — e nessuno lo ascoltava: l'unico
+   * «Aggiorna» collegato era quello della finestra, che rilegge le proprie
+   * segnalazioni e non la coda. */
+  assert.match(
+    await sorgente(),
+    /\[data-dm-tkt="ricarica-coda"\]'\)\s*\?\.addEventListener\("click", \(\) => caricaCoda\(\)\)/,
   );
 });
 

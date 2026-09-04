@@ -5,7 +5,18 @@
 // It is drawn as plain SVG from the same history Home Assistant already serves
 // to the card popup — no chart library, so it costs nothing to load and scales
 // to any width the page happens to have.
+import {
+  PERIODI,
+  daInputLocale,
+  etichettaDelTempo,
+  granularita,
+  intervalloDa,
+  intervalloPersonalizzato,
+  passoDelleTacche,
+  perInputLocale,
+} from "../core/periodo-storico.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
+import { parolaDelPeriodo } from "./history-section.js";
 import { quandoArrivaLoStorico, serieDi } from "./storico-condiviso-section.js";
 import { clean, doc, english, installStyle, locale, root, section, t } from "./shared.js";
 
@@ -15,8 +26,16 @@ const state = (root[KEY] ||= {
   listeners: false,
   frame: 0,
   hours: 24,
+  /* L'intervallo scelto a mano (#302): quando c'e', vince sulle ore. */
+  periodo: null,
   signature: "",
 });
+
+/** Il periodo che il pannello sta guardando adesso, sempre come intervallo. */
+export function periodoDelPannello(adesso = Date.now()) {
+  if (state.periodo) return intervalloDa(state.periodo, adesso) || intervalloDa(state.hours, adesso);
+  return intervalloDa(state.hours, adesso) || intervalloDa(24, adesso);
+}
 
 const VIEW = Object.freeze({ width: 720, height: 250, left: 38, right: 54, top: 14, bottom: 24 });
 
@@ -302,20 +321,27 @@ function element(tag, className, text) {
   return node;
 }
 
-function hourLabels(window) {
+/* Le tacche del tempo: ogni ora su poche ore, ogni sei su un giorno, ogni
+ * giorno su una settimana, ogni settimana su un mese (#302). La grana la
+ * decide il modello del periodo, cosi' e' la stessa del popup. */
+export function hourLabels(window) {
   const labels = [];
-  const step = window.hours > 48 ? 24 : 6;
+  const step = passoDelleTacche(window);
+  const grana = granularita(window);
   const first = new Date(window.start);
-  first.setMinutes(0, 0, 0);
-  for (let time = first.getTime(); time <= window.end; time += step * 60 * 60 * 1000) {
+  if (step >= 24 * 60 * 60 * 1000) first.setHours(0, 0, 0, 0);
+  else first.setMinutes(0, 0, 0);
+  for (let time = first.getTime(); time <= window.end; time += step) {
     if (time < window.start) continue;
     const date = new Date(time);
     labels.push({
       time,
       text:
-        window.hours > 48
-          ? date.toLocaleDateString(locale(), { weekday: "short" })
-          : `${String(date.getHours()).padStart(2, "0")}:00`,
+        grana === "ore"
+          ? `${String(date.getHours()).padStart(2, "0")}:00`
+          : grana === "giorni-ore"
+            ? date.toLocaleDateString(locale(), { weekday: "short" })
+            : etichettaDelTempo(time, "giorni", locale()),
     });
   }
   return labels;
@@ -340,22 +366,66 @@ function ensurePanel() {
     element("h3", "dm-trend-title", ""),
   );
   const ranges = element("div", "dm-trend-ranges");
-  for (const hours of [24, 168]) {
-    const button = element(
-      "button",
-      "dm-trend-range",
-      hours === 24 ? (t("24 h", "24 h")) : t("7 giorni", "7 days"),
-    );
+  for (const periodo of PERIODI) {
+    const button = element("button", "dm-trend-range", parolaDelPeriodo(periodo));
     button.type = "button";
-    button.dataset.hours = String(hours);
+    button.dataset.hours = String(periodo.ore);
     button.addEventListener("click", () => {
-      state.hours = hours;
+      state.hours = periodo.ore;
+      state.periodo = null;
       state.signature = "";
       schedule();
     });
     ranges.append(button);
   }
+  /* Da quando a quando, scritto a mano: il tasto apre la riga, «Applica»
+   * disegna. Un inizio dopo la fine, o nel futuro, non e' un intervallo. */
+  const custom = element("button", "dm-trend-range dm-trend-range-custom", t("Da … a", "From … to"));
+  custom.type = "button";
+  custom.dataset.dmTrendCustom = "1";
+  ranges.append(custom);
   head.append(titles, ranges);
+
+  const riga = element("div", "dm-trend-custom");
+  riga.hidden = true;
+  const daLabel = element("label");
+  daLabel.append(element("span", null, t("Dal", "From")));
+  const da = element("input", "ed-input");
+  da.type = "datetime-local";
+  da.dataset.dmTrendDa = "1";
+  daLabel.append(da);
+  const aLabel = element("label");
+  aLabel.append(element("span", null, t("Al", "To")));
+  const a = element("input", "ed-input");
+  a.type = "datetime-local";
+  a.dataset.dmTrendA = "1";
+  aLabel.append(a);
+  const applica = element("button", "dm-trend-range dm-trend-applica", t("Applica", "Apply"));
+  applica.type = "button";
+  const esito = element("small", "dm-trend-esito", "");
+  riga.append(daLabel, aLabel, applica, esito);
+  custom.addEventListener("click", () => {
+    riga.hidden = !riga.hidden;
+    if (!riga.hidden) {
+      const adesso = periodoDelPannello();
+      if (!da.value) da.value = perInputLocale(adesso.start);
+      if (!a.value) a.value = perInputLocale(adesso.end);
+    }
+  });
+  applica.addEventListener("click", () => {
+    const scelto = intervalloPersonalizzato(daInputLocale(da.value), daInputLocale(a.value));
+    if (!scelto) {
+      esito.textContent = t(
+        "Scegli un inizio prima della fine, e non nel futuro.",
+        "Pick a start before the end, and not in the future.",
+      );
+      return;
+    }
+    esito.textContent = "";
+    state.periodo = { start: scelto.start, end: scelto.end };
+    state.signature = "";
+    schedule();
+  });
 
   const plot = element("div", "dm-trend-plot");
   plot.append(
@@ -371,7 +441,7 @@ function ensurePanel() {
     "dm-trend-empty",
     t("Nessuno storico disponibile per questa stanza.", "No history yet for this room."),
   );
-  panel.append(head, plot, legend, empty);
+  panel.append(head, riga, plot, legend, empty);
   grid.after(panel);
   return panel;
 }
@@ -495,10 +565,17 @@ export function renderTemperatureTrend() {
   if (!panel) return false;
   const roomId = activeRoomId();
   const model = trendSeriesModel(rooms(), roomId);
-  const hours = state.hours;
-  panel.querySelectorAll(".dm-trend-range").forEach((button) =>
-    button.classList.toggle("active", Number(button.dataset.hours) === hours),
+  const intervallo = periodoDelPannello();
+  const hours = intervallo.ore;
+  panel.querySelectorAll(".dm-trend-range[data-hours]").forEach((button) =>
+    button.classList.toggle(
+      "active",
+      !intervallo.personalizzato && Number(button.dataset.hours) === hours,
+    ),
   );
+  panel
+    .querySelector(".dm-trend-range-custom")
+    ?.classList.toggle("active", Boolean(intervallo.personalizzato));
   panel.querySelector(".dm-trend-title").textContent = model.title;
 
   if (!model.series.length) {
@@ -506,9 +583,8 @@ export function renderTemperatureTrend() {
     return false;
   }
 
-  const end = Date.now();
-  const window = { start: end - hours * 60 * 60 * 1000, end, hours };
-  const withRows = model.series.map((item) => ({ ...item, rows: rowsFor(item.entity, hours) }));
+  const window = { start: intervallo.start, end: intervallo.end, hours };
+  const withRows = model.series.map((item) => ({ ...item, rows: rowsFor(item.entity, intervallo) }));
   if (withRows.some((item) => item.rows === null)) panel.dataset.state = "loading";
 
   const view = viewFor(panel);
@@ -558,7 +634,15 @@ function installStyles() {
     #dm-temperature-trend .dm-trend-titles{display:grid!important;gap:2px!important;min-width:0!important}
     #dm-temperature-trend .dm-trend-kicker{font-size:8.5px!important;font-weight:900!important;letter-spacing:.16em!important;text-transform:uppercase!important;color:var(--primary-color,#0284c7)!important}
     #dm-temperature-trend .dm-trend-title{margin:0!important;font-size:17px!important;font-weight:900!important;letter-spacing:-.3px!important;line-height:1.15!important;color:var(--text,#0f172a)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-    #dm-temperature-trend .dm-trend-ranges{display:inline-flex!important;gap:4px!important;padding:3px!important;border-radius:999px!important;background:color-mix(in srgb,var(--text-dim,#64748b) 10%,transparent)!important}
+    #dm-temperature-trend .dm-trend-ranges{display:inline-flex!important;flex-wrap:wrap!important;gap:4px!important;padding:3px!important;border-radius:999px!important;background:color-mix(in srgb,var(--text-dim,#64748b) 10%,transparent)!important}
+    #dm-temperature-trend .dm-trend-custom{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:8px 0 2px;padding:10px;border-radius:14px;background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e2e8f0)}
+    #dm-temperature-trend .dm-trend-custom[hidden]{display:none}
+    #dm-temperature-trend .dm-trend-custom label{display:grid;gap:3px;flex:1 1 150px;min-width:0}
+    #dm-temperature-trend .dm-trend-custom label span{font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim,#64748b)}
+    #dm-temperature-trend .dm-trend-custom input{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:13px}
+    #dm-temperature-trend .dm-trend-custom .dm-trend-applica{background:var(--accent,#0ea5e9)!important;color:#fff!important}
+    #dm-temperature-trend .dm-trend-esito{flex:1 1 100%;color:#b91c1c;font-weight:700;font-size:11px}
+    #dm-temperature-trend .dm-trend-esito:empty{display:none}
     #dm-temperature-trend .dm-trend-range{min-height:30px!important;padding:6px 12px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:var(--text-dim,#64748b)!important;font:inherit!important;font-size:11.5px!important;font-weight:850!important;cursor:pointer!important}
     #dm-temperature-trend .dm-trend-range.active{background:var(--dm-trend-surface)!important;color:var(--text,#0f172a)!important;box-shadow:0 4px 12px -6px rgba(15,23,42,.5)!important}
     #dm-temperature-trend .dm-trend-plot{width:100%!important;min-width:0!important}

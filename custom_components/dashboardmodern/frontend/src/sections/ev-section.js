@@ -6,6 +6,7 @@ import {
   nuovoVeicolo,
   pickVehicle,
   storedVehicles,
+  tipoMotore,
   updateVehicle,
   vehicleIndex,
   vehicleList,
@@ -1020,7 +1021,8 @@ export function vehicleBatteryEntity(car = profiles()[activeIndex()] || profiles
  * riga dice cos'e' la linguetta. */
 function profileMeta(car = {}) {
   const overrides = car.ov || car.overrides || {};
-  const batteryEntity = overrides["dm.ev_batteria_auto"] || overrides["dm.ev_battery"] || overrides["dm.ev_soc"] || car.battery_entity || car.soc_entity || "";
+  /* Senza batteria, la percentuale accanto al modello e' il carburante (#208). */
+  const batteryEntity = overrides["dm.ev_batteria_auto"] || overrides["dm.ev_battery"] || overrides["dm.ev_soc"] || car.battery_entity || car.soc_entity || overrides["dm.ev_carburante"] || "";
   const current = batteryEntity && (root.STATES?.[batteryEntity] || root._RAW_STATES?.[batteryEntity]);
   const value = Number(current?.state);
   const carica = Number.isFinite(value) ? `${Math.round(value)}%` : "";
@@ -1435,6 +1437,12 @@ function installLegacyWrappers() {
       const rinomina =
         sessioneEsplicita && state.evRenameArmed && nomeScritto ? { name: nomeScritto } : {};
       const vestito = marcaViva ? { brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) } : {};
+      /* Il motore (#208): la tendina della scheda dice che tipo di auto e', e
+       * si scrive sull'auto che si sta salvando — e' quella di cui la tendina
+       * parla, perche' il modulo che la disegna la tiene allineata alla
+       * vettura aperta. Senza tendina (modulo non caricato) non si tocca. */
+      const tendinaMotore = doc?.querySelector?.("#ed-body select[data-ev-tipo]");
+      const motore = tendinaMotore ? { tipo: tipoMotore(tendinaMotore.value) } : {};
 
       const bersaglioEsplicito = Boolean(
         bersaglio && sessioneEsplicita && uidDi(bersaglio) === uidDi(sessioneEsplicita),
@@ -1446,6 +1454,7 @@ function installLegacyWrappers() {
         const patch = {
           [VEHICLE_OVERRIDES_FIELD]: mappatura,
           ...rinomina,
+          ...motore,
           /* Marca e modello: sull'auto che si sta modificando si scrivono
            * sempre, sulle altre solo se sono nude.
            *
@@ -1466,6 +1475,7 @@ function installLegacyWrappers() {
           ...nuovoVeicolo(elenco, nomeScritto, letturaMetadata()),
           [VEHICLE_OVERRIDES_FIELD]: mappatura,
           ...vestito,
+          ...motore,
         };
         rimesse = salvaAuto([...elenco, nata]);
         salvata = rimesse.find((car) => uidDi(car) === nata[VEHICLE_KEY_FIELD]) || null;

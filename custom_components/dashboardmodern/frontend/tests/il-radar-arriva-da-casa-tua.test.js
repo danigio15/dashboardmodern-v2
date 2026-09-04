@@ -30,7 +30,13 @@ test("si sceglie un'entità, e deve essere una che porta un'immagine", () => {
   assert.equal(radarScelto({ entity: "camera.radar_dpc" }).modo, "entita");
   assert.equal(radarScelto({ entity: "image.radar" }).modo, "entita");
   /* Un sensore non ha un fotogramma da dare: non e' un radar. */
-  assert.equal(radarScelto({ entity: "sensor.pioggia" }), null);
+  /* Un'entita' che non e' un'immagine non fa un radar da sola: ma il radar e'
+   * stato toccato, e allora vale il servizio di serie. Chi non l'ha mai
+   * toccato non se lo trova nelle previsioni. */
+  assert.equal(radarScelto({ entity: "sensor.pioggia" })?.modo, "mappa");
+  assert.equal(radarScelto({}), null);
+  assert.equal(radarScelto({ zona: "", raggio: "" }), null);
+  assert.equal(radarScelto({ servizio: "nessuno", zona: "zone.casa" }), null);
 });
 
 test("l'entità vince sul servizio di tessere: non esce di casa", () => {
@@ -49,11 +55,16 @@ test("il raggio di serie è quello della segnalazione, e non si va oltre il ragi
   assert.equal(radarScelto({ entity: "camera.r", raggio: 60 }).raggio, 60);
 });
 
-test("senza scelta, o con una scritta storta, non c'è radar", () => {
-  for (const stored of [{}, null, undefined, { entity: "" }, { entity: "nondominio" }])
+test("senza scelta non c'è radar; una scritta storta ricade sul servizio di serie", () => {
+  for (const stored of [{}, null, undefined, { entity: "" }, { zona: "", raggio: "" }])
     assert.equal(radarScelto(stored), null);
-  /* Un indirizzo senza segnaposto chiederebbe sempre lo stesso quadratino. */
-  assert.equal(radarScelto({ modello: "https://esempio/radar.png" }), null);
+  /* Chi ha toccato il radar — anche scrivendoci una cosa storta — ha il
+   * servizio di serie: un'entita' che non e' un'immagine e un indirizzo senza
+   * segnaposto non fanno un radar da soli, e RainViewer entra al loro posto. */
+  assert.equal(radarScelto({ entity: "nondominio" })?.modo, "mappa");
+  assert.equal(radarScelto({ modello: "https://esempio/radar.png" })?.servizio, "rainviewer");
+  /* «Nessuno» e' una scelta, e vale: niente servizio, niente radar. */
+  assert.equal(radarScelto({ servizio: "nessuno", zona: "zone.casa" }), null);
 });
 
 test("vivo vuol dire che Home Assistant sta dando un fotogramma", () => {
@@ -68,20 +79,33 @@ test("vivo vuol dire che Home Assistant sta dando un fotogramma", () => {
   );
   /* Un'entita' che non porta immagini non e' viva nemmeno se ha una foto
    * addosso: non e' un radar, e `radarScelto` non la sceglie proprio. */
-  assert.equal(radarScelto({ entity: "person.tizio" }), null);
+  assert.notEqual(radarScelto({ entity: "person.tizio" })?.modo, "entita");
   assert.equal(radarVivo(null, {}), false);
 });
 
-test("il fotogramma arriva dal proprio Home Assistant, non da un servizio di terzi", () => {
+test("il fotogramma arriva dal proprio Home Assistant, e un servizio solo se scelto", () => {
   /* Il fotogramma passa dal caricatore delle telecamere, che chiede
    * `entity_picture` al proprio Home Assistant col proprio token. */
   assert.match(sorgente, /import \{ loadCameraFrame \} from "\.\/live-ui-section\.js";/);
-  /* E nessun indirizzo di servizio cablato: né la Protezione Civile né altri.
-   * Cablare l'indirizzo di un servizio mai interrogato sarebbe spedire una
-   * promessa; al suo posto c'e' una casella e un tasto che la prova. */
-  assert.doesNotMatch(sorgente, /protezionecivile|radar-api|tilecache|openstreetmap|cartocdn/i);
+  /* Nessun indirizzo di servizio cablato qui dentro: quelli che si conoscono
+   * stanno nel nucleo come DATI di una tendina, e la sola richiesta che esce
+   * di casa parte da `aggiornaFotogramma`, che senza un servizio dichiarato
+   * e scelto non fa niente. Chi sceglie un servizio lo sa, e sa cosa quel
+   * servizio viene a sapere: sta scritto accanto alla tendina. */
+  assert.doesNotMatch(
+    sorgente,
+    /protezionecivile\.it|radar-api\.|tilecache\.|openstreetmap\.org|cartocdn\.com|rainviewer\.com/i,
+  );
+  assert.match(sorgente, /const dichiarato = SERVIZI_RADAR\[servizio\];[\s\S]{0,400}root\.fetch\(dichiarato\.elenco/);
+  assert.equal((sorgente.match(/root\.fetch\(/g) || []).length, 1, "una richiesta sola esce di casa");
+  assert.match(sorgente, /la plancia non bussa a nessuno/);
   assert.match(sorgente, /data-dm-radar-prova/);
   assert.match(sorgente, /export function provaLIndirizzo/);
+  /* Senza scelta non c'e' radar; con un servizio scelto c'e'; e l'entita' di
+   * casa vince comunque sul servizio. */
+  assert.equal(radarScelto({}), null);
+  assert.equal(radarScelto({ servizio: "rainviewer" }).modo, "mappa");
+  assert.equal(radarScelto({ servizio: "rainviewer", entity: "camera.radar" }).modo, "entita");
 });
 
 test("il radar si aggiorna solo mentre la finestra è aperta", () => {

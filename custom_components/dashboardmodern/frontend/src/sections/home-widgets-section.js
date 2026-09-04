@@ -38,6 +38,10 @@ import { poolList } from "../core/pool-model.js";
 /* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
  * di rifare il giro verso GitHub per conto suo. */
 import { sommarioConsole } from "./segnalazioni-section.js";
+/* E la tessera della chat di assistenza chiede lo stato a chi lo tiene: la
+ * sezione della chat, che lo annuncia quando cambia. */
+import { quando as quandoScritto, statoDellaChat } from "./assistenza-section.js";
+import { tesseraDellaChat } from "../core/avviso-chat.js";
 import {
   SCALDABAGNI_KEY,
   entitaDiUnoScaldabagno,
@@ -101,10 +105,30 @@ import {
 } from "./calendario-modifica-section.js";
 import { normalizzaPrese } from "../core/prese-model.js";
 import { CHIAVE_MEDIA, lettoriConfigurati, lettureDeiLettori } from "../core/media-player.js";
+import {
+  CHIAVE_ALLERTE,
+  IGNOTO,
+  allerteAttive,
+  almeno,
+  categorieConfigurate,
+  entitaDelleAllerte,
+  letturaAllerte,
+  livelloMassimo,
+} from "../core/allerte-model.js";
+import { categoriaDelleAllerte, fraseDellAllerta } from "./allerte-section.js";
+import {
+  CHIAVE_RIFIUTI,
+  entitaDeiRifiuti,
+  letturaRifiuti,
+  rifiutiConfigurati,
+} from "../core/rifiuti-model.js";
+import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
 import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
+  CHIAVE_SOGLIA_CHIUSA,
+  coverClosedThreshold,
   coverEntries,
   coverKindLabel,
   coverPositionChoices,
@@ -763,13 +787,26 @@ function climateModel(states) {
   const average = ambient.length
     ? ambient.reduce((sum, value) => sum + value, 0) / ambient.length
     : null;
+  /* L'unita' scelta al posto della media (#303). */
+  const scelta = sorgenteDelWidget("clima");
+  const sola = scelta ? rows.find((row) => row.entity === scelta) : null;
   return {
     key: "clima",
     accent: "#0ea5e9",
     icon: "❄️",
     label: t("Clima", "Climate"),
-    value: average == null ? String(on.length) : `${formatNumber(average, 1)}°`,
-    caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
+    value: sola
+      ? sola.ambient == null
+        ? sola.on
+          ? t("Accesa", "On")
+          : t("Spenta", "Off")
+        : `${formatNumber(sola.ambient, 1)}°`
+      : average == null
+        ? String(on.length)
+        : `${formatNumber(average, 1)}°`,
+    caption: sola
+      ? `${sola.name} · ${sola.on ? t("accesa", "on") : t("spenta", "off")}`
+      : nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100),
     rows,
   };
@@ -853,12 +890,19 @@ function coversModel(states) {
       const position = posizioneSecondoVerso(Number(current?.attributes?.current_position), girata);
       /* Il contatto parla la sua lingua — `on` e' aperto — e non ha posizione:
        * chiederla a lui vorrebbe dire inventarla. */
+      /* Dove una posizione c'e', comanda lei — e sotto la soglia di casa
+       * (#298) uno spiraglio e' una tapparella chiusa: «le imposto al 10%
+       * per un minimo passaggio d'aria, ma il sistema le rileva aperte». Lo
+       * stato di Home Assistant resta per chi la posizione non la dichiara. */
       const open = soloSensore
         ? apertaSecondoVerso(
             windowOpenFromState(current?.state),
             insiemeInvertiti(readJson(CHIAVE_VERSI, [])).has(entity),
           ) === true
-        : raw === "open" || raw === "opening" || (Number.isFinite(position) && position > 0);
+        : raw === "opening" ||
+          (Number.isFinite(position)
+            ? position > coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0))
+            : raw === "open");
       return {
         soloSensore: Boolean(soloSensore),
         entity,
@@ -1146,13 +1190,23 @@ function temperatureModel(states) {
   const humidity = humidities.length
     ? Math.round(humidities.reduce((sum, value) => sum + value, 0) / humidities.length)
     : null;
+  /* La stanza scelta al posto della media (#303): con una pompa di calore che
+   * d'inverno scalda una stanza a trenta gradi, la media non dice niente. */
+  const scelta = sorgenteDelWidget("temperatura");
+  const sola = scelta ? rows.find((row) => row.entity === scelta) : null;
   return {
     key: "temperatura",
     accent: "#ef4444",
     icon: "🌡️",
     label: t("Temperatura", "Temperature"),
-    value: `${formatNumber(average, 1)}°`,
-    caption: humidity == null ? "" : `${t("Umidità", "Humidity")} ${humidity}%`,
+    value: `${formatNumber(sola ? sola.temperature : average, 1)}°`,
+    caption: sola
+      ? [sola.name, sola.humidity == null ? "" : `${t("Umidità", "Humidity")} ${Math.round(sola.humidity)}%`]
+          .filter(Boolean)
+          .join(" · ")
+      : humidity == null
+        ? ""
+        : `${t("Umidità", "Humidity")} ${humidity}%`,
     ring: null,
     rows,
   };
@@ -1232,10 +1286,28 @@ function letturaVettura(states, auto, fuori, indice) {
     visti.add(entity);
     return { entity, value: numOf(states, entity), state: clean(states?.[entity]?.state) };
   };
+  /* L'auto a benzina (#208): il livello che la tessera mostra e' il
+   * carburante — stessa scala, stessa domanda. Decide il tipo di motore, non
+   * quale casella e' rimasta compilata: una vettura passata a benzina puo'
+   * avere ancora addosso la batteria di quando era elettrica, e la tessera
+   * diceva «carica» mentre la pagina diceva serbatoio. Senza tipo, la
+   * batteria se c'e', e il serbatoio solo al suo posto. */
+  const aBenzina = clean(auto?.tipo) === "termica";
   let carica = null;
-  for (const riferimento of RIF_BATTERIA_EV) {
-    carica = misura(riferimento);
-    if (carica) break;
+  let serbatoio = null;
+  if (aBenzina) {
+    serbatoio = misura("dm.ev_carburante");
+    carica = serbatoio;
+  }
+  if (!carica) {
+    for (const riferimento of RIF_BATTERIA_EV) {
+      carica = misura(riferimento);
+      if (carica) break;
+    }
+  }
+  if (!carica) {
+    serbatoio = misura("dm.ev_carburante");
+    carica = serbatoio;
   }
   const autonomia = misura("dm.ev_autonomia");
   const stato = misura("dm.ev_stato_ricarica");
@@ -1251,6 +1323,7 @@ function letturaVettura(states, auto, fuori, indice) {
   return {
     nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
     percentuale,
+    carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
     kw: sbircia("dm.ev_potenza_ricarica"),
@@ -1372,6 +1445,10 @@ function letturaAttiva(states, fuori) {
     carica = misura(riferimento);
     if (carica) break;
   }
+  /* L'auto a benzina (#208): senza una batteria da leggere, il livello che
+   * la tessera mostra e' il carburante — stessa scala, stessa domanda. */
+  const serbatoio = carica ? null : misura("dm.ev_carburante");
+  if (!carica && serbatoio) carica = serbatoio;
   const autonomia = misura("dm.ev_autonomia");
   const stato = misura("dm.ev_stato_ricarica");
   if (!carica && !autonomia) return null;
@@ -1381,6 +1458,7 @@ function letturaAttiva(states, fuori) {
   return {
     nome: "",
     percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
+    carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
     kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
@@ -1394,8 +1472,8 @@ function righeVettura(lettura, conNome) {
   const prefisso = conNome && lettura.nome ? `${lettura.nome} · ` : "";
   if (lettura.percentuale != null)
     righe.push({
-      glyph: "🔋",
-      name: `${prefisso}${t("Carica", "Charge")}`,
+      glyph: lettura.carburante ? "⛽" : "🔋",
+      name: `${prefisso}${lettura.carburante ? t("Carburante", "Fuel") : t("Carica", "Charge")}`,
       value: `${Math.round(lettura.percentuale)}%`,
     });
   if (lettura.km != null)
@@ -2733,23 +2811,32 @@ function customAlertModels(states) {
  * ha la sua entita'. Ogni riga si legge con `rigaDaEntita`, che sa gia' dare a
  * un numero la sua unita' e a un interruttore la sua parola; il nome scelto
  * dall'utente vince su quello dell'integrazione. */
+/* Una voce in evidenza come riga della tessera, o `null` se non si mostra. */
+function rigaInEvidenza(states, voce, fuori) {
+  const entity = clean(voce?.entity);
+  if (!entity || !widgetIncludes(entity, fuori)) return null;
+  const glifo = clean(voce?.icon) || "⭐";
+  const nome = clean(voce?.name);
+  const riga = rigaDaEntita(states, entity, glifo);
+  /* Un'entita' che adesso non risponde resta in tessera col suo trattino:
+   * e' stata scelta apposta, e sparire in silenzio direbbe «tutto bene». */
+  if (!riga)
+    return { glyph: glifo, name: nome || friendlyName(states, entity), entity, value: "—" };
+  return nome ? { ...riga, name: nome } : riga;
+}
+
+/* «Tessera a se'» (#303): una voce in evidenza puo' avere la sua tessera in
+ * Home invece di stare nel riassunto — e al tocco si apre su di lei. */
+export const eUnaTesseraSola = (voce) =>
+  voce?.sola === true || voce?.sola === "true" || voce?.sola === 1 || voce?.sola === "1";
+
 export function evidenzaModel(states) {
   const voci = readJson(EVIDENZA_CONFIG_KEY, []);
   if (!Array.isArray(voci)) return null;
   const fuori = widgetExcludedEntities();
   const rows = voci
-    .map((voce) => {
-      const entity = clean(voce?.entity);
-      if (!entity || !widgetIncludes(entity, fuori)) return null;
-      const glifo = clean(voce?.icon) || "⭐";
-      const nome = clean(voce?.name);
-      const riga = rigaDaEntita(states, entity, glifo);
-      /* Un'entita' che adesso non risponde resta in tessera col suo trattino:
-       * e' stata scelta apposta, e sparire in silenzio direbbe «tutto bene». */
-      if (!riga)
-        return { glyph: glifo, name: nome || friendlyName(states, entity), entity, value: "—" };
-      return nome ? { ...riga, name: nome } : riga;
-    })
+    .filter((voce) => !eUnaTesseraSola(voce))
+    .map((voce) => rigaInEvidenza(states, voce, fuori))
     .filter(Boolean);
   if (!rows.length) return null;
   return {
@@ -2766,6 +2853,46 @@ export function evidenzaModel(states) {
     attiva: rows.some((riga) => riga.on === true),
     rows,
   };
+}
+
+/* Le tessere «a se'» delle evidenze, una per voce che lo chiede. La chiave
+ * porta l'indice della voce, e per ordine e visibilita' contano tutte come
+ * «evidenza» — come gli avvisi personalizzati sotto `custom`. */
+export function evidenzeSingole(states) {
+  const voci = readJson(EVIDENZA_CONFIG_KEY, []);
+  if (!Array.isArray(voci)) return [];
+  const fuori = widgetExcludedEntities();
+  let stanze = [];
+  try {
+    stanze = root.getStanze?.() || readJson("cd_stanze", []) || [];
+  } catch (_error) {
+    stanze = [];
+  }
+  return voci
+    .map((voce, index) => {
+      if (!eUnaTesseraSola(voce)) return null;
+      const riga = rigaInEvidenza(states, voce, fuori);
+      if (!riga) return null;
+      const stanza = Array.isArray(stanze)
+        ? stanze.find((room) => clean(room?.id) === clean(voce?.room_id))
+        : null;
+      return {
+        key: `evidenza-${index}`,
+        accent: "#eab308",
+        icon: riga.glyph || "⭐",
+        label: riga.name,
+        value: riga.value,
+        caption: clean(stanza?.name),
+        ring: null,
+        attiva: riga.on === true,
+        rows: [riga],
+      };
+    })
+    .filter(Boolean);
+}
+
+export function evidenzaModels(states) {
+  return [evidenzaModel(states), ...evidenzeSingole(states)].filter(Boolean);
 }
 
 /* ── la personalizzazione (cd_widgets) ────────────────────────────────── */
@@ -2821,7 +2948,25 @@ export function widgetPreferences() {
   const compatto = MODI_COMPATTO.includes(clean(stored?.compatto))
     ? clean(stored?.compatto)
     : "auto";
-  return { hidden, order, excluded, compatto };
+  /* Cosa mostra una tessera che riassume piu' cose (#303): «il widget
+   * temperatura come il clima visualizzano la temperatura media, si potrebbe
+   * far scegliere cosa visualizzare». Per chiave della tessera, l'entita' da
+   * mettere in primo piano; senza, la media di sempre. */
+  const grezze = stored?.sorgenti;
+  const sorgenti =
+    grezze && typeof grezze === "object" && !Array.isArray(grezze)
+      ? Object.fromEntries(
+          Object.entries(grezze)
+            .map(([chiave, valore]) => [clean(chiave), clean(valore)])
+            .filter(([chiave, valore]) => chiave && valore),
+        )
+      : {};
+  return { hidden, order, excluded, compatto, sorgenti };
+}
+
+/** L'entita' scelta per una tessera che riassume, o «» per la media. */
+export function sorgenteDelWidget(chiave, preferences = widgetPreferences()) {
+  return clean(preferences?.sorgenti?.[clean(chiave)]);
 }
 
 /* Le entita' che restano fuori dai widget.
@@ -2845,10 +2990,21 @@ export function widgetIncludes(entity, excluded = widgetExcludedEntities()) {
  * Gli avvisi personalizzati si governano insieme, sotto la chiave `custom`. */
 export function applyWidgetPreferences(models, preferences = widgetPreferences()) {
   const hidden = new Set(preferences.hidden);
-  const chiave = (widget) => (widget.key.startsWith("custom-") ? "custom" : widget.key);
+  const chiave = (widget) =>
+    widget.key.startsWith("custom-")
+      ? "custom"
+      : widget.key.startsWith("evidenza-")
+        ? "evidenza"
+        : widget.key;
   const rank = (widget) => {
-    const index = preferences.order.indexOf(chiave(widget));
-    return index < 0 ? preferences.order.length + models.indexOf(widget) : index;
+    const nome = chiave(widget);
+    const index = preferences.order.indexOf(nome);
+    if (index >= 0) return index;
+    /* La tessera dell'assistenza e' nata dopo che molti avevano gia' salvato un
+     * ordine: fuori dall'ordine starebbe in coda, e un avviso in coda non
+     * avvisa. Finche' nessuno la sposta apposta, sta per prima. */
+    if (nome === "assistenza") return -1;
+    return preferences.order.length + models.indexOf(widget);
   };
   return models.filter((widget) => !hidden.has(chiave(widget))).sort((a, b) => rank(a) - rank(b));
 }
@@ -2983,11 +3139,133 @@ function segnalazioniModel() {
   };
 }
 
+/* La tessera della chat di assistenza: un avviso, e c'e' solo finche' c'e'
+ * una risposta da leggere.
+ *
+ * «Gestisci una sorta di widget avviso che, se si ricevono messaggi nella
+ *  chat assistenza, compare nella home.» Compare con la prima risposta non
+ * letta e se ne va quando la finestra si apre, perche' aprire la chat e'
+ * leggerla. Lo stato lo tiene la sezione della chat; il modello sta nel nucleo. */
+function chatModel() {
+  return tesseraDellaChat(statoDellaChat());
+}
+
+/* La tessera delle allerte (#296).
+ *
+ * Il numero grande e' quante fonti hanno qualcosa da dire, e la tessera si
+ * accende con la prima: e' l'unica cosa che una tessera deve sapere. Le righe
+ * dentro portano ogni fonte con la sua frase, e il livello — che la finestra
+ * usa per la sua frase — arriva dal modello, non si rifa' qui. */
+export function paroleDelleFontiMute(quante) {
+  const n = Number(quante) || 0;
+  if (n === 1) return t("1 fonte non risponde", "1 source not responding");
+  return t(`${n} fonti non rispondono`, `${n} sources not responding`);
+}
+
+function allerteModel(states) {
+  const config = readJson(CHIAVE_ALLERTE, {});
+  if (!categorieConfigurate(config).length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entitaDelleAllerte(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const letture = letturaAllerte(config, states, root.resolveEntity || ((value) => value));
+  const attive = allerteAttive(letture);
+  const livello = livelloMassimo(letture);
+  /* Le fonti che non rispondono. Con nessuna allerta in corso la tessera
+   * diceva «OK · Tutto tranquillo» anche se il sensore dei terremoti era
+   * spento: e un sensore spento non e' un cielo sereno, e' una sorveglianza
+   * che manca. Si dice, al posto del tutto tranquillo. */
+  const mute = letture.filter((lettura) => lettura.livello === IGNOTO);
+  const rows = letture.map((lettura) => ({
+    glyph: categoriaDelleAllerte(lettura.chiave).icona,
+    name: clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome,
+    entity: lettura.entity,
+    value: fraseDellAllerta(lettura),
+    livello: lettura.livello,
+  }));
+  return {
+    key: "allerte",
+    accent: "#f59e0b",
+    icon: "⚠️",
+    label: t("Allerte", "Alerts"),
+    value: attive.length ? String(attive.length) : mute.length ? "—" : "OK",
+    caption: attive.length
+      ? attive
+          .map((lettura) => clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome)
+          .join(" · ")
+      : mute.length
+        ? paroleDelleFontiMute(mute.length)
+        : t("Tutto tranquillo", "All quiet"),
+    ring: null,
+    /* Accesa alla prima fonte che ha qualcosa da dire; l'alone da attenzione
+     * in su, che e' quando vale la pena alzare la testa. */
+    attiva: attive.length > 0,
+    alert: almeno(livello, "attenzione"),
+    livello,
+    letture,
+    rows,
+  };
+}
+
+/* La tessera della raccolta differenziata (#293).
+ *
+ * Il numero grande e' la parola del quando — «Domani» — e la didascalia dice
+ * cosa: e' la risposta alla domanda della sera. Si accende il giorno prima e
+ * il giorno stesso, che sono i due momenti in cui serve vederla. */
+function rifiutiModel(states) {
+  const config = readJson(CHIAVE_RIFIUTI, {});
+  if (!rifiutiConfigurati(config)) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entitaDeiRifiuti(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const lettura = letturaRifiuti(config, states, root.resolveEntity || ((value) => value));
+  const dalCalendario =
+    lettura.calendario && lettura.calendario.giorni !== null && lettura.calendario.giorni >= 0
+      ? [{ ...lettura.calendario, nome: lettura.calendario.nome }]
+      : [];
+  const prossimi = (lettura.prossimi.length ? lettura.prossimi : dalCalendario).map((riga) => ({
+    name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
+    quando: riga.quando,
+    giorni: riga.giorni,
+  }));
+  const primo = prossimi[0] || null;
+  const rigaDi = (riga, glyph) => ({
+    glyph,
+    name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
+    entity: riga.entity,
+    value: parolaDelQuando(riga),
+    quando: riga.quando,
+    giorni: riga.giorni,
+  });
+  const rows = [
+    ...lettura.righe.map((riga) => rigaDi(riga, riga.icona)),
+    ...(lettura.calendario ? [rigaDi(lettura.calendario, "📅")] : []),
+  ];
+  const primaRiga = lettura.prossimi[0] || dalCalendario[0] || null;
+  return {
+    key: "rifiuti",
+    accent: "#22c55e",
+    icon: "♻️",
+    label: t("Rifiuti", "Waste"),
+    value: primaRiga ? parolaDelQuando(primaRiga) : "—",
+    caption: primo
+      ? prossimi.map((riga) => riga.name).join(" · ")
+      : t("Nessuna data in vista", "No date in sight"),
+    ring: null,
+    attiva: Boolean(primo && (primo.quando === "oggi" || primo.quando === "domani")),
+    alert: false,
+    prossimi,
+    rows,
+  };
+}
+
 function widgetModels(states) {
   if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
     [
-      evidenzaModel(states),
+      /* L'avviso dell'assistenza sta per primo: e' una risposta a chi ha
+       * chiesto aiuto, e la prima tessera e' quella che si vede senza cercare.
+       * Chi lo vuole altrove lo sposta dalla scheda Widget. */
+      chatModel(),
+      ...evidenzaModels(states),
       segnalazioniModel(),
       agendaModel(states),
       lightsModel(states),
@@ -3008,6 +3286,8 @@ function widgetModels(states) {
       poolModel(states),
       preseModel(states),
       mediaModel(states),
+      allerteModel(states),
+      rifiutiModel(states),
       irrigationModel(states),
       batteriesModel(states),
       floodModel(states),
@@ -4074,6 +4354,8 @@ const CHIAVI_A_CARTE = new Set([
   "energia",
   "temperatura",
   "batterie",
+  "allerte",
+  "rifiuti",
   "elettrodomestici",
 ]);
 
@@ -4087,7 +4369,8 @@ const eUnaTesseraEnergia = (chiave) =>
   clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
 
 function carteDalleRighe(widget) {
-  const chiave = clean(widget.key);
+  /* Una tessera «a se'» delle evidenze si disegna come la tessera madre. */
+  const chiave = clean(widget.key).startsWith("evidenza-") ? "evidenza" : clean(widget.key);
   if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
     return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
@@ -4439,7 +4722,35 @@ function verdettoEFrase(widget) {
  * misura con la sua corsa, le caselle, i comandi.» I comandi sono le righe di
  * prima: li' ci sono gli interruttori, e quelli non si toccano — cambia il
  * posto, non quello che fanno. */
+/* La risposta dell'assistenza si legge nella sua finestra, non qui: qui c'e'
+ * l'ultima frase in breve, quante ne aspettano, e la porta. Niente verdetto
+ * generico sopra, per la stessa ragione delle segnalazioni: il motore che
+ * legge gli stati di casa qui non ha niente da leggere. */
+function chatDetail(widget) {
+  const ora = widget.scrittoIl ? quandoScritto(widget.scrittoIl) : "";
+  const bolla = widget.anteprima
+    ? `<div class="dm-w-chat">
+        <div class="dm-w-chat-testa">
+          <span aria-hidden="true">💬</span>
+          <b>${esc(t("L'ultima risposta", "The latest reply"))}</b>
+          ${ora ? `<small class="dm-w-chat-quando">${esc(ora)}</small>` : ""}
+        </div>
+        <p class="dm-w-chat-testo">${esc(widget.anteprima)}</p>
+      </div>`
+    : "";
+  return `${bolla}
+      <div class="dm-w-caselle">
+        <div class="dm-w-casella"><b>${Number(widget.risposte) || 0}</b><small>${esc(
+          t("Da leggere", "Unread"),
+        )}</small></div>
+      </div>
+      <button type="button" class="dm-w-porta" data-dm-apri-chat>${esc(
+        t("Apri la chat", "Open the chat"),
+      )}</button>`;
+}
+
 function detailBody(widget, states) {
+  if (widget.key === "assistenza") return chatDetail(widget);
   /* Le segnalazioni non si lavorano da qui. La finestra della tessera e'
    * larga un palmo, e rispondere a una issue vuol dire leggere il filo, gli
    * allegati, e scrivere: il posto per farlo esiste gia' ed e' il Cruscotto.
@@ -4659,6 +4970,8 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   irrigazione: "irrigazione",
   robot: "robot",
   minipc: "server",
+  allerte: "allerte",
+  rifiuti: "rifiuti",
   media: "media",
 });
 
@@ -5067,7 +5380,7 @@ function popupHost() {
  * romperle tutte e due insieme. */
 function ascoltaLaPorta() {
   doc?.addEventListener?.("click", (event) => {
-    if (event.target?.closest?.("[data-dm-apri-cruscotto]")) chiudiPopup();
+    if (event.target?.closest?.("[data-dm-apri-cruscotto],[data-dm-apri-chat]")) chiudiPopup();
   });
 }
 
@@ -5089,10 +5402,18 @@ function ascoltaLaPorta() {
  * Le transizioni si lasciano correre: durano un attimo e finiscono da sole.
  */
 
+/* L'ingresso di una tessera NON si ferma (#304): parte dall'opacita' zero, e
+ * fermo a meta' lasciava una tessera invisibile finche' qualcuno non la
+ * toccava — «le icone spariscono e riappaiono se ci clicco sopra». Dura un
+ * attimo e non costa niente: si lascia finire. Le altre si fermano, ma al
+ * loro fotogramma di riposo (vedi `fermaCioCheStaDietro`). */
+export const NON_SI_FERMANO = /^dmTileIn/;
+
 /** Quali animazioni vanno fermate: quelle vive, con un nome, e fuori. */
 export function animazioniDaFermare(animazioni, dentro) {
   return [...(animazioni || [])].filter((anim) => {
     if (!anim || anim.playState !== "running" || !anim.animationName) return false;
+    if (NON_SI_FERMANO.test(anim.animationName)) return false;
     const bersaglio = anim.effect?.target;
     return Boolean(bersaglio) && !dentro(bersaglio);
   });
@@ -5103,6 +5424,10 @@ function fermaCioCheStaDietro(host) {
   const ferme = animazioniDaFermare(doc.getAnimations(), (nodo) => host.contains(nodo));
   for (const anim of ferme) {
     try {
+      /* Al fotogramma zero, non a meta': il battito di un avviso passa
+       * dall'opacita' .18, e fermo li' e' un'icona sparita (#304). Il
+       * fotogramma zero e' la posa di riposo di ogni ciclo. */
+      anim.currentTime = 0;
       anim.pause();
       state.ferme.push(anim);
     } catch (_error) {}
@@ -5952,6 +6277,13 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   background:var(--dm-widget-accent,#0ea5e9);font-variant-numeric:tabular-nums}
 #dm-widget-popup .dm-w-chat-altre{
   margin-top:5px;font-size:11px;color:var(--text-dim,#64748b)}
+/* L'ultima risposta dell'assistenza, intera: e' la cosa che si e' venuti a
+   leggere, e non si taglia. L'ora sta a destra, in piccolo. */
+#dm-widget-popup .dm-w-chat-quando{
+  margin-left:auto;font-size:11px;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-chat-testo{
+  margin:0;font-size:13px;line-height:1.45;color:var(--text,#0f172a);
+  overflow-wrap:anywhere}
 #dm-widget-popup .dm-w-porta{
   width:100%;margin-top:10px;padding:11px 14px;border:0;border-radius:14px;
   cursor:pointer;font-size:13px;font-weight:800;color:#fff;
@@ -6968,6 +7300,9 @@ export function installHomeWidgetsSection() {
        e' gia' disegnata: la sua tessera va messa quando la risposta atterra,
        non al primo evento che passi di li' per un'altra ragione. */
     "dashboardmodern:segnalazioni-coda",
+    /* La chat di assistenza dice quando ha una risposta da leggere, e quando
+       e' stata letta: la sua tessera compare e sparisce con quello. */
+    "dashboardmodern:chat-stato",
   ])
     root.addEventListener?.(eventName, schedule);
   ascoltaLaPorta();

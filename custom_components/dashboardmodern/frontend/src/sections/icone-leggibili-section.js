@@ -42,7 +42,13 @@ export function installaFoglioDegliOggetti() {
   /* Se c'e' gia' ed e' gia' il primo, non si tocca: rimetterlo a ogni giro
    * vorrebbe dire buttare via e ricreare trenta sfumature per niente. */
   if (gia && gia === body.firstElementChild) return false;
-  gia?.remove();
+  /* Se c'e' ma non e' piu' il primo, si SPOSTA: buttarlo e rifarlo staccava
+   * per un attimo trenta sfumature da ogni disegno che le usa, e un disegno
+   * gia' dipinto restava mezzo finche' qualcosa non lo ridisegnava (#304). */
+  if (gia) {
+    body.prepend(gia);
+    return true;
+  }
   const guscio = doc.createElement("div");
   guscio.innerHTML = foglioDegliOggetti();
   const foglio = guscio.firstElementChild;
