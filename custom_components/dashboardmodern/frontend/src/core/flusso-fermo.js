@@ -30,6 +30,17 @@ export const OGNI_SGUARDO_MS = 10_000;
  * fotogramma e' cambiato, e costano nulla. */
 export const LATO_IMPRONTA = 16;
 
+/* Quanto cresce la pazienza, al massimo, con una scena che non si muove.
+ *
+ * I pixel uguali non distinguono un flusso morto da un corridoio vuoto: una
+ * telecamera che manda fotogrammi solo col movimento, o punta su un muro,
+ * produce gli stessi pixel per minuti stando benissimo. Condannarla ogni
+ * mezzo minuto vorrebbe dire riaprirle il flusso in continuazione. Allora
+ * ogni condanna raddoppia la pazienza — trenta secondi, uno, due, quattro
+ * minuti — finche' un fotogramma non cambia, che azzera tutto. Il flusso
+ * morto davvero si riconosce comunque alla prima, come prima. */
+export const PAZIENZA_MASSIMA = 8;
+
 /**
  * L'impronta di un blocco di pixel RGBA.
  *
@@ -57,14 +68,27 @@ export function improntaDeiPixel(dati) {
  */
 export function creaSorveglianza(fermoDopo = FERMO_DOPO_MS) {
   const viste = new Map();
+  /* Quante volte ogni immagine e' stata detta ferma senza che un fotogramma
+   * cambiasse: sopravvive a `dimentica`, perche' e' proprio dopo il riavvio
+   * che serve ricordarsi che quella scena non si muove. */
+  const condanne = new Map();
   return {
     osserva(chiave, impronta, adesso = Date.now()) {
       const prima = viste.get(chiave);
       if (!prima || prima.impronta !== impronta) {
+        if (prima && prima.impronta !== impronta) condanne.delete(chiave);
         viste.set(chiave, { impronta, da: adesso });
         return "vivo";
       }
-      return adesso - prima.da >= fermoDopo ? "fermo" : "vivo";
+      const volte = condanne.get(chiave) || 0;
+      const pazienza = fermoDopo * Math.min(PAZIENZA_MASSIMA, 2 ** volte);
+      if (adesso - prima.da < pazienza) return "vivo";
+      condanne.set(chiave, volte + 1);
+      prima.da = adesso;
+      return "fermo";
+    },
+    pazienza(chiave) {
+      return fermoDopo * Math.min(PAZIENZA_MASSIMA, 2 ** (condanne.get(chiave) || 0));
     },
     dimentica(chiave) {
       viste.delete(chiave);

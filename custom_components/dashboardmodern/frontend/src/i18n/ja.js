@@ -2946,4 +2946,6 @@ export default Object.freeze({
   "Unread": "未読",
   "1 new reply": "新しい返信 1 件",
   "${n} new replies": "新しい返信 ${n} 件",
+  "1 source not responding": "応答しないソース 1 件",
+  "${n} sources not responding": "応答しないソース ${n} 件",
 });

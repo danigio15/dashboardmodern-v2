@@ -2919,4 +2919,6 @@ export default Object.freeze({
   "Unread": "غير مقروءة",
   "1 new reply": "رد جديد واحد",
   "${n} new replies": "${n} ردود جديدة",
+  "1 source not responding": "مصدر واحد لا يستجيب",
+  "${n} sources not responding": "${n} مصادر لا تستجيب",
 });

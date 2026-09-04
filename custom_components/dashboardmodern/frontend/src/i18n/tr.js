@@ -2943,4 +2943,6 @@ export default Object.freeze({
   "Unread": "Okunmamış",
   "1 new reply": "1 yeni yanıt",
   "${n} new replies": "${n} yeni yanıt",
+  "1 source not responding": "1 kaynak yanıt vermiyor",
+  "${n} sources not responding": "${n} kaynak yanıt vermiyor",
 });

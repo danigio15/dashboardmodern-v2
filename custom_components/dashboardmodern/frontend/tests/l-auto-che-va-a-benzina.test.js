@@ -221,7 +221,11 @@ test("la scheda dell'auto: la tendina del motore sotto il nome, salvata con il p
 
 test("la tessera in Home: senza batteria il livello e' il carburante, e lo dice", async () => {
   const home = await leggi("sections/home-widgets-section.js");
-  assert.equal((home.match(/misura\("dm\.ev_carburante"\)/g) || []).length, 2);
+  /* Tre letture: per la vettura profilata il serbatoio si legge PRIMA della
+   * batteria quando il motore e' dichiarato termico, e dopo altrimenti; per
+   * l'auto in uso senza profilo, solo dopo. */
+  assert.equal((home.match(/misura\("dm\.ev_carburante"\)/g) || []).length, 3);
+  assert.match(home, /const aBenzina = clean\(auto\?\.tipo\) === "termica";/);
   assert.equal((home.match(/carburante: Boolean\(serbatoio\),/g) || []).length, 2);
   assert.match(home, /lettura\.carburante \? "⛽" : "🔋"/);
 });

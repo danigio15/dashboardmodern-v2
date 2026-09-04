@@ -146,6 +146,20 @@ dopo il primo caricamento.
 
 ### Corretto
 
+- **Nove cose viste in revisione, prima di uscire.** Una sottoscrizione
+  WebRTC chiusa si chiude anche nel ponte del pannello, non solo di qua. Una
+  vettura dichiarata a benzina mostra il serbatoio in Home anche se ha ancora
+  addosso la batteria di quando era elettrica. Il radar e' «vivo» solo se
+  arriva la pioggia: il fondo della mappa da solo non basta piu'. Cambiato il
+  materiale di un bidone, icona e colore si ricalcolano. Le distanze delle
+  allerte si leggono in chilometri anche da un sensore in miglia o in metri.
+  Il calendario dei rifiuti concorre al «prossimo ritiro», e un sensore che
+  dice unknown o unavailable non risponde — non «data non trovata». La
+  tessera delle allerte non dice «tutto tranquillo» sopra una fonte che non
+  risponde: dice quante sono. E una telecamera puntata su una scena ferma non
+  si condanna ogni mezzo minuto: la pazienza raddoppia a ogni riavvio, fino a
+  quattro minuti, e si azzera al primo fotogramma diverso.
+
 - **Barre dei periodi, campo della valvola e pastiglia: in riga.** Nel popup
   dello storico la pillola dei periodi era una griglia da quattro larga al
   massimo 460 pixel: con otto periodi andava a capo, la seconda riga restava

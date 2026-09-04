@@ -2933,4 +2933,6 @@ export default Object.freeze({
   "Unread": "अपठित",
   "1 new reply": "1 नया जवाब",
   "${n} new replies": "${n} नए जवाब",
+  "1 source not responding": "1 स्रोत जवाब नहीं दे रहा",
+  "${n} sources not responding": "${n} स्रोत जवाब नहीं दे रहे",
 });

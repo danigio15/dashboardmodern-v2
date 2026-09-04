@@ -2930,4 +2930,6 @@ export default Object.freeze({
   "Unread": "읽지 않음",
   "1 new reply": "새 답변 1개",
   "${n} new replies": "새 답변 ${n}개",
+  "1 source not responding": "응답 없는 소스 1개",
+  "${n} sources not responding": "응답 없는 소스 ${n}개",
 });

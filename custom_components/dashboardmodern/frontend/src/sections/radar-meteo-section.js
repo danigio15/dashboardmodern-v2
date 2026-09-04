@@ -369,15 +369,19 @@ function daTessere(scelto, nodo) {
   /* Si ridisegna solo se il quadro e' cambiato davvero: rifare le immagini a
    * ogni giro le farebbe lampeggiare mentre si guarda. */
   const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${misure.latoPx}x${misure.altoPx},${modello},${scelto.fondo}`;
+  /* Si contano i quadratini della PIOGGIA, non quelli del fondo. Il fondo e'
+   * un contorno: se CARTO arriva e RainViewer no, una mappa vuota passava per
+   * un radar vivo — col primo quadratino del fondo il blocco si diceva
+   * «vivo», e i buchi della pioggia non riuscivano piu' ne' a dirlo ne' a
+   * far riprovare al giro dopo. */
   let attesi = 0;
   let arrivati = 0;
   let persi = 0;
-  const segnala = (immagine, riuscito) => {
+  const segnala = (immagine, riuscito, dellaPioggia) => {
+    if (!riuscito) immagine.remove();
+    if (!dellaPioggia) return;
     if (riuscito) arrivati += 1;
-    else {
-      persi += 1;
-      immagine.remove();
-    }
+    else persi += 1;
     if (arrivati) {
       nodo.dataset.dmRadar = "vivo";
       return;
@@ -392,8 +396,10 @@ function daTessere(scelto, nodo) {
   if (dove.dataset.dmFirma !== firma) {
     dove.dataset.dmFirma = firma;
     const pezzi = [];
+    let attesiPioggia = 0;
     for (const strato of [scelto.fondo, modello]) {
       if (!strato) continue;
+      const dellaPioggia = strato === modello;
       for (const tessera of finestraTessere.tessere) {
         const url = urlDellaTessera(strato, tessera, finestraTessere.zoom);
         if (!url) continue;
@@ -406,9 +412,14 @@ function daTessere(scelto, nodo) {
         immagine.style.cssText = `left:${tessera.sx}px;top:${tessera.sy}px;width:${tessera.lato}px;height:${tessera.lato}px`;
         /* Un quadratino che non arriva e' un buco, non un errore: il servizio
          * non copre tutto il mondo, e ai bordi manca per costruzione. */
-        immagine.addEventListener("error", () => segnala(immagine, false), { once: true });
-        immagine.addEventListener("load", () => segnala(immagine, true), { once: true });
+        immagine.addEventListener("error", () => segnala(immagine, false, dellaPioggia), {
+          once: true,
+        });
+        immagine.addEventListener("load", () => segnala(immagine, true, dellaPioggia), {
+          once: true,
+        });
         pezzi.push(immagine);
+        if (dellaPioggia) attesiPioggia += 1;
       }
     }
     dove.replaceChildren(...pezzi);
@@ -422,11 +433,11 @@ function daTessere(scelto, nodo) {
      *
      * E se non arriva nessuno si cancella la firma: senza, il giro
      * successivo troverebbe lo stesso disegno e non riproverebbe mai piu'. */
-    attesi = pezzi.length;
+    attesi = attesiPioggia;
     arrivati = 0;
     persi = 0;
-    nodo.dataset.dmRadar = pezzi.length ? "attesa" : "muto";
-    if (!pezzi.length) dove.dataset.dmFirma = "";
+    nodo.dataset.dmRadar = attesi ? "attesa" : "muto";
+    if (!attesi) dove.dataset.dmFirma = "";
   }
 
   const nota = nodo.querySelector(".dm-radar-nota");

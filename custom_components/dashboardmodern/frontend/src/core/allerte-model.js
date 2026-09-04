@@ -96,6 +96,22 @@ function attributo(stato, nomi) {
   return null;
 }
 
+/* Una distanza in chilometri, qualunque unita' porti il sensore.
+ *
+ * Le soglie qui sotto sono in chilometri, e un'integrazione che parla in
+ * miglia darebbe 20 per venti miglia: la soglia dei trenta chilometri lo
+ * leggerebbe come venti chilometri e alzerebbe un terremoto piccolo ad
+ * «attenzione». Miglia e metri si convertono; il resto e' gia' chilometri. */
+const MIGLIA_IN_KM = 1.609344;
+export function inChilometri(valore, unita) {
+  const n = numero(valore);
+  if (n == null) return null;
+  const u = pulito(unita).toLowerCase();
+  if (u === "mi" || u === "mile" || u === "miles" || u === "miglia") return n * MIGLIA_IN_KM;
+  if (u === "m" || u === "metri" || u === "meters" || u === "metres") return n / 1000;
+  return n;
+}
+
 /* Quando lo stato e' cambiato l'ultima volta, in millisecondi, o `null`. */
 function daQuando(stato) {
   const quando = Date.parse(stato?.last_changed ?? stato?.last_updated ?? "");
@@ -124,10 +140,10 @@ function leggiTerremoti(voce, stati) {
       attributo(principale, ["magnitude", "magnitudo", "mag", "last_magnitude", "max_magnitude"]),
     );
   const distanza =
-    numero(stati.distanza?.state) ??
+    inChilometri(stati.distanza?.state, stati.distanza?.attributes?.unit_of_measurement) ??
     (dominio === "geo_location"
-      ? numero(principale?.state)
-      : numero(attributo(principale, ["distance", "distanza", "last_distance"])));
+      ? inChilometri(principale?.state, principale?.attributes?.unit_of_measurement)
+      : inChilometri(attributo(principale, ["distance", "distanza", "last_distance"]), null));
   const luogo = pulito(
     attributo(principale, [
       "title",
@@ -208,7 +224,8 @@ const FULMINI_RECENTI_MS = 60 * 60 * 1000;
 function leggiFulmini(voce, stati, adesso) {
   const conteggio = numero(stati.entity?.state);
   const distanza =
-    numero(stati.distanza?.state) ?? numero(attributo(stati.entity, ["distance", "distanza"]));
+    inChilometri(stati.distanza?.state, stati.distanza?.attributes?.unit_of_measurement) ??
+    inChilometri(attributo(stati.entity, ["distance", "distanza"]), null);
   const quando = daQuando(stati.entity) ?? daQuando(stati.distanza);
   const recente = quando == null || adesso - quando <= FULMINI_RECENTI_MS;
   let livello = "quiete";

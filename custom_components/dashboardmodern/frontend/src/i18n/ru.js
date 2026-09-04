@@ -2956,4 +2956,6 @@ export default Object.freeze({
   "Unread": "Непрочитанные",
   "1 new reply": "1 новый ответ",
   "${n} new replies": "${n} новых ответов",
+  "1 source not responding": "1 источник не отвечает",
+  "${n} sources not responding": "${n} источников не отвечают",
 });

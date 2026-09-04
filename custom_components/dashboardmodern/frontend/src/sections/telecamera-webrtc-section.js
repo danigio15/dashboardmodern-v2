@@ -60,6 +60,17 @@ function sottoscrivi(payload, gestore) {
     id,
     chiudi() {
       delete pending[id];
+      /* E si chiude anche di la'. Togliere il gestore di qua lasciava la
+       * sottoscrizione viva nel ponte del pannello — e con lei la sessione —
+       * finche' non cadeva l'intero socket: una in piu' a ogni visita della
+       * pagina. Il socket puo' essere gia' chiuso: allora se n'e' andata con
+       * lui. */
+      try {
+        if (socket.readyState === 1)
+          socket.send(
+            JSON.stringify({ id: prossimoId(), type: "unsubscribe_events", subscription: id }),
+          );
+      } catch (_error) {}
     },
   };
 }

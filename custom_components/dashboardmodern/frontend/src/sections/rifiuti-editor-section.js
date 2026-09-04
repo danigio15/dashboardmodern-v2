@@ -187,7 +187,18 @@ function raccogli(body) {
     const id = clean(nodo.dataset.dmRifiutiRiga);
     const prima = dato.righe.find((riga) => riga.id === id) || { id: id || `riga-${indice + 1}` };
     const leggi = (campo) => clean(nodo.querySelector(`[data-dm-rifiuti-campo="${campo}"]`)?.value);
-    return { ...prima, materiale: leggi("materiale") || prima.materiale, nome: leggi("nome"), entity: leggi("entity") };
+    const materiale = leggi("materiale") || prima.materiale;
+    /* Cambiato il materiale, via l'icona e il colore ricavati da quello di
+     * prima: la normalizzazione li prenderebbe per scelte fatte apposta, e una
+     * riga passata dalla plastica alla carta restava gialla col suo sacchetto.
+     * Questa scheda non fa scegliere icona e colore: si ricalcolano. */
+    const base =
+      materiale === prima.materiale
+        ? prima
+        : Object.fromEntries(
+            Object.entries(prima).filter(([campo]) => campo !== "icona" && campo !== "colore"),
+          );
+    return { ...base, materiale, nome: leggi("nome"), entity: leggi("entity") };
   });
   return { calendario: clean(body.querySelector("[data-dm-rifiuti-calendario]")?.value), righe };
 }

@@ -20,6 +20,8 @@
  */
 
 const pulito = (valore) => String(valore ?? "").trim();
+/* Gli stati con cui Home Assistant dice «non lo so»: chi li porta non risponde. */
+const STATI_MUTI = /^(unknown|unavailable|none|)$/i;
 const minuscolo = (valore) => pulito(valore).toLowerCase();
 
 /** La chiave in cui vive la configurazione. */
@@ -261,6 +263,11 @@ export function letturaRifiuti(
     }
     return states?.[entity] || states?.[chiave] || null;
   };
+  /* Un'entita' che c'e' ma dice «unknown» o «unavailable» non risponde: e'
+   * un'integrazione caduta, non un ritiro senza data. Dirlo come «data non
+   * trovata» nascondeva il guasto proprio quando poteva far saltare un
+   * ritiro vero. */
+  const risponde = (stato) => Boolean(stato) && !STATI_MUTI.test(pulito(stato.state));
   const righe = dato.righe
     .filter((riga) => riga.entity.includes("."))
     .map((riga) => {
@@ -269,7 +276,7 @@ export function letturaRifiuti(
       const giorni = data ? giorniFra(adesso, data) : null;
       return {
         ...riga,
-        muto: !stato,
+        muto: !risponde(stato),
         data,
         giorni,
         quando: quandoCodice(giorni),
@@ -291,7 +298,7 @@ export function letturaRifiuti(
     const materiale = materialeDiSerie(materialeDalNome(nome));
     calendario = {
       entity: dato.calendario,
-      muto: !stato,
+      muto: !risponde(stato),
       nome,
       materiale: materiale.chiave,
       icona: materiale.icona,
@@ -303,12 +310,27 @@ export function letturaRifiuti(
   }
 
   const future = righe.filter((riga) => riga.giorni !== null && riga.giorni >= 0);
-  const primo = future.length ? future[0].giorni : null;
+  /* Il calendario concorre al «prossimo»: se un sensore dice la carta fra
+   * sette giorni e il calendario l'umido domani, il prossimo e' l'umido — e la
+   * pagina e la tessera lo dicevano della carta. Un evento che ripete una riga,
+   * stesso materiale e stesso giorno, non si conta due volte. */
+  const candidati = [...future];
+  if (
+    calendario &&
+    calendario.giorni !== null &&
+    calendario.giorni >= 0 &&
+    !future.some(
+      (riga) => riga.materiale === calendario.materiale && riga.giorni === calendario.giorni,
+    )
+  )
+    candidati.push({ ...calendario, id: "calendario", dalCalendario: true });
+  candidati.sort((a, b) => a.giorni - b.giorni);
+  const primo = candidati.length ? candidati[0].giorni : null;
   return {
     righe,
     calendario,
-    prossimi: primo === null ? [] : future.filter((riga) => riga.giorni === primo),
-    oggi: righe.filter((riga) => riga.giorni === 0),
-    domani: righe.filter((riga) => riga.giorni === 1),
+    prossimi: primo === null ? [] : candidati.filter((riga) => riga.giorni === primo),
+    oggi: candidati.filter((riga) => riga.giorni === 0),
+    domani: candidati.filter((riga) => riga.giorni === 1),
   };
 }

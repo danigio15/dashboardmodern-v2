@@ -107,6 +107,7 @@ import { normalizzaPrese } from "../core/prese-model.js";
 import { CHIAVE_MEDIA, lettoriConfigurati, lettureDeiLettori } from "../core/media-player.js";
 import {
   CHIAVE_ALLERTE,
+  IGNOTO,
   allerteAttive,
   almeno,
   categorieConfigurate,
@@ -1285,15 +1286,29 @@ function letturaVettura(states, auto, fuori, indice) {
     visti.add(entity);
     return { entity, value: numOf(states, entity), state: clean(states?.[entity]?.state) };
   };
+  /* L'auto a benzina (#208): il livello che la tessera mostra e' il
+   * carburante — stessa scala, stessa domanda. Decide il tipo di motore, non
+   * quale casella e' rimasta compilata: una vettura passata a benzina puo'
+   * avere ancora addosso la batteria di quando era elettrica, e la tessera
+   * diceva «carica» mentre la pagina diceva serbatoio. Senza tipo, la
+   * batteria se c'e', e il serbatoio solo al suo posto. */
+  const aBenzina = clean(auto?.tipo) === "termica";
   let carica = null;
-  for (const riferimento of RIF_BATTERIA_EV) {
-    carica = misura(riferimento);
-    if (carica) break;
+  let serbatoio = null;
+  if (aBenzina) {
+    serbatoio = misura("dm.ev_carburante");
+    carica = serbatoio;
   }
-  /* L'auto a benzina (#208): senza una batteria da leggere, il livello che
-   * la tessera mostra e' il carburante — stessa scala, stessa domanda. */
-  const serbatoio = carica ? null : misura("dm.ev_carburante");
-  if (!carica && serbatoio) carica = serbatoio;
+  if (!carica) {
+    for (const riferimento of RIF_BATTERIA_EV) {
+      carica = misura(riferimento);
+      if (carica) break;
+    }
+  }
+  if (!carica) {
+    serbatoio = misura("dm.ev_carburante");
+    carica = serbatoio;
+  }
   const autonomia = misura("dm.ev_autonomia");
   const stato = misura("dm.ev_stato_ricarica");
   if (!carica && !autonomia) return null;
@@ -3141,6 +3156,12 @@ function chatModel() {
  * accende con la prima: e' l'unica cosa che una tessera deve sapere. Le righe
  * dentro portano ogni fonte con la sua frase, e il livello — che la finestra
  * usa per la sua frase — arriva dal modello, non si rifa' qui. */
+export function paroleDelleFontiMute(quante) {
+  const n = Number(quante) || 0;
+  if (n === 1) return t("1 fonte non risponde", "1 source not responding");
+  return t(`${n} fonti non rispondono`, `${n} sources not responding`);
+}
+
 function allerteModel(states) {
   const config = readJson(CHIAVE_ALLERTE, {});
   if (!categorieConfigurate(config).length) return null;
@@ -3149,6 +3170,11 @@ function allerteModel(states) {
   const letture = letturaAllerte(config, states, root.resolveEntity || ((value) => value));
   const attive = allerteAttive(letture);
   const livello = livelloMassimo(letture);
+  /* Le fonti che non rispondono. Con nessuna allerta in corso la tessera
+   * diceva «OK · Tutto tranquillo» anche se il sensore dei terremoti era
+   * spento: e un sensore spento non e' un cielo sereno, e' una sorveglianza
+   * che manca. Si dice, al posto del tutto tranquillo. */
+  const mute = letture.filter((lettura) => lettura.livello === IGNOTO);
   const rows = letture.map((lettura) => ({
     glyph: categoriaDelleAllerte(lettura.chiave).icona,
     name: clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome,
@@ -3161,12 +3187,14 @@ function allerteModel(states) {
     accent: "#f59e0b",
     icon: "⚠️",
     label: t("Allerte", "Alerts"),
-    value: attive.length ? String(attive.length) : "OK",
+    value: attive.length ? String(attive.length) : mute.length ? "—" : "OK",
     caption: attive.length
       ? attive
           .map((lettura) => clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome)
           .join(" · ")
-      : t("Tutto tranquillo", "All quiet"),
+      : mute.length
+        ? paroleDelleFontiMute(mute.length)
+        : t("Tutto tranquillo", "All quiet"),
     ring: null,
     /* Accesa alla prima fonte che ha qualcosa da dire; l'alone da attenzione
      * in su, che e' quando vale la pena alzare la testa. */

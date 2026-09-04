@@ -2891,4 +2891,6 @@ export default Object.freeze({
   "Unread": "未读",
   "1 new reply": "1 条新回复",
   "${n} new replies": "${n} 条新回复",
+  "1 source not responding": "1 个来源无响应",
+  "${n} sources not responding": "${n} 个来源无响应",
 });
