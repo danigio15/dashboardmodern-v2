@@ -23,6 +23,38 @@ test("canonical room/action visuals never create blue SVG first frames", () => {
   assert.doesNotMatch(actionVisual("mdi:lightbulb", 40), /<svg|ha-icon/);
 });
 
+test("la finestra di conferma la disegna il motore, e nessuno la aggira", async () => {
+  /* «Azioni rapide: quando si utilizza la domanda nella schermata non e'
+   * visibile l'icona impostata, ma solo il testo di configurazione» (#320).
+   * `confermaAzione` scrive l'icona con `setTxt`, cioe' come testo: un nome
+   * mdi li' si legge scritto. Il padrone e' lo stesso di tutte le altre
+   * superfici, e si mette dietro alla finestra con lo stesso `wrapAfter` che
+   * usa per la griglia delle azioni. */
+  const motore = await readFile(path.join(sections, "icon-engine-section.js"), "utf8");
+  assert.match(motore, /wrapAfter\("confermaAzione", "__dmIconEngineConferma"/);
+  assert.match(motore, /getElementById\?\.\("confirm-icon"\)/);
+  assert.match(motore, /renderIconGlyph\(bersaglio, "action", token/);
+  /* Vince il testo appena scritto: il ricordo serve solo dove c'e' gia' un
+   * disegno nostro, che di testo non ne ha. Al contrario, la seconda domanda
+   * mostrerebbe l'icona della prima. */
+  assert.match(motore, /const scritto = clean\(bersaglio\.textContent\);\s*\n\s*const token = scritto \|\| clean\(bersaglio\.dataset\.dmToken\);/);
+
+  /* E nessuna sezione se la cava sostituendo il nome mdi con un'emoji prima
+   * di chiamare la finestra: era la pezza delle porte, e adesso che la
+   * finestra disegna non serve piu' a nessuno. */
+  for (const { name, source } of await sectionSources()) {
+    const chiamate = source.split("confermaAzione(").slice(1);
+    for (const pezzo of chiamate) {
+      const testa = pezzo.slice(0, 400);
+      assert.doesNotMatch(
+        testa,
+        /\/\^mdi:\/i\.test|startsWith\("mdi:"\)/,
+        `${name} aggira la finestra invece di lasciarle disegnare l'icona`,
+      );
+    }
+  }
+});
+
 test("only icon-engine creates the shared visual picker", async () => {
   const sources = await sectionSources();
   const creators = sources

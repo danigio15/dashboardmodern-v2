@@ -275,6 +275,23 @@ benzina e i tasti del robot lavapavimenti (#306).
   quella griglia adesso la riempie la stessa fila, e con piu' di quattro tasti
   va a capo invece di stringersi.
 
+- **L'icona della domanda di conferma si disegna, non si legge (#320).**
+
+      «Azioni rapide: quando si utilizza la domanda nella schermata non e'
+       visibile l'icona impostata, ma solo il testo di configurazione.»
+
+  La finestra di conferma scriveva la sua icona come testo. Finche' le icone
+  erano emoji nessuno se n'era accorto; da quando si scelgono dal catalogo il
+  valore salvato e' il nome mdi, e nella finestra ci finiva scritto
+  «mdi:gate» a caratteri cubitali — mentre la tessera della stessa azione, che
+  passa dal motore delle icone, il cancello lo disegnava. Adesso quella finestra
+  ha lo stesso padrone di tutte le altre superfici: l'icona la disegna il
+  motore, e un'emoji scritta a mano resta un'emoji.
+
+  Con la stessa correzione se ne va una pezza: le porte della Sicurezza, per
+  non far vedere quel nome, sostituivano l'icona della porta con un portone
+  generico prima di aprire la domanda. Ora ogni porta mostra la sua.
+
 ## 1.4.6
 
 Tre sezioni in piu', la Home che si personalizza, e una decina di cose viste

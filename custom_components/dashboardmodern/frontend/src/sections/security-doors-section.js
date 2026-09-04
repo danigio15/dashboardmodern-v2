@@ -328,8 +328,10 @@ function confirmAndOpen(door) {
   if (typeof root.confermaAzione === "function") {
     try {
       root.confermaAzione({
-        /* Il popup di conferma stampa testo: un token mdi li' non si disegna. */
-        icon: /^mdi:/i.test(clean(door.icon)) ? "🚪" : door.icon || "🚪",
+        /* L'icona della porta, com'e': la finestra la disegna col motore
+         * delle icone (#320), quindi un nome mdi non va piu' sostituito con
+         * un'emoji generica per non vederlo scritto. */
+        icon: clean(door.icon) || "🚪",
         title: clean(door.name) || t("Apri", "Open"),
         message: t("Confermi l'apertura?", "Confirm opening?"),
         onConfirm: () => openDoor(door),

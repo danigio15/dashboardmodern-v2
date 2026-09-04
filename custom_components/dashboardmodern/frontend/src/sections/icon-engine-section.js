@@ -617,10 +617,40 @@ function wrapAfter(name, marker, callback) {
   return true;
 }
 
+/* L'icona della finestra di conferma (#320).
+ *
+ * «Azioni rapide: quando si utilizza la domanda nella schermata non e'
+ * visibile l'icona impostata, ma solo il testo di configurazione.»
+ *
+ * `confermaAzione` scrive quell'icona con `setTxt`, cioe' come TESTO: quando
+ * le icone erano emoji andava bene, da quando si scelgono dal catalogo il
+ * valore salvato e' il nome mdi — e nella finestra ci finiva scritto
+ * «mdi:gate» a caratteri cubitali, mentre la tessera della stessa azione, che
+ * passa di qui, il cancello lo disegnava.
+ *
+ * La regola e' quella di sempre: dove si mostra un'icona la disegna il
+ * motore. Le porte della Sicurezza avevano una pezza loro — sostituivano il
+ * nome mdi con un'emoji generica prima di chiamare la finestra — e adesso non
+ * serve piu': ognuna torna a mostrare la sua. */
+function disegnaIconaDellaConferma() {
+  const bersaglio = doc?.getElementById?.("confirm-icon");
+  if (!bersaglio) return false;
+  /* Vince sempre quello che il guscio ha appena scritto: e' l'icona di QUESTA
+   * domanda. Il ricordo serve solo quando li' non c'e' testo — cioe' quando a
+   * occupare il posto c'e' gia' un disegno nostro, che di testo non ne ha —
+   * altrimenti alla seconda domanda si ridisegnerebbe l'icona della prima. */
+  const scritto = clean(bersaglio.textContent);
+  const token = scritto || clean(bersaglio.dataset.dmToken);
+  if (!token) return false;
+  bersaglio.dataset.dmToken = token;
+  return renderIconGlyph(bersaglio, "action", token, { size: 34 });
+}
+
 function installRenderOwners() {
   wrapAfter("buildQuickActions", "__dmIconEngineQuickActions", syncQuickActionIcons);
   wrapAfter("render", "__dmIconEngineRender", syncQuickActionIcons);
   wrapAfter("editorSwitch", "__dmIconEngineEditor", scheduleEditorIconSurfaces);
+  wrapAfter("confermaAzione", "__dmIconEngineConferma", disegnaIconaDellaConferma);
 }
 
 /* I campi icona che il guscio si serviva da solo, e che catalogo vogliono.
@@ -688,6 +718,11 @@ function installStyles() {
   installStyle(
     "dm-icon-engine-style",
     `
+      /* Nel cerchio della conferma il disegno prende il colore della finestra,
+         che il guscio scrive in --cf-rgb: senza, resterebbe del colore di
+         serie mentre il cerchio intorno e' del colore dell'azione. */
+      #confirm-icon{display:grid!important;place-items:center!important;width:38px!important;height:38px!important;color:rgb(var(--cf-rgb,14,165,233))!important}
+      #confirm-icon .dm-icon-engine-glyph{color:inherit!important}
       .dm-icon-engine-glyph{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important}
       .dm-icon-engine-glyph>span{display:block!important;line-height:1!important}
       [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]{position:relative!important;color:initial!important}
