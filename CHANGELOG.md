@@ -118,6 +118,18 @@ benzina e i tasti del robot lavapavimenti (#306).
   parte, mentre il TPMS ce l'hanno anche le elettriche. Le gomme non sono del
   motore.
 
+### Cambiato
+
+- **La card delle persone si legge come un citofono.** Il ritratto e il nome
+  stanno su una riga sola, uno accanto all'altro, con la pastiglia della zona
+  sotto il nome; quello che il telefono racconta — la carica, la carica
+  dell'orologio, la rete, da quanto non si fa sentire — sta in un riquadro suo
+  in fondo alla card, staccato dai bordi, che si legge come un gruppo invece
+  che come una striscia. Prima era una colonna centrata: in fila diventava alta
+  e stretta, e il nome finiva lontano dalla faccia. Sotto i 480 pixel le card
+  passano a una per riga, perche' due affiancate spezzerebbero proprio la riga
+  che questa card tiene insieme.
+
 ### Corretto
 
 - **La pagina Mini PC sfarfallava, e la plancia scaldava il mini PC.**

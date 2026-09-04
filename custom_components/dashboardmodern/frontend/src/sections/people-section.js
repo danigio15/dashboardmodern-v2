@@ -140,11 +140,24 @@ function footMarkup(view) {
   return `<div class="dm-person-foot">${parts.join("")}</div>`;
 }
 
+/* La card: il ritratto e chi e' su una riga sola, le letture in un riquadro
+ * sotto.
+ *
+ * Prima era una colonna centrata — ritratto grande, nome, pastiglia, e i dati
+ * in una fascia attaccata al bordo. In fila diventava alta e stretta, e il
+ * nome finiva lontano dalla faccia. Adesso la faccia e il nome stanno vicini,
+ * come su un citofono, e quello che il telefono racconta — la carica, la
+ * carica dell'orologio, da quanto non si fa sentire — sta in un riquadro suo,
+ * che si legge come un gruppo invece che come una striscia. */
 function cardMarkup(view) {
   return `<article class="dm-person-card" data-person-id="${esc(view.id)}" data-presence="${esc(view.presence)}"${view.known ? "" : ' data-unknown="true"'}>
-    ${portraitMarkup(view)}
-    <strong class="dm-person-name">${esc(view.name)}</strong>
-    <span class="dm-person-zone">${presenceIcon(view)} ${esc(presenceLabel(view))}</span>
+    <div class="dm-person-testa">
+      ${portraitMarkup(view)}
+      <div class="dm-person-chi">
+        <strong class="dm-person-name">${esc(view.name)}</strong>
+        <span class="dm-person-zone">${presenceIcon(view)} ${esc(presenceLabel(view))}</span>
+      </div>
+    </div>
     ${view.address ? `<small class="dm-person-address" title="${esc(view.address)}">${esc(view.address)}</small>` : ""}
     ${tripMarkup(view)}
     ${footMarkup(view)}
@@ -421,44 +434,54 @@ function installStyles() {
   installStyle(
     "dm-people-style",
     `
-    #dm-people .dm-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
-    #dm-people .dm-person-card{--dm-presence:148,163,184;position:relative;display:flex;flex-direction:column;align-items:center;gap:0;padding:26px 14px 0;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);border-radius:26px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));transition:var(--transition,.3s);overflow:hidden}
+    #dm-people .dm-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:14px}
+    #dm-people .dm-person-card{--dm-presence:148,163,184;position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);border-radius:24px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));transition:var(--transition,.3s);overflow:hidden}
+    /* Il ritratto e chi e', su una riga: la faccia e il nome vicini. */
+    #dm-people .dm-person-testa{display:flex;align-items:center;gap:13px;min-width:0}
+    /* La colonna prende quello che resta della riga: senza, la pastiglia della
+       zona si stringe sul nome — «Andrea» corto, e «Atos» diventava «…». */
+    #dm-people .dm-person-chi{flex:1 1 auto;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;max-width:100%}
     /* L'alone del colore di presenza, morbido dietro al ritratto: e' lui a
      * dire da lontano chi e' a casa e chi no, prima ancora di leggere. */
-    #dm-people .dm-person-card::before{content:"";position:absolute;top:-52px;left:50%;transform:translateX(-50%);width:170%;height:150px;background:radial-gradient(closest-side,rgba(var(--dm-presence),.22),transparent 72%);pointer-events:none}
+    #dm-people .dm-person-card::before{content:"";position:absolute;top:-56px;left:-40px;width:190px;height:160px;background:radial-gradient(closest-side,rgba(var(--dm-presence),.22),transparent 72%);pointer-events:none}
     #dm-people .dm-person-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-hover,0 10px 25px rgba(15,23,42,.14));border-color:rgba(var(--dm-presence),.35)}
     #dm-people .dm-person-card[data-presence="home"]{--dm-presence:22,163,74}
     #dm-people .dm-person-card[data-presence="zone"]{--dm-presence:14,165,233}
     #dm-people .dm-person-card[data-unknown="true"] .dm-person-portrait,#dm-people .dm-person-card[data-unknown="true"] .dm-person-name{opacity:.65;filter:saturate(.4)}
-    #dm-people .dm-person-portrait{position:relative;width:92px;height:92px;flex:0 0 auto;margin-bottom:12px}
+    #dm-people .dm-person-portrait{position:relative;width:64px;height:64px;flex:0 0 auto}
     /* L'anello e' un gradiente conico del colore di presenza, ritagliato a
      * corona con una maschera: piu' vivo di un bordo piatto, e la luce colorata
      * sotto al ritratto lo stacca dalla card. */
     #dm-people .dm-person-portrait::before{content:"";position:absolute;inset:-7px;border-radius:50%;background:conic-gradient(from 215deg,rgb(var(--dm-presence)),color-mix(in srgb,rgb(var(--dm-presence)) 25%,var(--card-bg,#fff)) 52%,rgb(var(--dm-presence)));-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3.4px));mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3.4px))}
     #dm-people .dm-person-photo,#dm-people .dm-person-avatar{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;box-shadow:0 12px 26px -12px rgba(var(--dm-presence),.75)}
-    #dm-people .dm-person-avatar{display:grid;place-items:center;font-size:44px;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--dm-person-color,#0ea5e9) 10%,var(--card-bg,#fff)),color-mix(in srgb,var(--dm-person-color,#0ea5e9) 30%,var(--card-bg,#fff)));color:var(--dm-person-color,#0ea5e9)}
-    #dm-people .dm-person-avatar b{font-size:31px;font-weight:900;letter-spacing:.5px;text-shadow:0 1px 0 color-mix(in srgb,#fff 55%,transparent)}
-    #dm-people .dm-person-dot{position:absolute;right:2px;bottom:2px;width:18px;height:18px;border-radius:50%;background:rgb(var(--dm-presence));border:3px solid var(--card-bg,#fff);z-index:1;box-shadow:0 2px 6px rgba(var(--dm-presence),.5)}
+    #dm-people .dm-person-avatar{display:grid;place-items:center;font-size:31px;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--dm-person-color,#0ea5e9) 10%,var(--card-bg,#fff)),color-mix(in srgb,var(--dm-person-color,#0ea5e9) 30%,var(--card-bg,#fff)));color:var(--dm-person-color,#0ea5e9)}
+    #dm-people .dm-person-avatar b{font-size:22px;font-weight:900;letter-spacing:.5px;text-shadow:0 1px 0 color-mix(in srgb,#fff 55%,transparent)}
+    #dm-people .dm-person-dot{position:absolute;right:0;bottom:0;width:15px;height:15px;border-radius:50%;background:rgb(var(--dm-presence));border:3px solid var(--card-bg,#fff);z-index:1;box-shadow:0 2px 6px rgba(var(--dm-presence),.5)}
     /* Quando la persona si muove il pallino diventa il badge dell'attivita':
      * l'auto, la bici, i passi. Fermo, torna un pallino. */
-    #dm-people .dm-person-dot[data-activity]{width:26px;height:26px;right:-3px;bottom:-1px;display:grid;place-items:center;font-size:13px;font-style:normal;background:var(--card-bg,#fff);border:2.5px solid rgb(var(--dm-presence))}
-    #dm-people .dm-person-name{font-size:15.5px;font-weight:900;letter-spacing:-.3px;color:var(--text,#0f172a);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #dm-people .dm-person-dot[data-activity]{width:23px;height:23px;right:-3px;bottom:-2px;display:grid;place-items:center;font-size:12px;font-style:normal;background:var(--card-bg,#fff);border:2.5px solid rgb(var(--dm-presence))}
+    #dm-people .dm-person-name{font-size:16px;font-weight:900;letter-spacing:-.3px;color:var(--text,#0f172a);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     /* La zona e' una pastiglia piena del colore di presenza: la cosa piu'
      * importante della card, vestita come tale. Di un ignoto non si colora
      * niente: la pastiglia resta un contorno tratteggiato. */
-    #dm-people .dm-person-zone{margin-top:7px;font-size:11px;font-weight:900;letter-spacing:.3px;color:#fff;background:linear-gradient(135deg,rgb(var(--dm-presence)),color-mix(in srgb,rgb(var(--dm-presence)) 72%,#0f172a));border-radius:999px;padding:4px 13px;max-width:calc(100% - 8px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 5px 12px -5px rgba(var(--dm-presence),.7)}
+    #dm-people .dm-person-zone{font-size:11px;font-weight:900;letter-spacing:.3px;color:#fff;background:linear-gradient(135deg,rgb(var(--dm-presence)),color-mix(in srgb,rgb(var(--dm-presence)) 72%,#0f172a));border-radius:999px;padding:4px 13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 5px 12px -5px rgba(var(--dm-presence),.7)}
     #dm-people .dm-person-card[data-unknown="true"] .dm-person-zone{background:transparent;color:var(--text-dim,#64748b);border:1px dashed rgba(148,163,184,.6);box-shadow:none}
     /* Dove si trova, scritto per esteso: la via sotto la zona, in piccolo. */
-    #dm-people .dm-person-address{margin-top:7px;font-size:10.5px;font-weight:750;color:var(--text-dim,#64748b);max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #dm-people .dm-person-address{margin-top:10px;font-size:10.5px;font-weight:750;color:var(--text-dim,#64748b);max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     /* Il viaggio: distanza (con la freccia della direzione) e tempo di
      * rientro, come pastiglie leggere del colore di presenza. */
-    #dm-people .dm-person-trip{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:9px;max-width:100%}
+    #dm-people .dm-person-trip{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;margin-top:10px;max-width:100%}
     #dm-people .dm-person-trip>span{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:900;font-variant-numeric:tabular-nums;padding:3px 10px;border-radius:999px;color:rgb(var(--dm-presence));background:rgba(var(--dm-presence),.1);border:1px solid rgba(var(--dm-presence),.25);white-space:nowrap}
     /* La fascia sta in fondo qualunque altezza abbia la card: una fila di
      * persone ha i piedi allineati anche quando una sola ha il viaggio. */
-    #dm-people .dm-person-foot{width:100%;margin-top:auto;padding:8px 8px 9px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:3px 13px;border-top:1px solid color-mix(in srgb,rgb(var(--dm-presence)) 14%,var(--card-border,#e8edf3));background:color-mix(in srgb,rgb(var(--dm-presence)) 4%,transparent)}
-    #dm-people .dm-person-card> :nth-last-child(2){margin-bottom:14px}
-    #dm-people .dm-person-card:not(:has(.dm-person-foot)){padding-bottom:20px}
+    /* Le letture in un riquadro loro, staccato dai bordi: si leggono come un
+       gruppo invece che come una striscia attaccata al fondo. Resta in fondo
+       qualunque altezza abbia la card, cosi' una fila di persone ha i piedi
+       allineati anche quando una sola ha il viaggio. */
+    #dm-people .dm-person-foot{width:100%;margin-top:auto;padding:9px 10px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;border-radius:15px;border:1px solid color-mix(in srgb,rgb(var(--dm-presence)) 12%,var(--card-border,#e8edf3));background:color-mix(in srgb,rgb(var(--dm-presence)) 5%,var(--surface-2,#f8fafc))}
+    #dm-people .dm-person-card>.dm-person-testa:not(:last-child){margin-bottom:12px}
+    #dm-people .dm-person-card>.dm-person-address+.dm-person-foot,
+    #dm-people .dm-person-card>.dm-person-trip+.dm-person-foot{margin-top:12px}
     #dm-people .dm-person-foot>*{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b);white-space:nowrap;max-width:100%}
     #dm-people .dm-person-batt.low,#dm-people .dm-person-watch.low{color:#dc2626}
     #dm-people .dm-person-bolt{font-size:10px;font-style:normal;color:#f59e0b;margin-left:1px;animation:dmPersonBolt 2.2s ease-in-out infinite}
@@ -466,7 +489,10 @@ function installStyles() {
     #dm-people .dm-person-wifi{max-width:112px;overflow:hidden}
     #dm-people .dm-person-wifi,#dm-people .dm-person-ago{text-overflow:ellipsis}
     #dm-people .dm-person-card{cursor:pointer}
-    @media(max-width:480px){#dm-people .dm-people-grid{grid-template-columns:repeat(2,1fr);gap:10px}#dm-people .dm-person-card{padding:20px 10px 0;border-radius:22px}#dm-people .dm-person-portrait{width:78px;height:78px;margin-bottom:10px}#dm-people .dm-person-avatar{font-size:36px}#dm-people .dm-person-avatar b{font-size:26px}#dm-people .dm-person-name{font-size:14px}#dm-people .dm-person-foot{margin-top:12px}}
+    /* Sotto i 480 le colonne diventano una: due card affiancate a questa
+       larghezza spezzerebbero la riga del ritratto e del nome, che e' proprio
+       quello che questa card vuole tenere insieme. */
+    @media(max-width:480px){#dm-people .dm-people-grid{grid-template-columns:1fr;gap:10px}#dm-people .dm-person-card{padding:13px;border-radius:22px}#dm-people .dm-person-portrait{width:58px;height:58px}#dm-people .dm-person-avatar{font-size:28px}#dm-people .dm-person-avatar b{font-size:20px}#dm-people .dm-person-name{font-size:15px}}
 
     /* Il popup: overlay sfumato, card che sale, e dentro le stesse classi
      * della card cosi' ritratto, anello e pastiglia vestono uguale. */

@@ -57,6 +57,20 @@ test("le card compaiono in Home e l'editor le elenca", async ({ page }, testInfo
   // Senza Home Assistant collegata la zona non si inventa.
   await expect(cards.first().locator(".dm-person-zone")).toContainText("Sconosciuto");
 
+  /* Il ritratto e chi e' stanno su una riga sola: la faccia a sinistra, il
+   * nome e la pastiglia della zona accanto. Non lo si chiede alle classi ma
+   * ai rettangoli, che sono quello che si vede: le due caselle si
+   * sovrappongono in verticale e il nome sta a destra del ritratto. */
+  const ritratto = await cards.first().locator(".dm-person-portrait").boundingBox();
+  const nome = await cards.first().locator(".dm-person-name").boundingBox();
+  expect(nome.x).toBeGreaterThan(ritratto.x + ritratto.width - 1);
+  expect(nome.y).toBeLessThan(ritratto.y + ritratto.height);
+  expect(nome.y + nome.height).toBeGreaterThan(ritratto.y);
+
+  /* E la pastiglia della zona si legge per intero: sta sotto il nome, non
+   * stretta sulla sua larghezza. */
+  await expect(cards.nth(1).locator(".dm-person-zone")).toContainText("Sconosciuto");
+
   // La scheda dell'editor: le stesse persone, e il tasto che ne aggiunge una.
   await page.evaluate(() => window.apriConfigEntita());
   await page.locator('.ed-tab[data-tab="people"]').click();
