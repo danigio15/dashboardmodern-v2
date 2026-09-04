@@ -209,8 +209,17 @@ function decorateAlertIconField() {
     row.prepend(preview);
     preview.addEventListener("click", () => openAlertPicker(input));
   }
-  preview.textContent = clean(input.value) || "🔔";
-  preview.dataset.alertIcon = clean(input.value) || "🔔";
+  /* Un nome mdi si da' al motore, che ne tira fuori il disegno (dal campo:
+   * «nella sezione widget avvisi non si vedono icone»). Stampato com'era,
+   * il campo mostrava la scritta «mdi:door-closed» a caratteri cubitali al
+   * posto di una porta. L'emoji resta emoji. */
+  const valore = clean(input.value) || "🔔";
+  const disegnata = /^mdi:/i.test(valore)
+    ? root.DashboardModernIconEngine?.markup?.("action", valore, { size: 34 }) || ""
+    : "";
+  if (disegnata) preview.innerHTML = disegnata;
+  else preview.textContent = valore;
+  preview.dataset.alertIcon = valore;
   if (input.dataset.dmBeta11Bound !== "true") {
     input.dataset.dmBeta11Bound = "true";
     input.addEventListener("input", decorateAlertIconField);
@@ -270,6 +279,8 @@ function installStyles() {
     #ed-body .dm-beta11-alert-icon-row{display:grid!important;grid-template-columns:64px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;min-width:0!important;width:100%!important}
     #ed-body .dm-beta11-alert-preview{display:grid!important;place-items:center!important;width:64px!important;height:64px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--card-background-color,#fff)!important;font-size:32px!important;cursor:pointer!important}
     #ed-body .dm-beta11-alert-icon-row>#ed-avv-icon{min-width:0!important;width:100%!important;grid-column:2!important}
+    #ed-body .dm-beta11-alert-preview{overflow:hidden!important;word-break:break-all!important}
+    #ed-body .dm-beta11-alert-preview svg{width:34px!important;height:34px!important;display:block!important}
     #ed-body .dm-beta11-alert-icon-row>.dm-beta5-alert-icon-trigger{display:none!important}
     .dm-beta11-alert-dialog{width:min(720px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important;overflow:hidden!important}.dm-beta11-alert-search{padding:14px 16px 8px!important}.dm-beta11-alert-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;padding:8px 16px 18px!important;max-height:60vh!important;overflow:auto!important}.dm-beta11-alert-option{display:grid!important;grid-template-rows:48px auto!important;place-items:center!important;gap:7px!important;min-height:94px!important;padding:10px 7px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;cursor:pointer!important}.dm-beta11-alert-option[hidden]{display:none!important}.dm-beta11-alert-glyph{font-size:31px!important}.dm-beta11-alert-option b{font-size:11px!important;text-align:center!important}
     @media(max-width:560px){html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview[data-dm-beta11-ev-preview="true"]{grid-template-columns:92px minmax(0,1fr)!important;gap:9px!important;padding:10px!important}html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand,html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-leapmotor-mark{width:88px!important;max-width:88px!important;height:44px!important;max-height:44px!important}#ed-body .ed-row.dm-room-config-row.dm-beta11-room-row{grid-template-columns:56px minmax(0,1fr) 46px 46px!important;gap:8px!important;padding:11px 10px!important}.dm-beta11-alert-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}

@@ -130,6 +130,10 @@ benzina e i tasti del robot lavapavimenti (#306).
   invece dell'elenco che porta dentro — e per lei non c'era mai nessun
   sensore. Ora legge l'elenco, e con un sensore bagnato la tessera c'e'.
 
+- **L'icona di un avviso, nella scheda, si vede.** Con un nome `mdi:` nel
+  campo, l'anteprima stampava la scritta a caratteri cubitali al posto del
+  disegno; ora il nome va al motore delle icone, come nelle righe della Home.
+
 - **Le grate sono di un grigio chiaro e sfumato.** «Essendo molto scure,
   quando sono chiuse e la finestra e' aperta visivamente non e' il massimo.»
   Il ferro e' grigio, e dove il browser sa mascherare la sbarra va dal chiaro
