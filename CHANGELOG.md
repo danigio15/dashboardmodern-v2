@@ -229,6 +229,14 @@ benzina e i tasti del robot lavapavimenti (#306).
   Adesso la fila la disegna chi la disegna nella pagina: stessi tasti, stesse
   icone, stesso tasto acceso, stesso tastierino del PIN.
 
+  Nella stessa condizione stava la finestra rapida del banner dell'antifurto in
+  testata: la sua griglia sta nel guscio, con quattro tasti scritti a mano, e il
+  giro che la disegna poteva nasconderne ma non aggiungerne — chi ha una
+  centrale che accetta Vacanza o Parziale quei tasti non li aveva mai visti, e i
+  nomi erano quelli del guscio, che in inglese erano rimasti a meta'. Anche
+  quella griglia adesso la riempie la stessa fila, e con piu' di quattro tasti
+  va a capo invece di stringersi.
+
 ## 1.4.6
 
 Tre sezioni in piu', la Home che si personalizza, e una decina di cose viste

@@ -15,6 +15,13 @@
  *
  * Chi decide quali tasti esistono deve essere uno solo, e le prove qui sotto
  * chiedono la fila alla pagina, che e' quella che lo sa.
+ *
+ * Nella stessa condizione stava la finestra rapida del banner in testata: la
+ * sua griglia sta nel guscio, con quattro tasti scritti a mano, e il giro che
+ * la disegna poteva nasconderne ma non aggiungerne. Chi ha una centrale che
+ * accetta Vacanza o Parziale quei due tasti non li aveva mai visti, e i nomi
+ * erano quelli del guscio, che in inglese sono rimasti a meta'. Adesso la
+ * riempie la stessa fila, e l'ultima prova qui sotto lo sorveglia.
  */
 
 import assert from "node:assert/strict";
@@ -118,6 +125,28 @@ test("un tasto tolto in configurazione sparisce anche dalla tessera, e non ne ac
    * vederlo: accendere «Fuori» direbbe che la casa e' inserita fuori mentre e'
    * inserita in casa. Meglio nessun tasto acceso. */
   assert.equal(alarmActiveButton(centrale("armed_home", maschera)), "");
+});
+
+test("anche la finestra rapida del banner prende la fila dalla centrale", () => {
+  /* Quella griglia sta nel guscio, con quattro tasti scritti a mano: chi ha
+   * una centrale che accetta Vacanza o Parziale non li ha mai avuti, perche'
+   * il guscio nascondeva quelli di troppo ma non poteva aggiungerne. */
+  const vetrina = leggi("sections/security-showcase-section.js");
+  const pezzo = vetrina.slice(
+    vetrina.indexOf("function vesteLaFinestraRapida"),
+    vetrina.indexOf("function modeRow"),
+  );
+  assert.match(pezzo, /qa-alarm-grid/);
+  assert.match(pezzo, /alarmModeButtons\(stateObj\)/);
+  assert.match(pezzo, /alarmActiveButton\(stateObj\)/);
+  /* Il tasto chiama il tastierino di sempre, con il servizio della sua
+   * modalita': nessun servizio scritto a mano. */
+  assert.match(pezzo, /promptPinAndSet\('\$\{voce\.service\}'\)/);
+  assert.doesNotMatch(pezzo, /alarm_arm_/);
+  /* E si rimette dietro alla plancia storica, che quella finestra la ridisegna
+   * a ogni apertura e a ogni cambio di stato della centrale. */
+  assert.match(vetrina, /root\.renderQuickAntifurto = vestita/);
+  assert.match(vetrina, /__dmTastiVeri/);
 });
 
 test("la tessera non riscrive la fila: la chiede a chi la disegna nella pagina", () => {

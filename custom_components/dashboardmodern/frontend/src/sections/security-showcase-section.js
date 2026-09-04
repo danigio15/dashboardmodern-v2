@@ -320,6 +320,61 @@ export function alarmActiveButton(stateObj = alarmStateObject()) {
   return modoAcceso(stateObj?.state, stateObj);
 }
 
+/* ── la finestra rapida del banner in testata ───────────────────────────────
+ *
+ * Il banner dell'antifurto apre una finestra sua, che sta nel guscio: quattro
+ * tasti scritti a mano nell'HTML — Casa, Totale, Notte, Sblocca — e un giro
+ * che nasconde quelli che la centrale non dichiara. Nascondere pero' non
+ * aggiunge: una centrale che accetta Vacanza o Parziale quei due tasti non li
+ * aveva proprio, perche' nella griglia non erano mai stati scritti. E i nomi
+ * erano quelli del guscio, che in inglese sono rimasti a meta' («Casa»,
+ * «Tutta la casa», «Sblocca»).
+ *
+ * La griglia la riempie questa, con la stessa fila della pagina: stessi tasti,
+ * stesse icone, stessi nomi in tutte le lingue, stesso tasto acceso. Il tasto
+ * chiama `promptPinAndSet` come prima, che e' il tastierino di sempre.
+ */
+function vesteLaFinestraRapida() {
+  const griglia = doc?.getElementById?.("qa-alarm-grid");
+  if (!griglia) return;
+  const stateObj = alarmStateObject();
+  const tasti = alarmModeButtons(stateObj);
+  const acceso = alarmActiveButton(stateObj);
+  /* Quanti sono lo dice al foglio di stile: fino a quattro stanno in fila,
+   * di piu' vanno a capo — sei quadrati in una riga sola sono sei francobolli. */
+  griglia.dataset.dmTasti = String(tasti.length);
+  griglia.innerHTML = tasti
+    .map(
+      (voce) => `<button class="qa-alarm-btn${voce.mode === acceso ? " active" : ""}"
+        data-mode="${voce.mode}" onclick="promptPinAndSet('${voce.service}')">
+        <span class="qa-alarm-btn-icon">${voce.icon}</span>
+        <span class="qa-alarm-btn-name">${esc(voce.label)}</span>
+        <span class="qa-alarm-btn-sub">${esc(voce.hint)}</span>
+      </button>`,
+    )
+    .join("");
+}
+
+/* La plancia storica ridisegna quella finestra a ogni apertura e a ogni
+ * cambio di stato della centrale: le si sta dietro rivestendola dopo, come si
+ * fa con le altre finestre del guscio. */
+function agganciaLaFinestraRapida() {
+  const originale = root.renderQuickAntifurto;
+  if (typeof originale !== "function" || originale.__dmTastiVeri) return false;
+  function vestita(...resto) {
+    const esito = originale.apply(this, resto);
+    try {
+      vesteLaFinestraRapida();
+    } catch (_errore) {}
+    return esito;
+  }
+  Object.assign(vestita, originale);
+  vestita.__dmTastiVeri = true;
+  vestita.__dmPrevious = originale;
+  root.renderQuickAntifurto = vestita;
+  return true;
+}
+
 function modeRow(labels, stateObj = alarmStateObject()) {
   return modiVisibili(stateObj)
     .map((voce) => {
@@ -641,6 +696,7 @@ export function installSecurityShowcaseSection() {
   installStyle(STYLE_ID, securityCss());
   publishAlarmHelpers();
   installOverrides();
+  agganciaLaFinestraRapida();
   if (!state.listeners) {
     state.listeners = true;
     /* The chip words are baked into the stylesheet, so a language change has to
@@ -655,6 +711,7 @@ export function installSecurityShowcaseSection() {
     ]) {
       root.addEventListener?.(eventName, () => {
         installOverrides();
+        agganciaLaFinestraRapida();
         renderSecurity();
       });
     }
@@ -837,6 +894,16 @@ function securityCss() {
   border-color:var(--primary-color,#0ea5e9);
   box-shadow:0 0 0 1px var(--primary-color,#0ea5e9) inset
 }
+
+/* La griglia della finestra rapida del banner, che sta nel guscio: fino a
+   quattro tasti in fila, di piu' a capo. Il guscio la scrive a colonne e basta,
+   perche' quando l'ha scritta i tasti erano quattro e fissi; adesso li mette
+   la centrale, e sei quadrati in una riga sola sono sei francobolli. E' l'unica
+   regola di questo foglio che esce dai nomi dm-sec, e ci esce perche' quella
+   griglia adesso la riempiamo noi. */
+.qa-alarm-grid[data-dm-tasti="5"],
+.qa-alarm-grid[data-dm-tasti="6"]{
+  grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr))}
 
 /* keypad — keeps the legacy .alarm-mode-btn contract */
 .dm-sec-modes{

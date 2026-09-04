@@ -34,6 +34,14 @@ const RING = {
   attributes: { friendly_name: "Ring Alarm", supported_features: 3 },
 };
 
+/* Una centrale che le accetta tutte: casa, fuori, notte, parziale e vacanza.
+   La finestra rapida del banner ne conosceva quattro, scritte nel guscio. */
+const PIENA = {
+  entity_id: "alarm_control_panel.ring",
+  state: "armed_vacation",
+  attributes: { friendly_name: "Centrale", supported_features: 55 },
+};
+
 /* Una centrale completa, col codice per tutto: la plancia di chi il PIN ce l'ha. */
 const COMPLETA = {
   entity_id: "alarm_control_panel.ring",
@@ -179,6 +187,44 @@ test.describe("la centrale antifurto", () => {
     await expect(
       page.locator('#dm-widget-popup [data-dm-w-alarm="alarm_arm_away"]'),
     ).toHaveAttribute("data-on", "false");
+  });
+
+  /* La finestra rapida del banner in testata: la sua griglia sta nel guscio,
+   * con quattro tasti scritti a mano. Adesso li mette la centrale. */
+  test("la finestra del banner porta anche i tasti che il guscio non aveva", async ({
+    page,
+  }, testInfo) => {
+    await boot(page, testInfo, PIENA);
+    await aspettaTasti(page, ["home", "away", "night", "vacation", "custom", "disarm"]);
+    await page.evaluate(() => apriQuickAntifurto());
+    await expect
+      .poll(() =>
+        page
+          .locator("#qa-alarm-grid .qa-alarm-btn")
+          .evaluateAll((nodi) => nodi.map((nodo) => nodo.dataset.mode)),
+      )
+      .toEqual(["home", "away", "night", "vacation", "custom", "disarm"]);
+    /* I nomi sono quelli della pagina, non quelli mezzi tradotti del guscio. */
+    await expect(page.locator('#qa-alarm-grid [data-mode="vacation"]')).toContainText("Vacanza");
+    await expect(page.locator('#qa-alarm-grid [data-mode="away"]')).toContainText("Fuori");
+    /* E il tasto acceso e' quello dello stato, che qui e' Vacanza. */
+    await expect(page.locator('#qa-alarm-grid [data-mode="vacation"]')).toHaveClass(/active/);
+  });
+
+  test("dalla finestra del banner parte il servizio del tasto premuto", async ({
+    page,
+  }, testInfo) => {
+    await boot(page, testInfo, PIENA);
+    await aspettaTasti(page, ["home", "away", "night", "vacation", "custom", "disarm"]);
+    await page.evaluate(() => apriQuickAntifurto());
+    await page.locator('#qa-alarm-grid [data-mode="custom"]').click();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (globalThis.__DM_SERVICE_CALLS__ || []).map((chiamata) => chiamata.service),
+        ),
+      )
+      .toContain("alarm_arm_custom_bypass");
   });
 
   test("dalla tessera parte il servizio del tasto premuto", async ({ page }, testInfo) => {
