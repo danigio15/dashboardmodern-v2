@@ -151,14 +151,21 @@ export function giorniFra(da, a) {
  * `2026-09-05 06:00:00`, `2026-09-05T06:00:00+02:00`, `05/09/2026`.
  * Torna `null` per tutto il resto: un numero non e' una data.
  */
-export function leggiData(testo) {
+export function leggiData(testo, { giornoIntero = false } = {}) {
   const voce = pulito(testo);
   if (!voce) return null;
   let m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(voce);
   if (m) {
     /* Con l'ora e il fuso si lascia fare a `Date`; senza fuso la data e'
-     * locale, che e' quello che intende chi la scrive. */
-    if (/[+-]\d{2}:?\d{2}$|Z$/.test(voce) && m[4]) {
+     * locale, che e' quello che intende chi la scrive.
+     *
+     * Un evento di tutto il giorno pero' non e' un istante: e' una casella
+     * sul calendario, e il fuso scritto accanto non la sposta. Home Assistant
+     * lo scrive «2026-09-04T00:00:00+02:00», e chi guardava da un fuso piu'
+     * indietro se lo vedeva diventare il 3: il ritiro di oggi finiva nel
+     * passato, spariva dal conto e la tessera restava con un trattino il
+     * giorno stesso in cui il bidone andava messo fuori (#309). */
+    if (!giornoIntero && /[+-]\d{2}:?\d{2}$|Z$/.test(voce) && m[4]) {
       const assoluta = new Date(voce);
       return Number.isFinite(assoluta.getTime()) ? assoluta : null;
     }
@@ -192,6 +199,12 @@ function giorniDalleParole(testo) {
 export function dataDelRitiro(stato, adesso = Date.now()) {
   if (!stato) return null;
   const attributi = stato.attributes || {};
+  /* `all_day` lo dichiara Home Assistant sui calendari; per gli altri lo dice
+   * la forma, che e' una mezzanotte tonda. */
+  const giornoIntero =
+    attributi.all_day === true ||
+    attributi.all_day === "true" ||
+    /T00:00:00([+-]\d{2}:?\d{2}|Z)$/.test(pulito(attributi.start_time || attributi.start));
   for (const nome of [
     "date",
     "next_date",
@@ -204,8 +217,15 @@ export function dataDelRitiro(stato, adesso = Date.now()) {
     "start_time",
     "start",
   ]) {
-    const data = leggiData(attributi[nome]);
-    if (data) return data;
+    const data = leggiData(attributi[nome], { giornoIntero });
+    if (!data) continue;
+    /* Un evento gia' cominciato e non ancora finito e' il ritiro di adesso.
+     * Un ritiro che dura da ieri a domani — capita coi calendari scritti a
+     * mano — partiva ieri, e ieri e' passato: la riga finiva fra le scadute e
+     * la tessera diceva «nessuna data in vista» mentre il bidone era fuori. */
+    const fine = leggiData(attributi.end_time || attributi.end, { giornoIntero });
+    if (fine && data.getTime() <= adesso && adesso < fine.getTime()) return inizioDelGiorno(adesso);
+    return data;
   }
   for (const nome of ["daysTo", "days_to", "days", "giorni"]) {
     const n = Number(attributi[nome]);
