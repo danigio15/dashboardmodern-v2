@@ -150,18 +150,18 @@ benzina e i tasti del robot lavapavimenti (#306).
   attributi delle integrazioni comuni (data, giorni mancanti, prossimi
   ritiri), e il materiale preso dal sensore quando la riga dice «altro».
 
-- **Seguito di #292: i carichi sono di un impianto.** Passando da un
+- **Seguito di #292, e #311: i carichi sono di un impianto.** Passando da un
   impianto all'altro la scheda dei carichi si ricarica, e salvare i carichi di
   uno non cancella piu' quelli dell'altro: gli identificativi non si pestano
   fra impianti, e nel modello di un impianto non entrano gli elettrodomestici
   dell'altro. Le modifiche non ancora salvate non si perdono cambiando
   impianto: restano da parte, e tornandoci si ritrovano.
 
-- **Seguito di #286: le tessere Energia per impianto.** Tutte seguono
+- **Seguito di #286, e #313: le tessere Energia per impianto.** Tutte seguono
   l'ordine scelto per «Energia», tutte hanno «Apri sezione», e il tasto apre
   la scheda dell'impianto giusto.
 
-- **Seguito di #281: la seconda caldaia non si selezionava.** La fila dei
+- **Seguito di #281, e #314: la seconda caldaia non si selezionava.** La fila dei
   nomi stava sotto la scena, che e' assoluta e copre tutto il palco: i nomi si
   vedevano attraverso, ma il tocco arrivava alla scena. La fila sta sopra.
 
@@ -174,6 +174,21 @@ benzina e i tasti del robot lavapavimenti (#306).
   tessera leggeva l'elenco dei sensori dal posto sbagliato — l'oggetto intero
   invece dell'elenco che porta dentro — e per lei non c'era mai nessun
   sensore. Ora legge l'elenco, e con un sensore bagnato la tessera c'e'.
+
+- **L'icona di un avviso, nella scheda, si vede.** Con un nome `mdi:` nel
+  campo, l'anteprima stampava la scritta a caratteri cubitali al posto del
+  disegno; ora il nome va al motore delle icone, come nelle righe della Home.
+
+- **Batterie: la tessera in Home legge la configurazione, non solo la
+  memoria del guscio.** «La batteria attualmente e' al 1% e non compare il
+  widget batteria scarica.» L'elenco delle pile sorvegliate lo teneva la
+  lista viva del guscio, che si costruisce una volta sola all'avvio: una pila
+  aggiunta dalla finestra di modifica degli avvisi (che scrive solo la
+  configurazione), o arrivata con la sincronizzazione da un altro
+  apparecchio, o una configurazione arrivata nel pannello di Home Assistant
+  dopo la partenza del guscio, per la tessera non esisteva finche' non si
+  ricaricava la pagina. Ora la tessera legge `cd_gruppi_extra` meno
+  `cd_gruppi_removed`, e la lista viva si somma solo per quello che ha in piu'.
 
 - **Le grate sono di un grigio chiaro e sfumato.** «Essendo molto scure,
   quando sono chiuse e la finestra e' aperta visivamente non e' il massimo.»

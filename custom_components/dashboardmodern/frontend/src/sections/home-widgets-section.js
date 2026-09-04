@@ -2624,13 +2624,52 @@ function mediaDetail(widget) {
  * e nomina quelle aperte — e due tessere che rispondono alla stessa domanda
  * sono due occasioni di rispondere diverso. */
 
+/* L'elenco sorvegliato di un gruppo: quello scritto in configurazione E quello
+ * che il guscio tiene in memoria.
+ *
+ * La lista viva (`GRUPPI_MONITORAGGIO`) si costruisce una volta sola, all'avvio,
+ * leggendo `cd_gruppi_extra`. Tutto quello che arriva dopo — una pila aggiunta
+ * dalla finestra di modifica degli avvisi, che scrive solo la configurazione;
+ * la configurazione che un altro apparecchio ha cambiato e la sincronizzazione
+ * ha portato qui; nel pannello di Home Assistant, la configurazione stessa
+ * quando arriva dopo che il guscio e' partito — la lista viva non lo vede
+ * finche' non si ricarica la pagina. E la tessera leggeva solo lei: «la
+ * batteria attualmente e' al 1% e non compare il widget batteria scarica».
+ *
+ * La configurazione ha ragione: si legge lei per prima, e la lista viva si
+ * somma per quello che ha in piu' (gli avvisi del `config.js`, per dirne uno).
+ * Le voci tolte (`cd_gruppi_removed`) restano fuori — a meno che non siano
+ * state riaggiunte dopo, perche' l'ultimo gesto fatto apposta e' l'aggiunta,
+ * ed e' la stessa regola con cui `riparaAggiunteTolte` mette pace fra le due
+ * liste. */
+export function entitaSorvegliate(chiave, { extras, removed, vive } = {}) {
+  const gruppo = clean(chiave);
+  const elenco = (lista) => (Array.isArray(lista) ? lista.map(clean).filter(Boolean) : []);
+  const scelte = elenco(extras?.[gruppo]);
+  const tolte = new Set(elenco(removed?.[gruppo]).filter((id) => !scelte.includes(id)));
+  const viste = new Set();
+  const uscita = [];
+  for (const id of [...scelte, ...elenco(vive)]) {
+    if (tolte.has(id) || viste.has(id)) continue;
+    viste.add(id);
+    uscita.push(id);
+  }
+  return uscita;
+}
+
 function gruppoEntita(chiave) {
   try {
-    const gruppi = lexicalGlobal("GRUPPI_MONITORAGGIO");
-    const lista = gruppi?.[chiave];
-    if (!Array.isArray(lista)) return [];
+    let vive = [];
+    try {
+      vive = lexicalGlobal("GRUPPI_MONITORAGGIO")?.[chiave];
+    } catch (_error) {}
+    const lista = entitaSorvegliate(chiave, {
+      extras: readJson("cd_gruppi_extra", {}),
+      removed: readJson("cd_gruppi_removed", {}),
+      vive,
+    });
     const fuori = widgetExcludedEntities();
-    return lista.map(clean).filter((entity) => entity && widgetIncludes(entity, fuori));
+    return lista.filter((entity) => widgetIncludes(entity, fuori));
   } catch (_error) {
     return [];
   }

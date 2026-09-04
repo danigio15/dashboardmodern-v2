@@ -101,3 +101,22 @@ test("plain-text and typed editor fields never receive entity picker buttons", a
   assert.match(source, /cleanupFalsePicker\(input\)/);
   assert.doesNotMatch(source, /\|avv-\)/);
 });
+test("l'anteprima dell'icona di un avviso disegna i nomi mdi col motore (dal campo)", async () => {
+  /* «Nella sezione widget avvisi non si vedono icone»: con «mdi:door-closed»
+   * nel campo, l'anteprima stampava la scritta a caratteri cubitali al posto
+   * di una porta. Il nome mdi va al motore delle icone, come nelle righe della
+   * Home; l'emoji resta emoji. */
+  const { readFile } = await import("node:fs/promises");
+  const sezione = await readFile(
+    new URL("../src/sections/beta11-real-device-polish-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    sezione,
+    /const disegnata = \/\^mdi:\/i\.test\(valore\)\s*\?\s*root\.DashboardModernIconEngine\?\.markup\?\.\("action", valore, \{ size: 34 \}\) \|\| ""\s*:\s*"";/,
+  );
+  assert.match(sezione, /if \(disegnata\) preview\.innerHTML = disegnata;\s*else preview\.textContent = valore;/);
+  assert.equal(/preview\.textContent = clean\(input\.value\) \|\| "🔔";/.test(sezione), false);
+  /* E il riquadro non lascia piu' uscire un testo lungo. */
+  assert.match(sezione, /\.dm-beta11-alert-preview\{overflow:hidden!important;word-break:break-all!important\}/);
+});

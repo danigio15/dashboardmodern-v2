@@ -62,7 +62,7 @@ test("ogni tessera rispetta le esclusioni, e chi non sceglie vede tutto", async 
   assert.match(ponte, /function widgetExcludedEntities/);
   // I gruppi del Quadro filtrano alla fonte, cosi' il conteggio e l'elenco
   // restano d'accordo fra loro.
-  assert.match(ponte, /lista\.map\(clean\)\.filter\(\(entity\) => entity && widgetIncludes/);
+  assert.match(ponte, /return lista\.filter\(\(entity\) => widgetIncludes\(entity, fuori\)\)/);
 });
 
 test("il runtime installa la scelta", () => {
