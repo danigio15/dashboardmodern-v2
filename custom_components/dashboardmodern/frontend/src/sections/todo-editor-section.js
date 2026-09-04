@@ -51,6 +51,10 @@ function activeTab() {
  * avvisi personalizzati sono una voce sola: si governano insieme. */
 function catalogoTessere() {
   return [
+    /* L'avviso della chat di assistenza: compare solo con una risposta da
+     * leggere, e di serie sta per primo — e' una risposta a chi ha chiesto
+     * aiuto. Chi non lo vuole in Home deve poterlo spegnere da qui. */
+    ["assistenza", "💬", t("Assistenza", "Support")],
     ["evidenza", "⭐", t("In evidenza", "Highlights")],
     /* Le segnalazioni: la riga sta qui per tutti, ma la tessera in Home la
      * vede solo chi tiene la repository — il suo modello torna `null` per
@@ -109,7 +113,11 @@ function tessereOrdinate() {
   const catalogo = catalogoTessere();
   const rank = (key) => {
     const index = preferences.order.indexOf(key);
-    return index < 0 ? preferences.order.length + catalogo.findIndex(([k]) => k === key) : index;
+    if (index >= 0) return index;
+    /* Come in Home: l'avviso dell'assistenza sta per primo finche' nessuno lo
+     * sposta apposta, anche per chi aveva salvato un ordine prima che nascesse. */
+    if (key === "assistenza") return -1;
+    return preferences.order.length + catalogo.findIndex(([k]) => k === key);
   };
   return {
     hidden: new Set(preferences.hidden),
@@ -618,8 +626,12 @@ function installStyles() {
     `
       /* La tendina «Cosa mostra» sotto il nome della tessera (#303), e la
          spunta «Tessera a se'» nelle righe in evidenza. */
-      #ed-body .dm-widget-sorgente{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:11px;font-weight:800;color:var(--text-dim,#64748b)}
-      #ed-body .dm-widget-sorgente select{flex:1 1 auto;min-width:0;font-size:12px;padding:6px 8px}
+      /* «Cosa mostra» sta su una riga sola accanto alla tendina, e la tendina
+         e' larga quanto le serve: prima la scritta andava a capo in due
+         righe strette e la tendina si prendeva tutta la riga. */
+      #ed-body .dm-widget-sorgente{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:6px 0 0;font-size:11px;font-weight:800;color:var(--text-dim,#64748b)}
+      #ed-body .dm-widget-sorgente>span{flex:0 0 auto;white-space:nowrap}
+      #ed-body .dm-widget-sorgente select{flex:0 1 320px;min-width:160px;max-width:100%;font-size:12px;padding:6px 8px}
       #ed-body .dm-evid-sola-riga{display:flex;align-items:center;gap:8px;font-weight:800}
       #ed-body .dm-evid-sola-riga input{width:18px;height:18px;margin:0;flex:0 0 auto;cursor:pointer}
       /* Il vestito comune delle righe della configurazione — l'intestazione,

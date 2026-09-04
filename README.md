@@ -701,6 +701,8 @@ Quindi la chat è **una conversazione privata**, e non passa da GitHub:
 
 Il progetto per esteso è in [`docs/CHAT.md`](docs/CHAT.md).
 
+**Quando arriva una risposta, la Home lo dice.** Fra i widget compare la tessera **Assistenza**: il conto delle risposte da leggere, l'ultima frase in breve, e nella sua finestra il tasto che apre la chat. Si accende come un avviso e se ne va da sola appena apri la conversazione, perché aprirla è leggerla. Se non la vuoi in Home, dalla scheda 🧩 Widget si nasconde come le altre.
+
 > **Per chi mantiene una plancia propria.** La chat funziona in uscita senza configurare niente. Per **leggere** le conversazioni serve incollare la chiave del proprio centralino in *Impostazioni → Dispositivi e servizi → DashboardModern → Configura → «Chiave della console assistenza»*.
 
 ---

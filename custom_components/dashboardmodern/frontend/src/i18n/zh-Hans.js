@@ -2886,4 +2886,9 @@ export default Object.freeze({
   "Support the project": "支持这个项目",
   "Donate with PayPal": "通过 PayPal 捐赠",
   "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern 是独立的开源项目，在业余时间开发：没有赞助商，没有订阅，不收集数据。捐赠让修复、问题回复和真机测试得以继续。",
+  "Open the chat": "打开聊天",
+  "The latest reply": "最新回复",
+  "Unread": "未读",
+  "1 new reply": "1 条新回复",
+  "${n} new replies": "${n} 条新回复",
 });

@@ -38,6 +38,10 @@ import { poolList } from "../core/pool-model.js";
 /* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
  * di rifare il giro verso GitHub per conto suo. */
 import { sommarioConsole } from "./segnalazioni-section.js";
+/* E la tessera della chat di assistenza chiede lo stato a chi lo tiene: la
+ * sezione della chat, che lo annuncia quando cambia. */
+import { quando as quandoScritto, statoDellaChat } from "./assistenza-section.js";
+import { tesseraDellaChat } from "../core/avviso-chat.js";
 import {
   SCALDABAGNI_KEY,
   entitaDiUnoScaldabagno,
@@ -2978,8 +2982,14 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
         ? "evidenza"
         : widget.key;
   const rank = (widget) => {
-    const index = preferences.order.indexOf(chiave(widget));
-    return index < 0 ? preferences.order.length + models.indexOf(widget) : index;
+    const nome = chiave(widget);
+    const index = preferences.order.indexOf(nome);
+    if (index >= 0) return index;
+    /* La tessera dell'assistenza e' nata dopo che molti avevano gia' salvato un
+     * ordine: fuori dall'ordine starebbe in coda, e un avviso in coda non
+     * avvisa. Finche' nessuno la sposta apposta, sta per prima. */
+    if (nome === "assistenza") return -1;
+    return preferences.order.length + models.indexOf(widget);
   };
   return models.filter((widget) => !hidden.has(chiave(widget))).sort((a, b) => rank(a) - rank(b));
 }
@@ -3114,6 +3124,17 @@ function segnalazioniModel() {
   };
 }
 
+/* La tessera della chat di assistenza: un avviso, e c'e' solo finche' c'e'
+ * una risposta da leggere.
+ *
+ * «Gestisci una sorta di widget avviso che, se si ricevono messaggi nella
+ *  chat assistenza, compare nella home.» Compare con la prima risposta non
+ * letta e se ne va quando la finestra si apre, perche' aprire la chat e'
+ * leggerla. Lo stato lo tiene la sezione della chat; il modello sta nel nucleo. */
+function chatModel() {
+  return tesseraDellaChat(statoDellaChat());
+}
+
 /* La tessera delle allerte (#296).
  *
  * Il numero grande e' quante fonti hanno qualcosa da dire, e la tessera si
@@ -3212,6 +3233,10 @@ function widgetModels(states) {
   if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
     [
+      /* L'avviso dell'assistenza sta per primo: e' una risposta a chi ha
+       * chiesto aiuto, e la prima tessera e' quella che si vede senza cercare.
+       * Chi lo vuole altrove lo sposta dalla scheda Widget. */
+      chatModel(),
       ...evidenzaModels(states),
       segnalazioniModel(),
       agendaModel(states),
@@ -4669,7 +4694,35 @@ function verdettoEFrase(widget) {
  * misura con la sua corsa, le caselle, i comandi.» I comandi sono le righe di
  * prima: li' ci sono gli interruttori, e quelli non si toccano — cambia il
  * posto, non quello che fanno. */
+/* La risposta dell'assistenza si legge nella sua finestra, non qui: qui c'e'
+ * l'ultima frase in breve, quante ne aspettano, e la porta. Niente verdetto
+ * generico sopra, per la stessa ragione delle segnalazioni: il motore che
+ * legge gli stati di casa qui non ha niente da leggere. */
+function chatDetail(widget) {
+  const ora = widget.scrittoIl ? quandoScritto(widget.scrittoIl) : "";
+  const bolla = widget.anteprima
+    ? `<div class="dm-w-chat">
+        <div class="dm-w-chat-testa">
+          <span aria-hidden="true">💬</span>
+          <b>${esc(t("L'ultima risposta", "The latest reply"))}</b>
+          ${ora ? `<small class="dm-w-chat-quando">${esc(ora)}</small>` : ""}
+        </div>
+        <p class="dm-w-chat-testo">${esc(widget.anteprima)}</p>
+      </div>`
+    : "";
+  return `${bolla}
+      <div class="dm-w-caselle">
+        <div class="dm-w-casella"><b>${Number(widget.risposte) || 0}</b><small>${esc(
+          t("Da leggere", "Unread"),
+        )}</small></div>
+      </div>
+      <button type="button" class="dm-w-porta" data-dm-apri-chat>${esc(
+        t("Apri la chat", "Open the chat"),
+      )}</button>`;
+}
+
 function detailBody(widget, states) {
+  if (widget.key === "assistenza") return chatDetail(widget);
   /* Le segnalazioni non si lavorano da qui. La finestra della tessera e'
    * larga un palmo, e rispondere a una issue vuol dire leggere il filo, gli
    * allegati, e scrivere: il posto per farlo esiste gia' ed e' il Cruscotto.
@@ -5299,7 +5352,7 @@ function popupHost() {
  * romperle tutte e due insieme. */
 function ascoltaLaPorta() {
   doc?.addEventListener?.("click", (event) => {
-    if (event.target?.closest?.("[data-dm-apri-cruscotto]")) chiudiPopup();
+    if (event.target?.closest?.("[data-dm-apri-cruscotto],[data-dm-apri-chat]")) chiudiPopup();
   });
 }
 
@@ -6196,6 +6249,13 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   background:var(--dm-widget-accent,#0ea5e9);font-variant-numeric:tabular-nums}
 #dm-widget-popup .dm-w-chat-altre{
   margin-top:5px;font-size:11px;color:var(--text-dim,#64748b)}
+/* L'ultima risposta dell'assistenza, intera: e' la cosa che si e' venuti a
+   leggere, e non si taglia. L'ora sta a destra, in piccolo. */
+#dm-widget-popup .dm-w-chat-quando{
+  margin-left:auto;font-size:11px;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-chat-testo{
+  margin:0;font-size:13px;line-height:1.45;color:var(--text,#0f172a);
+  overflow-wrap:anywhere}
 #dm-widget-popup .dm-w-porta{
   width:100%;margin-top:10px;padding:11px 14px;border:0;border-radius:14px;
   cursor:pointer;font-size:13px;font-weight:800;color:#fff;
@@ -7212,6 +7272,9 @@ export function installHomeWidgetsSection() {
        e' gia' disegnata: la sua tessera va messa quando la risposta atterra,
        non al primo evento che passi di li' per un'altra ragione. */
     "dashboardmodern:segnalazioni-coda",
+    /* La chat di assistenza dice quando ha una risposta da leggere, e quando
+       e' stata letta: la sua tessera compare e sparisce con quello. */
+    "dashboardmodern:chat-stato",
   ])
     root.addEventListener?.(eventName, schedule);
   ascoltaLaPorta();

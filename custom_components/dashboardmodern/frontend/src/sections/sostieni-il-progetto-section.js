@@ -70,13 +70,20 @@ function installStyles() {
   installStyle(
     "dm-sostieni-style",
     `
+    /* Sta in una colonna larga quanto una linguetta: il testo va a capo e sta
+       al centro, invece di uscire dalla pillola. Sul telefono in piedi la
+       colonna e' un simbolo solo, e resta solo il cuore. */
     #editor-modal .dm-sostieni-pastiglia{
-      display:inline-flex;align-items:center;gap:7px;margin:10px 12px 8px;padding:7px 12px;border-radius:999px;
-      font-size:11.5px;font-weight:900;letter-spacing:.02em;text-decoration:none;
-      color:#fff;background:linear-gradient(135deg,#0070ba,#003087);box-shadow:0 6px 16px rgba(0,48,135,.28);
-      flex:0 0 auto;white-space:nowrap}
+      display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 4px 8px;padding:8px 10px;
+      border-radius:14px;min-width:0;font-size:11px;font-weight:900;letter-spacing:.02em;line-height:1.2;
+      text-align:center;text-decoration:none;color:#fff;background:linear-gradient(135deg,#0070ba,#003087);
+      box-shadow:0 6px 16px rgba(0,48,135,.28);flex:0 0 auto;white-space:normal;overflow-wrap:anywhere}
     #editor-modal .dm-sostieni-pastiglia:hover{filter:brightness(1.06)}
-    #editor-modal .dm-sostieni-pastiglia span[aria-hidden]{font-size:13px}
+    #editor-modal .dm-sostieni-pastiglia span[aria-hidden]{font-size:13px;flex:0 0 auto}
+    @media (orientation: portrait) and (max-width: 640px){
+      #editor-modal .dm-sostieni-pastiglia{padding:9px 0;margin:8px 2px;gap:0}
+      #editor-modal .dm-sostieni-pastiglia span:not([aria-hidden]){display:none}
+    }
     #ed-body .dm-sostieni-card{
       display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
       margin:18px 0 6px;padding:14px 16px;border-radius:18px;

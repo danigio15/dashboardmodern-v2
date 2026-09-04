@@ -583,11 +583,19 @@ function installPeriodStyles() {
   installStyle(
     "dm-hist-periodi-style",
     `
-    #history-modal .hist-time-controls{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-    #history-modal .hist-time-controls .hist-time-btn{flex:0 0 auto}
+    /* La pillola di serie era una griglia di quattro colonne larga al massimo
+       460 pixel, con gli angoli a cento: con otto periodi andava a capo, la
+       seconda riga restava appesa a sinistra e il fondo diventava una macchia
+       tonda. Qui la barra si prende la larghezza che ha, mette le pillole al
+       centro anche quando vanno a capo, e arrotonda quanto basta per una riga
+       o per due. */
+    #history-modal .hist-time-controls{
+      display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;
+      max-width:100%;padding:6px;border-radius:22px}
+    #history-modal .hist-time-controls .hist-time-btn{flex:0 0 auto;padding:8px 12px}
     #history-modal .dm-hist-custom{
-      flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:4px;
-      padding:10px;border-radius:14px;background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e2e8f0)}
+      flex:1 1 100%;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:flex-end;margin:2px 0 0;
+      padding:10px;border-radius:16px;background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e2e8f0)}
     #history-modal .dm-hist-custom[hidden]{display:none}
     #history-modal .dm-hist-custom label{display:grid;gap:3px;flex:1 1 150px;min-width:0}
     #history-modal .dm-hist-custom label span{

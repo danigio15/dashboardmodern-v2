@@ -2925,4 +2925,9 @@ export default Object.freeze({
   "Support the project": "프로젝트 후원",
   "Donate with PayPal": "PayPal로 기부",
   "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern은 여가 시간에 만드는 독립 오픈소스 프로젝트입니다. 스폰서도, 구독도, 데이터 수집도 없습니다. 기부는 수정, 문의 답변, 실제 기기 테스트를 이어가게 합니다.",
+  "Open the chat": "채팅 열기",
+  "The latest reply": "최근 답변",
+  "Unread": "읽지 않음",
+  "1 new reply": "새 답변 1개",
+  "${n} new replies": "새 답변 ${n}개",
 });

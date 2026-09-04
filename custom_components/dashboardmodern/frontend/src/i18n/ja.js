@@ -2941,4 +2941,9 @@ export default Object.freeze({
   "Support the project": "プロジェクトを支援",
   "Donate with PayPal": "PayPal で寄付",
   "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern は余暇に作られた独立したオープンソースのプロジェクトです。スポンサーも、購読も、データ収集もありません。寄付は修正、報告への返答、実機でのテストを続ける力になります。",
+  "Open the chat": "チャットを開く",
+  "The latest reply": "最新の返信",
+  "Unread": "未読",
+  "1 new reply": "新しい返信 1 件",
+  "${n} new replies": "新しい返信 ${n} 件",
 });

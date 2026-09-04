@@ -72,6 +72,24 @@ lavorare.
   righe di perche': il progetto e' indipendente e vive di tempo libero. Il
   collegamento e' uno, lo stesso del README, e si apre in una scheda nuova.
 
+- **Una risposta dell'assistenza compare in Home.**
+
+      «Gestisci una sorta di widget avviso che, se si ricevono messaggi
+       nella chat assistenza, compare nella home.»
+
+  La chat sta dietro una card della Configurazione, e una risposta arrivata
+  mentre nessuno guardava li' era un pallino su una pagina che non si apre
+  tutti i giorni. Adesso e' una tessera fra i widget della Home, la prima di
+  serie: compare con la prima risposta da leggere, porta il conto e l'ultima
+  frase in breve, si accende come un avviso, e la sua finestra ha il tasto
+  che apre la chat. Se
+  ne va da sola appena la chat si apre, perche' aprirla e' leggerla. La
+  pagina lo viene a sapere dal bus di Home Assistant — lo stesso evento
+  `dashboardmodern_chat` che il giro dei cinque minuti spara per le
+  automazioni — senza nessun battito in piu', e si rimette in ascolto da sola
+  dopo una riconnessione. Dalla scheda Widget si ordina e si nasconde come
+  le altre.
+
 - **I widget della Home si personalizzano (#303).**
 
       «Il widget temperatura come il clima visualizzano la temperatura
@@ -122,6 +140,24 @@ lavorare.
   e' il comportamento di sempre.
 
 ### Corretto
+
+- **Barre dei periodi, campo della valvola e pastiglia: in riga.** Nel popup
+  dello storico la pillola dei periodi era una griglia da quattro larga al
+  massimo 460 pixel: con otto periodi andava a capo, la seconda riga restava
+  appesa a sinistra e il fondo diventava una macchia tonda; adesso si prende
+  la larghezza che ha, centra le pillole anche su due righe e la riga «Dal /
+  Al» sta sotto, per intero. Nella scheda Clima il campo «Valvola TRV» aveva
+  la matita su una riga a se': ha la stessa forma di «Entita' clima». Nella
+  scheda Widget «Cosa mostra» andava a capo in due righe strette accanto a
+  una tendina larga quanto la pagina. E la pastiglia «Sostieni il progetto»
+  usciva dalla colonna delle schede: ora va a capo dentro la pillola e sul
+  telefono in piedi resta il solo cuore.
+
+- **Il pallino dell'assistenza si spegneva da solo.** All'avvio la plancia
+  leggeva anche il filo della chat, e leggere il filo e' averlo letto: il
+  segnalibro si spostava a ogni ricarica della pagina, prima che qualcuno
+  avesse visto niente. Adesso all'avvio si legge solo lo stato — quante
+  risposte aspettano — e il filo quando la finestra si apre davvero.
 
 - **Il radar con «Casa» non mostrava niente.** La plancia sapeva dove sta
   casa solo se il guscio le passava `hass.config`, e nel riquadro ospitato

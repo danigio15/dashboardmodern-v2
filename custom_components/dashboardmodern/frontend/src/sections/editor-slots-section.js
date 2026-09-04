@@ -258,6 +258,7 @@ const FIELD_CAPTIONS = Object.freeze({
   "wz-cam-ent": ["Entità telecamera", "Camera entity"],
   "ed-cl-ent": ["Entità clima", "Climate entity"],
   "wz-cl-ent": ["Entità clima", "Climate entity"],
+  "ed-cl-valvola": ["Valvola TRV (posizione %)", "TRV valve (position %)"],
   "ed-st2-temp": ["Sensore temperatura", "Temperature sensor"],
   "ed-tp-ent": ["Entità tapparella", "Cover entity"],
   "ed-pl-temp": ["Temperatura piscina", "Pool temperature"],

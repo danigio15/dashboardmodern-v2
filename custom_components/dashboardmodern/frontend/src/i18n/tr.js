@@ -2938,4 +2938,9 @@ export default Object.freeze({
   "Support the project": "Projeyi destekle",
   "Donate with PayPal": "PayPal ile bağış yap",
   "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern bağımsız ve açık kaynaklıdır, boş zamanlarda yapılır: sponsor yok, abonelik yok, veri toplama yok. Bir bağış düzeltmeleri, bildirimlere yanıtları ve gerçek cihazlardaki testleri sürdürür.",
+  "Open the chat": "Sohbeti aç",
+  "The latest reply": "Son yanıt",
+  "Unread": "Okunmamış",
+  "1 new reply": "1 yeni yanıt",
+  "${n} new replies": "${n} yeni yanıt",
 });

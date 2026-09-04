@@ -33,10 +33,14 @@ export function ensureTrvField() {
   if (casella) return true;
   const ancora = body.querySelector("#dm-quick-climate") || tastoAggiungi();
   if (!ancora) return false;
-  casella = doc.createElement("label");
-  casella.className = "ed-slot dm-trv-slot";
-  casella.innerHTML = `<span class="ed-slot-lbl">${esc(t("Valvola TRV (posizione %)", "TRV valve (position %)"))}</span>
-    <span class="ed-form-row"><input id="${CAMPO_ID}" class="ed-input mono" placeholder="sensor.trv_valve_position" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-dm-trv-pick aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span>
+  /* La stessa forma del campo «Entita' clima» qui sopra: la casella nuda con la
+   * lente accanto, e il nome glielo scrive la carta delle entita' (che lo
+   * conosce per id). Con un'etichetta propria la carta lo trattava da campo
+   * gia' intitolato: la matita finiva su una riga a se' sopra la casella, e il
+   * campo non stava in riga con gli altri. */
+  casella = doc.createElement("div");
+  casella.className = "dm-trv-slot";
+  casella.innerHTML = `<div class="dm-trv-campo" style="display:flex; gap:8px; margin-bottom:6px;"><input id="${CAMPO_ID}" class="ed-input mono" style="flex:1;" placeholder="sensor.trv_valve_position" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-dm-trv-pick aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></div>
     <small>${esc(
       t(
         "Il sensore o il number con la posizione della valvola termostatica, da 0 a 100: la card mostra quanto è aperta e quanto chiusa. Se l'unità climate espone già valve_position, non serve.",
@@ -91,7 +95,7 @@ export function installTrvEditor() {
     "dm-trv-editor-style",
     `
     #ed-body .dm-trv-slot{display:block;margin:0 0 10px}
-    #ed-body .dm-trv-slot small{display:block;margin:4px 2px 0;font-size:11px;line-height:1.45;color:var(--text-dim,#64748b)}
+    #ed-body .dm-trv-slot small{display:block;margin:2px 2px 0;font-size:11px;line-height:1.45;color:var(--text-dim,#64748b)}
     `,
   );
   doc.addEventListener("click", onClick);

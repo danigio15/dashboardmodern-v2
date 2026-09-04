@@ -2949,4 +2949,9 @@ export default Object.freeze({
   "Support the project": "Wesprzyj projekt",
   "Donate with PayPal": "Wesprzyj przez PayPal",
   "DashboardModern is independent and open source, made in spare time: no sponsors, no subscriptions, no data collected. A donation keeps the fixes, the issue replies and the tests on real devices coming.": "DashboardModern jest niezależny i open source, tworzony w wolnym czasie: bez sponsorów, bez subskrypcji, bez zbierania danych. Darowizna utrzymuje poprawki, odpowiedzi na zgłoszenia i testy na prawdziwych urządzeniach.",
+  "Open the chat": "Otwórz czat",
+  "The latest reply": "Ostatnia odpowiedź",
+  "Unread": "Nieprzeczytane",
+  "1 new reply": "1 nowa odpowiedź",
+  "${n} new replies": "${n} nowych odpowiedzi",
 });
