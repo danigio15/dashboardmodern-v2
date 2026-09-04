@@ -472,9 +472,10 @@ function css() {
     @media(max-width:640px){
       .dm-integ-body{padding:12px 14px 14px}
       .dm-integ-columns{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
-      /* Una fila che scorre di lato: senza `min-width:0` la sua larghezza
-         naturale — tutte le integrazioni una accanto all'altra — allargava la
-         griglia, e con lei la finestra, oltre lo schermo del telefono. */
+      /* Una fila che scorre di lato: senza la larghezza minima azzerata, la
+         sua larghezza naturale — tutte le integrazioni una accanto all'altra —
+         allargava la griglia, e con lei la finestra, oltre lo schermo del
+         telefono. */
       .dm-integ-list{flex-direction:row;flex-wrap:nowrap;max-width:100%;overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
       .dm-integ-item{flex:0 0 auto;min-width:150px;max-width:70vw}
     }
