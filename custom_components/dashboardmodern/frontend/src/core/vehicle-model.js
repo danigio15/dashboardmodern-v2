@@ -270,3 +270,26 @@ export function vehicleEntities(list = []) {
       if (clean(valore).includes(".")) ids.add(clean(valore));
   return ids;
 }
+
+/* Il nome di un modello come si confronta: minuscolo, senza accenti, una
+ * parola per pezzo. E' la stessa pulizia che fa la scheda dell'auto. */
+export function normalizzaModello(value) {
+  return clean(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9+#]+/g, " ")
+    .trim();
+}
+
+/* Due nomi dicono lo stesso modello se sono uguali o se uno contiene l'altro
+ * PER PAROLE INTERE (revisione della 1.4.7). Il confronto per sottostringa
+ * faceva di una Peugeot «5008» una «500» Abarth, e di ogni sigla corta un
+ * modello di chiunque; «Avenger Electric» resta un'«Avenger». */
+export function stessoModello(a, b) {
+  const uno = normalizzaModello(a);
+  const due = normalizzaModello(b);
+  if (!uno || !due) return false;
+  if (uno === due) return true;
+  return ` ${uno} `.includes(` ${due} `) || ` ${due} `.includes(` ${uno} `);
+}

@@ -177,6 +177,29 @@ export function rispostaDalleStatistiche(
   return fuori;
 }
 
+/** Le entita' chieste che in queste righe REST non compaiono. */
+export function entitaSenzaRighe(entityIds = [], righe = []) {
+  const presenti = new Set(righe.map((elenco) => pulito(elenco?.[0]?.entity_id)).filter(Boolean));
+  return entityIds.map(pulito).filter((id) => id && !presenti.has(id));
+}
+
+/**
+ * Piu' risposte REST fuse in una, nell'ordine chiesto: ogni entita' una volta
+ * sola — vince la prima risposta che la porta — e chi non ha righe non c'e'.
+ * Serve quando le statistiche rispondono per alcune entita' e la storia per le
+ * altre (revisione della 1.4.7): nessuna delle due deve buttare l'altra.
+ */
+export function unisciRisposte(entityIds = [], ...risposte) {
+  const perEntita = new Map();
+  for (const risposta of risposte) {
+    for (const elenco of Array.isArray(risposta) ? risposta : []) {
+      const id = pulito(elenco?.[0]?.entity_id);
+      if (id && !perEntita.has(id)) perEntita.set(id, elenco);
+    }
+  }
+  return entityIds.map((id) => perEntita.get(pulito(id))).filter(Boolean);
+}
+
 function isoDaSecondi(secondi) {
   const n = Number(secondi);
   if (!Number.isFinite(n)) return "";

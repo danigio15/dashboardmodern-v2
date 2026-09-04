@@ -76,9 +76,11 @@ test("salvare il primo impianto lascia al suo posto tutto quello del secondo", (
 
 test("la scheda Carichi si rilegge quando si cambia impianto", () => {
   const editor = leggi("sections/energy-loads-editor-section.js");
+  /* Il modello in mano si mette da parte se sporco, altrimenti si butta, e la
+   * scheda si ridisegna con quello dell'impianto nuovo (o con la sua bozza). */
   assert.match(
     editor,
-    /addEventListener\?\.\("dashboardmodern:energy-plant-changed", \(\) => \{\s*state\.model = null;\s*state\.dirty = false;\s*scheduleRender\(\);/,
+    /addEventListener\?\.\("dashboardmodern:energy-plant-changed", \(\) => \{[\s\S]*?state\.model = bozza;\s*state\.dirty = Boolean\(bozza\);\s*state\.impianto = adesso;\s*scheduleRender\(\);/,
   );
 });
 
@@ -103,4 +105,59 @@ test("tutte le tessere energia seguono l'ordine di «Energia», e ognuna porta a
   const impianti = leggi("sections/energy-plants-section.js");
   assert.match(impianti, /addEventListener\?\.\("dashboardmodern:energy-plant-requested"/);
   assert.match(impianti, /ascoltaLaHome\(\);/);
+});
+
+test("il modello di un impianto non prende i figli dell'altro, nemmeno con lo stesso id di cerchio (revisione)", async () => {
+  /* Due maschere numerano i cerchi allo stesso modo, e prima della 1.4.7 gli
+   * id potevano coincidere. I figli del «carico-1» dell'altro impianto
+   * finivano nel modello di questo, e al salvataggio ci venivano scritti una
+   * seconda volta, rinominati: un doppione per ogni elettrodomestico. */
+  const { loadsConfigModel } = await import("../src/core/energy-loads-config.js");
+  const { PRIMO_IMPIANTO } = await import("../src/core/energy-plants.js");
+  const loads = [
+    { ...primo },
+    {
+      id: "lav-giovanni",
+      plant: "",
+      name: "Lavatrice Giovanni",
+      power_entity: "sensor.lav_g",
+      metadata: { beta27_subload_group: "carico-1" },
+    },
+    {
+      id: "carico-1",
+      plant: "donato",
+      name: "Cucina Donato",
+      power_entity: "sensor.cucina_d",
+      control_entity: "switch.cucina_d",
+      metadata: { flow_group: "carico-1" },
+    },
+    {
+      id: "lav-donato",
+      plant: "donato",
+      name: "Lavatrice Donato",
+      power_entity: "sensor.lav_d",
+      metadata: { beta27_subload_group: "carico-1" },
+    },
+  ];
+  const donato = loadsConfigModel({ loads, plant: { id: "donato" }, plantIndex: 1 });
+  assert.deepEqual(donato.map((load) => load.name), ["Cucina Donato"]);
+  assert.deepEqual(donato[0].children.map((child) => child.id), ["lav-donato"]);
+  const giovanni = loadsConfigModel({ loads, plant: { id: PRIMO_IMPIANTO }, plantIndex: 0 });
+  assert.deepEqual(giovanni.map((load) => load.name), ["Cucina Giovanni"]);
+  assert.deepEqual(giovanni[0].children.map((child) => child.id), ["lav-giovanni"]);
+  /* E il codice lo dice: i figli si cercano fra i carichi di QUESTO impianto. */
+  const core = leggi("core/energy-loads-config.js");
+  assert.match(core, /const canonical = suoi\.filter\(subloadOf\(group\)\)/);
+});
+
+test("cambiando impianto le modifiche non salvate si mettono da parte, e tornando si ritrovano (revisione)", () => {
+  const editor = leggi("sections/energy-loads-editor-section.js");
+  const ascolto = editor.slice(editor.indexOf('"dashboardmodern:energy-plant-changed"'));
+  assert.match(ascolto, /state\.bozze \|\|= new Map\(\);/);
+  assert.match(ascolto, /if \(state\.dirty && state\.model && state\.impianto !== undefined\)\s*state\.bozze\.set\(state\.impianto, state\.model\);/);
+  assert.match(ascolto, /const bozza = state\.bozze\.get\(adesso\) \|\| null;/);
+  assert.match(ascolto, /state\.dirty = Boolean\(bozza\);/);
+  /* Il modello sa di quale impianto e', e il salvataggio butta la sua bozza. */
+  assert.match(editor, /state\.model = readModel\(\);\s*state\.impianto = chiaveImpianto\(\);/);
+  assert.match(editor, /state\.bozze\?\.delete\?\.\(chiaveImpianto\(\)\);/);
 });

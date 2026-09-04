@@ -1,6 +1,6 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, scriviSeCambia, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
-import { VEHICLE_KEY_FIELD, tipoMotore } from "../core/vehicle-model.js";
+import { VEHICLE_KEY_FIELD, stessoModello, tipoMotore } from "../core/vehicle-model.js";
 import { bozzaAperta, editedVehicle, profiles, salvaAuto } from "./ev-section.js";
 
 globalThis.__DM_20260815C__ = true;
@@ -111,11 +111,26 @@ function gruppiPerMarca(brand) {
   return { elettriche, termiche };
 }
 
-/* Il motore che la vettura dichiara (#208): decide quale gruppo sta in cima. */
+/* Il motore che la vettura dichiara (#208): decide quale gruppo sta in cima.
+ *
+ * Prima la tendina aperta nella scheda — e' quello che la persona sta
+ * scegliendo adesso, anche se non ha ancora salvato — e solo senza tendina il
+ * valore scritto sull'auto (revisione della 1.4.7). */
 function motoreDichiarato(vehicle = {}) {
-  const proprio = tipoMotore(vehicle?.tipo);
-  if (proprio) return proprio;
-  return tipoMotore(doc?.querySelector?.("#ed-body select[data-ev-tipo]")?.value);
+  const tendina = doc?.querySelector?.("#ed-body select[data-ev-tipo]");
+  if (tendina) return tipoMotore(tendina.value);
+  return tipoMotore(vehicle?.tipo);
+}
+
+/* Cambiato il motore nella scheda, i gruppi della tendina dei modelli si
+ * riordinano subito, tenendo il modello scelto. */
+function riordinaIModelli() {
+  const panel = doc?.querySelector?.("#ed-body [data-ev-appearance]");
+  const brandSelect = panel?.querySelector?.("select[data-brand]");
+  const modelSelect = panel?.querySelector?.("select[data-model]");
+  if (!brandSelect || !modelSelect) return false;
+  modelSelect.innerHTML = modelOptions(brandSelect.value, clean(modelSelect.value), motoreDichiarato({}));
+  return true;
 }
 
 function actualVersion() {
@@ -123,32 +138,23 @@ function actualVersion() {
   return clean(info?.dashboardVersion || info?.integrationVersion || "");
 }
 
-function normalizedModel(value) {
-  return clean(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9+#]+/g, " ").trim();
-}
-
 function modelsForBrand(brand) {
   const { elettriche, termiche } = gruppiPerMarca(brand);
   return [...elettriche, ...termiche];
 }
 
+/* L'appartenenza si decide per parole intere (revisione della 1.4.7): col
+ * catalogo termico sono arrivate sigle corte — «500», «911», «208» — e il
+ * confronto per sottostringa faceva di una Peugeot «5008» un'Abarth. */
 function modelBelongsToBrand(brand, value) {
-  const token = normalizedModel(value);
-  if (!token) return false;
-  return modelsForBrand(brand).some((model) => {
-    const candidate = normalizedModel(model);
-    return token === candidate || token.includes(candidate) || candidate.includes(token);
-  });
+  if (!clean(value)) return false;
+  return modelsForBrand(brand).some((model) => stessoModello(value, model));
 }
 
 function brandForModel(value) {
-  const token = normalizedModel(value);
-  if (!token) return "";
+  if (!clean(value)) return "";
   for (const brand of Object.keys(CAR_MODELS)) {
-    if (modelsForBrand(brand).some((model) => {
-      const candidate = normalizedModel(model);
-      return token === candidate || token.includes(candidate) || candidate.includes(token);
-    })) return brand;
+    if (modelsForBrand(brand).some((model) => stessoModello(value, model))) return brand;
   }
   return "";
 }
@@ -868,6 +874,8 @@ export function installPersonalizationSection() {
   root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); schedule(); });
   root.addEventListener?.("dashboardmodern:period-bundle", schedule);
   doc.addEventListener("change", (event) => {
+    /* Cambiato il motore, la tendina dei modelli si riordina subito. */
+    if (event.target?.matches?.("select[data-ev-tipo]")) riordinaIModelli();
     if (event.target?.closest?.("#editor-modal,#ed-body,.dm-section-modal")) root.setTimeout?.(schedule, 0);
   }, true);
   schedule();

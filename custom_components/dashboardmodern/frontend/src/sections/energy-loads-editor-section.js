@@ -86,8 +86,16 @@ function readModel() {
   });
 }
 
+/* La chiave dell'impianto che la maschera sta mostrando, per le bozze. */
+function chiaveImpianto() {
+  return clean(impiantoAperto()?.plant?.id);
+}
+
 function model() {
-  if (!state.model) state.model = readModel();
+  if (!state.model) {
+    state.model = readModel();
+    state.impianto = chiaveImpianto();
+  }
   return state.model;
 }
 
@@ -156,6 +164,7 @@ async function persist(panel) {
   writeJsonIfChanged("cd_flow_nodes", flowNodes);
   state.dirty = false;
   state.model = null;
+  state.bozze?.delete?.(chiaveImpianto());
   root.dmRefreshEnergyFlows?.();
   root.render?.();
   render(panel);
@@ -1102,8 +1111,18 @@ export function installEnergyLoadsEditor() {
    * si butta — salvarlo adesso vorrebbe dire scriverlo nell'impianto sbagliato
    * — e si rilegge quello giusto. */
   root.addEventListener?.("dashboardmodern:energy-plant-changed", () => {
-    state.model = null;
-    state.dirty = false;
+    /* Le modifiche non ancora salvate non si perdono (revisione della 1.4.7):
+     * la bozza dell'impianto che si lascia si mette da parte, e tornandoci si
+     * ritrova com'era — col tasto «Salva carichi» ancora acceso. */
+    const adesso = chiaveImpianto();
+    state.bozze ||= new Map();
+    if (state.dirty && state.model && state.impianto !== undefined)
+      state.bozze.set(state.impianto, state.model);
+    const bozza = state.bozze.get(adesso) || null;
+    state.bozze.delete(adesso);
+    state.model = bozza;
+    state.dirty = Boolean(bozza);
+    state.impianto = adesso;
     scheduleRender();
   });
   scheduleRender();

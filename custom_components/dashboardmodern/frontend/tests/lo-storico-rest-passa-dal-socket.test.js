@@ -169,8 +169,10 @@ test("il velo dell'Energia copre i primi tentativi, poi si legge la ragione", ()
 
 import {
   domandaStatisticheDallaDomanda,
+  entitaSenzaRighe,
   intervalloDellaDomanda,
   rispostaDalleStatistiche,
+  unisciRisposte,
 } from "../src/core/storico-rest.js";
 
 const ADESSO = Date.UTC(2026, 8, 4, 9, 30);
@@ -268,18 +270,75 @@ test("le statistiche rispondono come righe di storia: lo stato di fine periodo, 
   assert.deepEqual(rispostaDalleStatistiche(null, ["sensor.x"], "hour", adesso), []);
 });
 
-test("la strada del socket prova le statistiche per un periodo lungo e torna alla storia per chi non ne ha", () => {
+test("la strada del socket prova le statistiche per un periodo lungo e torna alla storia solo per chi non ne ha", () => {
   const sezione = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), "../src/sections/indirizzo-di-casa-section.js"),
     "utf8",
   );
   assert.match(sezione, /const statistiche = domandaStatisticheDallaDomanda\(domanda\);/);
+  /* L'ultima riga si ferma alla fine chiesta, non a adesso (revisione). */
+  assert.match(sezione, /const fine = intervalloDellaDomanda\(domanda\)\?\.end;/);
   assert.match(
     sezione,
-    /rispostaDalleStatistiche\(risultato, domanda\.entity_ids, statistiche\.period\)/,
+    /rispostaDalleStatistiche\(\s*risultato,\s*domanda\.entity_ids,\s*statistiche\.period,\s*fine,\s*\)/,
+  );
+  /* Alla storia torna solo chi non ha statistiche, e le altre entita' tengono
+   * le loro righe; se la storia non arriva, resta quello che c'e' (revisione). */
+  assert.match(sezione, /const mancanti = entitaSenzaRighe\(domanda\.entity_ids, tradotte\);/);
+  assert.match(sezione, /if \(!mancanti\.length\) return tradotte;/);
+  assert.match(
+    sezione,
+    /chiediAHomeAssistant\(\{ \.\.\.domanda, entity_ids: mancanti \}, ATTESA_STORICO_MS\)/,
   );
   assert.match(
     sezione,
-    /tradotte\.length === domanda\.entity_ids\.length \? tradotte : dallaStoria\(\)/,
+    /unisciRisposte\(domanda\.entity_ids, tradotte, rispostaComeRest\(risultatoStoria, mancanti\)\)/,
   );
+  assert.match(sezione, /\.catch\(\(\) => tradotte\)/);
+  assert.equal(/tradotte\.length === domanda\.entity_ids\.length/.test(sezione), false);
+});
+
+test("chi manca fra le righe si trova, e due risposte si fondono nell'ordine chiesto", () => {
+  const riga = (entity, state) => ({
+    entity_id: entity,
+    state,
+    last_changed: "2026-09-01T00:00:00.000Z",
+  });
+  const statistiche = [[riga("sensor.a", "1")], [riga("sensor.c", "3")]];
+  assert.deepEqual(entitaSenzaRighe(["sensor.a", "binary_sensor.b", "sensor.c"], statistiche), [
+    "binary_sensor.b",
+  ]);
+  assert.deepEqual(entitaSenzaRighe(["sensor.a"], statistiche), []);
+  assert.deepEqual(entitaSenzaRighe(["sensor.z"], []), ["sensor.z"]);
+  const storia = [[riga("binary_sensor.b", "on")]];
+  const fuse = unisciRisposte(
+    ["sensor.a", "binary_sensor.b", "sensor.c", "sensor.muto"],
+    statistiche,
+    storia,
+  );
+  assert.deepEqual(
+    fuse.map((elenco) => elenco[0].entity_id),
+    ["sensor.a", "binary_sensor.b", "sensor.c"],
+  );
+  /* La prima risposta che porta un'entita' vince: la storia non sovrascrive le statistiche. */
+  const doppia = unisciRisposte(["sensor.a"], statistiche, [[riga("sensor.a", "99")]]);
+  assert.equal(doppia[0][0].state, "1");
+  assert.deepEqual(unisciRisposte([], statistiche), []);
+});
+
+test("le statistiche si fermano alla fine chiesta, anche se e' nel passato (revisione)", () => {
+  const H = 3_600_000;
+  const inizio = Date.UTC(2026, 8, 1, 0, 0);
+  const fine = Date.UTC(2026, 8, 1, 2, 30);
+  const risultato = {
+    "sensor.t": [
+      { start: inizio, state: 1 },
+      { start: inizio + H, state: 2 },
+      { start: inizio + 2 * H, state: 3 },
+    ],
+  };
+  const righe = rispostaDalleStatistiche(risultato, ["sensor.t"], "hour", fine)[0];
+  /* L'ultima riga non passa la fine chiesta: e' alle 2:30, non alle 3:00. */
+  assert.equal(righe[2].last_changed, new Date(fine).toISOString());
+  assert.equal(righe[1].last_changed, new Date(inizio + 2 * H).toISOString());
 });

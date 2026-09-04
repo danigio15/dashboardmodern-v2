@@ -70,3 +70,25 @@ test("la tendina ha due gruppi, e il gruppo del motore dichiarato sta in cima", 
   assert.match(sorgente, /t\("Seleziona un modello\.", "Choose a model\."\)/);
   assert.match(sorgente, /t\("Modello", "Model"\)/);
 });
+
+test("un modello e' lo stesso solo per parole intere: una 5008 non e' una 500 (revisione)", async () => {
+  const { stessoModello, normalizzaModello } = await import("../src/core/vehicle-model.js");
+  assert.equal(normalizzaModello("  Škoda Octavia e-TEC "), "skoda octavia e tec");
+  assert.equal(stessoModello("5008", "500"), false);
+  assert.equal(stessoModello("500", "5008"), false);
+  assert.equal(stessoModello("Avenger Electric", "Avenger"), true);
+  assert.equal(stessoModello("ID.3", "id 3"), true);
+  assert.equal(stessoModello("Model 3 Performance", "Model 3"), true);
+  assert.equal(stessoModello("911", "911"), true);
+  assert.equal(stessoModello("", "500"), false);
+  /* La scheda usa questo confronto, e non piu' la sottostringa. */
+  assert.match(sorgente, /modelsForBrand\(brand\)\.some\(\(model\) => stessoModello\(value, model\)\)/);
+  assert.equal(/token\.includes\(candidate\)/.test(sorgente), false);
+});
+
+test("il motore lo dice la tendina aperta, e cambiandola i gruppi si riordinano (revisione)", () => {
+  const motore = sorgente.slice(sorgente.indexOf("function motoreDichiarato("));
+  assert.match(motore, /const tendina = doc\?\.querySelector\?\.\("#ed-body select\[data-ev-tipo\]"\);\s*if \(tendina\) return tipoMotore\(tendina\.value\);\s*return tipoMotore\(vehicle\?\.tipo\);/);
+  assert.match(sorgente, /function riordinaIModelli\(\)/);
+  assert.match(sorgente, /if \(event\.target\?\.matches\?\.\("select\[data-ev-tipo\]"\)\) riordinaIModelli\(\);/);
+});

@@ -190,7 +190,11 @@ export function loadsConfigModel({
     const groupMeta = groupById.get(group);
     // Appliances live in the canonical section; the legacy extras are only
     // consulted for the ones a previous release never mirrored across.
-    const canonical = all.filter(subloadOf(group)).map((child, at) => normalizeChild(child, at));
+    /* Solo i figli di QUESTO impianto (revisione della 1.4.7): due impianti
+     * numerano i cerchi allo stesso modo, e i figli del «carico-1» dell'altro
+     * impianto finivano nel modello di questo — e al salvataggio ci venivano
+     * scritti una seconda volta, rinominati. */
+    const canonical = suoi.filter(subloadOf(group)).map((child, at) => normalizeChild(child, at));
     const known = new Set(canonical.map((child) => child.id));
     // An appliance assigned to this circle from the Appliances editor belongs
     // here too, but it is configured over there: shown, never rewritten.

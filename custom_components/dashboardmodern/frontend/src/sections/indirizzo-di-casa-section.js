@@ -46,9 +46,12 @@ import {
 import {
   domandaDallIndirizzo,
   domandaStatisticheDallaDomanda,
+  entitaSenzaRighe,
   eUnoStoricoRest,
+  intervalloDellaDomanda,
   rispostaComeRest,
   rispostaDalleStatistiche,
+  unisciRisposte,
 } from "../core/storico-rest.js";
 import { chiediAHomeAssistant, doc, gettoneDiAccesso, lexicalGlobal, root } from "./shared.js";
 
@@ -161,10 +164,27 @@ export function storicoViaSocket(indirizzo, ripiego) {
    * grezza: si chiedono le statistiche, e alla storia si torna solo per le
    * entita' che non ne hanno (dal campo: la CPU del mini PC). */
   const statistiche = domandaStatisticheDallaDomanda(domanda);
+  const fine = intervalloDellaDomanda(domanda)?.end;
   const righe = statistiche
     ? chiediAHomeAssistant(statistiche, ATTESA_STORICO_MS).then((risultato) => {
-        const tradotte = rispostaDalleStatistiche(risultato, domanda.entity_ids, statistiche.period);
-        return tradotte.length === domanda.entity_ids.length ? tradotte : dallaStoria();
+        /* L'ultima riga si ferma alla fine chiesta, non a adesso: un periodo
+         * storico finisce dove finisce. */
+        const tradotte = rispostaDalleStatistiche(
+          risultato,
+          domanda.entity_ids,
+          statistiche.period,
+          fine,
+        );
+        /* Alla storia torna solo chi non ha statistiche — un contatto in mezzo
+         * ai contatori — e le altre entita' tengono le loro righe; se la storia
+         * non arriva, resta quello che c'e'. */
+        const mancanti = entitaSenzaRighe(domanda.entity_ids, tradotte);
+        if (!mancanti.length) return tradotte;
+        return chiediAHomeAssistant({ ...domanda, entity_ids: mancanti }, ATTESA_STORICO_MS)
+          .then((risultatoStoria) =>
+            unisciRisposte(domanda.entity_ids, tradotte, rispostaComeRest(risultatoStoria, mancanti)),
+          )
+          .catch(() => tradotte);
       })
     : dallaStoria();
   return righe

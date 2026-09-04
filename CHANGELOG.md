@@ -108,7 +108,9 @@ benzina e i tasti del robot lavapavimenti (#306).
 - **Seguito di #292: i carichi sono di un impianto.** Passando da un
   impianto all'altro la scheda dei carichi si ricarica, e salvare i carichi di
   uno non cancella piu' quelli dell'altro: gli identificativi non si pestano
-  fra impianti.
+  fra impianti, e nel modello di un impianto non entrano gli elettrodomestici
+  dell'altro. Le modifiche non ancora salvate non si perdono cambiando
+  impianto: restano da parte, e tornandoci si ritrovano.
 
 - **Seguito di #286: le tessere Energia per impianto.** Tutte seguono
   l'ordine scelto per «Energia», tutte hanno «Apri sezione», e il tasto apre
