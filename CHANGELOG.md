@@ -126,9 +126,14 @@ benzina e i tasti del robot lavapavimenti (#306).
   dell'orologio, la rete, da quanto non si fa sentire — sta in un riquadro suo
   in fondo alla card, staccato dai bordi, che si legge come un gruppo invece
   che come una striscia. Prima era una colonna centrata: in fila diventava alta
-  e stretta, e il nome finiva lontano dalla faccia. Sotto i 480 pixel le card
-  passano a una per riga, perche' due affiancate spezzerebbero proprio la riga
-  che questa card tiene insieme.
+  e stretta, e il nome finiva lontano dalla faccia.
+
+  La griglia delle persone prende le misure da quella dei widget — stessa
+  colonna minima, stesso passo, stessa soglia a cui passa a due colonne sul
+  telefono — perche' le due stanno una sotto l'altra nella stessa pagina e con
+  tracce diverse le card si sfalsano: la Home sembrava montata storta. Una
+  prova le misura tutte e due sul documento vero, cosi' se un domani una delle
+  due cambia numero, si sa subito.
 
 ### Corretto
 

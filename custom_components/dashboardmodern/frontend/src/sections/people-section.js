@@ -434,8 +434,12 @@ function installStyles() {
   installStyle(
     "dm-people-style",
     `
-    #dm-people .dm-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:14px}
-    #dm-people .dm-person-card{--dm-presence:148,163,184;position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);border-radius:24px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));transition:var(--transition,.3s);overflow:hidden}
+    /* Le stesse misure della griglia dei widget — stessa colonna minima,
+       stesso passo — perche' le due griglie stanno una sotto l'altra nella
+       stessa pagina: con tracce diverse le card si sfalsano e la Home sembra
+       montata storta. Se cambia una, cambia l'altra. */
+    #dm-people .dm-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+    #dm-people .dm-person-card{--dm-presence:148,163,184;position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);border-radius:22px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));transition:var(--transition,.3s);overflow:hidden}
     /* Il ritratto e chi e', su una riga: la faccia e il nome vicini. */
     #dm-people .dm-person-testa{display:flex;align-items:center;gap:13px;min-width:0}
     /* La colonna prende quello che resta della riga: senza, la pastiglia della
@@ -489,10 +493,31 @@ function installStyles() {
     #dm-people .dm-person-wifi{max-width:112px;overflow:hidden}
     #dm-people .dm-person-wifi,#dm-people .dm-person-ago{text-overflow:ellipsis}
     #dm-people .dm-person-card{cursor:pointer}
-    /* Sotto i 480 le colonne diventano una: due card affiancate a questa
-       larghezza spezzerebbero la riga del ritratto e del nome, che e' proprio
-       quello che questa card vuole tenere insieme. */
-    @media(max-width:480px){#dm-people .dm-people-grid{grid-template-columns:1fr;gap:10px}#dm-people .dm-person-card{padding:13px;border-radius:22px}#dm-people .dm-person-portrait{width:58px;height:58px}#dm-people .dm-person-avatar{font-size:28px}#dm-people .dm-person-avatar b{font-size:20px}#dm-people .dm-person-name{font-size:15px}}
+    /* Sul telefono due colonne, come i widget e alla stessa soglia: e' il
+       punto dove le due griglie devono restare allineate. La riga del ritratto
+       e del nome ci sta lo stesso, con il ritratto piu' piccolo e le parole
+       piu' strette. */
+    @media(max-width:520px){
+      /* Otto e non nove: sul telefono i widget passano alle loro regole
+         compatte, che stringono il passo a 8. E' quel numero che decide dove
+         cade il bordo della seconda colonna. */
+      #dm-people .dm-people-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      #dm-people .dm-person-card{padding:11px}
+      #dm-people .dm-person-testa{gap:9px}
+      #dm-people .dm-person-portrait{width:46px;height:46px}
+      #dm-people .dm-person-portrait::before{inset:-5px}
+      #dm-people .dm-person-avatar{font-size:22px}
+      #dm-people .dm-person-avatar b{font-size:16px}
+      #dm-people .dm-person-dot{width:12px;height:12px;border-width:2.5px}
+      #dm-people .dm-person-dot[data-activity]{width:19px;height:19px;font-size:10px;border-width:2px}
+      #dm-people .dm-person-name{font-size:13.5px}
+      #dm-people .dm-person-chi{gap:5px}
+      #dm-people .dm-person-zone{font-size:10px;padding:3px 9px}
+      #dm-people .dm-person-card>.dm-person-testa:not(:last-child){margin-bottom:9px}
+      #dm-people .dm-person-foot{padding:7px 8px;gap:3px 9px;border-radius:13px}
+      #dm-people .dm-person-foot>*{font-size:10px;gap:3px}
+      #dm-people .dm-person-trip>span{font-size:9.5px;padding:2px 8px}
+    }
 
     /* Il popup: overlay sfumato, card che sale, e dentro le stesse classi
      * della card cosi' ritratto, anello e pastiglia vestono uguale. */
