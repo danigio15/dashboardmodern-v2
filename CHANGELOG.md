@@ -52,6 +52,51 @@ benzina e i tasti del robot lavapavimenti (#306).
 - **Il radar ha una legenda.** Pioggia leggera → forte, e «dove non c'e'
   colore non piove».
 
+- **Gli elettrodomestici si prendono da un'integrazione, interi.**
+
+      «La sezione elettrodomestici la possiamo rivedere e far in modo che
+       le persone possano integrare i loro elettrodomestici sfruttando le
+       integrazioni? Non solo switch on/off ma proprio le integrazioni, sia
+       ufficiali che presenti su HACS, creando un menu. Io ho la lavatrice
+       Hoover con hOn e mi espone tutti i dati: dalla sezione voglio prendere
+       tutte le integrazioni, cosi' ogni elettrodomestico avra' tutte le sue
+       informazioni.»
+
+  In cima alla scheda Elettrodomestici, «🔗 Aggiungi da un'integrazione» apre
+  una finestra a due colonne: a sinistra le integrazioni installate col segno
+  Ufficiale o HACS / personalizzata, a destra i loro dispositivi con marca,
+  modello, stanza e quante entita' portano. Alla conferma l'apparecchio nasce
+  gia' compilato — tipo dal catalogo, stanza dall'area di Home Assistant,
+  potenza, tempo rimanente, fase, contatore, tasto d'avvio e allarme
+  assegnati. Le entita' si riconoscono da id, nome e chiave di traduzione,
+  cosi' hOn si capisce in qualunque lingua sia Home Assistant, e le caselle
+  scritte a mano non si toccano mai.
+
+  Un apparecchio puo' essere due dispositivi: quando quello scelto non ha un
+  contatore, il menu cerca fra le entita' che portano il suo nome — la presa
+  smart sotto la macchina — e le propone con una spunta accesa. Il comando no,
+  mai: pescare un interruttore per somiglianza di nome vuol dire prima o poi
+  accendere l'apparecchio sbagliato.
+
+- **La card dice cosa sta facendo, e senza sensore di potenza lo capisce dal
+  programma.** Sotto il ritratto, la fase del ciclo in parole — Lavaggio,
+  Risciacquo, Centrifuga, Asciugatura, Pesatura — e accanto i gradi, i giri e
+  il programma, dalle parole che le integrazioni pubblicano davvero
+  (`washing`, `spin`, `weighting`), tradotte in tutte le lingue della plancia.
+  Per lo stato, tre gruppi di parole: chi lavora, chi aspetta — pausa, avvio
+  ritardato, programmata — che e' STANDBY e non SPENTO, e chi e' ferma. Una
+  parola che nessun gruppo conosce lascia parlare i watt, come prima. Un
+  apparecchio su una presa smart non ha niente da raccontare e la sua card
+  resta quella di prima.
+
+- **La finestra del dettaglio apre con la stessa card della sezione**, e sotto
+  tutto il resto del dispositivo diviso per famiglie: lo stato, le letture, i
+  comandi coi loro tasti veri — interruttori, menu dei programmi, numeri,
+  pulsanti — e in fondo la diagnostica, chiusa. Quello che la card dice gia'
+  non si ripete. La finestra della tessera in Home porta una pastiglia per
+  ogni apparecchio, acceso o spento, nel suo ordine; toccandone una si apre la
+  sua card intera, una alla volta.
+
 ### Corretto
 
 - **La pagina Mini PC sfarfallava, e la plancia scaldava il mini PC.**
@@ -134,6 +179,21 @@ benzina e i tasti del robot lavapavimenti (#306).
   quando sono chiuse e la finestra e' aperta visivamente non e' il massimo.»
   Il ferro e' grigio, e dove il browser sa mascherare la sbarra va dal chiaro
   in alto al pieno in basso, con un filo di luce sul bordo.
+
+- **Il ritiro di oggi non e' un trattino (#309).**
+
+      «Ho un calendario con i giorni configurati per ogni rifiuto; mi
+       aspettavo di vedere il rifiuto di oggi "Umido" ma vedo un trattino.»
+
+  Un evento di tutto il giorno non e' un istante, e' una casella sul
+  calendario. Home Assistant pero' gli scrive accanto il fuso —
+  `2026-09-04T00:00:00+02:00` — e la lettura lo prendeva alla lettera: da un
+  fuso piu' indietro scivolava al giorno prima, il conto lo scartava perche'
+  tiene solo i giorni da zero in su, e restava un trattino proprio il giorno
+  in cui il bidone va messo fuori. Ora un evento di tutto il giorno si legge
+  come la data che dice, mentre un orario vero conserva il suo fuso; con lo
+  stesso giro torna anche il ritiro cominciato ieri e non ancora finito, che
+  spariva dal conto mentre il bidone era fuori.
 
 ## 1.4.6
 
