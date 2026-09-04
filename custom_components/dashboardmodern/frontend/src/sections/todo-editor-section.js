@@ -27,6 +27,7 @@ import {
   installStyle,
   onEditorRedraw,
   righeDelDocumento,
+  readClimateUnits,
   readJson,
   root,
   t,
@@ -158,6 +159,40 @@ function compattoMarkup() {
   </div>`;
 }
 
+/* Cosa mostra una tessera che riassume (#303): la media di tutte, o una sola.
+ * Vale per la Temperatura (una stanza) e per il Clima (un'unita'); le altre
+ * tessere non hanno niente da scegliere e non hanno la tendina. */
+function sorgenteMarkup(key) {
+  let voci = [];
+  let media = "";
+  if (key === "temperatura") {
+    const stanze = readJson("cd_stanze", []);
+    voci = (Array.isArray(stanze) ? stanze : [])
+      .filter((room) => clean(room?.temp))
+      .map((room) => [clean(room.temp), clean(room.name) || clean(room.id)]);
+    media = t("Media di tutte le stanze", "Average of all rooms");
+  } else if (key === "clima") {
+    let unita = [];
+    try {
+      unita = readClimateUnits();
+    } catch (_error) {
+      unita = [];
+    }
+    voci = (Array.isArray(unita) ? unita : [])
+      .filter((unit) => clean(unit?.entity))
+      .map((unit) => [clean(unit.entity), clean(unit.name) || clean(unit.entity)]);
+    media = t("Media di tutte le unità", "Average of all units");
+  } else return "";
+  if (!voci.length) return "";
+  const stored = readJson(WIDGETS_CONFIG_KEY, {});
+  const scelta = clean(stored?.sorgenti?.[key]);
+  return `<label class="dm-widget-sorgente"><span>${esc(t("Cosa mostra", "What it shows"))}</span>
+    <select class="ed-input" data-widget-sorgente="${esc(key)}">
+      <option value=""${scelta ? "" : " selected"}>${esc(media)}</option>
+      ${voci.map(([entity, nome]) => `<option value="${esc(entity)}"${entity === scelta ? " selected" : ""}>${esc(nome)}</option>`).join("")}
+    </select></label>`;
+}
+
 function tessereMarkup() {
   const { hidden, rows } = tessereOrdinate();
   return `<div class="ed-intro">${t(
@@ -172,7 +207,7 @@ function tessereMarkup() {
         index,
       ) => `<div class="ed-row dm-widget-pref" data-widget-key="${esc(key)}">
         <span class="dm-widget-pref-icon" aria-hidden="true">${oggettoWidget(key, icon)}</span>
-        <span class="ed-row-main"><strong class="ed-row-new">${esc(label)}</strong></span>
+        <span class="ed-row-main"><strong class="ed-row-new">${esc(label)}</strong>${sorgenteMarkup(key)}</span>
         <button type="button" class="ed-del dm-widget-move" data-widget-up aria-label="${t("Più in alto", "Move up")}"${index === 0 ? " disabled" : ""}>▲</button>
         <button type="button" class="ed-del dm-widget-move" data-widget-down aria-label="${t("Più in basso", "Move down")}"${index === rows.length - 1 ? " disabled" : ""}>▼</button>
         <button type="button" class="dm-widget-shown" data-widget-shown data-on="${!hidden.has(key)}" aria-label="${t("Visibile in Home", "Shown on Home")}"><i></i></button>
@@ -219,8 +254,11 @@ const ENTITA_INTERA = /^[a-z_]+\.\w+$/i;
  * stata disegnata. */
 function leggiEvidenza(riga, voce) {
   const letta = { ...voce };
-  for (const campo of riga.querySelectorAll("[data-evid-field]"))
-    letta[clean(campo.dataset.evidField)] = clean(campo.value);
+  for (const campo of riga.querySelectorAll("[data-evid-field]")) {
+    const nome = clean(campo.dataset.evidField);
+    /* Una casella di spunta dice si' o no, non «on». */
+    letta[nome] = campo.type === "checkbox" ? Boolean(campo.checked) : clean(campo.value);
+  }
   return letta;
 }
 
@@ -263,6 +301,8 @@ function rigaEvidenzaMarkup(voce, index) {
             `<option value="${esc(room.id)}"${room.id === scelta ? " selected" : ""}>${esc(room.name)}</option>`,
         )
         .join("")}</select></span></label>
+      <label class="ed-slot dm-todo-ed-field dm-evid-sola"><span class="ed-form-row dm-evid-sola-riga"><input type="checkbox" data-evid-field="sola"${voce?.sola === true || voce?.sola === "true" ? " checked" : ""}><span>${t("Tessera a sé in Home", "Its own tile on Home")}</span></span>
+        <small>${t("Invece di stare nel riassunto «In evidenza», questa entità ha la sua tessera in Home, che al tocco si apre su di lei.", "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.")}</small></label>
       <output class="dm-todo-ed-error" data-evid-error></output>
       <button type="button" class="ed-save-btn" data-evid-save>💾 ${t("Salva entità", "Save entity")}</button>
     </div>
@@ -403,6 +443,21 @@ function ridisegna() {
   const body = doc?.getElementById("ed-body");
   if (body) delete body.dataset.dmTodoEditor;
   ensureTodoEditor();
+}
+
+/* La tendina «Cosa mostra» scrive la sorgente della tessera e la Home si
+ * ridisegna: niente da salvare a parte. */
+function onChange(event) {
+  const tendina = event.target?.closest?.("#ed-body [data-widget-sorgente]");
+  if (!tendina) return;
+  const chiave = clean(tendina.dataset.widgetSorgente);
+  if (!chiave) return;
+  const stored = readJson(WIDGETS_CONFIG_KEY, {});
+  const sorgenti = { ...(stored?.sorgenti && typeof stored.sorgenti === "object" ? stored.sorgenti : {}) };
+  const valore = clean(tendina.value);
+  if (valore) sorgenti[chiave] = valore;
+  else delete sorgenti[chiave];
+  scriviPreferenze({ sorgenti });
 }
 
 function onClick(event) {
@@ -561,6 +616,12 @@ function installStyles() {
   installStyle(
     "dm-todo-editor-style",
     `
+      /* La tendina «Cosa mostra» sotto il nome della tessera (#303), e la
+         spunta «Tessera a se'» nelle righe in evidenza. */
+      #ed-body .dm-widget-sorgente{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:11px;font-weight:800;color:var(--text-dim,#64748b)}
+      #ed-body .dm-widget-sorgente select{flex:1 1 auto;min-width:0;font-size:12px;padding:6px 8px}
+      #ed-body .dm-evid-sola-riga{display:flex;align-items:center;gap:8px;font-weight:800}
+      #ed-body .dm-evid-sola-riga input{width:18px;height:18px;margin:0;flex:0 0 auto;cursor:pointer}
       /* Il vestito comune delle righe della configurazione — l'intestazione,
          il corpo che si apre, le caselle — nato qui con le liste ToDo e
          rimasto qui quando quelle sono andate nella loro scheda: lo indossano
@@ -628,6 +689,7 @@ export function installTodoEditorSection() {
   });
   ensureTodoEditorTab();
   doc.addEventListener("click", onClick);
+  doc.addEventListener("change", onChange);
   onEditorRedraw("__dmTodoEditor", () => {
     root.queueMicrotask?.(() => {
       ensureTodoEditorTab();

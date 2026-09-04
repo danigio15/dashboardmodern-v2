@@ -782,13 +782,26 @@ function climateModel(states) {
   const average = ambient.length
     ? ambient.reduce((sum, value) => sum + value, 0) / ambient.length
     : null;
+  /* L'unita' scelta al posto della media (#303). */
+  const scelta = sorgenteDelWidget("clima");
+  const sola = scelta ? rows.find((row) => row.entity === scelta) : null;
   return {
     key: "clima",
     accent: "#0ea5e9",
     icon: "❄️",
     label: t("Clima", "Climate"),
-    value: average == null ? String(on.length) : `${formatNumber(average, 1)}°`,
-    caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
+    value: sola
+      ? sola.ambient == null
+        ? sola.on
+          ? t("Accesa", "On")
+          : t("Spenta", "Off")
+        : `${formatNumber(sola.ambient, 1)}°`
+      : average == null
+        ? String(on.length)
+        : `${formatNumber(average, 1)}°`,
+    caption: sola
+      ? `${sola.name} · ${sola.on ? t("accesa", "on") : t("spenta", "off")}`
+      : nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100),
     rows,
   };
@@ -1172,13 +1185,23 @@ function temperatureModel(states) {
   const humidity = humidities.length
     ? Math.round(humidities.reduce((sum, value) => sum + value, 0) / humidities.length)
     : null;
+  /* La stanza scelta al posto della media (#303): con una pompa di calore che
+   * d'inverno scalda una stanza a trenta gradi, la media non dice niente. */
+  const scelta = sorgenteDelWidget("temperatura");
+  const sola = scelta ? rows.find((row) => row.entity === scelta) : null;
   return {
     key: "temperatura",
     accent: "#ef4444",
     icon: "🌡️",
     label: t("Temperatura", "Temperature"),
-    value: `${formatNumber(average, 1)}°`,
-    caption: humidity == null ? "" : `${t("Umidità", "Humidity")} ${humidity}%`,
+    value: `${formatNumber(sola ? sola.temperature : average, 1)}°`,
+    caption: sola
+      ? [sola.name, sola.humidity == null ? "" : `${t("Umidità", "Humidity")} ${Math.round(sola.humidity)}%`]
+          .filter(Boolean)
+          .join(" · ")
+      : humidity == null
+        ? ""
+        : `${t("Umidità", "Humidity")} ${humidity}%`,
     ring: null,
     rows,
   };
@@ -2769,23 +2792,32 @@ function customAlertModels(states) {
  * ha la sua entita'. Ogni riga si legge con `rigaDaEntita`, che sa gia' dare a
  * un numero la sua unita' e a un interruttore la sua parola; il nome scelto
  * dall'utente vince su quello dell'integrazione. */
+/* Una voce in evidenza come riga della tessera, o `null` se non si mostra. */
+function rigaInEvidenza(states, voce, fuori) {
+  const entity = clean(voce?.entity);
+  if (!entity || !widgetIncludes(entity, fuori)) return null;
+  const glifo = clean(voce?.icon) || "⭐";
+  const nome = clean(voce?.name);
+  const riga = rigaDaEntita(states, entity, glifo);
+  /* Un'entita' che adesso non risponde resta in tessera col suo trattino:
+   * e' stata scelta apposta, e sparire in silenzio direbbe «tutto bene». */
+  if (!riga)
+    return { glyph: glifo, name: nome || friendlyName(states, entity), entity, value: "—" };
+  return nome ? { ...riga, name: nome } : riga;
+}
+
+/* «Tessera a se'» (#303): una voce in evidenza puo' avere la sua tessera in
+ * Home invece di stare nel riassunto — e al tocco si apre su di lei. */
+export const eUnaTesseraSola = (voce) =>
+  voce?.sola === true || voce?.sola === "true" || voce?.sola === 1 || voce?.sola === "1";
+
 export function evidenzaModel(states) {
   const voci = readJson(EVIDENZA_CONFIG_KEY, []);
   if (!Array.isArray(voci)) return null;
   const fuori = widgetExcludedEntities();
   const rows = voci
-    .map((voce) => {
-      const entity = clean(voce?.entity);
-      if (!entity || !widgetIncludes(entity, fuori)) return null;
-      const glifo = clean(voce?.icon) || "⭐";
-      const nome = clean(voce?.name);
-      const riga = rigaDaEntita(states, entity, glifo);
-      /* Un'entita' che adesso non risponde resta in tessera col suo trattino:
-       * e' stata scelta apposta, e sparire in silenzio direbbe «tutto bene». */
-      if (!riga)
-        return { glyph: glifo, name: nome || friendlyName(states, entity), entity, value: "—" };
-      return nome ? { ...riga, name: nome } : riga;
-    })
+    .filter((voce) => !eUnaTesseraSola(voce))
+    .map((voce) => rigaInEvidenza(states, voce, fuori))
     .filter(Boolean);
   if (!rows.length) return null;
   return {
@@ -2802,6 +2834,46 @@ export function evidenzaModel(states) {
     attiva: rows.some((riga) => riga.on === true),
     rows,
   };
+}
+
+/* Le tessere «a se'» delle evidenze, una per voce che lo chiede. La chiave
+ * porta l'indice della voce, e per ordine e visibilita' contano tutte come
+ * «evidenza» — come gli avvisi personalizzati sotto `custom`. */
+export function evidenzeSingole(states) {
+  const voci = readJson(EVIDENZA_CONFIG_KEY, []);
+  if (!Array.isArray(voci)) return [];
+  const fuori = widgetExcludedEntities();
+  let stanze = [];
+  try {
+    stanze = root.getStanze?.() || readJson("cd_stanze", []) || [];
+  } catch (_error) {
+    stanze = [];
+  }
+  return voci
+    .map((voce, index) => {
+      if (!eUnaTesseraSola(voce)) return null;
+      const riga = rigaInEvidenza(states, voce, fuori);
+      if (!riga) return null;
+      const stanza = Array.isArray(stanze)
+        ? stanze.find((room) => clean(room?.id) === clean(voce?.room_id))
+        : null;
+      return {
+        key: `evidenza-${index}`,
+        accent: "#eab308",
+        icon: riga.glyph || "⭐",
+        label: riga.name,
+        value: riga.value,
+        caption: clean(stanza?.name),
+        ring: null,
+        attiva: riga.on === true,
+        rows: [riga],
+      };
+    })
+    .filter(Boolean);
+}
+
+export function evidenzaModels(states) {
+  return [evidenzaModel(states), ...evidenzeSingole(states)].filter(Boolean);
 }
 
 /* ── la personalizzazione (cd_widgets) ────────────────────────────────── */
@@ -2857,7 +2929,25 @@ export function widgetPreferences() {
   const compatto = MODI_COMPATTO.includes(clean(stored?.compatto))
     ? clean(stored?.compatto)
     : "auto";
-  return { hidden, order, excluded, compatto };
+  /* Cosa mostra una tessera che riassume piu' cose (#303): «il widget
+   * temperatura come il clima visualizzano la temperatura media, si potrebbe
+   * far scegliere cosa visualizzare». Per chiave della tessera, l'entita' da
+   * mettere in primo piano; senza, la media di sempre. */
+  const grezze = stored?.sorgenti;
+  const sorgenti =
+    grezze && typeof grezze === "object" && !Array.isArray(grezze)
+      ? Object.fromEntries(
+          Object.entries(grezze)
+            .map(([chiave, valore]) => [clean(chiave), clean(valore)])
+            .filter(([chiave, valore]) => chiave && valore),
+        )
+      : {};
+  return { hidden, order, excluded, compatto, sorgenti };
+}
+
+/** L'entita' scelta per una tessera che riassume, o «» per la media. */
+export function sorgenteDelWidget(chiave, preferences = widgetPreferences()) {
+  return clean(preferences?.sorgenti?.[clean(chiave)]);
 }
 
 /* Le entita' che restano fuori dai widget.
@@ -2881,7 +2971,12 @@ export function widgetIncludes(entity, excluded = widgetExcludedEntities()) {
  * Gli avvisi personalizzati si governano insieme, sotto la chiave `custom`. */
 export function applyWidgetPreferences(models, preferences = widgetPreferences()) {
   const hidden = new Set(preferences.hidden);
-  const chiave = (widget) => (widget.key.startsWith("custom-") ? "custom" : widget.key);
+  const chiave = (widget) =>
+    widget.key.startsWith("custom-")
+      ? "custom"
+      : widget.key.startsWith("evidenza-")
+        ? "evidenza"
+        : widget.key;
   const rank = (widget) => {
     const index = preferences.order.indexOf(chiave(widget));
     return index < 0 ? preferences.order.length + models.indexOf(widget) : index;
@@ -3117,7 +3212,7 @@ function widgetModels(states) {
   if (!planciaConfigurata()) return [];
   return applyWidgetPreferences(
     [
-      evidenzaModel(states),
+      ...evidenzaModels(states),
       segnalazioniModel(),
       agendaModel(states),
       lightsModel(states),
@@ -4221,7 +4316,8 @@ const eUnaTesseraEnergia = (chiave) =>
   clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
 
 function carteDalleRighe(widget) {
-  const chiave = clean(widget.key);
+  /* Una tessera «a se'» delle evidenze si disegna come la tessera madre. */
+  const chiave = clean(widget.key).startsWith("evidenza-") ? "evidenza" : clean(widget.key);
   if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
     return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
@@ -5225,10 +5321,18 @@ function ascoltaLaPorta() {
  * Le transizioni si lasciano correre: durano un attimo e finiscono da sole.
  */
 
+/* L'ingresso di una tessera NON si ferma (#304): parte dall'opacita' zero, e
+ * fermo a meta' lasciava una tessera invisibile finche' qualcuno non la
+ * toccava — «le icone spariscono e riappaiono se ci clicco sopra». Dura un
+ * attimo e non costa niente: si lascia finire. Le altre si fermano, ma al
+ * loro fotogramma di riposo (vedi `fermaCioCheStaDietro`). */
+export const NON_SI_FERMANO = /^dmTileIn/;
+
 /** Quali animazioni vanno fermate: quelle vive, con un nome, e fuori. */
 export function animazioniDaFermare(animazioni, dentro) {
   return [...(animazioni || [])].filter((anim) => {
     if (!anim || anim.playState !== "running" || !anim.animationName) return false;
+    if (NON_SI_FERMANO.test(anim.animationName)) return false;
     const bersaglio = anim.effect?.target;
     return Boolean(bersaglio) && !dentro(bersaglio);
   });
@@ -5239,6 +5343,10 @@ function fermaCioCheStaDietro(host) {
   const ferme = animazioniDaFermare(doc.getAnimations(), (nodo) => host.contains(nodo));
   for (const anim of ferme) {
     try {
+      /* Al fotogramma zero, non a meta': il battito di un avviso passa
+       * dall'opacita' .18, e fermo li' e' un'icona sparita (#304). Il
+       * fotogramma zero e' la posa di riposo di ogni ciclo. */
+      anim.currentTime = 0;
       anim.pause();
       state.ferme.push(anim);
     } catch (_error) {}

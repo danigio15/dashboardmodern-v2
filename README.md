@@ -889,6 +889,9 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 - **Widget** decide cosa compare nella fascia Widget della Home: quali tessere, in che ordine, e i **gruppi di avvisi** con la loro icona e animazione. La scelta si fa anche entità per entità, con l'interruttore accanto a ogni campo, che dice se quell'entità è dentro la tessera o ne sta fuori.
 - **Azioni rapide**: i comandi della Home — sezioni predefinite, script, interruttori — con nome e icona.
 
+- **Cosa mostra**: sotto Temperatura e Clima una tendina sceglie fra la **media di tutte** e **una stanza o un'unità sola**.
+- **Tessera a sé**: ogni entità «in evidenza» può avere la **sua tessera in Home**, col suo valore, che al tocco si apre su di lei — è il modo di mettere in Home un'entità qualunque come widget.
+
 ### 🏊 Piscina · 💧 Irrigazione · 🚗 EV
 
 <table>

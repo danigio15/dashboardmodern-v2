@@ -2878,4 +2878,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "关 ${valvola.chiusa}%",
   "TRV valve (position %)": "TRV 阀（位置 %）",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "带恒温阀位置（0 到 100）的传感器或 number：卡片显示阀门打开和关闭的比例。如果 climate 实体已提供 valve_position，则无需填写。",
+  "Average of all rooms": "所有房间的平均值",
+  "Average of all units": "所有设备的平均值",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "这个实体不再挤在“重点关注”摘要里，而是在首页拥有自己的磁贴，点按即打开它。",
+  "Its own tile on Home": "首页上独立磁贴",
+  "What it shows": "显示内容",
 });

@@ -2930,4 +2930,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "%${valvola.chiusa} kapalı",
   "TRV valve (position %)": "TRV vanası (konum %)",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "Termostatik vananın konumunu (0-100) veren sensör ya da number: kart ne kadar açık ve ne kadar kapalı olduğunu gösterir. climate varlığı zaten valve_position veriyorsa gerekmez.",
+  "Average of all rooms": "Tüm odaların ortalaması",
+  "Average of all units": "Tüm ünitelerin ortalaması",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "«Öne çıkanlar» özetinde durmak yerine bu varlık Ana Sayfada kendi karosunu alır; dokununca onun üzerinde açılır.",
+  "Its own tile on Home": "Ana Sayfada kendi karosu",
+  "What it shows": "Ne gösterir",
 });

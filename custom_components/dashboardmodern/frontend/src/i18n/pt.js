@@ -2946,4 +2946,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "${valvola.chiusa}% fechada",
   "TRV valve (position %)": "Válvula TRV (posição %)",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "O sensor ou number com a posição da válvula termostática, de 0 a 100: o cartão mostra quanto está aberta e quanto fechada. Se a entidade climate já expõe valve_position, não é preciso.",
+  "Average of all rooms": "Média de todas as divisões",
+  "Average of all units": "Média de todas as unidades",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "Em vez de ficar no resumo «Em destaque», esta entidade tem o seu próprio mosaico no Início, que ao toque abre sobre ela.",
+  "Its own tile on Home": "Mosaico próprio no Início",
+  "What it shows": "O que mostra",
 });

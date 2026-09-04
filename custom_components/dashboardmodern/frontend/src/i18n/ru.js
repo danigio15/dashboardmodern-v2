@@ -2943,4 +2943,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "${valvola.chiusa}% закрыта",
   "TRV valve (position %)": "Термоголовка TRV (положение %)",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "Датчик или number с положением термостатической головки, от 0 до 100: карточка показывает, насколько она открыта и насколько закрыта. Если сущность climate уже отдаёт valve_position, он не нужен.",
+  "Average of all rooms": "Среднее по всем комнатам",
+  "Average of all units": "Среднее по всем блокам",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "Вместо того чтобы сидеть в сводке «В центре внимания», эта сущность получает свою плитку на главной, которая по касанию открывается на ней.",
+  "Its own tile on Home": "Своя плитка на главной",
+  "What it shows": "Что показывать",
 });

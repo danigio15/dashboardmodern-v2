@@ -2920,4 +2920,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "${valvola.chiusa}% बंद",
   "TRV valve (position %)": "TRV वाल्व (स्थिति %)",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "थर्मोस्टैटिक वाल्व की स्थिति (0 से 100) वाला सेंसर या number: कार्ड दिखाता है कि वह कितना खुला और कितना बंद है। अगर climate एंटिटी पहले से valve_position देती है, तो ज़रूरत नहीं।",
+  "Average of all rooms": "सभी कमरों का औसत",
+  "Average of all units": "सभी इकाइयों का औसत",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "«हाइलाइट» सारांश में रहने के बजाय, इस एंटिटी को होम पर अपनी टाइल मिलती है, जो टैप करने पर उस पर खुलती है।",
+  "Its own tile on Home": "होम पर अपनी टाइल",
+  "What it shows": "क्या दिखाए",
 });

@@ -2917,4 +2917,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "닫힘 ${valvola.chiusa}%",
   "TRV valve (position %)": "TRV 밸브 (위치 %)",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "온도조절 밸브 위치(0~100)를 가진 센서 또는 number. 카드에 열린 정도와 닫힌 정도가 표시됩니다. climate 엔티티가 이미 valve_position을 제공하면 필요 없습니다.",
+  "Average of all rooms": "모든 방의 평균",
+  "Average of all units": "모든 유닛의 평균",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "«주목» 요약에 들어가는 대신 이 엔티티는 홈에 자기 타일을 갖고, 탭하면 그 엔티티가 열립니다.",
+  "Its own tile on Home": "홈에 자기 타일",
+  "What it shows": "표시할 내용",
 });

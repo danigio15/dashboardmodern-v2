@@ -2933,4 +2933,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "閉 ${valvola.chiusa}%",
   "TRV valve (position %)": "TRV バルブ（開度 %）",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "サーモスタットバルブの開度（0〜100）を持つセンサーまたは number。カードには開いている割合と閉じている割合が表示されます。climate エンティティがすでに valve_position を公開していれば不要です。",
+  "Average of all rooms": "全部屋の平均",
+  "Average of all units": "全ユニットの平均",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "「注目」のまとめに入る代わりに、このエンティティはホームに専用のタイルを持ち、タップするとそれが開きます。",
+  "Its own tile on Home": "ホームに専用タイル",
+  "What it shows": "表示する内容",
 });

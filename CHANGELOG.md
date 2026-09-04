@@ -67,6 +67,21 @@ lavorare.
   vetture a benzina, «Auto elettrica» nel titolo e nella scheda era una
   bugia per meta' del garage.
 
+- **I widget della Home si personalizzano (#303).**
+
+      «Il widget temperatura come il clima visualizzano la temperatura
+       media, si potrebbe far scegliere cosa visualizzare. Anche quelle in
+       evidenza di potere scegliere se vederle raggruppate oppure come widget
+       una ad una.»
+
+  Nella scheda Widget, sotto Temperatura e Clima, la tendina «Cosa mostra»:
+  la media di tutte, com'era, oppure una stanza o un'unita' sola — con una
+  pompa di calore che d'inverno scalda una stanza a trenta gradi, la media
+  non dice niente. E ogni entita' in evidenza ha la spunta «Tessera a se' in
+  Home»: invece di stare nel riassunto ha la sua tessera, col suo valore, che
+  al tocco si apre su di lei. E' il modo di mettere in Home un'entita'
+  qualunque come widget.
+
 - **Le valvole termostatiche dicono quanto sono aperte (#300).**
 
       «Nella sezione riscaldamento dare la possibilita' di inserire valvole
@@ -145,6 +160,15 @@ lavorare.
 - **Il conto in cima a un gruppo di finestre non inventa tapparelle (#299).**
   Una persiana a mano con il solo sensore di contatto leggeva «1 tapparella»:
   le tapparelle e le finestre si contano a parte, e ognuna compare solo se c'e'.
+
+- **Le icone non spariscono piu' (#304).** «Icone spariscono, e riappaiono
+  se ci clicco sopra.» Tre cause, tre rimedi: le animazioni che passano
+  dall'invisibile — l'ingresso di una tessera, il battito degli avvisi — non
+  si fermano piu' a meta' quando si apre una finestra; il foglio delle
+  sfumature non si butta e rifa' a ogni giro, si sposta; e ogni disegno porta
+  il colore di ripiego accanto alla sfumatura, cosi' se il browser non la
+  ritrova dipinge un disegno pieno invece di niente. La pagina Temperatura
+  rilegge i suoi nodi una volta per fotogramma e non a ogni mutazione.
 
 - **Il cruscotto delle segnalazioni ricarica con «Aggiorna».** Il tasto non
   faceva niente: bisognava chiudere e riaprire per vedere le nuove.

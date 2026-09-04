@@ -2906,4 +2906,9 @@ export default Object.freeze({
   "${valvola.chiusa}% closed": "${valvola.chiusa}% مغلقة",
   "TRV valve (position %)": "صمام TRV (الموضع %)",
   "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "المستشعر أو الرقم الذي يحمل موضع الصمام الحراري من 0 إلى 100: تعرض البطاقة مقدار الفتح والإغلاق. إذا كان كيان climate يعرض valve_position بالفعل فلا حاجة له.",
+  "Average of all rooms": "متوسط كل الغرف",
+  "Average of all units": "متوسط كل الوحدات",
+  "Instead of sitting in the “Highlights” summary, this entity gets its own tile on Home, which opens on it when tapped.": "بدلًا من الظهور في ملخص «المميزة»، يحصل هذا الكيان على بطاقة خاصة به في الرئيسية تُفتح عليه عند اللمس.",
+  "Its own tile on Home": "بطاقة خاصة بها في الرئيسية",
+  "What it shows": "ما تعرضه",
 });

@@ -582,7 +582,22 @@ const OGGETTI = Object.freeze({
 export function oggettoWidget(chiave, ripiego = "") {
   const disegno = OGGETTI[String(chiave || "")];
   if (!disegno) return String(ripiego || "");
-  return `<svg class="dm-oggetto" viewBox="0 0 32 32" aria-hidden="true" focusable="false">${disegno}</svg>`;
+  return `<svg class="dm-oggetto" viewBox="0 0 32 32" aria-hidden="true" focusable="false">${conRipiegoDiColore(disegno)}</svg>`;
+}
+
+/* Il colore di ripiego accanto alla sfumatura (#304).
+ *
+ * Un riempimento `url(#sfumatura)` si risolve in un altro svg — il foglio in
+ * cima al corpo — e quando il browser non lo ritrova, o non ancora, il
+ * disegno resta trasparente: «le icone spariscono e riappaiono se ci clicco
+ * sopra». La sintassi del ripiego dice cosa dipingere in quel caso:
+ * `currentColor`, il colore del testo. Meglio un disegno pieno di un colore
+ * solo che nessun disegno. */
+export function conRipiegoDiColore(markup) {
+  return String(markup || "").replace(
+    /(fill|stroke)="url\(#([A-Za-z0-9_-]+)\)"/g,
+    '$1="url(#$2) currentColor"',
+  );
 }
 
 /* Serve alle prove e a chi vuole sapere se un tasto avra' il suo disegno. */
