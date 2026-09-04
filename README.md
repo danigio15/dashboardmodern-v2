@@ -470,7 +470,7 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 
 E **si sceglie quali modalità vedere**: la centrale dice cosa accetta, quello che serve davvero lo dice chi la usa. Toglierne una la nasconde e non cambia niente di quello che la centrale sa fare; lo sblocco resta sempre.
 
-**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home. Dove l'integrazione lo espone — le **Arlo**, per esempio — la miniatura è **video dal vivo** e non un'istantanea ferma. Se il flusso non parte — una telecamera che dorme — la tessera **torna alle istantanee** e riprova dopo un minuto, invece di lasciare un'immagine rotta; un flusso che si ferma in silenzio si riconosce e si riapre.
+**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home. Dove l'integrazione lo espone — le **Arlo**, per esempio — la miniatura è **video dal vivo** e non un'istantanea ferma. Quando Home Assistant dichiara per la telecamera un flusso **WebRTC** o **HLS** — le telecamere in cloud con go2rtc integrato, dal 2024.12 — la tessera monta un **video vero**, negoziato con i server ICE di casa (anche da Nabu Casa); il MJPEG del proxy resta come rete sotto. Se il flusso non parte — una telecamera che dorme — la tessera **torna alle istantanee** e riprova dopo un minuto, senza lasciare un'immagine rotta; un flusso che si ferma in silenzio si riconosce e si riapre. Uscendo dalla pagina i video si spengono.
 
 **Più di una centrale.** Chi ha due impianti d'allarme — casa e magazzino, piano di sopra e di sotto — li dichiara entrambi: ognuno con il suo nome, i suoi tasti e le sue modalità.
 

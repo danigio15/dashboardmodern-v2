@@ -22,6 +22,15 @@ import {
   root,
   section,
 } from "./shared.js";
+import { fermaIVideo, provaIlVideo } from "./telecamera-webrtc-section.js";
+
+/* L'immagine ha mostrato almeno un fotogramma: da qui in poi un flusso che
+ * cade non la fa sparire — resta l'ultimo fotogramma, non un lampo di nero. */
+function segnaFotogramma(image) {
+  if (!image?.dataset) return;
+  image.dataset.dmCameraState = "ready";
+  image.dataset.dmCameraFrame = "1";
+}
 
 const KEY = "__DASHBOARDMODERN_LIVE_UI_SECTION__";
 const state = (root[KEY] ||= {
@@ -246,9 +255,7 @@ async function avviaIlFlusso(camera, image, picture, registry = state.cameraUrls
   image.dataset.dmCameraStream = indirizzo;
   image.dataset.dmCameraEntity = camera.entity;
   if (image.dataset.dmCameraState !== "ready") image.dataset.dmCameraState = "loading";
-  image.onload = () => {
-    image.dataset.dmCameraState = "ready";
-  };
+  image.onload = () => segnaFotogramma(image);
   image.onerror = () => {
     /* Il flusso non e' partito (#294).
      *
@@ -286,14 +293,17 @@ export async function loadCameraFrame(camera, image, registry = state.cameraUrls
    * solo: il resto di questa funzione e' il mestiere dei fotogrammi. Un flusso
    * appena caduto pero' resta in pausa (#294): per un minuto la tessera vive
    * di istantanee, e poi ci si riprova. */
-  if (vuoleIlVivo(camera) && !flussoInPausa(image)) {
+  if (vuoleIlVivo(camera)) {
     /* L'istantanea prima, come rete sotto: il flusso di una telecamera che
      * dorme arriva dopo dieci secondi, e fino ad allora la tessera resterebbe
      * un rettangolo nero. Il browser tiene a schermo la foto finche' il
      * primo fotogramma del flusso non e' arrivato davvero. */
     if (picture && image.dataset.dmCameraState !== "ready" && !image.dataset.dmCameraStream)
       await caricaIstantanea(camera, image, registry, picture);
-    if (await avviaIlFlusso(camera, image, picture, registry)) return true;
+    /* Il video vero, quando Home Assistant dichiara una strada — WebRTC o
+     * HLS: per una telecamera in cloud il MJPEG e' una foto ferma. */
+    if (await provaIlVideo(camera, image)) return true;
+    if (!flussoInPausa(image) && (await avviaIlFlusso(camera, image, picture, registry))) return true;
   }
   if (image.dataset.dmCameraStream) delete image.dataset.dmCameraStream;
   if (!picture) {
@@ -336,16 +346,14 @@ async function caricaIstantanea(camera, image, registry, picture) {
         if (objectUrl) {
           replaceCameraObjectUrl(chiave, objectUrl, registry);
           image.src = objectUrl;
-          image.dataset.dmCameraState = "ready";
+          segnaFotogramma(image);
           return true;
         }
       }
     } catch (_error) {}
   }
 
-  image.onload = () => {
-    image.dataset.dmCameraState = "ready";
-  };
+  image.onload = () => segnaFotogramma(image);
   image.onerror = () => {
     image.dataset.dmCameraState = "unavailable";
   };
@@ -444,6 +452,9 @@ export async function refreshCameraThumbnails({ force = false } = {}) {
 const CAMERA_REFRESH_MS = 4000;
 
 function stopCameraTimer() {
+  /* Via dalla pagina, i video si spengono: una connessione WebRTC per
+   * telecamera che nessuno guarda e' banda buttata. */
+  fermaIVideo();
   if (!state.cameraTimer) return;
   root.clearInterval?.(state.cameraTimer);
   state.cameraTimer = 0;

@@ -104,8 +104,9 @@ test("il muro chiede il flusso a chi è dal vivo, e fotogrammi a tutti gli altri
   );
   /* Il ramo sta davanti al caricatore dei fotogrammi: chi è dal vivo non passa
    * di lì, e chi non lo è non cambia niente. */
-  assert.match(sorgente, /if \(vuoleIlVivo\(camera\) && !flussoInPausa\(image\)\) \{/);
-  assert.match(sorgente, /if \(await avviaIlFlusso\(camera, image, picture, registry\)\) return true;/);
+  assert.match(sorgente, /if \(vuoleIlVivo\(camera\)\) \{[\s\S]{0,900}if \(!flussoInPausa\(image\) && \(await avviaIlFlusso\(camera, image, picture, registry\)\)\) return true;/);
+  /* E prima del flusso si prova il video vero, quando Home Assistant lo dichiara. */
+  assert.match(sorgente, /if \(await provaIlVideo\(camera, image\)\) return true;/);
   /* E il flusso non si riattacca a ogni giro del cronometro. */
   assert.match(sorgente, /if \(stessoFlusso\(image, indirizzo\)\) return true;/);
   /* Se il flusso non parte, l'istantanea resta la rete sotto: il segno se ne

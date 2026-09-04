@@ -37,6 +37,7 @@ import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installSmokeAlertsSection } from "./smoke-alerts-section.js";
 import { installEnglishRuntimeStrings } from "./english-runtime-strings-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
+import { installTelecameraWebRtc } from "./telecamera-webrtc-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
@@ -862,6 +863,9 @@ export function installSectionRuntime() {
      * si installano dopo chi quelle unita' le tiene. */
     installQuickClimateEditorSection();
     installLiveUiSection();
+    /* Il video vero delle telecamere (#294): WebRTC e HLS nelle tessere, e il
+     * WebRTC nativo del popup negoziato con i server ICE di casa. */
+    installTelecameraWebRtc();
     installConnectionRecoverySection();
     installNavigationSection();
     installUnifiedEditorsSection();
@@ -1045,6 +1049,7 @@ export function installSectionRuntime() {
         "backup-editor",
         "ev",
         "ev-showcase",
+        "telecamera-webrtc",
         "auto-termica",
         "solar-thermal-design",
         "minipc-showcase",

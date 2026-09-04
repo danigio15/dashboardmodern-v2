@@ -899,8 +899,12 @@ function securityCss() {
 /* Un fotogramma che non e' arrivato non si mostra (#294): l'immagine rotta
    di Safari e' «un quadratino azzurro» in mezzo alla tessera. Resta il fondo
    scuro del video, e una riga che dice cosa si sta aspettando. */
-.dm-cam-feed>img[data-dm-camera-state="unavailable"]{opacity:0}
-.dm-cam-feed:has(>img[data-dm-camera-state="unavailable"])::after{
+.dm-cam-feed>video.dm-cam-video{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
+  pointer-events:none;background:#0b1220;transition:opacity .35s ease}
+.dm-cam-feed[data-dm-video="on"]>video.dm-cam-video{opacity:1}
+.dm-cam-feed>img[data-dm-camera-state="unavailable"]:not([data-dm-camera-frame]){opacity:0}
+.dm-cam-feed:has(>img[data-dm-camera-state="unavailable"]:not([data-dm-camera-frame]))::after{
   content:${cssString(t("In attesa del fotogramma", "Waiting for a frame"))};
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;
   font-family:var(--dm-sec-mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;

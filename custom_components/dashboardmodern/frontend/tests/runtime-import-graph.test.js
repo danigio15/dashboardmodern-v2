@@ -704,8 +704,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Il modello legge carburante, portiere, motore e il resto nei dialetti
   // delle integrazioni; la sezione mette la scelta nella scheda dell'auto e
   // il quadro termico nella pagina, al posto della ricarica.
+  // 237 con il video vero delle telecamere (`core/telecamera-webrtc.js`,
+  // `sections/telecamera-webrtc-section.js`, #294): il WebRTC come lo parla
+  // Home Assistant, negoziato con i server ICE di casa, nelle tessere e nel
+  // popup; e l'HLS per chi lo dichiara. Il MJPEG resta come rete sotto.
   assert.ok(
-    relative.length <= 235,
+    relative.length <= 240,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

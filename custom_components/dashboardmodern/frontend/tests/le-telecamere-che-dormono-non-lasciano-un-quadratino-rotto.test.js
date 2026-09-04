@@ -88,11 +88,11 @@ test("il caricatore: l'istantanea prima del flusso, e l'istantanea dopo che il f
     /image\.onerror = \(\) => \{[\s\S]*?delete image\.dataset\.dmCameraStream;\s*mettiInPausaIlFlusso\(image\);\s*image\.dataset\.dmCameraState = "unavailable";\s*ripiegaSullIstantanea\(camera, image, registry\);/,
   );
   /* Finche' la pausa dura, la tessera vive di istantanee. */
-  assert.match(sorgente, /if \(vuoleIlVivo\(camera\) && !flussoInPausa\(image\)\) \{/);
+  assert.match(sorgente, /if \(vuoleIlVivo\(camera\)\) \{[\s\S]{0,900}if \(!flussoInPausa\(image\) && \(await avviaIlFlusso\(camera, image, picture, registry\)\)\) return true;/);
   /* E prima di chiedere il flusso a una tessera ancora vuota si mette la foto. */
   assert.match(
     sorgente,
-    /await caricaIstantanea\(camera, image, registry, picture\);\s*if \(await avviaIlFlusso\(camera, image, picture, registry\)\) return true;/,
+    /await caricaIstantanea\(camera, image, registry, picture\);[\s\S]{0,400}if \(!flussoInPausa\(image\) && \(await avviaIlFlusso\(camera, image, picture, registry\)\)\) return true;/,
   );
   /* Il mestiere dei fotogrammi e' uno solo, e lo chiamano tutti e due. */
   assert.match(sorgente, /async function caricaIstantanea\(camera, image, registry, picture\)/);
@@ -115,10 +115,10 @@ test("il muro sorveglia i flussi fermi, dal cronometro che ha gia'", () => {
 
 test("un fotogramma che non e' arrivato non si mostra: niente quadratino azzurro", () => {
   const sicurezza = leggi("sections/security-showcase-section.js");
-  assert.match(sicurezza, /\.dm-cam-feed>img\[data-dm-camera-state="unavailable"\]\{opacity:0\}/);
+  assert.match(sicurezza, /\.dm-cam-feed>img\[data-dm-camera-state="unavailable"\]:not\(\[data-dm-camera-frame\]\)\{opacity:0\}/);
   /* E al suo posto una riga che dice cosa si aspetta, nella lingua giusta. */
   assert.match(
     sicurezza,
-    /\.dm-cam-feed:has\(>img\[data-dm-camera-state="unavailable"\]\)::after\{\s*content:\$\{cssString\(t\("In attesa del fotogramma", "Waiting for a frame"\)\)\}/,
+    /\.dm-cam-feed:has\(>img\[data-dm-camera-state="unavailable"\]:not\(\[data-dm-camera-frame\]\)\)::after\{\s*content:\$\{cssString\(t\("In attesa del fotogramma", "Waiting for a frame"\)\)\}/,
   );
 });

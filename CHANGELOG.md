@@ -81,6 +81,23 @@ lavorare.
   un servizio delle tessere non aveva da chi chiedere la pioggia: da qui la
   tendina.
 
+- **Le telecamere hanno il video vero (#294).**
+
+      «Continuano a non funzionare in live streaming, e nemmeno se metto
+       nome webrtc parte.»
+
+  Dentro il pannello di Home Assistant — e quindi da Nabu Casa — il ponte
+  verso il socket non lasciava passare il WebRTC di Home Assistant
+  (`camera/webrtc/offer`): il popup moriva prima di cominciare, e il campo
+  «nome del flusso» non c'entra, e' per chi ha l'estensione go2rtc. Il ponte
+  adesso lascia passare l'offerta e i suoi eventi, e la negoziazione usa i
+  server ICE che Home Assistant dichiara per la telecamera — i TURN di Nabu
+  Casa compresi, che da fuori casa sono la differenza fra il video e il nero.
+  Le tessere «dal vivo» fanno lo stesso: quando Home Assistant dichiara
+  `web_rtc` o `hls` montano un video, e il MJPEG del proxy — che per una
+  telecamera in cloud e' una foto ferma — resta come rete sotto. Uscendo
+  dalla pagina i video si spengono.
+
 - **Le telecamere Arlo non lasciano piu' il quadratino azzurro (#294).** Il
   flusso di una telecamera che dorme non parte al primo colpo, e l'immagine
   restava rotta — ritentata ogni quattro secondi. Un flusso caduto ora si
@@ -88,7 +105,8 @@ lavorare.
   scadere si riprova. E un flusso che si ferma in silenzio — gli stessi pixel
   per trenta secondi — si riconosce e si riapre, invece di restare con la
   vista congelata. Mentre si aspetta il primo fotogramma, la tessera lo
-  scrive.
+  scrive — ma solo finche' un fotogramma non c'e' stato: da li' in poi un
+  flusso che cade lascia a schermo l'ultimo, non un lampo di nero.
 
 - **L'infisso con inferriata si rilegge in modifica (#297).** La seconda
   entita' si perdeva al salvataggio, perche' la normalizzazione del
