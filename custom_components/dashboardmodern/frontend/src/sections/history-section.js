@@ -9,6 +9,13 @@ import {
   perInputLocale,
 } from "../core/periodo-storico.js";
 import {
+  attesaPer,
+  domandaStatistiche,
+  domandaStoriaLeggera,
+  righeDalleStatistiche,
+  vuoleLeStatistiche,
+} from "../core/storico-lungo.js";
+import {
   allStates,
   clean,
   doc,
@@ -445,20 +452,50 @@ function renderChart(entity, name, rows, intervallo = state.currentRange) {
   return true;
 }
 
-async function websocketHistory(entity, intervallo) {
-  const broker = root.DashboardModernEnergyService?.broker;
+/**
+ * Lo storico di un'entita' su un intervallo, nella forma che `normalizeHistoryRows`
+ * legge: `{ [entity]: [{ s, lu }, ...] }`.
+ *
+ * Fino a tre giorni e' la storia di sempre, tutti i cambi di stato. Oltre
+ * («1 mese», «Da … a» su settimane) si chiedono le statistiche a lungo termine
+ * — una media per ora o per giorno — perche' trenta giorni di cambi di stato
+ * non arrivano in tempo da un Recorder qualunque attraverso Nabu Casa, e la
+ * scadenza si leggeva come «nessuno storico» (#302, dal campo). Chi non ha
+ * statistiche torna alla storia dei soli cambi significativi, con piu' pazienza.
+ * Il broker e' quello dell'energia, lo stesso per ogni finestra.
+ */
+export async function leggiStorico(broker, entity, intervallo) {
   if (!broker?.request) throw new Error("Home Assistant WebSocket broker unavailable");
   const scelto = intervalloDa(intervallo) || intervalloDa(ORE_DI_SERIE);
-  return broker.request({
-    type: "history/history_during_period",
-    start_time: new Date(scelto.start).toISOString(),
-    end_time: new Date(scelto.end).toISOString(),
-    entity_ids: [entity],
-    include_start_time_state: true,
-    significant_changes_only: false,
-    minimal_response: true,
-    no_attributes: true,
-  });
+  const attesa = attesaPer(scelto);
+  if (vuoleLeStatistiche(scelto)) {
+    let statistiche = null;
+    try {
+      statistiche = await broker.request(domandaStatistiche(entity, scelto), attesa);
+    } catch (_errore) {
+      statistiche = null;
+    }
+    const righe = righeDalleStatistiche(statistiche, entity);
+    if (righe.length) return { [entity]: righe };
+    return broker.request(domandaStoriaLeggera(entity, scelto), attesa);
+  }
+  return broker.request(
+    {
+      type: "history/history_during_period",
+      start_time: new Date(scelto.start).toISOString(),
+      end_time: new Date(scelto.end).toISOString(),
+      entity_ids: [entity],
+      include_start_time_state: true,
+      significant_changes_only: false,
+      minimal_response: true,
+      no_attributes: true,
+    },
+    attesa,
+  );
+}
+
+async function websocketHistory(entity, intervallo) {
+  return leggiStorico(root.DashboardModernEnergyService?.broker, entity, intervallo);
 }
 
 /* ── il periodo (#302) ─────────────────────────────────────────────────────

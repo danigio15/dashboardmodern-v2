@@ -5,6 +5,293 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.7
+
+Le cose viste sul campo dopo la 1.4.6, e i comandi del robot che lava. La
+sezione Energia che restava su «Caricamento dati Energia…» dentro il pannello
+di Home Assistant, lo storico di un mese che diceva «Nessuno storico
+disponibile», la soglia di chiusura che ora e' di ogni finestra, la pagina che
+spiega il progetto prima del tasto PayPal, il radar leggibile, i sensori dei
+rifiuti letti come li scrivono le integrazioni, i seguiti di #292, #286 e
+#281, l'inferriata che si modifica, le grate grigie, i modelli di auto a
+benzina e i tasti del robot lavapavimenti (#306).
+
+### Aggiunto
+
+- **I comandi a parte del robot (#306).**
+
+      «Le varie entita' del robot continuano a non essere visibili. Da solo
+       la modalita' aspirazione. Comandi mancanti:
+       button.roborock_qrevo_edge_series_asp_e_lav, …_pulizia_completa,
+       …_solo_aspirazione, …_solo_lavaggio.»
+
+  Un robot che lava non e' solo un `vacuum`: l'integrazione pubblica accanto
+  a lui i suoi programmi come tasti, le sue regolazioni — il mocio, l'acqua —
+  come tendine, le sue funzioni come interruttori. Nella scheda Robot della
+  configurazione c'e' «Altri comandi del robot»: quelli trovati accanto al
+  robot si propongono da soli e un tocco li aggiunge, qualunque altro si cerca
+  con la lente (button, select, switch, e input_*, script, scene). Sulla
+  scheda del robot i tasti stanno sotto i comandi di sempre, le tendine
+  accanto all'aspirazione, e ognuno chiama il servizio che e' suo: press,
+  select_option, toggle.
+
+- **Le auto a benzina hanno il loro modello.** «Se seleziono Jeep mi da' solo
+  veicoli ibridi ed elettrici.» Il catalogo dei modelli ha, per ogni marca,
+  anche le famiglie a benzina, diesel e GPL; la tendina le mostra in un gruppo
+  a parte e mette in cima il gruppo del motore che la vettura dichiara.
+
+- **La soglia di chiusura e' di ogni finestra.** «Ognuno puo' avere una
+  percentuale differente.» La casella «Chiusa sotto il (%)» sta nella riga
+  della finestra, sia quando nasce sia in modifica; vuota, vale quella di casa
+  in cima alla scheda, che resta il valore di serie.
+
+- **«Sostieni il progetto» spiega prima di chiedere.** La pastiglia e la
+  tessera aprono una finestra che dice cosa e' il progetto e come si fa, e
+  solo in fondo c'e' il tasto che porta su PayPal, in una scheda nuova.
+
+- **Il radar ha una legenda.** Pioggia leggera → forte, e «dove non c'e'
+  colore non piove».
+
+- **Gli elettrodomestici si prendono da un'integrazione, interi.**
+
+      «La sezione elettrodomestici la possiamo rivedere e far in modo che
+       le persone possano integrare i loro elettrodomestici sfruttando le
+       integrazioni? Non solo switch on/off ma proprio le integrazioni, sia
+       ufficiali che presenti su HACS, creando un menu. Io ho la lavatrice
+       Hoover con hOn e mi espone tutti i dati: dalla sezione voglio prendere
+       tutte le integrazioni, cosi' ogni elettrodomestico avra' tutte le sue
+       informazioni.»
+
+  In cima alla scheda Elettrodomestici, «🔗 Aggiungi da un'integrazione» apre
+  una finestra a due colonne: a sinistra le integrazioni installate col segno
+  Ufficiale o HACS / personalizzata, a destra i loro dispositivi con marca,
+  modello, stanza e quante entita' portano. Alla conferma l'apparecchio nasce
+  gia' compilato — tipo dal catalogo, stanza dall'area di Home Assistant,
+  potenza, tempo rimanente, fase, contatore, tasto d'avvio e allarme
+  assegnati. Le entita' si riconoscono da id, nome e chiave di traduzione,
+  cosi' hOn si capisce in qualunque lingua sia Home Assistant, e le caselle
+  scritte a mano non si toccano mai.
+
+  Un apparecchio puo' essere due dispositivi: quando quello scelto non ha un
+  contatore, il menu cerca fra le entita' che portano il suo nome — la presa
+  smart sotto la macchina — e le propone con una spunta accesa. Il comando no,
+  mai: pescare un interruttore per somiglianza di nome vuol dire prima o poi
+  accendere l'apparecchio sbagliato.
+
+- **La card dice cosa sta facendo, e senza sensore di potenza lo capisce dal
+  programma.** Sotto il ritratto, la fase del ciclo in parole — Lavaggio,
+  Risciacquo, Centrifuga, Asciugatura, Pesatura — e accanto i gradi, i giri e
+  il programma, dalle parole che le integrazioni pubblicano davvero
+  (`washing`, `spin`, `weighting`), tradotte in tutte le lingue della plancia.
+  Per lo stato, tre gruppi di parole: chi lavora, chi aspetta — pausa, avvio
+  ritardato, programmata — che e' STANDBY e non SPENTO, e chi e' ferma. Una
+  parola che nessun gruppo conosce lascia parlare i watt, come prima. Un
+  apparecchio su una presa smart non ha niente da raccontare e la sua card
+  resta quella di prima.
+
+- **La finestra del dettaglio apre con la stessa card della sezione**, e sotto
+  tutto il resto del dispositivo diviso per famiglie: lo stato, le letture, i
+  comandi coi loro tasti veri — interruttori, menu dei programmi, numeri,
+  pulsanti — e in fondo la diagnostica, chiusa. Quello che la card dice gia'
+  non si ripete. La finestra della tessera in Home porta una pastiglia per
+  ogni apparecchio, acceso o spento, nel suo ordine; toccandone una si apre la
+  sua card intera, una alla volta.
+
+- **Le gomme sono quattro (#319).**
+
+      «È possibile inserire un solo pneumatico, spero al prossimo rilascio
+       sia possibile inserirne 4.»
+
+  La casella era una sola, e chi ha il TPMS ha quattro sensori: ne mappava uno
+  e gli altri tre non avevano dove andare. Adesso ogni ruota ha la sua —
+  anteriore sinistra e destra, posteriore sinistra e destra — e nella pagina
+  si dispongono come stanno sull'auto, due davanti e due dietro. Una ruota non
+  mappata resta un posto vuoto col suo nome, cosi' si vede subito quale sensore
+  manca; un sensore che dice solo si' o no scrive «Da controllare» al posto del
+  numero, e una gomma che si lamenta accende l'attenzione di tutta la scheda.
+  La casella singola di prima resta dov'era e vale quello che ha sempre valso,
+  per chi ha un sensore riepilogativo.
+
+  E le gomme si vedono su qualunque auto, elettrica compresa: stavano dentro il
+  quadro termico, che su un'elettrica non si disegna, e sparivano con lui —
+  quelle caselle si compilavano in configurazione e non si vedevano da nessuna
+  parte, mentre il TPMS ce l'hanno anche le elettriche. Le gomme non sono del
+  motore.
+
+### Cambiato
+
+- **La card delle persone si legge come un citofono.** Il ritratto e il nome
+  stanno su una riga sola, uno accanto all'altro, con la pastiglia della zona
+  sotto il nome; quello che il telefono racconta — la carica, la carica
+  dell'orologio, la rete, da quanto non si fa sentire — sta in un riquadro suo
+  in fondo alla card, staccato dai bordi, che si legge come un gruppo invece
+  che come una striscia. Prima era una colonna centrata: in fila diventava alta
+  e stretta, e il nome finiva lontano dalla faccia.
+
+  La griglia delle persone prende le misure da quella dei widget — stessa
+  colonna minima, stesso passo, stessa soglia a cui passa a due colonne sul
+  telefono — perche' le due stanno una sotto l'altra nella stessa pagina e con
+  tracce diverse le card si sfalsano: la Home sembrava montata storta. Una
+  prova le misura tutte e due sul documento vero, cosi' se un domani una delle
+  due cambia numero, si sa subito.
+
+### Corretto
+
+- **La pagina Mini PC sfarfallava, e la plancia scaldava il mini PC.**
+
+      «Nella sezione Mini PC c'e' un continuo sfarfallio. Quando e' avviata
+       la dashboard il processore del mini PC schizza di utilizzo e sale la
+       temperatura.»
+
+  Due padroni sulla stessa pastiglia: a ogni evento di stato il guscio
+  scriveva OFFLINE sulla casella della rete non compilata, e la lettura
+  onesta arrivata con la 1.4.5 la correggeva in NON CONFIGURATO un
+  fotogramma dopo — due parole alternate, dipinte tutte e due. La
+  correzione ora parte nello stesso giro del guscio, prima che il browser
+  dipinga. Nello stesso passaggio si e' misurato tutto quello che gira da
+  solo, e si e' alleggerito quello che costava senza dare niente: il
+  ricalcolo dei periodi dell'Energia — cinque domande al Recorder, una
+  sull'anno intero — non piu' ogni quindici secondi ma al piu' una volta al
+  minuto (le statistiche di Home Assistant si compilano ogni cinque); la
+  scansione della pagina Temperature solo quando e' a schermo e un giro per
+  fotogramma; l'osservatore della pagina Mini PC che non si sveglia per le
+  proprie scritture e lavora solo a pagina aperta; i colori dei tubi e del
+  punto della rete che non si riscrivono a ogni passata; lo sfondo animato
+  su un livello suo, fermo per chi ha chiesto al sistema di ridurre le
+  animazioni. E le letture REST di periodi lunghi — la derivazione dei
+  totali dall'inizio dell'anno, i popup di una settimana — passano dalle
+  statistiche del Recorder invece che dalla storia grezza: decine di righe
+  invece di decine di migliaia.
+
+- **Energia ferma su «Caricamento dati Energia…» nel pannello, e le
+  notifiche «Login attempt failed».** Dentro il pannello di Home Assistant
+  la plancia non possiede nessun gettone, e le chiamate REST allo storico che
+  il guscio fa per conto suo rispondevano 401 — una notifica di accesso
+  fallito ogni dieci minuti, e la sezione che restava dietro il velo ad
+  aspettare. Quelle chiamate ora passano dal socket autenticato del pannello,
+  come tutto il resto. Il velo si toglie dopo due tentativi e al suo posto
+  compare la ragione, e i tentativi successivi si diradano invece di
+  insistere ogni secondo.
+
+- **Storico di un mese o da…a: «Nessuno storico disponibile».** Oltre le
+  settantadue ore lo storico grezzo e' troppo per una casa e per il tempo che
+  si e' disposti ad aspettare: si chiedono le statistiche del Recorder, per
+  ora o per giorno, con la pazienza che il periodo merita e la storia grezza
+  come ripiego.
+
+- **Radar illeggibile, con «API Key Required» stampato sulle tessere.** Il
+  fondo CARTO chiede una chiave che la plancia non ha: il fondo e'
+  OpenStreetMap, e chi aveva CARTO salvato passa a OpenStreetMap da solo.
+
+- **Rifiuti: i sensori letti come li scrivono le integrazioni.** Date nella
+  forma gg-mm-aaaa, nomi dei giorni della settimana in piu' lingue, gli
+  attributi delle integrazioni comuni (data, giorni mancanti, prossimi
+  ritiri), e il materiale preso dal sensore quando la riga dice «altro».
+
+- **Seguito di #292, e #311: i carichi sono di un impianto.** Passando da un
+  impianto all'altro la scheda dei carichi si ricarica, e salvare i carichi di
+  uno non cancella piu' quelli dell'altro: gli identificativi non si pestano
+  fra impianti, e nel modello di un impianto non entrano gli elettrodomestici
+  dell'altro. Le modifiche non ancora salvate non si perdono cambiando
+  impianto: restano da parte, e tornandoci si ritrovano.
+
+- **Seguito di #286, e #313: le tessere Energia per impianto.** Tutte seguono
+  l'ordine scelto per «Energia», tutte hanno «Apri sezione», e il tasto apre
+  la scheda dell'impianto giusto.
+
+- **Seguito di #281, e #314: la seconda caldaia non si selezionava.** La fila dei
+  nomi stava sotto la scena, che e' assoluta e copre tutto il palco: i nomi si
+  vedevano attraverso, ma il tocco arrivava alla scena. La fila sta sopra.
+
+- **Finestre: in modifica mancavano l'inferriata e la soglia.** La finestra
+  di modifica di una riga ha le due caselle, col cercatore e le stesse regole
+  della riga che nasce; svuotare l'inferriata la toglie.
+
+- **Allagamento: la tessera in Home non compariva nemmeno col sensore
+  bagnato.** «Quando attivo non segnala lo stato allagamento nei widget.» La
+  tessera leggeva l'elenco dei sensori dal posto sbagliato — l'oggetto intero
+  invece dell'elenco che porta dentro — e per lei non c'era mai nessun
+  sensore. Ora legge l'elenco, e con un sensore bagnato la tessera c'e'.
+
+- **L'icona di un avviso, nella scheda, si vede.** Con un nome `mdi:` nel
+  campo, l'anteprima stampava la scritta a caratteri cubitali al posto del
+  disegno; ora il nome va al motore delle icone, come nelle righe della Home.
+
+- **Batterie: la tessera in Home legge la configurazione, non solo la
+  memoria del guscio.** «La batteria attualmente e' al 1% e non compare il
+  widget batteria scarica.» L'elenco delle pile sorvegliate lo teneva la
+  lista viva del guscio, che si costruisce una volta sola all'avvio: una pila
+  aggiunta dalla finestra di modifica degli avvisi (che scrive solo la
+  configurazione), o arrivata con la sincronizzazione da un altro
+  apparecchio, o una configurazione arrivata nel pannello di Home Assistant
+  dopo la partenza del guscio, per la tessera non esisteva finche' non si
+  ricaricava la pagina. Ora la tessera legge `cd_gruppi_extra` meno
+  `cd_gruppi_removed`, e la lista viva si somma solo per quello che ha in piu'.
+
+- **Le grate sono di un grigio chiaro e sfumato.** «Essendo molto scure,
+  quando sono chiuse e la finestra e' aperta visivamente non e' il massimo.»
+  Il ferro e' grigio, e dove il browser sa mascherare la sbarra va dal chiaro
+  in alto al pieno in basso, con un filo di luce sul bordo.
+
+- **Il ritiro di oggi non e' un trattino (#309).**
+
+      «Ho un calendario con i giorni configurati per ogni rifiuto; mi
+       aspettavo di vedere il rifiuto di oggi "Umido" ma vedo un trattino.»
+
+  Un evento di tutto il giorno non e' un istante, e' una casella sul
+  calendario. Home Assistant pero' gli scrive accanto il fuso —
+  `2026-09-04T00:00:00+02:00` — e la lettura lo prendeva alla lettera: da un
+  fuso piu' indietro scivolava al giorno prima, il conto lo scartava perche'
+  tiene solo i giorni da zero in su, e restava un trattino proprio il giorno
+  in cui il bidone va messo fuori. Ora un evento di tutto il giorno si legge
+  come la data che dice, mentre un orario vero conserva il suo fuso; con lo
+  stesso giro torna anche il ritiro cominciato ieri e non ancora finito, che
+  spariva dal conto mentre il bidone era fuori.
+
+- **La tessera Sicurezza comanda l'antifurto come lo comanda la sua pagina (#316).**
+
+      «Nel widget sicurezza le icone e la relativa funzione di attivazione dei
+       comandi dell'antifurto sono diverse rispetto alla sezione dedicata dove
+       tutto e' funzionante e in linea con l'antifurto.»
+
+  La pagina Sicurezza chiede alla centrale quali inserimenti accetta —
+  `supported_features` — e toglie quelli che si e' scelto di non vedere. La
+  finestra della tessera invece disegnava sempre le stesse tre pastiglie
+  scritte a mano: Fuori, Notte, Sblocca. Da qui un tasto Notte su una centrale
+  che quella modalita' non ce l'ha, che chiedeva il PIN e poi non faceva
+  niente; nessun tasto Casa, Vacanza o Parziale su una centrale che li accetta;
+  e il tasto acceso sbagliato — 🏠 «Fuori» al posto di 🏡 «Casa» con la casa
+  inserita in `armed_home`, e 🔓 «Sblocca» acceso durante l'inserimento, che su
+  un antifurto vuol dire dire che la casa e' aperta mentre si sta chiudendo.
+
+  Adesso la fila la disegna chi la disegna nella pagina: stessi tasti, stesse
+  icone, stesso tasto acceso, stesso tastierino del PIN.
+
+  Nella stessa condizione stava la finestra rapida del banner dell'antifurto in
+  testata: la sua griglia sta nel guscio, con quattro tasti scritti a mano, e il
+  giro che la disegna poteva nasconderne ma non aggiungerne — chi ha una
+  centrale che accetta Vacanza o Parziale quei tasti non li aveva mai visti, e i
+  nomi erano quelli del guscio, che in inglese erano rimasti a meta'. Anche
+  quella griglia adesso la riempie la stessa fila, e con piu' di quattro tasti
+  va a capo invece di stringersi.
+
+- **L'icona della domanda di conferma si disegna, non si legge (#320).**
+
+      «Azioni rapide: quando si utilizza la domanda nella schermata non e'
+       visibile l'icona impostata, ma solo il testo di configurazione.»
+
+  La finestra di conferma scriveva la sua icona come testo. Finche' le icone
+  erano emoji nessuno se n'era accorto; da quando si scelgono dal catalogo il
+  valore salvato e' il nome mdi, e nella finestra ci finiva scritto
+  «mdi:gate» a caratteri cubitali — mentre la tessera della stessa azione, che
+  passa dal motore delle icone, il cancello lo disegnava. Adesso quella finestra
+  ha lo stesso padrone di tutte le altre superfici: l'icona la disegna il
+  motore, e un'emoji scritta a mano resta un'emoji.
+
+  Con la stessa correzione se ne va una pezza: le porte della Sicurezza, per
+  non far vedere quel nome, sostituivano l'icona della porta con un portone
+  generico prima di aprire la domanda. Ora ogni porta mostra la sua.
+
 ## 1.4.6
 
 Tre sezioni in piu', la Home che si personalizza, e una decina di cose viste

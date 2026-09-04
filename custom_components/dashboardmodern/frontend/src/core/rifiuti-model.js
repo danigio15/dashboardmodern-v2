@@ -70,6 +70,21 @@ const INDIZI = Object.freeze([
   ["pannolini", /pannolin|diaper|nappy/],
 ]);
 
+/** Il materiale scritto negli attributi del sensore, se c'e'; `null` se no. */
+export function materialeDalSensore(stato) {
+  const attributi = stato?.attributes || {};
+  for (const nome of ["types", "waste_type", "waste_types", "type", "fraction", "kind"]) {
+    const valore = attributi[nome];
+    const testo = Array.isArray(valore) ? valore.join(" ") : pulito(valore);
+    if (!testo) continue;
+    const chiave = materialeDalNome(testo);
+    if (chiave !== "altro") return chiave;
+  }
+  const nome = pulito(attributi.friendly_name);
+  const dalNome = nome ? materialeDalNome(nome) : "altro";
+  return dalNome !== "altro" ? dalNome : null;
+}
+
 export function materialeDalNome(testo) {
   const voce = minuscolo(testo);
   if (!voce) return "altro";
@@ -151,26 +166,59 @@ export function giorniFra(da, a) {
  * `2026-09-05 06:00:00`, `2026-09-05T06:00:00+02:00`, `05/09/2026`.
  * Torna `null` per tutto il resto: un numero non e' una data.
  */
-export function leggiData(testo) {
+export function leggiData(testo, { giornoIntero = false } = {}) {
   const voce = pulito(testo);
   if (!voce) return null;
   let m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(voce);
   if (m) {
     /* Con l'ora e il fuso si lascia fare a `Date`; senza fuso la data e'
-     * locale, che e' quello che intende chi la scrive. */
-    if (/[+-]\d{2}:?\d{2}$|Z$/.test(voce) && m[4]) {
+     * locale, che e' quello che intende chi la scrive.
+     *
+     * Un evento di tutto il giorno pero' non e' un istante: e' una casella
+     * sul calendario, e il fuso scritto accanto non la sposta. Home Assistant
+     * lo scrive «2026-09-04T00:00:00+02:00», e chi guardava da un fuso piu'
+     * indietro se lo vedeva diventare il 3: il ritiro di oggi finiva nel
+     * passato, spariva dal conto e la tessera restava con un trattino il
+     * giorno stesso in cui il bidone andava messo fuori (#309). */
+    if (!giornoIntero && /[+-]\d{2}:?\d{2}$|Z$/.test(voce) && m[4]) {
       const assoluta = new Date(voce);
       return Number.isFinite(assoluta.getTime()) ? assoluta : null;
     }
     return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
   }
-  m = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/.exec(voce);
+  /* `05/09/2026`, `05.09.2026`, e il `05-09-2026` degli olandesi (Afvalwijzer). */
+  m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/.exec(voce);
   if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
   return null;
 }
 
-/* Le parole che dicono fra quanto: «domani», «in 3 giorni», «today». */
-const FRA_GIORNI = /^(?:in|fra|tra)\s+(\d+)\s+(?:giorn[oi]|days?|d)$/;
+/* Un giorno della settimana, come lo scrivono certe integrazioni al posto
+ * della data: «Friday», «venerdì», «Vrijdag». Vale il prossimo con quel nome,
+ * oggi compreso. */
+const GIORNI_DELLA_SETTIMANA = Object.freeze([
+  /^(domenica|sunday|sun|sonntag|zondag|domingo|dimanche)$/,
+  /^(lunedi|lunedì|monday|mon|montag|maandag|lunes|lundi)$/,
+  /^(martedi|martedì|tuesday|tue|dienstag|dinsdag|martes|mardi)$/,
+  /^(mercoledi|mercoledì|wednesday|wed|mittwoch|woensdag|miércoles|miercoles|mercredi)$/,
+  /^(giovedi|giovedì|thursday|thu|donnerstag|donderdag|jueves|jeudi)$/,
+  /^(venerdi|venerdì|friday|fri|freitag|vrijdag|viernes|vendredi)$/,
+  /^(sabato|saturday|sat|samstag|zaterdag|sábado|sabado|samedi)$/,
+]);
+
+export function giornoDellaSettimana(testo, adesso = Date.now()) {
+  const voce = minuscolo(testo);
+  if (!voce) return null;
+  const indice = GIORNI_DELLA_SETTIMANA.findIndex((prova) => prova.test(voce));
+  if (indice < 0) return null;
+  const oggi = inizioDelGiorno(adesso);
+  const fra = (indice - oggi.getDay() + 7) % 7;
+  return new Date(oggi.getTime() + fra * 86400000 + 12 * 3600000);
+}
+
+/* Le parole che dicono fra quanto: «domani», «in 3 giorni», «today», «in 2
+ * dagen», «in 3 Tagen». */
+const FRA_GIORNI =
+  /^(?:in|fra|tra|en|dans)\s+(\d+)\s+(?:giorn[oi]|days?|d|dagen|tagen?|días?|dias?|jours?)$/;
 
 function giorniDalleParole(testo) {
   const voce = minuscolo(testo);
@@ -192,24 +240,65 @@ function giorniDalleParole(testo) {
 export function dataDelRitiro(stato, adesso = Date.now()) {
   if (!stato) return null;
   const attributi = stato.attributes || {};
+  /* I nomi con cui le integrazioni scrivono la data: Waste Collection Schedule
+   * (`date`, `upcoming[0].date`), Garbage Collection (`next_date`), Afvalwijzer
+   * e i suoi cugini (`next_pickup`, `pickup_date`), i calendari (`start_time`). */
+  /* `all_day` lo dichiara Home Assistant sui calendari; per gli altri lo dice
+   * la forma, che e' una mezzanotte tonda. */
+  const giornoIntero =
+    attributi.all_day === true ||
+    attributi.all_day === "true" ||
+    /T00:00:00([+-]\d{2}:?\d{2}|Z)$/.test(pulito(attributi.start_time || attributi.start));
   for (const nome of [
     "date",
     "next_date",
+    "date_next",
     "next_collection",
     "next_collection_date",
     "collection_date",
+    "next_pickup",
+    "next_pickup_date",
+    "pickup_date",
     "next",
     "due_date",
     "due",
     "start_time",
     "start",
   ]) {
-    const data = leggiData(attributi[nome]);
+    const data = leggiData(attributi[nome], { giornoIntero });
+    if (!data) continue;
+    /* Un evento gia' cominciato e non ancora finito e' il ritiro di adesso.
+     * Un ritiro che dura da ieri a domani — capita coi calendari scritti a
+     * mano — partiva ieri, e ieri e' passato: la riga finiva fra le scadute e
+     * la tessera diceva «nessuna data in vista» mentre il bidone era fuori. */
+    const fine = leggiData(attributi.end_time || attributi.end, { giornoIntero });
+    if (fine && data.getTime() <= adesso && adesso < fine.getTime()) return inizioDelGiorno(adesso);
+    return data;
+  }
+  const prossimi = Array.isArray(attributi.upcoming) ? attributi.upcoming : [];
+  for (const voce of prossimi) {
+    const data = leggiData(voce?.date ?? voce?.start ?? voce);
     if (data) return data;
   }
-  for (const nome of ["daysTo", "days_to", "days", "giorni"]) {
+  /* I giorni contati, in tutti i dialetti: `daysTo` (Waste Collection
+   * Schedule), `days` (Garbage Collection), `days_until`, `due_in`. */
+  for (const nome of [
+    "daysTo",
+    "days_to",
+    "days_until",
+    "daysUntil",
+    "due_in",
+    "days_left",
+    "days",
+    "giorni",
+  ]) {
     const n = Number(attributi[nome]);
-    if (attributi[nome] !== undefined && attributi[nome] !== null && Number.isFinite(n))
+    if (
+      attributi[nome] !== undefined &&
+      attributi[nome] !== null &&
+      attributi[nome] !== "" &&
+      Number.isFinite(n)
+    )
       return new Date(inizioDelGiorno(adesso).getTime() + n * 86400000 + 12 * 3600000);
   }
   const grezzo = pulito(stato.state);
@@ -218,6 +307,8 @@ export function dataDelRitiro(stato, adesso = Date.now()) {
   const dalleParole = giorniDalleParole(grezzo);
   if (dalleParole !== null)
     return new Date(inizioDelGiorno(adesso).getTime() + dalleParole * 86400000 + 12 * 3600000);
+  const dalGiorno = giornoDellaSettimana(grezzo, adesso);
+  if (dalGiorno) return dalGiorno;
   /* Un numero secco e' «fra N giorni» solo se l'unita' lo dice: senza, potrebbe
    * essere qualunque cosa. */
   const unita = minuscolo(attributi.unit_of_measurement);
@@ -274,8 +365,15 @@ export function letturaRifiuti(
       const stato = leggi(riga.entity);
       const data = dataDelRitiro(stato, adesso);
       const giorni = data ? giorniFra(adesso, data) : null;
+      /* Il materiale lo dice il sensore, se la riga non l'ha scelto: Waste
+       * Collection Schedule scrive `types` (un elenco), altri `waste_type`. */
+      const dalSensore = riga.materiale === "altro" ? materialeDalSensore(stato) : null;
+      const vestito = dalSensore ? materialeDiSerie(dalSensore) : null;
       return {
         ...riga,
+        ...(vestito
+          ? { materiale: vestito.chiave, icona: vestito.icona, colore: vestito.colore }
+          : {}),
         muto: !risponde(stato),
         data,
         giorni,

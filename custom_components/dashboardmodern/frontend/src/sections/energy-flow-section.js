@@ -373,11 +373,20 @@ function colorNode(node, color, active) {
   const animated = active ? "true" : "false";
   if (node.dataset.dmFlowAnimated !== animated) node.dataset.dmFlowAnimated = animated;
   if (/^(path|line|polyline|circle)$/i.test(node.tagName)) {
+    /* Il colore riletto dallo stile non e' quello scritto — «#0ea5e9» torna
+     * «rgb(14, 165, 233)» — e il confronto diretto riscriveva ogni volta. Il
+     * segno di cosa si e' scritto sta a parte. */
     const stroke = active ? color : "var(--divider-color,#dbe4ee)";
-    if (node.style.stroke !== stroke) node.style.stroke = stroke;
+    if (node.dataset.dmFlowStroke !== stroke) {
+      node.dataset.dmFlowStroke = stroke;
+      node.style.stroke = stroke;
+    }
     if (node.getAttribute("fill") && node.getAttribute("fill") !== "none") {
       const fill = active ? color : "var(--divider-color,#dbe4ee)";
-      if (node.style.fill !== fill) node.style.fill = fill;
+      if (node.dataset.dmFlowFill !== fill) {
+        node.dataset.dmFlowFill = fill;
+        node.style.fill = fill;
+      }
     }
   }
 }

@@ -24,7 +24,12 @@
  * guarda di un'auto ferma in garage: se e' chiusa, se il motore gira, quanto
  * puo' fare. Un'ibrida tiene tutti e due i quadri, perche' li ha tutti e due.
  */
-import { CASELLE_TERMICHE, RIFERIMENTI_TERMICI, letturaTermica } from "../core/auto-termica.js";
+import {
+  CASELLE_TERMICHE,
+  RIFERIMENTI_TERMICI,
+  letturaTermica,
+  ruoteDellAuto,
+} from "../core/auto-termica.js";
 import { TIPI_MOTORE, tipoMotore } from "../core/vehicle-model.js";
 import { activeVehicle, bozzaAperta, editedVehicle } from "./ev-section.js";
 import { registraTitoloDiPagina, renderPageMastheads } from "./page-masthead-section.js";
@@ -98,9 +103,25 @@ export function etichettaDellaCasella(ref) {
       return t("Carburante consumato in totale (L)", "Total fuel used (L)");
     case "dm.ev_pneumatici":
       return t("Pressione pneumatici", "Tyre pressure");
+    case "dm.ev_pneumatico_ant_sx":
+      return `${t("Pressione pneumatici", "Tyre pressure")} — ${parolaDellaRuota("antSx")}`;
+    case "dm.ev_pneumatico_ant_dx":
+      return `${t("Pressione pneumatici", "Tyre pressure")} — ${parolaDellaRuota("antDx")}`;
+    case "dm.ev_pneumatico_post_sx":
+      return `${t("Pressione pneumatici", "Tyre pressure")} — ${parolaDellaRuota("postSx")}`;
+    case "dm.ev_pneumatico_post_dx":
+      return `${t("Pressione pneumatici", "Tyre pressure")} — ${parolaDellaRuota("postDx")}`;
     default:
       return clean(ref);
   }
+}
+
+/* Come si chiama ogni ruota, guardando l'auto dall'alto con il muso in su. */
+export function parolaDellaRuota(ruota) {
+  if (ruota === "antSx") return t("Anteriore sinistro", "Front left");
+  if (ruota === "antDx") return t("Anteriore destro", "Front right");
+  if (ruota === "postSx") return t("Posteriore sinistro", "Rear left");
+  return t("Posteriore destro", "Rear right");
 }
 
 function parolaDellePortiere(codice) {
@@ -209,6 +230,59 @@ function misura(glifo, etichetta, valore, unita, ref, cifre = 0) {
   </button>`;
 }
 
+/* Le quattro ruote come stanno sull'auto: due davanti, due dietro.
+ *
+ * «E' possibile inserire un solo pneumatico, spero al prossimo rilascio sia
+ * possibile inserirne 4» (#319). Chi ne ha mappata una sola vede la casella di
+ * sempre, identica; chi ne ha mappate due o piu' vede il quadretto, e quelle
+ * che non ha mappato restano vuote invece di sparire — una gomma che manca si
+ * vede meglio di una che non c'e'. */
+function gomma(voce) {
+  const nome = parolaDellaRuota(voce.ruota);
+  if (!voce) return "";
+  if (voce.pressione !== null)
+    return `<button type="button" class="dm-termica-gomma" data-dm-storico="${esc(voce.ref)}" data-dm-nome="${esc(nome)}">
+      <small>${esc(nome)}</small><b>${esc(formatNumber(voce.pressione, 1))}<em>${esc(voce.unita ? ` ${voce.unita}` : "")}</em></b>
+    </button>`;
+  return `<span class="dm-termica-gomma" data-tono="${voce.avviso ? "attento" : "bene"}">
+    <small>${esc(nome)}</small><b>${esc(voce.avviso ? t("Da controllare", "Check it") : "OK")}</b>
+  </span>`;
+}
+
+function gommeMarkup(lettura) {
+  const ruote = ruoteDellAuto(lettura);
+  const riepilogo = lettura.pneumatici;
+  const riassunto = !riepilogo
+    ? ""
+    : riepilogo.pressione !== null
+      ? misura("🛞", t("Pneumatici", "Tyres"), riepilogo.pressione, ` ${riepilogo.unita}`, "dm.ev_pneumatici", 1)
+      : pillola("🛞", riepilogo.avviso ? t("Pneumatici da controllare", "Check the tyres") : t("Pneumatici a posto", "Tyres fine"), riepilogo.avviso ? "attento" : "bene");
+  if (!ruote.length) return { riassunto, quadretto: "" };
+  const perRuota = new Map(ruote.map((voce) => [voce.ruota, voce]));
+  const cella = (ruota) => {
+    const voce = perRuota.get(ruota);
+    return voce
+      ? gomma(voce)
+      : `<span class="dm-termica-gomma" data-vuota="true"><small>${esc(parolaDellaRuota(ruota))}</small><b>—</b></span>`;
+  };
+  const quadretto = `<div class="dm-termica-gomme">
+      <span class="dm-termica-gomme-titolo"><i aria-hidden="true">🛞</i>${esc(t("Pneumatici", "Tyres"))}</span>
+      <div class="dm-termica-gomme-quadro">
+        ${cella("antSx")}${cella("antDx")}${cella("postSx")}${cella("postDx")}
+      </div>
+    </div>`;
+  return { riassunto, quadretto };
+}
+
+/* Sull'auto elettrica il blocco porta solo le gomme, con la sua testata. */
+function gommeSoleMarkup(gomme) {
+  return `<div class="dm-termica-testa">
+      <span class="dm-termica-titolo">${esc(t("Pneumatici", "Tyres"))}</span>
+    </div>
+    ${gomme.quadretto}
+    ${gomme.riassunto ? `<div class="dm-termica-griglia">${gomme.riassunto}</div>` : ""}`;
+}
+
 function quadroMarkup(lettura, tipo) {
   const pillole = [];
   if (lettura.motore === true || lettura.motore === false)
@@ -244,20 +318,16 @@ function quadroMarkup(lettura, tipo) {
     misura("🧭", t("Odometro", "Odometer"), lettura.odometro, ` ${lettura.odometroUnita}`, "dm.ev_odometro"),
     misura("🧭", t("Ultimo viaggio", "Last trip"), lettura.ultimoViaggio, " km", "dm.ev_ultimo_viaggio", 1),
   ].join("");
-  const pneumatici = lettura.pneumatici;
+  const gomme = gommeMarkup(lettura);
   const tessere = [
     misura("🔋", t("Batteria 12 V", "12 V battery"), lettura.batteriaServizio, "%", "dm.ev_batteria_servizio"),
     misura("🛢️", t("Olio", "Oil"), lettura.olio, "°", "dm.ev_temperatura_olio"),
     misura("🌡️", t("Esterna", "Outside"), lettura.esterna, "°", "dm.ev_temperatura_esterna"),
     misura("⛽", t("Consumato in totale", "Total fuel used"), lettura.carburanteTotale, " L", "dm.ev_carburante_totale"),
-    pneumatici
-      ? pneumatici.pressione !== null
-        ? misura("🛞", t("Pneumatici", "Tyres"), pneumatici.pressione, ` ${pneumatici.unita}`, "dm.ev_pneumatici", 1)
-        : pillola("🛞", pneumatici.avviso ? t("Pneumatici da controllare", "Check the tyres") : t("Pneumatici a posto", "Tyres fine"), pneumatici.avviso ? "attento" : "bene")
-      : "",
+    gomme.riassunto,
   ].join("");
   const vuoto =
-    !serbatoio && !righe && !tessere && !pillole.length
+    !serbatoio && !righe && !tessere && !gomme.quadretto && !pillole.length
       ? `<div class="dm-termica-vuoto">${esc(
           t(
             "Compila le caselle dell'auto — carburante, autonomia, portiere, motore — dalla scheda Auto della configurazione.",
@@ -271,6 +341,7 @@ function quadroMarkup(lettura, tipo) {
     </div>
     <div class="dm-termica-quadro">${serbatoio}<div class="dm-termica-righe">${righe}</div></div>
     ${tessere ? `<div class="dm-termica-griglia">${tessere}</div>` : ""}
+    ${gomme.quadretto}
     ${vuoto}`;
 }
 
@@ -288,12 +359,22 @@ function dipingi() {
     } catch (_error) {}
   }
   let blocco = page.querySelector(":scope .dm-termica");
-  if (!tipo) {
+  const lettura = letturaTermica(auto?.ov || auto?.overrides || {}, allStates(), root.resolveEntity);
+  /* Le gomme non sono del motore.
+   *
+   * Il quadro termico parla di carburante, olio e scarico, e su un'auto
+   * elettrica non si disegna: giusto. Le gomme pero' stavano dentro quel
+   * quadro, e sparivano con lui — chi ha un'elettrica compilava le caselle in
+   * configurazione e non le vedeva da nessuna parte, e il TPMS ce l'hanno
+   * anche loro. Quando il motore non e' termico resta solo il quadretto delle
+   * ruote, che vale per qualunque auto. */
+  const gomme = gommeMarkup(lettura);
+  const soloGomme = !tipo;
+  if (soloGomme && !gomme.quadretto && !gomme.riassunto) {
     if (blocco) blocco.remove();
     state.firma = "";
     return;
   }
-  const lettura = letturaTermica(auto?.ov || auto?.overrides || {}, allStates(), root.resolveEntity);
   const firma = JSON.stringify([tipo, lettura]);
   if (state.firma === firma && blocco) return;
   state.firma = firma;
@@ -302,8 +383,9 @@ function dipingi() {
     blocco.className = "dm-termica";
     hero.insertAdjacentElement("afterend", blocco);
   }
+  blocco.dataset.soloGomme = String(soloGomme);
   blocco.dataset.attenzione = String(Boolean(lettura.attenzione));
-  blocco.innerHTML = quadroMarkup(lettura, tipo);
+  blocco.innerHTML = soloGomme ? gommeSoleMarkup(gomme) : quadroMarkup(lettura, tipo);
 }
 
 function schedule() {
@@ -408,6 +490,36 @@ function installStyles() {
     #page-ev .dm-termica-misura b{font-size:17px;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums}
     #page-ev .dm-termica-misura b em{font-style:normal;font-size:.7em;font-weight:800;opacity:.75}
     #page-ev .dm-termica-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+
+    /* Le quattro ruote, disposte come stanno sull'auto: due davanti, due
+       dietro (#319). La corsia in mezzo e' l'auto, e non serve disegnarla. */
+    #page-ev .dm-termica-gomme{display:grid;gap:8px}
+    #page-ev .dm-termica-gomme-titolo{
+      display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:900;
+      letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim,#64748b)}
+    #page-ev .dm-termica-gomme-titolo i{font-style:normal;font-size:13px}
+    #page-ev .dm-termica-gomme-quadro{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 34px;
+      position:relative;padding:2px 0}
+    #page-ev .dm-termica-gomme-quadro::before{
+      content:"";position:absolute;top:4px;bottom:4px;left:50%;width:2px;
+      transform:translateX(-50%);border-radius:2px;background:var(--surface-3,#e2e8f0)}
+    #page-ev .dm-termica-gomma{
+      display:grid;gap:1px;padding:8px 12px;border-radius:14px;text-align:left;min-width:0;
+      border:1px solid var(--card-border,#e2e8f0);background:var(--surface-2,#f8fafc);
+      font:inherit;color:var(--text,#0f172a)}
+    #page-ev button.dm-termica-gomma{cursor:pointer}
+    #page-ev .dm-termica-gomma small{
+      font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+      color:var(--text-dim,#64748b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #page-ev .dm-termica-gomma b{
+      font-size:17px;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums}
+    #page-ev .dm-termica-gomma b em{font-style:normal;font-size:.7em;font-weight:800;opacity:.75}
+    #page-ev .dm-termica-gomma[data-tono="attento"]{
+      border-color:rgba(245,158,11,.5);background:#fef3c7;color:#b45309}
+    #page-ev .dm-termica-gomma[data-tono="bene"] b{font-size:13px;color:#166534}
+    #page-ev .dm-termica-gomma[data-vuota="true"]{border-style:dashed;background:transparent}
+    #page-ev .dm-termica-gomma[data-vuota="true"] b{color:var(--text-dim,#94a3b8)}
     #page-ev .dm-termica-vuoto{font-size:12px;font-weight:700;color:var(--text-dim,#64748b);text-align:center;padding:6px}
 
     #ed-body .dm-termica-tipo{display:block;margin:0 0 10px}

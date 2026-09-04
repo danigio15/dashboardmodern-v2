@@ -190,7 +190,11 @@ export function loadsConfigModel({
     const groupMeta = groupById.get(group);
     // Appliances live in the canonical section; the legacy extras are only
     // consulted for the ones a previous release never mirrored across.
-    const canonical = all.filter(subloadOf(group)).map((child, at) => normalizeChild(child, at));
+    /* Solo i figli di QUESTO impianto (revisione della 1.4.7): due impianti
+     * numerano i cerchi allo stesso modo, e i figli del «carico-1» dell'altro
+     * impianto finivano nel modello di questo — e al salvataggio ci venivano
+     * scritti una seconda volta, rinominati. */
+    const canonical = suoi.filter(subloadOf(group)).map((child, at) => normalizeChild(child, at));
     const known = new Set(canonical.map((child) => child.id));
     // An appliance assigned to this circle from the Appliances editor belongs
     // here too, but it is configured over there: shown, never rewritten.
@@ -332,10 +336,39 @@ function conSpecchio(record) {
  * report options, thresholds, per-device pricing — are carried over untouched
  * rather than dropped on save. */
 export function loadsConfigToSections(model = [], previous = [], plant = null) {
-  const before = new Map(array(previous).map((item) => [clean(item.id), item]));
   /* L'impianto di cui parla questo modello. Il primo si scrive vuoto: e' il
    * valore che una configurazione a un impianto solo ha sempre avuto. */
   const impianto = clean(plant);
+  /* Quello che appartiene a un ALTRO impianto e quello che e' di questo.
+   *
+   * Erano un'unica mappa per id, e gli id di due impianti coincidono: ogni
+   * maschera numera i suoi cerchi «carico-1», «carico-2»… per conto suo. Cosi'
+   * il «carico-1» di casa Donato prendeva i campi tenuti del «carico-1» di casa
+   * Giovanni, e al salvataggio quello di casa Giovanni non veniva piu' rimesso
+   * perche' «c'era gia'» (#292, dal campo: «configurando un carico su uno dei
+   * due impianti, dopo il salvataggio cancella quelli sull'altro»). Adesso i
+   * campi tenuti si prendono solo dal proprio impianto, e un id che l'altro
+   * impianto usa gia' si rinomina col nome dell'impianto davanti. */
+  const altroImpianto = (item) =>
+    Boolean(impianto !== null) && clean(item?.[LOAD_PLANT_FIELD]) !== impianto;
+  const altrui = array(previous).filter((item) => altroImpianto(item));
+  const idAltrui = new Set(altrui.map((item) => clean(item?.id)).filter(Boolean));
+  const before = new Map(
+    array(previous)
+      .filter((item) => !altroImpianto(item))
+      .map((item) => [clean(item.id), item]),
+  );
+  const presi = new Set();
+  const idLibero = (voluto) => {
+    const base = clean(voluto);
+    let id = base;
+    if (idAltrui.has(id)) id = `${impianto || "impianto"}-${base}`;
+    let contatore = 2;
+    while (idAltrui.has(id) || presi.has(id))
+      id = `${impianto || "impianto"}-${base}-${contatore++}`;
+    presi.add(id);
+    return id;
+  };
   const loads = [];
   const groups = [];
   const subloads = {};
@@ -344,9 +377,12 @@ export function loadsConfigToSections(model = [], previous = [], plant = null) {
   array(model)
     .slice(0, MAX_FLOW_LOADS)
     .forEach((load, index) => {
-      const id = clean(load.id) || `carico-${index + 1}`;
-      const group = clean(load.group) || id;
-      const kept = before.get(id) || {};
+      const idVoluto = clean(load.id) || `carico-${index + 1}`;
+      const id = idLibero(idVoluto);
+      /* Il gruppo segue l'id quando non ha un nome suo: rinominato l'uno,
+       * rinominato l'altro, cosi' gli elettrodomestici restano nel cerchio. */
+      const group = clean(load.group) && clean(load.group) !== idVoluto ? clean(load.group) : id;
+      const kept = before.get(idVoluto) || {};
       loads.push(
         conSpecchio({
           ...kept,
@@ -401,7 +437,7 @@ export function loadsConfigToSections(model = [], previous = [], plant = null) {
         loads.push(
           conSpecchio({
             ...childKept,
-            id: clean(child.id),
+            id: idLibero(clean(child.id)),
             /* Un elettrodomestico sta nell'impianto del suo cerchio: scriverlo
              * qui e' cio' che permette, piu' sotto, di riconoscere in una riga
              * sola tutto quello che appartiene a un altro impianto. */
@@ -448,11 +484,11 @@ export function loadsConfigToSections(model = [], previous = [], plant = null) {
    * tutto quello che appartiene a un ALTRO impianto: la maschera ne mostra
    * uno per volta, e salvare «casa Giovanni» non puo' cancellare i carichi di
    * «casa Donato» solo perche' non erano sullo schermo. */
-  const altroImpianto = (item) =>
-    Boolean(impianto !== null) && clean(item?.[LOAD_PLANT_FIELD]) !== impianto;
+  for (const item of altrui) loads.push(item);
   for (const item of array(previous))
     if (
-      (item?.category === "manual-report" || altroImpianto(item)) &&
+      item?.category === "manual-report" &&
+      !altroImpianto(item) &&
       !loads.some((entry) => clean(entry.id) === clean(item.id))
     )
       loads.push(item);

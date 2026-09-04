@@ -716,8 +716,28 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // attributi dell'unita', con la casella nella scheda del clima.
   // 242 con «Sostieni il progetto» (`sections/sostieni-il-progetto-section.js`):
   // la pastiglia PayPal nella colonna delle schede e la card in Impostazioni.
+  // 247 con l'elettrodomestico che arriva da un'integrazione
+  // (`core/appliance-device-binding.js`,
+  // `sections/appliance-integration-section.js`): «far in modo che le persone
+  // possano integrare i loro elettrodomestici sfruttando le integrazioni, sia
+  // ufficiali che presenti su HACS, creando un menu». Il nucleo e' il
+  // ragionamento — dato un dispositivo e le sue entita', che apparecchio e',
+  // quale entita' fa da potenza e quale da tempo rimanente, come si dividono
+  // le altre nel dettaglio — e si prova su una lavatrice di hOn finta; la
+  // sezione e' il menu integrazione → dispositivo, il tasto in cima alla
+  // scheda e il catalogo letto dal backend, che la finestra di modifica e il
+  // dettaglio dell'apparecchio leggono da lei.
+  // 248 con quello che l'elettrodomestico sa di se' (`core/appliance-program.js`):
+  // «le card si devono riadattare in base alle informazioni presenti
+  // nell'integrazione importata: la lavatrice deve fornire lo stato in corso,
+  // esempio lavaggio, con temperatura lavaggio eccetera». Una card che dice
+  // IN FUNZIONE e 1180 W dice la verita' e non dice niente. Il vocabolario
+  // delle fasi — washing, spin, weighting — e la ricerca dei quattro numeri
+  // che uno legge sull'oblo' stanno nel nucleo, perche' sono una tabella e un
+  // po' di aritmetica e si provano senza accendere niente; la card e la
+  // finestra li disegnano e basta.
   assert.ok(
-    relative.length <= 245,
+    relative.length <= 248,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

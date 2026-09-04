@@ -232,7 +232,8 @@ export function filterShowcaseModels(models = [], ui = {}) {
       return true;
     })
     .sort((left, right) => {
-      if (sort === "power-asc") return watts(left) - watts(right) || left.name.localeCompare(right.name);
+      if (sort === "power-asc")
+        return watts(left) - watts(right) || left.name.localeCompare(right.name);
       if (sort === "name") return left.name.localeCompare(right.name);
       if (sort === "room")
         return (
@@ -264,7 +265,10 @@ export function filoDaZero(samples = [], width = 100, height = 28) {
   const values = samples.map((value) => Math.max(0, finiteOrNull(value) ?? 0));
   if (values.length < 2) {
     const y = height - 3;
-    return { line: `M0 ${y} L${width} ${y}`, area: `M0 ${y} L${width} ${y} L${width} ${height} L0 ${height} Z` };
+    return {
+      line: `M0 ${y} L${width} ${y}`,
+      area: `M0 ${y} L${width} ${y} L${width} ${height} L0 ${height} Z`,
+    };
   }
   const max = Math.max(1, ...values);
   const top = 3;
@@ -274,9 +278,7 @@ export function filoDaZero(samples = [], width = 100, height = 28) {
     const y = bottom - (value / max) * (bottom - top);
     return [Math.round(x * 100) / 100, Math.round(y * 100) / 100];
   });
-  const line = points
-    .map(([x, y], index) => `${index ? "L" : "M"}${x} ${y}`)
-    .join(" ");
+  const line = points.map(([x, y], index) => `${index ? "L" : "M"}${x} ${y}`).join(" ");
   return {
     line,
     area: `${line} L${width} ${height} L0 ${height} Z`,
@@ -342,6 +344,31 @@ function ringMarkup(model, labels) {
     </div>`;
 }
 
+/* La striscia che dice cosa sta facendo.
+ *
+ * «Le card si devono riadattare in base alle informazioni presenti
+ * nell'integrazione importata: la lavatrice deve fornire lo stato in corso,
+ * esempio lavaggio, con temperatura lavaggio eccetera.» Una card che dice
+ * IN FUNZIONE e 1180 W dice la verita' e non dice niente: quei watt li fa
+ * anche un forno. Qui c'e' quello che uno guarda sull'oblo' — a che punto e'
+ * il ciclo, a che gradi, a quanti giri, che programma — e c'e' solo per chi
+ * ha un'integrazione che lo pubblica: su una presa smart la striscia non
+ * esiste e la card resta quella di prima. */
+function programMarkup(model) {
+  const program = model.program;
+  if (!program?.phase && !program?.chips?.length) return "";
+  const fase = program.phase
+    ? `<span class="dm-ap-phase"><i aria-hidden="true">${program.phase.glifo}</i>${esc(program.phase.label)}</span>`
+    : "";
+  const chips = (program.chips || [])
+    .map(
+      (chip) =>
+        `<span class="dm-ap-fact" data-fact="${esc(chip.key)}"><i aria-hidden="true">${chip.glifo}</i>${esc(chip.label)}</span>`,
+    )
+    .join("");
+  return `<div class="dm-ap-program">${fase}${chips}</div>`;
+}
+
 function panelMarkup(model, labels) {
   const parts = [];
   const ring = ringMarkup(model, labels);
@@ -363,7 +390,10 @@ function panelMarkup(model, labels) {
   };
   if (temperature)
     meters.push(
-      strisciaTemperatura(temperature, model.temperature2 ? labels.temperature1 : labels.temperature),
+      strisciaTemperatura(
+        temperature,
+        model.temperature2 ? labels.temperature1 : labels.temperature,
+      ),
     );
   if (model.temperature2) meters.push(strisciaTemperatura(model.temperature2, labels.temperature2));
   if (showPower) {
@@ -422,6 +452,7 @@ export function buildCardMarkup(model, labels = copy()) {
       ${controls}
     </div>
     <div class="dm-ap-hero${heroHasImage(model) ? " has-image" : ""}">${heroMarkup(model)}${heroHasImage(model) ? heroFxMarkup(model) : ""}</div>
+    ${programMarkup(model)}
     ${panelMarkup(model, labels)}
     ${cycleMarkup(model, labels)}
   </article>`;
@@ -662,47 +693,47 @@ function renderSidebar(shell, models, counts, rooms, labels) {
   }
   const statesHost = shell.querySelector("[data-dm-states]");
   if (statesHost) {
-    scriviSeCambia(statesHost, [
-      sideItem({
-        key: "running",
-        kind: "state",
-        dotClass: "run",
-        label: labels.running,
-        count: counts.running,
-        active: state.ui.filter === "running",
-      }),
-      sideItem({
-        key: "standby",
-        kind: "state",
-        dotClass: "standby",
-        label: labels.standby,
-        count: counts.standby,
-        active: state.ui.filter === "standby",
-      }),
-      sideItem({
-        key: "off",
-        kind: "state",
-        dotClass: "off",
-        label: labels.off,
-        count: counts.off,
-        active: state.ui.filter === "off",
-      }),
-      sideItem({
-        key: "alarm",
-        kind: "state",
-        dotClass: "alarm",
-        label: labels.alarm,
-        count: counts.alarm,
-        active: state.ui.filter === "alarm",
-      }),
-    ].join(""));
+    scriviSeCambia(
+      statesHost,
+      [
+        sideItem({
+          key: "running",
+          kind: "state",
+          dotClass: "run",
+          label: labels.running,
+          count: counts.running,
+          active: state.ui.filter === "running",
+        }),
+        sideItem({
+          key: "standby",
+          kind: "state",
+          dotClass: "standby",
+          label: labels.standby,
+          count: counts.standby,
+          active: state.ui.filter === "standby",
+        }),
+        sideItem({
+          key: "off",
+          kind: "state",
+          dotClass: "off",
+          label: labels.off,
+          count: counts.off,
+          active: state.ui.filter === "off",
+        }),
+        sideItem({
+          key: "alarm",
+          kind: "state",
+          dotClass: "alarm",
+          label: labels.alarm,
+          count: counts.alarm,
+          active: state.ui.filter === "alarm",
+        }),
+      ].join(""),
+    );
   }
   const overview = shell.querySelector("[data-dm-side-overview]");
   if (overview)
-    overview.classList.toggle(
-      "active",
-      state.ui.filter === "all" && state.ui.room === "all",
-    );
+    overview.classList.toggle("active", state.ui.filter === "all" && state.ui.room === "all");
   const watts = shell.querySelector("[data-dm-total-watts]");
   if (watts) {
     const label = formatPowerLabel(counts.watts);
@@ -724,9 +755,7 @@ function renderSidebar(shell, models, counts, rooms, labels) {
 function renderToolbar(shell) {
   shell
     .querySelectorAll("[data-dm-chips] [data-dm-filter]")
-    .forEach((chip) =>
-      chip.classList.toggle("active", chip.dataset.dmFilter === state.ui.filter),
-    );
+    .forEach((chip) => chip.classList.toggle("active", chip.dataset.dmFilter === state.ui.filter));
   shell
     .querySelectorAll("[data-dm-view]")
     .forEach((button) =>
@@ -794,6 +823,40 @@ function renderGrid(shell, visible, labels) {
 }
 
 /* ── main render ─────────────────────────────────────────────────────── */
+
+/* Lo stesso modello che disegna la card della sezione, per chi la vuole
+ * altrove — la finestra del dettaglio, che deve mostrare la stessa scheda e
+ * non una seconda versione che col tempo diverge. Ricalcolato ogni volta:
+ * costa poco e non c'e' una cache da tenere in bolla. */
+export function applianceModelForIndex(index, options = {}) {
+  const device = devices()[Number(index)];
+  if (!device) return null;
+  return applianceCardModel(device, allStates(), {
+    rooms: roomList(),
+    locale: activeLocale(),
+    now: Date.now(),
+    priceKwh: globalPriceKwh(),
+    record: tracker().record(deviceKey(device, Number(index))),
+    index: Number(index),
+    ...options,
+  });
+}
+
+/** Lo stesso modello, cercato per id invece che per posizione. */
+export function applianceModelById(id) {
+  const cercato = clean(id);
+  if (!cercato) return null;
+  const indice = devices().findIndex(
+    (device, posizione) =>
+      clean(device?.id) === cercato || deviceKey(device, posizione) === cercato,
+  );
+  return indice < 0 ? null : applianceModelForIndex(indice);
+}
+
+/** Le parole della card, per chi la disegna fuori dalla sezione. */
+export function cardLabels() {
+  return copy();
+}
 
 export function renderShowcase(force) {
   const host = doc?.getElementById?.("page-appliances-main");
@@ -1032,9 +1095,7 @@ export function installApplianceShowcaseSection() {
       "click",
       (event) => {
         if (
-          event.target?.closest?.(
-            "[data-tab='appliances-main'],.tab[data-tab='appliances-main']",
-          )
+          event.target?.closest?.("[data-tab='appliances-main'],.tab[data-tab='appliances-main']")
         ) {
           root.queueMicrotask?.(() => renderShowcase(true));
         }
@@ -1287,6 +1348,16 @@ function showcaseCss() {
 .dm-ap-fx-cold{background:radial-gradient(60% 50% at 50% 45%,rgba(125,211,252,.35),transparent 70%);animation:dmHeatPulse 2.6s ease-in-out infinite}
 .dm-ap-fx-pulse{background:radial-gradient(58% 48% at 50% 52%,rgba(56,189,248,.28),transparent 72%);animation:dmHeatPulse 2.4s ease-in-out infinite}
 .dm-ap-fx-frost{display:grid;place-items:end center;position:absolute;right:12px;top:12px;left:auto;bottom:auto;color:#38bdf8;animation:dmFrost 3s ease-in-out infinite}
+/* la striscia del programma */
+.dm-appl-shell .dm-ap-program{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 12px 0;min-width:0}
+.dm-appl-shell .dm-ap-program:empty{display:none}
+.dm-appl-shell .dm-ap-phase{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:900;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid color-mix(in srgb,var(--dm-blue) 30%,transparent);background:color-mix(in srgb,var(--dm-blue) 13%,transparent);color:color-mix(in srgb,var(--dm-blue-deep) 88%,var(--dm-shell-text))}
+.dm-appl-shell .dm-ap-card.is-run .dm-ap-phase{border-color:color-mix(in srgb,#f59e0b 34%,transparent);background:color-mix(in srgb,#f59e0b 15%,transparent);color:color-mix(in srgb,#b45309 88%,var(--dm-shell-text))}
+.dm-appl-shell .dm-ap-phase i{font-style:normal;font-size:12.5px;line-height:1}
+.dm-appl-shell .dm-ap-fact{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--dm-border);background:var(--dm-soft);color:var(--dm-dim)}
+.dm-appl-shell .dm-ap-fact i{font-style:normal;font-size:11px;line-height:1}
+.dm-appl-shell .dm-ap-fact[data-fact="programma"]{min-width:0;max-width:100%}
+@media(max-width:520px){.dm-appl-shell .dm-ap-program{margin:8px 10px 0;gap:5px}.dm-appl-shell .dm-ap-fact{font-size:10.5px;padding:3px 8px}}
 /* list view */
 .dm-appl-shell[data-view="list"] #appl-grid-overview.dm-appl-grid,.dm-appl-shell[data-view="list"] .dm-appl-grid{grid-template-columns:1fr;gap:10px}
 .dm-appl-shell[data-view="list"] .appl-wide-card.dm-ap-card{display:grid;grid-template-columns:64px minmax(150px,.85fr) minmax(220px,1.15fr) minmax(0,1.5fr);grid-template-areas:"hero top panel cycle";align-items:center;gap:14px;padding:10px 14px}
@@ -1298,6 +1369,7 @@ function showcaseCss() {
 .dm-appl-shell[data-view="list"] .dm-ap-hero .dm-ap-fx{display:none}
 .dm-appl-shell[data-view="list"] .dm-ap-img{padding:2px}
 .dm-appl-shell[data-view="list"] .dm-ap-panel{grid-area:panel;margin:0;padding:8px 12px;gap:10px}
+.dm-appl-shell[data-view="list"] .dm-ap-program{grid-area:top;align-self:end;margin:0;flex-basis:100%}
 .dm-appl-shell[data-view="list"] .dm-ap-ring{width:50px;height:50px;flex:0 0 50px}
 .dm-appl-shell[data-view="list"] .dm-ap-ring-copy b{font-size:11px}
 .dm-appl-shell[data-view="list"] .dm-ap-ring-copy small{font-size:5px}

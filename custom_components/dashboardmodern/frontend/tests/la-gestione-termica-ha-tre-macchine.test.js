@@ -298,3 +298,26 @@ test("la pagina mostra una macchina alla volta, con la fila per cambiare", async
    * configurazione, ma la pagina ne disegnava uno. */
   assert.match(sezione, /const quali = attiva === "caldaia" \? caldaie : letture;/);
 });
+
+test("la fila delle macchine si tocca anche sopra la scena (#281, dal campo)", async () => {
+  /* «Ho aggiunto correttamente le due caldaie. Pero' nella sezione Gestione
+   * termica vedo che ci sono i due tab relativi alle due caldaie ma non mi fa
+   * selezionare il secondo.» La fila dei nomi sta in cima al palco, e la scena
+   * e' assoluta e copre tutto il palco: i nomi si vedevano attraverso il suo
+   * fondo trasparente, ma il tocco arrivava alla scena e non a loro. La fila
+   * va sopra la scena — e sopra i nodi, che arrivano a quattro. */
+  const sezione = await readFile(
+    new URL("../src/sections/impianti-termici-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezione, /\.dm-it-scena\{position:absolute;inset:0\}/);
+  assert.match(
+    sezione,
+    /\.dm-it-stage>\.dm-it-quali\{\s*position:relative;z-index:6;margin:0;padding:14px 18px 0\}/,
+  );
+  const zNodi = [...sezione.matchAll(/\.dm-it-(?:nodo|comandi-caldaia)\{[^}]*z-index:(\d+)/g)].map(
+    (presa) => Number(presa[1]),
+  );
+  assert.ok(zNodi.length >= 2, "i nodi della scena dichiarano il loro piano");
+  assert.ok(Math.max(...zNodi) < 6, "la fila sta sopra ogni nodo della scena");
+});

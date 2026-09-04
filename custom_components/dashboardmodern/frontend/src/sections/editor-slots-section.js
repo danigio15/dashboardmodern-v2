@@ -259,6 +259,15 @@ const FIELD_CAPTIONS = Object.freeze({
   "ed-cl-ent": ["Entità clima", "Climate entity"],
   "wz-cl-ent": ["Entità clima", "Climate entity"],
   "ed-cl-valvola": ["Valvola TRV (posizione %)", "TRV valve (position %)"],
+  /* Le caselle in piu' della scheda Finestre: la stessa carta di «Entita'
+   * tapparella», col nome scritto da qui. */
+  "ed-tp-down": ["Relè di discesa", "Down relay"],
+  "ed-tp-tenda": ["Tenda", "Curtain"],
+  "ed-tp-down-tenda": ["Tenda · relè di discesa", "Curtain · down relay"],
+  "ed-tp-tendasole": ["Tenda da sole", "Awning"],
+  "ed-tp-down-tendasole": ["Tenda da sole · relè di discesa", "Awning · down relay"],
+  "ed-tp-contact": ["Sensore apertura infisso", "Window contact sensor"],
+  "ed-tp-inferriata": ["Sensore apertura inferriata", "Grate contact sensor"],
   "ed-st2-temp": ["Sensore temperatura", "Temperature sensor"],
   "ed-tp-ent": ["Entità tapparella", "Cover entity"],
   "ed-pl-temp": ["Temperatura piscina", "Pool temperature"],

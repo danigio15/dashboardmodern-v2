@@ -15,6 +15,14 @@ import { expect, test } from "@playwright/test";
  * sta e indovina `homeassistant.local:8123`. Qui quell'host non risponde
  * apposta: se la richiesta ci va, la finestra scrive «Failed to fetch», che e'
  * esattamente la schermata arrivata dal campo.
+ *
+ * Poi il campo ha detto un'altra cosa (dalla 1.4.7): dentro il pannello la
+ * plancia non ha un gettone, e una richiesta REST che «torna a casa» risponde
+ * 401 — con una notifica «Login attempt failed» a ogni giro. La cronologia
+ * non esce piu' di casa via REST: la domanda passa dal socket autenticato, e
+ * per sette giorni prova prima le statistiche del Recorder (che un contatto
+ * non ha) e poi la storia. Il socket finto qui sotto risponde come farebbe
+ * Home Assistant, e la prova guarda che nessuna richiesta REST parta.
  */
 
 /* La pagina che ospita, come la costruisce Home Assistant: una cornice
@@ -51,31 +59,57 @@ const ENTITA = "binary_sensor.internet_di_casa";
 
 const ora = Date.UTC(2026, 8, 3, 12, 0, 0);
 const quando = (oreFa) => new Date(ora - oreFa * 3600000).toISOString();
-const STORIA = [
-  [
-    { state: "on", last_changed: quando(72) },
-    { state: "off", last_changed: quando(30) },
-    { state: "on", last_changed: quando(29) },
-  ],
+/* La storia come la scrive il socket: `s` e `lu` (secondi), non le righe REST. */
+const STORIA_SOCKET = [
+  { s: "on", lu: (ora - 72 * 3600000) / 1000 },
+  { s: "off", lu: (ora - 30 * 3600000) / 1000 },
+  { s: "on", lu: (ora - 29 * 3600000) / 1000 },
 ];
 
 async function planciaNellaCornice(page) {
-  await page.addInitScript(() => {
-    class PonteFinto extends EventTarget {
-      static OPEN = 1;
-      readyState = 1;
-      constructor() {
-        super();
-        setTimeout(() => this.dispatchEvent(new Event("open")), 0);
+  await page.addInitScript(
+    ({ storia, entita }) => {
+      /* Le domande arrivate al socket, per poterle guardare dalla prova. */
+      window.__dmDomande = [];
+      class PonteFinto extends EventTarget {
+        static OPEN = 1;
+        readyState = 1;
+        constructor() {
+          super();
+          setTimeout(() => this.dispatchEvent(new Event("open")), 0);
+        }
+        send(raw) {
+          let m;
+          try {
+            m = JSON.parse(raw);
+          } catch (_errore) {
+            return;
+          }
+          if (!m || m.type === "auth") return;
+          window.__dmDomande.push(m);
+          let result = null;
+          /* Un contatto non ha statistiche: Home Assistant risponde vuoto. */
+          if (m.type === "recorder/statistics_during_period") result = {};
+          if (m.type === "history/history_during_period") {
+            result = {};
+            for (const id of m.entity_ids || []) result[id] = id === entita ? storia : [];
+          }
+          if (result === null) return;
+          setTimeout(() => {
+            this.onmessage?.({
+              data: JSON.stringify({ id: m.id, type: "result", success: true, result }),
+            });
+          }, 0);
+        }
+        close() {}
       }
-      send() {}
-      close() {}
-    }
-    window.WebSocket = PonteFinto;
-    try {
-      localStorage.clear();
-    } catch (_errore) {}
-  });
+      window.WebSocket = PonteFinto;
+      try {
+        localStorage.clear();
+      } catch (_errore) {}
+    },
+    { storia: STORIA_SOCKET, entita: ENTITA },
+  );
   await page.route(`${HOST_URL}*`, (route) =>
     route.fulfill({ status: 200, contentType: "text/html", body: HOST_PAGE }),
   );
@@ -93,7 +127,7 @@ async function planciaNellaCornice(page) {
 }
 
 test.describe("lo storico della connettivita', dentro la cornice", () => {
-  test("la cronologia arriva: l'indirizzo torna a casa e la casella prende il suo nome", async ({
+  test("la cronologia arriva dal socket, e la casella prende il suo nome", async ({
     page,
   }, testInfo) => {
     test.setTimeout(120_000);
@@ -105,17 +139,15 @@ test.describe("lo storico della connettivita', dentro la cornice", () => {
       (route) => route.abort(),
     );
 
+    /* E nemmeno a casa deve arrivare una richiesta REST: senza gettone
+     * risponderebbe 401. Se ne parte una, qui la si vede. */
     const chieste = [];
     await page.route("http://127.0.0.1:4173/api/history/period/**", (route) => {
       chieste.push({
         url: route.request().url(),
         autorizzazione: route.request().headers().authorization ?? "",
       });
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(STORIA),
-      });
+      return route.fulfill({ status: 401, contentType: "application/json", body: "{}" });
     });
 
     const cornice = await planciaNellaCornice(page);
@@ -152,13 +184,18 @@ test.describe("lo storico della connettivita', dentro la cornice", () => {
     await expect(timeline).not.toContainText("Nessun dato storico");
     await expect(timeline.locator(".srv-event-state").first()).toContainText("Online");
 
-    expect(chieste).toHaveLength(1);
-    // L'indirizzo e' quello di casa, e la domanda nomina l'entita' vera.
-    expect(chieste[0].url).toContain(`filter_entity_id=${ENTITA}`);
-    expect(chieste[0].url).not.toContain(CASELLA);
-    expect(chieste[0].url.startsWith("http://127.0.0.1:4173/api/history/period/")).toBe(true);
-    // E il gettone finto della plancia ospitata non parte: si prenderebbe un 401.
-    expect(chieste[0].autorizzazione).not.toContain("__dashboardmodern_hosted__");
+    // Niente REST: la cronologia e' passata dal socket.
+    expect(chieste).toHaveLength(0);
+    const domande = await cornice.evaluate(() => window.__dmDomande);
+    /* Sette giorni: prima le statistiche, che un contatto non ha, poi la
+     * storia. E la domanda nomina l'entita' vera, non la casella. */
+    const statistiche = domande.filter((m) => m.type === "recorder/statistics_during_period");
+    const storie = domande.filter((m) => m.type === "history/history_during_period");
+    expect(statistiche.length).toBeGreaterThanOrEqual(1);
+    expect(statistiche[0].statistic_ids).toEqual([ENTITA]);
+    expect(storie).toHaveLength(1);
+    expect(storie[0].entity_ids).toEqual([ENTITA]);
+    expect(JSON.stringify(storie[0])).not.toContain(CASELLA);
 
     await testInfo.attach("storico-connettivita.png", {
       body: await cornice.locator("#srv-hist-overlay").screenshot(),
@@ -175,17 +212,21 @@ test.describe("lo storico della connettivita', dentro la cornice", () => {
     const chieste = [];
     await page.route("http://127.0.0.1:4173/api/history/period/**", (route) => {
       chieste.push(route.request().url());
-      return route.fulfill({ status: 200, contentType: "application/json", body: "[[]]" });
+      return route.fulfill({ status: 401, contentType: "application/json", body: "{}" });
     });
 
     const cornice = await planciaNellaCornice(page);
     await cornice.evaluate(() => window.apriSrvHistory("connettivita"));
 
-    /* La richiesta parte lo stesso e arriva a casa: quello che manca e' la
+    /* La domanda parte lo stesso, dal socket: quello che manca e' la
      * mappatura, e la risposta vuota, li', e' la verita'. Sostituirla con
      * l'entita' di un'altra casella sarebbe peggio del non rispondere. */
     await expect(cornice.locator("#srv-hist-timeline")).toContainText("Nessun dato storico");
-    expect(chieste).toHaveLength(1);
-    expect(chieste[0]).toContain(`filter_entity_id=${CASELLA}`);
+    expect(chieste).toHaveLength(0);
+    const storie = await cornice.evaluate(() =>
+      window.__dmDomande.filter((m) => m.type === "history/history_during_period"),
+    );
+    expect(storie).toHaveLength(1);
+    expect(storie[0].entity_ids).toEqual([CASELLA]);
   });
 });

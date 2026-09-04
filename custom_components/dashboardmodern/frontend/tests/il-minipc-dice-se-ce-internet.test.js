@@ -152,3 +152,34 @@ test("con nessuna casella compilata la pastiglia non accusa la connessione", () 
   assert.match(sorgente, /raddrizzaLaRete\(page\);/);
   assert.match(sorgente, /if \(nodo && nodo\.textContent !== parola\) nodo\.textContent = parola;/);
 });
+
+test("la pastiglia si corregge nello stesso giro del guscio, non un fotogramma dopo (dal campo)", () => {
+  /* «Nella sezione Mini PC c'e' un continuo sfarfallio.» Il guscio scrive
+   * OFFLINE a ogni evento di stato, la lettura onesta scriveva NON CONFIGURATO
+   * al fotogramma dopo: due parole alternate, dipinte tutte e due. La
+   * correzione e' agganciata al disegno del guscio e parte prima che il
+   * browser dipinga. */
+  const sezione = leggi("sections/minipc-showcase-section.js");
+  assert.match(sezione, /wrapFunction\("render", "__dmMinipcRete", \(\) => \{\s*try \{\s*raddrizzaLaRete\(\);/);
+  assert.match(sezione, /correggiDopoIlGuscio\(\);\s*sampleCpu\(\);\s*renderMinipcShowcase\(\);/);
+  assert.match(sezione, /bindAutoHide\(\);\s*correggiDopoIlGuscio\(\);\s*portaAvantiLaCasella\(\);/);
+  /* Il colore del punto si confronta nella forma in cui il browser lo rilegge
+   * — «#10b981» diventa «rgb(16, 185, 129)» — e sullo stile vero, perche' il
+   * guscio lo riscrive col suo rosso a ogni giro. */
+  assert.match(sezione, /if \(attuale !== colore && attuale !== comeRgb\(colore\)\) punto\.style\.background = colore;/);
+  assert.equal(/punto\.style\.background !== colore\)/.test(sezione), false);
+  /* L'osservatore dello stile lavora solo a pagina a schermo e butta i
+   * verbali del proprio disegno. */
+  assert.match(sezione, /new root\.MutationObserver\(\(\) => \{\s*if \(pageVisible\(\)\) scheduleMinipcShowcase\(\);/);
+  assert.match(sezione, /renderMinipcShowcase\(\);\s*\/\*[\s\S]*?\*\/\s*state\.observer\?\.takeRecords\?\.\(\);/);
+});
+
+test("un colore esadecimale si riconosce anche nella forma rgb del browser", async () => {
+  const { comeRgb } = await import("../src/sections/minipc-showcase-section.js");
+  assert.equal(comeRgb("#94a3b8"), "rgb(148, 163, 184)");
+  assert.equal(comeRgb("#10b981"), "rgb(16, 185, 129)");
+  assert.equal(comeRgb("#EF4444"), "rgb(239, 68, 68)");
+  /* Quello che non e' un esadecimale a sei cifre resta com'e'. */
+  assert.equal(comeRgb("red"), "red");
+  assert.equal(comeRgb(""), "");
+});

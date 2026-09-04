@@ -25,6 +25,10 @@ import {
 } from "../core/todo-model.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
+import { applianceArtwork } from "../core/appliance-artwork.js";
+import { applianceModelById, buildCardMarkup, cardLabels } from "./appliance-showcase-section.js";
+import { RIF_CENTRALE } from "../core/alarm-panel.js";
+import { alarmActiveButton, alarmModeButtons } from "./security-showcase-section.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
   bricioleDellaSezione,
@@ -65,6 +69,7 @@ import {
   TESSERA_PER_IMPIANTO,
   TESSERE_IMPIANTI_KEY,
   comeSiVedeLEnergia,
+  PRIMO_IMPIANTO,
   plantIsConfigured,
   plantKey,
   plantLabel,
@@ -128,7 +133,7 @@ import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
 import {
   CHIAVE_SOGLIA_CHIUSA,
-  coverClosedThreshold,
+  sogliaDellaCopertura,
   coverEntries,
   coverKindLabel,
   coverPositionChoices,
@@ -901,7 +906,7 @@ function coversModel(states) {
           ) === true
         : raw === "opening" ||
           (Number.isFinite(position)
-            ? position > coverClosedThreshold(readJson(CHIAVE_SOGLIA_CHIUSA, 0))
+            ? position > sogliaDellaCopertura(item, readJson(CHIAVE_SOGLIA_CHIUSA, 0))
             : raw === "open");
       return {
         soloSensore: Boolean(soloSensore),
@@ -938,7 +943,7 @@ function coversModel(states) {
 
 function securityModel(states) {
   const fuori = widgetExcludedEntities();
-  const alarm = stateOf(states, "dm.security_centrale_allarme");
+  const alarm = stateOf(states, RIF_CENTRALE);
   /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
   const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
   // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
@@ -1056,13 +1061,16 @@ function lettureDellImpianto(states, impianto, primo) {
   };
 }
 
-function tesseraEnergia(rows, house, today, { key = "energia", label } = {}) {
+function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "" } = {}) {
   if (house == null && !rows.length) return null;
   return {
     key,
     accent: "#f97316",
     icon: "⚡",
     label: label || t("Energia", "Energy"),
+    /* Di quale impianto parla: la sua finestra porta alla sezione aperta su
+     * di lui, non su quello che era rimasto acceso (#286, dal campo). */
+    impianto: clean(impianto),
     value: formatWatts(house),
     caption:
       today == null
@@ -1107,6 +1115,7 @@ function energyModels(states) {
         tesseraEnergia(letture[indice].rows, letture[indice].house, letture[indice].today, {
           key: plantKey("energia", impianto, indice),
           label: plantLabel(impianto, indice, t("Impianto", "Plant")),
+          impianto: clean(impianto?.id) || PRIMO_IMPIANTO,
         }),
       )
       .filter(Boolean);
@@ -2617,13 +2626,52 @@ function mediaDetail(widget) {
  * e nomina quelle aperte — e due tessere che rispondono alla stessa domanda
  * sono due occasioni di rispondere diverso. */
 
+/* L'elenco sorvegliato di un gruppo: quello scritto in configurazione E quello
+ * che il guscio tiene in memoria.
+ *
+ * La lista viva (`GRUPPI_MONITORAGGIO`) si costruisce una volta sola, all'avvio,
+ * leggendo `cd_gruppi_extra`. Tutto quello che arriva dopo — una pila aggiunta
+ * dalla finestra di modifica degli avvisi, che scrive solo la configurazione;
+ * la configurazione che un altro apparecchio ha cambiato e la sincronizzazione
+ * ha portato qui; nel pannello di Home Assistant, la configurazione stessa
+ * quando arriva dopo che il guscio e' partito — la lista viva non lo vede
+ * finche' non si ricarica la pagina. E la tessera leggeva solo lei: «la
+ * batteria attualmente e' al 1% e non compare il widget batteria scarica».
+ *
+ * La configurazione ha ragione: si legge lei per prima, e la lista viva si
+ * somma per quello che ha in piu' (gli avvisi del `config.js`, per dirne uno).
+ * Le voci tolte (`cd_gruppi_removed`) restano fuori — a meno che non siano
+ * state riaggiunte dopo, perche' l'ultimo gesto fatto apposta e' l'aggiunta,
+ * ed e' la stessa regola con cui `riparaAggiunteTolte` mette pace fra le due
+ * liste. */
+export function entitaSorvegliate(chiave, { extras, removed, vive } = {}) {
+  const gruppo = clean(chiave);
+  const elenco = (lista) => (Array.isArray(lista) ? lista.map(clean).filter(Boolean) : []);
+  const scelte = elenco(extras?.[gruppo]);
+  const tolte = new Set(elenco(removed?.[gruppo]).filter((id) => !scelte.includes(id)));
+  const viste = new Set();
+  const uscita = [];
+  for (const id of [...scelte, ...elenco(vive)]) {
+    if (tolte.has(id) || viste.has(id)) continue;
+    viste.add(id);
+    uscita.push(id);
+  }
+  return uscita;
+}
+
 function gruppoEntita(chiave) {
   try {
-    const gruppi = lexicalGlobal("GRUPPI_MONITORAGGIO");
-    const lista = gruppi?.[chiave];
-    if (!Array.isArray(lista)) return [];
+    let vive = [];
+    try {
+      vive = lexicalGlobal("GRUPPI_MONITORAGGIO")?.[chiave];
+    } catch (_error) {}
+    const lista = entitaSorvegliate(chiave, {
+      extras: readJson("cd_gruppi_extra", {}),
+      removed: readJson("cd_gruppi_removed", {}),
+      vive,
+    });
     const fuori = widgetExcludedEntities();
-    return lista.map(clean).filter((entity) => entity && widgetIncludes(entity, fuori));
+    return lista.filter((entity) => widgetIncludes(entity, fuori));
   } catch (_error) {
     return [];
   }
@@ -2677,12 +2725,16 @@ function batteriesModel(states) {
 function floodModel(states) {
   let entities = [];
   try {
-    entities = floodEntities(
+    /* `floodEntities` risponde con l'elenco E il segno del primo avvio, e qui
+     * serve l'elenco. Preso com'era — l'oggetto intero — non era mai un
+     * elenco, e la tessera non compariva nemmeno col sensore bagnato (dal
+     * campo: «quando attivo non segnala lo stato allagamento nei widget»). */
+    ({ entities } = floodEntities(
       readJson("cd_gruppi_extra", {}),
       readJson("cd_gruppi_removed", {}),
       states,
       true,
-    );
+    ));
   } catch (_error) {
     return null;
   }
@@ -2990,12 +3042,16 @@ export function widgetIncludes(entity, excluded = widgetExcludedEntities()) {
  * Gli avvisi personalizzati si governano insieme, sotto la chiave `custom`. */
 export function applyWidgetPreferences(models, preferences = widgetPreferences()) {
   const hidden = new Set(preferences.hidden);
+  /* Le tessere energia degli altri impianti (#286) seguono la posizione di
+   * «Energia»: prima solo la prima la seguiva e le altre restavano in coda. */
   const chiave = (widget) =>
     widget.key.startsWith("custom-")
       ? "custom"
       : widget.key.startsWith("evidenza-")
         ? "evidenza"
-        : widget.key;
+        : eUnaTesseraEnergia(widget.key)
+          ? "energia"
+          : widget.key;
   const rank = (widget) => {
     const nome = chiave(widget);
     const index = preferences.order.indexOf(nome);
@@ -4125,15 +4181,31 @@ function securityDetail(widget, states) {
     const comando = (service, on, icon, label) =>
       `<button type="button" data-dm-w-alarm="${service}" data-on="${on}"
          title="${esc(label)}" aria-label="${esc(label)}">${icon}</button>`;
+    /* «Nel widget sicurezza le icone e la relativa funzione di attivazione dei
+     * comandi dell'antifurto sono diverse rispetto alla sezione dedicata dove
+     * tutto è funzionante e in linea con l'antifurto» (#316).
+     *
+     * Qui la fila era scritta a mano — Fuori, Notte, Sblocca, sempre quelle
+     * tre, sempre quelle icone — mentre la pagina Sicurezza la chiede a
+     * `core/alarm-panel.js`: gli inserimenti che la centrale DICHIARA, meno
+     * quelli tolti in configurazione. Due file diverse per la stessa centrale:
+     * un tasto Notte su una Ring che quella modalita' non ce l'ha e non fa
+     * niente, nessun tasto Casa su una centrale che lo accetta, e il tasto
+     * acceso sbagliato — 🏠 «Fuori» acceso mentre la casa e' inserita in
+     * `armed_home`, o Sblocca acceso durante `arming`, che su un antifurto
+     * vuol dire dire che la casa e' aperta mentre si sta chiudendo.
+     *
+     * La fila la disegna adesso chi la disegna anche li'. */
+    const centrale = stateOf(states, RIF_CENTRALE);
+    const acceso = alarmActiveButton(centrale);
+    const tasti = alarmModeButtons(centrale)
+      .map((voce) => comando(voce.service, voce.mode === acceso, voce.icon, voce.label))
+      .join("");
     parts.push(
       rowShell(
         `<span class="dm-w-glyph" data-on="${widget.armed || widget.triggered}" aria-hidden="true">🛡️</span>
          <span class="dm-w-name">${esc(t("Antifurto", "Alarm"))}<small>${esc(widget.value)}</small></span>
-         <span class="dm-w-alarm">
-           ${comando("alarm_arm_away", widget.mode === "armed_away", "🏠", t("Fuori", "Away"))}
-           ${comando("alarm_arm_night", widget.mode === "armed_night", "🌙", t("Notte", "Night"))}
-           ${comando("alarm_disarm", !widget.armed && !widget.triggered, "🔓", t("Sblocca", "Disarm"))}
-         </span>`,
+         <span class="dm-w-alarm">${tasti}</span>`,
       ),
     );
   }
@@ -4187,10 +4259,54 @@ function energyDetail() {
 
 /* Chi lavora e' una casella de «Le misure», col suo disegno vero; qui resta
  * solo la parola per la casa tutta spenta, che una casella non ce l'ha. */
+/* Quale apparecchio della finestra e' aperto. Vive qui e non nel markup
+ * perche' il corpo si ridisegna da solo ogni due secondi: se lo stato stesse
+ * in un attributo, il primo travaso lo richiuderebbe sotto il dito. */
+let apertoInFinestra = "";
+
+/* La finestra degli elettrodomestici: una pastiglia per ognuno, e la card
+ * intera di quello che si tocca.
+ *
+ * Dal campo: «il popup deve mostrare una icona piccola dell'elettrodomestico,
+ * perche' puo' essere piu' di uno; quando clicco sopra si espande e mostra
+ * tutta la card completa» — e poi: «non voglio il focus su quelle in
+ * funzione». Le pastiglie sono di tutti gli apparecchi configurati, nel loro
+ * ordine, accesi e spenti insieme: la finestra e' il posto da cui si arriva a
+ * ognuno, non un elenco di chi sta lavorando adesso. Chi lavora si riconosce
+ * dal pallino e dai watt, ma non passa davanti e non esclude gli altri.
+ *
+ * Le card intere sarebbero alte una pagina l'una: si apre quella che si
+ * tocca, una alla volta. Con un apparecchio solo non c'e' niente da scegliere
+ * e si apre da se'. */
 function appliancesDetail(widget) {
-  if (!widget.running.length)
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  if (!righe.length)
     return `<p class="dm-w-empty">✨ ${esc(t("Tutto spento", "Everything off"))}</p>`;
-  return "";
+  const aperto = righe.some((riga) => riga.id === apertoInFinestra)
+    ? apertoInFinestra
+    : righe.length === 1
+      ? righe[0].id
+      : "";
+  const pastiglie = righe
+    .map((riga) => {
+      const scelta = riga.id === aperto;
+      const acceso = riga.mode === "running";
+      /* I watt solo di chi lavora: su una macchina spenta «0.3 W» e' il
+       * consumo della sua spia, e non e' una notizia. */
+      const watt =
+        acceso && Number.isFinite(Number(riga.watts)) ? `${Math.round(riga.watts)} W` : "";
+      return `<button type="button" class="dm-w-appl-chip" data-dm-appl-chip="${esc(riga.id)}" data-on="${acceso ? "true" : "false"}" aria-expanded="${scelta ? "true" : "false"}">
+        <span class="dm-w-appl-art" aria-hidden="true">${applianceArtwork(riga.type, 26) || "🔌"}</span>
+        <span class="dm-w-appl-nome">${esc(riga.name)}</span>
+        ${watt ? `<span class="dm-w-appl-watt">${esc(watt)}</span>` : ""}
+      </button>`;
+    })
+    .join("");
+  const model = aperto ? applianceModelById(aperto) : null;
+  const card = model
+    ? `<div class="dm-appl-shell dm-w-appl-card" data-view="grid">${buildCardMarkup(model, cardLabels())}</div>`
+    : `<p class="dm-w-appl-invito">${esc(t("Tocca un apparecchio per aprire la sua scheda.", "Tap an appliance to open its card."))}</p>`;
+  return `<div class="dm-w-appl-chips">${pastiglie}</div>${card}`;
 }
 
 /* Le stanze coi loro gradi sono caselle de «Le misure», non un elenco. */
@@ -4904,6 +5020,11 @@ function titoloDelBlocco(markup, chiave = "") {
    * riga «AGENDA» sopra due titoli sarebbe il nome della finestra scritto una
    * seconda volta. */
   if (chiave === "agenda") return "";
+  /* Gli elettrodomestici non portano ne' comandi ne' letture: portano le
+   * pastiglie degli apparecchi, che si annunciano da se' col loro disegno e
+   * col loro nome. Una riga di titolo sopra sarebbe il nome della finestra
+   * scritto una seconda volta. */
+  if (chiave === "elettrodomestici") return "";
   const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
   return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
@@ -4981,7 +5102,8 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
  * le scrive `display:none` addosso — e portarci sarebbe peggio che non
  * offrirlo: si aprirebbe una pagina che l'utente ha deciso di non avere. */
 function voceDellaSezione(chiave) {
-  const tab = SEZIONE_DEL_WIDGET[clean(chiave)];
+  /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
+  const tab = SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(chiave) ? "energia" : clean(chiave)];
   if (!tab) return null;
   const voce = doc?.querySelector?.(`.tab[data-tab="${tab}"]`);
   if (!voce || voce.style?.display === "none") return null;
@@ -4998,7 +5120,9 @@ function bricioleDelWidget(widget) {
 function detailMarkup(widget, states) {
   const vaiAllaSezione = voceDellaSezione(widget.key)
     ? `<footer class="dm-w-piede">
-        <button type="button" class="dm-w-vai" data-dm-w-sezione="${esc(widget.key)}">
+        <button type="button" class="dm-w-vai" data-dm-w-sezione="${esc(widget.key)}"${
+          widget.impianto ? ` data-dm-w-impianto="${esc(widget.impianto)}"` : ""
+        }>
           ${esc(t("Apri sezione", "Open section"))} <span aria-hidden="true">→</span>
         </button>
       </footer>`
@@ -5363,6 +5487,48 @@ function popupHost() {
   host.id = "dm-widget-popup";
   host.hidden = true;
   host.addEventListener("click", (event) => {
+    /* La pastiglia di un elettrodomestico: apre la sua card, o la richiude.
+     * Il tocco si ferma qui, o risalirebbe fino alla finestra che si chiude. */
+    const pastiglia = event.target?.closest?.("[data-dm-appl-chip]");
+    if (pastiglia) {
+      event.stopPropagation();
+      const id = clean(pastiglia.dataset.dmApplChip);
+      const apre = apertoInFinestra !== id;
+      apertoInFinestra = apre ? id : "";
+      schedule();
+      /* La card e' alta, e la finestra si legge scorrendo: aperta, va portata
+       * sotto gli occhi, o si apre fuori dallo schermo e sembra non essersi
+       * aperta. Si aspetta il disegno, che arriva col frame di `schedule`. */
+      if (apre)
+        root.requestAnimationFrame?.(() =>
+          root.requestAnimationFrame?.(() => {
+            host
+              .querySelector(".dm-w-appl-card")
+              ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }),
+        );
+      return;
+    }
+    /* I due tasti della card, che dentro la finestra non hanno il guscio
+     * della vetrina ad ascoltarli. */
+    const interruttore = event.target?.closest?.("[data-dm-power-toggle]");
+    if (interruttore) {
+      event.stopPropagation();
+      root.cdApplEntTog?.(clean(interruttore.dataset.entity), interruttore);
+      return;
+    }
+    const storico = event.target?.closest?.("[data-dm-history]");
+    if (storico) {
+      event.stopPropagation();
+      try {
+        root.apriStorico?.(
+          event,
+          clean(storico.dataset.dmHistory),
+          clean(storico.dataset.dmHistoryName),
+        );
+      } catch (_errore) {}
+      return;
+    }
     if (event.target === host || event.target?.closest?.("[data-dm-widget-close]")) chiudiPopup();
   });
   doc.body.append(host);
@@ -5780,6 +5946,13 @@ function onClick(event) {
   if (sezione) {
     event.preventDefault();
     const voce = voceDellaSezione(sezione.dataset.dmWSezione);
+    /* La tessera di un impianto apre la sezione SU quell'impianto: chi tiene
+     * le linguette lo sceglie come se fosse stata premuta la sua (#286). */
+    const impianto = clean(sezione.dataset.dmWImpianto);
+    if (impianto)
+      root.dispatchEvent?.(
+        new CustomEvent("dashboardmodern:energy-plant-requested", { detail: { plant: impianto } }),
+      );
     chiudiPopup();
     voce?.click();
     return;
@@ -6608,6 +6781,19 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
   border-bottom:1px solid var(--card-border,#eef2f7);margin-bottom:2px}
 #dm-widget-popup .dm-w-empty{margin:6px 4px;font-size:13px}
+#dm-widget-popup .dm-w-appl-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px;padding-top:12px;border-top:1px solid var(--card-border,#e2e8f0)}
+#dm-widget-popup .dm-w-appl-chip{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:7px 12px 7px 8px;border-radius:14px;cursor:pointer;font:inherit;border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text,#0f172a);transition:border-color .16s ease,background .16s ease}
+#dm-widget-popup .dm-w-appl-chip[aria-expanded="true"]{border-color:color-mix(in srgb,#0ea5e9 46%,transparent);background:color-mix(in srgb,#0ea5e9 10%,transparent)}
+#dm-widget-popup .dm-w-appl-chip[data-on="false"] .dm-w-appl-art{color:var(--text-dim,#94a3b8);opacity:.7}
+#dm-widget-popup .dm-w-appl-chip[data-on="false"] .dm-w-appl-nome{font-weight:750;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-appl-chip[data-on="true"] .dm-w-appl-nome::after{content:"";display:inline-block;width:5px;height:5px;margin-left:6px;border-radius:50%;background:#16a34a;vertical-align:middle}
+#dm-widget-popup .dm-w-appl-art{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;color:#0ea5e9}
+#dm-widget-popup .dm-w-appl-art svg{width:26px;height:26px}
+#dm-widget-popup .dm-w-appl-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:850}
+#dm-widget-popup .dm-w-appl-watt{flex:0 0 auto;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-appl-invito{margin:0 4px;font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-appl-card{display:block;gap:0;padding:0}
+#dm-widget-popup .dm-w-appl-card .appl-wide-card.dm-ap-card{cursor:default;box-shadow:none}
 /* Le miniature delle telecamere: lo stesso angolo delle righe. */
 #dm-widget-popup .dm-w-cam{border-radius:16px}
 /* Nella finestra la colonna e' larga il doppio della tessera: con la stessa
@@ -6990,7 +7176,7 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 :is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg rect,:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg circle,
 :is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg line{stroke:currentColor}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg [fill="currentColor"]{fill:currentColor}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm{display:inline-flex;gap:6px;margin-left:auto}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-left:auto}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-alarm button{
   width:32px;height:28px;border-radius:9px;border:1px solid var(--card-border,#e2e8f0);
   background:var(--surface-2,#f8fafc);font-size:13px;line-height:1;cursor:pointer;

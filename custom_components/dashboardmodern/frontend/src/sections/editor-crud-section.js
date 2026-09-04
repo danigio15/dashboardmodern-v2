@@ -1,6 +1,15 @@
 // DM-FIX-20260812B
 import { contactEntity, inferriataEntity } from "../core/shutter-window.js";
-import { coverDownRelay, coverPresetPosition } from "../core/cover-kind.js";
+import { coverClosedThreshold, coverDownRelay, coverPresetPosition } from "../core/cover-kind.js";
+
+/* La soglia scritta in una riga: vuota vuol dire «quella di casa», e allora
+ * non si salva niente; un numero si tiene, zero compreso. */
+function sogliaScritta(valore) {
+  const testo = String(valore ?? "").trim();
+  if (!testo) return null;
+  const n = Number(testo);
+  return Number.isFinite(n) ? coverClosedThreshold(n) : null;
+}
 import { canonicalClimateType } from "../core/device-model.js";
 import {
   clean,
@@ -260,6 +269,11 @@ function beginEdit(kind, index) {
     setField("ed-tp-down", clean(item?.down) || "");
     setField("ed-tp-down-tenda", clean(item?.tendaDown) || "");
     setField("ed-tp-down-tendasole", clean(item?.tendaSoleDown) || "");
+    /* La soglia di chiusura di QUESTA riga: vuota vuol dire quella di casa. */
+    setField(
+      "ed-tp-soglia-riga",
+      item?.soglia === null || item?.soglia === undefined ? "" : String(item.soglia),
+    );
   } else if (kind === "irrigation") {
     setField("ed-irr-name", item.name || "");
     setField("ed-irr-ent", item.entity || "");
@@ -401,6 +415,10 @@ function installAddWrappers() {
       const preset = coverPresetPosition({ preset: doc.getElementById("ed-tp-preset")?.value });
       if (preset == null) delete list[index].preset;
       else list[index].preset = preset;
+      /* La soglia di chiusura della riga: un numero, o niente (= quella di casa). */
+      const soglia = sogliaScritta(doc.getElementById("ed-tp-soglia-riga")?.value);
+      if (soglia == null) delete list[index].soglia;
+      else list[index].soglia = soglia;
       // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
       // anche il primo comando e' un rele'.
       for (const [campo, chiave, casella] of [
@@ -434,6 +452,7 @@ function installAddWrappers() {
         down: clean(doc.getElementById("ed-tp-down")?.value),
         tendaDown: clean(doc.getElementById("ed-tp-down-tenda")?.value),
         tendaSoleDown: clean(doc.getElementById("ed-tp-down-tendasole")?.value),
+        soglia: clean(doc.getElementById("ed-tp-soglia-riga")?.value),
       };
       const entity = clean(doc.getElementById("ed-tp-ent")?.value);
       /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui

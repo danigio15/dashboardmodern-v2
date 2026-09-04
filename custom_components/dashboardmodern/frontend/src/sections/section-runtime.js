@@ -30,6 +30,7 @@ import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installBeta27ReleaseStability } from "./beta27-release-stability-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
+import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installLightsSceneSection } from "./lights-scene-section.js";
 import { installLightsPageSection } from "./lights-page-section.js";
@@ -817,6 +818,10 @@ export function installSectionRuntime() {
     installApplianceKpiPopups();
     installAppliancePickerLayer();
     installApplianceEditorSection();
+    // Il menu delle integrazioni veste la scheda che l'editor ha appena
+    // disegnato e apre la finestra di modifica che l'editor ha appena
+    // sostituito: viene dopo di lui.
+    installApplianceIntegrationSection();
     installLightsAlertsSection();
     // The editor owns the light list and the rooms; the scene owns the popup
     // that controls them, so it installs after the model it reads.

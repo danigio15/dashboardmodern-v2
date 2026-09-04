@@ -1,6 +1,12 @@
 // DM-FIX-20260813E
-import { coverDownRelay, coverKindLabel, coverPresetPosition } from "../core/cover-kind.js";
-import { contactEntity } from "../core/shutter-window.js";
+import {
+  coverClosedThreshold,
+  coverDownRelay,
+  coverKindLabel,
+  coverPresetPosition,
+  SOGLIA_CHIUSA_MASSIMA,
+} from "../core/cover-kind.js";
+import { contactEntity, inferriataEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
   quickClimateFieldsMarkup,
@@ -303,6 +309,11 @@ function openClimateEditor(item, index) {
  * e per quasi tutti quella basta. La voce vuota e' quella condizione, detta. */
 
 function openShutterEditor(item, index) {
+  /* La soglia scritta per questa riga, se c'e': vuota vuol dire «come la casa». */
+  const sogliaRiga =
+    item?.soglia === null || item?.soglia === undefined || String(item.soglia).trim() === ""
+      ? ""
+      : coverClosedThreshold(item.soglia);
   const { form, close } = modalShell(
     "shutter",
     t("Modifica tapparella o tenda", "Edit shutter or curtain"),
@@ -313,12 +324,20 @@ function openShutterEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${coverKindLabel("tenda_sole")}</span><span class="ed-form-row"><input class="ed-input mono" name="tendaSole" value="${esc(item.tendaSole)}" placeholder="cover.tenda_da_sole"><button type="button" class="dm-entity-picker" data-pick-tendasole>🔍</button></span><small>${t("Su una finestra ci stanno tutte e tre: compila le caselle che hai, il tipo lo dice la casella.", "One window can carry all three: fill in the boxes you have, the box tells the type.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura infisso", "Window contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="contact" value="${esc(contactEntity(item))}" placeholder="binary_sensor.finestra_camera"><button type="button" class="dm-entity-picker" data-pick-contact>🔍</button></span><small>${t("Se lo compili, la card mostra la finestra aperta quando il contatto lo dice.", "Fill it in and the card shows the window open when the contact says so.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura inferriata", "Grate contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="inferriata" value="${esc(inferriataEntity(item))}" placeholder="binary_sensor.inferriata_camera"><button type="button" class="dm-entity-picker" data-pick-inferriata>🔍</button></span></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Chiusa sotto il (%)", "Closed below (%)")}</span><input class="ed-input" type="number" min="0" max="${SOGLIA_CHIUSA_MASSIMA}" step="1" name="soglia" value="${esc(sogliaRiga)}" placeholder="${esc(t("come la casa", "as the house"))}"><small>${t("Solo per questa finestra: ferma a questa percentuale o sotto conta come chiusa. Vuota, vale la soglia di casa scritta in cima.", "For this window only: resting at this percentage or below counts as closed. Empty, the house threshold at the top applies.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Posizione preferita (%)", "Favorite position (%)")}</span><input class="ed-input" type="number" min="0" max="100" step="1" name="preset" value="${esc(coverPresetPosition(item) ?? "")}" placeholder="es. 5"><small>${t("La card e il popup offrono sempre la tendina con tutte le percentuali: 0 = chiusa, 100 = aperta. Qui scegli quella di casa — 5 chiude quasi tutto lasciando passare un po' d'aria — e nella tendina compare con la stella. Vuoto = nessuna preferita.", "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.")}</small></label>`,
     "🪟",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
   for (const [selettore, campo] of [
     ["[data-pick-contact]", "contact"],
+    /* Il contatto della grata (#297, dal campo): «se entro in modifica della
+     * finestra non ho piu' la possibilita' di modificare l'entita'
+     * dell'inferriata». La finestra di modifica nasceva prima della grata e
+     * non l'aveva mai avuta: la riga la portava con se' da `...item`, ma
+     * cambiarla o toglierla voleva dire cancellare la riga e rifarla. */
+    ["[data-pick-inferriata]", "inferriata"],
     ["[data-pick-tenda]", "tenda"],
     ["[data-pick-tendasole]", "tendaSole"],
     ["[data-pick-down]", "down"],
@@ -338,6 +357,8 @@ function openShutterEditor(item, index) {
       // Svuotare il campo toglie il sensore: e' il modo per dire "questa
       // tapparella non ha un infisso da guardare".
       contact: clean(form.elements.contact?.value),
+      // E la grata davanti al vetro (#297), con la stessa regola.
+      inferriata: clean(form.elements.inferriata?.value),
       // Le altre coperture dello stesso infisso: svuotare la casella la toglie.
       tenda: clean(form.elements.tenda?.value),
       tendaSole: clean(form.elements.tendaSole?.value),
@@ -350,6 +371,15 @@ function openShutterEditor(item, index) {
     const preset = coverPresetPosition({ preset: form.elements.preset?.value });
     if (preset == null) delete list[index].preset;
     else list[index].preset = preset;
+    /* Una riga senza grata non porta una casella vuota addosso. */
+    if (!list[index].inferriata) delete list[index].inferriata;
+    /* La soglia di questa finestra (dal campo, dopo la #298): vuota vuol dire
+     * quella di casa, che resta il valore di serie; scritta — anche zero —
+     * e' sua, con lo stesso tetto della soglia di casa. */
+    const testoSoglia = String(form.elements.soglia?.value ?? "").trim();
+    if (testoSoglia && Number.isFinite(Number(testoSoglia)))
+      list[index].soglia = coverClosedThreshold(testoSoglia);
+    else delete list[index].soglia;
     /* Il rele' di discesa (#194): vale solo dove il primo comando e' anche
      * lui un rele'. Scritto accanto a una cover.* vera si perde per strada,
      * ed e' giusto: quella i due versi li ha gia'. */
@@ -394,7 +424,11 @@ function openShutterEditor(item, index) {
     const contatto = clean(list[index].contact);
     const contattoValido = /^(binary_sensor|sensor|input_boolean)\./i.test(contatto);
     const errore = form.querySelector("[data-error]");
-    if (contatto && !contattoValido) {
+    /* La grata e' un contatto anche lei: vale la stessa regola e lo stesso
+     * avviso, perche' e' lo stesso errore. */
+    const grata = clean(list[index].inferriata);
+    const grataValida = !grata || /^(binary_sensor|sensor|input_boolean)\./i.test(grata);
+    if ((contatto && !contattoValido) || !grataValida) {
       errore.textContent = t(
         "Il sensore di apertura dev'essere un'entità binary_sensor.*, sensor.* o input_boolean.*.",
         "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.",

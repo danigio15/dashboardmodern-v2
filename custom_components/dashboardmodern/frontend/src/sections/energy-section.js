@@ -758,11 +758,62 @@ export function applyAtomicEnergyBundle(bundle = state.bundle) {
   }
 }
 
+/* Il velo «Caricamento dati Energia…» si tiene per i primi tentativi e basta.
+ *
+ * Se le statistiche non arrivano — un sensore senza statistiche a lungo
+ * termine, un Recorder che non risponde in tempo — ogni giro di aggiornamento
+ * rimetteva il velo per dodici secondi e lo toglieva senza dire niente, e con
+ * un aggiornamento ogni quindici secondi la pagina stava sotto il velo quasi
+ * sempre: «la sezione energia non carica», e nessuna riga che spiegasse
+ * perche'. Adesso il velo copre i primi due tentativi; dal terzo si vedono i
+ * numeri del guscio e sopra una riga con la ragione. */
+export const TENTATIVI_COL_VELO = 2;
+
 function setEnergyLoading(active) {
+  const velo = active && !state.bundle && hasConfiguredEnergy() && state.retryCount < TENTATIVI_COL_VELO;
   doc?.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
     node.toggleAttribute("aria-busy", active);
     node.classList.toggle("dm-energy-loading", active);
-    node.classList.toggle("dm-energy-awaiting", active && !state.bundle && hasConfiguredEnergy());
+    node.classList.toggle("dm-energy-awaiting", velo);
+  });
+}
+
+/* La ragione, in parole. Il messaggio tecnico dice
+ * «Incomplete Home Assistant statistics: day:house.total_energy:sensor.x»;
+ * chi guarda vuole sapere QUALE sensore e cosa fare. */
+export function spiegazioneDellErrore(testo) {
+  const grezzo = clean(testo);
+  if (!grezzo) return "";
+  const incompleto = /Incomplete Home Assistant statistics:\s*(.+)$/i.exec(grezzo);
+  if (incompleto) {
+    const entita = [
+      ...new Set(
+        incompleto[1]
+          .split(",")
+          .map((pezzo) => clean(pezzo).split(":").pop())
+          .filter(Boolean),
+      ),
+    ];
+    return t(
+      `Statistiche a lungo termine mancanti per ${entita.join(", ")}: il sensore deve avere state_class total_increasing (o total) e unità kWh. Nel frattempo si mostrano i valori istantanei.`,
+      `Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.`,
+    );
+  }
+  if (/timeout/i.test(grezzo))
+    return t(
+      "Home Assistant non ha risposto in tempo alle statistiche: il Recorder è lento o la connessione è occupata. Si riprova da solo.",
+      "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.",
+    );
+  return grezzo;
+}
+
+/* La riga con la ragione, sopra i numeri: c'e' finche' un pacchetto buono non
+ * arriva. Si scrive come attributo e la disegna il foglio. */
+function segnaLaRagione(testo) {
+  const spiegazione = spiegazioneDellErrore(testo);
+  doc?.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
+    if (spiegazione && !state.bundle) node.dataset.dmEnergyRagione = spiegazione;
+    else delete node.dataset.dmEnergyRagione;
   });
 }
 
@@ -779,6 +830,7 @@ export async function refreshEnergy(period = selectedPeriod()) {
     state.lastError = "";
     state.ready = true;
     applyAtomicEnergyBundle(bundle);
+    segnaLaRagione("");
     root.dispatchEvent?.(new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }));
     root.dispatchEvent?.(new CustomEvent("dashboardmodern:energy-stable", { detail: bundle }));
     return true;
@@ -788,9 +840,13 @@ export async function refreshEnergy(period = selectedPeriod()) {
       "[DashboardModern] atomic energy refresh retained the last good bundle",
       error,
     );
+    segnaLaRagione(state.lastError);
     if (!state.bundle && state.retryCount < 40) {
       state.retryCount += 1;
-      scheduleEnergyRefresh(true, 250);
+      /* Dopo i primi tentativi si rallenta: un Recorder che non risponde non
+       * risponde meglio se lo si chiama quattro volte al secondo, e ogni giro
+       * costa una domanda pesante attraverso il tunnel. */
+      scheduleEnergyRefresh(true, state.retryCount <= TENTATIVI_COL_VELO ? 250 : 20_000);
     }
     return false;
   } finally {
@@ -812,10 +868,21 @@ function scheduleProjection() {
  * Serve a chi cambia la CONFIGURAZIONE dell'Energia senza che nessuna entita'
  * cambi stato — cambiare impianto e' il caso vero — perche' il giro che
  * ascolta gli stati chiede l'entita' cambiata, e li' non ce n'e' nessuna. */
+/* Quanto riposa il ricalcolo dei periodi fra un evento di stato e l'altro.
+ *
+ * Erano quindici secondi, e i sensori di potenza cambiano di continuo: cinque
+ * domande al Recorder — giorno, mese, anno, e i dispositivi — ogni quindici
+ * secondi, per sempre, con una che copre l'anno intero. Le statistiche di Home
+ * Assistant si compilano ogni cinque minuti: rileggerle quattro volte al minuto
+ * non trova niente di nuovo, e sul server pesa (dal campo: la CPU del mini PC).
+ * I numeri vivi — i watt che scorrono — non passano di qui: arrivano dagli
+ * eventi di stato e si proiettano sul pacchetto che c'e'. */
+export const RIPOSO_ENERGIA_MS = 60_000;
+
 export function scheduleEnergyRefresh(force = false, explicitDelay = null) {
   root.clearTimeout?.(state.refreshTimer);
   const elapsed = Date.now() - state.lastRefreshAt;
-  const delay = explicitDelay ?? (force ? 0 : Math.max(250, 15000 - elapsed));
+  const delay = explicitDelay ?? (force ? 0 : Math.max(250, RIPOSO_ENERGIA_MS - elapsed));
   state.refreshTimer = root.setTimeout?.(() => {
     state.refreshTimer = 0;
     refreshEnergy();
@@ -1100,6 +1167,8 @@ function installStyles() {
       .dm-energy-awaiting #n-solar-month,.dm-energy-awaiting #n-home-month,.dm-energy-awaiting #n-grid-month,.dm-energy-awaiting #n-battery-month{visibility:hidden!important}
       .dm-energy-awaiting::after{content:"${t("Caricamento dati Energia…", "Loading Energy data…")}";position:absolute;inset:0;display:grid;place-items:center;color:var(--secondary-text-color,#64748b);font-weight:800;letter-spacing:.04em;background:color-mix(in srgb,var(--card-bg,#fff) 88%,transparent);z-index:3}
       .dm-energy-loading:not(.dm-energy-awaiting){opacity:.92;transition:opacity .15s ease}
+      /* La ragione per cui i dati non arrivano, sopra i numeri del guscio. */
+      #page-energy [data-dm-energy-ragione]:not(.dm-energy-awaiting)::before{content:attr(data-dm-energy-ragione);display:block;margin:0 0 12px;padding:10px 14px;border-radius:14px;font-size:12px;font-weight:700;line-height:1.45;color:#92400e;background:#fef3c7;border:1px solid #fcd34d}
       .dm-energy-help-compact{display:grid;gap:4px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.12));border-radius:14px;background:var(--secondary-background-color,rgba(14,165,233,.08));color:var(--text,#0f172a);font-size:13px;line-height:1.45}
       .dm-energy-help-compact strong{font-size:14px}
       .dm-energy-total-note{display:block;margin-top:6px;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.35}

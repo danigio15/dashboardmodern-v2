@@ -52,6 +52,7 @@ import {
   readJson,
   root,
   t,
+  wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
 
@@ -720,6 +721,16 @@ export function renderMinipcShowcase() {
   return true;
 }
 
+const pulito = (valore) => String(valore ?? "").trim();
+
+/** «#94a3b8» nella forma in cui il browser lo rilegge: «rgb(148, 163, 184)». */
+export function comeRgb(esadecimale) {
+  const voce = pulito(esadecimale).replace(/^#/, "");
+  if (!/^[0-9a-f]{6}$/i.test(voce)) return pulito(esadecimale);
+  const n = Number.parseInt(voce, 16);
+  return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
+
 /* Lo stato dello stato di una entita', come lo tiene il guscio. */
 function statoDellaCasella(riferimento) {
   const overrides = lexicalGlobal("ENTITY_OVERRIDES") || {};
@@ -767,7 +778,14 @@ export function raddrizzaLaRete(page = doc?.getElementById?.("page-server")) {
     /* Grigio quando non si sa: il rosso e' un allarme, e qui non c'e' niente
      * di allarmante — c'e' una casella vuota. */
     const colore = online === null ? "#94a3b8" : online ? "#10b981" : "#ef4444";
-    if (punto && punto.style.background !== colore) punto.style.background = colore;
+    /* Il browser rilegge «#10b981» come «rgb(16, 185, 129)»: il confronto va
+     * fatto su quella forma, o si riscrive lo stile a ogni passata. E si
+     * confronta lo stile vero, non un segno a parte, perche' il guscio lo
+     * riscrive col suo rosso a ogni giro e il segno non lo saprebbe. */
+    if (punto) {
+      const attuale = pulito(punto.style.background);
+      if (attuale !== colore && attuale !== comeRgb(colore)) punto.style.background = colore;
+    }
   }
   return online === null ? "" : online ? "on" : "off";
 }
@@ -786,7 +804,11 @@ function bindAutoHide() {
   if (!page || state.watched === page) return;
   if (typeof root.MutationObserver !== "function") return;
   state.observer?.disconnect?.();
-  state.observer = new root.MutationObserver(() => scheduleMinipcShowcase());
+  /* Solo a pagina a schermo: quello che l'auto-hide svuota su una pagina che
+   * nessuno guarda si sistema quando la si apre, e nel frattempo non si lavora. */
+  state.observer = new root.MutationObserver(() => {
+    if (pageVisible()) scheduleMinipcShowcase();
+  });
   state.observer.observe(page, { attributes: true, attributeFilter: ["style"], subtree: true });
   state.watched = page;
 }
@@ -796,8 +818,30 @@ export function scheduleMinipcShowcase() {
   const run = () => {
     state.frame = 0;
     renderMinipcShowcase();
+    /* Le proprie scritture di stile non sono una ragione per ridisegnare: si
+     * buttano i verbali che il disegno ha appena prodotto, e l'osservatore
+     * resta per quello che scrive il guscio. */
+    state.observer?.takeRecords?.();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
+}
+
+/* La pastiglia della rete si corregge NELLO STESSO GIRO del guscio (dal campo:
+ * «nella sezione Mini PC c'e' un continuo sfarfallio»).
+ *
+ * Il guscio legge la sua unica casella e, vuota, scrive OFFLINE a ogni evento
+ * di stato; la lettura onesta di sopra scrive NON CONFIGURATO. Fatta al
+ * fotogramma dopo, la correzione arrivava DOPO che il browser aveva gia'
+ * dipinto l'OFFLINE del guscio: due parole diverse alternate a ogni evento,
+ * cioe' lo sfarfallio. Agganciata al disegno del guscio, la correzione parte
+ * nel microtask che segue la sua ultima riga, prima che il browser dipinga:
+ * a schermo arriva una parola sola. */
+function correggiDopoIlGuscio() {
+  return wrapFunction("render", "__dmMinipcRete", () => {
+    try {
+      raddrizzaLaRete();
+    } catch (_error) {}
+  });
 }
 
 function pageVisible() {
@@ -817,6 +861,7 @@ export function installMinipcShowcaseSection() {
     ]) {
       root.addEventListener?.(eventName, () => {
         bindAutoHide();
+        correggiDopoIlGuscio();
         portaAvantiLaCasella();
         scheduleMinipcShowcase();
       });
@@ -846,6 +891,7 @@ export function installMinipcShowcaseSection() {
   }
   state.installed = true;
   bindAutoHide();
+  correggiDopoIlGuscio();
   sampleCpu();
   renderMinipcShowcase();
 }

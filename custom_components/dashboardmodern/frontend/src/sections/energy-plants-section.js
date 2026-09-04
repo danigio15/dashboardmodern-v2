@@ -306,10 +306,24 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(repaint) || root.setTimeout?.(repaint, 0) || 0;
 }
 
+/* La Home chiede un impianto: la tessera di «casa Donato» apre la sezione su
+ * casa Donato (#286, dal campo). E' lo stesso gesto della linguetta, fatto da
+ * fuori: lo si ascolta invece di farsi importare, perche' la Home e' gia'
+ * importata da qui e un anello non si chiude. */
+function ascoltaLaHome() {
+  root.addEventListener?.("dashboardmodern:energy-plant-requested", (event) => {
+    const id = clean(event?.detail?.plant);
+    if (!id) return;
+    if (clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY)) === id) return;
+    scegli(id);
+  });
+}
+
 export function installEnergyPlantsSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  ascoltaLaHome();
   doc.addEventListener("click", (event) => {
     const tessere = event.target?.closest?.("[data-dm-tessere]");
     if (tessere) {

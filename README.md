@@ -225,7 +225,7 @@ La Home è la pagina di apertura, ed è fatta di tre fasce sotto un'intestazione
 
 **L'intestazione.** Su una riga sola: nome della casa, **orologio**, **meteo** — temperatura esterna, condizione, umidità e vento — stato della connessione e configurazione. L'ora sta nello stesso riquadro del meteo, che è dove si guarda già. Il meteo legge il servizio di Home Assistant, oppure la **tua stazione personale** se gliela colleghi: in quel caso i valori sono i tuoi sensori, non una previsione. Lo stato della connessione è **un puntino**, non una frase: la parola resta scritta per chi la pagina se la fa leggere a voce.
 
-**Le persone.** Chi abita la casa, con il ritratto, la zona in cui si trova — Casa, Fuori, o il nome della zona — la batteria del telefono e da quanto tempo è lì. Chi sta rientrando mostra **distanza e minuti che mancano**; chi ha la batteria agli sgoccioli la mostra in rosso. La card si apre e racconta tutto quello che il telefono sa: indirizzo, attività, WiFi, direzione, orologio.
+**Le persone.** Chi abita la casa: il ritratto e il nome uno accanto all'altro, con sotto la pastiglia della zona — Casa, Fuori, o il nome del posto — e in fondo alla card un riquadro con quello che il telefono racconta: la batteria, quella dell'orologio, da quanto tempo è lì. Chi sta rientrando mostra **distanza e minuti che mancano**; chi ha la batteria agli sgoccioli la mostra in rosso. La card si apre e racconta tutto quello che il telefono sa: indirizzo, attività, WiFi, direzione, orologio.
 
 **Widget.** Una tessera per ogni sezione della plancia, con il numero che conta per quella sezione e, **su una riga tutta sua**, la didascalia che dice cosa sta succedendo: «Faretti soggiorno · Strip TV», «Oggi 13,1 kWh», «Pompa in funzione». L'intestazione riassume **quante sezioni ci sono e quante chiedono attenzione**, e si scalda quando ce n'è almeno una. Le telecamere compaiono in miniatura, dal vivo, e il fotogramma di prima resta a schermo finché non arriva quello nuovo. Toccando una tessera si apre la sua finestra.
 
@@ -357,6 +357,10 @@ Ogni apparecchio ha il suo **ritratto disegnato** — lavatrice, lavastoviglie, 
 
 Un apparecchio è «in funzione» quando supera la sua **soglia di potenza**, e resta tale per il **ritardo di fine ciclo** che gli hai dato: serve a non far sparire la lavatrice durante una pausa del programma.
 
+Un elettrodomestico può anche essere **due dispositivi**: l'integrazione che porta il programma e una presa smart sotto la macchina che porta i watt. Quando il dispositivo scelto non ha un contatore, il menù cerca fra le entità che portano il suo nome e propone quelle che ha trovato, scritte per esteso: si accettano o si tolgono con una spunta, prima di crearlo.
+
+Se il sensore di potenza non c'è — è il caso di quasi ogni elettrodomestico connesso, che non ha nessuna presa smart sotto — a decidere è la **parola dello stato del programma**. Quella che l'integrazione pubblica davvero: `washing`, `rinse`, `spin`, `drying` dicono in funzione; `pause`, `standby` e l'avvio ritardato dicono acceso ma fermo; `ready`, `end`, `finished` dicono spento. Valgono le parole di hOn, Home Connect, Miele, LG ThinQ e SmartThings, e le stesse in italiano, senza badare a maiuscole, trattini o underscore. Quando ci sono tutte e due, una fase che lavora vince sui zero watt dell'asciugatura, e i watt vincono su uno stato «finito» rimasto indietro.
+
 ### Vista consumi e dettaglio
 
 | Consumi | Dettaglio di un apparecchio |
@@ -365,7 +369,17 @@ Un apparecchio è «in funzione» quando supera la sua **soglia di potenza**, e 
 | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliances-consumption.webp" alt="Vista consumi in tema scuro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliance-detail.webp" alt="Dettaglio elettrodomestico in tema scuro"> |
 | | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliance-detail-mobile-light.webp" alt="Dettaglio elettrodomestico su telefono, tema chiaro" width="230"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliance-detail-mobile.webp" alt="Dettaglio elettrodomestico su telefono, tema scuro" width="230"> |
 
-Il dettaglio elenca **tutte le entità mappate** su quell'apparecchio con il loro valore: è anche il modo più rapido per capire se un sensore manca o punta al posto sbagliato.
+La card di un apparecchio collegato a un'integrazione dice anche **cosa sta facendo adesso**: la fase del ciclo in parole — Lavaggio, Risciacquo, Centrifuga, Asciugatura — e accanto i gradi, i giri e il programma, cioè le stesse quattro cose che si leggono sull'oblò. Le parole sono quelle che le integrazioni pubblicano davvero, tradotte in tutte le lingue della plancia; una che il vocabolario non conosce si legge lo stesso, ripulita. Un apparecchio su una presa smart non ha niente di tutto questo e la sua card resta quella di sempre.
+
+Anche la finestra della tessera **Elettrodomestici** in Home parla la stessa lingua: una pastiglia per ogni apparecchio — disegno e nome, accesi e spenti insieme, nel loro ordine — e toccandone una si apre la sua card intera, una alla volta. Chi sta lavorando porta un pallino verde e i suoi watt; con un apparecchio solo la card si apre da sé.
+
+Il dettaglio si apre con **la stessa card della sezione** — ritratto, fase, anello, potenza, ultimo ciclo — e sotto elenca tutto il resto del dispositivo diviso per famiglie: lo stato, le letture, i comandi con i loro tasti veri (interruttori, menù dei programmi, numeri, pulsanti) e in fondo la diagnostica, chiusa. Quello che la card dice già non si ripete. È anche il modo più rapido per capire se un sensore manca o punta al posto sbagliato.
+
+### Dalle integrazioni
+
+Un elettrodomestico connesso — la lavatrice Hoover con **hOn**, il forno Bosch con **Home Connect**, Miele, LG ThinQ, SmartThings, o anche una presa Shelly — arriva in Home Assistant come un **dispositivo intero**, con dentro venti o trenta entità. Dalla scheda Elettrodomestici il tasto **🔗 Aggiungi da un'integrazione** apre un menù con le integrazioni installate (segnate **Ufficiale** o **HACS / personalizzata**) e i dispositivi di ognuna: scelto il tuo, l'apparecchio nasce già compilato — tipo dal catalogo, stanza dall'area, potenza, tempo rimanente, fase del programma, contatore, tasto d'avvio — e le caselle scritte a mano non si toccano. Lo stesso menù sta in cima alla finestra di modifica, per collegare o scollegare un apparecchio che c'era già.
+
+Nel dettaglio di un apparecchio collegato, sotto la parte disegnata dalla card, c'è **tutto il dispositivo**: lo stato, le letture, i comandi con i loro tasti veri (interruttori, menù dei programmi, numeri, pulsanti) e in fondo la diagnostica. Le entità disabilitate in Home Assistant si vedono contate, non mostrate: si abilitano da lì.
 
 ---
 
@@ -380,7 +394,9 @@ Profilo veicolo con **marchio e modello** dal catalogo di **37 marche** — serv
 
 Più veicoli convivono, ognuno con il suo profilo e la sua identità: rinominare un'auto non le fa perdere la foto. Con due vetture configurate la tessera della Home le racconta **entrambe**, e porta in evidenza la carica più bassa. Le linguette per passare da un'auto all'altra ci sono anche **dentro il popup**. Il **cavo collegato** si può dichiarare con una casella, invece di lasciarlo dedurre dal testo dello stato — e quando il cavo è attaccato **la foto cambia**, se ne hai configurata una seconda con il cavo inserito.
 
-**Anche l'auto a benzina.** Nella scheda dell'auto, sotto il nome, una tendina dice se il motore è **elettrico, termico o ibrido** — e vale per quella vettura, in un garage possono starci tutte e due. Con un motore termico la pagina non mostra la ricarica, e al suo posto c'è il **serbatoio**, con intorno le portiere, il motore, i finestrini, l'allarme, la batteria di servizio, l'olio, la temperatura esterna, l'ultimo viaggio, il carburante consumato e la pressione dei pneumatici: ognuno dal sensore che l'integrazione dell'auto espone, e nessuno obbligatorio. Un'ibrida tiene tutti e due i quadri. In Home la tessera legge il carburante quando non c'è una batteria.
+**Anche l'auto a benzina.** Nella scheda dell'auto, sotto il nome, una tendina dice se il motore è **elettrico, termico o ibrido** — e vale per quella vettura, in un garage possono starci tutte e due. Con un motore termico la pagina non mostra la ricarica, e al suo posto c'è il **serbatoio**, con intorno le portiere, il motore, i finestrini, l'allarme, la batteria di servizio, l'olio, la temperatura esterna, l'ultimo viaggio, il carburante consumato: ognuno dal sensore che l'integrazione dell'auto espone, e nessuno obbligatorio. Un'ibrida tiene tutti e due i quadri. In Home la tessera legge il carburante quando non c'è una batteria.
+
+**Le gomme, tutte e quattro.** Le pressioni hanno una casella per ruota — anteriore sinistra e destra, posteriore sinistra e destra — e nella pagina si dispongono come stanno sull'auto, due davanti e due dietro; una ruota non mappata resta un posto vuoto col suo nome, così si vede subito quale sensore manca. Un sensore che dice solo sì o no — il classico avviso del TPMS — scrive «Da controllare» al posto del numero, e una gomma che si lamenta accende l'attenzione di tutta la scheda. La casella singola di prima resta dov'era, per chi ha un sensore riepilogativo. Il quadretto si vede su qualunque auto, elettrica compresa: le gomme non sono del motore.
 
 DashboardModern non sostituisce l'integrazione del veicolo o della wallbox: ne presenta le entità.
 
@@ -849,7 +865,7 @@ Temperatura e umidità per stanza, con le soglie di comfort.
 
 <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-appliances-light.webp" alt="Editor - elettrodomestici" width="100%">
 
-Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto animato), stanza, entità di controllo, potenza, energia giornaliera e totale, stato del programma, tempo rimanente, temperatura, ultimo ciclo (durata, energia, costo), **soglie di standby e funzionamento** e **ritardo di fine ciclo**.
+Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto animato), stanza, entità di controllo, potenza, energia giornaliera e totale, stato del programma, tempo rimanente, temperatura, ultimo ciclo (durata, energia, costo), **soglie di standby e funzionamento** e **ritardo di fine ciclo**. Con **🔗 Aggiungi da un'integrazione** si sceglie direttamente il dispositivo di Home Assistant — hOn, Home Connect, Miele, una presa smart — e le caselle si compilano da sole; dal blocco **Integrazione** in cima alla finestra di modifica si collega, si cambia o si scollega il dispositivo di un apparecchio già configurato.
 
 ### 💡 Luci · ❄️ Clima · 🪟 Finestre
 
@@ -906,7 +922,7 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 - **Piscina**: temperatura, pH, cloro con le soglie, pompa, riscaldamento, luce.
 - **Irrigazione**: zone con valvola, minuti, stanza, orario, **umidità del terreno** con le sue soglie, blocco pioggia e meteo.
-- **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità. La tendina **Motore** — elettrica, termica, ibrida — vale per quella vettura: con un motore termico la pagina mostra il serbatoio al posto della ricarica, e fra le entità dell'auto ci sono le caselle di carburante, motore, portiere, finestrini, allarme, batteria di servizio, olio, temperatura esterna, ultimo viaggio, carburante consumato e pneumatici.
+- **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità. La tendina **Motore** — elettrica, termica, ibrida — vale per quella vettura: con un motore termico la pagina mostra il serbatoio al posto della ricarica, e fra le entità dell'auto ci sono le caselle di carburante, motore, portiere, finestrini, allarme, batteria di servizio, olio, temperatura esterna, ultimo viaggio, carburante consumato e la pressione dei pneumatici, una casella per ruota più quella di riepilogo.
 
 ### 🌞 Gestione termica
 

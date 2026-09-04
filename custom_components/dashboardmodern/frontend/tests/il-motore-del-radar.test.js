@@ -209,9 +209,16 @@ test("dall'elenco di RainViewer si prende l'ultimo fotogramma misurato, non una 
 });
 
 test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async () => {
-  const { modelloDelFondo, FONDI_MAPPA } = await import("../src/core/radar-mappa.js");
+  const { modelloDelFondo, FONDI_MAPPA, FONDI_RITIRATI, FONDO_DI_SERIE } = await import(
+    "../src/core/radar-mappa.js"
+  );
   assert.equal(modelloDelFondo({ fondo: "osm" }), FONDI_MAPPA.osm.modello);
-  assert.match(modelloDelFondo({ fondo: "carto" }), /\{s\}.*\{z\}\/\{x\}\/\{y\}/);
+  /* CARTO e' ritirato: i suoi quadratini gratuiti tornano stampati «API Key
+   * Required». Chi l'aveva scelto passa a OpenStreetMap da solo. */
+  assert.equal(FONDI_MAPPA.carto, undefined);
+  assert.deepEqual(FONDI_RITIRATI, { carto: "osm" });
+  assert.equal(modelloDelFondo({ fondo: "carto" }), FONDI_MAPPA.osm.modello);
+  assert.equal(FONDO_DI_SERIE, "osm");
   assert.equal(
     modelloDelFondo({ fondo: "modello", fondoModello: "https://mio/{z}/{x}/{y}.png" }),
     "https://mio/{z}/{x}/{y}.png",
@@ -220,9 +227,9 @@ test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async 
    * ancora; un indirizzo senza segnaposto non e' un modello. */
   assert.equal(modelloDelFondo({ fondo: "https://mio/{z}/{x}/{y}.png" }), "https://mio/{z}/{x}/{y}.png");
   assert.equal(modelloDelFondo({ fondo: "modello", fondoModello: "https://fisso.png" }), "");
-  /* Senza scelta la mappa sotto e' CARTO; «nessuna» e' una scelta. */
-  assert.equal(modelloDelFondo({ fondo: "" }), FONDI_MAPPA.carto.modello);
-  assert.equal(modelloDelFondo({}), FONDI_MAPPA.carto.modello);
+  /* Senza scelta la mappa sotto e' OpenStreetMap; «nessuna» e' una scelta. */
+  assert.equal(modelloDelFondo({ fondo: "" }), FONDI_MAPPA.osm.modello);
+  assert.equal(modelloDelFondo({}), FONDI_MAPPA.osm.modello);
   assert.equal(modelloDelFondo({ fondo: "nessuna" }), "");
   assert.equal(modelloDelFondo({ fondo: "boh" }), "");
 });

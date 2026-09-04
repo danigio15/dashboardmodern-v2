@@ -332,7 +332,10 @@ function readDirectState(entity, states = {}) {
 }
 
 export class HomeAssistantBroker {
-  constructor({ timeout = 12000, cacheCurrentMs = 15000, cacheHistoricalMs = 600000 } = {}) {
+  /* La risposta del periodo corrente vale un minuto: le statistiche del
+   * Recorder cambiano ogni cinque, e richiederle ogni quindici secondi pesava
+   * sul server senza trovare niente di nuovo (dal campo: la CPU del mini PC). */
+  constructor({ timeout = 12000, cacheCurrentMs = 60000, cacheHistoricalMs = 600000 } = {}) {
     this.timeout = timeout;
     this.cacheCurrentMs = cacheCurrentMs;
     this.cacheHistoricalMs = cacheHistoricalMs;
@@ -504,16 +507,21 @@ export class HomeAssistantBroker {
     return this.connection;
   }
 
-  async request(payload) {
+  /* `timeout` e' per le domande che si sa che pesano — un mese di storico da
+   * un Recorder lento, attraverso Nabu Casa — e non deve cambiare il tempo di
+   * tutte le altre. Senza, e' quello del broker. */
+  async request(payload, timeout = this.timeout) {
     const socket = await this.connect();
     const id = ++this.nextId;
     if (payload?.type === "recorder/statistics_during_period")
       runtimeMetrics.increment("recorderRequests");
+    const attesa =
+      Number.isFinite(Number(timeout)) && Number(timeout) > 0 ? Number(timeout) : this.timeout;
     return new Promise((resolve, reject) => {
       const timer = globalThis.setTimeout?.(() => {
         this.pending.delete(id);
         reject(new Error("Home Assistant response timeout"));
-      }, this.timeout);
+      }, attesa);
       this.pending.set(id, { resolve, reject, timer });
       try {
         socket.send(JSON.stringify({ id, ...payload }));

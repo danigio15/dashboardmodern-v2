@@ -100,7 +100,178 @@ export function normalizeRobot(input = {}, index = 0) {
      * e deve sopravvivere alla normalizzazione, o sparirebbe a ogni salvataggio. */
     battery: clean(input.battery || input.battery_entity || input.batteryEntity),
     room: clean(input.room || input.room_id),
+    /* I comandi a parte del robot (#306): tasti, tendine e interruttori che
+     * l'integrazione pubblica accanto a lui. Sopravvivono alla normalizzazione
+     * come la batteria, o sparirebbero a ogni salvataggio. */
+    comandi: elencoComandi(input.comandi ?? input.commands),
   };
+}
+
+/* ── i comandi a parte del robot (#306) ──────────────────────────────────
+ *
+ * «Le varie entita' del robot continuano a non essere visibili: da solo la
+ * modalita' aspirazione. Comandi mancanti: button.roborock_..._asp_e_lav,
+ * ..._pulizia_completa, ..._solo_aspirazione, ..._solo_lavaggio.»
+ *
+ * Un robot che lava non e' solo un `vacuum`. L'integrazione pubblica accanto a
+ * lui i suoi programmi come tasti, le sue regolazioni — il mocio, l'acqua —
+ * come tendine, le sue funzioni come interruttori: sono entita' a parte, e la
+ * scheda del robot non le vedeva perche' guardava solo la sua. Qui si dice
+ * quali entita' possono stare sulla scheda come comandi, come si chiamano
+ * senza ripetere il nome del robot, e cosa fa ognuna quando la si tocca. Chi
+ * configura le sceglie; chi disegna le mostra nell'ordine in cui sono scritte.
+ */
+export const DOMINI_COMANDO = Object.freeze({
+  button: "tasto",
+  input_button: "tasto",
+  script: "tasto",
+  scene: "tasto",
+  switch: "interruttore",
+  input_boolean: "interruttore",
+  select: "tendina",
+  input_select: "tendina",
+});
+
+/* Dodici: una scheda e' una scheda, non la pagina delle impostazioni. */
+export const COMANDI_MASSIMI = 12;
+
+/** Che genere di comando e' quell'entita': tasto, tendina, interruttore — o niente. */
+export function genereDelComando(entity) {
+  return DOMINI_COMANDO[clean(entity).split(".")[0]] || "";
+}
+
+/** L'elenco pulito: solo entita' comandabili, una volta sola, non piu' di dodici. */
+export function elencoComandi(input) {
+  const grezzi = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? input.split(/[\s,;]+/)
+      : [];
+  const visti = new Set();
+  const fuori = [];
+  for (const voce of grezzi) {
+    const entity = clean(voce && typeof voce === "object" ? voce.entity : voce);
+    if (!entity || !genereDelComando(entity) || visti.has(entity)) continue;
+    visti.add(entity);
+    fuori.push(entity);
+    if (fuori.length >= COMANDI_MASSIMI) break;
+  }
+  return fuori;
+}
+
+const umano = (testo) => {
+  const pulito = clean(testo).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return pulito ? pulito[0].toUpperCase() + pulito.slice(1) : "";
+};
+
+/* Il nome di un comando, senza il nome del robot davanti.
+ *
+ * Home Assistant chiama le entita' di un dispositivo «Nome del dispositivo
+ * Nome dell'entita'»: su una scheda che porta gia' «Roborock Qrevo Edge» in
+ * testa, un tasto «Roborock Qrevo Edge Asp e lav» ripete tre parole per dirne
+ * tre. Si toglie il prefisso quando c'e'; senza `friendly_name` si legge la
+ * coda dell'id, che e' comunque una parola scritta da qualcuno. */
+export function nomeDelComando(entity, robot = {}, states = {}) {
+  const voce = clean(entity);
+  const proprio = clean(states?.[voce]?.attributes?.friendly_name);
+  const delRobot = clean(states?.[clean(robot?.entity)]?.attributes?.friendly_name);
+  if (proprio) {
+    if (
+      delRobot &&
+      proprio.length > delRobot.length &&
+      proprio.toLowerCase().startsWith(delRobot.toLowerCase())
+    ) {
+      const coda = proprio.slice(delRobot.length).replace(/^[\s:·\-–—]+/, "");
+      if (coda) return umano(coda);
+    }
+    return proprio;
+  }
+  const oggetto = voce.split(".")[1] || voce;
+  const radice = clean(robot?.entity).split(".")[1] || "";
+  const coda =
+    radice && oggetto.startsWith(`${radice}_`) ? oggetto.slice(radice.length + 1) : oggetto;
+  return umano(coda);
+}
+
+/** I comandi di un robot come stanno adesso: nome, genere, stato, opzioni. */
+export function comandiDelRobot(robot = {}, states = {}) {
+  return elencoComandi(robot?.comandi).map((entity) => {
+    const genere = genereDelComando(entity);
+    const corrente = states?.[entity];
+    const attributi = corrente?.attributes || {};
+    const stato = clean(corrente?.state).toLowerCase();
+    return {
+      entity,
+      genere,
+      name: nomeDelComando(entity, robot, states),
+      /* Un tasto mai premuto sta su «unknown», ed e' un tasto che funziona:
+       * non raggiungibile e' solo chi lo dice. */
+      available: Boolean(corrente) && stato !== "unavailable",
+      acceso: genere === "interruttore" ? stato === "on" : null,
+      opzioni:
+        genere === "tendina" && Array.isArray(attributi.options)
+          ? attributi.options.map(clean).filter(Boolean)
+          : [],
+      scelta: genere === "tendina" ? clean(corrente?.state) : "",
+    };
+  });
+}
+
+/**
+ * Il servizio dietro un comando.
+ *
+ * Un tasto si preme, uno script e una scena si accendono, un interruttore si
+ * inverte, una tendina sceglie: quattro verbi per otto domini, e nessun
+ * servizio inventato — sono quelli che Home Assistant ha per quelle entita'.
+ */
+export function comandoDelRobot(voce = {}, valore = "") {
+  const entity = clean(voce?.entity);
+  const dominio = entity.split(".")[0];
+  const genere = genereDelComando(entity);
+  if (!genere) return null;
+  if (genere === "tendina") {
+    const opzione = clean(valore);
+    if (!opzione) return null;
+    return {
+      domain: dominio,
+      service: "select_option",
+      data: { entity_id: entity, option: opzione },
+    };
+  }
+  if (genere === "interruttore")
+    return { domain: dominio, service: "toggle", data: { entity_id: entity } };
+  if (dominio === "button" || dominio === "input_button")
+    return { domain: dominio, service: "press", data: { entity_id: entity } };
+  return { domain: dominio, service: "turn_on", data: { entity_id: entity } };
+}
+
+/* I comandi che stanno accanto al robot, da proporre a chi configura.
+ *
+ * Le entita' di uno stesso dispositivo si riconoscono da come Home Assistant
+ * le chiama: l'id comincia con l'id del robot — `vacuum.roborock_qrevo` e
+ * `button.roborock_qrevo_asp_e_lav` — oppure il nome comincia col nome del
+ * robot. Sono proposte, non scelte: un robot pubblica anche i tasti che
+ * azzerano i contatori dei filtri, e nessuno li vuole sotto il pollice senza
+ * averlo detto. Chi configura li vede in scheda e tocca quelli che vuole. */
+export function comandiSuggeriti(robot = {}, states = {}) {
+  const entity = clean(robot?.entity);
+  const radice = entity.split(".")[1] || "";
+  if (!radice) return [];
+  const nome = clean(states?.[entity]?.attributes?.friendly_name).toLowerCase();
+  const gia = new Set(elencoComandi(robot?.comandi));
+  const trovati = [];
+  for (const [id, corrente] of Object.entries(states || {})) {
+    if (gia.has(id) || !genereDelComando(id)) continue;
+    const oggetto = id.split(".")[1] || "";
+    const stessoId = oggetto.startsWith(`${radice}_`);
+    const suoNome = clean(corrente?.attributes?.friendly_name).toLowerCase();
+    const stessoNome = Boolean(nome) && suoNome.startsWith(`${nome} `);
+    if (stessoId || stessoNome) trovati.push(id);
+  }
+  const ordine = { tasto: 0, tendina: 1, interruttore: 2 };
+  return trovati.sort(
+    (a, b) => ordine[genereDelComando(a)] - ordine[genereDelComando(b)] || a.localeCompare(b),
+  );
 }
 
 /* L'elenco dei robot, messo in ordine.
@@ -185,6 +356,8 @@ export function robotView(robot = {}, states = {}) {
     error: clean(attributes.error),
     mapEntity: clean(robot.mapEntity),
     mapPicture: robotMapPicture(states, robot.mapEntity),
+    /* I comandi a parte (#306), come stanno adesso. */
+    comandi: comandiDelRobot(robot, states),
   };
 }
 

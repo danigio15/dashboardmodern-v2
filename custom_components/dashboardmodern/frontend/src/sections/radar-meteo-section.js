@@ -39,7 +39,7 @@
  * radar sapeva DOVE guardare e non COSA, e per chi non sa scrivere un
  * indirizzo di tessere era una cornice vuota. Adesso i servizi che si
  * conoscono stanno in `core/radar-mappa.js` come dati — RainViewer per la
- * pioggia, OpenStreetMap o CARTO per la mappa sotto — e di serie sono gia'
+ * pioggia, OpenStreetMap per la mappa sotto — e di serie sono gia'
  * scelti: basta dire dove. Chi non vuole che la plancia bussi a nessun
  * servizio sceglie «Nessuno», e accanto alla tendina sta scritto cosa quel
  * servizio viene a sapere (la zona che si guarda). L'indirizzo proprio resta, per chi ne ha
@@ -307,6 +307,14 @@ function blocco() {
       <span class="dm-radar-muto">${esc(
         t("Il radar non sta rispondendo.", "The radar is not reporting."),
       )}</span>
+    </div>
+    <div class="dm-radar-legenda" data-dm-radar-legenda>
+      <small>${esc(t("Pioggia", "Rain"))}</small>
+      <span class="dm-radar-scala" aria-hidden="true"></span>
+      <small>${esc(t("leggera → forte", "light → heavy"))}</small>
+      <small class="dm-radar-vuoto">${esc(
+        t("Dove non c'è colore non piove.", "No colour means no rain."),
+      )}</small>
     </div>`;
   /* Sopra le previsioni: il radar dice adesso, le previsioni dicono dopo. */
   elenco.before(nodo);
@@ -370,7 +378,7 @@ function daTessere(scelto, nodo) {
    * ogni giro le farebbe lampeggiare mentre si guarda. */
   const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${misure.latoPx}x${misure.altoPx},${modello},${scelto.fondo}`;
   /* Si contano i quadratini della PIOGGIA, non quelli del fondo. Il fondo e'
-   * un contorno: se CARTO arriva e RainViewer no, una mappa vuota passava per
+   * un contorno: se OpenStreetMap arriva e RainViewer no, una mappa vuota passava per
    * un radar vivo — col primo quadratino del fondo il blocco si diceva
    * «vivo», e i buchi della pioggia non riuscivano piu' ne' a dirlo ne' a
    * far riprovare al giro dopo. */
@@ -654,8 +662,8 @@ function casellaMarkup(config) {
       type="button" class="dm-radar-prova" data-dm-radar-prova>${esc(t("Prova", "Test"))}</button></span>
     <small class="dm-radar-esito" data-dm-radar-esito>${esc(
       t(
-        "Di serie la pioggia arriva da RainViewer e la mappa da CARTO: basta scegliere dove. Puoi cambiare servizio dalla tendina, oppure «Un indirizzo mio» e scrivere quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
-        "Out of the box the rain comes from RainViewer and the map from CARTO: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
+        "Di serie la pioggia arriva da RainViewer e la mappa da OpenStreetMap: basta scegliere dove. Puoi cambiare servizio dalla tendina, oppure «Un indirizzo mio» e scrivere quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
+        "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
       ),
     )}</small>
     <small>${esc(
@@ -808,8 +816,14 @@ function installStyles() {
         font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;
         color:var(--text,#0f172a)}
       #weather-modal .dm-radar-nota{font-size:11px;color:var(--text-dim,#64748b)}
+      /* La legenda sotto la mappa: senza, un radar su un cielo sereno e' una
+         mappa e basta, e chi guarda pensa che manchi il radar. */
+      #weather-modal .dm-radar-legenda{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--text-dim,#64748b)}
+      #weather-modal .dm-radar-scala{flex:0 0 96px;height:8px;border-radius:4px;background:linear-gradient(90deg,#a1d7ff,#3b8bff,#1d4ed8,#facc15,#f97316,#dc2626)}
+      #weather-modal .dm-radar-vuoto{margin-left:auto;font-style:italic}
+      #weather-modal .dm-radar-blocco[data-dm-modo="entita"] .dm-radar-legenda{display:none}
       #weather-modal .dm-radar-quadro{
-        position:relative;display:grid;place-items:center;min-height:170px;overflow:hidden;
+        position:relative;display:grid;place-items:center;min-height:240px;overflow:hidden;
         border-radius:16px;background:var(--bg-sculpted,#0b1220);
         border:1px solid var(--card-border,#1e293b)}
       #weather-modal .dm-radar-tessere{position:absolute;inset:0}

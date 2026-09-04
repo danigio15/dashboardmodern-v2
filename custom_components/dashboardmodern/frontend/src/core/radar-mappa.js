@@ -276,11 +276,13 @@ export const FONDI_MAPPA = Object.freeze({
     nome: "OpenStreetMap",
     modello: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
   }),
-  carto: Object.freeze({
-    nome: "CARTO (chiara)",
-    modello: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-  }),
 });
+
+/* CARTO non c'e' piu': i suoi quadratini gratuiti oggi tornano stampati «API
+ * Key Required» e «Zoom Level Not Supported» — una mappa piena di scritte al
+ * posto delle strade (visto sul campo). Chi l'aveva scelto passa a
+ * OpenStreetMap senza dover toccare niente. */
+export const FONDI_RITIRATI = Object.freeze({ carto: "osm" });
 
 /**
  * Il fotogramma piu' recente dell'elenco di RainViewer.
@@ -336,12 +338,13 @@ export function modelloDelServizio(servizio, fotogramma = null) {
  * servizio era scelto; adesso il radar parte con questi, e chi non vuole che
  * la plancia bussi a nessuno sceglie «Nessuno» apposta. */
 export const SERVIZIO_DI_SERIE = "rainviewer";
-export const FONDO_DI_SERIE = "carto";
+export const FONDO_DI_SERIE = "osm";
 export const NIENTE = Object.freeze(["nessuno", "nessuna", "none"]);
 
 export function modelloDelFondo(config = {}) {
-  const fondo = stringa(config?.fondo);
+  let fondo = stringa(config?.fondo);
   if (NIENTE.includes(fondo.toLowerCase())) return "";
+  if (FONDI_RITIRATI[fondo]) fondo = FONDI_RITIRATI[fondo];
   const preset = FONDI_MAPPA[fondo];
   if (preset) return preset.modello;
   const mio = stringa(config?.fondoModello);
