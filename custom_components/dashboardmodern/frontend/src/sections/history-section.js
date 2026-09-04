@@ -1,7 +1,18 @@
 import {
+  ORE_DI_SERIE,
+  PERIODI,
+  daInputLocale,
+  etichettaDelTempo,
+  granularita,
+  intervalloDa,
+  intervalloPersonalizzato,
+  perInputLocale,
+} from "../core/periodo-storico.js";
+import {
   allStates,
   clean,
   doc,
+  esc,
   installStyle,
   locale,
   root,
@@ -15,6 +26,7 @@ const state = (root[KEY] ||= {
   installed: false,
   currentEntity: "",
   currentName: "",
+  currentRange: null,
   chart: null,
   generation: 0,
   zoom: null,
@@ -371,22 +383,19 @@ function destroyChart(canvas) {
   } catch (_error) {}
 }
 
-function renderChart(entity, name, rows) {
+function renderChart(entity, name, rows, intervallo = state.currentRange) {
   const canvas = doc?.getElementById("hist-canvas");
   if (!canvas || typeof root.Chart !== "function") throw new Error("Chart.js unavailable");
   const labels = [];
   const values = [];
   let categorical = false;
+  /* L'asse dice l'ora su un giorno, il giorno e l'ora su una settimana, il
+   * giorno su un mese: «14:30» ripetuto sessanta volte non dice niente. */
+  const grana = granularita(intervallo);
   rows.forEach((row) => {
     const normalized = historyValue(row.state);
     if (!normalized) return;
-    const date = new Date(row.time);
-    labels.push(
-      date.toLocaleTimeString(locale(), {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    );
+    labels.push(etichettaDelTempo(row.time, grana, locale()));
     values.push(normalized.value);
     categorical ||= normalized.categorical;
   });
@@ -436,15 +445,14 @@ function renderChart(entity, name, rows) {
   return true;
 }
 
-async function websocketHistory(entity, hours) {
+async function websocketHistory(entity, intervallo) {
   const broker = root.DashboardModernEnergyService?.broker;
   if (!broker?.request) throw new Error("Home Assistant WebSocket broker unavailable");
-  const end = new Date();
-  const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+  const scelto = intervalloDa(intervallo) || intervalloDa(ORE_DI_SERIE);
   return broker.request({
     type: "history/history_during_period",
-    start_time: start.toISOString(),
-    end_time: end.toISOString(),
+    start_time: new Date(scelto.start).toISOString(),
+    end_time: new Date(scelto.end).toISOString(),
     entity_ids: [entity],
     include_start_time_state: true,
     significant_changes_only: false,
@@ -453,9 +461,156 @@ async function websocketHistory(entity, hours) {
   });
 }
 
-export async function openHistory(event, entityId, name, hours = 24) {
+/* ── il periodo (#302) ─────────────────────────────────────────────────────
+ *
+ * «Il grafico permette solo di scegliere 24h/7g.» I quattro tasti del guscio
+ * — 1, 6, 12, 24 ore — si rifanno qui con i periodi di serie di
+ * `core/periodo-storico.js` e un intervallo scritto a mano, da quando a
+ * quando. Il contenitore e' quello del guscio, il contenuto e' nostro: cosi'
+ * ogni finestra che passa da `apriStorico` — le misure, gli elettrodomestici,
+ * l'auto, la temperatura — ce l'ha senza che nessuno la tocchi. */
+/* Le parole dei periodi di serie, scritte per esteso: e' cosi' che il
+ * vocabolario delle lingue le trova. Il modello tiene solo le ore. */
+export function parolaDelPeriodo(periodo) {
+  switch (periodo?.chiave) {
+    case "1h":
+      return t("1 ora", "1 hour");
+    case "5h":
+      return t("5 ore", "5 hours");
+    case "10h":
+      return t("10 ore", "10 hours");
+    case "24h":
+      return t("24 ore", "24 hours");
+    case "7g":
+      return t("7 giorni", "7 days");
+    case "1m":
+      return t("1 mese", "1 month");
+    case "2m":
+      return t("2 mesi", "2 months");
+    default:
+      return clean(periodo?.it) || "";
+  }
+}
+
+function periodiMarkup() {
+  return PERIODI.map(
+    (periodo) =>
+      `<button type="button" class="hist-time-btn" data-hours="${periodo.ore}" data-dm-hist-periodo="${esc(periodo.chiave)}">${esc(parolaDelPeriodo(periodo))}</button>`,
+  ).join("");
+}
+
+export function ensureControlli() {
+  const barra = doc?.querySelector?.("#history-modal .hist-time-controls");
+  if (!barra) return null;
+  if (barra.dataset.dmPeriodi === "1") return barra;
+  barra.dataset.dmPeriodi = "1";
+  barra.innerHTML = `${periodiMarkup()}<button type="button" class="hist-time-btn dm-hist-custom-tasto" data-dm-hist-custom>${esc(
+    t("Da … a", "From … to"),
+  )}</button>
+    <div class="dm-hist-custom" data-dm-hist-custom-riga hidden>
+      <label><span>${esc(t("Dal", "From"))}</span><input type="datetime-local" class="ed-input" data-dm-hist-da></label>
+      <label><span>${esc(t("Al", "To"))}</span><input type="datetime-local" class="ed-input" data-dm-hist-a></label>
+      <button type="button" class="hist-time-btn dm-hist-applica" data-dm-hist-applica>${esc(t("Applica", "Apply"))}</button>
+      <small class="dm-hist-esito" data-dm-hist-esito></small>
+    </div>`;
+  return barra;
+}
+
+function sincronizzaControlli(intervallo) {
+  const barra = ensureControlli();
+  if (!barra) return false;
+  barra.querySelectorAll(".hist-time-btn[data-hours]").forEach((button) =>
+    button.classList.toggle(
+      "active",
+      !intervallo.personalizzato && Number(button.dataset.hours) === Number(intervallo.ore),
+    ),
+  );
+  const tasto = barra.querySelector("[data-dm-hist-custom]");
+  const riga = barra.querySelector("[data-dm-hist-custom-riga]");
+  if (tasto) tasto.classList.toggle("active", Boolean(intervallo.personalizzato));
+  if (riga) {
+    if (intervallo.personalizzato) riga.hidden = false;
+    const da = riga.querySelector("[data-dm-hist-da]");
+    const a = riga.querySelector("[data-dm-hist-a]");
+    if (da && !da.value) da.value = perInputLocale(intervallo.start);
+    if (a && !a.value) a.value = perInputLocale(intervallo.end);
+  }
+  return true;
+}
+
+function onClickControlli(event) {
+  const barra = event.target?.closest?.("#history-modal .hist-time-controls");
+  if (!barra) return;
+  const periodo = event.target.closest(".hist-time-btn[data-hours]");
+  if (periodo) {
+    event.preventDefault();
+    event.stopPropagation();
+    changeHistoryRange(Number(periodo.dataset.hours));
+    return;
+  }
+  const riga = barra.querySelector("[data-dm-hist-custom-riga]");
+  if (event.target.closest("[data-dm-hist-custom]")) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (riga) riga.hidden = !riga.hidden;
+    return;
+  }
+  if (event.target.closest("[data-dm-hist-applica]")) {
+    event.preventDefault();
+    event.stopPropagation();
+    const esito = barra.querySelector("[data-dm-hist-esito]");
+    const intervallo = intervalloPersonalizzato(
+      daInputLocale(riga?.querySelector("[data-dm-hist-da]")?.value),
+      daInputLocale(riga?.querySelector("[data-dm-hist-a]")?.value),
+    );
+    if (!intervallo) {
+      if (esito)
+        esito.textContent = t(
+          "Scegli un inizio prima della fine, e non nel futuro.",
+          "Pick a start before the end, and not in the future.",
+        );
+      return;
+    }
+    if (esito) esito.textContent = "";
+    changeHistoryRange(intervallo);
+    return;
+  }
+  /* Un tocco nel resto della barra non deve chiudere la finestra. */
+  event.stopPropagation();
+}
+
+function installPeriodStyles() {
+  installStyle(
+    "dm-hist-periodi-style",
+    `
+    /* La pillola di serie era una griglia di quattro colonne larga al massimo
+       460 pixel, con gli angoli a cento: con otto periodi andava a capo, la
+       seconda riga restava appesa a sinistra e il fondo diventava una macchia
+       tonda. Qui la barra si prende la larghezza che ha, mette le pillole al
+       centro anche quando vanno a capo, e arrotonda quanto basta per una riga
+       o per due. */
+    #history-modal .hist-time-controls{
+      display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;
+      max-width:100%;padding:6px;border-radius:22px}
+    #history-modal .hist-time-controls .hist-time-btn{flex:0 0 auto;padding:8px 12px}
+    #history-modal .dm-hist-custom{
+      flex:1 1 100%;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:flex-end;margin:2px 0 0;
+      padding:10px;border-radius:16px;background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e2e8f0)}
+    #history-modal .dm-hist-custom[hidden]{display:none}
+    #history-modal .dm-hist-custom label{display:grid;gap:3px;flex:1 1 150px;min-width:0}
+    #history-modal .dm-hist-custom label span{
+      font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim,#64748b)}
+    #history-modal .dm-hist-custom input{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:13px}
+    #history-modal .dm-hist-custom .dm-hist-esito{flex:1 1 100%;color:#b91c1c;font-weight:700;font-size:11px;min-height:0}
+    #history-modal .dm-hist-custom .dm-hist-esito:empty{display:none}
+    `,
+  );
+}
+
+export async function openHistory(event, entityId, name, range = ORE_DI_SERIE) {
   event?.stopPropagation?.();
   if (event && root.navigator?.vibrate) root.navigator.vibrate(15);
+  const intervallo = intervalloDa(range) || intervalloDa(ORE_DI_SERIE);
 
   const entity = resolvedEntity(entityId);
   /* Gli stati si chiedono a `allStates()`, non a `window.STATES`.
@@ -499,6 +654,7 @@ export async function openHistory(event, entityId, name, hours = 24) {
 
   state.currentEntity = entity;
   state.currentName = clean(name) || current?.attributes?.friendly_name || entity;
+  state.currentRange = intervallo;
   const generation = ++state.generation;
 
   const modal = doc?.getElementById("history-modal");
@@ -509,13 +665,11 @@ export async function openHistory(event, entityId, name, hours = 24) {
   delete modal.dataset.dmHistoryError;
   const title = doc.getElementById("hist-title");
   scriviTestoSeCambia(title, state.currentName);
-  doc.querySelectorAll(".hist-time-btn").forEach((button) =>
-    button.classList.toggle("active", Number(button.dataset.hours) === Number(hours)),
-  );
+  sincronizzaControlli(intervallo);
   setLoading("loading");
 
   try {
-    const result = await websocketHistory(entity, Number(hours) || 24);
+    const result = await websocketHistory(entity, intervallo);
     if (generation !== state.generation) return false;
     const rows = normalizeHistoryRows(result, entity);
     if (!rows.length) {
@@ -523,7 +677,7 @@ export async function openHistory(event, entityId, name, hours = 24) {
       setLoading("empty");
       return true;
     }
-    if (!renderChart(entity, state.currentName, rows)) {
+    if (!renderChart(entity, state.currentName, rows, intervallo)) {
       modal.dataset.dmHistoryLoaded = "empty";
       setLoading("empty");
       return true;
@@ -541,9 +695,9 @@ export async function openHistory(event, entityId, name, hours = 24) {
   }
 }
 
-export function changeHistoryRange(hours) {
+export function changeHistoryRange(range) {
   if (!state.currentEntity) return false;
-  openHistory(null, state.currentEntity, state.currentName, hours);
+  openHistory(null, state.currentEntity, state.currentName, range);
   return true;
 }
 
@@ -584,9 +738,13 @@ export function installHistorySection() {
   if (!doc) return;
   installOwner();
   installZoomStyles();
+  installPeriodStyles();
+  ensureControlli();
   if (state.installed) return;
   state.installed = true;
   doc.addEventListener("click", interceptApplianceHistory, true);
+  doc.addEventListener("click", onClickControlli, true);
+  root.addEventListener?.("dashboardmodern:legacy-ready", ensureControlli);
   root.addEventListener?.("dashboardmodern:legacy-ready", installOwner);
   root.addEventListener?.("pageshow", installOwner);
 }

@@ -292,6 +292,36 @@ const OGGETTI = Object.freeze({
    * batteria dentro che si vede dal livello, e la spia della rete. Non e' la
    * batteria del telefono — quella e' una carica che scende e basta, questa e'
    * una scatola attaccata al muro che regge la casa quando la corrente cade. */
+  /* Le allerte (#296): il triangolo del cartello, giallo di serie, col punto
+   * esclamativo. E' il segno che tutti leggono da lontano senza una parola. */
+  allerte: `<defs>
+      <linearGradient id="dmoAllr" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#f59e0b"/>
+        <stop offset="1" stop-color="#b45309"/></linearGradient></defs>
+    ${OMBRA(16, 28.4, 9.4)}
+    <path d="M16 3.6 29 25.4a1.6 1.6 0 0 1-1.4 2.4H4.4A1.6 1.6 0 0 1 3 25.4L16 3.6Z" fill="url(#dmoAllr)"/>
+    <path d="M16 6.8 26.4 24.4H5.6L16 6.8Z" fill="#fff" fill-opacity=".16"/>
+    <rect x="14.5" y="11.4" width="3" height="8.2" rx="1.5" fill="#fff"/>
+    <circle cx="16" cy="22.8" r="1.7" fill="#fff"/>`,
+
+  /* La raccolta differenziata (#293): il bidone verde col coperchio e il
+   * simbolo del riciclo sul fianco. Verde perche' e' il colore che sta sui
+   * bidoni, non quello del semaforo. */
+  rifiuti: `<defs>
+      <linearGradient id="dmoRifB" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#86efac"/><stop offset=".5" stop-color="#22c55e"/>
+        <stop offset="1" stop-color="#15803d"/></linearGradient></defs>
+    ${OMBRA(16, 28.2, 9)}
+    <rect x="7.4" y="9.6" width="17.2" height="17.6" rx="2.6" fill="url(#dmoRifB)"/>
+    <rect x="5" y="6.2" width="22" height="4.2" rx="2.1" fill="#166534"/>
+    <rect x="12.6" y="3.8" width="6.8" height="3" rx="1.5" fill="#166534"/>
+    <g fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M13.2 17.2 16 12.6l1.6 2.7"/>
+      <path d="M20.2 15.4l2 3.5-3.1-.1"/>
+      <path d="M12.6 20.6l-1.9 3.3h3.4"/>
+      <path d="M17.4 23.9h4.2l-1.5-2.7"/>
+    </g>`,
+
   ups: `<defs>
       <linearGradient id="dmoUpsS" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#64748b"/><stop offset=".45" stop-color="#334155"/>
@@ -543,6 +573,23 @@ const OGGETTI = Object.freeze({
       <circle cx="11" cy="14" r="1.7"/><circle cx="16" cy="14" r="1.7"/><circle cx="21" cy="14" r="1.7"/>
     </g>
     <circle cx="25.6" cy="7.4" r="4.2" fill="url(#dmoSegnRosso)" stroke="#fff" stroke-width="1.2"/>`,
+
+  /* L'assistenza: la nuvoletta di chi risponde, verde come la sua tessera,
+   * con il cuore di chi mantiene la plancia. Una risposta da leggere e' la
+   * sola ragione per cui questa tessera compare. */
+  assistenza: `<defs>
+      <linearGradient id="dmoAssist" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#bbf7d0"/><stop offset=".55" stop-color="#22c55e"/>
+        <stop offset="1" stop-color="#15803d"/></linearGradient>
+      <linearGradient id="dmoAssistCuore" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#e11d48"/></linearGradient></defs>
+    ${OMBRA(16, 28, 9)}
+    <path d="M25.6 5.6H6.4a3 3 0 0 0-3 3v10.6a3 3 0 0 0 3 3h9.8l5.6 4.3v-4.3h3.8a3 3 0 0 0 3-3V8.6a3 3 0 0 0-3-3Z"
+      fill="url(#dmoAssist)"/>
+    <path d="M6.6 8.6a2.6 2.6 0 0 1 2-1.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>
+    <path d="M16 18.2l-4.3-4.2a2.6 2.6 0 0 1 3.7-3.7l.6.6.6-.6a2.6 2.6 0 0 1 3.7 3.7Z"
+      fill="url(#dmoAssistCuore)" stroke="#fff" stroke-opacity=".7" stroke-width=".8"/>`,
 });
 
 /* Il disegno della tessera, pronto da mettere dentro la pastiglia.
@@ -552,7 +599,22 @@ const OGGETTI = Object.freeze({
 export function oggettoWidget(chiave, ripiego = "") {
   const disegno = OGGETTI[String(chiave || "")];
   if (!disegno) return String(ripiego || "");
-  return `<svg class="dm-oggetto" viewBox="0 0 32 32" aria-hidden="true" focusable="false">${disegno}</svg>`;
+  return `<svg class="dm-oggetto" viewBox="0 0 32 32" aria-hidden="true" focusable="false">${conRipiegoDiColore(disegno)}</svg>`;
+}
+
+/* Il colore di ripiego accanto alla sfumatura (#304).
+ *
+ * Un riempimento `url(#sfumatura)` si risolve in un altro svg — il foglio in
+ * cima al corpo — e quando il browser non lo ritrova, o non ancora, il
+ * disegno resta trasparente: «le icone spariscono e riappaiono se ci clicco
+ * sopra». La sintassi del ripiego dice cosa dipingere in quel caso:
+ * `currentColor`, il colore del testo. Meglio un disegno pieno di un colore
+ * solo che nessun disegno. */
+export function conRipiegoDiColore(markup) {
+  return String(markup || "").replace(
+    /(fill|stroke)="url\(#([A-Za-z0-9_-]+)\)"/g,
+    '$1="url(#$2) currentColor"',
+  );
 }
 
 /* Serve alle prove e a chi vuole sapere se un tasto avra' il suo disegno. */

@@ -68,7 +68,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
 - [Dove vive la configurazione](#dove-vive-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Gestione termica](#gestione-termica) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [Continuità](#continuità) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Gestione termica](#gestione-termica) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [Continuità](#continuità) · [Allerte](#allerte) · [Rifiuti](#rifiuti) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
 - [Segnalazioni e assistenza](#segnalazioni-e-assistenza)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
@@ -394,6 +394,8 @@ Profilo veicolo con **marchio e modello** dal catalogo di **37 marche** — serv
 
 Più veicoli convivono, ognuno con il suo profilo e la sua identità: rinominare un'auto non le fa perdere la foto. Con due vetture configurate la tessera della Home le racconta **entrambe**, e porta in evidenza la carica più bassa. Le linguette per passare da un'auto all'altra ci sono anche **dentro il popup**. Il **cavo collegato** si può dichiarare con una casella, invece di lasciarlo dedurre dal testo dello stato — e quando il cavo è attaccato **la foto cambia**, se ne hai configurata una seconda con il cavo inserito.
 
+**Anche l'auto a benzina.** Nella scheda dell'auto, sotto il nome, una tendina dice se il motore è **elettrico, termico o ibrido** — e vale per quella vettura, in un garage possono starci tutte e due. Con un motore termico la pagina non mostra la ricarica, e al suo posto c'è il **serbatoio**, con intorno le portiere, il motore, i finestrini, l'allarme, la batteria di servizio, l'olio, la temperatura esterna, l'ultimo viaggio, il carburante consumato e la pressione dei pneumatici: ognuno dal sensore che l'integrazione dell'auto espone, e nessuno obbligatorio. Un'ibrida tiene tutti e due i quadri. In Home la tessera legge il carburante quando non c'è una batteria.
+
 DashboardModern non sostituisce l'integrazione del veicolo o della wallbox: ne presenta le entità.
 
 ---
@@ -450,6 +452,8 @@ Una **pompa di calore** che fa entrambe le cose si dichiara come tale e compare 
 
 Una card per stanza con temperatura, umidità e un **giudizio di comfort** — freddo, comfort, caldo — con la barra colorata che dice dove sta il valore. Le pillole in alto filtrano per stanza, e il grafico in fondo confronta **tutte le stanze** sulle 24 ore o sui 7 giorni, con la fascia di comfort disegnata dietro.
 
+**Lo storico si sceglie il periodo.** Il grafico della stanza — e ogni popup dello storico, aperto da una misura qualunque — ha sette periodi di serie, da **1 ora a 2 mesi**, e **«Da … a»** per scrivere un inizio e una fine. L'asse cambia grana col periodo.
+
 ---
 
 ## Finestre: tapparelle, tende e sensori
@@ -466,6 +470,8 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 - **Anche solo il sensore basta.** Chi ha persiane manuali e nessun motore può inserire il solo contatto: ne esce una card che disegna lo stesso serramento, con le ante che si scostano, e sotto nessun comando — perché su una persiana manuale Apri/Ferma/Chiudi non arriverebbe da nessuna parte. Nel conteggio in cima quelle finestre hanno una voce loro.
 - **Tende e tapparelle su due relè** sono supportate: una copertura comandata da due interruttori separati, e le tende da sole con il loro verso.
 - Una finestra con più coperture resta **una sola card**, non tre.
+- **Una tapparella socchiusa conta come chiusa.** Nella scheda Finestre si imposta una **soglia in percentuale**: ferma a quel valore o sotto, la tapparella è chiusa nella pagina, nella scena e nella tessera in Home. Chi lascia un 10% per far passare l'aria non si sente dire che è aperta. Zero è il comportamento di sempre.
+- **Infisso con inferriata.** La grata si disegna davanti all'infisso, con le sbarre che si scostano: si apre prima delle ante e si chiude dopo.
 
 ---
 
@@ -480,7 +486,7 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 
 E **si sceglie quali modalità vedere**: la centrale dice cosa accetta, quello che serve davvero lo dice chi la usa. Toglierne una la nasconde e non cambia niente di quello che la centrale sa fare; lo sblocco resta sempre.
 
-**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home. Dove l'integrazione lo espone — le **Arlo**, per esempio — la miniatura è **video dal vivo** e non un'istantanea ferma.
+**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home. Dove l'integrazione lo espone — le **Arlo**, per esempio — la miniatura è **video dal vivo** e non un'istantanea ferma. Quando Home Assistant dichiara per la telecamera un flusso **WebRTC** o **HLS** — le telecamere in cloud con go2rtc integrato, dal 2024.12 — la tessera monta un **video vero**, negoziato con i server ICE di casa (anche da Nabu Casa); il MJPEG del proxy resta come rete sotto. Se il flusso non parte — una telecamera che dorme — la tessera **torna alle istantanee** e riprova dopo un minuto, senza lasciare un'immagine rotta; un flusso che si ferma in silenzio si riconosce e si riapre. Uscendo dalla pagina i video si spengono.
 
 **Più di una centrale.** Chi ha due impianti d'allarme — casa e magazzino, piano di sopra e di sotto — li dichiara entrambi: ognuno con il suo nome, i suoi tasti e le sue modalità.
 
@@ -608,6 +614,24 @@ In Home la tessera mostra la carica quando la corrente c'è, e **i minuti che re
 
 ---
 
+## Allerte
+
+Terremoti, avvisi della protezione civile, fulmini, pollini, comfort termico e aerei sopra casa: **sei fonti, un livello solo** — quiete, nota, attenzione, allarme. Ogni fonte è il sensore che la sua integrazione ha già portato in Home Assistant (INGV Earthquakes, Meteoalarm o i bollettini della Protezione Civile, Blitzortung, Thermal Comfort, Flightradar24, un sensore dei pollini qualsiasi).
+
+**Nessuna casella è obbligatoria** e ognuna basta da sola: la pagina mostra solo le fonti che ci sono. Una fonte che non risponde non è quiete, e la pagina lo dice. La plancia non chiama nessun servizio: legge quello che c'è.
+
+In Home la tessera conta le allerte in corso e si accende dall'«attenzione» in su.
+
+---
+
+## Rifiuti
+
+La raccolta differenziata: **un bidone per materiale**, e per ognuno il sensore o il calendario che dice quando passa il ritiro. La pagina risponde alla domanda della sera — cosa metto fuori stasera — e la tessera in Home si accende il giorno prima.
+
+Chi ha **un calendario solo**, con un evento per ritiro, lo mette nella casella in fondo alla scheda: il materiale si indovina dal nome dell'evento.
+
+---
+
 ## Agenda
 
 | Tema chiaro | Tema scuro |
@@ -690,6 +714,8 @@ Quindi la chat è **una conversazione privata**, e non passa da GitHub:
 - **Il tasto che cancella cancella davvero**, anche dal centralino.
 
 Il progetto per esteso è in [`docs/CHAT.md`](docs/CHAT.md).
+
+**Quando arriva una risposta, la Home lo dice.** Fra i widget compare la tessera **Assistenza**: il conto delle risposte da leggere, l'ultima frase in breve, e nella sua finestra il tasto che apre la chat. Si accende come un avviso e se ne va da sola appena apri la conversazione, perché aprirla è leggerla. Se non la vuoi in Home, dalla scheda 🧩 Widget si nasconde come le altre.
 
 > **Per chi mantiene una plancia propria.** La chat funziona in uscita senza configurare niente. Per **leggere** le conversazioni serve incollare la chiave del proprio centralino in *Impostazioni → Dispositivi e servizi → DashboardModern → Configura → «Chiave della console assistenza»*.
 
@@ -794,6 +820,7 @@ Quello che la Home legge per conto suo, prima delle tessere:
 | **Allarme** (`alarm_control_panel.*`) | la centrale che la Home mostra e comanda |
 | **Interruttore antifurto** (`switch.*`) | per chi l'antifurto ce l'ha come interruttore e non come centrale |
 | **Script apertura cancello** | il cancello raggiungibile dalla Home |
+| **Radar meteo: luogo e servizio** | il posto della mappa — «Casa», una zona o le coordinate — e da chi arrivano le tessere della pioggia: di serie **RainViewer** con **CARTO** come fondo, oppure OpenStreetMap o un indirizzo tuo con `{z}/{x}/{y}`. Chi non vuole che la plancia bussi a nessun servizio sceglie «Nessuno» |
 
 ### ⚡ Energia
 
@@ -849,8 +876,8 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 </table>
 
 - **Luci**: entità (`light.`, `switch.`, `input_boolean.`, `fan.`, `group.`), nome, stanza — chiesta subito quando aggiungi una luce — e ordine.
-- **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo**, **Caldo** o entrambi per una pompa di calore. Qui si configura anche il **tasto Clima rapido** della Home — modalità, temperatura e ventola — con le sole modalità che le unità configurate accettano davvero; un campo lasciato vuoto vuol dire «non toccare».
-- **Finestre**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso** e percentuali dei preset. Il solo sensore basta per una persiana manuale.
+- **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo**, **Caldo** o entrambi per una pompa di calore. Per i termosifoni con valvola smart c'è la casella **Valvola TRV (posizione %)**: la card mostra quanto la valvola è aperta e quanto chiusa (se l'unità espone già `valve_position`, lo legge da sola). Qui si configura anche il **tasto Clima rapido** della Home — modalità, temperatura e ventola — con le sole modalità che le unità configurate accettano davvero; un campo lasciato vuoto vuol dire «non toccare».
+- **Finestre**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso**, **inferriata** e percentuali dei preset. Il solo sensore basta per una persiana manuale. In cima alla scheda la **soglia di chiusura**: ferma a quella percentuale o sotto, una tapparella conta come chiusa.
 
 ### 🤖 Aspirapolvere · ✅ Cose da fare · 🚪 Aperture
 
@@ -878,6 +905,9 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 - **Widget** decide cosa compare nella fascia Widget della Home: quali tessere, in che ordine, e i **gruppi di avvisi** con la loro icona e animazione. La scelta si fa anche entità per entità, con l'interruttore accanto a ogni campo, che dice se quell'entità è dentro la tessera o ne sta fuori.
 - **Azioni rapide**: i comandi della Home — sezioni predefinite, script, interruttori — con nome e icona.
 
+- **Cosa mostra**: sotto Temperatura e Clima una tendina sceglie fra la **media di tutte** e **una stanza o un'unità sola**.
+- **Tessera a sé**: ogni entità «in evidenza» può avere la **sua tessera in Home**, col suo valore, che al tocco si apre su di lei — è il modo di mettere in Home un'entità qualunque come widget.
+
 ### 🏊 Piscina · 💧 Irrigazione · 🚗 EV
 
 <table>
@@ -890,7 +920,7 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 - **Piscina**: temperatura, pH, cloro con le soglie, pompa, riscaldamento, luce.
 - **Irrigazione**: zone con valvola, minuti, stanza, orario, **umidità del terreno** con le sue soglie, blocco pioggia e meteo.
-- **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità.
+- **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità. La tendina **Motore** — elettrica, termica, ibrida — vale per quella vettura: con un motore termico la pagina mostra il serbatoio al posto della ricarica, e fra le entità dell'auto ci sono le caselle di carburante, motore, portiere, finestrini, allarme, batteria di servizio, olio, temperatura esterna, ultimo viaggio, carburante consumato e pneumatici.
 
 ### 🌞 Gestione termica
 
@@ -940,6 +970,11 @@ CPU, RAM, disco, temperatura CPU, uptime della macchina e di Home Assistant, con
 
 - **Calendari** `calendar.*`, ognuno con nome e **colore** — è il colore con cui i suoi impegni compaiono nella pagina.
 - **Liste** `todo.*` da mostrare accanto agli impegni.
+
+### ⚠️ Allerte · ♻️ Rifiuti
+
+- **Allerte**: per ogni categoria — terremoti, protezione civile, fulmini, pollini, comfort termico, voli — il sensore della sua integrazione, con la distanza o la magnitudo facoltative dove esistono. Nessuna casella è obbligatoria.
+- **Rifiuti**: un materiale per riga — organico, carta, plastica, vetro, indifferenziato e gli altri — con il sensore o il `calendar.*` del ritiro; in fondo il **calendario unico** per chi ne ha uno solo.
 
 ### ✨ Le tue entità · 🗂️ Le tue sezioni
 
@@ -1262,6 +1297,8 @@ Ogni release pubblica un pacchetto `dashboardmodern.zip` ed è quello che HACS s
 DashboardModern è un progetto **indipendente e open source**, sviluppato e mantenuto nel tempo libero. Non ha sponsor, non ha abbonamenti, non raccoglie dati.
 
 **Una donazione è gradita e fa la differenza concreta**: più il progetto è sostenuto, più tempo posso dedicare a rispondere alle Issue, ad assistere chi ha problemi di configurazione, a testare su dispositivi reali e a pubblicare correzioni in fretta.
+
+Il tasto è anche **dentro la plancia**: nella configurazione, in fondo alla colonna delle schede e in «Impostazioni».
 
 Grazie a chi ha già sostenuto DashboardModern: è **davvero apprezzato**! A chi usa questa integrazione: ci metto parecchia energia e parecchia passione. Se puoi permettertelo, dai anche tu una piccola spinta e diventa sostenitore.
 

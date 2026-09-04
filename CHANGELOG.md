@@ -5,6 +5,238 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.6
+
+Tre sezioni in piu', la Home che si personalizza, e una decina di cose viste
+sul campo. Le sezioni sono le Allerte (#296), i Rifiuti (#293) e l'auto che va
+a benzina (#208). La Home sceglie cosa mostrano le sue tessere e ne fa una per
+ogni entita' in evidenza (#303), avvisa quando l'assistenza risponde, e ogni
+storico si sceglie il periodo (#302); il clima dice quanto sono aperte le
+valvole (#300). Le cose viste sul campo sono il radar che con «Casa» non
+mostrava niente, le telecamere Arlo senza video (#294), la tapparella
+socchiusa che contava come aperta (#298), l'inferriata che si perdeva in
+modifica (#297), le icone che sparivano (#304), la finestra col solo sensore
+contata fra le tapparelle (#299), il cruscotto delle segnalazioni che non
+ricaricava, e un apice di troppo in un commento che spegneva mezza plancia
+dopo il primo caricamento.
+
+### Aggiunto
+
+- **Le allerte hanno una pagina (#296).**
+
+      «Presenza di allerte varie: terremoti INGV, thermal comfort zona,
+       concentrazione pollini, concentrazione fulmini zona, avvisi
+       protezione civile, Flightradar24 di zona.»
+
+  Sei fonti, ognuna dal sensore che la sua integrazione ha gia' portato in
+  Home Assistant, ridotte a un livello solo: quiete, nota, attenzione,
+  allarme. Nessuna casella e' obbligatoria e ognuna basta da sola; la pagina
+  mostra solo le fonti che ci sono, e la tessera in Home conta quelle in
+  corso e si accende dall'«attenzione» in su. Una fonte muta non e' quiete:
+  la pagina lo dice. La plancia non chiama nessun servizio, legge quello che
+  c'e'.
+
+- **La raccolta differenziata ha una pagina (#293).** Un bidone per
+  materiale, e per ognuno il sensore o il calendario che dice quando passa il
+  ritiro. La pagina risponde alla domanda della sera — cosa metto fuori
+  stasera — e la tessera in Home si accende il giorno prima. Chi ha un
+  calendario solo, con un evento per ritiro, lo mette nella casella in fondo
+  e il materiale si indovina dal nome dell'evento.
+
+- **L'auto che va a benzina (#208).**
+
+      «Ho la mia auto che ha i sensori di livello carburante, odometro,
+       autonomia e portiere: e' possibile scegliere a monte se
+       visualizzare un'auto elettrica o classica con i sensori
+       disponibili?»
+
+  Nella scheda dell'auto, sotto il nome, una tendina dice se il motore e'
+  elettrico, termico o ibrido. Vale per quella vettura: in un garage possono
+  starci tutte e due. Con un motore termico la pagina Auto non mostra piu'
+  la ricarica — batteria, wallbox, sessione, target — e al suo posto c'e' il
+  serbatoio, con intorno le portiere, il motore, i finestrini, l'allarme, la
+  batteria di servizio, l'olio, la temperatura esterna, l'ultimo viaggio, il
+  carburante consumato e la pressione dei pneumatici. Le caselle nuove stanno
+  fra le entita' dell'auto, con la stessa lente e lo stesso cestino delle
+  altre. La tessera in Home legge il carburante quando non c'e' una batteria,
+  e lo dice con la pompa al posto della spina.
+
+- **Il radar ha un servizio di serie.** La pioggia arriva da RainViewer e la
+  mappa sotto da CARTO senza dover scegliere niente: basta dire dove. Nella
+  scheda Home si puo' cambiare — OpenStreetMap, oppure «Un indirizzo mio» con
+  {z}/{x}/{y}; «Prova» ne scarica una e dice se arriva — e chi non vuole che
+  la plancia bussi a nessun servizio sceglie «Nessuno». Una casa che il radar
+  non l'ha mai toccato non se lo trova nelle previsioni.
+
+- **La pagina dell'auto si chiama «Auto».** Da quando ci passano anche le
+  vetture a benzina, «Auto elettrica» nel titolo e nella scheda era una
+  bugia per meta' del garage.
+
+- **«Sostieni il progetto» nella configurazione.** In fondo alla colonna
+  delle schede una pastiglia PayPal, e in «Impostazioni» una card con due
+  righe di perche': il progetto e' indipendente e vive di tempo libero. Il
+  collegamento e' uno, lo stesso del README, e si apre in una scheda nuova.
+
+- **Una risposta dell'assistenza compare in Home.**
+
+      «Gestisci una sorta di widget avviso che, se si ricevono messaggi
+       nella chat assistenza, compare nella home.»
+
+  La chat sta dietro una card della Configurazione, e una risposta arrivata
+  mentre nessuno guardava li' era un pallino su una pagina che non si apre
+  tutti i giorni. Adesso e' una tessera fra i widget della Home, la prima di
+  serie: compare con la prima risposta da leggere, porta il conto e l'ultima
+  frase in breve, si accende come un avviso, e la sua finestra ha il tasto
+  che apre la chat. Se
+  ne va da sola appena la chat si apre, perche' aprirla e' leggerla. La
+  pagina lo viene a sapere dal bus di Home Assistant — lo stesso evento
+  `dashboardmodern_chat` che il giro dei cinque minuti spara per le
+  automazioni — senza nessun battito in piu', e si rimette in ascolto da sola
+  dopo una riconnessione. Dalla scheda Widget si ordina e si nasconde come
+  le altre.
+
+- **I widget della Home si personalizzano (#303).**
+
+      «Il widget temperatura come il clima visualizzano la temperatura
+       media, si potrebbe far scegliere cosa visualizzare. Anche quelle in
+       evidenza di potere scegliere se vederle raggruppate oppure come widget
+       una ad una.»
+
+  Nella scheda Widget, sotto Temperatura e Clima, la tendina «Cosa mostra»:
+  la media di tutte, com'era, oppure una stanza o un'unita' sola — con una
+  pompa di calore che d'inverno scalda una stanza a trenta gradi, la media
+  non dice niente. E ogni entita' in evidenza ha la spunta «Tessera a se' in
+  Home»: invece di stare nel riassunto ha la sua tessera, col suo valore, che
+  al tocco si apre su di lei. E' il modo di mettere in Home un'entita'
+  qualunque come widget.
+
+- **Le valvole termostatiche dicono quanto sono aperte (#300).**
+
+      «Nella sezione riscaldamento dare la possibilita' di inserire valvole
+       TRV mostrando percentuale apertura e percentuale chiusura valvola.»
+
+  Nella scheda di un'unita' clima — il form del guscio e la matita — c'e' la
+  casella «Valvola TRV (posizione %)»: il sensore o il number con la
+  posizione della valvola. La card del termosifone mostra una barra con
+  quanto e' aperta e quanto chiusa. Chi ha un'unita' che espone gia'
+  `valve_position` o `pi_heating_demand` fra gli attributi non deve
+  compilare niente: la card lo legge da li'.
+
+- **Lo storico si sceglie il periodo (#302).**
+
+      «Nella scheda temperatura il grafico permette solo di scegliere
+       24h/7g. Inserire la possibilita' di inserire data inizio e data fine
+       oltre a piu' periodi predefiniti (1 ora, 5 ore, 10 ore, 1 mese,
+       2 mesi…).»
+
+  In ogni finestra dove si vede uno storico — il popup delle misure, che
+  aprono la temperatura, gli elettrodomestici, l'auto e il resto; il grafico
+  della stanza nella pagina Temperatura; la cronologia della connettivita' e
+  dell'inverter — ci sono sette periodi di serie, da un'ora a due mesi, e
+  «Da … a» per scrivere un inizio e una fine. L'asse del tempo cambia grana
+  col periodo: le ore su un giorno, i giorni su una settimana, le settimane
+  su un mese. Il futuro non ha storia, e un anno e' il massimo che si chiede
+  al Recorder.
+
+- **Le tapparelle hanno una soglia di chiusura (#298).** Nella scheda
+  Finestre un numero: ferma a quella percentuale o sotto, la tapparella
+  conta come chiusa nella pagina, nella scena e nella tessera in Home. Chi
+  lascia un 10% per far passare l'aria non si sente dire che e' aperta. Zero
+  e' il comportamento di sempre.
+
+### Corretto
+
+- **Nove cose viste in revisione, prima di uscire.** Una sottoscrizione
+  WebRTC chiusa si chiude anche nel ponte del pannello, non solo di qua. Una
+  vettura dichiarata a benzina mostra il serbatoio in Home anche se ha ancora
+  addosso la batteria di quando era elettrica. Il radar e' «vivo» solo se
+  arriva la pioggia: il fondo della mappa da solo non basta piu'. Cambiato il
+  materiale di un bidone, icona e colore si ricalcolano. Le distanze delle
+  allerte si leggono in chilometri anche da un sensore in miglia o in metri.
+  Il calendario dei rifiuti concorre al «prossimo ritiro», e un sensore che
+  dice unknown o unavailable non risponde — non «data non trovata». La
+  tessera delle allerte non dice «tutto tranquillo» sopra una fonte che non
+  risponde: dice quante sono. E una telecamera puntata su una scena ferma non
+  si condanna ogni mezzo minuto: la pazienza raddoppia a ogni riavvio, fino a
+  quattro minuti, e si azzera al primo fotogramma diverso.
+
+- **Barre dei periodi, campo della valvola e pastiglia: in riga.** Nel popup
+  dello storico la pillola dei periodi era una griglia da quattro larga al
+  massimo 460 pixel: con otto periodi andava a capo, la seconda riga restava
+  appesa a sinistra e il fondo diventava una macchia tonda; adesso si prende
+  la larghezza che ha, centra le pillole anche su due righe e la riga «Dal /
+  Al» sta sotto, per intero. Nella scheda Clima il campo «Valvola TRV» aveva
+  la matita su una riga a se': ha la stessa forma di «Entita' clima». Nella
+  scheda Widget «Cosa mostra» andava a capo in due righe strette accanto a
+  una tendina larga quanto la pagina. E la pastiglia «Sostieni il progetto»
+  usciva dalla colonna delle schede: ora va a capo dentro la pillola e sul
+  telefono in piedi resta il solo cuore.
+
+- **Il pallino dell'assistenza si spegneva da solo.** All'avvio la plancia
+  leggeva anche il filo della chat, e leggere il filo e' averlo letto: il
+  segnalibro si spostava a ogni ricarica della pagina, prima che qualcuno
+  avesse visto niente. Adesso all'avvio si legge solo lo stato — quante
+  risposte aspettano — e il filo quando la finestra si apre davvero.
+
+- **Il radar con «Casa» non mostrava niente.** La plancia sapeva dove sta
+  casa solo se il guscio le passava `hass.config`, e nel riquadro ospitato
+  non arriva: ora lo chiede al socket con `get_config` e se lo tiene. E senza
+  un servizio delle tessere non aveva da chi chiedere la pioggia: da qui la
+  tendina.
+
+- **Le telecamere hanno il video vero (#294).**
+
+      «Continuano a non funzionare in live streaming, e nemmeno se metto
+       nome webrtc parte.»
+
+  Dentro il pannello di Home Assistant — e quindi da Nabu Casa — il ponte
+  verso il socket non lasciava passare il WebRTC di Home Assistant
+  (`camera/webrtc/offer`): il popup moriva prima di cominciare, e il campo
+  «nome del flusso» non c'entra, e' per chi ha l'estensione go2rtc. Il ponte
+  adesso lascia passare l'offerta e i suoi eventi, e la negoziazione usa i
+  server ICE che Home Assistant dichiara per la telecamera — i TURN di Nabu
+  Casa compresi, che da fuori casa sono la differenza fra il video e il nero.
+  Le tessere «dal vivo» fanno lo stesso: quando Home Assistant dichiara
+  `web_rtc` o `hls` montano un video, e il MJPEG del proxy — che per una
+  telecamera in cloud e' una foto ferma — resta come rete sotto. Uscendo
+  dalla pagina i video si spengono.
+
+- **Le telecamere Arlo non lasciano piu' il quadratino azzurro (#294).** Il
+  flusso di una telecamera che dorme non parte al primo colpo, e l'immagine
+  restava rotta — ritentata ogni quattro secondi. Un flusso caduto ora si
+  mette in pausa per un minuto e la tessera torna alle istantanee; allo
+  scadere si riprova. E un flusso che si ferma in silenzio — gli stessi pixel
+  per trenta secondi — si riconosce e si riapre, invece di restare con la
+  vista congelata. Mentre si aspetta il primo fotogramma, la tessera lo
+  scrive — ma solo finche' un fotogramma non c'e' stato: da li' in poi un
+  flusso che cade lascia a schermo l'ultimo, non un lampo di nero.
+
+- **L'infisso con inferriata si rilegge in modifica (#297).** La seconda
+  entita' si perdeva al salvataggio, perche' la normalizzazione del
+  dispositivo la lasciava cadere; ora resta. E l'inferriata si anima come una
+  grata — le sbarre che si scostano — prima delle ante quando si apre, e
+  dopo quando si chiude.
+
+- **Il conto in cima a un gruppo di finestre non inventa tapparelle (#299).**
+  Una persiana a mano con il solo sensore di contatto leggeva «1 tapparella»:
+  le tapparelle e le finestre si contano a parte, e ognuna compare solo se c'e'.
+
+- **Le icone non spariscono piu' (#304).** «Icone spariscono, e riappaiono
+  se ci clicco sopra.» Tre cause, tre rimedi: le animazioni che passano
+  dall'invisibile — l'ingresso di una tessera, il battito degli avvisi — non
+  si fermano piu' a meta' quando si apre una finestra; il foglio delle
+  sfumature non si butta e rifa' a ogni giro, si sposta; e ogni disegno porta
+  il colore di ripiego accanto alla sfumatura, cosi' se il browser non la
+  ritrova dipinge un disegno pieno invece di niente. La pagina Temperatura
+  rilegge i suoi nodi una volta per fotogramma e non a ogni mutazione.
+
+- **Il cruscotto delle segnalazioni ricarica con «Aggiorna».** Il tasto non
+  faceva niente: bisognava chiudere e riaprire per vedere le nuove.
+
+- **«Da lavorare» non mostra piu' le segnalazioni prese in carico.** Una
+  segnalazione presa in carico sta in lavorazione, e i filtri lo dicono:
+  aperte, in lavorazione, chiuse, tutte.
+
 ## 1.4.5
 
 Tredici passaggi di prova diventati una versione sola. Dentro ci sono cinque

@@ -43,7 +43,7 @@ export function canonicalClimateType(value) {
  */
 import { pick } from "./i18n.js";
 import { LOAD_PLANT_FIELD } from "./energy-plants.js";
-import { contactEntity } from "./shutter-window.js";
+import { contactEntity, inferriataEntity } from "./shutter-window.js";
 import {
   COVER_SLOTS,
   coverDownRelay,
@@ -422,6 +422,9 @@ export function normalizeDevice(input = {}, section, context = {}) {
   if (input.entity || entities[0]) base.entity = String(input.entity || entities[0]);
   if (section === "climate") {
     base.type = canonicalClimateType(input.type);
+    /* La valvola termostatica (#300): l'entita' con la posizione, scelta da
+     * chi configura. Vale la riga qui sotto sul contatto dell'infisso. */
+    if (input.valvola) base.valvola = String(input.valvola);
   }
   if (input.stream || input.stream_url || input.url)
     base.stream = String(input.stream || input.stream_url || input.url);
@@ -454,6 +457,16 @@ export function normalizeDevice(input = {}, section, context = {}) {
   if (section === "covers") {
     const contact = contactEntity(input);
     if (contact) base.contact = contact;
+    /* L'inferriata (#254, #297): il secondo contatto, quello di fuori.
+     *
+     * Ed e' la quinta volta che questa riga manca. La scheda la salvava, il
+     * modello la buttava alla prima normalizzazione, e da li' in poi la riga
+     * non l'aveva piu': «nella configurazione mi permette di inserire le due
+     * entita', se vado poi in modifica vedo solamente l'infisso, e
+     * nell'animazione vedo solo quando chiudo la finestra». Tutti e due i
+     * sintomi sono lo stesso campo perso nello stesso punto. */
+    const inferriata = inferriataEntity(input);
+    if (inferriata) base.inferriata = inferriata;
     // Tapparella o tenda: senza dichiararlo qui il tipo scelto sparirebbe alla
     // prima normalizzazione, come era gia' successo al contatto dell'infisso.
     const kind = declaredCoverKind(input);

@@ -20,6 +20,9 @@ const LEGACY_CONFIG_KEYS = Object.freeze([
   "cd_irrigazione",
   "cd_energy_model",
   "cd_entity_overrides",
+  "cd_ups",
+  "cd_allerte",
+  "cd_rifiuti",
 ]);
 
 function makeEvent(root, detail) {

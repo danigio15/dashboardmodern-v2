@@ -117,12 +117,19 @@ async def async_stato(hass: HomeAssistant) -> dict[str, Any]:
     chiede a parte, quando qualcuno la apre davvero.
     """
     store = await async_get_chat_store(hass)
+    non_letti = store.non_letti()
+    # L'ultima risposta non letta, in breve: la tessera in Home la mostra prima
+    # che qualcuno apra la finestra, e senza spostare il segnalibro — che si
+    # sposta solo leggendo il filo.
+    ultima = non_letti[-1] if non_letti else {}
     return {
         "enabled": accesa(hass),
         "console": e_la_console(hass),
         "opened": store.aperta(),
         "name": store.nome(),
-        "unread": len(store.non_letti()),
+        "unread": len(non_letti),
+        "preview": str(ultima.get("testo") or "").strip()[:200],
+        "written_at": int(ultima.get("scritto_il") or 0),
         "messages": len(store.messaggi()),
     }
 

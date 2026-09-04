@@ -22,6 +22,7 @@
  * senza Recorder non si apre.
  */
 
+import { chiaveDellIntervallo, intervalloDa } from "../core/periodo-storico.js";
 import { normalizeHistoryRows } from "./history-section.js";
 import { clean, root } from "./shared.js";
 
@@ -41,15 +42,16 @@ const BUONA_PER = 9 * 60_000;
  * risponderebbe «no» a ogni giro di disegno, e sarebbero decine al minuto. */
 const RIPROVA_DOPO = 25_000;
 
-async function chiedi(entity, ore) {
+async function chiedi(entity, scelta) {
   const broker = root.DashboardModernEnergyService?.broker;
   if (typeof broker?.request !== "function") throw new Error("storico non raggiungibile");
-  const fine = new Date();
-  const inizio = new Date(fine.getTime() - ore * 3600_000);
+  /* `scelta` e' un numero di ore, come e' sempre stato, oppure un intervallo
+   * da quando a quando (#302): la domanda al Recorder e' la stessa. */
+  const intervallo = intervalloDa(scelta) || intervalloDa(3);
   const risposta = await broker.request({
     type: "history/history_during_period",
-    start_time: inizio.toISOString(),
-    end_time: fine.toISOString(),
+    start_time: new Date(intervallo.start).toISOString(),
+    end_time: new Date(intervallo.end).toISOString(),
     entity_ids: [entity],
     include_start_time_state: true,
     significant_changes_only: false,
@@ -69,7 +71,8 @@ async function chiedi(entity, ore) {
 export function serieDi(entity, ore = 3) {
   const nome = clean(entity);
   if (!nome) return null;
-  const chiave = `${nome}@${ore}`;
+  const intervallo = intervalloDa(ore) || intervalloDa(3);
+  const chiave = `${nome}@${chiaveDellIntervallo(intervallo)}`;
   const avuta = state.cache.get(chiave);
   const adesso = Date.now();
   const valeFino = avuta?.fallita ? RIPROVA_DOPO : BUONA_PER;

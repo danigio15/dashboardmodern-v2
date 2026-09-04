@@ -122,8 +122,9 @@ test.describe("i filtri del cruscotto rispondono al tocco", () => {
      * motivo sbagliato e non se ne accorgerebbe nessuno. */
     await expect(page.locator("#dm-tkt-modal")).toHaveCount(0);
 
-    // Si parte da «Da lavorare»: le tre aperte, la chiusa no.
-    await expect(voci(page)).toHaveCount(3);
+    // Si parte da «Da lavorare»: le due che nessuno ha ancora preso. Quella
+    // presa in carico e' in lavorazione, non da lavorare; la chiusa no.
+    await expect(voci(page)).toHaveCount(2);
     await expect(page.locator('#page-cruscotto [data-dm-filtro="aperte"]')).toHaveClass(/attivo/);
 
     // «In lavorazione»: resta quella presa in carico.
@@ -136,15 +137,15 @@ test.describe("i filtri del cruscotto rispondono al tocco", () => {
     );
     await expect(titoli(page)).toHaveText(["Le tapparelle non si fermano a meta'"]);
 
-    // «Nuove»: le due che nessuno ha ancora preso.
-    await page.locator('#page-cruscotto [data-dm-filtro="nuove"]').click();
-    await expect(page.locator('#page-cruscotto [data-dm-filtro="nuove"]')).toHaveClass(/attivo/);
+    // Di nuovo «Da lavorare»: si torna alle due non prese.
+    await page.locator('#page-cruscotto [data-dm-filtro="aperte"]').click();
+    await expect(page.locator('#page-cruscotto [data-dm-filtro="aperte"]')).toHaveClass(/attivo/);
     await expect(voci(page)).toHaveCount(2);
 
     // «Difetti» e' l'altro asse: si incrocia con lo stato, non lo scaccia.
     await page.locator('#page-cruscotto [data-dm-tipo-coda="bug"]').click();
     await expect(page.locator('#page-cruscotto [data-dm-tipo-coda="bug"]')).toHaveClass(/attivo/);
-    await expect(page.locator('#page-cruscotto [data-dm-filtro="nuove"]')).toHaveClass(/attivo/);
+    await expect(page.locator('#page-cruscotto [data-dm-filtro="aperte"]')).toHaveClass(/attivo/);
     await expect(titoli(page)).toHaveText(["La foto dell'auto torna quella di prima"]);
 
     // E il tipo resta scelto passando a «Chiuse».
@@ -168,7 +169,12 @@ test.describe("i filtri del cruscotto rispondono al tocco", () => {
      * acceso. Se il tocco non ridisegna, quel numero resta quello di prima: e'
      * il secondo modo, piu' silenzioso, in cui il difetto si vedeva. */
     const difetti = page.locator('#page-cruscotto [data-dm-tipo-coda="bug"] .dm-tkt-quanti');
-    await expect(difetti).toHaveText("2");
+    // «Da lavorare»: il solo difetto che nessuno ha preso.
+    await expect(difetti).toHaveText("1");
+
+    // «Tutte»: i tre difetti, compresi quello preso in carico e quello chiuso.
+    await page.locator('#page-cruscotto [data-dm-filtro="tutte"]').click();
+    await expect(difetti).toHaveText("3");
 
     await page.locator('#page-cruscotto [data-dm-filtro="in-carico"]').click();
     await expect(difetti).toHaveText("1");

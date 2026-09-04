@@ -71,3 +71,34 @@ export function stessoFlusso(immagine, indirizzo) {
   if (!immagine || !indirizzo) return false;
   return pulito(immagine.dataset?.dmCameraStream) === pulito(indirizzo);
 }
+
+/* ── il flusso che cade, e quando riprovarlo (#294) ──────────────────────
+ *
+ * «Nella sezione Sicurezza visualizzo i riquadri ma non si vedono le live:
+ * compare un quadratino azzurro.» Il quadratino azzurro e' l'immagine rotta di
+ * Safari: il flusso di una telecamera che dorme — Arlo, Ring — non parte al
+ * primo colpo, l'`<img>` riceve un errore e resta li' con un indirizzo che non
+ * ha risposto. E al giro dopo, quattro secondi piu' tardi, lo si richiedeva
+ * uguale: un quadratino rotto ogni quattro secondi, per sempre.
+ *
+ * Un flusso caduto si mette in pausa per un minuto. Nel frattempo la tessera
+ * torna alle istantanee — che per una telecamera in cloud arrivano quasi
+ * sempre — e allo scadere si riprova, perche' una telecamera che si e'
+ * svegliata nel frattempo il flusso ce l'ha. Il segno sta sull'immagine
+ * stessa, dove sta anche l'indirizzo del flusso: e' l'immagine che ha visto
+ * l'errore, ed e' lei che deve ricordarselo. */
+export const PAUSA_DOPO_CADUTA_MS = 60_000;
+
+/** Se questa immagine sta aspettando prima di riprovare il flusso. */
+export function flussoInPausa(immagine, adesso = Date.now()) {
+  const fino = Number(immagine?.dataset?.dmCameraStreamPausa);
+  return Number.isFinite(fino) && fino > adesso;
+}
+
+/** Segna la caduta: da adesso e per `durata` niente flusso, solo istantanee. */
+export function mettiInPausaIlFlusso(immagine, adesso = Date.now(), durata = PAUSA_DOPO_CADUTA_MS) {
+  if (!immagine?.dataset) return 0;
+  const fino = adesso + Math.max(0, Number(durata) || 0);
+  immagine.dataset.dmCameraStreamPausa = String(fino);
+  return fino;
+}

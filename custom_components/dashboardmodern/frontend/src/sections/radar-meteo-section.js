@@ -32,26 +32,72 @@
  * la sua integrazione ha gia' quell'entita', il fotogramma passa dal proprio
  * server col proprio token, e fuori non va niente.
  *
- * La seconda e' un servizio di tessere, con il suo indirizzo a modello —
- * `{z}/{x}/{y}`, la convenzione che usano tutti. Qui l'indirizzo lo mette chi
- * installa e non lo mettiamo noi, per un motivo che vale la pena scrivere:
- * cablare l'indirizzo di un servizio che non abbiamo potuto interrogare
- * nemmeno una volta vorrebbe dire spedire una promessa. Al posto della
- * promessa c'e' un pulsante che scarica un quadratino e dice se e' arrivato:
- * chi incolla un indirizzo sa in un secondo se funziona, invece di scoprirlo
- * la prima volta che piove.
+ * La seconda e' un servizio di mappe, scelto da una tendina. All'inizio la
+ * tendina non c'era: l'indirizzo a modello — `{z}/{x}/{y}`, la convenzione
+ * che usano tutti — lo scriveva chi installa, per non cablare un servizio mai
+ * interrogato. Il risultato e' stato «se metto casa non si vede nulla»: il
+ * radar sapeva DOVE guardare e non COSA, e per chi non sa scrivere un
+ * indirizzo di tessere era una cornice vuota. Adesso i servizi che si
+ * conoscono stanno in `core/radar-mappa.js` come dati — RainViewer per la
+ * pioggia, OpenStreetMap o CARTO per la mappa sotto — e di serie sono gia'
+ * scelti: basta dire dove. Chi non vuole che la plancia bussi a nessun
+ * servizio sceglie «Nessuno», e accanto alla tendina sta scritto cosa quel
+ * servizio viene a sapere (la zona che si guarda). L'indirizzo proprio resta, per chi ne ha
+ * un altro, e resta anche il pulsante che scarica un quadratino e dice se e'
+ * arrivato: chi sceglie sa in un secondo se funziona, invece di scoprirlo la
+ * prima volta che piove.
+ *
+ * E casa si chiede a Home Assistant — `get_config` — quando la zona
+ * `zone.home` non e' fra gli stati: `hass.config`, l'altro ripiego, nella
+ * plancia ospitata non esiste, e «Casa» finiva nel vuoto.
  */
 import {
+  FONDI_MAPPA,
+  FONDO_DI_SERIE,
+  NIENTE,
+  SERVIZI_RADAR,
+  SERVIZIO_DI_SERIE,
   finestraDiTessere,
+  fotogrammaRainViewer,
   luogoDelRadar,
+  modelloDelFondo,
+  modelloDelServizio,
   urlDellaTessera,
   zoneDisponibili,
 } from "../core/radar-mappa.js";
 import { loadCameraFrame } from "./live-ui-section.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, t } from "./shared.js";
+import {
+  allStates,
+  chiediAHomeAssistant,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  readJson,
+  root,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_RADAR_METEO__";
-const state = (root[KEY] ||= { installed: false, timer: 0, provando: false });
+const state = (root[KEY] ||= {
+  installed: false,
+  timer: 0,
+  provando: false,
+  /* Casa, come la dice Home Assistant (`get_config`): si chiede una volta. */
+  casa: null,
+  casaChiesta: 0,
+  /* Il fotogramma piu' recente di ogni servizio, e le richieste in volo. */
+  fotogrammi: {},
+  chiedendo: {},
+});
+state.fotogrammi ||= {};
+state.chiedendo ||= {};
+
+/* Come si legge il fotogramma di adesso dall'elenco di ogni servizio. */
+const FOTOGRAMMI = Object.freeze({ rainviewer: fotogrammaRainViewer });
+
+/* Quanto si aspetta prima di richiedere un elenco che non e' arrivato. */
+const RIPROVA_DOPO = 60_000;
 
 export const CHIAVE_RADAR = "cd_radar_meteo";
 const BLOCCO = "dm-radar-blocco";
@@ -82,16 +128,40 @@ function salva(prossima) {
   } catch (_errore) {}
 }
 
+/* Da dove arrivano i quadratini: un servizio della tendina, un indirizzo
+ * proprio (`modello`), o niente.
+ *
+ * Chi aveva scritto un indirizzo prima che la tendina esistesse non ha
+ * `servizio` salvato: l'indirizzo con i segnaposto basta a dire «il mio». */
+export function servizioScelto(grezzo = {}) {
+  const servizio = clean(grezzo?.servizio);
+  if (NIENTE.includes(servizio.toLowerCase())) return "";
+  if (SERVIZI_RADAR[servizio]) return servizio;
+  const mio = /\{[zxy]\}/.test(clean(grezzo?.modello));
+  if (servizio === "modello") return mio ? "modello" : "";
+  if (!servizio) return mio ? "modello" : SERVIZIO_DI_SERIE;
+  return "";
+}
+
+/* Se qualcuno ha mai toccato il radar. Una casa che non l'ha configurato non
+ * se lo trova nelle previsioni: il servizio di serie vale per chi ha aperto la
+ * scheda e scelto un posto, non per tutti. */
+function radarToccato(grezzo) {
+  return Object.values(grezzo || {}).some((valore) => clean(valore) !== "");
+}
+
 /** Cosa e' stato scelto, ripulito. */
 export function radarScelto(stored = configurazione()) {
   const grezzo = stored && typeof stored === "object" ? stored : {};
   const entity = clean(grezzo.entity);
   const modello = clean(grezzo.modello);
+  const servizio = servizioScelto(grezzo);
   const raggio = Number(grezzo.raggio);
   const scelto = {
     entity,
     modello,
-    fondo: clean(grezzo.fondo),
+    servizio,
+    fondo: modelloDelFondo(grezzo),
     zona: clean(grezzo.zona),
     lat: clean(grezzo.lat),
     lon: clean(grezzo.lon),
@@ -102,8 +172,96 @@ export function radarScelto(stored = configurazione()) {
    * gia' il radar dentro Home Assistant. */
   if (entity.includes(".") && CON_IMMAGINE.has(entity.split(".")[0]))
     return { ...scelto, modo: "entita" };
-  if (/\{[zxy]\}/.test(modello)) return { ...scelto, modo: "mappa" };
+  if (servizio && radarToccato(grezzo)) return { ...scelto, modo: "mappa" };
   return null;
+}
+
+/* ── casa, e il fotogramma di adesso ─────────────────────────────────────── */
+
+/* Dove sta casa, per chi non ha `zone.home` sotto mano.
+ *
+ * «Se metto casa non si vede nulla.» Il posto di casa si leggeva dalla zona
+ * `zone.home` fra gli stati, e in ripiego da `hass.config` — che nella plancia
+ * ospitata non c'e': `hass` vive nel documento del padre, non in questo. Se la
+ * zona per qualunque ragione non e' fra gli stati, «Casa» non era da nessuna
+ * parte e il radar restava muto senza dire perche'. Home Assistant lo sa da
+ * sempre dov'e' casa — e' la prima cosa che si scrive installandolo — e lo
+ * dice a chi glielo chiede sul socket: `get_config`. Lo si chiede una volta. */
+function casaNota() {
+  return state.casa || root.hass?.config || {};
+}
+
+function chiediLaCasa({ aspetta = false } = {}) {
+  if (state.casa) return aspetta ? Promise.resolve(state.casa) : true;
+  const adesso = Date.now();
+  if (state.casaInVolo) return aspetta ? state.casaInVolo : true;
+  if (adesso - state.casaChiesta < RIPROVA_DOPO) return aspetta ? Promise.resolve(null) : false;
+  state.casaChiesta = adesso;
+  state.casaInVolo = chiediAHomeAssistant({ type: "get_config" })
+    .then((config) => {
+      const lat = Number(config?.latitude);
+      const lon = Number(config?.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      state.casa = { latitude: lat, longitude: lon, location_name: clean(config?.location_name) };
+      disegnaRadar();
+      return state.casa;
+    })
+    .catch(() => null)
+    .finally(() => {
+      state.casaInVolo = null;
+    });
+  return aspetta ? state.casaInVolo : true;
+}
+
+/* Il fotogramma piu' recente del servizio scelto, e quando rileggerlo. */
+function fotogrammaDi(servizio) {
+  return state.fotogrammi[servizio] || null;
+}
+
+function inArrivo(scelto) {
+  return Boolean(scelto?.servizio && state.chiedendo[scelto.servizio]);
+}
+
+/* Si rilegge l'elenco quando il fotogramma e' vecchio quanto il passo del
+ * servizio, o presto se l'ultima volta non e' arrivato niente. */
+function fotogrammaDaRileggere(servizio, adesso = Date.now()) {
+  const dato = fotogrammaDi(servizio);
+  if (!dato) return true;
+  const passo = dato.fotogramma ? SERVIZI_RADAR[servizio]?.ogni || 600_000 : RIPROVA_DOPO;
+  return adesso - dato.quando >= passo;
+}
+
+/* L'unica richiesta che esce di casa, e parte solo per il servizio che si e'
+ * scelto: senza scelta questa funzione non viene mai chiamata. */
+async function aggiornaFotogramma(servizio) {
+  const dichiarato = SERVIZI_RADAR[servizio];
+  const leggi = FOTOGRAMMI[servizio];
+  if (!dichiarato || !leggi) return null;
+  if (state.chiedendo[servizio]) return state.chiedendo[servizio];
+  state.chiedendo[servizio] = (async () => {
+    let fotogramma = null;
+    try {
+      const risposta = await root.fetch(dichiarato.elenco, { cache: "no-store" });
+      if (risposta?.ok) fotogramma = leggi(await risposta.json());
+    } catch (_errore) {
+      fotogramma = null;
+    }
+    state.fotogrammi[servizio] = { quando: Date.now(), fotogramma };
+    delete state.chiedendo[servizio];
+    disegnaRadar();
+    return fotogramma;
+  })();
+  return state.chiedendo[servizio];
+}
+
+/** Il modello di indirizzo da usare adesso: il proprio, o quello del servizio
+ * col suo fotogramma dentro. Vuoto se il fotogramma non e' ancora arrivato. */
+export function modelloVivo(scelto) {
+  if (!scelto || scelto.modo !== "mappa") return "";
+  if (scelto.servizio === "modello") return scelto.modello;
+  if (!SERVIZI_RADAR[scelto.servizio]) return "";
+  if (fotogrammaDaRileggere(scelto.servizio)) aggiornaFotogramma(scelto.servizio);
+  return modelloDelServizio(scelto.servizio, fotogrammaDi(scelto.servizio)?.fotogramma);
 }
 
 /** Se il radar a entita' sta rispondendo adesso. */
@@ -178,10 +336,23 @@ function daTessere(scelto, nodo) {
   const quadro = nodo.querySelector(".dm-radar-quadro");
   const dove = nodo.querySelector(".dm-radar-tessere");
   if (!quadro || !dove) return;
-  const luogo = luogoDelRadar(scelto, allStates(), root.hass?.config || {});
+  const luogo = luogoDelRadar(scelto, allStates(), casaNota());
   if (!luogo) {
-    nodo.dataset.dmRadar = "muto";
+    /* Casa non si sa ancora: la si chiede a Home Assistant, e nel frattempo il
+     * riquadro dice «attesa» e non «muto» — un radar che sta cercando il posto
+     * non e' un radar rotto. Muto solo se non c'e' piu' niente da aspettare. */
+    nodo.dataset.dmRadar = chiediLaCasa() ? "attesa" : "muto";
     dove.replaceChildren();
+    dove.dataset.dmFirma = "";
+    return;
+  }
+  const modello = modelloVivo(scelto);
+  if (!modello) {
+    /* Il servizio non ha ancora detto qual e' il fotogramma di adesso: si
+     * aspetta la sua risposta, e se non arriva il blocco lo dice. */
+    nodo.dataset.dmRadar = inArrivo(scelto) ? "attesa" : "muto";
+    dove.replaceChildren();
+    dove.dataset.dmFirma = "";
     return;
   }
   const misure = misureDelQuadro(quadro);
@@ -197,16 +368,20 @@ function daTessere(scelto, nodo) {
 
   /* Si ridisegna solo se il quadro e' cambiato davvero: rifare le immagini a
    * ogni giro le farebbe lampeggiare mentre si guarda. */
-  const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${misure.latoPx}x${misure.altoPx},${scelto.modello},${scelto.fondo}`;
+  const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${misure.latoPx}x${misure.altoPx},${modello},${scelto.fondo}`;
+  /* Si contano i quadratini della PIOGGIA, non quelli del fondo. Il fondo e'
+   * un contorno: se CARTO arriva e RainViewer no, una mappa vuota passava per
+   * un radar vivo — col primo quadratino del fondo il blocco si diceva
+   * «vivo», e i buchi della pioggia non riuscivano piu' ne' a dirlo ne' a
+   * far riprovare al giro dopo. */
   let attesi = 0;
   let arrivati = 0;
   let persi = 0;
-  const segnala = (immagine, riuscito) => {
+  const segnala = (immagine, riuscito, dellaPioggia) => {
+    if (!riuscito) immagine.remove();
+    if (!dellaPioggia) return;
     if (riuscito) arrivati += 1;
-    else {
-      persi += 1;
-      immagine.remove();
-    }
+    else persi += 1;
     if (arrivati) {
       nodo.dataset.dmRadar = "vivo";
       return;
@@ -221,8 +396,10 @@ function daTessere(scelto, nodo) {
   if (dove.dataset.dmFirma !== firma) {
     dove.dataset.dmFirma = firma;
     const pezzi = [];
-    for (const strato of [scelto.fondo, scelto.modello]) {
+    let attesiPioggia = 0;
+    for (const strato of [scelto.fondo, modello]) {
       if (!strato) continue;
+      const dellaPioggia = strato === modello;
       for (const tessera of finestraTessere.tessere) {
         const url = urlDellaTessera(strato, tessera, finestraTessere.zoom);
         if (!url) continue;
@@ -235,9 +412,14 @@ function daTessere(scelto, nodo) {
         immagine.style.cssText = `left:${tessera.sx}px;top:${tessera.sy}px;width:${tessera.lato}px;height:${tessera.lato}px`;
         /* Un quadratino che non arriva e' un buco, non un errore: il servizio
          * non copre tutto il mondo, e ai bordi manca per costruzione. */
-        immagine.addEventListener("error", () => segnala(immagine, false), { once: true });
-        immagine.addEventListener("load", () => segnala(immagine, true), { once: true });
+        immagine.addEventListener("error", () => segnala(immagine, false, dellaPioggia), {
+          once: true,
+        });
+        immagine.addEventListener("load", () => segnala(immagine, true, dellaPioggia), {
+          once: true,
+        });
         pezzi.push(immagine);
+        if (dellaPioggia) attesiPioggia += 1;
       }
     }
     dove.replaceChildren(...pezzi);
@@ -251,17 +433,20 @@ function daTessere(scelto, nodo) {
      *
      * E se non arriva nessuno si cancella la firma: senza, il giro
      * successivo troverebbe lo stesso disegno e non riproverebbe mai piu'. */
-    attesi = pezzi.length;
+    attesi = attesiPioggia;
     arrivati = 0;
     persi = 0;
-    nodo.dataset.dmRadar = pezzi.length ? "attesa" : "muto";
-    if (!pezzi.length) dove.dataset.dmFirma = "";
+    nodo.dataset.dmRadar = attesi ? "attesa" : "muto";
+    if (!attesi) dove.dataset.dmFirma = "";
   }
 
   const nota = nodo.querySelector(".dm-radar-nota");
   if (nota) {
     const posto = luogo.nome || `${luogo.lat.toFixed(3)}, ${luogo.lon.toFixed(3)}`;
-    nota.textContent = `${posto} · ${scelto.raggio} km`;
+    /* E da chi arrivano i quadratini: chi guarda ha diritto di sapere a chi
+     * la sua plancia sta chiedendo la pioggia. */
+    const servizio = SERVIZI_RADAR[scelto.servizio]?.nome || "";
+    nota.textContent = [posto, `${scelto.raggio} km`, servizio].filter(Boolean).join(" · ");
   }
 }
 
@@ -374,6 +559,69 @@ function zoneMarkup(scelta) {
   return voci.join("");
 }
 
+/* Le voci della tendina dei servizi: quelli che si conoscono, e «un indirizzo
+ * mio» per chi ne ha un altro. I nomi dei servizi sono marchi, non parole da
+ * tradurre. */
+function serviziMarkup(scelta) {
+  const voci = [
+    `<option value="nessuno"${scelta ? "" : " selected"}>${esc(t("— Nessuno —", "— None —"))}</option>`,
+    ...Object.entries(SERVIZI_RADAR).map(
+      ([chiave, servizio]) =>
+        `<option value="${esc(chiave)}"${chiave === scelta ? " selected" : ""}>${esc(servizio.nome)}</option>`,
+    ),
+    `<option value="modello"${scelta === "modello" ? " selected" : ""}>${esc(
+      t("Un indirizzo mio ({z}/{x}/{y})", "An address of mine ({z}/{x}/{y})"),
+    )}</option>`,
+  ];
+  return voci.join("");
+}
+
+/* La mappa di fondo scelta, come chiave della tendina. Un indirizzo scritto
+ * dentro `fondo` prima della tendina e' «un indirizzo mio». */
+function fondoScelto(config) {
+  const fondo = clean(config.fondo);
+  if (NIENTE.includes(fondo.toLowerCase())) return "";
+  if (FONDI_MAPPA[fondo]) return fondo;
+  if (fondo === "modello" || /\{[zxy]\}/.test(fondo) || clean(config.fondoModello)) return "modello";
+  return FONDO_DI_SERIE;
+}
+
+function fondoMio(config) {
+  const fondo = clean(config.fondo);
+  return clean(config.fondoModello) || (/\{[zxy]\}/.test(fondo) ? fondo : "");
+}
+
+function fondiMarkup(scelta) {
+  const voci = [
+    `<option value="nessuna"${scelta ? "" : " selected"}>${esc(t("Nessuna", "None"))}</option>`,
+    ...Object.entries(FONDI_MAPPA).map(
+      ([chiave, fondo]) =>
+        `<option value="${esc(chiave)}"${chiave === scelta ? " selected" : ""}>${esc(fondo.nome)}</option>`,
+    ),
+    `<option value="modello"${scelta === "modello" ? " selected" : ""}>${esc(
+      t("Un indirizzo mio ({z}/{x}/{y})", "An address of mine ({z}/{x}/{y})"),
+    )}</option>`,
+  ];
+  return voci.join("");
+}
+
+/* Le caselle dell'indirizzo compaiono solo quando servono: con un servizio
+ * scelto dalla tendina non c'e' niente da scrivere, e una casella vuota
+ * sotto una scelta gia' fatta chiede di essere riempita. */
+function aggiornaVisibilita(dentro) {
+  const servizio = clean(dentro?.querySelector?.('[data-dm-radar-campo="servizio"]')?.value);
+  const fondo = clean(dentro?.querySelector?.('[data-dm-radar-campo="fondo"]')?.value);
+  for (const riga of dentro?.querySelectorAll?.("[data-dm-radar-solo]") || []) {
+    const quando = clean(riga.dataset.dmRadarSolo);
+    riga.hidden =
+      quando === "modello"
+        ? servizio !== "modello"
+        : quando === "fondo-modello"
+          ? fondo !== "modello"
+          : false;
+  }
+}
+
 function casellaMarkup(config) {
   return `<span class="ed-slot-lbl">${esc(t("Radar meteo", "Weather radar"))}</span>
     <span class="ed-form-row"><input id="dm-radar-entita" class="ed-input mono"
@@ -387,15 +635,33 @@ function casellaMarkup(config) {
         "A camera or image entity of your own Home Assistant: the frame comes from your own server and nothing leaves the house. If you brought a radar in with its integration, the entity is already there.",
       ),
     )}</small>
-    <div class="dm-radar-oppure">${esc(t("oppure, da un servizio di tessere", "or, from a tile service"))}</div>
-    <span class="ed-form-row"><input id="dm-radar-modello" class="ed-input mono"
+    <div class="dm-radar-oppure">${esc(t("oppure, da un servizio di mappe", "or, from a map service"))}</div>
+    <div class="dm-radar-dove">
+      <label><span class="dm-radar-lbl">${esc(t("Servizio radar", "Radar service"))}</span>
+        <select class="ed-input" data-dm-radar-campo="servizio">${serviziMarkup(servizioScelto(config))}</select>
+      </label>
+      <label><span class="dm-radar-lbl">${esc(t("Mappa di fondo", "Base map"))}</span>
+        <select class="ed-input" data-dm-radar-campo="fondo">${fondiMarkup(fondoScelto(config))}</select>
+      </label>
+    </div>
+    <span class="ed-form-row" data-dm-radar-solo="modello"><input id="dm-radar-modello" class="ed-input mono"
       data-dm-radar-campo="modello" value="${esc(clean(config.modello))}"
-      placeholder="https://…/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false"><button
+      placeholder="https://…/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false"></span>
+    <span class="ed-form-row" data-dm-radar-solo="fondo-modello"><input class="ed-input mono"
+      data-dm-radar-campo="fondoModello" value="${esc(fondoMio(config))}"
+      placeholder="https://…/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false"></span>
+    <span class="ed-form-row dm-radar-prova-riga"><button
       type="button" class="dm-radar-prova" data-dm-radar-prova>${esc(t("Prova", "Test"))}</button></span>
     <small class="dm-radar-esito" data-dm-radar-esito>${esc(
       t(
-        "L'indirizzo è quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
-        "The address is the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
+        "Di serie la pioggia arriva da RainViewer e la mappa da CARTO: basta scegliere dove. Puoi cambiare servizio dalla tendina, oppure «Un indirizzo mio» e scrivere quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
+        "Out of the box the rain comes from RainViewer and the map from CARTO: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
+      ),
+    )}</small>
+    <small>${esc(
+      t(
+        "Il browser chiede al servizio i quadratini della zona che guardi: quel servizio sa quindi che zona è. Scegli «Nessuno» e la plancia non bussa a nessuno.",
+        "The browser asks the service for the tiles of the area you are looking at: that service then knows which area it is. Pick «None» and the dashboard knocks on nobody's door.",
       ),
     )}</small>
     <div class="dm-radar-dove">
@@ -433,8 +699,9 @@ function montaLaCasella() {
   if (!fisarmonica || fisarmonica.querySelector("[data-dm-radar-campo]")) return false;
   const casella = doc.createElement("label");
   casella.className = "ed-slot dm-radar-ed";
-  casella.innerHTML = casellaMarkup(radarScelto() || configurazione());
+  casella.innerHTML = casellaMarkup(configurazione());
   riquadro.after(casella);
+  aggiornaVisibilita(casella);
   return true;
 }
 
@@ -451,6 +718,7 @@ function onCambio(event) {
   const dentro = campo.closest(".dm-radar-ed");
   if (!dentro) return;
   salva(raccogli(dentro));
+  aggiornaVisibilita(dentro);
   disegnaRadar();
 }
 
@@ -475,23 +743,45 @@ async function onClick(event) {
     state.provando = true;
     esito.dataset.dmEsito = "prova";
     esito.textContent = t("Provo…", "Testing…");
-    const luogo = luogoDelRadar(radarScelto(config) || config, allStates(), root.hass?.config || {});
-    const risposta = await provaLIndirizzo(clean(config.modello), luogo, Number(config.raggio));
+    const scelto = radarScelto(config);
+    /* Casa e il fotogramma del servizio si ASPETTANO, qui: chi preme «Prova»
+     * vuole una risposta, non un «riprova fra un po'». */
+    if (!luogoDelRadar(scelto || config, allStates(), casaNota()))
+      await chiediLaCasa({ aspetta: true });
+    if (scelto?.servizio && SERVIZI_RADAR[scelto.servizio] && !modelloVivo(scelto))
+      await aggiornaFotogramma(scelto.servizio);
+    const luogo = luogoDelRadar(scelto || config, allStates(), casaNota());
+    const modello = scelto?.modo === "mappa" ? modelloVivo(scelto) : "";
+    const risposta = !luogo
+      ? { ok: false, motivo: "senza-posto" }
+      : scelto?.servizio && SERVIZI_RADAR[scelto.servizio] && !modello
+        ? { ok: false, motivo: "senza-fotogramma" }
+        : await provaLIndirizzo(modello, luogo, Number(config.raggio));
     state.provando = false;
     esito.dataset.dmEsito = risposta.ok ? "bene" : "male";
     esito.textContent = risposta.ok
       ? t("Arriva: il quadratino c'è.", "It arrives: the tile is there.")
-      : risposta.motivo === "senza-indirizzo"
+      : risposta.motivo === "senza-posto"
         ? t(
-            "Manca l'indirizzo, o non ha {z}/{x}/{y} dentro.",
-            "The address is missing, or has no {z}/{x}/{y} in it.",
+            "Non so dove sia casa: Home Assistant non ha risposto. Scegli una zona o scrivi le coordinate.",
+            "I do not know where home is: Home Assistant did not answer. Pick a zone or write the coordinates.",
           )
-        : risposta.motivo === "troppo-lenta"
-          ? t("Nessuna risposta in otto secondi.", "No answer within eight seconds.")
-          : t(
-              "Non arriva. Controlla l'indirizzo, e che il servizio si lasci leggere da qui.",
-              "It does not arrive. Check the address, and that the service lets this page read it.",
-            );
+        : risposta.motivo === "senza-fotogramma"
+          ? t(
+              "L'elenco dei fotogrammi del servizio non arriva: riprova fra un momento.",
+              "The service's list of frames does not arrive: try again in a moment.",
+            )
+          : risposta.motivo === "senza-indirizzo"
+            ? t(
+                "Scegli un servizio dalla tendina, o scrivi un indirizzo con {z}/{x}/{y} dentro.",
+                "Pick a service from the list, or write an address with {z}/{x}/{y} in it.",
+              )
+            : risposta.motivo === "troppo-lenta"
+              ? t("Nessuna risposta in otto secondi.", "No answer within eight seconds.")
+              : t(
+                  "Non arriva. Controlla l'indirizzo, e che il servizio si lasci leggere da qui.",
+                  "It does not arrive. Check the address, and that the service lets this page read it.",
+                );
     disegnaRadar();
     return;
   }
@@ -552,6 +842,10 @@ function installStyles() {
       #ed-body .dm-radar-esito[data-dm-esito="bene"]{color:#059669;font-weight:700}
       #ed-body .dm-radar-esito[data-dm-esito="male"]{color:#dc2626;font-weight:700}
       #ed-body .dm-radar-dove{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0}
+      /* Le caselle dell'indirizzo si vedono solo con «un indirizzo mio»: la
+         riga del guscio ha un display suo, e hidden da solo non la batte. */
+      #ed-body .dm-radar-ed [data-dm-radar-solo][hidden]{display:none!important}
+      #ed-body .dm-radar-prova-riga{justify-content:flex-end;margin-top:4px}
       #ed-body .dm-radar-dove label{display:block;min-width:0}
       /* Le etichette qui dentro non sono caselle da rinominare: il foglio del
          guscio appende una matita a ogni ed-slot-lbl, e la matita direbbe

@@ -165,3 +165,74 @@ test("nella tendina ci sono le zone, e Casa non compare due volte", () => {
   );
   assert.equal(zone[0].nome, "Da nonna");
 });
+
+/* ── i servizi ────────────────────────────────────────────────────────── */
+
+test("dall'elenco di RainViewer si prende l'ultimo fotogramma misurato, non una previsione", async () => {
+  const { fotogrammaRainViewer, modelloDelServizio, SERVIZI_RADAR } = await import(
+    "../src/core/radar-mappa.js"
+  );
+  const elenco = {
+    host: "https://tilecache.rainviewer.com/",
+    radar: {
+      past: [
+        { time: 1700000000, path: "/v2/radar/1700000000" },
+        { time: 1700000600, path: "/v2/radar/1700000600" },
+      ],
+      nowcast: [{ time: 1700001200, path: "/v2/radar/nowcast_x" }],
+    },
+  };
+  const fotogramma = fotogrammaRainViewer(elenco);
+  assert.deepEqual(fotogramma, {
+    host: "https://tilecache.rainviewer.com",
+    path: "/v2/radar/1700000600",
+    time: 1700000600,
+  });
+  /* Il modello del servizio porta host e percorso del fotogramma, e resta un
+   * modello: i segnaposto dei quadratini sono ancora li'. */
+  assert.equal(
+    modelloDelServizio("rainviewer", fotogramma),
+    "https://tilecache.rainviewer.com/v2/radar/1700000600/256/{z}/{x}/{y}/2/1_1.png",
+  );
+  assert.match(
+    urlDellaTessera(modelloDelServizio("rainviewer", fotogramma), { x: 274, y: 187 }, 9),
+    /\/9\/274\/187\/2\/1_1\.png$/,
+  );
+  /* Senza fotogramma non c'e' indirizzo, e un servizio ignoto nemmeno. */
+  assert.equal(modelloDelServizio("rainviewer", null), "");
+  assert.equal(modelloDelServizio("boh", fotogramma), "");
+  assert.equal(fotogrammaRainViewer({}), null);
+  assert.equal(fotogrammaRainViewer({ host: "x", radar: { past: [] } }), null);
+  assert.equal(fotogrammaRainViewer(null), null);
+  /* E i servizi si conoscono per nome: e' quello che la tendina mostra. */
+  assert.equal(SERVIZI_RADAR.rainviewer.nome, "RainViewer");
+});
+
+test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async () => {
+  const { modelloDelFondo, FONDI_MAPPA } = await import("../src/core/radar-mappa.js");
+  assert.equal(modelloDelFondo({ fondo: "osm" }), FONDI_MAPPA.osm.modello);
+  assert.match(modelloDelFondo({ fondo: "carto" }), /\{s\}.*\{z\}\/\{x\}\/\{y\}/);
+  assert.equal(
+    modelloDelFondo({ fondo: "modello", fondoModello: "https://mio/{z}/{x}/{y}.png" }),
+    "https://mio/{z}/{x}/{y}.png",
+  );
+  /* Chi aveva scritto l'indirizzo dentro `fondo` prima della tendina lo vede
+   * ancora; un indirizzo senza segnaposto non e' un modello. */
+  assert.equal(modelloDelFondo({ fondo: "https://mio/{z}/{x}/{y}.png" }), "https://mio/{z}/{x}/{y}.png");
+  assert.equal(modelloDelFondo({ fondo: "modello", fondoModello: "https://fisso.png" }), "");
+  /* Senza scelta la mappa sotto e' CARTO; «nessuna» e' una scelta. */
+  assert.equal(modelloDelFondo({ fondo: "" }), FONDI_MAPPA.carto.modello);
+  assert.equal(modelloDelFondo({}), FONDI_MAPPA.carto.modello);
+  assert.equal(modelloDelFondo({ fondo: "nessuna" }), "");
+  assert.equal(modelloDelFondo({ fondo: "boh" }), "");
+});
+
+test("casa arrivata da get_config porta il suo nome", () => {
+  /* `get_config` non e' una zona: non ha `friendly_name` ma `location_name`,
+   * ed e' la stessa parola scritta in cima alla plancia. */
+  const luogo = luogoDelRadar({}, {}, { latitude: 45.07, longitude: 7.69, location_name: "Casa mia" });
+  assert.equal(luogo.da, "casa");
+  assert.equal(luogo.nome, "Casa mia");
+  /* La zona, quando c'e', vince col suo nome. */
+  assert.equal(luogoDelRadar({}, STATI, { latitude: 1, longitude: 1, location_name: "X" }).nome, "Casa");
+});

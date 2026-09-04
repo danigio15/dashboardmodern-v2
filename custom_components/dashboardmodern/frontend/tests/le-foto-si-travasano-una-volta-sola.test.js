@@ -84,7 +84,7 @@ test("togliere una chiave non alza la revisione", async () => {
    * come si vede l'energia in Home (#286, `cd_energia_tessere`), la 23 con la
    * doppia conferma delle aperture (#275, `cd_porte_conferma`). Quelle tolte
    * restano fuori dall'elenco, che e' quello che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 25);
+  assert.equal(CONFIG_KEYS_REVISION, 26);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

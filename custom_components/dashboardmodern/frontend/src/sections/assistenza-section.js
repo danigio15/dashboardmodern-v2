@@ -26,8 +26,14 @@
  * Sono la stessa cosa guardata dai due capi, e due finestre gemelle da tenere
  * uguali sarebbero due finestre che un giorno divergono.
  */
+import {
+  EVENTO_DI_CASA,
+  EVENTO_STATO,
+  eUnEventoDellaChat,
+  statoDellaChat as letturaDelloStato,
+} from "../core/avviso-chat.js";
 import { getLocale } from "../core/i18n.js";
-import { clean, doc, esc, installStyle, root, t } from "./shared.js";
+import { clean, doc, esc, installStyle, lexicalGlobal, root, t } from "./shared.js";
 
 const WS_STATE = "dashboardmodern/chat/state";
 const WS_THREAD = "dashboardmodern/chat/thread";
@@ -63,6 +69,10 @@ const state = {
   opened: false,
   name: "",
   unread: 0,
+  /* L'ultima risposta non letta, in breve, e quando e' arrivata: sono quello
+   * che la tessera in Home mostra prima che qualcuno apra la finestra. */
+  preview: "",
+  writtenAt: 0,
   messages: [],
   conversazioni: [],
   linea: "",
@@ -469,6 +479,7 @@ function tesseraMarkup() {
  * dire promettere una conversazione che nessuno ricevera'. Meglio nessuna
  * porta che una porta finta. */
 function installaTessera() {
+  annuncia();
   const griglia = doc?.querySelector?.("#page-config .cfg-grid");
   if (!griglia) return false;
   let tessera = doc.getElementById("dm-chat-card");
@@ -485,6 +496,120 @@ function installaTessera() {
   }
   tessera.innerHTML = tesseraMarkup();
   return true;
+}
+
+/* ─── La Home viene a saperlo ───────────────────────────────────────────
+ *
+ * «Gestisci una sorta di widget avviso che, se si ricevono messaggi nella
+ *  chat assistenza, compare nella home.»
+ *
+ * La tessera la disegna la Home, con il modello di `core/avviso-chat.js`; qui
+ * si tiene lo stato e si dice quando cambia — una volta per cambiamento, non a
+ * ogni ridisegno, perche' la Home a ogni annuncio rifa' le sue tessere. */
+let ultimoAnnuncio = "";
+
+/** Lo stato della chat per chi lo legge da fuori: la tessera in Home. */
+export function statoDellaChat() {
+  return {
+    enabled: state.enabled,
+    unread: state.unread,
+    preview: state.preview,
+    writtenAt: state.writtenAt,
+  };
+}
+
+function annuncia() {
+  const adesso = statoDellaChat();
+  const firma = JSON.stringify(adesso);
+  if (firma === ultimoAnnuncio) return false;
+  ultimoAnnuncio = firma;
+  try {
+    root.dispatchEvent?.(new CustomEvent(EVENTO_STATO, { detail: adesso }));
+  } catch (_errore) {
+    /* Senza `CustomEvent` (una prova senza finestra) non c'e' nemmeno una Home
+     * da avvisare. */
+  }
+  return true;
+}
+
+/* Letta tutta: il segnalibro l'ha spostato il backend, qui si spegne quello
+ * che lo mostrava. */
+function lettaTutta() {
+  state.unread = 0;
+  state.preview = "";
+  state.writtenAt = 0;
+}
+
+/* ─── L'orecchio sul bus di casa ─────────────────────────────────────────
+ *
+ * Il giro dei cinque minuti del backend, quando trova una risposta, la dice
+ * sul bus di Home Assistant (`dashboardmodern_chat`): e' fatto per le
+ * automazioni, e va benissimo anche per la pagina. Ci si mette in ascolto una
+ * volta, con lo stesso socket del guscio, e a ogni evento si rilegge lo stato
+ * — che non esce di casa e non sposta il segnalibro.
+ *
+ * Nessun battito in piu'. Il socket porta gia' gli eventi di stato, e a ognuno
+ * si controlla che l'orecchio sia ancora attaccato: una riconnessione del
+ * guscio butta via tutti i gestori in attesa, e senza questo controllo
+ * l'ascolto morirebbe in silenzio alla prima caduta della rete. Il controllo
+ * costa due letture, quindi non piu' d'una ogni dieci secondi. */
+const orecchio = { id: 0, socket: null, gestore: null, controllato: 0 };
+const OGNI_QUANTO_SI_CONTROLLA = 10000;
+
+function presaDelGuscio() {
+  const socket = lexicalGlobal("ws");
+  const pending = lexicalGlobal("pendingWsCallbacks");
+  if (!socket || socket.readyState !== 1 || !pending) return null;
+  return { socket, pending };
+}
+
+/** Se l'ascolto e' vivo su QUESTO socket, con QUESTO gestore. */
+export function inAscolto(presa = presaDelGuscio()) {
+  return Boolean(
+    presa &&
+      orecchio.id &&
+      presa.socket === orecchio.socket &&
+      presa.pending[orecchio.id] === orecchio.gestore,
+  );
+}
+
+function ascolta() {
+  const presa = presaDelGuscio();
+  if (!presa) return false;
+  if (inAscolto(presa)) return true;
+  let id;
+  try {
+    id = root.eval("msgId++");
+  } catch (_errore) {
+    return false;
+  }
+  if (!Number.isFinite(Number(id))) return false;
+  const gestore = (messaggio) => {
+    if (eUnEventoDellaChat(messaggio)) ricaricaStato();
+  };
+  /* Il guscio tiene in ascolto chi si marca cosi': una sottoscrizione riceve
+   * piu' messaggi con lo stesso id. */
+  gestore.keepAlive = true;
+  presa.pending[id] = gestore;
+  try {
+    presa.socket.send(
+      JSON.stringify({ id, type: "subscribe_events", event_type: EVENTO_DI_CASA }),
+    );
+  } catch (_errore) {
+    delete presa.pending[id];
+    return false;
+  }
+  orecchio.id = id;
+  orecchio.socket = presa.socket;
+  orecchio.gestore = gestore;
+  return true;
+}
+
+function controllaLOrecchio() {
+  const adesso = Date.now();
+  if (adesso - orecchio.controllato < OGNI_QUANTO_SI_CONTROLLA) return;
+  orecchio.controllato = adesso;
+  ascolta();
 }
 
 function finestra() {
@@ -762,7 +887,7 @@ async function rinfresca() {
       const righe = Array.isArray(filo?.messages) ? filo.messages : [];
       if (!stessoPosto() || segno(righe) === segno(state.messages)) return;
       state.messages = righe;
-      state.unread = 0;
+      lettaTutta();
       installaTessera();
     }
   } catch (_errore) {
@@ -778,19 +903,36 @@ async function rinfresca() {
 
 /* ─── Le richieste ──────────────────────────────────────────────────────── */
 
-async function ricarica() {
+/* Solo lo stato: se la chat c'e', quante risposte aspettano, come ci si
+ * chiama. Non esce di casa e non tocca il segnalibro.
+ *
+ * All'avvio si leggeva anche il filo, e leggere il filo E' averlo letto: il
+ * backend spostava il segnalibro, e il pallino si spegneva da solo a ogni
+ * ricarica della pagina, prima che qualcuno avesse visto niente. Il filo si
+ * legge quando la finestra si apre, che e' quando qualcuno lo legge davvero. */
+async function ricaricaStato() {
   try {
     const stato = await chiedi(WS_STATE);
     state.enabled = Boolean(stato?.enabled);
     state.console = Boolean(stato?.console);
     state.opened = Boolean(stato?.opened);
     state.name = clean(stato?.name);
-    state.unread = Number(stato?.unread) || 0;
+    const letto = letturaDelloStato(stato);
+    state.unread = letto.unread;
+    state.preview = letto.preview;
+    state.writtenAt = letto.writtenAt;
   } catch (_errore) {
     /* La finestra si apre lo stesso: quello che c'e' da scrivere si scrive
      * anche senza aver letto lo stato, e lo stato si riprende da solo. */
+    installaTessera();
+    return false;
   }
   installaTessera();
+  return true;
+}
+
+async function ricarica() {
+  await ricaricaStato();
   if (!state.enabled) return;
   await caricaFilo();
   if (state.console && state.tab === "coda") await caricaCoda();
@@ -801,7 +943,7 @@ async function caricaFilo() {
   try {
     const filo = await chiedi(WS_THREAD);
     state.messages = Array.isArray(filo?.messages) ? filo.messages : [];
-    state.unread = 0;
+    lettaTutta();
   } catch (errore) {
     state.avviso = `!${clean(errore?.message) || t("Non riuscita.", "It did not work.")}`;
   }
@@ -1054,11 +1196,25 @@ export function installAssistenzaSection() {
   if (!doc || state.installed) return state;
   state.installed = true;
   installStyle("dm-chat-style", CSS);
+  /* Lo stato si legge sempre, non solo con la Configurazione davanti: la
+   * tessera in Home ne ha bisogno prima che qualcuno apra quella pagina. E'
+   * una lettura locale, senza centralino, e non sposta il segnalibro. */
   const prova = () => {
-    if (doc.querySelector("#page-config .cfg-grid")) ricarica();
+    ricaricaStato();
+    ascolta();
   };
   root.addEventListener?.("dashboardmodern:legacy-ready", prova);
   root.addEventListener?.("dashboardmodern:runtime-ready", prova);
+  root.addEventListener?.("dashboardmodern:states-ready", prova);
+  /* A ogni stato che cambia si guarda solo che l'orecchio sia ancora
+   * attaccato: dopo una riconnessione non lo e' piu'. */
+  root.addEventListener?.("dashboardmodern:state-changed", controllaLOrecchio);
+  /* Una plancia a muro che torna visibile rilegge: se nel frattempo e'
+   * arrivata una risposta e l'evento e' passato con la pagina nascosta, e'
+   * qui che la tessera compare. */
+  doc.addEventListener("visibilitychange", () => {
+    if (!doc.hidden) prova();
+  });
   doc.addEventListener(
     "click",
     (event) => {
@@ -1066,6 +1222,11 @@ export function installAssistenzaSection() {
     },
     true,
   );
+  /* La porta dalla Home: la tessera dell'avviso porta un tasto con questo
+   * segno, e chi lo tocca vuole leggere. Apre chi possiede la finestra. */
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-dm-apri-chat]")) apri();
+  });
   prova();
   root.DashboardModernAssistenza = Object.freeze({ apri, chiudi });
   return state;
@@ -1080,6 +1241,12 @@ export function uninstallAssistenzaSection() {
   state.installed = false;
   state.enabled = false;
   state.console = false;
+  lettaTutta();
+  ultimoAnnuncio = "";
+  orecchio.id = 0;
+  orecchio.socket = null;
+  orecchio.gestore = null;
+  orecchio.controllato = 0;
   state.messages = [];
   state.conversazioni = [];
   state.linea = "";
