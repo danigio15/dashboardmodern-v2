@@ -273,9 +273,10 @@ test("collegare scrive il collegamento e riempie solo le caselle vuote", () => {
   assert.equal(appliance.history_entity, "sensor.lavatrice_energy_total");
   assert.equal(appliance.energy_entity, "sensor.lavatrice_energy_total");
   assert.ok(filled.includes("remaining_entity"));
-  /* Tutte le entita' del dispositivo restano in memoria, anche quella spenta:
-   * la finestra del dettaglio sa che esiste. */
-  assert.equal(appliance.device_entities.length, HON_WASHER.length);
+  /* Le entita' accese del dispositivo restano in memoria; quella spenta in
+   * Home Assistant no, non avrebbe niente da mostrare. */
+  assert.equal(appliance.device_entities.length, HON_WASHER.length - 1);
+  assert.ok(!appliance.device_entities.includes("sensor.lavatrice_last_update"));
   assert.ok(appliance.entities.includes("switch.lavatrice_wash"));
   assert.ok(!appliance.entities.includes("sensor.lavatrice_rssi"));
   /* E la passata che indovina dai nomi non deve rimettere dentro tutto. */
@@ -285,7 +286,7 @@ test("collegare scrive il collegamento e riempie solo le caselle vuote", () => {
   const normalized = normalizeDevice(appliance, "appliances", { rooms, index: 0 });
   assert.equal(normalized.device_id, "wm-1");
   assert.equal(normalized.integration_name, "hOn");
-  assert.equal(normalized.device_entities.length, HON_WASHER.length);
+  assert.equal(normalized.device_entities.length, HON_WASHER.length - 1);
   assert.equal(normalized.remaining_entity, "sensor.lavatrice_remaining_time");
 
   const unbound = unbindAppliance(normalized);

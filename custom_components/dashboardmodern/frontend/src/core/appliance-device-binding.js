@@ -399,8 +399,15 @@ export function bindApplianceToDevice(
   next.device_name = clean(device.name);
   next.device_manufacturer = clean(device.manufacturer);
   next.device_model = clean(device.model);
+  /* Le entita' accese: quelle spente in Home Assistant non hanno uno stato
+   * da mostrare, e il numero deve essere lo stesso che il menu ha promesso. */
   next.device_entities = [
-    ...new Set(entities.map((entity) => clean(entity.entity_id)).filter(Boolean)),
+    ...new Set(
+      entities
+        .filter((entity) => !entity?.disabled)
+        .map((entity) => clean(entity.entity_id))
+        .filter(Boolean),
+    ),
   ];
 
   if (!clean(next.name)) next.name = clean(device.name);
