@@ -288,8 +288,17 @@ async function chiudiLaConfigurazione(page) {
     );
     if (!aperta) return true;
     await page.evaluate(() => {
-      document.querySelector("#editor-modal .ed-head-close")?.click();
-      window.forceClose?.("editor-modal");
+      /* Il tasto toglie la finestra dal documento: chiamare `forceClose` dopo
+       * vorrebbe dire cercarla quando non c'e' piu', e quella solleva. Una
+       * strada per volta, e la seconda solo se la prima non c'era. */
+      const chiudi = document.querySelector("#editor-modal .ed-head-close");
+      if (chiudi) {
+        chiudi.click();
+        return;
+      }
+      try {
+        window.forceClose?.("editor-modal");
+      } catch (_errore) {}
     });
     await respira(page, 700);
   }
