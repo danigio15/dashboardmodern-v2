@@ -573,6 +573,23 @@ const OGGETTI = Object.freeze({
       <circle cx="11" cy="14" r="1.7"/><circle cx="16" cy="14" r="1.7"/><circle cx="21" cy="14" r="1.7"/>
     </g>
     <circle cx="25.6" cy="7.4" r="4.2" fill="url(#dmoSegnRosso)" stroke="#fff" stroke-width="1.2"/>`,
+
+  /* L'assistenza: la nuvoletta di chi risponde, verde come la sua tessera,
+   * con il cuore di chi mantiene la plancia. Una risposta da leggere e' la
+   * sola ragione per cui questa tessera compare. */
+  assistenza: `<defs>
+      <linearGradient id="dmoAssist" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#bbf7d0"/><stop offset=".55" stop-color="#22c55e"/>
+        <stop offset="1" stop-color="#15803d"/></linearGradient>
+      <linearGradient id="dmoAssistCuore" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#e11d48"/></linearGradient></defs>
+    ${OMBRA(16, 28, 9)}
+    <path d="M25.6 5.6H6.4a3 3 0 0 0-3 3v10.6a3 3 0 0 0 3 3h9.8l5.6 4.3v-4.3h3.8a3 3 0 0 0 3-3V8.6a3 3 0 0 0-3-3Z"
+      fill="url(#dmoAssist)"/>
+    <path d="M6.6 8.6a2.6 2.6 0 0 1 2-1.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>
+    <path d="M16 18.2l-4.3-4.2a2.6 2.6 0 0 1 3.7-3.7l.6.6.6-.6a2.6 2.6 0 0 1 3.7 3.7Z"
+      fill="url(#dmoAssistCuore)" stroke="#fff" stroke-opacity=".7" stroke-width=".8"/>`,
 });
 
 /* Il disegno della tessera, pronto da mettere dentro la pastiglia.
