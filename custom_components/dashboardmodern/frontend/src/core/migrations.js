@@ -1,4 +1,4 @@
-import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
+import { cloneValue, conservaLeEntita, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
 import { COOLING_SLOT_MAP, ENERGY_SLOT_MAP } from "./energy-projection.js";
 import { normalizeRobots } from "./robot-model.js";
 import { normalizzaPrese } from "./prese-model.js";
@@ -58,6 +58,11 @@ export function migrateRooms(input = []) {
       rgb: room.rgb || "",
       order: Number.isFinite(+room.order) ? +room.order : index,
       metadata: { ...(room.metadata || {}) },
+      /* E tutto quello che una stanza si porta dietro e questo elenco non
+       * conosce, purche' sia un'entita': la regola dei dispositivi vale anche
+       * qui, ed e' qui che una stanza perdeva il suo sensore quando il campo
+       * cambiava nome. */
+      ...conservaLeEntita({}, room),
     };
   });
 }
@@ -157,15 +162,18 @@ export function normalizeEnergyLoads(input = []) {
       let collision = 2;
       while (used.has(id)) id = `${base}-${collision++}`;
       used.add(id);
-      return {
-        id,
-        name: String(item.name || `Carico ${index + 1}`),
-        icon: String(item.icon || "mdi:flash"),
-        power_entity: String(item.power_entity || ""),
-        energy_entity: String(item.energy_entity || ""),
-        color: String(item.color || "#0ea5e9"),
-        order: Number.isFinite(+item.order) ? +item.order : index,
-      };
+      return conservaLeEntita(
+        {
+          id,
+          name: String(item.name || `Carico ${index + 1}`),
+          icon: String(item.icon || "mdi:flash"),
+          power_entity: String(item.power_entity || ""),
+          energy_entity: String(item.energy_entity || ""),
+          color: String(item.color || "#0ea5e9"),
+          order: Number.isFinite(+item.order) ? +item.order : index,
+        },
+        item,
+      );
     })
     .sort((left, right) => left.order - right.order);
 }
