@@ -181,9 +181,13 @@ test("i dettagli comandano davvero, con le icone di cio' che raccontano", () => 
   // tastierino PIN della pagina Sicurezza.
   assert.match(sezione, /data-dm-w-alarm/);
   assert.match(sezione, /promptPinAndSet/);
-  assert.match(sezione, /"alarm_arm_away"/);
-  assert.match(sezione, /"alarm_arm_night"/);
-  assert.match(sezione, /"alarm_disarm"/);
+  /* I tasti sono quelli della pagina Sicurezza, non una fila scritta a mano
+   * (#316): li' si sa quali inserimenti la centrale accetta e quali si e'
+   * scelto di vedere, e la tessera li chiede a lei. */
+  assert.match(sezione, /alarmModeButtons\(centrale\)/);
+  assert.match(sezione, /alarmActiveButton\(centrale\)/);
+  assert.doesNotMatch(sezione, /"alarm_arm_away"/);
+  assert.doesNotMatch(sezione, /"alarm_arm_night"/);
   // Ogni riga porta l'icona di cio' che descrive: la lavatrice ha il suo
   // disegno vero, la luce la lampadina, il clima fiamma o fiocco.
   assert.match(sezione, /cdApplianceIcon/);

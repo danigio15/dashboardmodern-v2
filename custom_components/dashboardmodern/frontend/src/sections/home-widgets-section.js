@@ -27,6 +27,8 @@ import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-vie
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceModelById, buildCardMarkup, cardLabels } from "./appliance-showcase-section.js";
+import { RIF_CENTRALE } from "../core/alarm-panel.js";
+import { alarmActiveButton, alarmModeButtons } from "./security-showcase-section.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
   bricioleDellaSezione,
@@ -941,7 +943,7 @@ function coversModel(states) {
 
 function securityModel(states) {
   const fuori = widgetExcludedEntities();
-  const alarm = stateOf(states, "dm.security_centrale_allarme");
+  const alarm = stateOf(states, RIF_CENTRALE);
   /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
   const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
   // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
@@ -4179,15 +4181,31 @@ function securityDetail(widget, states) {
     const comando = (service, on, icon, label) =>
       `<button type="button" data-dm-w-alarm="${service}" data-on="${on}"
          title="${esc(label)}" aria-label="${esc(label)}">${icon}</button>`;
+    /* «Nel widget sicurezza le icone e la relativa funzione di attivazione dei
+     * comandi dell'antifurto sono diverse rispetto alla sezione dedicata dove
+     * tutto è funzionante e in linea con l'antifurto» (#316).
+     *
+     * Qui la fila era scritta a mano — Fuori, Notte, Sblocca, sempre quelle
+     * tre, sempre quelle icone — mentre la pagina Sicurezza la chiede a
+     * `core/alarm-panel.js`: gli inserimenti che la centrale DICHIARA, meno
+     * quelli tolti in configurazione. Due file diverse per la stessa centrale:
+     * un tasto Notte su una Ring che quella modalita' non ce l'ha e non fa
+     * niente, nessun tasto Casa su una centrale che lo accetta, e il tasto
+     * acceso sbagliato — 🏠 «Fuori» acceso mentre la casa e' inserita in
+     * `armed_home`, o Sblocca acceso durante `arming`, che su un antifurto
+     * vuol dire dire che la casa e' aperta mentre si sta chiudendo.
+     *
+     * La fila la disegna adesso chi la disegna anche li'. */
+    const centrale = stateOf(states, RIF_CENTRALE);
+    const acceso = alarmActiveButton(centrale);
+    const tasti = alarmModeButtons(centrale)
+      .map((voce) => comando(voce.service, voce.mode === acceso, voce.icon, voce.label))
+      .join("");
     parts.push(
       rowShell(
         `<span class="dm-w-glyph" data-on="${widget.armed || widget.triggered}" aria-hidden="true">🛡️</span>
          <span class="dm-w-name">${esc(t("Antifurto", "Alarm"))}<small>${esc(widget.value)}</small></span>
-         <span class="dm-w-alarm">
-           ${comando("alarm_arm_away", widget.mode === "armed_away", "🏠", t("Fuori", "Away"))}
-           ${comando("alarm_arm_night", widget.mode === "armed_night", "🌙", t("Notte", "Night"))}
-           ${comando("alarm_disarm", !widget.armed && !widget.triggered, "🔓", t("Sblocca", "Disarm"))}
-         </span>`,
+         <span class="dm-w-alarm">${tasti}</span>`,
       ),
     );
   }
@@ -7158,7 +7176,7 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 :is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg rect,:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg circle,
 :is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg line{stroke:currentColor}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg [fill="currentColor"]{fill:currentColor}
-:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm{display:inline-flex;gap:6px;margin-left:auto}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-left:auto}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-alarm button{
   width:32px;height:28px;border-radius:9px;border:1px solid var(--card-border,#e2e8f0);
   background:var(--surface-2,#f8fafc);font-size:13px;line-height:1;cursor:pointer;

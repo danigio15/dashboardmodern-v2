@@ -210,6 +210,25 @@ benzina e i tasti del robot lavapavimenti (#306).
   stesso giro torna anche il ritiro cominciato ieri e non ancora finito, che
   spariva dal conto mentre il bidone era fuori.
 
+- **La tessera Sicurezza comanda l'antifurto come lo comanda la sua pagina (#316).**
+
+      «Nel widget sicurezza le icone e la relativa funzione di attivazione dei
+       comandi dell'antifurto sono diverse rispetto alla sezione dedicata dove
+       tutto e' funzionante e in linea con l'antifurto.»
+
+  La pagina Sicurezza chiede alla centrale quali inserimenti accetta —
+  `supported_features` — e toglie quelli che si e' scelto di non vedere. La
+  finestra della tessera invece disegnava sempre le stesse tre pastiglie
+  scritte a mano: Fuori, Notte, Sblocca. Da qui un tasto Notte su una centrale
+  che quella modalita' non ce l'ha, che chiedeva il PIN e poi non faceva
+  niente; nessun tasto Casa, Vacanza o Parziale su una centrale che li accetta;
+  e il tasto acceso sbagliato — 🏠 «Fuori» al posto di 🏡 «Casa» con la casa
+  inserita in `armed_home`, e 🔓 «Sblocca» acceso durante l'inserimento, che su
+  un antifurto vuol dire dire che la casa e' aperta mentre si sta chiudendo.
+
+  Adesso la fila la disegna chi la disegna nella pagina: stessi tasti, stesse
+  icone, stesso tasto acceso, stesso tastierino del PIN.
+
 ## 1.4.6
 
 Tre sezioni in piu', la Home che si personalizza, e una decina di cose viste

@@ -106,13 +106,17 @@ test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () =>
    * accendere «Fuori» direbbe che la casa e' inserita fuori mentre e' inserita
    * in casa: su un antifurto e' la bugia peggiore. */
   const vetrina = leggi("sections/security-showcase-section.js");
-  const pezzo = vetrina.slice(vetrina.indexOf("root.dmAlarmActiveMode"), vetrina.indexOf("root.dmAlarmModes"));
-  assert.match(pezzo, /alarmModes\(alarmStateObject\(\)\)/,
+  /* La regola sta in `modoAcceso`, che e' quello che rispondono sia il tasto
+   * acceso della pagina sia quello della tessera della Home (#316). */
+  const pezzo = vetrina.slice(vetrina.indexOf("function modoAcceso"), vetrina.indexOf("export function alarmModeButtons"));
+  assert.match(pezzo, /alarmModes\(stateObj\)/,
     "il ripiego si calcola su quello che la centrale accetta");
-  assert.match(pezzo, /modiVisibili\(\)\.some/,
+  assert.match(pezzo, /modiVisibili\(stateObj\)\.some/,
     "e poi si spegne tutto se quel tasto non e' fra quelli che si vedono");
   assert.doesNotMatch(pezzo, /alarmActiveMode\(\s*state,\s*modiVisibili/,
     "passare le sole visibili e' esattamente il difetto");
+  assert.match(vetrina, /root\.dmAlarmActiveMode = \(state\) => modoAcceso\(state\)/,
+    "la plancia storica chiede la stessa regola, non una sua copia");
 });
 
 test("il limite conta le modalita' che la centrale accetta adesso, non i ricordi", () => {

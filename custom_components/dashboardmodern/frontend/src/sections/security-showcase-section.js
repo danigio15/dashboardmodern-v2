@@ -282,6 +282,44 @@ function modiVisibili(stateObj = alarmStateObject()) {
   return alarmVisibleModes(stateObj, readJson(ALARM_MODE_CHOICE_KEY, []));
 }
 
+/* Quale tasto e' acceso: si calcola il ripiego su quello che la centrale
+ * ACCETTA, e poi si spegne tutto se quel tasto non e' fra quelli che si
+ * vedono. Il perche' sta per esteso su `publishAlarmHelpers`, che chiama
+ * questa. */
+function modoAcceso(state, stateObj = alarmStateObject()) {
+  const acceso = alarmActiveMode(
+    state,
+    alarmModes(stateObj).map((voce) => voce.mode),
+  );
+  if (!acceso) return "";
+  return modiVisibili(stateObj).some((voce) => voce.mode === acceso) ? acceso : "";
+}
+
+/**
+ * I tasti dell'antifurto come li disegna questa pagina: gli inserimenti che la
+ * centrale accetta, meno quelli tolti in configurazione, ognuno con la sua
+ * icona e il suo nome.
+ *
+ * La tessera Sicurezza della Home la chiama invece di riscriverli: la fila
+ * scritta a mano — Fuori, Notte, Sblocca, sempre quelle tre — mostrava tasti
+ * che la centrale non accetta e ne nascondeva altri che accetta (#316). Chi
+ * decide quali tasti esistono deve essere uno solo.
+ *
+ * @returns {Array<{mode:string,service:string,icon:string,label:string,hint:string}>}
+ */
+export function alarmModeButtons(stateObj = alarmStateObject()) {
+  const labels = copy();
+  return modiVisibili(stateObj).map((voce) => {
+    const testi = labels.modes[voce.mode] || labels.modes[ALARM_DISARM.mode];
+    return { ...voce, label: testi.label, hint: testi.hint };
+  });
+}
+
+/** Quale di quei tasti e' acceso adesso, dallo stato della centrale. */
+export function alarmActiveButton(stateObj = alarmStateObject()) {
+  return modoAcceso(stateObj?.state, stateObj);
+}
+
 function modeRow(labels, stateObj = alarmStateObject()) {
   return modiVisibili(stateObj)
     .map((voce) => {
@@ -591,14 +629,7 @@ function publishAlarmHelpers() {
    *
    * Quindi il ripiego lo si calcola su quello che la centrale ACCETTA, e poi
    * si spegne tutto se quel tasto non e' fra quelli che si vedono. */
-  root.dmAlarmActiveMode = (state) => {
-    const acceso = alarmActiveMode(
-      state,
-      alarmModes(alarmStateObject()).map((voce) => voce.mode),
-    );
-    if (!acceso) return "";
-    return modiVisibili().some((voce) => voce.mode === acceso) ? acceso : "";
-  };
+  root.dmAlarmActiveMode = (state) => modoAcceso(state);
   root.dmAlarmModes = () => modiVisibili().map((voce) => voce.mode);
   /* Quelle che la centrale ACCETTA, scelta o non scelta: e' l'elenco che la
    * configurazione deve poter spuntare. */

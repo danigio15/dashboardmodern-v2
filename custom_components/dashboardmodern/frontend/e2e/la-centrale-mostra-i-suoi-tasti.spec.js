@@ -104,6 +104,19 @@ const aspettaTasti = async (page, attesi) => {
   await expect.poll(() => tasti(page)).toEqual(attesi);
 };
 
+/* La tessera Sicurezza della Home, aperta: la finestra disegna la stessa fila
+   della pagina, chiesta a chi la disegna li'. */
+async function apriLaTessera(page) {
+  await page.evaluate(() => {
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+    document.getElementById("page-home")?.classList.add("active");
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  });
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  await page.locator('#dm-widgets .dm-tile[data-dm-widget="sicurezza"]').click();
+  await expect(page.locator("#dm-widget-popup [data-dm-w-alarm]").first()).toBeVisible();
+}
+
 test.describe("la centrale antifurto", () => {
   test("mostra solo gli inserimenti che accetta", async ({ page }, testInfo) => {
     await boot(page, testInfo, RING);
@@ -143,5 +156,42 @@ test.describe("la centrale antifurto", () => {
     await expect(page.locator("#custom-keypad")).toHaveClass(/show/);
     // Niente parte finche' il codice non e' stato battuto.
     expect(await page.evaluate(() => (globalThis.__DM_SERVICE_CALLS__ || []).length)).toBe(0);
+  });
+
+  /* «Nel widget sicurezza le icone e la relativa funzione di attivazione dei
+   * comandi dell'antifurto sono diverse rispetto alla sezione dedicata» (#316).
+   * La stessa Ring, guardata dalla Home: la fila deve essere quella. */
+  test("la tessera della Home porta gli stessi tasti della pagina", async ({ page }, testInfo) => {
+    await boot(page, testInfo, RING);
+    await aspettaTasti(page, ["home", "away", "disarm"]);
+    await apriLaTessera(page);
+    await expect
+      .poll(() =>
+        page
+          .locator("#dm-widget-popup [data-dm-w-alarm]")
+          .evaluateAll((nodi) => nodi.map((nodo) => nodo.dataset.dmWAlarm)),
+      )
+      .toEqual(["alarm_arm_home", "alarm_arm_away", "alarm_disarm"]);
+    /* Il tasto acceso e' quello dello stato: la centrale e' in `armed_home`. */
+    await expect(
+      page.locator('#dm-widget-popup [data-dm-w-alarm="alarm_arm_home"]'),
+    ).toHaveAttribute("data-on", "true");
+    await expect(
+      page.locator('#dm-widget-popup [data-dm-w-alarm="alarm_arm_away"]'),
+    ).toHaveAttribute("data-on", "false");
+  });
+
+  test("dalla tessera parte il servizio del tasto premuto", async ({ page }, testInfo) => {
+    await boot(page, testInfo, RING);
+    await aspettaTasti(page, ["home", "away", "disarm"]);
+    await apriLaTessera(page);
+    await page.locator('#dm-widget-popup [data-dm-w-alarm="alarm_arm_away"]').click();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (globalThis.__DM_SERVICE_CALLS__ || []).map((chiamata) => chiamata.service),
+        ),
+      )
+      .toContain("alarm_arm_away");
   });
 });
