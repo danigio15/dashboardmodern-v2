@@ -429,7 +429,12 @@ for (const variant of PRIMARY) {
     /* Nella scheda la riga porta la spilla dell'integrazione. */
     await expect(page.locator("#ed-body .ed-row .dm-integ-pin").first()).toContainText("hOn");
 
-    /* Il dettaglio: la parte curata, e sotto tutto il dispositivo. */
+    /* La card dice cosa sta facendo, non solo che e' accesa. */
+    const scheda = page.locator(".dm-ap-card[data-appliance-id]").first();
+    await expect(scheda.locator(".dm-ap-phase")).toContainText(/Lavaggio|Washing/);
+    await expect(scheda.locator('.dm-ap-fact[data-fact="programma"]')).toHaveCount(1);
+
+    /* Il dettaglio: la stessa card in cima, e sotto tutto il dispositivo. */
     await page.evaluate(() => {
       window.chiudiConfig?.();
       window.apriApplianceDetail(0);
@@ -437,12 +442,19 @@ for (const variant of PRIMARY) {
     const dettaglio = page.locator("#details-modal");
     await expect(dettaglio).toHaveClass(/show/);
     const lista = dettaglio.locator("#details-list");
-    await expect(lista.locator(".dm-apde-integrazione")).toContainText("hOn");
-    await expect(lista.locator(".dm-apde-integrazione")).toContainText("Hoover H-WASH 500");
-    /* La fase e l'oblo' non stanno in nessuna casella della card: escono qui. */
+    /* «Riportando la stessa card della sezione»: e' proprio quella, disegnata
+     * dalla stessa funzione, con la sua fase e i suoi tasti. */
+    const cardNelPopup = lista.locator(".dm-apde-vetrina .dm-ap-card");
+    await expect(cardNelPopup).toHaveCount(1);
+    await expect(cardNelPopup.locator(".dm-ap-phase")).toContainText(/Lavaggio|Washing/);
+    await expect(cardNelPopup.locator("[data-dm-power-toggle]")).toHaveCount(1);
+    /* E quello che la card dice gia' non si ripete sotto. */
     await expect(
       lista.locator('.dm-apde-pillola[data-dm-apde-entity="sensor.lavatrice_program_phase"]'),
-    ).toContainText("washing");
+    ).toHaveCount(0);
+    await expect(lista.locator(".dm-apde-integrazione")).toContainText("hOn");
+    await expect(lista.locator(".dm-apde-integrazione")).toContainText("Hoover H-WASH 500");
+    /* L'oblo' non sta in nessuna casella della card: esce qui. */
     await expect(
       lista.locator('.dm-apde-pillola[data-dm-apde-entity="binary_sensor.lavatrice_door"]'),
     ).toHaveCount(1);

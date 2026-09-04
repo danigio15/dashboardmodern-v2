@@ -690,8 +690,17 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // sezione e' il menu integrazione → dispositivo, il tasto in cima alla
   // scheda e il catalogo letto dal backend, che la finestra di modifica e il
   // dettaglio dell'apparecchio leggono da lei.
+  // 229 con quello che l'elettrodomestico sa di se' (`core/appliance-program.js`):
+  // «le card si devono riadattare in base alle informazioni presenti
+  // nell'integrazione importata: la lavatrice deve fornire lo stato in corso,
+  // esempio lavaggio, con temperatura lavaggio eccetera». Una card che dice
+  // IN FUNZIONE e 1180 W dice la verita' e non dice niente. Il vocabolario
+  // delle fasi — washing, spin, weighting — e la ricerca dei quattro numeri
+  // che uno legge sull'oblo' stanno nel nucleo, perche' sono una tabella e un
+  // po' di aritmetica e si provano senza accendere niente; la card e la
+  // finestra li disegnano e basta.
   assert.ok(
-    relative.length <= 228,
+    relative.length <= 229,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

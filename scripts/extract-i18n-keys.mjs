@@ -246,6 +246,10 @@ const CATALOG_MODULES = Object.freeze([
   "src/core/robot-model.js",
   "src/core/cover-kind.js",
   "src/core/impianti-termici.js",
+  /* Le parole delle fasi di un ciclo — Lavaggio, Risciacquo, Centrifuga — che
+     la card e la finestra del dettaglio scrivono per dire cosa sta facendo
+     l'apparecchio adesso. */
+  "src/core/appliance-program.js",
 ]);
 
 /*

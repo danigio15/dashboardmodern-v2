@@ -13,6 +13,11 @@
  * stessa finestra, stesso apri e chiudi, nessun secondo padrone.
  */
 import { deviceEntityGroups } from "../core/appliance-device-binding.js";
+import {
+  applianceModelForIndex,
+  buildCardMarkup,
+  cardLabels,
+} from "./appliance-showcase-section.js";
 import { entitaDelDispositivo } from "./appliance-integration-section.js";
 import {
   activeLocale,
@@ -209,45 +214,27 @@ function famiglie(appliance) {
   return { misure: misure.slice(0, 12), pillole: pillole.slice(0, 12), comandi };
 }
 
-/* La frase: cosa sta facendo, quanto tira, e quanto ha fatto oggi. */
-function racconto(appliance, misure) {
-  const stato = root.cdApplStatus?.(appliance) || { cls: "off", label: "", w: null };
-  const nome = clean(root.cdApplianceDisplayName?.(appliance)) || clean(appliance?.name) || "";
-  const oggi = misure.find(
-    (m) => /oggi|today|daily|giorn/i.test(`${m.entity} ${m.nome}`) && /kwh/i.test(m.valore),
-  );
-  const codaOggi = oggi
-    ? t(`; oggi ha fatto ${oggi.valore}.`, `; today it did ${oggi.valore}.`)
-    : ".";
-  if (stato.cls === "run") {
-    return {
-      tono: "corso",
-      parola: t("In corso", "Running"),
-      frase:
-        (stato.w != null
-          ? t(
-              `${nome} è in funzione e sta tirando ${Math.round(stato.w)} W`,
-              `${nome} is running and drawing ${Math.round(stato.w)} W`,
-            )
-          : t(`${nome} è in funzione`, `${nome} is running`)) + codaOggi,
-    };
-  }
-  if (stato.cls === "standby") {
-    return {
-      tono: "bene",
-      parola: t("Tutto regolare", "All good"),
-      frase:
-        t(
-          `${nome} è in standby${stato.w != null ? ` a ${Math.round(stato.w)} W` : ""}`,
-          `${nome} is on standby${stato.w != null ? ` at ${Math.round(stato.w)} W` : ""}`,
-        ) + codaOggi,
-    };
-  }
-  return {
-    tono: "bene",
-    parola: t("Tutto regolare", "All good"),
-    frase: t(`${nome} è spento`, `${nome} is off`) + codaOggi,
-  };
+/* I tasti della card, dentro la finestra.
+ *
+ * Nella sezione li ascolta il guscio della vetrina, che qui non c'e': la
+ * card sarebbe identica e morta. Sono due, e fanno quello che fanno di la'. */
+function agganciaLaCard(vetrina, model) {
+  const card = vetrina.querySelector(".dm-ap-card");
+  if (!card) return;
+  /* Dentro la finestra la card non porta da nessuna parte: e' gia' aperta. */
+  card.removeAttribute("role");
+  card.removeAttribute("tabindex");
+  card.setAttribute("aria-hidden", "false");
+  vetrina.querySelector("[data-dm-power-toggle]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const entity = clean(model?.action?.entity);
+    if (entity) root.cdApplEntTog?.(entity, event.currentTarget);
+  });
+  vetrina.querySelector("[data-dm-history]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const nodo = event.currentTarget;
+    apriStorico(event, clean(nodo.dataset.dmHistory), clean(nodo.dataset.dmHistoryName));
+  });
 }
 
 function apriStorico(event, entity, nome) {
@@ -261,18 +248,27 @@ function riveste(indice) {
   const appliance = root.getAppliances?.()?.[indice];
   if (!lista || !appliance) return false;
   state.aperto = indice;
-  const { misure, pillole, comandi } = famiglie(appliance);
-  const storia = racconto(appliance, misure);
 
   lista.replaceChildren();
   lista.dataset.dmApdeOwner = "moduli";
 
-  const testa = doc.createElement("section");
-  testa.className = "dm-apde-racconto";
-  testa.dataset.dmVerdetto = storia.tono;
-  testa.innerHTML = `<span class="dm-apde-verdetto">${esc(storia.parola)}</span>
-    <p class="dm-apde-frase">${esc(storia.frase)}</p>`;
-  lista.append(testa);
+  /* In cima, la stessa card della sezione.
+   *
+   * «Il popup widget e' bruttissimo, lo devi ridisegnare con le informazioni
+   * del singolo elettrodomestico in funzione, riportando la stessa card della
+   * sezione.» Non una seconda versione che somiglia a quella e col tempo
+   * diverge: proprio quella, disegnata dalla stessa funzione con lo stesso
+   * modello. Il ritratto che si muove, la fase, l'anello, i watt, l'ultimo
+   * ciclo — e sotto, quello che sulla card non ci stava. */
+  const model = applianceModelForIndex(indice);
+  if (model) {
+    const vetrina = doc.createElement("div");
+    vetrina.className = "dm-appl-shell dm-apde-vetrina";
+    vetrina.dataset.view = "grid";
+    vetrina.innerHTML = buildCardMarkup(model, cardLabels());
+    agganciaLaCard(vetrina, model);
+    lista.append(vetrina);
+  }
 
   const titoletto = (parole) => {
     const nodo = doc.createElement("h4");
@@ -281,6 +277,20 @@ function riveste(indice) {
     return nodo;
   };
 
+  const collegato =
+    Boolean(clean(appliance.device_id)) || Boolean(appliance.device_entities?.length);
+  if (collegato) {
+    try {
+      vesteIntegrazione(lista, appliance, mostrateDallaCard(appliance, model), titoletto);
+    } catch (errore) {
+      root.console?.warn?.("[DashboardModern] dettaglio integrazione", errore);
+    }
+    return true;
+  }
+
+  /* Chi non ha un'integrazione tiene i blocchi di sempre: la card in cima
+   * racconta lo stato, e qui sotto restano le sue entita' una per una. */
+  const { misure, pillole, comandi } = famiglie(appliance);
   if (misure.length) {
     lista.append(titoletto(t("Le misure", "The readings")));
     const griglia = doc.createElement("div");
@@ -340,12 +350,32 @@ function riveste(indice) {
       lista.append(riga);
     }
   }
-  try {
-    vesteIntegrazione(lista, appliance, entita(appliance), titoletto);
-  } catch (errore) {
-    root.console?.warn?.("[DashboardModern] dettaglio integrazione", errore);
-  }
   return true;
+}
+
+/* Quello che la card in cima disegna gia': non si ripete sotto.
+ *
+ * Sono le caselle dei ruoli piu' le entita' da cui vengono la fase, i gradi,
+ * i giri e il programma — cioe' la striscia del programma. */
+function mostrateDallaCard(appliance, model) {
+  const viste = new Set();
+  const aggiungi = (voce) => {
+    const id = clean(voce);
+    if (id.includes(".")) viste.add(id);
+  };
+  for (const casella of [
+    "control_entity",
+    "power_entity",
+    "remaining_entity",
+    "temperature_entity",
+    "temperature_entity_2",
+    "state_entity",
+  ])
+    aggiungi(appliance?.[casella]);
+  for (const chip of model?.program?.chips || []) aggiungi(chip.entity);
+  aggiungi(model?.program?.phase?.entity);
+  for (const id of model?.program?.considerate || []) aggiungi(id);
+  return [...viste];
 }
 
 /* Tutte le entita' del dispositivo, per chi arriva da un'integrazione.
@@ -437,7 +467,17 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
   const memoria = Array.isArray(appliance?.device_entities) ? appliance.device_entities : [];
   if (!deviceId && !memoria.length) return;
   const catalogo = deviceId ? entitaDelDispositivo(deviceId) : null;
-  const records = catalogo || memoria.map((entity_id) => ({ entity_id: clean(entity_id) }));
+  const delDispositivo = catalogo || memoria.map((entity_id) => ({ entity_id: clean(entity_id) }));
+  /* Le caselle scritte fuori dal dispositivo — la presa smart, i sensori
+   * fatti in casa — sono dell'apparecchio quanto le altre: se non entrassero
+   * qui sparirebbero dalla finestra appena si collega un'integrazione. */
+  const gia = new Set(delDispositivo.map((voce) => clean(voce.entity_id)));
+  const records = [
+    ...delDispositivo,
+    ...entita(appliance)
+      .filter((id) => !gia.has(id))
+      .map((entity_id) => ({ entity_id })),
+  ];
   const gruppi = deviceEntityGroups(records, allStates(), {
     mapped: giaMostrate,
     locale: activeLocale(),
@@ -618,6 +658,9 @@ function css() {
       flex:0 0 auto;min-width:48px;height:32px;border:0;border-radius:10px;cursor:pointer;
       font-size:12px;font-weight:900;background:rgba(14,165,233,.14);color:#0284c7}
     #details-list .dm-apde-tasto.on{background:#0ea5e9;color:#fff}
+    #details-list .dm-apde-vetrina{display:block;gap:0;padding:0;margin:0 0 4px}
+    #details-list .dm-apde-vetrina .appl-wide-card.dm-ap-card{cursor:default;box-shadow:none;transform:none!important}
+    #details-list .dm-apde-vetrina .appl-wide-card.dm-ap-card:hover{transform:none;box-shadow:none}
     #details-list .dm-apde-integrazione{
       display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:18px 0 2px;
       padding:10px 12px;border-radius:14px;

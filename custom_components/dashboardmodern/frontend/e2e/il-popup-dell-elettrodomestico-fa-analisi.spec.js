@@ -57,7 +57,9 @@ const STATI = {
   },
 };
 
-test("verdetto, caselle e comandi al posto dell'elenco di slug", async ({ page }, testInfo) => {
+test("la card della sezione in cima, caselle e comandi al posto dell'elenco di slug", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(150_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
@@ -71,15 +73,22 @@ test("verdetto, caselle e comandi al posto dell'elenco di slug", async ({ page }
   await page.waitForTimeout(1500);
   await page.evaluate(() => window.apriApplianceDetail(0));
   const lista = page.locator("#details-list");
-  await expect(lista.locator(".dm-apde-racconto")).toBeVisible({ timeout: 10000 });
-  /* La frase dice chi e cosa: in funzione, coi watt. */
-  await expect(lista.locator(".dm-apde-frase")).toContainText("Condizionatori");
-  await expect(lista.locator(".dm-apde-frase")).toContainText("in funzione");
+  /* In cima la finestra apre con la stessa card della sezione: «riportando la
+   * stessa card della sezione», e non un secondo racconto scritto a parte. */
+  const card = lista.locator(".dm-apde-vetrina .dm-ap-card");
+  await expect(card).toHaveCount(1, { timeout: 10000 });
+  await expect(card.locator(".dm-ap-name")).toContainText("Condizionatori");
+  await expect(card.locator(".dm-ap-badge")).toContainText(/IN FUNZIONE|RUNNING/);
+  /* Il vecchio blocco del verdetto non c'e' piu': lo diceva a parole quello
+   * che la card dice col suo badge e la sua barra. */
+  await expect(lista.locator(".dm-apde-racconto")).toHaveCount(0);
   /* Le letture sono caselle, non righe con lo slug sotto. */
   await expect(lista.locator(".dm-apde-casella")).not.toHaveCount(0);
   expect(await lista.locator(".detail-row").count()).toBe(0);
   const slug = await lista.evaluate((nodo) => nodo.textContent.includes("sensor."));
   expect(slug).toBe(false);
+  /* E i tasti della card, dentro la finestra, ci sono e sono suoi. */
+  await expect(card.locator("[data-dm-power-toggle]")).toHaveCount(1);
   /* L'interruttore e lo script stanno sotto Comandi, col loro tasto. */
   await expect(lista.locator(".dm-apde-comando")).not.toHaveCount(0);
   await expect(

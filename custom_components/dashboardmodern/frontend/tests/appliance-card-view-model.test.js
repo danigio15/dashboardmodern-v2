@@ -234,3 +234,120 @@ test("alarm flag follows the alert entity and the unavailable mode", () => {
   });
   assert.equal(off.alarm, false);
 });
+
+/* Cosa sta facendo, in parole.
+ *
+ * Dal campo: «le card si devono riadattare in base alle informazioni presenti
+ * nell'integrazione importata: la lavatrice deve fornire lo stato in corso,
+ * esempio lavaggio, con temperatura lavaggio eccetera». La macchina e' la sua,
+ * i valori sono quelli letti dalla scheda Stati con un ciclo avviato.
+ */
+const HAIER = {
+  "sensor.lavatrice_fase": { state: "washing", attributes: { friendly_name: "Lavatrice Fase" } },
+  "sensor.lavatrice_machine_status": {
+    state: "running",
+    attributes: { friendly_name: "Lavatrice Machine Status" },
+  },
+  "sensor.lavatrice_temperatura": {
+    state: "30",
+    attributes: { friendly_name: "Lavatrice Temperatura", unit_of_measurement: "°C" },
+  },
+  "sensor.lavatrice_centrifuga": {
+    state: "800",
+    attributes: { friendly_name: "Lavatrice Centrifuga", unit_of_measurement: "rpm" },
+  },
+  /* hOn pubblica tutti e due, e il sensore non sa cosa gira. */
+  "sensor.lavatrice_programma": {
+    state: "No Program",
+    attributes: { friendly_name: "Lavatrice Programma" },
+  },
+  "select.lavatrice_programma": {
+    state: "iot_wash_rapid_59",
+    attributes: { friendly_name: "Lavatrice Programma" },
+  },
+  "sensor.lavatrice_capacita_di_carico": {
+    state: "9",
+    attributes: { friendly_name: "Lavatrice Capacità di carico", unit_of_measurement: "kg" },
+  },
+};
+
+const LAVATRICE = {
+  id: "haier",
+  name: "Lavatrice",
+  visual_key: "lavatrice",
+  state_entity: "sensor.lavatrice_machine_status",
+  device_entities: Object.keys(HAIER),
+};
+
+test("la card dice la fase in corso, i gradi, i giri e il programma", () => {
+  const model = applianceCardModel(LAVATRICE, HAIER, { locale: "it", now: NOW });
+  assert.equal(model.mode, "running");
+  assert.equal(model.program.phase.label, "Lavaggio");
+  assert.equal(model.program.phase.entity, "sensor.lavatrice_fase");
+  assert.deepEqual(
+    model.program.chips.map((chip) => [chip.key, chip.label]),
+    [
+      ["temperatura", "30 °C"],
+      ["centrifuga", "800 rpm"],
+      /* Il menu risponde dove il sensore tace, e il nome si legge. */
+      ["programma", "Rapid 59"],
+    ],
+  );
+  /* «Capacità di carico» in kg non e' ne' gradi ne' giri. */
+  assert.ok(!model.program.chips.some((chip) => chip.entity.includes("capacita")));
+});
+
+test("la stessa card in inglese dice Washing", () => {
+  const model = applianceCardModel(LAVATRICE, HAIER, { locale: "en", now: NOW });
+  assert.equal(model.program.phase.label, "Washing");
+});
+
+test("a macchina ferma la fase non si disegna, i numeri restano", () => {
+  const ferma = {
+    ...HAIER,
+    "sensor.lavatrice_fase": { state: "ready", attributes: { friendly_name: "Lavatrice Fase" } },
+    "sensor.lavatrice_machine_status": {
+      state: "ready",
+      attributes: { friendly_name: "Lavatrice Machine Status" },
+    },
+  };
+  const model = applianceCardModel(LAVATRICE, ferma, { locale: "it", now: NOW });
+  assert.equal(model.mode, "off");
+  assert.equal(model.program.phase, null);
+  /* Dicono cosa partira': non sono una bugia, sono la manopola. */
+  assert.equal(model.program.chips.length, 3);
+});
+
+test("una presa smart non ha niente da raccontare, e la card resta quella di prima", () => {
+  const model = applianceCardModel(
+    { id: "presa", name: "Forno", power_entity: "sensor.presa_power" },
+    { "sensor.presa_power": { state: "1200", attributes: { unit_of_measurement: "W" } } },
+    { locale: "it", now: NOW },
+  );
+  assert.equal(model.program.phase, null);
+  assert.deepEqual(model.program.chips, []);
+});
+
+test("zero gradi su una lavatrice è il lavaggio a freddo, non un termometro rotto", () => {
+  const freddo = {
+    ...HAIER,
+    "sensor.lavatrice_temperatura": {
+      state: "0",
+      attributes: { friendly_name: "Lavatrice Temperatura", unit_of_measurement: "°C" },
+    },
+  };
+  const model = applianceCardModel(LAVATRICE, freddo, { locale: "it", now: NOW });
+  assert.equal(model.program.chips[0].label, "Freddo");
+});
+
+test("una parola che il vocabolario non conosce si dice lo stesso, ripulita", () => {
+  const strana = {
+    ...HAIER,
+    "sensor.lavatrice_fase": {
+      state: "steam_ready",
+      attributes: { friendly_name: "Lavatrice Fase" },
+    },
+  };
+  const model = applianceCardModel(LAVATRICE, strana, { locale: "it", now: NOW });
+  assert.equal(model.program.phase.label, "Steam ready");
+});

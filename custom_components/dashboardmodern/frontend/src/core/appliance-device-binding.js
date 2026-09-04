@@ -692,7 +692,10 @@ export function deviceEntityGroups(
     if (entity.category === "diagnostic") groups.diagnostics.push(row);
     else if (row.control) groups.controls.push(row);
     else if (numeric) groups.readings.push(row);
-    else groups.state.push(row);
+    /* Una pillola che dice «—» non e' una notizia: e' un'entita' che in
+     * questo momento non ha niente da dire, e in una finestra da leggere in
+     * tre secondi occupa il posto di una che parla. */
+    else if (value !== "—") groups.state.push(row);
   }
   for (const list of Object.values(groups))
     list.sort((a, b) => a.name.localeCompare(b.name, locale));

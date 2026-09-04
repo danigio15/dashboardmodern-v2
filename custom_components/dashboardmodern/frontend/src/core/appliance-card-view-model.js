@@ -10,6 +10,7 @@
 import { pick } from "./i18n.js";
 import { canonicalArtworkType } from "./appliance-artwork.js";
 import { createApplianceViewModel } from "./appliance-view-model.js";
+import { programFacts } from "./appliance-program.js";
 
 const clean = (value) => String(value ?? "").trim();
 const entityRef = (value) =>
@@ -441,5 +442,9 @@ export function applianceCardModel(device = {}, states = {}, options = {}) {
     }),
     alarm: applianceAlarm(device, states, base.mode),
     dailyKwh: daily,
+    /* Cosa sta facendo, in parole: la fase del programma, i gradi, i giri, il
+     * programma. Un apparecchio senza integrazione non ne ha, e la card resta
+     * quella di prima. */
+    program: programFacts(device, states, { locale, mode: base.mode }),
   });
 }
