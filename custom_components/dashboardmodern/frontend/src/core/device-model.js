@@ -404,6 +404,9 @@ export function normalizeDevice(input = {}, section, context = {}) {
   if (input.entity || entities[0]) base.entity = String(input.entity || entities[0]);
   if (section === "climate") {
     base.type = canonicalClimateType(input.type);
+    /* La valvola termostatica (#300): l'entita' con la posizione, scelta da
+     * chi configura. Vale la riga qui sotto sul contatto dell'infisso. */
+    if (input.valvola) base.valvola = String(input.valvola);
   }
   if (input.stream || input.stream_url || input.url)
     base.stream = String(input.stream || input.stream_url || input.url);

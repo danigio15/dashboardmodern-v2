@@ -2913,4 +2913,8 @@ export default Object.freeze({
   "No history found in this period": "이 기간의 기록이 없습니다",
   "No state change": "상태 변화 없음",
   "Pick a start before the end, and not in the future.": "종료보다 앞선 시작을 고르세요. 미래는 안 됩니다.",
+  "${valvola.aperta}% open": "열림 ${valvola.aperta}%",
+  "${valvola.chiusa}% closed": "닫힘 ${valvola.chiusa}%",
+  "TRV valve (position %)": "TRV 밸브 (위치 %)",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "온도조절 밸브 위치(0~100)를 가진 센서 또는 number. 카드에 열린 정도와 닫힌 정도가 표시됩니다. climate 엔티티가 이미 valve_position을 제공하면 필요 없습니다.",
 });

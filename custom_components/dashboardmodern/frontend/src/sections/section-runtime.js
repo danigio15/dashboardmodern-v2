@@ -42,6 +42,7 @@ import { installTelecameraWebRtc } from "./telecamera-webrtc-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
+import { installTrvEditor } from "./trv-editor-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
@@ -866,6 +867,8 @@ export function installSectionRuntime() {
     /* I parametri del tasto Clima rapido chiedono alle unita' cosa accettano:
      * si installano dopo chi quelle unita' le tiene. */
     installQuickClimateEditorSection();
+    /* La valvola TRV (#300): una casella in piu' nella scheda dell'unita' clima. */
+    installTrvEditor();
     installLiveUiSection();
     /* Il video vero delle telecamere (#294): WebRTC e HLS nelle tessere, e il
      * WebRTC nativo del popup negoziato con i server ICE di casa. */
@@ -1055,6 +1058,7 @@ export function installSectionRuntime() {
         "ev-showcase",
         "telecamera-webrtc",
         "storico-connettivita",
+        "trv-editor",
         "auto-termica",
         "solar-thermal-design",
         "minipc-showcase",

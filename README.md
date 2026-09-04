@@ -860,7 +860,7 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 </table>
 
 - **Luci**: entità (`light.`, `switch.`, `input_boolean.`, `fan.`, `group.`), nome, stanza — chiesta subito quando aggiungi una luce — e ordine.
-- **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo**, **Caldo** o entrambi per una pompa di calore. Qui si configura anche il **tasto Clima rapido** della Home — modalità, temperatura e ventola — con le sole modalità che le unità configurate accettano davvero; un campo lasciato vuoto vuol dire «non toccare».
+- **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo**, **Caldo** o entrambi per una pompa di calore. Per i termosifoni con valvola smart c'è la casella **Valvola TRV (posizione %)**: la card mostra quanto la valvola è aperta e quanto chiusa (se l'unità espone già `valve_position`, lo legge da sola). Qui si configura anche il **tasto Clima rapido** della Home — modalità, temperatura e ventola — con le sole modalità che le unità configurate accettano davvero; un campo lasciato vuoto vuol dire «non toccare».
 - **Finestre**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso**, **inferriata** e percentuali dei preset. Il solo sensore basta per una persiana manuale. In cima alla scheda la **soglia di chiusura**: ferma a quella percentuale o sotto, una tapparella conta come chiusa.
 
 ### 🤖 Aspirapolvere · ✅ Cose da fare · 🚪 Aperture

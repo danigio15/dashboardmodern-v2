@@ -2955,4 +2955,8 @@ export default Object.freeze({
   "No history found in this period": "Aucun historique sur cette période",
   "No state change": "Aucun changement d'état",
   "Pick a start before the end, and not in the future.": "Choisissez un début avant la fin, et pas dans le futur.",
+  "${valvola.aperta}% open": "${valvola.aperta}% ouverte",
+  "${valvola.chiusa}% closed": "${valvola.chiusa}% fermée",
+  "TRV valve (position %)": "Vanne TRV (position %)",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "Le capteur ou le number avec la position de la vanne thermostatique, de 0 à 100 : la carte montre combien elle est ouverte et combien fermée. Si l'entité climate expose déjà valve_position, inutile.",
 });

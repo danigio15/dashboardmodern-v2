@@ -2929,4 +2929,8 @@ export default Object.freeze({
   "No history found in this period": "この期間の履歴はありません",
   "No state change": "状態の変化なし",
   "Pick a start before the end, and not in the future.": "終了より前の開始を選んでください。未来は選べません。",
+  "${valvola.aperta}% open": "開 ${valvola.aperta}%",
+  "${valvola.chiusa}% closed": "閉 ${valvola.chiusa}%",
+  "TRV valve (position %)": "TRV バルブ（開度 %）",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "サーモスタットバルブの開度（0〜100）を持つセンサーまたは number。カードには開いている割合と閉じている割合が表示されます。climate エンティティがすでに valve_position を公開していれば不要です。",
 });

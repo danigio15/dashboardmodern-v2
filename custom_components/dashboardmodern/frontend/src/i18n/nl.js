@@ -2940,4 +2940,8 @@ export default Object.freeze({
   "No history found in this period": "Geen geschiedenis in deze periode",
   "No state change": "Geen statuswijziging",
   "Pick a start before the end, and not in the future.": "Kies een begin vóór het einde, en niet in de toekomst.",
+  "${valvola.aperta}% open": "${valvola.aperta}% open",
+  "${valvola.chiusa}% closed": "${valvola.chiusa}% dicht",
+  "TRV valve (position %)": "TRV-ventiel (stand %)",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "De sensor of number met de stand van het thermostaatventiel, 0 tot 100: de kaart toont hoe ver het open en hoe ver het dicht is. Levert de climate-entiteit al valve_position, dan is hij niet nodig.",
 });

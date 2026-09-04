@@ -2939,4 +2939,8 @@ export default Object.freeze({
   "No history found in this period": "За этот период истории нет",
   "No state change": "Состояние не менялось",
   "Pick a start before the end, and not in the future.": "Выберите начало раньше конца, и не в будущем.",
+  "${valvola.aperta}% open": "${valvola.aperta}% открыта",
+  "${valvola.chiusa}% closed": "${valvola.chiusa}% закрыта",
+  "TRV valve (position %)": "Термоголовка TRV (положение %)",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "Датчик или number с положением термостатической головки, от 0 до 100: карточка показывает, насколько она открыта и насколько закрыта. Если сущность climate уже отдаёт valve_position, он не нужен.",
 });

@@ -2874,4 +2874,8 @@ export default Object.freeze({
   "No history found in this period": "此时段无历史记录",
   "No state change": "无状态变化",
   "Pick a start before the end, and not in the future.": "请选择早于结束的开始时间，且不能在未来。",
+  "${valvola.aperta}% open": "开 ${valvola.aperta}%",
+  "${valvola.chiusa}% closed": "关 ${valvola.chiusa}%",
+  "TRV valve (position %)": "TRV 阀（位置 %）",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "带恒温阀位置（0 到 100）的传感器或 number：卡片显示阀门打开和关闭的比例。如果 climate 实体已提供 valve_position，则无需填写。",
 });

@@ -2926,4 +2926,8 @@ export default Object.freeze({
   "No history found in this period": "Bu dönemde geçmiş yok",
   "No state change": "Durum değişikliği yok",
   "Pick a start before the end, and not in the future.": "Bitişten önce bir başlangıç seçin, gelecekte olmasın.",
+  "${valvola.aperta}% open": "%${valvola.aperta} açık",
+  "${valvola.chiusa}% closed": "%${valvola.chiusa} kapalı",
+  "TRV valve (position %)": "TRV vanası (konum %)",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "Termostatik vananın konumunu (0-100) veren sensör ya da number: kart ne kadar açık ve ne kadar kapalı olduğunu gösterir. climate varlığı zaten valve_position veriyorsa gerekmez.",
 });

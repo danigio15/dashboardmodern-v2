@@ -711,8 +711,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 239 con il periodo dello storico (`core/periodo-storico.js`,
   // `sections/storico-connettivita-section.js`, #302): i periodi di serie e
   // l'intervallo da quando a quando in ogni finestra dove si vede uno storico.
+  // 241 con la valvola TRV (`core/valvola-trv.js`, `sections/trv-editor-section.js`,
+  // #300): quanto e' aperta e quanto chiusa, dalla sua entita' o dagli
+  // attributi dell'unita', con la casella nella scheda del clima.
   assert.ok(
-    relative.length <= 240,
+    relative.length <= 245,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

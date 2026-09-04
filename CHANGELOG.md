@@ -67,6 +67,18 @@ lavorare.
   vetture a benzina, «Auto elettrica» nel titolo e nella scheda era una
   bugia per meta' del garage.
 
+- **Le valvole termostatiche dicono quanto sono aperte (#300).**
+
+      «Nella sezione riscaldamento dare la possibilita' di inserire valvole
+       TRV mostrando percentuale apertura e percentuale chiusura valvola.»
+
+  Nella scheda di un'unita' clima — il form del guscio e la matita — c'e' la
+  casella «Valvola TRV (posizione %)»: il sensore o il number con la
+  posizione della valvola. La card del termosifone mostra una barra con
+  quanto e' aperta e quanto chiusa. Chi ha un'unita' che espone gia'
+  `valve_position` o `pi_heating_demand` fra gli attributi non deve
+  compilare niente: la card lo legge da li'.
+
 - **Lo storico si sceglie il periodo (#302).**
 
       «Nella scheda temperatura il grafico permette solo di scegliere

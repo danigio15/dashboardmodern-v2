@@ -2902,4 +2902,8 @@ export default Object.freeze({
   "No history found in this period": "لا سجل في هذه الفترة",
   "No state change": "لا تغيير في الحالة",
   "Pick a start before the end, and not in the future.": "اختر بداية قبل النهاية، وليست في المستقبل.",
+  "${valvola.aperta}% open": "${valvola.aperta}% مفتوحة",
+  "${valvola.chiusa}% closed": "${valvola.chiusa}% مغلقة",
+  "TRV valve (position %)": "صمام TRV (الموضع %)",
+  "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.": "المستشعر أو الرقم الذي يحمل موضع الصمام الحراري من 0 إلى 100: تعرض البطاقة مقدار الفتح والإغلاق. إذا كان كيان climate يعرض valve_position بالفعل فلا حاجة له.",
 });
