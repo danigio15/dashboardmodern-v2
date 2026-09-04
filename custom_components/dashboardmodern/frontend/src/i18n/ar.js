@@ -3021,4 +3021,9 @@ export default Object.freeze({
   "Waiting to start": "بانتظار البدء",
   Washing: "غسيل",
   Weighing: "وزن",
+  "Front left": "أمامي أيسر",
+  "Front right": "أمامي أيمن",
+  "Rear left": "خلفي أيسر",
+  "Rear right": "خلفي أيمن",
+  "Check it": "تحقّق منه",
 });

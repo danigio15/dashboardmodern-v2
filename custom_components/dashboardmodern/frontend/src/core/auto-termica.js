@@ -53,6 +53,50 @@ export const CASELLE_TERMICHE = Object.freeze([
     glifo: "⛽",
   }),
   Object.freeze({ ref: "dm.ev_pneumatici", campo: "pneumatici", tipo: "pressione", glifo: "🛞" }),
+  /* Le quattro ruote, una casella per ognuna.
+   *
+   * «E' possibile inserire un solo pneumatico, spero al prossimo rilascio sia
+   * possibile inserirne 4» (#319). Chi ha il TPMS ha quattro sensori, uno per
+   * ruota, e ne poteva mappare uno. La casella di prima resta dov'e' e vale
+   * quello che ha sempre valso — un sensore riepilogativo, o l'avviso unico
+   * dell'auto — cosi' chi l'ha compilata non si accorge di niente. */
+  Object.freeze({
+    ref: "dm.ev_pneumatico_ant_sx",
+    campo: "pneumaticoAntSx",
+    tipo: "pressione",
+    glifo: "🛞",
+    ruota: "antSx",
+  }),
+  Object.freeze({
+    ref: "dm.ev_pneumatico_ant_dx",
+    campo: "pneumaticoAntDx",
+    tipo: "pressione",
+    glifo: "🛞",
+    ruota: "antDx",
+  }),
+  Object.freeze({
+    ref: "dm.ev_pneumatico_post_sx",
+    campo: "pneumaticoPostSx",
+    tipo: "pressione",
+    glifo: "🛞",
+    ruota: "postSx",
+  }),
+  Object.freeze({
+    ref: "dm.ev_pneumatico_post_dx",
+    campo: "pneumaticoPostDx",
+    tipo: "pressione",
+    glifo: "🛞",
+    ruota: "postDx",
+  }),
+]);
+
+/* L'ordine in cui le ruote si leggono e si disegnano: come si guarda l'auto
+ * dall'alto, davanti in alto. */
+export const RUOTE = Object.freeze([
+  Object.freeze({ ruota: "antSx", campo: "pneumaticoAntSx", ref: "dm.ev_pneumatico_ant_sx" }),
+  Object.freeze({ ruota: "antDx", campo: "pneumaticoAntDx", ref: "dm.ev_pneumatico_ant_dx" }),
+  Object.freeze({ ruota: "postSx", campo: "pneumaticoPostSx", ref: "dm.ev_pneumatico_post_sx" }),
+  Object.freeze({ ruota: "postDx", campo: "pneumaticoPostDx", ref: "dm.ev_pneumatico_post_dx" }),
 ]);
 
 /** I riferimenti, per chi deve sapere se uno stato riguarda un'auto termica. */
@@ -121,6 +165,30 @@ export function pneumaticiDalloStato(stato, unita = "") {
   if (/^(off|false|ok|normal|normale|good)$/.test(voce))
     return { pressione: null, unita: "", avviso: false };
   return null;
+}
+
+/**
+ * Le ruote mappate, nell'ordine in cui stanno sull'auto.
+ *
+ * Chi ne ha mappata una sola non ha una ruota: ha il riepilogo di prima, che
+ * resta nella sua casella. Questa risponde solo di quelle vere.
+ *
+ * @returns {Array<{ruota:string,ref:string,pressione:number|null,unita:string,avviso:boolean|null}>}
+ */
+export function ruoteDellAuto(lettura = {}) {
+  const fuori = [];
+  for (const voce of RUOTE) {
+    const valore = lettura?.[voce.campo];
+    if (!valore) continue;
+    fuori.push({ ruota: voce.ruota, ref: voce.ref, ...valore });
+  }
+  return fuori;
+}
+
+/** Se una qualunque delle gomme chiede attenzione: l'avviso, da dove arriva. */
+export function pneumaticiInAvviso(lettura = {}) {
+  if (lettura?.pneumatici?.avviso === true) return true;
+  return ruoteDellAuto(lettura).some((ruota) => ruota.avviso === true);
 }
 
 /* ── la lettura ───────────────────────────────────────────────────────── */
@@ -209,7 +277,7 @@ export function letturaTermica(mappa = {}, states = {}, resolve = null) {
   fuori.attenzione =
     fuori.allarme === "scattato" ||
     (fuori.portiere === "aperte" && fuori.motore === false) ||
-    fuori.pneumatici?.avviso === true ||
+    pneumaticiInAvviso(fuori) ||
     (fuori.carburante !== null && fuori.carburante !== undefined && fuori.carburante <= 10);
   fuori.qualcosa = Object.keys(fuori.caselle).length > 0;
   return fuori;

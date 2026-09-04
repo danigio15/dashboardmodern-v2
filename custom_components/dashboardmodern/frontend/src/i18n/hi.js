@@ -3035,4 +3035,9 @@ export default Object.freeze({
   "Waiting to start": "शुरू होने का इंतज़ार",
   Washing: "धुलाई",
   Weighing: "वज़न",
+  "Front left": "आगे बायाँ",
+  "Front right": "आगे दायाँ",
+  "Rear left": "पीछे बायाँ",
+  "Rear right": "पीछे दायाँ",
+  "Check it": "जाँचें",
 });

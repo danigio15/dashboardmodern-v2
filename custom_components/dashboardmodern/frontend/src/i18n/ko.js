@@ -3032,4 +3032,9 @@ export default Object.freeze({
   "Waiting to start": "시작 대기",
   Washing: "세탁",
   Weighing: "무게 감지",
+  "Front left": "왼쪽 앞",
+  "Front right": "오른쪽 앞",
+  "Rear left": "왼쪽 뒤",
+  "Rear right": "오른쪽 뒤",
+  "Check it": "점검 필요",
 });

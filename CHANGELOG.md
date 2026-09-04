@@ -97,6 +97,27 @@ benzina e i tasti del robot lavapavimenti (#306).
   ogni apparecchio, acceso o spento, nel suo ordine; toccandone una si apre la
   sua card intera, una alla volta.
 
+- **Le gomme sono quattro (#319).**
+
+      «È possibile inserire un solo pneumatico, spero al prossimo rilascio
+       sia possibile inserirne 4.»
+
+  La casella era una sola, e chi ha il TPMS ha quattro sensori: ne mappava uno
+  e gli altri tre non avevano dove andare. Adesso ogni ruota ha la sua —
+  anteriore sinistra e destra, posteriore sinistra e destra — e nella pagina
+  si dispongono come stanno sull'auto, due davanti e due dietro. Una ruota non
+  mappata resta un posto vuoto col suo nome, cosi' si vede subito quale sensore
+  manca; un sensore che dice solo si' o no scrive «Da controllare» al posto del
+  numero, e una gomma che si lamenta accende l'attenzione di tutta la scheda.
+  La casella singola di prima resta dov'era e vale quello che ha sempre valso,
+  per chi ha un sensore riepilogativo.
+
+  E le gomme si vedono su qualunque auto, elettrica compresa: stavano dentro il
+  quadro termico, che su un'elettrica non si disegna, e sparivano con lui —
+  quelle caselle si compilavano in configurazione e non si vedevano da nessuna
+  parte, mentre il TPMS ce l'hanno anche le elettriche. Le gomme non sono del
+  motore.
+
 ### Corretto
 
 - **La pagina Mini PC sfarfallava, e la plancia scaldava il mini PC.**

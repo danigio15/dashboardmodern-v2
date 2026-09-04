@@ -3045,4 +3045,9 @@ export default Object.freeze({
   "Waiting to start": "Başlamayı bekliyor",
   Washing: "Yıkama",
   Weighing: "Tartma",
+  "Front left": "Ön sol",
+  "Front right": "Ön sağ",
+  "Rear left": "Arka sol",
+  "Rear right": "Arka sağ",
+  "Check it": "Kontrol et",
 });

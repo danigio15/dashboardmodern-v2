@@ -3061,4 +3061,9 @@ export default Object.freeze({
   "Waiting to start": "Wacht op start",
   Washing: "Wassen",
   Weighing: "Wegen",
+  "Front left": "Linksvoor",
+  "Front right": "Rechtsvoor",
+  "Rear left": "Linksachter",
+  "Rear right": "Rechtsachter",
+  "Check it": "Controleren",
 });

@@ -3071,4 +3071,9 @@ export default Object.freeze({
   "Waiting to start": "Wartet auf Start",
   Washing: "Waschen",
   Weighing: "Wiegen",
+  "Front left": "Vorne links",
+  "Front right": "Vorne rechts",
+  "Rear left": "Hinten links",
+  "Rear right": "Hinten rechts",
+  "Check it": "Prüfen",
 });

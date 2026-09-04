@@ -3048,4 +3048,9 @@ export default Object.freeze({
   "Waiting to start": "開始待ち",
   Washing: "洗濯",
   Weighing: "重量測定",
+  "Front left": "左前",
+  "Front right": "右前",
+  "Rear left": "左後",
+  "Rear right": "右後",
+  "Check it": "要点検",
 });

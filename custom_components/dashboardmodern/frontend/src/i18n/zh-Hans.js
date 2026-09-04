@@ -2993,4 +2993,9 @@ export default Object.freeze({
   "Waiting to start": "等待启动",
   Washing: "洗涤",
   Weighing: "称重",
+  "Front left": "左前",
+  "Front right": "右前",
+  "Rear left": "左后",
+  "Rear right": "右后",
+  "Check it": "需检查",
 });
