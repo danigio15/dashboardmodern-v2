@@ -1,4 +1,4 @@
-/* La finestra del widget quando le macchine accese sono piu' di una.
+/* La finestra del widget quando gli apparecchi sono piu' di uno.
  *
  * Dal campo: «il popup deve mostrare una icona piccola dell'elettrodomestico
  * in funzione, perche' puo' essere piu' di uno; quando clicco sopra si espande
@@ -105,7 +105,7 @@ const SEME = {
   visibility: { home: true, appliances: true },
 };
 
-test("le pastiglie degli accesi, e una card alla volta", async ({ page }, testInfo) => {
+test("le pastiglie di tutti, e una card alla volta", async ({ page }, testInfo) => {
   test.setTimeout(240_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript((haStates) => {
@@ -161,7 +161,11 @@ test("le pastiglie degli accesi, e una card alla volta", async ({ page }, testIn
   await tessera.click();
   const popup = page.locator("#dm-widget-popup");
   await expect(popup).toBeVisible();
-  await expect(popup.locator(".dm-w-appl-chip")).toHaveCount(2);
+  /* Tutti gli apparecchi, non solo quelli accesi: la finestra e' il posto da
+   * cui si arriva a ognuno. Chi lavora si riconosce dal pallino. */
+  await expect(popup.locator(".dm-w-appl-chip")).toHaveCount(3);
+  await expect(popup.locator('.dm-w-appl-chip[data-on="true"]')).toHaveCount(2);
+  await expect(popup.locator('[data-dm-appl-chip="a-forno"]')).toHaveAttribute("data-on", "false");
   await page.waitForTimeout(600);
 
   await popup.locator('[data-dm-appl-chip="a-lav"]').click();
@@ -176,7 +180,8 @@ test("le pastiglie degli accesi, e una card alla volta", async ({ page }, testIn
   await popup.locator('[data-dm-appl-chip="a-lst"]').click();
   await expect(popup.locator(".dm-w-appl-card .dm-ap-card")).toHaveCount(0);
 
-  /* Il forno e' spento e non ha una pastiglia: la finestra parla di chi
-   * lavora adesso, non di tutto quello che si possiede. */
-  await expect(popup.locator('[data-dm-appl-chip="a-forno"]')).toHaveCount(0);
+  /* E anche il forno spento si apre: e' un apparecchio come gli altri. */
+  await popup.locator('[data-dm-appl-chip="a-forno"]').click();
+  await expect(popup.locator(".dm-w-appl-card .dm-ap-card")).toHaveCount(1);
+  await expect(popup.locator(".dm-w-appl-card .dm-ap-badge")).toContainText(/SPENTO|OFF/);
 });

@@ -2839,6 +2839,5 @@ export default Object.freeze({
   "Waiting to start": "開始待ち",
   Washing: "洗濯",
   Weighing: "重量測定",
-  "Running right now": "いま動いている家電",
   "Tap an appliance to open its card.": "家電をタップするとカードが開きます。",
 });

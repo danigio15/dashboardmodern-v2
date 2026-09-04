@@ -1872,7 +1872,6 @@ export const MESSAGE_KEYS = Object.freeze([
   "running",
   "Running",
   "RUNNING",
-  "Running right now",
   "Running threshold",
   "Running threshold (Watts)",
   "Runtime diagnostics",

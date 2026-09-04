@@ -371,7 +371,7 @@ Se il sensore di potenza non c'è — è il caso di quasi ogni elettrodomestico 
 
 La card di un apparecchio collegato a un'integrazione dice anche **cosa sta facendo adesso**: la fase del ciclo in parole — Lavaggio, Risciacquo, Centrifuga, Asciugatura — e accanto i gradi, i giri e il programma, cioè le stesse quattro cose che si leggono sull'oblò. Le parole sono quelle che le integrazioni pubblicano davvero, tradotte in tutte le lingue della plancia; una che il vocabolario non conosce si legge lo stesso, ripulita. Un apparecchio su una presa smart non ha niente di tutto questo e la sua card resta quella di sempre.
 
-Anche la finestra della tessera **Elettrodomestici** in Home parla la stessa lingua: in cima una pastiglia per ogni apparecchio in funzione — disegno, nome e watt — e toccandone una si apre la sua card intera, una alla volta. Con una sola macchina accesa si apre da sé.
+Anche la finestra della tessera **Elettrodomestici** in Home parla la stessa lingua: una pastiglia per ogni apparecchio — disegno e nome, accesi e spenti insieme, nel loro ordine — e toccandone una si apre la sua card intera, una alla volta. Chi sta lavorando porta un pallino verde e i suoi watt; con un apparecchio solo la card si apre da sé.
 
 Il dettaglio si apre con **la stessa card della sezione** — ritratto, fase, anello, potenza, ultimo ciclo — e sotto elenca tutto il resto del dispositivo diviso per famiglie: lo stato, le letture, i comandi con i loro tasti veri (interruttori, menù dei programmi, numeri, pulsanti) e in fondo la diagnostica, chiusa. Quello che la card dice già non si ripete. È anche il modo più rapido per capire se un sensore manca o punta al posto sbagliato.
 

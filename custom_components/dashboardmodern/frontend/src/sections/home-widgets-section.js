@@ -3917,27 +3917,35 @@ let apertoInFinestra = "";
 /* La finestra degli elettrodomestici: una pastiglia per ognuno, e la card
  * intera di quello che si tocca.
  *
- * Dal campo: «il popup deve mostrare una icona piccola dell'elettrodomestico
- * in funzione, perche' puo' essere piu' di uno; quando clicco sopra si espande
- * e mostra tutta la card completa». Tre macchine accese sono tre card alte una
- * pagina l'una: in una finestra si scorre e non si trova piu' niente. Le
- * pastiglie stanno tutte su una riga — disegno, nome, watt — e la card si apre
- * una alla volta, sotto quella scelta. Con una sola accesa non c'e' niente da
- * scegliere e si apre da se'. */
+ * Dal campo: «il popup deve mostrare una icona piccola dell'elettrodomestico,
+ * perche' puo' essere piu' di uno; quando clicco sopra si espande e mostra
+ * tutta la card completa» — e poi: «non voglio il focus su quelle in
+ * funzione». Le pastiglie sono di tutti gli apparecchi configurati, nel loro
+ * ordine, accesi e spenti insieme: la finestra e' il posto da cui si arriva a
+ * ognuno, non un elenco di chi sta lavorando adesso. Chi lavora si riconosce
+ * dal pallino e dai watt, ma non passa davanti e non esclude gli altri.
+ *
+ * Le card intere sarebbero alte una pagina l'una: si apre quella che si
+ * tocca, una alla volta. Con un apparecchio solo non c'e' niente da scegliere
+ * e si apre da se'. */
 function appliancesDetail(widget) {
-  const accesi = Array.isArray(widget.running) ? widget.running : [];
-  if (!accesi.length)
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  if (!righe.length)
     return `<p class="dm-w-empty">✨ ${esc(t("Tutto spento", "Everything off"))}</p>`;
-  const aperto = accesi.some((riga) => riga.id === apertoInFinestra)
+  const aperto = righe.some((riga) => riga.id === apertoInFinestra)
     ? apertoInFinestra
-    : accesi.length === 1
-      ? accesi[0].id
+    : righe.length === 1
+      ? righe[0].id
       : "";
-  const pastiglie = accesi
+  const pastiglie = righe
     .map((riga) => {
       const scelta = riga.id === aperto;
-      const watt = Number.isFinite(Number(riga.watts)) ? `${Math.round(riga.watts)} W` : "";
-      return `<button type="button" class="dm-w-appl-chip" data-dm-appl-chip="${esc(riga.id)}" aria-expanded="${scelta ? "true" : "false"}">
+      const acceso = riga.mode === "running";
+      /* I watt solo di chi lavora: su una macchina spenta «0.3 W» e' il
+       * consumo della sua spia, e non e' una notizia. */
+      const watt =
+        acceso && Number.isFinite(Number(riga.watts)) ? `${Math.round(riga.watts)} W` : "";
+      return `<button type="button" class="dm-w-appl-chip" data-dm-appl-chip="${esc(riga.id)}" data-on="${acceso ? "true" : "false"}" aria-expanded="${scelta ? "true" : "false"}">
         <span class="dm-w-appl-art" aria-hidden="true">${applianceArtwork(riga.type, 26) || "🔌"}</span>
         <span class="dm-w-appl-nome">${esc(riga.name)}</span>
         ${watt ? `<span class="dm-w-appl-watt">${esc(watt)}</span>` : ""}
@@ -4631,11 +4639,11 @@ function titoloDelBlocco(markup, chiave = "") {
    * riga «AGENDA» sopra due titoli sarebbe il nome della finestra scritto una
    * seconda volta. */
   if (chiave === "agenda") return "";
-  /* Gli elettrodomestici non portano ne' comandi ne' letture: portano gli
-   * apparecchi accesi, e sopra le loro pastiglie ci va il loro nome. Il
-   * titolo automatico leggeva i tasti e scriveva «Comandi», che su una fila
-   * di macchine da aprire e' la parola sbagliata. */
-  if (chiave === "elettrodomestici") return t("In funzione adesso", "Running right now");
+  /* Gli elettrodomestici non portano ne' comandi ne' letture: portano le
+   * pastiglie degli apparecchi, che si annunciano da se' col loro disegno e
+   * col loro nome. Una riga di titolo sopra sarebbe il nome della finestra
+   * scritto una seconda volta. */
+  if (chiave === "elettrodomestici") return "";
   const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
   return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
@@ -6361,9 +6369,12 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
   border-bottom:1px solid var(--card-border,#eef2f7);margin-bottom:2px}
 #dm-widget-popup .dm-w-empty{margin:6px 4px;font-size:13px}
-#dm-widget-popup .dm-w-appl-chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px}
+#dm-widget-popup .dm-w-appl-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px;padding-top:12px;border-top:1px solid var(--card-border,#e2e8f0)}
 #dm-widget-popup .dm-w-appl-chip{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:7px 12px 7px 8px;border-radius:14px;cursor:pointer;font:inherit;border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text,#0f172a);transition:border-color .16s ease,background .16s ease}
 #dm-widget-popup .dm-w-appl-chip[aria-expanded="true"]{border-color:color-mix(in srgb,#0ea5e9 46%,transparent);background:color-mix(in srgb,#0ea5e9 10%,transparent)}
+#dm-widget-popup .dm-w-appl-chip[data-on="false"] .dm-w-appl-art{color:var(--text-dim,#94a3b8);opacity:.7}
+#dm-widget-popup .dm-w-appl-chip[data-on="false"] .dm-w-appl-nome{font-weight:750;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-appl-chip[data-on="true"] .dm-w-appl-nome::after{content:"";display:inline-block;width:5px;height:5px;margin-left:6px;border-radius:50%;background:#16a34a;vertical-align:middle}
 #dm-widget-popup .dm-w-appl-art{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;color:#0ea5e9}
 #dm-widget-popup .dm-w-appl-art svg{width:26px;height:26px}
 #dm-widget-popup .dm-w-appl-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:850}

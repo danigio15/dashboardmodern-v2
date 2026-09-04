@@ -2850,6 +2850,5 @@ export default Object.freeze({
   "Waiting to start": "Ожидание старта",
   Washing: "Стирка",
   Weighing: "Взвешивание",
-  "Running right now": "Сейчас работают",
   "Tap an appliance to open its card.": "Нажмите на прибор, чтобы открыть его карточку.",
 });
