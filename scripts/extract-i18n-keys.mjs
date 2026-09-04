@@ -132,6 +132,9 @@ function codePairs() {
  */
 const SECTION_TABLES = Object.freeze([
   { file: "alerts-section.js", name: "GROUPS", rows: "items", at: [2, 3] },
+  /* Le parole dei ruoli della card, per dire quali caselle il collegamento a
+     un'integrazione ha compilato. */
+  { file: "appliance-editor-section.js", name: "ROLE_WORDS", rows: "values", at: [0, 1] },
   { file: "editor-slots-section.js", name: "FIELD_CAPTIONS", rows: "values", at: [0, 1] },
   { file: "editor-slots-section.js", name: "PLACEHOLDERS", rows: "values", at: [0, 1] },
   { file: "editor-slots-section.js", name: "GENERIC_PLACEHOLDER", rows: "self", at: [0, 1] },

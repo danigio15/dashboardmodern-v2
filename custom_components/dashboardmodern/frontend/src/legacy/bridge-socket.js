@@ -63,6 +63,10 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   // plancia servita dall'integrazione non possiede nessun token e ogni
   // chiamata REST del browser risponde 401.
   "dashboardmodern/www/upload",
+  // Il menu delle integrazioni: la lavatrice di hOn, il forno di Home Connect,
+  // con tutte le loro entita'. Il backend legge i registri e li rimette nella
+  // forma di un menu; di qui passa la domanda, e la risposta.
+  "dashboardmodern/integrations/catalog",
   // Il calendario si guarda e si tocca (#259): l'elenco degli eventi viene
   // dalla porta HTTP firmata, ma segnare, spostare e cancellare un impegno
   // sono tre messaggi sul socket. Senza, dentro il pannello di Home Assistant

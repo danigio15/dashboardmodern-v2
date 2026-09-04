@@ -679,8 +679,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `fetch` dove quella riparazione si applica, perche' la riga sbagliata sta
   // dentro una funzione del guscio e avvolgerla per nome arriverebbe troppo
   // tardi.
+  // 228 con l'elettrodomestico che arriva da un'integrazione
+  // (`core/appliance-device-binding.js`,
+  // `sections/appliance-integration-section.js`): «far in modo che le persone
+  // possano integrare i loro elettrodomestici sfruttando le integrazioni, sia
+  // ufficiali che presenti su HACS, creando un menu». Il nucleo e' il
+  // ragionamento — dato un dispositivo e le sue entita', che apparecchio e',
+  // quale entita' fa da potenza e quale da tempo rimanente, come si dividono
+  // le altre nel dettaglio — e si prova su una lavatrice di hOn finta; la
+  // sezione e' il menu integrazione → dispositivo, il tasto in cima alla
+  // scheda e il catalogo letto dal backend, che la finestra di modifica e il
+  // dettaglio dell'apparecchio leggono da lei.
   assert.ok(
-    relative.length <= 226,
+    relative.length <= 228,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

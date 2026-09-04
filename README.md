@@ -367,6 +367,12 @@ Un apparecchio è «in funzione» quando supera la sua **soglia di potenza**, e 
 
 Il dettaglio elenca **tutte le entità mappate** su quell'apparecchio con il loro valore: è anche il modo più rapido per capire se un sensore manca o punta al posto sbagliato.
 
+### Dalle integrazioni
+
+Un elettrodomestico connesso — la lavatrice Hoover con **hOn**, il forno Bosch con **Home Connect**, Miele, LG ThinQ, SmartThings, o anche una presa Shelly — arriva in Home Assistant come un **dispositivo intero**, con dentro venti o trenta entità. Dalla scheda Elettrodomestici il tasto **🔗 Aggiungi da un'integrazione** apre un menù con le integrazioni installate (segnate **Ufficiale** o **HACS / personalizzata**) e i dispositivi di ognuna: scelto il tuo, l'apparecchio nasce già compilato — tipo dal catalogo, stanza dall'area, potenza, tempo rimanente, fase del programma, contatore, tasto d'avvio — e le caselle scritte a mano non si toccano. Lo stesso menù sta in cima alla finestra di modifica, per collegare o scollegare un apparecchio che c'era già.
+
+Nel dettaglio di un apparecchio collegato, sotto la parte disegnata dalla card, c'è **tutto il dispositivo**: lo stato, le letture, i comandi con i loro tasti veri (interruttori, menù dei programmi, numeri, pulsanti) e in fondo la diagnostica. Le entità disabilitate in Home Assistant si vedono contate, non mostrate: si abilitano da lì.
+
 ---
 
 ## Auto elettrica e wallbox
@@ -822,7 +828,7 @@ Temperatura e umidità per stanza, con le soglie di comfort.
 
 <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-appliances-light.webp" alt="Editor - elettrodomestici" width="100%">
 
-Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto animato), stanza, entità di controllo, potenza, energia giornaliera e totale, stato del programma, tempo rimanente, temperatura, ultimo ciclo (durata, energia, costo), **soglie di standby e funzionamento** e **ritardo di fine ciclo**.
+Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto animato), stanza, entità di controllo, potenza, energia giornaliera e totale, stato del programma, tempo rimanente, temperatura, ultimo ciclo (durata, energia, costo), **soglie di standby e funzionamento** e **ritardo di fine ciclo**. Con **🔗 Aggiungi da un'integrazione** si sceglie direttamente il dispositivo di Home Assistant — hOn, Home Connect, Miele, una presa smart — e le caselle si compilano da sole; dal blocco **Integrazione** in cima alla finestra di modifica si collega, si cambia o si scollega il dispositivo di un apparecchio già configurato.
 
 ### 💡 Luci · ❄️ Clima · 🪟 Finestre
 

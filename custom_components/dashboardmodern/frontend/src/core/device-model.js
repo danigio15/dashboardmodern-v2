@@ -273,6 +273,24 @@ export function entityLabel(entityId = "") {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/* Il dispositivo di Home Assistant da cui l'apparecchio arriva.
+ *
+ * Una lavatrice di hOn, un forno di Home Connect: non un interruttore ma un
+ * dispositivo intero, con l'integrazione che lo porta e le sue venti entita'.
+ * Questi campi sono la memoria di quel collegamento: da quale integrazione,
+ * quale dispositivo, come si chiama e chi lo fa. Passano di qui o spariscono
+ * alla prima normalizzazione, com'e' gia' successo quattro volte ad altri.
+ * `device_entities` e' l'elenco delle sue entita' al momento del collegamento,
+ * per la finestra del dettaglio quando il catalogo non e' ancora arrivato. */
+export const APPLIANCE_BINDING_FIELDS = Object.freeze([
+  "device_id",
+  "integration",
+  "integration_name",
+  "device_name",
+  "device_manufacturer",
+  "device_model",
+]);
+
 export function deviceEntities(device = {}) {
   const explicit = [
     device.control_entity,
@@ -579,6 +597,20 @@ export function normalizeDevice(input = {}, section, context = {}) {
     assignFiniteNumber(base, "temp_max", input.temp_max);
     assignFiniteNumber(base, "max_power", input.max_power);
     assignFiniteNumber(base, "price_kwh", input.price_kwh);
+    /* Il collegamento all'integrazione: vale la riga di sopra sull'impianto,
+     * un campo che non passa di qui non sopravvive al primo salvataggio. */
+    for (const key of APPLIANCE_BINDING_FIELDS) {
+      const value = String(input[key] ?? "").trim();
+      if (value) base[key] = value;
+    }
+    const deviceEntityIds = [
+      ...new Set(
+        (Array.isArray(input.device_entities) ? input.device_entities : [])
+          .map((value) => String(typeof value === "string" ? value : value?.entity_id || "").trim())
+          .filter((value) => value.includes(".")),
+      ),
+    ];
+    if (deviceEntityIds.length) base.device_entities = deviceEntityIds;
   }
   return base;
 }

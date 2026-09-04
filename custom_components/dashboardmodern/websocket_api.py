@@ -45,6 +45,7 @@ from .config_store import (
     async_get_config_store,
 )
 from .const import CHAT_MAX_TESTO, DOMAIN
+from .device_catalog import MAX_DEVICE_IDS, async_build_catalog
 from .github_client import DevicePending, GitHubError
 from .github_tokens import async_get_token_store
 from .ticket_store import (
@@ -83,6 +84,10 @@ TYPE_SET = f"{DOMAIN}/config/set"
 TYPE_RESTORE = f"{DOMAIN}/config/restore"
 TYPE_WWW_LIST = f"{DOMAIN}/www/list"
 TYPE_WWW_UPLOAD = f"{DOMAIN}/www/upload"
+# Il catalogo di integrazioni e dispositivi: e' con questo che un
+# elettrodomestico si collega a un'integrazione intera invece che a un
+# interruttore.
+TYPE_INTEGRATIONS_CATALOG = f"{DOMAIN}/integrations/catalog"
 TYPE_TICKET_LIST = f"{DOMAIN}/tickets/list"
 TYPE_TICKET_CREATE = f"{DOMAIN}/tickets/create"
 TYPE_TICKET_DELETE = f"{DOMAIN}/tickets/delete"
@@ -393,6 +398,33 @@ async def async_upload_www(
 
 _TICKET_ID = vol.All(str, vol.Length(min=1, max=64))
 _REMOTE_ID = vol.All(str, vol.Length(min=1, max=128))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_INTEGRATIONS_CATALOG,
+        vol.Optional("device_ids"): vol.All(
+            [vol.All(str, vol.Length(min=1, max=64))], vol.Length(max=MAX_DEVICE_IDS)
+        ),
+    }
+)
+@websocket_api.async_response
+async def async_integrations_catalog(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Integrazioni, dispositivi ed entita' dai registri di Home Assistant.
+
+    Legge e basta, e chiede lo stesso permesso di chi puo' usare una plancia:
+    e' la stessa cosa che `config/device_registry/list` dice a chiunque sia
+    autenticato, rimessa nella forma di un menu.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    catalog = await async_build_catalog(hass, device_ids=msg.get("device_ids"))
+    connection.send_result(msg["id"], catalog)
 
 
 def _caller_id(connection: Any) -> str:
@@ -1082,6 +1114,7 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_restore_config,
         async_list_www,
         async_upload_www,
+        async_integrations_catalog,
         async_list_tickets,
         async_create_ticket,
         async_delete_ticket,
