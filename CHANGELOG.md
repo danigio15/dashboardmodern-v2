@@ -5,6 +5,134 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.7
+
+Le cose viste sul campo dopo la 1.4.6, e i comandi del robot che lava. La
+sezione Energia che restava su «Caricamento dati Energia…» dentro il pannello
+di Home Assistant, lo storico di un mese che diceva «Nessuno storico
+disponibile», la soglia di chiusura che ora e' di ogni finestra, la pagina che
+spiega il progetto prima del tasto PayPal, il radar leggibile, i sensori dei
+rifiuti letti come li scrivono le integrazioni, i seguiti di #292, #286 e
+#281, l'inferriata che si modifica, le grate grigie, i modelli di auto a
+benzina e i tasti del robot lavapavimenti (#306).
+
+### Aggiunto
+
+- **I comandi a parte del robot (#306).**
+
+      «Le varie entita' del robot continuano a non essere visibili. Da solo
+       la modalita' aspirazione. Comandi mancanti:
+       button.roborock_qrevo_edge_series_asp_e_lav, …_pulizia_completa,
+       …_solo_aspirazione, …_solo_lavaggio.»
+
+  Un robot che lava non e' solo un `vacuum`: l'integrazione pubblica accanto
+  a lui i suoi programmi come tasti, le sue regolazioni — il mocio, l'acqua —
+  come tendine, le sue funzioni come interruttori. Nella scheda Robot della
+  configurazione c'e' «Altri comandi del robot»: quelli trovati accanto al
+  robot si propongono da soli e un tocco li aggiunge, qualunque altro si cerca
+  con la lente (button, select, switch, e input_*, script, scene). Sulla
+  scheda del robot i tasti stanno sotto i comandi di sempre, le tendine
+  accanto all'aspirazione, e ognuno chiama il servizio che e' suo: press,
+  select_option, toggle.
+
+- **Le auto a benzina hanno il loro modello.** «Se seleziono Jeep mi da' solo
+  veicoli ibridi ed elettrici.» Il catalogo dei modelli ha, per ogni marca,
+  anche le famiglie a benzina, diesel e GPL; la tendina le mostra in un gruppo
+  a parte e mette in cima il gruppo del motore che la vettura dichiara.
+
+- **La soglia di chiusura e' di ogni finestra.** «Ognuno puo' avere una
+  percentuale differente.» La casella «Chiusa sotto il (%)» sta nella riga
+  della finestra, sia quando nasce sia in modifica; vuota, vale quella di casa
+  in cima alla scheda, che resta il valore di serie.
+
+- **«Sostieni il progetto» spiega prima di chiedere.** La pastiglia e la
+  tessera aprono una finestra che dice cosa e' il progetto e come si fa, e
+  solo in fondo c'e' il tasto che porta su PayPal, in una scheda nuova.
+
+- **Il radar ha una legenda.** Pioggia leggera → forte, e «dove non c'e'
+  colore non piove».
+
+### Corretto
+
+- **La pagina Mini PC sfarfallava, e la plancia scaldava il mini PC.**
+
+      «Nella sezione Mini PC c'e' un continuo sfarfallio. Quando e' avviata
+       la dashboard il processore del mini PC schizza di utilizzo e sale la
+       temperatura.»
+
+  Due padroni sulla stessa pastiglia: a ogni evento di stato il guscio
+  scriveva OFFLINE sulla casella della rete non compilata, e la lettura
+  onesta arrivata con la 1.4.5 la correggeva in NON CONFIGURATO un
+  fotogramma dopo — due parole alternate, dipinte tutte e due. La
+  correzione ora parte nello stesso giro del guscio, prima che il browser
+  dipinga. Nello stesso passaggio si e' misurato tutto quello che gira da
+  solo, e si e' alleggerito quello che costava senza dare niente: il
+  ricalcolo dei periodi dell'Energia — cinque domande al Recorder, una
+  sull'anno intero — non piu' ogni quindici secondi ma al piu' una volta al
+  minuto (le statistiche di Home Assistant si compilano ogni cinque); la
+  scansione della pagina Temperature solo quando e' a schermo e un giro per
+  fotogramma; l'osservatore della pagina Mini PC che non si sveglia per le
+  proprie scritture e lavora solo a pagina aperta; i colori dei tubi e del
+  punto della rete che non si riscrivono a ogni passata; lo sfondo animato
+  su un livello suo, fermo per chi ha chiesto al sistema di ridurre le
+  animazioni. E le letture REST di periodi lunghi — la derivazione dei
+  totali dall'inizio dell'anno, i popup di una settimana — passano dalle
+  statistiche del Recorder invece che dalla storia grezza: decine di righe
+  invece di decine di migliaia.
+
+- **Energia ferma su «Caricamento dati Energia…» nel pannello, e le
+  notifiche «Login attempt failed».** Dentro il pannello di Home Assistant
+  la plancia non possiede nessun gettone, e le chiamate REST allo storico che
+  il guscio fa per conto suo rispondevano 401 — una notifica di accesso
+  fallito ogni dieci minuti, e la sezione che restava dietro il velo ad
+  aspettare. Quelle chiamate ora passano dal socket autenticato del pannello,
+  come tutto il resto. Il velo si toglie dopo due tentativi e al suo posto
+  compare la ragione, e i tentativi successivi si diradano invece di
+  insistere ogni secondo.
+
+- **Storico di un mese o da…a: «Nessuno storico disponibile».** Oltre le
+  settantadue ore lo storico grezzo e' troppo per una casa e per il tempo che
+  si e' disposti ad aspettare: si chiedono le statistiche del Recorder, per
+  ora o per giorno, con la pazienza che il periodo merita e la storia grezza
+  come ripiego.
+
+- **Radar illeggibile, con «API Key Required» stampato sulle tessere.** Il
+  fondo CARTO chiede una chiave che la plancia non ha: il fondo e'
+  OpenStreetMap, e chi aveva CARTO salvato passa a OpenStreetMap da solo.
+
+- **Rifiuti: i sensori letti come li scrivono le integrazioni.** Date nella
+  forma gg-mm-aaaa, nomi dei giorni della settimana in piu' lingue, gli
+  attributi delle integrazioni comuni (data, giorni mancanti, prossimi
+  ritiri), e il materiale preso dal sensore quando la riga dice «altro».
+
+- **Seguito di #292: i carichi sono di un impianto.** Passando da un
+  impianto all'altro la scheda dei carichi si ricarica, e salvare i carichi di
+  uno non cancella piu' quelli dell'altro: gli identificativi non si pestano
+  fra impianti.
+
+- **Seguito di #286: le tessere Energia per impianto.** Tutte seguono
+  l'ordine scelto per «Energia», tutte hanno «Apri sezione», e il tasto apre
+  la scheda dell'impianto giusto.
+
+- **Seguito di #281: la seconda caldaia non si selezionava.** La fila dei
+  nomi stava sotto la scena, che e' assoluta e copre tutto il palco: i nomi si
+  vedevano attraverso, ma il tocco arrivava alla scena. La fila sta sopra.
+
+- **Finestre: in modifica mancavano l'inferriata e la soglia.** La finestra
+  di modifica di una riga ha le due caselle, col cercatore e le stesse regole
+  della riga che nasce; svuotare l'inferriata la toglie.
+
+- **Allagamento: la tessera in Home non compariva nemmeno col sensore
+  bagnato.** «Quando attivo non segnala lo stato allagamento nei widget.» La
+  tessera leggeva l'elenco dei sensori dal posto sbagliato — l'oggetto intero
+  invece dell'elenco che porta dentro — e per lei non c'era mai nessun
+  sensore. Ora legge l'elenco, e con un sensore bagnato la tessera c'e'.
+
+- **Le grate sono di un grigio chiaro e sfumato.** «Essendo molto scure,
+  quando sono chiuse e la finestra e' aperta visivamente non e' il massimo.»
+  Il ferro e' grigio, e dove il browser sa mascherare la sbarra va dal chiaro
+  in alto al pieno in basso, con un filo di luce sul bordo.
+
 ## 1.4.6
 
 Tre sezioni in piu', la Home che si personalizza, e una decina di cose viste
