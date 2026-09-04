@@ -183,6 +183,29 @@ const STATI = [
     unit_of_measurement: "min",
   }),
   stato("switch.asciugatrice_asciugatrice", "on", { friendly_name: "Asciugatrice Asciugatrice" }),
+  /* Il resto della casa. Non serve al giro degli elettrodomestici, serve alla
+   * Home: con la sola tessera degli apparecchi la pagina finale era un
+   * riquadro in alto a sinistra e mezzo schermo bianco, che non somiglia a
+   * nessuna installazione vera. */
+  stato("light.salotto", "on", { friendly_name: "Salotto", brightness: 190 }),
+  stato("light.cucina", "off", { friendly_name: "Cucina" }),
+  stato("light.camera", "off", { friendly_name: "Camera" }),
+  stato("climate.soggiorno", "heat", {
+    friendly_name: "Soggiorno",
+    current_temperature: 21.5,
+    temperature: 22,
+    hvac_action: "heating",
+  }),
+  stato("cover.tapparella_salotto", "open", {
+    friendly_name: "Tapparella salotto",
+    current_position: 70,
+    device_class: "shutter",
+  }),
+  stato("cover.tapparella_camera", "closed", {
+    friendly_name: "Tapparella camera",
+    current_position: 0,
+    device_class: "shutter",
+  }),
 ];
 
 const SEME = {
@@ -192,10 +215,17 @@ const SEME = {
     cameras: [],
     appliances: [],
     loads: [],
-    lights: [],
-    climate: [],
+    lights: [
+      { entity: "light.salotto", name: "Salotto" },
+      { entity: "light.cucina", name: "Cucina" },
+      { entity: "light.camera", name: "Camera" },
+    ],
+    climate: [{ entity: "climate.soggiorno", name: "Soggiorno" }],
     ev: [],
-    covers: [],
+    covers: [
+      { entity: "cover.tapparella_salotto", name: "Salotto" },
+      { entity: "cover.tapparella_camera", name: "Camera" },
+    ],
     pool: {},
     irrigation: { zones: [] },
     energy: {},
@@ -249,15 +279,23 @@ async function scena(page, numero, titolo, testo, attesa = 2800) {
 
 const respira = (page, ms = 1400) => page.waitForTimeout(ms);
 
-/* In un filmato una scena che non c'e' si salta, non ferma la registrazione. */
+/* Le tappe che non si sono trovate. Il filmato non si ferma per una — si
+ * andrebbe a rifare due minuti di registrazione per un selettore sbagliato —
+ * ma alla fine si dicono tutte, forte: e' cosi' che la pagina vuota di prima
+ * era passata inosservata, lasciando mezzo minuto di niente nel montato. */
+const mancate = [];
+
+/* Le attese sono corte apposta: ogni tappa che non c'e' resta nel filmato come
+ * tempo fermo, e un secondo di troppo qui sono secondi di vuoto la'. */
 async function inVista(page, selettore, ms = 1100) {
   const bersaglio = page.locator(selettore).first();
   try {
-    await bersaglio.waitFor({ state: "attached", timeout: 4000 });
+    await bersaglio.waitFor({ state: "attached", timeout: 2500 });
     await bersaglio.evaluate((nodo) =>
       nodo.scrollIntoView({ block: "center", behavior: "smooth" }),
     );
   } catch (_errore) {
+    mancate.push(`in vista: ${selettore}`);
     return false;
   }
   await respira(page, ms);
@@ -270,9 +308,10 @@ async function inVista(page, selettore, ms = 1100) {
 async function tocca(page, selettore, attesa = 1400) {
   const bersaglio = page.locator(selettore).first();
   try {
-    await bersaglio.waitFor({ state: "visible", timeout: 6000 });
-    await bersaglio.click({ timeout: 5000 });
+    await bersaglio.waitFor({ state: "visible", timeout: 3000 });
+    await bersaglio.click({ timeout: 3000 });
   } catch (_errore) {
+    mancate.push(`tocco: ${selettore}`);
     return false;
   }
   await respira(page, attesa);
@@ -305,15 +344,24 @@ async function chiudiLaConfigurazione(page) {
   return false;
 }
 
+/* La linguetta si chiama come la sua pagina: `home` sta a `page-home`,
+ * `appliances-main` sta a `page-appliances-main`. Sembra ovvio e non lo e':
+ * la prima registrazione chiedeva «appliances», che non esiste — la scorciatoia
+ * toglieva `active` a tutte le pagine e non la dava a nessuna, e il filmato
+ * mostrava mezzo minuto di sfondo vuoto sotto le didascalie. Adesso, se la
+ * pagina non c'e', si sente subito. */
 async function vaiA(page, tab) {
   const linguetta = page.locator(`.tab[data-tab="${tab}"]`).first();
+  /* Il click vero, non `locator.click()`: la barra puo' stare sotto una
+   * finestra ancora in chiusura, e qui non si sta provando la barra. */
   if (await linguetta.count()) await linguetta.evaluate((nodo) => nodo.click());
-  else
-    await page.evaluate((nome) => {
+  const arrivato = await page.evaluate((nome) => {
+    const pagina = document.getElementById(`page-${nome}`);
+    if (!pagina) return false;
+    if (!pagina.classList.contains("active")) {
       document.querySelectorAll(".page").forEach((nodo) => nodo.classList.remove("active"));
-      document.getElementById(`page-${nome}`)?.classList.add("active");
-    }, tab);
-  await page.evaluate(() => {
+      pagina.classList.add("active");
+    }
     window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
     try {
       render();
@@ -321,9 +369,20 @@ async function vaiA(page, tab) {
       /* il giro di disegno storico non c'e' su tutte le pagine */
     }
     window.scrollTo({ top: 0 });
-  });
+    return true;
+  }, tab);
+  if (!arrivato)
+    throw new Error(`la pagina «page-${tab}» non esiste: il filmato girerebbe a vuoto`);
   await respira(page, 1400);
 }
+
+/* Le card della sezione: `appl-wide-card` e' il loro nome da sempre, e
+ * `data-idx` l'ordine in cui sono nate — prima la lavatrice, poi
+ * l'asciugatrice. La prima stesura ne cercava una che non esiste in nessun
+ * modulo, e il tocco sul dettaglio cadeva nel vuoto. */
+const CARD = "#page-appliances-main .appl-wide-card[data-appliance-id]";
+const CARD_LAVATRICE = `${CARD}[data-idx="0"]`;
+const CARD_ASCIUGATRICE = `${CARD}[data-idx="1"]`;
 
 /* ── il giro ────────────────────────────────────────────────────────────── */
 
@@ -396,7 +455,7 @@ test("il giro degli elettrodomestici presi da un'integrazione", async ({ page },
   await respira(page, 1600);
 
   /* 1 — da dove si parte. */
-  await vaiA(page, "appliances");
+  await vaiA(page, "appliances-main");
   await scena(
     page,
     1,
@@ -429,8 +488,11 @@ test("il giro degli elettrodomestici presi da un'integrazione", async ({ page },
     3400,
   );
 
-  /* 3 — hOn, e i suoi dispositivi. */
-  await tocca(page, '#dm-integ-menu .dm-integ-item[data-domain="hon"]', 1800);
+  /* 3 — hOn, e i suoi dispositivi. Prima Shelly, perche' si veda che la
+   * colonna di destra e' la sua: hOn e' gia' scelta all'apertura, e ricliccarla
+   * non muoveva niente. */
+  await tocca(page, '#dm-integ-menu .dm-integ-item[data-domain="shelly"]', 1500);
+  await tocca(page, '#dm-integ-menu .dm-integ-item[data-domain="hon"]', 1500);
   await scena(
     page,
     4,
@@ -477,27 +539,30 @@ test("il giro degli elettrodomestici presi da un'integrazione", async ({ page },
   await chiudiLaConfigurazione(page);
   await respira(page, 1600);
 
-  /* 7 — le card. */
-  await vaiA(page, "appliances");
+  /* 7 — le card. Prima l'occhio va sulla card, poi la didascalia dice cosa
+   * sta guardando: al contrario si legge un testo e si cerca a cosa si
+   * riferisce. */
+  await vaiA(page, "appliances-main");
+  await inVista(page, CARD_LAVATRICE, 900);
   await scena(
     page,
     8,
     "La card dice a che punto e' il ciclo",
     "Sotto il ritratto la fase in parole — Lavaggio — e accanto i gradi, i giri e il programma. Sono le parole che l'integrazione pubblica davvero, tradotte.",
-    4200,
+    4000,
   );
-  await inVista(page, ".dm-appl-card", 1600);
 
+  await inVista(page, CARD_ASCIUGATRICE, 900);
   await scena(
     page,
     9,
     "Senza watt, decide il programma",
     "L'asciugatrice non ha un sensore di potenza: e' IN FUNZIONE perche' la sua fase dice che sta asciugando. Pausa e avvio ritardato sono STANDBY, non SPENTO.",
-    4200,
+    4000,
   );
 
   /* 8 — il dettaglio. */
-  await tocca(page, ".dm-appl-card", 2400);
+  await tocca(page, CARD_LAVATRICE, 2400);
   await scena(
     page,
     10,
@@ -528,7 +593,12 @@ test("il giro degli elettrodomestici presi da un'integrazione", async ({ page },
     12,
     "Tutto questo senza scrivere un'entita'",
     "Dal menu delle integrazioni all'apparecchio finito. Chi le caselle le aveva compilate a mano non perde niente: quelle scritte non si toccano mai.",
-    4600,
+    4200,
   );
-  await respira(page, 1800);
+  await respira(page, 1200);
+
+  /* Alla fine si dice cosa non si e' trovato. Una tappa saltata non si vede
+   * nel filmato — si vede solo come tempo fermo — e quella e' la trappola in
+   * cui il primo montato era caduto. */
+  if (mancate.length) throw new Error(`tappe saltate nel filmato:\n  ${mancate.join("\n  ")}`);
 });
