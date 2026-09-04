@@ -433,7 +433,14 @@ function css() {
     .dm-integ-invito .dm-integ-add{margin:0!important;background:linear-gradient(135deg,#0ea5e9,#0369a1)!important}
     .dm-integ-invito small{font-size:11px;line-height:1.45;color:var(--text-dim,#64748b);font-weight:600}
     .dm-integ-pin{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.3px;vertical-align:middle;color:#0369a1;background:rgba(14,165,233,.14)}
-    .dm-integ-modal .dm-integ-dialog{grid-template-rows:auto minmax(0,1fr)!important}
+    /* La colonna del dialogo e' una sola e non puo' crescere.
+       Senza dirlo, la traccia implicita e' larga quanto il contenuto piu'
+       largo che non sa stringersi — qui l'intestazione, che tiene titolo e
+       chiusura su una riga sola: su un telefono da 390 la finestra usciva a
+       424 e il tasto CHIUDI restava mezzo fuori. */
+    .dm-integ-modal .dm-integ-dialog{grid-template-rows:auto minmax(0,1fr)!important;grid-template-columns:minmax(0,1fr)!important}
+    .dm-integ-modal .dm-integ-dialog>header{min-width:0!important}
+    .dm-integ-modal .dm-integ-dialog>header>strong{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
     .dm-integ-body{display:flex;flex-direction:column;gap:10px;min-height:0;padding:14px 18px 18px;overflow:hidden}
     .dm-integ-intro,.dm-integ-status{flex:0 0 auto}
     .dm-integ-intro{margin:0;font-size:12.5px;line-height:1.5;color:var(--text-dim,#64748b);font-weight:600}
@@ -470,6 +477,7 @@ function css() {
     .dm-integ-preview small{font-size:11px;font-weight:650;color:var(--text-dim,#64748b)}
     .dm-integ-confirm{margin:2px 0 0!important;padding:12px!important;background:linear-gradient(135deg,#0ea5e9,#0369a1)!important}
     @media(max-width:640px){
+      .dm-integ-modal .dm-integ-dialog>header{padding:14px!important}
       .dm-integ-body{padding:12px 14px 14px}
       .dm-integ-columns{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
       /* Una fila che scorre di lato: senza la larghezza minima azzerata, la
