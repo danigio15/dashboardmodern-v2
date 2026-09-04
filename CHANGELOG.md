@@ -67,6 +67,22 @@ lavorare.
   vetture a benzina, «Auto elettrica» nel titolo e nella scheda era una
   bugia per meta' del garage.
 
+- **Lo storico si sceglie il periodo (#302).**
+
+      «Nella scheda temperatura il grafico permette solo di scegliere
+       24h/7g. Inserire la possibilita' di inserire data inizio e data fine
+       oltre a piu' periodi predefiniti (1 ora, 5 ore, 10 ore, 1 mese,
+       2 mesi…).»
+
+  In ogni finestra dove si vede uno storico — il popup delle misure, che
+  aprono la temperatura, gli elettrodomestici, l'auto e il resto; il grafico
+  della stanza nella pagina Temperatura; la cronologia della connettivita' e
+  dell'inverter — ci sono sette periodi di serie, da un'ora a due mesi, e
+  «Da … a» per scrivere un inizio e una fine. L'asse del tempo cambia grana
+  col periodo: le ore su un giorno, i giorni su una settimana, le settimane
+  su un mese. Il futuro non ha storia, e un anno e' il massimo che si chiede
+  al Recorder.
+
 - **Le tapparelle hanno una soglia di chiusura (#298).** Nella scheda
   Finestre un numero: ferma a quella percentuale o sotto, la tapparella
   conta come chiusa nella pagina, nella scena e nella tessera in Home. Chi

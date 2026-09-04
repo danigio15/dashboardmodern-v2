@@ -708,6 +708,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-webrtc-section.js`, #294): il WebRTC come lo parla
   // Home Assistant, negoziato con i server ICE di casa, nelle tessere e nel
   // popup; e l'HLS per chi lo dichiara. Il MJPEG resta come rete sotto.
+  // 239 con il periodo dello storico (`core/periodo-storico.js`,
+  // `sections/storico-connettivita-section.js`, #302): i periodi di serie e
+  // l'intervallo da quando a quando in ogni finestra dove si vede uno storico.
   assert.ok(
     relative.length <= 240,
     `production graph unexpectedly grew to ${relative.length} modules`,

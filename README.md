@@ -438,6 +438,8 @@ Una **pompa di calore** che fa entrambe le cose si dichiara come tale e compare 
 
 Una card per stanza con temperatura, umidità e un **giudizio di comfort** — freddo, comfort, caldo — con la barra colorata che dice dove sta il valore. Le pillole in alto filtrano per stanza, e il grafico in fondo confronta **tutte le stanze** sulle 24 ore o sui 7 giorni, con la fascia di comfort disegnata dietro.
 
+**Lo storico si sceglie il periodo.** Il grafico della stanza — e ogni popup dello storico, aperto da una misura qualunque — ha sette periodi di serie, da **1 ora a 2 mesi**, e **«Da … a»** per scrivere un inizio e una fine. L'asse cambia grana col periodo.
+
 ---
 
 ## Finestre: tapparelle, tende e sensori

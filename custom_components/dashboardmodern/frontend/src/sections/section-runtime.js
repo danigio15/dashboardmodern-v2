@@ -21,6 +21,7 @@ import { installSubloadPopupSection } from "./subload-popup-section.js";
 import { installApplianceDetailPopupSection } from "./appliance-detail-popup-section.js";
 import { installEnergyAnalysisSection } from "./energy-analysis-section.js";
 import { installHistorySection } from "./history-section.js";
+import { installStoricoConnettivita } from "./storico-connettivita-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
 import { installTemperatureTrendSection } from "./temperature-trend-section.js";
@@ -798,6 +799,9 @@ export function installSectionRuntime() {
     installApplianceDetailPopupSection();
     installEnergyAnalysisSection();
     installHistorySection();
+    /* Il periodo anche nella cronologia della connettivita' (#302): l'altro
+     * popup dello storico, che il guscio apre sui sette giorni. */
+    installStoricoConnettivita();
     installTemperatureSection();
     installTemperatureLayoutSection();
     installTemperatureTrendSection();
@@ -1050,6 +1054,7 @@ export function installSectionRuntime() {
         "ev",
         "ev-showcase",
         "telecamera-webrtc",
+        "storico-connettivita",
         "auto-termica",
         "solar-thermal-design",
         "minipc-showcase",
