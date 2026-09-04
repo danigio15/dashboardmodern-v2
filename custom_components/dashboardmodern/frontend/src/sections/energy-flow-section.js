@@ -6,7 +6,13 @@ import {
 import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
 import { applySignedSources, wattsFromState } from "../core/signed-energy.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
-import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads, plantModel } from "../core/energy-plants.js";
+import {
+  IMPIANTO_SCELTO_KEY,
+  plantAt,
+  plantList,
+  plantLoads,
+  plantModel,
+} from "../core/energy-plants.js";
 import {
   allStates,
   clean,
@@ -183,6 +189,17 @@ function nodeVisible(node) {
  * actually stored are read: the normalized editor model would otherwise hand
  * back legacy defaults and rename the canonical Load. */
 function flowNodeOverrides() {
+  /* Con piu' di un impianto questo specchio non sa di chi parla.
+   *
+   * Le sue caselle sono posizionali — «boiler», «wb», «clima»… — una per
+   * cerchio, e i cerchi del secondo impianto occupano le stesse: salvando
+   * l'uno si riscrivevano le caselle dell'altro. Il risultato, dal campo:
+   * «nel primo prende il nome del secondo, ma il valore di watt e' quello
+   * originale» — il nome usciva da qui, i watt dal carico vero, ed erano di
+   * due case diverse. Con piu' impianti si guarda solo il carico, che il suo
+   * impianto ce l'ha scritto sopra. */
+  const impianti = plantList(section("energy", {}) || {});
+  if (impianti.length > 1) return null;
   const raw = readJson("cd_flow_nodes", null);
   return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
 }

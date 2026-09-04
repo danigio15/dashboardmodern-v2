@@ -14,11 +14,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-import {
-  modelloVivo,
-  radarScelto,
-  servizioScelto,
-} from "../src/sections/radar-meteo-section.js";
+import { modelloVivo, radarScelto, servizioScelto } from "../src/sections/radar-meteo-section.js";
 
 const sorgente = readFileSync(
   new URL("../src/sections/radar-meteo-section.js", import.meta.url),
@@ -32,7 +28,10 @@ test("da dove arrivano i quadratini: la tendina, un indirizzo proprio, o niente"
   assert.equal(servizioScelto({ servizio: "nessuno" }), "");
   assert.equal(servizioScelto({ servizio: "none" }), "");
   assert.equal(servizioScelto({ servizio: "rainviewer" }), "rainviewer");
-  assert.equal(servizioScelto({ servizio: "modello", modello: "https://e/{z}/{x}/{y}.png" }), "modello");
+  assert.equal(
+    servizioScelto({ servizio: "modello", modello: "https://e/{z}/{x}/{y}.png" }),
+    "modello",
+  );
   /* «Un indirizzo mio» senza indirizzo non e' una scelta. */
   assert.equal(servizioScelto({ servizio: "modello", modello: "https://fisso.png" }), "");
   assert.equal(servizioScelto({ servizio: "boh" }), "");
@@ -98,8 +97,14 @@ test("la tendina dice cosa si sceglie, e la nota sotto il radar da chi arriva", 
   assert.match(sorgente, /data-dm-radar-solo="fondo-modello"/);
   assert.match(sorgente, /\[data-dm-radar-solo\]\[hidden\]\{display:none!important\}/);
   /* La nota sotto il titolo nomina il servizio: chi guarda sa a chi la sua
-   * plancia sta chiedendo la pioggia. */
-  assert.match(sorgente, /SERVIZI_RADAR\[scelto\.servizio\]\?\.nome/);
+   * plancia sta chiedendo la pioggia. Con un indirizzo scritto a mano si legge
+   * l'ospite a cui bussa — prima li' non c'era scritto niente, e una plancia
+   * che chiede la pioggia al servizio sbagliato non aveva modo di dirlo. */
+  assert.match(sorgente, /const servizio = nomeDelServizio\(scelto\)/);
+  assert.match(sorgente, /export function nomeDelServizio/);
   /* E «Casa» resta la voce di serie della tendina del posto. */
-  assert.match(sorgente, /<option value=""\$\{scelta \? "" : " selected"\}>\$\{esc\(t\("Casa", "Home"\)\)\}/);
+  assert.match(
+    sorgente,
+    /<option value=""\$\{scelta \? "" : " selected"\}>\$\{esc\(t\("Casa", "Home"\)\)\}/,
+  );
 });

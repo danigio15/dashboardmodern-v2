@@ -130,11 +130,8 @@ function segnaSporco(panel) {
 async function persist(panel) {
   const previous = configuredLoads();
   const { plant, list } = impiantoAperto();
-  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(
-    model(),
-    previous,
-    plant ? (clean(plant.id) === PRIMO_IMPIANTO ? "" : clean(plant.id)) : null,
-  );
+  const chiave = plant ? (clean(plant.id) === PRIMO_IMPIANTO ? "" : clean(plant.id)) : null;
+  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(model(), previous, chiave);
   const store = dashboardStore();
   if (store?.replaceSection) await store.replaceSection("loads", loads);
   else writeJsonIfChanged("cd_loads", loads, { sync: false });
@@ -161,7 +158,13 @@ async function persist(panel) {
       : subloads;
   writeJsonIfChanged("cd_subload_groups", gruppiFinali, { sync: false });
   writeJsonIfChanged("cd_subloads_extra", sottoFinali, { sync: false });
-  writeJsonIfChanged("cd_flow_nodes", flowNodes);
+  /* Lo specchio dei cerchi ha caselle posizionali — «boiler», «wb», «clima» —
+   * e con due impianti i cerchi dell'uno e dell'altro chiedono le stesse:
+   * scrivendolo a ogni salvataggio, l'ultimo impianto salvato dava il proprio
+   * nome ai cerchi del primo. Non e' una casella per impianto, e non lo puo'
+   * diventare: appartiene al primo, e salvando un altro impianto si lascia
+   * dov'e'. */
+  if (!piuCase || chiave === "" || chiave === null) writeJsonIfChanged("cd_flow_nodes", flowNodes);
   state.dirty = false;
   state.model = null;
   state.bozze?.delete?.(chiaveImpianto());

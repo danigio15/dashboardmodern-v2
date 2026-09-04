@@ -17,10 +17,12 @@ import {
   ZOOM_MASSIMO,
   ZOOM_MINIMO,
   finestraDiTessere,
+  indirizzoRitirato,
   latitudine,
   longitudine,
   luogoDelRadar,
   metriPerPixel,
+  modelloDelFondo,
   puntoDellaTessera,
   tesseraDelPunto,
   urlDellaTessera,
@@ -121,8 +123,14 @@ test("l'indirizzo si compone dal modello, e senza segnaposto non è un modello",
   );
   /* Le due convenzioni degli altri: le righe contate dal basso e i
    * sottodomini. */
-  assert.equal(urlDellaTessera("https://e/{z}/{x}/{-y}.png", { x: 3, y: 5 }, 4), "https://e/4/3/10.png");
-  assert.match(urlDellaTessera("https://{s}.e/{z}/{x}/{y}.png", tessera, 9), /^https:\/\/[abc]\.e\//);
+  assert.equal(
+    urlDellaTessera("https://e/{z}/{x}/{-y}.png", { x: 3, y: 5 }, 4),
+    "https://e/4/3/10.png",
+  );
+  assert.match(
+    urlDellaTessera("https://{s}.e/{z}/{x}/{y}.png", tessera, 9),
+    /^https:\/\/[abc]\.e\//,
+  );
   /* Un indirizzo fisso chiederebbe sempre lo stesso quadratino: meglio dire
    * che non è un modello. */
   assert.equal(urlDellaTessera("https://esempio/fisso.png", tessera, 9), "");
@@ -139,7 +147,10 @@ const STATI = {
 
 test("le coordinate scritte vincono, poi la zona, poi casa", () => {
   assert.deepEqual(luogoDelRadar({ lat: "41.9", lon: "12.5" }, STATI), {
-    lat: 41.9, lon: 12.5, da: "scritte", nome: "",
+    lat: 41.9,
+    lon: 12.5,
+    da: "scritte",
+    nome: "",
   });
   assert.equal(luogoDelRadar({ zona: "zone.nonna" }, STATI).nome, "Da nonna");
   assert.equal(luogoDelRadar({}, STATI).da, "casa");
@@ -169,9 +180,8 @@ test("nella tendina ci sono le zone, e Casa non compare due volte", () => {
 /* ── i servizi ────────────────────────────────────────────────────────── */
 
 test("dall'elenco di RainViewer si prende l'ultimo fotogramma misurato, non una previsione", async () => {
-  const { fotogrammaRainViewer, modelloDelServizio, SERVIZI_RADAR } = await import(
-    "../src/core/radar-mappa.js"
-  );
+  const { fotogrammaRainViewer, modelloDelServizio, SERVIZI_RADAR } =
+    await import("../src/core/radar-mappa.js");
   const elenco = {
     host: "https://tilecache.rainviewer.com/",
     radar: {
@@ -209,9 +219,8 @@ test("dall'elenco di RainViewer si prende l'ultimo fotogramma misurato, non una 
 });
 
 test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async () => {
-  const { modelloDelFondo, FONDI_MAPPA, FONDI_RITIRATI, FONDO_DI_SERIE } = await import(
-    "../src/core/radar-mappa.js"
-  );
+  const { modelloDelFondo, FONDI_MAPPA, FONDI_RITIRATI, FONDO_DI_SERIE } =
+    await import("../src/core/radar-mappa.js");
   assert.equal(modelloDelFondo({ fondo: "osm" }), FONDI_MAPPA.osm.modello);
   /* CARTO e' ritirato: i suoi quadratini gratuiti tornano stampati «API Key
    * Required». Chi l'aveva scelto passa a OpenStreetMap da solo. */
@@ -225,7 +234,10 @@ test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async 
   );
   /* Chi aveva scritto l'indirizzo dentro `fondo` prima della tendina lo vede
    * ancora; un indirizzo senza segnaposto non e' un modello. */
-  assert.equal(modelloDelFondo({ fondo: "https://mio/{z}/{x}/{y}.png" }), "https://mio/{z}/{x}/{y}.png");
+  assert.equal(
+    modelloDelFondo({ fondo: "https://mio/{z}/{x}/{y}.png" }),
+    "https://mio/{z}/{x}/{y}.png",
+  );
   assert.equal(modelloDelFondo({ fondo: "modello", fondoModello: "https://fisso.png" }), "");
   /* Senza scelta la mappa sotto e' OpenStreetMap; «nessuna» e' una scelta. */
   assert.equal(modelloDelFondo({ fondo: "" }), FONDI_MAPPA.osm.modello);
@@ -237,9 +249,73 @@ test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async 
 test("casa arrivata da get_config porta il suo nome", () => {
   /* `get_config` non e' una zona: non ha `friendly_name` ma `location_name`,
    * ed e' la stessa parola scritta in cima alla plancia. */
-  const luogo = luogoDelRadar({}, {}, { latitude: 45.07, longitude: 7.69, location_name: "Casa mia" });
+  const luogo = luogoDelRadar(
+    {},
+    {},
+    { latitude: 45.07, longitude: 7.69, location_name: "Casa mia" },
+  );
   assert.equal(luogo.da, "casa");
   assert.equal(luogo.nome, "Casa mia");
   /* La zona, quando c'e', vince col suo nome. */
-  assert.equal(luogoDelRadar({}, STATI, { latitude: 1, longitude: 1, location_name: "X" }).nome, "Casa");
+  assert.equal(
+    luogoDelRadar({}, STATI, { latitude: 1, longitude: 1, location_name: "X" }).nome,
+    "Casa",
+  );
+});
+
+/* «Da un errore sullo zoom e non si vede il meteo» (#323), e la mappa di chi
+ * l'ha segnalato mostra le scritte «Zoom Level Not Supported» stampate sopra
+ * le strade.
+ *
+ * Quelle scritte le manda CARTO, che i suoi quadratini gratuiti non li serve
+ * piu'. Dalla tendina CARTO e' sparito e chi l'aveva scelto passa a
+ * OpenStreetMap — ma la tendina e' arrivata dopo l'indirizzo scritto a mano,
+ * e chi aveva incollato quello di CARTO se l'e' tenuto: dentro la
+ * configurazione c'e' un indirizzo, non la chiave, e il cambio non lo
+ * riguardava. Adesso si guarda l'ospite: se e' un servizio ritirato,
+ * l'indirizzo non vale piu', per la mappa sotto come per la pioggia sopra.
+ */
+test("un indirizzo di un servizio ritirato non si usa piu'", () => {
+  assert.equal(
+    indirizzoRitirato("https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"),
+    true,
+  );
+  assert.equal(
+    indirizzoRitirato("https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"),
+    true,
+  );
+  assert.equal(indirizzoRitirato("https://carto.com/{z}/{x}/{y}.png"), true);
+  /* Gli altri restano quelli di chi li ha scritti. */
+  assert.equal(indirizzoRitirato("https://tile.openstreetmap.org/{z}/{x}/{y}.png"), false);
+  assert.equal(indirizzoRitirato("https://tiles.casamia.lan/{z}/{x}/{y}.png"), false);
+  assert.equal(indirizzoRitirato(""), false);
+  /* E un ospite che finisce per caso con quelle lettere non e' quel servizio. */
+  assert.equal(indirizzoRitirato("https://noncartocdn.com/{z}/{x}/{y}.png"), false);
+});
+
+test("la mappa sotto torna a OpenStreetMap se l'indirizzo era di CARTO", () => {
+  const osm = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+  /* La chiave della tendina, che era gia' coperta. */
+  assert.equal(modelloDelFondo({ fondo: "carto" }), osm);
+  /* E l'indirizzo scritto a mano, che non lo era. */
+  assert.equal(
+    modelloDelFondo({ fondo: "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" }),
+    osm,
+  );
+  assert.equal(
+    modelloDelFondo({
+      fondo: "modello",
+      fondoModello: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    }),
+    osm,
+  );
+  /* Un indirizzo che funziona resta quello scelto: non si tocca la casa di chi
+   * non ha nessun problema. */
+  assert.equal(
+    modelloDelFondo({
+      fondo: "modello",
+      fondoModello: "https://tiles.casamia.lan/{z}/{x}/{y}.png",
+    }),
+    "https://tiles.casamia.lan/{z}/{x}/{y}.png",
+  );
 });

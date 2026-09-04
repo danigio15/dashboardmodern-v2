@@ -205,7 +205,7 @@ function ensureSmokeEditorRows() {
   }
   const righe = entities
     .map((id) => {
-      const nome = clean(nomi[id]) || clean(states[id]?.attributes?.friendly_name) || id;
+      const nome = nomeDelRilevatore(id, nomi, states);
       return (
         `<div class="ed-row" data-dm-smoke-row="${esc(id)}">` +
         `<div class="ed-row-main"><div class="ed-row-new">${esc(nome)}</div>` +
@@ -261,12 +261,27 @@ function smokeRowMarkup(id, nome) {
     </div>`;
 }
 
+/* Come si chiama un rilevatore.
+ *
+ * Il nome scelto se c'e', altrimenti quello che dice Home Assistant. E se non
+ * lo dice — capita: un'entita' senza nome suo e senza dispositivo — si legge
+ * l'ultima parte dell'identificativo, come fa la stessa Home Assistant:
+ * «binary_sensor.salotto_fumo» diventa «Salotto fumo». Prima al suo posto
+ * finiva l'identificativo intero, stampato a lettere maiuscole in mezzo alla
+ * card: «BINARY_SENSOR.S…». */
+export function nomeDelRilevatore(id, nomi = {}, states = {}) {
+  const scelto = clean(nomi[id]);
+  if (scelto) return scelto;
+  const daCasa = clean(states[id]?.attributes?.friendly_name);
+  if (daCasa) return daCasa;
+  const coda = clean(id).split(".").slice(1).join(".").replaceAll("_", " ").trim();
+  if (!coda) return clean(id);
+  return coda.charAt(0).toUpperCase() + coda.slice(1);
+}
+
 function blockMarkup(entities, nomi, states) {
   const righe = entities
-    .map((id) => {
-      const nome = clean(nomi[id]) || clean(states[id]?.attributes?.friendly_name) || id;
-      return smokeRowMarkup(id, nome);
-    })
+    .map((id) => smokeRowMarkup(id, nomeDelRilevatore(id, nomi, states)))
     .join("");
   return `<div class="dm-sec-smoke-head">
       <span class="dm-sec-smoke-ic" aria-hidden="true">${SMOKE_ICON}</span>
@@ -306,10 +321,20 @@ export function renderSmokeBlock() {
   const nomi = readJson("cd_avvisi_names_extra", {}) || {};
   const states = allStates();
   const block = ensureBlock(shell);
-  const signature = [activeLocale(), ...entities.map((id) => `${id}~${clean(nomi[id])}`)].join("|");
+  /* La firma e' il blocco disegnato.
+   *
+   * Era l'elenco delle entita' col nome scelto — e il nome che si vede non e'
+   * quello: quando manca lo dice Home Assistant, e all'avvio Home Assistant
+   * non ha ancora detto niente. Il blocco nasceva con l'identificativo al
+   * posto del nome, gli stati arrivavano un istante dopo, la firma non
+   * cambiava di una virgola e quell'identificativo restava li' per sempre.
+   * Confrontando il disegno il caso non esiste piu': se il nome cambia,
+   * cambia il disegno. */
+  const disegno = blockMarkup(entities, nomi, states);
+  const signature = `${activeLocale()}|${disegno}`;
   if (state.signature !== signature || !block.querySelector(".dm-smoke-grid")) {
     state.signature = signature;
-    block.innerHTML = blockMarkup(entities, nomi, states);
+    block.innerHTML = disegno;
   }
   /* Gli stati si scrivono sulle righe che ci sono gia', come per le porte:
    * l'allarme e' rosso nativo, senza rifare il blocco a ogni cambio. */
