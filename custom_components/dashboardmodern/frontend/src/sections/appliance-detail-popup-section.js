@@ -133,12 +133,24 @@ function nomeDellaLettura(entity, nome, unit, tokenElettrodomestico, usate) {
  * dell'elettrodomestico tolto — la finestra dice gia' in cima di chi parla. */
 function nomeInParole(nome, tokenElettrodomestico) {
   const via = new Set(tokenElettrodomestico);
-  const parole = clean(nome)
+  const tutte = clean(nome)
     .replaceAll(/[_\-.]+/g, " ")
     .split(/\s+/)
-    .filter((pezzo) => pezzo && !via.has(pezzo.toLowerCase()));
-  const pulito = parole.join(" ").trim();
-  return pulito || clean(nome);
+    .filter(Boolean);
+  const pulito = tutte
+    .filter((pezzo) => !via.has(pezzo.toLowerCase()))
+    .join(" ")
+    .trim();
+  if (pulito) return pulito;
+  /* Non e' rimasto niente perche' l'entita' si chiama come l'apparecchio: e'
+   * l'interruttore principale, quello che hOn e Home Connect battezzano col
+   * nome della macchina. Home Assistant ci mette davanti anche il nome del
+   * dispositivo, e la finestra scriveva «Lavatrice Lavatrice». Si dice una
+   * volta sola. */
+  const senzaDoppioni = tutte.filter(
+    (pezzo, i) => i === 0 || pezzo.toLowerCase() !== tutte[i - 1].toLowerCase(),
+  );
+  return senzaDoppioni.join(" ") || clean(nome);
 }
 
 /* Le parole del nome dell'elettrodomestico, per toglierle dalle etichette. */
@@ -442,7 +454,10 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
   testa.className = "dm-apde-integrazione";
   testa.dataset.dmApdeSource = catalogo ? "catalogo" : "memoria";
   const nome = clean(appliance.integration_name) || clean(appliance.integration);
-  const chi = [appliance.device_manufacturer, appliance.device_model].map(clean).filter(Boolean).join(" ");
+  const chi = [appliance.device_manufacturer, appliance.device_model]
+    .map(clean)
+    .filter(Boolean)
+    .join(" ");
   testa.innerHTML = `<strong>🔗 ${esc(t("Dall'integrazione", "From the integration"))}${nome ? ` ${esc(nome)}` : ""}</strong>${chi ? `<span>${esc(chi)}</span>` : ""}`;
   lista.append(testa);
 
