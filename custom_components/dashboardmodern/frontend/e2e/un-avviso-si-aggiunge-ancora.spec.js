@@ -150,11 +150,11 @@ test("la tessera di un avviso usa il nome scelto, non quello di fabbrica", async
     /* La prova legge la didascalia della tessera piena: sul telefono la
      * modalita' compatta (Auto) la nasconderebbe, e qui non e' lei l'imputata. */
     localStorage.setItem("cd_widgets", JSON.stringify({ compatto: "mai" }));
-    /* Il gruppo vivo si costruisce all'avvio: qui si semina dopo, quindi si
-     * aggiorna anche lui — e' quello che fa il salvataggio vero. */
-    window.eval(
-      "if (typeof GRUPPI_MONITORAGGIO!=='undefined' && !GRUPPI_MONITORAGGIO.batt.includes('sensor.sensore_porta_finestra_camera_batteria')) GRUPPI_MONITORAGGIO.batt.push('sensor.sensore_porta_finestra_camera_batteria')",
-    );
+    /* La lista viva del guscio si costruisce all'avvio e qui NON si tocca: la
+     * pila sta solo in configurazione, come dopo un salvataggio dalla finestra
+     * di modifica degli avvisi o una sincronizzazione da un altro apparecchio.
+     * E' il caso «la batteria e' al 1% e non compare il widget»: la tessera
+     * deve leggere la configurazione, non solo la memoria. */
     window.applyStates?.();
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
   });

@@ -134,6 +134,17 @@ benzina e i tasti del robot lavapavimenti (#306).
   campo, l'anteprima stampava la scritta a caratteri cubitali al posto del
   disegno; ora il nome va al motore delle icone, come nelle righe della Home.
 
+- **Batterie: la tessera in Home legge la configurazione, non solo la
+  memoria del guscio.** «La batteria attualmente e' al 1% e non compare il
+  widget batteria scarica.» L'elenco delle pile sorvegliate lo teneva la
+  lista viva del guscio, che si costruisce una volta sola all'avvio: una pila
+  aggiunta dalla finestra di modifica degli avvisi (che scrive solo la
+  configurazione), o arrivata con la sincronizzazione da un altro
+  apparecchio, o una configurazione arrivata nel pannello di Home Assistant
+  dopo la partenza del guscio, per la tessera non esisteva finche' non si
+  ricaricava la pagina. Ora la tessera legge `cd_gruppi_extra` meno
+  `cd_gruppi_removed`, e la lista viva si somma solo per quello che ha in piu'.
+
 - **Le grate sono di un grigio chiaro e sfumato.** «Essendo molto scure,
   quando sono chiuse e la finestra e' aperta visivamente non e' il massimo.»
   Il ferro e' grigio, e dove il browser sa mascherare la sbarra va dal chiaro
