@@ -703,8 +703,10 @@ function installStyles() {
     .dm-appliance-binding-text small{font-size:11px!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important;font-weight:600!important}
     .dm-appliance-binding-actions{display:flex!important;flex-direction:column!important;gap:6px!important;min-width:max-content!important}
     .dm-appliance-binding-actions .ed-btn-add{box-sizing:border-box!important;width:100%!important;margin:0!important;padding:10px 16px!important;font-size:11px!important;letter-spacing:.8px!important;white-space:nowrap!important;overflow:visible!important}
-    .dm-appliance-binding-link{background:linear-gradient(135deg,#0ea5e9,#0369a1)!important}
-    .dm-appliance-binding-unlink{background:#94a3b8!important}
+    /* Fondo scuro, scritta chiara: la classe di base porta con se' la scritta
+       blu pensata per il celeste, e su questi due fondi non si leggeva. */
+    .dm-appliance-binding-link{background:linear-gradient(135deg,#0369a1,#075985)!important;color:#fff!important}
+    .dm-appliance-binding-unlink{background:#64748b!important;color:#fff!important}
     .dm-appliance-binding[data-bound="false"] .dm-appliance-binding-unlink{display:none!important}
     @media(max-width:520px){.dm-appliance-binding{grid-template-columns:minmax(0,1fr)!important}.dm-appliance-binding-actions{flex-direction:row!important}.dm-appliance-binding-actions .ed-btn-add{flex:1 1 auto!important}}
     .dm-appliance-flow-suggestion{display:block!important;margin-top:3px!important;color:#16a34a!important;font-weight:750!important}

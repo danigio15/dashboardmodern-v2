@@ -292,6 +292,25 @@ const POLISH_STYLE_ID = "dm-editor-polish-style";
 
 function polishCss() {
   return `
+    /* I tasti dell'editor si devono leggere.
+       «.ed-btn-add» nasce celeste con la scritta blu. Chi ne vuole uno che
+       spicchi gli riscrive il fondo — un gradiente scuro, un grigio — e la
+       scritta resta quella di prima: blu su blu, o bianco su verde chiaro.
+       Sono tasti larghi quanto la finestra e non si capisce cosa fanno.
+       Qui i fondi che il runtime storico si scrive nell'attributo «style»
+       (gli unici riconoscibili da un foglio di stile) si portano dietro la
+       loro scritta bianca, e i due colori troppo chiari scendono di un tono
+       fino a stare sopra il 4,5:1 del WCAG. */
+    /* Il celeste di serie con il blu di serie sta a 4,47:1, sotto la soglia per
+       un soffio. Il blu scende di mezzo tono e ci passa sopra senza che il
+       tasto cambi aspetto. Solo di giorno: la notte il tasto e' gia' scuro con
+       la scritta chiara, e questa regola lo rovinerebbe. */
+    html:not([data-theme="dark"]) #ed-body .ed-btn-add{color:#075985}
+    #ed-body .ed-btn-add[style*="linear-gradient"],
+    #ed-body .ed-btn-add[style*="#94a3b8"]{color:#fff!important}
+    #ed-body .ed-btn-add[style*="#0ea5e9"]{background:linear-gradient(135deg,#0369a1,#075985)!important}
+    #ed-body .ed-btn-add[style*="#10b981"]{background:linear-gradient(135deg,#047857,#065f46)!important}
+    #ed-body .ed-btn-add[style*="#94a3b8"]{background:linear-gradient(135deg,#64748b,#475569)!important}
     #ed-body[data-dm-lights-editor="canonical-polished"]{display:grid!important;gap:16px!important}
     #ed-body[data-dm-lights-editor="canonical-polished"]>.ed-intro{margin:0!important;padding:14px 16px!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 35%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 5%,var(--card-background-color,#fff))!important}
     .dm-light-group{border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:var(--card-background-color,#fff)!important;padding:12px!important;overflow:hidden!important}

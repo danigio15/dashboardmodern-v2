@@ -488,7 +488,10 @@ function vesteLaScheda() {
 function css() {
   return `
     .dm-integ-invito{display:grid;gap:6px;margin:0 0 12px;padding:12px;border-radius:14px;border:1px dashed color-mix(in srgb,#0ea5e9 45%,transparent);background:color-mix(in srgb,#0ea5e9 7%,transparent)}
-    .dm-integ-invito .dm-integ-add{margin:0!important;background:linear-gradient(135deg,#0ea5e9,#0369a1)!important}
+    /* Il fondo scuro va insieme alla scritta chiara: la classe di base nasce
+       celeste con la scritta blu, e qui si cambiava solo il fondo — restava
+       blu su blu, e il tasto si vedeva ma la scritta no. */
+    .dm-integ-invito .dm-integ-add{margin:0!important;background:linear-gradient(135deg,#0369a1,#075985)!important;color:#fff!important}
     .dm-integ-invito small{font-size:11px;line-height:1.45;color:var(--text-dim,#64748b);font-weight:600}
     .dm-integ-pin{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.3px;vertical-align:middle;color:#0369a1;background:rgba(14,165,233,.14)}
     /* La colonna del dialogo e' una sola e non puo' crescere.

@@ -526,35 +526,37 @@ function aggiornaTenendoIlDisegno(vecchia, nuova) {
   return true;
 }
 
-function cardSignature(model, view) {
-  return [
-    model.id,
-    model.index,
-    view,
-    model.artworkType,
-    model.name,
-    model.mode,
-    model.label,
-    Math.round((finiteOrNull(model.watts) ?? -1) * 10),
-    model.remaining?.label,
-    Math.round((model.remaining?.fraction ?? -1) * 100),
-    model.temperature?.label,
-    model.power?.label,
-    Math.round((model.power?.fraction || 0) * 100),
-    model.cycle?.startLabel,
-    model.cycle?.durationLabel,
-    model.cycle?.energyLabel,
-    model.cycle?.costLabel,
-    model.alarm ? 1 : 0,
-    model.action?.pressed ? 1 : 0,
-    /* Il tasto acceso/spento fa parte della forma della scheda: senza queste
-     * due voci, spuntare «Senza tasto Accendi/Spegni» non cambiava la firma e
-     * la scheda restava quella di prima, col tasto ancora vivo. */
-    model.action?.visible ? 1 : 0,
-    clean(model.action?.entity),
-    clean(model.visual?.value),
-    model.room?.name,
-  ].join("|");
+/* La firma di una scheda e' la scheda.
+ *
+ * Prima era un elenco scritto a mano di tutto quello che la card mostra —
+ * nome, stato, watt, ultimo ciclo, il tasto — tenuto accanto alla funzione che
+ * la disegna. Due liste che devono dire la stessa cosa, e che hanno gia'
+ * divergito due volte: prima il tasto Accendi/Spegni, poi i gradi, i giri e il
+ * programma presi dall'integrazione. Il difetto non si vede subito e non si
+ * ripara da solo: a lavatrice spenta nessuna delle voci elencate cambia
+ * quando l'integrazione pubblica il suo programma, cosi' la scheda restava
+ * quella disegnata all'avvio — senza i numeri — mentre la stessa card nel
+ * popup, che si rifa' ogni volta da capo, li mostrava. «Se clicco vedo tutte
+ * le info, da fuori no.»
+ *
+ * Adesso si confronta il disegno stesso, ridotto a un'impronta corta: se il
+ * disegno non cambia la pagina non si tocca, e se cambia — per qualunque
+ * motivo, anche uno che oggi non esiste — la scheda si aggiorna. Non c'e' piu'
+ * un elenco da ricordarsi di aggiornare. */
+function impronta(testo) {
+  let somma = 0x811c9dc5;
+  for (let i = 0; i < testo.length; i += 1) {
+    somma ^= testo.charCodeAt(i);
+    somma = Math.imul(somma, 0x01000193);
+  }
+  return `${(somma >>> 0).toString(36)}.${testo.length.toString(36)}`;
+}
+
+/* La veste conta quanto il contenuto: griglia ed elenco disegnano lo stesso
+ * markup con un'impaginazione diversa, e passare dall'una all'altra deve
+ * rifare le schede. */
+function firmaDellaScheda(markup, view) {
+  return `${view}|${impronta(markup)}`;
 }
 
 /* ── skeleton ────────────────────────────────────────────────────────── */
@@ -766,7 +768,7 @@ function renderToolbar(shell) {
   if (sort && sort.value !== state.ui.sort) sort.value = state.ui.sort;
 }
 
-function renderGrid(shell, visible, labels) {
+function renderGrid(shell, visible, labels, schede) {
   const grid = shell.querySelector("[data-dm-grid]");
   if (!grid) return;
   if (!visible.length) {
@@ -793,11 +795,12 @@ function renderGrid(shell, visible, labels) {
   let cursor = null;
   for (const model of visible) {
     const id = String(model.id);
-    const signature = cardSignature(model, state.ui.view);
+    const scheda = schede.get(id);
+    const signature = scheda.firma;
     let node = existing.get(id);
     if (node && node.dataset.dmSig !== signature) {
       const shellNode = doc.createElement("div");
-      shellNode.innerHTML = buildCardMarkup(model, labels);
+      shellNode.innerHTML = scheda.markup;
       const fresh = shellNode.firstElementChild;
       fresh.dataset.dmSig = signature;
       if (aggiornaTenendoIlDisegno(node, fresh)) {
@@ -808,7 +811,7 @@ function renderGrid(shell, visible, labels) {
       }
     } else if (!node) {
       const shellNode = doc.createElement("div");
-      shellNode.innerHTML = buildCardMarkup(model, labels);
+      shellNode.innerHTML = scheda.markup;
       node = shellNode.firstElementChild;
       node.dataset.dmSig = signature;
       if (cursor) cursor.after(node);
@@ -913,6 +916,14 @@ export function renderShowcase(force) {
 
   const counts = showcaseCounts(keyed);
   const visible = filterShowcaseModels(keyed, state.ui);
+  /* Le schede si disegnano una volta sola: lo stesso markup fa da firma qui e
+   * da contenuto nella griglia. */
+  const schede = new Map(
+    visible.map((model) => {
+      const markup = buildCardMarkup(model, labels);
+      return [String(model.id), { markup, firma: firmaDellaScheda(markup, state.ui.view) }];
+    }),
+  );
   const signature = [
     built,
     Math.floor(now / 60000),
@@ -929,14 +940,14 @@ export function renderShowcase(force) {
     state.spark.length,
     Math.round(state.spark[state.spark.length - 1] || 0),
     rooms.map((room) => `${room.id}:${counts.rooms.get(room.id) || 0}`).join(","),
-    visible.map((model) => cardSignature(model, state.ui.view)).join("§"),
+    [...schede.values()].map((scheda) => scheda.firma).join("§"),
   ].join("::");
   if (!force && state.signature === signature) return true;
   state.signature = signature;
 
   renderSidebar(shell, keyed, counts, rooms, labels);
   renderToolbar(shell);
-  renderGrid(shell, visible, labels);
+  renderGrid(shell, visible, labels, schede);
   // Replacing the legacy renderApplianceSection detaches the wrapper that
   // appliances-section installed on it, so re-arm its normalization pass
   // (daily KPI, power-toggle text, data-appliance-state markers) directly.
