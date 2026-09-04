@@ -25,6 +25,7 @@
  */
 import {
   bindApplianceToDevice,
+  cercaFuoriDalDispositivo,
   bindingLabel,
   integrationsWithDevices,
 } from "../core/appliance-device-binding.js";
@@ -183,16 +184,43 @@ function anteprimaEntita(entities) {
     .map((entity) => clean(entity.name) || entity.entity_id.split(".")[1])
     .map((name) => `<span class="dm-integ-chip">${esc(name)}</span>`)
     .join("");
-  const altre = accese.length > 14 ? `<span class="dm-integ-chip dm-integ-chip-more">+${accese.length - 14}</span>` : "";
+  const altre =
+    accese.length > 14
+      ? `<span class="dm-integ-chip dm-integ-chip-more">+${accese.length - 14}</span>`
+      : "";
   const nota = spente
     ? `<small>${spente === 1 ? t("1 entità è disabilitata in Home Assistant: abilitala da lì per vederla anche qui.", "1 entity is disabled in Home Assistant: enable it there to see it here too.") : t(`${spente} entità sono disabilitate in Home Assistant: abilitale da lì per vederle anche qui.`, `${spente} entities are disabled in Home Assistant: enable them there to see them here too.`)}</small>`
     : "";
   return `<div class="dm-integ-chips">${nomi}${altre}</div>${nota}`;
 }
 
+/* Il riquadro dei sensori che stanno fuori dal dispositivo.
+ *
+ * Una lavatrice puo' essere due dispositivi: l'integrazione che porta il
+ * programma e una presa smart che porta i watt. Qui si dice cosa si e'
+ * trovato e lo si mostra per nome, perche' un'entita' presa per somiglianza
+ * di nome e' un'ipotesi, e un'ipotesi si guarda prima di accettarla. */
+function anteprimaFuori(fuori) {
+  const voci = Object.values(fuori);
+  if (!voci.length) return "";
+  const elenco = voci
+    .map((record) => `<code>${esc(record.entity_id)}</code>`)
+    .join('<span aria-hidden="true"> · </span>');
+  return `<label class="dm-integ-fuori">
+    <input type="checkbox" data-outside checked>
+    <span>
+      <b>${voci.length === 1 ? t("Prendi anche 1 sensore che sta fuori dal dispositivo", "Also take 1 sensor that lives outside the device") : t(`Prendi anche ${voci.length} sensori che stanno fuori dal dispositivo`, `Also take ${voci.length} sensors that live outside the device`)}</b>
+      <small>${t("Portano il nome di questo apparecchio ma appartengono a un'altra voce del registro: quasi sempre la presa smart sotto la macchina, o un sensore che ti sei costruito.", "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.")}</small>
+      <small class="dm-integ-fuori-ids">${elenco}</small>
+    </span>
+  </label>`;
+}
+
 /**
  * La finestra: integrazioni a sinistra, dispositivi a destra, anteprima e
- * conferma in fondo. `onScelto` riceve `{ integration, device, entities }`.
+ * conferma in fondo. `onScelto` riceve `{ integration, device, entities,
+ * outside }`, dove `outside` sono i sensori che stanno fuori dal dispositivo
+ * e che chi guarda ha lasciato spuntati.
  */
 export function apriMenuIntegrazioni({ onScelto, titolo = "" } = {}) {
   doc?.getElementById("dm-integ-menu")?.remove();
@@ -252,7 +280,9 @@ export function apriMenuIntegrazioni({ onScelto, titolo = "" } = {}) {
   const disegnaIntegrazioni = () => {
     navigazione.innerHTML = menu
       .map(
-        (integration) => `<button type="button" class="dm-integ-item" data-domain="${esc(integration.domain)}" aria-pressed="${String(integration.domain === scelta?.domain)}">
+        (
+          integration,
+        ) => `<button type="button" class="dm-integ-item" data-domain="${esc(integration.domain)}" aria-pressed="${String(integration.domain === scelta?.domain)}">
           <span class="dm-integ-item-name">${esc(integration.name)}</span>
           ${badge(integration)}
           <span class="dm-integ-item-count">${integration.devices.length}</span>
@@ -274,22 +304,42 @@ export function apriMenuIntegrazioni({ onScelto, titolo = "" } = {}) {
       return;
     }
     if (dispositivo !== device) return;
-    const tipo = applianceCatalogLabel(
-      bindApplianceToDevice({}, { device, entities, integration: scelta, states: allStates() })
-        .appliance.visual_key,
-      activeLocale(),
-    );
+    const dentro = entities.map((entity) => entity.entity_id);
+    const collegato = bindApplianceToDevice(
+      {},
+      { device, entities, integration: scelta, states: allStates() },
+    ).appliance;
+    /* Solo le caselle che il dispositivo ha lasciato vuote. */
+    const fuori = cercaFuoriDalDispositivo({
+      deviceName: device.name,
+      states: allStates(),
+      escludi: dentro,
+      ruoli: [
+        "power_entity",
+        "daily_energy_entity",
+        "monthly_energy_entity",
+        "total_energy_entity",
+      ].filter((ruolo) => !clean(collegato[ruolo])),
+    });
+    const tipo = applianceCatalogLabel(collegato.visual_key, activeLocale());
     anteprima.innerHTML = `<div class="dm-integ-preview-head">
         <strong>${esc(device.name)}</strong>
         <span>${esc([device.manufacturer, device.model].map(clean).filter(Boolean).join(" "))}</span>
         <span class="dm-integ-preview-type">${esc(t("Riconosciuto come", "Recognised as"))}: <b>${esc(tipo)}</b></span>
       </div>
       ${anteprimaEntita(entities)}
+      ${anteprimaFuori(fuori)}
       <button type="button" class="ed-btn-add dm-integ-confirm" data-confirm>🔗 ${t("Usa questo dispositivo", "Use this device")}</button>`;
     anteprima.querySelector("[data-confirm]")?.addEventListener("click", () => {
       close();
       try {
-        onScelto?.({ integration: scelta, device, entities });
+        const prendiFuori = anteprima.querySelector("[data-outside]")?.checked !== false;
+        onScelto?.({
+          integration: scelta,
+          device,
+          entities,
+          outside: prendiFuori ? fuori : null,
+        });
       } catch (error) {
         root.console?.warn?.("[DashboardModern] integrazione", error);
       }
@@ -346,7 +396,7 @@ function appliances() {
 }
 
 /* Un apparecchio nuovo, nato dal dispositivo scelto. */
-async function creaDaDispositivo({ integration, device, entities }) {
+async function creaDaDispositivo({ integration, device, entities, outside }) {
   const rooms = section("rooms", readJson("cd_stanze", []));
   const { appliance, filled } = bindApplianceToDevice(
     {
@@ -357,7 +407,7 @@ async function creaDaDispositivo({ integration, device, entities }) {
       threshold_run: 5,
       threshold_standby: 1,
     },
-    { integration, device, entities, states: allStates(), rooms },
+    { integration, device, entities, outside, states: allStates(), rooms },
   );
   const store = dashboardStore();
   let indice = -1;
@@ -381,8 +431,14 @@ async function creaDaDispositivo({ integration, device, entities }) {
   const quante = filled.length;
   root.edToast?.(
     quante
-      ? t(`${appliance.name} aggiunto: ${quante} caselle compilate dall'integrazione`, `${appliance.name} added: ${quante} fields filled from the integration`)
-      : t(`${appliance.name} aggiunto dall'integrazione`, `${appliance.name} added from the integration`),
+      ? t(
+          `${appliance.name} aggiunto: ${quante} caselle compilate dall'integrazione`,
+          `${appliance.name} added: ${quante} fields filled from the integration`,
+        )
+      : t(
+          `${appliance.name} aggiunto dall'integrazione`,
+          `${appliance.name} added from the integration`,
+        ),
   );
   if (indice >= 0) root.setTimeout?.(() => root.edApplEdit?.(indice), 120);
 }
@@ -403,7 +459,9 @@ function vesteLaScheda() {
         titolo: t("Aggiungi da un'integrazione", "Add from an integration"),
         onScelto: (scelta) =>
           creaDaDispositivo(scelta).catch((error) =>
-            root.alert?.(`${t("Salvataggio fallito: ", "Save failed: ")}${error?.message || error}`),
+            root.alert?.(
+              `${t("Salvataggio fallito: ", "Save failed: ")}${error?.message || error}`,
+            ),
           ),
       });
     });
@@ -474,6 +532,12 @@ function css() {
     .dm-integ-chips{display:flex;flex-wrap:wrap;align-items:flex-start;align-content:flex-start;gap:4px}
     .dm-integ-chip{padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:750;background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#e2e8f0)}
     .dm-integ-chip-more{color:#0369a1;border-color:transparent;background:rgba(14,165,233,.14)}
+    .dm-integ-fuori{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:2px 10px!important;align-items:start!important;margin:12px 0 0!important;padding:11px 13px!important;border-radius:14px!important;border:1px solid color-mix(in srgb,#0ea5e9 32%,transparent)!important;background:color-mix(in srgb,#0ea5e9 7%,transparent)!important;cursor:pointer!important}
+    .dm-integ-fuori input{margin:3px 0 0!important;width:16px!important;height:16px!important;accent-color:#0ea5e9!important}
+    .dm-integ-fuori>span{display:grid!important;gap:3px!important;min-width:0!important}
+    .dm-integ-fuori b{font-size:12.5px!important;font-weight:850!important}
+    .dm-integ-fuori small{font-size:11px!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important}
+    .dm-integ-fuori-ids code{font-size:10.5px!important;color:#0369a1!important;overflow-wrap:anywhere!important}
     .dm-integ-preview small{font-size:11px;font-weight:650;color:var(--text-dim,#64748b)}
     .dm-integ-confirm{margin:2px 0 0!important;padding:12px!important;background:linear-gradient(135deg,#0ea5e9,#0369a1)!important}
     @media(max-width:640px){

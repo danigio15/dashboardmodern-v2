@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "openingen",
-  "ONLINE": "ONLINE",
-  "OFFLINE": "OFFLINE",
+  ONLINE: "ONLINE",
+  OFFLINE: "OFFLINE",
   "NOT CONNECTED": "NIET VERBONDEN",
   "NOT CONFIGURED": "NIET INGESTELD",
   "NO BOX FILLED IN": "GEEN VELD INGEVULD",
-  "CONNECTED": "VERBONDEN",
+  CONNECTED: "VERBONDEN",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "De meldingstegels op Home — batterijen, wateroverlast — lichten alleen vanzelf op als ze iets te melden hebben. Hier kies je welke sensoren ze in de gaten houden, met een nette naam, of maak je een eigen melding op een of meer entiteiten, met voorwaarde, zelf ingetypte toestand en een icoon naar keuze. Deuren en ramen staan hier niet meer: die zegt de tegel Ramen, met de contacten van de zonwering.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "Kies welke tegels op Home verschijnen en in welke volgorde. De meldingstegels — batterijen, lekkages en eigen meldingen — verschijnen alleen vanzelf wanneer ze iets te melden hebben.",
-  "playing": "spelen",
-  "Volume": "Volume",
-  "Unmute": "Dempen opheffen",
+  playing: "spelen",
+  Volume: "Volume",
+  Unmute: "Dempen opheffen",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "De spelers die je hier opgeeft krijgen een eigen pagina, met de hoes van wat ze spelen als achtergrond. De knoppen die verschijnen zijn die welke de speler echt kan: geen volgend nummer, geen knop daarvoor. Je kunt ze ook bij de snelle acties op de Home zetten: daar neemt de tegel de hoes als achtergrond, en een tik pauzeert of hervat.",
-  "Source": "Bron",
+  Source: "Bron",
   "Save player": "Speler opslaan",
   "Previous track": "Vorig nummer",
-  "Play": "Afspelen",
+  Play: "Afspelen",
   "Nothing playing": "Niets speelt",
   "No media player configured.": "Geen mediaspeler ingesteld.",
   "Next track": "Volgend nummer",
   "New player": "Nieuwe speler",
-  "Mute": "Dempen",
+  Mute: "Dempen",
   "Media player": "Mediaspeler",
   "Add player": "Speler toevoegen",
   "1 playing": "1 speelt",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "Kies de pagina",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "Op één pagina verschijnen er hoogstens twaalf: daarboven is het niet meer «iets extra's», het is een lijst — en daarvoor bestaan «Jouw secties».",
-  "Tank": "Boilervat",
+  Tank: "Boilervat",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Hiermee krijgt de pagina een schakelaar: de toestand zegt of hij werkt, deze bedient hem.",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2757,37 +2757,48 @@ export default Object.freeze({
   "Zoom in": "Inzoomen",
   "Zoom out": "Uitzoomen",
   "← All conversations": "← Alle gesprekken",
-  "A private conversation with whoever maintains the dashboard": "Een privégesprek met degene die het dashboard onderhoudt",
+  "A private conversation with whoever maintains the dashboard":
+    "Een privégesprek met degene die het dashboard onderhoudt",
   "Conversation deleted.": "Gesprek verwijderd.",
-  "Conversations": "Gesprekken",
+  Conversations: "Gesprekken",
   "Delete the conversation": "Gesprek verwijderen",
-  "Go ahead and write: on the other side there is a person, not a form.": "Schrijf gerust: aan de andere kant zit een mens, geen formulier.",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "Schrijf gerust: aan de andere kant zit een mens, geen formulier.",
   "No open conversation.": "Geen open gesprek.",
-  "Support": "Ondersteuning",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "Wat je hier schrijft bereikt degene die het dashboard onderhoudt, en niemand anders. Het gaat niet via GitHub en wordt niet openbaar. Met het bericht worden alleen de dashboardversie, de Home Assistant-versie en de taal meegestuurd. Je kunt het gesprek altijd verwijderen.",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "Schrijf aan degene die het dashboard onderhoudt: een privégesprek, niet via GitHub",
+  Support: "Ondersteuning",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "Wat je hier schrijft bereikt degene die het dashboard onderhoudt, en niemand anders. Het gaat niet via GitHub en wordt niet openbaar. Met het bericht worden alleen de dashboardversie, de Home Assistant-versie en de taal meegestuurd. Je kunt het gesprek altijd verwijderen.",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "Schrijf aan degene die het dashboard onderhoudt: een privégesprek, niet via GitHub",
   "Write your message…": "Schrijf je bericht…",
   "Leave empty if you prefer": "Laat leeg als je dat liever hebt",
   "Your name (optional)": "Hoe je heet (optioneel)",
-  "${appliance.name} added from the integration": "${appliance.name} toegevoegd vanuit de integratie",
-  "${appliance.name} added: ${quante} fields filled from the integration": "${appliance.name} toegevoegd: ${quante} velden ingevuld vanuit de integratie",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} entiteiten zijn uitgeschakeld in Home Assistant: schakel ze daar in om ze ook hier te zien.",
+  "${appliance.name} added from the integration":
+    "${appliance.name} toegevoegd vanuit de integratie",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "${appliance.name} toegevoegd: ${quante} velden ingevuld vanuit de integratie",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} entiteiten zijn uitgeschakeld in Home Assistant: schakel ze daar in om ze ook hier te zien.",
   "1 entity": "1 entiteit",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "1 entiteit is uitgeschakeld in Home Assistant: schakel die daar in om hem ook hier te zien.",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "1 entiteit is uitgeschakeld in Home Assistant: schakel die daar in om hem ook hier te zien.",
   "Add from an integration": "Toevoegen vanuit een integratie",
-  "alarm": "alarmmelding",
+  alarm: "alarmmelding",
   "Cannot read the entities: ": "Kan de entiteiten niet lezen: ",
   "Cannot read the integrations: ": "Kan de integraties niet lezen: ",
   "Change device": "Ander apparaat",
-  "control": "bediening",
+  control: "bediening",
   "daily energy": "dagenergie",
   "Filled ${count} fields: ${list}.": "${count} velden ingevuld: ${list}.",
   "From the integration": "Vanuit de integratie",
   "HACS / custom": "HACS / aangepast",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "De integraties van Home Assistant, officieel of uit HACS, met de apparaten die ze meebrengen. Kies je apparaat: alle entiteiten komen mee, en de velden van de kaart vullen zichzelf in.",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn, Home Connect, Miele, LG ThinQ, een Shelly-stekker…: kies het apparaat en de lege velden vullen zichzelf in. Wat met de hand is geschreven, blijft.",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn, Home Connect, Miele, LG ThinQ, SmartThings, een Shelly-stekker… kies het apparaat en het huishoudapparaat komt met al zijn entiteiten al op de juiste plek. Of, hieronder, één entiteit tegelijk.",
-  "Integrations": "Integraties",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "De integraties van Home Assistant, officieel of uit HACS, met de apparaten die ze meebrengen. Kies je apparaat: alle entiteiten komen mee, en de velden van de kaart vullen zichzelf in.",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn, Home Connect, Miele, LG ThinQ, een Shelly-stekker…: kies het apparaat en de lege velden vullen zichzelf in. Wat met de hand is geschreven, blijft.",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn, Home Connect, Miele, LG ThinQ, SmartThings, een Shelly-stekker… kies het apparaat en het huishoudapparaat komt met al zijn entiteiten al op de juiste plek. Of, hieronder, één entiteit tegelijk.",
+  Integrations: "Integraties",
   "last cycle cost": "kosten laatste cyclus",
   "last cycle energy": "energie laatste cyclus",
   "last cycle start": "start laatste cyclus",
@@ -2795,9 +2806,11 @@ export default Object.freeze({
   "Linked device": "Gekoppeld apparaat",
   "monthly energy": "maandenergie",
   "No device by that name.": "Geen apparaat met die naam.",
-  "No empty field to fill in: the ones written by hand stay.": "Geen leeg veld om in te vullen: wat met de hand is geschreven, blijft.",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "Geen integratie met apparaten gevonden: Home Assistant heeft nog geen apparaat met entiteiten.",
-  "Official": "Officieel",
+  "No empty field to fill in: the ones written by hand stay.":
+    "Geen leeg veld om in te vullen: wat met de hand is geschreven, blijft.",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "Geen integratie met apparaten gevonden: Home Assistant heeft nog geen apparaat met entiteiten.",
+  Official: "Officieel",
   "Pick the device": "Kies het apparaat",
   "program duration": "programmaduur",
   "program state": "programmastatus",
@@ -2808,13 +2821,21 @@ export default Object.freeze({
   "Save failed: ": "Opslaan mislukt: ",
   "Search a device…": "Zoek een apparaat…",
   "second temperature": "tweede temperatuur",
-  "temperature": "temperatuur",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "Het apparaatdetail toont elke entiteit van het apparaat; hieronder de entiteiten die de kaart tekenen.",
+  temperature: "temperatuur",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "Het apparaatdetail toont elke entiteit van het apparaat; hieronder de entiteiten die de kaart tekenen.",
   "The device controls": "De bediening van het apparaat",
   "The device readings": "De metingen van het apparaat",
   "The device state": "De toestand van het apparaat",
   "total energy": "totale energie",
-  "Unlink": "Ontkoppelen",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "Ontkoppeld: de velden blijven zoals ze zijn, en de knop onderaan slaat op.",
+  Unlink: "Ontkoppelen",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "Ontkoppeld: de velden blijven zoals ze zijn, en de knop onderaan slaat op.",
   "Use this device": "Dit apparaat gebruiken",
+  "Also take ${voci.length} sensors that live outside the device":
+    "Neem ook ${voci.length} sensoren mee die buiten het apparaat leven",
+  "Also take 1 sensor that lives outside the device":
+    "Neem ook 1 sensor mee die buiten het apparaat leeft",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "Ze dragen de naam van dit apparaat maar horen bij een andere registervermelding: bijna altijd de slimme stekker onder de machine, of een sensor die je zelf hebt gebouwd.",
 });

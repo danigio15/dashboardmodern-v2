@@ -357,6 +357,8 @@ Ogni apparecchio ha il suo **ritratto disegnato** — lavatrice, lavastoviglie, 
 
 Un apparecchio è «in funzione» quando supera la sua **soglia di potenza**, e resta tale per il **ritardo di fine ciclo** che gli hai dato: serve a non far sparire la lavatrice durante una pausa del programma.
 
+Un elettrodomestico può anche essere **due dispositivi**: l'integrazione che porta il programma e una presa smart sotto la macchina che porta i watt. Quando il dispositivo scelto non ha un contatore, il menù cerca fra le entità che portano il suo nome e propone quelle che ha trovato, scritte per esteso: si accettano o si tolgono con una spunta, prima di crearlo.
+
 Se il sensore di potenza non c'è — è il caso di quasi ogni elettrodomestico connesso, che non ha nessuna presa smart sotto — a decidere è la **parola dello stato del programma**. Quella che l'integrazione pubblica davvero: `washing`, `rinse`, `spin`, `drying` dicono in funzione; `pause`, `standby` e l'avvio ritardato dicono acceso ma fermo; `ready`, `end`, `finished` dicono spento. Valgono le parole di hOn, Home Connect, Miele, LG ThinQ e SmartThings, e le stesse in italiano, senza badare a maiuscole, trattini o underscore. Quando ci sono tutte e due, una fase che lavora vince sui zero watt dell'asciugatura, e i watt vincono su uno stato «finito» rimasto indietro.
 
 ### Vista consumi e dettaglio

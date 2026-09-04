@@ -38,7 +38,7 @@ const CATALOGO = {
       domain: "hon",
       name: "hOn",
       custom: true,
-      devices: 2,
+      devices: 3,
       entries: [{ entry_id: "hon-1", title: "Hoover", state: "loaded" }],
     },
   ],
@@ -52,6 +52,18 @@ const CATALOGO = {
       integrations: ["shelly"],
       area_id: "",
       area: "",
+      entities: 2,
+      disabled: false,
+    },
+    {
+      id: "dw-1",
+      name: "Lavastoviglie",
+      manufacturer: "Hoover",
+      model: "H-DISH 500",
+      integration: "hon",
+      integrations: ["hon"],
+      area_id: "",
+      area: "Cucina",
       entities: 2,
       disabled: false,
     },
@@ -114,6 +126,13 @@ const CATALOGO = {
       device_class: "duration",
     }),
     ent("switch.asciugatrice_dry", "Dry", { device_id: "td-1", translation_key: "dry" }),
+    /* La lavastoviglie porta il programma e nient'altro: i watt e il
+     * contatore stanno su una presa che e' un altro dispositivo. */
+    ent("sensor.lavastoviglie_machine_status", "Machine status", {
+      device_id: "dw-1",
+      translation_key: "washing_modes",
+    }),
+    ent("switch.lavastoviglie_lavastoviglie", "Lavastoviglie", { device_id: "dw-1" }),
     ent("switch.presa_frigo", "", { device_id: "plug-1", platform: "shelly" }),
     ent("sensor.presa_frigo_power", "Power", {
       device_id: "plug-1",
@@ -195,6 +214,38 @@ const STATI = [
     entity_id: "switch.asciugatrice_dry",
     state: "on",
     attributes: { friendly_name: "Asciugatrice Dry" },
+  },
+  {
+    entity_id: "sensor.lavastoviglie_machine_status",
+    state: "running",
+    attributes: { friendly_name: "Lavastoviglie Machine status" },
+  },
+  {
+    entity_id: "switch.lavastoviglie_lavastoviglie",
+    state: "on",
+    attributes: { friendly_name: "Lavastoviglie Lavastoviglie" },
+  },
+  /* I parenti di fuori: la presa e un sensore fatto in casa. Nessuno dei due
+   * sta sul dispositivo hOn, e tutti e due portano il suo nome. */
+  {
+    entity_id: "sensor.lavastoviglie_power",
+    state: "980",
+    attributes: {
+      friendly_name: "Lavastoviglie Potenza",
+      unit_of_measurement: "W",
+      device_class: "power",
+      state_class: "measurement",
+    },
+  },
+  {
+    entity_id: "sensor.energy_oggi_lavastoviglie",
+    state: "1.24",
+    attributes: {
+      friendly_name: "energy_oggi_lavastoviglie",
+      unit_of_measurement: "kWh",
+      device_class: "energy",
+      state_class: "total_increasing",
+    },
   },
   { entity_id: "switch.presa_frigo", state: "on", attributes: { friendly_name: "Presa frigo" } },
   {
@@ -482,5 +533,79 @@ for (const variant of PRIMARY) {
       window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed"));
     });
     await expect(card).toContainText(/SPENTO|OFF/, { timeout: 15000 });
+  });
+}
+
+for (const variant of PRIMARY) {
+  test(`${variant}: i sensori fuori dal dispositivo si vedono prima di prenderli`, async ({
+    page,
+  }, testInfo) => {
+    /* Una lavatrice puo' essere due dispositivi: l'integrazione che porta il
+     * programma e una presa smart che porta i watt. Il menu se ne accorge, lo
+     * dice per nome, e lascia decidere: e' un'ipotesi basata sul nome, e
+     * un'ipotesi si guarda prima di accettarla. */
+    test.setTimeout(150_000);
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "L'editor intero è più lento su WebKit");
+    await boot(page, variant, testInfo);
+    await page.evaluate(() => {
+      window.apriConfigEntita();
+      window.editorSwitch("appliances");
+    });
+    await page.locator("#ed-body [data-dm-integ-add]").click();
+    const menu = page.locator("#dm-integ-menu");
+    await menu.locator('.dm-integ-item[data-domain="hon"]').click();
+    await menu.locator('.dm-integ-device[data-device-id="dw-1"]').click();
+
+    /* Il riquadro dice quanti sono e quali, e parte spuntato. */
+    const fuori = menu.locator(".dm-integ-fuori");
+    await expect(fuori).toBeVisible();
+    await expect(fuori).toContainText("2");
+    await expect(fuori).toContainText("sensor.lavastoviglie_power");
+    await expect(fuori).toContainText("sensor.energy_oggi_lavastoviglie");
+    await expect(fuori.locator("[data-outside]")).toBeChecked();
+
+    await menu.locator("[data-preview] [data-confirm]").click();
+    const modal = page.locator("#dm-appliance-editor-modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('input[name="power_entity"]')).toHaveValue(
+      "sensor.lavastoviglie_power",
+    );
+    await expect(modal.locator('input[name="daily_energy_entity"]')).toHaveValue(
+      "sensor.energy_oggi_lavastoviglie",
+    );
+    /* E quello del dispositivo resta quello del dispositivo. */
+    await expect(modal.locator('input[name="control_entity"]')).toHaveValue(
+      "switch.lavastoviglie_lavastoviglie",
+    );
+    await modal.locator("[data-close]").click();
+  });
+
+  test(`${variant}: togliendo la spunta, i sensori di fuori restano fuori`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(150_000);
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "L'editor intero è più lento su WebKit");
+    await boot(page, variant, testInfo);
+    await page.evaluate(() => {
+      window.apriConfigEntita();
+      window.editorSwitch("appliances");
+    });
+    await page.locator("#ed-body [data-dm-integ-add]").click();
+    const menu = page.locator("#dm-integ-menu");
+    await menu.locator('.dm-integ-item[data-domain="hon"]').click();
+    await menu.locator('.dm-integ-device[data-device-id="dw-1"]').click();
+    await menu.locator(".dm-integ-fuori [data-outside]").uncheck();
+    await menu.locator("[data-preview] [data-confirm]").click();
+
+    const modal = page.locator("#dm-appliance-editor-modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('input[name="power_entity"]')).toHaveValue("");
+    await expect(modal.locator('input[name="daily_energy_entity"]')).toHaveValue("");
+    await expect(modal.locator('input[name="control_entity"]')).toHaveValue(
+      "switch.lavastoviglie_lavastoviglie",
+    );
+    await modal.locator("[data-close]").click();
   });
 }

@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "فتحات",
-  "ONLINE": "متصل",
-  "OFFLINE": "غير متصل",
+  ONLINE: "متصل",
+  OFFLINE: "غير متصل",
   "NOT CONNECTED": "غير متصل بالإنترنت",
   "NOT CONFIGURED": "غير مُعدّ",
   "NO BOX FILLED IN": "لم تُملأ أي خانة",
-  "CONNECTED": "متصل بالإنترنت",
+  CONNECTED: "متصل بالإنترنت",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "بطاقات التنبيه في الرئيسية — البطاريات وتسرب المياه — تضيء من تلقاء نفسها فقط عندما يكون لديها ما تقوله. هنا تختار المستشعرات التي تراقبها، باسم نظيف، أو تنشئ تنبيهًا مخصصًا على كيان واحد أو أكثر، بشرط وحالة تكتبها بنفسك وأيقونة من اختيارك. الأبواب والنوافذ لم تعد هنا: تقولها بطاقة النوافذ، من ملامسات الستائر.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "اختر أي البطاقات تظهر في الصفحة الرئيسية وبأي ترتيب. بطاقات التنبيه — البطاريات والتسربات والتنبيهات المخصصة — تظهر وحدها فقط عندما يكون لديها ما تقوله.",
-  "playing": "قيد التشغيل",
-  "Volume": "مستوى الصوت",
-  "Unmute": "إلغاء الكتم",
+  playing: "قيد التشغيل",
+  Volume: "مستوى الصوت",
+  Unmute: "إلغاء الكتم",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "المشغّلات التي تعلنها هنا تحصل على صفحة خاصة بها، وخلفيتها غلاف ما تشغّله. الأزرار التي تظهر هي ما يقدر عليه المشغّل فعلًا: لا مقطع تالٍ، لا زر له. ويمكنك أيضًا وضعها بين الإجراءات السريعة في الرئيسية: هناك يتخذ الزر الغلاف خلفيةً، ولمسه يوقف مؤقتًا أو يستأنف.",
-  "Source": "المصدر",
+  Source: "المصدر",
   "Save player": "احفظ المشغّل",
   "Previous track": "المقطع السابق",
-  "Play": "تشغيل",
+  Play: "تشغيل",
   "Nothing playing": "لا شيء قيد التشغيل",
   "No media player configured.": "لا يوجد مشغّل وسائط مُعدّ.",
   "Next track": "المقطع التالي",
   "New player": "مشغّل جديد",
-  "Mute": "كتم الصوت",
+  Mute: "كتم الصوت",
   "Media player": "مشغّل وسائط",
   "Add player": "أضف مشغّلًا",
   "1 playing": "واحد قيد التشغيل",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "اختر الصفحة",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "يظهر في الصفحة الواحدة اثنا عشر عنصرًا على الأكثر: وما بعد ذلك لم يعد «شيئًا إضافيًا»، بل صار قائمة — ولهذا هناك «أقسامك».",
-  "Tank": "خزّان",
+  Tank: "خزّان",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "بهذا تكسب الصفحة مفتاحًا: الحالة تقول إن كان يعمل، وهذا يأمره.",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2718,37 +2718,47 @@ export default Object.freeze({
   "Zoom in": "تكبير",
   "Zoom out": "تصغير",
   "← All conversations": "← كل المحادثات",
-  "A private conversation with whoever maintains the dashboard": "محادثة خاصة مع من يتولى صيانة اللوحة",
+  "A private conversation with whoever maintains the dashboard":
+    "محادثة خاصة مع من يتولى صيانة اللوحة",
   "Conversation deleted.": "تم حذف المحادثة.",
-  "Conversations": "المحادثات",
+  Conversations: "المحادثات",
   "Delete the conversation": "احذف المحادثة",
-  "Go ahead and write: on the other side there is a person, not a form.": "اكتب بلا تردد: على الطرف الآخر إنسان، لا استمارة.",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "اكتب بلا تردد: على الطرف الآخر إنسان، لا استمارة.",
   "No open conversation.": "لا توجد محادثة مفتوحة.",
-  "Support": "المساعدة",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "ما تكتبه هنا يصل إلى من يتولى صيانة اللوحة، ولا أحد غيره. لا يمر عبر GitHub ولا يصبح علنيًا. تُرسل مع الرسالة فقط نسخة اللوحة ونسخة Home Assistant واللغة. يمكنك حذف المحادثة متى شئت.",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "اكتب إلى من يتولى صيانة اللوحة: محادثة خاصة لا تمر عبر GitHub",
+  Support: "المساعدة",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "ما تكتبه هنا يصل إلى من يتولى صيانة اللوحة، ولا أحد غيره. لا يمر عبر GitHub ولا يصبح علنيًا. تُرسل مع الرسالة فقط نسخة اللوحة ونسخة Home Assistant واللغة. يمكنك حذف المحادثة متى شئت.",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "اكتب إلى من يتولى صيانة اللوحة: محادثة خاصة لا تمر عبر GitHub",
   "Write your message…": "اكتب رسالتك…",
   "Leave empty if you prefer": "اتركه فارغًا إن شئت",
   "Your name (optional)": "ما اسمك (اختياري)",
   "${appliance.name} added from the integration": "تمت إضافة ${appliance.name} من التكامل",
-  "${appliance.name} added: ${quante} fields filled from the integration": "تمت إضافة ${appliance.name}: تم ملء ${quante} حقول من التكامل",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} كيانات معطّلة في Home Assistant: فعّلها هناك لتراها هنا أيضًا.",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "تمت إضافة ${appliance.name}: تم ملء ${quante} حقول من التكامل",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} كيانات معطّلة في Home Assistant: فعّلها هناك لتراها هنا أيضًا.",
   "1 entity": "كيان واحد",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "كيان واحد معطّل في Home Assistant: فعّله هناك لتراه هنا أيضًا.",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "كيان واحد معطّل في Home Assistant: فعّله هناك لتراه هنا أيضًا.",
   "Add from an integration": "إضافة من تكامل",
-  "alarm": "إنذار",
+  alarm: "إنذار",
   "Cannot read the entities: ": "تعذّر قراءة الكيانات: ",
   "Cannot read the integrations: ": "تعذّر قراءة التكاملات: ",
   "Change device": "تغيير الجهاز",
-  "control": "تحكّم",
+  control: "تحكّم",
   "daily energy": "الطاقة اليومية",
   "Filled ${count} fields: ${list}.": "تم ملء ${count} حقول: ${list}.",
   "From the integration": "من التكامل",
   "HACS / custom": "HACS / مخصّص",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "تكاملات Home Assistant، الرسمية أو من HACS، مع الأجهزة التي تجلبها. اختر جهازك: تأتي كل الكيانات معه، وتُملأ حقول البطاقة من تلقاء نفسها.",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn، Home Connect، Miele، LG ThinQ، مقبس Shelly…: اختر الجهاز وتُملأ الحقول الفارغة من تلقاء نفسها. ما كُتب يدويًا يبقى.",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn، Home Connect، Miele، LG ThinQ، SmartThings، مقبس Shelly… اختر الجهاز فيصل الجهاز المنزلي بكل كياناته في مكانها الصحيح. أو، في الأسفل، كيان واحد في كل مرة.",
-  "Integrations": "التكاملات",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "تكاملات Home Assistant، الرسمية أو من HACS، مع الأجهزة التي تجلبها. اختر جهازك: تأتي كل الكيانات معه، وتُملأ حقول البطاقة من تلقاء نفسها.",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn، Home Connect، Miele، LG ThinQ، مقبس Shelly…: اختر الجهاز وتُملأ الحقول الفارغة من تلقاء نفسها. ما كُتب يدويًا يبقى.",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn، Home Connect، Miele، LG ThinQ، SmartThings، مقبس Shelly… اختر الجهاز فيصل الجهاز المنزلي بكل كياناته في مكانها الصحيح. أو، في الأسفل، كيان واحد في كل مرة.",
+  Integrations: "التكاملات",
   "last cycle cost": "تكلفة آخر دورة",
   "last cycle energy": "طاقة آخر دورة",
   "last cycle start": "بداية آخر دورة",
@@ -2756,9 +2766,11 @@ export default Object.freeze({
   "Linked device": "الجهاز المرتبط",
   "monthly energy": "الطاقة الشهرية",
   "No device by that name.": "لا يوجد جهاز بهذا الاسم.",
-  "No empty field to fill in: the ones written by hand stay.": "لا حقل فارغًا لملئه: ما كُتب يدويًا يبقى.",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "لم يُعثر على تكامل بأجهزة: لا يوجد في Home Assistant بعد جهاز له كيانات.",
-  "Official": "رسمي",
+  "No empty field to fill in: the ones written by hand stay.":
+    "لا حقل فارغًا لملئه: ما كُتب يدويًا يبقى.",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "لم يُعثر على تكامل بأجهزة: لا يوجد في Home Assistant بعد جهاز له كيانات.",
+  Official: "رسمي",
   "Pick the device": "اختر الجهاز",
   "program duration": "مدة البرنامج",
   "program state": "حالة البرنامج",
@@ -2769,13 +2781,20 @@ export default Object.freeze({
   "Save failed: ": "فشل الحفظ: ",
   "Search a device…": "ابحث عن جهاز…",
   "second temperature": "درجة الحرارة الثانية",
-  "temperature": "درجة الحرارة",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "تعرض تفاصيل الجهاز كل كيان من كياناته؛ وفي الأسفل الكيانات التي ترسم البطاقة.",
+  temperature: "درجة الحرارة",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "تعرض تفاصيل الجهاز كل كيان من كياناته؛ وفي الأسفل الكيانات التي ترسم البطاقة.",
   "The device controls": "أوامر الجهاز",
   "The device readings": "قراءات الجهاز",
   "The device state": "حالة الجهاز",
   "total energy": "الطاقة الإجمالية",
-  "Unlink": "فكّ الربط",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "تم فكّ الربط: تبقى الحقول كما هي، والزر في الأسفل يحفظ.",
+  Unlink: "فكّ الربط",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "تم فكّ الربط: تبقى الحقول كما هي، والزر في الأسفل يحفظ.",
   "Use this device": "استخدام هذا الجهاز",
+  "Also take ${voci.length} sensors that live outside the device":
+    "خذ أيضًا ${voci.length} مستشعرات تعيش خارج الجهاز",
+  "Also take 1 sensor that lives outside the device": "خذ أيضًا مستشعرًا واحدًا يعيش خارج الجهاز",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "تحمل اسم هذا الجهاز لكنها تنتمي إلى مُدخَل آخر في السجل: غالبًا المقبس الذكي أسفل الآلة، أو مستشعر صنعته بنفسك.",
 });

@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "か所",
-  "ONLINE": "オンライン",
-  "OFFLINE": "オフライン",
+  ONLINE: "オンライン",
+  OFFLINE: "オフライン",
   "NOT CONNECTED": "未接続",
   "NOT CONFIGURED": "未設定",
   "NO BOX FILLED IN": "入力された欄がありません",
-  "CONNECTED": "接続中",
+  CONNECTED: "接続中",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "ホームの通知タイル（電池・浸水）は、伝えることがあるときだけひとりでに点灯します。ここでは、どのセンサーを見張るかをわかりやすい名前とともに選ぶか、条件・手入力の状態・好きなアイコンを指定して、ひとつ以上のエンティティにカスタム通知を作れます。ドアと窓はもうここにはありません。シャッターの接点から、「窓」のタイルが伝えます。",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "ホームに表示するタイルと順序を選びます。警告タイル（電池・水漏れ・カスタム警告）は、伝えることがあるときだけ自動的に現れます。",
-  "playing": "再生中",
-  "Volume": "音量",
-  "Unmute": "ミュート解除",
+  playing: "再生中",
+  Volume: "音量",
+  Unmute: "ミュート解除",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "ここで登録したプレーヤーには専用のページができ、再生中のジャケットが背景になります。表示されるボタンは、そのプレーヤーが実際にできるものだけです。次の曲がなければ、そのボタンも出ません。ホームのクイックアクションに置くこともできます。そこではタイルがジャケットを背景にし、押すと一時停止または再開します。",
-  "Source": "入力",
+  Source: "入力",
   "Save player": "プレーヤーを保存",
   "Previous track": "前の曲",
-  "Play": "再生",
+  Play: "再生",
   "Nothing playing": "再生していません",
   "No media player configured.": "メディアプレーヤーが設定されていません。",
   "Next track": "次の曲",
   "New player": "新しいプレーヤー",
-  "Mute": "ミュート",
+  Mute: "ミュート",
   "Media player": "メディアプレーヤー",
   "Add player": "プレーヤーを追加",
   "1 playing": "1つ再生中",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "ページを選ぶ",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "1つのページに表示されるのは最大12個までです。それを超えると「もうひとつ」ではなく一覧になります — そのためには「自分のセクション」があります。",
-  "Tank": "タンク",
+  Tank: "タンク",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "これがあるとページにスイッチが出ます: 状態は動いているかを言い、これは動かします。",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2746,37 +2746,47 @@ export default Object.freeze({
   "Zoom in": "拡大",
   "Zoom out": "縮小",
   "← All conversations": "← すべての会話",
-  "A private conversation with whoever maintains the dashboard": "ダッシュボードを管理している人との個人的な会話",
+  "A private conversation with whoever maintains the dashboard":
+    "ダッシュボードを管理している人との個人的な会話",
   "Conversation deleted.": "会話を削除しました。",
-  "Conversations": "会話",
+  Conversations: "会話",
   "Delete the conversation": "会話を削除",
-  "Go ahead and write: on the other side there is a person, not a form.": "遠慮なくどうぞ。向こう側にいるのはフォームではなく人です。",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "遠慮なくどうぞ。向こう側にいるのはフォームではなく人です。",
   "No open conversation.": "開いている会話はありません。",
-  "Support": "サポート",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "ここに書いた内容はダッシュボードを管理している人にだけ届きます。GitHub を経由せず、公開もされません。メッセージと一緒に送られるのはダッシュボードのバージョン、Home Assistant のバージョン、言語だけです。会話はいつでも削除できます。",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "ダッシュボードを管理している人に書く：GitHub を通さない個人的な会話",
+  Support: "サポート",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "ここに書いた内容はダッシュボードを管理している人にだけ届きます。GitHub を経由せず、公開もされません。メッセージと一緒に送られるのはダッシュボードのバージョン、Home Assistant のバージョン、言語だけです。会話はいつでも削除できます。",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "ダッシュボードを管理している人に書く：GitHub を通さない個人的な会話",
   "Write your message…": "メッセージを書いてください…",
   "Leave empty if you prefer": "書きたくなければ空のままで",
   "Your name (optional)": "お名前（任意）",
   "${appliance.name} added from the integration": "${appliance.name} を統合から追加しました",
-  "${appliance.name} added: ${quante} fields filled from the integration": "${appliance.name} を追加しました: 統合から ${quante} 項目を入力",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} 個のエンティティが Home Assistant で無効です: ここにも表示するには、そちらで有効にしてください。",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "${appliance.name} を追加しました: 統合から ${quante} 項目を入力",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} 個のエンティティが Home Assistant で無効です: ここにも表示するには、そちらで有効にしてください。",
   "1 entity": "1 エンティティ",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "1 個のエンティティが Home Assistant で無効です: ここにも表示するには、そちらで有効にしてください。",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "1 個のエンティティが Home Assistant で無効です: ここにも表示するには、そちらで有効にしてください。",
   "Add from an integration": "統合から追加",
-  "alarm": "アラーム",
+  alarm: "アラーム",
   "Cannot read the entities: ": "エンティティを読み取れません: ",
   "Cannot read the integrations: ": "統合を読み取れません: ",
   "Change device": "デバイスを変更",
-  "control": "操作",
+  control: "操作",
   "daily energy": "1日の電力量",
   "Filled ${count} fields: ${list}.": "${count} 項目を入力しました: ${list}。",
   "From the integration": "統合から",
   "HACS / custom": "HACS / カスタム",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "Home Assistant の統合（公式または HACS 製）と、それが持つデバイス。家電を選ぶと、すべてのエンティティが一緒に入り、カードの項目は自動で埋まります。",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn、Home Connect、Miele、LG ThinQ、Shelly プラグ…: デバイスを選ぶと空の項目が自動で埋まります。手で書いたものはそのまま残ります。",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn、Home Connect、Miele、LG ThinQ、SmartThings、Shelly プラグ… デバイスを選ぶと、家電がすべてのエンティティを正しい場所に持って現れます。または下で、エンティティを一つずつ。",
-  "Integrations": "統合",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "Home Assistant の統合（公式または HACS 製）と、それが持つデバイス。家電を選ぶと、すべてのエンティティが一緒に入り、カードの項目は自動で埋まります。",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn、Home Connect、Miele、LG ThinQ、Shelly プラグ…: デバイスを選ぶと空の項目が自動で埋まります。手で書いたものはそのまま残ります。",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn、Home Connect、Miele、LG ThinQ、SmartThings、Shelly プラグ… デバイスを選ぶと、家電がすべてのエンティティを正しい場所に持って現れます。または下で、エンティティを一つずつ。",
+  Integrations: "統合",
   "last cycle cost": "前回サイクルの費用",
   "last cycle energy": "前回サイクルの電力量",
   "last cycle start": "前回サイクルの開始",
@@ -2784,9 +2794,11 @@ export default Object.freeze({
   "Linked device": "リンク済みデバイス",
   "monthly energy": "月間の電力量",
   "No device by that name.": "その名前のデバイスはありません。",
-  "No empty field to fill in: the ones written by hand stay.": "入力する空の項目はありません: 手で書いたものはそのまま残ります。",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "デバイスを持つ統合が見つかりません: Home Assistant にはまだエンティティを持つデバイスがありません。",
-  "Official": "公式",
+  "No empty field to fill in: the ones written by hand stay.":
+    "入力する空の項目はありません: 手で書いたものはそのまま残ります。",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "デバイスを持つ統合が見つかりません: Home Assistant にはまだエンティティを持つデバイスがありません。",
+  Official: "公式",
   "Pick the device": "デバイスを選ぶ",
   "program duration": "プログラムの所要時間",
   "program state": "プログラムの状態",
@@ -2797,13 +2809,20 @@ export default Object.freeze({
   "Save failed: ": "保存に失敗しました: ",
   "Search a device…": "デバイスを検索…",
   "second temperature": "2つ目の温度",
-  "temperature": "温度",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "家電の詳細にはデバイスのすべてのエンティティが表示されます。下はカードを描くものです。",
+  temperature: "温度",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "家電の詳細にはデバイスのすべてのエンティティが表示されます。下はカードを描くものです。",
   "The device controls": "デバイスの操作",
   "The device readings": "デバイスの計測値",
   "The device state": "デバイスの状態",
   "total energy": "総電力量",
-  "Unlink": "リンク解除",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "リンクを解除しました: 項目はそのままで、下のボタンで保存します。",
+  Unlink: "リンク解除",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "リンクを解除しました: 項目はそのままで、下のボタンで保存します。",
   "Use this device": "このデバイスを使う",
+  "Also take ${voci.length} sensors that live outside the device":
+    "デバイスの外にある${voci.length}個のセンサーも取り込む",
+  "Also take 1 sensor that lives outside the device": "デバイスの外にあるセンサー1個も取り込む",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "この家電の名前を持っていますが、レジストリ上は別の項目です。ほとんどの場合は機械の下のスマートプラグか、自分で作ったセンサーです。",
 });

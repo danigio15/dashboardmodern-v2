@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "खोलने",
-  "ONLINE": "ऑनलाइन",
-  "OFFLINE": "ऑफ़लाइन",
+  ONLINE: "ऑनलाइन",
+  OFFLINE: "ऑफ़लाइन",
   "NOT CONNECTED": "जुड़ा नहीं है",
   "NOT CONFIGURED": "कॉन्फ़िगर नहीं",
   "NO BOX FILLED IN": "कोई खाना नहीं भरा",
-  "CONNECTED": "जुड़ा है",
+  CONNECTED: "जुड़ा है",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "होम की अलर्ट टाइलें — बैटरियाँ, पानी का रिसाव — तभी अपने आप जगती हैं जब उनके पास कहने को कुछ हो। यहाँ आप चुनते हैं कि वे कौन-से सेंसर देखें, एक साफ़ नाम के साथ, या एक या अधिक एंटिटी पर शर्त, हाथ से लिखी स्थिति और अपनी पसंद के आइकन के साथ कस्टम अलर्ट बनाते हैं। दरवाज़े और खिड़कियाँ अब यहाँ नहीं हैं: उन्हें खिड़कियाँ टाइल बताती है, परदों के संपर्कों से।",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "चुनें कि होम पर कौन-सी टाइलें दिखें और किस क्रम में। अलर्ट टाइलें — बैटरियाँ, पानी रिसाव और कस्टम अलर्ट — केवल तभी अपने आप दिखती हैं जब उनके पास कहने को कुछ हो।",
-  "playing": "चल रहे हैं",
-  "Volume": "वॉल्यूम",
-  "Unmute": "म्यूट हटाएँ",
+  playing: "चल रहे हैं",
+  Volume: "वॉल्यूम",
+  Unmute: "म्यूट हटाएँ",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "यहाँ जो प्लेयर आप जोड़ते हैं उनका अपना पेज बनता है, और पृष्ठभूमि में वही कवर होता है जो अभी बज रहा है। वही बटन दिखते हैं जो प्लेयर सचमुच कर सकता है: अगला ट्रैक नहीं है तो वह बटन भी नहीं। इन्हें होम की त्वरित क्रियाओं में भी रख सकते हैं: वहाँ टाइल कवर को पृष्ठभूमि बनाती है, और छूने पर रुकती या फिर चलने लगती है।",
-  "Source": "स्रोत",
+  Source: "स्रोत",
   "Save player": "प्लेयर सहेजें",
   "Previous track": "पिछला ट्रैक",
-  "Play": "चलाएँ",
+  Play: "चलाएँ",
   "Nothing playing": "कुछ नहीं चल रहा",
   "No media player configured.": "कोई मीडिया प्लेयर कॉन्फ़िगर नहीं है।",
   "Next track": "अगला ट्रैक",
   "New player": "नया प्लेयर",
-  "Mute": "म्यूट करें",
+  Mute: "म्यूट करें",
   "Media player": "मीडिया प्लेयर",
   "Add player": "प्लेयर जोड़ें",
   "1 playing": "1 चल रहा है",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "पेज चुनें",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "एक पेज पर ज़्यादा से ज़्यादा बारह दिखते हैं: उससे आगे यह «कुछ और» नहीं रह जाता, वह एक सूची बन जाती है — और उसके लिए «आपके सेक्शन» हैं।",
-  "Tank": "टंकी",
+  Tank: "टंकी",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "इससे पेज को एक स्विच मिलता है: स्थिति बताती है कि चल रहा है या नहीं, यह उसे चलाता है।",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2733,37 +2733,47 @@ export default Object.freeze({
   "Zoom in": "बड़ा करें",
   "Zoom out": "छोटा करें",
   "← All conversations": "← सभी बातचीत",
-  "A private conversation with whoever maintains the dashboard": "जो इस डैशबोर्ड को बनाए रखता है, उसके साथ निजी बातचीत",
+  "A private conversation with whoever maintains the dashboard":
+    "जो इस डैशबोर्ड को बनाए रखता है, उसके साथ निजी बातचीत",
   "Conversation deleted.": "बातचीत हटा दी गई।",
-  "Conversations": "बातचीत",
+  Conversations: "बातचीत",
   "Delete the conversation": "बातचीत हटाएँ",
-  "Go ahead and write: on the other side there is a person, not a form.": "बेझिझक लिखिए: दूसरी ओर एक इंसान है, कोई फ़ॉर्म नहीं।",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "बेझिझक लिखिए: दूसरी ओर एक इंसान है, कोई फ़ॉर्म नहीं।",
   "No open conversation.": "कोई खुली बातचीत नहीं।",
-  "Support": "सहायता",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "आप यहाँ जो लिखते हैं वह केवल उस व्यक्ति तक पहुँचता है जो डैशबोर्ड बनाए रखता है, और किसी तक नहीं। यह GitHub से होकर नहीं जाता और सार्वजनिक नहीं होता। संदेश के साथ केवल डैशबोर्ड का संस्करण, Home Assistant का संस्करण और भाषा भेजी जाती है। आप बातचीत कभी भी हटा सकते हैं।",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "जो डैशबोर्ड बनाए रखता है उसे लिखें: GitHub से गुज़रे बिना एक निजी बातचीत",
+  Support: "सहायता",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "आप यहाँ जो लिखते हैं वह केवल उस व्यक्ति तक पहुँचता है जो डैशबोर्ड बनाए रखता है, और किसी तक नहीं। यह GitHub से होकर नहीं जाता और सार्वजनिक नहीं होता। संदेश के साथ केवल डैशबोर्ड का संस्करण, Home Assistant का संस्करण और भाषा भेजी जाती है। आप बातचीत कभी भी हटा सकते हैं।",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "जो डैशबोर्ड बनाए रखता है उसे लिखें: GitHub से गुज़रे बिना एक निजी बातचीत",
   "Write your message…": "अपना संदेश लिखें…",
   "Leave empty if you prefer": "न चाहें तो खाली छोड़ दें",
   "Your name (optional)": "आपका नाम (वैकल्पिक)",
   "${appliance.name} added from the integration": "${appliance.name} इंटीग्रेशन से जोड़ा गया",
-  "${appliance.name} added: ${quante} fields filled from the integration": "${appliance.name} जोड़ा गया: इंटीग्रेशन से ${quante} फ़ील्ड भरे गए",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} एंटिटी Home Assistant में अक्षम हैं: उन्हें यहाँ भी देखने के लिए वहाँ सक्षम करें।",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "${appliance.name} जोड़ा गया: इंटीग्रेशन से ${quante} फ़ील्ड भरे गए",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} एंटिटी Home Assistant में अक्षम हैं: उन्हें यहाँ भी देखने के लिए वहाँ सक्षम करें।",
   "1 entity": "1 एंटिटी",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "1 एंटिटी Home Assistant में अक्षम है: उसे यहाँ भी देखने के लिए वहाँ सक्षम करें।",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "1 एंटिटी Home Assistant में अक्षम है: उसे यहाँ भी देखने के लिए वहाँ सक्षम करें।",
   "Add from an integration": "इंटीग्रेशन से जोड़ें",
-  "alarm": "अलार्म",
+  alarm: "अलार्म",
   "Cannot read the entities: ": "एंटिटी पढ़ी नहीं जा सकीं: ",
   "Cannot read the integrations: ": "इंटीग्रेशन पढ़े नहीं जा सके: ",
   "Change device": "डिवाइस बदलें",
-  "control": "नियंत्रण",
+  control: "नियंत्रण",
   "daily energy": "दैनिक ऊर्जा",
   "Filled ${count} fields: ${list}.": "${count} फ़ील्ड भरे गए: ${list}।",
   "From the integration": "इंटीग्रेशन से",
   "HACS / custom": "HACS / कस्टम",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "Home Assistant के इंटीग्रेशन, आधिकारिक या HACS से, उन डिवाइस के साथ जो वे लाते हैं। अपना उपकरण चुनें: उसकी सभी एंटिटी साथ आती हैं, और कार्ड के फ़ील्ड अपने आप भर जाते हैं।",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn, Home Connect, Miele, LG ThinQ, एक Shelly प्लग…: डिवाइस चुनें और खाली फ़ील्ड अपने आप भर जाते हैं। हाथ से लिखे हुए वैसे ही रहते हैं।",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn, Home Connect, Miele, LG ThinQ, SmartThings, एक Shelly प्लग… डिवाइस चुनें और उपकरण अपनी सभी एंटिटी के साथ सही जगह पर आ जाता है। या, नीचे, एक बार में एक एंटिटी।",
-  "Integrations": "इंटीग्रेशन",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "Home Assistant के इंटीग्रेशन, आधिकारिक या HACS से, उन डिवाइस के साथ जो वे लाते हैं। अपना उपकरण चुनें: उसकी सभी एंटिटी साथ आती हैं, और कार्ड के फ़ील्ड अपने आप भर जाते हैं।",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn, Home Connect, Miele, LG ThinQ, एक Shelly प्लग…: डिवाइस चुनें और खाली फ़ील्ड अपने आप भर जाते हैं। हाथ से लिखे हुए वैसे ही रहते हैं।",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn, Home Connect, Miele, LG ThinQ, SmartThings, एक Shelly प्लग… डिवाइस चुनें और उपकरण अपनी सभी एंटिटी के साथ सही जगह पर आ जाता है। या, नीचे, एक बार में एक एंटिटी।",
+  Integrations: "इंटीग्रेशन",
   "last cycle cost": "पिछले चक्र की लागत",
   "last cycle energy": "पिछले चक्र की ऊर्जा",
   "last cycle start": "पिछले चक्र की शुरुआत",
@@ -2771,9 +2781,11 @@ export default Object.freeze({
   "Linked device": "लिंक किया गया डिवाइस",
   "monthly energy": "मासिक ऊर्जा",
   "No device by that name.": "इस नाम का कोई डिवाइस नहीं।",
-  "No empty field to fill in: the ones written by hand stay.": "भरने के लिए कोई खाली फ़ील्ड नहीं: हाथ से लिखे हुए वैसे ही रहते हैं।",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "डिवाइस वाला कोई इंटीग्रेशन नहीं मिला: Home Assistant में अभी एंटिटी वाला कोई डिवाइस नहीं है।",
-  "Official": "आधिकारिक",
+  "No empty field to fill in: the ones written by hand stay.":
+    "भरने के लिए कोई खाली फ़ील्ड नहीं: हाथ से लिखे हुए वैसे ही रहते हैं।",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "डिवाइस वाला कोई इंटीग्रेशन नहीं मिला: Home Assistant में अभी एंटिटी वाला कोई डिवाइस नहीं है।",
+  Official: "आधिकारिक",
   "Pick the device": "डिवाइस चुनें",
   "program duration": "प्रोग्राम की अवधि",
   "program state": "प्रोग्राम की स्थिति",
@@ -2784,13 +2796,20 @@ export default Object.freeze({
   "Save failed: ": "सहेजना विफल: ",
   "Search a device…": "डिवाइस खोजें…",
   "second temperature": "दूसरा तापमान",
-  "temperature": "तापमान",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "उपकरण का विवरण डिवाइस की हर एंटिटी दिखाता है; नीचे वे जो कार्ड बनाती हैं।",
+  temperature: "तापमान",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "उपकरण का विवरण डिवाइस की हर एंटिटी दिखाता है; नीचे वे जो कार्ड बनाती हैं।",
   "The device controls": "डिवाइस के नियंत्रण",
   "The device readings": "डिवाइस की रीडिंग",
   "The device state": "डिवाइस की स्थिति",
   "total energy": "कुल ऊर्जा",
-  "Unlink": "अनलिंक करें",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "अनलिंक किया गया: फ़ील्ड जैसे हैं वैसे रहते हैं, और नीचे का बटन सहेजता है।",
+  Unlink: "अनलिंक करें",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "अनलिंक किया गया: फ़ील्ड जैसे हैं वैसे रहते हैं, और नीचे का बटन सहेजता है।",
   "Use this device": "इस डिवाइस का उपयोग करें",
+  "Also take ${voci.length} sensors that live outside the device":
+    "उपकरण के बाहर रहने वाले ${voci.length} सेंसर भी लें",
+  "Also take 1 sensor that lives outside the device": "उपकरण के बाहर रहने वाला 1 सेंसर भी लें",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "ये इस उपकरण का नाम रखते हैं पर रजिस्ट्री की किसी और प्रविष्टि के हैं: लगभग हमेशा मशीन के नीचे लगा स्मार्ट प्लग, या कोई सेंसर जो आपने खुद बनाया है।",
 });

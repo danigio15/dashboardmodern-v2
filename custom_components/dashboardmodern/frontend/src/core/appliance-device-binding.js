@@ -235,7 +235,7 @@ const ROLES = Object.freeze([
       /* Le stesse, come le scrive un Home Assistant in italiano. Radici e non
        * parole intere: «risciacquo» e «risciacqui» sono la stessa opzione. */
       if (
-        /(pausa|prelavagg|risciacqu|vapore|acquaplus|ammollo|notturn|blocco|bambin|antipiega|stiro|detersiv|ritard|sporco|silenzios|centrifug|temperatur|programm|efficienz|capacit|carico|lingua)/.test(
+        /(pausa|prelavagg|risciacqu|vapore|acquaplus|ammollo|notturn|notte|blocco|bambin|antipieg|stiro|detersiv|ritard|sporco|silenzios|centrifug|temperatur|programm|efficienz|capacit|carico|lingua|igien|hygiene)/.test(
           clues,
         )
       )
@@ -322,6 +322,87 @@ export function proposeRoles(entities = [], states = {}, { type = "", deviceName
     proposal[role.key] = best.entity.entity_id;
   }
   return proposal;
+}
+
+/* I sensori che stanno fuori dal dispositivo ma parlano di lui.
+ *
+ * La lavatrice di chi ha chiesto la funzione e' due dispositivi, non uno: hOn
+ * porta il programma, la fase, il tempo rimanente e i comandi, e una presa
+ * Zigbee sotto la macchina porta i watt e il contatore. Sono due voci diverse
+ * nel registro di Home Assistant, e nessuna delle due, da sola, riempie una
+ * card. In mezzo ci sono anche i sensori che uno si costruisce da se' —
+ * `sensor.energy_oggi_lavatrice`, `sensor.energy_mese_lavatrice` — che non
+ * stanno su nessun dispositivo perche' sono aiutanti.
+ *
+ * Si cercano solo per le caselle rimaste vuote, e solo quelle dei numeri:
+ * potenza ed energia. Il comando no, mai — pescare un interruttore per nome
+ * vuol dire prima o poi accendere l'apparecchio del vicino di scaffale. E si
+ * cercano solo fra le entita' che portano il nome del dispositivo scritto
+ * dentro, che e' l'unica parentela verificabile senza chiedere a nessuno.
+ */
+const RUOLI_FUORI = Object.freeze([
+  "power_entity",
+  "daily_energy_entity",
+  "monthly_energy_entity",
+  "total_energy_entity",
+]);
+
+function recordDalloStato(entity_id, stato) {
+  const attributes = stato?.attributes || {};
+  return {
+    entity_id,
+    name: clean(attributes.friendly_name),
+    translation_key: "",
+    unit: clean(attributes.unit_of_measurement),
+    device_class: clean(attributes.device_class),
+    state_class: clean(attributes.state_class),
+    category: "",
+    disabled: false,
+  };
+}
+
+export function cercaFuoriDalDispositivo({
+  deviceName = "",
+  states = {},
+  escludi = [],
+  ruoli = RUOLI_FUORI,
+} = {}) {
+  /* Parole di almeno quattro lettere: «tv» dentro un id lo trova ovunque. */
+  const token = nomeRidotto(deviceName)
+    .split(" ")
+    .filter((pezzo) => pezzo.length >= 4);
+  if (!token.length) return {};
+  const gia = new Set(escludi.map(clean).filter(Boolean));
+  const parenti = Object.entries(states)
+    .filter(([id]) => id.startsWith("sensor.") && !gia.has(id))
+    .map(([id, stato]) => recordDalloStato(id, stato))
+    .filter((record) => {
+      const parole = nomeRidotto(`${record.entity_id} ${record.name}`);
+      return token.every((pezzo) => parole.includes(pezzo));
+    });
+  if (!parenti.length) return {};
+  const presi = new Set();
+  const trovati = {};
+  for (const chiave of ruoli) {
+    const role = ROLES.find((item) => item.key === chiave);
+    if (!role) continue;
+    let best = null;
+    for (const record of parenti) {
+      if (presi.has(record.entity_id)) continue;
+      const score = role.score(record, entityClues(record), states, {});
+      if (score == null || score <= 0) continue;
+      if (
+        !best ||
+        score > best.score ||
+        (score === best.score && record.entity_id.length < best.record.entity_id.length)
+      )
+        best = { record, score };
+    }
+    if (!best) continue;
+    presi.add(best.record.entity_id);
+    trovati[chiave] = best.record;
+  }
+  return trovati;
 }
 
 /* Che apparecchio e', letto da nome, modello e dalle sue entita'. */
@@ -417,7 +498,7 @@ export function bindingLabel(appliance = {}, locale = "it") {
  */
 export function bindApplianceToDevice(
   appliance = {},
-  { device = {}, entities = [], integration = null, states = {}, rooms = [] } = {},
+  { device = {}, entities = [], integration = null, states = {}, rooms = [], outside = null } = {},
 ) {
   /* Chi collega un dispositivo ha detto tutto, comprese le caselle lasciate
    * vuote: la passata che indovina le entita' dal nome dell'apparecchio —
@@ -470,6 +551,10 @@ export function bindApplianceToDevice(
     type: next.visual_key,
     deviceName: device.name,
   });
+  /* I parenti di fuori riempiono solo dove il dispositivo non arriva. */
+  for (const [role, record] of Object.entries(outside || {})) {
+    if (!proposal[role] && record?.entity_id) proposal[role] = record.entity_id;
+  }
   const filled = [];
   const kept = [];
   for (const [role, entity] of Object.entries(proposal)) {

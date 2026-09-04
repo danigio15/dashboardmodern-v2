@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "개",
-  "ONLINE": "온라인",
-  "OFFLINE": "오프라인",
+  ONLINE: "온라인",
+  OFFLINE: "오프라인",
   "NOT CONNECTED": "연결 안 됨",
   "NOT CONFIGURED": "설정 안 됨",
   "NO BOX FILLED IN": "입력된 항목 없음",
-  "CONNECTED": "연결됨",
+  CONNECTED: "연결됨",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "홈의 알림 타일(배터리, 누수)은 전할 말이 있을 때만 스스로 켜집니다. 여기서 어떤 센서를 지켜볼지 깔끔한 이름과 함께 고르거나, 조건과 직접 적은 상태, 원하는 아이콘으로 하나 이상의 엔터티에 사용자 지정 알림을 만듭니다. 문과 창은 더 이상 여기에 없습니다. 블라인드의 접점으로 「창문」 타일이 알려 줍니다.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "홈에 표시할 타일과 순서를 선택하세요. 알림 타일(배터리, 누수, 사용자 지정 알림)은 알릴 것이 있을 때만 스스로 나타납니다.",
-  "playing": "개 재생 중",
-  "Volume": "볼륨",
-  "Unmute": "음소거 해제",
+  playing: "개 재생 중",
+  Volume: "볼륨",
+  Unmute: "음소거 해제",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "여기에 등록한 플레이어는 전용 페이지를 갖고, 재생 중인 앨범 아트가 배경이 됩니다. 나타나는 버튼은 그 플레이어가 실제로 할 수 있는 것뿐입니다. 다음 트랙이 없으면 그 버튼도 없습니다. 홈의 빠른 작업에 넣을 수도 있습니다. 거기서는 타일이 앨범 아트를 배경으로 삼고, 누르면 일시정지하거나 다시 재생합니다.",
-  "Source": "입력",
+  Source: "입력",
   "Save player": "플레이어 저장",
   "Previous track": "이전 트랙",
-  "Play": "재생",
+  Play: "재생",
   "Nothing playing": "재생 중인 항목 없음",
   "No media player configured.": "설정된 미디어 플레이어가 없습니다.",
   "Next track": "다음 트랙",
   "New player": "새 플레이어",
-  "Mute": "음소거",
+  Mute: "음소거",
   "Media player": "미디어 플레이어",
   "Add player": "플레이어 추가",
   "1 playing": "1개 재생 중",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "페이지 선택",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "한 페이지에는 최대 열두 개까지만 표시됩니다. 그 이상은 «하나 더»가 아니라 목록이며 — 그것을 위해 «내 섹션»이 있습니다.",
-  "Tank": "저탕조",
+  Tank: "저탕조",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "이것이 있으면 페이지에 스위치가 생깁니다: 상태는 도는지를 말하고, 이건 그것을 움직입니다.",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2730,37 +2730,47 @@ export default Object.freeze({
   "Zoom in": "확대",
   "Zoom out": "축소",
   "← All conversations": "← 모든 대화",
-  "A private conversation with whoever maintains the dashboard": "대시보드를 관리하는 사람과의 비공개 대화",
+  "A private conversation with whoever maintains the dashboard":
+    "대시보드를 관리하는 사람과의 비공개 대화",
   "Conversation deleted.": "대화를 삭제했습니다.",
-  "Conversations": "대화",
+  Conversations: "대화",
   "Delete the conversation": "대화 삭제",
-  "Go ahead and write: on the other side there is a person, not a form.": "편하게 쓰세요. 반대편에는 양식이 아니라 사람이 있습니다.",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "편하게 쓰세요. 반대편에는 양식이 아니라 사람이 있습니다.",
   "No open conversation.": "열린 대화가 없습니다.",
-  "Support": "지원",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "여기에 쓴 내용은 대시보드를 관리하는 사람에게만 전달됩니다. GitHub을 거치지 않고 공개되지도 않습니다. 메시지와 함께 전송되는 것은 대시보드 버전, Home Assistant 버전, 언어뿐입니다. 대화는 언제든지 삭제할 수 있습니다.",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "대시보드를 관리하는 사람에게 쓰기: GitHub을 거치지 않는 비공개 대화",
+  Support: "지원",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "여기에 쓴 내용은 대시보드를 관리하는 사람에게만 전달됩니다. GitHub을 거치지 않고 공개되지도 않습니다. 메시지와 함께 전송되는 것은 대시보드 버전, Home Assistant 버전, 언어뿐입니다. 대화는 언제든지 삭제할 수 있습니다.",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "대시보드를 관리하는 사람에게 쓰기: GitHub을 거치지 않는 비공개 대화",
   "Write your message…": "메시지를 쓰세요…",
   "Leave empty if you prefer": "원하지 않으면 비워 두세요",
   "Your name (optional)": "이름 (선택)",
   "${appliance.name} added from the integration": "${appliance.name}을(를) 통합에서 추가했습니다",
-  "${appliance.name} added: ${quante} fields filled from the integration": "${appliance.name} 추가됨: 통합에서 ${quante}개 항목을 채움",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente}개 엔티티가 Home Assistant에서 비활성화되어 있습니다: 여기서도 보려면 거기서 활성화하세요.",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "${appliance.name} 추가됨: 통합에서 ${quante}개 항목을 채움",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente}개 엔티티가 Home Assistant에서 비활성화되어 있습니다: 여기서도 보려면 거기서 활성화하세요.",
   "1 entity": "엔티티 1개",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "엔티티 1개가 Home Assistant에서 비활성화되어 있습니다: 여기서도 보려면 거기서 활성화하세요.",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "엔티티 1개가 Home Assistant에서 비활성화되어 있습니다: 여기서도 보려면 거기서 활성화하세요.",
   "Add from an integration": "통합에서 추가",
-  "alarm": "알람",
+  alarm: "알람",
   "Cannot read the entities: ": "엔티티를 읽을 수 없습니다: ",
   "Cannot read the integrations: ": "통합을 읽을 수 없습니다: ",
   "Change device": "장치 변경",
-  "control": "제어",
+  control: "제어",
   "daily energy": "일일 에너지",
   "Filled ${count} fields: ${list}.": "${count}개 항목을 채웠습니다: ${list}.",
   "From the integration": "통합에서",
   "HACS / custom": "HACS / 사용자 지정",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "Home Assistant 통합(공식 또는 HACS)과 그 통합이 가져오는 장치입니다. 가전제품을 선택하세요: 모든 엔티티가 함께 들어오고 카드 항목은 저절로 채워집니다.",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn, Home Connect, Miele, LG ThinQ, Shelly 플러그…: 장치를 선택하면 빈 항목이 저절로 채워집니다. 직접 쓴 것은 그대로 남습니다.",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn, Home Connect, Miele, LG ThinQ, SmartThings, Shelly 플러그… 장치를 선택하면 가전제품이 모든 엔티티를 제자리에 갖춘 채로 들어옵니다. 또는 아래에서 엔티티를 하나씩.",
-  "Integrations": "통합",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "Home Assistant 통합(공식 또는 HACS)과 그 통합이 가져오는 장치입니다. 가전제품을 선택하세요: 모든 엔티티가 함께 들어오고 카드 항목은 저절로 채워집니다.",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn, Home Connect, Miele, LG ThinQ, Shelly 플러그…: 장치를 선택하면 빈 항목이 저절로 채워집니다. 직접 쓴 것은 그대로 남습니다.",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn, Home Connect, Miele, LG ThinQ, SmartThings, Shelly 플러그… 장치를 선택하면 가전제품이 모든 엔티티를 제자리에 갖춘 채로 들어옵니다. 또는 아래에서 엔티티를 하나씩.",
+  Integrations: "통합",
   "last cycle cost": "마지막 사이클 비용",
   "last cycle energy": "마지막 사이클 에너지",
   "last cycle start": "마지막 사이클 시작",
@@ -2768,9 +2778,11 @@ export default Object.freeze({
   "Linked device": "연결된 장치",
   "monthly energy": "월간 에너지",
   "No device by that name.": "그 이름의 장치가 없습니다.",
-  "No empty field to fill in: the ones written by hand stay.": "채울 빈 항목이 없습니다: 직접 쓴 것은 그대로 남습니다.",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "장치가 있는 통합을 찾지 못했습니다: Home Assistant에 아직 엔티티가 있는 장치가 없습니다.",
-  "Official": "공식",
+  "No empty field to fill in: the ones written by hand stay.":
+    "채울 빈 항목이 없습니다: 직접 쓴 것은 그대로 남습니다.",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "장치가 있는 통합을 찾지 못했습니다: Home Assistant에 아직 엔티티가 있는 장치가 없습니다.",
+  Official: "공식",
   "Pick the device": "장치 선택",
   "program duration": "프로그램 소요 시간",
   "program state": "프로그램 상태",
@@ -2781,13 +2793,20 @@ export default Object.freeze({
   "Save failed: ": "저장 실패: ",
   "Search a device…": "장치 검색…",
   "second temperature": "두 번째 온도",
-  "temperature": "온도",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "가전제품 상세에는 장치의 모든 엔티티가 표시됩니다. 아래는 카드를 그리는 엔티티입니다.",
+  temperature: "온도",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "가전제품 상세에는 장치의 모든 엔티티가 표시됩니다. 아래는 카드를 그리는 엔티티입니다.",
   "The device controls": "장치 제어",
   "The device readings": "장치 측정값",
   "The device state": "장치 상태",
   "total energy": "총 에너지",
-  "Unlink": "연결 해제",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "연결 해제됨: 항목은 그대로 두고 아래 버튼으로 저장합니다.",
+  Unlink: "연결 해제",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "연결 해제됨: 항목은 그대로 두고 아래 버튼으로 저장합니다.",
   "Use this device": "이 장치 사용",
+  "Also take ${voci.length} sensors that live outside the device":
+    "기기 밖에 있는 센서 ${voci.length}개도 함께 가져오기",
+  "Also take 1 sensor that lives outside the device": "기기 밖에 있는 센서 1개도 함께 가져오기",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "이 가전의 이름을 달고 있지만 레지스트리에서는 다른 항목입니다. 대개는 세탁기 아래의 스마트 플러그이거나 직접 만든 센서입니다.",
 });

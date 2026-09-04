@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "открываний",
-  "ONLINE": "В СЕТИ",
-  "OFFLINE": "НЕ В СЕТИ",
+  ONLINE: "В СЕТИ",
+  OFFLINE: "НЕ В СЕТИ",
   "NOT CONNECTED": "НЕТ СВЯЗИ",
   "NOT CONFIGURED": "НЕ НАСТРОЕНО",
   "NO BOX FILLED IN": "НИ ОДНО ПОЛЕ НЕ ЗАПОЛНЕНО",
-  "CONNECTED": "ЕСТЬ СВЯЗЬ",
+  CONNECTED: "ЕСТЬ СВЯЗЬ",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "Плитки оповещений на главной — батареи, протечки — загораются сами только тогда, когда им есть что сказать. Здесь выбирается, за какими датчиками они следят, с понятным именем, или создаётся своё оповещение на одну или несколько сущностей — с условием, вручную заданным состоянием и значком на выбор. Дверей и окон здесь больше нет: о них говорит плитка «Окна», по контактам жалюзи.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "Выберите, какие плитки видны на главной и в каком порядке. Плитки оповещений — батареи, протечки и свои оповещения — появляются сами только тогда, когда им есть что сказать.",
-  "playing": "играют",
-  "Volume": "Громкость",
-  "Unmute": "Включить звук",
+  playing: "играют",
+  Volume: "Громкость",
+  Unmute: "Включить звук",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "Плееры, которые вы здесь объявите, получают собственную страницу, а фоном — обложку того, что они играют. Появляются только те кнопки, которые плеер действительно умеет: нет следующего трека — нет и кнопки. Их можно поставить и в Быстрые действия на главной: там плитка берёт обложку фоном, а касание ставит на паузу или продолжает.",
-  "Source": "Источник",
+  Source: "Источник",
   "Save player": "Сохранить плеер",
   "Previous track": "Предыдущий трек",
-  "Play": "Воспроизвести",
+  Play: "Воспроизвести",
   "Nothing playing": "Ничего не играет",
   "No media player configured.": "Ни одного плеера не настроено.",
   "Next track": "Следующий трек",
   "New player": "Новый плеер",
-  "Mute": "Выключить звук",
+  Mute: "Выключить звук",
   "Media player": "Медиаплеер",
   "Add player": "Добавить плеер",
   "1 playing": "1 играет",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "Выберите страницу",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "На одной странице показываются не больше двенадцати: дальше это уже не «что-то ещё», а список — и для этого есть «Ваши разделы».",
-  "Tank": "Бак",
+  Tank: "Бак",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "С ним на странице появляется выключатель: состояние говорит, работает ли он, а этот им командует.",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2756,37 +2756,47 @@ export default Object.freeze({
   "Zoom in": "Приблизить",
   "Zoom out": "Отдалить",
   "← All conversations": "← Все разговоры",
-  "A private conversation with whoever maintains the dashboard": "Личный разговор с тем, кто поддерживает панель",
+  "A private conversation with whoever maintains the dashboard":
+    "Личный разговор с тем, кто поддерживает панель",
   "Conversation deleted.": "Разговор удалён.",
-  "Conversations": "Разговоры",
+  Conversations: "Разговоры",
   "Delete the conversation": "Удалить разговор",
-  "Go ahead and write: on the other side there is a person, not a form.": "Пишите спокойно: на той стороне человек, а не форма.",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "Пишите спокойно: на той стороне человек, а не форма.",
   "No open conversation.": "Открытых разговоров нет.",
-  "Support": "Поддержка",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "То, что вы напишете здесь, попадёт к тому, кто поддерживает панель, и больше ни к кому. Это не проходит через GitHub и не становится публичным. Вместе с сообщением отправляются только версия панели, версия Home Assistant и язык. Разговор можно удалить в любой момент.",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "Напишите тому, кто поддерживает панель: личный разговор, без GitHub",
+  Support: "Поддержка",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "То, что вы напишете здесь, попадёт к тому, кто поддерживает панель, и больше ни к кому. Это не проходит через GitHub и не становится публичным. Вместе с сообщением отправляются только версия панели, версия Home Assistant и язык. Разговор можно удалить в любой момент.",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "Напишите тому, кто поддерживает панель: личный разговор, без GitHub",
   "Write your message…": "Напишите своё сообщение…",
   "Leave empty if you prefer": "Оставьте пустым, если так удобнее",
   "Your name (optional)": "Как вас зовут (необязательно)",
   "${appliance.name} added from the integration": "${appliance.name} добавлен из интеграции",
-  "${appliance.name} added: ${quante} fields filled from the integration": "${appliance.name} добавлен: ${quante} полей заполнено из интеграции",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} объектов отключены в Home Assistant: включите их там, чтобы видеть и здесь.",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "${appliance.name} добавлен: ${quante} полей заполнено из интеграции",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} объектов отключены в Home Assistant: включите их там, чтобы видеть и здесь.",
   "1 entity": "1 объект",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "1 объект отключён в Home Assistant: включите его там, чтобы видеть и здесь.",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "1 объект отключён в Home Assistant: включите его там, чтобы видеть и здесь.",
   "Add from an integration": "Добавить из интеграции",
-  "alarm": "тревога",
+  alarm: "тревога",
   "Cannot read the entities: ": "Не удаётся прочитать объекты: ",
   "Cannot read the integrations: ": "Не удаётся прочитать интеграции: ",
   "Change device": "Сменить устройство",
-  "control": "управление",
+  control: "управление",
   "daily energy": "энергия за день",
   "Filled ${count} fields: ${list}.": "Заполнено полей: ${count} — ${list}.",
   "From the integration": "Из интеграции",
   "HACS / custom": "HACS / пользовательская",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "Интеграции Home Assistant, официальные или из HACS, с устройствами, которые они приносят. Выберите свой прибор: все объекты придут вместе с ним, а поля карточки заполнятся сами.",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn, Home Connect, Miele, LG ThinQ, розетка Shelly…: выберите устройство, и пустые поля заполнятся сами. Написанное вручную останется.",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn, Home Connect, Miele, LG ThinQ, SmartThings, розетка Shelly… выберите устройство, и прибор появится со всеми объектами уже на своих местах. Или ниже — по одному объекту за раз.",
-  "Integrations": "Интеграции",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "Интеграции Home Assistant, официальные или из HACS, с устройствами, которые они приносят. Выберите свой прибор: все объекты придут вместе с ним, а поля карточки заполнятся сами.",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn, Home Connect, Miele, LG ThinQ, розетка Shelly…: выберите устройство, и пустые поля заполнятся сами. Написанное вручную останется.",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn, Home Connect, Miele, LG ThinQ, SmartThings, розетка Shelly… выберите устройство, и прибор появится со всеми объектами уже на своих местах. Или ниже — по одному объекту за раз.",
+  Integrations: "Интеграции",
   "last cycle cost": "стоимость последнего цикла",
   "last cycle energy": "энергия последнего цикла",
   "last cycle start": "начало последнего цикла",
@@ -2794,9 +2804,11 @@ export default Object.freeze({
   "Linked device": "Связанное устройство",
   "monthly energy": "энергия за месяц",
   "No device by that name.": "Устройства с таким именем нет.",
-  "No empty field to fill in: the ones written by hand stay.": "Нет пустых полей для заполнения: написанное вручную останется.",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "Интеграций с устройствами не найдено: в Home Assistant ещё нет устройства с объектами.",
-  "Official": "Официальная",
+  "No empty field to fill in: the ones written by hand stay.":
+    "Нет пустых полей для заполнения: написанное вручную останется.",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "Интеграций с устройствами не найдено: в Home Assistant ещё нет устройства с объектами.",
+  Official: "Официальная",
   "Pick the device": "Выбрать устройство",
   "program duration": "длительность программы",
   "program state": "состояние программы",
@@ -2807,13 +2819,21 @@ export default Object.freeze({
   "Save failed: ": "Сохранение не удалось: ",
   "Search a device…": "Найти устройство…",
   "second temperature": "вторая температура",
-  "temperature": "температура",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "В деталях прибора видны все объекты устройства; ниже — те, что рисуют карточку.",
+  temperature: "температура",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "В деталях прибора видны все объекты устройства; ниже — те, что рисуют карточку.",
   "The device controls": "Управление устройством",
   "The device readings": "Показания устройства",
   "The device state": "Состояние устройства",
   "total energy": "общая энергия",
-  "Unlink": "Отвязать",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "Отвязано: поля остаются как есть, а кнопка внизу сохраняет.",
+  Unlink: "Отвязать",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "Отвязано: поля остаются как есть, а кнопка внизу сохраняет.",
   "Use this device": "Использовать это устройство",
+  "Also take ${voci.length} sensors that live outside the device":
+    "Взять и ${voci.length} датчиков, которые живут вне устройства",
+  "Also take 1 sensor that lives outside the device":
+    "Взять и 1 датчик, который живёт вне устройства",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "Они носят имя этого прибора, но принадлежат другой записи реестра: почти всегда это умная розетка под машиной или датчик, который вы собрали сами.",
 });

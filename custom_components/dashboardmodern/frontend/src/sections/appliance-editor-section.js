@@ -446,7 +446,7 @@ function wireBinding(modal, form, device) {
   paintBinding(modal, form);
   box.querySelector("[data-binding-link]")?.addEventListener("click", () => {
     apriMenuIntegrazioni({
-      onScelto({ integration, device: chosen, entities }) {
+      onScelto({ integration, device: chosen, entities, outside }) {
         const values = Object.fromEntries(new FormData(form).entries());
         const icon = editorVisualKey(values.icon) || deviceVisualKey(device);
         const draft = { ...device, ...values, icon, visual_key: icon, device_type: icon };
@@ -455,6 +455,7 @@ function wireBinding(modal, form, device) {
           integration,
           device: chosen,
           entities,
+          outside,
           states: allStates(),
           rooms,
         });

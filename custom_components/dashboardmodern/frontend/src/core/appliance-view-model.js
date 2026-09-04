@@ -150,6 +150,11 @@ const PAROLE_CHE_LAVORANO = Object.freeze([
   "working",
   "aborting",
   "cancelling",
+  /* hOn scrive `ending` negli ultimi minuti, prima di tornare `ready`. Il
+   * ciclo non e' finito: l'oblo' e' ancora chiuso e il bucato e' dentro.
+   * Meglio dire IN FUNZIONE un minuto di troppo che dire finito un minuto
+   * troppo presto a chi sta aspettando per stendere. */
+  "ending",
   // Le fasi di un ciclo: lavaggio, risciacquo, centrifuga, asciugatura.
   "washing",
   "wash",
@@ -229,6 +234,12 @@ const PAROLE_CHE_ASPETTANO = Object.freeze([
   "waitingtostart",
   "waiting",
   "queued",
+  /* Un guasto non e' uno spegnimento. Dire SPENTO a una macchina in errore
+   * nasconde il guasto; STANDBY la lascia in vista, e la parola vera si
+   * legge nel dettaglio. */
+  "error",
+  "errore",
+  "guasto",
   "dooropen",
   "doorisopen",
   "setprogram",

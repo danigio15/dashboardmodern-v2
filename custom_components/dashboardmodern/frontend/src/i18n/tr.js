@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "açılış",
-  "ONLINE": "ÇEVRİMİÇİ",
-  "OFFLINE": "ÇEVRİMDIŞI",
+  ONLINE: "ÇEVRİMİÇİ",
+  OFFLINE: "ÇEVRİMDIŞI",
   "NOT CONNECTED": "BAĞLI DEĞİL",
   "NOT CONFIGURED": "YAPILANDIRILMADI",
   "NO BOX FILLED IN": "HİÇBİR KUTU DOLDURULMADI",
-  "CONNECTED": "BAĞLI",
+  CONNECTED: "BAĞLI",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "Ana sayfadaki uyarı kartları — piller, su baskını — yalnızca söyleyecek bir şeyleri olduğunda kendiliğinden yanar. Burada hangi sensörleri gözleyeceklerini temiz bir adla seçersin ya da bir veya birden çok varlık için koşullu, elle yazılmış durumlu ve istediğin simgeye sahip özel bir uyarı oluşturursun. Kapılar ve pencereler artık burada değil: onları panjur kontaklarıyla Pencereler karosu söyler.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "Home'da hangi karoların görüneceğini ve sırasını seç. Uyarı karoları — piller, su kaçakları ve özel uyarılar — yalnızca söyleyecekleri bir şey olduğunda kendiliğinden görünür.",
-  "playing": "çalıyor",
-  "Volume": "Ses",
-  "Unmute": "Sesi aç",
+  playing: "çalıyor",
+  Volume: "Ses",
+  Unmute: "Sesi aç",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "Burada tanımladığın oynatıcıların kendi sayfası olur, arka planında da çaldıkları şeyin kapağı. Görünen düğmeler oynatıcının gerçekten yapabildikleridir: sonraki parça yoksa o düğme çizilmez. Onları Ana sayfadaki Hızlı işlemler arasına da koyabilirsin: orada kutucuk kapağı arka plan yapar, dokununca duraklatır ya da devam ettirir.",
-  "Source": "Kaynak",
+  Source: "Kaynak",
   "Save player": "Oynatıcıyı kaydet",
   "Previous track": "Önceki parça",
-  "Play": "Oynat",
+  Play: "Oynat",
   "Nothing playing": "Hiçbir şey çalmıyor",
   "No media player configured.": "Yapılandırılmış oynatıcı yok.",
   "Next track": "Sonraki parça",
   "New player": "Yeni oynatıcı",
-  "Mute": "Sesi kapat",
+  Mute: "Sesi kapat",
   "Media player": "Medya oynatıcı",
   "Add player": "Oynatıcı ekle",
   "1 playing": "1 çalıyor",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "Sayfayı seç",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "Bir sayfada en fazla on iki tanesi görünür: ötesi artık «bir şey daha» değil, bir listedir — ve bunun için «Kendi bölümlerin» var.",
-  "Tank": "Boyler",
+  Tank: "Boyler",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Bununla sayfa bir düğme kazanır: durum çalışıp çalışmadığını söyler, bu onu komuta eder.",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2743,37 +2743,47 @@ export default Object.freeze({
   "Zoom in": "Yakınlaştır",
   "Zoom out": "Uzaklaştır",
   "← All conversations": "← Tüm konuşmalar",
-  "A private conversation with whoever maintains the dashboard": "Panoyu sürdüren kişiyle özel bir konuşma",
+  "A private conversation with whoever maintains the dashboard":
+    "Panoyu sürdüren kişiyle özel bir konuşma",
   "Conversation deleted.": "Konuşma silindi.",
-  "Conversations": "Konuşmalar",
+  Conversations: "Konuşmalar",
   "Delete the conversation": "Konuşmayı sil",
-  "Go ahead and write: on the other side there is a person, not a form.": "Çekinmeden yaz: karşı tarafta bir form değil, bir insan var.",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "Çekinmeden yaz: karşı tarafta bir form değil, bir insan var.",
   "No open conversation.": "Açık konuşma yok.",
-  "Support": "Destek",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "Buraya yazdığın şey panoyu sürdüren kişiye ulaşır, başka kimseye değil. GitHub üzerinden geçmez ve herkese açık olmaz. Mesajla birlikte yalnızca pano sürümü, Home Assistant sürümü ve dil gönderilir. Konuşmayı istediğin zaman silebilirsin.",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "Panoyu sürdüren kişiye yaz: GitHub'dan geçmeyen özel bir konuşma",
+  Support: "Destek",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "Buraya yazdığın şey panoyu sürdüren kişiye ulaşır, başka kimseye değil. GitHub üzerinden geçmez ve herkese açık olmaz. Mesajla birlikte yalnızca pano sürümü, Home Assistant sürümü ve dil gönderilir. Konuşmayı istediğin zaman silebilirsin.",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "Panoyu sürdüren kişiye yaz: GitHub'dan geçmeyen özel bir konuşma",
   "Write your message…": "Mesajını yaz…",
   "Leave empty if you prefer": "İstersen boş bırak",
   "Your name (optional)": "Adın (isteğe bağlı)",
   "${appliance.name} added from the integration": "${appliance.name} entegrasyondan eklendi",
-  "${appliance.name} added: ${quante} fields filled from the integration": "${appliance.name} eklendi: entegrasyondan ${quante} alan dolduruldu",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} varlık Home Assistant'ta devre dışı: burada da görmek için orada etkinleştirin.",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "${appliance.name} eklendi: entegrasyondan ${quante} alan dolduruldu",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} varlık Home Assistant'ta devre dışı: burada da görmek için orada etkinleştirin.",
   "1 entity": "1 varlık",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "1 varlık Home Assistant'ta devre dışı: burada da görmek için orada etkinleştirin.",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "1 varlık Home Assistant'ta devre dışı: burada da görmek için orada etkinleştirin.",
   "Add from an integration": "Bir entegrasyondan ekle",
-  "alarm": "uyarı",
+  alarm: "uyarı",
   "Cannot read the entities: ": "Varlıklar okunamıyor: ",
   "Cannot read the integrations: ": "Entegrasyonlar okunamıyor: ",
   "Change device": "Cihazı değiştir",
-  "control": "kumanda",
+  control: "kumanda",
   "daily energy": "günlük enerji",
   "Filled ${count} fields: ${list}.": "${count} alan dolduruldu: ${list}.",
   "From the integration": "Entegrasyondan",
   "HACS / custom": "HACS / özel",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "Home Assistant entegrasyonları, resmî ya da HACS'ten, getirdikleri cihazlarla birlikte. Cihazınızı seçin: tüm varlıklar onunla gelir ve kartın alanları kendiliğinden dolar.",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn, Home Connect, Miele, LG ThinQ, bir Shelly priz…: cihazı seçin, boş alanlar kendiliğinden dolsun. Elle yazılanlar kalır.",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn, Home Connect, Miele, LG ThinQ, SmartThings, bir Shelly priz… cihazı seçin, cihaz tüm varlıklarıyla doğru yere yerleşmiş olarak gelsin. Ya da aşağıda, her seferinde bir varlık.",
-  "Integrations": "Entegrasyonlar",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "Home Assistant entegrasyonları, resmî ya da HACS'ten, getirdikleri cihazlarla birlikte. Cihazınızı seçin: tüm varlıklar onunla gelir ve kartın alanları kendiliğinden dolar.",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn, Home Connect, Miele, LG ThinQ, bir Shelly priz…: cihazı seçin, boş alanlar kendiliğinden dolsun. Elle yazılanlar kalır.",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn, Home Connect, Miele, LG ThinQ, SmartThings, bir Shelly priz… cihazı seçin, cihaz tüm varlıklarıyla doğru yere yerleşmiş olarak gelsin. Ya da aşağıda, her seferinde bir varlık.",
+  Integrations: "Entegrasyonlar",
   "last cycle cost": "son çevrimin maliyeti",
   "last cycle energy": "son çevrimin enerjisi",
   "last cycle start": "son çevrimin başlangıcı",
@@ -2781,9 +2791,11 @@ export default Object.freeze({
   "Linked device": "Bağlı cihaz",
   "monthly energy": "aylık enerji",
   "No device by that name.": "Bu adda cihaz yok.",
-  "No empty field to fill in: the ones written by hand stay.": "Doldurulacak boş alan yok: elle yazılanlar kalır.",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "Cihazı olan entegrasyon bulunamadı: Home Assistant'ta henüz varlığı olan bir cihaz yok.",
-  "Official": "Resmî",
+  "No empty field to fill in: the ones written by hand stay.":
+    "Doldurulacak boş alan yok: elle yazılanlar kalır.",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "Cihazı olan entegrasyon bulunamadı: Home Assistant'ta henüz varlığı olan bir cihaz yok.",
+  Official: "Resmî",
   "Pick the device": "Cihazı seç",
   "program duration": "program süresi",
   "program state": "program durumu",
@@ -2794,13 +2806,20 @@ export default Object.freeze({
   "Save failed: ": "Kaydetme başarısız: ",
   "Search a device…": "Cihaz ara…",
   "second temperature": "ikinci sıcaklık",
-  "temperature": "sıcaklık",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "Cihaz ayrıntısı cihazın her varlığını gösterir; aşağıda kartı çizenler.",
+  temperature: "sıcaklık",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "Cihaz ayrıntısı cihazın her varlığını gösterir; aşağıda kartı çizenler.",
   "The device controls": "Cihazın kumandaları",
   "The device readings": "Cihazın okumaları",
   "The device state": "Cihazın durumu",
   "total energy": "toplam enerji",
-  "Unlink": "Bağlantıyı kes",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "Bağlantı kesildi: alanlar olduğu gibi kalır, alttaki düğme kaydeder.",
+  Unlink: "Bağlantıyı kes",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "Bağlantı kesildi: alanlar olduğu gibi kalır, alttaki düğme kaydeder.",
   "Use this device": "Bu cihazı kullan",
+  "Also take ${voci.length} sensors that live outside the device":
+    "Cihazın dışında yaşayan ${voci.length} sensörü de al",
+  "Also take 1 sensor that lives outside the device": "Cihazın dışında yaşayan 1 sensörü de al",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "Bu cihazın adını taşıyorlar ama kayıt defterinde başka bir girişe aitler: neredeyse her zaman makinenin altındaki akıllı priz ya da kendi kurduğun bir sensör.",
 });

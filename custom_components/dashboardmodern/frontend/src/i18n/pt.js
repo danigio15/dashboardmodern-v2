@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "aberturas",
-  "ONLINE": "ONLINE",
-  "OFFLINE": "OFFLINE",
+  ONLINE: "ONLINE",
+  OFFLINE: "OFFLINE",
   "NOT CONNECTED": "SEM LIGAÇÃO",
   "NOT CONFIGURED": "POR CONFIGURAR",
   "NO BOX FILLED IN": "NENHUMA CAIXA PREENCHIDA",
-  "CONNECTED": "LIGADO",
+  CONNECTED: "LIGADO",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "Os mosaicos de aviso do Início — baterias, inundações — acendem-se sozinhos apenas quando têm algo a dizer. Aqui escolhes que sensores vigiam, com um nome limpo, ou crias um aviso personalizado sobre uma ou mais entidades, com condição, estado escrito à mão e ícone à escolha. As portas e as janelas já não estão aqui: di-las o mosaico Janelas, com os contactos dos estores.",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "Escolhe que mosaicos aparecem na Home e por que ordem. Os mosaicos de avisos — baterias, inundações e avisos personalizados — só aparecem sozinhos quando têm algo a dizer.",
-  "playing": "em reprodução",
-  "Volume": "Volume",
-  "Unmute": "Repor o som",
+  playing: "em reprodução",
+  Volume: "Volume",
+  Unmute: "Repor o som",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "Os leitores que declaras aqui têm uma página só deles, com a capa do que estão a tocar como fundo. Os botões que aparecem são os que o leitor sabe mesmo fazer: sem faixa seguinte, sem esse botão. Também os podes pôr nas Ações rápidas da Home: aí o botão fica com a capa como fundo, e tocar nele pausa ou retoma.",
-  "Source": "Fonte",
+  Source: "Fonte",
   "Save player": "Guardar leitor",
   "Previous track": "Faixa anterior",
-  "Play": "Reproduzir",
+  Play: "Reproduzir",
   "Nothing playing": "Nada em reprodução",
   "No media player configured.": "Nenhum leitor configurado.",
   "Next track": "Faixa seguinte",
   "New player": "Leitor novo",
-  "Mute": "Silenciar",
+  Mute: "Silenciar",
   "Media player": "Leitor multimédia",
   "Add player": "Adicionar leitor",
   "1 playing": "1 em reprodução",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "Escolhe a página",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "Numa página aparecem no máximo doze: para além disso já não é «mais uma coisa», é uma lista — e para isso há «As tuas secções».",
-  "Tank": "Depósito",
+  Tank: "Depósito",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "Com isto a página ganha um botão: o estado diz se está a trabalhar, este comanda-a.",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2759,37 +2759,48 @@ export default Object.freeze({
   "Zoom in": "Ampliar",
   "Zoom out": "Reduzir",
   "← All conversations": "← Todas as conversas",
-  "A private conversation with whoever maintains the dashboard": "Uma conversa privada com quem mantém o painel",
+  "A private conversation with whoever maintains the dashboard":
+    "Uma conversa privada com quem mantém o painel",
   "Conversation deleted.": "Conversa apagada.",
-  "Conversations": "Conversas",
+  Conversations: "Conversas",
   "Delete the conversation": "Apagar a conversa",
-  "Go ahead and write: on the other side there is a person, not a form.": "Escreve à vontade: do outro lado está uma pessoa, não um formulário.",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "Escreve à vontade: do outro lado está uma pessoa, não um formulário.",
   "No open conversation.": "Nenhuma conversa aberta.",
-  "Support": "Apoio",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "O que escreves aqui chega a quem mantém o painel, e a mais ninguém. Não passa pelo GitHub e não se torna público. Com a mensagem seguem apenas a versão do painel, a do Home Assistant e o idioma. Podes apagar a conversa quando quiseres.",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "Escreve a quem mantém o painel: uma conversa privada, sem passar pelo GitHub",
+  Support: "Apoio",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "O que escreves aqui chega a quem mantém o painel, e a mais ninguém. Não passa pelo GitHub e não se torna público. Com a mensagem seguem apenas a versão do painel, a do Home Assistant e o idioma. Podes apagar a conversa quando quiseres.",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "Escreve a quem mantém o painel: uma conversa privada, sem passar pelo GitHub",
   "Write your message…": "Escreve a tua mensagem…",
   "Leave empty if you prefer": "Deixa vazio se preferires",
   "Your name (optional)": "Como te chamas (opcional)",
-  "${appliance.name} added from the integration": "${appliance.name} adicionado a partir da integração",
-  "${appliance.name} added: ${quante} fields filled from the integration": "${appliance.name} adicionado: ${quante} campos preenchidos a partir da integração",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} entidades estão desativadas no Home Assistant: ative-as lá para as ver também aqui.",
+  "${appliance.name} added from the integration":
+    "${appliance.name} adicionado a partir da integração",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "${appliance.name} adicionado: ${quante} campos preenchidos a partir da integração",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} entidades estão desativadas no Home Assistant: ative-as lá para as ver também aqui.",
   "1 entity": "1 entidade",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "1 entidade está desativada no Home Assistant: ative-a lá para a ver também aqui.",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "1 entidade está desativada no Home Assistant: ative-a lá para a ver também aqui.",
   "Add from an integration": "Adicionar a partir de uma integração",
-  "alarm": "alarme",
+  alarm: "alarme",
   "Cannot read the entities: ": "Não consigo ler as entidades: ",
   "Cannot read the integrations: ": "Não consigo ler as integrações: ",
   "Change device": "Mudar de dispositivo",
-  "control": "comando",
+  control: "comando",
   "daily energy": "energia diária",
   "Filled ${count} fields: ${list}.": "${count} campos preenchidos: ${list}.",
   "From the integration": "Da integração",
   "HACS / custom": "HACS / personalizada",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "As integrações do Home Assistant, oficiais ou do HACS, com os dispositivos que trazem. Escolhe o teu eletrodoméstico: todas as entidades vêm com ele, e os campos do cartão preenchem-se sozinhos.",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn, Home Connect, Miele, LG ThinQ, uma tomada Shelly…: escolhe o dispositivo e os campos vazios preenchem-se sozinhos. Os escritos à mão ficam.",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn, Home Connect, Miele, LG ThinQ, SmartThings, uma tomada Shelly… escolhe o dispositivo e o eletrodoméstico chega com todas as entidades já no sítio certo. Ou, aqui em baixo, uma entidade de cada vez.",
-  "Integrations": "Integrações",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "As integrações do Home Assistant, oficiais ou do HACS, com os dispositivos que trazem. Escolhe o teu eletrodoméstico: todas as entidades vêm com ele, e os campos do cartão preenchem-se sozinhos.",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn, Home Connect, Miele, LG ThinQ, uma tomada Shelly…: escolhe o dispositivo e os campos vazios preenchem-se sozinhos. Os escritos à mão ficam.",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn, Home Connect, Miele, LG ThinQ, SmartThings, uma tomada Shelly… escolhe o dispositivo e o eletrodoméstico chega com todas as entidades já no sítio certo. Ou, aqui em baixo, uma entidade de cada vez.",
+  Integrations: "Integrações",
   "last cycle cost": "custo do último ciclo",
   "last cycle energy": "energia do último ciclo",
   "last cycle start": "início do último ciclo",
@@ -2797,9 +2808,11 @@ export default Object.freeze({
   "Linked device": "Dispositivo ligado",
   "monthly energy": "energia mensal",
   "No device by that name.": "Nenhum dispositivo com esse nome.",
-  "No empty field to fill in: the ones written by hand stay.": "Nenhum campo vazio para preencher: os escritos à mão ficam.",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "Nenhuma integração com dispositivos: o Home Assistant ainda não tem um dispositivo com entidades.",
-  "Official": "Oficial",
+  "No empty field to fill in: the ones written by hand stay.":
+    "Nenhum campo vazio para preencher: os escritos à mão ficam.",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "Nenhuma integração com dispositivos: o Home Assistant ainda não tem um dispositivo com entidades.",
+  Official: "Oficial",
   "Pick the device": "Escolher o dispositivo",
   "program duration": "duração do programa",
   "program state": "estado do programa",
@@ -2810,13 +2823,21 @@ export default Object.freeze({
   "Save failed: ": "Falha ao guardar: ",
   "Search a device…": "Procurar um dispositivo…",
   "second temperature": "segunda temperatura",
-  "temperature": "temperatura",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "O detalhe do eletrodoméstico mostra todas as entidades do dispositivo; aqui em baixo, as que desenham o cartão.",
+  temperature: "temperatura",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "O detalhe do eletrodoméstico mostra todas as entidades do dispositivo; aqui em baixo, as que desenham o cartão.",
   "The device controls": "Os comandos do dispositivo",
   "The device readings": "As leituras do dispositivo",
   "The device state": "O estado do dispositivo",
   "total energy": "energia total",
-  "Unlink": "Desvincular",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "Desvinculado: os campos ficam como estão, e o botão em baixo guarda.",
+  Unlink: "Desvincular",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "Desvinculado: os campos ficam como estão, e o botão em baixo guarda.",
   "Use this device": "Usar este dispositivo",
+  "Also take ${voci.length} sensors that live outside the device":
+    "Levar também ${voci.length} sensores que vivem fora do dispositivo",
+  "Also take 1 sensor that lives outside the device":
+    "Levar também 1 sensor que vive fora do dispositivo",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "Levam o nome deste eletrodoméstico mas pertencem a outra entrada do registo: quase sempre a tomada inteligente por baixo da máquina, ou um sensor que construíste tu.",
 });

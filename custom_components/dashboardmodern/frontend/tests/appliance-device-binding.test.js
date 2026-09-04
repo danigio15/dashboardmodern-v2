@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   bindApplianceToDevice,
+  cercaFuoriDalDispositivo,
   deviceEntityGroups,
   guessApplianceType,
   integrationsWithDevices,
@@ -17,6 +18,7 @@ import {
   unbindAppliance,
 } from "../src/core/appliance-device-binding.js";
 import { normalizeDevice } from "../src/core/device-model.js";
+import { createApplianceViewModel } from "../src/core/appliance-view-model.js";
 
 const ent = (entity_id, name, extra = {}) => ({
   entity_id,
@@ -377,100 +379,266 @@ test("la finestra del dettaglio divide le entità in quattro famiglie", () => {
   );
 });
 
-/* La lavatrice vera di chi ha chiesto la funzione.
+/* La lavatrice vera, letta dalla scheda Stati di chi ha chiesto la funzione.
  *
- * Haier con «Haier hOn Revived» da HACS, Home Assistant in italiano: le
- * entita' arrivano coi nomi tradotti, e sono queste, una per una, come le
- * elenca la pagina del dispositivo. Niente sensore di potenza e niente
- * contatore: su questa macchina i watt non esistono, e tutto quello che la
- * card sa dire deve venire dagli stati del programma.
+ * Haier con «Haier hOn Revived» da HACS, Home Assistant in italiano, la
+ * macchina in funzione: `machine_status` dice `running`, la fase dice
+ * `washing`, mancano cinquanta minuti.
+ *
+ * E c'e' la cosa che non avevo previsto: quella lavatrice non e' un
+ * dispositivo, e' due. hOn porta il programma, la fase, il tempo e i comandi;
+ * una presa Zigbee sotto la macchina porta i watt e il contatore, ed e'
+ * un'altra voce del registro. In mezzo ci sono anche i sensori che si e'
+ * costruito lui, che non stanno su nessun dispositivo.
  */
-const HAIER_IT = [
-  ent("sensor.lavatrice_fase", "Fase", { translation_key: "prphase" }),
-  ent("sensor.lavatrice_machine_status", "Machine Status", { translation_key: "machmode" }),
-  ent("sensor.lavatrice_tempo_rimanente", "Tempo rimanente", {
-    translation_key: "remaining_time",
+const e = (entity_id, name, extra = {}) => ({
+  entity_id,
+  device_id: "hon-1",
+  platform: "hon",
+  name,
+  translation_key: "",
+  device_class: "",
+  unit: "",
+  state_class: "",
+  category: "",
+  disabled: false,
+  ...extra,
+});
+
+/* Le entita' del dispositivo hOn, quelle con area «Lavanderia». */
+const HON = [
+  e("sensor.lavatrice_fase", "Fase", { device_class: "enum" }),
+  e("sensor.lavatrice_machine_status", "Machine Status", { device_class: "enum" }),
+  e("sensor.lavatrice_tempo_rimanente", "Tempo rimanente", {
     unit: "min",
+    state_class: "measurement",
   }),
-  ent("sensor.lavatrice_centrifuga", "Centrifuga", { unit: "rpm" }),
-  ent("sensor.lavatrice_efficienza_energetica", "Efficienza energetica", {}),
-  ent("sensor.lavatrice_detersivo_liquido", "Detersivo liquido", { unit: "ml" }),
-  ent("sensor.lavatrice_detersivo_in_polvere", "Detersivo in polvere", { unit: "ml" }),
-  ent("sensor.lavatrice_livello_di_sporco", "Livello di sporco", {}),
-  ent("sensor.lavatrice_capacita_di_carico", "Capacità di carico", { unit: "kg" }),
-  ent("sensor.lavatrice_temperatura", "Temperatura", { unit: "°C", device_class: "temperature" }),
-  ent("sensor.lavatrice_programma", "Programma", {}),
-  ent("sensor.lavatrice_livello_vapore", "Livello vapore", {}),
-  ent("select.lavatrice_centrifuga", "Centrifuga", { category: "config" }),
-  ent("select.lavatrice_temperatura", "Temperatura", { category: "config" }),
-  ent("select.lavatrice_programma", "Programma", { category: "config" }),
-  ent("select.lavatrice_livello_vapore", "Livello vapore", { category: "config" }),
-  ent("select.lavatrice_livello_di_sporco", "Livello di sporco", { category: "config" }),
-  ent("switch.lavatrice_utilizzo_nelle_ore_notturne", "Utilizzo nelle ore notturne", {}),
-  ent("sensor.lavatrice_lang", "lang", { category: "diagnostic" }),
-  ent("switch.lavatrice", "Lavatrice", {}),
-  ent("switch.lavatrice_pausa", "Pausa", {}),
-  ent("switch.lavatrice_prelavaggio", "Prelavaggio", {}),
-  ent("switch.lavatrice_acquaplus", "Acquaplus", {}),
-  ent("switch.lavatrice_1_risciacquo", "+1 Risciacquo", {}),
-  ent("switch.lavatrice_2_risciacqui", "+2 Risciacqui", {}),
+  e("sensor.lavatrice_centrifuga", "Centrifuga", { unit: "rpm", state_class: "measurement" }),
+  e("sensor.lavatrice_efficienza_energetica", "Efficienza energetica", {
+    state_class: "measurement",
+  }),
+  e("sensor.lavatrice_detersivo_liquido", "Detersivo liquido"),
+  e("sensor.lavatrice_detersivo_in_polvere", "Detersivo in polvere"),
+  e("sensor.lavatrice_livello_di_sporco", "Livello di sporco", { device_class: "enum" }),
+  e("sensor.lavatrice_capacita_di_carico", "Capacità di carico", {
+    unit: "kg",
+    state_class: "measurement",
+  }),
+  e("sensor.lavatrice_temperatura", "Temperatura", { unit: "°C", state_class: "measurement" }),
+  e("sensor.lavatrice_programma", "Programma", { device_class: "enum" }),
+  e("sensor.lavatrice_livello_vapore", "Livello vapore", { device_class: "enum" }),
+  e("select.lavatrice_centrifuga", "Centrifuga", { unit: "rpm" }),
+  e("select.lavatrice_livello_di_sporco", "Livello di sporco"),
+  e("select.lavatrice_livello_vapore", "Livello vapore"),
+  e("select.lavatrice_programma", "Programma"),
+  e("select.lavatrice_temperatura", "Temperatura", { unit: "°C" }),
+  e("number.lavatrice_lang", "lang"),
+  e("number.lavatrice_utilizzo_nelle_ore_notturne", "Utilizzo nelle ore notturne", { unit: "min" }),
+  e("switch.lavatrice_lavatrice", "Lavatrice"),
+  e("switch.lavatrice_pausa", "Pausa"),
+  e("switch.lavatrice_prelavaggio", "Prelavaggio"),
+  e("switch.lavatrice_acquaplus", "Acquaplus"),
+  e("switch.lavatrice_antipieghe", "Antipieghe"),
+  e("switch.lavatrice_buona_notte", "Buona notte"),
+  e("switch.lavatrice_hygiene_plus", "Hygiene plus"),
+  e("switch.lavatrice_1_risciacquo", "+1 Risciacquo"),
+  e("switch.lavatrice_2_risciacqui", "+2 Risciacqui"),
+  e("switch.lavatrice_3_risciacqui", "+3 Risciacqui"),
+  e("binary_sensor.lavatrice_yuan_cheng_kong_zhi", "远程控制", { device_class: "connectivity" }),
 ];
 
-test("la Haier italiana: il tasto acceso/spento è la macchina, non la pausa", () => {
-  /* Il difetto che questa prova chiude: con dieci interruttori dai nomi
-   * italiani nessuna parola inglese corrispondeva, tutti pareggiavano a sei,
-   * e il tasto usciva a sorte. L'interruttore che porta il nome del
-   * dispositivo e' quello principale, e in questa casa si chiama Lavatrice. */
-  const roles = proposeRoles(HAIER_IT, {}, { type: "lavatrice", deviceName: "Lavatrice" });
-  assert.equal(roles.control_entity, "switch.lavatrice");
+const num = (state, unit, extra = {}) => ({
+  state,
+  attributes: { unit_of_measurement: unit, ...extra },
+});
+
+/* Tutta la casa: il dispositivo hOn, la presa Zigbee e i suoi aiutanti. */
+const CASA = {
+  "sensor.lavatrice_machine_status": {
+    state: "running",
+    attributes: { friendly_name: "Lavatrice Machine Status", device_class: "enum" },
+  },
+  "sensor.lavatrice_fase": {
+    state: "washing",
+    attributes: { friendly_name: "Lavatrice Fase", device_class: "enum" },
+  },
+  "sensor.lavatrice_tempo_rimanente": num("50", "min", {
+    friendly_name: "Lavatrice Tempo rimanente",
+  }),
+  "sensor.lavatrice_temperatura": num("30", "°C", { friendly_name: "Lavatrice Temperatura" }),
+  "sensor.lavatrice_centrifuga": num("800", "rpm", { friendly_name: "Lavatrice Centrifuga" }),
+  "sensor.lavatrice_capacita_di_carico": num("9", "kg", {
+    friendly_name: "Lavatrice Capacità di carico",
+  }),
+  "switch.lavatrice_lavatrice": {
+    state: "on",
+    attributes: { friendly_name: "Lavatrice Lavatrice" },
+  },
+  "switch.lavatrice_pausa": { state: "off", attributes: { friendly_name: "Lavatrice Pausa" } },
+  // La presa Zigbee: un altro dispositivo, lo stesso nome.
+  "sensor.lavatrice_power": num("36", "W", {
+    friendly_name: "Lavatrice Potenza",
+    device_class: "power",
+    state_class: "measurement",
+  }),
+  "sensor.lavatrice_energy": num("115.5", "kWh", {
+    friendly_name: "Lavatrice Energia",
+    device_class: "energy",
+    state_class: "total_increasing",
+  }),
+  "switch.lavatrice": { state: "on", attributes: { friendly_name: "Lavatrice" } },
+  "number.lavatrice_countdown": num("0", "s", { friendly_name: "Lavatrice Countdown" }),
+  // I sensori che si e' costruito lui: non stanno su nessun dispositivo.
+  "sensor.potenza_lavatrice": num("36", "W", { friendly_name: "Potenza lavatrice W" }),
+  "sensor.energy_oggi_lavatrice": num("0.04", "kWh", {
+    friendly_name: "energy_oggi_lavatrice",
+    device_class: "energy",
+    state_class: "total_increasing",
+  }),
+  "sensor.energy_mese_lavatrice": num("0.66", "kWh", {
+    friendly_name: "energy_mese_lavatrice",
+    device_class: "energy",
+    state_class: "total_increasing",
+  }),
+  "sensor.energy_anno_lavatrice": num("71.91", "kWh", {
+    friendly_name: "energy_anno_lavatrice",
+    device_class: "energy",
+    state_class: "total_increasing",
+  }),
+  "sensor.consumo_lavatrice_annuale": num("9.00", "kWh", {
+    friendly_name: "Consumo Lavatrice Annuale",
+    device_class: "energy",
+    state_class: "total_increasing",
+  }),
+  "sensor.w_kwh_lavatrice": num("110.73", "kWh", {
+    friendly_name: "w_kwh_lavatrice",
+    state_class: "total",
+  }),
+};
+
+const DEVICE = {
+  id: "hon-1",
+  name: "Lavatrice",
+  manufacturer: "Haier",
+  model: "HW90",
+  integration: "hon",
+  area: "Lavanderia",
+};
+
+test("dal dispositivo hOn: comando, stato e tempo, e nessun watt inventato", () => {
+  const roles = proposeRoles(HON, CASA, { type: "lavatrice", deviceName: "Lavatrice" });
+  assert.equal(roles.control_entity, "switch.lavatrice_lavatrice");
   assert.equal(roles.state_entity, "sensor.lavatrice_machine_status");
   assert.equal(roles.remaining_entity, "sensor.lavatrice_tempo_rimanente");
-  /* Nessun sensore in watt e nessun contatore: le caselle restano vuote
-   * invece di prendersi il primo numero che passa. */
+  // Su questo dispositivo i watt e il contatore non esistono.
   assert.equal(roles.power_entity, undefined);
   assert.equal(roles.total_energy_entity, undefined);
+  // «Capacità di carico» in kg e «Centrifuga» in rpm non sono energia.
   assert.equal(roles.daily_energy_entity, undefined);
-  /* La temperatura di una lavatrice e' quella del programma, non una barra. */
+  // La temperatura di una lavatrice e' quella del programma, non una barra.
   assert.equal(roles.temperature_entity, undefined);
-  /* «Capacità di carico» in kg e «Detersivo» in ml non sono energia. */
-  assert.equal(roles.last_energy_entity, undefined);
 });
 
-test("senza il nome del dispositivo, le parole italiane bastano a scartare le opzioni", () => {
-  /* Il nome del dispositivo e' il segnale forte, ma non c'e' sempre: una
-   * configurazione scritta a mano puo' non averlo. Allora devono bastare le
-   * radici italiane, e nessuna opzione del programma deve vincere. */
-  const roles = proposeRoles(HAIER_IT, {}, { type: "lavatrice" });
-  assert.equal(roles.control_entity, "switch.lavatrice");
+test("la presa Zigbee e i sensori di casa riempiono quello che manca", () => {
+  const fuori = cercaFuoriDalDispositivo({
+    deviceName: "Lavatrice",
+    states: CASA,
+    escludi: HON.map((entity) => entity.entity_id),
+  });
+  assert.equal(fuori.power_entity?.entity_id, "sensor.lavatrice_power");
+  assert.equal(fuori.daily_energy_entity?.entity_id, "sensor.energy_oggi_lavatrice");
+  assert.equal(fuori.monthly_energy_entity?.entity_id, "sensor.energy_mese_lavatrice");
+  // Il contatore vero, non quello dell'anno e non quello del template.
+  assert.equal(fuori.total_energy_entity?.entity_id, "sensor.lavatrice_energy");
 });
 
-test("il collegamento della Haier riempie quello che c'è e lascia vuoto quello che manca", () => {
-  const { appliance, filled } = bindApplianceToDevice(
-    { id: "appl-haier", name: "" },
+test("un nome che non c'entra non pesca niente", () => {
+  assert.deepEqual(cercaFuoriDalDispositivo({ deviceName: "Forno", states: CASA }), {});
+  // E un nome corto non fa da rete a strascico.
+  assert.deepEqual(cercaFuoriDalDispositivo({ deviceName: "TV", states: CASA }), {});
+});
+
+test("la sua lavatrice, montata intera", () => {
+  const fuori = cercaFuoriDalDispositivo({
+    deviceName: "Lavatrice",
+    states: CASA,
+    escludi: HON.map((entity) => entity.entity_id),
+  });
+  const { appliance } = bindApplianceToDevice(
+    { id: "appl-1", name: "" },
     {
-      device: {
-        id: "haier-1",
-        name: "Lavatrice",
-        manufacturer: "Haier",
-        model: "HW90",
-        integration: "hon",
-        area: "Lavanderia",
-      },
-      entities: HAIER_IT,
+      device: DEVICE,
+      entities: HON,
       integration: { domain: "hon", name: "Haier hOn Revived" },
-      states: {},
+      outside: fuori,
+      states: CASA,
       rooms: [{ id: "room-lav", name: "Lavanderia" }],
     },
   );
   assert.equal(appliance.name, "Lavatrice");
   assert.equal(appliance.visual_key, "lavatrice");
   assert.equal(appliance.room_id, "room-lav");
-  assert.equal(appliance.integration_name, "Haier hOn Revived");
-  assert.equal(appliance.control_entity, "switch.lavatrice");
+  assert.equal(appliance.control_entity, "switch.lavatrice_lavatrice");
   assert.equal(appliance.state_entity, "sensor.lavatrice_machine_status");
   assert.equal(appliance.remaining_entity, "sensor.lavatrice_tempo_rimanente");
-  assert.ok(!filled.includes("power_entity"));
-  /* Le venticinque entita' restano tutte in memoria: quelle che la card non
-   * disegna escono nel dettaglio, che e' il punto della richiesta. */
-  assert.equal(appliance.device_entities.length, HAIER_IT.length);
+  assert.equal(appliance.power_entity, "sensor.lavatrice_power");
+  assert.equal(appliance.daily_energy_entity, "sensor.energy_oggi_lavatrice");
+  assert.equal(appliance.total_energy_entity, "sensor.lavatrice_energy");
+  assert.equal(appliance.history_entity, "sensor.lavatrice_energy");
+  assert.equal(appliance.device_entities.length, HON.length);
+
+  const model = createApplianceViewModel(
+    appliance,
+    CASA,
+    [{ id: "room-lav", name: "Lavanderia" }],
+    "it",
+    { holds: new Map() },
+  );
+  assert.equal(model.mode, "running");
+  assert.equal(model.label, "IN FUNZIONE");
+  assert.equal(Math.round(model.watts), 36);
+  assert.equal(model.historyEntity, "sensor.lavatrice_energy");
+});
+
+test("le parole del suo machine_status, tutte e sei", () => {
+  const modo = (stato) =>
+    createApplianceViewModel(
+      { id: "w", state_entity: "sensor.s" },
+      { "sensor.s": { state: stato, attributes: {} } },
+      [],
+      "it",
+      { holds: new Map() },
+    ).mode;
+  assert.equal(modo("running"), "running");
+  assert.equal(modo("ending"), "running");
+  assert.equal(modo("pause"), "standby");
+  assert.equal(modo("scheduled"), "standby");
+  assert.equal(modo("error"), "standby");
+  assert.equal(modo("ready"), "off");
+});
+
+test("le parole della sua Fase, tutte e undici", () => {
+  const modo = (stato) =>
+    createApplianceViewModel(
+      { id: "f", state_entity: "sensor.fase" },
+      { "sensor.fase": { state: stato, attributes: {} } },
+      [],
+      "it",
+      { holds: new Map() },
+    ).mode;
+  for (const parola of [
+    "washing",
+    "spin",
+    "rinse",
+    "drying",
+    "steam",
+    "weighting",
+    "tumbling",
+    "refresh",
+    "heating",
+  ]) {
+    assert.equal(modo(parola), "running", `fase «${parola}»`);
+  }
+  assert.equal(modo("scheduled"), "standby");
+  assert.equal(modo("ready"), "off");
 });

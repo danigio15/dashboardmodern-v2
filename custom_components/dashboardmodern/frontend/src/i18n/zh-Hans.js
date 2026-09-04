@@ -12,30 +12,30 @@
 
 export default Object.freeze({
   openings: "处",
-  "ONLINE": "在线",
-  "OFFLINE": "离线",
+  ONLINE: "在线",
+  OFFLINE: "离线",
   "NOT CONNECTED": "未连接",
   "NOT CONFIGURED": "未配置",
   "NO BOX FILLED IN": "没有填写任何格子",
-  "CONNECTED": "已连接",
+  CONNECTED: "已连接",
   "The Home alert tiles — batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice. Doors and windows are no longer here: the Windows tile says them, from the contacts of the covers.":
     "首页的提醒磁贴——电池、漏水——只有在真的有事要说时才会自己亮起。在这里选择它们监视哪些传感器并起一个清爽的名字，或者为一个或多个实体创建自定义提醒，可设置条件、手动填写的状态和自选图标。门窗不在这里了：由「窗户」磁贴用卷帘的触点来说。",
   "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.":
     "选择主页上显示哪些磁贴以及顺序。提醒磁贴（电池、漏水和自定义提醒）只有在有情况时才会自动出现。",
-  "playing": "个在播放",
-  "Volume": "音量",
-  "Unmute": "取消静音",
+  playing: "个在播放",
+  Volume: "音量",
+  Unmute: "取消静音",
   "The players you declare here get a page of their own, with the artwork of whatever they are playing as the background. The buttons that show up are the ones the player can really do: no next track, no next-track button. You can also put them among the Home quick actions: there the tile takes the artwork as its background, and tapping it pauses or resumes.":
     "在这里登记的播放器会有自己的页面，背景就是正在播放的封面。出现的按钮只有该播放器真正能做的：没有下一曲，就不画那个按钮。你也可以把它们放进首页的快捷操作：那里的磁贴会用封面做底图，点一下就暂停或继续。",
-  "Source": "输入源",
+  Source: "输入源",
   "Save player": "保存播放器",
   "Previous track": "上一曲",
-  "Play": "播放",
+  Play: "播放",
   "Nothing playing": "没有在播放",
   "No media player configured.": "没有配置任何媒体播放器。",
   "Next track": "下一曲",
   "New player": "新播放器",
-  "Mute": "静音",
+  Mute: "静音",
   "Media player": "媒体播放器",
   "Add player": "添加播放器",
   "1 playing": "1 个在播放",
@@ -53,7 +53,7 @@ export default Object.freeze({
   "Choose the page": "选择页面",
   "At most twelve show up on one page: past that it is not «one more thing» any more, it is a list — and for that there is «Your sections».":
     "一个页面上最多显示十二个：超过之后就不再是「多一样东西」，而是一份清单——那是「你的分区」该做的事。",
-  "Tank": "水箱",
+  Tank: "水箱",
   "With this the page grows a switch: the state says whether it is working, this one commands it.":
     "有了它，页面会多一个开关：状态说明它是否在工作，这个则指挥它。",
   "Where the heat is going is told by how it sits: to the heating or to the hot water.":
@@ -2692,35 +2692,44 @@ export default Object.freeze({
   "← All conversations": "← 所有对话",
   "A private conversation with whoever maintains the dashboard": "与维护此仪表板的人的私密对话",
   "Conversation deleted.": "对话已删除。",
-  "Conversations": "对话",
+  Conversations: "对话",
   "Delete the conversation": "删除对话",
-  "Go ahead and write: on the other side there is a person, not a form.": "尽管写：另一端是一个人，不是一张表单。",
+  "Go ahead and write: on the other side there is a person, not a form.":
+    "尽管写：另一端是一个人，不是一张表单。",
   "No open conversation.": "没有进行中的对话。",
-  "Support": "支持",
-  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.": "你在这里写的内容只会送到维护此仪表板的人手中，不会给任何其他人。它不经过 GitHub，也不会公开。随消息一起发送的只有仪表板版本、Home Assistant 版本和语言。你可以随时删除这段对话。",
-  "Write to whoever maintains the dashboard: a private conversation, not through GitHub": "写给维护此仪表板的人：一段不经过 GitHub 的私密对话",
+  Support: "支持",
+  "What you write here reaches whoever maintains the dashboard, and nobody else. It does not go through GitHub and does not become public. Along with the message only the dashboard version, the Home Assistant version and the language are sent. You can delete the conversation whenever you want.":
+    "你在这里写的内容只会送到维护此仪表板的人手中，不会给任何其他人。它不经过 GitHub，也不会公开。随消息一起发送的只有仪表板版本、Home Assistant 版本和语言。你可以随时删除这段对话。",
+  "Write to whoever maintains the dashboard: a private conversation, not through GitHub":
+    "写给维护此仪表板的人：一段不经过 GitHub 的私密对话",
   "Write your message…": "写下你的消息…",
   "Leave empty if you prefer": "不想写就留空",
   "Your name (optional)": "你的称呼（可选）",
   "${appliance.name} added from the integration": "已从集成添加 ${appliance.name}",
-  "${appliance.name} added: ${quante} fields filled from the integration": "已添加 ${appliance.name}：已从集成填入 ${quante} 个字段",
-  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.": "${spente} 个实体已在 Home Assistant 中禁用：请在那里启用，才能在这里看到。",
+  "${appliance.name} added: ${quante} fields filled from the integration":
+    "已添加 ${appliance.name}：已从集成填入 ${quante} 个字段",
+  "${spente} entities are disabled in Home Assistant: enable them there to see them here too.":
+    "${spente} 个实体已在 Home Assistant 中禁用：请在那里启用，才能在这里看到。",
   "1 entity": "1 个实体",
-  "1 entity is disabled in Home Assistant: enable it there to see it here too.": "1 个实体已在 Home Assistant 中禁用：请在那里启用，才能在这里看到。",
+  "1 entity is disabled in Home Assistant: enable it there to see it here too.":
+    "1 个实体已在 Home Assistant 中禁用：请在那里启用，才能在这里看到。",
   "Add from an integration": "从集成添加",
-  "alarm": "告警",
+  alarm: "告警",
   "Cannot read the entities: ": "无法读取实体：",
   "Cannot read the integrations: ": "无法读取集成：",
   "Change device": "更换设备",
-  "control": "控制",
+  control: "控制",
   "daily energy": "每日电量",
   "Filled ${count} fields: ${list}.": "已填入 ${count} 个字段：${list}。",
   "From the integration": "来自集成",
   "HACS / custom": "HACS / 自定义",
-  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.": "Home Assistant 的集成（官方或来自 HACS）及其带来的设备。选择你的家电：它的所有实体一并进入，卡片字段自动填好。",
-  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.": "hOn、Home Connect、Miele、LG ThinQ、Shelly 插座…：选择设备，空字段会自动填好。手动填写的保持不变。",
-  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.": "hOn、Home Connect、Miele、LG ThinQ、SmartThings、Shelly 插座… 选择设备，家电就会带着所有实体各就各位地出现。或者在下面，一次添加一个实体。",
-  "Integrations": "集成",
+  "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.":
+    "Home Assistant 的集成（官方或来自 HACS）及其带来的设备。选择你的家电：它的所有实体一并进入，卡片字段自动填好。",
+  "hOn, Home Connect, Miele, LG ThinQ, a Shelly plug…: pick the device and the empty fields fill themselves in. The ones written by hand stay.":
+    "hOn、Home Connect、Miele、LG ThinQ、Shelly 插座…：选择设备，空字段会自动填好。手动填写的保持不变。",
+  "hOn, Home Connect, Miele, LG ThinQ, SmartThings, a Shelly plug… pick the device and the appliance arrives with all its entities in the right place. Or, below, one entity at a time.":
+    "hOn、Home Connect、Miele、LG ThinQ、SmartThings、Shelly 插座… 选择设备，家电就会带着所有实体各就各位地出现。或者在下面，一次添加一个实体。",
+  Integrations: "集成",
   "last cycle cost": "上一周期费用",
   "last cycle energy": "上一周期电量",
   "last cycle start": "上一周期开始",
@@ -2728,9 +2737,11 @@ export default Object.freeze({
   "Linked device": "已关联的设备",
   "monthly energy": "每月电量",
   "No device by that name.": "没有叫这个名字的设备。",
-  "No empty field to fill in: the ones written by hand stay.": "没有空字段可填：手动填写的保持不变。",
-  "No integration with devices found: Home Assistant does not have a device with entities yet.": "未找到带设备的集成：Home Assistant 中还没有带实体的设备。",
-  "Official": "官方",
+  "No empty field to fill in: the ones written by hand stay.":
+    "没有空字段可填：手动填写的保持不变。",
+  "No integration with devices found: Home Assistant does not have a device with entities yet.":
+    "未找到带设备的集成：Home Assistant 中还没有带实体的设备。",
+  Official: "官方",
   "Pick the device": "选择设备",
   "program duration": "程序时长",
   "program state": "程序状态",
@@ -2741,13 +2752,20 @@ export default Object.freeze({
   "Save failed: ": "保存失败：",
   "Search a device…": "搜索设备…",
   "second temperature": "第二温度",
-  "temperature": "温度",
-  "The appliance detail shows every entity of the device; below, the ones that draw the card.": "家电详情会显示设备的每个实体；下面是绘制卡片的那些。",
+  temperature: "温度",
+  "The appliance detail shows every entity of the device; below, the ones that draw the card.":
+    "家电详情会显示设备的每个实体；下面是绘制卡片的那些。",
   "The device controls": "设备控制",
   "The device readings": "设备读数",
   "The device state": "设备状态",
   "total energy": "总电量",
-  "Unlink": "取消关联",
-  "Unlinked: the fields stay as they are, and the button at the bottom saves.": "已取消关联：字段保持原样，底部按钮保存。",
+  Unlink: "取消关联",
+  "Unlinked: the fields stay as they are, and the button at the bottom saves.":
+    "已取消关联：字段保持原样，底部按钮保存。",
   "Use this device": "使用此设备",
+  "Also take ${voci.length} sensors that live outside the device":
+    "同时取用设备之外的 ${voci.length} 个传感器",
+  "Also take 1 sensor that lives outside the device": "同时取用设备之外的 1 个传感器",
+  "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.":
+    "它们带着这台电器的名字，却属于注册表里的另一条记录：多半是机器下面的智能插座，或者你自己搭的传感器。",
 });
