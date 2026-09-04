@@ -2836,4 +2836,6 @@ export default Object.freeze({
   "Waiting to start": "Başlamayı bekliyor",
   Washing: "Yıkama",
   Weighing: "Tartma",
+  "Running right now": "Şu anda çalışıyor",
+  "Tap an appliance to open its card.": "Kartını açmak için bir cihaza dokun.",
 });

@@ -2782,4 +2782,6 @@ export default Object.freeze({
   "Waiting to start": "等待启动",
   Washing: "洗涤",
   Weighing: "称重",
+  "Running right now": "正在运行",
+  "Tap an appliance to open its card.": "点一下电器就能打开它的卡片。",
 });

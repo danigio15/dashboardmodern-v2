@@ -2854,4 +2854,6 @@ export default Object.freeze({
   "Waiting to start": "À espera de começar",
   Washing: "Lavagem",
   Weighing: "Pesagem",
+  "Running right now": "A funcionar agora",
+  "Tap an appliance to open its card.": "Toca num eletrodoméstico para abrir o seu cartão.",
 });

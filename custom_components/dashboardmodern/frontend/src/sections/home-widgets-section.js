@@ -25,6 +25,8 @@ import {
 } from "../core/todo-model.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
+import { applianceArtwork } from "../core/appliance-artwork.js";
+import { applianceModelById, buildCardMarkup, cardLabels } from "./appliance-showcase-section.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
   bricioleDellaSezione,
@@ -3907,10 +3909,46 @@ function energyDetail() {
 
 /* Chi lavora e' una casella de «Le misure», col suo disegno vero; qui resta
  * solo la parola per la casa tutta spenta, che una casella non ce l'ha. */
+/* Quale apparecchio della finestra e' aperto. Vive qui e non nel markup
+ * perche' il corpo si ridisegna da solo ogni due secondi: se lo stato stesse
+ * in un attributo, il primo travaso lo richiuderebbe sotto il dito. */
+let apertoInFinestra = "";
+
+/* La finestra degli elettrodomestici: una pastiglia per ognuno, e la card
+ * intera di quello che si tocca.
+ *
+ * Dal campo: «il popup deve mostrare una icona piccola dell'elettrodomestico
+ * in funzione, perche' puo' essere piu' di uno; quando clicco sopra si espande
+ * e mostra tutta la card completa». Tre macchine accese sono tre card alte una
+ * pagina l'una: in una finestra si scorre e non si trova piu' niente. Le
+ * pastiglie stanno tutte su una riga — disegno, nome, watt — e la card si apre
+ * una alla volta, sotto quella scelta. Con una sola accesa non c'e' niente da
+ * scegliere e si apre da se'. */
 function appliancesDetail(widget) {
-  if (!widget.running.length)
+  const accesi = Array.isArray(widget.running) ? widget.running : [];
+  if (!accesi.length)
     return `<p class="dm-w-empty">✨ ${esc(t("Tutto spento", "Everything off"))}</p>`;
-  return "";
+  const aperto = accesi.some((riga) => riga.id === apertoInFinestra)
+    ? apertoInFinestra
+    : accesi.length === 1
+      ? accesi[0].id
+      : "";
+  const pastiglie = accesi
+    .map((riga) => {
+      const scelta = riga.id === aperto;
+      const watt = Number.isFinite(Number(riga.watts)) ? `${Math.round(riga.watts)} W` : "";
+      return `<button type="button" class="dm-w-appl-chip" data-dm-appl-chip="${esc(riga.id)}" aria-expanded="${scelta ? "true" : "false"}">
+        <span class="dm-w-appl-art" aria-hidden="true">${applianceArtwork(riga.type, 26) || "🔌"}</span>
+        <span class="dm-w-appl-nome">${esc(riga.name)}</span>
+        ${watt ? `<span class="dm-w-appl-watt">${esc(watt)}</span>` : ""}
+      </button>`;
+    })
+    .join("");
+  const model = aperto ? applianceModelById(aperto) : null;
+  const card = model
+    ? `<div class="dm-appl-shell dm-w-appl-card" data-view="grid">${buildCardMarkup(model, cardLabels())}</div>`
+    : `<p class="dm-w-appl-invito">${esc(t("Tocca un apparecchio per aprire la sua scheda.", "Tap an appliance to open its card."))}</p>`;
+  return `<div class="dm-w-appl-chips">${pastiglie}</div>${card}`;
 }
 
 /* Le stanze coi loro gradi sono caselle de «Le misure», non un elenco. */
@@ -4593,6 +4631,11 @@ function titoloDelBlocco(markup, chiave = "") {
    * riga «AGENDA» sopra due titoli sarebbe il nome della finestra scritto una
    * seconda volta. */
   if (chiave === "agenda") return "";
+  /* Gli elettrodomestici non portano ne' comandi ne' letture: portano gli
+   * apparecchi accesi, e sopra le loro pastiglie ci va il loro nome. Il
+   * titolo automatico leggeva i tasti e scriveva «Comandi», che su una fila
+   * di macchine da aprire e' la parola sbagliata. */
+  if (chiave === "elettrodomestici") return t("In funzione adesso", "Running right now");
   const siPreme = /<(?:button|input|select)\b|role="switch"/.test(markup);
   return siPreme ? t("Comandi", "Controls") : t("Letture", "Readings");
 }
@@ -5050,6 +5093,48 @@ function popupHost() {
   host.id = "dm-widget-popup";
   host.hidden = true;
   host.addEventListener("click", (event) => {
+    /* La pastiglia di un elettrodomestico: apre la sua card, o la richiude.
+     * Il tocco si ferma qui, o risalirebbe fino alla finestra che si chiude. */
+    const pastiglia = event.target?.closest?.("[data-dm-appl-chip]");
+    if (pastiglia) {
+      event.stopPropagation();
+      const id = clean(pastiglia.dataset.dmApplChip);
+      const apre = apertoInFinestra !== id;
+      apertoInFinestra = apre ? id : "";
+      schedule();
+      /* La card e' alta, e la finestra si legge scorrendo: aperta, va portata
+       * sotto gli occhi, o si apre fuori dallo schermo e sembra non essersi
+       * aperta. Si aspetta il disegno, che arriva col frame di `schedule`. */
+      if (apre)
+        root.requestAnimationFrame?.(() =>
+          root.requestAnimationFrame?.(() => {
+            host
+              .querySelector(".dm-w-appl-card")
+              ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }),
+        );
+      return;
+    }
+    /* I due tasti della card, che dentro la finestra non hanno il guscio
+     * della vetrina ad ascoltarli. */
+    const interruttore = event.target?.closest?.("[data-dm-power-toggle]");
+    if (interruttore) {
+      event.stopPropagation();
+      root.cdApplEntTog?.(clean(interruttore.dataset.entity), interruttore);
+      return;
+    }
+    const storico = event.target?.closest?.("[data-dm-history]");
+    if (storico) {
+      event.stopPropagation();
+      try {
+        root.apriStorico?.(
+          event,
+          clean(storico.dataset.dmHistory),
+          clean(storico.dataset.dmHistoryName),
+        );
+      } catch (_errore) {}
+      return;
+    }
     if (event.target === host || event.target?.closest?.("[data-dm-widget-close]")) chiudiPopup();
   });
   doc.body.append(host);
@@ -6276,6 +6361,16 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
   border-bottom:1px solid var(--card-border,#eef2f7);margin-bottom:2px}
 #dm-widget-popup .dm-w-empty{margin:6px 4px;font-size:13px}
+#dm-widget-popup .dm-w-appl-chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px}
+#dm-widget-popup .dm-w-appl-chip{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:7px 12px 7px 8px;border-radius:14px;cursor:pointer;font:inherit;border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text,#0f172a);transition:border-color .16s ease,background .16s ease}
+#dm-widget-popup .dm-w-appl-chip[aria-expanded="true"]{border-color:color-mix(in srgb,#0ea5e9 46%,transparent);background:color-mix(in srgb,#0ea5e9 10%,transparent)}
+#dm-widget-popup .dm-w-appl-art{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;color:#0ea5e9}
+#dm-widget-popup .dm-w-appl-art svg{width:26px;height:26px}
+#dm-widget-popup .dm-w-appl-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:850}
+#dm-widget-popup .dm-w-appl-watt{flex:0 0 auto;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-appl-invito{margin:0 4px;font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
+#dm-widget-popup .dm-w-appl-card{display:block;gap:0;padding:0}
+#dm-widget-popup .dm-w-appl-card .appl-wide-card.dm-ap-card{cursor:default;box-shadow:none}
 /* Le miniature delle telecamere: lo stesso angolo delle righe. */
 #dm-widget-popup .dm-w-cam{border-radius:16px}
 /* Nella finestra la colonna e' larga il doppio della tessera: con la stessa

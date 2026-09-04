@@ -2823,4 +2823,6 @@ export default Object.freeze({
   "Waiting to start": "시작 대기",
   Washing: "세탁",
   Weighing: "무게 감지",
+  "Running right now": "지금 작동 중",
+  "Tap an appliance to open its card.": "가전을 탭하면 카드가 열립니다.",
 });

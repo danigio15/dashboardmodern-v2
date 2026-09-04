@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Waiting to start": "शुरू होने का इंतज़ार",
   Washing: "धुलाई",
   Weighing: "वज़न",
+  "Running right now": "अभी चल रहे हैं",
+  "Tap an appliance to open its card.": "किसी उपकरण का कार्ड खोलने के लिए उस पर टैप करें।",
 });

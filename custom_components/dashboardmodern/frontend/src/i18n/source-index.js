@@ -2334,6 +2334,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Tocca per accendere · raffrescamento 26°C · ventola auto": "Tap to turn on · cooling 26°C · auto fan",
   "Tocca per aprire": "Tap to open",
   "Tocca per rinominare": "Tap to rename",
+  "Tocca un apparecchio per aprire la sua scheda.": "Tap an appliance to open its card.",
   "Tocca un sensore": "Tap a sensor",
   "Tocca una stanza: ogni unità accende con i suoi passi": "Tap a room: each unit starts with its own steps",
   "Toccando una stanza": "Tapping a room",

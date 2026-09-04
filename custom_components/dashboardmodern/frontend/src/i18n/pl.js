@@ -2848,4 +2848,6 @@ export default Object.freeze({
   "Waiting to start": "Czeka na start",
   Washing: "Pranie",
   Weighing: "Ważenie",
+  "Running right now": "Teraz pracuje",
+  "Tap an appliance to open its card.": "Dotknij sprzętu, aby otworzyć jego kartę.",
 });

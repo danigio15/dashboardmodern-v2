@@ -842,6 +842,17 @@ export function applianceModelForIndex(index, options = {}) {
   });
 }
 
+/** Lo stesso modello, cercato per id invece che per posizione. */
+export function applianceModelById(id) {
+  const cercato = clean(id);
+  if (!cercato) return null;
+  const indice = devices().findIndex(
+    (device, posizione) =>
+      clean(device?.id) === cercato || deviceKey(device, posizione) === cercato,
+  );
+  return indice < 0 ? null : applianceModelForIndex(indice);
+}
+
 /** Le parole della card, per chi la disegna fuori dalla sezione. */
 export function cardLabels() {
   return copy();
