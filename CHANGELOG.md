@@ -5,15 +5,20 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## 1.4.6-beta.1
+## 1.4.6
 
-Tre sezioni in piu' e sei cose viste sul campo. Le sezioni sono le Allerte
-(#296), i Rifiuti (#293) e l'auto che va a benzina (#208). Le cose viste sul
-campo sono il radar che con «Casa» non mostrava niente, le telecamere Arlo con
-il quadratino azzurro (#294), la tapparella socchiusa che contava come aperta
-(#298), l'inferriata che si perdeva in modifica (#297), e il cruscotto delle
-segnalazioni che non ricaricava e metteva le prese in carico fra quelle da
-lavorare.
+Tre sezioni in piu', la Home che si personalizza, e una decina di cose viste
+sul campo. Le sezioni sono le Allerte (#296), i Rifiuti (#293) e l'auto che va
+a benzina (#208). La Home sceglie cosa mostrano le sue tessere e ne fa una per
+ogni entita' in evidenza (#303), avvisa quando l'assistenza risponde, e ogni
+storico si sceglie il periodo (#302); il clima dice quanto sono aperte le
+valvole (#300). Le cose viste sul campo sono il radar che con «Casa» non
+mostrava niente, le telecamere Arlo senza video (#294), la tapparella
+socchiusa che contava come aperta (#298), l'inferriata che si perdeva in
+modifica (#297), le icone che sparivano (#304), la finestra col solo sensore
+contata fra le tapparelle (#299), il cruscotto delle segnalazioni che non
+ricaricava, e un apice di troppo in un commento che spegneva mezza plancia
+dopo il primo caricamento.
 
 ### Aggiunto
 
