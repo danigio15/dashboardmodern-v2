@@ -1,11 +1,4 @@
 // DM-FIX-20260815A
-import {
-  CHIAVE_SOGLIA_UMIDITA,
-  SOGLIA_MASSIMA,
-  SOGLIA_MINIMA,
-  SOGLIA_PREDEFINITA,
-  sogliaDellUmidita,
-} from "../core/arieggiare.js";
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import { temperatureEntries } from "../core/room-overview.js";
 import {
@@ -16,14 +9,11 @@ import {
   dashboardStore,
   doc,
   english,
-  esc,
   installStyle,
-  readJson,
   root,
   section,
   t,
   temperatureCardLabels,
-  writeJsonIfChanged,
 } from "./shared.js";
 
 root.__DM_20260815C__ = true;
@@ -457,63 +447,6 @@ export function normalizeTemperatureConfiguredRows() {
   return normalized;
 }
 
-/* La soglia dell'umidita' che fa dire «apri la finestra» (#330).
- *
- * Sta qui e non fra le tapparelle perche' qui si configurano i sensori di
- * umidita' delle stanze: la soglia va accanto al dato che confronta. Il
- * consiglio pero' compare di la', sulla finestra della stanza, che e' la cosa
- * che uno deve andare ad aprire.
- *
- * Si salva mentre si scrive, come la soglia delle tapparelle: e' un numero
- * solo, e un tasto «Salva» per un numero solo e' un gesto in piu' per niente. */
-function ensureCampoUmidita(form) {
-  const intro = form?.parentElement?.querySelector("[data-temperature-editor]");
-  if (!intro) return false;
-  let riquadro = form.parentElement.querySelector("[data-dm-umidita-soglia]");
-  if (!riquadro) {
-    riquadro = doc.createElement("label");
-    riquadro.className = "ed-slot dm-umidita-soglia";
-    riquadro.dataset.dmUmiditaSoglia = "true";
-    riquadro.innerHTML =
-      `<span class="ed-slot-lbl">${esc(
-        t("Suggerisci di arieggiare sopra il (%)", "Suggest airing above (%)"),
-      )}</span>` +
-      `<input id="ed-umidita-soglia" class="ed-input" type="number" min="${SOGLIA_MINIMA}" max="${SOGLIA_MASSIMA}" step="1"` +
-      ` placeholder="${SOGLIA_PREDEFINITA}" autocomplete="off">` +
-      `<small>${esc(
-        t(
-          "Quando l'umidità di una stanza supera questa quota, la finestra di quella stanza suggerisce di aprirla per arieggiare — ma solo se fuori l'aria è più asciutta, altrimenti aprire peggiora. Serve il sensore di umidità della stanza qui sopra e quello della stazione meteo nelle Entità. Zero spegne il suggerimento.",
-          "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.",
-        ),
-      )}</small>`;
-    const campo = riquadro.querySelector("#ed-umidita-soglia");
-    const scritto = readJson(CHIAVE_SOGLIA_UMIDITA, null);
-    campo.value = scritto === null || scritto === "" ? "" : String(scritto);
-    campo.addEventListener("change", () => {
-      const grezzo = clean(campo.value);
-      /* Vuoto vuol dire «quella di casa», zero vuol dire «spento»: sono due
-       * cose diverse, e vanno salvate diverse. Un numero fuori scala si
-       * riporta dentro invece di essere buttato via in silenzio. */
-      if (!grezzo) {
-        campo.value = "";
-        writeJsonIfChanged(CHIAVE_SOGLIA_UMIDITA, null);
-      } else if (Number.parseFloat(grezzo) === 0) {
-        campo.value = "0";
-        writeJsonIfChanged(CHIAVE_SOGLIA_UMIDITA, 0);
-      } else {
-        const soglia = sogliaDellUmidita(grezzo) ?? SOGLIA_PREDEFINITA;
-        campo.value = String(soglia);
-        writeJsonIfChanged(CHIAVE_SOGLIA_UMIDITA, soglia);
-      }
-      try {
-        root.renderTapparelle?.();
-      } catch (_error) {}
-    });
-  }
-  if (intro.nextElementSibling !== riquadro) intro.after(riquadro);
-  return true;
-}
-
 function normalizeTemperatureEditor() {
   normalizeTemperatureConfiguredRows();
   const form = doc?.querySelector("#editor-modal [data-temperature-form]");
@@ -547,7 +480,6 @@ function normalizeTemperatureEditor() {
     }
     sync();
   }
-  ensureCampoUmidita(form);
   bindTemperatureRoomReassignment(form);
   return true;
 }
@@ -646,10 +578,6 @@ function installStyles() {
     #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main>.ed-row-old{display:block!important;visibility:visible!important;opacity:1!important;margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #editor-modal [data-temperature-form] #dm-temperature-icon,#editor-modal [data-temperature-form] [data-icon-field],#editor-modal [data-temperature-form] label.ed-slot:has(#dm-temperature-icon){display:none!important}
     #editor-modal [data-temperature-form] .dm-temperature-actions button{min-height:44px!important}
-    #ed-body .dm-umidita-soglia{display:block;margin:6px 0 12px}
-    #ed-body .dm-umidita-soglia #ed-umidita-soglia{max-width:140px}
-    #ed-body .dm-umidita-soglia small{
-      display:block;margin:4px 2px 0;font-size:11px;line-height:1.45;color:var(--text-dim,#64748b)}
     #editor-modal [data-temperature-form] #dm-temperature-room[data-dm-temperature-room-editable="true"]{border-color:var(--primary-color,#0ea5e9)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important}
     @media(max-width:680px){#page-temp #temp-grid,.temp-grid{grid-template-columns:minmax(0,360px)!important;justify-content:center!important;gap:13px!important;margin-top:12px!important;padding:0 14px 22px!important}#page-temp .temp-card,#temp-grid .temp-card{width:100%!important;max-width:360px!important;min-height:124px!important;padding:13px 14px 16px 17px!important;border-radius:20px!important;gap:11px!important}#page-temp .cp-temp-current,#temp-grid .cp-temp-current{font-size:36px!important}#temp-grid .cp-temp-target .val{font-size:22px!important}}
   `,

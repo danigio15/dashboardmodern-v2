@@ -52,7 +52,14 @@ test("il salvataggio accetta la riga col solo sensore", async () => {
    * contatto e' l'altra cosa che rende la riga sensata. */
   assert.match(crud, /const eUnContatto = \(valore\) =>/);
   assert.match(crud, /binary_sensor\|sensor\|input_boolean/);
-  assert.match(crud, /eUnaCopertura\(extra\.tendaSole\) \|\| eUnContatto\(extra\.contact\)/);
+  assert.match(crud, /eUnContatto\(extra\.contact\) \|\|\s*eUnContatto\(extra\.inferriata\)/);
+  /* L'inferriata conta quanto l'infisso.
+   *
+   * Il contatto della grata e' arrivato dopo (#254) e in questo elenco non era
+   * mai entrato: chi ha le persiane manuali e il sensore sulla grata riempiva
+   * la sola casella che aveva e si prendeva «Inserisci una entita' cover
+   * valida». Sono due contatti della stessa finestra, e uno vale l'altro. */
+  assert.match(crud, /eUnaCopertura\(extra\.tendaSole\) \|\|/);
 });
 
 test("la card della finestra sola non promette comandi che non arrivano", async () => {

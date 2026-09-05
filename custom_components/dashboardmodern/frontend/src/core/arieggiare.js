@@ -77,3 +77,29 @@ export function consiglioDiArieggiare({ dentro, fuori, soglia } = {}) {
   if (esterna >= stanza - MARGINE) return { ...esito, motivo: "fuori-piu-umido" };
   return { ...esito, arieggia: true, motivo: "conviene" };
 }
+
+/* Perche' il consiglio non compare mai.
+ *
+ * «La funzione umidita' stanza non funziona»: e non funzionava per forza,
+ * perche' per comparire vuole quattro cose insieme — la soglia, l'igrometro
+ * della stanza, una finestra assegnata a quella stanza, e l'umidita' di fuori
+ * — e se ne manca una tace. Tacere e' giusto (meglio nessun consiglio che uno
+ * a meta'), ma tacere senza dire perche' e' quello che fa sembrare rotta una
+ * cosa che sta solo aspettando un dato.
+ *
+ * Qui si risponde alla domanda «cosa manca», in ordine di cosa si va a
+ * sistemare prima. L'elenco vuoto vuol dire che c'e' tutto.
+ */
+export function cosaMancaPerArieggiare({
+  soglia,
+  stanzeConUmidita = 0,
+  finestreInStanzaConUmidita = 0,
+  umiditaFuori = null,
+} = {}) {
+  const mancanze = [];
+  if (sogliaDellUmidita(soglia) === null) mancanze.push("soglia-spenta");
+  if (!(stanzeConUmidita > 0)) mancanze.push("senza-igrometro-in-stanza");
+  else if (!(finestreInStanzaConUmidita > 0)) mancanze.push("finestra-senza-stanza");
+  if (numero(umiditaFuori) === null) mancanze.push("senza-umidita-fuori");
+  return mancanze;
+}

@@ -490,8 +490,19 @@ function installAddWrappers() {
        * esattamente cio' che la card sa disegnare. */
       const eUnContatto = (valore) =>
         /^(binary_sensor|sensor|input_boolean)\./i.test(clean(valore));
+      /* E l'inferriata conta quanto l'infisso.
+       *
+       * Il contatto della grata e' arrivato dopo (#254) e in questo elenco non
+       * era mai entrato: chi ha le persiane manuali e il sensore sulla grata —
+       * niente tapparella, niente contatto dell'infisso — riempiva la sola
+       * casella che aveva e si prendeva «Inserisci una entita' cover valida».
+       * Una casella offerta e poi rifiutata e' una promessa e un dietrofront:
+       * sono due contatti della stessa finestra, e uno vale l'altro. */
       const alternativaValida =
-        eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole) || eUnContatto(extra.contact);
+        eUnaCopertura(extra.tenda) ||
+        eUnaCopertura(extra.tendaSole) ||
+        eUnContatto(extra.contact) ||
+        eUnContatto(extra.inferriata);
       const zittire = !entity && alternativaValida;
       const avviso = zittire ? root.alert : null;
       if (zittire) {
