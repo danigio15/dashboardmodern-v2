@@ -1272,6 +1272,22 @@ function installStyles() {
       #dm-beta16-temperature-tabs{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;margin:8px 0 0!important;padding:8px 18px 12px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important}
       #dm-beta16-temperature-tabs[hidden]{display:none!important}
       #dm-beta16-temperature-tabs::-webkit-scrollbar{display:none!important}
+      /* Col mouse la striscia non si scorre, e le stanze in fondo sparivano.
+       *
+       * «Se le stanze occupano piu' spazio nella finestra browser non vanno a
+       * capo»: la striscia scorre di lato e la sua barra la nascondiamo
+       * apposta. Sul telefono e' il gesto giusto — si trascina col dito, e
+       * dieci stanze mandate a capo spingerebbero le card a meta' pagina. Ma
+       * dove si punta col mouse non c'e' ne' la barra ne' il dito: le stanze
+       * oltre il bordo destro non erano nascoste, erano irraggiungibili, e
+       * niente diceva che esistessero.
+       *
+       * Quindi la regola guarda il dispositivo di puntamento, non la
+       * larghezza: col mouse va a capo e si vede tutto, al tocco resta la
+       * striscia che scorre. */
+      @media(hover:hover) and (pointer:fine){
+        #dm-beta16-temperature-tabs{flex-wrap:wrap!important;overflow-x:visible!important}
+      }
       /* La veste tipografica e' quella delle pillole .sub-tab-btn di tutta la
        * plancia — 12px maiuscolo spaziato, raggio a capsula: qui si aggiunge
        * solo il layout (icona, conteggio, scorrimento), non un font diverso. */
