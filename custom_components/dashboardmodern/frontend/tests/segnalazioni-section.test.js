@@ -1118,8 +1118,8 @@ test("il giro zitto ridisegna il cruscotto, ma non sopra le dita di nessuno", as
  * I tasti c'erano gia', ma solo nella console di chi la coda la lavora: chi
  * apre una segnalazione vedeva le sue tutte insieme, le vecchie risolte in
  * mezzo a quelle che aspettano ancora una risposta. Adesso ci sono anche nel
- * suo elenco — e compaiono quando servono davvero: con tre aperte e niente
- * altro sarebbero una riga di tasti che non cambia niente.
+ * suo elenco, e ci sono sempre: comparivano solo con piu' di uno stato da
+ * separare, e chi ne aveva una sola apriva la scheda e il filtro non c'era.
  */
 test("in quale gruppo cade una segnalazione", async () => {
   const { bucketDelloStato } = await import("../src/sections/segnalazioni-section.js");
@@ -1136,10 +1136,17 @@ test("l'elenco di chi ha segnalato ha i tasti dello stato", async () => {
     new URL("../src/sections/segnalazioni-section.js", import.meta.url),
     "utf8",
   );
-  /* I tasti stanno nell'elenco delle proprie, non solo nella console. */
-  assert.match(sorgente, /filaMarkup\(FILTRI_STATO, state\.filtroMie, "data-dm-filtro-mie"\)/);
-  /* E compaiono solo se c'e' piu' di uno stato da separare. */
-  assert.match(sorgente, /stati\.size > 1 \? filaMarkup/);
+  /* I tasti stanno nell'elenco delle proprie, non solo nella console, e ci
+   * stanno sempre: niente piu' riga che appare e sparisce a seconda di quanti
+   * stati ci sono. */
+  assert.match(sorgente, /filaMarkup\(statiColConto, state\.filtroMie, "data-dm-filtro-mie"\)/);
+  assert.equal(/stati\.size > 1/.test(sorgente), false);
+  /* E ognuno porta il suo conto: e' quello che li rende utili anche a chi ha
+   * una segnalazione sola. */
+  assert.match(
+    sorgente,
+    /const statiColConto = FILTRI_STATO\.map\(\(filtro\) => \(\{\s*\.\.\.filtro,\s*quante: perStato\(state\.tickets, filtro\.id\)\.length,/,
+  );
   /* Il filtro dell'elenco e' suo: la console parte dalle aperte, l'elenco da
    * tutte, e premere in uno non muove l'altro. */
   assert.match(sorgente, /filtroMie: "tutte"/);
