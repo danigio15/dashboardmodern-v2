@@ -5,6 +5,106 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.8
+
+Quello che si e' visto guardando la plancia vera dopo la 1.4.7, e due
+funzioni chieste dal campo. Una card che non si aggiornava piu' e un blocco
+che teneva l'identificativo al posto del nome — lo stesso difetto, due volte,
+e adesso non puo' ripetersi. I carichi di due impianti che si scambiavano il
+nome. Le entita' configurate che sparivano dopo un aggiornamento. Il radar che
+stampava «Zoom Level Not Supported» sopra le strade. I robot che adesso
+arrivano da un'integrazione come gli elettrodomestici, e la tessera che dice
+com'e' l'aria di casa.
+
+### Aggiunto
+
+- **Anche i robot arrivano da un'integrazione.**
+
+      «Questa cosa sviluppata su elettrodomestici, di gestire le integrazioni
+       presenti, la devi implementare anche per la sezione robot.»
+
+  Nella scheda Robot c'e' lo stesso tasto degli elettrodomestici: si sceglie
+  l'integrazione, si sceglie il dispositivo, e il robot nasce con le caselle
+  gia' piene — l'entita' che lo comanda, la mappa, la batteria e i suoi
+  programmi. Quello che Home Assistant marca come impostazione o diagnostica
+  resta fuori: il volume, la soglia del wifi e l'ora del «non disturbare» sono
+  il pannello del dispositivo, non i tasti che uno vuole sotto mano. E la
+  stanza la sa gia' Home Assistant: se l'area del dispositivo si chiama come
+  una stanza configurata, il robot ci va dentro da solo.
+
+- **La tessera dell'aria (#321).** «Un widget come quello luci che segni la
+  qualita' dell'aria relativa a un sensore.» Compare da sola con un sensore
+  dell'aria in casa — PM2.5, PM10, anidride carbonica, composti organici
+  volatili, ozono, indice di qualita' — e non si configura, come il fumo e gli
+  allagamenti. In copertina va la misura messa peggio, non la media: l'aria di
+  una casa e' buona quando lo sono tutte le sue misure. Le soglie sono quelle
+  dell'Agenzia europea dell'ambiente per le polveri e della norma sulla
+  ventilazione per l'anidride carbonica, e cambiano con l'unita': i composti
+  organici volatili si pubblicano in microgrammi al metro cubo o in parti per
+  miliardo, numeri che differiscono di mille volte.
+
+- **«Spegni tutte» nel widget Luci (#315).** «Cosi' lo tolgo dai Comandi
+  Rapidi ed e' tutto dentro la tessera.» Una riga sopra l'elenco, che compare
+  solo con piu' di una luce accesa — con una sola, il suo interruttore e' li'
+  accanto. Spegne ognuna col servizio del suo dominio: una luce puo' essere un
+  `light`, uno `switch` o un `input_boolean`.
+
+- **Il filtro nelle Segnalazioni (#317).** «Sarebbe comodo poter filtrare
+  quelle aperte/chiuse.» I tasti c'erano, ma solo nella console di chi la coda
+  la lavora. Adesso ci sono anche nell'elenco di chi ha segnalato, e compaiono
+  quando c'e' piu' di uno stato da separare.
+
+### Corretto
+
+- **Un'entita' configurata non si perde piu' in nessun aggiornamento.**
+
+      «Verifica perche' dopo gli aggiornamenti si perdono entita' di alcune
+       sezioni. Le entita' configurate non si devono mai perdere.»
+
+  Il modello canonico teneva solo i campi che conosceva, e un campo non
+  dichiarato spariva alla prima normalizzazione — che gira a ogni salvataggio.
+  Era gia' successo sei volte: il contatto dell'infisso, il tipo di copertura,
+  l'inferriata, il rele' di discesa della seconda tenda, l'indirizzo RTSP,
+  l'impianto del carico. Adesso un valore che e' un'entita' di Home Assistant
+  si tiene comunque, anche se il suo campo non lo conosce nessuno.
+
+- **La card degli elettrodomestici non resta indietro.** «Se clicco sulla card
+  si apre il popup e vedo tutte le info, da fuori invece la card non le mostra
+  — ma prima le vedevo.» A macchina spenta i gradi, i giri e il programma non
+  comparivano piu': la scheda si ridisegnava solo quando cambiava un elenco di
+  campi scritto a mano, e quelli non c'erano. Lo stesso difetto teneva
+  l'identificativo al posto del nome nei **rilevatori di fumo e gas**
+  («BINARY_SENSOR.S…»).
+
+- **I carichi di due impianti non si mescolano piu'.** «Quando aggiungo il
+  carico nel secondo impianto si sovrappone al primo: nel primo prende il nome
+  del secondo, ma i watt sono quelli originali.» Il nome usciva da uno specchio
+  con le caselle numerate per posizione, nato quando gli impianti erano uno
+  solo, e i watt dal carico vero.
+
+- **Il radar non stampa piu' le scritte sopra le strade (#323).** «Da' un
+  errore sullo zoom e non si vede il meteo.» Quelle scritte le manda CARTO,
+  che i quadratini gratuiti non li serve piu'. Chi l'aveva scelto dalla tendina
+  era gia' stato spostato su OpenStreetMap; chi aveva incollato l'indirizzo a
+  mano no, ed e' il caso rimasto. E la nota sotto il radar dice adesso a quale
+  servizio la plancia sta chiedendo la pioggia.
+
+- **I tasti dell'editor si leggono.** «Cambia il colore del pulsante aggiungi
+  da integrazione perche' la scritta non si vede»: fondo scuro e scritta blu.
+  Corretto li' e negli altri tasti con lo stesso difetto, in tutte le schede e
+  nei due temi.
+
+- **Il dispositivo dentro il carico sceglie la sua icona.** «E' quando faccio
+  aggiungi dispositivi che non fa scegliere icona, e anche il tasto Chiudi e'
+  sbagliato.» Il campo dell'icona era due campi diversi per la stessa domanda;
+  adesso e' uno solo. E il tasto «Chiudi» chiedeva una forma che nessun foglio
+  di stile gli ha mai dato: usciva il rettangolo grigio del browser in mezzo a
+  tasti tondi.
+
+- **La scheda di HACS.** «Su HACS non si vede nulla»: la vetrina chiedeva il
+  README intero — centoventi chilobyte, centotrenta immagini — e non mostrava
+  niente. Adesso c'e' `info.md`, scritto per quello spazio.
+
 ## 1.4.7
 
 Le cose viste sul campo dopo la 1.4.6, e i comandi del robot che lava. La

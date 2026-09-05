@@ -15,8 +15,15 @@
  *
  * Il filmato esce in `test-results/<nome-della-prova>/video.webm`.
  */
+import { readFileSync } from "node:fs";
 import { test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+
+/* La versione la dice il manifest: scritta a mano nel cartello, il filmato
+ * invecchiava da solo e nessuno se ne accorgeva fino a rivederlo. */
+const VERSIONE = JSON.parse(
+  readFileSync(new URL("../../manifest.json", import.meta.url), "utf8"),
+).version;
 
 test.use({ video: { mode: "on", size: { width: 1440, height: 900 } } });
 test.describe.configure({ timeout: 12 * 60 * 1000 });
@@ -238,7 +245,7 @@ const SEME = {
 
 async function scena(page, numero, titolo, testo, attesa = 2800) {
   await page.evaluate(
-    ({ numero, titolo, testo }) => {
+    ({ numero, titolo, testo, versione }) => {
       let cartello = document.getElementById("dm-video-scena");
       if (!cartello) {
         const foglio = document.createElement("style");
@@ -264,7 +271,7 @@ async function scena(page, numero, titolo, testo, attesa = 2800) {
         document.head.append(foglio);
         cartello = document.createElement("aside");
         cartello.id = "dm-video-scena";
-        cartello.innerHTML = "<b></b><div><h4></h4><p></p></div><i>DASHBOARD MODERN · 1.4.7</i>";
+        cartello.innerHTML = `<b></b><div><h4></h4><p></p></div><i>DASHBOARD MODERN · ${versione}</i>`;
         document.body.append(cartello);
       }
       cartello.querySelector("b").textContent = String(numero);
@@ -272,7 +279,7 @@ async function scena(page, numero, titolo, testo, attesa = 2800) {
       cartello.querySelector("p").textContent = testo;
       cartello.setAttribute("data-on", "true");
     },
-    { numero, titolo, testo },
+    { numero, titolo, testo, versione: VERSIONE },
   );
   await page.waitForTimeout(attesa);
 }
