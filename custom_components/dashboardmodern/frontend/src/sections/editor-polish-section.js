@@ -306,6 +306,20 @@ function polishCss() {
        tasto cambi aspetto. Solo di giorno: la notte il tasto e' gia' scuro con
        la scritta chiara, e questa regola lo rovinerebbe. */
     html:not([data-theme="dark"]) #ed-body .ed-btn-add{color:#075985}
+    /* Il tasto secondario non aveva una forma.
+       Tre moduli lo chiedono — «Annulla», «Chiudi», il salvataggio di un
+       gruppo — e nessun foglio di stile gliela dava: usciva il rettangolo
+       grigio del browser in mezzo a tasti tondi, e si vedeva che era finito
+       li' per sbaglio. Prende la forma degli altri, in tono minore: e' un
+       «ho finito», non un «salva». */
+    #ed-body .ed-btn-secondary{
+      padding:11px 14px;border:1px solid var(--divider-color,#dbe4ee);border-radius:12px;
+      background:var(--secondary-background-color,#f1f5f9);color:var(--text,#0f172a);
+      font-family:inherit;font-weight:800;font-size:12px;letter-spacing:.5px;
+      text-transform:uppercase;cursor:pointer;transition:.2s}
+    #ed-body .ed-btn-secondary:hover{filter:brightness(.97)}
+    html[data-theme="dark"] #ed-body .ed-btn-secondary{
+      border-color:rgba(148,163,184,.25);background:rgba(148,163,184,.14);color:#e2e8f0}
     #ed-body .ed-btn-add[style*="linear-gradient"],
     #ed-body .ed-btn-add[style*="#94a3b8"]{color:#fff!important}
     #ed-body .ed-btn-add[style*="#0ea5e9"]{background:linear-gradient(135deg,#0369a1,#075985)!important}

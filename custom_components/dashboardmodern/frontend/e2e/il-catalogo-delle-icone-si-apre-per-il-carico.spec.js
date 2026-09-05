@@ -118,3 +118,45 @@ test("sul telefono l'icona e il colore non si accavallano", async ({ page }, tes
   await riquadro.click({ timeout: 10_000 });
   await expect(page.locator("#dm-visual-picker")).toBeVisible({ timeout: 10_000 });
 });
+
+test("anche il dispositivo dentro il carico sceglie la sua icona", async ({ page }, testInfo) => {
+  /* «E' quando faccio aggiungi dispositivi che non fa scegliere icona.»
+   *
+   * Il carico aveva il riquadro del catalogo; il dispositivo dentro il carico
+   * aveva una casella di testo e basta — un posto dove scrivere «mdi:» a
+   * memoria. E' la stessa domanda, e adesso e' lo stesso campo.
+   */
+  test.setTimeout(150_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+  await apriCarichi(page);
+  await page.locator("#editor-modal .dm-loads-card").first().locator("summary").first().click();
+
+  await page.locator("#editor-modal [data-dm-subload-add]").first().click();
+
+  /* La maschera del dispositivo, col suo riquadro dell'icona. */
+  const modulo = page.locator("#editor-modal .dm-loads-subload-form").first();
+  await expect(modulo).toBeVisible({ timeout: 20_000 });
+  const riquadro = modulo.locator("[data-dm-load-icon-pick]").first();
+  await expect(riquadro).toBeVisible();
+  await riquadro.click();
+
+  const catalogo = page.locator("#dm-visual-picker");
+  await expect(catalogo).toBeVisible({ timeout: 10_000 });
+  await expect(catalogo).toHaveAttribute("data-kind", "load");
+  await catalogo.locator(".dm-picker-option").first().click();
+  await expect(modulo.locator("[data-dm-load-icon]").first()).toHaveValue(/.+/);
+
+  /* E il tasto che chiude ha la forma degli altri, non il rettangolo grigio
+   * del browser: nessun foglio di stile dava una forma a `ed-btn-secondary`,
+   * e si vedeva che era finito li' per sbaglio. */
+  const chiudi = modulo.locator("[data-dm-subload-done]").first();
+  await expect(chiudi).toBeVisible();
+  const veste = await chiudi.evaluate((nodo) => {
+    const stile = getComputedStyle(nodo);
+    return { raggio: Number.parseFloat(stile.borderRadius), peso: Number(stile.fontWeight) };
+  });
+  expect(veste.raggio).toBeGreaterThanOrEqual(10);
+  expect(veste.peso).toBeGreaterThanOrEqual(700);
+});
