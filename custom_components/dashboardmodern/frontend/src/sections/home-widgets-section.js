@@ -5512,11 +5512,19 @@ export function renderHomeWidgets() {
      * una distanza che non esiste piu'. Misurare costa un conto
      * d'impaginazione, quindi lo si fa solo quando la larghezza e' cambiata
      * davvero. */
-    const cambiatoTesto = sub.textContent !== testo;
-    if (cambiatoTesto) sub.textContent = testo;
-    const larghezza = Math.round(sub.clientWidth);
-    if (cambiatoTesto || sub.dataset.dmLarghezza !== String(larghezza)) {
-      sub.dataset.dmLarghezza = String(larghezza);
+    /* Si rimisura quando cambiano le parole, e non a ogni giro di valori.
+     *
+     * La riga qui sopra diceva bene la cosa e la faceva male: per sapere se
+     * la larghezza era cambiata leggeva `clientWidth`, e leggerlo E' il conto
+     * d'impaginazione che si voleva evitare. Lo si pagava a ogni passata —
+     * due volte al secondo — quasi sempre per scoprire che la larghezza era
+     * la stessa di prima.
+     *
+     * La larghezza cambia quando cambia la finestra, e quello lo dice gia'
+     * `resize` (vedi `installHomeWidgetsSection`): li' la riga si rimisura.
+     * Qui basta il testo, che e' l'unica cosa che questa funzione tocca. */
+    if (sub.textContent !== testo) {
+      sub.textContent = testo;
       scorriUnaRiga(sub);
     }
     const stato = avvisi ? "avviso" : "quiete";
@@ -5938,10 +5946,30 @@ function scorriDidascalie(grid) {
   return mossi;
 }
 
+/* Le tessere si rifanno per chi le guarda.
+ *
+ * Un giro costruisce il modello di ogni tessera — una trentina, e ognuna
+ * legge gli stati della casa — e con la Home chiusa lo faceva lo stesso, due
+ * volte al secondo, per una griglia che nessuno aveva davanti. La Home resta
+ * nel documento quando si va altrove: il guscio la nasconde, non la toglie, e
+ * il lavoro non se ne accorgeva.
+ *
+ * Tornando sulla Home il tocco sulla linguetta richiama la passata (vedi
+ * `installHomeWidgetsSection`), quindi chi arriva trova le tessere di adesso e
+ * non quelle di quando se n'e' andato. */
+function laHomeSiVede() {
+  if (homeVisible()) return true;
+  /* Il popup del dettaglio sta attaccato al corpo della pagina, non alla
+   * Home: finche' e' aperto va tenuto vivo comunque, perche' e' lui che si
+   * sta guardando. */
+  return Boolean(state.expanded);
+}
+
 function schedule() {
   if (state.frame) return;
   const run = () => {
     state.frame = 0;
+    if (!laHomeSiVede()) return;
     try {
       renderHomeWidgets();
     } catch (error) {
@@ -7747,7 +7775,14 @@ export function installHomeWidgetsSection() {
   let rimisura = 0;
   root.addEventListener?.("resize", () => {
     root.clearTimeout?.(rimisura);
-    rimisura = root.setTimeout?.(() => sistemaLeScritte(doc.getElementById("dm-widgets")), 140);
+    rimisura = root.setTimeout?.(() => {
+      const ospite = doc.getElementById("dm-widgets");
+      sistemaLeScritte(ospite);
+      /* E la riga sotto il titolo, che scorre se non ci sta: e' l'unico posto
+       * dove si misura la sua larghezza, perche' e' l'unico momento in cui
+       * puo' essere cambiata. */
+      scorriUnaRiga(ospite?.querySelector?.(".dm-widgets-sub"));
+    }, 140);
   });
   /* Il ritardo di fine ciclo scade in silenzio: l'elettrodomestico ha smesso
    * di consumare, e nessun cambio di stato arriva ad avvisare la tessera. */

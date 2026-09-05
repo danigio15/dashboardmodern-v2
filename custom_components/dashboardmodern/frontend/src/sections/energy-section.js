@@ -883,10 +883,37 @@ function scheduleProjection() {
  * eventi di stato e si proiettano sul pacchetto che c'e'. */
 export const RIPOSO_ENERGIA_MS = 60_000;
 
+/* E quanto riposa quando quei numeri non li guarda nessuno.
+ *
+ * Un minuto e' il passo di chi sta sulla pagina dell'Energia: li' i totali si
+ * leggono, e vale la pena richiederli spesso. Ma il giro andava avanti uguale
+ * con la pagina chiusa — cinque letture del Recorder al minuto, per sempre,
+ * mentre la plancia stava sulla Home — e ognuna e' lavoro sul server, cioe'
+ * proprio la CPU del mini PC che si scalda.
+ *
+ * Chiusa la pagina, di quei totali resta solo la tessera dell'Energia in
+ * Home: i kWh di oggi e del mese, che si muovono piano. E si muovono piano
+ * per forza — le statistiche di Home Assistant si compilano ogni cinque
+ * minuti — quindi chiedere piu' spesso di cosi' non trova niente di nuovo.
+ * Cinque minuti non e' un compromesso: e' la frequenza con cui il dato esiste.
+ *
+ * I watt che scorrono non passano di qui: arrivano dagli eventi di stato e si
+ * proiettano sul pacchetto che c'e' (`scheduleProjection`), quindi la tessera
+ * resta viva comunque. E chi apre l'Energia non aspetta il suo turno: il
+ * tocco sulla linguetta chiede subito (vedi `bindEvents`). */
+export const RIPOSO_ENERGIA_DI_SPALLE_MS = 5 * 60_000;
+
+export function riposoDeiPeriodi(documento = doc) {
+  if (documento?.visibilityState === "hidden") return RIPOSO_ENERGIA_DI_SPALLE_MS;
+  return documento?.getElementById?.("page-energy")?.classList?.contains("active")
+    ? RIPOSO_ENERGIA_MS
+    : RIPOSO_ENERGIA_DI_SPALLE_MS;
+}
+
 export function scheduleEnergyRefresh(force = false, explicitDelay = null) {
   root.clearTimeout?.(state.refreshTimer);
   const elapsed = Date.now() - state.lastRefreshAt;
-  const delay = explicitDelay ?? (force ? 0 : Math.max(250, RIPOSO_ENERGIA_MS - elapsed));
+  const delay = explicitDelay ?? (force ? 0 : Math.max(250, riposoDeiPeriodi() - elapsed));
   state.refreshTimer = root.setTimeout?.(() => {
     state.refreshTimer = 0;
     refreshEnergy();
@@ -1228,6 +1255,14 @@ function bindEvents() {
           scheduleProjection();
         });
       }
+      /* Aprire l'Energia vuol dire volerla adesso.
+       *
+       * Con la pagina chiusa i periodi si riposano cinque minuti (vedi
+       * `riposoDeiPeriodi`): senza questa riga chi entra troverebbe i totali
+       * dell'ultimo giro, vecchi fino a cinque minuti, e dovrebbe aspettare
+       * fermo davanti allo schermo. Il tocco che apre la pagina e' anche la
+       * domanda, e la risposta arriva mentre la pagina sale. */
+      if (event.target?.closest?.("[data-tab='energy']")) scheduleEnergyRefresh(true);
     },
     true,
   );

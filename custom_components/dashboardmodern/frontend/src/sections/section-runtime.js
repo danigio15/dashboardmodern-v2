@@ -587,7 +587,21 @@ function syncApplianceKpis() {
     const popup = doc.getElementById(`dm-appliance-${kind}-popup`);
     return popup && !popup.hidden;
   });
-  const inScena = Boolean(grid.closest?.(".page.active")) || Boolean(grid.offsetParent);
+  /* E il cancello non deve costare quanto la stanza che chiude.
+   *
+   * `offsetParent` sembra la domanda piu' onesta — «questo nodo sta davvero
+   * sullo schermo?» — ma leggerlo obbliga il browser a rifare i conti
+   * dell'impaginazione di tutta la pagina, e lo si leggeva a ogni giro di
+   * stati proprio nel caso comune: pagina chiusa, `closest` gia' negativo,
+   * quindi si arrivava sempre al secondo pezzo dell'oppure. Col profilatore
+   * quella riga sola pesava quanto il disegno dei widget della Home.
+   *
+   * Dentro una pagina la risposta ce l'ha la pagina stessa, ed e' una classe
+   * da leggere. `offsetParent` resta per il caso in cui la griglia non stia
+   * in nessuna pagina — spostata dentro un popup — dove la classe non c'e' e
+   * la domanda va fatta davvero. */
+  const pagina = grid.closest?.(".page");
+  const inScena = pagina ? pagina.classList.contains("active") : Boolean(grid.offsetParent);
   if (!inScena && !popupAperto) return false;
   const models = applianceKpiModels();
   const running = models.filter((model) => model.mode === "running");

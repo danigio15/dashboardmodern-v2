@@ -884,10 +884,35 @@ function riportaInScena(nodo) {
   delete nodo.dataset.dmImpiantoNasconde;
 }
 
+/* La scena si disegna per chi la guarda.
+ *
+ * Col profilatore in mano — plancia ferma sulla Home, casa che parla a venti
+ * cambi di stato al secondo — questa passata era la voce piu' grossa del
+ * processore: piu' del disegno dei widget, piu' di ogni altra cosa. Il motivo
+ * e' il suo mestiere: riscrive lo stile di ogni bolla e di ogni linea, e
+ * subito dopo chiede al browser lo stile calcolato di quelle stesse (vedi
+ * `nodeVisible`). Ogni domanda dopo una scrittura obbliga a rifare i conti
+ * dell'impaginazione, e le domande sono un centinaio per passata.
+ *
+ * Con la pagina dell'Energia chiusa non si vedeva niente di tutto questo. Le
+ * pagine restano nel documento — il guscio le nasconde, non le toglie —
+ * quindi il lavoro si faceva lo stesso, per nessuno: era il calore del mini
+ * PC segnalato dal campo, pagato da chi la plancia la teneva aperta sulla
+ * Home. Adesso si torna subito, e al ritorno la passata si rifa': il tocco
+ * su una linguetta la richiama, e chi arriva trova la scena di adesso. */
+function laScenaSiVede() {
+  const pagina = doc?.getElementById?.("page-energy");
+  /* Senza quella pagina non c'e' niente da rimandare: la passata trova i suoi
+   * ambiti vuoti e torna da sola, e tacere qui vorrebbe dire spegnere il
+   * flusso su un guscio fatto in un altro modo. */
+  return !pagina || pagina.classList.contains("active");
+}
+
 function schedule() {
   if (state.frame) return;
   const run = () => {
     state.frame = 0;
+    if (!laScenaSiVede()) return;
     refreshEnergyFlows();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
@@ -983,10 +1008,15 @@ export function installEnergyFlowSection() {
   root.addEventListener?.("dashboardmodern:states-ready", scheduleSettled);
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleSettled);
   root.addEventListener?.("dashboardmodern:legacy-ready", scheduleSettled);
+  /* Le linguette: quelle dentro l'Energia — istante, giorno, mese — e quelle
+   * della barra, che sono il modo in cui la pagina torna in scena. La passata
+   * si salta finche' e' chiusa (vedi `laScenaSiVede`), quindi il tocco che la
+   * riapre e' l'unica cosa che la rimette in moto. */
   doc.addEventListener(
     "click",
     (event) => {
-      if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn")) scheduleSettled();
+      if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn,.tab[data-tab]"))
+        scheduleSettled();
     },
     true,
   );
