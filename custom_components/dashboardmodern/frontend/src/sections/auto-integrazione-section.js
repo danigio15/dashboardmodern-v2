@@ -12,7 +12,8 @@
  */
 import { legaLAutoAlDispositivo } from "../core/auto-device-binding.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
-import { profiles, salvaAuto } from "./ev-section.js";
+import { letturaMetadata, profiles, salvaAuto } from "./ev-section.js";
+import { nuovoVeicolo } from "../core/vehicle-model.js";
 import { etichettaDellaCasella } from "./auto-termica-section.js";
 import {
   allStates,
@@ -92,8 +93,16 @@ export async function creaAutoDaDispositivo({ device, entities, integration }) {
   }
   const auto = profiles();
   const nome = clean(device?.name) || t("Auto", "Car");
+  /* L'identita' gliela da' `nuovoVeicolo`, come a un'auto nata dal ＋.
+   *
+   * Qui si consegnava una riga senza uid, e uno gliene toccava dopo, ricavato
+   * dal POSTO che occupava nell'elenco. Un'identita' che dipende dalla
+   * posizione cambia quando l'elenco si riordina o qualcuno cancella una
+   * vettura — e da quell'identita' dipendono l'auto in mostra e l'auto aperta
+   * in configurazione. Il segno che non scende mai e' l'unico posto da cui
+   * un'auto puo' prendere il suo nome interno. */
   const nata = {
-    name: nome,
+    ...nuovoVeicolo(auto, nome, letturaMetadata()),
     tipo,
     ov: mappa,
     overrides: mappa,

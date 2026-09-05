@@ -55,5 +55,50 @@ test("il segno di «scritto a mano» si toglie, altrimenti il campo resta immune
   const valore = corpo.indexOf('dentro.value = ""');
   assert.ok(primaDelValore > 0 && valore > primaDelValore, "si toglie il segno prima di svuotare");
   // E la regola che salta i campi segnati e' ancora quella, nel pannello.
-  assert.match(sezione, /if \(field\.dataset\.evPhotoEdited === "true"\) continue;/);
+  assert.match(
+    sezione,
+    /field\.dataset\.evPhotoEdited === "true"\) continue;/,
+    "il pannello salta ancora i campi che qualcuno sta battendo",
+  );
+});
+
+test("il segno di «scritto a mano» appartiene all'auto per cui e' stato battuto", () => {
+  /* La protezione «questo campo l'ha battuto una persona» resisteva anche al
+   * cambio di auto: aperta la seconda vettura, nel campo c'era ancora il
+   * percorso della prima, e «Salva foto» glielo scriveva addosso. E' il «le
+   * foto si mischiano» tornato dal campo.
+   *
+   * Il pannello adesso si porta scritto di chi sta parlando: cambiata l'auto,
+   * i segni cadono e i campi dicono la sua — anche quello che ha il cursore
+   * dentro, perche' e' cambiata la vettura sotto le dita. */
+  assert.match(sezione, /const cambiata = panelNode\.dataset\.dmAutoFoto !== diChi;/);
+  assert.match(sezione, /if \(cambiata\) delete field\.dataset\.evPhotoEdited;/);
+  assert.match(sezione, /panelNode\.dataset\.dmAutoFoto = diChi;/);
+  /* E il nome di quell'auto e' lo stesso a cui «Salva foto» scrivera': una
+   * domanda, una risposta. */
+  assert.match(
+    sezione,
+    /const posto = vehiclePhotoTargetIndex\(elencoDelPannello\);\s*const diChi = posto >= 0 \? uidDi\(elencoDelPannello\[posto\]\) : "";/,
+  );
+});
+
+test("cambiare l'auto della scheda fa ridomandare a chi la racconta", () => {
+  /* Chi cambia la risposta a «di quale auto stiamo parlando» deve anche far
+   * ridisegnare quello che da quella risposta dipende. Se il promemoria sta
+   * nei chiamanti, prima o poi uno se ne dimentica — ed e' stata la matita,
+   * che apriva la seconda vettura lasciando il pannello delle foto sulla
+   * prima. Sta nel posto dove la risposta cambia. */
+  const setter = sezione.slice(
+    sezione.indexOf("function setEditingKey"),
+    sezione.indexOf("\n}", sezione.indexOf("function setEditingKey")),
+  );
+  assert.match(setter, /state\.evEditingUid = value;/);
+  assert.match(setter, /scheduleEvSync/, "cambiare auto ridisegna la scheda");
+  /* Riaprire la configurazione ricomincia dall'auto in uso: la seduta di
+   * scrittura vive in memoria, e senza questo sopravviveva alla finestra che
+   * il guscio ha gia' buttato via. */
+  assert.match(
+    sezione,
+    /wrapFunction\("apriConfigEntita", "__dmEvSection_apriConfigEntita", \(\) => \{\s*setEditingKey\(null\);/,
+  );
 });

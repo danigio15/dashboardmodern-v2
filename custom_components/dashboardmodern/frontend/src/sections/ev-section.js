@@ -480,6 +480,13 @@ export function ensureVehiclePhotoEditor() {
    * titolo giusto a fare da alibi. La fonte e' il profilo attivo; le caselle
    * restano solo il ripiego di chi ha una vettura sola col formato vecchio. */
   const photos = fotoDelProfiloInModifica();
+  /* Di quale auto parla il pannello adesso. E' l'auto a cui «Salva foto»
+   * scrivera': la stessa domanda, la stessa risposta. Vuoto vuol dire
+   * «nessuna» — la bozza del ＋, o una configurazione senza vetture — e anche
+   * quello e' un cambio, perche' i campi devono svuotarsi. */
+  const elencoDelPannello = profiles();
+  const posto = vehiclePhotoTargetIndex(elencoDelPannello);
+  const diChi = posto >= 0 ? uidDi(elencoDelPannello[posto]) : "";
   if (!panelNode) {
     panelNode = doc.createElement("section");
     panelNode.className = "ed-form dm-ev-photos";
@@ -538,16 +545,31 @@ export function ensureVehiclePhotoEditor() {
       panel.dataset.saved = "true";
     });
   } else {
+    /* Il pannello e' la vista di UNA auto, e non si portava scritto di quale.
+     *
+     * Il segno «questo campo l'ha battuto una persona» esiste per non
+     * cancellare sotto le dita quello che si sta scrivendo, e giustamente
+     * resiste alle passate finche' non si salva. Ma resisteva anche al cambio
+     * di auto: aperta la seconda vettura, nel campo c'era ancora il percorso
+     * della prima — e «Salva foto» glielo scriveva addosso.
+     *
+     * Il segno appartiene all'auto per cui e' stato battuto, e con lei se ne
+     * va. Cambiata l'auto i campi dicono la sua, anche quello che ha il
+     * cursore dentro: e' cambiata la vettura sotto le dita, e un campo che
+     * continuasse a mostrare l'altra sarebbe la bugia da cui si viene. */
+    const cambiata = panelNode.dataset.dmAutoFoto !== diChi;
     for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
       const input = field.querySelector("[data-ev-photo-input]");
-      if (!input || input === doc.activeElement) continue;
+      if (!input) continue;
+      if (cambiata) delete field.dataset.evPhotoEdited;
       // A path typed into the other field and not yet saved must survive this:
       // moving from the first photo to the second used to blank the first,
       // because the panel is refreshed while the tab settles.
-      if (field.dataset.evPhotoEdited === "true") continue;
+      else if (input === doc.activeElement || field.dataset.evPhotoEdited === "true") continue;
       input.value = photos[field.dataset.evPhoto] || "";
     }
   }
+  panelNode.dataset.dmAutoFoto = diChi;
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) paintPhotoPreview(field);
   /* Il pannello scrive sull'auto attiva, e lo dice.
    *
@@ -929,7 +951,10 @@ function activeIndex() {
  * cancellata. */
 const EV_META_KEY = "cd_ev_meta";
 
-const letturaMetadata = () => {
+/* Il segno che sale e non scende mai: da qui esce l'uid di un'auto che nasce.
+ * Lo legge anche chi crea una vettura da un'integrazione, per non inventarsi
+ * un'identita' per conto suo. */
+export const letturaMetadata = () => {
   const salvato = readJson(EV_META_KEY, {});
   return salvato && typeof salvato === "object" && !Array.isArray(salvato) ? salvato : {};
 };
@@ -978,7 +1003,24 @@ function ensureCarKeys() {
  * uid   = la matita ha aperto QUELLA auto, e il nome scritto nel campo e' il
  *         suo nome — anche cambiato: rinominare non apre un'altra scheda. */
 function editingKey() { return state.evEditingUid ?? null; }
-function setEditingKey(value) { state.evEditingUid = value; }
+
+/* Cambiare l'auto di cui parla la scheda e' cambiare la risposta a «di chi
+ * stiamo parlando», e da quella risposta viene TUTTO quello che la scheda
+ * mostra: il pannello delle foto, il nome scritto sul tasto che salva, i campi
+ * delle entita'. Chi cambia la risposta deve anche far ridomandare.
+ *
+ * Finora doveva ricordarsene ogni chiamante, e la matita non se ne ricordava:
+ * aprendo la seconda vettura il pannello delle foto restava a mostrare — e a
+ * tenere in mano — i percorsi della prima, col titolo della prima a fare da
+ * alibi. «Salva foto» li scriveva sulla vettura appena aperta, ed e' il «le
+ * foto si mischiano» tornato dal campo. Adesso il promemoria sta qui, dove la
+ * risposta cambia, e nessun chiamante puo' dimenticarsene. */
+function setEditingKey(value) {
+  if (state.evEditingUid === value) return;
+  state.evEditingUid = value;
+  if (typeof root.queueMicrotask === "function") root.queueMicrotask(scheduleEvSync);
+  else scheduleEvSync();
+}
 
 /* Dove sta scritta la carica dell'auto.
  *
@@ -1235,8 +1277,17 @@ export function seedActiveProfilePhotos() {
  * percorso. Da li' in poi cambiare auto non cambiava niente: il profilo nuovo
  * non aveva foto, e teneva quella dell'altro. */
 function saveProfilePhotos(photos) {
-  const legacy = legacyProfiles();
-  const cars = legacy.length ? legacy : canonicalProfiles();
+  /* La stessa lista che il pannello ha letto, e che il titolo dichiara.
+   *
+   * Qui si guardava l'elenco GREZZO, mentre il pannello, il titolo e la
+   * decisione «questa e' anche l'auto in mostra» guardavano `profiles()` —
+   * cioe' l'elenco passato da `vehicleList`, dove ogni riga ha il suo uid e i
+   * doppioni sono stati sciolti. Due liste per la stessa domanda, «a chi sto
+   * scrivendo»: finche' le due risposte coincidono non si vede niente, ma le
+   * righe grezze un uid possono non averlo — le scrive `ensureCarKeys` a un
+   * giro di disegno, non prima — e a quel punto la ricerca cade a vuoto e il
+   * salvataggio se ne va in silenzio. Una domanda, una lista. */
+  const cars = profiles();
   if (!cars.length) return false;
   /* Con l'attiva appena cancellata l'indice vale -1: il vecchio clamp a zero
    * scriveva le foto della vettura sparita sulla prima della lista. Nessuna
@@ -1645,7 +1696,21 @@ function installStyles() {
 
 function bindEditorEntryPoints() {
   onEditorRedraw("__dmEvSection_editorSwitch", scheduleEvSyncSettled);
-  wrapFunction("apriConfigEntita", "__dmEvSection_apriConfigEntita", scheduleEvSyncSettled);
+  /* Riaprire la configurazione apre una seduta nuova.
+   *
+   * La seduta di scrittura vive in memoria e il guscio, chiudendo, la finestra
+   * la butta via: riaprendola la scheda parlava ancora dell'auto aperta con la
+   * matita mezz'ora prima, mentre la plancia ne mostrava un'altra. Chi entrava
+   * per sistemare la vettura che aveva davanti stava configurando quella di
+   * prima — le foto comprese.
+   *
+   * Aprire la configurazione vuol dire ricominciare: si racconta l'auto in
+   * uso, finche' una matita non dice il contrario. */
+  wrapFunction("apriConfigEntita", "__dmEvSection_apriConfigEntita", () => {
+    setEditingKey(null);
+    state.evRenameArmed = false;
+    scheduleEvSyncSettled();
+  });
 }
 
 export function installEvSection() {
