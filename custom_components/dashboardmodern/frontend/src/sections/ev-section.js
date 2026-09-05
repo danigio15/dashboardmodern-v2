@@ -1416,8 +1416,34 @@ function installLegacyWrappers() {
       setEditingKey(uidDi(car));
       // Applicare non e' un mandato di rinomina: quello lo da' solo la matita.
       state.evRenameArmed = false;
+      /* Prima che il guscio guardi, deve trovarci l'auto nuova.
+       *
+       * Il corpo vendorizzato mette la foto e poi chiama `render()` da se',
+       * dentro la stessa riga. E `render()` rimette sull'immagine quello che
+       * dice `CD_EV_IMAGE` — la variabile del guscio, che finora questo modulo
+       * allineava un fotogramma DOPO, dentro `applyVehicleAsset`. Misurato con
+       * una spia sul setter: foto nuova, tre millisecondi di foto VECCHIA
+       * rimessa da `render`, poi di nuovo la nuova. A ogni cambio, in tutti e
+       * due i versi, e una volta in piu' per ogni giro del guscio che cade in
+       * quella finestra — su Home Assistant vero ne cade uno per cambio di
+       * stato. E' il «cambio vettura con il tab e le foto rimbalzano».
+       *
+       * Non serve una guardia che rincorra il guscio: basta dire prima quello
+       * che finora si diceva dopo. Detta l'auto in uso — `applyVehicleAsset`
+       * la legge da li' — si riempiono le due caselle e si disegna: da quel
+       * momento `CD_EV_IMAGE` e' gia' la foto nuova, e il `render()` del
+       * guscio non ha piu' niente da rimettere. */
+      if (uidDi(car) || clean(car?.name)) {
+        try { root.localStorage?.setItem(VEHICLE_ACTIVE_KEY, String(index)); } catch (_errore) {}
+        restoreProfilePhotos(car);
+        applyVehicleAsset();
+      }
       const result=previous.call(this,index,...rest);
       restoreProfilePhotos(car);
+      /* E si ridisegna anche dopo: il corpo del guscio, fra le sue cose, puo'
+       * aver rimesso mano all'immagine. Quando non l'ha fatto questa e' una
+       * passata che non scrive niente. */
+      applyVehicleAsset();
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
     }
     applyProfile.__dmEvSection=true; applyProfile.__dmPrevious=previous; root.cdEvApplyCar=applyProfile;

@@ -168,3 +168,64 @@ test("cambiando vettura, avanti e indietro, la cornice non resta mai indietro", 
   expect(fotogrammiIndietro(ritorno), "la B10 e' comparsa dentro la cornice della T03").toBe(0);
   expect(ritorno.at(-1).foto).toBe("b10-idle.png");
 });
+
+/* Ogni scrittura di `src`, non ogni fotogramma.
+ *
+ * Il secondo rimbalzo dura tre millisecondi e fra due fotogrammi non si
+ * vedrebbe — ma la foto il browser la ricarica lo stesso, e su una connessione
+ * vera quel lampo si vede benissimo. Qui si guarda chi scrive, non chi
+ * dipinge. */
+async function scrittureDurante(page, gesto, durata = 2000) {
+  await page.evaluate(() => {
+    window.__scritte = [];
+    const img = document.getElementById("ev-mod-car-img");
+    const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(img), "src");
+    Object.defineProperty(img, "src", {
+      configurable: true,
+      get() {
+        return desc.get.call(this);
+      },
+      set(valore) {
+        window.__scritte.push(String(valore).split("/").pop());
+        desc.set.call(this, valore);
+      },
+    });
+    /* Il giro del guscio, al ritmo con cui lo chiama Home Assistant vero: e'
+     * quello che moltiplica le scritture di mezzo. */
+    window.__giro = setInterval(() => {
+      try {
+        window.eval("render()");
+      } catch (_errore) {}
+    }, 100);
+  });
+  await gesto();
+  await page.waitForTimeout(durata);
+  return page.evaluate(() => {
+    clearInterval(window.__giro);
+    return window.__scritte;
+  });
+}
+
+/* La stessa foto scritta due volte di fila non e' un rimbalzo: e' una passata
+ * che ribadisce. Rimbalza chi cambia, torna indietro e ricambia. */
+const corsa = (nomi) => nomi.filter((nome, i) => nome !== nomi[i - 1]);
+
+test("cambiando vettura la foto vecchia non torna mai indietro", async ({ page }, testInfo) => {
+  await avvia(page, testInfo);
+  const linguette = page.locator("#ev-car-picker .dm-vehicle-profile-card[data-vehicle-key]");
+  await expect(linguette).toHaveCount(2);
+
+  const andata = await scrittureDurante(page, () => linguette.nth(1).click());
+  /* Il guscio, dentro il corpo di `cdEvApplyCar`, chiama `render()` da se', e
+   * `render()` rimette sull'immagine quello che dice `CD_EV_IMAGE`. Finche'
+   * quella variabile veniva allineata un fotogramma dopo, la sequenza era
+   * nuova → VECCHIA → nuova. */
+  expect(corsa(andata), `rimbalzo: ${andata.join(" → ")}`).not.toContain("b10-idle.png");
+  expect(corsa(andata).length, `la foto cambia una volta sola: ${andata.join(" → ")}`).toBe(1);
+  expect(andata.at(-1)).toBe("t03-idle.png");
+
+  const ritorno = await scrittureDurante(page, () => linguette.nth(0).click());
+  expect(corsa(ritorno), `rimbalzo: ${ritorno.join(" → ")}`).not.toContain("t03-idle.png");
+  expect(corsa(ritorno).length, `la foto cambia una volta sola: ${ritorno.join(" → ")}`).toBe(1);
+  expect(ritorno.at(-1)).toBe("b10-idle.png");
+});
