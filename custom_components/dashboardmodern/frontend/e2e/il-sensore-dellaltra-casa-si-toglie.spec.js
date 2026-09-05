@@ -30,8 +30,18 @@ const IMPIANTI = {
 const seme = (loads) => ({
   schema_version: 4,
   sections: {
-    rooms: [], cameras: [], appliances: [], lights: [], climate: [], ev: [], covers: [],
-    pool: {}, irrigation: { zones: [] }, loads, energy: IMPIANTI, entityOverrides: {},
+    rooms: [],
+    cameras: [],
+    appliances: [],
+    lights: [],
+    climate: [],
+    ev: [],
+    covers: [],
+    pool: {},
+    irrigation: { zones: [] },
+    loads,
+    energy: IMPIANTI,
+    entityOverrides: {},
   },
   visibility: { home: true, energy: true },
 });
@@ -48,7 +58,9 @@ const potenze = (page) =>
 
 async function avvia(page, testInfo, loads) {
   test.setTimeout(150_000);
-  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }).catch(() => {}));
+  await page.route("https://**", (route) =>
+    route.fulfill({ status: 200, body: "" }).catch(() => {}),
+  );
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seme(loads));
   await page.locator("#setup-wizard").evaluateAll((n) => n.forEach((x) => x.remove()));
   await page.evaluate((specchio) => {
@@ -81,19 +93,19 @@ test("il carico che porta il sensore dell'altra casa lo perde, l'originale no", 
   await page.evaluate(() => {
     window.dispatchEvent(new CustomEvent("dashboardmodern:persistence-restored", { detail: {} }));
   });
-  await expect.poll(() => potenze(page), { timeout: 20_000 }).toEqual([
-    ["boiler", "sensor.boiler_w"],
-    ["pompa", ""],
-  ]);
+  await expect
+    .poll(() => potenze(page), { timeout: 20_000 })
+    .toEqual([
+      ["boiler", "sensor.boiler_w"],
+      ["pompa", ""],
+    ]);
 
   /* E una volta sola: il segno resta, e un secondo giro non tocca più niente. */
   const segno = await page.evaluate(() => localStorage.getItem("cd_carichi_travasati_puliti"));
   expect(segno).toBe("1");
 });
 
-test("dove non si può dimostrare, non si cancella: lo dice e basta", async ({
-  page,
-}, testInfo) => {
+test("dove non si può dimostrare, non si cancella: lo dice e basta", async ({ page }, testInfo) => {
   /* Due carichi con la sola potenza: identici a guardarli. La plancia non sa
    * in quale appartamento sta il sensore, e la metà buona non si butta. */
   await avvia(page, testInfo, [
@@ -111,10 +123,12 @@ test("dove non si può dimostrare, non si cancella: lo dice e basta", async ({
     localStorage.setItem("cd_energy_plant", "impianto-2");
   });
   await page.waitForTimeout(1200);
-  await expect.poll(() => potenze(page)).toEqual([
-    ["boiler", "sensor.boiler_w"],
-    ["pompa", "sensor.boiler_w"],
-  ]);
+  await expect
+    .poll(() => potenze(page))
+    .toEqual([
+      ["boiler", "sensor.boiler_w"],
+      ["pompa", "sensor.boiler_w"],
+    ]);
 
   /* La maschera lo dice, e porta il gesto. */
   await page.evaluate(() => {

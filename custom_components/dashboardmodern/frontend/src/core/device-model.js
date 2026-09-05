@@ -408,8 +408,7 @@ function valoreDaTenere(valore) {
   if (typeof valore === "number") return Number.isFinite(valore) ? valore : undefined;
   if (typeof valore === "boolean") return valore;
   if (Array.isArray(valore)) return valore.length ? cloneValue(valore) : undefined;
-  if (valore && typeof valore === "object" && Object.keys(valore).length)
-    return cloneValue(valore);
+  if (valore && typeof valore === "object" && Object.keys(valore).length) return cloneValue(valore);
   return undefined;
 }
 

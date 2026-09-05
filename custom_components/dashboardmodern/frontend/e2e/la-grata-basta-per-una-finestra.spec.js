@@ -39,7 +39,9 @@ test("con la sola grata la finestra si aggiunge, senza il rifiuto della cover", 
     rifiuti.push(finestra.message());
     finestra.dismiss().catch(() => {});
   });
-  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }).catch(() => {}));
+  await page.route("https://**", (route) =>
+    route.fulfill({ status: 200, body: "" }).catch(() => {}),
+  );
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true, null, {
     timeout: 20_000,

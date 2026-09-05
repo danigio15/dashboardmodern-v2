@@ -150,9 +150,7 @@ test("senza il dato di fuori non si inventa un consiglio", async ({ page }, test
 /* «Non compare in finestre»: e non compariva, perche' la casella della soglia
  * stava nella scheda Temperature — accanto ai sensori che confronta, che era un
  * ragionamento di chi il codice lo ha scritto, non di chi la plancia la usa. */
-test("la soglia si trova nella scheda Finestre, e dice cosa manca", async ({
-  page,
-}, testInfo) => {
+test("la soglia si trova nella scheda Finestre, e dice cosa manca", async ({ page }, testInfo) => {
   await avvia(page, testInfo, 41);
   await page.evaluate(() => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();

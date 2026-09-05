@@ -5,6 +5,244 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.9
+
+Le cose viste guardando due plance vere: una casa con due appartamenti e una
+con due macchine. Due difetti che si somigliano — un dato che appartiene a una
+cosa e finisce addosso a un'altra — e in tutti e due i casi la correzione vera
+non era dove si vedeva il sintomo. In piu' la Home che si riordina come si
+vuole, la colonnina che entra da un'integrazione come l'auto, e la soglia
+dell'umidita' spostata dove uno la cerca.
+
+### Aggiunto
+
+- **Di gruppi di continuita' se ne puo' avere piu' d'uno (#332).**
+
+      «Ti volevo chiedere se c'era la possibilita' di aggiungere un secondo
+       ups.»
+
+  Ne esisteva uno solo, scritto come un oggetto. Adesso sono un elenco — come i
+  carichi, come le vetture — e chi ne aveva uno se lo ritrova primo della fila
+  senza toccare niente. Ognuno si porta la sua identita', minta dal segno che
+  non scende mai: senza, il gruppo che nasce dopo una cancellazione
+  erediterebbe le caselle del cancellato. La scheda mostra una card per gruppo,
+  col cestino accanto al nome e «＋ Aggiungi un UPS»; la pagina mette i gruppi
+  uno sotto l'altro, col titolo solo quando ce n'e' piu' d'uno.
+
+- **La colonnina e evcc entrano da un'integrazione.**
+
+      «Aggiungere anche evcc e la wallbox.»
+
+  Le otto caselle della ricarica — potenza, energia di oggi e del mese,
+  tensione, temperatura, energia della sessione, quota di sole, modalita' — si
+  scrivevano a mano nella scheda Entita', sapendo gli entity_id a memoria.
+  L'auto arrivava gia' dal menu delle integrazioni; la colonnina no. Adesso ha
+  il suo pulsante accanto a quello dell'auto: si sceglie il dispositivo e le
+  caselle si riempiono. Riconosce evcc, go-e, Easee, KEBA, Wallbox, openWB,
+  Zaptec e il Tesla Wall Connector.
+
+  evcc ha una riga sua perche' non e' una wallbox: e' il regolatore che ci sta
+  davanti, e pubblica per ogni loadpoint la modalita' di ricarica, l'energia
+  della sessione e la quota di sole che c'e' dentro. Una colonnina nuda porta
+  quello che ha e non si spaccia per evcc: senza tendina non si inventa una
+  modalita', che sarebbero quattro tasti che non comandano niente.
+
+  E la colonnina e' DELLA CASA, non di una macchina: chi ha due vetture ne ha
+  una sola, e la potenza che sta erogando e' la stessa qualunque auto sia
+  attaccata.
+
+- **La Home si riordina a piacere.**
+
+      «Riordinare a piacere la Home: persone, widget, azioni rapide.»
+
+  Le tessere si riordinavano gia'. Le altre due no, e in tutti e due i casi si
+  era costretti a cancellare e rifare.
+
+  Una persona stava dov'era nata: adesso la sua riga ha le frecce, e un
+  interruttore che la toglie dalla Home senza cancellarla — chi va via un mese
+  non deve rifare la sua card al ritorno.
+
+  Un'azione rapida per salire di un posto andava cancellata e rifatta in fondo,
+  cioe' perdere la sua icona, il suo nome e la sua conferma per un gesto che
+  con loro non c'entrava niente. Adesso le frecce stanno accanto alla matita.
+  Solo dove l'ordine si vede: le stanze e il clima si guardano per nome, e li'
+  una freccia sarebbe un gesto senza effetto.
+
+- **La finestra si aggiunge anche con la sola inferriata.**
+
+      «Sezione finestre mi deve dare la possibilita' di aggiungere anche senza
+       entita' cover.»
+
+  Il rifiuto «Inserisci una entita' cover valida» si zittiva gia' davanti a una
+  tenda, a un rele' o al contatto dell'infisso. Il contatto dell'inferriata era
+  arrivato dopo (#254) e in quell'elenco non era mai entrato: chi ha le
+  persiane manuali e il sensore sulla grata riempiva la sola casella che aveva
+  e si prendeva il rifiuto. Sono due contatti della stessa finestra: uno vale
+  l'altro.
+
+### Cambiato
+
+- **La soglia dell'umidita' sta in Finestre, e dice cosa manca (#330).**
+
+      «La funzione umidita' stanza rilasciata nella 1.4.8 non funziona e non
+       compare in finestre.»
+
+  Stava nella scheda Temperature, accanto ai sensori che confronta. Sembrava il
+  posto giusto e non lo era: chi cerca una cosa che riguarda le finestre la
+  cerca dove stanno le finestre. Adesso e' in Finestre, sotto la soglia di
+  chiusura — sono tutte e due impostazioni di casa — e sta in una scheda sola.
+
+  E «non funziona» aveva una ragione muta. Il consiglio vuole quattro cose
+  insieme: la soglia accesa, l'igrometro della stanza, una finestra assegnata a
+  quella stanza, l'umidita' di fuori. Se ne manca una tace, e tacere e' giusto
+  — un consiglio dato a meta' sembra completo — ma tacere in silenzio e' quel
+  che fa sembrare rotta una funzione che sta solo aspettando un sensore. Sotto
+  la casella adesso c'e' scritto cosa manca e dove si sistema, oppure che c'e'
+  tutto.
+
+- **Il radar dice a che zoom sta guardando, e se la pioggia risponde (#323).**
+
+      «La mappa e' migliorata ma c'e' ancora quella scritta sullo zoom e non mi
+       sembra di vedere le piogge.»
+
+  «Quella scritta sullo zoom» e' un quadratino stampato al posto della mappa:
+  lo manda un servizio che a quel livello non ha piu' niente da dare. Quale
+  livello fosse bisognava indovinarlo — la nota diceva il posto, il raggio e i
+  due servizi, non lo zoom, che e' l'unico numero della frase. Adesso c'e'
+  scritto.
+
+  «Non mi sembra di vedere le piogge» sono due frasi diverse dette uguale: il
+  servizio non risponde, oppure risponde e non sta piovendo. L'ora del
+  fotogramma le separa — «RainViewer 14:20» vuol dire che il radar e' vivo e il
+  cielo e' sereno; «RainViewer — nessuna risposta» vuol dire che l'elenco dei
+  fotogrammi non e' arrivato.
+
+### Corretto
+
+- **I carichi dei due impianti non si mescolano piu'.**
+
+      «Le entita' configurate diverse sui due impianti, soprattutto i carichi,
+       poi si mescolano con i due impianti.»
+
+  `cd_flow_nodes` ha cinque caselle con un nome fisso — «boiler», «wb»,
+  «clima», «lav», «cuc» — una per cerchio, nate quando gli impianti erano uno
+  solo. Con due impianti i cerchi del secondo occupano le stesse caselle del
+  primo, e quelle caselle non portano solo il nome: portano l'icona, il colore
+  e l'entita' della potenza.
+
+  Il disegno aveva smesso di leggerle nella 1.4.8, e per questo il difetto
+  sembrava chiuso: i cerchi in pagina dicevano il nome giusto. La maschera che
+  CONFIGURA no — e quella e' la maschera da cui si salva. Aprendo i carichi
+  della casa di sopra si vedeva il carico della casa di sotto, col suo sensore
+  nella casella, e «Salva carichi» glielo scriveva addosso: da li' in poi il
+  travaso stava nella configurazione, non solo sullo schermo.
+
+- **Il sensore gia' travasato esce, dove si sa dimostrare che e' la copia.**
+
+  Fermare il difetto non bastava: chi ha due impianti ha gia' dei carichi con
+  il sensore dell'altra casa scritto dentro. Il giro d'avvio lo toglie — ma non
+  a indovinare. Due carichi con lo stesso sensore non dicono da soli quale sia
+  la copia: lo specchio veniva riscritto da chi salvava per ultimo, quindi il
+  travaso e' andato in tutte e due le direzioni, e nome, icona e posizione
+  della copia diventano identici all'originale.
+
+  Una cosa pero' lo specchio non la portava: il contatore. Ed e' li' che si
+  vede la vittima — un carico con il contatore `sensor.pompa_kwh` e la potenza
+  `sensor.boiler_w` sta raccontando due macchine diverse. Dove quel segno c'e',
+  la potenza travasata se ne va da sola. Dove non c'e', non si tocca niente: la
+  scheda del cerchio porta un ⚠️, dentro c'e' scritto in quale altro impianto
+  quel sensore e' configurato, e un tasto lo toglie da questa casa. Chi
+  configura sa in quale appartamento sta quel sensore; la plancia no.
+
+- **Quello che si configura non si perde, anche quando non e' un'entita'.**
+
+      «Verifica perche' dopo gli aggiornamenti si perdono le configurazioni.»
+
+  Il giro della 1.4.8 aveva chiuso meta' del buco: un valore che e' un'entita'
+  di Home Assistant si tiene comunque, anche se il suo campo non lo conosce
+  nessuno. L'altra meta' era rimasta aperta, e si misura: la soglia di chiusura
+  di UNA finestra (#298) e' un numero, non un'entita'. La scheda la salvava, il
+  modello la buttava alla prima normalizzazione — cioe' al primo salvataggio
+  dopo l'aggiornamento — e quella finestra tornava alla soglia di casa.
+
+  Adesso passa tutto quello su cui il modello non ha un'opinione: un testo, un
+  numero, un si'/no, un elenco, un oggetto. Fuori resta il vuoto, che non e'
+  una configurazione. Misurato prima e dopo, sezione per sezione: prima le
+  finestre perdevano la soglia, i robot tutto cio' che non fosse uno dei loro
+  sette campi, e apparecchi, carichi, telecamere, clima, luci e stanze ogni
+  valore non-entita'. Dopo non perde niente nessuno.
+
+- **La colonnina non se la porta via il cambio d'auto.** Mettere in uso una
+  vettura riscriveva TUTTE le `dm.ev_*` con quelle del suo profilo: giusto per
+  la macchina, sbagliato per la colonnina, che e' della casa. Chi la mappava a
+  mano se la vedeva sparire al primo cambio d'auto, e chi ha due macchine
+  doveva riscriverla su tutte e due.
+
+- **Il mini PC non scalda piu' per le pagine chiuse.**
+
+      «Di nuovo problemi di utilizzo CPU e riscaldamento mini PC, c'e'
+       qualcosa che fa andare in loop.»
+
+  Non c'era un ciclo impazzito da fermare: c'era lavoro fatto bene, per
+  nessuno. Misurato col profilatore, plancia ferma sulla Home e casa che parla
+  a venti cambi di stato al secondo: il 16,9% di un core, e le tre voci piu'
+  grosse erano tutte di pagine chiuse. Adesso e' il 9,3%.
+
+  La scena dell'Energia chiedeva al browser lo stile calcolato di ogni bolla
+  subito dopo averlo riscritto — un conto d'impaginazione per volta, un
+  centinaio per passata, due passate al secondo, su una pagina che nessuno
+  guardava. Le tessere della Home, i periodi dell'Energia e le vetrine degli
+  elettrodomestici facevano lo stesso mestiere.
+
+  E in cima c'era una cosa che il profilo non aveva visto, perche' un profilo
+  non guida il giro di disegno come fa Home Assistant vero: gli id dentro
+  l'SVG degli elettrodomestici portavano un contatore che saliva a ogni
+  chiamata, quindi due disegni dello stesso apparecchio uscivano DIVERSI —
+  4205 caratteri, 11 diversi fra due chiamate identiche. La vetrina prende
+  l'impronta del markup per non rifare le schede che non sono cambiate, e
+  quell'impronta non poteva mai coincidere: dodici schede rifatte da zero a
+  ogni giro, per sempre. Il giro del guscio e' passato da 14,7 a 4,9 ms.
+
+- **Con piu' vetture le foto non si mescolano piu'.** Erano cinque porte
+  diverse che portavano allo stesso posto, ognuna verificata prima di
+  correggerla: la matita apriva un'auto e il pannello delle foto ne mostrava
+  un'altra; la cornice della vetrina cambiava mezzo secondo dopo la foto; il
+  guscio, ridisegnando, rimetteva la foto vecchia sopra quella nuova; una
+  richiesta «quale auto?» senza identita' le toccava tutte; e le due caselle
+  sciolte valevano ancora come foto quando restava una macchina sola — bastava
+  cancellarne una di due perche' il ripiego si riaprisse sulla foto della
+  vettura appena cancellata. Le caselle adesso sono uno specchio, non una
+  fonte.
+
+- **La lampada RGB accesa si vede accesa, anche se fa luce bianca (#327).**
+
+      «Il box della lampada RGB quando e' ON si accende per un attimo poi torna
+       tutto bianco.»
+
+  Chi l'ha segnalata ci era arrivato da solo: l'alone c'era, ed era bianco su
+  bianco. Il colore vero resta dov'e' informazione — la sfera dice che luce fa
+  la lampada — mentre il segno con cui la card DICE «accesa» e' adesso la
+  stessa tinta, scurita quanto basta per vedersi. Una lampada senza tinta
+  torna all'ambra di sempre.
+
+- **Il filtro delle proprie segnalazioni c'e' sempre, col conto sotto.**
+
+      «Nelle segnalazioni utenti ancora non presente il filtro.»
+
+  Compariva solo con piu' di uno stato da separare: chi ne aveva una sola
+  apriva «Le mie» e la riga dei tasti non c'era. Un filtro che appare e
+  sparisce non e' un filtro, e' una sorpresa. Adesso c'e' appena c'e' una
+  segnalazione, e sotto ogni tasto c'e' il suo conto — che e' quello che li
+  rende utili anche con una segnalazione sola.
+
+- **Un Recorder lento non si chiama due volte, e i cerchi grandi si aprono.**
+  La frase diceva «il Recorder e' lento o la connessione e' occupata», e
+  «occupata» era una parola messa li' per non lasciarla a meta': adesso dice
+  cosa succede e cosa farci. Dietro c'era di peggio, ed e' stato tolto. E nella
+  vista Giornaliera e Mensile i cerchi che non sono carichi — Solare, Rete,
+  Batteria, Casa — non aprivano lo storico: si toccava la Casa e non succedeva
+  niente, senza modo di capire perche' quel cerchio no e il suo vicino si'.
+
 ## 1.4.8
 
 Quello che si e' visto guardando la plancia vera dopo la 1.4.7, e due

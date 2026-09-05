@@ -16,8 +16,15 @@ import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 const SEME = {
   schema_version: 4,
   sections: {
-    rooms: [], cameras: [], appliances: [], lights: [], climate: [], ev: [], covers: [],
-    pool: {}, irrigation: { zones: [] },
+    rooms: [],
+    cameras: [],
+    appliances: [],
+    lights: [],
+    climate: [],
+    ev: [],
+    covers: [],
+    pool: {},
+    irrigation: { zones: [] },
     loads: [
       { id: "boiler", name: "Boiler", icon: "🔥", power_entity: "sensor.boiler1_w", order: 0 },
       {
@@ -60,7 +67,9 @@ test("i carichi della casa di sopra portano i loro sensori, non quelli di sotto"
   page,
 }, testInfo) => {
   test.setTimeout(150_000);
-  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }).catch(() => {}));
+  await page.route("https://**", (route) =>
+    route.fulfill({ status: 200, body: "" }).catch(() => {}),
+  );
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.locator("#setup-wizard").evaluateAll((n) => n.forEach((x) => x.remove()));
   await page.evaluate((specchio) => {

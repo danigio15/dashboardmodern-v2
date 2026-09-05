@@ -10,8 +10,18 @@ import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 const SEME = {
   schema_version: 4,
   sections: {
-    rooms: [], cameras: [], appliances: [], loads: [], lights: [], climate: [], ev: [], covers: [],
-    pool: {}, irrigation: { zones: [] }, energy: {}, entityOverrides: {},
+    rooms: [],
+    cameras: [],
+    appliances: [],
+    loads: [],
+    lights: [],
+    climate: [],
+    ev: [],
+    covers: [],
+    pool: {},
+    irrigation: { zones: [] },
+    energy: {},
+    entityOverrides: {},
   },
   visibility: { home: true },
 };
@@ -31,7 +41,9 @@ const nomiInHome = (page) =>
 
 async function avvia(page, testInfo) {
   test.setTimeout(150_000);
-  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }).catch(() => {}));
+  await page.route("https://**", (route) =>
+    route.fulfill({ status: 200, body: "" }).catch(() => {}),
+  );
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.locator("#setup-wizard").evaluateAll((n) => n.forEach((x) => x.remove()));
   await page.evaluate((persone) => {
@@ -46,7 +58,9 @@ async function avvia(page, testInfo) {
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
     window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
   }, PERSONE);
-  await expect.poll(() => nomiInHome(page), { timeout: 20_000 }).toEqual(["Anna", "Bruno", "Carla"]);
+  await expect
+    .poll(() => nomiInHome(page), { timeout: 20_000 })
+    .toEqual(["Anna", "Bruno", "Carla"]);
 }
 
 async function apriLaScheda(page) {
@@ -68,14 +82,14 @@ test("una persona si sposta, e la Home la mostra dove è stata messa", async ({
   await page.locator('#ed-body .dm-people-row[data-person-index="2"] [data-person-up]').click();
   await expect
     .poll(() => page.evaluate(() => (localStorage.getItem("cd_people") || "").indexOf("Carla")))
-    .toBeLessThan(await page.evaluate(() => (localStorage.getItem("cd_people") || "").indexOf("Bruno")));
+    .toBeLessThan(
+      await page.evaluate(() => (localStorage.getItem("cd_people") || "").indexOf("Bruno")),
+    );
 
   await page.evaluate(() => window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed")));
-  await expect.poll(() => nomiInHome(page), { timeout: 15_000 }).toEqual([
-    "Anna",
-    "Carla",
-    "Bruno",
-  ]);
+  await expect
+    .poll(() => nomiInHome(page), { timeout: 15_000 })
+    .toEqual(["Anna", "Carla", "Bruno"]);
   /* La prima freccia in su è spenta: non porta da nessuna parte. */
   await expect(
     page.locator('#ed-body .dm-people-row[data-person-index="0"] [data-person-up]'),

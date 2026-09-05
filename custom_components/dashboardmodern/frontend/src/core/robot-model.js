@@ -98,21 +98,25 @@ export function normalizeRobot(input = {}, index = 0) {
    * dopo. E' la stessa regola dei dispositivi, e vale per la stessa ragione:
    * quello che uno configura non lo si butta via perche' il modello di oggi
    * non sa ancora leggerlo. */
-  return conservaIlConfigurato({
-    id: clean(input.id) || `robot-${index + 1}`,
-    name: clean(input.name),
-    entity: clean(input.entity || input.entities?.[0]),
-    mapEntity: clean(input.mapEntity || input.map_entity),
-    /* La batteria puo' essere un sensore a parte: molti tagliaerba la
-     * pubblicano cosi', fuori dall'entita' del robot. Il campo e' facoltativo
-     * e deve sopravvivere alla normalizzazione, o sparirebbe a ogni salvataggio. */
-    battery: clean(input.battery || input.battery_entity || input.batteryEntity),
-    room: clean(input.room || input.room_id),
-    /* I comandi a parte del robot (#306): tasti, tendine e interruttori che
-     * l'integrazione pubblica accanto a lui. Sopravvivono alla normalizzazione
-     * come la batteria, o sparirebbero a ogni salvataggio. */
-    comandi: elencoComandi(input.comandi ?? input.commands),
-  }, input, "robots");
+  return conservaIlConfigurato(
+    {
+      id: clean(input.id) || `robot-${index + 1}`,
+      name: clean(input.name),
+      entity: clean(input.entity || input.entities?.[0]),
+      mapEntity: clean(input.mapEntity || input.map_entity),
+      /* La batteria puo' essere un sensore a parte: molti tagliaerba la
+       * pubblicano cosi', fuori dall'entita' del robot. Il campo e' facoltativo
+       * e deve sopravvivere alla normalizzazione, o sparirebbe a ogni salvataggio. */
+      battery: clean(input.battery || input.battery_entity || input.batteryEntity),
+      room: clean(input.room || input.room_id),
+      /* I comandi a parte del robot (#306): tasti, tendine e interruttori che
+       * l'integrazione pubblica accanto a lui. Sopravvivono alla normalizzazione
+       * come la batteria, o sparirebbero a ogni salvataggio. */
+      comandi: elencoComandi(input.comandi ?? input.commands),
+    },
+    input,
+    "robots",
+  );
 }
 
 /* ── i comandi a parte del robot (#306) ──────────────────────────────────
