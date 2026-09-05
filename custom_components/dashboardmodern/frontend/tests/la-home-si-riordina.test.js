@@ -83,3 +83,20 @@ test("spostare è lo stesso gesto ovunque", () => {
   ])
     assert.match(sorgente(percorso), /import \{ spostaNellElenco \} from "\.\.\/core\/ordine-a-mano\.js"/);
 });
+
+test("«Spegni tutte» spegne tutte, non solo le quattordici disegnate", () => {
+  /* La finestra ne mostra quattordici, il conto sul tasto le conta tutte:
+   * chiedendole al disegno, chi ha venti luci accese ne vedeva spegnere
+   * quattordici. Un tasto che dice venti e ne fa quattordici è un tasto che
+   * mente, e l'elenco adesso lo porta il tasto. */
+  const home = sorgente("src/sections/home-widgets-section.js");
+  assert.match(home, /data-dm-w-lights-off="\$\{esc\(\s*spegnibili\.map/);
+  assert.match(home, /const dichiarate = clean\(tutte\.dataset\.dmWLightsOff\)/);
+  assert.match(home, /dichiarate\.length \? dichiarate : \[\.\.\.segnate\.keys\(\)\]/);
+});
+
+test("un dispositivo che robot non è non diventa un robot", () => {
+  const editor = sorgente("src/sections/robot-editor-section.js");
+  assert.match(editor, /if \(!clean\(nato\.entity\)\) \{/);
+  assert.match(editor, /vacuum\.\* o lawn_mower\.\*/);
+});

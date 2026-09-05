@@ -1692,6 +1692,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "No report in this state.",
   "No report left to take on.",
   "No results",
+  "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.",
   "No robot configured",
   "No room",
   "No room has a temperature sensor configured yet.",

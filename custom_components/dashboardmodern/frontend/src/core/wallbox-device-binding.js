@@ -119,14 +119,18 @@ export function legaLaWallboxAlDispositivo({ entities = [], states = {} } = {}) 
   const percentuale = (voce) => unita(voce, states) === "%";
   const energia = (voce) => conClasse("energy")(voce) || /kwh/i.test(unita(voce, states));
 
-  /* La modalita' e' di evcc, ed e' l'unica cosa che si riconosce dal dominio
-   * prima che dalle parole: una tendina su un dispositivo di ricarica e'
-   * quella, e le sue voci le legge il guscio. */
+  /* La modalita' di ricarica: una tendina che dice di esserlo.
+   *
+   * C'era anche un ripiego che prendeva la PRIMA tendina qualunque, e non
+   * andava bene: una colonnina ne pubblica anche altre — il blocco del cavo,
+   * la scelta delle fasi — e prendendo quella la plancia accendeva i tasti
+   * della modalita' e ci mandava dentro «pv» o «now». Cioe' un comando vero,
+   * a un selettore che parla di un'altra cosa. Meglio la console spenta che
+   * quattro tasti che comandano il blocco del cavo. */
   prendi(
     "dm.ev_modalita_ricarica_evcc",
     (voce) => ["select", "input_select"].includes(dominio(voce)) && dice("modalita")(voce),
   );
-  prendi("dm.ev_modalita_ricarica_evcc", (voce) => dominio(voce) === "select");
 
   /* La potenza: quella che sta erogando adesso. */
   prendi(

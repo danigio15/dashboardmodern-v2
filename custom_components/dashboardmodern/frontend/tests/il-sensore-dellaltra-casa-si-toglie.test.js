@@ -13,13 +13,18 @@
  * `sensor.boiler_w` sta raccontando due macchine diverse.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   carichiTravasati,
   radiceDellEntita,
   togliLePotenzeTravasate,
 } from "../src/core/carichi-travasati.js";
+
+const RADICE = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const SPECCHIO = { boiler: { name: "Boiler casa sotto", icon: "🔥", pwr: "sensor.boiler_w" } };
 
@@ -116,4 +121,22 @@ test("senza specchio non c'è niente da guardare", () => {
   assert.deepEqual(carichiTravasati({ loads: carichi, flowNodes: null }), []);
   assert.deepEqual(carichiTravasati({ loads: carichi, flowNodes: "niente" }), []);
   assert.deepEqual(carichiTravasati({}), []);
+});
+
+test("il segno della pulizia si mette dopo il salvataggio, non prima", () => {
+  /* Scrivendolo prima, un salvataggio che non va a buon fine — la cassetta
+   * condivisa che non risponde — lasciava il segno E il travaso: il giro non
+   * ci riprovava mai più su quel dispositivo, e chi chiama la rifiuta senza
+   * rumore. */
+  const sorgente = readFileSync(
+    join(RADICE, "src/sections/energy-loads-editor-section.js"),
+    "utf8",
+  );
+  const dove = sorgente.indexOf("export async function pulisciIlTravasoUnaVolta");
+  const corpo = sorgente.slice(dove, sorgente.indexOf("\n}", dove));
+  const salvataggio = corpo.indexOf('replaceSection("loads", puliti)');
+  const segno = corpo.lastIndexOf(`setItem(PULIZIA_TRAVASO_KEY, "1")`);
+  assert.ok(salvataggio > 0 && segno > salvataggio);
+  /* E due porte che chiamano insieme non fanno partire due salvataggi. */
+  assert.match(corpo, /if \(state\.pulizia\) return state\.pulizia;/);
 });

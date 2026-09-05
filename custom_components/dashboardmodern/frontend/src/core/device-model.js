@@ -378,6 +378,16 @@ const CAMPI_DECISI = new Map([
   ].map((nome) => [nome, ["appliances", "loads"]]),
   /* La foto dell'auto: il ramo `ev` la versa in `image` e `image_url`. */
   ["img", ["ev"]],
+  /* E i nomi vecchi delle caselle del robot, per la stessa ragione delle altre.
+   *
+   * `normalizeRobot` li legge e li versa nei suoi: `map_entity` diventa
+   * `mapEntity`, `commands` diventa `comandi`. Tenendoli anche com'erano, una
+   * casella svuotata apposta risorgeva dal suo alias al giro dopo — la mappa
+   * tolta tornava, e non c'era modo di levarla. Hanno finito il loro lavoro
+   * nel momento in cui sono stati letti. */
+  ...["map_entity", "battery_entity", "batteryEntity", "room_id", "commands", "entities"].map(
+    (nome) => [nome, ["robots"]],
+  ),
 ]);
 
 function ilModelloDecide(campo, sezione) {

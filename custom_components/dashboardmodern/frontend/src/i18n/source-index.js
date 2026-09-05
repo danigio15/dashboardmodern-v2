@@ -953,6 +953,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Da lavorare": "To work on",
   "Da leggere": "Unread",
   "Da notare": "Worth noting",
+  "Da questo dispositivo non si riconosce nessun robot: serve un'entità vacuum.* o lawn_mower.*.": "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.",
   "Da questo dispositivo non si riconosce nessuna casella dell'auto.": "No car field could be recognised from this device.",
   "Da questo dispositivo non si riconosce nessuna casella della colonnina.": "No charger field could be recognised from this device.",
   "Da qui si calcolano giorno e mese.": "Day and month are calculated from this one.",

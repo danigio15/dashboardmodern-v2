@@ -160,32 +160,25 @@ test("la soglia si trova nella scheda Finestre, e dice cosa manca", async ({ pag
   const soglia = page.locator("#ed-body #ed-umidita-soglia");
   await expect(soglia).toHaveCount(1, { timeout: 15_000 });
 
-  /* E in una scheda sola: spostarla vuol dire toglierla di la', non metterla
-   * anche qui. Si passano tutte le linguette e si guarda dove esce. */
-  const dove = await page.evaluate(async () => {
-    /* La casella la posa una passata su `requestAnimationFrame`, non il cambio
-     * di linguetta: sessanta millisecondi bastavano su Chromium e non su
-     * WebKit sotto carico, e la scheda giusta usciva dall'elenco — la prova
-     * cadeva dicendo che la casella non stava da nessuna parte. Si aspetta
-     * finche' compare, e si molla presto quando c'e'. */
-    const respira = () =>
-      new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
-    const laVedi = () => Boolean(document.querySelector("#ed-body #ed-umidita-soglia"));
-    const linguette = [...document.querySelectorAll(".ed-tab")].map((b) => b.dataset.tab);
-    const trovata = [];
-    for (const tab of linguette) {
-      editorSwitch(tab);
-      let vista = false;
-      for (let giro = 0; giro < 16 && !vista; giro += 1) {
-        await respira();
-        await new Promise((ok) => setTimeout(ok, 50));
-        vista = laVedi();
-      }
-      if (vista) trovata.push(tab);
+  /* E non è più dove stava prima.
+   *
+   * «Spostarla» vuol dire toglierla di là, non metterla anche qui: la scheda
+   * Temperature è il posto in cui la si cercava e non c'era ragione di
+   * trovarla. La si apre e si guarda: la linguetta la si riconosce dal modulo
+   * che disegna, non dal nome, che cambia con la lingua.
+   *
+   * Si guardano due schede e non tutte e venti: passarle una per una costava
+   * più del tempo che la prova ha, e una prova che scade non dice niente. */
+  const temperatura = await page.evaluate(() => {
+    for (const bottone of document.querySelectorAll(".ed-tab")) {
+      editorSwitch(bottone.dataset.tab);
+      if (document.querySelector("#ed-body [data-temperature-form]")) return bottone.dataset.tab;
     }
-    return trovata;
+    return "";
   });
-  expect(dove).toEqual(["tapp"]);
+  expect(temperatura).not.toBe("");
+  await expect(page.locator("#editor-modal #ed-umidita-soglia")).toHaveCount(0);
+
   await page.locator('.ed-tab[data-tab="tapp"]').first().click();
 
   /* Qui c'e' tutto — igrometro in stanza, finestra nella stanza, meteo

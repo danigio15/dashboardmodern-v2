@@ -2803,4 +2803,5 @@ export default Object.freeze({
   "one of the two took it from the other, and from here there is no way to know which.": "どちらかがもう一方から取り込んだものですが、ここからはどちらかを知る方法がありません。",
   "Remove it here": "ここから外す",
   "This sensor is also configured in": "このセンサーは次にも設定されています：",
+  "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "このデバイスからはロボットを認識できません。vacuum.* か lawn_mower.* のエンティティが必要です。",
 });

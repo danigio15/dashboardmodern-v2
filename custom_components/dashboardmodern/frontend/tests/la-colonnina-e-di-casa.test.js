@@ -121,3 +121,42 @@ test("il pulsante della colonnina sta nella scheda Auto, accanto a quello dell'a
   /* Si scrive nelle caselle della casa, non dentro un profilo di vettura. */
   assert.match(sorgente, /writeJsonIfChanged\("cd_entity_overrides", prossime\)/);
 });
+
+test("una tendina che non dice di essere la modalità non viene presa", () => {
+  /* Una colonnina pubblica anche altre tendine — il blocco del cavo, la scelta
+   * delle fasi. Prendendo la prima qualunque, la plancia accendeva i tasti
+   * della modalità e ci mandava dentro «pv» o «now»: un comando vero, a un
+   * selettore che parla di un'altra cosa. Meglio la console spenta. */
+  const { mappa, evcc } = legaLaWallboxAlDispositivo({
+    entities: [
+      voce("select.wb_blocco_cavo", { name: "Cable lock" }),
+      voce("sensor.wb_power", { name: "Charging power", device_class: "power" }),
+    ],
+  });
+  assert.equal("dm.ev_modalita_ricarica_evcc" in mappa, false);
+  assert.equal(evcc, false);
+  /* Quella che lo dice sì, in tutte le lingue in cui lo dicono le integrazioni. */
+  for (const [id, nome] of [
+    ["select.evcc_lp1_mode", "Loadpoint 1 Charge mode"],
+    ["select.wb_lademodus", "Lademodus"],
+    ["select.wb_modalita", "Modalità di ricarica"],
+  ])
+    assert.equal(
+      legaLaWallboxAlDispositivo({ entities: [voce(id, { name: nome })] }).mappa[
+        "dm.ev_modalita_ricarica_evcc"
+      ],
+      id,
+    );
+});
+
+test("la prima auto importata è anche quella in uso", () => {
+  /* Le caselle di una vettura vivono nel suo profilo; quelle da cui il disegno
+   * legge sono le mappature globali, e a travasarle è il gesto di mettere in
+   * uso. Con una macchina sola quel gesto non lo faceva nessuno: la vettura
+   * appena importata usciva senza un dato. */
+  const sorgente = readFileSync(
+    join(RADICE, "src/sections/auto-integrazione-section.js"),
+    "utf8",
+  );
+  assert.match(sorgente, /if \(!auto\.length\) \{\s*try \{\s*root\.cdEvApplyCar\?\.\(0\);/);
+});

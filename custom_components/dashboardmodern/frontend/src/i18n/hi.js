@@ -2803,4 +2803,5 @@ export default Object.freeze({
   "one of the two took it from the other, and from here there is no way to know which.": "दोनों में से एक ने इसे दूसरे से लिया है, और यहाँ से यह जानना संभव नहीं कि कौन-सा।",
   "Remove it here": "इसे यहाँ से हटाएँ",
   "This sensor is also configured in": "यह सेंसर यहाँ भी सेट है:",
+  "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "इस डिवाइस से कोई रोबोट नहीं पहचाना जा सका: vacuum.* या lawn_mower.* एंटिटी चाहिए।",
 });

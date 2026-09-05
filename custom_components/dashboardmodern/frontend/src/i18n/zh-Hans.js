@@ -2803,4 +2803,5 @@ export default Object.freeze({
   "one of the two took it from the other, and from here there is no way to know which.": "两者之一是从对方那里拿来的，而在这里无从知道是哪一个。",
   "Remove it here": "从这里移除",
   "This sensor is also configured in": "这个传感器也配置在",
+  "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "从这个设备识别不到任何机器人：需要一个 vacuum.* 或 lawn_mower.* 实体。",
 });

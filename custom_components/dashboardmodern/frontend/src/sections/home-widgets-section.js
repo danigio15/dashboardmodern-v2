@@ -4090,7 +4090,9 @@ function lightsDetail(widget) {
   const tutte =
     spegnibili.length > 1
       ? `<div class="dm-w-riga dm-w-tutte">
-          <button type="button" class="dm-w-tutte-btn" data-dm-w-lights-off aria-label="${esc(t("Spegni tutte le luci", "Turn all lights off"))}">
+          <button type="button" class="dm-w-tutte-btn" data-dm-w-lights-off="${esc(
+            spegnibili.map((row) => clean(row.entity)).filter(Boolean).join(" "),
+          )}" aria-label="${esc(t("Spegni tutte le luci", "Turn all lights off"))}">
             <span aria-hidden="true">🌙</span>${esc(t("Spegni tutte", "Turn all off"))}
             <b>${spegnibili.length}</b>
           </button>
@@ -6239,16 +6241,28 @@ function onClick(event) {
   const tutte = event.target?.closest?.("[data-dm-w-lights-off]");
   if (tutte) {
     event.preventDefault();
-    /* Si spengono quelle che la finestra sta mostrando accese, una per una col
-     * servizio del loro dominio: una luce puo' essere un `light`, uno `switch`
-     * o un `input_boolean`, e un solo `light.turn_off` ne lascerebbe indietro
-     * la meta'. Le protette non si toccano, come ovunque. */
-    for (const bottone of tutte
-      .closest(".dm-w-body, #dm-widget-popup, body")
-      ?.querySelectorAll?.('[data-dm-w-light][data-on="true"]') || []) {
-      const entity = clean(bottone.dataset.dmWLight);
+    /* Si spengono tutte quelle accese, una per una col servizio del loro
+     * dominio: una luce puo' essere un `light`, uno `switch` o un
+     * `input_boolean`, e un solo `light.turn_off` ne lascerebbe indietro la
+     * meta'. Le protette non si toccano, come ovunque.
+     *
+     * L'elenco lo porta il tasto, non le righe disegnate: la finestra ne mostra
+     * quattordici, il conto sul tasto le conta tutte, e chiedendole al disegno
+     * chi ha venti luci accese ne vedeva spegnere quattordici — un tasto che
+     * dice venti e ne fa quattordici e' un tasto che mente. */
+    const dichiarate = clean(tutte.dataset.dmWLightsOff).split(/\s+/).filter(Boolean);
+    const disegnate = [
+      ...(tutte
+        .closest(".dm-w-body, #dm-widget-popup, body")
+        ?.querySelectorAll?.('[data-dm-w-light][data-on="true"]') || []),
+    ];
+    const segnate = new Map(
+      disegnate.map((bottone) => [clean(bottone.dataset.dmWLight), bottone]),
+    );
+    for (const entity of dichiarate.length ? dichiarate : [...segnate.keys()]) {
       if (!entity || !siComanda(entity)) continue;
-      bottone.dataset.on = "false";
+      const bottone = segnate.get(entity);
+      if (bottone) bottone.dataset.on = "false";
       callHa(entity.split(".")[0] || "light", "turn_off", { entity_id: entity });
     }
     return;

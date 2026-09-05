@@ -49,7 +49,14 @@ import {
 
 root.__DM_20260817B__ = true;
 const KEY = "__DASHBOARDMODERN_ENERGY_LOADS_EDITOR__";
-const state = (root[KEY] ||= { installed: false, model: null, open: new Set(), dirty: false });
+const state = (root[KEY] ||= {
+  installed: false,
+  model: null,
+  open: new Set(),
+  dirty: false,
+  /* Il giro di pulizia in volo: due porte lo chiamano, uno solo deve partire. */
+  pulizia: null,
+});
 
 const PANEL = '[data-energy-panel="loads"]';
 
@@ -1211,17 +1218,39 @@ const PULIZIA_TRAVASO_KEY = "cd_carichi_travasati_puliti";
  * piu', su nessuna casa. */
 export async function pulisciIlTravasoUnaVolta() {
   if (root.localStorage?.getItem(PULIZIA_TRAVASO_KEY) === "1") return false;
+  /* Due porte chiamano questo giro — il ripristino e l'apertura della maschera
+   * — e possono arrivare insieme: senza questa guardia partirebbero due
+   * salvataggi della stessa correzione. */
+  if (state.pulizia) return state.pulizia;
   const { list } = impiantoAperto();
   if (!Array.isArray(list) || list.length < 2) return false;
   const carichi = configuredLoads();
   if (!carichi.length) return false;
-  root.localStorage?.setItem(PULIZIA_TRAVASO_KEY, "1");
   const specchio = readJson("cd_flow_nodes", null);
   const puliti = togliLePotenzeTravasate(carichi, specchio);
-  if (puliti === carichi) return false;
+  /* Niente da togliere: il giro e' comunque passato, e non si ripete. */
+  if (puliti === carichi) {
+    root.localStorage?.setItem(PULIZIA_TRAVASO_KEY, "1");
+    return false;
+  }
+  /* Il segno si mette DOPO che la correzione e' scritta, non prima.
+   *
+   * Scrivendolo prima, un salvataggio che non va a buon fine — la cassetta
+   * condivisa che non risponde — lasciava il segno e il travaso: il giro non
+   * ci riprovava mai piu' su quel dispositivo, e chi chiama la rifiuta senza
+   * rumore. Se il salvataggio cade, il segno non c'e' e alla prossima
+   * occasione si riprova. */
   const store = dashboardStore();
-  if (store?.replaceSection) await store.replaceSection("loads", puliti);
-  else writeJsonIfChanged("cd_loads", puliti, { sync: false });
+  try {
+    state.pulizia = (async () => {
+      if (store?.replaceSection) await store.replaceSection("loads", puliti);
+      else writeJsonIfChanged("cd_loads", puliti, { sync: false });
+    })();
+    await state.pulizia;
+  } finally {
+    state.pulizia = null;
+  }
+  root.localStorage?.setItem(PULIZIA_TRAVASO_KEY, "1");
   const quanti = puliti.filter((load, posto) => load !== carichi[posto]).length;
   root.edToast?.(
     t(

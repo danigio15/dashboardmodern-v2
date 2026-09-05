@@ -111,6 +111,19 @@ export async function creaAutoDaDispositivo({ device, entities, integration }) {
     overrides: mappa,
   };
   salvaAuto([...auto, nata]);
+  /* La prima auto e' anche quella in uso.
+   *
+   * Le caselle di una vettura vivono nel suo profilo; quelle da cui il disegno
+   * legge sono le mappature globali, e a travasarle e' il gesto di mettere in
+   * uso. Con una macchina sola quel gesto non lo fa nessuno: la vettura appena
+   * importata usciva senza un dato — batteria vuota, autonomia vuota — finche'
+   * uno non premeva «Usa» su una scheda dove c'era una macchina sola da usare.
+   * Si passa dalla stessa strada del tasto, non da una copia. */
+  if (!auto.length) {
+    try {
+      root.cdEvApplyCar?.(0);
+    } catch (_error) {}
+  }
   const daChi = clean(integration?.name) || t("un'integrazione", "an integration");
   root.edToast?.(`${nome} — ${t("aggiunta da", "added from")} ${daChi}`);
   /* La scheda si ridisegna da se' al giro dopo: qui si chiede solo che ci

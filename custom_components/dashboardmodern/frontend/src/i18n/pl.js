@@ -2803,4 +2803,5 @@ export default Object.freeze({
   "one of the two took it from the other, and from here there is no way to know which.": "jeden z dwóch wziął go od drugiego, a stąd nie sposób poznać który.",
   "Remove it here": "Usuń go stąd",
   "This sensor is also configured in": "Ten czujnik jest ustawiony także w",
+  "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Z tego urządzenia nie rozpoznano żadnego robota: potrzebna jest encja vacuum.* lub lawn_mower.*.",
 });
