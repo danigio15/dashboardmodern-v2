@@ -335,3 +335,29 @@ test("il travaso delle foto guarda la stessa lista di tutti gli altri", async ()
   assert.match(travaso, /const attiva = activeVehicle\(cars\);/);
   assert.equal(/Math\.max\(0, activeIndex\(\)\)/.test(travaso), false);
 });
+
+test("una vettura senza foto non si mette quella di un'altra", async () => {
+  /* Qui c'era un ripiego: con UNA macchina sola le due caselle sciolte
+   * valevano ancora come sua foto. Sembrava innocuo — con una macchina sola
+   * non c'e' nessun'altra a cui rubare niente — e invece era la porta da cui
+   * il difetto rientrava: bastava cancellare una di due vetture. Le auto
+   * tornano una, il ripiego si riapre, e le caselle in quel momento portano
+   * ancora la foto della macchina appena cancellata. Misurato: cancellata la
+   * Tesla, l'eroe la mostrava ancora sotto la Zoe, e il pannello nasceva col
+   * percorso della Tesla nel campo. */
+  const sorgente = await readFile(
+    new URL("../src/sections/ev-section.js", import.meta.url),
+    "utf8",
+  );
+  const funzione = sorgente.slice(
+    sorgente.indexOf("function fotoDi(car"),
+    sorgente.indexOf("export function ensureVehiclePhotoEditor"),
+  );
+  assert.match(funzione, /return vehiclePhotos\(car\);/);
+  /* Niente piu' «quante»: il numero delle auto non decide di chi e' una foto. */
+  assert.equal(/quante/.test(funzione), false);
+  assert.equal(/configuredPhotos\(\)/.test(funzione), false);
+  /* E le foto di un profilo restano le sue, vuote comprese. */
+  assert.deepEqual(vehiclePhotos({ img: "", imgPlugged: "" }), { idle: "", plugged: "" });
+  assert.deepEqual(vehiclePhotos({ img: "/local/a.png" }), { idle: "/local/a.png", plugged: "" });
+});

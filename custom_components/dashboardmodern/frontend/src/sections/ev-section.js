@@ -469,7 +469,7 @@ export function vehiclePhotoTargetIndex(cars = profiles()) {
 function fotoDelProfiloAttivo() {
   const elenco = profiles();
   if (!elenco.length) return configuredPhotos();
-  return fotoDi(elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))], elenco.length);
+  return fotoDi(elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))]);
 }
 
 /* Le foto che il PANNELLO mostra e salva: quelle dell'auto aperta. */
@@ -478,21 +478,30 @@ function fotoDelProfiloInModifica() {
   if (!elenco.length) return configuredPhotos();
   const indice = vehiclePhotoTargetIndex(elenco);
   if (indice < 0) return { idle: "", plugged: "" };
-  return fotoDi(elenco[indice], elenco.length);
+  return fotoDi(elenco[indice]);
 }
 
-/* Le foto di UN profilo.
+/* Le foto di UN profilo, e basta.
  *
- * Con una macchina sola le due caselle sono ancora casa sua: un profilo senza
- * foto tiene quella che c'era, ed e' quello che ogni configurazione a una
- * vettura ha sempre fatto. Da due in su no — se il profilo non ha una foto,
- * quell'auto non ha una foto, e mostrarle quella dell'altra e' come scriverle
- * il nome dell'altra. Era questo a far sembrare le due auto la stessa. */
-function fotoDi(car, quante = profiles().length) {
-  const proprie = vehiclePhotos(car);
-  if (quante > 1) return proprie;
-  const caselle = configuredPhotos();
-  return { idle: proprie.idle || caselle.idle, plugged: proprie.plugged || caselle.plugged };
+ * Qui c'era un ripiego: con UNA macchina sola le due caselle sciolte valevano
+ * ancora come sua foto, perche' e' li' che una configurazione vecchia la
+ * teneva. Sembrava innocuo — con una macchina sola non c'e' nessun'altra a cui
+ * rubare niente — e invece era la porta da cui il difetto rientrava.
+ *
+ * Basta cancellare una di due vetture: le auto tornano una, il ripiego si
+ * riapre, e le caselle in quel momento portano ancora la foto della macchina
+ * appena cancellata. Misurato: cancellata la Tesla, l'eroe continuava a
+ * mostrarla sotto la Zoe, e il pannello nasceva col percorso della Tesla nel
+ * campo — un salvataggio qualsiasi gliela cementava addosso.
+ *
+ * Il caso vero che il ripiego serviva — la foto che vive solo nelle caselle —
+ * lo copre il travaso una-tantum all'avvio (`adoptExistingPhotos`), che la
+ * porta DENTRO il profilo una volta e per sempre. Da li' in poi le caselle
+ * sono lo specchio del disegno, non una fonte: chi non ha una foto sua non ne
+ * ha una, e mostrargli quella di un'altra e' come scriverle il nome di
+ * un'altra. */
+function fotoDi(car) {
+  return vehiclePhotos(car);
 }
 
 export function ensureVehiclePhotoEditor() {
@@ -1249,8 +1258,8 @@ function storePhoto(key, url) {
  * perche' il runtime vendorizzato e il selettore nativo le leggono ancora in
  * qualche giro: sono una copia, e una copia non e' piu' l'unica verita'. Il
  * giorno che nessuno le legge piu', questa funzione se ne va da sola. */
-function restoreProfilePhotos(car, profileCount = profiles().length) {
-  const mostra = fotoDi(car, profileCount);
+function restoreProfilePhotos(car) {
+  const mostra = fotoDi(car);
   storePhoto(EV_PHOTO_KEYS.idle, mostra.idle);
   storePhoto(EV_PHOTO_KEYS.plugged, mostra.plugged);
 }
@@ -1293,7 +1302,7 @@ export function seedActiveProfilePhotos() {
   const car = elenco[indice];
   if (!car) return false;
   const before = configuredPhotos();
-  restoreProfilePhotos(car, elenco.length);
+  restoreProfilePhotos(car);
   const dopo = configuredPhotos();
   return dopo.idle !== before.idle || dopo.plugged !== before.plugged;
 }
@@ -1674,7 +1683,7 @@ function installLegacyWrappers() {
       }
       const indice=Math.max(0, Math.min(elenco.length - 1, activeIndex()));
       const attiva=elenco[indice];
-      if (attiva) restoreProfilePhotos(attiva, elenco.length);
+      if (attiva) restoreProfilePhotos(attiva);
       root.queueMicrotask?.(scheduleEvSync);
       return result;
     }
