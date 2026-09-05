@@ -3040,4 +3040,6 @@ export default Object.freeze({
   "Programs and settings": "程序与设置",
   "Roborock, Dreame, Ecovacs, Husqvarna… pick the device and the robot arrives ready-made: its entity, the map, the battery and its programs. Or, below, one field at a time.":
     "Roborock、Dreame、Ecovacs、Husqvarna……选好设备，机器人就是现成的：实体、地图、电量和各项程序。也可以在下面一格一格地填。",
+  "No report in this state.": "此状态下没有反馈。",
+  "Turn all lights off": "关闭所有灯",
 });

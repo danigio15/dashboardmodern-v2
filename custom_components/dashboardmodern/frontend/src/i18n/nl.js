@@ -3112,4 +3112,6 @@ export default Object.freeze({
   "Programs and settings": "Programma's en instellingen",
   "Roborock, Dreame, Ecovacs, Husqvarna… pick the device and the robot arrives ready-made: its entity, the map, the battery and its programs. Or, below, one field at a time.":
     "Roborock, Dreame, Ecovacs, Husqvarna… kies het apparaat en de robot is meteen klaar: zijn entiteit, de kaart, de accu en zijn programma's. Of hieronder, veld voor veld.",
+  "No report in this state.": "Geen melding in deze staat.",
+  "Turn all lights off": "Alle lampen uitschakelen",
 });

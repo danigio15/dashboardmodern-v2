@@ -3108,4 +3108,6 @@ export default Object.freeze({
   "Programs and settings": "Programy i ustawienia",
   "Roborock, Dreame, Ecovacs, Husqvarna… pick the device and the robot arrives ready-made: its entity, the map, the battery and its programs. Or, below, one field at a time.":
     "Roborock, Dreame, Ecovacs, Husqvarna… wybierz urządzenie, a robot będzie gotowy: jego encja, mapa, bateria i programy. Albo poniżej, pole po polu.",
+  "No report in this state.": "Brak zgłoszeń w tym stanie.",
+  "Turn all lights off": "Wyłącz wszystkie światła",
 });

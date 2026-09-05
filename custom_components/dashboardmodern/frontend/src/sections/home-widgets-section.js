@@ -1210,7 +1210,10 @@ function temperatureModel(states) {
     label: t("Temperatura", "Temperature"),
     value: `${formatNumber(sola ? sola.temperature : average, 1)}°`,
     caption: sola
-      ? [sola.name, sola.humidity == null ? "" : `${t("Umidità", "Humidity")} ${Math.round(sola.humidity)}%`]
+      ? [
+          sola.name,
+          sola.humidity == null ? "" : `${t("Umidità", "Humidity")} ${Math.round(sola.humidity)}%`,
+        ]
           .filter(Boolean)
           .join(" · ")
       : humidity == null
@@ -3883,10 +3886,28 @@ function agendaDetail(widget, states) {
 function lightsDetail(widget) {
   if (!widget.on.length && !widget.rows.length) return "";
   const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, 14);
-  return rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">💡</span>
+  /* «Sul widget luci metterei anche spegni tutte» (#315).
+   *
+   * Una riga sola sopra l'elenco, e solo quando c'e' qualcosa da spegnere: con
+   * tutte le luci gia' spente sarebbe un tasto che non fa niente, e con una
+   * luce sola accesa il suo interruttore e' li' accanto. Spegne quelle che si
+   * comandano davvero — le protette restano protette, come ovunque. */
+  const spegnibili = widget.on.filter((row) => row.comando !== false);
+  const tutte =
+    spegnibili.length > 1
+      ? `<div class="dm-w-riga dm-w-tutte">
+          <button type="button" class="dm-w-tutte-btn" data-dm-w-lights-off aria-label="${esc(t("Spegni tutte le luci", "Turn all lights off"))}">
+            <span aria-hidden="true">🌙</span>${esc(t("Spegni tutte", "Turn all off"))}
+            <b>${spegnibili.length}</b>
+          </button>
+        </div>`
+      : "";
+  return (
+    tutte +
+    rows
+      .map((row) =>
+        rowShell(
+          `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">💡</span>
          <span class="dm-w-name">${esc(row.name)}<small>${esc(row.room)}</small></span>
          ${
            row.comando === false
@@ -3894,9 +3915,10 @@ function lightsDetail(widget) {
              : `<button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on}"
            aria-label="${esc(row.name)}"><i></i></button>`
          }`,
-      ),
-    )
-    .join("");
+        ),
+      )
+      .join("")
+  );
 }
 
 /* L'icona racconta cosa sta facendo l'unita': fiamma quando scalda, fiocco
@@ -5957,6 +5979,23 @@ function onClick(event) {
     voce?.click();
     return;
   }
+  const tutte = event.target?.closest?.("[data-dm-w-lights-off]");
+  if (tutte) {
+    event.preventDefault();
+    /* Si spengono quelle che la finestra sta mostrando accese, una per una col
+     * servizio del loro dominio: una luce puo' essere un `light`, uno `switch`
+     * o un `input_boolean`, e un solo `light.turn_off` ne lascerebbe indietro
+     * la meta'. Le protette non si toccano, come ovunque. */
+    for (const bottone of tutte
+      .closest(".dm-w-body, #dm-widget-popup, body")
+      ?.querySelectorAll?.('[data-dm-w-light][data-on="true"]') || []) {
+      const entity = clean(bottone.dataset.dmWLight);
+      if (!entity || !siComanda(entity)) continue;
+      bottone.dataset.on = "false";
+      callHa(entity.split(".")[0] || "light", "turn_off", { entity_id: entity });
+    }
+    return;
+  }
   const light = event.target?.closest?.("[data-dm-w-light]");
   if (light) {
     event.preventDefault();
@@ -6712,6 +6751,20 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-row .dm-w-power[data-on="true"]{
   border-color:transparent;background:var(--dm-widget-accent,#0ea5e9);color:#fff;
   box-shadow:0 6px 14px -8px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 85%,transparent)}
+/* «Spegni tutte»: una riga sola sopra l'elenco, larga quanto la finestra, che
+   si legge come un'azione e non come una luce in piu'. */
+#dm-widget-popup .dm-w-tutte{padding:0}
+#dm-widget-popup .dm-w-tutte-btn{
+  display:flex;align-items:center;gap:9px;width:100%;padding:10px 14px;
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 35%,transparent);
+  border-radius:14px;cursor:pointer;font:inherit;font-size:13px;font-weight:800;
+  color:var(--text,#0f172a);
+  background:color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 10%,transparent)}
+#dm-widget-popup .dm-w-tutte-btn:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 18%,transparent)}
+#dm-widget-popup .dm-w-tutte-btn>b{
+  margin-left:auto;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:900;
+  background:color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 22%,transparent)}
 /* L'interruttore: un filo piu' largo, e da spento un grigio che si vede senza
    gridare. */
 #dm-widget-popup .dm-w-row .dm-w-switch{
