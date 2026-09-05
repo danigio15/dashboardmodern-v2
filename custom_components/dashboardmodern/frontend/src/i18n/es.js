@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "Quitar este equipo",
   "Uninterruptible power supplies": "Sistemas de alimentación ininterrumpida",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Con red presente la tarjeta muestra la carga de la batería; cuando se va la luz muestra los minutos que quedan y se enciende. Ningún campo es obligatorio: con el estado de NUT la tarjeta ya sabe si hay tensión. Si tienes más de uno, añádelos abajo: cada uno tiene su escena en la página Alimentación de reserva.",
+  "waiting": "esperando",
+  "no answer": "sin respuesta",
 });

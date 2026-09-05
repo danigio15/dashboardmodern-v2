@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "移除此设备",
   "Uninterruptible power supplies": "不间断电源",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "有市电时磁贴显示电池电量；断电时显示剩余分钟并亮起。没有必填项：仅凭 NUT 状态就能知道是否有电。如果你有多台，可在下方添加：每台在备用电源页面都有自己的场景。",
+  "waiting": "等待中",
+  "no answer": "无响应",
 });

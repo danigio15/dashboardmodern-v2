@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "Dit apparaat verwijderen",
   "Uninterruptible power supplies": "Noodstroomvoorzieningen",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Met netstroom toont de tegel de acculading; valt de stroom weg, dan toont hij de resterende minuten en licht op. Geen veld is verplicht: alleen de NUT-status verraadt al of er stroom is. Heb je er meer, voeg ze hieronder toe: elk krijgt zijn eigen scène op de pagina Noodstroom.",
+  "waiting": "wachten",
+  "no answer": "geen antwoord",
 });

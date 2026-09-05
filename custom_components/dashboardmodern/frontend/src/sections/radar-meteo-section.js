@@ -171,6 +171,40 @@ export function nomeDelServizio(scelto = {}) {
   }
 }
 
+/* L'ora del fotogramma che si sta guardando, come la direbbe un orologio. */
+function oraDelFotogramma(secondi) {
+  const quando = Number(secondi);
+  if (!Number.isFinite(quando) || quando <= 0) return "";
+  try {
+    return new Date(quando * 1000).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (_errore) {
+    return "";
+  }
+}
+
+/* Il servizio della pioggia, e in che stato e'.
+ *
+ * «Non mi sembra di vedere le piogge» sono due frasi diverse dette uguale: il
+ * servizio non risponde, oppure risponde e non sta piovendo. Senza
+ * distinguerle non si puo' rispondere a nessuna delle due — e chi guarda un
+ * cielo sereno sopra una mappa vuota non ha modo di sapere quale delle due
+ * sta vedendo. L'ora del fotogramma le separa: se c'e', il radar e' vivo. */
+export function etichettaDelServizio(scelto = {}, fotogramma = null, attesa = false) {
+  const nome = nomeDelServizio(scelto);
+  if (!nome) return "";
+  /* Un indirizzo scritto a mano non ha un elenco di fotogrammi da aspettare:
+   * il suo stato lo dicono i quadratini, non questa riga. */
+  if (!SERVIZI_RADAR[scelto?.servizio]) return nome;
+  const ora = oraDelFotogramma(fotogramma?.time);
+  if (ora) return `${nome} ${ora}`;
+  return `${nome} — ${
+    attesa ? t("in attesa", "waiting") : t("nessuna risposta", "no answer")
+  }`;
+}
+
 /* E da chi arriva la MAPPA sotto la pioggia.
  *
  * E' l'altra meta' della stessa domanda, e per un anno non c'e' stata: le
@@ -506,10 +540,17 @@ function daTessere(scelto, nodo) {
      * quello della pioggia: chiedendo questa riga per capire da dove
      * arrivavano si otteneva la risposta a un'altra domanda. Adesso ci sono
      * tutti e due, e con un'occhiata si sa chi sta parlando. */
+    /* E lo zoom a cui sta chiedendo i quadratini.
+     *
+     * «C'e' ancora quella scritta sullo zoom»: un servizio che a un certo
+     * livello non ha piu' niente da dare risponde con un quadratino stampato
+     * invece che con la mappa, e per capire quale livello sia bisognava
+     * indovinarlo. Adesso c'e' scritto. */
     nota.textContent = [
       posto,
       `${scelto.raggio} km`,
-      nomeDelServizio(scelto),
+      `z${finestraTessere.zoom}`,
+      etichettaDelServizio(scelto, fotogrammaDi(scelto.servizio)?.fotogramma, inArrivo(scelto)),
       nomeDelFondo(scelto),
     ]
       .filter(Boolean)

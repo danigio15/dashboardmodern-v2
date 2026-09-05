@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "이 장치 제거",
   "Uninterruptible power supplies": "무정전 전원 장치",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "상용 전원이 있으면 타일에 배터리 잔량이, 정전되면 남은 시간이 표시되며 불이 켜집니다. 필수 항목은 없습니다. NUT 상태만으로도 전원 유무를 알 수 있습니다. 여러 대라면 아래에 추가하세요. 각각 백업 전원 페이지에 자기 화면을 갖습니다.",
+  "waiting": "기다리는 중",
+  "no answer": "응답 없음",
 });

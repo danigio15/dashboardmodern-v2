@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "Dieses Gerät entfernen",
   "Uninterruptible power supplies": "Unterbrechungsfreie Stromversorgungen",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Bei anliegendem Netz zeigt die Kachel den Akkustand; fällt der Strom aus, zeigt sie die verbleibenden Minuten und leuchtet auf. Kein Feld ist Pflicht: Allein der NUT-Status verrät bereits, ob Strom da ist. Wenn du mehrere hast, füge sie unten hinzu: Jedes bekommt seine eigene Szene auf der Seite Notstrom.",
+  "waiting": "wartet",
+  "no answer": "keine Antwort",
 });

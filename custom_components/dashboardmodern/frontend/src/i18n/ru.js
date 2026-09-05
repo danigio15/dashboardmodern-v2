@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "Удалить это устройство",
   "Uninterruptible power supplies": "Источники бесперебойного питания",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "При наличии сети плитка показывает заряд батареи; при отключении — оставшиеся минуты и загорается. Ни одно поле не обязательно: одного статуса NUT достаточно, чтобы понять, есть ли питание. Если их несколько, добавьте их ниже: у каждого своя сцена на странице резервного питания.",
+  "waiting": "ожидание",
+  "no answer": "нет ответа",
 });

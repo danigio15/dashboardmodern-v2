@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "Bu cihazı kaldır",
   "Uninterruptible power supplies": "Kesintisiz güç kaynakları",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Şebeke varken kart pil şarjını gösterir; elektrik kesilince kalan dakikaları gösterir ve yanar. Hiçbir alan zorunlu değil: yalnızca NUT durumu bile elektrik olup olmadığını söyler. Birden fazlaysa aşağıya ekleyin: her biri Yedek güç sayfasında kendi sahnesine sahiptir.",
+  "waiting": "bekleniyor",
+  "no answer": "yanıt yok",
 });

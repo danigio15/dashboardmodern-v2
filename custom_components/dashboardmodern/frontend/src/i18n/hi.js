@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "यह इकाई हटाएँ",
   "Uninterruptible power supplies": "निर्बाध विद्युत आपूर्ति",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "मुख्य बिजली रहने पर टाइल बैटरी चार्ज दिखाती है; बिजली जाने पर बचे मिनट दिखाती है और जल उठती है। कोई भी फ़ील्ड अनिवार्य नहीं: अकेले NUT स्थिति से ही पता चल जाता है कि बिजली है या नहीं। एक से ज़्यादा हों तो नीचे जोड़ें: हर एक का अपना दृश्य बैकअप पावर पेज पर होता है।",
+  "waiting": "प्रतीक्षा में",
+  "no answer": "कोई जवाब नहीं",
 });

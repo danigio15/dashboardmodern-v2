@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "Usuń to urządzenie",
   "Uninterruptible power supplies": "Zasilacze awaryjne",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Przy zasilaniu sieciowym kafelek pokazuje poziom naładowania; gdy prąd zniknie, pokazuje pozostałe minuty i zapala się. Żadne pole nie jest wymagane: sam status NUT wystarczy, by wiedzieć, czy jest prąd. Jeśli masz ich więcej, dodaj je poniżej: każdy ma własną scenę na stronie Zasilanie awaryjne.",
+  "waiting": "czekam",
+  "no answer": "brak odpowiedzi",
 });

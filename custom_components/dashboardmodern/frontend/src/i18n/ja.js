@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "この機器を削除",
   "Uninterruptible power supplies": "無停電電源装置",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "商用電源があるときはバッテリー残量を、停電するとあと何分かを表示して点灯します。必須の項目はありません。NUTの状態だけで電源の有無はわかります。複数ある場合は下に追加してください。それぞれがバックアップ電源のページに専用の画面を持ちます。",
+  "waiting": "待機中",
+  "no answer": "応答なし",
 });

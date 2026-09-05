@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "Retirer cet appareil",
   "Uninterruptible power supplies": "Onduleurs",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Avec le secteur présent, la tuile affiche la charge de la batterie ; en cas de coupure, elle affiche les minutes restantes et s'allume. Aucun champ n'est obligatoire : le seul état NUT suffit à savoir s'il y a du courant. Si vous en avez plusieurs, ajoutez-les ci-dessous : chacun a sa scène sur la page Alimentation de secours.",
+  "waiting": "en attente",
+  "no answer": "pas de réponse",
 });

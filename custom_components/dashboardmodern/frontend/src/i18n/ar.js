@@ -2788,4 +2788,6 @@ export default Object.freeze({
   "Remove this unit": "إزالة هذه الوحدة",
   "Uninterruptible power supplies": "وحدات الطاقة غير المنقطعة",
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "عند وجود التيار تعرض البطاقة شحن البطارية؛ وعند انقطاعه تعرض الدقائق المتبقية وتضيء. لا يوجد حقل إلزامي: حالة NUT وحدها تكفي لمعرفة وجود التيار. إن كان لديك أكثر من وحدة فأضفها أدناه: لكل واحدة مشهدها في صفحة الطاقة الاحتياطية.",
+  "waiting": "في الانتظار",
+  "no answer": "لا استجابة",
 });
