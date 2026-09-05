@@ -126,6 +126,14 @@ export const DOMINI_COMANDO = Object.freeze({
   input_button: "tasto",
   script: "tasto",
   scene: "tasto",
+  /* Un robot comandato a automazioni e' un robot come gli altri.
+   *
+   * Non tutti i robot pubblicano dei «button»: chi ne ha uno che Home
+   * Assistant non integra a fondo si scrive le automazioni — Pulizia, Pausa,
+   * Dock, Pulizia programmata — ed e' quello il suo cruscotto. Lasciarle
+   * fuori voleva dire far nascere quel robot dall'integrazione con la riga
+   * dei comandi vuota. */
+  automation: "tasto",
   switch: "interruttore",
   input_boolean: "interruttore",
   select: "tendina",
@@ -220,9 +228,10 @@ export function comandiDelRobot(robot = {}, states = {}) {
 /**
  * Il servizio dietro un comando.
  *
- * Un tasto si preme, uno script e una scena si accendono, un interruttore si
- * inverte, una tendina sceglie: quattro verbi per otto domini, e nessun
- * servizio inventato — sono quelli che Home Assistant ha per quelle entita'.
+ * Un tasto si preme, uno script e una scena si accendono, un'automazione si fa
+ * partire, un interruttore si inverte, una tendina sceglie: cinque verbi per
+ * nove domini, e nessun servizio inventato — sono quelli che Home Assistant ha
+ * per quelle entita'.
  */
 export function comandoDelRobot(voce = {}, valore = "") {
   const entity = clean(voce?.entity);
@@ -242,6 +251,12 @@ export function comandoDelRobot(voce = {}, valore = "") {
     return { domain: dominio, service: "toggle", data: { entity_id: entity } };
   if (dominio === "button" || dominio === "input_button")
     return { domain: dominio, service: "press", data: { entity_id: entity } };
+  /* Un'automazione si fa PARTIRE, non si accende: «automation.turn_on» la
+   * riabilita e basta — il robot non si muove, e chi tocca il tasto ha appena
+   * cambiato di nascosto un'impostazione di Home Assistant. Il verbo giusto e'
+   * «trigger», ed e' l'unico che fa quello che il tasto promette. */
+  if (dominio === "automation")
+    return { domain: dominio, service: "trigger", data: { entity_id: entity } };
   return { domain: dominio, service: "turn_on", data: { entity_id: entity } };
 }
 

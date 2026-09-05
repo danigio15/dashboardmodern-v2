@@ -393,13 +393,15 @@ test("i comandi a parte sono tasti, tendine e interruttori, e restano dopo la no
   assert.equal(genereDelComando("input_button.a"), "tasto");
   assert.equal(genereDelComando("script.a"), "tasto");
   assert.equal(genereDelComando("scene.a"), "tasto");
+  // Chi il robot lo comanda a automazioni ha un cruscotto come tutti gli altri.
+  assert.equal(genereDelComando("automation.a"), "tasto");
   assert.equal(genereDelComando("select.a"), "tendina");
   assert.equal(genereDelComando("input_select.a"), "tendina");
   assert.equal(genereDelComando("switch.a"), "interruttore");
   assert.equal(genereDelComando("input_boolean.a"), "interruttore");
   assert.equal(genereDelComando("sensor.a"), "");
   assert.equal(genereDelComando(""), "");
-  assert.equal(Object.keys(DOMINI_COMANDO).length, 8);
+  assert.equal(Object.keys(DOMINI_COMANDO).length, 9);
 
   assert.deepEqual(
     elencoComandi([
@@ -683,4 +685,34 @@ test("quello che c'era gia' non si perde", () => {
   assert.equal(robot.name, "Il robot di sotto");
   assert.equal(robot.room, "room-salone");
   assert.equal(robot.entity, "vacuum.roborock_s8");
+});
+
+/* Un robot comandato a automazioni — il caso vero di chi ha «automation.piper_*»
+ * al posto dei «button» che il suo aspirapolvere non pubblica. */
+test("un'automazione e' un tasto, e si fa partire invece di accendersi", () => {
+  assert.equal(genereDelComando("automation.piper_pulizia"), "tasto");
+  /* Il verbo e' quello che conta: «turn_on» riabilita l'automazione e lascia
+   * il robot fermo, e per giunta cambia di nascosto un'impostazione di Home
+   * Assistant. Chi tocca «Pulizia» vuole che parta. */
+  assert.deepEqual(comandoDelRobot({ entity: "automation.piper_pulizia" }), {
+    domain: "automation",
+    service: "trigger",
+    data: { entity_id: "automation.piper_pulizia" },
+  });
+  // Gli altri verbi restano quelli di prima.
+  assert.equal(comandoDelRobot({ entity: "script.piper_dock" }).service, "turn_on");
+  assert.equal(comandoDelRobot({ entity: "button.piper_dock" }).service, "press");
+});
+
+test("le automazioni del robot entrano nell'elenco dei comandi", () => {
+  const comandi = elencoComandi([
+    "automation.piper_pulizia",
+    "automation.piper_pausa",
+    "automation.piper_dock",
+  ]);
+  assert.deepEqual(comandi, [
+    "automation.piper_pulizia",
+    "automation.piper_pausa",
+    "automation.piper_dock",
+  ]);
 });
