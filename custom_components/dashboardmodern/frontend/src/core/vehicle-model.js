@@ -246,6 +246,19 @@ export function vehiclePhoto(car = {}, plugged = false) {
 /** Lo stesso elenco, con un campo riscritto su UNA vettura e nient'altro toccato. */
 export function updateVehicle(list = [], uid, patch = {}) {
   const cercato = clean(uid);
+  /* Nessuna identita' non vuol dire «tutte le identita'».
+   *
+   * Un uid vuoto combaciava con OGNI riga che l'uid non ce l'ha — e le righe
+   * senza uid sono la forma di ogni configurazione scritta prima che gli uid
+   * esistessero, e di ogni ripristino, finche' qualcuno non apre la lista auto
+   * e gliene fa scrivere uno. Una patch chiesta per una vettura le prendeva
+   * tutte: la foto della prima finiva su tutte le altre. E' il «si mischiano
+   * le foto» che tornava.
+   *
+   * La lettura questa difesa ce l'aveva gia' — `vehicleIndex` su un uid vuoto
+   * risponde -1 — e mancava solo di qua. Chiedere di cambiare un'auto che non
+   * si sa quale sia non cambia niente. */
+  if (!cercato) return array(list);
   return array(list).map((car) =>
     clean(car?.[VEHICLE_KEY_FIELD]) === cercato
       ? /* L'uid non si riscrive mai da qui: e' l'intera ragione per cui esiste. */

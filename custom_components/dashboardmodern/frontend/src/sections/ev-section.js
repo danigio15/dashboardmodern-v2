@@ -1364,8 +1364,14 @@ function saveProfilePhotos(photos) {
 const PHOTO_MIGRATION_KEY = "cd_ev_photos_moved";
 
 function adoptExistingPhotos() {
-  const legacy = legacyProfiles();
-  const cars = legacy.length ? legacy : canonicalProfiles();
+  /* La stessa lista di tutti gli altri.
+   *
+   * Qui si guardava l'elenco GREZZO, dove una riga l'uid puo' non averlo: il
+   * travaso chiedeva allora di scrivere «sull'auto con uid vuoto», e prima che
+   * `updateVehicle` imparasse a rifiutarlo quella richiesta le prendeva tutte.
+   * `profiles()` passa da `vehicleList`, dove ogni riga un uid ce l'ha — ed e'
+   * la stessa lista che leggono il pannello, il titolo e il salvataggio. */
+  const cars = profiles();
   // Anche una macchina sola: e' cosi' che la sua foto smette di vivere solo
   // nelle due caselle e comincia a viaggiare col profilo.
   if (!cars.length) return false;
@@ -1375,8 +1381,8 @@ function adoptExistingPhotos() {
    * foto solo nelle caselle, e da li' deve salire dentro al profilo — che da
    * adesso e' la fonte. Si scrive solo dove il profilo non ha gia' la sua. */
   const caselle = configuredPhotos();
-  const posto = Math.max(0, activeIndex());
-  const attiva = cars[posto];
+  /* E l'auto in uso si sceglie come dappertutto: per uid, non per posto. */
+  const attiva = activeVehicle(cars);
   const aggiornate =
     attiva && (!vehiclePhotos(attiva).idle || !vehiclePhotos(attiva).plugged)
       ? updateVehicle(cars, uidDi(attiva), {
