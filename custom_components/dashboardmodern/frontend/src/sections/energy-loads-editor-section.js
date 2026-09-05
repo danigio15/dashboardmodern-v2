@@ -1072,7 +1072,19 @@ function installStyles() {
     .dm-loads-pick-foreign{margin-top:6px}
     /* The phone is exactly where the three squeezed fields were unreadable, so
        there is no narrow variant that puts them back side by side. */
-    @media(max-width:640px){.dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}.dm-loads-icon-row{grid-template-columns:minmax(0,1fr) 50px!important}.dm-loads-icon-btn{width:50px!important}}
+    /* Sullo stretto il riquadro dell'icona va sopra, largo quanto la riga.
+       Accanto alla casella era un quadratino di cinquanta pixel, e con i
+       caratteri grandi di sistema finiva schiacciato contro la pastiglia del
+       colore: il dito mirava all'icona che vedeva e non trovava il tasto —
+       «non si può cambiare icona del carico, non esce il catalogo». Adesso
+       quello che si vede e' il tasto, e la casella per scriverla a mano sta
+       sotto. */
+    @media(max-width:640px){
+      .dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}
+      .dm-loads-icon-row{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+      .dm-loads-icon-btn{grid-row:1!important;width:100%!important;height:52px!important;font-size:26px!important}
+      .dm-loads-icon-input{grid-row:2!important}
+    }
   `,
   );
 }
