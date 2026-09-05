@@ -13,8 +13,8 @@ che teneva l'identificativo al posto del nome — lo stesso difetto, due volte,
 e adesso non puo' ripetersi. I carichi di due impianti che si scambiavano il
 nome. Le entita' configurate che sparivano dopo un aggiornamento. Il radar che
 stampava «Zoom Level Not Supported» sopra le strade. I robot che adesso
-arrivano da un'integrazione come gli elettrodomestici, e la tessera che dice
-com'e' l'aria di casa.
+arrivano da un'integrazione come gli elettrodomestici, e le tessere che dicono
+com'e' l'aria di casa e se i rilevatori di fumo stanno guardando.
 
 ### Aggiunto
 
@@ -66,7 +66,41 @@ com'e' l'aria di casa.
   la lavora. Adesso ci sono anche nell'elenco di chi ha segnalato, e compaiono
   quando c'e' piu' di uno stato da separare.
 
+- **La tessera di fumo e gas (#328).** «Un widget che mostri il numero di
+  sensori fumo e allagamento, e che aprendolo li mostri, oltre che lampeggi e
+  dica quali si sono attivati.» Meta' c'era — gli allagamenti — e spariva a
+  casa asciutta. Adesso ci sono tutte e due, compaiono da sole coi rilevatori
+  di casa e **si vedono anche quando non succede niente**, dicendo quanti ne
+  stanno guardando: una sentinella che si vede solo a disastro avvenuto non
+  permette di accorgersi che ha smesso di guardare. Quando uno suona la
+  tessera lampeggia, conta quelli in allarme e scrive i loro nomi; aperta, li
+  elenca tutti, chi suona in cima. Chi non le vuole le nasconde dall'editor,
+  come ogni altra tessera.
+
+- **Il bagagliaio e il cofano dell'auto (#326).** «Allo stesso modo delle
+  portiere e' possibile inserire un binary_sensor per il "Bagagliaio" e per il
+  "Cofano motore"?» Due aperture come i finestrini, accanto a loro nel quadro.
+
+- **Dove sta l'auto (#326).** «Perche' non inserire una voce tipo "location"
+  dove come entita' si inserisce un "device_tracker"?» Una casella nuova e una
+  pillola che dice la parola: «casa» e «fuori» sono parole di Home Assistant e
+  si traducono, il nome di una zona l'ha scritto qualcuno e si lascia com'e'.
+
 ### Corretto
+
+- **La scheda dell'auto si chiamava «EV» (#326).** «E' piu' corretto che sia
+  "Auto" e non "EV".» Una sigla inglese che meta' di chi apre la plancia non
+  riconosce, e per giunta falsa: da quella scheda passano anche le auto a
+  benzina. La pagina si chiamava gia' «Auto» nella barra e nel titolo.
+
+- **Di un pieno di benzina si diceva che non era attaccato alla presa (#326).**
+  «Aprendo la scheda auto viene mostrata la percentuale del carburante con
+  l'indicazione "E' al xx% e non e' attaccata".» Senza batteria configurata la
+  tessera legge il serbatoio, ma la frase era una sola, scritta per
+  l'elettrica. Adesso si parla di serbatoio, e sotto il venti per cento si dice
+  di fare rifornimento invece di dire che manca la spina. In un garage misto
+  la distinzione non si applica: la piu' scarica puo' essere l'elettrica, e li'
+  «attaccata» vuol dire ancora qualcosa.
 
 - **La card del robot scriveva l'identificativo della stanza.** «room-salone»
   sotto al titolo, invece di «Salone». Nasce con il robot che arriva
