@@ -109,6 +109,35 @@ async function avvia(page, testInfo) {
   await expect(page.locator("#dm-widgets .dm-tile").first()).toBeVisible();
   // Il giro che stringe i nomi gira dopo il disegno: gli si lascia il tempo.
   await page.waitForTimeout(600);
+  await cifreFerme(page);
+}
+
+/* Si misura a tessere ferme, e «ferme» lo dicono le animazioni.
+ *
+ * Il numero gira come un contatore: la cifra che cambia entra da sotto con un
+ * «translateY», e «dm-tile-value» ha «overflow:hidden» apposta per nasconderne
+ * il viaggio. Ma un figlio spinto in giu' allarga lo scrollHeight della
+ * scatola, e misurare a meta' giro legge quel movimento come una scritta
+ * tagliata: misurato qui, lo sforo arriva a quarantacinque pixel mentre la
+ * cifra scorre e torna a zero da solo mezzo secondo dopo. Non c'e' niente di
+ * tagliato — c'e' un'animazione in corso.
+ *
+ * Aspettare un tempo fisso piu' lungo non e' una risposta: su un runner carico
+ * non basta mai, ed e' esattamente cosi' che questa prova diventava rossa a
+ * giorni alterni. Si aspetta invece che le animazioni delle cifre siano
+ * finite, che e' la condizione vera. Solo quelle: la fascia ha anche moti che
+ * non finiscono mai — la didascalia che scorre, l'alone che respira — e
+ * aspettare tutto vorrebbe dire aspettare per sempre. */
+async function cifreFerme(page) {
+  await page.waitForFunction(
+    () =>
+      document
+        .getAnimations()
+        .filter((moto) => /dmCifra/.test(moto.animationName || ""))
+        .every((moto) => moto.playState !== "running"),
+    undefined,
+    { timeout: 10_000 },
+  );
 }
 
 test("nessun nome e nessuna scritta della tessera esce tagliata", async ({ page }, testInfo) => {
