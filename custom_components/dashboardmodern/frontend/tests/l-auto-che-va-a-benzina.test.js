@@ -238,3 +238,64 @@ test("il modulo e' installato dal runtime, dopo il vestito della pagina Auto", a
   assert.ok(vestito > 0 && termica > vestito);
   assert.match(runtime, /"auto-termica",/);
 });
+
+/* ── il bagagliaio, il cofano e dove sta l'auto (#326) ─────────────────── */
+
+test("il bagagliaio e il cofano sono aperture come i finestrini", () => {
+  const lettura = letturaTermica(
+    { "dm.ev_bagagliaio": "binary_sensor.tucson_boot", "dm.ev_cofano": "binary_sensor.tucson_hood" },
+    {
+      "binary_sensor.tucson_boot": { state: "on" },
+      "binary_sensor.tucson_hood": { state: "off" },
+    },
+  );
+  /* «Allo stesso modo delle portiere e' possibile inserire un binary_sensor
+   * per il Bagagliaio e per il Cofano motore (chiuso/aperto)?» Sono aperture,
+   * e leggono il dialetto delle aperture: `on` e' aperto. */
+  assert.equal(lettura.bagagliaio, "aperti");
+  assert.equal(lettura.cofano, "chiusi");
+  assert.equal(lettura.qualcosa, true);
+});
+
+test("la posizione dell'auto e' una parola, e le parole di Home Assistant si traducono", () => {
+  const dove = (stato) =>
+    letturaTermica(
+      { "dm.ev_posizione": "device_tracker.tucson" },
+      { "device_tracker.tucson": { state: stato } },
+    ).posizione;
+  /* `home` e `not_home` sono parole di Home Assistant, non italiano. */
+  assert.equal(dove("home"), "casa");
+  assert.equal(dove("not_home"), "fuori");
+  /* Il nome di una zona lo ha scritto qualcuno: si lascia com'e'. */
+  assert.equal(dove("Lavoro"), "Lavoro");
+  /* Uno stato che non dice niente non diventa la parola «sconosciuto»: resta
+   * vuoto, e la pillola non si disegna. Il guscio i suoi «muti» li scarta gia'
+   * per conto suo — qui conta che dopo non resti niente da scrivere, non con
+   * quale sfumatura di niente. */
+  for (const muto of ["", "unknown", "unavailable", "none"])
+    assert.ok(!dove(muto), `«${muto}» non deve diventare una parola sulla card`);
+});
+
+test("le tre caselle nuove entrano nella scheda dell'auto, con la loro etichetta", async () => {
+  const sezione = await leggi("sections/auto-termica-section.js");
+  assert.match(sezione, /case "dm\.ev_bagagliaio":/);
+  assert.match(sezione, /case "dm\.ev_cofano":/);
+  assert.match(sezione, /case "dm\.ev_posizione":/);
+  /* L'etichetta dice che entita' ci va: chi configura non deve indovinare. */
+  assert.match(sezione, /device_tracker/);
+  /* E i riferimenti sono quelli che il guscio conosce. */
+  assert.ok(RIFERIMENTI_TERMICI.includes("dm.ev_bagagliaio"));
+  assert.ok(RIFERIMENTI_TERMICI.includes("dm.ev_cofano"));
+  assert.ok(RIFERIMENTI_TERMICI.includes("dm.ev_posizione"));
+});
+
+test("la linguetta della configurazione si chiama «Auto», non «EV» (#326)", async () => {
+  const sezione = await leggi("sections/auto-termica-section.js");
+  /* «Nel menu di configurazione l'etichetta dell'auto e' piu' corretto che sia
+   * "Auto" e non "EV"»: da quella scheda passano anche le auto a benzina. */
+  assert.match(sezione, /rinominaLaLinguettaDellAuto/);
+  assert.match(sezione, /\.ed-tab\[data-tab="sez2"\] \.dm-beta4-tab-label/);
+  /* La linguetta intera si riscrive solo dove la parola non ha una casella
+   * sua, o si porterebbe via il disegno. */
+  assert.match(sezione, /\.ed-tab\[data-tab="sez2"\]:not\(:has\(\.dm-beta4-tab-label\)\)/);
+});
