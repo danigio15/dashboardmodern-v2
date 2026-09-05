@@ -53,6 +53,7 @@
  */
 import {
   FONDI_MAPPA,
+  indirizzoRitirato,
   FONDO_DI_SERIE,
   NIENTE,
   SERVIZI_RADAR,
@@ -137,10 +138,37 @@ export function servizioScelto(grezzo = {}) {
   const servizio = clean(grezzo?.servizio);
   if (NIENTE.includes(servizio.toLowerCase())) return "";
   if (SERVIZI_RADAR[servizio]) return servizio;
-  const mio = /\{[zxy]\}/.test(clean(grezzo?.modello));
-  if (servizio === "modello") return mio ? "modello" : "";
-  if (!servizio) return mio ? "modello" : SERVIZIO_DI_SERIE;
+  /* Un indirizzo scritto a mano vale finche' il suo servizio risponde. Quello
+   * di CARTO non risponde piu' — manda la scritta «Zoom Level Not Supported»
+   * al posto della pioggia — e chi ce l'ha ancora scritto torna al servizio di
+   * serie invece di vedersela stampata sopra la mappa. */
+  const indirizzo = clean(grezzo?.modello);
+  const scritto = /\{[zxy]\}/.test(indirizzo);
+  const ritirato = scritto && indirizzoRitirato(indirizzo);
+  /* «Un indirizzo mio» senza indirizzo non e' una scelta, e resta niente: chi
+   * ha aperto la tendina e non ha scritto non vuole che si chieda la pioggia
+   * a qualcun altro al posto suo. Se invece l'indirizzo c'e' ma e' di un
+   * servizio ritirato, la scelta c'era: si torna a quello di serie. */
+  if (servizio === "modello") return scritto ? (ritirato ? SERVIZIO_DI_SERIE : "modello") : "";
+  if (!servizio) return scritto && !ritirato ? "modello" : SERVIZIO_DI_SERIE;
   return "";
+}
+
+/* Da chi arrivano i quadratini, in due parole.
+ *
+ * Il nome del servizio scelto, e per un indirizzo scritto a mano l'ospite a cui
+ * la plancia sta bussando: prima li' non c'era scritto niente, e una plancia
+ * che chiede la pioggia a un servizio sbagliato non aveva modo di dirlo. */
+export function nomeDelServizio(scelto = {}) {
+  const noto = SERVIZI_RADAR[scelto?.servizio]?.nome;
+  if (noto) return noto;
+  const indirizzo = clean(scelto?.modello);
+  if (!indirizzo) return "";
+  try {
+    return new URL(indirizzo.replaceAll(/\{-?[a-z]\}/gi, "1")).hostname;
+  } catch (_errore) {
+    return "";
+  }
 }
 
 /* Se qualcuno ha mai toccato il radar. Una casa che non l'ha configurato non
@@ -453,7 +481,7 @@ function daTessere(scelto, nodo) {
     const posto = luogo.nome || `${luogo.lat.toFixed(3)}, ${luogo.lon.toFixed(3)}`;
     /* E da chi arrivano i quadratini: chi guarda ha diritto di sapere a chi
      * la sua plancia sta chiedendo la pioggia. */
-    const servizio = SERVIZI_RADAR[scelto.servizio]?.nome || "";
+    const servizio = nomeDelServizio(scelto);
     nota.textContent = [posto, `${scelto.raggio} km`, servizio].filter(Boolean).join(" · ");
   }
 }
@@ -590,7 +618,8 @@ function fondoScelto(config) {
   const fondo = clean(config.fondo);
   if (NIENTE.includes(fondo.toLowerCase())) return "";
   if (FONDI_MAPPA[fondo]) return fondo;
-  if (fondo === "modello" || /\{[zxy]\}/.test(fondo) || clean(config.fondoModello)) return "modello";
+  if (fondo === "modello" || /\{[zxy]\}/.test(fondo) || clean(config.fondoModello))
+    return "modello";
   return FONDO_DI_SERIE;
 }
 

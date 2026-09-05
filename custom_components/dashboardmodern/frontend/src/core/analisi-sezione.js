@@ -492,9 +492,58 @@ const LETTURE = Object.freeze({
   ev: (tr, tessera, adesso = Date.now()) => {
     const l = lingua(tr, tessera?.lingua);
     const righe = Array.isArray(tessera?.rows) ? tessera.rows : [];
-    const allaPresa = tessera?.attiva === true;
     const carica = num(tessera?.ring);
     const piuAuto = (Number(tessera?.quante) || righe.length) > 1;
+    /* Un'auto a benzina non si attacca alla presa (#326).
+     *
+     * «Aprendo la scheda auto viene mostrata la percentuale del carburante con
+     * l'indicazione "E' al xx% e non e' attaccata".» Il numero in copertina lo
+     * sceglie la tessera: senza batteria configurata legge il serbatoio, e lo
+     * dice — ogni riga porta il suo `carburante`. Qui pero' la frase era una
+     * sola, scritta per l'elettrica, e cosi' del pieno di benzina si diceva che
+     * non era attaccato alla colonnina.
+     *
+     * La distinzione vale solo se TUTTE le auto raccontate vanno a carburante:
+     * in un garage misto la piu' scarica puo' essere l'elettrica, e li' la
+     * spina torna a voler dire qualcosa. */
+    const aBenzina = righe.length > 0 && righe.every((riga) => riga?.carburante === true);
+    /* E se e' a benzina, la presa non esiste: `attiva` puo' restare accesa per
+     * altri motivi, ma «in carica» non lo si dice di un serbatoio. */
+    const allaPresa = !aBenzina && tessera?.attiva === true;
+    if (aBenzina && carica != null) {
+      const punti = [];
+      const km = righe.map((r) => num(r?.km)).filter((v) => v != null);
+      if (km.length)
+        punti.push(
+          tr(`${numero(km[0], 0, l)} km di autonomia`, `${numero(km[0], 0, l)} km of range`),
+        );
+      if (piuAuto)
+        return {
+          tono: carica < 20 ? VERDETTI.guarda : VERDETTI.bene,
+          frase: tr(
+            `Il serbatoio piu' vuoto e' al ${Math.round(carica)}%.`,
+            `The emptiest tank is at ${Math.round(carica)}%.`,
+          ),
+          punti,
+        };
+      if (carica < 20)
+        return {
+          tono: VERDETTI.guarda,
+          frase: tr(
+            `Il serbatoio e' al ${Math.round(carica)}%: conviene fare rifornimento.`,
+            `The tank is at ${Math.round(carica)}%: time to refuel.`,
+          ),
+          punti,
+        };
+      return {
+        tono: VERDETTI.bene,
+        frase: tr(
+          `Il serbatoio e' al ${Math.round(carica)}%.`,
+          `The tank is at ${Math.round(carica)}%.`,
+        ),
+        punti,
+      };
+    }
     if (piuAuto && carica != null)
       return {
         tono: allaPresa ? VERDETTI.corso : carica < 20 ? VERDETTI.guarda : VERDETTI.bene,
@@ -520,7 +569,9 @@ const LETTURE = Object.freeze({
         tono: allaPresa ? VERDETTI.corso : VERDETTI.bene,
         frase: allaPresa
           ? tr("E' in carica.", "It is charging.")
-          : tr("Non e' attaccata.", "Not plugged in."),
+          : aBenzina
+            ? tr("Ferma.", "Idle.")
+            : tr("Non e' attaccata.", "Not plugged in."),
         punti,
       };
     if (allaPresa) {

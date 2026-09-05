@@ -36,6 +36,22 @@ export const CASELLE_TERMICHE = Object.freeze([
   Object.freeze({ ref: "dm.ev_motore", campo: "motore", tipo: "acceso", glifo: "🔑" }),
   Object.freeze({ ref: "dm.ev_portiere", campo: "portiere", tipo: "serratura", glifo: "🚪" }),
   Object.freeze({ ref: "dm.ev_finestrini", campo: "finestrini", tipo: "apertura", glifo: "🪟" }),
+  /* Il bagagliaio e il cofano (#326).
+   *
+   * «Allo stesso modo delle portiere (bloccate/aperte) e' possibile inserire un
+   * binary_sensor per il "Bagagliaio" e per il "Cofano motore"
+   * (chiuso/aperto)?» Sono due aperture come i finestrini — un binary_sensor
+   * che dice aperto o chiuso — e leggono lo stesso dialetto: chi resta aperto
+   * si vede, chi e' chiuso sta zitto. */
+  Object.freeze({ ref: "dm.ev_bagagliaio", campo: "bagagliaio", tipo: "apertura", glifo: "🧳" }),
+  Object.freeze({ ref: "dm.ev_cofano", campo: "cofano", tipo: "apertura", glifo: "🔧" }),
+  /* Dove sta l'auto (#326).
+   *
+   * «Perche' non inserire una voce tipo "location" dove come entita' si
+   * inserisce un "device_tracker." che verra' utilizzata per mostrare dove si
+   * trova l'auto?» Non e' un numero e non e' un interruttore: e' una parola —
+   * «casa», «lavoro», «in viaggio» — e si legge come tale. */
+  Object.freeze({ ref: "dm.ev_posizione", campo: "posizione", tipo: "luogo", glifo: "📍" }),
   Object.freeze({ ref: "dm.ev_allarme", campo: "allarme", tipo: "allarme", glifo: "🚨" }),
   Object.freeze({
     ref: "dm.ev_batteria_servizio",
@@ -103,6 +119,26 @@ export const RUOTE = Object.freeze([
 export const RIFERIMENTI_TERMICI = Object.freeze(CASELLE_TERMICHE.map((voce) => voce.ref));
 
 /* ── i dialetti ───────────────────────────────────────────────────────── */
+
+/* Dove sta l'auto, in parole (#326).
+ *
+ * Un `device_tracker` risponde `home`, `not_home` o il nome di una zona.
+ * `home` e `not_home` sono parole di Home Assistant, non italiano: si
+ * traducono. Il nome di una zona invece e' gia' una parola scritta da
+ * qualcuno — «Lavoro», «Palestra» — e si lascia com'e'.
+ *
+ * Uno stato che non dice niente — vuoto, sconosciuto, non disponibile — non
+ * diventa la parola «sconosciuto» sulla card: diventa niente, e la pillola
+ * non si disegna. */
+export function luogoDalloStato(grezzo) {
+  const voce = String(grezzo ?? "").trim();
+  if (!voce) return "";
+  const basso = voce.toLowerCase();
+  if (["unknown", "unavailable", "none", "null"].includes(basso)) return "";
+  if (basso === "home") return "casa";
+  if (basso === "not_home") return "fuori";
+  return voce;
+}
 
 /* Acceso o spento, comunque lo dica l'integrazione: il motore di una
  * Stellantis e' «Spento», quello di una Hyundai «off», un binary_sensor «on». */
@@ -246,6 +282,9 @@ export function letturaTermica(mappa = {}, states = {}, resolve = null) {
           break;
         case "allarme":
           valore = allarmeDalloStato(grezzo);
+          break;
+        case "luogo":
+          valore = luogoDalloStato(grezzo);
           break;
         case "pressione":
           valore = pneumaticiDalloStato(grezzo, unita);

@@ -291,6 +291,113 @@ export const APPLIANCE_BINDING_FIELDS = Object.freeze([
   "device_model",
 ]);
 
+/* Un'entita' configurata non si perde mai.
+ *
+ * Il modello tiene solo i campi che conosce, e per la forma va bene: e' quello
+ * che impedisce a una configurazione scritta a mano di portarsi dietro
+ * spazzatura. Ma un campo nuovo che nessuno ha dichiarato qui sparisce alla
+ * prima normalizzazione, e in questo file c'e' scritto quante volte e'
+ * successo: il contatto dell'infisso, il tipo di copertura, l'inferriata, il
+ * rele' di discesa della seconda tenda, l'indirizzo RTSP, l'impianto del
+ * carico. Sei volte lo stesso difetto, sei righe aggiunte dopo la
+ * segnalazione — e ogni volta qualcuno, in casa sua, aveva perso quello che
+ * aveva configurato.
+ *
+ * La regola cambia qui: la forma resta un elenco chiuso, ma un valore che e'
+ * un'entita' di Home Assistant si tiene comunque, anche se il suo campo non lo
+ * conosce nessuno. Cosi' una casella nuova sopravvive all'aggiornamento che la
+ * introduce, e una vecchia sopravvive a quello che la dimentica: chi disegna
+ * la ignorera' finche' non la sapra' leggere, ma non la butta via.
+ *
+ * Un'entita' si riconosce dalla sua forma: `dominio.oggetto`, tutto minuscolo,
+ * senza spazi ne' barre — e non un nome di file, che quella forma ce l'ha
+ * anche lui.
+ *
+ * Restano fuori i campi su cui il modello ha gia' un'opinione: il rele' di
+ * discesa di una tapparella vera non e' un rele' e non si tiene, e il contatto
+ * dell'infisso su un elettrodomestico non e' di casa sua. Quelle sono scelte,
+ * non dimenticanze, e vanno rispettate. Ma sono elencate qui una per una, e
+ * dimenticarne una in questo elenco non fa perdere niente a nessuno: fa
+ * sopravvivere un campo che il modello avrebbe scartato. L'errore, adesso, sta
+ * dalla parte giusta.
+ */
+const CAMPI_DECISI = new Set([
+  /* Le coperture: le decide il ramo `covers`, slot per slot. */
+  "contact",
+  "contact_entity",
+  "inferriata",
+  "kind",
+  "preset",
+  ...COVER_SLOTS.flatMap(({ campo, giu }) => [campo, giu].filter(Boolean)),
+  /* Le telecamere. */
+  "rtsp",
+  "stream",
+  "stream_url",
+  "url",
+  /* Il clima. */
+  "valvola",
+  /* E i nomi vecchi delle caselle di sempre.
+   *
+   * Il modello li legge e li versa nel nome canonico: `power` diventa
+   * `power_entity`, `switch` diventa `control_entity`. Se li tenessimo anche
+   * com'erano, una casella svuotata apposta risorgerebbe dal suo alias al giro
+   * dopo — e' quello che era gia' successo alle foto delle auto, «si mescolano
+   * da sole», per giorni. Il nome canonico c'e' sempre: questi hanno finito il
+   * loro lavoro nel momento in cui sono stati letti. */
+  "power",
+  "energy",
+  "daily_energy",
+  "energy_today",
+  "monthly_energy",
+  "total_energy",
+  "history",
+  "switch",
+  "switch_entity",
+  "light",
+  "state",
+  "temp_entity",
+  "temp_entity_2",
+  "remaining_time_entity",
+  "problem_entity",
+  "start_time_entity",
+  "img",
+]);
+const NOME_DI_FILE =
+  /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico|mp4|webm|json|ya?ml|txt|html?|css|js)$/i;
+
+export function sembraUnEntita(valore) {
+  const testo = String(valore ?? "").trim();
+  if (!testo || testo.length > 255) return false;
+  if (/[\s/\\:?#]/.test(testo)) return false;
+  if (NOME_DI_FILE.test(testo)) return false;
+  return /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/.test(testo);
+}
+
+/**
+ * Rimette le entita' che la normalizzazione non conosceva.
+ *
+ * Tocca solo i campi che non ci sono gia': quello che il modello sa dire lo
+ * dice lui, e un campo svuotato apposta resta svuotato.
+ */
+export function conservaLeEntita(uscita = {}, ingresso = {}) {
+  if (!ingresso || typeof ingresso !== "object" || Array.isArray(ingresso)) return uscita;
+  for (const [campo, valore] of Object.entries(ingresso)) {
+    if (campo in uscita || CAMPI_DECISI.has(campo)) continue;
+    if (typeof valore === "string") {
+      if (sembraUnEntita(valore)) uscita[campo] = valore.trim();
+      continue;
+    }
+    /* Anche un elenco di entita': `device_entities` e i suoi parenti. */
+    if (
+      Array.isArray(valore) &&
+      valore.length &&
+      valore.every((voce) => typeof voce === "string" && sembraUnEntita(voce))
+    )
+      uscita[campo] = valore.map((voce) => voce.trim());
+  }
+  return uscita;
+}
+
 export function deviceEntities(device = {}) {
   const explicit = [
     device.control_entity,
@@ -625,5 +732,5 @@ export function normalizeDevice(input = {}, section, context = {}) {
     ];
     if (deviceEntityIds.length) base.device_entities = deviceEntityIds;
   }
-  return base;
+  return conservaLeEntita(base, input);
 }

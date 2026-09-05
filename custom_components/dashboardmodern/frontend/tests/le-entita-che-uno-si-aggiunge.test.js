@@ -206,7 +206,13 @@ test("la scelta viaggia con la plancia, come le sezioni proprie", () => {
   const persistenza = leggi("sections/config-persistence-section.js");
   assert.equal(CHIAVE_ENTITA_MIE, "cd_entita_mie");
   assert.match(persistenza, /"cd_entita_mie",/);
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 26/);
+  /* La revisione dev'essere ALMENO quella che ha aggiunto questa chiave, non
+   * esattamente quella: inchiodare il numero rendeva rossa questa prova ogni
+   * volta che una chiave nuova, che non c'entra niente, alzava la revisione. */
+  assert.ok(
+    Number(/CONFIG_KEYS_REVISION = (\d+)/.exec(persistenza)?.[1]) >= 26,
+    "la revisione non e' mai stata alzata per questa chiave",
+  );
   /* E la plancia le installa: senza questo non le disegnerebbe nessuno. */
   const runtime = leggi("sections/section-runtime.js");
   assert.match(runtime, /installEntitaMie\(\);/);

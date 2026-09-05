@@ -37,6 +37,14 @@ import {
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
+import {
+  TONO_DEL_GRADO,
+  eUnaMisuraDellAria,
+  fraseDellAria,
+  giudizioDellAria,
+  letturaDellAria,
+  parolaDelGrado,
+} from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
 /* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
@@ -161,6 +169,12 @@ import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model
 import { passoDellUnita, scalaDellUnita } from "../core/scala-clima.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
+import {
+  SMOKE_ICON,
+  nomeDelRilevatore,
+  smokeEntities,
+  smokeIsAlarm,
+} from "./smoke-alerts-section.js";
 import { loadCameraFrame } from "./live-ui-section.js";
 import { hasConfiguredData } from "../core/dashboard-store.js";
 import {
@@ -1210,7 +1224,10 @@ function temperatureModel(states) {
     label: t("Temperatura", "Temperature"),
     value: `${formatNumber(sola ? sola.temperature : average, 1)}°`,
     caption: sola
-      ? [sola.name, sola.humidity == null ? "" : `${t("Umidità", "Humidity")} ${Math.round(sola.humidity)}%`]
+      ? [
+          sola.name,
+          sola.humidity == null ? "" : `${t("Umidità", "Humidity")} ${Math.round(sola.humidity)}%`,
+        ]
           .filter(Boolean)
           .join(" · ")
       : humidity == null
@@ -2722,6 +2739,120 @@ function batteriesModel(states) {
   };
 }
 
+/* La tessera dell'aria (#321).
+ *
+ * «Un widget come quello luci che segni la qualita' dell'aria relativa a un
+ * sensore.» Non c'e' niente da configurare: i sensori dell'aria li dichiara
+ * Home Assistant — `device_class: pm25`, `carbon_dioxide`, i composti
+ * organici volatili — e chi ne ha uno se lo ritrova in Home.
+ *
+ * In copertina va la misura messa peggio, non la media: l'aria di una casa e'
+ * buona quando lo sono tutte le sue misure. Il numero grande e' il suo
+ * valore, la didascalia dice quale sostanza e' e come sta.
+ */
+function ariaModel(states) {
+  const fuori = widgetExcludedEntities();
+  const letture = Object.entries(states || {})
+    .filter(([entity, stato]) => eUnaMisuraDellAria(entity, stato) && widgetIncludes(entity, fuori))
+    .map(([entity, stato]) => {
+      const lettura = letturaDellAria(entity, stato, locale());
+      if (!lettura) return null;
+      return { ...lettura, name: friendlyName(states, entity) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.misura.localeCompare(b.misura) || a.name.localeCompare(b.name));
+  const giudizio = giudizioDellAria(letture);
+  if (!giudizio) return null;
+  const peggiore = giudizio.peggiore;
+  const parola = parolaDelGrado(giudizio.grado, locale());
+  return {
+    key: "aria",
+    /* Il colore dice il giudizio senza leggere: verde, ambra, arancio, rosso. */
+    accent: { buona: "#16a34a", discreta: "#f59e0b", scarsa: "#f97316", cattiva: "#dc2626" }[
+      giudizio.grado
+    ],
+    icon: "🍃",
+    /* Rossa in cima come gli allagamenti solo quando l'aria e' da cambiare:
+     * un avviso che si accende sempre non e' piu' un avviso. */
+    alert: giudizio.grado === "cattiva",
+    label: t("Aria", "Air"),
+    /* Il numero e la sua unita' nella stessa casella: la tessera le separa da
+     * se', come fa coi gradi della temperatura. */
+    value: `${formatNumber(peggiore.valore, peggiore.valore >= 100 ? 0 : 1)}${peggiore.unita ? ` ${peggiore.unita}` : ""}`,
+    caption: `${parola} · ${peggiore.misura}`,
+    ring: peggiore.quanto,
+    grado: giudizio.grado,
+    frase: fraseDellAria(giudizio, locale()),
+    /* Le righe sono letture, non comandi: la finestra le disegna come caselle
+     * de «Le misure», che e' la forma giusta per un numero da guardare. */
+    rows: letture.map((lettura) => ({
+      entity: lettura.entity,
+      name: lettura.name,
+      glyph: lettura.glifo,
+      value: `${formatNumber(lettura.valore, lettura.valore >= 100 ? 0 : 1)}${lettura.unita ? ` ${lettura.unita}` : ""}`,
+      grado: lettura.grado,
+    })),
+  };
+}
+
+/* Il fumo e il gas, contati e chiamati per nome (#328).
+ *
+ * «Un widget che mostri il numero di sensori fumo e allagamento, e che
+ * aprendolo li mostri, oltre che lampeggi e dica quali si sono attivati.»
+ *
+ * La tessera c'e' finche' c'e' un rilevatore in casa, e a riposo dice quanti
+ * ne sta guardando: un antincendio che si vede solo quando e' troppo tardi non
+ * rassicura nessuno, e non c'e' modo di accorgersi che ha smesso di guardare.
+ * Quando uno suona la tessera passa in allarme — e' `alert` a farla lampeggiare,
+ * la stessa strada degli allagamenti — conta quelli che suonano e scrive in
+ * copertina il primo per nome.
+ *
+ * I nomi li da' `nomeDelRilevatore`, che e' lo stesso che usa la sezione: un
+ * rilevatore si chiama allo stesso modo dovunque lo si guardi. */
+function fumoModel(states) {
+  let entities = [];
+  try {
+    ({ entities } = smokeEntities(
+      readJson("cd_gruppi_extra", {}),
+      readJson("cd_gruppi_removed", {}),
+      states,
+      readJson("cd_fumo_rilevato", []),
+    ));
+  } catch (_error) {
+    return null;
+  }
+  if (!Array.isArray(entities) || !entities.length) return null;
+  const fuori = widgetExcludedEntities();
+  const nomi = readJson("cd_avvisi_names_extra", {}) || {};
+  const righe = entities
+    .filter((entity) => widgetIncludes(entity, fuori))
+    .map((entity) => ({
+      entity,
+      name: nomeDelRilevatore(entity, nomi, states),
+      on: Boolean(smokeIsAlarm(stateOf(states, entity))),
+    }));
+  if (!righe.length) return null;
+  const suonano = righe.filter((riga) => riga.on);
+  return {
+    key: "fumo",
+    accent: suonano.length ? "#ef4444" : "#94a3b8",
+    icon: SMOKE_ICON,
+    alert: suonano.length > 0,
+    label: t("Fumo e gas", "Smoke and gas"),
+    value: String(suonano.length || righe.length),
+    caption: suonano.length
+      ? suonano.map((riga) => riga.name).join(" · ")
+      : t("Tutto tranquillo", "All quiet"),
+    /* L'anello si riempie solo quando c'e' da guardare: a riposo la tessera
+     * non deve gridare, sta li' e basta. */
+    ring: suonano.length ? 100 : 0,
+    attiva: suonano.length > 0,
+    /* Aperta, la finestra li elenca tutti — chi suona e chi tace — perche'
+     * «quali si sono attivati» si capisce solo vedendo anche gli altri. */
+    rows: suonano.length ? [...suonano, ...righe.filter((riga) => !riga.on)] : righe,
+  };
+}
+
 function floodModel(states) {
   let entities = [];
   try {
@@ -2747,18 +2878,26 @@ function floodModel(states) {
       name: friendlyName(states, entity),
       on: Boolean(floodIsWet(stateOf(states, entity))),
     }));
+  if (!rows.length) return null;
   const wet = rows.filter((row) => row.on);
-  if (!wet.length) return null;
+  /* Come il fumo (#328): la tessera resta anche a casa asciutta, e dice
+   * quanti sensori sta guardando. Prima spariva quando andava tutto bene,
+   * e una sentinella che si vede solo a disastro avvenuto non permette di
+   * accorgersi che ha smesso di guardare. Chi non la vuole la nasconde
+   * dall'editor, come ogni altra tessera. */
   return {
     key: "allagamenti",
-    accent: "#38bdf8",
+    accent: wet.length ? "#38bdf8" : "#94a3b8",
     icon: "💧",
-    alert: true,
+    alert: wet.length > 0,
     label: t("Allagamenti", "Floods"),
-    value: String(wet.length),
-    caption: wet[0] ? wet[0].name : "",
-    ring: 100,
-    rows: wet,
+    value: String(wet.length || rows.length),
+    caption: wet.length
+      ? wet.map((row) => row.name).join(" · ")
+      : t("Tutto asciutto", "All dry"),
+    ring: wet.length ? 100 : 0,
+    attiva: wet.length > 0,
+    rows: wet.length ? [...wet, ...rows.filter((row) => !row.on)] : rows,
   };
 }
 
@@ -3347,6 +3486,8 @@ function widgetModels(states) {
       irrigationModel(states),
       batteriesModel(states),
       floodModel(states),
+      fumoModel(states),
+      ariaModel(states),
       ...customAlertModels(states),
     ].filter(Boolean),
   );
@@ -3883,10 +4024,28 @@ function agendaDetail(widget, states) {
 function lightsDetail(widget) {
   if (!widget.on.length && !widget.rows.length) return "";
   const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, 14);
-  return rows
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">💡</span>
+  /* «Sul widget luci metterei anche spegni tutte» (#315).
+   *
+   * Una riga sola sopra l'elenco, e solo quando c'e' qualcosa da spegnere: con
+   * tutte le luci gia' spente sarebbe un tasto che non fa niente, e con una
+   * luce sola accesa il suo interruttore e' li' accanto. Spegne quelle che si
+   * comandano davvero — le protette restano protette, come ovunque. */
+  const spegnibili = widget.on.filter((row) => row.comando !== false);
+  const tutte =
+    spegnibili.length > 1
+      ? `<div class="dm-w-riga dm-w-tutte">
+          <button type="button" class="dm-w-tutte-btn" data-dm-w-lights-off aria-label="${esc(t("Spegni tutte le luci", "Turn all lights off"))}">
+            <span aria-hidden="true">🌙</span>${esc(t("Spegni tutte", "Turn all off"))}
+            <b>${spegnibili.length}</b>
+          </button>
+        </div>`
+      : "";
+  return (
+    tutte +
+    rows
+      .map((row) =>
+        rowShell(
+          `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">💡</span>
          <span class="dm-w-name">${esc(row.name)}<small>${esc(row.room)}</small></span>
          ${
            row.comando === false
@@ -3894,9 +4053,10 @@ function lightsDetail(widget) {
              : `<button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on}"
            aria-label="${esc(row.name)}"><i></i></button>`
          }`,
-      ),
-    )
-    .join("");
+        ),
+      )
+      .join("")
+  );
 }
 
 /* L'icona racconta cosa sta facendo l'unita': fiamma quando scalda, fiocco
@@ -4323,8 +4483,27 @@ function floodDetail(widget) {
   return widget.rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">💧</span>
-         <span class="dm-w-name">${esc(row.name)}</span>`,
+        `<span class="dm-w-glyph" data-on="${row.on ? "true" : "false"}" aria-hidden="true">💧</span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <span class="dm-w-val">${esc(row.on ? t("Bagnato", "Wet") : t("Asciutto", "Dry"))}</span>`,
+      ),
+    )
+    .join("");
+}
+
+/* La finestra del fumo: tutti i rilevatori, e quello che suona si riconosce.
+ *
+ * «Aprendolo li mostri, oltre che dica quali si sono attivati»: elencare solo
+ * chi suona direbbe meta' della cosa — non si saprebbe quanti ne sta guardando
+ * ne' quali tacciono. Ci sono tutti, e chi e' in allarme porta la sua parola
+ * accanto al nome. */
+function fumoDetail(widget) {
+  return widget.rows
+    .map((row) =>
+      rowShell(
+        `<span class="dm-w-glyph" data-on="${row.on ? "true" : "false"}" aria-hidden="true">${SMOKE_ICON}</span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <span class="dm-w-val">${esc(row.on ? t("Allarme", "Alarm") : t("Tranquillo", "Quiet"))}</span>`,
       ),
     )
     .join("");
@@ -4469,6 +4648,8 @@ const CHIAVI_A_CARTE = new Set([
   "robot",
   "energia",
   "temperatura",
+  "aria",
+  "fumo",
   "batterie",
   "allerte",
   "rifiuti",
@@ -4794,6 +4975,19 @@ function storiaDelWidget(widget) {
 }
 
 function verdettoEFrase(widget) {
+  /* L'aria ha il suo giudizio, e il motore generico non ha niente da leggerle.
+   * Quello conta le cose accese e in funzione: su due sensori usciva «2 cose,
+   * nessuna in funzione» sopra un'aria scarsa, cioe' una frase vera di
+   * qualcos'altro. Qui il verdetto e' la parola del gradino e la frase dice
+   * quale misura sta peggio, e dove. */
+  if (widget?.key === "aria") {
+    const tono = TONO_DEL_GRADO[widget.grado] || "bene";
+    return `<section class="dm-w-racconto" data-dm-verdetto="${tono}">
+      <span class="dm-w-verdetto">${esc(parolaDelGrado(widget.grado, locale()))}</span>
+      <p class="dm-w-frase">${esc(widget.frase || "")}</p>
+      <div class="dm-w-misura"><b>${esc(clean(widget.value))}</b><small>${esc(clean(widget.caption))}</small></div>
+    </section>`;
+  }
   /* La batteria che si carica cambia la domanda della sezione Energia: si
    * vuole sapere quando sara' piena. Il soggetto lo decide chi disegna, che
    * conosce i numeri di adesso, e il motore ci si adegua. */
@@ -5056,6 +5250,7 @@ function detailRows(widget, states) {
   if (widget.key === "media") return mediaDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
+  if (widget.key === "fumo") return fumoDetail(widget);
   if (widget.key.startsWith("custom-")) return customDetail(widget);
   return "";
 }
@@ -5957,6 +6152,23 @@ function onClick(event) {
     voce?.click();
     return;
   }
+  const tutte = event.target?.closest?.("[data-dm-w-lights-off]");
+  if (tutte) {
+    event.preventDefault();
+    /* Si spengono quelle che la finestra sta mostrando accese, una per una col
+     * servizio del loro dominio: una luce puo' essere un `light`, uno `switch`
+     * o un `input_boolean`, e un solo `light.turn_off` ne lascerebbe indietro
+     * la meta'. Le protette non si toccano, come ovunque. */
+    for (const bottone of tutte
+      .closest(".dm-w-body, #dm-widget-popup, body")
+      ?.querySelectorAll?.('[data-dm-w-light][data-on="true"]') || []) {
+      const entity = clean(bottone.dataset.dmWLight);
+      if (!entity || !siComanda(entity)) continue;
+      bottone.dataset.on = "false";
+      callHa(entity.split(".")[0] || "light", "turn_off", { entity_id: entity });
+    }
+    return;
+  }
   const light = event.target?.closest?.("[data-dm-w-light]");
   if (light) {
     event.preventDefault();
@@ -6712,6 +6924,20 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-row .dm-w-power[data-on="true"]{
   border-color:transparent;background:var(--dm-widget-accent,#0ea5e9);color:#fff;
   box-shadow:0 6px 14px -8px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 85%,transparent)}
+/* «Spegni tutte»: una riga sola sopra l'elenco, larga quanto la finestra, che
+   si legge come un'azione e non come una luce in piu'. */
+#dm-widget-popup .dm-w-tutte{padding:0}
+#dm-widget-popup .dm-w-tutte-btn{
+  display:flex;align-items:center;gap:9px;width:100%;padding:10px 14px;
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 35%,transparent);
+  border-radius:14px;cursor:pointer;font:inherit;font-size:13px;font-weight:800;
+  color:var(--text,#0f172a);
+  background:color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 10%,transparent)}
+#dm-widget-popup .dm-w-tutte-btn:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 18%,transparent)}
+#dm-widget-popup .dm-w-tutte-btn>b{
+  margin-left:auto;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:900;
+  background:color-mix(in srgb,var(--dm-widget-accent,#f59e0b) 22%,transparent)}
 /* L'interruttore: un filo piu' largo, e da spento un grigio che si vede senza
    gridare. */
 #dm-widget-popup .dm-w-row .dm-w-switch{

@@ -83,6 +83,7 @@ import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
 import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
+import { installAutoIntegrazione } from "./auto-integrazione-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
@@ -917,6 +918,7 @@ export function installSectionRuntime() {
     installRobotSection();
     installPreseSection();
     installRobotEditorSection();
+    installAutoIntegrazione();
     /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
      * riusano la card della pagina Luci: si installano dopo di lei. */
     installRoomsPageSection();

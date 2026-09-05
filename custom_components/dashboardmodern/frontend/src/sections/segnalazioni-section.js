@@ -55,6 +55,10 @@ const state = (root[KEY] ||= {
   fili: {},
   filiInCorso: {},
   filtro: "aperte",
+  /* Il filtro dell'elenco di chi ha segnalato, che e' un'altra cosa da quello
+   * della console: li' si lavora una coda e si parte dalle aperte, qui si
+   * guardano le proprie e si parte da tutte. */
+  filtroMie: "tutte",
   tipoCoda: "",
   queueAt: 0,
   syncAt: 0,
@@ -1194,9 +1198,24 @@ function elencoMarkup() {
       </div>
       ${contoMarkup()}`;
   }
+  /* «Sarebbe comodo nella tab delle segnalazioni poter filtrare quelle
+   * aperte/chiuse» (#317). I tasti c'erano gia', ma solo nella console di chi
+   * la coda la lavora: chi apre una segnalazione vedeva le sue tutte insieme,
+   * le vecchie risolte in mezzo a quelle che aspettano ancora una risposta.
+   *
+   * Compaiono quando servono davvero — cioe' quando le proprie segnalazioni
+   * non stanno tutte nello stesso stato: con tre aperte e niente altro, un
+   * filtro sarebbe una riga di tasti che non cambia niente. */
+  const stati = new Set(state.tickets.map((ticket) => bucketDelloStato(ticket)));
+  const mie = stati.size > 1 ? perStato(state.tickets, state.filtroMie) : state.tickets;
   return `
     ${appenaApertaMarkup()}
-    <div class="dm-tkt-elenco">${state.tickets.map(voceMarkup).join("")}</div>
+    ${stati.size > 1 ? filaMarkup(FILTRI_STATO, state.filtroMie, "data-dm-filtro-mie") : ""}
+    <div class="dm-tkt-elenco">${
+      mie.length
+        ? mie.map(voceMarkup).join("")
+        : `<div class="dm-tkt-vuoto"><div>${esc(t("Nessuna segnalazione in questo stato.", "No report in this state."))}</div></div>`
+    }</div>
     ${contoMarkup()}
     <div class="dm-tkt-azioni">
       <button type="button" class="dm-tkt-btn chiaro" data-dm-tkt="aggiorna" ${
@@ -1281,6 +1300,15 @@ function colonneMarkup(coda) {
 
 const CHIUSA = ["risolto", "chiuso"];
 
+/* In quale dei tre gruppi cade una segnalazione. E' la stessa regola con cui
+ * `perStato` filtra, scritta una volta sola perche' serve anche a sapere se i
+ * tasti del filtro hanno qualcosa da filtrare. */
+export function bucketDelloStato(ticket = {}) {
+  const stato = clean(ticket.state);
+  if (CHIUSA.includes(stato)) return "chiuse";
+  return stato === "in-carico" ? "in-carico" : "aperte";
+}
+
 /* «Voglio capire cosa ho preso in carico e quelle ancora da prendere in
  * carico.» Le cifre grandi in cima dicono 3 da lavorare e 5 in lavorazione, e
  * i tasti qui sotto sono esattamente quelle cifre: premere «Da lavorare»
@@ -1294,21 +1322,12 @@ const CHIUSA = ["risolto", "chiuso"];
  * tasto adesso dice quello che il suo nome promette, e quello in piu' — che
  * diceva la stessa cosa con un'altra parola — se n'e' andato. */
 function perStato(coda, filtro) {
-  const aperte = coda.filter((ticket) => !CHIUSA.includes(clean(ticket.state)));
-  /* Presa in carico vuol dire assegnata: e' la stessa regola con cui la coda
-   * calcola lo stato, e con cui il conto grande qui sopra conta. */
-  if (filtro === "in-carico") {
-    return aperte.filter((ticket) => clean(ticket.state) === "in-carico");
-  }
-  /* «nuove» e' il nome vecchio dello stesso tasto: chi l'aveva ancora sotto il
-   * dito trova le stesse righe. */
-  if (filtro === "aperte" || filtro === "nuove") {
-    return aperte.filter((ticket) => clean(ticket.state) !== "in-carico");
-  }
-  if (filtro === "chiuse") {
-    return coda.filter((ticket) => CHIUSA.includes(clean(ticket.state)));
-  }
-  return coda;
+  /* «nuove» e' il nome vecchio di «aperte»: chi l'aveva ancora sotto il dito
+   * trova le stesse righe. */
+  const voluto = filtro === "nuove" ? "aperte" : clean(filtro);
+  /* «Tutte», o un nome che non esiste: si torna la coda intera. */
+  if (!["aperte", "in-carico", "chiuse"].includes(voluto)) return coda;
+  return coda.filter((ticket) => bucketDelloStato(ticket) === voluto);
 }
 
 function filaMarkup(voci, scelto, attributo) {
@@ -1685,10 +1704,7 @@ function vuotoMarkup() {
     return t("Nessuna segnalazione da lavorare. Buon per te.", "Nothing to work on. Good for you.");
   }
   if (state.filtro === "nuove") {
-    return t(
-      "Nessuna segnalazione ancora da prendere in carico.",
-      "No report left to take on.",
-    );
+    return t("Nessuna segnalazione ancora da prendere in carico.", "No report left to take on.");
   }
   if (state.filtro === "in-carico") {
     return t("Non hai niente in lavorazione.", "You have nothing in progress.");
@@ -1983,6 +1999,12 @@ function agganciaEventi(corpo) {
   corpo.querySelectorAll("[data-dm-filtro]").forEach((bottone) => {
     bottone.addEventListener("click", () => {
       state.filtro = bottone.dataset.dmFiltro;
+      disegna();
+    });
+  });
+  corpo.querySelectorAll("[data-dm-filtro-mie]").forEach((bottone) => {
+    bottone.addEventListener("click", () => {
+      state.filtroMie = bottone.dataset.dmFiltroMie;
       disegna();
     });
   });

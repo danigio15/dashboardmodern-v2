@@ -82,9 +82,13 @@ test("togliere una chiave non alza la revisione", async () => {
    * `cd_solare_scelto`), che adesso possono essere piu' d'uno, la 21 con le
    * aree d'allarme (#285, `cd_centrali` e `cd_centrale_scelta`), la 22 con
    * come si vede l'energia in Home (#286, `cd_energia_tessere`), la 23 con la
-   * doppia conferma delle aperture (#275, `cd_porte_conferma`). Quelle tolte
-   * restano fuori dall'elenco, che e' quello che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 26);
+   * doppia conferma delle aperture (#275, `cd_porte_conferma`), la 27 con la
+   * soglia dell'umidita' che fa dire «apri la finestra» (#330,
+   * `cd_umidita_soglia`): e' una quota di casa, e se restasse sul dispositivo
+   * che l'ha scritta il telefono direbbe di aprire la finestra e il tablet no,
+   * davanti alla stessa stanza. Quelle tolte restano fuori dall'elenco, che e'
+   * quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 27);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

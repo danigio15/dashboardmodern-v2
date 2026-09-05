@@ -178,6 +178,73 @@ test("Auto: sotto il venti per cento e staccata, e' da guardare", () => {
   assert.match(esito.frase, /12%/);
 });
 
+/* ── l'auto a benzina non si attacca alla presa (#326) ─────────────────── */
+
+test("Auto a benzina: si parla di serbatoio, non di spina", () => {
+  /* «Aprendo la scheda auto viene mostrata la percentuale del carburante con
+   * l'indicazione "E' al xx% e non e' attaccata".» Il numero in copertina e'
+   * il serbatoio — la tessera lo dice riga per riga — e di un pieno di
+   * benzina non si dice che non e' attaccato alla colonnina. */
+  const esito = analisiDellaSezione(
+    { key: "ev", ring: 62, attiva: false, rows: [{ carburante: true, km: 480 }] },
+    IT,
+  );
+  assert.equal(esito.tono, VERDETTI.bene);
+  assert.match(esito.frase, /serbatoio/i);
+  assert.match(esito.frase, /62%/);
+  assert.doesNotMatch(esito.frase, /attaccat|carica/i);
+  /* L'autonomia resta: vale per tutte e due le alimentazioni. */
+  assert.ok(esito.punti.some((punto) => /480/.test(punto)));
+});
+
+test("Auto a benzina in riserva: e' da guardare, e dice di fare rifornimento", () => {
+  const esito = analisiDellaSezione(
+    { key: "ev", ring: 8, attiva: false, rows: [{ carburante: true }] },
+    IT,
+  );
+  assert.equal(esito.tono, VERDETTI.guarda);
+  assert.match(esito.frase, /8%/);
+  assert.match(esito.frase, /rifornimento/i);
+});
+
+test("Auto a benzina: «attiva» non la mette in carica", () => {
+  /* La tessera puo' avere `attiva` acceso per altri motivi. Su un serbatoio
+   * «in carica» resta una bugia, quindi non si dice. */
+  const esito = analisiDellaSezione(
+    { key: "ev", ring: 70, attiva: true, rows: [{ carburante: true }] },
+    IT,
+  );
+  assert.doesNotMatch(esito.frase, /carica/i);
+  assert.match(esito.frase, /serbatoio/i);
+});
+
+test("Garage misto: con un'elettrica in mezzo la spina torna a voler dire qualcosa", () => {
+  /* La distinzione vale solo se TUTTE le auto vanno a carburante: la piu'
+   * scarica puo' essere l'elettrica, e li' «attaccata» e' l'informazione
+   * giusta. */
+  const esito = analisiDellaSezione(
+    {
+      key: "ev",
+      ring: 15,
+      attiva: false,
+      quante: 2,
+      rows: [{ carburante: true }, { carburante: false }],
+    },
+    IT,
+  );
+  assert.match(esito.frase, /attaccat/i);
+  assert.doesNotMatch(esito.frase, /serbatoio/i);
+});
+
+test("Auto elettrica: la frase di sempre non cambia", () => {
+  const esito = analisiDellaSezione(
+    { key: "ev", ring: 12, attiva: false, rows: [{ carburante: false }] },
+    IT,
+  );
+  assert.equal(esito.tono, VERDETTI.guarda);
+  assert.match(esito.frase, /12% e non e' attaccata/);
+});
+
 test("Irrigazione: dice quale zona sta bagnando", () => {
   const esito = analisiDellaSezione(
     {

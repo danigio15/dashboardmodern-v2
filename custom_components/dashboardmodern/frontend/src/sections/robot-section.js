@@ -31,6 +31,7 @@ allStates,
   installStyle,
   readJson,
   root,
+  roomLabel,
   section,
   t,
   wrapFunction,
@@ -212,6 +213,21 @@ function speciesIcon(view) {
   return view.species === "lawn_mower" ? "🌱" : "🤖";
 }
 
+/* La stanza del robot, scritta come si legge.
+ *
+ * La configurazione salva l'ID della stanza — e' l'unica cosa che regge un
+ * rinominamento — e da quando il robot nasce dall'integrazione quell'id lo
+ * scrive il legame col dispositivo, prendendolo dall'area di Home Assistant.
+ * La card pero' stampava quello che trovava, e quello che trovava era
+ * «room-salone». `roomLabel` fa questa conversione per tutte le sezioni: qui
+ * si usa la stessa, non una seconda.
+ *
+ * Vale anche per la firma del disegno: se la firma guardasse l'id e la card
+ * il nome, rinominare una stanza non farebbe ridisegnare niente. */
+function stanzaDelRobot(view) {
+  return roomLabel(view?.room);
+}
+
 function speciesTag(view) {
   if (view.species !== "lawn_mower") return "";
   return t(SPECIES_LABELS.lawn_mower[0], SPECIES_LABELS.lawn_mower[1]);
@@ -226,7 +242,7 @@ function cardMarkup(view) {
         </button>`,
     )
     .join("");
-  const sotto = [speciesTag(view), view.room].filter(Boolean).join(" · ");
+  const sotto = [speciesTag(view), stanzaDelRobot(view)].filter(Boolean).join(" · ");
   return `<article class="dm-robot-card" data-dm-robot="${esc(view.entity)}" data-dm-robot-state="${esc(view.state)}" data-dm-robot-species="${esc(view.species)}">
     <div class="dm-robot-head">
       <span class="dm-robot-icon" aria-hidden="true">${speciesIcon(view)}</span>
@@ -263,7 +279,7 @@ function signatureOf(views) {
         view.entity,
         view.species,
         view.name,
-        view.room,
+        stanzaDelRobot(view),
         view.features,
         view.mapEntity,
         view.fanSpeeds.join("+"),
@@ -380,8 +396,32 @@ function vista() {
   return (state.vista ||= { scala: 1, x: 0, y: 0, trascina: null, pizzico: null });
 }
 
+/* Fin dove si puo' spostare la mappa.
+ *
+ * Quello che avanza del disegno oltre il riquadro, meta' per lato: e' la
+ * distanza oltre la quale trascinare vorrebbe solo dire portarsi via la mappa.
+ * Un po' di aria in piu' — un decimo del riquadro — perche' arrivare esatti al
+ * bordo sembra un muro; oltre, la mappa tornerebbe a scappare in un angolo. */
+function limiteDelloSpostamento(figura) {
+  const riquadro = figura?.parentElement?.getBoundingClientRect?.();
+  if (!riquadro) return { x: 0, y: 0 };
+  const v = vista();
+  const largo = (figura.clientWidth || riquadro.width) * v.scala;
+  const alto = (figura.clientHeight || riquadro.height) * v.scala;
+  const aria = 0.1;
+  return {
+    x: Math.max(0, (largo - riquadro.width) / 2) + riquadro.width * aria,
+    y: Math.max(0, (alto - riquadro.height) / 2) + riquadro.height * aria,
+  };
+}
+
+const dentro = (valore, limite) => Math.min(limite, Math.max(-limite, valore));
+
 function applicaVista(figura) {
   const v = vista();
+  const limite = limiteDelloSpostamento(figura);
+  v.x = dentro(v.x, limite.x);
+  v.y = dentro(v.y, limite.y);
   figura.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.scala})`;
   figura.dataset.dmZoom = v.scala > 1.01 ? "true" : "false";
 }
@@ -407,9 +447,11 @@ function ingrandisci(figura, fattore, puntoX, puntoY) {
   v.x = cx - ((cx - v.x) * dopo) / prima;
   v.y = cy - ((cy - v.y) * dopo) / prima;
   v.scala = dopo;
-  /* A misura o piu' piccola, la mappa sta in mezzo: uno spostamento residuo
-   * la lascerebbe in un angolo, piccola e fuori asse. */
-  if (dopo <= 1) {
+  /* Rimpicciolendo fin sotto la misura d'apertura la mappa torna in mezzo:
+   * li' ci sta tutta, e uno spostamento residuo la lascerebbe in un angolo,
+   * piccola e fuori asse. Sopra la misura invece lo spostamento e' il gesto
+   * di chi sta guardando: lo tiene, e a fermarlo c'e' il limite. */
+  if (dopo < 1) {
     v.x = 0;
     v.y = 0;
   }
@@ -496,7 +538,16 @@ function installaGestiVisore(visore) {
       v.pizzico = adesso;
       return;
     }
-    if (!v.trascina || v.scala <= 1.01) return;
+    /* La mappa si scorre sempre, non solo da ingrandita.
+     *
+     * «Nella mappa devi aggiungere anche lo scrollo sia da smartphone che da
+     * desktop.» Il trascinamento era chiuso dietro «solo se sei oltre il
+     * cento per cento»: a misura d'apertura la mappa non si muoveva di un
+     * pixel, e su una planimetria lunga — o su un telefono in verticale — la
+     * meta' che non ci stava non c'era modo di guardarla. Adesso si trascina
+     * a qualsiasi ingrandimento, col dito o col mouse, e a fermarla c'e' il
+     * limite qui sopra invece di un divieto. */
+    if (!v.trascina) return;
     v.x = event.clientX - v.trascina.x;
     v.y = event.clientY - v.trascina.y;
     applicaVista(figura);

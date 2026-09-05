@@ -1111,3 +1111,37 @@ test("il giro zitto ridisegna il cruscotto, ma non sopra le dita di nessuno", as
   );
   assert.ok(guardia.includes("textarea"), "il ridisegno non guarda chi sta scrivendo");
 });
+
+/* «Sarebbe comodo nella tab delle segnalazioni poter filtrare quelle
+ * aperte/chiuse» (#317).
+ *
+ * I tasti c'erano gia', ma solo nella console di chi la coda la lavora: chi
+ * apre una segnalazione vedeva le sue tutte insieme, le vecchie risolte in
+ * mezzo a quelle che aspettano ancora una risposta. Adesso ci sono anche nel
+ * suo elenco — e compaiono quando servono davvero: con tre aperte e niente
+ * altro sarebbero una riga di tasti che non cambia niente.
+ */
+test("in quale gruppo cade una segnalazione", async () => {
+  const { bucketDelloStato } = await import("../src/sections/segnalazioni-section.js");
+  assert.equal(bucketDelloStato({ state: "inviato" }), "aperte");
+  assert.equal(bucketDelloStato({ state: "in-carico" }), "in-carico");
+  assert.equal(bucketDelloStato({ state: "risolto" }), "chiuse");
+  assert.equal(bucketDelloStato({ state: "chiuso" }), "chiuse");
+  /* Una senza stato non e' chiusa: e' aperta finche' qualcuno non la chiude. */
+  assert.equal(bucketDelloStato({}), "aperte");
+});
+
+test("l'elenco di chi ha segnalato ha i tasti dello stato", async () => {
+  const sorgente = await readFile(
+    new URL("../src/sections/segnalazioni-section.js", import.meta.url),
+    "utf8",
+  );
+  /* I tasti stanno nell'elenco delle proprie, non solo nella console. */
+  assert.match(sorgente, /filaMarkup\(FILTRI_STATO, state\.filtroMie, "data-dm-filtro-mie"\)/);
+  /* E compaiono solo se c'e' piu' di uno stato da separare. */
+  assert.match(sorgente, /stati\.size > 1 \? filaMarkup/);
+  /* Il filtro dell'elenco e' suo: la console parte dalle aperte, l'elenco da
+   * tutte, e premere in uno non muove l'altro. */
+  assert.match(sorgente, /filtroMie: "tutte"/);
+  assert.match(sorgente, /state\.filtroMie = bottone\.dataset\.dmFiltroMie/);
+});

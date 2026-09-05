@@ -107,7 +107,16 @@ test("a token resolves to its own glyph, and an unknown one to a plug rather tha
 test("the loads editor asks for the load catalogue, under a heading that says so", async () => {
   const engine = await readFile(path.join(sections, "icon-engine-section.js"), "utf8");
   const editor = await readFile(path.join(sections, "energy-loads-editor-section.js"), "utf8");
-  assert.match(editor, /openIconPicker\(icon, "load"\)/);
+  /* Un campo solo, e lo usano tutti e due: il carico e il dispositivo dentro
+   * il carico. Prima il secondo aveva una casella di testo e basta — «quando
+   * faccio aggiungi dispositivi non fa scegliere icona» — perche' erano due
+   * campi diversi per la stessa domanda. */
+  assert.match(editor, /openIconPicker\(input, "load"\)/);
+  assert.match(editor, /function iconField\(id, valore, onChange\)/);
+  assert.equal(editor.match(/openIconPicker\(/g)?.length, 1);
+  /* Il carico e il dispositivo lo chiamano tutti e due. */
+  assert.match(editor, /iconField\(`dm-loads-\$\{load\.id\}-icon`/);
+  assert.match(editor, /iconField\(`dm-loads-\$\{child\.id\}-icon`/);
   assert.match(engine, /Scegli icona del carico/);
   assert.match(engine, /Choose load icon/);
   // The two halves are labelled, because one flat grid of this length buries

@@ -200,6 +200,8 @@ const LOCALE_IDENTITIES = {
   fr: new Set([
     /* La modulation d'une chaudière se dit comme en anglais. */
     "Modulation (%)",
+    /* L'air, en français, c'est l'air. */
+    "Air",
     "Polo",
     "Robot",
     "Robots",

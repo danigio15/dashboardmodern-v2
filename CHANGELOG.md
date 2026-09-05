@@ -5,6 +5,198 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.8
+
+Quello che si e' visto guardando la plancia vera dopo la 1.4.7, e due
+funzioni chieste dal campo. Una card che non si aggiornava piu' e un blocco
+che teneva l'identificativo al posto del nome — lo stesso difetto, due volte,
+e adesso non puo' ripetersi. I carichi di due impianti che si scambiavano il
+nome. Le entita' configurate che sparivano dopo un aggiornamento. Il radar che
+stampava «Zoom Level Not Supported» sopra le strade. I robot che adesso
+arrivano da un'integrazione come gli elettrodomestici, e le tessere che dicono
+com'e' l'aria di casa e se i rilevatori di fumo stanno guardando.
+
+### Aggiunto
+
+- **Anche i robot arrivano da un'integrazione.**
+
+      «Questa cosa sviluppata su elettrodomestici, di gestire le integrazioni
+       presenti, la devi implementare anche per la sezione robot.»
+
+  Nella scheda Robot c'e' lo stesso tasto degli elettrodomestici: si sceglie
+  l'integrazione, si sceglie il dispositivo, e il robot nasce con le caselle
+  gia' piene — l'entita' che lo comanda, la mappa, la batteria e i suoi
+  programmi. Quello che Home Assistant marca come impostazione o diagnostica
+  resta fuori: il volume, la soglia del wifi e l'ora del «non disturbare» sono
+  il pannello del dispositivo, non i tasti che uno vuole sotto mano. E la
+  stanza la sa gia' Home Assistant: se l'area del dispositivo si chiama come
+  una stanza configurata, il robot ci va dentro da solo.
+
+- **«Apri la finestra per arieggiare» (#330).** Una soglia per l'umidita' nella
+  scheda Temperature — accanto ai sensori che confronta — e il consiglio
+  compare di la', sulla finestra della stanza, che e' la cosa che uno deve
+  andare ad aprire. Due condizioni insieme, non una: l'umidita' della stanza
+  sopra la soglia E l'aria di fuori piu' asciutta di quella di dentro. La
+  seconda e' quella che rende il consiglio onesto — con novanta dentro e
+  novantacinque fuori aprire non asciuga, bagna — ed e' la ragione per cui
+  questo non e' un igrometro con una soglia sopra. Manca uno dei due numeri, la
+  riga non compare: un consiglio dato a meta' e' peggio di nessun consiglio,
+  perche' sembra completo. Serve il sensore di umidita' della stanza e quello
+  della stazione meteo; zero nella soglia spegne tutto.
+
+- **La tessera dell'aria (#321).** «Un widget come quello luci che segni la
+  qualita' dell'aria relativa a un sensore.» Compare da sola con un sensore
+  dell'aria in casa — PM2.5, PM10, anidride carbonica, composti organici
+  volatili, ozono, indice di qualita' — e non si configura, come il fumo e gli
+  allagamenti. In copertina va la misura messa peggio, non la media: l'aria di
+  una casa e' buona quando lo sono tutte le sue misure. Le soglie sono quelle
+  dell'Agenzia europea dell'ambiente per le polveri e della norma sulla
+  ventilazione per l'anidride carbonica, e cambiano con l'unita': i composti
+  organici volatili si pubblicano in microgrammi al metro cubo o in parti per
+  miliardo, numeri che differiscono di mille volte.
+
+- **«Spegni tutte» nel widget Luci (#315).** «Cosi' lo tolgo dai Comandi
+  Rapidi ed e' tutto dentro la tessera.» Una riga sopra l'elenco, che compare
+  solo con piu' di una luce accesa — con una sola, il suo interruttore e' li'
+  accanto. Spegne ognuna col servizio del suo dominio: una luce puo' essere un
+  `light`, uno `switch` o un `input_boolean`.
+
+- **Il filtro nelle Segnalazioni (#317).** «Sarebbe comodo poter filtrare
+  quelle aperte/chiuse.» I tasti c'erano, ma solo nella console di chi la coda
+  la lavora. Adesso ci sono anche nell'elenco di chi ha segnalato, e compaiono
+  quando c'e' piu' di uno stato da separare.
+
+- **Anche l'auto arriva da un'integrazione.** «Vogliamo cercare di fare la
+  stessa cosa integrazione anche su auto, cosi' viene piu' pulita.» E' il giro
+  degli elettrodomestici e dei robot, con la stessa finestra: si sceglie
+  l'integrazione, si sceglie il dispositivo, e la vettura nasce con le caselle
+  gia' piene — batteria o serbatoio, autonomia, contachilometri, portiere,
+  bagagliaio, cofano, posizione, gomme — invece di battere venti entity_id a
+  mano. Che auto sia lo dicono le entita': un serbatoio senza batteria e'
+  benzina, tutte e due sono un'ibrida. A guidare l'assegnazione e' il
+  `device_class` che Home Assistant dichiara e, solo dove non basta, le parole
+  — nelle lingue che le integrazioni delle auto usano davvero, perche' il
+  costruttore coreano scrive «Fuel level» e quello tedesco «Reichweite». Le
+  impostazioni del dispositivo restano fuori, e un'entita' presa non finisce in
+  due caselle. Provato sulle entita' vere di una Leapmotor B10: fra quattro
+  «Door ...» e una «Locked» la card prende il riepilogo, e fra «Charging» e
+  «Battery Charging» prende il primo.
+
+- **La tessera di fumo e gas (#328).** «Un widget che mostri il numero di
+  sensori fumo e allagamento, e che aprendolo li mostri, oltre che lampeggi e
+  dica quali si sono attivati.» Meta' c'era — gli allagamenti — e spariva a
+  casa asciutta. Adesso ci sono tutte e due, compaiono da sole coi rilevatori
+  di casa e **si vedono anche quando non succede niente**, dicendo quanti ne
+  stanno guardando: una sentinella che si vede solo a disastro avvenuto non
+  permette di accorgersi che ha smesso di guardare. Quando uno suona la
+  tessera lampeggia, conta quelli in allarme e scrive i loro nomi; aperta, li
+  elenca tutti, chi suona in cima. Chi non le vuole le nasconde dall'editor,
+  come ogni altra tessera.
+
+- **Il bagagliaio e il cofano dell'auto (#326).** «Allo stesso modo delle
+  portiere e' possibile inserire un binary_sensor per il "Bagagliaio" e per il
+  "Cofano motore"?» Due aperture come i finestrini, accanto a loro nel quadro.
+
+- **Dove sta l'auto (#326).** «Perche' non inserire una voce tipo "location"
+  dove come entita' si inserisce un "device_tracker"?» Una casella nuova e una
+  pillola che dice la parola: «casa» e «fuori» sono parole di Home Assistant e
+  si traducono, il nome di una zona l'ha scritto qualcuno e si lascia com'e'.
+
+### Corretto
+
+- **La scheda dell'auto si chiamava «EV» (#326).** «E' piu' corretto che sia
+  "Auto" e non "EV".» Una sigla inglese che meta' di chi apre la plancia non
+  riconosce, e per giunta falsa: da quella scheda passano anche le auto a
+  benzina. La pagina si chiamava gia' «Auto» nella barra e nel titolo.
+
+- **Di un pieno di benzina si diceva che non era attaccato alla presa (#326).**
+  «Aprendo la scheda auto viene mostrata la percentuale del carburante con
+  l'indicazione "E' al xx% e non e' attaccata".» Senza batteria configurata la
+  tessera legge il serbatoio, ma la frase era una sola, scritta per
+  l'elettrica. Adesso si parla di serbatoio, e sotto il venti per cento si dice
+  di fare rifornimento invece di dire che manca la spina. In un garage misto
+  la distinzione non si applica: la piu' scarica puo' essere l'elettrica, e li'
+  «attaccata» vuol dire ancora qualcosa.
+
+- **La card del robot scriveva l'identificativo della stanza.** «room-salone»
+  sotto al titolo, invece di «Salone». Nasce con il robot che arriva
+  dall'integrazione: prima la stanza la scriveva a mano chi configurava e
+  quello che c'era scritto era gia' un nome, adesso la scrive il legame col
+  dispositivo prendendo l'area da Home Assistant, e quello che salva e' l'id —
+  l'unica cosa che regge un rinominamento. Il nome lo rimette la stessa
+  conversione che usano tutte le altre sezioni.
+
+- **La mappa del robot si scorre col dito e col mouse.** Il trascinamento era
+  chiuso dietro un «solo se sei oltre il cento per cento»: a misura d'apertura
+  la mappa non si muoveva di un pixel, e la meta' che non ci stava — una
+  planimetria lunga, un telefono in verticale — non c'era modo di guardarla.
+  Adesso si trascina a qualsiasi ingrandimento, e a fermarla non c'e' un
+  divieto ma un limite, cosi' la mappa non si puo' portare via dallo schermo.
+
+- **Un robot comandato a automazioni non aveva nessun tasto.** Chi ha un robot
+  che Home Assistant non integra a fondo si scrive le automazioni — Pulizia,
+  Pausa, Dock — ed e' quello il suo cruscotto: adesso entrano fra i comandi come
+  gli script e i tasti. Il verbo conta: `automation.turn_on` riabilita
+  l'automazione e lascia il robot fermo, cambiando di nascosto
+  un'impostazione di Home Assistant. Quello giusto e' `trigger`.
+
+- **Le stanze della sezione Temperature non andavano a capo (#329).** «Se le
+  stanze occupano piu' spazio nella finestra browser non vanno a capo.» La
+  striscia delle linguette scorre di lato e la sua barra e' nascosta apposta:
+  sul telefono e' il gesto giusto, col mouse pero' non c'e' ne' la barra ne' il
+  dito, e le stanze oltre il bordo destro non erano nascoste — erano
+  irraggiungibili. Adesso dove si punta col mouse la fila va a capo, dove si
+  tocca resta la striscia che scorre.
+
+- **Un'entita' configurata non si perde piu' in nessun aggiornamento.**
+
+      «Verifica perche' dopo gli aggiornamenti si perdono entita' di alcune
+       sezioni. Le entita' configurate non si devono mai perdere.»
+
+  Il modello canonico teneva solo i campi che conosceva, e un campo non
+  dichiarato spariva alla prima normalizzazione — che gira a ogni salvataggio.
+  Era gia' successo sei volte: il contatto dell'infisso, il tipo di copertura,
+  l'inferriata, il rele' di discesa della seconda tenda, l'indirizzo RTSP,
+  l'impianto del carico. Adesso un valore che e' un'entita' di Home Assistant
+  si tiene comunque, anche se il suo campo non lo conosce nessuno.
+
+- **La card degli elettrodomestici non resta indietro.** «Se clicco sulla card
+  si apre il popup e vedo tutte le info, da fuori invece la card non le mostra
+  — ma prima le vedevo.» A macchina spenta i gradi, i giri e il programma non
+  comparivano piu': la scheda si ridisegnava solo quando cambiava un elenco di
+  campi scritto a mano, e quelli non c'erano. Lo stesso difetto teneva
+  l'identificativo al posto del nome nei **rilevatori di fumo e gas**
+  («BINARY_SENSOR.S…»).
+
+- **I carichi di due impianti non si mescolano piu'.** «Quando aggiungo il
+  carico nel secondo impianto si sovrappone al primo: nel primo prende il nome
+  del secondo, ma i watt sono quelli originali.» Il nome usciva da uno specchio
+  con le caselle numerate per posizione, nato quando gli impianti erano uno
+  solo, e i watt dal carico vero.
+
+- **Il radar non stampa piu' le scritte sopra le strade (#323).** «Da' un
+  errore sullo zoom e non si vede il meteo.» Quelle scritte le manda CARTO,
+  che i quadratini gratuiti non li serve piu'. Chi l'aveva scelto dalla tendina
+  era gia' stato spostato su OpenStreetMap; chi aveva incollato l'indirizzo a
+  mano no, ed e' il caso rimasto. E la nota sotto il radar dice adesso a quale
+  servizio la plancia sta chiedendo la pioggia.
+
+- **I tasti dell'editor si leggono.** «Cambia il colore del pulsante aggiungi
+  da integrazione perche' la scritta non si vede»: fondo scuro e scritta blu.
+  Corretto li' e negli altri tasti con lo stesso difetto, in tutte le schede e
+  nei due temi.
+
+- **Il dispositivo dentro il carico sceglie la sua icona.** «E' quando faccio
+  aggiungi dispositivi che non fa scegliere icona, e anche il tasto Chiudi e'
+  sbagliato.» Il campo dell'icona era due campi diversi per la stessa domanda;
+  adesso e' uno solo. E il tasto «Chiudi» chiedeva una forma che nessun foglio
+  di stile gli ha mai dato: usciva il rettangolo grigio del browser in mezzo a
+  tasti tondi.
+
+- **La scheda di HACS.** «Su HACS non si vede nulla»: la vetrina chiedeva il
+  README intero — centoventi chilobyte, centotrenta immagini — e non mostrava
+  niente. Adesso c'e' `info.md`, scritto per quello spazio.
+
 ## 1.4.7
 
 Le cose viste sul campo dopo la 1.4.6, e i comandi del robot che lava. La

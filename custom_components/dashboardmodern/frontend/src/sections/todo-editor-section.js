@@ -103,6 +103,12 @@ function catalogoTessere() {
     ["rifiuti", "♻️", t("Rifiuti", "Waste")],
     ["batterie", "🔋", t("Batterie", "Batteries")],
     ["allagamenti", "💧", t("Allagamenti", "Floods")],
+    /* Fumo e gas (#328): compare da sola coi rilevatori di casa, come gli
+     * allagamenti, e da qui si sposta o si spegne. */
+    ["fumo", "💨", t("Fumo e gas", "Smoke and gas")],
+    /* La qualita' dell'aria (#321): compare da sola con un sensore dell'aria
+     * in casa, e da qui si sposta o si spegne come le altre. */
+    ["aria", "🍃", t("Aria", "Air")],
     ["custom", "⚠️", t("Avvisi personalizzati", "Custom alerts")],
   ];
 }
@@ -461,7 +467,9 @@ function onChange(event) {
   const chiave = clean(tendina.dataset.widgetSorgente);
   if (!chiave) return;
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
-  const sorgenti = { ...(stored?.sorgenti && typeof stored.sorgenti === "object" ? stored.sorgenti : {}) };
+  const sorgenti = {
+    ...(stored?.sorgenti && typeof stored.sorgenti === "object" ? stored.sorgenti : {}),
+  };
   const valore = clean(tendina.value);
   if (valore) sorgenti[chiave] = valore;
   else delete sorgenti[chiave];

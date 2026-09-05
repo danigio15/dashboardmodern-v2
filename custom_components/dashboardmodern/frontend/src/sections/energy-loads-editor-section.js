@@ -130,11 +130,8 @@ function segnaSporco(panel) {
 async function persist(panel) {
   const previous = configuredLoads();
   const { plant, list } = impiantoAperto();
-  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(
-    model(),
-    previous,
-    plant ? (clean(plant.id) === PRIMO_IMPIANTO ? "" : clean(plant.id)) : null,
-  );
+  const chiave = plant ? (clean(plant.id) === PRIMO_IMPIANTO ? "" : clean(plant.id)) : null;
+  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(model(), previous, chiave);
   const store = dashboardStore();
   if (store?.replaceSection) await store.replaceSection("loads", loads);
   else writeJsonIfChanged("cd_loads", loads, { sync: false });
@@ -161,7 +158,13 @@ async function persist(panel) {
       : subloads;
   writeJsonIfChanged("cd_subload_groups", gruppiFinali, { sync: false });
   writeJsonIfChanged("cd_subloads_extra", sottoFinali, { sync: false });
-  writeJsonIfChanged("cd_flow_nodes", flowNodes);
+  /* Lo specchio dei cerchi ha caselle posizionali — «boiler», «wb», «clima» —
+   * e con due impianti i cerchi dell'uno e dell'altro chiedono le stesse:
+   * scrivendolo a ogni salvataggio, l'ultimo impianto salvato dava il proprio
+   * nome ai cerchi del primo. Non e' una casella per impianto, e non lo puo'
+   * diventare: appartiene al primo, e salvando un altro impianto si lascia
+   * dov'e'. */
+  if (!piuCase || chiave === "" || chiave === null) writeJsonIfChanged("cd_flow_nodes", flowNodes);
   state.dirty = false;
   state.model = null;
   state.bozze?.delete?.(chiaveImpianto());
@@ -363,6 +366,56 @@ function textField(
   return field;
 }
 
+/* Il campo dell'icona: la casella e il riquadro che apre il catalogo.
+ *
+ * Ce n'era uno solo, del carico. Il dispositivo dentro il carico aveva una
+ * casella di testo e basta: «quando faccio aggiungi dispositivi non fa
+ * scegliere icona» — e infatti non c'era niente da toccare, solo un posto
+ * dove scrivere «mdi:» a memoria. Adesso e' lo stesso campo per tutti e due,
+ * perche' e' la stessa domanda.
+ *
+ * Il catalogo si apre chiamandolo per nome invece che con la classe
+ * `.dm-icon-picker`: quella e' decorata da un altro proprietario, che
+ * ridisegna il tasto col suo disegno e ne azzera il corpo — il tasto usciva
+ * vuoto. Cosi' il catalogo e' lo stesso e il tasto resta nostro. */
+function iconField(id, valore, onChange) {
+  const field = element("label", "ed-slot dm-loads-field");
+  field.append(element("span", "ed-slot-lbl", t("Icona", "Icon")));
+  const row = element("span", "dm-loads-icon-row");
+  const input = doc.createElement("input");
+  input.className = "ed-input dm-loads-icon-input";
+  input.id = id;
+  input.dataset.dmLoadIcon = "true";
+  input.dataset.iconCategory = "load";
+  input.value = valore || "";
+  input.placeholder = "🍳 / mdi:stove";
+  input.addEventListener("input", () => iconInto(pick, clean(input.value)));
+  input.addEventListener("change", () => onChange(clean(input.value)));
+  const pick = element("button", "dm-loads-icon-btn");
+  pick.type = "button";
+  pick.dataset.dmLoadIconPick = "true";
+  pick.title = t("Scegli icona", "Choose icon");
+  pick.setAttribute("aria-label", t("Scegli icona", "Choose icon"));
+  iconInto(pick, valore);
+  pick.addEventListener("click", (event) => {
+    event.preventDefault();
+    openIconPicker(input, "load");
+  });
+  row.append(input, pick);
+  field.append(row);
+  field.append(
+    element(
+      "span",
+      "ed-hint",
+      t(
+        "Un'emoji o un'icona mdi:. Tocca il riquadro accanto per sceglierla dal catalogo dei carichi.",
+        "An emoji or an mdi: icon. Tap the box beside it to pick one from the load catalogue.",
+      ),
+    ),
+  );
+  return field;
+}
+
 function entityField(id, label, value, hint, onChange) {
   const field = element("label", "ed-slot");
   const caption = element("span", "ed-slot-lbl", label);
@@ -478,15 +531,10 @@ function subloadRow(panel, load, child, index) {
       },
       { hook: "dmSubloadName" },
     ),
-    textField(
-      t("Icona", "Icon"),
-      child.icon,
-      (value) => {
-        child.icon = value;
-        markDirty(panel);
-      },
-      { className: "ed-input ed-icon-input" },
-    ),
+    iconField(`dm-loads-${child.id}-icon`, child.icon, (valore) => {
+      child.icon = valore;
+      markDirty(panel);
+    }),
     entityField(`dm-loads-${child.id}-power`, t("Potenza", "Power"), child.power, "", (value) => {
       child.power = value;
       segnaSporco(panel);
@@ -502,7 +550,7 @@ function subloadRow(panel, load, child, index) {
       },
     ),
   );
-  const done = element("button", "ed-btn-secondary", t("Chiudi", "Close"));
+  const done = element("button", "ed-btn-add dm-loads-done", t("Chiudi", "Close"));
   done.type = "button";
   done.dataset.dmSubloadDone = "true";
   done.addEventListener("click", () => {
@@ -622,49 +670,10 @@ function loadCard(panel, load, index, total) {
     roomField = riga;
   }
 
-  const iconField = element("label", "ed-slot dm-loads-field");
-  iconField.append(element("span", "ed-slot-lbl", t("Icona", "Icon")));
-  const iconRow = element("span", "dm-loads-icon-row");
-  const icon = doc.createElement("input");
-  icon.className = "ed-input dm-loads-icon-input";
-  icon.id = `dm-loads-${load.id}-icon`;
-  icon.dataset.dmLoadIcon = "true";
-  icon.dataset.iconCategory = "load";
-  icon.value = load.icon;
-  icon.placeholder = "🍳 / mdi:stove";
-  icon.addEventListener("input", () => iconInto(pick, clean(icon.value)));
-  icon.addEventListener("change", () => {
-    load.icon = clean(icon.value);
+  const icona = iconField(`dm-loads-${load.id}-icon`, load.icon, (valore) => {
+    load.icon = valore;
     markDirty(panel);
   });
-  /* The canonical picker is opened directly instead of through the legacy
-   * `.dm-icon-picker` hook: that class is decorated by another owner, which
-   * repaints the button with its own preview markup and zeroes the font size,
-   * so the button came out blank. Opening the picker by hand keeps the same
-   * catalogue — it writes the glyph into this input and fires `change` — while
-   * the button stays ours to draw. */
-  const pick = element("button", "dm-loads-icon-btn");
-  pick.type = "button";
-  pick.dataset.dmLoadIconPick = "true";
-  pick.title = t("Scegli icona", "Choose icon");
-  pick.setAttribute("aria-label", t("Scegli icona", "Choose icon"));
-  iconInto(pick, load.icon);
-  pick.addEventListener("click", (event) => {
-    event.preventDefault();
-    openIconPicker(icon, "load");
-  });
-  iconRow.append(icon, pick);
-  iconField.append(iconRow);
-  iconField.append(
-    element(
-      "span",
-      "ed-hint",
-      t(
-        "Un'emoji o un'icona mdi:. Tocca il riquadro accanto per sceglierla dal catalogo dei carichi.",
-        "An emoji or an mdi: icon. Tap the box beside it to pick one from the load catalogue.",
-      ),
-    ),
-  );
 
   const colorField = element("label", "ed-slot dm-loads-field dm-loads-color-field");
   colorField.append(element("span", "ed-slot-lbl", t("Colore", "Colour")));
@@ -682,7 +691,7 @@ function loadCard(panel, load, index, total) {
   /* Il nome, la stanza quando c'è, poi icona e colore. */
   identity.append(nameField);
   if (roomField) identity.append(roomField);
-  identity.append(iconField, colorField);
+  identity.append(icona, colorField);
   body.append(identity);
 
   const visible = element("label", "dm-loads-switch");
@@ -1069,7 +1078,19 @@ function installStyles() {
     .dm-loads-pick-foreign{margin-top:6px}
     /* The phone is exactly where the three squeezed fields were unreadable, so
        there is no narrow variant that puts them back side by side. */
-    @media(max-width:640px){.dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}.dm-loads-icon-row{grid-template-columns:minmax(0,1fr) 50px!important}.dm-loads-icon-btn{width:50px!important}}
+    /* Sullo stretto il riquadro dell'icona va sopra, largo quanto la riga.
+       Accanto alla casella era un quadratino di cinquanta pixel, e con i
+       caratteri grandi di sistema finiva schiacciato contro la pastiglia del
+       colore: il dito mirava all'icona che vedeva e non trovava il tasto —
+       «non si può cambiare icona del carico, non esce il catalogo». Adesso
+       quello che si vede e' il tasto, e la casella per scriverla a mano sta
+       sotto. */
+    @media(max-width:640px){
+      .dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}
+      .dm-loads-icon-row{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+      .dm-loads-icon-btn{grid-row:1!important;width:100%!important;height:52px!important;font-size:26px!important}
+      .dm-loads-icon-input{grid-row:2!important}
+    }
   `,
   );
 }

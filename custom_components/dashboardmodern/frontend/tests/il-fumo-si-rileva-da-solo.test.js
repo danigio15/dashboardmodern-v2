@@ -21,6 +21,7 @@ import {
   SMOKE_SEEN_KEY,
   countAlarmed,
   isSmokeSensor,
+  nomeDelRilevatore,
   smokeEntities,
   smokeIsAlarm,
 } from "../src/sections/smoke-alerts-section.js";
@@ -120,12 +121,9 @@ test("un sensore tolto ma mai segnato non rientra comunque", () => {
 
 test("chi svuota la lista la ritrova vuota", () => {
   const states = { "binary_sensor.fumo_cucina": tranquillo };
-  const { entities, nuovi } = smokeEntities(
-    { [SMOKE_GROUP]: [] },
-    {},
-    states,
-    ["binary_sensor.fumo_cucina"],
-  );
+  const { entities, nuovi } = smokeEntities({ [SMOKE_GROUP]: [] }, {}, states, [
+    "binary_sensor.fumo_cucina",
+  ]);
   assert.deepEqual(entities, [], "il registro ricorda, la lista non si ripopola");
   assert.deepEqual(nuovi, []);
 });
@@ -201,4 +199,34 @@ test("il blocco della Sicurezza sta fra le Aperture e le Telecamere", () => {
   // Lo stato d'allarme e' rosso nativo, sul colore d'errore della plancia.
   assert.match(sezione, /is-alarm/, "manca lo stato d'allarme");
   assert.match(sezione, /--error-color/, "l'allarme deve usare il rosso della plancia");
+});
+
+/* «Nome sensore fumo e gas non esce, riporta nome entita'.»
+ *
+ * Nella card si leggeva «BINARY_SENSOR.S…» a lettere maiuscole. Il nome lo
+ * dice Home Assistant, ma all'avvio non l'ha ancora detto: il blocco nasceva
+ * con l'identificativo al posto del nome e non si rifaceva piu', perche' la
+ * sua firma guardava le entita' e il nome scelto a mano — non quello che
+ * finiva davvero sullo schermo. Adesso la firma e' il disegno, e
+ * l'identificativo, quando proprio non c'e' altro, si legge come lo legge
+ * Home Assistant.
+ */
+test("il rilevatore ha un nome anche quando Home Assistant non l'ha ancora detto", () => {
+  const id = "binary_sensor.salotto_fumo";
+  /* Il nome scelto a mano vince su tutto. */
+  assert.equal(
+    nomeDelRilevatore(id, { [id]: "Cucina, sopra il forno" }, {}),
+    "Cucina, sopra il forno",
+  );
+  /* Poi quello di Home Assistant. */
+  assert.equal(
+    nomeDelRilevatore(id, {}, { [id]: { attributes: { friendly_name: "Fumo salotto" } } }),
+    "Fumo salotto",
+  );
+  /* E in mancanza d'altro l'identificativo si legge come una frase, non come
+   * un identificativo: e' quello che fa Home Assistant stessa. */
+  assert.equal(nomeDelRilevatore(id, {}, {}), "Salotto fumo");
+  assert.equal(nomeDelRilevatore("binary_sensor.co", {}, {}), "Co");
+  /* Un identificativo storto non fa sparire la riga. */
+  assert.equal(nomeDelRilevatore("senzapunto", {}, {}), "senzapunto");
 });

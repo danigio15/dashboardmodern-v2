@@ -97,7 +97,13 @@ test("la scelta viaggia con la configurazione, come tutte le altre", () => {
    * #285, che sono la stessa cosa per la centrale; la 22 come si vede
    * l'energia in Home con piu' impianti, #286; la 23 la doppia conferma
    * delle aperture, #275.) */
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 26/);
+  /* La revisione dev'essere ALMENO quella che ha aggiunto questa chiave, non
+   * esattamente quella: inchiodare il numero rendeva rossa questa prova ogni
+   * volta che una chiave nuova, che non c'entra niente, alzava la revisione. */
+  assert.ok(
+    Number(/CONFIG_KEYS_REVISION = (\d+)/.exec(persistenza)?.[1]) >= 26,
+    "la revisione non e' mai stata alzata per questa chiave",
+  );
 });
 
 test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () => {

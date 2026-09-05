@@ -284,6 +284,34 @@ export const FONDI_MAPPA = Object.freeze({
  * OpenStreetMap senza dover toccare niente. */
 export const FONDI_RITIRATI = Object.freeze({ carto: "osm" });
 
+/* Ma «carto» non e' solo una parola nella tendina.
+ *
+ * La tendina e' arrivata dopo: prima si scriveva l'indirizzo a mano, e chi
+ * aveva incollato quello di CARTO se lo e' tenuto — dentro `fondo` o dentro
+ * `fondoModello` c'e' un indirizzo, non la chiave, e il cambio di sopra non lo
+ * tocca. Quelle plance continuano a chiedere quadratini a un servizio che
+ * risponde con la scritta al posto della mappa, e chi guarda vede «Zoom Level
+ * Not Supported» sopra le sue strade senza sapere perche'. Un indirizzo si
+ * riconosce dal suo ospite: se e' quello, si passa alla mappa di serie. */
+const OSPITI_RITIRATI = [/(^|\.)cartocdn\.com$/i, /(^|\.)carto\.com$/i];
+
+/** Se un indirizzo di tessere e' di un servizio che abbiamo ritirato. */
+export function indirizzoRitirato(modello) {
+  const testo = stringa(modello);
+  if (!testo) return false;
+  /* I segnaposto non fanno un indirizzo valido per `URL`: si tolgono prima. */
+  const pulito = testo.replaceAll(/\{-?[a-z]\}/gi, "1");
+  let ospite = "";
+  try {
+    ospite = new URL(pulito).hostname;
+  } catch (_errore) {
+    const trovato = /^[a-z]+:\/\/([^/?#]+)/i.exec(pulito);
+    ospite = trovato ? trovato[1] : "";
+  }
+  if (!ospite) return false;
+  return OSPITI_RITIRATI.some((forma) => forma.test(ospite));
+}
+
 /**
  * Il fotogramma piu' recente dell'elenco di RainViewer.
  *
@@ -348,8 +376,15 @@ export function modelloDelFondo(config = {}) {
   const preset = FONDI_MAPPA[fondo];
   if (preset) return preset.modello;
   const mio = stringa(config?.fondoModello);
-  if (fondo === "modello") return /\{[zxy]\}/.test(mio) ? mio : "";
-  if (/\{[zxy]\}/.test(fondo)) return fondo;
-  if (!fondo) return FONDI_MAPPA[FONDO_DI_SERIE].modello;
+  /* Un indirizzo scritto a mano vale finche' il suo servizio risponde: quello
+   * di CARTO non risponde piu', e si torna alla mappa di serie invece di
+   * disegnare le sue scritte. */
+  const dellaSerie = FONDI_MAPPA[FONDO_DI_SERIE].modello;
+  if (fondo === "modello") {
+    if (!/\{[zxy]\}/.test(mio)) return "";
+    return indirizzoRitirato(mio) ? dellaSerie : mio;
+  }
+  if (/\{[zxy]\}/.test(fondo)) return indirizzoRitirato(fondo) ? dellaSerie : fondo;
+  if (!fondo) return dellaSerie;
   return "";
 }

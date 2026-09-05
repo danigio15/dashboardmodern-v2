@@ -271,6 +271,41 @@ const OGGETTI = Object.freeze({
     <g stroke="#38bdf8" stroke-width="2" fill="none" stroke-linecap="round" opacity=".65">
       <path d="M6.4 25.4c2.6-2.2 4.6-2.2 7.2 0s4.6 2.2 7.2 0 3.2-1.6 4.8-.4"/></g>`,
 
+  /* L'aria: una foglia, e il soffio che la muove.
+   *
+   * «Un widget come quello luci che segni la qualita' dell'aria» (#321). Una
+   * foglia perche' l'aria buona non ha un oggetto suo — non e' una lampadina,
+   * non e' una presa — e quello che le somiglia di piu' e' la cosa che ci
+   * vive dentro. Il soffio dietro dice che si muove: un'aria ferma e' il
+   * problema, non la soluzione. */
+  aria: `<defs>
+      <linearGradient id="dmoAriaF" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0" stop-color="#15803d"/><stop offset=".5" stop-color="#4ade80"/>
+        <stop offset="1" stop-color="#bbf7d0"/></linearGradient></defs>
+    ${OMBRA(17, 27.4, 7)}
+    <path d="M24.6 6.2c1.4 7.4-1 12.6-4.6 15.2-3.4 2.4-7.6 2-9.8-.6-2.2-2.6-1.8-6.6.8-9.4 2.8-3 8-4.8 13.6-5.2Z" fill="url(#dmoAriaF)"/>
+    <path d="M22.4 8.6c-4 1.6-7.6 4.6-10.2 9.4" stroke="#fff" stroke-opacity=".7" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <g stroke="#7dd3fc" stroke-width="1.9" fill="none" stroke-linecap="round" opacity=".85">
+      <path d="M4.4 21.4h5.2"/><path d="M6 25h7.4"/></g>`,
+
+  /* Il fumo: il rilevatore a soffitto, e il fumo che ci arriva sotto.
+   *
+   * «Un widget che mostri il numero di sensori fumo e allagamento» (#328). Non
+   * una fiamma: la fiamma e' il disastro, e la tessera c'e' anche quando non
+   * succede niente — quello che sta li' appeso e guarda e' il rilevatore, col
+   * suo led. I riccioli sotto dicono cosa sta cercando. */
+  fumo: `<defs>
+      <linearGradient id="dmoFumoS" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient></defs>
+    ${OMBRA(16, 27.4, 8)}
+    <rect x="5.6" y="4.4" width="20.8" height="7.6" rx="3.6" fill="url(#dmoFumoS)" stroke="#94a3b8" stroke-width="1.1"/>
+    <rect x="9" y="11.4" width="14" height="2.6" rx="1.3" fill="#94a3b8" opacity=".65"/>
+    <circle cx="21.4" cy="8.2" r="1.7" fill="#ef4444"/>
+    <g stroke="#94a3b8" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8">
+      <path d="M11.4 24.6c-2.6-1.6-2.6-4 0-5.6s2.6-4 0-5.6"/>
+      <path d="M16.6 26c-2.6-1.6-2.6-4 0-5.6s2.6-4 0-5.6"/>
+      <path d="M21.8 24.6c-2.6-1.6-2.6-4 0-5.6"/></g>`,
+
   /* Il MiniPC: la scocca di alluminio, la spia accesa e le prese sul davanti.
    * «Nella sezione widget manca completamente minipc»: la tessera adesso c'e',
    * e le serviva il suo oggetto come a tutte le altre. */

@@ -89,6 +89,12 @@ export function etichettaDellaCasella(ref) {
       return t("Portiere (bloccate/aperte)", "Doors (locked/open)");
     case "dm.ev_finestrini":
       return t("Finestrini (aperti/chiusi)", "Windows (open/closed)");
+    case "dm.ev_bagagliaio":
+      return t("Bagagliaio (chiuso/aperto)", "Boot (closed/open)");
+    case "dm.ev_cofano":
+      return t("Cofano motore (chiuso/aperto)", "Bonnet (closed/open)");
+    case "dm.ev_posizione":
+      return t("Posizione (device_tracker)", "Location (device_tracker)");
     case "dm.ev_allarme":
       return t("Allarme dell'auto", "Car alarm");
     case "dm.ev_batteria_servizio":
@@ -162,6 +168,35 @@ export function mettiLeCaselle() {
   const refs = lexicalGlobal("CD_SLOT_REFS");
   if (refs && typeof refs.add === "function") for (const ref of RIFERIMENTI_TERMICI) refs.add(ref);
   return aggiunte > 0;
+}
+
+/* La linguetta della configurazione si chiama «Auto», non «EV» (#326).
+ *
+ * «Nel menu di configurazione l'etichetta dell'auto e' piu' corretto che sia
+ * "Auto" e non "EV".» Ha ragione, e per due motivi: «EV» e' una sigla inglese
+ * che meta' di chi apre la plancia non riconosce, e da quella scheda passano
+ * anche le auto a benzina — chiamarla «EV» dice il falso da quando esiste
+ * questo modulo. La pagina si chiama gia' «Auto» nella barra in basso e il
+ * titolo della sezione pure: mancava solo qui.
+ *
+ * La linguetta la scrive il documento vendorizzato, e su schermo stretto
+ * un'altra rifinitura le spezza disegno e parola in due caselle: si riscrive
+ * la parola dove c'e' la casella, la linguetta intera dove non c'e', o si
+ * porterebbe via il disegno. E' la stessa mano della sezione solare. */
+export function rinominaLaLinguettaDellAuto() {
+  const nome = t("Auto", "Car");
+  let fatto = false;
+  const parola = doc?.querySelector?.('.ed-tab[data-tab="sez2"] .dm-beta4-tab-label');
+  if (parola && clean(parola.textContent) !== nome) {
+    parola.textContent = nome;
+    fatto = true;
+  }
+  const nuda = doc?.querySelector?.('.ed-tab[data-tab="sez2"]:not(:has(.dm-beta4-tab-label))');
+  if (nuda && !clean(nuda.textContent).includes(nome)) {
+    nuda.textContent = `🚗 ${nome}`;
+    fatto = true;
+  }
+  return fatto;
 }
 
 /* ── la tendina del motore, nella scheda dell'auto ────────────────────── */
@@ -297,9 +332,45 @@ function quadroMarkup(lettura, tipo) {
     pillole.push(
       pillola("🪟", lettura.finestrini === "aperti" ? t("Finestrini aperti", "Windows open") : t("Finestrini chiusi", "Windows closed"), lettura.finestrini === "aperti" ? "attento" : "bene"),
     );
+  /* Bagagliaio e cofano (#326): due aperture come i finestrini, e come loro
+   * si leggono a colpo d'occhio — aperto e' la cosa che si vuole sapere. */
+  if (lettura.bagagliaio)
+    pillole.push(
+      pillola(
+        "🧳",
+        lettura.bagagliaio === "aperti"
+          ? t("Bagagliaio aperto", "Boot open")
+          : t("Bagagliaio chiuso", "Boot closed"),
+        lettura.bagagliaio === "aperti" ? "attento" : "bene",
+      ),
+    );
+  if (lettura.cofano)
+    pillole.push(
+      pillola(
+        "🔧",
+        lettura.cofano === "aperti"
+          ? t("Cofano aperto", "Bonnet open")
+          : t("Cofano chiuso", "Bonnet closed"),
+        lettura.cofano === "aperti" ? "attento" : "bene",
+      ),
+    );
   if (lettura.allarme)
     pillole.push(
       pillola("🚨", parolaDellAllarme(lettura.allarme), lettura.allarme === "scattato" ? "male" : lettura.allarme === "inserito" ? "bene" : "spento"),
+    );
+  /* Dove sta (#326): una parola, quella che dice il device_tracker. Il tono
+   * e' neutro — un'auto fuori casa non e' un problema, e' un fatto. */
+  if (lettura.posizione)
+    pillole.push(
+      pillola(
+        "📍",
+        lettura.posizione === "casa"
+          ? t("A casa", "At home")
+          : lettura.posizione === "fuori"
+            ? t("Fuori casa", "Away")
+            : lettura.posizione,
+        lettura.posizione === "casa" ? "bene" : "spento",
+      ),
     );
   const carburante = lettura.carburante;
   const serbatoio =
@@ -543,10 +614,14 @@ export function installAutoTermica() {
   doc.addEventListener("click", onClick);
   wrapFunction("apriConfigEntita", "__dmAutoTermica", () => {
     mettiLeCaselle();
+    rinominaLaLinguettaDellAuto();
     ensureTendinaMotore();
   });
   onEditorRedraw("__dmAutoTermica", () => {
-    root.queueMicrotask?.(ensureTendinaMotore);
+    root.queueMicrotask?.(() => {
+      rinominaLaLinguettaDellAuto();
+      ensureTendinaMotore();
+    });
   });
   /* Il cambio d'auto passa da qui: dopo, il quadro e' di un'altra vettura. */
   wrapFunction("cdEvApplyCar", "__dmAutoTermica", () => root.queueMicrotask?.(renderAutoTermica));
@@ -558,12 +633,16 @@ export function installAutoTermica() {
   ])
     root.addEventListener?.(evento, () => {
       mettiLeCaselle();
-      root.queueMicrotask?.(ensureTendinaMotore);
+      root.queueMicrotask?.(() => {
+        rinominaLaLinguettaDellAuto();
+        ensureTendinaMotore();
+      });
       renderAutoTermica();
     });
   root.addEventListener?.("dashboardmodern:state-changed", () => {
     if (evVisible()) schedule();
   });
+  rinominaLaLinguettaDellAuto();
   ensureTendinaMotore();
   schedule();
   return true;

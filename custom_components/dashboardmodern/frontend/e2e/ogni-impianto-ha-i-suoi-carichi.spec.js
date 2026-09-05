@@ -245,3 +245,69 @@ test("la batteria non trapela nell'impianto che non ce l'ha", async ({ page }, t
     .poll(async () => (await bolle()).visibili, { timeout: 20_000 })
     .toEqual(["n-solar", "n-grid", "n-home", "n-battery"]);
 });
+
+/* «Quando aggiungo il carico nel secondo impianto si sovrappone al primo: nel
+ * primo prende il nome del secondo, sia in configurazione sia nella sezione,
+ * ma il valore di watt e' quello originale.»
+ *
+ * Due cose diverse finivano sullo stesso cerchio. Il nome usciva da
+ * `cd_flow_nodes`, uno specchio con le caselle numerate per posizione —
+ * «boiler» il primo cerchio, «wb» il secondo — nato quando gli impianti erano
+ * uno solo; i watt uscivano dal carico vero, che il suo impianto ce l'ha
+ * scritto sopra. Salvando il secondo impianto lo specchio si riscriveva
+ * intero, e il primo cerchio del primo impianto si ritrovava il nome del
+ * primo cerchio del secondo — con i propri watt sotto.
+ *
+ * Lo specchio non puo' diventare per impianto: le sue caselle sono cinque e
+ * sono posizionali. Quando gli impianti sono piu' d'uno non si guarda piu',
+ * e il nome lo dice il carico.
+ */
+test("con due impianti il nome del cerchio lo dice il carico, non lo specchio", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.evaluate(() => {
+    /* Lo specchio come lo lascia chi ha appena salvato il secondo impianto:
+     * la prima casella parla della Lavatrice di casa Donato. */
+    localStorage.setItem(
+      "cd_flow_nodes",
+      JSON.stringify({
+        boiler: {
+          name: "Lavatrice",
+          icon: "🌀",
+          color: "#06b6d4",
+          group: "lavatrice",
+          enabled: true,
+        },
+      }),
+    );
+    const raw = eval("_RAW_STATES");
+    for (const [id, valore] of Object.entries({
+      "sensor.forno_w": "800",
+      "sensor.lavatrice_w": "1200",
+      "sensor.rete_w": "2100",
+      "sensor.fv_w": "3400",
+      "sensor.casa_w": "2470",
+    }))
+      raw[id] = { entity_id: id, state: valore, attributes: { unit_of_measurement: "W" } };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page
+    .locator('.tab[data-tab="energy"]')
+    .first()
+    .evaluate((b) => b.click());
+  await page.waitForTimeout(1500);
+
+  /* Il cerchio del primo impianto si chiama col proprio nome. */
+  await expect.poll(() => cerchi(page)).toEqual(["Forno"]);
+
+  /* E il secondo col suo, che qui coincide col nome nello specchio: non e'
+   * lui a dirlo, ma la prova non lo distinguerebbe — quello che conta e' che
+   * il primo non l'abbia preso. */
+  await page
+    .locator('#page-energy [data-dm-impianto="impianto-2"]')
+    .evaluate((pillola) => pillola.click());
+  await expect.poll(() => cerchi(page)).toEqual(["Lavatrice"]);
+});

@@ -152,7 +152,29 @@ function tabState(page) {
   });
 }
 
+/* Il tetto di tempo si conta sulle linguette, non a memoria.
+ *
+ * Queste prove camminano su TUTTE le schede della Configurazione, e ogni
+ * scheda si ricostruisce da capo. I trenta secondi di serie di Playwright
+ * bastavano quando le linguette erano poche: adesso sono sedici, e su WebKit
+ * dentro un runner carico il giro non ci sta — la prova diventava rossa
+ * perche' il giro e' lungo, non perche' la Configurazione fosse rotta.
+ *
+ * Alzare il tetto NON allenta niente: ogni singola verifica qui sotto ha il
+ * suo timeout di dieci secondi, quindi una scheda che non si costruisce
+ * fallisce li', subito, come prima. Questo e' solo il conto totale del giro,
+ * e cresce insieme all'elenco delle schede invece di restare indietro.
+ */
+const TETTO_PER_SCHEDA = 5_000;
+const TETTO_DELL_AVVIO = 20_000;
+
 test.describe("the configuration behaves the same on every tab", () => {
+  test.describe.configure({
+    timeout:
+      TETTO_DELL_AVVIO +
+      (SECTION_TABS.length + PLAIN_TABS.length + NO_SAVE_TABS.length) * TETTO_PER_SCHEDA,
+  });
+
   test("one save, in one place, wherever you are", async ({ page }, testInfo) => {
     await boot(page, testInfo);
     for (const tab of [...SECTION_TABS, ...PLAIN_TABS]) {
