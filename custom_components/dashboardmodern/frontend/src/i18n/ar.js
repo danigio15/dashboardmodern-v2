@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "عند وجود التيار تعرض البطاقة شحن البطارية؛ وعند انقطاعه تعرض الدقائق المتبقية وتضيء. لا يوجد حقل إلزامي: حالة NUT وحدها تكفي لمعرفة وجود التيار. إن كان لديك أكثر من وحدة فأضفها أدناه: لكل واحدة مشهدها في صفحة الطاقة الاحتياطية.",
   "waiting": "في الانتظار",
   "no answer": "لا استجابة",
+  "Charge mode": "وضع الشحن",
+  "Charger": "الشاحن",
+  "Connect the charger or evcc": "اربط الشاحن أو evcc",
+  "fields connected": "حقول مرتبطة",
+  "No charger field could be recognised from this device.": "لا يمكن التعرّف على أي حقل للشاحن من هذا الجهاز.",
+  "Solar share": "حصة الطاقة الشمسية",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "الشاحن يخص المنزل، لا سيارة واحدة: يُربط مرة واحدة ويصلح لكل المركبات. ومن evcc يأتي أيضًا وضع الشحن وحصة الشمس في الجلسة.",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "التكاملات التي تجلب شاحنًا: evcc وgo-e وEasee وKEBA وWallbox وopenWB وZaptec وTesla. اختر الجهاز وستمتلئ حقول الشحن من تلقاء نفسها — القدرة والطاقة والجهد، ومن evcc أيضًا الوضع وحصة الشمس.",
 });

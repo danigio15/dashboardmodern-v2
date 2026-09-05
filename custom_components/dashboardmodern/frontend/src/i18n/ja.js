@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "商用電源があるときはバッテリー残量を、停電するとあと何分かを表示して点灯します。必須の項目はありません。NUTの状態だけで電源の有無はわかります。複数ある場合は下に追加してください。それぞれがバックアップ電源のページに専用の画面を持ちます。",
   "waiting": "待機中",
   "no answer": "応答なし",
+  "Charge mode": "充電モード",
+  "Charger": "充電器",
+  "Connect the charger or evcc": "充電器またはevccを接続",
+  "fields connected": "項目を接続しました",
+  "No charger field could be recognised from this device.": "このデバイスからは充電器の項目を認識できませんでした。",
+  "Solar share": "太陽光の割合",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "充電器は家のものであって、特定の車のものではありません。一度つなげば、すべての車に有効です。evccからは充電モードとセッションの太陽光の割合も届きます。",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "充電器を提供する統合: evcc、go-e、Easee、KEBA、Wallbox、openWB、Zaptec、Tesla。デバイスを選べば、充電の項目は自動で埋まります — 電力、電力量、電圧、そしてevccからはモードと太陽光の割合も。",
 });

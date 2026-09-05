@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Przy zasilaniu sieciowym kafelek pokazuje poziom naładowania; gdy prąd zniknie, pokazuje pozostałe minuty i zapala się. Żadne pole nie jest wymagane: sam status NUT wystarczy, by wiedzieć, czy jest prąd. Jeśli masz ich więcej, dodaj je poniżej: każdy ma własną scenę na stronie Zasilanie awaryjne.",
   "waiting": "czekam",
   "no answer": "brak odpowiedzi",
+  "Charge mode": "Tryb ładowania",
+  "Charger": "Ładowarka",
+  "Connect the charger or evcc": "Podłącz ładowarkę lub evcc",
+  "fields connected": "pól podłączonych",
+  "No charger field could be recognised from this device.": "Z tego urządzenia nie rozpoznano żadnego pola ładowarki.",
+  "Solar share": "Udział słońca",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "Ładowarka należy do domu, nie do jednego auta: podłącza się ją raz i działa dla każdego pojazdu. Z evcc przychodzą też tryb ładowania i udział słońca w sesji.",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "Integracje, które przynoszą ładowarkę: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Wybierz urządzenie, a pola ładowania wypełnią się same — moc, energia, napięcie, a z evcc także tryb i udział słońca.",
 });

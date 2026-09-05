@@ -780,8 +780,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // documento, e ogni cerchio apre l'entita' che sta gia' mostrando in quella
   // vista: il totale del giorno o del mese, non la potenza istantanea, che
   // sarebbe lo storico di un'altra cosa.
+  // 254 con la colonnina e evcc (`core/wallbox-device-binding.js`):
+  // «aggiungere anche evcc e la wallbox». Le otto caselle della ricarica si
+  // scrivevano a mano sapendo gli entity_id a memoria; adesso arrivano da un
+  // dispositivo come l'auto. Il modulo e' puro e sta nel nucleo perche' due
+  // moduli lo chiedono per ragioni diverse: la scheda Auto per riempirle, e la
+  // sezione dell'auto per NON portarle via quando si cambia vettura — la
+  // colonnina e' della casa, non di una macchina.
   assert.ok(
-    relative.length <= 253,
+    relative.length <= 254,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

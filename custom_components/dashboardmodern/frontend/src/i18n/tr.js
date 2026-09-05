@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Şebeke varken kart pil şarjını gösterir; elektrik kesilince kalan dakikaları gösterir ve yanar. Hiçbir alan zorunlu değil: yalnızca NUT durumu bile elektrik olup olmadığını söyler. Birden fazlaysa aşağıya ekleyin: her biri Yedek güç sayfasında kendi sahnesine sahiptir.",
   "waiting": "bekleniyor",
   "no answer": "yanıt yok",
+  "Charge mode": "Şarj modu",
+  "Charger": "Şarj istasyonu",
+  "Connect the charger or evcc": "Şarj istasyonunu veya evcc'yi bağla",
+  "fields connected": "alan bağlandı",
+  "No charger field could be recognised from this device.": "Bu cihazdan şarj istasyonuna ait hiçbir alan tanınamadı.",
+  "Solar share": "Güneş payı",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "Şarj istasyonu evin, tek bir arabanın değil: bir kez bağlarsınız ve bütün araçlar için geçerli olur. evcc'den şarj modu ve oturumun güneş payı da gelir.",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "Şarj istasyonu getiren entegrasyonlar: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Cihazı seçin, şarj alanları kendiliğinden dolsun — güç, enerji, gerilim ve evcc'den mod ile güneş payı.",
 });

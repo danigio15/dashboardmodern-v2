@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "При наличии сети плитка показывает заряд батареи; при отключении — оставшиеся минуты и загорается. Ни одно поле не обязательно: одного статуса NUT достаточно, чтобы понять, есть ли питание. Если их несколько, добавьте их ниже: у каждого своя сцена на странице резервного питания.",
   "waiting": "ожидание",
   "no answer": "нет ответа",
+  "Charge mode": "Режим зарядки",
+  "Charger": "Зарядная станция",
+  "Connect the charger or evcc": "Подключить зарядную станцию или evcc",
+  "fields connected": "полей подключено",
+  "No charger field could be recognised from this device.": "С этого устройства не удалось распознать ни одного поля зарядной станции.",
+  "Solar share": "Доля солнца",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "Зарядная станция принадлежит дому, а не одной машине: подключите её один раз, и она работает для всех автомобилей. Из evcc приходят также режим зарядки и доля солнца в сессии.",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "Интеграции, которые приносят зарядную станцию: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Выберите устройство — и поля зарядки заполнятся сами: мощность, энергия, напряжение, а из evcc ещё режим и доля солнца.",
 });

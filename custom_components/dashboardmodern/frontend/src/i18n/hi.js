@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "मुख्य बिजली रहने पर टाइल बैटरी चार्ज दिखाती है; बिजली जाने पर बचे मिनट दिखाती है और जल उठती है। कोई भी फ़ील्ड अनिवार्य नहीं: अकेले NUT स्थिति से ही पता चल जाता है कि बिजली है या नहीं। एक से ज़्यादा हों तो नीचे जोड़ें: हर एक का अपना दृश्य बैकअप पावर पेज पर होता है।",
   "waiting": "प्रतीक्षा में",
   "no answer": "कोई जवाब नहीं",
+  "Charge mode": "चार्ज मोड",
+  "Charger": "चार्जर",
+  "Connect the charger or evcc": "चार्जर या evcc जोड़ें",
+  "fields connected": "फ़ील्ड जुड़े",
+  "No charger field could be recognised from this device.": "इस डिवाइस से चार्जर का कोई फ़ील्ड पहचाना नहीं जा सका।",
+  "Solar share": "सौर हिस्सा",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "चार्जर घर का है, किसी एक गाड़ी का नहीं: एक बार जोड़ें और वह हर वाहन के लिए चलेगा। evcc से चार्ज मोड और सत्र का सौर हिस्सा भी आ जाता है।",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "वे इंटीग्रेशन जो चार्जर लाते हैं: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla। डिवाइस चुनें और चार्जिंग के फ़ील्ड अपने आप भर जाएँगे — पावर, ऊर्जा, वोल्टेज, और evcc से मोड तथा सौर हिस्सा भी।",
 });

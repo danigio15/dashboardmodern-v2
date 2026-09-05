@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "有市电时磁贴显示电池电量；断电时显示剩余分钟并亮起。没有必填项：仅凭 NUT 状态就能知道是否有电。如果你有多台，可在下方添加：每台在备用电源页面都有自己的场景。",
   "waiting": "等待中",
   "no answer": "无响应",
+  "Charge mode": "充电模式",
+  "Charger": "充电桩",
+  "Connect the charger or evcc": "连接充电桩或 evcc",
+  "fields connected": "个字段已连接",
+  "No charger field could be recognised from this device.": "从这个设备识别不到任何充电桩的字段。",
+  "Solar share": "太阳能占比",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "充电桩属于这个家，而不属于某一辆车：连接一次，对所有车辆都有效。从 evcc 还会带来充电模式和本次充电的太阳能占比。",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "会带来充电桩的集成：evcc、go-e、Easee、KEBA、Wallbox、openWB、Zaptec、Tesla。选好设备，充电相关的字段就会自动填好——功率、电量、电压，从 evcc 还有模式和太阳能占比。",
 });

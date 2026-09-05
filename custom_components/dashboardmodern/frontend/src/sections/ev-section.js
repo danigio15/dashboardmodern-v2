@@ -1,4 +1,5 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
+import { eDellaWallbox } from "../core/wallbox-device-binding.js";
 import {
   VEHICLE_KEY_FIELD,
   VEHICLE_OVERRIDES_FIELD,
@@ -309,7 +310,20 @@ function rimettiInUso(auto, indice) {
     const salvate = readJson("cd_entity_overrides", {}) || {};
     const prossime = {};
     for (const [chiave, valore] of Object.entries(salvate))
-      if (!String(chiave).startsWith("dm.ev_")) prossime[chiave] = valore;
+      /* La colonnina non e' una delle auto.
+       *
+       * Qui si buttava ogni `dm.ev_*` e si riscriveva con quelle del profilo:
+       * giusto per la vettura — le sue caselle sono sue — e sbagliato per la
+       * wallbox, che e' della casa. Chi la mappava nella scheda Entita' se la
+       * vedeva sparire al primo cambio d'auto, e chi ha due macchine doveva
+       * riscriverla su tutte e due. La potenza che la colonnina sta erogando
+       * e' la stessa qualunque macchina sia attaccata.
+       *
+       * Se pero' il profilo ne porta una — perche' l'ha catturata un
+       * salvataggio di prima — quella vince: e' la riga qui sotto, e vuol dire
+       * che nessuno perde quello che aveva. */
+      if (!String(chiave).startsWith("dm.ev_") || eDellaWallbox(chiave))
+        prossime[chiave] = valore;
     for (const [chiave, valore] of Object.entries(mappa)) prossime[chiave] = valore;
     writeJsonIfChanged("cd_entity_overrides", prossime);
     root.cdApplyCanonicalOverrides?.(prossime);

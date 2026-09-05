@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Met netstroom toont de tegel de acculading; valt de stroom weg, dan toont hij de resterende minuten en licht op. Geen veld is verplicht: alleen de NUT-status verraadt al of er stroom is. Heb je er meer, voeg ze hieronder toe: elk krijgt zijn eigen scène op de pagina Noodstroom.",
   "waiting": "wachten",
   "no answer": "geen antwoord",
+  "Charge mode": "Laadmodus",
+  "Charger": "Laadpaal",
+  "Connect the charger or evcc": "Laadpaal of evcc verbinden",
+  "fields connected": "velden verbonden",
+  "No charger field could be recognised from this device.": "Uit dit apparaat kon geen veld van de laadpaal worden herkend.",
+  "Solar share": "Zonaandeel",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "De laadpaal hoort bij het huis, niet bij één auto: je verbindt hem één keer en hij geldt voor elk voertuig. Van evcc komen ook de laadmodus en het zonaandeel van de sessie mee.",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "De integraties die een laadpaal meebrengen: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Kies het apparaat en de laadvelden vullen zichzelf — vermogen, energie, spanning, en van evcc ook de modus en het zonaandeel.",
 });

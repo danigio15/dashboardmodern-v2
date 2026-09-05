@@ -2790,4 +2790,12 @@ export default Object.freeze({
   "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.": "Avec le secteur présent, la tuile affiche la charge de la batterie ; en cas de coupure, elle affiche les minutes restantes et s'allume. Aucun champ n'est obligatoire : le seul état NUT suffit à savoir s'il y a du courant. Si vous en avez plusieurs, ajoutez-les ci-dessous : chacun a sa scène sur la page Alimentation de secours.",
   "waiting": "en attente",
   "no answer": "pas de réponse",
+  "Charge mode": "Mode de charge",
+  "Charger": "Borne",
+  "Connect the charger or evcc": "Connecter la borne ou evcc",
+  "fields connected": "champs connectés",
+  "No charger field could be recognised from this device.": "Aucun champ de la borne n'a pu être reconnu sur cet appareil.",
+  "Solar share": "Part solaire",
+  "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "La borne est à la maison, pas à une voiture : on la connecte une fois et elle vaut pour tous les véhicules. Depuis evcc arrivent aussi le mode de charge et la part solaire de la session.",
+  "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "Les intégrations qui apportent une borne : evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Choisissez l'appareil et les champs de charge se remplissent tout seuls — puissance, énergie, tension, et depuis evcc le mode et la part solaire aussi.",
 });
