@@ -209,6 +209,21 @@ async function boot(page, testInfo) {
   await expect(page.locator("#ed-body .dm-robot-list")).toBeVisible();
 }
 
+/* Dall'editor alla sezione: si chiude la configurazione e si accende la
+ * pagina, come fa il dito toccando la voce nella barra. */
+async function apriLaPaginaRobot(page) {
+  await page.evaluate(() => {
+    const modale = document.getElementById("editor-modal");
+    if (modale) {
+      modale.classList.remove("show");
+      modale.style.display = "none";
+    }
+    document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
+    document.getElementById("page-robot")?.classList.add("active");
+    window.DashboardModernModules?.robot?.render?.();
+  });
+}
+
 test("dal menu delle integrazioni nasce il robot gia' compilato", async ({ page }, testInfo) => {
   await boot(page, testInfo);
 
@@ -265,6 +280,108 @@ test("dal menu delle integrazioni nasce il robot gia' compilato", async ({ page 
   await expect(riga.locator("#dm-robot-0-battery")).toHaveValue(
     "sensor.roborock_qrevo_edge_batteria",
   );
+});
+
+/* Il seguito del giro: il robot nato dall'integrazione, guardato sulla sua
+ * pagina. Due cose che si vedono solo li'. */
+test("sulla card la stanza si legge col suo nome, non con l'identificativo", async ({
+  page,
+}, testInfo) => {
+  await boot(page, testInfo);
+  await page.locator("#ed-body [data-robot-integ]").click();
+  const menu = page.locator("#dm-integ-menu");
+  await menu.locator('.dm-integ-item[data-domain="roborock"]').click();
+  await menu.locator('.dm-integ-device[data-device-id="rb-1"]').click();
+  await menu.locator("[data-preview] [data-confirm]").click();
+  await expect(menu).toHaveCount(0);
+
+  await apriLaPaginaRobot(page);
+  const card = page.locator("#page-robot .dm-robot-card").first();
+  await expect(card).toBeVisible();
+  /* La configurazione salva l'ID — e' l'unica cosa che regge un rinominamento
+   * — e da quando il robot nasce dall'integrazione quell'id lo scrive il
+   * legame col dispositivo. Sotto al titolo pero' ci va il nome: «room-salone»
+   * non e' una stanza, e' una chiave. */
+  await expect(card.locator(".dm-robot-title small")).toHaveText("Salone");
+});
+
+test("la mappa si scorre anche a misura d'apertura, non solo da ingrandita", async ({
+  page,
+}, testInfo) => {
+  await boot(page, testInfo);
+  await page.locator("#ed-body [data-robot-integ]").click();
+  const menu = page.locator("#dm-integ-menu");
+  await menu.locator('.dm-integ-item[data-domain="roborock"]').click();
+  await menu.locator('.dm-integ-device[data-device-id="rb-1"]').click();
+  await menu.locator("[data-preview] [data-confirm]").click();
+  await expect(menu).toHaveCount(0);
+
+  await apriLaPaginaRobot(page);
+  /* La mappa arriva come arriva davvero: un `entity_picture` sulla telecamera,
+   * che la card va a prendere da se'. Il disegno non conta — conta il gesto. */
+  await page.evaluate(() => {
+    const disegno =
+      "data:image/svg+xml;base64," +
+      btoa(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="600" height="400" fill="#dbeafe"/></svg>',
+      );
+    for (const registro of [_RAW_STATES, STATES])
+      registro["camera.roborock_qrevo_edge_mappa"] = {
+        entity_id: "camera.roborock_qrevo_edge_mappa",
+        state: "idle",
+        attributes: { friendly_name: "Mappa", entity_picture: disegno },
+      };
+    window.DashboardModernModules?.robot?.render?.();
+  });
+  const mappa = page.locator("#page-robot [data-dm-robot-map]");
+  await expect(mappa).toHaveAttribute("data-dm-map-state", "ready", { timeout: 15_000 });
+  await mappa.click();
+  const visore = page.locator("#dm-robot-map-view");
+  await expect(visore).toBeVisible();
+
+  const figura = visore.locator("img");
+  const prima = await figura.evaluate((n) => n.style.transform);
+  /* Nessuno ha toccato la rotella: si e' alla misura d'apertura, ed e'
+   * esattamente il caso in cui prima non si muoveva niente. */
+  expect(prima === "" || /scale\(1\)/.test(prima)).toBe(true);
+
+  const palco = visore.locator(".dm-robot-map-stage");
+  const riquadro = await palco.boundingBox();
+  const cx = riquadro.x + riquadro.width / 2;
+  const cy = riquadro.y + riquadro.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx - 90, cy - 40, { steps: 8 });
+  await page.mouse.up();
+
+  const spostamento = async () => {
+    const scritto = await figura.evaluate((n) => n.style.transform);
+    const [, x, y] = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(scritto) || [];
+    return { scritto, x: Number(x || 0), y: Number(y || 0) };
+  };
+
+  /* Il punto della segnalazione: a misura d'apertura il trascinamento non
+   * muoveva niente. Adesso muove, e in tutte e due le direzioni. */
+  const dopo = await spostamento();
+  expect(dopo.x, `la mappa non si e' mossa: ${dopo.scritto}`).toBeLessThan(0);
+  expect(dopo.y, `la mappa non si e' mossa in verticale: ${dopo.scritto}`).toBeLessThan(0);
+
+  /* E a fermarla c'e' un limite, non un divieto: per quanto si trascini, la
+   * mappa non si puo' portare via dallo schermo. */
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx - 4000, cy - 4000, { steps: 10 });
+  await page.mouse.up();
+  const strappata = await spostamento();
+  const riquadroFinale = await palco.boundingBox();
+  expect(
+    Math.abs(strappata.x),
+    `la mappa e' uscita dallo schermo: ${strappata.scritto}`,
+  ).toBeLessThan(riquadroFinale.width);
+  expect(
+    Math.abs(strappata.y),
+    `la mappa e' uscita dallo schermo: ${strappata.scritto}`,
+  ).toBeLessThan(riquadroFinale.height);
 });
 
 test("un tagliaerba senza mappa lascia la casella vuota invece di inventarla", async ({
