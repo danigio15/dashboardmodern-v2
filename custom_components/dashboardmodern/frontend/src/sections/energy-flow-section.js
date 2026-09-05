@@ -4,6 +4,7 @@ import {
   flowStageModel,
 } from "../core/energy-flow-topology.js";
 import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
+import { specchioDeiCerchi } from "../core/energy-loads-config.js";
 import { applySignedSources, wattsFromState } from "../core/signed-energy.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
 import {
@@ -199,9 +200,7 @@ function flowNodeOverrides() {
    * due case diverse. Con piu' impianti si guarda solo il carico, che il suo
    * impianto ce l'ha scritto sopra. */
   const impianti = plantList(section("energy", {}) || {});
-  if (impianti.length > 1) return null;
-  const raw = readJson("cd_flow_nodes", null);
-  return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
+  return specchioDeiCerchi(readJson("cd_flow_nodes", null), impianti.length);
 }
 
 /* The hosted dashboard can render before the store exists; the legacy mirror in

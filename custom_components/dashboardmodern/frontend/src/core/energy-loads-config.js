@@ -116,6 +116,28 @@ export function normalizeChild(child = {}, index = 0, source = "load") {
   };
 }
 
+/* Lo specchio posizionale, quando vuol ancora dire qualcosa.
+ *
+ * `cd_flow_nodes` ha cinque caselle con un nome fisso — «boiler», «wb»,
+ * «clima», «lav», «cuc» — una per cerchio, dal tempo in cui gli impianti erano
+ * uno solo. Con due impianti i cerchi del secondo occupano le stesse caselle
+ * del primo, e quelle caselle portano il nome, l'icona, il colore E l'entita'
+ * della potenza: aprire i carichi della casa di sopra faceva vedere il boiler
+ * della casa di sotto, col suo sensore — e salvare glielo scriveva addosso.
+ *
+ * «Le entita' configurate diverse sui due impianti, soprattutto i carichi, si
+ * mescolano»: e' questo, ed e' l'ultima porta rimasta aperta. Il disegno
+ * questo specchio aveva gia' smesso di leggerlo; la maschera che configura no,
+ * e chi mescolava era proprio lei — quella da cui si salva.
+ *
+ * La decisione sta qui, accanto alla funzione che quello specchio lo legge:
+ * era in un modulo di disegno, e l'altro lettore non aveva modo di saperlo.
+ * Con un impianto solo non cambia niente per nessuno. */
+export function specchioDeiCerchi(flowNodes, quantiImpianti = 1) {
+  if (!isPlainObject(flowNodes)) return null;
+  return Number(quantiImpianti) > 1 ? null : flowNodes;
+}
+
 /* The saved circle customization for the load that used to sit in slot N.
  * Only values the user actually stored count: the normalized editor model
  * filled every field with a legacy default, and adopting those would rename a

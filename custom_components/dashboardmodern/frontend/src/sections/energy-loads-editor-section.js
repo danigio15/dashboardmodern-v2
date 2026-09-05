@@ -29,6 +29,7 @@ import {
   loadsConfigToSections,
   moveLoad,
   normalizeChild,
+  specchioDeiCerchi,
 } from "../core/energy-loads-config.js";
 import {
   activeLocale,
@@ -72,7 +73,7 @@ function impiantoAperto() {
 /* Read once, from wherever the configuration currently lives, and keep editing
  * that model until it is saved. */
 function readModel() {
-  const { plant, index } = impiantoAperto();
+  const { plant, index, list } = impiantoAperto();
   return loadsConfigModel({
     plant,
     plantIndex: index,
@@ -80,7 +81,15 @@ function readModel() {
     appliances: Array.isArray(section("appliances", null))
       ? section("appliances", [])
       : readJson("cd_appliances", []),
-    flowNodes: readJson("cd_flow_nodes", null),
+    /* Lo specchio posizionale solo quando vuol dire qualcosa.
+     *
+     * Le sue cinque caselle sono una per cerchio, e i cerchi del secondo
+     * impianto occupano le stesse del primo: senza questa riga, aprire i
+     * carichi della casa di sopra faceva vedere il nome, l'icona e IL SENSORE
+     * del carico che sta nello stesso posto nella casa di sotto — e salvare
+     * glieli scriveva addosso. Il disegno aveva gia' smesso di leggerlo; qui
+     * si continuava, e questa e' la maschera da cui si salva. */
+    flowNodes: specchioDeiCerchi(readJson("cd_flow_nodes", null), list.length),
     groups: readJson("cd_subload_groups", []),
     subloads: readJson("cd_subloads_extra", null),
   });
