@@ -17,6 +17,7 @@
  * posto di quella (spesso assente) dell'entita' del robot.
  */
 import {
+  bindRobotToDevice,
   comandiSuggeriti,
   elencoComandi,
   genereDelComando,
@@ -24,7 +25,22 @@ import {
   normalizeRobots,
   robotSpecies,
 } from "../core/robot-model.js";
-import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, roomOptionsMarkup, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
+import {
+  allStates,
+  clean,
+  dashboardStore,
+  doc,
+  esc,
+  installStyle,
+  onEditorRedraw,
+  readJson,
+  root,
+  roomOptionsMarkup,
+  t,
+  wrapFunction,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ROBOT_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
@@ -149,6 +165,13 @@ function bodyMarkup(robots) {
         ? robots.map((robot, index) => rigaMarkup(robot, index)).join("")
         : `<div class="ed-empty">${t("Nessun robot configurato", "No robot configured")}</div>`
     }</div>
+    <div class="dm-robot-invito">
+      <button type="button" class="ed-btn-add dm-robot-integ" data-robot-integ>🔗 ${t("Aggiungi da un'integrazione", "Add from an integration")}</button>
+      <small>${t(
+        "Roborock, Dreame, Ecovacs, Husqvarna… scegli il dispositivo e il robot arriva già fatto: la sua entità, la mappa, la batteria e i suoi programmi. Oppure, qui sotto, una casella alla volta.",
+        "Roborock, Dreame, Ecovacs, Husqvarna… pick the device and the robot arrives ready-made: its entity, the map, the battery and its programs. Or, below, one field at a time.",
+      )}</small>
+    </div>
     <button type="button" class="ed-btn-add" data-robot-add>＋ ${t("Aggiungi robot", "Add robot")}</button>`;
 }
 
@@ -157,6 +180,60 @@ function leggiRiga(riga, robot) {
   for (const input of riga.querySelectorAll("[data-robot-field]"))
     next[clean(input.dataset.robotField)] = clean(input.value);
   return next;
+}
+
+/* Cosa il dispositivo ha lasciato capire, prima di confermare.
+ *
+ * La finestra delle integrazioni e' la stessa degli elettrodomestici — le
+ * integrazioni, i dispositivi, la ricerca sono uguali per chiunque colleghi
+ * qualcosa — e questo e' l'unico pezzo che sa di robot. */
+function anteprimaRobot({ device, entities }) {
+  const robot = bindRobotToDevice({ device, entities, states: allStates() });
+  const riga = (etichetta, valore) =>
+    `<div class="dm-integ-casella"><span>${esc(etichetta)}</span><b class="mono">${esc(valore) || "—"}</b></div>`;
+  const comandi = elencoComandi(robot.comandi);
+  return {
+    etichetta:
+      robotSpecies(robot.entity) === "lawn_mower"
+        ? t("Tagliaerba", "Lawn mower")
+        : t("Aspirapolvere", "Vacuum"),
+    corpo: `<div class="dm-integ-caselle">
+        ${riga(t("Entità del robot", "Robot entity"), robot.entity)}
+        ${riga(t("Mappa", "Map"), robot.mapEntity)}
+        ${riga(t("Batteria", "Battery"), robot.battery)}
+        ${riga(
+          t("Programmi e regolazioni", "Programs and settings"),
+          comandi.length
+            ? `${comandi.length} — ${comandi.map((voce) => nomeDelComando(voce, robot, allStates())).join(", ")}`
+            : "",
+        )}
+      </div>`,
+  };
+}
+
+/* Il robot nuovo, nato dal dispositivo scelto: si salva e si apre, cosi' chi
+ * l'ha appena creato vede subito cosa gli e' stato assegnato. */
+async function creaDaDispositivo({ device, entities, integration }) {
+  const robots = lista();
+  const nato = bindRobotToDevice({
+    device,
+    entities,
+    states: allStates(),
+    index: robots.length,
+  });
+  /* La stanza la sa gia' Home Assistant: se l'area del dispositivo ha lo
+   * stesso nome di una stanza configurata, il robot ci va dentro da solo. */
+  const stanze = readJson("cd_stanze", []);
+  const area = clean(device?.area);
+  const stanza = (Array.isArray(stanze) ? stanze : []).find(
+    (voce) => clean(voce?.name).toLowerCase() === area.toLowerCase(),
+  );
+  if (stanza) nato.room = clean(stanza.id) || clean(stanza.name);
+  state.aperto = robots.length;
+  await salva([...robots, nato]);
+  ridisegna();
+  const daChi = clean(integration?.name) || t("un'integrazione", "an integration");
+  root.edToast?.(`${nato.name || device.name} — ${t("aggiunto da", "added from")} ${daChi}`);
 }
 
 export function ensureRobotEditor() {
@@ -196,6 +273,19 @@ async function onClick(event) {
   if (!body || activeTab() !== ROBOT_EDITOR_TAB || !body.contains(event.target)) return;
   const robots = lista();
 
+  if (event.target.closest("[data-robot-integ]")) {
+    event.preventDefault();
+    apriMenuIntegrazioni({
+      titolo: t("Aggiungi un robot da un'integrazione", "Add a robot from an integration"),
+      intro: t(
+        "Le integrazioni di Home Assistant, ufficiali o da HACS, con i dispositivi che portano. Scegli il tuo robot: la sua entità, la mappa, la batteria e i suoi programmi entrano da soli.",
+        "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your robot: its entity, the map, the battery and its programs come along by themselves.",
+      ),
+      anteprima: anteprimaRobot,
+      onScelto: (scelta) => creaDaDispositivo(scelta),
+    });
+    return;
+  }
   if (event.target.closest("[data-robot-add]")) {
     event.preventDefault();
     state.aperto = robots.length;
@@ -233,7 +323,8 @@ async function onClick(event) {
     const letta = leggiRiga(riga, robots[index]);
     /* Un'entita' del robot battuta a meta' non si salva per sbaglio da qui:
      * quella la giudica il tasto «Salva robot», come sempre. */
-    if (!/^(?:vacuum|lawn_mower)\.[a-z0-9_]+$/i.test(letta.entity)) letta.entity = robots[index].entity;
+    if (!/^(?:vacuum|lawn_mower)\.[a-z0-9_]+$/i.test(letta.entity))
+      letta.entity = robots[index].entity;
     const errore = riga.querySelector("[data-robot-error]");
     let comandi = elencoComandi(letta.comandi);
     if (togli) {
@@ -261,7 +352,10 @@ async function onClick(event) {
   }
   if (event.target.closest("[data-robot-del]")) {
     event.preventDefault();
-    const domanda = t(`Elimino "${nomeDi(robots[index], index)}"?`, `Remove "${nomeDi(robots[index], index)}"?`);
+    const domanda = t(
+      `Elimino "${nomeDi(robots[index], index)}"?`,
+      `Remove "${nomeDi(robots[index], index)}"?`,
+    );
     if (root.confirm && !root.confirm(domanda)) return;
     state.aperto = -1;
     await salva(robots.filter((_robot, position) => position !== index));
@@ -277,7 +371,11 @@ async function onClick(event) {
      * salvarla vorrebbe dire una scheda che non risponde a nessun comando,
      * senza dire perche'. */
     if (!/^(?:vacuum|lawn_mower)\.[a-z0-9_]+$/i.test(next[index].entity)) {
-      if (errore) errore.textContent = t("Serve un'entità vacuum.* o lawn_mower.* valida.", "A valid vacuum.* or lawn_mower.* entity is required.");
+      if (errore)
+        errore.textContent = t(
+          "Serve un'entità vacuum.* o lawn_mower.* valida.",
+          "A valid vacuum.* or lawn_mower.* entity is required.",
+        );
       return;
     }
     if (errore) errore.textContent = "";
@@ -323,6 +421,13 @@ function installStyles() {
       #ed-body .dm-robot-row-body{display:grid;gap:8px;padding:0 12px 12px}
       #ed-body .dm-robot-row-body[hidden]{display:none!important}
       #ed-body .dm-robot-field{display:grid;gap:4px;margin:0}
+      #ed-body .dm-robot-invito{display:grid;gap:6px;margin:0 0 12px;padding:12px;border-radius:14px;border:1px dashed color-mix(in srgb,#0ea5e9 45%,transparent);background:color-mix(in srgb,#0ea5e9 7%,transparent)}
+      #ed-body .dm-robot-invito .dm-robot-integ{margin:0!important;background:linear-gradient(135deg,#0369a1,#075985)!important;color:#fff!important}
+      #ed-body .dm-robot-invito small{font-size:11px;line-height:1.45;color:var(--text-dim,#64748b);font-weight:600}
+      .dm-integ-caselle{display:grid;gap:6px;margin:10px 0}
+      .dm-integ-casella{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 10px;border-radius:10px;background:color-mix(in srgb,#0ea5e9 6%,transparent)}
+      .dm-integ-casella>span{font-size:11px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:var(--text-dim,#64748b)}
+      .dm-integ-casella>b{min-width:0;font-size:12px;text-align:right;overflow-wrap:anywhere}
       #ed-body .dm-robot-field .ed-form-row{display:flex;gap:8px;min-width:0}
       #ed-body .dm-robot-field .ed-form-row>input{flex:1 1 auto;min-width:0}
       #ed-body .dm-robot-pick{flex:0 0 38px;height:38px;border:none;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;font-size:14px;cursor:pointer}

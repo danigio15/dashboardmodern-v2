@@ -68,10 +68,16 @@ test("uno stato che non conosciamo si dice sconosciuto, non si inventa", () => {
 });
 
 test("la batteria si legge, e alla base che si carica si vede", () => {
-  const alla = robotView({ entity: "vacuum.a" }, { "vacuum.a": stato("docked", { battery_level: 40 }) });
+  const alla = robotView(
+    { entity: "vacuum.a" },
+    { "vacuum.a": stato("docked", { battery_level: 40 }) },
+  );
   assert.equal(alla.battery, 40);
   assert.equal(alla.charging, true);
-  const piena = robotView({ entity: "vacuum.a" }, { "vacuum.a": stato("docked", { battery_level: 100 }) });
+  const piena = robotView(
+    { entity: "vacuum.a" },
+    { "vacuum.a": stato("docked", { battery_level: 100 }) },
+  );
   assert.equal(piena.charging, false);
   const senza = robotView({ entity: "vacuum.a" }, { "vacuum.a": stato("idle") });
   assert.equal(senza.battery, null);
@@ -106,7 +112,10 @@ test("un robot vecchio si avvia col nome di prima", () => {
     service: "start",
     data: { entity_id: "vacuum.a" },
   });
-  const vecchio = { entity: "vacuum.a", features: VACUUM_FEATURES.TURN_ON | VACUUM_FEATURES.TURN_OFF };
+  const vecchio = {
+    entity: "vacuum.a",
+    features: VACUUM_FEATURES.TURN_ON | VACUUM_FEATURES.TURN_OFF,
+  };
   assert.deepEqual(robotCommand("start", vecchio), {
     domain: "vacuum",
     service: "turn_on",
@@ -239,7 +248,10 @@ test("un tagliaerba non ha potenza di aspirazione, qualunque cosa dichiari", () 
   const view = robotView(
     { entity: "lawn_mower.rasaerba" },
     {
-      "lawn_mower.rasaerba": stato("mowing", { fan_speed: "Alta", fan_speed_list: ["Alta", "Bassa"] }),
+      "lawn_mower.rasaerba": stato("mowing", {
+        fan_speed: "Alta",
+        fan_speed_list: ["Alta", "Bassa"],
+      }),
     },
   );
   assert.deepEqual(view.fanSpeeds, []);
@@ -315,13 +327,8 @@ test("l'intestazione della pagina robot non nomina una specie sola", async () =>
  * della piscina — e si apriva quattrocento pixel piu' stretta delle altre. */
 test("la pagina del robot non si sceglie una larghezza sua", async () => {
   const { readFileSync } = await import("node:fs");
-  const testo = readFileSync(
-    new URL("../src/sections/robot-section.js", import.meta.url),
-    "utf8",
-  );
-  const riga = testo
-    .split("\n")
-    .find((linea) => linea.includes("#page-robot .dm-robot-wrap{"));
+  const testo = readFileSync(new URL("../src/sections/robot-section.js", import.meta.url), "utf8");
+  const riga = testo.split("\n").find((linea) => linea.includes("#page-robot .dm-robot-wrap{"));
   assert.ok(riga, "la regola della cornice del robot non c'e' piu'");
   assert.match(riga, /max-width:var\(--dm-page-room/);
   // Il minimo delle colonne resta suo; il tetto della pagina no.
@@ -395,7 +402,15 @@ test("i comandi a parte sono tasti, tendine e interruttori, e restano dopo la no
   assert.equal(Object.keys(DOMINI_COMANDO).length, 8);
 
   assert.deepEqual(
-    elencoComandi(["button.b", " select.c ", "sensor.no", "button.b", "", null, { entity: "switch.d" }]),
+    elencoComandi([
+      "button.b",
+      " select.c ",
+      "sensor.no",
+      "button.b",
+      "",
+      null,
+      { entity: "switch.d" },
+    ]),
     ["button.b", "select.c", "switch.d"],
   );
   /* Anche scritto come testo, com'e' quando passa da una casella nascosta. */
@@ -431,12 +446,17 @@ test("il nome del comando non ripete il nome del robot (#306)", () => {
     "Mop mode",
   );
   /* Senza friendly_name si legge la coda dell'id, resa leggibile. */
-  assert.equal(nomeDelComando("button.roborock_qrevo_edge_series_solo_lavaggio", robot, {}), "Solo lavaggio");
+  assert.equal(
+    nomeDelComando("button.roborock_qrevo_edge_series_solo_lavaggio", robot, {}),
+    "Solo lavaggio",
+  );
   /* Un nome che non comincia col robot resta com'e'. */
   assert.equal(nomeDelComando("button.cancello_apri", robot, casaRoborock), "Cancello apri");
   /* E il nome che e' solo il nome del robot non diventa vuoto. */
   assert.equal(
-    nomeDelComando("switch.x", robot, { "switch.x": stato("on", { friendly_name: "Roborock Qrevo Edge Series" }) }),
+    nomeDelComando("switch.x", robot, {
+      "switch.x": stato("on", { friendly_name: "Roborock Qrevo Edge Series" }),
+    }),
     "Roborock Qrevo Edge Series",
   );
 });
@@ -530,7 +550,10 @@ test("i comandi accanto al robot si propongono, quelli gia' scelti no (#306)", (
 });
 
 test("la scheda e la configurazione portano i comandi a parte (#306)", async () => {
-  const scheda = await readFile(new URL("../src/sections/robot-section.js", import.meta.url), "utf8");
+  const scheda = await readFile(
+    new URL("../src/sections/robot-section.js", import.meta.url),
+    "utf8",
+  );
   /* I tasti e gli interruttori sotto i comandi di sempre, le tendine accanto
    * all'aspirazione; l'interruttore dice se e' acceso, e chi non risponde e'
    * spento. */
@@ -543,9 +566,15 @@ test("la scheda e la configurazione portano i comandi a parte (#306)", async () 
   assert.match(scheda, /callService\(comandoDelRobot\(voce\)\)/);
   assert.match(scheda, /callService\(comandoDelRobot\(voce, tendina\.value\)\)/);
   /* La firma li conosce: un comando aggiunto rifa' la scheda. */
-  assert.match(scheda, /\(view\.comandi \|\| \[\]\)\s*\.map\(\(voce\) => `\$\{voce\.entity\}:\$\{voce\.name\}:\$\{voce\.available\}/);
+  assert.match(
+    scheda,
+    /\(view\.comandi \|\| \[\]\)\s*\.map\(\(voce\) => `\$\{voce\.entity\}:\$\{voce\.name\}:\$\{voce\.available\}/,
+  );
 
-  const scheda2 = await readFile(new URL("../src/sections/robot-editor-section.js", import.meta.url), "utf8");
+  const scheda2 = await readFile(
+    new URL("../src/sections/robot-editor-section.js", import.meta.url),
+    "utf8",
+  );
   assert.match(scheda2, /data-robot-field="comandi"/);
   /* Le pastiglie: proposte col piu', scelte con la croce, e il piu' della casella. */
   assert.match(scheda2, /chipMarkup\(entity, "robot-cmd-sug", "＋", robot, states\)/);
@@ -557,4 +586,101 @@ test("la scheda e la configurazione portano i comandi a parte (#306)", async () 
   /* La scelta si salva subito, con quello che c'e' scritto nelle altre caselle. */
   assert.match(scheda2, /const letta = leggiRiga\(riga, robots\[index\]\);/);
   assert.match(scheda2, /next\[index\] = \{ \.\.\.letta, comandi \};/);
+});
+
+/* Il robot preso da un'integrazione.
+ *
+ * «Questa cosa sviluppata su elettrodomestici di gestire integrazioni presenti
+ * le devi implementare anche per la sezione robot.» Un robot pero' e' fatto di
+ * meno pezzi di un elettrodomestico — l'entita' che lo comanda, la mappa, la
+ * batteria e i suoi programmi — e sono tutti riconoscibili da quello che
+ * l'integrazione dichiara accanto: il dominio dell'entita', `device_class` per
+ * la carica, la categoria per distinguere un programma da un'impostazione.
+ */
+import { bindRobotToDevice as legaRobot } from "../src/core/robot-model.js";
+
+const voce = (entity_id, extra = {}) => ({
+  entity_id,
+  name: entity_id,
+  device_class: "",
+  category: "",
+  disabled: false,
+  ...extra,
+});
+
+test("dal dispositivo nascono l'entita', la mappa, la batteria e i programmi", () => {
+  const robot = legaRobot({
+    device: { id: "rb-1", name: "Roborock Qrevo Edge" },
+    entities: [
+      voce("vacuum.roborock_qrevo_edge"),
+      voce("camera.roborock_qrevo_edge_mappa"),
+      voce("sensor.roborock_qrevo_edge_batteria", { device_class: "battery" }),
+      voce("button.roborock_qrevo_edge_pulizia_completa"),
+      voce("select.roborock_qrevo_edge_mocio"),
+      voce("switch.roborock_qrevo_edge_blocco_bambini"),
+    ],
+  });
+  assert.equal(robot.name, "Roborock Qrevo Edge");
+  assert.equal(robot.entity, "vacuum.roborock_qrevo_edge");
+  assert.equal(robot.mapEntity, "camera.roborock_qrevo_edge_mappa");
+  assert.equal(robot.battery, "sensor.roborock_qrevo_edge_batteria");
+  /* I tasti prima delle tendine, le tendine prima degli interruttori: e'
+   * l'ordine in cui si guardano su una scheda. */
+  assert.deepEqual(robot.comandi, [
+    "button.roborock_qrevo_edge_pulizia_completa",
+    "select.roborock_qrevo_edge_mocio",
+    "switch.roborock_qrevo_edge_blocco_bambini",
+  ]);
+});
+
+test("le impostazioni del dispositivo non sono programmi", () => {
+  /* Su un Roborock le entita' marcate `config` e `diagnostic` sono la
+   * maggioranza — il volume, la soglia del wifi, l'ora del «non disturbare» —
+   * e sulla scheda del robot non ci vanno: sono le impostazioni del
+   * dispositivo, non i tasti che uno vuole sotto mano. */
+  const robot = legaRobot({
+    device: { id: "rb-1", name: "Robot" },
+    entities: [
+      voce("vacuum.robot"),
+      voce("button.robot_pulizia_completa"),
+      voce("select.robot_volume", { category: "config" }),
+      voce("switch.robot_registro", { category: "diagnostic" }),
+      voce("button.robot_spento", { disabled: true }),
+    ],
+  });
+  assert.deepEqual(robot.comandi, ["button.robot_pulizia_completa"]);
+});
+
+test("un tagliaerba con la batteria a parte e senza mappa", () => {
+  /* I tagliaerba pubblicano spesso la carica come sensore a parte, e la mappa
+   * non ce l'hanno: le caselle che restano vuote restano vuote, e chi
+   * configura le riempie a mano se vuole. */
+  const robot = legaRobot({
+    device: { id: "mw-1", name: "Automower 305" },
+    entities: [
+      voce("lawn_mower.automower_305"),
+      voce("sensor.automower_305_carica", { device_class: "battery" }),
+      voce("sensor.automower_305_ore", { device_class: "duration" }),
+    ],
+    index: 2,
+  });
+  assert.equal(robot.id, "robot-3");
+  assert.equal(robot.entity, "lawn_mower.automower_305");
+  assert.equal(robot.battery, "sensor.automower_305_carica");
+  assert.equal(robot.mapEntity, "");
+  assert.deepEqual(robot.comandi, []);
+});
+
+test("quello che c'era gia' non si perde", () => {
+  /* «Cambia dispositivo» su un robot gia' configurato: il nome che chi
+   * configura ha scritto a mano resta il suo, e la stanza pure. */
+  const robot = legaRobot({
+    device: { id: "rb-2", name: "Roborock S8" },
+    entities: [voce("vacuum.roborock_s8")],
+    precedente: { id: "robot-1", name: "Il robot di sotto", room: "room-salone" },
+  });
+  assert.equal(robot.id, "robot-1");
+  assert.equal(robot.name, "Il robot di sotto");
+  assert.equal(robot.room, "room-salone");
+  assert.equal(robot.entity, "vacuum.roborock_s8");
 });

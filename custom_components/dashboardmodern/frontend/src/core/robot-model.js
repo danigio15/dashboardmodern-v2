@@ -274,6 +274,75 @@ export function comandiSuggeriti(robot = {}, states = {}) {
   );
 }
 
+/* Il robot che nasce da un dispositivo di Home Assistant.
+ *
+ * E' la stessa strada degli elettrodomestici: si sceglie l'integrazione, si
+ * sceglie il dispositivo, e le caselle si compilano da sole. Un robot pero' e'
+ * fatto di meno pezzi — l'entita' che lo comanda, la mappa, la batteria, e i
+ * suoi programmi — e sono tutti riconoscibili dal dominio dell'entita' o da
+ * quello che l'integrazione dichiara accanto: `device_class: battery` per la
+ * carica, `camera` o `image` per la mappa.
+ *
+ * Le entita' di servizio non entrano fra i comandi: quelle che Home Assistant
+ * marca `config` o `diagnostic` sono le impostazioni del dispositivo, non i
+ * tasti che uno vuole sulla scheda — e su un Roborock sono la maggioranza.
+ */
+const CARICA = /batter|carica|charge/i;
+const MAPPA = /mapp?a|map|planim/i;
+
+export function bindRobotToDevice({
+  device = {},
+  entities = [],
+  states = {},
+  index = 0,
+  precedente = {},
+} = {}) {
+  const elenco = (Array.isArray(entities) ? entities : []).filter(
+    (voce) => voce && !voce.disabled && clean(voce.entity_id).includes("."),
+  );
+  const dominio = (voce) => clean(voce.entity_id).split(".")[0];
+  const parole = (voce) =>
+    `${clean(voce.entity_id)} ${clean(voce.name)} ${clean(states?.[clean(voce.entity_id)]?.attributes?.friendly_name)}`;
+
+  const suo = elenco.find((voce) => ["vacuum", "lawn_mower"].includes(dominio(voce)));
+  /* La mappa: fra le immagini del dispositivo, quella che dice di esserlo. Se
+   * nessuna lo dice ma ce n'e' una sola, e' lei. */
+  const immagini = elenco.filter((voce) => ["camera", "image"].includes(dominio(voce)));
+  const mappa = immagini.find((voce) => MAPPA.test(parole(voce))) || immagini[0];
+  /* La batteria: quella dichiarata, e in mancanza quella che si chiama cosi'. */
+  const batterie = elenco.filter((voce) => dominio(voce) === "sensor");
+  const batteria =
+    batterie.find((voce) => clean(voce.device_class) === "battery") ||
+    batterie.find(
+      (voce) =>
+        CARICA.test(parole(voce)) &&
+        clean(states?.[clean(voce.entity_id)]?.attributes?.device_class) === "battery",
+    ) ||
+    batterie.find((voce) => CARICA.test(parole(voce)));
+
+  const ordine = { tasto: 0, tendina: 1, interruttore: 2 };
+  const comandi = elencoComandi(
+    elenco
+      .filter((voce) => genereDelComando(voce.entity_id))
+      .filter((voce) => !["config", "diagnostic"].includes(clean(voce.category)))
+      .sort(
+        (a, b) =>
+          ordine[genereDelComando(a.entity_id)] - ordine[genereDelComando(b.entity_id)] ||
+          clean(a.entity_id).localeCompare(clean(b.entity_id)),
+      )
+      .map((voce) => clean(voce.entity_id)),
+  );
+
+  return {
+    ...normalizeRobot(precedente, index),
+    name: clean(precedente.name) || clean(device.name) || clean(precedente.name),
+    entity: clean(suo?.entity_id) || clean(precedente.entity),
+    mapEntity: clean(mappa?.entity_id) || clean(precedente.mapEntity),
+    battery: clean(batteria?.entity_id) || clean(precedente.battery),
+    comandi: comandi.length ? comandi : elencoComandi(precedente.comandi),
+  };
+}
+
 /* L'elenco dei robot, messo in ordine.
  *
  * Mettere in ordine non e' scegliere: un robot appena aggiunto non ha ancora

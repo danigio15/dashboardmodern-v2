@@ -222,7 +222,52 @@ function anteprimaFuori(fuori) {
  * outside }`, dove `outside` sono i sensori che stanno fuori dal dispositivo
  * e che chi guarda ha lasciato spuntati.
  */
-export function apriMenuIntegrazioni({ onScelto, titolo = "" } = {}) {
+/* L'anteprima di un elettrodomestico: cosa il dispositivo ha lasciato capire,
+ * prima di confermare. E' l'unico pezzo di questa finestra che sa di
+ * elettrodomestici — il resto (le integrazioni, i dispositivi, la ricerca) e'
+ * uguale per chiunque colleghi qualcosa a un dispositivo, ed e' per questo che
+ * si passa da fuori invece di riscriverlo. */
+export function anteprimaElettrodomestico({ device, entities, integration }) {
+  const dentro = entities.map((entity) => entity.entity_id);
+  const collegato = bindApplianceToDevice(
+    {},
+    { device, entities, integration, states: allStates() },
+  ).appliance;
+  /* Solo le caselle che il dispositivo ha lasciato vuote. */
+  const fuori = cercaFuoriDalDispositivo({
+    deviceName: device.name,
+    states: allStates(),
+    escludi: dentro,
+    ruoli: [
+      "power_entity",
+      "daily_energy_entity",
+      "monthly_energy_entity",
+      "total_energy_entity",
+    ].filter((ruolo) => !clean(collegato[ruolo])),
+  });
+  return {
+    etichetta: applianceCatalogLabel(collegato.visual_key, activeLocale()),
+    corpo: `${anteprimaEntita(entities)}${anteprimaFuori(fuori)}`,
+    scegli: (nodo) => ({
+      outside: nodo.querySelector("[data-outside]")?.checked !== false ? fuori : null,
+    }),
+  };
+}
+
+/**
+ * La finestra che collega qualcosa a un dispositivo di Home Assistant.
+ *
+ * `anteprima` decide cosa si vede prima di confermare e cosa finisce nella
+ * risposta: gli elettrodomestici e i robot chiedono la stessa cosa a Home
+ * Assistant e la leggono in modo diverso, e questa e' l'unica differenza fra i
+ * due — non due finestre uguali che col tempo divergono.
+ */
+export function apriMenuIntegrazioni({
+  onScelto,
+  titolo = "",
+  intro = "",
+  anteprima: disegnaAnteprima = anteprimaElettrodomestico,
+} = {}) {
   doc?.getElementById("dm-integ-menu")?.remove();
   const modal = doc.createElement("div");
   modal.id = "dm-integ-menu";
@@ -230,7 +275,7 @@ export function apriMenuIntegrazioni({ onScelto, titolo = "" } = {}) {
   modal.innerHTML = `<section class="dm-section-dialog dm-integ-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-integ-title">
     <header><strong id="dm-integ-title">🔗 ${esc(titolo || t("Collega a un'integrazione", "Link to an integration"))}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
     <div class="dm-integ-body">
-      <p class="dm-integ-intro">${t("Le integrazioni di Home Assistant, ufficiali o da HACS, con i dispositivi che portano. Scegli il tuo elettrodomestico: le sue entità entrano tutte, e le caselle della card si compilano da sole.", "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.")}</p>
+      <p class="dm-integ-intro">${esc(intro) || t("Le integrazioni di Home Assistant, ufficiali o da HACS, con i dispositivi che portano. Scegli il tuo elettrodomestico: le sue entità entrano tutte, e le caselle della card si compilano da sole.", "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your appliance: every entity comes along, and the card fields fill themselves in.")}</p>
       <div class="dm-integ-status" data-status>${t("Leggo le integrazioni di Home Assistant…", "Reading Home Assistant integrations…")}</div>
       <div class="dm-integ-columns" data-columns hidden>
         <nav class="dm-integ-list" data-integrations aria-label="${t("Integrazioni", "Integrations")}"></nav>
@@ -304,41 +349,22 @@ export function apriMenuIntegrazioni({ onScelto, titolo = "" } = {}) {
       return;
     }
     if (dispositivo !== device) return;
-    const dentro = entities.map((entity) => entity.entity_id);
-    const collegato = bindApplianceToDevice(
-      {},
-      { device, entities, integration: scelta, states: allStates() },
-    ).appliance;
-    /* Solo le caselle che il dispositivo ha lasciato vuote. */
-    const fuori = cercaFuoriDalDispositivo({
-      deviceName: device.name,
-      states: allStates(),
-      escludi: dentro,
-      ruoli: [
-        "power_entity",
-        "daily_energy_entity",
-        "monthly_energy_entity",
-        "total_energy_entity",
-      ].filter((ruolo) => !clean(collegato[ruolo])),
-    });
-    const tipo = applianceCatalogLabel(collegato.visual_key, activeLocale());
+    const letta = disegnaAnteprima({ device, entities, integration: scelta });
     anteprima.innerHTML = `<div class="dm-integ-preview-head">
         <strong>${esc(device.name)}</strong>
         <span>${esc([device.manufacturer, device.model].map(clean).filter(Boolean).join(" "))}</span>
-        <span class="dm-integ-preview-type">${esc(t("Riconosciuto come", "Recognised as"))}: <b>${esc(tipo)}</b></span>
+        ${letta.etichetta ? `<span class="dm-integ-preview-type">${esc(t("Riconosciuto come", "Recognised as"))}: <b>${esc(letta.etichetta)}</b></span>` : ""}
       </div>
-      ${anteprimaEntita(entities)}
-      ${anteprimaFuori(fuori)}
+      ${letta.corpo || ""}
       <button type="button" class="ed-btn-add dm-integ-confirm" data-confirm>🔗 ${t("Usa questo dispositivo", "Use this device")}</button>`;
     anteprima.querySelector("[data-confirm]")?.addEventListener("click", () => {
       close();
       try {
-        const prendiFuori = anteprima.querySelector("[data-outside]")?.checked !== false;
         onScelto?.({
           integration: scelta,
           device,
           entities,
-          outside: prendiFuori ? fuori : null,
+          ...(letta.scegli?.(anteprima) || {}),
         });
       } catch (error) {
         root.console?.warn?.("[DashboardModern] integrazione", error);
