@@ -1227,6 +1227,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "反转百分比（100 = 关闭）",
   Flood: "水淹",
   Floods: "漏水",
+  "Bought from the grid · Month": "从电网购电 · 本月",
+  "Open the history": "打开历史",
+  "Battery charged · Month": "电池已充电 · 本月",
+  "Battery charged · Today": "电池已充电 · 今天",
+  "Home consumption · Month": "家庭用电 · 本月",
+  "Home consumption · Today": "家庭用电 · 今天",
+  "Taken from the grid · Today": "从电网取电 · 今天",
+  "Solar production · Month": "光伏发电 · 本月",
+  "Solar production · Today": "光伏发电 · 今天",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "Home Assistant 的 Recorder 响应太慢。历史数据大或服务器性能低时会这样：它会自动重试；如果经常发生，建议减少 Recorder 保留的天数（purge_keep_days）或排除不需要的实体。",
   "Add a car from an integration": "从集成添加汽车",
   "Other fields recognised": "识别到的其他字段",
   "Petrol car": "汽油车",
@@ -2924,8 +2934,6 @@ export default Object.freeze({
   "${n} new replies": "${n} 条新回复",
   "1 source not responding": "1 个来源无响应",
   "${n} sources not responding": "${n} 个来源无响应",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "Home Assistant 未及时返回统计数据：Recorder 较慢或连接繁忙。会自动重试。",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     '${entita.join(", ")} 缺少长期统计：传感器需要 state_class total_increasing（或 total）和 kWh 单位。在此期间显示瞬时值。',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":

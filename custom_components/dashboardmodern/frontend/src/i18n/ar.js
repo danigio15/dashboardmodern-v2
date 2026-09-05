@@ -1236,6 +1236,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "اعكس النسب (100 = مغلق)",
   Flood: "فيضان",
   Floods: "تسريبات المياه",
+  "Bought from the grid · Month": "المشتراة من الشبكة · الشهر",
+  "Open the history": "فتح السجل",
+  "Battery charged · Month": "البطارية مشحونة · الشهر",
+  "Battery charged · Today": "البطارية مشحونة · اليوم",
+  "Home consumption · Month": "استهلاك المنزل · الشهر",
+  "Home consumption · Today": "استهلاك المنزل · اليوم",
+  "Taken from the grid · Today": "المسحوبة من الشبكة · اليوم",
+  "Solar production · Month": "إنتاج الطاقة الشمسية · الشهر",
+  "Solar production · Today": "إنتاج الطاقة الشمسية · اليوم",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "استغرق Recorder في Home Assistant وقتًا طويلًا للرد. يحدث ذلك عندما يكون السجل كبيرًا أو الخادم صغيرًا: يعيد المحاولة من تلقاء نفسه، وإذا تكرر الأمر فمن الأفضل تقليل الأيام التي يحتفظ بها Recorder (purge_keep_days) أو استبعاد الكيانات غير اللازمة.",
   "Add a car from an integration": "إضافة سيارة من تكامل",
   "Other fields recognised": "حقول أخرى تم التعرف عليها",
   "Petrol car": "سيارة بنزين",
@@ -2954,8 +2964,6 @@ export default Object.freeze({
   "${n} new replies": "${n} ردود جديدة",
   "1 source not responding": "مصدر واحد لا يستجيب",
   "${n} sources not responding": "${n} مصادر لا تستجيب",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "لم يرد Home Assistant على الإحصائيات في الوقت المحدد: المسجّل بطيء أو الاتصال مشغول. تتم إعادة المحاولة تلقائيًا.",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     'الإحصائيات طويلة الأمد مفقودة لـ ${entita.join(", ")}: يجب أن يكون للمستشعر state_class total_increasing (أو total) ووحدة kWh. في الوقت الحالي تُعرض القيم اللحظية.',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":

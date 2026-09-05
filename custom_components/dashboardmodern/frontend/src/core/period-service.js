@@ -331,6 +331,41 @@ function readDirectState(entity, states = {}) {
   return value == null ? null : Math.max(0, value);
 }
 
+/* Quanto tempo dare a una domanda di statistiche.
+ *
+ * Non tutte pesano uguale: un giorno per ora sono ventiquattro righe, un mese
+ * per giorno una trentina, ma un anno intero sono centinaia di secchielli che
+ * il Recorder deve rileggere. Con un tempo unico per tutte — dodici secondi —
+ * la domanda leggera lo sprecava e quella pesante non ce la faceva mai su una
+ * macchina piccola: «la sezione energia non carica».
+ *
+ * Il tempo cresce con l'arco chiesto, e si ferma: oltre il minuto non e' piu'
+ * attesa, e' una pagina che sembra rotta. */
+export const TEMPO_MASSIMO_STATISTICHE = 60000;
+
+export function tempoPerLeStatistiche(start, end, base = 12000) {
+  const da = Date.parse(start);
+  const a = Date.parse(end);
+  if (!Number.isFinite(da) || !Number.isFinite(a) || a <= da) return base;
+  const giorni = (a - da) / 86400000;
+  /* Fino a due giorni vale il tempo di sempre; poi mezzo secondo per giorno,
+   * che su un anno fa tre minuti teorici e si ferma al tetto. */
+  const cresciuto = giorni <= 2 ? base : base + Math.round((giorni - 2) * 500);
+  return Math.min(TEMPO_MASSIMO_STATISTICHE, Math.max(base, cresciuto));
+}
+
+/* Se questo errore vuol dire «non conosco quel campo».
+ *
+ * Home Assistant risponde con un messaggio, non con un codice: si guarda cosa
+ * dice. Un timeout e una connessione caduta NON sono di compatibilita', e
+ * rifare la domanda non li aggiusta — li raddoppia. */
+export function eUnErroreDiCompatibilita(errore) {
+  const testo = String(errore?.message || errore || "").toLowerCase();
+  if (!testo) return false;
+  if (/timeout|socket|connection|closed|network|abort/.test(testo)) return false;
+  return /unit|unknown|invalid|unsupported|not a valid|extra keys|required key/.test(testo);
+}
+
 export class HomeAssistantBroker {
   /* La risposta del periodo corrente vale un minuto: le statistiche del
    * Recorder cambiano ogni cinque, e richiederle ogni quindici secondi pesava
@@ -533,11 +568,11 @@ export class HomeAssistantBroker {
     });
   }
 
-  async cachedRequest(payload, cacheKey, maxAge = 0) {
+  async cachedRequest(payload, cacheKey, maxAge = 0, timeout = 0) {
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.at < maxAge) return cached.value;
     if (this.inflight.has(cacheKey)) return this.inflight.get(cacheKey);
-    const promise = this.request(payload)
+    const promise = this.request(payload, timeout)
       .then((value) => {
         if (maxAge > 0) this.cache.set(cacheKey, { at: Date.now(), value });
         return value;
@@ -565,21 +600,40 @@ export class HomeAssistantBroker {
       types: ["sum"],
       units: { energy: "kWh" },
     };
+    const eta = this.cacheHistoricalMs;
+    const attesa = tempoPerLeStatistiche(startIso, endIso, this.timeout);
     let result;
     try {
       result = await this.cachedRequest(
         payload,
         key,
-        historical ? this.cacheHistoricalMs : this.cacheCurrentMs,
+        historical ? eta : this.cacheCurrentMs,
+        attesa,
       );
     } catch (error) {
+      /* La seconda domanda serve a UNA cosa sola: le versioni di Home
+       * Assistant che non conoscono `units` rispondono con un errore, e a
+       * quelle si richiede senza.
+       *
+       * Prima si rifaceva la domanda per QUALUNQUE errore, timeout compreso.
+       * Su un Recorder lento — che e' esattamente il caso in cui il timeout
+       * scatta — voleva dire chiedergli una seconda volta la stessa cosa
+       * pesante mentre stava ancora arrancando sulla prima: il doppio del
+       * carico proprio sulla cosa che era gia' troppo lenta, e ventiquattro
+       * secondi di attesa invece di dodici prima di dirlo a chi guarda.
+       *
+       * Un timeout, o una connessione caduta, non si ricadono: si lasciano
+       * uscire, cosi' il giro di riprova di sopra li vede e aspetta il suo
+       * turno invece di raddoppiare. */
+      if (!eUnErroreDiCompatibilita(error)) throw error;
       const compatiblePayload = { ...payload };
       delete compatiblePayload.units;
       const compatibleKey = `${key}|compat`;
       result = await this.cachedRequest(
         compatiblePayload,
         compatibleKey,
-        historical ? this.cacheHistoricalMs : this.cacheCurrentMs,
+        historical ? eta : this.cacheCurrentMs,
+        attesa,
       );
     }
     return Object.fromEntries(

@@ -769,8 +769,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // cima, come la tendina del motore si appende sotto il nome. La finestra e'
   // quella degli elettrodomestici, senza una seconda copia: cambia solo cosa
   // si legge del dispositivo, che e' l'unico pezzo diverso fra le sezioni.
+  // 253 con i cerchi grandi che aprono il loro storico
+  // (`sections/energia-cerchi-storico-section.js`): «nella sezione energia
+  // giornaliera e mensile non si apre, sui cerchi che non sono i carichi, i
+  // dati storici». Nella vista Istantanea Solare, Rete, Batteria e Casa hanno
+  // il loro «apriStorico»; nelle altre due il documento vendorizzato li
+  // disegna senza, mentre i carichi sotto ce l'hanno — si tocca la Casa e non
+  // succede niente, senza modo di capire perche' quel cerchio no e il suo
+  // vicino si'. Il modulo aggiunge quello che manca senza toccare il
+  // documento, e ogni cerchio apre l'entita' che sta gia' mostrando in quella
+  // vista: il totale del giorno o del mese, non la potenza istantanea, che
+  // sarebbe lo storico di un'altra cosa.
   assert.ok(
-    relative.length <= 252,
+    relative.length <= 253,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

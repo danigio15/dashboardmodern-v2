@@ -1251,6 +1251,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "Yüzdeleri ters çevir (100 = kapalı)",
   Flood: "Su baskını",
   Floods: "Su baskını",
+  "Bought from the grid · Month": "Şebekeden alınan · Ay",
+  "Open the history": "Geçmişi aç",
+  "Battery charged · Month": "Batarya şarj edildi · Ay",
+  "Battery charged · Today": "Batarya şarj edildi · Bugün",
+  "Home consumption · Month": "Ev tüketimi · Ay",
+  "Home consumption · Today": "Ev tüketimi · Bugün",
+  "Taken from the grid · Today": "Şebekeden çekilen · Bugün",
+  "Solar production · Month": "Güneş üretimi · Ay",
+  "Solar production · Today": "Güneş üretimi · Bugün",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "Home Assistant'ın Recorder'ı yanıt vermekte çok gecikti. Geçmiş büyük ya da sunucu küçük olduğunda olur: kendiliğinden yeniden dener, sık oluyorsa Recorder'ın sakladığı gün sayısını azaltmak (purge_keep_days) ya da gereksiz varlıkları hariç tutmak iyi olur.",
   "Add a car from an integration": "Bir entegrasyondan araba ekle",
   "Other fields recognised": "Tanınan diğer alanlar",
   "Petrol car": "Benzinli araba",
@@ -2979,8 +2989,6 @@ export default Object.freeze({
   "${n} new replies": "${n} yeni yanıt",
   "1 source not responding": "1 kaynak yanıt vermiyor",
   "${n} sources not responding": "${n} kaynak yanıt vermiyor",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "Home Assistant istatistiklere zamanında yanıt vermedi: Recorder yavaş ya da bağlantı meşgul. Kendiliğinden yeniden dener.",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     '${entita.join(", ")} için uzun dönem istatistikleri eksik: sensörde state_class total_increasing (veya total) ve kWh birimi olmalı. Bu arada anlık değerler gösterilir.',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":

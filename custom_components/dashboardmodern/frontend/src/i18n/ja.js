@@ -1250,6 +1250,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "パーセントを反転（100 = 閉）",
   Flood: "浸水",
   Floods: "漏水",
+  "Bought from the grid · Month": "系統からの購入 · 今月",
+  "Open the history": "履歴を開く",
+  "Battery charged · Month": "バッテリー充電 · 今月",
+  "Battery charged · Today": "バッテリー充電 · 今日",
+  "Home consumption · Month": "家の消費 · 今月",
+  "Home consumption · Today": "家の消費 · 今日",
+  "Taken from the grid · Today": "系統からの受電 · 今日",
+  "Solar production · Month": "太陽光発電 · 今月",
+  "Solar production · Today": "太陽光発電 · 今日",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "Home Assistant の Recorder の応答に時間がかかりすぎました。履歴が大きいかサーバーが小さいときに起こります：自動で再試行しますが、頻発する場合は Recorder が保持する日数を減らす（purge_keep_days）か、不要なエンティティを除外するとよいです。",
   "Add a car from an integration": "統合から車を追加",
   "Other fields recognised": "認識されたその他の項目",
   "Petrol car": "ガソリン車",
@@ -2981,8 +2991,6 @@ export default Object.freeze({
   "${n} new replies": "新しい返信 ${n} 件",
   "1 source not responding": "応答しないソース 1 件",
   "${n} sources not responding": "応答しないソース ${n} 件",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "Home Assistant が統計に時間内に応答しませんでした。Recorder が遅いか接続が混雑しています。自動的に再試行します。",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     '${entita.join(", ")} の長期統計がありません。センサーには state_class total_increasing（または total）と kWh 単位が必要です。それまでは瞬時値を表示します。',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":

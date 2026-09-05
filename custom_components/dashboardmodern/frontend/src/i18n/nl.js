@@ -1255,6 +1255,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "Percentages omdraaien (100 = dicht)",
   Flood: "Overstroming",
   Floods: "Waterlekken",
+  "Bought from the grid · Month": "Van het net gekocht · Maand",
+  "Open the history": "Geschiedenis openen",
+  "Battery charged · Month": "Accu geladen · Maand",
+  "Battery charged · Today": "Accu geladen · Vandaag",
+  "Home consumption · Month": "Huisverbruik · Maand",
+  "Home consumption · Today": "Huisverbruik · Vandaag",
+  "Taken from the grid · Today": "Van het net afgenomen · Vandaag",
+  "Solar production · Month": "Zonneproductie · Maand",
+  "Solar production · Today": "Zonneproductie · Vandaag",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "De Recorder van Home Assistant deed er te lang over. Dat gebeurt als de geschiedenis groot of de server klein is: hij probeert het vanzelf opnieuw, en als het vaak gebeurt kun je beter het aantal bewaarde dagen verlagen (purge_keep_days) of entiteiten uitsluiten die je niet nodig hebt.",
   "Add a car from an integration": "Een auto toevoegen vanuit een integratie",
   "Other fields recognised": "Andere herkende velden",
   "Petrol car": "Benzineauto",
@@ -2993,8 +3003,6 @@ export default Object.freeze({
   "${n} new replies": "${n} nieuwe antwoorden",
   "1 source not responding": "1 bron reageert niet",
   "${n} sources not responding": "${n} bronnen reageren niet",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "Home Assistant heeft de statistieken niet op tijd geleverd: de Recorder is traag of de verbinding is bezet. Het probeert het vanzelf opnieuw.",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     'Langetermijnstatistieken ontbreken voor ${entita.join(", ")}: de sensor heeft state_class total_increasing (of total) en de eenheid kWh nodig. Ondertussen worden de momentane waarden getoond.',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":

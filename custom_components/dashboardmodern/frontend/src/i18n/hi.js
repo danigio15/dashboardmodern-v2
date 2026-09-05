@@ -1243,6 +1243,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "प्रतिशत पलटें (100 = बंद)",
   Flood: "बाढ़",
   Floods: "पानी का रिसाव",
+  "Bought from the grid · Month": "ग्रिड से खरीदी · माह",
+  "Open the history": "इतिहास खोलें",
+  "Battery charged · Month": "बैटरी चार्ज हुई · माह",
+  "Battery charged · Today": "बैटरी चार्ज हुई · आज",
+  "Home consumption · Month": "घर की खपत · माह",
+  "Home consumption · Today": "घर की खपत · आज",
+  "Taken from the grid · Today": "ग्रिड से ली गई · आज",
+  "Solar production · Month": "सौर उत्पादन · माह",
+  "Solar production · Today": "सौर उत्पादन · आज",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "Home Assistant के Recorder ने जवाब देने में बहुत समय लिया। ऐसा तब होता है जब इतिहास बड़ा हो या सर्वर छोटा: यह अपने आप फिर कोशिश करता है, और अगर बार-बार हो तो Recorder के रखे दिन घटाना (purge_keep_days) या ग़ैर-ज़रूरी एंटिटी हटाना बेहतर है।",
   "Add a car from an integration": "किसी इंटीग्रेशन से कार जोड़ें",
   "Other fields recognised": "पहचाने गए अन्य फ़ील्ड",
   "Petrol car": "पेट्रोल कार",
@@ -2968,8 +2978,6 @@ export default Object.freeze({
   "${n} new replies": "${n} नए जवाब",
   "1 source not responding": "1 स्रोत जवाब नहीं दे रहा",
   "${n} sources not responding": "${n} स्रोत जवाब नहीं दे रहे",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "Home Assistant ने समय पर आँकड़े नहीं दिए: Recorder धीमा है या कनेक्शन व्यस्त है। यह अपने आप फिर से कोशिश करता है।",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     '${entita.join(", ")} के लिए दीर्घकालिक आँकड़े उपलब्ध नहीं: सेंसर में state_class total_increasing (या total) और kWh इकाई होनी चाहिए। तब तक तात्कालिक मान दिखाए जाते हैं।',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":

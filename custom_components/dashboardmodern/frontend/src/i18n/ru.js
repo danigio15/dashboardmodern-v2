@@ -1253,6 +1253,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "Перевернуть проценты (100 = закрыто)",
   Flood: "Затопление",
   Floods: "Протечки",
+  "Bought from the grid · Month": "Куплено из сети · Месяц",
+  "Open the history": "Открыть историю",
+  "Battery charged · Month": "Батарея заряжена · Месяц",
+  "Battery charged · Today": "Батарея заряжена · Сегодня",
+  "Home consumption · Month": "Потребление дома · Месяц",
+  "Home consumption · Today": "Потребление дома · Сегодня",
+  "Taken from the grid · Today": "Взято из сети · Сегодня",
+  "Solar production · Month": "Выработка солнца · Месяц",
+  "Solar production · Today": "Выработка солнца · Сегодня",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "Recorder Home Assistant отвечал слишком долго. Так бывает, когда история большая или сервер слабый: он повторит попытку сам, а если это повторяется часто, стоит уменьшить число хранимых дней (purge_keep_days) или исключить ненужные сущности.",
   "Add a car from an integration": "Добавить автомобиль из интеграции",
   "Other fields recognised": "Другие распознанные поля",
   "Petrol car": "Бензиновый автомобиль",
@@ -2992,8 +3002,6 @@ export default Object.freeze({
   "${n} new replies": "${n} новых ответов",
   "1 source not responding": "1 источник не отвечает",
   "${n} sources not responding": "${n} источников не отвечают",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "Home Assistant не ответил на запрос статистики вовремя: Recorder медленный или соединение занято. Повтор выполняется автоматически.",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     'Нет долгосрочной статистики для ${entita.join(", ")}: датчику нужны state_class total_increasing (или total) и единица kWh. Пока показываются мгновенные значения.',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":

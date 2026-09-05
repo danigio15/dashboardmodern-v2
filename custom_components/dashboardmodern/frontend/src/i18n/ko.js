@@ -1244,6 +1244,16 @@ export default Object.freeze({
   "Flip the percentages (100 = closed)": "퍼센트 반전 (100 = 닫힘)",
   Flood: "침수",
   Floods: "누수",
+  "Bought from the grid · Month": "계통에서 구매 · 이번 달",
+  "Open the history": "기록 열기",
+  "Battery charged · Month": "배터리 충전 · 이번 달",
+  "Battery charged · Today": "배터리 충전 · 오늘",
+  "Home consumption · Month": "집 소비 · 이번 달",
+  "Home consumption · Today": "집 소비 · 오늘",
+  "Taken from the grid · Today": "계통에서 사용 · 오늘",
+  "Solar production · Month": "태양광 발전 · 이번 달",
+  "Solar production · Today": "태양광 발전 · 오늘",
+  "Home Assistant's Recorder took too long to answer. That happens when the history is large or the server is small: it retries on its own, and if it keeps happening it is worth lowering the days the Recorder keeps (purge_keep_days) or excluding entities you do not need.": "Home Assistant의 Recorder가 응답하는 데 너무 오래 걸렸습니다. 기록이 크거나 서버가 작을 때 생깁니다: 스스로 다시 시도하며, 자주 발생하면 Recorder가 보관하는 일수를 줄이거나(purge_keep_days) 필요 없는 엔티티를 제외하는 것이 좋습니다.",
   "Add a car from an integration": "통합에서 자동차 추가",
   "Other fields recognised": "인식된 기타 항목",
   "Petrol car": "가솔린 자동차",
@@ -2965,8 +2975,6 @@ export default Object.freeze({
   "${n} new replies": "새 답변 ${n}개",
   "1 source not responding": "응답 없는 소스 1개",
   "${n} sources not responding": "응답 없는 소스 ${n}개",
-  "Home Assistant did not answer the statistics in time: the Recorder is slow or the connection is busy. It retries on its own.":
-    "Home Assistant가 통계에 제때 응답하지 않았습니다. Recorder가 느리거나 연결이 혼잡합니다. 자동으로 다시 시도합니다.",
   'Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.':
     '${entita.join(", ")}의 장기 통계가 없습니다. 센서에 state_class total_increasing(또는 total)과 kWh 단위가 필요합니다. 그동안은 순시값을 표시합니다.',
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.":
