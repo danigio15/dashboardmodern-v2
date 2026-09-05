@@ -3042,4 +3042,11 @@ export default Object.freeze({
     "Roborock、Dreame、Ecovacs、Husqvarna……选好设备，机器人就是现成的：实体、地图、电量和各项程序。也可以在下面一格一格地填。",
   "No report in this state.": "此状态下没有反馈。",
   "Turn all lights off": "关闭所有灯",
+  Air: "空气",
+  Good: "良好",
+  Fair: "一般",
+  Poor: "较差",
+  Bad: "很差",
+  "Nothing to do.": "无需处理。",
+  "Opening a window brings it down quickly.": "开一扇窗，很快就会降下来。",
 });

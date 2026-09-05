@@ -736,8 +736,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // che uno legge sull'oblo' stanno nel nucleo, perche' sono una tabella e un
   // po' di aritmetica e si provano senza accendere niente; la card e la
   // finestra li disegnano e basta.
+  // 249 con com'e' l'aria di casa (`core/aria-model.js`, #321): «un widget come
+  // quello luci che segni la qualita' dell'aria relativa a un sensore». Il
+  // nucleo e' il giudizio — quali `device_class` sono misure dell'aria, dove
+  // cadono i quattro gradini per ognuna, e che le stesse sostanze in unita'
+  // diverse hanno scale diverse di mille volte — e si prova con una tabella di
+  // numeri, senza accendere niente. La tessera in Home la disegna il modulo
+  // dei widget, che ne mette in copertina la misura messa peggio: l'aria di
+  // una casa e' buona quando lo sono tutte le sue misure, non in media.
   assert.ok(
-    relative.length <= 248,
+    relative.length <= 249,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

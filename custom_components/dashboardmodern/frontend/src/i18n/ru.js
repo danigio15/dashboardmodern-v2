@@ -3112,4 +3112,11 @@ export default Object.freeze({
     "Roborock, Dreame, Ecovacs, Husqvarna… выберите устройство, и робот придёт готовым: его сущность, карта, батарея и программы. Или ниже, по одному полю.",
   "No report in this state.": "Нет обращений в этом состоянии.",
   "Turn all lights off": "Выключить весь свет",
+  Air: "Воздух",
+  Good: "Хороший",
+  Fair: "Средний",
+  Poor: "Плохой",
+  Bad: "Очень плохой",
+  "Nothing to do.": "Делать ничего не нужно.",
+  "Opening a window brings it down quickly.": "Открытое окно быстро снижает уровень.",
 });

@@ -3086,4 +3086,11 @@ export default Object.freeze({
     "Roborock, Dreame, Ecovacs, Husqvarna… डिवाइस चुनिए और रोबोट तैयार मिलेगा: उसकी एंटिटी, नक्शा, बैटरी और उसके प्रोग्राम। या नीचे, एक-एक खाना भरकर।",
   "No report in this state.": "इस स्थिति में कोई रिपोर्ट नहीं।",
   "Turn all lights off": "सारी लाइटें बंद करें",
+  Air: "हवा",
+  Good: "अच्छी",
+  Fair: "ठीक-ठाक",
+  Poor: "खराब",
+  Bad: "बहुत खराब",
+  "Nothing to do.": "करने को कुछ नहीं।",
+  "Opening a window brings it down quickly.": "खिड़की खोल दें, यह जल्दी नीचे आ जाएगा।",
 });

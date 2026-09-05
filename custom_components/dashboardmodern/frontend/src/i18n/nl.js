@@ -3114,4 +3114,11 @@ export default Object.freeze({
     "Roborock, Dreame, Ecovacs, Husqvarna… kies het apparaat en de robot is meteen klaar: zijn entiteit, de kaart, de accu en zijn programma's. Of hieronder, veld voor veld.",
   "No report in this state.": "Geen melding in deze staat.",
   "Turn all lights off": "Alle lampen uitschakelen",
+  Air: "Lucht",
+  Good: "Goed",
+  Fair: "Redelijk",
+  Poor: "Slecht",
+  Bad: "Zeer slecht",
+  "Nothing to do.": "Niets te doen.",
+  "Opening a window brings it down quickly.": "Een raam openzetten laat het snel dalen.",
 });

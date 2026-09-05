@@ -3072,4 +3072,11 @@ export default Object.freeze({
     "‏Roborock وDreame وEcovacs وHusqvarna… اختر الجهاز فيصل الروبوت جاهزًا: كيانه وخريطته وبطاريته وبرامجه. أو من الأسفل، حقلًا بعد حقل.",
   "No report in this state.": "لا توجد بلاغات في هذه الحالة.",
   "Turn all lights off": "إطفاء كل الأضواء",
+  Air: "الهواء",
+  Good: "جيد",
+  Fair: "مقبول",
+  Poor: "سيئ",
+  Bad: "سيئ جدًا",
+  "Nothing to do.": "لا شيء يستدعي التدخل.",
+  "Opening a window brings it down quickly.": "فتح نافذة يخفضه بسرعة.",
 });

@@ -37,6 +37,14 @@ import {
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
+import {
+  TONO_DEL_GRADO,
+  eUnaMisuraDellAria,
+  fraseDellAria,
+  giudizioDellAria,
+  letturaDellAria,
+  parolaDelGrado,
+} from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { poolList } from "../core/pool-model.js";
 /* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
@@ -2725,6 +2733,62 @@ function batteriesModel(states) {
   };
 }
 
+/* La tessera dell'aria (#321).
+ *
+ * «Un widget come quello luci che segni la qualita' dell'aria relativa a un
+ * sensore.» Non c'e' niente da configurare: i sensori dell'aria li dichiara
+ * Home Assistant — `device_class: pm25`, `carbon_dioxide`, i composti
+ * organici volatili — e chi ne ha uno se lo ritrova in Home.
+ *
+ * In copertina va la misura messa peggio, non la media: l'aria di una casa e'
+ * buona quando lo sono tutte le sue misure. Il numero grande e' il suo
+ * valore, la didascalia dice quale sostanza e' e come sta.
+ */
+function ariaModel(states) {
+  const fuori = widgetExcludedEntities();
+  const letture = Object.entries(states || {})
+    .filter(([entity, stato]) => eUnaMisuraDellAria(entity, stato) && widgetIncludes(entity, fuori))
+    .map(([entity, stato]) => {
+      const lettura = letturaDellAria(entity, stato, locale());
+      if (!lettura) return null;
+      return { ...lettura, name: friendlyName(states, entity) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.misura.localeCompare(b.misura) || a.name.localeCompare(b.name));
+  const giudizio = giudizioDellAria(letture);
+  if (!giudizio) return null;
+  const peggiore = giudizio.peggiore;
+  const parola = parolaDelGrado(giudizio.grado, locale());
+  return {
+    key: "aria",
+    /* Il colore dice il giudizio senza leggere: verde, ambra, arancio, rosso. */
+    accent: { buona: "#16a34a", discreta: "#f59e0b", scarsa: "#f97316", cattiva: "#dc2626" }[
+      giudizio.grado
+    ],
+    icon: "🍃",
+    /* Rossa in cima come gli allagamenti solo quando l'aria e' da cambiare:
+     * un avviso che si accende sempre non e' piu' un avviso. */
+    alert: giudizio.grado === "cattiva",
+    label: t("Aria", "Air"),
+    /* Il numero e la sua unita' nella stessa casella: la tessera le separa da
+     * se', come fa coi gradi della temperatura. */
+    value: `${formatNumber(peggiore.valore, peggiore.valore >= 100 ? 0 : 1)}${peggiore.unita ? ` ${peggiore.unita}` : ""}`,
+    caption: `${parola} · ${peggiore.misura}`,
+    ring: peggiore.quanto,
+    grado: giudizio.grado,
+    frase: fraseDellAria(giudizio, locale()),
+    /* Le righe sono letture, non comandi: la finestra le disegna come caselle
+     * de «Le misure», che e' la forma giusta per un numero da guardare. */
+    rows: letture.map((lettura) => ({
+      entity: lettura.entity,
+      name: lettura.name,
+      glyph: lettura.glifo,
+      value: `${formatNumber(lettura.valore, lettura.valore >= 100 ? 0 : 1)}${lettura.unita ? ` ${lettura.unita}` : ""}`,
+      grado: lettura.grado,
+    })),
+  };
+}
+
 function floodModel(states) {
   let entities = [];
   try {
@@ -3350,6 +3414,7 @@ function widgetModels(states) {
       irrigationModel(states),
       batteriesModel(states),
       floodModel(states),
+      ariaModel(states),
       ...customAlertModels(states),
     ].filter(Boolean),
   );
@@ -4491,6 +4556,7 @@ const CHIAVI_A_CARTE = new Set([
   "robot",
   "energia",
   "temperatura",
+  "aria",
   "batterie",
   "allerte",
   "rifiuti",
@@ -4816,6 +4882,19 @@ function storiaDelWidget(widget) {
 }
 
 function verdettoEFrase(widget) {
+  /* L'aria ha il suo giudizio, e il motore generico non ha niente da leggerle.
+   * Quello conta le cose accese e in funzione: su due sensori usciva «2 cose,
+   * nessuna in funzione» sopra un'aria scarsa, cioe' una frase vera di
+   * qualcos'altro. Qui il verdetto e' la parola del gradino e la frase dice
+   * quale misura sta peggio, e dove. */
+  if (widget?.key === "aria") {
+    const tono = TONO_DEL_GRADO[widget.grado] || "bene";
+    return `<section class="dm-w-racconto" data-dm-verdetto="${tono}">
+      <span class="dm-w-verdetto">${esc(parolaDelGrado(widget.grado, locale()))}</span>
+      <p class="dm-w-frase">${esc(widget.frase || "")}</p>
+      <div class="dm-w-misura"><b>${esc(clean(widget.value))}</b><small>${esc(clean(widget.caption))}</small></div>
+    </section>`;
+  }
   /* La batteria che si carica cambia la domanda della sezione Energia: si
    * vuole sapere quando sara' piena. Il soggetto lo decide chi disegna, che
    * conosce i numeri di adesso, e il motore ci si adegua. */

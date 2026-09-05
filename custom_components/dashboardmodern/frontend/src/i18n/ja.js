@@ -3099,4 +3099,11 @@ export default Object.freeze({
     "Roborock、Dreame、Ecovacs、Husqvarna… 機器を選べばロボットはそのまま使えます。エンティティ、マップ、バッテリー、各プログラムまで。もちろん下で 1 項目ずつ入れることもできます。",
   "No report in this state.": "この状態の報告はありません。",
   "Turn all lights off": "すべての照明を消す",
+  Air: "空気",
+  Good: "良好",
+  Fair: "ふつう",
+  Poor: "悪い",
+  Bad: "とても悪い",
+  "Nothing to do.": "することはありません。",
+  "Opening a window brings it down quickly.": "窓を開ければすぐに下がります。",
 });

@@ -3124,4 +3124,11 @@ export default Object.freeze({
     "Roborock, Dreame, Ecovacs, Husqvarna… wähle das Gerät, und der Roboter ist fertig: seine Entität, die Karte, der Akku und seine Programme. Oder unten, ein Feld nach dem anderen.",
   "No report in this state.": "Keine Meldung in diesem Zustand.",
   "Turn all lights off": "Alle Lichter ausschalten",
+  Air: "Luft",
+  Good: "Gut",
+  Fair: "Mittel",
+  Poor: "Schlecht",
+  Bad: "Sehr schlecht",
+  "Nothing to do.": "Nichts zu tun.",
+  "Opening a window brings it down quickly.": "Ein offenes Fenster senkt sie schnell.",
 });

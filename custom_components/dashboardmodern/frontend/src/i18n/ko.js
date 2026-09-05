@@ -3083,4 +3083,11 @@ export default Object.freeze({
     "Roborock, Dreame, Ecovacs, Husqvarna… 기기를 고르면 로봇이 바로 완성됩니다. 엔티티, 지도, 배터리, 프로그램까지. 아래에서 한 칸씩 채워도 됩니다.",
   "No report in this state.": "이 상태의 제보가 없습니다.",
   "Turn all lights off": "모든 조명 끄기",
+  Air: "공기",
+  Good: "좋음",
+  Fair: "보통",
+  Poor: "나쁨",
+  Bad: "매우 나쁨",
+  "Nothing to do.": "할 일은 없습니다.",
+  "Opening a window brings it down quickly.": "창문을 열면 금방 내려갑니다.",
 });

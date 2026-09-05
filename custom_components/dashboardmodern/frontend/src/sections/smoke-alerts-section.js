@@ -22,6 +22,7 @@ import {
   esc,
   installStyle,
   lexicalGlobal,
+  nomeDellEntita,
   onEditorRedraw,
   readJson,
   root,
@@ -261,22 +262,11 @@ function smokeRowMarkup(id, nome) {
     </div>`;
 }
 
-/* Come si chiama un rilevatore.
- *
- * Il nome scelto se c'e', altrimenti quello che dice Home Assistant. E se non
- * lo dice — capita: un'entita' senza nome suo e senza dispositivo — si legge
- * l'ultima parte dell'identificativo, come fa la stessa Home Assistant:
- * «binary_sensor.salotto_fumo» diventa «Salotto fumo». Prima al suo posto
- * finiva l'identificativo intero, stampato a lettere maiuscole in mezzo alla
- * card: «BINARY_SENSOR.S…». */
+/* Come si chiama un rilevatore: il nome scelto se c'e', se no quello che dice
+ * Home Assistant, se no l'identificativo letto come una frase. E' la regola di
+ * tutta la plancia, e sta scritta in un posto solo. */
 export function nomeDelRilevatore(id, nomi = {}, states = {}) {
-  const scelto = clean(nomi[id]);
-  if (scelto) return scelto;
-  const daCasa = clean(states[id]?.attributes?.friendly_name);
-  if (daCasa) return daCasa;
-  const coda = clean(id).split(".").slice(1).join(".").replaceAll("_", " ").trim();
-  if (!coda) return clean(id);
-  return coda.charAt(0).toUpperCase() + coda.slice(1);
+  return nomeDellEntita(id, nomi[id], states);
 }
 
 function blockMarkup(entities, nomi, states) {

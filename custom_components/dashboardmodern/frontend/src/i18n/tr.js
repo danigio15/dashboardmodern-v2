@@ -3097,4 +3097,11 @@ export default Object.freeze({
     "Roborock, Dreame, Ecovacs, Husqvarna… cihazı seç, robot hazır gelsin: varlığı, haritası, pili ve programları. Ya da aşağıda, tek tek.",
   "No report in this state.": "Bu durumda bildirim yok.",
   "Turn all lights off": "Tüm ışıkları kapat",
+  Air: "Hava",
+  Good: "İyi",
+  Fair: "Orta",
+  Poor: "Kötü",
+  Bad: "Çok kötü",
+  "Nothing to do.": "Yapılacak bir şey yok.",
+  "Opening a window brings it down quickly.": "Bir pencere açmak hızla düşürür.",
 });
