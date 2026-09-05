@@ -171,6 +171,25 @@ export function nomeDelServizio(scelto = {}) {
   }
 }
 
+/* E da chi arriva la MAPPA sotto la pioggia.
+ *
+ * E' l'altra meta' della stessa domanda, e per un anno non c'e' stata: le
+ * scritte al posto delle strade le manda il servizio del fondo, e la nota
+ * diceva solo il nome di chi manda la pioggia. Un indirizzo scritto a mano
+ * porta il suo ospite, che e' l'unica cosa che permette di riconoscere un
+ * servizio che non risponde piu'. */
+export function nomeDelFondo(scelto = {}) {
+  const indirizzo = clean(scelto?.fondo);
+  if (!indirizzo) return "";
+  const noto = Object.values(FONDI_MAPPA).find((fondo) => fondo.modello === indirizzo);
+  if (noto) return noto.nome;
+  try {
+    return new URL(indirizzo.replaceAll(/\{-?[a-z]\}/gi, "1")).hostname;
+  } catch (_errore) {
+    return "";
+  }
+}
+
 /* Se qualcuno ha mai toccato il radar. Una casa che non l'ha configurato non
  * se lo trova nelle previsioni: il servizio di serie vale per chi ha aperto la
  * scheda e scelto un posto, non per tutti. */
@@ -479,10 +498,22 @@ function daTessere(scelto, nodo) {
   const nota = nodo.querySelector(".dm-radar-nota");
   if (nota) {
     const posto = luogo.nome || `${luogo.lat.toFixed(3)}, ${luogo.lon.toFixed(3)}`;
-    /* E da chi arrivano i quadratini: chi guarda ha diritto di sapere a chi
-     * la sua plancia sta chiedendo la pioggia. */
-    const servizio = nomeDelServizio(scelto);
-    nota.textContent = [posto, `${scelto.raggio} km`, servizio].filter(Boolean).join(" · ");
+    /* E da chi arrivano i quadratini: chi guarda ha diritto di sapere a chi la
+     * sua plancia sta chiedendo la pioggia — e a chi sta chiedendo la MAPPA.
+     *
+     * Prima diceva solo la pioggia, e non bastava. Le scritte «Zoom Level Not
+     * Supported» che si vedono sul campo le stampa il servizio del FONDO, non
+     * quello della pioggia: chiedendo questa riga per capire da dove
+     * arrivavano si otteneva la risposta a un'altra domanda. Adesso ci sono
+     * tutti e due, e con un'occhiata si sa chi sta parlando. */
+    nota.textContent = [
+      posto,
+      `${scelto.raggio} km`,
+      nomeDelServizio(scelto),
+      nomeDelFondo(scelto),
+    ]
+      .filter(Boolean)
+      .join(" · ");
   }
 }
 
