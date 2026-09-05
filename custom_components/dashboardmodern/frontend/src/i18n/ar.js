@@ -3079,4 +3079,11 @@ export default Object.freeze({
   Bad: "سيئ جدًا",
   "Nothing to do.": "لا شيء يستدعي التدخل.",
   "Opening a window brings it down quickly.": "فتح نافذة يخفضه بسرعة.",
+  "Open to air out": "افتح للتهوية",
+  "opening dries": "الفتح يجفّف",
+  outside: "بالخارج",
+  "Room humidity": "رطوبة الغرفة",
+  "Suggest airing above (%)": "اقترح التهوية فوق (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "عندما تتجاوز رطوبة الغرفة هذا المستوى، تقترح نافذة تلك الغرفة فتحها للتهوية — لكن فقط إذا كان الهواء بالخارج أكثر جفافًا، وإلا فإن الفتح يزيد الأمر سوءًا. يلزم مستشعر رطوبة الغرفة أعلاه ومستشعر محطة الطقس ضمن الكيانات. الصفر يُطفئ الاقتراح.",
 });

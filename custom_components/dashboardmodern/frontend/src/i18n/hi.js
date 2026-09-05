@@ -3093,4 +3093,11 @@ export default Object.freeze({
   Bad: "बहुत खराब",
   "Nothing to do.": "करने को कुछ नहीं।",
   "Opening a window brings it down quickly.": "खिड़की खोल दें, यह जल्दी नीचे आ जाएगा।",
+  "Open to air out": "हवा के लिए खोलें",
+  "opening dries": "खोलने से सूखता है",
+  outside: "बाहर",
+  "Room humidity": "कमरे की नमी",
+  "Suggest airing above (%)": "इससे ऊपर हवा देने का सुझाव दें (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "जब किसी कमरे की नमी इस स्तर से ऊपर जाती है, तो उस कमरे की खिड़की हवा देने के लिए उसे खोलने का सुझाव देती है — पर तभी जब बाहर की हवा ज़्यादा सूखी हो, वरना खोलने से हालत बिगड़ती है। इसके लिए ऊपर वाला कमरे का नमी सेंसर और एंटिटीज़ में मौसम स्टेशन वाला सेंसर चाहिए। शून्य सुझाव बंद कर देता है।",
 });

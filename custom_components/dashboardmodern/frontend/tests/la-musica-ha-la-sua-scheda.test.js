@@ -269,7 +269,13 @@ test("il disegno della cassa è di casa, e la scheda viaggia con la plancia", as
   assert.match(leggi("sections/navigation-section.js"), /media: "media",/);
   const persistenza = leggi("sections/config-persistence-section.js");
   assert.match(persistenza, /"cd_media_player",/);
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 26/);
+  /* La revisione dev'essere ALMENO quella che ha aggiunto questa chiave, non
+   * esattamente quella: inchiodare il numero rendeva rossa questa prova ogni
+   * volta che una chiave nuova, che non c'entra niente, alzava la revisione. */
+  assert.ok(
+    Number(/CONFIG_KEYS_REVISION = (\d+)/.exec(persistenza)?.[1]) >= 26,
+    "la revisione non e' mai stata alzata per questa chiave",
+  );
   const runtime = leggi("sections/section-runtime.js");
   assert.match(runtime, /installMediaPlayer\(\);/);
   assert.match(runtime, /installMediaEditor\(\);/);

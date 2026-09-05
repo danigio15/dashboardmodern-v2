@@ -18,6 +18,11 @@
  * disegnava, il contatto si legge e basta.
  */
 import {
+  CHIAVE_SOGLIA_UMIDITA,
+  consiglioDiArieggiare,
+  sogliaDellUmidita,
+} from "../core/arieggiare.js";
+import {
   CHIAVE_SOGLIA_CHIUSA,
   SOGLIA_CHIUSA_MASSIMA,
   coverClosedThreshold,
@@ -36,6 +41,7 @@ import {
   installStyle,
   readJson,
   root,
+  section,
   t,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -153,6 +159,7 @@ export function paintCard(card, states = allStates()) {
     else delete windowNode.dataset.dmGrata;
   }
   ensurePill(card, model);
+  ensureArieggia(card, cover, states);
   return true;
 }
 
@@ -175,6 +182,86 @@ export function paroleDelSerramento(model) {
     default:
       return "";
   }
+}
+
+/* «Apri la finestra per arieggiare» (#330).
+ *
+ * Due condizioni insieme: l'umidita' della stanza sopra la soglia scritta in
+ * configurazione, E l'aria di fuori piu' asciutta di quella di dentro. La
+ * seconda e' quella che rende il consiglio onesto — con novanta dentro e
+ * novantacinque fuori aprire non asciuga, bagna — ed e' la ragione per cui
+ * questo non e' un igrometro con una soglia sopra.
+ *
+ * Chi decide e' `consiglioDiArieggiare`, che non legge niente: qui si va solo
+ * a prendere i tre numeri. Dentro: il sensore di umidita' della stanza a cui
+ * la finestra appartiene. Fuori: la stazione meteo, che nella plancia e' gia'
+ * una casella sua. Manca uno dei due, si tace: un consiglio dato a meta' e'
+ * peggio di nessun consiglio, perche' sembra completo. */
+const ENTITA_UMIDITA_FUORI = "dm.home_meteo_umidita";
+
+function misura(riferimento, states) {
+  const entity = clean(riferimento);
+  if (!entity) return null;
+  const risolto = clean(root.resolveEntity?.(entity) || entity);
+  const stato = states?.[risolto] ?? states?.[entity];
+  const grezzo = clean(stato?.state);
+  if (!grezzo || grezzo === "unavailable" || grezzo === "unknown") return null;
+  return grezzo;
+}
+
+/* La stanza di una finestra: quella scritta sulla sua riga, per id o per nome. */
+function stanzaDellaFinestra(cover) {
+  const cercato = clean(cover?.room_id || cover?.roomId || cover?.room);
+  if (!cercato) return null;
+  const stanze = section("rooms", readJson("cd_stanze", []));
+  if (!Array.isArray(stanze)) return null;
+  return (
+    stanze.find(
+      (stanza) => clean(stanza?.id) === cercato || clean(stanza?.name) === cercato,
+    ) || null
+  );
+}
+
+export function consiglioDellaFinestra(cover, states = allStates()) {
+  const stanza = stanzaDellaFinestra(cover);
+  if (!stanza) return null;
+  return consiglioDiArieggiare({
+    dentro: misura(stanza.hum, states),
+    fuori: misura(ENTITA_UMIDITA_FUORI, states),
+    soglia: sogliaDellUmidita(readJson(CHIAVE_SOGLIA_UMIDITA, null)),
+  });
+}
+
+/* La riga del consiglio, sotto la card: non e' una pastiglia di stato — la
+ * finestra e' chiusa, e va bene cosi' — e' una cosa da fare. Sta sotto perche'
+ * in testa ci sono gia' il nome e lo stato, e una terza pastiglia li'
+ * mangerebbe il nome. */
+function ensureArieggia(card, cover, states) {
+  const esito = cover ? consiglioDellaFinestra(cover, states) : null;
+  let riga = card.querySelector("[data-dm-arieggia]");
+  if (!esito?.arieggia) {
+    riga?.remove();
+    return;
+  }
+  if (!riga) {
+    riga = doc.createElement("div");
+    riga.className = "dm-tw-arieggia";
+    riga.dataset.dmArieggia = "true";
+    card.append(riga);
+  }
+  const testo = `💨 ${t("Apri per arieggiare", "Open to air out")} · ${Math.round(
+    esito.dentro,
+  )}% → ${Math.round(esito.fuori)}%`;
+  if (riga.textContent !== testo) riga.textContent = testo;
+  /* I numeri stanno fuori dalla frase da tradurre: una chiave con dentro un
+   * `${...}` non e' una chiave, e' un pezzo di codice che cambia a ogni
+   * lettura del sensore. La frase resta fissa, i numeri le si mettono
+   * accanto. */
+  riga.title =
+    `${t("Umidità in stanza", "Room humidity")} ${Math.round(esito.dentro)}% · ` +
+    `${t("soglia", "threshold")} ${Math.round(esito.soglia)}% · ` +
+    `${t("fuori", "outside")} ${Math.round(esito.fuori)}% — ` +
+    t("aprire asciuga", "opening dries");
 }
 
 /* La pastiglia "Finestra aperta" accanto a quella della tapparella.
@@ -704,6 +791,17 @@ function installStyles() {
        forma la da' gia' chi possiede .tapp-state: qui si cambia solo il colore. */
     html body #page-tapparelle#page-tapparelle .dm-tw-pill{
       background:rgba(245,158,11,.18)!important;border-color:rgba(245,158,11,.34)!important;color:#b45309!important}
+
+    /* Il consiglio di arieggiare (#330): una riga sotto la card, non una terza
+       pastiglia in testa — quella riga dice cosa fare, non com'e' messa la
+       finestra, e in testa mangerebbe il nome. Verde acqua perche' e' un
+       invito, non un allarme: la finestra chiusa non e' un guasto. */
+    html body #page-tapparelle#page-tapparelle .dm-tw-arieggia{
+      margin:8px 0 0;padding:6px 9px;border-radius:11px;
+      border:1px solid color-mix(in srgb,#0ea5e9 32%,transparent);
+      background:color-mix(in srgb,#0ea5e9 11%,transparent);
+      color:#0369a1;font-size:11px;font-weight:800;letter-spacing:.2px;
+      line-height:1.3;text-align:center}
 
     #ed-body .dm-tw-contact-slot{display:block!important;margin-top:10px!important}
     /* La soglia (#298): una casella stretta col suo aiuto sotto, e senza la

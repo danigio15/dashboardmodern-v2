@@ -744,8 +744,17 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // numeri, senza accendere niente. La tessera in Home la disegna il modulo
   // dei widget, che ne mette in copertina la misura messa peggio: l'aria di
   // una casa e' buona quando lo sono tutte le sue misure, non in media.
+  // 250 con quando conviene aprire la finestra (`core/arieggiare.js`, #330):
+  // «una soglia per l'umidita' oltre la quale suggerisce di aprire la finestra
+  // per arieggiare, ma solo se l'umidita' esterna e' piu' bassa di quella
+  // della stanza». Il nucleo e' quel «ma»: e' la condizione che tiene onesto
+  // il consiglio, perche' con novanta dentro e novantacinque fuori aprire non
+  // asciuga — bagna. Sono tre numeri e un verdetto, e si provano senza
+  // accendere niente; la soglia la scrive la scheda Temperature, accanto ai
+  // sensori di umidita' che confronta, e il consiglio compare sulla finestra
+  // della stanza, che e' la cosa che uno deve andare ad aprire.
   assert.ok(
-    relative.length <= 249,
+    relative.length <= 250,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

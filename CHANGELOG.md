@@ -32,6 +32,18 @@ com'e' l'aria di casa.
   stanza la sa gia' Home Assistant: se l'area del dispositivo si chiama come
   una stanza configurata, il robot ci va dentro da solo.
 
+- **«Apri la finestra per arieggiare» (#330).** Una soglia per l'umidita' nella
+  scheda Temperature — accanto ai sensori che confronta — e il consiglio
+  compare di la', sulla finestra della stanza, che e' la cosa che uno deve
+  andare ad aprire. Due condizioni insieme, non una: l'umidita' della stanza
+  sopra la soglia E l'aria di fuori piu' asciutta di quella di dentro. La
+  seconda e' quella che rende il consiglio onesto — con novanta dentro e
+  novantacinque fuori aprire non asciuga, bagna — ed e' la ragione per cui
+  questo non e' un igrometro con una soglia sopra. Manca uno dei due numeri, la
+  riga non compare: un consiglio dato a meta' e' peggio di nessun consiglio,
+  perche' sembra completo. Serve il sensore di umidita' della stanza e quello
+  della stazione meteo; zero nella soglia spegne tutto.
+
 - **La tessera dell'aria (#321).** «Un widget come quello luci che segni la
   qualita' dell'aria relativa a un sensore.» Compare da sola con un sensore
   dell'aria in casa — PM2.5, PM10, anidride carbonica, composti organici
@@ -55,6 +67,36 @@ com'e' l'aria di casa.
   quando c'e' piu' di uno stato da separare.
 
 ### Corretto
+
+- **La card del robot scriveva l'identificativo della stanza.** «room-salone»
+  sotto al titolo, invece di «Salone». Nasce con il robot che arriva
+  dall'integrazione: prima la stanza la scriveva a mano chi configurava e
+  quello che c'era scritto era gia' un nome, adesso la scrive il legame col
+  dispositivo prendendo l'area da Home Assistant, e quello che salva e' l'id —
+  l'unica cosa che regge un rinominamento. Il nome lo rimette la stessa
+  conversione che usano tutte le altre sezioni.
+
+- **La mappa del robot si scorre col dito e col mouse.** Il trascinamento era
+  chiuso dietro un «solo se sei oltre il cento per cento»: a misura d'apertura
+  la mappa non si muoveva di un pixel, e la meta' che non ci stava — una
+  planimetria lunga, un telefono in verticale — non c'era modo di guardarla.
+  Adesso si trascina a qualsiasi ingrandimento, e a fermarla non c'e' un
+  divieto ma un limite, cosi' la mappa non si puo' portare via dallo schermo.
+
+- **Un robot comandato a automazioni non aveva nessun tasto.** Chi ha un robot
+  che Home Assistant non integra a fondo si scrive le automazioni — Pulizia,
+  Pausa, Dock — ed e' quello il suo cruscotto: adesso entrano fra i comandi come
+  gli script e i tasti. Il verbo conta: `automation.turn_on` riabilita
+  l'automazione e lascia il robot fermo, cambiando di nascosto
+  un'impostazione di Home Assistant. Quello giusto e' `trigger`.
+
+- **Le stanze della sezione Temperature non andavano a capo (#329).** «Se le
+  stanze occupano piu' spazio nella finestra browser non vanno a capo.» La
+  striscia delle linguette scorre di lato e la sua barra e' nascosta apposta:
+  sul telefono e' il gesto giusto, col mouse pero' non c'e' ne' la barra ne' il
+  dito, e le stanze oltre il bordo destro non erano nascoste — erano
+  irraggiungibili. Adesso dove si punta col mouse la fila va a capo, dove si
+  tocca resta la striscia che scorre.
 
 - **Un'entita' configurata non si perde piu' in nessun aggiornamento.**
 

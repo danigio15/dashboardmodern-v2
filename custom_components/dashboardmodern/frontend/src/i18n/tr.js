@@ -3104,4 +3104,11 @@ export default Object.freeze({
   Bad: "Çok kötü",
   "Nothing to do.": "Yapılacak bir şey yok.",
   "Opening a window brings it down quickly.": "Bir pencere açmak hızla düşürür.",
+  "Open to air out": "Havalandırmak için aç",
+  "opening dries": "açmak kurutur",
+  outside: "dışarıda",
+  "Room humidity": "Odadaki nem",
+  "Suggest airing above (%)": "Şunun üzerinde havalandırmayı öner (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "Bir odanın nemi bu seviyenin üstüne çıktığında, o odanın penceresi havalandırmak için açılmasını önerir — ama yalnızca dışarıdaki hava daha kuruysa, aksi hâlde açmak durumu kötüleştirir. Yukarıdaki oda nem sensörü ile Varlıklar bölümündeki meteoroloji istasyonu sensörü gerekir. Sıfır öneriyi kapatır.",
 });

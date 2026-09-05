@@ -3121,4 +3121,11 @@ export default Object.freeze({
   Bad: "Zeer slecht",
   "Nothing to do.": "Niets te doen.",
   "Opening a window brings it down quickly.": "Een raam openzetten laat het snel dalen.",
+  "Open to air out": "Open om te luchten",
+  "opening dries": "openen droogt",
+  outside: "buiten",
+  "Room humidity": "Luchtvochtigheid in de kamer",
+  "Suggest airing above (%)": "Luchten voorstellen boven (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "Als de luchtvochtigheid van een kamer boven dit niveau komt, stelt het raam van die kamer voor om te luchten — maar alleen als de lucht buiten droger is, anders maakt openen het erger. Hiervoor zijn de vochtsensor van de kamer hierboven en die van het weerstation onder Entiteiten nodig. Nul zet de suggestie uit.",
 });

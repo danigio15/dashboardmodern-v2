@@ -3106,4 +3106,11 @@ export default Object.freeze({
   Bad: "とても悪い",
   "Nothing to do.": "することはありません。",
   "Opening a window brings it down quickly.": "窓を開ければすぐに下がります。",
+  "Open to air out": "換気のために開けましょう",
+  "opening dries": "開けると乾きます",
+  outside: "屋外",
+  "Room humidity": "部屋の湿度",
+  "Suggest airing above (%)": "この値を超えたら換気を提案 (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "部屋の湿度がこの値を超えると、その部屋の窓が換気のために開けることを提案します。ただし屋外の空気のほうが乾いている場合だけです。そうでなければ開けると悪化します。上の部屋の湿度センサーと、エンティティにある気象ステーションのセンサーが必要です。ゼロで提案を止めます。",
 });

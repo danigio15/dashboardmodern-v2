@@ -105,7 +105,12 @@ const USER_DATA_VERSION = 1;
  * (`cd_tapparelle_soglia`, #298), le allerte (`cd_allerte`, #296) e la raccolta
  * differenziata (`cd_rifiuti`, #293): tre cose configurate una volta per tutta
  * la casa, che il telefono e il tablet devono leggere uguali. */
-export const CONFIG_KEYS_REVISION = 26;
+/* La revisione 27 aggiunge la soglia dell'umidita' (`cd_umidita_soglia`,
+ * #330): «una soglia per l'umidita' oltre la quale suggerisce di aprire la
+ * finestra per arieggiare». E' una quota di casa, come quella delle
+ * tapparelle: se restasse sul dispositivo che l'ha scritta, il telefono
+ * direbbe di aprire la finestra e il tablet no, davanti alla stessa stanza. */
+export const CONFIG_KEYS_REVISION = 27;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -255,6 +260,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_tapparelle",
   // Sotto che percentuale una tapparella conta come chiusa (#298).
   "cd_tapparelle_soglia",
+  "cd_umidita_soglia",
   // Le allerte (#296): quali sensori guardare per terremoti, meteo, fulmini,
   // pollini, comfort e voli.
   "cd_allerte",

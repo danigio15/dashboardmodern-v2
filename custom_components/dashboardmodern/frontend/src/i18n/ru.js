@@ -3119,4 +3119,11 @@ export default Object.freeze({
   Bad: "Очень плохой",
   "Nothing to do.": "Делать ничего не нужно.",
   "Opening a window brings it down quickly.": "Открытое окно быстро снижает уровень.",
+  "Open to air out": "Откройте для проветривания",
+  "opening dries": "проветривание сушит",
+  outside: "снаружи",
+  "Room humidity": "Влажность в комнате",
+  "Suggest airing above (%)": "Советовать проветрить выше (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "Когда влажность в комнате превышает этот уровень, окно этой комнаты предлагает открыть его для проветривания — но только если снаружи воздух суше, иначе открывать станет хуже. Нужны датчик влажности комнаты выше и датчик метеостанции в разделе «Сущности». Ноль выключает подсказку.",
 });

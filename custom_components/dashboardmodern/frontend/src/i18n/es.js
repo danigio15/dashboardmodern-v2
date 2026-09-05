@@ -3128,4 +3128,11 @@ export default Object.freeze({
   Bad: "Muy mala",
   "Nothing to do.": "No hay nada que hacer.",
   "Opening a window brings it down quickly.": "Abrir una ventana la baja enseguida.",
+  "Open to air out": "Abre para ventilar",
+  "opening dries": "abrir seca",
+  outside: "fuera",
+  "Room humidity": "Humedad de la habitación",
+  "Suggest airing above (%)": "Sugerir ventilar por encima de (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "Cuando la humedad de una habitación supera este nivel, la ventana de esa habitación sugiere abrirla para ventilar, pero solo si el aire de fuera está más seco; de lo contrario abrir empeora la situación. Necesita el sensor de humedad de la habitación de arriba y el de la estación meteorológica en Entidades. Cero desactiva la sugerencia.",
 });

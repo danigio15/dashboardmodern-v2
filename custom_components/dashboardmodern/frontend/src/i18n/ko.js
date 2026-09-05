@@ -3090,4 +3090,11 @@ export default Object.freeze({
   Bad: "매우 나쁨",
   "Nothing to do.": "할 일은 없습니다.",
   "Opening a window brings it down quickly.": "창문을 열면 금방 내려갑니다.",
+  "Open to air out": "환기하려면 여세요",
+  "opening dries": "열면 건조해집니다",
+  outside: "바깥",
+  "Room humidity": "방 습도",
+  "Suggest airing above (%)": "이 값을 넘으면 환기 제안 (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "방의 습도가 이 값을 넘으면 그 방의 창문이 환기를 위해 열라고 제안합니다. 다만 바깥 공기가 더 건조할 때만입니다. 그렇지 않으면 여는 쪽이 더 나쁩니다. 위의 방 습도 센서와 엔터티에 있는 기상 관측소 센서가 필요합니다. 0을 넣으면 제안이 꺼집니다.",
 });

@@ -3049,4 +3049,11 @@ export default Object.freeze({
   Bad: "很差",
   "Nothing to do.": "无需处理。",
   "Opening a window brings it down quickly.": "开一扇窗，很快就会降下来。",
+  "Open to air out": "打开通风",
+  "opening dries": "开窗可除湿",
+  outside: "室外",
+  "Room humidity": "房间湿度",
+  "Suggest airing above (%)": "超过此值时建议通风 (%)",
+  "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. It needs the room humidity sensor above and the weather station one under Entities. Zero turns the suggestion off.":
+    "当某个房间的湿度超过这个数值时，该房间的窗户会建议开窗通风——但仅在室外空气更干燥时；否则开窗只会更糟。需要上方的房间湿度传感器和「实体」中的气象站传感器。填 0 关闭该建议。",
 });

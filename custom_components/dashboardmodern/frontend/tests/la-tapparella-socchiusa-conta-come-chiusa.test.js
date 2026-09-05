@@ -89,6 +89,12 @@ test("la soglia si scrive nella scheda Finestre e viaggia con la configurazione"
   assert.match(scheda, /ensureSogliaField\(body\);/);
   const persistenza = await leggi("sections/config-persistence-section.js");
   assert.match(persistenza, new RegExp(`"${CHIAVE_SOGLIA_CHIUSA}"`));
-  assert.match(persistenza, /CONFIG_KEYS_REVISION = 26/);
+  /* La revisione dev'essere ALMENO quella che ha aggiunto questa chiave, non
+   * esattamente quella: inchiodare il numero rendeva rossa questa prova ogni
+   * volta che una chiave nuova, che non c'entra niente, alzava la revisione. */
+  assert.ok(
+    Number(/CONFIG_KEYS_REVISION = (\d+)/.exec(persistenza)?.[1]) >= 26,
+    "la revisione non e' mai stata alzata per questa chiave",
+  );
   assert.equal(CHIAVE_SOGLIA_CHIUSA, "cd_tapparelle_soglia");
 });
