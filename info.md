@@ -23,7 +23,7 @@ benzina, Robot, Piscina, Irrigazione, Gestione termica.
 **Sicurezza** — Antifurto, telecamere col video vero (WebRTC e HLS), porte e
 cancelli, allerte di protezione civile, radar meteo, rifiuti.
 
-**In tredici lingue**, con il tema chiaro e quello scuro.
+**In quindici lingue**, con il tema chiaro e quello scuro.
 
 ## Cosa serve
 
@@ -41,8 +41,10 @@ l'integrazione.
 
 Gli aggiornamenti successivi arrivano da soli: l'integrazione se ne accorge
 entro mezz'ora e lo dice in **Impostazioni → Aggiornamenti**, dove il tasto
-**Installa** fa tutto. Da HACS resta la strada di sempre: **⋮ → Aggiorna
-informazioni**, poi **Aggiorna** e riavvio.
+**Installa** scarica la versione nuova e mette a posto i file. Da HACS resta la
+strada di sempre: **⋮ → Aggiorna informazioni**, poi **Aggiorna**. In tutti e
+due i casi, alla fine **si riavvia Home Assistant**: finché non riparte, il
+codice che gira è ancora quello di prima.
 
 ## Dove leggere il resto
 
