@@ -245,6 +245,12 @@ export function applyVehicleAsset() {
    * la seconda macchina compariva la foto della prima. */
   setLexicalGlobal("CD_EV_IMAGE", url || "");
   let mounted = false;
+  /* Qual e' la foto a riposo di questa vettura, che non e' sempre quella a
+   * schermo: in carica a schermo c'e' l'altra. La cornice della vetrina si
+   * tiene sulla forma di quella a riposo — una sola per auto, cosi' non cambia
+   * quando si attacca il cavo — e senza saperne l'indirizzo dovrebbe prenderla
+   * in prestito dall'auto di prima. */
+  const riposo = resolveVehicleAsset(photos.idle);
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
     const image = doc.getElementById(id); if (!image) continue;
     if (!url) { image.removeAttribute("src"); image.style.display = "none"; continue; }
@@ -253,12 +259,36 @@ export function applyVehicleAsset() {
     const resolved = new URL(url, doc.baseURI).href;
     if (image.src !== resolved || image.dataset.evFailed === "1") { delete image.dataset.evFailed; delete image.dataset.evImageError; image.src = url; }
     image.dataset.evPhoto = plugged ? "plugged" : "idle";
+    if (riposo) image.dataset.evIdle = riposo;
+    else delete image.dataset.evIdle;
     image.style.display = "block"; mounted = true;
   }
   const hero = doc.getElementById("lm-hero-card");
   if (hero) {
     hero.dataset.evImage = url ? "configured" : "missing";
     hero.dataset.evCable = plugged ? "plugged" : "unplugged";
+  }
+  /* E si dice qual e' la foto dell'auto, quando cambia.
+   *
+   * La cornice della vetrina segue la forma della foto, e per seguirla deve
+   * sapere quando la foto e' un'altra. Indovinarlo da fuori non funziona: al
+   * tocco sulla linguetta la foto e' ancora quella di prima, e restando in
+   * ascolto del solo caricamento si arriva mezzo secondo tardi — la vettura
+   * nuova dentro la cornice della vecchia, e poi il salto. E' il rimbalzo
+   * visto sul campo.
+   *
+   * L'annuncio guarda la FOTO, non chi l'ha scritta: a schermo la monta quasi
+   * sempre il guscio, un giro prima che questa funzione arrivi a dirsi
+   * d'accordo, e legarlo alla nostra scrittura voleva dire non annunciare mai.
+   * Cambia l'indirizzo, si dice; non cambia, si tace — e le passate sono
+   * tante, quindi tacere e' la regola. */
+  if (state.ultimaFoto !== url) {
+    state.ultimaFoto = url;
+    try {
+      root.dispatchEvent?.(
+        new CustomEvent("dashboardmodern:ev-foto", { detail: { url, riposo, plugged } }),
+      );
+    } catch (_errore) {}
   }
   return mounted;
 }

@@ -215,12 +215,66 @@ function sfondoSfocato(hero, image) {
  * richiesta in meno a ogni disegno, e nessuna misura che possa non tornare
  * mai. Finche' la foto a riposo non si e' vista almeno una volta vale quella
  * che c'e'; da li' in poi comanda lei. */
+/* La forma appartiene alla FOTO, non al modulo.
+ *
+ * Era un numero solo, tenuto qui dentro: la forma dell'ultima foto a riposo
+ * che si fosse vista, di qualunque auto fosse. Cambiando vettura con la
+ * linguetta quel numero restava quello di prima, e la foto nuova compariva
+ * dentro la cornice della vecchia; quando poi finiva di caricarsi, la cornice
+ * saltava alla forma giusta. Misurato: la foto arriva a 335 ms dentro una
+ * cornice alta 358, e a 762 ms la cornice diventa 440. Due passi invece di
+ * uno — «cambio vettura con il tab e le foto rimbalzano».
+ *
+ * Adesso ogni foto si porta dietro la sua forma, e la si impara una volta
+ * sola. Chi va avanti e indietro fra due auto — che e' esattamente quello che
+ * si fa con le linguette — la seconda volta trova la cornice gia' giusta. */
+const forme = () => (state.forme ||= new Map());
+
+/* E quella che non si e' mai vista si va a misurare, di lato.
+ *
+ * Serve nei due casi in cui la foto a riposo non e' a schermo: la vettura e'
+ * in carica e mostra quella col cavo, oppure si e' appena cambiata auto e la
+ * sua non e' ancora arrivata. Senza questo si prenderebbe in prestito la
+ * forma di un'altra macchina, che e' la bugia da cui si viene. Una richiesta
+ * per foto, la prima volta e mai piu': il browser poi ce l'ha in cassa. */
+function imparaLaForma(url) {
+  if (!url || forme().has(url) || state.inMisura?.has(url)) return;
+  (state.inMisura ||= new Set()).add(url);
+  const prova = new root.Image();
+  prova.decoding = "async";
+  prova.onload = () => {
+    state.inMisura.delete(url);
+    if (prova.naturalHeight > 0) {
+      forme().set(url, prova.naturalWidth / prova.naturalHeight);
+      scheduleEvShowcase();
+    }
+  };
+  prova.onerror = () => state.inMisura.delete(url);
+  prova.src = url;
+}
+
 function formaDellaCornice(image, loaded) {
+  /* Qual e' la foto a riposo di questa vettura.
+   *
+   * Quando a schermo c'e' lei, e' l'indirizzo che l'immagine porta adesso: la
+   * cosa piu' fresca che ci sia, e non c'e' bisogno di chiederla a nessuno.
+   * Solo mentre l'auto e' in carica — a schermo c'e' quella col cavo — serve
+   * saperlo da fuori, e lo scrive la sezione dell'auto sull'immagine stessa
+   * ogni volta che la monta: un dato che sta gia' a schermo, non una
+   * dipendenza fra moduli. */
+  const inMostra = clean(image.getAttribute("src"));
+  const riposo = image.dataset.evPhoto === "plugged" ? clean(image.dataset.evIdle) : inMostra;
   const aSchermo = loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
   if (aSchermo > 0 && image.dataset.evPhoto !== "plugged") {
     state.formaRiposo = aSchermo;
+    if (riposo) forme().set(riposo, aSchermo);
     return aSchermo;
   }
+  const ricordata = riposo ? forme().get(riposo) : 0;
+  if (ricordata > 0) return ricordata;
+  imparaLaForma(riposo);
+  /* Finche' non si sa, si tiene quella che c'e': cambiarla per un ripiego e
+   * poi di nuovo per quella giusta sarebbero due salti invece di uno. */
   return state.formaRiposo > 0 ? state.formaRiposo : aSchermo;
 }
 
@@ -235,8 +289,16 @@ function syncPhoto(hero) {
     }
   }
   const broken = image.dataset.evFailed === "1" || Boolean(image.dataset.evImageError);
-  const loaded = Boolean(clean(image.getAttribute("src"))) && !broken && image.naturalWidth > 0;
-  const value = loaded ? "on" : "off";
+  /* «Senza foto» e «la foto non e' ancora arrivata» sono due cose diverse.
+   *
+   * Il segnaposto — la fascia bassa e quieta col disegnino dell'auto — e' per
+   * chi una foto non ce l'ha. Ci finiva dentro anche chi ce l'ha ma la sta
+   * ancora caricando: cambiando vettura la scheda si sgonfiava alla fascia e
+   * mezzo secondo dopo si rigonfiava. Un'auto che ha la sua foto tiene la sua
+   * cornice anche mentre la aspetta. */
+  const cePhoto = Boolean(clean(image.getAttribute("src"))) && !broken;
+  const loaded = cePhoto && image.naturalWidth > 0;
+  const value = cePhoto ? "on" : "off";
   if (hero.dataset.dmEvvPhoto !== value) hero.dataset.dmEvvPhoto = value;
   /* La cornice prende la forma della foto.
    *
@@ -264,12 +326,38 @@ function syncPhoto(hero) {
    * La forma la detta sempre la foto a riposo, che e' quella che c'e' sempre.
    * Se serve, si carica di lato solo per farsi misurare: non si disegna, si
    * chiede solo quanto e' larga e quanto e' alta. */
-  const forma = formaDellaCornice(image, loaded);
-  if (forma) {
-    const scritta = Math.max(1.15, Math.min(2.4, forma)).toFixed(3);
-    if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
-      hero.style.setProperty("--dm-evv-hero-ratio", scritta);
-  } else hero.style.removeProperty("--dm-evv-hero-ratio");
+  scriviLaForma(hero, formaDellaCornice(image, loaded));
+}
+
+/* Fra 1,15 e 2,4: una panoramica non deve schiacciare la cornice in una
+ * fessura, e un ritratto non deve farne una torre. Fuori da quei due estremi
+ * si accetta un po' di margine ai lati — sempre meglio di una pagina
+ * sfondata. Scritta in un posto solo, perche' la scrivono in due. */
+function scriviLaForma(hero, forma) {
+  if (!hero) return;
+  if (!forma) {
+    hero.style.removeProperty("--dm-evv-hero-ratio");
+    return;
+  }
+  const scritta = Math.max(1.15, Math.min(2.4, forma)).toFixed(3);
+  if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
+    hero.style.setProperty("--dm-evv-hero-ratio", scritta);
+}
+
+/* La cornice cambia insieme alla foto, non al giro di disegno dopo.
+ *
+ * Aspettare il proprio turno vuol dire un lampo di cornice vecchia sotto la
+ * macchina nuova — misurato: un decimo di secondo abbondante, che si vede
+ * benissimo. Se la forma di quella foto e' gia' nota si mette subito, qui, nel
+ * momento in cui l'annuncio arriva; il resto della vetrina si ridisegna con
+ * comodo. Se non e' nota si va a misurarla, e si tiene quella che c'e': meglio
+ * un salto solo, quando si sa, che due. */
+function laFotoECambiata(evento) {
+  const riposo = clean(evento?.detail?.riposo);
+  const ricordata = riposo ? forme().get(riposo) : 0;
+  if (ricordata > 0) scriviLaForma(doc?.getElementById?.("lm-hero-card"), ricordata);
+  else imparaLaForma(riposo);
+  scheduleEvShowcase();
 }
 
 /* ── render ───────────────────────────────────────────────────────────── */
@@ -376,6 +464,16 @@ export function installEvShowcaseSection() {
     root.addEventListener?.("dashboardmodern:state-changed", () => {
       if (evVisible()) scheduleEvShowcase();
     });
+    /* La foto e' cambiata: lo dice chi l'ha montata.
+     *
+     * Cambiando vettura questo modulo se ne accorgeva solo quando la foto
+     * nuova aveva finito di caricarsi — ed e' li' che misura la cornice. Nel
+     * frattempo la macchina nuova stava dentro la cornice della vecchia, e
+     * mezzo secondo dopo la cornice saltava: «cambio vettura con il tab e le
+     * foto rimbalzano». Il tocco sulla linguetta non sarebbe servito a
+     * indovinarlo — in quel momento la foto e' ancora quella di prima — e la
+     * sezione dell'auto invece lo sa nel momento esatto in cui la cambia. */
+    root.addEventListener?.("dashboardmodern:ev-foto", laFotoECambiata);
     doc.addEventListener(
       "click",
       (event) => {
