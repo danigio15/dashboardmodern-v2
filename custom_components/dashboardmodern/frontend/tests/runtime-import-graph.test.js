@@ -753,8 +753,24 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // accendere niente; la soglia la scrive la scheda Temperature, accanto ai
   // sensori di umidita' che confronta, e il consiglio compare sulla finestra
   // della stanza, che e' la cosa che uno deve andare ad aprire.
+  // 251 con l'auto che arriva da un'integrazione (`core/auto-device-binding.js`):
+  // «vogliamo cercare di fare la stessa cosa integrazione anche su auto, cosi'
+  // viene piu' pulita». Il nucleo e' l'assegnazione: quale entita' del
+  // dispositivo va in quale casella `dm.ev_*`, guidata dal `device_class` che
+  // Home Assistant dichiara e, solo dove non basta, dalle parole — nelle
+  // lingue che le integrazioni delle auto usano davvero, perche' il
+  // costruttore coreano scrive «Fuel level» e quello tedesco «Reichweite». E'
+  // una funzione pura su un elenco di entita', quindi si prova a tavolino con
+  // le entita' di un'auto vera; e da li' esce anche che auto e', perche' un
+  // serbatoio senza batteria e' benzina.
+  // 252 con l'invito nella scheda (`sections/auto-integrazione-section.js`):
+  // la scheda dell'auto la disegna il documento vendorizzato, quindi il tasto
+  // non puo' stare dentro un corpo che qualcun altro riscrive — si appende in
+  // cima, come la tendina del motore si appende sotto il nome. La finestra e'
+  // quella degli elettrodomestici, senza una seconda copia: cambia solo cosa
+  // si legge del dispositivo, che e' l'unico pezzo diverso fra le sezioni.
   assert.ok(
-    relative.length <= 250,
+    relative.length <= 252,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -66,6 +66,22 @@ com'e' l'aria di casa e se i rilevatori di fumo stanno guardando.
   la lavora. Adesso ci sono anche nell'elenco di chi ha segnalato, e compaiono
   quando c'e' piu' di uno stato da separare.
 
+- **Anche l'auto arriva da un'integrazione.** «Vogliamo cercare di fare la
+  stessa cosa integrazione anche su auto, cosi' viene piu' pulita.» E' il giro
+  degli elettrodomestici e dei robot, con la stessa finestra: si sceglie
+  l'integrazione, si sceglie il dispositivo, e la vettura nasce con le caselle
+  gia' piene — batteria o serbatoio, autonomia, contachilometri, portiere,
+  bagagliaio, cofano, posizione, gomme — invece di battere venti entity_id a
+  mano. Che auto sia lo dicono le entita': un serbatoio senza batteria e'
+  benzina, tutte e due sono un'ibrida. A guidare l'assegnazione e' il
+  `device_class` che Home Assistant dichiara e, solo dove non basta, le parole
+  — nelle lingue che le integrazioni delle auto usano davvero, perche' il
+  costruttore coreano scrive «Fuel level» e quello tedesco «Reichweite». Le
+  impostazioni del dispositivo restano fuori, e un'entita' presa non finisce in
+  due caselle. Provato sulle entita' vere di una Leapmotor B10: fra quattro
+  «Door ...» e una «Locked» la card prende il riepilogo, e fra «Charging» e
+  «Battery Charging» prende il primo.
+
 - **La tessera di fumo e gas (#328).** «Un widget che mostri il numero di
   sensori fumo e allagamento, e che aprendolo li mostri, oltre che lampeggi e
   dica quali si sono attivati.» Meta' c'era — gli allagamenti — e spariva a
