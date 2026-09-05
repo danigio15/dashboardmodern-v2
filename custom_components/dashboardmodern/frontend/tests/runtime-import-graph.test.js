@@ -792,8 +792,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // vicina serve alle persone, alle azioni rapide e alle tessere — tre elenchi
   // diversi, un gesto solo. Scriverlo tre volte vorrebbe dire tre occasioni di
   // sbagliare l'ultimo elemento, che e' esattamente il posto dove si sbaglia.
+  // 256 con il travaso già scritto (`core/carichi-travasati.js`): «le entità
+  // configurate diverse sui due impianti si mescolano». Fermato il difetto
+  // dove nasceva, quello che era già finito nella configurazione resta lì. Il
+  // modulo dice quali carichi portano il sensore di un'altra casa e — questa è
+  // la parte che conta — quando lo si può DIMOSTRARE: due carichi con lo
+  // stesso sensore non dicono da soli quale dei due è la copia, e cancellare
+  // dalla parte sbagliata butterebbe via la metà buona.
   assert.ok(
-    relative.length <= 255,
+    relative.length <= 256,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

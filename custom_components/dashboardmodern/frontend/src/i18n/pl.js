@@ -2798,4 +2798,9 @@ export default Object.freeze({
   "Solar share": "Udział słońca",
   "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "Ładowarka należy do domu, nie do jednego auta: podłącza się ją raz i działa dla każdego pojazdu. Z evcc przychodzą też tryb ładowania i udział słońca w sesji.",
   "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "Integracje, które przynoszą ładowarkę: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Wybierz urządzenie, a pola ładowania wypełnią się same — moc, energia, napięcie, a z evcc także tryb i udział słońca.",
+  "🧹 ${quanti} loads cleaned of the other plant's sensor": "🧹 Oczyszczono ${quanti} odbiorników z czujnika drugiej instalacji",
+  "another plant": "inna instalacja",
+  "one of the two took it from the other, and from here there is no way to know which.": "jeden z dwóch wziął go od drugiego, a stąd nie sposób poznać który.",
+  "Remove it here": "Usuń go stąd",
+  "This sensor is also configured in": "Ten czujnik jest ustawiony także w",
 });

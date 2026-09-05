@@ -2798,4 +2798,9 @@ export default Object.freeze({
   "Solar share": "太阳能占比",
   "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "充电桩属于这个家，而不属于某一辆车：连接一次，对所有车辆都有效。从 evcc 还会带来充电模式和本次充电的太阳能占比。",
   "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "会带来充电桩的集成：evcc、go-e、Easee、KEBA、Wallbox、openWB、Zaptec、Tesla。选好设备，充电相关的字段就会自动填好——功率、电量、电压，从 evcc 还有模式和太阳能占比。",
+  "🧹 ${quanti} loads cleaned of the other plant's sensor": "🧹 已从 ${quanti} 个负载中清除另一套系统的传感器",
+  "another plant": "另一套系统",
+  "one of the two took it from the other, and from here there is no way to know which.": "两者之一是从对方那里拿来的，而在这里无从知道是哪一个。",
+  "Remove it here": "从这里移除",
+  "This sensor is also configured in": "这个传感器也配置在",
 });

@@ -2798,4 +2798,9 @@ export default Object.freeze({
   "Solar share": "Zonaandeel",
   "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "De laadpaal hoort bij het huis, niet bij één auto: je verbindt hem één keer en hij geldt voor elk voertuig. Van evcc komen ook de laadmodus en het zonaandeel van de sessie mee.",
   "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "De integraties die een laadpaal meebrengen: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Kies het apparaat en de laadvelden vullen zichzelf — vermogen, energie, spanning, en van evcc ook de modus en het zonaandeel.",
+  "🧹 ${quanti} loads cleaned of the other plant's sensor": "🧹 ${quanti} verbruikers opgeschoond van de sensor van de andere installatie",
+  "another plant": "een andere installatie",
+  "one of the two took it from the other, and from here there is no way to know which.": "een van de twee heeft hem van de ander overgenomen, en van hieruit is niet te zien welke.",
+  "Remove it here": "Hier weghalen",
+  "This sensor is also configured in": "Deze sensor is ook ingesteld in",
 });

@@ -2798,4 +2798,9 @@ export default Object.freeze({
   "Solar share": "太陽光の割合",
   "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "充電器は家のものであって、特定の車のものではありません。一度つなげば、すべての車に有効です。evccからは充電モードとセッションの太陽光の割合も届きます。",
   "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "充電器を提供する統合: evcc、go-e、Easee、KEBA、Wallbox、openWB、Zaptec、Tesla。デバイスを選べば、充電の項目は自動で埋まります — 電力、電力量、電圧、そしてevccからはモードと太陽光の割合も。",
+  "🧹 ${quanti} loads cleaned of the other plant's sensor": "🧹 別の設備のセンサーを ${quanti} 件の負荷から取り除きました",
+  "another plant": "別の設備",
+  "one of the two took it from the other, and from here there is no way to know which.": "どちらかがもう一方から取り込んだものですが、ここからはどちらかを知る方法がありません。",
+  "Remove it here": "ここから外す",
+  "This sensor is also configured in": "このセンサーは次にも設定されています：",
 });

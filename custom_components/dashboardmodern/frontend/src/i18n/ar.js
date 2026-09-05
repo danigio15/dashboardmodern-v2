@@ -2798,4 +2798,9 @@ export default Object.freeze({
   "Solar share": "حصة الطاقة الشمسية",
   "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.": "الشاحن يخص المنزل، لا سيارة واحدة: يُربط مرة واحدة ويصلح لكل المركبات. ومن evcc يأتي أيضًا وضع الشحن وحصة الشمس في الجلسة.",
   "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.": "التكاملات التي تجلب شاحنًا: evcc وgo-e وEasee وKEBA وWallbox وopenWB وZaptec وTesla. اختر الجهاز وستمتلئ حقول الشحن من تلقاء نفسها — القدرة والطاقة والجهد، ومن evcc أيضًا الوضع وحصة الشمس.",
+  "🧹 ${quanti} loads cleaned of the other plant's sensor": "🧹 تم تنظيف ${quanti} من الأحمال من مستشعر المنشأة الأخرى",
+  "another plant": "منشأة أخرى",
+  "one of the two took it from the other, and from here there is no way to know which.": "أحدهما أخذه من الآخر، ولا سبيل من هنا لمعرفة أيّهما.",
+  "Remove it here": "أزِله من هنا",
+  "This sensor is also configured in": "هذا المستشعر مضبوط أيضًا في",
 });

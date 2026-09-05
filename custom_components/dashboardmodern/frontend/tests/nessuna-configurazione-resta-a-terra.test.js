@@ -34,6 +34,8 @@ const SOLO_DI_QUESTO_DISPOSITIVO = Object.freeze({
   cd_ev_image: "il disegno dell'auto attiva qui: viaggia dentro cd_ev_cars",
   cd_ev_photos_moved: "segno che la migrazione delle foto e' gia' passata",
   cd_allag_rilevato: "segno che il giro sugli allagamenti e' gia' passato",
+  cd_carichi_travasati_puliti:
+    "segno che il giro sul sensore travasato fra due impianti e' gia' passato",
   cd_irr_lastrun: "quando ha girato l'irrigazione su questo dispositivo",
   cd_pool_run: "il conteggio della pompa in corso qui",
   cd_pool_lastrun: "quando ha girato la pompa su questo dispositivo",

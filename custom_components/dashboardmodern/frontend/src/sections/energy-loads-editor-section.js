@@ -31,6 +31,7 @@ import {
   normalizeChild,
   specchioDeiCerchi,
 } from "../core/energy-loads-config.js";
+import { carichiTravasati, togliLePotenzeTravasate } from "../core/carichi-travasati.js";
 import {
   activeLocale,
   clean,
@@ -443,11 +444,61 @@ function entityField(id, label, value, hint, onChange) {
   return field;
 }
 
+/* Lo stesso sensore in due appartamenti.
+ *
+ * Il travaso dimostrabile lo toglie il giro d'avvio. Quello che resta e' il
+ * caso in cui la plancia NON puo' sapere chi e' la copia: due carichi con la
+ * sola potenza compilata, identici a guardarli. Cancellare a caso vorrebbe
+ * dire buttare la meta' buona, quindi qui non si cancella: si dice, e il tasto
+ * lo mette in mano a chi sa in quale appartamento sta quel sensore. */
+function travasoDelCerchio(load) {
+  const potenza = clean(load?.power);
+  if (!potenza) return null;
+  const { plant, list } = impiantoAperto();
+  if (!Array.isArray(list) || list.length < 2) return null;
+  const mio = plant && clean(plant.id) !== PRIMO_IMPIANTO ? clean(plant.id) : "";
+  const voce = carichiTravasati({
+    loads: configuredLoads(),
+    flowNodes: readJson("cd_flow_nodes", null),
+  }).find((trovato) => trovato.entita === potenza && trovato.impianto === mio);
+  if (!voce) return null;
+  const nomi = voce.altri
+    .map((id) => {
+      const posto = list.findIndex(
+        (impianto) => clean(impianto?.id) === (id || PRIMO_IMPIANTO) || (!id && clean(impianto?.id) === PRIMO_IMPIANTO),
+      );
+      return posto < 0 ? "" : plantLabel(list[posto], posto, t("Impianto", "Plant"));
+    })
+    .filter(Boolean);
+  return { potenza, nomi };
+}
+
 function warnings(load) {
   const messages = loadConfigWarnings(load, activeLocale());
-  if (!messages.length) return null;
+  const travaso = travasoDelCerchio(load);
+  if (!messages.length && !travaso) return null;
   const list = element("ul", "dm-loads-warnings");
   for (const message of messages) list.append(element("li", "", message));
+  if (travaso) {
+    const riga = element("li", "dm-loads-travaso");
+    riga.append(
+      element(
+        "span",
+        "",
+        `${t("Questo sensore è configurato anche in", "This sensor is also configured in")} ${
+          travaso.nomi.join(", ") || t("un altro impianto", "another plant")
+        }: ${t(
+          "uno dei due l'ha preso dall'altro, e da qui non si può sapere quale.",
+          "one of the two took it from the other, and from here there is no way to know which.",
+        )}`,
+      ),
+    );
+    const tasto = element("button", "ed-btn-add dm-loads-travaso-btn", t("Toglila da qui", "Remove it here"));
+    tasto.type = "button";
+    tasto.dataset.dmLoadTravaso = clean(load?.id);
+    riga.append(tasto);
+    list.append(riga);
+  }
   return list;
 }
 
@@ -581,6 +632,20 @@ function loadCard(panel, load, index, total) {
 
   const head = element("summary", "ed-acc-head");
   head.append(preview(load, index));
+  /* Il segno che questo cerchio guarda il sensore di un'altra casa, sulla
+   * TESTA della scheda.
+   *
+   * La riga che lo spiega sta dentro, e le schede nascono chiuse: un avviso
+   * dentro una scheda chiusa e' un avviso che non avvisa. Qui basta il segno —
+   * la frase e il tasto stanno a un dito di distanza, appena si apre. */
+  const doppione = travasoDelCerchio(load);
+  if (doppione) {
+    const segno = element("span", "dm-loads-travaso-segno", "⚠️");
+    segno.title = `${t("Questo sensore è configurato anche in", "This sensor is also configured in")} ${
+      doppione.nomi.join(", ") || t("un altro impianto", "another plant")
+    }`;
+    head.append(segno);
+  }
   const controls = element("span", "dm-loads-card-controls");
   for (const [symbol, delta, label] of [
     ["▲", -1, t("Sposta su", "Move up")],
@@ -921,6 +986,10 @@ function loadCard(panel, load, index, total) {
 }
 
 export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
+  /* Il secondo momento in cui la configurazione c'e' di sicuro: la maschera
+   * si sta aprendo. Chi non ha mai ricevuto un ripristino — una plancia senza
+   * integrazione — trova qui il suo giro, e chi l'ha gia' fatto non fa niente. */
+  pulisciIlTravasoUnaVolta().catch(() => {});
   if (!panel || !doc) return false;
   if (state.rendering) return false;
   state.rendering = true;
@@ -1070,6 +1139,11 @@ function installStyles() {
     .dm-loads-color{width:64px;height:46px;padding:2px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:12px;background:var(--card-bg,#fff)}
     .dm-loads-switch{display:flex;align-items:center;gap:9px;margin:10px 0;color:var(--text,#0f172a);font-weight:700}
     .dm-loads-warnings{margin:10px 0 0;padding-left:18px;color:var(--muted,#64748b);font-size:13px;line-height:1.45}
+    /* Il doppione fra due case: non e' un campo mancante, e' una scelta da
+       fare — quindi porta il suo tasto, e si vede che e' un'altra cosa. */
+    .dm-loads-travaso{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;color:#92400e}
+    .dm-loads-travaso-segno{flex:0 0 auto;font-size:14px;line-height:1;cursor:help}
+    .dm-loads-travaso-btn{flex:0 0 auto;padding:4px 10px!important;font-size:12px!important}
     .dm-loads-children{margin-top:14px}
     .dm-loads-subload[data-dm-subload-source="appliance"]{opacity:.9}
     /* Il ritratto dell'elettrodomestico sta sulla riga come ci stava l'emoji:
@@ -1120,6 +1194,47 @@ function scheduleRender() {
   });
 }
 
+/* ── il travaso gia' scritto, una volta sola ──────────────────────────── */
+
+/* Il segno che il giro e' gia' passato: sta su questo dispositivo, non nella
+ * configurazione condivisa, perche' descrive un lavoro fatto qui — e chi
+ * apre la plancia da un altro telefono lo rifara' da se', senza trovare
+ * niente da fare. */
+const PULIZIA_TRAVASO_KEY = "cd_carichi_travasati_puliti";
+
+/* Il difetto e' stato fermato dove nasceva; quello che era gia' finito nella
+ * configurazione resta li'. Questo giro lo toglie — ma solo dove si sa
+ * dimostrare chi e' la copia, che e' quello che decide `carichiTravasati`.
+ *
+ * Il segno si mette solo quando c'era davvero qualcosa da guardare: metterlo
+ * prima che la configurazione sia arrivata vorrebbe dire non guardare mai
+ * piu', su nessuna casa. */
+export async function pulisciIlTravasoUnaVolta() {
+  if (root.localStorage?.getItem(PULIZIA_TRAVASO_KEY) === "1") return false;
+  const { list } = impiantoAperto();
+  if (!Array.isArray(list) || list.length < 2) return false;
+  const carichi = configuredLoads();
+  if (!carichi.length) return false;
+  root.localStorage?.setItem(PULIZIA_TRAVASO_KEY, "1");
+  const specchio = readJson("cd_flow_nodes", null);
+  const puliti = togliLePotenzeTravasate(carichi, specchio);
+  if (puliti === carichi) return false;
+  const store = dashboardStore();
+  if (store?.replaceSection) await store.replaceSection("loads", puliti);
+  else writeJsonIfChanged("cd_loads", puliti, { sync: false });
+  const quanti = puliti.filter((load, posto) => load !== carichi[posto]).length;
+  root.edToast?.(
+    t(
+      `🧹 ${quanti} carichi ripuliti dal sensore dell'altro impianto`,
+      `🧹 ${quanti} loads cleaned of the other plant's sensor`,
+    ),
+  );
+  try {
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:state-changed"));
+  } catch (_errore) {}
+  return true;
+}
+
 export function installEnergyLoadsEditor() {
   if (!doc || state.installed) return;
   state.installed = true;
@@ -1128,6 +1243,22 @@ export function installEnergyLoadsEditor() {
   doc.addEventListener(
     "click",
     (event) => {
+      /* «Toglila da qui»: si svuota la casella della potenza esattamente come
+       * farebbe il cestino accanto — stessa strada, gia' provata, e il tasto
+       * «Salva carichi» si accende da se'. Chi ha premuto sa in quale
+       * appartamento sta quel sensore; la plancia no, ed e' per questo che il
+       * gesto e' suo e non nostro. */
+      const travaso = event.target?.closest?.("[data-dm-load-travaso]");
+      if (travaso) {
+        event.preventDefault();
+        const campo = doc.getElementById(`dm-loads-${travaso.dataset.dmLoadTravaso}-power`);
+        if (campo) {
+          campo.value = "";
+          campo.dispatchEvent(new Event("input", { bubbles: true }));
+          campo.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        return;
+      }
       if (event.target?.closest?.("[data-energy-tab],.ed-inner-tab,[data-tab='sez1']"))
         scheduleRender();
     },
@@ -1154,6 +1285,20 @@ export function installEnergyLoadsEditor() {
     state.dirty = Boolean(bozza);
     state.impianto = adesso;
     scheduleRender();
+  });
+  /* La pulizia del travaso gia' scritto aspetta che la configurazione sia
+   * ARRIVATA, non che il runtime sia acceso.
+   *
+   * Su una plancia ospitata la configurazione condivisa arriva dopo l'avvio e
+   * riscrive la sezione: pulendo prima, il giro si segnava «fatto» e un
+   * istante dopo la sua correzione veniva coperta da quella vecchia. Vale la
+   * stessa lezione del travaso delle foto, scritta li' per lo stesso motivo.
+   *
+   * Il secondo momento buono e' la maschera dei carichi che si apre: li' la
+   * configurazione c'e' di sicuro, e chi non ha mai ricevuto un ripristino
+   * (una plancia senza integrazione) trova il suo giro comunque. */
+  root.addEventListener?.("dashboardmodern:persistence-restored", () => {
+    pulisciIlTravasoUnaVolta().catch(() => {});
   });
   scheduleRender();
 }
