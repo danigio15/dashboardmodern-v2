@@ -90,13 +90,25 @@ test("il modello si tiene l'indirizzo, che era il modo in cui spariva", () => {
   assert.equal(salvata.stream, "Salone");
 });
 
-test("l'indirizzo e' delle telecamere: le altre sezioni non se lo portano dietro", () => {
+test("l'indirizzo lo legge la telecamera, e altrove non lo si butta via", () => {
+  /* Il ramo che lo legge e' quello delle telecamere, e li' l'indirizzo si
+   * ripulisce prima di scriverlo. Fuori di li' nessuno lo guarda — e nessuno
+   * lo cancella: il modello non decide che una cosa configurata non serve
+   * piu' solo perche' oggi non sa cosa farne. E' la regola per cui il
+   * contatto dell'infisso, l'inferriata e la soglia di una finestra sono
+   * spariti, una versione per volta. */
+  const telecamera = normalizeDevice(
+    { name: "Salone", entity: "camera.salone", rtsp: "  rtsp://192.168.5.30:8556/Salone  " },
+    "cameras",
+    {},
+  );
+  assert.equal(telecamera.rtsp, "rtsp://192.168.5.30:8556/Salone");
   const presa = normalizeDevice(
     { name: "Presa", entity: "switch.presa", rtsp: "rtsp://192.168.5.30:8556/Salone" },
     "appliances",
     {},
   );
-  assert.equal(presa.rtsp, undefined);
+  assert.equal(presa.rtsp, "rtsp://192.168.5.30:8556/Salone");
 });
 
 test("senza indirizzo il campo non compare nel record salvato", () => {

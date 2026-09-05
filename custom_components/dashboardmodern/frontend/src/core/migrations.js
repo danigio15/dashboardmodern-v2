@@ -1,4 +1,9 @@
-import { cloneValue, conservaLeEntita, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
+import {
+  cloneValue,
+  conservaIlConfigurato,
+  SCHEMA_VERSION,
+  normalizeDevice,
+} from "./device-model.js";
 import { COOLING_SLOT_MAP, ENERGY_SLOT_MAP } from "./energy-projection.js";
 import { normalizeRobots } from "./robot-model.js";
 import { normalizzaPrese } from "./prese-model.js";
@@ -59,10 +64,9 @@ export function migrateRooms(input = []) {
       order: Number.isFinite(+room.order) ? +room.order : index,
       metadata: { ...(room.metadata || {}) },
       /* E tutto quello che una stanza si porta dietro e questo elenco non
-       * conosce, purche' sia un'entita': la regola dei dispositivi vale anche
-       * qui, ed e' qui che una stanza perdeva il suo sensore quando il campo
-       * cambiava nome. */
-      ...conservaLeEntita({}, room),
+       * conosce: la regola dei dispositivi vale anche qui, ed e' qui che una
+       * stanza perdeva il suo sensore quando il campo cambiava nome. */
+      ...conservaIlConfigurato({}, room, "rooms"),
     };
   });
 }
@@ -162,7 +166,7 @@ export function normalizeEnergyLoads(input = []) {
       let collision = 2;
       while (used.has(id)) id = `${base}-${collision++}`;
       used.add(id);
-      return conservaLeEntita(
+      return conservaIlConfigurato(
         {
           id,
           name: String(item.name || `Carico ${index + 1}`),
@@ -173,6 +177,7 @@ export function normalizeEnergyLoads(input = []) {
           order: Number.isFinite(+item.order) ? +item.order : index,
         },
         item,
+        "energyLoads",
       );
     })
     .sort((left, right) => left.order - right.order);

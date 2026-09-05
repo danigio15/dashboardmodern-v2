@@ -16,6 +16,7 @@
  * specie decide quale dialetto si usa, senza che chi disegna debba saperlo.
  */
 
+import { conservaIlConfigurato } from "./device-model.js";
 import { SOURCE_LOCALE, getLocale, pick } from "./i18n.js";
 
 const clean = (value) => String(value ?? "").trim();
@@ -90,7 +91,14 @@ export function robotStateLabel(state, locale = getLocale()) {
 
 /** Un robot, coi campi che la configurazione conosce. */
 export function normalizeRobot(input = {}, index = 0) {
-  return {
+  /* E tutto quello che qui sotto non e' nominato.
+   *
+   * L'elenco e' chiuso — sette campi — e finora un ottavo spariva al primo
+   * salvataggio: l'icona scelta, l'ordine, un campo aggiunto dalla versione
+   * dopo. E' la stessa regola dei dispositivi, e vale per la stessa ragione:
+   * quello che uno configura non lo si butta via perche' il modello di oggi
+   * non sa ancora leggerlo. */
+  return conservaIlConfigurato({
     id: clean(input.id) || `robot-${index + 1}`,
     name: clean(input.name),
     entity: clean(input.entity || input.entities?.[0]),
@@ -104,7 +112,7 @@ export function normalizeRobot(input = {}, index = 0) {
      * l'integrazione pubblica accanto a lui. Sopravvivono alla normalizzazione
      * come la batteria, o sparirebbero a ogni salvataggio. */
     comandi: elencoComandi(input.comandi ?? input.commands),
-  };
+  }, input, "robots");
 }
 
 /* ── i comandi a parte del robot (#306) ──────────────────────────────────
