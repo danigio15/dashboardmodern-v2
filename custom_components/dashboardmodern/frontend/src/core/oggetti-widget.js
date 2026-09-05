@@ -288,6 +288,24 @@ const OGGETTI = Object.freeze({
     <g stroke="#7dd3fc" stroke-width="1.9" fill="none" stroke-linecap="round" opacity=".85">
       <path d="M4.4 21.4h5.2"/><path d="M6 25h7.4"/></g>`,
 
+  /* Il fumo: il rilevatore a soffitto, e il fumo che ci arriva sotto.
+   *
+   * «Un widget che mostri il numero di sensori fumo e allagamento» (#328). Non
+   * una fiamma: la fiamma e' il disastro, e la tessera c'e' anche quando non
+   * succede niente — quello che sta li' appeso e guarda e' il rilevatore, col
+   * suo led. I riccioli sotto dicono cosa sta cercando. */
+  fumo: `<defs>
+      <linearGradient id="dmoFumoS" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient></defs>
+    ${OMBRA(16, 27.4, 8)}
+    <rect x="5.6" y="4.4" width="20.8" height="7.6" rx="3.6" fill="url(#dmoFumoS)" stroke="#94a3b8" stroke-width="1.1"/>
+    <rect x="9" y="11.4" width="14" height="2.6" rx="1.3" fill="#94a3b8" opacity=".65"/>
+    <circle cx="21.4" cy="8.2" r="1.7" fill="#ef4444"/>
+    <g stroke="#94a3b8" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8">
+      <path d="M11.4 24.6c-2.6-1.6-2.6-4 0-5.6s2.6-4 0-5.6"/>
+      <path d="M16.6 26c-2.6-1.6-2.6-4 0-5.6s2.6-4 0-5.6"/>
+      <path d="M21.8 24.6c-2.6-1.6-2.6-4 0-5.6"/></g>`,
+
   /* Il MiniPC: la scocca di alluminio, la spia accesa e le prese sul davanti.
    * «Nella sezione widget manca completamente minipc»: la tessera adesso c'e',
    * e le serviva il suo oggetto come a tutte le altre. */

@@ -103,6 +103,9 @@ function catalogoTessere() {
     ["rifiuti", "♻️", t("Rifiuti", "Waste")],
     ["batterie", "🔋", t("Batterie", "Batteries")],
     ["allagamenti", "💧", t("Allagamenti", "Floods")],
+    /* Fumo e gas (#328): compare da sola coi rilevatori di casa, come gli
+     * allagamenti, e da qui si sposta o si spegne. */
+    ["fumo", "💨", t("Fumo e gas", "Smoke and gas")],
     /* La qualita' dell'aria (#321): compare da sola con un sensore dell'aria
      * in casa, e da qui si sposta o si spegne come le altre. */
     ["aria", "🍃", t("Aria", "Air")],

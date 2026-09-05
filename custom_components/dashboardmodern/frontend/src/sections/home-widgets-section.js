@@ -169,6 +169,12 @@ import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model
 import { passoDellUnita, scalaDellUnita } from "../core/scala-clima.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
+import {
+  SMOKE_ICON,
+  nomeDelRilevatore,
+  smokeEntities,
+  smokeIsAlarm,
+} from "./smoke-alerts-section.js";
 import { loadCameraFrame } from "./live-ui-section.js";
 import { hasConfiguredData } from "../core/dashboard-store.js";
 import {
@@ -2789,6 +2795,64 @@ function ariaModel(states) {
   };
 }
 
+/* Il fumo e il gas, contati e chiamati per nome (#328).
+ *
+ * «Un widget che mostri il numero di sensori fumo e allagamento, e che
+ * aprendolo li mostri, oltre che lampeggi e dica quali si sono attivati.»
+ *
+ * La tessera c'e' finche' c'e' un rilevatore in casa, e a riposo dice quanti
+ * ne sta guardando: un antincendio che si vede solo quando e' troppo tardi non
+ * rassicura nessuno, e non c'e' modo di accorgersi che ha smesso di guardare.
+ * Quando uno suona la tessera passa in allarme — e' `alert` a farla lampeggiare,
+ * la stessa strada degli allagamenti — conta quelli che suonano e scrive in
+ * copertina il primo per nome.
+ *
+ * I nomi li da' `nomeDelRilevatore`, che e' lo stesso che usa la sezione: un
+ * rilevatore si chiama allo stesso modo dovunque lo si guardi. */
+function fumoModel(states) {
+  let entities = [];
+  try {
+    ({ entities } = smokeEntities(
+      readJson("cd_gruppi_extra", {}),
+      readJson("cd_gruppi_removed", {}),
+      states,
+      readJson("cd_fumo_rilevato", []),
+    ));
+  } catch (_error) {
+    return null;
+  }
+  if (!Array.isArray(entities) || !entities.length) return null;
+  const fuori = widgetExcludedEntities();
+  const nomi = readJson("cd_avvisi_names_extra", {}) || {};
+  const righe = entities
+    .filter((entity) => widgetIncludes(entity, fuori))
+    .map((entity) => ({
+      entity,
+      name: nomeDelRilevatore(entity, nomi, states),
+      on: Boolean(smokeIsAlarm(stateOf(states, entity))),
+    }));
+  if (!righe.length) return null;
+  const suonano = righe.filter((riga) => riga.on);
+  return {
+    key: "fumo",
+    accent: suonano.length ? "#ef4444" : "#94a3b8",
+    icon: SMOKE_ICON,
+    alert: suonano.length > 0,
+    label: t("Fumo e gas", "Smoke and gas"),
+    value: String(suonano.length || righe.length),
+    caption: suonano.length
+      ? suonano.map((riga) => riga.name).join(" · ")
+      : t("Tutto tranquillo", "All quiet"),
+    /* L'anello si riempie solo quando c'e' da guardare: a riposo la tessera
+     * non deve gridare, sta li' e basta. */
+    ring: suonano.length ? 100 : 0,
+    attiva: suonano.length > 0,
+    /* Aperta, la finestra li elenca tutti — chi suona e chi tace — perche'
+     * «quali si sono attivati» si capisce solo vedendo anche gli altri. */
+    rows: suonano.length ? [...suonano, ...righe.filter((riga) => !riga.on)] : righe,
+  };
+}
+
 function floodModel(states) {
   let entities = [];
   try {
@@ -2814,18 +2878,26 @@ function floodModel(states) {
       name: friendlyName(states, entity),
       on: Boolean(floodIsWet(stateOf(states, entity))),
     }));
+  if (!rows.length) return null;
   const wet = rows.filter((row) => row.on);
-  if (!wet.length) return null;
+  /* Come il fumo (#328): la tessera resta anche a casa asciutta, e dice
+   * quanti sensori sta guardando. Prima spariva quando andava tutto bene,
+   * e una sentinella che si vede solo a disastro avvenuto non permette di
+   * accorgersi che ha smesso di guardare. Chi non la vuole la nasconde
+   * dall'editor, come ogni altra tessera. */
   return {
     key: "allagamenti",
-    accent: "#38bdf8",
+    accent: wet.length ? "#38bdf8" : "#94a3b8",
     icon: "💧",
-    alert: true,
+    alert: wet.length > 0,
     label: t("Allagamenti", "Floods"),
-    value: String(wet.length),
-    caption: wet[0] ? wet[0].name : "",
-    ring: 100,
-    rows: wet,
+    value: String(wet.length || rows.length),
+    caption: wet.length
+      ? wet.map((row) => row.name).join(" · ")
+      : t("Tutto asciutto", "All dry"),
+    ring: wet.length ? 100 : 0,
+    attiva: wet.length > 0,
+    rows: wet.length ? [...wet, ...rows.filter((row) => !row.on)] : rows,
   };
 }
 
@@ -3414,6 +3486,7 @@ function widgetModels(states) {
       irrigationModel(states),
       batteriesModel(states),
       floodModel(states),
+      fumoModel(states),
       ariaModel(states),
       ...customAlertModels(states),
     ].filter(Boolean),
@@ -4410,8 +4483,27 @@ function floodDetail(widget) {
   return widget.rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">💧</span>
-         <span class="dm-w-name">${esc(row.name)}</span>`,
+        `<span class="dm-w-glyph" data-on="${row.on ? "true" : "false"}" aria-hidden="true">💧</span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <span class="dm-w-val">${esc(row.on ? t("Bagnato", "Wet") : t("Asciutto", "Dry"))}</span>`,
+      ),
+    )
+    .join("");
+}
+
+/* La finestra del fumo: tutti i rilevatori, e quello che suona si riconosce.
+ *
+ * «Aprendolo li mostri, oltre che dica quali si sono attivati»: elencare solo
+ * chi suona direbbe meta' della cosa — non si saprebbe quanti ne sta guardando
+ * ne' quali tacciono. Ci sono tutti, e chi e' in allarme porta la sua parola
+ * accanto al nome. */
+function fumoDetail(widget) {
+  return widget.rows
+    .map((row) =>
+      rowShell(
+        `<span class="dm-w-glyph" data-on="${row.on ? "true" : "false"}" aria-hidden="true">${SMOKE_ICON}</span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <span class="dm-w-val">${esc(row.on ? t("Allarme", "Alarm") : t("Tranquillo", "Quiet"))}</span>`,
       ),
     )
     .join("");
@@ -4557,6 +4649,7 @@ const CHIAVI_A_CARTE = new Set([
   "energia",
   "temperatura",
   "aria",
+  "fumo",
   "batterie",
   "allerte",
   "rifiuti",
@@ -5157,6 +5250,7 @@ function detailRows(widget, states) {
   if (widget.key === "media") return mediaDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
+  if (widget.key === "fumo") return fumoDetail(widget);
   if (widget.key.startsWith("custom-")) return customDetail(widget);
   return "";
 }
