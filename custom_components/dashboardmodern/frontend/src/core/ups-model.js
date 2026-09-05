@@ -18,8 +18,18 @@
  * Qui non c'e' DOM e non si chiama nessun servizio: solo la lettura e il conto.
  */
 
+import { prossimoIdentificativo, segnoPiuAlto } from "./segno-progressivo.js";
+
 /** La chiave in cui vive la configurazione. */
 export const CHIAVE_UPS = "cd_ups";
+
+/** Dove resta scritto il segno che non scende mai. */
+export const CHIAVE_META_UPS = "cd_ups_meta";
+
+/** Come si chiama, dentro un gruppo, il suo nome interno. */
+export const CAMPO_UID_UPS = "uid";
+const PREFISSO_UPS = "ups";
+const CAMPO_SEGNO_UPS = "ups_seq";
 
 /* Sotto questa carica un UPS non e' piu' una rete di sicurezza: e' un timer.
  * Venti per cento e' la soglia a cui quasi tutti i gruppi cominciano a
@@ -89,14 +99,110 @@ export function batteriaScaricaDalloStato(state) {
 }
 
 /** La configurazione, ripulita. */
-export function normalizzaUps(stored) {
+export function normalizzaUps(stored, posizione = 0) {
   const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
   const fuori = {
+    /* Quello che non conosciamo resta: un gruppo puo' portare campi che questo
+     * modello non prevede, e riscriverlo da zero glieli toglierebbe. */
+    ...dato,
+    /* Un gruppo scritto prima che gli uid esistessero ne riceve uno qui, dalla
+     * sua posizione — e da quel momento se lo tiene, perche' viene scritto. */
+    [CAMPO_UID_UPS]: clean(dato[CAMPO_UID_UPS]) || `${PREFISSO_UPS}-${posizione + 1}`,
     name: clean(dato.name),
     invertita: dato.invertita === true || dato.invertita === "on",
   };
   for (const { campo } of CASELLE_UPS) fuori[campo] = clean(dato[campo]);
   return fuori;
+}
+
+const richiestaDelSegno = (elenco, metadata) => ({
+  elenco: Array.isArray(elenco) ? elenco : [],
+  metadata: metadata && typeof metadata === "object" ? metadata : {},
+  prefisso: PREFISSO_UPS,
+  identificativo: (gruppo) => gruppo?.[CAMPO_UID_UPS],
+  campoSegno: CAMPO_SEGNO_UPS,
+  minimo: 0,
+});
+
+/**
+ * Tutti i gruppi di continuita', in una forma sola.
+ *
+ * Ne esisteva uno solo, scritto come un oggetto: «ti volevo chiedere se c'era
+ * la possibilita' di aggiungere un secondo ups» (#332). Da qui in poi sono un
+ * elenco — come i carichi, come le vetture — e chi arriva dalla forma vecchia
+ * si ritrova il suo, primo della fila, senza dover toccare niente.
+ *
+ * Un oggetto vuoto non e' «un gruppo senza caselle»: e' nessun gruppo. E'
+ * quello che c'e' scritto in ogni casa che l'UPS non l'ha mai configurato, e
+ * farne un gruppo vorrebbe dire mostrare a tutti una scheda vuota.
+ */
+export function elencoUps(stored) {
+  const grezzi = Array.isArray(stored)
+    ? stored
+    : stored && typeof stored === "object" && Object.keys(stored).length
+      ? [stored]
+      : [];
+  const presi = new Set();
+  return grezzi
+    .map((gruppo, posizione) => normalizzaUps(gruppo, posizione))
+    .filter((gruppo) => gruppo.name || entitaDellUps(gruppo).length)
+    .map((gruppo) => {
+      /* Due gruppi con lo stesso uid sarebbero lo stesso gruppo: il doppione
+       * se ne prende uno nuovo, e da li' in poi resta suo. */
+      let uid = gruppo[CAMPO_UID_UPS];
+      for (let numero = 2; presi.has(uid); numero += 1) uid = `${gruppo[CAMPO_UID_UPS]}-${numero}`;
+      presi.add(uid);
+      return uid === gruppo[CAMPO_UID_UPS] ? gruppo : { ...gruppo, [CAMPO_UID_UPS]: uid };
+    });
+}
+
+/** L'elenco da salvare, e il segno che sale e non scende mai. */
+export function upsDaSalvare(elenco = [], metadata = {}) {
+  const gruppi = elencoUps(elenco);
+  return {
+    gruppi,
+    metadata: {
+      ...(metadata && typeof metadata === "object" ? metadata : {}),
+      [CAMPO_SEGNO_UPS]: segnoPiuAlto(richiestaDelSegno(gruppi, metadata)),
+    },
+  };
+}
+
+/** Un gruppo nuovo, vuoto, con la sua identita' gia' addosso. */
+export function nuovoUps(elenco = [], nome = "", metadata = {}) {
+  return normalizzaUps({
+    [CAMPO_UID_UPS]: prossimoIdentificativo(richiestaDelSegno(elenco, metadata)),
+    name: clean(nome),
+  });
+}
+
+/** Dove sta, nell'elenco, il gruppo con questo uid. `-1` se non c'e' piu'. */
+export function indiceUps(elenco = [], uid = "") {
+  const cercato = clean(uid);
+  if (!cercato) return -1;
+  return (Array.isArray(elenco) ? elenco : []).findIndex(
+    (gruppo) => clean(gruppo?.[CAMPO_UID_UPS]) === cercato,
+  );
+}
+
+/** Lo stesso elenco col gruppo cambiato. Un uid vuoto non tocca nessuno. */
+export function aggiornaUps(elenco = [], uid, patch = {}) {
+  const cercato = clean(uid);
+  if (!cercato) return Array.isArray(elenco) ? elenco : [];
+  return (Array.isArray(elenco) ? elenco : []).map((gruppo) =>
+    clean(gruppo?.[CAMPO_UID_UPS]) === cercato
+      ? { ...gruppo, ...patch, [CAMPO_UID_UPS]: gruppo[CAMPO_UID_UPS] }
+      : gruppo,
+  );
+}
+
+/** Lo stesso elenco senza quel gruppo. */
+export function togliUps(elenco = [], uid) {
+  const cercato = clean(uid);
+  if (!cercato) return Array.isArray(elenco) ? elenco : [];
+  return (Array.isArray(elenco) ? elenco : []).filter(
+    (gruppo) => clean(gruppo?.[CAMPO_UID_UPS]) !== cercato,
+  );
 }
 
 /** Le entita' che l'UPS tiene d'occhio. */

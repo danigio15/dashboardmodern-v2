@@ -69,6 +69,7 @@ import {
 import {
   CHIAVE_UPS,
   daQuandoUps,
+  elencoUps,
   entitaDellUps,
   letturaUps,
   normalizzaUps,
@@ -2015,21 +2016,18 @@ function caldaiaModel(states) {
  * Percio' la tessera non mostra sempre lo stesso valore. Non e' un capriccio:
  * un UPS si guarda due volte in tutta la sua vita, e una delle due e' al buio.
  */
-function upsModel(states) {
-  const config = readJson(CHIAVE_UPS, {});
-  const entita = entitaDellUps(config);
-  if (!entita.length) return null;
-  const fuori = widgetExcludedEntities();
-  if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
-  const lettura = letturaUps(config, states, root.resolveEntity || ((value) => value));
+/* Le righe di UN gruppo, col suo nome davanti quando i gruppi sono piu' d'uno.
+ * Con un gruppo solo il nome sarebbe un'etichetta su una cosa sola. */
+function righeDellUps(config, lettura, conIlNome) {
   const dato = normalizzaUps(config);
-
+  const suo = clean(dato.name);
+  const nome = (testo) => (conIlNome && suo ? `${suo} · ${testo}` : testo);
   const rows = [];
   const casella = clean(dato.rete) || clean(dato.stato);
   if (casella)
     rows.push({
       glyph: "🔌",
-      name: t("Rete elettrica", "Mains power"),
+      name: nome(t("Rete elettrica", "Mains power")),
       entity: casella,
       on: lettura.rete === true,
       value:
@@ -2043,7 +2041,7 @@ function upsModel(states) {
     if (valore == null) return;
     rows.push({
       glyph,
-      name: testo,
+      name: nome(testo),
       entity: clean(dato[campo]),
       raw: valore,
       value: `${formatNumber(valore, cifre)}${unita}`,
@@ -2055,28 +2053,85 @@ function upsModel(states) {
   misura("tensione", t("Tensione", "Voltage"), "⚡", lettura.tensione, 0, " V");
   misura("potenza", t("Potenza", "Power"), "🔥", lettura.potenza, 0, " W");
   misura("temperatura", t("Temperatura", "Temperature"), "🌡️", lettura.temperatura, 1, "°");
+  return rows;
+}
+
+/* Quale gruppo parla in copertina, quando ce n'e' piu' d'uno.
+ *
+ * Il peggiore, come fa la tessera dell'aria con la misura messa peggio: prima
+ * chi e' andato a batteria — li' il tempo scorre — poi chi ha l'allarme, poi
+ * chi ha la carica piu' bassa. Una tessera che mostrasse sempre il primo della
+ * lista direbbe «tutto a posto» mentre l'altro e' al buio. */
+function ilPeggiore(letti) {
+  const voto = (voce) => {
+    if (voce.lettura.rete === false) return 0;
+    if (voce.lettura.allarme === true) return 1;
+    if (voce.lettura.rete !== true) return 2;
+    return 3;
+  };
+  return [...letti].sort((uno, altro) => {
+    const differenza = voto(uno) - voto(altro);
+    if (differenza) return differenza;
+    const caricaUno = uno.lettura.batteria == null ? 101 : uno.lettura.batteria;
+    const caricaAltro = altro.lettura.batteria == null ? 101 : altro.lettura.batteria;
+    return caricaUno - caricaAltro;
+  })[0];
+}
+
+function upsModel(states) {
+  /* Ne esisteva uno solo. «Ti volevo chiedere se c'era la possibilita' di
+   * aggiungere un secondo ups» (#332): adesso sono un elenco, e la tessera
+   * parla di tutti — in copertina il messo peggio, nella finestra ognuno con
+   * le sue righe. */
+  const gruppi = elencoUps(readJson(CHIAVE_UPS, {})).filter(
+    (gruppo) => entitaDellUps(gruppo).length > 0,
+  );
+  if (!gruppi.length) return null;
+  const fuori = widgetExcludedEntities();
+  const visibili = gruppi.filter((gruppo) =>
+    entitaDellUps(gruppo).some((entity) => widgetIncludes(entity, fuori)),
+  );
+  if (!visibili.length) return null;
+  const risolvi = root.resolveEntity || ((value) => value);
+  const letti = visibili.map((config) => ({
+    config,
+    lettura: letturaUps(config, states, risolvi),
+  }));
+  const conIlNome = letti.length > 1;
+  const rows = letti.flatMap((voce) => righeDellUps(voce.config, voce.lettura, conIlNome));
   if (!rows.length) return null;
 
+  const capofila = ilPeggiore(letti);
+  const config = capofila.config;
+  const lettura = capofila.lettura;
+  const suo = clean(normalizzaUps(config).name);
   const aBatteria = lettura.rete === false;
+  /* Con piu' gruppi la didascalia dice DI CHI parla: «Va a batteria · 34%» su
+   * due UPS non basta a sapere quale sia andato giu'. */
+  const diChi = (testo) => (conIlNome && suo ? `${suo} · ${testo}` : testo);
   const didascalia = () => {
     if (aBatteria) {
       /* Il numero si tira fuori prima: la chiave di traduzione dev'essere una
        * frase con un buco, non un pezzo di codice. */
       if (lettura.batteria != null) {
         const carica = formatNumber(lettura.batteria, 0);
-        return t(`Va a batteria · ${carica}%`, `On battery · ${carica}%`);
+        return diChi(t(`Va a batteria · ${carica}%`, `On battery · ${carica}%`));
       }
-      return t("Va a batteria", "On battery");
+      return diChi(t("Va a batteria", "On battery"));
     }
     if (lettura.rete === true) {
-      if (lettura.scarica) return t("Batteria scarica", "Battery low");
+      if (lettura.scarica) return diChi(t("Batteria scarica", "Battery low"));
       if (lettura.carico != null) {
         const carico = formatNumber(lettura.carico, 0);
-        return t(`Rete presente · carico ${carico}%`, `Mains present · load ${carico}%`);
+        return diChi(t(`Rete presente · carico ${carico}%`, `Mains present · load ${carico}%`));
       }
-      return t("Rete presente", "Mains present");
+      /* Tutti in rete e nessuno da segnalare: si dice quanti sono, che con due
+       * gruppi e' l'unica cosa che la copertina non direbbe da sola. */
+      return conIlNome
+        ? t(`${letti.length} gruppi in rete`, `${letti.length} units on mains`)
+        : t("Rete presente", "Mains present");
     }
-    return t("Non risponde", "Not answering");
+    return diChi(t("Non risponde", "Not answering"));
   };
   return {
     key: "ups",
@@ -2100,10 +2155,11 @@ function upsModel(states) {
     attiva: aBatteria,
     /* L'alone: la rete caduta, o la batteria sotto la soglia anche a rete
      * presente — che vuol dire che non ha finito di ricaricarsi dal guasto di
-     * prima, e il prossimo la trova impreparata. */
-    alert: lettura.allarme === true,
+     * prima, e il prossimo la trova impreparata. Basta che sia messo cosi' UNO
+     * dei gruppi: e' il peggiore che comanda. */
+    alert: letti.some((voce) => voce.lettura.allarme === true),
     lettura,
-    da: daQuandoUps(config, states, root.resolveEntity || ((value) => value)),
+    da: daQuandoUps(config, states, risolvi),
     rows,
   };
 }

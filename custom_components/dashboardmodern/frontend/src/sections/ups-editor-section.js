@@ -19,8 +19,13 @@
  */
 import {
   CASELLE_UPS,
+  CAMPO_UID_UPS,
+  CHIAVE_META_UPS,
   CHIAVE_UPS,
-  normalizzaUps,
+  elencoUps,
+  nuovoUps,
+  togliUps,
+  upsDaSalvare,
 } from "../core/ups-model.js";
 import { renderHomeWidgets } from "./home-widgets-section.js";
 import {
@@ -88,21 +93,35 @@ const CAMPI_UPS = Object.freeze({
   temperatura: [["Temperatura", "Temperature"], "sensor.ups_temperature"],
 });
 
+/* I gruppi configurati. Ne esisteva uno solo, scritto come un oggetto: chi lo
+ * ha se lo ritrova primo della fila, senza dover toccare niente. */
 function configurazione() {
-  return normalizzaUps(readJson(CHIAVE_UPS, {}));
+  return elencoUps(readJson(CHIAVE_UPS, {}));
 }
 
-function salva(config) {
-  writeJsonIfChanged(CHIAVE_UPS, config);
+const metadati = () => {
+  const salvato = readJson(CHIAVE_META_UPS, {});
+  return salvato && typeof salvato === "object" && !Array.isArray(salvato) ? salvato : {};
+};
+
+/** L'unico modo di scrivere l'elenco: da qui passa anche il segno che sale. */
+function salva(elenco) {
+  const { gruppi, metadata } = upsDaSalvare(elenco, metadati());
+  writeJsonIfChanged(CHIAVE_UPS, gruppi);
+  writeJsonIfChanged(CHIAVE_META_UPS, metadata, { sync: false });
   try {
     renderHomeWidgets();
   } catch (_error) {}
+  return gruppi;
 }
 
 function campiMarkup(config) {
   return CASELLE_UPS.map(({ campo }) => {
     const [etichetta, esempio, aiuto] = CAMPI_UPS[campo];
-    const id = `dm-ups-${campo}`;
+    /* L'id porta l'uid del gruppo: con due schede aperte due caselle con lo
+     * stesso id sarebbero la stessa casella, e il cercatore di entita' — che
+     * lavora per id — scriverebbe nell'altra. */
+    const id = `dm-ups-${config[CAMPO_UID_UPS]}-${campo}`;
     return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(...etichetta))}</span>
       <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-dm-ups-field="${esc(campo)}"
         value="${esc(config[campo])}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
@@ -134,23 +153,18 @@ function sezioneNascosta() {
   }
 }
 
-function corpoMarkup() {
-  const config = configurazione();
-  return `${fasciaMarkup()}<div class="dm-ups-ed">
-  <div class="ed-sec-title">🔌 ${esc(t("Gruppo di continuità (UPS)", "Uninterruptible power supply"))}</div>
-  <div class="ed-intro">${esc(
-    t(
-      "A rete presente la tessera mostra la carica della batteria; quando la corrente cade mostra i minuti che restano e si accende. Nessuna casella è obbligatoria: con il solo stato di NUT la tessera sa già dire se c'è tensione.",
-      "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power.",
-    ),
-  )}</div>
-  <div class="ed-list dm-todo-ed-list">
-    <article class="ed-row dm-todo-ed-row" data-open="true">
+/* Una scheda per gruppo. Il nome in cima, le caselle sotto, e il cestino
+ * accanto al nome: e' la stessa forma delle vetture e dei carichi, cosi' chi
+ * ha gia' configurato quelle sa gia' come si fa. */
+function gruppoMarkup(config, posizione) {
+  const uid = config[CAMPO_UID_UPS];
+  const titolo = clean(config.name) || `${t("Gruppo", "Unit")} ${posizione + 1}`;
+  return `<article class="ed-row dm-todo-ed-row dm-ups-ed-gruppo" data-open="true" data-dm-ups-gruppo="${esc(uid)}">
       <div class="dm-todo-ed-body">
-        <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Nome", "Name"))}</span><span class="ed-form-row"><input id="dm-ups-name" class="ed-input" data-dm-ups-field="name" value="${esc(config.name)}" placeholder="${esc(t("UPS del rack", "Rack UPS"))}"></span></label>
+        <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Nome", "Name"))}</span><span class="ed-form-row"><input id="dm-ups-${esc(uid)}-name" class="ed-input" data-dm-ups-field="name" value="${esc(config.name)}" placeholder="${esc(t("UPS del rack", "Rack UPS"))}"><button type="button" class="ed-btn-add dm-ups-ed-togli" data-dm-ups-togli="${esc(uid)}" aria-label="${esc(t("Togli", "Remove"))} ${esc(titolo)}" title="${esc(t("Togli questo gruppo", "Remove this unit"))}">🗑️</button></span></label>
         ${campiMarkup(config)}
         <label class="ed-slot dm-todo-ed-field dm-ups-ed-verso">
-          <span class="ed-form-row"><input type="checkbox" id="dm-ups-invertita" data-dm-ups-flag="invertita"${
+          <span class="ed-form-row"><input type="checkbox" id="dm-ups-${esc(uid)}-invertita" data-dm-ups-flag="invertita"${
             config.invertita ? " checked" : ""
           }><span class="ed-slot-lbl">${esc(t("Il sensore dice il contrario", "The sensor means the opposite"))}</span></span>
           <small>${esc(
@@ -160,10 +174,30 @@ function corpoMarkup() {
             ),
           )}</small>
         </label>
-        <button type="button" class="ed-save-btn" data-dm-ups-save>💾 ${esc(t("Salva UPS", "Save UPS"))}</button>
       </div>
-    </article>
-  </div></div>`;
+    </article>`;
+}
+
+function corpoMarkup() {
+  const elenco = configurazione();
+  /* Senza nessun gruppo si apre comunque una scheda vuota: e' la prima volta
+   * di chiunque, e una pagina con un solo tasto «Aggiungi» sarebbe un giro in
+   * piu' per arrivare dove si voleva arrivare. */
+  const schede = elenco.length ? elenco : [nuovoUps([], "", metadati())];
+  return `${fasciaMarkup()}<div class="dm-ups-ed">
+  <div class="ed-sec-title">🔌 ${esc(t("Gruppi di continuità (UPS)", "Uninterruptible power supplies"))}</div>
+  <div class="ed-intro">${esc(
+    t(
+      "A rete presente la tessera mostra la carica della batteria; quando la corrente cade mostra i minuti che restano e si accende. Nessuna casella è obbligatoria: con il solo stato di NUT la tessera sa già dire se c'è tensione. Se ne hai più di uno, aggiungili qui sotto: ognuno ha la sua scena nella pagina Continuità.",
+      "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.",
+    ),
+  )}</div>
+  <div class="ed-list dm-todo-ed-list">
+    ${schede.map((config, posizione) => gruppoMarkup(config, posizione)).join("")}
+  </div>
+  <button type="button" class="ed-btn-add dm-ups-ed-aggiungi" data-dm-ups-aggiungi>＋ ${esc(t("Aggiungi un UPS", "Add a UPS"))}</button>
+  <button type="button" class="ed-save-btn" data-dm-ups-save>💾 ${esc(t("Salva UPS", "Save UPS"))}</button>
+</div>`;
 }
 
 export function ensureUpsEditor() {
@@ -196,17 +230,61 @@ function onClick(event) {
     if (input) root.wzPickEntity?.(input);
     return;
   }
+  const togli = event.target.closest("[data-dm-ups-togli]");
+  if (togli) {
+    event.preventDefault();
+    /* Si toglie quello che c'e' scritto adesso, non quello salvato: chi ha
+     * riempito due schede e ne butta una non deve perdere l'altra. */
+    salva(togliUps(schedeAperte(body), clean(togli.dataset.dmUpsTogli)));
+    ridisegna();
+    root.edToast?.(t("🗑️ UPS tolto", "🗑️ UPS removed"));
+    return;
+  }
+  if (event.target.closest("[data-dm-ups-aggiungi]")) {
+    event.preventDefault();
+    /* Il ＋ apre una scheda, non scrive niente.
+     *
+     * Un gruppo senza nome e senza caselle non e' un gruppo: `elencoUps` lo
+     * lascia fuori, ed e' giusto — se lo salvasse, chi preme ＋ e cambia idea
+     * si ritroverebbe una scheda vuota per sempre. Quindi la scheda nuova
+     * nasce qui, nel documento, e diventa un gruppo quando si salva con
+     * qualcosa dentro. */
+    const elenco = body.querySelector(".dm-todo-ed-list");
+    if (!elenco) return;
+    const adesso = schedeAperte(body);
+    elenco.insertAdjacentHTML(
+      "beforeend",
+      gruppoMarkup(nuovoUps(adesso, "", metadati()), adesso.length),
+    );
+    elenco.lastElementChild?.querySelector('[data-dm-ups-field="name"]')?.focus();
+    return;
+  }
   if (event.target.closest("[data-dm-ups-save]")) {
     event.preventDefault();
-    const next = { ...configurazione() };
-    for (const campo of body.querySelectorAll("[data-dm-ups-field]"))
-      next[clean(campo.dataset.dmUpsField)] = clean(campo.value);
-    for (const flag of body.querySelectorAll("[data-dm-ups-flag]"))
-      next[clean(flag.dataset.dmUpsFlag)] = flag.checked === true;
-    salva(next);
+    salva(schedeAperte(body));
     ridisegna();
     root.edToast?.(t("💾 UPS salvato", "💾 UPS saved"));
   }
+}
+
+/* Quello che c'e' scritto nelle schede in questo momento.
+ *
+ * Ogni scheda porta l'uid del suo gruppo, e ogni casella appartiene alla
+ * scheda che la contiene: senza quel radicamento le caselle di due gruppi
+ * finirebbero tutte nel primo, che e' la stessa forma del difetto delle foto
+ * delle auto — un contenitore che non sa di chi sta parlando. */
+function schedeAperte(body) {
+  const salvate = configurazione();
+  return [...body.querySelectorAll("[data-dm-ups-gruppo]")].map((scheda, posizione) => {
+    const uid = clean(scheda.dataset.dmUpsGruppo);
+    const partenza = salvate.find((gruppo) => gruppo[CAMPO_UID_UPS] === uid) || { [CAMPO_UID_UPS]: uid };
+    const fuori = { ...partenza, [CAMPO_UID_UPS]: uid || `ups-${posizione + 1}` };
+    for (const campo of scheda.querySelectorAll("[data-dm-ups-field]"))
+      fuori[clean(campo.dataset.dmUpsField)] = clean(campo.value);
+    for (const flag of scheda.querySelectorAll("[data-dm-ups-flag]"))
+      fuori[clean(flag.dataset.dmUpsFlag)] = flag.checked === true;
+    return fuori;
+  });
 }
 
 export function ensureUpsEditorTab() {
@@ -232,6 +310,11 @@ function installStyles() {
       #ed-body .dm-ups-ed-verso .ed-form-row{align-items:center;gap:10px}
       #ed-body .dm-ups-ed-verso input[type="checkbox"]{width:18px;height:18px;flex:0 0 18px}
       #ed-body .dm-ups-ed-verso .ed-slot-lbl{margin:0}
+      /* Il cestino sta accanto al nome del gruppo, non in fondo alla scheda:
+         e' il nome che dice quale gruppo si sta per togliere. */
+      #ed-body .dm-ups-ed-togli{flex:0 0 auto;padding:6px 10px;line-height:1}
+      #ed-body .dm-ups-ed-gruppo + .dm-ups-ed-gruppo{margin-top:14px}
+      #ed-body .dm-ups-ed-aggiungi{display:block;width:100%;margin:12px 0 8px}
     `,
   );
 }

@@ -23,6 +23,7 @@ import {
   BATTERIA_BASSA,
   CHIAVE_UPS,
   daQuandoUps,
+  elencoUps,
   entitaDellUps,
   letturaUps,
 } from "../core/ups-model.js";
@@ -47,17 +48,21 @@ export const UPS_TAB = "ups";
 
 /* ── cosa c'e' da guardare ────────────────────────────────────────────── */
 
-function configurazione() {
-  return readJson(CHIAVE_UPS, {});
+/* I gruppi configurati. Ce n'era uno solo, e chi lo aveva se lo ritrova primo
+ * della fila: la forma vecchia — un oggetto — la legge `elencoUps`. */
+function gruppi() {
+  return elencoUps(readJson(CHIAVE_UPS, {}));
 }
 
-/** Se un UPS e' stato dichiarato: senza, la pagina non ha niente da dire. */
+/** Se almeno un UPS e' stato dichiarato: senza, la pagina non ha niente da dire. */
 export function upsConfigurato() {
-  return entitaDellUps(configurazione()).length > 0;
+  return gruppi().some((gruppo) => entitaDellUps(gruppo).length > 0);
 }
 
-function lettura() {
-  return letturaUps(configurazione(), allStates(), root.resolveEntity || ((value) => value));
+const risolvi = () => root.resolveEntity || ((value) => value);
+
+function letturaDi(gruppo) {
+  return letturaUps(gruppo, allStates(), risolvi());
 }
 
 /* ── la pagina e la sua voce nella barra ──────────────────────────────── */
@@ -305,16 +310,30 @@ function dipingi() {
     }
     return;
   }
-  const dato = lettura();
-  const da = daQuandoUps(configurazione(), allStates(), root.resolveEntity || ((value) => value));
+  /* Una scena per gruppo, nell'ordine in cui sono stati messi. Con uno solo
+   * non cambia niente rispetto a prima; da due in su ognuno ha la sua, col
+   * nome sopra, perche' due scene identiche senza nome non si distinguono. */
+  const elenco = gruppi().filter((gruppo) => entitaDellUps(gruppo).length > 0);
+  const scene = elenco.map((gruppo, posizione) => ({
+    nome: clean(gruppo.name) || `${t("Continuità", "Backup power")} ${posizione + 1}`,
+    dato: letturaDi(gruppo),
+    da: daQuandoUps(gruppo, allStates(), risolvi()),
+  }));
   /* Si ridisegna quando cambia cio' che si vede, e mai a vuoto: il «da 14
    * minuti» si riscrive al prossimo cambio di stato, e ridipingere ogni
    * secondo per far scorrere quel numero vorrebbe dire una pagina che trema
    * sotto le dita. */
-  const firma = JSON.stringify([dato, da]);
+  const firma = JSON.stringify(scene);
   if (state.firma === firma && dove.firstElementChild) return;
   state.firma = firma;
-  dove.innerHTML = `<div class="dm-ups-stage">${scena(dato, da)}</div>`;
+  dove.innerHTML = scene
+    .map(
+      (voce) =>
+        `<div class="dm-ups-stage">${
+          elenco.length > 1 ? `<h3 class="dm-ups-titolo">${esc(voce.nome)}</h3>` : ""
+        }${scena(voce.dato, voce.da)}</div>`,
+    )
+    .join("");
 }
 
 function schedule() {
@@ -350,6 +369,11 @@ function installStyles() {
 
     /* Il palco: stessa misura, stesso raggio e stessa ombra delle altre scene
        della plancia — e' la stessa stanza vista da un'altra porta. */
+    /* Il nome sopra la scena, che compare solo da due gruppi in su: con uno
+       solo sarebbe un'etichetta su una cosa sola. */
+    ${P} .dm-ups-titolo{margin:0 0 10px;font-size:15px;font-weight:900;letter-spacing:-.01em;color:var(--text,#0f172a)}
+    ${P} .dm-ups-stage + .dm-ups-titolo{margin-top:22px}
+    ${P} .dm-ups-stage + .dm-ups-stage{margin-top:22px}
     ${P} .dm-ups-stage{
       position:relative;width:100%;height:600px;overflow:hidden;border-radius:32px;
       border:1px solid var(--card-border,#e2e8f0);
