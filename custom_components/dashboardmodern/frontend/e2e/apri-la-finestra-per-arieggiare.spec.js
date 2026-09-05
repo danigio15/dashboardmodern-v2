@@ -163,12 +163,25 @@ test("la soglia si trova nella scheda Finestre, e dice cosa manca", async ({ pag
   /* E in una scheda sola: spostarla vuol dire toglierla di la', non metterla
    * anche qui. Si passano tutte le linguette e si guarda dove esce. */
   const dove = await page.evaluate(async () => {
+    /* La casella la posa una passata su `requestAnimationFrame`, non il cambio
+     * di linguetta: sessanta millisecondi bastavano su Chromium e non su
+     * WebKit sotto carico, e la scheda giusta usciva dall'elenco — la prova
+     * cadeva dicendo che la casella non stava da nessuna parte. Si aspetta
+     * finche' compare, e si molla presto quando c'e'. */
+    const respira = () =>
+      new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+    const laVedi = () => Boolean(document.querySelector("#ed-body #ed-umidita-soglia"));
     const linguette = [...document.querySelectorAll(".ed-tab")].map((b) => b.dataset.tab);
     const trovata = [];
     for (const tab of linguette) {
       editorSwitch(tab);
-      await new Promise((ok) => setTimeout(ok, 60));
-      if (document.querySelector("#ed-body #ed-umidita-soglia")) trovata.push(tab);
+      let vista = false;
+      for (let giro = 0; giro < 16 && !vista; giro += 1) {
+        await respira();
+        await new Promise((ok) => setTimeout(ok, 50));
+        vista = laVedi();
+      }
+      if (vista) trovata.push(tab);
     }
     return trovata;
   });
