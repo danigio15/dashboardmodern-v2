@@ -769,8 +769,38 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // cima, come la tendina del motore si appende sotto il nome. La finestra e'
   // quella degli elettrodomestici, senza una seconda copia: cambia solo cosa
   // si legge del dispositivo, che e' l'unico pezzo diverso fra le sezioni.
+  // 253 con i cerchi grandi che aprono il loro storico
+  // (`sections/energia-cerchi-storico-section.js`): «nella sezione energia
+  // giornaliera e mensile non si apre, sui cerchi che non sono i carichi, i
+  // dati storici». Nella vista Istantanea Solare, Rete, Batteria e Casa hanno
+  // il loro «apriStorico»; nelle altre due il documento vendorizzato li
+  // disegna senza, mentre i carichi sotto ce l'hanno — si tocca la Casa e non
+  // succede niente, senza modo di capire perche' quel cerchio no e il suo
+  // vicino si'. Il modulo aggiunge quello che manca senza toccare il
+  // documento, e ogni cerchio apre l'entita' che sta gia' mostrando in quella
+  // vista: il totale del giorno o del mese, non la potenza istantanea, che
+  // sarebbe lo storico di un'altra cosa.
+  // 254 con la colonnina e evcc (`core/wallbox-device-binding.js`):
+  // «aggiungere anche evcc e la wallbox». Le otto caselle della ricarica si
+  // scrivevano a mano sapendo gli entity_id a memoria; adesso arrivano da un
+  // dispositivo come l'auto. Il modulo e' puro e sta nel nucleo perche' due
+  // moduli lo chiedono per ragioni diverse: la scheda Auto per riempirle, e la
+  // sezione dell'auto per NON portarle via quando si cambia vettura — la
+  // colonnina e' della casa, non di una macchina.
+  // 255 con il gesto di riordinare a mano (`core/ordine-a-mano.js`):
+  // «riordinare a piacere la Home». La freccia che scambia una riga con la sua
+  // vicina serve alle persone, alle azioni rapide e alle tessere — tre elenchi
+  // diversi, un gesto solo. Scriverlo tre volte vorrebbe dire tre occasioni di
+  // sbagliare l'ultimo elemento, che e' esattamente il posto dove si sbaglia.
+  // 256 con il travaso già scritto (`core/carichi-travasati.js`): «le entità
+  // configurate diverse sui due impianti si mescolano». Fermato il difetto
+  // dove nasceva, quello che era già finito nella configurazione resta lì. Il
+  // modulo dice quali carichi portano il sensore di un'altra casa e — questa è
+  // la parte che conta — quando lo si può DIMOSTRARE: due carichi con lo
+  // stesso sensore non dicono da soli quale dei due è la copia, e cancellare
+  // dalla parte sbagliata butterebbe via la metà buona.
   assert.ok(
-    relative.length <= 252,
+    relative.length <= 256,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

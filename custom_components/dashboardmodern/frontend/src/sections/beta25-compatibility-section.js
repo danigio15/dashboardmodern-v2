@@ -28,12 +28,39 @@ function appliances() {
   return Array.isArray(value) ? value : [];
 }
 
+/* Una coda, non una raffica.
+ *
+ * Erano cinque bracci indipendenti — microtask, fotogramma, e tre timer — cioe'
+ * cinque passate per ogni chiamata; e siccome i renderer avvolti sono due,
+ * dieci per ogni giro di disegno del guscio, che a casa gira a ogni cambio di
+ * stato. Le riparazioni sono le stesse, e rifarle dieci volte di fila non ne
+ * ripara nessuna in piu'.
+ *
+ * Servono due momenti, non cinque: uno adesso, e uno quando il guscio ha
+ * finito di ridisegnare — le riparazioni esistono proprio per rimettere a
+ * posto quello che lui disfa, e certe sue passate arrivano tardi. Chi e' gia'
+ * in coda per un momento non ci rientra. */
+const inCoda = new Set();
+const inRitardo = new Set();
+const RITARDO_MS = 250;
+
 function schedule(callback) {
-  root.queueMicrotask?.(callback);
-  root.requestAnimationFrame?.(callback);
-  root.setTimeout?.(callback, 0);
-  root.setTimeout?.(callback, 60);
-  root.setTimeout?.(callback, 250);
+  if (!inCoda.has(callback)) {
+    inCoda.add(callback);
+    const subito = () => {
+      inCoda.delete(callback);
+      callback();
+    };
+    if (typeof root.requestAnimationFrame === "function") root.requestAnimationFrame(subito);
+    else root.setTimeout?.(subito, 0);
+  }
+  if (!inRitardo.has(callback)) {
+    inRitardo.add(callback);
+    root.setTimeout?.(() => {
+      inRitardo.delete(callback);
+      callback();
+    }, RITARDO_MS);
+  }
 }
 
 function restoreTemperatureEntityPickers(form) {
@@ -236,6 +263,12 @@ export function protectLegacyCustomImages() {
  * their artwork after every legacy/modern appliance render so saving a
  * dishwasher can never fall back to the washer/default image. */
 export function repairExplicitCatalogArtwork() {
+  /* Le due griglie che questa riparazione tocca stanno tutt'e due dentro la
+   * pagina degli Elettrodomestici, che resta nel documento anche quando non e'
+   * in scena: senza questa riga si costruiva una mappa di tutti gli
+   * apparecchi e si interrogava il documento intero, a ogni giro, per una
+   * pagina che nessuno stava guardando. */
+  if (!doc?.getElementById?.("page-appliances-main")?.classList?.contains("active")) return false;
   let repaired = false;
   const configured = appliances();
   const byId = new Map(configured.map((device) => [clean(device.id), device]));

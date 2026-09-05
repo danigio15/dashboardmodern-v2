@@ -84,6 +84,7 @@ import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
 import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
 import { installAutoIntegrazione } from "./auto-integrazione-section.js";
+import { installEnergiaCerchiStorico } from "./energia-cerchi-storico-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
@@ -486,7 +487,9 @@ function applianceKpiArtwork(model) {
    * Adesso mostra il disegno della scheda, quello con le parti mobili, e la
    * riga porta lo stato: se sta lavorando, il meccanismo gira anche qui. */
   return (
-    (kind && (applianceHeroArtwork(kind, 56) || applianceArtwork(kind, 72))) ||
+    (kind &&
+      (applianceHeroArtwork(kind, 56, { chiave: `kpi-${model?.id || model?.name || ""}` }) ||
+        applianceArtwork(kind, 72))) ||
     '<span class="dm-appliance-kpi-fallback">⚡</span>'
   );
 }
@@ -586,7 +589,21 @@ function syncApplianceKpis() {
     const popup = doc.getElementById(`dm-appliance-${kind}-popup`);
     return popup && !popup.hidden;
   });
-  const inScena = Boolean(grid.closest?.(".page.active")) || Boolean(grid.offsetParent);
+  /* E il cancello non deve costare quanto la stanza che chiude.
+   *
+   * `offsetParent` sembra la domanda piu' onesta — «questo nodo sta davvero
+   * sullo schermo?» — ma leggerlo obbliga il browser a rifare i conti
+   * dell'impaginazione di tutta la pagina, e lo si leggeva a ogni giro di
+   * stati proprio nel caso comune: pagina chiusa, `closest` gia' negativo,
+   * quindi si arrivava sempre al secondo pezzo dell'oppure. Col profilatore
+   * quella riga sola pesava quanto il disegno dei widget della Home.
+   *
+   * Dentro una pagina la risposta ce l'ha la pagina stessa, ed e' una classe
+   * da leggere. `offsetParent` resta per il caso in cui la griglia non stia
+   * in nessuna pagina — spostata dentro un popup — dove la classe non c'e' e
+   * la domanda va fatta davvero. */
+  const pagina = grid.closest?.(".page");
+  const inScena = pagina ? pagina.classList.contains("active") : Boolean(grid.offsetParent);
   if (!inScena && !popupAperto) return false;
   const models = applianceKpiModels();
   const running = models.filter((model) => model.mode === "running");
@@ -919,6 +936,7 @@ export function installSectionRuntime() {
     installPreseSection();
     installRobotEditorSection();
     installAutoIntegrazione();
+    installEnergiaCerchiStorico();
     /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
      * riusano la card della pagina Luci: si installano dopo di lei. */
     installRoomsPageSection();

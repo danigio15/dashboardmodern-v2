@@ -229,6 +229,24 @@ async function creaDaDispositivo({ device, entities, integration }) {
     (voce) => clean(voce?.name).toLowerCase() === area.toLowerCase(),
   );
   if (stanza) nato.room = clean(stanza.id) || clean(stanza.name);
+  /* Un dispositivo che robot non e' non diventa un robot.
+   *
+   * La finestra delle integrazioni mostra TUTTI i dispositivi — e' la stessa
+   * degli elettrodomestici — quindi da li' puo' arrivare un termostato. Senza
+   * un `vacuum.*` o un `lawn_mower.*` il legame esce senza entita', e la riga
+   * si salvava lo stesso: il messaggio diceva «aggiunto», la scheda mostrava
+   * una riga vuota e in pagina non compariva niente, perche' chi disegna una
+   * riga senza entita' la salta. Meglio dirlo subito e lasciare la finestra
+   * aperta su un altro dispositivo. */
+  if (!clean(nato.entity)) {
+    root.alert?.(
+      t(
+        "Da questo dispositivo non si riconosce nessun robot: serve un'entità vacuum.* o lawn_mower.*.",
+        "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.",
+      ),
+    );
+    return;
+  }
   state.aperto = robots.length;
   await salva([...robots, nato]);
   ridisegna();

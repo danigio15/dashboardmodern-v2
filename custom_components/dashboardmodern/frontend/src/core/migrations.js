@@ -1,4 +1,9 @@
-import { cloneValue, conservaLeEntita, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
+import {
+  cloneValue,
+  conservaIlConfigurato,
+  SCHEMA_VERSION,
+  normalizeDevice,
+} from "./device-model.js";
 import { COOLING_SLOT_MAP, ENERGY_SLOT_MAP } from "./energy-projection.js";
 import { normalizeRobots } from "./robot-model.js";
 import { normalizzaPrese } from "./prese-model.js";
@@ -43,27 +48,36 @@ export function migrateRooms(input = []) {
     used.add(id);
     const tempName = String(room.temp_name || room.temperature_name || "");
     const humName = String(room.hum_name || room.humidity_name || "");
-    return {
-      id,
-      name: String(room.name || `Room ${index + 1}`),
-      icon: room.icon || "",
-      floor: room.floor || "",
-      // Temperature sensors historically lived on cd_stanze. Keep these
-      // fields in the canonical room projection: dropping them here makes
-      // DashboardStore.persist() destructively rewrite cd_stanze.
-      temp: String(room.temp || room.temperature_entity || ""),
-      hum: String(room.hum || room.humidity_entity || ""),
-      ...(tempName ? { temp_name: tempName } : {}),
-      ...(humName ? { hum_name: humName } : {}),
-      rgb: room.rgb || "",
-      order: Number.isFinite(+room.order) ? +room.order : index,
-      metadata: { ...(room.metadata || {}) },
-      /* E tutto quello che una stanza si porta dietro e questo elenco non
-       * conosce, purche' sia un'entita': la regola dei dispositivi vale anche
-       * qui, ed e' qui che una stanza perdeva il suo sensore quando il campo
-       * cambiava nome. */
-      ...conservaLeEntita({}, room),
-    };
+    /* Quello che il modello sa dire lo dice lui, e il resto gli si posa
+     * accanto — in quest'ordine.
+     *
+     * Prima si teneva dell'ingresso e si spargeva SOPRA il normalizzato: con
+     * la vecchia regola passavano le sole entita', e non si notava. Adesso
+     * passa tutto, e sopra ci finivano anche `id` e `order` grezzi: due stanze
+     * con lo stesso id se lo tenevano uguale invece di prendere il suffisso
+     * che le distingue, e un `order` che numero non e' restava scritto com'e'.
+     * `conservaIlConfigurato` non tocca cio' che c'e' gia': basta dargli il
+     * normalizzato, come fa `normalizeEnergyLoads`. */
+    return conservaIlConfigurato(
+      {
+        id,
+        name: String(room.name || `Room ${index + 1}`),
+        icon: room.icon || "",
+        floor: room.floor || "",
+        // Temperature sensors historically lived on cd_stanze. Keep these
+        // fields in the canonical room projection: dropping them here makes
+        // DashboardStore.persist() destructively rewrite cd_stanze.
+        temp: String(room.temp || room.temperature_entity || ""),
+        hum: String(room.hum || room.humidity_entity || ""),
+        ...(tempName ? { temp_name: tempName } : {}),
+        ...(humName ? { hum_name: humName } : {}),
+        rgb: room.rgb || "",
+        order: Number.isFinite(+room.order) ? +room.order : index,
+        metadata: { ...(room.metadata || {}) },
+      },
+      room,
+      "rooms",
+    );
   });
 }
 
@@ -162,7 +176,7 @@ export function normalizeEnergyLoads(input = []) {
       let collision = 2;
       while (used.has(id)) id = `${base}-${collision++}`;
       used.add(id);
-      return conservaLeEntita(
+      return conservaIlConfigurato(
         {
           id,
           name: String(item.name || `Carico ${index + 1}`),
@@ -173,6 +187,7 @@ export function normalizeEnergyLoads(input = []) {
           order: Number.isFinite(+item.order) ? +item.order : index,
         },
         item,
+        "energyLoads",
       );
     })
     .sort((left, right) => left.order - right.order);

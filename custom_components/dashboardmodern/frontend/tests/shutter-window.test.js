@@ -96,7 +96,11 @@ test("il contatto sopravvive alla normalizzazione della tapparella", async () =>
   const senza = normalizeDevice({ id: "c2", entity: "cover.c2" }, "covers");
   assert.equal("contact" in senza, false);
 
-  // E il campo resta delle tapparelle: un elettrodomestico non lo prende.
+  // Il ramo che lo legge resta quello delle tapparelle: un elettrodomestico
+  // non gli fa niente. Ma non glielo si cancella nemmeno — un campo scritto da
+  // chi configura non si butta via perche' oggi questa sezione non sa cosa
+  // farne: e' esattamente cosi' che il contatto era sparito di qui.
   const appliance = normalizeDevice({ id: "a1", contact: "binary_sensor.x" }, "appliances");
-  assert.equal("contact" in appliance, false);
+  assert.equal(appliance.contact, "binary_sensor.x");
+  assert.equal(contactEntity(normalizeDevice({ id: "c3", entity: "cover.c3" }, "covers")), "");
 });

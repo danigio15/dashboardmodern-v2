@@ -287,13 +287,48 @@ export function kelvinToHex(kelvin) {
  * the glyph inside the orb — and a lamp can be deep blue as easily as pale
  * amber, so the ink cannot be a constant. This is the WCAG relative luminance,
  * with the usual 0.5 split. */
-export function readableInk(hex, dark = "#0f172a", light = "#ffffff") {
-  const channels = hexToRgb(hex).map((value) => {
+/** Quanto e' chiaro un colore, da 0 (nero) a 1 (bianco). Scritto una volta. */
+export function luminanza(hex) {
+  const canali = hexToRgb(hex).map((value) => {
     const ratio = value / 255;
     return ratio <= 0.04045 ? ratio / 12.92 : ((ratio + 0.055) / 1.055) ** 2.4;
   });
-  const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
-  return luminance > 0.4 ? dark : light;
+  return 0.2126 * canali[0] + 0.7152 * canali[1] + 0.0722 * canali[2];
+}
+
+export function readableInk(hex, dark = "#0f172a", light = "#ffffff") {
+  return luminanza(hex) > 0.4 ? dark : light;
+}
+
+/* Sopra questa chiarezza un colore, su una card chiara, non si vede piu'. */
+const TROPPO_CHIARO = 0.62;
+/* E sotto questa tinta non c'e' un colore da scurire: c'e' del bianco. La
+ * saturazione qui si conta in centesimi, come la rende `rgbToHsv`. */
+const SENZA_TINTA = 14;
+
+/**
+ * Il colore con cui una luce dice «sono accesa».
+ *
+ * Dal campo (#327): «il colore dell'alone e' quello della lampada, quindi se la
+ * lampada e' sul bianco non si vede — ma in realta' c'e'». Aveva ragione su
+ * tutto, ed e' proprio per questo che era un difetto: l'alone c'era, ed era
+ * bianco su bianco. Una lampada accesa che si vede identica a una spenta e'
+ * rotta anche quando il colore che mostra e' quello giusto.
+ *
+ * Il colore vero resta dov'e' informazione — la sfera dice che luce fa la
+ * lampada, e una lampada bianca fa luce bianca. Qui si ricava quello con cui la
+ * card lo DICE: la stessa tinta, scurita quanto basta per staccarsi dal fondo.
+ * Un bianco puro una tinta da scurire non ce l'ha, e allora prende l'ambra di
+ * casa — il colore con cui questa plancia scrive «acceso» da sempre.
+ */
+export function coloreDelSegno(hex, ambra = "#f59e0b") {
+  const [h, s, v] = rgbToHsv(hexToRgb(hex));
+  if (luminanza(hex) <= TROPPO_CHIARO) return clean(hex) || ambra;
+  if (s < SENZA_TINTA) return ambra;
+  /* Si scende finche' non si vede: la tinta e' sua, la profondita' gliela
+   * diamo noi. Il valore non e' una scelta di gusto — e' il punto in cui un
+   * colore saturo passa la soglia qui sopra su un fondo bianco. */
+  return rgbToHex(hsvToRgb(h, Math.max(s, 55), 72));
 }
 
 /* ── Commands ─────────────────────────────────────────────────────────────── */

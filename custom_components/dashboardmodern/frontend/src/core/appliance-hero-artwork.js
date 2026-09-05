@@ -545,19 +545,40 @@ const BUILDERS = {
 
 export const HERO_ARTWORK_TYPES = Object.freeze(Object.keys(BUILDERS));
 
-let instance = 0;
+/* Un nome buono per un id dentro un SVG: lettere, cifre e trattini. */
+const perId = (valore) =>
+  String(valore || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 /**
  * `freezerHint` lets callers keep congelatore visually distinct even though
  * canonicalArtworkType folds it into "fridge".
+ *
+ * `chiave` distingue due disegni dello stesso tipo che stanno nella pagina
+ * insieme: i gradienti vivono in `<defs>` e ci si punta per id, quindi due
+ * lavatrici con gli stessi id si ruberebbero le sfumature.
+ *
+ * Quella chiave era un contatore che saliva a ogni chiamata, e il prezzo non
+ * si vedeva da qui: rendeva il markup DIVERSO A OGNI CHIAMATA, a parita' di
+ * tutto. Chi disegna la vetrina prende l'impronta del markup per non rifare
+ * schede che non sono cambiate — e quell'impronta non poteva mai coincidere.
+ * Ogni elettrodomestico si rifaceva da zero a ogni giro di disegno, con la
+ * pagina chiusa, per sempre. Misurato: sei millisecondi a giro contro uno, e
+ * il giro intero della plancia dimezzato togliendolo.
+ *
+ * L'identita' ce l'ha gia' chi chiama — un elettrodomestico ha il suo id — e
+ * un'identita' stabile e' l'unica che serva: due disegni della stessa cosa
+ * possono anche condividere le sfumature, perche' sono le stesse.
  */
-export function applianceHeroArtwork(type, size = 170, { freezer = false } = {}) {
+export function applianceHeroArtwork(type, size = 170, { freezer = false, chiave = "" } = {}) {
   let canonical = canonicalArtworkType(type) || "generic";
   if (canonical === "fridge" && (freezer || /congel|freez/i.test(String(type || "")))) {
     canonical = "freezer";
   }
   const builder = BUILDERS[canonical] || BUILDERS.generic;
-  instance = (instance + 1) % 1_000_000;
-  const id = `${canonical}-${instance.toString(36)}`;
+  const suo = perId(chiave);
+  const id = suo ? `${canonical}-${suo}` : canonical;
   return `<span class="dm-hero-art" data-dm-hero="${canonical}"><svg width="${size}" height="${size}" viewBox="0 0 240 240" role="img" aria-hidden="true">${builder(id)}</svg></span>`;
 }

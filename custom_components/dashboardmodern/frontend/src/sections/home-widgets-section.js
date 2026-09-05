@@ -69,6 +69,7 @@ import {
 import {
   CHIAVE_UPS,
   daQuandoUps,
+  elencoUps,
   entitaDellUps,
   letturaUps,
   normalizzaUps,
@@ -2015,21 +2016,18 @@ function caldaiaModel(states) {
  * Percio' la tessera non mostra sempre lo stesso valore. Non e' un capriccio:
  * un UPS si guarda due volte in tutta la sua vita, e una delle due e' al buio.
  */
-function upsModel(states) {
-  const config = readJson(CHIAVE_UPS, {});
-  const entita = entitaDellUps(config);
-  if (!entita.length) return null;
-  const fuori = widgetExcludedEntities();
-  if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
-  const lettura = letturaUps(config, states, root.resolveEntity || ((value) => value));
+/* Le righe di UN gruppo, col suo nome davanti quando i gruppi sono piu' d'uno.
+ * Con un gruppo solo il nome sarebbe un'etichetta su una cosa sola. */
+function righeDellUps(config, lettura, conIlNome) {
   const dato = normalizzaUps(config);
-
+  const suo = clean(dato.name);
+  const nome = (testo) => (conIlNome && suo ? `${suo} · ${testo}` : testo);
   const rows = [];
   const casella = clean(dato.rete) || clean(dato.stato);
   if (casella)
     rows.push({
       glyph: "🔌",
-      name: t("Rete elettrica", "Mains power"),
+      name: nome(t("Rete elettrica", "Mains power")),
       entity: casella,
       on: lettura.rete === true,
       value:
@@ -2043,7 +2041,7 @@ function upsModel(states) {
     if (valore == null) return;
     rows.push({
       glyph,
-      name: testo,
+      name: nome(testo),
       entity: clean(dato[campo]),
       raw: valore,
       value: `${formatNumber(valore, cifre)}${unita}`,
@@ -2055,28 +2053,85 @@ function upsModel(states) {
   misura("tensione", t("Tensione", "Voltage"), "⚡", lettura.tensione, 0, " V");
   misura("potenza", t("Potenza", "Power"), "🔥", lettura.potenza, 0, " W");
   misura("temperatura", t("Temperatura", "Temperature"), "🌡️", lettura.temperatura, 1, "°");
+  return rows;
+}
+
+/* Quale gruppo parla in copertina, quando ce n'e' piu' d'uno.
+ *
+ * Il peggiore, come fa la tessera dell'aria con la misura messa peggio: prima
+ * chi e' andato a batteria — li' il tempo scorre — poi chi ha l'allarme, poi
+ * chi ha la carica piu' bassa. Una tessera che mostrasse sempre il primo della
+ * lista direbbe «tutto a posto» mentre l'altro e' al buio. */
+function ilPeggiore(letti) {
+  const voto = (voce) => {
+    if (voce.lettura.rete === false) return 0;
+    if (voce.lettura.allarme === true) return 1;
+    if (voce.lettura.rete !== true) return 2;
+    return 3;
+  };
+  return [...letti].sort((uno, altro) => {
+    const differenza = voto(uno) - voto(altro);
+    if (differenza) return differenza;
+    const caricaUno = uno.lettura.batteria == null ? 101 : uno.lettura.batteria;
+    const caricaAltro = altro.lettura.batteria == null ? 101 : altro.lettura.batteria;
+    return caricaUno - caricaAltro;
+  })[0];
+}
+
+function upsModel(states) {
+  /* Ne esisteva uno solo. «Ti volevo chiedere se c'era la possibilita' di
+   * aggiungere un secondo ups» (#332): adesso sono un elenco, e la tessera
+   * parla di tutti — in copertina il messo peggio, nella finestra ognuno con
+   * le sue righe. */
+  const gruppi = elencoUps(readJson(CHIAVE_UPS, {})).filter(
+    (gruppo) => entitaDellUps(gruppo).length > 0,
+  );
+  if (!gruppi.length) return null;
+  const fuori = widgetExcludedEntities();
+  const visibili = gruppi.filter((gruppo) =>
+    entitaDellUps(gruppo).some((entity) => widgetIncludes(entity, fuori)),
+  );
+  if (!visibili.length) return null;
+  const risolvi = root.resolveEntity || ((value) => value);
+  const letti = visibili.map((config) => ({
+    config,
+    lettura: letturaUps(config, states, risolvi),
+  }));
+  const conIlNome = letti.length > 1;
+  const rows = letti.flatMap((voce) => righeDellUps(voce.config, voce.lettura, conIlNome));
   if (!rows.length) return null;
 
+  const capofila = ilPeggiore(letti);
+  const config = capofila.config;
+  const lettura = capofila.lettura;
+  const suo = clean(normalizzaUps(config).name);
   const aBatteria = lettura.rete === false;
+  /* Con piu' gruppi la didascalia dice DI CHI parla: «Va a batteria · 34%» su
+   * due UPS non basta a sapere quale sia andato giu'. */
+  const diChi = (testo) => (conIlNome && suo ? `${suo} · ${testo}` : testo);
   const didascalia = () => {
     if (aBatteria) {
       /* Il numero si tira fuori prima: la chiave di traduzione dev'essere una
        * frase con un buco, non un pezzo di codice. */
       if (lettura.batteria != null) {
         const carica = formatNumber(lettura.batteria, 0);
-        return t(`Va a batteria · ${carica}%`, `On battery · ${carica}%`);
+        return diChi(t(`Va a batteria · ${carica}%`, `On battery · ${carica}%`));
       }
-      return t("Va a batteria", "On battery");
+      return diChi(t("Va a batteria", "On battery"));
     }
     if (lettura.rete === true) {
-      if (lettura.scarica) return t("Batteria scarica", "Battery low");
+      if (lettura.scarica) return diChi(t("Batteria scarica", "Battery low"));
       if (lettura.carico != null) {
         const carico = formatNumber(lettura.carico, 0);
-        return t(`Rete presente · carico ${carico}%`, `Mains present · load ${carico}%`);
+        return diChi(t(`Rete presente · carico ${carico}%`, `Mains present · load ${carico}%`));
       }
-      return t("Rete presente", "Mains present");
+      /* Tutti in rete e nessuno da segnalare: si dice quanti sono, che con due
+       * gruppi e' l'unica cosa che la copertina non direbbe da sola. */
+      return conIlNome
+        ? t(`${letti.length} gruppi in rete`, `${letti.length} units on mains`)
+        : t("Rete presente", "Mains present");
     }
-    return t("Non risponde", "Not answering");
+    return diChi(t("Non risponde", "Not answering"));
   };
   return {
     key: "ups",
@@ -2100,10 +2155,11 @@ function upsModel(states) {
     attiva: aBatteria,
     /* L'alone: la rete caduta, o la batteria sotto la soglia anche a rete
      * presente — che vuol dire che non ha finito di ricaricarsi dal guasto di
-     * prima, e il prossimo la trova impreparata. */
-    alert: lettura.allarme === true,
+     * prima, e il prossimo la trova impreparata. Basta che sia messo cosi' UNO
+     * dei gruppi: e' il peggiore che comanda. */
+    alert: letti.some((voce) => voce.lettura.allarme === true),
     lettura,
-    da: daQuandoUps(config, states, root.resolveEntity || ((value) => value)),
+    da: daQuandoUps(config, states, risolvi),
     rows,
   };
 }
@@ -4034,7 +4090,9 @@ function lightsDetail(widget) {
   const tutte =
     spegnibili.length > 1
       ? `<div class="dm-w-riga dm-w-tutte">
-          <button type="button" class="dm-w-tutte-btn" data-dm-w-lights-off aria-label="${esc(t("Spegni tutte le luci", "Turn all lights off"))}">
+          <button type="button" class="dm-w-tutte-btn" data-dm-w-lights-off="${esc(
+            spegnibili.map((row) => clean(row.entity)).filter(Boolean).join(" "),
+          )}" aria-label="${esc(t("Spegni tutte le luci", "Turn all lights off"))}">
             <span aria-hidden="true">🌙</span>${esc(t("Spegni tutte", "Turn all off"))}
             <b>${spegnibili.length}</b>
           </button>
@@ -5512,11 +5570,19 @@ export function renderHomeWidgets() {
      * una distanza che non esiste piu'. Misurare costa un conto
      * d'impaginazione, quindi lo si fa solo quando la larghezza e' cambiata
      * davvero. */
-    const cambiatoTesto = sub.textContent !== testo;
-    if (cambiatoTesto) sub.textContent = testo;
-    const larghezza = Math.round(sub.clientWidth);
-    if (cambiatoTesto || sub.dataset.dmLarghezza !== String(larghezza)) {
-      sub.dataset.dmLarghezza = String(larghezza);
+    /* Si rimisura quando cambiano le parole, e non a ogni giro di valori.
+     *
+     * La riga qui sopra diceva bene la cosa e la faceva male: per sapere se
+     * la larghezza era cambiata leggeva `clientWidth`, e leggerlo E' il conto
+     * d'impaginazione che si voleva evitare. Lo si pagava a ogni passata —
+     * due volte al secondo — quasi sempre per scoprire che la larghezza era
+     * la stessa di prima.
+     *
+     * La larghezza cambia quando cambia la finestra, e quello lo dice gia'
+     * `resize` (vedi `installHomeWidgetsSection`): li' la riga si rimisura.
+     * Qui basta il testo, che e' l'unica cosa che questa funzione tocca. */
+    if (sub.textContent !== testo) {
+      sub.textContent = testo;
       scorriUnaRiga(sub);
     }
     const stato = avvisi ? "avviso" : "quiete";
@@ -5938,10 +6004,30 @@ function scorriDidascalie(grid) {
   return mossi;
 }
 
+/* Le tessere si rifanno per chi le guarda.
+ *
+ * Un giro costruisce il modello di ogni tessera — una trentina, e ognuna
+ * legge gli stati della casa — e con la Home chiusa lo faceva lo stesso, due
+ * volte al secondo, per una griglia che nessuno aveva davanti. La Home resta
+ * nel documento quando si va altrove: il guscio la nasconde, non la toglie, e
+ * il lavoro non se ne accorgeva.
+ *
+ * Tornando sulla Home il tocco sulla linguetta richiama la passata (vedi
+ * `installHomeWidgetsSection`), quindi chi arriva trova le tessere di adesso e
+ * non quelle di quando se n'e' andato. */
+function laHomeSiVede() {
+  if (homeVisible()) return true;
+  /* Il popup del dettaglio sta attaccato al corpo della pagina, non alla
+   * Home: finche' e' aperto va tenuto vivo comunque, perche' e' lui che si
+   * sta guardando. */
+  return Boolean(state.expanded);
+}
+
 function schedule() {
   if (state.frame) return;
   const run = () => {
     state.frame = 0;
+    if (!laHomeSiVede()) return;
     try {
       renderHomeWidgets();
     } catch (error) {
@@ -6155,16 +6241,28 @@ function onClick(event) {
   const tutte = event.target?.closest?.("[data-dm-w-lights-off]");
   if (tutte) {
     event.preventDefault();
-    /* Si spengono quelle che la finestra sta mostrando accese, una per una col
-     * servizio del loro dominio: una luce puo' essere un `light`, uno `switch`
-     * o un `input_boolean`, e un solo `light.turn_off` ne lascerebbe indietro
-     * la meta'. Le protette non si toccano, come ovunque. */
-    for (const bottone of tutte
-      .closest(".dm-w-body, #dm-widget-popup, body")
-      ?.querySelectorAll?.('[data-dm-w-light][data-on="true"]') || []) {
-      const entity = clean(bottone.dataset.dmWLight);
+    /* Si spengono tutte quelle accese, una per una col servizio del loro
+     * dominio: una luce puo' essere un `light`, uno `switch` o un
+     * `input_boolean`, e un solo `light.turn_off` ne lascerebbe indietro la
+     * meta'. Le protette non si toccano, come ovunque.
+     *
+     * L'elenco lo porta il tasto, non le righe disegnate: la finestra ne mostra
+     * quattordici, il conto sul tasto le conta tutte, e chiedendole al disegno
+     * chi ha venti luci accese ne vedeva spegnere quattordici — un tasto che
+     * dice venti e ne fa quattordici e' un tasto che mente. */
+    const dichiarate = clean(tutte.dataset.dmWLightsOff).split(/\s+/).filter(Boolean);
+    const disegnate = [
+      ...(tutte
+        .closest(".dm-w-body, #dm-widget-popup, body")
+        ?.querySelectorAll?.('[data-dm-w-light][data-on="true"]') || []),
+    ];
+    const segnate = new Map(
+      disegnate.map((bottone) => [clean(bottone.dataset.dmWLight), bottone]),
+    );
+    for (const entity of dichiarate.length ? dichiarate : [...segnate.keys()]) {
       if (!entity || !siComanda(entity)) continue;
-      bottone.dataset.on = "false";
+      const bottone = segnate.get(entity);
+      if (bottone) bottone.dataset.on = "false";
       callHa(entity.split(".")[0] || "light", "turn_off", { entity_id: entity });
     }
     return;
@@ -7747,7 +7845,14 @@ export function installHomeWidgetsSection() {
   let rimisura = 0;
   root.addEventListener?.("resize", () => {
     root.clearTimeout?.(rimisura);
-    rimisura = root.setTimeout?.(() => sistemaLeScritte(doc.getElementById("dm-widgets")), 140);
+    rimisura = root.setTimeout?.(() => {
+      const ospite = doc.getElementById("dm-widgets");
+      sistemaLeScritte(ospite);
+      /* E la riga sotto il titolo, che scorre se non ci sta: e' l'unico posto
+       * dove si misura la sua larghezza, perche' e' l'unico momento in cui
+       * puo' essere cambiata. */
+      scorriUnaRiga(ospite?.querySelector?.(".dm-widgets-sub"));
+    }, 140);
   });
   /* Il ritardo di fine ciclo scade in silenzio: l'elettrodomestico ha smesso
    * di consumare, e nessun cambio di stato arriva ad avvisare la tessera. */

@@ -86,9 +86,13 @@ test("togliere una chiave non alza la revisione", async () => {
    * soglia dell'umidita' che fa dire «apri la finestra» (#330,
    * `cd_umidita_soglia`): e' una quota di casa, e se restasse sul dispositivo
    * che l'ha scritta il telefono direbbe di aprire la finestra e il tablet no,
-   * davanti alla stessa stanza. Quelle tolte restano fuori dall'elenco, che e'
-   * quello che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 27);
+   * davanti alla stessa stanza, e la 28 col segno progressivo dei gruppi di
+   * continuita' (#332, `cd_ups_meta`), che nasce con il secondo UPS: vale la
+   * stessa ragione delle auto — se resta a terra, il secondo dispositivo
+   * riparte da capo col conteggio e il prossimo gruppo nasce con
+   * l'identificativo di uno cancellato. Quelle tolte restano fuori
+   * dall'elenco, che e' quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 28);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

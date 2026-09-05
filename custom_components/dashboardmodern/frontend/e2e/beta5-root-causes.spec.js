@@ -267,6 +267,15 @@ for (const variant of PRIMARY) {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
+    /* La scena dell'Energia si guarda dalla pagina dell'Energia.
+     *
+     * Il flusso non si ridisegna piu' mentre la sua pagina e' chiusa: era il
+     * calore del mini PC segnalato dal campo — un centinaio di conti
+     * d'impaginazione al secondo per una pagina che nessuno guardava. Qui si
+     * apre la pagina come la aprirebbe una persona, e da li' in giu' le
+     * verifiche sono le stesse: con niente configurato la scena e' vuota, con
+     * due carichi ci sono due bolle. */
+    await page.locator('.tab[data-tab="energy"]').first().click();
     await page.evaluate(async () => {
       window.render?.();
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));

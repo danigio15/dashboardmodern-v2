@@ -276,3 +276,88 @@ test("se il cavo lo dice un sensore, non si indovina piu'", async () => {
     assert.match(sorgente, /ref: 'dm\.ev_cavo_collegato'/, runtime);
   }
 });
+
+test("un uid vuoto non e' un jolly: non tocca nessuna auto", async () => {
+  /* Le foto si mischiavano da qui.
+   *
+   * Un uid vuoto combaciava con OGNI riga che l'uid non ce l'ha — e le righe
+   * senza uid sono la forma di ogni configurazione scritta prima che gli uid
+   * esistessero, e di ogni ripristino, finche' qualcuno non apre la lista auto
+   * e gliene fa scrivere uno. Una patch chiesta per una vettura le prendeva
+   * tutte: la foto della prima finiva addosso a tutte le altre.
+   *
+   * La lettura la difesa ce l'aveva gia' — `vehicleIndex("")` risponde -1 — e
+   * mancava solo di qua. Chiedere di cambiare un'auto che non si sa quale sia
+   * non cambia niente. */
+  const senzaUid = [
+    { name: "Zoe", img: "/local/zoe.png" },
+    { name: "Tesla", img: "/local/tesla.png" },
+  ];
+  assert.deepEqual(
+    updateVehicle(senzaUid, "", { img: "/local/zoe.png" }).map((car) => car.img),
+    ["/local/zoe.png", "/local/tesla.png"],
+  );
+  /* Nemmeno con spazi, che `clean` riduce a vuoto. */
+  assert.deepEqual(
+    updateVehicle(senzaUid, "   ", { img: "/local/zoe.png" }).map((car) => car.img),
+    ["/local/zoe.png", "/local/tesla.png"],
+  );
+  /* E la lettura risponde la stessa cosa, come ha sempre fatto. */
+  assert.equal(vehicleIndex(senzaUid, ""), -1);
+  /* Con un uid vero si scrive su quella, e su una sola. */
+  const conUid = [
+    { uid: "a", name: "Zoe", img: "/local/zoe.png" },
+    { uid: "b", name: "Tesla", img: "/local/tesla.png" },
+  ];
+  assert.deepEqual(
+    updateVehicle(conUid, "b", { img: "/local/nuova.png" }).map((car) => car.img),
+    ["/local/zoe.png", "/local/nuova.png"],
+  );
+});
+
+test("il travaso delle foto guarda la stessa lista di tutti gli altri", async () => {
+  /* `adoptExistingPhotos` leggeva l'elenco GREZZO, dove una riga l'uid puo' non
+   * averlo: chiedeva di scrivere «sull'auto con uid vuoto», e quella richiesta
+   * le prendeva tutte. Adesso passa da `profiles()`, dove ogni riga un uid ce
+   * l'ha — la stessa lista che leggono il pannello, il titolo e il
+   * salvataggio. Una domanda, una lista. */
+  const sorgente = await readFile(
+    new URL("../src/sections/ev-section.js", import.meta.url),
+    "utf8",
+  );
+  const travaso = sorgente.slice(
+    sorgente.indexOf("function adoptExistingPhotos"),
+    sorgente.indexOf("function legacyRefreshSignature"),
+  );
+  assert.match(travaso, /const cars = profiles\(\);/);
+  assert.equal(/legacyProfiles\(\)/.test(travaso), false);
+  /* E l'auto in uso si sceglie per uid, non per posto. */
+  assert.match(travaso, /const attiva = activeVehicle\(cars\);/);
+  assert.equal(/Math\.max\(0, activeIndex\(\)\)/.test(travaso), false);
+});
+
+test("una vettura senza foto non si mette quella di un'altra", async () => {
+  /* Qui c'era un ripiego: con UNA macchina sola le due caselle sciolte
+   * valevano ancora come sua foto. Sembrava innocuo — con una macchina sola
+   * non c'e' nessun'altra a cui rubare niente — e invece era la porta da cui
+   * il difetto rientrava: bastava cancellare una di due vetture. Le auto
+   * tornano una, il ripiego si riapre, e le caselle in quel momento portano
+   * ancora la foto della macchina appena cancellata. Misurato: cancellata la
+   * Tesla, l'eroe la mostrava ancora sotto la Zoe, e il pannello nasceva col
+   * percorso della Tesla nel campo. */
+  const sorgente = await readFile(
+    new URL("../src/sections/ev-section.js", import.meta.url),
+    "utf8",
+  );
+  const funzione = sorgente.slice(
+    sorgente.indexOf("function fotoDi(car"),
+    sorgente.indexOf("export function ensureVehiclePhotoEditor"),
+  );
+  assert.match(funzione, /return vehiclePhotos\(car\);/);
+  /* Niente piu' «quante»: il numero delle auto non decide di chi e' una foto. */
+  assert.equal(/quante/.test(funzione), false);
+  assert.equal(/configuredPhotos\(\)/.test(funzione), false);
+  /* E le foto di un profilo restano le sue, vuote comprese. */
+  assert.deepEqual(vehiclePhotos({ img: "", imgPlugged: "" }), { idle: "", plugged: "" });
+  assert.deepEqual(vehiclePhotos({ img: "/local/a.png" }), { idle: "/local/a.png", plugged: "" });
+});

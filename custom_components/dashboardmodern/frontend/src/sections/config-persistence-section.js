@@ -105,12 +105,18 @@ const USER_DATA_VERSION = 1;
  * (`cd_tapparelle_soglia`, #298), le allerte (`cd_allerte`, #296) e la raccolta
  * differenziata (`cd_rifiuti`, #293): tre cose configurate una volta per tutta
  * la casa, che il telefono e il tablet devono leggere uguali. */
-/* La revisione 27 aggiunge la soglia dell'umidita' (`cd_umidita_soglia`,
+/* La revisione 28 aggiunge il segno progressivo dei gruppi di continuita'
+ * (`cd_ups_meta`), che nasce con il secondo UPS (#332). Vale la stessa ragione
+ * per cui viaggia quello delle auto: se resta a terra, il secondo dispositivo
+ * riparte da capo col conteggio e il prossimo gruppo nasce con l'identificativo
+ * di uno cancellato, ereditandone le caselle.
+ *
+ * La revisione 27 aggiunge la soglia dell'umidita' (`cd_umidita_soglia`,
  * #330): «una soglia per l'umidita' oltre la quale suggerisce di aprire la
  * finestra per arieggiare». E' una quota di casa, come quella delle
  * tapparelle: se restasse sul dispositivo che l'ha scritta, il telefono
  * direbbe di aprire la finestra e il tablet no, davanti alla stessa stanza. */
-export const CONFIG_KEYS_REVISION = 27;
+export const CONFIG_KEYS_REVISION = 28;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -306,6 +312,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_avvisi_icone",
   "cd_stanze_entita",
   "cd_ev_meta",
+  "cd_ups_meta",
 ]);
 
 const LEGACY_SYNC_CONTROL_KEYS = Object.freeze(["cd_sync_ts", "cd_sync_dirty"]);

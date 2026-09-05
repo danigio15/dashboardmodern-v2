@@ -46,6 +46,7 @@ import { LOAD_PLANT_FIELD } from "./energy-plants.js";
 import { contactEntity, inferriataEntity } from "./shutter-window.js";
 import {
   COVER_SLOTS,
+  coverClosedThreshold,
   coverDownRelay,
   coverPresetPosition,
   declaredCoverKind,
@@ -321,21 +322,33 @@ export const APPLIANCE_BINDING_FIELDS = Object.freeze([
  * sopravvivere un campo che il modello avrebbe scartato. L'errore, adesso, sta
  * dalla parte giusta.
  */
-const CAMPI_DECISI = new Set([
+/* «Il modello ha un'opinione su questo campo, in questa sezione.»
+ *
+ * Ogni voce dice DOVE l'opinione vale, e non e' un dettaglio: `kind`, `state`,
+ * `url`, `soglia` sono parole comuni. Tenendole in un elenco unico per tutte le
+ * sezioni, un campo che un giorno si chiamasse `soglia` su un elettrodomestico
+ * sparirebbe per colpa di una regola scritta per le tapparelle — cioe' si
+ * riaprirebbe, per la porta di servizio, esattamente il difetto che questo
+ * meccanismo esiste per chiudere. `true` vuol dire «dappertutto». */
+const CAMPI_DECISI = new Map([
   /* Le coperture: le decide il ramo `covers`, slot per slot. */
-  "contact",
-  "contact_entity",
-  "inferriata",
-  "kind",
-  "preset",
-  ...COVER_SLOTS.flatMap(({ campo, giu }) => [campo, giu].filter(Boolean)),
+  ["contact", ["covers"]],
+  ["contact_entity", ["covers"]],
+  ["inferriata", ["covers"]],
+  ["kind", ["covers"]],
+  ["preset", ["covers"]],
+  ["soglia", ["covers"]],
+  ...COVER_SLOTS.flatMap(({ campo, giu }) =>
+    [campo, giu].filter(Boolean).map((nome) => [nome, ["covers"]]),
+  ),
   /* Le telecamere. */
-  "rtsp",
-  "stream",
-  "stream_url",
-  "url",
+  ["rtsp", ["cameras"]],
+  /* Il flusso lo legge il ramo comune, per ogni sezione. */
+  ["stream", true],
+  ["stream_url", true],
+  ["url", true],
   /* Il clima. */
-  "valvola",
+  ["valvola", ["climate"]],
   /* E i nomi vecchi delle caselle di sempre.
    *
    * Il modello li legge e li versa nel nome canonico: `power` diventa
@@ -343,25 +356,46 @@ const CAMPI_DECISI = new Set([
    * com'erano, una casella svuotata apposta risorgerebbe dal suo alias al giro
    * dopo — e' quello che era gia' successo alle foto delle auto, «si mescolano
    * da sole», per giorni. Il nome canonico c'e' sempre: questi hanno finito il
-   * loro lavoro nel momento in cui sono stati letti. */
-  "power",
-  "energy",
-  "daily_energy",
-  "energy_today",
-  "monthly_energy",
-  "total_energy",
-  "history",
-  "switch",
-  "switch_entity",
-  "light",
-  "state",
-  "temp_entity",
-  "temp_entity_2",
-  "remaining_time_entity",
-  "problem_entity",
-  "start_time_entity",
-  "img",
+   * loro lavoro nel momento in cui sono stati letti. Valgono dove il ramo che
+   * li versa gira davvero: gli apparecchi e i carichi. */
+  ...[
+    "power",
+    "energy",
+    "daily_energy",
+    "energy_today",
+    "monthly_energy",
+    "total_energy",
+    "history",
+    "switch",
+    "switch_entity",
+    "light",
+    "state",
+    "temp_entity",
+    "temp_entity_2",
+    "remaining_time_entity",
+    "problem_entity",
+    "start_time_entity",
+  ].map((nome) => [nome, ["appliances", "loads"]]),
+  /* La foto dell'auto: il ramo `ev` la versa in `image` e `image_url`. */
+  ["img", ["ev"]],
+  /* E i nomi vecchi delle caselle del robot, per la stessa ragione delle altre.
+   *
+   * `normalizeRobot` li legge e li versa nei suoi: `map_entity` diventa
+   * `mapEntity`, `commands` diventa `comandi`. Tenendoli anche com'erano, una
+   * casella svuotata apposta risorgeva dal suo alias al giro dopo — la mappa
+   * tolta tornava, e non c'era modo di levarla. Hanno finito il loro lavoro
+   * nel momento in cui sono stati letti. */
+  ...["map_entity", "battery_entity", "batteryEntity", "room_id", "commands", "entities"].map(
+    (nome) => [nome, ["robots"]],
+  ),
 ]);
+
+function ilModelloDecide(campo, sezione) {
+  const dove = CAMPI_DECISI.get(campo);
+  if (!dove) return false;
+  return dove === true || dove.includes(sezione);
+}
+
 const NOME_DI_FILE =
   /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico|mp4|webm|json|ya?ml|txt|html?|css|js)$/i;
 
@@ -373,27 +407,47 @@ export function sembraUnEntita(valore) {
   return /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/.test(testo);
 }
 
+/* Un valore che vale la pena tenere.
+ *
+ * Un testo, un numero, un si'/no, un elenco, un oggetto: le forme in cui una
+ * configurazione si scrive. Fuori restano il vuoto — che non e' una
+ * configurazione, e' l'assenza di una — e le cose che in un salvataggio non ci
+ * possono nemmeno arrivare (funzioni, `NaN`, `undefined`). */
+function valoreDaTenere(valore) {
+  if (typeof valore === "string") return valore.trim() ? valore.trim() : undefined;
+  if (typeof valore === "number") return Number.isFinite(valore) ? valore : undefined;
+  if (typeof valore === "boolean") return valore;
+  if (Array.isArray(valore)) return valore.length ? cloneValue(valore) : undefined;
+  if (valore && typeof valore === "object" && Object.keys(valore).length) return cloneValue(valore);
+  return undefined;
+}
+
 /**
- * Rimette le entita' che la normalizzazione non conosceva.
+ * Rimette quello che la normalizzazione non conosceva.
+ *
+ * Prima passava di qui solo cio' che sembrava un'entita' di Home Assistant, e
+ * quella meta' bastava per le sei segnalazioni che avevano fatto scrivere
+ * questa regola. Non bastava per l'altra meta': la soglia di chiusura di UNA
+ * finestra (#298) e' un numero, non un'entita', e spariva alla prima
+ * normalizzazione esattamente come sparivano i contatti prima di lei. Un
+ * numero configurato e' configurazione quanto un'entita'.
+ *
+ * Adesso passa tutto quello su cui il modello non ha un'opinione. Le opinioni
+ * sono scritte in `CAMPI_DECISI` — il rele' di discesa di una tapparella vera
+ * non e' un rele', il contatto dell'infisso su un elettrodomestico non e' di
+ * casa sua, un alias che il modello ha gia' versato nel nome nuovo ha finito
+ * il suo lavoro — e restano fuori. Tutto il resto e' roba di chi configura, e
+ * non e' compito nostro decidere che non gli serve piu'.
  *
  * Tocca solo i campi che non ci sono gia': quello che il modello sa dire lo
  * dice lui, e un campo svuotato apposta resta svuotato.
  */
-export function conservaLeEntita(uscita = {}, ingresso = {}) {
+export function conservaIlConfigurato(uscita = {}, ingresso = {}, sezione = "") {
   if (!ingresso || typeof ingresso !== "object" || Array.isArray(ingresso)) return uscita;
   for (const [campo, valore] of Object.entries(ingresso)) {
-    if (campo in uscita || CAMPI_DECISI.has(campo)) continue;
-    if (typeof valore === "string") {
-      if (sembraUnEntita(valore)) uscita[campo] = valore.trim();
-      continue;
-    }
-    /* Anche un elenco di entita': `device_entities` e i suoi parenti. */
-    if (
-      Array.isArray(valore) &&
-      valore.length &&
-      valore.every((voce) => typeof voce === "string" && sembraUnEntita(voce))
-    )
-      uscita[campo] = valore.map((voce) => voce.trim());
+    if (campo in uscita || ilModelloDecide(campo, sezione)) continue;
+    const tenuto = valoreDaTenere(valore);
+    if (tenuto !== undefined) uscita[campo] = tenuto;
   }
   return uscita;
 }
@@ -604,6 +658,19 @@ export function normalizeDevice(input = {}, section, context = {}) {
     // anche lui un rele' — su una copertura vera non avrebbe senso.
     const down = coverDownRelay(input);
     if (down) base.down = down;
+    /* La soglia di chiusura di QUESTA finestra (#298).
+     *
+     * «La percentuale di chiusura la devi spostare nella configurazione di
+     * quella finestra: ognuno puo' avere una percentuale differente.» La
+     * scheda la salvava e il modello la buttava via al primo giro — lo stesso
+     * difetto del contatto e dell'inferriata, su un campo che pero' e' un
+     * numero, e la rete di sicurezza di allora prendeva solo le entita'.
+     * Vuoto vuol dire «quella di casa»; zero scritto apposta vale zero. */
+    const sogliaScritta = input?.soglia;
+    if (sogliaScritta !== null && sogliaScritta !== undefined && String(sogliaScritta).trim()) {
+      const quota = Number(sogliaScritta);
+      if (Number.isFinite(quota)) base.soglia = coverClosedThreshold(quota);
+    }
   }
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;
@@ -732,5 +799,5 @@ export function normalizeDevice(input = {}, section, context = {}) {
     ];
     if (deviceEntityIds.length) base.device_entities = deviceEntityIds;
   }
-  return conservaLeEntita(base, input);
+  return conservaIlConfigurato(base, input, section);
 }

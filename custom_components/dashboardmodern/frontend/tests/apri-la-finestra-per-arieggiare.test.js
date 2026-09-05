@@ -12,6 +12,7 @@ import {
   MARGINE,
   SOGLIA_PREDEFINITA,
   consiglioDiArieggiare,
+  cosaMancaPerArieggiare,
   sogliaDellUmidita,
 } from "../src/core/arieggiare.js";
 
@@ -91,4 +92,64 @@ test("una soglia spenta tace, anche con la stanza fradicia", () => {
 
 test("la chiave della configurazione e' una sola", () => {
   assert.equal(CHIAVE_SOGLIA_UMIDITA, "cd_umidita_soglia");
+});
+
+/* «Non funziona»: e non poteva funzionare, perche' il consiglio vuole quattro
+ * cose insieme e ne mancava una. Tacere e' giusto; tacere senza dire cosa
+ * manca e' quel che fa sembrare rotta una funzione che aspetta un sensore. */
+test("una casa appena installata dice tutto quello che le manca", () => {
+  assert.deepEqual(cosaMancaPerArieggiare({}), [
+    "senza-igrometro-in-stanza",
+    "senza-umidita-fuori",
+  ]);
+});
+
+test("con tutto a posto non manca niente", () => {
+  assert.deepEqual(
+    cosaMancaPerArieggiare({
+      soglia: 60,
+      stanzeConUmidita: 2,
+      finestreInStanzaConUmidita: 1,
+      umiditaFuori: "44",
+    }),
+    [],
+  );
+});
+
+test("l'igrometro c'e' ma nessuna finestra sta in quella stanza", () => {
+  /* Due silenzi diversi: «non ho la misura» e «ho la misura ma non ho la
+   * finestra a cui appenderla». Chi legge deve sapere quale dei due. */
+  assert.deepEqual(
+    cosaMancaPerArieggiare({
+      soglia: 60,
+      stanzeConUmidita: 3,
+      finestreInStanzaConUmidita: 0,
+      umiditaFuori: 44,
+    }),
+    ["finestra-senza-stanza"],
+  );
+});
+
+test("la soglia a zero e' una scelta, e viene detta", () => {
+  assert.deepEqual(
+    cosaMancaPerArieggiare({
+      soglia: 0,
+      stanzeConUmidita: 1,
+      finestreInStanzaConUmidita: 1,
+      umiditaFuori: 44,
+    }),
+    ["soglia-spenta"],
+  );
+});
+
+test("senza il dato di fuori il consiglio non parte mai, e lo dice", () => {
+  assert.deepEqual(
+    cosaMancaPerArieggiare({
+      soglia: 60,
+      stanzeConUmidita: 1,
+      finestreInStanzaConUmidita: 1,
+      umiditaFuori: null,
+    }),
+    ["senza-umidita-fuori"],
+  );
 });

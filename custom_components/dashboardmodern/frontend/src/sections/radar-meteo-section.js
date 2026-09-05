@@ -171,6 +171,59 @@ export function nomeDelServizio(scelto = {}) {
   }
 }
 
+/* L'ora del fotogramma che si sta guardando, come la direbbe un orologio. */
+function oraDelFotogramma(secondi) {
+  const quando = Number(secondi);
+  if (!Number.isFinite(quando) || quando <= 0) return "";
+  try {
+    return new Date(quando * 1000).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (_errore) {
+    return "";
+  }
+}
+
+/* Il servizio della pioggia, e in che stato e'.
+ *
+ * «Non mi sembra di vedere le piogge» sono due frasi diverse dette uguale: il
+ * servizio non risponde, oppure risponde e non sta piovendo. Senza
+ * distinguerle non si puo' rispondere a nessuna delle due — e chi guarda un
+ * cielo sereno sopra una mappa vuota non ha modo di sapere quale delle due
+ * sta vedendo. L'ora del fotogramma le separa: se c'e', il radar e' vivo. */
+export function etichettaDelServizio(scelto = {}, fotogramma = null, attesa = false) {
+  const nome = nomeDelServizio(scelto);
+  if (!nome) return "";
+  /* Un indirizzo scritto a mano non ha un elenco di fotogrammi da aspettare:
+   * il suo stato lo dicono i quadratini, non questa riga. */
+  if (!SERVIZI_RADAR[scelto?.servizio]) return nome;
+  const ora = oraDelFotogramma(fotogramma?.time);
+  if (ora) return `${nome} ${ora}`;
+  return `${nome} — ${
+    attesa ? t("in attesa", "waiting") : t("nessuna risposta", "no answer")
+  }`;
+}
+
+/* E da chi arriva la MAPPA sotto la pioggia.
+ *
+ * E' l'altra meta' della stessa domanda, e per un anno non c'e' stata: le
+ * scritte al posto delle strade le manda il servizio del fondo, e la nota
+ * diceva solo il nome di chi manda la pioggia. Un indirizzo scritto a mano
+ * porta il suo ospite, che e' l'unica cosa che permette di riconoscere un
+ * servizio che non risponde piu'. */
+export function nomeDelFondo(scelto = {}) {
+  const indirizzo = clean(scelto?.fondo);
+  if (!indirizzo) return "";
+  const noto = Object.values(FONDI_MAPPA).find((fondo) => fondo.modello === indirizzo);
+  if (noto) return noto.nome;
+  try {
+    return new URL(indirizzo.replaceAll(/\{-?[a-z]\}/gi, "1")).hostname;
+  } catch (_errore) {
+    return "";
+  }
+}
+
 /* Se qualcuno ha mai toccato il radar. Una casa che non l'ha configurato non
  * se lo trova nelle previsioni: il servizio di serie vale per chi ha aperto la
  * scheda e scelto un posto, non per tutti. */
@@ -479,10 +532,29 @@ function daTessere(scelto, nodo) {
   const nota = nodo.querySelector(".dm-radar-nota");
   if (nota) {
     const posto = luogo.nome || `${luogo.lat.toFixed(3)}, ${luogo.lon.toFixed(3)}`;
-    /* E da chi arrivano i quadratini: chi guarda ha diritto di sapere a chi
-     * la sua plancia sta chiedendo la pioggia. */
-    const servizio = nomeDelServizio(scelto);
-    nota.textContent = [posto, `${scelto.raggio} km`, servizio].filter(Boolean).join(" · ");
+    /* E da chi arrivano i quadratini: chi guarda ha diritto di sapere a chi la
+     * sua plancia sta chiedendo la pioggia — e a chi sta chiedendo la MAPPA.
+     *
+     * Prima diceva solo la pioggia, e non bastava. Le scritte «Zoom Level Not
+     * Supported» che si vedono sul campo le stampa il servizio del FONDO, non
+     * quello della pioggia: chiedendo questa riga per capire da dove
+     * arrivavano si otteneva la risposta a un'altra domanda. Adesso ci sono
+     * tutti e due, e con un'occhiata si sa chi sta parlando. */
+    /* E lo zoom a cui sta chiedendo i quadratini.
+     *
+     * «C'e' ancora quella scritta sullo zoom»: un servizio che a un certo
+     * livello non ha piu' niente da dare risponde con un quadratino stampato
+     * invece che con la mappa, e per capire quale livello sia bisognava
+     * indovinarlo. Adesso c'e' scritto. */
+    nota.textContent = [
+      posto,
+      `${scelto.raggio} km`,
+      `z${finestraTessere.zoom}`,
+      etichettaDelServizio(scelto, fotogrammaDi(scelto.servizio)?.fotogramma, inArrivo(scelto)),
+      nomeDelFondo(scelto),
+    ]
+      .filter(Boolean)
+      .join(" · ");
   }
 }
 

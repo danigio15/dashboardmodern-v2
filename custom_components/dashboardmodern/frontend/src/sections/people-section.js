@@ -22,6 +22,15 @@ export function configuredPeople() {
   return normalizePeople(readJson("cd_people", []));
 }
 
+/* Quelle che si vedono in Home: l'elenco meno chi e' stato spento.
+ *
+ * Spenta non e' cancellata: chi va via per un mese non deve rifare la sua card
+ * al ritorno. La configurazione le tiene tutte — sono la scheda Persone — e la
+ * Home mostra quelle accese, nell'ordine in cui stanno scritte. */
+export function peopleInHome() {
+  return configuredPeople().filter((person) => person?.nascosta !== true);
+}
+
 /* Quanto tempo fa, come lo direbbe una persona: l'unita' piu' grande che
  * abbia senso, e «adesso» al posto dei secondi. */
 export function elapsedLabel(elapsed) {
@@ -233,7 +242,7 @@ function popupBodyMarkup(view, people) {
 function paintPersonPopup() {
   const overlay = doc?.getElementById("dm-person-popup");
   if (!overlay || !state.popupId) return false;
-  const people = configuredPeople();
+  const people = peopleInHome();
   const person = people.find((entry) => entry.id === state.popupId) || null;
   if (!person) {
     closePersonPopup();
@@ -268,7 +277,7 @@ function closePersonPopup() {
 }
 
 export function openPersonPopup(id) {
-  const people = configuredPeople();
+  const people = peopleInHome();
   if (!people.some((entry) => entry.id === id)) return false;
   state.popupId = id;
   let overlay = doc.getElementById("dm-person-popup");
@@ -284,7 +293,7 @@ export function openPersonPopup(id) {
       }
       const nav = event.target.closest("[data-person-pop-nav]");
       if (nav) {
-        const people2 = configuredPeople();
+        const people2 = peopleInHome();
         const at = people2.findIndex((entry) => entry.id === state.popupId);
         const next = people2[(at + Number(nav.dataset.personPopNav) + people2.length) % people2.length];
         if (next) {
@@ -319,7 +328,7 @@ function ensureHost() {
 }
 
 export function renderPeopleSection() {
-  const people = configuredPeople();
+  const people = peopleInHome();
   if (!people.length) {
     doc?.getElementById?.("dm-people")?.remove();
     return false;
@@ -390,7 +399,7 @@ function stopPeopleClock() {
 }
 
 export function syncPeopleClock() {
-  const wanted = homeVisible() && doc?.visibilityState !== "hidden" && configuredPeople().length > 0;
+  const wanted = homeVisible() && doc?.visibilityState !== "hidden" && peopleInHome().length > 0;
   if (!wanted) {
     stopPeopleClock();
     return false;

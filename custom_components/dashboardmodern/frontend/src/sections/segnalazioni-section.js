@@ -1203,14 +1203,28 @@ function elencoMarkup() {
    * la coda la lavora: chi apre una segnalazione vedeva le sue tutte insieme,
    * le vecchie risolte in mezzo a quelle che aspettano ancora una risposta.
    *
-   * Compaiono quando servono davvero — cioe' quando le proprie segnalazioni
-   * non stanno tutte nello stesso stato: con tre aperte e niente altro, un
-   * filtro sarebbe una riga di tasti che non cambia niente. */
-  const stati = new Set(state.tickets.map((ticket) => bucketDelloStato(ticket)));
-  const mie = stati.size > 1 ? perStato(state.tickets, state.filtroMie) : state.tickets;
+   * I tasti ci sono sempre, appena c'e' una segnalazione. Comparivano solo
+   * quando gli stati erano piu' d'uno — «con tre aperte e niente altro sarebbe
+   * una riga di tasti che non cambia niente» — e chi ne aveva una sola apriva
+   * la scheda, non trovava il filtro, e lo segnalava come mancante. Aveva
+   * ragione: un filtro che appare e sparisce non e' un filtro, e' una
+   * sorpresa, e nessuno puo' fidarsi di una scheda in cui i comandi vanno e
+   * vengono.
+   *
+   * Quello che li rende utili anche con una segnalazione sola e' il conto
+   * sotto ogni tasto: dice cosa c'e' prima di premere, e con una riga di zeri
+   * accanto a un uno si legge in un colpo com'e' messa la propria coda —
+   * mentre nella console le stesse cifre stanno gia' scritte grandi qui
+   * sopra, ed e' per questo che li' i tasti dello stato il conto non ce
+   * l'hanno. */
+  const statiColConto = FILTRI_STATO.map((filtro) => ({
+    ...filtro,
+    quante: perStato(state.tickets, filtro.id).length,
+  }));
+  const mie = perStato(state.tickets, state.filtroMie);
   return `
     ${appenaApertaMarkup()}
-    ${stati.size > 1 ? filaMarkup(FILTRI_STATO, state.filtroMie, "data-dm-filtro-mie") : ""}
+    ${filaMarkup(statiColConto, state.filtroMie, "data-dm-filtro-mie")}
     <div class="dm-tkt-elenco">${
       mie.length
         ? mie.map(voceMarkup).join("")
@@ -1334,9 +1348,12 @@ function filaMarkup(voci, scelto, attributo) {
   return `<div class="dm-tkt-filtri">${voci
     .map((filtro) => {
       const attivo = scelto === filtro.id;
-      /* Il conto sta sotto i tasti del tipo e non sotto quelli dello stato:
-       * li' lo direbbe due volte, perche' le tre cifre grandi qui sopra sono
-       * gia' il conto per stato. */
+      /* Il conto lo porta chi glielo passa, e non tutti glielo passano: nella
+       * console sta sotto i tasti del tipo e non sotto quelli dello stato,
+       * perche' li' le tre cifre grandi qui sopra sono gia' il conto per
+       * stato e scriverlo di nuovo lo direbbe due volte; nell'elenco di chi
+       * ha segnalato, dove quelle cifre non ci sono, sta sotto lo stato ed e'
+       * l'unica cosa che dice com'e' messa la coda. */
       const conto = Number.isFinite(filtro.quante)
         ? `<span class="dm-tkt-quanti">${filtro.quante}</span>`
         : "";

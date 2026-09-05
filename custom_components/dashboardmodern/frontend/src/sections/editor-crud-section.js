@@ -11,6 +11,7 @@ function sogliaScritta(valore) {
   return Number.isFinite(n) ? coverClosedThreshold(n) : null;
 }
 import { canonicalClimateType } from "../core/device-model.js";
+import { spostaNellElenco } from "../core/ordine-a-mano.js";
 import {
   clean,
   dashboardStore,
@@ -124,6 +125,51 @@ function editButton(kind, index) {
   return button;
 }
 
+/* Le frecce, per gli elenchi in cui l'ordine e' quello che si vede.
+ *
+ * «Riordinare a piacere la Home»: le azioni rapide sono una fila di pulsanti
+ * sotto le persone, e la fila e' l'ordine in cui stanno scritte. Per cambiarla
+ * bisognava cancellarne una e rifarla in fondo — cioe' perdere la sua icona,
+ * il suo nome e la sua conferma per spostarla di un posto.
+ *
+ * Le si mette accanto alla matita, sulle righe che il documento vendorizzato
+ * disegna: sono sue, ma quello che le circonda e' nostro da un pezzo. */
+function moveButton(kind, index, passo) {
+  const button = doc.createElement("button");
+  button.type = "button";
+  button.className = "ed-del dm-move-existing";
+  button.dataset.dmMoveKind = kind;
+  button.dataset.dmMoveIndex = String(index);
+  button.dataset.dmMovePasso = String(passo);
+  button.textContent = passo < 0 ? "▲" : "▼";
+  button.title = passo < 0 ? t("Più in alto", "Move up") : t("Più in basso", "Move down");
+  button.setAttribute("aria-label", button.title);
+  return button;
+}
+
+/* Gli elenchi in cui spostare una riga vuol dire qualcosa. Le stanze, il
+ * clima, le tapparelle si guardano per nome e l'ordine non lo legge nessuno;
+ * le azioni rapide sono una fila, e la fila si vede. */
+const SI_RIORDINANO = new Set(["action"]);
+
+function ensureMoveButtons(kind, rows) {
+  if (!SI_RIORDINANO.has(kind)) return;
+  rows.forEach((row, index) => {
+    const matita = row.querySelector(`[data-dm-edit-kind="${kind}"]`);
+    if (!matita) return;
+    for (const passo of [-1, 1]) {
+      let bottone = row.querySelector(`[data-dm-move-kind="${kind}"][data-dm-move-passo="${passo}"]`);
+      if (!bottone) {
+        bottone = moveButton(kind, index, passo);
+        matita.before(bottone);
+      }
+      bottone.dataset.dmMoveIndex = String(index);
+      const fuori = passo < 0 ? index === 0 : index === rows.length - 1;
+      bottone.disabled = fuori;
+    }
+  });
+}
+
 /* Tutte le righe dell'elenco, comprese quelle gia' sistemate.
  *
  * Qui si escludevano le righe che avevano gia' il pulsante di modifica. Il
@@ -190,6 +236,7 @@ function ensureEditButtons() {
       }
       if (step.action === "renumber") existing[position].dataset.dmEditIndex = String(step.index);
     });
+    ensureMoveButtons(kind, rows);
   });
   return Boolean(body.querySelector("[data-dm-edit-kind]"));
 }
@@ -490,8 +537,19 @@ function installAddWrappers() {
        * esattamente cio' che la card sa disegnare. */
       const eUnContatto = (valore) =>
         /^(binary_sensor|sensor|input_boolean)\./i.test(clean(valore));
+      /* E l'inferriata conta quanto l'infisso.
+       *
+       * Il contatto della grata e' arrivato dopo (#254) e in questo elenco non
+       * era mai entrato: chi ha le persiane manuali e il sensore sulla grata —
+       * niente tapparella, niente contatto dell'infisso — riempiva la sola
+       * casella che aveva e si prendeva «Inserisci una entita' cover valida».
+       * Una casella offerta e poi rifiutata e' una promessa e un dietrofront:
+       * sono due contatti della stessa finestra, e uno vale l'altro. */
       const alternativaValida =
-        eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole) || eUnContatto(extra.contact);
+        eUnaCopertura(extra.tenda) ||
+        eUnaCopertura(extra.tendaSole) ||
+        eUnContatto(extra.contact) ||
+        eUnContatto(extra.inferriata);
       const zittire = !entity && alternativaValida;
       const avviso = zittire ? root.alert : null;
       if (zittire) {
@@ -684,6 +742,11 @@ function installStyles() {
          quella riga: qui c'era un 800 che perdeva sempre contro il suo 850. */
       #editor-modal .dm-report-row[data-history-valid="false"] .dm-report-history-help{color:var(--warning-color,#b45309)}
       #editor-modal .dm-edit-existing{background:color-mix(in srgb,var(--info-color,#0ea5e9) 14%,transparent)!important;color:var(--info-color,#0369a1)!important}
+      /* Le frecce accanto alla matita: piu' quiete di lei, perche' spostare e'
+         un gesto che si ripete e non deve gridare. Quella che non porta da
+         nessuna parte si spegne invece di sparire, o la fila ballerebbe. */
+      #editor-modal .dm-move-existing{background:color-mix(in srgb,var(--text-dim,#94a3b8) 14%,transparent)!important;color:var(--secondary-text-color,#475569)!important;font-size:12px!important}
+      #editor-modal .dm-move-existing[disabled]{opacity:.3!important;pointer-events:none!important}
       #editor-modal .dm-edit-cancel{width:100%;margin-top:7px;background:var(--secondary-background-color,#e8eef5)!important;color:var(--text,#0f172a)!important}
       #editor-modal [data-dm-editing="true"]{outline:2px solid color-mix(in srgb,var(--info-color,#0ea5e9) 45%,transparent);outline-offset:2px}
       @media(max-width:900px){#editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:1fr 1fr!important}#editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field,#editor-modal .dm-report-history-help{grid-column:1/-1!important}}
@@ -742,6 +805,32 @@ function installWrappers() {
   onEditorRedraw("__dmCrudEditorSection", runContracts);
 }
 
+/* Sposta la riga e rimette la scheda com'era, con la fila nuova.
+ *
+ * L'elenco lo riscrive il runtime quando ridisegna la linguetta: si scrive la
+ * chiave, si dice a chi disegna la Home che e' cambiata, e si chiede alla
+ * scheda di rifarsi. La linguetta e' quella accesa, non una ricordata: chi
+ * sposta un'azione rapida sta guardando la sua scheda. */
+function spostaRiga(kind, index, passo) {
+  if (kind !== "action") return false;
+  const lista = listFor("action");
+  const prossima = spostaNellElenco(lista, index, passo);
+  if (prossima.length !== lista.length || prossima.every((voce, posto) => voce === lista[posto]))
+    return false;
+  writeJsonIfChanged("cd_quick_actions", prossima);
+  try {
+    root.buildQuickActions?.();
+  } catch (_error) {}
+  const linguetta = clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
+  if (linguetta) {
+    try {
+      root.editorSwitch?.(linguetta);
+    } catch (_error) {}
+  }
+  root.queueMicrotask?.(runContracts);
+  return true;
+}
+
 export function installEditorCrudSection() {
   if (!doc) return;
   installStyles();
@@ -752,6 +841,13 @@ export function installEditorCrudSection() {
     doc.addEventListener(
       "click",
       (event) => {
+        const move = event.target?.closest?.("[data-dm-move-kind]");
+        if (move) {
+          event.preventDefault();
+          event.stopPropagation();
+          spostaRiga(move.dataset.dmMoveKind, Number(move.dataset.dmMoveIndex), Number(move.dataset.dmMovePasso));
+          return;
+        }
         const edit = event.target?.closest?.("[data-dm-edit-kind]");
         if (edit) {
           event.preventDefault();

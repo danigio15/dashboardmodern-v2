@@ -146,3 +146,54 @@ test("senza il dato di fuori non si inventa un consiglio", async ({ page }, test
    * completo: senza il dato di fuori la riga sparisce. */
   await expect(consiglio(bagno)).toHaveCount(0, { timeout: 15_000 });
 });
+
+/* «Non compare in finestre»: e non compariva, perche' la casella della soglia
+ * stava nella scheda Temperature — accanto ai sensori che confronta, che era un
+ * ragionamento di chi il codice lo ha scritto, non di chi la plancia la usa. */
+test("la soglia si trova nella scheda Finestre, e dice cosa manca", async ({ page }, testInfo) => {
+  await avvia(page, testInfo, 41);
+  await page.evaluate(() => {
+    if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
+  });
+  await page.locator('.ed-tab[data-tab="tapp"]').first().click();
+
+  const soglia = page.locator("#ed-body #ed-umidita-soglia");
+  await expect(soglia).toHaveCount(1, { timeout: 15_000 });
+
+  /* E non è più dove stava prima.
+   *
+   * «Spostarla» vuol dire toglierla di là, non metterla anche qui: la scheda
+   * Temperature è il posto in cui la si cercava e non c'era ragione di
+   * trovarla. La si apre e si guarda: la linguetta la si riconosce dal modulo
+   * che disegna, non dal nome, che cambia con la lingua.
+   *
+   * Si guardano due schede e non tutte e venti: passarle una per una costava
+   * più del tempo che la prova ha, e una prova che scade non dice niente. */
+  const temperatura = await page.evaluate(() => {
+    for (const bottone of document.querySelectorAll(".ed-tab")) {
+      editorSwitch(bottone.dataset.tab);
+      if (document.querySelector("#ed-body [data-temperature-form]")) return bottone.dataset.tab;
+    }
+    return "";
+  });
+  expect(temperatura).not.toBe("");
+  await expect(page.locator("#editor-modal #ed-umidita-soglia")).toHaveCount(0);
+
+  await page.locator('.ed-tab[data-tab="tapp"]').first().click();
+
+  /* Qui c'e' tutto — igrometro in stanza, finestra nella stanza, meteo
+   * mappato — e la riga lo dice invece di lasciare uno in dubbio. */
+  const nota = page.locator("#ed-body [data-dm-umidita-manca]");
+  await expect(nota).toHaveAttribute("data-dm-umidita-manca", "pronto", { timeout: 15_000 });
+
+  /* Tolto il dato di fuori, il consiglio non partirebbe mai: e adesso si sa
+   * perche', invece di sembrare rotto. */
+  await page.evaluate(() => {
+    for (const registro of [_RAW_STATES, typeof STATES === "undefined" ? {} : STATES])
+      if (registro["sensor.meteo_umidita"]) registro["sensor.meteo_umidita"].state = "unavailable";
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  });
+  await page.locator('.ed-tab[data-tab="tapp"]').first().click();
+  await expect(nota).toHaveAttribute("data-dm-umidita-manca", "manca", { timeout: 15_000 });
+  await expect(nota).toContainText(/Stazione meteo|Weather station/i);
+});

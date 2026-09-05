@@ -100,11 +100,65 @@ test("la tendina dice cosa si sceglie, e la nota sotto il radar da chi arriva", 
    * plancia sta chiedendo la pioggia. Con un indirizzo scritto a mano si legge
    * l'ospite a cui bussa — prima li' non c'era scritto niente, e una plancia
    * che chiede la pioggia al servizio sbagliato non aveva modo di dirlo. */
-  assert.match(sorgente, /const servizio = nomeDelServizio\(scelto\)/);
+  assert.match(sorgente, /etichettaDelServizio\(\s*scelto,[\s\S]{0,120}?nomeDelFondo\(scelto\),/);
   assert.match(sorgente, /export function nomeDelServizio/);
+  /* E lo zoom a cui sta chiedendo i quadratini: «c'e' ancora quella scritta
+   * sullo zoom» (#323) non si puo' rispondere senza sapere quale livello sia. */
+  assert.match(sorgente, /`z\$\{finestraTessere\.zoom\}`/);
+  /* E dice anche da chi arriva la MAPPA.
+   *
+   * Le scritte «Zoom Level Not Supported» che si vedono sul campo (#323) le
+   * stampa il servizio del FONDO, non quello della pioggia: chiedendo questa
+   * riga per capire da dove arrivassero si otteneva la risposta a un'altra
+   * domanda, e si perdeva un giro. Adesso ci sono tutti e due. */
+  assert.match(sorgente, /export function nomeDelFondo/);
   /* E «Casa» resta la voce di serie della tendina del posto. */
   assert.match(
     sorgente,
     /<option value=""\$\{scelta \? "" : " selected"\}>\$\{esc\(t\("Casa", "Home"\)\)\}/,
   );
+});
+
+test("il nome del fondo si legge, e un servizio ritirato si riconosce", async () => {
+  const { nomeDelFondo } = await import("../src/sections/radar-meteo-section.js");
+  /* Un fondo dell'elenco si chiama col suo nome. */
+  assert.equal(
+    nomeDelFondo({ fondo: "https://tile.openstreetmap.org/{z}/{x}/{y}.png" }),
+    "OpenStreetMap",
+  );
+  /* Uno scritto a mano porta il suo ospite: e' l'unica cosa che, guardando la
+   * nota, permette di riconoscere un servizio che non risponde piu'. */
+  assert.equal(
+    nomeDelFondo({ fondo: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" }),
+    "a.basemaps.cartocdn.com",
+  );
+  /* Senza fondo non si inventa un nome. */
+  assert.equal(nomeDelFondo({}), "");
+  assert.equal(nomeDelFondo({ fondo: "non un indirizzo" }), "");
+});
+
+test("la nota distingue «non risponde» da «non sta piovendo» (#323)", async () => {
+  const { etichettaDelServizio } = await import("../src/sections/radar-meteo-section.js");
+  /* Col fotogramma il radar e' vivo, e l'ora lo dimostra: un cielo sereno
+   * sopra una mappa vuota non e' un radar rotto. */
+  const vivo = etichettaDelServizio({ servizio: "rainviewer" }, { time: 1_757_000_000 });
+  assert.match(vivo, /^RainViewer \d{1,2}[:.]\d{2}/);
+  /* Senza, si dice quale delle due sta succedendo invece di tacere. */
+  assert.match(
+    etichettaDelServizio({ servizio: "rainviewer" }, null, true),
+    /RainViewer — (in attesa|waiting)/,
+  );
+  assert.match(
+    etichettaDelServizio({ servizio: "rainviewer" }, null, false),
+    /RainViewer — (nessuna risposta|no answer)/,
+  );
+  /* Un indirizzo scritto a mano non ha un elenco da aspettare: resta il nome. */
+  assert.equal(
+    etichettaDelServizio({
+      servizio: "modello",
+      modello: "https://tiles.mio.it/{z}/{x}/{y}.png",
+    }),
+    "tiles.mio.it",
+  );
+  assert.equal(etichettaDelServizio({}), "");
 });

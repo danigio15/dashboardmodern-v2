@@ -22,8 +22,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { conservaLeEntita, normalizeDevice, sembraUnEntita } from "../src/core/device-model.js";
+import {
+  conservaIlConfigurato,
+  normalizeDevice,
+  sembraUnEntita,
+} from "../src/core/device-model.js";
 import { migrateRooms, normalizeEnergyLoads, normalizeSection } from "../src/core/migrations.js";
+import { SOGLIA_CHIUSA_MASSIMA } from "../src/core/cover-kind.js";
+import { normalizeRobots } from "../src/core/robot-model.js";
 
 test("un'entita' si riconosce dalla forma, un nome di file no", () => {
   assert.equal(sembraUnEntita("sensor.forno_potenza"), true);
@@ -41,8 +47,8 @@ test("un'entita' si riconosce dalla forma, un nome di file no", () => {
   assert.equal(sembraUnEntita(null), false);
 });
 
-test("quello che il modello non conosce si tiene solo se e' un'entita'", () => {
-  const uscita = conservaLeEntita(
+test("quello che il modello non conosce si tiene, entita' o no", () => {
+  const uscita = conservaIlConfigurato(
     { id: "x", name: "Tenda" },
     {
       id: "x",
@@ -51,18 +57,84 @@ test("quello che il modello non conosce si tiene solo se e' un'entita'", () => {
       elenco_di_domani: ["sensor.uno", "sensor.due"],
       colore_preferito: "rosso",
       numero: 12,
+      acceso: false,
       dentro: { annidato: "sensor.tre" },
     },
+    "covers",
   );
   /* Il campo nuovo con dentro un'entita' resta. */
   assert.equal(uscita.casella_di_domani, "cover.tenda_terrazzo");
   assert.deepEqual(uscita.elenco_di_domani, ["sensor.uno", "sensor.due"]);
+  /* E anche quello che entita' non e': un colore, un numero, un no, un
+   * oggetto. La soglia di chiusura di una finestra e' un numero, e finche' la
+   * rete prendeva le sole entita' cadeva di qui. */
+  assert.equal(uscita.colore_preferito, "rosso");
+  assert.equal(uscita.numero, 12);
+  assert.equal(uscita.acceso, false);
+  assert.deepEqual(uscita.dentro, { annidato: "sensor.tre" });
   /* Quello che il modello sa gia' dire lo dice lui: non si sovrascrive. */
   assert.equal(uscita.name, "Tenda");
-  /* E la spazzatura resta fuori, che e' il motivo per cui l'elenco chiuso c'e'. */
-  assert.equal("colore_preferito" in uscita, false);
-  assert.equal("numero" in uscita, false);
-  assert.equal("dentro" in uscita, false);
+});
+
+test("il vuoto non e' una configurazione, e non passa", () => {
+  const uscita = conservaIlConfigurato(
+    {},
+    { niente: "", spazi: "   ", nullo: null, mancante: undefined, vuoto: [], oggettoVuoto: {} },
+    "covers",
+  );
+  assert.deepEqual(uscita, {});
+});
+
+test("l'opinione del modello vale nella sua sezione, non dappertutto", () => {
+  /* `soglia` la decide il ramo delle coperture, e la' non deve arrivare
+   * grezza. In una sezione dove quel ramo non gira, quella stessa parola e'
+   * un campo di chi configura come un altro: buttarla via per una regola
+   * scritta per le tapparelle vorrebbe dire riaprire il difetto dalla porta
+   * di servizio. */
+  const tapparella = normalizeDevice(
+    { id: "c1", entity: "cover.camera", soglia: "12" },
+    "covers",
+  );
+  assert.equal(tapparella.soglia, 12);
+  const apparecchio = normalizeDevice(
+    { id: "a1", entity: "switch.forno", soglia: "una cosa mia" },
+    "appliances",
+  );
+  assert.equal(apparecchio.soglia, "una cosa mia");
+});
+
+test("la soglia di chiusura di UNA finestra sopravvive al salvataggio (#298)", () => {
+  /* «La percentuale di chiusura la devi spostare nella configurazione di
+   * quella finestra»: la scheda la salvava, il modello la buttava al primo
+   * giro, e da li' in poi quella finestra tornava alla soglia di casa. */
+  const [riga] = normalizeSection("covers", [
+    { id: "c1", name: "Camera", entity: "cover.camera", soglia: 12 },
+  ]);
+  assert.equal(riga.soglia, 12);
+  /* Fuori scala rientra invece di sparire, e vuoto resta vuoto. */
+  const [alta] = normalizeSection("covers", [{ id: "c2", entity: "cover.x", soglia: 999 }]);
+  assert.equal(alta.soglia, SOGLIA_CHIUSA_MASSIMA);
+  const [senza] = normalizeSection("covers", [{ id: "c3", entity: "cover.x", soglia: "" }]);
+  assert.equal("soglia" in senza, false);
+});
+
+test("anche un robot tiene quello che il suo elenco non nomina", () => {
+  /* Sette campi, e l'ottavo spariva: l'icona scelta, l'ordine, il campo che
+   * arriva con la versione dopo. */
+  const [robot] = normalizeRobots([
+    {
+      id: "robot-1",
+      name: "Robot",
+      entity: "vacuum.robot",
+      icon: "mdi:robot-vacuum",
+      order: 2,
+      enabled: false,
+    },
+  ]);
+  assert.equal(robot.entity, "vacuum.robot");
+  assert.equal(robot.icon, "mdi:robot-vacuum");
+  assert.equal(robot.order, 2);
+  assert.equal(robot.enabled, false);
 });
 
 test("una casella che questa versione non conosce sopravvive al salvataggio", () => {
