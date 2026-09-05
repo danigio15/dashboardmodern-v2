@@ -487,7 +487,9 @@ function applianceKpiArtwork(model) {
    * Adesso mostra il disegno della scheda, quello con le parti mobili, e la
    * riga porta lo stato: se sta lavorando, il meccanismo gira anche qui. */
   return (
-    (kind && (applianceHeroArtwork(kind, 56) || applianceArtwork(kind, 72))) ||
+    (kind &&
+      (applianceHeroArtwork(kind, 56, { chiave: `kpi-${model?.id || model?.name || ""}` }) ||
+        applianceArtwork(kind, 72))) ||
     '<span class="dm-appliance-kpi-fallback">⚡</span>'
   );
 }

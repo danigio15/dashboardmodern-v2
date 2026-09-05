@@ -318,7 +318,13 @@ function heroMarkup(model) {
   if (visual.kind === "image" && clean(visual.value)) {
     return `<img class="dm-ap-img" src="${esc(visual.value)}" alt="${esc(model.name)}" loading="lazy" decoding="async">`;
   }
-  const artwork = applianceHeroArtwork(model.artworkType, 170, { freezer: model.freezer });
+  /* La chiave e' l'elettrodomestico: due schede non si rubano le sfumature, e
+   * la stessa scheda disegnata due volte esce identica — che e' quello che
+   * permette all'impronta di dire «non e' cambiato niente». */
+  const artwork = applianceHeroArtwork(model.artworkType, 170, {
+    freezer: model.freezer,
+    chiave: model.id || model.name,
+  });
   return artwork || `<span class="dm-ap-hero-fallback" aria-hidden="true">🔌</span>`;
 }
 
@@ -1052,10 +1058,26 @@ function onShellKeydown(event) {
 
 /* ── overrides / install ─────────────────────────────────────────────── */
 
+/* Se la vetrina la sta guardando qualcuno.
+ *
+ * La pagina degli Elettrodomestici sta nel documento anche quando non e' in
+ * scena — il guscio la nasconde, non la toglie — e `renderApplianceSection`
+ * la chiama il giro di disegno del guscio a ogni cambio di stato. Ridisegnare
+ * dodici schede per nessuno era la voce piu' grossa del processore: dimezzava
+ * il costo dell'intero giro della plancia.
+ *
+ * `force` resta la via di chi ha ragione di insistere: il tocco sulla
+ * linguetta (il guscio mette `.active` prima di chiamare) e i richiami
+ * dell'editor, che disegnano una pagina che sta per comparire. */
+function vetrinaVisibile() {
+  return Boolean(doc?.getElementById?.("page-appliances-main")?.classList?.contains("active"));
+}
+
 function installOverrides() {
   const currentSection = root.renderApplianceSection;
   if (typeof currentSection !== "function" || !currentSection.__dmShowcase) {
     function showcaseRenderApplianceSection(force) {
+      if (!force && !vetrinaVisibile()) return false;
       return renderShowcase(force);
     }
     showcaseRenderApplianceSection.__dmShowcase = true;

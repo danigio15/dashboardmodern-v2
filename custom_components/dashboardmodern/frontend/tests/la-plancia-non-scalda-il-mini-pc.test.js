@@ -130,3 +130,58 @@ test("i colori dei tubi dell'Energia non si riscrivono a ogni passata", () => {
   );
   assert.equal(/node\.style\.stroke !== stroke\)/.test(sezione), false);
 });
+
+test("lo stesso elettrodomestico disegnato due volte esce identico", async () => {
+  /* La voce piu' grossa del processore, e non si vedeva da nessuna parte.
+   *
+   * Gli id dei gradienti dentro l'SVG portavano un contatore che saliva a ogni
+   * chiamata: due disegni dello stesso apparecchio, a parita' di tutto,
+   * uscivano DIVERSI. Chi disegna la vetrina prende l'impronta del markup per
+   * non rifare le schede che non sono cambiate, e quell'impronta non poteva
+   * mai coincidere: dodici schede rifatte da zero a ogni giro di disegno, con
+   * la pagina chiusa, per sempre. Misurato: il giro del guscio da 14,7 a 4,9
+   * millisecondi.
+   *
+   * L'identita' la da' chi chiama, e due disegni della stessa cosa possono
+   * anche condividere le sfumature: sono le stesse. */
+  const { applianceHeroArtwork } = await import("../src/core/appliance-hero-artwork.js");
+  const uno = applianceHeroArtwork("lavatrice", 170, { chiave: "app-1" });
+  const due = applianceHeroArtwork("lavatrice", 170, { chiave: "app-1" });
+  assert.equal(uno, due, "lo stesso disegno chiesto due volte deve uscire identico");
+  /* E due apparecchi diversi non si rubano le sfumature. */
+  const altro = applianceHeroArtwork("lavatrice", 170, { chiave: "app-2" });
+  assert.notEqual(uno, altro);
+  /* Il contatore che saliva non c'e' piu'. */
+  const sorgente = leggi("core/appliance-hero-artwork.js");
+  assert.equal(/instance = \(instance \+ 1\)/.test(sorgente), false);
+});
+
+test("la vetrina degli elettrodomestici si disegna solo a pagina aperta", () => {
+  /* La pagina resta nel documento anche quando non e' in scena, e il giro del
+   * guscio chiama `renderApplianceSection` a ogni cambio di stato. `force`
+   * resta la via di chi ha ragione di insistere: il tocco sulla linguetta e i
+   * richiami dell'editor. */
+  const vetrina = leggi("sections/appliance-showcase-section.js");
+  assert.match(vetrina, /if \(!force && !vetrinaVisibile\(\)\) return false;/);
+  assert.match(
+    vetrina,
+    /function vetrinaVisibile\(\) \{\s*return Boolean\(doc\?\.getElementById\?\.\("page-appliances-main"\)\?\.classList\?\.contains\("active"\)\);/,
+  );
+});
+
+test("le riparazioni di compatibilita' si accodano, non si sparano", () => {
+  /* Erano cinque bracci indipendenti — microtask, fotogramma e tre timer —
+   * e i renderer avvolti sono due: dieci passate per ogni giro di disegno.
+   * Adesso due momenti soli, e chi e' gia' in coda non ci rientra. */
+  const beta = leggi("sections/beta25-compatibility-section.js");
+  assert.match(beta, /const inCoda = new Set\(\);/);
+  assert.match(beta, /if \(!inCoda\.has\(callback\)\)/);
+  assert.equal(/root\.setTimeout\?\.\(callback, 60\)/.test(beta), false);
+  assert.equal(/root\.queueMicrotask\?\.\(callback\);/.test(beta), false);
+  /* E la riparazione esce subito a pagina chiusa: le due griglie che tocca
+   * stanno tutt'e due li' dentro. */
+  assert.match(
+    beta,
+    /if \(!doc\?\.getElementById\?\.\("page-appliances-main"\)\?\.classList\?\.contains\("active"\)\) return false;/,
+  );
+});

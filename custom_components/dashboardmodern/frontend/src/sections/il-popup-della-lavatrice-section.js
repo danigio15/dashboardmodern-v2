@@ -152,7 +152,7 @@ export function vesteImmagine() {
    * sezione, non icona». */
   veste.innerHTML = foto
     ? `<img src="${esc(foto)}" alt="" loading="lazy">`
-    : applianceHeroArtwork("lavatrice", 170);
+    : applianceHeroArtwork("lavatrice", 170, { chiave: "popup-lavatrice" });
   /* Il vecchio <img> puntava a un file /local che quasi nessuno ha: si
    * spegne, non si combatte. E il cestino di ripiego che il suo onerror
    * aveva acceso sul contenitore se ne va con lui. */
