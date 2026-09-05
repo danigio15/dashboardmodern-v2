@@ -2182,7 +2182,7 @@ export default Object.freeze({
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "열림 센서는 binary_sensor.*, sensor.* 또는 input_boolean.* 엔터티여야 합니다.",
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.": "보안 섹션의 출입문: 건물 현관, 집 문, 게이트. 각 문마다 카드가 있으며, 탭하면 확인을, PIN이 설정되어 있으면 코드를 묻습니다.",
   "the other plants have their own, and this save does not touch them": "다른 설비에는 각자의 부하가 있으며, 이 저장은 그것들을 건드리지 않습니다",
-  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.": "집의 구성원: 어디에 있는지, 언제부터인지, 그리고 휴대폰 배터리. 각 구성원은 홈 상단에 실제 사진이나 아바타가 있는 카드를 갖습니다.",
+  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.": "집의 구성원: 어디에 있는지, 언제부터인지, 그리고 휴대폰 배터리. 각 구성원은 홈 상단에 실제 사진이나 아바타가 있는 카드를 갖습니다. 화살표로 나타나는 순서를 바꾸고, 스위치는 지우지 않고 홈에서만 내립니다.",
   "The person.* entity from Home Assistant, or a device_tracker.*.": "Home Assistant의 person.* 엔티티 또는 device_tracker.*.",
   "The phone battery sensor. Without it, the card uses what the entity already knows.": "휴대폰 배터리 센서. 없으면 카드는 엔티티가 이미 아는 값을 사용합니다.",
   "the photo exceeds 10 MB": "사진이 10 MB를 초과합니다",

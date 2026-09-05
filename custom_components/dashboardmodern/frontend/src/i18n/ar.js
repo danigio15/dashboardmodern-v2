@@ -2182,7 +2182,7 @@ export default Object.freeze({
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "يجب أن يكون مستشعر الفتح كيانًا من نوع binary_sensor.* أو sensor.* أو input_boolean.*.",
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.": "أبواب قسم الأمان: باب المبنى، باب المنزل، البوابة. لكل باب بطاقته؛ اللمسة تطلب تأكيدًا، ومع تعيين رمز PIN تطلب الرمز.",
   "the other plants have their own, and this save does not touch them": "المنشآت الأخرى لها أحمالها، وهذا الحفظ لا يمسّها",
-  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.": "أشخاص المنزل: أين هم، ومنذ متى، وبطارية هواتفهم. لكل شخص بطاقة أعلى الصفحة الرئيسية، بصورة حقيقية أو صورة رمزية.",
+  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.": "أشخاص المنزل: أين هم، ومنذ متى، وبطارية هواتفهم. لكل شخص بطاقة أعلى الصفحة الرئيسية، بصورة حقيقية أو صورة رمزية. الأسهم تغيّر ترتيب ظهورهم، والمفتاح يزيل أحدهم من الصفحة الرئيسية دون حذفه.",
   "The person.* entity from Home Assistant, or a device_tracker.*.": "كيان person.* من Home Assistant، أو device_tracker.*.",
   "The phone battery sensor. Without it, the card uses what the entity already knows.": "مستشعر بطارية الهاتف. بدونه تستخدم البطاقة ما يعرفه الكيان بالفعل.",
   "the photo exceeds 10 MB": "الصورة تتجاوز 10 ميغابايت",

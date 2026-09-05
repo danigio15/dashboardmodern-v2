@@ -39,6 +39,7 @@ import {
   personInitials,
   suggestPeople,
 } from "../core/person-model.js";
+import { spostaNellElenco } from "../core/ordine-a-mano.js";
 import { pickMediaImage } from "./media-picker-section.js";
 import { installAvatar3dStyle, ritrattoFermo, ritrattoVivo } from "./person-avatar-section.js";
 import {
@@ -470,16 +471,19 @@ function sensoriCampi(index, person) {
     .join("");
 }
 
-function rigaMarkup(person, index) {
+function rigaMarkup(person, index, ultima = false) {
   const aperto = state.aperto === index;
   const colori = AVATAR_COLORS.map(
     (color) =>
       `<button type="button" class="dm-people-color${person.avatar.color === color ? " on" : ""}" data-person-color="${esc(color)}" style="--dm-person-color:${esc(color)}" aria-label="${esc(color)}"></button>`,
   ).join("");
-  return `<article class="ed-row dm-people-row" data-person-index="${index}" data-open="${aperto}">
+  return `<article class="ed-row dm-people-row" data-person-index="${index}" data-open="${aperto}" data-nascosta="${person.nascosta === true}">
     <div class="dm-people-row-head">
       ${ritratto(person)}
       <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDi(person, index))}</strong><small class="ed-row-old mono">${esc(clean(person.entity) || t("nessuna entità", "no entity"))}</small></span>
+      <button type="button" class="ed-del dm-people-move" data-person-up aria-label="${t("Più in alto", "Move up")}"${index === 0 ? " disabled" : ""}>▲</button>
+      <button type="button" class="ed-del dm-people-move" data-person-down aria-label="${t("Più in basso", "Move down")}"${ultima ? " disabled" : ""}>▼</button>
+      <button type="button" class="dm-people-shown" data-person-shown data-on="${person.nascosta !== true}" aria-label="${t("Visibile in Home", "Shown on Home")}"><i></i></button>
       <button type="button" class="ed-del" data-person-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
       <button type="button" class="ed-del" data-person-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
     </div>
@@ -519,12 +523,14 @@ function rigaMarkup(person, index) {
 
 function bodyMarkup(people) {
   return `<div class="ed-intro">${t(
-    "Le persone di casa: dove sono, da quanto tempo, e la batteria del telefono. Ogni persona ha la sua card in cima alla Home, con una foto vera o un avatar.",
-    "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.",
+    "Le persone di casa: dove sono, da quanto tempo, e la batteria del telefono. Ogni persona ha la sua card in cima alla Home, con una foto vera o un avatar. Le frecce cambiano l'ordine in cui compaiono; l'interruttore la toglie dalla Home senza cancellarla.",
+    "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.",
   )}</div>
     <div class="ed-list dm-people-list">${
       people.length
-        ? people.map((person, index) => rigaMarkup(person, index)).join("")
+        ? people
+            .map((person, index) => rigaMarkup(person, index, index === people.length - 1))
+            .join("")
         : `<div class="ed-empty">${t("Nessuna persona configurata", "No people configured")}</div>`
     }</div>
     <div class="ed-form-row dm-people-actions">
@@ -582,7 +588,7 @@ export function ensurePeopleEditor() {
     state.aperto,
     ...people.map(
       (person) =>
-        `${person.id}~${person.name}~${person.entity}~${person.photo}~${person.avatar.emoji}~${person.avatar.color}~${JSON.stringify(person.avatar.face)}~${person.battery}~${person.batteryState}~${person.watch}~${person.distance}~${person.travel}~${person.address}~${person.activity}~${person.wifi}~${person.direction}`,
+        `${person.id}~${person.nascosta ? "off" : "on"}~${person.name}~${person.entity}~${person.photo}~${person.avatar.emoji}~${person.avatar.color}~${JSON.stringify(person.avatar.face)}~${person.battery}~${person.batteryState}~${person.watch}~${person.distance}~${person.travel}~${person.address}~${person.activity}~${person.wifi}~${person.direction}`,
     ),
   ].join("|");
   if (body.dataset.dmPeopleEditor === firma && body.querySelector(".dm-people-list")) return true;
@@ -939,6 +945,36 @@ async function onClick(event) {
     scriviFace(riga, people, index, normalizeAvatar3d(face));
     return;
   }
+  /* Le frecce e l'interruttore: due gesti sull'ORDINE e sulla VISIBILITA', non
+   * sui campi. Come per la matita, prima si mette al sicuro quello che c'e'
+   * scritto adesso nelle righe — il ridisegno che segue le riscrive con quello
+   * che c'e' in memoria, e chi stava compilando perderebbe la sua riga. */
+  const freccia = event.target.closest("[data-person-up],[data-person-down]");
+  if (freccia) {
+    event.preventDefault();
+    const passo = freccia.hasAttribute("data-person-up") ? -1 : 1;
+    const attuali = raccogliRighe(body, people);
+    const prossime = spostaNellElenco(attuali, index, passo);
+    if (prossime === attuali) return;
+    /* La riga aperta segue la riga, non il posto: chi sposta quella che sta
+     * modificando se la ritrova ancora aperta, un gradino piu' su. */
+    if (state.aperto === index) state.aperto = index + passo;
+    else if (state.aperto === index + passo) state.aperto = index;
+    salva(prossime);
+    ridisegna();
+    return;
+  }
+  if (event.target.closest("[data-person-shown]")) {
+    event.preventDefault();
+    const attuali = raccogliRighe(body, people);
+    salva(
+      attuali.map((persona, posizione) =>
+        posizione === index ? { ...persona, nascosta: persona?.nascosta !== true } : persona,
+      ),
+    );
+    ridisegna();
+    return;
+  }
   if (event.target.closest("[data-person-edit]")) {
     event.preventDefault();
     /* Aprire un'altra riga non butta via quello che si stava scrivendo in
@@ -1059,6 +1095,19 @@ function installStyles() {
     `
       #ed-body .dm-people-list{display:grid;gap:8px;margin-bottom:10px}
       #ed-body .dm-people-row{display:block!important;padding:0!important;overflow:hidden}
+      /* Le frecce e l'interruttore, uguali a quelli dei widget: e' lo stesso
+         gesto in due schede, e due aspetti diversi lo farebbero sembrare due
+         cose diverse. */
+      #ed-body .dm-people-move[disabled]{opacity:.3;pointer-events:none}
+      #ed-body .dm-people-shown{
+        flex:0 0 40px;width:40px;height:23px;position:relative;border:0;border-radius:999px;cursor:pointer;
+        background:color-mix(in srgb,var(--text-dim,#94a3b8) 32%,transparent);transition:background .25s ease}
+      #ed-body .dm-people-shown i{
+        position:absolute;top:2.5px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+        box-shadow:0 2px 6px rgba(15,23,42,.25);transition:transform .25s cubic-bezier(.16,1,.3,1)}
+      #ed-body .dm-people-shown[data-on="true"]{background:#059669}
+      #ed-body .dm-people-shown[data-on="true"] i{transform:translateX(16px)}
+      #ed-body .dm-people-row[data-nascosta="true"] .dm-people-row-head .ed-row-main{opacity:.5}
       #ed-body .dm-people-row-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
       #ed-body .dm-people-row-head .ed-row-main{display:grid;gap:2px;min-width:0}
       #ed-body .dm-people-ed-portrait{position:relative;width:40px;height:40px;flex:0 0 auto}

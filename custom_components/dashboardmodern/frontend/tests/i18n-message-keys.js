@@ -2463,7 +2463,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.",
   "the other plants have their own, and this save does not touch them",
   "The outdoor humidity is missing: set it under Entities, at “Weather station: humidity”.",
-  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.",
+  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.",
   "The person.* entity from Home Assistant, or a device_tracker.*.",
   "The phone battery sensor. Without it, the card uses what the entity already knows.",
   "the photo exceeds 10 MB",

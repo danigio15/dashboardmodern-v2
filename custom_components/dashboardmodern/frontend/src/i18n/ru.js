@@ -2182,7 +2182,7 @@ export default Object.freeze({
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Датчик открытия должен быть сущностью binary_sensor.*, sensor.* или input_boolean.*.",
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.": "Двери раздела «Безопасность»: подъезд, входная дверь, ворота. У каждой — своя карточка; нажатие просит подтверждение, а с PIN-кодом — код.",
   "the other plants have their own, and this save does not touch them": "У других установок свои нагрузки, и это сохранение их не затрагивает",
-  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.": "Люди дома: где они, как давно, и заряд их телефона. У каждого — карточка вверху Home с настоящим фото или аватаром.",
+  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.": "Люди дома: где они, как давно, и заряд их телефона. У каждого — карточка вверху Home с настоящим фото или аватаром. Стрелки меняют порядок, а переключатель убирает человека с Home, не удаляя его.",
   "The person.* entity from Home Assistant, or a device_tracker.*.": "Сущность person.* из Home Assistant или device_tracker.*.",
   "The phone battery sensor. Without it, the card uses what the entity already knows.": "Датчик заряда телефона. Без него карточка берёт то, что сущность уже знает.",
   "the photo exceeds 10 MB": "фото больше 10 МБ",

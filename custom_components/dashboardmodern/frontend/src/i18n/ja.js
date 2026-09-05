@@ -2182,7 +2182,7 @@ export default Object.freeze({
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "開閉センサーは binary_sensor.*、sensor.*、input_boolean.* のいずれかのエンティティである必要があります。",
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.": "セキュリティセクションのドア：建物の玄関、家のドア、ゲート。各ドアにカードがあり、タップで確認、PIN設定時はコードを求めます。",
   "the other plants have their own, and this save does not touch them": "他の設備にはそれぞれの負荷があり、この保存では変更されません",
-  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.": "家のメンバー：どこにいるか、いつから、そしてスマホのバッテリー。各メンバーはホーム上部にカードを持ち、実際の写真かアバターを表示します。",
+  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.": "家のメンバー：どこにいるか、いつから、そしてスマホのバッテリー。各メンバーはホーム上部にカードを持ち、実際の写真かアバターを表示します。矢印で並び順を変えられ、スイッチは削除せずにホームから外します。",
   "The person.* entity from Home Assistant, or a device_tracker.*.": "Home Assistantのperson.*エンティティ、またはdevice_tracker.*。",
   "The phone battery sensor. Without it, the card uses what the entity already knows.": "スマホのバッテリーセンサー。なければ、カードはエンティティが既に知っている値を使います。",
   "the photo exceeds 10 MB": "写真が10 MBを超えています",

@@ -2182,7 +2182,7 @@ export default Object.freeze({
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "开合传感器必须是 binary_sensor.*、sensor.* 或 input_boolean.* 实体。",
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.": "安全板块的门禁：楼栋大门、家门、院门。每扇门都有自己的卡片；点按需确认，设有密码时需输入密码。",
   "the other plants have their own, and this save does not touch them": "其他设备各有自己的负载，此次保存不会改动它们",
-  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.": "家庭成员：他们在哪里、待了多久，以及手机电量。每位成员在主页顶部都有一张卡片，可显示真实照片或头像。",
+  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.": "家庭成员：他们在哪里、待了多久，以及手机电量。每位成员在主页顶部都有一张卡片，可显示真实照片或头像。箭头可以调整他们出现的顺序，开关则在不删除的情况下把某人从主页移除。",
   "The person.* entity from Home Assistant, or a device_tracker.*.": "来自 Home Assistant 的 person.* 实体，或 device_tracker.*。",
   "The phone battery sensor. Without it, the card uses what the entity already knows.": "手机电池传感器。若不填，卡片将使用实体已知的电量。",
   "the photo exceeds 10 MB": "照片超过 10 MB",

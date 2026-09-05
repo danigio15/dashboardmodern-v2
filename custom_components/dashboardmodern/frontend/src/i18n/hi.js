@@ -2182,7 +2182,7 @@ export default Object.freeze({
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "खुलने का सेंसर binary_sensor.*, sensor.* या input_boolean.* इकाई होना चाहिए।",
   "The openings of the Security section: front door, house door, gate. Each door gets its own card; a tap asks to confirm and, with a PIN set, asks for the code.": "सुरक्षा अनुभाग के द्वार: इमारत का दरवाज़ा, घर का दरवाज़ा, गेट। हर द्वार का अपना कार्ड है; टैप पर पुष्टि और PIN सेट होने पर कोड पूछा जाता है।",
   "the other plants have their own, and this save does not touch them": "अन्य संयंत्रों के अपने लोड हैं, और यह सहेजना उन्हें नहीं छूता",
-  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar.": "घर के लोग: वे कहाँ हैं, कब से, और उनके फ़ोन की बैटरी। हर व्यक्ति को Home के शीर्ष पर एक कार्ड मिलता है, असली फ़ोटो या अवतार के साथ।",
+  "The people of the house: where they are, for how long, and their phone battery. Each person gets a card at the top of Home, with a real photo or an avatar. The arrows change the order they appear in; the switch takes one off Home without deleting them.": "घर के लोग: वे कहाँ हैं, कब से, और उनके फ़ोन की बैटरी। हर व्यक्ति को Home के शीर्ष पर एक कार्ड मिलता है, असली फ़ोटो या अवतार के साथ। तीर उनके दिखने का क्रम बदलते हैं; स्विच किसी को मिटाए बिना Home से हटा देता है।",
   "The person.* entity from Home Assistant, or a device_tracker.*.": "Home Assistant की person.* इकाई, या कोई device_tracker.*।",
   "The phone battery sensor. Without it, the card uses what the entity already knows.": "फ़ोन का बैटरी सेंसर। इसके बिना, कार्ड वही उपयोग करता है जो इकाई पहले से जानती है।",
   "the photo exceeds 10 MB": "फ़ोटो 10 MB से बड़ी है",

@@ -787,8 +787,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // moduli lo chiedono per ragioni diverse: la scheda Auto per riempirle, e la
   // sezione dell'auto per NON portarle via quando si cambia vettura — la
   // colonnina e' della casa, non di una macchina.
+  // 255 con il gesto di riordinare a mano (`core/ordine-a-mano.js`):
+  // «riordinare a piacere la Home». La freccia che scambia una riga con la sua
+  // vicina serve alle persone, alle azioni rapide e alle tessere — tre elenchi
+  // diversi, un gesto solo. Scriverlo tre volte vorrebbe dire tre occasioni di
+  // sbagliare l'ultimo elemento, che e' esattamente il posto dove si sbaglia.
   assert.ok(
-    relative.length <= 254,
+    relative.length <= 255,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -170,6 +170,13 @@ export function normalizePeople(input) {
       entity,
       photo: clean(person.photo),
       battery: clean(person.battery),
+      /* Nascosta in Home, ma configurata (#26 della lista, «riordinare a
+       * piacere la Home»). Non e' la stessa cosa di cancellarla: chi va via
+       * per un mese non vuole rifare la sua card al ritorno, e chi ha messo in
+       * elenco la persona che passa ogni tanto vuole poterla spegnere. Passa
+       * di qui o sparirebbe alla prima normalizzazione, come e' successo a
+       * mezza dozzina di campi prima di lei. */
+      nascosta: person.nascosta === true,
       ...Object.fromEntries(PERSON_SENSOR_FIELDS.map((field) => [field, clean(person[field])])),
       avatar: normalizeAvatar(person.avatar, people.length),
     });
