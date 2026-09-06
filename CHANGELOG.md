@@ -266,6 +266,16 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
 
 ### Corretto
 
+- **La barra non mostra piu' per un attimo le voci delle sezioni spente.**
+
+  Usciva con otto voci e trentuno millisecondi dopo ne aveva quattro: un
+  guizzo, ma quello che si vede in quel guizzo e' la voce di una sezione che
+  hai spento. Le voci che si fanno i moduli — Stanze, Luci, Prese, Robot, gli
+  Animali, il cruscotto — non nascono mentre la plancia si disegna ma nel
+  fotogramma subito dopo, e il filtro passava prima che esistessero. Adesso
+  passa due volte: appena la plancia e' disegnata, e in fondo allo stesso
+  fotogramma, dove quelle voci sono appena nate.
+
 - **Il pulsante delle donazioni sta nella pagina Configurazione, sotto
   Assistenza.**
 
