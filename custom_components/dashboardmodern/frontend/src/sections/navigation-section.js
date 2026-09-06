@@ -12,6 +12,7 @@ const state = (root[KEY] ||= {
   scadenza: 0,
   filtroInCoda: false,
   configurazioneAtterrata: false,
+  scopertaInCoda: false,
 });
 
 /* The dock is sized on its content (`width:max-content`), so with every section
@@ -830,12 +831,62 @@ function laConfigurazioneEAtterrata() {
   return state.configurazioneAtterrata || root.__DASHBOARDMODERN_CONFIG_SETTLED__ === true;
 }
 
+/* Se della barra si sa gia' tutto: ogni voce che c'e' ha un verdetto.
+ *
+ * Il guscio nasconde la voce `mappa[chiave]` quando `cd_sections[chiave]` e'
+ * falso. La chiave che manca non vuol dire «tienila»: vuol dire che nessuno ha
+ * ancora deciso. E le voci che si fanno i moduli — Stanze, Luci, Prese, Robot,
+ * gli Animali — nascono dentro al giro di disegno, mentre il verdetto su di
+ * loro lo scrive chi guarda il magazzino un attimo dopo: misurato sul
+ * telefono, otto voci a 2480 ms e i verdetti a 2573. In quei novantatre
+ * millisecondi la barra e' completa di voci e priva di verdetti — cioe' e'
+ * esattamente la barra intera che poi si accorcia.
+ *
+ * Percio' non si guarda l'orologio e non si contano i fotogrammi: si guarda se
+ * su ogni voce che sta in barra qualcuno si e' pronunciato. */
+function ogniVoceHaUnVerdetto() {
+  let mappa;
+  let verdetti;
+  try {
+    mappa = root.cdNavVisMap?.();
+    verdetti = root.cdCfg?.("cd_sections");
+  } catch (_errore) {
+    return false;
+  }
+  if (!mappa || typeof mappa !== "object") return false;
+  if (!verdetti || typeof verdetti !== "object") return false;
+  for (const chiave of Object.keys(mappa)) {
+    /* Tranne la Home, che non si spegne: una casa senza Home non esiste, e
+     * infatti nessuno scrive mai un verdetto su di lei. Aspettarlo vuol dire
+     * aspettare per sempre — misurato su una plancia aperta da sola: sedici
+     * verdetti scritti su diciassette voci, e l'unico che manca e' questo. */
+    if (chiave === "home") continue;
+    if (chiave in verdetti) continue;
+    if (doc?.querySelector?.(`.tab[data-tab="${mappa[chiave]}"]`)) return false;
+  }
+  return true;
+}
+
+/* Si scopre quando si sa la forma, e si riguarda a ogni fotogramma finche' non
+ * si sa. Non e' un sorvegliante: finisce alla prima risposta, e chi non
+ * risponde mai trova comunque la scadenza. */
+function scopriQuandoSiSaLaForma() {
+  if (state.barraScoperta) return;
+  const chiedi = root.requestAnimationFrame || root.setTimeout;
+  if (ogniVoceHaUnVerdetto() || typeof chiedi !== "function") {
+    applicaLaVisibilita();
+    scopriLaBarra("configurazione");
+    return;
+  }
+  chiedi.call(root, scopriQuandoSiSaLaForma);
+}
+
 function forseScopri() {
-  if (state.barraScoperta) return false;
+  if (state.barraScoperta || state.scopertaInCoda) return false;
   if (!laConfigurazioneEAtterrata()) return false;
   if (!laConfigurazioneSiConosce()) return false;
-  applicaLaVisibilita();
-  scopriLaBarra("configurazione");
+  state.scopertaInCoda = true;
+  scopriQuandoSiSaLaForma();
   return true;
 }
 

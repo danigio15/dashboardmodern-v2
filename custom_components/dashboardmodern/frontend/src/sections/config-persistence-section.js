@@ -1316,9 +1316,13 @@ function scheduleHydrateRetry(failures = state.transportFailures) {
  * secondi e mezzo di barra coperta a una plancia che non ha proprio niente da
  * aspettare.
  *
- * Si dice una volta sola, e non si dice mentre la domanda e' ancora aperta: un
- * trasporto che e' caduto riprova, e finche' riprova la risposta puo' ancora
- * arrivare.
+ * Si dice una volta sola, quando il primo giro di domanda e' finito — e
+ * «non ho trovato nessuno» e' una risposta anche lui. Il trasporto caduto
+ * riprova, e fa bene: quella e' una riparazione che va avanti per conto suo,
+ * e prima o poi la configurazione arrivera'. Ma chi deve decidere cosa
+ * mostrare adesso non puo' stare fermo ad aspettarla: la scala dei tentativi
+ * dura decine di secondi, e la barra coperta per tutto quel tempo non e' una
+ * barra prudente, e' una barra che non c'e'.
  *
  * E si lascia anche scritto, non solo detto. Un annuncio che si fa una volta
  * lo sente solo chi in quel momento e' gia' in ascolto, e i moduli non si
@@ -1373,8 +1377,9 @@ async function hydrateRemote(options = {}) {
     state.hydrating = false;
     /* Si annuncia da qui, dopo il ripristino e non prima: chi riordina le
      * sezioni ascolta `persistence-restored`, che parte dentro quel giro, e la
-     * risposta e' «sistemata» solo quando quel giro e' finito. */
-    if (state.hydrated) configurazioneSistemata();
+     * risposta e' «sistemata» solo quando quel giro e' finito. E si annuncia
+     * anche quando il giro e' finito male: chiesto, nessuno ha risposto. */
+    configurazioneSistemata();
   }
 }
 
