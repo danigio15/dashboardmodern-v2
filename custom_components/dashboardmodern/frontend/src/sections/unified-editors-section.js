@@ -7,6 +7,7 @@ import {
   SOGLIA_CHIUSA_MASSIMA,
 } from "../core/cover-kind.js";
 import { contactEntity, inferriataEntity } from "../core/shutter-window.js";
+import { SOGLIA_MASSIMA as UMIDITA_MASSIMA, umiditaDellaRiga } from "../core/arieggiare.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
   quickClimateFieldsMarkup,
@@ -314,6 +315,11 @@ function openShutterEditor(item, index) {
     item?.soglia === null || item?.soglia === undefined || String(item.soglia).trim() === ""
       ? ""
       : coverClosedThreshold(item.soglia);
+  /* E quella dell'umidita', con la stessa regola: vuota, «come la casa». */
+  const umiditaRiga =
+    item?.umidita === null || item?.umidita === undefined || String(item.umidita).trim() === ""
+      ? ""
+      : String(item.umidita);
   const { form, close } = modalShell(
     "shutter",
     t("Modifica tapparella o tenda", "Edit shutter or curtain"),
@@ -326,6 +332,7 @@ function openShutterEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura infisso", "Window contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="contact" value="${esc(contactEntity(item))}" placeholder="binary_sensor.finestra_camera"><button type="button" class="dm-entity-picker" data-pick-contact>🔍</button></span><small>${t("Se lo compili, la card mostra la finestra aperta quando il contatto lo dice.", "Fill it in and the card shows the window open when the contact says so.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura inferriata", "Grate contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="inferriata" value="${esc(inferriataEntity(item))}" placeholder="binary_sensor.inferriata_camera"><button type="button" class="dm-entity-picker" data-pick-inferriata>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Chiusa sotto il (%)", "Closed below (%)")}</span><input class="ed-input" type="number" min="0" max="${SOGLIA_CHIUSA_MASSIMA}" step="1" name="soglia" value="${esc(sogliaRiga)}" placeholder="${esc(t("come la casa", "as the house"))}"><small>${t("Solo per questa finestra: ferma a questa percentuale o sotto conta come chiusa. Vuota, vale la soglia di casa scritta in cima.", "For this window only: resting at this percentage or below counts as closed. Empty, the house threshold at the top applies.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Arieggia sopra il (%)", "Air out above (%)")}</span><input class="ed-input" type="number" min="0" max="${UMIDITA_MASSIMA}" step="1" name="umidita" value="${esc(umiditaRiga)}" placeholder="${esc(t("come la casa", "as the house"))}"><small>${t("Solo per questa finestra: quando l'umidità della sua stanza supera questa quota, la card dice di aprirla per arieggiare. Vuota, vale la soglia di casa scritta in cima; zero spegne il consiglio su questa finestra.", "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Posizione preferita (%)", "Favorite position (%)")}</span><input class="ed-input" type="number" min="0" max="100" step="1" name="preset" value="${esc(coverPresetPosition(item) ?? "")}" placeholder="es. 5"><small>${t("La card e il popup offrono sempre la tendina con tutte le percentuali: 0 = chiusa, 100 = aperta. Qui scegli quella di casa — 5 chiude quasi tutto lasciando passare un po' d'aria — e nella tendina compare con la stella. Vuoto = nessuna preferita.", "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.")}</small></label>`,
     "🪟",
   );
@@ -380,6 +387,10 @@ function openShutterEditor(item, index) {
     if (testoSoglia && Number.isFinite(Number(testoSoglia)))
       list[index].soglia = coverClosedThreshold(testoSoglia);
     else delete list[index].soglia;
+    /* E la soglia dell'umidita' di questa finestra, con la stessa regola. */
+    const umidita = umiditaDellaRiga(form.elements.umidita?.value);
+    if (umidita == null) delete list[index].umidita;
+    else list[index].umidita = umidita;
     /* Il rele' di discesa (#194): vale solo dove il primo comando e' anche
      * lui un rele'. Scritto accanto a una cover.* vera si perde per strada,
      * ed e' giusto: quella i due versi li ha gia'. */

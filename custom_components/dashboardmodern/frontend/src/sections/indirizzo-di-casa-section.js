@@ -192,6 +192,38 @@ export function storicoViaSocket(indirizzo, ripiego) {
     .catch(() => (gettoneDiAccesso() ? ripiego() : rispostaJson([], 502)));
 }
 
+/* ─── Senza credenziali non si bussa ──────────────────────────────────────
+ *
+ * «Login attempt failed — Login attempt or request with invalid
+ * authentication from localhost (127.0.0.1). See the log for details.»
+ * Sempre la stessa, a ogni apertura. E' la campanella che Home Assistant
+ * suona per OGNI richiesta REST che arriva senza una credenziale valida; da
+ * Nabu Casa l'indirizzo e' 127.0.0.1 per tutti. Dentro il pannello la plancia
+ * un gettone non ce l'ha: le sue richieste a `/api/` valgono solo se firmate
+ * dal socket (`authSig`) o se portano il gettone della telecamera
+ * (`token=`). Tutto il resto puo' solo prendersi un 401 — e far suonare.
+ *
+ * Allora quel 401 si da' qui, senza uscire: stessa risposta per chi chiama,
+ * nessuna campanella. Fuori dal pannello, con un gettone vero, non cambia
+ * niente. */
+export const SENZA_CREDENZIALE = 401;
+
+function haUnaCredenzialeNellIndirizzo(indirizzo) {
+  try {
+    const url = new URL(indirizzo, baseDelDocumento() || "http://casa.invalid/");
+    return url.searchParams.has("authSig") || url.searchParams.has("token");
+  } catch (_errore) {
+    return /[?&](authSig|token)=/.test(String(indirizzo));
+  }
+}
+
+/** Se questa richiesta, dentro il pannello, puo' solo prendersi un 401. */
+export function bussaSenzaCredenziali(indirizzo) {
+  if (root.__DASHBOARDMODERN_HOSTED__ !== true) return false;
+  if (gettoneDiAccesso()) return false;
+  return !haUnaCredenzialeNellIndirizzo(indirizzo);
+}
+
 export function installIndirizzoDiCasa() {
   if (state.installed) return false;
   const originale = root.fetch;
@@ -216,6 +248,8 @@ export function installIndirizzoDiCasa() {
       originale.call(this, finale, initNuovo || init),
     );
     if (viaSocket) return viaSocket;
+    if (bussaSenzaCredenziali(finale))
+      return Promise.resolve(rispostaJson({ message: "senza credenziali" }, SENZA_CREDENZIALE));
     return originale.call(this, finale, initNuovo || init);
   };
   nostra.__dmIndirizzoDiCasa = true;

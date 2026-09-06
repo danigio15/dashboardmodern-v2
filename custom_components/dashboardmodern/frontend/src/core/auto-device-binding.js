@@ -149,7 +149,12 @@ export function legaLAutoAlDispositivo({ entities = [], states = {} } = {}) {
     (voce) => percentuale(voce) && PAROLE.batteriaServizio.test(parole(voce, states)),
   );
   prendi("dm.ev_batteria_auto", (voce) => conClasse("battery")(voce) && dominio(voce) === "sensor");
-  prendi("dm.ev_batteria_auto", (voce) => percentuale(voce) && conParola("batteria")(voce));
+  /* «Target SoC» parla di SoC ma non e' la batteria: e' il traguardo della
+   * ricarica, e ha la sua casella piu' sotto. */
+  prendi(
+    "dm.ev_batteria_auto",
+    (voce) => percentuale(voce) && conParola("batteria")(voce) && !conParola("target")(voce),
+  );
 
   /* Il serbatoio: una percentuale che parla di carburante. Un sensore in litri
    * e' il consumo totale, non il livello, e sta in un'altra casella. */
@@ -187,6 +192,22 @@ export function legaLAutoAlDispositivo({ entities = [], states = {} } = {}) {
     (voce) => conClasse("power")(voce) && conParola("potenza")(voce),
   );
   prendi("dm.ev_potenza_ricarica", conParola("potenza", "sensor"));
+  /* Il target: prima uno che si puo' COMANDARE — un `number` o una tendina
+   * — perche' la plancia lo usa per cambiare il limite, e a un sensore di sola
+   * lettura non si puo' dire niente. Il sensore resta come ripiego: mostra il
+   * valore, e la tendina sa di essere muta. */
+  const comandabile = (voce) =>
+    ["select", "input_select", "number", "input_number"].includes(dominio(voce));
+  /* Ma deve parlare di CARICA: una percentuale, o le parole del limite. Un
+   * `number.cabin_target_temperature` e' un target anche lui, e la tendina
+   * del target gli manderebbe un limite di carica (osservazione della review). */
+  const parlaDiCarica = (voce) =>
+    /\b(soc|charg\w*|carica|limit\w*|ladeziel|ladelimit)\b/i.test(parole(voce, states));
+  prendi(
+    "dm.ev_target_soc",
+    (voce) =>
+      comandabile(voce) && conParola("target")(voce) && (percentuale(voce) || parlaDiCarica(voce)),
+  );
   prendi("dm.ev_target_soc", (voce) => percentuale(voce) && conParola("target")(voce));
 
   /* Le aperture e i comandi: le classi di Home Assistant per prime. */

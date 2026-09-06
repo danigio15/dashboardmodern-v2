@@ -398,6 +398,12 @@ async function eventiDallaPortaHttp(entity, da, a) {
   )}&end=${encodeURIComponent(new Date(a).toISOString())}`;
   const gettone = gettoneDiAccesso();
   const firmato = gettone ? "" : await percorsoFirmato(percorso);
+  /* Senza gettone e senza firma non si bussa: la richiesta nuda prendeva un
+   * 401 e faceva suonare la campanella di Home Assistant — «Login attempt or
+   * request with invalid authentication from 127.0.0.1», che da Nabu Casa e'
+   * l'indirizzo di tutti — a ogni apertura della plancia, quando il socket non
+   * era ancora pronto a firmare. Si passa al servizio, che sa gia' leggere. */
+  if (!gettone && !firmato) return null;
   const risposta = await root.fetch(firmato || percorso, {
     headers: gettone ? { Authorization: `Bearer ${gettone}` } : {},
     credentials: "include",
@@ -5398,19 +5404,52 @@ function detailMarkup(widget, states) {
  * La finestra aperta si aggiorna a ogni valore che cambia. Buttare via il
  * corpo e riscriverlo (innerHTML) ogni due secondi era il tremolio: lo
  * scorrimento tornava in cima, la corsa disegnata lampeggiava, un campo con
- * il fuoco lo perdeva. Se la forma non e' cambiata — stessi nodi, stessi
- * tag, nello stesso ordine — si travasano testi e attributi in quello che
- * c'e' gia': niente nodi nuovi, niente salti. */
-function stessaOssatura(a, b) {
-  if (a.childNodes.length !== b.childNodes.length) return false;
-  for (let i = 0; i < a.childNodes.length; i++) {
-    const mio = a.childNodes[i];
-    const suo = b.childNodes[i];
-    if (mio.nodeType !== suo.nodeType) return false;
-    if (mio.nodeType === 1 && (mio.tagName !== suo.tagName || !stessaOssatura(mio, suo)))
-      return false;
+ * il fuoco lo perdeva. Si travasano testi e attributi in quello che c'e'
+ * gia', e dove la forma e' cambiata si tocca SOLO il nodo che e' cambiato:
+ * una riga in piu' in un elenco aggiunge quella riga, non rifa' il corpo.
+ *
+ * Prima bastava una riga in piu' — la lettura nel tempo che arriva da
+ * Recorder un secondo dopo l'apertura, e aggiunge un punto sotto la frase —
+ * perche' la forma non fosse piu' «la stessa» e il corpo intero si
+ * riscrivesse: sul telefono, sotto il velo sfocato, e' un lampo bianco e una
+ * finestra che sembra cambiare faccia. «Ho aperto il widget Energia: prima
+ * mi ha mostrato una cosa, poi un'altra.» */
+function stessaSpecie(mio, suo) {
+  return mio.nodeType === suo.nodeType && (mio.nodeType !== 1 || mio.tagName === suo.tagName);
+}
+
+/* I figli, uno per uno: chi c'e' gia' si travasa, chi manca si aggiunge al
+ * suo posto, chi avanza si toglie. */
+function travasaFigli(mio, suo) {
+  const nuovi = [...suo.childNodes];
+  let vecchio = mio.firstChild;
+  for (let i = 0; i < nuovi.length; i++) {
+    const nuovo = nuovi[i];
+    if (!vecchio) {
+      mio.appendChild(nuovo.cloneNode(true));
+      continue;
+    }
+    if (stessaSpecie(vecchio, nuovo)) {
+      ricopia(vecchio, nuovo);
+      vecchio = vecchio.nextSibling;
+      continue;
+    }
+    /* Un nodo nuovo in mezzo: quello che c'e' e' il prossimo dei nuovi, e il
+     * nuovo si infila prima. */
+    if (nuovi[i + 1] && stessaSpecie(vecchio, nuovi[i + 1])) {
+      vecchio.before(nuovo.cloneNode(true));
+      continue;
+    }
+    /* Un nodo di un'altra specie: prende il posto, e solo lui. */
+    const rimpiazzo = nuovo.cloneNode(true);
+    vecchio.replaceWith(rimpiazzo);
+    vecchio = rimpiazzo.nextSibling;
   }
-  return true;
+  while (vecchio) {
+    const via = vecchio;
+    vecchio = vecchio.nextSibling;
+    via.remove();
+  }
 }
 
 /* Quello che il travaso NON deve toccare.
@@ -5445,21 +5484,16 @@ function ricopia(mio, suo) {
     if (mio.getAttribute(attributo.name) !== attributo.value)
       mio.setAttribute(attributo.name, attributo.value);
   }
-  for (let i = 0; i < mio.childNodes.length; i++) ricopia(mio.childNodes[i], suo.childNodes[i]);
+  travasaFigli(mio, suo);
 }
 
 function travasaCorpo(body, markup) {
   const stampo = doc.createElement("template");
   stampo.innerHTML = markup;
-  if (stessaOssatura(body, stampo.content)) {
-    for (let i = 0; i < body.childNodes.length; i++)
-      ricopia(body.childNodes[i], stampo.content.childNodes[i]);
-    return;
-  }
-  /* Forma nuova: si riscrive, ma senza perdere il punto di lettura. */
+  /* Il punto di lettura resta anche se un nodo sopra cresce o sparisce. */
   const scorrimento = body.scrollTop;
-  body.innerHTML = markup;
-  body.scrollTop = scorrimento;
+  travasaFigli(body, stampo.content);
+  if (body.scrollTop !== scorrimento) body.scrollTop = scorrimento;
 }
 
 /* ── rendering ────────────────────────────────────────────────────────── */

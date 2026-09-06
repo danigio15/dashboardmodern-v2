@@ -162,7 +162,12 @@ test("il velo dell'Energia copre i primi tentativi, poi si legge la ragione", ()
     energia,
     /\[data-dm-energy-ragione\]:not\(\.dm-energy-awaiting\)::before\{content:attr\(data-dm-energy-ragione\)/,
   );
-  assert.match(energia, /state\.retryCount <= TENTATIVI_COL_VELO \? 250 : 20_000/);
+  /* Col Recorder in affanno la ripresa aspetta cinque minuti, non il passo
+   * dei tentativi (1.4.11). */
+  assert.match(
+    energia,
+    /inAffanno\s*\?\s*RIPOSO_ENERGIA_DI_SPALLE_MS\s*:\s*state\.retryCount <= TENTATIVI_COL_VELO\s*\?\s*250\s*:\s*20_000/,
+  );
   /* E una scadenza, non solo un numero di tentativi: da quando il tempo
    * concesso a una domanda cresce con l'arco chiesto, due tentativi possono
    * essere due minuti — e se una risposta non arriva mai il contatore non sale

@@ -275,6 +275,63 @@ export function removeVehicle(list = [], uid) {
   return auto.filter((car) => clean(car?.[VEHICLE_KEY_FIELD]) !== cercato);
 }
 
+/* L'auto che arriva da un'integrazione entra nell'elenco senza farne nascere
+ * una seconda.
+ *
+ * «La foto dell'auto si e' persa con gli aggiornamenti: l'ho riassociata e
+ * funziona.» Chi collegava la vettura dal menu delle integrazioni la
+ * consegnava sempre come auto NUOVA — senza foto, senza marca — anche quando
+ * in elenco c'era gia' una B10 con la sua foto: da li' in poi ce n'erano due
+ * con lo stesso nome, e quella in mostra era la nuda. La foto non l'aveva
+ * cancellata nessuno: stava sull'altra.
+ *
+ * Adesso il dispositivo si versa nell'auto aperta con la matita, o in quella
+ * che gia' porta quel nome, e le lascia tutto il suo: le foto, la marca, il
+ * modello, il motore dichiarato. Le caselle che l'integrazione riconosce si
+ * riscrivono, quelle che non conosce restano. Solo senza nessuna delle due
+ * nasce una vettura nuova.
+ *
+ * Torna l'elenco da salvare, l'uid dell'auto toccata, e se e' nata adesso. */
+export function accogliAutoDalDispositivo(
+  list = [],
+  { name = "", mappa = {}, tipo = "", aperta = "", metadata = {} } = {},
+) {
+  const auto = vehicleList(list);
+  const nome = clean(name);
+  const chiaveAperta = clean(aperta);
+  const caselle = Object.fromEntries(
+    Object.entries(isObject(mappa) ? mappa : {})
+      .map(([chiave, valore]) => [clean(chiave), clean(valore)])
+      .filter(([chiave, valore]) => chiave.startsWith("dm.ev_") && valore),
+  );
+  const bersaglio =
+    (chiaveAperta && auto.find((car) => clean(car?.[VEHICLE_KEY_FIELD]) === chiaveAperta)) ||
+    (nome && auto.find((car) => clean(car?.name) === nome)) ||
+    null;
+  if (bersaglio) {
+    const uid = clean(bersaglio[VEHICLE_KEY_FIELD]);
+    const mappatura = { ...(bersaglio[VEHICLE_OVERRIDES_FIELD] || {}), ...caselle };
+    return {
+      cars: updateVehicle(auto, uid, {
+        [VEHICLE_OVERRIDES_FIELD]: mappatura,
+        overrides: mappatura,
+        /* Il motore lo dice chi l'ha dichiarato; l'integrazione parla solo
+         * dove nessuno ha ancora detto niente. */
+        ...(tipoMotore(bersaglio.tipo) || !tipoMotore(tipo) ? {} : { tipo: tipoMotore(tipo) }),
+      }),
+      uid,
+      nuova: false,
+    };
+  }
+  const nata = {
+    ...nuovoVeicolo(auto, nome, metadata),
+    tipo: tipoMotore(tipo),
+    [VEHICLE_OVERRIDES_FIELD]: caselle,
+    overrides: caselle,
+  };
+  return { cars: [...auto, nata], uid: clean(nata[VEHICLE_KEY_FIELD]), nuova: true };
+}
+
 /** Tutte le entita' mappate da tutte le auto: serve a sapere se uno stato ci riguarda. */
 export function vehicleEntities(list = []) {
   const ids = new Set();

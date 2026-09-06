@@ -889,7 +889,18 @@ export async function refreshEnergy(period = selectedPeriod()) {
       /* Dopo i primi tentativi si rallenta: un Recorder che non risponde non
        * risponde meglio se lo si chiama quattro volte al secondo, e ogni giro
        * costa una domanda pesante attraverso il tunnel. */
-      scheduleEnergyRefresh(true, state.retryCount <= TENTATIVI_COL_VELO ? 250 : 20_000);
+      /* E se il Recorder ha appena fatto scadere la domanda si aspetta il
+       * suo riposo anche qui, a freddo: riprovare dopo venti secondi era
+       * proprio il giro che lo teneva in affanno (osservazione della review). */
+      const inAffanno = Boolean(broker?.recorderInAffanno?.());
+      scheduleEnergyRefresh(
+        true,
+        inAffanno
+          ? RIPOSO_ENERGIA_DI_SPALLE_MS
+          : state.retryCount <= TENTATIVI_COL_VELO
+            ? 250
+            : 20_000,
+      );
     }
     return false;
   } finally {
@@ -942,8 +953,16 @@ export const RIPOSO_ENERGIA_MS = 60_000;
  * tocco sulla linguetta chiede subito (vedi `bindEvents`). */
 export const RIPOSO_ENERGIA_DI_SPALLE_MS = 5 * 60_000;
 
-export function riposoDeiPeriodi(documento = doc) {
+/* E dopo un timeout si riposa comunque a lungo.
+ *
+ * «Energia mensile: il Recorder ci ha messo troppo, 0 kWh.» Con un pacchetto
+ * buono in mano la pagina riprovava dopo un minuto, come sempre: cioe' a un
+ * Recorder che aveva appena fatto scadere la domanda se ne rifaceva un'altra
+ * uguale, e poi un'altra. Cinque minuti sono il passo con cui le statistiche
+ * si compilano: prima non c'e' niente di nuovo, e il Recorder respira. */
+export function riposoDeiPeriodi(documento = doc, inAffanno = broker?.recorderInAffanno?.()) {
   if (documento?.visibilityState === "hidden") return RIPOSO_ENERGIA_DI_SPALLE_MS;
+  if (inAffanno) return RIPOSO_ENERGIA_DI_SPALLE_MS;
   return documento?.getElementById?.("page-energy")?.classList?.contains("active")
     ? RIPOSO_ENERGIA_MS
     : RIPOSO_ENERGIA_DI_SPALLE_MS;

@@ -26,10 +26,16 @@ HOW the install works, not by refusing to have a button: the zip downloaded is
 the exact asset HACS would install (`hacs.json: zip_release`), it is validated
 before a single file moves (its paths, its manifest, its version), the swap is
 a rename with the previous folder kept beside it until the new one is in
-place, and a failure puts the old folder back. HACS finds the same files at
-its next «Update information» and simply re-aligns. The one thing the button
+place, and a failure puts the old folder back. The one thing the button
 cannot do is reload Python that is already running: a restart finishes the
 job, and the entity says so.
+
+HACS does NOT re-align on its own. Its record of the installed version is
+written only when HACS itself installs, and «Update information» re-reads
+GitHub, not the folder: after an install made here its card kept saying the
+previous version — and kept offering the update just made — for ever. So the
+install tells HACS, in HACS's own record, with the same label HACS would write
+(`annuncia_a_hacs`).
 
 Nothing here is required for the dashboard to work. If the panel has no way out
 to the internet the check simply finds nothing and says nothing: no repeated
@@ -106,6 +112,63 @@ def normalize_version(value: Any) -> str:
     """
     text = str(value or "").strip()
     return text[1:] if text[:1] in {"v", "V"} and text[1:2].isdigit() else text
+
+
+async def annuncia_a_hacs(hacs: Any, full_name: str, version: str) -> bool:
+    """Dice a HACS che la versione a terra e' questa.
+
+    «HACS mostra l'aggiornamento anche dopo averlo fatto.» HACS scrive
+    `installed_version` nel suo registro solo quando installa lui, e la
+    cancella quando disinstalla; «Aggiorna informazioni» rilegge GitHub, non
+    la cartella. Dopo un'installazione fatta dal tasto di questa integrazione
+    la sua scheda continuava a dire la versione di prima e a proporre
+    l'aggiornamento appena fatto — per sempre, non «fino al prossimo
+    controllo»: un controllo che lo riallinei non esiste.
+
+    Qui glielo si dice noi, nel registro che e' suo, con la stessa etichetta
+    che scriverebbe lui: il nome del tag (`v1.4.11`), che HACS confronta
+    togliendo la `v`. Torna `False` quando HACS non c'e' o non conosce questo
+    repository: allora non c'e' niente da riallineare. Ogni pezzo si cerca con
+    `getattr`, perche' il registro non e' nostro e puo' cambiare forma: se
+    cambia, si smette di riallineare, non si rompe l'installazione.
+    """
+    repositories = getattr(hacs, "repositories", None)
+    cerca = getattr(repositories, "get_by_full_name", None)
+    if not callable(cerca):
+        return False
+    repository = cerca(full_name)
+    dati = getattr(repository, "data", None)
+    if dati is None:
+        return False
+    ultima = str(getattr(dati, "last_version", "") or "")
+    nuda = normalize_version(version)
+    etichetta = ultima if normalize_version(ultima) == nuda else f"v{nuda}"
+    dati.installed = True
+    dati.installed_version = etichetta
+    # L'entita' di HACS si ridisegna quando vede un `last_fetched` piu' nuovo
+    # del suo: senza questo la scheda restava vecchia fino al giro dopo.
+    from datetime import UTC, datetime
+
+    dati.last_fetched = datetime.now(UTC)
+    scrivi = getattr(getattr(hacs, "data", None), "async_write", None)
+    if callable(scrivi):
+        await scrivi(force=True)
+    avvisa = getattr(hacs, "async_dispatch", None)
+    if callable(avvisa):
+        try:
+            from custom_components.hacs.enums import HacsDispatchEvent
+        except Exception:  # noqa: BLE001 - senza l'enum di HACS il registro e' comunque scritto
+            return True
+        avvisa(
+            HacsDispatchEvent.REPOSITORY,
+            {
+                "id": 1337,
+                "action": "install",
+                "repository": full_name,
+                "repository_id": getattr(dati, "id", None),
+            },
+        )
+    return True
 
 
 def _chiave(version: str) -> tuple[list[int], int, str] | None:
@@ -476,6 +539,14 @@ class DashboardModernUpdate(
         self._installed = destinazione
         self._riavvio_richiesto = True
         self.async_write_ha_state()
+        # HACS lo si avvisa noi: da solo non se ne accorge mai (vedi sopra).
+        try:
+            if await annuncia_a_hacs(
+                self.hass.data.get("hacs"), REPOSITORY, destinazione
+            ):
+                _LOGGER.debug("HACS riallineato alla versione %s", destinazione)
+        except Exception:  # noqa: BLE001 - il registro di HACS non e' nostro: se cambia forma l'installazione resta buona
+            _LOGGER.debug("HACS non si e' lasciato riallineare", exc_info=True)
         # Il riavvio si chiede dal posto standard: una Riparazione col suo
         # tasto, come fa HACS. La notifica testuale diceva la stessa cosa ma
         # da un'altra porta, e chi veniva da HACS cercava il tasto dove lo
@@ -522,20 +593,12 @@ class DashboardModernUpdate(
     def release_summary(self) -> str | None:
         """What to do about it, in the two lines the dialog shows."""
         if self._riavvio_richiesto:
-            # E si dice PRIMA che lo si veda: HACS aggiorna le sue schede
-            # personalizzate su un giro di 48 ore, quindi dopo un'installazione
-            # fatta da qui continua a mostrare la versione di prima. Chi guarda
-            # HACS e legge il numero vecchio pensa che l'aggiornamento non sia
-            # andato — e' successo — e la frase che lo evita costa una riga.
             return self._frase(
                 "Installata: riavvia Home Assistant per completare "
-                "l'aggiornamento. HACS mostra ancora la versione di prima "
-                "finché non fai ⋮ → «Aggiorna informazioni»: è la sua scheda, "
-                "non la plancia.",
+                "l'aggiornamento. Anche HACS è già allineato alla versione "
+                "nuova.",
                 "Installed: restart Home Assistant to complete the update. "
-                "HACS keeps showing the previous version until you pick "
-                "⋮ → “Update information”: that is its own record, not the "
-                "dashboard.",
+                "HACS is already aligned to the new version too.",
             )[:_SUMMARY_MAX]
         if not self.installed_version or self.latest_version == self.installed_version:
             return None
@@ -544,10 +607,9 @@ class DashboardModernUpdate(
         # l'unico posto dove la scelta non la fa il suo motore di traduzione.
         return self._frase(
             "Si installa da qui col tasto «Installa»; alla fine serve un "
-            "riavvio di Home Assistant. HACS si riallinea da solo al suo "
-            "prossimo controllo.",
+            "riavvio di Home Assistant. HACS viene allineato da solo.",
             "Install it from here with the “Install” button; a Home Assistant "
-            "restart finishes the job. HACS re-aligns on its next check.",
+            "restart finishes the job. HACS is aligned for you.",
         )[:_SUMMARY_MAX]
 
     async def async_release_notes(self) -> str | None:

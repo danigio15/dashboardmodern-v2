@@ -5,6 +5,197 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.11
+
+Le cose viste sulla plancia vera subito dopo la 1.4.10, con le schermate
+davanti: la pastiglia dell'auto che diceva «on» e «off», la tendina del
+target che non comandava niente, il riordino della Home messo nella scheda
+sbagliata, le finestre che non dicevano l'umidita', il radar che spariva
+senza un perche'.
+
+### Cambiato
+
+- **L'umidita' delle finestre e' quella della stanza, e basta.**
+
+      «Non e' vero: l'umidita' si prende SOLO da quella legata al sensore
+       umidita' della stanza, non fuori.»
+
+  Il consiglio di arieggiare voleva anche l'umidita' di fuori — «si apre solo
+  se fuori e' piu' asciutto» — e per chi non ha una stazione meteo mappata
+  questo voleva dire non vedere mai niente, con la scheda che chiedeva un
+  sensore che con le finestre non c'entra. Adesso la stanza sopra la soglia fa
+  comparire il consiglio; il fuori, quando c'e', si scrive accanto («fuori e'
+  piu' umido») e non decide.
+
+  E la card della finestra mostra SEMPRE l'umidita' della sua stanza — «💧
+  Umidita' 48% · soglia 60%» — anche quando non c'e' niente da consigliare:
+  «nella sezione non esce nessun avviso» era anche questo, un igrometro
+  appena collegato e nessun posto dove vederlo.
+
+- **Le soglie stanno dentro la singola finestra.**
+
+      «La percentuale deve stare sotto alla creazione della singola finestra
+       e legata ad ogni finestra.»
+
+  «Chiusa sotto il (%)» c'era gia' per riga; «Arieggia sopra il (%)» adesso
+  c'e' anche lui, nella creazione della finestra e nella modale di modifica,
+  che lo rilegge insieme al resto della riga. Vuoto vale la soglia di casa
+  scritta in cima; zero spegne il consiglio su quella finestra sola.
+
+- **Il riordino dei blocchi sta nella scheda Home dell'editor.**
+
+      «Il riordina dove l'hai messo, che in Home non c'e'? Non deve stare
+       nella sezione Widget, ti avevo detto nella sezione Home.»
+
+  Il pannello «Ordine dei blocchi della Home» e' in cima alla scheda 🏠 Home
+  della configurazione, e non c'e' piu' fra i Widget.
+
+- **Due tasti nella scheda Auto: «Collega la colonnina» e «Collega evcc».**
+
+      «Ancora unico tasto: colonnina e evcc devono essere due, per
+       selezionare le cose.»
+
+  Ognuno apre il menu con le sue integrazioni e basta — evcc da una parte,
+  go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla dall'altra — e quello che
+  si collega si somma: nessuno dei due porta via le caselle dell'altro.
+
+### Corretto
+
+- **La pastiglia sulla foto dell'auto torna a dire «Collegata» e «In carica».**
+
+      «Lo stato dice off ma la vettura e' collegata. E' in carica, dice on:
+       prima usciva come stato non collegato, collegato, in ricarica.»
+
+  Il guscio legge l'alfabeto delle colonnine — A, B, C, F — e per tutto il
+  resto stampa la parola grezza. Da quando la colonnina entra da
+  un'integrazione la casella dello stato porta un `binary_sensor.charging`,
+  e la pastiglia diceva «on» e «off». Adesso qualunque forma — la lettera, la
+  parola dell'integrazione, l'acceso/spento di un sensore — diventa la lettera,
+  col sensore del cavo e la potenza come testimoni, e la pastiglia dice «Non
+  connessa», «Collegata», «In carica». Il sensore del cavo, quando la
+  colonnina lo pubblica, entra da solo collegando la colonnina.
+
+- **La tendina del target di carica comanda davvero.**
+
+      «Il menu a tendina della percentuale di ricarica evcc non funziona.»
+
+  Nella casella del target finiva il sensore che l'auto pubblica — di sola
+  lettura — e la tendina mandava ordini nel vuoto: al giro dopo tornava sul
+  valore di prima, e sembrava rotta. Collegando evcc adesso si prende il suo
+  limite di carica, che si comanda (un numero o una tendina), anche quando
+  la casella era gia' occupata dal sensore dell'auto: un comando scalza una
+  lettura. Davanti a un numero le voci della tendina si fanno dai suoi
+  min/max/step, cosi' il valore vero si vede; davanti a un sensore la tendina
+  si disabilita e dice il perche', invece di far finta.
+
+- **Il radar dice perche' non esce.**
+
+      «Ho inserito il link con indirizzo e non lo legge nemmeno. Radar
+       continua a non uscire.»
+
+  Era l'indirizzo di una pagina di windy.com, non quello delle tessere. La
+  tendina della scheda tornava su «Nessuno» — la scelta sembrava sparita — e
+  nelle previsioni il blocco non nasceva affatto. Adesso la tendina resta su
+  «Un indirizzo mio», sotto c'e' scritto subito che quello e' l'indirizzo di
+  una pagina e cosa serve ({z}/{x}/{y}), e nelle previsioni compare il blocco
+  con la stessa spiegazione. Con «Nessuno» scelto apposta non compare niente,
+  com'e' giusto. E la casella del tetto dello zoom non scrive piu' «null».
+
+- **La campanella «Login attempt failed» di Home Assistant non suona più.**
+
+      «Login attempt or request with invalid authentication from localhost
+       (127.0.0.1). Sempre con lo stesso errore.»
+
+  Da Nabu Casa 127.0.0.1 e' l'indirizzo di tutti, e la campanella la suona
+  ogni richiesta REST che arriva senza una credenziale valida. Dentro il
+  pannello la plancia un gettone non ce l'ha: l'Agenda chiedeva gli eventi
+  dei calendari facendosi firmare il percorso dal socket, e quando il socket
+  non era ancora pronto — all'apertura — ripiegava su una richiesta nuda,
+  che prendeva 401 e faceva suonare. Ora senza firma non bussa e passa dal
+  servizio; e sotto c'e' una rete: dentro il pannello nessuna richiesta a
+  `/api/` senza firma ne' gettone della telecamera esce piu' dalla plancia —
+  si prende il suo 401 in casa, senza campanella.
+
+- **Energia: al Recorder si chiede una cosa per volta, e dopo un timeout si respira.**
+
+      «Energia giornaliera e mensile fa capricci: resta il velo, o 0 kWh e il
+       Recorder ci ha messo troppo.»
+
+  Un aggiornamento dell'Energia lanciava sette letture delle statistiche
+  INSIEME — giorno, mese, anno, i dispositivi per ognuno, i carichi — e su un
+  server piccolo si contendevano il disco a vicenda: tutte rallentavano,
+  qualcuna scadeva, e con un pacchetto buono in mano si riprovava lo stesso
+  dopo un minuto, a un Recorder che aveva appena fatto scadere la domanda.
+  Adesso le domande al Recorder vanno in fila, una per volta, e il tempo
+  concesso a ognuna parte quando parte lei; dopo un timeout la prossima
+  ripresa aspetta cinque minuti — il passo con cui le statistiche si
+  compilano, quindi prima non c'e' niente di nuovo — anche a pagina aperta.
+
+- **HACS non propone piu' l'aggiornamento appena fatto.**
+
+      «HACS mostra l'aggiornamento anche dopo averlo fatto.»
+
+  HACS scrive la versione installata nel suo registro solo quando installa
+  lui, e «Aggiorna informazioni» rilegge GitHub, non la cartella: dopo
+  un'installazione fatta dal tasto della plancia la sua scheda continuava a
+  dire la versione di prima e a proporre l'aggiornamento appena fatto — per
+  sempre. La 1.4.10 lo aveva solo scritto nel riepilogo, e aveva promesso un
+  riallineamento che non esiste. Adesso l'installazione glielo dice: la
+  versione nuova finisce nel registro di HACS con la stessa etichetta che
+  scriverebbe lui, e la sua scheda si ridisegna. Senza HACS non cambia niente.
+
+- **La finestra del widget Energia non cambia faccia un secondo dopo.**
+
+      «Ho aperto il widget Energia: prima mi ha mostrato una cosa, poi
+       un'altra. Sono convinto che ci siano sezioni vecchie che stanno sotto.»
+
+  Sotto non c'era niente di vecchio. La finestra si apre subito con i numeri
+  di adesso, e un attimo dopo arriva da Recorder la lettura nel tempo — «piu'
+  basso del solito», «piena fra un'ora» — che aggiunge un punto sotto la
+  frase e puo' cambiare il verdetto. Quel punto in piu' cambiava la forma del
+  corpo, e la forma diversa lo faceva riscrivere TUTTO: sul telefono, sotto
+  il velo sfocato, un lampo bianco e una finestra che sembra un'altra. Adesso
+  si tocca solo il nodo che cambia: la riga nuova si aggiunge, il verdetto
+  cambia parola, e tutto il resto resta dov'era, scorrimento compreso. Vale
+  per tutte le finestre dei widget, non solo per l'Energia.
+
+  E un dettaglio dell'auto letta dall'integrazione: «Target SoC» parla di SoC
+  ma non e' la batteria — e' il traguardo della ricarica, e finiva nella
+  casella della batteria di trazione quando l'auto non ne pubblicava una con
+  la sua classe.
+
+- **La foto dell'auto non si perde piu' collegando l'integrazione.**
+
+      «La foto dell'auto si e' persa con gli aggiornamenti: l'ho riassociata e
+       funziona.»
+
+  Nessuno la cancellava. «Aggiungi da un'integrazione» consegnava SEMPRE una
+  vettura nuova — senza foto, senza marca — anche quando in elenco c'era gia'
+  una B10 con la sua foto: da li' in poi ce n'erano due con lo stesso nome, e
+  quella in mostra era la nuda. Adesso il dispositivo si versa nell'auto
+  aperta con la matita, o in quella che gia' porta quel nome, e le lascia
+  tutto il suo — foto, marca, modello, motore dichiarato; le caselle che
+  l'integrazione riconosce si riscrivono, le altre restano, e se era l'auto
+  in uso le caselle nuove arrivano subito in plancia. Solo senza un'omonima
+  nasce una vettura nuova. La decisione sta nel modello dell'auto, con la
+  sua prova.
+
+- **Il verdetto dell'Energia non diventa rosso per un picco della casa, e lo
+  stato di carica non ha un «solito».**
+
+      Due schermate a un minuto di distanza: «DA GUARDARE» con 3,56 kW contro
+      i 634 W del solito, poi «TUTTO REGOLARE» con «piu' alto del solito: 24%
+      contro 21%» e «sale di 2% all'ora».
+
+  Il forno, il bollitore, la pompa di calore fanno tre chilowatt sopra il
+  solito ogni giorno: col sole che copre l'81% e la rete a zero era un
+  allarme per niente, e un minuto dopo tornava verde. Il confronto col
+  solito resta scritto fra i punti; il verdetto lo decide il bilancio. E
+  mentre la batteria si carica il soggetto e' lo stato di carica, che sale
+  perche' si sta caricando: «piu' alto del solito» su una percentuale che
+  cresce non e' una notizia, e non si scrive piu'. Resta il «piena fra» o il
+  passo con cui sale.
+
 ## 1.4.10
 
 Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.

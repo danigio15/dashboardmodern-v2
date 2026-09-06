@@ -89,7 +89,7 @@ export function configuredPhotos() {
   return { idle: storedPhoto(EV_PHOTO_KEYS.idle), plugged: storedPhoto(EV_PHOTO_KEYS.plugged) };
 }
 
-function liveState(reference) {
+export function liveState(reference) {
   const id = clean(reference); if (!id) return null;
   let resolved = id;
   try { resolved = clean(root.resolveEntity?.(id)) || id; } catch (_error) {}
@@ -325,9 +325,12 @@ function rimettiInUso(auto, indice) {
       if (!String(chiave).startsWith("dm.ev_") || eDellaWallbox(chiave))
         prossime[chiave] = valore;
     /* La mappa del profilo non tocca la colonnina: e' di casa, e quello che il
-     * profilo ne porta e' una copia vecchia raccolta prima di questa regola. */
+     * profilo ne porta e' una copia vecchia raccolta prima di questa regola.
+     * Una casella di casa VUOTA pero' si lascia riempire dal profilo: chi ha
+     * il target di carica solo dall'auto — una Tesla senza evcc — lo mette in
+     * uso cosi', e non toglie niente a nessuno. */
     for (const [chiave, valore] of Object.entries(mappa))
-      if (!eDellaWallbox(chiave)) prossime[chiave] = valore;
+      if (!eDellaWallbox(chiave) || !clean(prossime[chiave])) prossime[chiave] = valore;
     writeJsonIfChanged("cd_entity_overrides", prossime);
     root.cdApplyCanonicalOverrides?.(prossime);
   } catch (_error) {}
@@ -407,10 +410,17 @@ function rimettiLaColonnina(colonnina) {
  *
  * Non e' un caso particolare del collegamento: quei campi non appartengono
  * all'auto aperta, e chi li disegna deve leggerli da dove stanno davvero. */
-export function mostraLeCaselleDellaColonnina(mappaCasa = caselleDiCasa()) {
+export function mostraLeCaselleDellaColonnina(mappaCasa = caselleDiCasa(), anche = []) {
   const contenitore = doc?.getElementById("ed-body");
   if (!contenitore) return 0;
-  return scriviNeiCampi(contenitore, (ref) => (eDellaWallbox(ref) ? clean(mappaCasa[ref]) : null));
+  /* `anche`: le caselle che il collegamento ha appena scritto e che NON sono
+   * della colonnina — il target di carica, che evcc porta ma che resta
+   * dell'auto. Senza scriverle nei campi il salvataggio dell'auto, che
+   * rilegge i campi, le cancellava (osservazione della review). */
+  const inPiu = new Set(anche.map(clean));
+  return scriviNeiCampi(contenitore, (ref) =>
+    eDellaWallbox(ref) || inPiu.has(ref) ? clean(mappaCasa[ref]) : null,
+  );
 }
 
 /* I campi entita' della scheda, riempiti con quelli dell'auto aperta.
@@ -1133,7 +1143,7 @@ function ensureCarKeys() {
  *         esiste ancora.
  * uid   = la matita ha aperto QUELLA auto, e il nome scritto nel campo e' il
  *         suo nome — anche cambiato: rinominare non apre un'altra scheda. */
-function editingKey() { return state.evEditingUid ?? null; }
+export function editingKey() { return state.evEditingUid ?? null; }
 
 /* Cambiare l'auto di cui parla la scheda e' cambiare la risposta a «di chi
  * stiamo parlando», e da quella risposta viene TUTTO quello che la scheda

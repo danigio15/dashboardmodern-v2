@@ -14,12 +14,18 @@ import { legaLAutoAlDispositivo } from "../core/auto-device-binding.js";
 import { legaLaWallboxAlDispositivo } from "../core/wallbox-device-binding.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import {
+  activeVehicle,
+  editingKey,
   letturaMetadata,
   mostraLeCaselleDellaColonnina,
   profiles,
   salvaAuto,
 } from "./ev-section.js";
-import { nuovoVeicolo } from "../core/vehicle-model.js";
+import {
+  VEHICLE_KEY_FIELD,
+  accogliAutoDalDispositivo,
+  vehicleIndex,
+} from "../core/vehicle-model.js";
 import { etichettaDellaCasella } from "./auto-termica-section.js";
 import {
   allStates,
@@ -101,21 +107,19 @@ export async function creaAutoDaDispositivo({ device, entities, integration }) {
   }
   const auto = profiles();
   const nome = clean(device?.name) || t("Auto", "Car");
-  /* L'identita' gliela da' `nuovoVeicolo`, come a un'auto nata dal ＋.
-   *
-   * Qui si consegnava una riga senza uid, e uno gliene toccava dopo, ricavato
-   * dal POSTO che occupava nell'elenco. Un'identita' che dipende dalla
-   * posizione cambia quando l'elenco si riordina o qualcuno cancella una
-   * vettura — e da quell'identita' dipendono l'auto in mostra e l'auto aperta
-   * in configurazione. Il segno che non scende mai e' l'unico posto da cui
-   * un'auto puo' prendere il suo nome interno. */
-  const nata = {
-    ...nuovoVeicolo(auto, nome, letturaMetadata()),
+  /* Il dispositivo si versa nell'auto aperta con la matita, o in quella che
+   * gia' porta questo nome — foto, marca e modello restano suoi. Solo senza
+   * nessuna delle due nasce una vettura nuova, con l'identita' che le da'
+   * `nuovoVeicolo`, come a un'auto nata dal ＋: un uid dal segno che non
+   * scende mai, non dal posto nell'elenco. La decisione sta nel modello. */
+  const { cars, uid, nuova } = accogliAutoDalDispositivo(auto, {
+    name: nome,
+    mappa,
     tipo,
-    ov: mappa,
-    overrides: mappa,
-  };
-  salvaAuto([...auto, nata]);
+    aperta: editingKey() || "",
+    metadata: letturaMetadata(),
+  });
+  const salvate = salvaAuto(cars);
   /* La prima auto e' anche quella in uso.
    *
    * Le caselle di una vettura vivono nel suo profilo; quelle da cui il disegno
@@ -128,9 +132,21 @@ export async function creaAutoDaDispositivo({ device, entities, integration }) {
     try {
       root.cdEvApplyCar?.(0);
     } catch (_error) {}
+  } else if (!nuova && clean(activeVehicle(salvate)?.[VEHICLE_KEY_FIELD]) === uid) {
+    /* Si e' aggiornata proprio l'auto in uso: le sue caselle nuove vanno
+     * nelle mappature globali da cui il disegno legge, con lo stesso gesto
+     * del tasto «Usa». */
+    const posto = vehicleIndex(salvate, uid);
+    if (posto >= 0) {
+      try {
+        root.cdEvApplyCar?.(posto);
+      } catch (_error) {}
+    }
   }
   const daChi = clean(integration?.name) || t("un'integrazione", "an integration");
-  root.edToast?.(`${nome} — ${t("aggiunta da", "added from")} ${daChi}`);
+  root.edToast?.(
+    `${nome} — ${nuova ? t("aggiunta da", "added from") : t("aggiornata da", "updated from")} ${daChi}`,
+  );
   /* La scheda si ridisegna da se' al giro dopo: qui si chiede solo che ci
    * pensi, senza sapere come lo fa. */
   try {
@@ -204,9 +220,15 @@ export function collegaLaWallbox({ device, entities, integration }) {
   );
   const tenute = [];
   const prossime = { ...salvate };
+  /* Con un'eccezione: un COMANDO scalza una lettura. Il target di carica lo
+   * portano in due — l'auto come sensore di sola lettura, evcc come numero o
+   * tendina — e tenere il sensore perche' e' arrivato prima vorrebbe dire una
+   * tendina che non comanda niente. */
+  const comanda = (id) => /^(select|input_select|number|input_number)\./.test(id);
+  const legge = (id) => /^(sensor|binary_sensor)\./.test(id);
   for (const [ref, entita] of Object.entries(mappa)) {
     const gia = clean(prossime[ref]);
-    if (gia && gia !== entita && !sue.has(gia)) {
+    if (gia && gia !== entita && !sue.has(gia) && !(comanda(entita) && legge(gia))) {
       tenute.push(ref);
       continue;
     }
@@ -222,7 +244,7 @@ export function collegaLaWallbox({ device, entities, integration }) {
    * bastava: i campi disegnati restavano vuoti, quindi la colonnina non si
    * vedeva da nessuna parte — e il salvataggio dell'auto, che rilegge i campi
    * e cancella le caselle di quelli vuoti, se la portava via. */
-  mostraLeCaselleDellaColonnina(prossime);
+  mostraLeCaselleDellaColonnina(prossime, Object.keys(mappa));
   const nome = clean(device?.name) || clean(integration?.name) || t("Colonnina", "Charger");
   const collegate = Object.keys(mappa).length - tenute.length;
   root.edToast?.(
@@ -261,29 +283,80 @@ export function ensureInvitoAuto() {
         "Hyundai, Tesla, Renault, BMW… pick the device and the car arrives ready-made: battery or tank, range, odometer, doors and the rest. Or, below, one field at a time.",
       ),
     )}</small>
-    <button type="button" class="ed-btn-add dm-auto-integ" data-wallbox-integ>🔌 ${esc(
-      t("Collega la colonnina o evcc", "Connect the charger or evcc"),
+    <button type="button" class="ed-btn-add dm-auto-integ" data-wallbox-integ="colonnina">🔌 ${esc(
+      t("Collega la colonnina", "Connect the charger"),
     )}</button>
     <small>${esc(
       t(
-        "La colonnina è della casa, non di una macchina: si collega una volta e vale per tutte le vetture. Da evcc arrivano anche la modalità di ricarica e la quota di sole della sessione.",
-        "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. From evcc the charge mode and the session's solar share come along too.",
+        "La colonnina è della casa, non di una macchina: si collega una volta e vale per tutte le vetture. Porta quello che misura: potenza, energia, tensione, temperatura, il cavo.",
+        "The charger belongs to the house, not to one car: connect it once and it counts for every vehicle. It brings what it measures: power, energy, voltage, temperature, the cable.",
+      ),
+    )}</small>
+    <button type="button" class="ed-btn-add dm-auto-integ" data-wallbox-integ="evcc">☀️ ${esc(
+      t("Collega evcc", "Connect evcc"),
+    )}</button>
+    <small>${esc(
+      t(
+        "evcc è il regolatore davanti alla colonnina: da lui arrivano la modalità di ricarica, il limite di carica che si comanda, la sessione e la quota di sole. Si collega insieme alla colonnina, e nessuno dei due porta via le caselle dell'altro.",
+        "evcc is the controller in front of the charger: it brings the charge mode, the charge limit you can command, the session and the solar share. Connect it alongside the charger, and neither takes the other's fields away.",
       ),
     )}</small>`;
   riga.before(invito);
   return true;
 }
 
+/* evcc si riconosce dal nome dell'integrazione: il dominio della sua
+ * integrazione HACS e' `evcc_intg`, quello di altre `evcc`. */
+export function eEvcc(integrazione) {
+  return /evcc/i.test(`${clean(integrazione?.domain)} ${clean(integrazione?.name)}`);
+}
+
+/* E una colonnina si riconosce dal nome dell'integrazione: gli otto che si
+ * incontrano davvero e le parole con cui si chiamano. Chi ne ha una che qui
+ * non c'e' la trova lo stesso: se il filtro non lascia niente il menu mostra
+ * tutte le integrazioni, con la scelta a chi collega. */
+const COLONNINE =
+  /\b(wallbox|charger|charging|charge ?point|evse|go-?e|goecharger|easee|keba|zaptec|openwb|pulsar|wall connector|tesla wall|ocpp|myenergi|zappi|smartevse|alfen|webasto|wattpilot|juice|emobility|colonnina|ladestation)\b/i;
+
+export function eUnaColonnina(integrazione) {
+  const testo = `${clean(integrazione?.domain)} ${clean(integrazione?.name)}`.replace(/_/g, " ");
+  return !eEvcc(integrazione) && COLONNINE.test(testo);
+}
+
 async function onClick(event) {
   if (!doc || !attiva()) return;
-  if (event.target?.closest?.("[data-wallbox-integ]")) {
+  const tasto = event.target?.closest?.("[data-wallbox-integ]");
+  if (tasto) {
     event.preventDefault();
+    /* Due tasti, due menu: chi preme «evcc» vede evcc e basta, chi preme «la
+     * colonnina» vede le colonnine. «Devono essere due per selezionare le
+     * cose.» Quello che si collega poi e' lo stesso giro, e i due si sommano. */
+    const perEvcc = clean(tasto.dataset.wallboxInteg) === "evcc";
     apriMenuIntegrazioni({
-      titolo: t("Collega la colonnina o evcc", "Connect the charger or evcc"),
-      intro: t(
-        "Le integrazioni che portano una colonnina: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Scegli il dispositivo e le caselle della ricarica si riempiono da sole — potenza, energia, tensione, e da evcc anche la modalità e la quota di sole.",
-        "The integrations that bring a charger: evcc, go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, and from evcc the mode and the solar share too.",
-      ),
+      titolo: perEvcc ? t("Collega evcc", "Connect evcc") : t("Collega la colonnina", "Connect the charger"),
+      intro: perEvcc
+        ? t(
+            "Scegli il loadpoint di evcc: arrivano la modalità di ricarica, il limite di carica, la sessione e la quota di sole. La colonnina si collega dall'altro tasto, e le caselle si sommano.",
+            "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.",
+          )
+        : t(
+            "Le integrazioni che portano una colonnina: go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Scegli il dispositivo e le caselle della ricarica si riempiono da sole — potenza, energia, tensione, temperatura, il cavo.",
+            "The integrations that bring a charger: go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, temperature, the cable.",
+          ),
+      filtra: perEvcc ? eEvcc : eUnaColonnina,
+      /* Una colonnina che non si riconosce dal nome non deve sparire: senza
+       * corrispondenze il menu della colonnina mostra tutto. Per evcc no: o
+       * c'e' o non c'e'. */
+      altrimentiTutte: !perEvcc,
+      vuoto: perEvcc
+        ? t(
+            "Non trovo evcc fra le integrazioni con dispositivi: serve l'integrazione di evcc per Home Assistant (HACS), con almeno un loadpoint.",
+            "evcc is not among the integrations with devices: the evcc integration for Home Assistant (HACS) is needed, with at least one loadpoint.",
+          )
+        : t(
+            "Non trovo una colonnina fra le integrazioni con dispositivi: qui ci sono solo quelle di evcc, che si collega dall'altro tasto.",
+            "No charger among the integrations with devices: only evcc's are here, and evcc connects from the other button.",
+          ),
       anteprima: anteprimaWallbox,
       onScelto: (scelta) => collegaLaWallbox(scelta),
     });

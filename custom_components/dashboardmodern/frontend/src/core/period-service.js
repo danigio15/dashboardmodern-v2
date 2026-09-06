@@ -343,6 +343,16 @@ function readDirectState(entity, states = {}) {
  * attesa, e' una pagina che sembra rotta. */
 export const TEMPO_MASSIMO_STATISTICHE = 60000;
 
+/* Le domande che pesano sul database: al Recorder si fanno una per volta. */
+export const PESANTI_PER_IL_RECORDER = Object.freeze(
+  new Set(["recorder/statistics_during_period", "history/history_during_period"]),
+);
+
+/* Per quanto, dopo un timeout, il Recorder si considera in affanno: e' il
+ * passo con cui le statistiche si compilano, quindi prima non c'e' niente di
+ * nuovo da leggere comunque. */
+export const AFFANNO_DEL_RECORDER_MS = 5 * 60_000;
+
 export function tempoPerLeStatistiche(start, end, base = 12000) {
   const da = Date.parse(start);
   const a = Date.parse(end);
@@ -374,6 +384,9 @@ export class HomeAssistantBroker {
     this.timeout = timeout;
     this.cacheCurrentMs = cacheCurrentMs;
     this.cacheHistoricalMs = cacheHistoricalMs;
+    /* La fila davanti al Recorder, e da quando arranca (vedi `request`). */
+    this.codaDelRecorder = Promise.resolve();
+    this.recorderLentoDa = 0;
     this.socket = null;
     this.connection = null;
     this.authenticated = false;
@@ -545,16 +558,42 @@ export class HomeAssistantBroker {
   /* `timeout` e' per le domande che si sa che pesano — un mese di storico da
    * un Recorder lento, attraverso Nabu Casa — e non deve cambiare il tempo di
    * tutte le altre. Senza, e' quello del broker. */
+  /* Al Recorder si chiede una cosa per volta.
+   *
+   * Un aggiornamento dell'Energia lancia sette domande insieme — giorno,
+   * mese, anno, i dispositivi per ognuno, i carichi — e ognuna e' una lettura
+   * delle statistiche sul database. Su un server piccolo si contendono il
+   * disco a vicenda: tutte rallentano, qualcuna scade, e la pagina resta sul
+   * velo o su «0 kWh · timeout» (dal campo: il mini PC). In fila, la stessa
+   * spesa costa lo stesso tempo in tutto ma nessuna domanda aspetta le altre
+   * mentre il suo cronometro corre: il tempo concesso parte quando la domanda
+   * parte davvero, non quando si mette in fila. */
   async request(payload, timeout = this.timeout) {
+    if (!PESANTI_PER_IL_RECORDER.has(payload?.type)) return this.spedisci(payload, timeout);
+    const lavoro = () => this.spedisci(payload, timeout);
+    const turno = this.codaDelRecorder.then(lavoro, lavoro);
+    /* La fila va avanti anche quando una domanda cade: chi viene dopo non
+     * eredita il fallimento di chi lo precedeva. */
+    this.codaDelRecorder = turno.catch(() => {});
+    return turno;
+  }
+
+  /** Se il Recorder ha appena fatto scadere una domanda: chi aggiorna rallenta. */
+  recorderInAffanno(adesso = Date.now()) {
+    return this.recorderLentoDa > 0 && adesso - this.recorderLentoDa < AFFANNO_DEL_RECORDER_MS;
+  }
+
+  async spedisci(payload, timeout = this.timeout) {
     const socket = await this.connect();
     const id = ++this.nextId;
-    if (payload?.type === "recorder/statistics_during_period")
-      runtimeMetrics.increment("recorderRequests");
+    const perIlRecorder = payload?.type === "recorder/statistics_during_period";
+    if (perIlRecorder) runtimeMetrics.increment("recorderRequests");
     const attesa =
       Number.isFinite(Number(timeout)) && Number(timeout) > 0 ? Number(timeout) : this.timeout;
     return new Promise((resolve, reject) => {
       const timer = globalThis.setTimeout?.(() => {
         this.pending.delete(id);
+        if (perIlRecorder) this.recorderLentoDa = Date.now();
         reject(new Error("Home Assistant response timeout"));
       }, attesa);
       this.pending.set(id, { resolve, reject, timer });

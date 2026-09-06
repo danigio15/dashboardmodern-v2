@@ -267,6 +267,13 @@ export function apriMenuIntegrazioni({
   titolo = "",
   intro = "",
   anteprima: disegnaAnteprima = anteprimaElettrodomestico,
+  /* Quali integrazioni mostrare: chi apre «Collega evcc» non vuole scegliere
+   * fra quaranta voci, vuole evcc. Senza filtro si vede tutto. */
+  filtra = null,
+  /* Cosa dire quando il filtro non lascia niente. */
+  vuoto = "",
+  /* Oppure, quando il filtro non lascia niente, mostrare tutto lo stesso. */
+  altrimentiTutte = false,
 } = {}) {
   doc?.getElementById("dm-integ-menu")?.remove();
   const modal = doc.createElement("div");
@@ -394,12 +401,16 @@ export function apriMenuIntegrazioni({
   caricaCatalogo()
     .then((catalog) => {
       if (!modal.isConnected) return;
-      menu = integrationsWithDevices(catalog);
+      const tutte = integrationsWithDevices(catalog);
+      const filtrate = typeof filtra === "function" ? tutte.filter((voce) => filtra(voce)) : tutte;
+      menu = filtrate.length || !altrimentiTutte ? filtrate : tutte;
       if (!menu.length) {
-        stato.textContent = t(
-          "Nessuna integrazione con dispositivi trovata: in Home Assistant non c'è ancora un dispositivo con delle entità.",
-          "No integration with devices found: Home Assistant does not have a device with entities yet.",
-        );
+        stato.textContent =
+          (tutte.length && vuoto) ||
+          t(
+            "Nessuna integrazione con dispositivi trovata: in Home Assistant non c'è ancora un dispositivo con delle entità.",
+            "No integration with devices found: Home Assistant does not have a device with entities yet.",
+          );
         return;
       }
       stato.hidden = true;

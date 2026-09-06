@@ -21,13 +21,15 @@ e il silenzio quando la rete non c'e'.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import re
 import shutil
 import zipfile
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path, PurePosixPath
+from types import SimpleNamespace
 
 import pytest
 
@@ -37,7 +39,10 @@ UPDATE = COMPONENT / "update.py"
 
 
 def _carica_funzioni() -> tuple[
-    Callable[..., str], Callable[[str, str], bool], Callable[..., None]
+    Callable[..., str],
+    Callable[[str, str], bool],
+    Callable[..., None],
+    Callable[..., Awaitable[bool]],
 ]:
     """Prende le funzioni pure senza tirarsi dietro Home Assistant.
 
@@ -60,10 +65,15 @@ def _carica_funzioni() -> tuple[
         "DOMAIN": "dashboardmodern",
     }
     exec(compile(sorgente[inizio:fine], str(UPDATE), "exec"), spazio)  # noqa: S102
-    return spazio["normalize_version"], spazio["newer"], spazio["installa_da_zip"]
+    return (
+        spazio["normalize_version"],
+        spazio["newer"],
+        spazio["installa_da_zip"],
+        spazio["annuncia_a_hacs"],
+    )
 
 
-normalize_version, newer, installa_da_zip = _carica_funzioni()
+normalize_version, newer, installa_da_zip, annuncia_a_hacs = _carica_funzioni()
 
 
 def _zip_di_release(versione: str, **file_extra: str) -> bytes:
@@ -298,6 +308,98 @@ def test_l_entita_ha_un_nome_da_mostrare() -> None:
     assert "DeviceInfo(" in sorgente
     assert "name=NAME" in sorgente
     assert "sw_version=installed" in sorgente
+
+
+def _hacs_finto(installata: str, ultima: str) -> tuple[SimpleNamespace, dict]:
+    """Un HACS come lo si trova in `hass.data["hacs"]`, ridotto a cio' che serve."""
+    tracce: dict = {"scritture": [], "avvisi": []}
+    repository = SimpleNamespace(
+        data=SimpleNamespace(
+            id="123", installed=True, installed_version=installata, last_version=ultima
+        )
+    )
+
+    async def scrivi(force: bool = False) -> None:
+        tracce["scritture"].append(force)
+
+    hacs = SimpleNamespace(
+        repositories=SimpleNamespace(
+            get_by_full_name=lambda nome: (
+                repository if nome == "danigio15/dashboardmodern-v2" else None
+            )
+        ),
+        data=SimpleNamespace(async_write=scrivi),
+        async_dispatch=lambda *argomenti: tracce["avvisi"].append(argomenti),
+    )
+    return hacs, tracce
+
+
+def test_hacs_viene_riallineato_dopo_l_installazione_fatta_da_qui() -> None:
+    """«HACS mostra l'aggiornamento anche dopo averlo fatto.»
+
+    HACS scrive la versione installata solo quando installa lui, e «Aggiorna
+    informazioni» rilegge GitHub, non la cartella: dopo un'installazione dal
+    tasto della plancia proponeva per sempre l'aggiornamento appena fatto. Ora
+    glielo si dice noi, nel suo registro, con l'etichetta che scriverebbe lui.
+    """
+    hacs, tracce = _hacs_finto("v1.4.10", "v1.4.11")
+    assert asyncio.run(annuncia_a_hacs(hacs, "danigio15/dashboardmodern-v2", "1.4.11"))
+    dati = hacs.repositories.get_by_full_name("danigio15/dashboardmodern-v2").data
+    # La stessa etichetta della release che HACS conosce: cosi' le due caselle
+    # coincidono e l'aggiornamento non viene piu' proposto.
+    assert dati.installed_version == "v1.4.11"
+    assert dati.installed is True
+    assert dati.last_fetched is not None
+    # E il registro si scrive davvero, anche a HACS «disabilitato».
+    assert tracce["scritture"] == [True]
+
+
+def test_il_riallineamento_di_hacs_usa_il_nome_del_tag_anche_se_hacs_e_indietro() -> (
+    None
+):
+    """Se HACS non ha ancora visto la release, l'etichetta e' il tag: `v` + versione."""
+    hacs, _ = _hacs_finto("v1.4.9", "v1.4.10")
+    assert asyncio.run(annuncia_a_hacs(hacs, "danigio15/dashboardmodern-v2", "1.4.11"))
+    dati = hacs.repositories.get_by_full_name("danigio15/dashboardmodern-v2").data
+    assert dati.installed_version == "v1.4.11"
+    # Un HACS che scrive le release senza la `v` si segue nella sua forma.
+    hacs, _ = _hacs_finto("1.4.10", "1.4.11")
+    asyncio.run(annuncia_a_hacs(hacs, "danigio15/dashboardmodern-v2", "v1.4.11"))
+    dati = hacs.repositories.get_by_full_name("danigio15/dashboardmodern-v2").data
+    assert dati.installed_version == "1.4.11"
+
+
+def test_senza_hacs_non_c_e_niente_da_riallineare() -> None:
+    """Chi installa senza HACS — o con un HACS che non conosce il repository —
+    non vede un errore: non c'e' un registro da toccare."""
+    assert (
+        asyncio.run(annuncia_a_hacs(None, "danigio15/dashboardmodern-v2", "1.4.11"))
+        is False
+    )
+    hacs, tracce = _hacs_finto("v1.4.10", "v1.4.11")
+    assert asyncio.run(annuncia_a_hacs(hacs, "altri/repository", "1.4.11")) is False
+    assert tracce["scritture"] == []
+    # E un registro di forma diversa non rompe niente: si smette di riallineare.
+    assert (
+        asyncio.run(
+            annuncia_a_hacs(SimpleNamespace(), "danigio15/dashboardmodern-v2", "1.4.11")
+        )
+        is False
+    )
+
+
+def test_l_installazione_avvisa_hacs_e_non_promette_piu_che_si_riallinei_da_solo() -> (
+    None
+):
+    sorgente = UPDATE.read_text(encoding="utf-8")
+    installata = sorgente.index("self._installed = destinazione")
+    assert re.search(
+        r'annuncia_a_hacs\(\s*self\.hass\.data\.get\("hacs"\)',
+        sorgente[installata : installata + 700],
+    )
+    assert "si riallinea da solo" not in sorgente
+    assert "re-aligns on its next check" not in sorgente
+    assert "Aggiorna informazioni»: è la sua scheda" not in sorgente
 
 
 def test_il_riavvio_si_chiede_dal_posto_standard() -> None:
