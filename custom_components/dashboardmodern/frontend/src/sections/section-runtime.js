@@ -3,6 +3,7 @@ import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
+import { installGuscioQuandoServe } from "./il-guscio-disegna-quando-serve-section.js";
 import { installI18nSection } from "./i18n-section.js";
 import { installThemeFoundationSection } from "./theme-foundation-section.js";
 import { installIconeLeggibiliSection } from "./icone-leggibili-section.js";
@@ -791,6 +792,11 @@ export function installSectionRuntime() {
 
   root[INSTALLING_KEY] = true;
   try {
+    /* Per primo, prima di ogni involucro: il padrone di `cdRenderSoon` e dei
+     * timer del guscio. I moduli qui sotto si agganciano a `render`, e
+     * quanto spesso `render` giri lo decide chi possiede il nome prima di
+     * loro. */
+    installGuscioQuandoServe();
     /* Prima di tutto: una domanda a Home Assistant che parte con l'indirizzo
      * sbagliato non arriva, e chi la fa non se ne accorge — «Failed to fetch»
      * al posto dello storico. Si ripara la sola cosa che serve, e si ripara
@@ -1031,6 +1037,7 @@ export function installSectionRuntime() {
     root[RUNTIME_KEY] = Object.freeze({
       installed: true,
       sections: Object.freeze([
+        "il-guscio-disegna-quando-serve",
         "i18n",
         "data-contracts",
         ...LEGACY_SECTION_KEYS,

@@ -811,8 +811,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // un'integrazione, e la tendina del target mandava ordini a un sensore. La
   // lettera la decide il nucleo; la sezione la scrive e tiene la tendina
   // onesta, cosi' la vetrina resta sola presentazione.
+  // 261 con «il guscio disegna quando serve»
+  // (`sections/il-guscio-disegna-quando-serve-section.js`): il padrone di
+  // `cdRenderSoon`, della firma della finestra dei dettagli e dei timer del
+  // guscio che un modulo fa gia' — il lavoro fatto senza che nessuno guardi.
   assert.ok(
-    relative.length <= 260,
+    relative.length <= 261,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -878,6 +882,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * something actually changed, and the timer stops itself the moment it finds
    * that window shut.
    *
+   * The tenth is «il guscio disegna quando serve», and it is the reverse of
+   * an interval added: it switches OFF eleven of the vendored runtime's own
+   * forever-timers (the shutters every two seconds, the navbar every three,
+   * the camera clocks every second from any page, the auto-hide every
+   * minute…) and keeps only the two that carried real logic, with the same
+   * discipline as the rest — the camera clock beats only while the Security
+   * page is on screen and the tab is visible, the irrigation step only while
+   * a watering sequence is running, and each timer stops itself the moment
+   * that stops being true.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -889,6 +903,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/assistenza-section.js",
       "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
+      "src/sections/il-guscio-disegna-quando-serve-section.js",
       "src/sections/live-ui-section.js",
       "src/sections/media-player-section.js",
       "src/sections/people-section.js",
@@ -927,7 +942,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // rimanente (#v-ev-remain-popup): il guscio lo riscrive a ogni giro del suo
   // disegno — non su un evento nostro — e l'ora di fine carica va rimessa
   // appena lui la cancella; non c'e' nessun nome da avvolgere per saperlo.
-  assert.ok(observers.length <= 11, `too many production observers: ${observers.length}`);
+  // Il dodicesimo e' della pagina Clima, e guarda solo la classe di
+  // #page-clima: la pagina si dipinge quando si apre — non piu' a ogni giro
+  // del guscio mentre si guarda la Home — e la classe cambia da tre strade
+  // (la barra, un modulo, una prova), che un nome da avvolgere non hanno.
+  // Il tredicesimo e' del «guscio disegna quando serve», e guarda la classe
+  // di tre pagine (Sicurezza, EV, Irrigazione): sono i suoi orologi e le
+  // particelle della ricarica a dover partire e fermarsi quando quelle pagine
+  // entrano ed escono dallo schermo.
+  assert.ok(observers.length <= 13, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,
