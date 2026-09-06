@@ -106,8 +106,10 @@ test("la cartella dichiara da dove vengono i file e a che condizioni", async () 
 
 test("l'integrazione serve la cartella, fuori dalla versione", async () => {
   const python = await leggi("../../frontend.py");
-  assert.match(python, /BRAND_DIR = FRONTEND_DIR \/ "brands"/);
-  assert.match(python, /url_path=BRAND_URL_PATH/);
+  // La cartella si monta intera, una volta, sotto il prefisso stabile e con
+  // la cache: e' fra le cartelle condivise, non fra quelle versionate.
+  assert.match(python, /SHARED_DIRECTORIES = \("avatars", "brands"\)/);
+  assert.match(python, /configs\(STATIC_URL_PATH, shared, True\)/);
 });
 
 test("lo script di build esiste e non tiene il pacchetto come dipendenza", async () => {

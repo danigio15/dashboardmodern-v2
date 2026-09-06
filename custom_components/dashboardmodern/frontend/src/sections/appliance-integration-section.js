@@ -110,6 +110,45 @@ export async function caricaCatalogo({ force = false } = {}) {
   return state.catalogInflight;
 }
 
+/* Quanti identificativi accetta il comando in una richiesta: e' il tetto del
+ * backend (MAX_DEVICE_IDS), e un lotto piu' grande si spezza. */
+const MAX_IDS_PER_RICHIESTA = 200;
+
+/* Le entita' chieste nello stesso giro partono in una richiesta sola.
+ *
+ * All'apertura la plancia chiede le entita' di ogni elettrodomestico
+ * collegato, e le chiedeva una alla volta: dieci apparecchi, dieci
+ * richieste, e per ognuna il backend rileggeva i registri di Home Assistant.
+ * Chi chiede nello stesso giro finisce in un lotto solo, che parte al giro
+ * dopo con tutti gli identificativi insieme; ognuno riceve poi la propria
+ * parte della risposta. */
+let lotto = null;
+
+function prenotaEntita(id) {
+  if (!lotto) {
+    const ids = new Set();
+    const promise = new Promise((resolve, reject) => {
+      const parti = () => {
+        lotto = null;
+        const tutti = [...ids];
+        const richieste = [];
+        for (let da = 0; da < tutti.length; da += MAX_IDS_PER_RICHIESTA)
+          richieste.push(chiedi({ type: TYPE, device_ids: tutti.slice(da, da + MAX_IDS_PER_RICHIESTA) }));
+        Promise.all(richieste).then(
+          (risposte) =>
+            resolve(risposte.flatMap((result) => (Array.isArray(result?.entities) ? result.entities : []))),
+          reject,
+        );
+      };
+      if (typeof root.setTimeout === "function") root.setTimeout(parti, 0);
+      else Promise.resolve().then(parti);
+    });
+    lotto = { ids, promise };
+  }
+  lotto.ids.add(id);
+  return lotto.promise;
+}
+
 /** Le entita' di un dispositivo, dal backend, tenute in memoria. */
 export async function caricaEntita(deviceId) {
   const id = clean(deviceId);
@@ -118,10 +157,8 @@ export async function caricaEntita(deviceId) {
   if (state.entitiesInflight.has(id)) return state.entitiesInflight.get(id);
   const promise = (async () => {
     try {
-      const result = await chiedi({ type: TYPE, device_ids: [id] });
-      const list = (Array.isArray(result?.entities) ? result.entities : []).filter(
-        (entity) => clean(entity?.device_id) === id,
-      );
+      const entities = await prenotaEntita(id);
+      const list = entities.filter((entity) => clean(entity?.device_id) === id);
       state.entities.set(id, list);
       annuncia();
       return list;

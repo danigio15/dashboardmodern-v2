@@ -28,6 +28,7 @@ from custom_components.dashboardmodern.const import (
     DOMAIN,
     OPTION_TICKETS_ENABLED,
     TICKET_MARKER,
+    TICKET_SYNC_BATCH,
 )
 from custom_components.dashboardmodern.github_client import (
     DevicePending,
@@ -1301,11 +1302,13 @@ async def test_il_filo_legge_gli_ultimi_commenti_non_i_primi(
 async def test_la_sincronia_gira_su_tutte_le_segnalazioni(
     hass: HomeAssistant, github: FakeGitHub, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Venti per giro, ma il giro dopo riparte da dove si era fermato.
+    """Poche per giro, e il giro dopo riparte da dove si era fermato.
 
-    Prendere sempre le prime venti voleva dire che con ventuno aperte la
-    ventunesima non veniva riletta mai, finche' una delle altre non si
-    chiudeva.
+    Prendere sempre le prime voleva dire che con una in piu' del tetto
+    l'ultima non veniva riletta mai, finche' una delle altre non si
+    chiudeva. E il tetto e' basso apposta: ogni issue costa fino a tre
+    richieste, e venti issue erano sessanta chiamate in fila ogni mezz'ora
+    nel loop di una macchina piccola.
     """
     _entry(hass)
     await _collega(hass, "anna")
@@ -1318,12 +1321,34 @@ async def test_la_sincronia_gira_su_tutte_le_segnalazioni(
         await store.async_mark_sent(bozza["id"], str(numero))
     github.answer("/issues/", {"state": "open", "comments": 0})
 
-    await tickets.async_sync_states(hass)
-    primi = [chiamata["url"].rsplit("/", 1)[-1] for chiamata in github.calls]
-    github.calls.clear()
-    await tickets.async_sync_states(hass)
-    secondi = [chiamata["url"].rsplit("/", 1)[-1] for chiamata in github.calls]
+    giri: list[list[str]] = []
+    for _ in range(5):
+        github.calls.clear()
+        await tickets.async_sync_states(hass)
+        giri.append([chiamata["url"].rsplit("/", 1)[-1] for chiamata in github.calls])
 
-    assert len(primi) == 20 and len(secondi) == 20
-    assert secondi[:5] == ["21", "22", "23", "24", "25"]
-    assert set(primi) | set(secondi) == {str(numero) for numero in range(1, 26)}
+    assert TICKET_SYNC_BATCH == 5
+    assert all(len(giro) == TICKET_SYNC_BATCH for giro in giri)
+    assert giri[1] == ["6", "7", "8", "9", "10"]
+    assert {numero for giro in giri for numero in giro} == {
+        str(numero) for numero in range(1, 26)
+    }
+
+
+async def test_senza_gettone_la_sincronia_non_esce_di_casa(
+    hass: HomeAssistant, github: FakeGitHub
+) -> None:
+    """Le sessanta richieste anonime all'ora non si spendono qui.
+
+    Senza gettone la rilettura delle segnalazioni bruciava in un giro una
+    fetta del tetto che GitHub concede a tutto l'indirizzo di casa, e
+    lasciava a secco il controllo aggiornamenti che passa dalla stessa porta.
+    Senza gettone non si consegna nulla, e non si rilegge nulla.
+    """
+    _entry(hass)
+    store = await async_get_ticket_store(hass)
+    bozza = await _bozza(hass)
+    await store.async_mark_sent(bozza["id"], "42")
+
+    assert await tickets.async_sync_states(hass) == 0
+    assert github.calls == []

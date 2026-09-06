@@ -24,6 +24,7 @@ are all deliberate:
 
 from __future__ import annotations
 
+import copy
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -44,6 +45,18 @@ PROFILE_PREFIX = "plancia-"
 #: Kept revisions per profile. Enough to recover from a bad sync without letting
 #: the storage file grow without bound.
 HISTORY_LIMIT = 5
+
+#: Quanto aspetta il negozio prima di scrivere il file.
+#:
+#: Un salvataggio dalla plancia non arriva mai da solo: l'editor spinge una
+#: raffica di scatti a distanza di decimi di secondo, e ognuno riscriveva
+#: subito un file con dentro la revisione corrente piu' cinque copie della
+#: storia — otto megabyte al massimo, serializzati e scritti su disco a ogni
+#: tocco. Con un ritardo breve la raffica diventa una scrittura sola: la
+#: risposta «salvato» parte comunque subito, perche' il negozio in memoria e'
+#: gia' aggiornato. Alla chiusura di Home Assistant una scrittura in attesa
+#: viene fatta lo stesso, prima dell'ultimo scatto su disco.
+SAVE_DELAY = 2.0
 
 #: Hard limits for one snapshot. The payload arrives from the frontend, so it is
 #: validated rather than trusted.
@@ -180,39 +193,90 @@ def is_configured(values: Mapping[str, Any] | None) -> bool:
     return content_key_count(values) > 0
 
 
-def _public(snapshot: dict[str, Any] | None) -> dict[str, Any] | None:
-    """Return a snapshot without its history, as the frontend consumes it."""
+# ─── Il conto delle chiavi, fatto una volta sola ─────────────────────────────
+#
+# Contare le chiavi di contenuto vuol dire decodificare ogni valore dello
+# scatto — sono documenti JSON, alcuni da centinaia di kilobyte — e
+# percorrerlo tutto. Lo si faceva a ogni lettura e a ogni scrittura, sullo
+# scatto corrente e su ognuna delle cinque revisioni custodite: una decina di
+# volte per chiamata, nell'event loop, per rispondere sempre alla stessa
+# domanda su dati che non erano cambiati. Il conto si fa adesso quando lo
+# scatto entra nel negozio, e viaggia con lui: ``content_keys`` e
+# ``configured`` stanno nel record, e chi legge li legge e basta. I record
+# scritti prima di questa versione non li hanno: si contano la prima volta
+# che qualcuno li guarda, e da li' in poi restano contati.
+
+
+def _annotate(record: dict[str, Any], content_keys: int) -> None:
+    """Scrivi nel record quante chiavi di contenuto porta."""
+    record["content_keys"] = int(content_keys)
+    record["configured"] = content_keys > 0
+
+
+def _content_keys(record: dict[str, Any]) -> int:
+    """Le chiavi di contenuto di un record, contate una volta sola."""
+    count = record.get("content_keys")
+    if isinstance(count, bool) or not isinstance(count, int):
+        count = content_key_count(record.get("values"))
+        _annotate(record, count)
+    return count
+
+
+def _configured(record: dict[str, Any] | None) -> bool:
+    """Se un record del negozio descrive una plancia configurata."""
+    if not record:
+        return False
+    flag = record.get("configured")
+    if isinstance(flag, bool):
+        return flag
+    return _content_keys(record) > 0
+
+
+def _public(
+    snapshot: dict[str, Any] | None, *, with_values: bool = True
+) -> dict[str, Any] | None:
+    """Return a snapshot without its history, as the frontend consumes it.
+
+    ``with_values`` e' falso solo nella risposta «unchanged»: li' i valori
+    custoditi sono per definizione quelli appena mandati, e rimandarli
+    indietro — fino a otto megabyte da serializzare nel loop — non dice
+    niente che il chiamante non abbia gia' in mano. Il frontend, in quel
+    ramo, usa i propri.
+    """
     if not snapshot:
         return None
-    return {
+    public = {
         "revision": int(snapshot.get("revision") or 0),
         "updated_at": int(snapshot.get("updated_at") or 0),
         "keys_revision": int(snapshot.get("keys_revision") or 0),
         "writer_generation": int(snapshot.get("writer_generation") or 0),
         "reset": bool(snapshot.get("reset")),
-        "values": dict(snapshot.get("values") or {}),
     }
+    if with_values:
+        public["values"] = dict(snapshot.get("values") or {})
+    return public
 
 
 def _recoverable(snapshot: dict[str, Any] | None) -> list[dict[str, Any]]:
     """List the kept revisions that could restore a configured plancia.
 
-    Only used when the current snapshot is empty, which is why intentional
-    resets are listed too: the caller decides, and an intentional reset is
-    never auto-recovered.
+    Only used when the current snapshot is empty — e' l'unico caso in cui il
+    frontend la guarda — which is why intentional resets are listed too: the
+    caller decides, and an intentional reset is never auto-recovered. Per una
+    plancia configurata l'elenco e' vuoto: non serve a nessuno, e comporlo
+    voleva dire rileggere la storia a ogni chiamata.
     """
-    if not snapshot:
+    if not snapshot or _configured(snapshot):
         return []
     entries = []
     for revision in snapshot.get("history") or []:
-        values = revision.get("values") or {}
-        if not is_configured(values):
+        if not _configured(revision):
             continue
         entries.append(
             {
                 "revision": int(revision.get("revision") or 0),
                 "updated_at": int(revision.get("updated_at") or 0),
-                "content_keys": content_key_count(values),
+                "content_keys": _content_keys(revision),
                 "reset": bool(revision.get("reset")),
             }
         )
@@ -256,6 +320,8 @@ class DashboardConfigStore:
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
         self._data: dict[str, Any] = {"profiles": {}, "entry_profiles": {}}
         self._loaded = False
+        # Se c'e' una scrittura in attesa che il file non ha ancora visto.
+        self._pending = False
 
     async def async_load(self) -> None:
         """Read the storage file once."""
@@ -273,8 +339,39 @@ class DashboardConfigStore:
             }
         self._loaded = True
 
-    async def _async_save(self) -> None:
-        await self._store.async_save(self._data)
+    def _snapshot_to_save(self) -> dict[str, Any]:
+        """Una copia dei dati, presa nel loop, che il thread puo' serializzare.
+
+        Home Assistant serializza il file in un thread; dargli il dizionario
+        vivo vuol dire che una scrittura arrivata nel frattempo lo cambia
+        mentre viene percorso. La copia duplica solo i contenitori: le
+        stringhe — che sono il peso vero — restano condivise.
+        """
+        return copy.deepcopy(self._data)
+
+    def _schedule_save(self) -> None:
+        """Segna che c'e' da scrivere, e lascia che la raffica si compatti."""
+        pending = self._snapshot_to_save()
+
+        def consegna() -> dict[str, Any]:
+            # Chiamata da Home Assistant nel momento in cui scrive davvero.
+            self._pending = False
+            return pending
+
+        self._pending = True
+        self._store.async_delay_save(consegna, SAVE_DELAY)
+
+    async def async_flush(self) -> None:
+        """Scrivi subito quello che e' in attesa, se c'e' qualcosa.
+
+        Alla chiusura di Home Assistant ci pensa il negozio da se'; qui si
+        passa quando una plancia viene scaricata, e nelle prove che rileggono
+        il file.
+        """
+        if not self._pending:
+            return
+        self._pending = False
+        await self._store.async_save(self._snapshot_to_save())
 
     def _profiles(self) -> dict[str, Any]:
         return self._data.setdefault("profiles", {})
@@ -346,7 +443,7 @@ class DashboardConfigStore:
         snapshot = self._profiles().get(profile)
         if entry_id and self._entry_profiles().get(entry_id) != profile:
             self._entry_profiles()[entry_id] = profile
-            await self._async_save()
+            self._schedule_save()
         return {
             "profile": profile,
             "requested_profile": requested,
@@ -373,6 +470,9 @@ class DashboardConfigStore:
         profiles = self._profiles()
         current = profiles.get(profile)
         accepted = validate_values(values)
+        # L'unico conto di questa chiamata: sullo scatto che arriva. Quello
+        # corrente e la storia il loro conto lo portano gia' scritto.
+        accepted_keys = content_key_count(accepted)
 
         if expected_revision is not None and int(expected_revision) != int(
             (current or {}).get("revision") or 0
@@ -386,12 +486,7 @@ class DashboardConfigStore:
 
         # The accidental-wipe signature: a client with nothing configured
         # overwriting a configured plancia. Only an explicit reset may do that.
-        if (
-            not reset
-            and current
-            and is_configured(current.get("values"))
-            and not is_configured(accepted)
-        ):
+        if not reset and _configured(current) and accepted_keys == 0:
             return {
                 "status": STATUS_REFUSED_EMPTY,
                 "profile": profile,
@@ -417,27 +512,28 @@ class DashboardConfigStore:
                 current["keys_revision"] = int(keys_revision or 0)
                 stamped = True
             if stamped:
-                await self._async_save()
+                self._schedule_save()
             return {
                 "status": STATUS_UNCHANGED,
                 "profile": profile,
-                "snapshot": _public(current),
+                "snapshot": _public(current, with_values=False),
                 "recoverable": _recoverable(current),
             }
 
         history = list((current or {}).get("history") or [])
-        if current and is_configured(current.get("values")):
-            history.insert(
-                0,
-                {
-                    "revision": int(current.get("revision") or 0),
-                    "updated_at": int(current.get("updated_at") or 0),
-                    "keys_revision": int(current.get("keys_revision") or 0),
-                    "writer_generation": int(current.get("writer_generation") or 0),
-                    "reset": bool(current.get("reset")),
-                    "values": dict(current.get("values") or {}),
-                },
-            )
+        if current and _configured(current):
+            # La revisione custodita si porta dietro il suo conto: cosi'
+            # l'elenco delle recuperabili si compone leggendo, non contando.
+            kept = {
+                "revision": int(current.get("revision") or 0),
+                "updated_at": int(current.get("updated_at") or 0),
+                "keys_revision": int(current.get("keys_revision") or 0),
+                "writer_generation": int(current.get("writer_generation") or 0),
+                "reset": bool(current.get("reset")),
+                "values": dict(current.get("values") or {}),
+            }
+            _annotate(kept, _content_keys(current))
+            history.insert(0, kept)
         del history[HISTORY_LIMIT:]
 
         snapshot = {
@@ -449,10 +545,11 @@ class DashboardConfigStore:
             "values": accepted,
             "history": history,
         }
+        _annotate(snapshot, accepted_keys)
         profiles[profile] = snapshot
         if entry_id:
             self._entry_profiles()[entry_id] = profile
-        await self._async_save()
+        self._schedule_save()
         return {
             "status": STATUS_SAVED,
             "profile": profile,

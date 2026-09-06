@@ -337,3 +337,53 @@ async def test_chi_non_puo_usare_la_plancia_non_legge_il_catalogo(
 
     assert fuori.errors[1][0] == websocket_api.const.ERR_UNAUTHORIZED
     assert 1 not in fuori.results
+
+
+async def test_le_entita_per_dispositivo_non_ricompongono_il_menu(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+    area_registry: ar.AreaRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Con `device_ids` si leggono le entita' dall'indice del registro, e basta.
+
+    La plancia le chiede per ogni elettrodomestico collegato — adesso tutti
+    insieme, in una chiamata — e ogni chiamata ricomponeva integrazioni e
+    dispositivi di tutta la casa nel loop. La risposta porta solo le entita',
+    nell'ordine chiesto e senza doppioni.
+    """
+    from custom_components.dashboardmodern import device_catalog
+
+    lavatrice, presa = await _casa(
+        hass, device_registry, entity_registry, area_registry
+    )
+    caricamenti: list[Any] = []
+
+    async def spia(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        caricamenti.append(args)
+        return {}
+
+    monkeypatch.setattr(device_catalog.loader, "async_get_integrations", spia)
+
+    catalogo = await _comando(
+        hass,
+        StubConnection(hass),
+        {
+            "type": TYPE_INTEGRATIONS_CATALOG,
+            "device_ids": [presa.id, lavatrice.id, presa.id],
+        },
+    )
+
+    assert caricamenti == []
+    assert set(catalogo) == {"entities"}
+    assert [item["entity_id"] for item in catalogo["entities"]] == [
+        "switch.presa_frigo",
+        "sensor.lavatrice_power",
+        "sensor.lavatrice_remaining_time",
+        "sensor.lavatrice_rssi",
+        "switch.lavatrice_wash",
+    ]
+    # Il nome del dispositivo si toglie davanti anche per questa strada.
+    assert catalogo["entities"][0]["name"] == "interruttore"
+    assert catalogo["entities"][1]["name"] == "Power"
