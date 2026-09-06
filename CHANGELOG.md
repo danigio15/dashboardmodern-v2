@@ -14,6 +14,31 @@ su una finestra gia' aperta.
 
 ### Corretto
 
+- **Il radar della pioggia esce anche dal telefono.**
+
+      «Da mobile il radar non compare, da desktop sì.»
+
+  Il blocco nasceva su un TOCCO: qualunque clic sul documento faceva riguardare
+  la finestra del meteo un decimo di secondo dopo. Basta che quel tocco si fermi
+  per strada — e sul telefono, fra la testata e i gestori della navigazione, si
+  ferma — perché il radar non nasca mai; e una finestra aperta in qualunque
+  altro modo non lo faceva nascere affatto. Adesso è la finestra a dire quando
+  si apre, e il radar si disegna perché la finestra è aperta, non perché
+  qualcuno ha toccato lo schermo.
+
+  E due misure sbagliavano solo sul telefono. La larghezza si chiedeva mentre
+  la finestra si stava ancora aprendo, cioè mentre l'animazione la tiene
+  rimpicciolita: i quadratini finivano calcolati per un riquadro che un istante
+  dopo non c'era più. L'altezza si fermava a 213 px dentro una scatola che il
+  foglio non lascia scendere sotto i 240: la mappa stava in alto, il mirino nel
+  mezzo, e i due non si guardavano. Su un computer il conto superava i 240 da
+  solo, ed è per questo che di là non si vedeva.
+
+  Con lui, la riga sotto la mappa — posto, raggio, zoom, servizio della pioggia
+  e fondo — adesso si scrive **sempre**, anche quando il servizio non risponde:
+  è la riga che si chiede di mandare per capire cosa non va, e mancava proprio
+  nel caso in cui è l'unica cosa che lo spiega.
+
 - **Le finestre si mettono in fila e riempiono lo schermo.**
 
       «Quando si guarda da PC o tablet le cards sono tutte in colonna e non
