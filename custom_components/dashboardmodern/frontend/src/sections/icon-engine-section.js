@@ -889,6 +889,28 @@ function installStyles() {
         .dm-beta6-qa-icon-trigger{width:56px!important;min-width:56px!important;max-width:56px!important}
       }
 
+      /* Il nome leggibile sta nella seconda colonna della riga, e la riempie.
+         Senza colonna dichiarata un simbolo gia' presente lo spingeva in una
+         quinta colonna implicita, fuori dal riquadro; senza larghezza esplicita
+         restava alla misura zero che le righe flex del guscio si portano
+         dietro, e il nome di un'azione salvata non arrivava allo schermo. */
+      #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main{
+        grid-column:2!important;
+        grid-row:1!important;
+        justify-self:stretch!important;
+        width:auto!important;
+        min-width:0!important;
+        max-width:100%!important;
+        overflow:hidden!important;
+      }
+      #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main .ed-row-new,
+      #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main .ed-row-old{
+        display:block!important;
+        min-width:0!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+      }
+
       /* Azioni rapide della Home: il simbolo si vede anche dove l'elemento
          ha-icon non viene definito, come nella cornice di Home Assistant su
          Android. */

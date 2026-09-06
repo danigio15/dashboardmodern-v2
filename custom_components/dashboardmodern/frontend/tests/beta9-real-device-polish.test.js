@@ -6,16 +6,16 @@ const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.ur
 const polishUrl = new URL("../src/sections/beta9-real-device-polish-section.js", import.meta.url);
 const engineUrl = new URL("../src/sections/icon-engine-section.js", import.meta.url);
 
-test("beta9 real-device polish loads after the older beta7 compatibility layer", async () => {
+test("beta9 real-device polish still loads last at the entry point", async () => {
   const entry = await readFile(entryUrl, "utf8");
-  /* Delle due passate beta7 e' rimasta la guardia del marchio: quella delle
-   * regressioni delegava o duplicava, e la forma delle righe azione — l'unica
-   * cosa che era davvero sua — sta nel motore delle icone. */
-  const guard = entry.indexOf('import "./beta7-brand-guard-section.js"');
+  /* Delle due passate beta7 non e' rimasto niente: quella delle regressioni
+   * delegava o duplicava, e la guardia del marchio proteggeva un `<img>` che
+   * il catalogo non stampa piu'. beta9 resta l'ultimo della fila. */
+  const mobile = entry.indexOf('import "./beta4-mobile-polish-section.js"');
   const finalPolish = entry.indexOf('import "./beta9-real-device-polish-section.js"');
-  assert.ok(guard >= 0);
-  assert.ok(finalPolish > guard);
-  assert.doesNotMatch(entry, /beta7-regression-section\.js/);
+  assert.ok(mobile >= 0);
+  assert.ok(finalPolish > mobile);
+  assert.doesNotMatch(entry, /beta7-regression-section\.js|beta7-brand-guard-section\.js/);
 });
 
 test("quick-action icons are delegated to the single-owner engine without beta9 repaint", async () => {

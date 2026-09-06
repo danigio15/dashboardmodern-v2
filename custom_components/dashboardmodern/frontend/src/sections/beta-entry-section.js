@@ -7,7 +7,6 @@ import "./energy-report-polish-section.js";
 import "./personalization-section.js";
 import "./editor-polish-section.js";
 import "./beta4-mobile-polish-section.js";
-import "./beta7-brand-guard-section.js";
 import "./beta9-real-device-polish-section.js";
 
 // Keep only compatibility/layout bridges that belong at the entrypoint. The

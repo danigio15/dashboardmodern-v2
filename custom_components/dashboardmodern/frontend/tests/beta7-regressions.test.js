@@ -3,43 +3,36 @@ import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.url);
-const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
+const catalogUrl = new URL("../src/core/personalization-catalog.js", import.meta.url);
 const engineUrl = new URL("../src/sections/icon-engine-section.js", import.meta.url);
 const flowsUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
 
-test("beta7 entry keeps the one scoped owner that is left", async () => {
+test("the two beta7 passes are gone from the entry point", async () => {
   const source = await readFile(entryUrl, "utf8");
-  assert.ok(source.indexOf('import "./beta7-brand-guard-section.js"') >= 0);
   assert.doesNotMatch(source, /beta7-review-fixes-section/);
-  /* La seconda passata beta7 se n'e' andata: il ripiego del marchio lo faceva
-   * gia' la guardia qui accanto (che marca ogni immagine con
-   * `dmBeta7Repaired`, cioe' proprio la bandierina su cui la passata si
-   * fermava), le icone erano del motore, e la forma delle righe azione — la
-   * sola cosa che era davvero sua — sta adesso nel motore. */
-  assert.doesNotMatch(source, /beta7-regression-section/);
-  await assert.rejects(
-    access(new URL("../src/sections/beta7-regression-section.js", import.meta.url)),
-  );
+  /* La passata delle regressioni delegava o duplicava, e la forma delle righe
+   * azione — la sola cosa che era davvero sua — sta nel motore delle icone.
+   * La guardia del marchio proteggeva un `<img>` che il catalogo non stampa
+   * piu': il logo e' una maschera CSS su uno `<span>`. */
+  assert.doesNotMatch(source, /beta7-regression-section|beta7-brand-guard-section/);
+  for (const nome of ["beta7-regression-section.js", "beta7-brand-guard-section.js"]) {
+    await assert.rejects(access(new URL(`../src/sections/${nome}`, import.meta.url)));
+  }
 });
 
-test("broken remote car logos keep their image contract and get an inline fallback", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  assert.match(source, /img\[data-dm-brand-image\]/);
-  assert.match(source, /data-dm-brand-fallback/);
-  assert.match(source, /dmBeta7Repaired/);
-  assert.match(source, /insertAdjacentHTML\("afterend"/);
-  assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
-});
-
-test("brand contract is claimed before load failure and after every vehicle render", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  const claimed = source.indexOf('img.dataset.dmBeta7Repaired = "true"');
-  const failedCheck = source.indexOf("img.complete && Number(img.naturalWidth) === 0");
-  assert.ok(claimed >= 0);
-  assert.ok(failedCheck > claimed);
-  assert.match(source, /__dmBeta7BrandContractOwner/);
-  assert.match(source, /function ownedVehicleSelector/);
-  assert.match(source, /guardAll\(\);\n\s*return result;/);
+test("the car brand is a masked span from the local catalog, so no image can break", async () => {
+  const catalog = await readFile(catalogUrl, "utf8");
+  /* La guardia esisteva per un `<img>` remoto che poteva non arrivare. Adesso
+   * la forma la porta un file locale usato come maschera e il colore lo mette
+   * la plancia: non c'e' nessun `<img>` da sorvegliare, e infatti nessun
+   * modulo ne stampa uno — le prove a video pretendono che siano zero
+   * (beta2-persistence-ev-flow.spec.js:166, beta5-root-causes.spec.js:239). */
+  assert.match(catalog, /data-dm-brand-image="\$\{item\.id\}"/);
+  assert.match(catalog, /mask-image:url\('\$\{source\}'\)/);
+  assert.match(catalog, /dashboardmodern_static\/brands\//);
+  assert.doesNotMatch(catalog, /https?:\/\//);
+  const engine = await readFile(engineUrl, "utf8");
+  assert.doesNotMatch(engine, /dm-beta7-brand-guard-fallback|dm-beta7-brand-fallback/);
 });
 
 test("the icon engine owns the Actions tab rows and their form row", async () => {
@@ -68,16 +61,12 @@ test("shutter repaints are the scene owner's alone", async () => {
   assert.match(scene, /function installRenderOwner/);
 });
 
-test("existing guard keeps action text in column two", async () => {
-  const source = await readFile(guardUrl, "utf8");
+test("the action row keeps its readable name in column two", async () => {
+  const source = await readFile(engineUrl, "utf8");
   assert.match(source, /dm-beta7-action-row>\.ed-row-main/);
   assert.match(source, /grid-column:2!important/);
   assert.match(source, /width:auto!important/);
   assert.match(source, /justify-self:stretch!important/);
-  /* L'aggancio su `edTappAdd` esisteva solo per azzerare la firma delle
-   * tapparelle dentro il modulo delle regressioni: senza quel modulo era un
-   * involucro che non faceva niente. */
-  assert.doesNotMatch(source, /__dmBeta7ShutterConfigOwner|shutterSignature/);
 });
 
 test("period energy main connectors use direction-specific displayed values", async () => {
