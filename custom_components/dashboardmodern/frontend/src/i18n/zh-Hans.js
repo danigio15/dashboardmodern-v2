@@ -2810,4 +2810,6 @@ export default Object.freeze({
   "Rain zoom cap": "降雨的最大缩放",
   "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "地址缺少占位符：三个都需要——{z} 表示缩放，{x} 和 {y} 表示瓦片。只有一个的话，会始终请求同一块地方。",
   "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "这是一个网页的地址，不是地图瓦片的地址：打开它会打开一个网站，而网站无法在这里绘制。需要的是该服务发布瓦片所用的地址，也就是用 {z}/{x}/{y} 代替数字的那一个。如果没有，请从上面的列表中选择一个服务。",
+  "Order of the Home blocks": "首页各区块的顺序",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "它们在首页出现的先后顺序。每个区块内部的顺序，在配置该区块的地方设置：人员在各自的选项卡，快捷操作在它的选项卡，卡片就在下方。",
 });

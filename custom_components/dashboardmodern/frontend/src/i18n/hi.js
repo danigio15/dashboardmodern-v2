@@ -2810,4 +2810,6 @@ export default Object.freeze({
   "Rain zoom cap": "बारिश का अधिकतम ज़ूम",
   "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "पते में एक प्लेसहोल्डर नहीं है: तीनों चाहिए — ज़ूम के लिए {z}, टाइल के लिए {x} और {y}। सिर्फ़ एक से हमेशा दुनिया का वही टुकड़ा माँगा जाता।",
   "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "यह एक पेज का पता है, नक्शे की टाइलों का नहीं: इसे खोलने पर एक वेबसाइट खुलती है, और वेबसाइट यहाँ नहीं बनाई जा सकती। ज़रूरत उस पते की है जिस पर वह सेवा अपनी टाइलें देती है — जिसमें संख्याओं की जगह {z}/{x}/{y} होता है। अगर वह न हो, तो ऊपर की सूची से एक सेवा चुनें।",
+  "Order of the Home blocks": "होम के ब्लॉकों का क्रम",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "होम पर वे किस क्रम में दिखते हैं। हर ब्लॉक के भीतर का क्रम वहीं तय होता है जहाँ वह ब्लॉक कॉन्फ़िगर होता है: लोग अपने टैब में, त्वरित क्रियाएँ अपने में, टाइलें ठीक नीचे।",
 });

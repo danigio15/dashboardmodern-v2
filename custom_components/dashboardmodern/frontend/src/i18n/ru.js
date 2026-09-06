@@ -2810,4 +2810,6 @@ export default Object.freeze({
   "Rain zoom cap": "Максимальный зум дождя",
   "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "В адресе не хватает подстановки: нужны все три — {z} для масштаба, {x} и {y} для тайла. С одной запрашивался бы всегда один и тот же кусок мира.",
   "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "Это адрес СТРАНИЦЫ, а не тайлов карты: открыв его, откроете сайт, а сайт здесь нарисовать нельзя. Нужен адрес, по которому этот сервис публикует тайлы, — тот, где вместо чисел стоят {z}/{x}/{y}. Если его нет, выберите сервис из списка выше.",
+  "Order of the Home blocks": "Порядок блоков главной",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "В каком порядке они видны на главной. Внутри блока порядок задаётся там, где этот блок настраивается: люди — на своей вкладке, быстрые действия — на своей, плитки — прямо ниже.",
 });

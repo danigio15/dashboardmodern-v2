@@ -116,7 +116,12 @@ const USER_DATA_VERSION = 1;
  * finestra per arieggiare». E' una quota di casa, come quella delle
  * tapparelle: se restasse sul dispositivo che l'ha scritta, il telefono
  * direbbe di aprire la finestra e il tablet no, davanti alla stessa stanza. */
-export const CONFIG_KEYS_REVISION = 28;
+/* La revisione 29 aggiunge l'ordine dei blocchi della Home
+ * (`cd_home_blocchi`): quale viene prima fra persone, widget, azioni rapide e
+ * dispositivi. E' una scelta della casa, non del vetro da cui la si guarda —
+ * se restasse sul dispositivo che l'ha fatta, il telefono e il tablet
+ * mostrerebbero la stessa Home in due ordini diversi. */
+export const CONFIG_KEYS_REVISION = 29;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -194,6 +199,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_antifurto_modi",
   "cd_todo",
   "cd_widgets",
+  // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
+  "cd_home_blocchi",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",

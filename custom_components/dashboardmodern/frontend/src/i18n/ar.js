@@ -2810,4 +2810,6 @@ export default Object.freeze({
   "Rain zoom cap": "أقصى تقريب للمطر",
   "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "ينقص العنوان عنصر نائب: الثلاثة مطلوبة — ‏{z} للتقريب و{x} و{y} للمربّع. بواحد فقط سيُطلب دائمًا الجزء نفسه من العالم.",
   "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "هذا عنوان صفحة، لا عنوان مربّعات الخريطة: فتحه يفتح موقعًا، والموقع لا يمكن رسمه هنا. المطلوب هو العنوان الذي تنشر به تلك الخدمة مربّعاتها، وفيه ‏{z}/{x}/{y} بدل الأرقام. إن لم يكن لديك، فاختر خدمة من القائمة أعلاه.",
+  "Order of the Home blocks": "ترتيب كتل الصفحة الرئيسية",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "بأي ترتيب تظهر في الصفحة الرئيسية. أما الترتيب داخل كل كتلة فيُضبط حيث تُعدّ تلك الكتلة: الأشخاص في تبويبهم، والإجراءات السريعة في تبويبها، والبطاقات هنا في الأسفل.",
 });
