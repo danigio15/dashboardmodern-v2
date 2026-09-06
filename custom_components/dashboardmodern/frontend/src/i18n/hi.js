@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "इससे ऊपर हवा देने का सुझाव (%), डिफ़ॉल्ट",
   "Not charging": "चार्ज नहीं हो रही",
   "updated from": "से अपडेट किया गया",
+  "Other commands": "अन्य कमांड",
+  "No extra command: the window carries the appliance's own and nothing else.": "कोई अतिरिक्त कमांड नहीं: विंडो में केवल उपकरण के अपने कमांड दिखते हैं।",
+  "Found next to the appliance — one tap adds them:": "उपकरण के पास मिले — एक टैप से जुड़ जाते हैं:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "वे प्रोग्राम और सेटिंग्स जिनका अपना स्विच नहीं है: button.*, select.*, switch.* एंटिटी (साथ ही input_*, script.*, scene.*, automation.*)। ये उपकरण की विंडो में बटन के रूप में दिखते हैं। पैरामीटर वाली सर्विस — अपने प्रोग्राम के साथ hon.start_program — को तीन पंक्तियों की स्क्रिप्ट में लपेट दीजिए, उसके बाद वह बाकी जैसी ही एक एंटिटी बन जाती है।",
 });

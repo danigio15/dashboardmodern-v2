@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "この値を超えたら換気を提案 (%)、既定",
   "Not charging": "充電していません",
   "updated from": "から更新",
+  "Other commands": "その他のコマンド",
+  "No extra command: the window carries the appliance's own and nothing else.": "追加のコマンドはありません。ウィンドウには機器自身のコマンドだけが出ます。",
+  "Found next to the appliance — one tap adds them:": "機器のそばで見つかりました。タップすると追加できます:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "自分のスイッチを持たないプログラムや設定です。button.*、select.*、switch.* のエンティティ（さらに input_*、script.*、scene.*、automation.*）が使えます。機器のウィンドウにボタンとして出ます。パラメーター付きのサービス（プログラムを指定した hon.start_program など）は3行のスクリプトに包めば、そこから先は他と同じエンティティになります。",
 });

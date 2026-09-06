@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "Предлагать проветрить выше (%), по умолчанию",
   "Not charging": "Не заряжается",
   "updated from": "обновлено из",
+  "Other commands": "Другие команды",
+  "No extra command: the window carries the appliance's own and nothing else.": "Дополнительных команд нет: в окне только собственные команды прибора.",
+  "Found next to the appliance — one tap adds them:": "Найдены рядом с прибором — одно касание добавляет их:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "Программы и настройки, у которых нет своего выключателя: сущности button.*, select.*, switch.* (а также input_*, script.*, scene.*, automation.*). Они появляются кнопками в окне прибора. Сервис с параметрами — hon.start_program с его программой — оборачивается в скрипт из трёх строк и с этого момента становится обычной сущностью.",
 });

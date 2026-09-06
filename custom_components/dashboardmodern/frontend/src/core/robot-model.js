@@ -194,14 +194,23 @@ const umano = (testo) => {
 export function nomeDelComando(entity, robot = {}, states = {}) {
   const voce = clean(entity);
   const proprio = clean(states?.[voce]?.attributes?.friendly_name);
-  const delRobot = clean(states?.[clean(robot?.entity)]?.attributes?.friendly_name);
+  /* Il nome della scheda puo' non venire da un'entita' (#338).
+   *
+   * Un elettrodomestico comandato solo da script — «non ha un'entita' comando»
+   * — un'entita' sua non ce l'ha: quello che sta scritto in testa alla sua
+   * scheda e' il nome che gli ha dato chi l'ha configurato, e sotto quel
+   * titolo i suoi tasti si chiamavano «Asciugatrice Rapido 30». Si prova con
+   * tutti e due i prefissi — quello dell'entita' e quello scritto — perche' un
+   * apparecchio puo' avere l'uno, l'altro o due nomi diversi. */
+  const prefissi = [
+    clean(states?.[clean(robot?.entity)]?.attributes?.friendly_name),
+    clean(robot?.name),
+  ].filter(Boolean);
   if (proprio) {
-    if (
-      delRobot &&
-      proprio.length > delRobot.length &&
-      proprio.toLowerCase().startsWith(delRobot.toLowerCase())
-    ) {
-      const coda = proprio.slice(delRobot.length).replace(/^[\s:·\-–—]+/, "");
+    for (const suo of prefissi) {
+      if (proprio.length <= suo.length || !proprio.toLowerCase().startsWith(suo.toLowerCase()))
+        continue;
+      const coda = proprio.slice(suo.length).replace(/^[\s:·\-–—]+/, "");
       if (coda) return umano(coda);
     }
     return proprio;

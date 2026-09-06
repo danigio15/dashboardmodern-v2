@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "اقتراح التهوية فوق (%)، افتراضيًا",
   "Not charging": "لا يشحن",
   "updated from": "تم تحديثها من",
+  "Other commands": "أوامر أخرى",
+  "No extra command: the window carries the appliance's own and nothing else.": "لا توجد أوامر إضافية: تعرض النافذة أوامر الجهاز فقط.",
+  "Found next to the appliance — one tap adds them:": "عُثر عليها بجانب الجهاز — لمسة واحدة تضيفها:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "البرامج والإعدادات التي ليس لها مفتاح خاص بها: كيانات button.* و select.* و switch.* (وكذلك input_* و script.* و scene.* و automation.*). تظهر كأزرار في نافذة الجهاز. الخدمة ذات المعاملات — hon.start_program مع برنامجها — تُغلَّف في سكربت من ثلاثة أسطر، ومن ثمّ تصبح كياناً كسائر الكيانات.",
 });

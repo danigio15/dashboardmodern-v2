@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "Lüften vorschlagen ab (%), standardmäßig",
   "Not charging": "Lädt nicht",
   "updated from": "aktualisiert aus",
+  "Other commands": "Weitere Befehle",
+  "No extra command: the window carries the appliance's own and nothing else.": "Kein zusätzlicher Befehl: Das Fenster zeigt nur die eigenen Befehle des Geräts.",
+  "Found next to the appliance — one tap adds them:": "Neben dem Gerät gefunden – ein Tippen fügt sie hinzu:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "Die Programme und Einstellungen ohne eigenen Schalter: button.*-, select.*- und switch.*-Entitäten (dazu input_*, script.*, scene.*, automation.*). Sie erscheinen als Tasten im Fenster des Geräts. Ein Dienst mit Parametern – hon.start_program mit seinem Programm – kommt in ein dreizeiliges Skript und ist von da an eine Entität wie jede andere.",
 });

@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "Luchten voorstellen boven (%), standaard",
   "Not charging": "Laadt niet",
   "updated from": "bijgewerkt vanuit",
+  "Other commands": "Andere opdrachten",
+  "No extra command: the window carries the appliance's own and nothing else.": "Geen extra opdracht: het venster toont alleen die van het apparaat.",
+  "Found next to the appliance — one tap adds them:": "Naast het apparaat gevonden — één tik voegt ze toe:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "De programma's en instellingen zonder eigen schakelaar: button.*-, select.*- en switch.*-entiteiten (plus input_*, script.*, scene.*, automation.*). Ze verschijnen als knoppen in het venster van het apparaat. Een service met parameters — hon.start_program met zijn programma — gaat in een script van drie regels en is daarna een entiteit als alle andere.",
 });

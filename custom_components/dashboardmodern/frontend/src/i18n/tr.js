@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "Şu değerin üstünde havalandırmayı öner (%), varsayılan",
   "Not charging": "Şarj olmuyor",
   "updated from": "şuradan güncellendi:",
+  "Other commands": "Diğer komutlar",
+  "No extra command: the window carries the appliance's own and nothing else.": "Ek komut yok: pencerede yalnızca cihazın kendi komutları var.",
+  "Found next to the appliance — one tap adds them:": "Cihazın yanında bulundu — bir dokunuş onları ekler:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "Kendi anahtarı olmayan programlar ve ayarlar: button.*, select.*, switch.* varlıkları (ayrıca input_*, script.*, scene.*, automation.*). Cihazın penceresinde düğme olarak görünürler. Parametreli bir servis — programıyla birlikte hon.start_program — üç satırlık bir betiğe sarılır ve o andan sonra diğerleri gibi bir varlık olur.",
 });

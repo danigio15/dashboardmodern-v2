@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "이 값을 넘으면 환기 제안 (%), 기본값",
   "Not charging": "충전 안 함",
   "updated from": "에서 업데이트됨",
+  "Other commands": "기타 명령",
+  "No extra command: the window carries the appliance's own and nothing else.": "추가 명령이 없습니다: 창에는 기기 자체의 명령만 나옵니다.",
+  "Found next to the appliance — one tap adds them:": "기기 옆에서 찾았습니다 — 한 번 누르면 추가됩니다:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "자체 스위치가 없는 프로그램과 설정입니다. button.*, select.*, switch.* 엔티티(그리고 input_*, script.*, scene.*, automation.*)를 쓸 수 있습니다. 기기 창에 버튼으로 나타납니다. 매개변수가 있는 서비스 — 프로그램을 지정한 hon.start_program — 는 세 줄짜리 스크립트로 감싸면 그때부터 다른 것과 같은 엔티티가 됩니다.",
 });

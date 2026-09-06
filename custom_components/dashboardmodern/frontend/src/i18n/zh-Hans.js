@@ -2826,4 +2826,8 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "建议通风的湿度阈值 (%)，默认",
   "Not charging": "未在充电",
   "updated from": "已从以下来源更新：",
+  "Other commands": "其他命令",
+  "No extra command: the window carries the appliance's own and nothing else.": "没有额外命令：窗口只显示电器自身的命令。",
+  "Found next to the appliance — one tap adds them:": "在电器旁找到 — 轻点即可添加：",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "没有自己开关的程序和设置：button.*、select.*、switch.* 实体（还有 input_*、script.*、scene.*、automation.*）。它们会作为按钮出现在电器窗口里。带参数的服务——带上程序的 hon.start_program——包进三行脚本，从此就是和其他一样的实体。",
 });

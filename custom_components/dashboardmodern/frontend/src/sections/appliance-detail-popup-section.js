@@ -13,6 +13,16 @@
  * stessa finestra, stesso apri e chiudi, nessun secondo padrone.
  */
 import { deviceEntityGroups } from "../core/appliance-device-binding.js";
+/* Il verbo con cui si preme un comando a parte lo sa gia' il robot (#306), e
+ * per un elettrodomestico (#338) e' lo stesso: un tasto si preme, uno script si
+ * accende, un'automazione si fa partire, un interruttore si inverte, una
+ * tendina sceglie. Un secondo elenco vorrebbe dire due modi di sbagliare il
+ * verbo sullo stesso dominio. */
+import {
+  comandiDelRobot as comandiScelti,
+  comandoDelRobot as servizioDelComando,
+  elencoComandi,
+} from "../core/robot-model.js";
 import {
   applianceModelForIndex,
   buildCardMarkup,
@@ -350,6 +360,10 @@ function riveste(indice) {
       lista.append(riga);
     }
   }
+  /* Gli altri comandi stanno accanto a quelli di sempre (#338): sono comandi
+   * anche loro, e chi apre la finestra per far partire l'asciugatrice li cerca
+   * dove ci sono i tasti. */
+  aggiungiAltriComandi(lista, appliance, titoletto);
   return true;
 }
 
@@ -392,6 +406,96 @@ function comanda(payload) {
   return chiediAHomeAssistant({ type: "call_service", ...payload }).catch((error) =>
     root.console?.warn?.("[DashboardModern] comando integrazione", error),
   );
+}
+
+/* ── gli altri comandi dell'apparecchio (#338) ─────────────────────────────
+ *
+ * «Sto provando ad integrare l'asciugatrice con hOn. Non ha un'entita'
+ * comando, ma da documentazione posso far partire il comando con
+ * `hon.start_program` e `program: rapid_30`. Come posso integrare questo nella
+ * sezione dell'asciugatrice?»
+ *
+ * La finestra sapeva premere solo quello che il dispositivo pubblica come
+ * entita' comandabile. Una chiamata di servizio con i suoi parametri non lo e'
+ * — ma avvolta in uno script diventa `script.asciugatrice_rapido_30`, che lo
+ * e'. Chi configura sceglie quelle entita' nella scheda dell'apparecchio; qui
+ * si disegnano, con lo stesso verbo che usa il robot, perche' le regole
+ * stanno in un posto solo (`core/comandi-extra.js`).
+ */
+function apparecchioDeiComandi(appliance) {
+  return {
+    entity: clean(appliance?.control_entity || appliance?.state_entity || appliance?.power_entity),
+    /* Il nome serve a non ripeterlo davanti a ogni comando: un apparecchio
+     * comandato solo da script un'entita' sua non ce l'ha, e il suo nome e'
+     * quello che gli ha dato chi l'ha configurato. */
+    name: clean(appliance?.name),
+    comandi: appliance?.comandi,
+  };
+}
+
+/* Il servizio come lo vuole il ponte: bersaglio da una parte, parametri
+ * dall'altra. Il verbo lo sceglie il vocabolario, non questa funzione. */
+function eseguiComando(comando) {
+  if (!comando) return;
+  const { entity_id: bersaglio, ...resto } = comando.data || {};
+  comanda({
+    domain: comando.domain,
+    service: comando.service,
+    target: { entity_id: bersaglio },
+    ...(Object.keys(resto).length ? { service_data: resto } : {}),
+  });
+}
+
+function tastoDelComandoExtra(voce) {
+  if (voce.genere === "tendina") {
+    const menu = doc.createElement("select");
+    menu.className = "dm-apde-menu";
+    menu.setAttribute("aria-label", voce.name);
+    const opzioni = voce.opzioni.length ? voce.opzioni : voce.scelta ? [voce.scelta] : [];
+    for (const opzione of opzioni) {
+      const riga = doc.createElement("option");
+      riga.value = opzione;
+      riga.textContent = opzione.replaceAll("_", " ");
+      riga.selected = opzione === voce.scelta;
+      menu.append(riga);
+    }
+    menu.disabled = !voce.available || !opzioni.length;
+    menu.addEventListener("change", () => eseguiComando(servizioDelComando(voce, menu.value)));
+    return menu;
+  }
+  const tasto = doc.createElement("button");
+  tasto.type = "button";
+  const interruttore = voce.genere === "interruttore";
+  tasto.className = `dm-apde-tasto${interruttore && voce.acceso ? " on" : ""}`;
+  tasto.textContent = interruttore ? (voce.acceso ? "OFF" : "ON") : "▶";
+  tasto.disabled = !voce.available;
+  if (interruttore) tasto.setAttribute("aria-pressed", String(voce.acceso === true));
+  tasto.setAttribute(
+    "aria-label",
+    interruttore ? voce.name : `${t("Esegui", "Run")} ${voce.name}`,
+  );
+  tasto.addEventListener("click", (event) => {
+    event.stopPropagation();
+    eseguiComando(servizioDelComando(voce));
+  });
+  return tasto;
+}
+
+function aggiungiAltriComandi(lista, appliance, titoletto) {
+  const voci = comandiScelti(apparecchioDeiComandi(appliance), allStates());
+  if (!voci.length) return false;
+  lista.append(titoletto(t("Altri comandi", "Other commands")));
+  for (const voce of voci) {
+    const riga = doc.createElement("div");
+    riga.className = "dm-apde-comando dm-apde-comando-extra";
+    riga.dataset.dmApdeEntity = voce.entity;
+    const etichetta = doc.createElement("span");
+    etichetta.className = "dm-apde-comando-nome";
+    etichetta.textContent = voce.name;
+    riga.append(etichetta, tastoDelComandoExtra(voce));
+    lista.append(riga);
+  }
+  return true;
 }
 
 function tastoDelComando(voce) {
@@ -486,9 +590,17 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
   const nuove = (voci) => voci.filter((voce) => !voce.mapped);
   const stato = nuove(gruppi.state);
   const letture = nuove(gruppi.readings);
-  const comandi = gruppi.controls.filter((voce) => !voce.mapped || voce.control?.kind !== "toggle");
-  const diagnostica = gruppi.diagnostics;
-  if (!stato.length && !letture.length && !comandi.length && !diagnostica.length) return;
+  /* Un'entita' scelta come «altro comando» (#338) esce di li' e basta: e' la
+   * stessa entita', e disegnarla due volte — una fra i comandi del dispositivo
+   * e una fra quelli scelti — sarebbe la stessa cosa detta due volte, con due
+   * tasti che si contraddicono a vicenda mentre lo stato cambia. */
+  const scelti = new Set(elencoComandi(appliance?.comandi));
+  const comandi = gruppi.controls.filter(
+    (voce) => !scelti.has(voce.entity) && (!voce.mapped || voce.control?.kind !== "toggle"),
+  );
+  const diagnostica = gruppi.diagnostics.filter((voce) => !scelti.has(voce.entity));
+  if (!stato.length && !letture.length && !comandi.length && !diagnostica.length && !scelti.size)
+    return;
 
   const testa = doc.createElement("section");
   testa.className = "dm-apde-integrazione";
@@ -548,6 +660,9 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
     lista.append(titoletto(t("I comandi del dispositivo", "The device controls")));
     for (const voce of comandi) lista.append(rigaDiComando(voce));
   }
+  /* Quelli scelti a mano stanno subito sotto (#338), prima della diagnostica:
+   * sono i tasti per cui la finestra si apre, non un dettaglio. */
+  aggiungiAltriComandi(lista, appliance, titoletto);
   if (diagnostica.length) {
     const cassetto = doc.createElement("details");
     cassetto.className = "dm-apde-diagnostica";
@@ -658,6 +773,11 @@ function css() {
       flex:0 0 auto;min-width:48px;height:32px;border:0;border-radius:10px;cursor:pointer;
       font-size:12px;font-weight:900;background:rgba(14,165,233,.14);color:#0284c7}
     #details-list .dm-apde-tasto.on{background:#0ea5e9;color:#fff}
+    /* Gli altri comandi (#338): un tasto che non si puo' premere lo dice, e
+       la riga si stacca appena dalle altre per farsi riconoscere. */
+    #details-list .dm-apde-tasto[disabled]{opacity:.45;cursor:not-allowed}
+    #details-list .dm-apde-comando-extra{
+      border-color:color-mix(in srgb,#0ea5e9 32%,var(--card-border,#e2e8f0))}
     #details-list .dm-apde-vetrina{display:block;gap:0;padding:0;margin:0 0 4px}
     #details-list .dm-apde-vetrina .appl-wide-card.dm-ap-card{cursor:default;box-shadow:none;transform:none!important}
     #details-list .dm-apde-vetrina .appl-wide-card.dm-ap-card:hover{transform:none;box-shadow:none}

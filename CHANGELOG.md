@@ -7,6 +7,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.4.12
 
+### Aggiunto
+
+- **«Altri comandi» negli elettrodomestici (#338).**
+
+      «Sto provando ad integrare l'asciugatrice con hOn. Non ha un'entità
+       comando, ma da documentazione posso far partire il comando con
+       service: hon.start_program, data: {program: rapid_30}, target:
+       {device_id: …}. Come posso integrare questo nella sezione
+       dell'asciugatrice?»
+
+  Fino a qui un apparecchio sapeva premere solo entità: interruttori, menu,
+  numeri, tasti. Una chiamata di servizio con i suoi parametri non è nessuna
+  di quelle — ma avvolta in uno script di tre righe diventa
+  `script.asciugatrice_rapido_30`, che è un'entità come le altre. La scheda
+  dell'elettrodomestico ha adesso il campo «Altri comandi»: si scelgono le
+  entità (`button`, `select`, `switch`, `input_*`, `script`, `scene`,
+  `automation`), quelle che stanno accanto all'apparecchio si propongono da
+  sole, e nella finestra del dettaglio diventano tasti accanto ai comandi di
+  sempre. È lo stesso campo che il robot ha dalla 1.4.7, con le stesse regole:
+  un tasto si preme, uno script si accende, un'automazione si fa partire, un
+  interruttore si inverte, una tendina sceglie.
+
 ### Corretto
 
 - **Il motore scelto per l'auto restava scelto solo a metà (#326).**
