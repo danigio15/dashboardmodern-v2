@@ -777,13 +777,24 @@ export function laConfigurazioneSiConosce(magazzino = root.DashboardModernModule
 /* La tenda e' gia' calata: `dashboard-runtime.css` copre la barra finche' il
  * documento non porta il segno, e quel foglio il guscio lo carica dalla testa —
  * cioe' prima che la barra esista. Qui si toglie il segno, e basta. */
-function scopriLaBarra() {
+/* Si scopre, e si dice perche'.
+ *
+ * «Pronta» da sola non distingue le due strade: quella buona — so che forma
+ * avere — e l'ultimo appello, che e' una barra di serie mostrata perche' il
+ * tempo e' scaduto. Sono due cose diverse da guardare su un dispositivo vero,
+ * e sono due cose diverse da pretendere in una prova: misurare i millisecondi
+ * per indovinare quale delle due sia significa scrivere una prova che cade
+ * quando la macchina e' lenta. */
+function scopriLaBarra(motivo) {
   state.barraScoperta = true;
   if (state.scadenza) {
     root.clearTimeout?.(state.scadenza);
     state.scadenza = 0;
   }
-  if (doc?.documentElement) doc.documentElement.dataset.dmBarra = "pronta";
+  if (doc?.documentElement) {
+    doc.documentElement.dataset.dmBarraMotivo = motivo;
+    doc.documentElement.dataset.dmBarra = "pronta";
+  }
 }
 
 /** La visibilita' delle voci adesso, senza aspettare il giro del guscio. */
@@ -809,12 +820,22 @@ function applicaLaVisibilita() {
  * configurazione esista e' un fatto, e si prova a secco; aspettare che sia
  * atterrata e' una scelta di questa barra, e sta qui. Per chi quella
  * configurazione non la riceve mai c'e' la scadenza. */
+/* Che la domanda sia chiusa si legge, oltre che sentirla.
+ *
+ * L'annuncio si fa una volta, e chi non e' ancora in ascolto non lo sente: i
+ * moduli non si installano tutti insieme, e su una plancia aperta da sola la
+ * risposta arrivava a 3070 ms mentre questo modulo si installava a 3435. Il
+ * segno sulla finestra lo mette chi risponde, e vale per chi arriva dopo. */
+function laConfigurazioneEAtterrata() {
+  return state.configurazioneAtterrata || root.__DASHBOARDMODERN_CONFIG_SETTLED__ === true;
+}
+
 function forseScopri() {
   if (state.barraScoperta) return false;
-  if (!state.configurazioneAtterrata) return false;
+  if (!laConfigurazioneEAtterrata()) return false;
   if (!laConfigurazioneSiConosce()) return false;
   applicaLaVisibilita();
-  scopriLaBarra();
+  scopriLaBarra("configurazione");
   return true;
 }
 
@@ -849,7 +870,7 @@ function installaLAttesaDellaBarra() {
     root.addEventListener?.(evento, () => forseScopri());
   state.scadenza = root.setTimeout?.(() => {
     applicaLaVisibilita();
-    scopriLaBarra();
+    scopriLaBarra("scadenza");
   }, ATTESA_MASSIMA_DELLA_BARRA);
   forseScopri();
 }

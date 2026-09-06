@@ -1318,10 +1318,21 @@ function scheduleHydrateRetry(failures = state.transportFailures) {
  *
  * Si dice una volta sola, e non si dice mentre la domanda e' ancora aperta: un
  * trasporto che e' caduto riprova, e finche' riprova la risposta puo' ancora
- * arrivare. */
+ * arrivare.
+ *
+ * E si lascia anche scritto, non solo detto. Un annuncio che si fa una volta
+ * lo sente solo chi in quel momento e' gia' in ascolto, e i moduli non si
+ * installano tutti insieme: misurato su una plancia aperta da sola, la
+ * domanda si chiudeva a 3070 ms e chi aspettava quella risposta si installava
+ * a 3435 — l'annuncio passava davanti a una porta chiusa. Il segno sulla
+ * finestra e' come quello del guscio (`__DASHBOARDMODERN_LEGACY_READY__`):
+ * l'annuncio serve a chi arriva prima, il segno a chi arriva dopo. */
 function configurazioneSistemata() {
   if (state.sistemata) return false;
   state.sistemata = true;
+  try {
+    root.__DASHBOARDMODERN_CONFIG_SETTLED__ = true;
+  } catch (_errore) {}
   try {
     root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-settled"));
   } catch (_errore) {}

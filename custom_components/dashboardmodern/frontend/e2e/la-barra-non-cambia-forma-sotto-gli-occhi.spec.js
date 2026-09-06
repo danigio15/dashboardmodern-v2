@@ -130,6 +130,11 @@ test("una voce di una sezione spenta non compare nemmeno per un attimo", async (
  * aspettarla vuol dire arrivare sempre alla scadenza, e la scadenza e'
  * l'ultimo appello, non il modo normale di uscire. La domanda ha due risposte,
  * e «non c'e' niente da chiedere» e' una risposta anche lei.
+ *
+ * Quello che si pretende e' il MOTIVO, non il cronometro: la barra dice da se'
+ * se e' uscita perche' sapeva che forma avere o perche' il tempo era finito, e
+ * misurare i millisecondi per indovinarlo vorrebbe dire cadere quando la
+ * macchina e' lenta.
  */
 test("senza Home Assistant a cui chiedere la barra non aspetta la scadenza", async ({ page }) => {
   test.setTimeout(120_000);
@@ -145,34 +150,22 @@ test("senza Home Assistant a cui chiedere la barra non aspetta la scadenza", asy
         JSON.stringify({ token: "e2e-token", ws_url: "ws://home-assistant.test/api/websocket" }),
       );
     } catch (_errore) {}
-    const inizio = Date.now();
-    const guarda = () => {
-      if (!document.documentElement) return setTimeout(guarda, 5);
-      const segna = () => {
-        if (document.documentElement.dataset.dmBarra !== "pronta") return;
-        if (window.__QUANDO_LA_BARRA_ESCE__ == null)
-          window.__QUANDO_LA_BARRA_ESCE__ = Date.now() - inizio;
-      };
-      new MutationObserver(segna).observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["data-dm-barra"],
-      });
-      segna();
-    };
-    guarda();
   }, seed);
 
   /* Senza `?dmi=` e senza ponte: e' la pagina aperta da sola. */
   await page.goto("/legacy/dashboard.html");
   await expect
-    .poll(() => page.evaluate(() => window.__QUANDO_LA_BARRA_ESCE__ ?? null), {
-      timeout: ATTESA_MASSIMA_DELLA_BARRA + 10_000,
+    .poll(() => page.evaluate(() => document.documentElement.dataset.dmBarra ?? null), {
+      timeout: ATTESA_MASSIMA_DELLA_BARRA + 20_000,
     })
-    .not.toBeNull();
+    .toBe("pronta");
 
-  const quando = await page.evaluate(() => window.__QUANDO_LA_BARRA_ESCE__);
+  const motivo = await page.evaluate(() => document.documentElement.dataset.dmBarraMotivo);
   expect(
-    quando,
-    `la barra e' uscita a ${quando} ms: e' la scadenza (${ATTESA_MASSIMA_DELLA_BARRA} ms), non una risposta`,
-  ).toBeLessThan(ATTESA_MASSIMA_DELLA_BARRA);
+    motivo,
+    "la barra e' uscita per scadenza: nessuno le ha detto che non c'era niente da aspettare",
+  ).toBe("configurazione");
+
+  /* E non c'era nessun Home Assistant: e' proprio il caso che si voleva. */
+  expect(await page.evaluate(() => Boolean(window.__DASHBOARDMODERN_HOSTED__))).toBe(false);
 });
