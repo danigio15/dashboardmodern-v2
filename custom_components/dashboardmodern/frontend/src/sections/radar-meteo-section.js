@@ -58,12 +58,15 @@ import {
   NIENTE,
   SERVIZI_RADAR,
   SERVIZIO_DI_SERIE,
+  finestraDellaPioggia,
   finestraDiTessere,
   fotogrammaRainViewer,
   luogoDelRadar,
   modelloDelFondo,
   modelloDelServizio,
+  problemaDellIndirizzo,
   urlDellaTessera,
+  zoomDellaPioggia,
   zoneDisponibili,
 } from "../core/radar-mappa.js";
 import { loadCameraFrame } from "./live-ui-section.js";
@@ -244,6 +247,9 @@ export function radarScelto(stored = configurazione()) {
     servizio,
     fondo: modelloDelFondo(grezzo),
     zona: clean(grezzo.zona),
+    /* Il tetto dello zoom della pioggia, com'e' scritto: a interpretarlo ci
+       pensa `zoomDellaPioggia`, che sa anche cosa fare quando e' vuoto. */
+    zoomPioggia: clean(grezzo.zoomPioggia),
     lat: clean(grezzo.lat),
     lon: clean(grezzo.lon),
     raggio: Number.isFinite(raggio) && raggio > 0 ? Math.min(500, raggio) : RAGGIO_DI_SERIE,
@@ -455,9 +461,26 @@ function daTessere(scelto, nodo) {
   }
   quadro.style.height = `${finestraTessere.alto}px`;
 
+  /* La pioggia si chiede al livello che il suo servizio serve davvero.
+   *
+   * «C'e' ancora quella scritta sullo zoom e non mi sembra di vedere le
+   * piogge»: sono la stessa cosa. I quadratini della pioggia tornavano tutti
+   * con la scritta «Zoom Level Not Supported» stampata dentro — che e'
+   * un'immagine come le altre, quindi arrivava, quindi il blocco si diceva
+   * «vivo» e la mappa si copriva di scritte. Sotto il tetto la pioggia si
+   * chiede piu' larga e il quadratino si ingrandisce: stessa inquadratura,
+   * pioggia un po' piu' grossa, nessuna scritta. */
+  const finestraPioggia =
+    finestraDellaPioggia(
+      luogo.lat,
+      luogo.lon,
+      finestraTessere,
+      zoomDellaPioggia(scelto, scelto.servizio),
+    ) || finestraTessere;
+
   /* Si ridisegna solo se il quadro e' cambiato davvero: rifare le immagini a
    * ogni giro le farebbe lampeggiare mentre si guarda. */
-  const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${misure.latoPx}x${misure.altoPx},${modello},${scelto.fondo}`;
+  const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${finestraPioggia.zoom},${misure.latoPx}x${misure.altoPx},${modello},${scelto.fondo}`;
   /* Si contano i quadratini della PIOGGIA, non quelli del fondo. Il fondo e'
    * un contorno: se OpenStreetMap arriva e RainViewer no, una mappa vuota passava per
    * un radar vivo — col primo quadratino del fondo il blocco si diceva
@@ -486,14 +509,17 @@ function daTessere(scelto, nodo) {
     dove.dataset.dmFirma = firma;
     const pezzi = [];
     let attesiPioggia = 0;
-    for (const strato of [scelto.fondo, modello]) {
+    for (const [strato, dellaPioggia] of [
+      [scelto.fondo, false],
+      [modello, true],
+    ]) {
       if (!strato) continue;
-      const dellaPioggia = strato === modello;
-      for (const tessera of finestraTessere.tessere) {
-        const url = urlDellaTessera(strato, tessera, finestraTessere.zoom);
+      const suo = dellaPioggia ? finestraPioggia : finestraTessere;
+      for (const tessera of suo.tessere) {
+        const url = urlDellaTessera(strato, tessera, suo.zoom);
         if (!url) continue;
         const immagine = doc.createElement("img");
-        immagine.className = strato === scelto.fondo ? "dm-radar-t dm-radar-fondo" : "dm-radar-t";
+        immagine.className = dellaPioggia ? "dm-radar-t" : "dm-radar-t dm-radar-fondo";
         immagine.src = url;
         immagine.alt = "";
         immagine.decoding = "async";
@@ -549,7 +575,11 @@ function daTessere(scelto, nodo) {
     nota.textContent = [
       posto,
       `${scelto.raggio} km`,
-      `z${finestraTessere.zoom}`,
+      /* Lo zoom della mappa, e quello della pioggia quando non sono lo stesso:
+         cosi' si vede che la pioggia si sta chiedendo piu' larga, e a quanto. */
+      finestraPioggia.zoom === finestraTessere.zoom
+        ? `z${finestraTessere.zoom}`
+        : `z${finestraTessere.zoom} · ${t("pioggia", "rain")} z${finestraPioggia.zoom}`,
       etichettaDelServizio(scelto, fotogrammaDi(scelto.servizio)?.fotogramma, inArrivo(scelto)),
       nomeDelFondo(scelto),
     ]
@@ -631,6 +661,13 @@ function guarda() {
  * funziona» di una cosa che funziona. */
 export function provaLIndirizzo(modello, luogo, raggio = RAGGIO_DI_SERIE) {
   return new Promise((risolvi) => {
+    /* Prima si guarda che COSA e' stato incollato: «non e' un modello» ha due
+     * ragioni molto diverse, e dirle uguali lascia la persona ferma dov'era. */
+    const problema = problemaDellIndirizzo(modello);
+    if (problema) {
+      risolvi({ ok: false, motivo: problema === "vuoto" ? "senza-indirizzo" : problema });
+      return;
+    }
     const finestraTessere = luogo && finestraDiTessere(luogo.lat, luogo.lon, { raggioKm: raggio });
     const tessera = finestraTessere?.tessere?.[0];
     const url = tessera ? urlDellaTessera(modello, tessera, finestraTessere.zoom) : "";
@@ -780,6 +817,10 @@ function casellaMarkup(config) {
       <label><span class="dm-radar-lbl">${esc(t("Raggio (km)", "Radius (km)"))}</span>
         <input class="ed-input" type="number" min="1" max="500" data-dm-radar-campo="raggio"
           value="${esc(String(config.raggio ?? RAGGIO_DI_SERIE))}"></label>
+      <label><span class="dm-radar-lbl">${esc(t("Zoom massimo della pioggia", "Rain zoom cap"))}</span>
+        <input class="ed-input" type="number" min="0" max="12" step="1"
+          data-dm-radar-campo="zoomPioggia" value="${esc(clean(config.zoomPioggia))}"
+          placeholder="${esc(String(zoomDellaPioggia({}, servizioScelto(config)) ?? ""))}"></label>
     </div>
     <div class="dm-radar-dove">
       <label><span class="dm-radar-lbl">${esc(t("Latitudine", "Latitude"))}</span>
@@ -880,7 +921,17 @@ async function onClick(event) {
               "L'elenco dei fotogrammi del servizio non arriva: riprova fra un momento.",
               "The service's list of frames does not arrive: try again in a moment.",
             )
-          : risposta.motivo === "senza-indirizzo"
+          : risposta.motivo === "sito"
+            ? t(
+                "Questo è l'indirizzo di una PAGINA, non dei quadratini della mappa: aprendolo si apre un sito, e un sito non si può disegnare qui dentro. Serve l'indirizzo con cui quel servizio pubblica le tessere, che ha {z}/{x}/{y} al posto dei numeri. Se non ce l'hai, scegli un servizio dalla tendina qui sopra.",
+                "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.",
+              )
+            : risposta.motivo === "segnaposto-a-meta"
+              ? t(
+                  "All'indirizzo manca un segnaposto: servono tutti e tre — {z} per l'ingrandimento, {x} e {y} per il quadratino. Con uno solo si chiederebbe sempre lo stesso pezzo di mondo.",
+                  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.",
+                )
+              : risposta.motivo === "senza-indirizzo"
             ? t(
                 "Scegli un servizio dalla tendina, o scrivi un indirizzo con {z}/{x}/{y} dentro.",
                 "Pick a service from the list, or write an address with {z}/{x}/{y} in it.",

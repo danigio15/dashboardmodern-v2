@@ -156,13 +156,22 @@ test("il popup e la cache condivisa leggono dallo stesso posto, e il broker acce
 test("il velo dell'Energia copre i primi tentativi, poi si legge la ragione", () => {
   const energia = leggi("sections/energy-section.js");
   assert.match(energia, /export const TENTATIVI_COL_VELO = 2;/);
-  assert.match(energia, /state\.retryCount < TENTATIVI_COL_VELO;/);
+  assert.match(energia, /state\.retryCount < TENTATIVI_COL_VELO &&/);
   assert.match(energia, /node\.dataset\.dmEnergyRagione = spiegazione;/);
   assert.match(
     energia,
     /\[data-dm-energy-ragione\]:not\(\.dm-energy-awaiting\)::before\{content:attr\(data-dm-energy-ragione\)/,
   );
   assert.match(energia, /state\.retryCount <= TENTATIVI_COL_VELO \? 250 : 20_000/);
+  /* E una scadenza, non solo un numero di tentativi: da quando il tempo
+   * concesso a una domanda cresce con l'arco chiesto, due tentativi possono
+   * essere due minuti — e se una risposta non arriva mai il contatore non sale
+   * nemmeno. Il velo se ne va comunque, e sotto ci sono i numeri del guscio. */
+  assert.match(energia, /export const ATTESA_COL_VELO = 12_000;/);
+  assert.match(energia, /atteso < ATTESA_COL_VELO;/);
+  const stabilita = leggi("sections/energy-stability-section.js");
+  assert.match(stabilita, /import \{ ATTESA_COL_VELO \} from "\.\/energy-section\.js";/);
+  assert.match(stabilita, /node\.classList\.remove\("dm-energy-awaiting"\);/);
 });
 
 /* ── i periodi lunghi passano dalle statistiche (dal campo: la CPU) ─────── */

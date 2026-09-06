@@ -2804,4 +2804,12 @@ export default Object.freeze({
   "Remove it here": "Hier entfernen",
   "This sensor is also configured in": "Dieser Sensor ist auch eingerichtet in",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Aus diesem Gerät lässt sich kein Roboter erkennen: es braucht eine vacuum.*- oder lawn_mower.*-Entität.",
+  "already from another device, left as they were": "schon von einem anderen Gerät, unverändert gelassen",
+  "this room has no humidity sensor: set it under the Temperature tab.": "dieser Raum hat keinen Feuchtesensor: er wird im Reiter Temperatur zugeordnet.",
+  "Without a room this window has no humidity to watch: pick one above.": "Ohne Raum hat dieses Fenster keine Feuchte zum Beobachten: wähle oben einen aus.",
+  "Rain zoom cap": "Maximaler Zoom des Regens",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "Der Adresse fehlt ein Platzhalter: alle drei werden gebraucht — {z} für den Zoom, {x} und {y} für die Kachel. Mit nur einem würde immer dasselbe Stück Welt angefragt.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "Das ist die Adresse einer SEITE, nicht der Kartenkacheln: öffnet man sie, öffnet sich eine Website, und eine Website lässt sich hier drin nicht zeichnen. Gebraucht wird die Adresse, unter der dieser Dienst seine Kacheln veröffentlicht, die mit {z}/{x}/{y} anstelle der Zahlen. Wenn du sie nicht hast, wähle oben einen Dienst aus der Liste.",
+  "Order of the Home blocks": "Reihenfolge der Home-Blöcke",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "In welcher Reihenfolge sie auf der Startseite erscheinen. Innerhalb eines Blocks wird die Reihenfolge dort eingestellt, wo dieser Block eingerichtet wird: die Personen in ihrem Reiter, die Schnellaktionen in ihrem, die Kacheln gleich hier darunter.",
 });

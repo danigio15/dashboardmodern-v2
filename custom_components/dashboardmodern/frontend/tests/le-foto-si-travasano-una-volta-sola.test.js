@@ -90,9 +90,12 @@ test("togliere una chiave non alza la revisione", async () => {
    * continuita' (#332, `cd_ups_meta`), che nasce con il secondo UPS: vale la
    * stessa ragione delle auto — se resta a terra, il secondo dispositivo
    * riparte da capo col conteggio e il prossimo gruppo nasce con
-   * l'identificativo di uno cancellato. Quelle tolte restano fuori
-   * dall'elenco, che e' quello che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 28);
+   * l'identificativo di uno cancellato, e la 29 con l'ordine dei blocchi della
+   * Home (`cd_home_blocchi`): quale viene prima fra persone, widget, azioni
+   * rapide e dispositivi e' una scelta della casa, non del vetro da cui la si
+   * guarda. Quelle tolte restano fuori dall'elenco, che e' quello che questa
+   * prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 29);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

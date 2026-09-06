@@ -42,7 +42,12 @@ test("una vettura dichiarata a benzina mostra il serbatoio anche se ha ancora un
 test("il radar e' vivo solo se arriva la pioggia: il fondo della mappa non conta", () => {
   const radar = leggi("sections/radar-meteo-section.js");
   assert.match(radar, /const segnala = \(immagine, riuscito, dellaPioggia\) => \{\s*if \(!riuscito\) immagine\.remove\(\);\s*if \(!dellaPioggia\) return;/);
-  assert.match(radar, /const dellaPioggia = strato === modello;/);
+  /* Quale strato sia la pioggia adesso lo dice la coppia da cui si parte, non
+     un confronto fra stringhe: i due strati hanno finestre diverse — la
+     pioggia puo' essere chiesta piu' larga (#323) — e sapere chi e' chi serve
+     anche a scegliere la finestra giusta, non solo a contare. */
+  assert.match(radar, /for \(const \[strato, dellaPioggia\] of \[/);
+  assert.match(radar, /const suo = dellaPioggia \? finestraPioggia : finestraTessere;/);
   assert.match(radar, /if \(dellaPioggia\) attesiPioggia \+= 1;/);
   assert.match(radar, /attesi = attesiPioggia;/);
   assert.doesNotMatch(radar, /attesi = pezzi\.length;/);

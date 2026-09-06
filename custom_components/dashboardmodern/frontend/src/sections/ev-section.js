@@ -324,12 +324,93 @@ function rimettiInUso(auto, indice) {
        * che nessuno perde quello che aveva. */
       if (!String(chiave).startsWith("dm.ev_") || eDellaWallbox(chiave))
         prossime[chiave] = valore;
-    for (const [chiave, valore] of Object.entries(mappa)) prossime[chiave] = valore;
+    /* La mappa del profilo non tocca la colonnina: e' di casa, e quello che il
+     * profilo ne porta e' una copia vecchia raccolta prima di questa regola. */
+    for (const [chiave, valore] of Object.entries(mappa))
+      if (!eDellaWallbox(chiave)) prossime[chiave] = valore;
     writeJsonIfChanged("cd_entity_overrides", prossime);
     root.cdApplyCanonicalOverrides?.(prossime);
   } catch (_error) {}
   root.localStorage?.setItem("cd_ev_car_active", String(indice));
   return true;
+}
+
+/* Scrive nei campi `dm.ev_*` del modulo quello che dice `quale`.
+ *
+ * `quale(ref)` torna il valore da mettere, oppure `null` per lasciare quel
+ * campo com'e'. Le due chiamate qui sotto sembrano cose diverse e sono la
+ * stessa: riempire i campi dal profilo aperto, e riempire quelli della
+ * colonnina da casa. Tenerle in una funzione sola e' quel che impedisce alla
+ * seconda di dimenticare cosa fa la prima. */
+function scriviNeiCampi(contenitore, quale) {
+  let scritti = 0;
+  for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
+    const valore = quale(clean(slot.dataset.ref));
+    if (valore === null || slot.value === valore) continue;
+    slot.value = valore;
+    slot.dispatchEvent(new Event("input", { bubbles: true }));
+    slot.dispatchEvent(new Event("change", { bubbles: true }));
+    scritti += 1;
+  }
+  return scritti;
+}
+
+/** Le caselle di casa, come le legge chi disegna. */
+const caselleDiCasa = () => readJson("cd_entity_overrides", {}) || {};
+
+/** La stessa mappa senza le caselle della colonnina. */
+function senzaLaColonnina(mappa) {
+  const uscita = {};
+  for (const [chiave, valore] of Object.entries(mappa || {}))
+    if (!eDellaWallbox(chiave)) uscita[chiave] = valore;
+  return uscita;
+}
+
+/** Solo le caselle della colonnina, per tenerle da parte. */
+function soloLaColonnina(mappa) {
+  const uscita = {};
+  for (const [chiave, valore] of Object.entries(mappa || {}))
+    if (eDellaWallbox(chiave) && clean(valore)) uscita[chiave] = valore;
+  return uscita;
+}
+
+/* Rimette le caselle della colonnina dopo che qualcun altro ha scritto.
+ *
+ * Il corpo vendorizzato di `cdEvApplyCar` riversa il profilo dentro le
+ * mappature globali, e un profilo salvato prima della regola qui sopra la
+ * colonnina ce l'ha dentro. Rimetterla e' l'unico modo di non perderla senza
+ * riscrivere quel corpo. */
+function rimettiLaColonnina(colonnina) {
+  if (!colonnina || !Object.keys(colonnina).length) return false;
+  try {
+    const adesso = caselleDiCasa();
+    const prossime = { ...adesso, ...colonnina };
+    if (JSON.stringify(prossime) === JSON.stringify(adesso)) return false;
+    writeJsonIfChanged("cd_entity_overrides", prossime);
+    root.cdApplyCanonicalOverrides?.(prossime);
+    mostraLeCaselleDellaColonnina(prossime);
+  } catch (_errore) {
+    return false;
+  }
+  return true;
+}
+
+/* Le caselle della colonnina, nei campi, dicono quello che sa la CASA.
+ *
+ * «Si collega ma faccio salva e non vedo le entita'.» Il salvataggio dell'auto
+ * passa da `cdEvCaptureProfile`, che rilegge OGNI campo `dm.ev_*` del modulo e
+ * per quelli vuoti CANCELLA la casella. Collegare la colonnina scriveva la
+ * mappa senza toccare i campi disegnati: restavano vuoti, quindi la colonnina
+ * non si vedeva da nessuna parte, e il primo «Salva auto» buttava via le otto
+ * caselle appena collegate. Lo stesso capitava aprendo un'altra vettura, che
+ * senza colonnina nel profilo svuotava quei campi.
+ *
+ * Non e' un caso particolare del collegamento: quei campi non appartengono
+ * all'auto aperta, e chi li disegna deve leggerli da dove stanno davvero. */
+export function mostraLeCaselleDellaColonnina(mappaCasa = caselleDiCasa()) {
+  const contenitore = doc?.getElementById("ed-body");
+  if (!contenitore) return 0;
+  return scriviNeiCampi(contenitore, (ref) => (eDellaWallbox(ref) ? clean(mappaCasa[ref]) : null));
 }
 
 /* I campi entita' della scheda, riempiti con quelli dell'auto aperta.
@@ -338,18 +419,15 @@ function rimettiInUso(auto, indice) {
  * uso; qui si fa solo la parte che riguarda il modulo di configurazione, e
  * nessuna chiave globale viene toccata. Un campo lasciato vuoto dall'auto
  * torna vuoto: e' cosi' che si vede che quella vettura quella entita' non ce
- * l'ha. */
+ * l'ha. Tranne la colonnina, che non e' dell'auto. */
 function caricaCampiDaProfilo(auto) {
   const contenitore = doc?.getElementById("ed-body");
   if (!contenitore) return false;
   const mappa = (auto && typeof auto === "object" && (auto.ov || auto.overrides)) || {};
-  for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
-    const valore = clean(mappa[clean(slot.dataset.ref)]);
-    if (slot.value === valore) continue;
-    slot.value = valore;
-    slot.dispatchEvent(new Event("input", { bubbles: true }));
-    slot.dispatchEvent(new Event("change", { bubbles: true }));
-  }
+  const casa = caselleDiCasa();
+  scriviNeiCampi(contenitore, (ref) =>
+    eDellaWallbox(ref) ? clean(casa[ref]) : clean(mappa[ref]),
+  );
   return true;
 }
 
@@ -1461,7 +1539,12 @@ function installLegacyWrappers() {
         restoreProfilePhotos(car);
         applyVehicleAsset();
       }
+      /* Le caselle di casa si tengono da parte PRIMA che il guscio scriva: il
+       * suo corpo riversa il profilo dentro le mappature globali, e i profili
+       * salvati prima di questa regola la colonnina ce l'hanno ancora dentro. */
+      const colonnina = soloLaColonnina(readJson("cd_entity_overrides", {}) || {});
       const result=previous.call(this,index,...rest);
+      rimettiLaColonnina(colonnina);
       restoreProfilePhotos(car);
       /* E si ridisegna anche dopo: il corpo del guscio, fra le sue cose, puo'
        * aver rimesso mano all'immagine. Quando non l'ha fatto questa e' una
@@ -1484,6 +1567,19 @@ function installLegacyWrappers() {
       // decided afterwards, in `addProfile` below, once the name is known.
       if (!clean(profile.img)) profile.img=photos.idle;
       profile.imgPlugged=photos.plugged;
+      /* La colonnina non entra nel profilo di una vettura.
+       *
+       * Il guscio raccoglie il profilo leggendo TUTTI i campi `dm.ev_*` del
+       * modulo, e da quando quelli della colonnina si vedono — devono vedersi,
+       * o il salvataggio li cancellava — verrebbero raccolti anche loro. Da li'
+       * la colonnina finirebbe copiata dentro ogni vettura salvata, e la copia
+       * piu' vecchia tornerebbe su alla prima auto rimessa in uso: rifatto il
+       * collegamento con le entita' giuste, bastava riaprire la macchina di
+       * prima per riavere quelle sbagliate.
+       *
+       * La colonnina e' della casa. Non e' una casella che una vettura porta
+       * con se', quindi non si porta via. */
+      profile.ov=senzaLaColonnina(profile.ov);
       return profile;
     }
     captureProfile.__dmEvSection=true; captureProfile.__dmPrevious=previous; root.cdEvCaptureProfile=captureProfile;

@@ -2804,4 +2804,12 @@ export default Object.freeze({
   "Remove it here": "여기서 빼기",
   "This sensor is also configured in": "이 센서는 다음에도 설정되어 있습니다:",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "이 기기에서는 로봇을 인식할 수 없습니다: vacuum.* 또는 lawn_mower.* 엔터티가 필요합니다.",
+  "already from another device, left as they were": "이미 다른 기기의 것이라 그대로 두었습니다",
+  "this room has no humidity sensor: set it under the Temperature tab.": "이 방에는 습도 센서가 없습니다: 온도 탭에서 연결합니다.",
+  "Without a room this window has no humidity to watch: pick one above.": "방을 고르지 않으면 이 창문이 볼 습도가 없습니다: 위에서 방을 고르세요.",
+  "Rain zoom cap": "비의 최대 확대",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "주소에 자리표시자가 빠졌습니다: 세 개 모두 필요합니다 — 확대는 {z}, 타일은 {x}와 {y}. 하나만으로는 늘 같은 곳만 요청하게 됩니다.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "이것은 페이지 주소이지 지도 타일 주소가 아닙니다: 열면 웹사이트가 열리고, 웹사이트는 여기에 그릴 수 없습니다. 필요한 것은 그 서비스가 타일을 게시하는 주소, 즉 숫자 대신 {z}/{x}/{y}가 들어간 주소입니다. 없으면 위 목록에서 서비스를 고르세요.",
+  "Order of the Home blocks": "홈 블록의 순서",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "홈에서 보이는 순서입니다. 각 블록 안의 순서는 그 블록을 설정하는 곳에서 정합니다: 사람은 사람 탭에서, 빠른 동작은 그 탭에서, 타일은 바로 아래에서.",
 });

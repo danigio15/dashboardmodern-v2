@@ -799,8 +799,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // la parte che conta — quando lo si può DIMOSTRARE: due carichi con lo
   // stesso sensore non dicono da soli quale dei due è la copia, e cancellare
   // dalla parte sbagliata butterebbe via la metà buona.
+  // 258 con l'ordine dei blocchi della Home (`core/ordine-dei-blocchi.js` e
+  // `sections/home-blocchi-section.js`): «riordinare a piacere la Home»
+  // voleva dire anche i blocchi fra loro, non solo dentro ognuno. La lista e
+  // come si mette in fila stanno nel nucleo, dove si provano senza un
+  // documento; chi sposta i nodi nella pagina sta nella sezione, e non
+  // disegna niente — i blocchi li fanno gli altri, lui li mette in ordine.
   assert.ok(
-    relative.length <= 256,
+    relative.length <= 258,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

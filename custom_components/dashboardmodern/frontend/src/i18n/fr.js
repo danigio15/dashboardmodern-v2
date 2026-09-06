@@ -2804,4 +2804,12 @@ export default Object.freeze({
   "Remove it here": "L'enlever d'ici",
   "This sensor is also configured in": "Ce capteur est aussi configuré dans",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Aucun robot n'est reconnu sur cet appareil : il faut une entité vacuum.* ou lawn_mower.*.",
+  "already from another device, left as they were": "déjà d'un autre appareil, laissées telles quelles",
+  "this room has no humidity sensor: set it under the Temperature tab.": "cette pièce n'a pas de capteur d'humidité : il s'associe dans l'onglet Température.",
+  "Without a room this window has no humidity to watch: pick one above.": "Sans pièce, cette fenêtre n'a aucune humidité à surveiller : choisis-en une ci-dessus.",
+  "Rain zoom cap": "Zoom maximal de la pluie",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "Il manque un jeton à l'adresse : les trois sont nécessaires — {z} pour le zoom, {x} et {y} pour la tuile. Avec un seul, on demanderait toujours le même morceau du monde.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "C'est l'adresse d'une PAGE, pas des tuiles de la carte : en l'ouvrant on ouvre un site, et un site ne se dessine pas ici. Il faut l'adresse à laquelle ce service publie ses tuiles, celle qui contient {z}/{x}/{y} à la place des nombres. Si tu ne l'as pas, choisis un service dans la liste ci-dessus.",
+  "Order of the Home blocks": "Ordre des blocs de l'Accueil",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "Dans quel ordre ils apparaissent sur l'Accueil. À l'intérieur de chaque bloc, l'ordre se règle là où ce bloc se configure : les personnes dans leur onglet, les actions rapides dans le leur, les tuiles juste en dessous.",
 });

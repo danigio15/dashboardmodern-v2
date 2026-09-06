@@ -2804,4 +2804,12 @@ export default Object.freeze({
   "Remove it here": "Quítalo de aquí",
   "This sensor is also configured in": "Este sensor también está configurado en",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "De este dispositivo no se reconoce ningún robot: hace falta una entidad vacuum.* o lawn_mower.*.",
+  "already from another device, left as they were": "ya de otro dispositivo, se han dejado como estaban",
+  "this room has no humidity sensor: set it under the Temperature tab.": "esta habitación no tiene sensor de humedad: se asocia en la pestaña Temperatura.",
+  "Without a room this window has no humidity to watch: pick one above.": "Sin habitación esta ventana no tiene humedad que mirar: elige una arriba.",
+  "Rain zoom cap": "Zoom máximo de la lluvia",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "A la dirección le falta un marcador: hacen falta los tres — {z} para el zoom, {x} e {y} para la tesela. Con uno solo se pediría siempre el mismo trozo de mundo.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "Esa es la dirección de una PÁGINA, no de las teselas del mapa: al abrirla se abre un sitio web, y un sitio web no se puede dibujar aquí dentro. Hace falta la dirección con la que ese servicio publica sus teselas, la que lleva {z}/{x}/{y} en lugar de los números. Si no la tienes, elige un servicio de la lista de arriba.",
+  "Order of the Home blocks": "Orden de los bloques de Inicio",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "En qué orden se ven en Inicio. Dentro de cada bloque el orden se ajusta donde se configura ese bloque: las personas en su pestaña, las acciones rápidas en la suya, las teselas aquí abajo.",
 });

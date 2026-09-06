@@ -16,6 +16,7 @@ import {
   LATO_TESSERA,
   ZOOM_MASSIMO,
   ZOOM_MINIMO,
+  finestraDellaPioggia,
   finestraDiTessere,
   indirizzoRitirato,
   latitudine,
@@ -23,6 +24,8 @@ import {
   luogoDelRadar,
   metriPerPixel,
   modelloDelFondo,
+  problemaDellIndirizzo,
+  zoomDellaPioggia,
   puntoDellaTessera,
   tesseraDelPunto,
   urlDellaTessera,
@@ -318,4 +321,95 @@ test("la mappa sotto torna a OpenStreetMap se l'indirizzo era di CARTO", () => {
     }),
     "https://tiles.casamia.lan/{z}/{x}/{y}.png",
   );
+});
+
+/* ── la pioggia si chiede dove il servizio ce l'ha (#323) ──────────────── */
+
+test("sotto il tetto la pioggia si chiede piu' larga, e copre lo stesso riquadro", () => {
+  /* La scena della segnalazione: raggio trenta chilometri su un riquadro da
+   * telefono, che fa `z9` — e a `z9` i quadratini tornavano con la scritta
+   * «Zoom Level Not Supported» stampata dentro invece che con la pioggia. */
+  const mappa = finestraDiTessere(41.9, 12.5, { latoPx: 483, altoPx: 302, raggioKm: 30 });
+  assert.equal(mappa.zoom, 9);
+
+  const pioggia = finestraDellaPioggia(41.9, 12.5, mappa, 7);
+  assert.equal(pioggia.zoom, 7);
+  /* Il riquadro e' lo stesso: la mappa non cambia inquadratura. */
+  assert.equal(pioggia.lato, mappa.lato);
+  assert.equal(pioggia.alto, mappa.alto);
+  /* E i quadratini sono grossi quattro volte, uno ogni sedici. */
+  for (const tessera of pioggia.tessere) assert.equal(tessera.lato, LATO_TESSERA * 4);
+  /* Coprono tutto il riquadro, bordi compresi: se restasse scoperta una
+   * striscia si vedrebbe una banda senza pioggia lungo un lato. */
+  const sinistra = Math.min(...pioggia.tessere.map((t) => t.sx));
+  const alto = Math.min(...pioggia.tessere.map((t) => t.sy));
+  const destra = Math.max(...pioggia.tessere.map((t) => t.sx + t.lato));
+  const basso = Math.max(...pioggia.tessere.map((t) => t.sy + t.lato));
+  assert.ok(sinistra <= 0 && alto <= 0, `copre l'angolo in alto: ${sinistra},${alto}`);
+  assert.ok(destra >= mappa.lato && basso >= mappa.alto, `copre in basso: ${destra},${basso}`);
+});
+
+test("la pioggia cade dove cade la mappa, a qualunque tetto", () => {
+  /* Il difetto che questa prova ferma: rimpicciolire il riquadro e
+   * moltiplicare dopo faceva battere il minimo di sessantaquattro pixel, e
+   * quell'aggiunta si moltiplicava con tutto il resto — la pioggia usciva
+   * trentacinque pixel piu' su della mappa sotto. Una pioggia disegnata da
+   * un'altra parte e' peggio di una pioggia che manca. */
+  const dovePunto = (finestra) => {
+    const centro = tesseraDelPunto(41.9, 12.5, finestra.zoom);
+    const tessera = finestra.tessere.find(
+      (voce) => voce.x === Math.floor(centro.x) && voce.y === Math.floor(centro.y),
+    );
+    return [
+      tessera.sx + (centro.x - tessera.x) * finestra.tessera,
+      tessera.sy + (centro.y - tessera.y) * finestra.tessera,
+    ];
+  };
+  for (const [largo, alto, zoom, tetto] of [
+    [320, 198, 9, 7],
+    [483, 302, 9, 8],
+    [483, 302, 9, 7],
+    [320, 198, 12, 3],
+  ]) {
+    const mappa = finestraDiTessere(41.9, 12.5, { latoPx: largo, altoPx: alto, zoom });
+    const pioggia = finestraDellaPioggia(41.9, 12.5, mappa, tetto);
+    const [fx, fy] = dovePunto(mappa);
+    const [px, py] = dovePunto(pioggia);
+    assert.ok(
+      Math.abs(fx - px) < 0.01 && Math.abs(fy - py) < 0.01,
+      `${largo}x${alto} z${zoom}→z${pioggia.zoom}: la pioggia cade in ${px},${py} e la mappa in ${fx},${fy}`,
+    );
+  }
+});
+
+test("senza tetto, o con un tetto che non morde, la finestra resta quella", () => {
+  const mappa = finestraDiTessere(41.9, 12.5, { latoPx: 483, altoPx: 302, raggioKm: 30 });
+  assert.equal(finestraDellaPioggia(41.9, 12.5, mappa, null), mappa);
+  assert.equal(finestraDellaPioggia(41.9, 12.5, mappa, 12), mappa);
+  assert.equal(finestraDellaPioggia(41.9, 12.5, mappa, 9), mappa);
+});
+
+test("il tetto lo dice la casella, e uno zero vuol dire «nessun tetto»", () => {
+  assert.equal(zoomDellaPioggia({}, "rainviewer"), 7);
+  assert.equal(zoomDellaPioggia({ zoomPioggia: "6" }, "rainviewer"), 6);
+  /* Zero non e' vuoto: e' la scelta di chi ha un servizio che a quel livello
+   * risponde eccome, e non deve pagare un numero misurato a casa d'altri. */
+  assert.equal(zoomDellaPioggia({ zoomPioggia: "0" }, "rainviewer"), null);
+  /* Un servizio scritto a mano non ha un tetto che si sappia. */
+  assert.equal(zoomDellaPioggia({}, "modello"), null);
+});
+
+/* ── «ho inserito il link con l'indirizzo e non lo legge nemmeno» ───────── */
+
+test("l'indirizzo di un sito non e' un modello di quadratini, e lo si dice", () => {
+  /* Quello incollato davvero: la pagina di Windy, che si apre nel browser. */
+  assert.equal(problemaDellIndirizzo("https://www.windy.com/?40.964,14.215,9"), "sito");
+  assert.equal(problemaDellIndirizzo("https://www.google.com/maps/@41.9,12.5,10z"), "sito");
+  /* Un modello vero passa. */
+  assert.equal(problemaDellIndirizzo("https://tile.openstreetmap.org/{z}/{x}/{y}.png"), "");
+  assert.equal(problemaDellIndirizzo("https://a.tiles.lan/{s}/{z}/{x}/{-y}.png"), "");
+  /* Un modello a meta' e' un errore suo, che si sistema aggiungendo il pezzo
+   * che manca — non lo stesso errore di chi ha incollato un sito. */
+  assert.equal(problemaDellIndirizzo("https://x.lan/{z}/tile.png"), "segnaposto-a-meta");
+  assert.equal(problemaDellIndirizzo(""), "vuoto");
 });

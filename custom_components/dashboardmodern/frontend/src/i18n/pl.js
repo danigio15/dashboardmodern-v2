@@ -2804,4 +2804,12 @@ export default Object.freeze({
   "Remove it here": "Usuń go stąd",
   "This sensor is also configured in": "Ten czujnik jest ustawiony także w",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Z tego urządzenia nie rozpoznano żadnego robota: potrzebna jest encja vacuum.* lub lawn_mower.*.",
+  "already from another device, left as they were": "już z innego urządzenia, pozostawione bez zmian",
+  "this room has no humidity sensor: set it under the Temperature tab.": "ten pokój nie ma czujnika wilgotności: przypisuje się go w zakładce Temperatura.",
+  "Without a room this window has no humidity to watch: pick one above.": "Bez pokoju to okno nie ma wilgotności do obserwowania: wybierz pokój powyżej.",
+  "Rain zoom cap": "Maksymalne przybliżenie deszczu",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "W adresie brakuje znacznika: potrzebne są wszystkie trzy — {z} dla przybliżenia, {x} i {y} dla kafelka. Z jednym pytano by wciąż o ten sam kawałek świata.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "To adres STRONY, a nie kafelków mapy: po otwarciu otwiera się witryna, a witryny nie da się tu narysować. Potrzebny jest adres, pod którym ta usługa publikuje kafelki — ten z {z}/{x}/{y} w miejscu liczb. Jeśli go nie masz, wybierz usługę z listy powyżej.",
+  "Order of the Home blocks": "Kolejność bloków ekranu głównego",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "W jakiej kolejności widać je na ekranie głównym. Wewnątrz bloku kolejność ustawia się tam, gdzie ten blok się konfiguruje: osoby w swojej zakładce, szybkie akcje w swojej, kafelki tuż poniżej.",
 });

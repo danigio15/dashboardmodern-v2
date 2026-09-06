@@ -13,7 +13,12 @@
 import { legaLAutoAlDispositivo } from "../core/auto-device-binding.js";
 import { legaLaWallboxAlDispositivo } from "../core/wallbox-device-binding.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
-import { letturaMetadata, profiles, salvaAuto } from "./ev-section.js";
+import {
+  letturaMetadata,
+  mostraLeCaselleDellaColonnina,
+  profiles,
+  salvaAuto,
+} from "./ev-section.js";
 import { nuovoVeicolo } from "../core/vehicle-model.js";
 import { etichettaDellaCasella } from "./auto-termica-section.js";
 import {
@@ -181,14 +186,54 @@ export function collegaLaWallbox({ device, entities, integration }) {
     return false;
   }
   const salvate = readJson("cd_entity_overrides", {}) || {};
-  const prossime = { ...salvate, ...mappa };
+  /* Il secondo dispositivo si aggiunge al primo, non lo scalza.
+   *
+   * «Devo associare sia colonnina che evcc entrambi.» Sono due dispositivi e
+   * portano cose diverse: evcc la modalita', la sessione e la quota di sole;
+   * la colonnina quello che misura. Ma una casella la sanno riempire tutti e
+   * due — la potenza — e sovrascrivere di forza voleva dire che il secondo
+   * collegamento buttava fuori un pezzo del primo, senza dirlo.
+   *
+   * La regola e' una: una casella gia' occupata da un ALTRO dispositivo resta
+   * dov'e'; una vuota si riempie; una che porta gia' un'entita' DI QUESTO
+   * dispositivo si riscrive, che e' il modo di rifare un collegamento
+   * sbagliato. Chi vuole cambiarne una a mano la svuota nel campo, che adesso
+   * si vede. */
+  const sue = new Set(
+    (Array.isArray(entities) ? entities : []).map((voce) => clean(voce?.entity_id)).filter(Boolean),
+  );
+  const tenute = [];
+  const prossime = { ...salvate };
+  for (const [ref, entita] of Object.entries(mappa)) {
+    const gia = clean(prossime[ref]);
+    if (gia && gia !== entita && !sue.has(gia)) {
+      tenute.push(ref);
+      continue;
+    }
+    prossime[ref] = entita;
+  }
   writeJsonIfChanged("cd_entity_overrides", prossime);
   try {
     root.cdApplyCanonicalOverrides?.(prossime);
   } catch (_error) {}
+  /* E si vedono, subito, nei campi della scheda.
+   *
+   * «Si collega ma faccio salva e non vedo le entita'.» Scrivere la mappa non
+   * bastava: i campi disegnati restavano vuoti, quindi la colonnina non si
+   * vedeva da nessuna parte — e il salvataggio dell'auto, che rilegge i campi
+   * e cancella le caselle di quelli vuoti, se la portava via. */
+  mostraLeCaselleDellaColonnina(prossime);
   const nome = clean(device?.name) || clean(integration?.name) || t("Colonnina", "Charger");
+  const collegate = Object.keys(mappa).length - tenute.length;
   root.edToast?.(
-    `${nome} — ${Object.keys(mappa).length} ${t("caselle collegate", "fields connected")}`,
+    `${nome} — ${collegate} ${t("caselle collegate", "fields connected")}${
+      tenute.length
+        ? ` · ${tenute.length} ${t(
+            "già di un altro dispositivo, lasciate com'erano",
+            "already from another device, left as they were",
+          )}`
+        : ""
+    }`,
   );
   try {
     root.dispatchEvent?.(new CustomEvent("dashboardmodern:state-changed"));

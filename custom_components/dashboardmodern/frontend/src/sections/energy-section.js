@@ -769,13 +769,49 @@ export function applyAtomicEnergyBundle(bundle = state.bundle) {
  * numeri del guscio e sopra una riga con la ragione. */
 export const TENTATIVI_COL_VELO = 2;
 
+/* E ha una scadenza, non solo un numero di tentativi.
+ *
+ * «Energia giornaliera e mensile: resta il velo Caricamento dati Energia.»
+ * Contare i tentativi bastava finche' un tentativo durava poco. Da quando il
+ * tempo concesso cresce con l'arco chiesto — fino a un minuto per un anno di
+ * secchielli — due tentativi sono due minuti, e due minuti di velo sono una
+ * pagina che sembra rotta. Peggio: se la risposta non arriva MAI e la promessa
+ * non si chiude ne', il contatore dei tentativi non sale nemmeno, e il velo
+ * resta li' per sempre.
+ *
+ * Dopo questo tempo il velo se ne va comunque: sotto ci sono i numeri del
+ * guscio e sopra la riga che dice perche', che e' sempre meglio di un velo che
+ * non dice niente. Il conto parte dal primo velo e si azzera quando arriva un
+ * pacchetto buono, non a ogni tentativo — altrimenti ogni riprova si
+ * ricomprerebbe la sua attesa. */
+export const ATTESA_COL_VELO = 12_000;
+
 function setEnergyLoading(active) {
-  const velo = active && !state.bundle && hasConfiguredEnergy() && state.retryCount < TENTATIVI_COL_VELO;
+  const adesso = Date.now();
+  if (active && !state.veloDalle) state.veloDalle = adesso;
+  const atteso = state.veloDalle ? adesso - state.veloDalle : 0;
+  const velo =
+    active &&
+    !state.bundle &&
+    hasConfiguredEnergy() &&
+    state.retryCount < TENTATIVI_COL_VELO &&
+    atteso < ATTESA_COL_VELO;
   doc?.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
     node.toggleAttribute("aria-busy", active);
     node.classList.toggle("dm-energy-loading", active);
     node.classList.toggle("dm-energy-awaiting", velo);
   });
+  /* La scadenza se la guarda da sola: nessuno richiama questa funzione mentre
+   * si aspetta una risposta che non arriva. */
+  if (state.veloScadenza) {
+    root.clearTimeout?.(state.veloScadenza);
+    state.veloScadenza = 0;
+  }
+  if (velo)
+    state.veloScadenza = root.setTimeout?.(
+      () => setEnergyLoading(true),
+      ATTESA_COL_VELO - atteso + 50,
+    );
 }
 
 /* La ragione, in parole. Il messaggio tecnico dice
@@ -831,6 +867,9 @@ export async function refreshEnergy(period = selectedPeriod()) {
     state.selected = bundle.period;
     state.lastRefreshAt = Date.now();
     state.retryCount = 0;
+    /* Il pacchetto buono chiude l'attesa: il velo riparte da zero se un giorno
+     * ricominciasse a mancare. */
+    state.veloDalle = 0;
     state.lastError = "";
     state.ready = true;
     applyAtomicEnergyBundle(bundle);

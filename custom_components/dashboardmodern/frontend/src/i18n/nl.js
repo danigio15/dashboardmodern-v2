@@ -2804,4 +2804,12 @@ export default Object.freeze({
   "Remove it here": "Hier weghalen",
   "This sensor is also configured in": "Deze sensor is ook ingesteld in",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Uit dit apparaat is geen robot te herkennen: er is een vacuum.*- of lawn_mower.*-entiteit nodig.",
+  "already from another device, left as they were": "al van een ander apparaat, gelaten zoals ze waren",
+  "this room has no humidity sensor: set it under the Temperature tab.": "deze kamer heeft geen vochtsensor: die stel je in op het tabblad Temperatuur.",
+  "Without a room this window has no humidity to watch: pick one above.": "Zonder kamer heeft dit raam geen vochtigheid om te volgen: kies er hierboven een.",
+  "Rain zoom cap": "Maximale zoom van de regen",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "Er ontbreekt een plaatsaanduiding in het adres: alle drie zijn nodig — {z} voor de zoom, {x} en {y} voor de tegel. Met maar één zou steeds hetzelfde stukje wereld worden opgevraagd.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "Dit is het adres van een PAGINA, niet van de kaarttegels: openen levert een website op, en een website valt hierbinnen niet te tekenen. Nodig is het adres waarop die dienst zijn tegels publiceert, dat met {z}/{x}/{y} in plaats van de getallen. Heb je dat niet, kies dan hierboven een dienst uit de lijst.",
+  "Order of the Home blocks": "Volgorde van de Home-blokken",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "In welke volgorde ze op Home verschijnen. Binnen een blok stel je de volgorde in waar dat blok wordt ingericht: de personen op hun eigen tabblad, de snelacties op het hunne, de tegels hier direct onder.",
 });

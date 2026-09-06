@@ -197,3 +197,53 @@ test("la soglia si trova nella scheda Finestre, e dice cosa manca", async ({ pag
   await expect(nota).toHaveAttribute("data-dm-umidita-manca", "manca", { timeout: 15_000 });
   await expect(nota).toContainText(/Stazione meteo|Weather station/i);
 });
+
+/* «Nelle finestre manca ancora il sensore umidita': deve importarlo in
+ * automatico dalla stanza.»
+ *
+ * Lo importa gia' — l'umidita' di una finestra e' quella della sua stanza, e
+ * non c'e' una casella per riscriverla — ma non lo diceva a nessuno: la
+ * tendina diceva «Bagno» e non diceva cosa si porta dietro. Adesso sotto la
+ * stanza c'e' scritto quale igrometro sta leggendo quella finestra, e cambia
+ * insieme alla stanza. */
+test("la finestra dice quale igrometro si porta dalla stanza", async ({ page }, testInfo) => {
+  await avvia(page, testInfo, 41);
+  await page.evaluate(() => {
+    if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
+  });
+  await page.locator('.ed-tab[data-tab="tapp"]').first().click();
+
+  const tendina = page.locator("#ed-body #ed-tp-room");
+  await expect(tendina).toHaveCount(1, { timeout: 15_000 });
+  const nota = page.locator("#ed-body [data-dm-umidita-stanza]");
+  await expect(nota).toHaveCount(1, { timeout: 15_000 });
+
+  /* Scelta la stanza, la riga dice il sensore di QUELLA stanza. */
+  const valoreDi = (nome) =>
+    page.evaluate(
+      (cercato) =>
+        [...document.querySelectorAll("#ed-body #ed-tp-room option")].find((voce) =>
+          voce.textContent.includes(cercato),
+        )?.value || "",
+      nome,
+    );
+  await tendina.selectOption(await valoreDi("Bagno"));
+  await expect(nota).toHaveAttribute("data-dm-umidita-stanza", "pronto");
+  await expect(nota).toContainText("sensor.bagno_umidita");
+
+  /* Cambiata la stanza, cambia l'igrometro: e' la prova che il legame e' la
+   * stanza e non una casella copiata a mano. */
+  await tendina.selectOption(await valoreDi("Salone"));
+  await expect(nota).toContainText("sensor.salone_umidita");
+
+  /* Una stanza senza igrometro lo dice, e dice dove si mette. */
+  await page.evaluate(() => {
+    const stanze = JSON.parse(localStorage.getItem("cd_stanze") || "[]");
+    for (const stanza of stanze) if (stanza.name === "Salone") delete stanza.hum;
+    localStorage.setItem("cd_stanze", JSON.stringify(stanze));
+  });
+  await tendina.selectOption(await valoreDi("Bagno"));
+  await tendina.selectOption(await valoreDi("Salone"));
+  await expect(nota).toHaveAttribute("data-dm-umidita-stanza", "senza");
+  await expect(nota).toContainText(/Temperature/i);
+});

@@ -14,6 +14,7 @@ import { installEnergySignedSection } from "./energy-signed-section.js";
 import { installEnergyRefreshSection } from "./energy-refresh-section.js";
 import { installEnergyLegacyGuardSection } from "./energy-legacy-guard-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
+import { installHomeBlocchiSection } from "./home-blocchi-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installEnergyLoadsEditor } from "./energy-loads-editor-section.js";
@@ -813,6 +814,7 @@ export function installSectionRuntime() {
     installStateEventGate(root.DashboardModernEnergyService?.broker, root);
     installEnergyLegacyGuardSection();
     installEnergyStabilitySection();
+    installHomeBlocchiSection();
     installEnergyGuidanceSection();
     installEnergyFlowSection();
     installEnergyLoadsEditor();

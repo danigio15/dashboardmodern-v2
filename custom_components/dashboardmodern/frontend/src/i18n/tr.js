@@ -2804,4 +2804,12 @@ export default Object.freeze({
   "Remove it here": "Buradan kaldır",
   "This sensor is also configured in": "Bu sensör şurada da ayarlı:",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Bu cihazdan hiçbir robot tanınamadı: bir vacuum.* veya lawn_mower.* varlığı gerekir.",
+  "already from another device, left as they were": "zaten başka bir cihazdan, oldukları gibi bırakıldı",
+  "this room has no humidity sensor: set it under the Temperature tab.": "bu odanın nem sensörü yok: Sıcaklık sekmesinden eşleştirilir.",
+  "Without a room this window has no humidity to watch: pick one above.": "Oda seçilmeden bu pencerenin izleyeceği bir nem yok: yukarıdan bir oda seç.",
+  "Rain zoom cap": "Yağmurun en yüksek yakınlaştırması",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "Adreste bir yer tutucu eksik: üçü de gerekli — yakınlaştırma için {z}, karo için {x} ve {y}. Yalnızca biriyle hep dünyanın aynı parçası istenirdi.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "Bu bir SAYFA adresi, harita karolarının adresi değil: açınca bir web sitesi açılır, web sitesi de burada çizilemez. Gereken, o servisin karolarını yayımladığı, sayılar yerine {z}/{x}/{y} içeren adrestir. Elinde yoksa yukarıdaki listeden bir servis seç.",
+  "Order of the Home blocks": "Ana ekran bloklarının sırası",
+  "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.": "Ana ekranda hangi sırayla göründükleri. Her bloğun içindeki sıra, o bloğun ayarlandığı yerde belirlenir: kişiler kendi sekmesinde, hızlı işlemler kendi sekmesinde, kartlar hemen aşağıda.",
 });
