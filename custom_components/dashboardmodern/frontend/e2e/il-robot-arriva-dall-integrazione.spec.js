@@ -335,6 +335,23 @@ test("la mappa si scorre anche a misura d'apertura, non solo da ingrandita", asy
   });
   const mappa = page.locator("#page-robot [data-dm-robot-map]");
   await expect(mappa).toHaveAttribute("data-dm-map-state", "ready", { timeout: 15_000 });
+
+  /* E la mappa resta anche quando la card si rifa'.
+   *
+   * Il ricordo del disegno gia' preso e' del robot; la mappa e' di un pezzo di
+   * pagina, e quel pezzo rinasce a ogni ridisegno della card — vuoto, con la
+   * sua tessera a «loading». Basta che cambi qualcosa d'altro del robot (qui
+   * il nome) perche' la card si rifaccia: se ci si fida del ricordo davanti a
+   * una tessera appena nata, la mappa resta vuota finche' Home Assistant non
+   * cambia indirizzo, cioe' finche' il robot non riparte. */
+  await page.evaluate(() => {
+    const salvati = JSON.parse(localStorage.getItem("cd_robot") || "[]");
+    for (const voce of salvati) voce.name = `${voce.name} II`;
+    localStorage.setItem("cd_robot", JSON.stringify(salvati));
+    window.DashboardModernModules?.robot?.render?.();
+  });
+  await expect(mappa).toHaveAttribute("data-dm-map-state", "ready", { timeout: 15_000 });
+
   await mappa.click();
   const visore = page.locator("#dm-robot-map-view");
   await expect(visore).toBeVisible();

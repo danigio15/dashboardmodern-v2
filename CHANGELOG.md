@@ -266,6 +266,18 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
 
 ### Corretto
 
+- **La mappa del robot non resta vuota quando la card si ridisegna.**
+
+  La plancia si ricordava di aver gia' preso il disegno della mappa, per non
+  richiederlo uguale a ogni giro. Ma quel ricordo e' del robot, mentre la mappa
+  e' un pezzo di pagina che rinasce vuoto ogni volta che la card si rifa' —
+  basta che cambi il nome, la stanza, lo stato. Davanti alla tessera appena
+  nata il ricordo diceva «questo ce l'ho gia'», e la mappa restava vuota finche'
+  Home Assistant non cambiava indirizzo, cioe' finche' il robot non ripartiva.
+  Adesso del ricordo ci si fida solo finche' la mappa e' davvero li'; e un giro
+  passato senza la telecamera non lascia dietro un ricordo che impedisce di
+  riprenderla.
+
 - **La barra non mostra piu' per un attimo le voci delle sezioni spente.**
 
   Usciva con otto voci e trentuno millisecondi dopo ne aveva quattro: un
