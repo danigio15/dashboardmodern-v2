@@ -64,7 +64,10 @@ test("della card del marchio questo modulo non e' piu' padrone", async () => {
     /#dm-visual-picker\[data-kind="car"\] \.dm-car-brand\{\s*color:/,
     "il marchio nel catalogo tiene il colore che si e' dato",
   );
-  assert.match(source, /dm-v10-brand-wordmark/);
+  /* La sigla scritta al posto del logo se n'e' andata con l'immagine che la
+   * faceva scattare: il catalogo il marchio lo disegna come maschera CSS su
+   * uno span, e un'immagine rotta non c'e' piu' da nessuna parte. */
+  assert.doesNotMatch(source, /dm-v10-brand-wordmark|readableBrandFallback|polishBrandLogos/);
 });
 
 test("room and temperature editors are repaired without a global observer", async () => {
