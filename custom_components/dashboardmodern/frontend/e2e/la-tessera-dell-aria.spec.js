@@ -101,6 +101,44 @@ test("la tessera dice com'e' l'aria, e la finestra tutte le misure", async ({ pa
   await expect(finestra).toContainText("Salotto PM2.5");
 });
 
+test("il monossido in microgrammi e' aria buona, e si legge in microgrammi (#340)", async ({
+  page,
+}, testInfo) => {
+  /* «Outdoor Environment CO = 156 µg/m³: lo identifica come monossido di
+   * carbonio ma lo classifica come ARIA CATTIVA e come la peggiore delle 15
+   * misure — lo legge come 156 mg/m³.» Le soglie erano in un'altra unita'. */
+  await boot(page, testInfo, [
+    {
+      entity_id: "sensor.esterno_co",
+      name: "Outdoor Environment CO",
+      state: 156,
+      device_class: "carbon_monoxide",
+      unit: "µg/m³",
+    },
+    {
+      entity_id: "sensor.salotto_pm25",
+      name: "Salotto PM2.5",
+      state: 6,
+      device_class: "pm25",
+      unit: "µg/m³",
+    },
+  ]);
+  const tessera = page.locator('#dm-widgets .dm-tile[data-dm-widget="aria"]');
+  await expect(tessera).toBeVisible();
+  await expect(tessera).toContainText("Buona");
+  await expect(tessera).not.toContainText("Cattiva");
+  /* L'unita' scritta accanto al numero e' quella letta dal sensore. */
+  await expect(tessera.locator("[data-dm-tile-value]")).toHaveText("156");
+  await expect(tessera.locator("[data-dm-tile-unit]")).toHaveText("µg/m³");
+
+  await tessera.click();
+  const finestra = page.locator("#dm-widget-popup");
+  await expect(finestra).toBeVisible();
+  await expect(finestra.locator(".dm-w-verdetto")).toHaveText("Buona");
+  await expect(finestra).toContainText("156 µg/m³");
+  await expect(finestra).not.toContainText("mg/m³");
+});
+
 test("senza sensori dell'aria la tessera non c'e'", async ({ page }, testInfo) => {
   /* Una tessera che dice «buona» senza aver letto niente e' peggio di una
    * tessera che non c'e'. */

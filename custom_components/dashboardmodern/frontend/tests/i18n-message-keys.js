@@ -2236,7 +2236,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Server",
   "Server / NAS",
   "Server monitoring",
-  "Service battery 12 V (%)",
+  "Service battery 12 V (% or V)",
   "Session",
   "Session energy",
   "Session energy (kWh)",

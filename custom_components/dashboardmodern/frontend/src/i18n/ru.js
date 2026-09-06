@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "Резерв",
   "Save alerts": "Сохранить оповещения",
   "Save waste": "Сохранить отходы",
-  "Service battery 12 V (%)": "Бортовой аккумулятор 12 В (%)",
+  "Service battery 12 V (% or V)": "Вспомогательный аккумулятор 12 В (% или В)",
   "Single calendar (optional)": "Единый календарь (необязательно)",
   "Slightly cool": "Слегка прохладно",
   "Slightly warm": "Слегка тепло",

@@ -43,6 +43,26 @@ export const SA = Object.freeze({
 
 const STATI_VIVI = new Set(["playing", "paused", "buffering", "idle", "on", "standby"]);
 
+/* Cosa dice lo stato di un lettore, nelle tre parole della card di un
+ * elettrodomestico: in funzione, standby, spento.
+ *
+ * «La TV e' accesa e risulta dall'integrazione, ma risulta spenta nella
+ * scheda» (#354). La scheda di un televisore legge lo stato come quello di
+ * una lavatrice — una parola di un sensore, un interruttore — e un
+ * `media_player` non e' ne' l'uno ne' l'altro: il suo stato dice gia' tutto,
+ * nella lingua dei lettori. `on`, `playing`, `paused`, `idle` e `buffering`
+ * sono un televisore acceso, qualunque cosa stia facendo; `standby` e' acceso
+ * ma a riposo, che e' quello che la parola vuol dire; `off` e' spento. Quello
+ * che non risponde — `unknown`, `unavailable`, niente — non dice niente, e lo
+ * si lascia dire a chi guarda anche i watt. */
+export function modoDelLettore(stato) {
+  const grezzo = pulito(stato).toLowerCase();
+  if (!grezzo || grezzo === "unknown" || grezzo === "unavailable") return "";
+  if (grezzo === "off") return "off";
+  if (grezzo === "standby") return "standby";
+  return STATI_VIVI.has(grezzo) ? "running" : "";
+}
+
 /** Una voce configurata, ripulita. Senza entità non è una voce. */
 export function normalizzaLettore(stored, indice = 0) {
   const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};

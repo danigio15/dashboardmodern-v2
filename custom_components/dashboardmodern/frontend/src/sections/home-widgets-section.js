@@ -46,6 +46,9 @@ import {
   parolaDelGrado,
 } from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
+import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
+import { eDellaWallbox } from "../core/wallbox-device-binding.js";
+import { statoUmanoEV } from "./il-popup-dell-auto-racconta-section.js";
 import { poolList } from "../core/pool-model.js";
 /* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
  * di rifare il giro verso GitHub per conto suo. */
@@ -1310,9 +1313,54 @@ const SPINA_NO =
   /(not[\s_-]*charging|dis[\s_-]*connect|un[\s_-]*plug|no[nt]?[\s_-]*(in[\s_-]*)?carica|no[nt]?[\s_-]*colleg|scolleg|staccat|no[\s_-]*vehicle|not[\s_-]*connect)/;
 const SPINA_SI = /(charging|carica|plug|connect|conness|colleg)/;
 
-function letturaVettura(states, auto, fuori, indice) {
+/* Il cavo e la potenza, come testimoni dello stato della ricarica.
+ *
+ * La pagina Auto decide la pastiglia — «Non connessa», «Collegata», «In
+ * carica» — con `codiceDellaRicarica`, dando al nucleo lo stato grezzo, il
+ * sensore del cavo e la potenza che passa. La tessera in Home invece
+ * guardava lo stato grezzo da solo: con un `binary_sensor.charging` che dice
+ * «off» a cavo attaccato diceva «Scollegata», e la pagina, un tocco piu' in
+ * la', «Collegata». «Nel widget la ricarica risulta scollegata ma se entri
+ * nella pagina dedicata la vedi collegata» (#348). Adesso i due posti chiedono
+ * allo stesso nucleo, con gli stessi testimoni.
+ *
+ * Il cavo e la potenza sono della colonnina, cioe' della casa: si leggono
+ * dalla mappatura della vettura se ce li ha (ogni salvataggio glieli copia
+ * dentro), altrimenti dalle chiavi di casa, che e' dove la pagina li legge. */
+function testimoniDellaRicarica(states, mappa) {
+  const statoDi = (riferimento) => {
+    const propria = clean(mappa?.[riferimento]);
+    const entity = propria || clean(root.resolveEntity?.(riferimento) || "");
+    if (!entity || entity === riferimento) return null;
+    return stateOf(states, entity);
+  };
+  const collegata = cavoDalloStato(statoDi("dm.ev_cavo_collegato")?.state);
+  let potenza = null;
+  for (const riferimento of ["dm.ev_potenza_wallbox", "dm.ev_charge_power"]) {
+    const letta = Number(statoDi(riferimento)?.state);
+    if (Number.isFinite(letta)) {
+      potenza = letta;
+      break;
+    }
+  }
+  return { collegata, potenza };
+}
+
+/* La lettera della ricarica di questa vettura, o — quando il nucleo non sa
+ * dire niente — lo stato com'e', che le parole di prima sanno ancora leggere. */
+function ricaricaDellaVettura(states, mappa, stato) {
+  const grezzo = clean(stato?.state);
+  const codice = codiceDellaRicarica({ stato: grezzo, ...testimoniDellaRicarica(states, mappa) });
+  return codice || grezzo;
+}
+
+/* `visti` e' l'insieme delle entita' gia' raccontate: proprio di UNA vettura
+ * quando la si legge da sola, e di tutta la casa quando le si legge in fila
+ * (vedi `evModel`). Una casella copiata in ogni profilo — il cavo della
+ * colonnina, che ogni salvataggio dell'auto si porta dentro — e' un fatto
+ * solo, e fa una riga sola. */
+function letturaVettura(states, auto, fuori, indice, visti = new Set()) {
   const mappa = auto?.ov || auto?.overrides || {} || {};
-  const visti = new Set();
   const misura = (riferimento) => {
     const entity = clean(mappa[riferimento]);
     if (!entity || !widgetIncludes(entity, fuori)) return null;
@@ -1355,10 +1403,13 @@ function letturaVettura(states, auto, fuori, indice) {
   };
   return {
     nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
+    /* Un'auto e' il suo sensore di carica: due profili che leggono lo stesso
+     * sono la stessa vettura scritta due volte, e `evModel` ne tiene una. */
+    identita: carica?.entity || autonomia?.entity || "",
     percentuale,
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
-    ricarica: stato?.state || "",
+    ricarica: ricaricaDellaVettura(states, mappa, stato),
     kw: sbircia("dm.ev_potenza_ricarica"),
     target: sbircia("dm.ev_target_soc"),
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1459,7 +1510,10 @@ function altreCaselleEv(states, mappa, fuori, visti) {
     const riga = rigaDaEntita(states, entity, glifoEv(riferimento));
     if (!riga) continue;
     visti.add(entity);
-    righe.push(riga);
+    /* Le caselle della colonnina sono della casa, non di questa vettura: la
+     * riga non porta il nome dell'auto, perche' il cavo e' lo stesso qualunque
+     * macchina ci sia attaccata. */
+    righe.push(eDellaWallbox(riferimento) ? { ...riga, diCasa: true } : riga);
   }
   return righe;
 }
@@ -1490,10 +1544,11 @@ function letturaAttiva(states, fuori) {
   const mappa = readJson("cd_entity_overrides", {}) || {};
   return {
     nome: "",
+    identita: carica?.entity || autonomia?.entity || "",
     percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
-    ricarica: stato?.state || "",
+    ricarica: ricaricaDellaVettura(states, mappa, stato),
     kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
     target: refValue(states, "dm.ev_target_soc", fuori)?.value ?? null,
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1520,23 +1575,52 @@ function righeVettura(lettura, conNome) {
       glyph: "🔌",
       name: `${prefisso}${t("Ricarica", "Charging")}`,
       /* La parola, non il codice: «C» e' il gergo della wallbox, e in una
-       * casella si legge malissimo. La lettura e' la stessa di `attiva`. */
-      value: autoAllaPresa(lettura.ricarica)
-        ? t("In carica", "Charging")
-        : t("Scollegata", "Unplugged"),
+       * casella si legge malissimo. La lettera la decide il nucleo della
+       * pastiglia (#348), e le parole sono le stesse del popup dell'auto;
+       * uno stato che il nucleo non sa leggere tiene le parole di prima. */
+      value:
+        statoUmanoEV(lettura.ricarica) ||
+        (autoAllaPresa(lettura.ricarica) ? t("In carica", "Charging") : t("Scollegata", "Unplugged")),
     });
   /* E tutte le altre caselle mappate di questa vettura: sono quelle su cui
-   * l'interruttore «nel widget» sta acceso, e finora non uscivano. */
+   * l'interruttore «nel widget» sta acceso, e finora non uscivano. Quelle
+   * della colonnina sono della casa e non portano il nome dell'auto. */
   for (const riga of lettura.altre || [])
-    righe.push(prefisso ? { ...riga, name: `${prefisso}${riga.name}` } : riga);
+    righe.push(prefisso && !riga.diCasa ? { ...riga, name: `${prefisso}${riga.name}` } : riga);
   return righe;
+}
+
+/* Le vetture in fila, senza dire due volte la stessa cosa (#348).
+ *
+ * «Nel widget dell'auto mi trovo nella sezione stato cinque volte la stessa
+ * entita' con scritto spento.» Il salvataggio dell'auto copia nel profilo
+ * TUTTE le caselle `dm.ev_*` di casa — anche quelle della colonnina — e
+ * l'auto arrivata dall'integrazione, prima della 1.4.10, nasceva daccapo a
+ * ogni collegamento: cinque profili, la stessa mappatura, e la tessera che
+ * leggeva ognuno per conto suo diceva cinque volte lo stesso sensore.
+ *
+ * Qui le entita' gia' raccontate non si raccontano piu' — l'insieme `visti`
+ * e' uno per tutta la casa — e un profilo che legge lo stesso sensore di
+ * carica di uno gia' letto e' la stessa auto scritta due volte, e si salta. */
+export function lettureDelleVetture(states, auto = [], fuori = new Set()) {
+  const visti = new Set();
+  const identita = new Set();
+  const letture = [];
+  (Array.isArray(auto) ? auto : []).forEach((vettura, indice) => {
+    const lettura = letturaVettura(states, vettura, fuori, indice, visti);
+    if (!lettura) return;
+    if (lettura.identita) {
+      if (identita.has(lettura.identita)) return;
+      identita.add(lettura.identita);
+    }
+    letture.push(lettura);
+  });
+  return letture;
 }
 
 function evModel(states) {
   const fuori = widgetExcludedEntities();
-  const profilate = vetture()
-    .map((auto, indice) => letturaVettura(states, auto, fuori, indice))
-    .filter(Boolean);
+  const profilate = lettureDelleVetture(states, vetture(), fuori);
   /* Il profilo comanda appena e' leggibile, anche da solo: prima, con UNA
    * vettura profilata, si leggevano solo le chiavi globali — che si riempiono
    * ai salvataggi successivi, la foto compresa — e un'auto con la batteria

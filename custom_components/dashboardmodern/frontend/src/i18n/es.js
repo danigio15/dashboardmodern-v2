@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "Reserva",
   "Save alerts": "Guardar alertas",
   "Save waste": "Guardar residuos",
-  "Service battery 12 V (%)": "Batería auxiliar de 12 V (%)",
+  "Service battery 12 V (% or V)": "Batería de servicio 12 V (% o V)",
   "Single calendar (optional)": "Calendario único (opcional)",
   "Slightly cool": "Ligeramente fresco",
   "Slightly warm": "Ligeramente cálido",

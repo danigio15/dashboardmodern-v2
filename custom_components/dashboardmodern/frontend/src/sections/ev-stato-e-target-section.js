@@ -22,7 +22,7 @@
  * La vetrina (`ev-showcase-section`) resta sola presentazione: questo modulo
  * legge i valori, e lo fa dalle stesse caselle che legge la foto.
  */
-import { codiceDellaRicarica } from "../core/stato-della-ricarica.js";
+import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
 import { liveState } from "./ev-section.js";
 import { clean, doc, root, t, wrapFunction } from "./shared.js";
 
@@ -49,15 +49,11 @@ const ETICHETTE_STATO = () => ({
 });
 
 /* Il cavo lo dice solo il suo sensore. Un «off» del sensore di carica non e'
- * un cavo fuori: e' una carica ferma, e il cavo puo' essere dentro. */
-const CAVO_DENTRO = /^(on|true|1|home|connected|plugged|collegato|attaccato)$/i;
-const CAVO_FUORI = /^(off|false|0|not_home|disconnected|unplugged|scollegato|staccato)$/i;
-
+ * un cavo fuori: e' una carica ferma, e il cavo puo' essere dentro. Le parole
+ * del cavo stanno nel nucleo, perche' le legge anche la tessera in Home (#348):
+ * un cavo solo, una lettura sola. */
 function cavoDichiarato() {
-  const stato = clean(liveState("dm.ev_cavo_collegato")?.state);
-  if (CAVO_DENTRO.test(stato)) return true;
-  if (CAVO_FUORI.test(stato)) return false;
-  return null;
+  return cavoDalloStato(liveState("dm.ev_cavo_collegato")?.state);
 }
 
 function potenzaDellaColonnina() {

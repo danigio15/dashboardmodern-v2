@@ -53,10 +53,19 @@ export const CASELLE_TERMICHE = Object.freeze([
    * «casa», «lavoro», «in viaggio» — e si legge come tale. */
   Object.freeze({ ref: "dm.ev_posizione", campo: "posizione", tipo: "luogo", glifo: "📍" }),
   Object.freeze({ ref: "dm.ev_allarme", campo: "allarme", tipo: "allarme", glifo: "🚨" }),
+  /* La batteria di servizio (#348).
+   *
+   * «Nella sezione batteria 12 V in questo momento e' a 14 V, mi da' 14%.»
+   * La casella era una percentuale e basta: un sensore in volt — che e' la
+   * forma in cui la meta' delle integrazioni pubblica la batteria da 12 V —
+   * veniva letto come un livello, e i quattordici volt di un alternatore che
+   * carica diventavano un quattordici per cento di batteria quasi a terra.
+   * Adesso la casella legge l'unita' che il sensore dichiara: percento e'
+   * un livello, volt e' una tensione, e si mostra quello che si e' letto. */
   Object.freeze({
     ref: "dm.ev_batteria_servizio",
     campo: "batteriaServizio",
-    tipo: "percento",
+    tipo: "batteria",
     glifo: "🔋",
   }),
   Object.freeze({ ref: "dm.ev_temperatura_olio", campo: "olio", tipo: "gradi", glifo: "🛢️" }),
@@ -190,6 +199,24 @@ export function allarmeDalloStato(stato) {
   return null;
 }
 
+/* La batteria di servizio: un livello in percento, o una tensione in volt.
+ *
+ * Decide l'unita' che il sensore dichiara, non la casella: «%» (o niente,
+ * com'era sempre stato) e' un livello e si tiene fra zero e cento; «V» e
+ * «mV» sono una tensione, e una tensione non si taglia a cento — sono i
+ * numeri di un alternatore. Torna il numero e l'unita' con cui mostrarlo, o
+ * null se non c'e' un numero. */
+export function batteriaDalloStato(stato, unita = "") {
+  const n = numero(minuscolo(stato));
+  if (n === null) return null;
+  const dichiarata = pulito(unita);
+  if (/^mv$/i.test(dichiarata)) return { valore: n / 1000, unita: "V" };
+  if (/^v$/i.test(dichiarata)) return { valore: n, unita: "V" };
+  if (!dichiarata || dichiarata === "%")
+    return { valore: Math.max(0, Math.min(100, n)), unita: "%" };
+  return { valore: n, unita: dichiarata };
+}
+
 /* I pneumatici: una pressione con la sua unita', oppure un avviso si'/no. */
 export function pneumaticiDalloStato(stato, unita = "") {
   const voce = minuscolo(stato);
@@ -266,6 +293,9 @@ export function letturaTermica(mappa = {}, states = {}, resolve = null) {
           valore = n === null ? null : Math.max(0, Math.min(100, n));
           break;
         }
+        case "batteria":
+          valore = batteriaDalloStato(grezzo, unita);
+          break;
         case "gradi":
         case "km":
         case "litri":
@@ -304,6 +334,12 @@ export function letturaTermica(mappa = {}, states = {}, resolve = null) {
     };
     fuori[voce.campo] = valore;
   }
+  /* La batteria di servizio si legge come le altre misure con un'unita':
+   * un numero e, accanto, in che cosa e' scritto. Chi la disegna scrive
+   * quello che c'e' qui, non un «%» deciso a tavolino (#348). */
+  const servizio = fuori.batteriaServizio;
+  fuori.batteriaServizio = servizio ? servizio.valore : servizio === undefined ? undefined : null;
+  fuori.batteriaServizioUnita = servizio ? servizio.unita : "%";
   /* Le due caselle che la pagina ha gia' e che valgono per ogni motore. */
   const autonomia = statoDi("dm.ev_autonomia");
   const odometro = statoDi("dm.ev_odometro");

@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "Op reserve",
   "Save alerts": "Waarschuwingen opslaan",
   "Save waste": "Afval opslaan",
-  "Service battery 12 V (%)": "Hulpaccu 12 V (%)",
+  "Service battery 12 V (% or V)": "12 V-hulpaccu (% of V)",
   "Single calendar (optional)": "Enkele kalender (optioneel)",
   "Slightly cool": "Ietwat koel",
   "Slightly warm": "Ietwat warm",

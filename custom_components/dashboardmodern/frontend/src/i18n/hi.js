@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "रिज़र्व",
   "Save alerts": "अलर्ट सहेजें",
   "Save waste": "कचरा सहेजें",
-  "Service battery 12 V (%)": "सर्विस बैटरी 12 V (%)",
+  "Service battery 12 V (% or V)": "सर्विस बैटरी 12 V (% या V)",
   "Single calendar (optional)": "एकल कैलेंडर (वैकल्पिक)",
   "Slightly cool": "थोड़ा ठंडा",
   "Slightly warm": "थोड़ा गर्म",
