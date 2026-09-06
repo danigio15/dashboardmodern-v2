@@ -131,6 +131,19 @@ senza un perche'.
   ripresa aspetta cinque minuti — il passo con cui le statistiche si
   compilano, quindi prima non c'e' niente di nuovo — anche a pagina aperta.
 
+- **HACS non propone piu' l'aggiornamento appena fatto.**
+
+      «HACS mostra l'aggiornamento anche dopo averlo fatto.»
+
+  HACS scrive la versione installata nel suo registro solo quando installa
+  lui, e «Aggiorna informazioni» rilegge GitHub, non la cartella: dopo
+  un'installazione fatta dal tasto della plancia la sua scheda continuava a
+  dire la versione di prima e a proporre l'aggiornamento appena fatto — per
+  sempre. La 1.4.10 lo aveva solo scritto nel riepilogo, e aveva promesso un
+  riallineamento che non esiste. Adesso l'installazione glielo dice: la
+  versione nuova finisce nel registro di HACS con la stessa etichetta che
+  scriverebbe lui, e la sua scheda si ridisegna. Senza HACS non cambia niente.
+
 ## 1.4.10
 
 Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.
