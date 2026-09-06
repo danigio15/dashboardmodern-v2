@@ -52,7 +52,10 @@ test("la card bloccata perde la levetta, quella libera la tiene", async ({ page 
    * non gira apposta — finche' non passa per caso un altro giro di stati. */
   const voce = page.locator('.tab[data-tab="prese"]');
   await expect(voce).toBeAttached({ timeout: 20000 });
-  await voce.click({ force: true });
+  /* Il tocco si da' alla voce, non al pixel: sul tablet la barra parte
+   * raccolta e un click per coordinate non troverebbe niente da colpire. Il
+   * gestore che gira e' lo stesso che gira sotto il dito. */
+  await voce.evaluate((nodo) => nodo.click());
   const bloccata = page.locator('#page-prese [data-dm-lucip="switch.frigo"]');
   await expect(bloccata).toBeAttached({ timeout: 20000 });
   await expect(bloccata.locator(".dm-lucip-led")).toHaveCount(0);

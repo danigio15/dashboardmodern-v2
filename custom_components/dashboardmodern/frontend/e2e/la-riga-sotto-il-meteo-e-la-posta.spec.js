@@ -144,12 +144,21 @@ test("la riga conta le luci accese, e sta attaccata sotto il meteo", async ({ pa
     await page.evaluate(() => {
       const riga = document.getElementById("dm-casa-riga");
       const prima = riga?.previousElementSibling;
+      const pastiglie = document.getElementById("dashboard-pills-row");
       return {
         sottoIlMeteo: !prima || prima.classList.contains("weather-widget"),
-        dopo: riga?.nextElementSibling?.id,
+        /* Sopra le pastiglie, non per forza attaccata: fra le due puo' esserci
+         * il cartello di chi non ha ancora configurato niente, e non e' un
+         * errore che ci sia. Quello che conta e' l'ordine — sotto le pastiglie
+         * la riga finirebbe spinta in fondo alla pagina al primo riordino. */
+        sopraLePastiglie: Boolean(
+          riga &&
+          pastiglie &&
+          riga.compareDocumentPosition(pastiglie) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
       };
     }),
-  ).toEqual({ sottoIlMeteo: true, dopo: "dashboard-pills-row" });
+  ).toEqual({ sottoIlMeteo: true, sopraLePastiglie: true });
 
   /* Si accende la seconda luce: il conto la segue. */
   await scrivi(page, [{ entity_id: "light.cucina", state: "on", attributes: {} }]);

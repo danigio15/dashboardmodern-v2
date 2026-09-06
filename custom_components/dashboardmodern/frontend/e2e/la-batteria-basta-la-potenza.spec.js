@@ -82,8 +82,13 @@ async function avvia(page, testInfo, battery) {
 test("con la sola potenza il cerchio c'e', e la riga del SoC no", async ({ page }, testInfo) => {
   test.setTimeout(150_000);
   await avvia(page, testInfo, { power: "sensor.batt_w" });
+  /* Il cerchio si dipinge col giro dell'Energia, e quel giro su un motore piu'
+   * lento arriva dopo i dieci secondi di serie: qui si aspetta che arrivi, non
+   * un tempo deciso a tavolino. */
   await expect
-    .poll(() => page.evaluate(() => document.getElementById("n-battery")?.style.display ?? null))
+    .poll(() => page.evaluate(() => document.getElementById("n-battery")?.style.display ?? null), {
+      timeout: 40_000,
+    })
     .not.toBe("none");
   const soc = await page.evaluate(() => {
     const nodo = document.getElementById("v-battery-soc");

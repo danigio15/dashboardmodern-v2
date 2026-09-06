@@ -10,6 +10,7 @@ const state = (root[KEY] ||= {
   behaviour: false,
   barraScoperta: false,
   scadenza: 0,
+  filtroInCoda: false,
 });
 
 /* The dock is sized on its content (`width:max-content`), so with every section
@@ -831,20 +832,42 @@ function accodaDopo(nome) {
 
 /* Una voce appena messa si filtra subito, non al giro dopo.
  *
- * Le voci che aggiungono i moduli — Stanze, Luci, Prese, Robot, il cruscotto —
- * arrivano dopo quelle del guscio, e il guscio le filtra al suo giro: misurato,
- * comparivano non filtrate a 1431 ms e sparivano a 1505 ms. Settantaquattro
- * millisecondi in cui la barra mostra la voce di una sezione spenta.
+ * Le voci che aggiungono i moduli — Stanze, Luci, Prese, Robot, gli Animali, il
+ * cruscotto — arrivano dopo quelle del guscio, e il guscio le filtra al suo
+ * giro: misurato, comparivano non filtrate a 1431 ms e sparivano a 1505 ms.
+ * Settantaquattro millisecondi in cui la barra mostra la voce di una sezione
+ * spenta.
  *
  * L'aggancio e' `render`, che e' la funzione che rifa' la plancia e dentro cui
  * quelle voci nascono: niente sorveglianti e niente timer, che e' la regola di
- * questo modulo e di questa barra. */
+ * questo modulo e di questa barra.
+ *
+ * Solo che non tutte nascono DENTRO `render`. Quasi tutti quei moduli, dal
+ * `render`, si mettono in coda per il fotogramma dopo e la voce la creano li':
+ * filtrare appena `render` finisce vuol dire filtrare una barra in cui quelle
+ * voci ancora non ci sono, e infatti la barra usciva con otto voci e trentuno
+ * millisecondi dopo ne aveva quattro. Percio' si filtra due volte: adesso, e in
+ * fondo allo stesso fotogramma — la coda e' in ordine d'arrivo, e la nostra si
+ * mette in fila dopo la loro. Non e' un timer che gira: e' la fine del giro di
+ * disegno che l'ha chiesto. */
+function filtraNelFotogramma() {
+  if (state.filtroInCoda) return;
+  const chiedi = root.requestAnimationFrame || root.setTimeout;
+  if (typeof chiedi !== "function") return;
+  state.filtroInCoda = true;
+  chiedi.call(root, () => {
+    state.filtroInCoda = false;
+    applicaLaVisibilita();
+  });
+}
+
 function filtraDopo(nome) {
   const originale = root[nome];
   if (typeof originale !== "function" || originale.__dmVisibilitaSubito) return false;
   const avvolta = function (...argomenti) {
     const esito = originale.apply(this, argomenti);
     applicaLaVisibilita();
+    filtraNelFotogramma();
     return esito;
   };
   avvolta.__dmVisibilitaSubito = true;

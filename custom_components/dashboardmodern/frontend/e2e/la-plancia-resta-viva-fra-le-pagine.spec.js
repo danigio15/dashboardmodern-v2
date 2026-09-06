@@ -77,6 +77,21 @@ async function marchioDellaPlancia(page) {
 
 test("la plancia messa da parte torna in scena senza riavviarsi", async ({ page }) => {
   await apriLaScena(page);
+  /* Il parcheggio esiste solo dove esiste lo spostamento atomico.
+   *
+   * `moveBefore` e' l'unico modo di spostare una cornice senza che il suo
+   * documento riparta, e non tutti i motori ce l'hanno: dove manca il guscio
+   * risponde di no apposta e la plancia si rimonta come ha sempre fatto — che
+   * e' proprio la prova qui sotto. Si chiede al browser se sa farlo, non che
+   * browser e': la capacita' arrivera' anche agli altri, e il giorno che
+   * arriva questa prova gira da sola. */
+  const sannoSpostare = await page.evaluate(
+    () => typeof Element.prototype.moveBefore === "function",
+  );
+  test.skip(
+    !sannoSpostare,
+    "questo motore non sa spostare una cornice senza ricaricarla: la plancia riparte, ed e' la prova qui sotto",
+  );
   await page.evaluate((info) => window.__monta(info), INFO);
   const primo = await marchioDellaPlancia(page);
 

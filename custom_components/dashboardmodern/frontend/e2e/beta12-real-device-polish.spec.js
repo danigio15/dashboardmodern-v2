@@ -338,6 +338,31 @@ for (const variant of PRIMARY) {
     }
   });
 
+  /* «Quando si guarda da PC o tablet le cards sono tutte in colonna e non
+   * responsive: sarebbe bello si allineassero per sfruttare tutta la larghezza»
+   * (#349). Qui c'era il tetto di 360 px che quella richiesta ha tolto: era la
+   * misura del vecchio disegno, e tenerla vorrebbe dire pretendere proprio la
+   * cosa che l'utente ha chiesto di cambiare.
+   *
+   * Quello che il disegno promette adesso non e' un numero: la card e' larga
+   * quanto la sua colonna, e le colonne sono quante ne stanno — mai piu' strette
+   * del minimo, e mai una sola quando ce ne stavano due. Detta cosi' vale su
+   * qualunque schermo, e la colonna singola sul tablet la becca lo stesso. */
+  const COLONNA_MINIMA = 288;
+  const VUOTO_FRA_COLONNE = 14;
+
+  function colonneGiuste({ dentro, width }, quando) {
+    const stanno = Math.max(
+      1,
+      Math.floor((dentro + VUOTO_FRA_COLONNE) / (COLONNA_MINIMA + VUOTO_FRA_COLONNE)),
+    );
+    const uscite = Math.max(
+      1,
+      Math.round((dentro + VUOTO_FRA_COLONNE) / (width + VUOTO_FRA_COLONNE)),
+    );
+    expect(uscite, `${quando}: colonne uscite su ${Math.round(dentro)} px di griglia`).toBe(stanno);
+  }
+
   test(`${variant}: shutter page has one stable geometry before and after delayed polish`, async ({
     page,
   }, testInfo) => {
@@ -364,15 +389,24 @@ for (const variant of PRIMARY) {
       const card = document.querySelector("#page-tapparelle .tapp-card");
       const windowNode = card?.querySelector(".tapp-win");
       const style = card ? getComputedStyle(card) : null;
+      const griglia = document.getElementById("tapp-grid");
+      const suo = griglia ? getComputedStyle(griglia) : null;
       return {
         width: card?.getBoundingClientRect().width || 0,
         height: windowNode?.getBoundingClientRect().height || 0,
         padding: style?.padding || "",
         radius: style?.borderRadius || "",
+        /* Quanto spazio hanno da dividersi le colonne, tolto il bordo interno
+         * della griglia: serve a dire quante colonne DOVEVANO uscire. */
+        dentro: griglia
+          ? griglia.clientWidth -
+            parseFloat(suo.paddingLeft || 0) -
+            parseFloat(suo.paddingRight || 0)
+          : 0,
       };
     });
     expect(first.width).toBeGreaterThan(0);
-    expect(first.width).toBeLessThanOrEqual(361);
+    colonneGiuste(first, "al primo disegno");
     expect(first.height).toBe(132);
     expect(first.padding).toContain("14px");
 

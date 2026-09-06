@@ -308,16 +308,23 @@ test("la finestra dei dettagli non si riscrive con gli stessi stati", async ({
       attributes: true,
       characterData: true,
     });
-    // Due giri del guscio a stati fermi: la lista non si tocca.
+    /* Due giri del guscio a stati fermi: la lista non si tocca. L'attesa e'
+     * piu' lunga del mezzo secondo con cui il guscio raggruppa i suoi disegni:
+     * guardare per un decimo di secondo vorrebbe dire non vedere proprio il
+     * ridisegno che si sta cercando. */
     window.render();
     window.render();
-    await new Promise((ok) => setTimeout(ok, 100));
+    await new Promise((ok) => setTimeout(ok, 800));
     const ferme = scritture;
     // Uno stato del gruppo cambia: la lista si riscrive.
     window
       .__dmPresa()
       .emetti("climate.salone", "heat", { temperature: 21, friendly_name: "Salone" });
-    await new Promise((ok) => setTimeout(ok, 900));
+    /* Si aspetta finche' la riscrittura arriva, non un tempo deciso a tavolino:
+     * quello che conta e' che arrivi, e su un motore piu' lento del solito un
+     * budget fisso boccia una plancia che funziona. */
+    for (let giro = 0; giro < 160 && scritture === 0; giro += 1)
+      await new Promise((ok) => setTimeout(ok, 50));
     osservatore.disconnect();
     return {
       ferme,

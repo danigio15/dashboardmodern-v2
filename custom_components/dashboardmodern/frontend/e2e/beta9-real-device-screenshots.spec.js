@@ -333,12 +333,36 @@ for (const variant of PRIMARY) {
     });
     const shutterCard = page.locator("#page-tapparelle .tapp-card").first();
     await expect(shutterCard).toBeVisible();
-    const shutterGeometry = await shutterCard.evaluate((card) => ({
-      width: card.getBoundingClientRect().width,
-      windowHeight: card.querySelector(".tapp-win")?.getBoundingClientRect().height || 0,
-      slatAnimation: getComputedStyle(card.querySelector(".tapp-shutter i")).animationName,
-    }));
-    expect(shutterGeometry.width).toBeLessThanOrEqual(361);
+    const shutterGeometry = await shutterCard.evaluate((card) => {
+      const griglia = document.getElementById("tapp-grid");
+      const suo = griglia ? getComputedStyle(griglia) : null;
+      return {
+        width: card.getBoundingClientRect().width,
+        windowHeight: card.querySelector(".tapp-win")?.getBoundingClientRect().height || 0,
+        slatAnimation: getComputedStyle(card.querySelector(".tapp-shutter i")).animationName,
+        /* Lo spazio che le colonne hanno da dividersi, tolto il bordo interno
+         * della griglia. */
+        dentro: griglia
+          ? griglia.clientWidth -
+            parseFloat(suo.paddingLeft || 0) -
+            parseFloat(suo.paddingRight || 0)
+          : 0,
+      };
+    });
+    /* Qui c'era il tetto di 360 px, ed e' il tetto che #349 ha tolto: «da PC o
+     * tablet le cards sono tutte in colonna, sarebbe bello si allineassero per
+     * sfruttare tutta la larghezza». Adesso la card e' larga quanto la sua
+     * colonna, e le colonne sono quante ne stanno. */
+    {
+      const minima = 288;
+      const vuoto = 14;
+      const stanno = Math.max(1, Math.floor((shutterGeometry.dentro + vuoto) / (minima + vuoto)));
+      const uscite = Math.max(
+        1,
+        Math.round((shutterGeometry.dentro + vuoto) / (shutterGeometry.width + vuoto)),
+      );
+      expect(uscite, `colonne uscite su ${Math.round(shutterGeometry.dentro)} px`).toBe(stanno);
+    }
     expect(shutterGeometry.windowHeight).toBeLessThanOrEqual(133);
     expect(shutterGeometry.slatAnimation).toBe("none");
 
