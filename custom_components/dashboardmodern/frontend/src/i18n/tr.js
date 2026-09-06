@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "Varsayılan olarak yağmur RainViewer'dan, harita OpenStreetMap'ten gelir: sadece yeri seçin. Hizmeti listeden değiştirebilir ya da «Kendi adresim» ile istediğiniz hizmetin yayımladığı adresi, karo numaraları yerine {z}/{x}/{y} koyarak yazabilirsiniz. «Dene» bir tane indirir ve gelip gelmediğini söyler.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Bağış istediğiniz miktarda olur ve hiçbir şeyin kilidini açmaz: pano herkes için aynı kalır. Bir teşekkür ve «devam et» demenin bir yoludur.",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Her sürüm yeni bölümler, sahada görülen düzeltmeler ve telefon, tablet ve duvar ekranlarında testler getirir. Bunun için gereken zamanı boş tutmaya bağışlar yardımcı olur.",
-  "Find out how": "Nasıl olduğunu gör",
   "light → heavy": "hafif → şiddetli",
   "No colour means no rain.": "Renk olmayan yerde yağmur yok.",
   "Payment happens on PayPal, in a new tab.": "Ödeme yeni bir sekmede PayPal üzerinden yapılır.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Kum kabının en son ne zaman temizlendiği: bir tarih ya da geçen dakikalar. Aşağıda belirtilen saatler geçince kart bunu söyler.",
   "Whiskers": "Pamuk",
   "Without a photo the card shows the species symbol.": "Fotoğraf olmadan kart türün simgesini gösterir.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "Panel bağımsız ve aboneliksiz: ona nasıl destek olabileceğin burada",
 });

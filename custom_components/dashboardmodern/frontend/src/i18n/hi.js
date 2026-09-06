@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "डिफ़ॉल्ट रूप से बारिश RainViewer से और नक्शा OpenStreetMap से आता है: बस जगह चुनें। सूची से सेवा बदल सकते हैं, या «मेरा पता» चुनकर अपनी सेवा का पता लिखें, टाइल संख्याओं की जगह {z}/{x}/{y} के साथ। «परखें» एक टाइल डाउनलोड करके बताता है कि आती है या नहीं।",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "दान की राशि आपकी पसंद है और इससे कुछ अनलॉक नहीं होता: डैशबोर्ड सभी के लिए वही रहता है। यह एक धन्यवाद है, और «जारी रखो» कहने का तरीका।",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "हर संस्करण नए अनुभाग, वास्तविक उपयोग में मिले सुधार और फोन, टैबलेट और दीवार स्क्रीन पर परीक्षण लाता है। इसके लिए समय निकालने में दान मदद करता है।",
-  "Find out how": "जानें कैसे",
   "light → heavy": "हल्की → भारी",
   "No colour means no rain.": "जहाँ रंग नहीं, वहाँ बारिश नहीं।",
   "Payment happens on PayPal, in a new tab.": "भुगतान PayPal पर एक नए टैब में होता है।",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "लिटर बॉक्स आख़िरी बार कब साफ़ हुआ: एक तारीख़, या बीते मिनट। नीचे तय घंटों के बाद कार्ड यह बता देता है।",
   "Whiskers": "मिट्ठू",
   "Without a photo the card shows the species symbol.": "फ़ोटो के बिना कार्ड प्रजाति का चिह्न दिखाता है।",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "यह डैशबोर्ड स्वतंत्र है और बिना सदस्यता के: इसकी मदद कैसे करें, यहाँ देखें",
 });

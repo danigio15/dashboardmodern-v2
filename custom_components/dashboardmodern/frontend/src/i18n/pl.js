@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "Domyślnie deszcz pochodzi z RainViewer, a mapa z OpenStreetMap: wystarczy wybrać miejsce. Usługę można zmienić na liście albo wybrać «Własny adres» i wpisać ten publikowany przez wybraną usługę, z {z}/{x}/{y} w miejsce numerów kafelka. «Sprawdź» pobiera jeden i mówi, czy dociera.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Darowizna to dowolna kwota i nic nie odblokowuje: panel pozostaje taki sam dla wszystkich. To podziękowanie i sposób, by powiedzieć «rób dalej».",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Każda wersja przynosi nowe sekcje, poprawki z praktyki i testy na telefonach, tabletach i ekranach ściennych. Czas na to jest tym, co darowizny pomagają zachować.",
-  "Find out how": "Zobacz jak",
   "light → heavy": "lekki → silny",
   "No colour means no rain.": "Gdzie nie ma koloru, nie pada.",
   "Payment happens on PayPal, in a new tab.": "Płatność odbywa się w PayPal, w nowej karcie.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Kiedy kuweta była ostatnio sprzątana: data albo minuty, które minęły. Po godzinach ustawionych niżej karta to powie.",
   "Whiskers": "Mruczek",
   "Without a photo the card shows the species symbol.": "Bez zdjęcia karta pokazuje symbol gatunku.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "Panel jest niezależny i bez abonamentu: tutaj znajdziesz, jak go wesprzeć",
 });

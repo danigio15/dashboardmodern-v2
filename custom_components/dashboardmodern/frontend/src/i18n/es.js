@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "De serie la lluvia llega de RainViewer y el mapa de OpenStreetMap: basta elegir dónde. Puedes cambiar el servicio en la lista, o «Una dirección mía» y escribir la que publica el servicio que quieras, con {z}/{x}/{y} en lugar de los números de la tesela. «Probar» descarga una y te dice si llega.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Una donación es del importe que quieras y no desbloquea nada: el panel sigue siendo el mismo para todos. Es un gracias, y una forma de decir «sigue».",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Cada versión trae secciones nuevas, correcciones vistas sobre el terreno y pruebas en teléfonos, tabletas y pantallas de pared. El tiempo para hacerlo es lo que las donaciones ayudan a mantener libre.",
-  "Find out how": "Descubre cómo",
   "light → heavy": "ligera → fuerte",
   "No colour means no rain.": "Donde no hay color no llueve.",
   "Payment happens on PayPal, in a new tab.": "El pago se hace en PayPal, en una pestaña nueva.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Cuándo se limpió el arenero por última vez: una fecha, o los minutos transcurridos. Pasadas las horas indicadas abajo, la tarjeta lo dice.",
   "Whiskers": "Michi",
   "Without a photo the card shows the species symbol.": "Sin foto la tarjeta muestra el símbolo de la especie.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "El panel es independiente y sin suscripciones: aquí puedes ver cómo echarle una mano",
 });

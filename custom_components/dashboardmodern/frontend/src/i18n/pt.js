@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "De origem a chuva vem do RainViewer e o mapa do OpenStreetMap: basta escolher onde. Podes mudar o serviço na lista, ou «Um endereço meu» e escrever o que o teu serviço publica, com {z}/{x}/{y} no lugar dos números do mosaico. «Testar» descarrega um e diz se chega.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Uma doação é do valor que quiseres e não desbloqueia nada: o painel continua igual para todos. É um obrigado, e uma forma de dizer «continua».",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Cada versão traz secções novas, correções vistas no terreno e testes em telemóveis, tablets e ecrãs de parede. O tempo para o fazer é o que as doações ajudam a manter livre.",
-  "Find out how": "Saber como",
   "light → heavy": "fraca → forte",
   "No colour means no rain.": "Onde não há cor não chove.",
   "Payment happens on PayPal, in a new tab.": "O pagamento é feito no PayPal, num separador novo.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Quando a caixa de areia foi limpa pela última vez: uma data, ou os minutos passados. Passadas as horas indicadas em baixo, o cartão di-lo.",
   "Whiskers": "Bichano",
   "Without a photo the card shows the species symbol.": "Sem foto o cartão mostra o símbolo da espécie.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "O painel é independente e sem assinaturas: aqui está como dar-lhe uma ajuda",
 });

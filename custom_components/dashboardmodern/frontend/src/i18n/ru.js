@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "По умолчанию дождь берётся из RainViewer, а карта из OpenStreetMap: достаточно выбрать место. Сервис можно сменить в списке или выбрать «Свой адрес» и вписать адрес нужного сервиса с {z}/{x}/{y} вместо номеров тайла. «Проверить» скачивает один и говорит, приходит ли он.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Пожертвование — любая сумма на ваш выбор, и оно ничего не открывает: панель остаётся одинаковой для всех. Это спасибо и способ сказать «продолжай».",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Каждый выпуск приносит новые разделы, исправления из практики и тесты на телефонах, планшетах и настенных экранах. Время на это и помогают сохранить пожертвования.",
-  "Find out how": "Узнать как",
   "light → heavy": "слабый → сильный",
   "No colour means no rain.": "Где нет цвета, дождя нет.",
   "Payment happens on PayPal, in a new tab.": "Оплата проходит на PayPal, в новой вкладке.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Когда лоток чистили в последний раз: дата или прошедшие минуты. После указанных ниже часов карточка об этом скажет.",
   "Whiskers": "Барсик",
   "Without a photo the card shows the species symbol.": "Без фотографии карточка показывает символ вида.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "Панель независима и без подписок: здесь написано, как ей помочь",
 });

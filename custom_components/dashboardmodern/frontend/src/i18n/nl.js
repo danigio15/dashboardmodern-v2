@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "Standaard komt de regen van RainViewer en de kaart van OpenStreetMap: kies alleen waar. Je kunt de dienst in de lijst wisselen, of «Een eigen adres» en het adres van jouw dienst invullen, met {z}/{x}/{y} in plaats van de tegelnummers. «Proberen» haalt er één op en zegt of hij aankomt.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Een donatie is een bedrag naar keuze en ontgrendelt niets: het dashboard blijft voor iedereen hetzelfde. Het is een bedankje, en een manier om «ga door» te zeggen.",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Elke versie brengt nieuwe secties, fixes uit de praktijk en tests op telefoons, tablets en wandschermen. De tijd daarvoor is wat donaties helpen vrij te houden.",
-  "Find out how": "Ontdek hoe",
   "light → heavy": "licht → zwaar",
   "No colour means no rain.": "Waar geen kleur is, regent het niet.",
   "Payment happens on PayPal, in a new tab.": "De betaling gebeurt op PayPal, in een nieuw tabblad.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Wanneer de kattenbak voor het laatst is schoongemaakt: een datum, of de verstreken minuten. Na de hieronder ingestelde uren zegt de kaart het.",
   "Whiskers": "Minoes",
   "Without a photo the card shows the species symbol.": "Zonder foto toont de kaart het symbool van de soort.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "Het dashboard is onafhankelijk en zonder abonnement: zo geef je het een handje",
 });

@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "Ab Werk kommt der Regen von RainViewer und die Karte von OpenStreetMap: einfach den Ort wählen. Den Dienst kann man in der Liste wechseln, oder «Eine eigene Adresse» und die des gewünschten Dienstes eintragen, mit {z}/{x}/{y} statt der Kachelnummern. «Testen» lädt eine herunter und sagt, ob sie ankommt.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Eine Spende ist ein Betrag nach Wahl und schaltet nichts frei: das Dashboard bleibt für alle dasselbe. Sie ist ein Dankeschön, und eine Art «mach weiter» zu sagen.",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Jede Version bringt neue Bereiche, im Alltag entdeckte Korrekturen und Tests auf Telefonen, Tablets und Wandbildschirmen. Die Zeit dafür ist es, die Spenden frei halten helfen.",
-  "Find out how": "So geht's",
   "light → heavy": "leicht → stark",
   "No colour means no rain.": "Wo keine Farbe ist, regnet es nicht.",
   "Payment happens on PayPal, in a new tab.": "Die Zahlung läuft über PayPal, in einem neuen Tab.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Wann das Katzenklo zuletzt gereinigt wurde: ein Datum oder die vergangenen Minuten. Nach den unten eingestellten Stunden sagt es die Karte.",
   "Whiskers": "Mieze",
   "Without a photo the card shows the species symbol.": "Ohne Foto zeigt die Karte das Symbol der Art.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "Die Übersicht ist unabhängig und abofrei: hier steht, wie man ihr helfen kann",
 });

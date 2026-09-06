@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "默认情况下降雨来自 RainViewer，地图来自 OpenStreetMap：只需选择位置。可以在列表中更换服务，或选择«我的地址»并填写所用服务发布的地址，用 {z}/{x}/{y} 代替瓦片编号。«测试»会下载一块并告诉你是否可用。",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "捐赠金额随意，也不会解锁任何内容：面板对所有人都一样。它是一份感谢，也是一句«继续下去»。",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "每个版本都会带来新的板块、实际使用中发现的修复，以及在手机、平板和壁挂屏幕上的测试。捐赠帮助腾出做这些事的时间。",
-  "Find out how": "了解方式",
   "light → heavy": "小 → 大",
   "No colour means no rain.": "没有颜色的地方就没有降雨。",
   "Payment happens on PayPal, in a new tab.": "付款在新标签页中通过 PayPal 完成。",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "猫砂盆上次清理是什么时候：一个日期，或者过去了多少分钟。超过下面设定的小时数，卡片就会说。",
   "Whiskers": "咪咪",
   "Without a photo the card shows the species symbol.": "没有照片时，卡片显示物种的符号。",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "这块面板独立运作、没有订阅：这里说明如何为它出一份力",
 });

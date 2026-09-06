@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "Par défaut la pluie vient de RainViewer et la carte d'OpenStreetMap : il suffit de choisir où. Vous pouvez changer de service dans la liste, ou «Une adresse à moi» et écrire celle que publie le service voulu, avec {z}/{x}/{y} à la place des numéros de tuile. «Essayer» en télécharge une et dit si elle arrive.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "Un don est du montant que vous voulez et ne débloque rien : le tableau de bord reste le même pour tous. C'est un merci, et une façon de dire «continue».",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "Chaque version apporte de nouvelles sections, des correctifs vus sur le terrain et des tests sur téléphones, tablettes et écrans muraux. Le temps pour le faire, c'est ce que les dons aident à garder libre.",
-  "Find out how": "Découvrir comment",
   "light → heavy": "légère → forte",
   "No colour means no rain.": "Là où il n'y a pas de couleur, il ne pleut pas.",
   "Payment happens on PayPal, in a new tab.": "Le paiement se fait sur PayPal, dans un nouvel onglet.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "Quand la litière a été nettoyée pour la dernière fois : une date, ou les minutes écoulées. Passé les heures indiquées ci-dessous, la carte le dit.",
   "Whiskers": "Minou",
   "Without a photo the card shows the species symbol.": "Sans photo, la carte affiche le symbole de l'espèce.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "Le tableau de bord est indépendant et sans abonnement : voici comment lui donner un coup de main",
 });

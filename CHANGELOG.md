@@ -240,6 +240,20 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
 
 ### Corretto
 
+- **Il pulsante delle donazioni sta nella pagina Configurazione, sotto
+  Assistenza.**
+
+      «Mi sposti il pulsante donazioni qua sotto ad assistenza invece che
+       dentro configurazione.»
+
+  Stava dentro l'editor delle entità: una pastiglia in fondo alla colonna delle
+  linguette e una card nella scheda Impostazioni. Ma lì ci si va per lavorare —
+  si apre, si configura, si chiude — e un grazie in mezzo alle caselle è fuori
+  posto. Adesso è una tessera della pagina Configurazione, l'ultima, sotto
+  Segnalazioni e Assistenza: le tre porte che parlano col progetto invece che
+  con la casa, una accanto all'altra e con la stessa veste. Il collegamento
+  resta uno solo, quello del README, e si apre in una scheda nuova.
+
 - **Via sei moduli vecchi che riscrivevano quello che qualcun altro aveva già
   disegnato.**
 

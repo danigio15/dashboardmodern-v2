@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "افتراضيًا يأتي المطر من RainViewer والخريطة من OpenStreetMap: يكفي اختيار المكان. يمكنك تغيير الخدمة من القائمة، أو «عنوان خاص بي» وكتابة ما تنشره الخدمة التي تريدها، مع {z}/{x}/{y} بدل أرقام المربع. زر «جرّب» ينزّل واحدًا ويخبرك إن وصل.",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "التبرع بأي مبلغ تريده ولا يفتح شيئًا: تبقى اللوحة نفسها للجميع. إنه شكر، وطريقة لقول «واصل».",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "كل إصدار يجلب أقسامًا جديدة وتصحيحات شوهدت في الواقع واختبارات على الهواتف والأجهزة اللوحية والشاشات الحائطية. الوقت اللازم لذلك هو ما تساعد التبرعات في إبقائه متاحًا.",
-  "Find out how": "اعرف كيف",
   "light → heavy": "خفيف → شديد",
   "No colour means no rain.": "حيث لا لون، لا مطر.",
   "Payment happens on PayPal, in a new tab.": "يتم الدفع على PayPal في علامة تبويب جديدة.",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "متى نُظّف صندوق الرمل آخر مرة: تاريخ، أو الدقائق التي مضت. بعد الساعات المحددة أدناه تقول البطاقة ذلك.",
   "Whiskers": "مشمش",
   "Without a photo the card shows the species symbol.": "بلا صورة تعرض البطاقة رمز النوع.",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "اللوحة مستقلة وبلا اشتراكات: هنا تجد كيف تمدّ لها يد العون",
 });

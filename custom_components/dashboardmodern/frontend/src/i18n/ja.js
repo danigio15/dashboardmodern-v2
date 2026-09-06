@@ -2650,7 +2650,6 @@ export default Object.freeze({
   "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.": "標準では雨は RainViewer から、地図は OpenStreetMap から届きます。場所を選ぶだけです。サービスはリストから変えられ、「自分のアドレス」でタイル番号の代わりに {z}/{x}/{y} を使ったアドレスを書くこともできます。「試す」は一枚ダウンロードして届くかどうかを教えます。",
   "A donation is any amount you like and unlocks nothing: the dashboard stays the same for everyone. It is a thank-you, and a way of saying «keep going».": "寄付は金額自由で、何かが解放されるわけではありません。ダッシュボードは誰にとっても同じままです。感謝の気持ちであり、「続けて」と伝える方法です。",
   "Every release brings new sections, fixes seen in the field and tests on phones, tablets and wall screens. The time to do it is what donations help keep free.": "各リリースは新しいセクション、現場で見つかった修正、スマートフォン・タブレット・壁掛け画面でのテストをもたらします。そのための時間を確保する助けになるのが寄付です。",
-  "Find out how": "方法を見る",
   "light → heavy": "弱い → 強い",
   "No colour means no rain.": "色のない所は雨が降っていません。",
   "Payment happens on PayPal, in a new tab.": "支払いは新しいタブの PayPal で行われます。",
@@ -2995,4 +2994,5 @@ export default Object.freeze({
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "トイレを最後に掃除した時刻。日付でも、経過した分数でもかまいません。下で決めた時間を過ぎるとカードが知らせます。",
   "Whiskers": "タマ",
   "Without a photo the card shows the species symbol.": "写真がない場合、カードは種類の記号を表示します。",
+  "The dashboard is independent and subscription-free: here is how to give it a hand": "このダッシュボードは独立していて定額課金もありません。支える方法はこちらです",
 });
