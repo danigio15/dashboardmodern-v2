@@ -101,6 +101,21 @@ senza un perche'.
   con la stessa spiegazione. Con «Nessuno» scelto apposta non compare niente,
   com'e' giusto. E la casella del tetto dello zoom non scrive piu' «null».
 
+- **La campanella «Login attempt failed» di Home Assistant non suona più.**
+
+      «Login attempt or request with invalid authentication from localhost
+       (127.0.0.1). Sempre con lo stesso errore.»
+
+  Da Nabu Casa 127.0.0.1 e' l'indirizzo di tutti, e la campanella la suona
+  ogni richiesta REST che arriva senza una credenziale valida. Dentro il
+  pannello la plancia un gettone non ce l'ha: l'Agenda chiedeva gli eventi
+  dei calendari facendosi firmare il percorso dal socket, e quando il socket
+  non era ancora pronto — all'apertura — ripiegava su una richiesta nuda,
+  che prendeva 401 e faceva suonare. Ora senza firma non bussa e passa dal
+  servizio; e sotto c'e' una rete: dentro il pannello nessuna richiesta a
+  `/api/` senza firma ne' gettone della telecamera esce piu' dalla plancia —
+  si prende il suo 401 in casa, senza campanella.
+
 ## 1.4.10
 
 Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.

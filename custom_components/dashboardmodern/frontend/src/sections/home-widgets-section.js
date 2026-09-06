@@ -398,6 +398,12 @@ async function eventiDallaPortaHttp(entity, da, a) {
   )}&end=${encodeURIComponent(new Date(a).toISOString())}`;
   const gettone = gettoneDiAccesso();
   const firmato = gettone ? "" : await percorsoFirmato(percorso);
+  /* Senza gettone e senza firma non si bussa: la richiesta nuda prendeva un
+   * 401 e faceva suonare la campanella di Home Assistant — «Login attempt or
+   * request with invalid authentication from 127.0.0.1», che da Nabu Casa e'
+   * l'indirizzo di tutti — a ogni apertura della plancia, quando il socket non
+   * era ancora pronto a firmare. Si passa al servizio, che sa gia' leggere. */
+  if (!gettone && !firmato) return null;
   const risposta = await root.fetch(firmato || percorso, {
     headers: gettone ? { Authorization: `Bearer ${gettone}` } : {},
     credentials: "include",
