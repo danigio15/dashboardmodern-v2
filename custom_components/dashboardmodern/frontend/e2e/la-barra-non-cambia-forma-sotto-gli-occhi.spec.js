@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { ATTESA_MASSIMA_DELLA_BARRA } from "../src/sections/navigation-section.js";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
 /* «Resta sempre la barra totale, per poi diventare come l'ho configurata: dura
@@ -119,4 +120,59 @@ test("una voce di una sezione spenta non compare nemmeno per un attimo", async (
       ).toBe(false);
     }
   }
+});
+
+/* E chi non ha nessuno a cui chiedere non aspetta.
+ *
+ * La barra resta coperta finche' non sa che forma avere, e quella la porta la
+ * configurazione condivisa di Home Assistant. Ma una plancia aperta da sola —
+ * fuori dal pannello, senza ponte — quella configurazione non la ricevera' mai:
+ * aspettarla vuol dire arrivare sempre alla scadenza, e la scadenza e'
+ * l'ultimo appello, non il modo normale di uscire. La domanda ha due risposte,
+ * e «non c'e' niente da chiedere» e' una risposta anche lei.
+ */
+test("senza Home Assistant a cui chiedere la barra non aspetta la scadenza", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await page.addInitScript((seme) => {
+    try {
+      localStorage.clear();
+      localStorage.setItem("dm_dashboard_state", JSON.stringify(seme));
+      /* Con un gettone in tasca la plancia non apre la procedura guidata, che
+       * di barre non ne ha nessuna. */
+      localStorage.setItem(
+        "cd_connection",
+        JSON.stringify({ token: "e2e-token", ws_url: "ws://home-assistant.test/api/websocket" }),
+      );
+    } catch (_errore) {}
+    const inizio = Date.now();
+    const guarda = () => {
+      if (!document.documentElement) return setTimeout(guarda, 5);
+      const segna = () => {
+        if (document.documentElement.dataset.dmBarra !== "pronta") return;
+        if (window.__QUANDO_LA_BARRA_ESCE__ == null)
+          window.__QUANDO_LA_BARRA_ESCE__ = Date.now() - inizio;
+      };
+      new MutationObserver(segna).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-dm-barra"],
+      });
+      segna();
+    };
+    guarda();
+  }, seed);
+
+  /* Senza `?dmi=` e senza ponte: e' la pagina aperta da sola. */
+  await page.goto("/legacy/dashboard.html");
+  await expect
+    .poll(() => page.evaluate(() => window.__QUANDO_LA_BARRA_ESCE__ ?? null), {
+      timeout: ATTESA_MASSIMA_DELLA_BARRA + 10_000,
+    })
+    .not.toBeNull();
+
+  const quando = await page.evaluate(() => window.__QUANDO_LA_BARRA_ESCE__);
+  expect(
+    quando,
+    `la barra e' uscita a ${quando} ms: e' la scadenza (${ATTESA_MASSIMA_DELLA_BARRA} ms), non una risposta`,
+  ).toBeLessThan(ATTESA_MASSIMA_DELLA_BARRA);
 });

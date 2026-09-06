@@ -195,6 +195,7 @@ const state = (root[KEY] ||= {
   remoteConfigured: false,
   hydrateRetryTimer: 0,
   transportFailures: 0,
+  sistemata: false,
 });
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
@@ -1304,10 +1305,40 @@ function scheduleHydrateRetry(failures = state.transportFailures) {
     }, HYDRATE_RETRY_MS[index]) || 0;
 }
 
+/* La configurazione condivisa e' una domanda, e a un certo punto ha risposta.
+ *
+ * `persistence-restored` racconta solo meta' della storia: si annuncia quando
+ * la risposta ha portato qualcosa da applicare. Chi aspetta di sapere com'e'
+ * fatta la casa — la barra, per prima, che non vuole uscire intera per poi
+ * accorciarsi — deve sapere anche l'altra meta': che la risposta e' arrivata e
+ * non c'era niente da cambiare, o che qui dentro non c'e' nessun Home
+ * Assistant a cui chiedere. Senza, quell'attesa finiva sempre a scadenza: due
+ * secondi e mezzo di barra coperta a una plancia che non ha proprio niente da
+ * aspettare.
+ *
+ * Si dice una volta sola, e non si dice mentre la domanda e' ancora aperta: un
+ * trasporto che e' caduto riprova, e finche' riprova la risposta puo' ancora
+ * arrivare. */
+function configurazioneSistemata() {
+  if (state.sistemata) return false;
+  state.sistemata = true;
+  try {
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-settled"));
+  } catch (_errore) {}
+  return true;
+}
+
 async function hydrateRemote(options = {}) {
   const force = options?.force === true;
-  if (state.hydrating || state.resetting || (!force && state.hydrated) || !hostedBridge())
+  if (state.resetting) return false;
+  if (!hostedBridge()) {
+    configurazioneSistemata();
     return false;
+  }
+  if (state.hydrating || (!force && state.hydrated)) {
+    if (state.hydrated) configurazioneSistemata();
+    return false;
+  }
   state.hydrating = true;
   const shared = sharedStoreEnabled();
   try {
@@ -1329,6 +1360,10 @@ async function hydrateRemote(options = {}) {
     return false;
   } finally {
     state.hydrating = false;
+    /* Si annuncia da qui, dopo il ripristino e non prima: chi riordina le
+     * sezioni ascolta `persistence-restored`, che parte dentro quel giro, e la
+     * risposta e' «sistemata» solo quando quel giro e' finito. */
+    if (state.hydrated) configurazioneSistemata();
   }
 }
 

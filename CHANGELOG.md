@@ -298,6 +298,13 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
   mettersi in barra, non dopo, cosi' il filtro che passa in quel momento sa
   gia' che farne.
 
+  «Atterrata» ha due significati, e servono tutti e due: la configurazione e'
+  arrivata e aveva qualcosa da cambiare, oppure la domanda si e' chiusa in un
+  altro modo — la risposta non cambiava niente, o qui non c'e' nessun Home
+  Assistant a cui chiederlo. Chi apre la plancia da sola, fuori dal pannello,
+  quella configurazione non la ricevera' mai: aspettarla vuol dire arrivare
+  sempre alla scadenza, e la barra restava coperta per niente.
+
 - **Il pulsante delle donazioni sta nella pagina Configurazione, sotto
   Assistenza.**
 

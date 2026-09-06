@@ -819,15 +819,28 @@ function forseScopri() {
 }
 
 function installaLAttesaDellaBarra() {
-  /* L'atterraggio della configurazione condivisa apre la strada, ma non scopre
-   * la barra subito: allo stesso annuncio risponde anche chi toglie dalla barra
-   * le sezioni rimaste vuote, e la barra deve uscire a quel lavoro finito, non
-   * in mezzo. Un giro di coda basta: gli ascoltatori di un evento corrono
-   * tutti prima. */
-  root.addEventListener?.("dashboardmodern:persistence-restored", () => {
-    state.configurazioneAtterrata = true;
-    root.setTimeout?.(() => forseScopri(), 0);
-  });
+  /* Due annunci per la stessa notizia, e servono tutti e due.
+   *
+   * `persistence-restored` e' la configurazione condivisa che e' arrivata e
+   * aveva qualcosa da cambiare; `persistence-settled` e' la domanda chiusa in
+   * ogni altro modo — la risposta non cambiava niente, o qui dentro non c'e'
+   * nessun Home Assistant a cui chiedere. Aspettare solo il primo vuol dire
+   * che una plancia senza configurazione condivisa non scopre mai la barra
+   * prima della scadenza, e la scadenza e' l'ultimo appello, non il modo
+   * normale di arrivarci.
+   *
+   * L'annuncio apre la strada ma non scopre la barra subito: allo stesso
+   * annuncio risponde anche chi toglie dalla barra le sezioni rimaste vuote, e
+   * la barra deve uscire a quel lavoro finito, non in mezzo. Un giro di coda
+   * basta: gli ascoltatori di un evento corrono tutti prima. */
+  for (const annuncio of [
+    "dashboardmodern:persistence-restored",
+    "dashboardmodern:persistence-settled",
+  ])
+    root.addEventListener?.(annuncio, () => {
+      state.configurazioneAtterrata = true;
+      root.setTimeout?.(() => forseScopri(), 0);
+    });
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
