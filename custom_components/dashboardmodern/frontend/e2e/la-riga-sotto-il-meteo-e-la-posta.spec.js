@@ -225,10 +225,24 @@ test("la posta arriva mentre non si guarda, e resta finche' non la si tocca", as
     await pastiglia(page, "posta").evaluate((nodo) => getComputedStyle(nodo).animationName),
   ).toBe("dmPostaChiama");
 
-  /* E resta li' giro dopo giro: la posta non se ne va da sola. */
+  /* E resta li' giro dopo giro, LEI: non una uguale rifatta da capo.
+   *
+   * Il segno privato sul nodo lo dice. Accendendo e spegnendo la luce della
+   * cucina il conto delle luci cambia, e con lui cambia la riga: se la riga si
+   * riscrivesse tutta, la posta rinascerebbe e ricomincerebbe a sbattere lo
+   * sportello da capo — come se fosse appena arrivata — ogni volta che
+   * qualcuno accende una lampadina. */
+  await pastiglia(page, "posta").evaluate((nodo) => {
+    nodo.__dmSegno = true;
+  });
   for (let giro = 0; giro < 3; giro += 1) {
     await scrivi(page, [{ entity_id: "light.cucina", state: giro % 2 ? "on" : "off" }]);
+    await expect(pastiglia(page, "luci")).toContainText(giro % 2 ? "2" : "1");
     await expect(pastiglia(page, "posta")).toBeVisible();
+    expect(
+      await pastiglia(page, "posta").evaluate((nodo) => nodo.__dmSegno === true),
+      "la posta e' rinata insieme al conto delle luci",
+    ).toBe(true);
   }
 
   /* «L'ho ritirata»: si tocca, e torna a riposo. */

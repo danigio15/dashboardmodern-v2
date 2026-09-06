@@ -63,30 +63,45 @@ async function avvia(page, testInfo) {
   await expect(page.locator("#dm-widgets .dm-tile")).toHaveCount(2);
 }
 
-/* La fotografia della griglia: per ogni tessera il rettangolo vero e un segno
- * privato sul nodo — se la griglia viene rifatta, i nodi nuovi il segno non
- * ce l'hanno. */
+/* La fotografia della griglia: la misura della griglia, e per ogni tessera il
+ * suo posto DENTRO di lei, la sua misura e un segno privato sul nodo — se la
+ * griglia viene rifatta, i nodi nuovi il segno non ce l'hanno.
+ *
+ * Il posto si misura dalla griglia e non dalla finestra apposta. La Home e' un
+ * documento, e quello che le nasce sopra la spinge giu': la riga sotto il
+ * meteo (#356) compare quando una presa si accende, e spostare di trentasette
+ * pixel tutto quello che sta sotto e' quello che fa un documento quando ha una
+ * notizia in piu' da dare, non un tremolio. Il tremolio che questa prova
+ * inchioda e' un altro: la griglia che si rifa' — tessere che cambiano nodo,
+ * misura, ordine o posto fra loro. */
 const fotografa = (page) =>
-  page.evaluate(() =>
-    [...document.querySelectorAll("#dm-widgets .dm-tile")].map((tile) => {
-      const r = tile.getBoundingClientRect();
-      const marcato = tile.__dmSegno === true;
-      tile.__dmSegno = true;
-      return {
-        chiave: tile.dataset.dmWidget,
-        marcato,
-        vista: tile.hasAttribute("data-dm-seen"),
-        rect: [r.x, r.y, r.width, r.height].map((v) => Math.round(v * 2) / 2),
-      };
-    }),
-  );
+  page.evaluate(() => {
+    const mezzo = (valore) => Math.round(valore * 2) / 2;
+    const griglia = document.querySelector("#dm-widgets .dm-widgets-grid");
+    const g = griglia.getBoundingClientRect();
+    return {
+      griglia: [g.width, g.height].map(mezzo),
+      tessere: [...document.querySelectorAll("#dm-widgets .dm-tile")].map((tile) => {
+        const r = tile.getBoundingClientRect();
+        const marcato = tile.__dmSegno === true;
+        tile.__dmSegno = true;
+        return {
+          chiave: tile.dataset.dmWidget,
+          marcato,
+          vista: tile.hasAttribute("data-dm-seen"),
+          rect: [r.x - g.x, r.y - g.y, r.width, r.height].map(mezzo),
+        };
+      }),
+    };
+  });
 
 function stessaScena(dopo, prima, momento) {
+  expect(dopo.griglia, `${momento}: la griglia ha cambiato misura`).toEqual(prima.griglia);
   expect(
-    dopo.map((t) => t.chiave),
+    dopo.tessere.map((t) => t.chiave),
     `${momento}: le tessere sono cambiate`,
-  ).toEqual(prima.map((t) => t.chiave));
-  for (const [indice, tessera] of dopo.entries()) {
+  ).toEqual(prima.tessere.map((t) => t.chiave));
+  for (const [indice, tessera] of dopo.tessere.entries()) {
     expect(tessera.marcato, `${momento}: la tessera "${tessera.chiave}" e' un nodo nuovo`).toBe(
       true,
     );
@@ -95,10 +110,10 @@ function stessaScena(dopo, prima, momento) {
      * che non deve succedere e' che l'attributo CAMBI: sparito = nodo rifatto
      * prima che `viste()` sapesse di lui. */
     expect(tessera.vista, `${momento}: "${tessera.chiave}" ha cambiato pelle`).toBe(
-      prima[indice].vista,
+      prima.tessere[indice].vista,
     );
     expect(tessera.rect, `${momento}: la tessera "${tessera.chiave}" si e' mossa`).toEqual(
-      prima[indice].rect,
+      prima.tessere[indice].rect,
     );
   }
 }
@@ -112,7 +127,9 @@ test("apertura, tempesta di stati e chiusura non muovono una tessera", async ({
   const prima = await fotografa(page);
   /* «todo» e' diventata «agenda»: impegni e cose da fare sono una cosa sola.
    * La griglia e' la stessa di prima, cambia il nome della prima tessera. */
-  expect(prima.map((t) => t.chiave)).toEqual(["agenda", "prese"]);
+  expect(prima.tessere.map((t) => t.chiave)).toEqual(["agenda", "prese"]);
+  /* A casa ferma non c'e' niente da dire, e la riga sotto il meteo non c'e'. */
+  await expect(page.locator("#dm-casa-riga")).toHaveCount(0);
 
   // 1. L'apertura: il popup sale, la griglia non si accorge di niente.
   await page.locator('#dm-widgets .dm-tile[data-dm-widget="prese"]').click();
@@ -138,6 +155,11 @@ test("apertura, tempesta di stati e chiusura non muovono una tessera", async ({
   });
   await page.waitForTimeout(400);
   stessaScena(await fotografa(page), prima, "sotto la tempesta");
+
+  /* E la notizia c'e' stata davvero: la presa del forno e' rimasta accesa, e
+   * la riga sotto il meteo lo dice. E' l'unica cosa che si e' mossa nella
+   * pagina, ed e' quello che deve fare. */
+  await expect(page.locator('#dm-casa-riga [data-dm-casa="prese"]')).toBeVisible();
 
   // Il popup e' rimasto lui, aggiornato senza rinascere: il corpo non e'
   // «fresco» — l'ingresso delle righe appartiene solo al primo disegno.

@@ -151,14 +151,72 @@ function paroleDellaPastiglia(pastiglia) {
 
 /* ── il disegno ─────────────────────────────────────────────────────────── */
 
-function pastigliaMarkup(pastiglia) {
+/* Una pastiglia nuova, ancora senza parole: le mette `vestiLaPastiglia`. */
+function nuovaPastiglia(chiave) {
+  const nodo = doc.createElement("button");
+  nodo.type = "button";
+  nodo.className = "dm-casa-pastiglia";
+  nodo.dataset.dmCasa = chiave;
+  nodo.innerHTML = `<span class="dm-casa-ic" aria-hidden="true"></span><span class="dm-casa-txt"></span>`;
+  return nodo;
+}
+
+/* Le parole addosso a una pastiglia che c'e' gia'.
+ *
+ * Si scrive solo quello che e' cambiato davvero. Riscrivere un attributo col
+ * valore che aveva gia' non e' gratis: `data-avviso` e `data-dm-casa` sono i
+ * ganci con cui lo stile accende l'animazione della posta, e toccarli la fa
+ * ripartire da capo. */
+function vestiLaPastiglia(nodo, pastiglia) {
   const { testo, titolo } = paroleDellaPastiglia(pastiglia);
-  return `<button type="button" class="dm-casa-pastiglia" data-dm-casa="${esc(pastiglia.chiave)}"
-      data-tessera="${esc(pastiglia.tessera || "")}" data-avviso="${Boolean(pastiglia.avviso)}"
-      title="${esc(titolo)}" aria-label="${esc(titolo)}">
-      <span class="dm-casa-ic" aria-hidden="true">${esc(pastiglia.icona)}</span>
-      <span class="dm-casa-txt">${esc(testo)}</span>
-    </button>`;
+  const scrivi = (elemento, campo, valore) => {
+    if (elemento && elemento[campo] !== valore) elemento[campo] = valore;
+  };
+  const attributo = (nome, valore) => {
+    if (nodo.getAttribute(nome) !== valore) nodo.setAttribute(nome, valore);
+  };
+  attributo("data-tessera", pastiglia.tessera || "");
+  attributo("data-avviso", String(Boolean(pastiglia.avviso)));
+  attributo("title", titolo);
+  attributo("aria-label", titolo);
+  scrivi(nodo.querySelector(".dm-casa-ic"), "textContent", String(pastiglia.icona ?? ""));
+  scrivi(nodo.querySelector(".dm-casa-txt"), "textContent", testo);
+}
+
+/* Le pastiglie si aggiornano al loro posto, una per una.
+ *
+ * Riscrivere tutta la riga a ogni cambiamento farebbe rinascere anche le
+ * pastiglie che non c'entrano niente: si accende una luce, il conto passa da 2
+ * a 3, e la posta — che e' la sola voce animata — ricomincia a sbattere lo
+ * sportello da capo, come se fosse appena arrivata. Ognuna e' riconosciuta
+ * dalla sua chiave: quelle che restano cambiano solo le parole, quelle nuove
+ * nascono al loro posto, quelle che non hanno piu' niente da dire se ne vanno.
+ */
+function aggiornaLePastiglie(riga, pastiglie) {
+  const vive = new Map();
+  for (const nodo of riga.querySelectorAll(":scope > [data-dm-casa]"))
+    vive.set(nodo.dataset.dmCasa, nodo);
+  let posto = riga.firstElementChild;
+  for (const pastiglia of pastiglie) {
+    const gia = vive.get(pastiglia.chiave);
+    vive.delete(pastiglia.chiave);
+    const nodo = gia || nuovaPastiglia(pastiglia.chiave);
+    vestiLaPastiglia(nodo, pastiglia);
+    if (nodo === posto) posto = posto.nextElementSibling;
+    else riga.insertBefore(nodo, posto);
+  }
+  for (const nodo of vive.values()) nodo.remove();
+}
+
+/* Cosa dice la riga adesso, in una riga di testo: serve solo a saltare il giro
+ * quando non e' cambiato niente. */
+function firmaDellaRiga(pastiglie) {
+  return pastiglie
+    .map((pastiglia) => {
+      const { testo } = paroleDellaPastiglia(pastiglia);
+      return `${pastiglia.chiave}~${pastiglia.icona}~${testo}~${Boolean(pastiglia.avviso)}`;
+    })
+    .join("|");
 }
 
 /* La riga sta subito sotto il meteo. Nasce solo quando c'e' qualcosa da dire e
@@ -185,9 +243,9 @@ function ospite() {
 /**
  * Disegna la riga con i modelli delle tessere di questo giro.
  *
- * La chiama `renderHomeWidgets`, che i modelli li ha appena fatti. Si riscrive
+ * La chiama `renderHomeWidgets`, che i modelli li ha appena fatti. Si tocca
  * solo quando cambia qualcosa: la Home si ridisegna a ogni evento di stato, e
- * rifare il markup a ogni giro vorrebbe dire far ripartire l'animazione della
+ * rifare il disegno a ogni giro vorrebbe dire far ripartire l'animazione della
  * posta due volte al secondo.
  */
 export function disegnaComeStaLaCasa(modelli, states) {
@@ -202,10 +260,10 @@ export function disegnaComeStaLaCasa(modelli, states) {
     state.firma = "";
     return false;
   }
-  const markup = pastiglie.map(pastigliaMarkup).join("");
-  if (state.firma !== markup || !riga.firstElementChild) {
-    state.firma = markup;
-    riga.innerHTML = markup;
+  const attuale = firmaDellaRiga(pastiglie);
+  if (state.firma !== attuale || riga.childElementCount !== pastiglie.length) {
+    state.firma = attuale;
+    aggiornaLePastiglie(riga, pastiglie);
   }
   return true;
 }
