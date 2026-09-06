@@ -170,6 +170,33 @@ export function periodRange(kind, selected = new Date(), now = new Date()) {
   };
 }
 
+/* Il giorno in corso si chiede in due archi, non in uno.
+ *
+ * Le statistiche dell'ora si compilano a ora finita: dentro l'ora aperta non
+ * c'e' ancora nessuna riga, e la Giornaliera restava indietro fino a
+ * sessanta minuti. Chiedere tutto il giorno a cinque minuti lo risolveva, ma
+ * sono 288 righe per ogni entita' a ogni giro invece di 26 — per ogni fonte,
+ * ogni dispositivo e ogni carico, su un Recorder che gia' arranca.
+ *
+ * Le ore chiuse non cambiano piu': si chiedono a ore, e la loro risposta si
+ * tiene per tutta l'ora. A cinque minuti si chiede solo l'ora aperta, che
+ * sono dodici righe. La crescita del giorno e' la somma delle due, ed e' lo
+ * stesso conto di prima: differenza fra la prima e l'ultima lettura. */
+export function archiDelPeriodo(kind, selected = new Date(), now = new Date()) {
+  const range = periodRange(kind, selected, now);
+  if (kind !== "day" || range.end <= range.start) return [range];
+  const oraAperta = new Date(range.end);
+  oraAperta.setMinutes(0, 0, 0);
+  /* Appena passata la mezzanotte non c'e' nessuna ora chiusa da chiedere, e a
+   * giorno finito non c'e' nessuna ora aperta. */
+  if (oraAperta <= range.start) return [{ ...range, period: "5minute" }];
+  if (oraAperta >= range.end) return [range];
+  return [
+    { ...range, end: oraAperta, next: oraAperta },
+    { ...range, start: oraAperta, period: "5minute" },
+  ];
+}
+
 export function baselineRange(kind, start) {
   const baselineStart = new Date(start);
   if (kind === "day") baselineStart.setHours(baselineStart.getHours() - 2);
@@ -325,6 +352,61 @@ export function sourcePlans(
   });
 }
 
+/* I piani che si leggono dallo stato, e quelli che li deve ricavare il
+ * Recorder. */
+export function smistaIPiani(plans = [], selected, states = {}) {
+  const valori = new Map();
+  const direct = plans.filter((plan) => plan.direct);
+  const selectedDate = new Date(selected);
+  const today = new Date();
+  const directIsCurrent = (kind) =>
+    kind === "day"
+      ? selectedDate.toDateString() === today.toDateString()
+      : kind === "year"
+        ? selectedDate.getFullYear() === today.getFullYear()
+        : selectedDate.getFullYear() === today.getFullYear() &&
+          selectedDate.getMonth() === today.getMonth();
+  direct
+    .filter((plan) => directIsCurrent(plan.kind))
+    .forEach((plan) => {
+      const value = readDirectState(plan.entity, states);
+      if (value != null) valori.set(plan.key, value);
+    });
+
+  /* Nel periodo corrente l'entita' di periodo configurata e' l'unica
+   * autorita': il ripiego dal contatore totale serve ai mesi passati, non a
+   * sostituirla quando il suo stato non e' ancora arrivato. Lasciarlo
+   * subentrare dipingeva un numero diverso (e sbagliato) per un giro, poi il
+   * giro dopo arrivava quello vero — il valore che balla. Meglio nessun
+   * valore per un attimo (la casella resta segnata come mancante) che un
+   * valore sporco. */
+  const currentDirectKeys = new Set(
+    direct.filter((plan) => directIsCurrent(plan.kind)).map((plan) => plan.key),
+  );
+  const daRicavare = plans.filter(
+    (plan) => !plan.direct && !(plan.fallback && currentDirectKeys.has(plan.key)),
+  );
+  return { valori, daRicavare };
+}
+
+/* La crescita di un'entita' dentro un arco, dalle righe gia' in mano.
+ *
+ * Le righe arrivano da una domanda sola per tutti quelli che condividono
+ * l'arco: qui si taglia il pezzo che riguarda questo arco — l'ultima lettura
+ * prima del confine fa da partenza — e si prende la differenza. */
+export function crescitaNellArco(righe = [], range) {
+  const inizio = range.start.getTime();
+  const fine = range.end.getTime();
+  const ordinate = (Array.isArray(righe) ? righe : [])
+    .slice()
+    .sort((sinistra, destra) => rowTimestamp(sinistra) - rowTimestamp(destra));
+  const prima = ordinate.filter((riga) => rowTimestamp(riga) < inizio);
+  const dentro = ordinate.filter(
+    (riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine,
+  );
+  return periodConsumption(dentro, prima.at(-1) || null);
+}
+
 function readDirectState(entity, states = {}) {
   const state = states?.[entity];
   const value = finite(state?.state);
@@ -351,10 +433,62 @@ export const PESANTI_PER_IL_RECORDER = Object.freeze(
   new Set(["recorder/statistics_during_period", "history/history_during_period"]),
 );
 
+/* Ogni quanto Home Assistant compila le statistiche.
+ *
+ * E' il numero da cui dipendono quasi tutte le attese di qui: il Recorder
+ * mette insieme i secchielli da cinque minuti (e a ora finita quelli dell'ora)
+ * ogni cinque minuti. Prima che quel giro passi, la stessa domanda porta a
+ * casa le stesse identiche righe: richiederla e' lavoro sul server — la CPU
+ * del mini PC — in cambio di niente. */
+export const PASSO_DELLE_STATISTICHE_MS = 5 * 60_000;
+
 /* Per quanto, dopo un timeout, il Recorder si considera in affanno: e' il
  * passo con cui le statistiche si compilano, quindi prima non c'e' niente di
  * nuovo da leggere comunque. */
-export const AFFANNO_DEL_RECORDER_MS = 5 * 60_000;
+export const AFFANNO_DEL_RECORDER_MS = PASSO_DELLE_STATISTICHE_MS;
+
+/* Quante risposte del Recorder si tengono da parte.
+ *
+ * La cache non buttava mai via niente: su una plancia accesa giorno e notte —
+ * che e' il caso vero, il tablet appeso al muro — ogni giro lasciava dentro
+ * una voce nuova e nessuna usciva mai. Si tengono le ultime, e le scadute se
+ * ne vanno da sole: sono le uniche due ragioni per cui una risposta serve
+ * ancora. */
+export const VOCI_TENUTE_IN_CACHE = 64;
+
+/* Se un arco di tempo e' finito, cioe' se dentro non puo' piu' entrare niente.
+ *
+ * Un mese chiuso non cambia piu': la sua risposta vale finche' si vuole. Un
+ * arco che finisce adesso invece cresce, e va riletto. Il confine e' il passo
+ * con cui le statistiche si compilano: quando la fine e' piu' vecchia di
+ * quello, tutte le righe che potevano entrarci sono gia' state scritte. */
+export function arcoChiuso(fine, adesso = Date.now()) {
+  const a = momentoDi(fine);
+  return a != null && a <= adesso - PASSO_DELLE_STATISTICHE_MS;
+}
+
+/* Un momento, comunque sia scritto: data, millisecondi o testo ISO. */
+function momentoDi(valore) {
+  if (valore instanceof Date) return valore.getTime();
+  const numero = typeof valore === "number" ? valore : Date.parse(valore);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+/* La fine di un arco, come entra nella chiave della cache.
+ *
+ * Era la fine al millisecondo, e siccome per il periodo corrente la fine e'
+ * «adesso», ogni giro nasceva una chiave nuova: la cache non ha mai risposto
+ * a nessuno, e ogni aggiornamento tornava dritto sul Recorder. Un arco chiuso
+ * porta la sua fine esatta; uno aperto la porta arrotondata al passo con cui
+ * le statistiche si compilano, che e' quanto quella risposta resta buona. */
+export function fineDaChiave(fine, adesso = Date.now()) {
+  const a = momentoDi(fine);
+  if (a == null) return String(fine);
+  if (arcoChiuso(a, adesso)) return new Date(a).toISOString();
+  return new Date(
+    Math.floor(a / PASSO_DELLE_STATISTICHE_MS) * PASSO_DELLE_STATISTICHE_MS,
+  ).toISOString();
+}
 
 /* Quanto si aspetta l'istantanea di tutti gli stati.
  *
@@ -394,12 +528,18 @@ export function eUnErroreDiCompatibilita(errore) {
 }
 
 export class HomeAssistantBroker {
-  /* La risposta del periodo corrente vale un minuto: le statistiche del
-   * Recorder cambiano ogni cinque, e richiederle ogni quindici secondi pesava
-   * sul server senza trovare niente di nuovo (dal campo: la CPU del mini PC). */
+  /* La risposta del periodo corrente vale quanto dura il dato: cinque minuti.
+   *
+   * Era un minuto, ed era gia' un compromesso; ma il minuto non lo vedeva
+   * nessuno, perche' la chiave della cache portava la fine dell'arco al
+   * millisecondo — cioe' «adesso» — e ogni giro nasceva una chiave nuova:
+   * nessuna risposta e' mai stata riusata, e ogni aggiornamento tornava sul
+   * Recorder (dal campo: la CPU del mini PC). Adesso la chiave e' arrotondata
+   * al passo con cui le statistiche si compilano, e il tempo che si tiene e'
+   * lo stesso passo: prima di allora la stessa domanda porta le stesse righe. */
   constructor({
     timeout = 12000,
-    cacheCurrentMs = 60000,
+    cacheCurrentMs = PASSO_DELLE_STATISTICHE_MS,
     cacheHistoricalMs = 600000,
     ripresaDelFlussoMs = RIPRESA_DEL_FLUSSO_MS,
   } = {}) {
@@ -706,16 +846,43 @@ export class HomeAssistantBroker {
 
   async cachedRequest(payload, cacheKey, maxAge = 0, timeout = 0) {
     const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.at < maxAge) return cached.value;
+    if (cached && Date.now() - cached.at < maxAge) {
+      /* Riusata vuol dire viva: torna in fondo alla fila, cosi' quando si pota
+       * escono le risposte che non serviva piu' a nessuno. */
+      this.cache.delete(cacheKey);
+      this.cache.set(cacheKey, cached);
+      return cached.value;
+    }
     if (this.inflight.has(cacheKey)) return this.inflight.get(cacheKey);
     const promise = this.request(payload, timeout)
       .then((value) => {
-        if (maxAge > 0) this.cache.set(cacheKey, { at: Date.now(), value });
+        if (maxAge > 0) {
+          this.cache.set(cacheKey, { at: Date.now(), fino: Date.now() + maxAge, value });
+          this.potaLaCache();
+        }
         return value;
       })
       .finally(() => this.inflight.delete(cacheKey));
     this.inflight.set(cacheKey, promise);
     return promise;
+  }
+
+  /* La cache non cresce per sempre.
+   *
+   * Prima nessuna voce ne usciva mai: su una plancia accesa giorno e notte —
+   * il tablet appeso al muro — la memoria del browser saliva e basta. Escono
+   * le scadute, che non risponderebbero piu' a nessuno, e poi le piu' vecchie
+   * finche' non si sta dentro il numero di voci che si tengono. */
+  potaLaCache(adesso = Date.now(), tenute = VOCI_TENUTE_IN_CACHE) {
+    for (const [chiave, voce] of this.cache) {
+      if (Number(voce?.fino) > adesso) continue;
+      this.cache.delete(chiave);
+    }
+    for (const chiave of this.cache.keys()) {
+      if (this.cache.size <= tenute) break;
+      this.cache.delete(chiave);
+    }
+    return this.cache.size;
   }
 
   async statistics(ids, start, end, period = "day") {
@@ -725,8 +892,11 @@ export class HomeAssistantBroker {
     const statisticIds = [...new Set([...mapped.values()].filter(Boolean))];
     const startIso = new Date(start).toISOString();
     const endIso = new Date(end).toISOString();
-    const historical = Date.parse(endIso) < Date.now() - 86400000;
-    const key = `statistics|${period}|${startIso}|${endIso}|${statisticIds.join(",")}`;
+    const historical = arcoChiuso(endIso);
+    /* La chiave porta la fine arrotondata, non quella al millisecondo: due
+     * domande dello stesso arco corrente dentro lo stesso passo di
+     * compilazione sono la stessa domanda, e la seconda si serve da qui. */
+    const key = `statistics|${period}|${startIso}|${fineDaChiave(endIso)}|${statisticIds.join(",")}`;
     const payload = {
       type: "recorder/statistics_during_period",
       start_time: startIso,
@@ -777,62 +947,75 @@ export class HomeAssistantBroker {
     );
   }
 
+  /* Chi si legge dallo stato e chi lo deve ricavare il Recorder.
+   *
+   * La scelta e' la stessa per chiunque chieda dei valori — l'Energia, gli
+   * elettrodomestici, i carichi — e per questo sta scritta una volta sola. */
   async valuesForPlans(plans, selected, states = globalThis.STATES || {}) {
-    const output = new Map();
-    const direct = plans.filter((plan) => plan.direct);
-    const selectedDate = new Date(selected);
-    const today = new Date();
-    const directIsCurrent = (kind) =>
-      kind === "day"
-        ? selectedDate.toDateString() === today.toDateString()
-        : kind === "year"
-          ? selectedDate.getFullYear() === today.getFullYear()
-          : selectedDate.getFullYear() === today.getFullYear() &&
-            selectedDate.getMonth() === today.getMonth();
-    direct
-      .filter((plan) => directIsCurrent(plan.kind))
-      .forEach((plan) => {
-        const value = readDirectState(plan.entity, states);
-        if (value != null) output.set(plan.key, value);
-      });
-
-    /* Nel periodo corrente l'entita' di periodo configurata e' l'unica
-     * autorita': il ripiego dal contatore totale serve ai mesi passati, non a
-     * sostituirla quando il suo stato non e' ancora arrivato. Lasciarlo
-     * subentrare dipingeva un numero diverso (e sbagliato) per un giro, poi il
-     * giro dopo arrivava quello vero — il valore che balla. Meglio nessun
-     * valore per un attimo (il bundle risulta incompleto e si riprova) che un
-     * valore sporco. */
-    const currentDirectKeys = new Set(
-      direct.filter((plan) => directIsCurrent(plan.kind)).map((plan) => plan.key),
+    const { valori, daRicavare } = smistaIPiani(plans, selected, states);
+    if (!daRicavare.length) return valori;
+    const kind = daRicavare[0].kind;
+    const { caduti } = await this.valoriPerArchi(
+      archiDelPeriodo(kind, selected).map((range) => ({ plans: daRicavare, range })),
+      valori,
     );
-    const derived = plans.filter(
-      (plan) => !plan.direct && !(plan.fallback && currentDirectKeys.has(plan.key)),
-    );
-    if (!derived.length) return output;
-    const kind = derived[0].kind;
-    const range = periodRange(kind, selected);
-    if (range.end <= range.start) return output;
-    const ids = [...new Set(derived.map((plan) => plan.entity))];
-    const baseline = baselineRange(kind, range.start);
-    // One Recorder request contains both the sample immediately before the
-    // boundary and all samples in the requested period. This is the same data
-    // contract used for Energy: growth = final sum - initial sum.
-    const rows = await this.statistics(ids, baseline.start, range.end, range.period);
+    /* Chi chiama da solo si aspetta che una domanda caduta si veda: e' chi
+     * legge piu' archi insieme (l'Energia) a decidere cosa farne. */
+    if (caduti.length && !valori.size) throw caduti[0];
+    return valori;
+  }
 
-    derived.forEach((plan) => {
-      const entityRows = (rows[plan.entity] || [])
-        .slice()
-        .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
-      const before = entityRows.filter((row) => rowTimestamp(row) < range.start.getTime());
-      const within = entityRows.filter(
-        (row) =>
-          rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime(),
-      );
-      const value = periodConsumption(within, before.at(-1) || null);
-      if (value != null) output.set(plan.key, Math.round(value * 1000) / 1000);
-    });
-    return output;
+  /* Piu' archi in una volta: UNA domanda al Recorder per arco.
+   *
+   * Un aggiornamento dell'Energia erano sette letture delle statistiche —
+   * giorno, mese, anno, i dispositivi per ognuno, i carichi — e due di quelle
+   * coprivano tredici mesi. Le fonti, i dispositivi e i carichi dello stesso
+   * arco chiedono le stesse righe allo stesso pezzo di database: messi
+   * insieme sono una domanda sola con piu' entita' dentro, che per il
+   * Recorder e' quasi lo stesso lavoro di una (dal campo, la #333: aprendo
+   * il Report «il Recorder e' lento» e tutti i valori a zero).
+   *
+   * E un piano che compare in DUE archi vale la somma delle sue crescite: e'
+   * cosi' che l'anno costa poco — i mesi chiusi non cambiano piu', la loro
+   * risposta si tiene, e del mese aperto si rilegge solo quello, che e'
+   * l'arco che si stava gia' chiedendo per la Mensile.
+   *
+   * Un arco che cade non porta giu' gli altri: quello che e' arrivato si
+   * tiene, e chi ha chiesto decide (vedi il pacchetto parziale dell'Energia). */
+  async valoriPerArchi(richieste = [], valori = new Map()) {
+    const perArco = new Map();
+    for (const { plans = [], range } of richieste) {
+      if (!range || !plans.length || range.end <= range.start) continue;
+      const chiave = `${range.kind}|${range.period}|${range.start.getTime()}|${range.end.getTime()}`;
+      const gruppo = perArco.get(chiave) || { range, plans: [] };
+      gruppo.plans.push(...plans);
+      perArco.set(chiave, gruppo);
+    }
+    const caduti = [];
+    await Promise.all(
+      [...perArco.values()].map(async ({ range, plans }) => {
+        const ids = [...new Set(plans.map((plan) => plan.entity).filter(Boolean))];
+        if (!ids.length) return;
+        const baseline = baselineRange(range.kind, range.start);
+        // One Recorder request contains both the sample immediately before the
+        // boundary and all samples in the requested period. This is the same data
+        // contract used for Energy: growth = final sum - initial sum.
+        let righe;
+        try {
+          righe = await this.statistics(ids, baseline.start, range.end, range.period);
+        } catch (errore) {
+          caduti.push(errore);
+          return;
+        }
+        for (const plan of plans) {
+          const crescita = crescitaNellArco(righe[plan.entity], range);
+          if (crescita == null) continue;
+          const arrotondata = Math.round(crescita * 1000) / 1000;
+          valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
+        }
+      }),
+    );
+    return { valori, caduti };
   }
 
   async valuesForEntities(ids, kind, selected) {

@@ -123,11 +123,14 @@ class SafeHomeAssistantBroker extends HomeAssistantBroker {
   }
 }
 
-const broker = new SafeHomeAssistantBroker({
-  timeout: 12000,
-  cacheCurrentMs: 10000,
-  cacheHistoricalMs: 600000,
-});
+/* Quanto vale una risposta del Recorder lo decide il broker, e solo lui.
+ *
+ * Qui c'erano dieci secondi scritti a mano sopra i suoi — che portano
+ * scritta accanto la ragione: le statistiche si compilano ogni cinque
+ * minuti, e richiederle piu' spesso e' lavoro sul server in cambio di
+ * niente. Due padroni sullo stesso numero, e a comandare era quello senza
+ * la ragione. */
+const broker = new SafeHomeAssistantBroker({ timeout: 12000 });
 root.DashboardModernEnergyService = Object.freeze({
   statistics: (ids, start, end, period) => broker.statistics(ids, start, end, period),
   async statisticsWithGrowth(ids, start, end, period = "day") {
