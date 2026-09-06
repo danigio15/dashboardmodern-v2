@@ -6,6 +6,7 @@
  * invertite» non girava lo stato dichiarato, ma solo la posizione.
  */
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { COVER_KINDS, INFISSO, coverStateLabel } from "../src/core/cover-kind.js";
@@ -75,4 +76,24 @@ test("la tapparella girata che non pubblica la posizione ora segue la spunta", (
   assert.equal(posizione, 0);
   /* E dove la posizione c'e', le due strade portano allo stesso posto. */
   assert.equal(posizioneSecondoVerso(100, true), 0);
+});
+
+/* La stessa tapparella, in Home: la tessera Finestre conta le aperte, e la
+ * contava con la parola di Home Assistant — cioe' col verso sbagliato, per
+ * chi la spunta ce l'ha messa. Il modello della tessera passa dallo stesso
+ * conto del resto della plancia, e non ha piu' una lettura sua. */
+test("anche la tessera Finestre della Home gira la parola, non solo la posizione", async () => {
+  const sorgente = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sorgente, /const raw = statoSecondoVerso\(current\?\.state, girata\);/);
+  assert.match(sorgente, /statoSecondoVerso,\n\s*versoInvertito,\n\} from "\.\.\/core\/verso-aperture\.js";/);
+  /* Il verso si sa prima di leggere la parola, o la lettura arriverebbe a
+   * una spunta non ancora dichiarata. */
+  const spunta = sorgente.indexOf("const girata = versoInvertito(item);");
+  const lettura = sorgente.indexOf("const raw = statoSecondoVerso(current?.state, girata);");
+  assert.ok(spunta > 0 && lettura > spunta, "prima la spunta, poi la parola");
+  /* E chi conta le aperte legge quella parola, non un'altra. */
+  assert.match(sorgente, /: raw === "open"\);/);
 });

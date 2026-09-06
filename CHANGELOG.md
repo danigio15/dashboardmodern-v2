@@ -225,6 +225,8 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   cursore ricava il suo cento per cento, e il disegno la sua altezza. Adesso il
   verso gira anche lo stato dichiarato, e i due movimenti con lui: pastiglia,
   cursore e telo dicono la stessa cosa, che è quella che si vede dalla stanza.
+  Anche la tessera Finestre della Home, che quella parola la contava col verso
+  di Home Assistant: una tapparella girata e giù non compare più fra le aperte.
 
 - **Gli stati arrivano anche con una connessione lenta: la Home si riempie, le tessere si muovono.**
 

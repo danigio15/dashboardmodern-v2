@@ -167,6 +167,7 @@ import {
   apertaSecondoVerso,
   insiemeInvertiti,
   posizioneSecondoVerso,
+  statoSecondoVerso,
   versoInvertito,
 } from "../core/verso-aperture.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
@@ -910,12 +911,15 @@ function coversModel(states) {
       const entity = clean(voce.entity);
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
-      const raw = clean(current?.state).toLowerCase();
       /* Il verso (#244): la tapparella girata dichiara 100 quando e' giu', e
        * il contatto girato sta a ON quando e' chiuso. Qui si normalizza tutto
        * al verso della plancia — 100 e ON vogliono dire aperto — cosi' quello
        * che segue non deve saperne niente. */
       const girata = versoInvertito(item);
+      /* Anche la parola, non solo la posizione (#353): la tapparella montata
+       * al contrario che la posizione non la pubblica dichiara «open» quando
+       * e' giu', e la tessera la contava fra le aperte. */
+      const raw = statoSecondoVerso(current?.state, girata);
       const position = posizioneSecondoVerso(Number(current?.attributes?.current_position), girata);
       /* Il contatto parla la sua lingua — `on` e' aperto — e non ha posizione:
        * chiederla a lui vorrebbe dire inventarla. */
