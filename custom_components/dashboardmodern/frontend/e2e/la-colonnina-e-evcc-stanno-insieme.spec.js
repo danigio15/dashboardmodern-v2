@@ -138,7 +138,9 @@ async function apriLaSchedaAuto(page) {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
   });
   await page.locator('.ed-tab[data-tab="sez2"]').click();
-  await expect(page.locator("#ed-body [data-wallbox-integ]")).toBeVisible();
+  /* Due tasti, non uno: «devono essere due per selezionare le cose». */
+  await expect(page.locator('#ed-body [data-wallbox-integ="colonnina"]')).toBeVisible();
+  await expect(page.locator('#ed-body [data-wallbox-integ="evcc"]')).toBeVisible();
 }
 
 async function boot(page, testInfo) {
@@ -207,9 +209,13 @@ async function boot(page, testInfo) {
 }
 
 async function collega(page, dominio, deviceId) {
-  await page.locator("#ed-body [data-wallbox-integ]").click();
+  /* Il tasto di evcc apre un menu con evcc e basta; quello della colonnina,
+   * le colonnine e basta. */
+  const tasto = dominio === "evcc" ? "evcc" : "colonnina";
+  await page.locator(`#ed-body [data-wallbox-integ="${tasto}"]`).click();
   const menu = page.locator("#dm-integ-menu");
   await expect(menu).toBeVisible();
+  await expect(menu.locator(".dm-integ-item")).toHaveCount(1);
   await menu.locator(`.dm-integ-item[data-domain="${dominio}"]`).click();
   await menu.locator(`.dm-integ-device[data-device-id="${deviceId}"]`).click();
   await menu.locator("[data-preview] [data-confirm]").click();

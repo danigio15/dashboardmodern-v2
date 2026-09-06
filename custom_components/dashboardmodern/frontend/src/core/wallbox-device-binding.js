@@ -40,6 +40,8 @@ export const CASELLE_DELLA_WALLBOX = Object.freeze([
   "dm.ev_modalita_ricarica_evcc",
   "dm.ev_energia_sessione",
   "dm.ev_percentuale_solare_sessione",
+  /* Il cavo: e' la colonnina a sapere se e' dentro. */
+  "dm.ev_cavo_collegato",
 ]);
 
 const DELLA_WALLBOX = new Set(CASELLE_DELLA_WALLBOX);
@@ -64,7 +66,17 @@ const PAROLE = Object.freeze({
   sole: /\b(solar|pv|autarky|autarkie|autarchia|self.?consumption|sonne)\b/i,
   modalita: /\b(mode|modus|modalit[àa]|charge mode|lademodus)\b/i,
   totale: /\b(total|totale|gesamt|lifetime|cumulat)\b/i,
+  /* Il limite di carica: evcc lo chiama «limit SoC», altri «target» o
+   * «charge limit». Non «effective» ne' «vehicle», che sono le copie di sola
+   * lettura, e non «min», che e' l'altro limite. */
+  target:
+    /\b(limit ?soc|limitsoc|soc ?limit|target ?soc|targetsoc|target|charg\w* ?limit|ladelimit|ladeziel|limite (di )?(ri)?carica)\b/i,
+  nonTarget: /\b(effective|vehicle|min(imum)?|plan\w*|phase\w*|current|corrente)\b/i,
+  cavo: /\b(connected|plugged|plug|cavo|cable|collegat\w*|vehicle status|angeschlossen|conectad\w*)\b/i,
 });
+
+/* Le entita' a cui si puo' dare un ordine: una tendina o un numero. */
+const COMANDABILI = new Set(["select", "input_select", "number", "input_number"]);
 
 const SOLO_IMPOSTAZIONE = (voce) => clean(voce?.category).toLowerCase() === "config";
 
@@ -101,11 +113,11 @@ export function legaLaWallboxAlDispositivo({ entities = [], states = {} } = {}) 
    * Una casella non si riempie due volte e un'entita' non finisce in due
    * caselle — con «energia oggi» e «energia mese» che si somigliano tanto,
    * senza questa regola la stessa entita' andava in tutte e due. */
-  const prendi = (ref, domanda) => {
+  const prendi = (ref, domanda, { ancheImpostazioni = false } = {}) => {
     if (mappa[ref]) return false;
     for (const voce of elenco) {
       const id = clean(voce.entity_id);
-      if (!libere.has(id) || SOLO_IMPOSTAZIONE(voce)) continue;
+      if (!libere.has(id) || (SOLO_IMPOSTAZIONE(voce) && !ancheImpostazioni)) continue;
       if (!domanda(voce)) continue;
       mappa[ref] = id;
       libere.delete(id);
@@ -155,6 +167,32 @@ export function legaLaWallboxAlDispositivo({ entities = [], states = {} } = {}) 
   /* Tensione e temperatura: le dice la classe, e non serve chiedere altro. */
   prendi("dm.ev_tensione_wallbox", conClasse("voltage"));
   prendi("dm.ev_temperatura_wallbox", conClasse("temperature"));
+
+  /* Il target di carica, ma solo se si puo' COMANDARE. «Il menu a tendina
+   * della percentuale di ricarica evcc non funziona»: nella casella c'era il
+   * target che l'auto pubblica, un sensore di sola lettura, e la tendina
+   * mandava ordini nel vuoto. evcc pubblica il suo limite come numero o
+   * tendina, ed e' quello che la plancia deve comandare. */
+  prendi(
+    "dm.ev_target_soc",
+    (voce) => COMANDABILI.has(dominio(voce)) && dice("target")(voce) && !dice("nonTarget")(voce),
+    /* Un limite e' un'impostazione per definizione, e le integrazioni lo
+     * marcano cosi': qui e' proprio quello che si cerca. */
+    { ancheImpostazioni: true },
+  );
+
+  /* Il cavo: il sensore che dice se e' dentro. E' la risposta esatta alla
+   * domanda che la foto e la pastiglia si fanno, e finora si indovinava dalle
+   * parole dello stato o dalla potenza. Un «charging» acceso o spento non e'
+   * un cavo: si esclude. */
+  prendi(
+    "dm.ev_cavo_collegato",
+    (voce) =>
+      dominio(voce) === "binary_sensor" &&
+      dice("cavo")(voce) &&
+      !/\bcharg/i.test(parole(voce, states)) &&
+      !dice("nonTarget")(voce),
+  );
 
   return { mappa, evcc: Boolean(mappa["dm.ev_modalita_ricarica_evcc"]) };
 }

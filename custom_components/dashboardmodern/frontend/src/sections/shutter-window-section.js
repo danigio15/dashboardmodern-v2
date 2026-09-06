@@ -25,6 +25,7 @@ import {
   consiglioDiArieggiare,
   cosaMancaPerArieggiare,
   sogliaDellUmidita,
+  sogliaDellaFinestra,
 } from "../core/arieggiare.js";
 import {
   CHIAVE_SOGLIA_CHIUSA,
@@ -190,17 +191,17 @@ export function paroleDelSerramento(model) {
 
 /* «Apri la finestra per arieggiare» (#330).
  *
- * Due condizioni insieme: l'umidita' della stanza sopra la soglia scritta in
- * configurazione, E l'aria di fuori piu' asciutta di quella di dentro. La
- * seconda e' quella che rende il consiglio onesto — con novanta dentro e
- * novantacinque fuori aprire non asciuga, bagna — ed e' la ragione per cui
- * questo non e' un igrometro con una soglia sopra.
+ * L'umidita' e' quella della STANZA a cui la finestra appartiene: il sensore
+ * che la stanza porta nella scheda Temperature. Sopra la soglia — quella
+ * scritta sulla riga della finestra, o quella di casa — la card dice di
+ * aprire. Chi decide e' `consiglioDiArieggiare`, che non legge niente: qui si
+ * vanno solo a prendere i numeri.
  *
- * Chi decide e' `consiglioDiArieggiare`, che non legge niente: qui si va solo
- * a prendere i tre numeri. Dentro: il sensore di umidita' della stanza a cui
- * la finestra appartiene. Fuori: la stazione meteo, che nella plancia e' gia'
- * una casella sua. Manca uno dei due, si tace: un consiglio dato a meta' e'
- * peggio di nessun consiglio, perche' sembra completo. */
+ * Il dato di fuori era una CONDIZIONE: «si apre solo se fuori e' piu'
+ * asciutto». Chi non ha una stazione meteo mappata non vedeva mai il
+ * consiglio, e la scheda gli chiedeva un sensore che con le sue finestre non
+ * c'entra. «L'umidita' si prende solo da quella legata al sensore della
+ * stanza, non fuori.» Il fuori, quando c'e', si dice accanto e non decide. */
 const ENTITA_UMIDITA_FUORI = "dm.home_meteo_umidita";
 
 function misura(riferimento, states) {
@@ -232,40 +233,62 @@ export function consiglioDellaFinestra(cover, states = allStates()) {
   return consiglioDiArieggiare({
     dentro: misura(stanza.hum, states),
     fuori: misura(ENTITA_UMIDITA_FUORI, states),
-    soglia: sogliaDellUmidita(readJson(CHIAVE_SOGLIA_UMIDITA, null)),
+    soglia: sogliaDellaFinestra(cover, readJson(CHIAVE_SOGLIA_UMIDITA, null)),
   });
 }
 
-/* La riga del consiglio, sotto la card: non e' una pastiglia di stato — la
- * finestra e' chiusa, e va bene cosi' — e' una cosa da fare. Sta sotto perche'
- * in testa ci sono gia' il nome e lo stato, e una terza pastiglia li'
- * mangerebbe il nome. */
+/* La riga dell'umidita', sotto la card.
+ *
+ * «Nella sezione non esce nessun avviso.» La riga compariva SOLO col
+ * consiglio, e senza consiglio la card non diceva nemmeno che umidita' c'e':
+ * chi aveva appena collegato l'igrometro alla stanza non aveva modo di vedere
+ * che la finestra lo legge. Adesso la riga c'e' appena la stanza ha una
+ * misura — «💧 Umidita' 48%» — e diventa il consiglio quando la misura supera
+ * la soglia. Non e' una pastiglia di stato: sta sotto perche' in testa ci sono
+ * gia' il nome e lo stato, e una terza pastiglia li' mangerebbe il nome.
+ *
+ * `data-dm-arieggia` c'e' solo quando si consiglia: e' il segno che la pagina
+ * e le prove leggono per «c'e' il consiglio». */
 function ensureArieggia(card, cover, states) {
   const esito = cover ? consiglioDellaFinestra(cover, states) : null;
-  let riga = card.querySelector("[data-dm-arieggia]");
-  if (!esito?.arieggia) {
+  let riga = card.querySelector("[data-dm-umidita]");
+  if (esito?.dentro === null || esito?.dentro === undefined) {
     riga?.remove();
     return;
   }
   if (!riga) {
     riga = doc.createElement("div");
-    riga.className = "dm-tw-arieggia";
-    riga.dataset.dmArieggia = "true";
+    riga.dataset.dmUmidita = "";
     card.append(riga);
   }
-  const testo = `💨 ${t("Apri per arieggiare", "Open to air out")} · ${Math.round(
-    esito.dentro,
-  )}% → ${Math.round(esito.fuori)}%`;
-  if (riga.textContent !== testo) riga.textContent = testo;
+  const stato = esito.arieggia ? "sopra" : "sotto";
+  if (riga.dataset.dmUmidita !== stato) riga.dataset.dmUmidita = stato;
+  const classe = esito.arieggia ? "dm-tw-umidita dm-tw-arieggia" : "dm-tw-umidita";
+  if (riga.className !== classe) riga.className = classe;
+  if (esito.arieggia) {
+    if (riga.dataset.dmArieggia !== "true") riga.dataset.dmArieggia = "true";
+  } else if (riga.dataset.dmArieggia) delete riga.dataset.dmArieggia;
   /* I numeri stanno fuori dalla frase da tradurre: una chiave con dentro un
    * `${...}` non e' una chiave, e' un pezzo di codice che cambia a ogni
    * lettura del sensore. La frase resta fissa, i numeri le si mettono
    * accanto. */
-  riga.title =
-    `${t("Umidità in stanza", "Room humidity")} ${Math.round(esito.dentro)}% · ` +
-    `${t("soglia", "threshold")} ${Math.round(esito.soglia)}% · ` +
-    `${t("fuori", "outside")} ${Math.round(esito.fuori)}% — ` +
-    t("aprire asciuga", "opening dries");
+  const dentro = `${Math.round(esito.dentro)}%`;
+  const soglia = esito.soglia === null ? "" : `${Math.round(esito.soglia)}%`;
+  const fuori = esito.fuori === null ? "" : `${Math.round(esito.fuori)}%`;
+  const testo = esito.arieggia
+    ? `💨 ${t("Apri per arieggiare", "Open to air out")} · ${dentro}${soglia ? ` > ${soglia}` : ""}${
+        esito.fuoriPiuUmido ? ` · ${t("fuori è più umido", "wetter outside")} (${fuori})` : ""
+      }`
+    : `💧 ${t("Umidità", "Humidity")} ${dentro}${soglia ? ` · ${t("soglia", "threshold")} ${soglia}` : ""}`;
+  if (riga.textContent !== testo) riga.textContent = testo;
+  const titolo = [
+    `${t("Umidità in stanza", "Room humidity")} ${dentro}`,
+    soglia ? `${t("soglia", "threshold")} ${soglia}` : "",
+    fuori ? `${t("fuori", "outside")} ${fuori}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  if (riga.title !== titolo) riga.title = titolo;
 }
 
 /* La pastiglia "Finestra aperta" accanto a quella della tapparella.
@@ -521,6 +544,30 @@ function casellaSogliaRiga() {
   return holder;
 }
 
+/* La soglia dell'umidita' di QUESTA finestra.
+ *
+ * «La percentuale deve stare sotto alla creazione della singola finestra e
+ * legata a ogni finestra.» Il bagno vuole il cinquantacinque e la camera il
+ * sessantacinque: una soglia sola per tutta la casa era una delle due
+ * sbagliata. Vuota, vale quella di casa scritta in cima; zero spegne il
+ * consiglio su questa finestra sola. */
+function casellaUmiditaRiga() {
+  const holder = doc.createElement("label");
+  holder.className = "ed-slot dm-tw-slot";
+  holder.dataset.dmTwSlot = "ed-tp-umidita";
+  holder.innerHTML =
+    `<span class="ed-slot-lbl">${esc(t("Arieggia sopra il (%)", "Air out above (%)"))}</span>` +
+    `<input id="ed-tp-umidita" class="ed-input" type="number" min="0" max="${SOGLIA_MASSIMA}" step="1"` +
+    ` placeholder="${esc(t("come la casa", "as the house"))}" autocomplete="off">` +
+    `<small>${esc(
+      t(
+        "Solo per questa finestra: quando l'umidità della sua stanza supera questa quota, la card dice di aprirla per arieggiare. Vuota, vale la soglia di casa scritta in cima; zero spegne il consiglio su questa finestra.",
+        "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.",
+      ),
+    )}</small>`;
+  return holder;
+}
+
 /* Dove attaccarle: subito sotto la casella della tapparella.
  *
  * Prima ci si ancorava alla stanza, e si cercava il suo contenitore con
@@ -601,9 +648,13 @@ export function ensureSogliaField(body = doc?.getElementById("ed-body")) {
  * di chi la plancia la usa. Adesso sta qui, sotto la soglia di chiusura: sono
  * tutte e due impostazioni di casa, non di una riga.
  *
- * Sotto la casella c'e' scritto cosa manca. Il consiglio vuole quattro cose
- * insieme e se ne manca una tace: tacere e' giusto, tacere in silenzio e' quel
- * che fa sembrare rotta una funzione che sta solo aspettando un sensore.
+ * Sotto la casella c'e' scritto cosa manca. Il consiglio vuole tre cose
+ * insieme — la soglia, l'igrometro della stanza, la finestra in quella stanza —
+ * e se ne manca una tace: tacere e' giusto, tacere in silenzio e' quel che fa
+ * sembrare rotta una funzione che sta solo aspettando un sensore.
+ *
+ * Questa e' la soglia DI CASA: ogni finestra puo' averne una sua, scritta
+ * nella sua riga, e questa vale per quelle che non l'hanno scritta.
  *
  * Si salva mentre si scrive, come la soglia di chiusura: e' un numero solo, e
  * un tasto «Salva» per un numero solo e' un gesto in piu' per niente. */
@@ -626,10 +677,6 @@ function frasiDiCosaManca(mancanze) {
       "Nessuna finestra sta in una stanza che ha l'igrometro: scegli la stanza nella riga della finestra, qui sotto.",
       "No window sits in a room that has a hygrometer: pick the room in the window's row, below.",
     ),
-    "senza-umidita-fuori": t(
-      "Manca l'umidità di fuori: si associa in Entità, alla voce «Stazione meteo: umidità».",
-      "The outdoor humidity is missing: set it under Entities, at “Weather station: humidity”.",
-    ),
   };
   return mancanze.map((codice) => detto[codice]).filter(Boolean);
 }
@@ -637,7 +684,6 @@ function frasiDiCosaManca(mancanze) {
 function aggiornaCosaManca(riquadro) {
   const nota = riquadro?.querySelector("[data-dm-umidita-manca]");
   if (!nota) return;
-  const states = allStates();
   const stanze = stanzeConIgrometro();
   const conIgrometro = new Set(stanze.map((stanza) => clean(stanza.id) || clean(stanza.name)));
   const mancanze = cosaMancaPerArieggiare({
@@ -647,13 +693,12 @@ function aggiornaCosaManca(riquadro) {
       const stanza = stanzaDellaFinestra(cover);
       return stanza && conIgrometro.has(clean(stanza.id) || clean(stanza.name));
     }).length,
-    umiditaFuori: misura(ENTITA_UMIDITA_FUORI, states),
   });
   const testo = mancanze.length
     ? `⚠️ ${frasiDiCosaManca(mancanze).join(" ")}`
     : `✅ ${t(
-        "C'è tutto: il consiglio compare sulla finestra della stanza appena l'umidità supera la soglia e fuori l'aria è più asciutta.",
-        "Everything is here: the advice shows on the room's window as soon as humidity goes above the threshold and the air outside is drier.",
+        "C'è tutto: la card della finestra mostra l'umidità della sua stanza e dice di aprire appena supera la soglia.",
+        "Everything is here: the window's card shows its room's humidity and says to open as soon as it goes above the threshold.",
       )}`;
   if (nota.textContent !== testo) nota.textContent = testo;
   const stato = mancanze.length ? "manca" : "pronto";
@@ -670,14 +715,14 @@ export function ensureCampoUmidita(body = doc?.getElementById("ed-body")) {
     riquadro.dataset.dmUmiditaSoglia = "true";
     riquadro.innerHTML =
       `<span class="ed-slot-lbl">${esc(
-        t("Suggerisci di arieggiare sopra il (%)", "Suggest airing above (%)"),
+        t("Suggerisci di arieggiare sopra il (%), di serie", "Suggest airing above (%), by default"),
       )}</span>` +
       `<input id="ed-umidita-soglia" class="ed-input" type="number" min="${SOGLIA_MINIMA}" max="${SOGLIA_MASSIMA}" step="1"` +
       ` placeholder="${SOGLIA_PREDEFINITA}" autocomplete="off">` +
       `<small>${esc(
         t(
-          "Quando l'umidità di una stanza supera questa quota, la finestra di quella stanza suggerisce di aprirla per arieggiare — ma solo se fuori l'aria è più asciutta, altrimenti aprire peggiora. Vuoto vale 60. Zero spegne il suggerimento.",
-          "When a room's humidity goes above this level, that room's window suggests opening it to air out — but only if the air outside is drier, otherwise opening makes it worse. Empty means 60. Zero turns the suggestion off.",
+          "Quando l'umidità di una stanza supera questa quota, la finestra di quella stanza suggerisce di aprirla per arieggiare. L'umidità è quella del sensore della stanza. Vale per le finestre che non hanno una soglia propria nella loro riga. Vuoto vale 60. Zero spegne il suggerimento.",
+          "When a room's humidity goes above this level, that room's window suggests opening it to air out. The humidity is the room sensor's. It applies to the windows without a threshold of their own in their row. Empty means 60. Zero turns the suggestion off.",
         ),
       )}</small>` +
       `<small class="dm-umidita-manca" data-dm-umidita-manca="manca"></small>`;
@@ -753,6 +798,17 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
     let campo = body.querySelector("#ed-tp-soglia-riga");
     if (!campo) {
       campo = casellaSogliaRiga();
+      aggiunte += 1;
+    } else {
+      campo = campo.closest("label, .ed-slot") || campo;
+    }
+    if (ultimo.nextElementSibling !== campo) ultimo.after?.(campo);
+    ultimo = campo;
+  }
+  {
+    let campo = body.querySelector("#ed-tp-umidita");
+    if (!campo) {
+      campo = casellaUmiditaRiga();
       aggiunte += 1;
     } else {
       campo = campo.closest("label, .ed-slot") || campo;
@@ -974,6 +1030,11 @@ function installStyles() {
        pastiglia in testa — quella riga dice cosa fare, non com'e' messa la
        finestra, e in testa mangerebbe il nome. Verde acqua perche' e' un
        invito, non un allarme: la finestra chiusa non e' un guasto. */
+    html body #page-tapparelle#page-tapparelle .dm-tw-umidita{
+      margin:8px 0 0;padding:5px 9px;border-radius:11px;
+      border:1px solid color-mix(in srgb,var(--text-dim,#64748b) 18%,transparent);
+      color:var(--text-dim,#64748b);font-size:11px;font-weight:700;letter-spacing:.2px;
+      line-height:1.3;text-align:center}
     html body #page-tapparelle#page-tapparelle .dm-tw-arieggia{
       margin:8px 0 0;padding:6px 9px;border-radius:11px;
       border:1px solid color-mix(in srgb,#0ea5e9 32%,transparent);

@@ -89,7 +89,7 @@ export function configuredPhotos() {
   return { idle: storedPhoto(EV_PHOTO_KEYS.idle), plugged: storedPhoto(EV_PHOTO_KEYS.plugged) };
 }
 
-function liveState(reference) {
+export function liveState(reference) {
   const id = clean(reference); if (!id) return null;
   let resolved = id;
   try { resolved = clean(root.resolveEntity?.(id)) || id; } catch (_error) {}
@@ -325,9 +325,12 @@ function rimettiInUso(auto, indice) {
       if (!String(chiave).startsWith("dm.ev_") || eDellaWallbox(chiave))
         prossime[chiave] = valore;
     /* La mappa del profilo non tocca la colonnina: e' di casa, e quello che il
-     * profilo ne porta e' una copia vecchia raccolta prima di questa regola. */
+     * profilo ne porta e' una copia vecchia raccolta prima di questa regola.
+     * Una casella di casa VUOTA pero' si lascia riempire dal profilo: chi ha
+     * il target di carica solo dall'auto — una Tesla senza evcc — lo mette in
+     * uso cosi', e non toglie niente a nessuno. */
     for (const [chiave, valore] of Object.entries(mappa))
-      if (!eDellaWallbox(chiave)) prossime[chiave] = valore;
+      if (!eDellaWallbox(chiave) || !clean(prossime[chiave])) prossime[chiave] = valore;
     writeJsonIfChanged("cd_entity_overrides", prossime);
     root.cdApplyCanonicalOverrides?.(prossime);
   } catch (_error) {}

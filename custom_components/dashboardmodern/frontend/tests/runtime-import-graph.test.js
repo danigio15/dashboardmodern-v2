@@ -805,8 +805,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // come si mette in fila stanno nel nucleo, dove si provano senza un
   // documento; chi sposta i nodi nella pagina sta nella sezione, e non
   // disegna niente — i blocchi li fanno gli altri, lui li mette in ordine.
+  // 260 con lo stato della ricarica (`core/stato-della-ricarica.js` e
+  // `sections/ev-stato-e-target-section.js`): la pastiglia sulla foto
+  // dell'auto stampava «on» e «off» da quando la colonnina entra da
+  // un'integrazione, e la tendina del target mandava ordini a un sensore. La
+  // lettera la decide il nucleo; la sezione la scrive e tiene la tendina
+  // onesta, cosi' la vetrina resta sola presentazione.
   assert.ok(
-    relative.length <= 258,
+    relative.length <= 260,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

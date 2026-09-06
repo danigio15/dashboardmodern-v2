@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { contactEntity, inferriataEntity } from "../core/shutter-window.js";
 import { coverClosedThreshold, coverDownRelay, coverPresetPosition } from "../core/cover-kind.js";
+import { umiditaDellaRiga } from "../core/arieggiare.js";
 
 /* La soglia scritta in una riga: vuota vuol dire «quella di casa», e allora
  * non si salva niente; un numero si tiene, zero compreso. */
@@ -321,6 +322,11 @@ function beginEdit(kind, index) {
       "ed-tp-soglia-riga",
       item?.soglia === null || item?.soglia === undefined ? "" : String(item.soglia),
     );
+    /* La soglia dell'umidita' di QUESTA riga: vuota vuol dire quella di casa. */
+    setField(
+      "ed-tp-umidita",
+      item?.umidita === null || item?.umidita === undefined ? "" : String(item.umidita),
+    );
   } else if (kind === "irrigation") {
     setField("ed-irr-name", item.name || "");
     setField("ed-irr-ent", item.entity || "");
@@ -466,6 +472,10 @@ function installAddWrappers() {
       const soglia = sogliaScritta(doc.getElementById("ed-tp-soglia-riga")?.value);
       if (soglia == null) delete list[index].soglia;
       else list[index].soglia = soglia;
+      /* La soglia dell'umidita' della riga: un numero, zero compreso, o niente. */
+      const umidita = umiditaDellaRiga(doc.getElementById("ed-tp-umidita")?.value);
+      if (umidita == null) delete list[index].umidita;
+      else list[index].umidita = umidita;
       // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
       // anche il primo comando e' un rele'.
       for (const [campo, chiave, casella] of [
@@ -500,6 +510,7 @@ function installAddWrappers() {
         tendaDown: clean(doc.getElementById("ed-tp-down-tenda")?.value),
         tendaSoleDown: clean(doc.getElementById("ed-tp-down-tendasole")?.value),
         soglia: clean(doc.getElementById("ed-tp-soglia-riga")?.value),
+        umidita: clean(doc.getElementById("ed-tp-umidita")?.value),
       };
       const entity = clean(doc.getElementById("ed-tp-ent")?.value);
       /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui

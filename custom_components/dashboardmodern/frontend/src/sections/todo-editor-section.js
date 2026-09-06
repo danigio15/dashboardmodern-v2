@@ -14,12 +14,6 @@
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import { normalizeAlertsEditor } from "./alerts-section.js";
 import { refreshFloodAlerts } from "./flood-alerts-section.js";
-import { spostaNellElenco } from "../core/ordine-a-mano.js";
-import {
-  CHIAVE_ORDINE_BLOCCHI,
-  applicaLOrdineDeiBlocchi,
-  ordineSalvato,
-} from "./home-blocchi-section.js";
 import {
   EVIDENZA_CONFIG_KEY,
   WIDGETS_CONFIG_KEY,
@@ -345,54 +339,8 @@ function evidenzaMarkup() {
   <button type="button" class="ed-btn-add" data-evid-add>＋ ${t("Aggiungi entità", "Add entity")}</button>`;
 }
 
-/* L'ordine dei blocchi della Home: persone, widget, azioni rapide, dispositivi.
- *
- * «Riordinare a piacere la Home» — e finora si riordinava DENTRO ogni blocco,
- * mai i blocchi fra loro. Sta in cima a questa scheda, sopra le tessere, per
- * la stessa ragione per cui la modalita' compatta sta sopra l'elenco: governa
- * tutta la pagina, non una riga. Ed e' anche il posto dove uno lo cerca —
- * «manca il riordino della Home» arrivava da chi le tre manopole sparse in
- * tre schede diverse non le aveva trovate. */
-const NOMI_DEI_BLOCCHI = () => ({
-  persone: ["👥", t("Persone", "People")],
-  widget: ["🧩", t("Widget", "Widgets")],
-  azioni: ["⚡", t("Azioni rapide", "Quick actions")],
-  dispositivi: ["📟", t("Dispositivi", "Devices")],
-});
-
-function blocchiMarkup() {
-  const nomi = NOMI_DEI_BLOCCHI();
-  const fila = ordineSalvato();
-  const righe = fila
-    .map((nome, indice) => {
-      const [icona, etichetta] = nomi[nome] || ["", nome];
-      return `<div class="ed-row dm-blocco-row" data-blocco="${esc(nome)}">
-        <span class="dm-blocco-icona" aria-hidden="true">${icona}</span>
-        <span class="ed-row-main"><strong class="ed-row-new">${esc(etichetta)}</strong></span>
-        <button type="button" class="ed-del dm-blocco-move" data-blocco-su aria-label="${esc(
-          t("Più in alto", "Move up"),
-        )}"${indice === 0 ? " disabled" : ""}>▲</button>
-        <button type="button" class="ed-del dm-blocco-move" data-blocco-giu aria-label="${esc(
-          t("Più in basso", "Move down"),
-        )}"${indice === fila.length - 1 ? " disabled" : ""}>▼</button>
-      </div>`;
-    })
-    .join("");
-  return `<div class="ed-sec-title dm-widget-ed-sep">🏠 ${esc(
-    t("Ordine dei blocchi della Home", "Order of the Home blocks"),
-  )}</div>
-    <div class="ed-intro">${esc(
-      t(
-        "In che ordine si vedono in Home. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le azioni rapide nella loro, le tessere qui sotto.",
-        "The order they appear in on Home. Inside each block the order is set where that block is configured: people in their own tab, quick actions in theirs, tiles right below.",
-      ),
-    )}</div>
-    <div class="dm-blocco-list">${righe}</div>`;
-}
-
 function bodyMarkup() {
-  return `${blocchiMarkup()}
-  ${tessereMarkup()}
+  return `${tessereMarkup()}
   ${evidenzaMarkup()}
   ${avvisiMarkup()}`;
 }
@@ -424,7 +372,6 @@ export function ensureTodoEditor() {
   const preferences = widgetPreferences();
   const firma = [
     state.evidAperto,
-    ordineSalvato().join(","),
     preferences.order.join(","),
     preferences.hidden.join(","),
     preferences.compatto,
@@ -532,25 +479,6 @@ function onChange(event) {
 function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== TODO_EDITOR_TAB || !body.contains(event.target)) return;
-
-  /* Le frecce dei blocchi: si sposta la voce e la Home si rimette in fila
-   * subito, senza aspettare un ridisegno. */
-  const freccia = event.target.closest("[data-blocco-su],[data-blocco-giu]");
-  if (freccia) {
-    event.preventDefault();
-    const riga = freccia.closest("[data-blocco]");
-    const fila = ordineSalvato();
-    const indice = fila.indexOf(clean(riga?.dataset?.blocco));
-    if (indice < 0) return;
-    const prossima = spostaNellElenco(fila, indice, freccia.hasAttribute("data-blocco-su") ? -1 : 1);
-    if (!prossima) return;
-    writeJsonIfChanged(CHIAVE_ORDINE_BLOCCHI, prossima);
-    try {
-      applicaLOrdineDeiBlocchi();
-    } catch (_error) {}
-    ridisegna();
-    return;
-  }
 
   /* Il segmented della compatta: scrive la scelta e la Home la veste subito. */
   const compatto = event.target.closest("[data-widget-compatto]");
@@ -740,12 +668,6 @@ function installStyles() {
       #ed-body .dm-widget-compatto button[data-on="true"]{
         background:var(--card-bg,#fff);color:var(--text,#0f172a);box-shadow:0 1px 3px rgba(15,23,42,.15)}
       #ed-body .dm-widget-pref-list{display:grid;gap:6px;margin-bottom:10px}
-      /* I blocchi della Home: stessa riga delle tessere, senza l'interruttore
-         — un blocco non si spegne da qui, si svuota dove lo si configura. */
-      #ed-body .dm-blocco-list{display:grid;gap:6px;margin-bottom:14px}
-      #ed-body .dm-blocco-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
-      #ed-body .dm-blocco-icona{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
-      #ed-body .dm-blocco-move[disabled]{opacity:.3;pointer-events:none}
       #ed-body .dm-widget-pref{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
       #ed-body .dm-widget-pref-icon{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
       #ed-body .dm-widget-pref-icon .dm-oggetto{width:24px;height:24px;display:block}

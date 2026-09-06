@@ -187,6 +187,13 @@ export function legaLAutoAlDispositivo({ entities = [], states = {} } = {}) {
     (voce) => conClasse("power")(voce) && conParola("potenza")(voce),
   );
   prendi("dm.ev_potenza_ricarica", conParola("potenza", "sensor"));
+  /* Il target: prima uno che si puo' COMANDARE — un `number` o una tendina
+   * — perche' la plancia lo usa per cambiare il limite, e a un sensore di sola
+   * lettura non si puo' dire niente. Il sensore resta come ripiego: mostra il
+   * valore, e la tendina sa di essere muta. */
+  const comandabile = (voce) =>
+    ["select", "input_select", "number", "input_number"].includes(dominio(voce));
+  prendi("dm.ev_target_soc", (voce) => comandabile(voce) && conParola("target")(voce));
   prendi("dm.ev_target_soc", (voce) => percentuale(voce) && conParola("target")(voce));
 
   /* Le aperture e i comandi: le classi di Home Assistant per prime. */

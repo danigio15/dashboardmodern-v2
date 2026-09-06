@@ -16,8 +16,19 @@
  * resto della plancia, e qui vale doppio perche' spostare nodi costa
  * impaginazione.
  */
+import { spostaNellElenco } from "../core/ordine-a-mano.js";
 import { BLOCCHI_DELLA_HOME, ordineDeiBlocchi } from "../core/ordine-dei-blocchi.js";
-import { doc, readJson, root } from "./shared.js";
+import {
+  clean,
+  doc,
+  esc,
+  installStyle,
+  onEditorRedraw,
+  readJson,
+  root,
+  t,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_BLOCCHI__";
 const state = (root[KEY] ||= { installed: false, inCoda: false });
@@ -115,9 +126,115 @@ function inCoda() {
   });
 }
 
+/* ── la scheda dove si riordina: la Home ─────────────────────────────── */
+
+/* «Il riordina dove l'hai messo, che in Home non c'e'.» Stava nella scheda
+ * dei Widget, perche' li' si riordinano le tessere: ma le tessere sono UNO dei
+ * blocchi, e chi cerca l'ordine della Home lo cerca nella scheda della Home.
+ * «Non deve stare nella sezione Widget, ti avevo detto nella sezione Home.»
+ *
+ * Il guscio disegna la scheda Home (`sez0`) da capo a ogni passaggio: il
+ * pannello si rimette in cima ogni volta che la scheda viene rifatta, e solo
+ * quando e' cambiato qualcosa. */
+const SCHEDA_HOME = "sez0";
+
+/* I nomi delle sezioni della Home. Le tessere hanno una scheda loro dove si
+ * scelgono e si ordinano fra loro; le persone e le azioni rapide pure. Qui si
+ * mettono in fila i blocchi. */
+const NOMI_DEI_BLOCCHI = () => ({
+  persone: ["👥", t("Persone", "People")],
+  widget: ["🧩", t("Widget", "Widgets")],
+  azioni: ["⚡", t("Azioni rapide", "Quick actions")],
+  dispositivi: ["📟", t("Dispositivi", "Devices")],
+});
+
+function schedaAperta() {
+  return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
+}
+
+function pannelloMarkup() {
+  const nomi = NOMI_DEI_BLOCCHI();
+  const fila = ordineSalvato();
+  const righe = fila
+    .map((nome, indice) => {
+      const [icona, etichetta] = nomi[nome] || ["", nome];
+      return `<div class="ed-row dm-blocco-row" data-blocco="${esc(nome)}">
+        <span class="dm-blocco-icona" aria-hidden="true">${icona}</span>
+        <span class="ed-row-main"><strong class="ed-row-new">${esc(etichetta)}</strong></span>
+        <button type="button" class="ed-del dm-blocco-move" data-blocco-su aria-label="${esc(
+          t("Più in alto", "Move up"),
+        )}"${indice === 0 ? " disabled" : ""}>▲</button>
+        <button type="button" class="ed-del dm-blocco-move" data-blocco-giu aria-label="${esc(
+          t("Più in basso", "Move down"),
+        )}"${indice === fila.length - 1 ? " disabled" : ""}>▼</button>
+      </div>`;
+    })
+    .join("");
+  return `<div class="ed-sec-title">🏠 ${esc(t("Ordine dei blocchi della Home", "Order of the Home blocks"))}</div>
+    <div class="ed-intro">${esc(
+      t(
+        "In che ordine si vedono in Home: persone, widget, azioni rapide, dispositivi. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le tessere in Widget, le azioni rapide nella loro.",
+        "The order they appear in on Home: people, widgets, quick actions, devices. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
+      ),
+    )}</div>
+    <div class="dm-blocco-list">${righe}</div>`;
+}
+
+/** Il pannello in cima alla scheda Home dell'editor, quando e' quella aperta. */
+export function ensurePannelloDeiBlocchi(body = doc?.getElementById?.("ed-body")) {
+  if (!body) return false;
+  let pannello = body.querySelector(":scope > [data-dm-home-blocchi]");
+  if (schedaAperta() !== SCHEDA_HOME) {
+    pannello?.remove();
+    return false;
+  }
+  const firma = ordineSalvato().join(",");
+  if (pannello && pannello.dataset.dmFirma === firma) return true;
+  if (!pannello) {
+    pannello = doc.createElement("div");
+    pannello.className = "dm-home-blocchi";
+    pannello.dataset.dmHomeBlocchi = "true";
+  }
+  pannello.dataset.dmFirma = firma;
+  pannello.innerHTML = pannelloMarkup();
+  if (body.firstElementChild !== pannello) body.prepend(pannello);
+  return true;
+}
+
+/* Le frecce: si sposta la voce, la Home si rimette in fila subito, e il
+ * pannello si ridisegna con la fila nuova. */
+function onClickFreccia(event) {
+  const freccia = event.target?.closest?.("[data-dm-home-blocchi] [data-blocco-su],[data-dm-home-blocchi] [data-blocco-giu]");
+  if (!freccia) return;
+  event.preventDefault();
+  const fila = ordineSalvato();
+  const indice = fila.indexOf(clean(freccia.closest("[data-blocco]")?.dataset?.blocco));
+  if (indice < 0) return;
+  const prossima = spostaNellElenco(fila, indice, freccia.hasAttribute("data-blocco-su") ? -1 : 1);
+  if (!prossima) return;
+  writeJsonIfChanged(CHIAVE_ORDINE_BLOCCHI, prossima);
+  try {
+    applicaLOrdineDeiBlocchi();
+  } catch (_error) {}
+  ensurePannelloDeiBlocchi();
+}
+
+function stile() {
+  return `
+    #ed-body .dm-home-blocchi{display:block;margin-bottom:14px}
+    #ed-body .dm-blocco-list{display:grid;gap:6px;margin-bottom:14px}
+    #ed-body .dm-blocco-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
+    #ed-body .dm-blocco-icona{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
+    #ed-body .dm-blocco-move[disabled]{opacity:.3;pointer-events:none}
+  `;
+}
+
 export function installHomeBlocchiSection() {
   if (!doc || state.installed) return;
   state.installed = true;
+  installStyle("dm-home-blocchi", stile());
+  onEditorRedraw("__dmHomeBlocchiEditor", () => ensurePannelloDeiBlocchi());
+  doc.addEventListener("click", onClickFreccia);
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

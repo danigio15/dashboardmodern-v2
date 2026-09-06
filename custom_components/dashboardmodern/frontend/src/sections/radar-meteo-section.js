@@ -603,7 +603,20 @@ export function disegnaRadar() {
    * la regola col `display:none` che vince e' li' sotto per il caso in cui
    * qualcuno lo lasci indietro. */
   if (!scelto) {
-    bloccoEsistente()?.remove();
+    const guasto = radarGuasto();
+    if (!guasto) {
+      bloccoEsistente()?.remove();
+      return false;
+    }
+    /* Configurato, ma male: il blocco c'e' e dice cosa correggere. */
+    const avviso = blocco();
+    if (!avviso) return false;
+    avviso.hidden = false;
+    avviso.dataset.dmModo = "guasto";
+    const titolo = avviso.querySelector(".dm-radar-nome");
+    if (titolo) titolo.textContent = t("Radar meteo", "Weather radar");
+    const spiegazione = avviso.querySelector(".dm-radar-nota");
+    if (spiegazione && spiegazione.textContent !== guasto) spiegazione.textContent = guasto;
     return false;
   }
   const nodo = blocco();
@@ -704,6 +717,116 @@ function zoneMarkup(scelta) {
   return voci.join("");
 }
 
+/* Un numero da mettere in una casella: vuoto quando non c'e'. Una casella
+ * con scritto «null» e' quello che si vedeva. */
+function numeroScritto(valore) {
+  const testo = clean(valore);
+  return /^(null|undefined|nan)$/i.test(testo) ? "" : testo;
+}
+
+/* Cosa la tendina deve mostrare: la SCELTA, non il risultato.
+ *
+ * «Ho inserito il link con l'indirizzo e non lo legge nemmeno.» Chi sceglieva
+ * «Un indirizzo mio» e incollava la pagina di un sito vedeva la tendina
+ * tornare su «Nessuno»: la tendina mostrava `servizioScelto`, che per un
+ * indirizzo non valido risponde «niente», e la scelta sembrava sparita. La
+ * tendina resta su quello che si e' scelto, e sotto c'e' scritto cosa non va. */
+function sceltaDelServizio(config) {
+  const grezzo = clean(config?.servizio);
+  if (grezzo === "modello" || SERVIZI_RADAR[grezzo]) return grezzo;
+  return servizioScelto(config);
+}
+
+/* La frase per ogni esito, una volta sola: la scrive il tasto Prova e la
+ * scrive la scheda quando si apre con un indirizzo che non va. */
+function fraseDellEsito(motivo) {
+  switch (motivo) {
+    case "senza-posto":
+      return t(
+        "Non so dove sia casa: Home Assistant non ha risposto. Scegli una zona o scrivi le coordinate.",
+        "I do not know where home is: Home Assistant did not answer. Pick a zone or write the coordinates.",
+      );
+    case "senza-fotogramma":
+      return t(
+        "L'elenco dei fotogrammi del servizio non arriva: riprova fra un momento.",
+        "The service's list of frames does not arrive: try again in a moment.",
+      );
+    case "sito":
+      return t(
+        "Questo è l'indirizzo di una PAGINA, non dei quadratini della mappa: aprendolo si apre un sito, e un sito non si può disegnare qui dentro. Serve l'indirizzo con cui quel servizio pubblica le tessere, che ha {z}/{x}/{y} al posto dei numeri. Se non ce l'hai, scegli un servizio dalla tendina qui sopra.",
+        "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.",
+      );
+    case "segnaposto-a-meta":
+      return t(
+        "All'indirizzo manca un segnaposto: servono tutti e tre — {z} per l'ingrandimento, {x} e {y} per il quadratino. Con uno solo si chiederebbe sempre lo stesso pezzo di mondo.",
+        "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.",
+      );
+    case "senza-indirizzo":
+    case "vuoto":
+      return t(
+        "Scegli un servizio dalla tendina, o scrivi un indirizzo con {z}/{x}/{y} dentro.",
+        "Pick a service from the list, or write an address with {z}/{x}/{y} in it.",
+      );
+    case "troppo-lenta":
+      return t("Nessuna risposta in otto secondi.", "No answer within eight seconds.");
+    default:
+      return t(
+        "Non arriva. Controlla l'indirizzo, e che il servizio si lasci leggere da qui.",
+        "It does not arrive. Check the address, and that the service lets this page read it.",
+      );
+  }
+}
+
+/* Quello che non va dell'indirizzo scritto a mano, se qualcosa non va. */
+function problemaDellaScelta(config) {
+  if (clean(config?.servizio) !== "modello") return "";
+  return problemaDellIndirizzo(clean(config?.modello));
+}
+
+/* La riga sotto la casella dice subito cosa non va, non solo dopo «Prova»:
+ * chi incolla l'indirizzo di un sito lo sa mentre lo incolla. */
+function mostraIlProblema(dentro, config) {
+  const esito = dentro?.querySelector?.("[data-dm-radar-esito]");
+  if (!esito || state.provando) return false;
+  const problema = problemaDellaScelta(config);
+  if (problema) {
+    esito.dataset.dmEsito = "male";
+    esito.textContent = fraseDellEsito(problema);
+    return true;
+  }
+  if (esito.dataset.dmEsito === "male") {
+    delete esito.dataset.dmEsito;
+    esito.textContent = FRASE_DI_SERIE();
+  }
+  return false;
+}
+
+/* Il radar configurato male, per la finestra delle previsioni.
+ *
+ * «Radar continua a non uscire.» Con «Un indirizzo mio» e l'indirizzo di un
+ * sito il blocco non nasceva affatto, e chi lo cercava non trovava nemmeno
+ * un perche'. Adesso il blocco c'e' e dice cosa correggere. Con «Nessuno»
+ * scelto apposta non c'e' niente da dire, e infatti non si dice. */
+function radarGuasto(grezzo = configurazione()) {
+  const problema = problemaDellaScelta(grezzo);
+  if (!problema) return "";
+  return problema === "vuoto"
+    ? t(
+        "Hai scelto «Un indirizzo mio» ma non c'è un indirizzo: scrivilo in Configurazione → Meteo, o scegli un servizio dalla tendina.",
+        "You picked «An address of mine» but there is no address: write it under Settings → Weather, or pick a service from the list.",
+      )
+    : t(
+        "L'indirizzo del radar non è un indirizzo di tessere ({z}/{x}/{y}): correggilo in Configurazione → Meteo, o scegli un servizio dalla tendina.",
+        "The radar address is not a tile address ({z}/{x}/{y}): fix it under Settings → Weather, or pick a service from the list.",
+      );
+}
+
+const FRASE_DI_SERIE = () =>
+  t(
+    "Di serie la pioggia arriva da RainViewer e la mappa da OpenStreetMap: basta scegliere dove. Puoi cambiare servizio dalla tendina, oppure «Un indirizzo mio» e scrivere quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
+    "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
+  );
+
 /* Le voci della tendina dei servizi: quelli che si conoscono, e «un indirizzo
  * mio» per chi ne ha un altro. I nomi dei servizi sono marchi, non parole da
  * tradurre. */
@@ -784,7 +907,7 @@ function casellaMarkup(config) {
     <div class="dm-radar-oppure">${esc(t("oppure, da un servizio di mappe", "or, from a map service"))}</div>
     <div class="dm-radar-dove">
       <label><span class="dm-radar-lbl">${esc(t("Servizio radar", "Radar service"))}</span>
-        <select class="ed-input" data-dm-radar-campo="servizio">${serviziMarkup(servizioScelto(config))}</select>
+        <select class="ed-input" data-dm-radar-campo="servizio">${serviziMarkup(sceltaDelServizio(config))}</select>
       </label>
       <label><span class="dm-radar-lbl">${esc(t("Mappa di fondo", "Base map"))}</span>
         <select class="ed-input" data-dm-radar-campo="fondo">${fondiMarkup(fondoScelto(config))}</select>
@@ -798,12 +921,7 @@ function casellaMarkup(config) {
       placeholder="https://…/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false"></span>
     <span class="ed-form-row dm-radar-prova-riga"><button
       type="button" class="dm-radar-prova" data-dm-radar-prova>${esc(t("Prova", "Test"))}</button></span>
-    <small class="dm-radar-esito" data-dm-radar-esito>${esc(
-      t(
-        "Di serie la pioggia arriva da RainViewer e la mappa da OpenStreetMap: basta scegliere dove. Puoi cambiare servizio dalla tendina, oppure «Un indirizzo mio» e scrivere quello che pubblica il servizio che vuoi usare, con {z}/{x}/{y} al posto dei numeri del quadratino. Il tasto Prova ne scarica uno e ti dice se arriva.",
-        "Out of the box the rain comes from RainViewer and the map from OpenStreetMap: just pick where. You can change the service from the list, or «An address of mine» and write the one your service publishes, with {z}/{x}/{y} standing in for the tile numbers. Test downloads one and tells you whether it arrives.",
-      ),
-    )}</small>
+    <small class="dm-radar-esito" data-dm-radar-esito>${esc(FRASE_DI_SERIE())}</small>
     <small>${esc(
       t(
         "Il browser chiede al servizio i quadratini della zona che guardi: quel servizio sa quindi che zona è. Scegli «Nessuno» e la plancia non bussa a nessuno.",
@@ -819,8 +937,8 @@ function casellaMarkup(config) {
           value="${esc(String(config.raggio ?? RAGGIO_DI_SERIE))}"></label>
       <label><span class="dm-radar-lbl">${esc(t("Zoom massimo della pioggia", "Rain zoom cap"))}</span>
         <input class="ed-input" type="number" min="0" max="12" step="1"
-          data-dm-radar-campo="zoomPioggia" value="${esc(clean(config.zoomPioggia))}"
-          placeholder="${esc(String(zoomDellaPioggia({}, servizioScelto(config)) ?? ""))}"></label>
+          data-dm-radar-campo="zoomPioggia" value="${esc(numeroScritto(config.zoomPioggia))}"
+          placeholder="${esc(numeroScritto(zoomDellaPioggia({}, servizioScelto(config))))}"></label>
     </div>
     <div class="dm-radar-dove">
       <label><span class="dm-radar-lbl">${esc(t("Latitudine", "Latitude"))}</span>
@@ -849,9 +967,11 @@ function montaLaCasella() {
   if (!fisarmonica || fisarmonica.querySelector("[data-dm-radar-campo]")) return false;
   const casella = doc.createElement("label");
   casella.className = "ed-slot dm-radar-ed";
-  casella.innerHTML = casellaMarkup(configurazione());
+  const config = configurazione();
+  casella.innerHTML = casellaMarkup(config);
   riquadro.after(casella);
   aggiornaVisibilita(casella);
+  mostraIlProblema(casella, config);
   return true;
 }
 
@@ -867,8 +987,10 @@ function onCambio(event) {
   if (!campo) return;
   const dentro = campo.closest(".dm-radar-ed");
   if (!dentro) return;
-  salva(raccogli(dentro));
+  const config = raccogli(dentro);
+  salva(config);
   aggiornaVisibilita(dentro);
+  mostraIlProblema(dentro, config);
   disegnaRadar();
 }
 
@@ -911,37 +1033,7 @@ async function onClick(event) {
     esito.dataset.dmEsito = risposta.ok ? "bene" : "male";
     esito.textContent = risposta.ok
       ? t("Arriva: il quadratino c'è.", "It arrives: the tile is there.")
-      : risposta.motivo === "senza-posto"
-        ? t(
-            "Non so dove sia casa: Home Assistant non ha risposto. Scegli una zona o scrivi le coordinate.",
-            "I do not know where home is: Home Assistant did not answer. Pick a zone or write the coordinates.",
-          )
-        : risposta.motivo === "senza-fotogramma"
-          ? t(
-              "L'elenco dei fotogrammi del servizio non arriva: riprova fra un momento.",
-              "The service's list of frames does not arrive: try again in a moment.",
-            )
-          : risposta.motivo === "sito"
-            ? t(
-                "Questo è l'indirizzo di una PAGINA, non dei quadratini della mappa: aprendolo si apre un sito, e un sito non si può disegnare qui dentro. Serve l'indirizzo con cui quel servizio pubblica le tessere, che ha {z}/{x}/{y} al posto dei numeri. Se non ce l'hai, scegli un servizio dalla tendina qui sopra.",
-                "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.",
-              )
-            : risposta.motivo === "segnaposto-a-meta"
-              ? t(
-                  "All'indirizzo manca un segnaposto: servono tutti e tre — {z} per l'ingrandimento, {x} e {y} per il quadratino. Con uno solo si chiederebbe sempre lo stesso pezzo di mondo.",
-                  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.",
-                )
-              : risposta.motivo === "senza-indirizzo"
-            ? t(
-                "Scegli un servizio dalla tendina, o scrivi un indirizzo con {z}/{x}/{y} dentro.",
-                "Pick a service from the list, or write an address with {z}/{x}/{y} in it.",
-              )
-            : risposta.motivo === "troppo-lenta"
-              ? t("Nessuna risposta in otto secondi.", "No answer within eight seconds.")
-              : t(
-                  "Non arriva. Controlla l'indirizzo, e che il servizio si lasci leggere da qui.",
-                  "It does not arrive. Check the address, and that the service lets this page read it.",
-                );
+      : fraseDellEsito(risposta.motivo);
     disegnaRadar();
     return;
   }
@@ -974,6 +1066,11 @@ function installStyles() {
       #weather-modal .dm-radar-scala{flex:0 0 96px;height:8px;border-radius:4px;background:linear-gradient(90deg,#a1d7ff,#3b8bff,#1d4ed8,#facc15,#f97316,#dc2626)}
       #weather-modal .dm-radar-vuoto{margin-left:auto;font-style:italic}
       #weather-modal .dm-radar-blocco[data-dm-modo="entita"] .dm-radar-legenda{display:none}
+      /* Configurato male: resta la testa con la spiegazione, il quadro no. */
+      #weather-modal .dm-radar-blocco[data-dm-modo="guasto"] .dm-radar-quadro,
+      #weather-modal .dm-radar-blocco[data-dm-modo="guasto"] .dm-radar-legenda{display:none}
+      #weather-modal .dm-radar-blocco[data-dm-modo="guasto"] .dm-radar-nota{
+        display:block;white-space:normal;color:#b45309;font-weight:700}
       #weather-modal .dm-radar-quadro{
         position:relative;display:grid;place-items:center;min-height:240px;overflow:hidden;
         border-radius:16px;background:var(--bg-sculpted,#0b1220);

@@ -5,8 +5,9 @@
  * azioni fra loro. L'ordine dei blocchi era scritto nel codice, e chi rientra
  * in casa e vuole i tasti per primi non poteva averli.
  *
- * Qui si fa il gesto vero: si apre la scheda dei Widget, si porta «Azioni
- * rapide» in cima con la freccia, e si guarda la Home.
+ * Qui si fa il gesto vero: si apre la scheda Home dell'editor — «ti avevo
+ * detto nella sezione Home» — si porta «Azioni rapide» in cima con la
+ * freccia, e si guarda la Home.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
@@ -136,12 +137,17 @@ test("le azioni rapide si portano in cima alla Home, e ci restano", async ({ pag
   const prima = await ordineInPagina(page);
   expect(prima.indexOf("persone")).toBeLessThan(prima.indexOf("azioni"));
 
-  /* Il gesto: la scheda dei Widget, e la freccia su «Azioni rapide». */
+  /* Il gesto: la scheda Home dell'editor, e la freccia su «Azioni rapide». */
   await page.evaluate(() => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
   });
+  await page.locator('.ed-tab[data-tab="sez0"]').first().click();
+  const riga = page.locator('#ed-body [data-dm-home-blocchi] [data-blocco="azioni"]');
+  await expect(riga).toBeVisible({ timeout: 15_000 });
+  /* E nella scheda dei Widget non c'e' piu': spostare vuol dire togliere di la'. */
   await page.locator('.ed-tab[data-tab="todo"]').first().click();
-  const riga = page.locator('#ed-body [data-blocco="azioni"]');
+  await expect(page.locator('#ed-body [data-blocco="azioni"]')).toHaveCount(0);
+  await page.locator('.ed-tab[data-tab="sez0"]').first().click();
   await expect(riga).toBeVisible({ timeout: 15_000 });
   /* Due volte: da terzo a primo. */
   await riga.locator("[data-blocco-su]").click();

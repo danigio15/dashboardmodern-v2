@@ -5,6 +5,102 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.11
+
+Le cose viste sulla plancia vera subito dopo la 1.4.10, con le schermate
+davanti: la pastiglia dell'auto che diceva «on» e «off», la tendina del
+target che non comandava niente, il riordino della Home messo nella scheda
+sbagliata, le finestre che non dicevano l'umidita', il radar che spariva
+senza un perche'.
+
+### Cambiato
+
+- **L'umidita' delle finestre e' quella della stanza, e basta.**
+
+      «Non e' vero: l'umidita' si prende SOLO da quella legata al sensore
+       umidita' della stanza, non fuori.»
+
+  Il consiglio di arieggiare voleva anche l'umidita' di fuori — «si apre solo
+  se fuori e' piu' asciutto» — e per chi non ha una stazione meteo mappata
+  questo voleva dire non vedere mai niente, con la scheda che chiedeva un
+  sensore che con le finestre non c'entra. Adesso la stanza sopra la soglia fa
+  comparire il consiglio; il fuori, quando c'e', si scrive accanto («fuori e'
+  piu' umido») e non decide.
+
+  E la card della finestra mostra SEMPRE l'umidita' della sua stanza — «💧
+  Umidita' 48% · soglia 60%» — anche quando non c'e' niente da consigliare:
+  «nella sezione non esce nessun avviso» era anche questo, un igrometro
+  appena collegato e nessun posto dove vederlo.
+
+- **Le soglie stanno dentro la singola finestra.**
+
+      «La percentuale deve stare sotto alla creazione della singola finestra
+       e legata ad ogni finestra.»
+
+  «Chiusa sotto il (%)» c'era gia' per riga; «Arieggia sopra il (%)» adesso
+  c'e' anche lui, nella creazione della finestra e nella modale di modifica,
+  che lo rilegge insieme al resto della riga. Vuoto vale la soglia di casa
+  scritta in cima; zero spegne il consiglio su quella finestra sola.
+
+- **Il riordino dei blocchi sta nella scheda Home dell'editor.**
+
+      «Il riordina dove l'hai messo, che in Home non c'e'? Non deve stare
+       nella sezione Widget, ti avevo detto nella sezione Home.»
+
+  Il pannello «Ordine dei blocchi della Home» e' in cima alla scheda 🏠 Home
+  della configurazione, e non c'e' piu' fra i Widget.
+
+- **Due tasti nella scheda Auto: «Collega la colonnina» e «Collega evcc».**
+
+      «Ancora unico tasto: colonnina e evcc devono essere due, per
+       selezionare le cose.»
+
+  Ognuno apre il menu con le sue integrazioni e basta — evcc da una parte,
+  go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla dall'altra — e quello che
+  si collega si somma: nessuno dei due porta via le caselle dell'altro.
+
+### Corretto
+
+- **La pastiglia sulla foto dell'auto torna a dire «Collegata» e «In carica».**
+
+      «Lo stato dice off ma la vettura e' collegata. E' in carica, dice on:
+       prima usciva come stato non collegato, collegato, in ricarica.»
+
+  Il guscio legge l'alfabeto delle colonnine — A, B, C, F — e per tutto il
+  resto stampa la parola grezza. Da quando la colonnina entra da
+  un'integrazione la casella dello stato porta un `binary_sensor.charging`,
+  e la pastiglia diceva «on» e «off». Adesso qualunque forma — la lettera, la
+  parola dell'integrazione, l'acceso/spento di un sensore — diventa la lettera,
+  col sensore del cavo e la potenza come testimoni, e la pastiglia dice «Non
+  connessa», «Collegata», «In carica». Il sensore del cavo, quando la
+  colonnina lo pubblica, entra da solo collegando la colonnina.
+
+- **La tendina del target di carica comanda davvero.**
+
+      «Il menu a tendina della percentuale di ricarica evcc non funziona.»
+
+  Nella casella del target finiva il sensore che l'auto pubblica — di sola
+  lettura — e la tendina mandava ordini nel vuoto: al giro dopo tornava sul
+  valore di prima, e sembrava rotta. Collegando evcc adesso si prende il suo
+  limite di carica, che si comanda (un numero o una tendina), anche quando
+  la casella era gia' occupata dal sensore dell'auto: un comando scalza una
+  lettura. Davanti a un numero le voci della tendina si fanno dai suoi
+  min/max/step, cosi' il valore vero si vede; davanti a un sensore la tendina
+  si disabilita e dice il perche', invece di far finta.
+
+- **Il radar dice perche' non esce.**
+
+      «Ho inserito il link con indirizzo e non lo legge nemmeno. Radar
+       continua a non uscire.»
+
+  Era l'indirizzo di una pagina di windy.com, non quello delle tessere. La
+  tendina della scheda tornava su «Nessuno» — la scelta sembrava sparita — e
+  nelle previsioni il blocco non nasceva affatto. Adesso la tendina resta su
+  «Un indirizzo mio», sotto c'e' scritto subito che quello e' l'indirizzo di
+  una pagina e cosa serve ({z}/{x}/{y}), e nelle previsioni compare il blocco
+  con la stessa spiegazione. Con «Nessuno» scelto apposta non compare niente,
+  com'e' giusto. E la casella del tetto dello zoom non scrive piu' «null».
+
 ## 1.4.10
 
 Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.

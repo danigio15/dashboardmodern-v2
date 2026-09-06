@@ -97,6 +97,7 @@ import { installHomeWidgetsSection } from "./home-widgets-section.js";
 import { installTodoEditorSection } from "./todo-editor-section.js";
 import { installWidgetEntityChoiceSection } from "./widget-entity-choice-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
+import { installEvStatoETargetSection } from "./ev-stato-e-target-section.js";
 import { installAutoTermica } from "./auto-termica-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
@@ -969,6 +970,7 @@ export function installSectionRuntime() {
     // The skin installs after the EV owner so the vehicle picker it restyles is
     // already mounted, and re-renders itself on the same runtime events.
     installEvShowcaseSection();
+    installEvStatoETargetSection();
     /* L'auto a benzina (#208) si appoggia alla pagina EV gia' vestita: le
      * sue caselle entrano nella stessa scheda, e il suo quadro prende il
      * posto di quello della ricarica quando il motore non e' elettrico. */
