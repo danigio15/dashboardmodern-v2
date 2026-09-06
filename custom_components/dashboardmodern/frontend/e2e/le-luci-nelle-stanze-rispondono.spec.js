@@ -56,7 +56,15 @@ test("la luce cambia stato quando Home Assistant risponde", async ({ page }, tes
     window.applyStates?.();
     window.render?.();
   });
-  await page.evaluate(() => window.showPage?.("stanze"));
+  /* Si va sulle Stanze come ci si va davvero, con un tocco sulla linguetta.
+   *
+   * Prima bastava chiedere a `window.showPage`, che pero' non esiste: la
+   * pagina restava chiusa e le sue card si disegnavano lo stesso, perche' la
+   * sezione ridisegnava a ogni cambio di stato anche le pagine che nessuno
+   * aveva davanti. Adesso si dipinge per chi guarda, quindi la pagina va
+   * aperta — che e' anche l'unico modo in cui una persona vede quella card. */
+  await page.locator('.tab[data-tab="stanze"]').first().click();
+  await expect(page.locator("#page-stanze")).toHaveClass(/active/);
   await page.waitForTimeout(700);
 
   const carta = '#page-stanze [data-dm-lucip="light.salone"]';

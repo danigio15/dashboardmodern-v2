@@ -47,6 +47,8 @@ export const RUNTIME_EN = Object.freeze({
     "No EV entity mapped to save: map the Car section entities first",
 });
 
+import { paginaVisibile, planciaVisibile, quandoSiCambiaPagina } from "./shared.js";
+
 const MARCHIO = "__dmEnglishRuntimeStrings";
 
 /* Le frasi che portano un numero dietro — «Attivo da 1 min», «✅ Rilevate: 3»
@@ -121,14 +123,33 @@ export function installEnglishRuntimeStrings(root = globalThis, doc = globalThis
    * etichette dell'editor — arriva al DOM quando il guscio ridisegna: si
    * ascoltano i suoi eventi e si traducono i sottoalberi giusti, senza
    * osservatori (il grafo di produzione li conta, e il tetto e' gia' pieno). */
-  const radici = () => [
-    doc.getElementById("alarm-stage"),
-    doc.getElementById("page-security"),
-    doc.getElementById("glance-alarm") || doc.querySelector("[data-glance-alarm]"),
-    doc.getElementById("page-home"),
-    doc.getElementById("page-ev"),
-    doc.getElementById("ed-body"),
-  ];
+  /* Ogni radice sta dentro una pagina, e le pagine restano nel documento anche
+   * quando non si vedono: ripassarle tutte a ogni mazzetto di stati voleva dire
+   * camminare sei sottoalberi — la Sicurezza, la Home, l'Auto, la scheda —
+   * anche per le cinque che nessuno aveva davanti. Si ripassa quello che si
+   * vede; quando una pagina torna a vedersi ci si ripassa allora, che e' il
+   * tocco sulla linguetta. */
+  const radici = () => {
+    const dentro = (pagina, ...nodi) =>
+      paginaVisibile(pagina, doc) ? nodi.filter(Boolean) : [];
+    return [
+      ...dentro(
+        "page-security",
+        doc.getElementById("alarm-stage"),
+        doc.getElementById("page-security"),
+      ),
+      ...dentro(
+        "page-home",
+        doc.getElementById("glance-alarm") || doc.querySelector("[data-glance-alarm]"),
+        doc.getElementById("page-home"),
+      ),
+      ...dentro("page-ev", doc.getElementById("page-ev")),
+      /* La scheda di configurazione non e' una pagina: il guscio la monta
+       * quando si apre e la toglie quando si chiude, quindi quando c'e' si
+       * guarda davvero. */
+      doc.getElementById("ed-body"),
+    ].filter(Boolean);
+  };
   const ripassa = () => {
     for (const radice of radici()) traduciAlbero(radice, doc);
   };
@@ -139,15 +160,17 @@ export function installEnglishRuntimeStrings(root = globalThis, doc = globalThis
     "dashboardmodern:editor-rendered",
   ])
     root.addEventListener?.(evento, ripassa);
+  quandoSiCambiaPagina(ripassa);
   ripassa();
 
   /* Il palco dell'allarme il runtime EN lo ridisegna a ogni tick, con le sue
    * parole: gli eventi non bastano, serve un battito — mirato ai due nodi
    * dell'allarme, e muto quando la pagina non si vede. */
   const battito = () => {
-    if (doc.visibilityState === "hidden") return;
-    traduciAlbero(doc.getElementById("alarm-stage"), doc);
-    traduciAlbero(doc.getElementById("glance-alarm") || doc.querySelector("[data-glance-alarm]"), doc);
+    if (!planciaVisibile(doc)) return;
+    if (paginaVisibile("page-security", doc)) traduciAlbero(doc.getElementById("alarm-stage"), doc);
+    if (paginaVisibile("page-home", doc))
+      traduciAlbero(doc.getElementById("glance-alarm") || doc.querySelector("[data-glance-alarm]"), doc);
   };
   root.setInterval?.(battito, 400);
 }

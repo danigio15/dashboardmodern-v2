@@ -36,6 +36,8 @@ import {
   doc,
   esc,
   installStyle,
+  planciaVisibile,
+  quandoSiCambiaPagina,
   readJson,
   root,
   scriviSeCambia,
@@ -371,9 +373,13 @@ function paint() {
  * ne tengono una copia — due modi di aggiornare la stessa card sono due
  * padroni, che e' il difetto da cui veniamo. */
 export function riallineaLeCardDelleLuci() {
-  if (!doc) return 0;
+  if (!doc || !planciaVisibile()) return 0;
   let quante = 0;
-  for (const card of doc.querySelectorAll("[data-dm-lucip]")) {
+  /* Solo le card che stanno nella pagina aperta. Le stesse card le disegnano
+   * anche le Stanze e le Prese, e la ricerca girava su tutto il documento a
+   * ogni mazzetto di stati: si riallineava una per una anche roba dentro
+   * pagine chiuse, che nessuno stava guardando. */
+  for (const card of doc.querySelectorAll(".page.active [data-dm-lucip]")) {
     const entity = clean(card.getAttribute("data-dm-lucip"));
     const view = entity ? viewOf(entity) : null;
     if (!view) continue;
@@ -856,6 +862,7 @@ export function installLightsPageSection() {
   doc.addEventListener("change", (event) => handleSlide(event, true));
   for (const name of ["render", "cdApplyNavVis"])
     wrapFunction(name, "__dmLightsPageSection", schedule);
+  quandoSiCambiaPagina(schedule);
   for (const event of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

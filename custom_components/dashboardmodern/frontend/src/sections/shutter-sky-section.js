@@ -135,7 +135,17 @@ export function installShutterSkySection() {
     paintSky();
     scheduleNext();
   };
-  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "dashboardmodern:state-changed", "pageshow"]) {
+  /* Niente cambi di stato qui.
+   *
+   * La fascia del giorno la decide l'orologio e cambia cinque volte al giorno:
+   * il timer al prossimo cambio la copre tutta. Ascoltare anche i mazzetti di
+   * stati voleva dire rifare due volte al secondo — per sempre — un conto che
+   * da' lo stesso risultato per ore, e ogni giro rimetteva anche il timer. */
+  for (const evento of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "pageshow",
+  ]) {
     root.addEventListener?.(evento, ridipingi);
   }
   doc.addEventListener?.("visibilitychange", () => {

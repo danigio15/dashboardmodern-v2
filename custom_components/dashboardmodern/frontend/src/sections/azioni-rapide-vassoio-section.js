@@ -17,7 +17,14 @@
  * andare a cercarla la'. Le misure del simbolo restano dove stanno — le
  * governa il motore delle icone — e qui non si toccano.
  */
-import { doc, installStyle, root, wrapFunction } from "./shared.js";
+import {
+  doc,
+  installStyle,
+  paginaVisibile,
+  quandoSiCambiaPagina,
+  root,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_AZIONI_VASSOIO__";
 const STYLE_ID = "dm-azioni-vassoio-style";
@@ -185,6 +192,11 @@ function adegua() {
 }
 
 function ripassa() {
+  /* Il ripiano sta sulla Home: la tinta di ogni tasto si copia dallo stile del
+   * suo simbolo, e con la Home chiusa era una lettura per tasto a ogni mazzetto
+   * di stati, per un ripiano che nessuno aveva davanti. Tornando sulla Home il
+   * tocco sulla linguetta ripassa (vedi `installAzioniRapideVassoio`). */
+  if (!paginaVisibile("page-home")) return;
   avvolgi();
   tingi();
   adegua();
@@ -200,6 +212,7 @@ export function installAzioniRapideVassoio() {
   wrapFunction("buildQuickActions", "__dmVassoioAzioni", ripassa);
   for (const evento of ["dashboardmodern:editor-rendered", "dashboardmodern:state-changed"])
     root.addEventListener?.(evento, ripassa);
+  quandoSiCambiaPagina(ripassa);
   doc.addEventListener("pointerdown", onda, true);
   state.installed = true;
   return true;

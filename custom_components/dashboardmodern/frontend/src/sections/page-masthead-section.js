@@ -16,7 +16,17 @@
  * Nothing else on the page is touched: this module renders no data and owns
  * no state.
  */
-import { clean, doc, english, esc, installStyle, root, t } from "./shared.js";
+import {
+  clean,
+  doc,
+  english,
+  esc,
+  installStyle,
+  planciaVisibile,
+  quandoSiCambiaPagina,
+  root,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PAGE_MASTHEAD__";
 const STYLE_ID = "dm-page-masthead-style";
@@ -545,6 +555,12 @@ function schedule() {
   if (state.frame) return;
   const run = () => {
     state.frame = 0;
+    /* La passata misura: chiede al browser il riquadro della pagina e lo stile
+     * calcolato del contenuto, e sono conti d'impaginazione. Se la plancia non
+     * la sta guardando nessuno — scheda in secondo piano, o plancia
+     * parcheggiata dietro un'altra pagina di Home Assistant — quei conti non
+     * servono a niente, e passavano a ogni mazzetto di stati. */
+    if (!planciaVisibile()) return;
     renderPageMastheads();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
@@ -731,15 +747,9 @@ export function installPageMastheadSection() {
   ]) {
     root.addEventListener?.(eventName, schedule);
   }
-  doc.addEventListener(
-    "click",
-    (event) => {
-      if (event.target?.closest?.("[data-tab],[data-page],.bottom-nav-btn,.back-home-btn")) {
-        root.setTimeout?.(schedule, 0);
-      }
-    },
-    true,
-  );
+  /* Il tocco su una linguetta e' quello che porta in scena un'altra pagina, e
+   * l'intestazione e' di chi arriva: la regola sta nell'aiutante condiviso. */
+  quandoSiCambiaPagina(schedule);
   schedule();
 }
 

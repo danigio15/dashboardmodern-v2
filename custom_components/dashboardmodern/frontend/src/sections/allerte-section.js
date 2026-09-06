@@ -31,6 +31,8 @@ import {
   formatNumber,
   installStyle,
   locale,
+  paginaVisibile,
+  quandoSiCambiaPagina,
   readJson,
   root,
   t,
@@ -397,6 +399,11 @@ function dipingi() {
   const pagina = ensureAllertePage();
   const dove = pagina?.querySelector?.("#allerte-wrap");
   if (!dove) return;
+  /* Le letture di ogni fonte e la loro impronta in JSON si facevano a ogni
+   * mazzetto di stati, anche a pagina chiusa. Il pallino del livello sulla
+   * voce della barra resta acceso comunque: quello si vede da fuori
+   * (`accendiLaVoce`, che gira prima di questo giro). */
+  if (!paginaVisibile(ALLERTE_PAGE_ID)) return;
   if (!allerteConfigurate()) {
     if (state.firma !== "vuoto") {
       state.firma = "vuoto";
@@ -537,6 +544,7 @@ export function installAllerte() {
     "dashboardmodern:persistence-restored",
   ])
     root.addEventListener?.(evento, schedule);
+  quandoSiCambiaPagina(schedule);
   schedule();
   return true;
 }

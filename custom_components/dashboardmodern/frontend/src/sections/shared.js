@@ -513,6 +513,27 @@ export function readJson(key, fallback) {
  * quello di quando se n'e' andato.
  */
 
+/* Chi disegna una pagina sola si rimette in moto quando quella pagina arriva.
+ *
+ * Le sezioni gated qui sopra saltano il giro quando la loro pagina non si vede.
+ * Il tocco su una linguetta e' il momento in cui torna a vedersi, e chi
+ * disegna deve rifare la passata subito: aspettare il prossimo mazzetto di
+ * stati vorrebbe dire arrivare su una pagina ferma a com'era quando la si era
+ * lasciata. Si ascolta in cattura e si rimanda di un giro, perche' la classe
+ * `active` la scrive il guscio nel suo gestore, cioe' dopo di noi. */
+export function quandoSiCambiaPagina(callback) {
+  doc?.addEventListener?.(
+    "click",
+    (event) => {
+      if (event.target?.closest?.("[data-tab],[data-page],.bottom-nav-btn,.back-home-btn"))
+        root.setTimeout?.(callback, 0);
+    },
+    true,
+  );
+  root.addEventListener?.("pageshow", callback);
+  return true;
+}
+
 /* La plancia si vede?
  *
  * Due cose la spengono agli occhi di chi la usa, e nessuna delle due toglie
