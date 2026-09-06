@@ -148,8 +148,17 @@ test("fonti, dispositivi e carichi dello stesso arco costano una domanda sola", 
   const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi());
 
   /* Tre archi — il giorno, il mese, i mesi chiusi dell'anno — piu' l'ora
-   * aperta, che sono dodici righe. Erano sette domande, due da tredici mesi. */
+   * aperta, che sono dodici righe. Erano sette domande, due da tredici mesi.
+   *
+   * E gli archi si tagliano tutti sullo stesso istante: chiedendo l'ora piu'
+   * volte, l'arco del mese e quello dentro l'anno finivano a qualche
+   * millesimo di distanza e diventavano due domande invece di una. */
   assert.ok(domande.length <= 4, `troppe domande al Recorder: ${domande.length}`);
+  assert.equal(
+    new Set(domande.map((domanda) => `${domanda.period}|${domanda.end.getTime()}`)).size,
+    domande.length,
+    "due domande sullo stesso arco: gli istanti non coincidono",
+  );
   const periodi = domande.map((domanda) => domanda.period).sort();
   assert.deepEqual(periodi, ["5minute", "day", "hour", "month"]);
 

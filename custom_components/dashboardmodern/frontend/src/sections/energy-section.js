@@ -161,6 +161,12 @@ root.DashboardModernEnergyService = Object.freeze({
   buckets: recorderBucketConsumptions,
   broker,
   refresh: () => scheduleEnergyRefresh(true),
+  /* «Aggiorna se serve»: con un pacchetto fresco in mano non si chiede
+   * niente al Recorder, si ridisegna quello che c'e'. La decisione di cosa
+   * sia fresco sta qui e in nessun altro posto — e' la stessa cadenza con
+   * cui l'Energia si aggiorna da sola — perche' chi la chiede da fuori (il
+   * tocco su una linguetta, i giri del guscio) non deve tenerne una copia. */
+  refreshIfStale: () => refreshEnergyIfStale(),
 });
 
 const ENERGY_KEYS = PERIOD_SOURCES.map((item) => item.key);
@@ -544,9 +550,16 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso 
   };
   const carichi = pianiDeiCarichi();
 
-  const archiGiorno = archiDelPeriodo("day", today);
-  const archiMese = [periodRange("month", monthDate)];
-  const archiAnno = archiDellAnno(monthDate);
+  /* Tutti gli archi si tagliano sullo STESSO istante.
+   *
+   * Ognuno di questi finisce «adesso», e chiedendo l'ora tre volte si
+   * ottengono tre «adesso» diversi di qualche millesimo: l'arco del mese
+   * calcolato qui e quello calcolato dentro l'anno diventavano due archi
+   * diversi, cioe' due domande al Recorder invece di una — e nessuna delle
+   * due poteva servirsi della risposta dell'altra. */
+  const archiGiorno = archiDelPeriodo("day", today, today);
+  const archiMese = [periodRange("month", monthDate, today)];
+  const archiAnno = archiDellAnno(monthDate, today);
   const letture = {
     fonteDay: letturaDi(fonti.day, today, states, "fonte:day:", archiGiorno),
     fonteMonth: letturaDi(fonti.month, monthDate, states, "fonte:month:", archiMese),
@@ -1221,6 +1234,32 @@ export function riposoDeiPeriodi(documento = doc, inAffanno = broker?.recorderIn
     : RIPOSO_ENERGIA_DI_SPALLE_MS;
 }
 
+/* Se quello che si ha in mano e' abbastanza vecchio da valere una domanda.
+ *
+ * E' il minuto con cui l'Energia si aggiorna da sola a pagina aperta: prima
+ * di allora una lettura nuova troverebbe le stesse righe. */
+export function pacchettoDaRileggere(adesso = Date.now()) {
+  if (!state.bundle || !state.lastRefreshAt) return true;
+  return adesso - state.lastRefreshAt >= RIPOSO_ENERGIA_MS;
+}
+
+/* Chiedere solo se serve: e' quello che vuole chi cambia linguetta.
+ *
+ * Aprire l'Energia, passare da Giornaliera a Mensile, toccare il Report: ogni
+ * clic dentro quelle pagine faceva partire un aggiornamento intero — sette
+ * letture del Recorder, oggi tre — anche subito dopo il precedente. Ma
+ * cambiare linguetta non cambia i numeri: cambia quali si guardano, e quelli
+ * sono gia' nel pacchetto. Se il pacchetto e' fresco si ridisegna e basta; se
+ * e' vecchio, allora si, il tocco vale una domanda. */
+export function refreshEnergyIfStale() {
+  if (pacchettoDaRileggere()) {
+    scheduleEnergyRefresh(true);
+    return true;
+  }
+  scheduleProjection();
+  return false;
+}
+
 export function scheduleEnergyRefresh(force = false, explicitDelay = null) {
   root.clearTimeout?.(state.refreshTimer);
   const elapsed = Date.now() - state.lastRefreshAt;
@@ -1566,14 +1605,18 @@ function bindEvents() {
           scheduleProjection();
         });
       }
-      /* Aprire l'Energia vuol dire volerla adesso.
+      /* Aprire l'Energia vuol dire volerla adesso — se quella che c'e' e'
+       * vecchia.
        *
        * Con la pagina chiusa i periodi si riposano cinque minuti (vedi
        * `riposoDeiPeriodi`): senza questa riga chi entra troverebbe i totali
        * dell'ultimo giro, vecchi fino a cinque minuti, e dovrebbe aspettare
        * fermo davanti allo schermo. Il tocco che apre la pagina e' anche la
-       * domanda, e la risposta arriva mentre la pagina sale. */
-      if (event.target?.closest?.("[data-tab='energy']")) scheduleEnergyRefresh(true);
+       * domanda, e la risposta arriva mentre la pagina sale. Ma se il
+       * pacchetto e' di venti secondi fa, la domanda non c'e': entrare e
+       * uscire dall'Energia non deve costare una lettura del Recorder per
+       * ogni tocco. */
+      if (event.target?.closest?.("[data-tab='energy']")) refreshEnergyIfStale();
     },
     true,
   );

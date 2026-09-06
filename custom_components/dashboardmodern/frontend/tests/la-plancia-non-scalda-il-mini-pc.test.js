@@ -56,11 +56,16 @@ test("e con la pagina chiusa si riposano quanto dura il dato: cinque minuti", ()
   /* Una scheda in secondo piano non la guarda nessuno, nemmeno se la pagina
    * sotto e' quella dell'Energia. */
   assert.equal(riposoDeiPeriodi(finta(true, true)), RIPOSO_ENERGIA_DI_SPALLE_MS);
-  /* E chi apre l'Energia non aspetta i cinque minuti: il tocco chiede subito. */
+  /* E chi apre l'Energia non aspetta i cinque minuti: il tocco chiede subito
+   * — ma solo se quello che c'e' e' vecchio. Prima chiedeva a ogni tocco, e
+   * i tocchi dentro l'Energia sono tanti: la Panoramica, il Mese, le
+   * sotto-linguette. Entrare e uscire dalla pagina non deve costare una
+   * lettura del Recorder per ogni volta. */
   assert.match(
     energiaSorgente,
-    /if \(event\.target\?\.closest\?\.\("\[data-tab='energy'\]"\)\) scheduleEnergyRefresh\(true\);/,
+    /if \(event\.target\?\.closest\?\.\("\[data-tab='energy'\]"\)\) refreshEnergyIfStale\(\);/,
   );
+  assert.match(energiaSorgente, /return adesso - state\.lastRefreshAt >= RIPOSO_ENERGIA_MS;/);
 });
 
 test("la scena dell'Energia si disegna solo a pagina aperta", () => {

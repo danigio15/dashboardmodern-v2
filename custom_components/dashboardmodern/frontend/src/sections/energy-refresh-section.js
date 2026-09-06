@@ -48,7 +48,11 @@ function energyVisible() {
   );
 }
 
-function queueRefresh({ force = true } = {}) {
+/* `seVecchio` chiede al servizio di decidere: con un pacchetto fresco in mano
+ * non parte nessuna domanda al Recorder, si ridisegna quello che c'e'. La
+ * regola di cosa sia fresco vive nell'Energia, che e' anche l'unica a sapere
+ * quando ha letto l'ultima volta: qui non se ne tiene una copia. */
+function queueRefresh({ force = true, seVecchio = false } = {}) {
   initializeEnergyPeriodControls();
   if (state.refreshQueued) return;
   state.refreshQueued = true;
@@ -56,6 +60,13 @@ function queueRefresh({ force = true } = {}) {
     state.refreshQueued = false;
     const service = root.DashboardModernEnergyService;
     if (!service?.refresh) return;
+    if (seVecchio) {
+      /* Un servizio piu' vecchio di questa sezione non conosce la domanda
+       * gentile: li' vale quella di sempre. */
+      if (service.refreshIfStale) service.refreshIfStale();
+      else service.refresh();
+      return;
+    }
     if (force || energyVisible()) service.refresh();
   });
 }
@@ -68,10 +79,20 @@ export function installEnergyRefreshSection() {
   // therefore beats the setTimeout(0) used by its first scheduled refresh.
   initializeEnergyPeriodControls();
 
-  root.addEventListener?.("dashboardmodern:states-ready", () => queueRefresh({ force: true }));
-  root.addEventListener?.("dashboardmodern:legacy-ready", () => queueRefresh({ force: true }));
-  root.addEventListener?.("pageshow", () => queueRefresh({ force: true }));
+  root.addEventListener?.("dashboardmodern:states-ready", () => queueRefresh({ seVecchio: true }));
+  root.addEventListener?.("dashboardmodern:legacy-ready", () => queueRefresh({ seVecchio: true }));
+  root.addEventListener?.("pageshow", () => queueRefresh({ seVecchio: true }));
 
+  /* Cambiare linguetta non cambia i numeri: cambia quali si guardano.
+   *
+   * Qui QUALUNQUE clic dentro la Panoramica, il Mese, una sotto-linguetta o
+   * una scheda dell'Energia faceva partire un aggiornamento intero — sette
+   * letture del Recorder, oggi tre — anche a mezzo secondo dal precedente:
+   * chi guarda i tre riquadri uno dopo l'altro ne pagava uno per tocco, e sul
+   * mini PC quello e' proprio il momento in cui il Recorder arranca. Il
+   * pacchetto che c'e' contiene gia' giorno, mese, anno e dispositivi: si
+   * proietta (lo fa `energy-section` sullo stesso clic) e si chiede soltanto
+   * se e' piu' vecchio della cadenza. */
   doc.addEventListener(
     "click",
     (event) => {
@@ -80,7 +101,7 @@ export function installEnergyRefreshSection() {
       );
       if (!target) return;
       // Let the legacy click handler finish selecting the view first.
-      root.setTimeout?.(() => queueRefresh({ force: true }), 0);
+      root.setTimeout?.(() => queueRefresh({ seVecchio: true }), 0);
     },
     true,
   );
