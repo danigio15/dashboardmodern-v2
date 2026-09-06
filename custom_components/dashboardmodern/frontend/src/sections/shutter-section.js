@@ -94,7 +94,25 @@ function installStyles() {
       --tapp-stop-bg:linear-gradient(160deg,rgba(51,65,85,.92),rgba(30,41,59,.92));--tapp-stop-fg:#cbd5e1;--tapp-stop-line:rgba(148,163,184,.30);
       --tapp-down-bg:linear-gradient(160deg,#0ea5e9,#0c4a6e);--tapp-down-fg:#f0f9ff;--tapp-down-line:rgba(56,189,248,.5)}
 
-    html body #page-tapparelle#page-tapparelle #tapp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(280px,360px))!important;justify-content:center!important;align-items:start!important;gap:14px!important;padding:12px 4px 26px!important}
+    /* La griglia delle finestre, larga quanto lo schermo (#349).
+     *
+     * «Quando si guarda da PC o tablet le cards sono tutte in colonna e non
+     * responsive: sarebbe bello si allineassero per sfruttare tutta la
+     * larghezza, es. 2 card o piu' in base alla risoluzione.»
+     *
+     * La colonna aveva un tetto in pixel — minmax(280px,360px) — e con un
+     * massimo definito il browser conta quante colonne ci stanno usando QUEL
+     * massimo, non il minimo: servivano 374 px (360 piu' il vuoto) per ogni
+     * colonna. Su un tablet da 800 px, dove di posto ne sarebbero bastati per
+     * due, ne entrava una sola, con mezzo schermo bianco a destra e le card in
+     * fila indiana.
+     *
+     * Adesso e' la stessa griglia delle Luci e delle Stanze: colonne larghe
+     * almeno 288 px che si dividono lo spazio in parti uguali. Due colonne
+     * arrivano appena lo schermo le regge, e su un monitor largo sono quattro
+     * o cinque — con auto-fit, e non auto-fill, perche' due finestre sole
+     * non devono restare due tessere strette in un angolo. */
+    html body #page-tapparelle#page-tapparelle #tapp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))!important;justify-content:stretch!important;align-items:start!important;gap:14px!important;padding:12px 4px 26px!important}
 
     /* Legacy renderTapparelle emits two inline-styled full-width rows into the
        grid: the "open/close everything" bar, recognised by its buttons, and one
@@ -105,7 +123,7 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle #tapp-grid>div[style*="grid-column"]:not(.ed-empty):not(:has(.tapp-btn))::after{content:""!important;flex:1 1 auto!important;height:1px!important;background:linear-gradient(90deg,var(--tapp-border),transparent)!important}
     html body #page-tapparelle#page-tapparelle #tapp-grid>.ed-empty{padding:34px 18px!important;border:1px dashed var(--tapp-border)!important;border-radius:20px!important;color:var(--tapp-dim)!important;font-weight:800!important;text-align:center!important}
 
-    html body #page-tapparelle#page-tapparelle .tapp-card{box-sizing:border-box!important;width:100%!important;max-width:360px!important;min-height:0!important;padding:14px!important;gap:10px!important;border-radius:20px!important;animation:none!important;transform:none!important;position:relative!important;overflow:hidden!important;border:1px solid var(--tapp-border)!important;background:var(--tapp-surface)!important;box-shadow:var(--tapp-shadow)!important;transition:box-shadow .24s ease,border-color .24s ease!important}
+    html body #page-tapparelle#page-tapparelle .tapp-card{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:0!important;padding:14px!important;gap:10px!important;border-radius:20px!important;animation:none!important;transform:none!important;position:relative!important;overflow:hidden!important;border:1px solid var(--tapp-border)!important;background:var(--tapp-surface)!important;box-shadow:var(--tapp-shadow)!important;transition:box-shadow .24s ease,border-color .24s ease!important}
     html body #page-tapparelle#page-tapparelle .tapp-card::before{content:""!important;position:absolute!important;inset:0 0 auto!important;height:3px!important;background:linear-gradient(90deg,transparent,var(--tapp-accent),transparent);background-size:55% 100%;background-repeat:no-repeat;background-position:50% 0;opacity:.5!important}
     html body #page-tapparelle#page-tapparelle .tapp-card:hover{border-color:color-mix(in srgb,var(--tapp-accent) 42%,transparent)!important;box-shadow:var(--tapp-shadow-hover)!important}
     html body #page-tapparelle#page-tapparelle .tapp-card:has(.tapp-st-open)::before{background:linear-gradient(90deg,transparent,var(--tapp-ok-fg),transparent);background-size:55% 100%;background-repeat:no-repeat;background-position:50% 0;opacity:.62!important}
@@ -260,7 +278,7 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .tapp-btn:active{transform:translateY(1px)!important;filter:brightness(.95)!important}
     html body #page-tapparelle#page-tapparelle .tapp-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
 
-    @media(max-width:560px){html body #page-tapparelle#page-tapparelle #tapp-grid{grid-template-columns:minmax(0,360px)!important;justify-content:center!important}html body #page-tapparelle#page-tapparelle .tapp-card{max-width:360px!important}html body #page-tapparelle#page-tapparelle .tapp-btn[data-all]{flex:1 1 46%!important;padding:0 10px!important;font-size:12px!important}}
+    @media(max-width:560px){html body #page-tapparelle#page-tapparelle #tapp-grid{grid-template-columns:1fr!important}html body #page-tapparelle#page-tapparelle .tapp-btn[data-all]{flex:1 1 46%!important;padding:0 10px!important;font-size:12px!important}}
     /* A movimento ridotto si ferma la decorazione (card e bottoni), mai il
      * telo che scende o la pastiglia che dice "in movimento": quelli sono lo
      * stato della finestra, disegnato. */

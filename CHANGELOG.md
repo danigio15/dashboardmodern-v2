@@ -14,6 +14,27 @@ su una finestra gia' aperta.
 
 ### Corretto
 
+- **Le finestre si mettono in fila e riempiono lo schermo.**
+
+      «Quando si guarda da PC o tablet le cards sono tutte in colonna e non
+       responsive: sarebbe bello si allineassero in modo tale da sfruttare
+       tutto lo spazio in larghezza, es. 2 card o più in base alla risoluzione
+       dello schermo.»
+
+  La colonna aveva un tetto in pixel — al massimo 360 — e con un massimo
+  definito il browser conta quante colonne ci stanno usando QUEL numero, non il
+  minimo: servivano 374 px per ognuna. Su un tablet da 800, dove di posto ce ne
+  sarebbe stato per due, ne entrava una sola, con mezzo schermo bianco a destra;
+  su un monitor largo se ne fermavano tre in mezzo alla pagina. Adesso la
+  griglia è la stessa delle Luci e delle Stanze — colonne larghe almeno 288 px
+  che si dividono lo spazio in parti uguali — e le card si allargano fino a
+  riempirlo: due appena lo schermo le regge, quattro o cinque su un monitor,
+  una sola sul telefono.
+
+  E la misura sta in un posto solo. Era scritta in tre fogli più una riga in
+  linea sull'elemento, e quella riga vinceva su tutte: cambiarla dove sembrava
+  scritta non cambiava niente.
+
 - **La pastiglia dice cosa è aperto, e la spunta delle percentuali invertite funziona davvero.**
 
       «Per permettere di capire meglio se si tratta di una tapparella, tenda da
