@@ -5,6 +5,43 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.12
+
+### Aggiunto
+
+- **Gli animali di casa hanno la loro sezione.**
+
+      «Sarebbe utile ed interessante avere una nuova sezione per chi ha
+       animali domestici, magari in grado di collegarsi a varie integrazioni
+       come ad esempio PetKit, in modo da tenere sotto controllo cio' che li
+       riguarda: lettiera, livello del distributore di cibo e cosi' via.»
+
+  C'e' una pagina «Animali», con una scheda per bestia: il nome, la foto — come
+  le auto hanno la loro — e sotto le cose che la riguardano, divise in
+  famiglie. La ciotola: quanto cibo resta nel distributore, l'ultima
+  erogazione, le porzioni del giorno. La lettiera: quant'e' piena, quando e'
+  stata pulita l'ultima volta, quante visite oggi. L'acqua: il livello della
+  fontanella e la vita che resta al filtro. La porta col microchip, che dice
+  dentro o fuori. Il collare, con la batteria e la posizione.
+
+  In cima alla scheda, prima dei numeri, sta quello per cui la pagina si apre:
+  cibo in esaurimento, lettiera piena, lettiera da pulire, filtro dell'acqua a
+  fine corsa, collare quasi scarico. Le soglie sono di casa — un quinto di
+  cibo, un filtro sotto il decimo, una lettiera piena all'ottanta per cento,
+  un giorno intero senza pulirla — e si cambiano per animale.
+
+  Le entita' non si scrivono a mano: nella scheda Animali della configurazione
+  c'e' «Aggiungi da un'integrazione», lo stesso menu che gia' usano gli
+  Elettrodomestici e i Robot. Si sceglie PetKit, SurePetcare, Tractive,
+  Litter-Robot — o qualunque altra cosa ci sia in casa — si sceglie il
+  dispositivo, e le caselle si compilano da sole; la stanza arriva dall'area di
+  Home Assistant. Un animale pero' sta quasi sempre su piu' dispositivi — la
+  ciotola di una marca, la lettiera di un'altra, il collare di una terza — e
+  per questo dentro la riga c'e' «Collega un altro dispositivo»: quello che si
+  aggiunge si SOMMA a quello che c'e' gia', e le caselle gia' piene restano
+  come sono. Chi non ha nessuna di quelle integrazioni le riempie una per una
+  con le sue entita' fatte in casa, che funzionano uguale.
+
 ## 1.4.11
 
 Le cose viste sulla plancia vera subito dopo la 1.4.10, con le schermate
