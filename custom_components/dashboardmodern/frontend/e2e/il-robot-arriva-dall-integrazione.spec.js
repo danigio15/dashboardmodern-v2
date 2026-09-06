@@ -331,10 +331,35 @@ test("la mappa si scorre anche a misura d'apertura, non solo da ingrandita", asy
         state: "idle",
         attributes: { friendly_name: "Mappa", entity_picture: disegno },
       };
+    /* Il disegno arriva come arriva in casa: uno stato nuovo, e la plancia che
+     * se ne accorge. Chiamare soltanto il disegno del modulo vuol dire provare
+     * una strada che in casa non fa nessuno. */
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
     window.DashboardModernModules?.robot?.render?.();
   });
   const mappa = page.locator("#page-robot [data-dm-robot-map]");
-  await expect(mappa).toHaveAttribute("data-dm-map-state", "ready", { timeout: 15_000 });
+  /* E se la mappa non arriva, si dice PERCHE': quale telecamera sta guardando
+   * la card, se quello stato c'e' e se porta un disegno. Un rosso che dice
+   * soltanto «missing» costa un giro intero a chi lo legge, e questa prova
+   * gira anche su motori che qui non si possono provare. */
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const nodo = document.querySelector("#page-robot [data-dm-robot-map]");
+          const salvati = JSON.parse(localStorage.getItem("cd_robot") || "[]");
+          const telecamera = salvati[0]?.mapEntity || "(nessuna)";
+          const stato = _RAW_STATES[telecamera] || STATES[telecamera];
+          return [
+            `stato:${nodo?.dataset.dmMapState}`,
+            `telecamera:${telecamera}`,
+            `c-e:${Boolean(stato)}`,
+            `disegno:${Boolean(stato?.attributes?.entity_picture)}`,
+          ].join(" ");
+        }),
+      { timeout: 20_000, message: "la mappa del robot" },
+    )
+    .toMatch(/^stato:ready/);
 
   /* E la mappa resta anche quando la card si rifa'.
    *
