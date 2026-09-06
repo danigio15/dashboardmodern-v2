@@ -2824,4 +2824,5 @@ export default Object.freeze({
   "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.": "evcc loadpoint를 고르세요. 충전 모드, 충전 한도, 세션, 태양광 비율이 들어옵니다. 충전기는 다른 버튼으로 연결하고, 항목은 합쳐집니다.",
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "이 창문만: 방의 습도가 이 수준을 넘으면 카드가 환기를 위해 열라고 알립니다. 비우면 위에 적힌 집 기준이 적용되고, 0은 이 창문의 조언을 끕니다.",
   "Suggest airing above (%), by default": "이 값을 넘으면 환기 제안 (%), 기본값",
+  "Not charging": "충전 안 함",
 });

@@ -686,13 +686,20 @@ function aggiornaCosaManca(riquadro) {
   if (!nota) return;
   const stanze = stanzeConIgrometro();
   const conIgrometro = new Set(stanze.map((stanza) => clean(stanza.id) || clean(stanza.name)));
+  const casa = readJson(CHIAVE_SOGLIA_UMIDITA, null);
+  const inStanzaConIgrometro = covers().filter((cover) => {
+    const stanza = stanzaDellaFinestra(cover);
+    return stanza && conIgrometro.has(clean(stanza.id) || clean(stanza.name));
+  });
   const mancanze = cosaMancaPerArieggiare({
-    soglia: readJson(CHIAVE_SOGLIA_UMIDITA, null),
+    soglia: casa,
     stanzeConUmidita: stanze.length,
-    finestreInStanzaConUmidita: covers().filter((cover) => {
-      const stanza = stanzaDellaFinestra(cover);
-      return stanza && conIgrometro.has(clean(stanza.id) || clean(stanza.name));
-    }).length,
+    finestreInStanzaConUmidita: inStanzaConIgrometro.length,
+    /* Ogni finestra ha la sua soglia: la prontezza si guarda finestra per
+     * finestra, non sulla sola casa (osservazione della review). */
+    finestreConSoglia: inStanzaConIgrometro.filter(
+      (cover) => sogliaDellaFinestra(cover, casa) !== null,
+    ).length,
   });
   const testo = mancanze.length
     ? `⚠️ ${frasiDiCosaManca(mancanze).join(" ")}`

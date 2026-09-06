@@ -2824,4 +2824,5 @@ export default Object.freeze({
   "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.": "evcc loadpoint'ini seç: şarj modu, şarj sınırı, oturum ve güneş payı gelir. Şarj cihazı öbür düğmeden bağlanır ve alanlar toplanır.",
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "Yalnızca bu pencere için: odasının nemi bu düzeyi aşınca kart havalandırmak için açmayı söyler. Boşsa üstte yazılı ev eşiği geçerlidir; sıfır bu pencerede öneriyi kapatır.",
   "Suggest airing above (%), by default": "Şu değerin üstünde havalandırmayı öner (%), varsayılan",
+  "Not charging": "Şarj olmuyor",
 });

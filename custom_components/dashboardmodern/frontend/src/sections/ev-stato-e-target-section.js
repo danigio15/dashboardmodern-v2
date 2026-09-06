@@ -23,7 +23,7 @@
  * legge i valori, e lo fa dalle stesse caselle che legge la foto.
  */
 import { codiceDellaRicarica } from "../core/stato-della-ricarica.js";
-import { liveState, vehiclePlugged } from "./ev-section.js";
+import { liveState } from "./ev-section.js";
 import { clean, doc, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EV_STATO_E_TARGET__";
@@ -37,14 +37,28 @@ const COLORI_STATO = Object.freeze({
   C: ["#06b6d4", "rgba(6,182,212,0.25)"],
   B: ["#f59e0b", "rgba(245,158,11,0.25)"],
   A: ["#94a3b8", "rgba(0,0,0,0.4)"],
+  N: ["#94a3b8", "rgba(0,0,0,0.4)"],
   F: ["#ef4444", "rgba(0,0,0,0.4)"],
 });
 const ETICHETTE_STATO = () => ({
   A: t("Non connessa", "Not connected"),
   B: `🔌 ${t("Collegata", "Plugged in")}`,
   C: `⚡ ${t("In carica", "Charging")}`,
+  N: t("Non in carica", "Not charging"),
   F: `⚠️ ${t("Errore", "Error")}`,
 });
+
+/* Il cavo lo dice solo il suo sensore. Un «off» del sensore di carica non e'
+ * un cavo fuori: e' una carica ferma, e il cavo puo' essere dentro. */
+const CAVO_DENTRO = /^(on|true|1|home|connected|plugged|collegato|attaccato)$/i;
+const CAVO_FUORI = /^(off|false|0|not_home|disconnected|unplugged|scollegato|staccato)$/i;
+
+function cavoDichiarato() {
+  const stato = clean(liveState("dm.ev_cavo_collegato")?.state);
+  if (CAVO_DENTRO.test(stato)) return true;
+  if (CAVO_FUORI.test(stato)) return false;
+  return null;
+}
 
 function potenzaDellaColonnina() {
   for (const ref of ["dm.ev_potenza_wallbox", "dm.ev_charge_power"]) {
@@ -61,7 +75,7 @@ export function paintStatoRicarica(scope = doc) {
   if (/^[abcdf]$/i.test(grezzo)) return grezzo.toUpperCase().replace("D", "C");
   const codice = codiceDellaRicarica({
     stato: grezzo,
-    collegata: vehiclePlugged(),
+    collegata: cavoDichiarato(),
     potenza: potenzaDellaColonnina(),
   });
   if (!codice) return "";
@@ -123,12 +137,17 @@ function assicuraLeVoci(select, stato) {
   const numero = Number(valore);
   if (!Number.isFinite(numero)) return;
   const attuale = Math.round(numero);
+  /* Le voci si rifanno dai min/max/step dell'entita' ogni volta che non sono
+   * gia' quelle: il guscio mette le sue cinque di serie, e con lo stato a 80
+   * — che c'e' fra le cinque — si restava senza il 55 o il 75 (osservazione
+   * della review). */
+  const volute = vociDelNumero(stato, attuale).map(String);
   const presenti = [...select.options].map((voce) => voce.value);
-  if (!presenti.includes(String(attuale))) {
+  if (presenti.join(",") !== volute.join(",")) {
     select.replaceChildren(
-      ...vociDelNumero(stato, attuale).map((v) => {
+      ...volute.map((v) => {
         const voce = doc.createElement("option");
-        voce.value = String(v);
+        voce.value = v;
         voce.textContent = `${v}%`;
         return voce;
       }),

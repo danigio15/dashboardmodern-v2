@@ -272,6 +272,8 @@ export function apriMenuIntegrazioni({
   filtra = null,
   /* Cosa dire quando il filtro non lascia niente. */
   vuoto = "",
+  /* Oppure, quando il filtro non lascia niente, mostrare tutto lo stesso. */
+  altrimentiTutte = false,
 } = {}) {
   doc?.getElementById("dm-integ-menu")?.remove();
   const modal = doc.createElement("div");
@@ -400,7 +402,8 @@ export function apriMenuIntegrazioni({
     .then((catalog) => {
       if (!modal.isConnected) return;
       const tutte = integrationsWithDevices(catalog);
-      menu = typeof filtra === "function" ? tutte.filter((voce) => filtra(voce)) : tutte;
+      const filtrate = typeof filtra === "function" ? tutte.filter((voce) => filtra(voce)) : tutte;
+      menu = filtrate.length || !altrimentiTutte ? filtrate : tutte;
       if (!menu.length) {
         stato.textContent =
           (tutte.length && vuoto) ||

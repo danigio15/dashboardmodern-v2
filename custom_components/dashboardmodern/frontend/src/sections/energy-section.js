@@ -889,7 +889,18 @@ export async function refreshEnergy(period = selectedPeriod()) {
       /* Dopo i primi tentativi si rallenta: un Recorder che non risponde non
        * risponde meglio se lo si chiama quattro volte al secondo, e ogni giro
        * costa una domanda pesante attraverso il tunnel. */
-      scheduleEnergyRefresh(true, state.retryCount <= TENTATIVI_COL_VELO ? 250 : 20_000);
+      /* E se il Recorder ha appena fatto scadere la domanda si aspetta il
+       * suo riposo anche qui, a freddo: riprovare dopo venti secondi era
+       * proprio il giro che lo teneva in affanno (osservazione della review). */
+      const inAffanno = Boolean(broker?.recorderInAffanno?.());
+      scheduleEnergyRefresh(
+        true,
+        inAffanno
+          ? RIPOSO_ENERGIA_DI_SPALLE_MS
+          : state.retryCount <= TENTATIVI_COL_VELO
+            ? 250
+            : 20_000,
+      );
     }
     return false;
   } finally {

@@ -2824,4 +2824,5 @@ export default Object.freeze({
   "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.": "Выберите точку зарядки evcc: придут режим зарядки, лимит зарядки, сессия и доля солнца. Станция подключается другой кнопкой, и поля складываются.",
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "Только для этого окна: когда влажность его комнаты превышает этот уровень, карточка советует открыть его и проветрить. Пусто — действует домашний порог, записанный сверху; ноль выключает совет для этого окна.",
   "Suggest airing above (%), by default": "Предлагать проветрить выше (%), по умолчанию",
+  "Not charging": "Не заряжается",
 });

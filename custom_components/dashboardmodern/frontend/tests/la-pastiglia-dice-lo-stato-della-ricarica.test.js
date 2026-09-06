@@ -7,7 +7,10 @@
  * colonnina, e la pastiglia stampava la parola grezza.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { codiceDellaRicarica } from "../src/core/stato-della-ricarica.js";
 
@@ -26,9 +29,10 @@ test("un sensore «charging» acceso e' in carica; spento, e' collegata se il ca
   assert.equal(codice("off", { collegata: true }), "B");
   assert.equal(codice("off", { collegata: false }), "A");
   /* Senza il sensore del cavo, «off» dice solo «non carica»: la potenza puo'
-   * rispondere, e se nemmeno quella parla non si inventa niente. */
+   * rispondere, e se nemmeno quella parla NON si inventa un cavo fuori — si
+   * dice quello che si sa, «non in carica». */
   assert.equal(codice("off", { potenza: 3200 }), "B");
-  assert.equal(codice("off"), "");
+  assert.equal(codice("off"), "N");
 });
 
 test("le parole delle integrazioni, con i negativi letti per primi", () => {
@@ -56,6 +60,18 @@ test("senza uno stato che parli restano il cavo e la potenza", () => {
   assert.equal(codice("", { collegata: false }), "A");
   assert.equal(codice(""), "");
   assert.equal(codice(null), "");
+});
+
+test("il cavo lo dice solo il suo sensore, non un «off» di carica", () => {
+  const sezione = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "..", "src", "sections", "ev-stato-e-target-section.js"),
+    "utf8",
+  );
+  assert.match(sezione, /function cavoDichiarato\(\)/);
+  assert.match(sezione, /collegata: cavoDichiarato\(\)/);
+  /* `vehiclePlugged` indovina dalla potenza e dalle parole dello stato — va
+   * bene per la foto, non per una pastiglia che dice «Non connessa». */
+  assert.doesNotMatch(sezione, /vehiclePlugged/);
 });
 
 test("«connected» con la potenza che passa e' in carica", () => {

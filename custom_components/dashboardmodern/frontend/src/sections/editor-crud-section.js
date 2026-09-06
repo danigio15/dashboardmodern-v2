@@ -595,6 +595,13 @@ function installAddWrappers() {
         );
         if (uguale) return;
         list[index] = { ...list[index], ...extra };
+        /* La soglia dell'umidita' si salva come numero, o non si salva: il
+         * tasto del guscio non passa dalla validazione del modulo, e un 12
+         * scritto a mano restava un 12 — cioe' «spento» invece di 30
+         * (osservazione della review). */
+        const umidita = umiditaDellaRiga(extra.umidita);
+        if (umidita == null) delete list[index].umidita;
+        else list[index].umidita = umidita;
         salvaTapparelle(list);
       };
     },

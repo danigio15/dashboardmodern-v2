@@ -32,11 +32,6 @@ export const SOGLIA_PREDEFINITA = 60;
 export const SOGLIA_MINIMA = 30;
 export const SOGLIA_MASSIMA = 95;
 
-/* Un punto di scarto non e' una differenza: due igrometri diversi nella stessa
- * aria danno numeri diversi di un punto. Sotto questo margine il fuori non e'
- * «piu' asciutto», e' solo un altro strumento. */
-export const MARGINE = 2;
-
 const numero = (valore) => {
   if (valore === null || valore === undefined || valore === "") return null;
   const letto = Number.parseFloat(String(valore).replace(",", "."));
@@ -93,8 +88,9 @@ export function umiditaDellaRiga(scritto) {
  *
  * Il motivo serve a chi disegna e a chi legge una prova rossa: «non l'ho detto
  * perche' non ho la misura» e «non l'ho detto perche' la stanza sta bene»
- * sono due silenzi diversi. Il fuori non decide: quando c'e' ed e' piu' umido
- * di dentro lo si dice (`fuoriPiuUmido`), perche' chi apre lo sappia.
+ * sono due silenzi diversi. Il fuori non decide: quando c'e' ed e' almeno
+ * umido quanto dentro lo si dice (`fuoriPiuUmido`), perche' chi apre lo
+ * sappia. Un punto sotto non e' «piu' umido»: non si scrive.
  */
 export function consiglioDiArieggiare({ dentro, fuori, soglia } = {}) {
   const stanza = numero(dentro);
@@ -110,7 +106,7 @@ export function consiglioDiArieggiare({ dentro, fuori, soglia } = {}) {
   if (quota === null) return { ...esito, motivo: "senza-soglia" };
   if (stanza === null) return { ...esito, motivo: "senza-misura-dentro" };
   if (stanza <= quota) return { ...esito, motivo: "sotto-soglia" };
-  const fuoriPiuUmido = esterna !== null && esterna >= stanza - MARGINE;
+  const fuoriPiuUmido = esterna !== null && esterna >= stanza;
   return { ...esito, arieggia: true, fuoriPiuUmido, motivo: "conviene" };
 }
 
@@ -129,9 +125,17 @@ export function cosaMancaPerArieggiare({
   soglia,
   stanzeConUmidita = 0,
   finestreInStanzaConUmidita = 0,
+  /* Quante di quelle finestre hanno una soglia ACCESA, contando la loro
+   * riga: casa a zero e una finestra a 55 e' acceso, casa a 60 e tutte le
+   * finestre a zero e' spento. `null` = non lo sa chi chiede, vale casa. */
+  finestreConSoglia = null,
 } = {}) {
   const mancanze = [];
-  if (sogliaDellUmidita(soglia) === null) mancanze.push("soglia-spenta");
+  const accesa =
+    finestreInStanzaConUmidita > 0 && finestreConSoglia !== null
+      ? finestreConSoglia > 0
+      : sogliaDellUmidita(soglia) !== null;
+  if (!accesa) mancanze.push("soglia-spenta");
   if (!(stanzeConUmidita > 0)) mancanze.push("senza-igrometro-in-stanza");
   else if (!(finestreInStanzaConUmidita > 0)) mancanze.push("finestra-senza-stanza");
   return mancanze;

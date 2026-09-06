@@ -228,7 +228,7 @@ export function collegaLaWallbox({ device, entities, integration }) {
    * bastava: i campi disegnati restavano vuoti, quindi la colonnina non si
    * vedeva da nessuna parte — e il salvataggio dell'auto, che rilegge i campi
    * e cancella le caselle di quelli vuoti, se la portava via. */
-  mostraLeCaselleDellaColonnina(prossime);
+  mostraLeCaselleDellaColonnina(prossime, Object.keys(mappa));
   const nome = clean(device?.name) || clean(integration?.name) || t("Colonnina", "Charger");
   const collegate = Object.keys(mappa).length - tenute.length;
   root.edToast?.(
@@ -295,6 +295,18 @@ export function eEvcc(integrazione) {
   return /evcc/i.test(`${clean(integrazione?.domain)} ${clean(integrazione?.name)}`);
 }
 
+/* E una colonnina si riconosce dal nome dell'integrazione: gli otto che si
+ * incontrano davvero e le parole con cui si chiamano. Chi ne ha una che qui
+ * non c'e' la trova lo stesso: se il filtro non lascia niente il menu mostra
+ * tutte le integrazioni, con la scelta a chi collega. */
+const COLONNINE =
+  /\b(wallbox|charger|charging|charge ?point|evse|go-?e|goecharger|easee|keba|zaptec|openwb|pulsar|wall connector|tesla wall|ocpp|myenergi|zappi|smartevse|alfen|webasto|wattpilot|juice|emobility|colonnina|ladestation)\b/i;
+
+export function eUnaColonnina(integrazione) {
+  const testo = `${clean(integrazione?.domain)} ${clean(integrazione?.name)}`.replace(/_/g, " ");
+  return !eEvcc(integrazione) && COLONNINE.test(testo);
+}
+
 async function onClick(event) {
   if (!doc || !attiva()) return;
   const tasto = event.target?.closest?.("[data-wallbox-integ]");
@@ -315,7 +327,11 @@ async function onClick(event) {
             "Le integrazioni che portano una colonnina: go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Scegli il dispositivo e le caselle della ricarica si riempiono da sole — potenza, energia, tensione, temperatura, il cavo.",
             "The integrations that bring a charger: go-e, Easee, KEBA, Wallbox, openWB, Zaptec, Tesla. Pick the device and the charging fields fill in by themselves — power, energy, voltage, temperature, the cable.",
           ),
-      filtra: (integrazione) => eEvcc(integrazione) === perEvcc,
+      filtra: perEvcc ? eEvcc : eUnaColonnina,
+      /* Una colonnina che non si riconosce dal nome non deve sparire: senza
+       * corrispondenze il menu della colonnina mostra tutto. Per evcc no: o
+       * c'e' o non c'e'. */
+      altrimentiTutte: !perEvcc,
       vuoto: perEvcc
         ? t(
             "Non trovo evcc fra le integrazioni con dispositivi: serve l'integrazione di evcc per Home Assistant (HACS), con almeno un loadpoint.",

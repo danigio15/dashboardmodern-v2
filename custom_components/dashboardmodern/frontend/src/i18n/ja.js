@@ -2824,4 +2824,5 @@ export default Object.freeze({
   "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.": "evcc の loadpoint を選んでください。充電モード、充電上限、セッション、太陽光の割合が入ります。充電器はもう一方のボタンから接続し、項目は足し合わされます。",
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "この窓だけ：その部屋の湿度がこの値を超えると、カードが換気のために開けるよう伝えます。空欄なら上に書いた家のしきい値が有効。ゼロでこの窓の提案を止めます。",
   "Suggest airing above (%), by default": "この値を超えたら換気を提案 (%)、既定",
+  "Not charging": "充電していません",
 });

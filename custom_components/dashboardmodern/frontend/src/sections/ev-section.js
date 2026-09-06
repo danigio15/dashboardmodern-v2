@@ -410,10 +410,17 @@ function rimettiLaColonnina(colonnina) {
  *
  * Non e' un caso particolare del collegamento: quei campi non appartengono
  * all'auto aperta, e chi li disegna deve leggerli da dove stanno davvero. */
-export function mostraLeCaselleDellaColonnina(mappaCasa = caselleDiCasa()) {
+export function mostraLeCaselleDellaColonnina(mappaCasa = caselleDiCasa(), anche = []) {
   const contenitore = doc?.getElementById("ed-body");
   if (!contenitore) return 0;
-  return scriviNeiCampi(contenitore, (ref) => (eDellaWallbox(ref) ? clean(mappaCasa[ref]) : null));
+  /* `anche`: le caselle che il collegamento ha appena scritto e che NON sono
+   * della colonnina — il target di carica, che evcc porta ma che resta
+   * dell'auto. Senza scriverle nei campi il salvataggio dell'auto, che
+   * rilegge i campi, le cancellava (osservazione della review). */
+  const inPiu = new Set(anche.map(clean));
+  return scriviNeiCampi(contenitore, (ref) =>
+    eDellaWallbox(ref) || inPiu.has(ref) ? clean(mappaCasa[ref]) : null,
+  );
 }
 
 /* I campi entita' della scheda, riempiti con quelli dell'auto aperta.

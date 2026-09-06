@@ -2824,4 +2824,5 @@ export default Object.freeze({
   "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.": "选择 evcc 的 loadpoint：充电模式、充电上限、本次会话和光伏占比会一并带入。充电桩通过另一个按钮连接，字段会叠加。",
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "仅对此窗户：当其房间的湿度超过此值时，卡片会提示开窗通风。留空则使用顶部填写的家庭阈值；填 0 关闭此窗户的建议。",
   "Suggest airing above (%), by default": "建议通风的湿度阈值 (%)，默认",
+  "Not charging": "未在充电",
 });

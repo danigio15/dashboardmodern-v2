@@ -8,7 +8,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CHIAVE_SOGLIA_UMIDITA,
-  MARGINE,
   SOGLIA_MASSIMA,
   SOGLIA_MINIMA,
   SOGLIA_PREDEFINITA,
@@ -41,11 +40,13 @@ test("sopra la soglia si apre anche col fuori piu' umido, e lo si dice", () => {
   assert.equal(consiglio(72, 72).fuoriPiuUmido, true);
 });
 
-test("un punto di scarto fra due igrometri non e' una differenza", () => {
-  /* Due strumenti nella stessa aria danno numeri diversi di un punto: sotto il
-   * margine il fuori non e' piu' asciutto, e' solo un altro sensore. */
-  assert.equal(consiglio(72, 72 - MARGINE + 0.5).fuoriPiuUmido, true);
-  assert.equal(consiglio(72, 72 - MARGINE - 0.5).fuoriPiuUmido, false);
+test("un fuori piu' basso, anche di un punto, non si scrive «piu' umido»", () => {
+  /* «Dentro 72%, fuori 71%: fuori e' piu' umido» era una contraddizione a
+   * schermo. Un punto sotto sara' pure rumore, ma non e' una prova che fuori
+   * sia peggio: la riga non lo dice. */
+  assert.equal(consiglio(72, 71).fuoriPiuUmido, false);
+  assert.equal(consiglio(72, 71.5).fuoriPiuUmido, false);
+  assert.equal(consiglio(72, 73).fuoriPiuUmido, true);
 });
 
 test("sotto la soglia si tace, per quanto asciutto sia fuori", () => {
@@ -165,6 +166,40 @@ test("l'igrometro c'e' ma nessuna finestra sta in quella stanza", () => {
       soglia: 60,
       stanzeConUmidita: 3,
       finestreInStanzaConUmidita: 0,
+    }),
+    ["finestra-senza-stanza"],
+  );
+});
+
+test("la prontezza si guarda finestra per finestra, quando le finestre ci sono", () => {
+  /* Casa a zero ma il bagno a 55: il consiglio sul bagno c'e', e la scheda
+   * non deve dire «spento». */
+  assert.deepEqual(
+    cosaMancaPerArieggiare({
+      soglia: 0,
+      stanzeConUmidita: 1,
+      finestreInStanzaConUmidita: 1,
+      finestreConSoglia: 1,
+    }),
+    [],
+  );
+  /* Casa a 60 ma ogni finestra a zero: nessuna finestra potra' mai dirlo. */
+  assert.deepEqual(
+    cosaMancaPerArieggiare({
+      soglia: 60,
+      stanzeConUmidita: 1,
+      finestreInStanzaConUmidita: 2,
+      finestreConSoglia: 0,
+    }),
+    ["soglia-spenta"],
+  );
+  /* Senza finestre in una stanza con igrometro conta ancora la casa. */
+  assert.deepEqual(
+    cosaMancaPerArieggiare({
+      soglia: 60,
+      stanzeConUmidita: 1,
+      finestreInStanzaConUmidita: 0,
+      finestreConSoglia: 0,
     }),
     ["finestra-senza-stanza"],
   );

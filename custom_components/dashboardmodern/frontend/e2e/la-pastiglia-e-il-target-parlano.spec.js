@@ -164,6 +164,9 @@ test("la tendina del target manda set_value a un numero, e mostra il suo valore"
   const voci = await tendina.locator("option").evaluateAll((nodi) => nodi.map((n) => n.value));
   expect(voci).toContain("70");
   expect(voci).toContain("80");
+  /* E anche quelle che le cinque di serie del guscio non hanno: il passo e' 5. */
+  expect(voci).toContain("55");
+  expect(voci).toContain("75");
 
   await tendina.selectOption("70");
   await expect

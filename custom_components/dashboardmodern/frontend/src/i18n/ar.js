@@ -2824,4 +2824,5 @@ export default Object.freeze({
   "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.": "اختر نقطة شحن evcc: يأتي وضع الشحن، وحد الشحن، والجلسة، وحصة الشمس. يُربط الشاحن من الزر الآخر، وتُجمع الحقول.",
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "لهذه النافذة فقط: عندما تتجاوز رطوبة غرفتها هذا المستوى، تقول البطاقة بفتحها للتهوية. فارغة، يسري حد البيت المكتوب في الأعلى؛ الصفر يوقف النصيحة لهذه النافذة.",
   "Suggest airing above (%), by default": "اقتراح التهوية فوق (%)، افتراضيًا",
+  "Not charging": "لا يشحن",
 });

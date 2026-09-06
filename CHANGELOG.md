@@ -144,6 +144,26 @@ senza un perche'.
   versione nuova finisce nel registro di HACS con la stessa etichetta che
   scriverebbe lui, e la sua scheda si ridisegna. Senza HACS non cambia niente.
 
+- **La finestra del widget Energia non cambia faccia un secondo dopo.**
+
+      «Ho aperto il widget Energia: prima mi ha mostrato una cosa, poi
+       un'altra. Sono convinto che ci siano sezioni vecchie che stanno sotto.»
+
+  Sotto non c'era niente di vecchio. La finestra si apre subito con i numeri
+  di adesso, e un attimo dopo arriva da Recorder la lettura nel tempo — «piu'
+  basso del solito», «piena fra un'ora» — che aggiunge un punto sotto la
+  frase e puo' cambiare il verdetto. Quel punto in piu' cambiava la forma del
+  corpo, e la forma diversa lo faceva riscrivere TUTTO: sul telefono, sotto
+  il velo sfocato, un lampo bianco e una finestra che sembra un'altra. Adesso
+  si tocca solo il nodo che cambia: la riga nuova si aggiunge, il verdetto
+  cambia parola, e tutto il resto resta dov'era, scorrimento compreso. Vale
+  per tutte le finestre dei widget, non solo per l'Energia.
+
+  E un dettaglio dell'auto letta dall'integrazione: «Target SoC» parla di SoC
+  ma non e' la batteria — e' il traguardo della ricarica, e finiva nella
+  casella della batteria di trazione quando l'auto non ne pubblicava una con
+  la sua classe.
+
 ## 1.4.10
 
 Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.

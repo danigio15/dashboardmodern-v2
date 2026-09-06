@@ -73,6 +73,7 @@ const CATALOGO = {
   ],
   entities: [
     ent("select.evcc_loadpoint_1_charge_mode", "evcc-1", "Charge mode"),
+    ent("number.evcc_loadpoint_1_limit_soc", "evcc-1", "Limit SoC", { unit: "%" }),
     ent("sensor.evcc_loadpoint_1_charged_energy", "evcc-1", "Charged energy", {
       device_class: "energy",
       unit: "kWh",
@@ -299,6 +300,9 @@ test("le caselle della colonnina non spariscono al salvataggio dell'auto", async
       "dm.ev_modalita_ricarica_evcc": "select.evcc_loadpoint_1_charge_mode",
       "dm.ev_energia_sessione": "sensor.evcc_loadpoint_1_charged_energy",
       "dm.ev_percentuale_solare_sessione": "sensor.evcc_loadpoint_1_session_solar_percentage",
+      /* Il target e' dell'auto, ma lo porta evcc: anche lui deve sopravvivere
+       * al salvataggio, che rilegge i campi della scheda. */
+      "dm.ev_target_soc": "number.evcc_loadpoint_1_limit_soc",
     });
 
   /* E rimettendo in uso quell'auto, la colonnina di casa resta quella di

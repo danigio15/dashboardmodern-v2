@@ -40,9 +40,12 @@ const MUTO = /^(unknown|unavailable|none|)$/i;
  * La lettera della ricarica.
  *
  * `stato` e' quello che la casella dice, com'e'. `collegata` e' il verdetto
- * del cavo (true/false) o `null` se nessuno lo sa. `potenza` in watt, o
- * `null`. Torna "A", "B", "C", "F", oppure "" quando non c'e' abbastanza per
- * dire qualcosa: e allora la pastiglia mostra quello che mostrava prima.
+ * del SENSORE DEL CAVO (true/false) o `null` se nessuno lo sa — non si deduce
+ * da un «off» di carica, che dice solo «non sta caricando» (osservazione
+ * della review). `potenza` in watt, o `null`. Torna "A", "B", "C", "F",
+ * "N" — non in carica, col cavo che nessuno sa — oppure "" quando non c'e'
+ * abbastanza per dire qualcosa: e allora la pastiglia mostra quello che
+ * mostrava prima.
  */
 export function codiceDellaRicarica({ stato, collegata = null, potenza = null } = {}) {
   const grezzo = clean(stato);
@@ -68,7 +71,7 @@ export function codiceDellaRicarica({ stato, collegata = null, potenza = null } 
      * e se il cavo e' dentro e' «collegata», se nessuno lo sa si guarda la
      * potenza. */
     if (ACCESO.test(grezzo)) return "C";
-    if (SPENTO.test(grezzo)) return attaccata || carica ? "B" : staccata ? "A" : "";
+    if (SPENTO.test(grezzo)) return attaccata || carica ? "B" : staccata ? "A" : "N";
   }
 
   /* Senza uno stato che parli, restano il cavo e la potenza. */
@@ -79,4 +82,4 @@ export function codiceDellaRicarica({ stato, collegata = null, potenza = null } 
 }
 
 /** Le pastiglie leggono anche quello che il guscio scrive gia': le lettere. */
-export const LETTERE = Object.freeze(["A", "B", "C", "F"]);
+export const LETTERE = Object.freeze(["A", "B", "C", "F", "N"]);

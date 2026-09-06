@@ -124,6 +124,14 @@ test("il pulsante della colonnina sta nella scheda Auto, accanto a quello dell'a
   assert.match(sorgente, /export function collegaLaWallbox/);
   /* Si scrive nelle caselle della casa, non dentro un profilo di vettura. */
   assert.match(sorgente, /writeJsonIfChanged\("cd_entity_overrides", prossime\)/);
+  /* E TUTTE le caselle appena scritte finiscono nei campi della scheda,
+   * anche il target che e' dell'auto: il salvataggio rilegge i campi, e una
+   * casella non scritta nel campo si perdeva al primo «Salva auto». */
+  assert.match(sorgente, /mostraLeCaselleDellaColonnina\(prossime, Object\.keys\(mappa\)\)/);
+  /* Due tasti, due menu: evcc da una parte, le colonnine dall'altra — e una
+   * colonnina che non si riconosce dal nome non sparisce. */
+  assert.match(sorgente, /filtra: perEvcc \? eEvcc : eUnaColonnina/);
+  assert.match(sorgente, /altrimentiTutte: !perEvcc/);
 });
 
 /* «Il menu a tendina della percentuale di ricarica evcc non funziona.» Nella

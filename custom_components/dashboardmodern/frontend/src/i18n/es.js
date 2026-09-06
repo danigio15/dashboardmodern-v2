@@ -2824,4 +2824,5 @@ export default Object.freeze({
   "Pick the evcc loadpoint: the charge mode, the charge limit, the session and the solar share come along. The charger connects from the other button, and the fields add up.": "Elige el loadpoint de evcc: llegan el modo de carga, el límite de carga, la sesión y la cuota solar. El cargador se conecta desde el otro botón, y las casillas se suman.",
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "Solo para esta ventana: cuando la humedad de su habitación supera esta cuota, la tarjeta dice de abrirla para ventilar. Vacía, vale el umbral de la casa escrito arriba; cero apaga el consejo en esta ventana.",
   "Suggest airing above (%), by default": "Sugerir ventilar por encima del (%), de serie",
+  "Not charging": "Sin cargar",
 });

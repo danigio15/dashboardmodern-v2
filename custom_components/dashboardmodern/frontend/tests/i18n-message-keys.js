@@ -1726,6 +1726,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "None",
   "None reporting",
   "Not answering",
+  "Not charging",
   "Not configured",
   "NOT CONFIGURED",
   "Not connected",

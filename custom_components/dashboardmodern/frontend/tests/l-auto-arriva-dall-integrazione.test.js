@@ -103,6 +103,25 @@ test("un'entita' presa non finisce anche in un'altra casella", () => {
   assert.equal(new Set(presi).size, presi.length, "nessuna entita' in due caselle");
 });
 
+test("il target comandabile dell'auto deve parlare di carica", () => {
+  /* Un `number.cabin_target_temperature` e' un «target» anche lui: la
+   * tendina del target gli manderebbe un limite di carica. */
+  const { mappa } = dispositivo([
+    ["number.b10_cabin_target_temperature", "Cabin target temperature", { unit: "°C" }],
+    ["sensor.b10_target_soc", "Target SoC", { unit: "%" }],
+  ]);
+  assert.equal(mappa["dm.ev_target_soc"], "sensor.b10_target_soc");
+  /* Ma un limite di carica comandabile vince sul sensore. */
+  const comandabile = dispositivo([
+    ["sensor.b10_target_soc", "Target SoC", { unit: "%" }],
+    ["number.b10_charge_limit", "Charge limit target", { unit: "%" }],
+  ]);
+  assert.equal(comandabile.mappa["dm.ev_target_soc"], "number.b10_charge_limit");
+  /* Anche una tendina senza unita', se parla di SoC. */
+  const tendina = dispositivo([["select.b10_target_soc", "Target SoC"]]);
+  assert.equal(tendina.mappa["dm.ev_target_soc"], "select.b10_target_soc");
+});
+
 test("le quattro gomme vanno ognuna alla sua ruota", () => {
   const { mappa } = dispositivo([
     ["sensor.auto_tyre_fl", "Tyre pressure front left", { unit: "bar" }],

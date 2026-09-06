@@ -8,7 +8,10 @@
  * minuti, non uno.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   AFFANNO_DEL_RECORDER_MS,
@@ -96,6 +99,16 @@ test("un timeout non blocca la fila, e segna il Recorder in affanno", async () =
   /* E passati i cinque minuti si torna a chiedere col passo di prima. */
   assert.equal(broker.recorderInAffanno(Date.now() + AFFANNO_DEL_RECORDER_MS + 1), false);
   assert.equal(AFFANNO_DEL_RECORDER_MS, 5 * 60_000);
+});
+
+test("il riposo vale anche a freddo, quando non c'e' ancora un pacchetto", () => {
+  const energia = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "..", "src", "sections", "energy-section.js"),
+    "utf8",
+  );
+  const ripresa = energia.indexOf("const inAffanno = Boolean(broker?.recorderInAffanno?.())");
+  assert.ok(ripresa > 0);
+  assert.match(energia.slice(ripresa, ripresa + 400), /inAffanno\s*\?\s*RIPOSO_ENERGIA_DI_SPALLE_MS/);
 });
 
 test("col Recorder in affanno l'Energia riposa cinque minuti anche a pagina aperta", () => {

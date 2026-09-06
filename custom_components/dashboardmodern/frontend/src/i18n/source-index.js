@@ -1830,6 +1830,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Non hai ancora aperto nessuna segnalazione.": "You have not opened any report yet.",
   "Non hai ancora collegato le tue entità, quindi le card sono nascoste.": "You have not linked your entities yet, so the cards are hidden.",
   "Non hai niente in lavorazione.": "You have nothing in progress.",
+  "Non in carica": "Not charging",
   "Non protetto": "Unprotected",
   "Non raggiungibile": "Unavailable",
   "Non riesco a copiare la foto in Home Assistant (${clean(error?.message)}). Mettila in /config/www e scrivi /local/nomefile.": "Cannot copy the photo into Home Assistant (${clean(error?.message)}). Put it in /config/www and type /local/filename.",
