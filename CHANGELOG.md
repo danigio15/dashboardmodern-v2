@@ -115,6 +115,35 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 ### Corretto
 
+- **Il report dell'Energia: meno domande al Recorder, e quello che arriva
+  resta (#333).**
+
+      «Il report nella sezione energia non funziona più.»
+
+  Il pacchetto dei periodi era tutto-o-niente: bastava che una sola delle
+  sette letture non tornasse — un Recorder lento, una casa grande, un telefono
+  fuori casa — e si buttava anche quello che era arrivato, per poi richiedere
+  tutto da capo, quaranta volte e poi per sempre. Adesso quello che risponde si
+  tiene, quello che manca viene detto per nome nella riga della spiegazione, e
+  i periodi non letti restano coi numeri del guscio invece di finire a zero.
+
+  E le domande sono diventate meno e più leggere: sorgenti, dispositivi e
+  carichi viaggiano insieme, un giro per arco di tempo — oggi, il mese scelto,
+  i mesi chiusi dell'anno — così da sette letture, due delle quali da tredici
+  mesi, si passa a quattro, di cui tre servite dalla cache. La cache, che prima
+  non rispondeva mai perché la sua chiave portava i millisecondi, adesso
+  arrotonda al passo con cui il Recorder compila le statistiche, dura quei
+  cinque minuti e non cresce oltre sessantaquattro voci. La giornata in corso
+  non si chiede più tutta al passo di cinque minuti: le ore chiuse si chiedono
+  a ore e solo l'ora aperta al minuto.
+
+  Infine, cambiare linguetta non è più una domanda al Recorder: i numeri già
+  in casa si ridisegnano, e si rilegge solo quando sono vecchi. Lo stesso vale
+  per la porta pubblica del servizio e per i giri che il guscio faceva da solo,
+  spenti alla sorgente: il conto di oggi degli elettrodomestici riposa un
+  minuto invece di cinque secondi, e un evento di stato non gli riazzera più
+  il cronometro.
+
 - **Il disagio termico veniva letto come «tutto OK» (#355).**
 
       «Nelle allerte un discomfort termico dovrebbe essere rilevato come
