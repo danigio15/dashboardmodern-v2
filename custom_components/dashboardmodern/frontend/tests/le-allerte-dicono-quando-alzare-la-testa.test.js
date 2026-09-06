@@ -90,7 +90,17 @@ test("ogni fonte nel suo dialetto, ridotta a un livello", () => {
     "sensor.percezione": stato("quite_uncomfortable"),
     "sensor.fr24": stato("2", {
       flights: [
-        { flight_number: "AZ1234", airline_short: "ITA", aircraft_model: "A320", altitude: 9000 },
+        {
+          flight_number: "AZ1234",
+          airline_short: "ITA",
+          aircraft_model: "A320",
+          aircraft_registration: "EI-DTJ",
+          altitude: 9000,
+          airport_origin_city: "Roma",
+          airport_origin_code_iata: "FCO",
+          airport_destination_city: "Parigi",
+          airport_destination_code_iata: "CDG",
+        },
         { callsign: "RYR55", airline_short: "Ryanair" },
       ],
     }),
@@ -118,6 +128,12 @@ test("ogni fonte nel suo dialetto, ridotta a un livello", () => {
   assert.equal(per.voli.voci.length, 2);
   assert.equal(per.voli.voci[0].numero, "AZ1234");
   assert.equal(per.voli.voci[1].numero, "RYR55");
+  /* La tratta si dice coi nomi delle citta', non coi codici (#334). */
+  assert.equal(per.voli.voci[0].da, "Roma");
+  assert.equal(per.voli.voci[0].a, "Parigi");
+  assert.equal(per.voli.voci[0].compagnia, "ITA");
+  assert.equal(per.voli.voci[0].aereo, "A320");
+  assert.equal(per.voli.voci[0].targa, "EI-DTJ");
   assert.equal(livelloMassimo(letture), "attenzione");
   assert.equal(allerteAttive(letture).length, 6);
 });
@@ -234,4 +250,55 @@ test("la frase della tessera dice chi ha qualcosa da dire", () => {
     "All quiet, but one source is not answering.",
   );
   assert.equal(fraseDellaTessera({ key: "allerte", rows: [] }, EN), "Nothing configured here yet.");
+});
+
+test("del volo si dice la tratta, l'aereo e la compagnia (#334)", async () => {
+  const config = { voli: { entity: "sensor.fr24" } };
+  /* Un'integrazione che pubblica i nomi delle citta': si preferiscono ai
+   * codici, che sanno leggere solo quelli che volano spesso. */
+  const conCitta = {
+    "sensor.fr24": stato("1", {
+      flights: [
+        {
+          flight_number: "FR9012",
+          airline: "Ryanair",
+          aircraft_code: "B738",
+          aircraft_registration: "EI-EBA",
+          airport_origin_city: "Bergamo",
+          airport_origin_code_iata: "BGY",
+          airport_destination_city: "Londra",
+          airport_destination_code_iata: "STN",
+        },
+      ],
+    }),
+  };
+  const [conNomi] = letturaAllerte(config, conCitta, (v) => v, ADESSO);
+  assert.equal(conNomi.voci[0].da, "Bergamo");
+  assert.equal(conNomi.voci[0].a, "Londra");
+  assert.equal(conNomi.voci[0].compagnia, "Ryanair");
+  assert.equal(conNomi.voci[0].targa, "EI-EBA");
+
+  /* Senza citta' si ripiega sul nome dell'aeroporto e poi sul codice. */
+  const soloCodici = {
+    "sensor.fr24": stato("1", {
+      flights: [
+        {
+          callsign: "DLH8AB",
+          airport_origin_code_iata: "MUC",
+          airport_destination_name: "Malpensa",
+        },
+      ],
+    }),
+  };
+  const [ripiego] = letturaAllerte(config, soloCodici, (v) => v, ADESSO);
+  assert.equal(ripiego.voci[0].da, "MUC");
+  assert.equal(ripiego.voci[0].a, "Malpensa");
+
+  /* E la riga della finestra mette la tratta per prima, con un capo solo
+   * quando l'altro non si sa. */
+  const sezione = await leggi("sections/allerte-section.js");
+  assert.match(sezione, /const tratta =/);
+  assert.match(sezione, /\$\{volo\.da\} → \$\{volo\.a\}/);
+  assert.match(sezione, /t\("verso", "to"\)/);
+  assert.match(sezione, /\[volo\.aereo, volo\.targa\]/);
 });

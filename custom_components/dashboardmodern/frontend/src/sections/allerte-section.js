@@ -246,11 +246,23 @@ export function righeDellAllerta(lettura) {
         metti(t("Contati", "Counted"), formatNumber(lettura.conteggio, 0));
       break;
     case "voli":
+      /* Prima la tratta, che e' la cosa che si vuole sapere di un aereo che
+       * passa sopra casa; poi che aereo e', e da ultimo quanto e' alto (#334).
+       * Con un capo solo — succede: l'integrazione non sempre sa da dove
+       * viene — si dice quello, senza freccia verso il nulla. */
       for (const volo of lettura.voci || []) {
         const nome = [volo.numero, volo.compagnia].filter(Boolean).join(" · ");
+        const tratta =
+          volo.da && volo.a
+            ? `${volo.da} → ${volo.a}`
+            : volo.a
+              ? `${t("verso", "to")} ${volo.a}`
+              : volo.da
+                ? `${t("da", "from")} ${volo.da}`
+                : "";
         const dettagli = [
-          volo.aereo,
-          volo.da && volo.a ? `${volo.da} → ${volo.a}` : "",
+          tratta,
+          [volo.aereo, volo.targa].filter(Boolean).join(" "),
           volo.quota != null ? `${formatNumber(volo.quota, 0)} ft` : "",
         ].filter(Boolean);
         if (nome) metti(nome, dettagli.join(" · ") || "—");

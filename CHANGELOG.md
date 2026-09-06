@@ -98,6 +98,18 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   consiglio. Chiusa, o senza un contatto che lo dica, il consiglio c'e' come
   prima.
 
+- **Del volo sopra casa si dice la tratta, l'aereo e la compagnia (#334).**
+
+      «Mi piacerebbe che il widget delle allerte relativo ai voli dia le info
+       del volo: destinazione/tratta, tipo di aereo, compagnia.»
+
+  C'erano gia', ma dette come le scrive il computer: «A320 · FCO → CDG». I
+  codici IATA li legge chi vola spesso; le citta' le capiscono tutti, e
+  l'integrazione le pubblica accanto ai codici. Adesso la riga apre con la
+  tratta scritta coi nomi — «Roma → Parigi», e con un capo solo «verso
+  Londra» invece di una freccia verso il nulla — poi l'aereo con la sua targa,
+  e in fondo la quota.
+
 - **Il monossido di carbonio si giudica nell'unita' in cui arriva.**
 
       «Outdoor Environment CO = 156 µg/m³: lo identifica correttamente come

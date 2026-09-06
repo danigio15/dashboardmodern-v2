@@ -308,8 +308,29 @@ function leggiComfort(voce, stati) {
 }
 
 /* I voli sopra casa: quanti, e quali. Flightradar24 tiene l'elenco negli
- * attributi, e ogni voce ha il numero del volo, la compagnia, il modello. */
+ * attributi, e ogni voce ha il numero del volo, la compagnia, il modello.
+ *
+ * «Mi piacerebbe che il widget delle allerte relativo ai voli dia le info del
+ * volo: destinazione/tratta, tipo di aereo, compagnia» (#334). C'erano gia',
+ * ma dette come le scrive il computer: «AZ1234 · ITA» e «A320 · FCO → CDG».
+ * Un codice IATA lo sa leggere chi vola spesso; la tratta la capiscono tutti
+ * se e' scritta coi nomi delle citta', che l'integrazione pubblica accanto ai
+ * codici. Qui si prende la parola piu' leggibile che c'e' — la citta', se no
+ * il nome dell'aeroporto, se no il codice — e la compagnia per esteso quando
+ * la sigla non basta. */
 const VOLI_MOSTRATI = 5;
+
+/* Il posto, come lo direbbe una persona: la citta' se c'e', se no il nome
+ * dell'aeroporto senza la sua coda («Roma Fiumicino Airport» → il codice resta
+ * il ripiego onesto). */
+function luogoDelVolo(volo, lato) {
+  return (
+    pulito(volo?.[`airport_${lato}_city`]) ||
+    pulito(volo?.[`airport_${lato}_name`]) ||
+    pulito(volo?.[`airport_${lato}_code_iata`]) ||
+    pulito(volo?.[`airport_${lato}_code`])
+  );
+}
 
 function leggiVoli(voce, stati) {
   const principale = stati.entity;
@@ -319,12 +340,14 @@ function leggiVoli(voce, stati) {
   const conteggio = numero(principale?.state) ?? elenco.length;
   const voci = elenco.slice(0, VOLI_MOSTRATI).map((volo) => ({
     numero: pulito(volo?.flight_number || volo?.callsign || volo?.id),
-    compagnia: pulito(volo?.airline_short || volo?.airline),
+    compagnia: pulito(volo?.airline_short || volo?.airline || volo?.airline_iata),
     aereo: pulito(volo?.aircraft_model || volo?.aircraft_code),
+    /* La targa dell'aeroplano: chi guarda in su e fotografa la cerca. */
+    targa: pulito(volo?.aircraft_registration),
     quota: numero(volo?.altitude),
     distanza: numero(volo?.distance),
-    da: pulito(volo?.airport_origin_code_iata || volo?.airport_origin_code),
-    a: pulito(volo?.airport_destination_code_iata || volo?.airport_destination_code),
+    da: luogoDelVolo(volo, "origin"),
+    a: luogoDelVolo(volo, "destination"),
   }));
   return { livello: conteggio > 0 ? "nota" : "quiete", conteggio, voci };
 }
