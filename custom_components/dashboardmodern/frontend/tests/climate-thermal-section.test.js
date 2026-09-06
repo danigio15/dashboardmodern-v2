@@ -178,10 +178,29 @@ test("the back arrow stays at the top of the page after a rebuild", () => {
 test("the section owns presentation only and adds no polling", () => {
   const body = source.slice(source.indexOf("import {"));
   assert.doesNotMatch(body, /setInterval\s*\(/);
-  assert.doesNotMatch(body, /MutationObserver/);
+  /* Un osservatore c'e', ed e' l'opposto di un sondaggio: guarda la classe di
+   * UN elemento, #page-clima, per dipingere la pagina quando si apre invece
+   * che a ogni giro del guscio mentre si guarda la Home. Niente sottoalberi,
+   * niente corpo del documento. */
+  assert.equal((body.match(/new root\.MutationObserver/g) || []).length, 1);
+  assert.match(body, /observe\(pagina, \{ attributes: true, attributeFilter: \["class"\] \}\)/);
+  assert.doesNotMatch(body, /subtree: true|observe\(doc\.body/);
   // No service call is rebuilt here: the websocket stays behind the legacy API.
   assert.doesNotMatch(body, /call_service/);
   assert.doesNotMatch(body, /new\s+WebSocket/);
+});
+
+test("the Clima page is painted only while it is looked at, and a deferred rebuild is kept", () => {
+  /* `updateClimaCards` del guscio e' l'intero renderClimate e gira dentro
+   * ogni render(): senza questa uscita la pagina Clima si ridipingeva per
+   * intero a ogni cambio di stato di casa, mentre si guardava la Home. */
+  const inizio = source.indexOf("export function renderClimate(");
+  const corpo = source.slice(inizio, source.indexOf("const labels = copy();", inizio));
+  assert.match(corpo, /if \(!force && !climaInVista\(\)\) \{\s*if \(rebuild\) state\.ridisegnoRimandato = true;\s*return false;/);
+  assert.match(corpo, /if \(state\.ridisegnoRimandato\) \{\s*rebuild = true;\s*state\.ridisegnoRimandato = false;/);
+  assert.match(source, /export function climaInVista\(\)/);
+  // Il primo giro di visibilita' dipinge; i seguenti li portano gli stati.
+  assert.match(source, /if \(inVista && !eraInVista\) renderClimate\(\);/);
 });
 
 test("bulk power acts on the visible zone only and skips units already in that state", () => {

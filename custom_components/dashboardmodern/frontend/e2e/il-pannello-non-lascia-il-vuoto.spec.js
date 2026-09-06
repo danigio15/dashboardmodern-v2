@@ -64,7 +64,12 @@ test("l'etichetta del pannello non lascia il vuoto", async ({ page }, testInfo) 
     window.applyStates?.();
     window.render?.();
   });
-  await page.evaluate(() => window.showPage?.("clima"));
+  /* La pagina Clima si dipinge quando si vede: prima la si apre dalla barra,
+   * come fa chi la guarda, poi si tocca la carta. Qui c'era `showPage`, che
+   * non e' mai esistito: la carta si trovava lo stesso perche' la pagina
+   * veniva dipinta anche da Home, a ogni giro del guscio — ed e' proprio
+   * quello che non succede piu'. */
+  await page.evaluate(() => document.querySelector('.tab[data-tab="clima"]')?.click());
   await page.waitForTimeout(700);
   await page.evaluate(() => {
     document

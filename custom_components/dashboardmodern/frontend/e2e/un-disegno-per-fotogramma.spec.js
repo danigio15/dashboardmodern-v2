@@ -9,10 +9,14 @@
  * un telefono, con una casa vera, e' la sezione che si impasta mentre la si
  * guarda.
  *
- * Adesso la risposta agli eventi si mette in coda e disegna una volta per
- * fotogramma. Chi chiama render() a mano — un salvataggio, un cambio di pagina
- * — continua ad averlo subito: quella meta' della prova conta quanto la prima,
- * perche' rimandare anche quelli vorrebbe dire vedere il vecchio valore per un
+ * Adesso la risposta agli eventi si mette in coda e disegna una volta sola —
+ * non piu' al fotogramma dopo, ma allo scadere dello stesso passo di mezzo
+ * secondo con cui i moduli ricevono gli stati (state-event-gate): una casa
+ * con decine di eventi al secondo faceva comunque un disegno per fotogramma,
+ * sessanta al secondo, e il guscio e i moduli disegnavano in momenti diversi.
+ * Chi chiama render() a mano — un salvataggio, un cambio di pagina — continua
+ * ad averlo subito: quella meta' della prova conta quanto la prima, perche'
+ * rimandare anche quelli vorrebbe dire vedere il vecchio valore per un
  * fotogramma dopo aver premuto.
  */
 import { expect, test } from "@playwright/test";
@@ -38,11 +42,14 @@ test("una raffica di eventi fa un disegno solo, e la chiamata a mano resta subit
       for (let evento = 0; evento < 100; evento += 1) window.cdRenderSoon();
       const durante = disegni;
       await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+      const dopoDueFotogrammi = disegni;
+      // Il passo del cancello, e un fotogramma per disegnare.
+      await new Promise((ok) => setTimeout(ok, 650));
       const dopoLaRaffica = disegni;
 
       // E una chiamata diretta non aspetta nessun fotogramma.
       window.render();
-      return { durante, dopoLaRaffica, dopoLaChiamata: disegni };
+      return { durante, dopoDueFotogrammi, dopoLaRaffica, dopoLaChiamata: disegni };
     } finally {
       window.render = originale;
     }
@@ -50,7 +57,10 @@ test("una raffica di eventi fa un disegno solo, e la chiamata a mano resta subit
 
   // Durante la raffica non si disegna: si prende nota e basta.
   expect(esito.durante).toBe(0);
-  // Alla fine del fotogramma si disegna una volta sola, non cento.
+  // E nemmeno al fotogramma dopo: la raffica non e' finita solo perche' e'
+  // passato un fotogramma.
+  expect(esito.dopoDueFotogrammi).toBe(0);
+  // Allo scadere del passo si disegna una volta sola, non cento.
   expect(esito.dopoLaRaffica).toBe(1);
   // Chi chiama render() lo ottiene subito, sincrono.
   expect(esito.dopoLaChiamata).toBe(2);
