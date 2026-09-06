@@ -16,6 +16,27 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 ### Aggiunto
 
+- **La casa sembra abitata quando non c'e' nessuno (#290).**
+
+      «E' possibile creare un cruscotto per emulare la presenza in casa
+       quando si e' via? Quando l'allarme e' inserito e dopo che il sole
+       tramonta, le tapparelle si abbassano random e idem le luci, che si
+       accendono per un tempo casuale.»
+
+  Una simulazione della presenza non puo' vivere nel browser: chi e' via la
+  plancia non ce l'ha aperta. Vive in Home Assistant, e si accende con un
+  interruttore — «Presenza simulata» — che si mette dove si vuole: fra le
+  azioni rapide della plancia, in un'automazione che lo accende quando si
+  inserisce l'allarme, in una scena di partenza.
+
+  Le luci e le tapparelle non si configurano una seconda volta: sono quelle
+  che la plancia ha gia'. Dal buio fino all'ora di dormire la casa chiude una
+  tapparella per volta e tiene accese al massimo tre luci, ognuna per un tempo
+  che cambia fra gli otto e i trentacinque minuti; di giorno e di notte fonda
+  non tocca niente. Spegne SOLTANTO quello che ha acceso lei — se qualcuno e'
+  in casa e accende la cucina, la cucina resta accesa — e quando si spegne
+  rimette tutto com'era.
+
 - **Due fonti nuove fra le Allerte: gli scioperi e i treni (#352).**
 
       «Sarebbe bello inserire una sezione per: 1) scioperi nazionali;

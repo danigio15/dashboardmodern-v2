@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 # L'unica piattaforma e' l'avviso di aggiornamento, e la porta una plancia
 # sola: chi ne ha due non deve ritrovarsi due voci per la stessa versione.
-PLATFORMS: list[str] = ["update"]
+PLATFORMS: list[str] = ["switch", "update"]
 
 # Quale plancia ha montato la piattaforma. Si scarica solo da quella: chiederlo
 # a una voce che non l'ha mai montata fa sollevare a Home Assistant un

@@ -50,5 +50,12 @@
         }
       }
     }
+  },
+  "entity": {
+    "switch": {
+      "presenza_simulata": {
+        "name": "Simulated presence"
+      }
+    }
   }
 }
