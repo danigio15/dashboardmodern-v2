@@ -869,6 +869,17 @@ const FORMA = Object.freeze({
   energia: {
     unita: (v, l, tessera) => (tessera?.soggetto === "carica" ? `${Math.round(v)}%` : watt(v, l)),
     bersaglio: (tessera) => (tessera?.soggetto === "carica" ? 100 : null),
+    /* Il «solito» e' della potenza, non dello stato di carica: una batteria
+     * al 24% invece che al 21% di un'ora fa non e' fuori dal solito, sta
+     * caricando — e la finestra lo diceva («piu' alto del solito: 24% contro
+     * 21%», dal campo) come se fosse una stranezza. */
+    solito: (tessera) => tessera?.soggetto !== "carica",
+    /* E un picco della casa non fa diventare rossa la finestra. Il forno, il
+     * bollitore, la pompa di calore fanno tre chilowatt sopra il solito ogni
+     * giorno: «DA GUARDARE» con il sole che copre l'81% e la rete a zero era
+     * un allarme per niente, e un minuto dopo tornava verde. Il confronto si
+     * scrive, il verdetto lo decide il bilancio. */
+    allarme: () => false,
   },
   temperatura: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
   solare: { unita: (v, l) => `${numero(v, 1, l)}°`, bersaglio: () => null },
@@ -906,7 +917,13 @@ function puntiDelModello(tessera, storia, tr, adesso) {
    * Sotto la soglia non si dice niente: «e' nella norma» e' una riga sprecata,
    * perche' e' il caso di quasi sempre. */
   const riferimento = lettura.abituale || lettura.solito;
-  if (lettura.insolito != null && lettura.insolito >= SOGLIE_INSOLITO.notevole && riferimento) {
+  const conSolito = typeof forma.solito === "function" ? forma.solito(tessera) !== false : true;
+  if (
+    conSolito &&
+    lettura.insolito != null &&
+    lettura.insolito >= SOGLIE_INSOLITO.notevole &&
+    riferimento
+  ) {
     const sopra = lettura.valore > riferimento.centro;
     const quando = lettura.abituale
       ? tr("per quest'ora", "for this time of day")
@@ -925,7 +942,8 @@ function puntiDelModello(tessera, storia, tr, adesso) {
     /* Un valore molto fuori dal solito e' una cosa da guardare, qualunque
      * cosa dica il conteggio delle righe. E' il caso per cui questo modello
      * esiste: nessuno sta «facendo» niente, eppure c'e' qualcosa. */
-    if (lettura.insolito >= SOGLIE_INSOLITO.forte) tono = VERDETTI.guarda;
+    if (lettura.insolito >= SOGLIE_INSOLITO.forte && forma.allarme?.(tessera) !== false)
+      tono = VERDETTI.guarda;
   }
 
   /* «Dove sta andando?» — l'arrivo se il modello sa dire quando, altrimenti

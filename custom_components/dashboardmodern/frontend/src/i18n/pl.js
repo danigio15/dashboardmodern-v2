@@ -2825,4 +2825,5 @@ export default Object.freeze({
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "Tylko dla tego okna: gdy wilgotność jego pokoju przekroczy ten poziom, karta mówi, by je otworzyć i przewietrzyć. Puste — obowiązuje próg domu wpisany u góry; zero wyłącza radę dla tego okna.",
   "Suggest airing above (%), by default": "Sugeruj wietrzenie powyżej (%), domyślnie",
   "Not charging": "Nie ładuje",
+  "updated from": "zaktualizowano z",
 });

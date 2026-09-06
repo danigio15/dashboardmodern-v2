@@ -14,12 +14,18 @@ import { legaLAutoAlDispositivo } from "../core/auto-device-binding.js";
 import { legaLaWallboxAlDispositivo } from "../core/wallbox-device-binding.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import {
+  activeVehicle,
+  editingKey,
   letturaMetadata,
   mostraLeCaselleDellaColonnina,
   profiles,
   salvaAuto,
 } from "./ev-section.js";
-import { nuovoVeicolo } from "../core/vehicle-model.js";
+import {
+  VEHICLE_KEY_FIELD,
+  accogliAutoDalDispositivo,
+  vehicleIndex,
+} from "../core/vehicle-model.js";
 import { etichettaDellaCasella } from "./auto-termica-section.js";
 import {
   allStates,
@@ -101,21 +107,19 @@ export async function creaAutoDaDispositivo({ device, entities, integration }) {
   }
   const auto = profiles();
   const nome = clean(device?.name) || t("Auto", "Car");
-  /* L'identita' gliela da' `nuovoVeicolo`, come a un'auto nata dal ＋.
-   *
-   * Qui si consegnava una riga senza uid, e uno gliene toccava dopo, ricavato
-   * dal POSTO che occupava nell'elenco. Un'identita' che dipende dalla
-   * posizione cambia quando l'elenco si riordina o qualcuno cancella una
-   * vettura — e da quell'identita' dipendono l'auto in mostra e l'auto aperta
-   * in configurazione. Il segno che non scende mai e' l'unico posto da cui
-   * un'auto puo' prendere il suo nome interno. */
-  const nata = {
-    ...nuovoVeicolo(auto, nome, letturaMetadata()),
+  /* Il dispositivo si versa nell'auto aperta con la matita, o in quella che
+   * gia' porta questo nome — foto, marca e modello restano suoi. Solo senza
+   * nessuna delle due nasce una vettura nuova, con l'identita' che le da'
+   * `nuovoVeicolo`, come a un'auto nata dal ＋: un uid dal segno che non
+   * scende mai, non dal posto nell'elenco. La decisione sta nel modello. */
+  const { cars, uid, nuova } = accogliAutoDalDispositivo(auto, {
+    name: nome,
+    mappa,
     tipo,
-    ov: mappa,
-    overrides: mappa,
-  };
-  salvaAuto([...auto, nata]);
+    aperta: editingKey() || "",
+    metadata: letturaMetadata(),
+  });
+  const salvate = salvaAuto(cars);
   /* La prima auto e' anche quella in uso.
    *
    * Le caselle di una vettura vivono nel suo profilo; quelle da cui il disegno
@@ -128,9 +132,21 @@ export async function creaAutoDaDispositivo({ device, entities, integration }) {
     try {
       root.cdEvApplyCar?.(0);
     } catch (_error) {}
+  } else if (!nuova && clean(activeVehicle(salvate)?.[VEHICLE_KEY_FIELD]) === uid) {
+    /* Si e' aggiornata proprio l'auto in uso: le sue caselle nuove vanno
+     * nelle mappature globali da cui il disegno legge, con lo stesso gesto
+     * del tasto «Usa». */
+    const posto = vehicleIndex(salvate, uid);
+    if (posto >= 0) {
+      try {
+        root.cdEvApplyCar?.(posto);
+      } catch (_error) {}
+    }
   }
   const daChi = clean(integration?.name) || t("un'integrazione", "an integration");
-  root.edToast?.(`${nome} — ${t("aggiunta da", "added from")} ${daChi}`);
+  root.edToast?.(
+    `${nome} — ${nuova ? t("aggiunta da", "added from") : t("aggiornata da", "updated from")} ${daChi}`,
+  );
   /* La scheda si ridisegna da se' al giro dopo: qui si chiede solo che ci
    * pensi, senza sapere come lo fa. */
   try {

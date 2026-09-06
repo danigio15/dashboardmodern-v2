@@ -211,3 +211,58 @@ test("dal menu delle integrazioni nasce l'auto gia' compilata", async ({ page },
   /* Il volume e' un'impostazione del dispositivo e non entra da nessuna parte. */
   expect(Object.values(caselle)).not.toContain("number.tucson_volume");
 });
+
+test("se un'auto con quel nome c'e' gia', l'integrazione la aggiorna e la foto resta", async ({
+  page,
+}, testInfo) => {
+  /* «La foto dell'auto si e' persa con gli aggiornamenti: l'ho riassociata e
+   * funziona.» Il dispositivo si chiamava come la vettura gia' in elenco, e
+   * ne nasceva una seconda, senza foto: quella in mostra era la nuda. */
+  await boot(page, testInfo);
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "cd_ev_cars",
+      JSON.stringify([
+        {
+          uid: "tucson",
+          name: "TUCSON",
+          brand: "Hyundai",
+          model: "Tucson",
+          img: "/local/ev/tucson.png",
+          imgPlugged: "/local/ev/tucson-cavo.png",
+          ov: { "dm.ev_odometro": "sensor.vecchio_contachilometri" },
+        },
+      ]),
+    );
+    window.cdEvApplyCar(0);
+    window.editorSwitch("sez2");
+  });
+  await expect(page.locator("#ed-body [data-auto-integ]")).toBeVisible();
+
+  await page.locator("#ed-body [data-auto-integ]").click();
+  const menu = page.locator("#dm-integ-menu");
+  await menu.locator('.dm-integ-item[data-domain="kia_uvo"]').click();
+  await menu.locator('.dm-integ-device[data-device-id="auto-1"]').click();
+  await menu.locator("[data-preview] [data-confirm]").click();
+  await expect(menu).toHaveCount(0);
+
+  const lista = await page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_cars") || "[]"));
+  expect(lista.map((auto) => auto.name)).toEqual(["TUCSON"]);
+  const [auto] = lista;
+  expect(auto.uid).toBe("tucson");
+  expect(auto.img).toBe("/local/ev/tucson.png");
+  expect(auto.imgPlugged).toBe("/local/ev/tucson-cavo.png");
+  expect(auto.brand).toBe("Hyundai");
+  const caselle = auto.ov || auto.overrides || {};
+  expect(caselle["dm.ev_carburante"]).toBe("sensor.tucson_fuel_level");
+  expect(caselle["dm.ev_odometro"]).toBe("sensor.tucson_odometer");
+  expect(auto.tipo).toBe("termica");
+  /* Ed era l'auto in uso: le caselle nuove arrivano subito in plancia. */
+  const globali = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("cd_entity_overrides") || "{}"),
+  );
+  expect(globali["dm.ev_carburante"]).toBe("sensor.tucson_fuel_level");
+  /* E la foto e' rimasta quella. */
+  const foto = await page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_image") || '""'));
+  expect(foto).toBe("/local/ev/tucson.png");
+});

@@ -1143,7 +1143,7 @@ function ensureCarKeys() {
  *         esiste ancora.
  * uid   = la matita ha aperto QUELLA auto, e il nome scritto nel campo e' il
  *         suo nome — anche cambiato: rinominare non apre un'altra scheda. */
-function editingKey() { return state.evEditingUid ?? null; }
+export function editingKey() { return state.evEditingUid ?? null; }
 
 /* Cambiare l'auto di cui parla la scheda e' cambiare la risposta a «di chi
  * stiamo parlando», e da quella risposta viene TUTTO quello che la scheda

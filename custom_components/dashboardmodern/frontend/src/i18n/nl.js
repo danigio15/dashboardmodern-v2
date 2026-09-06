@@ -2825,4 +2825,5 @@ export default Object.freeze({
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "Alleen voor dit raam: wanneer de luchtvochtigheid van zijn kamer boven dit niveau komt, zegt de kaart het te openen om te luchten. Leeg geldt de huisdrempel bovenaan; nul zet het advies voor dit raam uit.",
   "Suggest airing above (%), by default": "Luchten voorstellen boven (%), standaard",
   "Not charging": "Laadt niet",
+  "updated from": "bijgewerkt vanuit",
 });

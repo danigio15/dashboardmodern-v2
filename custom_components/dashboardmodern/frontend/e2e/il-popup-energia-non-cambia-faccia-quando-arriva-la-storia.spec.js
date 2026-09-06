@@ -21,7 +21,7 @@ const STATI = [
   stato("sensor.casa_w", "480", { friendly_name: "Casa", unit_of_measurement: "W" }),
   stato("sensor.rete_w", "120", { friendly_name: "Rete", unit_of_measurement: "W" }),
   stato("sensor.fv_w", "360", { friendly_name: "Fotovoltaico", unit_of_measurement: "W" }),
-  stato("sensor.batteria_w", "-320", { friendly_name: "Batteria", unit_of_measurement: "W" }),
+  stato("sensor.batteria_w", "320", { friendly_name: "Batteria", unit_of_measurement: "W" }),
   stato("sensor.batteria_soc", "78", {
     friendly_name: "Stato di carica",
     unit_of_measurement: "%",
@@ -62,10 +62,10 @@ async function boot(page, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript(
     ({ haStates, ritardo }) => {
-      /* Tre ore di batteria intorno al 95%: con il 78% di adesso, la lettura
-       * nel tempo ha qualcosa da dire, e lo dice in un punto in piu' — e
-       * cambia anche il verdetto, che e' il caso in cui la finestra «cambiava
-       * faccia». */
+      /* Tre ore di casa intorno ai 95 W: con i 480 W di adesso, la lettura
+       * nel tempo ha qualcosa da dire, e lo dice in un punto in piu' — il
+       * caso in cui la finestra «cambiava faccia». La batteria qui da'
+       * corrente (positiva), cosi' il soggetto resta la potenza della casa. */
       const storia = () => {
         const fine = Date.now();
         const valori = [93, 95, 94, 96, 95, 93, 94, 96, 95, 94, 93, 95];
@@ -189,5 +189,5 @@ test("la finestra si apre subito, e la storia aggiunge il suo punto senza rifare
   const dopo = await conta(page);
   expect(dopo.caselle).toBe(4);
   expect(dopo.stessi, "i nodi della finestra sono stati ristampati").toBe(marcati);
-  await expect(corpo).toContainText(/Piu' basso del solito|Lower than usual/);
+  await expect(corpo).toContainText(/Piu' alto del solito|Higher than usual/);
 });

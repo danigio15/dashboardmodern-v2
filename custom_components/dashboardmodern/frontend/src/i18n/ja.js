@@ -2825,4 +2825,5 @@ export default Object.freeze({
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "この窓だけ：その部屋の湿度がこの値を超えると、カードが換気のために開けるよう伝えます。空欄なら上に書いた家のしきい値が有効。ゼロでこの窓の提案を止めます。",
   "Suggest airing above (%), by default": "この値を超えたら換気を提案 (%)、既定",
   "Not charging": "充電していません",
+  "updated from": "から更新",
 });

@@ -405,6 +405,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Aggiorna": "Refresh",
   "Aggiornamento dati Recorder…": "Updating Recorder data…",
   "Aggiornamento in corso...": "Updating...",
+  "aggiornata da": "updated from",
   "Aggiungi": "Add",
   "Aggiungi a ${nomeDellaLista(list)}": "Add to ${nomeDellaLista(list)}",
   "Aggiungi almeno un'entità (premi ➕ Aggiungi questa entità alla lista)": "Add at least one entity (press ➕ Add this entity to the list)",

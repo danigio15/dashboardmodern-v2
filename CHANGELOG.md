@@ -164,6 +164,38 @@ senza un perche'.
   casella della batteria di trazione quando l'auto non ne pubblicava una con
   la sua classe.
 
+- **La foto dell'auto non si perde piu' collegando l'integrazione.**
+
+      «La foto dell'auto si e' persa con gli aggiornamenti: l'ho riassociata e
+       funziona.»
+
+  Nessuno la cancellava. «Aggiungi da un'integrazione» consegnava SEMPRE una
+  vettura nuova — senza foto, senza marca — anche quando in elenco c'era gia'
+  una B10 con la sua foto: da li' in poi ce n'erano due con lo stesso nome, e
+  quella in mostra era la nuda. Adesso il dispositivo si versa nell'auto
+  aperta con la matita, o in quella che gia' porta quel nome, e le lascia
+  tutto il suo — foto, marca, modello, motore dichiarato; le caselle che
+  l'integrazione riconosce si riscrivono, le altre restano, e se era l'auto
+  in uso le caselle nuove arrivano subito in plancia. Solo senza un'omonima
+  nasce una vettura nuova. La decisione sta nel modello dell'auto, con la
+  sua prova.
+
+- **Il verdetto dell'Energia non diventa rosso per un picco della casa, e lo
+  stato di carica non ha un «solito».**
+
+      Due schermate a un minuto di distanza: «DA GUARDARE» con 3,56 kW contro
+      i 634 W del solito, poi «TUTTO REGOLARE» con «piu' alto del solito: 24%
+      contro 21%» e «sale di 2% all'ora».
+
+  Il forno, il bollitore, la pompa di calore fanno tre chilowatt sopra il
+  solito ogni giorno: col sole che copre l'81% e la rete a zero era un
+  allarme per niente, e un minuto dopo tornava verde. Il confronto col
+  solito resta scritto fra i punti; il verdetto lo decide il bilancio. E
+  mentre la batteria si carica il soggetto e' lo stato di carica, che sale
+  perche' si sta caricando: «piu' alto del solito» su una percentuale che
+  cresce non e' una notizia, e non si scrive piu'. Resta il «piena fra» o il
+  passo con cui sale.
+
 ## 1.4.10
 
 Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.

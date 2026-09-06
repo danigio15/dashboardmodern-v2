@@ -2825,4 +2825,5 @@ export default Object.freeze({
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "Yalnızca bu pencere için: odasının nemi bu düzeyi aşınca kart havalandırmak için açmayı söyler. Boşsa üstte yazılı ev eşiği geçerlidir; sıfır bu pencerede öneriyi kapatır.",
   "Suggest airing above (%), by default": "Şu değerin üstünde havalandırmayı öner (%), varsayılan",
   "Not charging": "Şarj olmuyor",
+  "updated from": "şuradan güncellendi:",
 });

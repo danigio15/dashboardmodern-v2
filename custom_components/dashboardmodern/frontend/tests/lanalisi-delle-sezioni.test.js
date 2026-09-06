@@ -431,16 +431,74 @@ test("quando e' il solito non spreca una riga per dirlo", () => {
 
 test("un valore molto fuori dal solito diventa da guardare", () => {
   /* Nessuno sta «facendo» niente — nessuna riga accesa — eppure c'e'
-   * qualcosa: e' il caso per cui il modello esiste. */
-  const punti = storia(40, 3 * MINUTO, () => 200);
-  punti.push({ quando: ADESSO, valore: 3000 });
+   * qualcosa: e' il caso per cui il modello esiste. Una stanza a trentuno
+   * gradi che per tre ore ne ha fatti ventuno. */
+  const punti = storia(40, 3 * MINUTO, () => 21);
+  punti.push({ quando: ADESSO, valore: 31 });
   const esito = analisiDellaSezione(
-    { key: "energia", rows: [{ group: "house", watts: 3000 }] },
+    { key: "temperatura", rows: [{ name: "Salone", temperature: 31 }] },
     IT,
     ADESSO,
     punti,
   );
   assert.equal(esito.tono, VERDETTI.guarda);
+  assert.ok(esito.punti.some((p) => /Piu' alto del solito/.test(p)));
+});
+
+test("Energia: un picco della casa si scrive, ma non fa diventare rossa la finestra", () => {
+  /* Dal campo, due schermate a un minuto di distanza: «DA GUARDARE» con
+   * 3,56 kW contro i 634 W del solito — il sole copriva l'81% e la rete
+   * stava a zero — e poi «TUTTO REGOLARE». Il forno e il bollitore fanno
+   * tre chilowatt sopra il solito ogni giorno: e' un confronto da leggere,
+   * non un allarme. Il verdetto lo decide il bilancio. */
+  const punti = storia(40, 3 * MINUTO, () => 634);
+  punti.push({ quando: ADESSO, valore: 3560 });
+  const esito = analisiDellaSezione(
+    {
+      key: "energia",
+      rows: [
+        { group: "house", watts: 3560 },
+        { group: "solar", watts: 2880 },
+        { group: "grid", watts: 0 },
+      ],
+    },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.notEqual(esito.tono, VERDETTI.guarda);
+  assert.equal(esito.tono, VERDETTI.corso, "il sole copre una parte: e' «in corso»");
+  assert.ok(
+    esito.punti.some((p) => /Piu' alto del solito/.test(p)),
+    `il confronto resta scritto: ${JSON.stringify(esito.punti)}`,
+  );
+});
+
+test("Energia: lo stato di carica non ha un «solito»", () => {
+  /* Con la batteria che si carica il soggetto e' lo stato di carica, e la
+   * finestra diceva «piu' alto del solito delle ultime ore: 24% contro
+   * 21%»: una batteria che sale mentre si carica non e' una stranezza. */
+  const punti = storia(13, 5 * MINUTO, () => 21);
+  punti.push({ quando: ADESSO, valore: 24 });
+  const esito = analisiDellaSezione(
+    {
+      key: "energia",
+      soggetto: "carica",
+      rows: [
+        { group: "house", watts: 2060 },
+        { group: "solar", watts: 2880 },
+        { group: "battery", watts: -601 },
+      ],
+    },
+    IT,
+    ADESSO,
+    punti,
+  );
+  assert.ok(
+    !esito.punti.some((p) => /solito/.test(p)),
+    `niente «solito» sulla carica: ${JSON.stringify(esito.punti)}`,
+  );
+  assert.notEqual(esito.tono, VERDETTI.guarda);
 });
 
 test("il modello dice quando l'auto sara' carica", () => {

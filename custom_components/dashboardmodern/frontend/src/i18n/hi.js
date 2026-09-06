@@ -2825,4 +2825,5 @@ export default Object.freeze({
   "For this window only: when its room's humidity goes above this level, the card says to open it to air out. Empty, the house threshold at the top applies; zero turns the advice off on this window.": "सिर्फ़ इस खिड़की के लिए: जब इसके कमरे की नमी इस स्तर से ऊपर जाती है, कार्ड हवा देने के लिए खोलने को कहता है। खाली हो तो ऊपर लिखी घर की सीमा लागू; शून्य इस खिड़की पर सलाह बंद करता है।",
   "Suggest airing above (%), by default": "इससे ऊपर हवा देने का सुझाव (%), डिफ़ॉल्ट",
   "Not charging": "चार्ज नहीं हो रही",
+  "updated from": "से अपडेट किया गया",
 });

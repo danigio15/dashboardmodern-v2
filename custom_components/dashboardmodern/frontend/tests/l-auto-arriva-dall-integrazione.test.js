@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { legaLAutoAlDispositivo, motoreDalleCaselle } from "../src/core/auto-device-binding.js";
+import { VEHICLE_KEY_FIELD, accogliAutoDalDispositivo } from "../src/core/vehicle-model.js";
 
 /* Un dispositivo come lo descrive Home Assistant: l'elenco delle entita' e la
  * tabella degli stati, che e' dove stanno `device_class` e unita'. */
@@ -120,6 +121,66 @@ test("il target comandabile dell'auto deve parlare di carica", () => {
   /* Anche una tendina senza unita', se parla di SoC. */
   const tendina = dispositivo([["select.b10_target_soc", "Target SoC"]]);
   assert.equal(tendina.mappa["dm.ev_target_soc"], "select.b10_target_soc");
+});
+
+test("un'auto che c'e' gia' con quel nome si aggiorna, e tiene la foto", () => {
+  /* «La foto dell'auto si e' persa con gli aggiornamenti: l'ho riassociata e
+   * funziona.» Il dispositivo si chiamava come la vettura gia' in elenco, e
+   * ne nasceva una seconda, nuda: la foto stava sull'altra. */
+  const elenco = [
+    {
+      [VEHICLE_KEY_FIELD]: "b10",
+      name: "B10",
+      brand: "Leapmotor",
+      model: "B10",
+      tipo: "",
+      img: "/local/ev/b10.png",
+      imgPlugged: "/local/ev/b10-cavo.png",
+      ov: { "dm.ev_batteria_auto": "sensor.vecchia_batteria", "dm.ev_odometro": "sensor.b10_km" },
+    },
+  ];
+  const mappa = {
+    "dm.ev_batteria_auto": "sensor.b10_battery",
+    "dm.ev_autonomia": "sensor.b10_range",
+  };
+  const stessa = accogliAutoDalDispositivo(elenco, { name: "B10", mappa, tipo: "termica" });
+  assert.equal(stessa.nuova, false);
+  assert.equal(stessa.uid, "b10");
+  assert.equal(stessa.cars.length, 1, "nessuna seconda B10");
+  const auto = stessa.cars[0];
+  assert.equal(auto.img, "/local/ev/b10.png");
+  assert.equal(auto.imgPlugged, "/local/ev/b10-cavo.png");
+  assert.equal(auto.brand, "Leapmotor");
+  /* Le caselle che l'integrazione riconosce si riscrivono, le altre restano. */
+  assert.equal(auto.ov["dm.ev_batteria_auto"], "sensor.b10_battery");
+  assert.equal(auto.ov["dm.ev_autonomia"], "sensor.b10_range");
+  assert.equal(auto.ov["dm.ev_odometro"], "sensor.b10_km");
+  /* Il motore non dichiarato lo dice l'integrazione; uno dichiarato resta. */
+  assert.equal(auto.tipo, "termica");
+  const ibrida = accogliAutoDalDispositivo([{ ...elenco[0], tipo: "ibrida" }], {
+    name: "B10",
+    mappa,
+    tipo: "termica",
+  });
+  assert.equal(ibrida.cars[0].tipo, "ibrida");
+
+  /* L'auto aperta con la matita vince sul nome del dispositivo. */
+  const aperta = accogliAutoDalDispositivo(elenco, {
+    name: "Leapmotor B10 EV",
+    mappa,
+    aperta: "b10",
+  });
+  assert.equal(aperta.nuova, false);
+  assert.equal(aperta.cars.length, 1);
+  assert.equal(aperta.cars[0].name, "B10", "il nome resta il suo");
+
+  /* Un nome che nessuno porta fa nascere una vettura nuova, senza foto. */
+  const nuova = accogliAutoDalDispositivo(elenco, { name: "Zoe", mappa, tipo: "" });
+  assert.equal(nuova.nuova, true);
+  assert.equal(nuova.cars.length, 2);
+  assert.equal(nuova.cars[1].name, "Zoe");
+  assert.equal(nuova.cars[1].img, "");
+  assert.notEqual(nuova.uid, "b10");
 });
 
 test("le quattro gomme vanno ognuna alla sua ruota", () => {

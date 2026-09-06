@@ -2654,6 +2654,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Untitled",
   "Untyped",
   "Up",
+  "updated from",
   "updates by itself",
   "Updating Recorder data…",
   "Updating...",
