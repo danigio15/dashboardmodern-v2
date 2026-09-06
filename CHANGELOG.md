@@ -278,32 +278,18 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
   passato senza la telecamera non lascia dietro un ricordo che impedisce di
   riprenderla.
 
-- **La barra non esce piu' intera per poi diventare come l'hai configurata.**
+- **Le voci che si fanno i moduli insegnano al guscio che esistono prima di
+  mettersi in barra.**
 
-      «Resta sempre la barra totale, per poi diventare come l'ho configurata:
-       dura quattro o cinque secondi.»
+  Stanze, Luci, Prese, Robot e gli Animali si aggiungono da se' alla barra, e
+  finora lo facevano prima di dire al guscio come si chiamano: il filtro che
+  passava in quel momento non sapeva che farne, e le lasciava li' anche a
+  sezione spenta finche' non ripassava. Adesso si presentano e poi entrano.
 
-  La tenda sulla barra si alzava a tempo, dopo due secondi e mezzo. La
-  configurazione condivisa di Home Assistant pero' atterra intorno ai due
-  secondi e mezzo pure lei, e chi toglie dalla barra le sezioni rimaste vuote
-  lavora solo dopo che e' atterrata: la scadenza vinceva quasi sempre, e la
-  barra usciva un istante prima di sapere che forma avere. Misurato sul
-  tablet: otto voci a 2451 ms, quattro a 2550 ms.
-
-  Adesso la barra esce quando quella configurazione e' atterrata e chi decide
-  le sezioni vuote ha finito — non a tempo. La scadenza resta, ma torna a
-  essere quello che doveva essere: l'ultimo appello per chi quella
-  configurazione non la riceve mai. E le voci che si fanno i moduli — Stanze,
-  Luci, Prese, Robot, gli Animali — insegnano al guscio che esistono prima di
-  mettersi in barra, non dopo, cosi' il filtro che passa in quel momento sa
-  gia' che farne.
-
-  «Atterrata» ha due significati, e servono tutti e due: la configurazione e'
-  arrivata e aveva qualcosa da cambiare, oppure la domanda si e' chiusa in un
-  altro modo — la risposta non cambiava niente, o qui non c'e' nessun Home
-  Assistant a cui chiederlo. Chi apre la plancia da sola, fuori dal pannello,
-  quella configurazione non la ricevera' mai: aspettarla vuol dire arrivare
-  sempre alla scadenza, e la barra restava coperta per niente.
+  Resta invece com'e' — e si sistema in una versione sua — la barra che si
+  vede intera per un istante prima di prendere la forma configurata: e' un
+  intreccio di tempi del guscio storico che merita il suo lavoro, non una
+  correzione infilata dentro un rilascio.
 
 - **Il pulsante delle donazioni sta nella pagina Configurazione, sotto
   Assistenza.**

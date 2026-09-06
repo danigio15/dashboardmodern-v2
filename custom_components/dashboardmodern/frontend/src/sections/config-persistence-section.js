@@ -195,7 +195,6 @@ const state = (root[KEY] ||= {
   remoteConfigured: false,
   hydrateRetryTimer: 0,
   transportFailures: 0,
-  sistemata: false,
 });
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
@@ -1305,55 +1304,10 @@ function scheduleHydrateRetry(failures = state.transportFailures) {
     }, HYDRATE_RETRY_MS[index]) || 0;
 }
 
-/* La configurazione condivisa e' una domanda, e a un certo punto ha risposta.
- *
- * `persistence-restored` racconta solo meta' della storia: si annuncia quando
- * la risposta ha portato qualcosa da applicare. Chi aspetta di sapere com'e'
- * fatta la casa — la barra, per prima, che non vuole uscire intera per poi
- * accorciarsi — deve sapere anche l'altra meta': che la risposta e' arrivata e
- * non c'era niente da cambiare, o che qui dentro non c'e' nessun Home
- * Assistant a cui chiedere. Senza, quell'attesa finiva sempre a scadenza: due
- * secondi e mezzo di barra coperta a una plancia che non ha proprio niente da
- * aspettare.
- *
- * Si dice una volta sola, quando il primo giro di domanda e' finito — e
- * «non ho trovato nessuno» e' una risposta anche lui. Il trasporto caduto
- * riprova, e fa bene: quella e' una riparazione che va avanti per conto suo,
- * e prima o poi la configurazione arrivera'. Ma chi deve decidere cosa
- * mostrare adesso non puo' stare fermo ad aspettarla: la scala dei tentativi
- * dura decine di secondi, e la barra coperta per tutto quel tempo non e' una
- * barra prudente, e' una barra che non c'e'.
- *
- * E si lascia anche scritto, non solo detto. Un annuncio che si fa una volta
- * lo sente solo chi in quel momento e' gia' in ascolto, e i moduli non si
- * installano tutti insieme: misurato su una plancia aperta da sola, la
- * domanda si chiudeva a 3070 ms e chi aspettava quella risposta si installava
- * a 3435 — l'annuncio passava davanti a una porta chiusa. Il segno sulla
- * finestra e' come quello del guscio (`__DASHBOARDMODERN_LEGACY_READY__`):
- * l'annuncio serve a chi arriva prima, il segno a chi arriva dopo. */
-function configurazioneSistemata() {
-  if (state.sistemata) return false;
-  state.sistemata = true;
-  try {
-    root.__DASHBOARDMODERN_CONFIG_SETTLED__ = true;
-  } catch (_errore) {}
-  try {
-    root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-settled"));
-  } catch (_errore) {}
-  return true;
-}
-
 async function hydrateRemote(options = {}) {
   const force = options?.force === true;
-  if (state.resetting) return false;
-  if (!hostedBridge()) {
-    configurazioneSistemata();
+  if (state.hydrating || state.resetting || (!force && state.hydrated) || !hostedBridge())
     return false;
-  }
-  if (state.hydrating || (!force && state.hydrated)) {
-    if (state.hydrated) configurazioneSistemata();
-    return false;
-  }
   state.hydrating = true;
   const shared = sharedStoreEnabled();
   try {
@@ -1375,11 +1329,6 @@ async function hydrateRemote(options = {}) {
     return false;
   } finally {
     state.hydrating = false;
-    /* Si annuncia da qui, dopo il ripristino e non prima: chi riordina le
-     * sezioni ascolta `persistence-restored`, che parte dentro quel giro, e la
-     * risposta e' «sistemata» solo quando quel giro e' finito. E si annuncia
-     * anche quando il giro e' finito male: chiesto, nessuno ha risposto. */
-    configurazioneSistemata();
   }
 }
 

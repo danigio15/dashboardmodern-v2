@@ -11,8 +11,6 @@ const state = (root[KEY] ||= {
   barraScoperta: false,
   scadenza: 0,
   filtroInCoda: false,
-  configurazioneAtterrata: false,
-  scopertaInCoda: false,
 });
 
 /* The dock is sized on its content (`width:max-content`), so with every section
@@ -745,11 +743,7 @@ export function disegniNellaBarra(scope = doc) {
 /* Passata questa, la barra si mostra com'e'. Una plancia che non riesce a
  * leggere la sua configurazione deve avere una barra lo stesso: quella di serie
  * e' meglio di nessuna. */
-/* Quanto si aspetta la configurazione condivisa prima di scoprire la barra
- * comunque. Era 2500, e quella configurazione atterra intorno ai 2550: la
- * scadenza vinceva quasi sempre, e la barra usciva un istante prima di sapere
- * che forma avere. Adesso e' un vero ultimo appello, per chi non la riceve. */
-export const ATTESA_MASSIMA_DELLA_BARRA = 4000;
+export const ATTESA_MASSIMA_DELLA_BARRA = 2500;
 
 /* Se la configurazione della casa e' arrivata.
  *
@@ -778,24 +772,13 @@ export function laConfigurazioneSiConosce(magazzino = root.DashboardModernModule
 /* La tenda e' gia' calata: `dashboard-runtime.css` copre la barra finche' il
  * documento non porta il segno, e quel foglio il guscio lo carica dalla testa —
  * cioe' prima che la barra esista. Qui si toglie il segno, e basta. */
-/* Si scopre, e si dice perche'.
- *
- * «Pronta» da sola non distingue le due strade: quella buona — so che forma
- * avere — e l'ultimo appello, che e' una barra di serie mostrata perche' il
- * tempo e' scaduto. Sono due cose diverse da guardare su un dispositivo vero,
- * e sono due cose diverse da pretendere in una prova: misurare i millisecondi
- * per indovinare quale delle due sia significa scrivere una prova che cade
- * quando la macchina e' lenta. */
-function scopriLaBarra(motivo) {
+function scopriLaBarra() {
   state.barraScoperta = true;
   if (state.scadenza) {
     root.clearTimeout?.(state.scadenza);
     state.scadenza = 0;
   }
-  if (doc?.documentElement) {
-    doc.documentElement.dataset.dmBarraMotivo = motivo;
-    doc.documentElement.dataset.dmBarra = "pronta";
-  }
+  if (doc?.documentElement) doc.documentElement.dataset.dmBarra = "pronta";
 }
 
 /** La visibilita' delle voci adesso, senza aspettare il giro del guscio. */
@@ -808,120 +791,25 @@ function applicaLaVisibilita() {
   }
 }
 
-/* Si scopre quando si sa che forma avere.
- *
- * Sapere che la configurazione c'e' non basta: il magazzino puo' averla gia'
- * dentro mentre quella condivisa di Home Assistant sta ancora arrivando, e chi
- * decide quali sezioni sono rimaste vuote — e quindi quali voci non vanno in
- * barra — lavora solo quando quella e' atterrata. Scoprire in mezzo vuol dire
- * mostrare la barra intera e correggerla un istante dopo: misurato sul tablet,
- * otto voci a 2451 ms e quattro a 2550 ms.
- *
- * Sono due cose diverse e stanno in due posti diversi apposta: che la
- * configurazione esista e' un fatto, e si prova a secco; aspettare che sia
- * atterrata e' una scelta di questa barra, e sta qui. Per chi quella
- * configurazione non la riceve mai c'e' la scadenza. */
-/* Che la domanda sia chiusa si legge, oltre che sentirla.
- *
- * L'annuncio si fa una volta, e chi non e' ancora in ascolto non lo sente: i
- * moduli non si installano tutti insieme, e su una plancia aperta da sola la
- * risposta arrivava a 3070 ms mentre questo modulo si installava a 3435. Il
- * segno sulla finestra lo mette chi risponde, e vale per chi arriva dopo. */
-function laConfigurazioneEAtterrata() {
-  return state.configurazioneAtterrata || root.__DASHBOARDMODERN_CONFIG_SETTLED__ === true;
-}
-
-/* Se della barra si sa gia' tutto: ogni voce che c'e' ha un verdetto.
- *
- * Il guscio nasconde la voce `mappa[chiave]` quando `cd_sections[chiave]` e'
- * falso. La chiave che manca non vuol dire «tienila»: vuol dire che nessuno ha
- * ancora deciso. E le voci che si fanno i moduli — Stanze, Luci, Prese, Robot,
- * gli Animali — nascono dentro al giro di disegno, mentre il verdetto su di
- * loro lo scrive chi guarda il magazzino un attimo dopo: misurato sul
- * telefono, otto voci a 2480 ms e i verdetti a 2573. In quei novantatre
- * millisecondi la barra e' completa di voci e priva di verdetti — cioe' e'
- * esattamente la barra intera che poi si accorcia.
- *
- * Percio' non si guarda l'orologio e non si contano i fotogrammi: si guarda se
- * su ogni voce che sta in barra qualcuno si e' pronunciato. */
-function ogniVoceHaUnVerdetto() {
-  let mappa;
-  let verdetti;
-  try {
-    mappa = root.cdNavVisMap?.();
-    verdetti = root.cdCfg?.("cd_sections");
-  } catch (_errore) {
-    return false;
-  }
-  if (!mappa || typeof mappa !== "object") return false;
-  if (!verdetti || typeof verdetti !== "object") return false;
-  for (const chiave of Object.keys(mappa)) {
-    /* Tranne la Home, che non si spegne: una casa senza Home non esiste, e
-     * infatti nessuno scrive mai un verdetto su di lei. Aspettarlo vuol dire
-     * aspettare per sempre — misurato su una plancia aperta da sola: sedici
-     * verdetti scritti su diciassette voci, e l'unico che manca e' questo. */
-    if (chiave === "home") continue;
-    if (chiave in verdetti) continue;
-    if (doc?.querySelector?.(`.tab[data-tab="${mappa[chiave]}"]`)) return false;
-  }
-  return true;
-}
-
-/* Si scopre quando si sa la forma, e si riguarda a ogni fotogramma finche' non
- * si sa. Non e' un sorvegliante: finisce alla prima risposta, e chi non
- * risponde mai trova comunque la scadenza. */
-function scopriQuandoSiSaLaForma() {
-  if (state.barraScoperta) return;
-  const chiedi = root.requestAnimationFrame || root.setTimeout;
-  if (ogniVoceHaUnVerdetto() || typeof chiedi !== "function") {
-    applicaLaVisibilita();
-    scopriLaBarra("configurazione");
-    return;
-  }
-  chiedi.call(root, scopriQuandoSiSaLaForma);
-}
-
 function forseScopri() {
-  if (state.barraScoperta || state.scopertaInCoda) return false;
-  if (!laConfigurazioneEAtterrata()) return false;
+  if (state.barraScoperta) return false;
   if (!laConfigurazioneSiConosce()) return false;
-  state.scopertaInCoda = true;
-  scopriQuandoSiSaLaForma();
+  applicaLaVisibilita();
+  scopriLaBarra();
   return true;
 }
 
 function installaLAttesaDellaBarra() {
-  /* Due annunci per la stessa notizia, e servono tutti e due.
-   *
-   * `persistence-restored` e' la configurazione condivisa che e' arrivata e
-   * aveva qualcosa da cambiare; `persistence-settled` e' la domanda chiusa in
-   * ogni altro modo — la risposta non cambiava niente, o qui dentro non c'e'
-   * nessun Home Assistant a cui chiedere. Aspettare solo il primo vuol dire
-   * che una plancia senza configurazione condivisa non scopre mai la barra
-   * prima della scadenza, e la scadenza e' l'ultimo appello, non il modo
-   * normale di arrivarci.
-   *
-   * L'annuncio apre la strada ma non scopre la barra subito: allo stesso
-   * annuncio risponde anche chi toglie dalla barra le sezioni rimaste vuote, e
-   * la barra deve uscire a quel lavoro finito, non in mezzo. Un giro di coda
-   * basta: gli ascoltatori di un evento corrono tutti prima. */
-  for (const annuncio of [
-    "dashboardmodern:persistence-restored",
-    "dashboardmodern:persistence-settled",
-  ])
-    root.addEventListener?.(annuncio, () => {
-      state.configurazioneAtterrata = true;
-      root.setTimeout?.(() => forseScopri(), 0);
-    });
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
+    "dashboardmodern:persistence-restored",
     "dashboardmodern:state-changed",
   ])
     root.addEventListener?.(evento, () => forseScopri());
   state.scadenza = root.setTimeout?.(() => {
     applicaLaVisibilita();
-    scopriLaBarra("scadenza");
+    scopriLaBarra();
   }, ATTESA_MASSIMA_DELLA_BARRA);
   forseScopri();
 }

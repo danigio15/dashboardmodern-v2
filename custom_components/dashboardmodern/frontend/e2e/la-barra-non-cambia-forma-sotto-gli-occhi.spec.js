@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { ATTESA_MASSIMA_DELLA_BARRA } from "../src/sections/navigation-section.js";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
 /* «Resta sempre la barra totale, per poi diventare come l'ho configurata: dura
@@ -120,52 +119,4 @@ test("una voce di una sezione spenta non compare nemmeno per un attimo", async (
       ).toBe(false);
     }
   }
-});
-
-/* E chi non ha nessuno a cui chiedere non aspetta.
- *
- * La barra resta coperta finche' non sa che forma avere, e quella la porta la
- * configurazione condivisa di Home Assistant. Ma una plancia aperta da sola —
- * fuori dal pannello, senza ponte — quella configurazione non la ricevera' mai:
- * aspettarla vuol dire arrivare sempre alla scadenza, e la scadenza e'
- * l'ultimo appello, non il modo normale di uscire. La domanda ha due risposte,
- * e «non c'e' niente da chiedere» e' una risposta anche lei.
- *
- * Quello che si pretende e' il MOTIVO, non il cronometro: la barra dice da se'
- * se e' uscita perche' sapeva che forma avere o perche' il tempo era finito, e
- * misurare i millisecondi per indovinarlo vorrebbe dire cadere quando la
- * macchina e' lenta.
- */
-test("senza Home Assistant a cui chiedere la barra non aspetta la scadenza", async ({ page }) => {
-  test.setTimeout(120_000);
-  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
-  await page.addInitScript((seme) => {
-    try {
-      localStorage.clear();
-      localStorage.setItem("dm_dashboard_state", JSON.stringify(seme));
-      /* Con un gettone in tasca la plancia non apre la procedura guidata, che
-       * di barre non ne ha nessuna. */
-      localStorage.setItem(
-        "cd_connection",
-        JSON.stringify({ token: "e2e-token", ws_url: "ws://home-assistant.test/api/websocket" }),
-      );
-    } catch (_errore) {}
-  }, seed);
-
-  /* Senza `?dmi=` e senza ponte: e' la pagina aperta da sola. */
-  await page.goto("/legacy/dashboard.html");
-  await expect
-    .poll(() => page.evaluate(() => document.documentElement.dataset.dmBarra ?? null), {
-      timeout: ATTESA_MASSIMA_DELLA_BARRA + 20_000,
-    })
-    .toBe("pronta");
-
-  const motivo = await page.evaluate(() => document.documentElement.dataset.dmBarraMotivo);
-  expect(
-    motivo,
-    "la barra e' uscita per scadenza: nessuno le ha detto che non c'era niente da aspettare",
-  ).toBe("configurazione");
-
-  /* E non c'era nessun Home Assistant: e' proprio il caso che si voleva. */
-  expect(await page.evaluate(() => Boolean(window.__DASHBOARDMODERN_HOSTED__))).toBe(false);
 });

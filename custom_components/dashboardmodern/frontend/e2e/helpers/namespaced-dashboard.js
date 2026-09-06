@@ -68,20 +68,10 @@ export async function bootNamespacedDashboard(page, variant, testInfo, seed) {
           if (dipinto(document.getElementById("bottomNavHandle"))) return "maniglia";
           const barra = document.querySelector("nav.tabs.bottom-nav-bar");
           if (!barra) return "niente";
-          /* La tenda non conta.
-           *
-           * `opacity:0` finche' la barra non sa che forma avere e' la politica
-           * di comparsa della barra, ha le sue prove, e non dice niente su «ci
-           * si arriva»: dice solo che non e' ancora il momento di guardarla.
-           * Guardarla qui legava l'avvio di TUTTE le prove del tablet a quel
-           * momento, e quando la configurazione condivisa non arriva — dentro
-           * una prova non arriva mai, il ponte e' finto — quel momento e'
-           * l'ultimo appello: quattro secondi di attesa a ogni prova, e chi
-           * scriveva nella pagina appena avviata scriveva quattro secondi
-           * tardi. Qui si guarda dove sta la barra: ferma in fondo allo
-           * schermo e' raggiungibile, coperta o no. */
           const riquadro = barra.getBoundingClientRect();
-          return riquadro.top < window.innerHeight - 1 ? "barra ferma" : "niente";
+          const fuori =
+            riquadro.top < window.innerHeight - 1 && getComputedStyle(barra).opacity !== "0";
+          return fuori ? "barra ferma" : "niente";
         }),
       )
       .not.toBe("niente");
