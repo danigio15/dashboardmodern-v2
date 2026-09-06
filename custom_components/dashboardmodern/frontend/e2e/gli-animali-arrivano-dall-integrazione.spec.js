@@ -226,6 +226,12 @@ async function collega(page, dominio, dispositivo) {
 
 /* Dall'editor alla sezione: si chiude la configurazione e si accende la
  * pagina, come fa il dito toccando la voce nella barra. */
+/* Si apre come la aprirebbe una persona: dalla voce nella barra.
+ *
+ * La pagina si disegna quando la si guarda — le schede di una pagina che
+ * nessuno sta guardando sono lavoro buttato, e su un telefono si sente. Chi
+ * accendeva la classe `active` a mano saltava il giro di disegno che il tocco
+ * fa partire, e trovava la pagina vuota. */
 async function apriLaPaginaAnimali(page) {
   await page.evaluate(() => {
     const modale = document.getElementById("editor-modal");
@@ -233,8 +239,12 @@ async function apriLaPaginaAnimali(page) {
       modale.classList.remove("show");
       modale.style.display = "none";
     }
-    document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
-    document.getElementById("page-animali")?.classList.add("active");
+    document.querySelector('.tab[data-tab="animali"]')?.click();
+    if (!document.getElementById("page-animali")?.classList.contains("active")) {
+      document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
+      document.getElementById("page-animali")?.classList.add("active");
+      window.render?.();
+    }
   });
 }
 

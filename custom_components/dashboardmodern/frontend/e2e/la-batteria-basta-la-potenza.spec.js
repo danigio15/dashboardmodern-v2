@@ -65,6 +65,17 @@ async function avvia(page, testInfo, battery) {
     if (raw) Object.assign(raw, stati);
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
   }, STATI);
+  /* La scena dei flussi si disegna dove la si guarda: la sua pagina va aperta.
+   * Prima passava lo stesso perche' un modulo delle prove sul dispositivo vero
+   * (beta7-regression) chiamava `dmRefreshEnergyFlows()` a ogni notizia della
+   * casa, senza guardare che pagina fosse sullo schermo — cioe' proprio il
+   * lavoro fatto senza che nessuno guardi che abbiamo tolto. Quel modulo non
+   * c'e' piu', e la bolla della batteria si guarda dov'e'. */
+  await page.evaluate(() => {
+    document.querySelectorAll(".page").forEach((nodo) => nodo.classList.remove("active"));
+    document.getElementById("page-energy")?.classList.add("active");
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
   await page.waitForTimeout(2500);
 }
 
