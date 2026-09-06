@@ -5,6 +5,138 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.10
+
+Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.
+Tre erano difetti miei, e uno mandava all'aria proprio la funzione appena
+uscita: la colonnina si collegava e il primo «Salva» se la riportava via.
+
+### Aggiunto
+
+- **La Home si riordina anche a blocchi.**
+
+      «Manca il riordino della Home.»
+
+  Le tre manopole c'erano gia' — persone, tessere, azioni rapide — ma
+  riordinavano sempre DENTRO il loro blocco, e stavano in tre schede diverse.
+  L'ordine dei BLOCCHI era scritto nel codice, e ognuno se lo decideva per
+  conto suo: le persone sotto le pastiglie, i widget sotto le persone, le
+  azioni dove le aveva messe il documento. Chi rientra in casa e vuole i tasti
+  per primi non poteva averli.
+
+  Adesso in cima alla scheda dei Widget c'e' «Ordine dei blocchi della Home» —
+  persone, widget, azioni rapide, dispositivi — con le frecce, e sotto ci sono
+  subito le tessere. Chi cerca il riordino della Home lo trova li', e da li'
+  legge dove si fa quello dentro ogni blocco. Le pastiglie di stato restano in
+  cima: sono un avviso, e poterle mandare in fondo vorrebbe dire non vederle.
+
+- **La finestra dice quale igrometro si porta dalla stanza.**
+
+      «Nelle finestre manca ancora il sensore umidita': deve importarlo in
+       automatico dalla stanza.»
+
+  Lo importava gia': l'umidita' di una finestra e' quella della stanza a cui e'
+  assegnata, e non c'e' una casella per riscriverla — sarebbe lo stesso sensore
+  in due posti, e due posti che dicono la stessa cosa prima o poi la dicono
+  diversa. Quello che mancava era il modo di VEDERLO: la tendina diceva
+  «Cucina» e non diceva cosa si porta dietro, quindi «in automatico» restava
+  una promessa senza prova. Adesso sotto la stanza c'e' scritto il sensore, e
+  cambia insieme alla stanza; se quella stanza non ne ha uno, dice dove si
+  mette.
+
+### Corretto
+
+- **La colonnina si collega e RESTA collegata.**
+
+      «Devo collegare sia wallbox che evcc, e comunque non salva nulla.»
+
+  Il salvataggio dell'auto rilegge OGNI campo `dm.ev_*` disegnato nella scheda
+  e per quelli vuoti CANCELLA la casella. Collegare la colonnina scriveva la
+  mappa senza toccare i campi: restavano vuoti — quindi la colonnina non si
+  vedeva da nessuna parte — e il primo «Salva auto» buttava via tutte e otto le
+  caselle appena collegate. Lo stesso capitava senza collegare niente: aprire
+  un'altra vettura riempiva i campi dal suo profilo, e un profilo senza
+  colonnina quei campi li svuotava.
+
+  Non e' un caso particolare del collegamento: quei campi non appartengono
+  all'auto aperta. La regola sta scritta una volta sola — una casella della
+  colonnina mostra il valore di CASA, mai quello dell'auto — e la usano tutte e
+  due le strade che riempiono i campi.
+
+- **evcc e la colonnina si collegano tutti e due, e nessuno scalza l'altro.**
+  Sono due dispositivi e portano cose diverse: evcc la modalita' di ricarica,
+  l'energia della sessione e la quota di sole; la colonnina quello che misura.
+  Ma una casella la sanno riempire tutti e due — la potenza — e il secondo
+  collegamento la sovrascriveva, cioe' buttava fuori un pezzo del primo senza
+  dirlo. Adesso una casella occupata da un ALTRO dispositivo resta dov'e', una
+  vuota si riempie, e una che porta gia' un'entita' di QUESTO dispositivo si
+  riscrive — che e' il modo di rifare un collegamento sbagliato.
+
+- **Il radar non stampa piu' le scritte al posto della pioggia (#323).**
+
+      «C'e' ancora quella scritta sullo zoom e non mi sembra di vedere le
+       piogge.»
+
+  Nella 1.4.8 avevo attribuito «Zoom Level Not Supported» al servizio del
+  FONDO, e per il fondo era vero: CARTO. Sostituito quello, la scritta e'
+  rimasta — e la schermata nuova dice perche'. La nota diceva `z9 · RainViewer
+  02:30 · OpenStreetMap`: il fondo arriva ed e' disegnato, l'elenco dei
+  fotogrammi arriva (c'e' l'ora), e i quadratini sono tutti la scritta
+  stampata. E' il RADAR che a quel livello risponde con un cartello invece che
+  con la pioggia — e un cartello e' un'immagine come le altre: arriva, quindi
+  la plancia si diceva «vivo» e copriva la mappa.
+
+  Adesso la pioggia si chiede al livello piu' vicino che quel servizio serve, e
+  i suoi quadratini si ingrandiscono per coprire la stessa area: stessa
+  inquadratura, pioggia un po' piu' grossa, nessuna scritta. La griglia di un
+  radar sta intorno al chilometro, molto piu' larga di un pixel a questi
+  livelli, quindi non si perde niente di vero. La nota lo dice: `z9 · pioggia
+  z8`. Il numero non viene da un manuale ma da quella schermata, ed e' per
+  questo che nella scheda c'e' la casella «Zoom massimo della pioggia»: piu'
+  basso se serve, zero per togliere il tetto.
+
+- **Un indirizzo di sito non e' un indirizzo di quadratini, e lo si dice.**
+
+      «Ho inserito il link con l'indirizzo e non lo legge nemmeno.»
+
+  L'indirizzo incollato era quello della pagina di Windy, quella che si apre
+  nel browser. La plancia rispondeva «scrivi un indirizzo con {z}/{x}/{y}
+  dentro»: vero, e inutile — chi non sa cos'e' un quadratino legge quella frase
+  e resta dov'era. Adesso l'indirizzo di un SITO si riconosce e si dice che non
+  diventera' un modello per quanto lo si aggiusti, con scritto cosa serve al
+  suo posto; e a un modello a cui manca un segnaposto si dice quale manca.
+
+- **Il velo dell'Energia ha una scadenza, non solo un numero di tentativi.**
+
+      «Energia giornaliera e mensile continua a fare capricci: resta il velo
+       Caricamento dati Energia.»
+
+  Due strade mettevano quel velo e nessuna lo toglieva per tempo. Una lo teneva
+  per i primi due tentativi — e da quando il tempo concesso cresce con l'arco
+  chiesto, due tentativi possono essere due minuti; se poi una risposta non
+  arriva MAI, la promessa non si chiude e il contatore non sale nemmeno.
+  L'altra lo metteva all'avvio e lo toglieva SOLO all'arrivo di un pacchetto:
+  senza pacchetto non lo toglieva nessuno. Adesso la scadenza e' una sola,
+  dodici secondi, e la usano tutte e due: scaduta, la pagina si scopre e sotto
+  ci sono i numeri del guscio con la riga che dice perche'.
+
+  Va detto: la scena in cui il velo resta li' per sempre non sono riuscito a
+  costruirla in prova — nel banco un pacchetto la plancia se lo fa lo stesso —
+  quindi questa e' una strada senza uscita chiusa leggendo il codice, non un
+  difetto riprodotto.
+
+- **Dopo l'installazione si dice anche cosa fara' HACS.**
+
+      «Ho aggiornato ma HACS vede che ho la versione vecchia.»
+
+  E' vero ed e' previsto: HACS aggiorna le schede personalizzate — quelle
+  aggiunte per indirizzo, che e' come si installa questa — su un giro di
+  quarantotto ore, e mai all'avvio. Chi installa dal tasto di Home Assistant si
+  ritrova quindi HACS che mostra ancora il numero di prima. Il testo lo diceva
+  gia', ma PRIMA di installare, che e' il momento sbagliato. Adesso lo dice
+  anche dopo: e' la scheda di HACS, non la plancia, e si riallinea da sola o
+  subito con ⋮ → «Aggiorna informazioni».
+
 ## 1.4.9
 
 Le cose viste guardando due plance vere: una casa con due appartamenti e una
