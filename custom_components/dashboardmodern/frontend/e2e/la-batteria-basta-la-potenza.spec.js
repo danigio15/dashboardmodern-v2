@@ -65,14 +65,30 @@ async function avvia(page, testInfo, battery) {
     if (raw) Object.assign(raw, stati);
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
   }, STATI);
+  /* La scena dei flussi si disegna dove la si guarda: la sua pagina va aperta.
+   * Prima passava lo stesso perche' un modulo delle prove sul dispositivo vero
+   * (beta7-regression) chiamava `dmRefreshEnergyFlows()` a ogni notizia della
+   * casa, senza guardare che pagina fosse sullo schermo — cioe' proprio il
+   * lavoro fatto senza che nessuno guardi che abbiamo tolto. Quel modulo non
+   * c'e' piu', e la bolla della batteria si guarda dov'e'. */
+  await page.evaluate(() => {
+    document.querySelectorAll(".page").forEach((nodo) => nodo.classList.remove("active"));
+    document.getElementById("page-energy")?.classList.add("active");
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
   await page.waitForTimeout(2500);
 }
 
 test("con la sola potenza il cerchio c'e', e la riga del SoC no", async ({ page }, testInfo) => {
   test.setTimeout(150_000);
   await avvia(page, testInfo, { power: "sensor.batt_w" });
+  /* Il cerchio si dipinge col giro dell'Energia, e quel giro su un motore piu'
+   * lento arriva dopo i dieci secondi di serie: qui si aspetta che arrivi, non
+   * un tempo deciso a tavolino. */
   await expect
-    .poll(() => page.evaluate(() => document.getElementById("n-battery")?.style.display ?? null))
+    .poll(() => page.evaluate(() => document.getElementById("n-battery")?.style.display ?? null), {
+      timeout: 40_000,
+    })
     .not.toBe("none");
   const soc = await page.evaluate(() => {
     const nodo = document.getElementById("v-battery-soc");

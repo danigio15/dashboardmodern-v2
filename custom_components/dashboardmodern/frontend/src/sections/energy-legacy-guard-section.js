@@ -1,44 +1,93 @@
 const root = globalThis;
 const doc = root.document;
 const KEY = "__DASHBOARDMODERN_ENERGY_LEGACY_GUARD__";
-const FRESH_BUNDLE_MS = 15000;
 const BETA27_SUBLOAD_KEY = "__DASHBOARDMODERN_BETA27_SUBLOAD_PRESERVE__";
 const BETA27_PICKER_KEY = "__DASHBOARDMODERN_BETA27_PICKER_CONTRACT__";
 
-/**
- * Legacy DashboardModern still calls cdTotalsRun() once after Home Assistant
- * authentication. That compatibility hook resolves to
- * DashboardModernEnergyService.refresh(), but the canonical Energy section has
- * already loaded the same Recorder bundle by then. Suppress only that redundant
- * public refresh while the current bundle is fresh; canonical store/editor and
- * state-change refresh scheduling remains owned by energy-section.js.
+/* I giri dell'Energia del guscio, spenti alla sorgente.
+ *
+ * Il documento storico ha i suoi cicli per i totali, e non sa che i periodi
+ * adesso li tiene un modulo con una cadenza sua — un minuto sulla pagina
+ * dell'Energia, cinque minuti altrove, e mai due letture per lo stesso
+ * pacchetto. I suoi giri erano tre, tutti sopra quello:
+ *
+ * - `cdTotalsRun`, chiamato appena Home Assistant risponde all'accesso e poi
+ *   ogni mezz'ora da `_cdTotalsTimer`;
+ * - `cdRefreshPeriodDeltas(true)`, un secondo e mezzo dopo il primo disegno e
+ *   di nuovo ogni volta che il Report si ridisegna;
+ * - `cdDeriveFromTotals`, che ricava gli stessi quattro valori di
+ *   `writeDerived` leggendo lo storico via REST (dentro il pannello e' un
+ *   nulla di fatto — non c'e' nessun gettone — ma sulla pagina in piedi da
+ *   sola sono quattro letture da inizio anno, ogni dieci minuti).
+ *
+ * Qui non si «sopprime» piu' la richiesta a valle: erano quindici secondi
+ * decisi in questo file, cioe' una seconda regola di freschezza accanto a
+ * quella vera. I due nomi che aggiornano diventano deleghe alla porta del
+ * servizio, che di suo e' gentile — con un pacchetto fresco in mano non parte
+ * niente — e il timer di mezz'ora si ferma e non puo' rinascere.
+ *
+ * Riscrivere i nomi da solo pero' non basterebbe, ed e' bene saperlo: il
+ * guscio si tiene in mano la funzione di allora
+ * (`setTimeout(cdTotalsRun, 2500)` la prende quando Home Assistant risponde
+ * all'accesso, e li' i moduli possono non esserci ancora). Quella copia
+ * chiama comunque `DashboardModernEnergyService.refresh()`, ed e' per questo
+ * che a essere gentile deve essere la porta, non il nome.
  */
-export function installEnergyLegacyGuardSection() {
-  if (root[KEY]?.installed) return root[KEY];
+const NOMI_DELEGATI = Object.freeze(["cdTotalsRun", "cdRefreshPeriodDeltas"]);
 
-  const current = root.DashboardModernEnergyService;
-  if (!current?.refresh) return false;
-  const originalRefresh = current.refresh;
+function chiediSeServe() {
+  return root.DashboardModernEnergyService?.refresh?.();
+}
 
-  const guarded = Object.freeze({
-    ...current,
-    refresh(...args) {
-      const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
-      const lastRefreshAt = Number(runtime?.lastRefreshAt) || 0;
-      const fresh =
-        Boolean(runtime?.bundle) &&
-        lastRefreshAt > 0 &&
-        Date.now() - lastRefreshAt < FRESH_BUNDLE_MS;
-      if (fresh) return false;
-      return originalRefresh(...args);
-    },
+/* Il timer di mezz'ora del guscio non riparte.
+ *
+ * Il guscio lo crea all'accesso, e solo `if (!window._cdTotalsTimer)`: gli si
+ * lascia trovare il posto occupato. La casella si chiude a chiave perche' quel
+ * codice non e' in modo rigoroso — una scrittura su una proprieta' non
+ * scrivibile li' non fa rumore, semplicemente non succede. */
+function fermaIlTimerDeiTotali() {
+  const acceso = root._cdTotalsTimer;
+  if (acceso && acceso !== -1) root.clearInterval?.(acceso);
+  const descrittore = Object.getOwnPropertyDescriptor(root, "_cdTotalsTimer");
+  if (descrittore && !descrittore.configurable) return acceso !== -1;
+  Object.defineProperty(root, "_cdTotalsTimer", {
+    value: -1,
+    writable: false,
+    configurable: true,
+    enumerable: true,
   });
+  return true;
+}
 
-  // DashboardModernEnergyService is an accessor while state-event-gate is
-  // armed. Reassignment is intentional: the broker object is unchanged and
-  // the gate remains installed, while future legacy lookups receive the guard.
-  root.DashboardModernEnergyService = guarded;
-  root[KEY] = Object.freeze({ installed: true, freshBundleMs: FRESH_BUNDLE_MS });
+export function installEnergyLegacyGuardSection() {
+  const stato = (root[KEY] ||= { installed: false, delegati: [] });
+  fermaIlTimerDeiTotali();
+
+  for (const nome of NOMI_DELEGATI) {
+    if (root[nome]?.__dmDelegaAllAggiornamento) continue;
+    function delegaAlModulo() {
+      return chiediSeServe();
+    }
+    delegaAlModulo.__dmDelegaAllAggiornamento = true;
+    delegaAlModulo.__dmPrevious = root[nome];
+    root[nome] = delegaAlModulo;
+    if (!stato.delegati.includes(nome)) stato.delegati.push(nome);
+  }
+
+  /* `cdDeriveFromTotals` non delega: non e' un aggiornamento, e' una seconda
+   * derivazione degli stessi quattro valori che il modulo gia' scrive
+   * (`writeDerived`), fatta con letture REST dello storico. Due mani sugli
+   * stessi slot, e la seconda con dati piu' grossolani: si spegne. */
+  if (!root.cdDeriveFromTotals?.__dmDerivazioneSpenta) {
+    function derivazioneSpenta() {
+      return undefined;
+    }
+    derivazioneSpenta.__dmDerivazioneSpenta = true;
+    derivazioneSpenta.__dmPrevious = root.cdDeriveFromTotals;
+    root.cdDeriveFromTotals = derivazioneSpenta;
+  }
+
+  stato.installed = true;
   return root[KEY];
 }
 
@@ -211,11 +260,15 @@ function installBeta27EditorContractBridge() {
 installEnergyLegacyGuardSection();
 installBeta27SubloadPreservation();
 installBeta27EditorContractBridge();
+/* Il guscio si annuncia dopo: se e' arrivato lui a definire i suoi nomi dopo
+ * di noi, si rimettono le deleghe. */
 root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+  installEnergyLegacyGuardSection();
   installBeta27SubloadPreservation();
   installBeta27EditorContractBridge();
 });
 root.addEventListener?.("dashboardmodern:runtime-ready", () => {
+  installEnergyLegacyGuardSection();
   installBeta27SubloadPreservation();
   installBeta27EditorContractBridge();
 });

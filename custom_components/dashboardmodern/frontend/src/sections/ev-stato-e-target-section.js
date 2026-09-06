@@ -22,7 +22,7 @@
  * La vetrina (`ev-showcase-section`) resta sola presentazione: questo modulo
  * legge i valori, e lo fa dalle stesse caselle che legge la foto.
  */
-import { codiceDellaRicarica } from "../core/stato-della-ricarica.js";
+import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
 import { liveState } from "./ev-section.js";
 import { clean, doc, root, t, wrapFunction } from "./shared.js";
 
@@ -49,15 +49,11 @@ const ETICHETTE_STATO = () => ({
 });
 
 /* Il cavo lo dice solo il suo sensore. Un «off» del sensore di carica non e'
- * un cavo fuori: e' una carica ferma, e il cavo puo' essere dentro. */
-const CAVO_DENTRO = /^(on|true|1|home|connected|plugged|collegato|attaccato)$/i;
-const CAVO_FUORI = /^(off|false|0|not_home|disconnected|unplugged|scollegato|staccato)$/i;
-
+ * un cavo fuori: e' una carica ferma, e il cavo puo' essere dentro. Le parole
+ * del cavo stanno nel nucleo, perche' le legge anche la tessera in Home (#348):
+ * un cavo solo, una lettura sola. */
 function cavoDichiarato() {
-  const stato = clean(liveState("dm.ev_cavo_collegato")?.state);
-  if (CAVO_DENTRO.test(stato)) return true;
-  if (CAVO_FUORI.test(stato)) return false;
-  return null;
+  return cavoDalloStato(liveState("dm.ev_cavo_collegato")?.state);
 }
 
 function potenzaDellaColonnina() {
@@ -66,6 +62,15 @@ function potenzaDellaColonnina() {
     if (Number.isFinite(letta)) return letta;
   }
   return null;
+}
+
+/* Se la plancia ha ALMENO UNA fonte da cui sapere della ricarica. E' un fatto
+ * di configurazione, non di attesa: distingue «non me l'hai detto» da «non ho
+ * ancora letto». */
+function sorgenteDellaRicarica() {
+  return ["dm.ev_stato_ricarica", "dm.ev_cavo_collegato", "dm.ev_potenza_wallbox", "dm.ev_charge_power"].some(
+    (ref) => Boolean(entitaDi(ref)),
+  );
 }
 
 export function paintStatoRicarica(scope = doc) {
@@ -78,7 +83,16 @@ export function paintStatoRicarica(scope = doc) {
     collegata: cavoDichiarato(),
     potenza: potenzaDellaColonnina(),
   });
-  if (!codice) return "";
+  if (!codice) {
+    /* Niente da cui ricavare una lettera. Se e' perche' nessuna entita' della
+     * ricarica e' mappata, la pastiglia sparisce: il pallino verde col
+     * trattino del guscio (#326) e' il ramo «nessun codice», e verde in quella
+     * fila vuol dire «tutto bene» a chi guarda. Se invece le entita' ci sono e
+     * non hanno ancora risposto, si lascia com'e': fra un attimo parlano. */
+    const scatolaMuta = doc?.getElementById?.("lm-charge-badge");
+    if (scatolaMuta) scatolaMuta.hidden = !sorgenteDellaRicarica();
+    return "";
+  }
   const testo = ETICHETTE_STATO()[codice];
   for (const nodo of scope.querySelectorAll("#lm-stato-txt,.v-ev-stato-all"))
     if (nodo.textContent !== testo) nodo.textContent = testo;
@@ -87,6 +101,8 @@ export function paintStatoRicarica(scope = doc) {
   if (punto && punto.style.background !== colore) punto.style.background = colore;
   const scatola = doc.getElementById("lm-charge-badge");
   if (scatola) {
+    // Qualcosa da dire c'e': se era sparita per mancanza di fonti, torna.
+    if (scatola.hidden) scatola.hidden = false;
     if (scatola.style.background !== fondo) scatola.style.background = fondo;
     scatola.style.borderColor = `${colore}66`;
     if (scatola.dataset.dmStato !== codice) scatola.dataset.dmStato = codice;
@@ -185,7 +201,8 @@ function installaIlComando() {
   if (typeof root.changeSelect !== "function" || root.changeSelect.__dmEvStatoETarget) return;
   const previous = root.changeSelect;
   function cambia(ref, valore, ...rest) {
-    if (clean(ref) === "dm.ev_target_soc" && targetDiSolaLettura()) {
+    if (clean(ref) !== "dm.ev_target_soc") return previous.call(this, ref, valore, ...rest);
+    if (targetDiSolaLettura()) {
       try {
         root.edToast?.(
           t(
@@ -197,7 +214,39 @@ function installaIlComando() {
       schedule();
       return undefined;
     }
-    return previous.call(this, ref, valore, ...rest);
+    /* Il guscio manda il comando e non ascolta la risposta: un limite
+     * rifiutato — un numero fuori dal passo, un'entita' che non c'e' piu' —
+     * lasciava la tendina che tornava indietro senza una parola («clicco 90
+     * nel menu, continua a non aggiornarsi»). Qui la risposta si ascolta, e
+     * un rifiuto si dice. */
+    const entita = entitaDi("dm.ev_target_soc");
+    if (typeof root.dmCallHaService !== "function" || !entita)
+      return previous.call(this, ref, valore, ...rest);
+    const dominio = entita.split(".")[0];
+    const chiamata =
+      dominio === "number" || dominio === "input_number"
+        ? root.dmCallHaService(dominio, "set_value", {
+            entity_id: entita,
+            value: Number.parseFloat(valore),
+          })
+        : root.dmCallHaService(dominio, "select_option", {
+            entity_id: entita,
+            option: String(valore),
+          });
+    try {
+      root.navigator?.vibrate?.(10);
+    } catch (_error) {}
+    Promise.resolve(chiamata).catch((errore) => {
+      try {
+        root.edToast?.(
+          `${t("Home Assistant ha rifiutato il target", "Home Assistant refused the target")}: ${clean(
+            errore?.message || errore,
+          )}`,
+        );
+      } catch (_error) {}
+      schedule();
+    });
+    return undefined;
   }
   cambia.__dmEvStatoETarget = true;
   cambia.__dmPrevious = previous;
@@ -209,12 +258,15 @@ function installaIlComando() {
 function siGuarda() {
   return Boolean(
     doc?.getElementById?.("page-ev")?.classList.contains("active") ||
-      doc?.getElementById?.("ev-popup")?.classList.contains("show"),
+    doc?.getElementById?.("ev-popup")?.classList.contains("show"),
   );
 }
 
 export function renderEvStatoETarget() {
-  if (!doc?.getElementById?.("lm-charge-badge")) return false;
+  /* Basta uno dei due: la pastiglia sull'eroe o la tendina del target. Una
+   * pagina senza l'eroe — nessuna foto — ha lo stesso la tendina. */
+  if (!doc?.getElementById?.("lm-charge-badge") && !doc?.getElementById?.("sel-target-soc"))
+    return false;
   paintStatoRicarica();
   paintTarget();
   return true;

@@ -42,6 +42,8 @@ import {
   doc,
   esc,
   installStyle,
+  paginaVisibile,
+  quandoSiCambiaPagina,
   readJson,
   root,
   section,
@@ -564,6 +566,11 @@ export function renderRoomsPage() {
 function paint() {
   const wrap = doc?.getElementById("stanze-wrap");
   if (!wrap) return;
+  /* Questo giro costruisce il modello di ogni stanza, legge gli stati della
+   * casa e ne prende l'impronta: con la pagina chiusa e' tutto lavoro per una
+   * pagina che nessuno ha davanti, e passava a ogni mazzetto di stati. Al
+   * ritorno sulla linguetta si ridipinge (vedi `quandoSiCambiaPagina`). */
+  if (!paginaVisibile(ROOMS_PAGE_ID)) return;
   const pagine = roomPages();
   const states = allStates();
   if (!pagine.some((pagina) => pagina.id === state.room)) state.room = pagine[0]?.id || "";
@@ -750,6 +757,7 @@ export function installRoomsPageSection() {
   });
   for (const name of ["render", "cdApplyNavVis"])
     wrapFunction(name, "__dmRoomsPageSection", schedule);
+  quandoSiCambiaPagina(schedule);
   for (const event of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

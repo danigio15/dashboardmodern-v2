@@ -33,6 +33,8 @@ import {
   coverClosedThreshold,
   coverEntries,
   coverKindLabel,
+  coverStateLabel,
+  INFISSO,
 } from "../core/cover-kind.js";
 import { contactEntity, inferriataEntity, serramentoModel } from "../core/shutter-window.js";
 import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
@@ -164,7 +166,7 @@ export function paintCard(card, states = allStates()) {
     else delete windowNode.dataset.dmGrata;
   }
   ensurePill(card, model);
-  ensureArieggia(card, cover, states);
+  ensureArieggia(card, cover, states, model);
   return true;
 }
 
@@ -174,8 +176,13 @@ export function paintCard(card, states = allStates()) {
  * diventano quattro, perche' quattro sono gli stati che si volevano
  * distinguere: e' la differenza fra «sto arieggiando» e «e' rimasto aperto». */
 export function paroleDelSerramento(model) {
+  /* «Finestra aperta» la dice il modello delle coperture (#353), che ha il
+   * vocabolario di tutte e quattro le cose che si aprono: la stessa frase
+   * scritta anche qui sarebbe la stessa parola con due padroni, e prima o poi
+   * due parole diverse per la stessa finestra. */
+  const finestraAperta = coverStateLabel(INFISSO, "open");
   if (!model?.inferriata?.configured) {
-    return model?.infisso?.open === true ? t("Finestra aperta", "Window open") : "";
+    return model?.infisso?.open === true ? finestraAperta : "";
   }
   switch (model.stato) {
     case "aperto":
@@ -183,7 +190,7 @@ export function paroleDelSerramento(model) {
     case "grata":
       return t("Inferriata aperta", "Grate open");
     case "infisso":
-      return t("Finestra aperta", "Window open");
+      return finestraAperta;
     default:
       return "";
   }
@@ -227,13 +234,14 @@ function stanzaDellaFinestra(cover) {
   );
 }
 
-export function consiglioDellaFinestra(cover, states = allStates()) {
+export function consiglioDellaFinestra(cover, states = allStates(), { aperta = null } = {}) {
   const stanza = stanzaDellaFinestra(cover);
   if (!stanza) return null;
   return consiglioDiArieggiare({
     dentro: misura(stanza.hum, states),
     fuori: misura(ENTITA_UMIDITA_FUORI, states),
     soglia: sogliaDellaFinestra(cover, readJson(CHIAVE_SOGLIA_UMIDITA, null)),
+    aperta,
   });
 }
 
@@ -249,8 +257,12 @@ export function consiglioDellaFinestra(cover, states = allStates()) {
  *
  * `data-dm-arieggia` c'e' solo quando si consiglia: e' il segno che la pagina
  * e le prove leggono per «c'e' il consiglio». */
-function ensureArieggia(card, cover, states) {
-  const esito = cover ? consiglioDellaFinestra(cover, states) : null;
+function ensureArieggia(card, cover, states, model = null) {
+  /* L'infisso aperto lo dice il suo contatto: a finestra aperta il consiglio
+   * di aprire non ha senso, e la riga resta la misura e basta. */
+  const esito = cover
+    ? consiglioDellaFinestra(cover, states, { aperta: model?.infisso?.open === true })
+    : null;
   let riga = card.querySelector("[data-dm-umidita]");
   if (esito?.dentro === null || esito?.dentro === undefined) {
     riga?.remove();
@@ -261,7 +273,7 @@ function ensureArieggia(card, cover, states) {
     riga.dataset.dmUmidita = "";
     card.append(riga);
   }
-  const stato = esito.arieggia ? "sopra" : "sotto";
+  const stato = esito.arieggia ? "sopra" : esito.motivo === "gia-aperta" ? "aperta" : "sotto";
   if (riga.dataset.dmUmidita !== stato) riga.dataset.dmUmidita = stato;
   const classe = esito.arieggia ? "dm-tw-umidita dm-tw-arieggia" : "dm-tw-umidita";
   if (riga.className !== classe) riga.className = classe;

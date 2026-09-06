@@ -35,6 +35,9 @@ test("i codici del cavo diventano parole, in ogni dialetto", () => {
   assert.equal(statoUmanoEV("A"), "Scollegata");
   assert.equal(statoUmanoEV("disconnected"), "Scollegata");
   assert.equal(statoUmanoEV("F"), "Errore");
+  /* La lettera in piu' del nucleo: non carica, e del cavo nessuno sa niente.
+   * E' la parola che la tessera in Home usa al posto di «Scollegata» (#348). */
+  assert.equal(statoUmanoEV("N"), "Non in carica");
 });
 
 test("quello che non si riconosce non si inventa", () => {

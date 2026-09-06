@@ -276,7 +276,7 @@ def test_una_sola_voce_anche_con_due_plance() -> None:
     """Due plance sono due pannelli, non due integrazioni da aggiornare."""
     avvio = (COMPONENT / "__init__.py").read_text(encoding="utf-8")
     assert "_primary_entry" in avvio
-    assert 'PLATFORMS: list[str] = ["update"]' in avvio
+    assert '"update"' in avvio and "PLATFORMS: list[str]" in avvio
     sorgente = UPDATE.read_text(encoding="utf-8")
     assert 'f"{DOMAIN}_release"' in sorgente
 

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 # L'unica piattaforma e' l'avviso di aggiornamento, e la porta una plancia
 # sola: chi ne ha due non deve ritrovarsi due voci per la stessa versione.
-PLATFORMS: list[str] = ["update"]
+PLATFORMS: list[str] = ["switch", "update"]
 
 # Quale plancia ha montato la piattaforma. Si scarica solo da quella: chiederlo
 # a una voce che non l'ha mai montata fa sollevare a Home Assistant un
@@ -127,6 +127,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Remove this entry's panel registration."""
+    from .config_store import DATA_CONFIG_STORE
     from .frontend import async_unregister_frontend_entry
 
     domain_data = hass.data.setdefault(DOMAIN, {})
@@ -136,4 +137,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if scaricata:
             domain_data.pop(DATA_UPDATE_ENTRY, None)
     await async_unregister_frontend_entry(hass, entry.entry_id)
+    # Il negozio condiviso scrive il file con un ritardo, per compattare le
+    # raffiche di salvataggi. Chi scarica una plancia — o toglie
+    # l'integrazione — lascia il file gia' allineato, senza dipendere da un
+    # ritardo che deve ancora scadere.
+    store = domain_data.get(DATA_CONFIG_STORE)
+    if store is not None:
+        await store.async_flush()
     return scaricata

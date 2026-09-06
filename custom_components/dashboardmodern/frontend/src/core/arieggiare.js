@@ -92,7 +92,7 @@ export function umiditaDellaRiga(scritto) {
  * umido quanto dentro lo si dice (`fuoriPiuUmido`), perche' chi apre lo
  * sappia. Un punto sotto non e' «piu' umido»: non si scrive.
  */
-export function consiglioDiArieggiare({ dentro, fuori, soglia } = {}) {
+export function consiglioDiArieggiare({ dentro, fuori, soglia, aperta = null } = {}) {
   const stanza = numero(dentro);
   const esterna = numero(fuori);
   const quota = numero(soglia);
@@ -102,9 +102,15 @@ export function consiglioDiArieggiare({ dentro, fuori, soglia } = {}) {
     fuori: esterna,
     soglia: quota,
     fuoriPiuUmido: false,
+    aperta: aperta === true,
   };
   if (quota === null) return { ...esito, motivo: "senza-soglia" };
   if (stanza === null) return { ...esito, motivo: "senza-misura-dentro" };
+  /* A infisso aperto non si consiglia di aprire: sta gia' arieggiando. «Non
+   * consiglia di aprire se l'infisso e' chiuso; se e' aperto, ovviamente, non
+   * deve dire nulla» (dal campo). Il contatto lo dice; senza contatto non
+   * si sa, e il consiglio resta. */
+  if (aperta === true) return { ...esito, motivo: "gia-aperta" };
   if (stanza <= quota) return { ...esito, motivo: "sotto-soglia" };
   const fuoriPiuUmido = esterna !== null && esterna >= stanza;
   return { ...esito, arieggia: true, fuoriPiuUmido, motivo: "conviene" };

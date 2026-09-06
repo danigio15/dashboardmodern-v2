@@ -81,9 +81,12 @@ TICKET_MARKER = "<!-- plancia:v1 -->"
 # consegna viene tentata all'istante — e questo giro serve al resto.
 TICKET_SYNC_INTERVAL = 30 * 60
 
-# Quante issue si vanno a rileggere in un giro. Un tetto perche' il giro non
-# diventi lungo quanto la storia di chi usa la plancia da due anni.
-TICKET_SYNC_BATCH = 20
+# Quante issue si vanno a rileggere in un giro. Poche, e non venti com'era:
+# ogni issue costa fino a tre richieste e il giro gira nel loop di una
+# macchina piccola — venti issue erano sessanta chiamate in fila ogni
+# mezz'ora. Le altre aspettano il giro dopo: si riparte da dove ci si era
+# fermati, quindi tutte vengono rilette, cinque alla volta.
+TICKET_SYNC_BATCH = 5
 
 # Chi non vuole che la plancia parli con nessuno fuori di casa lo spegne, e le
 # segnalazioni restano una cosa fra lui e il suo Home Assistant.

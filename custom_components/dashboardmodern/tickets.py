@@ -150,20 +150,28 @@ async def async_sync_states(hass: HomeAssistant) -> int:
     """Vai a vedere che fine hanno fatto le segnalazioni gia' aperte."""
     if not enabled(hass):
         return 0
+    gettoni = await async_get_token_store(hass)
+    token = gettoni.any_token()
+    if not token:
+        # Senza gettone GitHub concede sessanta richieste all'ora a tutto
+        # l'indirizzo di casa, e rileggere una segnalazione ne costa fino a
+        # tre. Un giro anonimo se ne mangiava una fetta in un colpo solo e
+        # lasciava a secco il controllo aggiornamenti, che passa dalla stessa
+        # porta. Non c'e' niente da perdere a saltarlo: senza gettone non si
+        # consegna nulla, e le risposte arrivano appena qualcuno si collega.
+        return 0
     tickets = await async_get_ticket_store(hass)
     tutti = tickets.remote_ids()
     if not tutti:
         return 0
-    # Un giro parte da dove si era fermato quello prima. Prendere sempre le
-    # prime venti voleva dire che con ventuno segnalazioni aperte la
-    # ventunesima non veniva riletta mai — ne' il suo stato ne' la risposta —
-    # finche' una delle altre non si chiudeva.
+    # Un giro ne rilegge poche, e parte da dove si era fermato quello prima.
+    # Prendere sempre le prime voleva dire che con una segnalazione in piu'
+    # del tetto l'ultima non veniva riletta mai — ne' il suo stato ne' la
+    # risposta — finche' una delle altre non si chiudeva.
     domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
     da = int(domain_data.get(DATA_SYNC_CURSOR) or 0) % len(tutti)
     numeri = (tutti[da:] + tutti[:da])[:TICKET_SYNC_BATCH]
     domain_data[DATA_SYNC_CURSOR] = (da + len(numeri)) % len(tutti)
-    gettoni = await async_get_token_store(hass)
-    token = gettoni.any_token()
     aggiornamenti: list[dict[str, Any]] = []
     for numero in numeri:
         try:

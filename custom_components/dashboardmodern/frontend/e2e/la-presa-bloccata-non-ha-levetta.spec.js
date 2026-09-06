@@ -46,7 +46,16 @@ test("la card bloccata perde la levetta, quella libera la tiene", async ({ page 
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
     window.render?.();
   });
-  await page.evaluate(() => document.getElementById("page-prese")?.classList.add("active"));
+  /* Alla pagina delle prese ci si va dalla sua voce nella barra, come ci va
+   * una persona: e' quel tocco che chiede il disegno. Accendere la classe da
+   * fuori lascia la pagina attiva e vuota — con la pagina chiusa il disegno
+   * non gira apposta — finche' non passa per caso un altro giro di stati. */
+  const voce = page.locator('.tab[data-tab="prese"]');
+  await expect(voce).toBeAttached({ timeout: 20000 });
+  /* Il tocco si da' alla voce, non al pixel: sul tablet la barra parte
+   * raccolta e un click per coordinate non troverebbe niente da colpire. Il
+   * gestore che gira e' lo stesso che gira sotto il dito. */
+  await voce.evaluate((nodo) => nodo.click());
   const bloccata = page.locator('#page-prese [data-dm-lucip="switch.frigo"]');
   await expect(bloccata).toBeAttached({ timeout: 20000 });
   await expect(bloccata.locator(".dm-lucip-led")).toHaveCount(0);

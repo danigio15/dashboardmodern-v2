@@ -121,7 +121,30 @@ const USER_DATA_VERSION = 1;
  * dispositivi. E' una scelta della casa, non del vetro da cui la si guarda —
  * se restasse sul dispositivo che l'ha fatta, il telefono e il tablet
  * mostrerebbero la stessa Home in due ordini diversi. */
-export const CONFIG_KEYS_REVISION = 29;
+/* La revisione 30 aggiunge quattro cose, e sono tutte della plancia.
+ *
+ * La lingua (`cd_lingua`, #350): «È sparito il settaggio per la lingua: su PC
+ * avevo settato italiano (HA in inglese) e continua a funzionare, da mobile
+ * invece è rimasto inglese.» La scelta stava sotto una chiave che non comincia
+ * per `cd_`, quindi non viaggiava e non aveva nemmeno il prefisso che separa
+ * due plance: era una preferenza del browser, mentre la tendina dice «la fissa
+ * per questa dashboard».
+ *
+ * La riga sotto il meteo (`cd_barra_casa`, #356 e #357): quali pastiglie si
+ * vedono — il ritiro di stasera, le luci accese, le finestre aperte — e quale
+ * contatto e' quello della cassetta della posta. Chi le sceglie dal telefono
+ * le vuole ritrovare sul tablet appeso in cucina.
+ *
+ * Quello che invece resta a terra e' cosa QUESTO dispositivo sa della cassetta
+ * (`cd_posta_stato`): com'era l'ultima volta che l'ha guardata e se chi la
+ * guarda ha gia' visto l'avviso — il primo schermo che se ne accorgesse
+ * toglierebbe agli altri il termine di paragone.
+ *
+ * E gli animali di casa (`cd_animali`, #358): i loro nomi, le loro foto e le
+ * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
+ * e del collare. Anche questa e' roba della casa: il gatto configurato sul
+ * tablet deve esistere anche sul telefono. */
+export const CONFIG_KEYS_REVISION = 30;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -201,6 +224,9 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_widgets",
   // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
   "cd_home_blocchi",
+  // La riga sotto il meteo (#356): quali pastiglie si vedono, e da quale
+  // contatto arriva la posta (#357).
+  "cd_barra_casa",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",
@@ -253,6 +279,11 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_ev_cars",
   "cd_ev_car_active",
   "cd_ev_visual",
+  /* Il motore dichiarato da chi non ha nessun profilo auto (#326). E' una
+   * scelta della plancia, come le caselle `dm.ev_*` a cui appartiene: chi la
+   * fa sul telefono deve ritrovarla sul computer, o la pagina Auto racconta
+   * due macchine diverse a seconda di dove la si guarda. */
+  "cd_ev_motore",
   /* `cd_ev_image` e `cd_ev_image_plugged` non stanno piu' qui.
    *
    * Sono le due caselle da cui il disegno legge la foto dell'auto attiva: non
@@ -279,6 +310,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_allerte",
   // La raccolta differenziata (#293): i materiali e da dove si legge il ritiro.
   "cd_rifiuti",
+  // Gli animali di casa (#358): nome, foto e le entita' che li riguardano.
+  "cd_animali",
   "cd_piscina",
   "cd_irrigazione",
   "cd_robot",
@@ -290,6 +323,9 @@ export const CONFIG_KEYS = Object.freeze([
   // dispositivo che l'ha fatta: chi la mette ferma sul telefono se la ritrova
   // ferma anche sul computer.
   "cd_navbar_mode",
+  // E la lingua della plancia, per la stessa ragione (#350): «su PC avevo
+  // settato italiano, da mobile invece e' rimasto inglese».
+  "cd_lingua",
   "cd_energy_views",
   "cd_slot_labels",
   "cd_flow_nodes",

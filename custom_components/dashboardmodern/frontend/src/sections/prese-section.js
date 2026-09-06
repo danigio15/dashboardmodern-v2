@@ -31,6 +31,8 @@ import {
   esc,
   installStyle,
   onEditorRedraw,
+  paginaVisibile,
+  quandoSiCambiaPagina,
   readJson,
   root,
   section,
@@ -210,6 +212,10 @@ function dipingi() {
   const pagina = ensurePresePage();
   const contenitore = pagina?.querySelector?.("#prese-wrap");
   if (!contenitore) return;
+  /* La firma si prende leggendo lo stato di ogni presa configurata, e il
+   * disegno rifa' tutti i gruppi: con la pagina chiusa e' lavoro per nessuno,
+   * e girava a ogni mazzetto di stati. */
+  if (!paginaVisibile(PRESE_PAGE_ID)) return;
   const states = allStates();
   const gruppi = presePerStanza(presiConfigurate(), stanze(), t("Altre zone", "Other areas"));
   const attuale = firma(gruppi, states);
@@ -468,6 +474,7 @@ export function installPreseSection() {
   doc.addEventListener("click", onEditorClick);
   onEditorRedraw("__dmPreseEditor", ridisegnaScheda);
   for (const nome of ["render", "cdApplyNavVis"]) wrapFunction(nome, "__dmPreseSection", schedule);
+  quandoSiCambiaPagina(schedule);
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:states-ready",

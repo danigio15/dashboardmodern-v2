@@ -50,5 +50,12 @@
         }
       }
     }
+  },
+  "entity": {
+    "switch": {
+      "presenza_simulata": {
+        "name": "재실 시뮬레이션"
+      }
+    }
   }
 }

@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.dashboardmodern.ticket_store import (
     DIAGNOSTIC_KEYS,
+    DOVE_SUCCEDE,
     MAX_BODY,
     MAX_PER_HOUR,
     MAX_TICKETS,
@@ -108,6 +109,15 @@ async def test_la_diagnostica_e_una_lista_chiusa(hass: HomeAssistant) -> None:
     )
     assert set(pulita) == {"ha_version", "integration_version"}
     assert set(pulita) <= DIAGNOSTIC_KEYS
+
+
+async def test_le_due_tendine_passano_il_filtro(hass: HomeAssistant) -> None:
+    """La sezione e la parte scelte a mano sono dichiarate, quindi passano."""
+    pulita = normalize_diagnostics(
+        {"sezione": "Energia", "funzione": "Il report e i periodi"}
+    )
+    assert pulita == {"sezione": "Energia", "funzione": "Il report e i periodi"}
+    assert set(DOVE_SUCCEDE) <= DIAGNOSTIC_KEYS
 
 
 async def test_la_diagnostica_sopravvive_al_salvataggio(hass: HomeAssistant) -> None:

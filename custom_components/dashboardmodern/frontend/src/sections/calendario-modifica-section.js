@@ -21,7 +21,6 @@
  * a Home Assistant QUALE evento si intende.
  */
 import {
-  bozzaCosaNuova,
   bozzaDaEvento,
   bozzaDaVoce,
   bozzaNuova,
@@ -372,15 +371,6 @@ export function apriModificaCosa(chiave) {
   const visto = VISTI.get(clean(chiave));
   if (!visto?.voce) return false;
   state.bozza = bozzaDaVoce(visto.voce, visto.lista);
-  state.errore = "";
-  ridisegnaOspiti();
-  return true;
-}
-
-export function apriCosaNuova(liste, giorno = "") {
-  const elenco = Array.isArray(liste) ? liste : [];
-  if (!elenco.length) return false;
-  state.bozza = bozzaCosaNuova(elenco[0], giorno);
   state.errore = "";
   ridisegnaOspiti();
   return true;

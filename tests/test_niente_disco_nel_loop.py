@@ -30,16 +30,35 @@ SORGENTE = (
 )
 
 # I modi in cui questo file tocca il disco. `rglob` percorre la cartella,
-# `read_bytes` e `read_text` leggono un file, `iterdir` e `glob` elencano.
+# `read_bytes` e `read_text` leggono un file, `iterdir` e `glob` elencano,
+# `stat`, `exists`, `is_dir` e `is_file` chiedono al filesystem di un file.
 TOCCA_IL_DISCO = frozenset(
-    {"rglob", "glob", "iterdir", "read_bytes", "read_text", "scandir", "walk"}
+    {
+        "rglob",
+        "glob",
+        "iterdir",
+        "read_bytes",
+        "read_text",
+        "scandir",
+        "walk",
+        "stat",
+        "exists",
+        "is_dir",
+        "is_file",
+    }
 )
 
 # Le funzioni che fanno quel lavoro per mestiere: sono sincrone apposta, e chi
 # le chiama deve mandarle nell'executor. Nominarle qui vuol dire che una
 # chiamata a una di queste dentro un `async def` e' grave quanto un rglob.
 LAVORI_DI_DISCO = frozenset(
-    {"_runtime_assets", "_runtime_digest", "_frontend_asset_version"}
+    {
+        "_runtime_assets",
+        "_runtime_digest",
+        "_frontend_asset_version",
+        "_mounts_on_disk",
+        "legacy_variants",
+    }
 )
 
 

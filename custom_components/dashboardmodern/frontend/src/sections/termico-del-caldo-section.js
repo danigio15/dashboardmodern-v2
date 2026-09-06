@@ -153,10 +153,24 @@ function vociAttuali() {
   return vociTermiche(leggiConfig(), allStates() || {}, root.cdCfg?.("cd_entity_overrides") || {});
 }
 
+/* La finestra del Clima rapido e' aperta? Il pannello sta li' dentro, non
+ * nella pagina Clima: `#quick-clima-modal` si apre e si chiude come tutte le
+ * altre finestre della plancia, con la sua classe. */
+function laFinestraDelClimaSiVede() {
+  return Boolean(doc?.getElementById?.("quick-clima-modal")?.classList?.contains?.("show"));
+}
+
 export function disegnaPannello() {
+  /* La pillola sotto il meteo si disegna sempre: sta nella testata della Home,
+   * non dentro il pannello, ed e' due letture di stato e un testo. */
   pillolaDellaCaldaia();
   const pannello = doc?.getElementById?.("ns-thermal-panel");
   if (!pannello) return false;
+  /* Il pannello invece vive dentro la finestra del Clima rapido, e si rifaceva
+   * per intero — `replaceChildren`, una riga per macchina — a ogni mazzetto di
+   * stati, con la finestra chiusa. Quando si apre si ridisegna li'
+   * (`apriQuickClima` e `setQuickClimaMode`, avvolte piu' sotto). */
+  if (!laFinestraDelClimaSiVede()) return false;
   const voci = vociAttuali();
   pannello.replaceChildren(...voci.map(riga));
   /* Senza voci il pannello scompare: N/D per sempre non e' un'informazione. */
@@ -418,6 +432,10 @@ export function installTermicoDelCaldo() {
     },
     true,
   );
+  /* E aprendo la finestra del Clima rapido il pannello si rifa' subito, senza
+   * aspettare che in casa cambi qualcosa. */
+  for (const nome of ["apriQuickClima", "setQuickClimaMode"])
+    wrapFunction(nome, "__dmTermicoCaldoApertura", disegnaPannello);
   state.installed = true;
   return true;
 }

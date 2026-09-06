@@ -431,3 +431,53 @@ async def test_chi_e_in_lista_su_una_plancia_non_tocca_l_altra(
         5,
     )
     assert letto["profile"] == profilo_mare
+
+
+async def test_la_foto_si_decodifica_fuori_dal_loop(
+    hass: HomeAssistant, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Tredici megabyte di base64 non si decodificano nel loop.
+
+    La decodifica fermava tutta la casa per il tempo che le serviva; adesso
+    gira nel thread insieme alla scrittura, e un base64 rotto resta l'errore
+    parlante di prima.
+    """
+    import base64
+    import threading
+
+    from custom_components.dashboardmodern import websocket_api as modulo
+    from custom_components.dashboardmodern.websocket_api import TYPE_WWW_UPLOAD
+
+    hass.config.config_dir = str(tmp_path)
+    principale = threading.current_thread()
+    nel_loop: list[bool] = []
+    originale = base64.b64decode
+
+    def spia(data: Any, *args: Any, **kwargs: Any) -> bytes:
+        nel_loop.append(threading.current_thread() is principale)
+        return originale(data, *args, **kwargs)
+
+    monkeypatch.setattr(modulo.base64, "b64decode", spia)
+
+    png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+    esito = await _command(
+        hass,
+        StubConnection(hass),
+        {
+            "type": TYPE_WWW_UPLOAD,
+            "filename": "foto.png",
+            "data": base64.b64encode(png).decode(),
+        },
+        1,
+    )
+    assert esito == {"path": "/local/dashboardmodern/foto.png"}
+    assert (tmp_path / "www" / "dashboardmodern" / "foto.png").read_bytes() == png
+    assert nel_loop == [False]
+
+    codice, _ = await _errore(
+        hass,
+        StubConnection(hass),
+        {"type": TYPE_WWW_UPLOAD, "filename": "foto.png", "data": "non-e-base64!"},
+        2,
+    )
+    assert codice == "invalid_data"

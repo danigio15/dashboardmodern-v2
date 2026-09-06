@@ -41,11 +41,14 @@ test("the live registry is handed over, not copied, when the runtime is the only
 });
 
 test("the Tapparelle page has one skin, and it is not the Beta 7 one", async () => {
-  const beta7 = await read("../src/sections/beta7-regression-section.js");
   // Beta 7 declared left/right/top on the panel and nothing else did, so its
   // 9px inset survived every later redesign and detached the closed shutter
-  // from the opening.
-  assert.doesNotMatch(beta7, /#page-tapparelle[^\n]*\.tapp-(?:win|shutter|glass)/);
+  // from the opening. Quel foglio non c'e' piu': il modulo che lo portava se
+  // n'e' andato, e nessun altro dichiara quelle proprieta'.
+  await assert.rejects(
+    read("../src/sections/beta7-regression-section.js"),
+    "beta7-regression-section.js deve restare cancellato",
+  );
 
   const skin = await read("../src/sections/shutter-section.js");
   assert.match(skin, /\.tapp-shutter\{[^}]*z-index:3/);
@@ -66,8 +69,12 @@ test("a rebuilt camera wall asks for its frames, and the frames keep coming", as
   const live = await read("../src/sections/live-ui-section.js");
   assert.match(live, /const CAMERA_REFRESH_MS = 4000/);
   assert.match(live, /export function syncCameraTimer\(\)/);
-  // Only while the page is on screen and the tab is not hidden.
-  assert.match(live, /securityVisible\(\) && doc\?\.visibilityState !== "hidden"/);
+  /* Only while the page is on screen and the plancia is actually being looked
+   * at. La domanda «la si guarda?» e' passata all'aiutante condiviso, che
+   * tiene dentro anche il parcheggio — la plancia messa da parte da chi la
+   * ospita quando si va su un'altra pagina di Home Assistant: li' il documento
+   * si dice ancora «visible» e i fotogrammi li tirava comunque il server. */
+  assert.match(live, /securityVisible\(\) && planciaVisibile\(\)/);
   assert.match(live, /state\.building/);
 });
 

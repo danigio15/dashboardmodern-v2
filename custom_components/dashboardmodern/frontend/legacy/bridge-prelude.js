@@ -49,6 +49,48 @@
   }
   installaLaTendaDellaBarra();
 
+  /* I timer del guscio, annotati mentre nascono.
+   *
+   * Il runtime vendorizzato arma una ventina di `setInterval` mentre viene
+   * letto — le tapparelle ogni due secondi, la barra ogni tre, le card del
+   * clima ogni venti, l'auto-nascondi ogni minuto — e non tiene gli
+   * identificativi: nessuno li puo' fermare, e girano per sempre, a scheda
+   * nascosta compresa, anche quando quel lavoro lo fa gia' un modulo. E' il
+   * «vecchio sotto che viene riscritto sopra»: lo stesso disegno fatto due
+   * volte, e la batteria che lo paga.
+   *
+   * Questo preludio e' l'unico codice nostro che gira PRIMA del runtime, ed
+   * e' quindi l'unico posto da cui annotare ogni timer con l'identificativo,
+   * il passo e un pezzo del suo sorgente. La sezione «il guscio disegna
+   * quando serve» riconosce dal testo quelli che un modulo ha preso in carico
+   * — o che sono morti — e li spegne; gli altri restano.
+   *
+   * Si annota finche' il guscio non si dichiara pronto: i timer che i moduli
+   * armano dopo non entrano nell'elenco. Sta prima dell'uscita per chi non ha
+   * un ospite, perche' vale uguale nella plancia ospitata e in quella
+   * autonoma. */
+  function registraITimerDelGuscio() {
+    var originale = window.setInterval;
+    if (typeof originale !== "function" || originale.__dmTimerAnnotati) return;
+    var elenco = (window.__DASHBOARDMODERN_LEGACY_INTERVALS__ ||= []);
+    function setIntervalAnnotato(handler, delay) {
+      var id = originale.apply(window, arguments);
+      if (!window.__DASHBOARDMODERN_LEGACY_READY__) {
+        var sorgente = "";
+        try {
+          sorgente = String(handler).slice(0, 240);
+        } catch (_errore) {
+          sorgente = "";
+        }
+        elenco.push({ id: id, period: Number(delay) || 0, fn: sorgente, cleared: false });
+      }
+      return id;
+    }
+    setIntervalAnnotato.__dmTimerAnnotati = true;
+    window.setInterval = setIntervalAnnotato;
+  }
+  registraITimerDelGuscio();
+
   function lightAddFormMarkup() {
     var isEnglish =
       document.documentElement.lang === "en" ||

@@ -21,23 +21,29 @@
  * una pagina vuota e' peggio che non offrirla.
  */
 import {
+  TUTTA_LA_CASA,
   agendaPerGiorno,
+  calendariAssegnati,
   chiaveDelGiorno,
   etichettaDelGiorno,
   eventiDaQui,
   giornoPiu,
   inCorso,
   oraDellEvento,
+  utentiDiCasa,
 } from "../core/calendario-model.js";
 import {
   aggiornaCalendari,
   bloccoDaFareMarkup,
   calendariConfigurati,
+  calendariScritti,
   configuredTodoLists,
   eventiDeiCalendari,
   listeConNome,
+  ricordaChiGuarda,
   scadenzeDaFare,
   segnaFatta,
+  utenteCheGuarda,
 } from "./home-widgets-section.js";
 import {
   azioneDellaScadenzaMarkup,
@@ -50,6 +56,7 @@ import {
   tastoNuovoMarkup,
 } from "./calendario-modifica-section.js";
 import {
+  allStates,
   clean,
   doc,
   esc,
@@ -302,24 +309,62 @@ function vuotoMarkup() {
   </div>`;
 }
 
+/* ── chi guarda l'agenda (#344) ───────────────────────────────────────────
+ *
+ * «Utente 1 visualizza calendar.utente1, Utente 2 visualizza calendar.utente2,
+ * con la possibilita' di scegliere quale calendario verra' mostrato ad ogni
+ * utente.»
+ *
+ * Dentro il pannello di Home Assistant chi e' collegato lo sa il documento
+ * ospite, non questo. Finche' l'ospite non lo consegna, glielo si chiede: una
+ * riga sola in cima all'agenda, con i nomi di casa. La risposta si scrive nel
+ * profilo di Home Assistant di chi e' collegato — non su questo dispositivo —
+ * quindi vale su ogni schermo da cui quella persona apre la plancia, e non la
+ * vede nessun altro.
+ *
+ * La riga compare SOLO quando qualcuno ha davvero assegnato un calendario e in
+ * casa c'e' piu' di un utente: fino ad allora non c'e' niente da chiedere, e
+ * una domanda senza conseguenze e' peggio del silenzio. */
+function chiGuardaMarkup() {
+  if (!calendariAssegnati(calendariScritti())) return "";
+  /* Se l'ospite ha gia' detto chi e', non si chiede niente a nessuno. */
+  const dallOspite = root.__DASHBOARDMODERN_UTENTE__;
+  if (clean(typeof dallOspite === "string" ? dallOspite : dallOspite?.id)) return "";
+  const utenti = utentiDiCasa(allStates());
+  if (utenti.length < 2) return "";
+  const scelto = utenteCheGuarda();
+  const voce = (valore, nome) =>
+    `<button type="button" class="dm-calp-chi-voce" data-dm-calp-chi="${esc(valore)}" aria-pressed="${scelto === valore}">${esc(nome)}</button>`;
+  return `<div class="dm-calp-chi">
+    <span class="dm-calp-chi-lbl">${esc(t("Chi sta guardando?", "Who is watching?"))}</span>
+    <div class="dm-calp-chi-voci">
+      ${utenti.map((utente) => voce(utente.utente, utente.name)).join("")}
+      ${voce(TUTTA_LA_CASA, t("Tutta la casa", "The whole house"))}
+    </div>
+  </div>`;
+}
+
 function dipingi() {
   const pagina = ensureCalendarioPage();
   const dove = pagina?.querySelector?.("#calendario-wrap");
   if (!dove) return;
+  const chiGuarda = chiGuardaMarkup();
   const calendari = calendariConTinta();
   /* Senza calendari ma con le liste la pagina non e' vuota: mostra le cose da
    * fare e basta, che e' meta' agenda ma e' un'agenda. */
   if (!calendari.length) {
     const soleCose = bloccoDaFareMarkup();
-    const firmaVuota = soleCose ? `cose:${soleCose}` : "vuoto";
+    const firmaVuota = `${chiGuarda}${soleCose ? `cose:${soleCose}` : "vuoto"}`;
     if (state.firma === firmaVuota && dove.firstElementChild) return;
     state.firma = firmaVuota;
-    dove.innerHTML = soleCose
-      ? `<section class="dm-calp-cose">
+    dove.innerHTML =
+      chiGuarda +
+      (soleCose
+        ? `<section class="dm-calp-cose">
           <h3 class="dm-calp-titolo">✅ ${esc(t("Da fare", "To-do"))}</h3>
           ${soleCose}
         </section>`
-      : vuotoMarkup();
+        : vuotoMarkup());
     return;
   }
   const { eventi, inArrivo } = eventiDeiCalendari();
@@ -355,6 +400,9 @@ function dipingi() {
     state.giorno,
     inArrivo,
     daFare,
+    /* Chi guarda (#344): cambiando persona cambia l'agenda, e la riga in cima
+     * deve dire chi e' quello scelto adesso. */
+    chiGuarda,
     /* Il modulo aperto fa parte di quello che si vede: senza, chi tocca la
      * matita non vedrebbe comparire niente finche' non cambia uno stato. */
     bozzaAperta(),
@@ -423,7 +471,7 @@ function dipingi() {
    * fascia non vuole segnare un impegno per oggi. */
   const nuovo = bozzaAperta() ? "" : tastoNuovoMarkup(calendari, state.giorno);
 
-  dove.innerHTML = `${fasciaMarkup(giorni, adesso, lingua, calendari)}${legenda}
+  dove.innerHTML = `${chiGuarda}${fasciaMarkup(giorni, adesso, lingua, calendari)}${legenda}
     ${
       state.giorno
         ? `<button type="button" class="dm-calp-tutto" data-dm-calp-tutto>↩ ${esc(
@@ -474,6 +522,15 @@ function onClick(event) {
     state.giorno = "";
     state.firma = "";
     dipingi();
+    return;
+  }
+  /* «Sono io» (#344): la scelta si ricorda nel profilo di Home Assistant di
+   * chi e' collegato, quindi vale su ogni schermo da cui apre la plancia. */
+  const chi = event.target?.closest?.("[data-dm-calp-chi]");
+  if (chi) {
+    event.preventDefault();
+    ricordaChiGuarda(chi.dataset.dmCalpChi);
+    renderCalendarioSection();
   }
 }
 
@@ -487,6 +544,22 @@ function installStyles() {
       border:1px dashed var(--divider-color,#dbe4ee);border-radius:18px;background:var(--card-bg,#fff)}
     ${P} .dm-calp-vuoto strong{font-size:14px;font-weight:900}
     ${P} .dm-calp-vuoto span{font-size:12px;font-weight:700;color:var(--secondary-text-color,#64748b)}
+
+    /* ── chi guarda l'agenda (#344) ────────────────────────────────────── */
+    ${P} .dm-calp-chi{
+      display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;
+      border-radius:18px;border:1px dashed var(--divider-color,#dbe4ee);
+      background:color-mix(in srgb,#6366f1 6%,transparent)}
+    ${P} .dm-calp-chi-lbl{
+      font-size:10.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--secondary-text-color,#64748b)}
+    ${P} .dm-calp-chi-voci{display:flex;flex-wrap:wrap;gap:6px}
+    ${P} .dm-calp-chi-voce{
+      padding:6px 12px;border-radius:999px;border:1px solid var(--divider-color,#dbe4ee);
+      background:var(--card-bg,#fff);color:var(--text,#0f172a);
+      font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+    ${P} .dm-calp-chi-voce[aria-pressed="true"]{
+      border-color:#6366f1;background:color-mix(in srgb,#6366f1 16%,var(--card-bg,#fff));color:#4338ca}
 
     /* ── la fascia della settimana ─────────────────────────────────────── */
     ${P} .dm-calp-fascia{
@@ -623,8 +696,17 @@ export function installCalendarioSection() {
     "dashboardmodern:states-ready",
     "dashboardmodern:state-changed",
     "dashboardmodern:persistence-restored",
+    /* Gli eventi dei calendari e le voci delle liste sono arrivati dai loro
+     * servizi: la firma cambia e la pagina si riempie, senza aspettare che si
+     * muova qualcosa in casa. */
+    "dashboardmodern:agenda-aggiornata",
   ])
     root.addEventListener?.(evento, schedule);
+  /* Chi guarda e' arrivato dal suo profilo (#344): da questo istante l'agenda
+   * e' di un'altra persona, e la firma di prima non vale piu'. E' l'unico
+   * evento che merita un ridisegno forzato — gli altri passano da `schedule`,
+   * che riscrive solo quello che e' cambiato davvero. */
+  root.addEventListener?.("dashboardmodern:calendario-utente", () => renderCalendarioSection());
   schedule();
   return true;
 }

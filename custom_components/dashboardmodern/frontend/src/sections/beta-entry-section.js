@@ -7,9 +7,6 @@ import "./energy-report-polish-section.js";
 import "./personalization-section.js";
 import "./editor-polish-section.js";
 import "./beta4-mobile-polish-section.js";
-import "./beta6-feedback-section.js";
-import "./beta7-brand-guard-section.js";
-import "./beta7-regression-section.js";
 import "./beta9-real-device-polish-section.js";
 
 // Keep only compatibility/layout bridges that belong at the entrypoint. The
@@ -99,16 +96,15 @@ if (typeof document !== "undefined") {
         transform:none!important;
         opacity:1!important;
       }
-      html body #page-tapparelle#page-tapparelle #tapp-grid{
-        grid-template-columns:repeat(auto-fit,minmax(280px,360px))!important;
-        justify-content:center!important;
-        align-items:start!important;
-        gap:14px!important;
-      }
+      /* Quante colonne e quanto larga una card lo dice il foglio della pagina
+       * Finestre, che ne e' il proprietario: la stessa
+       * misura scritta in tre fogli e' una misura che, cambiata, resta vecchia
+       * in due posti — ed e' quello che teneva le card in colonna sui tablet
+       * (#349). Qui resta solo cio' che questo modulo possiede davvero: la card
+       * che non si anima e non si sposta. */
       html body #page-tapparelle#page-tapparelle .tapp-card{
         box-sizing:border-box!important;
         width:100%!important;
-        max-width:360px!important;
         min-height:0!important;
         animation:none!important;
         transform:none!important;

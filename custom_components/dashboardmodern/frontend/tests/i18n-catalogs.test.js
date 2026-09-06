@@ -200,6 +200,10 @@ const LOCALE_IDENTITIES = {
   fr: new Set([
     /* La modulation d'une chaudière se dit comme en anglais. */
     "Modulation (%)",
+    /* Le train, sa destination: les mêmes mots des deux côtés de la Manche. */
+    "Train",
+    "Trains",
+    "Destination",
     /* L'air, en français, c'est l'air. */
     "Air",
     "Polo",
@@ -321,6 +325,8 @@ const LOCALE_IDENTITIES = {
   nl: new Set([
     /* Het volume van een speaker heet in het Nederlands ook zo. */
     "Volume",
+    /* Een station is in het Nederlands ook een station. */
+    "Station",
     "Casual",
     "Polo",
     "Robot",

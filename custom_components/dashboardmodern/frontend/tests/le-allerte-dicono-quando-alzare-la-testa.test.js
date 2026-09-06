@@ -90,7 +90,17 @@ test("ogni fonte nel suo dialetto, ridotta a un livello", () => {
     "sensor.percezione": stato("quite_uncomfortable"),
     "sensor.fr24": stato("2", {
       flights: [
-        { flight_number: "AZ1234", airline_short: "ITA", aircraft_model: "A320", altitude: 9000 },
+        {
+          flight_number: "AZ1234",
+          airline_short: "ITA",
+          aircraft_model: "A320",
+          aircraft_registration: "EI-DTJ",
+          altitude: 9000,
+          airport_origin_city: "Roma",
+          airport_origin_code_iata: "FCO",
+          airport_destination_city: "Parigi",
+          airport_destination_code_iata: "CDG",
+        },
         { callsign: "RYR55", airline_short: "Ryanair" },
       ],
     }),
@@ -118,6 +128,12 @@ test("ogni fonte nel suo dialetto, ridotta a un livello", () => {
   assert.equal(per.voli.voci.length, 2);
   assert.equal(per.voli.voci[0].numero, "AZ1234");
   assert.equal(per.voli.voci[1].numero, "RYR55");
+  /* La tratta si dice coi nomi delle citta', non coi codici (#334). */
+  assert.equal(per.voli.voci[0].da, "Roma");
+  assert.equal(per.voli.voci[0].a, "Parigi");
+  assert.equal(per.voli.voci[0].compagnia, "ITA");
+  assert.equal(per.voli.voci[0].aereo, "A320");
+  assert.equal(per.voli.voci[0].targa, "EI-DTJ");
   assert.equal(livelloMassimo(letture), "attenzione");
   assert.equal(allerteAttive(letture).length, 6);
 });
@@ -193,6 +209,63 @@ test("i pollini e il comfort, nei numeri e nelle parole", () => {
   assert.equal(comfort("probable"), "nota", "il rischio gelo probabile");
 });
 
+/* «Nelle allerte un discomfort termico dovrebbe essere rilevato come allerta
+ * mentre dice tutto OK» (#355): le fonti del caldo afoso sono tante e non
+ * parlano la stessa lingua. Prima ne conoscevamo una manciata e tutto il resto
+ * cadeva su «quiete». */
+test("il disagio termico si riconosce comunque lo dica chi lo misura", () => {
+  const comfort = (state, attributes) =>
+    letturaAllerte({ comfort: { entity: "s.c" } }, { "s.c": stato(state, attributes) }, (v) => v, ADESSO)[0];
+
+  /* La zona del simmer index di Thermal Comfort. */
+  assert.equal(comfort("slightly_uncomfortable").livello, "nota");
+  assert.equal(comfort("increasing_discomfort").livello, "nota");
+  assert.equal(comfort("danger_of_heatstroke").livello, "allarme");
+  /* Il conto dell'humidex. */
+  assert.equal(comfort("some_discomfort").livello, "nota");
+  assert.equal(comfort("great_discomfort").livello, "attenzione");
+  assert.equal(comfort("dangerous").livello, "allarme");
+  /* Le parole che negano il disagio contengono la parola del disagio: si
+   * guardano per prime, o si leggerebbero al contrario. */
+  assert.equal(comfort("no_discomfort").livello, "quiete");
+  assert.equal(comfort("no_risk").livello, "quiete");
+
+  /* Scritte come le scrive una persona: maiuscole, spazi, trattini. */
+  assert.equal(comfort("Slightly uncomfortable").livello, "nota");
+  assert.equal(comfort("Quite-Uncomfortable").livello, "attenzione");
+  assert.equal(comfort("Slightly uncomfortable").codice, "slightly_uncomfortable");
+
+  /* Un contatto scritto in casa: acceso vuol dire che il disagio c'e'. */
+  assert.equal(comfort("on").livello, "attenzione");
+  assert.equal(comfort("off").livello, "quiete");
+
+  /* I gradi si giudicano nella loro scala: 90 °F sono 32 °C, non 90. */
+  assert.equal(comfort("90", { unit_of_measurement: "°F" }).livello, "attenzione");
+  assert.equal(comfort("110", { unit_of_measurement: "°F" }).livello, "allarme");
+  assert.equal(comfort("90", { unit_of_measurement: "°C" }).livello, "allarme");
+  assert.equal(Math.round(comfort("90", { unit_of_measurement: "°F" }).gradi), 32);
+
+  /* E quello che non si sa resta quello che non si sa. */
+  assert.equal(comfort("unavailable").livello, "ignoto");
+});
+
+/* Le parole nuove si leggono anche a schermo: chi apre la scheda non deve
+ * trovarsi «slightly uncomfortable» sul muro di casa. */
+test("le parole del disagio hanno il loro nome in chiaro", async () => {
+  const sezione = await leggi("sections/allerte-section.js");
+  for (const codice of [
+    "slightly_uncomfortable",
+    "some_discomfort",
+    "great_discomfort",
+    "no_discomfort",
+    "sweltering",
+    "very_hot",
+  ])
+    assert.ok(sezione.includes(`${codice}:`), codice);
+  /* Il contatto dice la sua in parole, non «on». */
+  assert.match(sezione, /on: t\("Disagio termico", "Thermal discomfort"\)/);
+});
+
 test("la pagina, la scheda e la tessera sono presentate a tutti i posti che le contano", async () => {
   const sezione = await leggi("sections/allerte-section.js");
   const editor = await leggi("sections/allerte-editor-section.js");
@@ -234,4 +307,130 @@ test("la frase della tessera dice chi ha qualcosa da dire", () => {
     "All quiet, but one source is not answering.",
   );
   assert.equal(fraseDellaTessera({ key: "allerte", rows: [] }, EN), "Nothing configured here yet.");
+});
+
+test("del volo si dice la tratta, l'aereo e la compagnia (#334)", async () => {
+  const config = { voli: { entity: "sensor.fr24" } };
+  /* Un'integrazione che pubblica i nomi delle citta': si preferiscono ai
+   * codici, che sanno leggere solo quelli che volano spesso. */
+  const conCitta = {
+    "sensor.fr24": stato("1", {
+      flights: [
+        {
+          flight_number: "FR9012",
+          airline: "Ryanair",
+          aircraft_code: "B738",
+          aircraft_registration: "EI-EBA",
+          airport_origin_city: "Bergamo",
+          airport_origin_code_iata: "BGY",
+          airport_destination_city: "Londra",
+          airport_destination_code_iata: "STN",
+        },
+      ],
+    }),
+  };
+  const [conNomi] = letturaAllerte(config, conCitta, (v) => v, ADESSO);
+  assert.equal(conNomi.voci[0].da, "Bergamo");
+  assert.equal(conNomi.voci[0].a, "Londra");
+  assert.equal(conNomi.voci[0].compagnia, "Ryanair");
+  assert.equal(conNomi.voci[0].targa, "EI-EBA");
+
+  /* Senza citta' si ripiega sul nome dell'aeroporto e poi sul codice. */
+  const soloCodici = {
+    "sensor.fr24": stato("1", {
+      flights: [
+        {
+          callsign: "DLH8AB",
+          airport_origin_code_iata: "MUC",
+          airport_destination_name: "Malpensa",
+        },
+      ],
+    }),
+  };
+  const [ripiego] = letturaAllerte(config, soloCodici, (v) => v, ADESSO);
+  assert.equal(ripiego.voci[0].da, "MUC");
+  assert.equal(ripiego.voci[0].a, "Malpensa");
+
+  /* E la riga della finestra mette la tratta per prima, con un capo solo
+   * quando l'altro non si sa. */
+  const sezione = await leggi("sections/allerte-section.js");
+  assert.match(sezione, /const tratta =/);
+  assert.match(sezione, /\$\{volo\.da\} → \$\{volo\.a\}/);
+  assert.match(sezione, /t\("verso", "to"\)/);
+  assert.match(sezione, /\[volo\.aereo, volo\.targa\]/);
+});
+
+test("gli scioperi e i treni sono due fonti come le altre (#352)", async () => {
+  const config = {
+    scioperi: { entity: "sensor.scioperi_italia" },
+    treni: { entity: "sensor.treno", stazione: "sensor.stazione" },
+  };
+  const oggi = new Date(ADESSO);
+  const states = {
+    "sensor.scioperi_italia": stato("2", {
+      strikes: [
+        {
+          sector: "Trasporto pubblico locale",
+          region: "Lazio",
+          start_date: oggi.toISOString(),
+          in_radius: true,
+        },
+        { sector: "Scuola", region: "Nazionale", start_date: "2026-12-01T00:00:00" },
+      ],
+    }),
+    "sensor.treno": stato("22", { treno: "IC 610", destinazione: "Milano", binario: "7" }),
+    "sensor.stazione": stato("ok", { friendly_name: "Roma Termini" }),
+  };
+  const letture = letturaAllerte(config, states, (v) => v, ADESSO);
+  const per = Object.fromEntries(letture.map((voce) => [voce.chiave, voce]));
+
+  /* Uno sciopero che comincia oggi, e sotto casa: non e' una nota, e' da
+   * saperlo prima di uscire. */
+  assert.equal(per.scioperi.livello, "attenzione");
+  assert.equal(per.scioperi.conteggio, 2);
+  assert.equal(per.scioperi.voci[0].settore, "Trasporto pubblico locale");
+  assert.equal(per.scioperi.voci[0].oggi, true);
+  assert.equal(per.scioperi.voci[1].oggi, false);
+
+  /* Ventidue minuti di ritardo: attenzione. */
+  assert.equal(per.treni.livello, "attenzione");
+  assert.equal(per.treni.ritardo, 22);
+  assert.equal(per.treni.treno, "IC 610");
+  assert.equal(per.treni.binario, "7");
+  assert.equal(per.treni.stazione, "Roma Termini");
+
+  /* In orario e' quiete; soppresso e' allarme, qualunque cosa dica il ritardo. */
+  const inOrario = letturaAllerte(
+    { treni: { entity: "sensor.treno" } },
+    { "sensor.treno": stato("0", { treno: "REG 2411" }) },
+    (v) => v,
+    ADESSO,
+  );
+  assert.equal(inOrario[0].livello, "quiete");
+  const soppresso = letturaAllerte(
+    { treni: { entity: "sensor.treno" } },
+    { "sensor.treno": stato("Soppresso", { treno: "REG 2411" }) },
+    (v) => v,
+    ADESSO,
+  );
+  assert.equal(soppresso[0].livello, "allarme");
+  assert.equal(soppresso[0].soppresso, true);
+
+  /* Senza scioperi in programma la fonte tace. */
+  const nessuno = letturaAllerte(
+    { scioperi: { entity: "sensor.scioperi_italia" } },
+    { "sensor.scioperi_italia": stato("0", { strikes: [] }) },
+    (v) => v,
+    ADESSO,
+  );
+  assert.equal(nessuno[0].livello, "quiete");
+
+  /* E le due fonti hanno le loro parole e le loro caselle. */
+  const sezione = await leggi("sections/allerte-section.js");
+  assert.match(sezione, /nome: t\("Scioperi", "Strikes"\)/);
+  assert.match(sezione, /nome: t\("Treni", "Trains"\)/);
+  assert.match(sezione, /Treno soppresso/);
+  const editor = await leggi("sections/allerte-editor-section.js");
+  assert.match(editor, /Sensore degli scioperi/);
+  assert.match(editor, /Stazione preferita \(facoltativa\)/);
 });

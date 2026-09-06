@@ -31,6 +31,8 @@ import {
   formatNumber,
   installStyle,
   locale,
+  paginaVisibile,
+  quandoSiCambiaPagina,
   readJson,
   root,
   t,
@@ -93,6 +95,16 @@ export function categoriaDelleAllerte(chiave) {
       nome: t("Voli sopra casa", "Flights overhead"),
       quiete: t("Cielo libero", "Clear sky"),
     },
+    scioperi: {
+      icona: "🪧",
+      nome: t("Scioperi", "Strikes"),
+      quiete: t("Nessuno sciopero in vista", "No strike ahead"),
+    },
+    treni: {
+      icona: "🚆",
+      nome: t("Treni", "Trains"),
+      quiete: t("In orario", "On time"),
+    },
   };
   return voci[chiave] || { icona: "•", nome: clean(chiave), quiete: "" };
 }
@@ -109,6 +121,22 @@ export function parolaDelLivello(livello) {
  * e' una frase che uno legge volentieri sul muro di casa. */
 function parolaDelComfort(codice) {
   const voci = {
+    /* Le parole che dicono «c'e' disagio» e prima non venivano lette (#355):
+     * la zona del simmer index, il conto dell'humidex, e il contatto di chi
+     * il sensore se l'e' scritto in casa. */
+    on: t("Disagio termico", "Thermal discomfort"),
+    off: t("Nessun disagio", "No discomfort"),
+    no_discomfort: t("Nessun disagio", "No discomfort"),
+    slightly_uncomfortable: t("Leggero disagio", "Slight discomfort"),
+    some_discomfort: t("Un po' di disagio", "Some discomfort"),
+    great_discomfort: t("Molto disagio", "Great discomfort"),
+    extreme_danger_of_heatstroke: t("Rischio colpo di calore", "Heatstroke danger"),
+    heat_stroke_imminent: t("Pericolo immediato", "Immediate danger"),
+    dangerous: t("Pericoloso", "Dangerous"),
+    hot: t("Caldo", "Hot"),
+    very_hot: t("Molto caldo", "Very hot"),
+    sweltering: t("Caldo soffocante", "Sweltering"),
+    muggy: t("Afoso", "Muggy"),
     dry: t("Aria secca", "Dry air"),
     very_comfortable: t("Molto confortevole", "Very comfortable"),
     comfortable: t("Confortevole", "Comfortable"),
@@ -154,7 +182,10 @@ function oraDi(istante) {
 }
 
 function giornoEOraDi(testo) {
-  const quando = new Date(clean(testo));
+  /* Un istante puo' arrivare come testo (la data del terremoto) o come numero
+   * di millisecondi (l'inizio di uno sciopero, che il modello ha gia' letto):
+   * tutti e due sono un momento, e si scrivono allo stesso modo. */
+  const quando = typeof testo === "number" ? new Date(testo) : new Date(clean(testo));
   if (!Number.isFinite(quando.getTime())) return clean(testo);
   try {
     return quando.toLocaleString(locale(), {
@@ -216,6 +247,27 @@ export function fraseDellAllerta(lettura) {
       return lettura.conteggio === 1
         ? t("1 volo in zona", "1 flight in the area")
         : t(`${lettura.conteggio} voli in zona`, `${lettura.conteggio} flights in the area`);
+    case "scioperi": {
+      if (!lettura.conteggio) return categoria.quiete;
+      /* Uno sciopero che comincia oggi si dice per primo: e' quello che
+       * cambia la giornata di chi legge. */
+      const adesso = (lettura.voci || []).find((voce) => voce.oggi);
+      if (adesso)
+        return adesso.settore
+          ? t(`Oggi sciopero: ${adesso.settore}`, `Strike today: ${adesso.settore}`)
+          : t("Sciopero oggi", "Strike today");
+      return lettura.conteggio === 1
+        ? t("1 sciopero in programma", "1 strike scheduled")
+        : t(`${lettura.conteggio} scioperi in programma`, `${lettura.conteggio} strikes scheduled`);
+    }
+    case "treni":
+      if (lettura.soppresso) return t("Treno soppresso", "Train cancelled");
+      if (lettura.ritardo == null) return categoria.quiete;
+      if (lettura.ritardo <= 0) return categoria.quiete;
+      return t(
+        `${formatNumber(lettura.ritardo, 0)} minuti di ritardo`,
+        `${formatNumber(lettura.ritardo, 0)} minutes late`,
+      );
     default:
       return parolaDelLivello(lettura.livello);
   }
@@ -245,12 +297,48 @@ export function righeDellAllerta(lettura) {
       if (lettura.conteggio != null && lettura.livello === "quiete" && lettura.conteggio > 0)
         metti(t("Contati", "Counted"), formatNumber(lettura.conteggio, 0));
       break;
+    case "scioperi":
+      /* Di ogni sciopero: quando comincia, il settore e dove. Il mezzo e i
+       * sindacati quando l'integrazione li dice. */
+      for (const voce of lettura.voci || []) {
+        const nome = voce.settore || t("Sciopero", "Strike");
+        const dettagli = [
+          voce.oggi ? t("oggi", "today") : voce.inizio ? giornoEOraDi(voce.inizio) : "",
+          voce.zona,
+          voce.mezzo,
+          voce.sindacati,
+        ].filter(Boolean);
+        metti(nome, dettagli.join(" · ") || "—");
+      }
+      break;
+    case "treni":
+      if (lettura.treno) metti(t("Treno", "Train"), lettura.treno);
+      if (lettura.destinazione) metti(t("Destinazione", "Destination"), lettura.destinazione);
+      if (lettura.partenza) metti(t("Partenza", "Departure"), lettura.partenza);
+      if (lettura.stazione) metti(t("Stazione", "Station"), lettura.stazione);
+      if (lettura.orario) metti(t("Orario", "Time"), lettura.orario);
+      if (lettura.binario) metti(t("Binario", "Platform"), lettura.binario);
+      if (lettura.ritardo != null && lettura.ritardo > 0)
+        metti(t("Ritardo", "Delay"), `${formatNumber(lettura.ritardo, 0)} min`);
+      break;
     case "voli":
+      /* Prima la tratta, che e' la cosa che si vuole sapere di un aereo che
+       * passa sopra casa; poi che aereo e', e da ultimo quanto e' alto (#334).
+       * Con un capo solo — succede: l'integrazione non sempre sa da dove
+       * viene — si dice quello, senza freccia verso il nulla. */
       for (const volo of lettura.voci || []) {
         const nome = [volo.numero, volo.compagnia].filter(Boolean).join(" · ");
+        const tratta =
+          volo.da && volo.a
+            ? `${volo.da} → ${volo.a}`
+            : volo.a
+              ? `${t("verso", "to")} ${volo.a}`
+              : volo.da
+                ? `${t("da", "from")} ${volo.da}`
+                : "";
         const dettagli = [
-          volo.aereo,
-          volo.da && volo.a ? `${volo.da} → ${volo.a}` : "",
+          tratta,
+          [volo.aereo, volo.targa].filter(Boolean).join(" "),
           volo.quota != null ? `${formatNumber(volo.quota, 0)} ft` : "",
         ].filter(Boolean);
         if (nome) metti(nome, dettagli.join(" · ") || "—");
@@ -397,6 +485,11 @@ function dipingi() {
   const pagina = ensureAllertePage();
   const dove = pagina?.querySelector?.("#allerte-wrap");
   if (!dove) return;
+  /* Le letture di ogni fonte e la loro impronta in JSON si facevano a ogni
+   * mazzetto di stati, anche a pagina chiusa. Il pallino del livello sulla
+   * voce della barra resta acceso comunque: quello si vede da fuori
+   * (`accendiLaVoce`, che gira prima di questo giro). */
+  if (!paginaVisibile(ALLERTE_PAGE_ID)) return;
   if (!allerteConfigurate()) {
     if (state.firma !== "vuoto") {
       state.firma = "vuoto";
@@ -537,6 +630,7 @@ export function installAllerte() {
     "dashboardmodern:persistence-restored",
   ])
     root.addEventListener?.(evento, schedule);
+  quandoSiCambiaPagina(schedule);
   schedule();
   return true;
 }

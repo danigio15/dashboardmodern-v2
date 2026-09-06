@@ -30,6 +30,11 @@ export function statoUmanoEV(codice) {
   if (voce === "c" || voce === "d" || voce.startsWith("charging"))
     return t("In carica", "Charging");
   if (["e", "f", "error", "fault"].includes(voce)) return t("Errore", "Error");
+  /* «N» e' la lettera in piu' del nucleo (`codiceDellaRicarica`): non sta
+   * caricando, e del cavo nessuno sa niente. Non e' «scollegata» — dirlo
+   * sarebbe inventare — ed e' la parola che la tessera in Home usa al posto
+   * di quella bugia (#348). */
+  if (voce === "n") return t("Non in carica", "Not charging");
   return "";
 }
 

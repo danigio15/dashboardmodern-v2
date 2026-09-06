@@ -811,8 +811,38 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // un'integrazione, e la tendina del target mandava ordini a un sensore. La
   // lettera la decide il nucleo; la sezione la scrive e tiene la tendina
   // onesta, cosi' la vetrina resta sola presentazione.
+  // 262 con gli orari dell'irrigazione (`core/irrigazione-orari.js`): «piu'
+  // momenti di irrigazione, e alle 20:30 solo se il terreno e' asciutto»
+  // (#325). Il conto di quale momento tocca, quanto dura e quanto si puo'
+  // dormire prima del prossimo sta nel nucleo, senza orologio ne' pagina; la
+  // scena dell'irrigazione lo usa e resta l'unico padrone dello schermo.
+  // 261 con «il guscio disegna quando serve»
+  // (`sections/il-guscio-disegna-quando-serve-section.js`): il padrone di
+  // `cdRenderSoon`, della firma della finestra dei dettagli e dei timer del
+  // guscio che un modulo fa gia' — il lavoro fatto senza che nessuno guardi.
+  // 262 con la riga sotto il meteo (`core/come-sta-la-casa.js` e
+  // `sections/come-sta-la-casa-section.js`): «una barra sotto la parte meteo
+  // che mostra le indicazioni principali» (#356) e «animazione quando arriva
+  // Posta attivato da un sensore contact» (#357). Il nucleo dice quali
+  // pastiglie escono dai modelli delle tessere gia' fatti — non rilegge una
+  // sola entita' — e tiene la memoria della cassetta, che e' la parte che si
+  // prova a secco: un'apertura avvenuta mentre nessuno guardava si riconosce
+  // dopo, confrontando due scatti. La sezione scrive le parole, disegna la
+  // riga e la fa configurare dalla scheda Home; il disegno lo chiama il ponte
+  // dei widget, che i modelli li ha appena prodotti, cosi' il giro sugli stati
+  // della casa resta uno solo.
+  // 264 con la riga sotto il meteo e la memoria della cassetta della posta
+  // (`core/come-sta-la-casa.js` + `sections/come-sta-la-casa-section.js`),
+  // che sono due moduli oltre a quello degli orari dell'irrigazione.
+  // 267 con gli animali di casa (#358): `core/animali-model.js` legge le
+  // entita' di ciotola, lettiera, fontanella, porta col microchip e collare e
+  // dice cosa c'e' da sapere adesso — cibo in esaurimento, lettiera da pulire,
+  // filtro a fine corsa — senza toccare il documento ne' l'orologio;
+  // `sections/animali-section.js` disegna la pagina e la sua voce nella barra,
+  // e `sections/animali-editor-section.js` la scheda della configurazione, che
+  // pesca i dispositivi dal menu delle integrazioni gia' in casa.
   assert.ok(
-    relative.length <= 260,
+    relative.length <= 267,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -878,6 +908,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * something actually changed, and the timer stops itself the moment it finds
    * that window shut.
    *
+   * The tenth is «il guscio disegna quando serve», and it is the reverse of
+   * an interval added: it switches OFF eleven of the vendored runtime's own
+   * forever-timers (the shutters every two seconds, the navbar every three,
+   * the camera clocks every second from any page, the auto-hide every
+   * minute…) and keeps only the two that carried real logic, with the same
+   * discipline as the rest — the camera clock beats only while the Security
+   * page is on screen and the tab is visible, the irrigation step only while
+   * a watering sequence is running, and each timer stops itself the moment
+   * that stops being true.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -889,6 +929,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/assistenza-section.js",
       "src/sections/english-runtime-strings-section.js",
       "src/sections/home-widgets-section.js",
+      "src/sections/il-guscio-disegna-quando-serve-section.js",
       "src/sections/live-ui-section.js",
       "src/sections/media-player-section.js",
       "src/sections/people-section.js",
@@ -927,7 +968,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // rimanente (#v-ev-remain-popup): il guscio lo riscrive a ogni giro del suo
   // disegno — non su un evento nostro — e l'ora di fine carica va rimessa
   // appena lui la cancella; non c'e' nessun nome da avvolgere per saperlo.
-  assert.ok(observers.length <= 11, `too many production observers: ${observers.length}`);
+  // Il dodicesimo e' della pagina Clima, e guarda solo la classe di
+  // #page-clima: la pagina si dipinge quando si apre — non piu' a ogni giro
+  // del guscio mentre si guarda la Home — e la classe cambia da tre strade
+  // (la barra, un modulo, una prova), che un nome da avvolgere non hanno.
+  // Il tredicesimo e' del «guscio disegna quando serve», e guarda la classe
+  // di tre pagine (Sicurezza, EV, Irrigazione): sono i suoi orologi e le
+  // particelle della ricarica a dover partire e fermarsi quando quelle pagine
+  // entrano ed escono dallo schermo.
+  assert.ok(observers.length <= 13, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

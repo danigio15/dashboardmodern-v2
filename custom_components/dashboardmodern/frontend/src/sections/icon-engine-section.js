@@ -403,6 +403,100 @@ function actionToken(action = {}) {
   return ACTION_BUILTINS[actionBuiltinKey(action)] || "mdi:star";
 }
 
+/* Il nome mdi non e' un'etichetta.
+ *
+ * Il guscio, in qualche riga della scheda, stampa il valore dell'icona come
+ * testo: accanto al simbolo si leggeva «mdi:lightbulb-group». Si svuotano
+ * quelle caselle — solo quelle che contengono esattamente un nome mdi, o il
+ * valore salvato per quella riga — e mai il nome leggibile, che sta in
+ * `.ed-row-main`: un'azione chiamata come la sua icona deve poter tenere il
+ * suo nome. */
+function nascondiIlNomeMdi(row, token) {
+  row?.querySelectorAll?.("span,div,b,strong,small").forEach((node) => {
+    if (node.children.length) return;
+    if (node.closest?.(".ed-row-main")) return;
+    const text = clean(node.textContent);
+    if (/^mdi:[a-z0-9-]+$/i.test(text) || (token && text === token)) {
+      node.textContent = "";
+      node.classList.add("dm-beta7-hidden-mdi-text");
+    }
+  });
+}
+
+/* Il campo icona della scheda Azioni, dal tasto al valore che si salva.
+ *
+ * La casella `#ed-qa-icon` la stampa il guscio come campo di testo: ci si
+ * scriveva dentro il nome dell'icona a mano. Il tasto che al suo posto apre il
+ * catalogo — `.dm-beta6-qa-icon-trigger` — lo costruiva un altro modulo, che
+ * pero' per aprirlo, per disegnarci dentro il segno e per ridisegnarlo a ogni
+ * battuta chiamava gia' questo motore: chi costruiva il tasto e chi lo faceva
+ * funzionare stavano in due file diversi. Adesso e' uno solo.
+ *
+ * Le due tabelle dicono, per ogni voce della tendina del tipo, che segno e che
+ * nome mdi le competono: servono a rimettere il valore nella forma portatile
+ * (il segno, non `mdi:...`, perche' chi lo stampa altrove lo stampa come testo
+ * nudo) e a cambiare il valore di serie quando si cambia tipo, ma solo se
+ * quello scritto e' ancora quello di serie di prima. */
+const AZIONE_DI_SERIE = Object.freeze({
+  luci_group: { glyph: "💡", mdi: "mdi:lightbulb-group" },
+  builtin_luci: { glyph: "💡", mdi: "mdi:lightbulb-group" },
+  builtin_clima: { glyph: "❄️", mdi: "mdi:snowflake" },
+  builtin_antifurto: { glyph: "🛡️", mdi: "mdi:shield-home" },
+  builtin_lavatrice: { glyph: "🧺", mdi: "mdi:washing-machine" },
+  toggle: { glyph: "🔀", mdi: "mdi:toggle-switch-outline" },
+  script: { glyph: "▶️", mdi: "mdi:script-text-play" },
+  scene: { glyph: "🎬", mdi: "mdi:movie-open" },
+});
+
+const azioneDiSerie = (type) => AZIONE_DI_SERIE[clean(type)] || { glyph: "⭐", mdi: "mdi:star" };
+
+function azionePortatile(value, type) {
+  const token = clean(value);
+  const serie = azioneDiSerie(type);
+  if (!token || token === "⚡") return serie.glyph;
+  if (!token.startsWith("mdi:")) return token;
+  return ACTION_ICON_CATALOG.find((item) => item.mdi === token)?.glyph || serie.glyph;
+}
+
+function decoraRigaFormAzione() {
+  const type = doc?.getElementById?.("ed-qa-type");
+  const input = doc?.getElementById?.("ed-qa-icon");
+  if (!type || !input) return false;
+  const row = input.closest?.(".ed-form-row") || type.closest?.(".ed-form-row");
+  if (!row) return false;
+  // La forma della riga: tipo e icona sopra, nome sotto.
+  row.dataset.dmBeta6QuickAction = "true";
+  row.classList.add("dm-beta7-action-form-row");
+  let trigger = row.querySelector(".dm-beta6-qa-icon-trigger");
+  if (!trigger) {
+    trigger = doc.createElement("button");
+    trigger.type = "button";
+    trigger.className = "dm-beta6-qa-icon-trigger";
+    trigger.setAttribute("aria-label", t("Scegli icona azione", "Choose action icon"));
+    input.insertAdjacentElement("afterend", trigger);
+  }
+  trigger.title = t("Scegli icona", "Choose icon");
+  const serie = azioneDiSerie(type.value);
+  const corrente = clean(input.value);
+  const portatile = azionePortatile(corrente, type.value);
+  if (portatile !== corrente) input.value = portatile;
+  if (!input.dataset.dmBeta7DefaultGlyph) input.dataset.dmBeta7DefaultGlyph = serie.glyph;
+  input.classList.add("dm-beta6-qa-icon-value");
+  if (type.dataset.dmBeta7IconBound !== "true") {
+    type.dataset.dmBeta7IconBound = "true";
+    type.addEventListener("change", () => {
+      const precedente = clean(input.dataset.dmBeta7DefaultGlyph);
+      const prossimo = azioneDiSerie(type.value);
+      const scritto = clean(input.value);
+      if (!scritto || scritto === precedente || scritto === "⚡") input.value = prossimo.glyph;
+      input.dataset.dmBeta7DefaultGlyph = prossimo.glyph;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  renderIconGlyph(trigger, "action", input.value, { size: 32 });
+  return true;
+}
+
 function actionColor(action = {}) {
   return clean(action.color) || ACTION_BUILTIN_COLORS[actionBuiltinKey(action)] || "#0ea5e9";
 }
@@ -465,6 +559,13 @@ export function syncEditorIconSurfaces() {
       target.className = "dm-beta7-existing-action-icon";
       row.prepend(target);
     }
+    /* La riga di un'azione gia' configurata ha quattro colonne — simbolo,
+     * nome, matita, cestino — e la classe e' quello che le accende. La
+     * metteva un altro modulo, che poi ridisegnava anche il simbolo con un
+     * markup diverso da questo: due pitture sullo stesso posto. La forma
+     * della riga viene qui, dove il simbolo si disegna una volta sola. */
+    row.classList.add("dm-beta7-action-row");
+    nascondiIlNomeMdi(row, clean(actions[index]?.icon));
     renderIconGlyph(target, "action", actionToken(actions[index] || {}), { size: 29 });
     changed = true;
   });
@@ -505,12 +606,7 @@ export function syncEditorIconSurfaces() {
     renderIconGlyph(target, "room", room.icon || room.name || "mdi:home", { size: 29 });
     changed = true;
   });
-  const quickInput = doc.getElementById("ed-qa-icon");
-  const quickPreview = doc.querySelector(".dm-beta6-qa-icon-trigger");
-  if (quickInput && quickPreview) {
-    renderIconGlyph(quickPreview, "action", quickInput.value, { size: 32 });
-    changed = true;
-  }
+  if (decoraRigaFormAzione()) changed = true;
   return changed;
 }
 
@@ -650,6 +746,11 @@ function installRenderOwners() {
   wrapAfter("buildQuickActions", "__dmIconEngineQuickActions", syncQuickActionIcons);
   wrapAfter("render", "__dmIconEngineRender", syncQuickActionIcons);
   wrapAfter("editorSwitch", "__dmIconEngineEditor", scheduleEditorIconSurfaces);
+  /* Cambiare tipo o salvare un'azione rifa' la riga e il suo campo icona:
+   * erano due degli agganci del modulo delle regressioni, che di quella riga
+   * scriveva la forma. */
+  wrapAfter("edQaTypeChanged", "__dmIconEngineQaType", scheduleEditorIconSurfaces);
+  wrapAfter("edAddQA", "__dmIconEngineQaSave", scheduleEditorIconSurfaces);
   wrapAfter("confermaAzione", "__dmIconEngineConferma", disegnaIconaDellaConferma);
 }
 
@@ -761,6 +862,105 @@ function installStyles() {
         #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="action"] .dm-picker-option,
         #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="load"] .dm-picker-option{min-height:92px!important;border-radius:14px!important}
       }
+
+      /* ── Da qui in giu': fogli di moduli che se ne sono andati ──────────
+       *
+       * Le regole che seguono stavano in fogli separati, installati DOPO
+       * questo, e alcune vincono contro quelle qui sopra per solo ordine di
+       * cascata — a pari specificita' vince l'ultima. Stanno quindi in fondo,
+       * e nell'ordine in cui quei fogli si installavano: prima le regressioni
+       * della scheda Azioni, poi la faccia dei glifi. Spostarle piu' su
+       * cambierebbe quello che si vede. */
+
+      /* Il campo icona della scheda Azioni: la casella di testo del guscio
+         sparisce e al suo posto si vede il tasto che apre il catalogo. Le
+         misure qui sono quelle di ripiego — dentro #editor-modal le
+         sovrascrivono, per specificita', le tre regole del blocco successivo. */
+      .ed-form-row[data-dm-beta6-quick-action="true"]{display:grid!important;grid-template-columns:minmax(150px,1.25fr) 58px minmax(130px,1fr)!important;gap:8px!important;width:100%!important}
+      .ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-type,.ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-name{width:100%!important;min-width:0!important;margin:0!important}
+      #ed-qa-icon.dm-beta6-qa-icon-value{display:none!important}
+      .dm-beta6-qa-icon-trigger{display:grid!important;place-items:center!important;width:58px!important;min-width:58px!important;max-width:58px!important;min-height:52px!important;margin:0!important;padding:8px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;color:var(--info-color,#0284c7)!important}
+      .dm-beta6-qa-icon-trigger ha-icon,#qa-grid .qa-btn .icon ha-icon{display:inline-flex!important}
+      .dm-beta6-qa-icon-trigger ha-icon{--mdc-icon-size:30px!important}
+      #qa-grid .qa-btn .icon ha-icon{--mdc-icon-size:30px!important}
+      @media(max-width:760px){
+        .ed-form-row[data-dm-beta6-quick-action="true"]{grid-template-columns:minmax(0,1fr) 56px!important}
+        .ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-name{grid-column:1/-1!important}
+        .dm-beta6-qa-icon-trigger{width:56px!important;min-width:56px!important;max-width:56px!important}
+      }
+
+      /* Il nome leggibile sta nella seconda colonna della riga, e la riempie.
+         Senza colonna dichiarata un simbolo gia' presente lo spingeva in una
+         quinta colonna implicita, fuori dal riquadro; senza larghezza esplicita
+         restava alla misura zero che le righe flex del guscio si portano
+         dietro, e il nome di un'azione salvata non arrivava allo schermo. */
+      #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main{
+        grid-column:2!important;
+        grid-row:1!important;
+        justify-self:stretch!important;
+        width:auto!important;
+        min-width:0!important;
+        max-width:100%!important;
+        overflow:hidden!important;
+      }
+      #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main .ed-row-new,
+      #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main .ed-row-old{
+        display:block!important;
+        min-width:0!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+      }
+
+      /* Azioni rapide della Home: il simbolo si vede anche dove l'elemento
+         ha-icon non viene definito, come nella cornice di Home Assistant su
+         Android. */
+      #qa-grid .qa-btn .icon{display:grid!important;place-items:center!important;min-width:54px!important;min-height:54px!important;line-height:1!important;color:var(--accent,#0ea5e9)!important}
+      #qa-grid .qa-btn .dm-action-glyph,.dm-beta7-existing-action-icon .dm-action-glyph,.dm-beta6-qa-icon-trigger .dm-action-glyph{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;line-height:1!important}
+      #qa-grid .qa-btn .dm-action-glyph>span{display:block!important;line-height:1!important}
+
+      /* Riga di un'azione gia' configurata: simbolo, nome, matita, cestino. */
+      #editor-modal .ed-row.dm-beta7-action-row{display:grid!important;grid-template-columns:46px minmax(0,1fr) 42px 42px!important;align-items:center!important;gap:9px!important;min-height:72px!important;padding:10px 12px!important;overflow:hidden!important}
+      #editor-modal .dm-beta7-existing-action-icon{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border-radius:13px!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,var(--card-background-color,#fff))!important;color:var(--accent,#0ea5e9)!important;grid-column:1!important;grid-row:1!important}
+      #editor-modal .dm-beta7-action-row>.dm-beta7-existing-action-icon~:not(.ed-del):not([data-dm-edit-kind]){min-width:0!important}
+      #editor-modal .dm-beta7-action-row [data-dm-edit-kind="action"]{grid-column:3!important;width:42px!important;height:42px!important;margin:0!important}
+      #editor-modal .dm-beta7-action-row .ed-del:not([data-dm-edit-kind]){grid-column:4!important;width:42px!important;height:42px!important;margin:0!important}
+      #editor-modal .dm-beta7-hidden-mdi-text{display:none!important}
+
+      /* Form Azioni: tipo + icona sulla prima riga, nome a tutta larghezza. */
+      #editor-modal .ed-form-row.dm-beta7-action-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 64px!important;grid-template-areas:"type icon" "name name"!important;align-items:stretch!important;gap:10px!important;width:100%!important}
+      #editor-modal .dm-beta7-action-form-row #ed-qa-type{grid-area:type!important;display:block!important;width:100%!important;min-width:0!important;min-height:54px!important;margin:0!important;padding:0 14px!important;font-size:14px!important;color:var(--text,#0f172a)!important;background:var(--card-background-color,var(--card-bg,#fff))!important}
+      #editor-modal .dm-beta7-action-form-row #ed-qa-name{grid-area:name!important;display:block!important;width:100%!important;min-width:0!important;min-height:54px!important;margin:0!important;padding:0 14px!important}
+      #editor-modal .dm-beta7-action-form-row #ed-qa-icon{display:none!important}
+      #editor-modal .dm-beta7-action-form-row .dm-beta6-qa-icon-trigger{grid-area:icon!important;display:grid!important;place-items:center!important;width:64px!important;min-width:64px!important;max-width:64px!important;height:54px!important;min-height:54px!important;margin:0!important;padding:8px!important;border-radius:16px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;color:var(--accent,#0ea5e9)!important;overflow:hidden!important}
+      @media(max-width:760px){
+        #editor-modal .ed-row.dm-beta7-action-row{grid-template-columns:44px minmax(0,1fr) 40px 40px!important;gap:7px!important;padding:9px!important}
+      }
+
+      /* La faccia dei glifi che questo motore stampa: le due classi le scrive
+         glyphClass() qui sopra, e a vestirle era il foglio di beta12. */
+      .dm-beta12-room-glyph,.dm-beta12-action-glyph{
+        display:grid!important;place-items:center!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;
+        font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-style:normal!important;font-weight:400!important;line-height:1!important;
+        visibility:visible!important;opacity:1!important;color:initial!important
+      }
+      .dm-beta12-room-glyph>span,.dm-beta12-action-glyph>span{display:block!important;line-height:1!important;filter:drop-shadow(0 5px 8px rgba(15,23,42,.12))!important}
+      #qa-grid .qa-btn .dm-beta12-action-glyph{font-size:34px!important}
+      #editor-modal .dm-beta7-existing-action-icon .dm-beta12-action-glyph,#editor-modal .dm-beta6-qa-icon-trigger .dm-beta12-action-glyph{font-size:29px!important}
+      #editor-modal .dm-room-list-icon .dm-beta12-room-glyph{font-size:31px!important}
+      .dm-temperature-card-icon .dm-beta12-room-glyph{font-size:29px!important}
+      #dm-visual-picker[data-dm-beta12-colored="true"] .dm-picker-visual{
+        display:grid!important;place-items:center!important;min-height:58px!important;color:initial!important
+      }
+      #dm-visual-picker[data-kind="room"] .dm-picker-visual .dm-beta12-room-glyph,
+      #dm-visual-picker[data-kind="action"] .dm-picker-visual .dm-beta12-action-glyph{font-size:38px!important}
+      #dm-visual-picker[data-dm-beta12-colored="true"] .dm-picker-option{
+        background:linear-gradient(180deg,var(--card-background-color,#fff),color-mix(in srgb,var(--info-color,#0ea5e9) 3%,var(--card-background-color,#fff)))!important
+      }
+      #dm-room-editor-modal [data-room-icon-preview][data-dm-beta12-colored="true"] .dm-beta12-room-glyph,
+      #dm-action-editor-modal [data-action-icon-preview][data-dm-beta12-colored="true"] .dm-beta12-action-glyph{font-size:38px!important}
+      @media(max-width:760px){
+        #dm-visual-picker[data-kind="room"] .dm-picker-visual .dm-beta12-room-glyph,#dm-visual-picker[data-kind="action"] .dm-picker-visual .dm-beta12-action-glyph{font-size:34px!important}
+      }
     `,
   );
 }
@@ -784,12 +984,21 @@ export function installIconEngine() {
   doc.addEventListener(
     "change",
     (event) => {
-      if (event.target?.matches?.("#dm-action-editor-modal input[name='icon'],#dm-room-editor-modal input[name='icon'],#ed-qa-icon")) {
+      if (event.target?.matches?.("#dm-action-editor-modal input[name='icon'],#dm-room-editor-modal input[name='icon'],#ed-qa-icon,#ed-qa-type")) {
         scheduleEditorIconSurfaces();
       }
     },
     true,
   );
+  /* Il corpo della scheda rinasce anche fuori da `editorSwitch`.
+   *
+   * `renderCurrentEditor` lo rifa' a ogni cambio del modello, e i pannelli di
+   * una linguetta possono arrivare nella coda della passata dei contratti:
+   * senza questi due ascolti la forma delle righe azione e il tasto
+   * dell'icona restavano persi fino al gesto successivo. Li teneva il modulo
+   * delle regressioni, che di quelle righe scriveva la forma. */
+  root.addEventListener?.("dashboardmodern:editor-rendered", scheduleEditorIconSurfaces);
+  root.addEventListener?.("dashboardmodern:editor-contracts", scheduleEditorIconSurfaces);
   installLegacyBridge();
   installRenderOwners();
   syncQuickActionIcons();

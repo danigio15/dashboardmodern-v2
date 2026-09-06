@@ -152,6 +152,95 @@ export function createBridgeSocket({
   }
   const permitted = new Set(allowed);
 
+  /* La presa segue la connessione del pannello.
+   *
+   * Il ponte diceva `auth_ok` appena costruito e non chiudeva mai: il pallino
+   * restava verde anche con Home Assistant scollegato, e quando il telefono
+   * tornava dal sonno la plancia teneva gli stati di prima — quelli cambiati
+   * nel frattempo restavano vecchi finche' non cambiavano di nuovo — perche'
+   * nessuno le dava una ragione per richiedere l'istantanea. Una presa vera
+   * cade quando cade la linea, e il guscio sa gia' cosa fare a quel punto:
+   * riapre, richiede `get_states`, si riabbona. Qui si fa la stessa cosa: le
+   * prese aperte cadono quando il pannello perde la connessione, e una presa
+   * costruita mentre la connessione manca si apre quando torna. */
+  const aperte = new Set();
+  const inAttesa = new Set();
+  const collegata = () => connection.connected !== false;
+  connection.addEventListener?.("disconnected", () => {
+    for (const socket of [...aperte]) socket._lineaCaduta();
+  });
+  connection.addEventListener?.("ready", () => {
+    for (const socket of [...inAttesa]) socket._apri();
+  });
+
+  /* Una sottoscrizione per tipo di evento, per tutte le prese.
+   *
+   * Il guscio si abbona a `state_changed` sulla sua presa e il broker dei
+   * moduli sulla sua: due prese, e prima erano due sottoscrizioni sul server —
+   * Home Assistant serializzava e spediva ogni cambio di stato di ogni entita'
+   * due volte alla stessa plancia. Qui il ponte tiene UNA sottoscrizione per
+   * tipo e la distribuisce alle prese che l'hanno chiesta, ognuna col suo id;
+   * si chiude quando l'ultima presa la lascia. */
+  const condivise = new Map();
+  const lasciaLaSottoscrizione = (eventType, ascolto) => {
+    const voce = condivise.get(eventType);
+    if (!voce) return;
+    voce.ascolti.delete(ascolto);
+    if (voce.ascolti.size) return;
+    condivise.delete(eventType);
+    /* Chiudere una sottoscrizione a linea caduta puo' fallire: e' gia' morta. */
+    Promise.resolve()
+      .then(() => voce.unsubscribe?.())
+      .catch(() => {});
+  };
+  const prendiLaSottoscrizione = async (eventType, ascolto) => {
+    let voce = condivise.get(eventType);
+    if (!voce) {
+      voce = { ascolti: new Set(), unsubscribe: null, pronta: null };
+      condivise.set(eventType, voce);
+      voce.pronta = connection
+        .subscribeEvents((event) => {
+          for (const { socket, id } of [...voce.ascolti])
+            socket._deliver({ id, type: "event", event });
+        }, eventType)
+        .then((unsubscribe) => {
+          voce.unsubscribe = unsubscribe;
+        })
+        .catch((error) => {
+          if (condivise.get(eventType) === voce) condivise.delete(eventType);
+          throw error;
+        });
+    }
+    voce.ascolti.add(ascolto);
+    try {
+      await voce.pronta;
+    } catch (error) {
+      voce.ascolti.delete(ascolto);
+      throw error;
+    }
+    return () => lasciaLaSottoscrizione(eventType, ascolto);
+  };
+
+  /* L'istantanea di tutti gli stati, una volta per tutti.
+   *
+   * `get_states` e' la risposta piu' grossa che Home Assistant serializza, e
+   * la chiedono in tanti a pochi secondi di distanza: la presa del guscio
+   * all'avvio, e le prese temporanee del selettore delle entita'. Chi la
+   * chiede mentre e' in viaggio riceve la stessa risposta; chi la chiede
+   * subito dopo la trova ancora buona. */
+  const ISTANTANEA_BUONA_PER_MS = 5000;
+  let istantanea = null;
+  const leggiGliStati = () => {
+    const adesso = Date.now();
+    if (istantanea && adesso - istantanea.da < ISTANTANEA_BUONA_PER_MS) return istantanea.promessa;
+    const promessa = connection.sendMessagePromise({ type: "get_states" }).catch((error) => {
+      if (istantanea?.promessa === promessa) istantanea = null;
+      throw error;
+    });
+    istantanea = { da: adesso, promessa };
+    return promessa;
+  };
+
   return class BridgeSocket {
     /* Le costanti del WebSocket vero, sulla classe.
      *
@@ -167,7 +256,7 @@ export function createBridgeSocket({
     static CLOSED = CLOSED;
 
     constructor() {
-      this.readyState = OPEN;
+      this.readyState = collegata() ? OPEN : 0;
       this.onmessage = null;
       this.onopen = null;
       this.onclose = null;
@@ -176,12 +265,26 @@ export function createBridgeSocket({
 
       // The hosted bootstrap waits for auth_ok before it does anything. There
       // is nothing to authenticate — the parent connection already is — so the
-      // handshake is completed immediately and the auth message it would send
-      // is discarded.
-      queueMicrotask(() => {
-        this.onopen?.({});
-        this._deliver({ type: "auth_ok" });
-      });
+      // handshake is completed as soon as that connection is up and the auth
+      // message it would send is discarded.
+      if (collegata()) queueMicrotask(() => this._apri());
+      else inAttesa.add(this);
+    }
+
+    _apri() {
+      inAttesa.delete(this);
+      if (this.readyState === CLOSED) return;
+      this.readyState = OPEN;
+      aperte.add(this);
+      this.onopen?.({});
+      this._deliver({ type: "auth_ok" });
+    }
+
+    _lineaCaduta() {
+      this._lasciaTutto();
+      aperte.delete(this);
+      this.readyState = CLOSED;
+      this.onclose?.({ code: 1006, reason: "Home Assistant connection lost" });
     }
 
     _deliver(payload) {
@@ -243,7 +346,12 @@ export function createBridgeSocket({
 
       try {
         const { id: _ignored, ...payload } = message;
-        this._reply(id, await connection.sendMessagePromise(payload));
+        this._reply(
+          id,
+          type === "get_states"
+            ? await leggiGliStati()
+            : await connection.sendMessagePromise(payload),
+        );
       } catch (error) {
         this._fail(id, error?.code || "bridge_error", error?.message || String(error));
       }
@@ -252,15 +360,23 @@ export function createBridgeSocket({
     async _subscribe(message) {
       const { id, event_type: eventType } = message;
       try {
-        const unsubscribe = await connection.subscribeEvents(
-          (event) => this._deliver({ id, type: "event", event }),
-          eventType,
-        );
-        this._subscriptions.set(id, unsubscribe);
+        const lascia = await prendiLaSottoscrizione(eventType, { socket: this, id });
+        this._subscriptions.set(id, lascia);
         this._reply(id, null);
       } catch (error) {
         this._fail(id, "subscribe_failed", error?.message || String(error));
       }
+    }
+
+    /* Le sottoscrizioni di questa presa, lasciate tutte: alla chiusura e
+     * alla caduta della linea. */
+    _lasciaTutto() {
+      for (const lascia of this._subscriptions.values()) {
+        Promise.resolve()
+          .then(() => lascia())
+          .catch(() => {});
+      }
+      this._subscriptions.clear();
     }
 
     /* Una sottoscrizione a un comando: la risposta e' `success` e poi gli
@@ -298,8 +414,9 @@ export function createBridgeSocket({
     close() {
       // Subscriptions outlive the socket unless they are released here, and a
       // hosted document that reloads would otherwise leak one per reload.
-      for (const unsubscribe of this._subscriptions.values()) unsubscribe();
-      this._subscriptions.clear();
+      this._lasciaTutto();
+      aperte.delete(this);
+      inAttesa.delete(this);
       this.readyState = CLOSED;
       this.onclose?.({});
     }

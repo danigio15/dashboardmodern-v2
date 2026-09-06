@@ -148,6 +148,17 @@ export function legaLAutoAlDispositivo({ entities = [], states = {} } = {}) {
     "dm.ev_batteria_servizio",
     (voce) => percentuale(voce) && PAROLE.batteriaServizio.test(parole(voce, states)),
   );
+  /* Oppure in volt: meta' delle integrazioni pubblica la batteria da 12 V
+   * come tensione, non come livello (#348). Si prende solo se parla di
+   * batteria di servizio — una tensione qualunque e' della colonnina o della
+   * rete — e la casella sa mostrare i volt per quello che sono, senza farne
+   * una percentuale. */
+  prendi(
+    "dm.ev_batteria_servizio",
+    (voce) =>
+      (conClasse("voltage")(voce) || /^m?v$/i.test(unita(voce, states))) &&
+      PAROLE.batteriaServizio.test(parole(voce, states)),
+  );
   prendi("dm.ev_batteria_auto", (voce) => conClasse("battery")(voce) && dominio(voce) === "sensor");
   /* «Target SoC» parla di SoC ma non e' la batteria: e' il traguardo della
    * ricarica, e ha la sua casella piu' sotto. */

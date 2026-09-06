@@ -1,39 +1,31 @@
-/* «Sostieni il progetto», dentro la configurazione.
+/* «Sostieni il progetto», nella pagina Configurazione.
  *
  * «Nella dashboard nella sezione config possiamo mettere un tag con link
  * donazioni?» Il progetto e' indipendente e vive di tempo libero: il README
  * lo dice in fondo, con il tasto PayPal, ma chi usa la plancia il README non
- * lo riapre. La configurazione e' il posto dove uno passa quando gli serve
- * qualcosa dal progetto — una casella nuova, una correzione — ed e' dove il
- * grazie ha senso: una pastiglia in fondo alla colonna delle schede, che si
- * vede da ogni scheda, e una card in «Impostazioni» con due righe di perche'.
+ * lo riapre.
+ *
+ * Stava dentro l'editor delle entita': una pastiglia in fondo alla colonna
+ * delle linguette e una card nella scheda Impostazioni. Ma li' ci si va per
+ * lavorare — si apre, si configura, si chiude — e un grazie in mezzo alle
+ * caselle e' fuori posto. «Mi sposti il pulsante donazioni qua sotto ad
+ * assistenza invece che dentro configurazione»: adesso e' una tessera della
+ * pagina Configurazione, l'ultima, sotto Segnalazioni e Assistenza — le due
+ * porte che parlano col progetto, non con la casa. Una sola, dove le altre.
  *
  * Il collegamento e' UNO, lo stesso del README e di FUNDING.yml, e si apre in
  * una scheda nuova: la plancia vive in un riquadro dentro Home Assistant, e
  * navigare via da li' vorrebbe dire perdere la plancia.
  */
-import { clean, doc, esc, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
+import { doc, esc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SOSTIENI__";
 const state = (root[KEY] ||= { installed: false });
 
 /** Il solo canale, quello del README. */
 export const LINK_DONAZIONI = "https://www.paypal.com/paypalme/giovannidaniello15";
-const SCHEDA_IMPOSTAZIONI = "visib";
-
-function schedaAttiva() {
-  return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
-}
-
 function linkMarkup(classe, testo) {
   return `<a class="${classe}" href="${LINK_DONAZIONI}" target="_blank" rel="noopener noreferrer" data-dm-sostieni>${testo}</a>`;
-}
-
-/* La porta: un tasto che apre la finestra, non il collegamento nudo. «Non
- * rimandare direttamente a PayPal: mostra una pagina che spiega il progetto e
- * poi un pulsante». Chi tocca «Sostieni» prima legge, poi decide. */
-function portaMarkup(classe, testo) {
-  return `<button type="button" class="${classe}" data-dm-sostieni-apri>${testo}</button>`;
 }
 
 /* ─── La finestra che racconta ──────────────────────────────────────────── */
@@ -101,35 +93,43 @@ export function chiudi() {
   doc?.getElementById?.(FINESTRA_ID)?.classList.remove("show");
 }
 
-/* La pastiglia in fondo alla colonna delle schede: c'e' da ogni scheda. */
-export function ensurePastiglia() {
-  const linguette = doc?.querySelector?.(".ed-tab")?.parentElement;
-  if (!linguette) return false;
-  if (linguette.querySelector(".dm-sostieni-pastiglia")) return true;
-  const guscio = doc.createElement("div");
-  guscio.innerHTML = portaMarkup(
-    "dm-sostieni-pastiglia",
-    `<span aria-hidden="true">💙</span><span>${esc(t("Sostieni il progetto", "Support the project"))}</span>`,
-  );
-  const pastiglia = guscio.firstElementChild;
-  if (!pastiglia) return false;
-  linguette.append(pastiglia);
-  return true;
+/* La tessera della pagina Configurazione, dove stanno le altre.
+ *
+ * Stessa veste di Segnalazioni e Assistenza — icona, nome, una riga di
+ * spiegazione, la freccina — perche' fa la stessa cosa: apre una finestra.
+ * Chi disegna quelle due tessere le aggiunge in coda alla griglia quando
+ * arriva; questa si rimette in fondo a ogni giro, cosi' resta l'ultima anche
+ * se una delle altre nasce dopo di lei. */
+const TESSERA_ID = "dm-sostieni-card";
+
+function tesseraMarkup() {
+  return `<div class="cfg-card-ico" style="--cc-rgb: 59,130,246;">💙</div>
+    <div class="cfg-card-txt">
+      <div class="cfg-card-nm">${esc(t("Sostieni il progetto", "Support the project"))}</div>
+      <div class="cfg-card-ds">${esc(
+        t(
+          "La plancia è indipendente e senza abbonamenti: qui c'è come darle una mano",
+          "The dashboard is independent and subscription-free: here is how to give it a hand",
+        ),
+      )}</div>
+    </div>
+    <div class="cfg-card-arrow">›</div>`;
 }
 
-/* La card in «Impostazioni»: il perche', in due righe, e il tasto. */
-export function ensureCard() {
-  const corpo = doc?.getElementById?.("ed-body");
-  if (!corpo || schedaAttiva() !== SCHEDA_IMPOSTAZIONI) return false;
-  if (corpo.querySelector(".dm-sostieni-card")) return true;
-  const card = doc.createElement("section");
-  card.className = "ed-list dm-sostieni-card";
-  card.innerHTML = `<div class="dm-sostieni-testo">
-      <strong>💙 ${esc(t("Sostieni il progetto", "Support the project"))}</strong>
-      <p>${esc(TESTO_DEL_PERCHE())}</p>
-    </div>
-    ${portaMarkup("dm-sostieni-tasto", `<span aria-hidden="true">💙</span><span>${esc(t("Scopri come", "Find out how"))}</span>`)}`;
-  corpo.append(card);
+export function ensureTessera() {
+  const griglia = doc?.querySelector?.("#page-config .cfg-grid");
+  if (!griglia) return false;
+  let tessera = doc.getElementById(TESSERA_ID);
+  if (!tessera) {
+    tessera = doc.createElement("div");
+    tessera.className = "cfg-card dm-sostieni-tessera";
+    tessera.id = TESSERA_ID;
+    tessera.dataset.dmSostieniApri = "true";
+  }
+  // In fondo, sempre: le altre tessere si aggiungono in coda quando arrivano.
+  if (griglia.lastElementChild !== tessera) griglia.append(tessera);
+  const disegno = tesseraMarkup();
+  if (tessera.innerHTML !== disegno) tessera.innerHTML = disegno;
   return true;
 }
 
@@ -137,16 +137,8 @@ function installStyles() {
   installStyle(
     "dm-sostieni-style",
     `
-    /* Sta in una colonna larga quanto una linguetta: il testo va a capo e sta
-       al centro, invece di uscire dalla pillola. Sul telefono in piedi la
-       colonna e' un simbolo solo, e resta solo il cuore. */
-    #editor-modal .dm-sostieni-pastiglia{
-      display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 4px 8px;padding:8px 10px;
-      border-radius:14px;min-width:0;font-size:11px;font-weight:900;letter-spacing:.02em;line-height:1.2;
-      text-align:center;text-decoration:none;color:#fff;background:linear-gradient(135deg,#0070ba,#003087);
-      box-shadow:0 6px 16px rgba(0,48,135,.28);flex:0 0 auto;white-space:normal;overflow-wrap:anywhere}
-    #editor-modal .dm-sostieni-pastiglia:hover{filter:brightness(1.06)}
-    #editor-modal .dm-sostieni-pastiglia,#ed-body .dm-sostieni-tasto{border:0;cursor:pointer;font:inherit}
+    /* La tessera la veste il guscio, come Segnalazioni e Assistenza: qui resta
+       solo la finestra che si apre toccandola. */
     #dm-sostieni-modal .dm-sostieni-pannello{max-width:560px}
     #dm-sostieni-modal .dm-sostieni-corpo{padding:18px 22px 22px}
     #dm-sostieni-modal .dm-sostieni-corpo p{margin:0 0 12px;font-size:13.5px;line-height:1.6;color:var(--text,#0f172a)}
@@ -156,23 +148,6 @@ function installStyles() {
       display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;text-decoration:none;
       font-size:13.5px;font-weight:900;color:#fff;background:linear-gradient(135deg,#0070ba,#003087);
       box-shadow:0 8px 20px rgba(0,48,135,.28)}
-    #editor-modal .dm-sostieni-pastiglia span[aria-hidden]{font-size:13px;flex:0 0 auto}
-    @media (orientation: portrait) and (max-width: 640px){
-      #editor-modal .dm-sostieni-pastiglia{padding:9px 0;margin:8px 2px;gap:0}
-      #editor-modal .dm-sostieni-pastiglia span:not([aria-hidden]){display:none}
-    }
-    #ed-body .dm-sostieni-card{
-      display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
-      margin:18px 0 6px;padding:14px 16px;border-radius:18px;
-      border:1px solid rgba(0,112,186,.25);background:linear-gradient(135deg,rgba(0,112,186,.08),rgba(0,48,135,.04))}
-    #ed-body .dm-sostieni-testo{flex:1 1 260px;min-width:0}
-    #ed-body .dm-sostieni-testo strong{display:block;font-size:13px;font-weight:900;color:var(--text,#0f172a);margin-bottom:4px}
-    #ed-body .dm-sostieni-testo p{margin:0;font-size:12px;line-height:1.5;color:var(--text-dim,#64748b)}
-    #ed-body .dm-sostieni-tasto{
-      display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;text-decoration:none;
-      font-size:12.5px;font-weight:900;color:#fff;background:linear-gradient(135deg,#0070ba,#003087);
-      box-shadow:0 8px 20px rgba(0,48,135,.28);flex:0 0 auto}
-    #ed-body .dm-sostieni-tasto:hover{filter:brightness(1.06)}
     `,
   );
 }
@@ -181,23 +156,26 @@ export function installSostieniIlProgetto() {
   if (!doc || state.installed) return false;
   state.installed = true;
   installStyles();
-  const metti = () => {
-    ensurePastiglia();
-    ensureCard();
-  };
-  wrapFunction("apriConfigEntita", "__dmSostieni", metti);
-  onEditorRedraw("__dmSostieni", () => root.queueMicrotask?.(metti));
-  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:editor-rendered"])
-    root.addEventListener?.(evento, () => root.queueMicrotask?.(metti));
-  /* La porta si apre da qualunque tasto porti il suo segno: la pastiglia
-   * nella colonna e il tasto nella card di Impostazioni. */
+  /* La pagina Configurazione c'e' dall'inizio nel documento, ma la griglia la
+   * riempie il runtime: si riprova quando arriva, e quando la si apre. */
+  for (const evento of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:states-ready",
+  ])
+    root.addEventListener?.(evento, () => root.queueMicrotask?.(ensureTessera));
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.('[data-tab="config"]')) root.setTimeout?.(ensureTessera, 0);
+  });
+  /* La porta si apre da qualunque cosa porti il suo segno: la tessera, e i
+   * tasti dentro la finestra. */
   doc.addEventListener("click", (event) => {
     if (event.target?.closest?.("[data-dm-sostieni-apri]")) {
       event.preventDefault();
       apri();
     }
   });
-  metti();
+  ensureTessera();
   root.DashboardModernSostieni = Object.freeze({ apri, chiudi });
   return true;
 }

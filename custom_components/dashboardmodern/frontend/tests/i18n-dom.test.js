@@ -266,3 +266,49 @@ test("whitespace-only and unknown text are left exactly as they were", async () 
     ["   ", "sensor.washer_power", "42 kWh"],
   );
 });
+
+/* Le pagine e le finestre che nessuno vede non si camminano.
+ *
+ * Il guscio tiene nel documento tutte e nove le pagine e tutte le finestre, e
+ * le nasconde con una classe: otto pagine e dodici finestre stanno sempre li',
+ * e sono la maggior parte dei nodi. Questa passata gira a ogni mazzetto di
+ * stati e a ogni clic — su una plancia in giapponese era tutto il documento,
+ * due volte al secondo, per parole che nessuno stava leggendo.
+ */
+function elementoConClassi(tagName, classi, children) {
+  const nodo = element(tagName, { children });
+  nodo.matches = (selettore) =>
+    selettore.split(",").some((voce) => {
+      const pulita = voce.trim();
+      if (pulita === ".page:not(.active)")
+        return classi.includes("page") && !classi.includes("active");
+      if (pulita === ".modal-wrapper:not(.show)")
+        return classi.includes("modal-wrapper") && !classi.includes("show");
+      if (pulita === ".clima-popup-overlay:not(.show)")
+        return classi.includes("clima-popup-overlay") && !classi.includes("show");
+      return false;
+    });
+  return nodo;
+}
+
+test("una pagina chiusa e una finestra chiusa non si traducono", async () => {
+  registerCatalog("de", { Appliances: "Geräte" });
+  await setLocale("de", { persist: false, apply: false });
+
+  const aperta = elementoConClassi("SECTION", ["page", "active"], [text("Elettrodomestici")]);
+  const chiusa = elementoConClassi("SECTION", ["page"], [text("Elettrodomestici")]);
+  const finestra = elementoConClassi("DIV", ["modal-wrapper"], [text("Elettrodomestici")]);
+  const radice = element("BODY", { children: [aperta, chiusa, finestra] });
+  documentFor(radice);
+
+  assert.equal(translateTree(radice), 1, "si traduce solo quello che si vede");
+  assert.equal(textNodesOf(aperta)[0].nodeValue, "Geräte");
+  assert.equal(textNodesOf(chiusa)[0].nodeValue, "Elettrodomestici");
+  assert.equal(textNodesOf(finestra)[0].nodeValue, "Elettrodomestici");
+
+  /* E quando la pagina si apre — un tocco sulla linguetta, che e' gia' fra le
+   * cose che fanno ripassare — la si traduce allora, prima che si dipinga. */
+  chiusa.matches = () => false;
+  assert.equal(translateTree(radice), 1);
+  assert.equal(textNodesOf(chiusa)[0].nodeValue, "Geräte");
+});

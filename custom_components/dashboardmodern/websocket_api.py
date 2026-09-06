@@ -32,6 +32,7 @@ permesso, non uno piu' debole.
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -346,6 +347,19 @@ async def async_list_www(
     connection.send_result(msg["id"], result)
 
 
+def _salva_foto(root: str, filename: str, data: str) -> dict[str, Any] | None:
+    """Decodifica la foto e la scrive. Gira nell'executor, non nel loop.
+
+    Il base64 di una foto da dieci megabyte sono tredici megabyte di testo, e
+    decodificarli nel loop fermava tutta la casa per il tempo della
+    decodifica — che non ha niente di asincrono. Sta qui insieme alla
+    scrittura, che nell'executor c'era gia'. Un base64 malformato solleva
+    ``ValueError``, e il chiamante lo traduce in un errore parlante.
+    """
+    payload = base64.b64decode(data, validate=True)
+    return save_www_upload(root, filename, payload)
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): TYPE_WWW_UPLOAD,
@@ -370,16 +384,13 @@ async def async_upload_www(
     if not _authorized(hass, connection, None):
         _deny(connection, msg)
         return
-    import base64
-
     try:
-        payload = base64.b64decode(msg["data"], validate=True)
+        result = await hass.async_add_executor_job(
+            _salva_foto, hass.config.path("www"), msg["filename"], msg["data"]
+        )
     except (ValueError, TypeError):
         connection.send_error(msg["id"], "invalid_data", "La foto non e' leggibile.")
         return
-    result = await hass.async_add_executor_job(
-        save_www_upload, hass.config.path("www"), msg["filename"], payload
-    )
     if result is None:
         connection.send_error(
             msg["id"],
@@ -418,7 +429,10 @@ async def async_integrations_catalog(
 
     Legge e basta, e chiede lo stesso permesso di chi puo' usare una plancia:
     e' la stessa cosa che `config/device_registry/list` dice a chiunque sia
-    autenticato, rimessa nella forma di un menu.
+    autenticato, rimessa nella forma di un menu. Con `device_ids` la risposta
+    porta solo le entita' di quei dispositivi — fino a duecento in una
+    chiamata sola, ed e' cosi' che la plancia le chiede per tutti i suoi
+    elettrodomestici insieme.
     """
     if not _authorized(hass, connection, None):
         _deny(connection, msg)

@@ -17,11 +17,13 @@
  * comportamento di chi non ha mai toccato niente.
  */
 import {
+  LOCALE_LEGACY_KEY,
   LOCALE_STORAGE_KEY,
   detectLocale,
   getLocale,
   hostLocale,
   localeInfo,
+  readStoredLocale,
   resetLocale,
   setLocale,
   supportedLocales,
@@ -47,12 +49,28 @@ function schedaAttiva() {
   return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
 }
 
-/** La scelta salvata, se c'e': altrimenti si segue Home Assistant. */
+/** La scelta salvata, se c'e': altrimenti si segue Home Assistant.
+ *
+ * La legge il motore, che sa anche dove stava prima (#350): chiedere qui la
+ * chiave a mano voleva dire una tendina che dice «Lingua di Home Assistant»
+ * mentre la plancia parla italiano, perche' la scelta era scritta di la'. */
 export function linguaScelta() {
   try {
-    return clean(root.localStorage?.getItem?.(LOCALE_STORAGE_KEY)) || AUTO;
+    return clean(readStoredLocale()) || AUTO;
   } catch (_error) {
     return AUTO;
+  }
+}
+
+/* Tornare all'automatico vuol dire cancellare la scelta, e la scelta puo'
+ * essere scritta in due posti finche' esistono plance che non hanno ancora
+ * fatto il travaso: si tolgono tutti e due, o quella vecchia la riporterebbe
+ * in vita al prossimo giro. */
+function dimenticaLaScelta() {
+  for (const chiave of [LOCALE_STORAGE_KEY, LOCALE_LEGACY_KEY]) {
+    try {
+      root.localStorage?.removeItem?.(chiave);
+    } catch (_error) {}
   }
 }
 
@@ -135,9 +153,7 @@ function installStile() {
  * ridisegna da solo sull'evento della lingua. */
 async function scegli(codice) {
   if (codice === AUTO) {
-    try {
-      root.localStorage?.removeItem?.(LOCALE_STORAGE_KEY);
-    } catch (_error) {}
+    dimenticaLaScelta();
     resetLocale();
   }
   /* Si passa dallo switch pubblico, non da `setLocale` diretto.
@@ -158,11 +174,7 @@ async function scegli(codice) {
   else await setLocale(bersaglio, { persist: codice !== AUTO });
   /* Chi ha scelto l'automatico non deve ritrovarsi la scelta riscritta: lo
    * switch pubblico persiste sempre, quindi la si ricancella dopo. */
-  if (codice === AUTO) {
-    try {
-      root.localStorage?.removeItem?.(LOCALE_STORAGE_KEY);
-    } catch (_error) {}
-  }
+  if (codice === AUTO) dimenticaLaScelta();
   try {
     root.render?.();
   } catch (_error) {}

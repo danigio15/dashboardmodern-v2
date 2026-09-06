@@ -589,7 +589,9 @@ function wrapOpener(name) {
 }
 
 function bindOpeners() {
-  for (const name of ["apriSubLoads", "openSubLoads", "renderSubLoads"]) wrapOpener(name);
+  /* `openSubLoads` non esiste in nessun guscio: la finestra la aprono
+   * `apriSubLoads` e la ridisegna `renderSubLoads`, che ci sono entrambe. */
+  for (const name of ["apriSubLoads", "renderSubLoads"]) wrapOpener(name);
 }
 
 /* La finestra e' aperta e in scena? Il ridisegno di una finestra chiusa e'

@@ -101,6 +101,10 @@ export const MAGAZZINO_DELLE_SEZIONI = Object.freeze({
   luci: Object.freeze({ chiavi: ["cd_luci"] }),
   prese: Object.freeze({ chiavi: ["cd_prese"], righe: rigaQualsiasi }),
   robot: Object.freeze({ chiavi: ["cd_robot"], righe: rigaQualsiasi }),
+  /* Gli animali (#358): una riga qualsiasi basta, perche' un animale puo'
+   * vivere di solo nome e foto — la ciotola e la lettiera arrivano dopo, e la
+   * sua scheda esiste gia' prima. */
+  animali: Object.freeze({ chiavi: ["cd_animali"], righe: rigaQualsiasi }),
 });
 
 /** Le sezioni su cui questa regola ha voce in capitolo. */

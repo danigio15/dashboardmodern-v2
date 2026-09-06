@@ -20,6 +20,7 @@
  * anche per chi questo file non lo esegue affatto.
  */
 
+import { ALTRO, partiDellaSezione, parteValida, sezioniOfferte } from "../core/dove-succede.js";
 import { clean, doc, esc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SEGNALAZIONI__";
@@ -68,7 +69,7 @@ const state = (root[KEY] ||= {
   /* Quello che si sta scrivendo. Sta qui e non solo nel DOM perche' ogni
    * ridisegno rifa' il modulo da capo: senza, cambiare tipo a meta' frase
    * cancellava la frase. */
-  bozza: { title: "", body: "" },
+  bozza: { title: "", body: "", sezione: "", funzione: "" },
   busy: false,
   avviso: "",
   config: null,
@@ -116,6 +117,11 @@ export const DIAGNOSTIC_KEYS = Object.freeze([
   "ha_version",
   "locale",
   "panel_section",
+  /* Dove succede, scelto a mano dalle due tendine: la sezione e la parte. E'
+   * la cosa piu' utile che una segnalazione porti, e nessuno la sa meglio di
+   * chi la scrive. */
+  "sezione",
+  "funzione",
   "user_agent",
 ]);
 
@@ -259,6 +265,14 @@ function versioneIntegrazione() {
   return clean(info?.integrationVersion || info?.dashboardVersion || "");
 }
 
+/** Il nome della sezione com'e' scritto nella barra, o niente. */
+function nomeDellaSezione(id) {
+  const scelta = clean(id);
+  if (!scelta) return "";
+  const voce = sezioniDellaBarra().find((riga) => riga.id === scelta);
+  return voce ? voce.nome : scelta;
+}
+
 function paginaAttiva() {
   const attiva = doc?.querySelector?.(".page.active");
   return clean(attiva?.id || "").replace(/^page-/, "");
@@ -268,11 +282,16 @@ async function diagnostica() {
   /* La lista e' chiusa anche qui, e coincide con quella del backend. Se una
    * delle due cambia, quella che conta e' l'altra: il backend butta via
    * qualunque chiave non abbia dichiarato. */
+  const sezione = clean(state.bozza.sezione);
   const raccolta = {
     integration_version: versioneIntegrazione(),
     ha_version: await haVersion(),
     locale: clean(doc?.documentElement?.lang),
     panel_section: paginaAttiva(),
+    /* Le parole, non gli identificativi: la segnalazione la legge una persona,
+     * e «Energia» si capisce dove `energia` va tradotto a mente. */
+    sezione: nomeDellaSezione(sezione),
+    funzione: state.bozza.funzione ? nomeDellaParte(state.bozza.funzione) : "",
     user_agent: clean(root.navigator?.userAgent).slice(0, 190),
   };
   return Object.fromEntries(
@@ -491,13 +510,22 @@ const CSS = `
 /* I campi. */
 .dm-tkt-campo { display:flex; flex-direction:column; gap:6px; }
 .dm-tkt-campo label { font-size:12px; font-weight:700; color:var(--text-dim,#64748b); }
-.dm-tkt-campo input, .dm-tkt-campo textarea { width:100%; box-sizing:border-box;
+.dm-tkt-campo input, .dm-tkt-campo textarea, .dm-tkt-campo select { width:100%; box-sizing:border-box;
   padding:11px 13px; border-radius:13px; border:1px solid var(--card-border,#e2e8f0);
   background:var(--card-bg,#fff); color:var(--text,#0f172a); font-size:14px;
   font-family:inherit; }
-.dm-tkt-campo input:focus, .dm-tkt-campo textarea:focus { outline:none;
+.dm-tkt-campo input:focus, .dm-tkt-campo textarea:focus, .dm-tkt-campo select:focus { outline:none;
   border-color:var(--accent,#0ea5e9);
   box-shadow:0 0 0 3px rgba(var(--accent-rgb,14,165,233),0.18); }
+/* Le due tendine stanno affiancate dove c'e' posto e una sotto l'altra sul
+   telefono: due caselle strette con dentro «Un comando che non risponde» non
+   si leggono. */
+.dm-tkt-dove { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }
+.dm-tkt-campo select { cursor:pointer; appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--text-dim,#64748b) 50%),
+    linear-gradient(135deg,var(--text-dim,#64748b) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size:5px 5px, 5px 5px; background-repeat:no-repeat; padding-right:34px; }
 .dm-tkt-campo textarea { min-height:120px; resize:vertical; line-height:1.5; }
 .dm-tkt-conta { font-size:11px; color:var(--text-dim,#64748b); text-align:right; }
 
@@ -992,7 +1020,8 @@ function moduloMarkup() {
     ${nonConfigurato}
     <div class="dm-tkt-passo">${esc(t("1 · Di che si tratta", "1 · What is it about"))}</div>
     <div class="dm-tkt-tipi">${tipi}</div>
-    <div class="dm-tkt-passo">${esc(t("2 · Raccontalo", "2 · Tell it"))}</div>
+    ${tendineMarkup()}
+    <div class="dm-tkt-passo">${esc(t("3 · Raccontalo", "3 · Tell it"))}</div>
     <div class="dm-tkt-campo">
       <label for="dm-tkt-campo-titolo">${esc(t("Titolo", "Title"))}</label>
       <input id="dm-tkt-campo-titolo" type="text" maxlength="${MAX_TITOLO}"
@@ -1005,7 +1034,7 @@ function moduloMarkup() {
         placeholder="${esc(scelto.corpo())}">${esc(state.bozza.body)}</textarea>
       <div class="dm-tkt-conta" data-dm-tkt="conta">${state.bozza.body.length} / ${MAX_CORPO}</div>
     </div>
-    <div class="dm-tkt-passo">${esc(t("3 · Cosa parte", "3 · What gets sent"))}</div>
+    <div class="dm-tkt-passo">${esc(t("4 · Cosa parte", "4 · What gets sent"))}</div>
     <details class="dm-tkt-diag">
       <summary>${esc(
         t("Le cose che la plancia sa gia'", "The things the dashboard already knows"),
@@ -1034,6 +1063,124 @@ function moduloMarkup() {
       <button type="button" class="dm-tkt-btn" data-dm-tkt="invia" ${
         state.busy ? "disabled" : ""
       }>${esc(state.busy ? t("Invio…", "Sending…") : t("Invia", "Send"))}</button>
+    </div>`;
+}
+
+/* ─── Dove succede: le due tendine ─────────────────────────────────────────
+ *
+ * «Un menu a tendina che seleziona quale sezione della dashboard e' incriminata
+ * e quale funzione, cosi' e' piu' diretta la segnalazione.»
+ *
+ * Le sezioni sono quelle che la persona ha davvero nella barra, coi nomi che
+ * legge lei: si leggono da li' invece di riscriverle: una lista a mano
+ * direbbe «Piscina» a chi la piscina non ce l'ha, e si scorderebbe la prima
+ * sezione nuova. La pagina da cui si e' aperta la segnalazione si propone da
+ * sola — nove volte su dieci il guaio e' li' — e resta cambiabile.
+ *
+ * Le due voci scelte viaggiano nella diagnostica, che e' il posto delle cose
+ * che la plancia sa: cosi' finiscono in cima alla segnalazione senza mischiarsi
+ * a quello che ha scritto la persona. */
+function nomeDellaParte(id) {
+  const voci = {
+    dati: t("I dati che mostra", "The data it shows"),
+    disegno: t("Com'è disegnata", "How it looks"),
+    comando: t("Un comando che non risponde", "A control that does not respond"),
+    configurazione: t("La sua configurazione", "Its settings"),
+    lentezza: t("È lenta o scalda la macchina", "It is slow or it heats the machine"),
+    tessere: t("Le tessere", "The widgets"),
+    persone: t("Le persone", "The people"),
+    azioni: t("Le azioni rapide", "The quick actions"),
+    meteo: t("Il meteo e il radar", "The weather and the radar"),
+    flussi: t("I flussi e le bolle", "The flows and the bubbles"),
+    report: t("Il report e i periodi", "The report and the periods"),
+    carichi: t("I carichi", "The loads"),
+    costi: t("I costi e le tariffe", "The costs and the tariffs"),
+    foto: t("La foto dell'auto", "The car photo"),
+    ricarica: t("La ricarica e il target", "The charge and the target"),
+    colonnina: t("La colonnina e evcc", "The wallbox and evcc"),
+    gomme: t("Le gomme e le letture", "The tyres and the readings"),
+    temperature: t("Le temperature", "The temperatures"),
+    comandi: t("I comandi in più", "The extra commands"),
+    programmi: t("I programmi", "The schedules"),
+    apertura: t("Aprire e chiudere", "Opening and closing"),
+    soglie: t("Le soglie e l'umidità", "The thresholds and the humidity"),
+    verso: t("Il verso invertito", "The inverted direction"),
+    accensione: t("Accendere e spegnere", "Turning them on and off"),
+    colori: t("I colori e la luminosità", "The colours and the brightness"),
+    gruppi: t("I gruppi", "The groups"),
+    allarme: t("L'allarme", "The alarm"),
+    telecamere: t("Le telecamere", "The cameras"),
+    porte: t("Le porte e le finestre", "The doors and the windows"),
+    programma: t("Il programma in corso", "The running programme"),
+    consumi: t("I consumi", "The consumption"),
+    terreno: t("L'umidità del terreno", "The soil moisture"),
+    zone: t("Le zone", "The zones"),
+    filtrazione: t("La filtrazione", "The filtration"),
+    valori: t("Il pH e il cloro", "The pH and the chlorine"),
+    fonti: t("Le fonti", "The sources"),
+    livelli: t("I livelli e gli avvisi", "The levels and the warnings"),
+    eventi: t("Gli eventi", "The events"),
+    liste: t("Le liste delle cose da fare", "The to-do lists"),
+    pulizia: t("La pulizia", "The cleaning"),
+    stanze: t("Le stanze e le mappe", "The rooms and the maps"),
+    ciotola: t("La ciotola e il cibo", "The bowl and the food"),
+    lettiera: t("La lettiera", "The litter box"),
+    acqua: t("La fontanella", "The water fountain"),
+    risorse: t("Processore, memoria e disco", "CPU, memory and disk"),
+    rete: t("La rete e il ping", "The network and the ping"),
+    entita: t("L'editor delle entità", "The entity editor"),
+    sezioni: t("Quali sezioni si vedono", "Which sections are visible"),
+    aspetto: t("Il tema e la barra", "The theme and the bar"),
+    [ALTRO]: t("Altro", "Something else"),
+  };
+  return voci[clean(id)] || clean(id);
+}
+
+/** Le sezioni della barra, come le vede chi guarda. */
+function sezioniDellaBarra() {
+  const voci = [...(doc?.querySelectorAll?.(".tab[data-tab]") || [])]
+    .filter((tab) => tab.offsetParent !== null || tab.dataset.tab === paginaAttiva())
+    .map((tab) => ({
+      id: tab.dataset.tab,
+      nome: clean(tab.textContent),
+    }));
+  return sezioniOfferte(voci);
+}
+
+function tendineMarkup() {
+  const sezioni = sezioniDellaBarra();
+  if (!sezioni.length) return "";
+  /* La pagina da cui si apre la segnalazione si propone da sola: nove volte su
+   * dieci il guaio e' li', e chi la vuole cambiare la cambia. */
+  if (!state.bozza.sezione && sezioni.some((voce) => voce.id === paginaAttiva()))
+    state.bozza.sezione = paginaAttiva();
+  const scelta = clean(state.bozza.sezione);
+  const parte = parteValida(scelta, state.bozza.funzione) ? clean(state.bozza.funzione) : "";
+  const opzioniSezione = [
+    `<option value="">${esc(t("Non lo so", "I do not know"))}</option>`,
+    ...sezioni.map(
+      (voce) =>
+        `<option value="${esc(voce.id)}"${voce.id === scelta ? " selected" : ""}>${esc(voce.nome)}</option>`,
+    ),
+  ].join("");
+  const opzioniParte = [
+    `<option value="">${esc(t("Non lo so", "I do not know"))}</option>`,
+    ...partiDellaSezione(scelta).map(
+      (id) =>
+        `<option value="${esc(id)}"${id === parte ? " selected" : ""}>${esc(nomeDellaParte(id))}</option>`,
+    ),
+  ].join("");
+  return `
+    <div class="dm-tkt-passo">${esc(t("2 · Dove succede", "2 · Where it happens"))}</div>
+    <div class="dm-tkt-dove">
+      <div class="dm-tkt-campo">
+        <label for="dm-tkt-sezione">${esc(t("Sezione", "Section"))}</label>
+        <select id="dm-tkt-sezione" data-dm-tkt-dove="sezione">${opzioniSezione}</select>
+      </div>
+      <div class="dm-tkt-campo">
+        <label for="dm-tkt-funzione">${esc(t("Cosa", "What"))}</label>
+        <select id="dm-tkt-funzione" data-dm-tkt-dove="funzione">${opzioniParte}</select>
+      </div>
     </div>`;
 }
 
@@ -1991,9 +2138,16 @@ async function mostraDiagnostica(corpo) {
 function raccogliBozza() {
   const modale = doc?.getElementById?.("dm-tkt-modal");
   if (!modale?.querySelector("#dm-tkt-campo-titolo")) return;
+  const sezione = clean(modale.querySelector("#dm-tkt-sezione")?.value);
   state.bozza = {
     title: modale.querySelector("#dm-tkt-campo-titolo")?.value ?? "",
     body: modale.querySelector("#dm-tkt-corpo")?.value ?? "",
+    sezione,
+    /* La parte vale per la sezione scelta: cambiata quella, una parte che li'
+     * non esiste non e' una risposta ma un residuo. */
+    funzione: parteValida(sezione, modale.querySelector("#dm-tkt-funzione")?.value)
+      ? clean(modale.querySelector("#dm-tkt-funzione")?.value)
+      : "",
   };
 }
 
@@ -2003,6 +2157,14 @@ function agganciaEventi(corpo) {
       raccogliBozza();
       state.tab = bottone.dataset.dmTab;
       state.avviso = "";
+      disegna();
+    });
+  });
+  corpo.querySelectorAll("[data-dm-tkt-dove]").forEach((tendina) => {
+    tendina.addEventListener("change", () => {
+      /* Cambiata la sezione cambiano le parti: si rifa' il modulo, tenendo
+       * quello che c'e' gia' scritto. */
+      raccogliBozza();
       disegna();
     });
   });
@@ -2123,7 +2285,7 @@ async function invia() {
       body: corpo,
       diagnostics: await diagnostica(),
     });
-    state.bozza = { title: "", body: "" };
+    state.bozza = { title: "", body: "", sezione: "", funzione: "" };
     const aperta = risposta?.ticket || {};
     state.appena =
       risposta?.delivered && aperta.issue_url

@@ -90,9 +90,17 @@ DIAGNOSTIC_KEYS = frozenset(
         "installation_method",
         "locale",
         "panel_section",
+        # Dove succede, scelto a mano dalle due tendine della plancia: la
+        # sezione e la parte. E' la cosa piu' utile che una segnalazione porti,
+        # e nessuno la sa meglio di chi la scrive.
+        "sezione",
+        "funzione",
         "user_agent",
     }
 )
+# Le due che non stanno nel cassetto chiuso: si leggono in cima, che e' il
+# punto di averle chieste.
+DOVE_SUCCEDE = ("sezione", "funzione")
 MAX_DIAGNOSTIC_VALUE = 190
 
 

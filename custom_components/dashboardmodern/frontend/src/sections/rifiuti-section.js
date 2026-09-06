@@ -25,6 +25,8 @@ import {
   esc,
   installStyle,
   locale,
+  paginaVisibile,
+  quandoSiCambiaPagina,
   readJson,
   root,
   t,
@@ -258,6 +260,11 @@ function dipingi() {
   const pagina = ensureRifiutiPage();
   const dove = pagina?.querySelector?.("#rifiuti-wrap");
   if (!dove) return;
+  /* La lettura dei rifiuti — calendari, giorni che mancano, ordinamento — e la
+   * sua impronta in JSON si facevano a ogni mazzetto di stati, anche a pagina
+   * chiusa. La voce nella barra invece si accende comunque: quella la si vede
+   * da fuori (`accendiLaVoce`, sopra questo giro). */
+  if (!paginaVisibile(RIFIUTI_PAGE_ID)) return;
   if (!rifiutiInPlancia()) {
     if (state.firma !== "vuoto") {
       state.firma = "vuoto";
@@ -385,6 +392,7 @@ export function installRifiuti() {
     "dashboardmodern:persistence-restored",
   ])
     root.addEventListener?.(evento, schedule);
+  quandoSiCambiaPagina(schedule);
   schedule();
   return true;
 }

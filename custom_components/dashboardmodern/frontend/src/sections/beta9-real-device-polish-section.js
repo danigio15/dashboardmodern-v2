@@ -78,46 +78,13 @@ function polishActionPicker() {
   return Boolean(picker);
 }
 
-function brandName(container) {
-  return clean(
-    container?.dataset?.dmBeta5Brand ||
-    container?.getAttribute?.("title") ||
-    container?.querySelector?.("img[data-dm-brand-image]")?.alt ||
-    container?.dataset?.brand,
-  );
-}
-
-function readableBrandFallback(container) {
-  if (!container) return false;
-  const img = container.querySelector("img[data-dm-brand-image]");
-  const oldFallback = container.querySelector(".dm-beta7-brand-guard-fallback,.dm-beta7-brand-fallback");
-  const broken = Boolean(
-    oldFallback ||
-    img?.dataset?.dmBeta7Broken === "true" ||
-    (img?.complete && Number(img.naturalWidth) === 0),
-  );
-  if (!broken) return false;
-  const name = brandName(container) || "EV";
-  let fallback = container.querySelector(".dm-v10-brand-wordmark");
-  if (!fallback) {
-    fallback = doc.createElement("span");
-    fallback.className = "dm-v10-brand-wordmark";
-    (img?.parentElement || container).append(fallback);
-  }
-  fallback.textContent = name;
-  oldFallback?.remove();
-  if (img) img.style.setProperty("display", "none", "important");
-  container.dataset.brandSource = "readable-local-fallback";
-  return true;
-}
-
-function polishBrandLogos() {
-  doc?.querySelectorAll?.(".dm-car-brand").forEach((container) => {
-    readableBrandFallback(container);
-    container.dataset.dmLogoNormalized = "true";
-  });
-  return true;
-}
+/* Il ripiego leggibile del marchio — la sigla scritta al posto del logo — se
+ * n'e' andato con l'immagine che lo faceva scattare. Cercava un
+ * `img[data-dm-brand-image]` rotta, o il ripiego lasciato dalla guardia beta7:
+ * il catalogo il logo non lo stampa piu' come immagine, lo disegna come
+ * maschera CSS su uno `<span>`, e quella guardia non esiste piu'. Restava una
+ * passata su tutti i `.dm-car-brand` del documento che non trovava niente e
+ * scriveva un attributo che nessuno legge. */
 
 function configuredRooms() {
   try {
@@ -234,19 +201,17 @@ function polishShutters() {
   if (!page) return false;
   page.dataset.dmShutterDesign = "beta9-compact-real";
 
-  const grid = page.querySelector("#tapp-grid");
-  if (grid) {
-    grid.style.setProperty("display", "grid", "important");
-    grid.style.setProperty("grid-template-columns", "repeat(auto-fit,minmax(280px,360px))", "important");
-    grid.style.setProperty("justify-content", "center", "important");
-    grid.style.setProperty("align-items", "start", "important");
-    grid.style.setProperty("gap", "14px", "important");
-  }
-
+  /* Le colonne della griglia non si scrivono piu' qui (#349).
+   *
+   * Erano scritte a mano sull'elemento, con `!important`: una dichiarazione in
+   * linea di quel peso non la batte nessun foglio, nemmeno il foglio del
+   * modulo che quella pagina la possiede. Finche' e' rimasta, la griglia della
+   * pagina Finestre era questa riga e nessun'altra — e cambiarla dove sembrava
+   * scritta non cambiava niente. La geometria sta in `shutter-section.js`, in
+   * CSS, dove si puo' correggere e dove le media query funzionano. */
   page.querySelectorAll(".tapp-card").forEach((card) => {
     card.classList.add("dm-beta9-real-shutter-card");
     card.style.setProperty("width", "100%", "important");
-    card.style.setProperty("max-width", "360px", "important");
     card.style.setProperty("min-height", "0", "important");
     card.style.setProperty("padding", "14px", "important");
     card.style.setProperty("gap", "10px", "important");
@@ -442,7 +407,6 @@ function run() {
   ensureStyleLast();
   polishQuickActions();
   polishActionPicker();
-  polishBrandLogos();
   polishRoomRows();
   repairTemperatureRoomSelect();
   polishShutters();
@@ -468,7 +432,9 @@ function installOwners() {
     "renderTapparelle",
     "buildTempCards",
     "render",
-    "cdFillRoomSelects",
+    /* `cdFillRoomSelects` stava qui e non esiste: in tutto il frontale lo si
+     * chiama solo con l'interrogativo (`globalThis.cdFillRoomSelects?.()`),
+     * perche' nessun guscio lo definisce. Era un aggancio a vuoto. */
     // The alerts the user creates live in their own wrap, redrawn by the
     // runtime whenever one of them starts or stops matching. Without this the
     // motion only reached them on the next unrelated state change.
@@ -532,11 +498,6 @@ function installStyles() {
       width:82px!important;max-width:82px!important;height:44px!important;max-height:44px!important;
       padding:0!important;overflow:hidden!important
     }
-    .dm-v10-brand-wordmark{
-      display:grid!important;place-items:center!important;width:100%!important;height:100%!important;padding:2px 4px!important;
-      color:#111827!important;font:900 clamp(9px,2.4vw,14px)/1 system-ui,sans-serif!important;
-      letter-spacing:-.3px!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important
-    }
 
     #ed-body .ed-row.dm-room-config-row{
       display:grid!important;grid-template-columns:48px minmax(0,1fr) 44px 44px!important;
@@ -556,12 +517,11 @@ function installStyles() {
       cursor:pointer!important;touch-action:manipulation!important
     }
 
-    html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] #tapp-grid{
-      grid-template-columns:repeat(auto-fit,minmax(280px,360px))!important;
-      justify-content:center!important;align-items:start!important;gap:14px!important
-    }
+    /* Le colonne le decide il foglio della pagina Finestre (#349): scritte
+       anche qui erano la stessa misura con due padroni, e quella che vinceva
+       non era quella che si andava a correggere. */
     html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] .tapp-card.dm-beta9-real-shutter-card{
-      width:100%!important;max-width:360px!important;min-height:0!important;padding:14px!important;gap:10px!important;
+      width:100%!important;min-height:0!important;padding:14px!important;gap:10px!important;
       border-radius:20px!important;animation:none!important;transform:none!important
     }
     html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] .tapp-win.dm-beta9-real-shutter-window{
@@ -697,12 +657,6 @@ function installStyles() {
       #dm-visual-picker[data-kind="car"] .dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
       #dm-visual-picker[data-kind="car"] .dm-picker-visual{width:82px!important;height:52px!important}
       #dm-visual-picker[data-kind="car"] .dm-picker-visual .dm-car-brand{width:70px!important;height:39px!important}
-      html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] #tapp-grid{
-        grid-template-columns:minmax(0,360px)!important;justify-content:center!important
-      }
-      html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] .tapp-card.dm-beta9-real-shutter-card{
-        max-width:360px!important
-      }
     }
     /* Gli avvisi animati restano animati anche a movimento ridotto: il
      * movimento e' il segnale — una perdita d'acqua che gocciola, una fiamma

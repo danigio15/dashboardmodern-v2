@@ -15,9 +15,11 @@ function runPrelude({
   storage = {},
   query = "",
   namespaced = false,
+  withIntervals = false,
 }) {
   const writes = [];
   const listeners = new Map();
+  const intervals = [];
   class MockWebSocket {
     static CONNECTING = 0;
     static OPEN = 1;
@@ -59,6 +61,12 @@ function runPrelude({
     },
   };
   if (namespaced) window.__DASHBOARDMODERN_STORAGE_NS__ = "test-instance";
+  if (withIntervals) {
+    window.setInterval = (handler, delay) => {
+      intervals.push({ handler, delay });
+      return intervals.length;
+    };
+  }
   window.parent = parentValue === "self" ? window : parent;
   const context = createContext({
     window,
@@ -73,11 +81,45 @@ function runPrelude({
     window,
     storage,
     writes,
+    intervals,
     dispatch(type) {
       listeners.get(type)?.();
     },
   };
 }
+
+test("the runtime's intervals are noted with id, period and source until the runtime is ready", () => {
+  /* Il runtime vendorizzato arma i suoi setInterval senza tenerne gli
+   * identificativi: il preludio, che gira prima, e' l'unico posto da cui
+   * annotarli. Vale nella plancia ospitata e in quella autonoma. */
+  for (const parent of ["self", { __DASHBOARDMODERN_HOST__: true }]) {
+    const { window, intervals } = runPrelude({ parent, withIntervals: true });
+    assert.equal(window.setInterval.__dmTimerAnnotati, true);
+    const id = window.setInterval(function () {
+      try {
+        window.cdApplyNavVis();
+      } catch (e) {}
+    }, 3000);
+    assert.equal(intervals.length, 1, "the real setInterval still arms the timer");
+    assert.equal(window.__DASHBOARDMODERN_LEGACY_INTERVALS__.length, 1);
+    const [voce] = window.__DASHBOARDMODERN_LEGACY_INTERVALS__;
+    assert.equal(voce.id, id);
+    assert.equal(voce.period, 3000);
+    assert.match(voce.fn, /cdApplyNavVis\(\)/);
+    assert.equal(voce.cleared, false);
+    // Quello che i moduli armano dopo, a guscio pronto, non e' del guscio.
+    window.__DASHBOARDMODERN_LEGACY_READY__ = true;
+    window.setInterval(() => {}, 1000);
+    assert.equal(intervals.length, 2);
+    assert.equal(window.__DASHBOARDMODERN_LEGACY_INTERVALS__.length, 1);
+  }
+});
+
+test("without a setInterval to wrap the prelude does not mind", () => {
+  const { window } = runPrelude({ parent: "self" });
+  assert.equal(window.setInterval, undefined);
+  assert.deepEqual(window.__DASHBOARDMODERN_LEGACY_INTERVALS__, undefined);
+});
 
 test("hosted mode exposes only the placeholder and the injected non-native adapter", () => {
   const { window } = runPrelude({ parent: { __DASHBOARDMODERN_HOST__: true } });

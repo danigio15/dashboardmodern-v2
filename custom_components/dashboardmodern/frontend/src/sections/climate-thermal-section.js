@@ -68,6 +68,10 @@ const state = (root[KEY] ||= {
   history: new Map(),
   climaAperta: "",
   climaAscolto: false,
+  /* Un ridisegno da capo chiesto mentre la pagina non si vedeva: si fa
+   * quando si apre. */
+  ridisegnoRimandato: false,
+  osservatore: null,
 });
 
 /* Scale of the rail. Cooling units are set between 16° and 30°, radiators
@@ -787,6 +791,17 @@ function paintZoneTabs(shell, units) {
     if (has) configured += 1;
     const value = has ? "false" : "true";
     if (tab.dataset.dmClEmpty !== value) tab.dataset.dmClEmpty = value;
+    /* Il tasto premuto lo dice anche a chi non vede.
+     *
+     * `setClimaPageMode()` del guscio sposta le classi `active-freddo` e
+     * `active-caldo`, e basta: `aria-pressed` restava quello scritto al
+     * disegno — Freddo premuto per sempre. A rimetterlo a posto era una
+     * passata di beta12 appesa al click, che di suo non disegnava piu'
+     * niente; qui sta accanto alle altre due cose che la linguetta sa di
+     * se', e arriva dopo il guscio perche' il richiamo passa da
+     * `wrapFunction`. */
+    const premuto = String(tab.classList.contains(`active-${zone}`));
+    if (tab.getAttribute("aria-pressed") !== premuto) tab.setAttribute("aria-pressed", premuto);
   }
   // Marked on the shell, which the render keeps, and not on the switch, which a
   // rebuild replaces.
@@ -803,9 +818,30 @@ function zoneWithUnits(units, current) {
   return units.some((unit) => unit.zone === other) ? other : current;
 }
 
-export function renderClimate({ rebuild = false } = {}) {
+/* La pagina Clima si dipinge quando si vede.
+ *
+ * `updateClimaCards` del guscio — che qui e' l'intero renderClimate — gira
+ * dentro ogni `render()`, cioe' a ogni cambio di stato di casa: la pagina
+ * Clima veniva ridipinta per intero mentre si guardava la Home, e con lei il
+ * riepilogo, le linguette, le scintille. Da un'altra pagina non c'e' niente
+ * da vedere: si torna subito, e si dipinge quando la pagina si apre — con il
+ * ridisegno da capo, se nel frattempo qualcuno lo aveva chiesto. `force` e'
+ * per chi deve dipingere a pagina chiusa e sa perche'. */
+export function climaInVista() {
+  return Boolean(doc?.getElementById?.("page-clima")?.classList?.contains("active"));
+}
+
+export function renderClimate({ rebuild = false, force = false } = {}) {
   const host = doc?.getElementById?.("page-clima");
   if (!host) return false;
+  if (!force && !climaInVista()) {
+    if (rebuild) state.ridisegnoRimandato = true;
+    return false;
+  }
+  if (state.ridisegnoRimandato) {
+    rebuild = true;
+    state.ridisegnoRimandato = false;
+  }
   const labels = copy();
   ensureSkeleton(host, labels);
   const shell = host.querySelector(":scope > .dm-cl-shell");
@@ -1324,6 +1360,24 @@ function montaFlagCarta() {
   return true;
 }
 
+/* La pagina si apre cambiando classe — dal tocco sulla barra, da un modulo,
+ * da una prova: un osservatore sull'attributo di un elemento solo le vede
+ * tutte e non costa niente da fermo. Al primo giro di visibilita' si
+ * dipinge; i giri seguenti li portano gli stati. */
+function osservaLaPagina() {
+  if (state.osservatore || typeof root.MutationObserver !== "function") return false;
+  const pagina = doc?.getElementById?.("page-clima");
+  if (!pagina) return false;
+  let eraInVista = climaInVista();
+  state.osservatore = new root.MutationObserver(() => {
+    const inVista = climaInVista();
+    if (inVista && !eraInVista) renderClimate();
+    eraInVista = inVista;
+  });
+  state.osservatore.observe(pagina, { attributes: true, attributeFilter: ["class"] });
+  return true;
+}
+
 export function installClimateThermalSection() {
   if (!doc) return;
   installStyle(STYLE_ID, climateCss());
@@ -1351,6 +1405,7 @@ export function installClimateThermalSection() {
       });
     }
     root.addEventListener?.("dashboardmodern:state-changed", () => renderClimate());
+    osservaLaPagina();
     for (const eventoEditor of [
       "dashboardmodern:editor-rendered",
       "dashboardmodern:legacy-ready",

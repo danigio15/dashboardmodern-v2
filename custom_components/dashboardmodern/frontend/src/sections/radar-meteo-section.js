@@ -90,6 +90,9 @@ const state = (root[KEY] ||= {
   /* Casa, come la dice Home Assistant (`get_config`): si chiede una volta. */
   casa: null,
   casaChiesta: 0,
+  /* La finestra del meteo che si sta guardando, e chi la guarda. */
+  osservata: null,
+  osservatore: null,
   /* Il fotogramma piu' recente di ogni servizio, e le richieste in volo. */
   fotogrammi: {},
   chiedendo: {},
@@ -419,12 +422,60 @@ async function daEntita(scelto, nodo) {
 
 /* ── il radar a tessere ───────────────────────────────────────────────── */
 
+/* Quanto e' alto il riquadro come minimo. Lo dice il foglio di stile qui
+ * sotto, e lo deve sapere anche il conto: sono la stessa misura. */
+const ALTEZZA_MINIMA = 240;
+
 /* Il riquadro e' largo quanto la finestra e alto quanto basta a non mangiarsi
  * le previsioni: due terzi della larghezza, che su un telefono resta un
- * quadrato schiacciato e su un tablet una striscia. */
+ * quadrato schiacciato e su un tablet una striscia.
+ *
+ * Due misure, e tutte e due sbagliavano sul telefono (#351).
+ *
+ * La larghezza si chiedeva a `getBoundingClientRect`, che risponde con la
+ * misura DIPINTA: mentre la finestra del meteo si apre e' ancora rimpicciolita
+ * dall'animazione, e i quadratini venivano calcolati per un riquadro che non
+ * esiste — poi la firma li teneva cosi'. `offsetWidth` risponde con la misura
+ * dell'impaginazione, quella vera, animazione o no.
+ *
+ * L'altezza si fermava a 160, ma il riquadro non scende mai sotto i 240 del
+ * foglio: su un telefono i due sesti di 344 fanno 213, e la mappa veniva
+ * disegnata alta 213 dentro una scatola alta 240 — scentrata rispetto al
+ * mirino, con una fascia vuota sotto. Su un computer il conto passava i 240 da
+ * solo, ed e' per questo che di la' non si vedeva. */
 function misureDelQuadro(quadro) {
-  const largo = Math.round(quadro.getBoundingClientRect().width) || 320;
-  return { latoPx: largo, altoPx: Math.max(160, Math.round(largo * 0.62)) };
+  const largo = quadro.offsetWidth || Math.round(quadro.getBoundingClientRect().width) || 320;
+  return { latoPx: largo, altoPx: Math.max(ALTEZZA_MINIMA, Math.round(largo * 0.62)) };
+}
+
+/* La riga sotto la mappa: dove si guarda, quanto largo, a che ingrandimento, e
+ * da chi arrivano la pioggia e il fondo.
+ *
+ * Sta in una funzione sua perche' va scritta SEMPRE, e prima non succedeva
+ * (#323): quando il servizio non rispondeva si usciva prima di arrivarci, e
+ * restava vuota — proprio nel caso in cui e' l'unica cosa che dice cosa non va,
+ * ed e' la riga che si chiede di mandare per capirlo. */
+function scriviLaNota(nodo, scelto, luogo, finestraTessere, finestraPioggia) {
+  const nota = nodo.querySelector(".dm-radar-nota");
+  if (!nota) return;
+  const posto = luogo
+    ? luogo.nome || `${luogo.lat.toFixed(3)}, ${luogo.lon.toFixed(3)}`
+    : t("posto sconosciuto", "place unknown");
+  const zoom = !finestraTessere
+    ? ""
+    : !finestraPioggia || finestraPioggia.zoom === finestraTessere.zoom
+      ? `z${finestraTessere.zoom}`
+      : `z${finestraTessere.zoom} · ${t("pioggia", "rain")} z${finestraPioggia.zoom}`;
+  const testo = [
+    posto,
+    `${scelto.raggio} km`,
+    zoom,
+    etichettaDelServizio(scelto, fotogrammaDi(scelto.servizio)?.fotogramma, inArrivo(scelto)),
+    nomeDelFondo(scelto),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  if (nota.textContent !== testo) nota.textContent = testo;
 }
 
 function daTessere(scelto, nodo) {
@@ -432,6 +483,7 @@ function daTessere(scelto, nodo) {
   const dove = nodo.querySelector(".dm-radar-tessere");
   if (!quadro || !dove) return;
   const luogo = luogoDelRadar(scelto, allStates(), casaNota());
+  scriviLaNota(nodo, scelto, luogo, null, null);
   if (!luogo) {
     /* Casa non si sa ancora: la si chiede a Home Assistant, e nel frattempo il
      * riquadro dice «attesa» e non «muto» — un radar che sta cercando il posto
@@ -441,15 +493,12 @@ function daTessere(scelto, nodo) {
     dove.dataset.dmFirma = "";
     return;
   }
-  const modello = modelloVivo(scelto);
-  if (!modello) {
-    /* Il servizio non ha ancora detto qual e' il fotogramma di adesso: si
-     * aspetta la sua risposta, e se non arriva il blocco lo dice. */
-    nodo.dataset.dmRadar = inArrivo(scelto) ? "attesa" : "muto";
-    dove.replaceChildren();
-    dove.dataset.dmFirma = "";
-    return;
-  }
+  /* L'inquadratura si calcola PRIMA di sapere se il servizio risponde.
+   *
+   * Non costa niente — e' aritmetica — e serve alla riga sotto la mappa: lo
+   * zoom e' il numero che si chiede di mandare quando qualcosa non torna
+   * (#323), e proprio nel caso in cui non torna niente non veniva mai
+   * calcolato, quindi non compariva. */
   const misure = misureDelQuadro(quadro);
   const finestraTessere = finestraDiTessere(luogo.lat, luogo.lon, {
     ...misure,
@@ -459,7 +508,22 @@ function daTessere(scelto, nodo) {
     nodo.dataset.dmRadar = "muto";
     return;
   }
+  /* L'altezza della scatola e' quella per cui i quadratini sono stati
+   * calcolati, e si scrive subito: erano due misure diverse — il foglio ne
+   * imponeva 240, il conto ne disegnava 213 — e la mappa stava dentro una
+   * scatola piu' alta di lei, scentrata rispetto al mirino. */
   quadro.style.height = `${finestraTessere.alto}px`;
+  const modello = modelloVivo(scelto);
+  if (!modello) {
+    /* Il servizio non ha ancora detto qual e' il fotogramma di adesso: si
+     * aspetta la sua risposta, e se non arriva il blocco lo dice — con lo zoom
+     * e il posto scritti sotto, che sono cio' che serve per capire perche'. */
+    scriviLaNota(nodo, scelto, luogo, finestraTessere, null);
+    nodo.dataset.dmRadar = inArrivo(scelto) ? "attesa" : "muto";
+    dove.replaceChildren();
+    dove.dataset.dmFirma = "";
+    return;
+  }
 
   /* La pioggia si chiede al livello che il suo servizio serve davvero.
    *
@@ -555,37 +619,9 @@ function daTessere(scelto, nodo) {
     if (!attesi) dove.dataset.dmFirma = "";
   }
 
-  const nota = nodo.querySelector(".dm-radar-nota");
-  if (nota) {
-    const posto = luogo.nome || `${luogo.lat.toFixed(3)}, ${luogo.lon.toFixed(3)}`;
-    /* E da chi arrivano i quadratini: chi guarda ha diritto di sapere a chi la
-     * sua plancia sta chiedendo la pioggia — e a chi sta chiedendo la MAPPA.
-     *
-     * Prima diceva solo la pioggia, e non bastava. Le scritte «Zoom Level Not
-     * Supported» che si vedono sul campo le stampa il servizio del FONDO, non
-     * quello della pioggia: chiedendo questa riga per capire da dove
-     * arrivavano si otteneva la risposta a un'altra domanda. Adesso ci sono
-     * tutti e due, e con un'occhiata si sa chi sta parlando. */
-    /* E lo zoom a cui sta chiedendo i quadratini.
-     *
-     * «C'e' ancora quella scritta sullo zoom»: un servizio che a un certo
-     * livello non ha piu' niente da dare risponde con un quadratino stampato
-     * invece che con la mappa, e per capire quale livello sia bisognava
-     * indovinarlo. Adesso c'e' scritto. */
-    nota.textContent = [
-      posto,
-      `${scelto.raggio} km`,
-      /* Lo zoom della mappa, e quello della pioggia quando non sono lo stesso:
-         cosi' si vede che la pioggia si sta chiedendo piu' larga, e a quanto. */
-      finestraPioggia.zoom === finestraTessere.zoom
-        ? `z${finestraTessere.zoom}`
-        : `z${finestraTessere.zoom} · ${t("pioggia", "rain")} z${finestraPioggia.zoom}`,
-      etichettaDelServizio(scelto, fotogrammaDi(scelto.servizio)?.fotogramma, inArrivo(scelto)),
-      nomeDelFondo(scelto),
-    ]
-      .filter(Boolean)
-      .join(" · ");
-  }
+  /* La riga sotto la mappa la scrive una funzione sola, che sa dire anche
+     quello che si sa a meta': qui c'e' tutto, mappa e pioggia. */
+  scriviLaNota(nodo, scelto, luogo, finestraTessere, finestraPioggia);
 }
 
 export function disegnaRadar() {
@@ -660,6 +696,40 @@ function guarda() {
   }
   disegnaRadar();
   avvia();
+}
+
+/* Il radar si accorge da solo che la finestra si e' aperta (#351).
+ *
+ * «Da mobile il radar non compare, da desktop si'.»
+ *
+ * Il disegno partiva da un TOCCO: qualunque clic sul documento riguardava la
+ * finestra un decimo di secondo dopo. Funziona finche' il tocco arriva fin qui
+ * — e sul telefono, dove la testata e' un'altra e in mezzo ci sono i gestori
+ * della navigazione, un tocco fermato per strada e' un radar che non nasce mai.
+ * La finestra aperta da qualunque altra strada — un'azione, un ritorno alla
+ * pagina — non lo faceva nascere per niente.
+ *
+ * Adesso si guarda la finestra, che e' la cosa di cui si sta parlando: quando
+ * si apre lo dice lei. Il secondo giro poco dopo non e' una ripetizione: la
+ * finestra si apre con un'animazione, e finche' dura la larghezza vera del
+ * riquadro non c'e' ancora — se si misura solo allora, i quadratini restano
+ * calcolati per una misura che non esiste piu'. */
+const RIGUARDA_DOPO = 380;
+
+function osservaLaFinestra() {
+  const modale = finestra();
+  if (!modale || state.osservata === modale) return false;
+  if (typeof root.MutationObserver !== "function") return false;
+  state.osservatore?.disconnect?.();
+  state.osservatore = new root.MutationObserver(() => {
+    guarda();
+    if (finestraAperta()) root.setTimeout?.(guarda, RIGUARDA_DOPO);
+  });
+  /* La classe e' come il guscio la apre; lo stile e' come potrebbe aprirla
+   * chiunque altro, ed e' l'altra meta' di cio' che `finestraAperta` guarda. */
+  state.osservatore.observe(modale, { attributes: true, attributeFilter: ["class", "style"] });
+  state.osservata = modale;
+  return true;
 }
 
 /* ── la prova dell'indirizzo ──────────────────────────────────────────── */
@@ -1038,9 +1108,9 @@ async function onClick(event) {
     return;
   }
 
-  /* Un tocco qualunque puo' essere quello che apre la finestra del meteo: si
-   * riguarda dopo, che e' meno di un timer acceso tutto il giorno. */
-  root.setTimeout?.(guarda, 120);
+  /* Qui non si riguarda piu' la finestra a ogni tocco del documento: adesso e'
+   * la finestra stessa a dire quando si apre (`osservaLaFinestra`), e un tocco
+   * che si perde per strada non lascia piu' il radar senza nascere. */
 }
 
 function installStyles() {
@@ -1072,7 +1142,7 @@ function installStyles() {
       #weather-modal .dm-radar-blocco[data-dm-modo="guasto"] .dm-radar-nota{
         display:block;white-space:normal;color:#b45309;font-weight:700}
       #weather-modal .dm-radar-quadro{
-        position:relative;display:grid;place-items:center;min-height:240px;overflow:hidden;
+        position:relative;display:grid;place-items:center;min-height:${ALTEZZA_MINIMA}px;overflow:hidden;
         border-radius:16px;background:var(--bg-sculpted,#0b1220);
         border:1px solid var(--card-border,#1e293b)}
       #weather-modal .dm-radar-tessere{position:absolute;inset:0}
@@ -1135,9 +1205,11 @@ export function installRadarMeteo() {
   ])
     root.addEventListener?.(evento, () => {
       montaLaCasella();
+      osservaLaFinestra();
       guarda();
     });
   montaLaCasella();
+  osservaLaFinestra();
   guarda();
   return true;
 }

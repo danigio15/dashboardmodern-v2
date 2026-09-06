@@ -54,6 +54,10 @@ export const TAB_SECTION_KEYS = Object.freeze({
    * niente. La chiave e' la stessa che `cdNavVisMap` conosce per quella voce,
    * altrimenti si scriverebbe una preferenza che nessuno legge. */
   robot: "robot",
+  /* Gli animali (#358): la loro pagina nasce a runtime come quella del robot,
+   * e come lei insegna la sua chiave a `cdNavVisMap`. Senza questa riga la
+   * fascia verde sulla scheda Animali non sarebbe la sua. */
+  animali: "animali",
   /* La sezione Luci nasce a runtime come il robot, e come lui insegna la sua
    * chiave a `cdNavVisMap`: questa riga fa comparire la fascia sulla scheda
    * Luci dell'editor, e toccarla nasconde davvero la voce nella barra. */

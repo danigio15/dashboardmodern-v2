@@ -401,13 +401,3 @@ export function installBeta25RealDeviceFixes() {
 if (doc?.readyState === "loading")
   doc.addEventListener("DOMContentLoaded", installBeta25RealDeviceFixes, { once: true });
 else installBeta25RealDeviceFixes();
-
-export const beta25RealDeviceFixes = Object.freeze({
-  temperatureEntries,
-  projectTemperatureEntries,
-  upsertTemperatureEntry,
-  removeTemperatureEntry,
-  preferredApplianceVisual,
-  repairStoredApplianceVisuals,
-  repairApplianceCards,
-});

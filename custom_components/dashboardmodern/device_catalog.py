@@ -115,14 +115,54 @@ def _integrazione(domain: str, found: Any, entries: list[Any]) -> dict[str, Any]
     }
 
 
+def _entita_del_dispositivo(hass: HomeAssistant, device_id: str) -> list[dict]:
+    """Le entita' di un dispositivo, lette dall'indice del registro.
+
+    Il registro delle entita' tiene un indice per dispositivo: si chiede
+    quello, e non si passa tutta la casa. Le entita' della plancia restano
+    fuori come nel menu — non sono di nessun elettrodomestico.
+    """
+    device = dr.async_get(hass).async_get(device_id)
+    nome = ""
+    if device is not None:
+        nome = _testo(device.name_by_user) or _testo(device.name)
+    entries = er.async_entries_for_device(
+        er.async_get(hass), device_id, include_disabled_entities=True
+    )
+    return [
+        _entita(hass, entry, nome)
+        for entry in sorted(entries, key=lambda item: item.entity_id)
+        if entry.platform != DOMAIN
+    ]
+
+
 async def async_build_catalog(
     hass: HomeAssistant, *, device_ids: list[str] | None = None
 ) -> dict[str, Any]:
-    """Integrazioni, dispositivi e — per i dispositivi chiesti — le entita'.
+    """Integrazioni e dispositivi — o, per i dispositivi chiesti, le entita'.
 
-    Un dispositivo senza entita' non compare: non c'e' niente da mostrare. La
-    plancia stessa nemmeno: le sue entita' non sono di nessun elettrodomestico.
+    Sono due domande diverse, e si rispondono in due modi diversi. Senza
+    ``device_ids`` si compone il menu: tutte le integrazioni con i loro
+    dispositivi, passando i registri per intero. Un dispositivo senza entita'
+    non compare: non c'e' niente da mostrare. La plancia stessa nemmeno: le
+    sue entita' non sono di nessun elettrodomestico.
+
+    Con ``device_ids`` si vogliono le entita' di quei dispositivi e basta, e
+    la risposta porta solo ``entities``. Il menu non si ricompone: la plancia
+    le chiede per ogni elettrodomestico collegato, e rileggere ogni volta
+    integrazioni e dispositivi di tutta la casa — nel loop — era lavoro
+    buttato, una volta per apparecchio a ogni apertura.
     """
+    if device_ids:
+        # Senza doppioni e nell'ordine chiesto: lo stesso dispositivo due
+        # volte sarebbero le stesse righe due volte.
+        return {
+            "entities": [
+                entita
+                for device_id in dict.fromkeys(device_ids[:MAX_DEVICE_IDS])
+                for entita in _entita_del_dispositivo(hass, device_id)
+            ]
+        }
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     area_registry = ar.async_get(hass)
@@ -194,13 +234,4 @@ async def async_build_catalog(
         integrazione["devices"] = conteggio.get(integrazione["domain"], 0)
     integrations.sort(key=lambda item: item["name"].casefold())
 
-    entities: list[dict[str, Any]] = []
-    if device_ids:
-        nomi = {device["id"]: device["name"] for device in devices}
-        for device_id in device_ids[:MAX_DEVICE_IDS]:
-            for entry in sorted(
-                per_dispositivo.get(device_id, []), key=lambda item: item.entity_id
-            ):
-                entities.append(_entita(hass, entry, nomi.get(device_id, "")))
-
-    return {"integrations": integrations, "devices": devices, "entities": entities}
+    return {"integrations": integrations, "devices": devices, "entities": []}

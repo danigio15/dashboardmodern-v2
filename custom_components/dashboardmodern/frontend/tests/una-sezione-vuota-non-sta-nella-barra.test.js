@@ -61,6 +61,7 @@ const ESEMPI = {
   cd_luci: { "light.salone": "Salone" },
   cd_prese: [{ name: "TV", entity: "switch.tv" }],
   cd_robot: [{ name: "Rosie", entity: "vacuum.rosie" }],
+  cd_animali: [{ nome: "Micio", cibo_livello: "sensor.petkit_food_level" }],
 };
 
 test("una sezione piena non si spegne, qualunque chiave la riempia", () => {

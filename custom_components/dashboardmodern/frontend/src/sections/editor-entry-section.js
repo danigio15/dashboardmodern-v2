@@ -12,8 +12,7 @@
  * configurazione che aprono la voce e il cartello — nessuna seconda strada da
  * tenere allineata, solo un'altra maniglia sulla stessa porta.
  */
-import { SOURCE_LOCALE, pick } from "../core/i18n.js";
-import { activeLocale, clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
+import { doc, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_ENTRY__";
 const state = (root[KEY] ||= { installed: false });
@@ -98,7 +97,8 @@ export function installEditorEntrySection() {
   ensureEditorEntry();
   /* L'intestazione la ridisegnano in parecchi — il marchio, la connessione, il
    * tema — e l'ingranaggio se ne andrebbe con lei. */
-  for (const name of ["render", "cdApplyBranding", "cdApplyNavVis"])
+  /* `cdApplyBranding` non esiste in nessun guscio: era un aggancio a vuoto. */
+  for (const name of ["render", "cdApplyNavVis"])
     wrapFunction(name, "__dmEditorEntry", () => {
       root.queueMicrotask?.(ensureEditorEntry);
     });
@@ -108,18 +108,3 @@ export function installEditorEntrySection() {
     doc.addEventListener("DOMContentLoaded", () => ensureEditorEntry(), { once: true });
 }
 
-/* Il nome della porta, per chi la cerca da fuori.
- *
- * Era un booleano "inglese si'/no": chiamata da un utente spagnolo tornava
- * italiano. `true` resta inglese, perche' e' cosi' che la chiamava chi c'era
- * prima, ma senza argomenti risponde nella lingua attiva. */
-export const editorEntryLabel = (locale = activeLocale()) =>
-  clean(
-    esc(
-      pick(
-        "Configurazione",
-        "Configuration",
-        locale === true ? "en" : locale === false ? SOURCE_LOCALE : locale,
-      ),
-    ),
-  );

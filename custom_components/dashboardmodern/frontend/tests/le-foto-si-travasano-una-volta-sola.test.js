@@ -93,9 +93,17 @@ test("togliere una chiave non alza la revisione", async () => {
    * l'identificativo di uno cancellato, e la 29 con l'ordine dei blocchi della
    * Home (`cd_home_blocchi`): quale viene prima fra persone, widget, azioni
    * rapide e dispositivi e' una scelta della casa, non del vetro da cui la si
-   * guarda. Quelle tolte restano fuori dall'elenco, che e' quello che questa
-   * prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 29);
+   * guarda; e la 30 con la lingua della plancia (#350, `cd_lingua`) e la riga
+   * sotto il meteo (#356, #357, `cd_barra_casa`): la lingua stava sotto una
+   * chiave del browser, e chi la sceglieva sul computer la sceglieva per quel
+   * computer — «su PC avevo settato italiano, da mobile invece e' rimasto
+   * inglese» — mentre la riga dice quali pastiglie si vedono e qual e' il
+   * contatto della cassetta della posta; e gli animali di casa (#358,
+   * `cd_animali`), i cui nomi, foto ed entita' — ciotola, lettiera, collare —
+   * sono roba della casa: il gatto configurato sul tablet deve esistere anche
+   * sul telefono. Quelle tolte restano fuori dall'elenco, che e' quello che
+   * questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 30);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

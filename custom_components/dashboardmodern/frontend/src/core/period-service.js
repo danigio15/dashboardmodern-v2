@@ -170,6 +170,33 @@ export function periodRange(kind, selected = new Date(), now = new Date()) {
   };
 }
 
+/* Il giorno in corso si chiede in due archi, non in uno.
+ *
+ * Le statistiche dell'ora si compilano a ora finita: dentro l'ora aperta non
+ * c'e' ancora nessuna riga, e la Giornaliera restava indietro fino a
+ * sessanta minuti. Chiedere tutto il giorno a cinque minuti lo risolveva, ma
+ * sono 288 righe per ogni entita' a ogni giro invece di 26 — per ogni fonte,
+ * ogni dispositivo e ogni carico, su un Recorder che gia' arranca.
+ *
+ * Le ore chiuse non cambiano piu': si chiedono a ore, e la loro risposta si
+ * tiene per tutta l'ora. A cinque minuti si chiede solo l'ora aperta, che
+ * sono dodici righe. La crescita del giorno e' la somma delle due, ed e' lo
+ * stesso conto di prima: differenza fra la prima e l'ultima lettura. */
+export function archiDelPeriodo(kind, selected = new Date(), now = new Date()) {
+  const range = periodRange(kind, selected, now);
+  if (kind !== "day" || range.end <= range.start) return [range];
+  const oraAperta = new Date(range.end);
+  oraAperta.setMinutes(0, 0, 0);
+  /* Appena passata la mezzanotte non c'e' nessuna ora chiusa da chiedere, e a
+   * giorno finito non c'e' nessuna ora aperta. */
+  if (oraAperta <= range.start) return [{ ...range, period: "5minute" }];
+  if (oraAperta >= range.end) return [range];
+  return [
+    { ...range, end: oraAperta, next: oraAperta },
+    { ...range, start: oraAperta, period: "5minute" },
+  ];
+}
+
 export function baselineRange(kind, start) {
   const baselineStart = new Date(start);
   if (kind === "day") baselineStart.setHours(baselineStart.getHours() - 2);
@@ -325,6 +352,66 @@ export function sourcePlans(
   });
 }
 
+/* I piani che si leggono dallo stato, e quelli che li deve ricavare il
+ * Recorder. */
+export function smistaIPiani(plans = [], selected, states = {}) {
+  const valori = new Map();
+  const direct = plans.filter((plan) => plan.direct);
+  const selectedDate = new Date(selected);
+  const today = new Date();
+  const directIsCurrent = (kind) =>
+    kind === "day"
+      ? selectedDate.toDateString() === today.toDateString()
+      : kind === "year"
+        ? selectedDate.getFullYear() === today.getFullYear()
+        : selectedDate.getFullYear() === today.getFullYear() &&
+          selectedDate.getMonth() === today.getMonth();
+  direct
+    .filter((plan) => directIsCurrent(plan.kind))
+    .forEach((plan) => {
+      const value = readDirectState(plan.entity, states);
+      if (value != null) valori.set(plan.key, value);
+    });
+
+  /* Nel periodo corrente l'entita' di periodo configurata e' l'unica
+   * autorita': il ripiego dal contatore totale serve ai mesi passati, non a
+   * sostituirla quando il suo stato non e' ancora arrivato. Lasciarlo
+   * subentrare dipingeva un numero diverso (e sbagliato) per un giro, poi il
+   * giro dopo arrivava quello vero — il valore che balla. Meglio nessun
+   * valore per un attimo (la casella resta segnata come mancante) che un
+   * valore sporco. */
+  const currentDirectKeys = new Set(
+    direct.filter((plan) => directIsCurrent(plan.kind)).map((plan) => plan.key),
+  );
+  const daRicavare = plans.filter(
+    (plan) => !plan.direct && !(plan.fallback && currentDirectKeys.has(plan.key)),
+  );
+  return { valori, daRicavare };
+}
+
+/* Il nome di un arco: due archi con lo stesso nome sono la stessa domanda. */
+export function chiaveDellArco(range) {
+  return `${range.kind}|${range.period}|${range.start.getTime()}|${range.end.getTime()}`;
+}
+
+/* La crescita di un'entita' dentro un arco, dalle righe gia' in mano.
+ *
+ * Le righe arrivano da una domanda sola per tutti quelli che condividono
+ * l'arco: qui si taglia il pezzo che riguarda questo arco — l'ultima lettura
+ * prima del confine fa da partenza — e si prende la differenza. */
+export function crescitaNellArco(righe = [], range) {
+  const inizio = range.start.getTime();
+  const fine = range.end.getTime();
+  const ordinate = (Array.isArray(righe) ? righe : [])
+    .slice()
+    .sort((sinistra, destra) => rowTimestamp(sinistra) - rowTimestamp(destra));
+  const prima = ordinate.filter((riga) => rowTimestamp(riga) < inizio);
+  const dentro = ordinate.filter(
+    (riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine,
+  );
+  return periodConsumption(dentro, prima.at(-1) || null);
+}
+
 function readDirectState(entity, states = {}) {
   const state = states?.[entity];
   const value = finite(state?.state);
@@ -343,15 +430,84 @@ function readDirectState(entity, states = {}) {
  * attesa, e' una pagina che sembra rotta. */
 export const TEMPO_MASSIMO_STATISTICHE = 60000;
 
-/* Le domande che pesano sul database: al Recorder si fanno una per volta. */
+/* Quante domande pesanti il Recorder riceve insieme. */
+export const CORSIE_DEL_RECORDER = 2;
+
+/* Le domande che pesano sul database: al Recorder si fanno poche per volta. */
 export const PESANTI_PER_IL_RECORDER = Object.freeze(
   new Set(["recorder/statistics_during_period", "history/history_during_period"]),
 );
 
+/* Ogni quanto Home Assistant compila le statistiche.
+ *
+ * E' il numero da cui dipendono quasi tutte le attese di qui: il Recorder
+ * mette insieme i secchielli da cinque minuti (e a ora finita quelli dell'ora)
+ * ogni cinque minuti. Prima che quel giro passi, la stessa domanda porta a
+ * casa le stesse identiche righe: richiederla e' lavoro sul server — la CPU
+ * del mini PC — in cambio di niente. */
+export const PASSO_DELLE_STATISTICHE_MS = 5 * 60_000;
+
 /* Per quanto, dopo un timeout, il Recorder si considera in affanno: e' il
  * passo con cui le statistiche si compilano, quindi prima non c'e' niente di
  * nuovo da leggere comunque. */
-export const AFFANNO_DEL_RECORDER_MS = 5 * 60_000;
+export const AFFANNO_DEL_RECORDER_MS = PASSO_DELLE_STATISTICHE_MS;
+
+/* Quante risposte del Recorder si tengono da parte.
+ *
+ * La cache non buttava mai via niente: su una plancia accesa giorno e notte —
+ * che e' il caso vero, il tablet appeso al muro — ogni giro lasciava dentro
+ * una voce nuova e nessuna usciva mai. Si tengono le ultime, e le scadute se
+ * ne vanno da sole: sono le uniche due ragioni per cui una risposta serve
+ * ancora. */
+export const VOCI_TENUTE_IN_CACHE = 64;
+
+/* Se un arco di tempo e' finito, cioe' se dentro non puo' piu' entrare niente.
+ *
+ * Un mese chiuso non cambia piu': la sua risposta vale finche' si vuole. Un
+ * arco che finisce adesso invece cresce, e va riletto. Il confine e' il passo
+ * con cui le statistiche si compilano: quando la fine e' piu' vecchia di
+ * quello, tutte le righe che potevano entrarci sono gia' state scritte. */
+export function arcoChiuso(fine, adesso = Date.now()) {
+  const a = momentoDi(fine);
+  return a != null && a <= adesso - PASSO_DELLE_STATISTICHE_MS;
+}
+
+/* Un momento, comunque sia scritto: data, millisecondi o testo ISO. */
+function momentoDi(valore) {
+  if (valore instanceof Date) return valore.getTime();
+  const numero = typeof valore === "number" ? valore : Date.parse(valore);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+/* La fine di un arco, come entra nella chiave della cache.
+ *
+ * Era la fine al millisecondo, e siccome per il periodo corrente la fine e'
+ * «adesso», ogni giro nasceva una chiave nuova: la cache non ha mai risposto
+ * a nessuno, e ogni aggiornamento tornava dritto sul Recorder. Un arco chiuso
+ * porta la sua fine esatta; uno aperto la porta arrotondata al passo con cui
+ * le statistiche si compilano, che e' quanto quella risposta resta buona. */
+export function fineDaChiave(fine, adesso = Date.now()) {
+  const a = momentoDi(fine);
+  if (a == null) return String(fine);
+  if (arcoChiuso(a, adesso)) return new Date(a).toISOString();
+  return new Date(
+    Math.floor(a / PASSO_DELLE_STATISTICHE_MS) * PASSO_DELLE_STATISTICHE_MS,
+  ).toISOString();
+}
+
+/* Quanto si aspetta l'istantanea di tutti gli stati.
+ *
+ * `get_states` e' la risposta piu' grossa che Home Assistant manda: ogni
+ * entita' della casa con tutti i suoi attributi, megabyte interi su una casa
+ * grande. Dal telefono, attraverso Nabu Casa, dodici secondi non bastavano:
+ * la domanda scadeva, il flusso degli stati moriva li' e la Home restava sui
+ * numeri dell'avvio — «sezione aperta ma i dati non si caricano». */
+export const TEMPO_PER_L_ISTANTANEA = 60_000;
+
+/* Da quanto riparte la ripresa del flusso dopo un tentativo andato male, e
+ * fino a quanto si allarga: si riprova sempre, mai piu' spesso di cosi'. */
+export const RIPRESA_DEL_FLUSSO_MS = 1000;
+export const RIPRESA_DEL_FLUSSO_MASSIMA_MS = 30_000;
 
 export function tempoPerLeStatistiche(start, end, base = 12000) {
   const da = Date.parse(start);
@@ -377,15 +533,33 @@ export function eUnErroreDiCompatibilita(errore) {
 }
 
 export class HomeAssistantBroker {
-  /* La risposta del periodo corrente vale un minuto: le statistiche del
-   * Recorder cambiano ogni cinque, e richiederle ogni quindici secondi pesava
-   * sul server senza trovare niente di nuovo (dal campo: la CPU del mini PC). */
-  constructor({ timeout = 12000, cacheCurrentMs = 60000, cacheHistoricalMs = 600000 } = {}) {
+  /* La risposta del periodo corrente vale quanto dura il dato: cinque minuti.
+   *
+   * Era un minuto, ed era gia' un compromesso; ma il minuto non lo vedeva
+   * nessuno, perche' la chiave della cache portava la fine dell'arco al
+   * millisecondo — cioe' «adesso» — e ogni giro nasceva una chiave nuova:
+   * nessuna risposta e' mai stata riusata, e ogni aggiornamento tornava sul
+   * Recorder (dal campo: la CPU del mini PC). Adesso la chiave e' arrotondata
+   * al passo con cui le statistiche si compilano, e il tempo che si tiene e'
+   * lo stesso passo: prima di allora la stessa domanda porta le stesse righe. */
+  constructor({
+    timeout = 12000,
+    cacheCurrentMs = PASSO_DELLE_STATISTICHE_MS,
+    cacheHistoricalMs = 600000,
+    ripresaDelFlussoMs = RIPRESA_DEL_FLUSSO_MS,
+  } = {}) {
     this.timeout = timeout;
     this.cacheCurrentMs = cacheCurrentMs;
     this.cacheHistoricalMs = cacheHistoricalMs;
+    this.ripresaDelFlussoMs = ripresaDelFlussoMs;
+    /* Il flusso degli stati che qualcuno ha chiesto di tenere vivo (vedi
+     * `keepStateFeedAlive`): cosa vuole, e il timer della prossima ripresa. */
+    this.flussoVoluto = null;
+    this.ripresaDelFlusso = 0;
+    this.tentativiDelFlusso = 0;
     /* La fila davanti al Recorder, e da quando arranca (vedi `request`). */
-    this.codaDelRecorder = Promise.resolve();
+    this.inFilaAlRecorder = [];
+    this.inCorsoAlRecorder = 0;
     this.recorderLentoDa = 0;
     this.socket = null;
     this.connection = null;
@@ -396,6 +570,50 @@ export class HomeAssistantBroker {
     this.cache = new Map();
     this.subscription = 0;
     this.statesStarted = false;
+  }
+
+  /* Il flusso degli stati si tiene vivo da solo.
+   *
+   * Prima si partiva una volta, all'avvio, e se quell'unico tentativo andava
+   * male — l'istantanea scaduta, la presa non ancora aperta — nessuno
+   * riprovava: niente sottoscrizione, niente eventi, la Home ferma sui numeri
+   * dell'avvio finche' non si ricaricava la pagina. Qui si riprova finche'
+   * non riesce, con una pausa che si allarga, e si riparte da capo ogni volta
+   * che la presa cade (`reset`): e' quello che fa una presa vera. */
+  keepStateFeedAlive({ snapshot = true, onReady = () => {}, onError = () => {} } = {}) {
+    this.flussoVoluto = { snapshot, onReady, onError };
+    this.tentativiDelFlusso = 0;
+    return this.riprendiIlFlusso();
+  }
+
+  async riprendiIlFlusso() {
+    const voluto = this.flussoVoluto;
+    if (!voluto || this.ripresaDelFlusso) return false;
+    if (this.statesStarted && this.subscription) return true;
+    try {
+      await this.startStateFeed({ snapshot: voluto.snapshot });
+      this.tentativiDelFlusso = 0;
+      voluto.onReady();
+      return true;
+    } catch (error) {
+      voluto.onError(error);
+      this.tentativiDelFlusso += 1;
+      const attesa = Math.min(
+        RIPRESA_DEL_FLUSSO_MASSIMA_MS,
+        this.ripresaDelFlussoMs * 2 ** Math.min(10, this.tentativiDelFlusso - 1),
+      );
+      this.programmaLaRipresa(attesa);
+      return false;
+    }
+  }
+
+  programmaLaRipresa(attesa) {
+    if (!this.flussoVoluto || this.ripresaDelFlusso) return;
+    this.ripresaDelFlusso =
+      globalThis.setTimeout?.(() => {
+        this.ripresaDelFlusso = 0;
+        this.riprendiIlFlusso();
+      }, attesa) || 0;
   }
 
   token() {
@@ -424,6 +642,8 @@ export class HomeAssistantBroker {
     this.authenticated = false;
     this.subscription = 0;
     this.statesStarted = false;
+    /* Presa caduta: il flusso riparte sulla prossima, se qualcuno lo vuole. */
+    if (this.flussoVoluto) this.programmaLaRipresa(this.ripresaDelFlussoMs);
     if (error) {
       this.pending.forEach(({ reject, timer }) => {
         globalThis.clearTimeout?.(timer);
@@ -524,10 +744,14 @@ export class HomeAssistantBroker {
         globalThis.clearTimeout?.(timer);
         callback(value);
       };
-      timer = globalThis.setTimeout?.(
-        () => finish(reject, new Error("Home Assistant connection timeout")),
-        this.timeout,
-      );
+      timer = globalThis.setTimeout?.(() => {
+        /* Una presa che non si e' aperta in tempo non si lascia in giro: da
+         * sola si aprirebbe piu' tardi, con nessuno ad ascoltarla. */
+        try {
+          if (this.socket) this.socket.close();
+        } catch (_error) {}
+        finish(reject, new Error("Home Assistant connection timeout"));
+      }, this.timeout);
       try {
         const socket = new globalThis.WebSocket(this.url());
         this.socket = socket;
@@ -558,24 +782,42 @@ export class HomeAssistantBroker {
   /* `timeout` e' per le domande che si sa che pesano — un mese di storico da
    * un Recorder lento, attraverso Nabu Casa — e non deve cambiare il tempo di
    * tutte le altre. Senza, e' quello del broker. */
-  /* Al Recorder si chiede una cosa per volta.
+  /* Al Recorder si chiedono al massimo due cose per volta.
    *
    * Un aggiornamento dell'Energia lancia sette domande insieme — giorno,
    * mese, anno, i dispositivi per ognuno, i carichi — e ognuna e' una lettura
    * delle statistiche sul database. Su un server piccolo si contendono il
    * disco a vicenda: tutte rallentano, qualcuna scade, e la pagina resta sul
-   * velo o su «0 kWh · timeout» (dal campo: il mini PC). In fila, la stessa
-   * spesa costa lo stesso tempo in tutto ma nessuna domanda aspetta le altre
-   * mentre il suo cronometro corre: il tempo concesso parte quando la domanda
-   * parte davvero, non quando si mette in fila. */
+   * velo o su «0 kWh · timeout» (dal campo: il mini PC). In fila nessuna
+   * domanda aspetta le altre mentre il suo cronometro corre: il tempo concesso
+   * parte quando la domanda parte davvero, non quando si mette in fila.
+   *
+   * Una per volta (1.4.11) era troppo poco: sette domande in fila su un
+   * Recorder da due secondi sono quattordici secondi prima del primo numero,
+   * «devi velocizzare il caricamento dei dati energia». Due corsie dimezzano
+   * l'attesa e restano lontane dalle sette di prima. */
   async request(payload, timeout = this.timeout) {
     if (!PESANTI_PER_IL_RECORDER.has(payload?.type)) return this.spedisci(payload, timeout);
-    const lavoro = () => this.spedisci(payload, timeout);
-    const turno = this.codaDelRecorder.then(lavoro, lavoro);
-    /* La fila va avanti anche quando una domanda cade: chi viene dopo non
-     * eredita il fallimento di chi lo precedeva. */
-    this.codaDelRecorder = turno.catch(() => {});
-    return turno;
+    return new Promise((resolve, reject) => {
+      this.inFilaAlRecorder.push(() =>
+        this.spedisci(payload, timeout)
+          .then(resolve, reject)
+          .finally(() => {
+            this.inCorsoAlRecorder -= 1;
+            this.avanzaLaFila();
+          }),
+      );
+      this.avanzaLaFila();
+    });
+  }
+
+  /* La fila va avanti anche quando una domanda cade: chi viene dopo non
+   * eredita il fallimento di chi lo precedeva. */
+  avanzaLaFila() {
+    while (this.inCorsoAlRecorder < CORSIE_DEL_RECORDER && this.inFilaAlRecorder.length) {
+      this.inCorsoAlRecorder += 1;
+      this.inFilaAlRecorder.shift()();
+    }
   }
 
   /** Se il Recorder ha appena fatto scadere una domanda: chi aggiorna rallenta. */
@@ -609,16 +851,43 @@ export class HomeAssistantBroker {
 
   async cachedRequest(payload, cacheKey, maxAge = 0, timeout = 0) {
     const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.at < maxAge) return cached.value;
+    if (cached && Date.now() - cached.at < maxAge) {
+      /* Riusata vuol dire viva: torna in fondo alla fila, cosi' quando si pota
+       * escono le risposte che non serviva piu' a nessuno. */
+      this.cache.delete(cacheKey);
+      this.cache.set(cacheKey, cached);
+      return cached.value;
+    }
     if (this.inflight.has(cacheKey)) return this.inflight.get(cacheKey);
     const promise = this.request(payload, timeout)
       .then((value) => {
-        if (maxAge > 0) this.cache.set(cacheKey, { at: Date.now(), value });
+        if (maxAge > 0) {
+          this.cache.set(cacheKey, { at: Date.now(), fino: Date.now() + maxAge, value });
+          this.potaLaCache();
+        }
         return value;
       })
       .finally(() => this.inflight.delete(cacheKey));
     this.inflight.set(cacheKey, promise);
     return promise;
+  }
+
+  /* La cache non cresce per sempre.
+   *
+   * Prima nessuna voce ne usciva mai: su una plancia accesa giorno e notte —
+   * il tablet appeso al muro — la memoria del browser saliva e basta. Escono
+   * le scadute, che non risponderebbero piu' a nessuno, e poi le piu' vecchie
+   * finche' non si sta dentro il numero di voci che si tengono. */
+  potaLaCache(adesso = Date.now(), tenute = VOCI_TENUTE_IN_CACHE) {
+    for (const [chiave, voce] of this.cache) {
+      if (Number(voce?.fino) > adesso) continue;
+      this.cache.delete(chiave);
+    }
+    for (const chiave of this.cache.keys()) {
+      if (this.cache.size <= tenute) break;
+      this.cache.delete(chiave);
+    }
+    return this.cache.size;
   }
 
   async statistics(ids, start, end, period = "day") {
@@ -628,8 +897,11 @@ export class HomeAssistantBroker {
     const statisticIds = [...new Set([...mapped.values()].filter(Boolean))];
     const startIso = new Date(start).toISOString();
     const endIso = new Date(end).toISOString();
-    const historical = Date.parse(endIso) < Date.now() - 86400000;
-    const key = `statistics|${period}|${startIso}|${endIso}|${statisticIds.join(",")}`;
+    const historical = arcoChiuso(endIso);
+    /* La chiave porta la fine arrotondata, non quella al millisecondo: due
+     * domande dello stesso arco corrente dentro lo stesso passo di
+     * compilazione sono la stessa domanda, e la seconda si serve da qui. */
+    const key = `statistics|${period}|${startIso}|${fineDaChiave(endIso)}|${statisticIds.join(",")}`;
     const payload = {
       type: "recorder/statistics_during_period",
       start_time: startIso,
@@ -680,62 +952,83 @@ export class HomeAssistantBroker {
     );
   }
 
+  /* Chi si legge dallo stato e chi lo deve ricavare il Recorder.
+   *
+   * La scelta e' la stessa per chiunque chieda dei valori — l'Energia, gli
+   * elettrodomestici, i carichi — e per questo sta scritta una volta sola. */
   async valuesForPlans(plans, selected, states = globalThis.STATES || {}) {
-    const output = new Map();
-    const direct = plans.filter((plan) => plan.direct);
-    const selectedDate = new Date(selected);
-    const today = new Date();
-    const directIsCurrent = (kind) =>
-      kind === "day"
-        ? selectedDate.toDateString() === today.toDateString()
-        : kind === "year"
-          ? selectedDate.getFullYear() === today.getFullYear()
-          : selectedDate.getFullYear() === today.getFullYear() &&
-            selectedDate.getMonth() === today.getMonth();
-    direct
-      .filter((plan) => directIsCurrent(plan.kind))
-      .forEach((plan) => {
-        const value = readDirectState(plan.entity, states);
-        if (value != null) output.set(plan.key, value);
-      });
-
-    /* Nel periodo corrente l'entita' di periodo configurata e' l'unica
-     * autorita': il ripiego dal contatore totale serve ai mesi passati, non a
-     * sostituirla quando il suo stato non e' ancora arrivato. Lasciarlo
-     * subentrare dipingeva un numero diverso (e sbagliato) per un giro, poi il
-     * giro dopo arrivava quello vero — il valore che balla. Meglio nessun
-     * valore per un attimo (il bundle risulta incompleto e si riprova) che un
-     * valore sporco. */
-    const currentDirectKeys = new Set(
-      direct.filter((plan) => directIsCurrent(plan.kind)).map((plan) => plan.key),
+    const { valori, daRicavare } = smistaIPiani(plans, selected, states);
+    if (!daRicavare.length) return valori;
+    const kind = daRicavare[0].kind;
+    const { caduti } = await this.valoriPerArchi(
+      archiDelPeriodo(kind, selected).map((range) => ({ plans: daRicavare, range })),
+      valori,
     );
-    const derived = plans.filter(
-      (plan) => !plan.direct && !(plan.fallback && currentDirectKeys.has(plan.key)),
-    );
-    if (!derived.length) return output;
-    const kind = derived[0].kind;
-    const range = periodRange(kind, selected);
-    if (range.end <= range.start) return output;
-    const ids = [...new Set(derived.map((plan) => plan.entity))];
-    const baseline = baselineRange(kind, range.start);
-    // One Recorder request contains both the sample immediately before the
-    // boundary and all samples in the requested period. This is the same data
-    // contract used for Energy: growth = final sum - initial sum.
-    const rows = await this.statistics(ids, baseline.start, range.end, range.period);
+    /* Chi chiama da solo si aspetta che una domanda caduta si veda: e' chi
+     * legge piu' archi insieme (l'Energia) a decidere cosa farne. */
+    if (caduti.length && !valori.size) throw caduti[0].errore;
+    return valori;
+  }
 
-    derived.forEach((plan) => {
-      const entityRows = (rows[plan.entity] || [])
-        .slice()
-        .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
-      const before = entityRows.filter((row) => rowTimestamp(row) < range.start.getTime());
-      const within = entityRows.filter(
-        (row) =>
-          rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime(),
-      );
-      const value = periodConsumption(within, before.at(-1) || null);
-      if (value != null) output.set(plan.key, Math.round(value * 1000) / 1000);
-    });
-    return output;
+  /* Piu' archi in una volta: UNA domanda al Recorder per arco.
+   *
+   * Un aggiornamento dell'Energia erano sette letture delle statistiche —
+   * giorno, mese, anno, i dispositivi per ognuno, i carichi — e due di quelle
+   * coprivano tredici mesi. Le fonti, i dispositivi e i carichi dello stesso
+   * arco chiedono le stesse righe allo stesso pezzo di database: messi
+   * insieme sono una domanda sola con piu' entita' dentro, che per il
+   * Recorder e' quasi lo stesso lavoro di una (dal campo, la #333: aprendo
+   * il Report «il Recorder e' lento» e tutti i valori a zero).
+   *
+   * E un piano che compare in DUE archi vale la somma delle sue crescite: e'
+   * cosi' che l'anno costa poco — i mesi chiusi non cambiano piu', la loro
+   * risposta si tiene, e del mese aperto si rilegge solo quello, che e'
+   * l'arco che si stava gia' chiedendo per la Mensile.
+   *
+   * Un arco che cade non porta giu' gli altri: quello che e' arrivato si
+   * tiene, e chi ha chiesto decide (vedi il pacchetto parziale dell'Energia). */
+  async valoriPerArchi(richieste = [], valori = new Map(), alPasso = () => {}) {
+    const perArco = new Map();
+    for (const { plans = [], range } of richieste) {
+      if (!range || !plans.length || range.end <= range.start) continue;
+      const chiave = chiaveDellArco(range);
+      const gruppo = perArco.get(chiave) || { range, chiave, plans: [] };
+      gruppo.plans.push(...plans);
+      perArco.set(chiave, gruppo);
+    }
+    const caduti = [];
+    /* Quante domande sono state fatte, di quante: e' la riga che si legge
+     * sopra i numeri mentre si aspetta. */
+    const gruppi = [...perArco.values()];
+    let fatte = 0;
+    alPasso(fatte, gruppi.length);
+    await Promise.all(
+      gruppi.map(async ({ range, chiave, plans }) => {
+        try {
+          const ids = [...new Set(plans.map((plan) => plan.entity).filter(Boolean))];
+          if (!ids.length) return;
+          const baseline = baselineRange(range.kind, range.start);
+          // One Recorder request contains both the sample immediately before the
+          // boundary and all samples in the requested period. This is the same data
+          // contract used for Energy: growth = final sum - initial sum.
+          const righe = await this.statistics(ids, baseline.start, range.end, range.period);
+          for (const plan of plans) {
+            const crescita = crescitaNellArco(righe[plan.entity], range);
+            if (crescita == null) continue;
+            const arrotondata = Math.round(crescita * 1000) / 1000;
+            valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
+          }
+        } catch (errore) {
+          /* Chi e' caduto si dice con nome e cognome: chi aspettava proprio
+           * quell'arco lo sa, e chi aspettava un altro non ne paga il prezzo. */
+          caduti.push({ chiave, errore });
+        } finally {
+          fatte += 1;
+          alPasso(fatte, gruppi.length);
+        }
+      }),
+    );
+    return { valori, caduti };
   }
 
   async valuesForEntities(ids, kind, selected) {
@@ -749,29 +1042,57 @@ export class HomeAssistantBroker {
     return this.valuesForPlans(plans, selected);
   }
 
-  async startStateFeed() {
-    if (this.statesStarted) return true;
+  /* Il flusso degli stati: prima la sottoscrizione, poi l'istantanea.
+   *
+   * Prima era il contrario, e l'istantanea era anche una domanda in piu':
+   * il guscio della plancia chiede gia' `get_states` sulla sua presa e
+   * riempie i registri che leggono tutti (`STATES`, `_RAW_STATES`), e qui se
+   * ne chiedeva un'altra uguale — due volte tutta la casa a ogni avvio,
+   * sulla stessa connessione — con dodici secondi di tempo. Sul telefono
+   * scadeva, e con lei moriva la sottoscrizione che veniva dopo. Adesso la
+   * sottoscrizione parte subito, che e' leggera e non dipende da niente, e
+   * l'istantanea si chiede solo a chi non ha un guscio che la porta
+   * (`snapshot: false` quando c'e'). */
+  async startStateFeed({ snapshot = true } = {}) {
+    if (this.statesStarted && this.subscription) return true;
     this.statesStarted = true;
     try {
-      const states = await this.cachedRequest({ type: "get_states" }, "get_states", 5000);
-      (Array.isArray(states) ? states : []).forEach((state) =>
-        this.ingestState(state, { emitEvent: false }),
-      );
-      const socket = await this.connect();
-      const id = ++this.nextId;
-      this.subscription = id;
-      await new Promise((resolve, reject) => {
-        const timer = globalThis.setTimeout?.(() => {
-          this.pending.delete(id);
-          reject(new Error("State subscription timeout"));
-        }, this.timeout);
-        this.pending.set(id, { resolve, reject, timer });
-        socket.send(JSON.stringify({ id, type: "subscribe_events", event_type: "state_changed" }));
-      });
+      await this.subscribeToStates();
+      if (snapshot) await this.snapshotStates();
       return true;
     } catch (error) {
       this.statesStarted = false;
       throw error;
     }
+  }
+
+  async subscribeToStates() {
+    const socket = await this.connect();
+    if (this.subscription && this.socket === socket) return this.subscription;
+    const id = ++this.nextId;
+    await new Promise((resolve, reject) => {
+      const timer = globalThis.setTimeout?.(() => {
+        this.pending.delete(id);
+        reject(new Error("State subscription timeout"));
+      }, this.timeout);
+      this.pending.set(id, { resolve, reject, timer });
+      socket.send(JSON.stringify({ id, type: "subscribe_events", event_type: "state_changed" }));
+    });
+    this.subscription = id;
+    return id;
+  }
+
+  /* Tutti gli stati in una volta, nei registri, senza un evento per ognuno. */
+  async snapshotStates() {
+    const states = await this.cachedRequest(
+      { type: "get_states" },
+      "get_states",
+      5000,
+      TEMPO_PER_L_ISTANTANEA,
+    );
+    (Array.isArray(states) ? states : []).forEach((state) =>
+      this.ingestState(state, { emitEvent: false }),
+    );
+    return Array.isArray(states) ? states.length : 0;
   }
 }

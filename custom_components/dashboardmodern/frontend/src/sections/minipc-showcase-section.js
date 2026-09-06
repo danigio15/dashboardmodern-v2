@@ -297,11 +297,6 @@ function overrides() {
   return scritti && typeof scritti === "object" ? scritti : {};
 }
 
-/** Quale entità è scritta in una casella. */
-export function entitaDellaCasella(riferimento) {
-  return clean(overrides()[riferimento]);
-}
-
 /** Come restano le mappature dopo il travaso, o `null` se non c'era niente da
  * spostare né da ripulire. */
 export function dopoIlTravaso(scritte, casella = CASELLA_DI_RETE, vecchie = CASELLE_VECCHIE) {

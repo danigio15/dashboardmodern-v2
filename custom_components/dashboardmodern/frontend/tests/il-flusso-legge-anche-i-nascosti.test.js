@@ -17,7 +17,7 @@ test("i valori si allargano agli apparecchi nascosti, l'elenco del Report no", a
     new URL("../src/sections/energy-section.js", import.meta.url),
     "utf8",
   );
-  const inizio = sorgente.indexOf("async function loadDevicePeriod");
+  const inizio = sorgente.indexOf("function pianiDeiDispositivi");
   const corpo = sorgente.slice(inizio, sorgente.indexOf("\n}\n", inizio));
   assert.ok(corpo.includes("dispositiviFuoriDalReport"), "i nascosti non entrano nei piani");
   /* `devices` resta quello di `canonicalDevices()`: e' l'unica riga che lo

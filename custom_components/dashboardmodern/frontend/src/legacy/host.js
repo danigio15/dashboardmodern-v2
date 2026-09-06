@@ -18,6 +18,39 @@ export const LEGACY_FRAME_PERMISSIONS =
   "autoplay; fullscreen; picture-in-picture; encrypted-media";
 export const LEGACY_VARIANTS = Object.freeze({ it: "dashboard.html", en: "dashboard-en.html" });
 
+/* Come si dice alla plancia che e' stata messa da parte.
+ *
+ * Il nome sta scritto due volte — qui e in `src/sections/shared.js`, che lo
+ * legge dal di dentro — perche' i due lati sono due programmi diversi: questo
+ * gira nel documento di Home Assistant, quello dentro la cornice. E' lo stesso
+ * patto di `__DASHBOARDMODERN_HOSTED__`, e come quello si cambia in due posti.
+ */
+export const PARK_FLAG = "__DASHBOARDMODERN_PARCHEGGIATA__";
+export const PARK_EVENT = "dashboardmodern:parcheggio";
+
+/* Lo spostamento che non ricarica la cornice.
+ *
+ * `appendChild` stacca il nodo e lo riattacca, e per una cornice questo vuol
+ * dire che il documento che ci sta dentro muore e riparte da zero: e' proprio
+ * l'avvio completo che il parcheggio esiste per evitare. `moveBefore` e' lo
+ * spostamento atomico che il documento se lo porta dietro.
+ *
+ * Vuole pero' che entrambi i posti — quello di prima e quello nuovo — siano
+ * attaccati al documento: una cornice gia' finita dentro un ramo staccato non
+ * si recupera piu', e infatti da `disconnectedCallback` sarebbe troppo tardi.
+ * Dove `moveBefore` non c'e' (browser piu' vecchi) si torna a rispondere di
+ * no, e chi chiama rimonta la plancia come ha sempre fatto.
+ */
+export function spostaSenzaRicaricare(destinazione, nodo) {
+  if (!nodo || typeof destinazione?.moveBefore !== "function") return false;
+  try {
+    destinazione.moveBefore(nodo, null);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 /*
  * Which of the two vendored shells to serve, from the profile language.
  *
@@ -41,7 +74,7 @@ function escapeAttribute(value) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile, locale }) {
+function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile, locale, utente }) {
   const prelude = `<base href="${escapeAttribute(baseUrl)}"><script>(function(){
     const p=parent;
     const bridge=p&&p.__DASHBOARDMODERN_BRIDGE_WS__;
@@ -53,6 +86,11 @@ function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile
        first dashboard script runs so the i18n engine detects it on its first
        read and nothing paints in the shell's own language first. */
     window.__DASHBOARDMODERN_LOCALE__=${JSON.stringify(locale || "")};
+    /* Chi e' collegato (#344): l'identificativo dell'utente di Home Assistant,
+       e nient'altro di lui. Serve all'agenda per mostrare a ognuno i suoi
+       calendari; la plancia, dentro il pannello, questo dato non ha modo di
+       chiederlo — il ponte porta solo Home Assistant, non chi lo sta usando. */
+    window.__DASHBOARDMODERN_UTENTE__=${JSON.stringify(utente || "")};
     window.__DASHBOARDMODERN_BRIDGED__=typeof bridge==='function';
     /* The document lives at about:srcdoc, where location.reload() lands on a
        blank page in the Home Assistant WebView. Anything that needs a fresh
@@ -114,7 +152,7 @@ export function stableStaticBase(staticBase, hostWindow = globalThis.window) {
   }
 }
 
-async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, fetchRef, hostWindow }) {
+async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, utente, fetchRef, hostWindow }) {
   const requestedBase = String(staticBase).replace(/\/$/, "");
   const fallbackBase = stableStaticBase(requestedBase, hostWindow);
   const bases = [...new Set([requestedBase, fallbackBase].filter(Boolean))];
@@ -133,6 +171,7 @@ async function loadHostedDocument(frame, { staticBase, file, instanceId, primary
         primary,
         configProfile,
         locale,
+        utente,
       });
       frame.dataset.runtimeBase = base;
       frame.dataset.usedStableFallback = String(base !== requestedBase);
@@ -178,6 +217,9 @@ export function mountLegacyHost(
   const locale = resolveLocale(hass?.locale?.language);
   const file = variant || legacyShellFor(locale);
   hostWindow.__DASHBOARDMODERN_LOCALE__ = locale;
+  /* L'utente collegato (#344): lo conosce solo chi ospita la plancia. */
+  const utente = String(hass?.user?.id || "");
+  hostWindow.__DASHBOARDMODERN_UTENTE__ = utente;
   const frame = documentRef.createElement("iframe");
   frame.className = "dashboardmodern-legacy-host";
   frame.setAttribute("title", "DashboardModern");
@@ -205,6 +247,7 @@ export function mountLegacyHost(
     child.__DASHBOARDMODERN_PRIMARY__ = primary !== false;
     child.__DASHBOARDMODERN_HOSTED__ = true;
     child.__DASHBOARDMODERN_LOCALE__ = locale;
+    child.__DASHBOARDMODERN_UTENTE__ = utente;
     child.__DASHBOARDMODERN_BRIDGED__ = true;
     child.__DASHBOARDMODERN_BRIDGE_WS__ = BridgeSocket;
     delete child.__DASHBOARDMODERN_REAL_TOKEN__;
@@ -229,7 +272,7 @@ export function mountLegacyHost(
   if (typeof loader !== "function") throw new Error("A fetch implementation is required.");
 
   const boot = () =>
-    loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, fetchRef: loader, hostWindow }).catch((error) => {
+    loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, utente, fetchRef: loader, hostWindow }).catch((error) => {
       console.error("[DashboardModern] hosted document bootstrap failed", error);
       frame.srcdoc = `<main role="alert" style="padding:24px;font:16px sans-serif">DashboardModern: ${escapeAttribute(error.message)}</main>`;
       return false;
@@ -296,36 +339,102 @@ export function mountLegacyHost(
 
   const ready = boot();
 
+  /* La plancia scrive anche nel documento di Home Assistant — lo scorrimento
+   * bloccato, il velo a tutto schermo del modo chiosco. Se ne va prima che la
+   * cornice esca di scena, che sia per sempre (`destroy`) o solo per un po'
+   * (`parcheggia`): altrimenti resta addosso alle altre plance.
+   *
+   * Si chiede al figlio, che e' la strada precisa: sa cosa ha scritto e dove.
+   * Ma non ci si appoggia soltanto a lui. Lo smontaggio parte da
+   * `disconnectedCallback`, cioe' *dopo* che il pannello e la cornice sono
+   * gia' stati staccati dal documento, e li' il contesto della cornice puo'
+   * essere gia' finito: Chrome rimanda quella distruzione a un giro successivo
+   * e la chiamata fa in tempo, WebKit la fa subito e la chiamata non arriva a
+   * nessuno. Su iPhone era proprio questo a lasciare le altre plance sbiancate
+   * finche' non si ricaricava la pagina.
+   *
+   * Quindi si ripassa comunque dal documento: ogni elemento toccato porta
+   * scritto addosso com'era prima, e da qui si legge e si rimette. Le due
+   * strade non si pestano i piedi — chi e' gia' stato rimesso a posto il
+   * promemoria non ce l'ha piu'. */
+  const rilasciaIlDocumentoOspite = () => {
+    try {
+      frame.contentWindow?.dmReleaseOwnerDocument?.();
+    } catch (_error) {}
+    releaseMarkedElements(documentRef, ["data-dm-ios-kiosk"]);
+  };
+
+  /* Il documento della cornice e' ancora quello di prima?
+   *
+   * Se il parcheggio non e' riuscito — o se il browser la cornice l'ha
+   * staccata comunque — dentro non c'e' piu' niente, e chi riprende deve
+   * ricostruire invece di mostrare una pagina vuota. */
+  const vivo = () => {
+    try {
+      return Boolean(frame.contentWindow) && !lostItsDocument();
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  /* Alla plancia si dice quando e' da parte e quando e' tornata in scena.
+   *
+   * Da parte la cornice non si vede: le sezioni che disegnano solo per chi
+   * guarda leggono questo segno e stanno zitte — niente fotogrammi delle
+   * telecamere, niente battiti — mentre gli stati continuano ad arrivare, che
+   * e' tutto il punto del parcheggio. Al ritorno si annuncia un `pageshow`:
+   * e' l'avviso che ogni sezione gia' ascolta per ridipingere una volta con
+   * quello che c'e' adesso, ed e' anche quello con cui il modo chiosco si
+   * riscrive addosso al documento di Home Assistant. */
+  const avvisaLaPlancia = (parcheggiata) => {
+    const child = frame.contentWindow;
+    if (!child) return false;
+    try {
+      child[PARK_FLAG] = parcheggiata;
+      child.dispatchEvent?.(new child.CustomEvent(PARK_EVENT, { detail: { parcheggiata } }));
+      if (!parcheggiata) child.dispatchEvent?.(new child.Event("pageshow"));
+    } catch (_error) {
+      return false;
+    }
+    return true;
+  };
+
   return {
     frame,
     ready,
     install,
     ensureHeight,
     reboot,
+    vivo,
+    /* La connessione con cui questa plancia e' stata costruita: chi la
+     * riprende dal parcheggio deve poter dire se e' ancora la stessa casa. */
+    connection,
+    /**
+     * Mette la plancia da parte, viva, dentro il ricovero passato.
+     *
+     * Torna `false` se lo spostamento atomico non e' possibile: li' non si e'
+     * parcheggiato niente e chi chiama fa quello che ha sempre fatto.
+     */
+    parcheggia(ricovero) {
+      rilasciaIlDocumentoOspite();
+      if (!spostaSenzaRicaricare(ricovero, frame)) return false;
+      avvisaLaPlancia(true);
+      return true;
+    },
+    /** La rimette in scena dentro il contenitore del pannello di adesso. */
+    riprendi(container) {
+      if (!spostaSenzaRicaricare(container, frame)) return false;
+      install();
+      ensureHeight();
+      avvisaLaPlancia(false);
+      /* Il documento se n'e' andato lo stesso: la cornice c'e', ma dentro non
+       * c'e' piu' la plancia. Si ricostruisce invece di lasciare il vuoto. */
+      if (!vivo()) reboot();
+      return true;
+    },
     destroy() {
       hostWindow.removeEventListener?.("message", onChildMessage);
-      /* La plancia scrive anche nel documento di Home Assistant — lo
-       * scorrimento bloccato, il velo a tutto schermo del modo chiosco. Se ne
-       * va prima che la cornice sparisca, altrimenti resta addosso alle altre
-       * plance.
-       *
-       * Si chiede al figlio, che e' la strada precisa: sa cosa ha scritto e
-       * dove. Ma non ci si appoggia soltanto a lui. Questo smontaggio parte da
-       * `disconnectedCallback`, cioe' *dopo* che il pannello e la cornice sono
-       * gia' stati staccati dal documento, e li' il contesto della cornice puo'
-       * essere gia' finito: Chrome rimanda quella distruzione a un giro
-       * successivo e la chiamata fa in tempo, WebKit la fa subito e la chiamata
-       * non arriva a nessuno. Su iPhone era proprio questo a lasciare le altre
-       * plance sbiancate finche' non si ricaricava la pagina.
-       *
-       * Quindi si ripassa comunque dal documento: ogni elemento toccato porta
-       * scritto addosso com'era prima, e da qui si legge e si rimette. Le due
-       * strade non si pestano i piedi — chi e' gia' stato rimesso a posto il
-       * promemoria non ce l'ha piu'. */
-      try {
-        frame.contentWindow?.dmReleaseOwnerDocument?.();
-      } catch (_error) {}
-      releaseMarkedElements(documentRef, ["data-dm-ios-kiosk"]);
+      rilasciaIlDocumentoOspite();
       frame.remove();
       /* I globali si cancellano solo se sono ancora i NOSTRI.
        *

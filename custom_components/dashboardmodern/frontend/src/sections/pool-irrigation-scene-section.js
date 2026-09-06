@@ -1,4 +1,13 @@
 import {
+  CHIAVE_PRINCIPALE,
+  elencoDegliOrari,
+  minutiAlProssimo,
+  minutiDelGiorno,
+  orariDelProgramma,
+  orarioDaAvviare,
+  ORARIO_PREDEFINITO,
+} from "../core/irrigazione-orari.js";
+import {
   configuredPools,
   poolRunKey,
   poolRunToday,
@@ -42,6 +51,11 @@ const state = (root[KEY] ||= {
   poolSignature: "",
   irrigationSignature: "",
   poolScelta: 0,
+  // Minuti imposti dall'orario che ha fatto partire la corsa in atto: `null`
+  // quando comandano le zone, come e' sempre stato.
+  durataDaImporre: null,
+  durataDellaCorsa: null,
+  sveglia: 0,
 });
 
 const POOL_MARKER = "__dmPoolSceneOwner";
@@ -504,6 +518,16 @@ function zoneMinutes(zone = {}) {
   return value && value > 0 ? value : 10;
 }
 
+/* I minuti che la zona sta davvero facendo, adesso.
+ *
+ * Un orario puo' portarsi la sua durata — «e alle 20:30, dieci minuti» — e
+ * allora vale per tutta quella corsa: senza questo la pastiglia direbbe i
+ * minuti della zona e la barra andrebbe a fondo scala col tempo sbagliato. */
+function durataInCorso(zone) {
+  const imposta = num(state.durataDellaCorsa);
+  return imposta != null && imposta > 0 ? imposta : zoneMinutes(zone);
+}
+
 function zoneName(zone = {}) {
   return clean(zone.name) || clean(zone.entity) || t("Zona", "Zone");
 }
@@ -645,8 +669,11 @@ function syncIrrigationValues(host, grid, config) {
 
   const schedule = host.querySelector("[data-dm-irr-schedule]");
   if (schedule) {
+    // Tutti i momenti della giornata, non solo il primo: da quando gli orari
+    // sono piu' d'uno la pastiglia che ne nomina uno solo e' una bugia.
+    const orari = elencoDegliOrari(orariDelProgramma(config));
     schedule.textContent = config.enabled
-      ? `⏰ ${t("ogni giorno alle", "every day at")} ${clean(config.time) || "06:30"}`
+      ? `⏰ ${t("ogni giorno alle", "every day at")} ${orari.join(" · ") || ORARIO_PREDEFINITO}`
       : t("programma spento", "schedule off");
     schedule.dataset.on = String(Boolean(config.enabled));
   }
@@ -693,7 +720,7 @@ function syncIrrigationValues(host, grid, config) {
     node.dataset.state = running[index] ? "on" : "off";
     const timer = node.querySelector("[data-dm-zone-timer]");
     if (timer) {
-      timer.textContent = index === sequenced && left > 0 ? label : `${zoneMinutes(zone)} min`;
+      timer.textContent = index === sequenced && left > 0 ? label : `${durataInCorso(zone)} min`;
     }
   });
 
@@ -704,10 +731,10 @@ function syncIrrigationValues(host, grid, config) {
     const sequencing = index === sequenced && left > 0;
     node.dataset.state = running[index] ? "on" : "off";
     const chip = node.querySelector("[data-dm-card-chip]");
-    if (chip) chip.textContent = sequencing ? `💦 ${label}` : `${zoneMinutes(zone)} min`;
+    if (chip) chip.textContent = sequencing ? `💦 ${label}` : `${durataInCorso(zone)} min`;
     const bar = node.querySelector("[data-dm-card-bar]");
     if (bar) {
-      const total = zoneMinutes(zone) * 60000;
+      const total = durataInCorso(zone) * 60000;
       const percent = sequencing ? Math.max(0, Math.min(100, 100 - (left / total) * 100)) : 0;
       bar.style.width = `${percent.toFixed(1)}%`;
     }
@@ -1269,6 +1296,17 @@ function installStyles() {
       #page-irrigazione #irr-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important}
     }
 
+    /* ── gli altri orari, nell'editor ─────────────────────────────────── */
+    .dm-irr-orari{display:grid;gap:6px;margin:0 0 10px}
+    .dm-irr-orari>small{opacity:.72;line-height:1.35}
+    .dm-irr-ora{display:grid;grid-template-columns:minmax(96px,1.2fr) minmax(64px,.8fr) minmax(64px,.8fr) 34px;gap:6px;align-items:center}
+    .dm-irr-ora .ed-input{margin:0;min-width:0}
+    .dm-irr-ora-testa>span{font-size:11px;opacity:.6;padding-left:2px}
+    .dm-irr-ora-via{border:0;border-radius:10px;background:rgba(239,68,68,.16);color:#fca5a5;font-size:15px;line-height:1;padding:9px 0;cursor:pointer}
+    .dm-irr-ora-via:hover{background:rgba(239,68,68,.28)}
+    .dm-irr-ora-piu{border:1px dashed rgba(148,163,184,.5);border-radius:12px;background:transparent;color:inherit;padding:9px;font-size:13px;cursor:pointer}
+    .dm-irr-ora-piu:hover{border-color:rgba(56,189,248,.8);color:#7dd3fc}
+
     @media (prefers-reduced-motion:reduce){
       .dm-pool-caustics,.dm-pool-shimmer,.dm-pool-ripple,.dm-pool-bubbles i,.dm-pool-steam i,.dm-pool-ring,
       .dm-lawn-blades i,.dm-zone-fan,.dm-zone-mist,.dm-zone-wet,.dm-zone-spray i,.dm-zone-splashes i{animation:none!important}
@@ -1306,6 +1344,139 @@ function casellaSoil() {
       "With the ground already wet the scheduled program skips (with the notice on the card); below the low threshold it starts on its own, once a day.",
     )}</small>`;
   return holder;
+}
+
+/* ── Le righe degli altri orari, nell'editor ─────────────────────────────
+ *
+ * Il primo orario ha gia' la sua casella, che e' del runtime: qui sotto si
+ * aggiungono gli altri, uno per riga, con i minuti di quella corsa e la % di
+ * terreno sotto la quale ha senso farla. Si salvano appena si scrivono — un
+ * elenco che si modifica non aspetta il tasto Salva della scheda, o togliere
+ * una riga e cambiare idea diventerebbe un indovinello. */
+function orariSalvati() {
+  const salvati = irrigationConfig().orari;
+  return Array.isArray(salvati) ? salvati : [];
+}
+
+function rigaOrario(riga, indice) {
+  const minuti = num(riga?.minuti);
+  const soglia = num(riga?.seSottoA);
+  return `<div class="dm-irr-ora" data-dm-irr-ora="${indice}">
+    <input type="time" class="ed-input" data-campo="ora" value="${esc(clean(riga?.ora))}" aria-label="${esc(t("Ora", "Time"))}">
+    <input type="number" class="ed-input" data-campo="minuti" min="1" max="480" step="1" placeholder="min" value="${minuti == null ? "" : minuti}" aria-label="${esc(t("Minuti di questa corsa", "Minutes for this run"))}">
+    <input type="number" class="ed-input" data-campo="seSottoA" min="0" max="100" step="1" placeholder="%" value="${soglia == null ? "" : soglia}" aria-label="${esc(t("Solo col terreno sotto (%)", "Only with the soil below (%)"))}">
+    <button type="button" class="dm-irr-ora-via" data-dm-irr-ora-via="${indice}" aria-label="${esc(t("Togli l'orario", "Remove the time"))}">✕</button>
+  </div>`;
+}
+
+function casellaOrari() {
+  const holder = doc.createElement("div");
+  holder.dataset.dmIrrOrariFields = "true";
+  holder.className = "dm-irr-orari";
+  holder.innerHTML = `<span class="ed-slot-lbl">${esc(t("Altri orari di irrigazione", "Other watering times"))}</span>
+    <div class="dm-irr-ora dm-irr-ora-testa" aria-hidden="true"><span>${esc(t("Ora", "Time"))}</span><span>${esc(t("Durata", "Duration"))}</span><span>${esc(t("Se sotto (%)", "If below (%)"))}</span><span></span></div>
+    <div data-dm-irr-ore></div>
+    <button type="button" class="dm-irr-ora-piu" data-dm-irr-ora-piu>+ ${esc(t("Aggiungi un orario", "Add a time"))}</button>
+    <small>${esc(
+      t(
+        "Il primo orario è quello qui sopra. Ogni riga in più è una corsa a sé: i minuti valgono per tutte le zone di quella corsa, e la % la fa partire solo col terreno più asciutto di così.",
+        "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.",
+      ),
+    )}</small>`;
+  /* Mentre si scrive, non quando si esce dal campo: `change` arriva solo al
+   * cambio di fuoco, e chi scrive l'ultima casella e poi chiude l'editor
+   * perderebbe quello che ha appena messo. Riscrivere la stessa cosa non
+   * costa niente — `writeJsonIfChanged` non scrive se non e' cambiata. */
+  for (const evento of ["input", "change"])
+    holder.addEventListener(evento, (event) => {
+      if (event.target?.closest?.("[data-dm-irr-ora]")) salvaGliOrari(holder);
+    });
+  holder.addEventListener("click", (event) => {
+    const via = event.target?.closest?.("[data-dm-irr-ora-via]");
+    if (via) {
+      const indice = Number(via.dataset.dmIrrOraVia);
+      const righe = orariSalvati().filter((_riga, posto) => posto !== indice);
+      scriviGliOrari(righe);
+      disegnaLeRighe(holder, righe);
+      return;
+    }
+    if (event.target?.closest?.("[data-dm-irr-ora-piu]")) {
+      const righe = [...orariSalvati(), { ora: "", minuti: null, seSottoA: null }];
+      scriviGliOrari(righe);
+      disegnaLeRighe(holder, righe);
+    }
+  });
+  return holder;
+}
+
+function salvaGliOrari(holder) {
+  const righe = [...holder.querySelectorAll("[data-dm-irr-ora]:not(.dm-irr-ora-testa)")].map((riga) => ({
+    ora: clean(riga.querySelector('[data-campo="ora"]')?.value),
+    minuti: num(riga.querySelector('[data-campo="minuti"]')?.value),
+    seSottoA: num(riga.querySelector('[data-campo="seSottoA"]')?.value),
+  }));
+  scriviGliOrari(righe);
+}
+
+function scriviGliOrari(righe) {
+  const stored = readJson("cd_irrigazione", {});
+  const next = stored && typeof stored === "object" && !Array.isArray(stored) ? { ...stored } : {};
+  const puliti = righe.map((riga) => {
+    const salvata = { ora: clean(riga?.ora) };
+    const minuti = num(riga?.minuti);
+    const soglia = num(riga?.seSottoA);
+    if (minuti != null) salvata.minuti = Math.max(1, Math.min(480, Math.round(minuti)));
+    if (soglia != null) salvata.seSottoA = Math.max(0, Math.min(100, Math.round(soglia)));
+    return salvata;
+  });
+  if (puliti.length) next.orari = puliti;
+  else delete next.orari;
+  writeJsonIfChanged("cd_irrigazione", next);
+  // Gli orari sono cambiati: la sveglia si rimette sul prossimo, e la
+  // pastiglia della card li rilegge.
+  riarmaLaSveglia();
+  schedule();
+}
+
+function disegnaLeRighe(holder, righe = orariSalvati()) {
+  const elenco = holder.querySelector("[data-dm-irr-ore]");
+  if (!elenco) return;
+  const presenti = elenco.querySelectorAll("[data-dm-irr-ora]");
+  // Si ridisegna solo quando le righe cambiano di numero: riscrivere il markup
+  // a ogni giro dell'editor porterebbe via il cursore da sotto le dita.
+  if (presenti.length !== righe.length) {
+    elenco.innerHTML = righe.map((riga, indice) => rigaOrario(riga, indice)).join("");
+    return;
+  }
+  presenti.forEach((riga, indice) => {
+    const dato = righe[indice] || {};
+    const valori = [
+      ['[data-campo="ora"]', clean(dato.ora)],
+      ['[data-campo="minuti"]', num(dato.minuti) ?? ""],
+      ['[data-campo="seSottoA"]', num(dato.seSottoA) ?? ""],
+    ];
+    for (const [selettore, valore] of valori) {
+      const campo = riga.querySelector(selettore);
+      if (campo && doc.activeElement !== campo && campo.value !== String(valore)) campo.value = String(valore);
+    }
+  });
+}
+
+function ensureOrariFields() {
+  if (activeEditorTab() !== "irr") return false;
+  const body = doc?.getElementById("ed-body");
+  const ora = body?.querySelector?.("#ed-irr-time");
+  if (!body || !ora) return false;
+  const ancora = ora.closest("div, label") || ora;
+  let holder = body.querySelector("[data-dm-irr-orari-fields]");
+  if (!holder) {
+    holder = casellaOrari();
+    ancora.after(holder);
+  } else if (ancora.nextElementSibling !== holder) {
+    ancora.after(holder);
+  }
+  disegnaLeRighe(holder);
+  return true;
 }
 
 function ensureSoilFields() {
@@ -1406,6 +1577,7 @@ function armaSoilEditor() {
     root.edIrrSaveCfg = salvataggio;
   }
   ensureSoilFields();
+  ensureOrariFields();
 }
 
 /* ── L'irrigazione guarda il terreno ─────────────────────────────────────
@@ -1471,6 +1643,185 @@ function valutaTerreno() {
   } catch (_error) {}
 }
 
+/* ── Piu' momenti di irrigazione nella stessa giornata (#325) ────────────
+ *
+ * «Una alle 05:30 del mattino e alle 20:30, dopo una giornata di caldo
+ * intenso, se la % del sensore umidita' terreno e' inferiore ad una certa %
+ * parte una seconda irrigazione di tot minuti definiti dall'utente.»
+ *
+ * Il primo orario resta del runtime, col suo intervallo e la sua chiave-giorno
+ * (`cd_irr_lastrun`): quella chiave la si legge e la si scrive anche da qui,
+ * cosi' chi arriva secondo trova il posto occupato e la corsa non parte due
+ * volte. Gli altri orari sono nostri, con una chiave-giorno per ciascuno.
+ *
+ * La sveglia non e' un intervallo fisso: dorme fino al momento buono e non
+ * oltre qualche minuto, perche' una scheda sospesa si risveglia in ritardo e
+ * la finestra di tolleranza del modello deve poterla recuperare. */
+const ORARI_RUN_KEY = "cd_irr_orari_lastrun";
+const RUNTIME_RUN_KEY = "cd_irr_lastrun";
+const SVEGLIA_MINIMA_MS = 15_000;
+const SVEGLIA_MASSIMA_MS = 300_000;
+
+function giornoDiOggi() {
+  return new Date().toDateString();
+}
+
+function minutiAdesso() {
+  const adesso = new Date();
+  return adesso.getHours() * 60 + adesso.getMinutes();
+}
+
+function leggiLeCorse() {
+  try {
+    const salvate = JSON.parse(root.localStorage?.getItem?.(ORARI_RUN_KEY) || "{}");
+    return salvate && typeof salvate === "object" && !Array.isArray(salvate) ? salvate : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function corseDiOggi() {
+  const corse = leggiLeCorse();
+  corse[CHIAVE_PRINCIPALE] = clean(root.localStorage?.getItem?.(RUNTIME_RUN_KEY));
+  return corse;
+}
+
+function segnaLaCorsa(orario, giorno) {
+  try {
+    if (orario.principale) {
+      root.localStorage?.setItem?.(RUNTIME_RUN_KEY, giorno);
+      return;
+    }
+    const salvate = leggiLeCorse();
+    salvate[orario.chiave] = giorno;
+    // Le giornate vecchie non dicono piu' niente: resta solo l'oggi, e la
+    // chiave non cresce di un rigo al giorno per sempre.
+    for (const chiave of Object.keys(salvate)) if (salvate[chiave] !== giorno) delete salvate[chiave];
+    root.localStorage?.setItem?.(ORARI_RUN_KEY, JSON.stringify(salvate));
+  } catch (_error) {}
+}
+
+/* La corsa dell'orario delle 20:30 dura quello che dice l'orario, non quello
+ * che dicono le zone: il runtime rimette `CD_IRR.until` a ogni passo, e qui lo
+ * si corregge subito dopo — un padrone solo, e il conto resta il suo. */
+function applicaLaDurata() {
+  const runtime = root.CD_IRR;
+  if (!runtime) return;
+  if ((runtime.cur ?? -1) < 0) {
+    state.durataDellaCorsa = null;
+    return;
+  }
+  if (state.durataDaImporre != null && state.durataDellaCorsa == null)
+    state.durataDellaCorsa = state.durataDaImporre;
+  const minuti = num(state.durataDellaCorsa);
+  if (minuti == null || minuti <= 0) return;
+  runtime.until = Date.now() + minuti * 60000;
+}
+
+function installDurationOwner() {
+  const passo = root.cdIrrNext;
+  if (typeof passo === "function" && !passo.__dmIrrDurata) {
+    const conLaDurata = function (...args) {
+      const esito = passo.apply(this, args);
+      applicaLaDurata();
+      return esito;
+    };
+    Object.assign(conLaDurata, passo);
+    conLaDurata.__dmIrrDurata = true;
+    conLaDurata.__dmPrevious = passo;
+    root.cdIrrNext = conLaDurata;
+  }
+  const fermata = root.cdIrrStopAll;
+  if (typeof fermata === "function" && !fermata.__dmIrrDurata) {
+    const conLoStop = function (...args) {
+      // Fermare a mano chiude anche la durata imposta: la corsa successiva
+      // riparte coi minuti delle zone, non con quelli di ieri sera.
+      state.durataDellaCorsa = null;
+      state.durataDaImporre = null;
+      return fermata.apply(this, args);
+    };
+    Object.assign(conLoStop, fermata);
+    conLoStop.__dmIrrDurata = true;
+    conLoStop.__dmPrevious = fermata;
+    root.cdIrrStopAll = conLoStop;
+  }
+}
+
+function avviaLOrario(orario) {
+  state.durataDaImporre = num(orario.minuti);
+  try {
+    // Si passa dal cancello di sempre: pioggia prevista e terreno gia' bagnato
+    // fermano anche la corsa delle 20:30, con lo stesso avviso in card.
+    root.cdIrrProgram?.(false);
+  } finally {
+    state.durataDaImporre = null;
+  }
+  // Deciso: partita o fermata dal cancello, l'orario di oggi e' consumato — o
+  // si ritenterebbe ogni mezzo minuto per tutta la finestra.
+  segnaLaCorsa(orario, giornoDiOggi());
+}
+
+function guardaLOrologio() {
+  try {
+    const config = irrigationConfig();
+    if (!config.enabled || !config.zones.length) return "";
+    // Mentre l'acqua gira non si accoda niente: il momento successivo lo si
+    // guarda al giro dopo, con la sequenza finita.
+    if ((root.CD_IRR?.cur ?? -1) >= 0) return "";
+    const giorno = giornoDiOggi();
+    const scelta = orarioDaAvviare({
+      orari: orariDelProgramma(config),
+      adesso: minutiAdesso(),
+      giorno,
+      corse: corseDiOggi(),
+      umidita: soilMoisture(config).reading,
+    });
+    if (!scelta) return "";
+    if (scelta.esito === "senza-lettura") return scelta.esito;
+    if (scelta.esito === "terreno-bagnato") {
+      if (root.CD_IRR)
+        // L'ora davanti e il resto com'e' sempre stato: la frase non si
+        // spezza in tre pezzi da rimettere in fila lingua per lingua.
+        root.CD_IRR.skip = `🌱 ${scelta.orario.ora} · ${t("Terreno al", "Soil at")} ${Math.round(scelta.lettura)}% — ${t("programma saltato", "program skipped")}`;
+      try {
+        root.renderIrrigazione?.();
+      } catch (_error) {}
+      segnaLaCorsa(scelta.orario, giorno);
+      return scelta.esito;
+    }
+    avviaLOrario(scelta.orario);
+    return scelta.esito;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function attesaProssima() {
+  try {
+    const config = irrigationConfig();
+    if (!config.enabled || !config.zones.length) return SVEGLIA_MASSIMA_MS;
+    const mancano = minutiAlProssimo(orariDelProgramma(config), minutiAdesso());
+    if (mancano == null) return SVEGLIA_MASSIMA_MS;
+    return Math.max(SVEGLIA_MINIMA_MS, Math.min(mancano * 60000, SVEGLIA_MASSIMA_MS));
+  } catch (_error) {
+    return SVEGLIA_MASSIMA_MS;
+  }
+}
+
+export function riarmaLaSveglia(attesa) {
+  if (typeof root.setTimeout !== "function") return;
+  root.clearTimeout?.(state.sveglia);
+  state.sveglia = root.setTimeout(
+    () => {
+      // Senza lettura del terreno si ripassa presto: il sensore puo' ancora
+      // rispondere dentro la finestra di tolleranza.
+      const esito = guardaLOrologio();
+      riarmaLaSveglia(esito === "senza-lettura" ? SVEGLIA_MINIMA_MS : undefined);
+    },
+    attesa == null ? attesaProssima() : attesa,
+  );
+}
+
 export function installPoolIrrigationSceneSection() {
   if (!doc) return;
   installStyles();
@@ -1494,8 +1845,11 @@ export function installPoolIrrigationSceneSection() {
       root.addEventListener?.(eventName, () => {
         installProgramGate();
         valutaTerreno();
+        installDurationOwner();
       });
     installProgramGate();
+    installDurationOwner();
+    riarmaLaSveglia();
   }
   schedule();
 }

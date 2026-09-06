@@ -68,13 +68,17 @@ test("il gettone GitHub non compare fra le cose che la finestra manda", () => {
 
 test("la diagnostica che la finestra puo' mandare e' una lista chiusa", () => {
   /* Le chiavi devono stare dentro quelle che il backend dichiara in
-   * ticket_store.DIAGNOSTIC_KEYS. Qui ce ne sono cinque su sei: il metodo di
-   * installazione il browser non lo sa, e non si inventa. */
+   * ticket_store.DIAGNOSTIC_KEYS. Qui ce ne sono sette su otto: il metodo di
+   * installazione il browser non lo sa, e non se lo inventa. Le due tendine —
+   * la sezione e la parte — sono le uniche scelte a mano: le altre la plancia
+   * le sa da se'. */
   assert.deepEqual([...DIAGNOSTIC_KEYS].sort(), [
+    "funzione",
     "ha_version",
     "integration_version",
     "locale",
     "panel_section",
+    "sezione",
     "user_agent",
   ]);
 });

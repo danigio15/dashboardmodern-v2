@@ -3,6 +3,7 @@ import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
+import { installGuscioQuandoServe } from "./il-guscio-disegna-quando-serve-section.js";
 import { installI18nSection } from "./i18n-section.js";
 import { installThemeFoundationSection } from "./theme-foundation-section.js";
 import { installIconeLeggibiliSection } from "./icone-leggibili-section.js";
@@ -15,6 +16,7 @@ import { installEnergyRefreshSection } from "./energy-refresh-section.js";
 import { installEnergyLegacyGuardSection } from "./energy-legacy-guard-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installHomeBlocchiSection } from "./home-blocchi-section.js";
+import { installComeStaLaCasa } from "./come-sta-la-casa-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installEnergyLoadsEditor } from "./energy-loads-editor-section.js";
@@ -28,7 +30,6 @@ import { installTemperatureLayoutSection } from "./temperature-layout-section.js
 import { installTemperatureTrendSection } from "./temperature-trend-section.js";
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
-import { installBeta27ReleaseStability } from "./beta27-release-stability-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
@@ -79,6 +80,7 @@ import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-secti
 import { installPoolExtraSection } from "./pool-extra-section.js";
 import { installPoolEditorSection } from "./pool-editor-section.js";
 import { installRobotSection } from "./robot-section.js";
+import { installAnimaliSection } from "./animali-section.js";
 import { installPreseSection } from "./prese-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
@@ -87,6 +89,7 @@ import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
 import { installAutoIntegrazione } from "./auto-integrazione-section.js";
 import { installEnergiaCerchiStorico } from "./energia-cerchi-storico-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
+import { installAnimaliEditorSection } from "./animali-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
@@ -791,6 +794,11 @@ export function installSectionRuntime() {
 
   root[INSTALLING_KEY] = true;
   try {
+    /* Per primo, prima di ogni involucro: il padrone di `cdRenderSoon` e dei
+     * timer del guscio. I moduli qui sotto si agganciano a `render`, e
+     * quanto spesso `render` giri lo decide chi possiede il nome prima di
+     * loro. */
+    installGuscioQuandoServe();
     /* Prima di tutto: una domanda a Home Assistant che parte con l'indirizzo
      * sbagliato non arriva, e chi la fa non se ne accorge — «Failed to fetch»
      * al posto dello storico. Si ripara la sola cosa che serve, e si ripara
@@ -958,6 +966,15 @@ export function installSectionRuntime() {
      * foto, quindi si installano dopo di lui. */
     installPeopleSection();
     installPeopleEditorSection();
+    /* La riga sotto il meteo (#356, #357) prima del ponte: e' il ponte a
+     * disegnarla, coi modelli delle tessere che ha appena fatto, e quando lo
+     * fa deve trovare gia' installati lo stile, il tocco e la sua scheda. */
+    installComeStaLaCasa();
+    /* Gli animali di casa (#358): la loro voce si mette accanto a quella
+     * delle Persone, quindi si installano dopo di lei; il loro editor usa il
+     * selettore foto, che e' gia' in piedi qui sopra. */
+    installAnimaliSection();
+    installAnimaliEditorSection();
     /* Il ponte dei widget sta sotto le persone in Home: si installa dopo,
      * cosi' trova gia' il suo ancoraggio. */
     installHomeWidgetsSection();
@@ -1026,11 +1043,11 @@ export function installSectionRuntime() {
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();
-    installBeta27ReleaseStability();
 
     root[RUNTIME_KEY] = Object.freeze({
       installed: true,
       sections: Object.freeze([
+        "il-guscio-disegna-quando-serve",
         "i18n",
         "data-contracts",
         ...LEGACY_SECTION_KEYS,
@@ -1083,6 +1100,8 @@ export function installSectionRuntime() {
         "media-picker",
         "people",
         "people-editor",
+        "animali",
+        "animali-editor",
         "home-widgets",
         "todo-editor",
         "widget-entity-choice",
@@ -1100,7 +1119,6 @@ export function installSectionRuntime() {
         "allerte-editor",
         "rifiuti",
         "rifiuti-editor",
-        "beta27-release-stability",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
       energyServices: root.__DASHBOARDMODERN_ENERGY_SERVICES__,

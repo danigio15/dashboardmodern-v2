@@ -221,7 +221,12 @@ export function installEntityPickerGuardSection() {
   installStyles();
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
     guardSingleDialog();
-    for (const name of ["editorSwitch", "edFilterSez", "renderEditorTab", "renderEnergyEditorTab", "editorRenderLuci", "editorRenderStanze"]) {
+    /* `renderEditorTab` e `renderEnergyEditorTab` stavano in questo elenco e
+     * non ci sono mai stati: sono funzioni interne di legacy/modules-entry.js,
+     * non nomi del guscio, e `wrapFunction` legge `root[nome]` — trovava
+     * `undefined` e usciva. La linguetta rifatta arriva comunque, dagli altri
+     * quattro nomi e dall'evento della scheda ridisegnata. */
+    for (const name of ["editorSwitch", "edFilterSez", "editorRenderLuci", "editorRenderStanze"]) {
       wrapFunction(name, `__dmPickerGuard_${name}`, schedule);
     }
     subscribeStore();

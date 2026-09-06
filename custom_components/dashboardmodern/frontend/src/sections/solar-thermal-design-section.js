@@ -1348,8 +1348,9 @@ export function installSolarThermalDesignSection() {
   // The legacy runtime only writes text and classes into this page, so the
   // added hardware survives; re-running after a render keeps it in place if a
   // future legacy repaint ever replaces the markup.
-  for (const name of ["render", "renderBoiler", "renderSolarThermal"]) {
-    wrapFunction(name, `__dmSolarThermalDesign_${name}`, schedule);
-  }
+  /* Solo `render`: `renderBoiler` e `renderSolarThermal` non esistono in
+   * nessun guscio — sono due nomi che il registro delle sezioni legacy prova,
+   * non due funzioni — e avvolgerli non agganciava niente. */
+  wrapFunction("render", "__dmSolarThermalDesign_render", schedule);
   return true;
 }

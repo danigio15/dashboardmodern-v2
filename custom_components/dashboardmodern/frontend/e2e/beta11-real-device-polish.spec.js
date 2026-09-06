@@ -98,12 +98,17 @@ async function boot(page, variant, testInfo) {
   }, seed.sections.ev);
 }
 
+/* Prima si apre, poi si cambia scheda: due gesti, come li fa una persona.
+ *
+ * Chiedere la scheda nello stesso respiro in cui si apre la finestra vuol dire
+ * chiederla a una finestra che si sta ancora costruendo, e il corpo della
+ * scheda puo' arrivare dopo — o non arrivare. */
 async function openEditor(page, tab) {
-  await page.evaluate((target) => {
+  await page.evaluate(() => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
-    editorSwitch(target);
-  }, tab);
+  });
   await expect(page.locator("#editor-modal")).toBeVisible();
+  await page.evaluate((target) => editorSwitch(target), tab);
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
@@ -173,6 +178,25 @@ for (const variant of PRIMARY) {
     await boot(page, variant, testInfo);
 
     await openEditor(page, "stanze");
+    /* Si aspetta la riga vestita, e se non arriva si dice cosa c'era davvero
+     * nella scheda: righe nessuna, righe non riconosciute come stanze, o
+     * stanze che il modulo non ha vestito. Un rosso che non dice quale dei tre
+     * fa perdere un giro intero a chi lo legge. */
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const corpo = document.getElementById("ed-body");
+            const conta = (selettore) => corpo?.querySelectorAll(selettore).length ?? -1;
+            return [
+              `righe:${conta(".ed-row")}`,
+              `stanze:${conta('[data-dm-edit-kind="room"][data-dm-edit-index]')}`,
+              `vestite:${conta(".dm-beta11-room-row")}`,
+            ].join(" ");
+          }),
+        { timeout: 20_000, message: "la scheda Stanze dell'editor" },
+      )
+      .toMatch(/vestite:[1-9]/);
     const row = page.locator('#ed-body .dm-beta11-room-row:has([data-dm-edit-index="0"])').first();
     await expect(row).toBeVisible();
     const name = row.locator('.ed-row-new[data-dm-room-name="true"]');

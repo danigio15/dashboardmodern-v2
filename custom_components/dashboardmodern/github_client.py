@@ -374,9 +374,29 @@ def issue_body(ticket: Mapping[str, Any]) -> str:
     di essere raggiungibile. La risposta arriva sotto la segnalazione, dove il
     filo si legge e si scrive nei due sensi.
     """
-    righe = [str(ticket.get("body") or ""), ""]
+    # Importato qui come gli altri nomi di `ticket_store`: i due moduli si
+    # citano a vicenda, e in cima si girerebbero intorno.
+    from .ticket_store import DOVE_SUCCEDE
+
     diagnostica = ticket.get("diagnostics") or {}
-    voci = [(chiave, valore) for chiave, valore in diagnostica.items() if valore]
+    # Dove succede va in cima, fuori dal cassetto: e' la prima cosa che serve a
+    # chi legge — «Energia › Il report e i periodi» dice gia' dove guardare — e
+    # tenerla chiusa insieme alla versione del browser vorrebbe dire chiederla
+    # per niente. Percio' esce di li' e non si ripete sotto.
+    dove = " › ".join(
+        str(diagnostica.get(chiave) or "").strip()
+        for chiave in DOVE_SUCCEDE
+        if str(diagnostica.get(chiave) or "").strip()
+    )
+    righe = ([f"**Dove:** {dove}", ""] if dove else []) + [
+        str(ticket.get("body") or ""),
+        "",
+    ]
+    voci = [
+        (chiave, valore)
+        for chiave, valore in diagnostica.items()
+        if valore and chiave not in DOVE_SUCCEDE
+    ]
     if voci:
         righe += ["<details><summary>Diagnostica</summary>", ""]
         righe += [f"- **{chiave}**: {valore}" for chiave, valore in sorted(voci)]

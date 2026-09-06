@@ -46,6 +46,9 @@ import {
   parolaDelGrado,
 } from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
+import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
+import { eDellaWallbox } from "../core/wallbox-device-binding.js";
+import { statoUmanoEV } from "./il-popup-dell-auto-racconta-section.js";
 import { poolList } from "../core/pool-model.js";
 /* La tessera delle segnalazioni chiede il suo conto a chi gia' lo tiene, invece
  * di rifare il giro verso GitHub per conto suo. */
@@ -89,6 +92,8 @@ import {
 import {
   CALENDARI_KEY,
   GIORNI_AVANTI,
+  calendariAssegnati,
+  calendariDellUtente,
   eventiDaQui,
   inCorso,
   minutiAllEvento,
@@ -164,6 +169,7 @@ import {
   apertaSecondoVerso,
   insiemeInvertiti,
   posizioneSecondoVerso,
+  statoSecondoVerso,
   versoInvertito,
 } from "../core/verso-aperture.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
@@ -190,6 +196,7 @@ import {
   gettoneDiAccesso,
   lexicalGlobal,
   locale,
+  planciaVisibile,
   readClimateUnits,
   readJson,
   root,
@@ -197,6 +204,7 @@ import {
   siComanda,
   t,
 } from "./shared.js";
+import { disegnaComeStaLaCasa } from "./come-sta-la-casa-section.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
@@ -262,9 +270,94 @@ export function configuredTodoLists() {
   return normalizeTodoLists(readJson(TODO_CONFIG_KEY, []));
 }
 
-/** I calendari scelti (#259). */
-export function calendariConfigurati() {
+/** Tutti i calendari scelti (#259), com'è scritto in configurazione. */
+export function calendariScritti() {
   return normalizzaCalendari(readJson(CALENDARI_KEY, []));
+}
+
+/* ── chi sta guardando l'agenda (#344) ────────────────────────────────────
+ *
+ * «Sarebbe possibile implementare una soluzione in cui il calendario mostrato
+ * dalla dashboard vari in base alla persona che lo sta visualizzando?»
+ *
+ * Chi sia l'utente collegato, dentro il pannello, lo sa il documento OSPITE:
+ * `hass.user` vive di là, e il documento della plancia riceve un ponte, non
+ * l'utente. Due strade, e la plancia le prende tutte e due.
+ *
+ * La prima: se un giorno l'ospite lo consegna — `__DASHBOARDMODERN_UTENTE__`
+ * — non c'è più niente da chiedere a nessuno, e l'agenda si veste da sola.
+ *
+ * La seconda, che funziona oggi: la scelta si scrive nel profilo di Home
+ * Assistant di CHI E' COLLEGATO (`frontend/set_user_data`, che il ponte lascia
+ * già passare). E' una casella per utente, non per dispositivo: chi dice una
+ * volta «sono io» si ritrova la sua agenda dal telefono, dal computer e dal
+ * tablet, e non la vede nessun altro.
+ *
+ * Finché nessun calendario ha un padrone, niente di tutto questo succede: la
+ * domanda non si fa e l'agenda è quella di sempre. */
+const CHIAVE_CHI_GUARDA = "dashboardmodern_calendario_utente";
+const chiGuarda = (root.__DASHBOARDMODERN_CHI_GUARDA__ ||= {
+  scelto: "",
+  chiesto: false,
+});
+
+/** Chi sta guardando, quando si sa. Vuoto vuol dire «non lo sappiamo». */
+export function utenteCheGuarda() {
+  const dallOspite = root.__DASHBOARDMODERN_UTENTE__;
+  const suo = clean(typeof dallOspite === "string" ? dallOspite : dallOspite?.id);
+  return suo || clean(chiGuarda.scelto);
+}
+
+function avvisaChiDisegnaLAgenda() {
+  /* Cambiata la persona sono cambiati i calendari da guardare: quelli nuovi
+   * non li ha mai chiesti nessuno, e senza questa riga l'agenda mostrerebbe
+   * gli eventi di prima finche' non passa il giro dei cinque minuti. */
+  try {
+    aggiornaCalendari({ force: true });
+  } catch (_error) {}
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
+  root.dispatchEvent?.(new CustomEvent("dashboardmodern:calendario-utente"));
+}
+
+/** La scelta ricordata nel profilo di chi è collegato. Si chiede una volta. */
+export function chiediChiGuarda() {
+  if (chiGuarda.chiesto) return;
+  chiGuarda.chiesto = true;
+  chiediAHomeAssistant({ type: "frontend/get_user_data", key: CHIAVE_CHI_GUARDA })
+    .then((risposta) => {
+      const scelto = clean(risposta?.value?.utente);
+      if (!scelto || scelto === chiGuarda.scelto) return;
+      chiGuarda.scelto = scelto;
+      avvisaChiDisegnaLAgenda();
+    })
+    .catch(() => {
+      /* Senza risposta si resta senza nome, che è il caso di sempre: l'agenda
+       * mostra i calendari di casa. Non è un errore da raccontare. */
+      chiGuarda.chiesto = false;
+    });
+}
+
+/** «Sono io»: la scelta si ricorda nel profilo dell'utente collegato. */
+export function ricordaChiGuarda(utente) {
+  const scelto = clean(utente);
+  if (chiGuarda.scelto === scelto) return Promise.resolve(false);
+  chiGuarda.scelto = scelto;
+  chiGuarda.chiesto = true;
+  avvisaChiDisegnaLAgenda();
+  return chiediAHomeAssistant({
+    type: "frontend/set_user_data",
+    key: CHIAVE_CHI_GUARDA,
+    value: { utente: scelto },
+  })
+    .then(() => true)
+    .catch(() => false);
+}
+
+/** I calendari che tocca vedere a chi sta guardando (#259, #344). */
+export function calendariConfigurati() {
+  return calendariDellUtente(calendariScritti(), utenteCheGuarda());
 }
 
 /* ── letture ──────────────────────────────────────────────────────────── */
@@ -293,6 +386,18 @@ function record(entity) {
     state.lists.set(entity, value);
   }
   return value;
+}
+
+/* La pagina dell'Agenda aspetta questi dati e non ha modo di saperlo.
+ *
+ * La tessera in Home la ridisegna `schedule()`, che e' di questo modulo; la
+ * pagina ha il suo padrone. Finche' il guscio ridipingeva tutte e nove le
+ * pagine ogni secondo la cosa non si vedeva — adesso che disegna solo quella
+ * che si guarda, un'Agenda aperta mentre le liste e gli eventi sono per strada
+ * resterebbe vuota fino al primo movimento in casa. Un avviso solo per tutti e
+ * due i fili: la pagina ridisegna quello che e' cambiato davvero. */
+function avvisaLAgenda() {
+  root.dispatchEvent?.(new CustomEvent("dashboardmodern:agenda-aggiornata"));
 }
 
 async function fetchItems(entity, { force = false } = {}) {
@@ -326,7 +431,10 @@ async function fetchItems(entity, { force = false } = {}) {
   cache.inflight = false;
   // Un fallimento non ha cambiato niente da disegnare: ridisegnare lo stesso
   // vorrebbe dire richiedere di nuovo, subito.
-  if (riuscita) schedule();
+  if (riuscita) {
+    schedule();
+    avvisaLAgenda();
+  }
 }
 
 /* ── il filo dei calendari (#259) ──────────────────────────────────────
@@ -455,7 +563,10 @@ async function fetchEventi(entity, { force = false } = {}) {
     root.console?.warn?.("[DashboardModern] calendar events", error);
   }
   scheda.inflight = false;
-  if (riuscita) schedule();
+  if (riuscita) {
+    schedule();
+    avvisaLAgenda();
+  }
 }
 
 /** Gli eventi di tutti i calendari scelti, in fila. Serve anche alla pagina. */
@@ -478,6 +589,10 @@ export function eventiDeiCalendari() {
 
 /** Chiede gli eventi a tutti i calendari scelti. */
 export function aggiornaCalendari(opzioni) {
+  /* Prima di chiedere gli eventi si chiede chi guarda (#344), ma solo se
+   * qualcuno ha diviso i calendari fra le persone: finche' sono tutti di casa
+   * non c'e' niente da sapere, e non si disturba Home Assistant per niente. */
+  if (calendariAssegnati(calendariScritti())) chiediChiGuarda();
   for (const calendario of calendariConfigurati()) fetchEventi(calendario.entity, opzioni);
 }
 
@@ -835,6 +950,8 @@ function climateModel(states) {
       : nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100),
     rows,
+    // Le unita' accese, per chi le conta e non le disegna.
+    on,
   };
 }
 
@@ -907,12 +1024,15 @@ function coversModel(states) {
       const entity = clean(voce.entity);
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
-      const raw = clean(current?.state).toLowerCase();
       /* Il verso (#244): la tapparella girata dichiara 100 quando e' giu', e
        * il contatto girato sta a ON quando e' chiuso. Qui si normalizza tutto
        * al verso della plancia — 100 e ON vogliono dire aperto — cosi' quello
        * che segue non deve saperne niente. */
       const girata = versoInvertito(item);
+      /* Anche la parola, non solo la posizione (#353): la tapparella montata
+       * al contrario che la posizione non la pubblica dichiara «open» quando
+       * e' giu', e la tessera la contava fra le aperte. */
+      const raw = statoSecondoVerso(current?.state, girata);
       const position = posizioneSecondoVerso(Number(current?.attributes?.current_position), girata);
       /* Il contatto parla la sua lingua — `on` e' aperto — e non ha posizione:
        * chiederla a lui vorrebbe dire inventarla. */
@@ -959,6 +1079,11 @@ function coversModel(states) {
     caption: nomiAccesi(open, () => true, t(`${open.length} aperte`, `${open.length} open`)),
     ring: Math.round((open.length / rows.length) * 100),
     rows,
+    /* Le aperture escono col modello, come le luci accese: chi le conta senza
+     * disegnarle legge questo campo invece di rifiltrare le righe per conto
+     * suo, e due conti sulla stessa cosa non possono divergere se il conto e'
+     * uno. */
+    open,
   };
 }
 
@@ -1310,9 +1435,54 @@ const SPINA_NO =
   /(not[\s_-]*charging|dis[\s_-]*connect|un[\s_-]*plug|no[nt]?[\s_-]*(in[\s_-]*)?carica|no[nt]?[\s_-]*colleg|scolleg|staccat|no[\s_-]*vehicle|not[\s_-]*connect)/;
 const SPINA_SI = /(charging|carica|plug|connect|conness|colleg)/;
 
-function letturaVettura(states, auto, fuori, indice) {
+/* Il cavo e la potenza, come testimoni dello stato della ricarica.
+ *
+ * La pagina Auto decide la pastiglia — «Non connessa», «Collegata», «In
+ * carica» — con `codiceDellaRicarica`, dando al nucleo lo stato grezzo, il
+ * sensore del cavo e la potenza che passa. La tessera in Home invece
+ * guardava lo stato grezzo da solo: con un `binary_sensor.charging` che dice
+ * «off» a cavo attaccato diceva «Scollegata», e la pagina, un tocco piu' in
+ * la', «Collegata». «Nel widget la ricarica risulta scollegata ma se entri
+ * nella pagina dedicata la vedi collegata» (#348). Adesso i due posti chiedono
+ * allo stesso nucleo, con gli stessi testimoni.
+ *
+ * Il cavo e la potenza sono della colonnina, cioe' della casa: si leggono
+ * dalla mappatura della vettura se ce li ha (ogni salvataggio glieli copia
+ * dentro), altrimenti dalle chiavi di casa, che e' dove la pagina li legge. */
+function testimoniDellaRicarica(states, mappa) {
+  const statoDi = (riferimento) => {
+    const propria = clean(mappa?.[riferimento]);
+    const entity = propria || clean(root.resolveEntity?.(riferimento) || "");
+    if (!entity || entity === riferimento) return null;
+    return stateOf(states, entity);
+  };
+  const collegata = cavoDalloStato(statoDi("dm.ev_cavo_collegato")?.state);
+  let potenza = null;
+  for (const riferimento of ["dm.ev_potenza_wallbox", "dm.ev_charge_power"]) {
+    const letta = Number(statoDi(riferimento)?.state);
+    if (Number.isFinite(letta)) {
+      potenza = letta;
+      break;
+    }
+  }
+  return { collegata, potenza };
+}
+
+/* La lettera della ricarica di questa vettura, o — quando il nucleo non sa
+ * dire niente — lo stato com'e', che le parole di prima sanno ancora leggere. */
+function ricaricaDellaVettura(states, mappa, stato) {
+  const grezzo = clean(stato?.state);
+  const codice = codiceDellaRicarica({ stato: grezzo, ...testimoniDellaRicarica(states, mappa) });
+  return codice || grezzo;
+}
+
+/* `visti` e' l'insieme delle entita' gia' raccontate: proprio di UNA vettura
+ * quando la si legge da sola, e di tutta la casa quando le si legge in fila
+ * (vedi `evModel`). Una casella copiata in ogni profilo — il cavo della
+ * colonnina, che ogni salvataggio dell'auto si porta dentro — e' un fatto
+ * solo, e fa una riga sola. */
+function letturaVettura(states, auto, fuori, indice, visti = new Set()) {
   const mappa = auto?.ov || auto?.overrides || {} || {};
-  const visti = new Set();
   const misura = (riferimento) => {
     const entity = clean(mappa[riferimento]);
     if (!entity || !widgetIncludes(entity, fuori)) return null;
@@ -1355,10 +1525,13 @@ function letturaVettura(states, auto, fuori, indice) {
   };
   return {
     nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
+    /* Un'auto e' il suo sensore di carica: due profili che leggono lo stesso
+     * sono la stessa vettura scritta due volte, e `evModel` ne tiene una. */
+    identita: carica?.entity || autonomia?.entity || "",
     percentuale,
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
-    ricarica: stato?.state || "",
+    ricarica: ricaricaDellaVettura(states, mappa, stato),
     kw: sbircia("dm.ev_potenza_ricarica"),
     target: sbircia("dm.ev_target_soc"),
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1459,7 +1632,10 @@ function altreCaselleEv(states, mappa, fuori, visti) {
     const riga = rigaDaEntita(states, entity, glifoEv(riferimento));
     if (!riga) continue;
     visti.add(entity);
-    righe.push(riga);
+    /* Le caselle della colonnina sono della casa, non di questa vettura: la
+     * riga non porta il nome dell'auto, perche' il cavo e' lo stesso qualunque
+     * macchina ci sia attaccata. */
+    righe.push(eDellaWallbox(riferimento) ? { ...riga, diCasa: true } : riga);
   }
   return righe;
 }
@@ -1490,10 +1666,11 @@ function letturaAttiva(states, fuori) {
   const mappa = readJson("cd_entity_overrides", {}) || {};
   return {
     nome: "",
+    identita: carica?.entity || autonomia?.entity || "",
     percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
-    ricarica: stato?.state || "",
+    ricarica: ricaricaDellaVettura(states, mappa, stato),
     kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
     target: refValue(states, "dm.ev_target_soc", fuori)?.value ?? null,
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1520,23 +1697,52 @@ function righeVettura(lettura, conNome) {
       glyph: "🔌",
       name: `${prefisso}${t("Ricarica", "Charging")}`,
       /* La parola, non il codice: «C» e' il gergo della wallbox, e in una
-       * casella si legge malissimo. La lettura e' la stessa di `attiva`. */
-      value: autoAllaPresa(lettura.ricarica)
-        ? t("In carica", "Charging")
-        : t("Scollegata", "Unplugged"),
+       * casella si legge malissimo. La lettera la decide il nucleo della
+       * pastiglia (#348), e le parole sono le stesse del popup dell'auto;
+       * uno stato che il nucleo non sa leggere tiene le parole di prima. */
+      value:
+        statoUmanoEV(lettura.ricarica) ||
+        (autoAllaPresa(lettura.ricarica) ? t("In carica", "Charging") : t("Scollegata", "Unplugged")),
     });
   /* E tutte le altre caselle mappate di questa vettura: sono quelle su cui
-   * l'interruttore «nel widget» sta acceso, e finora non uscivano. */
+   * l'interruttore «nel widget» sta acceso, e finora non uscivano. Quelle
+   * della colonnina sono della casa e non portano il nome dell'auto. */
   for (const riga of lettura.altre || [])
-    righe.push(prefisso ? { ...riga, name: `${prefisso}${riga.name}` } : riga);
+    righe.push(prefisso && !riga.diCasa ? { ...riga, name: `${prefisso}${riga.name}` } : riga);
   return righe;
+}
+
+/* Le vetture in fila, senza dire due volte la stessa cosa (#348).
+ *
+ * «Nel widget dell'auto mi trovo nella sezione stato cinque volte la stessa
+ * entita' con scritto spento.» Il salvataggio dell'auto copia nel profilo
+ * TUTTE le caselle `dm.ev_*` di casa — anche quelle della colonnina — e
+ * l'auto arrivata dall'integrazione, prima della 1.4.10, nasceva daccapo a
+ * ogni collegamento: cinque profili, la stessa mappatura, e la tessera che
+ * leggeva ognuno per conto suo diceva cinque volte lo stesso sensore.
+ *
+ * Qui le entita' gia' raccontate non si raccontano piu' — l'insieme `visti`
+ * e' uno per tutta la casa — e un profilo che legge lo stesso sensore di
+ * carica di uno gia' letto e' la stessa auto scritta due volte, e si salta. */
+export function lettureDelleVetture(states, auto = [], fuori = new Set()) {
+  const visti = new Set();
+  const identita = new Set();
+  const letture = [];
+  (Array.isArray(auto) ? auto : []).forEach((vettura, indice) => {
+    const lettura = letturaVettura(states, vettura, fuori, indice, visti);
+    if (!lettura) return;
+    if (lettura.identita) {
+      if (identita.has(lettura.identita)) return;
+      identita.add(lettura.identita);
+    }
+    letture.push(lettura);
+  });
+  return letture;
 }
 
 function evModel(states) {
   const fuori = widgetExcludedEntities();
-  const profilate = vetture()
-    .map((auto, indice) => letturaVettura(states, auto, fuori, indice))
-    .filter(Boolean);
+  const profilate = lettureDelleVetture(states, vetture(), fuori);
   /* Il profilo comanda appena e' leggibile, anche da solo: prima, con UNA
    * vettura profilata, si leggevano solo le chiavi globali — che si riempiono
    * ai salvataggi successivi, la foto compresa — e un'auto con la batteria
@@ -2378,7 +2584,8 @@ function preseModel(states) {
     });
   }
   if (!rows.length) return null;
-  const accese = rows.filter((row) => row.on).length;
+  const on = rows.filter((row) => row.on);
+  const accese = on.length;
   return {
     key: "prese",
     accent: "#475569",
@@ -2389,6 +2596,8 @@ function preseModel(states) {
     ring: rows.length ? Math.round((accese / rows.length) * 100) : null,
     attiva: accese > 0,
     rows,
+    // Le prese accese, per chi le conta e non le disegna.
+    on,
   };
 }
 
@@ -2434,6 +2643,8 @@ function mediaModel(states) {
      * la copertina accanto. La stessa cosa scritta due volte a due dita di
      * distanza si legge come un errore. */
     lettori: righe,
+    // Chi sta suonando, per chi lo conta e non lo disegna.
+    suonano,
   };
 }
 
@@ -3514,9 +3725,16 @@ function rifiutiModel(states) {
   };
 }
 
-function widgetModels(states) {
+/* Tutte le tessere che la casa sa raccontare, prima delle preferenze.
+ *
+ * Sta staccato dal filtro perche' i modelli servono a due cose: la griglia
+ * delle tessere, che mostra quelle scelte, e chi conta quello che e' acceso
+ * senza disegnare niente. Chi nasconde la tessera delle Luci non deve per
+ * questo perdere il conto delle luci accese — e nessuno dei due deve
+ * rileggere gli stati di casa per conto suo: il giro e' uno solo. */
+export function modelliDelleTessere(states) {
   if (!planciaConfigurata()) return [];
-  return applyWidgetPreferences(
+  return (
     [
       /* L'avviso dell'assistenza sta per primo: e' una risposta a chi ha
        * chiesto aiuto, e la prima tessera e' quella che si vede senza cercare.
@@ -3551,7 +3769,7 @@ function widgetModels(states) {
       fumoModel(states),
       ariaModel(states),
       ...customAlertModels(states),
-    ].filter(Boolean),
+    ].filter(Boolean)
   );
 }
 
@@ -4085,7 +4303,14 @@ function agendaDetail(widget, states) {
 
 function lightsDetail(widget) {
   if (!widget.on.length && !widget.rows.length) return "";
-  const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, 14);
+  /* Tutte, non le prime quattordici (#335).
+   *
+   * «Nel widget luci scrive il totale luci compresi gli switch, ma nella
+   * lista sotto non li fa vedere.» L'elenco si fermava a quattordici righe:
+   * chi ha molte luci — e gli interruttori aggiunti a mano, che qui contano
+   * come luci — vedeva un numero in alto e una lista che non lo raggiungeva.
+   * Il corpo della finestra scorre gia': si elencano tutte, accese prima. */
+  const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on));
   /* «Sul widget luci metterei anche spegni tutte» (#315).
    *
    * Una riga sola sopra l'elenco, e solo quando c'e' qualcosa da spegnere: con
@@ -5543,7 +5768,18 @@ function structureSignature(models) {
 
 export function renderHomeWidgets() {
   const states = allStates();
-  const models = widgetModels(states);
+  const tutti = modelliDelleTessere(states);
+  /* La riga sotto il meteo (#356) si disegna qui, coi modelli appena fatti e
+   * prima di ogni scorciatoia: le tessere possono non esserci — plancia
+   * appena installata, tutte nascoste — e la pastiglia della posta deve
+   * comparire lo stesso. Un secondo giro sugli stati per contare le stesse
+   * cose sarebbe il doppio del lavoro per la stessa risposta. */
+  try {
+    disegnaComeStaLaCasa(tutti, states);
+  } catch (error) {
+    root.console?.warn?.("[DashboardModern] barra di casa", error);
+  }
+  const models = applyWidgetPreferences(tutti);
   const host = doc?.getElementById?.("dm-widgets");
   if (!models.length) {
     host?.remove();
@@ -6050,6 +6286,13 @@ function scorriDidascalie(grid) {
  * `installHomeWidgetsSection`), quindi chi arriva trova le tessere di adesso e
  * non quelle di quando se n'e' andato. */
 function laHomeSiVede() {
+  /* E la plancia, la sta guardando qualcuno? Una scheda in secondo piano o una
+   * plancia parcheggiata — messa da parte da chi la ospita quando si va su
+   * un'altra pagina di Home Assistant — hanno la Home ancora «attiva» e il
+   * documento ancora «visible»: senza questa domanda le tessere avrebbero
+   * continuato a rifarsi due volte al secondo per nessuno. Al ritorno si
+   * ridipinge, che e' il `pageshow` qui sotto. */
+  if (!planciaVisibile()) return false;
   if (homeVisible()) return true;
   /* Il popup del dettaglio sta attaccato al corpo della pagina, non alla
    * Home: finche' e' aperto va tenuto vivo comunque, perche' e' lui che si
@@ -6086,7 +6329,11 @@ function homeVisible() {
 }
 
 function cameraWidgetOnScreen() {
-  return state.expanded === "telecamere" && homeVisible() && doc?.visibilityState !== "hidden";
+  /* `planciaVisibile` tiene dentro anche il parcheggio: quando chi ospita
+   * mette la plancia da parte — si va su un'altra pagina di Home Assistant e
+   * la cornice resta viva, nascosta — la tessera e' aperta ma non la guarda
+   * nessuno, e i fotogrammi li tira comunque il server di casa. */
+  return state.expanded === "telecamere" && homeVisible() && planciaVisibile();
 }
 
 function fermaTimerTelecamere() {
@@ -7847,6 +8094,11 @@ export function installHomeWidgetsSection() {
     /* La chat di assistenza dice quando ha una risposta da leggere, e quando
        e' stata letta: la sua tessera compare e sparisce con quello. */
     "dashboardmodern:chat-stato",
+    /* E il ritorno in scena: una scheda che torna davanti, o la plancia che
+       chi la ospita rimette al suo posto dopo un giro su un'altra pagina di
+       Home Assistant. Le tessere si rifanno con quello che c'e' adesso senza
+       aspettare che in casa cambi qualcosa. */
+    "pageshow",
   ])
     root.addEventListener?.(eventName, schedule);
   ascoltaLaPorta();

@@ -47,6 +47,9 @@ const TAB_ICONS = Object.freeze({
    * la colonna si stringe, ed e' lo stesso difetto delle quattro sopra. */
   media: "🔊",
   entita: "⭐",
+  /* Gli animali (#358): stessa storia, stessa cura — il simbolo e' quello che
+   * la scheda si scrive da se'. */
+  animali: "🐾",
 });
 
 /* Quale disegno di casa porta ogni scheda della configurazione.
@@ -98,6 +101,9 @@ const OGGETTO_DELLA_SCHEDA = Object.freeze({
    * evidenze — le due cose sono la stessa famiglia, entita' scelte a mano. */
   media: "media",
   entita: "evidenza",
+  /* Gli animali (#358): l'orma di casa, la stessa che porta la loro voce
+   * nella barra. */
+  animali: "animale",
 });
 
 const FLOW_LOADS = Object.freeze({
@@ -888,7 +894,5 @@ export function installBeta4MobilePolishSection() {
   installRealDailyChartOwner();
   schedule();
 }
-
-export const installBeta5RootCauseFixes = installBeta4MobilePolishSection;
 
 installBeta4MobilePolishSection();
