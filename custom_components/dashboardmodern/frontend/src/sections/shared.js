@@ -496,6 +496,94 @@ export function readJson(key, fallback) {
   }
 }
 
+/* ── si dipinge per chi guarda, e solo di cio' che e' cambiato ───────────── */
+
+/* Le pagine restano nel documento: il guscio le nasconde, non le toglie. Una
+ * sezione che ridisegna a ogni mazzetto di stati — mezzo secondo, una casa
+ * vera ne manda di continuo — lavora quindi anche per le otto pagine che
+ * nessuno ha davanti. Con il profilatore in mano quelle passate erano la voce
+ * piu' grossa del processore, ed e' il calore del mini PC segnalato dal campo.
+ *
+ * La regola l'avevano gia' scritta in casa loro la Home e la scena
+ * dell'Energia, ognuna a modo suo. Qui e' scritta una volta: chi disegna una
+ * pagina chiede se quella pagina si vede, e chi ascolta i cambi di stato
+ * chiede se il mazzetto tocca roba sua. Al ritorno sulla linguetta si ridipinge
+ * comunque — le sezioni si agganciano gia' al tocco, a `pageshow` e agli
+ * annunci del guscio — quindi chi arriva trova quello che c'e' adesso e non
+ * quello di quando se n'e' andato.
+ */
+
+/* Chi disegna una pagina sola si rimette in moto quando quella pagina arriva.
+ *
+ * Le sezioni gated qui sopra saltano il giro quando la loro pagina non si vede.
+ * Il tocco su una linguetta e' il momento in cui torna a vedersi, e chi
+ * disegna deve rifare la passata subito: aspettare il prossimo mazzetto di
+ * stati vorrebbe dire arrivare su una pagina ferma a com'era quando la si era
+ * lasciata. Si ascolta in cattura e si rimanda di un giro, perche' la classe
+ * `active` la scrive il guscio nel suo gestore, cioe' dopo di noi. */
+export function quandoSiCambiaPagina(callback) {
+  doc?.addEventListener?.(
+    "click",
+    (event) => {
+      if (event.target?.closest?.("[data-tab],[data-page],.bottom-nav-btn,.back-home-btn"))
+        root.setTimeout?.(callback, 0);
+    },
+    true,
+  );
+  root.addEventListener?.("pageshow", callback);
+  return true;
+}
+
+/* La plancia si vede?
+ *
+ * Due cose la spengono agli occhi di chi la usa, e nessuna delle due toglie
+ * niente dal documento: la scheda del browser che passa in secondo piano, e il
+ * parcheggio — la plancia messa da parte da chi la ospita quando si va su
+ * un'altra pagina di Home Assistant. Il segno del parcheggio lo scrive
+ * `src/legacy/host.js` sulla finestra, ed e' un patto fra due programmi come
+ * `__DASHBOARDMODERN_HOSTED__`: il nome sta scritto in tutti e due i posti. */
+const SEGNO_DEL_PARCHEGGIO = "__DASHBOARDMODERN_PARCHEGGIATA__";
+
+export function planciaVisibile(documento = doc) {
+  if (root[SEGNO_DEL_PARCHEGGIO] === true) return false;
+  return documento?.visibilityState !== "hidden";
+}
+
+/**
+ * La pagina di questa sezione e' quella aperta, e la plancia si vede.
+ *
+ * Una pagina che non c'e' conta come visibile: chi la cerca disegna altrove —
+ * un guscio fatto in un altro modo, una prova — e tacere li' vorrebbe dire
+ * spegnere quella sezione per sempre invece di risparmiare un giro.
+ */
+export function paginaVisibile(pageId, documento = doc) {
+  if (!planciaVisibile(documento)) return false;
+  const pagina = documento?.getElementById?.(pageId);
+  return !pagina || pagina.classList.contains("active");
+}
+
+/**
+ * Il mazzetto di stati tocca una delle entita' che questa sezione usa?
+ *
+ * Senza elenco — una sezione che non sa dire cosa legge — si dipinge, che e'
+ * come si e' sempre fatto. E un avviso che non dice quali entita' porta non si
+ * scarta: e' un annuncio generico, non un mazzetto.
+ */
+export function ilCambioTocca(event, ids) {
+  const elenco =
+    ids instanceof Set
+      ? ids
+      : new Set((Array.isArray(ids) ? ids : [ids]).map(clean).filter(Boolean));
+  if (!elenco.size) return true;
+  const detail = event?.detail;
+  const cambiate = detail?.entity_ids || (detail?.entity_id ? [detail.entity_id] : null);
+  if (!Array.isArray(cambiate) && !cambiate) return true;
+  for (const id of Array.isArray(cambiate) ? cambiate : [cambiate]) {
+    if (elenco.has(clean(id))) return true;
+  }
+  return false;
+}
+
 /* Le cose che si guardano e basta.
  *
  * «Non e' meglio oscurare il tasto accendi/spegni sulla presa del frigo?» —

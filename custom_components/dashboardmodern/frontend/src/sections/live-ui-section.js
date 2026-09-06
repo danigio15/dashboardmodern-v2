@@ -18,6 +18,7 @@ import {
   clean,
   doc,
   gettoneDiAccesso,
+  planciaVisibile,
   readJson,
   root,
   section,
@@ -87,15 +88,16 @@ function eventEntityIds(event) {
   return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
 }
 
+/* Cosa, di questo mazzetto, riguarda l'interfaccia viva.
+ *
+ * Le telecamere non ci sono piu': non si disegnano dal loro stato, e leggere
+ * la configurazione delle telecamere a ogni mazzetto — il negozio piu' il
+ * deposito, due volte al secondo — era lavoro per una risposta che adesso
+ * nessuno usa. */
 export function liveUiEventTargets(event) {
   const changed = eventEntityIds(event);
-  if (!changed.size) return Object.freeze({ lights: false, cameras: false });
-  const lights = configuredLightIds();
-  const cameras = configuredCameras().map((camera) => camera.entity);
-  return Object.freeze({
-    lights: lights.some((id) => changed.has(id)),
-    cameras: cameras.some((id) => changed.has(id)),
-  });
+  if (!changed.size) return Object.freeze({ lights: false });
+  return Object.freeze({ lights: configuredLightIds().some((id) => changed.has(id)) });
 }
 
 export function syncLightsAlert() {
@@ -448,7 +450,17 @@ export async function refreshCameraThumbnails({ force = false } = {}) {
  * that first load, on no frame at all, which is a grid of black rectangles.
  *
  * The timer is back, but only while the Sicurezza page is actually on screen:
- * off it, and on a hidden tab, nothing is fetched. */
+ * off it, and on a hidden tab, and on a parked plancia, nothing is fetched.
+ *
+ * Quattro secondi, e non meno: ogni fotogramma e' Home Assistant che tira
+ * un'immagine dal flusso della telecamera: e' lavoro del server di casa — il
+ * mini PC — moltiplicato per quante telecamere ci sono sul muro. Quattro
+ * secondi e' il passo del guscio storico, abbastanza fitto perche' un muro di
+ * istantanee si muova e abbastanza largo da non tenere il server occupato a
+ * decodificare video per una pagina che si guarda qualche minuto. Chi ha
+ * WebRTC o HLS non paga niente di tutto questo: quella telecamera il video ce
+ * l'ha davvero (`loadCameraFrame` torna dal video vivo prima di chiedere
+ * qualunque istantanea), e il cronometro le passa accanto senza toccarla. */
 const CAMERA_REFRESH_MS = 4000;
 
 function stopCameraTimer() {
@@ -461,8 +473,7 @@ function stopCameraTimer() {
 }
 
 export function syncCameraTimer() {
-  const wanted =
-    securityVisible() && doc?.visibilityState !== "hidden" && configuredCameras().length > 0;
+  const wanted = securityVisible() && planciaVisibile() && configuredCameras().length > 0;
   if (!wanted) {
     stopCameraTimer();
     return false;
@@ -470,7 +481,7 @@ export function syncCameraTimer() {
   if (state.cameraTimer) return true;
   state.cameraTimer =
     root.setInterval?.(() => {
-      if (!securityVisible() || doc?.visibilityState === "hidden") {
+      if (!securityVisible() || !planciaVisibile()) {
         stopCameraTimer();
         return;
       }
@@ -532,18 +543,25 @@ export function installLiveUiSection() {
     });
   }
 
+  /* Le luci si', le telecamere no.
+   *
+   * Un cambio di stato di una telecamera — il movimento rilevato, un attributo
+   * che si aggiorna — non porta con se' nessun fotogramma nuovo: chiederne uno
+   * li' voleva dire far tirare a Home Assistant un'immagine dal flusso a ogni
+   * notifica, in piu' del cronometro che gia' lo fa. Su una telecamera che
+   * vede passare qualcuno erano decine di richieste al minuto al server di
+   * casa per un muro che si aggiorna comunque ogni quattro secondi. Il
+   * cronometro basta; qui restano le luci, che dal loro stato si disegnano
+   * davvero. */
   root.addEventListener?.("dashboardmodern:state-changed", (event) => {
-    const targets = liveUiEventTargets(event);
-    if (targets.lights) {
-      syncLightsAlert();
-      syncOpenLightsPopup();
-    }
-    if (targets.cameras && securityVisible()) refreshCameraThumbnails();
+    if (!liveUiEventTargets(event).lights) return;
+    syncLightsAlert();
+    syncOpenLightsPopup();
   });
 
   doc.addEventListener("visibilitychange", () => {
     syncCameraTimer();
-    if (doc.visibilityState === "visible" && securityVisible()) refreshCameraThumbnails();
+    if (planciaVisibile() && securityVisible()) refreshCameraThumbnails();
   });
 
   doc.addEventListener(

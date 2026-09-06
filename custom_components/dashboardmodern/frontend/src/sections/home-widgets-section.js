@@ -196,6 +196,7 @@ import {
   gettoneDiAccesso,
   lexicalGlobal,
   locale,
+  planciaVisibile,
   readClimateUnits,
   readJson,
   root,
@@ -6285,6 +6286,13 @@ function scorriDidascalie(grid) {
  * `installHomeWidgetsSection`), quindi chi arriva trova le tessere di adesso e
  * non quelle di quando se n'e' andato. */
 function laHomeSiVede() {
+  /* E la plancia, la sta guardando qualcuno? Una scheda in secondo piano o una
+   * plancia parcheggiata — messa da parte da chi la ospita quando si va su
+   * un'altra pagina di Home Assistant — hanno la Home ancora «attiva» e il
+   * documento ancora «visible»: senza questa domanda le tessere avrebbero
+   * continuato a rifarsi due volte al secondo per nessuno. Al ritorno si
+   * ridipinge, che e' il `pageshow` qui sotto. */
+  if (!planciaVisibile()) return false;
   if (homeVisible()) return true;
   /* Il popup del dettaglio sta attaccato al corpo della pagina, non alla
    * Home: finche' e' aperto va tenuto vivo comunque, perche' e' lui che si
@@ -6321,7 +6329,11 @@ function homeVisible() {
 }
 
 function cameraWidgetOnScreen() {
-  return state.expanded === "telecamere" && homeVisible() && doc?.visibilityState !== "hidden";
+  /* `planciaVisibile` tiene dentro anche il parcheggio: quando chi ospita
+   * mette la plancia da parte — si va su un'altra pagina di Home Assistant e
+   * la cornice resta viva, nascosta — la tessera e' aperta ma non la guarda
+   * nessuno, e i fotogrammi li tira comunque il server di casa. */
+  return state.expanded === "telecamere" && homeVisible() && planciaVisibile();
 }
 
 function fermaTimerTelecamere() {
@@ -8082,6 +8094,11 @@ export function installHomeWidgetsSection() {
     /* La chat di assistenza dice quando ha una risposta da leggere, e quando
        e' stata letta: la sua tessera compare e sparisce con quello. */
     "dashboardmodern:chat-stato",
+    /* E il ritorno in scena: una scheda che torna davanti, o la plancia che
+       chi la ospita rimette al suo posto dopo un giro su un'altra pagina di
+       Home Assistant. Le tessere si rifanno con quello che c'e' adesso senza
+       aspettare che in casa cambi qualcosa. */
+    "pageshow",
   ])
     root.addEventListener?.(eventName, schedule);
   ascoltaLaPorta();

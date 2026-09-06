@@ -32,6 +32,7 @@ import {
   root,
   section,
   t,
+  wrapFunction,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_POPUP_LAVATRICE__";
@@ -438,23 +439,37 @@ const STILE = `
 .dm-lav-slot-riga .dm-lav-slot-in{flex:1 1 auto;min-width:0}
 `;
 
+/* La finestra della lavatrice e' aperta?
+ *
+ * Il suo corpo — la griglia dei programmi, la veste dell'immagine, le voci
+ * nelle azioni — si rifaceva a ogni mazzetto di stati, cioe' due volte al
+ * secondo, per una finestra che sta chiusa quasi sempre: `replaceChildren`
+ * sulla griglia butta via i tasti e li ricostruisce tutti, e nessuno li stava
+ * guardando. Quando la finestra si apre si ridisegna li' (`apriPopupLavatrice`
+ * qui sotto), che e' il momento in cui serve davvero. */
+function laFinestraSiVede() {
+  return Boolean(doc?.getElementById?.("lavatrice-modal")?.classList?.contains?.("show"));
+}
+
 export function installPopupLavatrice() {
   if (state.installed) return false;
   if (!doc?.getElementById) return false;
   installStyle("dm-popup-lavatrice-style", STILE);
+  const ridisegna = () => {
+    disegnaProgrammi();
+    vesteImmagine();
+    montaNelleAzioni();
+  };
   disegnaProgrammi();
   vesteImmagine();
-  for (const evento of [
-    "dashboardmodern:legacy-ready",
-    "dashboardmodern:runtime-ready",
-    "dashboardmodern:state-changed",
-  ]) {
-    root.addEventListener?.(evento, () => {
-      disegnaProgrammi();
-      vesteImmagine();
-      montaNelleAzioni();
-    });
+  /* Il guscio la apre da qui, e da nessun'altra parte. */
+  wrapFunction("apriPopupLavatrice", "__dmPopupLavatrice", ridisegna);
+  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"]) {
+    root.addEventListener?.(evento, ridisegna);
   }
+  root.addEventListener?.("dashboardmodern:state-changed", () => {
+    if (laFinestraSiVede()) ridisegna();
+  });
   onEditorRedraw("__dmLavProgrammi", () => {
     montaEditor();
     montaNelleAzioni();

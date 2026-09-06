@@ -148,7 +148,13 @@ test("la Home disegna la tessera, la ridisegna all'annuncio, e la sua finestra p
   assert.match(home, /function chatModel\(\) \{\s*return tesseraDellaChat\(statoDellaChat\(\)\);/);
   /* Per prima: e' una risposta a chi ha chiesto aiuto. */
   assert.match(home, /chatModel\(\),\s*\.\.\.evidenzaModels\(states\),\s*segnalazioniModel\(\),/);
-  assert.match(home, /"dashboardmodern:chat-stato",\s*\]\)\s*root\.addEventListener\?\.\(eventName, schedule\);/);
+  /* L'annuncio della chat e' fra gli eventi che rifanno le tessere. Dopo di lui
+   * c'e' anche `pageshow` — il ritorno in scena della plancia — quindi si
+   * guarda che sia in quell'elenco, non che sia l'ultimo della fila. */
+  assert.match(
+    home,
+    /"dashboardmodern:chat-stato",[\s\S]{0,400}\]\)\s*root\.addEventListener\?\.\(eventName, schedule\);/,
+  );
   assert.match(home, /if \(widget\.key === "assistenza"\) return chatDetail\(widget\);/);
   assert.match(home, /class="dm-w-porta" data-dm-apri-chat/);
   /* Il popup della tessera si chiude quando si apre la chat: stanno sullo

@@ -115,6 +115,27 @@ function resolveWhole(source, locale) {
 const optedOut = (node) =>
   node.hasAttribute?.(OPT_OUT_ATTRIBUTE) || node.getAttribute?.("translate") === "no";
 
+/*
+ * Subtrees nobody can read yet.
+ *
+ * The shell keeps all nine pages and all twelve overlays in the document and
+ * hides them with a class: eight pages and twelve modals are therefore always
+ * there, and they hold most of the nodes on the page. Walking them cost the
+ * same as walking the visible one, and this pass runs on every batch of Home
+ * Assistant states and on every click — on a Japanese or German plancia that
+ * was the whole document, twice a second, for text nobody was looking at.
+ *
+ * A hidden subtree is skipped, not forgotten: the moment it is shown something
+ * runs this pass again — a tab click, a modal opening, both of which are
+ * already triggers — and the walker then descends into it before the frame is
+ * painted. What is on screen is always translated; what is not costs nothing.
+ */
+const NASCOSTO = ".page:not(.active),.modal-wrapper:not(.show),.clima-popup-overlay:not(.show)";
+
+function hiddenSubtree(node) {
+  return typeof node.matches === "function" && node.matches(NASCOSTO);
+}
+
 const carriesLabel = (element) =>
   TRANSLATABLE_ATTRIBUTES.some((name) => element.hasAttribute?.(name));
 
@@ -188,7 +209,7 @@ export function translateTree(rootNode, locale = getLocale()) {
     {
       acceptNode(node) {
         if (node.nodeType === 1) {
-          if (optedOut(node)) return view.NodeFilter.FILTER_REJECT;
+          if (optedOut(node) || hiddenSubtree(node)) return view.NodeFilter.FILTER_REJECT;
           /* Its text is not copy, but its label is: come in for the attributes
            * and let the text-node branch below turn back at the door. */
           if (SKIPPED_TAGS.has(node.tagName))
