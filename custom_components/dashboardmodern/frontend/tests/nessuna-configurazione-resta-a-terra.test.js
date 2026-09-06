@@ -37,6 +37,8 @@ const SOLO_DI_QUESTO_DISPOSITIVO = Object.freeze({
   cd_carichi_travasati_puliti:
     "segno che il giro sul sensore travasato fra due impianti e' gia' passato",
   cd_irr_lastrun: "quando ha girato l'irrigazione su questo dispositivo",
+  cd_posta_stato:
+    "cosa sa questo dispositivo della cassetta: com'era l'ultima volta che l'ha guardata, e se chi guarda ha gia' visto la posta. Lo scatto di prima e' quello che permette di accorgersi di un'apertura avvenuta mentre non si guardava, e condividerlo vorrebbe dire che il tablet acceso in cucina se ne accorge per primo e al telefono non resta piu' niente da confrontare",
   cd_pool_run: "il conteggio della pompa in corso qui",
   cd_pool_lastrun: "quando ha girato la pompa su questo dispositivo",
   cd_open_editor_after_reload: "riapri la configurazione dopo il ricaricamento",

@@ -121,13 +121,24 @@ const USER_DATA_VERSION = 1;
  * dispositivi. E' una scelta della casa, non del vetro da cui la si guarda —
  * se restasse sul dispositivo che l'ha fatta, il telefono e il tablet
  * mostrerebbero la stessa Home in due ordini diversi. */
-/* La revisione 30 aggiunge la lingua della plancia (`cd_lingua`, #350).
- * «È sparito il settaggio per la lingua: su PC avevo settato italiano (HA in
- * inglese) e continua a funzionare, da mobile invece è rimasto inglese.» La
- * scelta stava sotto una chiave che non comincia per `cd_`, quindi non
- * viaggiava e non aveva nemmeno il prefisso che separa due plance: era una
- * preferenza del browser, mentre la tendina dice «la fissa per questa
- * dashboard». Adesso e' della plancia, come la barra e le sezioni. */
+/* La revisione 30 aggiunge tre cose, e sono tutte della plancia.
+ *
+ * La lingua (`cd_lingua`, #350): «È sparito il settaggio per la lingua: su PC
+ * avevo settato italiano (HA in inglese) e continua a funzionare, da mobile
+ * invece è rimasto inglese.» La scelta stava sotto una chiave che non comincia
+ * per `cd_`, quindi non viaggiava e non aveva nemmeno il prefisso che separa
+ * due plance: era una preferenza del browser, mentre la tendina dice «la fissa
+ * per questa dashboard».
+ *
+ * La riga sotto il meteo (`cd_barra_casa`, #356 e #357): quali pastiglie si
+ * vedono — il ritiro di stasera, le luci accese, le finestre aperte — e quale
+ * contatto e' quello della cassetta della posta. Chi le sceglie dal telefono
+ * le vuole ritrovare sul tablet appeso in cucina.
+ *
+ * Quello che invece resta a terra e' cosa QUESTO dispositivo sa della cassetta
+ * (`cd_posta_stato`): com'era l'ultima volta che l'ha guardata e se chi la
+ * guarda ha gia' visto l'avviso — il primo schermo che se ne accorgesse
+ * toglierebbe agli altri il termine di paragone. */
 export const CONFIG_KEYS_REVISION = 30;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
@@ -208,6 +219,9 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_widgets",
   // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
   "cd_home_blocchi",
+  // La riga sotto il meteo (#356): quali pastiglie si vedono, e da quale
+  // contatto arriva la posta (#357).
+  "cd_barra_casa",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",

@@ -820,8 +820,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // (`sections/il-guscio-disegna-quando-serve-section.js`): il padrone di
   // `cdRenderSoon`, della firma della finestra dei dettagli e dei timer del
   // guscio che un modulo fa gia' — il lavoro fatto senza che nessuno guardi.
+  // 262 con la riga sotto il meteo (`core/come-sta-la-casa.js` e
+  // `sections/come-sta-la-casa-section.js`): «una barra sotto la parte meteo
+  // che mostra le indicazioni principali» (#356) e «animazione quando arriva
+  // Posta attivato da un sensore contact» (#357). Il nucleo dice quali
+  // pastiglie escono dai modelli delle tessere gia' fatti — non rilegge una
+  // sola entita' — e tiene la memoria della cassetta, che e' la parte che si
+  // prova a secco: un'apertura avvenuta mentre nessuno guardava si riconosce
+  // dopo, confrontando due scatti. La sezione scrive le parole, disegna la
+  // riga e la fa configurare dalla scheda Home; il disegno lo chiama il ponte
+  // dei widget, che i modelli li ha appena prodotti, cosi' il giro sugli stati
+  // della casa resta uno solo.
+  // 264 con la riga sotto il meteo e la memoria della cassetta della posta
+  // (`core/come-sta-la-casa.js` + `sections/come-sta-la-casa-section.js`),
+  // che sono due moduli oltre a quello degli orari dell'irrigazione.
   assert.ok(
-    relative.length <= 262,
+    relative.length <= 264,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

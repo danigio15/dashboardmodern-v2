@@ -160,6 +160,47 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   un tasto si preme, uno script si accende, un'automazione si fa partire, un
   interruttore si inverte, una tendina sceglie.
 
+- **Una riga sotto il meteo che dice come sta la casa.**
+
+      «Una barra sotto la parte meteo che mostra le indicazioni principali.
+       Icona + organico. Lampadina con luci accese. Tapparella con tapparelle
+       aperte ecc.»
+
+  Sotto il meteo c'e' una fila di pastiglie con quello che conta in questo
+  momento: il ritiro dei rifiuti di oggi o di domani col simbolo del suo
+  bidone, quante luci sono rimaste accese, quante finestre sono aperte, quante
+  unita' del clima stanno andando, quante prese sono accese, cosa sta suonando
+  e l'antifurto quando e' inserito. E' discreta — una riga di pastiglie, non
+  delle card — e sul telefono scorre di lato invece di andare a capo.
+
+  Esce solo quello che ha qualcosa da dire: con nessuna luce accesa non c'e'
+  nessuna pastiglia delle luci, e con la casa a riposo la riga non c'e'
+  proprio. Toccando una pastiglia si apre la tessera che racconta il resto.
+
+  I conti non sono conti nuovi: sono gli stessi delle tessere della Home,
+  chiesti allo stesso giro di lettura. Una riga che dice «3 luci accese» sopra
+  una tessera che ne dice due sarebbe peggio di nessuna riga.
+
+  Quali voci si vedono si sceglie nella scheda 🏠 Home della configurazione,
+  dove si configura il resto della Home.
+
+- **La cassetta della posta lo dice, e continua a dirlo.**
+
+      «Animazione quando arriva Posta attivato da un sensore contact.»
+
+  Nella scheda 🏠 Home si dichiara il contatto della cassetta. Quando il
+  postino apre lo sportello, nella riga sotto il meteo compare la pastiglia
+  della posta, che si muove per farsi notare, e resta li' finche' qualcuno non
+  la tocca: la posta arriva mentre non si guarda, e un lampo di due secondi non
+  l'avrebbe visto nessuno. Il tocco vuol dire «l'ho ritirata», e la pastiglia
+  torna a riposo fino al prossimo arrivo.
+
+  Non serve stare a guardare nel momento giusto. La plancia si segna com'era
+  la cassetta l'ultima volta che ci ha guardato: se lo sportello si e' aperto e
+  richiuso nel frattempo, se ne accorge riaprendo la Home. E chi ha appena
+  finito di configurare il sensore non viene accolto da un «e' arrivata la
+  posta» che riguarda la settimana scorsa.
+
 ### Corretto
 
 - **L'Agenda aperta mentre gli eventi sono per strada non resta più vuota.**

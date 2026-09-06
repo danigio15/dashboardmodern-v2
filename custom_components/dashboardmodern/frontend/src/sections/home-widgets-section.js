@@ -203,6 +203,7 @@ import {
   siComanda,
   t,
 } from "./shared.js";
+import { disegnaComeStaLaCasa } from "./come-sta-la-casa-section.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
@@ -948,6 +949,8 @@ function climateModel(states) {
       : nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100),
     rows,
+    // Le unita' accese, per chi le conta e non le disegna.
+    on,
   };
 }
 
@@ -1075,6 +1078,11 @@ function coversModel(states) {
     caption: nomiAccesi(open, () => true, t(`${open.length} aperte`, `${open.length} open`)),
     ring: Math.round((open.length / rows.length) * 100),
     rows,
+    /* Le aperture escono col modello, come le luci accese: chi le conta senza
+     * disegnarle legge questo campo invece di rifiltrare le righe per conto
+     * suo, e due conti sulla stessa cosa non possono divergere se il conto e'
+     * uno. */
+    open,
   };
 }
 
@@ -2575,7 +2583,8 @@ function preseModel(states) {
     });
   }
   if (!rows.length) return null;
-  const accese = rows.filter((row) => row.on).length;
+  const on = rows.filter((row) => row.on);
+  const accese = on.length;
   return {
     key: "prese",
     accent: "#475569",
@@ -2586,6 +2595,8 @@ function preseModel(states) {
     ring: rows.length ? Math.round((accese / rows.length) * 100) : null,
     attiva: accese > 0,
     rows,
+    // Le prese accese, per chi le conta e non le disegna.
+    on,
   };
 }
 
@@ -2631,6 +2642,8 @@ function mediaModel(states) {
      * la copertina accanto. La stessa cosa scritta due volte a due dita di
      * distanza si legge come un errore. */
     lettori: righe,
+    // Chi sta suonando, per chi lo conta e non lo disegna.
+    suonano,
   };
 }
 
@@ -3711,9 +3724,16 @@ function rifiutiModel(states) {
   };
 }
 
-function widgetModels(states) {
+/* Tutte le tessere che la casa sa raccontare, prima delle preferenze.
+ *
+ * Sta staccato dal filtro perche' i modelli servono a due cose: la griglia
+ * delle tessere, che mostra quelle scelte, e chi conta quello che e' acceso
+ * senza disegnare niente. Chi nasconde la tessera delle Luci non deve per
+ * questo perdere il conto delle luci accese — e nessuno dei due deve
+ * rileggere gli stati di casa per conto suo: il giro e' uno solo. */
+export function modelliDelleTessere(states) {
   if (!planciaConfigurata()) return [];
-  return applyWidgetPreferences(
+  return (
     [
       /* L'avviso dell'assistenza sta per primo: e' una risposta a chi ha
        * chiesto aiuto, e la prima tessera e' quella che si vede senza cercare.
@@ -3748,7 +3768,7 @@ function widgetModels(states) {
       fumoModel(states),
       ariaModel(states),
       ...customAlertModels(states),
-    ].filter(Boolean),
+    ].filter(Boolean)
   );
 }
 
@@ -5747,7 +5767,18 @@ function structureSignature(models) {
 
 export function renderHomeWidgets() {
   const states = allStates();
-  const models = widgetModels(states);
+  const tutti = modelliDelleTessere(states);
+  /* La riga sotto il meteo (#356) si disegna qui, coi modelli appena fatti e
+   * prima di ogni scorciatoia: le tessere possono non esserci — plancia
+   * appena installata, tutte nascoste — e la pastiglia della posta deve
+   * comparire lo stesso. Un secondo giro sugli stati per contare le stesse
+   * cose sarebbe il doppio del lavoro per la stessa risposta. */
+  try {
+    disegnaComeStaLaCasa(tutti, states);
+  } catch (error) {
+    root.console?.warn?.("[DashboardModern] barra di casa", error);
+  }
+  const models = applyWidgetPreferences(tutti);
   const host = doc?.getElementById?.("dm-widgets");
   if (!models.length) {
     host?.remove();
