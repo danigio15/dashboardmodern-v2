@@ -278,15 +278,25 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
   passato senza la telecamera non lascia dietro un ricordo che impedisce di
   riprenderla.
 
-- **La barra non mostra piu' per un attimo le voci delle sezioni spente.**
+- **La barra non esce piu' intera per poi diventare come l'hai configurata.**
 
-  Usciva con otto voci e trentuno millisecondi dopo ne aveva quattro: un
-  guizzo, ma quello che si vede in quel guizzo e' la voce di una sezione che
-  hai spento. Le voci che si fanno i moduli — Stanze, Luci, Prese, Robot, gli
-  Animali, il cruscotto — non nascono mentre la plancia si disegna ma nel
-  fotogramma subito dopo, e il filtro passava prima che esistessero. Adesso
-  passa due volte: appena la plancia e' disegnata, e in fondo allo stesso
-  fotogramma, dove quelle voci sono appena nate.
+      «Resta sempre la barra totale, per poi diventare come l'ho configurata:
+       dura quattro o cinque secondi.»
+
+  La tenda sulla barra si alzava a tempo, dopo due secondi e mezzo. La
+  configurazione condivisa di Home Assistant pero' atterra intorno ai due
+  secondi e mezzo pure lei, e chi toglie dalla barra le sezioni rimaste vuote
+  lavora solo dopo che e' atterrata: la scadenza vinceva quasi sempre, e la
+  barra usciva un istante prima di sapere che forma avere. Misurato sul
+  tablet: otto voci a 2451 ms, quattro a 2550 ms.
+
+  Adesso la barra esce quando quella configurazione e' atterrata e chi decide
+  le sezioni vuote ha finito — non a tempo. La scadenza resta, ma torna a
+  essere quello che doveva essere: l'ultimo appello per chi quella
+  configurazione non la riceve mai. E le voci che si fanno i moduli — Stanze,
+  Luci, Prese, Robot, gli Animali — insegnano al guscio che esistono prima di
+  mettersi in barra, non dopo, cosi' il filtro che passa in quel momento sa
+  gia' che farne.
 
 - **Il pulsante delle donazioni sta nella pagina Configurazione, sotto
   Assistenza.**

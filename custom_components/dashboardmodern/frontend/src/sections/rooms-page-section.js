@@ -608,8 +608,8 @@ function paint() {
 function repaint() {
   state.frame = 0;
   ensureRoomsPage();
-  ensureRoomsTab();
   teachNavVisibility();
+  ensureRoomsTab();
   paint();
 }
 
@@ -748,8 +748,8 @@ export function installRoomsPageSection() {
   state.installed = true;
   installStyles();
   ensureRoomsPage();
-  ensureRoomsTab();
   teachNavVisibility();
+  ensureRoomsTab();
   doc.addEventListener("click", handleClick);
   doc.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;

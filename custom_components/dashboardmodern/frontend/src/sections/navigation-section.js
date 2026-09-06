@@ -11,6 +11,7 @@ const state = (root[KEY] ||= {
   barraScoperta: false,
   scadenza: 0,
   filtroInCoda: false,
+  configurazioneAtterrata: false,
 });
 
 /* The dock is sized on its content (`width:max-content`), so with every section
@@ -743,7 +744,11 @@ export function disegniNellaBarra(scope = doc) {
 /* Passata questa, la barra si mostra com'e'. Una plancia che non riesce a
  * leggere la sua configurazione deve avere una barra lo stesso: quella di serie
  * e' meglio di nessuna. */
-export const ATTESA_MASSIMA_DELLA_BARRA = 2500;
+/* Quanto si aspetta la configurazione condivisa prima di scoprire la barra
+ * comunque. Era 2500, e quella configurazione atterra intorno ai 2550: la
+ * scadenza vinceva quasi sempre, e la barra usciva un istante prima di sapere
+ * che forma avere. Adesso e' un vero ultimo appello, per chi non la riceve. */
+export const ATTESA_MASSIMA_DELLA_BARRA = 4000;
 
 /* Se la configurazione della casa e' arrivata.
  *
@@ -791,8 +796,22 @@ function applicaLaVisibilita() {
   }
 }
 
+/* Si scopre quando si sa che forma avere.
+ *
+ * Sapere che la configurazione c'e' non basta: il magazzino puo' averla gia'
+ * dentro mentre quella condivisa di Home Assistant sta ancora arrivando, e chi
+ * decide quali sezioni sono rimaste vuote — e quindi quali voci non vanno in
+ * barra — lavora solo quando quella e' atterrata. Scoprire in mezzo vuol dire
+ * mostrare la barra intera e correggerla un istante dopo: misurato sul tablet,
+ * otto voci a 2451 ms e quattro a 2550 ms.
+ *
+ * Sono due cose diverse e stanno in due posti diversi apposta: che la
+ * configurazione esista e' un fatto, e si prova a secco; aspettare che sia
+ * atterrata e' una scelta di questa barra, e sta qui. Per chi quella
+ * configurazione non la riceve mai c'e' la scadenza. */
 function forseScopri() {
   if (state.barraScoperta) return false;
+  if (!state.configurazioneAtterrata) return false;
   if (!laConfigurazioneSiConosce()) return false;
   applicaLaVisibilita();
   scopriLaBarra();
@@ -800,10 +819,18 @@ function forseScopri() {
 }
 
 function installaLAttesaDellaBarra() {
+  /* L'atterraggio della configurazione condivisa apre la strada, ma non scopre
+   * la barra subito: allo stesso annuncio risponde anche chi toglie dalla barra
+   * le sezioni rimaste vuote, e la barra deve uscire a quel lavoro finito, non
+   * in mezzo. Un giro di coda basta: gli ascoltatori di un evento corrono
+   * tutti prima. */
+  root.addEventListener?.("dashboardmodern:persistence-restored", () => {
+    state.configurazioneAtterrata = true;
+    root.setTimeout?.(() => forseScopri(), 0);
+  });
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
-    "dashboardmodern:persistence-restored",
     "dashboardmodern:state-changed",
   ])
     root.addEventListener?.(evento, () => forseScopri());

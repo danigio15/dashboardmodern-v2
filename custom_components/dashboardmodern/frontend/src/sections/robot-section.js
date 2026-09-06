@@ -771,8 +771,8 @@ function handleFanChange(event) {
 
 function paint() {
   state.frame = 0;
-  ensureRobotTab();
   teachNavVisibility();
+  ensureRobotTab();
   renderRobots();
 }
 
@@ -903,8 +903,8 @@ export function installRobotSection() {
   state.installed = true;
   installStyles();
   ensureRobotPage();
-  ensureRobotTab();
   teachNavVisibility();
+  ensureRobotTab();
   doc.addEventListener("click", handleRobotClick);
   /* La mappa aperta si chiude con Esc, come ogni finestra della plancia, e col
    * tasto invio o barra si apre da tastiera — il riquadro e' un bottone. */

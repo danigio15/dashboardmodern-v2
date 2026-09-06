@@ -430,8 +430,8 @@ export function installAnimaliSection() {
   state.installed = true;
   installStyles();
   ensureAnimaliPage();
-  ensureAnimaliTab();
   insegnaLaVisibilita();
+  ensureAnimaliTab();
   for (const nome of ["render", "cdApplyNavVis"]) wrapFunction(nome, "__dmAnimaliSection", schedule);
   for (const evento of [
     "dashboardmodern:legacy-ready",
