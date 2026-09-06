@@ -121,7 +121,12 @@ const USER_DATA_VERSION = 1;
  * dispositivi. E' una scelta della casa, non del vetro da cui la si guarda —
  * se restasse sul dispositivo che l'ha fatta, il telefono e il tablet
  * mostrerebbero la stessa Home in due ordini diversi. */
-export const CONFIG_KEYS_REVISION = 29;
+/* La revisione 30 aggiunge gli animali di casa (`cd_animali`, #358): i loro
+ * nomi, le loro foto e le entita' della ciotola, della lettiera, dell'acqua,
+ * della porta col microchip e del collare. E' roba della casa e non del vetro
+ * da cui la si guarda: se restasse sul dispositivo che l'ha scritta, il gatto
+ * configurato sul tablet non esisterebbe sul telefono. */
+export const CONFIG_KEYS_REVISION = 30;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -279,6 +284,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_allerte",
   // La raccolta differenziata (#293): i materiali e da dove si legge il ritiro.
   "cd_rifiuti",
+  // Gli animali di casa (#358): nome, foto e le entita' che li riguardano.
+  "cd_animali",
   "cd_piscina",
   "cd_irrigazione",
   "cd_robot",

@@ -679,6 +679,8 @@ const OGGETTO_DELLA_PAGINA = Object.freeze({
   luci: "luci",
   prese: "prese",
   robot: "robot",
+  /* Gli animali (#358): l'orma di casa al posto dell'emoji di sistema. */
+  animali: "animale",
   stanze: "stanze",
   aperture: "aperture",
   doors: "aperture",

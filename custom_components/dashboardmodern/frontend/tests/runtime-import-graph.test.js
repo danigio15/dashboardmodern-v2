@@ -811,8 +811,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // un'integrazione, e la tendina del target mandava ordini a un sensore. La
   // lettera la decide il nucleo; la sezione la scrive e tiene la tendina
   // onesta, cosi' la vetrina resta sola presentazione.
+  // 263 con gli animali di casa (#358): `core/animali-model.js` legge le
+  // entita' di ciotola, lettiera, fontanella, porta col microchip e collare e
+  // dice cosa c'e' da sapere adesso — cibo in esaurimento, lettiera da pulire,
+  // filtro a fine corsa — senza toccare il documento ne' l'orologio;
+  // `sections/animali-section.js` disegna la pagina e la sua voce nella barra,
+  // e `sections/animali-editor-section.js` la scheda della configurazione, che
+  // pesca i dispositivi dal menu delle integrazioni gia' in casa.
   assert.ok(
-    relative.length <= 260,
+    relative.length <= 263,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
