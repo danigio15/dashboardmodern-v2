@@ -41,6 +41,17 @@ su una finestra gia' aperta.
   degli stati chiesta da piu' prese a pochi secondi di distanza viaggia una
   volta sola.
 
+- **Il widget Luci le elenca tutte, interruttori compresi (#335).**
+
+      «Nel widget luci scrive il totale luci compresi gli switch, ma nella
+       lista sotto non li fa vedere. Sarebbe carino che li mettesse nella
+       lista a scorrere.»
+
+  L'elenco della finestra si fermava a quattordici righe: chi ha molte luci
+  — e gli interruttori aggiunti a mano, che qui contano come luci — vedeva un
+  numero in alto e una lista che non lo raggiungeva. Adesso si elencano
+  tutte, accese prima, e la lista scorre dentro la finestra.
+
 - **Energia: il pacchetto dei periodi arriva, e nell'attesa si dice a che punto e'.**
 
       «Tolto il velo ma i dati non si aggiornano.» «Devi velocizzare il

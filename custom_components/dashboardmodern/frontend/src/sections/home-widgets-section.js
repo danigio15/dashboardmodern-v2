@@ -4085,7 +4085,14 @@ function agendaDetail(widget, states) {
 
 function lightsDetail(widget) {
   if (!widget.on.length && !widget.rows.length) return "";
-  const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, 14);
+  /* Tutte, non le prime quattordici (#335).
+   *
+   * «Nel widget luci scrive il totale luci compresi gli switch, ma nella
+   * lista sotto non li fa vedere.» L'elenco si fermava a quattordici righe:
+   * chi ha molte luci — e gli interruttori aggiunti a mano, che qui contano
+   * come luci — vedeva un numero in alto e una lista che non lo raggiungeva.
+   * Il corpo della finestra scorre gia': si elencano tutte, accese prima. */
+  const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on));
   /* «Sul widget luci metterei anche spegni tutte» (#315).
    *
    * Una riga sola sopra l'elenco, e solo quando c'e' qualcosa da spegnere: con
