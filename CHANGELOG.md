@@ -5,6 +5,56 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.12
+
+### Corretto
+
+- **Il motore scelto per l'auto restava scelto solo a metà (#326).**
+
+      «Rientrando nella configurazione, alla voce Motore risulta Elettrica
+       anche se avevo selezionato il motore termico.»
+
+  E insieme a lei le altre due della stessa segnalazione: «con motore termico
+  non deve essere mostrata la SESSIONE RICARICA» e la batteria che spariva.
+  Sono un guasto solo, visto da tre parti. Il tipo di motore viveva soltanto
+  dentro il profilo di una vettura, e lo scriveva soltanto il tasto «Salva
+  auto»: chi ha una macchina sola compila le caselle `dm.ev_*` nella
+  mappatura generale della plancia — e' quello che la scheda gli dice di fare
+  — e preme il tasto verde «Salva sezione» in fondo, che salvava le entita' e
+  buttava via la scelta. Senza nessun profilo la scelta non aveva nemmeno
+  dove andare.
+
+  Adesso il motore ha una casa: la vettura quando ce n'e' una, la plancia
+  quando in garage non c'e' nessun profilo. E non aspetta piu' nessun tasto —
+  la tendina scrive appena la si muove, cosi' nessun salvataggio puo'
+  portarsela via. Da li' in poi la pagina Auto racconta l'auto giusta:
+  sessione, target, colonnina ed evcc restano fuori.
+
+- **Con un'auto termica la batteria dice quanto e' carica, e nient'altro
+  (#326).**
+
+      «La scheda batteria dovrebbe mostrare solo la percentuale di carica —
+       nel mio caso è la batteria del mild-hybrid — e nulla riguardo la
+       ricarica.»
+
+  Spariva del tutto, perche' stava nello stesso mucchio della sessione e del
+  target. Ma una percentuale non e' una ricarica: adesso resta, con la sua
+  cifra e senza una parola sul cavo, e se ne va solo quando una batteria non
+  e' mappata — li' non avrebbe niente da dire.
+
+- **Rinominare una lettura dell'auto adesso si vede anche sulla card (#326).**
+
+      «Le etichette possono essere modificabili? Nel mio caso tutto quello
+       che inizia con TUCSON.»
+
+  Rinominarle si poteva gia': ogni casella della scheda Auto ha la sua riga
+  con la scritta modificabile — «Tocca per rinominare l'etichetta» — e quello
+  che ci si scrive viaggia con la configurazione condivisa. Solo che il nome
+  scelto restava a decorare l'editor: la pagina stampava le sue parole di
+  serie, e dal di fuori e' come non poter rinominare. Adesso il nome dato
+  vince sulla card, nel quadretto delle gomme e nel titolo dello storico che
+  si apre toccandola.
+
 ## 1.4.11
 
 Le cose viste sulla plancia vera subito dopo la 1.4.10, con le schermate

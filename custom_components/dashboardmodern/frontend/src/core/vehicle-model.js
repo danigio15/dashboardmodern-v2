@@ -88,6 +88,35 @@ export function tipoMotore(valore) {
   return "";
 }
 
+/* Il motore dichiarato da chi non ha nessun profilo auto (#326).
+ *
+ * «Rientrando nella configurazione il Motore risulta Elettrica»; e insieme:
+ * la batteria e la SESSIONE RICARICA restavano in pagina su un'auto a
+ * benzina. E' lo stesso guasto visto da tre parti, e la causa e' una: il tipo
+ * di motore viveva SOLO dentro il profilo di una vettura, e un profilo non e'
+ * obbligatorio. Chi ha una macchina sola compila le caselle `dm.ev_*` nella
+ * mappatura generale della plancia — e' quello che la scheda gli dice di fare
+ * — e non preme mai «Salva auto»: la sua scelta non aveva dove andare, quindi
+ * spariva, e la pagina continuava a raccontare un'elettrica.
+ *
+ * Qui c'e' la casa che le mancava: una casella della plancia, come le
+ * `dm.ev_*` a cui appartiene, letta SOLO quando in garage non c'e' nessun
+ * profilo. Con dei profili comanda la vettura, perche' in un garage possono
+ * starci una benzina e un'elettrica e una risposta sola per tutte e due
+ * sarebbe falsa per una delle due. */
+export const MOTORE_DI_CASA_KEY = "cd_ev_motore";
+
+/**
+ * Che motore ha l'auto di cui si sta parlando.
+ *
+ * Con una vettura vale quello che la vettura dichiara — anche il silenzio,
+ * che vuol dire elettrica. Senza nessuna vettura vale quello dichiarato per
+ * la plancia.
+ */
+export function motoreDellaVettura(car, diCasa = "") {
+  return car ? tipoMotore(car.tipo) : tipoMotore(diCasa);
+}
+
 /** Se questa vettura va (anche) a carburante: termica o ibrida. */
 export const vaACarburante = (car = {}) => tipoMotore(car?.tipo) !== "";
 
