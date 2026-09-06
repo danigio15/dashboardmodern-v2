@@ -401,6 +401,9 @@ test("events reach the hosted page and unsubscribe when the socket closes", asyn
   emit({ event_type: "state_changed" });
   assert.equal(received.some((item) => item.type === "event" && item.id === 9), true);
   socket.close();
+  /* La sottoscrizione si lascia un giro dopo la chiusura: a linea caduta
+   * chiuderla puo' fallire, e non deve far cadere nessuno. */
+  await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(released, 1);
 });
 

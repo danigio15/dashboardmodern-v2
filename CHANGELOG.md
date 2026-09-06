@@ -35,6 +35,11 @@ su una finestra gia' aperta.
   la connessione di Home Assistant: cade quando cade lei, e si apre quando
   torna, cosi' al ritorno del telefono dal sonno il guscio richiede gli
   stati come farebbe con una presa vera, invece di tenersi quelli vecchi.
+  E il ponte tiene UNA sottoscrizione a `state_changed` per tutte le prese
+  della plancia — prima erano due, e Home Assistant spediva ogni cambio di
+  stato di ogni entita' due volte allo stesso telefono — e un'istantanea
+  degli stati chiesta da piu' prese a pochi secondi di distanza viaggia una
+  volta sola.
 
 - **Energia: il pacchetto dei periodi arriva, e nell'attesa si dice a che punto e'.**
 
