@@ -1234,6 +1234,41 @@ async def test_la_diagnostica_torna_come_dati_non_come_markup(
     }
 
 
+def test_dove_succede_si_legge_in_cima_e_non_si_ripete_sotto() -> None:
+    """«Un menu a tendina che seleziona quale sezione e quale funzione, cosi'
+    e' piu' diretta la segnalazione.»
+
+    Le due scelte sono la cosa piu' utile che una segnalazione porti, e
+    lasciarle chiuse nel cassetto insieme alla versione del browser vorrebbe
+    dire chiederle per niente: si leggono in cima, prima del racconto.
+    """
+    corpo = github_client.issue_body(
+        {
+            "body": "Il report non si carica.",
+            "diagnostics": {
+                "sezione": "Energia",
+                "funzione": "Il report e i periodi",
+                "locale": "it",
+            },
+        }
+    )
+    assert corpo.startswith("**Dove:** Energia › Il report e i periodi\n")
+    assert corpo.index("**Dove:**") < corpo.index("Il report non si carica.")
+    # E sotto non si ripetono: il cassetto tiene quello che la plancia sa da
+    # se', non quello che la persona ha appena risposto.
+    cassetto = corpo[corpo.index("<details>") :]
+    assert "sezione" not in cassetto
+    assert "funzione" not in cassetto
+    assert "- **locale**: it" in cassetto
+
+
+def test_senza_le_due_tendine_la_segnalazione_e_quella_di_prima() -> None:
+    """Chi non sceglie niente non si ritrova una riga vuota in testa."""
+    corpo = github_client.issue_body({"body": "Boh.", "diagnostics": {"locale": "it"}})
+    assert corpo.startswith("Boh.")
+    assert "**Dove:**" not in corpo
+
+
 def test_un_corpo_senza_diagnostica_resta_intero() -> None:
     """Una issue aperta a mano su GitHub non ha nessuna scheda da togliere."""
     testo, voci = github_client.diagnostica_in("si richiede di separare le aperture")

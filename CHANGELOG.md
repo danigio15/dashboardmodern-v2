@@ -20,6 +20,26 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
 
 ### Aggiunto
 
+- **Nella segnalazione si dice dove succede, con due tendine.**
+
+      «Puoi mettere nella creazione di ticket per bug un menu a tendina che
+       seleziona quale sezione della dashboard è incriminata e quale funzione,
+       così è più diretta la segnalazione.»
+
+  Sopra il racconto ci sono adesso due tendine: la sezione e la parte. Le
+  sezioni sono quelle che hai davvero nella barra, coi nomi che leggi tu — non
+  un elenco scritto a mano che direbbe «Piscina» a chi la piscina non ce l'ha —
+  e la pagina da cui apri la segnalazione si propone da sola. Le parti cambiano
+  con la sezione: sotto Energia ci sono i flussi, il report, i carichi e i
+  costi; sotto Auto la foto, la ricarica, la colonnina e le gomme; e ovunque i
+  cinque modi in cui una cosa va storta — i dati, il disegno, un comando che
+  non risponde, la configurazione, la lentezza.
+
+  Le due risposte si leggono **in cima** alla segnalazione, prima del racconto,
+  e non in fondo insieme alla versione del browser: «Energia › Il report e i
+  periodi» dice già dove guardare. Chi non lo sa lascia «Non lo so», che è una
+  risposta anche quella.
+
 - **La casa sembra abitata quando non c'e' nessuno (#290).**
 
       «E' possibile creare un cruscotto per emulare la presenza in casa
