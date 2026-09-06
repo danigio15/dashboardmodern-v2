@@ -37,6 +37,7 @@ import {
   lettureCaldaie,
   nomeDelSolare,
   overridesPerSolare,
+  pelletScarso,
   servonoLinguette,
   tabAttiva,
   verdettoPressione,
@@ -321,20 +322,125 @@ function valvoleMarkup(lettura) {
     .join("");
 }
 
+/* ── quello che si vede di una caldaia a pellet (#346) ──────────────────
+ *
+ * «Nella sezione caldaia vorrei inserire: temperatura caldaia, temperatura
+ * alta e bassa del boiler, temperatura fumi, comando ventilatore fumi,
+ * ossigeno residuo, livello riempimento pellet, temperatura mandata
+ * calcolata.»
+ *
+ * Ognuna di queste letture compare SOLO se qualcuno l'ha mappata: la scena
+ * della caldaia e' la stessa di prima — la scocca, l'oblo', i due tubi — e
+ * queste ci si aggiungono attorno. Chi ha una caldaia a gas non vede niente
+ * di nuovo, perche' non ha niente di nuovo da vedere. */
+
+/* La combustione, accanto alla fiamma.
+ *
+ * Fumi, ossigeno e ventilatore stanno vicino all'oblo' perche' e' della
+ * fiamma che parlano: quanto calore se ne va per il camino, quanta aria
+ * avanza, quanto tira l'aspiratore. Il ventilatore dice una percentuale se
+ * l'entita' ne ha una, e altrimenti acceso o spento — quale delle due lo
+ * decide la lettura, non chi configura. */
+function combustioneMarkup(lettura) {
+  const ventilatore = lettura.ventilatore;
+  const soffio =
+    ventilatore?.percento != null
+      ? `${NUMERO(ventilatore.percento, 0)}%`
+      : ventilatore?.acceso === true
+        ? t("Acceso", "On")
+        : ventilatore?.acceso === false
+          ? t("Spento", "Off")
+          : null;
+  const righe = [
+    [t("Fumi", "Flue gas"), lettura.fumi == null ? null : `${NUMERO(lettura.fumi, 0)}°`],
+    [t("Ossigeno", "Oxygen"), lettura.ossigeno == null ? null : `${NUMERO(lettura.ossigeno, 1)}%`],
+    [t("Ventilatore", "Fan"), soffio],
+  ].filter(([, valore]) => valore != null);
+  if (!righe.length) return "";
+  return `<div class="dm-it-nodo" style="left:11%;top:46%">
+    <div class="dm-it-fuoco">${righe
+      .map(
+        ([etichetta, valore]) => `<span class="dm-it-fuoco-riga">
+          <span class="dm-it-fuoco-lbl">${esc(etichetta)}</span>
+          <b class="dm-it-fuoco-val">${esc(valore)}</b>
+        </span>`,
+      )
+      .join("")}</div>
+  </div>`;
+}
+
+/* Il serbatoio del pellet: un riempimento, non un numero.
+ *
+ * «Livello riempimento pellet» e' la lettura che si guarda per sapere se si
+ * deve ordinare: un serbatoio disegnato la dice a colpo d'occhio meglio di
+ * una percentuale scritta, e sotto la soglia diventa rosso. Chi legge in
+ * chili — una bilancia sotto il silo — non ha una quota da riempire: quel
+ * numero e' quello che e', e disegnare mezzo serbatoio sarebbe inventarselo. */
+function pelletMarkup(lettura) {
+  const quota = lettura.pellet;
+  if (quota == null)
+    return nodoTarghetta(
+      "left:11%;top:80%",
+      t("Pellet", "Pellet"),
+      lettura.pelletChili,
+      " kg",
+      "#d97706",
+      0,
+    );
+  const pieno = Math.max(0, Math.min(100, quota));
+  const scritta = `${t("Pellet", "Pellet")} ${NUMERO(quota, 0)}%`;
+  return `<div class="dm-it-nodo" style="left:11%;top:80%">
+    <div class="dm-it-pellet" data-scarso="${pelletScarso(quota) === true}" role="img"
+      aria-label="${esc(scritta)}">
+      <span class="dm-it-pellet-liv" style="height:${pieno}%"></span>
+    </div>
+    <span class="dm-it-nome">${esc(scritta)}</span>
+  </div>`;
+}
+
+/* Le due sonde dell'accumulo sanitario, sul serbatoio.
+ *
+ * «Temperatura alta e bassa del boiler»: sono due numeri di una cosa sola, e
+ * stanno addosso al disegno del serbatoio invece che in due targhette in giro
+ * per la scena. L'alta si scalda per prima e la bassa per ultima: le due
+ * insieme dicono quanta acqua calda e' rimasta. */
+function sondeBoilerMarkup(lettura) {
+  const righe = [
+    [t("Alto", "Top"), lettura.boilerAlto],
+    [t("Basso", "Bottom"), lettura.boilerBasso],
+  ].filter(([, valore]) => valore != null);
+  if (!righe.length) return "";
+  return `<span class="dm-it-sonde">${righe
+    .map(
+      ([etichetta, valore]) =>
+        `<span class="dm-it-sonda">${esc(etichetta)}<b>${esc(NUMERO(valore, 0))}°</b></span>`,
+    )
+    .join("")}</span>`;
+}
+
 /* L'interruttore e lo stato, in fondo alla scena (#274).
  *
  * «Non permette accensione/spegnimento della caldaia, non mostra lo stato
  * standby/in funzione.» Lo stato lo si dice sempre — prima compariva solo per
  * chi non aveva né sonde né pressione — e il tasto compare a chi ha mappato un
  * interruttore: senza, sarebbe un tasto che non comanda niente. */
+/* Le parole che non dicono niente: non sono una fase, sono un'assenza. */
+const STATI_MUTI = new Set(["", "unavailable", "unknown", "none", "null"]);
+
 function interruttoreMarkup(lettura) {
   const lavora = lettura.inFunzione;
+  /* Una centralina a pellet racconta il suo ciclo per fasi, e ogni tanto ne
+   * dice una che non sappiamo tradurre in «lavora» o «riposa» — un guasto, un
+   * autotest (#346). Scriverla com'e' e' l'unica risposta onesta: dire «stato
+   * non mappato» a chi lo stato l'ha mappato eccome sarebbe una bugia. */
+  const parola = clean(lettura.statoTesto);
+  const grezzo = STATI_MUTI.has(parola.toLowerCase()) ? "" : parola;
   const stato = `<span class="dm-it-stato-caldaia" data-lavora="${lavora === true}">${esc(
     lavora === true
       ? t("In funzione", "Running")
       : lavora === false
         ? t("A riposo", "Standby")
-        : t("Stato non mappato", "State not mapped"),
+        : grezzo || t("Stato non mappato", "State not mapped"),
   )}</span>`;
   const tasto = clean(lettura.interruttore)
     ? `<button type="button" class="dm-it-lev-caldaia" data-dm-it-caldaia="${esc(
@@ -404,6 +510,7 @@ function scenaCaldaia(lettura) {
       <span class="dm-it-nome">${esc(
         lettura.uscita === "boiler" ? t("Boiler", "Tank") : t("Impianto", "Circuit"),
       )}</span>
+      ${sondeBoilerMarkup(lettura)}
     </div>
 
     ${valvoleMarkup(lettura)}
@@ -421,6 +528,22 @@ function scenaCaldaia(lettura) {
       pressione ? ` data-dm-it-pressione="${pressione}"` : "",
     )}
     ${nodoTarghetta("left:26%;top:84%", t("Acqua calda", "Hot water"), lettura.acquaCalda, "°C", "#fb923c")}
+
+    ${nodoTarghetta("left:44%;top:12%", t("Corpo caldaia", "Boiler body"), lettura.temperaturaCaldaia, "°C", "#fb7185", 0)}
+    ${combustioneMarkup(lettura)}
+    ${pelletMarkup(lettura)}
+    ${
+      /* L'obiettivo che la centralina si e' data, accanto alla mandata vera:
+       * i due numeri uno sopra l'altro dicono se la caldaia ci sta
+       * arrivando. */
+      lettura.mandataCalcolata == null
+        ? ""
+        : `<div class="dm-it-nodo" style="left:64%;top:31%">
+            <span class="dm-it-obiettivo">${esc(t("Calcolata", "Calculated"))}
+              <b>${esc(NUMERO(lettura.mandataCalcolata, 0))}°</b>
+            </span>
+          </div>`
+    }
 
     ${
       salto == null
@@ -923,6 +1046,55 @@ function installStyles() {
     #${PAGINA} .dm-it-scena[data-acceso="true"] .dm-it-radiatore i{
       background:linear-gradient(180deg,#fdba74,#f97316)}
 
+    /* ── la caldaia a pellet (#346) ─────────────────────────────────────
+       La combustione accanto alla fiamma, il serbatoio in basso a sinistra e
+       le due sonde addosso al disegno del boiler: tre pezzi nuovi nella
+       stessa lingua della scena — fondo chiaro, etichetta piccola sopra le
+       cifre, cifre in Oswald. */
+    #${PAGINA} .dm-it-fuoco{
+      display:grid;gap:5px;padding:10px 13px;border-radius:14px;min-width:104px;
+      background:rgba(255,255,255,.96);
+      box-shadow:0 10px 24px -14px rgba(15,23,42,.55),inset 0 0 0 1px rgba(148,163,184,.35)}
+    #${PAGINA} .dm-it-fuoco-riga{
+      display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+    #${PAGINA} .dm-it-fuoco-lbl{
+      font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+      color:var(--text-dim,#64748b)}
+    #${PAGINA} .dm-it-fuoco-val{
+      font-family:'Oswald',sans-serif;font-size:16px;line-height:1;
+      font-variant-numeric:tabular-nums;color:#c2410c}
+    /* Il serbatoio del pellet: si riempie dal basso come il boiler dello
+       scaldabagno, e sotto la soglia cambia colore — e' l'unica cosa di
+       questa pagina che manda a ordinare qualcosa. */
+    #${PAGINA} .dm-it-pellet{
+      position:relative;width:48px;height:92px;border-radius:11px;overflow:hidden;
+      background:linear-gradient(180deg,#f8fafc,#e2e8f0);
+      box-shadow:0 14px 28px -18px rgba(15,23,42,.5),inset 0 0 0 2px rgba(148,163,184,.5)}
+    #${PAGINA} .dm-it-pellet-liv{
+      position:absolute;left:0;right:0;bottom:0;
+      background:linear-gradient(180deg,#f59e0b,#b45309);
+      transition:height 1.2s cubic-bezier(.16,1,.3,1),background .6s ease}
+    #${PAGINA} .dm-it-pellet[data-scarso="true"] .dm-it-pellet-liv{
+      background:linear-gradient(180deg,#fb7185,#b91c1c)}
+    /* Le due sonde del boiler, addosso al serbatoio. */
+    #${PAGINA} .dm-it-sonde{
+      display:grid;gap:3px;padding:7px 11px;border-radius:11px;background:rgba(255,255,255,.96);
+      box-shadow:0 8px 20px -12px rgba(15,23,42,.5),inset 0 0 0 1px rgba(148,163,184,.35)}
+    #${PAGINA} .dm-it-sonda{
+      display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+      font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+      color:var(--text-dim,#64748b)}
+    #${PAGINA} .dm-it-sonda b{
+      font-family:'Oswald',sans-serif;font-size:13.5px;color:#ea580c;
+      font-variant-numeric:tabular-nums}
+    /* L'obiettivo della centralina, sotto la mandata vera. */
+    #${PAGINA} .dm-it-obiettivo{
+      padding:6px 13px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.06em;
+      text-transform:uppercase;color:#0369a1;background:rgba(255,255,255,.96);
+      box-shadow:0 8px 20px -10px rgba(15,23,42,.5),inset 0 0 0 1px rgba(56,189,248,.45)}
+    #${PAGINA} .dm-it-obiettivo b{
+      font-family:'Oswald',sans-serif;font-size:14px;margin-left:4px}
+
     #${PAGINA} .dm-it-salto{
       padding:7px 14px;border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.06em;
       text-transform:uppercase;color:#64748b;background:rgba(255,255,255,.96);
@@ -956,8 +1128,13 @@ function installStyles() {
     html[data-theme="dark"] #${PAGINA} .dm-it-tubo-int{stroke:#141d31}
     html[data-theme="dark"] #${PAGINA} .dm-it-nome,
     html[data-theme="dark"] #${PAGINA} .dm-it-etichetta,
+    html[data-theme="dark"] #${PAGINA} .dm-it-fuoco,
+    html[data-theme="dark"] #${PAGINA} .dm-it-sonde,
+    html[data-theme="dark"] #${PAGINA} .dm-it-obiettivo,
     html[data-theme="dark"] #${PAGINA} .dm-it-salto{
       background:rgba(20,29,49,.95);color:#93a5c0}
+    html[data-theme="dark"] #${PAGINA} .dm-it-pellet{
+      background:linear-gradient(180deg,#1b2439,#111a2c)}
     html[data-theme="dark"] #${PAGINA} .dm-it-tab{color:#b9c7dc}
     html[data-theme="dark"] #${PAGINA} .dm-it-strip{background:#0c1322;border-color:#26324b}
 
@@ -969,6 +1146,14 @@ function installStyles() {
       #${PAGINA} .dm-it-plate{min-width:88px;padding:8px 12px}
       #${PAGINA} .dm-it-plate-val{font-size:21px}
       #${PAGINA} .dm-it-radiatore i{height:54px;width:8px}
+      /* Sul telefono il palco e' stretto: la combustione e il serbatoio
+         rientrano invece di uscire dal bordo sinistro. */
+      #${PAGINA} .dm-it-fuoco{min-width:72px;padding:7px 9px;gap:3px}
+      #${PAGINA} .dm-it-fuoco-val{font-size:13px}
+      #${PAGINA} .dm-it-fuoco-lbl{font-size:8.5px;letter-spacing:.5px}
+      #${PAGINA} .dm-it-pellet{width:36px;height:66px}
+      #${PAGINA} .dm-it-sonde{padding:5px 8px}
+      #${PAGINA} .dm-it-sonda b{font-size:12px}
       #${PAGINA} .dm-it-tab{font-size:11px;padding:10px 8px;letter-spacing:.04em}
       #${PAGINA} .dm-it-tab span:last-child{display:none}
       #${PAGINA} .dm-it-tab-ic{transform:scale(1.25)}

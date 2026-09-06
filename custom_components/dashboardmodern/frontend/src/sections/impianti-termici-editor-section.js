@@ -27,6 +27,7 @@
 import {
   CASELLE_CALDAIA,
   CASELLE_SOLARE,
+  GRUPPO_PELLET,
   USCITE_CALDAIA,
   CHIAVE_CALDAIA,
   CHIAVE_IMPIANTI,
@@ -93,8 +94,8 @@ const AIUTI = Object.freeze({
     "An electric water heater, fed by the PV plant or not.",
   ],
   caldaia: [
-    "Una caldaia a gas: mandata, ritorno e pressione del circuito.",
-    "A gas boiler: flow, return and circuit pressure.",
+    "Una caldaia a gas, a pellet o a legna: mandata, ritorno, pressione, combustione.",
+    "A gas, pellet or wood boiler: flow, return, pressure, combustion.",
   ],
 });
 
@@ -213,6 +214,59 @@ const CAMPI_CALDAIA = Object.freeze({
     it: "Seconda elettrovalvola",
     en: "Second solenoid valve",
     esempio: "switch.valvola_sanitario",
+  },
+  temperaturaCaldaia: {
+    it: "Temperatura della caldaia",
+    en: "Boiler temperature",
+    esempio: "sensor.caldaia_temperatura",
+    aiutoIt: "È l'acqua dentro la caldaia, non quella che parte verso i termosifoni.",
+    aiutoEn: "The water inside the boiler itself, not the one leaving towards the radiators.",
+  },
+  boilerAlto: {
+    it: "Boiler sanitario, sonda alta",
+    en: "DHW tank, top probe",
+    esempio: "sensor.caldaia_boiler_alto",
+  },
+  boilerBasso: {
+    it: "Boiler sanitario, sonda bassa",
+    en: "DHW tank, bottom probe",
+    esempio: "sensor.caldaia_boiler_basso",
+    aiutoIt: "Le due sonde insieme dicono quanta acqua calda è rimasta.",
+    aiutoEn: "The two probes together say how much hot water is left.",
+  },
+  fumi: {
+    it: "Temperatura dei fumi",
+    en: "Flue gas temperature",
+    esempio: "sensor.caldaia_fumi",
+  },
+  ventilatoreFumi: {
+    it: "Ventilatore dei fumi",
+    en: "Flue gas fan",
+    esempio: "fan.caldaia_ventilatore_fumi",
+    aiutoIt: "Va bene una percentuale di comando o un interruttore: quale sia lo capisce da sé.",
+    aiutoEn: "A command percentage or a switch: it works out which on its own.",
+  },
+  ossigeno: {
+    it: "Ossigeno residuo (%)",
+    en: "Residual oxygen (%)",
+    esempio: "sensor.caldaia_ossigeno",
+  },
+  pellet: {
+    it: "Livello del pellet",
+    en: "Pellet level",
+    esempio: "sensor.caldaia_pellet",
+    aiutoIt: "In percentuale diventa il serbatoio disegnato in pagina; in kg si legge in chili.",
+    aiutoEn:
+      "As a percentage it becomes the hopper drawn on the page; in kg it is read in kilograms.",
+  },
+  mandataCalcolata: {
+    it: "Mandata calcolata",
+    en: "Calculated flow",
+    esempio: "sensor.caldaia_mandata_calcolata",
+    aiutoIt:
+      "Il grado che la centralina si è data: accanto alla mandata vera dice se ci sta arrivando.",
+    aiutoEn:
+      "The degree the controller set for itself: next to the real flow it says whether it is getting there.",
   },
 });
 
@@ -380,11 +434,37 @@ function leggiSolare(riga, voce) {
   return letta;
 }
 
+/* Il titolo del gruppo del pellet (#346).
+ *
+ * «Nella sezione caldaia vorrei inserire: temperatura caldaia, temperatura
+ * alta e bassa del boiler, temperatura fumi, comando ventilatore fumi,
+ * ossigeno residuo, livello riempimento pellet, temperatura mandata
+ * calcolata.» Sono otto caselle in piu' su una scheda che ne aveva dieci, e
+ * di una macchina sola: chi ha una caldaia a gas deve capire a colpo d'occhio
+ * che da questa riga in giu' non c'e' niente di suo. */
+function titoloPellet() {
+  return `<div class="ed-sec-title dm-it-ed-pellet">🪵 ${esc(
+    t("Combustibile solido: pellet o legna", "Solid fuel: pellet or wood"),
+  )}</div>
+  <div class="ed-intro">${esc(
+    t(
+      "Le caselle di una caldaia a pellet o a legna: la combustione, il serbatoio e l'obiettivo della centralina. Lasciale vuote se la tua caldaia va a gas: quello che non mappi non compare in pagina.",
+      "The fields of a pellet or wood boiler: the combustion, the hopper and the controller's own target. Leave them empty if your boiler runs on gas: what you do not map does not appear on the page.",
+    ),
+  )}</div>`;
+}
+
 function caselleCaldaia(index, voce) {
-  return CASELLE_CALDAIA.map(({ campo }) => {
+  /* Il titolo compare una volta sola, alla prima casella del gruppo: e' il
+   * gruppo che lo porta con se', cosi' aggiungerne una nona non chiede di
+   * ricordarsi di spostare niente. */
+  let precedente = "";
+  return CASELLE_CALDAIA.map(({ campo, gruppo }) => {
     const { it, en, esempio, aiutoIt, aiutoEn } = CAMPI_CALDAIA[campo];
     const id = `dm-caldaia-${index}-${campo}`;
-    return `<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(it, en))}</span>
+    const titolo = gruppo === GRUPPO_PELLET && precedente !== gruppo ? titoloPellet() : "";
+    precedente = gruppo || "";
+    return `${titolo}<label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t(it, en))}</span>
       <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-caldaia-field="${esc(campo)}"
         value="${esc(clean(voce?.[campo]))}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button
         type="button" class="dm-entity-picker" data-caldaia-pick="${id}"
@@ -1051,6 +1131,11 @@ function installStyles() {
       #ed-body .dm-caldaia-row .ed-row-new,
       #ed-body .dm-caldaia-row .ed-row-old{display:block;overflow:hidden;text-overflow:ellipsis}
       #ed-body .dm-caldaia-row .ed-row-old{margin-top:3px;color:var(--text-dim,#64748b)}
+      /* Il titolo del gruppo del pellet, dentro la riga della caldaia (#346):
+         un filo sopra e un po' d'aria, come le altre separazioni della
+         scheda — ma dentro un corpo aperto, non fra due sezioni. */
+      #ed-body .dm-caldaia-row .dm-it-ed-pellet{
+        margin:18px 0 6px;padding-top:14px;border-top:1px solid var(--card-border,#e2e8f0)}
       @media(max-width:560px){
         #ed-body .dm-it-ed-tab{font-size:10.5px;padding:9px 6px;letter-spacing:.03em}
       }

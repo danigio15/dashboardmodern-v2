@@ -160,6 +160,11 @@ export const CHIAVE_CALDAIA = "cd_caldaia";
  * l'impianto sta cedendo calore o sta girando a vuoto, ed e' la ragione per
  * cui si apre questa pagina. La pressione subito dopo, perche' e' l'unica
  * cosa che ogni tanto va rabboccata a mano. */
+/* Il gruppo delle caselle che ha solo chi brucia pellet o legna (#346): la
+ * scheda le raccoglie sotto un titolo loro, e chi ha una caldaia a gas non se
+ * le trova in mezzo alle sue. */
+export const GRUPPO_PELLET = "pellet";
+
 export const CASELLE_CALDAIA = Object.freeze([
   { campo: "stato", tipo: "acceso" },
   { campo: "fiamma", tipo: "acceso" },
@@ -183,14 +188,81 @@ export const CASELLE_CALDAIA = Object.freeze([
   { campo: "acquaCalda", tipo: "gradi" },
   { campo: "pressione", tipo: "bar" },
   { campo: "modulazione", tipo: "percento" },
+  /* Quello che una caldaia a pellet o a legna ha in piu' (#346).
+   *
+   * «Nella sezione caldaia vorrei inserire: temperatura caldaia, temperatura
+   * alta e bassa del boiler, temperatura fumi, comando ventilatore fumi,
+   * ossigeno residuo, livello riempimento pellet, temperatura mandata
+   * calcolata» — da chi ha una Froling PE15 letta con «Froling Connect».
+   *
+   * Non e' un'altra macchina: e' la stessa caldaia, che invece del gas brucia
+   * pellet, e quindi ha una combustione da guardare — i fumi, l'ossigeno che
+   * avanza, il ventilatore che tira — e un serbatoio che si svuota. Le
+   * caselle stanno in coda a quelle di prima, nell'ordine in cui le ha
+   * chieste: chi ha una caldaia a gas non se le trova in mezzo alle sue, e
+   * chi ne ha una a pellet non perde niente di quello che aveva gia'.
+   *
+   * Ognuna e' facoltativa come tutte le altre: quello che non e' mappato non
+   * si disegna. Il ventilatore dei fumi e' l'unico che non sa cos'e' finche'
+   * non lo si legge — su una Froling e' una percentuale di comando, ma c'e'
+   * chi ce l'ha come interruttore — e a dirlo e' la lettura, non chi
+   * configura. */
+  { campo: "temperaturaCaldaia", tipo: "gradi", gruppo: GRUPPO_PELLET },
+  { campo: "boilerAlto", tipo: "gradi", gruppo: GRUPPO_PELLET },
+  { campo: "boilerBasso", tipo: "gradi", gruppo: GRUPPO_PELLET },
+  { campo: "fumi", tipo: "gradi", gruppo: GRUPPO_PELLET },
+  { campo: "ventilatoreFumi", tipo: "percento", gruppo: GRUPPO_PELLET },
+  { campo: "ossigeno", tipo: "percento", gruppo: GRUPPO_PELLET },
+  { campo: "pellet", tipo: "percento", gruppo: GRUPPO_PELLET },
+  { campo: "mandataCalcolata", tipo: "gradi", gruppo: GRUPPO_PELLET },
 ]);
 
-const ACCESI = /^(on|true|1|heat|heating|burning|flame|dhw|attiva|attivo)$/i;
-const SPENTI = /^(off|false|0|idle|standby|none|ferma|fermo)$/i;
+/* Le parole con cui una caldaia dice che lavora e che riposa.
+ *
+ * La prima riga di ognuna e' quella di un binary_sensor, di un interruttore o
+ * di un climate: on e off, heat e idle. Le altre sono di una caldaia a pellet
+ * (#346): una centralina Lambdatronic racconta il suo ciclo per fasi, e
+ * «Froling Connect» le passa a Home Assistant come stato, nella lingua
+ * dell'account — quindi in inglese, in tedesco o in italiano.
+ *
+ * Le fasi in cui il fuoco c'e' o lo si sta facendo — preparazione,
+ * preriscaldamento, accensione, riscaldamento, mantenimento, fine combustione
+ * — sono una caldaia che lavora; standby, caldaia spenta e fuoco spento sono
+ * una caldaia che riposa. Un guasto o un autotest non sono ne' l'una ne'
+ * l'altra cosa e restano quello che sono: la scena scrive la parola com'e'
+ * invece di decidere per conto suo.
+ *
+ * Fonte: le voci di stato della Lambdatronic 3200 / SP 3000 (Heizen,
+ * Anheizen, Zuendung, Vorwaermen, Vorbereitung, Feuererhaltung, Ausbrand,
+ * Kessel Aus, Feuer Aus) e le stesse voci come le dicono l'app e il portale.
+ * Spazi, trattini e sottolineature non contano: «Burn out», «burn_out» e
+ * «Kessel-Aus» sono la stessa parola. */
+const PAROLE_ACCESE = [
+  "on|true|1|heat|heating|burning|flame|dhw|attiva|attivo",
+  /* Froling, in inglese. */
+  "ignition|preheating|preparation|fire (?:maintenance|preservation)|burn ?out",
+  /* Froling, in tedesco. */
+  "heizen|anheizen|z(?:u|ue|\u00fc)ndung|vorw(?:a|ae|\u00e4)rmen|vorbereitung",
+  "feuererhaltung|ausbrand",
+  /* Froling, in italiano. */
+  "riscaldamento|accensione|preriscaldamento|preparazione|mantenimento(?: fuoco)?",
+  "fine combustione|combustione finale",
+];
+const PAROLE_SPENTE = [
+  "off|false|0|idle|stand ?by|none|ferma|fermo",
+  /* Froling: caldaia spenta, fuoco spento. */
+  "boiler off|fire off|kessel aus|feuer aus|aus",
+  "caldaia spenta|fuoco spento|spenta|spento|riposo|a riposo",
+];
+const ACCESI = new RegExp(`^(?:${PAROLE_ACCESE.join("|")})$`, "i");
+const SPENTI = new RegExp(`^(?:${PAROLE_SPENTE.join("|")})$`, "i");
 
 /** Acceso, spento, o non lo sappiamo. */
 export function accesoCaldaia(state) {
-  const valore = clean(state);
+  /* Una fase scritta con l'underscore o col trattino e' la stessa fase: si
+   * pareggia la scrittura prima di riconoscerla, invece di elencare tre volte
+   * la stessa parola. */
+  const valore = clean(state).replace(/[\s_-]+/g, " ");
   if (ACCESI.test(valore)) return true;
   if (SPENTI.test(valore)) return false;
   return null;
@@ -201,6 +273,66 @@ const numero = (valore) => {
   const dato = Number(valore);
   return Number.isFinite(dato) ? dato : null;
 };
+
+const unitaDi = (stato) => clean(stato?.attributes?.unit_of_measurement).toLowerCase();
+
+/* I domini che dicono acceso e spento e basta: un numero letto da uno di
+ * questi non e' una percentuale. */
+const DOMINI_INTERRUTTORE = new Set(["switch", "binary_sensor", "input_boolean", "light"]);
+
+/**
+ * Il ventilatore dei fumi: un comando in percentuale, o un interruttore (#346).
+ *
+ * Su una caldaia a pellet e' quasi sempre una percentuale — quanto tira
+ * l'aspiratore — ma c'e' chi ce l'ha come `switch`, e chi come `fan`, che dice
+ * tutte e due le cose. A chi configura non si chiede di saperlo: lo dicono il
+ * dominio e l'unita' di misura al momento della lettura.
+ *
+ * Un numero con un'unita' che non e' la percentuale — i giri al minuto, per
+ * dire — vale solo come acceso o spento: scriverlo con un «%» accanto sarebbe
+ * inventarsi una misura che nessuno ha dato. Non mappato non e' un
+ * ventilatore fermo: e' `null`.
+ */
+export function letturaVentilatore(entity, stato) {
+  const id = clean(entity);
+  if (!id) return null;
+  const dominio = id.split(".")[0];
+  const unita = unitaDi(stato);
+  const valore = clean(stato?.state);
+  /* Un `fan` porta la velocita' fra gli attributi: il suo stato e' on/off. */
+  if (dominio === "fan") {
+    const percento = numero(stato?.attributes?.percentage);
+    return { entity: id, acceso: accesoCaldaia(valore), percento };
+  }
+  const dato = DOMINI_INTERRUTTORE.has(dominio) ? null : numero(valore);
+  if (dato === null) return { entity: id, acceso: accesoCaldaia(valore), percento: null };
+  return { entity: id, acceso: dato > 0, percento: unita === "%" || !unita ? dato : null };
+}
+
+/**
+ * Il serbatoio del pellet: una percentuale, o dei chili (#346).
+ *
+ * «Livello riempimento pellet» in percentuale e' quello che il disegno
+ * riempie. Ma c'e' chi ha una bilancia sotto il serbatoio, o un'integrazione
+ * che parla in chili: allora il numero e' quello e la quota non si inventa —
+ * un serbatoio disegnato a meta' sopra una lettura in chili sarebbe
+ * un'affermazione, non un dato.
+ */
+export function letturaPellet(stato) {
+  const valore = numero(stato?.state);
+  if (unitaDi(stato) === "kg") return { pellet: null, pelletChili: valore };
+  return { pellet: valore, pelletChili: null };
+}
+
+/* Sotto questa quota il serbatoio va riempito: e' la sola cosa di questa
+ * pagina che manda a ordinare qualcosa. */
+export const PELLET_SCARSO = 15;
+
+/** Se il pellet sta finendo; `null` quando la quota non si sa. */
+export function pelletScarso(percento) {
+  const quota = numero(percento);
+  return quota === null ? null : quota <= PELLET_SCARSO;
+}
 
 /* Cosa c'è all'altro capo del tubo (#274).
  *
@@ -330,6 +462,23 @@ export function letturaCaldaia(config, states = {}, resolve = (value) => value) 
     acquaCalda: numero(leggi(dato.acquaCalda)?.state),
     pressione: numero(leggi(dato.pressione)?.state),
     modulazione: numero(leggi(dato.modulazione)?.state),
+    /* La parola che lo stato dice adesso, cosi' com'e'.
+     *
+     * Serve a chi la caldaia la legge da una centralina che parla per fasi e
+     * ne dice una che non conosciamo — «Stoerung», «Selbsttest»: la scena la
+     * scrive invece di dire che nessuno ha mappato niente. */
+    statoTesto: clean(statoEntita?.state),
+    /* La caldaia a pellet (#346): il corpo, le due sonde dell'accumulo
+     * sanitario, la combustione, il serbatoio e l'obiettivo della centralina.
+     * Ognuna c'e' soltanto se e' mappata. */
+    temperaturaCaldaia: numero(leggi(dato.temperaturaCaldaia)?.state),
+    boilerAlto: numero(leggi(dato.boilerAlto)?.state),
+    boilerBasso: numero(leggi(dato.boilerBasso)?.state),
+    fumi: numero(leggi(dato.fumi)?.state),
+    ventilatore: letturaVentilatore(dato.ventilatoreFumi, leggi(dato.ventilatoreFumi)),
+    ossigeno: numero(leggi(dato.ossigeno)?.state),
+    ...letturaPellet(leggi(dato.pellet)),
+    mandataCalcolata: numero(leggi(dato.mandataCalcolata)?.state),
   };
 }
 
