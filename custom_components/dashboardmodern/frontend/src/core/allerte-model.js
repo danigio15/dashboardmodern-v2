@@ -282,26 +282,74 @@ function leggiPollini(voce, stati) {
 
 /* Il comfort termico: le parole di Thermal Comfort, o un indice di calore in
  * gradi. */
+/* Le parole del disagio termico, dalla piu' grave alla piu' tranquilla (#355).
+ *
+ * «Nelle allerte un discomfort termico dovrebbe essere rilevato come allerta
+ * mentre dice tutto OK.» Le fonti che raccontano il caldo afoso sono tante e
+ * non parlano la stessa lingua: Thermal Comfort ha la percezione
+ * (`quite_uncomfortable`) e la zona del simmer index (`slightly_uncomfortable`,
+ * `no_discomfort`), l'humidex conta il disagio (`some_discomfort`,
+ * `great_discomfort`), il rischio gelo ha le sue quattro parole, e chi si
+ * scrive un sensore in casa mette «Slightly uncomfortable» con lo spazio e la
+ * maiuscola, o un `binary_sensor` che sta a `on`. Prima ne conoscevamo una
+ * manciata e tutto il resto cadeva su «quiete», cioe' su «tutto OK».
+ *
+ * La prima riga sono le parole che NEGANO il disagio: si guardano per prime
+ * perche' contengono la parola della cosa che negano, e piu' in fondo
+ * verrebbero lette al contrario. */
 const PAROLE_COMFORT = Object.freeze([
+  [/no_discomfort|no_risk|nessun_disagio/, "quiete"],
   [
-    /severely_high|extremely_uncomfortable|danger_of_heatstroke|extremely_dangerous|circulatory_collapse|heat[_ ]stroke/,
+    /severely_high|extremely_uncomfortable|danger_of_heatstroke|extremely_dangerous|circulatory_collapse|heat[_ ]?stroke|sweltering|^dangerous$|torrido/,
     "allarme",
   ],
-  [/quite_uncomfortable|extremely_warm|^high$|frost.*high/, "attenzione"],
-  [/somewhat_uncomfortable|ok_but_humid|increasing_discomfort|probable|humid/, "nota"],
-  [/dry|very_comfortable|comfortable|slightly_warm|slightly_cool|cool|no_risk|unlikely/, "quiete"],
+  [
+    /quite_uncomfortable|great_discomfort|extremely_warm|very_hot|^hot$|oppressive|miserable|^high$|frost.*high|molto_caldo|afoso/,
+    "attenzione",
+  ],
+  [
+    /somewhat_uncomfortable|slightly_uncomfortable|some_discomfort|ok_but_humid|increasing_discomfort|uncomfortable|discomfort|probable|humid|muggy|^warm$|disagio|umido|caldo/,
+    "nota",
+  ],
+  [
+    /dry|very_comfortable|(^|_)comfortable|slightly_warm|slightly_cool|^cool$|^cold$|unlikely|^ok$|confortevole|secca/,
+    "quiete",
+  ],
 ]);
+
+/* La parola come la scrive l'integrazione, ridotta a una forma sola:
+ * «Slightly uncomfortable», «slightly-uncomfortable» e
+ * `slightly_uncomfortable` sono la stessa cosa, e chi legge non deve saperlo. */
+function parolaNormalizzata(stato) {
+  return minuscolo(stato).replace(/[\s-]+/g, "_");
+}
+
+/* I gradi, sempre nella stessa scala.
+ *
+ * Un indice di calore in Fahrenheit non si giudica con le soglie di Celsius:
+ * 90 °F sono 32 °C — attenzione — e non 90, che sarebbe allarme. E' la stessa
+ * regola dell'aria (#340): prima si porta la misura nella sua unita' di
+ * riferimento, poi si giudica. */
+function gradiInCelsius(valore, unita) {
+  if (valore == null) return null;
+  const sigla = pulito(unita).replace(/[°\s]/g, "");
+  return /^f$/i.test(sigla) ? ((valore - 32) * 5) / 9 : valore;
+}
 
 function leggiComfort(voce, stati) {
   const principale = stati.entity;
-  const grezzo = minuscolo(principale?.state);
+  const grezzo = parolaNormalizzata(principale?.state);
   const unita = pulito(principale?.attributes?.unit_of_measurement);
-  const gradi = numero(grezzo);
+  const gradi = gradiInCelsius(numero(minuscolo(principale?.state)), unita);
   let livello = "quiete";
   if (gradi != null) {
     if (gradi >= 41) livello = "allarme";
     else if (gradi >= 32) livello = "attenzione";
     else if (gradi >= 27 || gradi <= 0) livello = "nota";
+  } else if (grezzo === "on" || grezzo === "off") {
+    /* Un contatto: acceso vuol dire che il disagio c'e'. Chi il sensore se lo
+     * scrive in casa fa cosi', e prima non veniva letto affatto. */
+    livello = grezzo === "on" ? "attenzione" : "quiete";
   } else {
     for (const [prova, esito] of PAROLE_COMFORT)
       if (prova.test(grezzo)) {

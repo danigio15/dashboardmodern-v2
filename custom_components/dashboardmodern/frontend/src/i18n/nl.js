@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "Andere beregeningstijden",
   "Remove the time": "Tijdstip verwijderen",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "Het eerste tijdstip staat hierboven. Elke extra regel is een aparte beurt: de minuten gelden voor alle zones van die beurt, en het percentage start hem alleen bij drogere bodem.",
+  "No discomfort": "Geen ongemak",
+  "Slight discomfort": "Licht ongemak",
+  "Some discomfort": "Enig ongemak",
+  "Great discomfort": "Groot ongemak",
+  "Sweltering": "Drukkend heet",
+  "Thermal discomfort": "Thermisch ongemak",
+  "Very hot": "Zeer heet",
 });

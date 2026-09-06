@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "そのほかの散水時刻",
   "Remove the time": "時刻を削除",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "最初の時刻は上のものです。追加した行はそれぞれ独立した散水で、分数はその散水のすべてのゾーンに適用され、パーセントは土壌がそれより乾いているときだけ開始します。",
+  "No discomfort": "不快感なし",
+  "Slight discomfort": "わずかに不快",
+  "Some discomfort": "やや不快",
+  "Great discomfort": "かなり不快",
+  "Sweltering": "うだるような暑さ",
+  "Thermal discomfort": "暑さによる不快",
+  "Very hot": "非常に暑い",
 });

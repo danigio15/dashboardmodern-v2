@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "다른 급수 시간",
   "Remove the time": "시간 제거",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "첫 번째 시간은 위에 있습니다. 추가한 각 줄은 별도의 급수입니다. 분은 해당 급수의 모든 구역에 적용되고, 퍼센트는 토양이 그보다 건조할 때만 시작하게 합니다.",
+  "No discomfort": "불쾌감 없음",
+  "Slight discomfort": "약간 불쾌",
+  "Some discomfort": "다소 불쾌",
+  "Great discomfort": "매우 불쾌",
+  "Sweltering": "찌는 더위",
+  "Thermal discomfort": "온열 불쾌감",
+  "Very hot": "매우 더움",
 });

@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "सिंचाई के अन्य समय",
   "Remove the time": "समय हटाएँ",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "पहला समय ऊपर वाला है। हर अतिरिक्त पंक्ति अपने आप में एक चक्र है: मिनट उस चक्र के सभी क्षेत्रों पर लागू होते हैं, और प्रतिशत इसे तभी शुरू करता है जब मिट्टी उससे अधिक सूखी हो।",
+  "No discomfort": "कोई असुविधा नहीं",
+  "Slight discomfort": "हल्की असुविधा",
+  "Some discomfort": "कुछ असुविधा",
+  "Great discomfort": "बहुत असुविधा",
+  "Sweltering": "दमघोंटू गर्मी",
+  "Thermal discomfort": "तापीय असुविधा",
+  "Very hot": "बहुत गर्म",
 });

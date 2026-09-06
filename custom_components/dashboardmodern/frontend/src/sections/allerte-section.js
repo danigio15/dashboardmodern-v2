@@ -119,6 +119,22 @@ export function parolaDelLivello(livello) {
  * e' una frase che uno legge volentieri sul muro di casa. */
 function parolaDelComfort(codice) {
   const voci = {
+    /* Le parole che dicono «c'e' disagio» e prima non venivano lette (#355):
+     * la zona del simmer index, il conto dell'humidex, e il contatto di chi
+     * il sensore se l'e' scritto in casa. */
+    on: t("Disagio termico", "Thermal discomfort"),
+    off: t("Nessun disagio", "No discomfort"),
+    no_discomfort: t("Nessun disagio", "No discomfort"),
+    slightly_uncomfortable: t("Leggero disagio", "Slight discomfort"),
+    some_discomfort: t("Un po' di disagio", "Some discomfort"),
+    great_discomfort: t("Molto disagio", "Great discomfort"),
+    extreme_danger_of_heatstroke: t("Rischio colpo di calore", "Heatstroke danger"),
+    heat_stroke_imminent: t("Pericolo immediato", "Immediate danger"),
+    dangerous: t("Pericoloso", "Dangerous"),
+    hot: t("Caldo", "Hot"),
+    very_hot: t("Molto caldo", "Very hot"),
+    sweltering: t("Caldo soffocante", "Sweltering"),
+    muggy: t("Afoso", "Muggy"),
     dry: t("Aria secca", "Dry air"),
     very_comfortable: t("Molto confortevole", "Very comfortable"),
     comfortable: t("Confortevole", "Comfortable"),

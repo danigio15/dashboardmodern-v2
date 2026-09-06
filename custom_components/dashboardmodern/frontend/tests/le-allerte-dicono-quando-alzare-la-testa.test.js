@@ -209,6 +209,63 @@ test("i pollini e il comfort, nei numeri e nelle parole", () => {
   assert.equal(comfort("probable"), "nota", "il rischio gelo probabile");
 });
 
+/* «Nelle allerte un discomfort termico dovrebbe essere rilevato come allerta
+ * mentre dice tutto OK» (#355): le fonti del caldo afoso sono tante e non
+ * parlano la stessa lingua. Prima ne conoscevamo una manciata e tutto il resto
+ * cadeva su «quiete». */
+test("il disagio termico si riconosce comunque lo dica chi lo misura", () => {
+  const comfort = (state, attributes) =>
+    letturaAllerte({ comfort: { entity: "s.c" } }, { "s.c": stato(state, attributes) }, (v) => v, ADESSO)[0];
+
+  /* La zona del simmer index di Thermal Comfort. */
+  assert.equal(comfort("slightly_uncomfortable").livello, "nota");
+  assert.equal(comfort("increasing_discomfort").livello, "nota");
+  assert.equal(comfort("danger_of_heatstroke").livello, "allarme");
+  /* Il conto dell'humidex. */
+  assert.equal(comfort("some_discomfort").livello, "nota");
+  assert.equal(comfort("great_discomfort").livello, "attenzione");
+  assert.equal(comfort("dangerous").livello, "allarme");
+  /* Le parole che negano il disagio contengono la parola del disagio: si
+   * guardano per prime, o si leggerebbero al contrario. */
+  assert.equal(comfort("no_discomfort").livello, "quiete");
+  assert.equal(comfort("no_risk").livello, "quiete");
+
+  /* Scritte come le scrive una persona: maiuscole, spazi, trattini. */
+  assert.equal(comfort("Slightly uncomfortable").livello, "nota");
+  assert.equal(comfort("Quite-Uncomfortable").livello, "attenzione");
+  assert.equal(comfort("Slightly uncomfortable").codice, "slightly_uncomfortable");
+
+  /* Un contatto scritto in casa: acceso vuol dire che il disagio c'e'. */
+  assert.equal(comfort("on").livello, "attenzione");
+  assert.equal(comfort("off").livello, "quiete");
+
+  /* I gradi si giudicano nella loro scala: 90 °F sono 32 °C, non 90. */
+  assert.equal(comfort("90", { unit_of_measurement: "°F" }).livello, "attenzione");
+  assert.equal(comfort("110", { unit_of_measurement: "°F" }).livello, "allarme");
+  assert.equal(comfort("90", { unit_of_measurement: "°C" }).livello, "allarme");
+  assert.equal(Math.round(comfort("90", { unit_of_measurement: "°F" }).gradi), 32);
+
+  /* E quello che non si sa resta quello che non si sa. */
+  assert.equal(comfort("unavailable").livello, "ignoto");
+});
+
+/* Le parole nuove si leggono anche a schermo: chi apre la scheda non deve
+ * trovarsi «slightly uncomfortable» sul muro di casa. */
+test("le parole del disagio hanno il loro nome in chiaro", async () => {
+  const sezione = await leggi("sections/allerte-section.js");
+  for (const codice of [
+    "slightly_uncomfortable",
+    "some_discomfort",
+    "great_discomfort",
+    "no_discomfort",
+    "sweltering",
+    "very_hot",
+  ])
+    assert.ok(sezione.includes(`${codice}:`), codice);
+  /* Il contatto dice la sua in parole, non «on». */
+  assert.match(sezione, /on: t\("Disagio termico", "Thermal discomfort"\)/);
+});
+
 test("la pagina, la scheda e la tessera sono presentate a tutti i posti che le contano", async () => {
   const sezione = await leggi("sections/allerte-section.js");
   const editor = await leggi("sections/allerte-editor-section.js");

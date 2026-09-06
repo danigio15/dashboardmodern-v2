@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "Weitere Bewässerungszeiten",
   "Remove the time": "Uhrzeit entfernen",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "Die erste Uhrzeit steht oben. Jede weitere Zeile ist ein eigener Durchgang: die Minuten gelten für alle Zonen dieses Durchgangs, und der Prozentwert lässt ihn nur starten, wenn der Boden trockener ist.",
+  "No discomfort": "Kein Unbehagen",
+  "Slight discomfort": "Leichtes Unbehagen",
+  "Some discomfort": "Etwas Unbehagen",
+  "Great discomfort": "Starkes Unbehagen",
+  "Sweltering": "Drückend heiß",
+  "Thermal discomfort": "Thermisches Unbehagen",
+  "Very hot": "Sehr heiß",
 });

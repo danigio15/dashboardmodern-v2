@@ -115,6 +115,27 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 ### Corretto
 
+- **Il disagio termico veniva letto come «tutto OK» (#355).**
+
+      «Nelle allerte un discomfort termico dovrebbe essere rilevato come
+       allerta mentre dice tutto OK.»
+
+  Le fonti che raccontano il caldo afoso sono tante e non parlano la stessa
+  lingua: Thermal Comfort ha la percezione e la zona del simmer index,
+  l'humidex conta il disagio, il rischio gelo ha le sue quattro parole, e chi
+  il sensore se lo scrive in casa mette «Slightly uncomfortable» con lo spazio
+  e la maiuscola, o un contatto che sta a `on`. La plancia ne conosceva una
+  manciata e tutto il resto le cadeva addosso come «quiete» — cioè come niente
+  da segnalare.
+
+  Adesso le parole si riconoscono comunque siano scritte, maiuscole, spazi e
+  trattini compresi; quelle che negano il disagio si guardano per prime,
+  perché contengono la parola della cosa che negano; un contatto acceso vale
+  disagio; e un indice di calore in Fahrenheit si porta prima in gradi
+  centigradi, che 90 °F sono 32 °C e non un allarme. Le parole nuove hanno
+  anche il loro nome in chiaro nella scheda, in tutte e tredici le lingue.
+
+
 - **Il nome del gruppo di continuità si legge: non sta più sotto la scena.**
 
       «Ciao, il nome dell'UPS viene coperto dall'effetto dello sfondo.»

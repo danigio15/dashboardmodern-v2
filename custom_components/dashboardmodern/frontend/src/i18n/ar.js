@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "مواعيد ري أخرى",
   "Remove the time": "إزالة الموعد",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "الموعد الأول هو الموجود في الأعلى. كل صف إضافي هو دورة مستقلة: الدقائق تسري على جميع مناطق تلك الدورة، والنسبة المئوية تشغّلها فقط عندما تكون التربة أكثر جفافًا.",
+  "No discomfort": "لا يوجد انزعاج",
+  "Slight discomfort": "انزعاج خفيف",
+  "Some discomfort": "بعض الانزعاج",
+  "Great discomfort": "انزعاج شديد",
+  "Sweltering": "حر خانق",
+  "Thermal discomfort": "انزعاج حراري",
+  "Very hot": "حار جدًا",
 });

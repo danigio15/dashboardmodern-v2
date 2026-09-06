@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "其他浇水时间",
   "Remove the time": "移除时间",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "第一个时间就是上面那个。每增加一行就是一次单独的浇水：分钟数适用于该次浇水的所有区域，而百分比只在土壤更干时才让它启动。",
+  "No discomfort": "没有不适",
+  "Slight discomfort": "轻微不适",
+  "Some discomfort": "略有不适",
+  "Great discomfort": "很不舒适",
+  "Sweltering": "酷热难当",
+  "Thermal discomfort": "热不适",
+  "Very hot": "非常热",
 });

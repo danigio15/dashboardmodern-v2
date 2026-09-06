@@ -2895,4 +2895,11 @@ export default Object.freeze({
   "Other watering times": "Другое время полива",
   "Remove the time": "Убрать время",
   "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "Первое время указано выше. Каждая новая строка — отдельный полив: минуты действуют для всех зон этого полива, а процент запускает его только при более сухой почве.",
+  "No discomfort": "Без дискомфорта",
+  "Slight discomfort": "Лёгкий дискомфорт",
+  "Some discomfort": "Небольшой дискомфорт",
+  "Great discomfort": "Сильный дискомфорт",
+  "Sweltering": "Изнуряющая жара",
+  "Thermal discomfort": "Тепловой дискомфорт",
+  "Very hot": "Очень жарко",
 });
