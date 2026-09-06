@@ -3,6 +3,120 @@ import { LEGACY_VARIANTS, legacyVariantForLocale, mountLegacyHost } from "./src/
 
 const dashboardJobs = new Map();
 
+/* ── il parcheggio della plancia ─────────────────────────────────────────── */
+
+/* Home Assistant e' una pagina sola, e quando si va su una sua altra pagina il
+ * pannello viene tolto dal documento: con lui moriva la cornice, cioe' la
+ * plancia intera. Ogni ritorno era un avvio da capo — il runtime riletto, gli
+ * stati richiesti di nuovo, il pacchetto dell'Energia, lo storico dei widget,
+ * le miniature delle telecamere — ed e' esattamente il «si carica lentamente»
+ * che si sente tornando sulla plancia.
+ *
+ * Quindi la cornice non si butta: si mette da parte. Nascosta, ma ancora
+ * attaccata al documento di Home Assistant, perche' una cornice staccata il
+ * suo documento lo perde e allora tanto varrebbe ricostruirla.
+ *
+ * Il parcheggio sta sul modulo e non sull'elemento perche' l'elemento Home
+ * Assistant lo butta davvero: al ritorno ne costruisce uno nuovo, che qui
+ * ritrova la plancia di prima e se la riprende. Ce n'e' una sola: un profilo
+ * diverso — altra variante, altro entry, altra configurazione — e' un'altra
+ * plancia, e quella di prima si smonta per davvero. */
+const RICOVERO_ID = "dashboardmodern-ricovero";
+
+/* Dopo mezz'ora nessuno sta tornando: la plancia parcheggiata continua a
+ * ricevere gli stati della casa, e tenerla viva per una pagina che non si
+ * riapre e' memoria e lavoro regalati. */
+export const OBLIO_MS = 30 * 60 * 1000;
+
+const parcheggio = { chiave: "", host: null, timer: 0 };
+/* Il pannello che ha la plancia in scena adesso: e' quello che il cambio di
+ * pagina deve mettere da parte, e ce n'e' al piu' uno. */
+let attivo = null;
+
+/* Il profilo della plancia: due chiavi uguali sono la stessa plancia, e allora
+ * quella parcheggiata si puo' riprendere invece di ricostruirla. */
+export function profiloDellaPlancia(panel, variant, staticBase) {
+  const config = panel?.config || {};
+  return JSON.stringify([
+    config.entry_ids?.[0] || config.instance_id || "integration",
+    variant,
+    staticBase,
+    config.config_profile || "",
+    config.primary !== false,
+  ]);
+}
+
+/* Si resta sulla plancia?
+ *
+ * Home Assistant annuncia il cambio di pagina prima di rifare il documento, e
+ * quello e' l'unico momento in cui la cornice si puo' ancora mettere al
+ * riparo. Ma l'indirizzo cambia anche restando qui — una finestra che si apre,
+ * un parametro — e li' non c'e' niente da parcheggiare.
+ *
+ * Senza il nome della nostra pagina non si indovina: si parcheggia lo stesso e,
+ * se Home Assistant la plancia se l'e' tenuta, la cornice torna in scena al
+ * giro dopo. */
+export function restaSullaPlancia(pathname, urlPath) {
+  const nostro = String(urlPath || "")
+    .split("/")
+    .filter(Boolean)[0];
+  if (!nostro) return false;
+  const dove = String(pathname || "")
+    .split("/")
+    .filter(Boolean)[0];
+  return dove === nostro;
+}
+
+function ricovero(documentRef = document) {
+  let posto = documentRef.getElementById(RICOVERO_ID);
+  if (posto) return posto;
+  posto = documentRef.createElement("div");
+  posto.id = RICOVERO_ID;
+  posto.setAttribute("aria-hidden", "true");
+  /* `display:none` e non un angolo trasparente: cosi' il browser non disegna
+   * niente e la plancia da parte non chiede fotogrammi. Il documento dentro la
+   * cornice resta vivo lo stesso — e' lo staccarla dall'albero che lo
+   * ucciderebbe, non il nasconderla. */
+  posto.style.display = "none";
+  documentRef.body?.append(posto);
+  return posto;
+}
+
+function dimenticaIlParcheggio() {
+  if (parcheggio.timer) clearTimeout(parcheggio.timer);
+  parcheggio.timer = 0;
+  parcheggio.chiave = "";
+  const host = parcheggio.host;
+  parcheggio.host = null;
+  host?.destroy();
+}
+
+function alCambioDiPagina() {
+  const pannello = attivo;
+  if (!pannello?.host || !pannello.isConnected) return;
+  if (restaSullaPlancia(globalThis.location?.pathname, pannello._panel?.url_path)) return;
+  if (!pannello.parcheggia()) return;
+  /* E se Home Assistant la plancia se l'e' tenuta, la cornice torna al giro
+   * dopo — prima che qualcuno abbia il tempo di vedere il vuoto. Il ritorno
+   * passa da `bootstrap`, che e' la stessa strada di chi arriva da fuori. */
+  setTimeout(() => {
+    if (pannello.isConnected) pannello.bootstrap();
+  }, 0);
+}
+
+function ascoltaLaNavigazione(view = globalThis) {
+  if (!view?.addEventListener || view.__DASHBOARDMODERN_PARK_NAV__) return false;
+  view.__DASHBOARDMODERN_PARK_NAV__ = true;
+  /* `location-changed` e' l'avviso che Home Assistant si manda da solo quando
+   * cambia pagina, e arriva prima che il pannello venga tolto; gli altri due
+   * coprono il tasto indietro del browser. In fase di cattura, per stare
+   * davanti a chi ridisegna. */
+  for (const evento of ["location-changed", "popstate", "hashchange"]) {
+    view.addEventListener(evento, alCambioDiPagina, true);
+  }
+  return true;
+}
+
 export function resolveLegacyVariant(panel, hass) {
   const variants = panel?.config?.legacy_variants;
   if (!Array.isArray(variants) || variants.length === 0) return null;
@@ -127,6 +241,7 @@ export class DashboardModernPanel extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.host = null;
     this.mounted = false;
+    this.chiave = "";
     this._smontaggio = 0;
   }
 
@@ -136,17 +251,51 @@ export class DashboardModernPanel extends HTMLElement {
   }
 
   set panel(value) {
-    const prevEntry = this._panel?.config?.entry_ids?.[0];
     this._panel = value;
-    const nextEntry = value?.config?.entry_ids?.[0];
-    if (this.mounted && nextEntry && prevEntry !== nextEntry) this.resetHost();
     this.bootstrap();
   }
 
   resetHost() {
+    if (attivo === this) attivo = null;
     this.host?.destroy();
     this.host = null;
     this.mounted = false;
+    this.chiave = "";
+  }
+
+  /** Mette la plancia al riparo. Torna `false` se non si e' potuto. */
+  parcheggia() {
+    if (!this.host || parcheggio.host) return false;
+    if (!this.host.parcheggia(ricovero())) return false;
+    parcheggio.chiave = this.chiave;
+    parcheggio.host = this.host;
+    parcheggio.timer = setTimeout(dimenticaIlParcheggio, OBLIO_MS);
+    this.host = null;
+    this.mounted = false;
+    if (attivo === this) attivo = null;
+    return true;
+  }
+
+  /** La plancia di prima, se e' la stessa plancia e la stessa casa. */
+  riprendiDalParcheggio(surface, chiave) {
+    if (!parcheggio.host) return false;
+    if (parcheggio.chiave !== chiave || parcheggio.host.connection !== this._hass?.connection) {
+      /* Un'altra plancia sta per essere montata: quella da parte non serve
+       * piu' a nessuno, e due cornici vive per un pannello solo sarebbero due
+       * plance che parlano con Home Assistant. */
+      dimenticaIlParcheggio();
+      return false;
+    }
+    if (!parcheggio.host.riprendi(surface)) {
+      dimenticaIlParcheggio();
+      return false;
+    }
+    if (parcheggio.timer) clearTimeout(parcheggio.timer);
+    this.host = parcheggio.host;
+    parcheggio.host = null;
+    parcheggio.chiave = "";
+    parcheggio.timer = 0;
+    return true;
   }
 
   renderDenied() {
@@ -170,17 +319,29 @@ export class DashboardModernPanel extends HTMLElement {
       this.renderDenied();
       return;
     }
-    if (this.mounted) return;
     const variant = resolveLegacyVariant(this._panel, this._hass);
     const staticBase = this._panel.config?.static_base;
     if (!variant || !staticBase || !this._hass.connection?.sendMessagePromise) return;
+    const chiave = profiloDellaPlancia(this._panel, variant, staticBase);
+    if (this.mounted) {
+      /* Cambiare entry, variante o profilo vuol dire un'altra plancia: quella
+       * in scena si smonta, cornice compresa. */
+      if (chiave === this.chiave) return;
+      this.resetHost();
+    }
 
     this.mounted = true;
+    this.chiave = chiave;
+    attivo = this;
+    ascoltaLaNavigazione();
     this.style.display = "block";
     this.style.height = "100%";
     const surface = document.createElement("div");
     surface.style.cssText = "width:100%;height:100%;min-height:0";
     this.shadowRoot.replaceChildren(surface);
+    /* La plancia di prima, se c'e': e' tutto il guadagno del parcheggio, e da
+     * qui in poi non c'e' niente da costruire. */
+    if (this.riprendiDalParcheggio(surface, chiave)) return;
     this.host = mountLegacyHost(surface, {
       hass: this._hass,
       connection: this._hass.connection,
@@ -217,8 +378,25 @@ export class DashboardModernPanel extends HTMLElement {
     if (this._smontaggio) return;
     this._smontaggio = setTimeout(() => {
       this._smontaggio = 0;
-      if (!this.isConnected) this.resetHost();
+      if (!this.isConnected) this.abbandona();
     }, 250);
+  }
+
+  /* Il pannello se n'e' andato davvero.
+   *
+   * Se la plancia era stata messa da parte al cambio di pagina, qui non c'e'
+   * piu' niente da smontare: la cornice sta al riparo e aspetta il ritorno.
+   * Se invece nessuno ha avvisato — una navigazione che non passa da
+   * `location-changed`, oppure un browser senza spostamento atomico — la
+   * cornice se n'e' andata col pannello e si smonta come si e' sempre fatto. */
+  abbandona() {
+    if (!this.host) {
+      if (attivo === this) attivo = null;
+      this.mounted = false;
+      this.chiave = "";
+      return;
+    }
+    this.resetHost();
   }
 }
 

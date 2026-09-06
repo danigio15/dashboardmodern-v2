@@ -151,17 +151,35 @@ test("rimettere non riassegna mai tutte le dichiarazioni insieme", () => {
   assert.equal(nodo.style.getPropertyValue("overflow"), "scroll");
 });
 
+/* Le due strade stanno adesso in una funzione con un nome — la chiamano in
+ * due: chi smonta la plancia per sempre e chi la mette da parte fra una pagina
+ * e l'altra di Home Assistant. La regola non e' cambiata (prima il figlio, poi
+ * il documento, e tutto prima che la cornice esca di scena): e' cambiato che
+ * non e' piu' scritta due volte. */
 test("chi smonta la plancia non si appoggia soltanto al figlio", () => {
   const host = new URL("../src/legacy/host.js", import.meta.url);
   const sorgente = readFileSync(host, "utf8");
-  const destroy = sorgente.slice(sorgente.indexOf("destroy()"));
-  const chiamata = destroy.indexOf("dmReleaseOwnerDocument");
-  const pulizia = destroy.indexOf("releaseMarkedElements");
-  const rimozione = destroy.indexOf("frame.remove()");
+  const rilascio = sorgente.slice(sorgente.indexOf("const rilasciaIlDocumentoOspite"));
+  const chiamata = rilascio.indexOf("dmReleaseOwnerDocument");
+  const pulizia = rilascio.indexOf("releaseMarkedElements");
   assert.ok(chiamata > -1, "si chiede al figlio, che e' la strada precisa");
   assert.ok(pulizia > -1, "ma si ripassa comunque dal documento");
   assert.ok(pulizia > chiamata, "prima il figlio, poi quello che gli e' sfuggito");
-  assert.ok(rimozione > pulizia, "e tutto prima che la cornice sparisca");
+
+  const destroy = sorgente.slice(sorgente.indexOf("destroy()"));
+  const rimette = destroy.indexOf("rilasciaIlDocumentoOspite()");
+  const rimozione = destroy.indexOf("frame.remove()");
+  assert.ok(rimette > -1, "chi smonta rimette a posto il documento di Home Assistant");
+  assert.ok(rimozione > rimette, "e lo fa prima che la cornice sparisca");
+
+  /* E anche chi parcheggia: la cornice resta viva, ma esce di scena — il velo
+   * del chiosco addosso al documento di Home Assistant non puo' restarci. */
+  const parcheggio = sorgente.slice(sorgente.indexOf("parcheggia(ricovero)"));
+  assert.ok(
+    parcheggio.indexOf("rilasciaIlDocumentoOspite()") > -1 &&
+      parcheggio.indexOf("rilasciaIlDocumentoOspite()") < parcheggio.indexOf("spostaSenzaRicaricare"),
+    "chi mette la plancia da parte rimette a posto il documento prima di spostarla",
+  );
 });
 
 /* E dentro le radici ombra, che e' dove sta la roba che conta.
