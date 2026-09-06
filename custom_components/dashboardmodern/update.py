@@ -522,9 +522,20 @@ class DashboardModernUpdate(
     def release_summary(self) -> str | None:
         """What to do about it, in the two lines the dialog shows."""
         if self._riavvio_richiesto:
+            # E si dice PRIMA che lo si veda: HACS aggiorna le sue schede
+            # personalizzate su un giro di 48 ore, quindi dopo un'installazione
+            # fatta da qui continua a mostrare la versione di prima. Chi guarda
+            # HACS e legge il numero vecchio pensa che l'aggiornamento non sia
+            # andato — e' successo — e la frase che lo evita costa una riga.
             return self._frase(
-                "Installata: riavvia Home Assistant per completare l'aggiornamento.",
-                "Installed: restart Home Assistant to complete the update.",
+                "Installata: riavvia Home Assistant per completare "
+                "l'aggiornamento. HACS mostra ancora la versione di prima "
+                "finché non fai ⋮ → «Aggiorna informazioni»: è la sua scheda, "
+                "non la plancia.",
+                "Installed: restart Home Assistant to complete the update. "
+                "HACS keeps showing the previous version until you pick "
+                "⋮ → “Update information”: that is its own record, not the "
+                "dashboard.",
             )[:_SUMMARY_MAX]
         if not self.installed_version or self.latest_version == self.installed_version:
             return None
