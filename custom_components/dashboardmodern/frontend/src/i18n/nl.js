@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "Luchten voorstellen boven (%), standaard",
   "Not charging": "Laadt niet",
   "updated from": "bijgewerkt vanuit",
+  "Still reading the Recorder statistics": "De Recorder-statistieken worden nog gelezen",
+  "Home Assistant refused the target": "Home Assistant heeft het doel geweigerd",
 });

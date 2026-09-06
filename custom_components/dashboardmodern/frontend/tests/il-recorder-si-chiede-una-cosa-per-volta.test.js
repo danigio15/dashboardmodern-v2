@@ -1,11 +1,16 @@
-/* Al Recorder si chiede una cosa per volta, e dopo un timeout si respira.
+/* Al Recorder si chiedono al massimo due cose per volta, e dopo un timeout
+ * si respira.
  *
  * «Energia giornaliera e mensile fa capricci: resta il velo, o 0 kWh e
  * timeout.» Un aggiornamento lancia sette letture delle statistiche insieme,
  * e su un server piccolo si contendono il disco: tutte rallentano, qualcuna
- * scade. In fila la spesa e' la stessa ma nessuna aspetta le altre mentre il
- * suo cronometro corre; e dopo un timeout la prossima ripresa aspetta cinque
- * minuti, non uno.
+ * scade. In fila nessuna aspetta le altre mentre il suo cronometro corre; e
+ * dopo un timeout la prossima ripresa aspetta cinque minuti, non uno.
+ *
+ * Una per volta (1.4.11) era troppo poco — «devi velocizzare il caricamento
+ * dei dati energia» — e, peggio, ogni richiesta nuova scavalcava quella in
+ * corso e la buttava via: coi giri piu' lunghi il pacchetto non arrivava mai.
+ * Due corsie, e una richiesta in corso per lo stesso periodo che si tiene.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -15,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   AFFANNO_DEL_RECORDER_MS,
+  CORSIE_DEL_RECORDER,
   HomeAssistantBroker,
   PESANTI_PER_IL_RECORDER,
 } from "../src/core/period-service.js";
@@ -52,19 +58,23 @@ const domanda = (giorno) => ({
 
 const unGiro = () => new Promise((r) => setTimeout(r, 0));
 
-test("due domande al Recorder partono una dopo l'altra, non insieme", async () => {
+test("tre domande al Recorder: due partono insieme, la terza aspetta un posto", async () => {
+  assert.equal(CORSIE_DEL_RECORDER, 2);
   const broker = new HomeAssistantBroker({ timeout: 5000 });
   const { inviati, rispondi } = socketFinto(broker);
   const prima = broker.request(domanda(1));
   const seconda = broker.request(domanda(2));
+  const terza = broker.request(domanda(3));
   await unGiro();
-  assert.equal(inviati.length, 1, "la seconda aspetta che la prima sia risposta");
+  assert.equal(inviati.length, 2, "due corsie: la terza aspetta che una si liberi");
   rispondi(0, { "sensor.casa": [] });
   await prima;
   await unGiro();
-  assert.equal(inviati.length, 2);
+  assert.equal(inviati.length, 3, "liberata una corsia, la terza parte");
   rispondi(1, { "sensor.casa": [] });
+  rispondi(2, { "sensor.casa": [{ sum: 2 }] });
   assert.deepEqual(await seconda, { "sensor.casa": [] });
+  assert.deepEqual(await terza, { "sensor.casa": [{ sum: 2 }] });
   assert.equal(broker.recorderInAffanno(), false);
 });
 
@@ -88,13 +98,19 @@ test("un timeout non blocca la fila, e segna il Recorder in affanno", async () =
   const { inviati, rispondi } = socketFinto(broker);
   const prima = broker.request(domanda(1));
   const seconda = broker.request(domanda(2));
-  await assert.rejects(prima, /timeout/);
-  /* Il cronometro della seconda parte adesso, non quando si e' messa in fila:
-   * e' partita solo dopo la scadenza della prima. */
+  const terza = broker.request(domanda(3));
   await unGiro();
   assert.equal(inviati.length, 2);
-  rispondi(1, { "sensor.casa": [{ sum: 1 }] });
-  assert.deepEqual(await seconda, { "sensor.casa": [{ sum: 1 }] });
+  /* La seconda risponde subito; la prima resta appesa fino alla scadenza. */
+  rispondi(1, { "sensor.casa": [] });
+  await seconda;
+  await unGiro();
+  assert.equal(inviati.length, 3, "liberata una corsia, la terza parte");
+  rispondi(2, { "sensor.casa": [{ sum: 1 }] });
+  assert.deepEqual(await terza, { "sensor.casa": [{ sum: 1 }] });
+  /* Il cronometro della terza e' partito quando e' partita lei: la scadenza
+   * della prima non la tocca. */
+  await assert.rejects(prima, /timeout/);
   assert.equal(broker.recorderInAffanno(), true);
   /* E passati i cinque minuti si torna a chiedere col passo di prima. */
   assert.equal(broker.recorderInAffanno(Date.now() + AFFANNO_DEL_RECORDER_MS + 1), false);
@@ -108,7 +124,29 @@ test("il riposo vale anche a freddo, quando non c'e' ancora un pacchetto", () =>
   );
   const ripresa = energia.indexOf("const inAffanno = Boolean(broker?.recorderInAffanno?.())");
   assert.ok(ripresa > 0);
-  assert.match(energia.slice(ripresa, ripresa + 400), /inAffanno\s*\?\s*RIPOSO_ENERGIA_DI_SPALLE_MS/);
+  assert.match(
+    energia.slice(ripresa, ripresa + 400),
+    /inAffanno\s*\?\s*RIPOSO_ENERGIA_DI_SPALLE_MS/,
+  );
+});
+
+test("una richiesta in corso per lo stesso periodo si tiene, non si butta via", () => {
+  /* Dal campo, dopo la 1.4.11: «tolto il velo ma i dati non si aggiornano».
+   * Ogni richiesta nuova faceva scartare quella in corso a risposta
+   * arrivata; adesso si scarta solo se nel frattempo si guarda un altro
+   * periodo, e chi chiede mentre una lettura e' in corso riceve quella. */
+  const energia = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "..", "src", "sections", "energy-section.js"),
+    "utf8",
+  );
+  assert.match(
+    energia,
+    /if \(state\.caricoInCorso\?\.chiave === chiave\) return state\.caricoInCorso\.promessa;/,
+  );
+  assert.match(energia, /if \(chiave !== chiaveDelPeriodo\(selectedPeriod\(\)\)\) return null;/);
+  assert.doesNotMatch(energia, /if \(generation !== state\.generation\) return null;/);
+  /* E quando il velo se ne va prima del pacchetto, si dice a che punto si e'. */
+  assert.match(energia, /Sto ancora leggendo le statistiche del Recorder/);
 });
 
 test("col Recorder in affanno l'Energia riposa cinque minuti anche a pagina aperta", () => {

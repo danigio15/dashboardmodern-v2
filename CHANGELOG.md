@@ -5,6 +5,57 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.12
+
+Tre cose viste sulla plancia vera un'ora dopo la 1.4.11, con le schermate
+davanti: l'Energia giornaliera coi numeri del guscio e nessuna spiegazione,
+la tendina del target che non applicava il 90%, e il consiglio di arieggiare
+su una finestra gia' aperta.
+
+### Corretto
+
+- **Energia: il pacchetto dei periodi arriva, e nell'attesa si dice a che punto e'.**
+
+      «Tolto il velo ma i dati non si aggiornano.» «Devi velocizzare il
+       caricamento dei dati energia: prima non lo faceva.»
+
+  Era un difetto della 1.4.11, e viene da due cose insieme. Ogni richiesta
+  di aggiornamento NUOVA — il guscio a ogni giro, uno stato che cambia, la
+  pagina che si apre — scavalcava quella in corso, e a risposta arrivata la
+  buttava via. Con le domande al Recorder messe in fila una per volta, il
+  giro durava piu' a lungo e veniva scavalcato sempre: il pacchetto non
+  arrivava mai, e i cerchi restavano sui numeri del guscio — «—» e «0 kWh»
+  — senza una riga che dicesse perche'. Riprodotto in prova con un Recorder
+  da due secondi e i watt che si muovono.
+
+  Adesso una richiesta in corso per lo stesso periodo si tiene, e chi chiede
+  nel frattempo riceve lei; un pacchetto si butta via solo se nel frattempo
+  si e' scelto un altro mese. Al Recorder si chiedono due cose per volta,
+  non una: l'attesa si dimezza e si resta lontani dalle sette di prima. E
+  quando il velo se ne va prima del pacchetto, sopra i numeri c'e' scritto
+  «Sto ancora leggendo le statistiche del Recorder · 3/7», non il silenzio.
+
+- **Auto: la tendina del target dice se Home Assistant rifiuta il comando.**
+
+      «Clicco 90 nel menu, continua a non aggiornarsi.»
+
+  Il guscio mandava il comando e non ascoltava la risposta: un limite
+  rifiutato — fuori dal passo del numero, o un'entita' che non c'e' piu' —
+  lasciava la tendina che tornava indietro senza una parola. Adesso il
+  comando parte con la risposta in ascolto, e un rifiuto compare come avviso
+  con la ragione di Home Assistant. E il modulo della pastiglia e del target
+  parte anche su una pagina senza la foto dell'auto.
+
+- **Finestre: a infisso aperto non si consiglia di aprire.**
+
+      «Non consiglia di aprire se l'infisso e' chiuso; se e' aperto,
+       ovviamente, non deve dire nulla.»
+
+  Il contatto della finestra lo dice: aperta, sta gia' arieggiando, e la riga
+  sotto la card resta la misura — «💧 Umidita' 78% · soglia 60%» — senza il
+  consiglio. Chiusa, o senza un contatto che lo dica, il consiglio c'e' come
+  prima.
+
 ## 1.4.11
 
 Le cose viste sulla plancia vera subito dopo la 1.4.10, con le schermate

@@ -37,6 +37,13 @@ const SEME = {
     covers: [
       { id: "c1", name: "Finestra bagno", entity: "cover.bagno", room_id: "room-bagno" },
       { id: "c2", name: "Finestra salone", entity: "cover.salone", room_id: "room-salone" },
+      /* La finestra piccola del bagno: solo il contatto, ed e' aperta. */
+      {
+        id: "c3",
+        name: "Vasistas bagno",
+        contact: "binary_sensor.bagno_vasistas",
+        room_id: "room-bagno",
+      },
     ],
     pool: {},
     irrigation: { zones: [] },
@@ -52,6 +59,10 @@ const stato = (entity_id, state, attributes = {}) => ({ entity_id, state, attrib
 const STATI = [
   stato("cover.bagno", "closed", { friendly_name: "Finestra bagno", current_position: 0 }),
   stato("cover.salone", "closed", { friendly_name: "Finestra salone", current_position: 0 }),
+  stato("binary_sensor.bagno_vasistas", "on", {
+    friendly_name: "Vasistas bagno",
+    device_class: "window",
+  }),
   stato("sensor.bagno_umidita", "78", {
     friendly_name: "Umidità bagno",
     device_class: "humidity",
@@ -108,6 +119,36 @@ async function avvia(page, testInfo, umiditaFuori) {
 }
 
 const consiglio = (card) => card.locator("[data-dm-arieggia]");
+
+test("a infisso aperto la card non consiglia di aprire, ma la misura resta", async ({
+  page,
+}, testInfo) => {
+  /* «Non consiglia di aprire se l'infisso e' chiuso; se e' aperto, ovviamente,
+   * non deve dire nulla.» Stessa stanza fradicia, due finestre: quella chiusa
+   * consiglia, il vasistas aperto no. */
+  const bagno = await avvia(page, testInfo, 41);
+  await expect(consiglio(bagno)).toBeVisible({ timeout: 15_000 });
+  const vasistas = page
+    .locator("#page-tapparelle .tapp-card")
+    .filter({ hasText: "Vasistas bagno" });
+  await expect(vasistas).toHaveCount(1);
+  await expect(consiglio(vasistas)).toHaveCount(0);
+  const misura = vasistas.locator("[data-dm-umidita]");
+  await expect(misura).toHaveAttribute("data-dm-umidita", "aperta");
+  await expect(misura).toContainText("78%");
+  await expect(misura).not.toContainText(/Apri|Open/);
+  /* Chiuso il vasistas, il consiglio arriva anche a lui. */
+  await page.evaluate(() => {
+    for (const registro of [_RAW_STATES, STATES])
+      registro["binary_sensor.bagno_vasistas"].state = "off";
+    window.dispatchEvent(
+      new CustomEvent("dashboardmodern:state-changed", {
+        detail: { entity_id: "binary_sensor.bagno_vasistas" },
+      }),
+    );
+  });
+  await expect(consiglio(vasistas)).toBeVisible({ timeout: 15_000 });
+});
 
 test("col bagno fradicio la finestra dice di aprire, e il salone mostra la sua umidita'", async ({
   page,

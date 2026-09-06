@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "اقتراح التهوية فوق (%)، افتراضيًا",
   "Not charging": "لا يشحن",
   "updated from": "تم تحديثها من",
+  "Still reading the Recorder statistics": "لا تزال قراءة إحصاءات المسجّل جارية",
+  "Home Assistant refused the target": "رفض Home Assistant الهدف",
 });

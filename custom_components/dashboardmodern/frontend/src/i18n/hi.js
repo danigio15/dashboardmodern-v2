@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "इससे ऊपर हवा देने का सुझाव (%), डिफ़ॉल्ट",
   "Not charging": "चार्ज नहीं हो रही",
   "updated from": "से अपडेट किया गया",
+  "Still reading the Recorder statistics": "Recorder के आँकड़े अभी पढ़े जा रहे हैं",
+  "Home Assistant refused the target": "Home Assistant ने लक्ष्य अस्वीकार किया",
 });

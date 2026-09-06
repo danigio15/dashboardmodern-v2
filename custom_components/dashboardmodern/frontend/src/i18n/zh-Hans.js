@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "建议通风的湿度阈值 (%)，默认",
   "Not charging": "未在充电",
   "updated from": "已从以下来源更新：",
+  "Still reading the Recorder statistics": "仍在读取 Recorder 统计数据",
+  "Home Assistant refused the target": "Home Assistant 拒绝了目标值",
 });

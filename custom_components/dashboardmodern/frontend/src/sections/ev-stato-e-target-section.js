@@ -185,7 +185,8 @@ function installaIlComando() {
   if (typeof root.changeSelect !== "function" || root.changeSelect.__dmEvStatoETarget) return;
   const previous = root.changeSelect;
   function cambia(ref, valore, ...rest) {
-    if (clean(ref) === "dm.ev_target_soc" && targetDiSolaLettura()) {
+    if (clean(ref) !== "dm.ev_target_soc") return previous.call(this, ref, valore, ...rest);
+    if (targetDiSolaLettura()) {
       try {
         root.edToast?.(
           t(
@@ -197,7 +198,39 @@ function installaIlComando() {
       schedule();
       return undefined;
     }
-    return previous.call(this, ref, valore, ...rest);
+    /* Il guscio manda il comando e non ascolta la risposta: un limite
+     * rifiutato — un numero fuori dal passo, un'entita' che non c'e' piu' —
+     * lasciava la tendina che tornava indietro senza una parola («clicco 90
+     * nel menu, continua a non aggiornarsi»). Qui la risposta si ascolta, e
+     * un rifiuto si dice. */
+    const entita = entitaDi("dm.ev_target_soc");
+    if (typeof root.dmCallHaService !== "function" || !entita)
+      return previous.call(this, ref, valore, ...rest);
+    const dominio = entita.split(".")[0];
+    const chiamata =
+      dominio === "number" || dominio === "input_number"
+        ? root.dmCallHaService(dominio, "set_value", {
+            entity_id: entita,
+            value: Number.parseFloat(valore),
+          })
+        : root.dmCallHaService(dominio, "select_option", {
+            entity_id: entita,
+            option: String(valore),
+          });
+    try {
+      root.navigator?.vibrate?.(10);
+    } catch (_error) {}
+    Promise.resolve(chiamata).catch((errore) => {
+      try {
+        root.edToast?.(
+          `${t("Home Assistant ha rifiutato il target", "Home Assistant refused the target")}: ${clean(
+            errore?.message || errore,
+          )}`,
+        );
+      } catch (_error) {}
+      schedule();
+    });
+    return undefined;
   }
   cambia.__dmEvStatoETarget = true;
   cambia.__dmPrevious = previous;
@@ -209,12 +242,15 @@ function installaIlComando() {
 function siGuarda() {
   return Boolean(
     doc?.getElementById?.("page-ev")?.classList.contains("active") ||
-      doc?.getElementById?.("ev-popup")?.classList.contains("show"),
+    doc?.getElementById?.("ev-popup")?.classList.contains("show"),
   );
 }
 
 export function renderEvStatoETarget() {
-  if (!doc?.getElementById?.("lm-charge-badge")) return false;
+  /* Basta uno dei due: la pastiglia sull'eroe o la tendina del target. Una
+   * pagina senza l'eroe — nessuna foto — ha lo stesso la tendina. */
+  if (!doc?.getElementById?.("lm-charge-badge") && !doc?.getElementById?.("sel-target-soc"))
+    return false;
   paintStatoRicarica();
   paintTarget();
   return true;

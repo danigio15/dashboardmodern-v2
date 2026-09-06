@@ -71,8 +71,18 @@ Object.assign(state, {
   wrappers: state.wrappers || new Set(),
   storeUnsubscribe: state.storeUnsubscribe || null,
   lastError: "",
+  /* Il carico in corso, con la chiave del periodo che sta leggendo: una
+   * seconda richiesta per lo stesso periodo si accoda a lui. */
+  caricoInCorso: null,
+  /* Quante delle domande del pacchetto hanno gia' risposto. */
+  avanzamento: { fatte: 0, totali: 0 },
 });
 root.__DASHBOARDMODERN_RUNTIME_0150__ = state;
+
+/* Il periodo come chiave: e' l'unica cosa che rende vecchio un pacchetto. */
+function chiaveDelPeriodo(period) {
+  return `${Number(period?.year) || 0}-${Number(period?.month) || 0}`;
+}
 
 const PLACEHOLDER = "__dashboardmodern_hosted__";
 
@@ -431,21 +441,38 @@ function incompleteMessage(results) {
 export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
   runtimeMetrics.increment("energyRefreshes");
   const generation = ++state.generation;
+  const chiave = chiaveDelPeriodo(period);
   const monthDate = selectedDate(period);
   const today = new Date();
+  /* Il giorno parte per primo: e' quello che si guarda. */
+  const carichi = [
+    loadEnergyPeriod("day", today),
+    loadEnergyPeriod("month", monthDate),
+    loadEnergyPeriod("year", monthDate),
+    // Today's per-device delta, so a device metered only by its lifetime
+    // counter has a daily figure too instead of only a monthly one.
+    loadDevicePeriod("day", today),
+    loadDevicePeriod("month", monthDate),
+    loadDevicePeriod("year", monthDate),
+    loadEnergyLoadsDay(today),
+  ];
+  state.avanzamento = { fatte: 0, totali: carichi.length };
+  const contata = (promessa) =>
+    promessa.then((valore) => {
+      state.avanzamento.fatte += 1;
+      segnaLAttesa();
+      return valore;
+    });
   const [dayResult, monthResult, yearResult, deviceDay, deviceMonth, deviceYear, energyLoadsDay] =
-    await Promise.all([
-      loadEnergyPeriod("day", today),
-      loadEnergyPeriod("month", monthDate),
-      loadEnergyPeriod("year", monthDate),
-      // Today's per-device delta, so a device metered only by its lifetime
-      // counter has a daily figure too instead of only a monthly one.
-      loadDevicePeriod("day", today),
-      loadDevicePeriod("month", monthDate),
-      loadDevicePeriod("year", monthDate),
-      loadEnergyLoadsDay(today),
-    ]);
-  if (generation !== state.generation) return null;
+    await Promise.all(carichi.map(contata));
+  /* Un pacchetto si butta via solo se nel frattempo si e' scelto un altro
+   * periodo. Prima bastava che PARTISSE una richiesta nuova — e ne partono di
+   * continuo: il guscio a ogni giro, gli stati che cambiano, la pagina che si
+   * apre — perche' quella in corso, a risposta arrivata, venisse scartata.
+   * Con le domande al Recorder in fila il giro dura di piu', e non arrivava
+   * mai in fondo prima che qualcuno lo scavalcasse: «i dati non si
+   * aggiornano», per sempre, senza nemmeno una riga che lo dicesse. */
+  if (chiave !== chiaveDelPeriodo(selectedPeriod())) return null;
 
   const results = [
     ["day", dayResult],
@@ -801,6 +828,8 @@ function setEnergyLoading(active) {
     node.classList.toggle("dm-energy-loading", active);
     node.classList.toggle("dm-energy-awaiting", velo);
   });
+  /* Velo andato e pacchetto non ancora arrivato: si dice a che punto si e'. */
+  if (active && !velo && !state.bundle && state.caricoInCorso) segnaLAttesa();
   /* La scadenza se la guarda da sola: nessuno richiama questa funzione mentre
    * si aspetta una risposta che non arriva. */
   if (state.veloScadenza) {
@@ -847,6 +876,23 @@ export function spiegazioneDellErrore(testo) {
   return grezzo;
 }
 
+/* A che punto e' la lettura, quando il velo se n'e' andato e il pacchetto non
+ * c'e' ancora: «Sto ancora leggendo le statistiche del Recorder · 3/7». Senza
+ * questa riga i numeri del guscio — «—», «0 kWh» — sembravano il risultato,
+ * e invece era un'attesa. */
+function segnaLAttesa() {
+  if (state.bundle || !state.caricoInCorso || !doc) return;
+  const { fatte, totali } = state.avanzamento;
+  const testo = `${t(
+    "Sto ancora leggendo le statistiche del Recorder",
+    "Still reading the Recorder statistics",
+  )} · ${fatte}/${totali}`;
+  doc.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
+    if (node.classList.contains("dm-energy-awaiting")) return;
+    if (node.dataset.dmEnergyRagione !== testo) node.dataset.dmEnergyRagione = testo;
+  });
+}
+
 /* La riga con la ragione, sopra i numeri: c'e' finche' un pacchetto buono non
  * arriva. Si scrive come attributo e la disegna il foglio. */
 function segnaLaRagione(testo) {
@@ -857,7 +903,24 @@ function segnaLaRagione(testo) {
   });
 }
 
-export async function refreshEnergy(period = selectedPeriod()) {
+/* Una richiesta per volta per lo stesso periodo.
+ *
+ * Chi chiede un aggiornamento mentre uno e' gia' in corso per lo stesso
+ * periodo riceve quello: i numeri che sta portando sono freschi quanto
+ * basta, e una seconda lettura delle stesse statistiche costerebbe al
+ * Recorder senza dire niente di nuovo. */
+export function refreshEnergy(period = selectedPeriod()) {
+  const chiave = chiaveDelPeriodo(period);
+  if (state.caricoInCorso?.chiave === chiave) return state.caricoInCorso.promessa;
+  const carico = { chiave, promessa: null };
+  carico.promessa = eseguiIlRefresh(period).finally(() => {
+    if (state.caricoInCorso === carico) state.caricoInCorso = null;
+  });
+  state.caricoInCorso = carico;
+  return carico.promessa;
+}
+
+async function eseguiIlRefresh(period) {
   setEnergyLoading(true);
   try {
     const bundle = await loadAtomicEnergyBundle(period);

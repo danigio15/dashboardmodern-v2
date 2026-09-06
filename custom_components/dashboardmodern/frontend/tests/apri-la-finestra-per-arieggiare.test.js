@@ -18,8 +18,7 @@ import {
   umiditaDellaRiga,
 } from "../src/core/arieggiare.js";
 
-const consiglio = (dentro, fuori, soglia = 60) =>
-  consiglioDiArieggiare({ dentro, fuori, soglia });
+const consiglio = (dentro, fuori, soglia = 60) => consiglioDiArieggiare({ dentro, fuori, soglia });
 
 test("sopra la soglia si apre", () => {
   const esito = consiglio(72, 55);
@@ -47,6 +46,20 @@ test("un fuori piu' basso, anche di un punto, non si scrive «piu' umido»", () 
   assert.equal(consiglio(72, 71).fuoriPiuUmido, false);
   assert.equal(consiglio(72, 71.5).fuoriPiuUmido, false);
   assert.equal(consiglio(72, 73).fuoriPiuUmido, true);
+});
+
+test("a infisso aperto non si consiglia di aprire: sta gia' arieggiando", () => {
+  /* «Non consiglia di aprire se l'infisso e' chiuso; se e' aperto,
+   * ovviamente, non deve dire nulla.» */
+  const aperta = consiglioDiArieggiare({ dentro: 78, fuori: 41, soglia: 60, aperta: true });
+  assert.equal(aperta.arieggia, false);
+  assert.equal(aperta.motivo, "gia-aperta");
+  assert.equal(aperta.aperta, true);
+  /* Chiusa, o senza contatto che lo dica, il consiglio c'e'. */
+  assert.equal(consiglioDiArieggiare({ dentro: 78, soglia: 60, aperta: false }).arieggia, true);
+  assert.equal(consiglioDiArieggiare({ dentro: 78, soglia: 60 }).arieggia, true);
+  /* E la misura resta leggibile anche a finestra aperta. */
+  assert.equal(aperta.dentro, 78);
 });
 
 test("sotto la soglia si tace, per quanto asciutto sia fuori", () => {

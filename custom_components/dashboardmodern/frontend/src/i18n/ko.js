@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "이 값을 넘으면 환기 제안 (%), 기본값",
   "Not charging": "충전 안 함",
   "updated from": "에서 업데이트됨",
+  "Still reading the Recorder statistics": "아직 Recorder 통계를 읽는 중",
+  "Home Assistant refused the target": "Home Assistant가 목표를 거부했습니다",
 });

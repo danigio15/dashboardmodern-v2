@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "この値を超えたら換気を提案 (%)、既定",
   "Not charging": "充電していません",
   "updated from": "から更新",
+  "Still reading the Recorder statistics": "Recorder の統計をまだ読み込んでいます",
+  "Home Assistant refused the target": "Home Assistant がターゲットを拒否しました",
 });

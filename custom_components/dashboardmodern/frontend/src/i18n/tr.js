@@ -2826,4 +2826,6 @@ export default Object.freeze({
   "Suggest airing above (%), by default": "Şu değerin üstünde havalandırmayı öner (%), varsayılan",
   "Not charging": "Şarj olmuyor",
   "updated from": "şuradan güncellendi:",
+  "Still reading the Recorder statistics": "Recorder istatistikleri hâlâ okunuyor",
+  "Home Assistant refused the target": "Home Assistant hedefi reddetti",
 });
