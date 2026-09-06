@@ -116,6 +116,21 @@ senza un perche'.
   `/api/` senza firma ne' gettone della telecamera esce piu' dalla plancia —
   si prende il suo 401 in casa, senza campanella.
 
+- **Energia: al Recorder si chiede una cosa per volta, e dopo un timeout si respira.**
+
+      «Energia giornaliera e mensile fa capricci: resta il velo, o 0 kWh e il
+       Recorder ci ha messo troppo.»
+
+  Un aggiornamento dell'Energia lanciava sette letture delle statistiche
+  INSIEME — giorno, mese, anno, i dispositivi per ognuno, i carichi — e su un
+  server piccolo si contendevano il disco a vicenda: tutte rallentavano,
+  qualcuna scadeva, e con un pacchetto buono in mano si riprovava lo stesso
+  dopo un minuto, a un Recorder che aveva appena fatto scadere la domanda.
+  Adesso le domande al Recorder vanno in fila, una per volta, e il tempo
+  concesso a ognuna parte quando parte lei; dopo un timeout la prossima
+  ripresa aspetta cinque minuti — il passo con cui le statistiche si
+  compilano, quindi prima non c'e' niente di nuovo — anche a pagina aperta.
+
 ## 1.4.10
 
 Le cose viste sulla plancia vera subito dopo la 1.4.9, con le schermate davanti.
