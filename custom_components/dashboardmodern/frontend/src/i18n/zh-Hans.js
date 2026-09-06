@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "遮阳篷正在展开",
   "Awning going in": "遮阳篷正在收起",
   "Window closed": "窗户已关",
+  "place unknown": "位置未知",
 });

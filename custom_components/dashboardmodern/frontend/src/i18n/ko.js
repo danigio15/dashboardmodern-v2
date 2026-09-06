@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "차양 펴는 중",
   "Awning going in": "차양 접는 중",
   "Window closed": "창문 닫힘",
+  "place unknown": "위치 알 수 없음",
 });

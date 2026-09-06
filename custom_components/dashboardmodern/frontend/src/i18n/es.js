@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "Toldo extendiéndose",
   "Awning going in": "Toldo recogiéndose",
   "Window closed": "Ventana cerrada",
+  "place unknown": "lugar desconocido",
 });

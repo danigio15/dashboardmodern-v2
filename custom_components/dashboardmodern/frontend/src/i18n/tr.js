@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "Tente açılıyor",
   "Awning going in": "Tente toplanıyor",
   "Window closed": "Pencere kapalı",
+  "place unknown": "yer bilinmiyor",
 });

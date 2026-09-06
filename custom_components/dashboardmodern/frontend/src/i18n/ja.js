@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "オーニングを展開しています",
   "Awning going in": "オーニングを収納しています",
   "Window closed": "窓が閉まっています",
+  "place unknown": "場所不明",
 });

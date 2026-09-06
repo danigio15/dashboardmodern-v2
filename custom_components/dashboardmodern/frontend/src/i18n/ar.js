@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "المظلة قيد الفرد",
   "Awning going in": "المظلة قيد الطي",
   "Window closed": "النافذة مغلقة",
+  "place unknown": "مكان غير معروف",
 });

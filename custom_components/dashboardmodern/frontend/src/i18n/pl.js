@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "Markiza rozwija się",
   "Awning going in": "Markiza zwija się",
   "Window closed": "Okno zamknięte",
+  "place unknown": "miejsce nieznane",
 });

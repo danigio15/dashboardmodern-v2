@@ -1982,6 +1982,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Posta": "Mail",
   "Posteriore destro": "Rear right",
   "Posteriore sinistro": "Rear left",
+  "posto sconosciuto": "place unknown",
   "potenza": "power",
   "Potenza": "Power",
   "Potenza (alta → bassa)": "Power (high → low)",

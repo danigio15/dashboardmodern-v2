@@ -121,7 +121,14 @@ const USER_DATA_VERSION = 1;
  * dispositivi. E' una scelta della casa, non del vetro da cui la si guarda —
  * se restasse sul dispositivo che l'ha fatta, il telefono e il tablet
  * mostrerebbero la stessa Home in due ordini diversi. */
-export const CONFIG_KEYS_REVISION = 29;
+/* La revisione 30 aggiunge la lingua della plancia (`cd_lingua`, #350).
+ * «È sparito il settaggio per la lingua: su PC avevo settato italiano (HA in
+ * inglese) e continua a funzionare, da mobile invece è rimasto inglese.» La
+ * scelta stava sotto una chiave che non comincia per `cd_`, quindi non
+ * viaggiava e non aveva nemmeno il prefisso che separa due plance: era una
+ * preferenza del browser, mentre la tendina dice «la fissa per questa
+ * dashboard». Adesso e' della plancia, come la barra e le sezioni. */
+export const CONFIG_KEYS_REVISION = 30;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -290,6 +297,9 @@ export const CONFIG_KEYS = Object.freeze([
   // dispositivo che l'ha fatta: chi la mette ferma sul telefono se la ritrova
   // ferma anche sul computer.
   "cd_navbar_mode",
+  // E la lingua della plancia, per la stessa ragione (#350): «su PC avevo
+  // settato italiano, da mobile invece e' rimasto inglese».
+  "cd_lingua",
   "cd_energy_views",
   "cd_slot_labels",
   "cd_flow_nodes",

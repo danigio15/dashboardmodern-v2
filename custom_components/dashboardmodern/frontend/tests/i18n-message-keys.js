@@ -1932,6 +1932,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "PIN protected",
   "Ping",
   "Pink",
+  "place unknown",
   "Plant",
   "Plant name",
   "Plants",

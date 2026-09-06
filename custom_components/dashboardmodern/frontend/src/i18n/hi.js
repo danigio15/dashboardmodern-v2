@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "शामियाना फैल रहा है",
   "Awning going in": "शामियाना सिमट रहा है",
   "Window closed": "खिड़की बंद",
+  "place unknown": "स्थान अज्ञात",
 });

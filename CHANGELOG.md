@@ -14,6 +14,27 @@ su una finestra gia' aperta.
 
 ### Corretto
 
+- **La lingua scelta per la plancia arriva su tutti i dispositivi.**
+
+      «Nella versione corrente è sparito il settaggio per la lingua della
+       dashboard: su PC avevo settato italiano (HA in inglese) e continua a
+       funzionare, da mobile invece è rimasto inglese.»
+
+  La tendina non era sparita — è sempre in ⚙️ Impostazioni, sotto «Salva
+  generali», e adesso c'è una prova che la cerca anche dal telefono. A sparire
+  era la scelta: stava sotto una chiave del browser, fuori dalla configurazione
+  condivisa e fuori perfino dal prefisso che tiene separate due plance della
+  stessa casa. Chi la sceglieva sul computer la sceglieva per quel computer, e
+  il telefono tornava a seguire Home Assistant — che è esattamente quello che
+  si legge nella segnalazione.
+
+  Adesso la lingua è una chiave della plancia: viaggia con il resto della
+  configurazione, come la barra e le sezioni, e ogni plancia ha la sua. È
+  quello che la nota accanto alla tendina promette da sempre — «la fissa per
+  questa dashboard» — e chi ne aveva già scelta una non deve rifare niente: la
+  vecchia si legge ancora, e la prima lettura la travasa nella nuova, così
+  parte da sola verso gli altri dispositivi.
+
 - **Il radar della pioggia esce anche dal telefono.**
 
       «Da mobile il radar non compare, da desktop sì.»

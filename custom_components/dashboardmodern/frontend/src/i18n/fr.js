@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "Store banne en déploiement",
   "Awning going in": "Store banne en repli",
   "Window closed": "Fenêtre fermée",
+  "place unknown": "lieu inconnu",
 });

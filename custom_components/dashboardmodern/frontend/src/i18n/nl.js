@@ -2841,4 +2841,5 @@ export default Object.freeze({
   "Awning going out": "Zonnescherm gaat uit",
   "Awning going in": "Zonnescherm gaat in",
   "Window closed": "Raam dicht",
+  "place unknown": "plaats onbekend",
 });

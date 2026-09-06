@@ -444,7 +444,29 @@ export function loadCatalog(code) {
 /* ------------------------------------------------------------------ */
 
 const root = globalThis;
-export const LOCALE_STORAGE_KEY = "dashboardmodern_locale";
+/*
+ * Dove la lingua scelta sta scritta (#350).
+ *
+ * «È sparito il settaggio per la lingua della dashboard: su PC avevo settato
+ *  italiano (HA in inglese) e continua a funzionare, da mobile invece è
+ *  rimasto inglese.»
+ *
+ * La scelta non era sparita: non viaggiava. Stava sotto una chiave che non
+ * comincia per `cd_`, quindi restava fuori sia dalla configurazione condivisa
+ * — che e' quella che porta la plancia da un dispositivo all'altro — sia dal
+ * prefisso che tiene separate due plance sulla stessa casa. Chi la sceglieva
+ * sul computer la sceglieva per quel browser e basta, e sul telefono la
+ * plancia tornava a seguire Home Assistant.
+ *
+ * La nota accanto alla tendina dice «la fissa per questa dashboard», ed e'
+ * quello che deve fare: adesso la chiave e' una chiave della plancia — viaggia
+ * con la sua configurazione, e ogni plancia ha la sua. Chi ne aveva gia' una
+ * scritta se la ritrova: si legge anche la vecchia, e la prima lettura la
+ * travasa nella nuova, cosi' parte anche verso gli altri dispositivi.
+ */
+export const LOCALE_STORAGE_KEY = "cd_lingua";
+/** Dove stava prima: si legge ancora, per travasarla una volta sola. */
+export const LOCALE_LEGACY_KEY = "dashboardmodern_locale";
 export const LOCALE_EVENT = "dashboardmodern:locale-changed";
 export const LOCALE_OVERRIDE_GLOBAL = "__DASHBOARDMODERN_LOCALE__";
 
@@ -464,9 +486,22 @@ function localeSignature() {
   return `${root[LOCALE_OVERRIDE_GLOBAL] ?? ""}|${root.document?.documentElement?.lang ?? ""}`;
 }
 
-function readStoredLocale() {
+export function readStoredLocale() {
   try {
-    return root.localStorage?.getItem?.(LOCALE_STORAGE_KEY) || "";
+    const scritta = root.localStorage?.getItem?.(LOCALE_STORAGE_KEY) || "";
+    if (scritta) return scritta;
+    /* Il travaso dalla chiave di prima, una volta sola: chi aveva gia' scelto
+     * una lingua non deve riscegliere, e da qui in poi quella scelta viaggia
+     * con la configurazione invece di restare sul browser che l'ha fatta. */
+    const vecchia = root.localStorage?.getItem?.(LOCALE_LEGACY_KEY) || "";
+    if (!vecchia) return "";
+    try {
+      root.localStorage?.setItem?.(LOCALE_STORAGE_KEY, vecchia);
+      root.localStorage?.removeItem?.(LOCALE_LEGACY_KEY);
+    } catch (_errore) {
+      /* Memoria in sola lettura: si continua a leggerla di la'. */
+    }
+    return vecchia;
   } catch (_error) {
     return "";
   }
@@ -634,6 +669,9 @@ export function setLocale(code, { persist = true, apply = true } = {}) {
   if (persist) {
     try {
       root.localStorage?.setItem?.(LOCALE_STORAGE_KEY, target);
+      /* La chiave di prima se ne va con la scelta nuova: due posti che dicono
+       * la lingua sono due posti che prima o poi la dicono diversa. */
+      root.localStorage?.removeItem?.(LOCALE_LEGACY_KEY);
     } catch (_error) {
       /* Private-mode storage refuses writes; the in-memory locale still holds. */
     }

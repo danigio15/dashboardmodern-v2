@@ -63,8 +63,11 @@ test("the slats travel while the shutter is moving", () => {
 
 test("the page skin keeps the Beta9 first-paint geometry", () => {
   assert.match(css, /First paint is already the final Beta9 geometry/);
-  assert.match(css, /#tapp-grid\{display:grid!important;grid-template-columns:repeat\(auto-fit,minmax\(280px,360px\)\)!important/);
-  assert.match(css, /\.tapp-card\{box-sizing:border-box!important;width:100%!important;max-width:360px!important/);
+  /* Le colonne si dividono la larghezza invece di fermarsi a 360 px (#349):
+   * con un massimo definito il browser contava le ripetizioni su QUEL numero,
+   * e su un tablet ne entrava una sola. La card riempie la sua colonna. */
+  assert.match(css, /#tapp-grid\{display:grid!important;grid-template-columns:repeat\(auto-fit,minmax\(288px,1fr\)\)!important/);
+  assert.match(css, /\.tapp-card\{box-sizing:border-box!important;width:100%!important;max-width:none!important/);
   assert.match(css, /\.tapp-win\{box-sizing:border-box!important;height:132px!important;min-height:132px!important;max-height:132px!important/);
   assert.match(css, /\.tapp-shutter\{animation:none!important;filter:none!important;transition:height \.55s/);
 });
