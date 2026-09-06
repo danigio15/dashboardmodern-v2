@@ -229,7 +229,15 @@ test("i timer del guscio che un modulo fa gia' sono spenti, gli altri restano", 
   ).toEqual(TIMER_SPENTI);
   // Il programma dell'irrigazione e il conto della piscina, ogni trenta secondi.
   expect(timer.filter((voce) => voce.period === 30000 && !voce.cleared)).toHaveLength(2);
-  // La barra non viene piu' riletta ogni tre secondi da un timer.
+  /* La barra non viene piu' riletta ogni tre secondi da un timer.
+   *
+   * Si misura a barra gia' scoperta: quello che questa riga nega e' un timer
+   * che gira per sempre, non il giro di filtro che la barra fa una volta sola
+   * mentre esce. Misurare durante l'avvio vuol dire contare quello, e
+   * bocciare una plancia che sta soltanto finendo di aprirsi. */
+  await page.waitForFunction(() => document.documentElement.dataset.dmBarra === "pronta", null, {
+    timeout: 20_000,
+  });
   const giriDellaBarra = await page.evaluate(async () => {
     const prima = window.__CD_NVRUN;
     await new Promise((ok) => setTimeout(ok, 3600));
