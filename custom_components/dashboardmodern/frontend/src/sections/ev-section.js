@@ -332,24 +332,62 @@ function rimettiInUso(auto, indice) {
   return true;
 }
 
+/* Scrive nei campi `dm.ev_*` del modulo quello che dice `quale`.
+ *
+ * `quale(ref)` torna il valore da mettere, oppure `null` per lasciare quel
+ * campo com'e'. Le due chiamate qui sotto sembrano cose diverse e sono la
+ * stessa: riempire i campi dal profilo aperto, e riempire quelli della
+ * colonnina da casa. Tenerle in una funzione sola e' quel che impedisce alla
+ * seconda di dimenticare cosa fa la prima. */
+function scriviNeiCampi(contenitore, quale) {
+  let scritti = 0;
+  for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
+    const valore = quale(clean(slot.dataset.ref));
+    if (valore === null || slot.value === valore) continue;
+    slot.value = valore;
+    slot.dispatchEvent(new Event("input", { bubbles: true }));
+    slot.dispatchEvent(new Event("change", { bubbles: true }));
+    scritti += 1;
+  }
+  return scritti;
+}
+
+/** Le caselle di casa, come le legge chi disegna. */
+const caselleDiCasa = () => readJson("cd_entity_overrides", {}) || {};
+
+/* Le caselle della colonnina, nei campi, dicono quello che sa la CASA.
+ *
+ * «Si collega ma faccio salva e non vedo le entita'.» Il salvataggio dell'auto
+ * passa da `cdEvCaptureProfile`, che rilegge OGNI campo `dm.ev_*` del modulo e
+ * per quelli vuoti CANCELLA la casella. Collegare la colonnina scriveva la
+ * mappa senza toccare i campi disegnati: restavano vuoti, quindi la colonnina
+ * non si vedeva da nessuna parte, e il primo «Salva auto» buttava via le otto
+ * caselle appena collegate. Lo stesso capitava aprendo un'altra vettura, che
+ * senza colonnina nel profilo svuotava quei campi.
+ *
+ * Non e' un caso particolare del collegamento: quei campi non appartengono
+ * all'auto aperta, e chi li disegna deve leggerli da dove stanno davvero. */
+export function mostraLeCaselleDellaColonnina(mappaCasa = caselleDiCasa()) {
+  const contenitore = doc?.getElementById("ed-body");
+  if (!contenitore) return 0;
+  return scriviNeiCampi(contenitore, (ref) => (eDellaWallbox(ref) ? clean(mappaCasa[ref]) : null));
+}
+
 /* I campi entita' della scheda, riempiti con quelli dell'auto aperta.
  *
  * E' quello che faceva `cdEvApplyCar` come effetto secondario del mettere in
  * uso; qui si fa solo la parte che riguarda il modulo di configurazione, e
  * nessuna chiave globale viene toccata. Un campo lasciato vuoto dall'auto
  * torna vuoto: e' cosi' che si vede che quella vettura quella entita' non ce
- * l'ha. */
+ * l'ha. Tranne la colonnina, che non e' dell'auto. */
 function caricaCampiDaProfilo(auto) {
   const contenitore = doc?.getElementById("ed-body");
   if (!contenitore) return false;
   const mappa = (auto && typeof auto === "object" && (auto.ov || auto.overrides)) || {};
-  for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
-    const valore = clean(mappa[clean(slot.dataset.ref)]);
-    if (slot.value === valore) continue;
-    slot.value = valore;
-    slot.dispatchEvent(new Event("input", { bubbles: true }));
-    slot.dispatchEvent(new Event("change", { bubbles: true }));
-  }
+  const casa = caselleDiCasa();
+  scriviNeiCampi(contenitore, (ref) =>
+    eDellaWallbox(ref) ? clean(casa[ref]) : clean(mappa[ref]),
+  );
   return true;
 }
 
