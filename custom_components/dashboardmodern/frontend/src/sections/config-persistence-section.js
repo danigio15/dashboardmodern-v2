@@ -121,7 +121,15 @@ const USER_DATA_VERSION = 1;
  * dispositivi. E' una scelta della casa, non del vetro da cui la si guarda —
  * se restasse sul dispositivo che l'ha fatta, il telefono e il tablet
  * mostrerebbero la stessa Home in due ordini diversi. */
-export const CONFIG_KEYS_REVISION = 29;
+/* La revisione 30 aggiunge la riga sotto il meteo (`cd_barra_casa`, #356 e
+ * #357): quali pastiglie si vedono — il ritiro di stasera, le luci accese, le
+ * finestre aperte — e quale contatto e' quello della cassetta della posta.
+ * Sono scelte della casa: chi le fa dal telefono le vuole ritrovare sul
+ * tablet appeso in cucina, che e' la plancia davanti a cui si passa. Quello
+ * che invece resta a terra e' cosa questo dispositivo SA della cassetta
+ * (`cd_posta_stato`): com'era l'ultima volta che l'ha guardata, e se chi la
+ * guarda ha gia' visto l'avviso. */
+export const CONFIG_KEYS_REVISION = 30;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -201,6 +209,9 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_widgets",
   // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
   "cd_home_blocchi",
+  // La riga sotto il meteo (#356): quali pastiglie si vedono, e da quale
+  // contatto arriva la posta (#357).
+  "cd_barra_casa",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",

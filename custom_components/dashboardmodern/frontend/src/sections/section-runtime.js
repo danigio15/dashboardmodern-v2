@@ -15,6 +15,7 @@ import { installEnergyRefreshSection } from "./energy-refresh-section.js";
 import { installEnergyLegacyGuardSection } from "./energy-legacy-guard-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installHomeBlocchiSection } from "./home-blocchi-section.js";
+import { installComeStaLaCasa } from "./come-sta-la-casa-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installEnergyLoadsEditor } from "./energy-loads-editor-section.js";
@@ -958,6 +959,10 @@ export function installSectionRuntime() {
      * foto, quindi si installano dopo di lui. */
     installPeopleSection();
     installPeopleEditorSection();
+    /* La riga sotto il meteo (#356, #357) prima del ponte: e' il ponte a
+     * disegnarla, coi modelli delle tessere che ha appena fatto, e quando lo
+     * fa deve trovare gia' installati lo stile, il tocco e la sua scheda. */
+    installComeStaLaCasa();
     /* Il ponte dei widget sta sotto le persone in Home: si installa dopo,
      * cosi' trova gia' il suo ancoraggio. */
     installHomeWidgetsSection();

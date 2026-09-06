@@ -197,6 +197,7 @@ import {
   siComanda,
   t,
 } from "./shared.js";
+import { disegnaComeStaLaCasa } from "./come-sta-la-casa-section.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
@@ -5562,7 +5563,18 @@ function structureSignature(models) {
 
 export function renderHomeWidgets() {
   const states = allStates();
-  const models = applyWidgetPreferences(modelliDelleTessere(states));
+  const tutti = modelliDelleTessere(states);
+  /* La riga sotto il meteo (#356) si disegna qui, coi modelli appena fatti e
+   * prima di ogni scorciatoia: le tessere possono non esserci — plancia
+   * appena installata, tutte nascoste — e la pastiglia della posta deve
+   * comparire lo stesso. Un secondo giro sugli stati per contare le stesse
+   * cose sarebbe il doppio del lavoro per la stessa risposta. */
+  try {
+    disegnaComeStaLaCasa(tutti, states);
+  } catch (error) {
+    root.console?.warn?.("[DashboardModern] barra di casa", error);
+  }
+  const models = applyWidgetPreferences(tutti);
   const host = doc?.getElementById?.("dm-widgets");
   if (!models.length) {
     host?.remove();

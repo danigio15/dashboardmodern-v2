@@ -93,9 +93,11 @@ test("togliere una chiave non alza la revisione", async () => {
    * l'identificativo di uno cancellato, e la 29 con l'ordine dei blocchi della
    * Home (`cd_home_blocchi`): quale viene prima fra persone, widget, azioni
    * rapide e dispositivi e' una scelta della casa, non del vetro da cui la si
-   * guarda. Quelle tolte restano fuori dall'elenco, che e' quello che questa
+   * guarda, e la 30 con la riga sotto il meteo (#356, #357, `cd_barra_casa`):
+   * quali pastiglie si vedono e qual e' il contatto della cassetta della
+   * posta. Quelle tolte restano fuori dall'elenco, che e' quello che questa
    * prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 29);
+  assert.equal(CONFIG_KEYS_REVISION, 30);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
