@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "备用油量",
   "Save alerts": "保存警报",
   "Save waste": "保存垃圾设置",
-  "Service battery 12 V (%)": "12 V 辅助电瓶 (%)",
+  "Service battery 12 V (% or V)": "12 V 辅助电池（% 或 V）",
   "Single calendar (optional)": "单一日历（可选）",
   "Slightly cool": "稍凉",
   "Slightly warm": "稍暖",

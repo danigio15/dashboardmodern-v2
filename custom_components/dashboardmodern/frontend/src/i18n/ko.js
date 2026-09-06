@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "예비 연료",
   "Save alerts": "알림 저장",
   "Save waste": "쓰레기 설정 저장",
-  "Service battery 12 V (%)": "보조 배터리 12V (%)",
+  "Service battery 12 V (% or V)": "보조 배터리 12 V (% 또는 V)",
   "Single calendar (optional)": "단일 캘린더 (선택)",
   "Slightly cool": "약간 서늘함",
   "Slightly warm": "약간 더움",

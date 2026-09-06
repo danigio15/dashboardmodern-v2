@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "Rezerv",
   "Save alerts": "Uyarıları kaydet",
   "Save waste": "Atığı kaydet",
-  "Service battery 12 V (%)": "Servis aküsü 12 V (%)",
+  "Service battery 12 V (% or V)": "12 V yardımcı akü (% veya V)",
   "Single calendar (optional)": "Tek takvim (isteğe bağlı)",
   "Slightly cool": "Biraz serin",
   "Slightly warm": "Biraz sıcak",

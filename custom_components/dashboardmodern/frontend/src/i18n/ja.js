@@ -2583,7 +2583,7 @@ export default Object.freeze({
   "Reserve": "予備燃料",
   "Save alerts": "アラートを保存",
   "Save waste": "ごみ設定を保存",
-  "Service battery 12 V (%)": "補機バッテリー 12 V（%）",
+  "Service battery 12 V (% or V)": "補機バッテリー 12 V（% または V）",
   "Single calendar (optional)": "単一カレンダー（任意）",
   "Slightly cool": "やや涼しい",
   "Slightly warm": "やや暖かい",

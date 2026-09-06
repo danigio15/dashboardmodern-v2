@@ -83,3 +83,22 @@ export function codiceDellaRicarica({ stato, collegata = null, potenza = null } 
 
 /** Le pastiglie leggono anche quello che il guscio scrive gia': le lettere. */
 export const LETTERE = Object.freeze(["A", "B", "C", "F", "N"]);
+
+/* Il cavo lo dice solo il suo sensore. Un «off» del sensore di carica non e'
+ * un cavo fuori: e' una carica ferma, e il cavo puo' essere dentro. Qui si
+ * legge il sensore del cavo — `dm.ev_cavo_collegato` — e si risponde si', no,
+ * o «non lo so» quando lo stato non e' fra quelli che parlano.
+ *
+ * Sta qui, e non nella sezione della pastiglia, perche' lo leggono in due: la
+ * pastiglia sulla pagina Auto e la tessera in Home. «Nel widget la ricarica
+ * risulta scollegata, ma nella pagina dedicata la vedi collegata» (#348) era
+ * esattamente questo: due letture diverse dello stesso cavo. */
+const CAVO_DENTRO = /^(on|true|1|home|connected|plugged|collegato|attaccato)$/i;
+const CAVO_FUORI = /^(off|false|0|not_home|disconnected|unplugged|scollegato|staccato)$/i;
+
+export function cavoDalloStato(stato) {
+  const grezzo = clean(stato);
+  if (CAVO_DENTRO.test(grezzo)) return true;
+  if (CAVO_FUORI.test(grezzo)) return false;
+  return null;
+}

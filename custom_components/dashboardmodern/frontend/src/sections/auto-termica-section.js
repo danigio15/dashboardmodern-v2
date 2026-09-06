@@ -98,7 +98,7 @@ export function etichettaDellaCasella(ref) {
     case "dm.ev_allarme":
       return t("Allarme dell'auto", "Car alarm");
     case "dm.ev_batteria_servizio":
-      return t("Batteria di servizio 12 V (%)", "Service battery 12 V (%)");
+      return t("Batteria di servizio 12 V (% o V)", "Service battery 12 V (% or V)");
     case "dm.ev_temperatura_olio":
       return t("Temperatura olio", "Oil temperature");
     case "dm.ev_temperatura_esterna":
@@ -391,7 +391,17 @@ function quadroMarkup(lettura, tipo) {
   ].join("");
   const gomme = gommeMarkup(lettura);
   const tessere = [
-    misura("🔋", t("Batteria 12 V", "12 V battery"), lettura.batteriaServizio, "%", "dm.ev_batteria_servizio"),
+    /* L'unita' e' quella letta dal sensore — percento o volt — e non un «%»
+     * scritto qui: «e' a 14 V, mi da' 14%» (#348). I volt vogliono un decimale,
+     * perche' fra 12,4 e 12,8 c'e' la differenza fra carica e scarica. */
+    misura(
+      "🔋",
+      t("Batteria 12 V", "12 V battery"),
+      lettura.batteriaServizio,
+      lettura.batteriaServizioUnita === "%" ? "%" : ` ${lettura.batteriaServizioUnita}`,
+      "dm.ev_batteria_servizio",
+      lettura.batteriaServizioUnita === "%" ? 0 : 1,
+    ),
     misura("🛢️", t("Olio", "Oil"), lettura.olio, "°", "dm.ev_temperatura_olio"),
     misura("🌡️", t("Esterna", "Outside"), lettura.esterna, "°", "dm.ev_temperatura_esterna"),
     misura("⛽", t("Consumato in totale", "Total fuel used"), lettura.carburanteTotale, " L", "dm.ev_carburante_totale"),
