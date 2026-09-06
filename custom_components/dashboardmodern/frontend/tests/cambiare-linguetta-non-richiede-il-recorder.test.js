@@ -54,14 +54,22 @@ test("senza pacchetto si chiede sempre: e' il primo caricamento", () => {
   stato.bundle = null;
 });
 
-test("il servizio pubblico espone la domanda gentile, e la sezione dei clic usa quella", () => {
-  assert.equal(typeof globalThis.DashboardModernEnergyService.refreshIfStale, "function");
+test("la porta di tutti i giorni e' gentile, e quella che forza e' un'altra", () => {
+  /* Il guscio si tiene in mano `cdTotalsRun` da prima che i moduli esistano
+   * — `setTimeout(cdTotalsRun, 2500)` prende la funzione di allora — e quella
+   * chiama `refresh()` sul servizio: riscrivere il nome non basta, e' la
+   * porta a dover essere gentile. Chi ha ragione di insistere (i prezzi
+   * appena salvati) ne ha una sua. */
+  const servizio = globalThis.DashboardModernEnergyService;
+  assert.equal(typeof servizio.refresh, "function");
+  assert.equal(typeof servizio.refreshNow, "function");
+  const energia = leggi("sections/energy-section.js");
+  assert.match(energia, /refresh: \(\) => refreshEnergyIfStale\(\),/);
+  assert.match(energia, /refreshNow: \(\) => scheduleEnergyRefresh\(true\),/);
+  /* E chi chiede da fuori non tiene una copia della regola. */
   const richiami = leggi("sections/energy-refresh-section.js");
-  /* Il clic su una linguetta chiede «se serve», non «adesso». */
-  const clic = richiami.slice(richiami.indexOf('doc.addEventListener(\n    "click"'));
-  assert.match(clic, /queueRefresh\(\{ seVecchio: true \}\)/);
-  assert.equal(/queueRefresh\(\{ force: true \}\)/.test(clic), false);
-  /* E la regola di cosa sia fresco non e' copiata qui: si chiede al servizio. */
-  assert.match(richiami, /if \(service\.refreshIfStale\) service\.refreshIfStale\(\);/);
+  assert.match(richiami, /root\.DashboardModernEnergyService\?\.refresh\?\.\(\);/);
   assert.equal(/60_000|60000/.test(richiami), false, "la cadenza e' stata copiata qui dentro");
+  const guardia = leggi("sections/energy-legacy-guard-section.js");
+  assert.match(guardia, /return root\.DashboardModernEnergyService\?\.refresh\?\.\(\);/);
 });

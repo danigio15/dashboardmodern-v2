@@ -22,17 +22,21 @@ const BETA27_PICKER_KEY = "__DASHBOARDMODERN_BETA27_PICKER_CONTRACT__";
  *
  * Qui non si «sopprime» piu' la richiesta a valle: erano quindici secondi
  * decisi in questo file, cioe' una seconda regola di freschezza accanto a
- * quella vera. I tre nomi diventano deleghe a `refreshIfStale`, che e' la
- * domanda gentile del servizio: con un pacchetto fresco in mano non parte
- * niente, e quando e' vecchio parte una lettura sola come per tutti gli
- * altri. Il timer di mezz'ora si ferma e non puo' rinascere.
+ * quella vera. I due nomi che aggiornano diventano deleghe alla porta del
+ * servizio, che di suo e' gentile — con un pacchetto fresco in mano non parte
+ * niente — e il timer di mezz'ora si ferma e non puo' rinascere.
+ *
+ * Riscrivere i nomi da solo pero' non basterebbe, ed e' bene saperlo: il
+ * guscio si tiene in mano la funzione di allora
+ * (`setTimeout(cdTotalsRun, 2500)` la prende quando Home Assistant risponde
+ * all'accesso, e li' i moduli possono non esserci ancora). Quella copia
+ * chiama comunque `DashboardModernEnergyService.refresh()`, ed e' per questo
+ * che a essere gentile deve essere la porta, non il nome.
  */
 const NOMI_DELEGATI = Object.freeze(["cdTotalsRun", "cdRefreshPeriodDeltas"]);
 
 function chiediSeServe() {
-  const servizio = root.DashboardModernEnergyService;
-  if (servizio?.refreshIfStale) return servizio.refreshIfStale();
-  return servizio?.refresh?.();
+  return root.DashboardModernEnergyService?.refresh?.();
 }
 
 /* Il timer di mezz'ora del guscio non riparte.

@@ -204,10 +204,6 @@ const yearValues = {
   "sensor.oven_total": 3,
 };
 
-const wrongMonthValues = Object.fromEntries(
-  Object.keys(currentMonthValues).map((id) => [id, id === "sensor.house_total" ? 666 : 111]),
-);
-
 export async function bootConsolidatedDashboard(page, variant, testInfo) {
   /* Chart.js adesso arriva dall'integrazione, non da jsdelivr: il finto va
    * messo li'. Le altre librerie in `vendor/` se le prende davvero. */
@@ -219,7 +215,7 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
   );
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript(
-    ({ haStates, daily, currentMonthly, monthly, annual, wrongMonthly }) => {
+    ({ haStates, daily, currentMonthly, monthly, annual }) => {
       window.DASHBOARDMODERN_AUTH_TOKEN = "e2e-token";
       window.__dmSocketInstances = 0;
       window.__dmStatisticsRequests = [];
@@ -284,38 +280,55 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
           }
           if (message.type === "recorder/statistics_during_period") {
             window.__dmStatisticsRequests.push(structuredClone(message));
-            const end = new Date(message.end_time);
-            const endTime = end.getTime();
-            const currentTime = current.getTime();
-            const previousTime = previous.getTime();
-            const isPreviousMonth =
-              message.period === "day" && endTime <= currentTime + 1000 && endTime > previousTime;
-            const isCurrentMonth =
-              message.period === "day" &&
-              endTime > currentTime &&
-              endTime <= now.getTime() + 86_400_000;
-            const selected =
-              message.period === "hour" || message.period === "5minute"
-                ? daily
-                : message.period === "month"
-                  ? annual
-                  : isPreviousMonth
-                    ? monthly
-                    : isCurrentMonth
-                      ? currentMonthly
-                      : wrongMonthly;
+            /* Un contatore di vita vero, non una tabella di risposte.
+             *
+             * Questo finto rispondeva guardando CHI stava chiedendo — «se
+             * l'arco somiglia al mese corrente, ecco i kWh del mese corrente»
+             * — e per un contatore cumulativo non vuol dire niente: lo stesso
+             * arco chiesto in due pezzi rispondeva due volte per intero. E'
+             * quello che e' successo appena il giorno in corso e' passato a
+             * due archi (ore chiuse e ora aperta) e l'anno a mesi chiusi piu'
+             * mese aperto: la Giornaliera raddoppiava.
+             *
+             * Qui c'e' una somma sola che sale nel tempo, con uno scalino
+             * all'inizio di ogni periodo: chi chiede un arco si prende la
+             * differenza fra le due letture che lo delimitano, e due archi
+             * attaccati danno la somma dei due pezzi — come col Recorder
+             * vero. I numeri attesi dalle prove restano gli stessi: giorno,
+             * mese scelto, mese precedente e anno sono le altezze degli
+             * scalini. */
+            const mezzanotte = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const scalini = (id) => [
+              {
+                da: new Date(now.getFullYear(), 0, 1).getTime(),
+                quanto: (annual[id] || 0) - (monthly[id] || 0) - (currentMonthly[id] || 0),
+              },
+              { da: previous.getTime(), quanto: monthly[id] || 0 },
+              { da: current.getTime(), quanto: (currentMonthly[id] || 0) - (daily[id] || 0) },
+              { da: mezzanotte.getTime(), quanto: daily[id] || 0 },
+            ];
+            const sommaAl = (id, istante) =>
+              scalini(id).reduce(
+                (totale, scalino) => (istante >= scalino.da ? totale + scalino.quanto : totale),
+                base[id],
+              );
+            const requestStart = new Date(message.start_time).getTime();
+            const requestEnd = new Date(message.end_time).getTime();
+            const momenti = [
+              requestStart,
+              ...scalini("sensor.house_total").map((scalino) => scalino.da + 60_000),
+              Math.min(requestEnd, now.getTime()) - 60_000,
+            ]
+              .filter((istante) => istante >= requestStart && istante < requestEnd)
+              .sort((sinistra, destra) => sinistra - destra);
             const result = Object.fromEntries(
-              (message.statistic_ids || []).map((id) => {
-                const initial = base[id];
-                const final = initial + (selected[id] || 0);
-                return [
-                  id,
-                  [
-                    { start: message.start_time, sum: initial, state: initial },
-                    { start: new Date(end.getTime() - 1).toISOString(), sum: final, state: final },
-                  ],
-                ];
-              }),
+              (message.statistic_ids || []).map((id) => [
+                id,
+                momenti.map((istante) => {
+                  const somma = Math.round(sommaAl(id, istante) * 1000) / 1000;
+                  return { start: new Date(istante).toISOString(), sum: somma, state: somma };
+                }),
+              ]),
             );
             this.emit({ id: message.id, type: "result", success: true, result });
             return;
@@ -333,7 +346,6 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
       currentMonthly: currentMonthValues,
       monthly: monthValues,
       annual: yearValues,
-      wrongMonthly: wrongMonthValues,
     },
   );
 

@@ -310,7 +310,9 @@ function installCostSettingsOwner() {
     );
     root.cdMarkDirty?.();
     root.cdSyncPush?.();
-    root.DashboardModernEnergyService?.refresh?.();
+    /* I prezzi sono appena cambiati: il pacchetto va rifatto anche se e' di
+     * un secondo fa, e questa e' la porta di chi ha ragione di insistere. */
+    root.DashboardModernEnergyService?.refreshNow?.();
     const runtimeBundle = root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle;
     if (runtimeBundle) root.setTimeout?.(() => applyFinancialOverview(runtimeBundle), 0);
     return true;

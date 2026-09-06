@@ -160,13 +160,23 @@ root.DashboardModernEnergyService = Object.freeze({
   consumption: periodConsumption,
   buckets: recorderBucketConsumptions,
   broker,
-  refresh: () => scheduleEnergyRefresh(true),
-  /* «Aggiorna se serve»: con un pacchetto fresco in mano non si chiede
-   * niente al Recorder, si ridisegna quello che c'e'. La decisione di cosa
-   * sia fresco sta qui e in nessun altro posto — e' la stessa cadenza con
-   * cui l'Energia si aggiorna da sola — perche' chi la chiede da fuori (il
-   * tocco su una linguetta, i giri del guscio) non deve tenerne una copia. */
-  refreshIfStale: () => refreshEnergyIfStale(),
+  /* La porta di tutti i giorni e' gentile: con un pacchetto fresco in mano non
+   * si chiede niente al Recorder, si ridisegna quello che c'e'.
+   *
+   * Era una forzatura, e la usavano i giri del guscio — `cdTotalsRun` due
+   * secondi e mezzo dopo l'accesso, `cdRefreshPeriodDeltas` a ogni ridisegno
+   * del Report — cioe' proprio chi non ha idea di cosa sia gia' stato letto.
+   * Il guscio si tiene in mano quei nomi da prima che i moduli esistano
+   * (`setTimeout(cdTotalsRun, 2500)` prende la funzione di allora), quindi
+   * riscriverli non basta: e' la porta a dover essere gentile.
+   *
+   * La decisione di cosa sia fresco sta qui e in nessun altro posto — e' la
+   * stessa cadenza con cui l'Energia si aggiorna da sola — cosi' chi chiede
+   * da fuori non ne tiene una copia che un giorno diverge. */
+  refresh: () => refreshEnergyIfStale(),
+  /* E chi ha ragione di insistere ha la sua porta: si sono appena cambiati i
+   * prezzi, e il pacchetto va rifatto anche se e' di un secondo fa. */
+  refreshNow: () => scheduleEnergyRefresh(true),
 });
 
 const ENERGY_KEYS = PERIOD_SOURCES.map((item) => item.key);
@@ -1627,7 +1637,12 @@ function bindEvents() {
     installWrappers();
     installObserver();
     installEnergyEditorContracts();
-    scheduleEnergyRefresh(true);
+    /* Il guscio che si annuncia vuol dire «i miei nodi ci sono adesso»: quello
+     * che serve e' ridisegnarci sopra il pacchetto, non rileggerlo. Qui si
+     * chiedeva comunque — e siccome adesso il primo giro finisce prima che il
+     * guscio si annunci, quella era una seconda lettura intera per ogni
+     * avvio, con le stesse risposte. */
+    refreshEnergyIfStale();
     risvegliaReportDelGuscio();
   });
   root.addEventListener?.("dashboardmodern:runtime-ready", risvegliaReportDelGuscio);

@@ -41,33 +41,17 @@ export function initializeEnergyPeriodControls(now = new Date(), documentRef = d
  * pellicola che riscrive di nascosto le domande altrui era anche un secondo
  * padrone su cosa si chiede al Recorder. */
 
-function energyVisible() {
-  return Boolean(
-    doc?.querySelector("#page-energy.active,#page-energy-main.active") ||
-      doc?.querySelector(".tab[data-tab='energy'].active"),
-  );
-}
-
-/* `seVecchio` chiede al servizio di decidere: con un pacchetto fresco in mano
- * non parte nessuna domanda al Recorder, si ridisegna quello che c'e'. La
- * regola di cosa sia fresco vive nell'Energia, che e' anche l'unica a sapere
- * quando ha letto l'ultima volta: qui non se ne tiene una copia. */
-function queueRefresh({ force = true, seVecchio = false } = {}) {
+/* Si chiede al servizio, che decide: con un pacchetto fresco in mano non parte
+ * nessuna domanda al Recorder, si ridisegna quello che c'e'. La regola di cosa
+ * sia fresco vive nell'Energia, che e' anche l'unica a sapere quando ha letto
+ * l'ultima volta: qui non se ne tiene una copia. */
+function queueRefresh() {
   initializeEnergyPeriodControls();
   if (state.refreshQueued) return;
   state.refreshQueued = true;
   root.queueMicrotask?.(() => {
     state.refreshQueued = false;
-    const service = root.DashboardModernEnergyService;
-    if (!service?.refresh) return;
-    if (seVecchio) {
-      /* Un servizio piu' vecchio di questa sezione non conosce la domanda
-       * gentile: li' vale quella di sempre. */
-      if (service.refreshIfStale) service.refreshIfStale();
-      else service.refresh();
-      return;
-    }
-    if (force || energyVisible()) service.refresh();
+    root.DashboardModernEnergyService?.refresh?.();
   });
 }
 
@@ -79,9 +63,9 @@ export function installEnergyRefreshSection() {
   // therefore beats the setTimeout(0) used by its first scheduled refresh.
   initializeEnergyPeriodControls();
 
-  root.addEventListener?.("dashboardmodern:states-ready", () => queueRefresh({ seVecchio: true }));
-  root.addEventListener?.("dashboardmodern:legacy-ready", () => queueRefresh({ seVecchio: true }));
-  root.addEventListener?.("pageshow", () => queueRefresh({ seVecchio: true }));
+  root.addEventListener?.("dashboardmodern:states-ready", () => queueRefresh());
+  root.addEventListener?.("dashboardmodern:legacy-ready", () => queueRefresh());
+  root.addEventListener?.("pageshow", () => queueRefresh());
 
   /* Cambiare linguetta non cambia i numeri: cambia quali si guardano.
    *
@@ -101,7 +85,7 @@ export function installEnergyRefreshSection() {
       );
       if (!target) return;
       // Let the legacy click handler finish selecting the view first.
-      root.setTimeout?.(() => queueRefresh({ seVecchio: true }), 0);
+      root.setTimeout?.(() => queueRefresh(), 0);
     },
     true,
   );

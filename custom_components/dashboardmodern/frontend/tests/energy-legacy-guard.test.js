@@ -28,13 +28,14 @@ async function conGuscioFinto(prova) {
 
   globalThis.DashboardModernEnergyService = Object.freeze({
     broker: {},
+    /* Come lo espone l'Energia: la porta di tutti i giorni e' gentile. */
     refresh() {
-      conteggi.refresh += 1;
-      return true;
-    },
-    refreshIfStale() {
       conteggi.seVecchio += 1;
       return false;
+    },
+    refreshNow() {
+      conteggi.refresh += 1;
+      return true;
     },
   });
   globalThis.__DASHBOARDMODERN_RUNTIME_ROOT__ = { bundle: { month: {} }, lastRefreshAt: Date.now() };
@@ -102,10 +103,14 @@ test("la derivazione dei totali del guscio non fa piu' niente", async () => {
 
 test("il servizio non viene piu' avvolto: la freschezza ha una regola sola", async () => {
   await conGuscioFinto((conteggi) => {
-    /* Chi ha ragione di forzare — la maschera dei costi salvata — deve
-     * continuare a poterlo fare. Erano quindici secondi decisi qui dentro,
-     * accanto al minuto deciso dall'Energia. */
-    assert.equal(globalThis.DashboardModernEnergyService.refresh(), true);
+    /* La guardia non mette piu' una sua pellicola sopra il servizio con una
+     * seconda regola di freschezza (erano quindici secondi decisi li'
+     * dentro, accanto al minuto deciso dall'Energia): la porta e' gia'
+     * gentile di suo, e chi ha ragione di forzare — la maschera dei costi
+     * appena salvata — ne ha una sua che nessuno avvolge. */
+    assert.equal(globalThis.DashboardModernEnergyService.refresh(), false);
+    assert.equal(conteggi.seVecchio, 1);
+    assert.equal(globalThis.DashboardModernEnergyService.refreshNow(), true);
     assert.equal(conteggi.refresh, 1);
   });
 });
