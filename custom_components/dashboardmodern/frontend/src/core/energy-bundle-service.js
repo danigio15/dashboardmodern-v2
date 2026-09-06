@@ -14,12 +14,11 @@ export function createEnergyBundleService({
   let generation = 0;
 
   const selectedDate = (period) => new Date(period.year, period.month - 1, 1);
-  const incompleteMessage = (results) =>
-    results
-      .flatMap(([kind, result]) =>
-        (result.missing || []).map((plan) => `${kind}:${plan.group}.${plan.key}:${plan.entity}`),
-      )
-      .join(", ");
+  /* Le caselle che il Recorder non ha saputo riempire, col nome dell'entita'
+   * che le riguarda. Non e' un errore: e' un fatto di configurazione, e chi
+   * guarda deve poterlo leggere sopra i numeri che ci sono. */
+  const mancantiDi = (results) =>
+    results.flatMap(([kind, result]) => (result.missing || []).map((plan) => ({ kind, plan })));
 
   async function load(period) {
     const currentGeneration = ++generation;
@@ -40,12 +39,19 @@ export function createEnergyBundleService({
       ["month", monthResult],
       ["year", yearResult],
     ];
-    if (results.some(([, result]) => result.complete === false)) {
-      throw new Error(`Incomplete Home Assistant statistics: ${incompleteMessage(results)}`);
-    }
+    /* Un pacchetto arrivato a meta' e' comunque arrivato.
+     *
+     * Qui si buttava via tutto se anche UNA sola casella era vuota — un
+     * contatore configurato senza statistiche a lungo termine — e chi
+     * aspettava non riceveva niente, per sempre: quella casella non si
+     * riempie perche' la si richiede, e richiederla costa al Recorder ogni
+     * volta. Adesso esce cio' che c'e', con scritto cosa manca e di chi. */
+    const mancanti = mancantiDi(results);
 
     return Object.freeze({
       generation: currentGeneration,
+      mancanti: Object.freeze(mancanti),
+      complete: mancanti.length === 0,
       period: freezeRecord(period),
       day: freezeRecord(dayResult.data),
       month: freezeRecord(monthResult.data),

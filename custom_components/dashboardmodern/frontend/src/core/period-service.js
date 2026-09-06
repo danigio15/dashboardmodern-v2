@@ -389,6 +389,11 @@ export function smistaIPiani(plans = [], selected, states = {}) {
   return { valori, daRicavare };
 }
 
+/* Il nome di un arco: due archi con lo stesso nome sono la stessa domanda. */
+export function chiaveDellArco(range) {
+  return `${range.kind}|${range.period}|${range.start.getTime()}|${range.end.getTime()}`;
+}
+
 /* La crescita di un'entita' dentro un arco, dalle righe gia' in mano.
  *
  * Le righe arrivano da una domanda sola per tutti quelli che condividono
@@ -961,7 +966,7 @@ export class HomeAssistantBroker {
     );
     /* Chi chiama da solo si aspetta che una domanda caduta si veda: e' chi
      * legge piu' archi insieme (l'Energia) a decidere cosa farne. */
-    if (caduti.length && !valori.size) throw caduti[0];
+    if (caduti.length && !valori.size) throw caduti[0].errore;
     return valori;
   }
 
@@ -982,36 +987,44 @@ export class HomeAssistantBroker {
    *
    * Un arco che cade non porta giu' gli altri: quello che e' arrivato si
    * tiene, e chi ha chiesto decide (vedi il pacchetto parziale dell'Energia). */
-  async valoriPerArchi(richieste = [], valori = new Map()) {
+  async valoriPerArchi(richieste = [], valori = new Map(), alPasso = () => {}) {
     const perArco = new Map();
     for (const { plans = [], range } of richieste) {
       if (!range || !plans.length || range.end <= range.start) continue;
-      const chiave = `${range.kind}|${range.period}|${range.start.getTime()}|${range.end.getTime()}`;
-      const gruppo = perArco.get(chiave) || { range, plans: [] };
+      const chiave = chiaveDellArco(range);
+      const gruppo = perArco.get(chiave) || { range, chiave, plans: [] };
       gruppo.plans.push(...plans);
       perArco.set(chiave, gruppo);
     }
     const caduti = [];
+    /* Quante domande sono state fatte, di quante: e' la riga che si legge
+     * sopra i numeri mentre si aspetta. */
+    const gruppi = [...perArco.values()];
+    let fatte = 0;
+    alPasso(fatte, gruppi.length);
     await Promise.all(
-      [...perArco.values()].map(async ({ range, plans }) => {
-        const ids = [...new Set(plans.map((plan) => plan.entity).filter(Boolean))];
-        if (!ids.length) return;
-        const baseline = baselineRange(range.kind, range.start);
-        // One Recorder request contains both the sample immediately before the
-        // boundary and all samples in the requested period. This is the same data
-        // contract used for Energy: growth = final sum - initial sum.
-        let righe;
+      gruppi.map(async ({ range, chiave, plans }) => {
         try {
-          righe = await this.statistics(ids, baseline.start, range.end, range.period);
+          const ids = [...new Set(plans.map((plan) => plan.entity).filter(Boolean))];
+          if (!ids.length) return;
+          const baseline = baselineRange(range.kind, range.start);
+          // One Recorder request contains both the sample immediately before the
+          // boundary and all samples in the requested period. This is the same data
+          // contract used for Energy: growth = final sum - initial sum.
+          const righe = await this.statistics(ids, baseline.start, range.end, range.period);
+          for (const plan of plans) {
+            const crescita = crescitaNellArco(righe[plan.entity], range);
+            if (crescita == null) continue;
+            const arrotondata = Math.round(crescita * 1000) / 1000;
+            valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
+          }
         } catch (errore) {
-          caduti.push(errore);
-          return;
-        }
-        for (const plan of plans) {
-          const crescita = crescitaNellArco(righe[plan.entity], range);
-          if (crescita == null) continue;
-          const arrotondata = Math.round(crescita * 1000) / 1000;
-          valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
+          /* Chi e' caduto si dice con nome e cognome: chi aspettava proprio
+           * quell'arco lo sa, e chi aspettava un altro non ne paga il prezzo. */
+          caduti.push({ chiave, errore });
+        } finally {
+          fatte += 1;
+          alPasso(fatte, gruppi.length);
         }
       }),
     );

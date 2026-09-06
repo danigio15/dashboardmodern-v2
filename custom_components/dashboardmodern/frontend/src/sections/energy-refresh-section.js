@@ -1,11 +1,9 @@
 import { doc, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_REFRESH_SECTION__";
-const LIVE_WINDOW_MS = 10 * 60 * 1000;
 const state = (root[KEY] ||= {
   installed: false,
   refreshQueued: false,
-  liveStatisticsInstalled: false,
 });
 
 export function initializeEnergyPeriodControls(now = new Date(), documentRef = doc) {
@@ -26,30 +24,22 @@ export function initializeEnergyPeriodControls(now = new Date(), documentRef = d
   return true;
 }
 
-export function liveStatisticsPeriod(period, end, now = Date.now()) {
-  if (period !== "hour") return period;
-  const endMs = new Date(end).getTime();
-  if (!Number.isFinite(endMs) || Math.abs(now - endMs) > LIVE_WINDOW_MS) return period;
-  // Current-day totals previously used hourly Recorder buckets. During the open
-  // hour that can leave Solar/Grid/Battery almost one hour behind the live
-  // inverter. Short-term 5-minute statistics keep the same reset-aware `sum`
-  // contract while reducing that live gap to one short-statistics interval.
-  return "5minute";
-}
-
-export function installLiveStatisticsGranularity(service = root.DashboardModernEnergyService) {
-  const broker = service?.broker;
-  if (!broker?.statistics || broker.__dmLiveStatisticsGranularity) return false;
-  const original = broker.statistics.bind(broker);
-  broker.statistics = (ids, start, end, period = "day") =>
-    original(ids, start, end, liveStatisticsPeriod(period, end));
-  Object.defineProperty(broker, "__dmLiveStatisticsGranularity", {
-    value: true,
-    configurable: true,
-  });
-  state.liveStatisticsInstalled = true;
-  return true;
-}
+/* Qui c'era una pellicola sopra `broker.statistics` che riscriveva a cinque
+ * minuti OGNI domanda a ore del giorno in corso.
+ *
+ * Nasceva da un problema vero — le statistiche dell'ora si compilano a ora
+ * finita, quindi dentro l'ora aperta non c'e' nessuna riga e la Giornaliera
+ * restava indietro fino a sessanta minuti — ma la pagava tutta la giornata:
+ * 288 righe per ogni entita' a ogni giro invece di 26, per ogni fonte, ogni
+ * dispositivo e ogni carico. Su un Recorder che sta su un disco lento e'
+ * proprio il conto che lo fa scadere.
+ *
+ * Adesso il giorno si chiede in due archi — le ore chiuse a ore, l'ora aperta
+ * a cinque minuti — e lo fa chi costruisce gli archi
+ * (`archiDelPeriodo` in period-service.js), cioe' un posto solo per tutti
+ * quelli che chiedono: l'Energia, gli elettrodomestici, i carichi. Una
+ * pellicola che riscrive di nascosto le domande altrui era anche un secondo
+ * padrone su cosa si chiede al Recorder. */
 
 function energyVisible() {
   return Boolean(
@@ -60,7 +50,6 @@ function energyVisible() {
 
 function queueRefresh({ force = true } = {}) {
   initializeEnergyPeriodControls();
-  installLiveStatisticsGranularity();
   if (state.refreshQueued) return;
   state.refreshQueued = true;
   root.queueMicrotask?.(() => {
@@ -78,7 +67,6 @@ export function installEnergyRefreshSection() {
   // Synchronous on purpose: this runs in the same module turn as Energy and
   // therefore beats the setTimeout(0) used by its first scheduled refresh.
   initializeEnergyPeriodControls();
-  installLiveStatisticsGranularity();
 
   root.addEventListener?.("dashboardmodern:states-ready", () => queueRefresh({ force: true }));
   root.addEventListener?.("dashboardmodern:legacy-ready", () => queueRefresh({ force: true }));
