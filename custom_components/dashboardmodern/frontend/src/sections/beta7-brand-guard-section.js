@@ -49,29 +49,6 @@ function guardAll() {
   doc?.querySelectorAll?.("img[data-dm-brand-image]").forEach(guardImage);
 }
 
-function resetShutterSignature() {
-  const regression = root.__DASHBOARDMODERN_BETA7_REGRESSIONS__;
-  if (regression) regression.shutterSignature = "";
-}
-
-function installShutterEditOwner() {
-  const current = root.edTappAdd;
-  if (typeof current !== "function" || current.__dmBeta7ShutterConfigOwner) return false;
-
-  function configAwareShutterSave(...args) {
-    // A saved room/name/entity change must reach the existing beta7 stable
-    // renderer even when Home Assistant state and position did not change.
-    resetShutterSignature();
-    return current.apply(this, args);
-  }
-
-  Object.assign(configAwareShutterSave, current);
-  configAwareShutterSave.__dmBeta7ShutterConfigOwner = true;
-  configAwareShutterSave.__dmPrevious = current;
-  root.edTappAdd = configAwareShutterSave;
-  return true;
-}
-
 function installVehicleOwner() {
   const current = root.dmRenderVehicleSelector;
   if (typeof current !== "function" || current.__dmBeta7BrandContractOwner) return false;
@@ -91,9 +68,14 @@ function installVehicleOwner() {
   return true;
 }
 
+/* Un aggancio su `edTappAdd` viveva qui accanto: azzerava la firma delle
+ * tapparelle dentro il modulo delle regressioni, perche' un salvataggio che
+ * non cambia ne' stato ne' posizione arrivasse comunque al suo ridisegno.
+ * Quel modulo non c'e' piu', e la firma la tiene shutter-scene-section, che
+ * rimpiazza `renderTapparelle` per intero: restava un involucro che chiamava
+ * l'originale e basta. */
 function installOwners() {
   installVehicleOwner();
-  installShutterEditOwner();
 }
 
 function scan() {
