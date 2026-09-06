@@ -5,6 +5,85 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.12
+
+### Corretto
+
+- **Il monossido di carbonio si giudica nell'unita' in cui arriva.**
+
+      «Outdoor Environment CO = 156 µg/m³: lo identifica correttamente come
+       monossido di carbonio, ma lo classifica come ARIA CATTIVA e come la
+       peggiore delle 15 misure. Il valore reale e' invece molto basso: lo
+       legge come 156 mg/metro cubo.» (#340)
+
+  Le soglie del monossido erano in parti per milione e si applicavano a
+  qualunque numero arrivasse: centocinquantasei microgrammi — aria buona —
+  letti come se fossero cento volte peggio. Adesso ogni misura ha la sua
+  unita' di riferimento e il valore ci si porta PRIMA del confronto: il
+  monossido sulle linee guida OMS (4 mg/m³ sulle 24 ore, 10 sulle 8 ore, che
+  e' anche il limite europeo), con µg/m³, mg/m³ e ppm che si convertono fra
+  loro; biossido di azoto, ozono e anidride solforosa in ppb che tornano in
+  microgrammi; l'anidride carbonica in percento che torna in ppm. Il numero e
+  l'unita' scritti sulla tessera restano quelli letti dal sensore.
+
+  E a chi chiede «le informazioni da quali entita' vengono prese?» (#347): da
+  ogni `sensor.*` che Home Assistant dichiara con `device_class` pm25, pm10,
+  pm1, carbon_dioxide, carbon_monoxide, volatile_organic_compounds,
+  volatile_organic_compounds_parts, nitrogen_dioxide, ozone, sulphur_dioxide
+  o aqi. Non c'e' niente da configurare, e l'interruttore «Nel widget» toglie
+  quelle che non si vogliono.
+
+- **La batteria di servizio si legge in volt quando e' in volt.**
+
+      «Nella sezione batteria 12 V in questo momento e' a 14 V, mi da' 14%.»
+      (#348)
+
+  La casella era una percentuale e basta: un sensore in volt veniva tagliato
+  a cento e mostrato col simbolo sbagliato. Adesso la casella legge l'unita'
+  dichiarata — percento e' un livello, volt una tensione — e la pagina scrive
+  «14,2 V». Anche il collegamento dall'integrazione prende una batteria da
+  12 V pubblicata in volt, quando non c'e' il livello.
+
+- **La tessera Auto in Home non ripete cinque volte lo stesso sensore.**
+
+      «Nel widget dell'auto mi trovo nella sezione stato cinque volte la
+       stessa entita' dello stato dell'auto con scritto spento.» (#348)
+
+  Il salvataggio dell'auto copia nel profilo tutte le caselle di casa — anche
+  quelle della colonnina — e l'auto arrivata dall'integrazione, prima della
+  1.4.10, nasceva daccapo a ogni collegamento: cinque profili uguali, e la
+  tessera che leggeva ognuno per conto suo diceva cinque volte lo stesso
+  sensore. Adesso un'entita' gia' raccontata non si racconta piu', un profilo
+  che legge lo stesso sensore di carica di uno gia' letto e' la stessa auto e
+  si salta, e le caselle della colonnina — che e' della casa — non portano il
+  nome di nessuna vettura.
+
+- **La tessera e la pagina Auto dicono la stessa cosa sul cavo.**
+
+      «Sempre nel widget la ricarica risulta scollegata, ma se entri nella
+       pagina dedicata la vedi collegata, com'e' giusto che sia.» (#348)
+
+  La pastiglia della pagina chiede al nucleo dello stato della ricarica — con
+  il sensore del cavo e la potenza come testimoni — e la tessera in Home
+  guardava lo stato grezzo da sola: un `binary_sensor.charging` su «off» a
+  cavo attaccato diventava «Scollegata». Adesso i due posti chiedono allo
+  stesso nucleo con gli stessi testimoni, e la tessera dice «Collegata, in
+  attesa», «In carica», «Scollegata» o — quando del cavo nessuno sa niente —
+  «Non in carica», invece di inventare.
+
+- **La scheda del televisore dice quello che dice il suo lettore.**
+
+      «La TV e' accesa e risulta dall'integrazione sotto in basso allo
+       screenshot, ma risulta spenta nella scheda. E' possibile associare le
+       due cose in modo che lo stato sia coerente e corretto?» (#354)
+
+  L'integrazione di una TV LG porta un `media_player` e un `remote`: nessun
+  sensore di stato, nessun interruttore, e il collegamento non riempiva
+  niente. Adesso il lettore e' lo stato del dispositivo — e anche il suo
+  tasto, perche' `media_player.turn_on` e `turn_off` esistono — e la card lo
+  legge nella lingua dei lettori: acceso, in riproduzione, in pausa e
+  «idle» sono IN FUNZIONE, «standby» e' STANDBY, «off» e' SPENTO.
+
 ## 1.4.11
 
 Le cose viste sulla plancia vera subito dopo la 1.4.10, con le schermate
