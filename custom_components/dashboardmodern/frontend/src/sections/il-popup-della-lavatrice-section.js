@@ -370,10 +370,6 @@ function creaCarta() {
  * creava, e riaprendo non si ritrovava piu' niente. Ora chi disegna quella
  * finestra chiede la carta qui, ed e' la stessa: stessi programmi, stesse
  * caselle, stesso salvataggio. */
-export function cartaLavatrice() {
-  return creaCarta();
-}
-
 /* La carta compare o si ritira dentro un contenitore qualunque, secondo il
  * valore di un menu del tipo azione. Vale per la scheda Azioni, per la
  * procedura guidata e per la finestra di modifica. */

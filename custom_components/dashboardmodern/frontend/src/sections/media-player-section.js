@@ -54,11 +54,6 @@ function configurazione() {
   return readJson(CHIAVE_MEDIA, []);
 }
 
-/** Se almeno un lettore è stato dichiarato. */
-export function mediaConfigurato() {
-  return lettoriConfigurati(configurazione()).length > 0;
-}
-
 function funzioneAccesa() {
   const sezioni = readJson("cd_sections", {});
   return !(sezioni && typeof sezioni === "object" && sezioni[MEDIA_TAB] === false);

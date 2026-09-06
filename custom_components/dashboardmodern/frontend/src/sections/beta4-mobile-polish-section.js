@@ -889,6 +889,4 @@ export function installBeta4MobilePolishSection() {
   schedule();
 }
 
-export const installBeta5RootCauseFixes = installBeta4MobilePolishSection;
-
 installBeta4MobilePolishSection();

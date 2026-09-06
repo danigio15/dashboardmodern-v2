@@ -532,13 +532,3 @@ export function installBeta25Compatibility() {
 if (doc?.readyState === "loading")
   doc.addEventListener("DOMContentLoaded", installBeta25Compatibility, { once: true });
 else installBeta25Compatibility();
-
-export const beta25Compatibility = Object.freeze({
-  restoreTemperatureContracts,
-  enableTemperatureRoomOptions,
-  protectLegacyCustomImages,
-  repairExplicitCatalogArtwork,
-  ensureLoadIconPicker,
-  applianceEditorVisualMarkup,
-  syncApplianceEditorVisuals,
-});

@@ -1440,17 +1440,3 @@ export function installBeta26RealDeviceStability() {
 if (doc?.readyState === "loading")
   doc.addEventListener("DOMContentLoaded", installBeta26RealDeviceStability, { once: true });
 else installBeta26RealDeviceStability();
-
-export const beta26RealDeviceStability = Object.freeze({
-  installCanonicalApplianceArtworkBridge,
-  syncBeta26TemperatureLabels,
-  renderStableBeta27Temperature,
-  temperatureRoomTabsModel,
-  legacyVisibilityTargets,
-  ensureConfiguredSectionsVisible,
-  loadGroupsModel,
-  normalizeFlowNodesForEditor,
-  renderBeta27LoadsEditor,
-  applyFlowNodeCustomization,
-  installBeta26RealDeviceStability,
-});

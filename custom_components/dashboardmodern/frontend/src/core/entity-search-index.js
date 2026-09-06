@@ -603,17 +603,6 @@ export function queryScore(record, plan) {
   return score;
 }
 
-/** Full score, hints included. The hot loop uses the precomputed hint table. */
-export function scoreRecord(record, plan, hints = null) {
-  const base = queryScore(record, plan);
-  if (base === -Infinity) return base;
-  return (
-    base +
-    hintDetail(record, hints).score +
-    (hints?.current && record.id === hints.current ? 220 : 0)
-  );
-}
-
 /* The hint part of a score does not depend on the query, so it is computed once
  * per (index, field) pair when the picker opens and read back as an array
  * lookup while the user types. Without this, every keystroke would re-walk the

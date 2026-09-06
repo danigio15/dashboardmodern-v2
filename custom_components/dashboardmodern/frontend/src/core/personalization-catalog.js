@@ -492,18 +492,11 @@ export function carBrandImageSource(value) {
   return LOGHI_IN_CASA.includes(item.id) ? `${cartellaLoghi()}${item.id}.svg` : "";
 }
 
-export const CAR_ICON_CATALOG = Object.freeze(
-  [
-    ["electric", "Elettrica", "Electric", "mdi:car-electric", "⚡"],
-    ["car", "Auto", "Car", "mdi:car", "🚗"],
-    ["sports", "Sportiva", "Sports", "mdi:car-sports", "🏎️"],
-    ["hatchback", "Compatta", "Hatchback", "mdi:car-hatchback", "🚙"],
-    ["estate", "Station wagon", "Estate", "mdi:car-estate", "🚘"],
-    ["pickup", "Pickup", "Pickup", "mdi:car-pickup", "🛻"],
-    ["convertible", "Cabrio", "Convertible", "mdi:car-convertible", "🏎️"],
-    ["wagon", "SUV / Wagon", "SUV / Wagon", "mdi:car-wagon", "🚙"],
-  ].map(([id, it, en, mdi, glyph]) => Object.freeze({ id, it, en, mdi, glyph })),
-);
+/* Un catalogo di sagome d'auto — berlina, station wagon, cabrio — viveva qui
+ * accanto con il suo cercatore e il suo disegnatore. Non lo apriva nessuno: la
+ * vettura sulla plancia si mostra col marchio (`carBrandVisual`), e il motore
+ * delle icone per la famiglia «car» chiede quello. I tre pezzi se ne sono
+ * andati insieme, perche' esistevano solo l'uno per l'altro. */
 
 export const ACTION_ICON_CATALOG = Object.freeze(
   [
@@ -777,29 +770,6 @@ export function carBrandVisual(value, size = 48) {
   }
   const tintaRipiego = CAR_BRAND_COLORS[item.id];
   return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="fallback" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${safeSize}px;height:${safeSize}px${tintaRipiego ? `;color:${tintaRipiego}` : ""}"><span data-brand-logo="${item.id}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span></span>`;
-}
-
-export function carIconMatch(value) {
-  const token = normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
-  if (!token) return CAR_ICON_CATALOG[0];
-  return (
-    CAR_ICON_CATALOG.find(
-      (item) =>
-        normalized(item.id) === token ||
-        normalized(item.mdi).replace(/^mdi:/, "").replace(/[-_]+/g, " ") === token ||
-        normalized(item.it) === token ||
-        normalized(item.en) === token,
-    ) ||
-    CAR_ICON_CATALOG.find((item) => token.includes(normalized(item.id))) ||
-    null
-  );
-}
-
-export function carIconVisual(value, size = 48) {
-  const item = carIconMatch(value) || CAR_ICON_CATALOG[0];
-  const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
-  const glyphSize = Math.max(16, Math.round(safeSize * 0.52));
-  return `<span class="dm-car-icon-glyph" data-car-icon="${item.id}" title="${item.it}" style="width:${safeSize}px;height:${safeSize}px;font-size:${glyphSize}px"><span aria-hidden="true">${item.glyph}</span></span>`;
 }
 
 export function actionCatalogMatch(value) {

@@ -600,13 +600,3 @@ function install() {
 
 if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", install, { once: true });
 else install();
-
-export const beta22LoadSlotsHotfix = Object.freeze({
-  configuredFlowLoads,
-  loadPeriodEntity,
-  socEntity,
-  sync: () => {
-    rebindAndSchedule();
-    return true;
-  },
-});
