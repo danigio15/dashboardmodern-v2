@@ -4,7 +4,7 @@ import {
   applianceDailySource,
   buildApplianceDailyBreakdown,
 } from "../src/sections/appliances-section.js";
-import { liveStatisticsPeriod } from "../src/sections/energy-refresh-section.js";
+import { archiDelPeriodo } from "../src/core/period-service.js";
 
 test("appliance daily total never adds a lifetime meter state directly", async () => {
   const states = {
@@ -91,9 +91,19 @@ test("explicit daily appliance sensor wins over a configured lifetime total", ()
   assert.equal(source.reason, "explicit-daily");
 });
 
-test("live hourly Recorder requests use five-minute short statistics", () => {
-  const now = Date.parse("2026-08-09T11:49:00.000Z");
-  assert.equal(liveStatisticsPeriod("hour", "2026-08-09T11:49:00.000Z", now), "5minute");
-  assert.equal(liveStatisticsPeriod("hour", "2026-08-09T11:30:00.000Z", now), "hour");
-  assert.equal(liveStatisticsPeriod("day", "2026-08-09T11:49:00.000Z", now), "day");
+test("del giorno in corso si chiede a cinque minuti solo l'ora aperta", () => {
+  /* Il conto di oggi lo fa la differenza fra la prima e l'ultima lettura, e
+   * l'ultima dentro l'ora aperta esiste solo nelle statistiche a cinque
+   * minuti: quelle dell'ora si compilano a ora finita. Prima si chiedeva a
+   * cinque minuti TUTTA la giornata — 288 righe per ogni elettrodomestico a
+   * ogni giro invece di 26 — con una pellicola che riscriveva di nascosto le
+   * domande di chiunque. Adesso lo dice chi costruisce gli archi, e vale per
+   * tutti quelli che chiedono. */
+  const adesso = new Date(2026, 7, 9, 11, 49);
+  const archi = archiDelPeriodo("day", adesso, adesso);
+  assert.deepEqual(
+    archi.map((arco) => arco.period),
+    ["hour", "5minute"],
+  );
+  assert.deepEqual(archi[1].start, new Date(2026, 7, 9, 11, 0, 0, 0));
 });

@@ -1,8 +1,12 @@
 import {
   HomeAssistantBroker,
   PERIOD_SOURCES,
+  archiDelPeriodo,
+  chiaveDellArco,
   periodConsumption,
+  periodRange,
   recorderBucketConsumptions,
+  smistaIPiani,
   sourcePlans,
   isCumulativeEnergyEntity,
 } from "../core/period-service.js";
@@ -123,11 +127,14 @@ class SafeHomeAssistantBroker extends HomeAssistantBroker {
   }
 }
 
-const broker = new SafeHomeAssistantBroker({
-  timeout: 12000,
-  cacheCurrentMs: 10000,
-  cacheHistoricalMs: 600000,
-});
+/* Quanto vale una risposta del Recorder lo decide il broker, e solo lui.
+ *
+ * Qui c'erano dieci secondi scritti a mano sopra i suoi — che portano
+ * scritta accanto la ragione: le statistiche si compilano ogni cinque
+ * minuti, e richiederle piu' spesso e' lavoro sul server in cambio di
+ * niente. Due padroni sullo stesso numero, e a comandare era quello senza
+ * la ragione. */
+const broker = new SafeHomeAssistantBroker({ timeout: 12000 });
 root.DashboardModernEnergyService = Object.freeze({
   statistics: (ids, start, end, period) => broker.statistics(ids, start, end, period),
   async statisticsWithGrowth(ids, start, end, period = "day") {
@@ -153,7 +160,23 @@ root.DashboardModernEnergyService = Object.freeze({
   consumption: periodConsumption,
   buckets: recorderBucketConsumptions,
   broker,
-  refresh: () => scheduleEnergyRefresh(true),
+  /* La porta di tutti i giorni e' gentile: con un pacchetto fresco in mano non
+   * si chiede niente al Recorder, si ridisegna quello che c'e'.
+   *
+   * Era una forzatura, e la usavano i giri del guscio — `cdTotalsRun` due
+   * secondi e mezzo dopo l'accesso, `cdRefreshPeriodDeltas` a ogni ridisegno
+   * del Report — cioe' proprio chi non ha idea di cosa sia gia' stato letto.
+   * Il guscio si tiene in mano quei nomi da prima che i moduli esistano
+   * (`setTimeout(cdTotalsRun, 2500)` prende la funzione di allora), quindi
+   * riscriverli non basta: e' la porta a dover essere gentile.
+   *
+   * La decisione di cosa sia fresco sta qui e in nessun altro posto — e' la
+   * stessa cadenza con cui l'Energia si aggiorna da sola — cosi' chi chiede
+   * da fuori non ne tiene una copia che un giorno diverge. */
+  refresh: () => refreshEnergyIfStale(),
+  /* E chi ha ragione di insistere ha la sua porta: si sono appena cambiati i
+   * prezzi, e il pacchetto va rifatto anche se e' di un secondo fa. */
+  refreshNow: () => scheduleEnergyRefresh(true),
 });
 
 const ENERGY_KEYS = PERIOD_SOURCES.map((item) => item.key);
@@ -296,19 +319,20 @@ function buildPeriodRecord(plans, values) {
   };
 }
 
-async function loadEnergyPeriod(kind, date) {
-  const plans = sourcePlans(
+/* I piani delle fonti — casa, rete, sole, batteria — per un periodo.
+ *
+ * Prima ogni periodo si portava dietro anche la sua domanda al Recorder. I
+ * piani e le domande adesso sono due cose separate: qui si dice COSA serve, e
+ * chi legge mette insieme tutto quello che condivide lo stesso arco di tempo
+ * in una domanda sola (vedi `loadAtomicEnergyBundle`). */
+function pianiDelleFonti(kind) {
+  return sourcePlans(
     energyModel(),
     kind,
     allStates(),
     entityOverrides(),
     root.resolveEntity || ((value) => value),
   );
-  if (!plans.length) {
-    return { data: emptyPeriod(), plans, values: new Map(), complete: true, missing: [] };
-  }
-  const values = await broker.valuesForPlans(plans, date, allStates());
-  return buildPeriodRecord(plans, values);
 }
 
 function canonicalDevices() {
@@ -330,14 +354,12 @@ function canonicalDevices() {
     .filter((item) => item.entity);
 }
 
-async function loadEnergyLoadsDay(date) {
-  const loads = section("energyLoads", []);
-  const plans = loads.flatMap((load) => {
+/* I piani dei carichi: quanto ha consumato oggi ognuno. */
+function pianiDeiCarichi() {
+  return section("energyLoads", []).flatMap((load) => {
     const entity = clean(load.energy_entity);
     return entity ? [{ key: load.id, entity, source: entity, kind: "day", direct: false }] : [];
   });
-  if (!plans.length) return new Map();
-  return broker.valuesForPlans(plans, date, allStates());
 }
 
 function pianiPerIDispositivi(elenco, kind, prefisso = "report-device") {
@@ -390,22 +412,30 @@ function dispositiviFuoriDalReport(devices) {
   ).filter((item) => clean(item.entity) && !gia.has(clean(item.entity)));
 }
 
-async function loadDevicePeriod(kind, date) {
+/* I piani dei dispositivi del Report, piu' quelli che il Report non mostra ma
+ * un cerchio del flusso puo' contenere. */
+function pianiDeiDispositivi(kind) {
   const devices = canonicalDevices();
-  const plans = [
-    ...pianiPerIDispositivi(devices, kind),
-    ...pianiPerIDispositivi(dispositiviFuoriDalReport(devices), kind, "flow-hidden"),
-  ];
-  if (!plans.length) return { devices, values: new Map() };
-  const byKey = await broker.valuesForPlans(plans, date, allStates());
+  return {
+    devices,
+    plans: [
+      ...pianiPerIDispositivi(devices, kind),
+      ...pianiPerIDispositivi(dispositiviFuoriDalReport(devices), kind, "flow-hidden"),
+    ],
+  };
+}
+
+/* Il paniere dei dispositivi e' indicizzato per entita', non per piano: e' con
+ * quella che lo cercano il Report e i cerchi del flusso. */
+function valoriPerEntita(plans, valori) {
   const values = new Map();
   plans.forEach((plan) => {
-    const value = byKey.get(plan.key);
+    const value = valori.get(plan.key);
     if (!Number.isFinite(value)) return;
     values.set(plan.entity, value);
     values.set(plan.source, value);
   });
-  return { devices, values };
+  return values;
 }
 
 function rates() {
@@ -436,44 +466,140 @@ function rates() {
   };
 }
 
-function incompleteMessage(results) {
-  return results
-    .flatMap(([kind, result]) =>
-      result.missing.map((plan) => `${kind}:${plan.group}.${plan.key}:${plan.entity}`),
-    )
+/* Il messaggio tecnico che dice quali caselle sono rimaste vuote: lo legge
+ * `spiegazioneDellErrore`, che lo trasforma nella riga che si vede. */
+function incompleteMessage(mancanti) {
+  return mancanti
+    .map(({ kind, plan }) => `${kind}:${plan.group}.${plan.key}:${plan.entity}`)
     .join(", ");
 }
 
-/* `alPasso(fatte, totali)` dice a chi aspetta quante domande hanno risposto:
- * e' il conto di QUESTO carico, non di tutti quelli in corso. */
+/* L'anno si chiede in due pezzi: i mesi chiusi e il mese aperto.
+ *
+ * Un mese chiuso non cambia mai piu': la sua risposta si tiene, e a ogni giro
+ * si rilegge soltanto il mese in corso — che e' l'arco che si stava gia'
+ * chiedendo per la Mensile, quindi non costa nemmeno una domanda in piu'. Il
+ * conto dell'anno e' la somma delle due crescite.
+ *
+ * Si puo' spezzare solo quando i due archi finiscono nello stesso istante,
+ * cioe' quando si guarda il mese in corso dell'anno in corso: su un mese
+ * passato l'anno contiene anche i mesi che vengono dopo, e la somma dei due
+ * pezzi non sarebbe l'anno. Li' l'anno resta una domanda sola — ma chiusa, e
+ * quindi tenuta a lungo. */
+export function archiDellAnno(monthDate, now = new Date()) {
+  const anno = periodRange("year", monthDate, now);
+  const mese = periodRange("month", monthDate, now);
+  if (mese.end.getTime() !== anno.end.getTime()) return [anno];
+  /* A gennaio i mesi chiusi non ci sono: l'arco esce vuoto e chi legge lo
+   * salta da solo. */
+  return [{ ...anno, end: mese.start, next: mese.start }, mese];
+}
+
+/* Una famiglia di piani che si legge insieme, e su quali archi.
+ *
+ * Le chiavi dei piani si prefissano perche' finiscono tutte nello stesso
+ * paniere: «casa» del giorno e «casa» del mese sono due cose diverse, e senza
+ * il prefisso la seconda si sommerebbe alla prima. */
+function letturaDi(plans, date, states, prefisso, archi) {
+  const { valori, daRicavare } = smistaIPiani(plans, date, states);
+  return {
+    plans,
+    valori,
+    prefisso,
+    archi,
+    daRicavare: daRicavare.map((plan) => ({ ...plan, key: `${prefisso}${plan.key}` })),
+  };
+}
+
+/* Le caselle che il Recorder non ha saputo riempire, con il nome dell'entita'
+ * che le riguarda: e' quello che chi guarda deve poter leggere. */
+function mancantiDi(kind, record) {
+  return record.missing.map((plan) => ({ kind, plan }));
+}
+
+/* Il pacchetto dei periodi, in tre archi di tempo invece che in sette domande.
+ *
+ * Erano sette letture delle statistiche a ogni aggiornamento — giorno, mese,
+ * anno, i dispositivi per ognuno dei tre, i carichi — e due di quelle
+ * coprivano tredici mesi. Su un Recorder che sta su un disco lento sono
+ * minuti di database per numeri che si muovono di un'unghia: dal campo
+ * (la 333) «quando seleziono report ricevo l'avviso che Home Assistant non ha
+ * risposto in tempo alle statistiche, tutti i valori rimangono a zero».
+ *
+ * Fonti, dispositivi e carichi dello stesso arco chiedono le stesse righe
+ * allo stesso pezzo di database: messi insieme sono UNA domanda con piu'
+ * entita' dentro. Restano tre archi — il giorno (spezzato fra le ore chiuse e
+ * l'ora aperta, che e' l'unica che si muove), il mese scelto, e i mesi chiusi
+ * dell'anno — e di quei quattro pezzi tre sono chiusi, cioe' quasi sempre
+ * gia' in mano.
+ *
+ * E il pacchetto arriva anche a meta'. Prima bastava una casella vuota — un
+ * contatore senza statistiche a lungo termine, una domanda scaduta — perche'
+ * TUTTO venisse buttato via e si ricominciasse da capo quaranta volte: e' la
+ * ragione dei valori a zero. Adesso si tiene quello che e' arrivato, si dice
+ * sopra ai numeri cosa manca e chi lo riguarda, e quello che non e' arrivato
+ * non si ridomanda subito: un contatore senza statistiche non ne mette su
+ * perche' glielo si richiede quattro volte al secondo. */
 export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso = () => {}) {
   runtimeMetrics.increment("energyRefreshes");
   const generation = ++state.generation;
   const chiave = chiaveDelCarico(period);
   const monthDate = selectedDate(period);
   const today = new Date();
-  /* Il giorno parte per primo: e' quello che si guarda. */
-  const carichi = [
-    loadEnergyPeriod("day", today),
-    loadEnergyPeriod("month", monthDate),
-    loadEnergyPeriod("year", monthDate),
-    // Today's per-device delta, so a device metered only by its lifetime
-    // counter has a daily figure too instead of only a monthly one.
-    loadDevicePeriod("day", today),
-    loadDevicePeriod("month", monthDate),
-    loadDevicePeriod("year", monthDate),
-    loadEnergyLoadsDay(today),
-  ];
-  let fatte = 0;
-  alPasso(fatte, carichi.length);
-  const contata = (promessa) =>
-    promessa.then((valore) => {
-      fatte += 1;
-      alPasso(fatte, carichi.length);
-      return valore;
-    });
-  const [dayResult, monthResult, yearResult, deviceDay, deviceMonth, deviceYear, energyLoadsDay] =
-    await Promise.all(carichi.map(contata));
+  const states = allStates();
+
+  const fonti = {
+    day: pianiDelleFonti("day"),
+    month: pianiDelleFonti("month"),
+    year: pianiDelleFonti("year"),
+  };
+  const dispositivi = {
+    day: pianiDeiDispositivi("day"),
+    month: pianiDeiDispositivi("month"),
+    year: pianiDeiDispositivi("year"),
+  };
+  const carichi = pianiDeiCarichi();
+
+  /* Tutti gli archi si tagliano sullo STESSO istante.
+   *
+   * Ognuno di questi finisce «adesso», e chiedendo l'ora tre volte si
+   * ottengono tre «adesso» diversi di qualche millesimo: l'arco del mese
+   * calcolato qui e quello calcolato dentro l'anno diventavano due archi
+   * diversi, cioe' due domande al Recorder invece di una — e nessuna delle
+   * due poteva servirsi della risposta dell'altra. */
+  const archiGiorno = archiDelPeriodo("day", today, today);
+  const archiMese = [periodRange("month", monthDate, today)];
+  const archiAnno = archiDellAnno(monthDate, today);
+  const letture = {
+    fonteDay: letturaDi(fonti.day, today, states, "fonte:day:", archiGiorno),
+    fonteMonth: letturaDi(fonti.month, monthDate, states, "fonte:month:", archiMese),
+    fonteYear: letturaDi(fonti.year, monthDate, states, "fonte:year:", archiAnno),
+    dispDay: letturaDi(dispositivi.day.plans, today, states, "disp:day:", archiGiorno),
+    dispMonth: letturaDi(dispositivi.month.plans, monthDate, states, "disp:month:", archiMese),
+    dispYear: letturaDi(dispositivi.year.plans, monthDate, states, "disp:year:", archiAnno),
+    carichi: letturaDi(carichi, today, states, "carico:", archiGiorno),
+  };
+
+  const richieste = Object.values(letture).flatMap((lettura) =>
+    lettura.archi.map((range) => ({ plans: lettura.daRicavare, range })),
+  );
+  const { valori: ricavati, caduti } = await broker.valoriPerArchi(richieste, new Map(), alPasso);
+  /* Gli archi che non hanno risposto. Serve saperlo per famiglia: l'anno
+   * senza il suo mese aperto sarebbe un anno piu' corto — un numero
+   * sbagliato, non un numero mancante — e un numero sbagliato non si
+   * dipinge. */
+  const archiCaduti = new Set(caduti.map((caduto) => caduto.chiave));
+  const cadutaLa = (lettura) =>
+    lettura.daRicavare.length > 0 &&
+    lettura.archi.some((arco) => archiCaduti.has(chiaveDellArco(arco)));
+  for (const lettura of Object.values(letture)) {
+    for (const plan of lettura.daRicavare) {
+      const valore = ricavati.get(plan.key);
+      if (Number.isFinite(valore))
+        lettura.valori.set(plan.key.slice(lettura.prefisso.length), valore);
+    }
+  }
+
   /* Un pacchetto si butta via solo se nel frattempo e' cambiato cio' che
    * legge: un altro periodo, un altro impianto, una configurazione nuova.
    * Prima bastava che PARTISSE una richiesta nuova — e ne partono di
@@ -484,30 +610,76 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso 
    * aggiornano», per sempre, senza nemmeno una riga che lo dicesse. */
   if (chiave !== chiaveDelCarico(selectedPeriod())) return null;
 
-  const results = [
-    ["day", dayResult],
-    ["month", monthResult],
-    ["year", yearResult],
-  ];
-  if (results.some(([, result]) => !result.complete)) {
-    throw new Error(`Incomplete Home Assistant statistics: ${incompleteMessage(results)}`);
+  const record = {
+    day: buildPeriodRecord(fonti.day, letture.fonteDay.valori),
+    month: buildPeriodRecord(fonti.month, letture.fonteMonth.valori),
+    year: buildPeriodRecord(fonti.year, letture.fonteYear.valori),
+  };
+  const mancanti = Object.freeze([
+    ...mancantiDi("day", record.day),
+    ...mancantiDi("month", record.month),
+    ...mancantiDi("year", record.year),
+  ]);
+
+  /* Quello che non e' arrivato non si dipinge: sotto restano i numeri che
+   * c'erano, non degli zeri. Uno zero scritto al posto di un numero che non
+   * si e' potuto leggere e' una bugia, ed e' esattamente cio' che si vedeva
+   * aprendo il Report con il Recorder lento. */
+  const letti = {};
+  const sources = {};
+  const intero = {
+    day: !cadutaLa(letture.fonteDay),
+    month: !cadutaLa(letture.fonteMonth),
+    year: !cadutaLa(letture.fonteYear),
+  };
+  for (const kind of ["day", "month", "year"]) {
+    const arrivato = intero[kind] && (record[kind].values.size > 0 || !record[kind].plans.length);
+    const precedente = state.bundle?.sources?.[kind];
+    letti[kind] = arrivato || Boolean(precedente);
+    sources[kind] = arrivato || !precedente ? record[kind] : precedente;
   }
+  /* Se non e' arrivato NIENTE e la colpa e' di una domanda caduta, e non c'e'
+   * nemmeno un pacchetto vecchio da tenere in piedi, allora e' un errore vero
+   * e si riprova (il velo, la ripresa). Una configurazione senza statistiche
+   * invece non e' un errore: e' un fatto, e si dice. */
+  if (!Object.values(letti).some(Boolean) && caduti.length && !state.bundle) throw caduti[0].errore;
+
+  const paniere = (chiaveDelPaniere, lettura, piani) => {
+    const values = cadutaLa(lettura) ? new Map() : valoriPerEntita(piani.plans, lettura.valori);
+    const precedente = state.bundle?.[chiaveDelPaniere];
+    if (!values.size && precedente?.values?.size) return precedente;
+    return { devices: piani.devices, values };
+  };
 
   return reconcileEnergyBundle(
     Object.freeze({
       generation,
       period: Object.freeze({ ...period }),
-      day: dayResult.data,
-      month: monthResult.data,
-      year: yearResult.data,
-      sources: Object.freeze({ day: dayResult, month: monthResult, year: yearResult }),
-      deviceDay,
-      deviceMonth,
-      deviceYear,
-      energyLoadsDay,
+      day: sources.day.data,
+      month: sources.month.data,
+      year: sources.year.data,
+      sources: Object.freeze(sources),
+      letti: Object.freeze(letti),
+      mancanti,
+      caduta: caduti.length ? clean(caduti[0]?.errore?.message || caduti[0]?.errore) : "",
+      deviceDay: paniere("deviceDay", letture.dispDay, dispositivi.day),
+      deviceMonth: paniere("deviceMonth", letture.dispMonth, dispositivi.month),
+      deviceYear: paniere("deviceYear", letture.dispYear, dispositivi.year),
+      energyLoadsDay: letture.carichi.valori,
       rates: Object.freeze(rates()),
     }),
   );
+}
+
+/* La ragione che va scritta sopra i numeri per QUESTO pacchetto: prima la
+ * domanda caduta, che si riprova da sola; poi le caselle che il Recorder non
+ * puo' riempire, che invece vanno configurate. */
+export function ragioneDelPacchetto(bundle) {
+  if (!bundle) return "";
+  if (bundle.caduta) return bundle.caduta;
+  if (bundle.mancanti?.length)
+    return `Incomplete Home Assistant statistics: ${incompleteMessage(bundle.mancanti)}`;
+  return "";
 }
 
 function writeDerived(plan, value, kind, date) {
@@ -778,10 +950,17 @@ export function applyAtomicEnergyBundle(bundle = state.bundle) {
   if (!bundle || !doc || state.applying) return false;
   state.applying = true;
   try {
-    applyFlow("day", bundle.day);
-    applyFlow("month", bundle.month);
-    applyReportOverview(bundle);
-    applyAnnual(bundle);
+    /* Un periodo che non si e' potuto leggere non si dipinge: sotto restano i
+     * numeri del guscio, che sono vecchi ma veri, invece di uno zero che non
+     * lo e' (dal campo: aprendo il Report «tutti i valori rimangono a zero»,
+     * ed era il pacchetto buttato via per intero). */
+    const letti = bundle.letti || { day: true, month: true, year: true };
+    if (letti.day) applyFlow("day", bundle.day);
+    if (letti.month) {
+      applyFlow("month", bundle.month);
+      applyReportOverview(bundle);
+    }
+    if (letti.year) applyAnnual(bundle);
     applyDeviceRows(bundle);
     applyDeviceDetail(bundle);
     doc.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
@@ -903,12 +1082,20 @@ function segnaLAttesa() {
   });
 }
 
-/* La riga con la ragione, sopra i numeri: c'e' finche' un pacchetto buono non
- * arriva. Si scrive come attributo e la disegna il foglio. */
-function segnaLaRagione(testo) {
+/* La riga con la ragione, sopra i numeri. Si scrive come attributo e la
+ * disegna il foglio.
+ *
+ * `ancheColPacchetto` distingue le due ragioni per cui c'e' qualcosa da dire.
+ * Un errore passeggero con dei numeri buoni sotto non si scrive: si riprova e
+ * nessuno se ne accorge. Ma un pacchetto arrivato a meta' — un contatore
+ * senza statistiche a lungo termine — ha bisogno di dirlo PROPRIO mentre i
+ * numeri si vedono: sono quelli, meno una casella, e chi guarda deve sapere
+ * quale e perche'. */
+function segnaLaRagione(testo, ancheColPacchetto = false) {
   const spiegazione = spiegazioneDellErrore(testo);
   doc?.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
-    if (spiegazione && !state.bundle) node.dataset.dmEnergyRagione = spiegazione;
+    if (spiegazione && (ancheColPacchetto || !state.bundle))
+      node.dataset.dmEnergyRagione = spiegazione;
     else delete node.dataset.dmEnergyRagione;
   });
 }
@@ -958,7 +1145,13 @@ async function eseguiIlRefresh(period, carico) {
     state.lastError = "";
     state.ready = true;
     applyAtomicEnergyBundle(bundle);
-    segnaLaRagione("");
+    /* Un pacchetto arrivato a meta' e' comunque arrivato: si tiene, si
+     * dipinge quello che c'e' e sopra si dice cosa manca. Prima si buttava
+     * via tutto e si ricominciava — quaranta volte, poi ogni minuto per
+     * sempre — a chiedere al Recorder una cosa che non dipende dal Recorder:
+     * un contatore senza statistiche a lungo termine non ne mette su perche'
+     * glielo si richiede. */
+    segnaLaRagione(ragioneDelPacchetto(bundle), true);
     root.dispatchEvent?.(new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }));
     root.dispatchEvent?.(new CustomEvent("dashboardmodern:energy-stable", { detail: bundle }));
     return true;
@@ -1049,6 +1242,32 @@ export function riposoDeiPeriodi(documento = doc, inAffanno = broker?.recorderIn
   return documento?.getElementById?.("page-energy")?.classList?.contains("active")
     ? RIPOSO_ENERGIA_MS
     : RIPOSO_ENERGIA_DI_SPALLE_MS;
+}
+
+/* Se quello che si ha in mano e' abbastanza vecchio da valere una domanda.
+ *
+ * E' il minuto con cui l'Energia si aggiorna da sola a pagina aperta: prima
+ * di allora una lettura nuova troverebbe le stesse righe. */
+export function pacchettoDaRileggere(adesso = Date.now()) {
+  if (!state.bundle || !state.lastRefreshAt) return true;
+  return adesso - state.lastRefreshAt >= RIPOSO_ENERGIA_MS;
+}
+
+/* Chiedere solo se serve: e' quello che vuole chi cambia linguetta.
+ *
+ * Aprire l'Energia, passare da Giornaliera a Mensile, toccare il Report: ogni
+ * clic dentro quelle pagine faceva partire un aggiornamento intero — sette
+ * letture del Recorder, oggi tre — anche subito dopo il precedente. Ma
+ * cambiare linguetta non cambia i numeri: cambia quali si guardano, e quelli
+ * sono gia' nel pacchetto. Se il pacchetto e' fresco si ridisegna e basta; se
+ * e' vecchio, allora si, il tocco vale una domanda. */
+export function refreshEnergyIfStale() {
+  if (pacchettoDaRileggere()) {
+    scheduleEnergyRefresh(true);
+    return true;
+  }
+  scheduleProjection();
+  return false;
 }
 
 export function scheduleEnergyRefresh(force = false, explicitDelay = null) {
@@ -1396,14 +1615,18 @@ function bindEvents() {
           scheduleProjection();
         });
       }
-      /* Aprire l'Energia vuol dire volerla adesso.
+      /* Aprire l'Energia vuol dire volerla adesso — se quella che c'e' e'
+       * vecchia.
        *
        * Con la pagina chiusa i periodi si riposano cinque minuti (vedi
        * `riposoDeiPeriodi`): senza questa riga chi entra troverebbe i totali
        * dell'ultimo giro, vecchi fino a cinque minuti, e dovrebbe aspettare
        * fermo davanti allo schermo. Il tocco che apre la pagina e' anche la
-       * domanda, e la risposta arriva mentre la pagina sale. */
-      if (event.target?.closest?.("[data-tab='energy']")) scheduleEnergyRefresh(true);
+       * domanda, e la risposta arriva mentre la pagina sale. Ma se il
+       * pacchetto e' di venti secondi fa, la domanda non c'e': entrare e
+       * uscire dall'Energia non deve costare una lettura del Recorder per
+       * ogni tocco. */
+      if (event.target?.closest?.("[data-tab='energy']")) refreshEnergyIfStale();
     },
     true,
   );
@@ -1414,7 +1637,12 @@ function bindEvents() {
     installWrappers();
     installObserver();
     installEnergyEditorContracts();
-    scheduleEnergyRefresh(true);
+    /* Il guscio che si annuncia vuol dire «i miei nodi ci sono adesso»: quello
+     * che serve e' ridisegnarci sopra il pacchetto, non rileggerlo. Qui si
+     * chiedeva comunque — e siccome adesso il primo giro finisce prima che il
+     * guscio si annunci, quella era una seconda lettura intera per ogni
+     * avvio, con le stesse risposte. */
+    refreshEnergyIfStale();
     risvegliaReportDelGuscio();
   });
   root.addEventListener?.("dashboardmodern:runtime-ready", risvegliaReportDelGuscio);

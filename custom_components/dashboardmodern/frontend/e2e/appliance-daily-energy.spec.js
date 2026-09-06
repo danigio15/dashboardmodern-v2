@@ -108,16 +108,29 @@ async function boot(page, variant, testInfo) {
           window.__dmStatisticsPeriods.push(message.period);
           const requestStart = new Date(message.start_time).getTime();
           const requestEnd = new Date(message.end_time).getTime();
+          /* Un contatore di vita vero: una somma sola che sale e non torna
+           * indietro, ferma nel tempo. Prima questo finto rispondeva 0,05 kWh
+           * a QUALUNQUE arco gli venisse chiesto, e per un contatore
+           * cumulativo non vuol dire niente — appena il giorno in corso si e'
+           * messo a chiedere le ore chiuse e l'ora aperta in due archi, gli
+           * stessi 0,05 arrivavano due volte. Le righe stanno dove stanno nel
+           * tempo, e ogni arco si prende il pezzo che gli tocca. */
+          const mezzanotte = new Date();
+          mezzanotte.setHours(0, 0, 0, 0);
+          const righeDelContatore = [
+            { start: mezzanotte.getTime() - 2 * 60 * 60 * 1000, sum: 100 },
+            { start: mezzanotte.getTime() + 60 * 1000, sum: 100.05 },
+            { start: Date.now() - 60 * 1000, sum: 100.05 },
+          ];
           result = {};
           for (const entity of message.statistic_ids || []) {
             if (entity !== "sensor.microwave_total") {
               result[entity] = [];
               continue;
             }
-            result[entity] = [
-              { start: new Date(requestStart + 30 * 60 * 1000).toISOString(), sum: 100 },
-              { start: new Date(requestEnd - 60 * 1000).toISOString(), sum: 100.05 },
-            ];
+            result[entity] = righeDelContatore
+              .filter((riga) => riga.start >= requestStart && riga.start < requestEnd)
+              .map((riga) => ({ start: new Date(riga.start).toISOString(), sum: riga.sum }));
           }
         }
         this.onmessage?.({

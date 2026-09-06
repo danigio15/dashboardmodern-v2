@@ -42,12 +42,17 @@ test("atomic bundle loads day, month, year and device periods together", async (
   assert.equal(bundle.rates.importPrice, 0.3);
 });
 
-test("an incomplete period rejects the whole atomic bundle", async () => {
+test("an incomplete period is reported, not thrown away", async () => {
+  /* Prima bastava una casella vuota — un contatore configurato senza
+   * statistiche a lungo termine — perche' l'intero pacchetto venisse
+   * rifiutato: chi aspettava non riceveva niente, e continuava a richiedere
+   * al Recorder una cosa che dal Recorder non dipende. Adesso esce cio' che
+   * c'e', con scritto cosa manca e di chi. */
   const service = createEnergyBundleService({
     loadEnergyPeriod: async (kind) =>
       kind === "month"
         ? {
-            data: {},
+            data: { solar: 0 },
             complete: false,
             missing: [{ group: "grid", key: "month", entity: "sensor.grid_total" }],
           }
@@ -55,10 +60,12 @@ test("an incomplete period rejects the whole atomic bundle", async () => {
     loadDevicePeriod: async () => ({ devices: [], values: new Map() }),
     readRates: () => ({}),
   });
-  await assert.rejects(
-    service.load({ year: 2026, month: 8 }),
-    /month:grid\.month:sensor\.grid_total/,
-  );
+  const bundle = await service.load({ year: 2026, month: 8 });
+  assert.equal(bundle.complete, false);
+  assert.equal(bundle.day.solar, 1, "quello che e' arrivato si tiene");
+  assert.deepEqual(bundle.mancanti, [
+    { kind: "month", plan: { group: "grid", key: "month", entity: "sensor.grid_total" } },
+  ]);
 });
 
 test("a newer load invalidates an older in-flight result", async () => {

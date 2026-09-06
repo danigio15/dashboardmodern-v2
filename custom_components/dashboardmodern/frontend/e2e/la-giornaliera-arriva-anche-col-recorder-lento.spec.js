@@ -199,8 +199,11 @@ test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'",
   await expect(giorno).not.toHaveAttribute("data-dm-energy-ragione", /.+/);
   await agita;
   /* Le domande al Recorder non sono una tempesta: quelle del pacchetto, e
-   * nessuna ripetuta per una richiesta scavalcata. */
-  expect(await contaLeStatistiche(page)).toBeLessThanOrEqual(6);
+   * nessuna ripetuta per una richiesta scavalcata. Erano sette per giro (fino
+   * a sei qui, perche' senza dispositivi configurati due restavano vuote);
+   * adesso un aggiornamento sono tre archi di tempo — il giorno, il mese, i
+   * mesi chiusi dell'anno — piu' l'ora aperta, che sono dodici righe. */
+  expect(await contaLeStatistiche(page)).toBeLessThanOrEqual(4);
 });
 
 test("la configurazione cambiata a meta' lettura vince sul pacchetto vecchio", async ({

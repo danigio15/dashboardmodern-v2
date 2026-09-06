@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-import { HomeAssistantBroker } from "../src/core/period-service.js";
+import { HomeAssistantBroker, PASSO_DELLE_STATISTICHE_MS } from "../src/core/period-service.js";
 import {
   RIPOSO_ENERGIA_DI_SPALLE_MS,
   RIPOSO_ENERGIA_MS,
@@ -26,8 +26,17 @@ test("i periodi dell'Energia si ricalcolano al piu' una volta al minuto", () => 
   const energia = leggi("sections/energy-section.js");
   assert.match(energia, /Math\.max\(250, riposoDeiPeriodi\(\) - elapsed\)/);
   assert.equal(/Math\.max\(250, 15000 - elapsed\)/.test(energia), false);
-  assert.equal(new HomeAssistantBroker().cacheCurrentMs, 60_000);
+  /* E una risposta gia' avuta vale quanto dura il dato, non un minuto: era
+   * un minuto per prudenza, ma la prudenza non serviva a niente perche' la
+   * chiave della cache — la fine dell'arco al millisecondo — non ha mai
+   * fatto rispondere quella cache a nessuno. Adesso la chiave e' arrotondata
+   * al passo con cui Home Assistant compila le statistiche, e prima di quel
+   * passo la stessa domanda porta a casa le stesse identiche righe. */
+  assert.equal(PASSO_DELLE_STATISTICHE_MS, 5 * 60_000);
+  assert.equal(new HomeAssistantBroker().cacheCurrentMs, PASSO_DELLE_STATISTICHE_MS);
   assert.equal(new HomeAssistantBroker({ cacheCurrentMs: 5 }).cacheCurrentMs, 5);
+  /* E l'Energia non se lo riscrive addosso. */
+  assert.equal(/cacheCurrentMs: 10000/.test(energiaSorgente), false);
 });
 
 test("e con la pagina chiusa si riposano quanto dura il dato: cinque minuti", () => {
@@ -47,11 +56,16 @@ test("e con la pagina chiusa si riposano quanto dura il dato: cinque minuti", ()
   /* Una scheda in secondo piano non la guarda nessuno, nemmeno se la pagina
    * sotto e' quella dell'Energia. */
   assert.equal(riposoDeiPeriodi(finta(true, true)), RIPOSO_ENERGIA_DI_SPALLE_MS);
-  /* E chi apre l'Energia non aspetta i cinque minuti: il tocco chiede subito. */
+  /* E chi apre l'Energia non aspetta i cinque minuti: il tocco chiede subito
+   * — ma solo se quello che c'e' e' vecchio. Prima chiedeva a ogni tocco, e
+   * i tocchi dentro l'Energia sono tanti: la Panoramica, il Mese, le
+   * sotto-linguette. Entrare e uscire dalla pagina non deve costare una
+   * lettura del Recorder per ogni volta. */
   assert.match(
     energiaSorgente,
-    /if \(event\.target\?\.closest\?\.\("\[data-tab='energy'\]"\)\) scheduleEnergyRefresh\(true\);/,
+    /if \(event\.target\?\.closest\?\.\("\[data-tab='energy'\]"\)\) refreshEnergyIfStale\(\);/,
   );
+  assert.match(energiaSorgente, /return adesso - state\.lastRefreshAt >= RIPOSO_ENERGIA_MS;/);
 });
 
 test("la scena dell'Energia si disegna solo a pagina aperta", () => {

@@ -197,10 +197,15 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
   assert.doesNotMatch(sections, /shutter-alert-layout-section\.js/);
 
   assert.equal((energy.match(/new\s+SafeHomeAssistantBroker\s*\(/g) || []).length, 1);
-  assert.match(energy, /loadEnergyPeriod\("day"/);
-  assert.match(energy, /loadEnergyPeriod\("month"/);
-  assert.match(energy, /loadEnergyPeriod\("year"/);
-  assert.match(energy, /Promise\.all/);
+  /* Un aggiornamento non e' piu' una domanda per periodo: i piani di giorno,
+   * mese e anno — fonti, dispositivi e carichi — si mettono insieme per ARCO
+   * di tempo, e chi condivide l'arco condivide la domanda (vedi
+   * `loadAtomicEnergyBundle` e `valoriPerArchi`). Erano sette letture delle
+   * statistiche, due delle quali coprivano tredici mesi. */
+  assert.match(energy, /pianiDelleFonti\("day"\)/);
+  assert.match(energy, /pianiDelleFonti\("month"\)/);
+  assert.match(energy, /pianiDelleFonti\("year"\)/);
+  assert.match(energy, /broker\.valoriPerArchi\(richieste, new Map\(\), alPasso\)/);
   assert.match(energy, /Incomplete Home Assistant statistics/);
   assert.doesNotMatch(stability, /waitForHostedBridge/);
   assert.doesNotMatch(stability, /refreshEnergy/);
