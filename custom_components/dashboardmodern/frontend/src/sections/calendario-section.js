@@ -696,6 +696,9 @@ export function installCalendarioSection() {
     "dashboardmodern:states-ready",
     "dashboardmodern:state-changed",
     "dashboardmodern:persistence-restored",
+    /* Gli eventi dei calendari sono arrivati dal servizio: la firma cambia e
+     * la pagina si riempie, senza aspettare che si muova qualcosa in casa. */
+    "dashboardmodern:calendario-eventi",
   ])
     root.addEventListener?.(evento, schedule);
   /* Chi guarda e' arrivato dal suo profilo (#344): da questo istante l'agenda

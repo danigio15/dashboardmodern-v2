@@ -546,7 +546,16 @@ async function fetchEventi(entity, { force = false } = {}) {
     root.console?.warn?.("[DashboardModern] calendar events", error);
   }
   scheda.inflight = false;
-  if (riuscita) schedule();
+  if (riuscita) {
+    schedule();
+    /* Gli eventi sono arrivati: la tessera in Home la ridisegna `schedule()`,
+     * ma la PAGINA dell'agenda ha il suo padrone e nessuno gliel'aveva detto.
+     * Finche' il guscio ridipingeva tutte e nove le pagine ogni secondo non si
+     * vedeva; adesso che disegna solo quella che si guarda, un'agenda aperta
+     * mentre gli eventi sono per strada restava vuota fino al primo cambio di
+     * stato della casa. */
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:calendario-eventi"));
+  }
 }
 
 /** Gli eventi di tutti i calendari scelti, in fila. Serve anche alla pagina. */

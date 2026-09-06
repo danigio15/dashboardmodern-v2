@@ -64,6 +64,15 @@ function potenzaDellaColonnina() {
   return null;
 }
 
+/* Se la plancia ha ALMENO UNA fonte da cui sapere della ricarica. E' un fatto
+ * di configurazione, non di attesa: distingue «non me l'hai detto» da «non ho
+ * ancora letto». */
+function sorgenteDellaRicarica() {
+  return ["dm.ev_stato_ricarica", "dm.ev_cavo_collegato", "dm.ev_potenza_wallbox", "dm.ev_charge_power"].some(
+    (ref) => Boolean(entitaDi(ref)),
+  );
+}
+
 export function paintStatoRicarica(scope = doc) {
   if (!scope?.querySelectorAll) return "";
   const grezzo = clean(liveState("dm.ev_stato_ricarica")?.state);
@@ -74,7 +83,16 @@ export function paintStatoRicarica(scope = doc) {
     collegata: cavoDichiarato(),
     potenza: potenzaDellaColonnina(),
   });
-  if (!codice) return "";
+  if (!codice) {
+    /* Niente da cui ricavare una lettera. Se e' perche' nessuna entita' della
+     * ricarica e' mappata, la pastiglia sparisce: il pallino verde col
+     * trattino del guscio (#326) e' il ramo «nessun codice», e verde in quella
+     * fila vuol dire «tutto bene» a chi guarda. Se invece le entita' ci sono e
+     * non hanno ancora risposto, si lascia com'e': fra un attimo parlano. */
+    const scatolaMuta = doc?.getElementById?.("lm-charge-badge");
+    if (scatolaMuta) scatolaMuta.hidden = !sorgenteDellaRicarica();
+    return "";
+  }
   const testo = ETICHETTE_STATO()[codice];
   for (const nodo of scope.querySelectorAll("#lm-stato-txt,.v-ev-stato-all"))
     if (nodo.textContent !== testo) nodo.textContent = testo;
@@ -83,6 +101,8 @@ export function paintStatoRicarica(scope = doc) {
   if (punto && punto.style.background !== colore) punto.style.background = colore;
   const scatola = doc.getElementById("lm-charge-badge");
   if (scatola) {
+    // Qualcosa da dire c'e': se era sparita per mancanza di fonti, torna.
+    if (scatola.hidden) scatola.hidden = false;
     if (scatola.style.background !== fondo) scatola.style.background = fondo;
     scatola.style.borderColor = `${colore}66`;
     if (scatola.dataset.dmStato !== codice) scatola.dataset.dmStato = codice;

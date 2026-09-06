@@ -146,3 +146,22 @@ test("chi guarda decide quali calendari escono, e lo si chiede in due modi (#344
   assert.match(pagina, /if \(!calendariAssegnati\(calendariScritti\(\)\)\) return "";/);
   assert.match(pagina, /if \(utenti\.length < 2\) return "";/);
 });
+
+/* L'agenda si riempie quando gli eventi arrivano, non quando si muove la casa.
+ *
+ * Finche' il guscio ridipingeva tutte e nove le pagine ogni secondo, la pagina
+ * dell'agenda si trovava gli eventi addosso senza che nessuno glielo dicesse.
+ * Adesso che si disegna solo la pagina che si guarda, chi li ha chiesti deve
+ * anche avvisare: aprire l'Agenda mentre gli eventi sono per strada lasciava
+ * la settimana vuota fino al primo cambio di stato. */
+test("chi chiede gli eventi avvisa la pagina che li aspetta", async () => {
+  const home = await readFile(new URL("../src/sections/home-widgets-section.js", import.meta.url), "utf8");
+  const pagina = await readFile(new URL("../src/sections/calendario-section.js", import.meta.url), "utf8");
+  assert.match(home, /dispatchEvent\?\.\(new CustomEvent\("dashboardmodern:calendario-eventi"\)\)/);
+  assert.match(pagina, /"dashboardmodern:calendario-eventi",/);
+  /* L'avviso parte solo a lettura riuscita: un errore non fa ridisegnare
+   * niente, e la pagina tiene quello che aveva. */
+  const dove = home.indexOf('dashboardmodern:calendario-eventi');
+  const riuscita = home.lastIndexOf('if (riuscita) {', dove);
+  assert.ok(riuscita > 0 && riuscita < dove, "l'avviso sta dentro il ramo della riuscita");
+});

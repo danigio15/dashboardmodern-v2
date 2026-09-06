@@ -162,6 +162,27 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 ### Corretto
 
+- **L'Agenda aperta mentre gli eventi sono per strada non resta più vuota.**
+
+  Gli eventi dei calendari si chiedono a Home Assistant e arrivano quando
+  arrivano. La tessera in Home lo sapeva; la pagina dell'Agenda no, e finché il
+  guscio ridipingeva tutte e nove le pagine ogni secondo la cosa non si vedeva.
+  Adesso che si disegna solo la pagina che si sta guardando — che è il motivo
+  per cui la plancia non scalda più il mini PC — aprire l'Agenda un attimo
+  prima che gli eventi arrivassero lasciava la settimana vuota fino al primo
+  movimento in casa. Chi li chiede adesso avvisa chi li aspetta.
+
+- **Il pallino verde col trattino sulla foto dell'auto (#326).**
+
+      «Il pallino verde con il trattino a cosa si riferisce?»
+
+  A niente: è la pastiglia dello stato di ricarica quando nessuna entità gliene
+  dà uno, e nel guscio il verde è proprio il ramo «nessun codice». In una fila
+  di pastiglie, però, il verde vuol dire «tutto bene». Adesso se non c'è
+  nessuna fonte da cui sapere della ricarica — né lo stato, né il cavo, né la
+  potenza della colonnina — la pastiglia non compare; se le fonti ci sono e non
+  hanno ancora risposto resta dov'è, che fra un attimo parlano.
+
 - **Il report dell'Energia: meno domande al Recorder, e quello che arriva
   resta (#333).**
 

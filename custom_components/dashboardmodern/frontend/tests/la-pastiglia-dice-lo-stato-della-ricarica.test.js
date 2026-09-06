@@ -78,3 +78,25 @@ test("«connected» con la potenza che passa e' in carica", () => {
   assert.equal(codice("Connected", { potenza: 5000 }), "C");
   assert.equal(codice("Connected", { potenza: 0 }), "B");
 });
+
+/* Il pallino verde col trattino (#326).
+ *
+ * «Il pallino verde con il trattino a cosa si riferisce?» A niente: nel guscio
+ * il verde e' il ramo «nessun codice», cioe' proprio il caso in cui la plancia
+ * non ha da leggere nulla sulla ricarica — e in una fila di pastiglie il verde
+ * vuol dire «tutto bene». Se nessuna delle fonti e' mappata la pastiglia
+ * adesso sparisce; se ci sono e non hanno ancora risposto resta dov'e', che
+ * fra un attimo parlano. */
+test("senza una fonte da cui sapere della ricarica la pastiglia non resta verde", () => {
+  const sezione = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "..", "src", "sections", "ev-stato-e-target-section.js"),
+    "utf8",
+  );
+  assert.match(sezione, /function sorgenteDellaRicarica\(\)/);
+  /* Le fonti sono quelle da cui il codice si ricava, non altre. */
+  for (const ref of ["dm.ev_stato_ricarica", "dm.ev_cavo_collegato", "dm.ev_potenza_wallbox"])
+    assert.ok(sezione.includes(`"${ref}"`), ref);
+  assert.match(sezione, /scatolaMuta\.hidden = !sorgenteDellaRicarica\(\)/);
+  /* E quando invece qualcosa da dire c'e', la pastiglia torna. */
+  assert.match(sezione, /if \(scatola\.hidden\) scatola\.hidden = false;/);
+});
