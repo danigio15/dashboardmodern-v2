@@ -236,6 +236,19 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 ### Corretto
 
+- **Via sei moduli vecchi che riscrivevano quello che qualcun altro aveva già
+  disegnato.**
+
+  Sotto la plancia erano rimasti moduli nati durante le prove sul dispositivo
+  vero, ognuno col suo foglio di stile e i suoi agganci: si sovrapponevano a
+  chi il lavoro lo fa adesso, e a volte lo rifacevano al contrario. Sono
+  spariti — con quel poco che serviva ancora portato dove vive oggi: i glifi
+  delle icone e la riga delle azioni rapide nel motore delle icone, le linguette
+  Freddo/Caldo nella scena del termico, le due regole vive nelle fondamenta del
+  tema. Insieme a loro se ne sono andati nove agganci a funzioni che non
+  esistono più e venti nomi esportati che non leggeva nessuno: in tutto circa
+  mille righe in meno, con tutte le prove che stavano in piedi prima.
+
 - **La plancia non si ricostruisce a ogni pagina di Home Assistant.**
 
   Il pannello buttava via tutta la plancia e la rifaceva da capo ogni volta che

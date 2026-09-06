@@ -6,12 +6,16 @@ const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.ur
 const polishUrl = new URL("../src/sections/beta9-real-device-polish-section.js", import.meta.url);
 const engineUrl = new URL("../src/sections/icon-engine-section.js", import.meta.url);
 
-test("beta9 real-device polish loads after the older beta7 compatibility layers", async () => {
+test("beta9 real-device polish still loads last at the entry point", async () => {
   const entry = await readFile(entryUrl, "utf8");
-  const regression = entry.indexOf('import "./beta7-regression-section.js"');
+  /* Delle due passate beta7 non e' rimasto niente: quella delle regressioni
+   * delegava o duplicava, e la guardia del marchio proteggeva un `<img>` che
+   * il catalogo non stampa piu'. beta9 resta l'ultimo della fila. */
+  const mobile = entry.indexOf('import "./beta4-mobile-polish-section.js"');
   const finalPolish = entry.indexOf('import "./beta9-real-device-polish-section.js"');
-  assert.ok(regression >= 0);
-  assert.ok(finalPolish > regression);
+  assert.ok(mobile >= 0);
+  assert.ok(finalPolish > mobile);
+  assert.doesNotMatch(entry, /beta7-regression-section\.js|beta7-brand-guard-section\.js/);
 });
 
 test("quick-action icons are delegated to the single-owner engine without beta9 repaint", async () => {
@@ -60,7 +64,10 @@ test("della card del marchio questo modulo non e' piu' padrone", async () => {
     /#dm-visual-picker\[data-kind="car"\] \.dm-car-brand\{\s*color:/,
     "il marchio nel catalogo tiene il colore che si e' dato",
   );
-  assert.match(source, /dm-v10-brand-wordmark/);
+  /* La sigla scritta al posto del logo se n'e' andata con l'immagine che la
+   * faceva scattare: il catalogo il marchio lo disegna come maschera CSS su
+   * uno span, e un'immagine rotta non c'e' piu' da nessuna parte. */
+  assert.doesNotMatch(source, /dm-v10-brand-wordmark|readableBrandFallback|polishBrandLogos/);
 });
 
 test("room and temperature editors are repaired without a global observer", async () => {

@@ -30,7 +30,6 @@ import { installTemperatureLayoutSection } from "./temperature-layout-section.js
 import { installTemperatureTrendSection } from "./temperature-trend-section.js";
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
-import { installBeta27ReleaseStability } from "./beta27-release-stability-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
@@ -1044,7 +1043,6 @@ export function installSectionRuntime() {
     // The MiniPC skin owns the presentation of #page-server: it reads the bars,
     // the temperature arc and the status badges the legacy render loop writes.
     installMinipcShowcaseSection();
-    installBeta27ReleaseStability();
 
     root[RUNTIME_KEY] = Object.freeze({
       installed: true,
@@ -1121,7 +1119,6 @@ export function installSectionRuntime() {
         "allerte-editor",
         "rifiuti",
         "rifiuti-editor",
-        "beta27-release-stability",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
       energyServices: root.__DASHBOARDMODERN_ENERGY_SERVICES__,

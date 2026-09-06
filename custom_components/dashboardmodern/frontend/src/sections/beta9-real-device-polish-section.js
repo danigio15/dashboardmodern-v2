@@ -78,46 +78,13 @@ function polishActionPicker() {
   return Boolean(picker);
 }
 
-function brandName(container) {
-  return clean(
-    container?.dataset?.dmBeta5Brand ||
-    container?.getAttribute?.("title") ||
-    container?.querySelector?.("img[data-dm-brand-image]")?.alt ||
-    container?.dataset?.brand,
-  );
-}
-
-function readableBrandFallback(container) {
-  if (!container) return false;
-  const img = container.querySelector("img[data-dm-brand-image]");
-  const oldFallback = container.querySelector(".dm-beta7-brand-guard-fallback,.dm-beta7-brand-fallback");
-  const broken = Boolean(
-    oldFallback ||
-    img?.dataset?.dmBeta7Broken === "true" ||
-    (img?.complete && Number(img.naturalWidth) === 0),
-  );
-  if (!broken) return false;
-  const name = brandName(container) || "EV";
-  let fallback = container.querySelector(".dm-v10-brand-wordmark");
-  if (!fallback) {
-    fallback = doc.createElement("span");
-    fallback.className = "dm-v10-brand-wordmark";
-    (img?.parentElement || container).append(fallback);
-  }
-  fallback.textContent = name;
-  oldFallback?.remove();
-  if (img) img.style.setProperty("display", "none", "important");
-  container.dataset.brandSource = "readable-local-fallback";
-  return true;
-}
-
-function polishBrandLogos() {
-  doc?.querySelectorAll?.(".dm-car-brand").forEach((container) => {
-    readableBrandFallback(container);
-    container.dataset.dmLogoNormalized = "true";
-  });
-  return true;
-}
+/* Il ripiego leggibile del marchio — la sigla scritta al posto del logo — se
+ * n'e' andato con l'immagine che lo faceva scattare. Cercava un
+ * `img[data-dm-brand-image]` rotta, o il ripiego lasciato dalla guardia beta7:
+ * il catalogo il logo non lo stampa piu' come immagine, lo disegna come
+ * maschera CSS su uno `<span>`, e quella guardia non esiste piu'. Restava una
+ * passata su tutti i `.dm-car-brand` del documento che non trovava niente e
+ * scriveva un attributo che nessuno legge. */
 
 function configuredRooms() {
   try {
@@ -440,7 +407,6 @@ function run() {
   ensureStyleLast();
   polishQuickActions();
   polishActionPicker();
-  polishBrandLogos();
   polishRoomRows();
   repairTemperatureRoomSelect();
   polishShutters();
@@ -466,7 +432,9 @@ function installOwners() {
     "renderTapparelle",
     "buildTempCards",
     "render",
-    "cdFillRoomSelects",
+    /* `cdFillRoomSelects` stava qui e non esiste: in tutto il frontale lo si
+     * chiama solo con l'interrogativo (`globalThis.cdFillRoomSelects?.()`),
+     * perche' nessun guscio lo definisce. Era un aggancio a vuoto. */
     // The alerts the user creates live in their own wrap, redrawn by the
     // runtime whenever one of them starts or stops matching. Without this the
     // motion only reached them on the next unrelated state change.
@@ -529,11 +497,6 @@ function installStyles() {
     #dm-visual-picker[data-kind="car"] .dm-picker-visual .dm-car-brand{
       width:82px!important;max-width:82px!important;height:44px!important;max-height:44px!important;
       padding:0!important;overflow:hidden!important
-    }
-    .dm-v10-brand-wordmark{
-      display:grid!important;place-items:center!important;width:100%!important;height:100%!important;padding:2px 4px!important;
-      color:#111827!important;font:900 clamp(9px,2.4vw,14px)/1 system-ui,sans-serif!important;
-      letter-spacing:-.3px!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important
     }
 
     #ed-body .ed-row.dm-room-config-row{

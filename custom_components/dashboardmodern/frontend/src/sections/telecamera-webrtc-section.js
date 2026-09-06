@@ -372,11 +372,6 @@ export function fermaIVideo() {
   return fermati;
 }
 
-/** Quante tessere stanno mostrando un video adesso. */
-export function videoVivi() {
-  return [...state.sessioni.values()].filter((sessione) => sessione.viva).length;
-}
-
 /* ── il popup del guscio ──────────────────────────────────────────────── */
 
 /* Il popup della telecamera negozia il WebRTC nativo con la funzione del

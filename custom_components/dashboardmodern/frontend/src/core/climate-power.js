@@ -14,10 +14,10 @@
 
 const clean = (value) => String(value ?? "").trim();
 
-/* I bit con cui Home Assistant dichiara di saper accendere e spegnere. Si
- * leggono per prudenza: se mancano non si conclude niente, perche' un'entita'
- * che non li espone puo' comunque avere la modalita' "off". */
-export const CLIMATE_TURN_OFF = 128;
+/* Il bit con cui Home Assistant dichiara di saper accendere. Si legge per
+ * prudenza: se manca non si conclude niente, perche' un'entita' che non lo
+ * espone puo' comunque avere la modalita' "off". Il bit gemello, quello dello
+ * spegnimento (128), stava scritto qui accanto e non lo leggeva nessuno. */
 export const CLIMATE_TURN_ON = 256;
 
 /* Con quale modalita' riaccendere, quando non sappiamo com'era prima. "auto" e

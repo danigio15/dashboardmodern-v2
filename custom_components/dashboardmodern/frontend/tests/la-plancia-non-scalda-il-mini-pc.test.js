@@ -119,7 +119,10 @@ test("la scansione della pagina Temperature gira solo a pagina a schermo, un gir
 });
 
 test("lo sfondo animato sta sul suo livello e si ferma per chi riduce le animazioni", () => {
-  const sezione = leggi("sections/beta27-release-stability-section.js");
+  /* Le due righe stanno nella fondazione del tema: sono di quel genere —
+   * un livello e un colore che valgono per tutta la plancia — e il modulo di
+   * stabilita' che le portava non faceva altro. */
+  const sezione = leggi("sections/theme-foundation-section.js");
   assert.match(
     sezione,
     /\.animated-mesh-bg::before,\.animated-mesh-bg::after\{will-change:transform\}/,

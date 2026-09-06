@@ -306,6 +306,3 @@ export function installWidgetEntityChoiceSection() {
     root.addEventListener?.(event, () => root.queueMicrotask?.(ensureEntityChoices));
   ensureEntityChoices();
 }
-
-/* Il nome della scelta, per chi la cerca da fuori. */
-export const widgetEntityChoiceLabel = () => esc(t("In Home", "On Home"));

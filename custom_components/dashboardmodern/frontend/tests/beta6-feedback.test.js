@@ -5,47 +5,49 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("feedback layer keeps legacy quick-action defaults while the icon engine owns visual picking", async () => {
+test("the icon engine owns the quick-action defaults and the visual picking", async () => {
   const entry = await read("src/sections/beta-entry-section.js");
-  const feedback = await read("src/sections/beta6-feedback-section.js");
   const engine = await read("src/sections/icon-engine-section.js");
-  assert.match(entry, /beta4-mobile-polish-section\.js";\nimport "\.\/beta6-feedback-section\.js";/);
+  /* La rifinitura di beta6 non c'e' piu': sei delle sue sette passate
+   * chiedevano gia' al motore delle icone di lavorare, e l'unica cosa sua — il
+   * tasto che apre il catalogo accanto a `#ed-qa-icon` — e' passata al motore,
+   * che quel tasto lo dipingeva e lo faceva gia' aprire. */
+  assert.doesNotMatch(entry, /beta6-feedback-section\.js/);
   assert.match(entry, /import "\.\/icon-engine-section\.js";/);
   assert.doesNotMatch(entry, /quickActionGlyphByType|dm-beta6-quick-action-layout/);
   assert.doesNotMatch(entry, /__dmV01525GlyphRepair|dmBeta7IconToken|scheduleV01525QuickActionRepair/);
-  assert.match(feedback, /luci_group:\{glyph:"💡",mdi:"mdi:lightbulb-group"\}/);
-  assert.match(feedback, /builtin_clima:\{glyph:"❄️",mdi:"mdi:snowflake"\}/);
-  assert.match(feedback, /builtin_antifurto:\{glyph:"🛡️",mdi:"mdi:shield-home"\}/);
-  assert.match(feedback, /builtin_lavatrice:\{glyph:"🧺",mdi:"mdi:washing-machine"\}/);
-  assert.match(feedback, /toggle:\{glyph:"🔀",mdi:"mdi:toggle-switch-outline"\}/);
-  assert.match(feedback, /script:\{glyph:"▶️",mdi:"mdi:script-text-play"\}/);
-  assert.match(feedback, /scene:\{glyph:"🎬",mdi:"mdi:movie-open"\}/);
-  assert.match(feedback, /DashboardModernIconEngine\?\.syncQuickActions\?\.\(\)/);
+  assert.match(engine, /luci_group: \{ glyph: "💡", mdi: "mdi:lightbulb-group" \}/);
+  assert.match(engine, /builtin_clima: \{ glyph: "❄️", mdi: "mdi:snowflake" \}/);
+  assert.match(engine, /builtin_antifurto: \{ glyph: "🛡️", mdi: "mdi:shield-home" \}/);
+  assert.match(engine, /builtin_lavatrice: \{ glyph: "🧺", mdi: "mdi:washing-machine" \}/);
+  assert.match(engine, /toggle: \{ glyph: "🔀", mdi: "mdi:toggle-switch-outline" \}/);
+  assert.match(engine, /script: \{ glyph: "▶️", mdi: "mdi:script-text-play" \}/);
+  assert.match(engine, /scene: \{ glyph: "🎬", mdi: "mdi:movie-open" \}/);
   assert.match(engine, /modal\.id = "dm-visual-picker"/);
   /* La voce scelta finisce nel campo. Di norma col nome del disegno; dove il
    * consumatore stampa la casella come testo nudo, col segno. */
   assert.match(engine, /input\.value = options\.glifo === true \? item\.glyph \|\| item\.value : item\.value/);
 });
 
-test("legacy quick-action editor delegates picker and glyph rendering to the icon engine", async () => {
-  const source = await read("src/sections/beta6-feedback-section.js");
+test("the quick-action icon field is built, hidden and picked by the icon engine", async () => {
   const engine = await read("src/sections/icon-engine-section.js");
-  assert.match(source, /input\.closest\?\.\("\.ed-form-row"\)/);
-  assert.match(source, /input\.insertAdjacentElement\("afterend",preview\)/);
-  assert.match(source, /#ed-qa-icon\.dm-beta6-qa-icon-value\{display:none!important\}/);
-  assert.match(source, /grid-template-columns:minmax\(0,1fr\) 56px!important/);
-  assert.match(source, /#ed-qa-name\{grid-column:1\/-1!important\}/);
-  assert.match(source, /DashboardModernIconEngine\?\.markup\?\./);
-  assert.match(source, /DashboardModernIconEngine\?\.openPicker\?\./);
-  assert.doesNotMatch(source, /__dmBeta7QuickIcons/);
+  assert.match(engine, /input\.closest\?\.\("\.ed-form-row"\)/);
+  assert.match(engine, /input\.insertAdjacentElement\("afterend", trigger\)/);
+  assert.match(engine, /#ed-qa-icon\.dm-beta6-qa-icon-value\{display:none!important\}/);
+  assert.match(engine, /grid-template-columns:minmax\(0,1fr\) 56px!important/);
+  assert.match(engine, /#ed-qa-name\{grid-column:1\/-1!important\}/);
   assert.match(engine, /\.dm-beta6-qa-icon-trigger/);
   assert.match(engine, /event\.stopImmediatePropagation\(\)/);
   assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
+  /* Il valore che si salva resta portatile: chi lo stampa altrove lo stampa
+   * come testo nudo, e un «mdi:snowflake» ci finirebbe scritto per esteso. */
+  assert.match(engine, /function azionePortatile/);
+  assert.match(engine, /if \(portatile !== corrente\) input\.value = portatile;/);
+  assert.match(engine, /input\.dataset\.dmBeta7DefaultGlyph = prossimo\.glyph;/);
 });
 
 test("manufacturer art is canonical, with a local Leapmotor emblem and no post-render swapping", async () => {
   const catalog = await read("src/core/personalization-catalog.js");
-  const feedback = await read("src/sections/beta6-feedback-section.js");
   /* I loghi stanno in casa, non su un CDN.
    *
    * Questa prova fissava l'indirizzo remoto — `simple-icons@…/icons/x.svg` —
@@ -64,15 +66,13 @@ test("manufacturer art is canonical, with a local Leapmotor emblem and no post-r
   assert.match(catalog, /data-brand-source="canonical"/);
   assert.match(catalog, /data-dm-beta5-brand="\$\{item\.name\}"/);
   assert.match(catalog, /data-brand-logo="\$\{item\.id\}"/);
-  assert.doesNotMatch(feedback, /polishVehicleBrandImages|SIMPLE_ICON_SLUGS|dm-beta6-brand-image/);
 });
 
-test("feedback layer no longer repaints the whole dashboard or resizes Chart.js", async () => {
-  const source = await read("src/sections/beta6-feedback-section.js");
+test("the icon engine does not repaint the whole dashboard or beat on a timer", async () => {
+  const source = await read("src/sections/icon-engine-section.js");
   assert.doesNotMatch(source, /wrapFunction\("render"/);
   assert.doesNotMatch(source, /chart\.resize|chart\.update|__DASHBOARDMODERN_BETA5_ROOT_CAUSES__/);
   assert.doesNotMatch(source, /setInterval\s*\(/);
-  assert.match(source, /#ed-daily-chart \.ed-chart-wrap/);
 });
 
 test("EV selector updates existing cards instead of rebuilding them on every state event", async () => {
@@ -101,12 +101,16 @@ test("EV brand card keeps one geometry before and after the beta11 marker", asyn
 });
 
 test("Lights popup keeps dimmer and RGB controls based on HA capabilities", async () => {
-  const source = await read("src/sections/beta6-feedback-section.js");
-  assert.match(source, /supported_color_modes/);
-  assert.match(source, /BRIGHTNESS_MODES/);
-  assert.match(source, /RGB_MODES/);
-  assert.match(source, /brightness_pct:Number\(slider\.value\)/);
-  assert.match(source, /rgb_color:hexToRgb\(event\.target\.value\)/);
-  assert.match(source, /cdCallServiceJson\("light","turn_on"/);
-  assert.match(source, /Dimmer e colori/);
+  /* Il pannello «Dimmer e colori» di beta6 puntava a `#wz-lights-list`, un
+   * nodo che nella plancia non esiste piu' da nessuna parte — quindi non si e'
+   * mai visto. Le capacita' della luce e la chiamata al servizio le dice il
+   * modello puro, e la scheda controlli la disegna la scena delle Luci: e'
+   * quello il posto in cui questa promessa va tenuta. */
+  const model = await read("src/core/light-model.js");
+  assert.match(model, /supported_color_modes/);
+  assert.match(model, /data\.brightness_pct = clamp\(/);
+  assert.match(model, /data\.rgb_color = hexToRgb\(change\.hex\)/);
+  const scene = await read("src/sections/lights-scene-section.js");
+  assert.match(scene, /data-dm-light-brightness/);
+  assert.match(scene, /data-dm-light-color/);
 });

@@ -791,6 +791,17 @@ function paintZoneTabs(shell, units) {
     if (has) configured += 1;
     const value = has ? "false" : "true";
     if (tab.dataset.dmClEmpty !== value) tab.dataset.dmClEmpty = value;
+    /* Il tasto premuto lo dice anche a chi non vede.
+     *
+     * `setClimaPageMode()` del guscio sposta le classi `active-freddo` e
+     * `active-caldo`, e basta: `aria-pressed` restava quello scritto al
+     * disegno — Freddo premuto per sempre. A rimetterlo a posto era una
+     * passata di beta12 appesa al click, che di suo non disegnava piu'
+     * niente; qui sta accanto alle altre due cose che la linguetta sa di
+     * se', e arriva dopo il guscio perche' il richiamo passa da
+     * `wrapFunction`. */
+    const premuto = String(tab.classList.contains(`active-${zone}`));
+    if (tab.getAttribute("aria-pressed") !== premuto) tab.setAttribute("aria-pressed", premuto);
   }
   // Marked on the shell, which the render keeps, and not on the switch, which a
   // rebuild replaces.

@@ -616,9 +616,9 @@ function installStyles() {
       }
       /* Square, the size of the .appl-action-btn beside it: the 88px floor
          existed to fit the word, and it is what pushed the button into the
-         History control on a narrow card. beta27-release-stability-section
-         sizes the same control and is deliberately last in the cascade, so
-         the two must agree — see the note on its rule. */
+         History control on a narrow card. Questa misura la scrive un posto
+         solo: la passata di stabilita' che una volta la ripeteva in fondo
+         alla cascata non c'e' piu'. */
       #page-appliances-main .dm-appliance-power-toggle,#appl-grid-overview .dm-appliance-power-toggle{
         min-width:0!important;width:32px!important;height:32px!important;padding:0!important;
         flex:0 0 auto!important;display:inline-grid!important;place-items:center!important;

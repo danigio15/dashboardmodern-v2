@@ -322,11 +322,3 @@ function installRuntimeRecovery() {
 }
 
 installRuntimeRecovery();
-
-export const beta24EnergyRecovery = Object.freeze({
-  recoverEnergyConfiguration,
-  recoverCanonicalLoads,
-  markRecoveredConfigPending,
-  recoverStoreState,
-  normalizeBatterySocText,
-});

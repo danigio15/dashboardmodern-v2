@@ -11,8 +11,6 @@
  * fonda il cielo e' quello della sera, solo piu' fermo.
  */
 
-export const DAYLIGHT_PHASES = Object.freeze(["alba", "mattina", "pomeriggio", "tramonto", "sera"]);
-
 /* Gli orari di stacco, in ore locali. Sono i confini che una persona userebbe
  * raccontando la giornata, non un calcolo astronomico: l'alba vera si sposta di
  * due ore fra giugno e dicembre, ma nessuno guarda una card per sapere

@@ -1,78 +1,72 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.url);
-const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
-const regressionsUrl = new URL("../src/sections/beta7-regression-section.js", import.meta.url);
+const catalogUrl = new URL("../src/core/personalization-catalog.js", import.meta.url);
+const engineUrl = new URL("../src/sections/icon-engine-section.js", import.meta.url);
 const flowsUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
 
-test("beta7 entry keeps the two scoped owners in order", async () => {
+test("the two beta7 passes are gone from the entry point", async () => {
   const source = await readFile(entryUrl, "utf8");
-  const guard = source.indexOf('import "./beta7-brand-guard-section.js"');
-  const polish = source.indexOf('import "./beta7-regression-section.js"');
-  assert.ok(guard >= 0);
-  assert.ok(polish > guard);
   assert.doesNotMatch(source, /beta7-review-fixes-section/);
+  /* La passata delle regressioni delegava o duplicava, e la forma delle righe
+   * azione — la sola cosa che era davvero sua — sta nel motore delle icone.
+   * La guardia del marchio proteggeva un `<img>` che il catalogo non stampa
+   * piu': il logo e' una maschera CSS su uno `<span>`. */
+  assert.doesNotMatch(source, /beta7-regression-section|beta7-brand-guard-section/);
+  for (const nome of ["beta7-regression-section.js", "beta7-brand-guard-section.js"]) {
+    await assert.rejects(access(new URL(`../src/sections/${nome}`, import.meta.url)));
+  }
 });
 
-test("broken remote car logos keep their image contract and get an inline fallback", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  assert.match(source, /img\[data-dm-brand-image\]/);
-  assert.match(source, /data-dm-brand-fallback/);
-  assert.match(source, /dmBeta7Repaired/);
-  assert.match(source, /insertAdjacentHTML\("afterend"/);
-  assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
+test("the car brand is a masked span from the local catalog, so no image can break", async () => {
+  const catalog = await readFile(catalogUrl, "utf8");
+  /* La guardia esisteva per un `<img>` remoto che poteva non arrivare. Adesso
+   * la forma la porta un file locale usato come maschera e il colore lo mette
+   * la plancia: non c'e' nessun `<img>` da sorvegliare, e infatti nessun
+   * modulo ne stampa uno — le prove a video pretendono che siano zero
+   * (beta2-persistence-ev-flow.spec.js:166, beta5-root-causes.spec.js:239). */
+  assert.match(catalog, /data-dm-brand-image="\$\{item\.id\}"/);
+  assert.match(catalog, /mask-image:url\('\$\{source\}'\)/);
+  assert.match(catalog, /dashboardmodern_static\/brands\//);
+  assert.doesNotMatch(catalog, /https?:\/\//);
+  const engine = await readFile(engineUrl, "utf8");
+  assert.doesNotMatch(engine, /dm-beta7-brand-guard-fallback|dm-beta7-brand-fallback/);
 });
 
-test("brand contract is claimed before load failure and after every vehicle render", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  const claimed = source.indexOf('img.dataset.dmBeta7Repaired = "true"');
-  const failedCheck = source.indexOf("img.complete && Number(img.naturalWidth) === 0");
-  assert.ok(claimed >= 0);
-  assert.ok(failedCheck > claimed);
-  assert.match(source, /__dmBeta7BrandContractOwner/);
-  assert.match(source, /function ownedVehicleSelector/);
-  assert.match(source, /guardAll\(\);\n\s*return result;/);
-});
-
-test("beta7 final polish owns quick actions, and non skinna piu' ne' clima ne' tapparelle", async () => {
-  const source = await readFile(regressionsUrl, "utf8");
-  assert.match(source, /polishQuickActionCards/);
+test("the icon engine owns the Actions tab rows and their form row", async () => {
+  const source = await readFile(engineUrl, "utf8");
   assert.match(source, /dm-beta7-existing-action-icon/);
-  assert.match(source, /dm-beta7-action-form-row/);
-  /* Il Clima non lo skinna piu' nemmeno questo foglio.
-   *
-   * Ne aveva una pelle intera per la scheda `cp-*`, e beta16 ne aveva
-   * un'altra: quattordici misure decise da due fogli in disaccordo — la card
-   * alta 248px o senza minimo, il numero grande 46px o 28px, i bordi 22px o
-   * 17px — dove vinceva chi caricava per ultimo. Un commento qui dentro
-   * diceva gia' «sotto i 760 la scheda del Clima la impagina beta16»: se
-   * n'erano accorti, e le due pelli erano rimaste tutt'e due.
-   *
-   * Solo che quella scheda non la disegna piu' nessuno: la pagina Clima e'
-   * tutta di climate-thermal-section, e a plancia aperta i nodi `cp-*` sono
-   * zero — contati con e senza i dati vecchi del guscio. Come la pelle della
-   * tapparella qui sotto, se ne va. */
+  assert.match(source, /row\.classList\.add\("dm-beta7-action-row"\)/);
+  assert.match(source, /row\.classList\.add\("dm-beta7-action-form-row"\)/);
+  /* Il Clima e la Tapparella non li skinna piu' nessun rattoppo: la pagina
+   * Clima e' tutta di climate-thermal-section e la finestra e' di
+   * shutter-section, che ne dichiara la geometria in un posto solo. */
   assert.doesNotMatch(source, /#page-clima[^\n]*\.cp-/);
-  // The shutter repaint guard stays; the Beta 7 window skin does not. It was
-  // the only sheet declaring left/right/top on .tapp-shutter, so it detached
-  // the closed panel from the opening the current skin draws.
-  assert.match(source, /__dmBeta7StableShutters/);
   assert.doesNotMatch(source, /#page-tapparelle[^\n]*\.tapp-(?:win|shutter|glass)/);
-  assert.doesNotMatch(source, /dmBeta7ShutterRoll/);
+  assert.doesNotMatch(source, /dmBeta7ShutterRoll|__dmBeta7StableShutters/);
   assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
 });
 
-test("existing guard keeps action text in column two and invalidates shutter saves", async () => {
-  const source = await readFile(guardUrl, "utf8");
+test("shutter repaints are the scene owner's alone", async () => {
+  /* La guardia che saltava il ridisegno quando la firma non cambiava avvolgeva
+   * `renderTapparelle`, che pero' shutter-scene-section RIMPIAZZA: la sua
+   * firma strutturale e' l'unica che decide se ridisegnare. */
+  const scene = await readFile(
+    new URL("../src/sections/shutter-scene-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(scene, /root\.renderTapparelle = owned;/);
+  assert.match(scene, /function installRenderOwner/);
+});
+
+test("the action row keeps its readable name in column two", async () => {
+  const source = await readFile(engineUrl, "utf8");
   assert.match(source, /dm-beta7-action-row>\.ed-row-main/);
   assert.match(source, /grid-column:2!important/);
   assert.match(source, /width:auto!important/);
   assert.match(source, /justify-self:stretch!important/);
-  assert.match(source, /__dmBeta7ShutterConfigOwner/);
-  assert.match(source, /regression\.shutterSignature = ""/);
-  assert.match(source, /root\.edTappAdd = configAwareShutterSave/);
 });
 
 test("period energy main connectors use direction-specific displayed values", async () => {
@@ -103,6 +97,6 @@ test("configured rows keep a shrinkable label instead of a collapsed one", async
 });
 
 test("the mdi cleanup never blanks the readable label of an action row", async () => {
-  const source = await readFile(regressionsUrl, "utf8");
+  const source = await readFile(engineUrl, "utf8");
   assert.match(source, /node\.closest\?\.\("\.ed-row-main"\)/);
 });

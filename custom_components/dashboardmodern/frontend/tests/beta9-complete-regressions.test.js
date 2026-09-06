@@ -11,12 +11,10 @@ const reportUrl = new URL("../src/sections/energy-report-polish-section.js", imp
 const editorUrl = new URL("../src/sections/editor-polish-section.js", import.meta.url);
 const temperatureUrl = new URL("../src/sections/temperature-section.js", import.meta.url);
 const shutterUrl = new URL("../src/sections/shutter-section.js", import.meta.url);
-const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
 
 test("quick actions use canonical colour glyphs and only the single-owner icon picker", async () => {
-  const [catalog, guard, personalization, engine] = await Promise.all([
+  const [catalog, personalization, engine] = await Promise.all([
     readFile(catalogUrl, "utf8"),
-    readFile(guardUrl, "utf8"),
     readFile(personalizationUrl, "utf8"),
     readFile(iconEngineUrl, "utf8"),
   ]);
@@ -27,13 +25,12 @@ test("quick actions use canonical colour glyphs and only the single-owner icon p
   assert.match(engine, /event\.stopImmediatePropagation\(\)/);
   assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
   assert.match(engine, /dm-beta9-action-picker/);
-  assert.doesNotMatch(guard, /openStableActionPicker|modal\.id = "dm-beta9-action-picker"/);
-  assert.doesNotMatch(guard, /ACTION_ICON_CATALOG|actionVisual/);
-  /* La geometria del tasto delle azioni rapide ha cambiato padrone: adesso la
-   * scrive chi le mette dentro il ripiano, e la guardia del marchio non deve
-   * piu' dire la sua — erano due a scrivere la stessa misura col peso massimo,
-   * e vinceva l'ordine di caricamento. */
-  assert.doesNotMatch(guard, /#qa-grid \.qa-btn\{/);
+  assert.doesNotMatch(engine, /openStableActionPicker|modal\.id = "dm-beta9-action-picker"/);
+  /* La geometria del tasto delle azioni rapide ha un padrone solo: chi le mette
+   * dentro il ripiano. La guardia del marchio, che un tempo diceva la sua sulla
+   * stessa misura col peso massimo, non c'e' piu' — e il motore delle icone,
+   * che quelle righe le decora, non la riscrive. */
+  assert.doesNotMatch(engine, /#qa-grid \.qa-btn\{/);
   const vassoio = await readFile(
     new URL("../src/sections/azioni-rapide-vassoio-section.js", import.meta.url),
     "utf8",
