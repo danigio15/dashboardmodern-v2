@@ -126,8 +126,11 @@ test("l'editor: una riga per orario, con i suoi minuti e la sua soglia", async (
     assert.ok(source.includes(campo), campo);
   assert.match(source, /data-dm-irr-ora-piu/);
   assert.match(source, /data-dm-irr-ora-via/);
-  /* Le righe si salvano appena si scrivono, dentro `cd_irrigazione`. */
+  /* Le righe si salvano MENTRE si scrivono, non quando si cambia campo: chi
+   * riempie l'ultima casella e chiude l'editor non perde quello che ha messo
+   * (`change` arriva solo al cambio di fuoco). */
   assert.match(source, /writeJsonIfChanged\("cd_irrigazione", next\)/);
+  assert.match(source, /for \(const evento of \["input", "change"\]\)/);
   /* E il ridisegno non porta via il cursore da sotto le dita. */
   assert.match(source, /doc\.activeElement !== campo/);
 });

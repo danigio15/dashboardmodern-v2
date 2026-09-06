@@ -1383,9 +1383,14 @@ function casellaOrari() {
         "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.",
       ),
     )}</small>`;
-  holder.addEventListener("change", (event) => {
-    if (event.target?.closest?.("[data-dm-irr-ora]")) salvaGliOrari(holder);
-  });
+  /* Mentre si scrive, non quando si esce dal campo: `change` arriva solo al
+   * cambio di fuoco, e chi scrive l'ultima casella e poi chiude l'editor
+   * perderebbe quello che ha appena messo. Riscrivere la stessa cosa non
+   * costa niente — `writeJsonIfChanged` non scrive se non e' cambiata. */
+  for (const evento of ["input", "change"])
+    holder.addEventListener(evento, (event) => {
+      if (event.target?.closest?.("[data-dm-irr-ora]")) salvaGliOrari(holder);
+    });
   holder.addEventListener("click", (event) => {
     const via = event.target?.closest?.("[data-dm-irr-ora-via]");
     if (via) {

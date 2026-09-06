@@ -167,3 +167,94 @@ test("la soglia del terreno scritta a mano resta scritta dopo il salvataggio", a
   await expect(page.locator("#ed-irr-soil")).toHaveValue("sensor.terra_nuova");
   await expect(page.locator("#ed-irr-soil-skip")).toHaveValue("72");
 });
+
+/* Piu' momenti nella stessa giornata (#325).
+ *
+ * «Una alle 05:30 e alle 20:30, se la % del sensore umidita' terreno e'
+ * inferiore ad una certa % parte una seconda irrigazione di tot minuti
+ * definiti dall'utente.» Le righe si aggiungono sotto l'ora del programma e
+ * si salvano da sole: chi ne toglie una e cambia idea non deve indovinare
+ * dove sia finita. */
+test("gli altri orari si aggiungono dall'editor e restano scritti", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  await boot(page, testInfo);
+  await page.evaluate(() => apriConfigEntita());
+  await expect(page.locator("#editor-modal")).toBeVisible();
+  await page.locator('.ed-tab[data-tab="irr"]').click();
+  await expect(page.locator("[data-dm-irr-orari-fields]")).toBeVisible();
+
+  await page.locator("[data-dm-irr-ora-piu]").click();
+  const riga = page.locator("[data-dm-irr-ora]:not(.dm-irr-ora-testa)").first();
+  await riga.locator('[data-campo="ora"]').fill("20:30");
+  await riga.locator('[data-campo="minuti"]').fill("12");
+  await riga.locator('[data-campo="seSottoA"]').fill("40");
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const salvato = JSON.parse(window.localStorage.getItem("cd_irrigazione") || "{}");
+        return JSON.stringify(salvato.orari || []);
+      }),
+    )
+    .toBe(JSON.stringify([{ ora: "20:30", minuti: 12, seSottoA: 40 }]));
+
+  /* Il salvataggio del runtime riscrive la configurazione coi soli campi che
+   * conosce: gli orari devono sopravvivergli, come le soglie del terreno. */
+  await page.evaluate(() => edIrrSaveCfg());
+  await page.locator('.ed-tab[data-tab="irr"]').click();
+  await expect(page.locator('[data-dm-irr-ora] [data-campo="ora"]').first()).toHaveValue("20:30");
+  await expect(page.locator('[data-dm-irr-ora] [data-campo="minuti"]').first()).toHaveValue("12");
+
+  /* E la pastiglia della card li nomina tutti, non solo il primo. */
+  await page.evaluate(() => {
+    document.getElementById("editor-modal")?.classList.remove("show");
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+    document.getElementById("page-irrigazione")?.classList.add("active");
+    renderIrrigazione();
+  });
+  await expect(page.locator("[data-dm-irr-schedule]")).toContainText("06:30");
+  await expect(page.locator("[data-dm-irr-schedule]")).toContainText("20:30");
+
+  /* Tolta la riga, sparisce anche dalla configurazione. */
+  await page.evaluate(() => apriConfigEntita());
+  await page.locator('.ed-tab[data-tab="irr"]').click();
+  await page.locator("[data-dm-irr-ora-via]").first().click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const salvato = JSON.parse(window.localStorage.getItem("cd_irrigazione") || "{}");
+        return Array.isArray(salvato.orari) ? salvato.orari.length : 0;
+      }),
+    )
+    .toBe(0);
+});
+
+/* La durata dell'orario vale per tutta la corsa: il runtime rimette
+ * `CD_IRR.until` a ogni passo e chi ha fatto partire la corsa lo corregge
+ * subito dopo. Senza questo la zona da cinque minuti ne farebbe cinque anche
+ * quando l'orario ne chiede dodici. */
+test("l'orario con i suoi minuti comanda la durata della corsa", async ({ page }, testInfo) => {
+  await boot(page, testInfo);
+
+  const conDurata = await page.evaluate(() => {
+    const stato = window.__DASHBOARDMODERN_POOL_IRRIGATION_SCENE__;
+    stato.durataDaImporre = 12;
+    window.cdIrrProgram(true);
+    stato.durataDaImporre = null;
+    const minuti = Math.round((window.CD_IRR.until - Date.now()) / 60000);
+    window.cdIrrStopAll();
+    return { minuti, dopoLoStop: stato.durataDellaCorsa };
+  });
+  expect(conDurata.minuti).toBe(12);
+  /* Fermata a mano, la durata imposta se ne va con lei. */
+  expect(conDurata.dopoLoStop).toBe(null);
+
+  // E senza orario che la imponga, comandano i minuti della zona.
+  const sueMinuti = await page.evaluate(() => {
+    window.cdIrrProgram(true);
+    const minuti = Math.round((window.CD_IRR.until - Date.now()) / 60000);
+    window.cdIrrStopAll();
+    return minuti;
+  });
+  expect(sueMinuti).toBe(5);
+});
