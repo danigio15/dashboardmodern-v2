@@ -14,6 +14,27 @@ il consiglio di arieggiare su una finestra gia' aperta — e le segnalazioni
 aperte prese una per una: l'aria che grida per un valore buono, l'auto che si
 ripete in Home, il televisore che risulta spento mentre e' acceso.
 
+### Aggiunto
+
+- **Due fonti nuove fra le Allerte: gli scioperi e i treni (#352).**
+
+      «Sarebbe bello inserire una sezione per: 1) scioperi nazionali;
+       2) orari dei treni con possibilita' di tracciare la stazione
+       preferita.»
+
+  Sono due notizie che si guardano prima di uscire di casa, e stanno accanto
+  al meteo e ai fulmini come le altre sei fonti. Gli scioperi leggono il
+  sensore che ne porta il conteggio e l'elenco negli attributi — settore,
+  regione, data d'inizio, quanto e' vicino — e uno che comincia oggi o sotto
+  casa alza il livello da nota ad attenzione: la tessera dice «Oggi sciopero:
+  trasporto pubblico locale» invece di un numero. I treni leggono il ritardo
+  in minuti, dallo stato o dagli attributi, insieme al numero del treno, alla
+  destinazione, all'orario e al binario; cinque minuti sono una nota, quindici
+  attenzione, mezz'ora allarme, e un treno soppresso e' un allarme comunque.
+  La stazione preferita e' una casella a parte, e da' il nome scritto accanto
+  al treno. I nomi degli attributi si cercano in italiano e in inglese, perche'
+  ogni integrazione li scrive a modo suo.
+
 ### Corretto
 
 - **Gli stati arrivano anche con una connessione lenta: la Home si riempie, le tessere si muovono.**
@@ -97,6 +118,7 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   sotto la card resta la misura — «💧 Umidita' 78% · soglia 60%» — senza il
   consiglio. Chiusa, o senza un contatto che lo dica, il consiglio c'e' come
   prima.
+
 
 - **Del volo sopra casa si dice la tratta, l'aereo e la compagnia (#334).**
 

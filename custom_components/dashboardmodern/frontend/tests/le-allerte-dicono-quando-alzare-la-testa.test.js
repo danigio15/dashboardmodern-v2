@@ -302,3 +302,78 @@ test("del volo si dice la tratta, l'aereo e la compagnia (#334)", async () => {
   assert.match(sezione, /t\("verso", "to"\)/);
   assert.match(sezione, /\[volo\.aereo, volo\.targa\]/);
 });
+
+test("gli scioperi e i treni sono due fonti come le altre (#352)", async () => {
+  const config = {
+    scioperi: { entity: "sensor.scioperi_italia" },
+    treni: { entity: "sensor.treno", stazione: "sensor.stazione" },
+  };
+  const oggi = new Date(ADESSO);
+  const states = {
+    "sensor.scioperi_italia": stato("2", {
+      strikes: [
+        {
+          sector: "Trasporto pubblico locale",
+          region: "Lazio",
+          start_date: oggi.toISOString(),
+          in_radius: true,
+        },
+        { sector: "Scuola", region: "Nazionale", start_date: "2026-12-01T00:00:00" },
+      ],
+    }),
+    "sensor.treno": stato("22", { treno: "IC 610", destinazione: "Milano", binario: "7" }),
+    "sensor.stazione": stato("ok", { friendly_name: "Roma Termini" }),
+  };
+  const letture = letturaAllerte(config, states, (v) => v, ADESSO);
+  const per = Object.fromEntries(letture.map((voce) => [voce.chiave, voce]));
+
+  /* Uno sciopero che comincia oggi, e sotto casa: non e' una nota, e' da
+   * saperlo prima di uscire. */
+  assert.equal(per.scioperi.livello, "attenzione");
+  assert.equal(per.scioperi.conteggio, 2);
+  assert.equal(per.scioperi.voci[0].settore, "Trasporto pubblico locale");
+  assert.equal(per.scioperi.voci[0].oggi, true);
+  assert.equal(per.scioperi.voci[1].oggi, false);
+
+  /* Ventidue minuti di ritardo: attenzione. */
+  assert.equal(per.treni.livello, "attenzione");
+  assert.equal(per.treni.ritardo, 22);
+  assert.equal(per.treni.treno, "IC 610");
+  assert.equal(per.treni.binario, "7");
+  assert.equal(per.treni.stazione, "Roma Termini");
+
+  /* In orario e' quiete; soppresso e' allarme, qualunque cosa dica il ritardo. */
+  const inOrario = letturaAllerte(
+    { treni: { entity: "sensor.treno" } },
+    { "sensor.treno": stato("0", { treno: "REG 2411" }) },
+    (v) => v,
+    ADESSO,
+  );
+  assert.equal(inOrario[0].livello, "quiete");
+  const soppresso = letturaAllerte(
+    { treni: { entity: "sensor.treno" } },
+    { "sensor.treno": stato("Soppresso", { treno: "REG 2411" }) },
+    (v) => v,
+    ADESSO,
+  );
+  assert.equal(soppresso[0].livello, "allarme");
+  assert.equal(soppresso[0].soppresso, true);
+
+  /* Senza scioperi in programma la fonte tace. */
+  const nessuno = letturaAllerte(
+    { scioperi: { entity: "sensor.scioperi_italia" } },
+    { "sensor.scioperi_italia": stato("0", { strikes: [] }) },
+    (v) => v,
+    ADESSO,
+  );
+  assert.equal(nessuno[0].livello, "quiete");
+
+  /* E le due fonti hanno le loro parole e le loro caselle. */
+  const sezione = await leggi("sections/allerte-section.js");
+  assert.match(sezione, /nome: t\("Scioperi", "Strikes"\)/);
+  assert.match(sezione, /nome: t\("Treni", "Trains"\)/);
+  assert.match(sezione, /Treno soppresso/);
+  const editor = await leggi("sections/allerte-editor-section.js");
+  assert.match(editor, /Sensore degli scioperi/);
+  assert.match(editor, /Stazione preferita \(facoltativa\)/);
+});

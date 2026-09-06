@@ -39,7 +39,7 @@ export const IGNOTO = "ignoto";
 
 const PESO = Object.freeze({ quiete: 0, nota: 1, attenzione: 2, allarme: 3 });
 
-/* Le sei categorie, con le caselle che ognuna accetta. La prima casella e'
+/* Le otto categorie, con le caselle che ognuna accetta. La prima casella e'
  * l'entita' principale e da sola basta; le altre servono a chi ha
  * l'informazione spezzata in piu' sensori — Blitzortung tiene il conteggio e
  * la distanza in due entita' diverse. */
@@ -50,6 +50,11 @@ export const CATEGORIE = Object.freeze([
   Object.freeze({ chiave: "pollini", caselle: ["entity"] }),
   Object.freeze({ chiave: "comfort", caselle: ["entity"] }),
   Object.freeze({ chiave: "voli", caselle: ["entity"] }),
+  /* «Sarebbe bello inserire una sezione per gli scioperi nazionali e per gli
+   * orari dei treni, con la stazione preferita» (#352). Sono due notizie che
+   * si guardano prima di uscire di casa, e stanno bene accanto al meteo. */
+  Object.freeze({ chiave: "scioperi", caselle: ["entity"] }),
+  Object.freeze({ chiave: "treni", caselle: ["entity", "stazione"] }),
 ]);
 
 /* Gli stati che vogliono dire «non lo so». */
@@ -352,6 +357,99 @@ function leggiVoli(voce, stati) {
   return { livello: conteggio > 0 ? "nota" : "quiete", conteggio, voci };
 }
 
+/* Gli scioperi: quanti, di che settore, e quando cominciano.
+ *
+ * L'integrazione italiana degli scioperi tiene il conteggio nello stato e
+ * l'elenco negli attributi, ognuno con settore, regione, data e distanza da
+ * casa; alcuni suoi sensori dicono anche il mezzo e i sindacati. Si legge
+ * quello che c'e', coi nomi che ognuna usa: chi pubblica in inglese e chi in
+ * italiano. */
+const SCIOPERI_MOSTRATI = 5;
+
+function leggiScioperi(voce, stati, adesso) {
+  const principale = stati.entity;
+  const elenco = Array.isArray(attributo(principale, ["strikes", "scioperi", "events"]))
+    ? attributo(principale, ["strikes", "scioperi", "events"])
+    : [];
+  const conteggio = numero(principale?.state) ?? elenco.length;
+  const oggi = new Date(adesso);
+  const voci = elenco.slice(0, SCIOPERI_MOSTRATI).map((sciopero) => {
+    const quando = Date.parse(
+      pulito(
+        sciopero?.start_date || sciopero?.start_date_str || sciopero?.data || sciopero?.inizio,
+      ),
+    );
+    const giorno = Number.isFinite(quando) ? new Date(quando) : null;
+    return {
+      settore: pulito(sciopero?.sector || sciopero?.settore || sciopero?.category),
+      zona: pulito(sciopero?.region || sciopero?.regione || sciopero?.province || sciopero?.area),
+      mezzo: pulito(sciopero?.modality || sciopero?.mezzo || sciopero?.transport),
+      sindacati: pulito(sciopero?.unions || sciopero?.sindacati),
+      inizio: Number.isFinite(quando) ? quando : null,
+      vicino: sciopero?.in_radius === true,
+      /* Oggi vuol dire oggi nel fuso di chi guarda, non nelle ultime
+       * ventiquattr'ore: uno sciopero che comincia stasera riguarda la
+       * giornata di oggi. */
+      oggi: Boolean(
+        giorno &&
+        giorno.getFullYear() === oggi.getFullYear() &&
+        giorno.getMonth() === oggi.getMonth() &&
+        giorno.getDate() === oggi.getDate(),
+      ),
+    };
+  });
+  let livello = conteggio > 0 ? "nota" : "quiete";
+  if (voci.some((v) => v.oggi) || voci.some((v) => v.vicino)) livello = "attenzione";
+  return { livello, conteggio, voci };
+}
+
+/* Il treno: quanto ritarda, e da dove parte.
+ *
+ * Le integrazioni dei treni italiani tengono il ritardo in minuti nello stato
+ * o in un attributo, e accanto il numero del treno, la destinazione, il
+ * binario e l'orario. I nomi cambiano da integrazione a integrazione: si
+ * cercano quelli che si usano, in italiano e in inglese, e quello che non
+ * c'e' semplicemente non si scrive. */
+const RITARDO_NOTA = 5;
+const RITARDO_ATTENZIONE = 15;
+const RITARDO_ALLARME = 30;
+const SOPPRESSO = /(soppress|cancell|cancel)/i;
+
+function leggiTreni(voce, stati) {
+  const principale = stati.entity;
+  const grezzo = pulito(principale?.state);
+  const soppresso =
+    SOPPRESSO.test(grezzo) ||
+    SOPPRESSO.test(pulito(attributo(principale, ["stato", "status", "state_text"])));
+  const ritardo =
+    numero(grezzo) ??
+    numero(attributo(principale, ["ritardo", "delay", "delay_minutes", "minuti_ritardo"]));
+  const treno = pulito(
+    attributo(principale, ["treno", "train", "train_number", "numero_treno", "categoria"]),
+  );
+  const destinazione = pulito(
+    attributo(principale, ["destinazione", "destination", "arrivo", "to"]),
+  );
+  const partenza = pulito(
+    attributo(principale, ["partenza", "origin", "departure", "from", "stazione_partenza"]),
+  );
+  const binario = pulito(attributo(principale, ["binario", "platform", "track"]));
+  const orario = pulito(
+    attributo(principale, ["orario", "time", "scheduled", "orario_partenza", "departure_time"]),
+  );
+  const stazione =
+    pulito(stati.stazione?.attributes?.friendly_name) ||
+    pulito(attributo(principale, ["stazione", "station", "station_name"]));
+  let livello = "quiete";
+  if (soppresso) livello = "allarme";
+  else if (ritardo != null) {
+    if (ritardo >= RITARDO_ALLARME) livello = "allarme";
+    else if (ritardo >= RITARDO_ATTENZIONE) livello = "attenzione";
+    else if (ritardo >= RITARDO_NOTA) livello = "nota";
+  }
+  return { livello, ritardo, soppresso, treno, destinazione, partenza, binario, orario, stazione };
+}
+
 const LETTORI = Object.freeze({
   terremoti: leggiTerremoti,
   meteo: leggiMeteo,
@@ -359,6 +457,8 @@ const LETTORI = Object.freeze({
   pollini: leggiPollini,
   comfort: leggiComfort,
   voli: leggiVoli,
+  scioperi: leggiScioperi,
+  treni: leggiTreni,
 });
 
 /**

@@ -93,6 +93,16 @@ export function categoriaDelleAllerte(chiave) {
       nome: t("Voli sopra casa", "Flights overhead"),
       quiete: t("Cielo libero", "Clear sky"),
     },
+    scioperi: {
+      icona: "🪧",
+      nome: t("Scioperi", "Strikes"),
+      quiete: t("Nessuno sciopero in vista", "No strike ahead"),
+    },
+    treni: {
+      icona: "🚆",
+      nome: t("Treni", "Trains"),
+      quiete: t("In orario", "On time"),
+    },
   };
   return voci[chiave] || { icona: "•", nome: clean(chiave), quiete: "" };
 }
@@ -154,7 +164,10 @@ function oraDi(istante) {
 }
 
 function giornoEOraDi(testo) {
-  const quando = new Date(clean(testo));
+  /* Un istante puo' arrivare come testo (la data del terremoto) o come numero
+   * di millisecondi (l'inizio di uno sciopero, che il modello ha gia' letto):
+   * tutti e due sono un momento, e si scrivono allo stesso modo. */
+  const quando = typeof testo === "number" ? new Date(testo) : new Date(clean(testo));
   if (!Number.isFinite(quando.getTime())) return clean(testo);
   try {
     return quando.toLocaleString(locale(), {
@@ -216,6 +229,27 @@ export function fraseDellAllerta(lettura) {
       return lettura.conteggio === 1
         ? t("1 volo in zona", "1 flight in the area")
         : t(`${lettura.conteggio} voli in zona`, `${lettura.conteggio} flights in the area`);
+    case "scioperi": {
+      if (!lettura.conteggio) return categoria.quiete;
+      /* Uno sciopero che comincia oggi si dice per primo: e' quello che
+       * cambia la giornata di chi legge. */
+      const adesso = (lettura.voci || []).find((voce) => voce.oggi);
+      if (adesso)
+        return adesso.settore
+          ? t(`Oggi sciopero: ${adesso.settore}`, `Strike today: ${adesso.settore}`)
+          : t("Sciopero oggi", "Strike today");
+      return lettura.conteggio === 1
+        ? t("1 sciopero in programma", "1 strike scheduled")
+        : t(`${lettura.conteggio} scioperi in programma`, `${lettura.conteggio} strikes scheduled`);
+    }
+    case "treni":
+      if (lettura.soppresso) return t("Treno soppresso", "Train cancelled");
+      if (lettura.ritardo == null) return categoria.quiete;
+      if (lettura.ritardo <= 0) return categoria.quiete;
+      return t(
+        `${formatNumber(lettura.ritardo, 0)} minuti di ritardo`,
+        `${formatNumber(lettura.ritardo, 0)} minutes late`,
+      );
     default:
       return parolaDelLivello(lettura.livello);
   }
@@ -244,6 +278,30 @@ export function righeDellAllerta(lettura) {
       if (lettura.quando != null) metti(t("Ultimo", "Last"), oraDi(lettura.quando));
       if (lettura.conteggio != null && lettura.livello === "quiete" && lettura.conteggio > 0)
         metti(t("Contati", "Counted"), formatNumber(lettura.conteggio, 0));
+      break;
+    case "scioperi":
+      /* Di ogni sciopero: quando comincia, il settore e dove. Il mezzo e i
+       * sindacati quando l'integrazione li dice. */
+      for (const voce of lettura.voci || []) {
+        const nome = voce.settore || t("Sciopero", "Strike");
+        const dettagli = [
+          voce.oggi ? t("oggi", "today") : voce.inizio ? giornoEOraDi(voce.inizio) : "",
+          voce.zona,
+          voce.mezzo,
+          voce.sindacati,
+        ].filter(Boolean);
+        metti(nome, dettagli.join(" · ") || "—");
+      }
+      break;
+    case "treni":
+      if (lettura.treno) metti(t("Treno", "Train"), lettura.treno);
+      if (lettura.destinazione) metti(t("Destinazione", "Destination"), lettura.destinazione);
+      if (lettura.partenza) metti(t("Partenza", "Departure"), lettura.partenza);
+      if (lettura.stazione) metti(t("Stazione", "Station"), lettura.stazione);
+      if (lettura.orario) metti(t("Orario", "Time"), lettura.orario);
+      if (lettura.binario) metti(t("Binario", "Platform"), lettura.binario);
+      if (lettura.ritardo != null && lettura.ritardo > 0)
+        metti(t("Ritardo", "Delay"), `${formatNumber(lettura.ritardo, 0)} min`);
       break;
     case "voli":
       /* Prima la tratta, che e' la cosa che si vuole sapere di un aereo che

@@ -104,6 +104,37 @@ function caselleDi(chiave) {
         ),
       ],
     ],
+    scioperi: [
+      [
+        "entity",
+        t("Sensore degli scioperi", "Strike sensor"),
+        "sensor.scioperi_italia",
+        t(
+          "Un sensore col numero degli scioperi e l'elenco negli attributi — settore, regione, data d'inizio: le integrazioni italiane degli scioperi lo pubblicano cosi'.",
+          "A sensor with the number of strikes and the list in its attributes — sector, region, start date: the Italian strike integrations publish it that way.",
+        ),
+      ],
+    ],
+    treni: [
+      [
+        "entity",
+        t("Treno seguito", "Followed train"),
+        "sensor.treno_selezionato",
+        t(
+          "Un sensore col ritardo in minuti nello stato o negli attributi, e accanto il numero del treno, la destinazione e il binario. Un treno soppresso diventa un allarme.",
+          "A sensor with the delay in minutes in its state or attributes, and next to it the train number, the destination and the platform. A cancelled train becomes an alarm.",
+        ),
+      ],
+      [
+        "stazione",
+        t("Stazione preferita (facoltativa)", "Favourite station (optional)"),
+        "sensor.stazione_termini",
+        t(
+          "Il sensore della stazione, se l'integrazione ne espone uno: da' il nome da scrivere accanto al treno.",
+          "The station sensor, when the integration exposes one: it gives the name written next to the train.",
+        ),
+      ],
+    ],
     voli: [
       [
         "entity",
