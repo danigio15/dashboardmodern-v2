@@ -111,7 +111,17 @@ test("the desktop dock scrolls to the sections that do not fit", async ({ page }
   await expect(previous).toBeDisabled();
   await expect(next).toBeEnabled();
 
-  await next.click();
+  // The point is that the arrow reaches the far end, not that it gets there in
+  // exactly one press: how many presses it takes is the ratio between the port
+  // and the dock, and every release that adds a section changes it. Pinning the
+  // count made this test go red for the Animali page (#358), which is a section
+  // arriving, not a dock that stopped scrolling.
+  for (let press = 0; press < 8; press += 1) {
+    if ((await portMetrics(page)).lastTabVisible) break;
+    if (await next.isDisabled()) break;
+    await next.click();
+    await page.waitForTimeout(350);
+  }
   await expect.poll(async () => (await portMetrics(page)).lastTabVisible).toBe(true);
   await expect(previous).toBeEnabled();
 
