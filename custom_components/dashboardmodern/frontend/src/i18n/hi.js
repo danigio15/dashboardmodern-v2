@@ -2830,4 +2830,9 @@ export default Object.freeze({
   "No extra command: the window carries the appliance's own and nothing else.": "कोई अतिरिक्त कमांड नहीं: विंडो में केवल उपकरण के अपने कमांड दिखते हैं।",
   "Found next to the appliance — one tap adds them:": "उपकरण के पास मिले — एक टैप से जुड़ जाते हैं:",
   "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "वे प्रोग्राम और सेटिंग्स जिनका अपना स्विच नहीं है: button.*, select.*, switch.* एंटिटी (साथ ही input_*, script.*, scene.*, automation.*)। ये उपकरण की विंडो में बटन के रूप में दिखते हैं। पैरामीटर वाली सर्विस — अपने प्रोग्राम के साथ hon.start_program — को तीन पंक्तियों की स्क्रिप्ट में लपेट दीजिए, उसके बाद वह बाकी जैसी ही एक एंटिटी बन जाती है।",
+  "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.": "कोई चुना नहीं गया: यह कैलेंडर घर का है और सब देखते हैं। एक या अधिक लोगों को चुनने पर एजेंडा इसे सिर्फ़ उन्हीं को दिखाता है — बाक़ी लोग घर के और अपने कैलेंडर देखते हैं।",
+  "The whole house": "पूरा घर",
+  "To split calendars between people you need Home Assistant persons, each linked to its own user.": "कैलेंडर लोगों के बीच बाँटने के लिए Home Assistant की persons चाहिए, हर एक अपने उपयोगकर्ता से जुड़ी हुई।",
+  "Who is watching?": "कौन देख रहा है?",
+  "Whose it is": "यह किसका है",
 });

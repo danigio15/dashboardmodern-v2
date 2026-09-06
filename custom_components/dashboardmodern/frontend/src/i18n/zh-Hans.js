@@ -2830,4 +2830,9 @@ export default Object.freeze({
   "No extra command: the window carries the appliance's own and nothing else.": "没有额外命令：窗口只显示电器自身的命令。",
   "Found next to the appliance — one tap adds them:": "在电器旁找到 — 轻点即可添加：",
   "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "没有自己开关的程序和设置：button.*、select.*、switch.* 实体（还有 input_*、script.*、scene.*、automation.*）。它们会作为按钮出现在电器窗口里。带参数的服务——带上程序的 hon.start_program——包进三行脚本，从此就是和其他一样的实体。",
+  "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.": "没有勾选任何人：这个日历属于家里，所有人都能看到。勾选一位或多位后，日程只向他们显示——其他人看到的是家里的日历和自己的日历。",
+  "The whole house": "整个家",
+  "To split calendars between people you need Home Assistant persons, each linked to its own user.": "要把日历分给不同的人，需要 Home Assistant 的 person，每个都关联到各自的用户。",
+  "Who is watching?": "现在是谁在看？",
+  "Whose it is": "属于谁",
 });

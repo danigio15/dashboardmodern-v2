@@ -9,6 +9,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **L'agenda è di chi la guarda (#344).**
+
+      «Sarebbe possibile implementare una soluzione in cui il calendario
+       mostrato dalla dashboard vari in base alla persona che lo sta
+       visualizzando? Utente 1 visualizza calendar.utente1, Utente 2
+       visualizza calendar.utente2, con la possibilità di scegliere quale
+       calendario verrà mostrato ad ogni utente.»
+
+  Nella scheda Agenda ogni calendario dice adesso **di chi è**: nessuno
+  spuntato vuol dire «di casa» — ed è quello che ogni calendario configurato
+  finora è, quindi chi non vuole dividere niente non si accorge di niente —
+  spuntandone uno o più, l'agenda e la tessera in Home lo mostrano solo a
+  loro. Chi si riconosce vede i suoi **e** quelli di casa: il calendario di
+  famiglia lo guardano tutti.
+
+  Chi sta guardando, dentro il pannello di Home Assistant, lo sa il documento
+  ospite e non quello della plancia. Finché non lo consegna, la plancia lo
+  chiede: una riga in cima all'agenda con i nomi di casa, che compare solo
+  quando qualcuno ha davvero diviso i calendari. La risposta si scrive nel
+  profilo di Home Assistant di **chi è collegato**, non in una casella di quel
+  dispositivo: chi lo dice una volta si ritrova la sua agenda dal telefono,
+  dal computer e dal tablet, e non la vede nessun altro.
+
 - **«Altri comandi» negli elettrodomestici (#338).**
 
       «Sto provando ad integrare l'asciugatrice con hOn. Non ha un'entità

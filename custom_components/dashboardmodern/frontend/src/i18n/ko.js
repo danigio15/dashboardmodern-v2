@@ -2830,4 +2830,9 @@ export default Object.freeze({
   "No extra command: the window carries the appliance's own and nothing else.": "추가 명령이 없습니다: 창에는 기기 자체의 명령만 나옵니다.",
   "Found next to the appliance — one tap adds them:": "기기 옆에서 찾았습니다 — 한 번 누르면 추가됩니다:",
   "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "자체 스위치가 없는 프로그램과 설정입니다. button.*, select.*, switch.* 엔티티(그리고 input_*, script.*, scene.*, automation.*)를 쓸 수 있습니다. 기기 창에 버튼으로 나타납니다. 매개변수가 있는 서비스 — 프로그램을 지정한 hon.start_program — 는 세 줄짜리 스크립트로 감싸면 그때부터 다른 것과 같은 엔티티가 됩니다.",
+  "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.": "아무도 선택하지 않으면 이 캘린더는 집의 것이고 모두가 봅니다. 한 명 이상을 선택하면 일정표는 그 사람들에게만 보여 줍니다 — 나머지는 집의 캘린더와 자기 것을 봅니다.",
+  "The whole house": "집 전체",
+  "To split calendars between people you need Home Assistant persons, each linked to its own user.": "캘린더를 사람별로 나누려면 각자의 사용자와 연결된 Home Assistant person이 필요합니다.",
+  "Who is watching?": "누가 보고 있나요?",
+  "Whose it is": "누구의 것",
 });
