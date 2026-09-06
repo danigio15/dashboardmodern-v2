@@ -14,6 +14,24 @@ su una finestra gia' aperta.
 
 ### Corretto
 
+- **Il nome del gruppo di continuità si legge: non sta più sotto la scena.**
+
+      «Ciao, il nome dell'UPS viene coperto dall'effetto dello sfondo.»
+
+  Era dentro il palco: un titolo nel flusso, e sopra di lui la scena — che il
+  palco lo copre da bordo a bordo — con i suoi cavi e il suo velo di sfondo.
+  Tutto quello che la scena disegna gli passava davanti per il solo fatto di
+  essere posizionato. Che il posto giusto fosse fuori lo diceva già il foglio
+  di stile, le cui regole parlano del titolo come fratello del palco e da
+  dentro non si applicavano mai: adesso il nome sta lì, sopra la scena e non
+  sotto.
+
+  E le due targhette di lato — «Rete elettrica», «Sotto protezione» — non
+  escono più dal telaio: sono centrate su un dodicesimo della scena, che su un
+  telefono sono quarantasette pixel, e mezza pastiglia veniva tagliata via.
+  Adesso rientrano quel tanto che basta, e dove lo schermo si stringe le parole
+  vanno a capo invece di allargarsi oltre il bordo.
+
 - **La lingua scelta per la plancia arriva su tutti i dispositivi.**
 
       «Nella versione corrente è sparito il settaggio per la lingua della
