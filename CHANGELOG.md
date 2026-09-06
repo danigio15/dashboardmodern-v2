@@ -225,6 +225,12 @@ riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
   finito di configurare il sensore non viene accolto da un «e' arrivata la
   posta» che riguarda la settimana scorsa.
 
+  E la pastiglia della posta non ricomincia da capo per colpa di un'altra:
+  la riga cambia le parole di chi e' cambiato, non si rifa' tutta. Prima
+  bastava accendere una lampadina — il conto delle luci da 2 a 3 — perche' la
+  posta rinascesse insieme al conto e ripartisse a sbattere lo sportello come
+  se fosse appena arrivata.
+
 - **Gli animali di casa hanno la loro sezione.**
 
       «Sarebbe utile ed interessante avere una nuova sezione per chi ha
