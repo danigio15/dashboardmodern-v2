@@ -145,6 +145,19 @@ test("la finestra della lavatrice si rifa' quando si apre, non a ogni giro", () 
   assert.match(lavatrice, /wrapFunction\("apriPopupLavatrice", "__dmPopupLavatrice", ridisegna\)/);
 });
 
+test("le tessere della Home tacciono a plancia parcheggiata, e tornano col ritorno", () => {
+  /* La plancia messa da parte da chi la ospita ha la Home ancora «attiva» e il
+   * documento ancora «visible»: senza la domanda condivisa le tessere — una
+   * trentina, e ognuna legge gli stati della casa — avrebbero continuato a
+   * rifarsi due volte al secondo per nessuno, che e' proprio il costo che il
+   * parcheggio esiste per evitare. */
+  const widget = leggi("sections/home-widgets-section.js");
+  const laHomeSiVede = widget.slice(widget.indexOf("function laHomeSiVede()"));
+  assert.match(laHomeSiVede.slice(0, 700), /if \(!planciaVisibile\(\)\) return false;/);
+  /* E al ritorno in scena si ridipinge senza aspettare la casa. */
+  assert.match(widget, /"dashboardmodern:chat-stato",[\s\S]{0,400}"pageshow",/);
+});
+
 test("il pannello termico si rifa' quando la sua finestra si apre", () => {
   /* Il pannello sta dentro la finestra del Clima rapido, non nella pagina
    * Clima: `replaceChildren` con una riga per macchina girava a ogni mazzetto

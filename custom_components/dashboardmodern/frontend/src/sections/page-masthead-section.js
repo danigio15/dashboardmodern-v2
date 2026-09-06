@@ -566,6 +566,20 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
 
+/* E una seconda passata, un attimo dopo.
+ *
+ * La larghezza dell'intestazione la detta il contenuto della pagina, e il
+ * contenuto puo' arrivare nello stesso giro in cui la si misura: chi disegna
+ * una pagina si mette in coda con la sua rAF, e chi arriva dopo di noi dipinge
+ * dopo la nostra misura. Da quando ogni sezione disegna solo la pagina che si
+ * vede, quel «dopo» capita proprio all'arrivo su una pagina — cioe' l'unica
+ * volta che conta. Una passata in piu' a pagina ferma non costa niente e
+ * misura quello che c'e' davvero. */
+function scheduleSettled() {
+  schedule();
+  root.setTimeout?.(schedule, 80);
+}
+
 /* The measurements below are the Solar thermal header's own: same padding,
  * same sun disc, same 2px gradient rule closing the block, same type. Only the
  * two accent colours change from page to page, and they arrive as custom
@@ -745,11 +759,11 @@ export function installPageMastheadSection() {
     "dashboardmodern:state-changed",
     "pageshow",
   ]) {
-    root.addEventListener?.(eventName, schedule);
+    root.addEventListener?.(eventName, scheduleSettled);
   }
   /* Il tocco su una linguetta e' quello che porta in scena un'altra pagina, e
    * l'intestazione e' di chi arriva: la regola sta nell'aiutante condiviso. */
-  quandoSiCambiaPagina(schedule);
+  quandoSiCambiaPagina(scheduleSettled);
   schedule();
 }
 

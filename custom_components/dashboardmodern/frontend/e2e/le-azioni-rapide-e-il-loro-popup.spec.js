@@ -149,6 +149,13 @@ test("i tasti dei programmi portano i disegni di casa, e chi aveva un'emoji la t
         { name: "Vecchio", entity: "script.vecchio", icon: "⏱️" },
       ]),
     );
+    /* La finestra si apre, che e' l'unico posto da cui quei tasti si vedono.
+     *
+     * Prima bastava un cambio di stato: la finestra chiusa si ridisegnava lo
+     * stesso, due volte al secondo, buttando via e rifacendo tutti i tasti.
+     * Adesso si dipinge per chi guarda, e la finestra si ridisegna quando si
+     * apre — che e' quello che fa questa riga, con la porta del guscio. */
+    window.apriPopupLavatrice?.();
     window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
     await new Promise((ok) => setTimeout(ok, 800));
     return [...document.querySelectorAll("#lavatrice-modal .lav-preset-btn")].map((tasto) => ({
