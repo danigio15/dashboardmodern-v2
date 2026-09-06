@@ -35,8 +35,11 @@ function harness(delay = 0, sections = null, storageValues = {}) {
   const broker = {
     statesStarted: true,
     subscription: 0,
-    ingestState(state) {
+    /* Come il broker vero: l'istantanea si ingerisce con `emitEvent: false`
+     * e non fa rumore; e' un evento vivo che passa dal cancello. */
+    ingestState(state, { emitEvent = true } = {}) {
       states.set(state.entity_id, state);
+      if (!emitEvent) return true;
       root.dispatchEvent(new FakeCustomEvent("dashboardmodern:state-changed", {
         detail: { entity_id: state.entity_id, state },
       }));
@@ -50,7 +53,10 @@ function harness(delay = 0, sections = null, storageValues = {}) {
 test("initial get_states snapshot updates registries without flooding the UI", async () => {
   const { broker, events, states } = harness();
   for (let index = 0; index < 2500; index += 1) {
-    broker.ingestState({ entity_id: `sensor.bootstrap_${index}`, state: String(index), attributes: {} });
+    broker.ingestState(
+      { entity_id: `sensor.bootstrap_${index}`, state: String(index), attributes: {} },
+      { emitEvent: false },
+    );
   }
   await new Promise((resolve) => setTimeout(resolve, 5));
   assert.equal(states.size, 2500);

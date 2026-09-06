@@ -152,6 +152,27 @@ export function createBridgeSocket({
   }
   const permitted = new Set(allowed);
 
+  /* La presa segue la connessione del pannello.
+   *
+   * Il ponte diceva `auth_ok` appena costruito e non chiudeva mai: il pallino
+   * restava verde anche con Home Assistant scollegato, e quando il telefono
+   * tornava dal sonno la plancia teneva gli stati di prima — quelli cambiati
+   * nel frattempo restavano vecchi finche' non cambiavano di nuovo — perche'
+   * nessuno le dava una ragione per richiedere l'istantanea. Una presa vera
+   * cade quando cade la linea, e il guscio sa gia' cosa fare a quel punto:
+   * riapre, richiede `get_states`, si riabbona. Qui si fa la stessa cosa: le
+   * prese aperte cadono quando il pannello perde la connessione, e una presa
+   * costruita mentre la connessione manca si apre quando torna. */
+  const aperte = new Set();
+  const inAttesa = new Set();
+  const collegata = () => connection.connected !== false;
+  connection.addEventListener?.("disconnected", () => {
+    for (const socket of [...aperte]) socket._lineaCaduta();
+  });
+  connection.addEventListener?.("ready", () => {
+    for (const socket of [...inAttesa]) socket._apri();
+  });
+
   return class BridgeSocket {
     /* Le costanti del WebSocket vero, sulla classe.
      *
@@ -167,7 +188,7 @@ export function createBridgeSocket({
     static CLOSED = CLOSED;
 
     constructor() {
-      this.readyState = OPEN;
+      this.readyState = collegata() ? OPEN : 0;
       this.onmessage = null;
       this.onopen = null;
       this.onclose = null;
@@ -176,12 +197,27 @@ export function createBridgeSocket({
 
       // The hosted bootstrap waits for auth_ok before it does anything. There
       // is nothing to authenticate — the parent connection already is — so the
-      // handshake is completed immediately and the auth message it would send
-      // is discarded.
-      queueMicrotask(() => {
-        this.onopen?.({});
-        this._deliver({ type: "auth_ok" });
-      });
+      // handshake is completed as soon as that connection is up and the auth
+      // message it would send is discarded.
+      if (collegata()) queueMicrotask(() => this._apri());
+      else inAttesa.add(this);
+    }
+
+    _apri() {
+      inAttesa.delete(this);
+      if (this.readyState === CLOSED) return;
+      this.readyState = OPEN;
+      aperte.add(this);
+      this.onopen?.({});
+      this._deliver({ type: "auth_ok" });
+    }
+
+    _lineaCaduta() {
+      for (const unsubscribe of this._subscriptions.values()) unsubscribe();
+      this._subscriptions.clear();
+      aperte.delete(this);
+      this.readyState = CLOSED;
+      this.onclose?.({ code: 1006, reason: "Home Assistant connection lost" });
     }
 
     _deliver(payload) {
@@ -300,6 +336,8 @@ export function createBridgeSocket({
       // hosted document that reloads would otherwise leak one per reload.
       for (const unsubscribe of this._subscriptions.values()) unsubscribe();
       this._subscriptions.clear();
+      aperte.delete(this);
+      inAttesa.delete(this);
       this.readyState = CLOSED;
       this.onclose?.({});
     }

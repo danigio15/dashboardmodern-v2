@@ -78,10 +78,11 @@ function configuredEntities(root) {
 }
 
 /**
- * Prevent the initial Home Assistant get_states snapshot from producing one UI
- * event per entity, discard live updates that are not used anywhere by the
- * dashboard, then coalesce the remaining notifications into a bounded batch.
- * State registries are still updated synchronously by the original broker.
+ * Discard live updates that are not used anywhere by the dashboard, then
+ * coalesce the remaining notifications into a bounded batch. State registries
+ * are still updated synchronously by the original broker. The initial
+ * get_states snapshot never reaches this gate: the broker ingests it with
+ * `emitEvent: false`, so there is no bootstrap storm to suppress here.
  */
 export function installStateEventGate(broker, root = globalThis, { delay = 500 } = {}) {
   if (!broker || typeof broker.ingestState !== "function" || broker.__dmStateEventGate)
@@ -135,25 +136,21 @@ export function installStateEventGate(broker, root = globalThis, { delay = 500 }
     if (!timer) root.queueMicrotask?.(flush);
   };
 
-  broker.ingestState = function gatedIngestState(state) {
-    // startStateFeed() sets statesStarted before get_states and subscription only
-    // after the initial snapshot has been ingested. Suppress that bootstrap
-    // notification storm entirely.
-    const bootstrapSnapshot = Boolean(this.statesStarted && !this.subscription);
+  broker.ingestState = function gatedIngestState(state, options) {
     const dispatch = root.dispatchEvent;
 
-    if (typeof dispatch !== "function") return original.call(this, state);
+    if (typeof dispatch !== "function") return original.call(this, state, options);
 
     root.dispatchEvent = function gatedDispatch(event) {
       if (event?.type === STATE_EVENT) {
-        if (!bootstrapSnapshot) queue(state);
+        queue(state);
         return true;
       }
       return dispatch.call(root, event);
     };
 
     try {
-      return original.call(this, state);
+      return original.call(this, state, options);
     } finally {
       root.dispatchEvent = dispatch;
     }

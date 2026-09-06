@@ -14,6 +14,28 @@ su una finestra gia' aperta.
 
 ### Corretto
 
+- **Gli stati arrivano anche con una connessione lenta: la Home si riempie, le tessere si muovono.**
+
+      «Sezione aperta ma i dati non si caricano.» Dal telefono: pallino verde,
+       meteo «--», tessere a zero.
+
+  Il broker dei moduli chiedeva un'istantanea intera della casa — tutte le
+  entita' con tutti gli attributi, megabyte su una casa grande — DOPO quella
+  che il guscio aveva gia' chiesto sulla sua presa, con dodici secondi di
+  tempo. Dal telefono, attraverso Nabu Casa, scadeva; e con lei moriva la
+  sottoscrizione agli eventi che veniva dopo, e nessuno riprovava. Niente
+  «stati pronti», niente eventi: le tessere restavano sui numeri dell'avvio
+  anche quando una luce si accendeva, finche' non si ricaricava la pagina.
+  Riprodotto in prova con un `get_states` da quindici secondi.
+
+  Adesso l'istantanea la porta il guscio, una volta sola per tutti; il broker
+  si abbona agli eventi per primo — che e' leggero e non dipende da niente —
+  e se la presa cade o la sottoscrizione non riesce riprova finche' non
+  riesce, con una pausa che si allarga. E dentro il pannello la presa segue
+  la connessione di Home Assistant: cade quando cade lei, e si apre quando
+  torna, cosi' al ritorno del telefono dal sonno il guscio richiede gli
+  stati come farebbe con una presa vera, invece di tenersi quelli vecchi.
+
 - **Energia: il pacchetto dei periodi arriva, e nell'attesa si dice a che punto e'.**
 
       «Tolto il velo ma i dati non si aggiornano.» «Devi velocizzare il

@@ -356,6 +356,20 @@ export const PESANTI_PER_IL_RECORDER = Object.freeze(
  * nuovo da leggere comunque. */
 export const AFFANNO_DEL_RECORDER_MS = 5 * 60_000;
 
+/* Quanto si aspetta l'istantanea di tutti gli stati.
+ *
+ * `get_states` e' la risposta piu' grossa che Home Assistant manda: ogni
+ * entita' della casa con tutti i suoi attributi, megabyte interi su una casa
+ * grande. Dal telefono, attraverso Nabu Casa, dodici secondi non bastavano:
+ * la domanda scadeva, il flusso degli stati moriva li' e la Home restava sui
+ * numeri dell'avvio — «sezione aperta ma i dati non si caricano». */
+export const TEMPO_PER_L_ISTANTANEA = 60_000;
+
+/* Da quanto riparte la ripresa del flusso dopo un tentativo andato male, e
+ * fino a quanto si allarga: si riprova sempre, mai piu' spesso di cosi'. */
+export const RIPRESA_DEL_FLUSSO_MS = 1000;
+export const RIPRESA_DEL_FLUSSO_MASSIMA_MS = 30_000;
+
 export function tempoPerLeStatistiche(start, end, base = 12000) {
   const da = Date.parse(start);
   const a = Date.parse(end);
@@ -383,10 +397,21 @@ export class HomeAssistantBroker {
   /* La risposta del periodo corrente vale un minuto: le statistiche del
    * Recorder cambiano ogni cinque, e richiederle ogni quindici secondi pesava
    * sul server senza trovare niente di nuovo (dal campo: la CPU del mini PC). */
-  constructor({ timeout = 12000, cacheCurrentMs = 60000, cacheHistoricalMs = 600000 } = {}) {
+  constructor({
+    timeout = 12000,
+    cacheCurrentMs = 60000,
+    cacheHistoricalMs = 600000,
+    ripresaDelFlussoMs = RIPRESA_DEL_FLUSSO_MS,
+  } = {}) {
     this.timeout = timeout;
     this.cacheCurrentMs = cacheCurrentMs;
     this.cacheHistoricalMs = cacheHistoricalMs;
+    this.ripresaDelFlussoMs = ripresaDelFlussoMs;
+    /* Il flusso degli stati che qualcuno ha chiesto di tenere vivo (vedi
+     * `keepStateFeedAlive`): cosa vuole, e il timer della prossima ripresa. */
+    this.flussoVoluto = null;
+    this.ripresaDelFlusso = 0;
+    this.tentativiDelFlusso = 0;
     /* La fila davanti al Recorder, e da quando arranca (vedi `request`). */
     this.inFilaAlRecorder = [];
     this.inCorsoAlRecorder = 0;
@@ -400,6 +425,50 @@ export class HomeAssistantBroker {
     this.cache = new Map();
     this.subscription = 0;
     this.statesStarted = false;
+  }
+
+  /* Il flusso degli stati si tiene vivo da solo.
+   *
+   * Prima si partiva una volta, all'avvio, e se quell'unico tentativo andava
+   * male — l'istantanea scaduta, la presa non ancora aperta — nessuno
+   * riprovava: niente sottoscrizione, niente eventi, la Home ferma sui numeri
+   * dell'avvio finche' non si ricaricava la pagina. Qui si riprova finche'
+   * non riesce, con una pausa che si allarga, e si riparte da capo ogni volta
+   * che la presa cade (`reset`): e' quello che fa una presa vera. */
+  keepStateFeedAlive({ snapshot = true, onReady = () => {}, onError = () => {} } = {}) {
+    this.flussoVoluto = { snapshot, onReady, onError };
+    this.tentativiDelFlusso = 0;
+    return this.riprendiIlFlusso();
+  }
+
+  async riprendiIlFlusso() {
+    const voluto = this.flussoVoluto;
+    if (!voluto || this.ripresaDelFlusso) return false;
+    if (this.statesStarted && this.subscription) return true;
+    try {
+      await this.startStateFeed({ snapshot: voluto.snapshot });
+      this.tentativiDelFlusso = 0;
+      voluto.onReady();
+      return true;
+    } catch (error) {
+      voluto.onError(error);
+      this.tentativiDelFlusso += 1;
+      const attesa = Math.min(
+        RIPRESA_DEL_FLUSSO_MASSIMA_MS,
+        this.ripresaDelFlussoMs * 2 ** Math.min(10, this.tentativiDelFlusso - 1),
+      );
+      this.programmaLaRipresa(attesa);
+      return false;
+    }
+  }
+
+  programmaLaRipresa(attesa) {
+    if (!this.flussoVoluto || this.ripresaDelFlusso) return;
+    this.ripresaDelFlusso =
+      globalThis.setTimeout?.(() => {
+        this.ripresaDelFlusso = 0;
+        this.riprendiIlFlusso();
+      }, attesa) || 0;
   }
 
   token() {
@@ -428,6 +497,8 @@ export class HomeAssistantBroker {
     this.authenticated = false;
     this.subscription = 0;
     this.statesStarted = false;
+    /* Presa caduta: il flusso riparte sulla prossima, se qualcuno lo vuole. */
+    if (this.flussoVoluto) this.programmaLaRipresa(this.ripresaDelFlussoMs);
     if (error) {
       this.pending.forEach(({ reject, timer }) => {
         globalThis.clearTimeout?.(timer);
@@ -528,10 +599,14 @@ export class HomeAssistantBroker {
         globalThis.clearTimeout?.(timer);
         callback(value);
       };
-      timer = globalThis.setTimeout?.(
-        () => finish(reject, new Error("Home Assistant connection timeout")),
-        this.timeout,
-      );
+      timer = globalThis.setTimeout?.(() => {
+        /* Una presa che non si e' aperta in tempo non si lascia in giro: da
+         * sola si aprirebbe piu' tardi, con nessuno ad ascoltarla. */
+        try {
+          if (this.socket) this.socket.close();
+        } catch (_error) {}
+        finish(reject, new Error("Home Assistant connection timeout"));
+      }, this.timeout);
       try {
         const socket = new globalThis.WebSocket(this.url());
         this.socket = socket;
@@ -771,29 +846,57 @@ export class HomeAssistantBroker {
     return this.valuesForPlans(plans, selected);
   }
 
-  async startStateFeed() {
-    if (this.statesStarted) return true;
+  /* Il flusso degli stati: prima la sottoscrizione, poi l'istantanea.
+   *
+   * Prima era il contrario, e l'istantanea era anche una domanda in piu':
+   * il guscio della plancia chiede gia' `get_states` sulla sua presa e
+   * riempie i registri che leggono tutti (`STATES`, `_RAW_STATES`), e qui se
+   * ne chiedeva un'altra uguale — due volte tutta la casa a ogni avvio,
+   * sulla stessa connessione — con dodici secondi di tempo. Sul telefono
+   * scadeva, e con lei moriva la sottoscrizione che veniva dopo. Adesso la
+   * sottoscrizione parte subito, che e' leggera e non dipende da niente, e
+   * l'istantanea si chiede solo a chi non ha un guscio che la porta
+   * (`snapshot: false` quando c'e'). */
+  async startStateFeed({ snapshot = true } = {}) {
+    if (this.statesStarted && this.subscription) return true;
     this.statesStarted = true;
     try {
-      const states = await this.cachedRequest({ type: "get_states" }, "get_states", 5000);
-      (Array.isArray(states) ? states : []).forEach((state) =>
-        this.ingestState(state, { emitEvent: false }),
-      );
-      const socket = await this.connect();
-      const id = ++this.nextId;
-      this.subscription = id;
-      await new Promise((resolve, reject) => {
-        const timer = globalThis.setTimeout?.(() => {
-          this.pending.delete(id);
-          reject(new Error("State subscription timeout"));
-        }, this.timeout);
-        this.pending.set(id, { resolve, reject, timer });
-        socket.send(JSON.stringify({ id, type: "subscribe_events", event_type: "state_changed" }));
-      });
+      await this.subscribeToStates();
+      if (snapshot) await this.snapshotStates();
       return true;
     } catch (error) {
       this.statesStarted = false;
       throw error;
     }
+  }
+
+  async subscribeToStates() {
+    const socket = await this.connect();
+    if (this.subscription && this.socket === socket) return this.subscription;
+    const id = ++this.nextId;
+    await new Promise((resolve, reject) => {
+      const timer = globalThis.setTimeout?.(() => {
+        this.pending.delete(id);
+        reject(new Error("State subscription timeout"));
+      }, this.timeout);
+      this.pending.set(id, { resolve, reject, timer });
+      socket.send(JSON.stringify({ id, type: "subscribe_events", event_type: "state_changed" }));
+    });
+    this.subscription = id;
+    return id;
+  }
+
+  /* Tutti gli stati in una volta, nei registri, senza un evento per ognuno. */
+  async snapshotStates() {
+    const states = await this.cachedRequest(
+      { type: "get_states" },
+      "get_states",
+      5000,
+      TEMPO_PER_L_ISTANTANEA,
+    );
+    (Array.isArray(states) ? states : []).forEach((state) =>
+      this.ingestState(state, { emitEvent: false }),
+    );
+    return Array.isArray(states) ? states.length : 0;
   }
 }

@@ -23,6 +23,7 @@ import {
   finite,
   formatNumber,
   installStyle,
+  lexicalGlobal,
   onEditorRedraw,
   readJson,
   root,
@@ -1463,21 +1464,42 @@ function subscribeStore() {
   });
 }
 
-async function startBroker() {
+/* Gli stati sono arrivati: lo si dice a chi disegna. */
+function annunciaGliStati() {
+  root.dispatchEvent?.(
+    new CustomEvent("dashboardmodern:states-ready", {
+      detail: { count: Object.keys(allStates()).length },
+    }),
+  );
+}
+
+/* Il flusso degli stati.
+ *
+ * L'istantanea di tutta la casa la porta il guscio: chiede `get_states` sulla
+ * sua presa, riempie `STATES` e chiama `cdBootStatiArrivati` — a ogni avvio e
+ * a ogni riconnessione. Qui non se ne chiede una seconda: ci si aggancia a
+ * quella chiamata per annunciare gli stati, e al broker si chiede solo di
+ * tenere viva la sottoscrizione agli eventi, che e' quella che fa muovere le
+ * tessere. Prima il broker chiedeva un'altra istantanea intera con dodici
+ * secondi di tempo, e sul telefono scadeva: niente annuncio, niente eventi,
+ * la Home ferma sui numeri dell'avvio — «sezione aperta ma i dati non si
+ * caricano». Senza guscio (le prove in Node) l'istantanea la chiede lui. */
+function startBroker() {
   if (state.brokerStarted) return;
   state.brokerStarted = true;
-  try {
-    await broker.startStateFeed();
-    root.dispatchEvent?.(
-      new CustomEvent("dashboardmodern:states-ready", {
-        detail: { count: Object.keys(allStates()).length },
-      }),
-    );
-  } catch (error) {
-    state.brokerStarted = false;
-    state.lastError = clean(error?.message || error);
-    if (state.retryCount < 40) scheduleEnergyRefresh(true, 250);
-  }
+  const delGuscio = typeof root.cdBootStatiArrivati === "function";
+  broker.keepStateFeedAlive({
+    snapshot: !delGuscio,
+    onReady: () => {
+      if (!delGuscio) annunciaGliStati();
+    },
+    onError: (error) => {
+      state.lastError = clean(error?.message || error);
+    },
+  });
+  if (!delGuscio) return;
+  if (lexicalGlobal("_cdStatiArrivati") === true) annunciaGliStati();
+  wrapFunction("cdBootStatiArrivati", "__dmStatiDelGuscio", annunciaGliStati);
 }
 
 export function installEnergySection() {
