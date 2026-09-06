@@ -129,10 +129,14 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   famiglia lo guardano tutti.
 
   Chi sta guardando, dentro il pannello di Home Assistant, lo sa il documento
-  ospite e non quello della plancia. Finché non lo consegna, la plancia lo
-  chiede: una riga in cima all'agenda con i nomi di casa, che compare solo
-  quando qualcuno ha davvero diviso i calendari. La risposta si scrive nel
-  profilo di Home Assistant di **chi è collegato**, non in una casella di quel
+  ospite e non quello della plancia: adesso glielo consegna, e passa solo
+  l'identificativo dell'utente — non il nome, non i permessi — così l'agenda si
+  veste da sola senza chiedere niente a nessuno.
+
+  Aperta fuori dal pannello, dove quell'utente non c'è, la plancia lo chiede:
+  una riga in cima all'agenda con i nomi di casa, che compare solo quando
+  qualcuno ha davvero diviso i calendari. La risposta si scrive nel profilo di
+  Home Assistant di **chi è collegato**, non in una casella di quel
   dispositivo: chi lo dice una volta si ritrova la sua agenda dal telefono,
   dal computer e dal tablet, e non la vede nessun altro.
 

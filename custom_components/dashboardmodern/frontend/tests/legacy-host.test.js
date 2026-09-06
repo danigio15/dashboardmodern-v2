@@ -93,8 +93,8 @@ test("the language variant follows the Home Assistant locale", () => {
   assert.equal(legacyVariantForLocale("zh-TW"), "dashboard-en.html");
 });
 
-async function hostedDocument(language) {
-  const { host } = mount({ hass: { locale: { language } } });
+async function hostedDocument(language, hass = {}) {
+  const { host } = mount({ hass: { locale: { language }, ...hass } });
   /* The document is fetched and rewritten asynchronously; the srcdoc lands on
    * the frame once that settles. */
   for (let attempt = 0; attempt < 10 && !host.frame.srcdoc; attempt++) {
@@ -130,6 +130,22 @@ test("an unknown Home Assistant language falls back to English, not to Italian",
   const html = await hostedDocument("xx-YY");
   assert.match(html, /<html[^>]*lang="en"/);
   assert.match(html, /window\.__DASHBOARDMODERN_LOCALE__="en"/);
+});
+
+/* Chi e' collegato (#344): l'agenda mostra a ognuno i suoi calendari, e chi
+ * sia l'utente lo sa solo il documento ospite — `hass.user` vive di la', e la
+ * plancia riceve un ponte verso Home Assistant, non chi lo sta usando. */
+test("l'utente collegato arriva nel documento ospitato, e solo il suo identificativo", async () => {
+  const html = await hostedDocument("it", { user: { id: "abc123", name: "Mario", is_admin: true } });
+  assert.match(html, /window\.__DASHBOARDMODERN_UTENTE__="abc123"/);
+  /* Il nome e i permessi restano di la': la plancia non ne ha bisogno e
+   * quello che non attraversa non si puo' perdere. */
+  assert.equal(html.includes("Mario"), false);
+  assert.equal(html.includes("is_admin"), false);
+  /* Senza utente — la plancia aperta da sola, senza pannello — resta vuoto,
+   * e l'agenda chiede a chi guarda invece di indovinare. */
+  const senza = await hostedDocument("it");
+  assert.match(senza, /window\.__DASHBOARDMODERN_UTENTE__=""/);
 });
 
 test("no credential is published to the hosted page", () => {

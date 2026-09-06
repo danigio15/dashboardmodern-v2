@@ -41,7 +41,7 @@ function escapeAttribute(value) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile, locale }) {
+function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile, locale, utente }) {
   const prelude = `<base href="${escapeAttribute(baseUrl)}"><script>(function(){
     const p=parent;
     const bridge=p&&p.__DASHBOARDMODERN_BRIDGE_WS__;
@@ -53,6 +53,11 @@ function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile
        first dashboard script runs so the i18n engine detects it on its first
        read and nothing paints in the shell's own language first. */
     window.__DASHBOARDMODERN_LOCALE__=${JSON.stringify(locale || "")};
+    /* Chi e' collegato (#344): l'identificativo dell'utente di Home Assistant,
+       e nient'altro di lui. Serve all'agenda per mostrare a ognuno i suoi
+       calendari; la plancia, dentro il pannello, questo dato non ha modo di
+       chiederlo — il ponte porta solo Home Assistant, non chi lo sta usando. */
+    window.__DASHBOARDMODERN_UTENTE__=${JSON.stringify(utente || "")};
     window.__DASHBOARDMODERN_BRIDGED__=typeof bridge==='function';
     /* The document lives at about:srcdoc, where location.reload() lands on a
        blank page in the Home Assistant WebView. Anything that needs a fresh
@@ -114,7 +119,7 @@ export function stableStaticBase(staticBase, hostWindow = globalThis.window) {
   }
 }
 
-async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, fetchRef, hostWindow }) {
+async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, utente, fetchRef, hostWindow }) {
   const requestedBase = String(staticBase).replace(/\/$/, "");
   const fallbackBase = stableStaticBase(requestedBase, hostWindow);
   const bases = [...new Set([requestedBase, fallbackBase].filter(Boolean))];
@@ -133,6 +138,7 @@ async function loadHostedDocument(frame, { staticBase, file, instanceId, primary
         primary,
         configProfile,
         locale,
+        utente,
       });
       frame.dataset.runtimeBase = base;
       frame.dataset.usedStableFallback = String(base !== requestedBase);
@@ -178,6 +184,9 @@ export function mountLegacyHost(
   const locale = resolveLocale(hass?.locale?.language);
   const file = variant || legacyShellFor(locale);
   hostWindow.__DASHBOARDMODERN_LOCALE__ = locale;
+  /* L'utente collegato (#344): lo conosce solo chi ospita la plancia. */
+  const utente = String(hass?.user?.id || "");
+  hostWindow.__DASHBOARDMODERN_UTENTE__ = utente;
   const frame = documentRef.createElement("iframe");
   frame.className = "dashboardmodern-legacy-host";
   frame.setAttribute("title", "DashboardModern");
@@ -205,6 +214,7 @@ export function mountLegacyHost(
     child.__DASHBOARDMODERN_PRIMARY__ = primary !== false;
     child.__DASHBOARDMODERN_HOSTED__ = true;
     child.__DASHBOARDMODERN_LOCALE__ = locale;
+    child.__DASHBOARDMODERN_UTENTE__ = utente;
     child.__DASHBOARDMODERN_BRIDGED__ = true;
     child.__DASHBOARDMODERN_BRIDGE_WS__ = BridgeSocket;
     delete child.__DASHBOARDMODERN_REAL_TOKEN__;
@@ -229,7 +239,7 @@ export function mountLegacyHost(
   if (typeof loader !== "function") throw new Error("A fetch implementation is required.");
 
   const boot = () =>
-    loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, fetchRef: loader, hostWindow }).catch((error) => {
+    loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, utente, fetchRef: loader, hostWindow }).catch((error) => {
       console.error("[DashboardModern] hosted document bootstrap failed", error);
       frame.srcdoc = `<main role="alert" style="padding:24px;font:16px sans-serif">DashboardModern: ${escapeAttribute(error.message)}</main>`;
       return false;
