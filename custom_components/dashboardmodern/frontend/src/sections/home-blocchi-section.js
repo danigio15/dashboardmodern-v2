@@ -127,6 +127,20 @@ export function installHomeBlocchiSection() {
     "dashboardmodern:plancia-dipinta",
   ])
     root.addEventListener?.(evento, inCoda);
+  /* E quando si TORNA sulla Home.
+   *
+   * L'ordine si applica solo a pagina aperta — spostare nodi in una pagina
+   * chiusa e' lavoro per nessuno — ma il guscio cambia pagina con un
+   * ascoltatore scritto dentro il documento, che accende una classe e non
+   * avvisa nessuno. Cosi' chi riordina stando su un'altra pagina, o chi torna
+   * sulla Home dopo, la trovava com'era finche' non passava di li' un evento
+   * di stato per tutt'altra ragione: funzionava per caso, non per costruzione.
+   *
+   * Questo ascoltatore sta sul documento e parte dopo il loro, che la classe
+   * l'ha gia' accesa: al microtask seguente la Home e' quella attiva. */
+  doc.addEventListener("click", (evento) => {
+    if (evento.target?.closest?.(".tab,[data-tab]")) inCoda();
+  });
   inCoda();
 }
 

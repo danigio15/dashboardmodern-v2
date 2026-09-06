@@ -175,4 +175,26 @@ test("le azioni rapide si portano in cima alla Home, e ci restano", async ({ pag
       { timeout: 15_000 },
     )
     .toBe(true);
+
+  /* E riordinando da un'ALTRA pagina, tornando sulla Home la si trova gia'
+   * in ordine: l'ordine si applica a pagina aperta, e il guscio cambia pagina
+   * senza avvisare nessuno — senza un orecchio sul cambio di scheda, la Home
+   * restava com'era finche' non passava di li' un evento per tutt'altro. */
+  await page.evaluate(() => {
+    document.querySelector('.tab[data-tab="temp"]')?.click();
+    localStorage.setItem(
+      "cd_home_blocchi",
+      JSON.stringify(["persone", "azioni", "widget", "dispositivi"]),
+    );
+  });
+  await page.evaluate(() => document.querySelector('.tab[data-tab="home"]')?.click());
+  await expect
+    .poll(
+      async () => {
+        const fila = await ordineInPagina(page);
+        return fila.indexOf("persone") >= 0 && fila.indexOf("persone") < fila.indexOf("azioni");
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
 });

@@ -295,6 +295,16 @@ test("le caselle della colonnina non spariscono al salvataggio dell'auto", async
       "dm.ev_percentuale_solare_sessione": "sensor.evcc_loadpoint_1_session_solar_percentage",
     });
 
+  /* E rimettendo in uso quell'auto, la colonnina di casa resta quella di
+   * casa: e' il giro che la riportava indietro. */
+  await page.evaluate(() => window.cdEvApplyCar?.(0));
+  await expect
+    .poll(() => caselle(page))
+    .toMatchObject({
+      "dm.ev_modalita_ricarica_evcc": "select.evcc_loadpoint_1_charge_mode",
+      "dm.ev_energia_sessione": "sensor.evcc_loadpoint_1_charged_energy",
+    });
+
   /* E dopo un ricaricamento sono ancora li'. */
   await page.reload();
   await page.waitForFunction(

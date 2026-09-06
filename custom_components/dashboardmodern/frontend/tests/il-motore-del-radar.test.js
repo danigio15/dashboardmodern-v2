@@ -332,13 +332,13 @@ test("sotto il tetto la pioggia si chiede piu' larga, e copre lo stesso riquadro
   const mappa = finestraDiTessere(41.9, 12.5, { latoPx: 483, altoPx: 302, raggioKm: 30 });
   assert.equal(mappa.zoom, 9);
 
-  const pioggia = finestraDellaPioggia(41.9, 12.5, mappa, 8);
-  assert.equal(pioggia.zoom, 8);
+  const pioggia = finestraDellaPioggia(41.9, 12.5, mappa, 7);
+  assert.equal(pioggia.zoom, 7);
   /* Il riquadro e' lo stesso: la mappa non cambia inquadratura. */
   assert.equal(pioggia.lato, mappa.lato);
   assert.equal(pioggia.alto, mappa.alto);
-  /* E i quadratini sono grossi il doppio, uno ogni quattro. */
-  for (const tessera of pioggia.tessere) assert.equal(tessera.lato, LATO_TESSERA * 2);
+  /* E i quadratini sono grossi quattro volte, uno ogni sedici. */
+  for (const tessera of pioggia.tessere) assert.equal(tessera.lato, LATO_TESSERA * 4);
   /* Coprono tutto il riquadro, bordi compresi: se restasse scoperta una
    * striscia si vedrebbe una banda senza pioggia lungo un lato. */
   const sinistra = Math.min(...pioggia.tessere.map((t) => t.sx));
@@ -349,6 +349,39 @@ test("sotto il tetto la pioggia si chiede piu' larga, e copre lo stesso riquadro
   assert.ok(destra >= mappa.lato && basso >= mappa.alto, `copre in basso: ${destra},${basso}`);
 });
 
+test("la pioggia cade dove cade la mappa, a qualunque tetto", () => {
+  /* Il difetto che questa prova ferma: rimpicciolire il riquadro e
+   * moltiplicare dopo faceva battere il minimo di sessantaquattro pixel, e
+   * quell'aggiunta si moltiplicava con tutto il resto — la pioggia usciva
+   * trentacinque pixel piu' su della mappa sotto. Una pioggia disegnata da
+   * un'altra parte e' peggio di una pioggia che manca. */
+  const dovePunto = (finestra) => {
+    const centro = tesseraDelPunto(41.9, 12.5, finestra.zoom);
+    const tessera = finestra.tessere.find(
+      (voce) => voce.x === Math.floor(centro.x) && voce.y === Math.floor(centro.y),
+    );
+    return [
+      tessera.sx + (centro.x - tessera.x) * finestra.tessera,
+      tessera.sy + (centro.y - tessera.y) * finestra.tessera,
+    ];
+  };
+  for (const [largo, alto, zoom, tetto] of [
+    [320, 198, 9, 7],
+    [483, 302, 9, 8],
+    [483, 302, 9, 7],
+    [320, 198, 12, 3],
+  ]) {
+    const mappa = finestraDiTessere(41.9, 12.5, { latoPx: largo, altoPx: alto, zoom });
+    const pioggia = finestraDellaPioggia(41.9, 12.5, mappa, tetto);
+    const [fx, fy] = dovePunto(mappa);
+    const [px, py] = dovePunto(pioggia);
+    assert.ok(
+      Math.abs(fx - px) < 0.01 && Math.abs(fy - py) < 0.01,
+      `${largo}x${alto} z${zoom}→z${pioggia.zoom}: la pioggia cade in ${px},${py} e la mappa in ${fx},${fy}`,
+    );
+  }
+});
+
 test("senza tetto, o con un tetto che non morde, la finestra resta quella", () => {
   const mappa = finestraDiTessere(41.9, 12.5, { latoPx: 483, altoPx: 302, raggioKm: 30 });
   assert.equal(finestraDellaPioggia(41.9, 12.5, mappa, null), mappa);
@@ -357,7 +390,7 @@ test("senza tetto, o con un tetto che non morde, la finestra resta quella", () =
 });
 
 test("il tetto lo dice la casella, e uno zero vuol dire «nessun tetto»", () => {
-  assert.equal(zoomDellaPioggia({}, "rainviewer"), 8);
+  assert.equal(zoomDellaPioggia({}, "rainviewer"), 7);
   assert.equal(zoomDellaPioggia({ zoomPioggia: "6" }, "rainviewer"), 6);
   /* Zero non e' vuoto: e' la scelta di chi ha un servizio che a quel livello
    * risponde eccome, e non deve pagare un numero misurato a casa d'altri. */

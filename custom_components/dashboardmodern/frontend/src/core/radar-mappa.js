@@ -192,26 +192,28 @@ export function finestraDellaPioggia(lat, lon, finestra, zoomMassimo = null) {
   if (tetto === null || finestra.zoom <= tetto) return finestra;
   const salto = finestra.zoom - Math.max(ZOOM_MINIMO, Math.round(tetto));
   const fattore = 2 ** salto;
+  /* Il quadratino si chiede GIA' grande, invece di rimpicciolire il riquadro e
+   * moltiplicare dopo.
+   *
+   * Rimpicciolire e moltiplicare sembrava la stessa cosa e non lo era: il
+   * riquadro ha un minimo di sessantaquattro pixel, e quando la divisione
+   * scendeva sotto quel minimo i conti venivano fatti per un riquadro piu'
+   * alto di quello vero. Moltiplicando dopo, quell'aggiunta si moltiplicava
+   * con tutto il resto e la pioggia usciva scentrata — trentacinque pixel su
+   * un riquadro 320×198 sceso da z9 a z7, e molto di piu' con un tetto piu'
+   * basso: la pioggia disegnata da un'altra parte rispetto alla mappa sotto e'
+   * peggio della pioggia che manca.
+   *
+   * Chiedendo la stessa finestra con il quadratino largo `T×fattore`, il mondo
+   * misura `2^Zr × T × fattore = 2^Z × T` pixel: esattamente lo spazio del
+   * fondo. Le posizioni escono gia' buone, e non c'e' niente da scalare. */
   const piu = finestraDiTessere(lat, lon, {
-    latoPx: finestra.lato / fattore,
-    altoPx: finestra.alto / fattore,
+    latoPx: finestra.lato,
+    altoPx: finestra.alto,
     zoom: finestra.zoom - salto,
-    lato: finestra.tessera,
+    lato: finestra.tessera * fattore,
   });
-  if (!piu) return finestra;
-  return {
-    ...piu,
-    /* Il riquadro resta quello del fondo: e' la stessa finestra, guardata con
-     * quadratini piu' grossi. */
-    lato: finestra.lato,
-    alto: finestra.alto,
-    tessere: piu.tessere.map((tessera) => ({
-      ...tessera,
-      sx: tessera.sx * fattore,
-      sy: tessera.sy * fattore,
-      lato: tessera.lato * fattore,
-    })),
-  };
+  return piu || finestra;
 }
 
 /**
@@ -367,11 +369,19 @@ export const SERVIZI_RADAR = Object.freeze({
      * plancia con raggio trenta chilometri chiedeva `z9`, e i quadratini
      * tornavano tutti «Zoom Level Not Supported» — l'elenco dei fotogrammi
      * invece arrivava, quindi il servizio c'era e a quel livello non serviva.
-     * Otto e' il primo livello sotto quello che si e' visto fallire. Se
-     * dovesse servire piu' basso, si abbassa dalla casella nella scheda: e'
-     * li' apposta, perche' un numero misurato su una casa sola non e' una
-     * legge. */
-    zoomMassimo: 8,
+     *
+     * Da quella schermata si sa solo che nove e' troppo. Sette e' il massimo
+     * che la documentazione di RainViewer dichiara per i quadratini della
+     * mappa meteo, ed e' la lettura che ha retto alla revisione: fermarsi a
+     * otto avrebbe lasciato la scritta a chi calcola otto — cioe' a schermi di
+     * poco piu' stretti di quello della segnalazione — e avrebbe rifatto lo
+     * stesso difetto un gradino piu' in basso.
+     *
+     * Chi ha un servizio che a nove risponde eccome non paga questo numero:
+     * la casella nella scheda lo alza, lo abbassa, o lo toglie del tutto. Un
+     * numero che nasce da una schermata sola non e' una legge, e sta dove si
+     * puo' cambiare. */
+    zoomMassimo: 7,
   }),
 });
 

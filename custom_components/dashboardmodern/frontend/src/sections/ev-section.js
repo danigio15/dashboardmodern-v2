@@ -324,7 +324,10 @@ function rimettiInUso(auto, indice) {
        * che nessuno perde quello che aveva. */
       if (!String(chiave).startsWith("dm.ev_") || eDellaWallbox(chiave))
         prossime[chiave] = valore;
-    for (const [chiave, valore] of Object.entries(mappa)) prossime[chiave] = valore;
+    /* La mappa del profilo non tocca la colonnina: e' di casa, e quello che il
+     * profilo ne porta e' una copia vecchia raccolta prima di questa regola. */
+    for (const [chiave, valore] of Object.entries(mappa))
+      if (!eDellaWallbox(chiave)) prossime[chiave] = valore;
     writeJsonIfChanged("cd_entity_overrides", prossime);
     root.cdApplyCanonicalOverrides?.(prossime);
   } catch (_error) {}
@@ -354,6 +357,43 @@ function scriviNeiCampi(contenitore, quale) {
 
 /** Le caselle di casa, come le legge chi disegna. */
 const caselleDiCasa = () => readJson("cd_entity_overrides", {}) || {};
+
+/** La stessa mappa senza le caselle della colonnina. */
+function senzaLaColonnina(mappa) {
+  const uscita = {};
+  for (const [chiave, valore] of Object.entries(mappa || {}))
+    if (!eDellaWallbox(chiave)) uscita[chiave] = valore;
+  return uscita;
+}
+
+/** Solo le caselle della colonnina, per tenerle da parte. */
+function soloLaColonnina(mappa) {
+  const uscita = {};
+  for (const [chiave, valore] of Object.entries(mappa || {}))
+    if (eDellaWallbox(chiave) && clean(valore)) uscita[chiave] = valore;
+  return uscita;
+}
+
+/* Rimette le caselle della colonnina dopo che qualcun altro ha scritto.
+ *
+ * Il corpo vendorizzato di `cdEvApplyCar` riversa il profilo dentro le
+ * mappature globali, e un profilo salvato prima della regola qui sopra la
+ * colonnina ce l'ha dentro. Rimetterla e' l'unico modo di non perderla senza
+ * riscrivere quel corpo. */
+function rimettiLaColonnina(colonnina) {
+  if (!colonnina || !Object.keys(colonnina).length) return false;
+  try {
+    const adesso = caselleDiCasa();
+    const prossime = { ...adesso, ...colonnina };
+    if (JSON.stringify(prossime) === JSON.stringify(adesso)) return false;
+    writeJsonIfChanged("cd_entity_overrides", prossime);
+    root.cdApplyCanonicalOverrides?.(prossime);
+    mostraLeCaselleDellaColonnina(prossime);
+  } catch (_errore) {
+    return false;
+  }
+  return true;
+}
 
 /* Le caselle della colonnina, nei campi, dicono quello che sa la CASA.
  *
@@ -1499,7 +1539,12 @@ function installLegacyWrappers() {
         restoreProfilePhotos(car);
         applyVehicleAsset();
       }
+      /* Le caselle di casa si tengono da parte PRIMA che il guscio scriva: il
+       * suo corpo riversa il profilo dentro le mappature globali, e i profili
+       * salvati prima di questa regola la colonnina ce l'hanno ancora dentro. */
+      const colonnina = soloLaColonnina(readJson("cd_entity_overrides", {}) || {});
       const result=previous.call(this,index,...rest);
+      rimettiLaColonnina(colonnina);
       restoreProfilePhotos(car);
       /* E si ridisegna anche dopo: il corpo del guscio, fra le sue cose, puo'
        * aver rimesso mano all'immagine. Quando non l'ha fatto questa e' una
@@ -1522,6 +1567,19 @@ function installLegacyWrappers() {
       // decided afterwards, in `addProfile` below, once the name is known.
       if (!clean(profile.img)) profile.img=photos.idle;
       profile.imgPlugged=photos.plugged;
+      /* La colonnina non entra nel profilo di una vettura.
+       *
+       * Il guscio raccoglie il profilo leggendo TUTTI i campi `dm.ev_*` del
+       * modulo, e da quando quelli della colonnina si vedono — devono vedersi,
+       * o il salvataggio li cancellava — verrebbero raccolti anche loro. Da li'
+       * la colonnina finirebbe copiata dentro ogni vettura salvata, e la copia
+       * piu' vecchia tornerebbe su alla prima auto rimessa in uso: rifatto il
+       * collegamento con le entita' giuste, bastava riaprire la macchina di
+       * prima per riavere quelle sbagliate.
+       *
+       * La colonnina e' della casa. Non e' una casella che una vettura porta
+       * con se', quindi non si porta via. */
+      profile.ov=senzaLaColonnina(profile.ov);
       return profile;
     }
     captureProfile.__dmEvSection=true; captureProfile.__dmPrevious=previous; root.cdEvCaptureProfile=captureProfile;
