@@ -71,17 +71,22 @@ Object.assign(state, {
   wrappers: state.wrappers || new Set(),
   storeUnsubscribe: state.storeUnsubscribe || null,
   lastError: "",
-  /* Il carico in corso, con la chiave del periodo che sta leggendo: una
-   * seconda richiesta per lo stesso periodo si accoda a lui. */
+  /* Il carico in corso — la sua chiave, la promessa, quante delle sue domande
+   * hanno risposto: una seconda richiesta con la stessa chiave si accoda a lui. */
   caricoInCorso: null,
-  /* Quante delle domande del pacchetto hanno gia' risposto. */
-  avanzamento: { fatte: 0, totali: 0 },
+  /* Quante volte la configurazione dell'Energia e' cambiata. Entra nella
+   * chiave del carico: un pacchetto letto sulla configurazione di prima si
+   * riconosce a risposta arrivata e si butta via. */
+  configurazione: Number(state.configurazione) || 0,
 });
 root.__DASHBOARDMODERN_RUNTIME_0150__ = state;
 
-/* Il periodo come chiave: e' l'unica cosa che rende vecchio un pacchetto. */
-function chiaveDelPeriodo(period) {
-  return `${Number(period?.year) || 0}-${Number(period?.month) || 0}`;
+/* La chiave di un carico: il periodo, l'impianto e la configurazione che
+ * legge. Sono le tre cose che rendono vecchio un pacchetto — non il fatto che
+ * nel frattempo qualcuno abbia chiesto di nuovo. */
+function chiaveDelCarico(period) {
+  const mese = `${Number(period?.year) || 0}-${Number(period?.month) || 0}`;
+  return `${mese}|${impiantoScelto()}|${state.configurazione}`;
 }
 
 const PLACEHOLDER = "__dashboardmodern_hosted__";
@@ -438,10 +443,12 @@ function incompleteMessage(results) {
     .join(", ");
 }
 
-export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
+/* `alPasso(fatte, totali)` dice a chi aspetta quante domande hanno risposto:
+ * e' il conto di QUESTO carico, non di tutti quelli in corso. */
+export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso = () => {}) {
   runtimeMetrics.increment("energyRefreshes");
   const generation = ++state.generation;
-  const chiave = chiaveDelPeriodo(period);
+  const chiave = chiaveDelCarico(period);
   const monthDate = selectedDate(period);
   const today = new Date();
   /* Il giorno parte per primo: e' quello che si guarda. */
@@ -456,23 +463,25 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
     loadDevicePeriod("year", monthDate),
     loadEnergyLoadsDay(today),
   ];
-  state.avanzamento = { fatte: 0, totali: carichi.length };
+  let fatte = 0;
+  alPasso(fatte, carichi.length);
   const contata = (promessa) =>
     promessa.then((valore) => {
-      state.avanzamento.fatte += 1;
-      segnaLAttesa();
+      fatte += 1;
+      alPasso(fatte, carichi.length);
       return valore;
     });
   const [dayResult, monthResult, yearResult, deviceDay, deviceMonth, deviceYear, energyLoadsDay] =
     await Promise.all(carichi.map(contata));
-  /* Un pacchetto si butta via solo se nel frattempo si e' scelto un altro
-   * periodo. Prima bastava che PARTISSE una richiesta nuova — e ne partono di
+  /* Un pacchetto si butta via solo se nel frattempo e' cambiato cio' che
+   * legge: un altro periodo, un altro impianto, una configurazione nuova.
+   * Prima bastava che PARTISSE una richiesta nuova — e ne partono di
    * continuo: il guscio a ogni giro, gli stati che cambiano, la pagina che si
    * apre — perche' quella in corso, a risposta arrivata, venisse scartata.
    * Con le domande al Recorder in fila il giro dura di piu', e non arrivava
    * mai in fondo prima che qualcuno lo scavalcasse: «i dati non si
    * aggiornano», per sempre, senza nemmeno una riga che lo dicesse. */
-  if (chiave !== chiaveDelPeriodo(selectedPeriod())) return null;
+  if (chiave !== chiaveDelCarico(selectedPeriod())) return null;
 
   const results = [
     ["day", dayResult],
@@ -882,7 +891,7 @@ export function spiegazioneDellErrore(testo) {
  * e invece era un'attesa. */
 function segnaLAttesa() {
   if (state.bundle || !state.caricoInCorso || !doc) return;
-  const { fatte, totali } = state.avanzamento;
+  const { fatte, totali } = state.caricoInCorso.avanzamento;
   const testo = `${t(
     "Sto ancora leggendo le statistiche del Recorder",
     "Still reading the Recorder statistics",
@@ -903,27 +912,39 @@ function segnaLaRagione(testo) {
   });
 }
 
-/* Una richiesta per volta per lo stesso periodo.
+/* Una richiesta per volta per la stessa chiave.
  *
- * Chi chiede un aggiornamento mentre uno e' gia' in corso per lo stesso
- * periodo riceve quello: i numeri che sta portando sono freschi quanto
- * basta, e una seconda lettura delle stesse statistiche costerebbe al
- * Recorder senza dire niente di nuovo. */
+ * Chi chiede un aggiornamento mentre uno e' gia' in corso con la stessa
+ * chiave — stesso periodo, stesso impianto, stessa configurazione — riceve
+ * quello: i numeri che sta portando sono freschi quanto basta, e una seconda
+ * lettura delle stesse statistiche costerebbe al Recorder senza dire niente di
+ * nuovo. Con una chiave diversa parte un carico nuovo, e quello vecchio a
+ * risposta arrivata si riconosce e si scarta (`loadAtomicEnergyBundle`).
+ *
+ * L'avanzamento e' del singolo carico: con due letture in corso — il mese
+ * cambiato a meta' strada — non si contano a vicenda, e la riga dice il conto
+ * di quella che si sta guardando. */
 export function refreshEnergy(period = selectedPeriod()) {
-  const chiave = chiaveDelPeriodo(period);
+  const chiave = chiaveDelCarico(period);
   if (state.caricoInCorso?.chiave === chiave) return state.caricoInCorso.promessa;
-  const carico = { chiave, promessa: null };
-  carico.promessa = eseguiIlRefresh(period).finally(() => {
-    if (state.caricoInCorso === carico) state.caricoInCorso = null;
-  });
+  const carico = { chiave, avanzamento: { fatte: 0, totali: 0 }, promessa: null };
   state.caricoInCorso = carico;
+  setEnergyLoading(true);
+  carico.promessa = eseguiIlRefresh(period, carico).finally(() => {
+    /* Un carico scavalcato non spegne l'attesa di chi l'ha scavalcato. */
+    if (state.caricoInCorso !== carico) return;
+    state.caricoInCorso = null;
+    setEnergyLoading(false);
+  });
   return carico.promessa;
 }
 
-async function eseguiIlRefresh(period) {
-  setEnergyLoading(true);
+async function eseguiIlRefresh(period, carico) {
   try {
-    const bundle = await loadAtomicEnergyBundle(period);
+    const bundle = await loadAtomicEnergyBundle(period, (fatte, totali) => {
+      carico.avanzamento = { fatte, totali };
+      if (state.caricoInCorso === carico) segnaLAttesa();
+    });
     if (!bundle) return false;
     commitDerived(bundle);
     state.bundle = bundle;
@@ -966,8 +987,6 @@ async function eseguiIlRefresh(period) {
       );
     }
     return false;
-  } finally {
-    setEnergyLoading(false);
   }
 }
 
@@ -1436,9 +1455,11 @@ function risvegliaReportDelGuscio() {
 function subscribeStore() {
   if (state.storeUnsubscribe || !dashboardStore()?.subscribe) return;
   state.storeUnsubscribe = dashboardStore().subscribe((change) => {
-    if (["energy", "appliances", "loads", "entityOverrides"].includes(change.section)) {
-      scheduleEnergyRefresh(true);
-    }
+    if (!["energy", "appliances", "loads", "entityOverrides"].includes(change.section)) return;
+    /* La configurazione e' cambiata: un carico partito prima legge quella
+     * vecchia, e il suo pacchetto — anche se arriva — non vale piu'. */
+    state.configurazione += 1;
+    scheduleEnergyRefresh(true);
   });
 }
 

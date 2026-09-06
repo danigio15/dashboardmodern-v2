@@ -30,7 +30,9 @@ su una finestra gia' aperta.
 
   Adesso una richiesta in corso per lo stesso periodo si tiene, e chi chiede
   nel frattempo riceve lei; un pacchetto si butta via solo se nel frattempo
-  si e' scelto un altro mese. Al Recorder si chiedono due cose per volta,
+  e' cambiato cio' che legge — un altro mese, un altro impianto, una
+  configurazione salvata — e con due letture in corso ognuna tiene il suo
+  conto. Al Recorder si chiedono due cose per volta,
   non una: l'attesa si dimezza e si resta lontani dalle sette di prima. E
   quando il velo se ne va prima del pacchetto, sopra i numeri c'e' scritto
   «Sto ancora leggendo le statistiche del Recorder · 3/7», non il silenzio.

@@ -130,11 +130,12 @@ test("il riposo vale anche a freddo, quando non c'e' ancora un pacchetto", () =>
   );
 });
 
-test("una richiesta in corso per lo stesso periodo si tiene, non si butta via", () => {
+test("una richiesta in corso con la stessa chiave si tiene, non si butta via", () => {
   /* Dal campo, dopo la 1.4.11: «tolto il velo ma i dati non si aggiornano».
    * Ogni richiesta nuova faceva scartare quella in corso a risposta
-   * arrivata; adesso si scarta solo se nel frattempo si guarda un altro
-   * periodo, e chi chiede mentre una lettura e' in corso riceve quella. */
+   * arrivata; adesso si scarta solo se nel frattempo e' cambiato cio' che
+   * legge — periodo, impianto, configurazione — e chi chiede mentre una
+   * lettura con la stessa chiave e' in corso riceve quella. */
   const energia = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), "..", "src", "sections", "energy-section.js"),
     "utf8",
@@ -143,10 +144,29 @@ test("una richiesta in corso per lo stesso periodo si tiene, non si butta via", 
     energia,
     /if \(state\.caricoInCorso\?\.chiave === chiave\) return state\.caricoInCorso\.promessa;/,
   );
-  assert.match(energia, /if \(chiave !== chiaveDelPeriodo\(selectedPeriod\(\)\)\) return null;/);
+  assert.match(energia, /if \(chiave !== chiaveDelCarico\(selectedPeriod\(\)\)\) return null;/);
   assert.doesNotMatch(energia, /if \(generation !== state\.generation\) return null;/);
-  /* E quando il velo se ne va prima del pacchetto, si dice a che punto si e'. */
+  /* La chiave porta il periodo, l'impianto e il numero della configurazione,
+   * e quel numero cresce a ogni modifica salvata nel magazzino (osservazione
+   * della review: la maschera cambiata a meta' lettura riceveva il pacchetto
+   * di prima). */
+  assert.match(
+    energia,
+    /return `\$\{mese\}\|\$\{impiantoScelto\(\)\}\|\$\{state\.configurazione\}`;/,
+  );
+  const magazzino = energia.indexOf("state.storeUnsubscribe = dashboardStore().subscribe(");
+  assert.ok(magazzino > 0);
+  assert.match(energia.slice(magazzino, magazzino + 500), /state\.configurazione \+= 1;/);
+  /* E quando il velo se ne va prima del pacchetto, si dice a che punto si e':
+   * il conto e' del singolo carico, non di tutti quelli in corso. */
   assert.match(energia, /Sto ancora leggendo le statistiche del Recorder/);
+  assert.match(energia, /const \{ fatte, totali \} = state\.caricoInCorso\.avanzamento;/);
+  assert.doesNotMatch(energia, /state\.avanzamento/);
+  /* Un carico scavalcato non spegne l'attesa di chi l'ha scavalcato. */
+  assert.match(
+    energia,
+    /if \(state\.caricoInCorso !== carico\) return;\s*state\.caricoInCorso = null;\s*setEnergyLoading\(false\);/,
+  );
 });
 
 test("col Recorder in affanno l'Energia riposa cinque minuti anche a pagina aperta", () => {

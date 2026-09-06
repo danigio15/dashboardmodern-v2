@@ -7,9 +7,10 @@
  * veniva scavalcato sempre: i cerchi restavano sui numeri del guscio, «—» e
  * «0 kWh», senza una riga che lo dicesse.
  *
- * Qui il Recorder risponde in sette secondi e la casa cambia i watt ogni
- * quattro decimi: la finestra dice a che punto e' quando il velo se ne va, e
- * i kWh del giorno arrivano lo stesso.
+ * Qui il Recorder risponde con calma e la casa cambia i watt ogni quattro
+ * decimi: la finestra dice a che punto e' quando il velo se ne va, i kWh del
+ * giorno arrivano lo stesso, e una lettura in corso non nasconde quello che
+ * cambia sotto — la configurazione, il mese scelto.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
@@ -21,6 +22,7 @@ const STATI = [
   stato("sensor.fv_w", "2880", { unit_of_measurement: "W", device_class: "power" }),
   stato("sensor.rete_w", "0", { unit_of_measurement: "W", device_class: "power" }),
   stato("sensor.casa_tot", "1234.5", KWH),
+  stato("sensor.fv_nuovo_tot", "9876.5", KWH),
   stato("sensor.fv_tot", "5678.9", KWH),
   stato("sensor.rete_imp_tot", "300.1", KWH),
   stato("sensor.rete_exp_tot", "200.2", KWH),
@@ -52,16 +54,21 @@ const SEME = {
   visibility: { home: true, energy: true },
 };
 
-const RITARDO_DEL_RECORDER_MS = 7000;
+/* Il contatore «nuovo» cresce sette volte piu' in fretta degli altri: chi lo
+ * legge davvero lo riconosce dal numero, qualunque sia l'ora del giorno. */
+const CONTATORE_NUOVO = "sensor.fv_nuovo_tot";
+const CRESCITA_A_SECCHIELLO_KWH = 0.5;
+const CRESCITA_DEL_NUOVO_KWH = 3.5;
 
-test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'", async ({
-  page,
-}, testInfo) => {
+/* La plancia con un Recorder che risponde dopo `ritardo` millisecondi, la
+ * pagina dell'Energia aperta e la casa che cambia i watt di continuo. */
+async function avviaConRecorderLento(page, testInfo, ritardo) {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 150_000 : 120_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript(
-    ({ haStates, ritardo }) => {
+    ({ haStates, ritardo, contatoreNuovo, crescita, crescitaDelNuovo }) => {
       window.__domande = [];
+      window.__statistiche = [];
       class PonteFinto extends EventTarget {
         static OPEN = 1;
         readyState = 1;
@@ -84,11 +91,11 @@ test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'",
           if (m.type === "get_states") risultato = haStates;
           else if (m.type === "frontend/get_user_data") risultato = { value: null };
           else if (m.type === "recorder/statistics_during_period") {
-            /* Un Recorder lento: secchielli veri, con la somma che cresce di
-             * mezzo chilowattora a secchiello. */
+            /* Un Recorder lento: secchielli veri, con la somma che cresce a
+             * ogni secchiello — e almeno due secchielli, anche a mezzanotte
+             * appena passata. */
             attesa = ritardo;
-            const inizio = Date.parse(m.start_time);
-            const fine = Math.min(Date.parse(m.end_time), Date.now());
+            window.__statistiche.push(m.statistic_ids);
             const passo =
               m.period === "5minute"
                 ? 300e3
@@ -97,11 +104,13 @@ test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'",
                   : m.period === "day"
                     ? 86400e3
                     : 30 * 86400e3;
+            const inizio = Date.parse(m.start_time);
+            const fine = Math.max(Math.min(Date.parse(m.end_time), Date.now()), inizio + 2 * passo);
             for (const id of m.statistic_ids) {
               const righe = [];
               let somma = 1000;
               for (let t = inizio; t < fine; t += passo) {
-                somma += 0.5;
+                somma += id === contatoreNuovo ? crescitaDelNuovo : crescita;
                 righe.push({ start: t, end: t + passo, sum: somma });
               }
               risultato[id] = righe;
@@ -128,7 +137,13 @@ test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'",
       window.__DASHBOARDMODERN_BRIDGE_WS__ = PonteFinto;
       window.WebSocket = PonteFinto;
     },
-    { haStates: STATI, ritardo: RITARDO_DEL_RECORDER_MS },
+    {
+      haStates: STATI,
+      ritardo,
+      contatoreNuovo: CONTATORE_NUOVO,
+      crescita: CRESCITA_A_SECCHIELLO_KWH,
+      crescitaDelNuovo: CRESCITA_DEL_NUOVO_KWH,
+    },
   );
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
@@ -157,6 +172,21 @@ test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'",
       await new Promise((r) => setTimeout(r, 400));
     }
   });
+  return { agita };
+}
+
+const contaLeStatistiche = (page) =>
+  page.evaluate(
+    () => window.__domande.filter((tipo) => tipo === "recorder/statistics_during_period").length,
+  );
+
+const kwhScritti = async (locator) =>
+  Number((await locator.textContent()).replace(/[^\d,]/g, "").replace(",", "."));
+
+test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'", async ({
+  page,
+}, testInfo) => {
+  const { agita } = await avviaConRecorderLento(page, testInfo, 7000);
 
   const giorno = page.locator("#view-day");
   /* Il velo dura dodici secondi; dopo, senza pacchetto, si dice a che punto
@@ -170,8 +200,80 @@ test("i kWh del giorno arrivano, e nell'attesa la finestra dice a che punto e'",
   await agita;
   /* Le domande al Recorder non sono una tempesta: quelle del pacchetto, e
    * nessuna ripetuta per una richiesta scavalcata. */
-  const statistiche = await page.evaluate(
-    () => window.__domande.filter((tipo) => tipo === "recorder/statistics_during_period").length,
+  expect(await contaLeStatistiche(page)).toBeLessThanOrEqual(6);
+});
+
+test("la configurazione cambiata a meta' lettura vince sul pacchetto vecchio", async ({
+  page,
+}, testInfo) => {
+  /* Osservazione della review: una lettura in corso teneva la configurazione
+   * con cui era partita, e chi la cambiava nel frattempo — un contatore
+   * nuovo nella maschera — riceveva quel pacchetto, coi numeri del contatore
+   * di prima, fino al giro successivo. */
+  const { agita } = await avviaConRecorderLento(page, testInfo, 3000);
+  await expect.poll(() => contaLeStatistiche(page), { timeout: 15_000 }).toBeGreaterThan(0);
+
+  /* A lettura in corso, il fotovoltaico cambia contatore. (Il cerchio della
+   * casa non farebbe da testimone: il suo numero e' il bilancio di sole e
+   * rete, non il contatore di casa.) */
+  await page.evaluate((contatoreNuovo) => {
+    const energia = structuredClone(DashboardModernModules.store.getSection("energy"));
+    energia.solar.total_energy = contatoreNuovo;
+    return DashboardModernModules.store.replaceSection("energy", energia);
+  }, CONTATORE_NUOVO);
+
+  const giorno = page.locator("#view-day");
+  await expect(giorno).toHaveAttribute("data-dm-energy-bundle", /\d/, { timeout: 30_000 });
+  /* Il pacchetto che arriva e' quello del contatore nuovo: il sole cresce
+   * sette volte la rete, letta dagli stessi secchielli. */
+  const rete = await page.evaluate(
+    () => window.__DASHBOARDMODERN_RUNTIME_0150__.bundle.day.gridImport,
   );
-  expect(statistiche).toBeLessThanOrEqual(6);
+  expect(rete).toBeGreaterThan(0);
+  const rapporto = CRESCITA_DEL_NUOVO_KWH / CRESCITA_A_SECCHIELLO_KWH;
+  await expect
+    .poll(() => kwhScritti(page.locator("#v-solar-day")), { timeout: 5_000 })
+    .toBeGreaterThanOrEqual(rete * (rapporto - 1));
+  expect(await page.evaluate(() => window.__statistiche.flat())).toContain(CONTATORE_NUOVO);
+  await agita;
+});
+
+test("cambiando mese a meta' lettura il conto dell'attesa non sfora", async ({
+  page,
+}, testInfo) => {
+  /* Osservazione della review: due letture in corso — il mese cambiato prima
+   * che il primo pacchetto arrivasse — contavano nello stesso conto, e la riga
+   * arrivava a dire «10/7». */
+  const { agita } = await avviaConRecorderLento(page, testInfo, 7000);
+  const giorno = page.locator("#view-day");
+  await expect(giorno).toHaveAttribute("data-dm-energy-ragione", /Recorder/, { timeout: 25_000 });
+
+  const meseScelto = await page.evaluate(() => {
+    const tendina = document.getElementById("ed-sel-month");
+    const adesso = Number(tendina.value);
+    const altro = adesso > 1 ? adesso - 1 : 12;
+    tendina.value = String(altro);
+    tendina.dispatchEvent(new Event("change", { bubbles: true }));
+    return altro;
+  });
+
+  const conti = [];
+  await expect
+    .poll(
+      async () => {
+        const ragione = await giorno.getAttribute("data-dm-energy-ragione");
+        const conto = /(\d+)\/(\d+)/.exec(ragione || "");
+        if (conto) conti.push([Number(conto[1]), Number(conto[2])]);
+        return giorno.getAttribute("data-dm-energy-bundle");
+      },
+      { timeout: 40_000, intervals: [100] },
+    )
+    .toMatch(/\d/);
+  expect(conti.length).toBeGreaterThan(0);
+  for (const [fatte, totali] of conti) expect(fatte).toBeLessThanOrEqual(totali);
+  /* E il pacchetto arrivato e' del mese scelto, non di quello di prima. */
+  expect(await page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_0150__.selected.month)).toBe(
+    meseScelto,
+  );
+  await agita;
 });
