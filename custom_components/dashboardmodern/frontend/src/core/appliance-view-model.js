@@ -1,6 +1,7 @@
 // DM-FIX-20260824A
 import { pick } from "./i18n.js";
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
+import { modoDelLettore } from "./media-player.js";
 
 const clean = (value) => String(value || "").trim();
 const entityId = (entry) =>
@@ -356,9 +357,12 @@ export function createApplianceViewModel(
     candidates(device, ["power_entity", "power", "power_sensor"]).find((id) =>
       /^(w|kw|mw|watt|watts)$/.test(unit(states, id).replaceAll(" ", "")),
     ) || "";
+  /* Un lettore multimediale si accende e si spegne come un interruttore —
+   * `media_player.turn_on` e `turn_off` esistono da sempre — e per un
+   * televisore e' l'unico tasto che il dispositivo porta (#354). */
   const controlEntity =
     candidates(device, ["control_entity", "switch_entity", "switch", "light", "fan"]).find((id) =>
-      /^(switch|light|input_boolean|fan)\./.test(id),
+      /^(switch|light|input_boolean|fan|media_player)\./.test(id),
     ) || "";
 
   // Explicit configuration always wins. If none is configured, infer only
@@ -411,8 +415,18 @@ export function createApplianceViewModel(
     /^binary_sensor\./.test(stateEntity) &&
     /(?:^|[._-])(running|active|activity|operating|working)(?:[._-]|$)/i.test(stateEntity);
 
-  /* Cosa dice la parola dello stato, se ne dice una che conosciamo. */
-  const dettoDalloStato = Boolean(stateEntity) ? letturaDelloStato(configuredState) : "";
+  /* Cosa dice la parola dello stato, se ne dice una che conosciamo.
+   *
+   * Un `media_player` parla la lingua dei lettori, non quella dei programmi:
+   * il suo «on» e' un televisore acceso, il suo «idle» pure, e leggerli col
+   * vocabolario delle lavatrici diceva SPENTO a una TV accesa — «la TV e'
+   * accesa e risulta dall'integrazione, ma risulta spenta nella scheda»
+   * (#354). Lo stato di un lettore lo traduce il modulo dei lettori. */
+  const dettoDalloStato = !stateEntity
+    ? ""
+    : /^media_player\./.test(stateEntity)
+      ? modoDelLettore(configuredState)
+      : letturaDelloStato(configuredState);
 
   const explicitRunning =
     dettoDalloStato === "running" || (activityBinary && configuredState === "on");
@@ -422,7 +436,13 @@ export function createApplianceViewModel(
   const explicitlyOff =
     Boolean(stateEntity) &&
     (dettoDalloStato === "off" || (activityBinary && configuredState === "off"));
-  const genericOn = configuredState === "on" || controlState === "on";
+  /* Un lettore che fa da interruttore e' «acceso» in tutti i suoi stati vivi,
+   * non solo quando dice letteralmente «on»: la TV che sta riproducendo e'
+   * accesa quanto quella che dice «on». */
+  const genericOn =
+    configuredState === "on" ||
+    controlState === "on" ||
+    (/^media_player\./.test(controlEntity) && modoDelLettore(controlState) === "running");
   const sampledMode =
     unavailable && watts == null
       ? "unavailable"
@@ -452,7 +472,11 @@ export function createApplianceViewModel(
   /* L'interruttore mappato serve anche solo a leggere lo stato: chi ha
    * spuntato «senza interruttore» tiene la lettura e perde il tasto. */
   const canControl = Boolean(controlEntity) && device.switch_disabled !== true;
-  const controlOn = controlState === "on";
+  /* Il tasto della card dice «Spegni» a un lettore che sta suonando o e' in
+   * pausa, non solo a uno che dice «on»: il servizio da chiamare e' quello. */
+  const controlOn =
+    controlState === "on" ||
+    (/^media_player\./.test(controlEntity) && modoDelLettore(controlState) === "running");
   return Object.freeze({
     id: clean(device.id),
     device,

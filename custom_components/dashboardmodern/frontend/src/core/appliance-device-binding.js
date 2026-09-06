@@ -132,6 +132,15 @@ const ROLES = Object.freeze([
     key: "state_entity",
     score(entity, clues, states) {
       const domain = domainOf(entity.entity_id);
+      /* Il televisore, e qualunque cosa sia prima di tutto un lettore.
+       *
+       * L'integrazione di una TV LG porta un `media_player` e un `remote`, e
+       * nessun sensore di stato ne' interruttore: il collegamento non
+       * riempiva niente e la card diceva SPENTO a televisore acceso — «la TV
+       * e' accesa e risulta dall'integrazione sotto, ma risulta spenta nella
+       * scheda» (#354). Lo stato di un lettore E' lo stato del dispositivo, e
+       * vale piu' di qualunque sensore di testo che gli stia accanto. */
+      if (domain === "media_player") return 12;
       if (domain === "binary_sensor") {
         return /\b(running|active|working|operating|in funzione|attiv[oa])\b/.test(clues)
           ? 4
@@ -321,6 +330,14 @@ export function proposeRoles(entities = [], states = {}, { type = "", deviceName
     taken.add(best.entity.entity_id);
     proposal[role.key] = best.entity.entity_id;
   }
+  /* Un lettore e' insieme lo stato e l'interruttore: `media_player.turn_on`
+   * e `turn_off` esistono, e su un televisore non c'e' altro da premere. La
+   * regola «un'entita', un ruolo» vale per non far fare al sensore della fase
+   * anche il tasto d'avvio; qui e' la stessa cosa a fare tutte e due le
+   * parti, e lasciare la card senza tasto sarebbe la regola applicata al
+   * contrario (#354). Un interruttore vero, se c'e', e' gia' stato preso. */
+  if (!proposal.control_entity && /^media_player\./.test(clean(proposal.state_entity)))
+    proposal.control_entity = proposal.state_entity;
   return proposal;
 }
 
