@@ -10,8 +10,8 @@ const behavior = await readFile(
   new URL("../src/sections/appliances-section.js", import.meta.url),
   "utf8",
 );
-const stability = await readFile(
-  new URL("../src/sections/beta27-release-stability-section.js", import.meta.url),
+const fondazione = await readFile(
+  new URL("../src/sections/theme-foundation-section.js", import.meta.url),
   "utf8",
 );
 
@@ -48,12 +48,15 @@ test("the power toggle is sized for its glyph, not for the widest label", () => 
  * Prima erano due: la sezione lo squadrava, e il foglio delle rifiniture — che
  * si rimette apposta per ultimo nella cascata — lo ridimensionava di nuovo con
  * un selettore piu' forte. Finche' i due numeri coincidevano non si vedeva
- * niente; il giorno che uno dei due cambiava, vinceva quello sbagliato. Adesso
- * quel foglio non tocca piu' la sezione Elettrodomestici, e la prova serve a
- * non farcelo tornare. */
-test("nessun altro foglio rimette in tondo il tasto che la sezione ha squadrato", () => {
-  assert.doesNotMatch(stability, /data-dm-power-toggle/);
-  assert.doesNotMatch(stability, /appl-/);
+ * niente; il giorno che uno dei due cambiava, vinceva quello sbagliato. Quel
+ * foglio non esiste piu': della sezione Elettrodomestici non parlava gia' piu',
+ * e le due regole di fondo che gli restavano — il gradiente del titolo e lo
+ * sfondo animato — sono passate alla fondazione del tema. */
+test("nessun altro foglio rimette in tondo il tasto che la sezione ha squadrato", async () => {
+  await assert.rejects(
+    readFile(new URL("../src/sections/beta27-release-stability-section.js", import.meta.url)),
+  );
+  assert.doesNotMatch(fondazione, /data-dm-power-toggle|appl-/);
   assert.match(behavior, /\.dm-appliance-power-toggle,[^{]*\{[^}]*[^-]width:\d+px/s);
 });
 

@@ -87,6 +87,33 @@ export function installThemeFoundationSection() {
       padding-left:max(var(--dm-gutter),env(safe-area-inset-left,0px));
       padding-right:max(var(--dm-gutter),env(safe-area-inset-right,0px));
     }
+
+    /* Il nome della plancia deve leggersi anche di notte.
+     *
+     * Il titolo in alto a sinistra e' un testo riempito da un gradiente, e il
+     * gradiente partiva da un blu notte scritto a mano. In tema chiaro si
+     * legge benissimo; in tema scuro quella prima parola finisce su un fondo
+     * dello stesso colore e sparisce — restava leggibile solo "Home". Tutto il
+     * resto dell'intestazione, sottotitolo e pastiglia della connessione,
+     * seguiva gia' il tema: era solo quel capo del gradiente a non farlo. E'
+     * una fondamenta come le altre qui sopra: un colore che deve seguire il
+     * tema, non la rifinitura di una sezione. */
+    .brand-text h1{
+      background:linear-gradient(135deg,var(--text,#0f172a),var(--green,#16a34a))!important;
+      -webkit-background-clip:text!important;background-clip:text!important;
+      -webkit-text-fill-color:transparent!important}
+
+    /* Lo sfondo animato sta sul suo livello (dal campo: la CPU del mini PC).
+     *
+     * Le due macchie sfumate dietro la plancia si muovono per sempre, fuori da
+     * ogni pagina, con un blur di cento pixel su meta' dello schermo. Promosse
+     * a livello composito il browser le sposta senza rasterizzarle di nuovo a
+     * ogni fotogramma; e chi ha chiesto al sistema di ridurre le animazioni le
+     * trova ferme, che e' quello che ha chiesto. */
+    .animated-mesh-bg::before,.animated-mesh-bg::after{will-change:transform}
+    @media (prefers-reduced-motion:reduce){
+      .animated-mesh-bg::before,.animated-mesh-bg::after{animation-play-state:paused!important}
+    }
   `);
   return true;
 }
