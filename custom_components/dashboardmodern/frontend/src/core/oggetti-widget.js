@@ -531,6 +531,22 @@ const OGGETTI = Object.freeze({
     <path d="M8.6 7.4a4.6 4.6 0 0 1 3-1.6" stroke="#fff" stroke-opacity=".75" stroke-width="1.5"
       fill="none" stroke-linecap="round"/>`,
 
+  /* Gli animali di casa (#358): l'orma. Il cuscinetto e le quattro dita, con
+   * la luce in alto a sinistra come su ogni altro oggetto — un'emoji di zampa
+   * accanto a questi disegni si sarebbe vista da un chilometro. */
+  animale: `<defs>
+      <linearGradient id="dmoAnimale" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fed7aa"/><stop offset=".55" stop-color="#f97316"/>
+        <stop offset="1" stop-color="#9a3412"/></linearGradient></defs>
+    ${OMBRA(16, 27.8, 8.6)}
+    <ellipse cx="16" cy="20.6" rx="6.4" ry="5.2" fill="url(#dmoAnimale)"/>
+    <ellipse cx="7.4" cy="15.4" rx="2.6" ry="3.3" fill="url(#dmoAnimale)"/>
+    <ellipse cx="12.4" cy="10.2" rx="2.7" ry="3.5" fill="url(#dmoAnimale)"/>
+    <ellipse cx="19.6" cy="10.2" rx="2.7" ry="3.5" fill="url(#dmoAnimale)"/>
+    <ellipse cx="24.6" cy="15.4" rx="2.6" ry="3.3" fill="url(#dmoAnimale)"/>
+    <path d="M11.8 18.8a5.4 5.4 0 0 1 3.4-2.4" stroke="#fff" stroke-opacity=".75" stroke-width="1.5"
+      fill="none" stroke-linecap="round"/>`,
+
   /* Il runtime: il battito sotto vetro, che e' quello che quella scheda mostra. */
   runtime: `<defs>
       <linearGradient id="dmoBatt2" x1="0" y1="0" x2="1" y2="0">

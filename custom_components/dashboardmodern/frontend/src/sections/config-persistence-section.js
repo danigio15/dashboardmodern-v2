@@ -121,7 +121,7 @@ const USER_DATA_VERSION = 1;
  * dispositivi. E' una scelta della casa, non del vetro da cui la si guarda —
  * se restasse sul dispositivo che l'ha fatta, il telefono e il tablet
  * mostrerebbero la stessa Home in due ordini diversi. */
-/* La revisione 30 aggiunge tre cose, e sono tutte della plancia.
+/* La revisione 30 aggiunge quattro cose, e sono tutte della plancia.
  *
  * La lingua (`cd_lingua`, #350): «È sparito il settaggio per la lingua: su PC
  * avevo settato italiano (HA in inglese) e continua a funzionare, da mobile
@@ -138,7 +138,12 @@ const USER_DATA_VERSION = 1;
  * Quello che invece resta a terra e' cosa QUESTO dispositivo sa della cassetta
  * (`cd_posta_stato`): com'era l'ultima volta che l'ha guardata e se chi la
  * guarda ha gia' visto l'avviso — il primo schermo che se ne accorgesse
- * toglierebbe agli altri il termine di paragone. */
+ * toglierebbe agli altri il termine di paragone.
+ *
+ * E gli animali di casa (`cd_animali`, #358): i loro nomi, le loro foto e le
+ * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
+ * e del collare. Anche questa e' roba della casa: il gatto configurato sul
+ * tablet deve esistere anche sul telefono. */
 export const CONFIG_KEYS_REVISION = 30;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
@@ -305,6 +310,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_allerte",
   // La raccolta differenziata (#293): i materiali e da dove si legge il ritiro.
   "cd_rifiuti",
+  // Gli animali di casa (#358): nome, foto e le entita' che li riguardano.
+  "cd_animali",
   "cd_piscina",
   "cd_irrigazione",
   "cd_robot",

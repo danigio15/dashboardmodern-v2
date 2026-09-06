@@ -834,8 +834,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 264 con la riga sotto il meteo e la memoria della cassetta della posta
   // (`core/come-sta-la-casa.js` + `sections/come-sta-la-casa-section.js`),
   // che sono due moduli oltre a quello degli orari dell'irrigazione.
+  // 267 con gli animali di casa (#358): `core/animali-model.js` legge le
+  // entita' di ciotola, lettiera, fontanella, porta col microchip e collare e
+  // dice cosa c'e' da sapere adesso — cibo in esaurimento, lettiera da pulire,
+  // filtro a fine corsa — senza toccare il documento ne' l'orologio;
+  // `sections/animali-section.js` disegna la pagina e la sua voce nella barra,
+  // e `sections/animali-editor-section.js` la scheda della configurazione, che
+  // pesca i dispositivi dal menu delle integrazioni gia' in casa.
   assert.ok(
-    relative.length <= 264,
+    relative.length <= 267,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -98,8 +98,11 @@ test("togliere una chiave non alza la revisione", async () => {
    * chiave del browser, e chi la sceglieva sul computer la sceglieva per quel
    * computer — «su PC avevo settato italiano, da mobile invece e' rimasto
    * inglese» — mentre la riga dice quali pastiglie si vedono e qual e' il
-   * contatto della cassetta della posta. Quelle tolte restano fuori
-   * dall'elenco, che e' quello che questa prova difende. */
+   * contatto della cassetta della posta; e gli animali di casa (#358,
+   * `cd_animali`), i cui nomi, foto ed entita' — ciotola, lettiera, collare —
+   * sono roba della casa: il gatto configurato sul tablet deve esistere anche
+   * sul telefono. Quelle tolte restano fuori dall'elenco, che e' quello che
+   * questa prova difende. */
   assert.equal(CONFIG_KEYS_REVISION, 30);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);

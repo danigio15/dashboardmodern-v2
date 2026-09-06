@@ -81,6 +81,7 @@ import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-secti
 import { installPoolExtraSection } from "./pool-extra-section.js";
 import { installPoolEditorSection } from "./pool-editor-section.js";
 import { installRobotSection } from "./robot-section.js";
+import { installAnimaliSection } from "./animali-section.js";
 import { installPreseSection } from "./prese-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
@@ -89,6 +90,7 @@ import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
 import { installAutoIntegrazione } from "./auto-integrazione-section.js";
 import { installEnergiaCerchiStorico } from "./energia-cerchi-storico-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
+import { installAnimaliEditorSection } from "./animali-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
@@ -969,6 +971,11 @@ export function installSectionRuntime() {
      * disegnarla, coi modelli delle tessere che ha appena fatto, e quando lo
      * fa deve trovare gia' installati lo stile, il tocco e la sua scheda. */
     installComeStaLaCasa();
+    /* Gli animali di casa (#358): la loro voce si mette accanto a quella
+     * delle Persone, quindi si installano dopo di lei; il loro editor usa il
+     * selettore foto, che e' gia' in piedi qui sopra. */
+    installAnimaliSection();
+    installAnimaliEditorSection();
     /* Il ponte dei widget sta sotto le persone in Home: si installa dopo,
      * cosi' trova gia' il suo ancoraggio. */
     installHomeWidgetsSection();
@@ -1095,6 +1102,8 @@ export function installSectionRuntime() {
         "media-picker",
         "people",
         "people-editor",
+        "animali",
+        "animali-editor",
         "home-widgets",
         "todo-editor",
         "widget-entity-choice",
