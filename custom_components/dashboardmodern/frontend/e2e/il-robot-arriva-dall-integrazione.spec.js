@@ -331,10 +331,52 @@ test("la mappa si scorre anche a misura d'apertura, non solo da ingrandita", asy
         state: "idle",
         attributes: { friendly_name: "Mappa", entity_picture: disegno },
       };
+    /* Il disegno arriva come arriva in casa: uno stato nuovo, e la plancia che
+     * se ne accorge. Chiamare soltanto il disegno del modulo vuol dire provare
+     * una strada che in casa non fa nessuno. */
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
     window.DashboardModernModules?.robot?.render?.();
   });
   const mappa = page.locator("#page-robot [data-dm-robot-map]");
+  /* E se la mappa non arriva, si dice PERCHE': quale telecamera sta guardando
+   * la card, se quello stato c'e' e se porta un disegno. Un rosso che dice
+   * soltanto «missing» costa un giro intero a chi lo legge, e questa prova
+   * gira anche su motori che qui non si possono provare. */
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const nodo = document.querySelector("#page-robot [data-dm-robot-map]");
+          const salvati = JSON.parse(localStorage.getItem("cd_robot") || "[]");
+          const telecamera = salvati[0]?.mapEntity || "(nessuna)";
+          const stato = _RAW_STATES[telecamera] || STATES[telecamera];
+          return [
+            `stato:${nodo?.dataset.dmMapState}`,
+            `telecamera:${telecamera}`,
+            `c-e:${Boolean(stato)}`,
+            `disegno:${Boolean(stato?.attributes?.entity_picture)}`,
+          ].join(" ");
+        }),
+      { timeout: 20_000, message: "la mappa del robot" },
+    )
+    .toMatch(/^stato:ready/);
+
+  /* E la mappa resta anche quando la card si rifa'.
+   *
+   * Il ricordo del disegno gia' preso e' del robot; la mappa e' di un pezzo di
+   * pagina, e quel pezzo rinasce a ogni ridisegno della card — vuoto, con la
+   * sua tessera a «loading». Basta che cambi qualcosa d'altro del robot (qui
+   * il nome) perche' la card si rifaccia: se ci si fida del ricordo davanti a
+   * una tessera appena nata, la mappa resta vuota finche' Home Assistant non
+   * cambia indirizzo, cioe' finche' il robot non riparte. */
+  await page.evaluate(() => {
+    const salvati = JSON.parse(localStorage.getItem("cd_robot") || "[]");
+    for (const voce of salvati) voce.name = `${voce.name} II`;
+    localStorage.setItem("cd_robot", JSON.stringify(salvati));
+    window.DashboardModernModules?.robot?.render?.();
+  });
   await expect(mappa).toHaveAttribute("data-dm-map-state", "ready", { timeout: 15_000 });
+
   await mappa.click();
   const visore = page.locator("#dm-robot-map-view");
   await expect(visore).toBeVisible();

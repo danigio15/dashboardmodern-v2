@@ -616,13 +616,28 @@ async function loadMap(card, view) {
   const picture = clean(view.mapPicture);
   if (!picture) {
     host.dataset.dmMapState = "missing";
+    /* E si scorda quello di prima: se la telecamera torna col disegno di
+     * sempre, va ripreso. Tenendo il ricordo, il giro dopo si direbbe «questo
+     * ce l'ho gia'» a una mappa che sullo schermo non c'e' piu'. */
+    state.mapPictures.delete(view.entity);
     return;
   }
   /* Si ricorda il disegno gia' preso, per non richiederlo uguale a ogni giro.
    * Ci si ricorda pero' solo di quelli arrivati: un disegno che non e' arrivato
    * — un momento di rete, un token non ancora pronto — deve poter essere
-   * richiesto di nuovo, altrimenti la mappa resta rotta per sempre. */
-  if (state.mapPictures.get(view.entity) === picture) return;
+   * richiesto di nuovo, altrimenti la mappa resta rotta per sempre.
+   *
+   * E del ricordo ci si fida solo finche' la mappa e' davvero li'. Il ricordo
+   * e' del robot, la mappa e' di un pezzo di pagina: la card si ridisegna, e
+   * la sua tessera nuova nasce a «loading» con l'immagine vuota. Fidarsi del
+   * ricordo davanti a una tessera appena nata vuol dire lasciarla vuota
+   * finche' Home Assistant non cambia indirizzo — cioe' finche' il robot non
+   * riparte. */
+  const gia =
+    state.mapPictures.get(view.entity) === picture &&
+    host.dataset.dmMapState === "ready" &&
+    clean(image.getAttribute("src"));
+  if (gia) return;
 
   const token = gettoneDiAccesso();
   if (typeof root.fetch === "function" && token) {
@@ -756,8 +771,8 @@ function handleFanChange(event) {
 
 function paint() {
   state.frame = 0;
-  ensureRobotTab();
   teachNavVisibility();
+  ensureRobotTab();
   renderRobots();
 }
 
@@ -888,8 +903,8 @@ export function installRobotSection() {
   state.installed = true;
   installStyles();
   ensureRobotPage();
-  ensureRobotTab();
   teachNavVisibility();
+  ensureRobotTab();
   doc.addEventListener("click", handleRobotClick);
   /* La mappa aperta si chiude con Esc, come ogni finestra della plancia, e col
    * tasto invio o barra si apre da tastiera — il riquadro e' un bottone. */

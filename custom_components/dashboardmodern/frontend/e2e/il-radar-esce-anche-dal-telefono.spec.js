@@ -87,6 +87,11 @@ test("sul telefono la mappa riempie la sua scatola", async ({ page }, testInfo) 
   /* Il conto non scende sotto il minimo del foglio… */
   expect(misure.calcolato).toBeGreaterThanOrEqual(240);
   /* …e la scatola è alta quanto il disegno che ci sta dentro: la differenza
-   * che resta è il bordo, non una fascia vuota di ventisette pixel. */
-  expect(Math.abs(misure.dipinto - misure.calcolato)).toBeLessThanOrEqual(2);
+   * che resta è il bordo, non una fascia vuota di ventisette pixel.
+   *
+   * La tolleranza è di qualche pixel e non di due: sul telefono ogni pixel del
+   * foglio ne vale due dello schermo, e fra il bordo e gli arrotondamenti la
+   * differenza misurata balla fra due e quattro. Quello che questa riga
+   * inchioda è la fascia vuota, e ventisette pixel non passano comunque. */
+  expect(Math.abs(misure.dipinto - misure.calcolato)).toBeLessThanOrEqual(6);
 });

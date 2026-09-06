@@ -652,8 +652,8 @@ function handleSlide(event, commit) {
 function repaint() {
   state.frame = 0;
   ensureLightsPage();
-  ensureLightsTab();
   teachNavVisibility();
+  ensureLightsTab();
   paint();
   /* Dopo `paint`, che si ferma se la pagina Luci non e' quella aperta: le card
    * disegnate altrove — le Stanze — vanno riallineate lo stesso. */
@@ -855,8 +855,8 @@ export function installLightsPageSection() {
   state.installed = true;
   installStyles();
   ensureLightsPage();
-  ensureLightsTab();
   teachNavVisibility();
+  ensureLightsTab();
   doc.addEventListener("click", handleClick);
   doc.addEventListener("input", (event) => handleSlide(event, false));
   doc.addEventListener("change", (event) => handleSlide(event, true));
