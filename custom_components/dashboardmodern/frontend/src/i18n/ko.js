@@ -2804,4 +2804,7 @@ export default Object.freeze({
   "Remove it here": "여기서 빼기",
   "This sensor is also configured in": "이 센서는 다음에도 설정되어 있습니다:",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "이 기기에서는 로봇을 인식할 수 없습니다: vacuum.* 또는 lawn_mower.* 엔터티가 필요합니다.",
+  "already from another device, left as they were": "이미 다른 기기의 것이라 그대로 두었습니다",
+  "this room has no humidity sensor: set it under the Temperature tab.": "이 방에는 습도 센서가 없습니다: 온도 탭에서 연결합니다.",
+  "Without a room this window has no humidity to watch: pick one above.": "방을 고르지 않으면 이 창문이 볼 습도가 없습니다: 위에서 방을 고르세요.",
 });

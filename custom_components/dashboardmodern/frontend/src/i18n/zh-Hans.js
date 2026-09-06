@@ -2804,4 +2804,7 @@ export default Object.freeze({
   "Remove it here": "从这里移除",
   "This sensor is also configured in": "这个传感器也配置在",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "从这个设备识别不到任何机器人：需要一个 vacuum.* 或 lawn_mower.* 实体。",
+  "already from another device, left as they were": "已来自另一台设备，保持原样",
+  "this room has no humidity sensor: set it under the Temperature tab.": "该房间没有湿度传感器：在「温度」选项卡中关联。",
+  "Without a room this window has no humidity to watch: pick one above.": "未选择房间时这扇窗没有可看的湿度：请在上方选择一个房间。",
 });

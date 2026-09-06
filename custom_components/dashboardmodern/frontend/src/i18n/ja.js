@@ -2804,4 +2804,7 @@ export default Object.freeze({
   "Remove it here": "ここから外す",
   "This sensor is also configured in": "このセンサーは次にも設定されています：",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "このデバイスからはロボットを認識できません。vacuum.* か lawn_mower.* のエンティティが必要です。",
+  "already from another device, left as they were": "すでに別のデバイスのもの、そのまま残しました",
+  "this room has no humidity sensor: set it under the Temperature tab.": "この部屋には湿度センサーがありません: 「温度」タブで割り当てます。",
+  "Without a room this window has no humidity to watch: pick one above.": "部屋が未選択だとこの窓には見る湿度がありません: 上で部屋を選んでください。",
 });

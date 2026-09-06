@@ -2804,4 +2804,7 @@ export default Object.freeze({
   "Remove it here": "L'enlever d'ici",
   "This sensor is also configured in": "Ce capteur est aussi configuré dans",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Aucun robot n'est reconnu sur cet appareil : il faut une entité vacuum.* ou lawn_mower.*.",
+  "already from another device, left as they were": "déjà d'un autre appareil, laissées telles quelles",
+  "this room has no humidity sensor: set it under the Temperature tab.": "cette pièce n'a pas de capteur d'humidité : il s'associe dans l'onglet Température.",
+  "Without a room this window has no humidity to watch: pick one above.": "Sans pièce, cette fenêtre n'a aucune humidité à surveiller : choisis-en une ci-dessus.",
 });

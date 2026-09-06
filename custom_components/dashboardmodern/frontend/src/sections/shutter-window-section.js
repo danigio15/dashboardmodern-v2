@@ -410,6 +410,57 @@ function vestiLaStanza(body) {
   /* Subito dopo il nome, a ogni giro: il guscio ristampa il modulo da capo
    * quando l'elenco cambia, e la tendina tornerebbe in fondo. */
   if (nome.nextElementSibling !== riquadro) nome.after(riquadro);
+  diciLUmiditaDellaStanza(riquadro, room);
+  return true;
+}
+
+/* Quale igrometro sta leggendo questa finestra, scritto sotto la stanza.
+ *
+ * «Nelle finestre manca ancora il sensore umidita': deve importarlo in
+ * automatico dalla stanza. Metto l'umidita' della cucina in Temperature, e
+ * quando metto la finestra cucina deve leggere quel sensore.»
+ *
+ * Lo fa gia': l'umidita' di una finestra e' quella della stanza a cui la
+ * finestra e' assegnata, e non esiste una casella per riscriverla — sarebbe lo
+ * stesso sensore in due posti, e due posti che dicono la stessa cosa prima o
+ * poi la dicono diversa. Quello che mancava e' il modo di VEDERLO: la tendina
+ * diceva «Cucina» e non diceva cosa si porta dietro, quindi «in automatico»
+ * restava una promessa senza prova.
+ *
+ * Qui c'e' la prova, e quando manca dice cosa manca e dove si mette. */
+function diciLUmiditaDellaStanza(riquadro, tendina) {
+  if (!riquadro || !tendina) return false;
+  let nota = riquadro.parentElement?.querySelector?.("[data-dm-umidita-stanza]");
+  if (!nota) {
+    nota = doc.createElement("small");
+    nota.className = "dm-tw-umidita-stanza";
+    nota.dataset.dmUmiditaStanza = "senza";
+    riquadro.after(nota);
+    /* La tendina cambia stanza, e con la stanza cambia l'igrometro: la riga si
+     * rifa' subito, non al prossimo ridisegno del modulo. */
+    tendina.addEventListener("change", () => diciLUmiditaDellaStanza(riquadro, tendina));
+  }
+  const stanza = stanzaDellaFinestra({ room: clean(tendina.value) });
+  const igrometro = clean(stanza?.hum);
+  if (!clean(tendina.value)) {
+    nota.dataset.dmUmiditaStanza = "senza";
+    nota.textContent = t(
+      "Senza stanza questa finestra non ha un'umidità da guardare: sceglila qui sopra.",
+      "Without a room this window has no humidity to watch: pick one above.",
+    );
+  } else if (igrometro) {
+    nota.dataset.dmUmiditaStanza = "pronto";
+    nota.textContent = `💧 ${t("Umidità della stanza", "Room humidity")}: ${igrometro}`;
+  } else {
+    nota.dataset.dmUmiditaStanza = "senza";
+    /* Il nome della stanza sta FUORI dalla frase da tradurre: una chiave con
+     * dentro un `${...}` non e' una chiave, e' un pezzo di codice. */
+    const quale = clean(stanza?.name) || clean(tendina.value);
+    nota.textContent = `${quale} — ${t(
+      "questa stanza non ha un sensore di umidità: si associa nella scheda Temperature.",
+      "this room has no humidity sensor: set it under the Temperature tab.",
+    )}`;
+  }
   return true;
 }
 
@@ -947,6 +998,16 @@ function installStyles() {
     #ed-body .dm-umidita-soglia small.dm-umidita-manca[data-dm-umidita-manca="pronto"]{
       border-color:color-mix(in srgb,#10b981 34%,transparent);
       background:color-mix(in srgb,#10b981 12%,transparent);color:#065f46}
+    /* L'igrometro che la finestra si porta dalla stanza: sotto la tendina,
+       perche' e' la conseguenza di quella scelta e si legge insieme a lei. */
+    #ed-body small.dm-tw-umidita-stanza{
+      display:block;margin:-4px 0 10px;padding:5px 9px;border-radius:9px;
+      font-size:11px;line-height:1.4;font-weight:600;
+      border:1px solid color-mix(in srgb,#f59e0b 30%,transparent);
+      background:color-mix(in srgb,#f59e0b 10%,transparent);color:#92400e}
+    #ed-body small.dm-tw-umidita-stanza[data-dm-umidita-stanza="pronto"]{
+      border-color:color-mix(in srgb,#10b981 30%,transparent);
+      background:color-mix(in srgb,#10b981 10%,transparent);color:#065f46}
   `,
   );
 }

@@ -2804,4 +2804,7 @@ export default Object.freeze({
   "Remove it here": "Buradan kaldır",
   "This sensor is also configured in": "Bu sensör şurada da ayarlı:",
   "No robot can be recognised from this device: a vacuum.* or lawn_mower.* entity is needed.": "Bu cihazdan hiçbir robot tanınamadı: bir vacuum.* veya lawn_mower.* varlığı gerekir.",
+  "already from another device, left as they were": "zaten başka bir cihazdan, oldukları gibi bırakıldı",
+  "this room has no humidity sensor: set it under the Temperature tab.": "bu odanın nem sensörü yok: Sıcaklık sekmesinden eşleştirilir.",
+  "Without a room this window has no humidity to watch: pick one above.": "Oda seçilmeden bu pencerenin izleyeceği bir nem yok: yukarıdan bir oda seç.",
 });
