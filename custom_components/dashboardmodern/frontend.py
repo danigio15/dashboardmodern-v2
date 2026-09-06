@@ -21,10 +21,6 @@ PANEL_COMPONENT_NAME = "dashboardmodern-panel"
 STATIC_URL_PATH = "/dashboardmodern_static"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 LEGACY_DIR = FRONTEND_DIR / "legacy"
-AVATAR_DIR = FRONTEND_DIR / "avatars"
-AVATAR_URL_PATH = f"{STATIC_URL_PATH}/avatars"
-BRAND_DIR = FRONTEND_DIR / "brands"
-BRAND_URL_PATH = f"{STATIC_URL_PATH}/brands"
 
 ASSET_SUFFIXES = frozenset(
     {
@@ -49,12 +45,26 @@ ASSET_SUFFIXES = frozenset(
 )
 RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
 RUNTIME_DIRECTORIES = ("legacy", "src")
+# Cosa resta fuori dalla firma degli asset. Le cartelle si servono intere —
+# vedi `_ensure_static_registered` — ma la firma guarda solo i file che il
+# runtime puo' chiedere davvero: un appunto di manutenzione che cambia non
+# deve far riscaricare la plancia a tutti.
 IGNORED_RUNTIME_PARTS = frozenset({"e2e", "tests", "__pycache__"})
 IGNORED_RUNTIME_FILES = frozenset({"legacy/VENDOR.json"})
+# Cosa si monta sotto i due prefissi: i due moduli d'ingresso come file, le
+# due cartelle intere. Prima ogni file aveva la sua rotta — trecentotrenta
+# file, e due volte — e aiohttp le scorreva una per una a ogni richiesta.
+RUNTIME_MOUNTS = (*sorted(RUNTIME_ROOT_FILES), *RUNTIME_DIRECTORIES)
+# Le cartelle che non cambiano da un rilascio all'altro: i ritratti delle
+# persone e i loghi dei marchi auto — questi ultimi prima venivano da un CDN,
+# e su una plancia che non esce su internet non arrivavano mai. Si montano
+# una volta, fuori dalla versione (nel percorso versionato vorrebbero dire
+# riscaricarle a ogni aggiornamento) e fuori dalla firma.
+SHARED_DIRECTORIES = ("avatars", "brands")
 
 
 def _runtime_assets() -> Iterator[Path]:
-    """Yield only files that can be requested by the production runtime."""
+    """Yield the files that count for the asset version."""
     for name in sorted(RUNTIME_ROOT_FILES):
         path = FRONTEND_DIR / name
         if path.is_file():
@@ -81,11 +91,21 @@ def _frontend_asset_version() -> str:
     files in place while the Home Assistant Python process may stay alive; a
     process-lifetime cache would keep publishing the previous versioned URL and
     let browsers reuse stale immutable assets after a successful update.
+
+    La firma viene da nome, dimensione e istante di modifica di ogni file, non
+    dal contenuto: leggere tredici megabyte in trecentotrenta file — a ogni
+    avvio e a ogni ricarica, per ogni plancia — su una macchina piccola si
+    sentiva. Un aggiornamento di HACS riscrive i file, e un file riscritto ha
+    un istante nuovo: la firma cambia lo stesso, ed e' l'unica cosa che le si
+    chiede.
     """
     digest = hashlib.blake2b(digest_size=8)
     for path in _runtime_assets():
-        digest.update(str(path.relative_to(FRONTEND_DIR).as_posix()).encode())
-        digest.update(path.read_bytes())
+        info = path.stat()
+        digest.update(
+            f"{path.relative_to(FRONTEND_DIR).as_posix()}\0"
+            f"{info.st_size}\0{info.st_mtime_ns}\0".encode()
+        )
     return digest.hexdigest()
 
 
@@ -262,10 +282,31 @@ def _remove_panel(hass: HomeAssistant, url_path: str) -> None:
     frontend.async_remove_panel(hass, url_path, warn_if_unknown=False)
 
 
+def _mounts_on_disk() -> tuple[list[str], list[str]]:
+    """Which of the mounts exist on disk. E' disco: gira nell'executor."""
+
+    def existing(names: tuple[str, ...]) -> list[str]:
+        return [name for name in names if (FRONTEND_DIR / name).exists()]
+
+    return existing(RUNTIME_MOUNTS), existing(SHARED_DIRECTORIES)
+
+
 async def _ensure_static_registered(
     hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
-    """Register only production runtime assets on stable/versioned URLs."""
+    """Monta gli asset del runtime sui due prefissi, stabile e versionato.
+
+    Le cartelle si montano intere: una rotta per `legacy/`, una per `src/`,
+    piu' i due moduli d'ingresso. Prima si registrava una rotta per ogni
+    file, e due volte — sotto il prefisso versionato con la cache e sotto
+    quello stabile senza — cioe' seicentosessanta rotte che aiohttp scorreva
+    a ogni richiesta e che ogni ricarica dell'integrazione ricostruiva.
+
+    Il prefisso stabile resta: e' la strada di recupero del guscio
+    (`host.js`, `loadHostedDocument`) quando l'indirizzo versionato che un
+    browser ha in mano non esiste piu' dopo un aggiornamento. Senza cache,
+    perche' li' i file cambiano sotto lo stesso indirizzo.
+    """
     if domain_data.get(DATA_STATIC_REGISTERED) == static_url_path:
         return
 
@@ -275,52 +316,27 @@ async def _ensure_static_registered(
     if hass.http is None:
         await async_setup_component(hass, "http", {})
 
-    # Percorrere la cartella e' un'operazione di disco, e questa funzione gira
-    # nell'event loop di Home Assistant: dalla 2026.8 lo dice ad alta voce —
-    # «Detected blocking call to scandir». Non e' un avviso pedante: sono
-    # centosettanta moduli piu' il guscio, e mentre il ciclo cammina fra i file
-    # nessun'altra integrazione va avanti. L'elenco si costruisce quindi da
-    # parte, come si fa gia' per il digest degli asset qui sopra.
-    assets = await hass.async_add_executor_job(lambda: list(_runtime_assets()))
+    # Guardare il disco e' lavoro da executor: questa funzione gira nel loop
+    # di Home Assistant, e dalla 2026.8 lo dice ad alta voce — «Detected
+    # blocking call ... inside the event loop».
+    runtime, shared = await hass.async_add_executor_job(_mounts_on_disk)
 
-    def configs(prefix: str, cache_headers: bool) -> list[StaticPathConfig]:
+    def configs(
+        prefix: str, names: list[str], cache_headers: bool
+    ) -> list[StaticPathConfig]:
         return [
             StaticPathConfig(
-                url_path=f"{prefix}/{path.relative_to(FRONTEND_DIR).as_posix()}",
-                path=str(path),
+                url_path=f"{prefix}/{name}",
+                path=str(FRONTEND_DIR / name),
                 cache_headers=cache_headers,
             )
-            for path in assets
+            for name in names
         ]
 
-    paths = configs(static_url_path, True)
+    paths = configs(static_url_path, runtime, True)
     if not domain_data.get(DATA_STATIC_BASE_REGISTERED):
-        paths = configs(STATIC_URL_PATH, False) + paths
-        # I ritratti delle persone sono duecentocinquanta immagini che non
-        # cambiano da un rilascio all'altro: si montano come cartella, una
-        # volta, fuori dalla versione. Metterle nel percorso versionato
-        # vorrebbe dire riscaricarle a ogni aggiornamento, e leggerne ogni
-        # byte a ogni avvio solo per calcolare la firma degli asset.
-        if AVATAR_DIR.is_dir():
-            paths.append(
-                StaticPathConfig(
-                    url_path=AVATAR_URL_PATH,
-                    path=str(AVATAR_DIR),
-                    cache_headers=True,
-                )
-            )
-        # I loghi dei marchi auto, per la stessa ragione. Prima venivano da un
-        # CDN: su una plancia che sta su una rete di casa e non esce su
-        # internet non arrivavano mai, e nessuno se ne accorgeva perche'
-        # un'immagine che non arriva non fa rumore.
-        if BRAND_DIR.is_dir():
-            paths.append(
-                StaticPathConfig(
-                    url_path=BRAND_URL_PATH,
-                    path=str(BRAND_DIR),
-                    cache_headers=True,
-                )
-            )
+        paths = configs(STATIC_URL_PATH, runtime, False) + paths
+        paths += configs(STATIC_URL_PATH, shared, True)
 
     await hass.http.async_register_static_paths(paths)
     domain_data[DATA_STATIC_BASE_REGISTERED] = True
