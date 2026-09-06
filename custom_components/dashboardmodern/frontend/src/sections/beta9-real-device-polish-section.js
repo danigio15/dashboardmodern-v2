@@ -234,19 +234,17 @@ function polishShutters() {
   if (!page) return false;
   page.dataset.dmShutterDesign = "beta9-compact-real";
 
-  const grid = page.querySelector("#tapp-grid");
-  if (grid) {
-    grid.style.setProperty("display", "grid", "important");
-    grid.style.setProperty("grid-template-columns", "repeat(auto-fit,minmax(280px,360px))", "important");
-    grid.style.setProperty("justify-content", "center", "important");
-    grid.style.setProperty("align-items", "start", "important");
-    grid.style.setProperty("gap", "14px", "important");
-  }
-
+  /* Le colonne della griglia non si scrivono piu' qui (#349).
+   *
+   * Erano scritte a mano sull'elemento, con `!important`: una dichiarazione in
+   * linea di quel peso non la batte nessun foglio, nemmeno il foglio del
+   * modulo che quella pagina la possiede. Finche' e' rimasta, la griglia della
+   * pagina Finestre era questa riga e nessun'altra — e cambiarla dove sembrava
+   * scritta non cambiava niente. La geometria sta in `shutter-section.js`, in
+   * CSS, dove si puo' correggere e dove le media query funzionano. */
   page.querySelectorAll(".tapp-card").forEach((card) => {
     card.classList.add("dm-beta9-real-shutter-card");
     card.style.setProperty("width", "100%", "important");
-    card.style.setProperty("max-width", "360px", "important");
     card.style.setProperty("min-height", "0", "important");
     card.style.setProperty("padding", "14px", "important");
     card.style.setProperty("gap", "10px", "important");
@@ -556,12 +554,11 @@ function installStyles() {
       cursor:pointer!important;touch-action:manipulation!important
     }
 
-    html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] #tapp-grid{
-      grid-template-columns:repeat(auto-fit,minmax(280px,360px))!important;
-      justify-content:center!important;align-items:start!important;gap:14px!important
-    }
+    /* Le colonne le decide il foglio della pagina Finestre (#349): scritte
+       anche qui erano la stessa misura con due padroni, e quella che vinceva
+       non era quella che si andava a correggere. */
     html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] .tapp-card.dm-beta9-real-shutter-card{
-      width:100%!important;max-width:360px!important;min-height:0!important;padding:14px!important;gap:10px!important;
+      width:100%!important;min-height:0!important;padding:14px!important;gap:10px!important;
       border-radius:20px!important;animation:none!important;transform:none!important
     }
     html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] .tapp-win.dm-beta9-real-shutter-window{
@@ -697,12 +694,6 @@ function installStyles() {
       #dm-visual-picker[data-kind="car"] .dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
       #dm-visual-picker[data-kind="car"] .dm-picker-visual{width:82px!important;height:52px!important}
       #dm-visual-picker[data-kind="car"] .dm-picker-visual .dm-car-brand{width:70px!important;height:39px!important}
-      html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] #tapp-grid{
-        grid-template-columns:minmax(0,360px)!important;justify-content:center!important
-      }
-      html body #page-tapparelle[data-dm-shutter-design="beta9-compact-real"] .tapp-card.dm-beta9-real-shutter-card{
-        max-width:360px!important
-      }
     }
     /* Gli avvisi animati restano animati anche a movimento ridotto: il
      * movimento e' il segnale — una perdita d'acqua che gocciola, una fiamma

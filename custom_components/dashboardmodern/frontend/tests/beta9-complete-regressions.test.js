@@ -140,8 +140,10 @@ test("temperature edit can move sensors and cancel clears reassignment state", a
 test("shutters use one stable first-paint geometry without wrapping the legacy renderer", async () => {
   const source = await readFile(shutterUrl, "utf8");
   assert.match(source, /First paint is already the final Beta9 geometry/);
-  assert.match(source, /#tapp-grid\{display:grid!important;grid-template-columns:repeat\(auto-fit,minmax\(280px,360px\)\)!important/);
-  assert.match(source, /\.tapp-card\{box-sizing:border-box!important;width:100%!important;max-width:360px!important/);
+  /* La geometria e' una sola e sta qui, ma le colonne non hanno piu' un tetto
+   * in pixel (#349): si dividono la larghezza, e la card riempie la sua. */
+  assert.match(source, /#tapp-grid\{display:grid!important;grid-template-columns:repeat\(auto-fit,minmax\(288px,1fr\)\)!important/);
+  assert.match(source, /\.tapp-card\{box-sizing:border-box!important;width:100%!important;max-width:none!important/);
   assert.match(source, /\.tapp-win\{box-sizing:border-box!important;height:132px!important;min-height:132px!important;max-height:132px!important/);
   assert.match(source, /\.tapp-shutter\{animation:none!important;filter:none!important;transition:height \.55s/);
   assert.doesNotMatch(source, /function polishShutterPage/);

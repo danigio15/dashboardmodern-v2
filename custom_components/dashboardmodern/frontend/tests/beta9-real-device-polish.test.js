@@ -77,7 +77,11 @@ test("room and temperature editors are repaired without a global observer", asyn
 
 test("shutters are compact and alert animations follow the alert kind", async () => {
   const source = await readFile(polishUrl, "utf8");
-  assert.match(source, /max-width", "360px", "important"/);
+  /* La larghezza massima della card non si scrive piu' in linea (#349): una
+   * dichiarazione in linea con !important non la batte nessun foglio, e
+   * teneva la griglia ferma a tre colonne qualunque cosa dicesse il CSS. */
+  assert.doesNotMatch(source, /max-width", "360px", "important"/);
+  assert.doesNotMatch(source, /grid-template-columns", "repeat/);
   assert.match(source, /height", "132px", "important"/);
   assert.match(source, /slat\.style\.setProperty\("animation", "none", "important"\)/);
   // Anche l'avviso tapparella fermo si muove: "static" lo lasciava l'unico

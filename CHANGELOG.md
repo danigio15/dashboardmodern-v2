@@ -91,6 +91,117 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 ### Corretto
 
+- **Il nome del gruppo di continuità si legge: non sta più sotto la scena.**
+
+      «Ciao, il nome dell'UPS viene coperto dall'effetto dello sfondo.»
+
+  Era dentro il palco: un titolo nel flusso, e sopra di lui la scena — che il
+  palco lo copre da bordo a bordo — con i suoi cavi e il suo velo di sfondo.
+  Tutto quello che la scena disegna gli passava davanti per il solo fatto di
+  essere posizionato. Che il posto giusto fosse fuori lo diceva già il foglio
+  di stile, le cui regole parlano del titolo come fratello del palco e da
+  dentro non si applicavano mai: adesso il nome sta lì, sopra la scena e non
+  sotto.
+
+  E le due targhette di lato — «Rete elettrica», «Sotto protezione» — non
+  escono più dal telaio: sono centrate su un dodicesimo della scena, che su un
+  telefono sono quarantasette pixel, e mezza pastiglia veniva tagliata via.
+  Adesso rientrano quel tanto che basta, e dove lo schermo si stringe le parole
+  vanno a capo invece di allargarsi oltre il bordo.
+
+- **La lingua scelta per la plancia arriva su tutti i dispositivi.**
+
+      «Nella versione corrente è sparito il settaggio per la lingua della
+       dashboard: su PC avevo settato italiano (HA in inglese) e continua a
+       funzionare, da mobile invece è rimasto inglese.»
+
+  La tendina non era sparita — è sempre in ⚙️ Impostazioni, sotto «Salva
+  generali», e adesso c'è una prova che la cerca anche dal telefono. A sparire
+  era la scelta: stava sotto una chiave del browser, fuori dalla configurazione
+  condivisa e fuori perfino dal prefisso che tiene separate due plance della
+  stessa casa. Chi la sceglieva sul computer la sceglieva per quel computer, e
+  il telefono tornava a seguire Home Assistant — che è esattamente quello che
+  si legge nella segnalazione.
+
+  Adesso la lingua è una chiave della plancia: viaggia con il resto della
+  configurazione, come la barra e le sezioni, e ogni plancia ha la sua. È
+  quello che la nota accanto alla tendina promette da sempre — «la fissa per
+  questa dashboard» — e chi ne aveva già scelta una non deve rifare niente: la
+  vecchia si legge ancora, e la prima lettura la travasa nella nuova, così
+  parte da sola verso gli altri dispositivi.
+
+- **Il radar della pioggia esce anche dal telefono.**
+
+      «Da mobile il radar non compare, da desktop sì.»
+
+  Il blocco nasceva su un TOCCO: qualunque clic sul documento faceva riguardare
+  la finestra del meteo un decimo di secondo dopo. Basta che quel tocco si fermi
+  per strada — e sul telefono, fra la testata e i gestori della navigazione, si
+  ferma — perché il radar non nasca mai; e una finestra aperta in qualunque
+  altro modo non lo faceva nascere affatto. Adesso è la finestra a dire quando
+  si apre, e il radar si disegna perché la finestra è aperta, non perché
+  qualcuno ha toccato lo schermo.
+
+  E due misure sbagliavano solo sul telefono. La larghezza si chiedeva mentre
+  la finestra si stava ancora aprendo, cioè mentre l'animazione la tiene
+  rimpicciolita: i quadratini finivano calcolati per un riquadro che un istante
+  dopo non c'era più. L'altezza si fermava a 213 px dentro una scatola che il
+  foglio non lascia scendere sotto i 240: la mappa stava in alto, il mirino nel
+  mezzo, e i due non si guardavano. Su un computer il conto superava i 240 da
+  solo, ed è per questo che di là non si vedeva.
+
+  Con lui, la riga sotto la mappa — posto, raggio, zoom, servizio della pioggia
+  e fondo — adesso si scrive **sempre**, anche quando il servizio non risponde:
+  è la riga che si chiede di mandare per capire cosa non va, e mancava proprio
+  nel caso in cui è l'unica cosa che lo spiega.
+
+- **Le finestre si mettono in fila e riempiono lo schermo.**
+
+      «Quando si guarda da PC o tablet le cards sono tutte in colonna e non
+       responsive: sarebbe bello si allineassero in modo tale da sfruttare
+       tutto lo spazio in larghezza, es. 2 card o più in base alla risoluzione
+       dello schermo.»
+
+  La colonna aveva un tetto in pixel — al massimo 360 — e con un massimo
+  definito il browser conta quante colonne ci stanno usando QUEL numero, non il
+  minimo: servivano 374 px per ognuna. Su un tablet da 800, dove di posto ce ne
+  sarebbe stato per due, ne entrava una sola, con mezzo schermo bianco a destra;
+  su un monitor largo se ne fermavano tre in mezzo alla pagina. Adesso la
+  griglia è la stessa delle Luci e delle Stanze — colonne larghe almeno 288 px
+  che si dividono lo spazio in parti uguali — e le card si allargano fino a
+  riempirlo: due appena lo schermo le regge, quattro o cinque su un monitor,
+  una sola sul telefono.
+
+  E la misura sta in un posto solo. Era scritta in tre fogli più una riga in
+  linea sull'elemento, e quella riga vinceva su tutte: cambiarla dove sembrava
+  scritta non cambiava niente.
+
+- **La pastiglia dice cosa è aperto, e la spunta delle percentuali invertite funziona davvero.**
+
+      «Per permettere di capire meglio se si tratta di una tapparella, tenda da
+       sole o finestra direi di scrivere "tapparella aperta" o "tenda
+       dispiegata", così come per Finestra aperta.»
+
+      «Il flag per invertire le tapparelle aperte/chiuse non sembra funzionare.
+       Slider al 100% rimane così se invertito per tapparella aperta mentre
+       l'immagine del panorama fuori dalla finestra è corretta.»
+
+  Sono due cose e vengono dalla stessa finestra. La pastiglia diceva «Aperta» e
+  basta: su un infisso che ha insieme la tapparella, la tenda e il contatto
+  erano tre pastiglie identiche per tre cose diverse, e quale fosse aperta la si
+  doveva dedurre dal disegno. Adesso ognuna dice il proprio nome — «Tapparella
+  aperta», «Tenda aperta», «Finestra aperta» — e la tenda da sole non si apre:
+  si dispiega, e rientra. Le parole stanno nel modello delle coperture, quindi
+  sono le stesse in tutte e tredici le lingue e sulla card come nel popup.
+
+  E il verso invertito: si applicava alla sola percentuale. Una tapparella che
+  la percentuale non la pubblica affatto — e sono spesso proprio quelle montate
+  al contrario — restava identica con la spunta e senza, perché la parola che
+  Home Assistant manda («aperta») non veniva girata: da quella parola il
+  cursore ricava il suo cento per cento, e il disegno la sua altezza. Adesso il
+  verso gira anche lo stato dichiarato, e i due movimenti con lui: pastiglia,
+  cursore e telo dicono la stessa cosa, che è quella che si vede dalla stanza.
+
 - **Gli stati arrivano anche con una connessione lenta: la Home si riempie, le tessere si muovono.**
 
       «Sezione aperta ma i dati non si caricano.» Dal telefono: pallino verde,

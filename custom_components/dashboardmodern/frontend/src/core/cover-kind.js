@@ -70,6 +70,67 @@ export function coverKindLabel(kind, locale = getLocale()) {
   return pick(labels[0], labels[1], code);
 }
 
+/* Come si dice che e' aperta, dicendo anche COSA e' aperto (#353).
+ *
+ * «Per permettere di capire meglio se si tratta di una tapparella, tenda da
+ *  sole o finestra direi di scrivere "tapparella aperta" o "tenda dispiegata",
+ *  cosi' come per Finestra aperta: chi ha sensori finestra, tende e tapparelle
+ *  capisce meglio cosa e' aperto e cosa no.»
+ *
+ * La pastiglia diceva «Aperta» e basta. Su una casa con una tapparella, una
+ * tenda e un contatto sulla stessa finestra sono tre pastiglie identiche per
+ * tre cose diverse, e quale fosse aperta lo si doveva dedurre dal disegno.
+ *
+ * Una tenda da sole non si apre: si dispiega, e rientra. E' la parola che si
+ * usa guardandola, ed e' l'unico modo per non dire di un telo sopra la finestra
+ * la stessa cosa che si dice di una lamiera davanti al vetro.
+ *
+ * Il tipo `finestra` non e' fra quelli che si disegnano — non e' una copertura,
+ * e' il serramento visto dal suo contatto — ma le sue parole stanno qui con le
+ * altre: sono la stessa frase declinata sulla stessa cosa.
+ */
+function paroleDelloStato(quale, code) {
+  if (quale === "tenda_sole")
+    return {
+      open: pick("Tenda dispiegata", "Awning out", code),
+      closed: pick("Tenda ritratta", "Awning in", code),
+      opening: pick("Tenda che si dispiega", "Awning going out", code),
+      closing: pick("Tenda che si ritrae", "Awning going in", code),
+    };
+  if (quale === "tenda")
+    return {
+      open: pick("Tenda aperta", "Curtain open", code),
+      closed: pick("Tenda chiusa", "Curtain closed", code),
+      opening: pick("Tenda in apertura", "Curtain opening", code),
+      closing: pick("Tenda in chiusura", "Curtain closing", code),
+    };
+  if (quale === "finestra")
+    return {
+      open: pick("Finestra aperta", "Window open", code),
+      closed: pick("Finestra chiusa", "Window closed", code),
+    };
+  return {
+    open: pick("Tapparella aperta", "Shutter open", code),
+    closed: pick("Tapparella chiusa", "Shutter closed", code),
+    opening: pick("Tapparella in apertura", "Shutter opening", code),
+    closing: pick("Tapparella in chiusura", "Shutter closing", code),
+  };
+}
+
+/** Il serramento senza motori: non e' una copertura, ma ha le sue parole. */
+export const INFISSO = "finestra";
+
+/** La frase per uno stato — `open`, `closed`, `opening`, `closing` — o "". */
+export function coverStateLabel(kind, stato, locale = getLocale()) {
+  const code = locale === true ? "en" : locale === false ? SOURCE_LOCALE : locale;
+  const chiesto = clean(kind);
+  /* Senza un tipo si parla di una tapparella: e' quello che la sezione ha
+   * sempre disegnato quando Home Assistant non dice altro. La finestra la si
+   * chiede per nome, perche' nessuna copertura ci si trasforma per sbaglio. */
+  const quale = chiesto === INFISSO || COVER_KINDS.includes(chiesto) ? chiesto : COVER_KINDS[0];
+  return paroleDelloStato(quale, code)[clean(stato)] || "";
+}
+
 /* Il verso in cui si muove.
  *
  * Una tapparella scende dall'alto e la sua "chiusura" e' altezza; una tenda si
