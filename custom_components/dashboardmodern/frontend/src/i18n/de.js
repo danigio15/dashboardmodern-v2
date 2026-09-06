@@ -2807,4 +2807,7 @@ export default Object.freeze({
   "already from another device, left as they were": "schon von einem anderen Gerät, unverändert gelassen",
   "this room has no humidity sensor: set it under the Temperature tab.": "dieser Raum hat keinen Feuchtesensor: er wird im Reiter Temperatur zugeordnet.",
   "Without a room this window has no humidity to watch: pick one above.": "Ohne Raum hat dieses Fenster keine Feuchte zum Beobachten: wähle oben einen aus.",
+  "Rain zoom cap": "Maximaler Zoom des Regens",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "Der Adresse fehlt ein Platzhalter: alle drei werden gebraucht — {z} für den Zoom, {x} und {y} für die Kachel. Mit nur einem würde immer dasselbe Stück Welt angefragt.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "Das ist die Adresse einer SEITE, nicht der Kartenkacheln: öffnet man sie, öffnet sich eine Website, und eine Website lässt sich hier drin nicht zeichnen. Gebraucht wird die Adresse, unter der dieser Dienst seine Kacheln veröffentlicht, die mit {z}/{x}/{y} anstelle der Zahlen. Wenn du sie nicht hast, wähle oben einen Dienst aus der Liste.",
 });

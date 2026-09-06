@@ -151,6 +151,101 @@ export function finestraDiTessere(lat, lon, opzioni = {}) {
 }
 
 /**
+ * Fin dove chiedere la pioggia: quello che dice la casella, o quel che si sa
+ * del servizio.
+ *
+ * La casella vuota vale «quello che sappiamo di questo servizio»; uno zero
+ * vale «nessun tetto, chiedigliela al livello della mappa» — che e' la strada
+ * per chi ha un servizio che a quel livello risponde eccome, e non deve
+ * pagare un numero misurato a casa d'altri.
+ */
+export function zoomDellaPioggia(config = {}, servizio = "") {
+  const scritto = numero(config?.zoomPioggia);
+  if (scritto !== null)
+    return scritto <= 0 ? null : Math.max(ZOOM_MINIMO, Math.min(ZOOM_MASSIMO, Math.round(scritto)));
+  return numero(SERVIZI_RADAR[stringa(servizio)]?.zoomMassimo);
+}
+
+/**
+ * La finestra dei quadratini della PIOGGIA, che puo' guardare piu' largo.
+ *
+ * «C'e' ancora quella scritta sullo zoom e non mi sembra di vedere le piogge.»
+ * Dal campo: mappa di fondo disegnata bene, nota `z9 · RainViewer`, e sopra la
+ * mappa i quadratini della pioggia tutti sostituiti dalla scritta «Zoom Level
+ * Not Supported». Non e' il fondo — quello arriva — e' il radar, che a quel
+ * livello risponde con una scritta stampata invece che con la pioggia.
+ *
+ * Un servizio che a un certo ingrandimento non ha piu' niente da dare non e' un
+ * difetto della plancia; chiederglielo lo stesso, si'. Qui la pioggia si chiede
+ * al livello piu' vicino che quel servizio serve, e i suoi quadratini si
+ * ingrandiscono per coprire la stessa area: la mappa resta inquadrata com'era,
+ * la pioggia diventa un po' piu' grossa. Non si perde niente di vero — la
+ * griglia di un radar sta intorno al chilometro, molto piu' larga di un pixel a
+ * questi livelli — e si guadagna una mappa senza scritte sopra.
+ *
+ * `finestra` e' quella gia' calcolata per il fondo. Se il tetto non morde,
+ * torna la stessa: chi disegna non deve sapere se e' successo qualcosa.
+ */
+export function finestraDellaPioggia(lat, lon, finestra, zoomMassimo = null) {
+  if (!finestra) return null;
+  const tetto = numero(zoomMassimo);
+  if (tetto === null || finestra.zoom <= tetto) return finestra;
+  const salto = finestra.zoom - Math.max(ZOOM_MINIMO, Math.round(tetto));
+  const fattore = 2 ** salto;
+  const piu = finestraDiTessere(lat, lon, {
+    latoPx: finestra.lato / fattore,
+    altoPx: finestra.alto / fattore,
+    zoom: finestra.zoom - salto,
+    lato: finestra.tessera,
+  });
+  if (!piu) return finestra;
+  return {
+    ...piu,
+    /* Il riquadro resta quello del fondo: e' la stessa finestra, guardata con
+     * quadratini piu' grossi. */
+    lato: finestra.lato,
+    alto: finestra.alto,
+    tessere: piu.tessere.map((tessera) => ({
+      ...tessera,
+      sx: tessera.sx * fattore,
+      sy: tessera.sy * fattore,
+      lato: tessera.lato * fattore,
+    })),
+  };
+}
+
+/**
+ * Perche' questo indirizzo non e' un modello di quadratini.
+ *
+ * «Ho inserito il link con l'indirizzo e non lo legge nemmeno.» L'indirizzo
+ * incollato era `https://www.windy.com/?40.964,14.215,9` — la pagina del sito,
+ * quella che si apre nel browser — e la plancia rispondeva «scrivi un indirizzo
+ * con {z}/{x}/{y} dentro», che e' vero e non serve a niente: chi non sa cos'e'
+ * un quadratino legge quella frase e ha ancora lo stesso problema.
+ *
+ * Sono due errori diversi e vanno detti diversi: l'indirizzo di un SITO, che
+ * non diventera' mai un modello per quanto lo si aggiusti, e un indirizzo di
+ * quadratini a cui manca un segnaposto, che si sistema aggiungendolo.
+ *
+ * Torna "" quando l'indirizzo va bene.
+ */
+export function problemaDellIndirizzo(indirizzo) {
+  const testo = stringa(indirizzo);
+  if (!testo) return "vuoto";
+  if (/\{-?[zxy]\}/.test(testo)) {
+    /* Un modello serio li ha tutti e tre: con solo `{z}` si chiederebbe sempre
+     * lo stesso quadratino, e si vedrebbe un pezzo di mondo a caso. La riga
+     * puo' essere `{y}` o `{-y}` — c'e' chi le conta dal basso — e sono la
+     * stessa cosa detta al contrario. */
+    return /\{z\}/.test(testo) && /\{x\}/.test(testo) && /\{-?y\}/.test(testo)
+      ? ""
+      : "segnaposto-a-meta";
+  }
+  if (/^https?:\/\//i.test(testo)) return "sito";
+  return "senza-segnaposto";
+}
+
+/**
  * L'indirizzo di un quadratino, dal modello.
  *
  * Il modello e' quello che usano tutti — `{z}`, `{x}`, `{y}` — piu' `{s}` per
@@ -266,6 +361,17 @@ export const SERVIZI_RADAR = Object.freeze({
     /* Ogni quanto l'elenco vale la pena di rileggerlo: i fotogrammi nascono
      * ogni dieci minuti, e rileggerlo piu' spesso e' chiedere la stessa cosa. */
     ogni: 10 * 60 * 1000,
+    /* Fin dove risponde con la pioggia invece che con una scritta.
+     *
+     * Questo numero non viene da un manuale: viene da una schermata. Una
+     * plancia con raggio trenta chilometri chiedeva `z9`, e i quadratini
+     * tornavano tutti «Zoom Level Not Supported» — l'elenco dei fotogrammi
+     * invece arrivava, quindi il servizio c'era e a quel livello non serviva.
+     * Otto e' il primo livello sotto quello che si e' visto fallire. Se
+     * dovesse servire piu' basso, si abbassa dalla casella nella scheda: e'
+     * li' apposta, perche' un numero misurato su una casa sola non e' una
+     * legge. */
+    zoomMassimo: 8,
   }),
 });
 

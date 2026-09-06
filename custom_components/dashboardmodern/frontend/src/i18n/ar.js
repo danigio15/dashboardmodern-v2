@@ -2807,4 +2807,7 @@ export default Object.freeze({
   "already from another device, left as they were": "من جهاز آخر بالفعل، تُركت كما هي",
   "this room has no humidity sensor: set it under the Temperature tab.": "لا يوجد في هذه الغرفة مستشعر رطوبة: يُربط من تبويب الحرارة.",
   "Without a room this window has no humidity to watch: pick one above.": "بدون غرفة لا توجد رطوبة تراقبها هذه النافذة: اختر غرفة في الأعلى.",
+  "Rain zoom cap": "أقصى تقريب للمطر",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "ينقص العنوان عنصر نائب: الثلاثة مطلوبة — ‏{z} للتقريب و{x} و{y} للمربّع. بواحد فقط سيُطلب دائمًا الجزء نفسه من العالم.",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "هذا عنوان صفحة، لا عنوان مربّعات الخريطة: فتحه يفتح موقعًا، والموقع لا يمكن رسمه هنا. المطلوب هو العنوان الذي تنشر به تلك الخدمة مربّعاتها، وفيه ‏{z}/{x}/{y} بدل الأرقام. إن لم يكن لديك، فاختر خدمة من القائمة أعلاه.",
 });

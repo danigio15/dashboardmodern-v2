@@ -465,6 +465,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Al lavoro": "Cleaning",
   "Alcune schede sono elenchi — Luci, Prese, Telecamere — e lì un'entità in più si è sempre potuta aggiungere. Altre sono fatte di caselle con un ruolo preciso: l'Energia ha una rete e un fotovoltaico, la Sicurezza una centrale, e per un sensore in più non c'era posto. Qui c'è: scegli l'entità, in quale scheda farla comparire, come chiamarla e con che icona. Compare in fondo alla pagina che scegli, e quelle che si accendono si accendono.": "Some pages are lists — Lights, Sockets, Cameras — and there you could always add one more entity. Others are made of boxes with a set role: Energy has a grid and a solar array, Security an alarm panel, and there was no place for one more sensor. Here there is: pick the entity, which page it should appear on, what to call it and with which icon. It shows up at the bottom of the page you choose, and the ones that switch, switch.",
   "Alimentazione": "Power supply",
+  "All'indirizzo manca un segnaposto: servono tutti e tre — {z} per l'ingrandimento, {x} e {y} per il quadratino. Con uno solo si chiederebbe sempre lo stesso pezzo di mondo.": "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.",
   "All'uscita c'è": "At the outlet there is",
   "Alla base": "Docked",
   "Allagamenti": "Floods",
@@ -2087,6 +2088,7 @@ export const SOURCE_INDEX = Object.freeze({
   "questa stanza non ha un sensore di umidità: si associa nella scheda Temperature.": "this room has no humidity sensor: set it under the Temperature tab.",
   "Questa voce non ha ancora un'entità: mappala in Configurazione per vedere il suo storico.": "This reading has no entity yet: map it in the configuration to see its history.",
   "Questo è l'impianto principale e non si può eliminare: è quello che la plancia ha sempre letto.": "This is the main plant and cannot be removed: it is the one the dashboard has always read.",
+  "Questo è l'indirizzo di una PAGINA, non dei quadratini della mappa: aprendolo si apre un sito, e un sito non si può disegnare qui dentro. Serve l'indirizzo con cui quel servizio pubblica le tessere, che ha {z}/{x}/{y} al posto dei numeri. Se non ce l'hai, scegli un servizio dalla tendina qui sopra.": "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.",
   "questo impegno": "this event",
   "Questo non è un backup della plancia.": "This is not a dashboard backup.",
   "Questo non è un JSON.": "This is not JSON.",
@@ -2785,6 +2787,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Zone · Programma · Pioggia prevista": "Zones · Schedule · Forecast rain",
   "zone configurate": "zones configured",
   "zone in funzione": "zones running",
+  "Zoom massimo della pioggia": "Rain zoom cap",
   "ΔT Solare": "Solar ΔT",
 });
 

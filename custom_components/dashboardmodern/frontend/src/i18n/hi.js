@@ -2807,4 +2807,7 @@ export default Object.freeze({
   "already from another device, left as they were": "पहले से किसी दूसरे उपकरण से, जैसे थे वैसे ही छोड़े गए",
   "this room has no humidity sensor: set it under the Temperature tab.": "इस कमरे में नमी सेंसर नहीं है: इसे तापमान टैब में जोड़ा जाता है।",
   "Without a room this window has no humidity to watch: pick one above.": "कमरे के बिना इस खिड़की के पास देखने को नमी नहीं है: ऊपर एक कमरा चुनें।",
+  "Rain zoom cap": "बारिश का अधिकतम ज़ूम",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "पते में एक प्लेसहोल्डर नहीं है: तीनों चाहिए — ज़ूम के लिए {z}, टाइल के लिए {x} और {y}। सिर्फ़ एक से हमेशा दुनिया का वही टुकड़ा माँगा जाता।",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "यह एक पेज का पता है, नक्शे की टाइलों का नहीं: इसे खोलने पर एक वेबसाइट खुलती है, और वेबसाइट यहाँ नहीं बनाई जा सकती। ज़रूरत उस पते की है जिस पर वह सेवा अपनी टाइलें देती है — जिसमें संख्याओं की जगह {z}/{x}/{y} होता है। अगर वह न हो, तो ऊपर की सूची से एक सेवा चुनें।",
 });

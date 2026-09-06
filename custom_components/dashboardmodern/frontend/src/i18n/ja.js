@@ -2807,4 +2807,7 @@ export default Object.freeze({
   "already from another device, left as they were": "すでに別のデバイスのもの、そのまま残しました",
   "this room has no humidity sensor: set it under the Temperature tab.": "この部屋には湿度センサーがありません: 「温度」タブで割り当てます。",
   "Without a room this window has no humidity to watch: pick one above.": "部屋が未選択だとこの窓には見る湿度がありません: 上で部屋を選んでください。",
+  "Rain zoom cap": "雨の最大ズーム",
+  "The address is missing a placeholder: all three are needed — {z} for the zoom, {x} and {y} for the tile. With only one it would always ask for the same piece of the world.": "アドレスにプレースホルダーが足りません: 三つとも必要です — ズームの {z}、タイルの {x} と {y}。一つだけでは常に同じ場所を要求してしまいます。",
+  "This is the address of a PAGE, not of the map tiles: opening it opens a website, and a website cannot be drawn in here. What is needed is the address that service publishes its tiles at, the one with {z}/{x}/{y} standing in for the numbers. If you do not have it, pick a service from the list above.": "これはページのアドレスで、地図タイルのものではありません: 開けばウェブサイトが開き、ウェブサイトはここには描けません。必要なのは、そのサービスがタイルを公開しているアドレス — 数字の代わりに {z}/{x}/{y} が入ったものです。手元にない場合は、上の一覧からサービスを選んでください。",
 });
