@@ -10,9 +10,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 Le cose viste sulla plancia vera dopo la 1.4.11, con le schermate davanti —
 i dati che non si caricano dal telefono, l'Energia giornaliera coi numeri del
 guscio e nessuna spiegazione, la tendina del target che non applicava il 90%,
-il consiglio di arieggiare su una finestra gia' aperta — e le segnalazioni
-aperte prese una per una: l'aria che grida per un valore buono, l'auto che si
-ripete in Home, il televisore che risulta spento mentre e' acceso.
+il consiglio di arieggiare su una finestra gia' aperta — e tutte le
+segnalazioni aperte prese una per una, richieste comprese.
+
+Sotto, tre cose che non si vedono ma si sentono: la plancia non si ricostruisce
+piu' a ogni pagina di Home Assistant, si disegna la pagina che si guarda invece
+di tutte e nove, e sei moduli nati durante le prove sul dispositivo vero — che
+riscrivevano quello che qualcun altro aveva gia' disegnato — non ci sono piu'.
 
 ### Aggiunto
 
