@@ -718,6 +718,39 @@ function installStyles() {
   installStyle(
     "dm-icon-engine-style",
     `
+      /* La faccia dei glifi che questo motore stampa.
+       *
+       * Le due classi qui sotto le scrive glyphClass() poche righe piu' su, e
+       * la vestizione stava in un altro foglio — quello di beta12 — che al
+       * disegno non partecipava piu': faceva soltanto da guardaroba. Adesso sta
+       * qui, dove abita chi le mette addosso, e in testa alle regole del
+       * selettore perche' l'ordine fra i due gruppi resti quello di sempre: il
+       * foglio di beta12 si installava prima di questo, e la misura del riquadro
+       * del selettore la vinceva questo. */
+      .dm-beta12-room-glyph,.dm-beta12-action-glyph{
+        display:grid!important;place-items:center!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;
+        font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-style:normal!important;font-weight:400!important;line-height:1!important;
+        visibility:visible!important;opacity:1!important;color:initial!important
+      }
+      .dm-beta12-room-glyph>span,.dm-beta12-action-glyph>span{display:block!important;line-height:1!important;filter:drop-shadow(0 5px 8px rgba(15,23,42,.12))!important}
+      #qa-grid .qa-btn .dm-beta12-action-glyph{font-size:34px!important}
+      #editor-modal .dm-beta7-existing-action-icon .dm-beta12-action-glyph,#editor-modal .dm-beta6-qa-icon-trigger .dm-beta12-action-glyph{font-size:29px!important}
+      #editor-modal .dm-room-list-icon .dm-beta12-room-glyph{font-size:31px!important}
+      .dm-temperature-card-icon .dm-beta12-room-glyph{font-size:29px!important}
+      #dm-visual-picker[data-dm-beta12-colored="true"] .dm-picker-visual{
+        display:grid!important;place-items:center!important;min-height:58px!important;color:initial!important
+      }
+      #dm-visual-picker[data-kind="room"] .dm-picker-visual .dm-beta12-room-glyph,
+      #dm-visual-picker[data-kind="action"] .dm-picker-visual .dm-beta12-action-glyph{font-size:38px!important}
+      #dm-visual-picker[data-dm-beta12-colored="true"] .dm-picker-option{
+        background:linear-gradient(180deg,var(--card-background-color,#fff),color-mix(in srgb,var(--info-color,#0ea5e9) 3%,var(--card-background-color,#fff)))!important
+      }
+      #dm-room-editor-modal [data-room-icon-preview][data-dm-beta12-colored="true"] .dm-beta12-room-glyph,
+      #dm-action-editor-modal [data-action-icon-preview][data-dm-beta12-colored="true"] .dm-beta12-action-glyph{font-size:38px!important}
+      @media(max-width:760px){
+        #dm-visual-picker[data-kind="room"] .dm-picker-visual .dm-beta12-room-glyph,#dm-visual-picker[data-kind="action"] .dm-picker-visual .dm-beta12-action-glyph{font-size:34px!important}
+      }
+
       /* Nel cerchio della conferma il disegno prende il colore della finestra,
          che il guscio scrive in --cf-rgb: senza, resterebbe del colore di
          serie mentre il cerchio intorno e' del colore dell'azione. */

@@ -177,9 +177,10 @@ test("beta16: Climate resolves canonical room labels and lays the cards out per 
 
   const measure = () => {
     const grid = document.querySelector("#page-clima .dm-cl-grid");
-    const switchNode = document.querySelector(
-      '#page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]',
-    );
+    // Il selettore lo disegna la sezione Clima e porta la sua classe: prima si
+    // cercava per l'attributo che ci appiccicava sopra una passata di beta12,
+    // e senza quella passata questa misura non avrebbe piu' misurato niente.
+    const switchNode = document.querySelector("#page-clima .clima-page-mode-switch.dm-cl-switch");
     const buttons = [...(switchNode?.querySelectorAll(".clima-page-mode-btn") || [])];
     const cards = [...document.querySelectorAll("#page-clima .dm-cl-card")].map((card) =>
       card.getBoundingClientRect(),

@@ -140,7 +140,6 @@ def main() -> None:
         'import "../src/sections/beta-entry-section.js";\n'
         'import "../src/sections/save-engine-section.js";\n'
         'import "../src/sections/beta11-real-device-polish-section.js";\n'
-        'import "../src/sections/beta12-real-device-polish-section.js";\n'
         'import "../src/sections/beta12-room-color-lock-section.js";\n'
         'import "../src/sections/beta14-real-device-hotfix-section.js";\n'
         'import "../src/sections/beta16-real-device-layout-section.js";\n'
