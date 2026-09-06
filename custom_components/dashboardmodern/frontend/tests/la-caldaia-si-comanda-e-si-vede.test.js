@@ -390,7 +390,11 @@ test("la scena mostra le letture del pellet solo quando ci sono", async () => {
   assert.match(scena, /lettura\.mandataCalcolata == null\s*\n\s*\? ""/);
   /* Il corpo della caldaia passa dalla targhetta di tutti, che senza numero
    * non nasce. */
-  assert.match(scena, /t\("Corpo caldaia", "Boiler body"\), lettura\.temperaturaCaldaia/);
+  assert.match(scena, /t\("Corpo caldaia", "Boiler body"\),\s*\n?\s*lettura\.temperaturaCaldaia/);
+  /* E sul telefono i pezzi nuovi si spostano dove c'è posto: le posizioni
+   * sono scritte in linea, e per scavalcarle ci vuole un nome da chiamare. */
+  for (const nome of ["dm-it-nodo-corpo", "dm-it-nodo-fuoco", "dm-it-nodo-pellet"])
+    assert.ok(scena.includes(`${nome}{left:`), nome);
 });
 
 test("la scheda raccoglie le caselle del pellet sotto un titolo solo", async () => {

@@ -5,6 +5,43 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.12
+
+### Aggiunto
+
+- **La caldaia a pellet: la combustione, il serbatoio e le due sonde del boiler.**
+
+      «Nella sezione caldaia vorrei inserire: temperatura caldaia, temperatura
+       alta e bassa del boiler, temperatura fumi, comando ventilatore fumi,
+       ossigeno residuo, livello riempimento pellet, temperatura mandata
+       calcolata, ecc.»
+
+  La caldaia della Gestione termica era una caldaia a gas: mandata, ritorno,
+  pressione. Chi brucia pellet o legna ha in piu' una combustione da guardare
+  — i fumi che escono, l'ossigeno che avanza, il ventilatore che tira — un
+  serbatoio che si svuota e una centralina che si da' un obiettivo suo.
+
+  Non e' un'altra macchina e non nasce un secondo modello: sono otto caselle
+  in coda alle dieci di prima, nella stessa configurazione e nello stesso
+  ordine, raccolte in configurazione sotto «Combustibile solido: pellet o
+  legna». Chi ha una caldaia a gas non si accorge di niente, perche' quello
+  che non e' mappato non si disegna.
+
+  In pagina: fumi, ossigeno e ventilatore accanto alla fiamma; il serbatoio
+  del pellet in basso, che sotto il 15% diventa rosso; le due sonde del
+  sanitario addosso al disegno del boiler; la mandata calcolata sotto la
+  mandata vera. Il ventilatore dei fumi va bene come percentuale di comando o
+  come interruttore — quale sia lo dicono il dominio e l'unita' di misura, non
+  chi configura — e il pellet in percentuale riempie il disegno mentre in kg
+  resta un numero: un serbatoio a meta' sopra una lettura in chili sarebbe
+  un'affermazione e non un dato.
+
+  E le parole con cui una centralina Lambdatronic racconta il ciclo — Heizen,
+  Anheizen, Zuendung, Ausbrand, Kessel Aus, e le stesse in inglese e in
+  italiano — entrano fra quelle che la plancia sa leggere come «accesa» e
+  «spenta». Una fase che non conosciamo non diventa «stato non mappato»: si
+  scrive com'e'.
+
 ## 1.4.11
 
 Le cose viste sulla plancia vera subito dopo la 1.4.10, con le schermate

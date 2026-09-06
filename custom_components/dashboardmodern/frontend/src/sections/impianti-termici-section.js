@@ -143,9 +143,21 @@ const NUMERO = (valore, cifre = 1) => formatNumber(valore, cifre);
  * della caldaia, non ha temperature da mostrare — e cinque targhette con «--»
  * non sono una scheda spoglia: sono cinque promesse non mantenute. Le caselle
  * che non ci sono non lasciano un buco: lasciano posto. */
-function nodoTarghetta(posizione, etichetta, valore, unita, colore, cifre = 1, extra = "") {
+function nodoTarghetta(
+  posizione,
+  etichetta,
+  valore,
+  unita,
+  colore,
+  cifre = 1,
+  extra = "",
+  classe = "",
+) {
   if (valore == null) return "";
-  return `<div class="dm-it-nodo dm-it-nodo-plate" style="${posizione}">
+  /* Il nome in coda serve al telefono: le posizioni sono scritte in linea, e
+   * per spostare un nodo su uno schermo stretto ci vuole qualcosa che il
+   * vestito sappia chiamare per nome. */
+  return `<div class="dm-it-nodo dm-it-nodo-plate ${classe}" style="${posizione}">
     ${targhetta(etichetta, NUMERO(valore, cifre), unita, colore, extra)}
   </div>`;
 }
@@ -357,7 +369,7 @@ function combustioneMarkup(lettura) {
     [t("Ventilatore", "Fan"), soffio],
   ].filter(([, valore]) => valore != null);
   if (!righe.length) return "";
-  return `<div class="dm-it-nodo" style="left:11%;top:46%">
+  return `<div class="dm-it-nodo dm-it-nodo-fuoco" style="left:11%;top:46%">
     <div class="dm-it-fuoco">${righe
       .map(
         ([etichetta, valore]) => `<span class="dm-it-fuoco-riga">
@@ -386,10 +398,12 @@ function pelletMarkup(lettura) {
       " kg",
       "#d97706",
       0,
+      "",
+      "dm-it-nodo-pellet",
     );
   const pieno = Math.max(0, Math.min(100, quota));
   const scritta = `${t("Pellet", "Pellet")} ${NUMERO(quota, 0)}%`;
-  return `<div class="dm-it-nodo" style="left:11%;top:80%">
+  return `<div class="dm-it-nodo dm-it-nodo-pellet" style="left:11%;top:80%">
     <div class="dm-it-pellet" data-scarso="${pelletScarso(quota) === true}" role="img"
       aria-label="${esc(scritta)}">
       <span class="dm-it-pellet-liv" style="height:${pieno}%"></span>
@@ -529,7 +543,16 @@ function scenaCaldaia(lettura) {
     )}
     ${nodoTarghetta("left:26%;top:84%", t("Acqua calda", "Hot water"), lettura.acquaCalda, "°C", "#fb923c")}
 
-    ${nodoTarghetta("left:44%;top:12%", t("Corpo caldaia", "Boiler body"), lettura.temperaturaCaldaia, "°C", "#fb7185", 0)}
+    ${nodoTarghetta(
+      "left:44%;top:12%",
+      t("Corpo caldaia", "Boiler body"),
+      lettura.temperaturaCaldaia,
+      "°C",
+      "#fb7185",
+      0,
+      "",
+      "dm-it-nodo-corpo",
+    )}
     ${combustioneMarkup(lettura)}
     ${pelletMarkup(lettura)}
     ${
@@ -1148,7 +1171,19 @@ function installStyles() {
       #${PAGINA} .dm-it-radiatore i{height:54px;width:8px}
       /* Sul telefono il palco e' stretto: la combustione e il serbatoio
          rientrano invece di uscire dal bordo sinistro. */
-      #${PAGINA} .dm-it-fuoco{min-width:72px;padding:7px 9px;gap:3px}
+      /* Su uno schermo stretto le nove letture si darebbero di gomito: i
+         pezzi nuovi vanno dove c'e' posto — la fascia libera al centro a
+         destra, l'angolo in basso, la spalla della targhetta di mandata.
+         Le posizioni sono scritte in linea e solo un !important le puo'
+         scavalcare; il palco resta quello, cambiano di posto loro. */
+      #${PAGINA} .dm-it-nodo-corpo{left:78%!important;top:7%!important}
+      #${PAGINA} .dm-it-nodo-fuoco{left:62%!important;top:60%!important}
+      #${PAGINA} .dm-it-nodo-pellet{left:82%!important;top:90%!important}
+      #${PAGINA} .dm-it-nodo-pellet .dm-it-nome{font-size:9px;padding:4px 9px}
+      #${PAGINA} .dm-it-fuoco{min-width:64px;padding:7px 9px;gap:3px}
+      /* In colonna invece che in riga: il pannello si stringe della meta' e
+         sta nella fascia libera senza salire sopra il serbatoio. */
+      #${PAGINA} .dm-it-fuoco-riga{flex-direction:column;align-items:flex-start;gap:0}
       #${PAGINA} .dm-it-fuoco-val{font-size:13px}
       #${PAGINA} .dm-it-fuoco-lbl{font-size:8.5px;letter-spacing:.5px}
       #${PAGINA} .dm-it-pellet{width:36px;height:66px}
