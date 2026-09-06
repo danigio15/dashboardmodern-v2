@@ -14,6 +14,32 @@ su una finestra gia' aperta.
 
 ### Corretto
 
+- **La pastiglia dice cosa è aperto, e la spunta delle percentuali invertite funziona davvero.**
+
+      «Per permettere di capire meglio se si tratta di una tapparella, tenda da
+       sole o finestra direi di scrivere "tapparella aperta" o "tenda
+       dispiegata", così come per Finestra aperta.»
+
+      «Il flag per invertire le tapparelle aperte/chiuse non sembra funzionare.
+       Slider al 100% rimane così se invertito per tapparella aperta mentre
+       l'immagine del panorama fuori dalla finestra è corretta.»
+
+  Sono due cose e vengono dalla stessa finestra. La pastiglia diceva «Aperta» e
+  basta: su un infisso che ha insieme la tapparella, la tenda e il contatto
+  erano tre pastiglie identiche per tre cose diverse, e quale fosse aperta la si
+  doveva dedurre dal disegno. Adesso ognuna dice il proprio nome — «Tapparella
+  aperta», «Tenda aperta», «Finestra aperta» — e la tenda da sole non si apre:
+  si dispiega, e rientra. Le parole stanno nel modello delle coperture, quindi
+  sono le stesse in tutte e tredici le lingue e sulla card come nel popup.
+
+  E il verso invertito: si applicava alla sola percentuale. Una tapparella che
+  la percentuale non la pubblica affatto — e sono spesso proprio quelle montate
+  al contrario — restava identica con la spunta e senza, perché la parola che
+  Home Assistant manda («aperta») non veniva girata: da quella parola il
+  cursore ricava il suo cento per cento, e il disegno la sua altezza. Adesso il
+  verso gira anche lo stato dichiarato, e i due movimenti con lui: pastiglia,
+  cursore e telo dicono la stessa cosa, che è quella che si vede dalla stanza.
+
 - **Gli stati arrivano anche con una connessione lenta: la Home si riempie, le tessere si muovono.**
 
       «Sezione aperta ma i dati non si caricano.» Dal telefono: pallino verde,

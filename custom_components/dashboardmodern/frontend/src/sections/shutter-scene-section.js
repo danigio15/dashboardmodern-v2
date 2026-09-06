@@ -9,6 +9,8 @@ import {
   coverKind,
   coverDownRelay,
   coverKindLabel,
+  coverStateLabel,
+  INFISSO,
   coverPositionChoices,
   coverPresetPosition,
   relayCoverCommands,
@@ -19,6 +21,7 @@ import {
   apertaSecondoVerso,
   insiemeInvertiti,
   posizioneSecondoVerso,
+  statoSecondoVerso,
   versoInvertito,
 } from "../core/verso-aperture.js";
 import { roomOrderRank } from "../core/room-overview.js";
@@ -125,9 +128,17 @@ function coverView(item = {}, distingui = false) {
     status = status === "on" ? "open" : status === "off" ? "closed" : status;
   }
   /* La tapparella girata (#244) dichiara 100 quando e' giu': qui si legge
-   * tradotto al verso della plancia, e chi scrive traduce all'inverso. */
+   * tradotto al verso della plancia, e chi scrive traduce all'inverso.
+   *
+   * Il verso vale anche per la PAROLA che la copertura dichiara (#353): una
+   * tapparella che la posizione non la pubblica affatto — e sono spesso proprio
+   * quelle montate al contrario — restava identica con la spunta e senza, e la
+   * pastiglia, il cursore e il disegno continuavano tutti e tre a dire il
+   * rovescio di quello che si vedeva dalla stanza. */
+  const girata = versoInvertito(item);
+  status = statoSecondoVerso(status, girata);
   const raw = eUnoSwitch(entity) ? null : current?.attributes?.current_position;
-  const reported = raw == null ? null : posizioneSecondoVerso(Number(raw), versoInvertito(item));
+  const reported = raw == null ? null : posizioneSecondoVerso(Number(raw), girata);
   const hasPosition = Number.isFinite(reported);
   const features = Number(current?.attributes?.supported_features) || 0;
   const grab = state.grabbed.get(entity);
@@ -306,12 +317,19 @@ function statoVisibile(view) {
   return view.status;
 }
 
+/* Di cosa parla questa pastiglia: una tapparella, una tenda, un infisso (#353).
+ *
+ * La finestra senza motori si chiede per nome — `INFISSO` — perche' la sua
+ * riga un tipo di copertura non ce l'ha e non deve prenderselo per sbaglio. */
+const cosaE = (view) => (view?.soloInfisso ? INFISSO : view?.kind || "");
+
 function statusLabel(view) {
   const stato = statoVisibile(view);
-  if (stato === "opening") return t("In apertura", "Opening");
-  if (stato === "closing") return t("In chiusura", "Closing");
-  if (stato === "open") return t("Aperta", "Open");
-  if (stato === "closed") return t("Chiusa", "Closed");
+  /* «Aperta» non diceva COSA fosse aperto: su una finestra che ha insieme la
+   * tapparella, la tenda e il contatto erano tre pastiglie identiche. Le parole
+   * le tiene il modello, che sa gia' come si chiama ogni copertura. */
+  const detto = coverStateLabel(cosaE(view), stato);
+  if (detto) return detto;
   /* Due rele' fermi non vogliono dire «non lo so»: vogliono dire che il
    * motore non sta girando. Dove sia arrivata non lo racconta nessuno — il
    * disegno la mette a meta', che e' il modo di non inventarlo — ma dire

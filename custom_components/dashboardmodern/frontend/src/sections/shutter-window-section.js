@@ -33,6 +33,8 @@ import {
   coverClosedThreshold,
   coverEntries,
   coverKindLabel,
+  coverStateLabel,
+  INFISSO,
 } from "../core/cover-kind.js";
 import { contactEntity, inferriataEntity, serramentoModel } from "../core/shutter-window.js";
 import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
@@ -174,8 +176,13 @@ export function paintCard(card, states = allStates()) {
  * diventano quattro, perche' quattro sono gli stati che si volevano
  * distinguere: e' la differenza fra «sto arieggiando» e «e' rimasto aperto». */
 export function paroleDelSerramento(model) {
+  /* «Finestra aperta» la dice il modello delle coperture (#353), che ha il
+   * vocabolario di tutte e quattro le cose che si aprono: la stessa frase
+   * scritta anche qui sarebbe la stessa parola con due padroni, e prima o poi
+   * due parole diverse per la stessa finestra. */
+  const finestraAperta = coverStateLabel(INFISSO, "open");
   if (!model?.inferriata?.configured) {
-    return model?.infisso?.open === true ? t("Finestra aperta", "Window open") : "";
+    return model?.infisso?.open === true ? finestraAperta : "";
   }
   switch (model.stato) {
     case "aperto":
@@ -183,7 +190,7 @@ export function paroleDelSerramento(model) {
     case "grata":
       return t("Inferriata aperta", "Grate open");
     case "infisso":
-      return t("Finestra aperta", "Window open");
+      return finestraAperta;
     default:
       return "";
   }
