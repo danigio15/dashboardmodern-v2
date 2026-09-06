@@ -157,11 +157,13 @@ test("chi guarda decide quali calendari escono, e lo si chiede in due modi (#344
 test("chi chiede gli eventi avvisa la pagina che li aspetta", async () => {
   const home = await readFile(new URL("../src/sections/home-widgets-section.js", import.meta.url), "utf8");
   const pagina = await readFile(new URL("../src/sections/calendario-section.js", import.meta.url), "utf8");
-  assert.match(home, /dispatchEvent\?\.\(new CustomEvent\("dashboardmodern:calendario-eventi"\)\)/);
-  assert.match(pagina, /"dashboardmodern:calendario-eventi",/);
-  /* L'avviso parte solo a lettura riuscita: un errore non fa ridisegnare
-   * niente, e la pagina tiene quello che aveva. */
-  const dove = home.indexOf('dashboardmodern:calendario-eventi');
-  const riuscita = home.lastIndexOf('if (riuscita) {', dove);
-  assert.ok(riuscita > 0 && riuscita < dove, "l'avviso sta dentro il ramo della riuscita");
+  assert.match(home, /dispatchEvent\?\.\(new CustomEvent\("dashboardmodern:agenda-aggiornata"\)\)/);
+  assert.match(pagina, /"dashboardmodern:agenda-aggiornata",/);
+  /* Un avviso solo per tutti e due i fili della pagina: gli eventi dei
+   * calendari e le voci delle liste. */
+  assert.equal(home.split("avvisaLAgenda();").length - 1, 2);
+  /* E parte solo a lettura riuscita: un errore non fa ridisegnare niente, e
+   * la pagina tiene quello che aveva. */
+  for (const pezzo of home.split("avvisaLAgenda();").slice(0, -1))
+    assert.ok(pezzo.lastIndexOf("if (riuscita) {") > pezzo.lastIndexOf("catch (error)"), "solo a lettura riuscita");
 });

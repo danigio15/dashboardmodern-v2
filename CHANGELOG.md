@@ -164,9 +164,10 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 - **L'Agenda aperta mentre gli eventi sono per strada non resta più vuota.**
 
-  Gli eventi dei calendari si chiedono a Home Assistant e arrivano quando
-  arrivano. La tessera in Home lo sapeva; la pagina dell'Agenda no, e finché il
-  guscio ridipingeva tutte e nove le pagine ogni secondo la cosa non si vedeva.
+  Gli eventi dei calendari e le voci delle liste si chiedono a Home Assistant e
+  arrivano quando arrivano. La tessera in Home lo sapeva; la pagina dell'Agenda
+  no, e finché il guscio ridipingeva tutte e nove le pagine ogni secondo la
+  cosa non si vedeva.
   Adesso che si disegna solo la pagina che si sta guardando — che è il motivo
   per cui la plancia non scalda più il mini PC — aprire l'Agenda un attimo
   prima che gli eventi arrivassero lasciava la settimana vuota fino al primo
