@@ -2902,4 +2902,13 @@ export default Object.freeze({
   "Sweltering": "うだるような暑さ",
   "Thermal discomfort": "暑さによる不快",
   "Very hot": "非常に暑い",
+  "Other commands": "その他のコマンド",
+  "No extra command: the window carries the appliance's own and nothing else.": "追加のコマンドはありません。ウィンドウには機器自身のコマンドだけが出ます。",
+  "Found next to the appliance — one tap adds them:": "機器のそばで見つかりました。タップすると追加できます:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "自分のスイッチを持たないプログラムや設定です。button.*、select.*、switch.* のエンティティ（さらに input_*、script.*、scene.*、automation.*）が使えます。機器のウィンドウにボタンとして出ます。パラメーター付きのサービス（プログラムを指定した hon.start_program など）は3行のスクリプトに包めば、そこから先は他と同じエンティティになります。",
+  "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.": "誰も選んでいない場合、このカレンダーは家のもので全員が見られます。1人以上を選ぶと、予定表はその人にだけ表示します。ほかの人には家のカレンダーと自分のカレンダーが出ます。",
+  "The whole house": "家全体",
+  "To split calendars between people you need Home Assistant persons, each linked to its own user.": "カレンダーを人ごとに分けるには、それぞれのユーザーに結び付いた Home Assistant のパーソンが必要です。",
+  "Who is watching?": "見ているのは誰ですか?",
+  "Whose it is": "誰のもの",
 });

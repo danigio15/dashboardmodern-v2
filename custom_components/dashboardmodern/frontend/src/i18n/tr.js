@@ -2902,4 +2902,13 @@ export default Object.freeze({
   "Sweltering": "Bunaltıcı sıcak",
   "Thermal discomfort": "Isıl rahatsızlık",
   "Very hot": "Çok sıcak",
+  "Other commands": "Diğer komutlar",
+  "No extra command: the window carries the appliance's own and nothing else.": "Ek komut yok: pencerede yalnızca cihazın kendi komutları var.",
+  "Found next to the appliance — one tap adds them:": "Cihazın yanında bulundu — bir dokunuş onları ekler:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "Kendi anahtarı olmayan programlar ve ayarlar: button.*, select.*, switch.* varlıkları (ayrıca input_*, script.*, scene.*, automation.*). Cihazın penceresinde düğme olarak görünürler. Parametreli bir servis — programıyla birlikte hon.start_program — üç satırlık bir betiğe sarılır ve o andan sonra diğerleri gibi bir varlık olur.",
+  "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.": "Kimse işaretli değilse takvim evindir ve herkes görür. Bir ya da birkaç kişiyi işaretlersen ajanda takvimi yalnızca onlara gösterir — diğerleri evin takvimlerini ve kendilerininkini görür.",
+  "The whole house": "Evin tamamı",
+  "To split calendars between people you need Home Assistant persons, each linked to its own user.": "Takvimleri kişiler arasında paylaştırmak için, her biri kendi kullanıcısına bağlı Home Assistant kişileri gerekir.",
+  "Who is watching?": "Kim bakıyor?",
+  "Whose it is": "Kimin olduğu",
 });

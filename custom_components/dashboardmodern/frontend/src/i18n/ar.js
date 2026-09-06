@@ -2902,4 +2902,13 @@ export default Object.freeze({
   "Sweltering": "حر خانق",
   "Thermal discomfort": "انزعاج حراري",
   "Very hot": "حار جدًا",
+  "Other commands": "أوامر أخرى",
+  "No extra command: the window carries the appliance's own and nothing else.": "لا توجد أوامر إضافية: تعرض النافذة أوامر الجهاز فقط.",
+  "Found next to the appliance — one tap adds them:": "عُثر عليها بجانب الجهاز — لمسة واحدة تضيفها:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "البرامج والإعدادات التي ليس لها مفتاح خاص بها: كيانات button.* و select.* و switch.* (وكذلك input_* و script.* و scene.* و automation.*). تظهر كأزرار في نافذة الجهاز. الخدمة ذات المعاملات — hon.start_program مع برنامجها — تُغلَّف في سكربت من ثلاثة أسطر، ومن ثمّ تصبح كياناً كسائر الكيانات.",
+  "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.": "بلا تحديد: التقويم للمنزل ويراه الجميع. حدِّد شخصاً أو أكثر فيظهره جدول الأعمال لهم وحدهم — أما الآخرون فيرون تقاويم المنزل وتقاويمهم.",
+  "The whole house": "المنزل كله",
+  "To split calendars between people you need Home Assistant persons, each linked to its own user.": "لتقسيم التقاويم بين الأشخاص تحتاج إلى أشخاص Home Assistant، كل واحد مرتبط بمستخدمه.",
+  "Who is watching?": "من يشاهد؟",
+  "Whose it is": "لمن هو",
 });

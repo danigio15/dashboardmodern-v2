@@ -24,7 +24,15 @@ import {
   pneumaticiDalloStato,
   serraturaDalloStato,
 } from "../src/core/auto-termica.js";
-import { TIPI_MOTORE, normalizeVehicle, siRicarica, tipoMotore, vaACarburante } from "../src/core/vehicle-model.js";
+import {
+  MOTORE_DI_CASA_KEY,
+  TIPI_MOTORE,
+  motoreDellaVettura,
+  normalizeVehicle,
+  siRicarica,
+  tipoMotore,
+  vaACarburante,
+} from "../src/core/vehicle-model.js";
 
 const leggi = (percorso) => readFile(new URL(`../src/${percorso}`, import.meta.url), "utf8");
 const stato = (state, attributes = {}) => ({ state, attributes });
@@ -205,8 +213,21 @@ test("la scheda dell'auto: la tendina del motore sotto il nome, salvata con il p
   assert.match(sezione, /lexicalGlobal\("CD_SLOTS"\)/);
   assert.match(sezione, /lexicalGlobal\("CD_SLOT_REFS"\)/);
   assert.match(sezione, /slot\?\.ref === "dm\.ev_batteria_auto"/);
-  /* Con un motore termico la ricarica non si disegna. */
-  assert.match(sezione, /#page-ev\[data-dm-motore="termica"\] \.lm-batt-section/);
+  /* Con un motore termico la ricarica non si disegna: la sessione, il target,
+   * le tre righe della colonnina e la pastiglia sulla foto.
+   *
+   * La batteria invece RESTA, e questa riga e' cambiata apposta (#326): «con
+   * motore termico la scheda batteria dovrebbe mostrare solo la percentuale
+   * di carica — nel mio caso e' la batteria del mild-hybrid». Spariva perche'
+   * stava nello stesso mucchio della sessione; adesso se ne va solo quando
+   * una batteria non e' mappata, che e' l'unico caso in cui non ha niente da
+   * dire. */
+  assert.match(sezione, /#page-ev\[data-dm-motore="termica"\] \.lm-session-card/);
+  assert.match(sezione, /#page-ev\[data-dm-motore="termica"\] \.dm-evv-rows/);
+  assert.match(
+    sezione,
+    /#page-ev\[data-dm-motore="termica"\]\[data-dm-batteria="false"\] \.lm-batt-section/,
+  );
   assert.match(sezione, /#page-ev\[data-dm-motore="termica"\] #lm-charge-badge\{display:none!important\}/);
   /* Il quadro apre lo storico come le altre misure della pagina. */
   assert.match(sezione, /root\.apriStorico\?\./);
@@ -298,4 +319,69 @@ test("la linguetta della configurazione si chiama «Auto», non «EV» (#326)", 
   /* La linguetta intera si riscrive solo dove la parola non ha una casella
    * sua, o si porterebbe via il disegno. */
   assert.match(sezione, /\.ed-tab\[data-tab="sez2"\]:not\(:has\(\.dm-beta4-tab-label\)\)/);
+});
+
+/* ── il motore scelto resta scelto (#326) ─────────────────────────────── */
+
+test("senza nessun profilo auto il motore ha una casa sua, e la vettura vince quando c'e'", () => {
+  /* «Rientrando nella configurazione il Motore risulta Elettrica.» Il tipo
+   * viveva SOLO dentro il profilo di una vettura, e un profilo non e'
+   * obbligatorio: chi ha una macchina sola compila le caselle nella mappatura
+   * generale della plancia e non preme mai «Salva auto». La sua scelta non
+   * aveva dove andare. */
+  assert.equal(MOTORE_DI_CASA_KEY, "cd_ev_motore");
+  assert.equal(motoreDellaVettura(null, "termica"), "termica");
+  assert.equal(motoreDellaVettura(undefined, "ibrida"), "ibrida");
+  assert.equal(motoreDellaVettura(null, "diesel"), "");
+  assert.equal(motoreDellaVettura(null, ""), "");
+  /* Con una vettura comanda lei, anche quando tace: in un garage possono
+   * starci una benzina e un'elettrica, e una risposta sola per tutte e due
+   * sarebbe falsa per una delle due. */
+  assert.equal(motoreDellaVettura({ tipo: "termica" }, ""), "termica");
+  assert.equal(motoreDellaVettura({ tipo: "" }, "termica"), "");
+  assert.equal(motoreDellaVettura({ name: "Zoe" }, "ibrida"), "");
+});
+
+test("la tendina del motore scrive appena la si muove, e la casella viaggia (#326)", async () => {
+  const sezione = await leggi("sections/auto-termica-section.js");
+  /* Il tipo lo leggeva soltanto «Salva auto»: il tasto verde in fondo — quello
+   * che si preme dopo aver mappato le entita' — salvava le caselle e buttava
+   * via la scelta. Una tendina che scrive quando la si muove non ha questo
+   * problema per nessuna delle due strade. */
+  assert.match(sezione, /export function scriviIlMotore/);
+  assert.match(sezione, /doc\.addEventListener\("change", onChange\)/);
+  assert.match(sezione, /closest\?\.\("#ed-body select\[data-ev-tipo\]"\)/);
+  /* Senza vettura si scrive la casella della plancia; con la vettura aperta si
+   * scrive su di lei, passando dal modello come ogni altra scrittura. */
+  assert.match(sezione, /writeJsonIfChanged\(MOTORE_DI_CASA_KEY, tipo\)/);
+  assert.match(sezione, /salvaAuto\(updateVehicle\(profiles\(\), uid, \{ tipo \}\)\)/);
+  /* E la pagina legge la stessa risposta: vettura, poi plancia. */
+  assert.match(sezione, /export function motoreInPagina/);
+  assert.match(sezione, /motoreDellaVettura\(activeVehicle\(\), motoreDiCasa\(\)\)/);
+  assert.match(sezione, /const tipo = motoreDellaVettura\(auto, motoreDiCasa\(\)\)/);
+
+  /* La casella e' della plancia, non del dispositivo: chi sceglie sul telefono
+   * la ritrova sul computer. */
+  const persistenza = await leggi("sections/config-persistence-section.js");
+  assert.match(persistenza, /"cd_ev_motore",/);
+});
+
+test("il nome dato a una lettura arriva fino alla card dell'auto (#326)", async () => {
+  const sezione = await leggi("sections/auto-termica-section.js");
+  /* «Le etichette possono essere modificabili?» Rinominarle si poteva gia' —
+   * ogni casella della scheda Auto ha la sua riga modificabile e quello che ci
+   * si scrive finisce in `cd_slot_labels` — ma il nome scelto non arrivava in
+   * pagina: la card stampava le sue parole di serie. */
+  assert.match(sezione, /export function etichettaScelta/);
+  assert.match(sezione, /readJson\("cd_slot_labels", \{\}\)/);
+  /* Vale per la casella, per la gomma e per il titolo dello storico che si
+   * apre toccandola: un nome dato una volta vale ovunque. */
+  assert.match(sezione, /const nome = etichettaScelta\(ref, etichetta\);/);
+  assert.match(
+    sezione,
+    /const nome = etichettaScelta\(voce\?\.ref, parolaDellaRuota\(voce\?\.ruota\)\);/,
+  );
+  assert.match(sezione, /etichettaScelta\("dm\.ev_carburante", t\("Carburante", "Fuel"\)\)/);
+  /* E un rinominamento ridisegna: la lettura non e' cambiata, la parola si'. */
+  assert.match(sezione, /JSON\.stringify\(\[tipo, lettura, readJson\("cd_slot_labels", \{\}\)\]\)/);
 });

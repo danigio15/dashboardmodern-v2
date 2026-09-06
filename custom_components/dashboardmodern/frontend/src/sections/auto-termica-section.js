@@ -27,11 +27,26 @@
 import {
   CASELLE_TERMICHE,
   RIFERIMENTI_TERMICI,
+  RUOTE,
   letturaTermica,
   ruoteDellAuto,
 } from "../core/auto-termica.js";
-import { TIPI_MOTORE, tipoMotore } from "../core/vehicle-model.js";
-import { activeVehicle, bozzaAperta, editedVehicle } from "./ev-section.js";
+import {
+  MOTORE_DI_CASA_KEY,
+  TIPI_MOTORE,
+  VEHICLE_KEY_FIELD,
+  motoreDellaVettura,
+  tipoMotore,
+  updateVehicle,
+} from "../core/vehicle-model.js";
+import {
+  activeVehicle,
+  bozzaAperta,
+  editedVehicle,
+  profiles,
+  salvaAuto,
+  vehicleBatteryEntity,
+} from "./ev-section.js";
 import { registraTitoloDiPagina, renderPageMastheads } from "./page-masthead-section.js";
 import {
   allStates,
@@ -42,9 +57,11 @@ import {
   installStyle,
   lexicalGlobal,
   onEditorRedraw,
+  readJson,
   root,
   t,
   wrapFunction,
+  writeJsonIfChanged,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_AUTO_TERMICA__";
@@ -53,11 +70,31 @@ const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
 const ARC_RADIUS = 50;
 const ARC_LENGTH = 2 * Math.PI * ARC_RADIUS;
 
+/* ── di che motore parla la pagina (#326) ─────────────────────────────── */
+
+/* «Rientrando nella configurazione il Motore risulta Elettrica», e insieme la
+ * batteria e la SESSIONE RICARICA che restavano in pagina su un'auto a
+ * benzina: un guasto solo, visto da tre parti. Il tipo di motore lo leggeva e
+ * lo scriveva soltanto il tasto «Salva auto», e quel tasto salva un PROFILO —
+ * che chi ha una macchina sola non ha, perche' le caselle `dm.ev_*` le compila
+ * nella mappatura generale della plancia. La scelta non aveva dove andare.
+ *
+ * Adesso la casa ce l'ha: la vettura se ne ha una, la plancia altrimenti. E
+ * non si aspetta piu' nessun tasto — la tendina scrive appena la si muove,
+ * cosi' nessun salvataggio puo' portarsela via. */
+export function motoreDiCasa() {
+  return tipoMotore(readJson(MOTORE_DI_CASA_KEY, ""));
+}
+
+export function motoreInPagina() {
+  return motoreDellaVettura(activeVehicle(), motoreDiCasa());
+}
+
 /* ── le parole ────────────────────────────────────────────────────────── */
 
 /* L'intestazione della pagina dice di che auto parla: «Carica · Autonomia ·
  * Wallbox» sopra un serbatoio sarebbe una bugia. */
-export function titoloDellaPagina(tipo = tipoMotore(activeVehicle()?.tipo)) {
+export function titoloDellaPagina(tipo = motoreInPagina()) {
   if (tipo === "termica")
     return {
       title: t("Auto", "Car"),
@@ -120,6 +157,26 @@ export function etichettaDellaCasella(ref) {
     default:
       return clean(ref);
   }
+}
+
+/* Il nome che una lettura ha ricevuto in configurazione (#326).
+ *
+ * «Le etichette possono essere modificabili? Nel mio caso tutto quello che
+ * inizia con TUCSON.» Rinominarle si poteva gia': ogni casella della scheda
+ * Auto ha la sua riga con la scritta modificabile — «Tocca per rinominare
+ * l'etichetta» — e quello che ci si scrive finisce in `cd_slot_labels`,
+ * viaggia con la configurazione condivisa e si ritrova su ogni dispositivo.
+ * Solo che non arrivava fin qui: la pagina stampava le sue parole di serie e
+ * il nome scelto restava a decorare l'editor. Rinominare non cambiava niente
+ * dove si guarda, che dal di fuori e' come non poter rinominare.
+ *
+ * Adesso il nome scritto vince, e vale per la casella, per il quadretto delle
+ * gomme e per il titolo dello storico che si apre toccandola: un nome dato
+ * una volta vale ovunque quella lettura compaia. */
+export function etichettaScelta(ref, predefinita) {
+  const scelte = readJson("cd_slot_labels", {});
+  const suo = scelte && typeof scelte === "object" ? clean(scelte[clean(ref)]) : "";
+  return suo || predefinita;
 }
 
 /* Come si chiama ogni ruota, guardando l'auto dall'alto con il muso in su. */
@@ -205,17 +262,58 @@ function tendina() {
   return doc?.querySelector?.("#ed-body select[data-ev-tipo]") || null;
 }
 
+/* Di chi parla la tendina, adesso.
+ *
+ * Tre casi, ed e' la stessa domanda che si fa il resto della scheda: la bozza
+ * del «＋» non e' nessuna vettura; con dei profili e' quello aperto con la
+ * matita (o quello in uso); senza nessun profilo e' la plancia, che il motore
+ * lo dichiara per conto suo perche' non c'e' nessuna vettura a cui
+ * appenderlo. */
+function diChiParlaLaTendina() {
+  if (bozzaAperta()) return { chiave: "bozza", auto: null, casa: false };
+  const auto = editedVehicle();
+  if (auto) return { chiave: clean(auto[VEHICLE_KEY_FIELD]) || "senza-uid", auto, casa: false };
+  return { chiave: "casa", auto: null, casa: true };
+}
+
 /* La tendina dice dell'auto aperta: alla matita si riallinea, al «＋» torna
  * elettrica. Una scelta fatta e non ancora salvata non si riscrive sotto le
  * dita: si riallinea solo quando cambia l'auto di cui si parla. */
 function sincronizzaTendina() {
   const select = tendina();
   if (!select) return false;
-  const auto = bozzaAperta() ? null : editedVehicle();
-  const chiave = auto ? clean(auto.uid) || "senza-uid" : "bozza";
+  const { chiave, auto, casa } = diChiParlaLaTendina();
   if (select.dataset.dmPer === chiave) return true;
   select.dataset.dmPer = chiave;
-  select.value = tipoMotore(auto?.tipo);
+  select.value = casa ? motoreDiCasa() : tipoMotore(auto?.tipo);
+  return true;
+}
+
+/* Muovere la tendina SCRIVE (#326).
+ *
+ * «Rientrando nella configurazione il Motore risulta Elettrica.» Il tipo lo
+ * leggeva soltanto «Salva auto», nel momento in cui salva un PROFILO: chi
+ * preme il tasto verde «Salva sezione» in fondo — quello che si preme dopo
+ * aver mappato le entita' — salvava le caselle e buttava via la scelta, e chi
+ * un profilo non ce l'ha non aveva nemmeno dove metterla. Una tendina che
+ * scrive appena la si muove non ha questo problema per nessuna delle due
+ * strade, e non ne apre altre: la bozza resta l'unica che aspetta il tasto,
+ * perche' l'auto di cui parla non esiste ancora. */
+export function scriviIlMotore(valore) {
+  const tipo = tipoMotore(valore);
+  const { auto, casa } = diChiParlaLaTendina();
+  if (casa) {
+    writeJsonIfChanged(MOTORE_DI_CASA_KEY, tipo);
+  } else if (auto) {
+    const uid = clean(auto[VEHICLE_KEY_FIELD]);
+    if (!uid) return false;
+    if (tipoMotore(auto.tipo) !== tipo) salvaAuto(updateVehicle(profiles(), uid, { tipo }));
+  } else {
+    /* La bozza: nessuna vettura dietro, e la scelta se la prende «Salva la
+     * nuova auto» leggendo la tendina, com'e' sempre stato. */
+    return false;
+  }
+  renderAutoTermica();
   return true;
 }
 
@@ -259,9 +357,10 @@ function pillola(glifo, testo, tono) {
 
 function misura(glifo, etichetta, valore, unita, ref, cifre = 0) {
   if (valore === null || valore === undefined) return "";
-  return `<button type="button" class="dm-termica-misura" data-dm-storico="${esc(ref)}" data-dm-nome="${esc(etichetta)}">
+  const nome = etichettaScelta(ref, etichetta);
+  return `<button type="button" class="dm-termica-misura" data-dm-storico="${esc(ref)}" data-dm-nome="${esc(nome)}">
     <i aria-hidden="true">${glifo}</i>
-    <span class="dm-termica-misura-testo"><small>${esc(etichetta)}</small><b>${esc(formatNumber(valore, cifre))}<em>${esc(unita)}</em></b></span>
+    <span class="dm-termica-misura-testo"><small>${esc(nome)}</small><b>${esc(formatNumber(valore, cifre))}<em>${esc(unita)}</em></b></span>
   </button>`;
 }
 
@@ -273,7 +372,7 @@ function misura(glifo, etichetta, valore, unita, ref, cifre = 0) {
  * che non ha mappato restano vuote invece di sparire — una gomma che manca si
  * vede meglio di una che non c'e'. */
 function gomma(voce) {
-  const nome = parolaDellaRuota(voce.ruota);
+  const nome = etichettaScelta(voce?.ref, parolaDellaRuota(voce?.ruota));
   if (!voce) return "";
   if (voce.pressione !== null)
     return `<button type="button" class="dm-termica-gomma" data-dm-storico="${esc(voce.ref)}" data-dm-nome="${esc(nome)}">
@@ -296,9 +395,13 @@ function gommeMarkup(lettura) {
   const perRuota = new Map(ruote.map((voce) => [voce.ruota, voce]));
   const cella = (ruota) => {
     const voce = perRuota.get(ruota);
+    /* Anche la ruota non mappata porta il nome che le e' stato dato: il posto
+     * vuoto e' quello di QUELLA gomma, e chiamarla in due modi a seconda che
+     * il sensore ci sia o no la farebbe sembrare un'altra. */
+    const posto = RUOTE.find((riga) => riga.ruota === ruota);
     return voce
       ? gomma(voce)
-      : `<span class="dm-termica-gomma" data-vuota="true"><small>${esc(parolaDellaRuota(ruota))}</small><b>—</b></span>`;
+      : `<span class="dm-termica-gomma" data-vuota="true"><small>${esc(etichettaScelta(posto?.ref, parolaDellaRuota(ruota)))}</small><b>—</b></span>`;
   };
   const quadretto = `<div class="dm-termica-gomme">
       <span class="dm-termica-gomme-titolo"><i aria-hidden="true">🛞</i>${esc(t("Pneumatici", "Tyres"))}</span>
@@ -382,7 +485,7 @@ function quadroMarkup(lettura, tipo) {
         <circle class="dm-termica-arc" cx="60" cy="60" r="${ARC_RADIUS}" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="${arco(carburante)}"/>
       </svg>
       <b>${esc(formatNumber(carburante, 0))}<i>%</i></b>
-      <span>${esc(carburante <= 10 ? t("In riserva", "Reserve") : t("Carburante", "Fuel"))}</span>
+      <span>${esc(carburante <= 10 ? t("In riserva", "Reserve") : etichettaScelta("dm.ev_carburante", t("Carburante", "Fuel")))}</span>
     </div>`;
   const righe = [
     misura("🛣️", t("Autonomia", "Range"), lettura.autonomia, ` ${lettura.autonomiaUnita}`, "dm.ev_autonomia"),
@@ -431,7 +534,7 @@ function dipingi() {
   const hero = doc?.getElementById?.("lm-hero-card");
   if (!page || !hero) return;
   const auto = activeVehicle();
-  const tipo = tipoMotore(auto?.tipo);
+  const tipo = motoreDellaVettura(auto, motoreDiCasa());
   const motore = tipo || "elettrica";
   if (page.dataset.dmMotore !== motore) {
     page.dataset.dmMotore = motore;
@@ -439,6 +542,18 @@ function dipingi() {
       renderPageMastheads();
     } catch (_error) {}
   }
+  /* La batteria di un'auto a benzina (#326).
+   *
+   * «Con motore termico la scheda batteria dovrebbe mostrare solo la
+   * percentuale di carica — nel mio caso e' la batteria del mild-hybrid — e
+   * nulla riguardo la ricarica.» La barra dell'eroe e' esattamente quello:
+   * una scritta e una percentuale, senza una parola sul cavo. Spariva perche'
+   * stava nello stesso mucchio della sessione e del target, che invece
+   * parlano di una spina che quest'auto non ha. Adesso resta, ma solo se una
+   * batteria e' davvero mappata: un serbatoio con scritto «Batteria —%»
+   * sarebbe peggio del niente di prima. */
+  const carica = Number(allStates()?.[clean(vehicleBatteryEntity(auto || {}))]?.state);
+  page.dataset.dmBatteria = String(Number.isFinite(carica));
   let blocco = page.querySelector(":scope .dm-termica");
   const lettura = letturaTermica(auto?.ov || auto?.overrides || {}, allStates(), root.resolveEntity);
   /* Le gomme non sono del motore.
@@ -456,7 +571,10 @@ function dipingi() {
     state.firma = "";
     return;
   }
-  const firma = JSON.stringify([tipo, lettura]);
+  /* I nomi scelti stanno nella firma: rinominare una lettura in
+   * configurazione e tornare qui deve cambiare quello che si legge, e la
+   * lettura in se' non e' cambiata di una virgola. */
+  const firma = JSON.stringify([tipo, lettura, readJson("cd_slot_labels", {})]);
   if (state.firma === firma && blocco) return;
   state.firma = firma;
   if (!blocco) {
@@ -509,20 +627,39 @@ function onClick(event) {
     root.queueMicrotask?.(schedule);
 }
 
+/* La scelta del motore si scrive quando si fa, non quando si preme un tasto
+ * (#326): e' l'unico modo perche' nessun salvataggio possa portarsela via. */
+function onChange(event) {
+  const select = event.target?.closest?.("#ed-body select[data-ev-tipo]");
+  if (!select) return;
+  try {
+    scriviIlMotore(select.value);
+  } catch (error) {
+    root.console?.warn?.("[DashboardModern] motore dell'auto", error);
+  }
+}
+
 function installStyles() {
   installStyle(
     "dm-auto-termica-style",
     `
-    /* Con un'auto termica la ricarica non si disegna: batteria, wallbox,
-       sessione e target parlano di un cavo che quest'auto non ha. */
-    #page-ev[data-dm-motore="termica"] .dm-evv-power,
+    /* Con un'auto termica la ricarica non si disegna: potenza e tempo alla
+       colonnina, sessione, statistiche del wallbox, target, evcc e la
+       pastiglia sulla foto parlano di un cavo che quest'auto non ha. */
+    #page-ev[data-dm-motore="termica"] .dm-evv-rows,
     #page-ev[data-dm-motore="termica"] .lm-kpi-row,
     #page-ev[data-dm-motore="termica"] .lm-session-card,
     #page-ev[data-dm-motore="termica"] .lm-stats-grid,
     #page-ev[data-dm-motore="termica"] .lm-target-card,
     #page-ev[data-dm-motore="termica"] .lm-evcc-card,
-    #page-ev[data-dm-motore="termica"] .lm-batt-section,
     #page-ev[data-dm-motore="termica"] #lm-charge-badge{display:none!important}
+    /* La batteria resta, e dice solo quanto e' carica (#326): su una
+       mild-hybrid quella percentuale e' una lettura come le altre, e nessuna
+       delle parole intorno parla piu' di ricarica. Senza una batteria mappata
+       non c'e' niente da dire, e il blocco non si disegna affatto. */
+    #page-ev[data-dm-motore="termica"][data-dm-batteria="false"] .dm-evv-power,
+    #page-ev[data-dm-motore="termica"][data-dm-batteria="false"] .lm-batt-section{display:none!important}
+    #page-ev[data-dm-motore="termica"] .dm-evv-power{justify-content:center}
 
     #page-ev .dm-termica{
       display:grid;gap:14px;margin:14px 0 0;padding:16px 18px;border-radius:24px;
@@ -622,6 +759,7 @@ export function installAutoTermica() {
   registraTitoloDiPagina("page-ev", () => titoloDellaPagina());
   mettiLeCaselle();
   doc.addEventListener("click", onClick);
+  doc.addEventListener("change", onChange);
   wrapFunction("apriConfigEntita", "__dmAutoTermica", () => {
     mettiLeCaselle();
     rinominaLaLinguettaDellAuto();

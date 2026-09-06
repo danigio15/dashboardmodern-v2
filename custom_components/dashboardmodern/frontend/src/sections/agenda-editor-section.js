@@ -24,7 +24,9 @@ import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
 import {
   CALENDARI_KEY,
   isCalendarEntity,
+  persone,
   suggerisciCalendari,
+  utentiDiCasa,
 } from "../core/calendario-model.js";
 import { renderCalendarioSection } from "./calendario-section.js";
 import { renderHomeWidgets } from "./home-widgets-section.js";
@@ -120,6 +122,42 @@ function sezioneNascosta() {
 
 /* ── i calendari ──────────────────────────────────────────────────────────── */
 
+/* Di chi e' un calendario (#344).
+ *
+ * «Sarebbe possibile implementare una soluzione in cui il calendario mostrato
+ * dalla dashboard vari in base alla persona che lo sta visualizzando? Utente 1
+ * visualizza calendar.utente1, Utente 2 visualizza calendar.utente2.»
+ *
+ * Gli utenti di casa sono quelli che hanno una persona in Home Assistant: e'
+ * da li' che si prendono il nome da mostrare e l'identificativo da salvare.
+ * Nessuno spuntato vuol dire «di casa», che e' quello che ogni calendario
+ * configurato finora e': chi non vuole dividere niente non si accorge di
+ * niente. */
+function personeMarkup(voce, index) {
+  const scelte = persone(voce);
+  const utenti = utentiDiCasa(allStates());
+  const corpo = utenti.length
+    ? `<div class="dm-cal-ed-persone-voci">${utenti
+        .map(
+          (utente) =>
+            `<button type="button" class="dm-cal-ed-persona" data-cal-persona="${esc(utente.utente)}" aria-pressed="${scelte.includes(utente.utente)}">${esc(utente.name)}</button>`,
+        )
+        .join("")}</div>
+      <small>${t(
+        "Nessuno spuntato: il calendario è di casa e lo vedono tutti. Spuntandone uno o più, l'agenda lo mostra solo a loro — gli altri vedono i calendari di casa e i propri.",
+        "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.",
+      )}</small>`
+    : `<small>${t(
+        "Per dividere i calendari fra le persone servono le persone di Home Assistant, ognuna legata al suo utente.",
+        "To split calendars between people you need Home Assistant persons, each linked to its own user.",
+      )}</small>`;
+  return `<div class="ed-slot dm-todo-ed-field dm-cal-ed-persone" data-cal-persone>
+    <span class="ed-slot-lbl">${t("Di chi è", "Whose it is")}</span>
+    <input type="hidden" data-cal-field="persone" value="${esc(scelte.join(","))}">
+    ${corpo}
+  </div>`;
+}
+
 function rigaCalendarioMarkup(voce, index) {
   const aperto = state.calAperto === index;
   const colore = clean(voce?.colore);
@@ -138,6 +176,7 @@ function rigaCalendarioMarkup(voce, index) {
       <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Colore", "Colour")}</span>
         <span class="ed-form-row dm-cal-ed-colore"><input type="color" id="dm-cal-${index}-colore" class="dm-cal-ed-swatch" data-cal-field="colore" value="${esc(colore || "#6366f1")}"><button type="button" class="ed-del" data-cal-colore-via>${t("Automatico", "Automatic")}</button></span>
         <small>${t("Serve a distinguere due agende nello stesso giorno. Lasciandolo automatico ne riceve uno suo, sempre lo stesso.", "It tells two agendas apart on the same day. Left automatic it gets one of its own, always the same.")}</small></label>
+      ${personeMarkup(voce, index)}
       <output class="dm-todo-ed-error" data-cal-error></output>
       <button type="button" class="ed-save-btn" data-cal-save>💾 ${t("Salva calendario", "Save calendar")}</button>
     </div>
@@ -220,7 +259,9 @@ export function ensureAgendaEditor() {
     state.calAperto,
     state.todoAperto,
     sezioneNascosta(),
-    ...calendariGrezzi().map((voce) => `📅${voce?.name}~${voce?.entity}~${voce?.colore}`),
+    ...calendariGrezzi().map(
+      (voce) => `📅${voce?.name}~${voce?.entity}~${voce?.colore}~${persone(voce).join("+")}`,
+    ),
     ...listeGrezze().map((voce) => `✅${voce?.id}~${voce?.name}~${voce?.entity}`),
   ].join("|");
   if (body.dataset.dmAgendaEditor === firma && body.querySelector(".dm-agenda-ed")) return true;
@@ -298,6 +339,22 @@ function onClick(event) {
       ridisegna();
       return;
     }
+    /* Di chi e' (#344): la spunta cambia solo quello che si vede, e il tasto
+     * «Salva calendario» la scrive col resto della riga — come il nome e il
+     * colore, che sono anche loro campi della stessa riga. */
+    const persona = event.target.closest("[data-cal-persona]");
+    if (persona) {
+      event.preventDefault();
+      const nascosto = rigaCal.querySelector('[data-cal-field="persone"]');
+      if (!nascosto) return;
+      const chi = clean(persona.dataset.calPersona);
+      const scelte = new Set(persone({ persone: nascosto.value }));
+      if (scelte.has(chi)) scelte.delete(chi);
+      else scelte.add(chi);
+      nascosto.value = [...scelte].join(",");
+      persona.setAttribute("aria-pressed", String(scelte.has(chi)));
+      return;
+    }
     if (event.target.closest("[data-cal-colore-via]")) {
       event.preventDefault();
       /* Tornare all'automatico e' togliere il colore, non sceglierne uno
@@ -314,6 +371,9 @@ function onClick(event) {
       const letta = { ...calendari[indice] };
       for (const campo of rigaCal.querySelectorAll("[data-cal-field]"))
         letta[clean(campo.dataset.calField)] = clean(campo.value);
+      /* Di chi e' (#344): la riga lo porta come una stringa, perche' e' una
+       * casella nascosta come le altre; salvato e' un elenco. */
+      letta.persone = persone(letta);
       const errore = rigaCal.querySelector("[data-cal-error]");
       if (!isCalendarEntity(letta.entity)) {
         if (errore)
@@ -441,6 +501,16 @@ function installStyles() {
         flex:0 0 58px;width:58px;min-width:0;height:38px;padding:3px;cursor:pointer;
         border:1px solid var(--card-border,#e2e8f0);border-radius:10px;background:var(--card-bg,#fff)}
       #ed-body .dm-agenda-ed .dm-cal-ed-colore .ed-del{flex:0 0 auto;width:auto;padding:0 12px;font-size:12px;font-weight:800}
+      /* Di chi e' il calendario (#344): un nome per persona, acceso o spento.
+         Nessuno acceso vuol dire di casa, ed e' com'era prima. */
+      #ed-body .dm-agenda-ed .dm-cal-ed-persone{display:grid;gap:6px}
+      #ed-body .dm-agenda-ed .dm-cal-ed-persone-voci{display:flex;flex-wrap:wrap;gap:6px}
+      #ed-body .dm-agenda-ed .dm-cal-ed-persona{
+        padding:6px 12px;border-radius:999px;border:1px solid var(--card-border,#e2e8f0);
+        background:var(--card-bg,#fff);color:var(--text,#0f172a);
+        font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+      #ed-body .dm-agenda-ed .dm-cal-ed-persona[aria-pressed="true"]{
+        border-color:#6366f1;background:color-mix(in srgb,#6366f1 16%,var(--card-bg,#fff));color:#4338ca}
     `,
   );
 }

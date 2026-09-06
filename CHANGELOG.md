@@ -113,6 +113,49 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   per un secondo di scarto. La pioggia prevista e il terreno bagnato fermano
   anche queste corse, con lo stesso avviso in card di sempre.
 
+- **L'agenda è di chi la guarda (#344).**
+
+      «Sarebbe possibile implementare una soluzione in cui il calendario
+       mostrato dalla dashboard vari in base alla persona che lo sta
+       visualizzando? Utente 1 visualizza calendar.utente1, Utente 2
+       visualizza calendar.utente2, con la possibilità di scegliere quale
+       calendario verrà mostrato ad ogni utente.»
+
+  Nella scheda Agenda ogni calendario dice adesso **di chi è**: nessuno
+  spuntato vuol dire «di casa» — ed è quello che ogni calendario configurato
+  finora è, quindi chi non vuole dividere niente non si accorge di niente —
+  spuntandone uno o più, l'agenda e la tessera in Home lo mostrano solo a
+  loro. Chi si riconosce vede i suoi **e** quelli di casa: il calendario di
+  famiglia lo guardano tutti.
+
+  Chi sta guardando, dentro il pannello di Home Assistant, lo sa il documento
+  ospite e non quello della plancia. Finché non lo consegna, la plancia lo
+  chiede: una riga in cima all'agenda con i nomi di casa, che compare solo
+  quando qualcuno ha davvero diviso i calendari. La risposta si scrive nel
+  profilo di Home Assistant di **chi è collegato**, non in una casella di quel
+  dispositivo: chi lo dice una volta si ritrova la sua agenda dal telefono,
+  dal computer e dal tablet, e non la vede nessun altro.
+
+- **«Altri comandi» negli elettrodomestici (#338).**
+
+      «Sto provando ad integrare l'asciugatrice con hOn. Non ha un'entità
+       comando, ma da documentazione posso far partire il comando con
+       service: hon.start_program, data: {program: rapid_30}, target:
+       {device_id: …}. Come posso integrare questo nella sezione
+       dell'asciugatrice?»
+
+  Fino a qui un apparecchio sapeva premere solo entità: interruttori, menu,
+  numeri, tasti. Una chiamata di servizio con i suoi parametri non è nessuna
+  di quelle — ma avvolta in uno script di tre righe diventa
+  `script.asciugatrice_rapido_30`, che è un'entità come le altre. La scheda
+  dell'elettrodomestico ha adesso il campo «Altri comandi»: si scelgono le
+  entità (`button`, `select`, `switch`, `input_*`, `script`, `scene`,
+  `automation`), quelle che stanno accanto all'apparecchio si propongono da
+  sole, e nella finestra del dettaglio diventano tasti accanto ai comandi di
+  sempre. È lo stesso campo che il robot ha dalla 1.4.7, con le stesse regole:
+  un tasto si preme, uno script si accende, un'automazione si fa partire, un
+  interruttore si inverte, una tendina sceglie.
+
 ### Corretto
 
 - **Il report dell'Energia: meno domande al Recorder, e quello che arriva
@@ -447,6 +490,52 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   tasto, perche' `media_player.turn_on` e `turn_off` esistono — e la card lo
   legge nella lingua dei lettori: acceso, in riproduzione, in pausa e
   «idle» sono IN FUNZIONE, «standby» e' STANDBY, «off» e' SPENTO.
+
+- **Il motore scelto per l'auto restava scelto solo a metà (#326).**
+
+      «Rientrando nella configurazione, alla voce Motore risulta Elettrica
+       anche se avevo selezionato il motore termico.»
+
+  E insieme a lei le altre due della stessa segnalazione: «con motore termico
+  non deve essere mostrata la SESSIONE RICARICA» e la batteria che spariva.
+  Sono un guasto solo, visto da tre parti. Il tipo di motore viveva soltanto
+  dentro il profilo di una vettura, e lo scriveva soltanto il tasto «Salva
+  auto»: chi ha una macchina sola compila le caselle `dm.ev_*` nella
+  mappatura generale della plancia — e' quello che la scheda gli dice di fare
+  — e preme il tasto verde «Salva sezione» in fondo, che salvava le entita' e
+  buttava via la scelta. Senza nessun profilo la scelta non aveva nemmeno
+  dove andare.
+
+  Adesso il motore ha una casa: la vettura quando ce n'e' una, la plancia
+  quando in garage non c'e' nessun profilo. E non aspetta piu' nessun tasto —
+  la tendina scrive appena la si muove, cosi' nessun salvataggio puo'
+  portarsela via. Da li' in poi la pagina Auto racconta l'auto giusta:
+  sessione, target, colonnina ed evcc restano fuori.
+
+- **Con un'auto termica la batteria dice quanto e' carica, e nient'altro
+  (#326).**
+
+      «La scheda batteria dovrebbe mostrare solo la percentuale di carica —
+       nel mio caso è la batteria del mild-hybrid — e nulla riguardo la
+       ricarica.»
+
+  Spariva del tutto, perche' stava nello stesso mucchio della sessione e del
+  target. Ma una percentuale non e' una ricarica: adesso resta, con la sua
+  cifra e senza una parola sul cavo, e se ne va solo quando una batteria non
+  e' mappata — li' non avrebbe niente da dire.
+
+- **Rinominare una lettura dell'auto adesso si vede anche sulla card (#326).**
+
+      «Le etichette possono essere modificabili? Nel mio caso tutto quello
+       che inizia con TUCSON.»
+
+  Rinominarle si poteva gia': ogni casella della scheda Auto ha la sua riga
+  con la scritta modificabile — «Tocca per rinominare l'etichetta» — e quello
+  che ci si scrive viaggia con la configurazione condivisa. Solo che il nome
+  scelto restava a decorare l'editor: la pagina stampava le sue parole di
+  serie, e dal di fuori e' come non poter rinominare. Adesso il nome dato
+  vince sulla card, nel quadretto delle gomme e nel titolo dello storico che
+  si apre toccandola.
 
 ## 1.4.11
 

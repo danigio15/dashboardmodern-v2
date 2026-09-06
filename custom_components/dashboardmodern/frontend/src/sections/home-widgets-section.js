@@ -92,6 +92,8 @@ import {
 import {
   CALENDARI_KEY,
   GIORNI_AVANTI,
+  calendariAssegnati,
+  calendariDellUtente,
   eventiDaQui,
   inCorso,
   minutiAllEvento,
@@ -266,9 +268,94 @@ export function configuredTodoLists() {
   return normalizeTodoLists(readJson(TODO_CONFIG_KEY, []));
 }
 
-/** I calendari scelti (#259). */
-export function calendariConfigurati() {
+/** Tutti i calendari scelti (#259), com'è scritto in configurazione. */
+export function calendariScritti() {
   return normalizzaCalendari(readJson(CALENDARI_KEY, []));
+}
+
+/* ── chi sta guardando l'agenda (#344) ────────────────────────────────────
+ *
+ * «Sarebbe possibile implementare una soluzione in cui il calendario mostrato
+ * dalla dashboard vari in base alla persona che lo sta visualizzando?»
+ *
+ * Chi sia l'utente collegato, dentro il pannello, lo sa il documento OSPITE:
+ * `hass.user` vive di là, e il documento della plancia riceve un ponte, non
+ * l'utente. Due strade, e la plancia le prende tutte e due.
+ *
+ * La prima: se un giorno l'ospite lo consegna — `__DASHBOARDMODERN_UTENTE__`
+ * — non c'è più niente da chiedere a nessuno, e l'agenda si veste da sola.
+ *
+ * La seconda, che funziona oggi: la scelta si scrive nel profilo di Home
+ * Assistant di CHI E' COLLEGATO (`frontend/set_user_data`, che il ponte lascia
+ * già passare). E' una casella per utente, non per dispositivo: chi dice una
+ * volta «sono io» si ritrova la sua agenda dal telefono, dal computer e dal
+ * tablet, e non la vede nessun altro.
+ *
+ * Finché nessun calendario ha un padrone, niente di tutto questo succede: la
+ * domanda non si fa e l'agenda è quella di sempre. */
+const CHIAVE_CHI_GUARDA = "dashboardmodern_calendario_utente";
+const chiGuarda = (root.__DASHBOARDMODERN_CHI_GUARDA__ ||= {
+  scelto: "",
+  chiesto: false,
+});
+
+/** Chi sta guardando, quando si sa. Vuoto vuol dire «non lo sappiamo». */
+export function utenteCheGuarda() {
+  const dallOspite = root.__DASHBOARDMODERN_UTENTE__;
+  const suo = clean(typeof dallOspite === "string" ? dallOspite : dallOspite?.id);
+  return suo || clean(chiGuarda.scelto);
+}
+
+function avvisaChiDisegnaLAgenda() {
+  /* Cambiata la persona sono cambiati i calendari da guardare: quelli nuovi
+   * non li ha mai chiesti nessuno, e senza questa riga l'agenda mostrerebbe
+   * gli eventi di prima finche' non passa il giro dei cinque minuti. */
+  try {
+    aggiornaCalendari({ force: true });
+  } catch (_error) {}
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
+  root.dispatchEvent?.(new CustomEvent("dashboardmodern:calendario-utente"));
+}
+
+/** La scelta ricordata nel profilo di chi è collegato. Si chiede una volta. */
+export function chiediChiGuarda() {
+  if (chiGuarda.chiesto) return;
+  chiGuarda.chiesto = true;
+  chiediAHomeAssistant({ type: "frontend/get_user_data", key: CHIAVE_CHI_GUARDA })
+    .then((risposta) => {
+      const scelto = clean(risposta?.value?.utente);
+      if (!scelto || scelto === chiGuarda.scelto) return;
+      chiGuarda.scelto = scelto;
+      avvisaChiDisegnaLAgenda();
+    })
+    .catch(() => {
+      /* Senza risposta si resta senza nome, che è il caso di sempre: l'agenda
+       * mostra i calendari di casa. Non è un errore da raccontare. */
+      chiGuarda.chiesto = false;
+    });
+}
+
+/** «Sono io»: la scelta si ricorda nel profilo dell'utente collegato. */
+export function ricordaChiGuarda(utente) {
+  const scelto = clean(utente);
+  if (chiGuarda.scelto === scelto) return Promise.resolve(false);
+  chiGuarda.scelto = scelto;
+  chiGuarda.chiesto = true;
+  avvisaChiDisegnaLAgenda();
+  return chiediAHomeAssistant({
+    type: "frontend/set_user_data",
+    key: CHIAVE_CHI_GUARDA,
+    value: { utente: scelto },
+  })
+    .then(() => true)
+    .catch(() => false);
+}
+
+/** I calendari che tocca vedere a chi sta guardando (#259, #344). */
+export function calendariConfigurati() {
+  return calendariDellUtente(calendariScritti(), utenteCheGuarda());
 }
 
 /* ── letture ──────────────────────────────────────────────────────────── */
@@ -482,6 +569,10 @@ export function eventiDeiCalendari() {
 
 /** Chiede gli eventi a tutti i calendari scelti. */
 export function aggiornaCalendari(opzioni) {
+  /* Prima di chiedere gli eventi si chiede chi guarda (#344), ma solo se
+   * qualcuno ha diviso i calendari fra le persone: finche' sono tutti di casa
+   * non c'e' niente da sapere, e non si disturba Home Assistant per niente. */
+  if (calendariAssegnati(calendariScritti())) chiediChiGuarda();
   for (const calendario of calendariConfigurati()) fetchEventi(calendario.entity, opzioni);
 }
 

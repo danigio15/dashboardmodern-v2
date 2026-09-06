@@ -260,6 +260,11 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_ev_cars",
   "cd_ev_car_active",
   "cd_ev_visual",
+  /* Il motore dichiarato da chi non ha nessun profilo auto (#326). E' una
+   * scelta della plancia, come le caselle `dm.ev_*` a cui appartiene: chi la
+   * fa sul telefono deve ritrovarla sul computer, o la pagina Auto racconta
+   * due macchine diverse a seconda di dove la si guarda. */
+  "cd_ev_motore",
   /* `cd_ev_image` e `cd_ev_image_plugged` non stanno piu' qui.
    *
    * Sono le due caselle da cui il disegno legge la foto dell'auto attiva: non

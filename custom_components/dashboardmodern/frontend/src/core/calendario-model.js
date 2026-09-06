@@ -25,6 +25,8 @@
  * e il raggruppamento per giorno.
  */
 
+import { suggestPeople } from "./person-model.js";
+
 /** La chiave in cui vivono i calendari scelti. */
 export const CALENDARI_KEY = "cd_calendari";
 
@@ -43,6 +45,29 @@ export function isCalendarEntity(value) {
   return CALENDAR_ENTITY_RE.test(clean(value));
 }
 
+/* Di chi e' un calendario (#344).
+ *
+ * «Sarebbe possibile implementare una soluzione in cui il calendario mostrato
+ * dalla dashboard vari in base alla persona che lo sta visualizzando? Utente 1
+ * visualizza calendar.utente1, Utente 2 visualizza calendar.utente2, con la
+ * possibilita' di scegliere quale calendario verra' mostrato ad ogni utente.»
+ *
+ * Un calendario puo' essere di qualcuno o di tutti, e la differenza la fa un
+ * elenco: gli utenti di Home Assistant a cui appartiene. Vuoto vuol dire
+ * «della casa» — ed e' quello che ogni calendario configurato finora e', cosi'
+ * chi non vuole niente di tutto questo non si accorge di niente.
+ *
+ * Si tengono gli id degli utenti, non i nomi delle persone: un utente si puo'
+ * rinominare, e l'id no. */
+export const persone = (voce) => {
+  const grezzi = Array.isArray(voce?.persone)
+    ? voce.persone
+    : typeof voce?.persone === "string"
+      ? voce.persone.split(/[\s,;]+/)
+      : [];
+  return [...new Set(grezzi.map(clean).filter(Boolean))];
+};
+
 /** I calendari scelti, ripuliti. */
 export function normalizzaCalendari(values) {
   if (!Array.isArray(values)) return [];
@@ -54,8 +79,65 @@ export function normalizzaCalendari(values) {
       /* Il colore serve a distinguerli quando ce n'e' piu' d'uno: «lavoro» e
        * «famiglia» nello stesso giorno, senza dover leggere il nome. */
       colore: clean(voce?.colore),
+      /* Di chi e' (#344): vuoto vuol dire della casa. */
+      persone: persone(voce),
     }))
     .filter((voce) => isCalendarEntity(voce.entity));
+}
+
+/* Il valore che dice «fammi vedere tutto»: chi guarda da una plancia al muro
+ * non e' nessuno in particolare e vuole l'agenda di casa intera. */
+export const TUTTA_LA_CASA = "tutti";
+
+/**
+ * Gli utenti di Home Assistant che la casa conosce.
+ *
+ * Non c'e' un elenco degli utenti che la plancia possa chiedere, ma ogni
+ * `person.*` porta negli attributi l'`user_id` di chi rappresenta: da li'
+ * escono il nome da mostrare e l'identificativo da salvare. Chi persona non ce
+ * l'ha — un utente di servizio, un token — non compare, ed e' giusto: nessuno
+ * gli assegna un calendario.
+ *
+ * Chi sia una persona e come si chiami lo decide `person-model.js`, che e' il
+ * posto in cui quella domanda ha gia' una risposta.
+ */
+export function utentiDiCasa(states = {}) {
+  return suggestPeople(states)
+    .map((persona) => ({
+      ...persona,
+      utente: clean(states?.[persona.entity]?.attributes?.user_id),
+    }))
+    .filter((voce) => voce.utente)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * I calendari che tocca vedere a chi sta guardando.
+ *
+ * Con un utente riconosciuto: i suoi, piu' quelli di casa — il calendario di
+ * famiglia lo guardano tutti, e toglierlo a chi ne ha anche uno suo sarebbe
+ * peggio che non aver mai diviso niente.
+ *
+ * Senza sapere chi guarda restano quelli di casa. Se pero' ogni calendario ha
+ * un padrone si mostrano tutti: una plancia che non sa chi ha davanti — il
+ * tablet in cucina — non deve diventare una pagina vuota, e questa e' una
+ * comodita', non una serratura.
+ */
+export function calendariDellUtente(calendari = [], utente = "") {
+  const elenco = Array.isArray(calendari) ? calendari : [];
+  const chi = clean(utente);
+  if (chi === TUTTA_LA_CASA) return elenco;
+  const diCasa = elenco.filter((voce) => persone(voce).length === 0);
+  if (!chi) return diCasa.length ? diCasa : elenco;
+  return elenco.filter((voce) => {
+    const suoi = persone(voce);
+    return suoi.length === 0 || suoi.includes(chi);
+  });
+}
+
+/** Se qualcuno ha assegnato almeno un calendario: fino ad allora non cambia niente. */
+export function calendariAssegnati(calendari = []) {
+  return (Array.isArray(calendari) ? calendari : []).some((voce) => persone(voce).length > 0);
 }
 
 /** I calendari che Home Assistant ha gia' e la configurazione ancora no. */

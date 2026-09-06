@@ -2902,4 +2902,13 @@ export default Object.freeze({
   "Sweltering": "Skwar",
   "Thermal discomfort": "Dyskomfort cieplny",
   "Very hot": "Bardzo gorąco",
+  "Other commands": "Inne polecenia",
+  "No extra command: the window carries the appliance's own and nothing else.": "Brak dodatkowych poleceń: okno pokazuje tylko polecenia urządzenia.",
+  "Found next to the appliance — one tap adds them:": "Znalezione obok urządzenia — jedno dotknięcie je dodaje:",
+  "The programs and settings without a switch of their own: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*, automation.*). They show up as buttons in the appliance window. A service with parameters — hon.start_program with its program — goes into a three-line script, and from then on it is an entity like any other.": "Programy i ustawienia, które nie mają własnego przełącznika: encje button.*, select.*, switch.* (a także input_*, script.*, scene.*, automation.*). Pojawiają się jako przyciski w oknie urządzenia. Usługę z parametrami — hon.start_program wraz z jej programem — zawija się w trzywierszowy skrypt i od tej chwili jest encją jak każda inna.",
+  "Nobody ticked: the calendar belongs to the house and everyone sees it. Tick one or more and the agenda shows it only to them — the others see the house calendars and their own.": "Nikt nie zaznaczony: kalendarz należy do domu i widzą go wszyscy. Po zaznaczeniu jednej lub kilku osób terminarz pokazuje go tylko im — pozostali widzą kalendarze domu i swoje własne.",
+  "The whole house": "Cały dom",
+  "To split calendars between people you need Home Assistant persons, each linked to its own user.": "Aby podzielić kalendarze między osoby, potrzebne są osoby Home Assistant, każda powiązana ze swoim użytkownikiem.",
+  "Who is watching?": "Kto ogląda?",
+  "Whose it is": "Czyj jest",
 });
