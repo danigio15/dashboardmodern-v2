@@ -468,7 +468,9 @@ function installOwners() {
     "renderTapparelle",
     "buildTempCards",
     "render",
-    "cdFillRoomSelects",
+    /* `cdFillRoomSelects` stava qui e non esiste: in tutto il frontale lo si
+     * chiama solo con l'interrogativo (`globalThis.cdFillRoomSelects?.()`),
+     * perche' nessun guscio lo definisce. Era un aggancio a vuoto. */
     // The alerts the user creates live in their own wrap, redrawn by the
     // runtime whenever one of them starts or stops matching. Without this the
     // motion only reached them on the next unrelated state change.

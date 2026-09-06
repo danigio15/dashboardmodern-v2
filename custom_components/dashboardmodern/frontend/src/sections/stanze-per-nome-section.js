@@ -125,7 +125,10 @@ export function installStanzePerNome() {
       schedule();
     });
   onEditorRedraw("__dmStanzePerNome", () => root.queueMicrotask?.(schedule));
-  for (const nome of ["render", "buildTappCards", "buildIrrCards", "cdApplyNavVis"])
+  /* `buildTappCards` e `buildIrrCards` non esistono in nessun guscio: erano
+   * due agganci a vuoto. Le due pagine le ridisegnano le loro scene, e questa
+   * passata ci arriva col giro di `render`. */
+  for (const nome of ["render", "cdApplyNavVis"])
     wrapFunction(nome, "__dmStanzePerNome", schedule);
   schedule();
   return true;

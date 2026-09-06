@@ -1229,7 +1229,8 @@ function patchSubloadPopup(groupId = state.popupGroup) {
 
 function installPopupOwner() {
   let installed = false;
-  for (const name of ["apriSubLoads", "openSubLoads"]) {
+  /* Solo `apriSubLoads`: `openSubLoads` non esiste in nessun guscio. */
+  for (const name of ["apriSubLoads"]) {
     const current = root[name];
     if (typeof current !== "function" || current.__dmBeta27PopupOwner) continue;
     function beta27OpenSubLoads(type, ...args) {

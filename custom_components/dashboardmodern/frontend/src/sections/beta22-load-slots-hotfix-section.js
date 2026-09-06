@@ -507,8 +507,9 @@ function installWrappers() {
   for (const name of [
     "dmRefreshEnergyFlows",
     "renderEnergyDashboard",
-    "renderEnergyDay",
-    "renderEnergyMonth",
+    /* `renderEnergyDay` e `renderEnergyMonth` stavano qui e non esistono in
+     * nessun guscio: due agganci a vuoto. Il giorno e il mese passano da
+     * `switchEnergyView` e da `renderEnergyDashboard`, che ci sono. */
     "switchEnergyView",
     "render",
     "editorSwitch",

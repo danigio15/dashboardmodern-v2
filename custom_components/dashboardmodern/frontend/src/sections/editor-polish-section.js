@@ -371,7 +371,9 @@ export function installEditorPolishSection() {
   state.installed = true;
   installStyles();
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
-    for (const name of ["editorSwitch", "editorRenderLuci", "editorRenderServer"])
+    /* `editorRenderServer` non esiste in nessun guscio: era un aggancio a
+     * vuoto. La scheda del server la rifa' `editorSwitch`, che c'e'. */
+    for (const name of ["editorSwitch", "editorRenderLuci"])
       wrapFunction(name, `__dmEditorPolish_${name}`, schedule);
     subscribeStore();
     schedule();

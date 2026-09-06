@@ -98,7 +98,8 @@ export function installEditorEntrySection() {
   ensureEditorEntry();
   /* L'intestazione la ridisegnano in parecchi — il marchio, la connessione, il
    * tema — e l'ingranaggio se ne andrebbe con lei. */
-  for (const name of ["render", "cdApplyBranding", "cdApplyNavVis"])
+  /* `cdApplyBranding` non esiste in nessun guscio: era un aggancio a vuoto. */
+  for (const name of ["render", "cdApplyNavVis"])
     wrapFunction(name, "__dmEditorEntry", () => {
       root.queueMicrotask?.(ensureEditorEntry);
     });
