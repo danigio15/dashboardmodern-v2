@@ -190,6 +190,7 @@ import {
   gettoneDiAccesso,
   lexicalGlobal,
   locale,
+  planciaVisibile,
   readClimateUnits,
   readJson,
   root,
@@ -6086,7 +6087,11 @@ function homeVisible() {
 }
 
 function cameraWidgetOnScreen() {
-  return state.expanded === "telecamere" && homeVisible() && doc?.visibilityState !== "hidden";
+  /* `planciaVisibile` tiene dentro anche il parcheggio: quando chi ospita
+   * mette la plancia da parte — si va su un'altra pagina di Home Assistant e
+   * la cornice resta viva, nascosta — la tessera e' aperta ma non la guarda
+   * nessuno, e i fotogrammi li tira comunque il server di casa. */
+  return state.expanded === "telecamere" && homeVisible() && planciaVisibile();
 }
 
 function fermaTimerTelecamere() {

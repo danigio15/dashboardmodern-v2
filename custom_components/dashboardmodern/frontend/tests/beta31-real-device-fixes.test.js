@@ -66,8 +66,12 @@ test("a rebuilt camera wall asks for its frames, and the frames keep coming", as
   const live = await read("../src/sections/live-ui-section.js");
   assert.match(live, /const CAMERA_REFRESH_MS = 4000/);
   assert.match(live, /export function syncCameraTimer\(\)/);
-  // Only while the page is on screen and the tab is not hidden.
-  assert.match(live, /securityVisible\(\) && doc\?\.visibilityState !== "hidden"/);
+  /* Only while the page is on screen and the plancia is actually being looked
+   * at. La domanda «la si guarda?» e' passata all'aiutante condiviso, che
+   * tiene dentro anche il parcheggio — la plancia messa da parte da chi la
+   * ospita quando si va su un'altra pagina di Home Assistant: li' il documento
+   * si dice ancora «visible» e i fotogrammi li tirava comunque il server. */
+  assert.match(live, /securityVisible\(\) && planciaVisibile\(\)/);
   assert.match(live, /state\.building/);
 });
 

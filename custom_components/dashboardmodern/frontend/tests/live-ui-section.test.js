@@ -87,18 +87,19 @@ test("live UI filters unrelated Home Assistant events", () => {
       },
     },
     () => {
-      assert.deepEqual(
-        liveUiEventTargets({ detail: { entity_id: "sensor.unrelated" } }),
-        { lights: false, cameras: false },
-      );
-      assert.deepEqual(
-        liveUiEventTargets({ detail: { entity_id: "light.salone" } }),
-        { lights: true, cameras: false },
-      );
-      assert.deepEqual(
-        liveUiEventTargets({ detail: { entity_id: "camera.salone" } }),
-        { lights: false, cameras: true },
-      );
+      assert.deepEqual(liveUiEventTargets({ detail: { entity_id: "sensor.unrelated" } }), {
+        lights: false,
+      });
+      assert.deepEqual(liveUiEventTargets({ detail: { entity_id: "light.salone" } }), {
+        lights: true,
+      });
+      /* Le telecamere non sono piu' fra le risposte: dal loro stato non si
+       * disegna niente — un movimento rilevato non porta un fotogramma nuovo —
+       * e leggerne la configurazione a ogni mazzetto era lavoro per una
+       * risposta che nessuno usava. Il muro lo aggiorna il cronometro. */
+      assert.deepEqual(liveUiEventTargets({ detail: { entity_id: "camera.salone" } }), {
+        lights: false,
+      });
     },
   );
 });
@@ -108,4 +109,32 @@ test("canonical live UI owns camera refresh without introducing another polling 
   assert.match(source, /root\.clearInterval\?\.\(root\.camInterval\)/);
   assert.match(source, /root\.refreshCameras = refreshCamerasCanonical/);
   assert.match(source, /dashboardmodern:state-changed/);
+});
+
+/* I fotogrammi li chiede il cronometro, e nessun altro.
+ *
+ * Un cambio di stato di una telecamera — il movimento, un attributo — non porta
+ * nessun fotogramma nuovo, ma faceva chiedere a Home Assistant un'immagine dal
+ * flusso: su una telecamera che vede passare qualcuno erano decine di
+ * richieste al minuto al server di casa, in piu' del cronometro che il muro lo
+ * aggiorna comunque ogni quattro secondi. */
+test("i cambi di stato non chiedono piu' fotogrammi alle telecamere", () => {
+  const ascolto = source.slice(source.indexOf('addEventListener?.("dashboardmodern:state-changed"'));
+  const fine = ascolto.indexOf("doc.addEventListener");
+  const dentro = ascolto.slice(0, fine > 0 ? fine : undefined);
+  assert.doesNotMatch(dentro, /refreshCameraThumbnails/);
+  assert.match(dentro, /liveUiEventTargets\(event\)\.lights/);
+});
+
+test("il cronometro delle telecamere si ferma anche a plancia parcheggiata", () => {
+  /* La plancia messa da parte da chi la ospita non la guarda nessuno, ma la
+   * sua pagina Sicurezza resta «attiva» e il documento resta «visible»: senza
+   * l'aiutante condiviso avrebbe continuato a far tirare fotogrammi al server
+   * di casa per sempre. */
+  assert.match(source, /const wanted = securityVisible\(\) && planciaVisibile\(\)/);
+  assert.match(source, /if \(!securityVisible\(\) \|\| !planciaVisibile\(\)\)/);
+  assert.doesNotMatch(source, /doc\?\.visibilityState !== "hidden"/);
+  /* E il passo resta quello del guscio storico, con scritto perche'. */
+  assert.match(source, /const CAMERA_REFRESH_MS = 4000;/);
+  assert.match(source, /lavoro del server di casa/);
 });
