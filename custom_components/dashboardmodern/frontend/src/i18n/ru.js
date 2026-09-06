@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "Маркиза убирается",
   "Window closed": "Окно закрыто",
   "place unknown": "место неизвестно",
+  "Add a time": "Добавить время",
+  "If below (%)": "Если ниже (%)",
+  "Minutes for this run": "Минуты этого полива",
+  "Only with the soil below (%)": "Только если почва ниже (%)",
+  "Other watering times": "Другое время полива",
+  "Remove the time": "Убрать время",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "Первое время указано выше. Каждая новая строка — отдельный полив: минуты действуют для всех зон этого полива, а процент запускает его только при более сухой почве.",
 });

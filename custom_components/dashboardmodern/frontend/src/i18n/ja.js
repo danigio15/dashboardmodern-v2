@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "オーニングを収納しています",
   "Window closed": "窓が閉まっています",
   "place unknown": "場所不明",
+  "Add a time": "時刻を追加",
+  "If below (%)": "これ未満のとき (%)",
+  "Minutes for this run": "この散水の分数",
+  "Only with the soil below (%)": "土壌がこれ未満のときだけ (%)",
+  "Other watering times": "そのほかの散水時刻",
+  "Remove the time": "時刻を削除",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "最初の時刻は上のものです。追加した行はそれぞれ独立した散水で、分数はその散水のすべてのゾーンに適用され、パーセントは土壌がそれより乾いているときだけ開始します。",
 });

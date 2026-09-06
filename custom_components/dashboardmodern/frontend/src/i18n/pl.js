@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "Markiza zwija się",
   "Window closed": "Okno zamknięte",
   "place unknown": "miejsce nieznane",
+  "Add a time": "Dodaj godzinę",
+  "If below (%)": "Jeśli poniżej (%)",
+  "Minutes for this run": "Minuty tego podlewania",
+  "Only with the soil below (%)": "Tylko gdy gleba poniżej (%)",
+  "Other watering times": "Inne godziny podlewania",
+  "Remove the time": "Usuń godzinę",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "Pierwsza godzina jest powyżej. Każdy dodatkowy wiersz to osobne podlewanie: minuty dotyczą wszystkich stref tego podlewania, a procent uruchamia je tylko przy suchszej glebie.",
 });

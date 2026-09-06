@@ -811,12 +811,17 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // un'integrazione, e la tendina del target mandava ordini a un sensore. La
   // lettera la decide il nucleo; la sezione la scrive e tiene la tendina
   // onesta, cosi' la vetrina resta sola presentazione.
+  // 262 con gli orari dell'irrigazione (`core/irrigazione-orari.js`): «piu'
+  // momenti di irrigazione, e alle 20:30 solo se il terreno e' asciutto»
+  // (#325). Il conto di quale momento tocca, quanto dura e quanto si puo'
+  // dormire prima del prossimo sta nel nucleo, senza orologio ne' pagina; la
+  // scena dell'irrigazione lo usa e resta l'unico padrone dello schermo.
   // 261 con «il guscio disegna quando serve»
   // (`sections/il-guscio-disegna-quando-serve-section.js`): il padrone di
   // `cdRenderSoon`, della firma della finestra dei dettagli e dei timer del
   // guscio che un modulo fa gia' — il lavoro fatto senza che nessuno guardi.
   assert.ok(
-    relative.length <= 261,
+    relative.length <= 262,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "Tente toplanıyor",
   "Window closed": "Pencere kapalı",
   "place unknown": "yer bilinmiyor",
+  "Add a time": "Saat ekle",
+  "If below (%)": "Şunun altındaysa (%)",
+  "Minutes for this run": "Bu sulamanın dakikaları",
+  "Only with the soil below (%)": "Yalnızca toprak şunun altındayken (%)",
+  "Other watering times": "Diğer sulama saatleri",
+  "Remove the time": "Saati kaldır",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "İlk saat yukarıdakidir. Eklenen her satır ayrı bir sulamadır: dakikalar o sulamanın tüm bölgeleri için geçerlidir ve yüzde, yalnızca toprak daha kuruysa başlatır.",
 });

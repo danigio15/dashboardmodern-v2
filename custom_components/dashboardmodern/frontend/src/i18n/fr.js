@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "Store banne en repli",
   "Window closed": "Fenêtre fermée",
   "place unknown": "lieu inconnu",
+  "Add a time": "Ajouter une heure",
+  "If below (%)": "Si en dessous (%)",
+  "Minutes for this run": "Minutes pour ce passage",
+  "Only with the soil below (%)": "Seulement si le sol est en dessous (%)",
+  "Other watering times": "Autres heures d'arrosage",
+  "Remove the time": "Retirer l'heure",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "La première heure est celle du dessus. Chaque ligne supplémentaire est un passage à part : les minutes valent pour toutes les zones de ce passage, et le % ne le déclenche que si le sol est plus sec.",
 });

@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "遮阳篷正在收起",
   "Window closed": "窗户已关",
   "place unknown": "位置未知",
+  "Add a time": "添加时间",
+  "If below (%)": "低于此值时 (%)",
+  "Minutes for this run": "本次浇水的分钟数",
+  "Only with the soil below (%)": "仅当土壤低于此值时 (%)",
+  "Other watering times": "其他浇水时间",
+  "Remove the time": "移除时间",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "第一个时间就是上面那个。每增加一行就是一次单独的浇水：分钟数适用于该次浇水的所有区域，而百分比只在土壤更干时才让它启动。",
 });

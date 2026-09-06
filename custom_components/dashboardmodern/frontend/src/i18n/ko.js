@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "차양 접는 중",
   "Window closed": "창문 닫힘",
   "place unknown": "위치 알 수 없음",
+  "Add a time": "시간 추가",
+  "If below (%)": "이 값 미만일 때 (%)",
+  "Minutes for this run": "이번 급수의 분",
+  "Only with the soil below (%)": "토양이 이 값 미만일 때만 (%)",
+  "Other watering times": "다른 급수 시간",
+  "Remove the time": "시간 제거",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "첫 번째 시간은 위에 있습니다. 추가한 각 줄은 별도의 급수입니다. 분은 해당 급수의 모든 구역에 적용되고, 퍼센트는 토양이 그보다 건조할 때만 시작하게 합니다.",
 });

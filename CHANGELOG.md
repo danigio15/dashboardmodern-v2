@@ -89,6 +89,30 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
   «spenta». Una fase che non conosciamo non diventa «stato non mappato»: si
   scrive com'e'.
 
+- **L'irrigazione ha piu' di un momento nella giornata, e il secondo guarda il
+  terreno (#325).**
+
+      «Vorrei impostare piu' momenti di irrigazione. Ad esempio una alle 05:30
+       del mattino e alle 20:30, dopo una giornata di caldo intenso, se la % del
+       sensore umidita' terreno e' inferiore ad una certa % parte una seconda
+       irrigazione di tot minuti definiti dall'utente. Se invece la % e'
+       superiore ad un certo dato viene saltata.»
+
+  Sotto l'ora del programma, nell'editor dell'irrigazione, c'e' adesso un
+  elenco: ogni riga e' un altro momento della giornata, con la sua ora, i
+  minuti che deve durare quella corsa — valgono per tutte le zone, e quando la
+  casella e' vuota comandano i minuti delle zone come e' sempre stato — e la
+  percentuale di umidita' sotto la quale ha senso farla partire. Alle 20:30 col
+  terreno gia' al 55% non parte niente e la card lo dice; al 20% l'acqua va.
+
+  Il primo orario resta quello di sempre, con la sua casella e la sua
+  chiave-giorno: chi arriva secondo trova il posto occupato, e la corsa non
+  parte due volte. La sveglia dorme fino al momento buono invece di guardare
+  l'orologio ogni mezzo minuto, e chi si sveglia in ritardo — la scheda del
+  telefono sospesa — recupera la corsa dentro dieci minuti, invece di perderla
+  per un secondo di scarto. La pioggia prevista e il terreno bagnato fermano
+  anche queste corse, con lo stesso avviso in card di sempre.
+
 ### Corretto
 
 - **Il nome del gruppo di continuità si legge: non sta più sotto la scena.**

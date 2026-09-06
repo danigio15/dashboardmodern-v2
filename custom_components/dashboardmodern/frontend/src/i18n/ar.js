@@ -2888,4 +2888,11 @@ export default Object.freeze({
   "Awning going in": "المظلة قيد الطي",
   "Window closed": "النافذة مغلقة",
   "place unknown": "مكان غير معروف",
+  "Add a time": "إضافة موعد",
+  "If below (%)": "إذا كانت أقل من (%)",
+  "Minutes for this run": "دقائق هذه الدورة",
+  "Only with the soil below (%)": "فقط عندما تكون التربة أقل من (%)",
+  "Other watering times": "مواعيد ري أخرى",
+  "Remove the time": "إزالة الموعد",
+  "The first time is the one above. Each extra row is a run of its own: the minutes apply to every zone of that run, and the % lets it start only with the soil drier than that.": "الموعد الأول هو الموجود في الأعلى. كل صف إضافي هو دورة مستقلة: الدقائق تسري على جميع مناطق تلك الدورة، والنسبة المئوية تشغّلها فقط عندما تكون التربة أكثر جفافًا.",
 });
