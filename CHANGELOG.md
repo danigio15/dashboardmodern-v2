@@ -236,6 +236,28 @@ ripete in Home, il televisore che risulta spento mentre e' acceso.
 
 ### Corretto
 
+- **La plancia non si ricostruisce a ogni pagina di Home Assistant.**
+
+  Il pannello buttava via tutta la plancia e la rifaceva da capo ogni volta che
+  si andava su un'altra pagina di Home Assistant e si tornava indietro: il
+  guscio, il socket, le foto, i grafici, tutto. Adesso, dove il browser lo
+  permette, la plancia viene messa da parte viva e rimessa dov'era — e mentre è
+  parcheggiata sta zitta, che è la metà del lavoro risparmiato.
+
+- **Si disegna la pagina che si guarda, non tutte e nove.**
+
+  Le stanze, le prese, i rifiuti, le allerte, le luci, il termico, la lavatrice
+  e le azioni rapide si ridisegnavano a ogni notizia della casa, anche quando
+  la loro pagina era chiusa da mezz'ora. Con una casa che parla — e una casa
+  grande parla di continuo — è il lavoro che scalda il mini PC senza che
+  nessuno lo guardi. Adesso ogni pagina si ridisegna quando è sullo schermo, e
+  chi aspetta dati che arrivano da soli viene avvisato quando arrivano.
+
+  Nello stesso giro: il cancello degli stati rilegge la configurazione quando
+  cambia invece che ogni cinque secondi, e le telecamere chiedono un fotogramma
+  al loro cronometro e non a ogni movimento davanti all'obiettivo — venti
+  movimenti facevano quaranta richieste in più.
+
 - **L'Agenda aperta mentre gli eventi sono per strada non resta più vuota.**
 
   Gli eventi dei calendari e le voci delle liste si chiedono a Home Assistant e
