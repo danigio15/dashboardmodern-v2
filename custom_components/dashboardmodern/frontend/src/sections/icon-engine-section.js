@@ -423,21 +423,77 @@ function nascondiIlNomeMdi(row, token) {
   });
 }
 
-/* La riga del form delle Azioni: tipo e icona sopra, nome sotto.
+/* Il campo icona della scheda Azioni, dal tasto al valore che si salva.
  *
- * La classe accende la griglia a due colonne del foglio qui sotto. La metteva
- * il modulo delle regressioni, che nello stesso giro ridipingeva anche il
- * tasto dell'icona con un markup suo: quel disegno e' del motore, e resta al
- * motore. Qui si scrive solo la forma della riga e il suggerimento del tasto. */
+ * La casella `#ed-qa-icon` la stampa il guscio come campo di testo: ci si
+ * scriveva dentro il nome dell'icona a mano. Il tasto che al suo posto apre il
+ * catalogo — `.dm-beta6-qa-icon-trigger` — lo costruiva un altro modulo, che
+ * pero' per aprirlo, per disegnarci dentro il segno e per ridisegnarlo a ogni
+ * battuta chiamava gia' questo motore: chi costruiva il tasto e chi lo faceva
+ * funzionare stavano in due file diversi. Adesso e' uno solo.
+ *
+ * Le due tabelle dicono, per ogni voce della tendina del tipo, che segno e che
+ * nome mdi le competono: servono a rimettere il valore nella forma portatile
+ * (il segno, non `mdi:...`, perche' chi lo stampa altrove lo stampa come testo
+ * nudo) e a cambiare il valore di serie quando si cambia tipo, ma solo se
+ * quello scritto e' ancora quello di serie di prima. */
+const AZIONE_DI_SERIE = Object.freeze({
+  luci_group: { glyph: "💡", mdi: "mdi:lightbulb-group" },
+  builtin_luci: { glyph: "💡", mdi: "mdi:lightbulb-group" },
+  builtin_clima: { glyph: "❄️", mdi: "mdi:snowflake" },
+  builtin_antifurto: { glyph: "🛡️", mdi: "mdi:shield-home" },
+  builtin_lavatrice: { glyph: "🧺", mdi: "mdi:washing-machine" },
+  toggle: { glyph: "🔀", mdi: "mdi:toggle-switch-outline" },
+  script: { glyph: "▶️", mdi: "mdi:script-text-play" },
+  scene: { glyph: "🎬", mdi: "mdi:movie-open" },
+});
+
+const azioneDiSerie = (type) => AZIONE_DI_SERIE[clean(type)] || { glyph: "⭐", mdi: "mdi:star" };
+
+function azionePortatile(value, type) {
+  const token = clean(value);
+  const serie = azioneDiSerie(type);
+  if (!token || token === "⚡") return serie.glyph;
+  if (!token.startsWith("mdi:")) return token;
+  return ACTION_ICON_CATALOG.find((item) => item.mdi === token)?.glyph || serie.glyph;
+}
+
 function decoraRigaFormAzione() {
   const type = doc?.getElementById?.("ed-qa-type");
   const input = doc?.getElementById?.("ed-qa-icon");
   if (!type || !input) return false;
   const row = input.closest?.(".ed-form-row") || type.closest?.(".ed-form-row");
   if (!row) return false;
+  // La forma della riga: tipo e icona sopra, nome sotto.
+  row.dataset.dmBeta6QuickAction = "true";
   row.classList.add("dm-beta7-action-form-row");
-  const trigger = row.querySelector(".dm-beta6-qa-icon-trigger");
-  if (trigger) trigger.title = t("Scegli icona", "Choose icon");
+  let trigger = row.querySelector(".dm-beta6-qa-icon-trigger");
+  if (!trigger) {
+    trigger = doc.createElement("button");
+    trigger.type = "button";
+    trigger.className = "dm-beta6-qa-icon-trigger";
+    trigger.setAttribute("aria-label", t("Scegli icona azione", "Choose action icon"));
+    input.insertAdjacentElement("afterend", trigger);
+  }
+  trigger.title = t("Scegli icona", "Choose icon");
+  const serie = azioneDiSerie(type.value);
+  const corrente = clean(input.value);
+  const portatile = azionePortatile(corrente, type.value);
+  if (portatile !== corrente) input.value = portatile;
+  if (!input.dataset.dmBeta7DefaultGlyph) input.dataset.dmBeta7DefaultGlyph = serie.glyph;
+  input.classList.add("dm-beta6-qa-icon-value");
+  if (type.dataset.dmBeta7IconBound !== "true") {
+    type.dataset.dmBeta7IconBound = "true";
+    type.addEventListener("change", () => {
+      const precedente = clean(input.dataset.dmBeta7DefaultGlyph);
+      const prossimo = azioneDiSerie(type.value);
+      const scritto = clean(input.value);
+      if (!scritto || scritto === precedente || scritto === "⚡") input.value = prossimo.glyph;
+      input.dataset.dmBeta7DefaultGlyph = prossimo.glyph;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  renderIconGlyph(trigger, "action", input.value, { size: 32 });
   return true;
 }
 
@@ -551,12 +607,6 @@ export function syncEditorIconSurfaces() {
     changed = true;
   });
   if (decoraRigaFormAzione()) changed = true;
-  const quickInput = doc.getElementById("ed-qa-icon");
-  const quickPreview = doc.querySelector(".dm-beta6-qa-icon-trigger");
-  if (quickInput && quickPreview) {
-    renderIconGlyph(quickPreview, "action", quickInput.value, { size: 32 });
-    changed = true;
-  }
   return changed;
 }
 
@@ -821,6 +871,23 @@ function installStyles() {
        * e nell'ordine in cui quei fogli si installavano: prima le regressioni
        * della scheda Azioni, poi la faccia dei glifi. Spostarle piu' su
        * cambierebbe quello che si vede. */
+
+      /* Il campo icona della scheda Azioni: la casella di testo del guscio
+         sparisce e al suo posto si vede il tasto che apre il catalogo. Le
+         misure qui sono quelle di ripiego — dentro #editor-modal le
+         sovrascrivono, per specificita', le tre regole del blocco successivo. */
+      .ed-form-row[data-dm-beta6-quick-action="true"]{display:grid!important;grid-template-columns:minmax(150px,1.25fr) 58px minmax(130px,1fr)!important;gap:8px!important;width:100%!important}
+      .ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-type,.ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-name{width:100%!important;min-width:0!important;margin:0!important}
+      #ed-qa-icon.dm-beta6-qa-icon-value{display:none!important}
+      .dm-beta6-qa-icon-trigger{display:grid!important;place-items:center!important;width:58px!important;min-width:58px!important;max-width:58px!important;min-height:52px!important;margin:0!important;padding:8px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;color:var(--info-color,#0284c7)!important}
+      .dm-beta6-qa-icon-trigger ha-icon,#qa-grid .qa-btn .icon ha-icon{display:inline-flex!important}
+      .dm-beta6-qa-icon-trigger ha-icon{--mdc-icon-size:30px!important}
+      #qa-grid .qa-btn .icon ha-icon{--mdc-icon-size:30px!important}
+      @media(max-width:760px){
+        .ed-form-row[data-dm-beta6-quick-action="true"]{grid-template-columns:minmax(0,1fr) 56px!important}
+        .ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-name{grid-column:1/-1!important}
+        .dm-beta6-qa-icon-trigger{width:56px!important;min-width:56px!important;max-width:56px!important}
+      }
 
       /* Azioni rapide della Home: il simbolo si vede anche dove l'elemento
          ha-icon non viene definito, come nella cornice di Home Assistant su
