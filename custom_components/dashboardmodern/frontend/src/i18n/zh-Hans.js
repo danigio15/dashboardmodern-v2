@@ -2828,4 +2828,6 @@ export default Object.freeze({
   "updated from": "已从以下来源更新：",
   "Still reading the Recorder statistics": "仍在读取 Recorder 统计数据",
   "Home Assistant refused the target": "Home Assistant 拒绝了目标值",
+  "from": "出发地",
+  "to": "飞往",
 });

@@ -2828,4 +2828,6 @@ export default Object.freeze({
   "updated from": "تم تحديثها من",
   "Still reading the Recorder statistics": "لا تزال قراءة إحصاءات المسجّل جارية",
   "Home Assistant refused the target": "رفض Home Assistant الهدف",
+  "from": "من",
+  "to": "إلى",
 });

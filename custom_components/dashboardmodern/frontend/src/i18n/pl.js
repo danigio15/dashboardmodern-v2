@@ -2828,4 +2828,6 @@ export default Object.freeze({
   "updated from": "zaktualizowano z",
   "Still reading the Recorder statistics": "Wciąż odczytuję statystyki Recordera",
   "Home Assistant refused the target": "Home Assistant odrzucił cel",
+  "from": "z",
+  "to": "do",
 });

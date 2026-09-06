@@ -2828,4 +2828,6 @@ export default Object.freeze({
   "updated from": "şuradan güncellendi:",
   "Still reading the Recorder statistics": "Recorder istatistikleri hâlâ okunuyor",
   "Home Assistant refused the target": "Home Assistant hedefi reddetti",
+  "from": "kalkış",
+  "to": "varış",
 });

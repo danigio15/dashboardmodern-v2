@@ -2828,4 +2828,6 @@ export default Object.freeze({
   "updated from": "에서 업데이트됨",
   "Still reading the Recorder statistics": "아직 Recorder 통계를 읽는 중",
   "Home Assistant refused the target": "Home Assistant가 목표를 거부했습니다",
+  "from": "출발",
+  "to": "행",
 });

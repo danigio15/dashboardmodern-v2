@@ -2828,4 +2828,6 @@ export default Object.freeze({
   "updated from": "से अपडेट किया गया",
   "Still reading the Recorder statistics": "Recorder के आँकड़े अभी पढ़े जा रहे हैं",
   "Home Assistant refused the target": "Home Assistant ने लक्ष्य अस्वीकार किया",
+  "from": "से",
+  "to": "की ओर",
 });
