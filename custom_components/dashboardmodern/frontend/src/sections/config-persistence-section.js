@@ -144,7 +144,7 @@ const USER_DATA_VERSION = 1;
  * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
  * e del collare. Anche questa e' roba della casa: il gatto configurato sul
  * tablet deve esistere anche sul telefono. */
-export const CONFIG_KEYS_REVISION = 33;
+export const CONFIG_KEYS_REVISION = 34;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -310,6 +310,11 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_allerte",
   // La raccolta differenziata (#293): i materiali e da dove si legge il ritiro.
   "cd_rifiuti",
+  /* I varchi (#367, #377): quali contatti non contano, quali aggiungere a mano
+   * e come si chiamano. Sono correzioni al rilevamento di casa, non del vetro:
+   * il sensore del frigo etichettato «door» e' sbagliato su ogni dispositivo,
+   * e il nome che gli si da' vale per tutti. */
+  "cd_varchi",
   /* La ventilazione meccanica (#371): le sue caselle sono entita' di casa, e
    * viaggiano fra i dispositivi come tutte le altre. */
   "cd_vmc",

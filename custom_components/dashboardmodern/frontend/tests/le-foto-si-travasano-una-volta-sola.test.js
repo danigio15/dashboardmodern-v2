@@ -117,11 +117,16 @@ test("togliere una chiave non alza la revisione", async () => {
    * «da smartphone vedo le sezioni configurate da pc invece no»; e la 33 con
    * Assist (#360, `cd_assist`): quale assistente risponde, se legge ad alta
    * voce e se il tasto si vede sono preferenze della casa, non del vetro da
-   * cui la si guarda. */
-  assert.equal(CONFIG_KEYS_REVISION, 33);
+   * cui la si guarda. E la 34 con i varchi (#367, #377, `cd_varchi`): quali
+   * contatti non contano, quali aggiungere a mano e come si chiamano sono
+   * correzioni al rilevamento di CASA — il sensore del frigorifero etichettato
+   * «door» e' sbagliato su ogni dispositivo, e il nome che gli si da' vale per
+   * tutti quelli che guardano la stessa porta. */
+  assert.equal(CONFIG_KEYS_REVISION, 34);
   for (const chiave of ["cd_radar_meteo", "cd_orologio", "dm_campi_scelti", "cd_allag_rilevato"])
     assert.ok(CONFIG_KEYS.includes(chiave), `${chiave} deve viaggiare con la casa`);
   assert.ok(CONFIG_KEYS.includes("cd_vmc"), "la ventilazione deve viaggiare con la casa");
+  assert.ok(CONFIG_KEYS.includes("cd_varchi"), "i varchi devono viaggiare con la casa");
   assert.ok(CONFIG_KEYS.includes("cd_assist"), "Assist deve viaggiare con la casa");
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);

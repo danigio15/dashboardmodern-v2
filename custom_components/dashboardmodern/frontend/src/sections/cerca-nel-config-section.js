@@ -85,6 +85,7 @@ const SCHEDA_DELLA_CASELLA = Object.freeze({
   cd_ups: "ups",
   cd_calendari: "agenda",
   cd_rifiuti: "rifiuti",
+  cd_varchi: "varchi",
   cd_media_player: "media",
   cd_sezioni_mie: "mie",
   cd_entita_mie: "entita",

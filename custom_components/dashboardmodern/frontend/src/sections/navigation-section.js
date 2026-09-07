@@ -666,6 +666,7 @@ const OGGETTO_DELLA_PAGINA = Object.freeze({
   ups: "ups",
   allerte: "allerte",
   rifiuti: "rifiuti",
+  varchi: "varchi",
   energy: "energia",
   "appliances-main": "elettrodomestici",
   ev: "ev",

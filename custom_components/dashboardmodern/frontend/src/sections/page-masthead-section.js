@@ -142,6 +142,15 @@ const PAGES = Object.freeze([
     it: ["Animali", "Ciotola · Lettiera · Acqua · Collare"],
     en: ["Pets", "Bowl · Litter · Water · Collar"],
   },
+  /* I varchi: i contatti porta-finestra, guardati e basta. La sottotitolatura
+   * dice le tre cose che la pagina risponde — quanti sono aperti, quali, e chi
+   * non risponde. */
+  {
+    id: "page-varchi",
+    tint: ["220,38,38", "22,163,74"],
+    it: ["Varchi", "Porte · Finestre · Aperti e chiusi"],
+    en: ["Openings", "Doors · Windows · Open and closed"],
+  },
   {
     id: "page-rifiuti",
     tint: ["34,197,94", "14,165,233"],

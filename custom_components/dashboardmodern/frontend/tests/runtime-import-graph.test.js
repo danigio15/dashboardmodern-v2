@@ -892,8 +892,24 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // capisce Home Assistant, che conosce la casa. Mandare l'audio a Home
   // Assistant vorrebbe dire una pipeline, un formato e un pezzo di protocollo
   // binario per arrivare alla stessa frase che il browser ha gia'.
+  // 283 con i varchi (#367, #377), che sono una richiesta sola fatta da due
+  // persone: «in verde dovrebbe segnare i sensori contact chiusi e in rosso
+  // quelli aperti… almeno a colpo d'occhio so quante finestre sono aperte in
+  // questo momento» e «una sezione porte… magari che la card principale come
+  // per le luci mostri solo il numero di porte aperte». Non e' la sezione
+  // Finestre, che governa le tapparelle e ha un motore per comandarle, e non e'
+  // «Apri porte/cancelli», che manda comandi a serrature e rele': qui non si
+  // comanda niente, si guarda — ed e' proprio quello che mancava.
+  // `core/varchi-di-casa.js` dice quali contatti contano e come stanno,
+  // appoggiandosi al giudizio aperto/chiuso che `core/varchi-in-configurazione.js`
+  // gia' dava alle righe della configurazione: due regole per la stessa
+  // domanda avrebbero finito col contraddirsi. `sections/varchi-section.js`
+  // porta la pagina e `sections/varchi-editor-section.js` la scheda, che serve
+  // solo a correggere il rilevamento — il sensore del frigo etichettato
+  // «door», quello che nessuno ha etichettato, e il nome per chi si chiama
+  // «Contact 4B».
   assert.ok(
-    relative.length <= 280,
+    relative.length <= 283,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

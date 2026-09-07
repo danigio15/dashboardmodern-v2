@@ -160,6 +160,7 @@ import {
 } from "../core/cover-kind.js";
 import { doorOpenCall } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
+import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
 import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import {
@@ -3085,6 +3086,56 @@ function ariaModel(states) {
   };
 }
 
+/* I varchi: quanti sono aperti adesso (#367, #377).
+ *
+ * «Almeno a colpo d'occhio so quante finestre sono aperte in questo momento»
+ * e «magari che la card principale come per le luci mostri solo il numero di
+ * porte aperte». Il numero grande e' quello: quante ne sono aperte. La
+ * didascalia dice quali, perche' «due aperte» senza sapere quali obbliga ad
+ * aprire la scheda per una domanda che si fa in mezzo secondo.
+ *
+ * La tessera si accende — rossa in cima — solo quando qualcosa e' aperto: a
+ * casa chiusa non c'e' niente da dire, e un avviso che si accende sempre non e'
+ * piu' un avviso. Le righe sono pastiglie, rosse le aperte e verdi le chiuse,
+ * che e' esattamente la colorazione chiesta nella segnalazione. */
+function varchiModel(states) {
+  const fuori = widgetExcludedEntities();
+  const config = readJson(CHIAVE_VARCHI, {});
+  const girati = insiemeInvertiti(readJson(CHIAVE_VERSI, {}));
+  const righe = varchiDiCasa(states, config, girati, (entity) =>
+    friendlyName(states, entity),
+  ).filter((riga) => widgetIncludes(riga.entity, fuori));
+  if (!righe.length) return null;
+  const conto = contoDeiVarchi(righe);
+  return {
+    key: "varchi",
+    accent: conto.aperti ? "#dc2626" : "#16a34a",
+    icon: "🚪",
+    alert: conto.aperti > 0,
+    label: t("Varchi", "Openings"),
+    value: String(conto.aperti),
+    caption: conto.aperti
+      ? conto.nomi.join(" · ")
+      : t(`Tutto chiuso · ${conto.chiusi}`, `All closed · ${conto.chiusi}`),
+    ring: conto.totale ? Math.round((conto.aperti / conto.totale) * 100) : null,
+    rows: righe.map((riga) => ({
+      entity: riga.entity,
+      name: riga.name,
+      glyph: riga.glifo,
+      on: riga.stato === "aperto",
+      /* Il tono dice il colore della pastiglia senza sapere di cosa parla:
+       * aperto e' una cosa da guardare, chiuso e' la buona notizia. */
+      tono: riga.stato === "aperto" ? "allarme" : riga.stato === "chiuso" ? "quiete" : "",
+      value:
+        riga.stato === "aperto"
+          ? t("Aperto", "Open")
+          : riga.stato === "chiuso"
+            ? t("Chiuso", "Closed")
+            : t("Non risponde", "Not answering"),
+    })),
+  };
+}
+
 /* Il fumo e il gas, contati e chiamati per nome (#328).
  *
  * «Un widget che mostri il numero di sensori fumo e allagamento, e che
@@ -3823,6 +3874,7 @@ export function modelliDelleTessere(states) {
       climateModel(states),
       coversModel(states),
       securityModel(states),
+      varchiModel(states),
       camerasModel(states),
       ...energyModels(states),
       appliancesModel(states),
@@ -5004,8 +5056,8 @@ function pilloleDelloStato(widget) {
       .map(
         (riga, indice) =>
           `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}"${
-            !tutte && indice >= MISURE_IN_VISTA ? " hidden" : ""
-          }>${
+            clean(riga.tono) ? ` data-tono="${esc(clean(riga.tono))}"` : ""
+          }${!tutte && indice >= MISURE_IN_VISTA ? " hidden" : ""}>${
             riga.glyph
               ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>`
               : ""
@@ -7250,6 +7302,18 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   border-color:color-mix(in srgb,#10b981 34%,transparent);
   background:color-mix(in srgb,#10b981 12%,transparent);
   color:color-mix(in srgb,#10b981 76%,#0f172a)}
+/* Il tono di una pastiglia, quando la cosa che racconta ha due versi e il
+ * verde non e' sempre quello buono. Un varco aperto e' rosso e uno chiuso e'
+ * verde (#367): senza questi due, un'apertura accesa sarebbe uscita verde
+ * come una presa in funzione. */
+#dm-widget-popup .dm-w-pillola[data-tono="allarme"]{
+  border-color:color-mix(in srgb,#dc2626 34%,transparent);
+  background:color-mix(in srgb,#dc2626 12%,transparent);
+  color:color-mix(in srgb,#dc2626 78%,#0f172a)}
+#dm-widget-popup .dm-w-pillola[data-tono="quiete"]{
+  border-color:color-mix(in srgb,#16a34a 30%,transparent);
+  background:color-mix(in srgb,#16a34a 10%,transparent);
+  color:color-mix(in srgb,#16a34a 74%,#0f172a)}
 /* Nome e stato si distinguono: il nome respira, lo stato e' la parola in
  * maiuscoletto dopo il punto — «non si capisce» era tutto sullo stesso tono. */
 #dm-widget-popup .dm-w-pillola{font-size:11px}
