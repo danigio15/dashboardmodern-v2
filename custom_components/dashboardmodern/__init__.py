@@ -73,11 +73,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Register the frontend that serves the HTML dashboard."""
     from .config_store import async_get_config_store
     from .frontend import async_register_frontend
+    from .spegnimento import async_get_spegnimento_store
     from .websocket_api import async_register_websocket_api
 
     # The shared configuration store is the authoritative copy of every plancia,
     # so it is loaded and reachable before the panel can ask for it.
     await async_get_config_store(hass)
+    # Gli spegnimenti programmati del clima (#364) si rileggono qui, all'avvio:
+    # un riavvio nel mezzo della notte non deve lasciare acceso un
+    # condizionatore che qualcuno aveva chiesto di spegnere fra due ore.
+    await async_get_spegnimento_store(hass)
     async_register_websocket_api(hass)
     await async_register_frontend(hass, entry.entry_id)
     entry.async_on_unload(entry.add_update_listener(_reload_on_options_change))

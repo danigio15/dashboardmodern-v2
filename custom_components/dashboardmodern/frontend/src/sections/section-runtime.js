@@ -35,6 +35,7 @@ import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installCercaNelConfigSection } from "./cerca-nel-config-section.js";
 import { installVarchiInConfigurazioneSection } from "./varchi-in-configurazione-section.js";
 import { installFoglioDiSceltaSection } from "./foglio-di-scelta-section.js";
+import { installSpegnimentoProgrammatoSection } from "./spegnimento-programmato-section.js";
 import { installReportTendinaDispositiviSection } from "./report-tendina-dispositivi-section.js";
 import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
@@ -826,6 +827,10 @@ export function installSectionRuntime() {
     installApplianceDailyPopupStyle();
     installApplianceKpiPopups();
     installFoglioDiSceltaSection();
+    /* Gli spegnimenti programmati del clima (#364): il conto alla rovescia
+     * lo tiene Home Assistant, qui si chiede una volta chi e' appeso. Prima
+     * del Clima, che alla prima passata lo legge gia'. */
+    installSpegnimentoProgrammatoSection();
     /* La riga per cercare vive sopra il corpo dell'editor: si installa con gli
      * altri moduli della configurazione, e si rimette a posto a ogni giro. */
     installCercaNelConfigSection();

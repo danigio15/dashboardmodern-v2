@@ -857,8 +857,21 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // se' invece di restare in cache. Sta nel nucleo e non in una sezione perche'
   // non e' dell'auto: e' la risposta a «questa cosa ha una foto?», e la stessa
   // domanda torna ovunque una scheda mostri un'immagine.
+  // 274 con i tre pezzi del Clima chiesti insieme (#362, #364, #365).
+  // `core/modo-del-clima.js` legge l'entita' che dice la modalita' del
+  // riscaldamento — TADO ne ha due, altri aggiungono vacanza e boost — e sa
+  // dire, senza toccare niente, quale chiamata la cambierebbe: chi la esegue e'
+  // chi ha la connessione, quindi «cosa succede se tocco questa pastiglia» si
+  // prova a tavolino. `core/spegnimento-programmato.js` tiene i fermi dello
+  // slider e il conto alla rovescia, e `sections/spegnimento-programmato-
+  // section.js` e' l'unico che parla col backend: il timer vero vive in Home
+  // Assistant, perche' un timer nel browser muore chiudendo la pagina e chi
+  // accende il condizionatore per due ore prima di dormire la pagina la chiude
+  // sempre. `core/stagione-del-clima.js` dice se un'unita' e' di stagione, con
+  // gli intervalli che scavallano l'anno — ottobre-aprile e' il primo che
+  // qualcuno scrivera' — e senza orologio dentro.
   assert.ok(
-    relative.length <= 270,
+    relative.length <= 274,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -934,6 +947,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * a watering sequence is running, and each timer stops itself the moment
    * that stops being true.
    *
+   * L'undicesimo e' il conto alla rovescia dello spegnimento programmato del
+   * clima (#364). Il timer VERO sta in Home Assistant — un timer nel browser
+   * muore chiudendo la pagina, e chi accende il condizionatore per due ore
+   * prima di dormire la pagina la chiude sempre — quindi questo battito non
+   * spegne niente: fa solo scendere i minuti scritti sulle card aperte, che
+   * cambiano una volta al minuto e non a ogni disegno. Stessa disciplina di
+   * tutti gli altri: parte solo se c'e' almeno uno spegnimento appeso, e si
+   * ferma da solo quando l'ultimo se ne va. Una plancia senza timer
+   * programmati non si sveglia mai.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -952,6 +975,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/pool-extra-section.js",
       "src/sections/radar-meteo-section.js",
       "src/sections/segnalazioni-section.js",
+      "src/sections/spegnimento-programmato-section.js",
     ],
   );
 

@@ -14,6 +14,8 @@
  */
 import { canonicalClimateType } from "../core/device-model.js";
 import { climateIsOff, climatePowerCall } from "../core/climate-power.js";
+import { normalizzaIMinuti } from "../core/spegnimento-programmato.js";
+import { programmaSpegnimento, scadenzaDi } from "./spegnimento-programmato-section.js";
 import { allStates, clean, readClimateUnits, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CLIMATE_POWER__";
@@ -145,7 +147,31 @@ export function commutaClima(entity, acceso, zona = "") {
   /* Se non c'era nessuno ad ascoltare, questa non e' una commutazione
    * riuscita: dirlo lascia partire la strada di riserva di chi ci chiama. */
   if (!chiama(id, chiamata.service, chiamata.data)) return null;
+  if (voluto) armaLoSpegnimento(id);
   return chiamata;
+}
+
+/* «Il tempo che debba restare acceso dal momento che gli do l'on» (#364).
+ *
+ * Sta qui e non sul pulsante della card perche' QUI passa ogni accensione — il
+ * tasto della card, il popup, «accendi tutto», il tasto rapido della Home.
+ * Metterlo su uno solo di quei quattro vorrebbe dire tre accensioni che si
+ * dimenticano il timer, ed e' esattamente il genere di mezza verita' che
+ * questa plancia ha gia' pagato.
+ *
+ * Solo per chi una durata l'ha configurata: senza, l'unita' resta accesa come
+ * ha sempre fatto. E non riarma niente se un timer c'e' gia' — riaccendere
+ * un'unita' gia' accesa non ricomincia il conto di chi l'aveva programmata. */
+function armaLoSpegnimento(entita) {
+  let minuti = 0;
+  try {
+    const unita = readClimateUnits().find((voce) => clean(voce?.entity) === entita);
+    minuti = normalizzaIMinuti(unita?.minuti);
+  } catch (_error) {
+    return;
+  }
+  if (!minuti || scadenzaDi(entita) != null) return;
+  programmaSpegnimento(entita, minuti);
 }
 
 /* I due pulsanti della plancia. Il runtime resta dov'e': gli si sostituisce la

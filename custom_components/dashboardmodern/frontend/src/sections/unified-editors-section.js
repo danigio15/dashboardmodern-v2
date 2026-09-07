@@ -10,11 +10,18 @@ import { contactEntity, inferriataEntity } from "../core/shutter-window.js";
 import { SOGLIA_MASSIMA as UMIDITA_MASSIMA, umiditaDellaRiga } from "../core/arieggiare.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
+  FERMI_DELLO_SLIDER,
+  durataScritta,
+  normalizzaIMinuti,
+} from "../core/spegnimento-programmato.js";
+import { iDodiciMesi, normalizzaIMesi } from "../core/stagione-del-clima.js";
+import {
   quickClimateFieldsMarkup,
   salvaQuickClimateDaCampi,
 } from "./quick-climate-editor-section.js";
 import { accompagnaMenuAzione } from "./il-popup-della-lavatrice-section.js";
 import {
+  activeLocale,
   clean,
   doc,
   esc,
@@ -263,6 +270,39 @@ function openActionEditor(item, index) {
   });
 }
 
+/* Le durate offerte dalla tendina dello spegnimento automatico.
+ *
+ * La prima voce e' «mai», ed e' quella giusta per quasi tutti: lo spegnimento
+ * automatico e' una comodita' per chi ne ha bisogno, non un comportamento che
+ * si eredita senza averlo chiesto. */
+function durateOpzioni(scelto) {
+  const attuale = normalizzaIMinuti(scelto);
+  const voci = [
+    `<option value="0"${attuale ? "" : " selected"}>— ${esc(t("Mai: resta accesa", "Never: it stays on"))} —</option>`,
+    ...FERMI_DELLO_SLIDER.map(
+      (minuti) =>
+        `<option value="${minuti}"${minuti === attuale ? " selected" : ""}>${esc(durataScritta(minuti, activeLocale()))}</option>`,
+    ),
+  ];
+  return voci.join("");
+}
+
+/* I dodici mesi come pastiglie da accendere.
+ *
+ * Dodici caselle di spunta sarebbero dodici righe; le pastiglie stanno su due
+ * file e si leggono come un calendario, che e' il modo in cui uno pensa
+ * «da maggio a settembre». */
+function mesiMarkup(mesi) {
+  const accesi = new Set(normalizzaIMesi(mesi));
+  const locale = activeLocale();
+  return `<div class="dm-mesi">${iDodiciMesi(locale)
+    .map(
+      (voce) =>
+        `<button type="button" class="dm-mese" data-dm-mese="${voce.mese}" aria-pressed="${accesi.has(voce.mese) ? "true" : "false"}" title="${esc(voce.nome)}" aria-label="${esc(voce.nome)}">${esc(voce.sigla)}</button>`,
+    )
+    .join("")}</div>`;
+}
+
 function openClimateEditor(item, index) {
   const selectedType = canonicalClimateType(item.type);
   const { form, close } = modalShell(
@@ -273,6 +313,9 @@ function openClimateEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Valvola TRV (posizione %)", "TRV valve (position %)")}</span><span class="ed-form-row"><input class="ed-input mono" name="valvola" value="${esc(clean(item.valvola))}" placeholder="sensor.trv_valve_position"><button type="button" class="dm-entity-picker" data-pick-valvola>🔍</button></span><small>${t("Il sensore o il number con la posizione della valvola termostatica, da 0 a 100: la card mostra quanto è aperta e quanto chiusa. Se l'unità climate espone già valve_position, non serve.", "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità della modalità (In casa / Fuori / Vacanza)", "Mode entity (Home / Away / Holiday)")}</span><span class="ed-form-row"><input class="ed-input mono" name="modo" value="${esc(clean(item.modo))}" placeholder="select.tado_home_mode" data-domain="select input_select sensor climate"><button type="button" class="dm-entity-picker" data-pick-modo>🔍</button></span><small>${t("I termostati smart espongono la modalità del riscaldamento su un'entità a parte: TADO ha In casa e Fuori, altri aggiungono Vacanza o Boost. La card la mostra, e se l'entità è un select o un input_select la si cambia da lì.", "Smart thermostats publish the heating mode on a separate entity: TADO has Home and Away, others add Holiday or Boost. The card shows it, and if the entity is a select or an input_select you can change it right there.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Spegnimento automatico", "Automatic switch-off")}</span><select class="ed-input" name="minuti">${durateOpzioni(item.minuti)}</select><small>${t("Quanto resta accesa dal momento dell'accensione. Il conto alla rovescia lo tiene Home Assistant, non questa pagina: si può chiudere la plancia e l'unità si spegne lo stesso. Sulla card resta modificabile ogni volta.", "How long it stays on from the moment you switch it on. Home Assistant keeps the countdown, not this page: you can close the dashboard and the unit still switches off. On the card you can change it every time.")}</small></label>
+     <div class="ed-slot"><span class="ed-slot-lbl">${t("Mesi in cui mostrarla", "Months to show it")}</span><small>${t("Un condizionatore da maggio a settembre, i termosifoni da ottobre ad aprile: fuori da quei mesi la card non compare. Nessun mese acceso vuol dire tutto l'anno. Un'unità accesa si vede sempre, anche fuori stagione.", "An air conditioner from May to September, radiators from October to April: outside those months the card does not appear. No month lit means all year. A unit that is on always shows, even out of season.")}</small>${mesiMarkup(item.mesi)}</div>
      <div class="ed-slot"><span class="ed-slot-lbl">${t("Tasto Clima rapido", "Quick climate button")}</span><small>${t("Cosa fa il tasto di questa unità nel popup Clima della Home. Vuoto = non toccare.", "What this unit's button does in the Home climate popup. Empty = leave alone.")}</small>${quickClimateFieldsMarkup(clean(item.entity), null, selectedType === "termo" ? "caldo" : "")}</div>`,
     selectedType === "termo" ? "🔥" : selectedType === "pompa" ? "♨️" : "❄️",
   );
@@ -280,6 +323,20 @@ function openClimateEditor(item, index) {
   form
     .querySelector("[data-pick-valvola]")
     ?.addEventListener("click", () => root.wzPickEntity?.(form.elements.valvola));
+  form
+    .querySelector("[data-pick-modo]")
+    ?.addEventListener("click", () => root.wzPickEntity?.(form.elements.modo));
+  /* Le pastiglie dei mesi si accendono e si spengono: e' un insieme, non una
+   * scelta sola, e un condizionatore puo' benissimo saltare agosto. */
+  form.addEventListener("click", (event) => {
+    const pastiglia = event.target?.closest?.("[data-dm-mese]");
+    if (!pastiglia) return;
+    event.preventDefault();
+    pastiglia.setAttribute(
+      "aria-pressed",
+      pastiglia.getAttribute("aria-pressed") === "true" ? "false" : "true",
+    );
+  });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const list = listFor("climate");
@@ -290,8 +347,22 @@ function openClimateEditor(item, index) {
       entity: clean(form.elements.entity.value),
       room: clean(form.elements.room.value),
       valvola: clean(form.elements.valvola?.value),
+      /* #362, #364, #365: la modalita', quanto resta accesa e in che mesi si
+       * vede. Sono dati di QUESTA unita', e stanno con lei. */
+      modo: clean(form.elements.modo?.value),
+      minuti: normalizzaIMinuti(form.elements.minuti?.value),
+      mesi: normalizzaIMesi(
+        [...form.querySelectorAll("[data-dm-mese][aria-pressed='true']")].map((pastiglia) =>
+          Number(pastiglia.dataset.dmMese),
+        ),
+      ),
     };
     if (!list[index].valvola) delete list[index].valvola;
+    // Vuoto non si scrive: una chiave assente e' «non configurato», ed e' il
+    // formato che ogni versione precedente sa gia' leggere.
+    if (!list[index].modo) delete list[index].modo;
+    if (!list[index].minuti) delete list[index].minuti;
+    if (!list[index].mesi.length) delete list[index].mesi;
     if (!list[index].name || !list[index].entity) {
       form.querySelector("[data-error]").textContent = t("Nome ed entità sono obbligatori.", "Name and entity are required.");
       return;
@@ -540,7 +611,14 @@ function installStyles() {
  * funzionasse — e valeva per tutte le finestre di modifica, non solo per una.
  * La regola sta qui perche' e' qui che nasce la finestra: chi crea l'ostacolo
  * si occupa di lasciare passare. */
-#cd-entpick{z-index:100060!important}`;
+#cd-entpick{z-index:100060!important}
+/* I dodici mesi in cui si vede un clima (#365): due file di pastiglie, non
+ * dodici caselle di spunta in colonna. Accesa vuol dire «in questo mese la
+ * card c'e'». */
+.dm-mesi{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}
+.dm-mese{padding:9px 0!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:11px!important;background:var(--card-background-color,#fff)!important;color:var(--secondary-text-color,#64748b)!important;font-size:12px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.3px!important;cursor:pointer!important}
+.dm-mese[aria-pressed="true"]{border-color:transparent!important;background:linear-gradient(135deg,#0ea5e9,#0369a1)!important;color:#fff!important;box-shadow:0 6px 14px rgba(2,132,199,.2)!important}
+.dm-mese:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 32%,transparent)!important;outline-offset:2px!important}`;
   doc.head.append(style);
 }
 
