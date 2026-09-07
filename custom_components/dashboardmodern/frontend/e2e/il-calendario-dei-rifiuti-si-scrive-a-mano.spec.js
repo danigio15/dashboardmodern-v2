@@ -129,3 +129,64 @@ test("con le sole due settimane la tessera c'e' anche in Home", async ({ page },
   await expect(tessera).toBeVisible({ timeout: 20_000 });
   await expect(tessera.locator("[data-dm-tile-caption]")).toContainText(/Carta/i);
 });
+
+test("un sensore tolto dai widget non rientra dalla porta del turno", async ({
+  page,
+}, testInfo) => {
+  /* L'interruttore «Nel widget» toglie le entita' una per una. Il cancello
+   * guardava solo se ne restava ALMENO UNA, e poi il modello leggeva la
+   * configurazione intera: le righe escluse tornavano dentro il valore, la
+   * didascalia e l'elenco ogni volta che un'altra entita' bastava ad aprire la
+   * tessera — e col turno, che apre da solo, sarebbero tornate sempre. */
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  const conUnaLuce = {
+    ...seed,
+    sections: { ...seed.sections, lights: [{ entity: "light.salotto", name: "Salotto" }] },
+  };
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, conUnaLuce);
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+
+  await page.evaluate(() => {
+    const oggi = new Date();
+    const due = (n) => String(n).padStart(2, "0");
+    const inizio = `${oggi.getFullYear()}-${due(oggi.getMonth() + 1)}-${due(oggi.getDate())}`;
+    const giorni = Array.from({ length: 14 }, () => []);
+    giorni[0] = ["carta"];
+    window.localStorage.setItem(
+      "cd_rifiuti",
+      JSON.stringify({
+        turno: { inizio, giorni },
+        righe: [{ entity: "sensor.ritiro_vetro", materiale: "vetro" }],
+      }),
+    );
+    // Il vetro e' stato tolto dai widget, apposta.
+    window.localStorage.setItem(
+      "cd_widgets",
+      JSON.stringify({ excluded: ["sensor.ritiro_vetro"] }),
+    );
+    const stati = {
+      "sensor.ritiro_vetro": {
+        entity_id: "sensor.ritiro_vetro",
+        state: "1",
+        attributes: { friendly_name: "Ritiro vetro", daysTo: 1 },
+      },
+    };
+    window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
+    const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+    if (raw) Object.assign(raw, stati);
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+    window.renderHomeWidgets?.();
+  });
+
+  const tessera = page.locator('.dm-tile[data-dm-widget="rifiuti"]').first();
+  await expect(tessera).toBeVisible({ timeout: 20_000 });
+  await expect(tessera.locator("[data-dm-tile-caption]")).toContainText(/Carta/i);
+
+  /* Le righe stanno nella scheda, non sulla tessera: e' li' che il vetro
+   * escluso rientrava. */
+  await tessera.click();
+  const scheda = page.locator("#dm-widget-popup");
+  await expect(scheda).toBeVisible({ timeout: 10_000 });
+  await expect(scheda).toContainText(/Carta/i);
+  await expect(scheda).not.toContainText(/Vetro/i);
+});

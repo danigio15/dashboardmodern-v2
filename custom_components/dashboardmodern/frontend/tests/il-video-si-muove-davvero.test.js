@@ -12,7 +12,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ATTESA_MINIMA,
   aspettaCheSiMuova,
+  ceUnaFotoFerma,
   siEMosso,
 } from "../src/sections/telecamera-il-video-si-muove-section.js";
 
@@ -21,6 +23,7 @@ function video(passi) {
   const letture = [...passi];
   return {
     readyState: 1,
+    paused: false,
     get currentTime() {
       return letture.length > 1 ? letture.shift() : letture[0];
     },
@@ -46,10 +49,34 @@ test("il video che si muove passa, e non aspetta la fine dell'attesa", async () 
   assert.equal(await aspettaCheSiMuova(v, { attesa: 4000, passo: 100, dormi: subito }), true);
 });
 
-test("il video che ha gia' abbastanza per andare passa subito", async () => {
-  const v = video([0]);
+test("un fotogramma fermo mostrato apposta non e' un guasto", async () => {
+  /* L'autoplay negato lascia la prima immagine sullo schermo e aspetta un
+   * tocco: il tempo non va avanti, ma qualcosa da vedere c'e', e scendere alle
+   * istantanee lo peggiorerebbe. Si riconosce dalla pausa. */
+  const v = video([12.5]);
+  v.paused = true;
+  v.readyState = 2;
+  assert.equal(ceUnaFotoFerma(v), true);
+  assert.equal(await aspettaCheSiMuova(v, { attesa: 600, passo: 100, dormi: subito }), true);
+});
+
+test("un flusso che sta andando e non va avanti non e' un fotogramma fermo", async () => {
+  /* E' il piantato vero: non e' in pausa, sta andando — e non si muove. */
+  const v = video([12.5]);
+  v.paused = false;
   v.readyState = 3;
-  assert.equal(await aspettaCheSiMuova(v, { attesa: 4000, passo: 100, dormi: subito }), true);
+  assert.equal(ceUnaFotoFerma(v), false);
+  await assert.rejects(() => aspettaCheSiMuova(v, { attesa: 600, passo: 100, dormi: subito }));
+});
+
+test("il popup chiuso ferma il giudizio invece di sollevare", async () => {
+  /* Chi chiude, o apre un'altra telecamera, si porta via l'elemento: da li' il
+   * tempo non si muove per forza di cose. Sollevare vorrebbe dire far provare
+   * al guscio la strada dopo, che scriverebbe dentro un popup di qualcun
+   * altro. */
+  const v = video([12.5]);
+  v.isConnected = false;
+  assert.equal(await aspettaCheSiMuova(v, { attesa: 600, passo: 100, dormi: subito }), true);
 });
 
 test("il video fermo sul bordo solleva, e la catena scende alla strada dopo", async () => {
@@ -65,6 +92,26 @@ test("il video fermo sul bordo solleva, e la catena scende alla strada dopo", as
       return true;
     },
   );
+});
+
+test("l'involucro guarda per il tempo che AVANZA del permesso", async () => {
+  /* Le strategie danno venticinque secondi a una telecamera che dorme, ma il
+   * guscio scioglie la promessa all'intestazione: quello che non ha speso
+   * serve qui, o si butterebbe via il flusso proprio delle telecamere per cui
+   * il permesso lungo era stato scritto. */
+  const { readFileSync } = await import("node:fs");
+  const { dirname, join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const qui = dirname(fileURLToPath(import.meta.url));
+  const sorgente = readFileSync(
+    join(qui, "..", "src/sections/telecamera-il-video-si-muove-section.js"),
+    "utf8",
+  );
+  assert.match(sorgente, /const resto = Math\.max\(ATTESA_MINIMA, concesso - \(Date\.now\(\) - inizio\)\)/);
+  assert.match(sorgente, /aspettaCheSiMuova\(doc\?\.getElementById\("cam-hls"\), \{ attesa: resto \}\)/);
+  /* E il fondo c'e': anche a permesso esaurito un flusso sano parte in meno di
+   * un secondo e merita di essere guardato. */
+  assert.ok(ATTESA_MINIMA >= 1000);
 });
 
 test("senza nessun video non si inventa un fallimento", async () => {
