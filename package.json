@@ -8,6 +8,8 @@
   "scripts": {
     "check:inline-syntax": "node custom_components/dashboardmodern/frontend/tests/inline-syntax.js custom_components/dashboardmodern/frontend/legacy/dashboard.html custom_components/dashboardmodern/frontend/legacy/dashboard-en.html",
     "check:i18n": "node scripts/mine-runtime-vocabulary.mjs --check && node scripts/extract-i18n-keys.mjs --check",
+    "check:guscio": "python3 scripts/parole_del_guscio_inglese.py --check",
+    "guscio:genera": "python3 scripts/parole_del_guscio_inglese.py --genera",
     "check:moduli": "node scripts/porta-avanti-i-moduli.mjs --check",
     "test:frontend": "node --test custom_components/dashboardmodern/frontend/tests/*.test.js",
     "test:e2e": "playwright test",

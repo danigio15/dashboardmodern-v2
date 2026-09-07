@@ -11,6 +11,55 @@ The legacy dashboard stays useful the whole time. Sections move to native
 DashboardModern modules one at a time, and when the last one lands the vendored
 file is deleted.
 
+## Il guscio inglese non è un secondo file
+
+`legacy/dashboard-runtime-{it,en}.js` erano lo stesso programma scritto due
+volte: 9232 righe contro 9176, **identiche al 92%**, 465 funzioni con lo stesso
+nome su 466. Lo stesso per il foglio di stile (99% identico), il debug, il tema
+e il guardiano: cinque coppie, quasi un megabyte di sorgente scritto due volte.
+Ogni aggiornamento del guscio arrivava due volte e andava riconciliato due
+volte, e un difetto corretto di qua poteva restare di là.
+
+Adesso la copia inglese è **generata**, non mantenuta:
+
+```
+legacy/dashboard-runtime-it.js          la fonte
+legacy/parole-del-guscio-en.json        le sue parole inglesi (449 tratti)
+        │
+        └─ python3 scripts/parole_del_guscio_inglese.py --genera
+             └─ legacy/dashboard-runtime-en.js  (e le altre quattro)
+```
+
+I file inglesi restano nel repository — HACS installa quello che c'è nel
+repository, non quello che esce da una build — ma sono **uscite**, come
+`dashboard.html` e `build-info.js`: nessuno li tocca a mano. Chi ne modifica uno
+senza passare dall'elenco lo scopre da `npm run check:guscio`, e la prova
+`il-guscio-inglese-si-genera` li rifà da capo e li confronta byte per byte.
+
+L'elenco non è una tabella «parola italiana → parola inglese»: quella non
+basterebbe. La stessa riga italiana in due punti può voler dire due cose diverse
+(`editorSwitch('sezioni')` diventa `'sost'` in un posto e `'testi'` in un altro),
+e in trentaquattro punti i commenti sono riflowati e le due copie non hanno
+nemmeno lo stesso numero di righe. È un elenco ordinato di tratti: «dalla riga N
+togli queste, metti quelle».
+
+### La deriva ha un numero
+
+Contando i tratti si scopre che i due gusci **non sono più lo stesso programma**:
+in tredici punti l'italiano ha righe che l'inglese non ha (fra cui il dizionario
+IT/EN potenziato del rilevamento automatico, 46 righe), e in quattro punti
+l'inglese ne ha che l'italiano non ha (fra cui una linguetta «Overrides» che di
+qua non esiste). Quei numeri sono scritti nella prova: se crescono, cade. È il
+modo per accorgersi della deriva quando succede, invece che da una segnalazione
+di un utente inglese sei mesi dopo.
+
+Quando aggiorni i gusci vendorizzati:
+
+```
+python3 scripts/parole_del_guscio_inglese.py --scrivi   # riestrae l'elenco
+npm run check:guscio                                     # e verifica che torni
+```
+
 ## How the pieces fit
 
 ```
