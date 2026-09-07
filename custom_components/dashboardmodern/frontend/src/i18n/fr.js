@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "Allumer et éteindre",
   "What": "Quoi",
   "Which sections are visible": "Quelles sections sont visibles",
+  "Clear": "Effacer",
+  "No configuration contains this word.": "Aucune configuration ne contient ce mot.",
+  "Search the configuration": "Rechercher dans la configuration",
+  "Search the whole configuration…": "Rechercher dans toute la configuration…",
+  "Type at least two letters: it searches every tab at once.": "Saisis au moins deux lettres : la recherche couvre tous les onglets à la fois.",
 });

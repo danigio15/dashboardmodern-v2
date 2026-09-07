@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "オンとオフ",
   "What": "何が",
   "Which sections are visible": "どの区画を表示するか",
+  "Clear": "消す",
+  "No configuration contains this word.": "この言葉を含む設定はありません。",
+  "Search the configuration": "設定を検索",
+  "Search the whole configuration…": "設定全体を検索…",
+  "Type at least two letters: it searches every tab at once.": "2文字以上入力してください。すべてのタブをまとめて検索します。",
 });

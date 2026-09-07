@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "التشغيل والإطفاء",
   "What": "ماذا",
   "Which sections are visible": "أي الأقسام تظهر",
+  "Clear": "مسح",
+  "No configuration contains this word.": "لا يوجد إعداد يحتوي على هذه الكلمة.",
+  "Search the configuration": "ابحث في الإعدادات",
+  "Search the whole configuration…": "ابحث في كل الإعدادات…",
+  "Type at least two letters: it searches every tab at once.": "اكتب حرفين على الأقل: يبحث في كل التبويبات معًا.",
 });

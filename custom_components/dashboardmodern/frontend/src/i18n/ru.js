@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "Включение и выключение",
   "What": "Что",
   "Which sections are visible": "Какие разделы видны",
+  "Clear": "Очистить",
+  "No configuration contains this word.": "Ни одна настройка не содержит это слово.",
+  "Search the configuration": "Поиск по настройкам",
+  "Search the whole configuration…": "Поиск по всем настройкам…",
+  "Type at least two letters: it searches every tab at once.": "Введите хотя бы две буквы: поиск идёт сразу по всем вкладкам.",
 });

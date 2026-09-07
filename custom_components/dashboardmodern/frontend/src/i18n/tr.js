@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "Açma ve kapatma",
   "What": "Ne",
   "Which sections are visible": "Hangi bölümler görünüyor",
+  "Clear": "Temizle",
+  "No configuration contains this word.": "Bu kelimeyi içeren bir ayar yok.",
+  "Search the configuration": "Ayarlarda ara",
+  "Search the whole configuration…": "Tüm ayarlarda ara…",
+  "Type at least two letters: it searches every tab at once.": "En az iki harf yaz: tüm sekmelerde birden arar.",
 });

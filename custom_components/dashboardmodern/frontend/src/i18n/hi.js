@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "चालू और बंद करना",
   "What": "क्या",
   "Which sections are visible": "कौन से अनुभाग दिखते हैं",
+  "Clear": "साफ़ करें",
+  "No configuration contains this word.": "किसी भी सेटिंग में यह शब्द नहीं है।",
+  "Search the configuration": "सेटिंग में खोजें",
+  "Search the whole configuration…": "पूरी सेटिंग में खोजें…",
+  "Type at least two letters: it searches every tab at once.": "कम से कम दो अक्षर लिखें: यह सभी टैब में एक साथ खोजता है।",
 });

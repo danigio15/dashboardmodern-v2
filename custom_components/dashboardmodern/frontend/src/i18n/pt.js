@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "Ligar e desligar",
   "What": "O quê",
   "Which sections are visible": "Que secções se veem",
+  "Clear": "Limpar",
+  "No configuration contains this word.": "Nenhuma configuração contém esta palavra.",
+  "Search the configuration": "Procurar na configuração",
+  "Search the whole configuration…": "Procura em toda a configuração…",
+  "Type at least two letters: it searches every tab at once.": "Escreve pelo menos duas letras: procura em todos os separadores ao mesmo tempo.",
 });

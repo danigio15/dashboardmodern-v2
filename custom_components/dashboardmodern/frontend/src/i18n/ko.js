@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "켜기와 끄기",
   "What": "무엇",
   "Which sections are visible": "어떤 구역이 보이는지",
+  "Clear": "지우기",
+  "No configuration contains this word.": "이 낱말이 들어 있는 설정이 없습니다.",
+  "Search the configuration": "설정에서 찾기",
+  "Search the whole configuration…": "설정 전체에서 찾기…",
+  "Type at least two letters: it searches every tab at once.": "두 글자 이상 입력하세요. 모든 탭을 한꺼번에 찾습니다.",
 });

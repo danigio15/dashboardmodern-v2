@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "Aan- en uitzetten",
   "What": "Wat",
   "Which sections are visible": "Welke secties zichtbaar zijn",
+  "Clear": "Wissen",
+  "No configuration contains this word.": "Geen instelling bevat dit woord.",
+  "Search the configuration": "Zoek in de instellingen",
+  "Search the whole configuration…": "Zoek in de hele configuratie…",
+  "Type at least two letters: it searches every tab at once.": "Typ minstens twee letters: er wordt in alle tabbladen tegelijk gezocht.",
 });

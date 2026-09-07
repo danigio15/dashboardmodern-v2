@@ -32,6 +32,7 @@ import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
+import { installCercaNelConfigSection } from "./cerca-nel-config-section.js";
 import { installFoglioDiSceltaSection } from "./foglio-di-scelta-section.js";
 import { installReportTendinaDispositiviSection } from "./report-tendina-dispositivi-section.js";
 import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
@@ -824,6 +825,9 @@ export function installSectionRuntime() {
     installApplianceDailyPopupStyle();
     installApplianceKpiPopups();
     installFoglioDiSceltaSection();
+    /* La riga per cercare vive sopra il corpo dell'editor: si installa con gli
+     * altri moduli della configurazione, e si rimette a posto a ogni giro. */
+    installCercaNelConfigSection();
     installApplianceEditorSection();
     installReportTendinaDispositiviSection();
     // Il menu delle integrazioni veste la scheda che l'editor ha appena

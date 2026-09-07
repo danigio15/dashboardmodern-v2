@@ -3050,4 +3050,9 @@ export default Object.freeze({
   "Turning them on and off": "打开和关闭",
   "What": "什么",
   "Which sections are visible": "哪些板块可见",
+  "Clear": "清空",
+  "No configuration contains this word.": "没有配置包含这个词。",
+  "Search the configuration": "搜索配置",
+  "Search the whole configuration…": "搜索全部配置…",
+  "Type at least two letters: it searches every tab at once.": "请输入至少两个字符：一次搜索所有标签页。",
 });
