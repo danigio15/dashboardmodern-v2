@@ -1411,6 +1411,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "HLS not available",
   "HLS not supported and hls.js missing",
   "HLS: skipped, hls.js not loaded",
+  "HLS: the header arrives but the pictures do not",
   "Hob",
   "Home",
   "Home (fallback)",

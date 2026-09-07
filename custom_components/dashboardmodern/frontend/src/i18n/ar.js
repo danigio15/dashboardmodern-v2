@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "قصيرة",
   "Show devices and energy sources": "إظهار الأجهزة ومصادر الطاقة",
   "Show in Report": "إظهار في التقرير",
+  "HLS: the header arrives but the pictures do not": "HLS: يصل الترويس لكن الصور لا تصل",
   "Show all": "عرض الكل",
   "🖥️ Added to the list": "🖥️ أُضيفت إلى القائمة",
   "Add what is not found": "أضف ما لم يُعثر عليه",

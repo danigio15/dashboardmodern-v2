@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "짧은 수염",
   "Show devices and energy sources": "기기와 전력원 표시",
   "Show in Report": "보고서에 표시",
+  "HLS: the header arrives but the pictures do not": "HLS: 헤더는 오지만 영상이 오지 않습니다",
   "Show all": "전체 보기",
   "🖥️ Added to the list": "🖥️ 목록에 추가했습니다",
   "Add what is not found": "찾지 못한 것 추가",

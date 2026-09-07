@@ -1401,6 +1401,7 @@ export const SOURCE_INDEX = Object.freeze({
   "History N/D": "History N/A",
   "HLS non disponibile": "HLS not available",
   "HLS non supportato e hls.js mancante": "HLS not supported and hls.js missing",
+  "HLS: l'intestazione arriva ma le immagini no": "HLS: the header arrives but the pictures do not",
   "HLS: saltato, hls.js non caricato": "HLS: skipped, hls.js not loaded",
   "Home Assistant · Sistema core": "Home Assistant · Core system",
   "Home Assistant · Sistema Core": "Home Assistant · Core system",

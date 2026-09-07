@@ -139,8 +139,8 @@ import {
 import { categoriaDelleAllerte, fraseDellAllerta } from "./allerte-section.js";
 import {
   CHIAVE_RIFIUTI,
-  entitaDeiRifiuti,
   letturaRifiuti,
+  normalizzaRifiuti,
   rifiutiConfigurati,
 } from "../core/rifiuti-model.js";
 import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
@@ -3805,10 +3805,27 @@ function allerteModel(states) {
  * cosa: e' la risposta alla domanda della sera. Si accende il giorno prima e
  * il giorno stesso, che sono i due momenti in cui serve vederla. */
 function rifiutiModel(states) {
-  const config = readJson(CHIAVE_RIFIUTI, {});
-  if (!rifiutiConfigurati(config)) return null;
+  const grezza = readJson(CHIAVE_RIFIUTI, {});
+  /* L'interruttore «Nel widget» toglie le entita' una per una: quello che ha
+   * spento non deve entrare nella tessera. Si toglie DAL MODELLO, non dal solo
+   * cancello — leggere tutto e poi limitarsi a non aprire la tessera lasciava
+   * le righe escluse dentro il valore, la didascalia e l'elenco ogni volta che
+   * un'altra entita' bastava a farla aprire.
+   *
+   * Cosi' la domanda torna a essere una sola, la stessa della sezione: quello
+   * che resta dice qualcosa? Il turno scritto a mano (#366) risponde di si'
+   * anche da solo, ed e' il punto — non e' un'entita', e' il foglietto sul
+   * frigo, e di interruttori da spegnere non ne ha. Contarlo per zero voleva
+   * dire che chi configurava SOLO le due settimane si ritrovava la sezione
+   * piena e in Home nessuna tessera. */
   const fuori = widgetExcludedEntities();
-  if (!entitaDeiRifiuti(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const dato = normalizzaRifiuti(grezza);
+  const config = {
+    ...dato,
+    righe: dato.righe.filter((riga) => widgetIncludes(riga.entity, fuori)),
+    calendario: widgetIncludes(dato.calendario, fuori) ? dato.calendario : "",
+  };
+  if (!rifiutiConfigurati(config)) return null;
   const lettura = letturaRifiuti(config, states, root.resolveEntity || ((value) => value));
   const dalCalendario =
     lettura.calendario && lettura.calendario.giorni !== null && lettura.calendario.giorni >= 0
