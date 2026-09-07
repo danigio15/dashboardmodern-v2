@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "Chemin sous /local ou une entité image, p. ex. /local/voiture.png ou image.voiture",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "À la place d'un chemin, tu peux écrire une entité image (image.voiture) ou une caméra (camera.voiture) : l'intégration garde la photo à jour, et la loupe 🔍 te la trouve.",
+  "Pick an image entity": "Choisir une entité image",
   "openings": "ouvertures",
   "ONLINE": "ONLINE",
   "OFFLINE": "OFFLINE",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "Partiel",
   "Party": "Fête",
   "Paste your token here (starts with eyJ...)": "Collez votre jeton ici (il commence par eyJ...)",
-  "Path under /local, e.g. /local/car.png": "Chemin sous /local, p. ex. /local/voiture.png",
   "Pause": "Pause",
   "PAUSE": "PAUSE",
   "Paused": "En pause",

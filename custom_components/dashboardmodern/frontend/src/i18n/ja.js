@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "/local 以下のパス、または画像エンティティ（例: /local/car.png、image.car）",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "パスの代わりに画像エンティティ（image.car）やカメラ（camera.car）を書けます。写真は統合が最新に保ち、🔍 の虫めがねで探せます。",
+  "Pick an image entity": "画像エンティティを選ぶ",
   "openings": "か所",
   "ONLINE": "オンライン",
   "OFFLINE": "オフライン",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "部分",
   "Party": "パーティー",
   "Paste your token here (starts with eyJ...)": "ここにトークンを貼り付けてください（eyJ... で始まります）",
-  "Path under /local, e.g. /local/car.png": "/local 以下のパス（例: /local/car.png）",
   "Pause": "一時停止",
   "PAUSE": "一時停止",
   "Paused": "一時停止中",

@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "Путь в /local или сущность изображения, например /local/car.png или image.car",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "Вместо пути можно указать сущность изображения (image.car) или камеру (camera.car): интеграция сама обновляет фото, а лупа 🔍 поможет её найти.",
+  "Pick an image entity": "Выберите сущность изображения",
   "openings": "открываний",
   "ONLINE": "В СЕТИ",
   "OFFLINE": "НЕ В СЕТИ",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "Частично",
   "Party": "Вечеринка",
   "Paste your token here (starts with eyJ...)": "Вставьте сюда свой токен (начинается с eyJ...)",
-  "Path under /local, e.g. /local/car.png": "Путь в /local, например /local/car.png",
   "Pause": "Пауза",
   "PAUSE": "ПАУЗА",
   "Paused": "На паузе",

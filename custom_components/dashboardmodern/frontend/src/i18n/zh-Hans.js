@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "/local 下的路径或图像实体，例如 /local/car.png 或 image.car",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "可以不用路径，直接写图像实体（image.car）或摄像头（camera.car）：照片由集成保持最新，🔍 放大镜帮你找到它。",
+  "Pick an image entity": "选择图像实体",
   "openings": "处",
   "ONLINE": "在线",
   "OFFLINE": "离线",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "部分",
   "Party": "聚会",
   "Paste your token here (starts with eyJ...)": "把令牌粘贴到这里（以 eyJ... 开头）",
-  "Path under /local, e.g. /local/car.png": "/local 下的路径，例如 /local/car.png",
   "Pause": "暂停",
   "PAUSE": "暂停",
   "Paused": "已暂停",

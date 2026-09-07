@@ -711,9 +711,17 @@ export function decorateEntityFields(scope = doc?.getElementById("ed-body")) {
   if (!scope?.querySelectorAll) return 0;
   let pending = 0;
   for (const input of scope.querySelectorAll('input[data-entity-input="true"]')) {
+    /* La pastiglia e' per i campi che vogliono UN'ENTITA' e nient'altro:
+     * nasconde la casella e mostra il nome amichevole, con la matita per
+     * scriverci a mano. Un campo che accetta anche altro — la foto dell'auto
+     * accetta un percorso `/local/...` oltre a un `image.` (#369) — con la
+     * pastiglia addosso diventava una casella nascosta: la lente serviva
+     * ancora, ma il percorso non si poteva piu' battere. Chi accetta anche
+     * altro lo dichiara, e resta una casella con la lente accanto. */
     if (
       input.closest(".dm-slot") ||
       input.matches(".ed-slot-in[data-ref]") ||
+      input.dataset.dmEntityOptional === "true" ||
       input.closest('[data-dm-entity-chip="true"]')
     ) {
       continue;

@@ -402,6 +402,7 @@ const KNOWN_DOMAINS = new Set([
   "cover",
   "climate",
   "camera",
+  "image",
   "weather",
   "automation",
   "script",

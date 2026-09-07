@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "/local 아래 경로 또는 이미지 엔티티, 예: /local/car.png 또는 image.car",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "경로 대신 이미지 엔티티(image.car)나 카메라(camera.car)를 적을 수 있습니다. 사진은 통합이 최신으로 유지하고, 🔍 돋보기로 찾을 수 있습니다.",
+  "Pick an image entity": "이미지 엔티티 선택",
   "openings": "개",
   "ONLINE": "온라인",
   "OFFLINE": "오프라인",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "부분",
   "Party": "파티",
   "Paste your token here (starts with eyJ...)": "여기에 토큰을 붙여 넣으세요(eyJ... 로 시작합니다)",
-  "Path under /local, e.g. /local/car.png": "/local 아래 경로, 예: /local/car.png",
   "Pause": "일시정지",
   "PAUSE": "일시정지",
   "Paused": "일시정지됨",

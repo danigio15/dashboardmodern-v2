@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "مسار ضمن ‎/local أو كيان صورة، مثلًا ‎/local/car.png أو image.car",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "بدلًا من المسار يمكنك كتابة كيان صورة (image.car) أو كاميرا (camera.car): التكامل يُبقي الصورة محدَّثة، والعدسة 🔍 تجدها لك.",
+  "Pick an image entity": "اختر كيان صورة",
   "openings": "فتحات",
   "ONLINE": "متصل",
   "OFFLINE": "غير متصل",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "جزئي",
   "Party": "حفلة",
   "Paste your token here (starts with eyJ...)": "الصق رمزك هنا (يبدأ بـ eyJ...)",
-  "Path under /local, e.g. /local/car.png": "مسار ضمن ‎/local، مثلًا ‎/local/car.png",
   "Pause": "إيقاف مؤقت",
   "PAUSE": "إيقاف مؤقت",
   "Paused": "متوقفة مؤقتًا",

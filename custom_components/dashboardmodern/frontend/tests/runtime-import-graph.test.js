@@ -850,8 +850,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scrivendo. `core/varchi-in-configurazione.js` dice se un contatto e'
   // aperto o chiuso col verso giusto (#367), e la sezione lo colora su ogni
   // riga che lo nomina, in qualunque scheda si trovi.
+  // 270 con la foto che puo' essere un'entita' (#369): «alcune integrazioni
+  // come UConnect mettono a disposizione questa entita'». `core/foto-da-entita.js`
+  // riconosce un `image.` o una `camera.` e ne legge l'indirizzo con il gettone
+  // che Home Assistant gli mette dentro — quello che fa aggiornare la foto da
+  // se' invece di restare in cache. Sta nel nucleo e non in una sezione perche'
+  // non e' dell'auto: e' la risposta a «questa cosa ha una foto?», e la stessa
+  // domanda torna ovunque una scheda mostri un'immagine.
   assert.ok(
-    relative.length <= 269,
+    relative.length <= 270,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

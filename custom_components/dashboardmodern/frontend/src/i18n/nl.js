@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "Pad onder /local of een afbeeldings-entiteit, bijv. /local/auto.png of image.auto",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "In plaats van een pad kun je een afbeeldings-entiteit (image.auto) of een camera (camera.auto) invullen: de integratie houdt de foto bij, en de loep 🔍 zoekt hem voor je.",
+  "Pick an image entity": "Kies een afbeeldings-entiteit",
   "openings": "openingen",
   "ONLINE": "ONLINE",
   "OFFLINE": "OFFLINE",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "Gedeeltelijk",
   "Party": "Feest",
   "Paste your token here (starts with eyJ...)": "Plak hier je token (begint met eyJ...)",
-  "Path under /local, e.g. /local/car.png": "Pad onder /local, bijv. /local/auto.png",
   "Pause": "Pauze",
   "PAUSE": "PAUZE",
   "Paused": "Gepauzeerd",

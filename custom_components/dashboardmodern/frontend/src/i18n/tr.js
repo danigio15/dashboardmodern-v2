@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "/local altındaki yol ya da bir görüntü varlığı, örn. /local/araba.png veya image.araba",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "Yol yerine bir görüntü varlığı (image.araba) veya kamera (camera.araba) yazabilirsin: fotoğrafı entegrasyon güncel tutar, 🔍 merceği de onu senin için bulur.",
+  "Pick an image entity": "Bir görüntü varlığı seç",
   "openings": "açılış",
   "ONLINE": "ÇEVRİMİÇİ",
   "OFFLINE": "ÇEVRİMDIŞI",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "Kısmi",
   "Party": "Parti",
   "Paste your token here (starts with eyJ...)": "Jetonunuzu buraya yapıştırın (eyJ... ile başlar)",
-  "Path under /local, e.g. /local/car.png": "/local altındaki yol, örn. /local/araba.png",
   "Pause": "Duraklat",
   "PAUSE": "DURAKLAT",
   "Paused": "Duraklatıldı",

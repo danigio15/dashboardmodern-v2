@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "A /local path or an image entity, e.g. /local/car.png or image.car": "/local के नीचे का पथ या कोई इमेज एंटिटी, जैसे /local/car.png या image.car",
+  "Instead of a path you can write an image entity (image.car) or a camera (camera.car): the integration keeps the photo up to date, and the 🔍 lens finds it for you.": "पथ की जगह आप इमेज एंटिटी (image.car) या कैमरा (camera.car) लिख सकते हैं: फ़ोटो को इंटीग्रेशन अपडेट रखता है, और 🔍 लेंस उसे ढूँढ देता है।",
+  "Pick an image entity": "इमेज एंटिटी चुनें",
   "openings": "खोलने",
   "ONLINE": "ऑनलाइन",
   "OFFLINE": "ऑफ़लाइन",
@@ -1708,7 +1711,6 @@ export default Object.freeze({
   "Partial": "आंशिक",
   "Party": "पार्टी",
   "Paste your token here (starts with eyJ...)": "अपना टोकन यहाँ चिपकाएँ (eyJ... से शुरू होता है)",
-  "Path under /local, e.g. /local/car.png": "/local के नीचे का पथ, जैसे /local/car.png",
   "Pause": "रोकें",
   "PAUSE": "रोकें",
   "Paused": "रुका हुआ",
