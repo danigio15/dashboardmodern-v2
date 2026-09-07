@@ -102,7 +102,7 @@ function chiaviScritte() {
 
 function chiaviCheViaggiano() {
   const sorgente = readFileSync(
-    join(RADICE, "src/sections/config-persistence-section.js"),
+    join(RADICE, "src/core/chiavi-di-configurazione.js"),
     "utf8",
   );
   const apertura = sorgente.indexOf("export const CONFIG_KEYS = Object.freeze([");

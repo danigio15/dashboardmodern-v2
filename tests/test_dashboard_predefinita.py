@@ -35,19 +35,47 @@ class _Magazzino:
 
 
 class _Collezione:
-    def __init__(self, plance: dict) -> None:
+    """La collezione delle dashboard di Lovelace, quel tanto che serve.
+
+    `async_items` e `async_update_item` sono i due metodi con cui Lovelace fa
+    vedere e correggere la scheda di una dashboard — nome, icona, «solo
+    amministratori». Sono qui perche' la plancia adesso li usa: creare la
+    scheda una volta sola voleva dire il nome vecchio nel menu di Home
+    Assistant per sempre.
+    """
+
+    def __init__(self, plance: dict, voci: list[dict] | None = None) -> None:
         self.plance = plance
         self.create = []
+        self.voci = voci if voci is not None else []
+        self.aggiornate: list[tuple[str, dict]] = []
 
     async def async_create_item(self, voce: dict) -> dict:
         self.create.append(voce)
         self.plance[voce["url_path"]] = _Magazzino()
+        self.voci.append({"id": voce["url_path"], **voce})
         return voce
 
+    def async_items(self) -> list[dict]:
+        return list(self.voci)
 
-def _lovelace(hass: Any, plance: dict | None = None) -> dict:
+    async def async_update_item(self, item_id: str, cambi: dict) -> dict:
+        self.aggiornate.append((item_id, cambi))
+        for voce in self.voci:
+            if voce.get("id") == item_id:
+                voce.update(cambi)
+                return voce
+        raise KeyError(item_id)
+
+
+def _lovelace(
+    hass: Any, plance: dict | None = None, voci: list[dict] | None = None
+) -> dict:
     plance = plance if plance is not None else {}
-    dati = {"dashboards": plance, "dashboards_collection": _Collezione(plance)}
+    dati = {
+        "dashboards": plance,
+        "dashboards_collection": _Collezione(plance, voci),
+    }
     hass.data["lovelace"] = dati
     return dati
 
@@ -181,3 +209,71 @@ def test_la_card_si_carica_da_un_percorso_che_non_scade() -> None:
     assert "/abc123/" not in url
     # Ed e' un percorso che l'integrazione monta davvero, fuori dalla versione.
     assert "dashboard-card.js" in fe.RUNTIME_MOUNTS
+
+
+async def test_chi_rinomina_la_plancia_rinomina_anche_la_dashboard(hass: Any) -> None:
+    """«Rinomino la plancia e nel menu di Home Assistant resta il nome vecchio.»
+
+    La scheda della dashboard di appoggio si scriveva solo alla nascita: al
+    riavvio si riscrivevano le viste — quelle si — e la scheda restava com'era.
+    Il titolo nel selettore delle dashboard era quindi quello del giorno in cui
+    la plancia era stata installata, per sempre. Vale lo stesso per «solo
+    amministratori»: chiudere la plancia agli altri non chiudeva la dashboard.
+    """
+    entry = _voce(hass, title="Casa di Anna", options={"admin_only": True})
+    url_path = fe._lovelace_url_path(entry)
+    voci = [
+        {
+            "id": "vecchia",
+            "url_path": url_path,
+            "title": "Casa 3.0",
+            "require_admin": False,
+        }
+    ]
+    dati = _lovelace(hass, {url_path: _Magazzino()}, voci)
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+
+    collezione = dati["dashboards_collection"]
+    assert collezione.create == []
+    assert collezione.aggiornate == [
+        ("vecchia", {"title": "Casa di Anna", "require_admin": True})
+    ]
+
+
+async def test_un_avvio_qualunque_non_riscrive_la_scheda(hass: Any) -> None:
+    """La collezione salva su disco a ogni aggiornamento: un avvio non lo e'."""
+    entry = _voce(hass, title="Casa 3.0")
+    url_path = fe._lovelace_url_path(entry)
+    voci = [
+        {
+            "id": "gia-giusta",
+            "url_path": url_path,
+            "title": "Casa 3.0",
+            "require_admin": False,
+        }
+    ]
+    dati = _lovelace(hass, {url_path: _Magazzino()}, voci)
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert dati["dashboards_collection"].aggiornate == []
+
+
+async def test_una_lovelace_vecchia_non_fa_saltare_l_avvio(hass: Any) -> None:
+    """Se la collezione non sa aggiornare, si tira dritto e si riempie lo stesso."""
+    entry = _voce(hass)
+    url_path = fe._lovelace_url_path(entry)
+    plance = {url_path: _Magazzino()}
+
+    class _Vecchia(_Collezione):
+        async_update_item = None
+        async_items = None
+
+    collezione = _Vecchia(plance)
+    hass.data["lovelace"] = {
+        "dashboards": plance,
+        "dashboards_collection": collezione,
+    }
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert plance[url_path].salvata["views"]

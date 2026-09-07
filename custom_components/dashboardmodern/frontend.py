@@ -423,6 +423,41 @@ def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str,
     }
 
 
+async def _aggiorna_scheda_compagna(
+    collezione: Any, url_path: str, titolo: str, solo_admin: bool
+) -> None:
+    """Rimetti in pari il nome e il «solo amministratori» di una gia' esistente.
+
+    Creare la dashboard di appoggio scriveva il titolo una volta sola. Chi poi
+    rinominava la plancia — o la chiudeva agli amministratori — si ritrovava il
+    nome vecchio nel menu delle dashboard di Home Assistant a ogni riavvio: le
+    viste si riscrivevano, la scheda della collezione no. Il pannello, prima che
+    questo lo sostituisse, l'aggiornava con `lovelace/dashboards/update`; qui si
+    fa la stessa cosa dal di dentro.
+
+    Si scrive solo se qualcosa e' davvero cambiato: la collezione salva su disco
+    a ogni aggiornamento, e un avvio non e' una modifica.
+    """
+    elenca = getattr(collezione, "async_items", None)
+    aggiorna = getattr(collezione, "async_update_item", None)
+    if elenca is None or aggiorna is None:
+        return
+    voce = next(
+        (v for v in elenca() if isinstance(v, dict) and v.get("url_path") == url_path),
+        None,
+    )
+    if voce is None:
+        return
+    cambi = {}
+    if voce.get("title") != titolo:
+        cambi["title"] = titolo
+    if bool(voce.get("require_admin", False)) != solo_admin:
+        cambi["require_admin"] = solo_admin
+    if not cambi:
+        return
+    await aggiorna(voce["id"], cambi)
+
+
 async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> bool:
     """Crea e riempie la dashboard di appoggio di questa plancia.
 
@@ -465,6 +500,8 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
                     "require_admin": solo_admin,
                 }
             )
+        else:
+            await _aggiorna_scheda_compagna(collezione, url_path, titolo, solo_admin)
         magazzino = plance.get(url_path)
         if magazzino is None or not hasattr(magazzino, "async_save"):
             return False

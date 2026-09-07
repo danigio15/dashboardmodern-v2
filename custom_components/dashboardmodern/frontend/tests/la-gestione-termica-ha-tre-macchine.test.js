@@ -207,7 +207,7 @@ test("la caldaia col solo stato accende l'oblo' e si nomina per quello che legge
 
 test("le due chiavi nuove viaggiano con la configurazione", async () => {
   const persistenza = await readFile(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   assert.match(persistenza, /"cd_impianti_termici"/);

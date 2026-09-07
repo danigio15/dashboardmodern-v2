@@ -64,6 +64,7 @@ import {
 import {
   EVENTO_SPEGNIMENTI,
   leggiGliSpegnimenti,
+  avvisaCheNonSiPuo,
   programmaSpegnimento,
   scadenzaDi,
 } from "./spegnimento-programmato-section.js";
@@ -1187,20 +1188,6 @@ function apriLaFinestraDelTimer(entita, unita, armato) {
     await programmaSpegnimento(entita, 0);
     renderClimate();
   });
-}
-
-/* Il backend nuovo puo' non esserci: una plancia aggiornata a meta', o il
- * socket caduto. Si dice, invece di lasciar credere che il timer sia partito —
- * un condizionatore che si crede temporizzato resta acceso tutta la notte. */
-function avvisaCheNonSiPuo() {
-  const parola = t(
-    "Home Assistant non ha preso lo spegnimento programmato: aggiorna l'integrazione e riprova.",
-    "Home Assistant did not take the scheduled switch-off: update the integration and try again.",
-  );
-  try {
-    if (typeof root.edToast === "function") root.edToast(parola);
-    else root.alert?.(parola);
-  } catch (_error) {}
 }
 
 /* Un tocco sul conto alla rovescia (#364): si sceglie quanto resta accesa. */

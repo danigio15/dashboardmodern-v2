@@ -85,8 +85,16 @@ test("cd_todo viaggia nella configurazione condivisa, alla revisione 6", async (
   assert.ok(CONFIG_KEYS_REVISION >= 6);
 });
 
-test("il cancello degli eventi conosce cd_todo", () => {
-  assert.match(leggi("core/state-event-gate.js"), /"cd_todo"/);
+test("il cancello degli eventi conosce cd_todo", async () => {
+  /* Non piu' guardando una copia scritta a mano dentro il cancello: quella
+   * copia restava indietro, ed e' stata tolta. Adesso la domanda e' quella
+   * vera — la chiave sta nell'elenco che il cancello si fa passare. */
+  const { CONFIG_KEYS } = await import("../src/core/chiavi-di-configurazione.js");
+  assert.ok(CONFIG_KEYS.includes("cd_todo"));
+  assert.match(
+    leggi("sections/section-runtime.js"),
+    /installStateEventGate\([^)]*chiavi: CONFIG_KEYS,/s,
+  );
 });
 
 test("il runtime installa il ponte dei widget e l'editor delle liste", () => {

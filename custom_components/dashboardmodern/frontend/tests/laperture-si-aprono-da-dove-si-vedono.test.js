@@ -69,7 +69,7 @@ test("un'apertura in una stanza si apre, invece di riportare in Home", () => {
 
 test("la scelta sulla conferma viaggia con la configurazione", () => {
   const persistenza = readFileSync(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   /* Chi la spegne dal telefono la vuole spenta anche dal tablet: è una scelta

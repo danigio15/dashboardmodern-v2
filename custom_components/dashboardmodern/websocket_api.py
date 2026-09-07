@@ -495,6 +495,13 @@ async def async_clima_timer_set(
     if "." not in entita or hass.states.get(entita) is None:
         connection.send_error(msg["id"], "not_found", "entity_id sconosciuto")
         return
+    if not _puo_comandare(connection, entita):
+        connection.send_error(
+            msg["id"],
+            websocket_api.const.ERR_UNAUTHORIZED,
+            "Non hai il controllo di questa entita'.",
+        )
+        return
     from .spegnimento import async_get_spegnimento_store
 
     store = await async_get_spegnimento_store(hass)
@@ -523,11 +530,52 @@ async def async_clima_timer_clear(
     if not _authorized(hass, connection, None):
         _deny(connection, msg)
         return
+    entita = str(msg["entity_id"]).strip()
+    if not _puo_comandare(connection, entita):
+        connection.send_error(
+            msg["id"],
+            websocket_api.const.ERR_UNAUTHORIZED,
+            "Non hai il controllo di questa entita'.",
+        )
+        return
     from .spegnimento import async_get_spegnimento_store
 
     store = await async_get_spegnimento_store(hass)
-    await store.async_annulla(str(msg["entity_id"]).strip())
+    await store.async_annulla(entita)
     connection.send_result(msg["id"], {"removed": True})
+
+
+def _puo_comandare(connection: Any, entita: str) -> bool:
+    """Se chi chiama potrebbe spegnere quell'entita' da se'.
+
+    Il timer non e' un permesso in piu': e' lo stesso spegnimento, detto due ore
+    prima. Ma a farlo scattare e' l'integrazione, con `hass.services.async_call`
+    e senza il contesto di chi ha chiesto — quindi Home Assistant non ci
+    rimette le sue regole sopra, e senza questa domanda un utente non
+    amministratore poteva programmare lo spegnimento di QUALUNQUE entita'
+    esistente, comprese quelle che la sua utenza non ha il diritto di toccare.
+    Bastava che potesse aprire una plancia.
+
+    La domanda e' quella di Home Assistant, fatta adesso: un amministratore puo'
+    sempre, gli altri solo dove hanno il controllo. Chiederla al momento in cui
+    si programma e non a scadenza e' voluto — a scadenza, un permesso tolto nel
+    frattempo lascerebbe acceso il condizionatore tutta la notte, che e' proprio
+    il guasto che questa funzione esiste per evitare.
+    """
+    user = getattr(connection, "user", None)
+    if user is None:
+        return False
+    if getattr(user, "is_admin", False):
+        return True
+    permessi = getattr(user, "permissions", None)
+    controlla = getattr(permessi, "check_entity", None)
+    if controlla is None:
+        return False
+    try:
+        from homeassistant.auth.permissions.const import POLICY_CONTROL
+    except ImportError:  # pragma: no cover - Home Assistant e' sempre presente
+        return False
+    return bool(controlla(entita, POLICY_CONTROL))
 
 
 def _caller_id(connection: Any) -> str:

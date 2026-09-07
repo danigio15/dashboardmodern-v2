@@ -15,7 +15,11 @@
 import { canonicalClimateType } from "../core/device-model.js";
 import { climateIsOff, climatePowerCall } from "../core/climate-power.js";
 import { normalizzaIMinuti } from "../core/spegnimento-programmato.js";
-import { programmaSpegnimento, scadenzaDi } from "./spegnimento-programmato-section.js";
+import {
+  avvisaCheNonSiPuo,
+  programmaSpegnimento,
+  scadenzaDi,
+} from "./spegnimento-programmato-section.js";
 import { allStates, clean, readClimateUnits, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CLIMATE_POWER__";
@@ -171,7 +175,17 @@ function armaLoSpegnimento(entita) {
     return;
   }
   if (!minuti || scadenzaDi(entita) != null) return;
-  programmaSpegnimento(entita, minuti);
+  /* L'esito non si butta. Chiedere il timer puo' fallire — il backend vecchio,
+   * il socket caduto — e qui a guardare non c'e' nessuno: uno ha premuto
+   * «accendi» e se n'e' andato. Buttarlo via voleva dire un condizionatore che
+   * si crede temporizzato e resta acceso tutta la notte, cioe' il contrario di
+   * quello che la durata configurata serve a fare. Lo stesso avviso della
+   * finestra del timer, per la stessa ragione. */
+  Promise.resolve(programmaSpegnimento(entita, minuti))
+    .then((messo) => {
+      if (!messo) avvisaCheNonSiPuo();
+    })
+    .catch(() => avvisaCheNonSiPuo());
 }
 
 /* I due pulsanti della plancia. Il runtime resta dov'e': gli si sostituisce la

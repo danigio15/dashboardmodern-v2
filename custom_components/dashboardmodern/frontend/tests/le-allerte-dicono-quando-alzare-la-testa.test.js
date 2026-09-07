@@ -282,7 +282,7 @@ test("la pagina, la scheda e la tessera sono presentate a tutti i posti che le c
   assert.match(await leggi("sections/config-uniformity-section.js"), /allerte: "allerte",/);
   assert.match(await leggi("sections/todo-editor-section.js"), /\["allerte", "⚠️"/);
   assert.match(await leggi("sections/home-widgets-section.js"), /key: "allerte",/);
-  assert.match(await leggi("sections/config-persistence-section.js"), /"cd_allerte"/);
+  assert.match(await leggi("core/chiavi-di-configurazione.js"), /"cd_allerte"/);
   /* Il disegno c'e': la tessera e la barra non restano col simbolo di ripiego. */
   assert.equal(haOggettoWidget("allerte"), true);
   assert.deepEqual(bricioleDellaSezione("allerte", EN), ["Earthquakes", "Weather", "Lightning"]);

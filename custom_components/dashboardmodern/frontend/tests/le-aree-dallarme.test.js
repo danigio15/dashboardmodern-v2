@@ -106,7 +106,7 @@ test("un'area ha sempre un nome", () => {
 
 test("l'elenco e la scelta viaggiano insieme", () => {
   const persistenza = readFileSync(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   assert.match(persistenza, new RegExp(`"${CHIAVE_CENTRALI}"`));

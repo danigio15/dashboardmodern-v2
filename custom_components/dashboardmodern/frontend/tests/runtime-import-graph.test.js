@@ -922,8 +922,18 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/macchine-e-rete-section.js` porta le due fasce e
   // `sections/macchine-editor-section.js` la scheda, che si attacca a «MiniPC»
   // invece di aprirne una tutta sua.
+  // 287 con l'elenco delle chiavi di configurazione
+  // (`core/chiavi-di-configurazione.js`), che pero' non e' roba nuova: e'
+  // `CONFIG_KEYS` spostato dov'e' leggibile da tutti. Stava dentro la
+  // persistenza, e il cancello degli stati — che deve sapere quali entita' la
+  // casa ha configurato — se n'era tenuto una copia scritta a mano. Una copia a
+  // mano di un elenco che cresce e' un elenco che resta indietro: era rimasta a
+  // ventun chiavi mentre le vere erano ottanta, e le entita' che stavano solo
+  // nelle mancanti non passavano piu' il cancello. Le loro tessere restavano
+  // ferme sull'ultimo valore. Adesso l'elenco e' uno: la persistenza lo
+  // ri-esporta com'era e al cancello lo passa chi lo installa.
   assert.ok(
-    relative.length <= 286,
+    relative.length <= 287,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

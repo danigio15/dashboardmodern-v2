@@ -365,8 +365,28 @@ function ridisegna() {
  * dire perderla chiudendo la scheda. Si salva subito, e la scheda si ridisegna
  * con quello che adesso c'e'.
  */
-function salvaAria(prossima) {
-  const tutto = configurazione();
+/* Quello che sta nelle caselle adesso, versato dentro la configurazione.
+ *
+ * Le sei fonti si compilano e si salvano col tasto, ma i gesti dell'aria
+ * salvano da soli e ridisegnano la scheda. Senza questo passaggio, chi aveva
+ * scritto il sensore dei fulmini e poi metteva una misura in copertina si
+ * ritrovava la casella dei fulmini vuota: il ridisegno la rifaceva da quello
+ * che c'era sul disco, e sul disco quel sensore non c'era ancora. Si legge
+ * dal modulo una volta sola, e vale per tutti e due i modi di salvare.
+ */
+function versaLeCaselle(dentro, body) {
+  const modulo = body || doc?.getElementById("ed-body");
+  if (!modulo) return dentro;
+  for (const campo of modulo.querySelectorAll("[data-dm-allerte-fonte][data-dm-allerte-campo]")) {
+    const fonte = clean(campo.dataset.dmAllerteFonte);
+    const nome = clean(campo.dataset.dmAllerteCampo);
+    if (dentro[fonte] && nome) dentro[fonte][nome] = clean(campo.value);
+  }
+  return dentro;
+}
+
+function salvaAria(prossima, body) {
+  const tutto = versaLeCaselle(configurazione(), body);
   tutto[CHIAVE_ARIA] = prossima;
   salva(tutto);
   ridisegna();
@@ -381,14 +401,14 @@ function ariaClick(event, body) {
     event.preventDefault();
     const entity = clean(body.querySelector("#dm-aria-principale")?.value);
     if (!entity.includes(".")) return true;
-    salvaAria({ ...scelte, principale: entity });
+    salvaAria({ ...scelte, principale: entity }, body);
     root.edToast?.(t("🍃 Misura messa in copertina", "🍃 Reading put on the cover"));
     return true;
   }
 
   if (event.target.closest("[data-dm-aria-scopri]")) {
     event.preventDefault();
-    salvaAria({ ...scelte, principale: "" });
+    salvaAria({ ...scelte, principale: "" }, body);
     return true;
   }
 
@@ -397,7 +417,7 @@ function ariaClick(event, body) {
     event.preventDefault();
     const entity = clean(body.querySelector("#dm-aria-escludi")?.value);
     if (!entity.includes(".")) return true;
-    salvaAria({ ...scelte, escluse: [...new Set([...scelte.escluse, entity])] });
+    salvaAria({ ...scelte, escluse: [...new Set([...scelte.escluse, entity])] }, body);
     root.edToast?.(t("🍃 Sensore tolto dai conti dell'aria", "🍃 Sensor dropped from the air"));
     return true;
   }
@@ -406,7 +426,10 @@ function ariaClick(event, body) {
   if (rimetti) {
     event.preventDefault();
     const entity = clean(rimetti.dataset.dmAriaRiprendi);
-    salvaAria({ ...scelte, escluse: scelte.escluse.filter((voce) => voce !== entity) });
+    salvaAria(
+      { ...scelte, escluse: scelte.escluse.filter((voce) => voce !== entity) },
+      body,
+    );
     return true;
   }
 
@@ -416,7 +439,7 @@ function ariaClick(event, body) {
     const entity = clean(body.querySelector("#dm-aria-aggiungi")?.value);
     const classe = clean(body.querySelector("#dm-aria-classe")?.value);
     if (!entity.includes(".") || !classe) return true;
-    salvaAria({ ...scelte, aggiunte: { ...scelte.aggiunte, [entity]: classe } });
+    salvaAria({ ...scelte, aggiunte: { ...scelte.aggiunte, [entity]: classe } }, body);
     root.edToast?.(t("🍃 Sensore dell'aria aggiunto", "🍃 Air sensor added"));
     return true;
   }
@@ -427,7 +450,7 @@ function ariaClick(event, body) {
     const entity = clean(togli.dataset.dmAriaTogli);
     const aggiunte = { ...scelte.aggiunte };
     delete aggiunte[entity];
-    salvaAria({ ...scelte, aggiunte });
+    salvaAria({ ...scelte, aggiunte }, body);
     return true;
   }
 
@@ -435,7 +458,7 @@ function ariaClick(event, body) {
     event.preventDefault();
     /* Rimettere le norme vuol dire cancellare le proprie, non riscriverle: cosi'
      * chi aggiorna la plancia si ritrova i confini nuovi se le norme cambiano. */
-    salvaAria({ ...scelte, soglie: {} });
+    salvaAria({ ...scelte, soglie: {} }, body);
     root.edToast?.(t("🍃 Confini rimessi alle norme", "🍃 Boundaries back to the norms"));
     return true;
   }
@@ -464,7 +487,7 @@ function ariaCambio(event) {
   const accettati = normalizzaAria(config2[CHIAVE_ARIA]).soglie[classe];
   for (const voce of caselle) voce.dataset.dmAriaRotta = accettati ? "no" : "si";
   if (!accettati) return;
-  const tutto = configurazione();
+  const tutto = versaLeCaselle(configurazione(), body);
   tutto[CHIAVE_ARIA] = { ...scelte, soglie: prossime };
   salva(tutto);
 }
@@ -482,13 +505,7 @@ function onClick(event) {
   if (ariaClick(event, body)) return;
   if (event.target.closest("[data-dm-allerte-save]")) {
     event.preventDefault();
-    const next = configurazione();
-    for (const campo of body.querySelectorAll("[data-dm-allerte-fonte][data-dm-allerte-campo]")) {
-      const fonte = clean(campo.dataset.dmAllerteFonte);
-      const nome = clean(campo.dataset.dmAllerteCampo);
-      if (next[fonte] && nome) next[fonte][nome] = clean(campo.value);
-    }
-    salva(next);
+    salva(versaLeCaselle(configurazione(), body));
     ridisegna();
     root.edToast?.(t("💾 Allerte salvate", "💾 Alerts saved"));
   }

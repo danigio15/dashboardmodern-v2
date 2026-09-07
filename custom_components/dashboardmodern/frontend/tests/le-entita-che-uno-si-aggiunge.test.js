@@ -203,7 +203,7 @@ test("le schede fra cui scegliere sono quelle che esistono, tranne la configuraz
 test("la scelta viaggia con la plancia, come le sezioni proprie", () => {
   /* Chi la fa dal tablet la vuole anche sul telefono: l'elenco è una scelta
    * sulla plancia, non su questo dispositivo. */
-  const persistenza = leggi("sections/config-persistence-section.js");
+  const persistenza = leggi("core/chiavi-di-configurazione.js");
   assert.equal(CHIAVE_ENTITA_MIE, "cd_entita_mie");
   assert.match(persistenza, /"cd_entita_mie",/);
   /* La revisione dev'essere ALMENO quella che ha aggiunto questa chiave, non

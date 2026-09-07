@@ -362,7 +362,7 @@ test("la tendina del motore scrive appena la si muove, e la casella viaggia (#32
 
   /* La casella e' della plancia, non del dispositivo: chi sceglie sul telefono
    * la ritrova sul computer. */
-  const persistenza = await leggi("sections/config-persistence-section.js");
+  const persistenza = await leggi("core/chiavi-di-configurazione.js");
   assert.match(persistenza, /"cd_ev_motore",/);
 });
 

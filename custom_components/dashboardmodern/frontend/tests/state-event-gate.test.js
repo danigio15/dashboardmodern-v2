@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { CONFIG_KEYS } from "../src/core/chiavi-di-configurazione.js";
 import { installStateEventGate } from "../src/core/state-event-gate.js";
 
 function harness(delay = 0, sections = null, storageValues = {}) {
@@ -63,7 +64,7 @@ function harness(delay = 0, sections = null, storageValues = {}) {
       return true;
     },
   };
-  installStateEventGate(broker, root, { delay });
+  installStateEventGate(broker, root, { delay, chiavi: CONFIG_KEYS });
   return { broker, events, states, root, sezioni, letture, storageValues };
 }
 

@@ -203,7 +203,7 @@ test("la tessera esiste, ha la sua chiave e il suo disegno", async () => {
   /* La chiave viaggia con la configurazione: senza, chi la compila su un
    * dispositivo non la ritrova sugli altri ne' nel backup. */
   const persistenza = await readFile(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   assert.match(persistenza, /"cd_scaldabagni"/);

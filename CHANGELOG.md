@@ -191,6 +191,52 @@ aggiornamento.
   L'icona si sceglie dal catalogo, e il catalogo scrive un nome (`mdi:…`):
   stampato com'è si legge il nome invece di vedersi il disegno.
 
+- **Lo spegnimento programmato non spegne roba che non è tua.**
+
+  Il timer del Clima lo fa scattare l'integrazione, e a quel punto Home
+  Assistant non ha più modo di rimetterci sopra le sue regole sulle entità. Il
+  comando che lo arma chiedeva solo «questa entità esiste?»: bastava poter
+  aprire una plancia per programmare lo spegnimento di qualunque cosa — una
+  luce, una presa, una serranda — anche dove la propria utenza non ha il
+  controllo. Adesso la domanda è quella di Home Assistant, fatta quando si
+  programma: chi amministra può sempre, gli altri solo dove hanno il controllo.
+
+- **La durata configurata dice se il timer non è partito.**
+
+  Accendendo un'unità che ha una durata scritta nella sua casella, il timer si
+  armava senza guardare com'era andata. Se Home Assistant non lo prendeva — il
+  socket caduto, l'integrazione da aggiornare — non lo diceva nessuno, e il
+  condizionatore restava acceso tutta la notte credendosi temporizzato: il
+  contrario esatto di quello che quella durata serve a fare. Adesso avvisa, con
+  le stesse parole della finestra del timer.
+
+- **Nella scheda Allerte, i gesti dell'aria non cancellano quello che stai
+  scrivendo.**
+
+  Le sei fonti si compilano e si salvano col tasto; i gesti dell'aria salvano
+  da soli e ridisegnano la scheda. Chi aveva scritto il sensore dei fulmini e
+  poi metteva una misura in copertina se la ritrovava vuota — il ridisegno
+  rifaceva la scheda da quello che c'era sul disco, e lì quel sensore non
+  c'era ancora.
+
+- **Le tessere delle sezioni nuove non restano più ferme.**
+
+  Il cancello che decide quali novità di Home Assistant meritano un ridisegno
+  si teneva una copia scritta a mano dell'elenco delle caselle di
+  configurazione, e quella copia era rimasta a ventun caselle mentre le vere
+  erano diventate ottanta. Le entità che stavano solo nelle caselle mancanti —
+  le prese, i lettori, gli animali, e da ultimo i varchi, le macchine del
+  server e la ventilazione — non passavano più: la loro tessera restava ferma
+  sull'ultimo valore finché non si muoveva qualcos'altro. L'elenco adesso è
+  uno solo.
+
+- **Rinominando la plancia si rinomina anche la dashboard di appoggio.**
+
+  Quella che permette di sceglierla come predefinita nasceva col nome del
+  giorno in cui la si era installata, e quel nome restava nel selettore delle
+  dashboard di Home Assistant per sempre: a ogni riavvio si riscriveva il
+  contenuto ma non la sua scheda. Vale lo stesso per «solo amministratori».
+
 ## 1.4.12
 
 Le cose viste sulla plancia vera dopo la 1.4.11, con le schermate davanti —

@@ -150,7 +150,7 @@ test("la pagina si spegne con la stessa chiave che la fascia scrive", () => {
 test("la configurazione viaggia, come tutte le altre", () => {
   /* Le sezioni le disegna l'utente: non viaggiare vorrebbe dire rifarle su
    * ogni dispositivo. */
-  const persistenza = leggi("sections/config-persistence-section.js");
+  const persistenza = leggi("core/chiavi-di-configurazione.js");
   assert.match(persistenza, /"cd_sezioni_mie"/);
 });
 

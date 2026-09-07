@@ -1,6 +1,7 @@
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import { CONFIG_KEYS } from "../core/chiavi-di-configurazione.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installGuscioQuandoServe } from "./il-guscio-disegna-quando-serve-section.js";
@@ -808,7 +809,11 @@ export function installSectionRuntime() {
     installEnergySignedSection();
     installEnergySection();
     installEnergyRefreshSection();
-    installStateEventGate(root.DashboardModernEnergyService?.broker, root);
+    /* Le chiavi vere, non una copia: e' l'elenco della persistenza, quello
+     * che dice cosa e' configurazione della casa. */
+    installStateEventGate(root.DashboardModernEnergyService?.broker, root, {
+      chiavi: CONFIG_KEYS,
+    });
     installEnergyLegacyGuardSection();
     installEnergyStabilitySection();
     installHomeBlocchiSection();

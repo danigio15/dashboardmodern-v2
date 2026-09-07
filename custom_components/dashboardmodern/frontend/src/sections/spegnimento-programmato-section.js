@@ -145,6 +145,28 @@ export async function programmaSpegnimento(entita, minuti) {
   }
 }
 
+/* Il backend nuovo puo' non esserci: una plancia aggiornata a meta', o il
+ * socket caduto. Si dice, invece di lasciar credere che il timer sia partito —
+ * un condizionatore che si crede temporizzato resta acceso tutta la notte.
+ *
+ * Sta qui, accanto alla chiamata che puo' fallire, perche' a chiedere lo
+ * spegnimento sono in due: la finestra del timer, dove uno lo sceglie a mano, e
+ * l'accensione di un'unita' che una durata ce l'ha gia' scritta. La seconda
+ * buttava via l'esito e non diceva niente, che e' il caso in cui restare al
+ * buio pesa di piu': nessuno ha appena guardato uno schermo per sapere com'e'
+ * andata.
+ */
+export function avvisaCheNonSiPuo() {
+  const parola = t(
+    "Home Assistant non ha preso lo spegnimento programmato: aggiorna l'integrazione e riprova.",
+    "Home Assistant did not take the scheduled switch-off: update the integration and try again.",
+  );
+  try {
+    if (typeof root.edToast === "function") root.edToast(parola);
+    else root.alert?.(parola);
+  } catch (_error) {}
+}
+
 export function installSpegnimentoProgrammatoSection() {
   if (!doc || state.installed) return;
   state.installed = true;

@@ -186,7 +186,7 @@ test("la tessera mostra l'autonomia solo quando serve davvero", async () => {
 
 test("la chiave nuova viaggia con la configurazione", async () => {
   const persistenza = await readFile(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   assert.match(persistenza, /"cd_ups"/);
