@@ -113,6 +113,129 @@ function normalizzaRiga(riga, indice) {
   };
 }
 
+/* ── il calendario di casa: due settimane, scritte a mano (#366) ──────── */
+
+/* «Vorrei che ci fosse la possibilita' di un menu a tendina per le 2 settimane
+ * cosi uno sceglie il rifiuto, senza dover creare o modificare il calendario
+ * di home assistant.»
+ *
+ * Quasi tutti i comuni girano su due settimane: lunedi' l'organico, martedi'
+ * la plastica, e la settimana dopo cambia. Chi ha quel foglietto sul frigo non
+ * ha nessun sensore da collegare — e finora la pagina dei rifiuti gli chiedeva
+ * di costruirsi un calendario in Home Assistant per scriverci dentro una cosa
+ * che sa a memoria.
+ *
+ * Quattordici caselle, una per giorno, ognuna con i materiali di quel giorno
+ * (che possono essere piu' d'uno: capita che escano insieme). Si ripetono a
+ * partire da una data, e quella data e' l'unica cosa che serve sapere per dire
+ * in che giorno del turno siamo oggi — anche fra tre anni. */
+export const GIORNI_DEL_TURNO = 14;
+
+/** Una data come `2026-09-07`, o `""` se non e' una data. */
+function dataScritta(valore) {
+  const data = leggiData(valore);
+  if (!data) return "";
+  const due = (numero) => String(numero).padStart(2, "0");
+  return `${data.getFullYear()}-${due(data.getMonth() + 1)}-${due(data.getDate())}`;
+}
+
+/**
+ * Il turno, ripulito.
+ *
+ * Torna sempre quattordici caselle, anche quando ne sono state scritte meno o
+ * di piu': chi disegna la griglia non deve difendersi da una configurazione
+ * storta. Senza una data d'inizio valida il turno non si puo' collocare nel
+ * tempo, e allora non c'e'.
+ */
+export function normalizzaTurno(stored) {
+  const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  const inizio = dataScritta(dato.inizio ?? dato.start);
+  const grezzi = Array.isArray(dato.giorni)
+    ? dato.giorni
+    : Array.isArray(dato.days)
+      ? dato.days
+      : [];
+  const giorni = [];
+  for (let indice = 0; indice < GIORNI_DEL_TURNO; indice += 1) {
+    const voce = grezzi[indice];
+    const elenco = Array.isArray(voce) ? voce : voce ? [voce] : [];
+    const visti = [];
+    for (const materiale of elenco) {
+      const chiave = pulito(materiale);
+      /* Solo i materiali che si conoscono: uno scritto a mano che non esiste
+       * diventerebbe «altro» e la casella direbbe il falso. */
+      if (!MATERIALI.some((noto) => noto.chiave === chiave)) continue;
+      if (!visti.includes(chiave)) visti.push(chiave);
+    }
+    giorni.push(visti);
+  }
+  return { inizio, giorni };
+}
+
+/** Se il turno dice qualcosa: una data d'inizio e almeno un materiale. */
+export function turnoConfigurato(turno) {
+  const dato = normalizzaTurno(turno);
+  return Boolean(dato.inizio) && dato.giorni.some((giorno) => giorno.length > 0);
+}
+
+/**
+ * In quale casella del turno cade quel giorno.
+ *
+ * Il resto della divisione si porta dentro il segno in JavaScript, e un giorno
+ * PRIMA dell'inizio darebbe una casella negativa: si rimette dentro. Cosi' il
+ * turno vale anche all'indietro — chi scrive come inizio il lunedi' della
+ * settimana prossima vede comunque il turno di oggi.
+ */
+export function caselleDelTurno(turno, quando) {
+  const dato = normalizzaTurno(turno);
+  if (!dato.inizio) return -1;
+  const partenza = leggiData(dato.inizio);
+  if (!partenza) return -1;
+  const distanza = giorniFra(partenza, quando);
+  return ((distanza % GIORNI_DEL_TURNO) + GIORNI_DEL_TURNO) % GIORNI_DEL_TURNO;
+}
+
+/**
+ * I ritiri che il turno annuncia da oggi in avanti.
+ *
+ * Si guardano quattordici giorni e non di piu': il turno si ripete, quindi
+ * oltre non c'e' niente di nuovo da dire — solo le stesse righe una seconda
+ * volta. Ogni materiale esce UNA volta, alla sua prima occasione: un elenco
+ * che ripete la plastica fra due giorni e fra nove non risponde alla domanda
+ * della sera, la annacqua.
+ */
+export function ritiriDalTurno(turno, adesso = Date.now()) {
+  const dato = normalizzaTurno(turno);
+  if (!turnoConfigurato(dato)) return [];
+  const oggi = inizioDelGiorno(adesso);
+  const visti = new Set();
+  const fuori = [];
+  for (let avanti = 0; avanti < GIORNI_DEL_TURNO; avanti += 1) {
+    const quando = new Date(oggi.getTime() + avanti * 86400000 + 12 * 3600000);
+    const casella = caselleDelTurno(dato, quando);
+    if (casella < 0) break;
+    for (const materiale of dato.giorni[casella]) {
+      if (visti.has(materiale)) continue;
+      visti.add(materiale);
+      const voce = materialeDiSerie(materiale);
+      fuori.push({
+        id: `turno-${materiale}`,
+        materiale: voce.chiave,
+        nome: "",
+        icona: voce.icona,
+        colore: voce.colore,
+        entity: "",
+        muto: false,
+        dalTurno: true,
+        data: quando,
+        giorni: avanti,
+        quando: quandoCodice(avanti),
+      });
+    }
+  }
+  return fuori.sort((a, b) => a.giorni - b.giorni);
+}
+
 /** La configurazione, ripulita. */
 export function normalizzaRifiuti(stored) {
   const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
@@ -120,7 +243,7 @@ export function normalizzaRifiuti(stored) {
     .map(normalizzaRiga)
     .filter(Boolean)
     .slice(0, MASSIMO_RIGHE);
-  return { calendario: pulito(dato.calendario), righe };
+  return { calendario: pulito(dato.calendario), righe, turno: normalizzaTurno(dato.turno) };
 }
 
 /** Le righe con un'entita' dietro: quelle che si possono leggere. */
@@ -131,7 +254,14 @@ export function righeConfigurate(config) {
 /** Se c'e' qualcosa da leggere: una riga con la sua entita', o il calendario. */
 export function rifiutiConfigurati(config) {
   const dato = normalizzaRifiuti(config);
-  return righeConfigurate(dato).length > 0 || dato.calendario.includes(".");
+  /* Il turno di casa conta quanto un sensore: chi ha scritto le due settimane
+   * ha configurato i rifiuti, e la pagina non deve continuare a chiedergli
+   * un'entita' che non avra' mai (#366). */
+  return (
+    righeConfigurate(dato).length > 0 ||
+    dato.calendario.includes(".") ||
+    turnoConfigurato(dato.turno)
+  );
 }
 
 /** Tutte le entita' nominate, senza doppioni. */
@@ -359,6 +489,20 @@ export function letturaRifiuti(
    * trovata» nascondeva il guasto proprio quando poteva far saltare un
    * ritiro vero. */
   const risponde = (stato) => Boolean(stato) && !STATI_MUTI.test(pulito(stato.state));
+  /* Il turno di casa (#366) da' righe come le da' un sensore: stesso materiale,
+   * stessa data, stessa parola. Chi disegna non deve sapere da dove viene una
+   * riga — e infatti non lo sa: la pagina, la tessera e il widget mostrano il
+   * turno senza una riga di codice in piu'.
+   *
+   * Un materiale che ha gia' il suo sensore non si ripete: il sensore sa la
+   * data vera, il turno la data prevista, e due righe dello stesso bidone con
+   * due date diverse sono peggio di una sola. */
+  const daiSensori = new Set(
+    dato.righe.filter((riga) => riga.entity.includes(".")).map((riga) => riga.materiale),
+  );
+  const dalTurno = ritiriDalTurno(dato.turno, adesso).filter(
+    (riga) => !daiSensori.has(riga.materiale),
+  );
   const righe = dato.righe
     .filter((riga) => riga.entity.includes("."))
     .map((riga) => {
@@ -380,6 +524,7 @@ export function letturaRifiuti(
         quando: quandoCodice(giorni),
       };
     })
+    .concat(dalTurno)
     .sort((a, b) => {
       if (a.giorni === null && b.giorni === null) return 0;
       if (a.giorni === null) return 1;

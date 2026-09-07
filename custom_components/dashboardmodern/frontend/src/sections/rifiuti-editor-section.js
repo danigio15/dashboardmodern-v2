@@ -15,14 +15,24 @@
  */
 import {
   CHIAVE_RIFIUTI,
+  GIORNI_DEL_TURNO,
   MASSIMO_RIGHE,
   MATERIALI,
+  caselleDelTurno,
+  leggiData,
   materialeDiSerie,
   normalizzaRifiuti,
+  normalizzaTurno,
+  turnoConfigurato,
 } from "../core/rifiuti-model.js";
+import {
+  apriIlFoglioDiScelta,
+  chiudiIlFoglioDiScelta,
+} from "./foglio-di-scelta-section.js";
 import { renderHomeWidgets } from "./home-widgets-section.js";
 import { nomeDelMateriale, renderRifiuti } from "./rifiuti-section.js";
 import {
+  activeLocale,
   clean,
   doc,
   esc,
@@ -112,6 +122,124 @@ function rigaMarkup(riga, indice) {
   </article>`;
 }
 
+/* ── il calendario di casa: due settimane scritte a mano (#366) ────────── */
+
+/* «Vorrei che ci fosse la possibilita' di un menu a tendina per le 2 settimane
+ * cosi uno sceglie il rifiuto, senza dover creare o modificare il calendario
+ * di home assistant.»
+ *
+ * Quattordici caselle, due file da sette come un calendario da parete: e' il
+ * modo in cui uno guarda il foglietto sul frigo. La tendina di ogni giorno e'
+ * il foglio di scelta che la plancia usa gia' altrove, coi materiali da
+ * accendere: un giorno puo' averne piu' d'uno, e capita.
+ */
+
+/** Il lunedi' di questa settimana, che e' l'inizio giusto per quasi tutti. */
+function lunediDiOggi() {
+  const oggi = new Date();
+  const indietro = (oggi.getDay() + 6) % 7;
+  const lunedi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() - indietro);
+  const due = (numero) => String(numero).padStart(2, "0");
+  return `${lunedi.getFullYear()}-${due(lunedi.getMonth() + 1)}-${due(lunedi.getDate())}`;
+}
+
+/* Il nome del giorno della casella, che dipende da quando comincia il turno:
+ * chi parte di mercoledi' deve leggere «mer» nella prima casella, non «lun». */
+function nomeDelGiorno(inizio, indice) {
+  const partenza = leggiData(inizio);
+  if (!partenza) return "";
+  const quando = new Date(partenza.getTime() + indice * 86400000 + 12 * 3600000);
+  try {
+    return quando.toLocaleDateString(activeLocale() || "it", { weekday: "short" });
+  } catch (_error) {
+    return "";
+  }
+}
+
+function bidoniDellaCasella(giorno) {
+  if (!giorno.length) return `<span class="dm-turno-vuoto">—</span>`;
+  return giorno
+    .map((materiale) => `<span>${esc(materialeDiSerie(materiale).icona)}</span>`)
+    .join("");
+}
+
+function turnoMarkup(dato) {
+  const turno = normalizzaTurno(dato.turno);
+  const inizio = turno.inizio || lunediDiOggi();
+  const oggi = turnoConfigurato(turno) ? caselleDelTurno(turno, Date.now()) : -1;
+  const caselle = turno.giorni
+    .map((giorno, indice) => {
+      const titolo = giorno.length
+        ? giorno.map((materiale) => nomeDelMateriale(materiale)).join(" · ")
+        : t("Nessun ritiro", "No collection");
+      return `${indice === 0 || indice === 7 ? `<div class="dm-turno-sett">${esc(indice === 0 ? t("Settimana 1", "Week 1") : t("Settimana 2", "Week 2"))}</div>` : ""}
+      <button type="button" class="dm-turno-giorno" data-dm-turno-giorno="${indice}"
+        ${indice === oggi ? 'data-oggi="true"' : ""} title="${esc(titolo)}" aria-label="${esc(titolo)}">
+        <span class="dm-turno-gg">${esc(nomeDelGiorno(inizio, indice))}</span>
+        <span class="dm-turno-bidoni">${bidoniDellaCasella(giorno)}</span>
+      </button>`;
+    })
+    .join("");
+  return `<div class="dm-turno">
+    <div class="ed-sec-title">🗓️ ${esc(t("Il calendario di casa", "Your own rota"))}</div>
+    <div class="ed-intro">${esc(
+      t(
+        "Due settimane che si ripetono, scritte a mano: tocca un giorno e scegli cosa esce. Non serve nessun sensore e nessun calendario di Home Assistant — la pagina e la tessera in Home leggono questo esattamente come leggerebbero un'integrazione. Un materiale che ha già il suo sensore qui sopra non si ripete: comanda il sensore.",
+        "Two weeks that repeat, written by hand: tap a day and pick what goes out. No sensor and no Home Assistant calendar needed — the page and the Home tile read this exactly as they would read an integration. A material that already has its own sensor above is not repeated: the sensor wins.",
+      ),
+    )}</div>
+    <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("La prima settimana comincia il", "The first week starts on"))}</span>
+      <input class="ed-input" type="date" data-dm-turno-inizio value="${esc(inizio)}"></label>
+    <div class="dm-turno-griglia">${caselle}</div>
+  </div>`;
+}
+
+/* La tendina di un giorno: i materiali da accendere, uno o piu'. */
+function apriLaTendinaDelGiorno(indice) {
+  const dato = bozza();
+  const turno = normalizzaTurno(dato.turno);
+  const scelti = new Set(turno.giorni[indice] || []);
+  const corpo = apriIlFoglioDiScelta({
+    titolo: t("Cosa esce questo giorno", "What goes out this day"),
+    id: "dm-rifiuti-turno",
+  });
+  if (!corpo) return;
+  corpo.className = "dm-foglio-scelta-corpo dm-turno-menu";
+  for (const materiale of MATERIALI) {
+    const riga = doc.createElement("button");
+    riga.type = "button";
+    riga.className = "dm-turno-voce";
+    riga.dataset.dmTurnoVoce = materiale.chiave;
+    riga.setAttribute("aria-pressed", scelti.has(materiale.chiave) ? "true" : "false");
+    riga.innerHTML = `<span aria-hidden="true">${esc(materiale.icona)}</span><span>${esc(nomeDelMateriale(materiale.chiave))}</span>`;
+    riga.addEventListener("click", () => {
+      const acceso = riga.getAttribute("aria-pressed") === "true";
+      riga.setAttribute("aria-pressed", acceso ? "false" : "true");
+      if (acceso) scelti.delete(materiale.chiave);
+      else scelti.add(materiale.chiave);
+    });
+    corpo.append(riga);
+  }
+  const fatto = doc.createElement("button");
+  fatto.type = "button";
+  fatto.className = "dm-turno-fatto";
+  fatto.textContent = t("Fatto", "Done");
+  fatto.addEventListener("click", () => {
+    const giorni = turno.giorni.map((giorno, dove) =>
+      dove === indice ? [...scelti] : giorno.slice(),
+    );
+    state.bozza = { ...bozza(), turno: { inizio: inizioScritto() || turno.inizio, giorni } };
+    chiudiIlFoglioDiScelta();
+    ridisegna();
+  });
+  corpo.append(fatto);
+}
+
+/** La data d'inizio come sta nel campo adesso. */
+function inizioScritto() {
+  return clean(doc?.querySelector?.("[data-dm-turno-inizio]")?.value);
+}
+
 function fasciaMarkup() {
   try {
     /* La chiave scritta per esteso: e' quella che la prova della barra legge
@@ -154,6 +282,7 @@ function corpoMarkup() {
           "If the collections live in a single calendar, the page shows the next event with the material guessed from its name.",
         ),
       )}</small></label>
+    ${turnoMarkup(dato)}
     <button type="button" class="ed-save-btn" data-dm-rifiuti-save>💾 ${esc(t("Salva rifiuti", "Save waste"))}</button>
   </div></div>`;
 }
@@ -200,12 +329,29 @@ function raccogli(body) {
           );
     return { ...base, materiale, nome: leggi("nome"), entity: leggi("entity") };
   });
-  return { calendario: clean(body.querySelector("[data-dm-rifiuti-calendario]")?.value), righe };
+  /* Il turno vive nella bozza — le caselle si toccano, non si scrivono — e da
+   * qui si prende solo la data d'inizio, che invece e' un campo. */
+  const turno = normalizzaTurno(dato.turno);
+  return {
+    calendario: clean(body.querySelector("[data-dm-rifiuti-calendario]")?.value),
+    righe,
+    turno: { ...turno, inizio: inizioScritto() || turno.inizio },
+  };
 }
 
 function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || schedaAttiva() !== RIFIUTI_EDITOR_TAB || !body.contains(event.target)) return;
+  const giorno = event.target.closest("[data-dm-turno-giorno]");
+  if (giorno) {
+    event.preventDefault();
+    /* Prima di aprire si tiene quello che c'e' scritto nei campi: la tendina
+     * ridisegna la scheda, e senza questo un nome appena battuto in una riga
+     * qui sopra se ne andava. */
+    state.bozza = raccogli(body);
+    apriLaTendinaDelGiorno(Number(giorno.dataset.dmTurnoGiorno) || 0);
+    return;
+  }
   const pick = event.target.closest("[data-dm-rifiuti-pick]");
   if (pick) {
     event.preventDefault();
@@ -247,6 +393,14 @@ function onClick(event) {
 function onChange(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || schedaAttiva() !== RIFIUTI_EDITOR_TAB || !body.contains(event.target)) return;
+  /* Cambiata la data d'inizio cambiano i nomi dei giorni: chi parte di
+   * mercoledi' deve leggere «mer» nella prima casella, non «lun». Si ridisegna
+   * tenendo quello che c'e' scritto nelle righe qui sopra. */
+  if (event.target.closest("[data-dm-turno-inizio]")) {
+    state.bozza = raccogli(body);
+    ridisegna();
+    return;
+  }
   const select = event.target.closest('[data-dm-rifiuti-campo="materiale"]');
   if (!select) return;
   const riga = select.closest("[data-dm-rifiuti-riga]");
@@ -285,6 +439,20 @@ function installStyles() {
         background:color-mix(in srgb,var(--dm-bidone,#0ea5e9) 18%,transparent)}
       #ed-body .dm-rifiuti-ed-materiale{flex:1 1 auto;min-width:0;margin:0}
       #ed-body .dm-rifiuti-ed-aggiungi{width:100%;margin:6px 0 12px}
+      /* Il calendario di casa (#366): due file da sette, come un calendario da
+       * parete — e' il modo in cui uno guarda il foglietto sul frigo. */
+      #ed-body .dm-turno{margin:14px 0 4px}
+      #ed-body .dm-turno-griglia{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:10px}
+      #ed-body .dm-turno-sett{grid-column:1/-1;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--secondary-text-color,#64748b);margin:4px 0 0}
+      #ed-body .dm-turno-giorno{display:grid;gap:3px;justify-items:center;padding:9px 2px;border:1px solid var(--divider-color,#dbe4ee);border-radius:12px;background:var(--card-background-color,#fff);cursor:pointer;min-height:56px}
+      #ed-body .dm-turno-giorno[data-oggi="true"]{border-color:var(--primary-color,#0ea5e9);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary-color,#0ea5e9) 22%,transparent)}
+      #ed-body .dm-turno-gg{font-size:10.5px;font-weight:800;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
+      #ed-body .dm-turno-bidoni{display:flex;flex-wrap:wrap;justify-content:center;gap:1px;font-size:15px;line-height:1.1}
+      #ed-body .dm-turno-vuoto{color:var(--secondary-text-color,#94a3b8);font-size:13px}
+      .dm-turno-menu{display:grid;gap:7px}
+      .dm-turno-voce{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--divider-color,#dbe4ee);border-radius:13px;background:var(--card-background-color,#fff);color:var(--text,#0f172a);font-size:14px;font-weight:750;text-align:left;cursor:pointer}
+      .dm-turno-voce[aria-pressed="true"]{border-color:transparent;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff}
+      .dm-turno-fatto{margin-top:4px;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:14px;font-weight:850;cursor:pointer}
     `,
   );
 }
