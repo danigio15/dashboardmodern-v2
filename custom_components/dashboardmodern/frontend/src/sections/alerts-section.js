@@ -392,6 +392,91 @@ function clearAlertsAfterReset() {
   }
 }
 
+/* ── il disegno dell'icona dove lo scrive il guscio ───────────────────────
+ *
+ * «Alcune icone negli avvisi personalizzati non vengono visualizzate
+ * correttamente, sia in config che nel widget» (#381).
+ *
+ * Gli avvisi che uno si scrive — «🔔 Quadro Avvisi» — li disegna il guscio, e
+ * dell'icona stampa quello che c'e' scritto nella riga. Finche' quella cosa
+ * era un'emoji andava bene. Ma l'icona adesso si sceglie dal catalogo di
+ * casa, e il catalogo scrive un NOME (`mdi:water-alert`): stampato com'e' si
+ * legge il nome, non si vede il disegno. Succedeva in tre posti — la tessera
+ * in Home, l'elenco in configurazione e la testata della finestra — perche'
+ * sono tre punti dello stesso guscio che fanno la stessa cosa.
+ *
+ * A disegnare un nome mdi c'e' il motore, che e' anche quello che ha riempito
+ * il catalogo da cui la scelta viene. Qui si ripassa dove il guscio ha appena
+ * scritto e si mette il disegno al posto del nome. Il segno sul nodo dice che
+ * quella casella e' gia' a posto: senza, ogni ridisegno rifarebbe il lavoro. */
+const CASELLE_DELL_ICONA = [
+  "#glance-custom-wrap .g-icon-wrap",
+  "#editor-modal .ed-acc .ed-row>div:first-child",
+  "#details-modal .d-icon",
+];
+
+/* E dove il nome mdi non sta da solo: il guscio ci attacca subito dopo il nome
+ * dell'avviso, nella riga della configurazione e nella testata della finestra. */
+const NOMI_CON_L_ICONA_IN_TESTA = ["#editor-modal .ed-acc .ed-row .ed-row-new", "#details-title"];
+
+const NOME_MDI = /^mdi:[a-z0-9-]+$/i;
+
+function disegnoDelToken(token) {
+  return root.DashboardModernIconEngine?.markup?.("action", token, { size: 22 }) || "";
+}
+
+/* Il nome mdi da solo dentro una casella: si sostituisce col disegno. */
+function disegnaIlNomeMdi(casella) {
+  const token = clean(casella?.textContent);
+  if (!NOME_MDI.test(token)) return false;
+  const disegnata = disegnoDelToken(token);
+  if (!disegnata) return false;
+  casella.innerHTML = disegnata;
+  return true;
+}
+
+/* Il nome mdi in testa a una riga: si stacca la prima parola e si mette il
+ * disegno al suo posto, senza toccare il resto — che e' il nome dell'avviso,
+ * la condizione, il conto delle entita'. Dopo il primo giro il primo figlio
+ * non e' piu' testo, e la riga non si ridisegna a vuoto. */
+function disegnaIlNomeInTesta(riga) {
+  const primo = riga?.firstChild;
+  if (!primo || primo.nodeType !== 3) return false;
+  const testo = primo.nodeValue || "";
+  const trovato = /^\s*(mdi:[a-z0-9-]+)/i.exec(testo);
+  if (!trovato) return false;
+  const disegnata = disegnoDelToken(trovato[1]);
+  if (!disegnata) return false;
+  const casella = doc.createElement("span");
+  casella.className = "dm-avviso-icona";
+  casella.innerHTML = disegnata;
+  primo.nodeValue = testo.slice(trovato[0].length);
+  riga.insertBefore(casella, primo);
+  return true;
+}
+
+/* Due passaggi, non uno.
+ *
+ * L'elenco della configurazione il guscio lo riscrive piu' volte di seguito —
+ * la scheda si monta, poi si rimonta con le decorazioni — e il disegno messo
+ * al primo giro se ne va col ridisegno che viene dopo. Non c'e' un momento
+ * «finito» da aspettare: si ripassa subito e si ripassa dopo, che e' lo stesso
+ * modo in cui questa sezione rimette d'accordo le sue due liste. */
+export function ridisegnaLeIconeDegliAvvisi() {
+  disegnaLeIconeDegliAvvisi();
+  for (const attesa of [0, 350]) root.setTimeout?.(disegnaLeIconeDegliAvvisi, attesa);
+}
+
+export function disegnaLeIconeDegliAvvisi() {
+  if (!doc) return 0;
+  let quante = 0;
+  for (const dove of CASELLE_DELL_ICONA)
+    for (const casella of doc.querySelectorAll(dove)) if (disegnaIlNomeMdi(casella)) quante += 1;
+  for (const dove of NOMI_CON_L_ICONA_IN_TESTA)
+    for (const riga of doc.querySelectorAll(dove)) if (disegnaIlNomeInTesta(riga)) quante += 1;
+  return quante;
+}
+
 function installStyles() {
   installStyle(
     "dm-alerts-section-style",
@@ -412,8 +497,16 @@ export function installAlertsSection() {
    * ritrovarla in Home senza passare da nessuna scheda. */
   riparaAggiunteTolte();
   for (const attesa of [400, 1500]) root.setTimeout?.(riparaAggiunteTolte, attesa);
-  onEditorRedraw("__dmAlertsSection", normalizeAlertsEditor);
+  onEditorRedraw("__dmAlertsSection", () => {
+    normalizeAlertsEditor();
+    ridisegnaLeIconeDegliAvvisi();
+  });
   normalizeAlertsEditor();
+  /* Le tre viste che stampano l'icona come testo: si ripassa subito dopo che
+   * il guscio le ha scritte. */
+  for (const nome of ["cdRenderCustomAvvisi", "apriAvvisoCustom", "updateAvvisoCustom"])
+    wrapFunction(nome, "__dmAlertsIcone", ridisegnaLeIconeDegliAvvisi);
+  ridisegnaLeIconeDegliAvvisi();
   if (!state.listeners) {
     state.listeners = true;
     doc.addEventListener(

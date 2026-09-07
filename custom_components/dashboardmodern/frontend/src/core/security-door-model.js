@@ -56,17 +56,25 @@ export function normalizeSecurityDoors(values) {
     .filter((item) => isDoorEntity(item.entity));
 }
 
-/* Una presa non e' una porta, anche se il dominio (switch.*) e' lo stesso.
+/* Lo stesso rele' puo' essere una presa E un'apertura, e lo decide chi vive
+ * in quella casa.
  *
- * Dal campo: entita' delle Prese comparse fra le aperture della Sicurezza —
- * la configurazione condivisa se le porta su ogni dispositivo. Chi disegna
- * passa qui l'insieme delle entita' occupate altrove (le prese) e le porte
- * che le usano si scartano. */
-export function doorsSenzaOccupate(doors, occupate) {
-  if (!Array.isArray(doors)) return [];
-  if (!(occupate instanceof Set) || !occupate.size) return doors;
-  return doors.filter((door) => !occupate.has(clean(door?.entity).toLowerCase()));
-}
+ * Qui c'era una regola che scartava dalle aperture ogni entita' che comparisse
+ * anche fra le Prese, e l'editor con quella regola RIPULIVA la lista salvata.
+ * Nasceva per un macello di prese finite fra le aperture, ma la lista delle
+ * aperture la scrive solo l'editor delle aperture: nessun altro ci mette
+ * niente, quindi ogni riga li' dentro l'ha battuta qualcuno.
+ *
+ * Il risultato, dal campo (#378): «ho un cancelletto che si apre tramite un
+ * sonoff mini d, ma quando cerco di inserire l'entita' switch.sonoff_...
+ * non viene salvata». Ed era vero: la riga si salvava e il ridisegno
+ * successivo la cancellava in silenzio, perche' quello stesso interruttore
+ * stava anche fra le prese. Un cancello mosso da un rele' e' esattamente
+ * questo — la stessa entita', due mestieri — e la plancia non e' chi decide
+ * che di mestieri se ne fa uno solo.
+ *
+ * Cancellare in silenzio quello che uno ha configurato e' il peggiore dei
+ * modi di avere ragione. */
 
 /* Il bit con cui una serratura dichiara di sapersi APRIRE, oltre che
  * sbloccare: e' la differenza fra il chiavistello e il pulsante del portone. */

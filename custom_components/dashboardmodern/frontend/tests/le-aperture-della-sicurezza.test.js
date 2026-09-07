@@ -15,7 +15,6 @@ import {
   LOCK_SUPPORT_OPEN,
   doorOpenCall,
   doorPinMatches,
-  doorsSenzaOccupate,
   isDoorEntity,
   normalizeDoorPin,
   normalizeSecurityDoors,
@@ -132,19 +131,37 @@ test("l'editor valida entita' e PIN prima di salvare", () => {
   assert.match(editor, /cd_security_doors/);
 });
 
-/* Le entita' delle Prese comparse fra le aperture (dal campo): una presa non
- * e' una porta, e la lista si disegna senza. */
-test("le entita' occupate dalle prese non sono porte", () => {
+/* «Ho un cancelletto che si apre tramite un sonoff mini d, ma quando cerco di
+ * inserire l'entita' switch.sonoff_... non viene salvata» (#378).
+ *
+ * Si salvava: era il ridisegno subito dopo a cancellarla. Chi leggeva scartava
+ * dalle aperture ogni entita' che comparisse anche fra le Prese, e l'editor con
+ * quella regola riscriveva la lista salvata senza. Un rele' che muove un
+ * cancello ed e' anche una presa e' esattamente il caso normale, non un
+ * errore da correggere alle spalle di chi l'ha configurato. */
+test("un rele' che e' anche una presa resta un'apertura", () => {
   const doors = [
     { id: "d1", name: "Portone", entity: "switch.portone", icon: "🚪", pin: "" },
-    { id: "d2", name: "", entity: "switch.lavatrice", icon: "🚪", pin: "" },
-    { id: "d3", name: "", entity: "", icon: "🚪", pin: "" },
+    { id: "d2", name: "Cancelletto", entity: "switch.sonoff_100253b430_1", icon: "🚪", pin: "" },
   ];
-  const pulite = doorsSenzaOccupate(doors, new Set(["switch.lavatrice"]));
+  const salvate = normalizeSecurityDoors(doors);
   assert.deepEqual(
-    pulite.map((door) => door.id),
-    ["d1", "d3"],
+    salvate.map((door) => door.entity),
+    ["switch.portone", "switch.sonoff_100253b430_1"],
   );
-  /* Senza occupate la lista passa intatta, righe vuote comprese. */
-  assert.equal(doorsSenzaOccupate(doors, new Set()).length, 3);
+});
+
+/* E nessuno, leggendo, ha piu' il potere di cancellare una riga configurata. */
+test("nessuno scarta le aperture guardando le altre sezioni", () => {
+  const sezione = leggi("sections/security-doors-section.js");
+  const editor = leggi("sections/security-doors-editor-section.js");
+  const modello = leggi("core/security-door-model.js");
+  for (const [nome, testo] of [
+    ["la sezione", sezione],
+    ["l'editor", editor],
+    ["il modello", modello],
+  ]) {
+    assert.ok(!/doorsSenzaOccupate/.test(testo), `${nome} scarta ancora per le prese`);
+    assert.ok(!/entitaDellePrese/.test(testo), `${nome} guarda ancora le prese`);
+  }
 });

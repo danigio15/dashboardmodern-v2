@@ -188,20 +188,27 @@ test("the reading is projected onto the card so the sheet can draw it", async ()
   }
 });
 
-/* L'umidita' non si inventa (#242).
+/* L'umidita' non si inventa (#242, e di nuovo #379).
  *
  * Senza entita' scelta la gemella si indovina sostituendo _temperature con
  * _humidity nell'id. Su un id senza «_temperature» il replace restituiva lo
  * STESSO id: la card mostrava la temperatura due volte, la seconda col «%»
- * addosso. Ora l'indovinello vale solo se il nome cambia davvero, e senza
- * entita' la casella dell'umidita' non si costruisce proprio. */
+ * addosso. L'indovinello vale solo se il nome cambia davvero, e senza entita'
+ * la casella dell'umidita' non si costruisce proprio.
+ *
+ * La guardia adesso sta in `core/room-overview.js`, una volta per tutti: la
+ * stessa riga senza guardia viveva in altri tre posti, ed e' da uno di quelli
+ * — la finestra del widget — che la segnalazione e' tornata. */
 test("l'umidita' non ricade sull'entita' della temperatura", async () => {
   const { readFile } = await import("node:fs/promises");
+  const { humidityEntry } = await import("../src/core/room-overview.js");
+  assert.equal(humidityEntry({ temp: "sensor.camera_temp" }), "");
+  assert.equal(humidityEntry({ temp: "sensor.camera_temperature" }), "sensor.camera_humidity");
   const source = await readFile(
     new URL("../src/sections/temperature-section.js", import.meta.url),
     "utf8",
   );
-  assert.match(source, /indovinata !== temp \? indovinata : ""/);
+  assert.match(source, /humidityEntry/);
   assert.doesNotMatch(source, /entry\?\.hum \|\| temp\.replace/);
   const costruzione = source.slice(source.indexOf("function createTemperatureCard"));
   assert.match(costruzione, /if \(humidity\) \{[\s\S]{0,120}humidityBox/);

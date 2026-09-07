@@ -29,7 +29,8 @@ import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceModelById, buildCardMarkup, cardLabels } from "./appliance-showcase-section.js";
 import { RIF_CENTRALE } from "../core/alarm-panel.js";
 import { alarmActiveButton, alarmModeButtons } from "./security-showcase-section.js";
-import { oggettoWidget } from "../core/oggetti-widget.js";
+import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
+import { iconGlyphMarkup } from "./icon-engine-section.js";
 import {
   bricioleDellaSezione,
   fraseDellaTessera,
@@ -157,6 +158,7 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { doorOpenCall } from "../core/security-door-model.js";
+import { humidityEntry } from "../core/room-overview.js";
 import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import {
@@ -1325,10 +1327,11 @@ function temperatureModel(states) {
     .filter((room) => clean(room?.temp) && widgetIncludes(room.temp, fuori))
     .map((room) => {
       const temperature = numOf(states, room.temp);
-      const humidity = numOf(
-        states,
-        clean(room.hum) || clean(room.temp).replace("_temperature", "_humidity"),
-      );
+      /* La gemella per nome si prova, ma solo se il nome cambia davvero:
+       * senza quella guardia un id senza «_temperature» tornava identico e la
+       * finestra stampava la temperatura una seconda volta col «%» addosso —
+       * «una stanza mostra l'umidita' senza avere nessun sensore» (#379). */
+      const humidity = numOf(states, humidityEntry(room));
       /* L'entita' resta sulla riga: senza, la finestra non sa a chi chiedere
        * lo storico, e la Temperatura non poteva mai avere la sua analisi nel
        * tempo. */
@@ -4066,6 +4069,23 @@ function unitaSimbolo(unita) {
   return /^[°%]/.test(String(unita || ""));
 }
 
+/* La faccia di una tessera.
+ *
+ * Le tessere di sezione hanno il loro disegno di casa, e si chiamano per
+ * chiave. Un avviso personalizzato una chiave di casa non ce l'ha — e' una
+ * riga che l'utente si e' scritto — e li' si stampava il RIPIEGO cosi' com'e'
+ * scritto: un'emoji andava bene, ma un'icona scelta dal catalogo e' un nome
+ * mdi, e sulla tessera si leggeva «mdi:water-alert» invece di vedersi un
+ * disegno. Dal campo (#381): «alcune icone negli avvisi personalizzati non
+ * vengono visualizzate correttamente, sia in config che nel widget».
+ *
+ * Chi sa disegnare un nome mdi e' il motore delle icone, che e' anche quello
+ * che ha riempito il catalogo da cui la scelta viene. */
+function facciaDellaTessera(widget) {
+  if (haOggettoWidget(widget?.key)) return oggettoWidget(widget.key);
+  return iconGlyphMarkup("action", widget?.icon, { size: 22 });
+}
+
 function tileMarkup(widget, index = 0) {
   const open = state.expanded === widget.key;
   const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
@@ -4075,7 +4095,7 @@ function tileMarkup(widget, index = 0) {
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
       <span class="dm-tile-alone" aria-hidden="true"></span>
       <span class="dm-tile-cima">
-        <span class="dm-tile-chip" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
+        <span class="dm-tile-chip" aria-hidden="true">${facciaDellaTessera(widget)}</span>
         <span class="dm-tile-label" data-dm-tile-label>${esc(widget.label)}</span>
       </span>
       <span class="dm-tile-val"><b class="dm-tile-value" data-dm-tile-value data-dm-len="${misuraValore(widget.value)}">${esc(numero)}</b><i class="dm-tile-unit" data-dm-tile-unit data-simbolo="${unitaSimbolo(unita)}">${esc(unita)}</i></span>
@@ -5688,7 +5708,7 @@ function detailMarkup(widget, states) {
       style="--dm-widget-accent:${widget.accent}">
       <header class="dm-w-head">
         <button type="button" class="dm-w-close" data-dm-widget-close aria-label="${esc(t("Chiudi", "Close"))}"><span aria-hidden="true">✕</span> ${esc(t("Chiudi", "Close"))}</button>
-        <span class="dm-w-head-ic" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
+        <span class="dm-w-head-ic" aria-hidden="true">${facciaDellaTessera(widget)}</span>
         <strong data-dm-titolo>${esc(widget.label)}</strong>
         <small data-dm-detail-caption>${esc(bricioleDelWidget(widget))}</small>
       </header>

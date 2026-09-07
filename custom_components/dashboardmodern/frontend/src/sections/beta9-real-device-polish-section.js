@@ -324,8 +324,15 @@ function classifyAlert(card) {
 function glyphOf(icon) {
   /* La pastiglia della tessera adesso porta un oggetto disegnato al posto di
    * un simbolo scritto: non c'e' niente da avvolgere, e a svuotarla come si
-   * faceva col testo il disegno sparirebbe. Il movimento se lo prende lui. */
-  const oggetto = icon.querySelector(":scope > .dm-oggetto");
+   * faceva col testo il disegno sparirebbe. Il movimento se lo prende lui.
+   *
+   * Vale per tutti e due i modi in cui una faccia puo' essere disegnata:
+   * l'oggetto della sezione e il disegno del catalogo delle icone, che e'
+   * quello che porta la faccia scelta a mano su un avviso personalizzato
+   * (#381). Senza la seconda meta', la pastiglia veniva svuotata e restava
+   * un avviso senza faccia — che e' il modo peggiore di correggere un nome
+   * mdi stampato come testo. */
+  const oggetto = icon.querySelector(":scope > .dm-oggetto, :scope > .dm-icon-engine-glyph");
   if (oggetto) return oggetto;
   const existing = icon.querySelector(":scope > .dm-alert-glyph");
   if (existing && icon.childNodes.length === 1) return existing;

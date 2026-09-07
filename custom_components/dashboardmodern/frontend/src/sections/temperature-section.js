@@ -1,6 +1,6 @@
 // DM-FIX-20260815A
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
-import { temperatureEntries } from "../core/room-overview.js";
+import { humidityEntry, temperatureEntries } from "../core/room-overview.js";
 import {
   allStates,
   applyTemperatureReading,
@@ -95,18 +95,10 @@ function safeId(entity) {
   return clean(entity).replace(/[.\-]/g, "_");
 }
 
-function entryHumidity(entry) {
-  const scelta = clean(entry?.hum);
-  if (scelta) return scelta;
-  /* Senza entita' scelta si prova la gemella per nome. Ma solo se il nome
-   * cambia davvero: su un id senza «_temperature» il replace restituiva lo
-   * STESSO id, e la card mostrava la temperatura una seconda volta col «%»
-   * addosso (#242). Un'umidita' non configurata e non indovinabile e' vuota,
-   * e la card non ne parla. */
-  const temp = clean(entry?.temp);
-  const indovinata = temp.replace("_temperature", "_humidity");
-  return indovinata !== temp ? indovinata : "";
-}
+/* La domanda «qual e' l'umidita' di questa sonda?» si fa una volta sola, e
+ * sta in `core/room-overview.js`: la guardia che qui era gia' giusta (#242)
+ * mancava negli altri tre posti che se la ponevano. */
+const entryHumidity = (entry) => humidityEntry(entry);
 
 /* Il titolo della card: la stanza, e — quando le sonde sono piu' d'una — quale
  * sonda, perche' due card entrambe «Salone» non si distinguono. */

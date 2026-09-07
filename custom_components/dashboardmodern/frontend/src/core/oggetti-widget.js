@@ -357,6 +357,28 @@ const OGGETTI = Object.freeze({
       <path d="M17.4 23.9h4.2l-1.5-2.7"/>
     </g>`,
 
+  /* La ventilazione meccanica: la macchina appesa, e i due flussi che si
+   * incrociano dentro.
+   *
+   * E' quello che la VMC fa e che nessun'altra tessera racconta: l'aria che
+   * esce calda scalda quella che entra fredda, e le due non si mescolano mai.
+   * Il disegno dice la stessa cosa della fascia nella sezione Clima — due
+   * frecce incrociate, una tiepida e una fresca — cosi' chi vede la tessera
+   * riconosce la sezione prima di aprirla. */
+  vmc: `<defs>
+      <linearGradient id="dmoVmcS" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e2e8f0"/><stop offset=".55" stop-color="#94a3b8"/>
+        <stop offset="1" stop-color="#475569"/></linearGradient></defs>
+    ${OMBRA(16, 28, 8.6)}
+    <rect x="4.6" y="7" width="22.8" height="18" rx="3.4" fill="url(#dmoVmcS)"/>
+    <rect x="6.8" y="9.2" width="18.4" height="13.6" rx="2.4" fill="#0f172a" fill-opacity=".16"/>
+    <g fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 11.4h9.6l-2.6-2.4M17.6 11.4l-2.6 2.4" stroke="#fb923c"/>
+      <path d="M24 20.6h-9.6l2.6 2.4M14.4 20.6l2.6-2.4" stroke="#38bdf8"/>
+    </g>
+    <path d="M9.4 22.6 22.6 9.6" stroke="#fff" stroke-opacity=".45" stroke-width="1.4" stroke-linecap="round"/>
+    <rect x="10.6" y="25" width="10.8" height="2.6" rx="1.3" fill="#334155"/>`,
+
   ups: `<defs>
       <linearGradient id="dmoUpsS" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#64748b"/><stop offset=".45" stop-color="#334155"/>

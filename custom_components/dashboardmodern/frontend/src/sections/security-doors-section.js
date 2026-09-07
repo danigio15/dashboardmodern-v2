@@ -13,10 +13,8 @@
 import {
   doorOpenCall,
   doorPinMatches,
-  doorsSenzaOccupate,
   normalizeSecurityDoors,
 } from "../core/security-door-model.js";
-import { normalizzaPrese } from "../core/prese-model.js";
 import { registraPaginaARuntime, renderPageMastheads } from "./page-masthead-section.js";
 import {
   activeLocale,
@@ -64,23 +62,8 @@ const state = (root[KEY] ||= {
   busy: new Set(),
 });
 
-/* Le entita' gia' occupate dalle Prese: una presa non e' una porta.
- * La lista si NORMALIZZA prima di leggerla: le voci storiche portano
- * l'entita' anche come `entita` o `entity_id`, e lette grezze quelle prese
- * restavano fra le porte. */
-export function entitaDellePrese() {
-  return new Set(
-    normalizzaPrese(readJson("cd_prese", []))
-      .map((presa) => clean(presa.entity).toLowerCase())
-      .filter(Boolean),
-  );
-}
-
 export function configuredSecurityDoors() {
-  return doorsSenzaOccupate(
-    normalizeSecurityDoors(readJson(SECURITY_DOORS_CONFIG_KEY, [])),
-    entitaDellePrese(),
-  );
+  return normalizeSecurityDoors(readJson(SECURITY_DOORS_CONFIG_KEY, []));
 }
 
 /* ── model ────────────────────────────────────────────────────────────── */
