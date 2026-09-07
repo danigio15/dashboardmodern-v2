@@ -206,3 +206,33 @@ test("a slot only looks at the entities that share a word with it", () => {
   // Four thousand unrelated entities never enter the scoring at all.
   assert.ok(result.scanned <= 8, `scored ${result.scanned} pairs`);
 });
+
+/* «La scheda friggitrice ad aria prende i valori di temperatura, umidità e
+ * qualità dell'aria da un Air quality monitor di Amazon che ho integrato, senza
+ * però che nessuno abbia detto di farlo da nessuna parte.» (#374)
+ *
+ * Nessuno l'aveva detto: l'aveva dedotto la stanza. Un'entita' nella stessa
+ * area prendeva 1.4 e contava come coperta esattamente come se il suo nome
+ * avesse parlato dell'apparecchio — e il monitor della qualita' dell'aria sta
+ * nella stessa cucina della friggitrice.
+ *
+ * La stanza resta un indizio, e un buon indizio: il sensore della lavatrice sta
+ * in lavanderia. Ma da sola non basta a dire di chi e' una cosa.
+ */
+test("la stanza da sola non basta ad attaccare un'entita' a un apparecchio", () => {
+  const built = index();
+  const monitor = built.records.find((record) => record.id === "sensor.cucina_umidita");
+  /* Il monitor sta in cucina, e la friggitrice pure. Ma «umidita' cucina» non
+   * dice niente di una friggitrice. */
+  const friggitrice = plan("dm.friggitrice_umidita", "Umidità friggitrice (%)", "friggitrice");
+  assert.equal(scoreSlotCandidate(monitor, friggitrice), -Infinity);
+});
+
+test("la stanza rinforza ancora un nome che gia' parla", () => {
+  const built = index();
+  const temperatura = built.records.find((record) => record.id === "sensor.cucina_temperatura");
+  /* Qui il nome dice «cucina» e l'area pure: e' la stessa cosa detta due
+   * volte, e resta una buona risposta per la temperatura della cucina. */
+  const stanza = plan("dm.stanza_cucina_temperatura", "Temperatura cucina (°C)", "cucina");
+  assert.ok(scoreSlotCandidate(temperatura, stanza) > 0);
+});

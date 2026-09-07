@@ -437,22 +437,42 @@ export function scoreSlotCandidate(record, plan) {
   let score = 0;
   let covered = 0;
   let idHits = 0;
+  /* La stanza dice «vicino», non «e' suo».
+   *
+   * Un'entita' che sta nella stessa area prendeva 1.4 e contava come coperta,
+   * esattamente come se il suo nome avesse detto qualcosa: bastava quello per
+   * attaccarla all'apparecchio. Dal campo (#374): una friggitrice resa smart da
+   * una presa si prendeva temperatura, umidita' e qualita' dell'aria da un
+   * monitor Amazon che sta nella stessa cucina — «senza pero' che nessuno
+   * abbia detto di farlo da nessuna parte», ed e' vero: nessuno l'aveva detto,
+   * l'aveva dedotto la stanza.
+   *
+   * La stanza resta un indizio, e un buon indizio — il sensore della lavatrice
+   * sta in lavanderia — ma da sola non basta a dire di chi e' una cosa. Serve
+   * che almeno un pezzo del nome o dell'identificativo parli dell'apparecchio:
+   * la stanza puo' rinforzare, non decidere. */
+  let dettoDalNome = false;
   for (const aliases of plan.keys) {
     let hit = 0;
     for (const alias of aliases) {
       if (tokenMatches(record.idTokens, alias)) {
         hit = 3.2;
         idHits += 1;
+        dettoDalNome = true;
         break;
       }
-      if (tokenMatches(record.nameTokens, alias)) hit = Math.max(hit, 2);
-      else if (record.areaFold && tokenMatches(record.areaTokens, alias)) hit = Math.max(hit, 1.4);
+      if (tokenMatches(record.nameTokens, alias)) {
+        hit = Math.max(hit, 2);
+        dettoDalNome = true;
+      } else if (record.areaFold && tokenMatches(record.areaTokens, alias))
+        hit = Math.max(hit, 1.4);
     }
     if (hit > 0) {
       covered += 1;
       score += hit;
     }
   }
+  if (!dettoDalNome) return -Infinity;
   const needed = Math.max(1, Math.ceil(plan.keys.length * 0.6) - (hasNarrowDomain(plan) ? 1 : 0));
   if (covered < needed) return -Infinity;
 
