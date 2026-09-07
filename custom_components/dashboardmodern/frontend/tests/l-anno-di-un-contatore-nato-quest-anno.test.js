@@ -88,3 +88,34 @@ test("una prima riga proprio sul confine non si tocca", () => {
   ];
   assert.equal(crescitaNellArco(righe, ARCO_MESI_CHIUSI), 150);
 });
+
+test("l'ora aperta non puo' far nascere un contatore che il giorno ha gia' visto", () => {
+  /* Dal campo, la prova del giorno. Il giorno si chiede in DUE archi — le ore
+   * chiuse e l'ora aperta — e ognuno si porta a casa le righe della SUA
+   * domanda, non tutte quelle del giorno: l'arco dell'ora aperta chiede da due
+   * ore prima del suo confine, e se li' dentro il contatore non ha scritto
+   * niente si ritrova senza nessuna riga prima. Senza la regola della
+   * continuazione lo si prendeva per un contatore nato in quell'ora, e la sua
+   * vita intera diventava il consumo di sessanta minuti: 100,05 kWh invece di
+   * 0,05. */
+  const oraAperta = new Date(2026, 8, 7, 6);
+  const oreChiuse = { kind: "day", period: "hour", start: new Date(2026, 8, 7), end: oraAperta };
+  const apertura = {
+    kind: "day",
+    period: "5minute",
+    start: oraAperta,
+    end: new Date(2026, 8, 7, 6, 26),
+  };
+  /* Le righe che tornano dalle due domande, ognuna col suo arco di partenza. */
+  const righeDelleOre = [
+    { start: new Date(2026, 8, 6, 22).toISOString(), sum: 100 },
+    { start: new Date(2026, 8, 7, 0, 1).toISOString(), sum: 100.05 },
+  ];
+  const righeDeiCinqueMinuti = [{ start: new Date(2026, 8, 7, 6, 25).toISOString(), sum: 100.05 }];
+
+  assert.equal(Number(crescitaNellArco(righeDelleOre, oreChiuse).toFixed(3)), 0.05);
+  assert.equal(crescitaNellArco(righeDeiCinqueMinuti, apertura, { continuazione: true }), null);
+  /* Un arco che il suo periodo lo comincia, invece, deve poterlo ancora dire:
+   * e' il caso dell'anno della wallbox qui sopra. */
+  assert.equal(crescitaNellArco(righeDeiCinqueMinuti, apertura), 100.05);
+});

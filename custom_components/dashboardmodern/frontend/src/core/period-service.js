@@ -399,7 +399,7 @@ export function chiaveDellArco(range) {
  * Le righe arrivano da una domanda sola per tutti quelli che condividono
  * l'arco: qui si taglia il pezzo che riguarda questo arco — l'ultima lettura
  * prima del confine fa da partenza — e si prende la differenza. */
-export function crescitaNellArco(righe = [], range) {
+export function crescitaNellArco(righe = [], range, { continuazione = false } = {}) {
   const inizio = range.start.getTime();
   const fine = range.end.getTime();
   const ordinate = (Array.isArray(righe) ? righe : [])
@@ -409,7 +409,9 @@ export function crescitaNellArco(righe = [], range) {
   const dentro = ordinate.filter(
     (riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine,
   );
-  return periodConsumption(dentro, prima.at(-1) || contatoreNatoDentro(prima, dentro, inizio));
+  const partenza =
+    prima.at(-1) || (continuazione ? null : contatoreNatoDentro(prima, dentro, inizio));
+  return periodConsumption(dentro, partenza);
 }
 
 /* Un contatore che a inizio periodo non c'era ancora parte da zero.
@@ -431,7 +433,16 @@ export function crescitaNellArco(righe = [], range) {
  * riga sta proprio sul confine non si sa se il contatore e' nato li' o se le
  * righe di prima non sono state chieste, e allora non si tocca niente: sbagliare
  * in questo verso vorrebbe dire prendere una cumulata vecchia di anni per il
- * consumo di quest'anno. */
+ * consumo di quest'anno.
+ *
+ * E lo si dice solo al PRIMO arco del periodo. Un periodo si chiede in piu'
+ * archi — il giorno in ore chiuse piu' l'ora aperta, l'anno in mesi chiusi piu'
+ * il mese aperto — e le crescite si sommano. Nell'arco che continua, «nessuna
+ * riga prima del mio confine» non vuol dire niente: il pezzo di tempo prima del
+ * confine se l'e' gia' preso l'arco davanti, che il contatore l'aveva visto
+ * eccome. Senza questa regola l'ora aperta di un contatore con le righe rade
+ * si prendeva tutta la sua vita per il consumo di un'ora: dalla prova del
+ * giorno, 100,05 kWh in un'ora invece di 0,05. */
 function contatoreNatoDentro(prima, dentro, inizio) {
   if (prima.length || !dentro.length) return null;
   if (rowTimestamp(dentro[0]) <= inizio) return null;
@@ -1015,12 +1026,23 @@ export class HomeAssistantBroker {
    * tiene, e chi ha chiesto decide (vedi il pacchetto parziale dell'Energia). */
   async valoriPerArchi(richieste = [], valori = new Map(), alPasso = () => {}) {
     const perArco = new Map();
+    /* Chi comincia il suo periodo e chi lo continua: della stessa misura — la
+     * stessa `plan.key` — puo' esserci un arco a ore chiuse e uno a cinque
+     * minuti, e solo quello che parte prima puo' aver visto nascere il
+     * contatore (vedi `contatoreNatoDentro`). */
+    const primoArco = new Map();
     for (const { plans = [], range } of richieste) {
       if (!range || !plans.length || range.end <= range.start) continue;
       const chiave = chiaveDellArco(range);
       const gruppo = perArco.get(chiave) || { range, chiave, plans: [] };
       gruppo.plans.push(...plans);
       perArco.set(chiave, gruppo);
+      const quando = range.start.getTime();
+      for (const plan of plans) {
+        if (!plan?.key) continue;
+        const visto = primoArco.get(plan.key);
+        if (visto == null || quando < visto) primoArco.set(plan.key, quando);
+      }
     }
     const caduti = [];
     /* Quante domande sono state fatte, di quante: e' la riga che si legge
@@ -1039,7 +1061,9 @@ export class HomeAssistantBroker {
           // contract used for Energy: growth = final sum - initial sum.
           const righe = await this.statistics(ids, baseline.start, range.end, range.period);
           for (const plan of plans) {
-            const crescita = crescitaNellArco(righe[plan.entity], range);
+            const continuazione =
+              (primoArco.get(plan.key) ?? range.start.getTime()) < range.start.getTime();
+            const crescita = crescitaNellArco(righe[plan.entity], range, { continuazione });
             if (crescita == null) continue;
             const arrotondata = Math.round(crescita * 1000) / 1000;
             valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);

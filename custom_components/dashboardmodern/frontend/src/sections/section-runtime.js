@@ -32,6 +32,8 @@ import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
+import { installFoglioDiSceltaSection } from "./foglio-di-scelta-section.js";
+import { installReportTendinaDispositiviSection } from "./report-tendina-dispositivi-section.js";
 import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installLightsSceneSection } from "./lights-scene-section.js";
@@ -134,33 +136,9 @@ import { activeLocale, allStates, clean, english, section, t, wrapFunction } fro
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
 const INSTALLING_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME_INSTALLING__";
-const APPLIANCE_PICKER_LAYER_STYLE_ID = "dm-appliance-picker-layer-style";
 const APPLIANCE_DAILY_POPUP_STYLE_ID = "dm-appliance-daily-dashboard-style";
 const APPLIANCE_KPI_POPUP_STYLE_ID = "dm-appliance-kpi-popup-style";
 const APPLIANCE_KPI_STATE_KEY = "__DASHBOARDMODERN_APPLIANCE_KPI_POPUPS__";
-
-function installAppliancePickerLayer() {
-  const doc = root.document;
-  if (!doc?.head || doc.getElementById(APPLIANCE_PICKER_LAYER_STYLE_ID)) return;
-  const style = doc.createElement("style");
-  style.id = APPLIANCE_PICKER_LAYER_STYLE_ID;
-  style.textContent = `
-    /* The canonical appliance picker may be opened from inside the Edit modal.
-       Keep it above every editor overlay so visible options also own pointer input. */
-    #dm-applpick.dm-appliance-type-picker {
-      position: fixed !important;
-      inset: 0 !important;
-      z-index: 2147483647 !important;
-      pointer-events: auto !important;
-    }
-    #dm-applpick .dm-appliance-type-picker-dialog,
-    #dm-applpick .dm-appliance-type-grid,
-    #dm-applpick .dm-appliance-type-option {
-      pointer-events: auto !important;
-    }
-  `;
-  doc.head.append(style);
-}
 
 function installApplianceDailyPopupStyle() {
   const doc = root.document;
@@ -845,8 +823,9 @@ export function installSectionRuntime() {
     installApplianceShowcaseSection();
     installApplianceDailyPopupStyle();
     installApplianceKpiPopups();
-    installAppliancePickerLayer();
+    installFoglioDiSceltaSection();
     installApplianceEditorSection();
+    installReportTendinaDispositiviSection();
     // Il menu delle integrazioni veste la scheda che l'editor ha appena
     // disegnato e apre la finestra di modifica che l'editor ha appena
     // sostituito: viene dopo di lui.
