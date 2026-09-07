@@ -131,6 +131,17 @@ const PAGES = Object.freeze([
     it: ["Allerte", "Terremoti · Meteo · Fulmini · Pollini · Voli"],
     en: ["Alerts", "Earthquakes · Weather · Lightning · Pollen · Flights"],
   },
+  /* Gli animali nascono con la loro pagina e restavano l'unica senza
+   * intestazione: «sarebbe bello se la nuova sezione Animali avesse coerenza
+   * grafica con le altre, attualmente l'header e' totalmente diverso, anzi
+   * assente» — issue 373. Mancava una riga in questa tabella: non c'era niente
+   * di diverso nella pagina, c'era che nessuno l'aveva annunciata. */
+  {
+    id: "page-animali",
+    tint: ["245,158,11", "236,72,153"],
+    it: ["Animali", "Ciotola · Lettiera · Acqua · Collare"],
+    en: ["Pets", "Bowl · Litter · Water · Collar"],
+  },
   {
     id: "page-rifiuti",
     tint: ["34,197,94", "14,165,233"],

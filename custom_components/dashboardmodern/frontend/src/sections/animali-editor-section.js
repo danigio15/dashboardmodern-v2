@@ -18,6 +18,7 @@
  * quello che c'e' gia' invece di sostituirlo.
  */
 import {
+  AZIONI,
   CAMPI,
   CHIAVE_ANIMALI,
   CHIAVI_SOGLIE,
@@ -80,7 +81,29 @@ function etichettaCampo(chiave) {
     case "cibo_porzioni":
       return t("Porzioni erogate", "Portions dispensed");
     case "lettiera_riempimento":
-      return t("Riempimento della lettiera", "Litter box fill");
+      return t("Cassetto dei rifiuti (si riempie)", "Waste drawer (fills up)");
+    case "lettiera_sabbia":
+      return t("Sabbia rimasta (si svuota)", "Litter left (runs out)");
+    case "lettiera_deodorante":
+      return t("Deodorante — giorni rimasti", "Deodorizer — days left");
+    case "lettiera_cestino":
+      return t("Cestino dei rifiuti (problema sì/no)", "Waste bin (problem yes/no)");
+    case "cibo_essiccante":
+      return t("Essiccante — giorni rimasti", "Desiccant — days left");
+    case "cibo_eroga":
+      return t("Eroga una porzione", "Feed a portion");
+    case "cibo_essiccante_reset":
+      return t("Azzera l'essiccante", "Reset the desiccant");
+    case "lettiera_pulisci":
+      return t("Pulisci la lettiera", "Clean the litter box");
+    case "lettiera_livella":
+      return t("Livella la sabbia", "Level the litter");
+    case "lettiera_manutenzione_avvia":
+      return t("Entra in manutenzione", "Enter maintenance");
+    case "lettiera_manutenzione_esci":
+      return t("Esci dalla manutenzione", "Exit maintenance");
+    case "lettiera_deodorante_reset":
+      return t("Azzera il deodorante", "Reset the deodorizer");
     case "lettiera_ultima":
       return t("Ultima pulizia della lettiera", "Litter box last cleaned");
     case "lettiera_visite":
@@ -112,6 +135,28 @@ function esempioCampo(chiave) {
       return "sensor.petkit_portions_today";
     case "lettiera_riempimento":
       return "sensor.litter_robot_waste_drawer";
+    case "lettiera_sabbia":
+      return "sensor.petkit_litter_level";
+    case "lettiera_deodorante":
+      return "sensor.petkit_deodorant_days";
+    case "lettiera_cestino":
+      return "binary_sensor.petkit_waste_bin";
+    case "cibo_essiccante":
+      return "sensor.petkit_desiccant_days";
+    case "cibo_eroga":
+      return "button.petkit_manual_feed";
+    case "cibo_essiccante_reset":
+      return "button.petkit_reset_desiccant";
+    case "lettiera_pulisci":
+      return "button.petkit_start_cleaning";
+    case "lettiera_livella":
+      return "button.petkit_start_leveling";
+    case "lettiera_manutenzione_avvia":
+      return "button.petkit_start_maintenance";
+    case "lettiera_manutenzione_esci":
+      return "button.petkit_exit_maintenance";
+    case "lettiera_deodorante_reset":
+      return "button.petkit_reset_deodorant";
     case "lettiera_ultima":
       return "sensor.litter_robot_last_seen";
     case "lettiera_visite":
@@ -133,6 +178,33 @@ function esempioCampo(chiave) {
 
 function aiutoCampo(chiave) {
   switch (chiave) {
+    case "lettiera_sabbia":
+      return t(
+        "La sabbia che RESTA, in percentuale: quando scende sotto la soglia la scheda avvisa che sta per finire. È l'opposto del cassetto dei rifiuti, che invece si riempie.",
+        "The litter that is LEFT, as a percentage: when it drops below the threshold the card warns you it is running out. It is the opposite of the waste drawer, which fills up.",
+      );
+    case "lettiera_cestino":
+      return t(
+        "Il binary_sensor che dice se il cestino dei rifiuti ha problemi: acceso vuol dire da controllare — di solito è il momento di cambiare il sacco.",
+        "The binary_sensor that says whether the waste bin has a problem: on means it needs checking — usually time to change the bag.",
+      );
+    case "cibo_essiccante":
+    case "lettiera_deodorante":
+      return t(
+        "Quanti giorni restano prima di sostituirlo. Sotto la soglia la scheda lo dice, e il tasto qui sotto azzera il conto una volta cambiato.",
+        "How many days are left before replacing it. Below the threshold the card says so, and the button below resets the count once you have changed it.",
+      );
+    case "cibo_eroga":
+    case "cibo_essiccante_reset":
+    case "lettiera_pulisci":
+    case "lettiera_livella":
+    case "lettiera_manutenzione_avvia":
+    case "lettiera_manutenzione_esci":
+    case "lettiera_deodorante_reset":
+      return t(
+        "Un tasto che compare sulla scheda dell'animale. Va bene un button.*, uno script.* o uno switch.*: la plancia lo preme con il servizio giusto per il suo dominio.",
+        "A button that appears on the pet card. A button.*, a script.* or a switch.* all work: the dashboard presses it with the right service for its domain.",
+      );
     case "cibo_livello":
       return t(
         "Quanto cibo resta nel distributore. In percentuale la scheda ne fa una barra; chi scrive «Low» o «Empty» vale lo stesso, e sotto soglia la scheda avvisa.",
@@ -167,7 +239,11 @@ function etichettaSoglia(chiave) {
     case "filtro":
       return t("Avvisa sotto il filtro (%)", "Warn below filter (%)");
     case "lettiera":
-      return t("Avvisa sopra la lettiera (%)", "Warn above litter fill (%)");
+      return t("Avvisa sopra il cassetto dei rifiuti (%)", "Warn above waste drawer (%)");
+    case "sabbia":
+      return t("Avvisa sotto la sabbia (%)", "Warn below litter left (%)");
+    case "giorni":
+      return t("Avvisa sotto i giorni rimasti", "Warn below days left");
     case "lettiera_ore":
       return t("Lettiera da pulire dopo (ore)", "Clean the litter box after (hours)");
     default:
@@ -187,7 +263,10 @@ function campoMarkup(animale, indice, campo) {
 
 function gruppiMarkup(animale, indice) {
   const gruppi = new Map();
-  for (const campo of CAMPI) {
+  /* Le caselle che si leggono e i tasti che si premono stanno nella stessa
+   * fascia del loro dispositivo: chi configura la lettiera vuole trovare
+   * insieme il livello della sabbia e il tasto che la livella (#373). */
+  for (const campo of [...CAMPI, ...AZIONI]) {
     if (!gruppi.has(campo.gruppo)) gruppi.set(campo.gruppo, []);
     gruppi.get(campo.gruppo).push(campo);
   }
@@ -443,7 +522,7 @@ export function ensureAnimaliEditor() {
         animale.specie,
         animale.foto ? "foto" : "",
         animale.dispositivi.map((voce) => voce.id).join("+"),
-        CAMPI.map((campo) => animale[campo.chiave]).join(","),
+        [...CAMPI, ...AZIONI].map((campo) => animale[campo.chiave]).join(","),
       ].join("~"),
     ),
   ].join("|");
@@ -550,7 +629,8 @@ async function onClick(event) {
     /* Un animale senza nome e senza nemmeno una casella non e' una scheda: e'
      * una riga vuota che in pagina non compare, e nessuno direbbe perche'. */
     const vuoto =
-      !clean(next[indice].nome) && CAMPI.every((campo) => !clean(next[indice][campo.chiave]));
+      !clean(next[indice].nome) &&
+      [...CAMPI, ...AZIONI].every((campo) => !clean(next[indice][campo.chiave]));
     if (vuoto) {
       if (errore)
         errore.textContent = t(
