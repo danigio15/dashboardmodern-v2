@@ -908,8 +908,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // solo a correggere il rilevamento — il sensore del frigo etichettato
   // «door», quello che nessuno ha etichettato, e il nome per chi si chiama
   // «Contact 4B».
+  // 286 con il server e la rete (#382): «i controlli del server proxmox dove
+  // gira HA con tutti i suoi container, e controllare lo stato del fritbox e i
+  // suoi ripeter». Non e' una pagina nuova: e' la pagina Server che c'e' gia',
+  // con due fasce sotto le caselle del MiniPC — la macchina e quello che ci
+  // gira dentro sono la stessa cosa guardata da due distanze.
+  // `core/macchine-e-rete.js` sa che le VM e i container di Proxmox sono i
+  // `binary_sensor` con `device_class: running` e che il router coi suoi
+  // ripetitori sono quelli `connectivity`: due classi, due elenchi, e nessuna
+  // casella da compilare per cominciare. Sa anche dire QUANDO si puo'
+  // comandare — un interruttore o la coppia di pulsanti che si chiamano come
+  // il sensore — perche' un tasto che non fa niente e' peggio di nessun tasto.
+  // `sections/macchine-e-rete-section.js` porta le due fasce e
+  // `sections/macchine-editor-section.js` la scheda, che si attacca a «MiniPC»
+  // invece di aprirne una tutta sua.
   assert.ok(
-    relative.length <= 283,
+    relative.length <= 286,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

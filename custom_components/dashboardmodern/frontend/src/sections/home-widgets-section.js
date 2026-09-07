@@ -161,6 +161,11 @@ import {
 import { doorOpenCall } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
+import {
+  CHIAVE_MACCHINE,
+  contoDelleMacchine,
+  macchineERete,
+} from "../core/macchine-e-rete.js";
 import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import {
@@ -3136,6 +3141,58 @@ function varchiModel(states) {
   };
 }
 
+/* Le macchine del server e la rete (#382).
+ *
+ * «I controlli del server proxmox dove gira HA con tutti i suoi container, e
+ * controllare lo stato del fritbox e i suoi ripeter.» Il numero grande e'
+ * quello che conta guardando di sfuggita: quante sono FERME. A tutto in piedi
+ * la tessera dice quante ne sta guardando, che e' il modo in cui una
+ * sorveglianza si fa vedere anche quando non ha niente da dire.
+ *
+ * Macchine e rete stanno nella stessa tessera perche' rispondono alla stessa
+ * domanda — «e' tutto su?» — e chi la fa non pensa «adesso guardo i container
+ * e poi guardo i ripetitori». Aprendola si distinguono: le pastiglie portano
+ * il verde di chi va e il rosso di chi non va. */
+function macchineModel(states) {
+  const fuori = widgetExcludedEntities();
+  const config = readJson(CHIAVE_MACCHINE, {});
+  const elenchi = macchineERete(states, config, (entity) => friendlyName(states, entity));
+  const righe = [...elenchi.macchine, ...elenchi.rete].filter((riga) =>
+    widgetIncludes(riga.entity, fuori),
+  );
+  if (!righe.length) return null;
+  const conto = contoDelleMacchine(righe);
+  return {
+    key: "macchine",
+    accent: conto.giu ? "#dc2626" : "#6366f1",
+    icon: "🖥️",
+    alert: conto.giu > 0,
+    label: t("Server e rete", "Server and network"),
+    value: conto.giu ? String(conto.giu) : String(conto.su),
+    caption: conto.giu
+      ? conto.fermi.join(" · ")
+      : t(`Tutto in piedi · ${conto.totale}`, `All up · ${conto.totale}`),
+    ring: conto.totale ? Math.round((conto.su / conto.totale) * 100) : null,
+    rows: righe.map((riga) => ({
+      entity: riga.entity,
+      name: riga.name,
+      glyph: riga.glifo,
+      on: riga.stato === "su",
+      tono: riga.stato === "su" ? "quiete" : riga.stato === "giu" ? "allarme" : "",
+      value:
+        riga.stato === "su"
+          ? riga.famiglia === "rete"
+            ? t("Connesso", "Connected")
+            : t("Acceso", "Running")
+          : riga.stato === "giu"
+            ? riga.famiglia === "rete"
+              ? t("Assente", "Down")
+              : t("Fermo", "Stopped")
+            : t("Non risponde", "Not answering"),
+    })),
+  };
+}
+
 /* Il fumo e il gas, contati e chiamati per nome (#328).
  *
  * «Un widget che mostri il numero di sensori fumo e allagamento, e che
@@ -3886,6 +3943,7 @@ export function modelliDelleTessere(states) {
       caldaiaModel(states),
       upsModel(states),
       minipcModel(states),
+      macchineModel(states),
       poolModel(states),
       preseModel(states),
       mediaModel(states),

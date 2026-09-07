@@ -102,6 +102,7 @@ function catalogoTessere() {
     /* La raccolta differenziata (#293): dice cosa mettere fuori stasera. */
     ["rifiuti", "♻️", t("Rifiuti", "Waste")],
     ["varchi", "🚪", t("Varchi", "Openings")],
+    ["macchine", "🖥️", t("Server e rete", "Server and network")],
     /* La ventilazione meccanica (#371): la tessera dice a che temperatura sta
      * entrando l'aria e quanto la macchina se n'e' ripreso, e porta alla
      * pagina del Clima, dove le quattro temperature stanno incrociate. */

@@ -121,12 +121,16 @@ test("togliere una chiave non alza la revisione", async () => {
    * contatti non contano, quali aggiungere a mano e come si chiamano sono
    * correzioni al rilevamento di CASA — il sensore del frigorifero etichettato
    * «door» e' sbagliato su ogni dispositivo, e il nome che gli si da' vale per
-   * tutti quelli che guardano la stessa porta. */
-  assert.equal(CONFIG_KEYS_REVISION, 34);
+   * tutti quelli che guardano la stessa porta. E la 35 con le macchine del
+   * server e la rete (#382, `cd_macchine`): il server e' uno solo per tutta la
+   * casa, e il nome che si da' a «pve_qemu_103» vale su ogni dispositivo che
+   * lo guarda. */
+  assert.equal(CONFIG_KEYS_REVISION, 35);
   for (const chiave of ["cd_radar_meteo", "cd_orologio", "dm_campi_scelti", "cd_allag_rilevato"])
     assert.ok(CONFIG_KEYS.includes(chiave), `${chiave} deve viaggiare con la casa`);
   assert.ok(CONFIG_KEYS.includes("cd_vmc"), "la ventilazione deve viaggiare con la casa");
   assert.ok(CONFIG_KEYS.includes("cd_varchi"), "i varchi devono viaggiare con la casa");
+  assert.ok(CONFIG_KEYS.includes("cd_macchine"), "le macchine devono viaggiare con la casa");
   assert.ok(CONFIG_KEYS.includes("cd_assist"), "Assist deve viaggiare con la casa");
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);

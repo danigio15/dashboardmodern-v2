@@ -144,7 +144,7 @@ const USER_DATA_VERSION = 1;
  * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
  * e del collare. Anche questa e' roba della casa: il gatto configurato sul
  * tablet deve esistere anche sul telefono. */
-export const CONFIG_KEYS_REVISION = 34;
+export const CONFIG_KEYS_REVISION = 35;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -315,6 +315,10 @@ export const CONFIG_KEYS = Object.freeze([
    * il sensore del frigo etichettato «door» e' sbagliato su ogni dispositivo,
    * e il nome che gli si da' vale per tutti. */
   "cd_varchi",
+  /* Le macchine del server e la rete (#382): quali sensori contano e come si
+   * chiamano. Il server e' uno solo per tutta la casa, e il nome che si da' a
+   * «pve_qemu_103» vale su ogni dispositivo che lo guarda. */
+  "cd_macchine",
   /* La ventilazione meccanica (#371): le sue caselle sono entita' di casa, e
    * viaggiano fra i dispositivi come tutte le altre. */
   "cd_vmc",
