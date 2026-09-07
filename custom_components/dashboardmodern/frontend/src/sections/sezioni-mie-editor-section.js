@@ -85,13 +85,22 @@ function vociDi(sezione) {
 /* La forma delle caselle e' quella delle altre schede — `ed-slot`,
  * `ed-form-row`, il cerca-entita' accanto al campo — e non per gusto: i moduli
  * che vestono la configurazione riconoscono quella forma, e una casella
- * scritta a modo mio se la trovava rifatta addosso di traverso. */
+ * scritta a modo mio se la trovava rifatta addosso di traverso.
+ *
+ * L'icona segue la stessa regola: non si scrive a mano — «icona non si clicca e
+ * non apre catalogo nostro» — si dichiara di che famiglia e' e il motore delle
+ * icone ci apre sopra il catalogo di casa. Il titolo della sezione prende le
+ * icone delle azioni, la riga di dentro quelle dei carichi, che e' quello che
+ * le due cose sono. Sola lettura perche' il valore lo scrive il catalogo: una
+ * casella che si puo' anche battere a mano vorrebbe dire due verita' per lo
+ * stesso campo. */
 function rigaVoceMarkup(voce, sezione, riga) {
   const id = `dm-mia-${sezione}-${riga}`;
   return `<div class="dm-mia-ed-voce" data-mia-voce="${riga}">
     <div class="dm-mia-ed-voce-testa">
       <input class="ed-input dm-mia-ed-icona" data-mia-campo="icona" value="${esc(clean(voce?.icona))}"
-        placeholder="⭐" aria-label="${esc(t("Icona", "Icon"))}" maxlength="4">
+        placeholder="⭐" aria-label="${esc(t("Icona", "Icon"))}" maxlength="4"
+        data-icon-category="load" data-icon-glifo="true" readonly>
       <input class="ed-input" data-mia-campo="nome" value="${esc(clean(voce?.nome))}"
         placeholder="${esc(t("Nome (facoltativo)", "Name (optional)"))}">
       <button type="button" class="ed-del dm-mia-ed-via" data-mia-voce-del
@@ -127,7 +136,8 @@ function rigaSezioneMarkup(sezione, indice) {
     <div class="dm-todo-ed-body"${aperta ? "" : " hidden"}>
       <div class="dm-mia-ed-testa">
         <input class="ed-input dm-mia-ed-icona" data-mia-campo="icona" value="${esc(clean(sezione?.icona) || "⭐")}"
-          placeholder="⭐" aria-label="${esc(t("Icona", "Icon"))}" maxlength="4">
+          placeholder="⭐" aria-label="${esc(t("Icona", "Icon"))}" maxlength="4"
+          data-icon-category="action" data-icon-glifo="true" readonly>
         <input class="ed-input" data-mia-campo="titolo" value="${esc(clean(sezione?.titolo))}"
           placeholder="${esc(t("Titolo della sezione", "Section title"))}">
       </div>
@@ -331,7 +341,8 @@ function installStyles() {
     "dm-sezioni-mie-editor",
     `
       #ed-body .dm-mia-ed-testa{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;margin-bottom:8px}
-      #ed-body .dm-mia-ed-icona{text-align:center;font-size:18px}
+      /* Si apre il catalogo, quindi si vede che si tocca. */
+      #ed-body .dm-mia-ed-icona{text-align:center;font-size:18px;cursor:pointer}
       #ed-body .dm-mia-ed-voci{display:grid;gap:14px}
       /* Ogni entita' e' un blocchetto: sopra chi e' — icona e nome — sotto da
          dove si legge. Le due domande sono diverse e vanno su due righe. */

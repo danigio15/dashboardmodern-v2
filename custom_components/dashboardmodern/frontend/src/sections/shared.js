@@ -405,6 +405,23 @@ export function chiediAHomeAssistant(payload, timeout = 8000) {
   });
 }
 
+/* Che aspetto ha una lente, dovunque la si trovi.
+ *
+ * Quasi tutte le schede scrivono la loro col nome di casa — `.dm-entity-picker`
+ * — ma due se l'erano fatta col proprio: gli animali e il robot. Chi le
+ * cercava conosceva solo il primo nome, quindi su quelle righe non ne trovava
+ * nessuna e ne aggiungeva una seconda. Poi la riga «Scegli entita'» si prende
+ * la lente e ci si trasforma dentro — e' proprio lei a diventare la riga — ma
+ * si prendeva quella appena aggiunta, e quella della scheda restava li' accanto
+ * come un quadratino azzurro col 🔍 che non serviva piu' a niente. E' la
+ * segnalazione: «elimina le lenti di ricerca».
+ *
+ * Il nome della lente si dice una volta sola, qui, e lo usano tutti e due —
+ * chi la cerca per non rifarla e chi la trasforma in riga. Il piu' («aggiungi
+ * comando») non e' una lente: apre un campo, non un catalogo. */
+export const LENTE_SELECTOR =
+  ".dm-entity-picker,.dm-animale-pick,.dm-robot-pick:not(.dm-robot-aggiungi),button[onclick*='wzPickEntity']";
+
 export function lexicalGlobal(name) {
   try {
     const value = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);

@@ -102,8 +102,18 @@ test("togliere una chiave non alza la revisione", async () => {
    * `cd_animali`), i cui nomi, foto ed entita' — ciotola, lettiera, collare —
    * sono roba della casa: il gatto configurato sul tablet deve esistere anche
    * sul telefono. Quelle tolte restano fuori dall'elenco, che e' quello che
-   * questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 30);
+   * questa prova difende. E la 31 con le quattro trovate ricontando chi scrive
+   * cosa — «da smartphone vedo le sezioni configurate da pc invece no»: il
+   * radar meteo (`cd_radar_meteo`), l'orologio in testata (`cd_orologio`)
+   * e il segno delle caselle riempite a mano
+   * (`dm_campi_scelti`), senza il quale una casella svuotata apposta di qua se
+   * la ritrova riscritta di la' da chi indovina; e il gemello di
+   * `cd_fumo_rilevato` (`cd_allag_rilevato`), senza il quale l'altro
+   * dispositivo rifa' il rilevamento e rimette dentro il sensore appena
+   * cancellato. */
+  assert.equal(CONFIG_KEYS_REVISION, 31);
+  for (const chiave of ["cd_radar_meteo", "cd_orologio", "dm_campi_scelti", "cd_allag_rilevato"])
+    assert.ok(CONFIG_KEYS.includes(chiave), `${chiave} deve viaggiare con la casa`);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

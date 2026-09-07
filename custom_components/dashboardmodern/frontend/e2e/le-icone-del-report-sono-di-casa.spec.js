@@ -83,9 +83,11 @@ async function apriIlReport(page) {
    * il `<select>` con le opzioni che il guscio gli mette, emoji comprese —
    * senza dover navigare tutta la configurazione. */
   await page.evaluate((stati) => {
+    /* Gli stati del guscio sono variabili lessicali, non roba di `window`:
+     * si scrivono per nome, come fa ogni altra prova. */
     stati.forEach((voce) => {
-      globalThis._RAW_STATES[voce.entity_id] = structuredClone(voce);
-      globalThis.STATES[voce.entity_id] = structuredClone(voce);
+      _RAW_STATES[voce.entity_id] = structuredClone(voce);
+      STATES[voce.entity_id] = structuredClone(voce);
     });
     document.getElementById("ed-dev-selector")?.closest(".dm-report-tendina-cornice")?.remove();
     document.getElementById("ed-dev-selector")?.remove();
@@ -105,6 +107,7 @@ async function avvia(page, testInfo) {
   test.setTimeout(120_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await apriIlReport(page);
 }
 

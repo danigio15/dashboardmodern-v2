@@ -26,7 +26,17 @@
  * an entity already in `_RAW_STATES`.
  */
 import { isRetiredEditorSlot } from "../core/editor-slots.js";
-import { clean, doc, esc, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
+import {
+  LENTE_SELECTOR,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  onEditorRedraw,
+  root,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_SLOTS__";
 const STYLE_ID = "dm-editor-slots-style";
@@ -232,9 +242,14 @@ const CHIP_MARKER = "dmEntityChip";
 const NEVER_A_HOST =
   "#ed-body,.ed-body,.ed-list,.ed-form,.ed-shell,#editor-modal,#setup-wizard,.dm-section-dialog,form,body";
 
-/** The lens the editors put next to an entity field, if it is there. */
+/** The lens the editors put next to an entity field, if it is there.
+ *
+ * Il nome della lente lo dice la guardia, che e' quella che decide se una
+ * riga ne ha gia' una: chiedere qui una cosa diversa da li' vuol dire due
+ * lenti sulla stessa riga — una che diventa la pastiglia e una che resta un
+ * quadratino col 🔍. */
 function lensOf(input) {
-  return input.nextElementSibling?.matches?.(".dm-entity-picker") ? input.nextElementSibling : null;
+  return input.nextElementSibling?.matches?.(LENTE_SELECTOR) ? input.nextElementSibling : null;
 }
 
 /* Where the row goes.

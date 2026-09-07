@@ -144,7 +144,7 @@ const USER_DATA_VERSION = 1;
  * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
  * e del collare. Anche questa e' roba della casa: il gatto configurato sul
  * tablet deve esistere anche sul telefono. */
-export const CONFIG_KEYS_REVISION = 30;
+export const CONFIG_KEYS_REVISION = 31;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -356,6 +356,33 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_stanze_entita",
   "cd_ev_meta",
   "cd_ups_meta",
+  /* Le quattro della revisione 31, trovate contando di nuovo chi scrive cosa —
+   * «da smartphone vedo le sezioni configurate da pc invece no».
+   *
+   * `cd_radar_meteo`: da quale servizio o entita' arriva il radar e con che
+   * raggio. Si sceglie una volta e vale per la casa, non per il vetro.
+   * `cd_orologio`: se l'ora si vede in testata. E' una scelta della plancia
+   * come la barra e la lingua, che stanno gia' qui per la stessa ragione.
+   * `dm_campi_scelti`: quali caselle di un carico sono state riempite a mano.
+   * Questa non e' una comodita': senza, chi indovina le caselle vuote — il
+   * contratto dei dispositivi — non sa che di la' non c'e' niente da
+   * indovinare, e una casella svuotata apposta sul computer se la ritrova
+   * riscritta sul telefono. E' la segnalazione che quel segno esiste per
+   * chiudere: «io elimino l'entita' inserita per far usare il calcolo ma non
+   * la elimina.» */
+  "cd_radar_meteo",
+  "cd_orologio",
+  "dm_campi_scelti",
+  /* E il gemello di `cd_fumo_rilevato`, che sta gia' qui sopra da un pezzo.
+   *
+   * Sono i sensori di allagamento gia' passati una volta dal rilevamento
+   * automatico. Il segno serve perche' una lista vuota resti vuota: senza,
+   * togliere l'ultimo sensore fa ripartire il rilevamento e rimette dentro
+   * proprio quello che era stato tolto. Restando del dispositivo faceva
+   * esattamente questo, sull'altro: si cancellava un sensore sul computer e il
+   * telefono, che quel giro non l'aveva mai fatto, se lo rimetteva da solo. Il
+   * fumo aveva gia' avuto la sua correzione; l'acqua era rimasta indietro. */
+  "cd_allag_rilevato",
 ]);
 
 const LEGACY_SYNC_CONTROL_KEYS = Object.freeze(["cd_sync_ts", "cd_sync_dirty"]);
