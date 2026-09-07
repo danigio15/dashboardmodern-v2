@@ -281,13 +281,30 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
 
+/* Subito, nello stesso fotogramma in cui il guscio ha scritto.
+ *
+ * Il guscio risponde alle notizie della casa con `cdRenderSoon`: un disegno per
+ * fotogramma, chiesto DENTRO un `requestAnimationFrame`. Chi da li' si mette in
+ * coda per «il prossimo fotogramma» arriva a quello DOPO — e quello in corso il
+ * telefono lo dipinge com'e', con la parola grezza dentro. Filmato sul campo:
+ * la pastiglia diceva «Non in carica» e sette volte in nove secondi lampeggiava
+ * «off» col pallino verde, otto millisecondi per volta a 120 Hz.
+ *
+ * Il momento giusto non e' il fotogramma dopo: e' la fine del giro in cui il
+ * guscio ha scritto. Il microtask di `wrapFunction` cade li', prima che il
+ * browser dipinga, e qui si dipinge da quello — senza chiedere un fotogramma
+ * che non serve. */
+function dipingiPrimaCheSiVeda() {
+  if (siGuarda()) renderEvStatoETarget();
+}
+
 export function installEvStatoETargetSection() {
   if (!doc || state.installed) return false;
   state.installed = true;
-  /* Il guscio riscrive pastiglia e tendina a ogni suo giro: si ripassa subito
-   * dopo, cosi' fra la parola grezza e quella tradotta non c'e' un fotogramma
-   * che si veda. */
-  wrapFunction("render", "__dmEvStatoETargetRender", schedule);
+  /* Il guscio riscrive pastiglia e tendina a ogni suo giro: si ripassa nello
+   * stesso giro, non al fotogramma dopo, cosi' fra la parola grezza e quella
+   * tradotta non c'e' un fotogramma che si veda. */
+  wrapFunction("render", "__dmEvStatoETargetRender", dipingiPrimaCheSiVeda);
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

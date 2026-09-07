@@ -18,6 +18,9 @@
 /* Il nucleo non importa il guscio: una riga sola, come fanno le sorelle. */
 const clean = (value) => String(value ?? "").trim();
 
+import { eUnaLettera } from "./stato-della-ricarica.js";
+import { parlaDelCavo } from "./wallbox-device-binding.js";
+
 /* ── i vocabolari ─────────────────────────────────────────────────────── */
 
 /* Ogni voce e' una domanda sola, e l'ordine conta: si chiede prima quello che
@@ -188,6 +191,32 @@ export function legaLAutoAlDispositivo({ entities = [], states = {} } = {}) {
    * nell'elenco. «Discharging» non e' «charging» e non entra: fra «dis» e
    * «charging» non c'e' confine di parola. */
   const nuda = (voce) => !/\bbatter/i.test(clean(voce?.name));
+
+  /* Il cavo, e prima dello stato della ricarica.
+   *
+   * Il cavo lo sa anche la vettura: quasi tutte le integrazioni delle auto
+   * pubblicano il loro «charger connected», e finora quel sensore lo mappava
+   * soltanto la colonnina. Chi ha l'auto da un'integrazione e nessuna wallbox
+   * collegata non aveva NESSUNO che dicesse alla plancia se il cavo era
+   * dentro: uno stato di carica a `off`, senza cavo e senza potenza, diventa
+   * «Non in carica» — ed e' quello che si legge sull'eroe con la macchina
+   * attaccata («in questo momento e' collegato e dice non in carica»).
+   *
+   * Prima dello stato, perche' le parole del cavo stanno anche nel vocabolario
+   * della ricarica — «plug», «cable» — e chi arriva primo si porta via
+   * l'entita': un «charger connected» finiva nella casella dello stato, dove
+   * vuol dire un'altra cosa. Un sensore che parla di carica non e' un cavo, e
+   * si esclude come fa la colonnina. */
+  const lettera = (voce) => eUnaLettera(states?.[clean(voce?.entity_id)]?.state);
+  /* Un `binary_sensor` che parla del cavo, oppure un sensore che pubblica la
+   * lettera della norma — «vehicle status» a B con l'auto attaccata e' il cavo
+   * detto meglio di qualunque acceso/spento. */
+  prendi(
+    "dm.ev_cavo_collegato",
+    (voce) =>
+      parlaDelCavo(parole(voce, states)) && (dominio(voce) === "binary_sensor" || lettera(voce)),
+  );
+
   prendi(
     "dm.ev_stato_ricarica",
     (voce) => conParola("ricarica")(voce) && nuda(voce) && dominio(voce) !== "sensor",
