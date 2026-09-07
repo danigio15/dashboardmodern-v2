@@ -409,7 +409,33 @@ export function crescitaNellArco(righe = [], range) {
   const dentro = ordinate.filter(
     (riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine,
   );
-  return periodConsumption(dentro, prima.at(-1) || null);
+  return periodConsumption(dentro, prima.at(-1) || contatoreNatoDentro(prima, dentro, inizio));
+}
+
+/* Un contatore che a inizio periodo non c'era ancora parte da zero.
+ *
+ * La crescita si misura dall'ultima riga PRIMA dell'arco. Per un contatore
+ * acceso dentro l'arco quella riga non esiste, e allora si partiva dalla prima
+ * riga di dentro — buttando via tutto quello che quella riga stessa aveva gia'
+ * accumulato. Dal campo: una wallbox installata quest'anno, contatore di vita a
+ * 1440,76 kWh e tutto il consumo del 2026, e il Report ne mostrava 445,6.
+ * Mancava il primo secchiello, cioe' il mese in cui la wallbox e' nata.
+ *
+ * Prima di quel periodo il contatore non aveva consumato niente: la partenza
+ * giusta e' zero, non il suo primo valore. La `sum` del Recorder e' un totale
+ * SUO — parte da zero alla prima statistica e si porta dietro i reset del
+ * contatore fisico — quindi zero e' esattamente il punto in cui comincia.
+ *
+ * Si dice «nato dentro» solo quando il segno c'e': niente righe prima
+ * dell'arco, e la prima riga di dentro che arriva DOPO il confine. Se la prima
+ * riga sta proprio sul confine non si sa se il contatore e' nato li' o se le
+ * righe di prima non sono state chieste, e allora non si tocca niente: sbagliare
+ * in questo verso vorrebbe dire prendere una cumulata vecchia di anni per il
+ * consumo di quest'anno. */
+function contatoreNatoDentro(prima, dentro, inizio) {
+  if (prima.length || !dentro.length) return null;
+  if (rowTimestamp(dentro[0]) <= inizio) return null;
+  return { start: new Date(inizio).toISOString(), sum: 0 };
 }
 
 function readDirectState(entity, states = {}) {
