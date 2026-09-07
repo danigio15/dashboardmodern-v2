@@ -114,7 +114,19 @@ test("mettere in uso un'auto non porta via la colonnina", () => {
     sorgente,
     /if \(!String\(chiave\)\.startsWith\("dm\.ev_"\) \|\| eDellaWallbox\(chiave\)\)/,
   );
-  assert.match(sorgente, /import \{ eDellaWallbox \} from "\.\.\/core\/wallbox-device-binding\.js"/);
+  assert.match(
+    sorgente,
+    /import \{ eDellaWallbox, eTargetDiCasa \} from "\.\.\/core\/wallbox-device-binding\.js"/,
+  );
+  /* E con la colonnina si tiene da parte anche il limite che si COMANDA.
+   *
+   * Il target non e' della colonnina — senza evcc e' un dato della vettura, e
+   * cambiando macchina deve cambiare con lei — ma quando la casa ne ha uno che
+   * prende ordini quello governa la presa, non la singola auto. Portarselo via
+   * al cambio d'auto voleva dire una tendina che manda il limite al cloud del
+   * costruttore: «Leapmotor remote control result failed: Token is invalid»
+   * dalla plancia, e nessun errore cambiandolo altrove. */
+  assert.match(sorgente, /eDellaWallbox\(chiave\) \|\| eTargetDiCasa\(chiave, valore\)/);
 });
 
 test("il pulsante della colonnina sta nella scheda Auto, accanto a quello dell'auto", () => {

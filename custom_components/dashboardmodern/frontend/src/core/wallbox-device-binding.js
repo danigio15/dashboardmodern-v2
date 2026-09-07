@@ -51,6 +51,31 @@ export function eDellaWallbox(ref) {
   return DELLA_WALLBOX.has(clean(ref));
 }
 
+/* Il limite di carica: della casa quando e' quello che comanda.
+ *
+ * Il target lo portano in due. L'auto lo pubblica quasi sempre come sensore di
+ * sola lettura, o come limite che vive nel cloud del costruttore; evcc lo
+ * pubblica come `number`, e quello lo si comanda davvero — e' proprio la
+ * regola che il collegamento di evcc applica gia' quando riempie la casella:
+ * un comando scalza una lettura.
+ *
+ * Solo che poi mettere in uso una vettura riversa il suo profilo nelle
+ * mappature globali e si riprendeva la casella. Da fuori si vede cosi': la
+ * tendina della percentuale mostra le voci giuste, si sceglie 90, e Home
+ * Assistant risponde «Leapmotor remote control result failed: Token is
+ * invalid» — perche' il comando e' andato al limite dell'AUTO, nel cloud del
+ * costruttore, mentre quello che governa la carica e' `number.evcc_*_limit_soc`
+ * ed e' li' a due passi. Dalla plancia falliva, dall'integrazione no.
+ *
+ * Quindi: se la casa tiene un target COMANDABILE, quello non se lo porta via
+ * nessun cambio d'auto. Se la casa non ce l'ha, o e' una lettura, il profilo
+ * della vettura resta padrone come e' sempre stato. */
+const COMANDABILE = /^(select|input_select|number|input_number)\./;
+
+export function eTargetDiCasa(ref, valore) {
+  return clean(ref) === "dm.ev_target_soc" && COMANDABILE.test(clean(valore));
+}
+
 /* Le parole con cui le integrazioni chiamano le cose di una colonnina.
  *
  * Sono quelle di evcc, go-e, Easee, KEBA, Wallbox Pulsar, openWB, Zaptec e

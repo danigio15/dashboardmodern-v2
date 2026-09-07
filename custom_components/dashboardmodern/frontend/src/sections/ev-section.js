@@ -1,5 +1,5 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { eDellaWallbox } from "../core/wallbox-device-binding.js";
+import { eDellaWallbox, eTargetDiCasa } from "../core/wallbox-device-binding.js";
 import {
   VEHICLE_KEY_FIELD,
   VEHICLE_OVERRIDES_FIELD,
@@ -373,7 +373,8 @@ function senzaLaColonnina(mappa) {
 function soloLaColonnina(mappa) {
   const uscita = {};
   for (const [chiave, valore] of Object.entries(mappa || {}))
-    if (eDellaWallbox(chiave) && clean(valore)) uscita[chiave] = valore;
+    if (clean(valore) && (eDellaWallbox(chiave) || eTargetDiCasa(chiave, valore)))
+      uscita[chiave] = valore;
   return uscita;
 }
 
