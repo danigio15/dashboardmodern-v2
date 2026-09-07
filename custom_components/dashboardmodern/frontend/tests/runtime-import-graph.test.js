@@ -870,8 +870,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // sempre. `core/stagione-del-clima.js` dice se un'unita' e' di stagione, con
   // gli intervalli che scavallano l'anno — ottobre-aprile e' il primo che
   // qualcuno scrivera' — e senza orologio dentro.
+  // 277 con la ventilazione meccanica (#371): «sarebbe bellissimo avere nei
+  // climate la possibilita' di inserire i dati delle 4 temperature delle
+  // macchine VMC… compresi i bypass, modalita' estate/inverno». Le quattro
+  // temperature non sono quattro numeri da mettere in colonna: sono due flussi
+  // che si incrociano, e messi cosi' si leggono da soli. `core/vmc-model.js`
+  // dice cosa vogliono dire — compreso il RECUPERO, l'unico numero che dice se
+  // la macchina vale quello che costa, e che nessuna card mostra;
+  // `sections/vmc-section.js` porta il disegno e `sections/vmc-editor-section.js`
+  // la scheda. La pagina del Clima resta di un padrone solo: il markup lo
+  // scrive il modulo della VMC, ma a chiamarlo e' il giro che possiede la
+  // pagina.
   assert.ok(
-    relative.length <= 274,
+    relative.length <= 277,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -110,10 +110,15 @@ test("togliere una chiave non alza la revisione", async () => {
    * la ritrova riscritta di la' da chi indovina; e il gemello di
    * `cd_fumo_rilevato` (`cd_allag_rilevato`), senza il quale l'altro
    * dispositivo rifa' il rilevamento e rimette dentro il sensore appena
-   * cancellato. */
-  assert.equal(CONFIG_KEYS_REVISION, 31);
+   * cancellato. E la 32 con la ventilazione meccanica (#371, `cd_vmc`): le
+   * quattro temperature, il bypass e i filtri di una VMC sono entita' di casa
+   * come tutte le altre, e la macchina e' una sola per tutta la famiglia —
+   * configurarla dal computer e non trovarla dal telefono sarebbe l'ennesimo
+   * «da smartphone vedo le sezioni configurate da pc invece no». */
+  assert.equal(CONFIG_KEYS_REVISION, 32);
   for (const chiave of ["cd_radar_meteo", "cd_orologio", "dm_campi_scelti", "cd_allag_rilevato"])
     assert.ok(CONFIG_KEYS.includes(chiave), `${chiave} deve viaggiare con la casa`);
+  assert.ok(CONFIG_KEYS.includes("cd_vmc"), "la ventilazione deve viaggiare con la casa");
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

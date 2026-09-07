@@ -55,6 +55,13 @@ import {
   chiudiIlFoglioDiScelta,
 } from "./foglio-di-scelta-section.js";
 import {
+  STILE_VMC,
+  firmaDelleVmc,
+  letturaDelleVmc,
+  sincronizzaLeVmc,
+  vmcMarkup,
+} from "./vmc-section.js";
+import {
   EVENTO_SPEGNIMENTI,
   leggiGliSpegnimenti,
   programmaSpegnimento,
@@ -403,6 +410,11 @@ function skeletonMarkup(labels) {
   <div class="clima-zone clima-zone-caldo">
     <div class="dm-cl-grid" id="clima-grid-caldo"></div>
   </div>
+
+  <!-- La ventilazione meccanica (#371): sta sotto le due zone e fuori da
+       entrambe, perche' non e' ne' freddo ne' caldo — e' l'aria di tutta la
+       casa, e si vede in tutti e due i modi. -->
+  <div data-dm-vmc-posto></div>
 </div>`;
 }
 
@@ -987,7 +999,30 @@ export function renderClimate({ rebuild = false, force = false } = {}) {
     if (card) paintCard(card, unit, climateReading(unit.entity, states), labels);
   }
   paintSummary(shell, units, states, labels);
+  dipingiLaVentilazione(shell, states);
   return true;
+}
+
+/* La ventilazione meccanica (#371).
+ *
+ * La pagina ha un padrone solo, ed e' questo: il markup e la mano che lo
+ * dipinge stanno in `vmc-section.js`, ma a chiamarli e' il giro che possiede
+ * la pagina. Due moduli che scrivono sulla stessa pagina e' il difetto che
+ * questa plancia ha gia' pagato altrove.
+ *
+ * Si ridisegna solo quando cambia la FORMA — una macchina che compare, un
+ * sensore che comincia a rispondere — e per il resto si riscrivono i numeri:
+ * rifare il markup a ogni grado cancellerebbe il pastiglia sotto il dito. */
+function dipingiLaVentilazione(shell, states) {
+  const posto = shell.querySelector("[data-dm-vmc-posto]");
+  if (!posto) return;
+  const letture = letturaDelleVmc(states);
+  const firma = firmaDelleVmc(letture);
+  if (posto.dataset.dmVmcFirma !== firma) {
+    posto.dataset.dmVmcFirma = firma;
+    posto.innerHTML = vmcMarkup(letture);
+  }
+  sincronizzaLeVmc(posto, letture);
 }
 
 /* ── wiring ───────────────────────────────────────────────────────────── */
@@ -2031,5 +2066,10 @@ html[data-theme="dark"] .dm-cl-knob{box-shadow:0 3px 8px rgba(0,0,0,.45)}
 @media(prefers-reduced-motion:reduce){
   .dm-cl-shell *{transition:none!important;animation:none!important}
 }
+
+/* La ventilazione meccanica vive in questa pagina, quindi il suo vestito entra
+ * nello stesso foglio: due fogli per una pagina sola sarebbero due posti in cui
+ * cercare quando qualcosa si sposta. Le regole le scrive il suo modulo. */
+${STILE_VMC}
 `;
 }

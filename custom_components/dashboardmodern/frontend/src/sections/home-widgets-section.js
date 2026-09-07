@@ -142,6 +142,7 @@ import {
   rifiutiConfigurati,
 } from "../core/rifiuti-model.js";
 import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
+import { CHIAVE_VMC, entitaDellaVmc, letturaVmc, vmcDisegnabili, vmcParla } from "../core/vmc-model.js";
 import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -3734,6 +3735,65 @@ function rifiutiModel(states) {
   };
 }
 
+/* La ventilazione meccanica (#371).
+ *
+ * La tessera dice la cosa che si guarda passando: a che temperatura sta
+ * entrando l'aria in casa, e quanto la macchina se n'e' ripreso. Il resto — le
+ * quattro temperature incrociate, il bypass, le ventole — sta nella pagina del
+ * Clima, che e' dove uno va quando la risposta corta non gli basta. */
+function vmcModel(states) {
+  const config = readJson(CHIAVE_VMC, []);
+  const unita = vmcDisegnabili(config);
+  if (!unita.length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entitaDellaVmc(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const letture = unita.map((voce) => letturaVmc(voce, states)).filter(vmcParla);
+  if (!letture.length) return null;
+  const prima = letture[0];
+  const immissione = prima.temperature.immissione;
+  const valore =
+    immissione && !immissione.muto && immissione.valore !== null
+      ? `${Math.round(immissione.valore * 10) / 10}°`
+      : "—";
+  const filtri = letture.some((lettura) => lettura.avvisi.length > 0);
+  const parti = [];
+  if (prima.bypassAperto) parti.push(t("Bypass aperto", "Bypass open"));
+  else if (prima.recupero !== null)
+    parti.push(`${t("Recupero", "Recovery")} ${prima.recupero}%`);
+  if (prima.estate) parti.push(t("Estate", "Summer"));
+  if (filtri) parti.push(t("Filtri da cambiare", "Filters need changing"));
+  return {
+    key: "vmc",
+    accent: "#0ea5e9",
+    icon: "🔄",
+    label: t("Ventilazione", "Ventilation"),
+    value: valore,
+    caption: parti.length ? parti.join(" · ") : t("Aria in casa", "Air into the house"),
+    ring: prima.bypassAperto || prima.recupero === null ? null : prima.recupero,
+    attiva: false,
+    alert: filtri,
+    rows: letture.flatMap((lettura) =>
+      Object.values(lettura.temperature)
+        .filter((voce) => voce && !voce.muto && voce.valore !== null)
+        .map((voce) => ({
+          glyph: voce.glifo,
+          name: lettura.nome
+            ? `${lettura.nome} · ${parolaDellaTemperatura(voce.chiave)}`
+            : parolaDellaTemperatura(voce.chiave),
+          entity: voce.entita,
+          value: `${Math.round(voce.valore * 10) / 10}°`,
+        })),
+    ),
+  };
+}
+
+function parolaDellaTemperatura(chiave) {
+  if (chiave === "esterna") return t("Aria esterna", "Outside air");
+  if (chiave === "immissione") return t("Immissione", "Supply");
+  if (chiave === "ripresa") return t("Ripresa", "Return");
+  return t("Espulsione", "Exhaust");
+}
+
 /* Tutte le tessere che la casa sa raccontare, prima delle preferenze.
  *
  * Sta staccato dal filtro perche' i modelli servono a due cose: la griglia
@@ -3772,6 +3832,7 @@ export function modelliDelleTessere(states) {
       mediaModel(states),
       allerteModel(states),
       rifiutiModel(states),
+      vmcModel(states),
       irrigationModel(states),
       batteriesModel(states),
       floodModel(states),
@@ -4951,6 +5012,7 @@ const CHIAVI_A_CARTE = new Set([
   "batterie",
   "allerte",
   "rifiuti",
+  "vmc",
   "elettrodomestici",
 ]);
 
@@ -5586,6 +5648,8 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   minipc: "server",
   allerte: "allerte",
   rifiuti: "rifiuti",
+  /* La ventilazione vive nella pagina del Clima: la tessera ci porta li'. */
+  vmc: "clima",
   media: "media",
 });
 

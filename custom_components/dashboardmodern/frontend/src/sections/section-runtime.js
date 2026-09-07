@@ -50,6 +50,7 @@ import { installTelecameraWebRtc } from "./telecamera-webrtc-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
+import { installVmcEditor } from "./vmc-editor-section.js";
 import { installTrvEditor } from "./trv-editor-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
@@ -896,6 +897,9 @@ export function installSectionRuntime() {
     installQuickClimateEditorSection();
     /* La valvola TRV (#300): una casella in piu' nella scheda dell'unita' clima. */
     installTrvEditor();
+    /* La ventilazione meccanica (#371): la sua scheda si appende in fondo
+     * alla configurazione del Clima, dov'e' che uno cerca l'aria di casa. */
+    installVmcEditor();
     installLiveUiSection();
     /* Il video vero delle telecamere (#294): WebRTC e HLS nelle tessere, e il
      * WebRTC nativo del popup negoziato con i server ICE di casa. */
