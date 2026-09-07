@@ -357,6 +357,50 @@ const OGGETTI = Object.freeze({
       <path d="M17.4 23.9h4.2l-1.5-2.7"/>
     </g>`,
 
+  /* I varchi: la porta socchiusa, che e' la cosa che si va a cercare.
+   *
+   * «Almeno a colpo d'occhio so quante finestre sono aperte in questo
+   * momento» (#367, #377). Non una porta chiusa — quella non racconta niente —
+   * ma il battente che si e' aperto di uno spiraglio, con la luce che passa:
+   * si legge prima di leggere il numero. */
+  varchi: `<defs>
+      <linearGradient id="dmoVarcoB" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fbbf24"/><stop offset=".5" stop-color="#f59e0b"/>
+        <stop offset="1" stop-color="#b45309"/></linearGradient>
+      <linearGradient id="dmoVarcoL" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#fde68a"/></linearGradient></defs>
+    ${OMBRA(16, 28.4, 9)}
+    <rect x="5.6" y="4.4" width="9.4" height="23.2" rx="1.6" fill="url(#dmoVarcoL)"/>
+    <path d="M16.6 3.6 26.4 6.2v19.6l-9.8 2.6z" fill="url(#dmoVarcoB)"/>
+    <circle cx="18.8" cy="16" r="1.5" fill="#fff" fill-opacity=".9"/>
+    <path d="M8.2 8.6h4.4M8.2 12.4h4.4" stroke="#f59e0b" stroke-opacity=".5" stroke-width="1.4"
+      stroke-linecap="round" fill="none"/>`,
+
+  /* Il server e la rete: il rack con le sue macchine, e il segnale che esce.
+   *
+   * «I controlli del server proxmox dove gira HA con tutti i suoi container, e
+   * lo stato del fritbox e i suoi ripeter» (#382). Le tre feritoie sono le
+   * macchine una sopra l'altra; le onde a destra sono la rete, che e' l'altra
+   * meta' della stessa domanda — e' tutto su? */
+  macchine: `<defs>
+      <linearGradient id="dmoMacS" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#818cf8"/><stop offset=".55" stop-color="#4f46e5"/>
+        <stop offset="1" stop-color="#312e81"/></linearGradient></defs>
+    ${OMBRA(16, 28.4, 8.4)}
+    <rect x="5.4" y="5" width="15.6" height="22" rx="3" fill="url(#dmoMacS)"/>
+    <g fill="#e0e7ff" fill-opacity=".92">
+      <rect x="7.8" y="8" width="10.8" height="4" rx="1.2"/>
+      <rect x="7.8" y="14" width="10.8" height="4" rx="1.2"/>
+      <rect x="7.8" y="20" width="10.8" height="4" rx="1.2"/>
+    </g>
+    <g fill="#22c55e">
+      <circle cx="16.6" cy="10" r="1.1"/><circle cx="16.6" cy="16" r="1.1"/><circle cx="16.6" cy="22" r="1.1"/>
+    </g>
+    <g fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round">
+      <path d="M23.6 12.6a5.4 5.4 0 0 1 0 6.8"/>
+      <path d="M26.6 9.4a9.6 9.6 0 0 1 0 13.2"/>
+    </g>`,
+
   /* La ventilazione meccanica: la macchina appesa, e i due flussi che si
    * incrociano dentro.
    *

@@ -104,6 +104,11 @@ const OGGETTO_DELLA_SCHEDA = Object.freeze({
   /* Gli animali (#358): l'orma di casa, la stessa che porta la loro voce
    * nella barra. */
   animali: "animale",
+  /* I varchi (#367, #377): la porta socchiusa, la stessa che porta la loro
+   * voce nella barra e la loro tessera in Home. Una scheda nuova si dimentica
+   * questa tabella perche' non e' dove si lavora, ed e' la terza volta che la
+   * prova la trova nuda. */
+  varchi: "varchi",
 });
 
 const FLOW_LOADS = Object.freeze({

@@ -95,6 +95,13 @@ test("sul telefono l'icona e il colore non si accavallano", async ({ page }, tes
   const riquadro = page.locator("#editor-modal [data-dm-load-icon-pick]").first();
   await expect(riquadro).toBeVisible({ timeout: 20_000 });
 
+  /* Prima si porta sotto gli occhi, come farebbe il dito: `elementFromPoint`
+   * risponde solo dentro la finestra, e per un riquadro sceso sotto la piega —
+   * basta una linguetta in piu' nella colonna della configurazione — direbbe
+   * «non c'e' niente sopra» che qui vuol dire «non l'ho guardato». La domanda
+   * da fare e' se qualcosa lo COPRE, e si fa dove il riquadro si vede. */
+  await riquadro.scrollIntoViewIfNeeded();
+
   /* Niente lo copre: quello che sta al centro del riquadro dev'essere il
    * riquadro. E' la domanda che si fa il dito, non il foglio di stile. */
   const sotto = await riquadro.evaluate((nodo) => {

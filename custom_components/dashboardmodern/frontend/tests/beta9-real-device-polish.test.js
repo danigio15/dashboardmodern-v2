@@ -94,11 +94,16 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   // Anche l'avviso tapparella fermo si muove: "static" lo lasciava l'unico
   // immobile del quadro, e da fuori sembrava un'animazione dimenticata.
   assert.match(source, /shutterMoving\(\) \? "shutter-moving" : "shutter"/);
-  assert.match(source, /\.dm-alert-shutter :is\(\.dm-alert-glyph,\.dm-oggetto\)/);
+  /* Il glifo che si muove puo' essere scritto in tre modi — il testo avvolto,
+   * l'oggetto della sezione, o il disegno del catalogo delle icone, che e'
+   * quello che porta la faccia scelta a mano su un avviso personalizzato
+   * (#381). Il movimento vale per tutti e tre: chiederne uno solo vorrebbe
+   * dire un avviso che, secondo con che pennello e' dipinto, sta fermo. */
+  assert.match(source, /\.dm-alert-shutter :is\(\.dm-alert-glyph,\.dm-oggetto,\.dm-icon-engine-glyph\)/);
   assert.match(source, /@keyframes dmAlertShutter\{[\s\S]*scaleY\(\.55\)/);
   // Every animation acts out its own alert, and it animates the glyph rather
   // than the disc the glyph sits in.
-  assert.match(source, /\.dm-alert-door :is\(\.dm-alert-glyph,\.dm-oggetto\)/);
+  assert.match(source, /\.dm-alert-door :is\(\.dm-alert-glyph,\.dm-oggetto,\.dm-icon-engine-glyph\)/);
   assert.match(source, /transform-origin:left center!important;animation:dmAlertDoor/);
   // The leaf narrows towards its hinge and comes back: a door swinging open,
   // drawn in two dimensions. A perspective rotateY reads the same and opens a
@@ -112,7 +117,10 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   assert.doesNotMatch(source, /@keyframes dmAlert[\s\S]*?\{[^}]*(clip-path|filter:(?!none))/);
   assert.doesNotMatch(source, /dmAlertOpening/);
   for (const kind of ["window", "leak", "flame", "motion", "temperature", "power", "light", "security"]) {
-    assert.match(source, new RegExp(`\\.dm-alert-${kind} :is\\(\\.dm-alert-glyph,\\.dm-oggetto\\)`));
+    assert.match(
+      source,
+      new RegExp(`\\.dm-alert-${kind} :is\\(\\.dm-alert-glyph,\\.dm-oggetto,\\.dm-icon-engine-glyph\\)`),
+    );
   }
   /* E nessun ramo a movimento ridotto le spegne: il movimento e' il segnale
    * dell'avviso, e su molti desktop quell'impostazione di sistema e' attiva a

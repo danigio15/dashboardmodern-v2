@@ -223,7 +223,14 @@ test("an alert animates the way its own alert behaves", async ({ page }, testInf
            `.dm-tile-ring i` erano i nomi di quando il ponte disegnava un
            disco, e non esistono piu'. */
         const wrap = card.querySelector(".dm-tile-chip");
-        const glyph = wrap?.querySelector(".dm-alert-glyph");
+        /* A muoversi e' il glifo, comunque sia disegnato: il testo avvolto
+           (`.dm-alert-glyph`), l'oggetto della sezione (`.dm-oggetto`) o il
+           disegno del catalogo delle icone (`.dm-icon-engine-glyph`), che e'
+           quello che porta la faccia scelta a mano su un avviso
+           personalizzato (#381). Cercarne uno solo vorrebbe dire chiedere a
+           questa prova di sapere con che pennello e' stata dipinta la
+           pastiglia, che non e' quello che deve sorvegliare. */
+        const glyph = wrap?.querySelector(".dm-alert-glyph, .dm-oggetto, .dm-icon-engine-glyph");
         return {
           name: card.querySelector(".dm-tile-label")?.textContent?.trim(),
           motion: wrap?.dataset.dmAlertMotion || "",
