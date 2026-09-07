@@ -2,17 +2,27 @@
  *
  * Sta fra le Impostazioni e non in una scheda sua, perche' non e' una sezione
  * della casa: e' un modo di parlarle, come la lingua e' un modo di leggerla.
- * Tre righe e nient'altro — quale assistente, se leggere la risposta ad alta
- * voce, e se il tasto deve galleggiare in Home — perche' tutto il resto lo sa
- * gia' Home Assistant e chiederglielo due volte sarebbe una configurazione da
- * tenere allineata a mano.
+ * Poco e niente altro — se e' acceso, quale assistente, se leggere la risposta
+ * ad alta voce — perche' tutto il resto lo sa gia' Home Assistant e
+ * chiederglielo due volte sarebbe una configurazione da tenere allineata a
+ * mano.
+ *
+ * «Assist non e' possibile disattivare da nessuna parte.» Spegnerlo si poteva,
+ * ma da una casella che si chiamava «il tasto in basso a destra» e che stava
+ * in mezzo alle altre due: chi cerca di spegnere una sezione cerca la fascia
+ * verde in cima, come su ogni altra scheda. Adesso quella c'e', ed e' la
+ * stessa del guscio, con la stessa chiave — la casella di prima e' sparita,
+ * perche' due modi di dire la stessa cosa sono due modi di tenerli allineati.
  */
-import { CHIAVE_ASSIST, normalizzaAssist } from "../core/assist-model.js";
+import { CHIAVE_ASSIST, SEZIONE_ASSIST, normalizzaAssist } from "../core/assist-model.js";
 import { siPuoParlare } from "./assist-section.js";
 import {
+  ORDINE_IMPOSTAZIONI,
   clean,
   doc,
+  dopoIGenerali,
   esc,
+  inserisciInOrdine,
   installStyle,
   onEditorRedraw,
   readJson,
@@ -46,21 +56,30 @@ function salva(cambio) {
   } catch (_error) {}
 }
 
+/* La fascia verde e' quella del guscio, con il suo gestore: in questa plancia
+ * una sezione si accende e si spegne da li', e Assist non e' un'eccezione solo
+ * perche' non ha una scheda tutta sua. Disegnarne una nostra vorrebbe dire due
+ * interruttori per la stessa decisione. */
+function fasciaMarkup() {
+  try {
+    return root.cdSecToggleHtml?.(SEZIONE_ASSIST) || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
 function rigaMarkup() {
   const config = configurazione();
   const senzaVoce = !siPuoParlare();
   return `<div class="ed-slot dm-assist-ed" data-dm-assist-ed>
     <div class="ed-slot-lbl">🗣️ Assist</div>
+    ${fasciaMarkup()}
     <div class="dm-assist-ed-nota">${esc(
       t(
         "Un tasto che apre l'assistente di Home Assistant: si scrive la domanda, oppure si tocca il microfono e si parla. Le frasi le capisce Home Assistant — la plancia gliele passa e basta.",
         "A button that opens the Home Assistant assistant: type the question, or tap the microphone and speak. Home Assistant understands the sentences — the dashboard just passes them along.",
       ),
     )}</div>
-    <label class="dm-assist-ed-riga">
-      <input type="checkbox" data-dm-assist-tasto${config.tasto ? " checked" : ""}>
-      <span>${esc(t("Il tasto in basso a destra", "The button in the bottom right"))}</span>
-    </label>
     <label class="dm-assist-ed-riga">
       <input type="checkbox" data-dm-assist-voce${config.voce ? " checked" : ""}>
       <span>${esc(t("Leggi la risposta ad alta voce", "Read the answer out loud"))}</span>
@@ -91,19 +110,17 @@ export function ensureAssistEditor() {
   const riga = guscio.firstElementChild;
   if (!riga) return false;
   /* Sotto la lingua, che e' la preferenza che le somiglia di piu': tutte e due
-   * dicono come la plancia parla a chi la guarda. */
-  const lingua = corpo.querySelector("[data-dm-lingua]");
-  if (lingua) lingua.after(riga);
-  else corpo.prepend(riga);
+   * dicono come la plancia parla a chi la guarda. Il posto lo dice un numero e
+   * non la riga della lingua: cercarla voleva dire arrivare in cima ogni volta
+   * che Assist si installava per primo — e Assist si installa per primo. */
+  inserisciInOrdine(corpo, riga, ORDINE_IMPOSTAZIONI.assist, dopoIGenerali);
   return true;
 }
 
 function onCambio(evento) {
   const riga = evento.target?.closest?.("[data-dm-assist-ed]");
   if (!riga) return;
-  if (evento.target.matches("[data-dm-assist-tasto]"))
-    salva({ tasto: evento.target.checked === true });
-  else if (evento.target.matches("[data-dm-assist-voce]"))
+  if (evento.target.matches("[data-dm-assist-voce]"))
     salva({ voce: evento.target.checked === true });
   else if (evento.target.matches("[data-dm-assist-agente]"))
     salva({ agente: clean(evento.target.value) });

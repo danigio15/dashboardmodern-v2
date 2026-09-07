@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CONVERSAZIONE_MS,
+  assistAcceso,
   domandaPerHomeAssistant,
   filoDaMandare,
   filoDaRiannodare,
@@ -109,4 +110,25 @@ test("il microfono vuole la lingua per esteso", () => {
   assert.equal(linguaPerIlMicrofono("pt-BR"), "pt-BR", "chi la scrive già per esteso la tiene");
   assert.equal(linguaPerIlMicrofono(""), "it-IT");
   assert.equal(linguaPerIlMicrofono("xx"), "xx", "una lingua che non conosciamo si passa com'è");
+});
+
+/* «Assist inoltre non è possibile disattivare da nessuna parte.»
+ *
+ * Spegnerlo si poteva, ma da una casella che si chiamava «il tasto in basso a
+ * destra». Adesso lo dice l'elenco delle sezioni, come per ogni altra sezione
+ * della plancia — e la casella di prima continua a contare per chi l'aveva già
+ * tolta e non ha ancora toccato la fascia. */
+test("Assist si spegne dall'elenco delle sezioni", () => {
+  assert.equal(assistAcceso({}, {}), true, "di serie è acceso: si trova, quindi c'è");
+  assert.equal(assistAcceso({ assist: false }, {}), false, "spento dalla fascia");
+  assert.equal(assistAcceso({ assist: true }, {}), true);
+  assert.equal(assistAcceso(undefined, undefined), true, "senza niente scritto, acceso");
+});
+
+test("chi aveva tolto il tasto resta senza Assist finché non dice altro", () => {
+  // La scelta vecchia diceva la stessa cosa: vale finché la nuova non c'è.
+  assert.equal(assistAcceso({}, { tasto: false }), false);
+  // E la fascia la scavalca, in tutte e due i versi.
+  assert.equal(assistAcceso({ assist: true }, { tasto: false }), true);
+  assert.equal(assistAcceso({ assist: false }, { tasto: true }), false);
 });

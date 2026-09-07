@@ -35,6 +35,12 @@ if TYPE_CHECKING:
 # Piu' di cosi' non e' un menu: e' un'esportazione.
 MAX_DEVICE_IDS = 200
 
+# Le entita' chieste per nome in una volta sola. Piu' alto del tetto dei
+# dispositivi perche' la domanda e' un'altra: non «mostrami questo menu» ma
+# «di chi sono queste entita' che ho gia' in mano» — e i binary_sensor con una
+# certa classe, in una casa grande, sono qualche centinaio.
+MAX_ENTITY_IDS = 500
+
 
 def _testo(value: Any) -> str:
     """Una stringa pulita, o niente."""
@@ -136,8 +142,43 @@ def _entita_del_dispositivo(hass: HomeAssistant, device_id: str) -> list[dict]:
     ]
 
 
+def _entita_per_nome(hass: HomeAssistant, entity_ids: list[str]) -> list[dict]:
+    """Le righe del catalogo per le entita' chieste per nome.
+
+    Serve a rispondere a una domanda sola: di quale integrazione e' questa
+    entita'. Lo stato non lo dice — `device_class: connectivity` ce l'hanno il
+    router, la stampante e ogni telefono — e senza saperlo una sezione che si
+    riempie da se' si riempie di tutta la casa. Il registro lo sa, ed e' l'unico
+    che lo sa.
+
+    Chi non e' nel registro non c'e': un'entita' inventata non diventa vera per
+    essere stata chiesta.
+    """
+    registro = er.async_get(hass)
+    registro_dispositivi = dr.async_get(hass)
+    nomi: dict[str, str] = {}
+    righe: list[dict] = []
+    for entity_id in dict.fromkeys(entity_ids[:MAX_ENTITY_IDS]):
+        entry = registro.async_get(entity_id)
+        if entry is None or entry.platform == DOMAIN:
+            continue
+        nome = ""
+        if entry.device_id:
+            if entry.device_id not in nomi:
+                device = registro_dispositivi.async_get(entry.device_id)
+                nomi[entry.device_id] = (
+                    _testo(device.name_by_user) or _testo(device.name) if device else ""
+                )
+            nome = nomi[entry.device_id]
+        righe.append(_entita(hass, entry, nome))
+    return righe
+
+
 async def async_build_catalog(
-    hass: HomeAssistant, *, device_ids: list[str] | None = None
+    hass: HomeAssistant,
+    *,
+    device_ids: list[str] | None = None,
+    entity_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """Integrazioni e dispositivi — o, per i dispositivi chiesti, le entita'.
 
@@ -147,12 +188,18 @@ async def async_build_catalog(
     non compare: non c'e' niente da mostrare. La plancia stessa nemmeno: le
     sue entita' non sono di nessun elettrodomestico.
 
+    Con ``entity_ids`` la domanda e' ancora un'altra — di chi sono queste
+    entita' — e la risposta porta le stesse righe, cercate per nome invece che
+    per dispositivo.
+
     Con ``device_ids`` si vogliono le entita' di quei dispositivi e basta, e
     la risposta porta solo ``entities``. Il menu non si ricompone: la plancia
     le chiede per ogni elettrodomestico collegato, e rileggere ogni volta
     integrazioni e dispositivi di tutta la casa — nel loop — era lavoro
     buttato, una volta per apparecchio a ogni apertura.
     """
+    if entity_ids:
+        return {"entities": _entita_per_nome(hass, entity_ids)}
     if device_ids:
         # Senza doppioni e nell'ordine chiesto: lo stesso dispositivo due
         # volte sarebbero le stesse righe due volte.

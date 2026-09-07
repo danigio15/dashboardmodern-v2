@@ -166,6 +166,7 @@ import {
   contoDelleMacchine,
   macchineERete,
 } from "../core/macchine-e-rete.js";
+import { EVENTO_PIATTAFORME, piattaformeConosciute } from "./di-chi-e-unentita-section.js";
 import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import {
@@ -3156,7 +3157,14 @@ function varchiModel(states) {
 function macchineModel(states) {
   const fuori = widgetExcludedEntities();
   const config = readJson(CHIAVE_MACCHINE, {});
-  const elenchi = macchineERete(states, config, (entity) => friendlyName(states, entity));
+  /* Le stesse integrazioni scelte per la pagina Server: la tessera non conta
+   * niente che quella pagina non mostrerebbe. */
+  const elenchi = macchineERete(
+    states,
+    config,
+    (entity) => friendlyName(states, entity),
+    piattaformeConosciute(),
+  );
   const righe = [...elenchi.macchine, ...elenchi.rete].filter((riga) =>
     widgetIncludes(riga.entity, fuori),
   );
@@ -8392,6 +8400,10 @@ export function installHomeWidgetsSection() {
        e' gia' disegnata: la sua tessera va messa quando la risposta atterra,
        non al primo evento che passi di li' per un'altra ragione. */
     "dashboardmodern:segnalazioni-coda",
+    /* Il registro ha detto di chi sono le entita' del server e della rete: la
+       tessera «Server e rete» conta solo quelle delle integrazioni scelte, e
+       prima di quella risposta non ne conta nessuna. */
+    EVENTO_PIATTAFORME,
     /* La chat di assistenza dice quando ha una risposta da leggere, e quando
        e' stata letta: la sua tessera compare e sparisce con quello. */
     "dashboardmodern:chat-stato",

@@ -672,6 +672,10 @@ La macchina disegnata in 3D con **CPU, RAM e disco** come barre che crescono, il
 
 > **La connettività è una casella sola, e si chiama Internet.** Erano quattro caselle che facevano la stessa domanda, e la card ne leggeva una: chi aveva riempito una delle altre tre vedeva **OFFLINE** con tutto configurato e la linea che funzionava. Adesso ce n'è una, accetta un `binary_sensor`, uno stato a parole (`on`, `connesso`, `online`, `up`, `ok`) oppure i millisecondi di un ping. Quello che stava nelle vecchie tre continua a essere letto finché non lo sposti: nessuno perde lo stato che aveva.
 
+Sotto le caselle ci sono **le macchine e la rete**: le VM e i container di Proxmox, il router e i suoi ripetitori. Ogni riga dice come sta — verde su, rossa giù, smorta quella che non risponde — e chi Home Assistant sa avviare e fermare porta il suo tasto.
+
+> **Da quali integrazioni prenderle si sceglie una volta.** Le classi che Home Assistant usa per dichiararle — `running` e `connectivity` — ce l'hanno anche la lavatrice, la stampante, ogni telefono e ogni presa Wi-Fi: prendendo tutto, la sezione si riempiva di roba che non c'entra. Nell'editor c'è l'elenco delle integrazioni con **quanto porterebbe ognuna** — «Proxmox VE · 12», «FRITZ!Box · 4» — e si spunta quella giusta: da lì in poi un container nuovo entra da solo e una lavatrice nuova resta fuori da sola.
+
 ---
 
 # Segnalazioni e assistenza
@@ -951,6 +955,8 @@ Ogni blocco ha il suo **«Mostra in pagina»**: si configura una macchina senza 
 CPU, RAM, disco, temperatura CPU, uptime della macchina e di Home Assistant, consumo, Speedtest (download, upload, ping) e **Internet**.
 
 > **Internet è una casella sola.** Accetta un `binary_sensor`, uno stato a parole o i millisecondi di un ping. Le tre vecchie caselle equivalenti non si compilano più, ma continuano a essere lette finché non travasi il valore: chi le aveva riempite non perde lo stato.
+
+Sotto, **Macchine e rete**: si spunta da quali integrazioni prenderle — con accanto il conto di quante ne porta ognuna — e si corregge il resto. Si toglie quello che non c'entra anche dentro un'integrazione scelta, si aggiunge a mano quello che nessuno ha etichettato, e si dà un nome leggibile a `pve_qemu_103`. Le tolte a mano stanno dietro una piega, e da lì si rimettono.
 
 ### 🎵 Musica · 🔌 Prese · 🔋 Continuità
 

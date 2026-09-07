@@ -114,7 +114,19 @@ test("una frase vuota non parte", async ({ page }, testInfo) => {
   expect(await page.evaluate(() => window.__CHIESTO__.length)).toBe(0);
 });
 
-test("spegnendolo in configurazione il tasto se ne va", async ({ page }, testInfo) => {
+/* La configurazione si apre sulla Home: la riga di Assist e quella della
+ * lingua stanno nelle Impostazioni, che è un'altra linguetta. */
+async function apriLeImpostazioni(page) {
+  await page.evaluate(() => {
+    window.apriConfigEntita?.();
+    window.editorSwitch?.("visib");
+  });
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="visib"]')).toHaveClass(/active/);
+}
+
+test("chi aveva già tolto il tasto resta senza Assist", async ({ page }, testInfo) => {
+  /* La casella «il tasto in basso a destra» non c'è più, ma quello che diceva
+   * conta ancora per chi l'aveva tolta e non ha ancora toccato la fascia. */
   await apriLaPlancia(page, testInfo);
   await expect(page.locator("#dm-assist-tasto")).toHaveCount(1);
   await page.evaluate(() => {
@@ -122,4 +134,69 @@ test("spegnendolo in configurazione il tasto se ne va", async ({ page }, testInf
     window.dispatchEvent(new CustomEvent("dashboardmodern:config-changed"));
   });
   await expect(page.locator("#dm-assist-tasto")).toHaveCount(0);
+});
+
+/* «Assist inoltre non è possibile disattivare da nessuna parte.»
+ *
+ * Spegnerlo si poteva, ma da una casella in mezzo alle altre che si chiamava
+ * «il tasto in basso a destra». Adesso c'è la fascia verde in cima alla riga,
+ * la stessa di ogni altra sezione della plancia, con lo stesso gestore del
+ * guscio: si cerca dove si cercano gli interruttori, e si trova. */
+test("la fascia verde spegne Assist, e si trova dove si cercano gli interruttori", async ({
+  page,
+}, testInfo) => {
+  await apriLaPlancia(page, testInfo);
+  await expect(page.locator("#dm-assist-tasto")).toHaveCount(1);
+
+  await apriLeImpostazioni(page);
+  const riga = page.locator("#ed-body [data-dm-assist-ed]");
+  await expect(riga).toBeVisible();
+  const fascia = riga.locator('[data-key="assist"]');
+  await expect(fascia).toBeVisible();
+
+  await fascia.click();
+  await expect(page.locator("#dm-assist-tasto")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem("cd_sections") || "{}").assist),
+  ).toBe(false);
+
+  /* E si riaccende dallo stesso posto. */
+  await page.locator('#ed-body [data-dm-assist-ed] [data-key="assist"]').click();
+  await expect(page.locator("#dm-assist-tasto")).toHaveCount(1);
+});
+
+/* «Lingua non presente nella parte iniziale del config dove c'è assistenza,
+ * prima usciva lì»: Assist si installa prima della lingua e, non trovandola,
+ * finiva in cima alla scheda. L'ordine adesso è dichiarato, non capitato. */
+test("nelle Impostazioni la lingua sta sopra Assist", async ({ page }, testInfo) => {
+  await apriLaPlancia(page, testInfo);
+  await apriLeImpostazioni(page);
+  await expect(page.locator("#ed-body [data-dm-lingua]")).toBeVisible();
+  await expect(page.locator("#ed-body [data-dm-assist-ed]")).toBeVisible();
+
+  /* E dopo un ridisegno della scheda l'ordine è ancora quello: le due righe se
+   * le rimettono i loro moduli, e nessuno dei due decide in che ordine.
+   *
+   * Che poi sia il numero a decidere e non l'ordine di installazione lo prova
+   * `tests/le-impostazioni-si-leggono-in-ordine.test.js`, che i due arrivi li
+   * può mettere nell'ordine che vuole; qui si guarda che nel guscio vero le
+   * righe ci siano tutte e due e stiano dove devono. */
+  const ordine = async () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("#ed-body [data-dm-lingua], #ed-body [data-dm-assist-ed]")].map(
+        (nodo) => (nodo.matches("[data-dm-lingua]") ? "lingua" : "assist"),
+      ),
+    );
+  expect(await ordine()).toEqual(["lingua", "assist"]);
+
+  await page.evaluate(() => {
+    for (const nodo of document.querySelectorAll(
+      "#ed-body [data-dm-lingua], #ed-body [data-dm-assist-ed]",
+    ))
+      nodo.remove();
+    window.dispatchEvent(new CustomEvent("dashboardmodern:editor-rendered"));
+  });
+  await expect(page.locator("#ed-body [data-dm-lingua]")).toBeVisible();
+  await expect(page.locator("#ed-body [data-dm-assist-ed]")).toBeVisible();
+  expect(await ordine()).toEqual(["lingua", "assist"]);
 });

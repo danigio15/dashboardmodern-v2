@@ -30,10 +30,10 @@ import {
   integrationsWithDevices,
 } from "../core/appliance-device-binding.js";
 import { applianceCatalogLabel } from "../core/device-model.js";
+import { TIPO_CATALOGO, chiediAlCatalogo } from "./di-chi-e-unentita-section.js";
 import {
   activeLocale,
   allStates,
-  chiediAHomeAssistant,
   clean,
   dashboardStore,
   doc,
@@ -58,25 +58,11 @@ const state = (root[KEY] ||= {
   entitiesInflight: new Map(),
 });
 
-const TYPE = "dashboardmodern/integrations/catalog";
 /* Il catalogo cambia quando si installa un'integrazione: non a ogni tocco. */
 const FRESH_MS = 5 * 60 * 1000;
-const EVENT = "dashboardmodern:integrations-catalog";
-
-/* La domanda al backend, per la strada che c'e'.
- *
- * Dentro la cornice il guscio ha la sua presa, che e' il ponte; sulla pagina
- * servita da sola e' la presa vera. Se il guscio non l'ha ancora aperta c'e'
- * il broker dell'energia, che ne apre una sua. */
-async function chiedi(payload) {
-  try {
-    return await chiediAHomeAssistant(payload, 15000);
-  } catch (error) {
-    const broker = root.DashboardModernEnergyService?.broker;
-    if (typeof broker?.request !== "function") throw error;
-    return broker.request(payload);
-  }
-}
+/* Si annuncia quando il catalogo e' arrivato: chi lo aspetta si ridisegna. */
+export const EVENTO_CATALOGO = "dashboardmodern:integrations-catalog";
+const EVENT = EVENTO_CATALOGO;
 
 function annuncia() {
   try {
@@ -91,7 +77,7 @@ export async function caricaCatalogo({ force = false } = {}) {
   if (state.catalogInflight) return state.catalogInflight;
   state.catalogInflight = (async () => {
     try {
-      const result = await chiedi({ type: TYPE });
+      const result = await chiediAlCatalogo({ type: TIPO_CATALOGO });
       state.catalog = {
         integrations: Array.isArray(result?.integrations) ? result.integrations : [],
         devices: Array.isArray(result?.devices) ? result.devices : [],
@@ -133,7 +119,7 @@ function prenotaEntita(id) {
         const tutti = [...ids];
         const richieste = [];
         for (let da = 0; da < tutti.length; da += MAX_IDS_PER_RICHIESTA)
-          richieste.push(chiedi({ type: TYPE, device_ids: tutti.slice(da, da + MAX_IDS_PER_RICHIESTA) }));
+          richieste.push(chiediAlCatalogo({ type: TIPO_CATALOGO, device_ids: tutti.slice(da, da + MAX_IDS_PER_RICHIESTA) }));
         Promise.all(richieste).then(
           (risposte) =>
             resolve(risposte.flatMap((result) => (Array.isArray(result?.entities) ? result.entities : []))),
@@ -180,6 +166,24 @@ export function entitaDelDispositivo(deviceId) {
 }
 
 /** Solo per le prove: dimentica quello che si e' letto. */
+/**
+ * Come si chiamano le integrazioni: `{ proxmoxve: "Proxmox VE" }`.
+ *
+ * Dal catalogo gia' in memoria, se c'e'; altrimenti niente, e chi chiama
+ * mostrera' il dominio. Serve a chi ha bisogno del nome leggibile senza
+ * ricostruire il menu — la scheda delle macchine, per dire «Proxmox VE» invece
+ * di «proxmoxve» — e legge la stessa memoria del menu invece di tenerne una
+ * sua da riallineare.
+ */
+export function nomiDelleIntegrazioni() {
+  const nomi = {};
+  for (const riga of state.catalog?.integrations || []) {
+    const dominio = clean(riga?.domain);
+    if (dominio) nomi[dominio] = clean(riga?.name) || dominio;
+  }
+  return nomi;
+}
+
 export function dimenticaCatalogo() {
   state.catalog = null;
   state.catalogAt = 0;

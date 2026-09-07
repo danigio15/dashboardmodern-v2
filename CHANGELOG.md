@@ -5,6 +5,57 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non ancora rilasciato
+
+### Corretto
+
+- **MiniPC: la sezione non si prende più mezza casa**
+
+      «La sezione mini pc porta in automatico tutte queste entità sotto che non
+       si eliminano e che non c'entrano nulla con quella sezione.»
+
+  Le macchine e la rete si riempivano da sole guardando due classi di Home
+  Assistant: `running` per le VM e i container di Proxmox, `connectivity` per il
+  router e i suoi ripetitori. Ma quelle due etichette ce l'hanno anche la
+  lavatrice, la stampante, il tagliaerba, ogni telefono e ogni presa Wi-Fi — in
+  una casa vera sono decine, e toglierle una per una è un lavoro che ricomincia
+  a ogni dispositivo nuovo.
+
+  Quello che distingue un container dal ferro da stiro non sta nello stato: sta
+  in chi ha creato l'entità, e quello lo sa solo il registro di Home Assistant.
+  Adesso in Config → 🖥️ MiniPC si sceglie **da quali integrazioni** prendere —
+  «Proxmox VE · 12», «FRITZ!Box · 4», col conto di quanto porterebbe ognuna — e
+  da quel momento un container nuovo entra da solo mentre una lavatrice nuova
+  resta fuori da sola. Una spunta al posto di trenta esclusioni.
+
+  Chi aggiorna trova la sezione in attesa di quella spunta, con scritto dove
+  darla: una sezione vuota si riempie in un gesto, una piena di roba d'altri si
+  svuota in trenta. Le entità aggiunte a mano restano dov'erano, e le escluse
+  non fanno più muro — stanno dietro una piega, e il tasto adesso dice
+  «rimetti nell'elenco» invece di una ✕ che sembrava cancellare.
+
+- **La lingua torna sopra Assist, nelle Impostazioni**
+
+      «Lingua non presente nella parte iniziale del config dove c'è assistenza,
+       prima usciva lì.»
+
+  Era una gara fra due moduli, e la vinceva sempre lo stesso: Assist si installa
+  prima della lingua, cercava la riga della lingua per mettersi sotto, non la
+  trovava ancora e finiva in cima alla scheda. L'ordine di quello che si legge
+  non dipende più dall'ordine in cui i moduli si caricano: ogni riga si porta
+  scritto il suo posto, e arrivare primi o ultimi non cambia niente.
+
+- **Assist si spegne dove si spengono le sezioni**
+
+      «Assist inoltre non è possibile disattivare da nessuna parte.»
+
+  Spegnerlo si poteva, ma da una casella che si chiamava «il tasto in basso a
+  destra» e stava in mezzo alle altre due. Adesso la riga di Assist porta in
+  cima la stessa fascia verde di ogni altra sezione della plancia, con lo stesso
+  interruttore del guscio — e la casella di prima è sparita, perché due modi di
+  dire la stessa cosa sono due modi di tenerli allineati. Chi aveva già tolto il
+  tasto resta senza Assist finché non tocca la fascia.
+
 ## 1.4.13
 
 Il giro delle richieste: dodici segnalazioni arrivate dopo la 1.4.12, prese una

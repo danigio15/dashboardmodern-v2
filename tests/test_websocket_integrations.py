@@ -387,3 +387,44 @@ async def test_le_entita_per_dispositivo_non_ricompongono_il_menu(
     # Il nome del dispositivo si toglie davanti anche per questa strada.
     assert catalogo["entities"][0]["name"] == "interruttore"
     assert catalogo["entities"][1]["name"] == "Power"
+
+
+async def test_le_entita_si_chiedono_anche_per_nome(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+    area_registry: ar.AreaRegistry,
+) -> None:
+    """Di quale integrazione e' questa entita'.
+
+    E' la domanda che la sezione delle macchine deve fare prima di adottare
+    qualcosa: `device_class: running` ce l'hanno i container di Proxmox ma
+    anche la lavatrice, e lo stato non dice da dove arriva. Il registro si'.
+    """
+    await _casa(hass, device_registry, entity_registry, area_registry)
+
+    catalogo = await _comando(
+        hass,
+        StubConnection(hass),
+        {
+            "type": TYPE_INTEGRATIONS_CATALOG,
+            "entity_ids": [
+                "switch.presa_frigo",
+                "sensor.lavatrice_power",
+                # Chiesta due volte: una riga sola.
+                "switch.presa_frigo",
+                # Mai vista: non diventa vera per essere stata chiesta.
+                "binary_sensor.inventata",
+            ],
+        },
+    )
+
+    per_entita = {riga["entity_id"]: riga for riga in catalogo["entities"]}
+    assert sorted(per_entita) == ["sensor.lavatrice_power", "switch.presa_frigo"]
+    assert per_entita["switch.presa_frigo"]["platform"] == "shelly"
+    assert per_entita["sensor.lavatrice_power"]["platform"] == "hon"
+    # Il nome arriva senza quello del dispositivo davanti, come per dispositivo.
+    assert per_entita["sensor.lavatrice_power"]["name"] == "Power"
+    # Chiedendo per nome il menu non si ricompone: era la domanda di un altro.
+    assert "integrations" not in catalogo
+    assert "devices" not in catalogo

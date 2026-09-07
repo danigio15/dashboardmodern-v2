@@ -946,8 +946,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // guscio si aspetta: la catena scende, come sarebbe scesa se l'HLS avesse
   // fallito subito. Il guscio storico non si tocca: gli si avvolge la
   // funzione.
+  // 289 con «di chi e' questa entita'»
+  // (`sections/di-chi-e-unentita-section.js`): l'integrazione che ha creato
+  // un'entita', chiesta al registro e tenuta da parte. «La sezione mini pc
+  // porta in automatico tutte queste entita' sotto che non si eliminano e che
+  // non c'entrano nulla con quella sezione»: la classe che le macchine
+  // guardavano — `running`, `connectivity` — ce l'hanno i container di Proxmox
+  // ma anche la lavatrice, la stampante, ogni telefono e ogni presa Wi-Fi, e
+  // toglierle una per una e' un lavoro che ricomincia a ogni dispositivo
+  // nuovo. Quello che distingue un container dal ferro da stiro non e' nello
+  // stato: e' in chi ha creato l'entita', e quello lo sa solo il registro.
+  // Il modulo e' anche il posto dove vive il trasporto verso
+  // `integrations/catalog` — la presa vera, il ponte, il broker dell'energia —
+  // che il menu delle integrazioni degli elettrodomestici aveva scritto per
+  // conto suo: adesso e' scritto una volta e lo usano tutti e due.
   assert.ok(
-    relative.length <= 288,
+    relative.length <= 289,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

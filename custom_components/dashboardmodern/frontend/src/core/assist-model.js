@@ -29,6 +29,9 @@ const pulito = (valore) => String(valore ?? "").trim();
 /** La chiave in cui vive la configurazione di Assist. */
 export const CHIAVE_ASSIST = "cd_assist";
 
+/** Come si chiama Assist nell'elenco delle sezioni accese: `cd_sections`. */
+export const SEZIONE_ASSIST = "assist";
+
 /** Il comando con cui Home Assistant capisce una frase. */
 export const TIPO_CONVERSAZIONE = "conversation/process";
 
@@ -61,8 +64,25 @@ export function normalizzaAssist(stored) {
   };
 }
 
-/** Se Assist ha qualcosa da fare: e' sempre vero, ma lo si chiede lo stesso. */
-export function assistAcceso(config) {
+/**
+ * Se Assist e' acceso.
+ *
+ * «Assist non e' possibile disattivare da nessuna parte.» Un interruttore
+ * c'era — la casella «il tasto in basso a destra» — ma non si chiamava
+ * spegnere e non stava dove si cercano gli interruttori: in questa plancia una
+ * sezione si accende e si spegne dalla fascia verde in cima alla sua scheda,
+ * che scrive in `cd_sections`. Assist adesso fa lo stesso, con la stessa
+ * fascia e la stessa chiave, e la casella di prima sparisce: due modi di dire
+ * la stessa cosa sono due modi di tenerli allineati.
+ *
+ * `sezioni` e' `cd_sections`, `config` la configurazione di Assist. La scelta
+ * nuova vince; dove non c'e' — chi aveva gia' spento il tasto e non ha ancora
+ * toccato la fascia — vale ancora quella vecchia, che diceva la stessa cosa.
+ */
+export function assistAcceso(sezioni, config) {
+  const scelta = sezioni?.[SEZIONE_ASSIST];
+  if (scelta === false) return false;
+  if (scelta === true) return true;
   return normalizzaAssist(config).tasto;
 }
 
