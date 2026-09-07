@@ -175,7 +175,10 @@ function installaLoStile() {
   installStyle(
     STILE,
     `
-    .${BARRA}{display:grid!important;gap:8px!important;padding:10px 12px!important;border-bottom:1px solid var(--divider-color,#e2e8f0)!important;background:var(--card-background-color,#fff)!important}
+    /* Dentro il corpo e appiccicata in cima, non sopra di lui: una riga in piu'
+       fra le linguette e il corpo rubava altezza al modale, e su un telefono
+       spingeva fuori dallo schermo le linguette interne delle schede. */
+    .${BARRA}{position:sticky!important;top:0!important;z-index:3!important;display:grid!important;gap:8px!important;margin:-8px -4px 8px!important;padding:10px 12px!important;border-bottom:1px solid var(--divider-color,#e2e8f0)!important;background:var(--card-background-color,#fff)!important}
     .${BARRA}-riga{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:center!important}
     .${BARRA}-in{width:100%!important;min-height:42px!important;box-sizing:border-box!important;padding:9px 12px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:12px!important;background:var(--secondary-background-color,#f8fafc)!important;color:inherit!important;font:inherit!important}
     .${BARRA}-via{min-height:42px!important;padding:0 14px!important;border:0!important;border-radius:12px!important;background:#94a3b8!important;color:#fff!important;font-weight:800!important;cursor:pointer!important}
@@ -264,11 +267,12 @@ export function ensureBarraDiRicerca() {
   const corpo = doc?.getElementById?.("ed-body");
   if (!strisce || !corpo) return false;
   installaLoStile();
-  let barra = strisce.parentElement?.querySelector?.(`:scope > .${BARRA}`);
+  let barra = corpo.querySelector(`:scope > .${BARRA}`);
   if (barra) {
-    /* Il guscio ridisegna il corpo a ogni cambio di scheda: la barra resta
-     * dov'e', e con lei quello che si stava cercando. */
-    if (barra.nextElementSibling !== corpo) corpo.before(barra);
+    /* Il guscio riscrive il corpo a ogni cambio di scheda: se la barra e'
+     * finita in mezzo la si rimette in cima, e quello che si stava cercando
+     * resta scritto perche' la parola vive nello stato del modulo. */
+    if (corpo.firstElementChild !== barra) corpo.prepend(barra);
     return false;
   }
   barra = doc.createElement("div");
@@ -291,7 +295,7 @@ export function ensureBarraDiRicerca() {
   esiti.className = `${BARRA}-esiti`;
   esiti.hidden = !state.parola;
   barra.append(riga, esiti);
-  corpo.before(barra);
+  corpo.prepend(barra);
 
   const ridisegna = () => {
     state.parola = clean(campo.value);

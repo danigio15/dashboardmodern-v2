@@ -242,6 +242,31 @@ export function remainingInfo(device = {}, states = {}, now = 0, record = null) 
 const TEMPERATURA_DI_CONTORNO =
   /(ambient|ambiente|room|stanza|esterno|outdoor|target|obiettivo|setpoint|impostat)/i;
 
+/* Per quali apparecchi una temperatura vuol dire qualcosa.
+ *
+ * La barra della temperatura la card la disegna solo per gli apparecchi che
+ * tengono il freddo — sta scritto qui sotto, dove si scelgono i confini della
+ * barra: da -25 a -10 per un congelatore, da 0 a 10 per un frigorifero. Su
+ * tutto il resto quella barra non c'e', e indovinare un sensore per riempirla
+ * era lavoro fatto per niente che pero' un numero lo tirava fuori lo stesso.
+ *
+ * Dal campo (#374): «la scheda friggitrice ad aria prende i valori di
+ * temperatura, umidita' e qualita' dell'aria da un Air quality monitor di
+ * Amazon che ho integrato, senza che nessuno abbia detto di farlo da nessuna
+ * parte … anche la temperatura esterna non e' utile per cio' che deve fare la
+ * friggitrice». Ed e' giusto: una friggitrice non ha una temperatura da
+ * mostrare, e un sensore in gradi trovato fra le sue entita' e' quasi sempre
+ * la stanza, non lei.
+ *
+ * Chi una temperatura ce l'ha davvero e non e' in questo elenco la scrive
+ * nella sua casella, che e' li' apposta: una casella vuota si nota, un numero
+ * sbagliato no. */
+function tieneUnaTemperatura(device) {
+  if (isFreezerDevice(device)) return true;
+  const tipo = clean(device?.visual_key || device?.device_type || device?.type);
+  return COLD_TYPES.has(tipo) || tipo === "frigo" || tipo === "congelatore";
+}
+
 function candidateTemperatures(device, states) {
   const trovate = [];
   for (const reference of device.entities || []) {
@@ -270,7 +295,7 @@ export function temperatureInfo(device = {}, states = {}, quale = 1) {
    * da parte, e se restano ancora piu' candidati non si sceglie: la casella in
    * configurazione e' li' apposta, e una casella vuota si nota — un numero
    * sbagliato no. */
-  if (!snapshot && quale === 1 && !clean(casella)) {
+  if (!snapshot && quale === 1 && !clean(casella) && tieneUnaTemperatura(device)) {
     const trovate = candidateTemperatures(device, states);
     const buone = trovate.filter((voce) => !voce.contorno);
     const scelta = buone.length === 1 ? buone[0] : trovate.length === 1 ? trovate[0] : null;
