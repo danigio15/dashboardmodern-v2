@@ -234,7 +234,7 @@ def _panel_config(
         ),
         "admin_only": bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
         "lovelace_url_path": _lovelace_url_path(entry),
-        "dashboard_card_module": f"{static_url_path}/dashboard-card.js",
+        "dashboard_card_module": _dashboard_card_module_url(asset_version),
         "_panel_custom": {
             "name": f"{PANEL_COMPONENT_NAME}-{asset_version[:8]}",
             "embed_iframe": False,
@@ -346,13 +346,34 @@ async def _ensure_static_registered(
     domain_data[DATA_STATIC_REGISTERED] = static_url_path
 
 
+def _dashboard_card_module_url(asset_version: str) -> str:
+    """L'indirizzo con cui il frontend carica la card, e perche' non e' versionato.
+
+    Era `{prefisso}/{firma}/dashboard-card.js`, cioe' un indirizzo che cambia a
+    ogni aggiornamento. Quell'indirizzo il frontend se lo porta dentro l'avvio
+    della pagina, e l'app companion di Android l'avvio se lo tiene in cache a
+    lungo: dopo un aggiornamento la pagina in cache chiede ancora la firma
+    vecchia, quel percorso non esiste piu', e l'elemento non viene mai definito.
+    Il risultato e' «Custom element doesn't exist: dashboardmodern-card» sulla
+    dashboard predefinita — e infatti succedeva sui telefoni con l'app
+    installata da tempo e non su uno appena installato (#372).
+
+    Adesso il PERCORSO e' quello stabile, che c'e' sempre, e la firma sta nella
+    domanda: una pagina vecchia chiede una firma vecchia allo stesso percorso e
+    riceve la card di adesso invece di un 404, e una pagina nuova chiede una
+    firma nuova e non riusa quella in cache. La card ricava da se' la sua base
+    per il resto degli asset, quindi non le cambia niente.
+    """
+    return f"{STATIC_URL_PATH}/dashboard-card.js?v={asset_version}"
+
+
 def _ensure_dashboard_card_registered(
     hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
     """Load the companion custom card through the public frontend API."""
     from homeassistant.components import frontend
 
-    module_url = f"{static_url_path}/dashboard-card.js"
+    module_url = _dashboard_card_module_url(static_url_path.rsplit("/", 1)[-1])
     if domain_data.get(DATA_DASHBOARD_CARD_REGISTERED) == module_url:
         return
 

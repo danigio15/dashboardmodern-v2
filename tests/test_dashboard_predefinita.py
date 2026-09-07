@@ -158,3 +158,26 @@ def test_il_pannello_non_scrive_piu_la_dashboard() -> None:
     assert "lovelace/dashboards/create" not in sorgente
     assert "lovelace/config/save" not in sorgente
     assert "custom:dashboardmodern-card" not in sorgente
+
+
+def test_la_card_si_carica_da_un_percorso_che_non_scade() -> None:
+    """«Custom element doesn't exist: dashboardmodern-card» (#372).
+
+    L'indirizzo con cui il frontend carica la card se lo porta dentro l'avvio
+    della pagina, e l'app companion di Android quell'avvio se lo tiene in cache
+    a lungo. Con un indirizzo versionato, dopo un aggiornamento la pagina in
+    cache chiedeva la firma vecchia, quel percorso non esisteva piu', e
+    l'elemento non veniva mai definito: succedeva sui telefoni con l'app
+    installata da tempo e non su uno appena installato, che e' esattamente come
+    e' stato descritto.
+
+    Il percorso deve essere quello stabile — c'e' sempre — con la firma nella
+    domanda, cosi' una pagina vecchia riceve la card di adesso invece di un 404
+    e una nuova non riusa quella in cache.
+    """
+    url = fe._dashboard_card_module_url("abc123")
+    assert url == "/dashboardmodern_static/dashboard-card.js?v=abc123"
+    # Il percorso non porta la firma: sarebbe di nuovo un indirizzo che scade.
+    assert "/abc123/" not in url
+    # Ed e' un percorso che l'integrazione monta davvero, fuori dalla versione.
+    assert "dashboard-card.js" in fe.RUNTIME_MOUNTS

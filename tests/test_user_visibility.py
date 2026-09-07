@@ -40,4 +40,9 @@ def test_panel_config_exposes_user_allow_list_and_companion_dashboard(
     assert config["allowed_user_ids"] == ["giovanni", "donato"]
     assert config["register_lovelace_dashboard"] is True
     assert config["lovelace_url_path"] == "dashboardmodern-01234567"
-    assert config["dashboard_card_module"].endswith("/dashboard-card.js")
+    # Il percorso e' quello stabile con la firma nella domanda: un indirizzo
+    # versionato scade nella cache dell'app e la card non si definisce piu'
+    # (#372). Vedi `_dashboard_card_module_url`.
+    assert config["dashboard_card_module"].startswith(
+        "/dashboardmodern_static/dashboard-card.js?v="
+    )
