@@ -187,15 +187,94 @@ export function nellUnitaDiRiferimento(valore, unita, misura) {
 /** Le classi che questa lettura sa interpretare. */
 export const CLASSI_ARIA = Object.freeze(Object.keys(MISURE));
 
+/* Le misure raccontate a chi deve farle scegliere.
+ *
+ * L'editor delle Allerte disegna una riga per misura — nome, unita' e i tre
+ * confini — e quei numeri sono questi, non una seconda copia scritta di la'.
+ * Chi vuole cambiarli scrive i suoi sopra; chi non tocca niente resta sulle
+ * norme, che sono quelle citate nel commento del magazzino qui sopra. */
+export function misureDellAria(locale = "it") {
+  return Object.entries(MISURE).map(([classe, misura]) => ({
+    classe,
+    glifo: misura.glifo,
+    nome: pick(misura.nome[0], misura.nome[1], locale),
+    unita: misura.unita,
+    soglie: misura.soglie.slice(),
+  }));
+}
+
+/* ── quello che decide chi la plancia ce l'ha in casa ─────────────────── */
+
+/* La qualita' dell'aria e' l'unica tessera che nasce da sola: i sensori li
+ * dichiara Home Assistant col `device_class`, e chi ne ha uno se lo ritrova in
+ * Home senza configurare niente. Va benissimo finche' la casa ha una
+ * centralina; con due — una dentro e una fuori — il verdetto lo detta la
+ * peggiore, e quella e' quasi sempre la strada davanti a casa. Dal campo, la
+ * #340: «Outdoor Environment CO … lo classifica come ARIA CATTIVA e come la
+ * peggiore delle 15 misure». Li' si era corretta l'unita'; restava che quel
+ * sensore non si potesse togliere di mezzo.
+ *
+ * Da qui si dice tre cose, e stanno tutte dentro `cd_allerte.aria`, che viaggia
+ * gia' fra i dispositivi:
+ *
+ * - `escluse`: i sensori che il rilevamento trova ma che non devono contare;
+ * - `aggiunte`: quelli che non trova — un template senza `device_class` — con
+ *   detto a mano che misura sono;
+ * - `soglie`: i tre confini di una misura, quando i propri non sono quelli
+ *   della norma. Restano le norme finche' nessuno scrive.
+ */
+export function normalizzaAria(stored) {
+  const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  const aggiunte = {};
+  for (const [entity, classe] of Object.entries(
+    dato.aggiunte && typeof dato.aggiunte === "object" ? dato.aggiunte : {},
+  )) {
+    const nome = clean(entity);
+    const quale = clean(classe);
+    if (nome.includes(".") && MISURE[quale]) aggiunte[nome] = quale;
+  }
+  const escluse = (Array.isArray(dato.escluse) ? dato.escluse : [])
+    .map(clean)
+    .filter((entity) => entity.includes("."));
+  const soglie = {};
+  for (const [classe, valori] of Object.entries(
+    dato.soglie && typeof dato.soglie === "object" ? dato.soglie : {},
+  )) {
+    const quale = clean(classe);
+    if (!MISURE[quale] || !Array.isArray(valori) || valori.length !== 3) continue;
+    const numeri = valori.map((valore) => Number(valore));
+    /* Tre numeri che salgono, o non sono confini: due gradini scambiati
+     * direbbero «cattiva» di un'aria buona, e nessuno se ne accorgerebbe. */
+    if (numeri.some((n) => !Number.isFinite(n) || n < 0)) continue;
+    if (!(numeri[0] < numeri[1] && numeri[1] < numeri[2])) continue;
+    soglie[quale] = numeri;
+  }
+  return { aggiunte, escluse: [...new Set(escluse)], soglie };
+}
+
+/** I tre confini di una misura: quelli scelti, o quelli della norma. */
+export function soglieDellaMisura(classe, config) {
+  const scelte = normalizzaAria(config).soglie[clean(classe)];
+  return scelte || MISURE[clean(classe)]?.soglie?.slice() || null;
+}
+
 const numero = (valore) => {
   const grezzo = clean(valore).replace(",", ".");
   const n = Number.parseFloat(grezzo);
   return Number.isFinite(n) ? n : null;
 };
 
-/** Se un'entita' e' una misura dell'aria: lo dice Home Assistant, non il nome. */
-export function eUnaMisuraDellAria(entity, stato) {
-  if (!clean(entity).startsWith("sensor.")) return false;
+/* Se un'entita' e' una misura dell'aria.
+ *
+ * Lo dice Home Assistant col `device_class`, non il nome. E lo dice anche chi
+ * ha la casa: un sensore escluso non e' dell'aria per questa plancia, e uno
+ * aggiunto lo e' anche se Home Assistant non lo dichiara. */
+export function eUnaMisuraDellAria(entity, stato, config) {
+  const nome = clean(entity);
+  const scelte = normalizzaAria(config);
+  if (scelte.escluse.includes(nome)) return false;
+  if (scelte.aggiunte[nome]) return true;
+  if (!nome.startsWith("sensor.")) return false;
   return Boolean(MISURE[clean(stato?.attributes?.device_class)]);
 }
 
@@ -206,8 +285,11 @@ export function eUnaMisuraDellAria(entity, stato) {
  * o una classe che non e' dell'aria — perche' una casella vuota in mezzo alle
  * altre e' peggio di una casella in meno.
  */
-export function letturaDellAria(entity, stato, locale = "it") {
-  const classe = clean(stato?.attributes?.device_class);
+export function letturaDellAria(entity, stato, locale = "it", config) {
+  const scelte = normalizzaAria(config);
+  /* La classe dichiarata a mano vince: e' l'unica cosa che si sa di un sensore
+   * che Home Assistant non ha etichettato. */
+  const classe = scelte.aggiunte[clean(entity)] || clean(stato?.attributes?.device_class);
   const misura = MISURE[classe];
   if (!misura) return null;
   const valore = numero(stato?.state);
@@ -218,7 +300,11 @@ export function letturaDellAria(entity, stato, locale = "it") {
    * due i casi si confronta un numero con soglie scritte nella SUA unita':
    * era l'errore del #340, e non si rifa'. */
   const propria = misura.perUnita?.[normalizzaUnita(unita)];
-  const soglie = propria || misura.soglie;
+  /* I confini scelti in casa valgono sulla scala di riferimento della misura:
+   * chi li scrive li scrive in quell'unita', che e' quella che l'editor gli
+   * mostra accanto. Una scala tutta sua per quell'unita' — i composti organici
+   * volatili in ppb — resta quella del magazzino. */
+  const soglie = propria || scelte.soglie[classe] || misura.soglie;
   const confronto = propria ? valore : nellUnitaDiRiferimento(valore, unita, misura);
   const grado =
     confronto <= soglie[0]

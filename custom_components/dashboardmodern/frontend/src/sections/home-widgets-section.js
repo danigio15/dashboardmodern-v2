@@ -3025,10 +3025,19 @@ function batteriesModel(states) {
  */
 function ariaModel(states) {
   const fuori = widgetExcludedEntities();
+  /* Quello che chi ha la casa ha detto sull'aria: quali sensori non contano,
+   * quali contano anche se Home Assistant non li dichiara, e con che confini.
+   * Sta in `cd_allerte.aria` e si scrive dalla scheda Allerte — «mi devi creare
+   * da qualche parte la possibilita' di inserire entita' e i parametri, non
+   * solo nei widget». Senza niente scritto, tutto resta com'era. */
+  const ariaScelta = readJson(CHIAVE_ALLERTE, {})?.aria;
   const letture = Object.entries(states || {})
-    .filter(([entity, stato]) => eUnaMisuraDellAria(entity, stato) && widgetIncludes(entity, fuori))
+    .filter(
+      ([entity, stato]) =>
+        eUnaMisuraDellAria(entity, stato, ariaScelta) && widgetIncludes(entity, fuori),
+    )
     .map(([entity, stato]) => {
-      const lettura = letturaDellAria(entity, stato, locale());
+      const lettura = letturaDellAria(entity, stato, locale(), ariaScelta);
       if (!lettura) return null;
       return { ...lettura, name: friendlyName(states, entity) };
     })
