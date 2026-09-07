@@ -841,8 +841,99 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/animali-section.js` disegna la pagina e la sua voce nella barra,
   // e `sections/animali-editor-section.js` la scheda della configurazione, che
   // pesca i dispositivi dal menu delle integrazioni gia' in casa.
+  // 269 con la ricerca in tutta la configurazione e le pastiglie dei varchi.
+  // `core/cerca-nel-config.js` cammina il magazzino e trova dove una parola e'
+  // scritta — nel valore e nel NOME del campo, perche' `cd_luci` tiene
+  // l'entita' nella chiave — e `sections/cerca-nel-config-section.js` disegna
+  // la riga in cima all'editor: cercare aprendo venti schede vorrebbe dire
+  // ridisegnarle tutte, e un modulo aperto a meta' perde quello che si sta
+  // scrivendo. `core/varchi-in-configurazione.js` dice se un contatto e'
+  // aperto o chiuso col verso giusto (#367), e la sezione lo colora su ogni
+  // riga che lo nomina, in qualunque scheda si trovi.
+  // 270 con la foto che puo' essere un'entita' (#369): «alcune integrazioni
+  // come UConnect mettono a disposizione questa entita'». `core/foto-da-entita.js`
+  // riconosce un `image.` o una `camera.` e ne legge l'indirizzo con il gettone
+  // che Home Assistant gli mette dentro — quello che fa aggiornare la foto da
+  // se' invece di restare in cache. Sta nel nucleo e non in una sezione perche'
+  // non e' dell'auto: e' la risposta a «questa cosa ha una foto?», e la stessa
+  // domanda torna ovunque una scheda mostri un'immagine.
+  // 274 con i tre pezzi del Clima chiesti insieme (#362, #364, #365).
+  // `core/modo-del-clima.js` legge l'entita' che dice la modalita' del
+  // riscaldamento — TADO ne ha due, altri aggiungono vacanza e boost — e sa
+  // dire, senza toccare niente, quale chiamata la cambierebbe: chi la esegue e'
+  // chi ha la connessione, quindi «cosa succede se tocco questa pastiglia» si
+  // prova a tavolino. `core/spegnimento-programmato.js` tiene i fermi dello
+  // slider e il conto alla rovescia, e `sections/spegnimento-programmato-
+  // section.js` e' l'unico che parla col backend: il timer vero vive in Home
+  // Assistant, perche' un timer nel browser muore chiudendo la pagina e chi
+  // accende il condizionatore per due ore prima di dormire la pagina la chiude
+  // sempre. `core/stagione-del-clima.js` dice se un'unita' e' di stagione, con
+  // gli intervalli che scavallano l'anno — ottobre-aprile e' il primo che
+  // qualcuno scrivera' — e senza orologio dentro.
+  // 277 con la ventilazione meccanica (#371): «sarebbe bellissimo avere nei
+  // climate la possibilita' di inserire i dati delle 4 temperature delle
+  // macchine VMC… compresi i bypass, modalita' estate/inverno». Le quattro
+  // temperature non sono quattro numeri da mettere in colonna: sono due flussi
+  // che si incrociano, e messi cosi' si leggono da soli. `core/vmc-model.js`
+  // dice cosa vogliono dire — compreso il RECUPERO, l'unico numero che dice se
+  // la macchina vale quello che costa, e che nessuna card mostra;
+  // `sections/vmc-section.js` porta il disegno e `sections/vmc-editor-section.js`
+  // la scheda. La pagina del Clima resta di un padrone solo: il markup lo
+  // scrive il modulo della VMC, ma a chiamarlo e' il giro che possiede la
+  // pagina.
+  // 280 con Assist (#360): «vorrei avere la possibilita di aprire assist per
+  // chiedere delle cose sia scrivendo che parlando». La plancia non rifa' un
+  // assistente — sarebbe un secondo assistente da tenere allineato al primo —
+  // ma gli parla: `core/assist-model.js` dice cosa si manda a
+  // `conversation/process`, cosa torna e quando il filo della conversazione e'
+  // scaduto; `sections/assist-section.js` porta la finestra e il microfono, e
+  // `sections/assist-editor-section.js` la riga fra le Impostazioni. La voce la
+  // ascolta il BROWSER, che ha il microfono e sa trascrivere; la frase la
+  // capisce Home Assistant, che conosce la casa. Mandare l'audio a Home
+  // Assistant vorrebbe dire una pipeline, un formato e un pezzo di protocollo
+  // binario per arrivare alla stessa frase che il browser ha gia'.
+  // 283 con i varchi (#367, #377), che sono una richiesta sola fatta da due
+  // persone: «in verde dovrebbe segnare i sensori contact chiusi e in rosso
+  // quelli aperti… almeno a colpo d'occhio so quante finestre sono aperte in
+  // questo momento» e «una sezione porte… magari che la card principale come
+  // per le luci mostri solo il numero di porte aperte». Non e' la sezione
+  // Finestre, che governa le tapparelle e ha un motore per comandarle, e non e'
+  // «Apri porte/cancelli», che manda comandi a serrature e rele': qui non si
+  // comanda niente, si guarda — ed e' proprio quello che mancava.
+  // `core/varchi-di-casa.js` dice quali contatti contano e come stanno,
+  // appoggiandosi al giudizio aperto/chiuso che `core/varchi-in-configurazione.js`
+  // gia' dava alle righe della configurazione: due regole per la stessa
+  // domanda avrebbero finito col contraddirsi. `sections/varchi-section.js`
+  // porta la pagina e `sections/varchi-editor-section.js` la scheda, che serve
+  // solo a correggere il rilevamento — il sensore del frigo etichettato
+  // «door», quello che nessuno ha etichettato, e il nome per chi si chiama
+  // «Contact 4B».
+  // 286 con il server e la rete (#382): «i controlli del server proxmox dove
+  // gira HA con tutti i suoi container, e controllare lo stato del fritbox e i
+  // suoi ripeter». Non e' una pagina nuova: e' la pagina Server che c'e' gia',
+  // con due fasce sotto le caselle del MiniPC — la macchina e quello che ci
+  // gira dentro sono la stessa cosa guardata da due distanze.
+  // `core/macchine-e-rete.js` sa che le VM e i container di Proxmox sono i
+  // `binary_sensor` con `device_class: running` e che il router coi suoi
+  // ripetitori sono quelli `connectivity`: due classi, due elenchi, e nessuna
+  // casella da compilare per cominciare. Sa anche dire QUANDO si puo'
+  // comandare — un interruttore o la coppia di pulsanti che si chiamano come
+  // il sensore — perche' un tasto che non fa niente e' peggio di nessun tasto.
+  // `sections/macchine-e-rete-section.js` porta le due fasce e
+  // `sections/macchine-editor-section.js` la scheda, che si attacca a «MiniPC»
+  // invece di aprirne una tutta sua.
+  // 287 con l'elenco delle chiavi di configurazione
+  // (`core/chiavi-di-configurazione.js`), che pero' non e' roba nuova: e'
+  // `CONFIG_KEYS` spostato dov'e' leggibile da tutti. Stava dentro la
+  // persistenza, e il cancello degli stati — che deve sapere quali entita' la
+  // casa ha configurato — se n'era tenuto una copia scritta a mano. Una copia a
+  // mano di un elenco che cresce e' un elenco che resta indietro: era rimasta a
+  // ventun chiavi mentre le vere erano ottanta, e le entita' che stavano solo
+  // nelle mancanti non passavano piu' il cancello. Le loro tessere restavano
+  // ferme sull'ultimo valore. Adesso l'elenco e' uno: la persistenza lo
+  // ri-esporta com'era e al cancello lo passa chi lo installa.
   assert.ok(
-    relative.length <= 267,
+    relative.length <= 287,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
@@ -918,6 +1009,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * a watering sequence is running, and each timer stops itself the moment
    * that stops being true.
    *
+   * L'undicesimo e' il conto alla rovescia dello spegnimento programmato del
+   * clima (#364). Il timer VERO sta in Home Assistant — un timer nel browser
+   * muore chiudendo la pagina, e chi accende il condizionatore per due ore
+   * prima di dormire la pagina la chiude sempre — quindi questo battito non
+   * spegne niente: fa solo scendere i minuti scritti sulle card aperte, che
+   * cambiano una volta al minuto e non a ogni disegno. Stessa disciplina di
+   * tutti gli altri: parte solo se c'e' almeno uno spegnimento appeso, e si
+   * ferma da solo quando l'ultimo se ne va. Una plancia senza timer
+   * programmati non si sveglia mai.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -936,6 +1037,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
       "src/sections/pool-extra-section.js",
       "src/sections/radar-meteo-section.js",
       "src/sections/segnalazioni-section.js",
+      "src/sections/spegnimento-programmato-section.js",
     ],
   );
 

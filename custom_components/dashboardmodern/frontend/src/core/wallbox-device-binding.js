@@ -51,12 +51,66 @@ export function eDellaWallbox(ref) {
   return DELLA_WALLBOX.has(clean(ref));
 }
 
+/* Il limite di carica: della casa quando e' quello che comanda.
+ *
+ * Il target lo portano in due. L'auto lo pubblica quasi sempre come sensore di
+ * sola lettura, o come limite che vive nel cloud del costruttore; evcc lo
+ * pubblica come `number`, e quello lo si comanda davvero — e' proprio la
+ * regola che il collegamento di evcc applica gia' quando riempie la casella:
+ * un comando scalza una lettura.
+ *
+ * Solo che poi mettere in uso una vettura riversa il suo profilo nelle
+ * mappature globali e si riprendeva la casella. Da fuori si vede cosi': la
+ * tendina della percentuale mostra le voci giuste, si sceglie 90, e Home
+ * Assistant risponde «Leapmotor remote control result failed: Token is
+ * invalid» — perche' il comando e' andato al limite dell'AUTO, nel cloud del
+ * costruttore, mentre quello che governa la carica e' `number.evcc_*_limit_soc`
+ * ed e' li' a due passi. Dalla plancia falliva, dall'integrazione no.
+ *
+ * Quindi: se la casa tiene un target COMANDABILE, quello non se lo porta via
+ * nessun cambio d'auto. Se la casa non ce l'ha, o e' una lettura, il profilo
+ * della vettura resta padrone come e' sempre stato. */
+const COMANDABILE = /^(select|input_select|number|input_number)\./;
+
+export function eTargetDiCasa(ref, valore) {
+  return clean(ref) === "dm.ev_target_soc" && COMANDABILE.test(clean(valore));
+}
+
 /* Le parole con cui le integrazioni chiamano le cose di una colonnina.
  *
  * Sono quelle di evcc, go-e, Easee, KEBA, Wallbox Pulsar, openWB, Zaptec e
  * del Tesla Wall Connector: gli otto che si incontrano davvero. Le lingue sono
  * quelle in cui quelle integrazioni pubblicano — inglese e tedesco fanno la
  * parte del leone, evcc e openWB sono tedeschi. */
+import { eUnaLettera } from "./stato-della-ricarica.js";
+
+/* Se un nome parla del CAVO.
+ *
+ * Sta fuori dal vocabolario della colonnina perche' lo legge anche l'auto: il
+ * cavo lo sa la colonnina, ma lo sa pure la vettura — quasi tutte le
+ * integrazioni delle auto pubblicano il loro «charger connected» — e una
+ * plancia con l'auto collegata e nessuna wallbox non aveva nessuno che glielo
+ * dicesse. Un vocabolario solo, due lettori.
+ *
+ * Le parole del cavo e quelle della carica si sfiorano, e la regola non e' «se
+ * dice carica non e' un cavo»: quella buttava via proprio «CHARGER connected»,
+ * che e' il nome piu' comune di tutti. Vale la parola piu' forte — un
+ * «connected», un «plugged», un «collegato» dicono il cavo e basta — e solo
+ * quando quella non c'e' si guarda se il nome parla di una carica in corso,
+ * che allora e' della carica che parla. */
+const PAROLE_DEL_CAVO =
+  /\b(connected|connection|plugged|plug|cavo|cable|collegat\w*|vehicle status|angeschlossen|conectad\w*)\b/i;
+const CONNESSIONE_DETTA =
+  /\b(connected|connection|plugged|collegat\w*|attaccat\w*|angeschlossen|conectad\w*)\b/i;
+const CARICA_IN_CORSO =
+  /\b(charging|in carica|ricarica in corso|l[\u00e4a]dt|cargando|en charge)\b/i;
+
+export function parlaDelCavo(nome) {
+  const testo = String(nome ?? "");
+  if (!PAROLE_DEL_CAVO.test(testo)) return false;
+  return CONNESSIONE_DETTA.test(testo) || !CARICA_IN_CORSO.test(testo);
+}
+
 const PAROLE = Object.freeze({
   colonnina:
     /\b(wallbox|charger|charging station|ladestation|loadpoint|ladepunkt|evse|go-?e|easee|keba|zaptec|openwb|pulsar|wall connector|colonnina)\b/i,
@@ -72,7 +126,6 @@ const PAROLE = Object.freeze({
   target:
     /\b(limit ?soc|limitsoc|soc ?limit|target ?soc|targetsoc|target|charg\w* ?limit|ladelimit|ladeziel|limite (di )?(ri)?carica)\b/i,
   nonTarget: /\b(effective|vehicle|min(imum)?|plan\w*|phase\w*|current|corrente)\b/i,
-  cavo: /\b(connected|plugged|plug|cavo|cable|collegat\w*|vehicle status|angeschlossen|conectad\w*)\b/i,
 });
 
 /* Le entita' a cui si puo' dare un ordine: una tendina o un numero. */
@@ -188,10 +241,9 @@ export function legaLaWallboxAlDispositivo({ entities = [], states = {} } = {}) 
   prendi(
     "dm.ev_cavo_collegato",
     (voce) =>
-      dominio(voce) === "binary_sensor" &&
-      dice("cavo")(voce) &&
-      !/\bcharg/i.test(parole(voce, states)) &&
-      !dice("nonTarget")(voce),
+      parlaDelCavo(parole(voce, states)) &&
+      !dice("nonTarget")(voce) &&
+      (dominio(voce) === "binary_sensor" || eUnaLettera(states?.[clean(voce?.entity_id)]?.state)),
   );
 
   return { mappa, evcc: Boolean(mappa["dm.ev_modalita_ricarica_evcc"]) };

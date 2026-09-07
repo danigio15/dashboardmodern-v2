@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { canonicalClimateType } from "../core/device-model.js";
+import { isCumulativeEnergyEntity } from "../core/period-service.js";
 import {
   DEFAULT_LOCALE,
   SOURCE_LOCALE,
@@ -405,6 +406,23 @@ export function chiediAHomeAssistant(payload, timeout = 8000) {
   });
 }
 
+/* Che aspetto ha una lente, dovunque la si trovi.
+ *
+ * Quasi tutte le schede scrivono la loro col nome di casa — `.dm-entity-picker`
+ * — ma due se l'erano fatta col proprio: gli animali e il robot. Chi le
+ * cercava conosceva solo il primo nome, quindi su quelle righe non ne trovava
+ * nessuna e ne aggiungeva una seconda. Poi la riga «Scegli entita'» si prende
+ * la lente e ci si trasforma dentro — e' proprio lei a diventare la riga — ma
+ * si prendeva quella appena aggiunta, e quella della scheda restava li' accanto
+ * come un quadratino azzurro col 🔍 che non serviva piu' a niente. E' la
+ * segnalazione: «elimina le lenti di ricerca».
+ *
+ * Il nome della lente si dice una volta sola, qui, e lo usano tutti e due —
+ * chi la cerca per non rifarla e chi la trasforma in riga. Il piu' («aggiungi
+ * comando») non e' una lente: apre un campo, non un catalogo. */
+export const LENTE_SELECTOR =
+  ".dm-entity-picker,.dm-animale-pick,.dm-robot-pick:not(.dm-robot-aggiungi),button[onclick*='wzPickEntity']";
+
 export function lexicalGlobal(name) {
   try {
     const value = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
@@ -486,6 +504,24 @@ export function allStates() {
     if (lexical && typeof lexical === "object") Object.assign(values, lexical);
   }
   return values;
+}
+
+/* «E' un contatore di vita?» — una domanda sola, e gli stati dove stanno.
+ *
+ * La risposta canonica e' in period-service, ed e' quella su cui si regge
+ * tutto il calcolo dell'energia. Il Report ne teneva due copie private, una
+ * nella riga della configurazione e una nella finestra della voce, e tutte e
+ * due chiedevano gli stati a `root.STATES`: ma `STATES` e `_RAW_STATES` sono
+ * binding lessicali del guscio, e da un modulo `root.STATES` e' sempre
+ * `undefined`. Le due copie non hanno mai letto uno `state_class` in vita
+ * loro: decidevano solo dal nome dell'entita'. Cosi' un contatore vero —
+ * `sensor.lavastoviglie_energia`, `total_increasing` — si prendeva
+ * «l'entita' non sembra cumulativa» e la finestra rifiutava di salvarlo.
+ *
+ * Qui la domanda si fa una volta, e gli stati si chiedono ad `allStates()`,
+ * che sa dove il guscio li tiene. */
+export function isLifetimeMeter(entity) {
+  return isCumulativeEnergyEntity(entity, allStates());
 }
 
 export function readJson(key, fallback) {

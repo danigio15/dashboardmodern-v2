@@ -89,6 +89,13 @@ TYPE_WWW_UPLOAD = f"{DOMAIN}/www/upload"
 # elettrodomestico si collega a un'integrazione intera invece che a un
 # interruttore.
 TYPE_INTEGRATIONS_CATALOG = f"{DOMAIN}/integrations/catalog"
+
+# Lo spegnimento programmato del clima (#364): il conto alla rovescia lo
+# tiene Home Assistant, non il browser — chi accende per due ore prima di
+# dormire la pagina la chiude sempre.
+TYPE_CLIMA_TIMER_LIST = f"{DOMAIN}/clima/timer/list"
+TYPE_CLIMA_TIMER_SET = f"{DOMAIN}/clima/timer/set"
+TYPE_CLIMA_TIMER_CLEAR = f"{DOMAIN}/clima/timer/clear"
 TYPE_TICKET_LIST = f"{DOMAIN}/tickets/list"
 TYPE_TICKET_CREATE = f"{DOMAIN}/tickets/create"
 TYPE_TICKET_DELETE = f"{DOMAIN}/tickets/delete"
@@ -439,6 +446,136 @@ async def async_integrations_catalog(
         return
     catalog = await async_build_catalog(hass, device_ids=msg.get("device_ids"))
     connection.send_result(msg["id"], catalog)
+
+
+@websocket_api.websocket_command({vol.Required("type"): TYPE_CLIMA_TIMER_LIST})
+@websocket_api.async_response
+async def async_clima_timer_list(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Gli spegnimenti programmati che sono ancora appesi.
+
+    Li chiede ogni plancia che si apre: il conto alla rovescia e' della casa,
+    non della scheda del browser, quindi il telefono che arriva dopo vede lo
+    stesso tempo che manca del tablet in cucina.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    from .spegnimento import async_get_spegnimento_store
+
+    store = await async_get_spegnimento_store(hass)
+    connection.send_result(msg["id"], {"scadenze": store.scadenze()})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_CLIMA_TIMER_SET,
+        vol.Required("entity_id"): vol.All(str, vol.Length(min=3, max=255)),
+        vol.Required("minuti"): vol.All(vol.Coerce(int), vol.Range(min=0, max=720)),
+    }
+)
+@websocket_api.async_response
+async def async_clima_timer_set(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Programma lo spegnimento di quell'unita' fra quei minuti.
+
+    Zero minuti vuol dire togliere il timer: e' la stessa richiesta detta al
+    contrario, e non merita un comando a parte.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    entita = str(msg["entity_id"]).strip()
+    if "." not in entita or hass.states.get(entita) is None:
+        connection.send_error(msg["id"], "not_found", "entity_id sconosciuto")
+        return
+    if not _puo_comandare(connection, entita):
+        connection.send_error(
+            msg["id"],
+            websocket_api.const.ERR_UNAUTHORIZED,
+            "Non hai il controllo di questa entita'.",
+        )
+        return
+    from .spegnimento import async_get_spegnimento_store
+
+    store = await async_get_spegnimento_store(hass)
+    scadenza = await store.async_programma(entita, int(msg["minuti"]))
+    connection.send_result(msg["id"], {"entity_id": entita, "scadenza": scadenza})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_CLIMA_TIMER_CLEAR,
+        vol.Required("entity_id"): vol.All(str, vol.Length(min=3, max=255)),
+    }
+)
+@websocket_api.async_response
+async def async_clima_timer_clear(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Togli il timer, senza toccare l'unita'.
+
+    Annullare lo spegnimento non vuol dire spegnere adesso: l'unita' resta
+    esattamente come sta, e da qui in poi resta accesa finche' qualcuno non
+    decide altro.
+    """
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
+    entita = str(msg["entity_id"]).strip()
+    if not _puo_comandare(connection, entita):
+        connection.send_error(
+            msg["id"],
+            websocket_api.const.ERR_UNAUTHORIZED,
+            "Non hai il controllo di questa entita'.",
+        )
+        return
+    from .spegnimento import async_get_spegnimento_store
+
+    store = await async_get_spegnimento_store(hass)
+    await store.async_annulla(entita)
+    connection.send_result(msg["id"], {"removed": True})
+
+
+def _puo_comandare(connection: Any, entita: str) -> bool:
+    """Se chi chiama potrebbe spegnere quell'entita' da se'.
+
+    Il timer non e' un permesso in piu': e' lo stesso spegnimento, detto due ore
+    prima. Ma a farlo scattare e' l'integrazione, con `hass.services.async_call`
+    e senza il contesto di chi ha chiesto — quindi Home Assistant non ci
+    rimette le sue regole sopra, e senza questa domanda un utente non
+    amministratore poteva programmare lo spegnimento di QUALUNQUE entita'
+    esistente, comprese quelle che la sua utenza non ha il diritto di toccare.
+    Bastava che potesse aprire una plancia.
+
+    La domanda e' quella di Home Assistant, fatta adesso: un amministratore puo'
+    sempre, gli altri solo dove hanno il controllo. Chiederla al momento in cui
+    si programma e non a scadenza e' voluto — a scadenza, un permesso tolto nel
+    frattempo lascerebbe acceso il condizionatore tutta la notte, che e' proprio
+    il guasto che questa funzione esiste per evitare.
+    """
+    user = getattr(connection, "user", None)
+    if user is None:
+        return False
+    if getattr(user, "is_admin", False):
+        return True
+    permessi = getattr(user, "permissions", None)
+    controlla = getattr(permessi, "check_entity", None)
+    if controlla is None:
+        return False
+    try:
+        from homeassistant.auth.permissions.const import POLICY_CONTROL
+    except ImportError:  # pragma: no cover - Home Assistant e' sempre presente
+        return False
+    return bool(controlla(entita, POLICY_CONTROL))
 
 
 def _caller_id(connection: Any) -> str:
@@ -1129,6 +1266,9 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_list_www,
         async_upload_www,
         async_integrations_catalog,
+        async_clima_timer_list,
+        async_clima_timer_set,
+        async_clima_timer_clear,
         async_list_tickets,
         async_create_ticket,
         async_delete_ticket,

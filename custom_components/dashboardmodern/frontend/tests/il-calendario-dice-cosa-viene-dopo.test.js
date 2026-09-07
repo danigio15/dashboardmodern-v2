@@ -364,7 +364,7 @@ test("il calendario ha una pagina sua, non solo una tessera", async () => {
 
 test("la chiave nuova viaggia con la configurazione", async () => {
   const persistenza = await readFile(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   assert.match(persistenza, /"cd_calendari"/);

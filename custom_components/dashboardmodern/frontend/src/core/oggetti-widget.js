@@ -357,6 +357,72 @@ const OGGETTI = Object.freeze({
       <path d="M17.4 23.9h4.2l-1.5-2.7"/>
     </g>`,
 
+  /* I varchi: la porta socchiusa, che e' la cosa che si va a cercare.
+   *
+   * «Almeno a colpo d'occhio so quante finestre sono aperte in questo
+   * momento» (#367, #377). Non una porta chiusa — quella non racconta niente —
+   * ma il battente che si e' aperto di uno spiraglio, con la luce che passa:
+   * si legge prima di leggere il numero. */
+  varchi: `<defs>
+      <linearGradient id="dmoVarcoB" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fbbf24"/><stop offset=".5" stop-color="#f59e0b"/>
+        <stop offset="1" stop-color="#b45309"/></linearGradient>
+      <linearGradient id="dmoVarcoL" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#fde68a"/></linearGradient></defs>
+    ${OMBRA(16, 28.4, 9)}
+    <rect x="5.6" y="4.4" width="9.4" height="23.2" rx="1.6" fill="url(#dmoVarcoL)"/>
+    <path d="M16.6 3.6 26.4 6.2v19.6l-9.8 2.6z" fill="url(#dmoVarcoB)"/>
+    <circle cx="18.8" cy="16" r="1.5" fill="#fff" fill-opacity=".9"/>
+    <path d="M8.2 8.6h4.4M8.2 12.4h4.4" stroke="#f59e0b" stroke-opacity=".5" stroke-width="1.4"
+      stroke-linecap="round" fill="none"/>`,
+
+  /* Il server e la rete: il rack con le sue macchine, e il segnale che esce.
+   *
+   * «I controlli del server proxmox dove gira HA con tutti i suoi container, e
+   * lo stato del fritbox e i suoi ripeter» (#382). Le tre feritoie sono le
+   * macchine una sopra l'altra; le onde a destra sono la rete, che e' l'altra
+   * meta' della stessa domanda — e' tutto su? */
+  macchine: `<defs>
+      <linearGradient id="dmoMacS" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#818cf8"/><stop offset=".55" stop-color="#4f46e5"/>
+        <stop offset="1" stop-color="#312e81"/></linearGradient></defs>
+    ${OMBRA(16, 28.4, 8.4)}
+    <rect x="5.4" y="5" width="15.6" height="22" rx="3" fill="url(#dmoMacS)"/>
+    <g fill="#e0e7ff" fill-opacity=".92">
+      <rect x="7.8" y="8" width="10.8" height="4" rx="1.2"/>
+      <rect x="7.8" y="14" width="10.8" height="4" rx="1.2"/>
+      <rect x="7.8" y="20" width="10.8" height="4" rx="1.2"/>
+    </g>
+    <g fill="#22c55e">
+      <circle cx="16.6" cy="10" r="1.1"/><circle cx="16.6" cy="16" r="1.1"/><circle cx="16.6" cy="22" r="1.1"/>
+    </g>
+    <g fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round">
+      <path d="M23.6 12.6a5.4 5.4 0 0 1 0 6.8"/>
+      <path d="M26.6 9.4a9.6 9.6 0 0 1 0 13.2"/>
+    </g>`,
+
+  /* La ventilazione meccanica: la macchina appesa, e i due flussi che si
+   * incrociano dentro.
+   *
+   * E' quello che la VMC fa e che nessun'altra tessera racconta: l'aria che
+   * esce calda scalda quella che entra fredda, e le due non si mescolano mai.
+   * Il disegno dice la stessa cosa della fascia nella sezione Clima — due
+   * frecce incrociate, una tiepida e una fresca — cosi' chi vede la tessera
+   * riconosce la sezione prima di aprirla. */
+  vmc: `<defs>
+      <linearGradient id="dmoVmcS" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e2e8f0"/><stop offset=".55" stop-color="#94a3b8"/>
+        <stop offset="1" stop-color="#475569"/></linearGradient></defs>
+    ${OMBRA(16, 28, 8.6)}
+    <rect x="4.6" y="7" width="22.8" height="18" rx="3.4" fill="url(#dmoVmcS)"/>
+    <rect x="6.8" y="9.2" width="18.4" height="13.6" rx="2.4" fill="#0f172a" fill-opacity=".16"/>
+    <g fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 11.4h9.6l-2.6-2.4M17.6 11.4l-2.6 2.4" stroke="#fb923c"/>
+      <path d="M24 20.6h-9.6l2.6 2.4M14.4 20.6l2.6-2.4" stroke="#38bdf8"/>
+    </g>
+    <path d="M9.4 22.6 22.6 9.6" stroke="#fff" stroke-opacity=".45" stroke-width="1.4" stroke-linecap="round"/>
+    <rect x="10.6" y="25" width="10.8" height="2.6" rx="1.3" fill="#334155"/>`,
+
   ups: `<defs>
       <linearGradient id="dmoUpsS" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#64748b"/><stop offset=".45" stop-color="#334155"/>

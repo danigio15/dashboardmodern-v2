@@ -96,9 +96,26 @@ export const LETTERE = Object.freeze(["A", "B", "C", "F", "N"]);
 const CAVO_DENTRO = /^(on|true|1|home|connected|plugged|collegato|attaccato)$/i;
 const CAVO_FUORI = /^(off|false|0|not_home|disconnected|unplugged|scollegato|staccato)$/i;
 
+/* E le lettere della norma dicono il cavo meglio di chiunque.
+ *
+ * IEC 61851: A e' la presa libera, B il cavo dentro e fermo, C e D il cavo
+ * dentro che carica. Le colonnine serie — KEBA, go-e, openWB — pubblicano
+ * proprio quella lettera, spesso in un sensore che si chiama «vehicle status»,
+ * e chi la legge sa del cavo senza bisogno di un secondo sensore. F e' un
+ * guasto: di dov'e' il cavo non dice niente, e infatti qui non risponde. */
+const CAVO_LETTERA_FUORI = /^[aA]$/;
+const CAVO_LETTERA_DENTRO = /^[bBcCdD]$/;
+
 export function cavoDalloStato(stato) {
   const grezzo = clean(stato);
+  if (CAVO_LETTERA_DENTRO.test(grezzo)) return true;
+  if (CAVO_LETTERA_FUORI.test(grezzo)) return false;
   if (CAVO_DENTRO.test(grezzo)) return true;
   if (CAVO_FUORI.test(grezzo)) return false;
   return null;
+}
+
+/** Se uno stato e' una delle lettere della norma. */
+export function eUnaLettera(stato) {
+  return /^[abcdfABCDF]$/.test(clean(stato));
 }

@@ -642,6 +642,24 @@ function inputForLegacyButton(button) {
 
 function activationFor(target) {
   if (!target?.closest) return null;
+  /* Una casella che si dichiara icona apre il catalogo, e basta cosi'.
+   *
+   * «Le mie sezioni: icona non si clicca e non apre catalogo nostro.» Quella
+   * casella era un campo di testo largo quattro caratteri: si poteva incollarci
+   * un'emoji e nient'altro, mentre ovunque nella plancia l'icona si sceglie dal
+   * catalogo di casa. Invece di appendere un pulsante a quella scheda — e alla
+   * prossima, e a quella dopo — la casella dice di che famiglia e', e il motore
+   * la apre: e' la stessa strada dei campi del guscio qui sotto, ma dichiarata
+   * dal modulo che la disegna. `data-icon-glifo` dice che li' ci va il segno e
+   * non il nome mdi, perche' quel valore viene stampato com'e'. */
+  const campoIcona = target.closest("input[data-icon-category]");
+  if (campoIcona) {
+    return {
+      input: campoIcona,
+      kind: normalizeKind(campoIcona.dataset.iconCategory),
+      glifo: campoIcona.dataset.iconGlifo === "true",
+    };
+  }
   if (target.closest(".dm-beta5-room-icon-trigger")) {
     return { input: doc.getElementById("ed-room-icon"), kind: "room" };
   }
@@ -694,6 +712,7 @@ function handleActivation(event) {
   event.stopImmediatePropagation();
   openIconPicker(activation.input, activation.kind, {
     autofocus: event.type === "keydown" ? true : undefined,
+    ...(activation.glifo ? { glifo: true } : {}),
   });
 }
 

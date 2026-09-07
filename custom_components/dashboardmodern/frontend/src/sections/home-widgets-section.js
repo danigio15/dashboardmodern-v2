@@ -29,7 +29,8 @@ import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceModelById, buildCardMarkup, cardLabels } from "./appliance-showcase-section.js";
 import { RIF_CENTRALE } from "../core/alarm-panel.js";
 import { alarmActiveButton, alarmModeButtons } from "./security-showcase-section.js";
-import { oggettoWidget } from "../core/oggetti-widget.js";
+import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
+import { iconGlyphMarkup } from "./icon-engine-section.js";
 import {
   bricioleDellaSezione,
   fraseDellaTessera,
@@ -43,6 +44,7 @@ import {
   fraseDellAria,
   giudizioDellAria,
   letturaDellAria,
+  normalizzaAria,
   parolaDelGrado,
 } from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
@@ -142,6 +144,7 @@ import {
   rifiutiConfigurati,
 } from "../core/rifiuti-model.js";
 import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
+import { CHIAVE_VMC, entitaDellaVmc, letturaVmc, vmcDisegnabili, vmcParla } from "../core/vmc-model.js";
 import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -156,6 +159,13 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { doorOpenCall } from "../core/security-door-model.js";
+import { humidityEntry } from "../core/room-overview.js";
+import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
+import {
+  CHIAVE_MACCHINE,
+  contoDelleMacchine,
+  macchineERete,
+} from "../core/macchine-e-rete.js";
 import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import {
@@ -1324,10 +1334,11 @@ function temperatureModel(states) {
     .filter((room) => clean(room?.temp) && widgetIncludes(room.temp, fuori))
     .map((room) => {
       const temperature = numOf(states, room.temp);
-      const humidity = numOf(
-        states,
-        clean(room.hum) || clean(room.temp).replace("_temperature", "_humidity"),
-      );
+      /* La gemella per nome si prova, ma solo se il nome cambia davvero:
+       * senza quella guardia un id senza «_temperature» tornava identico e la
+       * finestra stampava la temperatura una seconda volta col «%» addosso —
+       * «una stanza mostra l'umidita' senza avere nessun sensore» (#379). */
+      const humidity = numOf(states, humidityEntry(room));
       /* L'entita' resta sulla riga: senza, la finestra non sa a chi chiedere
        * lo storico, e la Temperatura non poteva mai avere la sua analisi nel
        * tempo. */
@@ -3025,19 +3036,31 @@ function batteriesModel(states) {
  */
 function ariaModel(states) {
   const fuori = widgetExcludedEntities();
+  /* Quello che chi ha la casa ha detto sull'aria: quali sensori non contano,
+   * quali contano anche se Home Assistant non li dichiara, e con che confini.
+   * Sta in `cd_allerte.aria` e si scrive dalla scheda Allerte — «mi devi creare
+   * da qualche parte la possibilita' di inserire entita' e i parametri, non
+   * solo nei widget». Senza niente scritto, tutto resta com'era. */
+  const ariaScelta = readJson(CHIAVE_ALLERTE, {})?.aria;
   const letture = Object.entries(states || {})
-    .filter(([entity, stato]) => eUnaMisuraDellAria(entity, stato) && widgetIncludes(entity, fuori))
+    .filter(
+      ([entity, stato]) =>
+        eUnaMisuraDellAria(entity, stato, ariaScelta) && widgetIncludes(entity, fuori),
+    )
     .map(([entity, stato]) => {
-      const lettura = letturaDellAria(entity, stato, locale());
+      const lettura = letturaDellAria(entity, stato, locale(), ariaScelta);
       if (!lettura) return null;
       return { ...lettura, name: friendlyName(states, entity) };
     })
     .filter(Boolean)
     .sort((a, b) => a.misura.localeCompare(b.misura) || a.name.localeCompare(b.name));
-  const giudizio = giudizioDellAria(letture);
+  const giudizio = giudizioDellAria(letture, normalizzaAria(ariaScelta).principale);
   if (!giudizio) return null;
-  const peggiore = giudizio.peggiore;
-  const parola = parolaDelGrado(giudizio.grado, locale());
+  /* In copertina va la misura che si e' scelta — di serie la peggiore (#375).
+   * Il giudizio pero' resta della peggiore: una centralina che dice «buona»
+   * non deve coprire una polvere sottile che dice «cattiva». */
+  const copertina = giudizio.copertina;
+  const parola = parolaDelGrado(copertina.grado, locale());
   return {
     key: "aria",
     /* Il colore dice il giudizio senza leggere: verde, ambra, arancio, rosso. */
@@ -3051,9 +3074,9 @@ function ariaModel(states) {
     label: t("Aria", "Air"),
     /* Il numero e la sua unita' nella stessa casella: la tessera le separa da
      * se', come fa coi gradi della temperatura. */
-    value: `${formatNumber(peggiore.valore, peggiore.valore >= 100 ? 0 : 1)}${peggiore.unita ? ` ${peggiore.unita}` : ""}`,
-    caption: `${parola} · ${peggiore.misura}`,
-    ring: peggiore.quanto,
+    value: `${formatNumber(copertina.valore, copertina.valore >= 100 ? 0 : 1)}${copertina.unita ? ` ${copertina.unita}` : ""}`,
+    caption: `${parola} · ${copertina.misura}`,
+    ring: copertina.quanto,
     grado: giudizio.grado,
     frase: fraseDellAria(giudizio, locale()),
     /* Le righe sono letture, non comandi: la finestra le disegna come caselle
@@ -3064,6 +3087,108 @@ function ariaModel(states) {
       glyph: lettura.glifo,
       value: `${formatNumber(lettura.valore, lettura.valore >= 100 ? 0 : 1)}${lettura.unita ? ` ${lettura.unita}` : ""}`,
       grado: lettura.grado,
+    })),
+  };
+}
+
+/* I varchi: quanti sono aperti adesso (#367, #377).
+ *
+ * «Almeno a colpo d'occhio so quante finestre sono aperte in questo momento»
+ * e «magari che la card principale come per le luci mostri solo il numero di
+ * porte aperte». Il numero grande e' quello: quante ne sono aperte. La
+ * didascalia dice quali, perche' «due aperte» senza sapere quali obbliga ad
+ * aprire la scheda per una domanda che si fa in mezzo secondo.
+ *
+ * La tessera si accende — rossa in cima — solo quando qualcosa e' aperto: a
+ * casa chiusa non c'e' niente da dire, e un avviso che si accende sempre non e'
+ * piu' un avviso. Le righe sono pastiglie, rosse le aperte e verdi le chiuse,
+ * che e' esattamente la colorazione chiesta nella segnalazione. */
+function varchiModel(states) {
+  const fuori = widgetExcludedEntities();
+  const config = readJson(CHIAVE_VARCHI, {});
+  const girati = insiemeInvertiti(readJson(CHIAVE_VERSI, {}));
+  const righe = varchiDiCasa(states, config, girati, (entity) =>
+    friendlyName(states, entity),
+  ).filter((riga) => widgetIncludes(riga.entity, fuori));
+  if (!righe.length) return null;
+  const conto = contoDeiVarchi(righe);
+  return {
+    key: "varchi",
+    accent: conto.aperti ? "#dc2626" : "#16a34a",
+    icon: "🚪",
+    alert: conto.aperti > 0,
+    label: t("Varchi", "Openings"),
+    value: String(conto.aperti),
+    caption: conto.aperti
+      ? conto.nomi.join(" · ")
+      : t(`Tutto chiuso · ${conto.chiusi}`, `All closed · ${conto.chiusi}`),
+    ring: conto.totale ? Math.round((conto.aperti / conto.totale) * 100) : null,
+    rows: righe.map((riga) => ({
+      entity: riga.entity,
+      name: riga.name,
+      glyph: riga.glifo,
+      on: riga.stato === "aperto",
+      /* Il tono dice il colore della pastiglia senza sapere di cosa parla:
+       * aperto e' una cosa da guardare, chiuso e' la buona notizia. */
+      tono: riga.stato === "aperto" ? "allarme" : riga.stato === "chiuso" ? "quiete" : "",
+      value:
+        riga.stato === "aperto"
+          ? t("Aperto", "Open")
+          : riga.stato === "chiuso"
+            ? t("Chiuso", "Closed")
+            : t("Non risponde", "Not answering"),
+    })),
+  };
+}
+
+/* Le macchine del server e la rete (#382).
+ *
+ * «I controlli del server proxmox dove gira HA con tutti i suoi container, e
+ * controllare lo stato del fritbox e i suoi ripeter.» Il numero grande e'
+ * quello che conta guardando di sfuggita: quante sono FERME. A tutto in piedi
+ * la tessera dice quante ne sta guardando, che e' il modo in cui una
+ * sorveglianza si fa vedere anche quando non ha niente da dire.
+ *
+ * Macchine e rete stanno nella stessa tessera perche' rispondono alla stessa
+ * domanda — «e' tutto su?» — e chi la fa non pensa «adesso guardo i container
+ * e poi guardo i ripetitori». Aprendola si distinguono: le pastiglie portano
+ * il verde di chi va e il rosso di chi non va. */
+function macchineModel(states) {
+  const fuori = widgetExcludedEntities();
+  const config = readJson(CHIAVE_MACCHINE, {});
+  const elenchi = macchineERete(states, config, (entity) => friendlyName(states, entity));
+  const righe = [...elenchi.macchine, ...elenchi.rete].filter((riga) =>
+    widgetIncludes(riga.entity, fuori),
+  );
+  if (!righe.length) return null;
+  const conto = contoDelleMacchine(righe);
+  return {
+    key: "macchine",
+    accent: conto.giu ? "#dc2626" : "#6366f1",
+    icon: "🖥️",
+    alert: conto.giu > 0,
+    label: t("Server e rete", "Server and network"),
+    value: conto.giu ? String(conto.giu) : String(conto.su),
+    caption: conto.giu
+      ? conto.fermi.join(" · ")
+      : t(`Tutto in piedi · ${conto.totale}`, `All up · ${conto.totale}`),
+    ring: conto.totale ? Math.round((conto.su / conto.totale) * 100) : null,
+    rows: righe.map((riga) => ({
+      entity: riga.entity,
+      name: riga.name,
+      glyph: riga.glifo,
+      on: riga.stato === "su",
+      tono: riga.stato === "su" ? "quiete" : riga.stato === "giu" ? "allarme" : "",
+      value:
+        riga.stato === "su"
+          ? riga.famiglia === "rete"
+            ? t("Connesso", "Connected")
+            : t("Acceso", "Running")
+          : riga.stato === "giu"
+            ? riga.famiglia === "rete"
+              ? t("Assente", "Down")
+              : t("Fermo", "Stopped")
+            : t("Non risponde", "Not answering"),
     })),
   };
 }
@@ -3725,6 +3850,65 @@ function rifiutiModel(states) {
   };
 }
 
+/* La ventilazione meccanica (#371).
+ *
+ * La tessera dice la cosa che si guarda passando: a che temperatura sta
+ * entrando l'aria in casa, e quanto la macchina se n'e' ripreso. Il resto — le
+ * quattro temperature incrociate, il bypass, le ventole — sta nella pagina del
+ * Clima, che e' dove uno va quando la risposta corta non gli basta. */
+function vmcModel(states) {
+  const config = readJson(CHIAVE_VMC, []);
+  const unita = vmcDisegnabili(config);
+  if (!unita.length) return null;
+  const fuori = widgetExcludedEntities();
+  if (!entitaDellaVmc(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const letture = unita.map((voce) => letturaVmc(voce, states)).filter(vmcParla);
+  if (!letture.length) return null;
+  const prima = letture[0];
+  const immissione = prima.temperature.immissione;
+  const valore =
+    immissione && !immissione.muto && immissione.valore !== null
+      ? `${Math.round(immissione.valore * 10) / 10}°`
+      : "—";
+  const filtri = letture.some((lettura) => lettura.avvisi.length > 0);
+  const parti = [];
+  if (prima.bypassAperto) parti.push(t("Bypass aperto", "Bypass open"));
+  else if (prima.recupero !== null)
+    parti.push(`${t("Recupero", "Recovery")} ${prima.recupero}%`);
+  if (prima.estate) parti.push(t("Estate", "Summer"));
+  if (filtri) parti.push(t("Filtri da cambiare", "Filters need changing"));
+  return {
+    key: "vmc",
+    accent: "#0ea5e9",
+    icon: "🔄",
+    label: t("Ventilazione", "Ventilation"),
+    value: valore,
+    caption: parti.length ? parti.join(" · ") : t("Aria in casa", "Air into the house"),
+    ring: prima.bypassAperto || prima.recupero === null ? null : prima.recupero,
+    attiva: false,
+    alert: filtri,
+    rows: letture.flatMap((lettura) =>
+      Object.values(lettura.temperature)
+        .filter((voce) => voce && !voce.muto && voce.valore !== null)
+        .map((voce) => ({
+          glyph: voce.glifo,
+          name: lettura.nome
+            ? `${lettura.nome} · ${parolaDellaTemperatura(voce.chiave)}`
+            : parolaDellaTemperatura(voce.chiave),
+          entity: voce.entita,
+          value: `${Math.round(voce.valore * 10) / 10}°`,
+        })),
+    ),
+  };
+}
+
+function parolaDellaTemperatura(chiave) {
+  if (chiave === "esterna") return t("Aria esterna", "Outside air");
+  if (chiave === "immissione") return t("Immissione", "Supply");
+  if (chiave === "ripresa") return t("Ripresa", "Return");
+  return t("Espulsione", "Exhaust");
+}
+
 /* Tutte le tessere che la casa sa raccontare, prima delle preferenze.
  *
  * Sta staccato dal filtro perche' i modelli servono a due cose: la griglia
@@ -3747,6 +3931,7 @@ export function modelliDelleTessere(states) {
       climateModel(states),
       coversModel(states),
       securityModel(states),
+      varchiModel(states),
       camerasModel(states),
       ...energyModels(states),
       appliancesModel(states),
@@ -3758,11 +3943,13 @@ export function modelliDelleTessere(states) {
       caldaiaModel(states),
       upsModel(states),
       minipcModel(states),
+      macchineModel(states),
       poolModel(states),
       preseModel(states),
       mediaModel(states),
       allerteModel(states),
       rifiutiModel(states),
+      vmcModel(states),
       irrigationModel(states),
       batteriesModel(states),
       floodModel(states),
@@ -3996,6 +4183,23 @@ function unitaSimbolo(unita) {
   return /^[°%]/.test(String(unita || ""));
 }
 
+/* La faccia di una tessera.
+ *
+ * Le tessere di sezione hanno il loro disegno di casa, e si chiamano per
+ * chiave. Un avviso personalizzato una chiave di casa non ce l'ha — e' una
+ * riga che l'utente si e' scritto — e li' si stampava il RIPIEGO cosi' com'e'
+ * scritto: un'emoji andava bene, ma un'icona scelta dal catalogo e' un nome
+ * mdi, e sulla tessera si leggeva «mdi:water-alert» invece di vedersi un
+ * disegno. Dal campo (#381): «alcune icone negli avvisi personalizzati non
+ * vengono visualizzate correttamente, sia in config che nel widget».
+ *
+ * Chi sa disegnare un nome mdi e' il motore delle icone, che e' anche quello
+ * che ha riempito il catalogo da cui la scelta viene. */
+function facciaDellaTessera(widget) {
+  if (haOggettoWidget(widget?.key)) return oggettoWidget(widget.key);
+  return iconGlyphMarkup("action", widget?.icon, { size: 22 });
+}
+
 function tileMarkup(widget, index = 0) {
   const open = state.expanded === widget.key;
   const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
@@ -4005,7 +4209,7 @@ function tileMarkup(widget, index = 0) {
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
       <span class="dm-tile-alone" aria-hidden="true"></span>
       <span class="dm-tile-cima">
-        <span class="dm-tile-chip" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
+        <span class="dm-tile-chip" aria-hidden="true">${facciaDellaTessera(widget)}</span>
         <span class="dm-tile-label" data-dm-tile-label>${esc(widget.label)}</span>
       </span>
       <span class="dm-tile-val"><b class="dm-tile-value" data-dm-tile-value data-dm-len="${misuraValore(widget.value)}">${esc(numero)}</b><i class="dm-tile-unit" data-dm-tile-unit data-simbolo="${unitaSimbolo(unita)}">${esc(unita)}</i></span>
@@ -4897,16 +5101,21 @@ function pilloleDelloStato(widget) {
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
   /* Dodici e non otto: da quando le righe acceso/spento non fanno piu' lista
    * sotto, le pillole sono l'unico posto dove si leggono — una casa con
-   * undici finestre le deve vedere tutte. */
-  const voci = righe
-    .filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name))
-    .slice(0, 12);
+   * undici finestre le deve vedere tutte. E oltre le dodici c'e' lo stesso
+   * tasto delle misure: il taglio e' lo stesso, e nascondere in silenzio e'
+   * lo stesso difetto (#376). */
+  const voci = righe.filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name));
   if (!voci.length) return "";
+  const chiave = chiaveDellElenco(widget, "stato");
+  const tutte = misureAperte().has(chiave);
+  const oltre = Math.max(0, voci.length - MISURE_IN_VISTA);
   return `<h4 class="dm-w-titoletto">${esc(t("Lo stato", "The state"))}</h4>
     <div class="dm-w-pillole">${voci
       .map(
-        (riga) =>
-          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${
+        (riga, indice) =>
+          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}"${
+            clean(riga.tono) ? ` data-tono="${esc(clean(riga.tono))}"` : ""
+          }${!tutte && indice >= MISURE_IN_VISTA ? " hidden" : ""}>${
             riga.glyph
               ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>`
               : ""
@@ -4914,7 +5123,7 @@ function pilloleDelloStato(widget) {
             clean(riga.value) ? `<b>${esc(clean(riga.value))}</b>` : ""
           }</span>`,
       )
-      .join("")}</div>`;
+      .join("")}</div>${oltre ? tastoMostraTutte(chiave, voci.length, tutte) : ""}`;
 }
 
 /* Le righe di sola lettura, fatte caselle.
@@ -4942,6 +5151,7 @@ const CHIAVI_A_CARTE = new Set([
   "batterie",
   "allerte",
   "rifiuti",
+  "vmc",
   "elettrodomestici",
 ]);
 
@@ -5028,19 +5238,53 @@ function carteDalleRighe(widget) {
     }));
 }
 
+/* Quante misure si vedono senza chiedere.
+ *
+ * Oltre questo numero la finestra smette di essere un riassunto e diventa un
+ * elenco. Le altre pero' esistono, e sparivano in silenzio: chi ha venticinque
+ * batterie ne vedeva dodici e non aveva modo di sapere che le altre c'erano.
+ * Dal campo (#376): «quando si apre la scheda batterie, oltre a mostrare
+ * quelle piu' scariche, ci fosse un tasto mostra tutto come per la sezione
+ * luci». Vale per ogni scheda che nasconde qualcosa, non per le batterie sole:
+ * il taglio e' uno, e la porta per andare oltre e' una. */
+const MISURE_IN_VISTA = 12;
+
+/* Gli elenchi che hanno chiesto di vedersi per intero. Sta qui e non nel
+ * documento perche' il corpo della finestra si ridisegna a ogni giro di stati:
+ * l'elenco aperto si richiuderebbe da solo al primo valore che cambia.
+ *
+ * La chiave dice la scheda E quale dei due elenchi, perche' nella stessa
+ * finestra ce ne sono due — le misure e le pillole dello stato — e aprirne
+ * uno non vuol dire aprire l'altro. */
+function misureAperte() {
+  return (state.tutteLeMisure ||= new Set());
+}
+
+const chiaveDellElenco = (widget, quale) => `${clean(widget?.key)}:${quale}`;
+
+/* Il tasto che scavalca il taglio, per chiunque tagli. */
+function tastoMostraTutte(chiave, quante, tutte) {
+  return `<button type="button" class="dm-w-tutte-btn dm-w-tutte-misure" data-dm-w-tutte-misure="${esc(chiave)}" aria-expanded="${tutte}"><span aria-hidden="true">${tutte ? "\u25b4" : "\u25be"}</span>${esc(
+    tutte ? t("Mostra solo le prime", "Show fewer") : `${t("Mostra tutte", "Show all")} \u00b7 ${quante}`,
+  )}</button>`;
+}
+
 /* Le caselle: i riassunti di `summaryChips` («la piu' bassa», «media», «in
  * funzione») piu' le letture fatte caselle. Un titolo solo, una griglia sola. */
 function caselleDelleMisure(widget) {
   const voci = [
     ...summaryChips(widget).map(([etichetta, valore]) => ({ glyph: "", valore, etichetta })),
     ...carteDalleRighe(widget),
-  ].slice(0, 12);
+  ];
   if (!voci.length) return "";
+  const chiave = chiaveDellElenco(widget, "misure");
+  const tutte = misureAperte().has(chiave);
+  const oltre = Math.max(0, voci.length - MISURE_IN_VISTA);
   return `<h4 class="dm-w-titoletto">${esc(t("Le misure", "The readings"))}</h4>
     <div class="dm-w-caselle">${voci
       .map(
-        (voce) =>
-          `<div class="dm-w-casella">${
+        (voce, indice) =>
+          `<div class="dm-w-casella"${!tutte && indice >= MISURE_IN_VISTA ? " hidden" : ""}>${
             voce.glyph
               ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>`
               : ""
@@ -5048,7 +5292,7 @@ function caselleDelleMisure(widget) {
             voce.sotto ? `<i class="dm-w-casella-sotto">${esc(voce.sotto)}</i>` : ""
           }<span>${esc(voce.etichetta)}</span></div>`,
       )
-      .join("")}</div>`;
+      .join("")}</div>${oltre ? tastoMostraTutte(chiave, voci.length, tutte) : ""}`;
 }
 
 /* La corsa della misura: dov'era tre ore fa, dov'e' adesso.
@@ -5577,6 +5821,8 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   minipc: "server",
   allerte: "allerte",
   rifiuti: "rifiuti",
+  /* La ventilazione vive nella pagina del Clima: la tessera ci porta li'. */
+  vmc: "clima",
   media: "media",
 });
 
@@ -5615,7 +5861,7 @@ function detailMarkup(widget, states) {
       style="--dm-widget-accent:${widget.accent}">
       <header class="dm-w-head">
         <button type="button" class="dm-w-close" data-dm-widget-close aria-label="${esc(t("Chiudi", "Close"))}"><span aria-hidden="true">✕</span> ${esc(t("Chiudi", "Close"))}</button>
-        <span class="dm-w-head-ic" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
+        <span class="dm-w-head-ic" aria-hidden="true">${facciaDellaTessera(widget)}</span>
         <strong data-dm-titolo>${esc(widget.label)}</strong>
         <small data-dm-detail-caption>${esc(bricioleDelWidget(widget))}</small>
       </header>
@@ -6564,6 +6810,29 @@ function onClick(event) {
   /* La rotella apre e chiude il pannello della riga. Non passa da un
    * ridisegno: si tocca il documento e si segna la scelta, cosi' l'apertura e'
    * immediata e il prossimo ridisegno la ritrova. */
+  const misure = event.target?.closest?.("[data-dm-w-tutte-misure]");
+  if (misure) {
+    event.preventDefault();
+    /* Si scoprono le caselle che c'erano gia', senza rifare la finestra: un
+     * ridisegno qui vorrebbe dire ricaricare le miniature delle telecamere e
+     * perdere quello che si stava scrivendo nelle liste. */
+    const chiave = clean(misure.dataset.dmWTutteMisure);
+    const apri = !misureAperte().has(chiave);
+    if (apri) misureAperte().add(chiave);
+    else misureAperte().delete(chiave);
+    const griglia = misure.previousElementSibling;
+    const caselle = [
+      ...(griglia?.querySelectorAll?.(".dm-w-casella, .dm-w-pillola") || []),
+    ];
+    caselle.forEach((casella, indice) => {
+      casella.hidden = !apri && indice >= MISURE_IN_VISTA;
+    });
+    misure.setAttribute("aria-expanded", String(apri));
+    misure.innerHTML = `<span aria-hidden="true">${apri ? "▴" : "▾"}</span>${esc(
+      apri ? t("Mostra solo le prime", "Show fewer") : `${t("Mostra tutte", "Show all")} · ${caselle.length}`,
+    )}`;
+    return;
+  }
   const rotella = event.target?.closest?.("[data-dm-w-more]");
   if (rotella) {
     event.preventDefault();
@@ -7056,6 +7325,9 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-casella{
   display:grid;gap:2px;padding:10px 11px;border-radius:14px;
   border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
+#dm-widget-popup .dm-w-caselle .dm-w-casella[hidden],
+#dm-widget-popup .dm-w-pillole .dm-w-pillola[hidden]{display:none}
+#dm-widget-popup .dm-w-tutte-misure{margin-top:8px;justify-content:center}
 #dm-widget-popup .dm-w-casella-ic{font-size:15px;line-height:1}
 #dm-widget-popup .dm-w-casella-ic svg{width:18px;height:18px;display:block}
 #dm-widget-popup .dm-w-casella b{
@@ -7088,6 +7360,18 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   border-color:color-mix(in srgb,#10b981 34%,transparent);
   background:color-mix(in srgb,#10b981 12%,transparent);
   color:color-mix(in srgb,#10b981 76%,#0f172a)}
+/* Il tono di una pastiglia, quando la cosa che racconta ha due versi e il
+ * verde non e' sempre quello buono. Un varco aperto e' rosso e uno chiuso e'
+ * verde (#367): senza questi due, un'apertura accesa sarebbe uscita verde
+ * come una presa in funzione. */
+#dm-widget-popup .dm-w-pillola[data-tono="allarme"]{
+  border-color:color-mix(in srgb,#dc2626 34%,transparent);
+  background:color-mix(in srgb,#dc2626 12%,transparent);
+  color:color-mix(in srgb,#dc2626 78%,#0f172a)}
+#dm-widget-popup .dm-w-pillola[data-tono="quiete"]{
+  border-color:color-mix(in srgb,#16a34a 30%,transparent);
+  background:color-mix(in srgb,#16a34a 10%,transparent);
+  color:color-mix(in srgb,#16a34a 74%,#0f172a)}
 /* Nome e stato si distinguono: il nome respira, lo stato e' la parola in
  * maiuscoletto dopo il punto — «non si capisce» era tutto sullo stesso tono. */
 #dm-widget-popup .dm-w-pillola{font-size:11px}

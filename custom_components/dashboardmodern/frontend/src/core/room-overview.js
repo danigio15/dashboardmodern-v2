@@ -158,6 +158,32 @@ export function normalizeTemperatureEntry(entry = {}, index = 0) {
   };
 }
 
+/**
+ * L'umidita' di una sonda: quella scelta, o la gemella per nome — se esiste.
+ *
+ * Senza entita' scelta si prova la gemella `..._humidity` del sensore di
+ * temperatura, che sui multisensore e' quasi sempre giusta. Ma SOLO se il
+ * nome cambia davvero: su un id senza «_temperature» il `replace` restituisce
+ * lo STESSO id, e allora si legge la temperatura una seconda volta e la si
+ * stampa col «%» addosso.
+ *
+ * Era gia' successo sulle card (#242) ed era stato corretto li'; la stessa
+ * riga senza guardia viveva in altri tre posti, e dal campo e' tornata dalla
+ * finestra del widget (#379): «una stanza mostra una misura di umidita' pur
+ * non essendoci nessun sensore associato — nella sezione Stanze la stessa
+ * stanza non ce l'ha». Non c'era nessun sensore: c'era il termometro,
+ * chiamato umidita'.
+ *
+ * Una risposta sola, qui, dove non ha dipendenze.
+ */
+export function humidityEntry(entry = {}) {
+  const scelta = clean(entry?.hum || entry?.humidity_entity);
+  if (scelta) return scelta;
+  const temp = clean(entry?.temp || entry?.temperature_entity || entry?.entity);
+  const gemella = temp.replace("_temperature", "_humidity");
+  return gemella !== temp ? gemella : "";
+}
+
 /** Ogni associazione temperatura di una stanza canonica, primaria compresa. */
 export function temperatureEntries(room = {}) {
   const entries = [];

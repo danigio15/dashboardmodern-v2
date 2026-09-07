@@ -104,7 +104,7 @@ test("la tessera legge l'impianto, e le sue sorelle sono riconosciute", () => {
 
 test("la scelta viaggia, perché è come si vuole vedere la plancia", () => {
   const persistenza = readFileSync(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   assert.match(persistenza, new RegExp(`"${TESSERE_IMPIANTI_KEY}"`));

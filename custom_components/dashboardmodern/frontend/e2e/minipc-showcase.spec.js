@@ -226,4 +226,44 @@ test.describe("MiniPC page redesign", () => {
     await expect(page.locator(".srv-status-card").first()).toBeHidden();
     await expect(page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]')).toBeHidden();
   });
+
+  /* «Nella sezione mini PC ho configurato tutto, e sotto quella riga non esce
+   * nulla»: una schermata con «RETE E IMPIANTO» scritto sopra il vuoto, in
+   * fondo alla pagina.
+   *
+   * Vuoto vuol dire due cose. Le card si possono NASCONDERE — ed e' il caso
+   * qui sopra — oppure SPARIRE: l'auto hide toglie dal documento le sezioni non
+   * configurate, e allora dentro al blocco non resta niente da contare. La
+   * regola pretendeva almeno una card per dichiarare vuoto un blocco, e un
+   * blocco svuotato del tutto si teneva l'intestazione. */
+  test("un blocco rimasto senza figli non tiene la sua intestazione", async ({
+    page,
+  }, testInfo) => {
+    await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+    await bootNamespacedDashboard(page, "dashboard.html", testInfo, seedWith(MAPPED));
+    await openServerPage(page);
+    const intestazione = page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]');
+
+    /* Con qualcosa dentro l'intestazione ci sta: e' quello che annuncia. */
+    await page.evaluate(() => {
+      const griglia = document.querySelector("#page-server .srv-status-grid");
+      griglia.querySelectorAll(":scope > *").forEach((n) => n.remove());
+      const card = document.createElement("div");
+      card.className = "srv-status-card";
+      card.textContent = "qualcosa";
+      griglia.append(card);
+      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+    });
+    await expect(intestazione).toBeVisible();
+
+    /* E le card se ne vanno dal documento, come fa l'auto hide con le sezioni
+     * che non hai configurato: sopra il vuoto non resta scritto niente. */
+    await page.evaluate(() => {
+      document
+        .querySelectorAll("#page-server .srv-status-grid > *")
+        .forEach((nodo) => nodo.remove());
+      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+    });
+    await expect(intestazione).toBeHidden();
+  });
 });

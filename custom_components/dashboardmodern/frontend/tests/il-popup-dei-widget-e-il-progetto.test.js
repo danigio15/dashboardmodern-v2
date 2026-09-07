@@ -86,7 +86,13 @@ test("le letture del popup sono caselle e pillole, non un elenco di righe", () =
   assert.match(WIDGETS, /\.filter\(\(row\) => row\.comando\)/, "rowsDetail tiene solo i comandi");
   assert.match(WIDGETS, /carteDalleRighe/, "le righe di lettura diventano caselle");
   assert.match(WIDGETS, /"elettrodomestici",\n\]\);/, "anche chi lavora e' una casella");
-  assert.match(WIDGETS, /\.slice\(0, 12\)/, "le pillole arrivano a dodici");
+  /* Le pillole arrivano a dodici, e oltre lo dicono: il taglio ha un nome
+   * solo — `MISURE_IN_VISTA` — e lo stesso tasto delle misure lo scavalca
+   * (#376). Prima era un `.slice(0, 12)` scritto qui e un altro nelle
+   * caselle, e quello che restava fuori non lo sapeva nessuno. */
+  assert.match(WIDGETS, /const MISURE_IN_VISTA = 12;/, "le pillole arrivano a dodici");
+  assert.match(WIDGETS, /indice >= MISURE_IN_VISTA \? " hidden" : ""/, "oltre si nascondono");
+  assert.match(WIDGETS, /oltre \? tastoMostraTutte/, "e il tasto le riporta");
 });
 
 test("il tasto Chiudi del popup sta a destra", () => {

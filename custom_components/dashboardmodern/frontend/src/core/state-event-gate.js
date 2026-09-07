@@ -2,29 +2,21 @@
 const STATE_EVENT = "dashboardmodern:state-changed";
 const SERVICE_KEY = "DashboardModernEnergyService";
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
-const LEGACY_CONFIG_KEYS = Object.freeze([
-  "dm_dashboard_state",
-  "cd_stanze",
-  "cd_cameras",
-  "cd_appliances",
-  "cd_loads",
-  "cd_luci",
-  "cd_people",
-  "cd_security_doors",
-  "cd_todo",
-  "cd_clima_units",
-  "cd_ev_cars",
-  "cd_tapparelle",
-  "cd_piscina",
-  "cd_robot",
-  "cd_irrigazione",
-  "cd_energy_model",
-  "cd_entity_overrides",
-  "cd_ups",
-  "cd_allerte",
-  "cd_rifiuti",
-]);
-const CHIAVI_OSSERVATE = new Set(LEGACY_CONFIG_KEYS);
+/* Le caselle di configurazione che questo cancello guarda.
+ *
+ * Non le sa da se': gliele passa chi lo installa, e sono quelle vere —
+ * `CONFIG_KEYS`, l'elenco che dice cosa e' configurazione della casa. Qui ce
+ * n'era una copia scritta a mano, e una copia a mano di un elenco che cresce
+ * e' un elenco che resta indietro: era rimasta a ventun chiavi mentre le vere
+ * erano diventate ottanta, e le entita' che stavano solo in quelle mancanti —
+ * le prese, i lettori, gli animali, i varchi, le macchine del server, la
+ * ventilazione — non passavano piu' di qui. Le loro tessere restavano ferme
+ * sull'ultimo valore finche' non si muoveva qualcos'altro.
+ */
+function chiaviDate(chiavi) {
+  const elenco = Array.isArray(chiavi) ? chiavi : [];
+  return [...new Set(elenco.map((chiave) => String(chiave || "").trim()).filter(Boolean))];
+}
 
 function makeEvent(root, detail) {
   if (typeof root.CustomEvent === "function") return new root.CustomEvent(STATE_EVENT, { detail });
@@ -47,10 +39,10 @@ function collectEntityIds(value, output, depth = 0) {
   }
 }
 
-function collectStoredConfig(root, ids) {
+function collectStoredConfig(root, ids, chiavi) {
   const storage = root.localStorage;
   if (!storage?.getItem) return;
-  for (const key of LEGACY_CONFIG_KEYS) {
+  for (const key of chiavi) {
     try {
       const raw = storage.getItem(key);
       if (!raw) continue;
@@ -91,7 +83,7 @@ const EVENTI_DI_CONFIGURAZIONE = Object.freeze([
   "dashboardmodern:config-reset",
 ]);
 
-function osservaLaConfigurazione(root, dimentica) {
+function osservaLaConfigurazione(root, dimentica, osservate) {
   for (const evento of EVENTI_DI_CONFIGURAZIONE) root.addEventListener?.(evento, dimentica);
 
   const storage = root.localStorage;
@@ -104,20 +96,20 @@ function osservaLaConfigurazione(root, dimentica) {
   if (!scrivi) return;
   storage.setItem = function setItemOsservato(key, value) {
     const esito = scrivi(key, value);
-    if (CHIAVI_OSSERVATE.has(key)) dimentica();
+    if (osservate.has(key)) dimentica();
     return esito;
   };
   if (cancella) {
     storage.removeItem = function removeItemOsservato(key) {
       const esito = cancella(key);
-      if (CHIAVI_OSSERVATE.has(key)) dimentica();
+      if (osservate.has(key)) dimentica();
       return esito;
     };
   }
   storage.__dmStateEventGateWatch = true;
 }
 
-function configuredEntities(root) {
+function configuredEntities(root, chiavi) {
   const ids = new Set();
   try {
     collectEntityIds(root.DashboardModernModules?.store?.getState?.()?.sections, ids);
@@ -128,7 +120,7 @@ function configuredEntities(root) {
   try {
     collectEntityIds(root.ENTITY_OVERRIDES, ids);
   } catch (_error) {}
-  collectStoredConfig(root, ids);
+  collectStoredConfig(root, ids, chiavi);
   return ids;
 }
 
@@ -139,10 +131,15 @@ function configuredEntities(root) {
  * get_states snapshot never reaches this gate: the broker ingests it with
  * `emitEvent: false`, so there is no bootstrap storm to suppress here.
  */
-export function installStateEventGate(broker, root = globalThis, { delay = 500 } = {}) {
+export function installStateEventGate(
+  broker,
+  root = globalThis,
+  { delay = 500, chiavi = [] } = {},
+) {
   if (!broker || typeof broker.ingestState !== "function" || broker.__dmStateEventGate)
     return false;
 
+  const osservate = chiaviDate(chiavi);
   const original = broker.ingestState;
   const pendingIds = new Set();
   let lastState = null;
@@ -150,16 +147,20 @@ export function installStateEventGate(broker, root = globalThis, { delay = 500 }
   let interests = null;
 
   const currentInterests = () => {
-    if (!interests) interests = configuredEntities(root);
+    if (!interests) interests = configuredEntities(root, osservate);
     return interests;
   };
   /* Non si ricalcola qui: si dimentica, e il primo evento che passa lo rifa'.
    * Un salvataggio ne annuncia spesso piu' d'uno di seguito — il negozio
    * scrive tutte le sue chiavi — e rifare l'elenco a ogni scrittura vorrebbe
    * dire rifarlo dieci volte per un salvataggio solo. */
-  osservaLaConfigurazione(root, () => {
-    interests = null;
-  });
+  osservaLaConfigurazione(
+    root,
+    () => {
+      interests = null;
+    },
+    new Set(osservate),
+  );
 
   const flush = () => {
     timer = 0;

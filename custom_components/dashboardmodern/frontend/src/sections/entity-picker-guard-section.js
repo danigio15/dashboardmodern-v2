@@ -1,9 +1,10 @@
 import { decorateEntityFields } from "./editor-slots-section.js";
-import { clean, doc, installStyle, root, wrapFunction } from "./shared.js";
+import { LENTE_SELECTOR, clean, doc, installStyle, root, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENTITY_PICKER_GUARD__";
 const state = (root[KEY] ||= { installed: false, frame: 0, subscribed: false });
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
+
 // An entity_id can only be typed into a free-text field. Every other input type
 // in the editors holds a duration, a threshold, a time or a flag, so a lens
 // button next to it offers something the field cannot accept.
@@ -43,7 +44,7 @@ function isEntityInput(input) {
    * aveva niente che dicesse «sono un'entita'», e la ricerca non si apriva. */
   if (/^(sensor|binary_sensor|switch|light|cover|climate|camera|weather|automation|script|scene|select|number|person|device_tracker|zone|input_[a-z_]+)\./i.test(placeholder)) return true;
   if (ENTITY_ID.test(clean(input.value)) && input.classList.contains("mono")) return true;
-  return Boolean(input.nextElementSibling?.matches?.(".dm-entity-picker,button[onclick*='wzPickEntity']"));
+  return Boolean(input.nextElementSibling?.matches?.(LENTE_SELECTOR));
 }
 
 function cleanupFalsePicker(input) {
@@ -130,7 +131,7 @@ function mountOne(input) {
   if (!isEntityInput(input)) return false;
   const id = ensureId(input);
   input.dataset.entityInput = "true";
-  let button = input.nextElementSibling?.matches?.(".dm-entity-picker,button[onclick*='wzPickEntity']") ? input.nextElementSibling : null;
+  let button = input.nextElementSibling?.matches?.(LENTE_SELECTOR) ? input.nextElementSibling : null;
   if (!button) button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(id)}"]`) || null;
 
   // Existing buttons belong to the canonical editor and already own their

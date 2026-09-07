@@ -267,7 +267,7 @@ test("il disegno della cassa è di casa, e la scheda viaggia con la plancia", as
     "senza il suo disegno la barra tornerebbe a un'emoji",
   );
   assert.match(leggi("sections/navigation-section.js"), /media: "media",/);
-  const persistenza = leggi("sections/config-persistence-section.js");
+  const persistenza = leggi("core/chiavi-di-configurazione.js");
   assert.match(persistenza, /"cd_media_player",/);
   /* La revisione dev'essere ALMENO quella che ha aggiunto questa chiave, non
    * esattamente quella: inchiodare il numero rendeva rossa questa prova ogni

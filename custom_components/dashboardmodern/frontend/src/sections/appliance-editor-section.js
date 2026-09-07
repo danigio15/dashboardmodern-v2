@@ -5,6 +5,10 @@ import {
   canonicalApplianceVisualKey,
   applianceVisualKey,
 } from "../core/device-model.js";
+import {
+  apriIlFoglioDiScelta,
+  chiudiIlFoglioDiScelta,
+} from "./foglio-di-scelta-section.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
   activeLocale,
@@ -112,18 +116,19 @@ function typeLabel(value) {
   return applianceCatalogLabel(value, locale());
 }
 
+/* La cornice — sfondo, scheda, titolo, Chiudi — e' quella condivisa: la stessa
+ * che usa la tendina dei dispositivi del Report. Qui dentro ci va solo cosa si
+ * sceglie, che e' una griglia di piastrelle. */
 function openTypePicker({ selected = "generico", onSelect } = {}) {
-  doc?.getElementById("dm-applpick")?.remove();
   const selectedKey = editorVisualKey(selected) || "generico";
-  const overlay = doc.createElement("div");
-  overlay.id = "dm-applpick";
-  overlay.className = "dm-appliance-type-picker";
-  overlay.innerHTML = `<section class="dm-appliance-type-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-appliance-type-picker-title">
-    <strong id="dm-appliance-type-picker-title">${t("Scegli l'elettrodomestico", "Choose appliance")}</strong>
-    <div class="dm-appliance-type-grid" role="listbox"></div>
-    <button type="button" class="dm-appliance-type-close">${t("Chiudi", "Close")}</button>
-  </section>`;
-  const grid = overlay.querySelector(".dm-appliance-type-grid");
+  const corpo = apriIlFoglioDiScelta({
+    titolo: t("Scegli l'elettrodomestico", "Choose appliance"),
+    id: "dm-applpick",
+  });
+  if (!corpo) return null;
+  const grid = doc.createElement("div");
+  grid.className = "dm-appliance-type-grid";
+  grid.setAttribute("role", "listbox");
   APPLIANCE_CATALOG.forEach((item) => {
     const button = doc.createElement("button");
     button.type = "button";
@@ -133,19 +138,13 @@ function openTypePicker({ selected = "generico", onSelect } = {}) {
     button.setAttribute("aria-selected", String(item.key === selectedKey));
     button.innerHTML = `<span class="dm-appliance-type-option-icon">${typeIconMarkup(item.key, 30)}</span><span>${esc(catalogLabel(item))}</span>`;
     button.addEventListener("click", () => {
-      overlay.remove();
+      chiudiIlFoglioDiScelta();
       onSelect?.(item.key);
     });
     grid.append(button);
   });
-  overlay
-    .querySelector(".dm-appliance-type-close")
-    ?.addEventListener("click", () => overlay.remove());
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) overlay.remove();
-  });
-  doc.body.append(overlay);
-  return overlay;
+  corpo.append(grid);
+  return corpo;
 }
 
 function installPickerOverride() {
@@ -891,11 +890,8 @@ function installStyles() {
     .dm-appliance-card-fields[open]>summary::after{transform:rotate(180deg)}
     .dm-appliance-card-fields-intro{padding:0 16px 10px!important;font-size:11.5px!important;line-height:1.5!important;color:var(--secondary-text-color,#64748b)!important}
     .dm-appliance-card-fields .dm-appliance-entity-grid{padding:0 12px 12px!important}
-    .dm-appliance-type-picker{position:fixed!important;inset:0!important;z-index:100002!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important;background:rgba(15,23,42,.60)!important}
-    .dm-appliance-type-picker-dialog{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:min(460px,100%)!important;max-height:80dvh!important;padding:18px!important;border-radius:22px!important;background:var(--card-background-color,#fff)!important;color:var(--text,#0f172a)!important;box-shadow:0 20px 60px rgba(0,0,0,.35)!important}
-    .dm-appliance-type-picker-dialog>strong{margin-bottom:10px!important;font-size:14.5px!important;font-weight:900!important}.dm-appliance-type-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(88px,1fr))!important;gap:8px!important;overflow-y:auto!important;min-height:0!important}
+.dm-appliance-type-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(88px,1fr))!important;gap:8px!important;overflow-y:auto!important;min-height:0!important}
     .dm-appliance-type-option{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;min-height:92px!important;padding:10px 4px!important;border:1px solid var(--divider-color,#e2e8f0)!important;border-radius:14px!important;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 70%,transparent)!important;color:inherit!important;cursor:pointer!important}.dm-appliance-type-option[aria-selected="true"]{border-color:#0ea5e9!important;box-shadow:0 0 0 2px color-mix(in srgb,#0ea5e9 18%,transparent)!important}.dm-appliance-type-option-icon{display:grid!important;place-items:center!important;height:34px!important;color:#0ea5e9!important}.dm-appliance-type-option-icon svg{width:30px!important;height:30px!important}.dm-appliance-type-option>span:last-child{font-size:10px!important;font-weight:800!important;line-height:1.15!important;text-align:center!important}
-    .dm-appliance-type-close{margin-top:10px!important;min-height:44px!important;padding:11px!important;border:0!important;border-radius:12px!important;background:#94a3b8!important;color:#fff!important;font-weight:800!important;cursor:pointer!important}
     @media(max-width:520px){.dm-appliance-icon-row{grid-template-columns:84px minmax(0,1fr)!important}.dm-appliance-type-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}.dm-appliance-type-option{min-width:0!important;min-height:92px!important}}
   `;
   doc.head.append(style);

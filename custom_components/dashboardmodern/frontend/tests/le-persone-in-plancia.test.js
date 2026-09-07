@@ -24,12 +24,16 @@ test("cd_people viaggia nella configurazione condivisa, alla revisione 5", async
   assert.ok(CONFIG_KEYS_REVISION >= 5, "una chiave aggiunta alza la revisione");
 });
 
-test("il cancello degli eventi conosce cd_people", () => {
-  const gate = leggi("core/state-event-gate.js");
+test("il cancello degli eventi conosce cd_people", async () => {
+  /* Non piu' guardando una copia scritta a mano dentro il cancello: quella
+   * copia restava indietro, ed e' stata tolta. Adesso la domanda e' quella
+   * vera — la chiave sta nell'elenco che al cancello viene passato. Senza,
+   * i cambi di zona delle persone non arriverebbero alle card. */
+  const { CONFIG_KEYS } = await import("../src/core/chiavi-di-configurazione.js");
+  assert.ok(CONFIG_KEYS.includes("cd_people"));
   assert.match(
-    gate,
-    /"cd_people"/,
-    "senza, i cambi di zona delle persone non arrivano alle card",
+    leggi("sections/section-runtime.js"),
+    /installStateEventGate\([^)]*chiavi: CONFIG_KEYS,/s,
   );
 });
 

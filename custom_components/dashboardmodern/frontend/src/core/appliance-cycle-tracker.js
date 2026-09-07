@@ -51,11 +51,31 @@ export function createCycleTracker({
     } catch (_error) {}
   };
 
+  /* Un ciclo finisce dove finisce quello che si e' visto.
+   *
+   * «Certi segnano tante ore in piu'» (#363). La chiusura prendeva l'istante
+   * di ADESSO come fine del ciclo. Ma fra l'ultimo campione e adesso puo'
+   * esserci un buco — la plancia chiusa, il telefono in tasca, il browser
+   * addormentato — e quel buco finiva dentro la durata: una lavatrice da
+   * un'ora e mezza diventava di cinque, perche' nessuno ha guardato fino a
+   * sera.
+   *
+   * Dell'apparecchio, in quel buco, non si sa niente. L'unica cosa onesta e'
+   * chiudere dove si e' smesso di guardare: oltre il salto massimo, la fine
+   * e' l'ultimo campione visto davvero. Sotto il salto — il giro normale — le
+   * due cose coincidono e non cambia niente. */
+  const finePrudente = (active, timestamp) => {
+    const ultimo = finiteOrNull(active?.lastMs);
+    if (ultimo == null) return timestamp;
+    return timestamp - ultimo > MAX_SAMPLE_GAP_MS ? ultimo : timestamp;
+  };
+
   const closeCycle = (record, timestamp, finalDailyKwh) => {
     const active = record.active;
     delete record.active;
     if (!active) return;
-    const durationMs = timestamp - active.startMs;
+    const fine = finePrudente(active, timestamp);
+    const durationMs = fine - active.startMs;
     const startDaily = finiteOrNull(active.startDailyKwh);
     const lastDaily = finiteOrNull(active.lastDailyKwh);
     const endDaily = finiteOrNull(finalDailyKwh);
@@ -74,7 +94,7 @@ export function createCycleTracker({
     if (durationMs < MIN_CYCLE_MS && kwh == null) return;
     record.last = {
       startMs: active.startMs,
-      endMs: timestamp,
+      endMs: fine,
       durationMinutes: Math.round(durationMs / 60000),
       kwh: kwh != null ? Math.round(kwh * 1000) / 1000 : null,
       totalSeconds: finiteOrNull(active.maxRemainingSeconds),

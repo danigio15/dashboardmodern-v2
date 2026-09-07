@@ -9,6 +9,7 @@ import {
   sezioniGovernate,
 } from "../core/contenuto-delle-sezioni.js";
 import { sectionForEditorSlot } from "../core/editor-slots.js";
+import { humidityEntry } from "../core/room-overview.js";
 import {
   renderBeta25TemperatureCards,
   temperatureEntries,
@@ -114,11 +115,7 @@ function rooms() {
   return Array.isArray(values) ? values : [];
 }
 
-function humidityEntity(entry = {}) {
-  const explicit = clean(entry.hum);
-  if (explicit) return explicit;
-  return clean(entry.temp).replace("_temperature", "_humidity");
-}
+const humidityEntity = (entry = {}) => humidityEntry(entry);
 
 function numericState(entity) {
   const value = Number.parseFloat(allStates()[clean(entity)]?.state);

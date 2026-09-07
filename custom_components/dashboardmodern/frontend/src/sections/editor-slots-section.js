@@ -26,7 +26,17 @@
  * an entity already in `_RAW_STATES`.
  */
 import { isRetiredEditorSlot } from "../core/editor-slots.js";
-import { clean, doc, esc, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
+import {
+  LENTE_SELECTOR,
+  clean,
+  doc,
+  esc,
+  installStyle,
+  onEditorRedraw,
+  root,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_SLOTS__";
 const STYLE_ID = "dm-editor-slots-style";
@@ -232,9 +242,14 @@ const CHIP_MARKER = "dmEntityChip";
 const NEVER_A_HOST =
   "#ed-body,.ed-body,.ed-list,.ed-form,.ed-shell,#editor-modal,#setup-wizard,.dm-section-dialog,form,body";
 
-/** The lens the editors put next to an entity field, if it is there. */
+/** The lens the editors put next to an entity field, if it is there.
+ *
+ * Il nome della lente lo dice la guardia, che e' quella che decide se una
+ * riga ne ha gia' una: chiedere qui una cosa diversa da li' vuol dire due
+ * lenti sulla stessa riga — una che diventa la pastiglia e una che resta un
+ * quadratino col 🔍. */
 function lensOf(input) {
-  return input.nextElementSibling?.matches?.(".dm-entity-picker") ? input.nextElementSibling : null;
+  return input.nextElementSibling?.matches?.(LENTE_SELECTOR) ? input.nextElementSibling : null;
 }
 
 /* Where the row goes.
@@ -696,9 +711,17 @@ export function decorateEntityFields(scope = doc?.getElementById("ed-body")) {
   if (!scope?.querySelectorAll) return 0;
   let pending = 0;
   for (const input of scope.querySelectorAll('input[data-entity-input="true"]')) {
+    /* La pastiglia e' per i campi che vogliono UN'ENTITA' e nient'altro:
+     * nasconde la casella e mostra il nome amichevole, con la matita per
+     * scriverci a mano. Un campo che accetta anche altro — la foto dell'auto
+     * accetta un percorso `/local/...` oltre a un `image.` (#369) — con la
+     * pastiglia addosso diventava una casella nascosta: la lente serviva
+     * ancora, ma il percorso non si poteva piu' battere. Chi accetta anche
+     * altro lo dichiara, e resta una casella con la lente accanto. */
     if (
       input.closest(".dm-slot") ||
       input.matches(".ed-slot-in[data-ref]") ||
+      input.dataset.dmEntityOptional === "true" ||
       input.closest('[data-dm-entity-chip="true"]')
     ) {
       continue;

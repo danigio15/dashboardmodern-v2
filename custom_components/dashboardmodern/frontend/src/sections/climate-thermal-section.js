@@ -37,8 +37,37 @@ import {
   scalaDellaZona,
 } from "../core/scala-clima.js";
 import { climateIsOff } from "../core/climate-power.js";
+import { chiamataDelModo, letturaDelModo, prossimoModo } from "../core/modo-del-clima.js";
+import {
+  FERMI_DELLO_SLIDER,
+  contoAllaRovescia,
+  durataScritta,
+  fermoDeiMinuti,
+  minutiDelFermo,
+  normalizzaIMinuti,
+  quantoManca,
+} from "../core/spegnimento-programmato.js";
+import { chiSiVede, comeSiLeggeIlPeriodo, normalizzaIMesi } from "../core/stagione-del-clima.js";
 import { roomOrderRank } from "../core/room-overview.js";
 import { chiamaClima, commutaClima } from "./climate-power-section.js";
+import {
+  apriIlFoglioDiScelta,
+  chiudiIlFoglioDiScelta,
+} from "./foglio-di-scelta-section.js";
+import {
+  STILE_VMC,
+  firmaDelleVmc,
+  letturaDelleVmc,
+  sincronizzaLeVmc,
+  vmcMarkup,
+} from "./vmc-section.js";
+import {
+  EVENTO_SPEGNIMENTI,
+  leggiGliSpegnimenti,
+  avvisaCheNonSiPuo,
+  programmaSpegnimento,
+  scadenzaDi,
+} from "./spegnimento-programmato-section.js";
 import { statiDelleCaldaie } from "./termico-del-caldo-section.js";
 import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
@@ -72,6 +101,9 @@ const state = (root[KEY] ||= {
    * quando si apre. */
   ridisegnoRimandato: false,
   osservatore: null,
+  /* Quante unita' la stagione sta tenendo fuori (#365): il numero lo dice
+   * l'intestazione, o le card sparirebbero senza che nessuno spieghi. */
+  fuoriStagione: 0,
 });
 
 /* Scale of the rail. Cooling units are set between 16° and 30°, radiators
@@ -138,6 +170,11 @@ const copy = () => ({
     "Aggiungi le unità dalla Configurazione della plancia.",
     "Add the units from the dashboard configuration.",
   ),
+  timerOff: t("Spegnimento", "Switch-off"),
+  timerAria: t("Quanto resta accesa", "How long it stays on"),
+  timerVia: t("Togli lo spegnimento", "Remove the switch-off"),
+  fuoriStagione: (quante) =>
+    t(`${quante} fuori stagione`, `${quante} out of season`),
   unitsOne: t("1 unità", "1 unit"),
   units: (value) => t(`${value} unità`, `${value} units`),
   floorsOne: t("1 piano", "1 floor"),
@@ -188,6 +225,12 @@ export function climateUnits() {
         room: unitRoom(unit, rooms),
         /* La valvola termostatica (#300): l'entita' a parte, se c'e'. */
         valvola: clean(unit?.valvola),
+        /* La modalita' del riscaldamento (#362), quanto resta accesa (#364) e
+         * i mesi in cui si vede (#365). Tre dati dell'unita', letti dove sono
+         * scritti: la card non deve andarseli a cercare da sola. */
+        modo: clean(unit?.modo),
+        minuti: normalizzaIMinuti(unit?.minuti),
+        mesi: normalizzaIMesi(unit?.mesi),
         zone,
         cardId: `card-${entity.replaceAll(".", "-")}${extra ? `--${zone}` : ""}`,
         index,
@@ -334,6 +377,7 @@ function skeletonMarkup(labels) {
     <div class="dm-cl-mast-copy">
       <h2>${esc(labels.title)}</h2>
       <p data-dm-cl-sub></p>
+      <p class="dm-cl-fuori" data-dm-cl-fuori hidden></p>
     </div>
     <div class="dm-cl-summary">
       <div class="dm-cl-kpi">
@@ -367,6 +411,11 @@ function skeletonMarkup(labels) {
   <div class="clima-zone clima-zone-caldo">
     <div class="dm-cl-grid" id="clima-grid-caldo"></div>
   </div>
+
+  <!-- La ventilazione meccanica (#371): sta sotto le due zone e fuori da
+       entrambe, perche' non e' ne' freddo ne' caldo — e' l'aria di tutta la
+       casa, e si vede in tutti e due i modi. -->
+  <div data-dm-vmc-posto></div>
 </div>`;
 }
 
@@ -418,6 +467,10 @@ function cardMarkup(unit, labels) {
         <span data-dm-cl-low>${low}°</span>
         <span>${esc(labels.room)} <b data-dm-cl-ambient>--°</b></span>
         <span data-dm-cl-high>${high}°</span>
+      </div>
+      <div class="dm-cl-pills">
+        <button type="button" class="dm-cl-modo" data-dm-cl-modo hidden><span data-dm-cl-modo-glifo aria-hidden="true"></span><span data-dm-cl-modo-nome></span></button>
+        <button type="button" class="dm-cl-timer" data-dm-cl-timer><span aria-hidden="true">⏱</span><span data-dm-cl-timer-testo></span></button>
       </div>
       <div class="dm-cl-valvola" data-dm-cl-valvola hidden aria-hidden="true">
         <span class="dm-cl-valvola-lbl">${esc(t("Valvola", "Valve"))}</span>
@@ -643,7 +696,61 @@ function paintCard(card, unit, reading, labels) {
   }
 
   paintValvola(card, unit, reading);
+  paintModo(card, unit);
+  paintTimer(card, unit, reading, labels);
   paintSpark(card, unit, reading);
+}
+
+/* La modalita' del riscaldamento (#362): la pastiglia, e il tocco se si puo'.
+ *
+ * «Io ho TADO e due modalita' HOME e AWAY ma altri potrebbero avere altre
+ * modalita', tipo HOLIDAY, BOOST.» Senza entita' configurata la pastiglia non
+ * c'e': non e' una riga vuota da riempire, e' una cosa che quella casa non ha.
+ * Con un sensore si legge e basta — un sensore che dice HOME non si puo'
+ * mettere su AWAY, e una pastiglia che si preme senza fare niente e' peggio di
+ * una pastiglia che non si preme. */
+function paintModo(card, unit) {
+  const pastiglia = card.querySelector("[data-dm-cl-modo]");
+  if (!pastiglia) return;
+  if (!unit.modo) {
+    pastiglia.hidden = true;
+    return;
+  }
+  const lettura = letturaDelModo(unit.modo, resolvedState(unit.modo, allStates()), activeLocale());
+  pastiglia.hidden = !lettura.disponibile;
+  if (!lettura.disponibile) return;
+  scriviSeCambia(pastiglia.querySelector("[data-dm-cl-modo-glifo]"), lettura.glifo);
+  scriviSeCambia(pastiglia.querySelector("[data-dm-cl-modo-nome]"), lettura.nome);
+  pastiglia.dataset.dmClModoFamiglia = lettura.famiglia || "";
+  pastiglia.dataset.dmClModoEnt = lettura.entita;
+  pastiglia.disabled = !lettura.cambiabile;
+  pastiglia.setAttribute("aria-label", lettura.nome);
+  pastiglia.title = lettura.cambiabile
+    ? t("Tocca per cambiare modalità", "Tap to change the mode")
+    : lettura.nome;
+}
+
+/* Il conto alla rovescia (#364).
+ *
+ * La pastiglia dice tre cose diverse a seconda di dove siamo: quanto manca se
+ * un timer c'e', quanto durera' l'accensione se l'unita' e' spenta e una
+ * durata e' configurata, e niente del tutto se non c'e' ne' l'una ne' l'altra.
+ * Un'unita' accesa senza timer la offre lo stesso: «utile spesso di notte o
+ * per accensioni a spot» vuol dire anche a unita' gia' accesa. */
+function paintTimer(card, unit, reading, labels) {
+  const pastiglia = card.querySelector("[data-dm-cl-timer]");
+  if (!pastiglia) return;
+  const scadenza = scadenzaDi(unit.entity);
+  const conto = contoAllaRovescia(scadenza, Date.now(), activeLocale());
+  const armato = Boolean(conto);
+  /* Senza durata configurata la pastiglia compare solo a unita' accesa: su una
+   * card spenta e mai configurata sarebbe un tasto che non racconta niente. */
+  pastiglia.hidden = !armato && !unit.minuti && !reading.on;
+  pastiglia.dataset.dmClTimerOn = armato ? "true" : "false";
+  pastiglia.dataset.dmClTimerEnt = unit.entity;
+  const testo = armato ? conto : labels.timerOff;
+  scriviSeCambia(pastiglia.querySelector("[data-dm-cl-timer-testo]"), testo);
+  pastiglia.setAttribute("aria-label", testo);
 }
 
 /* La valvola termostatica (#300): quanto e' aperta e quanto chiusa, dalla
@@ -708,6 +815,16 @@ function paintSummary(shell, units, states, labels) {
 
   const runningEl = shell.querySelector("[data-dm-cl-running]");
   if (runningEl) runningEl.innerHTML = `${running}<small> / ${inZone.length}</small>`;
+  /* Le card che la stagione tiene fuori non spariscono in silenzio: chi ha
+   * configurato otto termosifoni e a luglio ne vede zero deve leggere perche',
+   * o pensa di aver perso la configurazione — ed e' esattamente la paura che
+   * questa plancia si porta dietro da mesi. */
+  const fuoriEl = shell.querySelector("[data-dm-cl-fuori]");
+  if (fuoriEl) {
+    const quante = state.fuoriStagione;
+    fuoriEl.hidden = !quante;
+    if (quante) scriviSeCambia(fuoriEl, `🗓️ ${labels.fuoriStagione(quante)}`);
+  }
   const averageEl = shell.querySelector("[data-dm-cl-average]");
   if (averageEl) {
     averageEl.textContent = ambient.length
@@ -847,7 +964,21 @@ export function renderClimate({ rebuild = false, force = false } = {}) {
   const shell = host.querySelector(":scope > .dm-cl-shell");
   if (!shell) return false;
 
-  const units = climateUnits();
+  const tutte = climateUnits();
+  /* Chi e' di stagione, e chi no (#365).
+   *
+   * «Condizionatore solo maggio-settembre, termosifoni ottobre-aprile.» La
+   * regola sta nel nucleo; qui si porta soltanto la risposta a «questa e'
+   * accesa?», che il nucleo non puo' sapere. Un'unita' accesa resta in pagina
+   * per quanto sia fuori stagione: nasconderla vorrebbe dire non poterla piu'
+   * spegnere, e il primo di ottobre e' esattamente il giorno in cui serve. */
+  const statiOra = allStates();
+  const stagione = chiSiVede(tutte, {
+    adesso: new Date(),
+    accesa: (unita) => climateReading(unita.entity, statiOra).on,
+  });
+  const units = stagione.dentro;
+  state.fuoriStagione = stagione.fuori.length;
   // Marked here, on the shell this pass owns: paintSummary can switch the page
   // to the other zone, and the render that follows replaces the shell under it.
   paintZoneTabs(shell, units);
@@ -869,7 +1000,30 @@ export function renderClimate({ rebuild = false, force = false } = {}) {
     if (card) paintCard(card, unit, climateReading(unit.entity, states), labels);
   }
   paintSummary(shell, units, states, labels);
+  dipingiLaVentilazione(shell, states);
   return true;
+}
+
+/* La ventilazione meccanica (#371).
+ *
+ * La pagina ha un padrone solo, ed e' questo: il markup e la mano che lo
+ * dipinge stanno in `vmc-section.js`, ma a chiamarli e' il giro che possiede
+ * la pagina. Due moduli che scrivono sulla stessa pagina e' il difetto che
+ * questa plancia ha gia' pagato altrove.
+ *
+ * Si ridisegna solo quando cambia la FORMA — una macchina che compare, un
+ * sensore che comincia a rispondere — e per il resto si riscrivono i numeri:
+ * rifare il markup a ogni grado cancellerebbe il pastiglia sotto il dito. */
+function dipingiLaVentilazione(shell, states) {
+  const posto = shell.querySelector("[data-dm-vmc-posto]");
+  if (!posto) return;
+  const letture = letturaDelleVmc(states);
+  const firma = firmaDelleVmc(letture);
+  if (posto.dataset.dmVmcFirma !== firma) {
+    posto.dataset.dmVmcFirma = firma;
+    posto.innerHTML = vmcMarkup(letture);
+  }
+  sincronizzaLeVmc(posto, letture);
 }
 
 /* ── wiring ───────────────────────────────────────────────────────────── */
@@ -887,11 +1041,165 @@ function bulkSwitch(wantsOn) {
   root.queueMicrotask?.(() => renderClimate());
 }
 
+/* Le due pastiglie si ascoltano in DISCESA, non in risalita.
+ *
+ * La card intera porta scritto `onclick="apriClimaPopup(...)"`, e un gestore
+ * scritto sull'elemento parte quando l'evento risale fino a lui — cioe' prima
+ * di arrivare al documento. Ascoltando come tutti gli altri, il popup del clima
+ * si apriva e solo dopo si scopriva che il tocco era della pastiglia: due cose
+ * per un dito solo. In discesa il documento vede il tocco per primo, e
+ * fermandolo li' la card non lo riceve mai.
+ *
+ * Uno `stopPropagation` scritto sul tasto non sarebbe bastato: avrebbe fermato
+ * anche il gestore del documento, cioe' proprio questo. */
+function suiPastiglie(event) {
+  cambiaModo(event) || apriIlTimer(event);
+}
+
 function onClick(event) {
   const button = event.target?.closest?.("[data-dm-cl-bulk]");
   if (!button || button.disabled) return;
   event.preventDefault();
   bulkSwitch(button.dataset.dmClBulk === "on");
+}
+
+/* Un tocco sulla pastiglia della modalita' (#362).
+ *
+ * Con due modalita' — ed e' il caso di TADO, HOME e AWAY — un menu con due
+ * voci dentro e' un passaggio in piu' per niente: si passa all'altra. Con tre
+ * o piu' il giro non basta piu' a farsi capire, e si apre l'elenco.
+ */
+function cambiaModo(event) {
+  const pastiglia = event.target?.closest?.("[data-dm-cl-modo]");
+  if (!pastiglia || pastiglia.disabled) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  const entita = clean(pastiglia.dataset.dmClModoEnt);
+  const lettura = letturaDelModo(entita, resolvedState(entita, allStates()), activeLocale());
+  if (!lettura.cambiabile) return true;
+  if (lettura.scelte.length > 2) {
+    apriIlMenuDelModo(lettura);
+    return true;
+  }
+  mandaIlModo(lettura, prossimoModo(lettura));
+  return true;
+}
+
+function mandaIlModo(lettura, valore) {
+  const chiamata = chiamataDelModo(lettura, valore);
+  if (!chiamata) return;
+  /* La presa con Home Assistant e' quella che usa tutta la plancia:
+   * `dmCallHaService` quando c'e', e il giro storico quando non c'e'. Una
+   * strada mia sarebbe una quarta strada per la stessa cosa. */
+  try {
+    if (typeof root.dmCallHaService === "function") {
+      root
+        .dmCallHaService(chiamata.dominio, chiamata.servizio, chiamata.dati)
+        ?.catch?.((errore) => root.console?.warn?.("[DashboardModern] modo clima", errore));
+    } else if (typeof root.cdCallServiceJson === "function") {
+      root.cdCallServiceJson(chiamata.dominio, chiamata.servizio, JSON.stringify(chiamata.dati));
+    }
+  } catch (_error) {}
+  root.queueMicrotask?.(() => renderClimate());
+}
+
+/* L'elenco delle modalita', quando sono piu' di due.
+ *
+ * E' il foglio di scelta che la plancia usa gia' altrove: una finestra nuova
+ * per ogni elenco vorrebbe dire un'altra cornice da tenere allineata. */
+function apriIlMenuDelModo(lettura) {
+  const corpo = apriIlFoglioDiScelta({
+    titolo: t("Modalità del riscaldamento", "Heating mode"),
+    id: "dm-clima-modo",
+  });
+  if (!corpo) {
+    // Senza il foglio si fa comunque qualcosa di utile: si passa alla
+    // prossima. Meglio un giro che un tocco che non fa niente.
+    mandaIlModo(lettura, prossimoModo(lettura));
+    return;
+  }
+  corpo.className = "dm-foglio-scelta-corpo dm-cl-modo-menu";
+  for (const voce of lettura.scelte) {
+    const riga = doc.createElement("button");
+    riga.type = "button";
+    riga.className = "dm-cl-modo-voce";
+    riga.setAttribute("aria-pressed", voce.attuale ? "true" : "false");
+    riga.innerHTML = `<span aria-hidden="true">${esc(voce.glifo)}</span><span>${esc(voce.nome)}</span>`;
+    riga.addEventListener("click", () => {
+      chiudiIlFoglioDiScelta();
+      mandaIlModo(lettura, voce.valore);
+    });
+    corpo.append(riga);
+  }
+}
+
+/* Quanto resta accesa: lo slider (#364).
+ *
+ * I fermi sono quelli del nucleo — un quarto d'ora, mezz'ora, due ore, la
+ * notte intera — e non una scala continua: nessuno accende il condizionatore
+ * per 37 minuti, e su un telefono una scala continua te ne fa scegliere 37
+ * quando ne volevi 30.
+ */
+function apriLaFinestraDelTimer(entita, unita, armato) {
+  const corpo = apriIlFoglioDiScelta({
+    titolo: t("Quanto resta accesa", "How long it stays on"),
+    id: "dm-clima-timer",
+  });
+  if (!corpo) return;
+  const partenza = armato
+    ? Math.max(1, quantoManca(scadenzaDi(entita), Date.now()).minuti || 0)
+    : unita?.minuti || 60;
+  const posto = Math.max(0, fermoDeiMinuti(partenza));
+  corpo.className = "dm-foglio-scelta-corpo dm-cl-timer-menu";
+  corpo.innerHTML = `<div class="dm-cl-timer-valore" data-dm-timer-valore></div>
+    <input class="dm-cl-timer-slider" type="range" min="0" max="${FERMI_DELLO_SLIDER.length - 1}"
+      step="1" value="${posto}" data-dm-timer-slider
+      aria-label="${esc(t("Quanto resta accesa", "How long it stays on"))}">
+    <p class="dm-cl-timer-nota">${esc(t("Il conto alla rovescia lo tiene Home Assistant: puoi chiudere la plancia e l'unità si spegne lo stesso.", "Home Assistant keeps the countdown: you can close the dashboard and the unit still switches off."))}</p>
+    <div class="dm-cl-timer-tasti">
+      ${armato ? `<button type="button" class="dm-cl-timer-via" data-dm-timer-via>${esc(t("Togli", "Remove"))}</button>` : ""}
+      <button type="button" class="dm-cl-timer-ok" data-dm-timer-ok>${esc(t("Avvia", "Start"))}</button>
+    </div>`;
+  const slider = corpo.querySelector("[data-dm-timer-slider]");
+  const valore = corpo.querySelector("[data-dm-timer-valore]");
+  const scrivi = () => {
+    valore.textContent = durataScritta(minutiDelFermo(slider.value), activeLocale());
+  };
+  scrivi();
+  slider.addEventListener("input", scrivi);
+  corpo.querySelector("[data-dm-timer-ok]")?.addEventListener("click", async () => {
+    const minuti = minutiDelFermo(slider.value);
+    chiudiIlFoglioDiScelta();
+    /* Chiedere lo spegnimento a unita' spenta vorrebbe dire un conto alla
+     * rovescia su niente: si accende, e da li' parte. E' «il tempo che debba
+     * restare acceso dal momento che gli do l'on», alla lettera. */
+    const spenta = !climateReading(entita, allStates()).on;
+    if (spenta) {
+      try {
+        root.toggleClima?.(entita, unita?.zone || "");
+      } catch (_error) {}
+    }
+    const messo = await programmaSpegnimento(entita, minuti);
+    if (!messo) avvisaCheNonSiPuo();
+    renderClimate();
+  });
+  corpo.querySelector("[data-dm-timer-via]")?.addEventListener("click", async () => {
+    chiudiIlFoglioDiScelta();
+    await programmaSpegnimento(entita, 0);
+    renderClimate();
+  });
+}
+
+/* Un tocco sul conto alla rovescia (#364): si sceglie quanto resta accesa. */
+function apriIlTimer(event) {
+  const pastiglia = event.target?.closest?.("[data-dm-cl-timer]");
+  if (!pastiglia) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  const entita = clean(pastiglia.dataset.dmClTimerEnt);
+  const unita = climateUnits().find((voce) => voce.entity === entita);
+  if (entita) apriLaFinestraDelTimer(entita, unita, pastiglia.dataset.dmClTimerOn === "true");
+  return true;
 }
 
 /**
@@ -1386,6 +1694,7 @@ export function installClimateThermalSection() {
   if (!state.listeners) {
     state.listeners = true;
     doc.addEventListener("click", onClick);
+    doc.addEventListener("click", suiPastiglie, true);
     installRailDrag();
     for (const eventName of [
       "dashboardmodern:legacy-ready",
@@ -1405,6 +1714,14 @@ export function installClimateThermalSection() {
       });
     }
     root.addEventListener?.("dashboardmodern:state-changed", () => renderClimate());
+    /* Il conto alla rovescia scende da solo (#364): il battito lo tiene chi
+     * parla col backend, e qui si ridisegna quando avvisa. Nessun orologio in
+     * questa sezione — ce n'e' gia' uno, ed e' quello giusto. */
+    root.addEventListener?.(EVENTO_SPEGNIMENTI, () => renderClimate());
+    /* Aprendo la pagina si chiede alla casa quali spegnimenti sono appesi: il
+     * timer puo' averlo messo un altro telefono, e il conto alla rovescia e'
+     * della casa, non di questa scheda del browser. */
+    leggiGliSpegnimenti();
     osservaLaPagina();
     for (const eventoEditor of [
       "dashboardmodern:editor-rendered",
@@ -1652,6 +1969,38 @@ function climateCss() {
 .dm-cl-valvola-rail{flex:1 1 auto;height:8px;border-radius:999px;background:color-mix(in srgb,var(--text-dim,#64748b) 16%,transparent);overflow:hidden}
 .dm-cl-valvola-fill{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f97316,#ef4444);transition:width .6s cubic-bezier(.16,1,.3,1)}
 .dm-cl-valvola-num{flex:0 0 auto;font-variant-numeric:tabular-nums;color:var(--text,#0f172a)}
+/* Le due pastiglie sotto i numeri: la modalita' del riscaldamento (#362) e il
+ * conto alla rovescia (#364). Stanno in fila e vanno a capo da sole — su un
+ * telefono stretto due pastiglie su una riga si schiacciano. */
+.dm-cl-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.dm-cl-modo,.dm-cl-timer{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;background:var(--secondary-background-color,#f2f6fa);color:var(--text,#0f172a);font-size:11.5px;font-weight:800;line-height:1;cursor:pointer}
+/* L'attributo hidden deve vincere sul display qui sopra: la regola che porta
+ * il browser ha la stessa specificita' della classe, e a parita' vince
+ * l'ultima scritta da noi — cioe' il display. Senza questa riga un'unita'
+ * senza entita' della modalita' mostrava una pastiglia vuota. */
+.dm-cl-modo[hidden],.dm-cl-timer[hidden]{display:none}
+.dm-cl-modo:disabled{cursor:default;opacity:.9}
+.dm-cl-modo[data-dm-cl-modo-famiglia="away"],.dm-cl-modo[data-dm-cl-modo-famiglia="holiday"]{border-color:color-mix(in srgb,#f59e0b 46%,var(--divider-color,#dbe4ee));color:#b45309}
+.dm-cl-modo[data-dm-cl-modo-famiglia="home"],.dm-cl-modo[data-dm-cl-modo-famiglia="comfort"]{border-color:color-mix(in srgb,#16a34a 42%,var(--divider-color,#dbe4ee));color:#15803d}
+.dm-cl-modo[data-dm-cl-modo-famiglia="boost"]{border-color:color-mix(in srgb,#dc2626 44%,var(--divider-color,#dbe4ee));color:#b91c1c}
+.dm-cl-timer[data-dm-cl-timer-on="true"]{border-color:transparent;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;box-shadow:0 6px 14px rgba(2,132,199,.18)}
+.dm-cl-modo:focus-visible,.dm-cl-timer:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 32%,transparent);outline-offset:2px}
+/* Quante unita' la stagione tiene fuori (#365): si dice, o le card sparite
+ * sembrano configurazione persa. */
+.dm-cl-fuori{margin:2px 0 0;font-size:11.5px;font-weight:750;color:var(--secondary-text-color,#64748b)}
+/* L'elenco delle modalita', quando sono piu' di due. */
+.dm-cl-modo-menu{display:grid;gap:8px}
+.dm-cl-modo-voce{display:flex;align-items:center;gap:10px;padding:13px 14px;border:1px solid var(--divider-color,#dbe4ee);border-radius:14px;background:var(--card-background-color,#fff);color:var(--text,#0f172a);font-size:14px;font-weight:750;text-align:left;cursor:pointer}
+.dm-cl-modo-voce[aria-pressed="true"]{border-color:transparent;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff}
+/* Lo slider del «quanto resta accesa». */
+.dm-cl-timer-menu{display:grid;gap:12px;justify-items:stretch}
+.dm-cl-timer-valore{font-size:30px;font-weight:900;text-align:center;color:var(--text,#0f172a);font-variant-numeric:tabular-nums}
+.dm-cl-timer-slider{width:100%;accent-color:var(--primary-color,#0ea5e9)}
+.dm-cl-timer-nota{margin:0;font-size:11.5px;font-weight:650;color:var(--secondary-text-color,#64748b);text-align:center}
+.dm-cl-timer-tasti{display:flex;gap:8px}
+.dm-cl-timer-ok,.dm-cl-timer-via{flex:1 1 0;padding:13px 12px;border:none;border-radius:14px;font-size:14px;font-weight:850;cursor:pointer}
+.dm-cl-timer-ok{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff}
+.dm-cl-timer-via{background:var(--secondary-background-color,#eef3f8);color:var(--text,#0f172a)}
 .dm-cl-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dm-cl-modes{
   display:inline-flex;align-items:center;gap:7px;min-width:0;flex:0 1 auto;padding:8px 13px 8px 10px;cursor:pointer;
@@ -1704,5 +2053,10 @@ html[data-theme="dark"] .dm-cl-knob{box-shadow:0 3px 8px rgba(0,0,0,.45)}
 @media(prefers-reduced-motion:reduce){
   .dm-cl-shell *{transition:none!important;animation:none!important}
 }
+
+/* La ventilazione meccanica vive in questa pagina, quindi il suo vestito entra
+ * nello stesso foglio: due fogli per una pagina sola sarebbero due posti in cui
+ * cercare quando qualcosa si sposta. Le regole le scrive il suo modulo. */
+${STILE_VMC}
 `;
 }

@@ -46,6 +46,7 @@ import {
   scriviTestoSeCambia,
   section,
   t,
+  wrapFunction,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_APPLIANCE_SHOWCASE__";
@@ -181,6 +182,46 @@ function tracker() {
     state.tracker = createCycleTracker({ storage: root.localStorage });
   }
   return state.tracker;
+}
+
+/* I cicli si contano guardando gli stati, non le schede.
+ *
+ * «Nella sezione elettrodomestici i cicli non si conteggiano giusti. Certi
+ * partono solo quando entro nella sezione. Certi segnano tante ore in piu'.»
+ * (#363)
+ *
+ * Il campionamento stava dentro il disegno delle schede, e le schede si
+ * disegnano solo quando quella pagina si guarda — e' la regola che ha smesso
+ * di scaldare il mini PC, ed e' giusta. Ma cosi' il contatore dei cicli vedeva
+ * l'apparecchio solo mentre qualcuno lo guardava: una lavatrice partita alle
+ * otto risultava partita a mezzogiorno, quando si apriva la sezione, e una
+ * finita nel frattempo non risultava affatto.
+ *
+ * Gli stati invece arrivano sempre, qualunque pagina si stia guardando, e il
+ * guscio li raccoglie in un disegno solo per raffica. Ci si aggancia li': un
+ * campione per raffica, lo stesso conto di prima, e la sezione torna a fare
+ * solo il suo mestiere — mostrare quello che il contatore ha gia' visto. */
+export function campionaICicli() {
+  const list = devices();
+  if (!list.length) return false;
+  const states = allStates();
+  const locale = activeLocale();
+  const now = Date.now();
+  const cycles = tracker();
+  cycles.update(
+    list.map((device, index) => {
+      const model = createApplianceViewModel(device, states, [], locale);
+      const key = deviceKey(device, index);
+      return {
+        id: key,
+        mode: model.mode,
+        watts: model.watts,
+        dailyKwh: dailyEnergyKwh(device, states),
+        remainingSeconds: remainingInfo(device, states, now, cycles.record(key))?.seconds,
+      };
+    }),
+  );
+  return true;
 }
 
 function deviceKey(device, index) {
@@ -883,27 +924,6 @@ export function renderShowcase(force) {
   const price = globalPriceKwh();
   const cycles = tracker();
 
-  const preliminary = list.map((device, index) => {
-    const model = createApplianceViewModel(device, states, [], locale);
-    const key = deviceKey(device, index);
-    return {
-      id: key,
-      mode: model.mode,
-      watts: model.watts,
-      dailyKwh: dailyEnergyKwh(device, states),
-      remainingSeconds: remainingInfo(device, states, now, cycles.record(key))?.seconds,
-    };
-  });
-  cycles.update(preliminary);
-
-  if (now - state.sparkTs >= SPARK_SAMPLE_MS || !state.spark.length) {
-    state.sparkTs = now;
-    state.spark.push(
-      preliminary.reduce((sum, entry) => sum + Math.max(0, finiteOrNull(entry.watts) ?? 0), 0),
-    );
-    if (state.spark.length > SPARK_MAX_SAMPLES) state.spark.shift();
-  }
-
   const models = list.map((device, index) =>
     applianceCardModel(device, states, {
       rooms,
@@ -919,6 +939,17 @@ export function renderShowcase(force) {
   const keyed = models.map((model, index) =>
     model.id ? model : Object.freeze({ ...model, id: deviceKey(list[index], index) }),
   );
+
+  /* La riga dei watt si campiona da quello che le schede mostrano, che e' lo
+   * stesso numero di prima: il conto preliminare che stava qui e' andato dove
+   * doveva stare — con il contatore dei cicli, fuori dal disegno. */
+  if (now - state.sparkTs >= SPARK_SAMPLE_MS || !state.spark.length) {
+    state.sparkTs = now;
+    state.spark.push(
+      keyed.reduce((sum, model) => sum + Math.max(0, finiteOrNull(model.watts) ?? 0), 0),
+    );
+    if (state.spark.length > SPARK_MAX_SAMPLES) state.spark.shift();
+  }
 
   const counts = showcaseCounts(keyed);
   const visible = filterShowcaseModels(keyed, state.ui);
@@ -1115,6 +1146,11 @@ export function installApplianceShowcaseSection() {
   installOverrides();
   if (!state.listeners) {
     state.listeners = true;
+    /* Il contatore dei cicli si aggancia al disegno del guscio, che gira a ogni
+     * raffica di stati qualunque pagina si stia guardando — non al disegno di
+     * questa sezione, che gira solo quando la si guarda. Vedi
+     * `campionaICicli`. */
+    wrapFunction("render", "__dmApplianceCycles", campionaICicli);
     doc.addEventListener("click", onShellClick);
     doc.addEventListener("change", onShellChange);
     doc.addEventListener("keydown", onShellKeydown);

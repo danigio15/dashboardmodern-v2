@@ -22,6 +22,7 @@
 import {
   CHIAVE_ANIMALI,
   animaliDisegnabili,
+  pressioneDellAzione,
   vistaAnimale,
 } from "../core/animali-model.js";
 import {
@@ -143,7 +144,15 @@ function parolaCasella(chiave) {
     case "cibo_porzioni":
       return t("Porzioni oggi", "Portions today");
     case "lettiera_riempimento":
-      return t("Lettiera", "Litter box");
+      return t("Cassetto dei rifiuti", "Waste drawer");
+    case "lettiera_sabbia":
+      return t("Sabbia rimasta", "Litter left");
+    case "lettiera_deodorante":
+      return t("Deodorante", "Deodorizer");
+    case "lettiera_cestino":
+      return t("Cestino", "Waste bin");
+    case "cibo_essiccante":
+      return t("Essiccante", "Desiccant");
     case "lettiera_ultima":
       return t("Ultima pulizia", "Last cleaned");
     case "lettiera_visite":
@@ -174,13 +183,65 @@ function parolaAvviso(chiave) {
     case "filtro_finito":
       return t("Filtro dell'acqua a fine corsa", "Water filter worn out");
     case "lettiera_piena":
-      return t("Lettiera piena", "Litter box full");
+      return t("Cassetto dei rifiuti pieno", "Waste drawer full");
+    case "sabbia_scarsa":
+      return t("La sabbia sta finendo", "Litter is running out");
+    case "essiccante_finito":
+      return t("Essiccante da sostituire", "Desiccant needs replacing");
+    case "deodorante_finito":
+      return t("Deodorante da sostituire", "Deodorizer needs replacing");
+    case "cestino_pieno":
+      return t("Il cestino della lettiera vuole attenzione", "The litter waste bin needs attention");
     case "lettiera_da_pulire":
       return t("Lettiera da pulire", "Litter box needs cleaning");
     case "collare_scarico":
       return t("Collare quasi scarico", "Collar battery low");
     default:
       return chiave;
+  }
+}
+
+/* Le parole dei tasti (#373). Sono comandi, quindi si scrivono all'infinito:
+ * «Eroga una porzione», non «Erogazione». Chi legge deve capire cosa succede
+ * premendo, non come si chiama la funzione. */
+function parolaAzione(chiave) {
+  switch (chiave) {
+    case "cibo_eroga":
+      return t("Eroga una porzione", "Feed a portion");
+    case "cibo_essiccante_reset":
+      return t("Essiccante sostituito", "Desiccant replaced");
+    case "lettiera_pulisci":
+      return t("Pulisci la lettiera", "Clean the litter box");
+    case "lettiera_livella":
+      return t("Livella la sabbia", "Level the litter");
+    case "lettiera_manutenzione_avvia":
+      return t("Manutenzione", "Maintenance");
+    case "lettiera_manutenzione_esci":
+      return t("Esci dalla manutenzione", "Exit maintenance");
+    case "lettiera_deodorante_reset":
+      return t("Deodorante sostituito", "Deodorizer replaced");
+    default:
+      return chiave;
+  }
+}
+
+/* Come si chiama, per esteso, la famiglia a cui appartiene una casella:
+ * «sarebbe bello se ci fosse una distinzione tra i vari dispositivi utilizzati
+ * in modo da averli piu' ordinati graficamente» (#373). */
+function parolaGruppo(gruppo) {
+  switch (gruppo) {
+    case "ciotola":
+      return t("Ciotola e distributore", "Bowl and feeder");
+    case "lettiera":
+      return t("Lettiera", "Litter box");
+    case "acqua":
+      return t("Acqua", "Water");
+    case "porta":
+      return t("Porta col microchip", "Microchip door");
+    case "collare":
+      return t("Collare", "Collar");
+    default:
+      return t("L'animale", "The pet");
   }
 }
 
@@ -219,6 +280,15 @@ function testoLettura(voce) {
   /* Il trattino non e' una parola: non passa da `t()`, che vuole due lingue
    * diverse e un catalogo che le tenga. */
   if (!voce || voce.muto) return "—";
+  /* Un binary_sensor di guasto ha un si' e un no, non un numero: `on` vuol
+   * dire che il problema c'e', che e' la convenzione di Home Assistant. */
+  if (voce.acceso !== null && voce.acceso !== undefined)
+    return voce.acceso ? t("Da controllare", "Needs checking") : t("A posto", "All good");
+  if (voce.giorni && voce.valore !== null) {
+    const quanti = Math.max(0, Math.round(voce.valore));
+    if (quanti === 0) return t("Da sostituire", "Replace now");
+    return `${quanti} ${quanti === 1 ? t("giorno", "day") : t("giorni", "days")}`;
+  }
   if (voce.chiave === "porta" || voce.chiave === "collare_posizione") {
     if (voce.dentro === true) return t("In casa", "Inside");
     if (voce.dentro === false) return t("Fuori", "Outside");
@@ -256,27 +326,61 @@ function avvisiMarkup(vista) {
 function barraMarkup(voce) {
   if (!voce.quota || voce.valore === null || voce.unita !== "%") return "";
   const quota = Math.max(0, Math.min(100, Math.round(voce.valore)));
-  /* La lettiera si riempie, il resto si svuota: la stessa barra al novanta per
-   * cento e' un guaio nella prima e una tranquillita' nelle altre. */
+  /* Il cassetto dei rifiuti si riempie, tutto il resto — sabbia compresa — si
+   * svuota: la stessa barra al novanta per cento e' un guaio nel primo e una
+   * tranquillita' negli altri (#373). */
   const pieno = voce.chiave === "lettiera_riempimento";
   const male = pieno ? quota >= 80 : quota <= 20;
   return `<span class="dm-animale-barra" data-male="${male}"><b style="width:${quota}%"></b></span>`;
 }
 
+/* L'ordine in cui le famiglie si presentano: la ciotola prima di tutto,
+ * perche' e' la cosa che si guarda ogni giorno. */
+const ORDINE_GRUPPI = Object.freeze([
+  "ciotola",
+  "lettiera",
+  "acqua",
+  "porta",
+  "collare",
+  "animale",
+]);
+
+function letturaMarkup(voce) {
+  return `<div class="dm-animale-lettura" data-dm-animale-lettura="${esc(voce.chiave)}">
+    <span class="dm-animale-lettura-lbl">${esc(parolaCasella(voce.chiave))}</span>
+    <span class="dm-animale-lettura-val">${esc(testoLettura(voce))}</span>
+    ${barraMarkup(voce)}
+  </div>`;
+}
+
+function azioneMarkup(azione) {
+  return `<button type="button" class="dm-animale-tasto" data-dm-animale-azione="${esc(azione.entita)}"
+    title="${esc(parolaAzione(azione.chiave))}"><span aria-hidden="true">${esc(azione.glifo)}</span><span>${esc(parolaAzione(azione.chiave))}</span></button>`;
+}
+
+/* Una fascia per dispositivo, col suo titolo (#373).
+ *
+ * «Sarebbe bello se ci fosse una distinzione tra i vari dispositivi utilizzati
+ * in modo da averli piu' ordinati graficamente.» Erano tutte in fila, e su un
+ * Petkit completo sono una dozzina di righe di cui non si capiva quale
+ * riguardasse la ciotola e quale la lettiera. I tasti di quel dispositivo
+ * stanno con lui, in fondo alla sua fascia: e' li' che uno li cerca. */
 function lettureMarkup(vista) {
   const voci = Object.values(vista.letture).filter((voce) => voce && !voce.muto);
-  if (!voci.length)
+  const azioni = vista.azioni || [];
+  if (!voci.length && !azioni.length)
     return `<p class="dm-animale-nulla">${esc(t("Nessuna entità collegata: apri la configurazione e scegli il dispositivo.", "No entity linked yet: open the settings and pick the device."))}</p>`;
-  return `<div class="dm-animale-letture">${voci
-    .map(
-      (voce) => `<div class="dm-animale-lettura" data-dm-animale-lettura="${esc(voce.chiave)}">
-        <span class="dm-animale-lettura-ic" aria-hidden="true">${simboloGruppo(voce.gruppo)}</span>
-        <span class="dm-animale-lettura-lbl">${esc(parolaCasella(voce.chiave))}</span>
-        <span class="dm-animale-lettura-val">${esc(testoLettura(voce))}</span>
-        ${barraMarkup(voce)}
-      </div>`,
-    )
-    .join("")}</div>`;
+  const fasce = ORDINE_GRUPPI.map((gruppo) => {
+    const sue = voci.filter((voce) => voce.gruppo === gruppo);
+    const suoi = azioni.filter((azione) => azione.gruppo === gruppo);
+    if (!sue.length && !suoi.length) return "";
+    return `<section class="dm-animale-gruppo" data-dm-animale-gruppo="${esc(gruppo)}">
+      <h4><span aria-hidden="true">${simboloGruppo(gruppo)}</span>${esc(parolaGruppo(gruppo))}</h4>
+      ${sue.length ? `<div class="dm-animale-letture">${sue.map(letturaMarkup).join("")}</div>` : ""}
+      ${suoi.length ? `<div class="dm-animale-tasti">${suoi.map(azioneMarkup).join("")}</div>` : ""}
+    </section>`;
+  }).join("");
+  return `<div class="dm-animale-gruppi">${fasce}</div>`;
 }
 
 function pastigliaMarkup(vista) {
@@ -323,6 +427,9 @@ function firmaDi(viste) {
           .filter((voce) => voce && !voce.muto)
           .map((voce) => voce.chiave)
           .join("+"),
+        /* Un tasto che compare — o che sparisce perche' l'integrazione tace —
+         * cambia la forma della scheda, non solo un numero dentro. */
+        (vista.azioni || []).map((azione) => azione.chiave).join("+"),
       ].join("~"),
     )
     .join("|");
@@ -411,11 +518,23 @@ function installStyles() {
       #page-animali .dm-animale-avvisi li{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:11px;font-size:12px;font-weight:800;background:color-mix(in srgb,#f59e0b 12%,transparent);color:#b45309}
       #page-animali .dm-animale-avvisi li[data-gravita="urgente"]{background:color-mix(in srgb,#dc2626 12%,transparent);color:#b91c1c}
       #page-animali .dm-animale-letture{display:grid;gap:7px}
-      #page-animali .dm-animale-lettura{display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:8px;font-size:12px}
+      /* Il simbolo adesso sta sul titolo della fascia, non ripetuto su ogni
+       * riga: le righe della stessa famiglia stanno insieme e non serve
+       * ricordarlo a ognuna. */
+      #page-animali .dm-animale-lettura{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;font-size:12px}
+      /* Una fascia per dispositivo (#373). */
+      #page-animali .dm-animale-gruppi{display:grid;gap:11px}
+      #page-animali .dm-animale-gruppo{display:grid;gap:7px;padding:10px 11px;border:1px solid var(--divider-color,#dbe4ee);border-radius:14px;background:color-mix(in srgb,var(--secondary-background-color,#eef3f8) 45%,transparent)}
+      #page-animali .dm-animale-gruppo h4{display:flex;align-items:center;gap:6px;margin:0;font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
+      #page-animali .dm-animale-tasti{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+      #page-animali .dm-animale-tasto{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;background:var(--card-bg,#fff);color:var(--text,#0f172a);font-size:11.5px;font-weight:800;line-height:1;cursor:pointer}
+      #page-animali .dm-animale-tasto:hover{border-color:var(--primary-color,#0ea5e9)}
+      #page-animali .dm-animale-tasto:disabled{opacity:.55;cursor:progress}
+      #page-animali .dm-animale-tasto:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 32%,transparent);outline-offset:2px}
       #page-animali .dm-animale-lettura-ic{font-size:14px;text-align:center}
       #page-animali .dm-animale-lettura-lbl{color:var(--secondary-text-color,#64748b);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       #page-animali .dm-animale-lettura-val{font-weight:900;text-align:right;white-space:nowrap}
-      #page-animali .dm-animale-barra{grid-column:2/-1;position:relative;height:6px;border-radius:999px;background:var(--secondary-background-color,#eef3f8);overflow:hidden}
+      #page-animali .dm-animale-barra{grid-column:1/-1;position:relative;height:6px;border-radius:999px;background:var(--secondary-background-color,#eef3f8);overflow:hidden}
       #page-animali .dm-animale-barra b{display:block;height:100%;border-radius:999px;background:#10b981;transition:width .4s ease}
       #page-animali .dm-animale-barra[data-male="true"] b{background:#dc2626}
       #page-animali .dm-animale-nulla{margin:0;font-size:12px;font-weight:700;color:var(--secondary-text-color,#64748b)}
@@ -425,11 +544,40 @@ function installStyles() {
   );
 }
 
+/* Premere un tasto (#373).
+ *
+ * La pressione la DESCRIVE il nucleo — quale servizio per quale dominio — e
+ * qui si esegue con la presa che usa tutta la plancia. Il tasto si spegne per
+ * un attimo: su una lettiera la pulizia parte e finisce dopo minuti, e senza
+ * un segno uno preme tre volte credendo di non aver premuto.
+ */
+function premiIlTasto(evento) {
+  const tasto = evento.target?.closest?.("[data-dm-animale-azione]");
+  if (!tasto || tasto.disabled) return;
+  evento.preventDefault();
+  const chiamata = pressioneDellAzione(tasto.dataset.dmAnimaleAzione);
+  if (!chiamata) return;
+  tasto.disabled = true;
+  root.setTimeout?.(() => {
+    tasto.disabled = false;
+  }, 3000);
+  try {
+    if (typeof root.dmCallHaService === "function") {
+      root
+        .dmCallHaService(chiamata.dominio, chiamata.servizio, chiamata.dati)
+        ?.catch?.((errore) => root.console?.warn?.("[DashboardModern] animali", errore));
+    } else if (typeof root.cdCallServiceJson === "function") {
+      root.cdCallServiceJson(chiamata.dominio, chiamata.servizio, JSON.stringify(chiamata.dati));
+    }
+  } catch (_errore) {}
+}
+
 export function installAnimaliSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
   ensureAnimaliPage();
+  doc.addEventListener("click", premiIlTasto);
   insegnaLaVisibilita();
   ensureAnimaliTab();
   for (const nome of ["render", "cdApplyNavVis"]) wrapFunction(nome, "__dmAnimaliSection", schedule);

@@ -84,7 +84,7 @@ test("la scelta viaggia con la configurazione, come tutte le altre", () => {
   /* Senza il suo nome nell'elenco delle chiavi gestite, il salvataggio partiva
    * lo stesso ma senza il valore: la scelta restava sul telefono che l'aveva
    * fatta, spariva dagli altri dispositivi e dal backup non usciva. */
-  const persistenza = leggi("sections/config-persistence-section.js");
+  const persistenza = leggi("core/chiavi-di-configurazione.js");
   assert.match(persistenza, /"cd_antifurto_modi"/);
   assert.match(persistenza, /"cd_clima_rapido"/);
   /* E chi aggiunge chiavi alza la revisione, altrimenti un salvataggio vecchio

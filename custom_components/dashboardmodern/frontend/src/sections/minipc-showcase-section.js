@@ -542,8 +542,20 @@ function syncHeadings(page) {
     const block = page.querySelector(group.block);
     const heading = block?.previousElementSibling;
     if (!heading?.classList?.contains("dm-srvx-head")) continue;
-    const cards = block.matches(group.card) ? [block] : [...block.querySelectorAll(group.card)];
-    const empty = cards.length > 0 && cards.every((card) => card.style.display === "none");
+    /* Vuoto vuol dire due cose, e finora se ne guardava una sola.
+     *
+     * Le card si possono nascondere — `display:none` — oppure sparire: l'auto
+     * hide TOGLIE dal documento le sezioni non configurate, e allora dentro al
+     * blocco non c'e' piu' niente da contare. Pretendendo almeno una card per
+     * dichiararlo vuoto, un blocco svuotato del tutto teneva la sua
+     * intestazione: «Rete e impianto» restava scritta sopra il niente, in fondo
+     * alla pagina del mini PC.
+     *
+     * Si guardano i figli del blocco, non le card per nome: quello che il
+     * blocco mostra e' quello che c'e' dentro e non e' nascosto, comunque si
+     * chiami. Il blocco che E' la card resta il caso a parte di sempre. */
+    const suoi = block.matches(group.card) ? [block] : [...block.children];
+    const empty = suoi.length === 0 || suoi.every((nodo) => nodo.style.display === "none");
     const display = empty ? "none" : "";
     if (heading.style.display !== display) heading.style.display = display;
     if (group.block === ".srv-temp-card") {

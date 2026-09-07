@@ -191,7 +191,7 @@ test("la pagina, la scheda e la tessera sono presentate a tutti i posti che le c
   assert.match(await leggi("sections/config-uniformity-section.js"), /rifiuti: "rifiuti",/);
   assert.match(await leggi("sections/todo-editor-section.js"), /\["rifiuti", "♻️"/);
   assert.match(await leggi("sections/home-widgets-section.js"), /key: "rifiuti",/);
-  assert.match(await leggi("sections/config-persistence-section.js"), /"cd_rifiuti"/);
+  assert.match(await leggi("core/chiavi-di-configurazione.js"), /"cd_rifiuti"/);
   assert.equal(haOggettoWidget("rifiuti"), true);
   assert.deepEqual(bricioleDellaSezione("rifiuti", EN), [
     "Materials",

@@ -25,6 +25,7 @@ import {
   dentroOFuori,
   minutiDa,
   normalizzaAnimali,
+  pressioneDellAzione,
   proponiCaselle,
   specieDalNome,
   vistaAnimale,
@@ -259,10 +260,12 @@ test("il filtro a fine corsa si dice", () => {
   );
 });
 
-test("la lettiera piena e' l'unica quota che allarma da sopra", () => {
+test("il cassetto dei rifiuti e' l'unica quota che allarma da sopra", () => {
+  /* Pieno e' il guaio, vuoto e' come dev'essere: e' l'unico numero della
+   * scheda che vuol dire il contrario di tutti gli altri. */
   const piena = vistaAnimale(
-    { nome: "Micio", lettiera_riempimento: "sensor.lettiera" },
-    { "sensor.lettiera": stato("88", { unit_of_measurement: "%" }) },
+    { nome: "Micio", lettiera_riempimento: "sensor.waste_drawer" },
+    { "sensor.waste_drawer": stato("88", { unit_of_measurement: "%" }) },
     ORA,
   );
   assert.deepEqual(
@@ -272,11 +275,68 @@ test("la lettiera piena e' l'unica quota che allarma da sopra", () => {
   /* Un cassetto pesato in chili non ha un ottanta per cento: leggerlo come
    * quota vorrebbe dire allarmare per un valore che non e' una percentuale. */
   const pesata = vistaAnimale(
-    { nome: "Micio", lettiera_riempimento: "sensor.lettiera" },
-    { "sensor.lettiera": stato("88", { unit_of_measurement: "kg" }) },
+    { nome: "Micio", lettiera_riempimento: "sensor.waste_drawer" },
+    { "sensor.waste_drawer": stato("88", { unit_of_measurement: "kg" }) },
     ORA,
   );
   assert.deepEqual(pesata.avvisi, []);
+});
+
+test("la sabbia invece resta, e allarma quando sta per finire", () => {
+  /* «L'avviso della lettiera deve essere quando questa scende sotto una
+   * percentuale, attualmente e' sopra: petkit espone un sensor con una
+   * percentuale, se questa scende sotto un valore stabilito dall'utente allora
+   * puo' mandare l'avviso che la lettiera sta per finire» (#373). */
+  const tanta = vistaAnimale(
+    { nome: "Micio", lettiera_sabbia: "sensor.litter_level" },
+    { "sensor.litter_level": stato("88", { unit_of_measurement: "%" }) },
+    ORA,
+  );
+  assert.deepEqual(tanta.avvisi, [], "piena di sabbia non e' un guaio");
+  const poca = vistaAnimale(
+    { nome: "Micio", lettiera_sabbia: "sensor.litter_level" },
+    { "sensor.litter_level": stato("12", { unit_of_measurement: "%" }) },
+    ORA,
+  );
+  assert.deepEqual(
+    poca.avvisi.map((voce) => voce.chiave),
+    ["sabbia_scarsa"],
+  );
+  // Sotto meta' soglia si alza la voce, come per il cibo e per l'acqua.
+  const finita = vistaAnimale(
+    { nome: "Micio", lettiera_sabbia: "sensor.litter_level" },
+    { "sensor.litter_level": stato("4", { unit_of_measurement: "%" }) },
+    ORA,
+  );
+  assert.equal(finita.avvisi[0].gravita, "urgente");
+});
+
+test("chi aveva la sabbia nella casella del cassetto se la ritrova al posto suo", () => {
+  /* Fino a ieri erano una casella sola, e su un Petkit ci finiva la sabbia
+   * rimasta: la soglia allarmava «piena» quando invece stava per finire. Il
+   * verso lo dice l'entita' stessa. */
+  const spostata = vistaAnimale(
+    { nome: "Micio", lettiera_riempimento: "sensor.petkit_litter_level" },
+    { "sensor.petkit_litter_level": stato("12", { unit_of_measurement: "%" }) },
+    ORA,
+  );
+  assert.deepEqual(
+    spostata.avvisi.map((voce) => voce.chiave),
+    ["sabbia_scarsa"],
+  );
+  assert.equal(spostata.letture.lettiera_sabbia?.entita, "sensor.petkit_litter_level");
+  assert.equal(spostata.letture.lettiera_riempimento, undefined);
+  /* Un cassetto dei rifiuti non si sposta: il suo nome lo dice, e li' l'avviso
+   * da sopra e' quello giusto. */
+  const restata = vistaAnimale(
+    { nome: "Micio", lettiera_riempimento: "sensor.waste_drawer_level" },
+    { "sensor.waste_drawer_level": stato("88", { unit_of_measurement: "%" }) },
+    ORA,
+  );
+  assert.deepEqual(
+    restata.avvisi.map((voce) => voce.chiave),
+    ["lettiera_piena"],
+  );
 });
 
 test("la lettiera non pulita da un giorno si dice, da due si dice piu' forte", () => {
@@ -341,4 +401,119 @@ test("ogni casella ha una famiglia e almeno un dominio dove cercarla", () => {
     assert.ok(campo.domini.length, `${campo.chiave} non dice dove cercare`);
     assert.ok(campo.deve instanceof RegExp, `${campo.chiave} non dice come riconoscersi`);
   }
+});
+
+/* ── quello che Petkit espone, e che serve avere sotto le dita (#373) ────── */
+
+test("le entità di un Petkit finiscono ognuna al posto suo", () => {
+  /* Tutte le entità nominate nella segnalazione, in una volta sola: se una
+   * finisce nella casella sbagliata la scheda dice il falso o offre un tasto
+   * che fa un'altra cosa. */
+  const proposta = proponiCaselle(
+    [
+      { entity_id: "sensor.petkit_litter_level", name: "Litter level" },
+      { entity_id: "sensor.petkit_waste_drawer_level", name: "Waste drawer level" },
+      { entity_id: "sensor.petkit_deodorant_days", name: "Deodorant days left" },
+      { entity_id: "sensor.petkit_desiccant_days", name: "Desiccant days left" },
+      { entity_id: "binary_sensor.petkit_waste_bin", name: "Waste bin" },
+      { entity_id: "button.petkit_manual_feed", name: "Manual feed" },
+      { entity_id: "button.petkit_reset_desiccant", name: "Reset desiccant", category: "config" },
+      { entity_id: "button.petkit_start_cleaning", name: "Start cleaning" },
+      { entity_id: "button.petkit_start_leveling", name: "Start leveling" },
+      { entity_id: "button.petkit_start_maintenance", name: "Start maintenance" },
+      { entity_id: "button.petkit_exit_maintenance", name: "Exit maintenance" },
+      { entity_id: "button.petkit_reset_deodorant", name: "Reset deodorant", category: "config" },
+    ],
+    {},
+  );
+  assert.equal(proposta.lettiera_sabbia, "sensor.petkit_litter_level");
+  assert.equal(proposta.lettiera_riempimento, "sensor.petkit_waste_drawer_level");
+  assert.equal(proposta.lettiera_deodorante, "sensor.petkit_deodorant_days");
+  assert.equal(proposta.cibo_essiccante, "sensor.petkit_desiccant_days");
+  assert.equal(proposta.lettiera_cestino, "binary_sensor.petkit_waste_bin");
+  assert.equal(proposta.cibo_eroga, "button.petkit_manual_feed");
+  assert.equal(proposta.cibo_essiccante_reset, "button.petkit_reset_desiccant");
+  assert.equal(proposta.lettiera_pulisci, "button.petkit_start_cleaning");
+  assert.equal(proposta.lettiera_livella, "button.petkit_start_leveling");
+  assert.equal(proposta.lettiera_manutenzione_avvia, "button.petkit_start_maintenance");
+  assert.equal(proposta.lettiera_manutenzione_esci, "button.petkit_exit_maintenance");
+  assert.equal(proposta.lettiera_deodorante_reset, "button.petkit_reset_deodorant");
+});
+
+test("un tasto che non risponde non si offre", () => {
+  /* Un tasto che si preme e non fa niente è peggio di un tasto che non c'è. */
+  const acceso = vistaAnimale(
+    { nome: "Micio", lettiera_pulisci: "button.pulisci" },
+    { "button.pulisci": stato("2026-09-07T10:00:00+00:00") },
+    ORA,
+  );
+  assert.deepEqual(
+    acceso.azioni.map((voce) => voce.chiave),
+    ["lettiera_pulisci"],
+  );
+  assert.equal(acceso.azioni[0].gruppo, "lettiera");
+  const muto = vistaAnimale(
+    { nome: "Micio", lettiera_pulisci: "button.pulisci" },
+    { "button.pulisci": stato("unavailable") },
+    ORA,
+  );
+  assert.deepEqual(muto.azioni, []);
+  const assente = vistaAnimale({ nome: "Micio", lettiera_pulisci: "button.pulisci" }, {}, ORA);
+  assert.deepEqual(assente.azioni, []);
+});
+
+test("la pressione si descrive, e ogni dominio ha il suo servizio", () => {
+  assert.deepEqual(pressioneDellAzione("button.pulisci"), {
+    dominio: "button",
+    servizio: "press",
+    dati: { entity_id: "button.pulisci" },
+  });
+  assert.equal(pressioneDellAzione("script.pulisci").servizio, "turn_on");
+  assert.equal(pressioneDellAzione("switch.pulisci").servizio, "turn_on");
+  assert.equal(pressioneDellAzione("input_button.pulisci").servizio, "press");
+  // Un sensore non si preme: dirlo è meglio che chiamare un servizio inventato.
+  assert.equal(pressioneDellAzione("sensor.pulisci"), null);
+  assert.equal(pressioneDellAzione("non-un-id"), null);
+});
+
+test("i consumabili contati in giorni avvisano prima di finire", () => {
+  /* «Petkit espone un sensore che dice quanti giorni restano e un button per
+   * resettare il valore una volta sostituito.» */
+  const conGiorni = (quanti) =>
+    vistaAnimale(
+      { nome: "Micio", cibo_essiccante: "sensor.essiccante", lettiera_deodorante: "sensor.deodorante" },
+      {
+        "sensor.essiccante": stato(String(quanti), { unit_of_measurement: "d" }),
+        "sensor.deodorante": stato(String(quanti), { unit_of_measurement: "d" }),
+      },
+      ORA,
+    ).avvisi;
+  assert.deepEqual(conGiorni(30), [], "un mese davanti non è una notizia");
+  assert.deepEqual(
+    conGiorni(5).map((voce) => voce.chiave),
+    ["essiccante_finito", "deodorante_finito"],
+  );
+  assert.equal(conGiorni(0)[0].gravita, "urgente", "a zero si sostituisce, non si ordina");
+});
+
+test("il cestino della lettiera dice se vuole attenzione", () => {
+  /* Un binary_sensor di guasto dice `on` quando il problema c'è: è la
+   * convenzione di Home Assistant, e la scheda la segue. */
+  const guasto = vistaAnimale(
+    { nome: "Micio", lettiera_cestino: "binary_sensor.cestino" },
+    { "binary_sensor.cestino": stato("on") },
+    ORA,
+  );
+  assert.deepEqual(
+    guasto.avvisi.map((voce) => voce.chiave),
+    ["cestino_pieno"],
+  );
+  assert.equal(guasto.letture.lettiera_cestino.acceso, true);
+  const aPosto = vistaAnimale(
+    { nome: "Micio", lettiera_cestino: "binary_sensor.cestino" },
+    { "binary_sensor.cestino": stato("off") },
+    ORA,
+  );
+  assert.deepEqual(aPosto.avvisi, []);
+  assert.equal(aPosto.letture.lettiera_cestino.acceso, false);
 });

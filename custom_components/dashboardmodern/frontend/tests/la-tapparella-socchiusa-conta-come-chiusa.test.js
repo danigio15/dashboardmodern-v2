@@ -87,7 +87,7 @@ test("la soglia si scrive nella scheda Finestre e viaggia con la configurazione"
   assert.match(scheda, /writeJsonIfChanged\(CHIAVE_SOGLIA_CHIUSA, soglia\)/);
   /* In cima alla scheda, non dentro il modulo di una riga: e' della casa. */
   assert.match(scheda, /ensureSogliaField\(body\);/);
-  const persistenza = await leggi("sections/config-persistence-section.js");
+  const persistenza = await leggi("core/chiavi-di-configurazione.js");
   assert.match(persistenza, new RegExp(`"${CHIAVE_SOGLIA_CHIUSA}"`));
   /* La revisione dev'essere ALMENO quella che ha aggiunto questa chiave, non
    * esattamente quella: inchiodare il numero rendeva rossa questa prova ogni

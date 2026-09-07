@@ -95,13 +95,39 @@ export const CAMPI = Object.freeze([
     domini: ["sensor"],
     deve: /portion|porzion|dispens|erogat|eaten|mangiat|ration|serving|feeding|pasti/,
   }),
+  /* La sabbia che RESTA, e il cassetto che si RIEMPIE: due numeri che si
+   * somigliano e vogliono dire il contrario (#373).
+   *
+   * «L'avviso della lettiera deve essere quando questa scende sotto una
+   * percentuale, attualmente e' sopra: petkit espone un sensor con una
+   * percentuale, se questa scende sotto un valore stabilito dall'utente allora
+   * puo' mandare l'avviso che la lettiera sta per finire.»
+   *
+   * Erano una casella sola, e non potevano esserlo: su un Litter-Robot il
+   * numero e' il cassetto dei rifiuti — novanta per cento vuol dire da
+   * svuotare — su un Petkit e' la sabbia rimasta, e novanta per cento vuol
+   * dire che va benissimo. La stessa soglia diceva il contrario a due case
+   * diverse. Adesso sono due caselle, e chi ne ha una sola non ha l'altra.
+   *
+   * La sabbia sta PRIMA perche' e' la piu' stretta: un'entita' presa da una
+   * casella non viene piu' offerta alle successive. */
+  Object.freeze({
+    chiave: "lettiera_sabbia",
+    gruppo: "lettiera",
+    domini: ["sensor"],
+    numero: true,
+    deve: /sand|sabbia|litter|lettiera/,
+    poi: /level|livell|left|remain|riman|percent|residu|quantit|stock/,
+    maNon: /waste|rifiut|drawer|cassett|deodor|bin\b|trash|garbage/,
+  }),
   Object.freeze({
     chiave: "lettiera_riempimento",
     gruppo: "lettiera",
     domini: ["sensor"],
     numero: true,
-    deve: /litter|lettiera|sand|sabbia|waste|rifiut|drawer|cassett|deodor/,
+    deve: /waste|rifiut|drawer|cassett|litter|lettiera/,
     poi: /level|livell|percent|full|pien|weight|peso|capacit|riempim/,
+    maNon: /sand|sabbia|deodor/,
   }),
   Object.freeze({
     chiave: "lettiera_ultima",
@@ -115,6 +141,29 @@ export const CAMPI = Object.freeze([
     gruppo: "lettiera",
     domini: ["sensor"],
     deve: /visit|visite|uses|usage|utilizz|times|conteggi|count|entries|ingressi/,
+  }),
+  /* I consumabili con la data di scadenza: l'essiccante del distributore e il
+   * deodorante della lettiera. «Petkit espone un sensore che dice quanti
+   * giorni restano e un button per resettare il valore una volta sostituito,
+   * sarebbe comodo avere entrambi.» */
+  Object.freeze({
+    chiave: "lettiera_deodorante",
+    gruppo: "lettiera",
+    domini: ["sensor"],
+    numero: true,
+    giorni: true,
+    deve: /deodor|odor|freshener|profum|purific/,
+    maNon: /reset|azzera/,
+  }),
+  /* Il cestino dei rifiuti della lettiera: «esiste anche un binary_sensor che
+   * indica se il cestino dei rifiuti ha problemi o meno: poterlo visualizzare
+   * sarebbe comodo per capire quando sostituire il sacco». */
+  Object.freeze({
+    chiave: "lettiera_cestino",
+    gruppo: "lettiera",
+    domini: ["binary_sensor"],
+    guasto: true,
+    deve: /waste|rifiut|bin\b|cestin|trash|garbage|sacchett|bag\b|box/,
   }),
   Object.freeze({
     chiave: "acqua_filtro",
@@ -151,6 +200,16 @@ export const CAMPI = Object.freeze([
     domini: ["device_tracker"],
     deve: /./,
   }),
+  /* L'essiccante del distributore, con la stessa regola del deodorante. */
+  Object.freeze({
+    chiave: "cibo_essiccante",
+    gruppo: "ciotola",
+    domini: ["sensor"],
+    numero: true,
+    giorni: true,
+    deve: /desiccant|essiccant|dry(er|ing)?\b|deumidif|silica|assorb/,
+    maNon: /reset|azzera/,
+  }),
   Object.freeze({
     chiave: "peso",
     gruppo: "animale",
@@ -159,6 +218,105 @@ export const CAMPI = Object.freeze([
     deve: /weight|peso|gewicht|poids/,
   }),
 ]);
+
+/* ── i tasti: quello che si puo' CHIEDERE a un dispositivo (#373) ─────────
+ *
+ * «Potrebbe essere utile inserire un bottone che permetta di effettuare
+ * l'erogazione di una porzione manuale… sarebbe utile avere i bottoni per
+ * avviare la pulizia manuale della lettiera, il livellamento e la manutenzione
+ * (distinta in due bottoni: avvia ed esci, petkit li espone cosi').»
+ *
+ * Stanno in un elenco a parte e non fra le caselle di sopra perche' non sono
+ * la stessa cosa: una casella si LEGGE e vive nella colonna dei numeri, un
+ * tasto si PREME e vive in fondo alla scheda. Mescolarli avrebbe voluto dire
+ * una riga «Pulizia lettiera: —» che non si capisce se e' un dato o un
+ * comando.
+ *
+ * Il dominio dice gia' come si preme: `button.press`, `script.turn_on`,
+ * `switch.turn_on`. Qui si dice solo quale entita' fa cosa.
+ */
+export const AZIONI = Object.freeze([
+  Object.freeze({
+    chiave: "cibo_eroga",
+    gruppo: "ciotola",
+    glifo: "🍽️",
+    domini: ["button", "script", "switch"],
+    deve: /feed|eroga|dispens|porzion|portion|pasto|meal|snack|manual/,
+    maNon: /reset|azzera|desiccant|essiccant/,
+  }),
+  Object.freeze({
+    chiave: "cibo_essiccante_reset",
+    gruppo: "ciotola",
+    glifo: "♻️",
+    domini: ["button"],
+    deve: /desiccant|essiccant|dry(er|ing)?\b|silica|deumidif/,
+    poi: /reset|azzera|replace|sostitu|cambi/,
+  }),
+  Object.freeze({
+    chiave: "lettiera_pulisci",
+    gruppo: "lettiera",
+    glifo: "🧹",
+    domini: ["button", "script", "switch"],
+    deve: /clean|puliz|scoop|cycle|ciclo/,
+    maNon: /reset|azzera|deodor|maintenance|manutenz/,
+  }),
+  Object.freeze({
+    chiave: "lettiera_livella",
+    gruppo: "lettiera",
+    glifo: "🪄",
+    domini: ["button", "script", "switch"],
+    deve: /level(l)?ing|livell|spiana|flatten|even/,
+  }),
+  /* La manutenzione e' DUE tasti e non uno: «petkit li espone cosi'», e sono
+   * due gesti diversi — si entra in manutenzione e prima o poi si esce. Un
+   * interruttore solo avrebbe voluto dire indovinare in quale dei due stati
+   * si trova la macchina, che e' proprio quello che non si sa. */
+  Object.freeze({
+    chiave: "lettiera_manutenzione_avvia",
+    gruppo: "lettiera",
+    glifo: "🛠️",
+    domini: ["button", "script", "switch"],
+    deve: /maintenance|manutenz/,
+    maNon: /exit|esci|end|fine|stop|quit|termina/,
+  }),
+  Object.freeze({
+    chiave: "lettiera_manutenzione_esci",
+    gruppo: "lettiera",
+    glifo: "🚪",
+    domini: ["button", "script", "switch"],
+    deve: /maintenance|manutenz/,
+    poi: /exit|esci|end|fine|stop|quit|termina/,
+  }),
+  Object.freeze({
+    chiave: "lettiera_deodorante_reset",
+    gruppo: "lettiera",
+    glifo: "♻️",
+    domini: ["button"],
+    deve: /deodor|odor|freshener|profum|purific/,
+    poi: /reset|azzera|replace|sostitu|cambi/,
+  }),
+]);
+
+export const CHIAVI_AZIONI = Object.freeze(AZIONI.map((voce) => voce.chiave));
+
+/* Il servizio con cui si preme un tasto, dal dominio dell'entita'.
+ *
+ * Si descrive, non si esegue: chi ha la connessione la chiama, e cosi' «cosa
+ * succede se premo» si prova a tavolino. */
+export function pressioneDellAzione(entita) {
+  const id = pulito(entita);
+  const punto = id.indexOf(".");
+  if (punto <= 0) return null;
+  const dominio = id.slice(0, punto).toLowerCase();
+  const servizio =
+    dominio === "button" || dominio === "input_button"
+      ? "press"
+      : ["script", "switch", "scene", "automation", "input_boolean"].includes(dominio)
+        ? "turn_on"
+        : "";
+  if (!servizio) return null;
+  return { dominio, servizio, dati: { entity_id: id } };
+}
 
 export const CHIAVI_CAMPI = Object.freeze(CAMPI.map((campo) => campo.chiave));
 
@@ -172,7 +330,14 @@ export const SOGLIE_DI_SERIE = Object.freeze({
   acqua: 20,
   filtro: 10,
   lettiera: 80,
+  /* La sabbia RESTA, quindi allarma da sotto: sotto un quinto se ne ricompra.
+   * E' la stessa cifra del cibo perche' e' la stessa domanda — quanto ne resta
+   * prima di dover uscire a comprarne. */
+  sabbia: 20,
   lettiera_ore: 24,
+  /* I consumabili contati in giorni — l'essiccante, il deodorante: una
+   * settimana e' il tempo che serve per ordinarne un altro. */
+  giorni: 7,
   collare: 20,
 });
 
@@ -203,6 +368,21 @@ export function normalizzaAnimale(input = {}, indice = 0) {
     nascosto: grezzo.nascosto === true,
   };
   for (const campo of CAMPI) animale[campo.chiave] = pulito(grezzo[campo.chiave]);
+  for (const azione of AZIONI) animale[azione.chiave] = pulito(grezzo[azione.chiave]);
+  /* Chi aveva la sabbia nella casella del cassetto se la ritrova al posto suo.
+   *
+   * Fino a ieri erano una casella sola, e su un Petkit ci finiva la sabbia
+   * rimasta: la soglia allarmava «piena» quando invece stava per finire. Il
+   * verso lo dice l'entita' stessa — «litter level» non e' «waste drawer» — e
+   * spostarla e' l'unico modo perche' l'avviso torni giusto senza chiedere a
+   * chi la plancia ce l'ha gia' configurata di rifare il giro. */
+  if (animale.lettiera_riempimento && !animale.lettiera_sabbia) {
+    const nome = minuscolo(animale.lettiera_riempimento).replaceAll(/[_\-./]+/g, " ");
+    if (!/waste|rifiut|drawer|cassett/.test(nome) && /sand|sabbia|litter|lettiera/.test(nome)) {
+      animale.lettiera_sabbia = animale.lettiera_riempimento;
+      animale.lettiera_riempimento = "";
+    }
+  }
   const soglie = grezzo.soglie && typeof grezzo.soglie === "object" ? grezzo.soglie : {};
   animale.soglie = {};
   for (const chiave of CHIAVI_SOGLIE)
@@ -293,6 +473,14 @@ export function proponiCaselle(entities = [], states = {}) {
     /* Le impostazioni del dispositivo non sono cose che riguardano l'animale:
      * su un distributore PetKit sono la maggioranza delle entita'. */
     .filter((voce) => !["config", "diagnostic"].includes(minuscolo(voce.category)));
+  /* I tasti stanno spesso fra le entita' di configurazione — su un Petkit
+   * «reset essiccante» e' un `button` marcato `config` — e quelle qui sopra
+   * sono state tolte apposta: sul distributore sono la maggioranza, e nessuna
+   * riguarda l'animale. Per i tasti si guarda l'elenco intero: un comando
+   * marcato «configurazione» resta un comando. */
+  const tutte = (Array.isArray(entities) ? entities : []).filter(
+    (voce) => voce && !voce.disabled && pulito(voce.entity_id).includes("."),
+  );
   const presi = new Set();
   const proposta = {};
   for (const campo of CAMPI) {
@@ -302,12 +490,31 @@ export function proponiCaselle(entities = [], states = {}) {
       .filter((voce) => !campo.classe || classeDi(voce, states) === campo.classe)
       .filter((voce) => {
         const parole = paroleDi(voce, states);
-        return campo.deve.test(parole) && (!campo.poi || campo.poi.test(parole));
+        if (!campo.deve.test(parole)) return false;
+        if (campo.poi && !campo.poi.test(parole)) return false;
+        /* Le parole che ESCLUDONO: senza, «litter level» e «waste drawer
+         * level» finivano nella stessa casella, e sono il contrario. */
+        return !campo.maNon || !campo.maNon.test(parole);
       })
       .sort((a, b) => pulito(a.entity_id).length - pulito(b.entity_id).length)[0];
     if (!scelta) continue;
     presi.add(pulito(scelta.entity_id));
     proposta[campo.chiave] = pulito(scelta.entity_id);
+  }
+  for (const azione of AZIONI) {
+    const scelta = tutte
+      .filter((voce) => !presi.has(pulito(voce.entity_id)))
+      .filter((voce) => azione.domini.includes(dominioDi(voce)))
+      .filter((voce) => {
+        const parole = paroleDi(voce, states);
+        if (!azione.deve.test(parole)) return false;
+        if (azione.poi && !azione.poi.test(parole)) return false;
+        return !azione.maNon || !azione.maNon.test(parole);
+      })
+      .sort((a, b) => pulito(a.entity_id).length - pulito(b.entity_id).length)[0];
+    if (!scelta) continue;
+    presi.add(pulito(scelta.entity_id));
+    proposta[azione.chiave] = pulito(scelta.entity_id);
   }
   return proposta;
 }
@@ -427,8 +634,18 @@ function lettura(campo, entita, states, adesso) {
     minuti: null,
     dentro: null,
     scarso: false,
+    /* Un binary_sensor di guasto non ha un numero: ha un si' e un no, ed e'
+     * quello che la scheda deve leggere. */
+    acceso: null,
+    /* I consumabili si contano in giorni, non in centesimi: la barra non ci
+     * va, e la parola nemmeno — «12 giorni» si scrive cosi'. */
+    giorni: campo.giorni === true,
   };
   if (voce.muto) return voce;
+  if (campo.guasto === true) {
+    voce.acceso = /^(on|true|problem|guasto|si|yes)$/i.test(grezzo);
+    return voce;
+  }
   if (campo.chiave === "porta" || campo.chiave === "collare_posizione") {
     voce.dentro = dentroOFuori(stato);
     return voce;
@@ -486,12 +703,39 @@ export function vistaAnimale(animale = {}, states = {}, adesso = 0) {
 
   if (sottoSoglia(letture.acqua_filtro, soglie.filtro)) alza("filtro_finito", "attenzione");
 
-  /* Il riempimento della lettiera e' l'unica quota che allarma da sopra: piena
-   * e' il guaio, vuota e' come dev'essere. Vale solo quando l'entita' parla in
+  /* Il CASSETTO dei rifiuti e' l'unica quota che allarma da sopra: pieno e' il
+   * guaio, vuoto e' come dev'essere. Vale solo quando l'entita' parla in
    * centesimi — un cassetto pesato in chili non ha un ottanta per cento. */
   const lettiera = letture.lettiera_riempimento;
   if (lettiera && !lettiera.muto && lettiera.unita === "%" && lettiera.valore !== null)
     if (lettiera.valore >= soglie.lettiera) alza("lettiera_piena", "attenzione");
+
+  /* La SABBIA invece resta, e allarma da sotto (#373): «se questa scende sotto
+   * un valore stabilito dall'utente allora puo' mandare l'avviso che la
+   * lettiera sta per finire». */
+  const sabbia = letture.lettiera_sabbia;
+  if (sottoSoglia(sabbia, soglie.sabbia))
+    alza(
+      "sabbia_scarsa",
+      sabbia.valore !== null && sabbia.valore <= soglie.sabbia / 2 ? "urgente" : "attenzione",
+    );
+
+  /* I consumabili contati in giorni: quando ne restano pochi si ordina il
+   * ricambio, e quando sono finiti si cambia. */
+  for (const [chiave, avviso] of [
+    ["cibo_essiccante", "essiccante_finito"],
+    ["lettiera_deodorante", "deodorante_finito"],
+  ]) {
+    const voce = letture[chiave];
+    if (!voce || voce.muto || voce.valore === null) continue;
+    if (voce.valore <= soglie.giorni) alza(avviso, voce.valore <= 0 ? "urgente" : "attenzione");
+  }
+
+  /* Il cestino della lettiera: «poterlo visualizzare sarebbe comodo per capire
+   * quando sostituire il sacco». Un binary_sensor di guasto dice `on` quando
+   * c'e' il problema, che e' la convenzione di Home Assistant. */
+  const cestino = letture.lettiera_cestino;
+  if (cestino && !cestino.muto && cestino.acceso === true) alza("cestino_pieno", "attenzione");
 
   const pulizia = letture.lettiera_ultima;
   if (pulizia && pulizia.minuti !== null && pulizia.minuti >= soglie.lettiera_ore * 60)
@@ -513,6 +757,20 @@ export function vistaAnimale(animale = {}, states = {}, adesso = 0) {
     dispositivi: suo.dispositivi,
     soglie,
     letture,
+    /* I tasti che questa scheda puo' offrire: solo quelli che hanno davvero
+     * un'entita' dietro, e solo se quell'entita' risponde. Un tasto che si
+     * preme e non fa niente e' peggio di un tasto che non c'e'. */
+    azioni: AZIONI.filter((azione) => {
+      const entita = suo[azione.chiave];
+      if (!entita || !entita.includes(".")) return false;
+      const stato = states?.[entita];
+      return Boolean(stato) && !MUTI.test(pulito(stato.state));
+    }).map((azione) => ({
+      chiave: azione.chiave,
+      gruppo: azione.gruppo,
+      glifo: azione.glifo,
+      entita: suo[azione.chiave],
+    })),
     /* Dentro, fuori, o non si sa: la porta col microchip lo dice meglio del
      * collare, che dice solo dove il collare crede di essere. */
     dentro:

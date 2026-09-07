@@ -102,8 +102,36 @@ test("togliere una chiave non alza la revisione", async () => {
    * `cd_animali`), i cui nomi, foto ed entita' — ciotola, lettiera, collare —
    * sono roba della casa: il gatto configurato sul tablet deve esistere anche
    * sul telefono. Quelle tolte restano fuori dall'elenco, che e' quello che
-   * questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 30);
+   * questa prova difende. E la 31 con le quattro trovate ricontando chi scrive
+   * cosa — «da smartphone vedo le sezioni configurate da pc invece no»: il
+   * radar meteo (`cd_radar_meteo`), l'orologio in testata (`cd_orologio`)
+   * e il segno delle caselle riempite a mano
+   * (`dm_campi_scelti`), senza il quale una casella svuotata apposta di qua se
+   * la ritrova riscritta di la' da chi indovina; e il gemello di
+   * `cd_fumo_rilevato` (`cd_allag_rilevato`), senza il quale l'altro
+   * dispositivo rifa' il rilevamento e rimette dentro il sensore appena
+   * cancellato. E la 32 con la ventilazione meccanica (#371, `cd_vmc`): le
+   * quattro temperature, il bypass e i filtri di una VMC sono entita' di casa
+   * come tutte le altre, e la macchina e' una sola per tutta la famiglia —
+   * configurarla dal computer e non trovarla dal telefono sarebbe l'ennesimo
+   * «da smartphone vedo le sezioni configurate da pc invece no»; e la 33 con
+   * Assist (#360, `cd_assist`): quale assistente risponde, se legge ad alta
+   * voce e se il tasto si vede sono preferenze della casa, non del vetro da
+   * cui la si guarda. E la 34 con i varchi (#367, #377, `cd_varchi`): quali
+   * contatti non contano, quali aggiungere a mano e come si chiamano sono
+   * correzioni al rilevamento di CASA — il sensore del frigorifero etichettato
+   * «door» e' sbagliato su ogni dispositivo, e il nome che gli si da' vale per
+   * tutti quelli che guardano la stessa porta. E la 35 con le macchine del
+   * server e la rete (#382, `cd_macchine`): il server e' uno solo per tutta la
+   * casa, e il nome che si da' a «pve_qemu_103» vale su ogni dispositivo che
+   * lo guarda. */
+  assert.equal(CONFIG_KEYS_REVISION, 35);
+  for (const chiave of ["cd_radar_meteo", "cd_orologio", "dm_campi_scelti", "cd_allag_rilevato"])
+    assert.ok(CONFIG_KEYS.includes(chiave), `${chiave} deve viaggiare con la casa`);
+  assert.ok(CONFIG_KEYS.includes("cd_vmc"), "la ventilazione deve viaggiare con la casa");
+  assert.ok(CONFIG_KEYS.includes("cd_varchi"), "i varchi devono viaggiare con la casa");
+  assert.ok(CONFIG_KEYS.includes("cd_macchine"), "le macchine devono viaggiare con la casa");
+  assert.ok(CONFIG_KEYS.includes("cd_assist"), "Assist deve viaggiare con la casa");
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

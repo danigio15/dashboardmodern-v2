@@ -15,6 +15,7 @@
  * risposta sta li' dove nasce.
  */
 import { CATEGORIE, CHIAVE_ALLERTE, normalizzaAllerte } from "../core/allerte-model.js";
+import { misureDellAria, normalizzaAria } from "../core/aria-model.js";
 import { categoriaDelleAllerte, renderAllerte } from "./allerte-section.js";
 import { renderHomeWidgets } from "./home-widgets-section.js";
 import {
@@ -22,6 +23,7 @@ import {
   doc,
   esc,
   installStyle,
+  locale,
   onEditorRedraw,
   readJson,
   root,
@@ -184,6 +186,124 @@ function fonteMarkup(chiave, config) {
   </article>`;
 }
 
+/* La qualita' dell'aria, che si comporta diversamente dalle altre.
+ *
+ * «Sulla qualita' aria mi devi creare da qualche parte la possibilita' di
+ * inserire entita' e i parametri, non solo nei widget. Inseriscilo in allerte.»
+ *
+ * Le altre sei fonti hanno una casella per uno: si sceglie il sensore e finisce
+ * li'. L'aria no — i suoi sensori li dichiara Home Assistant col `device_class`
+ * e la tessera nasce da sola — quindi qui non si sceglie il sensore: si corregge
+ * il rilevamento. Tre cose, e sono quelle che dal campo mancavano:
+ *
+ * - togliere un sensore che c'e' ma non deve contare. Con due centraline il
+ *   verdetto lo detta la peggiore, e quella e' quasi sempre la strada davanti a
+ *   casa (#340: «Outdoor Environment CO … la peggiore delle 15 misure»);
+ * - aggiungerne uno che il rilevamento non trova — un template senza
+ *   `device_class` — dicendo a mano che misura e';
+ * - spostare i confini di una misura. Di serie sono le norme (le fasce
+ *   dell'indice europeo, la EN 16798-1 per la CO2, l'OMS per il monossido), e
+ *   restano quelle finche' nessuno scrive: chi non tocca niente non cambia
+ *   niente.
+ */
+const CHIAVE_ARIA = "aria";
+
+function ariaMarkup(config) {
+  const scelte = normalizzaAria(config[CHIAVE_ARIA]);
+  const misure = misureDellAria(locale());
+  const righeSoglie = misure
+    .map((misura) => {
+      const scelta = scelte.soglie[misura.classe] || misura.soglie;
+      const suo = Boolean(scelte.soglie[misura.classe]);
+      return `<div class="dm-aria-ed-misura"${suo ? ' data-dm-aria-mia="true"' : ""}>
+        <span class="dm-aria-ed-nome"><span aria-hidden="true">${misura.glifo}</span> ${esc(misura.nome)}<small>${esc(misura.unita)}</small></span>
+        ${scelta
+          .map(
+            (valore, indice) =>
+              `<input class="ed-input dm-aria-ed-soglia" type="number" min="0" step="any" inputmode="decimal"
+                data-dm-aria-soglia="${esc(misura.classe)}" data-dm-aria-gradino="${indice}"
+                value="${esc(String(valore))}" aria-label="${esc(GRADINI()[indice])} · ${esc(misura.nome)}">`,
+          )
+          .join("")}
+      </div>`;
+    })
+    .join("");
+  const escluse = scelte.escluse
+    .map(
+      (entity) =>
+        `<span class="dm-aria-ed-fuori" data-dm-aria-esclusa="${esc(entity)}">${esc(entity)}<button type="button" class="ed-del" data-dm-aria-riprendi="${esc(entity)}" aria-label="${esc(t("Rimetti", "Put back"))}">✕</button></span>`,
+    )
+    .join("");
+  const aggiunte = Object.entries(scelte.aggiunte)
+    .map(
+      ([entity, classe]) =>
+        `<span class="dm-aria-ed-fuori" data-dm-aria-aggiunta="${esc(entity)}">${esc(entity)} · ${esc(
+          misure.find((misura) => misura.classe === classe)?.nome || classe,
+        )}<button type="button" class="ed-del" data-dm-aria-togli="${esc(entity)}" aria-label="${esc(t("Elimina", "Remove"))}">✕</button></span>`,
+    )
+    .join("");
+  return `<article class="ed-row dm-todo-ed-row dm-allerte-ed-fonte dm-aria-ed" data-open="true" data-dm-allerte-fonte-riga="${CHIAVE_ARIA}">
+    <div class="dm-allerte-ed-testa"><span aria-hidden="true">🍃</span><strong>${esc(t("Qualità dell'aria", "Air quality"))}</strong></div>
+    <div class="dm-todo-ed-body">
+      <div class="ed-intro">${esc(
+        t(
+          "I sensori dell'aria li dichiara Home Assistant da sé — polveri, CO₂, monossido, composti volatili — e la tessera compare da sola. Qui si corregge quel rilevamento: si toglie un sensore che non deve contare, si aggiunge uno che non viene trovato, e si spostano i confini fra buona, discreta, scarsa e cattiva.",
+          "Home Assistant declares the air sensors itself — particulates, CO₂, monoxide, volatile compounds — and the tile appears on its own. Here you correct that: drop a sensor that should not count, add one that is not found, and move the boundaries between good, fair, poor and bad.",
+        ),
+      )}</div>
+
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("La misura in copertina", "The reading on the cover"))}</span>
+        <span class="ed-form-row"><input id="dm-aria-principale" class="ed-input mono" placeholder="sensor.qualita_aria"
+          value="${esc(scelte.principale)}" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker"
+          data-dm-allerte-pick="dm-aria-principale" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button>
+          <button type="button" class="ed-btn-add dm-aria-ed-piu" data-dm-aria-principale>${esc(t("Metti", "Set"))}</button></span>
+        <small>${esc(t("Lasciala vuota e in copertina va la misura messa peggio, che è la risposta giusta quando non si dice niente. Chi ha una centralina che pubblica già il suo indice mette quella qui: il numero grande diventa il suo, e le sostanze una per una si leggono aprendo la scheda. Il giudizio resta della misura peggiore — un indice che dice «buona» non deve coprire una polvere che dice «cattiva».", "Leave it empty and the worst reading goes on the cover, which is the right answer when nothing is said. If your station already publishes its own index, put it here: the big number becomes its own, and the substances are read one by one by opening the card. The verdict still belongs to the worst reading — an index saying “good” must not hide a particulate saying “bad”."))}</small>
+      </label>
+      ${scelte.principale ? `<div class="dm-aria-ed-elenco"><span class="dm-aria-ed-fuori" data-dm-aria-copertina="${esc(scelte.principale)}">${esc(scelte.principale)}<button type="button" class="ed-del" data-dm-aria-scopri aria-label="${esc(t("Togli", "Drop"))}">✕</button></span></div>` : ""}
+
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Non contare questo sensore", "Do not count this sensor"))}</span>
+        <span class="ed-form-row"><input id="dm-aria-escludi" class="ed-input mono" placeholder="sensor.outdoor_co"
+          autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker"
+          data-dm-allerte-pick="dm-aria-escludi" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button>
+          <button type="button" class="ed-btn-add dm-aria-ed-piu" data-dm-aria-escludi>${esc(t("Togli", "Drop"))}</button></span>
+        <small>${esc(t("La centralina esterna detta il verdetto di tutta la casa: da qui si toglie di mezzo senza spegnere la tessera.", "The outdoor station dictates the verdict for the whole house: this drops it without turning the tile off."))}</small>
+      </label>
+      ${escluse ? `<div class="dm-aria-ed-elenco">${escluse}</div>` : ""}
+
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Aggiungi un sensore che non viene trovato", "Add a sensor that is not found"))}</span>
+        <span class="ed-form-row"><input id="dm-aria-aggiungi" class="ed-input mono" placeholder="sensor.mio_pm25"
+          autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker"
+          data-dm-allerte-pick="dm-aria-aggiungi" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span>
+        <span class="ed-form-row"><select id="dm-aria-classe" class="ed-input">${misure
+          .map((misura) => `<option value="${esc(misura.classe)}">${misura.glifo} ${esc(misura.nome)}</option>`)
+          .join("")}</select>
+          <button type="button" class="ed-btn-add dm-aria-ed-piu" data-dm-aria-aggiungi>${esc(t("Aggiungi", "Add"))}</button></span>
+        <small>${esc(t("Un sensore che Home Assistant non ha etichettato — un template fatto in casa — non viene trovato: qui gli si dice che misura è.", "A sensor Home Assistant has not labelled — a template of your own — is not found: here you say which measure it is."))}</small>
+      </label>
+      ${aggiunte ? `<div class="dm-aria-ed-elenco">${aggiunte}</div>` : ""}
+
+      <div class="ed-slot-lbl dm-aria-ed-titolo">${esc(t("I confini di ogni misura", "The boundaries of each measure"))}</div>
+      <div class="ed-intro">${esc(
+        t(
+          "Buona fino al primo, discreta fino al secondo, scarsa fino al terzo, cattiva oltre. Di serie sono le norme: le fasce dell'indice europeo per polveri e gas, la EN 16798-1 per la CO₂, le linee guida OMS per il monossido. Cambiale solo se sai perché.",
+          "Good up to the first, fair up to the second, poor up to the third, bad beyond. The defaults are the norms: the European index bands for particulates and gases, EN 16798-1 for CO₂, the WHO guidelines for monoxide. Change them only if you know why.",
+        ),
+      )}</div>
+      <div class="dm-aria-ed-misure">${righeSoglie}</div>
+      <button type="button" class="ed-del dm-aria-ed-norme" data-dm-aria-norme>${esc(t("Rimetti le norme", "Restore the norms"))}</button>
+    </div>
+  </article>`;
+}
+
+/** I quattro gradini, per l'etichetta di ogni casella. */
+function GRADINI() {
+  return [
+    t("Fino a: buona", "Up to: good"),
+    t("Fino a: discreta", "Up to: fair"),
+    t("Fino a: scarsa", "Up to: poor"),
+  ];
+}
+
 /* ── l'interruttore della sezione: la fascia del guscio, non una nostra ── */
 function fasciaMarkup() {
   try {
@@ -215,6 +335,7 @@ function corpoMarkup() {
   )}</div>
   <div class="ed-list dm-todo-ed-list">
     ${CATEGORIE.map(({ chiave }) => fonteMarkup(chiave, config)).join("")}
+    ${ariaMarkup(config)}
     <button type="button" class="ed-save-btn" data-dm-allerte-save>💾 ${esc(t("Salva allerte", "Save alerts"))}</button>
   </div></div>`;
 }
@@ -236,6 +357,141 @@ function ridisegna() {
   ensureAllerteEditor();
 }
 
+/* I gesti della scheda dell'aria.
+ *
+ * Le altre fonti hanno un tasto Salva perche' sono caselle che si compilano
+ * insieme. Qui ogni gesto e' gia' una decisione compiuta — «questo sensore non
+ * lo voglio», «questa soglia e' questa» — e aspettare un tasto vorrebbe solo
+ * dire perderla chiudendo la scheda. Si salva subito, e la scheda si ridisegna
+ * con quello che adesso c'e'.
+ */
+/* Quello che sta nelle caselle adesso, versato dentro la configurazione.
+ *
+ * Le sei fonti si compilano e si salvano col tasto, ma i gesti dell'aria
+ * salvano da soli e ridisegnano la scheda. Senza questo passaggio, chi aveva
+ * scritto il sensore dei fulmini e poi metteva una misura in copertina si
+ * ritrovava la casella dei fulmini vuota: il ridisegno la rifaceva da quello
+ * che c'era sul disco, e sul disco quel sensore non c'era ancora. Si legge
+ * dal modulo una volta sola, e vale per tutti e due i modi di salvare.
+ */
+function versaLeCaselle(dentro, body) {
+  const modulo = body || doc?.getElementById("ed-body");
+  if (!modulo) return dentro;
+  for (const campo of modulo.querySelectorAll("[data-dm-allerte-fonte][data-dm-allerte-campo]")) {
+    const fonte = clean(campo.dataset.dmAllerteFonte);
+    const nome = clean(campo.dataset.dmAllerteCampo);
+    if (dentro[fonte] && nome) dentro[fonte][nome] = clean(campo.value);
+  }
+  return dentro;
+}
+
+function salvaAria(prossima, body) {
+  const tutto = versaLeCaselle(configurazione(), body);
+  tutto[CHIAVE_ARIA] = prossima;
+  salva(tutto);
+  ridisegna();
+}
+
+function ariaClick(event, body) {
+  const config = configurazione();
+  const scelte = normalizzaAria(config[CHIAVE_ARIA]);
+
+  const inCopertina = event.target.closest("[data-dm-aria-principale]");
+  if (inCopertina) {
+    event.preventDefault();
+    const entity = clean(body.querySelector("#dm-aria-principale")?.value);
+    if (!entity.includes(".")) return true;
+    salvaAria({ ...scelte, principale: entity }, body);
+    root.edToast?.(t("🍃 Misura messa in copertina", "🍃 Reading put on the cover"));
+    return true;
+  }
+
+  if (event.target.closest("[data-dm-aria-scopri]")) {
+    event.preventDefault();
+    salvaAria({ ...scelte, principale: "" }, body);
+    return true;
+  }
+
+  const togliDaiConti = event.target.closest("[data-dm-aria-escludi]");
+  if (togliDaiConti) {
+    event.preventDefault();
+    const entity = clean(body.querySelector("#dm-aria-escludi")?.value);
+    if (!entity.includes(".")) return true;
+    salvaAria({ ...scelte, escluse: [...new Set([...scelte.escluse, entity])] }, body);
+    root.edToast?.(t("🍃 Sensore tolto dai conti dell'aria", "🍃 Sensor dropped from the air"));
+    return true;
+  }
+
+  const rimetti = event.target.closest("[data-dm-aria-riprendi]");
+  if (rimetti) {
+    event.preventDefault();
+    const entity = clean(rimetti.dataset.dmAriaRiprendi);
+    salvaAria(
+      { ...scelte, escluse: scelte.escluse.filter((voce) => voce !== entity) },
+      body,
+    );
+    return true;
+  }
+
+  const aggiungi = event.target.closest("[data-dm-aria-aggiungi]");
+  if (aggiungi) {
+    event.preventDefault();
+    const entity = clean(body.querySelector("#dm-aria-aggiungi")?.value);
+    const classe = clean(body.querySelector("#dm-aria-classe")?.value);
+    if (!entity.includes(".") || !classe) return true;
+    salvaAria({ ...scelte, aggiunte: { ...scelte.aggiunte, [entity]: classe } }, body);
+    root.edToast?.(t("🍃 Sensore dell'aria aggiunto", "🍃 Air sensor added"));
+    return true;
+  }
+
+  const togli = event.target.closest("[data-dm-aria-togli]");
+  if (togli) {
+    event.preventDefault();
+    const entity = clean(togli.dataset.dmAriaTogli);
+    const aggiunte = { ...scelte.aggiunte };
+    delete aggiunte[entity];
+    salvaAria({ ...scelte, aggiunte }, body);
+    return true;
+  }
+
+  if (event.target.closest("[data-dm-aria-norme]")) {
+    event.preventDefault();
+    /* Rimettere le norme vuol dire cancellare le proprie, non riscriverle: cosi'
+     * chi aggiorna la plancia si ritrova i confini nuovi se le norme cambiano. */
+    salvaAria({ ...scelte, soglie: {} }, body);
+    root.edToast?.(t("🍃 Confini rimessi alle norme", "🍃 Boundaries back to the norms"));
+    return true;
+  }
+  return false;
+}
+
+/* Un confine scritto vale appena si stacca dalla casella: e' un numero, non una
+ * frase da comporre. I tre si leggono insieme — non hanno senso da soli — e se
+ * non salgono si lascia com'era, che e' quello che fa anche il modello. */
+function ariaCambio(event) {
+  const casella = event.target?.closest?.("[data-dm-aria-soglia]");
+  const body = doc?.getElementById("ed-body");
+  if (!casella || !body || !body.contains(casella)) return;
+  const classe = clean(casella.dataset.dmAriaSoglia);
+  const caselle = [...body.querySelectorAll(`[data-dm-aria-soglia="${CSS.escape(classe)}"]`)].sort(
+    (sinistra, destra) =>
+      Number(sinistra.dataset.dmAriaGradino) - Number(destra.dataset.dmAriaGradino),
+  );
+  const valori = caselle.map((voce) => Number(voce.value));
+  const config = configurazione();
+  const scelte = normalizzaAria(config[CHIAVE_ARIA]);
+  const prossime = { ...scelte.soglie, [classe]: valori };
+  const config2 = { ...config, [CHIAVE_ARIA]: { ...scelte, soglie: prossime } };
+  /* Il modello butta i confini scritti male: se li ha buttati, qui non si
+   * scrive niente e la casella resta rossa finche' non tornano. */
+  const accettati = normalizzaAria(config2[CHIAVE_ARIA]).soglie[classe];
+  for (const voce of caselle) voce.dataset.dmAriaRotta = accettati ? "no" : "si";
+  if (!accettati) return;
+  const tutto = versaLeCaselle(configurazione(), body);
+  tutto[CHIAVE_ARIA] = { ...scelte, soglie: prossime };
+  salva(tutto);
+}
+
 function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || schedaAttiva() !== ALLERTE_EDITOR_TAB || !body.contains(event.target)) return;
@@ -246,15 +502,10 @@ function onClick(event) {
     if (input) root.wzPickEntity?.(input);
     return;
   }
+  if (ariaClick(event, body)) return;
   if (event.target.closest("[data-dm-allerte-save]")) {
     event.preventDefault();
-    const next = configurazione();
-    for (const campo of body.querySelectorAll("[data-dm-allerte-fonte][data-dm-allerte-campo]")) {
-      const fonte = clean(campo.dataset.dmAllerteFonte);
-      const nome = clean(campo.dataset.dmAllerteCampo);
-      if (next[fonte] && nome) next[fonte][nome] = clean(campo.value);
-    }
-    salva(next);
+    salva(versaLeCaselle(configurazione(), body));
     ridisegna();
     root.edToast?.(t("💾 Allerte salvate", "💾 Alerts saved"));
   }
@@ -284,7 +535,23 @@ function installStyles() {
         display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:12px;font-weight:900;
         letter-spacing:.04em;text-transform:uppercase;color:var(--text,#0f172a)}
       #ed-body .dm-allerte-ed-testa span{font-size:16px}
-    `,
+          #ed-body .dm-aria-ed-elenco{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+      #ed-body .dm-aria-ed-fuori{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border:1px solid var(--divider-color,#e2e8f0);border-radius:999px;background:var(--secondary-background-color,#f8fafc);font-size:12px;font-weight:750;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      #ed-body .dm-aria-ed-fuori .ed-del{min-width:22px;min-height:22px;padding:0;border-radius:999px;font-size:11px}
+      #ed-body .dm-aria-ed-piu{margin-left:6px;white-space:nowrap}
+      #ed-body .dm-aria-ed-titolo{margin-top:14px}
+      #ed-body .dm-aria-ed-misure{display:grid;gap:6px;margin:6px 0 10px}
+      #ed-body .dm-aria-ed-misura{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,minmax(56px,68px));gap:6px;align-items:center}
+      #ed-body .dm-aria-ed-misura[data-dm-aria-mia="true"] .dm-aria-ed-nome{color:#0ea5e9}
+      #ed-body .dm-aria-ed-nome{display:flex;align-items:baseline;gap:6px;min-width:0;font-size:12.5px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      #ed-body .dm-aria-ed-nome small{font-weight:600;color:var(--secondary-text-color,#64748b)}
+      #ed-body .dm-aria-ed-soglia{min-height:38px;padding:6px 8px;text-align:center;font-size:12.5px}
+      /* Tre confini che non salgono non sono confini: la casella lo dice. */
+      #ed-body .dm-aria-ed-soglia[data-dm-aria-rotta="si"]{border-color:#dc2626;background:rgba(220,38,38,.08)}
+      #ed-body .dm-aria-ed-norme{margin-bottom:4px}
+      @media(max-width:520px){#ed-body .dm-aria-ed-misura{grid-template-columns:minmax(0,1fr);gap:4px}
+        #ed-body .dm-aria-ed-misura .dm-aria-ed-soglia{text-align:left}}
+`,
   );
 }
 
@@ -293,6 +560,9 @@ export function installAllerteEditor() {
   state.installed = true;
   installStyles();
   doc.addEventListener("click", onClick);
+  /* I confini si scrivono nelle caselle: si ascolta il loro `change`, non il
+   * click, o un numero battuto e lasciato li' non arriverebbe mai. */
+  doc.addEventListener("change", ariaCambio);
   wrapFunction("apriConfigEntita", "__dmAllerteEditor", () => {
     ensureAllerteEditorTab();
     ensureAllerteEditor();

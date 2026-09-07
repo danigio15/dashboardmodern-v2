@@ -254,7 +254,11 @@ test("nothing forces a display the auto-hide writes inline on a card", () => {
   }
   // A block emptied by the auto-hide drops its heading too, and the board is
   // told so telemetry can take the whole row instead of leaving a hole.
-  assert.match(source, /cards\.every\(\(card\) => card\.style\.display === "none"\)/);
+  /* «Vuoto» sono due cose: una card NASCOSTA e una card SPARITA. L'auto hide
+   * toglie dal documento le sezioni non configurate, quindi si guardano i figli
+   * del blocco — comunque si chiamino — e non le card per nome: un blocco
+   * svuotato del tutto teneva la sua intestazione scritta sopra il niente. */
+  assert.match(source, /suoi\.length === 0 \|\| suoi\.every\(\(nodo\) => nodo\.style\.display === "none"\)/);
   assert.match(
     styles,
     /\[data-dm-srvx-thermal="off"\][\s\S]*?\.srv-tel-grid\{grid-column:1 \/ -1\}/,

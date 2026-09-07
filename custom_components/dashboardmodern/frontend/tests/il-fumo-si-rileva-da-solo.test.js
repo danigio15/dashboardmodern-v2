@@ -156,7 +156,7 @@ test("il contatore conta gli allarmi, non i configurati", () => {
 
 test("il registro dei visti e' la chiave gia' registrata in persistenza", () => {
   assert.equal(SMOKE_SEEN_KEY, "cd_fumo_rilevato");
-  const persistenza = leggi("sections/config-persistence-section.js");
+  const persistenza = leggi("core/chiavi-di-configurazione.js");
   assert.match(persistenza, /"cd_fumo_rilevato"/, "la chiave deve viaggiare con la configurazione");
 });
 

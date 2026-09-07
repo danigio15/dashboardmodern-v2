@@ -130,7 +130,7 @@ test("l'elenco e la scelta viaggiano insieme", () => {
    * solo, il telefono mostrerebbe l'impianto del tablet chiamandolo con
    * l'altro nome — e chi lo riconfigura lo scrive addosso a quello sbagliato. */
   const persistenza = readFileSync(
-    new URL("../src/sections/config-persistence-section.js", import.meta.url),
+    new URL("../src/core/chiavi-di-configurazione.js", import.meta.url),
     "utf8",
   );
   assert.match(persistenza, new RegExp(`"${CHIAVE_SOLARI}"`));

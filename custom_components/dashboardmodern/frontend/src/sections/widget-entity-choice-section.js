@@ -114,8 +114,20 @@ function interruttore(entities, dentro) {
  * L'interruttore le saltava tutte — e sono proprio le sezioni dove uno vuole
  * dire «questa in Home si', questa no», perche' sono quelle con dieci sensori
  * di cui in Home ne interessano due. */
+/* Che cosa e' un'entita' dentro una riga, comunque quella riga sia scritta.
+ *
+ * Si guardava solo `.ed-slot-in[data-ref]`, che e' come scrive le sue caselle
+ * il guscio storico. Le schede nuove — le Allerte, gli animali, il robot — la
+ * loro casella la chiamano a modo proprio (`name="entity"`), e su quelle
+ * l'interruttore non compariva: «sezione allerta non compare switch per
+ * widget». Non e' un elenco di schede da tenere aggiornato: la guardia delle
+ * lenti passa gia' su TUTTE le caselle che chiedono un'entita' e ci scrive
+ * sopra `data-entity-input`. Quello e' il segno comune, e chiedere quello vuol
+ * dire esserci ovunque, anche nella scheda che verra' scritta domani. */
 function entitiesOfSlot(slot) {
-  const value = clean(slot?.querySelector?.(".ed-slot-in[data-ref]")?.value);
+  const value = clean(
+    slot?.querySelector?.('.ed-slot-in[data-ref],input[data-entity-input="true"]')?.value,
+  );
   return ENTITY_RE.test(value) ? [value] : [];
 }
 

@@ -1,6 +1,7 @@
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import { CONFIG_KEYS } from "../core/chiavi-di-configurazione.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installGuscioQuandoServe } from "./il-guscio-disegna-quando-serve-section.js";
@@ -32,6 +33,11 @@ import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
+import { installCercaNelConfigSection } from "./cerca-nel-config-section.js";
+import { installVarchiInConfigurazioneSection } from "./varchi-in-configurazione-section.js";
+import { installFoglioDiSceltaSection } from "./foglio-di-scelta-section.js";
+import { installSpegnimentoProgrammatoSection } from "./spegnimento-programmato-section.js";
+import { installReportTendinaDispositiviSection } from "./report-tendina-dispositivi-section.js";
 import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installLightsSceneSection } from "./lights-scene-section.js";
@@ -45,6 +51,9 @@ import { installTelecameraWebRtc } from "./telecamera-webrtc-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
+import { installVmcEditor } from "./vmc-editor-section.js";
+import { installAssistSection } from "./assist-section.js";
+import { installAssistEditor } from "./assist-editor-section.js";
 import { installTrvEditor } from "./trv-editor-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
@@ -114,6 +123,10 @@ import { installAllerte } from "./allerte-section.js";
 import { installAllerteEditor } from "./allerte-editor-section.js";
 import { installRifiuti } from "./rifiuti-section.js";
 import { installRifiutiEditor } from "./rifiuti-editor-section.js";
+import { installVarchi } from "./varchi-section.js";
+import { installVarchiEditor } from "./varchi-editor-section.js";
+import { installMacchine } from "./macchine-e-rete-section.js";
+import { installMacchineEditor } from "./macchine-editor-section.js";
 import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installLinguaSection } from "./lingua-section.js";
 import { installSostieniIlProgetto } from "./sostieni-il-progetto-section.js";
@@ -134,33 +147,9 @@ import { activeLocale, allStates, clean, english, section, t, wrapFunction } fro
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
 const INSTALLING_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME_INSTALLING__";
-const APPLIANCE_PICKER_LAYER_STYLE_ID = "dm-appliance-picker-layer-style";
 const APPLIANCE_DAILY_POPUP_STYLE_ID = "dm-appliance-daily-dashboard-style";
 const APPLIANCE_KPI_POPUP_STYLE_ID = "dm-appliance-kpi-popup-style";
 const APPLIANCE_KPI_STATE_KEY = "__DASHBOARDMODERN_APPLIANCE_KPI_POPUPS__";
-
-function installAppliancePickerLayer() {
-  const doc = root.document;
-  if (!doc?.head || doc.getElementById(APPLIANCE_PICKER_LAYER_STYLE_ID)) return;
-  const style = doc.createElement("style");
-  style.id = APPLIANCE_PICKER_LAYER_STYLE_ID;
-  style.textContent = `
-    /* The canonical appliance picker may be opened from inside the Edit modal.
-       Keep it above every editor overlay so visible options also own pointer input. */
-    #dm-applpick.dm-appliance-type-picker {
-      position: fixed !important;
-      inset: 0 !important;
-      z-index: 2147483647 !important;
-      pointer-events: auto !important;
-    }
-    #dm-applpick .dm-appliance-type-picker-dialog,
-    #dm-applpick .dm-appliance-type-grid,
-    #dm-applpick .dm-appliance-type-option {
-      pointer-events: auto !important;
-    }
-  `;
-  doc.head.append(style);
-}
 
 function installApplianceDailyPopupStyle() {
   const doc = root.document;
@@ -820,7 +809,11 @@ export function installSectionRuntime() {
     installEnergySignedSection();
     installEnergySection();
     installEnergyRefreshSection();
-    installStateEventGate(root.DashboardModernEnergyService?.broker, root);
+    /* Le chiavi vere, non una copia: e' l'elenco della persistenza, quello
+     * che dice cosa e' configurazione della casa. */
+    installStateEventGate(root.DashboardModernEnergyService?.broker, root, {
+      chiavi: CONFIG_KEYS,
+    });
     installEnergyLegacyGuardSection();
     installEnergyStabilitySection();
     installHomeBlocchiSection();
@@ -845,8 +838,19 @@ export function installSectionRuntime() {
     installApplianceShowcaseSection();
     installApplianceDailyPopupStyle();
     installApplianceKpiPopups();
-    installAppliancePickerLayer();
+    installFoglioDiSceltaSection();
+    /* Gli spegnimenti programmati del clima (#364): il conto alla rovescia
+     * lo tiene Home Assistant, qui si chiede una volta chi e' appeso. Prima
+     * del Clima, che alla prima passata lo legge gia'. */
+    installSpegnimentoProgrammatoSection();
+    /* La riga per cercare vive sopra il corpo dell'editor: si installa con gli
+     * altri moduli della configurazione, e si rimette a posto a ogni giro. */
+    installCercaNelConfigSection();
+    /* Le pastiglie aperto/chiuso sulle righe che nominano un varco: vale in
+     * ogni scheda dove un varco compare, non in una sola. */
+    installVarchiInConfigurazioneSection();
     installApplianceEditorSection();
+    installReportTendinaDispositiviSection();
     // Il menu delle integrazioni veste la scheda che l'editor ha appena
     // disegnato e apre la finestra di modifica che l'editor ha appena
     // sostituito: viene dopo di lui.
@@ -904,6 +908,13 @@ export function installSectionRuntime() {
     installQuickClimateEditorSection();
     /* La valvola TRV (#300): una casella in piu' nella scheda dell'unita' clima. */
     installTrvEditor();
+    /* La ventilazione meccanica (#371): la sua scheda si appende in fondo
+     * alla configurazione del Clima, dov'e' che uno cerca l'aria di casa. */
+    installVmcEditor();
+    /* Assist (#360): il tasto che apre l'assistente di Home Assistant, e la
+     * riga che lo accende fra le Impostazioni. */
+    installAssistSection();
+    installAssistEditor();
     installLiveUiSection();
     /* Il video vero delle telecamere (#294): WebRTC e HLS nelle tessere, e il
      * WebRTC nativo del popup negoziato con i server ICE di casa. */
@@ -1010,6 +1021,10 @@ export function installSectionRuntime() {
     installAllerteEditor();
     installRifiuti();
     installRifiutiEditor();
+    installVarchi();
+    installVarchiEditor();
+    installMacchine();
+    installMacchineEditor();
     /* Il calendario (#259) ha una pagina sua accanto alla Home, e con le liste
      * ToDo una scheda sola nella configurazione: sono la stessa pagina, e chi
      * le configura le pensa nello stesso momento. */
@@ -1119,6 +1134,10 @@ export function installSectionRuntime() {
         "allerte-editor",
         "rifiuti",
         "rifiuti-editor",
+        "varchi",
+        "varchi-editor",
+        "macchine-e-rete",
+        "macchine-editor",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
       energyServices: root.__DASHBOARDMODERN_ENERGY_SERVICES__,

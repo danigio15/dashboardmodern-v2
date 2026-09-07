@@ -7,12 +7,10 @@
  */
 import {
   SECURITY_DOOR_DOMAINS,
-  doorsSenzaOccupate,
   isDoorEntity,
   normalizeDoorPin,
 } from "../core/security-door-model.js";
 import {
-  entitaDellePrese,
   iconaPortaMarkup,
   SECURITY_DOORS_CONFIRM_KEY,
   siChiedeConferma,
@@ -144,16 +142,16 @@ function ridisegna() {
   ensureDoorsEditor();
 }
 
+/* Le righe come stanno scritte, senza toglierne nessuna.
+ *
+ * Qui si scartavano — e si RISCRIVEVA la lista salvata senza — le aperture la
+ * cui entita' compariva anche fra le Prese. Dal campo (#378): un cancelletto
+ * mosso da un Sonoff «non viene salvato». Si salvava eccome: era questo
+ * ridisegno a cancellarlo un istante dopo, in silenzio. Lo stesso rele' puo'
+ * fare due mestieri, e chi ha battuto quella riga sapeva quello che faceva. */
 function grezze() {
   const stored = readJson(CONFIG_KEY, []);
-  const righe = Array.isArray(stored) ? stored : [];
-  /* Le entita' delle Prese non sono porte: se la configurazione condivisa se
-   * le e' portate qui dentro (viste dal campo: switch.lavatrice fra le
-   * aperture), si scartano E si ripulisce la lista salvata, cosi' il macello
-   * non torna dagli altri dispositivi. Le righe vuote in compilazione restano. */
-  const pulite = doorsSenzaOccupate(righe, entitaDellePrese());
-  if (pulite.length !== righe.length) writeJsonIfChanged(CONFIG_KEY, pulite);
-  return pulite;
+  return Array.isArray(stored) ? stored : [];
 }
 
 function onClick(event) {

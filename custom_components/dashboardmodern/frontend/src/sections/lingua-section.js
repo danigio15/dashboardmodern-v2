@@ -115,9 +115,17 @@ export function ensureLingua() {
   /* L'ancora e' il tasto del guscio che chiude il blocco «Generali»: la lingua
    * e' una preferenza generale, e sta con le altre invece che in fondo alla
    * scheda dopo il reset totale. Si riconosce dal gestore, non dalla scritta,
-   * che cambia con la lingua — proprio quella che questa riga governa. */
+   * che cambia con la lingua — proprio quella che questa riga governa.
+   *
+   * Ma l'ancora puo' non esserci. Il blocco «Generali» il guscio lo disegna
+   * solo a chi puo' vederlo — c'e' una casella «Utente admin (vuoto = Config
+   * visibile a tutti)» — e su una plancia dove quella casella e' piena, chi
+   * guarda da un altro utente perde il blocco e con lui la lingua: «verifica
+   * sempre il problema della scelta lingua perche' e' scomparsa nel config».
+   * La lingua non e' del blocco Generali, e' della plancia: se l'ancora non
+   * c'e' si mette in cima alla scheda per conto suo. Sparire non e' una
+   * risposta. */
   const salva = corpo.querySelector('[onclick*="edSaveGeneral"]');
-  if (!salva) return false;
   const gia = corpo.querySelector("[data-dm-lingua]");
   if (gia) {
     /* Ridisegnata la scheda, la scelta puo' essere cambiata da un'altra
@@ -130,7 +138,8 @@ export function ensureLingua() {
   guscio.innerHTML = rigaMarkup();
   const riga = guscio.firstElementChild;
   if (!riga) return false;
-  salva.after(riga);
+  if (salva) salva.after(riga);
+  else corpo.prepend(riga);
   installStile();
   return true;
 }

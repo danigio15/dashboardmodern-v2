@@ -1,7 +1,6 @@
 /* DashboardModern custom panel and companion Lovelace dashboard registration. */
 import { LEGACY_VARIANTS, legacyVariantForLocale, mountLegacyHost } from "./src/legacy/host.js";
 
-const dashboardJobs = new Map();
 
 /* ── il parcheggio della plancia ─────────────────────────────────────────── */
 
@@ -138,102 +137,20 @@ export function userCanAccess(config = {}, user = {}) {
   return allowed.length === 0 || allowed.includes(user?.id);
 }
 
-function dashboardView(config) {
-  const allowed = Array.isArray(config.allowed_user_ids)
-    ? config.allowed_user_ids.filter(Boolean)
-    : [];
-  const visible = allowed.length ? allowed.map((user) => ({ user })) : true;
-  return {
-    title: config.title || "DashboardModern",
-    path: "home",
-    type: "panel",
-    panel: true,
-    visible,
-    cards: [
-      {
-        type: "custom:dashboardmodern-card",
-        entry_id: config.entry_ids?.[0] || config.instance_id,
-        title: config.title || "DashboardModern",
-        primary: config.primary !== false,
-        // The card hosts the same plancia, so it must read and write the same
-        // shared configuration profile the panel uses.
-        config_profile: config.config_profile || "",
-        // Do not persist config.static_base here. It contains the current asset
-        // digest and becomes stale after an update/restart. dashboard-card.js
-        // derives the live base from its own import.meta.url instead.
-        allowed_user_ids: allowed,
-      },
-    ],
-  };
-}
-
-async function listDashboards(hass) {
-  return hass.connection.sendMessagePromise({ type: "lovelace/dashboards/list" });
-}
-
-export async function ensureCompanionDashboard(hass, panel) {
-  const config = panel?.config || {};
-  if (
-    !config.register_lovelace_dashboard ||
-    !config.lovelace_url_path ||
-    !config.static_base ||
-    !hass?.user?.is_admin ||
-    !hass.connection?.sendMessagePromise
-  ) {
-    return null;
-  }
-
-  const entryId = config.entry_ids?.[0] || config.instance_id || config.lovelace_url_path;
-  const signature = JSON.stringify([
-    entryId,
-    config.title,
-    config.primary,
-    config.allowed_user_ids,
-    config.admin_only,
-  ]);
-  const key = `${entryId}:${signature}`;
-  if (dashboardJobs.has(key)) return dashboardJobs.get(key);
-
-  const job = (async () => {
-    let dashboards = await listDashboards(hass);
-    let dashboard = dashboards.find((item) => item.url_path === config.lovelace_url_path);
-    if (!dashboard) {
-      try {
-        dashboard = await hass.connection.sendMessagePromise({
-          type: "lovelace/dashboards/create",
-          title: config.title || "DashboardModern",
-          icon: "mdi:view-dashboard-edit",
-          url_path: config.lovelace_url_path,
-          show_in_sidebar: false,
-          require_admin: Boolean(config.admin_only),
-        });
-      } catch (error) {
-        dashboards = await listDashboards(hass);
-        dashboard = dashboards.find((item) => item.url_path === config.lovelace_url_path);
-        if (!dashboard) throw error;
-      }
-    } else if (dashboard.title !== config.title) {
-      dashboard = await hass.connection.sendMessagePromise({
-        type: "lovelace/dashboards/update",
-        dashboard_id: dashboard.id,
-        title: config.title || "DashboardModern",
-        require_admin: Boolean(config.admin_only),
-      });
-    }
-
-    await hass.connection.sendMessagePromise({
-      type: "lovelace/config/save",
-      url_path: config.lovelace_url_path,
-      config: { views: [dashboardView(config)] },
-    });
-    return dashboard;
-  })().catch((error) => {
-    console.warn("[DashboardModern] companion dashboard registration failed", error);
-    return null;
-  });
-  dashboardJobs.set(key, job);
-  return job;
-}
+/* La dashboard di appoggio non la scrive piu' il pannello.
+ *
+ * La scriveva qui: `ensureCompanionDashboard` creava la dashboard Lovelace e ne
+ * salvava la vista. Ma il pannello gira solo quando qualcuno apre la plancia
+ * dalla barra laterale, e chi la mette come dashboard PREDEFINITA e riavvia
+ * apre quella dashboard senza passare di qui. Se il contenuto non era mai stato
+ * scritto, Home Assistant rispondeva «Errore di configurazione» — e aprirla
+ * dalla barra la riparava, che e' esattamente come e' stato segnalato.
+ *
+ * Adesso la scrive l'integrazione all'avvio (`frontend.py`,
+ * `_ensure_companion_dashboard`), che e' l'unico momento che succede comunque,
+ * qualunque cosa si apra per prima. E la vista e' scritta in un posto solo:
+ * averla qui e la' voleva dire due verita' sulla stessa dashboard.
+ */
 
 export class DashboardModernPanel extends HTMLElement {
   constructor() {
@@ -314,7 +231,6 @@ export class DashboardModernPanel extends HTMLElement {
 
   bootstrap() {
     if (!this._hass || !this._panel) return;
-    ensureCompanionDashboard(this._hass, this._panel);
     if (!userCanAccess(this._panel.config, this._hass.user)) {
       this.renderDenied();
       return;

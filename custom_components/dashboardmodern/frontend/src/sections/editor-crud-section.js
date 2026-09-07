@@ -19,6 +19,7 @@ import {
   doc,
   english,
   installStyle,
+  isLifetimeMeter,
   onEditorRedraw,
   readClimateUnits,
   readJson,
@@ -52,18 +53,6 @@ function syncEditorTheme() {
   modal.dataset.dmEditorTheme = dark ? "dark" : "light";
 }
 
-function cumulativeEntity(entity) {
-  const id = clean(entity);
-  if (!id) return false;
-  const current = root.STATES?.[id] || root._RAW_STATES?.[id] || null;
-  const stateClass = clean(current?.attributes?.state_class).toLowerCase();
-  return (
-    stateClass === "total" ||
-    stateClass === "total_increasing" ||
-    /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(id)
-  );
-}
-
 function normalizeReportEditor() {
   const panel = doc?.querySelector("#editor-modal [data-energy-panel='report']");
   if (!panel) return false;
@@ -81,7 +70,7 @@ function normalizeReportEditor() {
       helper.className = "dm-report-history-help";
       row.append(helper);
     }
-    const valid = !input?.value || cumulativeEntity(input.value);
+    const valid = !input?.value || isLifetimeMeter(input.value);
     row.dataset.historyValid = String(valid);
     helper.textContent = valid
       ? t(

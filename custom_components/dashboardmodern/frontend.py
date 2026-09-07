@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -18,6 +19,8 @@ DATA_DASHBOARD_CARD_REGISTERED = "dashboard_card_registered"
 DATA_PANEL_PATHS = "panel_paths"
 PANEL_URL_PATH = DOMAIN
 PANEL_COMPONENT_NAME = "dashboardmodern-panel"
+_LOGGER = logging.getLogger(__name__)
+
 STATIC_URL_PATH = "/dashboardmodern_static"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 LEGACY_DIR = FRONTEND_DIR / "legacy"
@@ -231,7 +234,7 @@ def _panel_config(
         ),
         "admin_only": bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
         "lovelace_url_path": _lovelace_url_path(entry),
-        "dashboard_card_module": f"{static_url_path}/dashboard-card.js",
+        "dashboard_card_module": _dashboard_card_module_url(asset_version),
         "_panel_custom": {
             "name": f"{PANEL_COMPONENT_NAME}-{asset_version[:8]}",
             "embed_iframe": False,
@@ -343,13 +346,34 @@ async def _ensure_static_registered(
     domain_data[DATA_STATIC_REGISTERED] = static_url_path
 
 
+def _dashboard_card_module_url(asset_version: str) -> str:
+    """L'indirizzo con cui il frontend carica la card, e perche' non e' versionato.
+
+    Era `{prefisso}/{firma}/dashboard-card.js`, cioe' un indirizzo che cambia a
+    ogni aggiornamento. Quell'indirizzo il frontend se lo porta dentro l'avvio
+    della pagina, e l'app companion di Android l'avvio se lo tiene in cache a
+    lungo: dopo un aggiornamento la pagina in cache chiede ancora la firma
+    vecchia, quel percorso non esiste piu', e l'elemento non viene mai definito.
+    Il risultato e' «Custom element doesn't exist: dashboardmodern-card» sulla
+    dashboard predefinita — e infatti succedeva sui telefoni con l'app
+    installata da tempo e non su uno appena installato (#372).
+
+    Adesso il PERCORSO e' quello stabile, che c'e' sempre, e la firma sta nella
+    domanda: una pagina vecchia chiede una firma vecchia allo stesso percorso e
+    riceve la card di adesso invece di un 404, e una pagina nuova chiede una
+    firma nuova e non riusa quella in cache. La card ricava da se' la sua base
+    per il resto degli asset, quindi non le cambia niente.
+    """
+    return f"{STATIC_URL_PATH}/dashboard-card.js?v={asset_version}"
+
+
 def _ensure_dashboard_card_registered(
     hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
     """Load the companion custom card through the public frontend API."""
     from homeassistant.components import frontend
 
-    module_url = f"{static_url_path}/dashboard-card.js"
+    module_url = _dashboard_card_module_url(static_url_path.rsplit("/", 1)[-1])
     if domain_data.get(DATA_DASHBOARD_CARD_REGISTERED) == module_url:
         return
 
@@ -358,6 +382,141 @@ def _ensure_dashboard_card_registered(
         frontend.remove_extra_js_url(hass, previous)
     frontend.add_extra_js_url(hass, module_url)
     domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
+
+
+def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str, Any]:
+    """La vista della dashboard di appoggio: una sola card, la plancia intera.
+
+    Scritta qui e in nessun altro posto. Prima la scriveva `panel.js`, cioe' il
+    pannello: e il pannello gira solo quando qualcuno apre la plancia dalla barra
+    laterale. Chi la mette come dashboard predefinita e riavvia apre quella
+    dashboard senza passare dal pannello, e se il contenuto non era mai stato
+    scritto Home Assistant risponde «Errore di configurazione» — mentre aprirla
+    dalla barra la riparava. Era esattamente la segnalazione: «quando si imposta
+    la plancia come predefinita ed apro app HA va in errore, se invece la
+    seleziono dal menu laterale funziona».
+
+    Adesso la scrive l'integrazione all'avvio, che e' l'unico momento che
+    succede comunque, qualunque cosa si apra per prima.
+    """
+    allowed = _allowed_user_ids(entry)
+    return {
+        "title": entry.title or "DashboardModern",
+        "path": "home",
+        "type": "panel",
+        "visible": [{"user": user} for user in allowed] if allowed else True,
+        "cards": [
+            {
+                "type": "custom:dashboardmodern-card",
+                "entry_id": entry.entry_id,
+                "title": entry.title or "DashboardModern",
+                "primary": primary,
+                # La card ospita la stessa plancia, quindi deve leggere e
+                # scrivere lo stesso profilo di configurazione del pannello.
+                "config_profile": config_profile,
+                # Niente `static_base` qui dentro: contiene la firma degli asset
+                # di adesso e diventa vecchia al primo aggiornamento. La card la
+                # ricava dal proprio `import.meta.url`.
+                "allowed_user_ids": allowed,
+            }
+        ],
+    }
+
+
+async def _aggiorna_scheda_compagna(
+    collezione: Any, url_path: str, titolo: str, solo_admin: bool
+) -> None:
+    """Rimetti in pari il nome e il «solo amministratori» di una gia' esistente.
+
+    Creare la dashboard di appoggio scriveva il titolo una volta sola. Chi poi
+    rinominava la plancia — o la chiudeva agli amministratori — si ritrovava il
+    nome vecchio nel menu delle dashboard di Home Assistant a ogni riavvio: le
+    viste si riscrivevano, la scheda della collezione no. Il pannello, prima che
+    questo lo sostituisse, l'aggiornava con `lovelace/dashboards/update`; qui si
+    fa la stessa cosa dal di dentro.
+
+    Si scrive solo se qualcosa e' davvero cambiato: la collezione salva su disco
+    a ogni aggiornamento, e un avvio non e' una modifica.
+    """
+    elenca = getattr(collezione, "async_items", None)
+    aggiorna = getattr(collezione, "async_update_item", None)
+    if elenca is None or aggiorna is None:
+        return
+    voce = next(
+        (v for v in elenca() if isinstance(v, dict) and v.get("url_path") == url_path),
+        None,
+    )
+    if voce is None:
+        return
+    cambi = {}
+    if voce.get("title") != titolo:
+        cambi["title"] = titolo
+    if bool(voce.get("require_admin", False)) != solo_admin:
+        cambi["require_admin"] = solo_admin
+    if not cambi:
+        return
+    await aggiorna(voce["id"], cambi)
+
+
+async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> bool:
+    """Crea e riempie la dashboard di appoggio di questa plancia.
+
+    E' quella che permette di scegliere la plancia come dashboard predefinita:
+    Home Assistant lascia scegliere una dashboard Lovelace, non un pannello
+    personalizzato. Sta fuori dalla barra laterale — nella barra c'e' gia' il
+    pannello — e porta dentro una card sola.
+
+    Se Lovelace non e' ancora in piedi non si insiste: si riprova quando lo e'.
+    """
+    from .config_flow import OPTION_ADMIN_ONLY, OPTION_REGISTER_LOVELACE
+
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        return False
+    if not entry.options.get(OPTION_REGISTER_LOVELACE, True):
+        return False
+
+    dati = hass.data.get("lovelace")
+    collezione = getattr(dati, "dashboards_collection", None)
+    plance = getattr(dati, "dashboards", None)
+    if collezione is None and isinstance(dati, dict):
+        collezione = dati.get("dashboards_collection")
+        plance = dati.get("dashboards")
+    if collezione is None or plance is None:
+        return False
+
+    url_path = _lovelace_url_path(entry)
+    titolo = entry.title or "DashboardModern"
+    solo_admin = bool(entry.options.get(OPTION_ADMIN_ONLY, False))
+    try:
+        if url_path not in plance:
+            await collezione.async_create_item(
+                {
+                    "allow_single_word": True,
+                    "icon": "mdi:view-dashboard-edit",
+                    "title": titolo,
+                    "url_path": url_path,
+                    "show_in_sidebar": False,
+                    "require_admin": solo_admin,
+                }
+            )
+        else:
+            await _aggiorna_scheda_compagna(collezione, url_path, titolo, solo_admin)
+        magazzino = plance.get(url_path)
+        if magazzino is None or not hasattr(magazzino, "async_save"):
+            return False
+        vista = _companion_view(
+            entry, _config_profile(hass, entry), _entry_is_primary(hass, entry)
+        )
+        await magazzino.async_save({"views": [vista]})
+    except Exception:  # noqa: BLE001 - una dashboard in meno non ferma la plancia
+        _LOGGER.warning(
+            "Non sono riuscito a preparare la dashboard di appoggio %s",
+            url_path,
+            exc_info=True,
+        )
+        return False
+    return True
 
 
 async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
@@ -392,6 +551,16 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
         variants=variants,
     )
     paths[entry_id] = new_path
+
+    if not await _ensure_companion_dashboard(hass, entry_id):
+        # Lovelace puo' non essere ancora in piedi quando questa integrazione
+        # parte: si aspetta che lo sia invece di rinunciare.
+        from homeassistant.setup import async_when_setup
+
+        async def _quando_lovelace(hass: HomeAssistant, _componente: str) -> None:
+            await _ensure_companion_dashboard(hass, entry_id)
+
+        async_when_setup(hass, "lovelace", _quando_lovelace)
 
 
 async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) -> None:

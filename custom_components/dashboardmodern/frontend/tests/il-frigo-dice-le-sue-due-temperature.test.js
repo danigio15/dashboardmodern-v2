@@ -10,6 +10,12 @@
  * si sceglie: una casella vuota si nota, un numero sbagliato no.
  *
  * La seconda: i vani sono due, e le caselle adesso pure.
+ *
+ * Le prove dicono `device_type: "fridge"` perche' dalla #374 si indovina una
+ * temperatura solo per gli apparecchi che ne mostrano una — quelli che tengono
+ * il freddo. Una friggitrice che trova un sensore in gradi fra le sue entita'
+ * non se lo prende piu': quasi sempre e' la stanza, non lei. Qui l'apparecchio
+ * e' un frigorifero da sempre, e adesso lo dice.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -31,27 +37,30 @@ const STATI = {
 
 const CINQUE = Object.keys(STATI);
 
+/** L'apparecchio di queste prove: un frigorifero, con le entita' che gli si danno. */
+const FRIGO = (entities) => ({ device_type: "fridge", visual_key: "fridge", entities });
+
 test("con cinque temperature non se ne sceglie nessuna a caso", () => {
-  const lettura = temperatureInfo({ entities: CINQUE }, STATI);
+  const lettura = temperatureInfo(FRIGO(CINQUE), STATI);
   assert.equal(lettura, null, "meglio nessun numero che quello della stanza");
 });
 
 test("l'ambiente non viene mai scelto quando c'e' dell'altro", () => {
   const lettura = temperatureInfo(
-    { entities: ["sensor.frigo_ambiente", "sensor.frigo_attuale"] },
+    FRIGO(["sensor.frigo_ambiente", "sensor.frigo_attuale"]),
     STATI,
   );
   assert.equal(lettura?.value, 5.2);
 });
 
 test("con una temperatura sola si prende quella, anche se e' l'ambiente", () => {
-  const lettura = temperatureInfo({ entities: ["sensor.frigo_ambiente"] }, STATI);
+  const lettura = temperatureInfo(FRIGO(["sensor.frigo_ambiente"]), STATI);
   assert.equal(lettura?.value, 26, "qualcosa e' meglio di niente");
 });
 
 test("la casella scelta a mano vince sull'indovinello", () => {
   const lettura = temperatureInfo(
-    { entities: CINQUE, temperature_entity: "sensor.freezer_attuale" },
+    { ...FRIGO(CINQUE), temperature_entity: "sensor.freezer_attuale" },
     STATI,
   );
   assert.equal(lettura?.value, -19.4);
@@ -59,7 +68,7 @@ test("la casella scelta a mano vince sull'indovinello", () => {
 
 test("la seconda casella legge la seconda temperatura, e non indovina mai", () => {
   const device = {
-    entities: CINQUE,
+    ...FRIGO(CINQUE),
     temperature_entity: "sensor.frigo_attuale",
     temperature_entity_2: "sensor.freezer_attuale",
   };
@@ -67,5 +76,5 @@ test("la seconda casella legge la seconda temperatura, e non indovina mai", () =
   assert.equal(temperatureInfo(device, STATI, 2)?.value, -19.4);
   /* Lasciata vuota resta vuota: un secondo numero indovinato sarebbe lo stesso
      errore di prima, raddoppiato. */
-  assert.equal(temperatureInfo({ entities: CINQUE }, STATI, 2), null);
+  assert.equal(temperatureInfo(FRIGO(CINQUE), STATI, 2), null);
 });
