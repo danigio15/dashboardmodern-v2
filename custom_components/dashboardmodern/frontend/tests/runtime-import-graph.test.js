@@ -881,8 +881,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // la scheda. La pagina del Clima resta di un padrone solo: il markup lo
   // scrive il modulo della VMC, ma a chiamarlo e' il giro che possiede la
   // pagina.
+  // 280 con Assist (#360): «vorrei avere la possibilita di aprire assist per
+  // chiedere delle cose sia scrivendo che parlando». La plancia non rifa' un
+  // assistente — sarebbe un secondo assistente da tenere allineato al primo —
+  // ma gli parla: `core/assist-model.js` dice cosa si manda a
+  // `conversation/process`, cosa torna e quando il filo della conversazione e'
+  // scaduto; `sections/assist-section.js` porta la finestra e il microfono, e
+  // `sections/assist-editor-section.js` la riga fra le Impostazioni. La voce la
+  // ascolta il BROWSER, che ha il microfono e sa trascrivere; la frase la
+  // capisce Home Assistant, che conosce la casa. Mandare l'audio a Home
+  // Assistant vorrebbe dire una pipeline, un formato e un pezzo di protocollo
+  // binario per arrivare alla stessa frase che il browser ha gia'.
   assert.ok(
-    relative.length <= 277,
+    relative.length <= 280,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

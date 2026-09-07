@@ -144,7 +144,7 @@ const USER_DATA_VERSION = 1;
  * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
  * e del collare. Anche questa e' roba della casa: il gatto configurato sul
  * tablet deve esistere anche sul telefono. */
-export const CONFIG_KEYS_REVISION = 32;
+export const CONFIG_KEYS_REVISION = 33;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -313,6 +313,10 @@ export const CONFIG_KEYS = Object.freeze([
   /* La ventilazione meccanica (#371): le sue caselle sono entita' di casa, e
    * viaggiano fra i dispositivi come tutte le altre. */
   "cd_vmc",
+  /* Assist (#360): quale assistente, se leggere la risposta ad alta voce, se
+   * il tasto si vede. Sono preferenze della casa e non del vetro: chi accende
+   * Assist dal computer se lo deve ritrovare sul telefono. */
+  "cd_assist",
   // Gli animali di casa (#358): nome, foto e le entita' che li riguardano.
   "cd_animali",
   "cd_piscina",

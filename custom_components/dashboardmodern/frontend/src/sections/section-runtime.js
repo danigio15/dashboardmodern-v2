@@ -51,6 +51,8 @@ import { installConnectionRecoverySection } from "./connection-recovery-section.
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
 import { installVmcEditor } from "./vmc-editor-section.js";
+import { installAssistSection } from "./assist-section.js";
+import { installAssistEditor } from "./assist-editor-section.js";
 import { installTrvEditor } from "./trv-editor-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
@@ -900,6 +902,10 @@ export function installSectionRuntime() {
     /* La ventilazione meccanica (#371): la sua scheda si appende in fondo
      * alla configurazione del Clima, dov'e' che uno cerca l'aria di casa. */
     installVmcEditor();
+    /* Assist (#360): il tasto che apre l'assistente di Home Assistant, e la
+     * riga che lo accende fra le Impostazioni. */
+    installAssistSection();
+    installAssistEditor();
     installLiveUiSection();
     /* Il video vero delle telecamere (#294): WebRTC e HLS nelle tessere, e il
      * WebRTC nativo del popup negoziato con i server ICE di casa. */
