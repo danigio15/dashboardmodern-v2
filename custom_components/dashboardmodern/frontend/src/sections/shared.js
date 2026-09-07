@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { canonicalClimateType } from "../core/device-model.js";
+import { isCumulativeEnergyEntity } from "../core/period-service.js";
 import {
   DEFAULT_LOCALE,
   SOURCE_LOCALE,
@@ -503,6 +504,24 @@ export function allStates() {
     if (lexical && typeof lexical === "object") Object.assign(values, lexical);
   }
   return values;
+}
+
+/* «E' un contatore di vita?» — una domanda sola, e gli stati dove stanno.
+ *
+ * La risposta canonica e' in period-service, ed e' quella su cui si regge
+ * tutto il calcolo dell'energia. Il Report ne teneva due copie private, una
+ * nella riga della configurazione e una nella finestra della voce, e tutte e
+ * due chiedevano gli stati a `root.STATES`: ma `STATES` e `_RAW_STATES` sono
+ * binding lessicali del guscio, e da un modulo `root.STATES` e' sempre
+ * `undefined`. Le due copie non hanno mai letto uno `state_class` in vita
+ * loro: decidevano solo dal nome dell'entita'. Cosi' un contatore vero —
+ * `sensor.lavastoviglie_energia`, `total_increasing` — si prendeva
+ * «l'entita' non sembra cumulativa» e la finestra rifiutava di salvarlo.
+ *
+ * Qui la domanda si fa una volta, e gli stati si chiedono ad `allStates()`,
+ * che sa dove il guscio li tiene. */
+export function isLifetimeMeter(entity) {
+  return isCumulativeEnergyEntity(entity, allStates());
 }
 
 export function readJson(key, fallback) {

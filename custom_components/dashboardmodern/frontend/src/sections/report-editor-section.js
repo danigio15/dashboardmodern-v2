@@ -1,7 +1,8 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceArtworkType } from "../core/appliance-card-view-model.js";
 import { reportIconForDevice } from "../core/energy-projection.js";
-import { clean, doc, esc, installStyle, onEditorRedraw, root, section, t, wrapFunction } from "./shared.js";
+import { openIconPicker } from "./icon-engine-section.js";
+import { clean, doc, esc, installStyle, isLifetimeMeter, onEditorRedraw, root, section, t, wrapFunction } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_REPORT_EDITOR_SECTION__";
@@ -101,18 +102,6 @@ function paintEmptyReportIcon(row, fields) {
   button.dataset.dmReportIconToken = token;
 }
 
-function cumulativeEntity(entity) {
-  const id = clean(entity);
-  if (!id) return false;
-  const current = root.STATES?.[id] || root._RAW_STATES?.[id] || null;
-  const stateClass = clean(current?.attributes?.state_class).toLowerCase();
-  return (
-    stateClass === "total" ||
-    stateClass === "total_increasing" ||
-    /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(id)
-  );
-}
-
 function openReportEditor(row) {
   doc?.getElementById("dm-report-row-editor")?.remove();
   const fields = rowFields(row);
@@ -124,7 +113,7 @@ function openReportEditor(row) {
     <form data-form>
       <label class="dm-modal-check"><input type="checkbox" name="enabled" ${fields.enabled?.checked ? "checked" : ""}> <span>${t("Mostra nel Report", "Show in Report")}</span></label>
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Etichetta", "Label")}</span><input class="ed-input" name="label" value="${esc(fields.label?.value)}" required></label>
-      <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><input class="ed-input" name="icon" value="${esc(fields.icon?.value)}"></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input class="ed-input" name="icon" value="${esc(fields.icon?.value)}"><button type="button" class="dm-report-icon-btn" data-dm-report-icona aria-label="${t("Scegli icona", "Choose icon")}" title="${t("Scegli icona", "Choose icon")}">🎨</button></span></label>
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità totale per lo storico", "Lifetime total entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(fields.entity?.value)}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span><small>${t("Contatore cumulativo kWh per mese selezionato, mesi precedenti e anno.", "Cumulative kWh meter for selected month, previous months and year.")}</small></label>
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
@@ -135,6 +124,15 @@ function openReportEditor(row) {
   const close = () => modal.remove();
   modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
   modal.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
+  /* L'icona si sceglie dal catalogo di casa, come dappertutto: era l'ultima
+   * casella della plancia in cui bisognava sapere a memoria il nome di
+   * un'icona — o incollarci dentro un'emoji — per cambiarla. */
+  modal
+    .querySelector("[data-dm-report-icona]")
+    ?.addEventListener("click", (event) => {
+      event.preventDefault();
+      openIconPicker(form.elements.icon, "action");
+    });
   modal.addEventListener("click", (event) => {
     if (event.target === modal) close();
   });
@@ -147,7 +145,7 @@ function openReportEditor(row) {
       error.textContent = t("Inserisci un'etichetta.", "Enter a label.");
       return;
     }
-    if (entity && !cumulativeEntity(entity)) {
+    if (entity && !isLifetimeMeter(entity)) {
       error.textContent = t(
         "Seleziona un contatore totale kWh con state_class total o total_increasing.",
         "Select a total kWh meter with state_class total or total_increasing.",
@@ -173,7 +171,7 @@ export function normalizeReportEditorSection() {
   target.dataset.dmReportLayout = "cards";
   target.querySelectorAll(".dm-report-row").forEach((row) => {
     const fields = rowFields(row);
-    row.dataset.historyValid = String(!fields.entity?.value || cumulativeEntity(fields.entity.value));
+    row.dataset.historyValid = String(!fields.entity?.value || isLifetimeMeter(fields.entity.value));
     fields.enabled?.closest("label")?.classList.add("dm-report-enabled");
     fields.label?.classList.add("dm-report-label");
     const casella = fields.icon?.closest(".dm-icon-field,.ed-form-row");
@@ -281,6 +279,11 @@ function installStyles() {
       #editor-modal[data-dm-editor-theme="dark"] [data-energy-panel="report"] .dm-report-row{background:var(--dm-editor-panel,#1b2540)!important;border-color:var(--dm-editor-border,#31405f)!important}
       #editor-modal[data-dm-editor-theme="dark"] .dm-report-history .ed-slot-lbl,#editor-modal[data-dm-editor-theme="dark"] .dm-report-history-help,#editor-modal[data-dm-editor-theme="dark"] .dm-report-enabled{color:var(--dm-editor-muted,#92a4c2)!important}
       #editor-modal[data-dm-editor-theme="dark"] .dm-report-actions button{background:var(--dm-editor-shell,#161f36)!important;border-color:var(--dm-editor-border,#31405f)!important;color:var(--dm-editor-text,#edf4ff)!important}
+      /* Il tasto del catalogo icone veste come la lente ma ha una classe
+       * tutta sua: .dm-entity-picker accanto a un campo lo marca come
+       * entita', e la guardia gli aprirebbe sopra la ricerca delle entita'. */
+      #dm-report-row-editor .dm-report-icon-btn{display:inline-grid!important;place-items:center!important;flex:0 0 50px!important;width:50px!important;min-width:50px!important;height:50px!important;min-height:50px!important;padding:0!important;border:0!important;border-radius:13px!important;background:linear-gradient(145deg,#12aee4,#047faf)!important;color:#fff!important;font-size:16px!important;cursor:pointer!important}
+      @media(max-width:600px){#dm-report-row-editor .dm-report-icon-btn{flex-basis:46px!important;width:46px!important;min-width:46px!important;height:46px!important;min-height:46px!important}}
       .dm-modal-check{display:flex!important;align-items:center!important;gap:9px!important;min-height:44px!important;font-weight:850!important}.dm-modal-check input{width:20px!important;height:20px!important}
       @media(max-width:980px){#editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:104px minmax(0,1fr) 52px 116px!important;grid-template-areas:"enabled label icon actions" "history history history history" "help help help help"!important}}
       @media(max-width:620px){#editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"enabled actions" "label label" "icon icon" "history history" "help help"!important;align-items:center!important}.dm-report-actions{grid-template-columns:repeat(3,36px)!important}.dm-report-icon{justify-items:start!important}.dm-report-icon button{margin:0!important}}
