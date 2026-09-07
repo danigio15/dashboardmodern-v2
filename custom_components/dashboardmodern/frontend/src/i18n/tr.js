@@ -3072,4 +3072,6 @@ export default Object.freeze({
   "Up to: fair": "Şuraya kadar: orta",
   "Up to: good": "Şuraya kadar: iyi",
   "Up to: poor": "Şuraya kadar: kötü",
+  "${conto.aperti} open": "${conto.aperti} açık",
+  "All closed": "Hepsi kapalı",
 });

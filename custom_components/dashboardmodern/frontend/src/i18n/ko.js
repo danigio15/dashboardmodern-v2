@@ -3072,4 +3072,6 @@ export default Object.freeze({
   "Up to: fair": "여기까지: 보통",
   "Up to: good": "여기까지: 좋음",
   "Up to: poor": "여기까지: 나쁨",
+  "${conto.aperti} open": "${conto.aperti}개 열림",
+  "All closed": "모두 닫힘",
 });

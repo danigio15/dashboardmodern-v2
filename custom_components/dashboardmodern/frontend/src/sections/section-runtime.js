@@ -33,6 +33,7 @@ import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installCercaNelConfigSection } from "./cerca-nel-config-section.js";
+import { installVarchiInConfigurazioneSection } from "./varchi-in-configurazione-section.js";
 import { installFoglioDiSceltaSection } from "./foglio-di-scelta-section.js";
 import { installReportTendinaDispositiviSection } from "./report-tendina-dispositivi-section.js";
 import { installApplianceIntegrationSection } from "./appliance-integration-section.js";
@@ -828,6 +829,9 @@ export function installSectionRuntime() {
     /* La riga per cercare vive sopra il corpo dell'editor: si installa con gli
      * altri moduli della configurazione, e si rimette a posto a ogni giro. */
     installCercaNelConfigSection();
+    /* Le pastiglie aperto/chiuso sulle righe che nominano un varco: vale in
+     * ogni scheda dove un varco compare, non in una sola. */
+    installVarchiInConfigurazioneSection();
     installApplianceEditorSection();
     installReportTendinaDispositiviSection();
     // Il menu delle integrazioni veste la scheda che l'editor ha appena

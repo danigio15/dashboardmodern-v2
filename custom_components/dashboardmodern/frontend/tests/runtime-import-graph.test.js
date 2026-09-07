@@ -841,8 +841,17 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/animali-section.js` disegna la pagina e la sua voce nella barra,
   // e `sections/animali-editor-section.js` la scheda della configurazione, che
   // pesca i dispositivi dal menu delle integrazioni gia' in casa.
+  // 269 con la ricerca in tutta la configurazione e le pastiglie dei varchi.
+  // `core/cerca-nel-config.js` cammina il magazzino e trova dove una parola e'
+  // scritta — nel valore e nel NOME del campo, perche' `cd_luci` tiene
+  // l'entita' nella chiave — e `sections/cerca-nel-config-section.js` disegna
+  // la riga in cima all'editor: cercare aprendo venti schede vorrebbe dire
+  // ridisegnarle tutte, e un modulo aperto a meta' perde quello che si sta
+  // scrivendo. `core/varchi-in-configurazione.js` dice se un contatto e'
+  // aperto o chiuso col verso giusto (#367), e la sezione lo colora su ogni
+  // riga che lo nomina, in qualunque scheda si trovi.
   assert.ok(
-    relative.length <= 267,
+    relative.length <= 269,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

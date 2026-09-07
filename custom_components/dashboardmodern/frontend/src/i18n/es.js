@@ -3072,4 +3072,6 @@ export default Object.freeze({
   "Up to: fair": "Hasta: aceptable",
   "Up to: good": "Hasta: buena",
   "Up to: poor": "Hasta: mala",
+  "${conto.aperti} open": "${conto.aperti} abiertas",
+  "All closed": "Todas cerradas",
 });
