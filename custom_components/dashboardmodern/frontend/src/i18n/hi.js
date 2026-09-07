@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "छोटी",
   "Show devices and energy sources": "उपकरण और ऊर्जा स्रोत दिखाएँ",
   "Show in Report": "रिपोर्ट में दिखाएँ",
+  "HLS: the header arrives but the pictures do not": "HLS: हेडर आता है पर तस्वीरें नहीं",
   "Show all": "सभी दिखाएँ",
   "🖥️ Added to the list": "🖥️ सूची में जोड़ा गया",
   "Add what is not found": "जो नहीं मिला उसे जोड़ें",

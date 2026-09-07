@@ -142,6 +142,7 @@ import {
   entitaDeiRifiuti,
   letturaRifiuti,
   rifiutiConfigurati,
+  turnoConfigurato,
 } from "../core/rifiuti-model.js";
 import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
 import { CHIAVE_VMC, entitaDellaVmc, letturaVmc, vmcDisegnabili, vmcParla } from "../core/vmc-model.js";
@@ -3807,8 +3808,17 @@ function allerteModel(states) {
 function rifiutiModel(states) {
   const config = readJson(CHIAVE_RIFIUTI, {});
   if (!rifiutiConfigurati(config)) return null;
+  /* L'interruttore «Nel widget» toglie le entita' una per una, e se le hanno
+   * spente tutte la tessera non ha piu' niente da dire.
+   *
+   * Il turno scritto a mano (#366) pero' non e' un'entita': e' il foglietto sul
+   * frigo, e non ha nessun interruttore da spegnere. Contarlo per zero voleva
+   * dire che chi configurava SOLO le due settimane — cioe' esattamente chi quel
+   * turno l'ha chiesto, perche' un calendario in Home Assistant non ce l'ha —
+   * si ritrovava la sezione piena e in Home nessuna tessera. */
   const fuori = widgetExcludedEntities();
-  if (!entitaDeiRifiuti(config).some((entity) => widgetIncludes(entity, fuori))) return null;
+  const daUnEntita = entitaDeiRifiuti(config).some((entity) => widgetIncludes(entity, fuori));
+  if (!daUnEntita && !turnoConfigurato(config?.turno)) return null;
   const lettura = letturaRifiuti(config, states, root.resolveEntity || ((value) => value));
   const dalCalendario =
     lettura.calendario && lettura.calendario.giorni !== null && lettura.calendario.giorni >= 0

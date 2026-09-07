@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "短须",
   "Show devices and energy sources": "显示设备和电力来源",
   "Show in Report": "在报表中显示",
+  "HLS: the header arrives but the pictures do not": "HLS：收到了头信息，但没有画面",
   "Show all": "显示全部",
   "🖥️ Added to the list": "🖥️ 已加入列表",
   "Add what is not found": "添加没被找到的",

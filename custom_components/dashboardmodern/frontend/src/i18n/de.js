@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "Kurz",
   "Show devices and energy sources": "Geräte und Energiequellen anzeigen",
   "Show in Report": "Im Bericht anzeigen",
+  "HLS: the header arrives but the pictures do not": "HLS: Der Kopf kommt an, die Bilder nicht",
   "Show all": "Alle anzeigen",
   "🖥️ Added to the list": "🖥️ Zur Liste hinzugefügt",
   "Add what is not found": "Hinzufügen, was nicht gefunden wird",

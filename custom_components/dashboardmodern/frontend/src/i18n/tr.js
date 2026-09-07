@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "Kısa",
   "Show devices and energy sources": "Cihazları ve enerji kaynaklarını göster",
   "Show in Report": "Raporda göster",
+  "HLS: the header arrives but the pictures do not": "HLS: başlık geliyor ama görüntü gelmiyor",
   "Show all": "Tümünü göster",
   "🖥️ Added to the list": "🖥️ Listeye eklendi",
   "Add what is not found": "Bulunamayanı ekle",

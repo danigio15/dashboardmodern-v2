@@ -97,3 +97,35 @@ test("senza data d'inizio il turno non si inventa niente", async ({ page }, test
   // per quasi tutti, e senza una data il turno non si potrebbe collocare.
   await expect(page.locator("#ed-body [data-dm-turno-inizio]")).not.toHaveValue("");
 });
+
+test("con le sole due settimane la tessera c'e' anche in Home", async ({ page }, testInfo) => {
+  /* Il turno scritto a mano non ha nessuna entita': e' il foglietto sul frigo.
+   * Il cancello della tessera in Home pretendeva almeno un'entita' non esclusa
+   * dai widget, e con l'elenco vuoto non passava — quindi chi configurava SOLO
+   * le due settimane, cioe' esattamente chi quel turno l'ha chiesto, si
+   * ritrovava la sezione piena e in Home niente. */
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  /* Le tessere della Home escono solo su una plancia configurata: una luce
+   * basta, ed e' quello che ha chiunque abbia qualcosa da vedere in Home. */
+  const conUnaLuce = {
+    ...seed,
+    sections: { ...seed.sections, lights: [{ entity: "light.salotto", name: "Salotto" }] },
+  };
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, conUnaLuce);
+  await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
+
+  await page.evaluate(() => {
+    const oggi = new Date();
+    const due = (n) => String(n).padStart(2, "0");
+    const inizio = `${oggi.getFullYear()}-${due(oggi.getMonth() + 1)}-${due(oggi.getDate())}`;
+    const giorni = Array.from({ length: 14 }, () => []);
+    giorni[0] = ["carta"];
+    window.localStorage.setItem("cd_rifiuti", JSON.stringify({ turno: { inizio, giorni } }));
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+    window.renderHomeWidgets?.();
+  });
+
+  const tessera = page.locator('.dm-tile[data-dm-widget="rifiuti"]').first();
+  await expect(tessera).toBeVisible({ timeout: 20_000 });
+  await expect(tessera.locator("[data-dm-tile-caption]")).toContainText(/Carta/i);
+});

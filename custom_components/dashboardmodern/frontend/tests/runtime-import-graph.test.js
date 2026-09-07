@@ -932,8 +932,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // nelle mancanti non passavano piu' il cancello. Le loro tessere restavano
   // ferme sull'ultimo valore. Adesso l'elenco e' uno: la persistenza lo
   // ri-esporta com'era e al cancello lo passa chi lo installa.
+  // 288 con il video che deve muoversi davvero
+  // (`sections/telecamera-il-video-si-muove-section.js`, #385): «problema
+  // telecamere Arlo», coi registri allegati. Il guscio considera riuscita la
+  // strada HLS al primo fra `loadedmetadata`, `canplay`, `loadeddata` e
+  // `playing`; gli ultimi tre vogliono dire che c'e' un fotogramma, il primo
+  // no — scatta appena letta l'intestazione del flusso. Su una telecamera che
+  // dorme in cloud l'intestazione arriva e le immagini no, e la plancia
+  // toglieva la rotella dichiarando fatto: un rettangolo fermo, e nessuna
+  // delle strade sotto — il flusso del proxy, le istantanee — piu' tentata,
+  // proprio quelle fatte per chi trasmette su richiesta. Il modulo guarda se
+  // il tempo del video va avanti e, quando non va, solleva l'errore che il
+  // guscio si aspetta: la catena scende, come sarebbe scesa se l'HLS avesse
+  // fallito subito. Il guscio storico non si tocca: gli si avvolge la
+  // funzione.
   assert.ok(
-    relative.length <= 287,
+    relative.length <= 288,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "Kort",
   "Show devices and energy sources": "Apparaten en energiebronnen tonen",
   "Show in Report": "Tonen in het rapport",
+  "HLS: the header arrives but the pictures do not": "HLS: de header komt aan maar de beelden niet",
   "Show all": "Alles tonen",
   "🖥️ Added to the list": "🖥️ Aan de lijst toegevoegd",
   "Add what is not found": "Voeg toe wat niet gevonden wordt",

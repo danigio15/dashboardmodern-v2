@@ -230,6 +230,33 @@ aggiornamento.
   sull'ultimo valore finché non si muoveva qualcos'altro. L'elenco adesso è
   uno solo.
 
+- **Telecamere Arlo: l'HLS vale quando il video si muove davvero** (#385)
+
+  Nei registri allegati alla segnalazione: `[Cam] ✓ HLS`, e un istante dopo lo
+  stallo con due millesimi di secondo in pancia. La plancia aveva dichiarato
+  riuscita quella strada perché era arrivata l'**intestazione** del flusso —
+  `loadedmetadata`, che scatta prima di qualunque immagine — e di immagini non
+  ne è arrivata nessuna: rotella tolta, rettangolo fermo, nessuna parola.
+
+  Il guaio vero non è il rettangolo fermo: dichiarando riuscita quella strada
+  non se ne provava più nessun'altra. Sotto ci sono il flusso del proxy e le
+  istantanee, e le istantanee sono proprio la modalità pensata per chi
+  trasmette solo su richiesta — Arlo, Ring, Blink. Una telecamera che si
+  sarebbe fatta vedere a due fotogrammi al secondo non si vedeva affatto.
+
+  Adesso si guarda l'unica cosa che risponde alla domanda: il tempo del video
+  va avanti? Se va avanti non cambia niente. Se non va avanti la catena scende
+  alla strada dopo, com'era giusto fin dall'inizio.
+
+- **La tessera dei rifiuti c'è anche con le sole due settimane scritte a mano.**
+
+  Il calendario di casa (#366) non ha nessuna entità: è il foglietto sul frigo.
+  Ma il cancello della tessera in Home pretendeva almeno un'entità non esclusa
+  dai widget, e con l'elenco vuoto non passava — quindi chi configurava SOLO le
+  due settimane, cioè esattamente chi quel turno l'ha chiesto perché un
+  calendario in Home Assistant non ce l'ha, si ritrovava la sezione piena e in
+  Home niente.
+
 - **Rinominando la plancia si rinomina anche la dashboard di appoggio.**
 
   Quella che permette di sceglierla come predefinita nasceva col nome del

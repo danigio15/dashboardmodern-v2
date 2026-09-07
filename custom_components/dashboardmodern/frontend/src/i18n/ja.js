@@ -2121,6 +2121,7 @@ export default Object.freeze({
   "Short": "ショート",
   "Show devices and energy sources": "機器と電力の供給元を表示",
   "Show in Report": "レポートに表示",
+  "HLS: the header arrives but the pictures do not": "HLS: ヘッダーは届きますが映像が届きません",
   "Show all": "すべて表示",
   "🖥️ Added to the list": "🖥️ 一覧に追加しました",
   "Add what is not found": "見つからないものを追加",
