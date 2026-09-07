@@ -44,6 +44,7 @@ import {
   fraseDellAria,
   giudizioDellAria,
   letturaDellAria,
+  normalizzaAria,
   parolaDelGrado,
 } from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
@@ -3047,10 +3048,13 @@ function ariaModel(states) {
     })
     .filter(Boolean)
     .sort((a, b) => a.misura.localeCompare(b.misura) || a.name.localeCompare(b.name));
-  const giudizio = giudizioDellAria(letture);
+  const giudizio = giudizioDellAria(letture, normalizzaAria(ariaScelta).principale);
   if (!giudizio) return null;
-  const peggiore = giudizio.peggiore;
-  const parola = parolaDelGrado(giudizio.grado, locale());
+  /* In copertina va la misura che si e' scelta — di serie la peggiore (#375).
+   * Il giudizio pero' resta della peggiore: una centralina che dice «buona»
+   * non deve coprire una polvere sottile che dice «cattiva». */
+  const copertina = giudizio.copertina;
+  const parola = parolaDelGrado(copertina.grado, locale());
   return {
     key: "aria",
     /* Il colore dice il giudizio senza leggere: verde, ambra, arancio, rosso. */
@@ -3064,9 +3068,9 @@ function ariaModel(states) {
     label: t("Aria", "Air"),
     /* Il numero e la sua unita' nella stessa casella: la tessera le separa da
      * se', come fa coi gradi della temperatura. */
-    value: `${formatNumber(peggiore.valore, peggiore.valore >= 100 ? 0 : 1)}${peggiore.unita ? ` ${peggiore.unita}` : ""}`,
-    caption: `${parola} · ${peggiore.misura}`,
-    ring: peggiore.quanto,
+    value: `${formatNumber(copertina.valore, copertina.valore >= 100 ? 0 : 1)}${copertina.unita ? ` ${copertina.unita}` : ""}`,
+    caption: `${parola} · ${copertina.misura}`,
+    ring: copertina.quanto,
     grado: giudizio.grado,
     frase: fraseDellAria(giudizio, locale()),
     /* Le righe sono letture, non comandi: la finestra le disegna come caselle
@@ -4987,16 +4991,21 @@ function pilloleDelloStato(widget) {
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
   /* Dodici e non otto: da quando le righe acceso/spento non fanno piu' lista
    * sotto, le pillole sono l'unico posto dove si leggono — una casa con
-   * undici finestre le deve vedere tutte. */
-  const voci = righe
-    .filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name))
-    .slice(0, 12);
+   * undici finestre le deve vedere tutte. E oltre le dodici c'e' lo stesso
+   * tasto delle misure: il taglio e' lo stesso, e nascondere in silenzio e'
+   * lo stesso difetto (#376). */
+  const voci = righe.filter((riga) => typeof riga?.on === "boolean" && clean(riga?.name));
   if (!voci.length) return "";
+  const chiave = chiaveDellElenco(widget, "stato");
+  const tutte = misureAperte().has(chiave);
+  const oltre = Math.max(0, voci.length - MISURE_IN_VISTA);
   return `<h4 class="dm-w-titoletto">${esc(t("Lo stato", "The state"))}</h4>
     <div class="dm-w-pillole">${voci
       .map(
-        (riga) =>
-          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}">${
+        (riga, indice) =>
+          `<span class="dm-w-pillola" data-acceso="${riga.on ? "true" : "false"}"${
+            !tutte && indice >= MISURE_IN_VISTA ? " hidden" : ""
+          }>${
             riga.glyph
               ? `<span class="dm-w-pillola-ic" aria-hidden="true">${riga.glyph}</span>`
               : ""
@@ -5004,7 +5013,7 @@ function pilloleDelloStato(widget) {
             clean(riga.value) ? `<b>${esc(clean(riga.value))}</b>` : ""
           }</span>`,
       )
-      .join("")}</div>`;
+      .join("")}</div>${oltre ? tastoMostraTutte(chiave, voci.length, tutte) : ""}`;
 }
 
 /* Le righe di sola lettura, fatte caselle.
@@ -5119,19 +5128,53 @@ function carteDalleRighe(widget) {
     }));
 }
 
+/* Quante misure si vedono senza chiedere.
+ *
+ * Oltre questo numero la finestra smette di essere un riassunto e diventa un
+ * elenco. Le altre pero' esistono, e sparivano in silenzio: chi ha venticinque
+ * batterie ne vedeva dodici e non aveva modo di sapere che le altre c'erano.
+ * Dal campo (#376): «quando si apre la scheda batterie, oltre a mostrare
+ * quelle piu' scariche, ci fosse un tasto mostra tutto come per la sezione
+ * luci». Vale per ogni scheda che nasconde qualcosa, non per le batterie sole:
+ * il taglio e' uno, e la porta per andare oltre e' una. */
+const MISURE_IN_VISTA = 12;
+
+/* Gli elenchi che hanno chiesto di vedersi per intero. Sta qui e non nel
+ * documento perche' il corpo della finestra si ridisegna a ogni giro di stati:
+ * l'elenco aperto si richiuderebbe da solo al primo valore che cambia.
+ *
+ * La chiave dice la scheda E quale dei due elenchi, perche' nella stessa
+ * finestra ce ne sono due — le misure e le pillole dello stato — e aprirne
+ * uno non vuol dire aprire l'altro. */
+function misureAperte() {
+  return (state.tutteLeMisure ||= new Set());
+}
+
+const chiaveDellElenco = (widget, quale) => `${clean(widget?.key)}:${quale}`;
+
+/* Il tasto che scavalca il taglio, per chiunque tagli. */
+function tastoMostraTutte(chiave, quante, tutte) {
+  return `<button type="button" class="dm-w-tutte-btn dm-w-tutte-misure" data-dm-w-tutte-misure="${esc(chiave)}" aria-expanded="${tutte}"><span aria-hidden="true">${tutte ? "\u25b4" : "\u25be"}</span>${esc(
+    tutte ? t("Mostra solo le prime", "Show fewer") : `${t("Mostra tutte", "Show all")} \u00b7 ${quante}`,
+  )}</button>`;
+}
+
 /* Le caselle: i riassunti di `summaryChips` («la piu' bassa», «media», «in
  * funzione») piu' le letture fatte caselle. Un titolo solo, una griglia sola. */
 function caselleDelleMisure(widget) {
   const voci = [
     ...summaryChips(widget).map(([etichetta, valore]) => ({ glyph: "", valore, etichetta })),
     ...carteDalleRighe(widget),
-  ].slice(0, 12);
+  ];
   if (!voci.length) return "";
+  const chiave = chiaveDellElenco(widget, "misure");
+  const tutte = misureAperte().has(chiave);
+  const oltre = Math.max(0, voci.length - MISURE_IN_VISTA);
   return `<h4 class="dm-w-titoletto">${esc(t("Le misure", "The readings"))}</h4>
     <div class="dm-w-caselle">${voci
       .map(
-        (voce) =>
-          `<div class="dm-w-casella">${
+        (voce, indice) =>
+          `<div class="dm-w-casella"${!tutte && indice >= MISURE_IN_VISTA ? " hidden" : ""}>${
             voce.glyph
               ? `<span class="dm-w-casella-ic" aria-hidden="true">${voce.glyph}</span>`
               : ""
@@ -5139,7 +5182,7 @@ function caselleDelleMisure(widget) {
             voce.sotto ? `<i class="dm-w-casella-sotto">${esc(voce.sotto)}</i>` : ""
           }<span>${esc(voce.etichetta)}</span></div>`,
       )
-      .join("")}</div>`;
+      .join("")}</div>${oltre ? tastoMostraTutte(chiave, voci.length, tutte) : ""}`;
 }
 
 /* La corsa della misura: dov'era tre ore fa, dov'e' adesso.
@@ -6657,6 +6700,29 @@ function onClick(event) {
   /* La rotella apre e chiude il pannello della riga. Non passa da un
    * ridisegno: si tocca il documento e si segna la scelta, cosi' l'apertura e'
    * immediata e il prossimo ridisegno la ritrova. */
+  const misure = event.target?.closest?.("[data-dm-w-tutte-misure]");
+  if (misure) {
+    event.preventDefault();
+    /* Si scoprono le caselle che c'erano gia', senza rifare la finestra: un
+     * ridisegno qui vorrebbe dire ricaricare le miniature delle telecamere e
+     * perdere quello che si stava scrivendo nelle liste. */
+    const chiave = clean(misure.dataset.dmWTutteMisure);
+    const apri = !misureAperte().has(chiave);
+    if (apri) misureAperte().add(chiave);
+    else misureAperte().delete(chiave);
+    const griglia = misure.previousElementSibling;
+    const caselle = [
+      ...(griglia?.querySelectorAll?.(".dm-w-casella, .dm-w-pillola") || []),
+    ];
+    caselle.forEach((casella, indice) => {
+      casella.hidden = !apri && indice >= MISURE_IN_VISTA;
+    });
+    misure.setAttribute("aria-expanded", String(apri));
+    misure.innerHTML = `<span aria-hidden="true">${apri ? "▴" : "▾"}</span>${esc(
+      apri ? t("Mostra solo le prime", "Show fewer") : `${t("Mostra tutte", "Show all")} · ${caselle.length}`,
+    )}`;
+    return;
+  }
   const rotella = event.target?.closest?.("[data-dm-w-more]");
   if (rotella) {
     event.preventDefault();
@@ -7149,6 +7215,9 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
 #dm-widget-popup .dm-w-casella{
   display:grid;gap:2px;padding:10px 11px;border-radius:14px;
   border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
+#dm-widget-popup .dm-w-caselle .dm-w-casella[hidden],
+#dm-widget-popup .dm-w-pillole .dm-w-pillola[hidden]{display:none}
+#dm-widget-popup .dm-w-tutte-misure{margin-top:8px;justify-content:center}
 #dm-widget-popup .dm-w-casella-ic{font-size:15px;line-height:1}
 #dm-widget-popup .dm-w-casella-ic svg{width:18px;height:18px;display:block}
 #dm-widget-popup .dm-w-casella b{

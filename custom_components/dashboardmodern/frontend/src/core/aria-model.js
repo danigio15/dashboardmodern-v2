@@ -249,7 +249,26 @@ export function normalizzaAria(stored) {
     if (!(numeri[0] < numeri[1] && numeri[1] < numeri[2])) continue;
     soglie[quale] = numeri;
   }
-  return { aggiunte, escluse: [...new Set(escluse)], soglie };
+  /* Quale misura va in copertina.
+   *
+   * «Si potrebbe mettere per il controllo della qualita' dell'aria un'entita'
+   * sulla scheda principale — io per esempio ho questa
+   * sensor.controllo_della_qualita_dell_aria_indoor_air_quality — e poi
+   * aprendo la scheda qualche valore tipo monossido, polveri, composti
+   * volatili?» (#375).
+   *
+   * Di serie in copertina va la misura messa peggio, ed e' la scelta giusta
+   * quando non si dice niente: l'aria di una casa e' buona quando lo sono
+   * tutte le sue misure. Ma chi ha una centralina che pubblica gia' il suo
+   * indice complessivo vuole vedere QUELLO in grande, e le sostanze una per
+   * una aprendo la scheda. Qui si dice quale. */
+  const principale = clean(dato.principale);
+  return {
+    aggiunte,
+    escluse: [...new Set(escluse)],
+    soglie,
+    principale: principale.includes(".") ? principale : "",
+  };
 }
 
 /** I tre confini di una misura: quelli scelti, o quelli della norma. */
@@ -383,12 +402,23 @@ export function fraseDellAria(giudizio, locale = "it") {
   return testa;
 }
 
-/** Il giudizio di un insieme di letture: il peggiore, perche' l'aria non e' una media. */
-export function giudizioDellAria(letture = []) {
+/**
+ * Il giudizio di un insieme di letture: il peggiore, perche' l'aria non e' una
+ * media.
+ *
+ * `copertina` e' quella da mostrare in grande: la principale se e' stata
+ * scelta ed e' fra le letture, altrimenti la peggiore. Restano due cose
+ * diverse apposta — il numero grande e' quello che si e' chiesto di vedere, il
+ * giudizio resta della peggiore, cosi' una centralina che dice «buona» non
+ * copre una polvere sottile che dice «cattiva».
+ */
+export function giudizioDellAria(letture = [], principale = "") {
   const buone = (Array.isArray(letture) ? letture : []).filter(Boolean);
   if (!buone.length) return null;
   const peggiore = buone.reduce((peggio, voce) =>
     GRADI.indexOf(voce.grado) > GRADI.indexOf(peggio.grado) ? voce : peggio,
   );
-  return { grado: peggiore.grado, peggiore, quante: buone.length };
+  const scelta = clean(principale);
+  const copertina = (scelta && buone.find((voce) => clean(voce.entity) === scelta)) || peggiore;
+  return { grado: peggiore.grado, peggiore, copertina, quante: buone.length };
 }

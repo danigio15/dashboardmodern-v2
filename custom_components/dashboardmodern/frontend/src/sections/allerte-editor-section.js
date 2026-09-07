@@ -252,6 +252,15 @@ function ariaMarkup(config) {
         ),
       )}</div>
 
+      <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("La misura in copertina", "The reading on the cover"))}</span>
+        <span class="ed-form-row"><input id="dm-aria-principale" class="ed-input mono" placeholder="sensor.qualita_aria"
+          value="${esc(scelte.principale)}" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker"
+          data-dm-allerte-pick="dm-aria-principale" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button>
+          <button type="button" class="ed-btn-add dm-aria-ed-piu" data-dm-aria-principale>${esc(t("Metti", "Set"))}</button></span>
+        <small>${esc(t("Lasciala vuota e in copertina va la misura messa peggio, che è la risposta giusta quando non si dice niente. Chi ha una centralina che pubblica già il suo indice mette quella qui: il numero grande diventa il suo, e le sostanze una per una si leggono aprendo la scheda. Il giudizio resta della misura peggiore — un indice che dice «buona» non deve coprire una polvere che dice «cattiva».", "Leave it empty and the worst reading goes on the cover, which is the right answer when nothing is said. If your station already publishes its own index, put it here: the big number becomes its own, and the substances are read one by one by opening the card. The verdict still belongs to the worst reading — an index saying “good” must not hide a particulate saying “bad”."))}</small>
+      </label>
+      ${scelte.principale ? `<div class="dm-aria-ed-elenco"><span class="dm-aria-ed-fuori" data-dm-aria-copertina="${esc(scelte.principale)}">${esc(scelte.principale)}<button type="button" class="ed-del" data-dm-aria-scopri aria-label="${esc(t("Togli", "Drop"))}">✕</button></span></div>` : ""}
+
       <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Non contare questo sensore", "Do not count this sensor"))}</span>
         <span class="ed-form-row"><input id="dm-aria-escludi" class="ed-input mono" placeholder="sensor.outdoor_co"
           autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker"
@@ -366,6 +375,22 @@ function salvaAria(prossima) {
 function ariaClick(event, body) {
   const config = configurazione();
   const scelte = normalizzaAria(config[CHIAVE_ARIA]);
+
+  const inCopertina = event.target.closest("[data-dm-aria-principale]");
+  if (inCopertina) {
+    event.preventDefault();
+    const entity = clean(body.querySelector("#dm-aria-principale")?.value);
+    if (!entity.includes(".")) return true;
+    salvaAria({ ...scelte, principale: entity });
+    root.edToast?.(t("🍃 Misura messa in copertina", "🍃 Reading put on the cover"));
+    return true;
+  }
+
+  if (event.target.closest("[data-dm-aria-scopri]")) {
+    event.preventDefault();
+    salvaAria({ ...scelte, principale: "" });
+    return true;
+  }
 
   const togliDaiConti = event.target.closest("[data-dm-aria-escludi]");
   if (togliDaiConti) {
