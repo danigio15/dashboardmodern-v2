@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -18,6 +19,8 @@ DATA_DASHBOARD_CARD_REGISTERED = "dashboard_card_registered"
 DATA_PANEL_PATHS = "panel_paths"
 PANEL_URL_PATH = DOMAIN
 PANEL_COMPONENT_NAME = "dashboardmodern-panel"
+_LOGGER = logging.getLogger(__name__)
+
 STATIC_URL_PATH = "/dashboardmodern_static"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 LEGACY_DIR = FRONTEND_DIR / "legacy"
@@ -360,6 +363,104 @@ def _ensure_dashboard_card_registered(
     domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
 
 
+def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str, Any]:
+    """La vista della dashboard di appoggio: una sola card, la plancia intera.
+
+    Scritta qui e in nessun altro posto. Prima la scriveva `panel.js`, cioe' il
+    pannello: e il pannello gira solo quando qualcuno apre la plancia dalla barra
+    laterale. Chi la mette come dashboard predefinita e riavvia apre quella
+    dashboard senza passare dal pannello, e se il contenuto non era mai stato
+    scritto Home Assistant risponde «Errore di configurazione» — mentre aprirla
+    dalla barra la riparava. Era esattamente la segnalazione: «quando si imposta
+    la plancia come predefinita ed apro app HA va in errore, se invece la
+    seleziono dal menu laterale funziona».
+
+    Adesso la scrive l'integrazione all'avvio, che e' l'unico momento che
+    succede comunque, qualunque cosa si apra per prima.
+    """
+    allowed = _allowed_user_ids(entry)
+    return {
+        "title": entry.title or "DashboardModern",
+        "path": "home",
+        "type": "panel",
+        "visible": [{"user": user} for user in allowed] if allowed else True,
+        "cards": [
+            {
+                "type": "custom:dashboardmodern-card",
+                "entry_id": entry.entry_id,
+                "title": entry.title or "DashboardModern",
+                "primary": primary,
+                # La card ospita la stessa plancia, quindi deve leggere e
+                # scrivere lo stesso profilo di configurazione del pannello.
+                "config_profile": config_profile,
+                # Niente `static_base` qui dentro: contiene la firma degli asset
+                # di adesso e diventa vecchia al primo aggiornamento. La card la
+                # ricava dal proprio `import.meta.url`.
+                "allowed_user_ids": allowed,
+            }
+        ],
+    }
+
+
+async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> bool:
+    """Crea e riempie la dashboard di appoggio di questa plancia.
+
+    E' quella che permette di scegliere la plancia come dashboard predefinita:
+    Home Assistant lascia scegliere una dashboard Lovelace, non un pannello
+    personalizzato. Sta fuori dalla barra laterale — nella barra c'e' gia' il
+    pannello — e porta dentro una card sola.
+
+    Se Lovelace non e' ancora in piedi non si insiste: si riprova quando lo e'.
+    """
+    from .config_flow import OPTION_ADMIN_ONLY, OPTION_REGISTER_LOVELACE
+
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        return False
+    if not entry.options.get(OPTION_REGISTER_LOVELACE, True):
+        return False
+
+    dati = hass.data.get("lovelace")
+    collezione = getattr(dati, "dashboards_collection", None)
+    plance = getattr(dati, "dashboards", None)
+    if collezione is None and isinstance(dati, dict):
+        collezione = dati.get("dashboards_collection")
+        plance = dati.get("dashboards")
+    if collezione is None or plance is None:
+        return False
+
+    url_path = _lovelace_url_path(entry)
+    titolo = entry.title or "DashboardModern"
+    solo_admin = bool(entry.options.get(OPTION_ADMIN_ONLY, False))
+    try:
+        if url_path not in plance:
+            await collezione.async_create_item(
+                {
+                    "allow_single_word": True,
+                    "icon": "mdi:view-dashboard-edit",
+                    "title": titolo,
+                    "url_path": url_path,
+                    "show_in_sidebar": False,
+                    "require_admin": solo_admin,
+                }
+            )
+        magazzino = plance.get(url_path)
+        if magazzino is None or not hasattr(magazzino, "async_save"):
+            return False
+        vista = _companion_view(
+            entry, _config_profile(hass, entry), _entry_is_primary(hass, entry)
+        )
+        await magazzino.async_save({"views": [vista]})
+    except Exception:  # noqa: BLE001 - una dashboard in meno non ferma la plancia
+        _LOGGER.warning(
+            "Non sono riuscito a preparare la dashboard di appoggio %s",
+            url_path,
+            exc_info=True,
+        )
+        return False
+    return True
+
+
 async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
     """Register static assets, custom card and this plancia's sidebar panel."""
     domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
@@ -392,6 +493,16 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
         variants=variants,
     )
     paths[entry_id] = new_path
+
+    if not await _ensure_companion_dashboard(hass, entry_id):
+        # Lovelace puo' non essere ancora in piedi quando questa integrazione
+        # parte: si aspetta che lo sia invece di rinunciare.
+        from homeassistant.setup import async_when_setup
+
+        async def _quando_lovelace(hass: HomeAssistant, _componente: str) -> None:
+            await _ensure_companion_dashboard(hass, entry_id)
+
+        async_when_setup(hass, "lovelace", _quando_lovelace)
 
 
 async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) -> None:

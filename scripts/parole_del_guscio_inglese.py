@@ -32,7 +32,6 @@ Uso:
 from __future__ import annotations
 
 import difflib
-import io
 import json
 import sys
 from pathlib import Path
@@ -52,7 +51,10 @@ COPPIE = (
 
 
 def leggi(nome: str) -> str:
-    return io.open(LEGACY / nome, encoding="utf-8", newline="").read()
+    # `newline=""` non e' un vezzo: senza, Python tradurrebbe i fine riga e il
+    # file rigenerato non sarebbe piu' identico byte per byte all'originale.
+    with open(LEGACY / nome, encoding="utf-8", newline="") as aperto:
+        return aperto.read()
 
 
 def tratti(testo_it: str, testo_en: str) -> list[dict]:
@@ -60,7 +62,9 @@ def tratti(testo_it: str, testo_en: str) -> list[dict]:
     a = testo_it.split("\n")
     b = testo_en.split("\n")
     fuori = []
-    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+        None, a, b, autojunk=False
+    ).get_opcodes():
         if tag == "equal":
             continue
         fuori.append({"riga": i1, "via": i2 - i1, "metti": b[j1:j2]})
@@ -98,16 +102,19 @@ def serializza(parole: dict) -> str:
 
 
 def genera() -> int:
-    parole = json.loads(io.open(ELENCO, encoding="utf-8").read())
+    with open(ELENCO, encoding="utf-8") as aperto:
+        parole = json.load(aperto)
     fatti = 0
     for nome_en, voce in parole["file"].items():
         testo = applica(leggi(voce["da"]), voce["cambi"])
         destinazione = LEGACY / nome_en
         vecchio = ""
         if destinazione.exists():
-            vecchio = io.open(destinazione, encoding="utf-8", newline="").read()
+            with open(destinazione, encoding="utf-8", newline="") as aperto:
+                vecchio = aperto.read()
         if vecchio != testo:
-            io.open(destinazione, "w", encoding="utf-8", newline="").write(testo)
+            with open(destinazione, "w", encoding="utf-8", newline="") as aperto:
+                aperto.write(testo)
         fatti += 1
     return fatti
 
@@ -120,13 +127,20 @@ def main() -> None:
     testo = serializza(parole)
     quanti = sum(len(v["cambi"]) for v in parole["file"].values())
     if "--check" in sys.argv:
-        vecchio = io.open(ELENCO, encoding="utf-8").read() if ELENCO.exists() else ""
+        vecchio = ""
+        if ELENCO.exists():
+            with open(ELENCO, encoding="utf-8") as aperto:
+                vecchio = aperto.read()
         if vecchio != testo:
             print(f"stale: {ELENCO}", file=sys.stderr)
             raise SystemExit(1)
-        print(f"parole del guscio inglese aggiornate ({quanti} tratti su {len(COPPIE)} file)")
+        print(
+            f"parole del guscio inglese aggiornate "
+            f"({quanti} tratti su {len(COPPIE)} file)"
+        )
         return
-    io.open(ELENCO, "w", encoding="utf-8").write(testo)
+    with open(ELENCO, "w", encoding="utf-8") as aperto:
+        aperto.write(testo)
     print(f"scritti {quanti} tratti su {len(COPPIE)} file in {ELENCO.name}")
 
 
