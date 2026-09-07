@@ -5,6 +5,192 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.13
+
+Il giro delle richieste: dodici segnalazioni arrivate dopo la 1.4.12, prese una
+per una. Il Clima impara la modalità del riscaldamento, si spegne da solo e
+sparisce fuori stagione; nascono i Rifiuti scritti a mano, la Ventilazione
+meccanica, Assist e i Varchi; gli Animali crescono; l'auto prende la foto da
+un'entità; e il server dice cosa ci gira dentro.
+
+Sotto, quattro correzioni che non si vedono finché non capitano: il cancelletto
+che non si salvava, l'umidità inventata da un termometro, le icone scritte
+invece che disegnate, e la card che dalla app non si caricava più dopo un
+aggiornamento.
+
+### Aggiunto
+
+- **Clima: la modalità del riscaldamento si legge e si cambia** (#362)
+
+      «Sarebbe possibile aggiungere l'entità della modalità di riscaldamento
+       (HOME/AWAY/HOLIDAY/BOOST)?»
+
+  Sulla card del Clima c'è la pastiglia della modalità, con la parola che la
+  centralina dice davvero. Con due modalità si tocca e si scambia; con tre o più
+  si apre il foglio e si sceglie. Il TADO ne ha due, altri aggiungono vacanza e
+  boost: l'elenco lo dice l'entità, non un elenco scritto a mano.
+
+- **Clima: l'accensione temporizzata** (#364)
+
+      «Poter accendere il clima per un tempo e poi spegnersi da solo.»
+
+  Il conto alla rovescia vive in Home Assistant, non nel browser: chi accende il
+  condizionatore per due ore prima di dormire la pagina la chiude sempre, e un
+  timer nel browser sarebbe morto lì. Spegnendo l'unità a mano il timer si
+  annulla da sé.
+
+- **Clima: le unità fuori stagione si nascondono** (#365)
+
+      «Nascondere i clima non di stagione.»
+
+  Ogni unità dice in quali mesi la si usa — ottobre-aprile scavalca l'anno, ed è
+  il primo intervallo che qualcuno scriverà — e fuori da quelli sparisce. Una
+  unità accesa non si nasconde mai, in nessun mese: farlo vorrebbe dire togliere
+  di vista una macchina che sta consumando.
+
+- **Rifiuti: il calendario di casa, senza Home Assistant** (#366)
+
+      «Sarebbe carino integrare un sistema per la raccolta differenziata.»
+
+  Chi ha un calendario o un sensore del proprio comune lo collega; chi non ce
+  l'ha scrive due settimane a mano — quattordici giorni, i materiali di ognuno —
+  e il turno si ripete da solo. In cima, la risposta alla domanda della sera:
+  cosa metto fuori stasera.
+
+- **Ventilazione meccanica nel Clima** (#371)
+
+      «Sarebbe bellissimo avere nei climate la possibilità di inserire i dati
+       delle 4 temperature delle macchine VMC… compresi i bypass, modalità
+       estate/inverno.»
+
+  Le quattro temperature non sono quattro numeri in colonna: sono due flussi che
+  si incrociano, e disegnati così si leggono da soli. In mezzo c'è il recupero —
+  quanto della temperatura di casa la macchina si riprende — che è l'unico
+  numero che dice se vale quello che costa, e che nessuna card mostrava.
+
+- **Assist: chiedere le cose a casa, scrivendo o parlando** (#360)
+
+      «Vorrei avere la possibilità di aprire assist per chiedere delle cose sia
+       scrivendo che parlando.»
+
+  La plancia non rifà un assistente — sarebbe un secondo assistente da tenere
+  allineato al primo — ma gli parla: la voce la ascolta il browser, che ha il
+  microfono, la frase la capisce Home Assistant, che conosce la casa.
+
+- **Varchi: quante porte e finestre sono aperte, adesso** (#367, #377)
+
+      «In verde dovrebbe segnare i sensori contact chiusi e in rosso quelli
+       aperti… almeno a colpo d'occhio so quante finestre sono aperte in questo
+       momento» e «una sezione porte… magari che la card principale come per le
+       luci mostri solo il numero di porte aperte».
+
+  Una sezione nuova per i contatti porta-finestra: quanti sono aperti in cima,
+  e una carta per contatto — rossa aperta, verde chiusa, smorta quella che non
+  risponde. Non si comanda niente: le serrature stanno in «Apri porte/cancelli»,
+  le tapparelle in Finestre. I contatti li dichiara Home Assistant da sé, e non
+  c'è niente da configurare per cominciare.
+
+- **Server e rete: le macchine di Proxmox e il router coi suoi ripetitori** (#382)
+
+      «Si può aggiungere i controlli del server proxmox dove gira HA con tutti i
+       suoi container e controllare lo stato del fritbox e i suoi ripeter?»
+
+  Due fasce nella pagina Server, sotto le caselle del MiniPC: le macchine e la
+  rete. Le VM e i container di Proxmox e il router coi suoi ripetitori li
+  dichiara Home Assistant, e compaiono senza configurare niente. Il tasto per
+  avviare o fermare esce solo dove c'è davvero qualcosa da premere.
+
+- **Animali: intestazione, fasce per dispositivo e i tasti Petkit** (#373)
+
+  La pagina ha la sua intestazione come tutte le altre, ogni dispositivo la sua
+  fascia, e sette tasti per i gesti di ogni giorno. L'avviso della lettiera era
+  al verso sbagliato: la sabbia allarma quando cala, il cassetto quando si
+  riempie, e adesso sono due caselle opposte invece di una sola confusa.
+
+- **Auto: la foto arriva da un'entità immagine** (#369)
+
+      «Aggiunta entità immagine dell'auto.»
+
+  Il campo della foto accetta anche un'entità `image.*` o `camera.*`: chi ha
+  l'integrazione della vettura ha già la sua foto in Home Assistant, e non deve
+  cercarne una uguale su internet.
+
+- **Aria: si sceglie la misura in copertina** (#375)
+
+      «Si potrebbe mettere per la qualità dell'aria un'entità sulla scheda
+       principale… e poi aprendo la scheda qualche valore tipo monossido,
+       polveri, composti volatili?»
+
+  Di serie in copertina va la misura messa peggio. Chi ha una centralina che
+  pubblica già il suo indice mette quello: il numero grande diventa il suo, e le
+  sostanze si leggono una per una aprendo la scheda. Il giudizio resta della
+  misura peggiore — un indice che dice «buona» non deve coprire una polvere che
+  dice «cattiva».
+
+- **Le misure si vedono tutte** (#376)
+
+      «Quando si apre la scheda batterie, oltre a mostrare quelle più scariche,
+       ci fosse un tasto mostra tutto come per la sezione luci.»
+
+  Le finestre delle tessere tagliano a dodici, ed è un taglio giusto: oltre,
+  diventano elenchi. Ma era muto. Adesso il taglio lo dice, e un tasto lo
+  scavalca — su tutte le schede, non sulle batterie sole.
+
+- **Report: l'icona della voce si sceglie dal catalogo**
+
+  Era l'ultima casella della configurazione in cui bisognava sapere a memoria il
+  nome di un disegno o incollarci dentro un'emoji.
+
+### Corretto
+
+- **La card non si carica dall'app companion dopo un aggiornamento** (#372)
+
+      «Dal mio smartphone se seleziono la dashboardmodern di default all'apertura
+       della app companion mi dà errore… "Custom element doesn't exist:
+       dashboardmodern-card".»
+
+  L'indirizzo da cui si caricava la card cambiava a ogni aggiornamento, e l'app
+  companion l'avvio della pagina se lo tiene in cache a lungo: dopo un
+  aggiornamento chiedeva un percorso che non esisteva più. Adesso il percorso è
+  stabile e la firma sta nella domanda.
+
+- **La friggitrice leggeva la temperatura del monitor della cucina** (#374)
+
+      «La scheda friggitrice ad aria prende i valori di temperatura, umidità e
+       qualità dell'aria da un Air quality monitor che ho integrato, senza che
+       nessuno abbia detto di farlo da nessuna parte.»
+
+  Non era la scheda a pescare male: era il rilevamento ad attaccare
+  all'apparecchio entità che non gli appartengono, perché stavano nella stessa
+  stanza. La stanza resta un indizio — il sensore della lavatrice sta in
+  lavanderia — ma da sola non basta più a dire di chi è una cosa.
+
+- **Il cancelletto sul Sonoff non si salvava** (#378)
+
+      «Ho un cancelletto che si apre tramite un sonoff mini d, ma quando cerco di
+       inserire l'entità switch.sonoff_… non viene salvata.»
+
+  Si salvava: era il ridisegno subito dopo a cancellarla, perché quello stesso
+  interruttore stava anche fra le Prese. Un relè che muove un cancello ed è
+  anche una presa è il caso normale, non un errore da correggere alle spalle di
+  chi l'ha configurato.
+
+- **Una stanza mostrava un'umidità che non ha** (#379)
+
+      «C'è una stanza che mostra una misura di umidità pur non essendoci nessun
+       sensore associato.»
+
+  Non c'era nessun sensore: c'era il termometro, letto una seconda volta e
+  stampato col «%» addosso.
+
+- **Le icone degli avvisi personalizzati si leggevano invece di vedersi** (#381)
+
+      «Alcune icone negli avvisi personalizzati non vengono visualizzate
+       correttamente, sia in config che nel widget.»
+
+  L'icona si sceglie dal catalogo, e il catalogo scrive un nome (`mdi:…`):
+  stampato com'è si legge il nome invece di vedersi il disegno.
+
 ## 1.4.12
 
 Le cose viste sulla plancia vera dopo la 1.4.11, con le schermate davanti —
