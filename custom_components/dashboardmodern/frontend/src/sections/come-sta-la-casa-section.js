@@ -414,13 +414,26 @@ function onClickPannello(event) {
 
 function stile() {
   return `
+    /* La riga va a capo, non fuori pagina (#400).
+       «Nella home in alto quando fa vedere le cose accese o attive va oltre
+       pagina a destra e devi scorrere per vederle. Sarebbe carino che andasse
+       a capo e utilizzasse X righe che servono per far vedere.»
+
+       Era un nastro che scorreva di lato, senza andare a capo. Uno
+       scorrimento orizzontale in cima a una pagina che scorre in verticale non
+       lo trova nessuno — non c'era nemmeno la barra, nascosta apposta — e
+       quello che stava oltre il bordo destro era, di fatto, quello che non
+       esisteva. Il riepilogo di cosa e' acceso in casa e' la prima cosa che si
+       guarda: nasconderne meta' e' peggio che tenerlo alto due righe.
+
+       Le pastiglie adesso possono anche stringersi: il testo
+       taglia gia' con i puntini, e cosi' ne sta di piu' per riga invece di
+       andare a capo dopo la prima. */
     #dm-casa-riga{
-      display:flex;flex-wrap:nowrap;gap:8px;margin:0 0 18px;padding:2px 0 4px;
-      overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-    #dm-casa-riga::-webkit-scrollbar{display:none}
+      display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:2px 0 4px}
     #dm-casa-riga:empty{display:none}
     .dm-casa-pastiglia{
-      display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;
+      display:inline-flex;align-items:center;gap:7px;flex:0 1 auto;min-width:0;
       padding:7px 13px;border-radius:100px;cursor:pointer;
       border:1px solid var(--card-border,rgba(0,0,0,.08));background:var(--surface-3,rgba(0,0,0,.04));
       color:var(--text,#111);font:inherit;font-size:12.5px;font-weight:650;line-height:1.2;

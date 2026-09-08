@@ -7,8 +7,10 @@
  */
 import {
   SECURITY_DOOR_DOMAINS,
+  gestoDellaPorta,
   isDoorEntity,
   normalizeDoorPin,
+  serraturaSaAprire,
 } from "../core/security-door-model.js";
 import {
   iconaPortaMarkup,
@@ -17,6 +19,7 @@ import {
 } from "./security-doors-section.js";
 import { openIconPicker } from "./icon-engine-section.js";
 import {
+  allStates,
   clean,
   doc,
   esc,
@@ -56,6 +59,36 @@ function nomeDi(door, index) {
   return clean(door.name) || clean(door.entity) || `${t("Porta", "Door")} ${index + 1}`;
 }
 
+/* La scelta fra sbloccare e aprire, dove la serratura sa fare tutte e due
+ * (#387).
+ *
+ * Non si mostra a un pulsante o a un relè: quelli un gesto solo ce l'hanno, e
+ * una casella con una scelta sola è una domanda a cui non si può rispondere.
+ * E non si mostra nemmeno a una serratura che non dichiara `open`: offrire un
+ * gesto che quella serratura non espone sarebbe un tasto che non fa niente. */
+function gestoMarkup(door, index) {
+  const entity = clean(door.entity);
+  if (!entity.toLowerCase().startsWith("lock.")) return "";
+  if (!serraturaSaAprire(allStates()[entity])) return "";
+  const scelto = gestoDellaPorta(door);
+  const voci = [
+    ["", t("Apri (come prima)", "Open (as before)")],
+    ["sblocca", t("Solo sblocca", "Unlock only")],
+    ["entrambi", t("Tutti e due i tasti", "Both buttons")],
+  ];
+  return `<label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Cosa fa il tocco", "What the tap does")}</span>
+    <span class="ed-form-row"><select id="dm-door-${index}-gesto" class="ed-input" data-door-field="gesto">${voci
+      .map(
+        ([valore, parola]) =>
+          `<option value="${esc(valore)}"${scelto === valore || (valore === "" && scelto === "apri") ? " selected" : ""}>${esc(parola)}</option>`,
+      )
+      .join("")}</select></span>
+    <small>${t(
+      "Questa serratura sa fare tutte e due le cose, e sono diverse: «sblocca» gira la chiave, «apri» tira lo scrocco e la porta si apre. Lasciandola com'è il tocco apre, come ha sempre fatto.",
+      "This lock can do both, and they are not the same: “unlock” turns the key, “open” pulls the latch and the door opens. Left as it is, a tap opens, as it always has.",
+    )}</small></label>`;
+}
+
 function rigaMarkup(door, index) {
   const aperto = state.aperto === index;
   return `<article class="ed-row dm-door-ed-row" data-door-index="${index}" data-open="${aperto}">
@@ -79,6 +112,7 @@ function rigaMarkup(door, index) {
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Entità che apre", "Opening entity")}</span>
         <span class="ed-form-row"><input id="dm-door-${index}-entity" class="ed-input mono" data-door-field="entity" value="${esc(door.entity)}" placeholder="lock.portone" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-door-pick="dm-door-${index}-entity" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
         <small>${t("Serratura, pulsante, relè, cancello o script: lock.*, button.*, switch.*, cover.*, script.*…", "Lock, button, relay, gate or script: lock.*, button.*, switch.*, cover.*, script.*…")}</small></label>
+      ${gestoMarkup(door, index)}
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="ed-form-row"><input id="dm-door-${index}-icon" class="ed-input" data-door-field="icon" value="${esc(door.icon || ICONA_PORTA)}" maxlength="24"><button type="button" class="dm-door-icon-btn" data-door-icon-pick="dm-door-${index}-icon" aria-label="${t("Scegli icona", "Choose icon")}">🎨</button></span></label>
       <label class="ed-slot dm-door-ed-field"><span class="ed-slot-lbl">${t("PIN (facoltativo)", "PIN (optional)")}</span><span class="ed-form-row"><input id="dm-door-${index}-pin" class="ed-input mono" data-door-field="pin" value="${esc(door.pin)}" inputmode="numeric" autocomplete="off" placeholder="1234"></span>
         <small>${t("Da 4 a 8 cifre: prima di aprire viene chiesto il codice, contro i tocchi accidentali. Vuoto = solo conferma.", "4 to 8 digits: the code is asked before opening, against accidental taps. Empty = confirm only.")}</small></label>
@@ -127,7 +161,12 @@ export function ensureDoorsEditor() {
   const firma = [
     state.aperto,
     siChiedeConferma(),
-    ...doors.map((door) => `${door?.id}~${door?.name}~${door?.entity}~${door?.icon}~${door?.pin}`),
+    ...doors.map(
+      (door) =>
+        `${door?.id}~${door?.name}~${door?.entity}~${door?.icon}~${door?.pin}~${door?.gesto}~${
+          serraturaSaAprire(allStates()[clean(door?.entity)]) ? 1 : 0
+        }`,
+    ),
   ].join("|");
   if (body.dataset.dmDoorsEditor === firma && body.querySelector(".dm-door-ed-list")) return true;
   body.dataset.dmDoorsEditor = firma;

@@ -107,6 +107,18 @@ export function varchiConfigurati(states = {}, config) {
  * risposta alla domanda — poi i muti, che sono una sorveglianza che manca, e
  * in fondo i chiusi, che sono la buona notizia. Dentro ogni gruppo, per nome.
  */
+/* Quando questo varco ha cambiato stato l'ultima volta.
+ *
+ * `last_changed` e' l'ultimo cambio di STATO, che e' quello che serve:
+ * `last_updated` si muove anche quando cambia solo un attributo, e direbbe
+ * «aperta da un minuto» di una porta ferma da ieri. Torna `null` quando Home
+ * Assistant non lo dice: una porta senza storia non e' una porta appena
+ * aperta. */
+export function istanteDelCambio(stato) {
+  const quando = Date.parse(clean(stato?.last_changed) || clean(stato?.last_updated) || "");
+  return Number.isFinite(quando) ? quando : null;
+}
+
 export function varchiDiCasa(states = {}, config, invertiti, nomeDi = (entity) => entity) {
   const scelte = normalizzaVarchi(config);
   const righe = [];
@@ -119,6 +131,12 @@ export function varchiDiCasa(states = {}, config, invertiti, nomeDi = (entity) =
       classe,
       glifo: disegnoDelVarco(classe),
       stato: comeStaIlVarco(entity, stato, invertiti),
+      /* Da quando sta cosi' (#406): «l'ultima apertura o cambio stato». Sotto
+       * il nome c'era l'entity_id, che chi guarda la pagina non ha mai
+       * chiesto — «volendo il nome del sensore potrebbe essere obsoleto». Qui
+       * si porta l'istante grezzo di Home Assistant; a dirlo in parole ci
+       * pensa chi disegna, che sa che lingua si parla. */
+      da: istanteDelCambio(stato),
     });
   }
   const peso = (riga) => (riga.stato === "aperto" ? 0 : riga.stato === "" ? 1 : 2);
@@ -143,4 +161,41 @@ export function contoDeiVarchi(righe = []) {
     totale: tutte.length,
     nomi: aperti.map((riga) => clean(riga.name)).filter(Boolean),
   };
+}
+
+const UN_MINUTO = 60000;
+const UNORA = 60 * UN_MINUTO;
+const UN_GIORNO = 24 * UNORA;
+
+/**
+ * Fra quanto la scritta «da quanto» dira' un'altra cosa.
+ *
+ * La riga dice «Aperto da 5 minuti», e quel numero lo fa l'orologio, non lo
+ * stato: finche' il contatto non si muove la plancia non ridisegna niente e il
+ * «5 minuti» resta li'. Su una plancia appesa al muro resta li' per ore, ed e'
+ * il genere di bugia che non si nota perche' sembra un dato.
+ *
+ * Qui si dice quando quella scritta cambia davvero — il minuto dopo, l'ora
+ * dopo, il giorno dopo — cosi' chi disegna si sveglia una volta sola, al
+ * momento giusto, invece di guardare l'orologio in continuazione.
+ *
+ * E' puro: l'istante di adesso arriva da fuori.
+ */
+export function quandoCambiaIlDaQuando(da, adesso) {
+  if (!Number.isFinite(da) || !Number.isFinite(adesso)) return null;
+  const passati = Math.max(0, adesso - da);
+  if (passati < UNORA) return UN_MINUTO - (passati % UN_MINUTO);
+  if (passati < UN_GIORNO) return UNORA - (passati % UNORA);
+  return UN_GIORNO - (passati % UN_GIORNO);
+}
+
+/** Fra quanto la PRIMA delle righe cambiera' scritta, o `null` se nessuna. */
+export function prossimoCambioDelDaQuando(righe = [], adesso = 0) {
+  let minimo = null;
+  for (const riga of Array.isArray(righe) ? righe : []) {
+    const fra = quandoCambiaIlDaQuando(riga?.da, adesso);
+    if (fra == null) continue;
+    if (minimo == null || fra < minimo) minimo = fra;
+  }
+  return minimo;
 }

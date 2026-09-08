@@ -946,8 +946,71 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // guscio si aspetta: la catena scende, come sarebbe scesa se l'HLS avesse
   // fallito subito. Il guscio storico non si tocca: gli si avvolge la
   // funzione.
+  // 289 con «di chi e' questa entita'»
+  // (`sections/di-chi-e-unentita-section.js`): l'integrazione che ha creato
+  // un'entita', chiesta al registro e tenuta da parte. «La sezione mini pc
+  // porta in automatico tutte queste entita' sotto che non si eliminano e che
+  // non c'entrano nulla con quella sezione»: la classe che le macchine
+  // guardavano — `running`, `connectivity` — ce l'hanno i container di Proxmox
+  // ma anche la lavatrice, la stampante, ogni telefono e ogni presa Wi-Fi, e
+  // toglierle una per una e' un lavoro che ricomincia a ogni dispositivo
+  // nuovo. Quello che distingue un container dal ferro da stiro non e' nello
+  // stato: e' in chi ha creato l'entita', e quello lo sa solo il registro.
+  // Il modulo e' anche il posto dove vive il trasporto verso
+  // `integrations/catalog` — la presa vera, il ponte, il broker dell'energia —
+  // che il menu delle integrazioni degli elettrodomestici aveva scritto per
+  // conto suo: adesso e' scritto una volta e lo usano tutti e due.
+  // 291 con l'alberatura del Config: «per cortesia mi organizzi le sezioni del
+  // config con criterio, vedo cose mischiate in sezioni che non c'entrano
+  // nulla». L'ordine delle trentadue linguette non lo decideva nessuno —
+  // diciotto le scrive il guscio in fila, le altre quattordici se le infilano i
+  // moduli prima di «Runtime» quando gli capita di installarsi — quindi Rifiuti
+  // finiva fra Backup e Varchi senza nessuna ragione.
+  // `core/alberatura-del-config.js` e' l'elenco: a quale famiglia appartiene
+  // ogni scheda e in che posizione, in un posto solo invece che sparpagliato in
+  // quattordici moduli. `sections/alberatura-del-config-section.js` lo applica
+  // — rimette le linguette in fila e mette l'insegna della famiglia davanti a
+  // ogni gruppo — e sopra disegna la fila delle sette famiglie, che porta dove
+  // si vuole andare. Nessuna linguetta si nasconde: una nascosta non si
+  // clicca, e le prove che ne aprono una cliccandola sono una quarantina.
+  // 293 con la guardia che distingue il dito che scorre dal dito che tocca:
+  // «quando sei in un menu' pieno di entita', tipo le luci, quando scorri con
+  // il dito oltre allo scorrere prende anche il comando — sulle luci mentre
+  // passi con il dito per scorrere le accende pure» (#397). Il difetto non e'
+  // di una sezione: e' di ogni elenco lungo che si scorre col dito, e le
+  // sezioni che comandano al click sono decine. Scriverne la guardia in ognuna
+  // vorrebbe dire scriverla male in qualcuna, e soprattutto riscriverla in
+  // quella nuova. `core/il-dito-scorre-o-tocca.js` e' il criterio — quanto si
+  // e' spostato il dito fra il tocco e il rilascio, misurato in diagonale —
+  // e `sections/il-dito-scorre-o-tocca-section.js` lo applica una volta sola,
+  // sul documento e in cattura, da dove si arriva prima di ogni sezione.
+  // 295 con l'elenco unico delle sezioni: «dove posso inserire i binary sensor
+  // di porte e finestre? Non trovo piu' la sezione dove inserirli» (#399).
+  // L'interruttore di ogni sezione stava DENTRO la scheda di quella sezione, e
+  // quindi per sapere quali sezioni esistono bisognava aprirle tutte — e per
+  // sapere quali erano accese anche. `core/lelenco-delle-sezioni.js` e' la
+  // mappa: scheda del Config, chiave di `cd_sections`, nome. Non e' un elenco
+  // nuovo, e' quello che stava dentro `config-uniformity-section.js` e che
+  // adesso leggono in due invece che uno.
+  // `sections/lelenco-delle-sezioni-section.js` lo disegna in Impostazioni,
+  // raggruppato nelle stesse sette famiglie delle linguette, e non salva niente
+  // per conto suo: gira l'interruttore chiamando la `edSecTog` del guscio.
+  // 299 con le batterie che diventano una sezione come le altre (#398): «le
+  // batterie quelle cariche non le fa vedere? sarebbe carino che le batterie
+  // stessero nel config come le altre cose configurazioni». Erano un elenco
+  // che compariva in Home solo quando una scendeva sotto il venti per cento —
+  // venti scritto nel codice, uguale per tutti — e sparita quella spariva
+  // l'argomento. Adesso sono quattro moduli, che e' la forma di una sezione:
+  // `core/batterie-di-casa.js` (cosa conta come batteria, quando e' scarica, e
+  // il riepilogo), `sections/batterie-section.js` (la pagina, con la voce
+  // nella barra), `sections/batterie-editor-section.js` (la scheda: la soglia,
+  // quali non contare, come si chiamano) e `sections/batterie-elenco-section.js`
+  // — venti righe il cui unico mestiere e' che la tessera, la pagina e la
+  // scheda guardino lo STESSO elenco. Se la scheda ne toglie una e la tessera
+  // continua a contarla, chi l'ha tolta pensa che la plancia non l'abbia
+  // sentito.
   assert.ok(
-    relative.length <= 288,
+    relative.length <= 299,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

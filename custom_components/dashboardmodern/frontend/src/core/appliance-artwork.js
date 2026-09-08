@@ -104,3 +104,52 @@ export function applianceArtwork0152(type, size = 96) {
   const canonical = canonicalArtworkType(type);
   return canonical === "fridge" || canonical === "boiler" ? applianceArtwork(type, size) : "";
 }
+
+/* Un elettrodomestico in un glifo solo (#404).
+ *
+ * «Nella pagina delle stanze gli elettrodomestici non vengono visualizzati con
+ *  la loro icona, a prescindere da come li si configuri: appaiono tutti con
+ *  l'icona del cestello.»
+ *
+ * Il riepilogo di una stanza non ha spazio per il disegno grande: mette una
+ * riga per cosa, con un glifo davanti. Quel glifo lo prendeva dal BLOCCO —
+ * «elettrodomestici» — e il blocco ne ha uno solo, il cestello della lavatrice.
+ * Cosi' il forno, il frigo e la lavastoviglie in cucina erano tre cestelli in
+ * fila: tre righe identiche sopra tre cose diverse.
+ *
+ * Il tipo pero' si sa gia': lo dice `canonicalArtworkType`, ed e' lo stesso che
+ * sceglie il disegno grande nella sezione. Qui c'e' la sua versione in un
+ * carattere, cosi' la riga della stanza e la card della sezione dicono la
+ * stessa cosa senza che nessuno debba indovinarla due volte.
+ *
+ * Un tipo che non si conosce non prende un glifo a caso: torna "", e chi
+ * chiama mette quello che avrebbe messo comunque.
+ */
+export const APPLIANCE_GLYPHS = Object.freeze({
+  washer: "🧺",
+  dryer: "👕",
+  dishwasher: "🍽️",
+  fridge: "🧊",
+  oven: "🍕",
+  cooktop: "🍳",
+  microwave: "🍲",
+  hood: "💨",
+  "air-fryer": "🍟",
+  toaster: "🍞",
+  kettle: "🫖",
+  coffee: "☕",
+  iron: "👔",
+  television: "📺",
+  fan: "🌀",
+  "air-conditioner": "❄️",
+  boiler: "♨️",
+  "storage-boiler": "🛢️",
+  vacuum: "🧹",
+  "robot-vacuum": "🤖",
+  wallbox: "⛽",
+});
+
+/** Il glifo di un elettrodomestico, dal suo tipo. "" se il tipo non si conosce. */
+export function applianceGlyph(type) {
+  return APPLIANCE_GLYPHS[canonicalArtworkType(type)] || "";
+}

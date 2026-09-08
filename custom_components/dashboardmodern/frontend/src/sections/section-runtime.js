@@ -83,6 +83,11 @@ import { installStrisceDiLinguette } from "./le-strisce-di-linguette-section.js"
 import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
+import { installAlberatura } from "./alberatura-del-config-section.js";
+import { installIlDitoScorreOTocca } from "./il-dito-scorre-o-tocca-section.js";
+import { installElencoDelleSezioni } from "./lelenco-delle-sezioni-section.js";
+import { installBatterie } from "./batterie-section.js";
+import { installBatterieEditor } from "./batterie-editor-section.js";
 import { installVideoSiMuove } from "./telecamera-il-video-si-muove-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
@@ -942,6 +947,22 @@ export function installSectionRuntime() {
     /* L'HLS di una telecamera vale quando il video si muove davvero (#385):
      * si avvolge la strada del guscio, che si accontentava dell'intestazione. */
     installVideoSiMuove();
+    /* Le linguette del Config in ordine di alberatura, con l'insegna della
+     * famiglia davanti a ognuna: si installa dopo tutti gli editor che una
+     * linguetta se la aggiungono, cosi' al primo giro le trova gia' tutte. */
+    installAlberatura();
+    /* Lo scorrimento col dito non deve azionare quello che sfiora (#397): la
+     * guardia sta sul documento, in cattura, e vale per ogni elenco lungo —
+     * comprese le sezioni che ancora non esistono. */
+    installIlDitoScorreOTocca();
+    /* L'elenco unico delle sezioni, in ⚙️ Impostazioni: cosa c'e' e se si
+     * vede, senza aprire ventiquattro schede per scoprirlo. */
+    installElencoDelleSezioni();
+    /* Le batterie hanno la loro pagina e la loro scheda (#398): «le batterie
+     * quelle cariche non le fa vedere? sarebbe carino che stessero nel config
+     * come le altre cose». */
+    installBatterie();
+    installBatterieEditor();
     installShutterSkySection();
     installPageMastheadSection();
     /* Il meteo si accoda al nome della casa nell'intestazione: si installa

@@ -1429,7 +1429,14 @@ function showcaseCss() {
 @media(max-width:520px){.dm-appl-shell .dm-ap-program{margin:8px 10px 0;gap:5px}.dm-appl-shell .dm-ap-fact{font-size:10.5px;padding:3px 8px}}
 /* list view */
 .dm-appl-shell[data-view="list"] #appl-grid-overview.dm-appl-grid,.dm-appl-shell[data-view="list"] .dm-appl-grid{grid-template-columns:1fr;gap:10px}
-.dm-appl-shell[data-view="list"] .appl-wide-card.dm-ap-card{display:grid;grid-template-columns:64px minmax(150px,.85fr) minmax(220px,1.15fr) minmax(0,1.5fr);grid-template-areas:"hero top panel cycle";align-items:center;gap:14px;padding:10px 14px}
+/* La striscia del programma ha una riga sua, sotto il nome (#389).
+   Stava in «top», la stessa cella del nome e della pastiglia di stato: due
+   elementi nella stessa cella di una griglia non si spingono, si impilano —
+   ed e' la sovrapposizione segnalata. La seconda riga esiste sempre ma e'
+   alta zero quando il programma non c'e' (il suo elemento non viene proprio
+   disegnato), percio' lo spazio fra le righe e' zero e l'aria se la prende il
+   programma con il suo margine: senza programma la card resta identica. */
+.dm-appl-shell[data-view="list"] .appl-wide-card.dm-ap-card{display:grid;grid-template-columns:64px minmax(150px,.85fr) minmax(220px,1.15fr) minmax(0,1.5fr);grid-template-areas:"hero top panel cycle" "hero prog panel cycle";align-items:center;gap:0 14px;padding:10px 14px}
 .dm-appl-shell[data-view="list"] .dm-ap-top{grid-area:top;display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0;min-width:0}
 .dm-appl-shell[data-view="list"] .dm-ap-chip{display:none}
 .dm-appl-shell[data-view="list"] .dm-ap-headings{flex:1 1 100%;min-width:0}
@@ -1438,14 +1445,19 @@ function showcaseCss() {
 .dm-appl-shell[data-view="list"] .dm-ap-hero .dm-ap-fx{display:none}
 .dm-appl-shell[data-view="list"] .dm-ap-img{padding:2px}
 .dm-appl-shell[data-view="list"] .dm-ap-panel{grid-area:panel;margin:0;padding:8px 12px;gap:10px}
-.dm-appl-shell[data-view="list"] .dm-ap-program{grid-area:top;align-self:end;margin:0;flex-basis:100%}
+.dm-appl-shell[data-view="list"] .dm-ap-program{grid-area:prog;margin:6px 0 0;justify-self:start}
 .dm-appl-shell[data-view="list"] .dm-ap-ring{width:50px;height:50px;flex:0 0 50px}
 .dm-appl-shell[data-view="list"] .dm-ap-ring-copy b{font-size:11px}
 .dm-appl-shell[data-view="list"] .dm-ap-ring-copy small{font-size:5px}
 .dm-appl-shell[data-view="list"] .dm-ap-cycle{grid-area:cycle;margin:0;padding:8px 12px 7px}
 .dm-appl-shell[data-view="list"] .dm-ap-cycle-cap{margin-bottom:4px}
 @media(max-width:1120px){
-.dm-appl-shell[data-view="list"] .appl-wide-card.dm-ap-card{grid-template-columns:64px minmax(0,1fr);grid-template-areas:"hero top" "panel panel" "cycle cycle";row-gap:10px}
+.dm-appl-shell[data-view="list"] .appl-wide-card.dm-ap-card{grid-template-columns:64px minmax(0,1fr);grid-template-areas:"hero top" "hero prog" "panel panel" "cycle cycle";row-gap:0}
+/* Lo spazio fra le fasce era il salto fra le righe, che pero' lo metterebbe sopra
+   la riga vuota del programma: qui lo portano i margini, che esistono solo
+   dove c'e' qualcosa. */
+.dm-appl-shell[data-view="list"] .dm-ap-panel{margin-top:10px}
+.dm-appl-shell[data-view="list"] .dm-ap-cycle{margin-top:10px}
 }
 /* responsive */
 @media(max-width:980px){

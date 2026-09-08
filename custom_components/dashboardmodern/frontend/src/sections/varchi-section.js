@@ -20,6 +20,7 @@ import {
   contoDeiVarchi,
   varchiConfigurati,
   varchiDiCasa,
+  prossimoCambioDelDaQuando,
 } from "../core/varchi-di-casa.js";
 import {
   allStates,
@@ -36,7 +37,7 @@ import {
 import { nomeDaHomeAssistant } from "./editor-slots-section.js";
 
 const KEY = "__DASHBOARDMODERN_VARCHI__";
-const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
+const state = (root[KEY] ||= { installed: false, frame: 0, firma: "", sveglia: 0 });
 
 export const VARCHI_PAGE_ID = "page-varchi";
 export const VARCHI_TAB = "varchi";
@@ -155,12 +156,66 @@ export function titoloDeiVarchi(conto) {
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
 
+/* Da quando sta così, invece dell'identificativo (#406).
+ *
+ * «Sarebbe importante avere nei tasti relativi ai varchi più informazioni,
+ *  tipo l'ultima apertura o cambio stato; volendo il nome del sensore nella
+ *  maschera varchi potrebbe essere obsoleto.»
+ *
+ * Ha ragione: sotto il nome c'era `binary_sensor.porta_cantina`, che è la cosa
+ * che serve a chi CONFIGURA — e infatti nella scheda del Config resta — ma non
+ * a chi guarda. Chi guarda vuole sapere da quanto quella finestra è aperta,
+ * che è la differenza fra «l'ho lasciata aperta stamattina» e «si è appena
+ * aperta».
+ *
+ * Senza un istante non si scrive niente: una porta senza storia non è una
+ * porta appena aperta, e inventare «da poco» sarebbe una bugia. In quel caso
+ * torna l'identificativo, che è comunque meglio di una riga vuota. */
+/* Il numero sta SEMPRE fuori dalla frase da tradurre.
+ *
+ * `daQuanto` in `racconto-tessera.js` compone «da 5 minuti» e poi lo passa a
+ * tradurre: quella chiave è diversa per ogni minuto, e nessuna di quelle si
+ * trova in un catalogo. Qui le parole sono quattro, fisse, e la cifra le sta
+ * accanto. */
+function quantoTempo(minuti) {
+  if (minuti < 1) return t("appena adesso", "just now");
+  if (minuti < 60) return `${Math.round(minuti)} ${t("minuti", "minutes")}`;
+  const ore = Math.floor(minuti / 60);
+  if (ore < 24) return `${ore} ${t("ore", "hours")}`;
+  return `${Math.floor(ore / 24)} ${t("giorni", "days")}`;
+}
+
+/* La scritta, in parole. Sta separata dal markup perche' la legge anche la
+ * firma del ridisegno: e' l'unico pezzo di questa pagina che cambia da solo,
+ * col passare del tempo, e chi decide se ridisegnare deve poterlo guardare. */
+function daQuandoTesto(riga) {
+  if (riga.da === null || riga.da === undefined) return "";
+  const minuti = Math.max(0, (Date.now() - riga.da) / 60000);
+  /* «appena adesso» non vuole il «da» davanti: sarebbe «aperto da appena
+   * adesso», che non lo dice nessuno. */
+  if (minuti < 1)
+    return `${riga.stato === "aperto" ? t("Aperto", "Open") : riga.stato === "chiuso" ? t("Chiuso", "Closed") : t("Fermo", "Still")} ${t("appena adesso", "just now")}`;
+  const parola =
+    riga.stato === "aperto"
+      ? t("Aperto da", "Open for")
+      : riga.stato === "chiuso"
+        ? t("Chiuso da", "Closed for")
+        : t("Fermo da", "Still for");
+  return `${parola} ${quantoTempo(minuti)}`;
+}
+
+function daQuandoMarkup(riga) {
+  if (riga.da === null || riga.da === undefined)
+    return `<small class="mono">${esc(riga.entity)}</small>`;
+  return `<small>${esc(daQuandoTesto(riga))}</small>`;
+}
+
 function rigaMarkup(riga) {
   return `<article class="dm-varco" data-varco="${esc(riga.stato || "muto")}">
     <span class="dm-varco-ic" aria-hidden="true">${esc(riga.glifo)}</span>
     <div class="dm-varco-testo">
       <strong>${esc(riga.name)}</strong>
-      <small class="mono">${esc(riga.entity)}</small>
+      ${daQuandoMarkup(riga)}
     </div>
     <b class="dm-varco-stato">${esc(parolaDelVarco(riga))}</b>
   </article>`;
@@ -218,11 +273,38 @@ function dipingi() {
     return;
   }
   const conto = contoDeiVarchi(righe);
-  const firma = JSON.stringify([righe, t("Aperto", "Open")]);
-  if (state.firma === firma && dove.firstElementChild) return;
-  state.firma = firma;
-  dove.innerHTML = `${testaMarkup(conto)}
-    <div class="dm-varchi-elenco">${righe.map(rigaMarkup).join("")}</div>`;
+  /* Nella firma ci va anche quello che si LEGGE, non solo quello che c'e'.
+   *
+   * «Aperto da 5 minuti» lo scrive l'orologio, non lo stato: finche' il
+   * contatto non si muove le righe sono identiche, la firma pure, e quel «5
+   * minuti» restava scritto per ore su una plancia appesa al muro. Adesso la
+   * scritta fa parte della firma, e quando cambia la pagina si ridisegna. */
+  const firma = JSON.stringify([righe, righe.map(daQuandoTesto), t("Aperto", "Open")]);
+  if (state.firma !== firma || !dove.firstElementChild) {
+    state.firma = firma;
+    dove.innerHTML = `${testaMarkup(conto)}
+      <div class="dm-varchi-elenco">${righe.map(rigaMarkup).join("")}</div>`;
+  }
+  svegliamiQuandoCambia(righe);
+}
+
+/* Una sveglia sola, al momento in cui la prima scritta cambiera'.
+ *
+ * Non e' un battito che gira: e' un appuntamento, preso dopo aver disegnato e
+ * disdetto a ogni ridisegno. A pagina chiusa non si prende — `dipingi` esce
+ * prima — e chi riapre la pagina passa comunque di qui. */
+function svegliamiQuandoCambia(righe) {
+  if (state.sveglia) {
+    root.clearTimeout?.(state.sveglia);
+    state.sveglia = 0;
+  }
+  const fra = prossimoCambioDelDaQuando(righe, Date.now());
+  if (fra == null) return;
+  state.sveglia =
+    root.setTimeout?.(() => {
+      state.sveglia = 0;
+      schedule();
+    }, Math.max(1000, fra)) || 0;
 }
 
 function schedule() {

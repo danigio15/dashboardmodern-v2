@@ -6,7 +6,7 @@
  * fila senza dover toccare niente.
  *
  * Qui si guarda quello che vede chi ne configura due: due schede
- * nell'editor, due scene nella pagina Continuità, e una tessera in Home che
+ * nell'editor, due scene nella pagina UPS, e una tessera in Home che
  * parla del gruppo messo peggio invece che del primo della lista.
  */
 import { expect, test } from "@playwright/test";
@@ -131,7 +131,7 @@ test("chi ne aveva uno se lo ritrova, e può aggiungerne un secondo", async ({ p
   expect(new Set(uid).size).toBe(2);
 });
 
-test("due gruppi, due scene nella pagina Continuità", async ({ page }, testInfo) => {
+test("due gruppi, due scene nella pagina UPS", async ({ page }, testInfo) => {
   await avvia(page, testInfo, [
     { uid: "ups-1", name: "Rack", stato: "sensor.rack_stato", batteria: "sensor.rack_batteria" },
     {

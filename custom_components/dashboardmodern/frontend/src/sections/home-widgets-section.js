@@ -23,6 +23,7 @@ import {
   parseTodoItemsResponse,
   pendingTodoItems,
 } from "../core/todo-model.js";
+import { batterieDiCasa, CHIAVE_BATTERIE, sogliaDelleBatterie } from "../core/batterie-di-casa.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
 import { applianceArtwork } from "../core/appliance-artwork.js";
@@ -158,7 +159,7 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
-import { doorOpenCall } from "../core/security-door-model.js";
+import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
 import {
@@ -166,7 +167,12 @@ import {
   contoDelleMacchine,
   macchineERete,
 } from "../core/macchine-e-rete.js";
-import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
+import { EVENTO_PIATTAFORME, piattaformeConosciute } from "./di-chi-e-unentita-section.js";
+import {
+  configuredSecurityDoors,
+  iconaPortaMarkup,
+  parolaDelGesto,
+} from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import {
   contactEntity,
@@ -2360,7 +2366,7 @@ function upsModel(states) {
     key: "ups",
     accent: "#0ea5e9",
     icon: "🔋",
-    label: t("Continuità", "Backup power"),
+    label: t("UPS", "UPS"),
     /* A rete caduta parla l'autonomia, perche' e' il tempo che resta; a rete
      * presente parla la batteria, perche' e' la conferma che il tempo c'e'. */
     value:
@@ -2960,7 +2966,7 @@ export function entitaSorvegliate(chiave, { extras, removed, vive } = {}) {
   return uscita;
 }
 
-function gruppoEntita(chiave) {
+export function gruppoEntita(chiave) {
   try {
     let vive = [];
     try {
@@ -2994,7 +3000,17 @@ function friendlyName(states, entity) {
 }
 
 function batteriesModel(states) {
-  const entities = gruppoEntita("batt");
+  /* Lo stesso elenco della pagina e della scheda — le configurate piu' quelle
+   * che Home Assistant dichiara da se' — e su quello, e solo qui, il filtro
+   * delle tessere: nascondere una batteria da Home e' una scelta che riguarda
+   * Home, non un modo di dire che quella pila non esiste. La regola che
+   * compone l'elenco sta in `batterie-di-casa.js`, ed e' una sola. */
+  const fuoriDaiWidget = widgetExcludedEntities();
+  const entities = batterieDiCasa({
+    configurate: gruppoEntita("batt"),
+    stati: states,
+    tolte: readJson("cd_gruppi_removed", {})?.batt,
+  }).filter((entity) => widgetIncludes(entity, fuoriDaiWidget));
   if (!entities.length) return null;
   const rows = entities
     .map((entity) => {
@@ -3007,17 +3023,44 @@ function batteriesModel(states) {
     })
     .filter((row) => row.level != null)
     .sort((a, b) => a.level - b.level);
-  const low = rows.filter((row) => row.level <= 20);
-  if (!low.length) return null;
+  if (!rows.length) return null;
+  /* La soglia non e' piu' venti scritto qui (#398): la scrive chi ha la casa,
+   * nella scheda Batterie, ed e' la stessa che colora la pagina. Due numeri
+   * per la stessa domanda vorrebbero dire una tessera che dice «2 scariche»
+   * sopra una pagina che ne colora tre. */
+  const soglia = sogliaDelleBatterie(readJson(CHIAVE_BATTERIE, {}));
+  const low = rows.filter((row) => row.level <= soglia);
+  /* La tessera c'e' anche quando va tutto bene (#398).
+   *
+   * «Le batterie quelle cariche non le fa vedere?» No: prima la tessera
+   * spariva del tutto se nessuna era sotto il venti per cento, e chi aveva la
+   * casa in ordine non aveva nessun posto dove guardare le sue batterie —
+   * nemmeno per sapere quale sarebbe stata la prossima a chiedere una pila.
+   *
+   * Era anche l'unica tessera che si comportava cosi'. Quella del fumo, che e'
+   * la sua gemella, sta li' sempre e si accende solo quando c'e' da accendersi;
+   * questa spariva. Adesso fanno la stessa cosa: presente sempre, in allarme
+   * solo quando serve. Chi non la vuole in Home la spegne dall'elenco dei
+   * widget, che e' il posto dove si decidono queste cose.
+   */
+  const scariche = low.length > 0;
   return {
     key: "batterie",
-    accent: "#eab308",
+    accent: scariche ? "#eab308" : "#94a3b8",
     icon: "🔋",
-    alert: true,
+    alert: scariche,
     label: t("Batterie", "Batteries"),
-    value: String(low.length),
-    caption: low[0] ? `${low[0].name} ${Math.round(low[0].level)}%` : "",
-    ring: Math.round((low.length / rows.length) * 100),
+    value: String(scariche ? low.length : rows.length),
+    /* A riposo la didascalia dice comunque un fatto utile: qual e' la piu'
+     * bassa, cioe' quella che chiedera' una pila per prima. Le righe sono
+     * gia' ordinate dalla piu' scarica. */
+    caption: scariche
+      ? `${low[0].name} ${Math.round(low[0].level)}%`
+      : `${t("Tutte cariche", "All charged")} · ${rows[0].name} ${Math.round(rows[0].level)}%`,
+    /* L'anello si riempie solo quando c'e' da guardare: a riposo la tessera
+     * non deve gridare, sta li' e basta. */
+    ring: scariche ? Math.round((low.length / rows.length) * 100) : 0,
+    attiva: scariche,
     rows,
     low,
   };
@@ -3156,7 +3199,14 @@ function varchiModel(states) {
 function macchineModel(states) {
   const fuori = widgetExcludedEntities();
   const config = readJson(CHIAVE_MACCHINE, {});
-  const elenchi = macchineERete(states, config, (entity) => friendlyName(states, entity));
+  /* Le stesse integrazioni scelte per la pagina Server: la tessera non conta
+   * niente che quella pagina non mostrerebbe. */
+  const elenchi = macchineERete(
+    states,
+    config,
+    (entity) => friendlyName(states, entity),
+    piattaformeConosciute(),
+  );
   const righe = [...elenchi.macchine, ...elenchi.rete].filter((riga) =>
     widgetIncludes(riga.entity, fuori),
   );
@@ -4899,8 +4949,20 @@ function securityDetail(widget, states) {
      * quel gesto lo ascolta il documento intero: e' la stessa mano che apre —
      * stessa conferma, stesso tastierino del PIN, stessa chiamata. Qui non si
      * ricopia niente, si chiede a chi lo sa gia' fare. */
-    const apre = doorOpenCall(door.entity, stateOf(states, door.entity));
-    const invito = door.pin ? t("Apri, col PIN", "Open, with the PIN") : t("Apri", "Open");
+    /* Qui il tasto e' uno solo, e fa il primo dei gesti che quella porta offre
+     * — quello che si puo' disfare, dove ce ne sono due (#387).
+     *
+     * E si chiama come il gesto che fa. Diceva «Apri» sempre: su una serratura
+     * configurata coi due gesti il tasto sblocca e basta, e chi lo premeva
+     * restava con la porta chiusa e la scritta che gli aveva promesso il
+     * contrario. Il nome adesso arriva dallo stesso elenco da cui arriva la
+     * chiamata, cosi' le due cose non possono piu' separarsi. */
+    const azioni = azioniDellaPorta(door, stateOf(states, door.entity));
+    const apre = azioni.length > 0;
+    const parola = parolaDelGesto(azioni[0]?.gesto);
+    const invito = door.pin
+      ? `${parola} · ${t("chiede il PIN", "asks for the PIN")}`
+      : parola;
     parts.push(
       rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
@@ -8392,6 +8454,10 @@ export function installHomeWidgetsSection() {
        e' gia' disegnata: la sua tessera va messa quando la risposta atterra,
        non al primo evento che passi di li' per un'altra ragione. */
     "dashboardmodern:segnalazioni-coda",
+    /* Il registro ha detto di chi sono le entita' del server e della rete: la
+       tessera «Server e rete» conta solo quelle delle integrazioni scelte, e
+       prima di quella risposta non ne conta nessuna. */
+    EVENTO_PIATTAFORME,
     /* La chat di assistenza dice quando ha una risposta da leggere, e quando
        e' stata letta: la sua tessera compare e sparisce con quello. */
     "dashboardmodern:chat-stato",

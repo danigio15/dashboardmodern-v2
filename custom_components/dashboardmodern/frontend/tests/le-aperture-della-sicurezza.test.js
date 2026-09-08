@@ -13,6 +13,8 @@ import { dirname, join } from "node:path";
 
 import {
   LOCK_SUPPORT_OPEN,
+  gestoDellaPorta,
+  azioniDellaPorta,
   doorOpenCall,
   doorPinMatches,
   isDoorEntity,
@@ -172,4 +174,89 @@ test("nessuno scarta le aperture guardando le altre sezioni", () => {
     assert.ok(!/doorsSenzaOccupate/.test(testo), `${nome} scarta ancora per le prese`);
     assert.ok(!/entitaDellePrese/.test(testo), `${nome} guarda ancora le prese`);
   }
+});
+
+
+/* «Gestire con Nuki separatamente sblocca/blocca e/o apri — evita apertura
+ * indesiderata se si vuole solo sblocco» (#387).
+ *
+ * `unlock` gira la chiave, `open` tira indietro lo scrocco e la porta si apre:
+ * sono due gesti, e su una serratura che sa fare tutte e due la plancia
+ * chiamava sempre il secondo. Il piu' irreversibile era l'unico disponibile.
+ */
+const NUKI = { attributes: { supported_features: LOCK_SUPPORT_OPEN } };
+const SEMPLICE = { attributes: { supported_features: 0 } };
+
+test("chi non ha scelto niente trova quello che ha sempre avuto", () => {
+  /* Cambiare sotto i piedi il tasto del portone a chi lo usa ogni giorno
+   * sarebbe un modo di avere ragione a spese sua: senza scelta, si apre. */
+  assert.deepEqual(doorOpenCall("lock.portone", NUKI), {
+    domain: "lock",
+    service: "open",
+    data: {},
+  });
+  assert.deepEqual(azioniDellaPorta({ entity: "lock.portone" }, NUKI), [
+    { gesto: "apri", call: { domain: "lock", service: "open", data: {} } },
+  ]);
+});
+
+test("scelto lo sblocco, la porta non si scrocca piu'", () => {
+  assert.deepEqual(doorOpenCall("lock.portone", NUKI, "sblocca"), {
+    domain: "lock",
+    service: "unlock",
+    data: {},
+  });
+  assert.deepEqual(azioniDellaPorta({ entity: "lock.portone", gesto: "sblocca" }, NUKI), [
+    { gesto: "sblocca", call: { domain: "lock", service: "unlock", data: {} } },
+  ]);
+});
+
+test("con tutti e due i tasti, il primo e' quello che si puo' disfare", () => {
+  const azioni = azioniDellaPorta({ entity: "lock.portone", gesto: "entrambi" }, NUKI);
+  assert.deepEqual(
+    azioni.map((azione) => [azione.gesto, azione.call.service]),
+    [
+      ["sblocca", "unlock"],
+      ["apri", "open"],
+    ],
+  );
+  /* E chi puo' chiamarne una sola — la tessera in Home — chiama quella. */
+  assert.equal(doorOpenCall("lock.portone", NUKI, "entrambi").service, "unlock");
+});
+
+test("una serratura che non sa aprire ha un gesto solo, qualunque cosa si scelga", () => {
+  /* Offrire «apri» a chi non lo espone sarebbe un tasto che non fa niente. */
+  for (const scelta of ["", "apri", "sblocca", "entrambi"]) {
+    assert.deepEqual(doorOpenCall("lock.porta", SEMPLICE, scelta), {
+      domain: "lock",
+      service: "unlock",
+      data: {},
+    });
+    assert.deepEqual(azioniDellaPorta({ entity: "lock.porta", gesto: scelta }, SEMPLICE), [
+      { gesto: "sblocca", call: { domain: "lock", service: "unlock", data: {} } },
+    ]);
+  }
+});
+
+test("quello che non e' una serratura ha un gesto solo e non cambia", () => {
+  for (const entity of ["button.citofono", "switch.rele", "cover.cancello", "script.apri"]) {
+    const azioni = azioniDellaPorta({ entity, gesto: "entrambi" }, null);
+    assert.equal(azioni.length, 1, `${entity} ha prodotto piu' di un gesto`);
+    assert.equal(azioni[0].gesto, "apri");
+    assert.deepEqual(azioni[0].call, doorOpenCall(entity));
+  }
+  /* E quello che non apre niente non offre niente. */
+  assert.deepEqual(azioniDellaPorta({ entity: "sensor.porta" }, null), []);
+  assert.deepEqual(azioniDellaPorta({}, null), []);
+});
+
+test("la scelta si salva solo se e' una delle tre", () => {
+  assert.equal(gestoDellaPorta({ gesto: " Sblocca " }), "sblocca");
+  assert.equal(gestoDellaPorta({ gesto: "fantasia" }), "");
+  assert.equal(gestoDellaPorta({}), "");
+  const [porta] = normalizeSecurityDoors([
+    { entity: "lock.portone", gesto: "entrambi" },
+  ]);
+  assert.equal(porta.gesto, "entrambi");
+  assert.equal(normalizeSecurityDoors([{ entity: "lock.p", gesto: "boh" }])[0].gesto, "");
 });

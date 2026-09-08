@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>La dashboard completa per Home Assistant: si configura a video, funziona su telefono, tablet e desktop.</strong><br>
-  Persone · Stanze · Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Luci · Clima · Temperatura · Finestre · Sicurezza · Apri porte/cancelli · Gestione termica · Piscina · Irrigazione · Aspirapolvere · Musica · Prese · Continuità · Agenda · MiniPC
+  Persone · Stanze · Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Luci · Clima · Temperatura · Finestre · Sicurezza · Apri porte/cancelli · Gestione termica · Piscina · Irrigazione · Aspirapolvere · Musica · Prese · UPS · Agenda · MiniPC
 </p>
 
 <p align="center">
@@ -68,7 +68,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
 - [Dove vive la configurazione](#dove-vive-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Gestione termica](#gestione-termica) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [Continuità](#continuità) · [Allerte](#allerte) · [Rifiuti](#rifiuti) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Finestre](#finestre-tapparelle-tende-e-sensori) · [Sicurezza](#sicurezza-e-telecamere) · [Apri porte/cancelli](#apri-portecancelli) · [Gestione termica](#gestione-termica) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Robot](#robot) · [Musica](#musica) · [Prese](#prese) · [UPS](#ups) · [Allerte](#allerte) · [Rifiuti](#rifiuti) · [Agenda](#agenda) · [Le tue sezioni](#le-tue-sezioni) · [MiniPC](#minipc-e-rete)
 - [Segnalazioni e assistenza](#segnalazioni-e-assistenza)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
@@ -183,7 +183,7 @@ Ordine consigliato (o revisione dopo l'autorilevamento):
 5. **Temperatura** — associa temperatura e umidità alle stanze già create.
 6. **Luci, Clima, Finestre** — assegna ogni entità alla stanza corretta.
 7. **Persone** — chi abita la casa, con il ritratto e i sensori del telefono.
-8. **Auto, Sicurezza, Apri porte/cancelli, Gestione termica, Piscina, Irrigazione, Aspirapolvere, Musica, Prese, Continuità, Agenda, MiniPC** — abilita solo ciò che usi: una sezione senza entità non compare nella barra.
+8. **Auto, Sicurezza, Apri porte/cancelli, Gestione termica, Piscina, Irrigazione, Aspirapolvere, Musica, Prese, UPS, Agenda, MiniPC** — abilita solo ciò che usi: una sezione senza entità non compare nella barra.
 9. **Le tue entità** e **Le tue sezioni** — per quello che le schede pronte non prevedono.
 10. **Widget, Avvisi, Azioni rapide, personalizzazione** — cosa compare in Home, icone, ordine della barra.
 
@@ -515,6 +515,8 @@ Portone, porta di casa, cancello. **Una sezione a sé**, uscita dalla Sicurezza:
 
 Ogni apertura ha la sua card; il tocco chiede conferma e, se imposti un PIN, il codice. La conferma si può spegnere.
 
+> **Sbloccare e aprire sono due gesti.** Su una serratura che sa fare tutte e due — un Nuki, per dire — `unlock` gira la chiave e `open` tira lo scrocco: la porta si apre. Nella scheda della porta c'è **«Cosa fa il tocco»**: *apri* (com'è sempre stato), *solo sblocca*, oppure *tutti e due i tasti*, che mette due pulsanti sulla card. Chi non sceglie niente non vede cambiare nulla.
+
 ---
 
 ## Gestione termica
@@ -601,7 +603,7 @@ Ogni presa ha nome, icona e stanza, e l'interruttore **«si vede ma non si coman
 
 ---
 
-## Continuità
+## UPS
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
@@ -672,6 +674,10 @@ La macchina disegnata in 3D con **CPU, RAM e disco** come barre che crescono, il
 
 > **La connettività è una casella sola, e si chiama Internet.** Erano quattro caselle che facevano la stessa domanda, e la card ne leggeva una: chi aveva riempito una delle altre tre vedeva **OFFLINE** con tutto configurato e la linea che funzionava. Adesso ce n'è una, accetta un `binary_sensor`, uno stato a parole (`on`, `connesso`, `online`, `up`, `ok`) oppure i millisecondi di un ping. Quello che stava nelle vecchie tre continua a essere letto finché non lo sposti: nessuno perde lo stato che aveva.
 
+Sotto le caselle ci sono **le macchine e la rete**: le VM e i container di Proxmox, il router e i suoi ripetitori. Ogni riga dice come sta — verde su, rossa giù, smorta quella che non risponde — e chi Home Assistant sa avviare e fermare porta il suo tasto.
+
+> **Da quali integrazioni prenderle si sceglie una volta.** Le classi che Home Assistant usa per dichiararle — `running` e `connectivity` — ce l'hanno anche la lavatrice, la stampante, ogni telefono e ogni presa Wi-Fi: prendendo tutto, la sezione si riempiva di roba che non c'entra. Nell'editor c'è l'elenco delle integrazioni con **quanto porterebbe ognuna** — «Proxmox VE · 12», «FRITZ!Box · 4» — e si spunta quella giusta: da lì in poi un container nuovo entra da solo e una lavatrice nuova resta fuori da sola.
+
 ---
 
 # Segnalazioni e assistenza
@@ -724,17 +730,23 @@ Il progetto per esteso è in [`docs/CHAT.md`](docs/CHAT.md).
 ---
 # Editor Dashboard: tutte le configurazioni
 
-L'editor è un'unica finestra con **ventinove schede**, una per area, elencate in **colonna** sulla sinistra: si vedono tutte insieme, senza scorrere una fila. Da telefono tenuto in piedi la colonna si stringe al solo simbolo e il nome ricompare appena giri lo schermo; chi un simbolo non lo riconosce lo legge tenendo premuto.
+L'editor è un'unica finestra con **trentadue schede**, una per area. Da telefono tenuto in piedi restano leggibili al simbolo, e il nome ricompare appena giri lo schermo; chi un simbolo non lo riconosce lo legge tenendo premuto.
 
 Tutte le configurazioni descritte qui sono **visuali**: nessun YAML.
 
-| | Schede |
+Le schede stanno in **sette famiglie**, e sopra c'è la fila che ci porta.
+
+| Famiglia | Schede |
 | --- | --- |
-| **La casa** | `⚙️ Impostazioni` · `🛋️ Stanze` · `👥 Persone` |
-| **Le sezioni** | `🏠 Home e meteo` · `⚡ Energia` · `🧺 Elettrodom.` · `🌡️ Temperatura` · `💡 Luci` · `❄️ Clima` · `🪟 Finestre` · `🛡️ Sicurezza` · `🚪 Apri porte/cancelli` · `🌞 Gestione termica` · `🚗 EV` · `🏊 Piscina` · `💧 Irrigazione` · `🤖 Aspirapolvere` · `🎵 Musica` · `🔌 Prese` · `🔋 Continuità` · `📅 Agenda` · `🖥️ MiniPC` |
-| **La Home** | `🧩 Widget` (che tiene anche le **cose da fare**) · `🔔 Avvisi` · `⚡ Azioni rapide` |
-| **Il tuo** | `✨ Le tue entità` · `🗂️ Le tue sezioni` |
-| **Servizio** | `💾 Backup` · `🩺 Runtime` |
+| **⚙️ Plancia** | `⚙️ Impostazioni` (lingua e Assist) · `🏠 Home` · `🧩 Widget` (che tiene anche le **cose da fare**) · `⭐ Le tue entità` · `⭐ Le tue sezioni` · `💾 Backup` · `🩺 Runtime` |
+| **⚡ Energia** | `⚡ Energia` · `🌞 Solare` · `🚗 EV` · `🔌 UPS` |
+| **🌡️ Clima e acqua** | `❄️ Clima` · `🌡️ Temperatura` · `🏊 Piscina` · `💧 Irrigazione` |
+| **🛋️ Casa** | `🛋️ Stanze` · `💡 Luci` · `🪟 Finestre` · `🧺 Elettrodomestici` · `🔊 Musica` · `🤖 Robot` · `🐾 Animali` · `👥 Persone` · `⚡ Azioni` |
+| **🛡️ Sicurezza** | `🛡️ Sicurezza` · `🚪 Varchi` · `🚪 Apri porte/cancelli` |
+| **🔔 Avvisi** | `🔔 Avvisi` · `⚠️ Allerte` · `📅 Agenda` · `♻️ Rifiuti` |
+| **🖥️ Macchine e rete** | `🖥️ MiniPC` |
+
+> **Le famiglie sono un indice, non un filtro.** Toccarne una porta alla sua prima scheda, ma **nessuna linguetta sparisce**: restano tutte in fila, con l'insegna della famiglia davanti a ogni gruppo. Prima l'ordine non lo decideva nessuno — le schede dei moduli si mettevano dove capitava, e i Rifiuti finivano fra Backup e Varchi.
 
 > **Una sezione vuota non sta nella barra.** Ogni sezione nasce nascosta e **si accende da sola** appena riceve la prima entità configurata; svuotata, torna a nascondersi. Lo spegnimento automatico ha tre freni: non tocca una scheda che non sa giudicare, non spegne niente finché la configurazione condivisa non è arrivata da Home Assistant, e **non torna mai su una scelta fatta a mano** dal pulsante verde in testa alla scheda.
 
@@ -952,7 +964,9 @@ CPU, RAM, disco, temperatura CPU, uptime della macchina e di Home Assistant, con
 
 > **Internet è una casella sola.** Accetta un `binary_sensor`, uno stato a parole o i millisecondi di un ping. Le tre vecchie caselle equivalenti non si compilano più, ma continuano a essere lette finché non travasi il valore: chi le aveva riempite non perde lo stato.
 
-### 🎵 Musica · 🔌 Prese · 🔋 Continuità
+Sotto, **Macchine e rete**: si spunta da quali integrazioni prenderle — con accanto il conto di quante ne porta ognuna — e si corregge il resto. Si toglie quello che non c'entra anche dentro un'integrazione scelta, si aggiunge a mano quello che nessuno ha etichettato, e si dà un nome leggibile a `pve_qemu_103`. Le tolte a mano stanno dietro una piega, e da lì si rimettono.
+
+### 🎵 Musica · 🔌 Prese · 🔋 UPS
 
 <table>
 <tr>
@@ -964,7 +978,7 @@ CPU, RAM, disco, temperatura CPU, uptime della macchina e di Home Assistant, con
 
 - **Musica**: i lettori `media_player.*` che vuoi vedere, con nome facoltativo e icona. I tasti che compariranno sono **quelli che il lettore dichiara di saper eseguire**, non un set fisso.
 - **Prese**: entità, nome, icona, stanza e l'interruttore **«si vede ma non si comanda»** per quelle che non vanno toccate.
-- **Continuità**: il gruppo UPS con stato della rete, carica della batteria, carico, autonomia in minuti e tensione d'ingresso. **Nessuna casella è obbligatoria**: col solo stato di NUT — `OL` in linea, `OB` a batteria, `LB` batteria scarica — la plancia sa già dire se c'è tensione. C'è anche l'interruttore **«il sensore dice il contrario»**, per chi ha il segnale invertito.
+- **UPS**: il gruppo UPS con stato della rete, carica della batteria, carico, autonomia in minuti e tensione d'ingresso. **Nessuna casella è obbligatoria**: col solo stato di NUT — `OL` in linea, `OB` a batteria, `LB` batteria scarica — la plancia sa già dire se c'è tensione. C'è anche l'interruttore **«il sensore dice il contrario»**, per chi ha il segnale invertito.
 
 ### 📅 Agenda
 
@@ -1019,7 +1033,7 @@ L'ultima scheda è di diagnostica: versione della plancia, stato del bridge di a
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-alerts.webp" alt="Editor Widget in tema scuro"><br><sub>Widget e avvisi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-quick-actions.webp" alt="Editor Azioni rapide in tema scuro"><br><sub>Azioni rapide</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-backup.webp" alt="Editor Backup in tema scuro"><br><sub>Backup</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-home.webp" alt="Editor Home in tema scuro"><br><sub>Home e meteo</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-thermal.webp" alt="Editor Gestione termica in tema scuro"><br><sub>Gestione termica</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-security.webp" alt="Editor Sicurezza in tema scuro"><br><sub>Sicurezza</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-server.webp" alt="Editor MiniPC in tema scuro"><br><sub>MiniPC</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-media.webp" alt="Editor Musica in tema scuro"><br><sub>Musica</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-sockets.webp" alt="Editor Prese in tema scuro"><br><sub>Prese</sub></td></tr>
-<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ups.webp" alt="Editor Continuità in tema scuro"><br><sub>Continuità</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-agenda.webp" alt="Editor Agenda in tema scuro"><br><sub>Agenda</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-my-entities.webp" alt="Editor Le tue entità in tema scuro"><br><sub>Le tue entità</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ups.webp" alt="Editor UPS in tema scuro"><br><sub>UPS</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-agenda.webp" alt="Editor Agenda in tema scuro"><br><sub>Agenda</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-my-entities.webp" alt="Editor Le tue entità in tema scuro"><br><sub>Le tue entità</sub></td></tr>
 <tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-my-sections.webp" alt="Editor Le tue sezioni in tema scuro"><br><sub>Le tue sezioni</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-autodetect.webp" alt="Editor Autorilevamento in tema scuro"><br><sub>Autorilevamento</sub></td><td width="33%"></td></tr>
 </table>
 

@@ -621,3 +621,57 @@ for (const variant of PRIMARY) {
     await modal.locator("[data-close]").click();
   });
 }
+
+/* «Quando la schermata degli elettrodomestici è compressa per righe, i dati
+ * vengono visualizzati in maniera errata probabilmente sovrapposti» (#389).
+ *
+ * Non «probabilmente»: nella vista a righe il blocco del nome e la striscia del
+ * programma stavano nella stessa cella della griglia, e due elementi nella
+ * stessa cella si impilano invece di spingersi. Si vedeva solo dove il
+ * programma c'è davvero — la lavatrice di questo catalogo lo ha — e sopra i
+ * 1120 px, dove la card a righe apre le sue quattro colonne.
+ */
+for (const variant of PRIMARY) {
+  test(`${variant}: nella vista a righe il programma sta sotto il nome, non sopra`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(150_000);
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "L'editor intero è più lento su WebKit");
+    await boot(page, variant, testInfo);
+    /* Larga davvero: è la condizione della segnalazione, e sotto i 1120 px la
+     * card a righe si impila da sola. */
+    await page.setViewportSize({ width: 1600, height: 900 });
+
+    await page.evaluate(() => {
+      window.apriConfigEntita();
+      window.editorSwitch("appliances");
+    });
+    await page.locator("#ed-body [data-dm-integ-add]").click();
+    const menu = page.locator("#dm-integ-menu");
+    await menu.locator('.dm-integ-item[data-domain="hon"]').click();
+    await menu.locator('.dm-integ-device[data-device-id="wm-1"]').click();
+    await menu.locator("[data-preview] [data-confirm]").click();
+    await page.locator("#dm-appliance-editor-modal [data-close]").click();
+
+    await page.evaluate(() => {
+      document.getElementById("editor-modal")?.remove();
+      document.querySelector('.tab[data-tab="appliances-main"]')?.click();
+    });
+
+    await page.locator('.dm-appl-viewtoggle [data-dm-view="list"]').click();
+    const card = page.locator('.dm-appl-shell[data-view="list"] .dm-ap-card').first();
+    await expect(card).toBeVisible({ timeout: 15000 });
+
+    const alto = card.locator(".dm-ap-top");
+    const programma = card.locator(".dm-ap-program");
+    await expect(programma).toBeVisible();
+
+    const [sopra, sotto] = await Promise.all([alto.boundingBox(), programma.boundingBox()]);
+    /* La prova vera: il programma comincia DOPO la fine del blocco in alto.
+     * Con i due nella stessa cella questi due rettangoli si accavallavano. */
+    expect(sotto.y).toBeGreaterThanOrEqual(sopra.y + sopra.height - 1);
+    /* E la card è ancora una riga sola per apparecchio, non due schede. */
+    await expect(page.locator('.dm-appl-shell[data-view="list"] .dm-ap-card')).toHaveCount(1);
+  });
+}

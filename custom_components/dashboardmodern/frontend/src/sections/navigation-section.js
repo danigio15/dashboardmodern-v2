@@ -1,5 +1,5 @@
 import { fondoDiSistema, inPixel } from "../core/fondo-di-sistema.js";
-import { oggettoWidget } from "../core/oggetti-widget.js";
+import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_NAVIGATION_SECTION__";
@@ -11,6 +11,9 @@ const state = (root[KEY] ||= {
   barraScoperta: false,
   scadenza: 0,
   filtroInCoda: false,
+  scopertaInCoda: false,
+  scadutaLAttesa: false,
+  riprove: 0,
 });
 
 /* The dock is sized on its content (`width:max-content`), so with every section
@@ -691,6 +694,25 @@ const OGGETTO_DELLA_PAGINA = Object.freeze({
   config: "impostazioni",
 });
 
+/* Il disegno di una pagina, anche di una nata dopo questa tabella.
+ *
+ * La tabella qui sopra serve alle pagine il cui nome non e' il nome del
+ * disegno: la lavanderia si chiama «appliances-main» e il disegno
+ * «elettrodomestici», il boiler «boiler» e il disegno «solare». Ma la meta'
+ * delle pagine si chiama gia' come il proprio disegno, e per quelle la
+ * tabella era solo un posto in piu' da ricordarsi — dimenticato quattro volte
+ * su quattro sezioni nuove, ogni volta scoperto dalla stessa prova.
+ *
+ * Adesso chi si chiama come il proprio disegno non ha niente da scrivere: la
+ * tabella resta per le eccezioni, che sono quello che una tabella sa fare. Le
+ * sezioni che uno si fa da se' non ci cascano dentro: le loro voci si chiamano
+ * «mia-qualcosa», e nessun disegno si chiama cosi'. */
+function disegnoDellaPagina(pagina) {
+  const scritto = OGGETTO_DELLA_PAGINA[pagina];
+  if (scritto) return scritto;
+  return haOggettoWidget(pagina) ? pagina : "";
+}
+
 /** Mette il disegno di casa al posto del simbolo, su ogni voce della barra. */
 export function disegniNellaBarra(scope = doc) {
   const schede = scope?.querySelectorAll?.("nav.tabs .tab[data-tab]");
@@ -698,7 +720,7 @@ export function disegniNellaBarra(scope = doc) {
   let messi = 0;
   for (const scheda of schede) {
     const pagina = clean(scheda.dataset.tab);
-    const disegno = OGGETTO_DELLA_PAGINA[pagina];
+    const disegno = disegnoDellaPagina(pagina);
     if (!disegno) continue;
     const casella = scheda.querySelector(":scope > .icon");
     if (!casella || casella.dataset.dmOggetto === disegno) continue;
@@ -792,11 +814,91 @@ function applicaLaVisibilita() {
   }
 }
 
-function forseScopri() {
-  if (state.barraScoperta) return false;
-  if (!laConfigurazioneSiConosce()) return false;
+/* Quali voci si vedono adesso, in una riga.
+ *
+ * Serve a una domanda sola: la barra ha finito di prendere forma? Si legge la
+ * larghezza invece dello stile perche' una voce puo' essere spenta in tre modi
+ * — dal guscio, dal modulo che la possiede, da un foglio di stile — e la
+ * larghezza li dice tutti e tre insieme. Si legge dentro un fotogramma gia'
+ * impaginato, quando la misura e' li' pronta. */
+function firmaDellaBarra() {
+  const voci = doc?.querySelectorAll?.("nav.tabs .tab");
+  if (!voci) return "";
+  const dentro = [];
+  for (const voce of voci) if (voce.offsetWidth > 0) dentro.push(clean(voce.dataset.tab));
+  return dentro.join(",");
+}
+
+/* Quanto si concede in piu' a una barra che sta ancora prendendo forma.
+ *
+ * L'attesa massima qui sopra dice quando si PUO' scoprire; questa dice quanto
+ * si aspetta ancora se nel frattempo la forma cambia sotto le mani. Sono due
+ * domande diverse: la prima protegge chi non riesce a leggere la
+ * configurazione, la seconda chi ce l'ha ma ha i moduli lenti. Un secondo e
+ * mezzo di barra coperta in piu' nel caso peggiore, contro una barra che dice
+ * una cosa e poi un'altra: chi ha segnalato il difetto ha chiesto la seconda. */
+export const ATTESA_IN_PIU_SE_LA_FORMA_CAMBIA = 1500;
+
+/* Quante volte si riprova, al massimo. Novanta fotogrammi sono un secondo e
+ * mezzo a sessanta al secondo: la stessa attesa di sopra, contata in giri
+ * invece che in millisecondi. Serve a chiudere il giro anche dove i due
+ * orologi non esistono — una pagina senza `setTimeout` non farebbe mai scadere
+ * l'attesa, e questo giro deve finire da se' comunque. */
+export const RIPROVE_MASSIME_DELLA_BARRA = 90;
+
+/* Si scopre quando la forma sta ferma per un fotogramma intero.
+ *
+ * Il filtro e la scoperta erano due righe di seguito, e in mezzo — sulla carta
+ * — non passava niente. Nei fatti le voci che i moduli aggiungono da se' —
+ * Animali, Luci, Prese, Robot — nascono in quel giro di disegno, e a volte
+ * nascono DOPO il nostro filtro. Misurato strumentando la plancia: a 3566 ms
+ * il filtro del guscio toglie quattro voci di sezioni spente e a 3661 ms la
+ * barra si scopre, gia' giusta; nelle corse sbagliate i due si invertono di
+ * sei millisecondi, e la barra esce con quattordici voci per poi averne
+ * quattro. E' la segnalazione «resta sempre la barra totale, per poi diventare
+ * come l'ho configurata: dura quattro o cinque secondi».
+ *
+ * Indovinare il fotogramma giusto e' una scommessa sull'ordine in cui i moduli
+ * si mettono in coda, e una scommessa sull'ordine prima o poi si perde. Qui
+ * non si indovina: si filtra, si guarda che forma ha la barra, si lascia
+ * finire il fotogramma e si riguarda. Se e' cambiata, la barra stava ancora
+ * crescendo e si riprova; se e' la stessa, non c'e' piu' niente che possa
+ * smentirla e si scopre.
+ *
+ * Non e' un sorvegliante e non e' un timer che gira: e' la fine del fotogramma,
+ * ce n'e' uno solo per volta in coda, e il giro finisce da se' — o perche' la
+ * forma si ferma, o perche' l'attesa scade. */
+function scopriQuandoHaFinito() {
+  if (state.barraScoperta || state.scopertaInCoda) return;
   applicaLaVisibilita();
-  scopriLaBarra();
+  const chiedi = root.requestAnimationFrame || root.setTimeout;
+  if (typeof chiedi !== "function") {
+    scopriLaBarra();
+    return;
+  }
+  const prima = firmaDellaBarra();
+  state.scopertaInCoda = true;
+  chiedi.call(root, () => {
+    state.scopertaInCoda = false;
+    if (state.barraScoperta) return;
+    applicaLaVisibilita();
+    /* La forma e' cambiata mentre aspettavamo: la barra sta ancora crescendo,
+     * e si riprova. A meno che l'attesa sia scaduta — allora meglio una barra
+     * imperfetta che nessuna barra. */
+    const ancoraInMovimento = firmaDellaBarra() !== prima;
+    if (ancoraInMovimento && !state.scadutaLAttesa && state.riprove < RIPROVE_MASSIME_DELLA_BARRA) {
+      state.riprove += 1;
+      scopriQuandoHaFinito();
+      return;
+    }
+    scopriLaBarra();
+  });
+}
+
+function forseScopri() {
+  if (state.barraScoperta || state.scopertaInCoda) return false;
+  if (!laConfigurazioneSiConosce()) return false;
+  scopriQuandoHaFinito();
   return true;
 }
 
@@ -809,8 +911,13 @@ function installaLAttesaDellaBarra() {
   ])
     root.addEventListener?.(evento, () => forseScopri());
   state.scadenza = root.setTimeout?.(() => {
-    applicaLaVisibilita();
-    scopriLaBarra();
+    scopriQuandoHaFinito();
+    /* E se dopo tutto questo la forma non si ferma, si scopre lo stesso: una
+     * plancia che non smette mai di rifare la barra deve avere una barra. */
+    root.setTimeout?.(() => {
+      state.scadutaLAttesa = true;
+      scopriQuandoHaFinito();
+    }, ATTESA_IN_PIU_SE_LA_FORMA_CAMBIA);
   }, ATTESA_MASSIMA_DELLA_BARRA);
   forseScopri();
 }

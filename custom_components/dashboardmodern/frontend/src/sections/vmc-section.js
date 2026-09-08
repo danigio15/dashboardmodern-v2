@@ -79,7 +79,26 @@ function numeroScritto(voce) {
 /* Un braccio del flusso: da dove viene, a che temperatura, dove va.
  *
  * La freccia sta in mezzo e non ai lati perche' e' li' che succede la cosa —
- * lo scambio — e i due numeri che la circondano sono il prima e il dopo. */
+ * lo scambio — e i due numeri che la circondano sono il prima e il dopo.
+ *
+ * ── Perche' fuori sta sempre a sinistra (#401) ───────────────────────────
+ *
+ * «Nella riga in basso dovresti invertire la freccia in modo che l'aria da
+ *  casa vada verso fuori casa, o ancora meglio invertire e mettere fuori a
+ *  sinistra e da casa a destra lasciando la freccia cosi', rispettando la
+ *  logica della macchina che incrocia i flussi.»
+ *
+ * Prima le due righe mettevano tutte e due l'origine a sinistra: «Da fuori,
+ * freccia a destra, In casa» sopra, e sotto «Da casa, freccia a SINISTRA,
+ * Fuori». La seconda si contraddiceva da sola: la freccia puntava indietro,
+ * verso la parola «Da casa» — cioe' diceva che l'aria entrava, mentre le
+ * etichette dicevano che usciva.
+ *
+ * Adesso le colonne sono fisse: fuori a sinistra e casa a destra, in tutte e
+ * due le righe. Quello che cambia e' la freccia, ed e' l'unica cosa che deve
+ * cambiare, perche' e' l'unica informazione che distingue una riga dall'altra.
+ * Incolonnate cosi', le due frecce si incrociano: che e' esattamente quello
+ * che fa lo scambiatore. */
 function flussoMarkup(lettura, verso) {
   const prima = Object.values(lettura.temperature).find(
     (voce) => voce.verso === verso && voce.posto === "prima",
@@ -89,17 +108,22 @@ function flussoMarkup(lettura, verso) {
   );
   if (!prima && !dopo) return "";
   const entra = verso === "entra";
+  /* L'aria che entra va da fuori a casa, quella che esce da casa a fuori:
+   * incolonnate allo stesso modo, il capo di sinistra e' il «prima» di una e
+   * il «dopo» dell'altra. */
+  const sinistra = entra ? prima : dopo;
+  const destra = entra ? dopo : prima;
   return `<div class="dm-vmc-flusso" data-dm-vmc-verso="${esc(verso)}">
     <span class="dm-vmc-capo">
-      <small>${esc(entra ? t("Da fuori", "From outside") : t("Da casa", "From the house"))}</small>
-      <b data-dm-vmc-t="${esc(prima?.chiave || "")}">${esc(gradi(prima))}</b>
-      <em>${esc(prima ? parolaTemperatura(prima.chiave) : "")}</em>
+      <small>${esc(entra ? t("Da fuori", "From outside") : t("Fuori", "Outside"))}</small>
+      <b data-dm-vmc-t="${esc(sinistra?.chiave || "")}">${esc(gradi(sinistra))}</b>
+      <em>${esc(sinistra ? parolaTemperatura(sinistra.chiave) : "")}</em>
     </span>
     <span class="dm-vmc-freccia" aria-hidden="true">${entra ? "→" : "←"}</span>
     <span class="dm-vmc-capo">
-      <small>${esc(entra ? t("In casa", "Into the house") : t("Fuori", "Outside"))}</small>
-      <b data-dm-vmc-t="${esc(dopo?.chiave || "")}">${esc(gradi(dopo))}</b>
-      <em>${esc(dopo ? parolaTemperatura(dopo.chiave) : "")}</em>
+      <small>${esc(entra ? t("In casa", "Into the house") : t("Da casa", "From the house"))}</small>
+      <b data-dm-vmc-t="${esc(destra?.chiave || "")}">${esc(gradi(destra))}</b>
+      <em>${esc(destra ? parolaTemperatura(destra.chiave) : "")}</em>
     </span>
   </div>`;
 }

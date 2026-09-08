@@ -51,6 +51,7 @@ export function normalizeSecurityDoors(values) {
         entity,
         icon: clean(item?.icon) || "🚪",
         pin: normalizeDoorPin(item?.pin),
+        gesto: gestoDellaPorta(item),
       };
     })
     .filter((item) => isDoorEntity(item.entity));
@@ -80,19 +81,80 @@ export function normalizeSecurityDoors(values) {
  * sbloccare: e' la differenza fra il chiavistello e il pulsante del portone. */
 export const LOCK_SUPPORT_OPEN = 1;
 
+/** Se questa serratura sa aprire, e non solo sbloccare. */
+export function serraturaSaAprire(state) {
+  const features = Number(state?.attributes?.supported_features);
+  return Number.isFinite(features) && (features & LOCK_SUPPORT_OPEN) === LOCK_SUPPORT_OPEN;
+}
+
+/* I due gesti di una serratura, e la scelta di averli tutti e due (#387).
+ *
+ * «Gestire con Nuki separatamente sblocca/blocca e/o apri — evita apertura
+ * indesiderata se si vuole solo sblocco.» Sono due cose diverse: `unlock` gira
+ * la chiave, `open` tira indietro lo scrocco e la porta si apre. La plancia,
+ * su una serratura che dichiara di saper fare tutte e due, ha sempre chiamato
+ * `open`: il gesto piu' irreversibile era l'unico disponibile, proprio dove
+ * sbagliare costa di piu'.
+ *
+ * Adesso lo dice chi ha la casa. Chi non ha scelto niente trova quello che ha
+ * sempre avuto — cambiare sotto i piedi il tasto del portone a chi lo usa ogni
+ * giorno sarebbe un modo di avere ragione a spese sue. */
+export const GESTI_PORTA = Object.freeze(["apri", "sblocca", "entrambi"]);
+
+export function gestoDellaPorta(door) {
+  const scelto = clean(door?.gesto).toLowerCase();
+  return GESTI_PORTA.includes(scelto) ? scelto : "";
+}
+
+const CHIAMATA_SBLOCCA = Object.freeze({ domain: "lock", service: "unlock", data: {} });
+const CHIAMATA_APRI = Object.freeze({ domain: "lock", service: "open", data: {} });
+
+/**
+ * I gesti che questa apertura offre davvero, in ordine: prima quello che si
+ * puo' disfare.
+ *
+ * Torna una voce sola per tutto quello che non e' una serratura — un pulsante
+ * non ha due modi di essere premuto — e due solo per una serratura che sa fare
+ * tutte e due e a cui e' stato chiesto di mostrarle entrambe.
+ */
+export function azioniDellaPorta(door, state = null) {
+  const entity = clean(door?.entity);
+  if (!isDoorEntity(entity)) return [];
+  const domain = entity.toLowerCase().split(".")[0];
+  const scelto = gestoDellaPorta(door);
+  if (domain !== "lock") {
+    const call = doorOpenCall(entity, state, scelto);
+    return call ? [{ gesto: "apri", call }] : [];
+  }
+  if (!serraturaSaAprire(state)) return [{ gesto: "sblocca", call: CHIAMATA_SBLOCCA }];
+  if (scelto === "sblocca") return [{ gesto: "sblocca", call: CHIAMATA_SBLOCCA }];
+  if (scelto === "entrambi")
+    return [
+      { gesto: "sblocca", call: CHIAMATA_SBLOCCA },
+      { gesto: "apri", call: CHIAMATA_APRI },
+    ];
+  return [{ gesto: "apri", call: CHIAMATA_APRI }];
+}
+
 /**
  * La chiamata che apre questa entita'. Torna dominio, servizio e dati; il
  * bersaglio lo mette chi chiama. Un dominio sconosciuto torna null: meglio
  * nessun comando che un comando inventato.
  */
-export function doorOpenCall(entity, state = null) {
+export function doorOpenCall(entity, state = null, gesto = "") {
   const id = clean(entity).toLowerCase();
   const domain = id.split(".")[0];
   if (!isDoorEntity(id)) return null;
   if (domain === "lock") {
-    const features = Number(state?.attributes?.supported_features);
-    const apre = Number.isFinite(features) && (features & LOCK_SUPPORT_OPEN) === LOCK_SUPPORT_OPEN;
-    return { domain, service: apre ? "open" : "unlock", data: {} };
+    /* Una serratura che non sa aprire ha un gesto solo, qualunque cosa sia
+     * stata scelta: offrire `open` a chi non lo espone sarebbe un tasto che
+     * non fa niente. */
+    if (!serraturaSaAprire(state)) return { domain, service: "unlock", data: {} };
+    const scelto = gestoDellaPorta({ gesto });
+    /* Con tutti e due i tasti, questa e' la chiamata del primo — quello che si
+     * puo' disfare. L'altro lo prende chi disegna, da `azioniDellaPorta`. */
+    const sblocca = scelto === "sblocca" || scelto === "entrambi";
+    return { domain, service: sblocca ? "unlock" : "open", data: {} };
   }
   if (domain === "button" || domain === "input_button")
     return { domain, service: "press", data: {} };

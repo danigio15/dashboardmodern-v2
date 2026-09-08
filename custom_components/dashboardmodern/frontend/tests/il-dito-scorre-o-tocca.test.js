@@ -1,0 +1,77 @@
+/* «Quando sei in un menù pieno di entità, tipo le luci, o temperature, quando
+ * scorri con il dito oltre allo scorrere prende anche il comando. Sulle luci
+ * mentre passi con il dito per scorrere le accende pure.» (#397)
+ *
+ * Il prezzo dello sbaglio non è simmetrico: una pagina che non scorre la si
+ * riprova, una luce accesa per sbaglio resta accesa in una stanza dove non c'è
+ * nessuno. Il criterio è quello di sempre — quanto si è spostato il dito fra
+ * il tocco e il rilascio — e il resto sono i casi in cui NON si deve fermare
+ * niente, che sono la parte che si può rompere.
+ */
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+
+import {
+  SCARTO_DEL_TOCCO,
+  quantoSiEMosso,
+  stavaScorrendo,
+} from "../src/core/il-dito-scorre-o-tocca.js";
+
+test("un dito fermo tocca, un dito che tira scorre", () => {
+  assert.equal(stavaScorrendo({ x: 100, y: 200 }, { x: 100, y: 200 }), false);
+  assert.equal(stavaScorrendo({ x: 100, y: 200 }, { x: 102, y: 203 }), false);
+  /* Il caso segnalato: si scorre l'elenco delle luci verso l'alto. */
+  assert.equal(stavaScorrendo({ x: 100, y: 400 }, { x: 100, y: 120 }), true);
+});
+
+test("si misura in diagonale, non asse per asse", () => {
+  /* Chi scorre di traverso si sposta poco su ciascun asse e parecchio in
+   * totale: guardare un asse alla volta lo lascerebbe passare per un tocco. */
+  const obliquo = { x: 110, y: 210 };
+  assert.equal(Math.round(quantoSiEMosso({ x: 100, y: 200 }, obliquo)), 14);
+  assert.equal(stavaScorrendo({ x: 100, y: 200 }, obliquo), true);
+  /* E lo stesso spostamento su un asse solo sarebbe stato un tocco. */
+  assert.equal(stavaScorrendo({ x: 100, y: 200 }, { x: 110, y: 200 }), false);
+});
+
+test("la soglia è quella dichiarata, e si può cambiare", () => {
+  const appena = { x: 0, y: SCARTO_DEL_TOCCO };
+  assert.equal(stavaScorrendo({ x: 0, y: 0 }, appena), false, "sul limite è ancora un tocco");
+  assert.equal(stavaScorrendo({ x: 0, y: 0 }, { x: 0, y: SCARTO_DEL_TOCCO + 1 }), true);
+  assert.equal(stavaScorrendo({ x: 0, y: 0 }, { x: 0, y: 5 }, 2), true);
+  assert.equal(stavaScorrendo({ x: 0, y: 0 }, { x: 0, y: 5 }, 100), false);
+});
+
+test("un click senza un dito dietro passa sempre", () => {
+  /* Tastiera, lettore di schermo, `element.click()` da un altro modulo: non
+   * hanno un punto di partenza, e rifiutarli vorrebbe dire rompere la plancia
+   * per chi non la tocca con le dita. */
+  assert.equal(stavaScorrendo(null, { x: 0, y: 400 }), false);
+  assert.equal(stavaScorrendo(undefined, undefined), false);
+  assert.equal(stavaScorrendo({ x: 0, y: 0 }, null), false);
+  assert.equal(quantoSiEMosso({ x: 0, y: 0 }, { x: NaN, y: 0 }), null);
+});
+
+test("la guardia sta sul documento in cattura, e lascia stare ciò che si trascina", () => {
+  const sorgente = readFileSync(
+    new URL("../src/sections/il-dito-scorre-o-tocca-section.js", import.meta.url),
+    "utf8",
+  );
+  /* In cattura sul documento: è l'unico posto da cui si arriva prima di ogni
+   * sezione, comprese quelle che ancora non esistono. */
+  assert.match(sorgente, /doc\.addEventListener\("click", fermaSeScorreva, true\)/);
+  assert.match(sorgente, /doc\.addEventListener\("pointerdown", segnaLaPartenza, true\)/);
+  /* Un cursore si USA spostando il dito: lì lo spostamento è il comando. */
+  assert.match(sorgente, /input,textarea,select,\[draggable="true"\],\[data-dm-si-trascina\]/);
+  /* E un tocco annullato non lascia in giro la sua partenza. */
+  assert.match(sorgente, /doc\.addEventListener\("pointercancel", scordaLaPartenza, true\)/);
+});
+
+test("è installata dal runtime, non da chi se la ricorda", () => {
+  const runtime = readFileSync(
+    new URL("../src/sections/section-runtime.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(runtime, /installIlDitoScorreOTocca\(\);/);
+});

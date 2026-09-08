@@ -13,10 +13,24 @@ import { normalizeDevice } from "../src/core/device-model.js";
 
 test("chi non sceglie niente ha quello che dice Home Assistant", () => {
   assert.equal(coverKind({}, { attributes: { device_class: "curtain" } }), "tenda");
-  assert.equal(coverKind({}, { attributes: { device_class: "blind" } }), "tenda");
-  assert.equal(coverKind({}, { attributes: { device_class: "shade" } }), "tenda");
   assert.equal(coverKind({}, { attributes: { device_class: "awning" } }), "tenda_sole");
   assert.equal(coverKind({}, { attributes: { device_class: "shutter" } }), "tapparella");
+});
+
+test("solo cio' che si scosta di lato e' una tenda (#396)", () => {
+  /* «5 tapparelle configurate allo stesso modo, 2 vengono mostrate come tende
+   * sia nell'animazione che nel titolo»: erano quelle che la loro integrazione
+   * dichiara `blind` o `shade`. Una veneziana e una tenda a rullo scendono
+   * dall'alto — non si aprono al centro — e disegnarle di lato era mostrare un
+   * movimento che in casa non succede. */
+  for (const deviceClass of ["blind", "shade"]) {
+    assert.equal(coverKind({}, { attributes: { device_class: deviceClass } }), "tapparella");
+    assert.equal(coverIsSideways(coverKind({}, { attributes: { device_class: deviceClass } })), false);
+  }
+  /* `curtain` resta l'unica che si scosta davvero. */
+  assert.equal(coverIsSideways(coverKind({}, { attributes: { device_class: "curtain" } })), true);
+  /* E chi la vuole tenda lo dice, con la sua casella: la scelta vince sempre. */
+  assert.equal(coverKind({ kind: "tenda" }, { attributes: { device_class: "blind" } }), "tenda");
 });
 
 test("cio' che non e' ne' tapparella ne' tenda resta disegnato come prima", () => {

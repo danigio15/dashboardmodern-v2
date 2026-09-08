@@ -92,6 +92,20 @@ export const ROOM_BLOCKS = Object.freeze([
   { key: "prese", section: "prese" },
   { key: "coperture", section: "covers" },
   { key: "elettrodomestici", section: "appliances" },
+  /* I lettori (#405).
+   *
+   * «I vari player presenti nelle stanze: attualmente appare un Playing
+   *  generico, che se cliccato rimanda alla home della dashboard. Un'idea
+   *  potrebbe essere avere la sezione Media Player nelle stanze invece che
+   *  classificarli come Altro in questa stanza.»
+   *
+   * La stanza un lettore ce l'ha addosso: la sua scheda la chiede, come la
+   * chiedono le luci e le telecamere. Mancava soltanto la riga qui, e senza
+   * quella un lettore poteva arrivare in una stanza solo per assegnazione a
+   * mano — cioe' nel mucchio dell'«Altro», dove il tocco non porta da nessuna
+   * parte. Era lo stesso difetto che avevano le telecamere, corretto li' e
+   * rimasto qui. */
+  { key: "media", section: "media" },
   { key: "telecamere", section: "cameras" },
   { key: "carichi", section: "loads" },
   { key: "robot", section: "robots" },
@@ -277,6 +291,7 @@ export function roomOverviewModel(input = {}) {
     prese: array(input.prese),
     covers: array(input.covers),
     appliances: array(input.appliances),
+    media: array(input.media),
     cameras: array(input.cameras),
     loads: array(input.loads),
     robots: array(input.robots),

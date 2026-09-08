@@ -29,9 +29,12 @@ import {
   supportedLocales,
 } from "../core/i18n.js";
 import {
+  ORDINE_IMPOSTAZIONI,
   clean,
   doc,
+  dopoIGenerali,
   esc,
+  inserisciInOrdine,
   installStyle,
   onEditorRedraw,
   root,
@@ -112,20 +115,14 @@ function rigaMarkup() {
 export function ensureLingua() {
   const corpo = doc?.getElementById("ed-body");
   if (!corpo || schedaAttiva() !== SCHEDA) return false;
-  /* L'ancora e' il tasto del guscio che chiude il blocco «Generali»: la lingua
-   * e' una preferenza generale, e sta con le altre invece che in fondo alla
-   * scheda dopo il reset totale. Si riconosce dal gestore, non dalla scritta,
-   * che cambia con la lingua — proprio quella che questa riga governa.
-   *
-   * Ma l'ancora puo' non esserci. Il blocco «Generali» il guscio lo disegna
-   * solo a chi puo' vederlo — c'e' una casella «Utente admin (vuoto = Config
-   * visibile a tutti)» — e su una plancia dove quella casella e' piena, chi
-   * guarda da un altro utente perde il blocco e con lui la lingua: «verifica
-   * sempre il problema della scelta lingua perche' e' scomparsa nel config».
-   * La lingua non e' del blocco Generali, e' della plancia: se l'ancora non
-   * c'e' si mette in cima alla scheda per conto suo. Sparire non e' una
-   * risposta. */
-  const salva = corpo.querySelector('[onclick*="edSaveGeneral"]');
+  /* La lingua e' una preferenza generale e sta col blocco «Generali», non in
+   * fondo alla scheda dopo il reset totale. Ma quel blocco il guscio lo
+   * disegna solo a chi puo' vederlo — c'e' una casella «Utente admin (vuoto =
+   * Config visibile a tutti)» — e su una plancia dove quella casella e' piena
+   * chi guarda da un altro utente perdeva il blocco e con lui la lingua:
+   * «verifica sempre il problema della scelta lingua perche' e' scomparsa nel
+   * config». La lingua non e' del blocco Generali, e' della plancia: dove
+   * l'ancora non c'e' si mette in cima. Sparire non e' una risposta. */
   const gia = corpo.querySelector("[data-dm-lingua]");
   if (gia) {
     /* Ridisegnata la scheda, la scelta puo' essere cambiata da un'altra
@@ -138,8 +135,7 @@ export function ensureLingua() {
   guscio.innerHTML = rigaMarkup();
   const riga = guscio.firstElementChild;
   if (!riga) return false;
-  if (salva) salva.after(riga);
-  else corpo.prepend(riga);
+  inserisciInOrdine(corpo, riga, ORDINE_IMPOSTAZIONI.lingua, dopoIGenerali);
   installStile();
   return true;
 }

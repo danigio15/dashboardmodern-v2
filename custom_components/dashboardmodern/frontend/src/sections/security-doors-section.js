@@ -11,7 +11,7 @@
  * ogni cambio di stato mentre la pagina e' visibile.
  */
 import {
-  doorOpenCall,
+  azioniDellaPorta,
   doorPinMatches,
   normalizeSecurityDoors,
 } from "../core/security-door-model.js";
@@ -59,6 +59,7 @@ const state = (root[KEY] ||= {
   signature: "",
   typed: "",
   doorId: "",
+  gesto: "",
   busy: new Set(),
 });
 
@@ -98,23 +99,47 @@ export function iconaPortaMarkup(icon, size = 22) {
   return esc(token);
 }
 
-function doorMarkup(door) {
-  return `<button type="button" class="dm-door" data-dm-door="${esc(door.id)}">
-      <span class="dm-door-ic" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
+/** Come si chiama un gesto, sul tasto. */
+export function parolaDelGesto(gesto) {
+  return gesto === "sblocca" ? t("Sblocca", "Unlock") : t("Apri", "Open");
+}
+
+function dentroLaPorta(door) {
+  return `<span class="dm-door-ic" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>
       <span class="dm-door-copy">
         <strong class="dm-door-name">${esc(door.name || door.entity)}</strong>
         <span class="dm-door-state" data-dm-door-state></span>
       </span>
-      ${door.pin ? `<span class="dm-door-pin" title="${esc(t("Protetta da PIN", "PIN protected"))}" aria-hidden="true">🔒</span>` : ""}
-    </button>`;
+      ${door.pin ? `<span class="dm-door-pin" title="${esc(t("Protetta da PIN", "PIN protected"))}" aria-hidden="true">🔒</span>` : ""}`;
 }
 
-function blockMarkup(doors) {
+/* Una porta con un gesto solo resta il tasto grande di sempre — è la stragrande
+ * maggioranza, e un bottone dentro un bottone non è nemmeno HTML valido. Con
+ * due gesti la card diventa una cornice e i tasti sono due, piccoli, in fondo:
+ * «sblocca» prima, perché è quello che si può disfare (#387). */
+function doorMarkup(door, states) {
+  const azioni = azioniDellaPorta(door, states?.[door.entity]);
+  if (azioni.length < 2)
+    return `<button type="button" class="dm-door" data-dm-door-card="${esc(door.id)}" data-dm-door="${esc(door.id)}">
+      ${dentroLaPorta(door)}
+    </button>`;
+  return `<div class="dm-door dm-door-doppia" data-dm-door-card="${esc(door.id)}">
+      ${dentroLaPorta(door)}
+      <span class="dm-door-gesti">${azioni
+        .map(
+          (azione) =>
+            `<button type="button" class="dm-door-gesto" data-dm-door="${esc(door.id)}" data-dm-door-gesto="${esc(azione.gesto)}">${esc(parolaDelGesto(azione.gesto))}</button>`,
+        )
+        .join("")}</span>
+    </div>`;
+}
+
+function blockMarkup(doors, states) {
   return `<div class="dm-sec-doors-head">
       <span class="dm-sec-doors-ic" aria-hidden="true">🚪</span>
       <span class="dm-sec-doors-hint">${esc(t("Il tocco chiede conferma; col PIN, il codice.", "A tap asks to confirm; with a PIN, the code."))}</span>
     </div>
-    <div class="dm-door-grid">${doors.map(doorMarkup).join("")}</div>`;
+    <div class="dm-door-grid">${doors.map((door) => doorMarkup(door, states)).join("")}</div>`;
 }
 
 /* Quante aperture ci sono, detto nell'intestazione della pagina. */
@@ -243,19 +268,29 @@ export function renderSecurityDoors() {
     return true;
   }
   const block = ensureBlock(shell);
+  const states = allStates();
   const signature = [
     activeLocale(),
     ...doors.map((door) =>
-      [door.id, door.name, door.entity, door.icon, Boolean(door.pin)].join("~"),
+      [
+        door.id,
+        door.name,
+        door.entity,
+        door.icon,
+        Boolean(door.pin),
+        /* Quanti tasti ha questa porta: dipende dalla scelta e da quello che
+         * la serratura dichiara, e l'una e l'altra possono cambiare mentre la
+         * pagina è aperta. */
+        azioniDellaPorta(door, states[door.entity]).length,
+      ].join("~"),
     ),
   ].join("|");
   if (state.signature !== signature || !block.querySelector(".dm-door-grid")) {
     state.signature = signature;
-    block.innerHTML = blockMarkup(doors);
+    block.innerHTML = blockMarkup(doors, states);
   }
-  const states = allStates();
   for (const door of doors) {
-    const card = block.querySelector(`[data-dm-door="${CSS.escape(door.id)}"]`);
+    const card = block.querySelector(`[data-dm-door-card="${CSS.escape(door.id)}"]`);
     const label = card?.querySelector("[data-dm-door-state]");
     if (!label) continue;
     const text = state.busy.has(door.id)
@@ -283,9 +318,11 @@ function paint() {
 
 /* ── the command ──────────────────────────────────────────────────────── */
 
-async function openDoor(door) {
+async function openDoor(door, gesto = "") {
   if (state.busy.has(door.id)) return;
-  const call = doorOpenCall(door.entity, allStates()[door.entity]);
+  const azioni = azioniDellaPorta(door, allStates()[door.entity]);
+  const scelta = azioni.find((azione) => azione.gesto === clean(gesto)) || azioni[0];
+  const call = scelta?.call;
   if (!call) return;
   state.busy.add(door.id);
   schedule();
@@ -307,7 +344,7 @@ async function openDoor(door) {
   }, 4000);
 }
 
-function confirmAndOpen(door) {
+function confirmAndOpen(door, gesto = "") {
   if (typeof root.confermaAzione === "function") {
     try {
       root.confermaAzione({
@@ -316,13 +353,19 @@ function confirmAndOpen(door) {
          * un'emoji generica per non vederlo scritto. */
         icon: clean(door.icon) || "🚪",
         title: clean(door.name) || t("Apri", "Open"),
-        message: t("Confermi l'apertura?", "Confirm opening?"),
-        onConfirm: () => openDoor(door),
+        /* La domanda dice quale dei due gesti si sta per fare: «confermi
+         * l'apertura?» davanti a uno sblocco sarebbe una domanda su un'altra
+         * cosa. */
+        message:
+          clean(gesto) === "sblocca"
+            ? t("Confermi lo sblocco?", "Confirm unlocking?")
+            : t("Confermi l'apertura?", "Confirm opening?"),
+        onConfirm: () => openDoor(door, gesto),
       });
       return;
     } catch (_error) {}
   }
-  openDoor(door);
+  openDoor(door, gesto);
 }
 
 /* ── the keypad ───────────────────────────────────────────────────────── */
@@ -369,9 +412,10 @@ function paintDots(modal, expectedLength) {
   });
 }
 
-function openKeypad(door) {
+function openKeypad(door, gesto = "") {
   const modal = ensureKeypad();
   state.doorId = door.id;
+  state.gesto = clean(gesto);
   state.typed = "";
   const name = modal.querySelector("[data-dm-door-keypad-name]");
   if (name) name.textContent = clean(door.name) || door.entity;
@@ -385,6 +429,7 @@ function closeKeypad() {
   const modal = doc.getElementById(KEYPAD_ID);
   modal?.classList.remove("show");
   state.doorId = "";
+  state.gesto = "";
   state.typed = "";
 }
 
@@ -413,8 +458,10 @@ function onKeypadClick(event) {
   }
   if (event.target.closest("[data-dm-door-ok]")) {
     if (doorPinMatches(door, state.typed)) {
+      /* Il gesto si legge prima di chiudere: chiudendo si dimentica. */
+      const gesto = state.gesto;
       closeKeypad();
-      openDoor(door);
+      openDoor(door, gesto);
     } else {
       /* PIN sbagliato: si azzera e si resta qui — l'errore va detto dov'e'
        * successo, non con la porta che non si apre e basta. */
@@ -437,11 +484,13 @@ function onClick(event) {
   event.preventDefault();
   const door = doorById(card.dataset.dmDoor);
   if (!door || state.busy.has(door.id)) return;
-  if (door.pin) openKeypad(door);
-  else if (siChiedeConferma()) confirmAndOpen(door);
+  /* Quale dei due gesti: lo dice il tasto, dove ce ne sono due. */
+  const gesto = clean(card.dataset.dmDoorGesto);
+  if (door.pin) openKeypad(door, gesto);
+  else if (siChiedeConferma()) confirmAndOpen(door, gesto);
   /* Senza conferma si apre e basta: è la scelta di chi apre il proprio portone
    * dieci volte al giorno. */
-  else openDoor(door);
+  else openDoor(door, gesto);
 }
 
 function paginaVisibile() {
@@ -480,6 +529,18 @@ function installStyles() {
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dm-door-state{font-size:11.5px;font-weight:600;color:var(--dm-sec-dim,#64748b)}
 .dm-door-pin{flex:0 0 auto;font-size:14px;opacity:.75}
+/* La porta con due gesti: la card smette di essere il tasto — un bottone
+   dentro un bottone non e' HTML valido — e i tasti vanno a capo in fondo. */
+.dm-door-doppia{flex-wrap:wrap;cursor:default}
+.dm-door-doppia:hover{transform:none;border-color:var(--dm-sec-border,var(--card-border,#e8edf3));box-shadow:0 10px 26px rgba(15,23,42,.07)}
+.dm-door-gesti{flex:1 1 100%;display:flex;gap:8px}
+.dm-door-gesto{
+  flex:1 1 0;padding:9px 12px;border-radius:12px;cursor:pointer;
+  border:1px solid var(--dm-sec-border,var(--card-border,#e8edf3));
+  background:var(--surface-3,#f1f5f9);color:var(--dm-sec-text,var(--text,#0f172a));
+  font:inherit;font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}
+.dm-door-gesto:hover{border-color:rgba(6,182,212,.38)}
+.dm-door-gesto:focus-visible{outline:3px solid rgba(6,182,212,.55);outline-offset:2px}
 #${KEYPAD_ID} .dm-door-keypad-error:not(:empty){
   display:block;margin:6px 0 0;color:var(--error-color,#dc2626);
   font-size:12px;font-weight:800;text-align:center}

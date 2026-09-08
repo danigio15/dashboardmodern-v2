@@ -20,6 +20,7 @@
  */
 import {
   CHIAVE_ASSIST,
+  assistAcceso,
   domandaPerHomeAssistant,
   filoDaMandare,
   linguaPerIlMicrofono,
@@ -36,6 +37,7 @@ import {
   readJson,
   root,
   t,
+  wrapFunction,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ASSIST__";
@@ -54,6 +56,11 @@ const state = (root[KEY] ||= {
 
 function configurazione() {
   return normalizzaAssist(readJson(CHIAVE_ASSIST, {}));
+}
+
+/** Se Assist e' acceso, secondo l'elenco delle sezioni. */
+function acceso() {
+  return assistAcceso(readJson("cd_sections", {}), readJson(CHIAVE_ASSIST, {}));
 }
 
 /* ── la voce ─────────────────────────────────────────────────────────────
@@ -304,9 +311,8 @@ export function chiudiAssist() {
  * un'icona — perche' non deve rubare la scena a quello che c'e' sotto. */
 function ensureTasto() {
   if (!doc?.body) return null;
-  const config = configurazione();
   let tasto = doc.getElementById("dm-assist-tasto");
-  if (!config.tasto) {
+  if (!acceso()) {
     tasto?.remove();
     return null;
   }
@@ -362,16 +368,28 @@ export function installAssistSection() {
   if (!doc || state.installed) return false;
   state.installed = true;
   installStyles();
-  ensureTasto();
-  /* Il tasto compare e sparisce con la sua spunta in configurazione, e la
-   * configurazione puo' arrivare da un altro dispositivo. */
+  /* La fascia verde che accende e spegne Assist e' quella del guscio, e il
+   * guscio dopo averla toccata chiama `cdApplyNavVis`: e' li' che si sente il
+   * cambio, senza aspettare un ridisegno della plancia.
+   *
+   * Si prova a ogni avviso e non una volta sola: quando questo modulo si
+   * installa il guscio puo' non aver ancora scritto quella funzione, e
+   * `wrapFunction` in quel caso si rifiuta — come si rifiuta di avvolgere due
+   * volte, che e' quello che rende innocuo riprovarci. */
+  const senti = () => {
+    wrapFunction("cdApplyNavVis", "__dmAssistTasto", () => ensureTasto());
+    ensureTasto();
+  };
+  senti();
+  /* Il tasto compare e sparisce con la sua fascia, e la configurazione puo'
+   * arrivare da un altro dispositivo. */
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
     "dashboardmodern:persistence-restored",
     "dashboardmodern:config-changed",
   ])
-    root.addEventListener?.(evento, () => ensureTasto());
+    root.addEventListener?.(evento, senti);
   root.DashboardModernAssist = { apri: apriAssist, chiudi: chiudiAssist, chiedi };
   return true;
 }

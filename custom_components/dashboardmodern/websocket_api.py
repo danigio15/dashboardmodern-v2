@@ -46,7 +46,7 @@ from .config_store import (
     async_get_config_store,
 )
 from .const import CHAT_MAX_TESTO, DOMAIN
-from .device_catalog import MAX_DEVICE_IDS, async_build_catalog
+from .device_catalog import MAX_DEVICE_IDS, MAX_ENTITY_IDS, async_build_catalog
 from .github_client import DevicePending, GitHubError
 from .github_tokens import async_get_token_store
 from .ticket_store import (
@@ -424,6 +424,9 @@ _REMOTE_ID = vol.All(str, vol.Length(min=1, max=128))
         vol.Optional("device_ids"): vol.All(
             [vol.All(str, vol.Length(min=1, max=64))], vol.Length(max=MAX_DEVICE_IDS)
         ),
+        vol.Optional("entity_ids"): vol.All(
+            [vol.All(str, vol.Length(min=3, max=255))], vol.Length(max=MAX_ENTITY_IDS)
+        ),
     }
 )
 @websocket_api.async_response
@@ -439,12 +442,16 @@ async def async_integrations_catalog(
     autenticato, rimessa nella forma di un menu. Con `device_ids` la risposta
     porta solo le entita' di quei dispositivi — fino a duecento in una
     chiamata sola, ed e' cosi' che la plancia le chiede per tutti i suoi
-    elettrodomestici insieme.
+    elettrodomestici insieme. Con `entity_ids` porta le stesse righe per le
+    entita' chieste per nome: serve a sapere di quale integrazione sono, che
+    e' una cosa che lo stato non dice e il registro si'.
     """
     if not _authorized(hass, connection, None):
         _deny(connection, msg)
         return
-    catalog = await async_build_catalog(hass, device_ids=msg.get("device_ids"))
+    catalog = await async_build_catalog(
+        hass, device_ids=msg.get("device_ids"), entity_ids=msg.get("entity_ids")
+    )
     connection.send_result(msg["id"], catalog)
 
 

@@ -1276,7 +1276,6 @@ function apriConfigEntita() {
         </div>
         <div class="ed-tabs">
           <button class="ed-tab" data-tab="visib" onclick="editorSwitch('visib')">⚙️ Impostazioni</button>
-          <button class="ed-tab" data-tab="sost"  onclick="editorSwitch('sost')">🔁 Overrides</button>
           <button class="ed-tab" data-tab="sez0" onclick="editorSwitch('sez0')">🏠 Home</button>
           <button class="ed-tab" data-tab="sez1" onclick="editorSwitch('sez1')">⚡ Energy</button>
           <button class="ed-tab" data-tab="sez2" onclick="editorSwitch('sez2')">🚗 EV</button>
@@ -1293,10 +1292,9 @@ function apriConfigEntita() {
           <button class="ed-tab" data-tab="luci"  onclick="editorSwitch('luci')">💡 Lights</button>
           <button class="ed-tab" data-tab="appliances" onclick="editorSwitch('appliances')">🧺 Appliances</button>
           <button class="ed-tab" data-tab="avvisi" onclick="editorSwitch('avvisi')">🔔 Alerts</button>
-          <button class="ed-tab" data-tab="testi" onclick="editorSwitch('testi')">✏️ Texts</button>
           
           <button class="ed-tab" data-tab="runtime" onclick="editorSwitch('runtime')">🩺 Runtime</button>
-          <button class="ed-tab" data-tab="export" onclick="editorSwitch('export')">📤 Export</button>
+          
         </div>
         <div class="ed-body" id="ed-body"></div>
       </div>`;

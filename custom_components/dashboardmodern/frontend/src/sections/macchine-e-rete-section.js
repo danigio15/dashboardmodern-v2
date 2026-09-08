@@ -16,13 +16,28 @@
  * macchine che Home Assistant sa accendere e spegnere portano il loro tasto. Il
  * tasto c'è solo dove c'è davvero qualcosa da premere: il modello lo dice
  * guardando gli stati, non indovinando.
+ *
+ * Chi ci finisce dentro non lo decide più la sola classe del sensore — ci
+ * finiva mezza casa — ma l'integrazione da cui l'entità arriva, e quella la
+ * sa solo il registro di Home Assistant. La domanda parte da qui, una volta
+ * per entità; il modello riceve le risposte già in mano e resta una funzione
+ * che si prova a tavolino. Finché non si è scelta nessuna integrazione le
+ * fasce non ci sono, e al loro posto c'è una riga che dice dove si sceglie:
+ * una sezione vuota con scritto perché è meglio di una piena di roba d'altri.
  */
 import {
   CHIAVE_MACCHINE,
+  candidateDaChiedere,
   contoDelleMacchine,
   macchineConfigurate,
   macchineERete,
+  normalizzaMacchine,
 } from "../core/macchine-e-rete.js";
+import {
+  EVENTO_PIATTAFORME,
+  piattaformeConosciute,
+  scopriLePiattaforme,
+} from "./di-chi-e-unentita-section.js";
 import {
   allStates,
   clean,
@@ -50,14 +65,31 @@ function configurazione() {
 /** I due elenchi, letti adesso. */
 export function macchineInPlancia() {
   const states = allStates();
-  return macchineERete(states, configurazione(), (entity) =>
-    nomeDaHomeAssistant(entity, states),
+  return macchineERete(
+    states,
+    configurazione(),
+    (entity) => nomeDaHomeAssistant(entity, states),
+    piattaformeConosciute(),
   );
 }
 
 /** Se c'è qualcosa da mostrare. */
 export function ciSonoMacchine() {
-  return macchineConfigurate(allStates(), configurazione());
+  return macchineConfigurate(allStates(), configurazione(), piattaformeConosciute());
+}
+
+/* Di chi sono i candidati: la domanda al registro, una volta per entità.
+ *
+ * Si fa qui e non nel modello perché è una domanda che viaggia: il modello
+ * riceve le risposte già in mano e resta una funzione che si prova a tavolino.
+ * Quando ne arrivano di nuove il modulo lo annuncia, e chi disegna si rifà —
+ * per questo qui non si aspetta niente.
+ *
+ * E si fa anche a pagina chiusa: la tessera «Server e rete» in Home conta le
+ * stesse righe, e chi non apre mai la pagina Server se la troverebbe vuota per
+ * sempre. Le risposte si tengono, quindi chiederlo due volte non costa. */
+function imparaDiChiSono(candidate = candidateDaChiedere(allStates())) {
+  if (candidate.length) scopriLePiattaforme(candidate);
 }
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
@@ -124,16 +156,49 @@ function ensureFasce() {
   return dove;
 }
 
+/* Quando non si è ancora scelto niente ma ci sarebbe da scegliere.
+ *
+ * Sparire in silenzio sarebbe la risposta comoda e quella sbagliata: chi apre
+ * la pagina Server dopo un aggiornamento non deve chiedersi dove sono finiti i
+ * suoi container. Il conto è quello vero — i candidati di cui si sa già
+ * l'integrazione — perché un numero che promette più di quello che arriva è
+ * peggio di nessun numero. */
+function invitoMarkup(candidate) {
+  if (normalizzaMacchine(configurazione()).integrazioni.length) return "";
+  const piattaforme = piattaformeConosciute();
+  const quante = candidate.filter((entity) => clean(piattaforme[entity])).length;
+  if (!quante) return "";
+  return `<section class="dm-macchine-fascia dm-macchine-invito">
+    <header class="dm-macchine-testa">
+      <strong>${esc(t("Macchine e rete", "Machines and network"))}</strong>
+      <span>${esc(t("Da scegliere", "To be chosen"))} · ${esc(String(quante))}</span>
+    </header>
+    <p>${esc(
+      t(
+        "Home Assistant dichiara delle entità che potrebbero essere macchine del server o pezzi di rete — ma le stesse etichette ce l'hanno anche la lavatrice e il telefono. In Config → 🖥️ MiniPC si sceglie da quali integrazioni prenderle.",
+        "Home Assistant declares entities that could be server machines or network pieces — but the washing machine and the phone carry the same labels. In Config → 🖥️ MiniPC you choose which integrations they come from.",
+      ),
+    )}</p>
+  </section>`;
+}
+
 function dipingi() {
   const dove = ensureFasce();
   if (!dove) return;
   if (!paginaVisibile(SERVER_PAGE_ID)) return;
+  /* I candidati si cercano una volta per giro e si passano a chi serve:
+   * scorrere tutti gli stati tre volte per dipingere due fasce è il genere di
+   * lavoro che, moltiplicato per ogni cambio di stato, si sente. */
+  const candidate = candidateDaChiedere(allStates());
+  imparaDiChiSono(candidate);
   const elenchi = macchineInPlancia();
-  const firma = JSON.stringify([elenchi, t("Acceso", "Running")]);
+  const invito = invitoMarkup(candidate);
+  const firma = JSON.stringify([elenchi, invito, t("Acceso", "Running")]);
   if (state.firma === firma) return;
   state.firma = firma;
   dove.innerHTML = `${fasciaMarkup(t("Macchine e container", "Machines and containers"), elenchi.macchine)}
-    ${fasciaMarkup(t("Rete", "Network"), elenchi.rete)}`;
+    ${fasciaMarkup(t("Rete", "Network"), elenchi.rete)}
+    ${invito}`;
 }
 
 function schedule() {
@@ -199,6 +264,9 @@ function installStyles() {
     ${P} .dm-macchine-testa span{font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
     ${P} .dm-macchine-fascia[data-giu="true"] .dm-macchine-testa span{color:#dc2626}
     ${P} .dm-macchine-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+    ${P} .dm-macchine-invito p{margin:0;padding:12px 14px;border-radius:16px;font-size:12.5px;
+      font-weight:700;line-height:1.5;color:var(--text-dim,#64748b);
+      border:1px dashed var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
 
     ${P} .dm-macchina{
       display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;
@@ -258,6 +326,19 @@ export function installMacchine() {
     "dashboardmodern:persistence-restored",
   ])
     root.addEventListener?.(evento, schedule);
+  /* La domanda al registro parte quando la casa si presenta per intero, non a
+   * ogni singolo stato che cambia: sono gli avvisi dopo i quali possono
+   * esserci entità che prima non c'erano. */
+  for (const evento of [
+    "dashboardmodern:states-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:persistence-restored",
+  ])
+    root.addEventListener?.(evento, () => imparaDiChiSono());
+  /* Il registro ha detto di chi sono: adesso si sa chi entra e chi no, e la
+   * firma di prima non vale più — questo è l'unico avviso che merita un
+   * ridisegno forzato. */
+  root.addEventListener?.(EVENTO_PIATTAFORME, renderMacchine);
   quandoSiCambiaPagina(schedule);
   schedule();
   return true;

@@ -118,6 +118,16 @@ function rigaMarkup(riga, indice) {
             "A sensor with the next date (in its state or attributes), or a calendar.* with one event per collection.",
           ),
         )}</small></label>
+      ${
+        clean(riga.entity)
+          ? ""
+          : `<small class="dm-rifiuti-ed-muta">${esc(
+              t(
+                "Senza entità questa riga non si vede da nessuna parte: né nella pagina Rifiuti, né nella tessera in Home. Scegline una, oppure — se il calendario non ce l'hai — scrivi il turno di casa qui sotto, che non vuole nessuna entità.",
+                "Without an entity this row is nowhere to be seen: not on the Waste page, not on the Home tile. Pick one, or — if you have no calendar — write the two-week rota below, which needs no entity at all.",
+              ),
+            )}</small>`
+      }
     </div>
   </article>`;
 }
@@ -433,6 +443,9 @@ function installStyles() {
     "dm-rifiuti-editor-style",
     `
       #ed-body .dm-rifiuti-ed-riga{display:block;border-left:5px solid var(--dm-bidone,#0ea5e9)}
+      #ed-body .dm-rifiuti-ed-muta{display:block;margin-top:8px;padding:8px 10px;border-radius:10px;
+        font-size:11.5px;line-height:1.45;font-weight:700;color:#92400e;
+        background:color-mix(in srgb,#f59e0b 14%,transparent)}
       #ed-body .dm-rifiuti-ed-testa{display:flex;align-items:center;gap:8px;margin:0 0 6px}
       #ed-body .dm-rifiuti-ed-ic{
         display:grid;place-items:center;width:32px;height:32px;border-radius:10px;font-size:17px;flex:0 0 auto;

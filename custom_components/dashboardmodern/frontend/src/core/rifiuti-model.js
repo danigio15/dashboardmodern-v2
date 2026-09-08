@@ -291,13 +291,75 @@ export function giorniFra(da, a) {
   return Math.round((utcDue - utcUno) / 86400000);
 }
 
+/* I mesi scritti a parole, nelle sei lingue in cui si conoscono gia' i giorni
+ * della settimana. Una data cosi' non la scrive un'integrazione: la scrive chi
+ * si e' composto lo stato con un template, e per lui e' una data come le
+ * altre. */
+const MESI = Object.freeze([
+  /^(gen|genn|gennaio|jan|january|januar|januari|ene|enero|janv|janvier)$/,
+  /^(feb|febb|febbraio|february|februar|februari|feb|febrero|fevr|février|fevrier)$/,
+  /^(mar|marzo|march|märz|marz|maart|marzo|mars)$/,
+  /^(apr|aprile|april|abr|abril|avr|avril)$/,
+  /^(mag|maggio|may|mai|mei|may|mayo)$/,
+  /^(giu|giugno|jun|june|juni|jun|junio|juin)$/,
+  /^(lug|luglio|jul|july|juli|jul|julio|juil|juillet)$/,
+  /^(ago|agosto|aug|august|augustus|ago|agosto|aout|août)$/,
+  /^(set|sett|settembre|sep|sept|september|sep|septiembre|septembre)$/,
+  /^(ott|ottobre|oct|october|oktober|okt|oct|octubre|octobre)$/,
+  /^(nov|novembre|november|nov|noviembre|novembre)$/,
+  /^(dic|dicembre|dec|december|dez|dezember|dic|diciembre|déc|decembre)$/,
+]);
+
+const meseDaParola = (parola) => {
+  const voce = minuscolo(parola).replace(/\.$/, "");
+  if (!voce) return -1;
+  return MESI.findIndex((prova) => prova.test(voce));
+};
+
+/* Le parole che stanno davanti a una data senza aggiungere niente.
+ *
+ * «on Fri, 18.09.2026» e' lo stato vero di un sensore di Waste Collection
+ * Schedule (#383), ed e' due parole di troppo: la preposizione inglese e il
+ * giorno della settimana. Il lettore ne toglieva UNA, e solo se era un giorno
+ * — quindi su quella riga si fermava sulla prima parola e falliva tutto,
+ * mentre «Fri, 18.09.2026» lo leggeva benissimo.
+ *
+ * Le preposizioni sono quelle delle lingue in cui si conoscono gia' i giorni.
+ * `il` e `al` italiane, `on` e `at` inglesi, `am` tedesca, `el` spagnola, `le`
+ * francese, `op` olandese. Nessuna di queste e' un mese ne' un numero, quindi
+ * toglierla non puo' mangiare un pezzo di data. */
+const PREPOSIZIONI = /^(il|lo|al|del|di|on|at|am|el|le|op|den|op de)$/;
+
+/* Due parole al massimo — una preposizione e un giorno — e mai fino a
+ * svuotare la riga: se dopo aver tolto non resta una cifra, non era una data
+ * con qualcosa davanti, era un'altra cosa e va lasciata com'e'. */
+const PAROLE_DA_TOGLIERE = 2;
+
+function senzaIlGiornoDavanti(voce) {
+  let resto = voce;
+  for (let giro = 0; giro < PAROLE_DA_TOGLIERE; giro += 1) {
+    const m = /^([\p{L}]+)[.,]?\s+(.+)$/u.exec(resto);
+    if (!m) break;
+    const parola = minuscolo(m[1]);
+    const inutile =
+      PREPOSIZIONI.test(parola) || GIORNI_DELLA_SETTIMANA.some((prova) => prova.test(parola));
+    if (!inutile) break;
+    const dopo = pulito(m[2]);
+    if (!/\d/.test(dopo)) break;
+    resto = dopo;
+  }
+  return resto;
+}
+
 /**
  * Una data scritta come la scrivono le integrazioni: `2026-09-05`,
- * `2026-09-05 06:00:00`, `2026-09-05T06:00:00+02:00`, `05/09/2026`.
+ * `2026-09-05 06:00:00`, `2026-09-05T06:00:00+02:00`, `05/09/2026`; e come la
+ * scrive chi si compone lo stato con un template: «mer 10/09/2026», «10
+ * settembre», «10 settembre 2026».
  * Torna `null` per tutto il resto: un numero non e' una data.
  */
-export function leggiData(testo, { giornoIntero = false } = {}) {
-  const voce = pulito(testo);
+export function leggiData(testo, { giornoIntero = false, adesso = null } = {}) {
+  const voce = senzaIlGiornoDavanti(pulito(testo));
   if (!voce) return null;
   let m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(voce);
   if (m) {
@@ -319,6 +381,31 @@ export function leggiData(testo, { giornoIntero = false } = {}) {
   /* `05/09/2026`, `05.09.2026`, e il `05-09-2026` degli olandesi (Afvalwijzer). */
   m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/.exec(voce);
   if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  /* «10 settembre», «10 set 2026», «10 September 2026». Senza anno vale il
+   * prossimo che viene: un ritiro scritto a mano guarda avanti, non indietro.
+   *
+   * Prendere l'anno di oggi e fermarsi li' funziona undici mesi su dodici e
+   * sbaglia proprio quando conta: «2 gennaio» letto il 30 dicembre diventava
+   * il 2 gennaio di quest'anno — undici mesi fa — e chi conta i giorni lo
+   * trovava scaduto e lo toglieva dai prossimi. Il bidone andava fuori fra tre
+   * giorni e la tessera non lo diceva. Se la data cosi' composta e' gia'
+   * passata, vale quella dell'anno dopo.
+   *
+   * L'istante di riferimento arriva da chi chiama, che ce l'ha; senza, si
+   * ripiega sull'orologio, che e' quello che si faceva prima. */
+  m = /^(\d{1,2})\s+([\p{L}]{3,})\.?(?:\s+(\d{4}))?$/u.exec(voce);
+  if (m) {
+    const mese = meseDaParola(m[2]);
+    if (mese < 0) return null;
+    const giorno = +m[1];
+    if (m[3]) return new Date(+m[3], mese, giorno);
+    const riferimento = adesso === null || adesso === undefined ? new Date() : new Date(adesso);
+    if (!Number.isFinite(riferimento.getTime())) return null;
+    const candidata = new Date(riferimento.getFullYear(), mese, giorno);
+    if (candidata.getTime() < inizioDelGiorno(riferimento).getTime())
+      return new Date(riferimento.getFullYear() + 1, mese, giorno);
+    return candidata;
+  }
   return null;
 }
 
@@ -326,13 +413,13 @@ export function leggiData(testo, { giornoIntero = false } = {}) {
  * della data: «Friday», «venerdì», «Vrijdag». Vale il prossimo con quel nome,
  * oggi compreso. */
 const GIORNI_DELLA_SETTIMANA = Object.freeze([
-  /^(domenica|sunday|sun|sonntag|zondag|domingo|dimanche)$/,
-  /^(lunedi|lunedì|monday|mon|montag|maandag|lunes|lundi)$/,
-  /^(martedi|martedì|tuesday|tue|dienstag|dinsdag|martes|mardi)$/,
-  /^(mercoledi|mercoledì|wednesday|wed|mittwoch|woensdag|miércoles|miercoles|mercredi)$/,
-  /^(giovedi|giovedì|thursday|thu|donnerstag|donderdag|jueves|jeudi)$/,
-  /^(venerdi|venerdì|friday|fri|freitag|vrijdag|viernes|vendredi)$/,
-  /^(sabato|saturday|sat|samstag|zaterdag|sábado|sabado|samedi)$/,
+  /^(domenica|dom|sunday|sun|sonntag|zondag|domingo|dimanche)$/,
+  /^(lunedi|lunedì|lun|monday|mon|montag|maandag|lunes|lundi)$/,
+  /^(martedi|martedì|mar|tuesday|tue|dienstag|dinsdag|martes|mardi)$/,
+  /^(mercoledi|mercoledì|mer|wednesday|wed|mittwoch|woensdag|miércoles|miercoles|mercredi)$/,
+  /^(giovedi|giovedì|gio|thursday|thu|donnerstag|donderdag|jueves|jeudi)$/,
+  /^(venerdi|venerdì|ven|friday|fri|freitag|vrijdag|viernes|vendredi)$/,
+  /^(sabato|sab|saturday|sat|samstag|zaterdag|sábado|sabado|samedi)$/,
 ]);
 
 export function giornoDellaSettimana(testo, adesso = Date.now()) {
@@ -347,8 +434,11 @@ export function giornoDellaSettimana(testo, adesso = Date.now()) {
 
 /* Le parole che dicono fra quanto: «domani», «in 3 giorni», «today», «in 2
  * dagen», «in 3 Tagen». */
+/* La preposizione e' facoltativa: «fra 3 giorni» e «3 giorni» dicono la stessa
+ * cosa, e la seconda e' quella che esce dal template piu' diffuso di Waste
+ * Collection Schedule — `{{value.daysTo}} giorni` (#383). */
 const FRA_GIORNI =
-  /^(?:in|fra|tra|en|dans)\s+(\d+)\s+(?:giorn[oi]|days?|d|dagen|tagen?|días?|dias?|jours?)$/;
+  /^(?:(?:in|fra|tra|en|dans)\s+)?(\d+)\s+(?:giorn[oi]|days?|d|dagen|tagen?|días?|dias?|jours?)$/;
 
 function giorniDalleParole(testo) {
   const voce = minuscolo(testo);
@@ -395,19 +485,19 @@ export function dataDelRitiro(stato, adesso = Date.now()) {
     "start_time",
     "start",
   ]) {
-    const data = leggiData(attributi[nome], { giornoIntero });
+    const data = leggiData(attributi[nome], { giornoIntero, adesso });
     if (!data) continue;
     /* Un evento gia' cominciato e non ancora finito e' il ritiro di adesso.
      * Un ritiro che dura da ieri a domani — capita coi calendari scritti a
      * mano — partiva ieri, e ieri e' passato: la riga finiva fra le scadute e
      * la tessera diceva «nessuna data in vista» mentre il bidone era fuori. */
-    const fine = leggiData(attributi.end_time || attributi.end, { giornoIntero });
+    const fine = leggiData(attributi.end_time || attributi.end, { giornoIntero, adesso });
     if (fine && data.getTime() <= adesso && adesso < fine.getTime()) return inizioDelGiorno(adesso);
     return data;
   }
   const prossimi = Array.isArray(attributi.upcoming) ? attributi.upcoming : [];
   for (const voce of prossimi) {
-    const data = leggiData(voce?.date ?? voce?.start ?? voce);
+    const data = leggiData(voce?.date ?? voce?.start ?? voce, { adesso });
     if (data) return data;
   }
   /* I giorni contati, in tutti i dialetti: `daysTo` (Waste Collection
@@ -432,7 +522,7 @@ export function dataDelRitiro(stato, adesso = Date.now()) {
       return new Date(inizioDelGiorno(adesso).getTime() + n * 86400000 + 12 * 3600000);
   }
   const grezzo = pulito(stato.state);
-  const dallaData = leggiData(grezzo);
+  const dallaData = leggiData(grezzo, { adesso });
   if (dallaData) return dallaData;
   const dalleParole = giorniDalleParole(grezzo);
   if (dalleParole !== null)
@@ -521,6 +611,15 @@ export function letturaRifiuti(
         muto: !risponde(stato),
         data,
         giorni,
+        /* Cosa c'era scritto, quando non se n'e' cavata una data.
+         *
+         * «Non riesce ad elaborare la data anche se e' presente» (#383): la
+         * riga restava un trattino muto, e capire quale dialetto parlasse
+         * quell'integrazione toccava a chi legge le segnalazioni, due giorni
+         * dopo. Detto sulla riga, la diagnosi ce l'ha davanti chi configura —
+         * ed e' l'unico che puo' vederla. Si porta solo quando serve: dove la
+         * data c'e', non c'e' niente da spiegare. */
+        letto: !data && risponde(stato) ? pulito(stato?.state) : "",
         quando: quandoCodice(giorni),
       };
     })

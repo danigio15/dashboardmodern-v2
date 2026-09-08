@@ -15,8 +15,11 @@ const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 test("la fascia visibile/nascondi conosce la scheda Luci", async () => {
   /* `ensureVisibilityBanner` stampa la fascia solo per le schede nella mappa:
    * senza questa riga il toggle non compare, e nascondere non nasconde. */
-  const uniformity = await read("../src/sections/config-uniformity-section.js");
-  assert.match(uniformity, /luci: "luci"/);
+  /* La mappa scheda→chiave sta nel core da quando la legge anche l'elenco unico
+   * degli interruttori: due copie vogliono dire che prima o poi una impara una
+   * sezione e l'altra no. */
+  const elenco = await read("../src/core/lelenco-delle-sezioni.js");
+  assert.match(elenco, /scheda: "luci", chiave: "luci"/);
   /* La chiave scritta in cd_sections e' la stessa che la barra legge. */
   const page = await read("../src/sections/lights-page-section.js");
   assert.match(page, /LIGHTS_TAB\]: LIGHTS_TAB/);

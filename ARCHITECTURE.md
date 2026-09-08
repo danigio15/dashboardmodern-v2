@@ -409,10 +409,15 @@ The frontend API layer wraps the Phase 5 commands exactly as JSON payloads:
 - `dashboardmodern/dashboard/delete`
 - `dashboardmodern/integrations/catalog` — the integrations installed in Home
   Assistant (official or custom, from HACS), the devices each one brings and,
-  for the `device_ids` requested, their entities. Read straight from the device,
-  entity and area registries by `device_catalog.py`; it is how an appliance is
-  bound to a whole device instead of to a switch. Same permission as reading the
-  configuration: whoever may use a plancia.
+  for the `device_ids` requested, their entities. With `entity_ids` instead it
+  answers a third question — which integration owns these entities — returning
+  the same rows looked up by name; a state does not carry that, and a section
+  that fills itself from a `device_class` alone fills itself with half the
+  house. Read straight from the device, entity and area registries by
+  `device_catalog.py`; it is how an appliance is bound to a whole device instead
+  of to a switch, and how the Server page tells a Proxmox container from a
+  washing machine. Same permission as reading the configuration: whoever may use
+  a plancia.
 
 Mutation responses are copied back into `DashboardModernStore`, and the dashboard list is refreshed after create, replace, and delete. The active dashboard is preserved when the backend list still contains its id; otherwise the first returned dashboard is selected.
 

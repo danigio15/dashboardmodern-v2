@@ -188,7 +188,9 @@ test("la pagina, la scheda e la tessera sono presentate a tutti i posti che le c
   assert.match(runtime, /installRifiutiEditor\(\);/);
   assert.match(await leggi("sections/page-masthead-section.js"), /id: "page-rifiuti"/);
   assert.match(await leggi("sections/navigation-section.js"), /rifiuti: "rifiuti",/);
-  assert.match(await leggi("sections/config-uniformity-section.js"), /rifiuti: "rifiuti",/);
+  /* La mappa scheda→chiave sta nel core da quando la legge anche l'elenco unico
+   * degli interruttori: si guarda là, non nel testo di chi la ospita. */
+  assert.match(await leggi("core/lelenco-delle-sezioni.js"), /chiave: "rifiuti"/);
   assert.match(await leggi("sections/todo-editor-section.js"), /\["rifiuti", "♻️"/);
   assert.match(await leggi("sections/home-widgets-section.js"), /key: "rifiuti",/);
   assert.match(await leggi("core/chiavi-di-configurazione.js"), /"cd_rifiuti"/);
@@ -327,4 +329,127 @@ test("un istante vero conserva il suo fuso: solo il giorno intero lo ignora", ()
   assert.equal(giornoIntero.getFullYear(), 2026);
   assert.equal(giornoIntero.getMonth(), 8);
   assert.equal(giornoIntero.getDate(), 4);
+});
+
+/* «Uso l'integrazione Waste Collection Schedule… per i singoli rifiuti non
+ * riesce ad elaborare la data anche se è presente» (#383).
+ *
+ * Quell'integrazione lascia comporre lo stato con un template, e la gente ce
+ * ne scrive di ogni forma. Tre erano fuori portata, e sono tutte e tre forme
+ * che una persona scrive senza pensarci: il conteggio dei giorni senza la
+ * preposizione, il giorno della settimana davanti alla data, il mese a parole.
+ */
+test("il conteggio dei giorni vale anche senza «fra»", () => {
+  const adesso = new Date(2026, 8, 8, 10, 0, 0).getTime();
+  /* È il template più diffuso in giro: `{{value.daysTo}} giorni`. */
+  for (const detto of ["3 giorni", "in 3 giorni", "fra 3 giorni", "tra 3 giorni", "3 days"])
+    assert.equal(
+      giorniFra(adesso, dataDelRitiro({ state: detto }, adesso)),
+      3,
+      `«${detto}» non è stato letto`,
+    );
+  /* Un numero secco però resta un numero: senza l'unità potrebbe essere
+   * qualunque cosa, e indovinare qui vorrebbe dire sbagliare altrove. */
+  assert.equal(dataDelRitiro({ state: "3" }, adesso), null);
+});
+
+test("il giorno della settimana davanti alla data non fa fallire la riga", () => {
+  for (const detto of ["mer 10/09/2026", "mercoledì 10/09/2026", "Wednesday, 2026-09-10", "mer. 10.09.2026"]) {
+    const data = leggiData(detto);
+    assert.ok(data, `«${detto}» non è stato letto`);
+    assert.equal(data.getFullYear(), 2026);
+    assert.equal(data.getMonth(), 8);
+    assert.equal(data.getDate(), 10);
+  }
+  /* Una parola qualunque davanti non è un giorno della settimana, e non si
+   * butta via: se non si sa cosa sia, non si sa nemmeno leggere il resto. */
+  assert.equal(leggiData("ciao 10/09/2026"), null);
+});
+
+test("il mese scritto a parole è una data come le altre", () => {
+  for (const [detto, mese] of [
+    ["10 settembre 2026", 8],
+    ["8 set 2026", 8],
+    ["10 September 2026", 8],
+    ["3 gennaio 2027", 0],
+  ]) {
+    const data = leggiData(detto);
+    assert.ok(data, `«${detto}» non è stato letto`);
+    assert.equal(data.getMonth(), mese);
+  }
+  /* Un mese che non esiste non diventa una data. */
+  assert.equal(leggiData("10 fantasia 2026"), null);
+});
+
+/* «Non riesce ad elaborare la data anche se è presente»: la riga restava un
+ * trattino muto, e la diagnosi toccava a chi legge le segnalazioni due giorni
+ * dopo. Adesso la riga porta con sé quello che ha letto davvero. */
+test("una riga che risponde senza una data dice cosa ha letto", () => {
+  const adesso = new Date(2026, 8, 8, 10, 0, 0).getTime();
+  const config = {
+    righe: [
+      { materiale: "plastica", entity: "sensor.plastica" },
+      { materiale: "carta", entity: "sensor.carta" },
+      { materiale: "vetro", entity: "sensor.vetro" },
+    ],
+  };
+  const states = {
+    "sensor.plastica": { state: "boh, quando capita" },
+    "sensor.carta": { state: "2026-09-10" },
+    "sensor.vetro": { state: "unavailable" },
+  };
+  const per = Object.fromEntries(
+    letturaRifiuti(config, states, undefined, adesso).righe.map((riga) => [riga.entity, riga]),
+  );
+  assert.equal(per["sensor.plastica"].letto, "boh, quando capita");
+  /* Dove la data c'è non c'è niente da spiegare. */
+  assert.equal(per["sensor.carta"].letto, "");
+  /* E un'entità che non risponde è un guasto, non un dialetto sconosciuto:
+   * quella la sezione la dice già con le sue parole. */
+  assert.equal(per["sensor.vetro"].letto, "");
+  assert.equal(per["sensor.vetro"].muto, true);
+});
+
+/* Lo stato VERO che il segnalatore ha finalmente incollato (#383):
+ *
+ *   sensor.waste_collection_schedule_glass_cans
+ *   on Fri, 18.09.2026
+ *
+ * Due parole di troppo davanti alla data — la preposizione inglese e il giorno
+ * della settimana — e il lettore ne toglieva una sola, e solo se era un
+ * giorno. Quindi si fermava su «on» e falliva tutta la riga, mentre «Fri,
+ * 18.09.2026» lo leggeva benissimo. È il motivo per cui le date delle singole
+ * entità non comparivano.
+ */
+test("«on Fri, 18.09.2026» è una data, non un trattino", () => {
+  const letta = leggiData("on Fri, 18.09.2026");
+  assert.ok(letta, "lo stato vero di Waste Collection Schedule deve leggersi");
+  const quando = new Date(letta);
+  assert.equal(quando.getUTCFullYear(), 2026);
+  assert.equal(quando.getUTCMonth() + 1, 9);
+  assert.equal(quando.getUTCDate(), 18);
+});
+
+test("le preposizioni davanti a una data si tolgono, nelle lingue dei giorni", () => {
+  for (const testo of [
+    "on 18.09.2026",
+    "il 18/09/2026",
+    "al 18/09/2026",
+    "am 18.09.2026",
+    "el 18/09/2026",
+    "le 18/09/2026",
+  ])
+    assert.ok(leggiData(testo), `«${testo}» deve leggersi`);
+});
+
+test("togliere non arriva mai a mangiare la data", () => {
+  /* Al massimo due parole — una preposizione e un giorno — e mai fino a
+   * lasciare una riga senza cifre: se dopo aver tolto non resta un numero,
+   * non era una data con qualcosa davanti. */
+  assert.equal(leggiData("on and on"), null);
+  assert.equal(leggiData("settembre"), null);
+  assert.equal(leggiData("il lunedì"), null);
+  /* E un mese scritto a parole non è una preposizione: non si tocca. */
+  assert.ok(leggiData("10 settembre 2026"));
+  assert.ok(leggiData("mer 10/09/2026"));
 });

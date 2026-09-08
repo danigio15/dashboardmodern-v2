@@ -17,8 +17,11 @@
  * posto di quella (spesso assente) dell'entita' del robot.
  */
 import {
+  COMANDI_MASSIMI,
+  ESITI_COMANDO,
   bindRobotToDevice,
   comandiSuggeriti,
+  conIlComando,
   elencoComandi,
   genereDelComando,
   nomeDelComando,
@@ -96,12 +99,29 @@ function chipMarkup(entity, azione, segno, robot, states) {
   return `<button type="button" class="dm-robot-chip" data-${azione}="${esc(entity)}" data-genere="${esc(genereDelComando(entity))}" title="${esc(entity)}"><span>${esc(nomeDelComando(entity, robot, states))}</span><i aria-hidden="true">${segno}</i></button>`;
 }
 
+/* Perche' un comando non e' entrato. Tre motivi, tre frasi (#403).
+ *
+ * La piu' importante e' la terza: prima non c'era, e il tocco spariva. */
+function spiegazione(esito) {
+  if (esito === ESITI_COMANDO.gia)
+    return t("Questo comando c'è già.", "That command is already there.");
+  if (esito === ESITI_COMANDO.pieno)
+    return t(
+      "La scheda tiene dodici comandi, e ci sono tutti: togline uno per farci stare questo. Un robot arrivato da un'integrazione parte spesso già pieno di quelli che pubblica lei.",
+      "The card holds twelve commands and they are all taken: remove one to make room. A robot that came from an integration often starts out full of the ones it publishes.",
+    );
+  return t(
+    "Serve un'entità button.*, select.* o switch.* — oppure input_button, input_select, input_boolean, script, scene.",
+    "A button.*, select.* or switch.* entity is required — or input_button, input_select, input_boolean, script, scene.",
+  );
+}
+
 function comandiMarkup(robot, index) {
   const states = allStates();
   const scelti = elencoComandi(robot.comandi);
   const proposte = comandiSuggeriti(robot, states).slice(0, 24);
   return `<div class="ed-slot dm-robot-field dm-robot-comandi" data-robot-comandi>
-    <span class="ed-slot-lbl">${t("Altri comandi del robot", "Other robot commands")}</span>
+    <span class="ed-slot-lbl">${t("Altri comandi del robot", "Other robot commands")} <b class="dm-robot-quanti"${scelti.length >= COMANDI_MASSIMI ? ' data-pieno="true"' : ""}>${esc(String(scelti.length))}/${esc(String(COMANDI_MASSIMI))}</b></span>
     <input type="hidden" data-robot-field="comandi" value="${esc(scelti.join(","))}">
     <div class="dm-robot-chips" data-robot-comandi-scelti>${
       scelti.length
@@ -351,15 +371,15 @@ async function onClick(event) {
       const nuovo = proposta
         ? clean(proposta.dataset.robotCmdSug)
         : clean(riga.querySelector("[data-robot-comando-nuovo]")?.value);
-      if (!genereDelComando(nuovo)) {
-        if (errore)
-          errore.textContent = t(
-            "Serve un'entità button.*, select.* o switch.* — oppure input_button, input_select, input_boolean, script, scene.",
-            "A button.*, select.* or switch.* entity is required — or input_button, input_select, input_boolean, script, scene.",
-          );
+      /* Il tetto dei dodici non si scavalca, ma nemmeno si tace (#403): un
+       * robot nato dall'integrazione arriva con la riga gia' piena, e chi ci
+       * aggiungeva il suo script vedeva sparire il tocco senza una parola. */
+      const esito = conIlComando(comandi, nuovo);
+      if (esito.esito !== ESITI_COMANDO.aggiunto) {
+        if (errore) errore.textContent = spiegazione(esito.esito);
         return;
       }
-      comandi = elencoComandi([...comandi, nuovo]);
+      comandi = esito.comandi;
     }
     if (errore) errore.textContent = "";
     const next = robots.slice();
@@ -459,6 +479,9 @@ function installStyles() {
       #ed-body .dm-robot-chip[data-genere="tendina"]{border-style:dashed}
       #ed-body .dm-robot-proposte .dm-robot-chip{border-color:#0ea5e9;color:#0369a1}
       #ed-body .dm-robot-chips-vuoto{opacity:.75}
+      /* Quanti comandi ci stanno ancora, prima di provarci (#403). */
+      #ed-body .dm-robot-quanti{margin-left:6px;font-size:10.5px;font-weight:900;opacity:.6;font-variant-numeric:tabular-nums}
+      #ed-body .dm-robot-quanti[data-pieno="true"]{opacity:1;color:var(--warning-color,#f59e0b)}
       #ed-body .dm-robot-aggiungi{background:linear-gradient(135deg,#10b981,#047857)}
     `,
   );

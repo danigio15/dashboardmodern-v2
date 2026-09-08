@@ -695,6 +695,61 @@ export function righeDelDocumento(body, attributo, lista, leggi, tieni) {
   return next;
 }
 
+/* Le righe che i moduli aggiungono alla scheda ⚙️ Impostazioni, in ordine.
+ *
+ * Sta scritto qui e non dentro i moduli perche' «in che ordine si leggono» e'
+ * una domanda sola: sparpagliata in due file, la risposta la si ricava
+ * aprendoli tutti e due. Un numero nuovo si infila in mezzo senza toccare gli
+ * altri — sono distanziati apposta. */
+export const ORDINE_IMPOSTAZIONI = Object.freeze({ lingua: 10, assist: 20, sezioni: 30 });
+
+/* Da dove parte il blocco delle righe aggiunte: subito sotto il tasto «salva»
+ * del blocco «Generali» del guscio, che si riconosce dal gestore e non dalla
+ * scritta — quella cambia con la lingua. Il blocco pero' il guscio lo disegna
+ * solo a chi puo' vederlo: dove non c'e', le righe si mettono in cima. */
+export const dopoIGenerali = (corpo) => corpo?.querySelector?.('[onclick*="edSaveGeneral"]') || null;
+
+/* L'attributo che porta il posto di una riga aggiunta da un modulo. */
+export const ATTRIBUTO_ORDINE = "data-dm-ordine";
+
+/**
+ * Mette una riga in una scheda dell'editor al posto che le spetta.
+ *
+ * Le righe che i moduli aggiungono a una scheda del guscio — la lingua e
+ * Assist nelle Impostazioni — si mettevano ognuna con la propria ancora: la
+ * lingua sotto il tasto «salva» dei Generali, Assist sotto la lingua. Ma
+ * l'ancora di Assist e' una riga che a quel momento puo' non esserci ancora, e
+ * allora Assist ricadeva in cima alla scheda: chi si installa per primo vince,
+ * e l'ordine di quello che si legge diventa l'ordine in cui i moduli si
+ * caricano. «Lingua non presente nella parte iniziale del config dove c'e'
+ * assistenza, prima usciva li'.»
+ *
+ * Qui l'ordine e' un numero che la riga si porta scritto addosso, e chi arriva
+ * si mette fra chi ha un numero piu' basso e chi ce l'ha piu' alto. Arrivare
+ * primo o ultimo non cambia piu' niente, e una terza riga domani non deve
+ * sapere di queste due: le basta il suo numero.
+ *
+ * `ancora(dentro)` dice da dove parte il blocco quando la riga e' la prima ad
+ * arrivare — di solito un pezzo del guscio.
+ */
+export function inserisciInOrdine(dentro, riga, ordine, ancora) {
+  if (!dentro || !riga) return null;
+  const posto = finite(ordine, 0);
+  riga.setAttribute(ATTRIBUTO_ORDINE, String(posto));
+  const sorelle = [...(dentro.querySelectorAll?.(`[${ATTRIBUTO_ORDINE}]`) || [])].filter(
+    (nodo) => nodo !== riga && nodo.parentElement === dentro,
+  );
+  const dopo = sorelle.find((nodo) => finite(nodo.getAttribute(ATTRIBUTO_ORDINE), 0) > posto);
+  if (dopo) dentro.insertBefore(riga, dopo);
+  else if (sorelle.length) sorelle[sorelle.length - 1].after(riga);
+  else {
+    const partenza = ancora?.(dentro);
+    if (partenza) partenza.after(riga);
+    else dentro.prepend(riga);
+  }
+  return riga;
+}
+
 export function writeJsonIfChanged(key, value, { sync = true } = {}) {
   const serialized = JSON.stringify(value);
   if (root.localStorage?.getItem(key) === serialized) return false;

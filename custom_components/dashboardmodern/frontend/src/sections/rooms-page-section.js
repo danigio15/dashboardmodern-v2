@@ -23,6 +23,8 @@
  */
 import { lightCommand, lightView, lightsSignature } from "../core/light-model.js";
 import { canonicalClimateType } from "../core/device-model.js";
+import { applianceGlyph } from "../core/appliance-artwork.js";
+import { CHIAVE_MEDIA, letturaDelLettore, lettoriConfigurati } from "../core/media-player.js";
 import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
@@ -34,7 +36,8 @@ import {
 } from "../core/room-overview.js";
 import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
 import { pageCardMarkup } from "./lights-page-section.js";
-import { configuredSecurityDoors } from "./security-doors-section.js";
+import { azioniDellaPorta } from "../core/security-door-model.js";
+import { configuredSecurityDoors, parolaDelGesto } from "./security-doors-section.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
   allStates,
@@ -79,6 +82,9 @@ export function roomSources() {
     climate: lista("climate", "cd_clima_units"),
     covers: lista("covers", "cd_tapparelle"),
     appliances: lista("appliances", "cd_appliances"),
+    /* I lettori (#405): la loro scheda la stanza la chiede gia', e qui si
+     * legge dall'altro lato — com'e' per le luci e per le telecamere. */
+    media: lettoriConfigurati(readJson(CHIAVE_MEDIA, null)),
     cameras: lista("cameras", "cd_cameras"),
     loads: lista("loads", "cd_loads"),
     robots: lista("robots", "cd_robot"),
@@ -120,6 +126,7 @@ const BLOCK_LABELS = Object.freeze({
   prese: ["Prese", "Plugs", "🔌"],
   coperture: ["Finestre", "Windows", "🪟"],
   elettrodomestici: ["Elettrodomestici", "Appliances", "🧺"],
+  media: ["Musica", "Music", "🎵"],
   telecamere: ["Telecamere", "Cameras", "📹"],
   carichi: ["Carichi", "Loads", "⚡"],
   robot: ["Aspirapolvere", "Vacuums", "🤖"],
@@ -143,10 +150,41 @@ const iconaBlocco = (blocco) => BLOCK_LABELS[blocco.key]?.[2] || "•";
  * configurazione lo sa gia': lo dice la casella. */
 const ICONE_CLIMA = Object.freeze({ termo: "🔥", pompa: "♨️", clima: "❄️" });
 
-function iconaVoce(item, blocco) {
-  const propria = clean(item?.emoji_icon);
+/* E il cestello non va bene per tutto quello che si chiama «elettrodomestico».
+ *
+ * Stessa storia del fiocco di neve, segnalata da capo (#404): «gli
+ * elettrodomestici non vengono visualizzati con la loro icona, a prescindere da
+ * come li si configuri: appaiono tutti con l'icona del cestello». Il forno, il
+ * frigo e la lavastoviglie della cucina erano tre lavatrici in fila.
+ *
+ * Il tipo lo sa gia' il catalogo dei disegni — e' lo stesso che sceglie il
+ * disegno grande nella sezione Elettrodomestici — e da li' arriva il glifo. La
+ * riga della stanza e la card della sezione dicono cosi' la stessa cosa, e
+ * l'icona scritta a mano, quando c'e', continua a vincere su tutto.
+ *
+ * Il campo `icon` non e' sempre un'emoji: sugli elettrodomestici ci sta la
+ * CHIAVE del catalogo dei disegni — «washer» — e su altre righe una `mdi:`.
+ * Nessuna delle due si sa scrivere qui dentro, che e' una riga di testo. Si
+ * accetta solo quello che un glifo lo e' davvero: qualcosa fuori dall'ASCII. */
+const UN_GLIFO = /[^\u0000-\u007f]/;
+
+const emojiScelta = (item) => {
+  const scritta = clean(item?.emoji_icon) || clean(item?.icon);
+  return UN_GLIFO.test(scritta) ? scritta : "";
+};
+
+export function iconaVoce(item, blocco) {
+  const propria = emojiScelta(item);
   if (propria) return propria;
   if (blocco.key === "clima") return ICONE_CLIMA[canonicalClimateType(item?.type)] || "❄️";
+  if (blocco.key === "elettrodomestici")
+    return (
+      applianceGlyph(item?.visual_key) ||
+      applianceGlyph(item?.device_type) ||
+      applianceGlyph(item?.type) ||
+      applianceGlyph(item?.name) ||
+      iconaBlocco(blocco)
+    );
   return iconaBlocco(blocco);
 }
 
@@ -193,6 +231,29 @@ const MODI_CLIMA = Object.freeze({
  * vuol dire due cose diverse, e a distinguerle e' il blocco in cui la voce sta.
  * La pagina di ogni sezione lo racconta per esteso; qui serve il colpo
  * d'occhio, e per il resto c'e' la sua pagina. */
+/* Cosa sta suonando, in una riga (#405).
+ *
+ * «Attualmente appare un Playing generico»: era lo stato grezzo di Home
+ * Assistant, che dice che il lettore sta suonando e non dice cosa. Il titolo e
+ * l'artista li porta gia' l'entita' — la sezione Musica li scrive — e sono
+ * l'unica cosa che uno vuole leggere passando davanti alla stanza.
+ *
+ * Quando non c'e' un titolo si dice comunque qualcosa di vero: la sorgente
+ * («HDMI 1»), o l'applicazione («Spotify»), che su un televisore sono la
+ * risposta giusta alla stessa domanda. E quando non c'e' nemmeno quella
+ * restano le tre parole dello stato, che non sono granche' ma non mentono. */
+function cosaSuona(item, states) {
+  const lettura = letturaDelLettore(item, states || {});
+  if (lettura.muto) return t("Non disponibile", "Unavailable");
+  if (lettura.spento) return t("Spento", "Off");
+  const brano = [lettura.titolo, lettura.artista].filter(Boolean).join(" · ");
+  if (lettura.suona)
+    return brano || lettura.sorgente || lettura.applicazione || t("In riproduzione", "Playing");
+  if (lettura.inPausa)
+    return brano ? `${t("In pausa", "Paused")} · ${brano}` : t("In pausa", "Paused");
+  return lettura.sorgente || lettura.applicazione || t("Acceso", "On");
+}
+
 function statoVoce(item, states, blocco = "") {
   const entity = entitaVoce(item);
   let stato = clean(states?.[entity]?.state).toLowerCase();
@@ -215,6 +276,7 @@ function statoVoce(item, states, blocco = "") {
   }
   const modo = MODI_CLIMA[stato];
   if (blocco === "clima" && modo) return t(modo[0], modo[1]);
+  if (blocco === "media") return cosaSuona(item, states);
   if (stato === "on") return t("Acceso", "On");
   if (stato === "off") return t("Spento", "Off");
   if (stato === "open") return t("Aperta", "Open");
@@ -439,16 +501,22 @@ function aperturePerEntita() {
 function rowMarkup(item, blocco, states, aperture = aperturePerEntita()) {
   const entity = entitaVoce(item);
   const porta = aperture.get(entity);
-  if (porta)
+  if (porta) {
+    /* La riga si chiama come il gesto che fa davvero. Diceva «Apri» sempre,
+     * ma il tocco esegue il primo gesto della porta, e su una serratura coi
+     * due gesti quello e' «Sblocca»: la scritta prometteva una cosa e il dito
+     * ne otteneva un'altra. */
+    const parola = parolaDelGesto(azioniDellaPorta(porta, states?.[porta.entity])[0]?.gesto);
     return `<article class="dm-stanze-card dm-stanze-voce dm-stanze-apertura" data-dm-door="${esc(porta.id)}" role="button" tabindex="0">
     <div class="dm-stanze-card-row">
       <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
       <span class="dm-stanze-title"><b>${esc(clean(porta.name) || nomeVoce(item, states))}</b><s>${esc(
-        porta.pin ? t("Apri — chiede il PIN", "Open — asks for the PIN") : t("Apri", "Open"),
+        porta.pin ? `${parola} — ${t("chiede il PIN", "asks for the PIN")}` : parola,
       )}</s></span>
       <span class="dm-stanze-vai" aria-hidden="true">${porta.pin ? "🔒" : "›"}</span>
     </div>
   </article>`;
+  }
   const tocco = siPuoAccendere(entity)
     ? `<button type="button" class="dm-stanze-tocca" data-dm-stanza-tocca="${esc(entity)}" role="switch" aria-checked="${accesa(entity, states) ? "true" : "false"}" aria-label="${esc(nomeVoce(item, states))}"><span class="dm-stanze-tocca-pallino"></span></button>`
     : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;
@@ -468,6 +536,9 @@ const TAB_DI = Object.freeze({
   prese: "prese",
   coperture: "tapparelle",
   elettrodomestici: "appliances-main",
+  /* Stessa storia dei lettori (#405): «se cliccato rimanda alla home della
+   * dashboard». La pagina Musica ce l'hanno, ed e' li' che si comanda. */
+  media: "media",
   /* Le telecamere stanno nella pagina Sicurezza, non in Home: toccarne una
    * qui riportava alla Home, cioe' in nessun posto utile. */
   telecamere: "security",

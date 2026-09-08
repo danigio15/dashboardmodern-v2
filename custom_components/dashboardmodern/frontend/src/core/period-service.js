@@ -122,16 +122,47 @@ export function periodConsumption(rows = [], baseline = null) {
   return Math.max(0, values.at(-1) - values[0]);
 }
 
+/* Il consumo di ogni intervallo, dalla crescita del contatore del Recorder.
+ *
+ * ── Il primo intervallo di un'entita' nata da poco ───────────────────────
+ *
+ * «L'entita' della wallbox e' iniziata quest'anno e calcola male i valori.»
+ *
+ * Il consumo di un intervallo e' la differenza fra il suo contatore e quello
+ * di prima, e per il primo intervallo il «quello di prima» lo porta la
+ * `baseline`: chi chiede le statistiche ne pesca apposta una che sta subito
+ * fuori dalla finestra. Ma un'entita' nata dentro la finestra una baseline
+ * non ce l'ha — prima di lei non c'era niente da pescare — e allora il primo
+ * intervallo restava senza predecessore e veniva BUTTATO VIA. Su una wallbox
+ * accesa a meta' anno, il mese in cui e' entrata in funzione spariva da ogni
+ * conto: dal totale dell'anno, dal grafico, dal riepilogo del dispositivo.
+ *
+ * Il valore giusto ce l'ha addosso. Il contatore del Recorder parte da zero
+ * quando le statistiche di quell'entita' cominciano — e' cosi' che Home
+ * Assistant tratta un contatore che cresce — quindi per il primo intervallo
+ * di una serie il contatore E' il consumo di quell'intervallo.
+ *
+ * Vale solo quando la baseline manca DAVVERO, cioe' quando prima non c'era
+ * niente. Con una baseline in mano non cambia niente: la si usa, come sempre.
+ * La distinzione conta, perche' prendere il contatore per consumo in mezzo a
+ * una serie vorrebbe dire scambiare il totale di sempre per il consumo di un
+ * mese — l'errore opposto, e piu' grosso.
+ */
 export function recorderBucketConsumptions(rows = [], baseline = null) {
-  const ordered = [baseline, ...(Array.isArray(rows) ? rows : [])]
+  const partenza = baseline && cumulativeValue(baseline) != null ? baseline : null;
+  const ordered = [partenza, ...(Array.isArray(rows) ? rows : [])]
     .filter((row) => row && cumulativeValue(row) != null)
     .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
-  return ordered.slice(1).map((row, index) =>
-    Object.freeze({
+  const intervalli = partenza ? ordered.slice(1) : ordered;
+  return intervalli.map((row, index) => {
+    const prima = partenza ? ordered[index] : ordered[index - 1];
+    return Object.freeze({
       ...row,
-      change: Math.max(0, cumulativeValue(row) - cumulativeValue(ordered[index])),
-    }),
-  );
+      change: prima
+        ? Math.max(0, cumulativeValue(row) - cumulativeValue(prima))
+        : Math.max(0, cumulativeValue(row)),
+    });
+  });
 }
 
 function endOfClosedRange(nextBoundary, now) {

@@ -157,6 +157,10 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   "Ping",
   "Internet",
   "MiniPC",
+  /* Il gruppo di continuita' (#390): «perche' non rinominare il widget
+   * "Continuita'" in "UPS"?». Nessuno cerca «Continuita'», e la sigla e' la
+   * stessa dappertutto — e' l'unico nome che non ha bisogno di traduzione. */
+  "UPS",
   /* Il programma della lavatrice: sull'oblo' c'e' scritto «Eco» ovunque. */
   "Eco",
   "kWh/day",
@@ -206,6 +210,8 @@ const LOCALE_IDENTITIES = {
     "Destination",
     /* L'air, en français, c'est l'air. */
     "Air",
+    /* Les minutes se comptent avec le même mot des deux côtés. */
+    "minutes",
     "Polo",
     "Robot",
     "Robots",
@@ -325,6 +331,8 @@ const LOCALE_IDENTITIES = {
   nl: new Set([
     /* Het volume van een speaker heet in het Nederlands ook zo. */
     "Volume",
+    /* Het dashboard heet in het Nederlands ook gewoon dashboard. */
+    "Dashboard",
     /* Een station is in het Nederlands ook een station. */
     "Station",
     "Casual",

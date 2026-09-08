@@ -123,6 +123,12 @@
  * sta nelle mappature `dm.boiler_*` in questo momento. Le mappature viaggiano
  * da sempre: se la scelta restasse su un dispositivo solo, il telefono
  * mostrerebbe l'impianto del tablet chiamandolo con l'altro nome. */
+/* La revisione 36 aggiunge la soglia delle batterie (`cd_batterie`, #398).
+ * «Le batterie quelle cariche non le fa vedere? Sarebbe carino che stessero
+ * nel config come le altre cose.» Venti per cento stava scritto nel codice,
+ * uguale per tutti; adesso lo si sceglie. E' una scelta sulla casa — chi ha
+ * una serratura da cambiare al trenta ce l'ha da cambiare al trenta anche
+ * guardando dal telefono — quindi viaggia, come la soglia delle tapparelle. */
 /* La revisione 26 aggiunge la soglia di chiusura delle tapparelle
  * (`cd_tapparelle_soglia`, #298), le allerte (`cd_allerte`, #296) e la raccolta
  * differenziata (`cd_rifiuti`, #293): tre cose configurate una volta per tutta
@@ -166,7 +172,7 @@
  * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
  * e del collare. Anche questa e' roba della casa: il gatto configurato sul
  * tablet deve esistere anche sul telefono. */
-export const CONFIG_KEYS_REVISION = 35;
+export const CONFIG_KEYS_REVISION = 36;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -237,6 +243,9 @@ export const CONFIG_KEYS = Object.freeze([
   // Se il tocco su un'apertura chiede conferma (#275).
   "cd_porte_conferma",
   "cd_ups",
+  // Sotto quanto una batteria e' da cambiare (#398): una soglia per tutta la
+  // casa, non per questo dispositivo.
+  "cd_batterie",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.
   "cd_sezioni_mie",

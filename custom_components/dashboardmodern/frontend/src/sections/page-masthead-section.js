@@ -120,8 +120,8 @@ const PAGES = Object.freeze([
   {
     id: "page-ups",
     tint: ["14,165,233", "34,197,94"],
-    it: ["Continuità", "Rete · Batteria · Carico"],
-    en: ["Backup power", "Mains · Battery · Load"],
+    it: ["UPS", "Rete · Batteria · Carico"],
+    en: ["UPS", "Mains · Battery · Load"],
   },
   /* Le allerte, #296, e la raccolta differenziata, #293, nascono con la
    * loro pagina, e la testata nasce con loro. */
@@ -156,6 +156,16 @@ const PAGES = Object.freeze([
     tint: ["34,197,94", "14,165,233"],
     it: ["Rifiuti", "Raccolta differenziata · Prossimi ritiri"],
     en: ["Waste", "Recycling · Next collections"],
+  },
+  /* Le batterie (#398). Una pagina nuova senza la sua riga qui nasce senza
+   * intestazione: niente titolo, niente tasto per tornare a casa, e la voce
+   * della barra che intanto nasconde la testata del guscio. Si vede subito
+   * aprendola, e non si vede affatto scrivendola. */
+  {
+    id: "page-batterie",
+    tint: ["34,197,94", "234,179,8"],
+    it: ["Batterie", "Cariche · Scariche · Chi non risponde"],
+    en: ["Batteries", "Charged · Low · Not reporting"],
   },
   /* Il calendario (#259) nasce con la sua pagina, e l'intestazione nasce con
    * lei: gli impegni di oggi e dei giorni che vengono. */
