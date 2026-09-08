@@ -409,3 +409,47 @@ test("una riga che risponde senza una data dice cosa ha letto", () => {
   assert.equal(per["sensor.vetro"].letto, "");
   assert.equal(per["sensor.vetro"].muto, true);
 });
+
+/* Lo stato VERO che il segnalatore ha finalmente incollato (#383):
+ *
+ *   sensor.waste_collection_schedule_glass_cans
+ *   on Fri, 18.09.2026
+ *
+ * Due parole di troppo davanti alla data — la preposizione inglese e il giorno
+ * della settimana — e il lettore ne toglieva una sola, e solo se era un
+ * giorno. Quindi si fermava su «on» e falliva tutta la riga, mentre «Fri,
+ * 18.09.2026» lo leggeva benissimo. È il motivo per cui le date delle singole
+ * entità non comparivano.
+ */
+test("«on Fri, 18.09.2026» è una data, non un trattino", () => {
+  const letta = leggiData("on Fri, 18.09.2026");
+  assert.ok(letta, "lo stato vero di Waste Collection Schedule deve leggersi");
+  const quando = new Date(letta);
+  assert.equal(quando.getUTCFullYear(), 2026);
+  assert.equal(quando.getUTCMonth() + 1, 9);
+  assert.equal(quando.getUTCDate(), 18);
+});
+
+test("le preposizioni davanti a una data si tolgono, nelle lingue dei giorni", () => {
+  for (const testo of [
+    "on 18.09.2026",
+    "il 18/09/2026",
+    "al 18/09/2026",
+    "am 18.09.2026",
+    "el 18/09/2026",
+    "le 18/09/2026",
+  ])
+    assert.ok(leggiData(testo), `«${testo}» deve leggersi`);
+});
+
+test("togliere non arriva mai a mangiare la data", () => {
+  /* Al massimo due parole — una preposizione e un giorno — e mai fino a
+   * lasciare una riga senza cifre: se dopo aver tolto non resta un numero,
+   * non era una data con qualcosa davanti. */
+  assert.equal(leggiData("on and on"), null);
+  assert.equal(leggiData("settembre"), null);
+  assert.equal(leggiData("il lunedì"), null);
+  /* E un mese scritto a parole non è una preposizione: non si tocca. */
+  assert.ok(leggiData("10 settembre 2026"));
+  assert.ok(leggiData("mer 10/09/2026"));
+});

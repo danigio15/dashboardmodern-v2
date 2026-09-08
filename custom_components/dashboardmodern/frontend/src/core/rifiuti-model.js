@@ -316,15 +316,39 @@ const meseDaParola = (parola) => {
   return MESI.findIndex((prova) => prova.test(voce));
 };
 
-/* Il giorno della settimana scritto davanti a una data — «mer 10/09/2026»,
- * «Monday, 2026-09-08» — non aggiunge niente: la data e' quella che segue. Si
- * toglie prima di leggere, invece di far fallire tutta la riga per una parola
- * che si sapeva gia'. */
+/* Le parole che stanno davanti a una data senza aggiungere niente.
+ *
+ * «on Fri, 18.09.2026» e' lo stato vero di un sensore di Waste Collection
+ * Schedule (#383), ed e' due parole di troppo: la preposizione inglese e il
+ * giorno della settimana. Il lettore ne toglieva UNA, e solo se era un giorno
+ * — quindi su quella riga si fermava sulla prima parola e falliva tutto,
+ * mentre «Fri, 18.09.2026» lo leggeva benissimo.
+ *
+ * Le preposizioni sono quelle delle lingue in cui si conoscono gia' i giorni.
+ * `il` e `al` italiane, `on` e `at` inglesi, `am` tedesca, `el` spagnola, `le`
+ * francese, `op` olandese. Nessuna di queste e' un mese ne' un numero, quindi
+ * toglierla non puo' mangiare un pezzo di data. */
+const PREPOSIZIONI = /^(il|lo|al|del|di|on|at|am|el|le|op|den|op de)$/;
+
+/* Due parole al massimo — una preposizione e un giorno — e mai fino a
+ * svuotare la riga: se dopo aver tolto non resta una cifra, non era una data
+ * con qualcosa davanti, era un'altra cosa e va lasciata com'e'. */
+const PAROLE_DA_TOGLIERE = 2;
+
 function senzaIlGiornoDavanti(voce) {
-  const m = /^([\p{L}]+)[.,]?\s+(.+)$/u.exec(voce);
-  if (!m) return voce;
-  const parola = minuscolo(m[1]);
-  return GIORNI_DELLA_SETTIMANA.some((prova) => prova.test(parola)) ? pulito(m[2]) : voce;
+  let resto = voce;
+  for (let giro = 0; giro < PAROLE_DA_TOGLIERE; giro += 1) {
+    const m = /^([\p{L}]+)[.,]?\s+(.+)$/u.exec(resto);
+    if (!m) break;
+    const parola = minuscolo(m[1]);
+    const inutile =
+      PREPOSIZIONI.test(parola) || GIORNI_DELLA_SETTIMANA.some((prova) => prova.test(parola));
+    if (!inutile) break;
+    const dopo = pulito(m[2]);
+    if (!/\d/.test(dopo)) break;
+    resto = dopo;
+  }
+  return resto;
 }
 
 /**
