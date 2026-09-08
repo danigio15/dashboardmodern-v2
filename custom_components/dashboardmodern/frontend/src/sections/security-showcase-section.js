@@ -44,6 +44,13 @@ import {
   overridesPerCentrale,
 } from "../core/alarm-panel.js";
 import {
+  CHIAVE_ANTIFURTO_SU_MISURA,
+  chiamataDelModo,
+  modoDalServizio,
+  modoSuMisuraAcceso,
+  normalizzaModiSuMisura,
+} from "../core/antifurto-su-misura.js";
+import {
   activeLocale,
   allStates,
   clean,
@@ -278,8 +285,17 @@ function alarmStateObject() {
  * un tasto che non fa niente — e non deve stare li'. */
 /* I tasti scelti: quelli che la centrale accetta, meno quelli che si e' detto
  * di non voler vedere. La scelta sta in configurazione, sotto Antifurto. */
+/* I tasti scritti a mano, per chi una centrale non ce l'ha (#413). */
+function modiSuMisura() {
+  return normalizzaModiSuMisura(readJson(CHIAVE_ANTIFURTO_SU_MISURA, []));
+}
+
 function modiVisibili(stateObj = alarmStateObject()) {
-  return alarmVisibleModes(stateObj, readJson(ALARM_MODE_CHOICE_KEY, []));
+  return alarmVisibleModes(
+    stateObj,
+    readJson(ALARM_MODE_CHOICE_KEY, []),
+    readJson(CHIAVE_ANTIFURTO_SU_MISURA, []),
+  );
 }
 
 /* Quale tasto e' acceso: si calcola il ripiego su quello che la centrale
@@ -291,7 +307,13 @@ function modoAcceso(state, stateObj = alarmStateObject()) {
     state,
     alarmModes(stateObj).map((voce) => voce.mode),
   );
-  if (!acceso) return "";
+  /* La centrale non ha risposto: puo' essere che non ci sia, e allora la
+   * risposta la danno i tasti scritti a mano — ognuno col suo stato, l'elenco
+   * che porta il nome della modalita' o l'interruttore acceso. */
+  if (!acceso) {
+    const mio = modoSuMisuraAcceso(modiSuMisura(), allStates());
+    return mio && modiVisibili(stateObj).some((voce) => voce.mode === mio) ? mio : "";
+  }
   return modiVisibili(stateObj).some((voce) => voce.mode === acceso) ? acceso : "";
 }
 
@@ -310,6 +332,10 @@ function modoAcceso(state, stateObj = alarmStateObject()) {
 export function alarmModeButtons(stateObj = alarmStateObject()) {
   const labels = copy();
   return modiVisibili(stateObj).map((voce) => {
+    /* Un tasto scritto a mano il nome ce l'ha gia', ed e' quello che gli ha
+     * dato chi ha la casa: il catalogo delle modalita' non lo conosce, e
+     * cercarcelo dentro finiva sul nome dello sblocco. */
+    if (voce.suMisura) return { ...voce };
     const testi = labels.modes[voce.mode] || labels.modes[ALARM_DISARM.mode];
     return { ...voce, label: testi.label, hint: testi.hint };
   });
@@ -378,6 +404,7 @@ function agganciaLaFinestraRapida() {
 function modeRow(labels, stateObj = alarmStateObject()) {
   return modiVisibili(stateObj)
     .map((voce) => {
+      if (voce.suMisura) return modeButton(voce);
       const testi = labels.modes[voce.mode] || labels.modes[ALARM_DISARM.mode];
       return modeButton({ ...voce, label: testi.label, hint: testi.hint });
     })
@@ -664,6 +691,57 @@ function installOverrides() {
   }
 }
 
+/* Il tasto scritto a mano chiama la sua entita' (#413).
+ *
+ * I tasti dell'antifurto passano tutti da `promptPinAndSet`, che e' del guscio
+ * e sa mandare i servizi di `alarm_control_panel` sulla centrale scritta nella
+ * mappatura. Un tasto su misura una centrale non ce l'ha: manda il proprio
+ * nome marcato, e qui lo si intercetta prima che il guscio provi a chiamare un
+ * servizio che non esiste.
+ *
+ * Si avvolge quella funzione sola, e non si riscrive nessuna delle tre file di
+ * tasti — la pagina, la tessera della Home, la finestra rapida del banner
+ * chiamano gia' tutte lei. Chi decide cosa succede quando si preme deve essere
+ * uno solo, ed e' la stessa ragione per cui i tasti li disegna un posto solo.
+ */
+async function premiIlModoSuMisura(id) {
+  const modo = modiSuMisura().find((voce) => voce.id === id);
+  const chiamata = modo && chiamataDelModo(modo);
+  if (!chiamata) return;
+  try {
+    if (typeof root.dmCallHaService === "function")
+      await root.dmCallHaService(chiamata.domain, chiamata.service, { ...chiamata.data });
+    else if (typeof root.callService === "function")
+      await root.callService(chiamata.domain, chiamata.service, { ...chiamata.data });
+    else
+      await (root.hass || root._hass)?.callService?.(chiamata.domain, chiamata.service, {
+        ...chiamata.data,
+      });
+  } catch (error) {
+    root.console?.error?.("[DashboardModern] antifurto su misura", error);
+  }
+}
+
+function agganciaIModiSuMisura() {
+  const nome = "promptPinAndSet";
+  const originale = root[nome];
+  if (typeof originale !== "function" || originale.__dmAntifurtoSuMisura) return false;
+  function avvolta(...argomenti) {
+    const id = modoDalServizio(argomenti[0]);
+    /* Non e' un tasto nostro: il guscio fa quello che ha sempre fatto, il
+     * tastierino compreso. Chiamarlo con un nome che non e' un servizio di
+     * `alarm_control_panel` sarebbe l'unico modo di romperlo. */
+    if (!id) return originale.apply(this, argomenti);
+    premiIlModoSuMisura(id);
+    return undefined;
+  }
+  Object.assign(avvolta, originale);
+  avvolta.__dmAntifurtoSuMisura = true;
+  avvolta.__dmPrevious = originale;
+  root[nome] = avvolta;
+  return true;
+}
+
 /* Le due domande sulla centrale, per il runtime vecchio.
  *
  * Il tasto acceso e il tastierino li disegna e li apre la plancia storica, che
@@ -696,6 +774,7 @@ export function installSecurityShowcaseSection() {
   installStyle(STYLE_ID, securityCss());
   publishAlarmHelpers();
   installOverrides();
+  agganciaIModiSuMisura();
   agganciaLaFinestraRapida();
   if (!state.listeners) {
     state.listeners = true;
@@ -711,6 +790,7 @@ export function installSecurityShowcaseSection() {
     ]) {
       root.addEventListener?.(eventName, () => {
         installOverrides();
+        agganciaIModiSuMisura();
         agganciaLaFinestraRapida();
         renderSecurity();
       });

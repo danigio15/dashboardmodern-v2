@@ -50,6 +50,7 @@ import { installLiveUiSection } from "./live-ui-section.js";
 import { installTelecameraWebRtc } from "./telecamera-webrtc-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
+import { installAntifurtoSuMisuraEditorSection } from "./antifurto-su-misura-editor-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
 import { installVmcEditor } from "./vmc-editor-section.js";
 import { installAssistSection } from "./assist-section.js";
@@ -896,6 +897,7 @@ export function installSectionRuntime() {
     /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();
+    installAntifurtoSuMisuraEditorSection();
     installClimateThermalSection();
     /* Le voci termiche del popup Caldo: dopo chi disegna il popup, cosi' il
      * pannello passa di mano una volta sola. */

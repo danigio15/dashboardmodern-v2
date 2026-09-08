@@ -1009,8 +1009,21 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scheda guardino lo STESSO elenco. Se la scheda ne toglie una e la tessera
   // continua a contarla, chi l'ha tolta pensa che la plancia non l'abbia
   // sentito.
+  // 301 con i tasti d'inserimento scritti a mano (#413): «possibilita' di
+  // configurare i comandi di inserimento e modalita' sia nel comando da
+  // lanciare che nel nome icona — utilizzando un dispositivo tramite esphome
+  // non ho il classico control_panel_alarm». La fila della Sicurezza la
+  // disegna la centrale, e chi una centrale non ce l'ha si ritrovava due tasti
+  // di ripiego che chiamavano servizi inesistenti. Sono due moduli, che e' la
+  // forma di sempre: `core/antifurto-su-misura.js` (cosa premere, quale
+  // servizio per quale dominio, e chi e' inserito adesso) e
+  // `sections/antifurto-su-misura-editor-section.js` (la scheda, sotto la
+  // casella della centrale, accanto alle modalita' da mostrare). La fila non
+  // si riscrive: `core/alarm-panel.js` li aggiunge ai tasti della centrale, e
+  // la pagina, la tessera della Home e la finestra rapida del banner li
+  // disegnano senza sapere da dove arrivano.
   assert.ok(
-    relative.length <= 299,
+    relative.length <= 301,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

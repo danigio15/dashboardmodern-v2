@@ -168,11 +168,17 @@
  * guarda ha gia' visto l'avviso — il primo schermo che se ne accorgesse
  * toglierebbe agli altri il termine di paragone.
  *
+ * La revisione 37 aggiunge i tasti d'inserimento scritti a mano
+ * (`cd_antifurto_su_misura`, #413): chi si e' fatto l'antifurto con ESPHome
+ * un `alarm_control_panel` non ce l'ha, e la fila di tasti se la descrive —
+ * nome, icona, entita' da chiamare. E' roba della casa, non dello schermo:
+ * l'antifurto configurato sul tablet deve funzionare anche dal telefono.
+ *
  * E gli animali di casa (`cd_animali`, #358): i loro nomi, le loro foto e le
  * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
  * e del collare. Anche questa e' roba della casa: il gatto configurato sul
  * tablet deve esistere anche sul telefono. */
-export const CONFIG_KEYS_REVISION = 36;
+export const CONFIG_KEYS_REVISION = 37;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -197,6 +203,9 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_security_doors",
   // Quali modalita' della centrale si e' scelto di non vedere.
   "cd_antifurto_modi",
+  // I tasti d'inserimento scritti a mano, per chi una centrale non ce l'ha
+  // (#413): nome, icona, entita' da chiamare, dove leggere se e' inserita.
+  "cd_antifurto_su_misura",
   "cd_todo",
   "cd_widgets",
   // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
