@@ -112,6 +112,25 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "dashboardmodern/chat/open",
   "dashboardmodern/chat/answer",
   "dashboardmodern/chat/drop",
+  // Assist (#360). Dal campo, con la schermata allegata: «impostato
+  // conversation gemini e openai ma non funziona, sbaglio io qualcosa?», e
+  // dentro il riquadro rosso c'era la nostra risposta — «Message type not
+  // permitted through the bridge: conversation/process». Non sbagliava
+  // niente: Assist manda quel messaggio e basta, e di qui non passava.
+  //
+  // Si vedeva solo dentro il pannello di Home Assistant e da Nabu Casa, cioe'
+  // da dove la plancia si guarda normalmente: sulla pagina legacy, che il
+  // ponte non ce l'ha, la stessa domanda arrivava e la casa rispondeva. E'
+  // la stessa dimenticanza del calendario e delle foto dell'auto, ed e' la
+  // ragione per cui la prova qui accanto elenca cosa deve passare invece di
+  // fidarsi che qualcuno se ne ricordi.
+  "conversation/process",
+  // L'accensione temporizzata del Clima (#364). Trovati dalla stessa prova
+  // appena le si e' tolto il buco: sono tre comandi del backend, registrati
+  // la' e negati qui, e come Assist funzionavano solo sulla pagina legacy.
+  "dashboardmodern/clima/timer/list",
+  "dashboardmodern/clima/timer/set",
+  "dashboardmodern/clima/timer/clear",
   "auth/sign_path",
 ]);
 
