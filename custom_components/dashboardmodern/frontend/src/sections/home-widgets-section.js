@@ -1223,6 +1223,36 @@ function lettureDellImpianto(states, impianto, primo) {
   };
 }
 
+/**
+ * I quattro numeri dell'energia di tutta la casa, sommati sugli impianti.
+ *
+ * Li legge chi disegna il flusso in Home (#415): non li rilegge per conto suo —
+ * le mappature, gli impianti, le unita' e la somma di chi ne ha due sono gia'
+ * risolte qui, e due letture della stessa casa e' il modo di far dire due
+ * numeri diversi alla stessa corrente.
+ *
+ * @returns {{solare:number|null, rete:number|null, batteria:number|null,
+ *            casa:number|null, soc:number|null}}
+ */
+export function lettureDiCasa(states = allStates()) {
+  const documento = section("energy", {}) || {};
+  const impianti = plantList(documento).filter(
+    (impianto, indice) => indice === 0 || plantIsConfigured(impianto),
+  );
+  const letture = impianti.map((impianto, indice) =>
+    lettureDellImpianto(states, impianto, indice === 0),
+  );
+  const righe = sommaLetture(letture.map((lettura) => lettura.rows));
+  const di = (gruppo) => righe.find((riga) => riga.group === gruppo) || null;
+  return {
+    solare: di("solar")?.watts ?? null,
+    rete: di("grid")?.watts ?? null,
+    batteria: di("battery")?.watts ?? null,
+    casa: sommaNumeri(letture.map((lettura) => lettura.house)),
+    soc: di("battery")?.soc ?? null,
+  };
+}
+
 function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "" } = {}) {
   if (house == null && !rows.length) return null;
   return {

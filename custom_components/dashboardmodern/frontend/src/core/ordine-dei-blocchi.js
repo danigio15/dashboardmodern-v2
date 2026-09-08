@@ -17,7 +17,17 @@
  * blocco: compaiono da sole quando hanno qualcosa da dire e stanno in cima
  * perche' sono un avviso. Metterle in fila con gli altri vorrebbe dire poterle
  * mandare in fondo, cioe' non vederle. */
-export const BLOCCHI_DELLA_HOME = Object.freeze(["persone", "widget", "azioni", "dispositivi"]);
+export const BLOCCHI_DELLA_HOME = Object.freeze([
+  "persone",
+  /* Il flusso dell'energia (#415): «sulla home, accanto magari alle card delle
+   * persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla casa
+   * alle batterie, dalla casa all'auto». Nasce li' perche' li' e' stato
+   * chiesto, e da li' si sposta come tutti gli altri. */
+  "flusso",
+  "widget",
+  "azioni",
+  "dispositivi",
+]);
 
 const NOTI = new Set(BLOCCHI_DELLA_HOME);
 

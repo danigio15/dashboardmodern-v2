@@ -135,8 +135,16 @@ test("togliere una chiave non alza la revisione", async () => {
    * l'antifurto se l'e' fatto con gli script la fila dei tasti se la descrive —
    * nome, icona, entita' da premere — ed e' l'antifurto della casa: inserirlo
    * dal tablet e non poterlo inserire dal telefono sarebbe il difetto piu'
-   * grave di tutti quelli di questo elenco. */
-  assert.equal(CONFIG_KEYS_REVISION, 37);
+   * grave di tutti quelli di questo elenco. E la 38 col flusso dell'energia in
+   * Home (#415, #416, `cd_flusso_home`): «sulla home, accanto magari alle card
+   * delle persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla
+   * casa alle batterie, dalla casa all'auto». Vederlo o no e' una scelta sulla
+   * casa, come l'ordine dei blocchi che gli sta accanto. */
+  assert.equal(CONFIG_KEYS_REVISION, 38);
+  assert.ok(
+    CONFIG_KEYS.includes("cd_flusso_home"),
+    "il flusso in Home si sceglie per la casa, non per lo schermo",
+  );
   assert.ok(
     CONFIG_KEYS.includes("cd_antifurto_su_misura"),
     "l'antifurto scritto a mano deve viaggiare con la casa",
