@@ -254,7 +254,30 @@ def _register_or_update_panel(
     static_url_path: str,
     variants: list[str] | None = None,
 ) -> None:
-    """Register or update the custom panel for one plancia."""
+    """Registra o aggiorna il pannello di una plancia.
+
+    Gli argomenti sono quelli che `async_register_built_in_panel` accetta
+    davvero, e non uno di piu'.
+
+    Qui c'era anche `show_in_sidebar=True`, e quel parametro Home Assistant lo
+    ha aggiunto solo nella 2026.3. Dalla 2026.2 in giu' la firma e' `(hass,
+    component_name, sidebar_title, sidebar_icon, frontend_url_path, config,
+    require_admin, *, update, config_panel_domain)` e basta: passarglielo
+    solleva `TypeError: unexpected keyword argument`, il setup della voce
+    fallisce e l'integrazione non compare.
+
+    E' l'installazione che «non parte» segnalata sul gruppo, e chi l'ha risolta
+    cancellando quella riga aveva ragione. Non si vedeva perche' su una Home
+    Assistant recente non succede niente — la riga passa — e chi sviluppa ce
+    l'ha recente; a restare fuori sono le case ferme a una versione piu'
+    vecchia, cioe' proprio quelle che l'integrazione non l'hanno mai vista
+    partire.
+
+    Non serviva nemmeno: nella 2026.3 quel parametro vale `True` di suo, quindi
+    scriverlo diceva quello che sarebbe successo comunque. Toglierlo non cambia
+    niente dove funzionava e rimette in piedi l'installazione dalla 2025.1 in
+    poi, che e' la versione minima che `hacs.json` promette.
+    """
     from homeassistant.components import frontend
 
     from .config_flow import OPTION_ADMIN_ONLY
@@ -273,7 +296,6 @@ def _register_or_update_panel(
             variants=variants,
         ),
         require_admin=bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
-        show_in_sidebar=True,
         update=update,
     )
 
