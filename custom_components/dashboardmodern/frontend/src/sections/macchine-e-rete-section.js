@@ -27,12 +27,19 @@
  */
 import {
   CHIAVE_MACCHINE,
+  SERVER_PER_DISPOSITIVO,
   candidateDaChiedere,
   contoDelleMacchine,
+  integrazioniPerDispositivo,
   macchineConfigurate,
   macchineERete,
   normalizzaMacchine,
 } from "../core/macchine-e-rete.js";
+import {
+  EVENTO_CATALOGO,
+  dispositiviDelCatalogo,
+  entitaDelDispositivo,
+} from "./appliance-integration-section.js";
 import {
   EVENTO_PIATTAFORME,
   piattaformeConosciute,
@@ -62,20 +69,71 @@ function configurazione() {
   return readJson(CHIAVE_MACCHINE, {});
 }
 
+/**
+ * I dispositivi da adottare per intero, con le loro entità (#411).
+ *
+ * Solo per le integrazioni dichiarate `SERVER_PER_DISPOSITIVO` — Synology e le
+ * poche come lei — e solo se spuntate: il catalogo lo si legge comunque, ma le
+ * entità si chiedono al backend per una manciata di dispositivi, non per la
+ * casa. Proxmox e FritzBox i loro candidati li portano con la classe, e da qui
+ * non passano mai.
+ *
+ * Chi disegna non aspetta: quello che manca arriva dopo, e l'annuncio del
+ * catalogo fa ridisegnare.
+ */
+export function serverPerDispositivo(states = allStates(), config = configurazione()) {
+  const domini = new Set(integrazioniPerDispositivo(states, piattaformeConosciute(), config));
+  if (!domini.size) return { dispositivi: [], entita: {} };
+  const dispositivi = dispositiviDelCatalogo().filter((dispositivo) => {
+    if (!dispositivo || clean(dispositivo.via_device)) return false;
+    const suoi = Array.isArray(dispositivo.integrations)
+      ? dispositivo.integrations
+      : [dispositivo.integration];
+    return suoi.some((dominio) => domini.has(clean(dominio)));
+  });
+  const entita = {};
+  for (const dispositivo of dispositivi) {
+    const righe = entitaDelDispositivo(dispositivo.id);
+    entita[clean(dispositivo.id)] = (righe || []).map((riga) => clean(riga?.entity_id));
+  }
+  return { dispositivi, entita };
+}
+
+/* Le integrazioni che la sezione sa adottare per dispositivo: serve alla
+ * scheda, che le offre da spuntare anche quando non portano nessun candidato. */
+export function dispositiviDeiServerDichiarati() {
+  return dispositiviDelCatalogo().filter((dispositivo) => {
+    if (!dispositivo || clean(dispositivo.via_device)) return false;
+    const suoi = Array.isArray(dispositivo.integrations)
+      ? dispositivo.integrations
+      : [dispositivo.integration];
+    return suoi.some((dominio) => SERVER_PER_DISPOSITIVO.has(clean(dominio)));
+  });
+}
+
 /** I due elenchi, letti adesso. */
 export function macchineInPlancia() {
   const states = allStates();
+  const config = configurazione();
   return macchineERete(
     states,
-    configurazione(),
+    config,
     (entity) => nomeDaHomeAssistant(entity, states),
     piattaformeConosciute(),
+    serverPerDispositivo(states, config),
   );
 }
 
 /** Se c'è qualcosa da mostrare. */
 export function ciSonoMacchine() {
-  return macchineConfigurate(allStates(), configurazione(), piattaformeConosciute());
+  const states = allStates();
+  const config = configurazione();
+  return macchineConfigurate(
+    states,
+    config,
+    piattaformeConosciute(),
+    serverPerDispositivo(states, config),
+  );
 }
 
 /* Di chi sono i candidati: la domanda al registro, una volta per entità.
@@ -339,6 +397,10 @@ export function installMacchine() {
    * firma di prima non vale più — questo è l'unico avviso che merita un
    * ridisegno forzato. */
   root.addEventListener?.(EVENTO_PIATTAFORME, renderMacchine);
+  /* Il catalogo dei dispositivi e le entità di un NAS arrivano dopo, con la
+   * loro risposta: senza questo la fascia resterebbe come l'ha disegnata il
+   * primo giro, cioè vuota. */
+  root.addEventListener?.(EVENTO_CATALOGO, renderMacchine);
   quandoSiCambiaPagina(schedule);
   schedule();
   return true;

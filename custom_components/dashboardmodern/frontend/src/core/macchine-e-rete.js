@@ -155,9 +155,32 @@ export function famigliaDi(entity, stato, config, piattaforme) {
  * numero. Le escluse a mano non si contano: sono già state guardate e messe
  * fuori.
  */
-export function integrazioniDaScegliere(states = {}, piattaforme, config, nomi = {}) {
+export function integrazioniDaScegliere(
+  states = {},
+  piattaforme,
+  config,
+  nomi = {},
+  dispositivi = [],
+) {
   const scelte = normalizzaMacchine(config);
   const conti = new Map();
+  /* I server che non dichiarano l'acceso non porterebbero nessun candidato, e
+   * senza candidati non comparivano qui: non c'era modo di spuntarli. Il loro
+   * conto sono le macchine, cioe' i dispositivi che non dipendono da nessun
+   * altro — il NAS si', la telecamera appesa al NAS no. */
+  for (const dispositivo of dispositivi || []) {
+    if (!dispositivo || clean(dispositivo.via_device)) continue;
+    const domini = Array.isArray(dispositivo.integrations)
+      ? dispositivo.integrations.map(clean)
+      : [clean(dispositivo.integration)];
+    for (const dominio of domini) {
+      if (!SERVER_PER_DISPOSITIVO.has(dominio)) continue;
+      const riga = conti.get(dominio) || { dominio, nome: "", macchine: 0, rete: 0, totale: 0 };
+      riga.macchine += 1;
+      riga.totale += 1;
+      conti.set(dominio, riga);
+    }
+  }
   for (const entity of candidateDaChiedere(states)) {
     if (scelte.escluse.includes(entity)) continue;
     const dominio = clean(piattaforme?.[entity]);
@@ -214,6 +237,112 @@ export function comandiDellaMacchina(entity, states = {}) {
 }
 
 /**
+ * Le integrazioni che raccontano una macchina senza dichiararne l'acceso (#411).
+ *
+ * Dal campo: «fra le vm riconoscere in automatico il synology, per evitare la
+ * configurazione manuale». Synology DSM pubblica CPU, memoria, dischi, volumi,
+ * temperatura — e nessun `binary_sensor` con `device_class: running`. Le due
+ * classi non la trovano, quindi non compariva nemmeno fra le integrazioni da
+ * spuntare: non c'era proprio modo di farla entrare, se non aggiungendo a mano
+ * un'entita' alla volta. Ed e' esattamente la configurazione manuale che la
+ * segnalazione chiede di evitare.
+ *
+ * Il patto della sezione resta quello: a dire se una cosa e' roba del server e'
+ * l'integrazione, non il nome dell'entita'. Solo che per queste l'integrazione
+ * non lo dichiara in nessuna classe, e allora lo si dichiara qui — un elenco
+ * corto, di domini che sono un server o un NAS e basta. Aggiungerne un altro e'
+ * una riga; indovinarlo dai nomi sarebbe la mezza casa adottata di prima.
+ *
+ * Queste si adottano per DISPOSITIVO, non per entita': il registro di Home
+ * Assistant i dispositivi ce li ha, ed e' il fatto che manca.
+ */
+export const SERVER_PER_DISPOSITIVO = Object.freeze(new Set(["synology_dsm", "qnap", "glances"]));
+
+/**
+ * Quali di quelle si adottano adesso: scelte, e senza candidati per classe.
+ *
+ * La seconda meta' conta: se un domani l'integrazione dichiarasse i suoi
+ * `running`, la strada delle classi e' migliore — dice acceso e spento, non
+ * solo «risponde» — e questa si fa da parte da sola invece di elencare tutto
+ * due volte.
+ */
+export function integrazioniPerDispositivo(states = {}, piattaforme, config) {
+  const scelte = normalizzaMacchine(config);
+  const conCandidati = new Set();
+  for (const entity of candidateDaChiedere(states)) {
+    const dominio = clean(piattaforme?.[entity]);
+    if (dominio) conCandidati.add(dominio);
+  }
+  return scelte.integrazioni.filter(
+    (dominio) => SERVER_PER_DISPOSITIVO.has(dominio) && !conCandidati.has(dominio),
+  );
+}
+
+/* L'entita' che da' il nome alla riga: si preferisce quella che parla dello
+ * stato della macchina, e in mancanza la prima in ordine. Serve un nome fermo,
+ * perche' e' quello che si scrive in `escluse` e in `nomi`: se cambiasse a
+ * ogni lettura, togliere una riga non la toglierebbe. */
+function rappresentanteDi(entita = []) {
+  const ordinate = [...new Set(entita.map(clean).filter((id) => id.includes(".")))].sort();
+  return ordinate.find((id) => /_(status|state|uptime)$/i.test(id)) || ordinate[0] || "";
+}
+
+/* Come sta un dispositivo: acceso se almeno una delle sue entita' risponde.
+ *
+ * Un NAS spento — o staccato dalla rete — in Home Assistant non e' «off»: e'
+ * `unavailable` su tutta la riga, perche' non c'e' piu' nessuno a rispondere.
+ * Dire «fermo» sarebbe una diagnosi inventata, come per i container: si dice
+ * che non risponde, ed e' quello che si sa. */
+function comeStaIlDispositivo(entita = [], states = {}) {
+  for (const id of entita) if (comeSta(states[id])) return "su";
+  return "";
+}
+
+/**
+ * Una riga per macchina, quando l'integrazione non dichiara nessun `running`.
+ *
+ * Si guardano i dispositivi, non le entita'. Un dispositivo che non dipende da
+ * nessun altro — `via_device` vuoto — e' la macchina: il NAS, il router. Quelli
+ * che gli sono appesi sono i suoi accessori — la telecamera della Surveillance
+ * Station, il ripetitore — e in un elenco di macchine sarebbero rumore.
+ *
+ * Nessun tasto: un NAS non si accende da remoto, e spegnerlo con un tocco non
+ * e' una cosa da offrire senza che nessuno l'abbia chiesta. Si dice come sta.
+ */
+export function macchineDeiDispositivi({
+  dispositivi = [],
+  entita = {},
+  states = {},
+  config,
+  piattaforme = null,
+} = {}) {
+  const scelte = normalizzaMacchine(config);
+  const senza = new Set(integrazioniPerDispositivo(states, piattaforme, config));
+  if (!senza.size) return [];
+  const righe = [];
+  for (const dispositivo of dispositivi || []) {
+    if (!dispositivo || clean(dispositivo.via_device)) continue;
+    const domini = Array.isArray(dispositivo.integrations)
+      ? dispositivo.integrations.map(clean)
+      : [clean(dispositivo.integration)];
+    if (!domini.some((dominio) => senza.has(dominio))) continue;
+    const suoi = (entita[clean(dispositivo.id)] || []).map(clean).filter(Boolean);
+    const rappresentante = rappresentanteDi(suoi);
+    if (!rappresentante || scelte.escluse.includes(rappresentante)) continue;
+    righe.push({
+      entity: rappresentante,
+      famiglia: "macchine",
+      name: scelte.nomi[rappresentante] || clean(dispositivo.name) || rappresentante,
+      glifo: FAMIGLIE.macchine.glifo,
+      stato: comeStaIlDispositivo(suoi, states),
+      comandi: null,
+      dispositivo: clean(dispositivo.id),
+    });
+  }
+  return righe;
+}
+
+/**
  * Gli elenchi: le macchine e la rete, letti e ordinati.
  *
  * Prima quello che è giù — è la ragione per cui uno apre questa pagina — poi i
@@ -224,9 +353,16 @@ export function macchineERete(
   config,
   nomeDi = (entity) => entity,
   piattaforme = null,
+  { dispositivi = [], entita = {} } = {},
 ) {
   const scelte = normalizzaMacchine(config);
   const elenchi = { macchine: [], rete: [] };
+  /* I server che non dichiarano l'acceso entrano da qui, con la stessa forma
+   * di riga: da questo punto in poi sono macchine come le altre — stesso
+   * ordine, stesso conto, stessa fascia. */
+  elenchi.macchine.push(
+    ...macchineDeiDispositivi({ dispositivi, entita, states, config, piattaforme }),
+  );
   for (const [entity, stato] of Object.entries(states || {})) {
     const famiglia = famigliaDi(entity, stato, config, piattaforme);
     if (!famiglia) continue;
@@ -260,7 +396,7 @@ export function contoDelleMacchine(righe = []) {
 }
 
 /** Se c'è qualcosa da mostrare in almeno una delle due famiglie. */
-export function macchineConfigurate(states = {}, config, piattaforme = null) {
-  const elenchi = macchineERete(states, config, undefined, piattaforme);
+export function macchineConfigurate(states = {}, config, piattaforme = null, dai = {}) {
+  const elenchi = macchineERete(states, config, undefined, piattaforme, dai);
   return elenchi.macchine.length > 0 || elenchi.rete.length > 0;
 }

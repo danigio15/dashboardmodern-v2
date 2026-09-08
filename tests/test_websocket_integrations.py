@@ -227,6 +227,9 @@ async def test_il_catalogo_elenca_integrazioni_e_dispositivi(
     assert prima["model"] == "H-WASH 500"
     assert prima["integration"] == "hon"
     assert prima["integrations"] == ["hon"]
+    # Da chi dipende: la sezione Server elenca le macchine, non gli accessori
+    # che ci sono appesi, e questo e' il fatto che glielo dice.
+    assert prima["via_device"] == ""
     assert prima["area"] == "Lavanderia"
     # Tre accese: quella disabilitata non conta nel numero che il menu mostra.
     assert prima["entities"] == 3
