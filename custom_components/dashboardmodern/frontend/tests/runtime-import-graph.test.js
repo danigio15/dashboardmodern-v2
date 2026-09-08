@@ -1034,8 +1034,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // stessa casa che dicono cose diverse sarebbero peggio di una mappa sola:
   // qui sono d'accordo perche' fanno lo stesso conto, non perche' qualcuno le
   // ha allineate a mano.
+  // 305 con le telecamere che si vedono subito: «vanno riviste completamente
+  // le connessioni che avvengono con le telecamere, sono lentissime e non
+  // carica immediatamente immagine». Il guscio prova le strade in fila —
+  // WebRTC, HLS, MJPEG, istantanee — e nessuna disegna finche' non vince:
+  // prima di allora il riquadro e' vuoto, su una telecamera che dorme anche
+  // per venticinque secondi. E la fila si rifa' identica a ogni apertura.
+  // `core/apertura-telecamera.js` tiene i due conti (quale strada ha
+  // funzionato per quella telecamera, e quanto vale la pena aspettarla) e
+  // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
+  // negoziare e prova per prima la strada ricordata. La cascata del guscio non
+  // si tocca: resta la rete di sicurezza, intera.
   assert.ok(
-    relative.length <= 303,
+    relative.length <= 305,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

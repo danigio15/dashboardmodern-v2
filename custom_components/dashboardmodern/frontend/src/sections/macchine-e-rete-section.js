@@ -33,7 +33,6 @@ import {
   integrazioniPerDispositivo,
   macchineConfigurate,
   macchineERete,
-  normalizzaMacchine,
 } from "../core/macchine-e-rete.js";
 import {
   EVENTO_CATALOGO,
@@ -153,8 +152,10 @@ function imparaDiChiSono(candidate = candidateDaChiedere(allStates())) {
 /* ── il disegno ───────────────────────────────────────────────────────── */
 
 function parolaDelloStato(riga) {
-  if (riga.stato === "su") return riga.famiglia === "rete" ? t("Connesso", "Connected") : t("Acceso", "Running");
-  if (riga.stato === "giu") return riga.famiglia === "rete" ? t("Assente", "Down") : t("Fermo", "Stopped");
+  if (riga.stato === "su")
+    return riga.famiglia === "rete" ? t("Connesso", "Connected") : t("Acceso", "Running");
+  if (riga.stato === "giu")
+    return riga.famiglia === "rete" ? t("Assente", "Down") : t("Fermo", "Stopped");
   return t("Non risponde", "Not answering");
 }
 
@@ -214,31 +215,20 @@ function ensureFasce() {
   return dove;
 }
 
-/* Quando non si è ancora scelto niente ma ci sarebbe da scegliere.
+/* La pagina Server non spiega come si configura la pagina Server.
  *
- * Sparire in silenzio sarebbe la risposta comoda e quella sbagliata: chi apre
- * la pagina Server dopo un aggiornamento non deve chiedersi dove sono finiti i
- * suoi container. Il conto è quello vero — i candidati di cui si sa già
- * l'integrazione — perché un numero che promette più di quello che arriva è
- * peggio di nessun numero. */
-function invitoMarkup(candidate) {
-  if (normalizzaMacchine(configurazione()).integrazioni.length) return "";
-  const piattaforme = piattaformeConosciute();
-  const quante = candidate.filter((entity) => clean(piattaforme[entity])).length;
-  if (!quante) return "";
-  return `<section class="dm-macchine-fascia dm-macchine-invito">
-    <header class="dm-macchine-testa">
-      <strong>${esc(t("Macchine e rete", "Machines and network"))}</strong>
-      <span>${esc(t("Da scegliere", "To be chosen"))} · ${esc(String(quante))}</span>
-    </header>
-    <p>${esc(
-      t(
-        "Home Assistant dichiara delle entità che potrebbero essere macchine del server o pezzi di rete — ma le stesse etichette ce l'hanno anche la lavatrice e il telefono. In Config → 🖥️ MiniPC si sceglie da quali integrazioni prenderle.",
-        "Home Assistant declares entities that could be server machines or network pieces — but the washing machine and the phone carry the same labels. In Config → 🖥️ MiniPC you choose which integrations they come from.",
-      ),
-    )}</p>
-  </section>`;
-}
+ * Qui c'era una fascia con scritto «Macchine e rete · Da scegliere · 21» e
+ * sotto un paragrafo che raccontava perché le due classi non bastano e dove si
+ * spunta l'integrazione. Dal campo: «le scritte presenti nella sezione minipc
+ * le devi togliere — se si configura nella sezione config di riferimento togli
+ * ste scritte inutili, soprattutto se non configurato nulla».
+ *
+ * Ha ragione, e vale per tutta la plancia: una pagina mostra la casa, la
+ * scheda del Config spiega come si sceglie. Chi non ha configurato niente vede
+ * la pagina senza le due fasce — che è quello che è, non un errore — e la
+ * spiegazione la trova dov'è il gesto per agire, in Config → MiniPC, dove è
+ * rimasta per intero.
+ */
 
 function dipingi() {
   const dove = ensureFasce();
@@ -250,13 +240,11 @@ function dipingi() {
   const candidate = candidateDaChiedere(allStates());
   imparaDiChiSono(candidate);
   const elenchi = macchineInPlancia();
-  const invito = invitoMarkup(candidate);
-  const firma = JSON.stringify([elenchi, invito, t("Acceso", "Running")]);
+  const firma = JSON.stringify([elenchi, t("Acceso", "Running")]);
   if (state.firma === firma) return;
   state.firma = firma;
   dove.innerHTML = `${fasciaMarkup(t("Macchine e container", "Machines and containers"), elenchi.macchine)}
-    ${fasciaMarkup(t("Rete", "Network"), elenchi.rete)}
-    ${invito}`;
+    ${fasciaMarkup(t("Rete", "Network"), elenchi.rete)}`;
 }
 
 function schedule() {
@@ -282,7 +270,8 @@ export function renderMacchine() {
 
 function chiama(dominio, servizio, dati) {
   try {
-    if (typeof root.dmCallHaService === "function") return root.dmCallHaService(dominio, servizio, dati);
+    if (typeof root.dmCallHaService === "function")
+      return root.dmCallHaService(dominio, servizio, dati);
     if (typeof root.cdCallServiceJson === "function")
       return root.cdCallServiceJson(dominio, servizio, dati);
   } catch (error) {
@@ -322,9 +311,6 @@ function installStyles() {
     ${P} .dm-macchine-testa span{font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
     ${P} .dm-macchine-fascia[data-giu="true"] .dm-macchine-testa span{color:#dc2626}
     ${P} .dm-macchine-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
-    ${P} .dm-macchine-invito p{margin:0;padding:12px 14px;border-radius:16px;font-size:12.5px;
-      font-weight:700;line-height:1.5;color:var(--text-dim,#64748b);
-      border:1px dashed var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
 
     ${P} .dm-macchina{
       display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;

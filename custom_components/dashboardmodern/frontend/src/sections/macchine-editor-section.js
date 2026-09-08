@@ -105,7 +105,7 @@ function rigaMarkup(riga, scelte) {
     </div>
     <button type="button" class="ed-del" data-dm-macchina-escludi="${esc(riga.entity)}"
       title="${esc(t("Togli dall'elenco", "Drop from the list"))}"
-      aria-label="${esc(t("Togli dall'elenco", "Drop from the list"))}">🚫</button>
+      aria-label="${esc(t("Togli dall'elenco", "Drop from the list"))}">🗑️</button>
   </article>`;
 }
 
