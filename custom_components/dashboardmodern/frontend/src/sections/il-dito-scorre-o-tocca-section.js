@@ -28,11 +28,11 @@
  * `input`, o portano `draggable` — e chi ne ha una fatta a mano la marca con
  * `data-dm-si-trascina`.
  */
-import { stavaScorrendo } from "../core/il-dito-scorre-o-tocca.js";
+import { haScorsoDavvero, stavaScorrendo } from "../core/il-dito-scorre-o-tocca.js";
 import { doc, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_DITO__";
-const state = (root[KEY] ||= { installed: false, partenza: null, id: null });
+const state = (root[KEY] ||= { installed: false, partenza: null, id: null, scorrimenti: null });
 
 /* Quello che si comanda trascinando: lì lo spostamento è il gesto giusto. */
 const SI_TRASCINA =
@@ -44,25 +44,51 @@ const punto = (evento) => {
   return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 };
 
+/* Dove sono adesso le cose che possono scorrere sotto questo dito: la finestra,
+ * e ogni contenitore che scorre da qui in su. Si leggono le posizioni e basta;
+ * a confrontarle ci pensa la regola in `core`. */
+function scorrimentiSopra(nodo) {
+  const dove = { finestraX: root.scrollX ?? 0, finestraY: root.scrollY ?? 0 };
+  let quanti = 0;
+  for (let salita = nodo; salita?.nodeType === 1 && quanti < 12; salita = salita.parentElement) {
+    const alto = salita.scrollHeight - salita.clientHeight;
+    const largo = salita.scrollWidth - salita.clientWidth;
+    if (alto <= 1 && largo <= 1) continue;
+    quanti += 1;
+    dove[`v${quanti}`] = salita.scrollTop;
+    dove[`o${quanti}`] = salita.scrollLeft;
+  }
+  return dove;
+}
+
 function segnaLaPartenza(evento) {
   /* Solo il dito e il mouse: la penna scorre come il dito, e va bene lo stesso.
    * Un tocco con più dita è una pinza, e quella non comanda niente. */
   if (evento?.isPrimary === false) return;
   state.id = evento?.pointerId ?? null;
-  state.partenza = evento?.target?.closest?.(SI_TRASCINA) ? null : punto(evento);
+  const dentroUnCursore = evento?.target?.closest?.(SI_TRASCINA);
+  state.partenza = dentroUnCursore ? null : punto(evento);
+  state.scorrimenti = dentroUnCursore ? null : scorrimentiSopra(evento?.target);
 }
 
 function scordaLaPartenza() {
   state.partenza = null;
   state.id = null;
+  state.scorrimenti = null;
 }
 
 function fermaSeScorreva(evento) {
   const partenza = state.partenza;
+  const scorrimenti = state.scorrimenti;
   /* Ogni click consuma la sua partenza: due click di fila senza un tocco in
    * mezzo — succede con `.click()` da codice — non devono ereditarla. */
   scordaLaPartenza();
   if (!partenza || !stavaScorrendo(partenza, punto(evento))) return;
+  /* Il dito si e' mosso, ma si e' mossa anche la pagina? Se no, non stava
+   * scorrendo: stava premendo, con la mano che trabalza. Su una fascia larga
+   * quanto la scheda succede di continuo, e buttare via quel comando vuol dire
+   * un interruttore che «a volte non si clicca». */
+  if (!haScorsoDavvero(scorrimenti, scorrimentiSopra(evento.target))) return;
   if (evento.target?.closest?.(SI_TRASCINA)) return;
   evento.stopPropagation();
   evento.preventDefault();

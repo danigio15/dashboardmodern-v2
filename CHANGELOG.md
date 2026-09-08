@@ -7,6 +7,70 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+### Corretto
+
+- **Wallbox: il totale dell'anno somma i giorni, non sottrae i contatori dei
+  mesi**
+
+      «Il totale consumato da inizio anno è 1440,76 kWh.»
+
+  La plancia ne diceva 546. Il conto dell'anno chiedeva al Recorder gli
+  intervalli MENSILI e ricavava il consumo di un mese sottraendo il contatore
+  di fine mese da quello del mese prima. Funziona finché il contatore è quello
+  di sempre e non torna mai indietro; il contatore mensile di una wallbox torna
+  indietro ogni primo del mese, e la sottrazione dà il divario fra due mesi al
+  posto del consumo di uno. Il grafico dei giorni, sulla stessa entità, era
+  giusto: è la prova che i giorni si possono sommare e i mesi no. Adesso i mesi
+  si chiedono a giorni e si sommano, e un contatore che scende vale come
+  riavvio invece che come zero — prima si buttava via il primo giorno di ogni
+  mese, dodici all'anno.
+
+- **Assist ha la lente come ogni altra casella di entità**
+
+  Il nome dell'assistente si poteva solo battere a mano: era l'unica casella di
+  entità del Config senza il tasto che apre il catalogo.
+
+- **L'interruttore della sezione non si perde più il tocco**
+
+      «In alcuni casi lo switch non è cliccabile.»
+
+  La guardia che tiene separato lo scorrimento dal comando (#397) buttava via
+  il click se il dito si spostava di dodici pixel. Su una fascia larga quanto
+  la scheda — quella che accende una sezione — il pollice appoggiato rulla di
+  una dozzina di pixel senza che nessuno abbia inteso scorrere. Il fatto che
+  decide non è quanto si è mosso il dito: è se la pagina si è mossa. Adesso si
+  guarda quello, e uno scorrimento vero continua a non comandare niente.
+
+- **La dashboard di appoggio non resta mai vuota**
+
+      «Continua a dare errore se imposto come plancia predefinita.»
+
+  Quella dashboard esiste per far scegliere la plancia come predefinita, e il
+  suo magazzino non lo costruisce chi la crea: lo costruisce un ascoltatore di
+  Lovelace, un giro di eventi dopo. Chiedendolo nella riga successiva alla
+  creazione lo si poteva trovare vuoto, e lì si tornava indietro senza scrivere
+  niente — lasciando una dashboard registrata e senza contenuto, che è
+  esattamente ciò che Home Assistant apre rispondendo «Errore di
+  configurazione», a ogni riavvio. Adesso le si lascia il tempo di comparire, e
+  quello che si è scritto si rilegge: se risultasse vuota lo dice nel registro
+  invece di lasciarlo scoprire aprendola.
+
+### Cambiato
+
+- **Il Config: la ricerca in cima, «Tutte» che resta, la colonna a sotto-menu,
+  e il nome della sezione aperta**
+
+  La ricerca cercava già in tutta la configurazione ma stava dentro il corpo
+  della scheda, dove tutto appartiene alla sezione aperta: adesso ha una riga
+  sua a tutta larghezza, sopra le famiglie. «Tutte» compariva solo a filtro
+  acceso e spariva sotto il dito che l'aveva premuto: adesso c'è sempre, e
+  quando non si filtra è lui quello scelto. Nella colonna le insegne erano
+  centrate e finivano in mezzo alle voci senza separarle: adesso sono testate a
+  tutta larghezza, con le voci rientrate sotto. E in cima a ogni scheda c'è il
+  nome della sezione che si sta guardando, che da telefono era l'unica cosa che
+  mancava per sapere dove si è. Il Config si apre sulla Plancia.
+
+
 ## 1.4.14
 
 Il giro di una giornata sola: dieci segnalazioni nuove arrivate in mattinata,

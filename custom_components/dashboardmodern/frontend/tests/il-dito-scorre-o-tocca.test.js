@@ -16,6 +16,7 @@ import {
   SCARTO_DEL_TOCCO,
   quantoSiEMosso,
   stavaScorrendo,
+  haScorsoDavvero,
 } from "../src/core/il-dito-scorre-o-tocca.js";
 
 test("un dito fermo tocca, un dito che tira scorre", () => {
@@ -74,4 +75,49 @@ test("è installata dal runtime, non da chi se la ricorda", () => {
     "utf8",
   );
   assert.match(runtime, /installIlDitoScorreOTocca\(\);/);
+});
+
+/* ── il dito si muove, ma la pagina no ─────────────────────────────────── */
+
+/* «In alcuni casi lo switch non e' cliccabile.»
+ *
+ * La distanza da sola non basta a dire che si stava scorrendo. Su un bersaglio
+ * largo tutta la scheda — la fascia verde che accende una sezione — il pollice
+ * appoggiato rulla di una dozzina di pixel senza che nessuno abbia inteso
+ * scorrere, e il comando finiva buttato via. Il fatto che decide non e' quanto
+ * si e' mosso il dito: e' se la pagina si e' mossa.
+ */
+test("se niente si e' mosso, non si stava scorrendo", () => {
+  const fermo = { finestraX: 0, finestraY: 120, v1: 40 };
+  assert.equal(haScorsoDavvero(fermo, { ...fermo }), false);
+});
+
+test("la finestra che scorre basta a dirlo", () => {
+  assert.equal(
+    haScorsoDavvero({ finestraX: 0, finestraY: 120 }, { finestraX: 0, finestraY: 260 }),
+    true,
+  );
+});
+
+test("anche un solo contenitore che scorre basta", () => {
+  assert.equal(
+    haScorsoDavvero({ finestraY: 0, v1: 40 }, { finestraY: 0, v1: 300 }),
+    true,
+  );
+});
+
+test("scorrere di traverso conta come scorrere", () => {
+  assert.equal(haScorsoDavvero({ o1: 0, v1: 10 }, { o1: 90, v1: 10 }), true);
+});
+
+test("senza misure non si accusa nessuno", () => {
+  assert.equal(haScorsoDavvero(null, { finestraY: 10 }), false);
+  assert.equal(haScorsoDavvero({ finestraY: 10 }, null), false);
+  assert.equal(haScorsoDavvero(undefined, undefined), false);
+});
+
+test("una misura che non c'e' piu' non conta come movimento", () => {
+  /* Un contenitore sparito fra il tocco e il click — la scheda si ridisegna —
+   * lascia una chiave senza numero dall'altra parte: non e' uno scorrimento. */
+  assert.equal(haScorsoDavvero({ finestraY: 10, v1: 5 }, { finestraY: 10 }), false);
 });

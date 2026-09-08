@@ -86,7 +86,10 @@ function rigaMarkup() {
     </label>
     <label class="dm-assist-ed-campo">
       <span>${esc(t("Assistente (vuoto = quello di serie)", "Assistant (empty = the default one)"))}</span>
-      <input class="ed-input mono" data-dm-assist-agente value="${esc(config.agente)}" placeholder="conversation.home_assistant" autocomplete="off" spellcheck="false">
+      <span class="ed-form-row dm-editor-entity-row">
+        <input id="dm-assist-agente" class="ed-input mono" data-dm-assist-agente value="${esc(config.agente)}" placeholder="conversation.home_assistant" autocomplete="off" spellcheck="false">
+        <button type="button" class="dm-entity-picker" data-dm-assist-pick="dm-assist-agente" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button>
+      </span>
     </label>
     ${
       senzaVoce
@@ -118,6 +121,20 @@ export function ensureAssistEditor() {
 }
 
 function onCambio(evento) {
+  /* La lente, come su ogni altra casella di entita' della configurazione.
+   *
+   * «Assist non allineato con inserimento entita'.» Il nome dell'assistente si
+   * poteva solo battere a mano: era l'unica casella di entita' del Config
+   * senza il tasto che apre il catalogo, e chi non ricorda a memoria
+   * `conversation.qualcosa` restava fermo. La riga adesso e' la stessa delle
+   * altre — campo piu' lente — e apre lo stesso catalogo. */
+  const lente = evento.target?.closest?.("[data-dm-assist-pick]");
+  if (lente) {
+    evento.preventDefault();
+    const campo = doc?.getElementById?.(clean(lente.dataset.dmAssistPick));
+    if (campo) root.wzPickEntity?.(campo);
+    return;
+  }
   const riga = evento.target?.closest?.("[data-dm-assist-ed]");
   if (!riga) return;
   if (evento.target.matches("[data-dm-assist-voce]"))
