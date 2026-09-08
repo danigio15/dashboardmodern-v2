@@ -276,7 +276,12 @@ async def async_build_catalog(
         )
         for domain in sorted(domini)
     ]
-    conteggio = Counter(device["integration"] for device in devices)
+    # Un dispositivo che arriva da due integrazioni si conta in tutte e due:
+    # e' quello che la plancia mostra nel menu, e un numero che dice meno di
+    # quello che si vede e' un numero che confonde.
+    conteggio = Counter(
+        dominio for device in devices for dominio in device["integrations"]
+    )
     for integrazione in integrations:
         integrazione["devices"] = conteggio.get(integrazione["domain"], 0)
     integrations.sort(key=lambda item: item["name"].casefold())

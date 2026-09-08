@@ -337,6 +337,47 @@ test("il menu elenca le integrazioni con dentro i dispositivi che hanno entità"
   );
 });
 
+/* Segnalato sulla sezione Robot: «immaginavo ma non la vedo fra le
+ * integrazioni». Il dispositivo c'era, la sua marca no — perche' il menu
+ * guardava solo l'integrazione principale. */
+test("un dispositivo di due integrazioni compare sotto tutte e due", () => {
+  const menu = integrationsWithDevices({
+    integrations: [
+      { domain: "mqtt", name: "MQTT", custom: false },
+      { domain: "dreame_vacuum", name: "Dreame", custom: true },
+    ],
+    devices: [
+      {
+        id: "robot-1",
+        name: "Robot",
+        integration: "mqtt",
+        integrations: ["dreame_vacuum", "mqtt"],
+        entities: 30,
+      },
+    ],
+  });
+  assert.deepEqual(
+    menu.map((item) => [item.domain, item.devices.map((device) => device.id)]),
+    [
+      ["dreame_vacuum", ["robot-1"]],
+      ["mqtt", ["robot-1"]],
+    ],
+  );
+});
+
+/* Il catalogo vecchio, quello di una plancia aggiornata prima del backend,
+ * manda solo `integration`: non deve sparire niente. */
+test("senza l'elenco delle integrazioni vale la principale", () => {
+  const menu = integrationsWithDevices({
+    integrations: [{ domain: "hon", name: "hOn", custom: true }],
+    devices: [{ id: "wm-1", name: "Lavatrice", integration: "hon", entities: 25 }],
+  });
+  assert.deepEqual(
+    menu.map((item) => item.devices.map((device) => device.id)),
+    [["wm-1"]],
+  );
+});
+
 test("la finestra del dettaglio divide le entità in quattro famiglie", () => {
   const groups = deviceEntityGroups(HON_WASHER, STATES, {
     mapped: ["sensor.lavatrice_power"],

@@ -8,16 +8,27 @@
  * che quel simbolo sapesse trovare.
  *
  * La prova sorveglia due cose che devono restare vere insieme: che la porta
- * esista e si disegni, e che nessun altro le riprenda il simbolo. La seconda
- * conta quanto la prima — un catalogo dove due voci diverse rispondono allo
- * stesso simbolo e' esattamente il difetto di partenza, e si ripresenta la
- * prossima volta che qualcuno aggiunge un portone.
+ * esista e si disegni, e che nessun altro comando le riprenda il simbolo. La
+ * seconda conta quanto la prima — un catalogo dove due comandi diversi
+ * rispondono allo stesso simbolo e' esattamente il difetto di partenza, e si
+ * ripresenta la prossima volta che qualcuno aggiunge un portone.
+ *
+ * Le stanze, arrivate dopo nello stesso catalogo, hanno un patto loro: l'emoji
+ * per loro e' solo un ripiego, e il ripiego non si deve vedere mai.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ACTION_ICON_CATALOG } from "../src/core/personalization-catalog.js";
-import { chiaveDelDisegno, disegnoDelCatalogo } from "../src/core/catalogo-disegni.js";
+import {
+  ACTION_ICON_CATALOG,
+  actionCatalogMatch,
+} from "../src/core/personalization-catalog.js";
+import {
+  chiaveDelDisegno,
+  chiaviDaProvare,
+  disegnoDelCatalogo,
+} from "../src/core/catalogo-disegni.js";
+import { canonicalArtworkType } from "../src/core/appliance-artwork.js";
 
 const voce = (id) => ACTION_ICON_CATALOG.find((item) => item.id === id);
 
@@ -37,10 +48,10 @@ test("il cancello non tiene piu' per se' il simbolo della porta", () => {
   );
 });
 
-test("nessuna voce delle azioni divide il simbolo con un'altra", () => {
+test("nessun comando delle azioni divide il simbolo con un altro", () => {
   const doppi = [];
   const visti = new Map();
-  for (const item of ACTION_ICON_CATALOG) {
+  for (const item of ACTION_ICON_CATALOG.filter((voce) => voce.group !== "room")) {
     if (visti.has(item.glyph)) doppi.push(`${item.glyph}: ${visti.get(item.glyph)} e ${item.id}`);
     visti.set(item.glyph, item.id);
   }
@@ -51,6 +62,26 @@ test("nessuna voce delle azioni divide il simbolo con un'altra", () => {
     [],
     `due voci rispondono allo stesso simbolo:\n  ${doppi.join("\n  ")}`,
   );
+});
+
+/* Le stanze, entrate nelle azioni per la richiesta «vorrei poter associare una
+ * luce a un'icona che mi ricordi una stanza», l'emoji ce l'hanno solo come
+ * ripiego, e qualcuna la divide per forza con un comando: la camera e il letto
+ * sono lo stesso letto. Il patto non e' quindi che i simboli siano tutti
+ * diversi — e' che il ripiego non si veda mai, perche' ogni stanza il suo
+ * disegno di casa ce l'ha. */
+test("ogni stanza fra le azioni si disegna, senza ripiegare sull'emoji", () => {
+  const stanze = ACTION_ICON_CATALOG.filter((voce) => voce.group === "room");
+  assert.ok(stanze.length >= 20, `le stanze non sono arrivate nelle azioni: ${stanze.length}`);
+  const senza = stanze
+    .filter(
+      (voce) =>
+        !chiaviDaProvare("action", voce.mdi, actionCatalogMatch(voce.mdi)).some(
+          (chiave) => canonicalArtworkType(chiave) || disegnoDelCatalogo(chiave, 36),
+        ),
+    )
+    .map((voce) => `${voce.id} (${voce.mdi})`);
+  assert.deepEqual(senza, [], `stanze senza disegno:\n  ${senza.join("\n  ")}`);
 });
 
 test("la porta si disegna, comunque la si chiami", () => {

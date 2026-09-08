@@ -482,13 +482,45 @@ export function roomForArea(area, rooms = []) {
   return found ? clean(found.id || found.name) : "";
 }
 
-/* Le integrazioni con dentro i loro dispositivi, come le vuole un menu. */
+/* Da quali integrazioni arriva questo dispositivo.
+ *
+ * Il catalogo ne manda due cose: `integration` e' la principale — una sola, e
+ * il backend la sceglie dalla voce di configurazione o dalla piattaforma piu'
+ * frequente — mentre `integrations` sono tutte quelle che ci mettono qualcosa.
+ * Un dispositivo puo' benissimo stare in due: l'aspirapolvere adottato da
+ * un'integrazione di marca ma acceso via MQTT, la presa di un'integrazione
+ * cloud che pubblica anche in locale. */
+function domini(device) {
+  const tutte = Array.isArray(device?.integrations) ? device.integrations.map(clean) : [];
+  const principale = clean(device?.integration);
+  const insieme = new Set(tutte.filter(Boolean));
+  if (principale) insieme.add(principale);
+  return insieme;
+}
+
+/* Le integrazioni con dentro i loro dispositivi, come le vuole un menu.
+ *
+ * Dal campo, sulla sezione Robot: «immaginavo ma non la vedo fra le
+ * integrazioni». Qui si guardava solo la principale, e questo bastava a far
+ * sparire una riga intera: un robot che arriva da due integrazioni finiva
+ * sotto la principale e basta, l'altra restava con zero dispositivi e il
+ * filtro qui sotto la buttava via. Chi cercava il proprio robot per marca non
+ * lo trovava — la marca non era nell'elenco. Adesso un dispositivo compare
+ * sotto ognuna delle sue integrazioni: cercarlo da una qualsiasi lo trova, e
+ * il collegamento porta il dominio della riga da cui lo si e' preso. */
 export function integrationsWithDevices(catalog = {}) {
   const devices = (catalog.devices || []).filter((device) => device && device.entities > 0);
+  const per = new Map();
+  for (const device of devices)
+    for (const dominio of domini(device)) {
+      const elenco = per.get(dominio);
+      if (elenco) elenco.push(device);
+      else per.set(dominio, [device]);
+    }
   return (catalog.integrations || [])
     .map((integration) => ({
       ...integration,
-      devices: devices.filter((device) => device.integration === integration.domain),
+      devices: per.get(clean(integration.domain)) || [],
     }))
     .filter((integration) => integration.devices.length)
     .sort((a, b) => lower(a.name).localeCompare(lower(b.name)));

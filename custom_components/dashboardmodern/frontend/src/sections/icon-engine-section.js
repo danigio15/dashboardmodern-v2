@@ -226,12 +226,19 @@ function rowsFor(kind) {
       visual: iconGlyphMarkup("load", item.mdi, { size: 36 }),
     }));
   }
+  /* Le stanze stanno sotto la loro intestazione, come nel selettore dei
+   * carichi: chi cerca «un'icona che mi ricordi una stanza» le trova insieme
+   * invece che sparse fra le categorie. */
   return ACTION_ICON_CATALOG.map((item) => ({
     value: item.mdi,
     label: catalogLabel(item),
-    search: `${item.it} ${item.en} ${item.id} ${item.mdi}`.toLowerCase(),
+    search: `${item.it} ${item.en} ${item.id} ${item.mdi} ${item.keywords || ""}`.toLowerCase(),
     glyph: item.glyph || actionGlyph(item.mdi),
     size: 36,
+    group:
+      item.group === "room"
+        ? t("Le stanze di casa", "Rooms of the home")
+        : t("Comandi e categorie", "Commands and categories"),
     visual: iconGlyphMarkup("action", item.mdi, { size: 36 }),
   }));
 }
