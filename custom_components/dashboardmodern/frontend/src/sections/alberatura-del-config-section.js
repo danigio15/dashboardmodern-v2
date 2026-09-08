@@ -43,7 +43,11 @@ import {
 import { clean, doc, esc, installStyle, onEditorRedraw, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ALBERATURA__";
-const state = (root[KEY] ||= { installed: false, riordinando: false, famiglia: "" });
+const state = (root[KEY] ||= {
+  installed: false,
+  riordinando: false,
+  famiglia: "",
+});
 
 const FILA = "dm-alberatura-famiglie";
 const INSEGNA = "dm-alberatura-insegna";
@@ -237,10 +241,99 @@ function ensureFila() {
         `<button type="button" class="dm-alberatura-famiglia${voce.chiave === attiva ? " active" : ""}" aria-pressed="${voce.chiave === scelta ? "true" : "false"}" data-dm-famiglia="${esc(voce.chiave)}"><span aria-hidden="true">${esc(voce.glifo)}</span>${esc(nomeDellaFamiglia(voce))}</button>`,
     )
     .join("");
-  const coda = scelta
-    ? `<button type="button" class="dm-alberatura-famiglia dm-alberatura-tutte" data-dm-famiglia-tutte>${esc(t("Tutte", "All"))}</button>`
-    : "";
+  /* «Tutte» c'e' sempre, e quando non si sta filtrando e' lei quella scelta.
+   *
+   * Prima compariva solo a filtro acceso: la si toccava, il filtro si
+   * spegneva, e il tasto spariva sotto il dito che l'aveva appena premuto —
+   * «quando clicco su tutte scompare tasto tutte». Un tasto che se ne va
+   * quando lo usi non e' un tasto, e' una trappola: adesso resta al suo posto
+   * e si limita ad accendersi, come le altre. */
+  const coda = `<button type="button" class="dm-alberatura-famiglia dm-alberatura-tutte${scelta ? "" : " active"}" aria-pressed="${scelta ? "false" : "true"}" data-dm-famiglia-tutte>${esc(t("Tutte", "All"))}</button>`;
   if (riga.innerHTML !== markup + coda) riga.innerHTML = markup + coda;
+  return true;
+}
+
+/* ── il nome della sezione, in cima alla sua scheda ───────────────────── */
+
+/* «In ogni sezione del config in alto voglio l'etichetta della sezione
+ * cliccata: se clicco Home entro in Home e mi deve uscire la scritta Home.»
+ *
+ * Il Config e' una colonna di nomi a sinistra e un corpo a destra, e il corpo
+ * non diceva in che scheda si fosse: lo diceva soltanto la linguetta accesa,
+ * che su un telefono e' larga quarantasei pixel e porta il solo simbolo. Si
+ * scorreva dentro una scheda senza sapere quale.
+ *
+ * Il nome non si inventa: e' quello scritto sulla linguetta, ed e' anche
+ * l'unico che segue la lingua di chi guarda senza che questo modulo sappia
+ * niente delle traduzioni. Accanto ci va l'insegna della sua famiglia, che
+ * dice da dove si e' entrati.
+ */
+const TITOLO = "dm-alberatura-titolo";
+
+function nomeDellaScheda(bottone) {
+  const scritto = clean(bottone?.querySelector?.("[data-dm-config-name]")?.textContent);
+  if (scritto) return scritto;
+  /* Senza il pezzo del nome si legge la linguetta intera, togliendole il
+   * simbolo davanti: e' quello che si vedeva prima che la colonna imparasse a
+   * dividere le due cose. */
+  return clean(bottone?.textContent).replace(/^[^\p{L}\p{N}]+/u, "").trim();
+}
+
+export function ensureTitoloDellaSezione() {
+  const corpo = doc?.getElementById?.("ed-body");
+  if (!corpo) return false;
+  const attiva = schedaAttiva();
+  const bottone = attiva
+    ? doc.querySelector(`.ed-tab[data-tab="${CSS.escape(attiva)}"]`)
+    : null;
+  const nome = nomeDellaScheda(bottone);
+  if (!nome) return false;
+  const famiglia = famiglieConSchede([attiva]).find((voce) => voce.schede.includes(attiva));
+  let testa = corpo.querySelector(`:scope > .${TITOLO}`);
+  if (!testa) {
+    testa = doc.createElement("h2");
+    testa.className = TITOLO;
+  }
+  /* Il guscio riscrive il corpo a ogni cambio di scheda: il titolo torna in
+   * cima da se', invece di essere rimesso li' da chi si ricorda di farlo. */
+  if (corpo.firstElementChild !== testa) corpo.prepend(testa);
+  const insegnaTesto = famiglia ? `${famiglia.glifo} ${nomeDellaFamiglia(famiglia)}` : "";
+  const markup = `${insegnaTesto ? `<span class="${TITOLO}-famiglia">${esc(insegnaTesto)}</span>` : ""}<span class="${TITOLO}-nome">${esc(nome)}</span>`;
+  if (testa.innerHTML !== markup) testa.innerHTML = markup;
+  return true;
+}
+
+/* ── all'apertura si parte dalla Plancia ──────────────────────────────── */
+
+/* «Quando si apre la sezione config, per default mettilo su Plancia.»
+ *
+ * Il Config riapriva sulla scheda di prima — chi aveva chiuso su «Macchine e
+ * rete» la ritrovava li' il giorno dopo, che e' un posto profondo in cui non
+ * si e' scelto di essere. Si riparte dalla prima scheda della prima famiglia.
+ *
+ * Si aggancia all'APERTURA, non al ridisegno. Farlo a ogni giro voleva dire
+ * rimandare indietro chiunque cambiasse scheda: il ridisegno arriva anche
+ * dopo un `editorSwitch`, e chi aveva appena scelto «Widget» se lo vedeva
+ * revocare un istante dopo — le prove l'hanno visto subito. Qui si scrive la
+ * scheda una volta, nel momento in cui la finestra si apre, e da li' in poi
+ * comanda chi tocca.
+ *
+ * E soltanto se quella scheda esiste davvero: chi ha spento la Plancia non
+ * deve trovarsi rimbalzato su una linguetta che non c'e'.
+ */
+export function partiDallaPlancia() {
+  const dentro = fila();
+  if (!dentro) return false;
+  const bottoni = linguette(dentro)
+    .map((nodo) => clean(nodo.dataset.tab))
+    .filter(Boolean);
+  const prima = famiglieConSchede(bottoni)[0]?.schede?.[0];
+  if (!prima || schedaAttiva() === prima) return false;
+  try {
+    root.editorSwitch?.(prima);
+  } catch (_error) {
+    return false;
+  }
   return true;
 }
 
@@ -250,6 +343,7 @@ export function ensureAlberatura() {
   ilFiltroSegueLaScheda();
   applicaIlFiltro();
   ensureFila();
+  ensureTitoloDellaSezione();
   return fatto;
 }
 
@@ -295,10 +389,15 @@ function installStili() {
      * due classi; qui se ne nomina anche il padre, cioe' si scende di un figlio
      * in piu': non si alza la voce con un !important, si ha una ragione in
      * piu'. */
-    #editor-modal.modal-wrapper .ed-shell{grid-template-rows:auto auto auto}
-    #editor-modal.modal-wrapper .ed-shell>#${FILA}{grid-area:2 / 1 / 3 / 3}
-    #editor-modal.modal-wrapper .ed-shell>.ed-tabs{grid-area:3 / 1 / 4 / 2}
-    #editor-modal.modal-wrapper .ed-shell>.ed-body{grid-area:3 / 2 / 4 / 3}
+    /* Quattro righe: la testata, la ricerca, le famiglie, e sotto la colonna
+       col suo corpo. La ricerca vale per tutta la configurazione e sta per
+       tutta la larghezza: e' li' che si vede che non appartiene alla scheda
+       aperta. */
+    #editor-modal.modal-wrapper .ed-shell{grid-template-rows:auto auto auto auto}
+    #editor-modal.modal-wrapper .ed-shell>.dm-cerca-config{grid-area:2 / 1 / 3 / 3}
+    #editor-modal.modal-wrapper .ed-shell>#${FILA}{grid-area:3 / 1 / 4 / 3}
+    #editor-modal.modal-wrapper .ed-shell>.ed-tabs{grid-area:4 / 1 / 5 / 2}
+    #editor-modal.modal-wrapper .ed-shell>.ed-body{grid-area:4 / 2 / 5 / 3}
     #${FILA}{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px 0}
     #${FILA} .dm-alberatura-famiglia{
       display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;cursor:pointer;
@@ -314,6 +413,11 @@ function installStili() {
       box-shadow:0 0 0 2px var(--card-bg,#fff),0 0 0 4px var(--primary-color,#0ea5e9)}
     #${FILA} .dm-alberatura-tutte{
       background:transparent;border-style:dashed;color:var(--text-dim,#64748b)}
+    /* Scelta anche lei, quando non si sta filtrando: e' lo stato normale del
+       Config, e deve vedersi che e' uno stato, non l'assenza di uno. */
+    #${FILA} .dm-alberatura-tutte.active{
+      background:var(--secondary-background-color,#e2e8f0);border-style:solid;
+      border-color:var(--divider-color,#cbd5e1);color:var(--primary-text-color,#0f172a)}
     /* Fuori dalla famiglia scelta. A riposo questa classe non ce l'ha nessuno:
        il filtro si accende toccando una famiglia, e chi apre il Config le vede
        tutte com'e' sempre stato. */
@@ -325,6 +429,62 @@ function installStili() {
       font-size:9.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
       color:var(--text-dim,#94a3b8);white-space:nowrap;pointer-events:none;user-select:none}
     .${INSEGNA}:first-child{padding-left:0}
+
+    /* ── la colonna come un menu, con le sue voci sotto l'insegna ────────
+     *
+     * «Nel menu laterale si vede male: crea il menu con sotto-menu nella barra
+     * laterale.» In colonna le insegne erano centrate — la regola sopra le
+     * scrive per una fila orizzontale — e finivano in mezzo alle voci senza
+     * separarle da niente: trentadue nomi con sette scritte piccole dentro,
+     * tutti allo stesso livello.
+     *
+     * Qui l'insegna diventa una testata larga quanto la colonna, con una linea
+     * che apre la famiglia, e le voci scendono di un gradino sotto di lei con
+     * il filo che le tiene insieme. Si vede a colpo d'occhio dove comincia una
+     * famiglia e cosa le appartiene.
+     *
+     * Nessuna voce sparisce: restano tutte visibili e premibili, come prima —
+     * e' la regola di questo modulo, e sono quaranta prove a dipenderne. */
+    #editor-modal.modal-wrapper .ed-tabs>.${INSEGNA}{
+      align-self:stretch;display:block;white-space:normal;
+      margin:12px 0 4px;padding:8px 6px 5px;
+      border-top:1px solid var(--card-border,#dbe4ee);
+      font-size:9.5px;letter-spacing:.1em}
+    #editor-modal.modal-wrapper .ed-tabs>.${INSEGNA}:first-child{
+      margin-top:0;padding-top:2px;border-top:0}
+    /* Il gradino: le voci di una famiglia rientrano, e il filo a sinistra dice
+       che stanno sotto la sua insegna. */
+    #editor-modal.modal-wrapper .ed-tabs>.ed-tab{
+      margin-left:9px;border-left:2px solid var(--card-border,#e2e8f0);
+      border-top-left-radius:6px;border-bottom-left-radius:6px}
+    #editor-modal.modal-wrapper .ed-tabs>.ed-tab.active{
+      border-left-color:var(--primary-color,#0ea5e9)}
+    @media (orientation: portrait) and (max-width: 640px){
+      /* Da telefono la colonna e' larga quarantasei pixel e porta i soli
+         simboli: il gradino se lo mangerebbe tutto, e l'insegna diventa una
+         riga sola col suo glifo. */
+      #editor-modal.modal-wrapper .ed-tabs>.ed-tab{margin-left:0;border-left:0}
+      #editor-modal.modal-wrapper .ed-tabs>.${INSEGNA}{
+        margin:8px 0 2px;padding:6px 0 4px;text-align:center;
+        font-size:0;letter-spacing:0}
+      /* Il solo glifo, che nel testo dell'insegna e' il primo carattere. */
+      #editor-modal.modal-wrapper .ed-tabs>.${INSEGNA}::first-letter{font-size:12px}
+    }
+
+    /* ── il nome della sezione, in cima al suo corpo ─────────────────── */
+    .${TITOLO}{
+      display:flex;flex-direction:column;gap:2px;margin:0 0 14px;padding:0 0 10px;
+      border-bottom:1px solid var(--card-border,#e2e8f0)}
+    .${TITOLO}-famiglia{
+      font-size:9.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--text-dim,#94a3b8)}
+    .${TITOLO}-nome{
+      font-size:19px;font-weight:900;letter-spacing:-.01em;
+      color:var(--primary-text-color,#0f172a);line-height:1.15}
+    @media(max-width:640px){
+      .${TITOLO}{margin-bottom:11px;padding-bottom:8px}
+      .${TITOLO}-nome{font-size:17px}
+    }
     @media(max-width:640px){
       #${FILA}{padding:8px 10px 0}
       #${FILA} .dm-alberatura-famiglia{padding:5px 10px;font-size:11px}
@@ -332,6 +492,30 @@ function installStili() {
     }
     `,
   );
+}
+
+/* Un avvolgimento che agisce prima di restituire, non in coda.
+ *
+ * `wrapFunction` mette il richiamo in un microtask, ed e' giusto per chi deve
+ * guardare com'e' finito il disegno. Qui serve il contrario: bisogna scegliere
+ * la scheda mentre la finestra si apre, prima che chi ha aperto dica la sua. */
+function avvolgiLApertura() {
+  const nome = "apriConfigEntita";
+  const originale = root[nome];
+  if (typeof originale !== "function" || originale.__dmAlberaturaApre) return false;
+  function avvolta(...argomenti) {
+    const esito = originale.apply(this, argomenti);
+    try {
+      ensureAlberatura();
+      partiDallaPlancia();
+    } catch (_error) {}
+    return esito;
+  }
+  Object.assign(avvolta, originale);
+  avvolta.__dmAlberaturaApre = true;
+  avvolta.__dmPrevious = originale;
+  root[nome] = avvolta;
+  return true;
 }
 
 export function installAlberatura() {
@@ -347,6 +531,15 @@ export function installAlberatura() {
     root.setTimeout?.(ensureAlberatura, 0);
   };
   onEditorRedraw("__dmAlberatura", () => root.queueMicrotask?.(giro));
+  /* All'apertura si parte dalla Plancia: una volta, e SUBITO.
+   *
+   * Subito perche' chi apre il Config molto spesso apre e poi chiede una
+   * scheda precisa, nella stessa riga: la finestra si apre e un istante dopo
+   * si va dove si voleva andare. Mettendo la nostra scelta in coda — anche
+   * solo di un microtask — arrivava dopo la sua, e la revocava: si chiedeva
+   * «Widget» e ci si ritrovava su «Impostazioni». Qui si scrive la scheda
+   * mentre la finestra si apre, cosi' chiunque parli dopo ha ragione. */
+  avvolgiLApertura();
   for (const evento of [
     "dashboardmodern:editor-rendered",
     "dashboardmodern:legacy-ready",
