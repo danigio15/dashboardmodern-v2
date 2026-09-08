@@ -107,6 +107,18 @@ export function varchiConfigurati(states = {}, config) {
  * risposta alla domanda — poi i muti, che sono una sorveglianza che manca, e
  * in fondo i chiusi, che sono la buona notizia. Dentro ogni gruppo, per nome.
  */
+/* Quando questo varco ha cambiato stato l'ultima volta.
+ *
+ * `last_changed` e' l'ultimo cambio di STATO, che e' quello che serve:
+ * `last_updated` si muove anche quando cambia solo un attributo, e direbbe
+ * «aperta da un minuto» di una porta ferma da ieri. Torna `null` quando Home
+ * Assistant non lo dice: una porta senza storia non e' una porta appena
+ * aperta. */
+export function istanteDelCambio(stato) {
+  const quando = Date.parse(clean(stato?.last_changed) || clean(stato?.last_updated) || "");
+  return Number.isFinite(quando) ? quando : null;
+}
+
 export function varchiDiCasa(states = {}, config, invertiti, nomeDi = (entity) => entity) {
   const scelte = normalizzaVarchi(config);
   const righe = [];
@@ -119,6 +131,12 @@ export function varchiDiCasa(states = {}, config, invertiti, nomeDi = (entity) =
       classe,
       glifo: disegnoDelVarco(classe),
       stato: comeStaIlVarco(entity, stato, invertiti),
+      /* Da quando sta cosi' (#406): «l'ultima apertura o cambio stato». Sotto
+       * il nome c'era l'entity_id, che chi guarda la pagina non ha mai
+       * chiesto — «volendo il nome del sensore potrebbe essere obsoleto». Qui
+       * si porta l'istante grezzo di Home Assistant; a dirlo in parole ci
+       * pensa chi disegna, che sa che lingua si parla. */
+      da: istanteDelCambio(stato),
     });
   }
   const peso = (riga) => (riga.stato === "aperto" ? 0 : riga.stato === "" ? 1 : 2);

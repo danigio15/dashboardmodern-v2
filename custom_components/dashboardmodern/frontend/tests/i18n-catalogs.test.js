@@ -210,6 +210,8 @@ const LOCALE_IDENTITIES = {
     "Destination",
     /* L'air, en français, c'est l'air. */
     "Air",
+    /* Les minutes se comptent avec le même mot des deux côtés. */
+    "minutes",
     "Polo",
     "Robot",
     "Robots",

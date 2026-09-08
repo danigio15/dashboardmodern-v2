@@ -155,12 +155,58 @@ export function titoloDeiVarchi(conto) {
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
 
+/* Da quando sta così, invece dell'identificativo (#406).
+ *
+ * «Sarebbe importante avere nei tasti relativi ai varchi più informazioni,
+ *  tipo l'ultima apertura o cambio stato; volendo il nome del sensore nella
+ *  maschera varchi potrebbe essere obsoleto.»
+ *
+ * Ha ragione: sotto il nome c'era `binary_sensor.porta_cantina`, che è la cosa
+ * che serve a chi CONFIGURA — e infatti nella scheda del Config resta — ma non
+ * a chi guarda. Chi guarda vuole sapere da quanto quella finestra è aperta,
+ * che è la differenza fra «l'ho lasciata aperta stamattina» e «si è appena
+ * aperta».
+ *
+ * Senza un istante non si scrive niente: una porta senza storia non è una
+ * porta appena aperta, e inventare «da poco» sarebbe una bugia. In quel caso
+ * torna l'identificativo, che è comunque meglio di una riga vuota. */
+/* Il numero sta SEMPRE fuori dalla frase da tradurre.
+ *
+ * `daQuanto` in `racconto-tessera.js` compone «da 5 minuti» e poi lo passa a
+ * tradurre: quella chiave è diversa per ogni minuto, e nessuna di quelle si
+ * trova in un catalogo. Qui le parole sono quattro, fisse, e la cifra le sta
+ * accanto. */
+function quantoTempo(minuti) {
+  if (minuti < 1) return t("appena adesso", "just now");
+  if (minuti < 60) return `${Math.round(minuti)} ${t("minuti", "minutes")}`;
+  const ore = Math.floor(minuti / 60);
+  if (ore < 24) return `${ore} ${t("ore", "hours")}`;
+  return `${Math.floor(ore / 24)} ${t("giorni", "days")}`;
+}
+
+function daQuandoMarkup(riga) {
+  if (riga.da === null || riga.da === undefined)
+    return `<small class="mono">${esc(riga.entity)}</small>`;
+  const minuti = Math.max(0, (Date.now() - riga.da) / 60000);
+  const parola =
+    riga.stato === "aperto"
+      ? t("Aperto da", "Open for")
+      : riga.stato === "chiuso"
+        ? t("Chiuso da", "Closed for")
+        : t("Fermo da", "Still for");
+  /* «appena adesso» non vuole il «da» davanti: sarebbe «aperto da appena
+   * adesso», che non lo dice nessuno. */
+  if (minuti < 1)
+    return `<small>${esc(`${riga.stato === "aperto" ? t("Aperto", "Open") : riga.stato === "chiuso" ? t("Chiuso", "Closed") : t("Fermo", "Still")} ${t("appena adesso", "just now")}`)}</small>`;
+  return `<small>${esc(`${parola} ${quantoTempo(minuti)}`)}</small>`;
+}
+
 function rigaMarkup(riga) {
   return `<article class="dm-varco" data-varco="${esc(riga.stato || "muto")}">
     <span class="dm-varco-ic" aria-hidden="true">${esc(riga.glifo)}</span>
     <div class="dm-varco-testo">
       <strong>${esc(riga.name)}</strong>
-      <small class="mono">${esc(riga.entity)}</small>
+      ${daQuandoMarkup(riga)}
     </div>
     <b class="dm-varco-stato">${esc(parolaDelVarco(riga))}</b>
   </article>`;

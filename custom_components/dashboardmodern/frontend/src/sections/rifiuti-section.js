@@ -217,6 +217,26 @@ function prossimoMarkup(lettura) {
     <strong>${esc(parolaDelQuando(primo))}</strong>
     <span class="dm-rifiuti-prossimo-data">${esc(dataScritta(primo))}</span>
     <div class="dm-rifiuti-prossimo-bidoni">${prossimi.map((riga) => bidoneMarkup(riga, true)).join("")}</div>
+    ${domaniMarkup(lettura, primo)}
+  </div>`;
+}
+
+/* «Si chiede di mostrare il rifiuto di domani» (#409).
+ *
+ * Quando il prossimo ritiro e' oggi, la risposta grande dice «Oggi» e finisce
+ * li': cosa mettere fuori STASERA per domani mattina non lo dice nessuno, ed
+ * e' la domanda che ci si fa la sera. Quando invece il prossimo e' gia'
+ * domani, la risposta grande lo dice gia' — e ripeterlo sotto sarebbe scrivere
+ * due volte la stessa cosa.
+ *
+ * Il dato c'era gia': la lettura porta `oggi` e `domani` da quando esiste il
+ * turno di casa. Mancava soltanto di disegnarlo. */
+function domaniMarkup(lettura, primo) {
+  const domani = Array.isArray(lettura?.domani) ? lettura.domani : [];
+  if (!domani.length || primo?.giorni === 1) return "";
+  return `<div class="dm-rifiuti-domani">
+    <small>${esc(t("Domani", "Tomorrow"))}</small>
+    <div class="dm-rifiuti-prossimo-bidoni">${domani.map((riga) => bidoneMarkup(riga)).join("")}</div>
   </div>`;
 }
 
@@ -338,6 +358,13 @@ function installStyles() {
     ${P} .dm-rifiuti-prossimo[data-quando="oggi"] strong{color:#dc2626}
     ${P} .dm-rifiuti-prossimo[data-quando="domani"] strong{color:#d97706}
     ${P} .dm-rifiuti-prossimo-data{font-size:13px;font-weight:700;color:var(--text-dim,#64748b);text-transform:capitalize}
+    ${P} .dm-rifiuti-domani{
+      display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;padding-top:10px;
+      border-top:1px dashed var(--card-border,rgba(0,0,0,.14))}
+    ${P} .dm-rifiuti-domani>small{
+      font-size:9.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
+      color:var(--text-dim,#94a3b8)}
+    ${P} .dm-rifiuti-domani .dm-rifiuti-prossimo-bidoni{margin:0}
     ${P} .dm-rifiuti-prossimo-bidoni{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 
     /* Il bidone: una pillola col colore del bidone vero. */
