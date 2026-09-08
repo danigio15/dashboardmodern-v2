@@ -51,6 +51,12 @@ const REACHED_OTHERWISE = new Set([
    * famiglie del Config, che stanno in `src/core/alberatura-del-config.js` —
    * anche lui fra i cataloghi importati, e anche lui con le righe `{ it, en }`. */
   "alberatura-del-config-section.js",
+  /* E l'elenco unico degli interruttori scrive i nomi delle sezioni — Varchi,
+   * Musica, Aspirapolvere — che stanno in `src/core/lelenco-delle-sezioni.js`,
+   * anche lui fra i cataloghi importati e anche lui con le righe `{ it, en }`.
+   * I nomi delle famiglie che fanno da insegna li prende dallo stesso posto da
+   * cui li prende la fila sopra le linguette. */
+  "lelenco-delle-sezioni-section.js",
 ]);
 
 /* L'elenco si legge dal sorgente, non si importa: l'estrattore riscrive i file

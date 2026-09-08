@@ -85,6 +85,7 @@ import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
 import { installAlberatura } from "./alberatura-del-config-section.js";
 import { installIlDitoScorreOTocca } from "./il-dito-scorre-o-tocca-section.js";
+import { installElencoDelleSezioni } from "./lelenco-delle-sezioni-section.js";
 import { installVideoSiMuove } from "./telecamera-il-video-si-muove-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
@@ -952,6 +953,9 @@ export function installSectionRuntime() {
      * guardia sta sul documento, in cattura, e vale per ogni elenco lungo —
      * comprese le sezioni che ancora non esistono. */
     installIlDitoScorreOTocca();
+    /* L'elenco unico delle sezioni, in ⚙️ Impostazioni: cosa c'e' e se si
+     * vede, senza aprire ventiquattro schede per scoprirlo. */
+    installElencoDelleSezioni();
     installShutterSkySection();
     installPageMastheadSection();
     /* Il meteo si accoda al nome della casa nell'intestazione: si installa

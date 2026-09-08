@@ -253,6 +253,9 @@ const CATALOG_MODULES = Object.freeze([
   /* I nomi delle famiglie del Config — Plancia, Energia, Casa — che la fila
      sopra le linguette scrive per dire dove si va. */
   "src/core/alberatura-del-config.js",
+  /* I nomi delle sezioni della plancia — Varchi, Musica, Aspirapolvere — che
+     l'elenco unico degli interruttori scrive in Impostazioni. */
+  "src/core/lelenco-delle-sezioni.js",
 ]);
 
 /*

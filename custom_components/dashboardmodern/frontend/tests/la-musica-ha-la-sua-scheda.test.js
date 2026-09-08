@@ -210,7 +210,10 @@ test("la voce nella barra c'è solo se un lettore c'è, e si può spegnere", () 
   assert.match(pagina, /voce\.style\.display = configurati\.length && accesa \? "" : "none";/);
   /* E la fascia della visibilità sa dove mettersi: la chiave è quella che la
    * pagina stessa legge, o si scriverebbe una preferenza che nessuno guarda. */
-  assert.match(leggi("sections/config-uniformity-section.js"), /media: "media",/);
+  /* La mappa scheda→chiave sta nel core da quando la legge anche l'elenco unico
+   * degli interruttori: due copie vogliono dire che prima o poi una impara una
+   * sezione e l'altra no. Si guarda la mappa, non il testo di chi la ospita. */
+  assert.match(leggi("core/lelenco-delle-sezioni.js"), /chiave: "media"/);
   assert.match(pagina, /sezioni\[MEDIA_TAB\] === false/);
 });
 

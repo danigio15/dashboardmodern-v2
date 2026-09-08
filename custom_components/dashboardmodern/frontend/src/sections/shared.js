@@ -701,7 +701,7 @@ export function righeDelDocumento(body, attributo, lista, leggi, tieni) {
  * una domanda sola: sparpagliata in due file, la risposta la si ricava
  * aprendoli tutti e due. Un numero nuovo si infila in mezzo senza toccare gli
  * altri — sono distanziati apposta. */
-export const ORDINE_IMPOSTAZIONI = Object.freeze({ lingua: 10, assist: 20 });
+export const ORDINE_IMPOSTAZIONI = Object.freeze({ lingua: 10, assist: 20, sezioni: 30 });
 
 /* Da dove parte il blocco delle righe aggiunte: subito sotto il tasto «salva»
  * del blocco «Generali» del guscio, che si riconosce dal gestore e non dalla

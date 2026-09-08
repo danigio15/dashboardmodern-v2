@@ -984,8 +984,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e' spostato il dito fra il tocco e il rilascio, misurato in diagonale —
   // e `sections/il-dito-scorre-o-tocca-section.js` lo applica una volta sola,
   // sul documento e in cattura, da dove si arriva prima di ogni sezione.
+  // 295 con l'elenco unico delle sezioni: «dove posso inserire i binary sensor
+  // di porte e finestre? Non trovo piu' la sezione dove inserirli» (#399).
+  // L'interruttore di ogni sezione stava DENTRO la scheda di quella sezione, e
+  // quindi per sapere quali sezioni esistono bisognava aprirle tutte — e per
+  // sapere quali erano accese anche. `core/lelenco-delle-sezioni.js` e' la
+  // mappa: scheda del Config, chiave di `cd_sections`, nome. Non e' un elenco
+  // nuovo, e' quello che stava dentro `config-uniformity-section.js` e che
+  // adesso leggono in due invece che uno.
+  // `sections/lelenco-delle-sezioni-section.js` lo disegna in Impostazioni,
+  // raggruppato nelle stesse sette famiglie delle linguette, e non salva niente
+  // per conto suo: gira l'interruttore chiamando la `edSecTog` del guscio.
   assert.ok(
-    relative.length <= 293,
+    relative.length <= 295,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
