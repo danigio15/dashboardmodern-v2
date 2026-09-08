@@ -149,6 +149,10 @@ test("i blocchi sono quelli, nell'ordine con cui si guarda una stanza entrandoci
       "prese",
       "coperture",
       "elettrodomestici",
+      // I lettori hanno la stanza addosso come le luci — la loro scheda la
+      // chiede — e senza questa riga arrivavano in una stanza solo per
+      // assegnazione a mano, cioè nel mucchio dell'«Altro» (#405).
+      "media",
       "telecamere",
       "carichi",
       "robot",

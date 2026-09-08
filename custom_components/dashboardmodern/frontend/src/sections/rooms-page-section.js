@@ -24,6 +24,7 @@
 import { lightCommand, lightView, lightsSignature } from "../core/light-model.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import { applianceGlyph } from "../core/appliance-artwork.js";
+import { CHIAVE_MEDIA, letturaDelLettore, lettoriConfigurati } from "../core/media-player.js";
 import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
@@ -80,6 +81,9 @@ export function roomSources() {
     climate: lista("climate", "cd_clima_units"),
     covers: lista("covers", "cd_tapparelle"),
     appliances: lista("appliances", "cd_appliances"),
+    /* I lettori (#405): la loro scheda la stanza la chiede gia', e qui si
+     * legge dall'altro lato — com'e' per le luci e per le telecamere. */
+    media: lettoriConfigurati(readJson(CHIAVE_MEDIA, null)),
     cameras: lista("cameras", "cd_cameras"),
     loads: lista("loads", "cd_loads"),
     robots: lista("robots", "cd_robot"),
@@ -121,6 +125,7 @@ const BLOCK_LABELS = Object.freeze({
   prese: ["Prese", "Plugs", "🔌"],
   coperture: ["Finestre", "Windows", "🪟"],
   elettrodomestici: ["Elettrodomestici", "Appliances", "🧺"],
+  media: ["Musica", "Music", "🎵"],
   telecamere: ["Telecamere", "Cameras", "📹"],
   carichi: ["Carichi", "Loads", "⚡"],
   robot: ["Aspirapolvere", "Vacuums", "🤖"],
@@ -225,6 +230,29 @@ const MODI_CLIMA = Object.freeze({
  * vuol dire due cose diverse, e a distinguerle e' il blocco in cui la voce sta.
  * La pagina di ogni sezione lo racconta per esteso; qui serve il colpo
  * d'occhio, e per il resto c'e' la sua pagina. */
+/* Cosa sta suonando, in una riga (#405).
+ *
+ * «Attualmente appare un Playing generico»: era lo stato grezzo di Home
+ * Assistant, che dice che il lettore sta suonando e non dice cosa. Il titolo e
+ * l'artista li porta gia' l'entita' — la sezione Musica li scrive — e sono
+ * l'unica cosa che uno vuole leggere passando davanti alla stanza.
+ *
+ * Quando non c'e' un titolo si dice comunque qualcosa di vero: la sorgente
+ * («HDMI 1»), o l'applicazione («Spotify»), che su un televisore sono la
+ * risposta giusta alla stessa domanda. E quando non c'e' nemmeno quella
+ * restano le tre parole dello stato, che non sono granche' ma non mentono. */
+function cosaSuona(item, states) {
+  const lettura = letturaDelLettore(item, states || {});
+  if (lettura.muto) return t("Non disponibile", "Unavailable");
+  if (lettura.spento) return t("Spento", "Off");
+  const brano = [lettura.titolo, lettura.artista].filter(Boolean).join(" · ");
+  if (lettura.suona)
+    return brano || lettura.sorgente || lettura.applicazione || t("In riproduzione", "Playing");
+  if (lettura.inPausa)
+    return brano ? `${t("In pausa", "Paused")} · ${brano}` : t("In pausa", "Paused");
+  return lettura.sorgente || lettura.applicazione || t("Acceso", "On");
+}
+
 function statoVoce(item, states, blocco = "") {
   const entity = entitaVoce(item);
   let stato = clean(states?.[entity]?.state).toLowerCase();
@@ -247,6 +275,7 @@ function statoVoce(item, states, blocco = "") {
   }
   const modo = MODI_CLIMA[stato];
   if (blocco === "clima" && modo) return t(modo[0], modo[1]);
+  if (blocco === "media") return cosaSuona(item, states);
   if (stato === "on") return t("Acceso", "On");
   if (stato === "off") return t("Spento", "Off");
   if (stato === "open") return t("Aperta", "Open");
@@ -500,6 +529,9 @@ const TAB_DI = Object.freeze({
   prese: "prese",
   coperture: "tapparelle",
   elettrodomestici: "appliances-main",
+  /* Stessa storia dei lettori (#405): «se cliccato rimanda alla home della
+   * dashboard». La pagina Musica ce l'hanno, ed e' li' che si comanda. */
+  media: "media",
   /* Le telecamere stanno nella pagina Sicurezza, non in Home: toccarne una
    * qui riportava alla Home, cioe' in nessun posto utile. */
   telecamere: "security",
