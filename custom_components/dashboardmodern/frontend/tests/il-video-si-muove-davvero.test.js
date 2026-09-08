@@ -14,6 +14,7 @@ import test from "node:test";
 import {
   ATTESA_MINIMA,
   aspettaCheSiMuova,
+  mettiIlPoster,
   ceUnaFotoFerma,
   siEMosso,
 } from "../src/sections/telecamera-il-video-si-muove-section.js";
@@ -108,7 +109,10 @@ test("l'involucro guarda per il tempo che AVANZA del permesso", async () => {
     "utf8",
   );
   assert.match(sorgente, /const resto = Math\.max\(ATTESA_MINIMA, concesso - \(Date\.now\(\) - inizio\)\)/);
-  assert.match(sorgente, /aspettaCheSiMuova\(doc\?\.getElementById\("cam-hls"\), \{ attesa: resto \}\)/);
+  assert.match(sorgente, /const video = doc\?\.getElementById\("cam-hls"\)/);
+  assert.match(sorgente, /aspettaCheSiMuova\(video, \{ attesa: resto \}\)/);
+  /* E prima di guardare si da' qualcosa da guardare (#395). */
+  assert.match(sorgente, /mettiIlPoster\(video, cam\?\.entity\)/);
   /* E il fondo c'e': anche a permesso esaurito un flusso sano parte in meno di
    * un secondo e merita di essere guardato. */
   assert.ok(ATTESA_MINIMA >= 1000);
@@ -134,4 +138,52 @@ test("il guscio si avvolge una volta sola, e ricorda chi c'era prima", async () 
   assert.match(sorgente, /root\.dmCamHLS = avvolta/);
   const runtime = readFileSync(join(qui, "..", "src/sections/section-runtime.js"), "utf8");
   assert.match(runtime, /installVideoSiMuove\(\);/);
+});
+
+
+/* «Quando si apre il popup parte dopo un po' ma con del forte ritardo» (#395).
+ *
+ * Il controllo che il video si muova costa fino a dieci secondi, e in quei
+ * secondi il guscio ha gia' tolto la rotella: restava un rettangolo nero.
+ * L'ultima istantanea della telecamera c'e' gia' — e' quella della tessera del
+ * muro — e messa come poster il browser la tiene finche' non arriva un
+ * fotogramma vero, poi la toglie da solo.
+ */
+function videoFinto(poster = null) {
+  const attributi = new Map(poster ? [["poster", poster]] : []);
+  return {
+    attributi,
+    getAttribute: (chiave) => (attributi.has(chiave) ? attributi.get(chiave) : null),
+    setAttribute: (chiave, valore) => attributi.set(chiave, String(valore)),
+  };
+}
+
+const CASA = {
+  "camera.aarlo_ingresso": {
+    attributes: { entity_picture: "/api/camera_proxy/camera.aarlo_ingresso?token=abc" },
+  },
+  "camera.senza_foto": { attributes: {} },
+};
+
+test("l'attesa non e' nera: ci si mette l'ultima istantanea", () => {
+  const video = videoFinto();
+  const messo = mettiIlPoster(video, "camera.aarlo_ingresso", CASA);
+  assert.equal(messo, "/api/camera_proxy/camera.aarlo_ingresso?token=abc");
+  assert.equal(video.getAttribute("poster"), messo);
+});
+
+test("un poster che c'e' gia' non si tocca, e senza fotogramma non se ne inventa uno", () => {
+  const gia = videoFinto("/api/camera_proxy/altra.jpg");
+  assert.equal(mettiIlPoster(gia, "camera.aarlo_ingresso", CASA), "");
+  assert.equal(gia.getAttribute("poster"), "/api/camera_proxy/altra.jpg");
+
+  /* Una telecamera che non espone nessuna istantanea non ne ha una da dare:
+   * meglio il nero di prima che un indirizzo inventato. */
+  const senza = videoFinto();
+  assert.equal(mettiIlPoster(senza, "camera.senza_foto", CASA), "");
+  assert.equal(senza.getAttribute("poster"), null);
+
+  /* E senza video non si scrive da nessuna parte. */
+  assert.equal(mettiIlPoster(null, "camera.aarlo_ingresso", CASA), "");
+  assert.equal(mettiIlPoster(undefined, "camera.aarlo_ingresso", CASA), "");
 });

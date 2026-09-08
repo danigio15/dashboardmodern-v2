@@ -120,8 +120,8 @@ const PAGES = Object.freeze([
   {
     id: "page-ups",
     tint: ["14,165,233", "34,197,94"],
-    it: ["Continuità", "Rete · Batteria · Carico"],
-    en: ["Backup power", "Mains · Battery · Load"],
+    it: ["UPS", "Rete · Batteria · Carico"],
+    en: ["UPS", "Mains · Battery · Load"],
   },
   /* Le allerte, #296, e la raccolta differenziata, #293, nascono con la
    * loro pagina, e la testata nasce con loro. */

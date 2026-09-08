@@ -134,11 +134,11 @@ test("le entità di tutte le sezioni, senza doppioni", () => {
 
 test("la voce di ogni sezione ha la sua chiave, e la chiave è sua", () => {
   assert.equal(chiaveDellaSezione("ups"), "mia-ups");
-  assert.notEqual(chiaveDellaSezione("ups"), "ups", "non deve pestare i piedi alla Continuità");
+  assert.notEqual(chiaveDellaSezione("ups"), "ups", "non deve pestare i piedi all'UPS");
 });
 
 test("la pagina si spegne con la stessa chiave che la fascia scrive", () => {
-  /* Il difetto da cui nasce la prova sorella (#l'Agenda e la Continuità): una
+  /* Il difetto da cui nasce la prova sorella (#l'Agenda e l'UPS): una
    * voce nella barra e nessun posto dove spegnerla. */
   const pagina = leggi("sections/sezioni-mie-section.js");
   assert.match(pagina, /SEZIONI_MIE_TAB = "mie"/);

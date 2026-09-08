@@ -9,6 +9,71 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Elettrodomestici: nella vista a righe i dati non si sovrappongono più** (#389)
+
+      «Quando la schermata degli elettrodomestici è compressa per righe, i dati
+       vengono visualizzati in maniera errata probabilmente sovrapposti.»
+
+  Non «probabilmente»: il blocco del nome e la striscia del programma stavano
+  nella stessa cella della griglia, e due elementi nella stessa cella si
+  impilano invece di spingersi. Adesso il programma ha una riga sua, sotto il
+  nome; dove il programma non c'è la card resta identica a prima.
+
+- **Telecamere: l'attesa del video non è più un rettangolo nero** (#395)
+
+      «Quando si apre il popup parte dopo un po' ma con del forte ritardo.»
+
+  Dalla 1.4.13 la plancia verifica che il video si muova davvero prima di
+  dichiarare riuscito l'HLS — senza, su una telecamera in cloud restava un
+  fotogramma fermo — e quella verifica costa fino a dieci secondi. Il controllo
+  resta, ma adesso l'attesa mostra l'ultima istantanea della telecamera: la
+  stessa della tessera, messa come poster del video, che il browser sostituisce
+  da sé appena arriva un fotogramma vero.
+
+- **Serrature: sbloccare e aprire sono due gesti** (#387)
+
+      «Gestire con Nuki separatamente sblocca/blocca e/o apri — evita apertura
+       indesiderata se si vuole solo sblocco.»
+
+  Su una serratura che dichiara di saper fare tutte e due — il Nuki lo dichiara
+  — la plancia ha sempre chiamato `open`, cioè ha sempre scrocco la porta: il
+  gesto più irreversibile era l'unico disponibile. Adesso nella scheda della
+  porta c'è **«Cosa fa il tocco»**: *apri* (come prima), *solo sblocca*, oppure
+  *tutti e due i tasti*. Chi non sceglie niente trova quello che ha sempre
+  avuto.
+
+- **Rifiuti: una riga senza entità adesso lo dice** (#384)
+
+      «Anche se configurato correttamente all'interno della sezione rifiuti,
+       non si vede il widget nella maschera principale.»
+
+  Una riga salvata senza entità veniva scartata ovunque — pagina, tessera e
+  widget — mentre l'editor la mostrava come se fosse a posto. Adesso l'editor
+  avvisa, e dice le due strade: scegli l'entità, oppure usa il turno di casa a
+  due settimane, che di entità non ne vuole nessuna.
+
+- **Rifiuti: tre modi in più di scrivere una data, e il perché quando non si
+  legge** (#383)
+
+      «Per i singoli rifiuti non riesce ad elaborare la data anche se è
+       presente.»
+
+  Il lettore delle date impara «3 giorni» senza la preposizione — è il template
+  più diffuso di Waste Collection Schedule — il giorno della settimana scritto
+  davanti («mer 10/09/2026») e il mese a parole («10 settembre 2026»). E quando
+  una riga risponde senza portare una data leggibile, la sezione scrive cosa ha
+  letto davvero invece di lasciare un trattino muto.
+
+### Cambiato
+
+- **«Continuità» si chiama UPS** (#390)
+
+      «Perché non rinominare il widget "Continuità" in "UPS"?»
+
+  Nessuno cerca «Continuità», e UPS è la stessa sigla in tutte e tredici le
+  lingue della plancia. La chiave in memoria resta `ups`: non c'è niente da
+  riconfigurare.
+
 - **MiniPC: la sezione non si prende più mezza casa**
 
       «La sezione mini pc porta in automatico tutte queste entità sotto che non

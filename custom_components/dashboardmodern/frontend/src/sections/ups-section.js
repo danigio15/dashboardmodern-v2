@@ -99,7 +99,7 @@ export function ensureUpsTab() {
   voce.className = "tab";
   voce.dataset.tab = UPS_TAB;
   voce.id = `tab-${UPS_TAB}`;
-  voce.innerHTML = `<span class="icon">🔌</span><span class="text">${esc(t("Continuità", "Backup power"))}</span>`;
+  voce.innerHTML = `<span class="icon">🔌</span><span class="text">${esc(t("UPS", "UPS"))}</span>`;
   /* Il gestore che il runtime lega alle voci lo lega una volta sola, al
    * caricamento: questa arriva dopo, e il suo tocco se lo deve gestire da se'.
    * Fa la stessa identica cosa, perche' due modi di cambiare pagina sarebbero
@@ -254,7 +254,7 @@ function scena(dato, da) {
         </span>
         <span class="dm-ups-prese"><i></i><i></i><i></i></span>
       </div>
-      <span class="dm-ups-nome">${esc(clean(dato.name) || t("Continuità", "Backup power"))}</span>
+      <span class="dm-ups-nome">${esc(clean(dato.name) || t("UPS", "UPS"))}</span>
     </div>
 
     <div class="dm-ups-nodo" style="${POSTI.casa}">
@@ -325,7 +325,7 @@ function dipingi() {
    * nome sopra, perche' due scene identiche senza nome non si distinguono. */
   const elenco = gruppi().filter((gruppo) => entitaDellUps(gruppo).length > 0);
   const scene = elenco.map((gruppo, posizione) => ({
-    nome: clean(gruppo.name) || `${t("Continuità", "Backup power")} ${posizione + 1}`,
+    nome: clean(gruppo.name) || `${t("UPS", "UPS")} ${posizione + 1}`,
     dato: letturaDi(gruppo),
     da: daQuandoUps(gruppo, allStates(), risolvi()),
   }));

@@ -328,3 +328,82 @@ test("un istante vero conserva il suo fuso: solo il giorno intero lo ignora", ()
   assert.equal(giornoIntero.getMonth(), 8);
   assert.equal(giornoIntero.getDate(), 4);
 });
+
+/* «Uso l'integrazione Waste Collection Schedule… per i singoli rifiuti non
+ * riesce ad elaborare la data anche se è presente» (#383).
+ *
+ * Quell'integrazione lascia comporre lo stato con un template, e la gente ce
+ * ne scrive di ogni forma. Tre erano fuori portata, e sono tutte e tre forme
+ * che una persona scrive senza pensarci: il conteggio dei giorni senza la
+ * preposizione, il giorno della settimana davanti alla data, il mese a parole.
+ */
+test("il conteggio dei giorni vale anche senza «fra»", () => {
+  const adesso = new Date(2026, 8, 8, 10, 0, 0).getTime();
+  /* È il template più diffuso in giro: `{{value.daysTo}} giorni`. */
+  for (const detto of ["3 giorni", "in 3 giorni", "fra 3 giorni", "tra 3 giorni", "3 days"])
+    assert.equal(
+      giorniFra(adesso, dataDelRitiro({ state: detto }, adesso)),
+      3,
+      `«${detto}» non è stato letto`,
+    );
+  /* Un numero secco però resta un numero: senza l'unità potrebbe essere
+   * qualunque cosa, e indovinare qui vorrebbe dire sbagliare altrove. */
+  assert.equal(dataDelRitiro({ state: "3" }, adesso), null);
+});
+
+test("il giorno della settimana davanti alla data non fa fallire la riga", () => {
+  for (const detto of ["mer 10/09/2026", "mercoledì 10/09/2026", "Wednesday, 2026-09-10", "mer. 10.09.2026"]) {
+    const data = leggiData(detto);
+    assert.ok(data, `«${detto}» non è stato letto`);
+    assert.equal(data.getFullYear(), 2026);
+    assert.equal(data.getMonth(), 8);
+    assert.equal(data.getDate(), 10);
+  }
+  /* Una parola qualunque davanti non è un giorno della settimana, e non si
+   * butta via: se non si sa cosa sia, non si sa nemmeno leggere il resto. */
+  assert.equal(leggiData("ciao 10/09/2026"), null);
+});
+
+test("il mese scritto a parole è una data come le altre", () => {
+  for (const [detto, mese] of [
+    ["10 settembre 2026", 8],
+    ["8 set 2026", 8],
+    ["10 September 2026", 8],
+    ["3 gennaio 2027", 0],
+  ]) {
+    const data = leggiData(detto);
+    assert.ok(data, `«${detto}» non è stato letto`);
+    assert.equal(data.getMonth(), mese);
+  }
+  /* Un mese che non esiste non diventa una data. */
+  assert.equal(leggiData("10 fantasia 2026"), null);
+});
+
+/* «Non riesce ad elaborare la data anche se è presente»: la riga restava un
+ * trattino muto, e la diagnosi toccava a chi legge le segnalazioni due giorni
+ * dopo. Adesso la riga porta con sé quello che ha letto davvero. */
+test("una riga che risponde senza una data dice cosa ha letto", () => {
+  const adesso = new Date(2026, 8, 8, 10, 0, 0).getTime();
+  const config = {
+    righe: [
+      { materiale: "plastica", entity: "sensor.plastica" },
+      { materiale: "carta", entity: "sensor.carta" },
+      { materiale: "vetro", entity: "sensor.vetro" },
+    ],
+  };
+  const states = {
+    "sensor.plastica": { state: "boh, quando capita" },
+    "sensor.carta": { state: "2026-09-10" },
+    "sensor.vetro": { state: "unavailable" },
+  };
+  const per = Object.fromEntries(
+    letturaRifiuti(config, states, undefined, adesso).righe.map((riga) => [riga.entity, riga]),
+  );
+  assert.equal(per["sensor.plastica"].letto, "boh, quando capita");
+  /* Dove la data c'è non c'è niente da spiegare. */
+  assert.equal(per["sensor.carta"].letto, "");
+  /* E un'entità che non risponde è un guasto, non un dialetto sconosciuto:
+   * quella la sezione la dice già con le sue parole. */
+  assert.equal(per["sensor.vetro"].letto, "");
+  assert.equal(per["sensor.vetro"].muto, true);
+});

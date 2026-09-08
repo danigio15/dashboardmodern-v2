@@ -9,7 +9,7 @@
  * meccanismo si è rivelato sano: la fascia scrive `cd_sections`, e chi possiede
  * la voce — il guscio per le dodici che conosce, il modulo che l'ha creata per
  * le altre — la spegne. Non funzionava dove la fascia NON C'ERA: l'Agenda e la
- * Continuità avevano una voce nella barra e nessuna scheda dove metterla, e
+ * UPS avevano una voce nella barra e nessuna scheda dove metterla, e
  * quelle due voci non si potevano nascondere in nessun modo.
  *
  * Questa prova tiene chiusa la porta da cui è entrato quel buco: chi domani
@@ -146,13 +146,13 @@ test("le voci senza interruttore sono quelle dichiarate, e non una di più", () 
   }
 });
 
-test("l'Agenda e la Continuità sono fra quelle che si possono nascondere", () => {
+test("l'Agenda e l'UPS sono fra quelle che si possono nascondere", () => {
   /* Erano le due che mancavano: la prova le nomina, così togliere la loro
    * scheda non passa inosservato nemmeno se un domani i moduli cambiassero
    * forma e le due prove qui sopra smettessero di vederle. */
   const interruttori = chiaviConInterruttore();
   assert.ok(interruttori.has("calendario"), "l'Agenda non si può più nascondere");
-  assert.ok(interruttori.has("ups"), "la Continuità non si può più nascondere");
+  assert.ok(interruttori.has("ups"), "l'UPS non si può più nascondere");
   assert.equal(TAB_SECTION_KEYS.agenda, "calendario");
   assert.equal(TAB_SECTION_KEYS.ups, "ups");
 });

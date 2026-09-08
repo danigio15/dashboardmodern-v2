@@ -132,7 +132,7 @@ test("su una plancia appena installata sono vuote tutte", () => {
 });
 
 test("le sezioni che si governano da sé non stanno in questa mappa", () => {
-  /* Agenda, Continuità, Cruscotto e le sezioni che si fa l'utente nascondono
+  /* Agenda, UPS, Cruscotto e le sezioni che si fa l'utente nascondono
    * già da sole la propria voce quando non hanno niente dentro. Metterle anche
    * qui vorrebbe dire due padroni sulla stessa voce. E Home è la pagina dove
    * si atterra: spegnerla lascerebbe una plancia senza nessun posto dove

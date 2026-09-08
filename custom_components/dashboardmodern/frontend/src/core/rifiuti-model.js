@@ -291,13 +291,51 @@ export function giorniFra(da, a) {
   return Math.round((utcDue - utcUno) / 86400000);
 }
 
+/* I mesi scritti a parole, nelle sei lingue in cui si conoscono gia' i giorni
+ * della settimana. Una data cosi' non la scrive un'integrazione: la scrive chi
+ * si e' composto lo stato con un template, e per lui e' una data come le
+ * altre. */
+const MESI = Object.freeze([
+  /^(gen|genn|gennaio|jan|january|januar|januari|ene|enero|janv|janvier)$/,
+  /^(feb|febb|febbraio|february|februar|februari|feb|febrero|fevr|février|fevrier)$/,
+  /^(mar|marzo|march|märz|marz|maart|marzo|mars)$/,
+  /^(apr|aprile|april|abr|abril|avr|avril)$/,
+  /^(mag|maggio|may|mai|mei|may|mayo)$/,
+  /^(giu|giugno|jun|june|juni|jun|junio|juin)$/,
+  /^(lug|luglio|jul|july|juli|jul|julio|juil|juillet)$/,
+  /^(ago|agosto|aug|august|augustus|ago|agosto|aout|août)$/,
+  /^(set|sett|settembre|sep|sept|september|sep|septiembre|septembre)$/,
+  /^(ott|ottobre|oct|october|oktober|okt|oct|octubre|octobre)$/,
+  /^(nov|novembre|november|nov|noviembre|novembre)$/,
+  /^(dic|dicembre|dec|december|dez|dezember|dic|diciembre|déc|decembre)$/,
+]);
+
+const meseDaParola = (parola) => {
+  const voce = minuscolo(parola).replace(/\.$/, "");
+  if (!voce) return -1;
+  return MESI.findIndex((prova) => prova.test(voce));
+};
+
+/* Il giorno della settimana scritto davanti a una data — «mer 10/09/2026»,
+ * «Monday, 2026-09-08» — non aggiunge niente: la data e' quella che segue. Si
+ * toglie prima di leggere, invece di far fallire tutta la riga per una parola
+ * che si sapeva gia'. */
+function senzaIlGiornoDavanti(voce) {
+  const m = /^([\p{L}]+)[.,]?\s+(.+)$/u.exec(voce);
+  if (!m) return voce;
+  const parola = minuscolo(m[1]);
+  return GIORNI_DELLA_SETTIMANA.some((prova) => prova.test(parola)) ? pulito(m[2]) : voce;
+}
+
 /**
  * Una data scritta come la scrivono le integrazioni: `2026-09-05`,
- * `2026-09-05 06:00:00`, `2026-09-05T06:00:00+02:00`, `05/09/2026`.
+ * `2026-09-05 06:00:00`, `2026-09-05T06:00:00+02:00`, `05/09/2026`; e come la
+ * scrive chi si compone lo stato con un template: «mer 10/09/2026», «10
+ * settembre», «10 settembre 2026».
  * Torna `null` per tutto il resto: un numero non e' una data.
  */
 export function leggiData(testo, { giornoIntero = false } = {}) {
-  const voce = pulito(testo);
+  const voce = senzaIlGiornoDavanti(pulito(testo));
   if (!voce) return null;
   let m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(voce);
   if (m) {
@@ -319,6 +357,15 @@ export function leggiData(testo, { giornoIntero = false } = {}) {
   /* `05/09/2026`, `05.09.2026`, e il `05-09-2026` degli olandesi (Afvalwijzer). */
   m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/.exec(voce);
   if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  /* «10 settembre», «10 set 2026», «10 September 2026». Senza anno vale il
+   * prossimo che viene: un ritiro scritto a mano guarda avanti, non indietro.
+   * L'anno pero' lo decide chi legge, e qui dentro non c'e' un orologio —
+   * percio' si prende quello di oggi e chi conta i giorni fa il resto. */
+  m = /^(\d{1,2})\s+([\p{L}]{3,})\.?(?:\s+(\d{4}))?$/u.exec(voce);
+  if (m) {
+    const mese = meseDaParola(m[2]);
+    if (mese >= 0) return new Date(m[3] ? +m[3] : new Date().getFullYear(), mese, +m[1]);
+  }
   return null;
 }
 
@@ -326,13 +373,13 @@ export function leggiData(testo, { giornoIntero = false } = {}) {
  * della data: «Friday», «venerdì», «Vrijdag». Vale il prossimo con quel nome,
  * oggi compreso. */
 const GIORNI_DELLA_SETTIMANA = Object.freeze([
-  /^(domenica|sunday|sun|sonntag|zondag|domingo|dimanche)$/,
-  /^(lunedi|lunedì|monday|mon|montag|maandag|lunes|lundi)$/,
-  /^(martedi|martedì|tuesday|tue|dienstag|dinsdag|martes|mardi)$/,
-  /^(mercoledi|mercoledì|wednesday|wed|mittwoch|woensdag|miércoles|miercoles|mercredi)$/,
-  /^(giovedi|giovedì|thursday|thu|donnerstag|donderdag|jueves|jeudi)$/,
-  /^(venerdi|venerdì|friday|fri|freitag|vrijdag|viernes|vendredi)$/,
-  /^(sabato|saturday|sat|samstag|zaterdag|sábado|sabado|samedi)$/,
+  /^(domenica|dom|sunday|sun|sonntag|zondag|domingo|dimanche)$/,
+  /^(lunedi|lunedì|lun|monday|mon|montag|maandag|lunes|lundi)$/,
+  /^(martedi|martedì|mar|tuesday|tue|dienstag|dinsdag|martes|mardi)$/,
+  /^(mercoledi|mercoledì|mer|wednesday|wed|mittwoch|woensdag|miércoles|miercoles|mercredi)$/,
+  /^(giovedi|giovedì|gio|thursday|thu|donnerstag|donderdag|jueves|jeudi)$/,
+  /^(venerdi|venerdì|ven|friday|fri|freitag|vrijdag|viernes|vendredi)$/,
+  /^(sabato|sab|saturday|sat|samstag|zaterdag|sábado|sabado|samedi)$/,
 ]);
 
 export function giornoDellaSettimana(testo, adesso = Date.now()) {
@@ -347,8 +394,11 @@ export function giornoDellaSettimana(testo, adesso = Date.now()) {
 
 /* Le parole che dicono fra quanto: «domani», «in 3 giorni», «today», «in 2
  * dagen», «in 3 Tagen». */
+/* La preposizione e' facoltativa: «fra 3 giorni» e «3 giorni» dicono la stessa
+ * cosa, e la seconda e' quella che esce dal template piu' diffuso di Waste
+ * Collection Schedule — `{{value.daysTo}} giorni` (#383). */
 const FRA_GIORNI =
-  /^(?:in|fra|tra|en|dans)\s+(\d+)\s+(?:giorn[oi]|days?|d|dagen|tagen?|días?|dias?|jours?)$/;
+  /^(?:(?:in|fra|tra|en|dans)\s+)?(\d+)\s+(?:giorn[oi]|days?|d|dagen|tagen?|días?|dias?|jours?)$/;
 
 function giorniDalleParole(testo) {
   const voce = minuscolo(testo);
@@ -521,6 +571,15 @@ export function letturaRifiuti(
         muto: !risponde(stato),
         data,
         giorni,
+        /* Cosa c'era scritto, quando non se n'e' cavata una data.
+         *
+         * «Non riesce ad elaborare la data anche se e' presente» (#383): la
+         * riga restava un trattino muto, e capire quale dialetto parlasse
+         * quell'integrazione toccava a chi legge le segnalazioni, due giorni
+         * dopo. Detto sulla riga, la diagnosi ce l'ha davanti chi configura —
+         * ed e' l'unico che puo' vederla. Si porta solo quando serve: dove la
+         * data c'e', non c'e' niente da spiegare. */
+        letto: !data && risponde(stato) ? pulito(stato?.state) : "",
         quando: quandoCodice(giorni),
       };
     })

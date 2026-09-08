@@ -158,7 +158,7 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
-import { doorOpenCall } from "../core/security-door-model.js";
+import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
 import {
@@ -2361,7 +2361,7 @@ function upsModel(states) {
     key: "ups",
     accent: "#0ea5e9",
     icon: "🔋",
-    label: t("Continuità", "Backup power"),
+    label: t("UPS", "UPS"),
     /* A rete caduta parla l'autonomia, perche' e' il tempo che resta; a rete
      * presente parla la batteria, perche' e' la conferma che il tempo c'e'. */
     value:
@@ -4907,7 +4907,9 @@ function securityDetail(widget, states) {
      * quel gesto lo ascolta il documento intero: e' la stessa mano che apre —
      * stessa conferma, stesso tastierino del PIN, stessa chiamata. Qui non si
      * ricopia niente, si chiede a chi lo sa gia' fare. */
-    const apre = doorOpenCall(door.entity, stateOf(states, door.entity));
+    /* Qui il tasto e' uno solo, e fa il primo dei gesti che quella porta offre
+     * — quello che si puo' disfare, dove ce ne sono due (#387). */
+    const apre = azioniDellaPorta(door, stateOf(states, door.entity)).length > 0;
     const invito = door.pin ? t("Apri, col PIN", "Open, with the PIN") : t("Apri", "Open");
     parts.push(
       rowShell(

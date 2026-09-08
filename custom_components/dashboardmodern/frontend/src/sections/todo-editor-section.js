@@ -96,7 +96,7 @@ function catalogoTessere() {
     ["irrigazione", "💧", t("Irrigazione", "Irrigation")],
     /* Il gruppo di continuita' (#256): non e' la tessera delle batterie —
      * quella conta le pile dei sensori, questa dice se la casa ha corrente. */
-    ["ups", "🔌", t("Continuità", "Backup power")],
+    ["ups", "🔌", t("UPS", "UPS")],
     /* Le allerte (#296): si accende quando una fonte ha qualcosa da dire. */
     ["allerte", "⚠️", t("Allerte", "Alerts")],
     /* La raccolta differenziata (#293): dice cosa mettere fuori stasera. */

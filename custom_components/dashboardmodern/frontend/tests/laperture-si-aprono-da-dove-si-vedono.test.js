@@ -45,7 +45,7 @@ test("la doppia conferma si può spegnere, il PIN no", async () => {
    * conferma, e una porta protetta continua a chiederla. */
   assert.match(
     porte,
-    /if \(door\.pin\) openKeypad\(door\);\s*else if \(siChiedeConferma\(\)\) confirmAndOpen\(door\);/,
+    /if \(door\.pin\) openKeypad\(door, gesto\);\s*else if \(siChiedeConferma\(\)\) confirmAndOpen\(door, gesto\);/,
   );
   /* E l'interruttore c'è dove si configurano le aperture. */
   assert.match(leggi("security-doors-editor-section.js"), /data-door-conferma/);

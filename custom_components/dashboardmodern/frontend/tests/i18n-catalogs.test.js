@@ -157,6 +157,10 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   "Ping",
   "Internet",
   "MiniPC",
+  /* Il gruppo di continuita' (#390): «perche' non rinominare il widget
+   * "Continuita'" in "UPS"?». Nessuno cerca «Continuita'», e la sigla e' la
+   * stessa dappertutto — e' l'unico nome che non ha bisogno di traduzione. */
+  "UPS",
   /* Il programma della lavatrice: sull'oblo' c'e' scritto «Eco» ovunque. */
   "Eco",
   "kWh/day",

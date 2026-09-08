@@ -45,8 +45,23 @@
  * immagine e aspetta un tocco: li' c'e' qualcosa da vedere, e scendere alle
  * istantanee lo peggiorerebbe. Si distingue dal fermo vero per una cosa sola:
  * quello e' in pausa apposta, l'altro sta andando e non va avanti.
+ *
+ * ── L'attesa non deve essere nera (#395) ─────────────────────────────────
+ *
+ * «Quando si apre il popup parte dopo un po' ma con del forte ritardo.» E'
+ * questa attesa: il guscio, appena letta l'intestazione, toglie la rotella e
+ * resta un rettangolo vuoto per tutti i secondi in cui si guarda se il video
+ * si muove. Il controllo serve — senza, si torna al fermo dichiarato riuscito
+ * — ma l'attesa si puo' riempire: la telecamera un fotogramma ce l'ha gia',
+ * ed e' quello che la tessera del muro mostra da sempre.
+ *
+ * Lo si mette come POSTER del video, e non come immagine sopra o sotto: il
+ * poster e' fatto apposta per questo — il browser lo tiene finche' non c'e' un
+ * fotogramma vero e lo toglie da solo appena arriva, senza che nessuno debba
+ * ricordarsi di ripulire. Chi aspetta vede la sua telecamera, ferma, invece
+ * del nero; e se il video parte, parte sopra la stessa immagine.
  */
-import { doc, root, t } from "./shared.js";
+import { allStates, clean, doc, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_VIDEO_SI_MUOVE__";
 const state = (root[KEY] ||= { installed: false });
@@ -143,6 +158,27 @@ export async function aspettaCheSiMuova(video, opzioni = {}) {
   throw new Error(`${detto} (${Math.round(attesa / 1000)}s)`);
 }
 
+/**
+ * Mette l'ultima istantanea come poster del video, se ce n'e' una.
+ *
+ * `entity_picture` di una telecamera e' l'indirizzo del fotogramma con dentro
+ * il suo gettone, quello che Home Assistant rinnova da solo: e' la stessa
+ * immagine della tessera, e non costa una richiesta in piu' di quelle che la
+ * plancia fa gia'.
+ *
+ * Torna quello che ha messo, o la stringa vuota: un poster gia' scritto non si
+ * tocca, e una telecamera senza fotogramma non ne ha uno da dare.
+ */
+export function mettiIlPoster(video, entity, states) {
+  if (!video || typeof video.setAttribute !== "function") return "";
+  if (clean(video.getAttribute?.("poster"))) return "";
+  const casa = states || allStates();
+  const foto = clean(casa?.[clean(entity)]?.attributes?.entity_picture);
+  if (!foto) return "";
+  video.setAttribute("poster", foto);
+  return foto;
+}
+
 export function installVideoSiMuove() {
   if (state.installed) return false;
   const precedente = root.dmCamHLS;
@@ -154,7 +190,12 @@ export function installVideoSiMuove() {
      * promessa all'intestazione, e quello che non ha speso serve qui. */
     const concesso = Number(attesa) > 0 ? Number(attesa) : ATTESA_SENZA_DETTO;
     const resto = Math.max(ATTESA_MINIMA, concesso - (Date.now() - inizio));
-    await aspettaCheSiMuova(doc?.getElementById("cam-hls"), { attesa: resto });
+    const video = doc?.getElementById("cam-hls");
+    /* Prima di guardare, si da' qualcosa da guardare: il guscio ha gia' tolto
+     * la rotella all'intestazione, e senza questo l'attesa e' un rettangolo
+     * nero lungo quanto il permesso che avanza. */
+    mettiIlPoster(video, cam?.entity);
+    await aspettaCheSiMuova(video, { attesa: resto });
     return esito;
   }
   avvolta.__dmVideoSiMuove = true;

@@ -188,8 +188,8 @@ function corpoMarkup() {
   <div class="ed-sec-title">🔌 ${esc(t("Gruppi di continuità (UPS)", "Uninterruptible power supplies"))}</div>
   <div class="ed-intro">${esc(
     t(
-      "A rete presente la tessera mostra la carica della batteria; quando la corrente cade mostra i minuti che restano e si accende. Nessuna casella è obbligatoria: con il solo stato di NUT la tessera sa già dire se c'è tensione. Se ne hai più di uno, aggiungili qui sotto: ognuno ha la sua scena nella pagina Continuità.",
-      "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the Backup power page.",
+      "A rete presente la tessera mostra la carica della batteria; quando la corrente cade mostra i minuti che restano e si accende. Nessuna casella è obbligatoria: con il solo stato di NUT la tessera sa già dire se c'è tensione. Se ne hai più di uno, aggiungili qui sotto: ognuno ha la sua scena nella pagina UPS.",
+      "With mains present the tile shows the battery charge; when power drops it shows the minutes left and lights up. No field is required: with the NUT status alone the tile already knows whether there is power. If you have more than one, add them below: each gets its own scene on the UPS page.",
     ),
   )}</div>
   <div class="ed-list dm-todo-ed-list">
@@ -293,7 +293,7 @@ export function ensureUpsEditorTab() {
   const linguetta = doc.createElement("button");
   linguetta.className = "ed-tab";
   linguetta.dataset.tab = UPS_EDITOR_TAB;
-  linguetta.textContent = `🔌 ${t("Continuità", "Backup power")}`;
+  linguetta.textContent = `🔌 ${t("UPS", "UPS")}`;
   linguetta.addEventListener("click", () => root.editorSwitch?.(UPS_EDITOR_TAB));
   const prima = linguette.querySelector('.ed-tab[data-tab="runtime"]');
   if (prima) prima.before(linguetta);

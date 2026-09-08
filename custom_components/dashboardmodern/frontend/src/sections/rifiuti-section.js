@@ -220,13 +220,28 @@ function prossimoMarkup(lettura) {
   </div>`;
 }
 
+/* Sotto il nome: la data, oppure — quando non se n'e' cavata una — quello che
+ * l'entita' ha detto davvero.
+ *
+ * «Non riesce ad elaborare la data anche se e' presente» (#383). Un trattino
+ * muto lascia chi configura senza niente in mano: cosi' invece si legge la
+ * frase che non si e' saputa leggere, e si capisce subito se e' l'entita'
+ * sbagliata o un modo di scrivere le date che la plancia ancora non conosce. */
+function sottoIlNome(riga) {
+  const data = dataScritta(riga);
+  if (data) return esc(data);
+  const letto = clean(riga?.letto);
+  if (!letto) return "";
+  return `${esc(t("dice", "says"))} «${esc(letto)}»`;
+}
+
 function rigaMarkup(riga) {
   const materiale = materialeDiSerie(riga.materiale);
   return `<article class="dm-rifiuti-riga" data-quando="${esc(riga.quando)}" style="--dm-bidone:${esc(riga.colore || materiale.colore)}">
     <span class="dm-rifiuti-riga-ic" aria-hidden="true">${esc(riga.icona || materiale.icona)}</span>
     <div class="dm-rifiuti-riga-testo">
       <strong>${esc(nomeDellaRiga(riga))}</strong>
-      <small>${esc(dataScritta(riga) || "")}</small>
+      <small>${sottoIlNome(riga)}</small>
     </div>
     <b class="dm-rifiuti-riga-quando">${esc(parolaDelQuando(riga))}</b>
   </article>`;
