@@ -358,7 +358,7 @@ function senzaIlGiornoDavanti(voce) {
  * settembre», «10 settembre 2026».
  * Torna `null` per tutto il resto: un numero non e' una data.
  */
-export function leggiData(testo, { giornoIntero = false } = {}) {
+export function leggiData(testo, { giornoIntero = false, adesso = null } = {}) {
   const voce = senzaIlGiornoDavanti(pulito(testo));
   if (!voce) return null;
   let m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(voce);
@@ -383,12 +383,28 @@ export function leggiData(testo, { giornoIntero = false } = {}) {
   if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
   /* «10 settembre», «10 set 2026», «10 September 2026». Senza anno vale il
    * prossimo che viene: un ritiro scritto a mano guarda avanti, non indietro.
-   * L'anno pero' lo decide chi legge, e qui dentro non c'e' un orologio —
-   * percio' si prende quello di oggi e chi conta i giorni fa il resto. */
+   *
+   * Prendere l'anno di oggi e fermarsi li' funziona undici mesi su dodici e
+   * sbaglia proprio quando conta: «2 gennaio» letto il 30 dicembre diventava
+   * il 2 gennaio di quest'anno — undici mesi fa — e chi conta i giorni lo
+   * trovava scaduto e lo toglieva dai prossimi. Il bidone andava fuori fra tre
+   * giorni e la tessera non lo diceva. Se la data cosi' composta e' gia'
+   * passata, vale quella dell'anno dopo.
+   *
+   * L'istante di riferimento arriva da chi chiama, che ce l'ha; senza, si
+   * ripiega sull'orologio, che e' quello che si faceva prima. */
   m = /^(\d{1,2})\s+([\p{L}]{3,})\.?(?:\s+(\d{4}))?$/u.exec(voce);
   if (m) {
     const mese = meseDaParola(m[2]);
-    if (mese >= 0) return new Date(m[3] ? +m[3] : new Date().getFullYear(), mese, +m[1]);
+    if (mese < 0) return null;
+    const giorno = +m[1];
+    if (m[3]) return new Date(+m[3], mese, giorno);
+    const riferimento = adesso === null || adesso === undefined ? new Date() : new Date(adesso);
+    if (!Number.isFinite(riferimento.getTime())) return null;
+    const candidata = new Date(riferimento.getFullYear(), mese, giorno);
+    if (candidata.getTime() < inizioDelGiorno(riferimento).getTime())
+      return new Date(riferimento.getFullYear() + 1, mese, giorno);
+    return candidata;
   }
   return null;
 }
@@ -469,19 +485,19 @@ export function dataDelRitiro(stato, adesso = Date.now()) {
     "start_time",
     "start",
   ]) {
-    const data = leggiData(attributi[nome], { giornoIntero });
+    const data = leggiData(attributi[nome], { giornoIntero, adesso });
     if (!data) continue;
     /* Un evento gia' cominciato e non ancora finito e' il ritiro di adesso.
      * Un ritiro che dura da ieri a domani — capita coi calendari scritti a
      * mano — partiva ieri, e ieri e' passato: la riga finiva fra le scadute e
      * la tessera diceva «nessuna data in vista» mentre il bidone era fuori. */
-    const fine = leggiData(attributi.end_time || attributi.end, { giornoIntero });
+    const fine = leggiData(attributi.end_time || attributi.end, { giornoIntero, adesso });
     if (fine && data.getTime() <= adesso && adesso < fine.getTime()) return inizioDelGiorno(adesso);
     return data;
   }
   const prossimi = Array.isArray(attributi.upcoming) ? attributi.upcoming : [];
   for (const voce of prossimi) {
-    const data = leggiData(voce?.date ?? voce?.start ?? voce);
+    const data = leggiData(voce?.date ?? voce?.start ?? voce, { adesso });
     if (data) return data;
   }
   /* I giorni contati, in tutti i dialetti: `daysTo` (Waste Collection
@@ -506,7 +522,7 @@ export function dataDelRitiro(stato, adesso = Date.now()) {
       return new Date(inizioDelGiorno(adesso).getTime() + n * 86400000 + 12 * 3600000);
   }
   const grezzo = pulito(stato.state);
-  const dallaData = leggiData(grezzo);
+  const dallaData = leggiData(grezzo, { adesso });
   if (dallaData) return dallaData;
   const dalleParole = giorniDalleParole(grezzo);
   if (dalleParole !== null)

@@ -157,6 +157,16 @@ const PAGES = Object.freeze([
     it: ["Rifiuti", "Raccolta differenziata · Prossimi ritiri"],
     en: ["Waste", "Recycling · Next collections"],
   },
+  /* Le batterie (#398). Una pagina nuova senza la sua riga qui nasce senza
+   * intestazione: niente titolo, niente tasto per tornare a casa, e la voce
+   * della barra che intanto nasconde la testata del guscio. Si vede subito
+   * aprendola, e non si vede affatto scrivendola. */
+  {
+    id: "page-batterie",
+    tint: ["34,197,94", "234,179,8"],
+    it: ["Batterie", "Cariche · Scariche · Chi non risponde"],
+    en: ["Batteries", "Charged · Low · Not reporting"],
+  },
   /* Il calendario (#259) nasce con la sua pagina, e l'intestazione nasce con
    * lei: gli impegni di oggi e dei giorni che vengono. */
   {

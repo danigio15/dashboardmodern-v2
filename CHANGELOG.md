@@ -169,6 +169,36 @@ trovato una scheda che c'era.
   una riga risponde senza portare una data leggibile, la sezione scrive cosa ha
   letto davvero invece di lasciare un trattino muto.
 
+- **Cinque cose trovate rileggendo il lavoro della giornata**
+
+  Tutte dello stesso genere: codice che funziona il giorno in cui lo scrivi e
+  mente il mese dopo.
+
+  - **I rifiuti scritti «2 gennaio», letti il 30 dicembre.** Una data senza
+    anno prendeva quello di oggi: a fine dicembre il ritiro di gennaio
+    diventava undici mesi fa, risultava scaduto e spariva dai prossimi. Il
+    bidone andava fuori fra tre giorni e la tessera non lo diceva. Adesso una
+    data senza anno che risulta gia' passata vale l'anno dopo.
+  - **Il tasto della porta si chiama come il gesto che fa.** Su una serratura
+    configurata coi due gesti il tasto singolo — quello in Home e quello nelle
+    Stanze — esegue «sblocca», che e' il gesto che si puo' disfare, ma si
+    chiamava «Apri»: prometteva una cosa e ne faceva un'altra. Adesso il nome
+    arriva dallo stesso elenco da cui arriva la chiamata.
+  - **«Aperto da 2 minuti» non resta scritto per ore.** Quel numero lo fa
+    l'orologio, non il contatto: finche' la porta non si muoveva la pagina non
+    si ridisegnava e la scritta restava ferma su una plancia appesa al muro.
+    Adesso la pagina si sveglia al minuto — o all'ora, o al giorno — in cui
+    quella scritta cambia davvero, e a pagina chiusa non si sveglia affatto.
+  - **Una pila accoppiata dopo la prima accensione adesso si vede.** L'elenco
+    delle batterie nasceva da una passata sola, che gira soltanto quando
+    l'elenco e' vuoto: chi ne aggiungeva una il mese dopo non la trovava da
+    nessuna parte. Adesso alle dichiarate si uniscono quelle che Home Assistant
+    descrive come batterie. E nascondere una batteria dalla tessera di Home non
+    la toglie piu' dalla sua pagina: sono due domande diverse.
+  - **La pagina Batterie ha la sua intestazione.** Nasceva senza titolo e senza
+    il tasto per tornare a casa, mentre la sua voce nascondeva la testata del
+    guscio: l'unica pagina della plancia fatta cosi'.
+
 - **La barra non esce piu' intera per poi accorciarsi**
 
       «Resta sempre la barra totale, per poi diventare come l'ho configurata:

@@ -23,7 +23,7 @@ import {
   parseTodoItemsResponse,
   pendingTodoItems,
 } from "../core/todo-model.js";
-import { CHIAVE_BATTERIE, sogliaDelleBatterie } from "../core/batterie-di-casa.js";
+import { batterieDiCasa, CHIAVE_BATTERIE, sogliaDelleBatterie } from "../core/batterie-di-casa.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
 import { applianceArtwork } from "../core/appliance-artwork.js";
@@ -168,7 +168,11 @@ import {
   macchineERete,
 } from "../core/macchine-e-rete.js";
 import { EVENTO_PIATTAFORME, piattaformeConosciute } from "./di-chi-e-unentita-section.js";
-import { configuredSecurityDoors, iconaPortaMarkup } from "./security-doors-section.js";
+import {
+  configuredSecurityDoors,
+  iconaPortaMarkup,
+  parolaDelGesto,
+} from "./security-doors-section.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import {
   contactEntity,
@@ -2996,7 +3000,17 @@ function friendlyName(states, entity) {
 }
 
 function batteriesModel(states) {
-  const entities = gruppoEntita("batt");
+  /* Lo stesso elenco della pagina e della scheda — le configurate piu' quelle
+   * che Home Assistant dichiara da se' — e su quello, e solo qui, il filtro
+   * delle tessere: nascondere una batteria da Home e' una scelta che riguarda
+   * Home, non un modo di dire che quella pila non esiste. La regola che
+   * compone l'elenco sta in `batterie-di-casa.js`, ed e' una sola. */
+  const fuoriDaiWidget = widgetExcludedEntities();
+  const entities = batterieDiCasa({
+    configurate: gruppoEntita("batt"),
+    stati: states,
+    tolte: readJson("cd_gruppi_removed", {})?.batt,
+  }).filter((entity) => widgetIncludes(entity, fuoriDaiWidget));
   if (!entities.length) return null;
   const rows = entities
     .map((entity) => {
@@ -4936,9 +4950,19 @@ function securityDetail(widget, states) {
      * stessa conferma, stesso tastierino del PIN, stessa chiamata. Qui non si
      * ricopia niente, si chiede a chi lo sa gia' fare. */
     /* Qui il tasto e' uno solo, e fa il primo dei gesti che quella porta offre
-     * — quello che si puo' disfare, dove ce ne sono due (#387). */
-    const apre = azioniDellaPorta(door, stateOf(states, door.entity)).length > 0;
-    const invito = door.pin ? t("Apri, col PIN", "Open, with the PIN") : t("Apri", "Open");
+     * — quello che si puo' disfare, dove ce ne sono due (#387).
+     *
+     * E si chiama come il gesto che fa. Diceva «Apri» sempre: su una serratura
+     * configurata coi due gesti il tasto sblocca e basta, e chi lo premeva
+     * restava con la porta chiusa e la scritta che gli aveva promesso il
+     * contrario. Il nome adesso arriva dallo stesso elenco da cui arriva la
+     * chiamata, cosi' le due cose non possono piu' separarsi. */
+    const azioni = azioniDellaPorta(door, stateOf(states, door.entity));
+    const apre = azioni.length > 0;
+    const parola = parolaDelGesto(azioni[0]?.gesto);
+    const invito = door.pin
+      ? `${parola} · ${t("chiede il PIN", "asks for the PIN")}`
+      : parola;
     parts.push(
       rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${iconaPortaMarkup(door.icon)}</span>

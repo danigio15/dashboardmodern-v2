@@ -36,7 +36,8 @@ import {
 } from "../core/room-overview.js";
 import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
 import { pageCardMarkup } from "./lights-page-section.js";
-import { configuredSecurityDoors } from "./security-doors-section.js";
+import { azioniDellaPorta } from "../core/security-door-model.js";
+import { configuredSecurityDoors, parolaDelGesto } from "./security-doors-section.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
   allStates,
@@ -500,16 +501,22 @@ function aperturePerEntita() {
 function rowMarkup(item, blocco, states, aperture = aperturePerEntita()) {
   const entity = entitaVoce(item);
   const porta = aperture.get(entity);
-  if (porta)
+  if (porta) {
+    /* La riga si chiama come il gesto che fa davvero. Diceva «Apri» sempre,
+     * ma il tocco esegue il primo gesto della porta, e su una serratura coi
+     * due gesti quello e' «Sblocca»: la scritta prometteva una cosa e il dito
+     * ne otteneva un'altra. */
+    const parola = parolaDelGesto(azioniDellaPorta(porta, states?.[porta.entity])[0]?.gesto);
     return `<article class="dm-stanze-card dm-stanze-voce dm-stanze-apertura" data-dm-door="${esc(porta.id)}" role="button" tabindex="0">
     <div class="dm-stanze-card-row">
       <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
       <span class="dm-stanze-title"><b>${esc(clean(porta.name) || nomeVoce(item, states))}</b><s>${esc(
-        porta.pin ? t("Apri — chiede il PIN", "Open — asks for the PIN") : t("Apri", "Open"),
+        porta.pin ? `${parola} — ${t("chiede il PIN", "asks for the PIN")}` : parola,
       )}</s></span>
       <span class="dm-stanze-vai" aria-hidden="true">${porta.pin ? "🔒" : "›"}</span>
     </div>
   </article>`;
+  }
   const tocco = siPuoAccendere(entity)
     ? `<button type="button" class="dm-stanze-tocca" data-dm-stanza-tocca="${esc(entity)}" role="switch" aria-checked="${accesa(entity, states) ? "true" : "false"}" aria-label="${esc(nomeVoce(item, states))}"><span class="dm-stanze-tocca-pallino"></span></button>`
     : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;

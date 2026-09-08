@@ -58,6 +58,39 @@ export function eUnaBatteria(stato) {
 }
 
 /**
+ * Le batterie di casa: quelle configurate piu' quelle che si riconoscono da se'.
+ *
+ * L'elenco configurato nasce da una passata sola, all'avvio della plancia: chi
+ * accoppia una pila nuova il mese dopo non la vede comparire da nessuna parte,
+ * perche' quella passata gira soltanto quando l'elenco e' vuoto. Ed e' proprio
+ * il caso in cui una batteria conta: quella nuova nessuno l'ha ancora
+ * dichiarata.
+ *
+ * Home Assistant pero' le batterie le dice da se' — `device_class: battery` e
+ * l'unita' in percento — e qui c'e' gia' la regola che le riconosce. Si
+ * uniscono: prima quelle configurate (l'ordine che si e' scelto), poi quelle
+ * che si riconoscono e nessuno aveva ancora nominato. Le tolte a mano restano
+ * fuori da tutte e due: togliere una riga e vedersela tornare al ricaricamento
+ * e' peggio che non poterla togliere.
+ *
+ * E' puro: gli stati arrivano da fuori, e non si guarda nessun magazzino.
+ */
+export function batterieDiCasa({ configurate = [], stati = {}, tolte = [] } = {}) {
+  const elenco = (lista) => (Array.isArray(lista) ? lista.map(pulito).filter(Boolean) : []);
+  const fuori = new Set(elenco(tolte));
+  const viste = new Set();
+  const uscita = [];
+  const metti = (id) => {
+    if (!id || fuori.has(id) || viste.has(id)) return;
+    viste.add(id);
+    uscita.push(id);
+  };
+  for (const id of elenco(configurate)) metti(id);
+  for (const [id, stato] of Object.entries(stati || {})) if (eUnaBatteria(stato)) metti(pulito(id));
+  return Object.freeze(uscita);
+}
+
+/**
  * Come sta una batteria: il livello, e se e' sotto soglia.
  *
  * Una che non risponde non e' una batteria carica ne' una scarica: e' muta, e
