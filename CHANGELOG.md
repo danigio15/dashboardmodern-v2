@@ -169,6 +169,27 @@ trovato una scheda che c'era.
   una riga risponde senza portare una data leggibile, la sezione scrive cosa ha
   letto davvero invece di lasciare un trattino muto.
 
+- **La barra non esce piu' intera per poi accorciarsi**
+
+      «Resta sempre la barra totale, per poi diventare come l'ho configurata:
+       dura quattro o cinque secondi.»
+
+  La barra sta coperta finche' non sa cosa mostrare, e si scopriva appena la
+  configurazione arrivava. Solo che le voci che i moduli aggiungono da se' —
+  Animali, Luci, Prese, Robot — nascono in quel giro di disegno, e a volte
+  nascono dopo il filtro: allora la barra si scopriva con quattordici voci e
+  quelle di troppo sparivano subito dopo. Misurato strumentando la plancia, il
+  filtro toglieva le quattro voci di sezioni spente a 3566 ms e la barra si
+  scopriva a 3661 ms, gia' giusta; nelle corse sbagliate i due si invertivano
+  di **sei millisecondi**.
+
+  Adesso non si indovina piu' il momento buono: si filtra, si guarda che forma
+  ha la barra, si lascia finire il fotogramma e si riguarda. Se e' cambiata la
+  barra stava ancora crescendo e si riprova; se e' la stessa, non c'e' piu'
+  niente che possa smentirla e si scopre. Niente sorveglianti e niente timer —
+  e' la regola di quel modulo — e un'attesa massima che scopre comunque: una
+  plancia che non smette mai di rifare la barra deve avere una barra lo stesso.
+
 - **Le Batterie portano il disegno di casa, come tutte le altre voci**
 
   La sezione nuova nasceva con l'emoji del telefono nella barra in basso e
