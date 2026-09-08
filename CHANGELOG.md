@@ -66,6 +66,35 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Cambiato
 
+- **Il Config ha un'alberatura**
+
+      «Per cortesia mi organizzi le sezioni del config con criterio, vedo cose
+       mischiate in sezioni che non c'entrano nulla.»
+
+  Le trentadue linguette del Config non erano in nessun ordine: diciotto le
+  scrive in fila il guscio storico, e le altre quattordici se le infilavano i
+  moduli subito prima di «Runtime», ognuno quando gli capitava di installarsi.
+  Per questo i Rifiuti stavano fra Backup e Varchi, e l'Agenda dopo i Robot.
+
+  Adesso l'ordine c'è, ed è scritto in un posto solo: sette famiglie —
+  **⚙️ Plancia, ⚡ Energia, 🌡️ Clima e acqua, 🛋️ Casa, 🛡️ Sicurezza,
+  🔔 Avvisi, 🖥️ Macchine e rete** — con le schede raggruppate sotto la loro,
+  l'insegna della famiglia davanti a ogni gruppo, e sopra una fila di famiglie
+  che porta dove si vuole andare.
+
+  **Nessuna linguetta si nasconde**: restano tutte visibili e premibili, e la
+  fila delle famiglie fa da indice invece che da filtro. Gli identificativi non
+  cambiano — `sez6` resta `sez6` — quindi i collegamenti salvati continuano a
+  funzionare.
+
+- **La copia inglese aveva tre linguette che in italiano non esistono**
+
+  Il guscio inglese si genera da quello italiano più l'elenco delle sue parole.
+  Dentro quell'elenco, che dovrebbe contenere *parole*, erano finiti tre
+  pulsanti interi — «Overrides», «Texts», «Export» — così chi aveva la plancia
+  in inglese vedeva ventuno schede invece di diciotto, tre delle quali di qua
+  non esistono. Adesso le due copie hanno le stesse linguette.
+
 - **«Continuità» si chiama UPS** (#390)
 
       «Perché non rinominare il widget "Continuità" in "UPS"?»

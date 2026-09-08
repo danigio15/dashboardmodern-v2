@@ -730,17 +730,23 @@ Il progetto per esteso è in [`docs/CHAT.md`](docs/CHAT.md).
 ---
 # Editor Dashboard: tutte le configurazioni
 
-L'editor è un'unica finestra con **ventinove schede**, una per area, elencate in **colonna** sulla sinistra: si vedono tutte insieme, senza scorrere una fila. Da telefono tenuto in piedi la colonna si stringe al solo simbolo e il nome ricompare appena giri lo schermo; chi un simbolo non lo riconosce lo legge tenendo premuto.
+L'editor è un'unica finestra con **trentadue schede**, una per area. Da telefono tenuto in piedi restano leggibili al simbolo, e il nome ricompare appena giri lo schermo; chi un simbolo non lo riconosce lo legge tenendo premuto.
 
 Tutte le configurazioni descritte qui sono **visuali**: nessun YAML.
 
-| | Schede |
+Le schede stanno in **sette famiglie**, e sopra c'è la fila che ci porta.
+
+| Famiglia | Schede |
 | --- | --- |
-| **La casa** | `⚙️ Impostazioni` · `🛋️ Stanze` · `👥 Persone` |
-| **Le sezioni** | `🏠 Home e meteo` · `⚡ Energia` · `🧺 Elettrodom.` · `🌡️ Temperatura` · `💡 Luci` · `❄️ Clima` · `🪟 Finestre` · `🛡️ Sicurezza` · `🚪 Apri porte/cancelli` · `🌞 Gestione termica` · `🚗 EV` · `🏊 Piscina` · `💧 Irrigazione` · `🤖 Aspirapolvere` · `🎵 Musica` · `🔌 Prese` · `🔋 UPS` · `📅 Agenda` · `🖥️ MiniPC` |
-| **La Home** | `🧩 Widget` (che tiene anche le **cose da fare**) · `🔔 Avvisi` · `⚡ Azioni rapide` |
-| **Il tuo** | `✨ Le tue entità` · `🗂️ Le tue sezioni` |
-| **Servizio** | `💾 Backup` · `🩺 Runtime` |
+| **⚙️ Plancia** | `⚙️ Impostazioni` (lingua e Assist) · `🏠 Home` · `🧩 Widget` (che tiene anche le **cose da fare**) · `⭐ Le tue entità` · `⭐ Le tue sezioni` · `💾 Backup` · `🩺 Runtime` |
+| **⚡ Energia** | `⚡ Energia` · `🌞 Solare` · `🚗 EV` · `🔌 UPS` |
+| **🌡️ Clima e acqua** | `❄️ Clima` · `🌡️ Temperatura` · `🏊 Piscina` · `💧 Irrigazione` |
+| **🛋️ Casa** | `🛋️ Stanze` · `💡 Luci` · `🪟 Finestre` · `🧺 Elettrodomestici` · `🔊 Musica` · `🤖 Robot` · `🐾 Animali` · `👥 Persone` · `⚡ Azioni` |
+| **🛡️ Sicurezza** | `🛡️ Sicurezza` · `🚪 Varchi` · `🚪 Apri porte/cancelli` |
+| **🔔 Avvisi** | `🔔 Avvisi` · `⚠️ Allerte` · `📅 Agenda` · `♻️ Rifiuti` |
+| **🖥️ Macchine e rete** | `🖥️ MiniPC` |
+
+> **Le famiglie sono un indice, non un filtro.** Toccarne una porta alla sua prima scheda, ma **nessuna linguetta sparisce**: restano tutte in fila, con l'insegna della famiglia davanti a ogni gruppo. Prima l'ordine non lo decideva nessuno — le schede dei moduli si mettevano dove capitava, e i Rifiuti finivano fra Backup e Varchi.
 
 > **Una sezione vuota non sta nella barra.** Ogni sezione nasce nascosta e **si accende da sola** appena riceve la prima entità configurata; svuotata, torna a nascondersi. Lo spegnimento automatico ha tre freni: non tocca una scheda che non sa giudicare, non spegne niente finché la configurazione condivisa non è arrivata da Home Assistant, e **non torna mai su una scelta fatta a mano** dal pulsante verde in testa alla scheda.
 

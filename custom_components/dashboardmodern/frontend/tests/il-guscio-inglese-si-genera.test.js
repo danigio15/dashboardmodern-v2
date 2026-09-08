@@ -75,9 +75,16 @@ test("i due gusci sono già divergenti, e di quanto si sa il numero", () => {
    * Adesso quella deriva ha un numero. Se cresce, questa prova cade, e chi
    * l'ha fatta crescere lo scopre subito invece che da una segnalazione di un
    * utente inglese sei mesi dopo. Scendere e' benvenuto: vuol dire che i due
-   * gusci si sono riavvicinati, e allora si aggiorna il numero. */
+   * gusci si sono riavvicinati, e allora si aggiorna il numero.
+   *
+   * Ed e' sceso: da quattro a tre. Le tre linguette che l'elenco delle PAROLE
+   * si portava dietro — «Overrides», «Texts», «Export» — non erano parole:
+   * erano tre pulsanti interi che in italiano non esistono, e chi aveva la
+   * plancia in inglese vedeva ventuno schede invece di diciotto, tre delle
+   * quali non esistevano di qua. Fuori dall'elenco: adesso le due copie hanno
+   * le stesse linguette. */
   const DERIVA = {
-    "dashboard-runtime-en.js": { soloIt: 13, soloEn: 4 },
+    "dashboard-runtime-en.js": { soloIt: 13, soloEn: 3 },
     "dashboard-runtime-en.css": { soloIt: 4, soloEn: 2 },
     "dashboard-debug-en.js": { soloIt: 0, soloEn: 0 },
     "dashboard-theme-en.js": { soloIt: 0, soloEn: 0 },

@@ -960,8 +960,21 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `integrations/catalog` — la presa vera, il ponte, il broker dell'energia —
   // che il menu delle integrazioni degli elettrodomestici aveva scritto per
   // conto suo: adesso e' scritto una volta e lo usano tutti e due.
+  // 291 con l'alberatura del Config: «per cortesia mi organizzi le sezioni del
+  // config con criterio, vedo cose mischiate in sezioni che non c'entrano
+  // nulla». L'ordine delle trentadue linguette non lo decideva nessuno —
+  // diciotto le scrive il guscio in fila, le altre quattordici se le infilano i
+  // moduli prima di «Runtime» quando gli capita di installarsi — quindi Rifiuti
+  // finiva fra Backup e Varchi senza nessuna ragione.
+  // `core/alberatura-del-config.js` e' l'elenco: a quale famiglia appartiene
+  // ogni scheda e in che posizione, in un posto solo invece che sparpagliato in
+  // quattordici moduli. `sections/alberatura-del-config-section.js` lo applica
+  // — rimette le linguette in fila e mette l'insegna della famiglia davanti a
+  // ogni gruppo — e sopra disegna la fila delle sette famiglie, che porta dove
+  // si vuole andare. Nessuna linguetta si nasconde: una nascosta non si
+  // clicca, e le prove che ne aprono una cliccandola sono una quarantina.
   assert.ok(
-    relative.length <= 289,
+    relative.length <= 291,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

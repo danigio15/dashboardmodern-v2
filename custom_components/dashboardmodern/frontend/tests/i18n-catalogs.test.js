@@ -329,6 +329,8 @@ const LOCALE_IDENTITIES = {
   nl: new Set([
     /* Het volume van een speaker heet in het Nederlands ook zo. */
     "Volume",
+    /* Het dashboard heet in het Nederlands ook gewoon dashboard. */
+    "Dashboard",
     /* Een station is in het Nederlands ook een station. */
     "Station",
     "Casual",

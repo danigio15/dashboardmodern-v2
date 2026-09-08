@@ -47,6 +47,10 @@ const REACHED_OTHERWISE = new Set([
    * `src/core/impianti-termici.js` — già fra i cataloghi importati, e con le
    * righe nella forma `{ it, en }` che l'estrattore riconosce da sé. */
   "impianti-termici-editor-section.js",
+  /* Stessa storia: `alberatura-del-config-section.js` scrive i nomi delle
+   * famiglie del Config, che stanno in `src/core/alberatura-del-config.js` —
+   * anche lui fra i cataloghi importati, e anche lui con le righe `{ it, en }`. */
+  "alberatura-del-config-section.js",
 ]);
 
 /* L'elenco si legge dal sorgente, non si importa: l'estrattore riscrive i file

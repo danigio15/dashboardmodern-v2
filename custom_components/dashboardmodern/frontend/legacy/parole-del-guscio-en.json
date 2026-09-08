@@ -425,13 +425,6 @@
      ]
     },
     {
-     "riga": 1283,
-     "via": 0,
-     "metti": [
-      "          <button class=\"ed-tab\" data-tab=\"sost\"  onclick=\"editorSwitch('sost')\">🔁 Overrides</button>"
-     ]
-    },
-    {
      "riga": 1284,
      "via": 1,
      "metti": [
@@ -447,15 +440,7 @@
       "          <button class=\"ed-tab\" data-tab=\"luci\"  onclick=\"editorSwitch('luci')\">💡 Lights</button>",
       "          <button class=\"ed-tab\" data-tab=\"appliances\" onclick=\"editorSwitch('appliances')\">🧺 Appliances</button>",
       "          <button class=\"ed-tab\" data-tab=\"avvisi\" onclick=\"editorSwitch('avvisi')\">🔔 Alerts</button>",
-      "          <button class=\"ed-tab\" data-tab=\"testi\" onclick=\"editorSwitch('testi')\">✏️ Texts</button>",
       "          "
-     ]
-    },
-    {
-     "riga": 1300,
-     "via": 1,
-     "metti": [
-      "          <button class=\"ed-tab\" data-tab=\"export\" onclick=\"editorSwitch('export')\">📤 Export</button>"
      ]
     },
     {

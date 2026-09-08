@@ -250,6 +250,9 @@ const CATALOG_MODULES = Object.freeze([
      la card e la finestra del dettaglio scrivono per dire cosa sta facendo
      l'apparecchio adesso. */
   "src/core/appliance-program.js",
+  /* I nomi delle famiglie del Config — Plancia, Energia, Casa — che la fila
+     sopra le linguette scrive per dire dove si va. */
+  "src/core/alberatura-del-config.js",
 ]);
 
 /*

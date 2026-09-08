@@ -83,6 +83,7 @@ import { installStrisceDiLinguette } from "./le-strisce-di-linguette-section.js"
 import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
+import { installAlberatura } from "./alberatura-del-config-section.js";
 import { installVideoSiMuove } from "./telecamera-il-video-si-muove-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
@@ -942,6 +943,10 @@ export function installSectionRuntime() {
     /* L'HLS di una telecamera vale quando il video si muove davvero (#385):
      * si avvolge la strada del guscio, che si accontentava dell'intestazione. */
     installVideoSiMuove();
+    /* Le linguette del Config in ordine di alberatura, con l'insegna della
+     * famiglia davanti a ognuna: si installa dopo tutti gli editor che una
+     * linguetta se la aggiungono, cosi' al primo giro le trova gia' tutte. */
+    installAlberatura();
     installShutterSkySection();
     installPageMastheadSection();
     /* Il meteo si accoda al nome della casa nell'intestazione: si installa
