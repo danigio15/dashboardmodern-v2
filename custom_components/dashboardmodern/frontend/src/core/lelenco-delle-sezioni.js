@@ -97,6 +97,7 @@ export const SEZIONI = Object.freeze(
       en: "Doors and gates",
     },
     { scheda: "media", chiave: "media", glifo: "🎵", it: "Musica", en: "Music" },
+    { scheda: "batterie", chiave: "batterie", glifo: "🔋", it: "Batterie", en: "Batteries" },
     { scheda: "mie", chiave: "mie", glifo: "⭐", it: "Le tue sezioni", en: "Your sections" },
   ].map((voce) => Object.freeze(voce)),
 );

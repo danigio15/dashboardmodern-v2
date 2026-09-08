@@ -124,12 +124,21 @@ test("togliere una chiave non alza la revisione", async () => {
    * tutti quelli che guardano la stessa porta. E la 35 con le macchine del
    * server e la rete (#382, `cd_macchine`): il server e' uno solo per tutta la
    * casa, e il nome che si da' a «pve_qemu_103» vale su ogni dispositivo che
-   * lo guarda. */
-  assert.equal(CONFIG_KEYS_REVISION, 35);
+   * lo guarda. E la 36 con la soglia delle batterie (#398, `cd_batterie`):
+   * «sarebbe carino che le batterie stessero nel config come le altre cose».
+   * Sotto quanto una batteria e' da cambiare era venti per cento scritto nel
+   * codice, uguale per tutti; adesso lo si sceglie, ed e' una scelta sulla
+   * casa — chi ha una serratura da cambiare al trenta ce l'ha da cambiare al
+   * trenta anche guardando dal telefono. */
+  assert.equal(CONFIG_KEYS_REVISION, 36);
   for (const chiave of ["cd_radar_meteo", "cd_orologio", "dm_campi_scelti", "cd_allag_rilevato"])
     assert.ok(CONFIG_KEYS.includes(chiave), `${chiave} deve viaggiare con la casa`);
   assert.ok(CONFIG_KEYS.includes("cd_vmc"), "la ventilazione deve viaggiare con la casa");
   assert.ok(CONFIG_KEYS.includes("cd_varchi"), "i varchi devono viaggiare con la casa");
+  assert.ok(
+    CONFIG_KEYS.includes("cd_batterie"),
+    "la soglia delle batterie deve viaggiare con la casa",
+  );
   assert.ok(CONFIG_KEYS.includes("cd_macchine"), "le macchine devono viaggiare con la casa");
   assert.ok(CONFIG_KEYS.includes("cd_assist"), "Assist deve viaggiare con la casa");
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])

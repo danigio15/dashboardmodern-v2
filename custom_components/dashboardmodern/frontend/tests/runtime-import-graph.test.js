@@ -995,8 +995,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/lelenco-delle-sezioni-section.js` lo disegna in Impostazioni,
   // raggruppato nelle stesse sette famiglie delle linguette, e non salva niente
   // per conto suo: gira l'interruttore chiamando la `edSecTog` del guscio.
+  // 299 con le batterie che diventano una sezione come le altre (#398): «le
+  // batterie quelle cariche non le fa vedere? sarebbe carino che le batterie
+  // stessero nel config come le altre cose configurazioni». Erano un elenco
+  // che compariva in Home solo quando una scendeva sotto il venti per cento —
+  // venti scritto nel codice, uguale per tutti — e sparita quella spariva
+  // l'argomento. Adesso sono quattro moduli, che e' la forma di una sezione:
+  // `core/batterie-di-casa.js` (cosa conta come batteria, quando e' scarica, e
+  // il riepilogo), `sections/batterie-section.js` (la pagina, con la voce
+  // nella barra), `sections/batterie-editor-section.js` (la scheda: la soglia,
+  // quali non contare, come si chiamano) e `sections/batterie-elenco-section.js`
+  // — venti righe il cui unico mestiere e' che la tessera, la pagina e la
+  // scheda guardino lo STESSO elenco. Se la scheda ne toglie una e la tessera
+  // continua a contarla, chi l'ha tolta pensa che la plancia non l'abbia
+  // sentito.
   assert.ok(
-    relative.length <= 295,
+    relative.length <= 299,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

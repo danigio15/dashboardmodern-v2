@@ -23,6 +23,7 @@ import {
   parseTodoItemsResponse,
   pendingTodoItems,
 } from "../core/todo-model.js";
+import { CHIAVE_BATTERIE, sogliaDelleBatterie } from "../core/batterie-di-casa.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
 import { applianceArtwork } from "../core/appliance-artwork.js";
@@ -2961,7 +2962,7 @@ export function entitaSorvegliate(chiave, { extras, removed, vive } = {}) {
   return uscita;
 }
 
-function gruppoEntita(chiave) {
+export function gruppoEntita(chiave) {
   try {
     let vive = [];
     try {
@@ -3009,7 +3010,12 @@ function batteriesModel(states) {
     .filter((row) => row.level != null)
     .sort((a, b) => a.level - b.level);
   if (!rows.length) return null;
-  const low = rows.filter((row) => row.level <= 20);
+  /* La soglia non e' piu' venti scritto qui (#398): la scrive chi ha la casa,
+   * nella scheda Batterie, ed e' la stessa che colora la pagina. Due numeri
+   * per la stessa domanda vorrebbero dire una tessera che dice «2 scariche»
+   * sopra una pagina che ne colora tre. */
+  const soglia = sogliaDelleBatterie(readJson(CHIAVE_BATTERIE, {}));
+  const low = rows.filter((row) => row.level <= soglia);
   /* La tessera c'e' anche quando va tutto bene (#398).
    *
    * «Le batterie quelle cariche non le fa vedere?» No: prima la tessera

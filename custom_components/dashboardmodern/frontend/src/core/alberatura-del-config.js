@@ -146,6 +146,10 @@ export const SCHEDE = Object.freeze({
   animali: { famiglia: "casa", posizione: 70 },
   people: { famiglia: "casa", posizione: 80 }, // Persone
   sez8: { famiglia: "casa", posizione: 90 }, // Azioni rapide e scene
+  /* Le batterie (#398) stanno con la casa e non con gli avvisi: sono la
+   * manutenzione delle cose che ci sono dentro — la serratura, il sensore, il
+   * telecomando — non una notizia che arriva. */
+  batterie: { famiglia: "casa", posizione: 100 },
 
   /* ── 🛡️ Sicurezza ──────────────────────────────────────────────────── */
   sez4: { famiglia: "sicurezza", posizione: 10 }, // Telecamere, sensori, centrali
