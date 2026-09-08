@@ -257,9 +257,7 @@ async def test_un_dispositivo_di_due_integrazioni_si_conta_in_entrambe(
         built_in=False,
     )
     mock_integration(hass, MockModule("mqtt", partial_manifest={"name": "MQTT"}))
-    marca = MockConfigEntry(
-        domain="dreame_vacuum", title="Dreame", entry_id="dreame-1"
-    )
+    marca = MockConfigEntry(domain="dreame_vacuum", title="Dreame", entry_id="dreame-1")
     marca.add_to_hass(hass)
     ponte = MockConfigEntry(domain="mqtt", title="MQTT", entry_id="mqtt-1")
     ponte.add_to_hass(hass)
