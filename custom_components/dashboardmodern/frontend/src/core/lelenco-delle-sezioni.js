@@ -30,6 +30,7 @@
  */
 
 import { FAMIGLIE, famigliaDellaScheda } from "./alberatura-del-config.js";
+import { TITOLI_TERMICI } from "./impianti-termici.js";
 
 const pulito = (valore) => String(valore ?? "").trim();
 
@@ -44,7 +45,18 @@ export const SEZIONI = Object.freeze(
     { scheda: "sez0", chiave: "home", glifo: "🏠", it: "Home", en: "Home" },
     { scheda: "sez1", chiave: "energy", glifo: "⚡", it: "Energia", en: "Energy" },
     { scheda: "sez2", chiave: "ev", glifo: "🚗", it: "Auto elettrica", en: "Electric car" },
-    { scheda: "sez3", chiave: "boiler", glifo: "🌞", it: "Solare termico", en: "Solar thermal" },
+    /* Il nome non si riscrive qui: e' quello che il modulo degli impianti
+     * termici mette sulla linguetta al posto di «Solare», e scriverne un altro
+     * vorrebbe dire un elenco che chiama una scheda in un modo e la scheda che
+     * si chiama in un altro. Il glifo resta quello del guscio: la linguetta
+     * cambia la parola, non il disegno. */
+    {
+      scheda: "sez3",
+      chiave: "boiler",
+      glifo: "🌞",
+      it: TITOLI_TERMICI.sezione[0],
+      en: TITOLI_TERMICI.sezione[1],
+    },
     { scheda: "sez4", chiave: "security", glifo: "🛡️", it: "Sicurezza", en: "Security" },
     {
       scheda: "sez6",

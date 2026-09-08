@@ -121,13 +121,18 @@ export const SCHEDE = Object.freeze({
 
   /* ── ⚡ Energia ─────────────────────────────────────────────────────── */
   sez1: { famiglia: "energia", posizione: 10 }, // Contatori, fasce, tariffe
-  sez3: { famiglia: "energia", posizione: 20 }, // Solare e accumulo
-  sez2: { famiglia: "energia", posizione: 30 }, // Auto elettrica, colonnina, evcc
-  ups: { famiglia: "energia", posizione: 40 }, // UPS (#390)
+  sez2: { famiglia: "energia", posizione: 20 }, // Auto elettrica, colonnina, evcc
+  ups: { famiglia: "energia", posizione: 30 }, // UPS (#390)
 
   /* ── 🌡️ Clima e acqua ──────────────────────────────────────────────── */
   sez9: { famiglia: "clima", posizione: 10 }, // Clima: termostati, VMC
   sez7: { famiglia: "clima", posizione: 20 }, // Temperature delle stanze
+  /* La scheda che il guscio chiama «Solare» ma che il suo modulo rinomina
+   * «Gestione termica»: pompa solare, boiler, scaldabagno, caldaia, pressione
+   * dell'acqua, valvola di sicurezza. Era finita sotto Energia al primo giro,
+   * perche' la parola «solare» fa pensare ai pannelli sul tetto — ma li' non
+   * ci sono kWh: c'e' l'acqua calda, che sta con l'aria che si respira. */
+  sez3: { famiglia: "clima", posizione: 25 }, // Gestione termica: solare, scaldabagno, caldaia
   pool: { famiglia: "clima", posizione: 30 }, // Piscina
   irr: { famiglia: "clima", posizione: 40 }, // Irrigazione
 

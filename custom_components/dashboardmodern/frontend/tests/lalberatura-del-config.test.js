@@ -86,8 +86,16 @@ test("le schede escono raggruppate per famiglia, e le famiglie in ordine", () =>
 test("le tre che avevano il posto peggiore adesso ce l'hanno giusto", () => {
   /* Erano queste, e sono la ragione della segnalazione: il riscaldamento sotto
    * «Solare», i rifiuti fra il backup e i varchi, il server in mezzo alle
-   * stanze. Adesso ognuna sta con i suoi. */
-  assert.equal(famigliaDellaScheda("sez3"), "energia");
+   * stanze. Adesso ognuna sta con i suoi.
+   *
+   * La prima al primo giro era stata sistemata male, e questa prova lo diceva
+   * senza accorgersene: la sua prosa parlava del riscaldamento e la sua
+   * asserzione lo metteva sotto «Energia». La scheda che il guscio chiama
+   * «Solare» — e che il suo modulo rinomina «Gestione termica» — non contiene
+   * kWh: contiene la pompa solare, il boiler, lo scaldabagno, la caldaia, la
+   * pressione dell'acqua e la valvola di sicurezza. È acqua calda, e sta con
+   * l'aria che si respira. */
+  assert.equal(famigliaDellaScheda("sez3"), "clima");
   assert.equal(famigliaDellaScheda("rifiuti"), "avvisi");
   assert.equal(famigliaDellaScheda("sez6"), "macchine");
   /* E il MiniPC è l'unica cosa che non parla della casa: sta da solo. */
