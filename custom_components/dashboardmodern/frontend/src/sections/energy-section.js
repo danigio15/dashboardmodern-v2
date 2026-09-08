@@ -9,6 +9,7 @@ import {
   smistaIPiani,
   sourcePlans,
   isCumulativeEnergyEntity,
+  mesiDaiGiorni,
 } from "../core/period-service.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
 import {
@@ -137,13 +138,37 @@ class SafeHomeAssistantBroker extends HomeAssistantBroker {
 const broker = new SafeHomeAssistantBroker({ timeout: 12000 });
 root.DashboardModernEnergyService = Object.freeze({
   statistics: (ids, start, end, period) => broker.statistics(ids, start, end, period),
+  /* Un mese non si chiede al Recorder: si conta sommando i suoi giorni.
+   *
+   * «I dati della wallbox sono ancora sbagliati: il totale consumato da inizio
+   *  anno e' 1440,76 kWh.» La plancia ne diceva 546, e il conto dell'anno e'
+   * fatto sommando i mesi.
+   *
+   * Chiedendo al Recorder gli intervalli mensili, il consumo di un mese esce
+   * dalla differenza fra il contatore di fine mese e quello del mese prima.
+   * Su un contatore di sempre e' esatto. Su uno che si azzera ogni mese — e il
+   * contatore mensile di una wallbox e' proprio quello — quei due numeri non
+   * stanno sulla stessa scala: la sottrazione da il divario fra due mesi
+   * invece del consumo di uno, e con lo zero come pavimento l'anno esce una
+   * frazione di quello vero. Il grafico dei giorni, sulla stessa entita', era
+   * giusto: e' la prova che i giorni si possono sommare e i mesi no.
+   *
+   * Quindi i mesi si chiedono a giorni e si sommano. Costa una domanda piu'
+   * grossa — trecentosessantacinque righe invece di dodici, una volta, e la
+   * risposta si tiene in cache — e non sbaglia in nessuno dei due casi: su un
+   * contatore di sempre da lo stesso identico numero di prima.
+   *
+   * Sta qui e non nel guscio perche' i mesi li chiedono in tre — il bilancio
+   * dell'anno, il riepilogo del dispositivo, lo storico dei mesi passati — e
+   * questa e' la porta da cui passano tutti e tre. */
   async statisticsWithGrowth(ids, start, end, period = "day") {
     const boundary = new Date(start);
+    const aGiorni = period === "month";
+    const passo = aGiorni ? "day" : period;
     const baselineStart = new Date(boundary);
-    if (period === "hour") baselineStart.setHours(baselineStart.getHours() - 2);
-    else if (period === "month") baselineStart.setMonth(baselineStart.getMonth() - 1);
+    if (passo === "hour") baselineStart.setHours(baselineStart.getHours() - 2);
     else baselineStart.setDate(baselineStart.getDate() - 2);
-    const result = await broker.statistics(ids, baselineStart, end, period);
+    const result = await broker.statistics(ids, baselineStart, end, passo);
     return Object.fromEntries(
       ids.map((id) => {
         const ordered = (result[id] || [])
@@ -153,7 +178,8 @@ root.DashboardModernEnergyService = Object.freeze({
         const within = ordered.filter(
           (row) => new Date(row.start) >= boundary && new Date(row.start) < new Date(end),
         );
-        return [id, recorderBucketConsumptions(within, before.at(-1) || null)];
+        const crescite = recorderBucketConsumptions(within, before.at(-1) || null);
+        return [id, aGiorni ? mesiDaiGiorni(crescite) : crescite];
       }),
     );
   },

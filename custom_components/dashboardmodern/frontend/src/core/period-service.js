@@ -147,6 +147,21 @@ export function periodConsumption(rows = [], baseline = null) {
  * La distinzione conta, perche' prendere il contatore per consumo in mezzo a
  * una serie vorrebbe dire scambiare il totale di sempre per il consumo di un
  * mese — l'errore opposto, e piu' grosso.
+ *
+ * ── Il contatore che riparte da zero ────────────────────────────────────
+ *
+ * C'e' un secondo momento in cui il contatore E' il consumo, e si riconosce
+ * senza ambiguita': quando SCENDE. Un contatore che cresce non torna mai
+ * indietro; se il valore di oggi e' piu' piccolo di quello di ieri, in mezzo
+ * c'e' stato un azzeramento — un contatore mensile che gira, l'apparecchio
+ * che riparte — e da li' il valore conta da capo. Il consumo di quel giorno
+ * e' quello che il contatore segna adesso.
+ *
+ * Prima quella differenza negativa veniva schiacciata a zero, e il giorno
+ * dell'azzeramento spariva: su un contatore mensile era il primo di ogni
+ * mese, dodici giorni all'anno, e per una colonnina che carica di notte non
+ * e' affatto poco. Qui non si indovina niente: si guarda se il contatore e'
+ * sceso, e questo un contatore di sempre non lo fa mai.
  */
 export function recorderBucketConsumptions(rows = [], baseline = null) {
   const partenza = baseline && cumulativeValue(baseline) != null ? baseline : null;
@@ -156,13 +171,73 @@ export function recorderBucketConsumptions(rows = [], baseline = null) {
   const intervalli = partenza ? ordered.slice(1) : ordered;
   return intervalli.map((row, index) => {
     const prima = partenza ? ordered[index] : ordered[index - 1];
+    const adesso = cumulativeValue(row);
+    if (!prima) return Object.freeze({ ...row, change: Math.max(0, adesso) });
+    const cresciuto = adesso - cumulativeValue(prima);
     return Object.freeze({
       ...row,
-      change: prima
-        ? Math.max(0, cumulativeValue(row) - cumulativeValue(prima))
-        : Math.max(0, cumulativeValue(row)),
+      change: cresciuto < 0 ? Math.max(0, adesso) : cresciuto,
     });
   });
+}
+
+/* I mesi, contati sommando i giorni invece di sottrarre due contatori.
+ *
+ * «I dati della wallbox sono ancora sbagliati: il totale consumato da inizio
+ *  anno e' 1440,76 kWh.» La plancia ne diceva 546.
+ *
+ * Il consumo di un mese si puo' ricavare in due modi. Sottraendo il contatore
+ * di fine mese da quello del mese prima: giusto, e in una riga sola, FINCHE'
+ * il contatore e' quello di sempre e non torna mai indietro. Oppure sommando
+ * la crescita dei suoi giorni: sempre giusto.
+ *
+ * La differenza si vede su un contatore che si azzera ogni mese — una wallbox
+ * col suo contatore mensile e' esattamente questo. Li' il contatore di fine
+ * settembre non e' piu' grande di quello di fine agosto: e' il totale di
+ * settembre contro il totale di agosto, due numeri che non stanno su nessuna
+ * scala comune. La sottrazione da il DIVARIO fra due mesi al posto del consumo
+ * di uno, e con lo zero come pavimento — un mese piu' magro del precedente
+ * vale zero — l'anno viene fuori una frazione di quello vero.
+ *
+ * Sommare i giorni costa una domanda piu' grossa al Recorder e non sbaglia in
+ * nessuno dei due casi: su un contatore di sempre da lo stesso identico
+ * numero della sottrazione, su uno che si azzera perde al massimo il giorno in
+ * cui l'azzeramento capita — il primo del mese, quando la colonnina ha appena
+ * cominciato.
+ *
+ * E' puro: le righe arrivano gia' con la loro crescita, e i mesi si ricavano
+ * dalla data di ogni giorno nel fuso di chi guarda.
+ */
+export function mesiDaiGiorni(righe = []) {
+  const perMese = new Map();
+  for (const riga of Array.isArray(righe) ? righe : []) {
+    const istante = rowTimestamp(riga);
+    if (!istante) continue;
+    const quando = new Date(istante);
+    const chiave = `${quando.getFullYear()}-${quando.getMonth()}`;
+    const crescita = finite(riga?.change) || 0;
+    const gia = perMese.get(chiave);
+    if (!gia) {
+      perMese.set(chiave, {
+        start: new Date(quando.getFullYear(), quando.getMonth(), 1).toISOString(),
+        change: Math.max(0, crescita),
+        sum: cumulativeValue(riga),
+        ultimo: istante,
+      });
+      continue;
+    }
+    gia.change += Math.max(0, crescita);
+    /* Il contatore del mese e' quello dell'ultimo giorno che c'e': chi legge
+     * `sum` invece di `change` deve trovarci l'ultimo valore, non il primo. */
+    if (istante >= gia.ultimo) {
+      gia.ultimo = istante;
+      const contatore = cumulativeValue(riga);
+      if (contatore != null) gia.sum = contatore;
+    }
+  }
+  return [...perMese.values()]
+    .sort((sinistra, destra) => Date.parse(sinistra.start) - Date.parse(destra.start))
+    .map(({ ultimo: _ultimo, ...mese }) => Object.freeze(mese));
 }
 
 function endOfClosedRange(nextBoundary, now) {
