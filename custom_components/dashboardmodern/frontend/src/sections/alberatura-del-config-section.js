@@ -194,6 +194,29 @@ function installStili() {
   installStyle(
     "dm-alberatura-style",
     `
+    /* La fila si mette in una riga sua della griglia del Config.
+     *
+     * Il Config non e' un blocco che scorre: e' una griglia di due colonne —
+     * la colonna delle linguette a sinistra, il corpo a destra — con la
+     * testata che le scavalca tutte e due. Le due righe sono dichiarate a
+     * mano, e ogni pezzo ha la sua casella scritta addosso.
+     *
+     * Infilare una fila nuova senza dirle dove andare vuol dire lasciarla
+     * piazzare da sola, e si sistemava SOPRA la colonna delle linguette. Su
+     * uno schermo largo si vedeva lo stesso e sembrava a posto; su un telefono
+     * quella colonna e' larga 46 pixel, e la fila delle famiglie ci finiva
+     * sotto: visibile, e impossibile da premere.
+     *
+     * Qui la griglia diventa di tre righe e ognuno riprende la sua: la
+     * testata, poi la fila delle famiglie per tutta la larghezza, e sotto le
+     * linguette col loro corpo. Il foglio del guscio nomina le linguette con
+     * due classi; qui se ne nomina anche il padre, cioe' si scende di un figlio
+     * in piu': non si alza la voce con un !important, si ha una ragione in
+     * piu'. */
+    #editor-modal.modal-wrapper .ed-shell{grid-template-rows:auto auto auto}
+    #editor-modal.modal-wrapper .ed-shell>#${FILA}{grid-area:2 / 1 / 3 / 3}
+    #editor-modal.modal-wrapper .ed-shell>.ed-tabs{grid-area:3 / 1 / 4 / 2}
+    #editor-modal.modal-wrapper .ed-shell>.ed-body{grid-area:3 / 2 / 4 / 3}
     #${FILA}{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px 0}
     #${FILA} .dm-alberatura-famiglia{
       display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;cursor:pointer;

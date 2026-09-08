@@ -31,12 +31,29 @@ export const COVER_KIND_LABELS = Object.freeze({
 
 /* Cosa dice Home Assistant. Le classi che restano fuori — window, garage,
  * gate, door, damper — non sono ne' tapparelle ne' tende, e per quelle la
- * finestra con la tapparella resta il disegno meno sbagliato. */
+ * finestra con la tapparella resta il disegno meno sbagliato.
+ *
+ * ── Perche' `blind` e `shade` non sono tende (#396) ─────────────────────
+ *
+ * «5 tapparelle configurate allo stesso modo, 2 vengono mostrate come tende
+ *  sia nell'animazione che nel titolo.»
+ *
+ * Erano tende perche' la loro integrazione le dichiara `blind` o `shade`, e
+ * qui dentro quelle due finivano su «tenda» insieme a `curtain`. Ma una tenda,
+ * per questo modulo, e' una cosa precisa: e' quella che si scosta di lato —
+ * `coverIsSideways` lo dice a chi disegna. E ne' una veneziana (`blind`) ne'
+ * una tenda a rullo (`shade`) si scostano di lato: scendono dall'alto e
+ * coprono il vetro, esattamente come una tapparella. Disegnarle che si aprono
+ * al centro era mostrare un movimento che in casa non succede.
+ *
+ * `curtain` resta l'unica tenda, perche' e' l'unica che si apre davvero di
+ * lato. Chi ha una veneziana e la vuole disegnata come tenda ha la sua
+ * casella: il tipo lo dice la casella in cui si scrive. */
 const DA_DEVICE_CLASS = Object.freeze({
   shutter: "tapparella",
-  blind: "tenda",
+  blind: "tapparella",
+  shade: "tapparella",
   curtain: "tenda",
-  shade: "tenda",
   awning: "tenda_sole",
 });
 

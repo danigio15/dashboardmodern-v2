@@ -23,6 +23,7 @@
  */
 import { lightCommand, lightView, lightsSignature } from "../core/light-model.js";
 import { canonicalClimateType } from "../core/device-model.js";
+import { applianceGlyph } from "../core/appliance-artwork.js";
 import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
@@ -143,10 +144,41 @@ const iconaBlocco = (blocco) => BLOCK_LABELS[blocco.key]?.[2] || "•";
  * configurazione lo sa gia': lo dice la casella. */
 const ICONE_CLIMA = Object.freeze({ termo: "🔥", pompa: "♨️", clima: "❄️" });
 
-function iconaVoce(item, blocco) {
-  const propria = clean(item?.emoji_icon);
+/* E il cestello non va bene per tutto quello che si chiama «elettrodomestico».
+ *
+ * Stessa storia del fiocco di neve, segnalata da capo (#404): «gli
+ * elettrodomestici non vengono visualizzati con la loro icona, a prescindere da
+ * come li si configuri: appaiono tutti con l'icona del cestello». Il forno, il
+ * frigo e la lavastoviglie della cucina erano tre lavatrici in fila.
+ *
+ * Il tipo lo sa gia' il catalogo dei disegni — e' lo stesso che sceglie il
+ * disegno grande nella sezione Elettrodomestici — e da li' arriva il glifo. La
+ * riga della stanza e la card della sezione dicono cosi' la stessa cosa, e
+ * l'icona scritta a mano, quando c'e', continua a vincere su tutto.
+ *
+ * Il campo `icon` non e' sempre un'emoji: sugli elettrodomestici ci sta la
+ * CHIAVE del catalogo dei disegni — «washer» — e su altre righe una `mdi:`.
+ * Nessuna delle due si sa scrivere qui dentro, che e' una riga di testo. Si
+ * accetta solo quello che un glifo lo e' davvero: qualcosa fuori dall'ASCII. */
+const UN_GLIFO = /[^\u0000-\u007f]/;
+
+const emojiScelta = (item) => {
+  const scritta = clean(item?.emoji_icon) || clean(item?.icon);
+  return UN_GLIFO.test(scritta) ? scritta : "";
+};
+
+export function iconaVoce(item, blocco) {
+  const propria = emojiScelta(item);
   if (propria) return propria;
   if (blocco.key === "clima") return ICONE_CLIMA[canonicalClimateType(item?.type)] || "❄️";
+  if (blocco.key === "elettrodomestici")
+    return (
+      applianceGlyph(item?.visual_key) ||
+      applianceGlyph(item?.device_type) ||
+      applianceGlyph(item?.type) ||
+      applianceGlyph(item?.name) ||
+      iconaBlocco(blocco)
+    );
   return iconaBlocco(blocco);
 }
 

@@ -3008,17 +3008,39 @@ function batteriesModel(states) {
     })
     .filter((row) => row.level != null)
     .sort((a, b) => a.level - b.level);
+  if (!rows.length) return null;
   const low = rows.filter((row) => row.level <= 20);
-  if (!low.length) return null;
+  /* La tessera c'e' anche quando va tutto bene (#398).
+   *
+   * «Le batterie quelle cariche non le fa vedere?» No: prima la tessera
+   * spariva del tutto se nessuna era sotto il venti per cento, e chi aveva la
+   * casa in ordine non aveva nessun posto dove guardare le sue batterie —
+   * nemmeno per sapere quale sarebbe stata la prossima a chiedere una pila.
+   *
+   * Era anche l'unica tessera che si comportava cosi'. Quella del fumo, che e'
+   * la sua gemella, sta li' sempre e si accende solo quando c'e' da accendersi;
+   * questa spariva. Adesso fanno la stessa cosa: presente sempre, in allarme
+   * solo quando serve. Chi non la vuole in Home la spegne dall'elenco dei
+   * widget, che e' il posto dove si decidono queste cose.
+   */
+  const scariche = low.length > 0;
   return {
     key: "batterie",
-    accent: "#eab308",
+    accent: scariche ? "#eab308" : "#94a3b8",
     icon: "🔋",
-    alert: true,
+    alert: scariche,
     label: t("Batterie", "Batteries"),
-    value: String(low.length),
-    caption: low[0] ? `${low[0].name} ${Math.round(low[0].level)}%` : "",
-    ring: Math.round((low.length / rows.length) * 100),
+    value: String(scariche ? low.length : rows.length),
+    /* A riposo la didascalia dice comunque un fatto utile: qual e' la piu'
+     * bassa, cioe' quella che chiedera' una pila per prima. Le righe sono
+     * gia' ordinate dalla piu' scarica. */
+    caption: scariche
+      ? `${low[0].name} ${Math.round(low[0].level)}%`
+      : `${t("Tutte cariche", "All charged")} · ${rows[0].name} ${Math.round(rows[0].level)}%`,
+    /* L'anello si riempie solo quando c'e' da guardare: a riposo la tessera
+     * non deve gridare, sta li' e basta. */
+    ring: scariche ? Math.round((low.length / rows.length) * 100) : 0,
+    attiva: scariche,
     rows,
     low,
   };

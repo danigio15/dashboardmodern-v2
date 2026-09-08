@@ -84,6 +84,7 @@ import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
 import { installAlberatura } from "./alberatura-del-config-section.js";
+import { installIlDitoScorreOTocca } from "./il-dito-scorre-o-tocca-section.js";
 import { installVideoSiMuove } from "./telecamera-il-video-si-muove-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
@@ -947,6 +948,10 @@ export function installSectionRuntime() {
      * famiglia davanti a ognuna: si installa dopo tutti gli editor che una
      * linguetta se la aggiungono, cosi' al primo giro le trova gia' tutte. */
     installAlberatura();
+    /* Lo scorrimento col dito non deve azionare quello che sfiora (#397): la
+     * guardia sta sul documento, in cattura, e vale per ogni elenco lungo —
+     * comprese le sezioni che ancora non esistono. */
+    installIlDitoScorreOTocca();
     installShutterSkySection();
     installPageMastheadSection();
     /* Il meteo si accoda al nome della casa nell'intestazione: si installa

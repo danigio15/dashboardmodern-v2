@@ -973,8 +973,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // ogni gruppo — e sopra disegna la fila delle sette famiglie, che porta dove
   // si vuole andare. Nessuna linguetta si nasconde: una nascosta non si
   // clicca, e le prove che ne aprono una cliccandola sono una quarantina.
+  // 293 con la guardia che distingue il dito che scorre dal dito che tocca:
+  // «quando sei in un menu' pieno di entita', tipo le luci, quando scorri con
+  // il dito oltre allo scorrere prende anche il comando — sulle luci mentre
+  // passi con il dito per scorrere le accende pure» (#397). Il difetto non e'
+  // di una sezione: e' di ogni elenco lungo che si scorre col dito, e le
+  // sezioni che comandano al click sono decine. Scriverne la guardia in ognuna
+  // vorrebbe dire scriverla male in qualcuna, e soprattutto riscriverla in
+  // quella nuova. `core/il-dito-scorre-o-tocca.js` e' il criterio — quanto si
+  // e' spostato il dito fra il tocco e il rilascio, misurato in diagonale —
+  // e `sections/il-dito-scorre-o-tocca-section.js` lo applica una volta sola,
+  // sul documento e in cattura, da dove si arriva prima di ogni sezione.
   assert.ok(
-    relative.length <= 291,
+    relative.length <= 293,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -179,6 +179,39 @@ export function elencoComandi(input) {
   return fuori;
 }
 
+/* Aggiungere un comando, sapendo com'e' andata (#403).
+ *
+ * «Se collego il robot tramite integrazione HACS e cerco di inserire comandi
+ *  manuali custom, questi non vengono aggiunti. Se invece lo integro
+ *  manualmente, vengono aggiunti senza problemi.»
+ *
+ * Le due strade differiscono per una cosa sola: quanti comandi c'erano gia'.
+ * Un robot nato a mano parte con la riga vuota; uno nato dall'integrazione
+ * parte con quelli che l'integrazione pubblica — su un Dreame o un Roborock
+ * sono facilmente dodici, cioe' il tetto. Da li' in poi `elencoComandi` si
+ * fermava al dodicesimo e buttava via il tredicesimo SENZA DIRLO: si premeva
+ * «＋», si salvava, si ridisegnava, e non compariva niente. Un rifiuto muto
+ * sembra un guasto, e infatti e' stato segnalato come tale.
+ *
+ * Il tetto resta — una scheda e' una scheda — ma smette di essere muto: qui
+ * l'esito ha un nome, e chi disegna ha di che dirlo.
+ */
+export const ESITI_COMANDO = Object.freeze({
+  aggiunto: "aggiunto",
+  gia: "gia",
+  pieno: "pieno",
+  nonComando: "nonComando",
+});
+
+export function conIlComando(comandi, nuovo) {
+  const attuali = elencoComandi(comandi);
+  const entity = clean(nuovo);
+  if (!genereDelComando(entity)) return { comandi: attuali, esito: ESITI_COMANDO.nonComando };
+  if (attuali.includes(entity)) return { comandi: attuali, esito: ESITI_COMANDO.gia };
+  if (attuali.length >= COMANDI_MASSIMI) return { comandi: attuali, esito: ESITI_COMANDO.pieno };
+  return { comandi: [...attuali, entity], esito: ESITI_COMANDO.aggiunto };
+}
+
 const umano = (testo) => {
   const pulito = clean(testo).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
   return pulito ? pulito[0].toUpperCase() + pulito.slice(1) : "";

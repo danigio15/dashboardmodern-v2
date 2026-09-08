@@ -109,6 +109,30 @@ test("nessuna linguetta si nasconde: si possono ancora premere tutte", async ({
     await expect(page.locator(`#editor-modal .ed-tab[data-tab="${id}"]`)).toBeVisible();
 });
 
+test("la fila delle famiglie non finisce sotto la colonna delle linguette", async ({
+  page,
+}, testInfo) => {
+  await avvia(page, testInfo);
+
+  /* Il Config è una griglia con le caselle scritte a mano, e una fila infilata
+   * senza dirle dove andare si piazza da sola: finiva SOPRA la colonna delle
+   * linguette. Su uno schermo largo si vedeva lo stesso e sembrava a posto; su
+   * un telefono quella colonna è larga 46 pixel, e la fila ci spariva sotto —
+   * visibile, e impossibile da premere.
+   *
+   * Che si possa premere lo prova la prova qui sotto. Questa dice PERCHÉ,
+   * perché una prova che scade dopo due minuti non racconta niente. */
+  const sovrapposte = await page.evaluate(() => {
+    const fila = document.getElementById("dm-alberatura-famiglie");
+    const linguette = document.querySelector("#editor-modal .ed-tabs");
+    if (!fila || !linguette) return null;
+    const a = fila.getBoundingClientRect();
+    const b = linguette.getBoundingClientRect();
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  });
+  expect(sovrapposte).toBe(false);
+});
+
 test("la fila delle famiglie porta dove dice, e si accende su quella giusta", async ({
   page,
 }, testInfo) => {
