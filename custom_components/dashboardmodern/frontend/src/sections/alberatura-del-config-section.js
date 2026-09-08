@@ -43,7 +43,7 @@ import {
 import { clean, doc, esc, installStyle, onEditorRedraw, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ALBERATURA__";
-const state = (root[KEY] ||= { installed: false, riordinando: false });
+const state = (root[KEY] ||= { installed: false, riordinando: false, famiglia: "" });
 
 const FILA = "dm-alberatura-famiglie";
 const INSEGNA = "dm-alberatura-insegna";
@@ -116,7 +116,65 @@ export function riordinaLeLinguette() {
   return true;
 }
 
-/* ── la fila delle famiglie ───────────────────────────────────────────── */
+/* ── la fila delle famiglie, che è anche un filtro ────────────────────── */
+
+/* Perché il filtro parte spento, e perché segue la scheda attiva.
+ *
+ * Una fila di famiglie che porta soltanto dove si vuole andare lascia
+ * trentadue linguette in colonna: le insegne dicono chi sta con chi, ma la
+ * colonna resta lunga. Toccare una famiglia e vedere solo le sue schede è
+ * l'altra metà della cosa, ed è quella che accorcia davvero.
+ *
+ * Due regole, e sono la ragione per cui questo si può fare senza rompere
+ * niente:
+ *
+ * 1. A riposo NON filtra. Chi apre il Config le vede tutte, com'è sempre
+ *    stato: il filtro è una cosa che si chiede, non una che si subisce. Vale
+ *    anche per le prove — una quarantina aprono una scheda cliccandola, e una
+ *    linguetta nascosta non si può cliccare, né col dito né da una prova.
+ *
+ * 2. Il filtro SEGUE la scheda attiva. Se si finisce su una scheda di
+ *    un'altra famiglia — da un collegamento, dalla ricerca, dal tasto
+ *    «Configura» dell'elenco delle sezioni — il filtro ci si sposta dietro.
+ *    Così non può mai esistere il caso in cui la scheda che stai guardando è
+ *    quella nascosta, che sarebbe il modo in cui un filtro diventa un guasto.
+ *
+ * Ritoccare la famiglia accesa lo spegne: è l'unico gesto che serve per
+ * tornare a vederle tutte, ed è lo stesso dito nello stesso posto.
+ */
+const NASCOSTA = "dm-alberatura-fuori";
+
+/** La famiglia scelta adesso, o "" quando si vedono tutte. */
+const famigliaScelta = () => clean(state.famiglia);
+
+/** Mostra o nasconde le linguette e le insegne secondo la famiglia scelta. */
+function applicaIlFiltro() {
+  const dentro = fila();
+  if (!dentro) return false;
+  const scelta = famigliaScelta();
+  for (const nodo of linguette(dentro)) {
+    const id = clean(nodo.dataset.tab);
+    const fuori = Boolean(scelta) && Boolean(id) && famigliaDellaScheda(id) !== scelta;
+    nodo.classList.toggle(NASCOSTA, fuori);
+  }
+  for (const insegna of dentro.querySelectorAll(`:scope > .${INSEGNA}`))
+    insegna.classList.toggle(
+      NASCOSTA,
+      Boolean(scelta) && clean(insegna.dataset.famiglia) !== scelta,
+    );
+  return true;
+}
+
+/* Il filtro non nasconde mai la scheda che si sta guardando: se l'attiva è
+ * finita fuori, il filtro le va dietro. */
+function ilFiltroSegueLaScheda() {
+  const scelta = famigliaScelta();
+  if (!scelta) return false;
+  const attiva = schedaAttiva();
+  if (!attiva || famigliaDellaScheda(attiva) === scelta) return false;
+  state.famiglia = famigliaDellaScheda(attiva);
+  return true;
+}
 
 function apriLaFamiglia(chiave) {
   const dentro = fila();
@@ -125,16 +183,24 @@ function apriLaFamiglia(chiave) {
     .map((nodo) => clean(nodo.dataset.tab))
     .filter((id) => id && famigliaDellaScheda(id) === chiave);
   if (!ids.length) return;
+  /* Ritoccare la famiglia accesa la spegne: si torna a vederle tutte. */
+  if (famigliaScelta() === chiave) {
+    state.famiglia = "";
+    applicaIlFiltro();
+    return;
+  }
   const attiva = schedaAttiva();
   /* Se si è già dentro quella famiglia non si cambia scheda: chi tocca
    * «Casa» mentre sta configurando le Luci vuole vedere dov'è, non perdere
    * il posto. */
   const dove = ids.includes(attiva) ? attiva : inOrdine(ids)[0];
+  state.famiglia = chiave;
   if (dove !== attiva) {
     try {
       root.editorSwitch?.(dove);
     } catch (_error) {}
   }
+  applicaIlFiltro();
   const bottone = dentro.querySelector(`:scope > .ed-tab[data-tab="${CSS.escape(dove)}"]`);
   try {
     bottone?.scrollIntoView?.({ block: "nearest", inline: "start", behavior: "smooth" });
@@ -161,19 +227,28 @@ function ensureFila() {
     tabs.before(riga);
   }
   const attiva = famigliaDellaScheda(schedaAttiva());
+  const scelta = famigliaScelta();
+  /* Il chip acceso è quello della scheda che si sta guardando; quello che
+   * FILTRA lo dice `aria-pressed`, perché sono due cose diverse: si può stare
+   * su una scheda della Sicurezza senza aver chiesto di vedere solo quella. */
   const markup = gruppi
     .map(
       (voce) =>
-        `<button type="button" class="dm-alberatura-famiglia${voce.chiave === attiva ? " active" : ""}" data-dm-famiglia="${esc(voce.chiave)}"><span aria-hidden="true">${esc(voce.glifo)}</span>${esc(nomeDellaFamiglia(voce))}</button>`,
+        `<button type="button" class="dm-alberatura-famiglia${voce.chiave === attiva ? " active" : ""}" aria-pressed="${voce.chiave === scelta ? "true" : "false"}" data-dm-famiglia="${esc(voce.chiave)}"><span aria-hidden="true">${esc(voce.glifo)}</span>${esc(nomeDellaFamiglia(voce))}</button>`,
     )
     .join("");
-  if (riga.innerHTML !== markup) riga.innerHTML = markup;
+  const coda = scelta
+    ? `<button type="button" class="dm-alberatura-famiglia dm-alberatura-tutte" data-dm-famiglia-tutte>${esc(t("Tutte", "All"))}</button>`
+    : "";
+  if (riga.innerHTML !== markup + coda) riga.innerHTML = markup + coda;
   return true;
 }
 
-/** Un giro solo: prima l'ordine, poi l'indice che lo racconta. */
+/** Un giro solo: l'ordine, il filtro che non nasconde l'attiva, poi l'indice. */
 export function ensureAlberatura() {
   const fatto = riordinaLeLinguette();
+  ilFiltroSegueLaScheda();
+  applicaIlFiltro();
   ensureFila();
   return fatto;
 }
@@ -181,6 +256,13 @@ export function ensureAlberatura() {
 /* ── i gesti ──────────────────────────────────────────────────────────── */
 
 function onClick(evento) {
+  if (evento.target?.closest?.("[data-dm-famiglia-tutte]")) {
+    evento.preventDefault();
+    state.famiglia = "";
+    applicaIlFiltro();
+    ensureFila();
+    return;
+  }
   const chip = evento.target?.closest?.("[data-dm-famiglia]");
   if (!chip) return;
   evento.preventDefault();
@@ -226,6 +308,16 @@ function installStili() {
     #${FILA} .dm-alberatura-famiglia.active{
       background:var(--primary-color,#0ea5e9);border-color:var(--primary-color,#0ea5e9);color:#fff}
     #${FILA} .dm-alberatura-famiglia:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 40%,transparent);outline-offset:2px}
+    /* La famiglia che sta filtrando porta un anello: acceso vuol dire «sei
+       qui», con l'anello vuol dire «vedi solo questa». */
+    #${FILA} .dm-alberatura-famiglia[aria-pressed="true"]{
+      box-shadow:0 0 0 2px var(--card-bg,#fff),0 0 0 4px var(--primary-color,#0ea5e9)}
+    #${FILA} .dm-alberatura-tutte{
+      background:transparent;border-style:dashed;color:var(--text-dim,#64748b)}
+    /* Fuori dalla famiglia scelta. A riposo questa classe non ce l'ha nessuno:
+       il filtro si accende toccando una famiglia, e chi apre il Config le vede
+       tutte com'e' sempre stato. */
+    .ed-tab.${NASCOSTA},.${INSEGNA}.${NASCOSTA}{display:none!important}
     /* L'insegna sta nella fila delle linguette e non è una linguetta: non si
        preme, non si sceglie, dice soltanto dove comincia una famiglia. */
     .${INSEGNA}{

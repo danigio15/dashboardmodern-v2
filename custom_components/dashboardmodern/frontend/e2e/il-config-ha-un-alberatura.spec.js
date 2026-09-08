@@ -133,6 +133,53 @@ test("la fila delle famiglie non finisce sotto la colonna delle linguette", asyn
   expect(sovrapposte).toBe(false);
 });
 
+test("toccare una famiglia mostra solo le sue schede, e ritoccarla le rimostra tutte", async ({
+  page,
+}, testInfo) => {
+  await avvia(page, testInfo);
+
+  /* A riposo NON filtra: chi apre il Config le vede tutte, com'è sempre stato.
+   * È anche la ragione per cui questo si può fare senza rompere niente — una
+   * quarantina di prove aprono una scheda cliccandola, e una linguetta
+   * nascosta non si può cliccare. */
+  const tutte = await linguette(page);
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="rifiuti"]')).toBeVisible();
+
+  await page.locator('#dm-alberatura-famiglie [data-dm-famiglia="sicurezza"]').click();
+  /* Adesso si vedono solo le sue: Rifiuti sta negli Avvisi e sparisce. */
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="rifiuti"]')).toBeHidden();
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="sez4"]')).toBeVisible();
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="varchi"]')).toBeVisible();
+  await expect(
+    page.locator('#dm-alberatura-famiglie [data-dm-famiglia="sicurezza"]'),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  /* Ritoccando la stessa famiglia il filtro si spegne: è l'unico gesto che
+   * serve, ed è lo stesso dito nello stesso posto. */
+  await page.locator('#dm-alberatura-famiglie [data-dm-famiglia="sicurezza"]').click();
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="rifiuti"]')).toBeVisible();
+  expect(await linguette(page)).toEqual(tutte);
+});
+
+test("il filtro non nasconde mai la scheda che si sta guardando", async ({ page }, testInfo) => {
+  await avvia(page, testInfo);
+
+  await page.locator('#dm-alberatura-famiglie [data-dm-famiglia="sicurezza"]').click();
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="luci"]')).toBeHidden();
+
+  /* Si finisce su una scheda di un'altra famiglia — da un collegamento, dalla
+   * ricerca, dal tasto «Configura» dell'elenco delle sezioni. Il filtro ci va
+   * dietro, invece di lasciare nascosta proprio quella che si guarda: sarebbe
+   * il modo in cui un filtro diventa un guasto. */
+  await page.evaluate(() => window.editorSwitch?.("luci"));
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="luci"]')).toBeVisible();
+  await expect(page.locator('#editor-modal .ed-tab[data-tab="luci"]')).toHaveClass(/active/);
+  await expect(page.locator('#dm-alberatura-famiglie [data-dm-famiglia="casa"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
 test("la fila delle famiglie porta dove dice, e si accende su quella giusta", async ({
   page,
 }, testInfo) => {
