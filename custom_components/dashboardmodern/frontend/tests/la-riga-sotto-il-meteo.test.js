@@ -11,9 +11,11 @@
  * dire niente.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  TINTA_POSTA,
   VOCI_DELLA_BARRA,
   normalizzaBarra,
   pastiglieDellaCasa,
@@ -99,10 +101,9 @@ test("una voce spenta nella configurazione non esce, anche se ha da dire", () =>
 });
 
 test("le pastiglie escono nell'ordine delle voci, non in quello dei modelli", () => {
-  const pastiglie = pastiglieDellaCasa(
-    [tapparelle(1), luci(1), rifiuti("oggi")],
-    { posta: { arrivata: true } },
-  );
+  const pastiglie = pastiglieDellaCasa([tapparelle(1), luci(1), rifiuti("oggi")], {
+    posta: { arrivata: true },
+  });
   assert.deepEqual(
     pastiglie.map((voce) => voce.chiave),
     ["posta", "rifiuti", "luci", "tapparelle"],
@@ -130,4 +131,61 @@ test("di serie ci sono tutte le voci, e una salvata a meta' non ne perde nessuna
 test("una tessera che non c'e' non lascia buchi, e un modello storto non fa cadere niente", () => {
   assert.deepEqual(pastiglieDellaCasa(null, {}), []);
   assert.deepEqual(pastiglieDellaCasa([null, { key: "luci" }, { key: "boh", on: [1] }], {}), []);
+});
+
+/* ── il vestito nuovo ─────────────────────────────────────────────────────
+ *
+ * «La barra dei dispositivi sotto meteo non mi convince proprio… la rivedi
+ * graficamente.» Erano ovali grigi con dentro un'emoji di sistema e una frase
+ * tutta della stessa grandezza, sopra una fila di tessere bianche col disegno
+ * nel riquadro, il numero grosso e la parola piccola: due stili nella stessa
+ * schermata, a tre dita di distanza.
+ *
+ * Guardando per rifarle e' saltato fuori un difetto vero, che il disegno
+ * nascondeva: la frase si costruiva col numero DENTRO — `t(`${conto} luci
+ * accese`)` — e una chiave costruita con un valore dentro cambia a ogni conto.
+ * Nessuna di quelle chiavi stava in nessuno dei tredici cataloghi: in italiano
+ * non si vedeva, perche' l'italiano e' la lingua sorgente, in tutte le altre
+ * lingue quelle frasi non sono mai state tradotte.
+ */
+test("il numero sta fuori dalla frase: le chiavi non si costruiscono col conto dentro", () => {
+  const sorgente = readFileSync(
+    new URL("../src/sections/come-sta-la-casa-section.js", import.meta.url),
+    "utf8",
+  );
+  /* Senza i commenti: quello che spiega il difetto lo cita, ed e' giusto che
+   * resti scritto — e' il codice a non doverlo piu' fare. */
+  const codice = sorgente.replaceAll(/\/\*[\s\S]*?\*\//g, "");
+  assert.doesNotMatch(
+    codice,
+    /t\(\s*`\$\{/,
+    "una chiave con dentro un valore cambia a ogni valore, e non sta in nessun catalogo",
+  );
+  for (const parola of ["luci accese", "finestre aperte", "prese accese", "unità accese"])
+    assert.ok(codice.includes(`t("${parola}"`), `manca la chiave ferma «${parola}»`);
+});
+
+test("ogni pastiglia porta la tinta della sua tessera", () => {
+  /* Sono la stessa notizia detta due volte, una in breve e una per esteso: due
+   * colori diversi per lo stesso fatto sono due fatti. */
+  const modelli = [
+    { key: "luci", icon: "💡", accent: "#f59e0b", on: [{ name: "Salone" }] },
+    { key: "prese", icon: "🔌", accent: "#8b5cf6", on: [{ name: "Frigo" }, { name: "TV" }] },
+  ];
+  const pastiglie = pastiglieDellaCasa(modelli, {});
+  assert.deepEqual(
+    pastiglie.map((voce) => [voce.chiave, voce.tinta, voce.conto]),
+    [
+      ["luci", "#f59e0b", 1],
+      ["prese", "#8b5cf6", 2],
+    ],
+  );
+});
+
+test("la posta tiene il blu degli avvisi, che una tessera non ce l'ha", () => {
+  const [pastiglia] = pastiglieDellaCasa([], { posta: { arrivata: true } });
+  assert.equal(pastiglia.chiave, "posta");
+  assert.equal(pastiglia.tinta, TINTA_POSTA);
+  assert.equal(pastiglia.mdi, "mdi:email", "il disegno del catalogo, non l'emoji di sistema");
+  assert.equal(pastiglia.avviso, true);
 });

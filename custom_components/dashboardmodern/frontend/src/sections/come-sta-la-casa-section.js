@@ -30,7 +30,9 @@ import {
   pastiglieDellaCasa,
   postaRitirata,
 } from "../core/come-sta-la-casa.js";
+import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { windowOpenFromState } from "../core/shutter-window.js";
+import { iconGlyphMarkup } from "./icon-engine-section.js";
 import { CHIAVE_VERSI, apertaSecondoVerso, insiemeInvertiti } from "../core/verso-aperture.js";
 import { parolaDelQuando } from "./rifiuti-section.js";
 import {
@@ -109,47 +111,72 @@ function laPostaAdesso(config, states) {
 
 /* La frase di una pastiglia che conta. Singolare e plurale separati: «1 luci
  * accese» e' il genere di sciatteria che si nota subito. */
-function fraseDelConto(chiave, conto) {
-  if (chiave === "luci")
-    return conto === 1
-      ? t("1 luce accesa", "1 light on")
-      : t(`${conto} luci accese`, `${conto} lights on`);
+/* La parola del conto, senza il numero dentro.
+ *
+ * Qui c'era `t(`${conto} luci accese`, ...)`, e il numero dentro la frase la
+ * rompeva due volte. Una a schermo: «2 luci accese» tutto della stessa
+ * grandezza, quando il resto della plancia il numero lo dice grosso e la parola
+ * piccola. E una nei cataloghi: una chiave costruita con un valore dentro
+ * cambia a ogni conto — «2 luci accese», «3 luci accese» — e nessuna di quelle
+ * chiavi sta in nessuno dei tredici cataloghi. In italiano non si vedeva
+ * perche' l'italiano e' la lingua sorgente; in tutte le altre quelle frasi non
+ * sono mai state tradotte.
+ *
+ * Il numero esce dalla frase e resta un numero. Le parole diventano quattordici
+ * chiavi ferme, che si traducono una volta e valgono per ogni conto.
+ */
+function parolaDelConto(chiave, conto) {
+  const uno = conto === 1;
+  if (chiave === "luci") return uno ? t("luce accesa", "light on") : t("luci accese", "lights on");
   if (chiave === "tapparelle")
-    return conto === 1
-      ? t("1 finestra aperta", "1 window open")
-      : t(`${conto} finestre aperte`, `${conto} windows open`);
-  if (chiave === "clima")
-    return conto === 1
-      ? t("1 unità accesa", "1 unit on")
-      : t(`${conto} unità accese`, `${conto} units on`);
+    return uno ? t("finestra aperta", "window open") : t("finestre aperte", "windows open");
+  if (chiave === "clima") return uno ? t("unità accesa", "unit on") : t("unità accese", "units on");
   if (chiave === "prese")
-    return conto === 1
-      ? t("1 presa accesa", "1 socket on")
-      : t(`${conto} prese accese`, `${conto} sockets on`);
-  return conto === 1
-    ? t("1 in riproduzione", "1 playing")
-    : t(`${conto} in riproduzione`, `${conto} playing`);
+    return uno ? t("presa accesa", "socket on") : t("prese accese", "sockets on");
+  return uno ? t("in riproduzione", "playing") : t("in riproduzione", "playing");
 }
 
 /** Cosa c'e' scritto sulla pastiglia, e cosa dice per esteso a chi si ferma. */
 function paroleDellaPastiglia(pastiglia) {
   if (pastiglia.chiave === "posta") {
     const testo = t("È arrivata la posta", "The mail has arrived");
-    return { testo, titolo: `${testo} — ${t("tocca per dire che l'hai ritirata", "tap to say you have collected it")}` };
+    return {
+      numero: "",
+      testo,
+      titolo: `${testo} — ${t("tocca per dire che l'hai ritirata", "tap to say you have collected it")}`,
+    };
   }
   if (pastiglia.chiave === "rifiuti") {
     const quando = parolaDelQuando(pastiglia);
     const testo = pastiglia.nome ? `${pastiglia.nome} · ${quando}` : quando;
-    return { testo, titolo: testo };
+    return { numero: "", testo, titolo: testo };
   }
   if (pastiglia.chiave === "sicurezza")
-    return { testo: pastiglia.valore, titolo: pastiglia.valore };
-  const testo = fraseDelConto(pastiglia.chiave, pastiglia.conto);
+    return { numero: "", testo: pastiglia.valore, titolo: pastiglia.valore };
+  const parola = parolaDelConto(pastiglia.chiave, pastiglia.conto);
+  const numero = String(pastiglia.conto);
   const nomi = (pastiglia.nomi || []).join(" · ");
-  return { testo, titolo: nomi ? `${testo}: ${nomi}` : testo };
+  const disteso = `${numero} ${parola}`;
+  return { numero, testo: parola, titolo: nomi ? `${disteso}: ${nomi}` : disteso };
 }
 
 /* ── il disegno ─────────────────────────────────────────────────────────── */
+
+/* La faccia della pastiglia: lo stesso disegno della sua tessera.
+ *
+ * Le pastiglie mostravano l'emoji di sistema, che cambia faccia da un telefono
+ * a un altro e stava sopra una fila di tessere disegnate: due stili nella
+ * stessa schermata, a tre dita di distanza. Si chiede lo stesso disegno che
+ * chiede la tessera — `oggettoWidget` per le sezioni che ce l'hanno, il motore
+ * delle icone per le altre — e l'emoji resta il ripiego di chi non ha nessuna
+ * delle due. */
+function facciaDellaPastiglia(pastiglia) {
+  const chiave = clean(pastiglia?.chiave);
+  if (haOggettoWidget(chiave)) return oggettoWidget(chiave);
+  const nome = clean(pastiglia?.mdi);
+  if (nome) return iconGlyphMarkup("action", nome, { size: 16 });
+  return `<span class="dm-casa-emoji">${esc(String(pastiglia?.icona ?? ""))}</span>`;
+}
 
 /* Una pastiglia nuova, ancora senza parole: le mette `vestiLaPastiglia`. */
 function nuovaPastiglia(chiave) {
@@ -157,7 +184,8 @@ function nuovaPastiglia(chiave) {
   nodo.type = "button";
   nodo.className = "dm-casa-pastiglia";
   nodo.dataset.dmCasa = chiave;
-  nodo.innerHTML = `<span class="dm-casa-ic" aria-hidden="true"></span><span class="dm-casa-txt"></span>`;
+  nodo.innerHTML = `<span class="dm-casa-chip" aria-hidden="true"></span>
+    <span class="dm-casa-testo"><b class="dm-casa-num"></b><span class="dm-casa-txt"></span></span>`;
   return nodo;
 }
 
@@ -168,7 +196,7 @@ function nuovaPastiglia(chiave) {
  * ganci con cui lo stile accende l'animazione della posta, e toccarli la fa
  * ripartire da capo. */
 function vestiLaPastiglia(nodo, pastiglia) {
-  const { testo, titolo } = paroleDellaPastiglia(pastiglia);
+  const { numero, testo, titolo } = paroleDellaPastiglia(pastiglia);
   const scrivi = (elemento, campo, valore) => {
     if (elemento && elemento[campo] !== valore) elemento[campo] = valore;
   };
@@ -179,7 +207,16 @@ function vestiLaPastiglia(nodo, pastiglia) {
   attributo("data-avviso", String(Boolean(pastiglia.avviso)));
   attributo("title", titolo);
   attributo("aria-label", titolo);
-  scrivi(nodo.querySelector(".dm-casa-ic"), "textContent", String(pastiglia.icona ?? ""));
+  /* La tinta e' quella della tessera che racconta la stessa cosa per esteso:
+   * si scrive sulla pastiglia come variabile, e lo stile la usa per il
+   * riquadro del disegno. */
+  const tinta = clean(pastiglia.tinta);
+  if (tinta && nodo.style.getPropertyValue("--dm-casa-tinta") !== tinta)
+    nodo.style.setProperty("--dm-casa-tinta", tinta);
+  const chip = nodo.querySelector(".dm-casa-chip");
+  const faccia = facciaDellaPastiglia(pastiglia);
+  if (chip && chip.innerHTML !== faccia) chip.innerHTML = faccia;
+  scrivi(nodo.querySelector(".dm-casa-num"), "textContent", numero);
   scrivi(nodo.querySelector(".dm-casa-txt"), "textContent", testo);
 }
 
@@ -213,8 +250,8 @@ function aggiornaLePastiglie(riga, pastiglie) {
 function firmaDellaRiga(pastiglie) {
   return pastiglie
     .map((pastiglia) => {
-      const { testo } = paroleDellaPastiglia(pastiglia);
-      return `${pastiglia.chiave}~${pastiglia.icona}~${testo}~${Boolean(pastiglia.avviso)}`;
+      const { numero, testo } = paroleDellaPastiglia(pastiglia);
+      return `${pastiglia.chiave}~${pastiglia.icona}~${pastiglia.tinta}~${numero}~${testo}~${Boolean(pastiglia.avviso)}`;
     })
     .join("|");
 }
@@ -430,25 +467,57 @@ function stile() {
        taglia gia' con i puntini, e cosi' ne sta di piu' per riga invece di
        andare a capo dopo la prima. */
     #dm-casa-riga{
-      display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:2px 0 4px}
+      display:flex;flex-wrap:wrap;gap:7px;margin:0 0 16px;padding:2px 0 4px}
     #dm-casa-riga:empty{display:none}
+
+    /* Mini-tessere, non pastiglie grigie.
+       Erano ovali piatti con dentro un'emoji e una frase tutta della stessa
+       grandezza: sopra una fila di tessere bianche col disegno nel riquadro,
+       il numero grosso e la parola piccola, sembravano tasti spenti di
+       un'altra plancia. Adesso parlano la stessa lingua di quello che hanno
+       sotto — stesso fondo, stesso bordo, stesso riquadro tinto per il
+       disegno, stessa gerarchia fra numero e parola — e restano tonde quel
+       tanto che basta a dire che si toccano una per una. */
     .dm-casa-pastiglia{
-      display:inline-flex;align-items:center;gap:7px;flex:0 1 auto;min-width:0;
-      padding:7px 13px;border-radius:100px;cursor:pointer;
-      border:1px solid var(--card-border,rgba(0,0,0,.08));background:var(--surface-3,rgba(0,0,0,.04));
-      color:var(--text,#111);font:inherit;font-size:12.5px;font-weight:650;line-height:1.2;
-      max-width:min(70vw,320px);transition:transform .18s ease,box-shadow .18s ease}
+      --dm-casa-tinta:#64748b;
+      display:inline-flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0;
+      padding:5px 13px 5px 5px;border-radius:14px;cursor:pointer;
+      border:1px solid var(--card-border,rgba(15,23,42,.08));
+      background:var(--card-bg,#fff);color:var(--text,#0f172a);font:inherit;
+      box-shadow:0 1px 2px rgba(15,23,42,.05);
+      max-width:min(72vw,340px);
+      transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .dm-casa-pastiglia:hover{box-shadow:0 4px 12px rgba(15,23,42,.09)}
     .dm-casa-pastiglia:active{transform:scale(.97)}
-    .dm-casa-ic{font-size:15px;line-height:1;flex:0 0 auto}
-    .dm-casa-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .dm-casa-chip{
+      display:grid;place-items:center;flex:0 0 auto;width:25px;height:25px;
+      border-radius:9px;line-height:1;
+      background:color-mix(in srgb,var(--dm-casa-tinta) 15%,transparent);
+      color:var(--dm-casa-tinta)}
+    .dm-casa-chip svg{width:16px;height:16px;display:block}
+    .dm-casa-emoji{font-size:15px;line-height:1}
+    .dm-casa-testo{display:inline-flex;align-items:baseline;gap:5px;min-width:0}
+    .dm-casa-num{
+      font-size:14.5px;font-weight:800;line-height:1.1;letter-spacing:-.01em;
+      font-variant-numeric:tabular-nums;flex:0 0 auto}
+    .dm-casa-num:empty{display:none}
+    .dm-casa-txt{
+      font-size:12px;font-weight:600;line-height:1.25;
+      color:var(--text-dim,#64748b);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
     /* La posta e l'antifurto che suona sono notizie, non descrizioni: si
        accendono di colore e la posta si muove finche' non la si tocca. */
     .dm-casa-pastiglia[data-avviso="true"]{
-      border-color:rgba(239,68,68,.42);background:rgba(239,68,68,.14);color:#b91c1c}
+      --dm-casa-tinta:#dc2626;
+      border-color:rgba(220,38,38,.35);background:rgba(220,38,38,.08)}
+    .dm-casa-pastiglia[data-avviso="true"] .dm-casa-num,
+    .dm-casa-pastiglia[data-avviso="true"] .dm-casa-txt{color:#b91c1c}
     .dm-casa-pastiglia[data-dm-casa="posta"]{
-      border-color:rgba(37,99,235,.42);background:rgba(37,99,235,.14);color:#1d4ed8;
+      border-color:rgba(37,99,235,.35);background:rgba(37,99,235,.08);
       animation:dmPostaChiama 2.4s ease-in-out infinite}
-    .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-ic{
+    .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-txt{color:#1d4ed8}
+    .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-chip{
       animation:dmPostaSbatte 2.4s ease-in-out infinite}
     @keyframes dmPostaChiama{
       0%,72%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}
@@ -459,8 +528,14 @@ function stile() {
       74%{transform:translateY(-3px) rotate(-11deg)}
       82%{transform:translateY(-3px) rotate(11deg)}
       90%{transform:translateY(0) rotate(0)}}
-    html[data-theme="dark"] .dm-casa-pastiglia[data-avviso="true"]{color:#fca5a5}
-    html[data-theme="dark"] .dm-casa-pastiglia[data-dm-casa="posta"]{color:#93c5fd}
+    @media (prefers-reduced-motion:reduce){
+      .dm-casa-pastiglia[data-dm-casa="posta"],
+      .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-chip{animation:none}}
+    html[data-theme="dark"] .dm-casa-pastiglia{
+      box-shadow:none;border-color:var(--card-border,rgba(148,163,184,.18))}
+    html[data-theme="dark"] .dm-casa-pastiglia[data-avviso="true"] .dm-casa-num,
+    html[data-theme="dark"] .dm-casa-pastiglia[data-avviso="true"] .dm-casa-txt{color:#fca5a5}
+    html[data-theme="dark"] .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-txt{color:#93c5fd}
     #ed-body .dm-casa-ed{display:block;margin-top:18px}
     #ed-body .dm-casa-ed-list{display:grid;gap:6px;margin-bottom:12px}
     #ed-body .dm-casa-ed-riga{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important;cursor:pointer}
