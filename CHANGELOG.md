@@ -7,7 +7,112 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+## 1.4.14
+
+Il giro di una giornata sola: dieci segnalazioni nuove arrivate in mattinata,
+prese una per una, più le tre riportate a voce. E il Config finalmente in
+ordine — sette famiglie invece di trentadue nomi in fila, con l'elenco di tutte
+le sezioni in un posto solo, perché in un giorno tre persone diverse non hanno
+trovato una scheda che c'era.
+
 ### Corretto
+
+- **Le tapparelle non si travestono più da tende** (#396)
+
+      «5 tapparelle configurate allo stesso modo, 2 vengono mostrate come tende
+       sia nell'animazione che nel titolo.»
+
+  Non c'entrava la stanza: nessuno riempie quelle caselle da solo. C'entrava
+  `device_class`, dove le classi `blind` e `shade` di Home Assistant finivano
+  su «tenda» insieme a `curtain`. Ma una tenda, per questa plancia, è una cosa
+  precisa: è quella che si scosta di lato. Una veneziana e una tenda a rullo
+  scendono dall'alto e coprono il vetro, come una tapparella — disegnarle che
+  si aprono al centro era mostrare un movimento che in casa non succede.
+  `curtain` resta l'unica tenda; chi ha una veneziana e la vuole disegnata come
+  tenda ha la sua casella.
+
+- **Nelle stanze ogni elettrodomestico ha la sua icona** (#404)
+
+      «Nella pagina delle stanze gli elettrodomestici non vengono visualizzati
+       con la loro icona, a prescindere da come li si configuri: appaiono tutti
+       con l'icona del cestello.»
+
+  Il riepilogo di una stanza prendeva il glifo dal BLOCCO, e il blocco
+  «elettrodomestici» ne ha uno solo: la lavatrice. In cucina il forno, il frigo
+  e la lavastoviglie erano tre lavatrici in fila. È lo stesso difetto che il
+  fiocco di neve aveva già avuto sul clima, dov'era stato corretto: il tipo la
+  configurazione lo sa già, e adesso il glifo arriva dallo stesso catalogo che
+  sceglie il disegno grande nella sezione Elettrodomestici.
+
+- **I comandi in più del robot si aggiungono anche con l'integrazione** (#403)
+
+      «Se collego il robot tramite integrazione HACS e cerco di inserire comandi
+       manuali custom, questi non vengono aggiunti. Se invece lo integro
+       manualmente, vengono aggiunti senza problemi.»
+
+  Le due strade differivano per una cosa sola: quanti comandi c'erano già. La
+  scheda ne tiene dodici, e un robot nato dall'integrazione arriva con quelli
+  che l'integrazione pubblica — su un Dreame o un Roborock sono facilmente
+  dodici, cioè il tetto. Da lì in poi il tredicesimo veniva scartato **senza
+  dirlo**: si premeva «+», si salvava, si ridisegnava, e non compariva niente.
+  Il tetto resta; quello che cambia è che adesso lo dice, e il conto «12/12» si
+  vede prima di provarci.
+
+- **La VMC incrocia i flussi, invece di contraddirsi** (#401)
+
+      «Nella riga in basso dovresti invertire la freccia in modo che l'aria da
+       casa vada verso fuori casa, o ancora meglio invertire e mettere fuori a
+       sinistra e da casa a destra lasciando la freccia così.»
+
+  Le due righe mettevano tutte e due l'origine a sinistra, e la seconda si
+  contraddiceva da sola: la freccia puntava indietro, verso la parola «Da
+  casa», cioè diceva che l'aria entrava mentre le etichette dicevano che
+  usciva. Adesso le colonne sono fisse — fuori a sinistra, casa a destra — e
+  l'unica cosa che cambia fra le righe è la freccia, che è anche l'unica cosa
+  che le distingue davvero. Incolonnate così si incrociano, come fa lo
+  scambiatore. È la seconda delle due strade proposte.
+
+- **La riga delle cose attive in Home va a capo** (#400)
+
+      «Nella home in alto quando fa vedere le cose accese o attive va oltre
+       pagina a destra e devi scorrere per vederle.»
+
+  Era un nastro che scorreva di lato, con la barra nascosta apposta. Uno
+  scorrimento orizzontale in cima a una pagina che scorre in verticale non lo
+  trova nessuno, e quello che stava oltre il bordo destro era di fatto quello
+  che non esisteva.
+
+- **Lo scorrimento col dito non aziona più quello che sfiora** (#397)
+
+      «Quando scorri con il dito oltre allo scorrere prende anche il comando.
+       Sulle luci mentre passi con il dito per scorrere le accende pure.»
+
+  Il difetto non è di una sezione: è di ogni elenco lungo, e le sezioni che
+  comandano al tocco sono decine. La guardia è una sola, sul documento e in
+  cattura, da dove si arriva prima di tutte — comprese quelle che ancora non
+  esistono. Il criterio è quanto si è spostato il dito fra il tocco e il
+  rilascio, misurato in diagonale. Un tocco senza un dito dietro — tastiera,
+  lettore di schermo — passa sempre, e i cursori che si USANO trascinando sono
+  esclusi: lì lo spostamento è il comando, non il suo contrario.
+
+- **La wallbox nata a metà anno non perde più il suo primo mese** (segnalata a voce)
+
+  Il consumo di un intervallo è la differenza fra il contatore del Recorder e
+  quello di prima, e per il primo intervallo il «quello di prima» lo porta una
+  lettura pescata apposta fuori dalla finestra. Ma un'entità nata **dentro** la
+  finestra quella lettura non ce l'ha, e allora il primo intervallo veniva
+  buttato via: su una wallbox accesa a metà anno, il mese in cui è entrata in
+  funzione spariva dal totale dell'anno, dal grafico e dal riepilogo. Nessuno
+  se n'era accorto perché per un'entità che c'è da sempre quella lettura c'è
+  sempre.
+
+- **I rifiuti leggono «on Fri, 18.09.2026»** (#383, dopo lo stato vero)
+
+  Due parole di troppo davanti alla data — la preposizione inglese e il giorno
+  della settimana — e il lettore ne toglieva una sola, e solo se era un giorno.
+  Quindi si fermava su «on» e falliva tutta la riga, mentre «Fri, 18.09.2026»
+  lo leggeva benissimo. Adesso toglie anche le preposizioni, fino a due parole,
+  e mai fino a lasciare una riga senza cifre.
 
 - **Elettrodomestici: nella vista a righe i dati non si sovrappongono più** (#389)
 
@@ -63,6 +168,80 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   davanti («mer 10/09/2026») e il mese a parole («10 settembre 2026»). E quando
   una riga risponde senza portare una data leggibile, la sezione scrive cosa ha
   letto davvero invece di lasciare un trattino muto.
+
+### Aggiunto
+
+- **Il Config ha un'alberatura: sette famiglie invece di trentadue nomi in fila**
+
+      «Per cortesia mi organizzi le sezioni del config con criterio, vedo cose
+       mischiate in sezioni che non c'entrano nulla.»
+
+  L'ordine delle linguette non lo decideva nessuno: diciotto le scrive il
+  guscio in fila, le altre quattordici se le infilano i moduli quando gli
+  capita di installarsi. Così Rifiuti stava fra Backup e Varchi, senza nessuna
+  ragione. Adesso l'ordine è scritto in un posto solo, le linguette sono
+  raggruppate in sette famiglie con l'insegna davanti, e sopra c'è la fila
+  delle famiglie: toccarne una porta lì e mostra **solo** le sue schede;
+  ritoccarla le rimostra tutte. A riposo non filtra, e nessuna linguetta
+  sparisce mai.
+
+- **L'elenco di tutte le sezioni, in ⚙️ Impostazioni**
+
+      «Non trovo più dove inserire porte e finestre.» (#399)
+
+  L'interruttore di ogni sezione stava dentro la scheda di quella sezione: per
+  sapere quali sezioni esistono bisognava aprirle tutte, e per sapere quali
+  erano accese anche. Adesso c'è l'elenco di tutte e ventiquattro, raggruppate
+  nelle stesse famiglie delle linguette, ognuna col suo interruttore e col
+  tasto «Configura» che ci porta. Le fasce dentro le schede restano: non sono
+  un doppione, sono lo stesso interruttore visto da dove si sta lavorando.
+
+- **Le batterie diventano una sezione: pagina, scheda e tessera** (#398)
+
+      «Le batterie quelle cariche non le fa vedere? Sarebbe carino che le
+       batterie stessero nel config come le altre cose configurazioni.»
+
+  Erano un elenco che compariva in Home solo quando una scendeva sotto il venti
+  per cento, e sparita quella spariva l'argomento. Adesso hanno la loro pagina
+  — tutte, dalla più scarica alla più piena, con in cima quante sono da
+  cambiare e **qual è la più bassa**, che è il fatto utile prima che si
+  scarichi — e la loro scheda nel Config, dove si sceglie la soglia (venti
+  stava scritto nel codice, uguale per tutti), si toglie quello che una pila
+  non è, e si dà un nome a chi si chiama «Sensore Porta/finestra Camera
+  Batteria».
+
+- **I lettori entrano nelle stanze, e dicono cosa suonano** (#405)
+
+      «Attualmente appare un Playing generico che se cliccato rimanda alla home
+       della dashboard.»
+
+  Un lettore la stanza ce l'ha addosso, ma mancava il suo blocco: arrivava in
+  una stanza solo per assegnazione a mano, cioè nel mucchio dell'«Altro», dove
+  il tocco porta in Home. Adesso ha il suo blocco 🎵 Musica, il tocco porta al
+  player vero, e la riga dice il titolo e l'artista — o la sorgente, che su un
+  televisore è la risposta giusta alla stessa domanda.
+
+- **I varchi dicono da quando stanno così** (#406)
+
+      «Sarebbe importante avere nei tasti relativi ai varchi più informazioni,
+       tipo l'ultima apertura o cambio stato.»
+
+  Sotto il nome c'era l'identificativo dell'entità: la cosa che serve a chi
+  configura — e nella scheda del Config resta — ma non a chi guarda. Adesso
+  dice «Aperto da 2 ore», che è la differenza fra «l'ho lasciata aperta
+  stamattina» e «si è appena aperta».
+
+- **I rifiuti dicono anche quello di domani** (#409)
+
+  Quando il prossimo ritiro è oggi, la risposta grande diceva «Oggi» e finiva
+  lì: cosa mettere fuori **stasera** non lo diceva nessuno, ed è la domanda che
+  ci si fa la sera.
+
+- **Le batterie cariche si vedono anche quando va tutto bene** (#398)
+
+  La tessera in Home spariva del tutto se nessuna era sotto soglia — era
+  l'unica a comportarsi così, mentre quella del fumo sta lì sempre e si accende
+  solo quando serve. Adesso fanno la stessa cosa.
 
 ### Cambiato
 

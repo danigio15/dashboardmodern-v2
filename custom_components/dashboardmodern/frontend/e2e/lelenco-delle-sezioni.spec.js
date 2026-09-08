@@ -10,6 +10,13 @@
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { SEZIONI } from "../src/core/lelenco-delle-sezioni.js";
+
+/* Quante sezioni conosce la plancia. Non si scrive a mano: una sezione nuova
+ * — le Batterie sono arrivate così — farebbe cadere questa prova per il motivo
+ * sbagliato, cioè perché il numero è invecchiato e non perché l'elenco ne ha
+ * persa una. */
+const QUANTE = SEZIONI.length;
 
 const SEME = {
   schema_version: 4,
@@ -46,7 +53,7 @@ test("l'elenco c'è, con tutte le sezioni e le loro insegne", async ({ page }, t
   await apriLeImpostazioni(page, testInfo);
 
   const righe = page.locator("#dm-elenco-sezioni [data-dm-sezione]");
-  await expect(righe).toHaveCount(24);
+  await expect(righe).toHaveCount(QUANTE);
   /* I Varchi — la sezione che in #399 non si trovava — ci sono, e stanno sotto
    * l'insegna della Sicurezza. */
   await expect(page.locator('#dm-elenco-sezioni [data-dm-sezione="varchi"]')).toBeVisible();
@@ -95,7 +102,7 @@ test("il conto in cima segue gli interruttori", async ({ page }, testInfo) => {
   const conto = page.locator("#dm-elenco-sezioni .dm-elenco-conto");
   const prima = await conto.textContent();
   const [accese, tutte] = prima.split("/").map(Number);
-  expect(tutte).toBe(24);
+  expect(tutte).toBe(QUANTE);
 
   const interruttore = page.locator('#dm-elenco-sezioni [data-dm-sezione-int="rifiuti"]');
   const eraAccesa = (await interruttore.getAttribute("aria-checked")) === "true";
