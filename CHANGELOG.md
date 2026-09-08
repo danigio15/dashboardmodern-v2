@@ -169,6 +169,19 @@ trovato una scheda che c'era.
   una riga risponde senza portare una data leggibile, la sezione scrive cosa ha
   letto davvero invece di lasciare un trattino muto.
 
+- **Le Batterie portano il disegno di casa, come tutte le altre voci**
+
+  La sezione nuova nasceva con l'emoji del telefono nella barra in basso e
+  nella colonna del Config: una pila fra ventiquattro disegni. Era la quarta
+  volta — prima i Varchi, poi la Musica, poi gli Animali — e sempre per lo
+  stesso motivo: le due tabelle che dicono quale disegno va su quale voce
+  stanno in altri due moduli, e non sono dove si lavora quando si scrive una
+  sezione. Adesso chi si chiama come il proprio disegno non ha piu' niente da
+  scrivere: le tabelle restano per le eccezioni — la pagina degli
+  elettrodomestici si chiama «appliances-main», il boiler porta il sole — e
+  chi non ha ne' l'uno ne' l'altro lo sente dire da una prova che dura un
+  secondo, invece che da tre schede rosse dopo sedici minuti di coda.
+
 ### Aggiunto
 
 - **Il Config ha un'alberatura: sette famiglie invece di trentadue nomi in fila**

@@ -1,5 +1,5 @@
 import { fondoDiSistema, inPixel } from "../core/fondo-di-sistema.js";
-import { oggettoWidget } from "../core/oggetti-widget.js";
+import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_NAVIGATION_SECTION__";
@@ -691,6 +691,25 @@ const OGGETTO_DELLA_PAGINA = Object.freeze({
   config: "impostazioni",
 });
 
+/* Il disegno di una pagina, anche di una nata dopo questa tabella.
+ *
+ * La tabella qui sopra serve alle pagine il cui nome non e' il nome del
+ * disegno: la lavanderia si chiama «appliances-main» e il disegno
+ * «elettrodomestici», il boiler «boiler» e il disegno «solare». Ma la meta'
+ * delle pagine si chiama gia' come il proprio disegno, e per quelle la
+ * tabella era solo un posto in piu' da ricordarsi — dimenticato quattro volte
+ * su quattro sezioni nuove, ogni volta scoperto dalla stessa prova.
+ *
+ * Adesso chi si chiama come il proprio disegno non ha niente da scrivere: la
+ * tabella resta per le eccezioni, che sono quello che una tabella sa fare. Le
+ * sezioni che uno si fa da se' non ci cascano dentro: le loro voci si chiamano
+ * «mia-qualcosa», e nessun disegno si chiama cosi'. */
+function disegnoDellaPagina(pagina) {
+  const scritto = OGGETTO_DELLA_PAGINA[pagina];
+  if (scritto) return scritto;
+  return haOggettoWidget(pagina) ? pagina : "";
+}
+
 /** Mette il disegno di casa al posto del simbolo, su ogni voce della barra. */
 export function disegniNellaBarra(scope = doc) {
   const schede = scope?.querySelectorAll?.("nav.tabs .tab[data-tab]");
@@ -698,7 +717,7 @@ export function disegniNellaBarra(scope = doc) {
   let messi = 0;
   for (const scheda of schede) {
     const pagina = clean(scheda.dataset.tab);
-    const disegno = OGGETTO_DELLA_PAGINA[pagina];
+    const disegno = disegnoDellaPagina(pagina);
     if (!disegno) continue;
     const casella = scheda.querySelector(":scope > .icon");
     if (!casella || casella.dataset.dmOggetto === disegno) continue;

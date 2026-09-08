@@ -73,6 +73,11 @@ export const SEZIONI = Object.freeze(
     {
       scheda: "appliances",
       chiave: "appliances",
+      /* La pagina non si chiama come la chiave: e' «appliances-main», e chi
+       * mette i disegni nella barra guarda il nome della pagina. Scriverlo qui
+       * costa una riga; non scriverlo costa una voce nuda nella barra, che e'
+       * il difetto tornato quattro volte. */
+      pagina: "appliances-main",
       glifo: "🧺",
       it: "Elettrodomestici",
       en: "Appliances",
@@ -92,13 +97,26 @@ export const SEZIONI = Object.freeze(
     {
       scheda: "doors",
       chiave: "porte",
+      /* Anche qui pagina e chiave si chiamano diverso: si accende «porte», si
+       * apre «aperture». */
+      pagina: "aperture",
       glifo: "🔓",
       it: "Porte e cancelli",
       en: "Doors and gates",
     },
     { scheda: "media", chiave: "media", glifo: "🎵", it: "Musica", en: "Music" },
     { scheda: "batterie", chiave: "batterie", glifo: "🔋", it: "Batterie", en: "Batteries" },
-    { scheda: "mie", chiave: "mie", glifo: "⭐", it: "Le tue sezioni", en: "Your sections" },
+    /* Le sezioni che uno si fa da se' non hanno UNA pagina: ne hanno una per
+     * sezione creata, e ognuna si porta il simbolo che l'utente ha scelto. La
+     * scheda del Config invece e' una sola, ed e' quella. */
+    {
+      scheda: "mie",
+      chiave: "mie",
+      pagina: null,
+      glifo: "⭐",
+      it: "Le tue sezioni",
+      en: "Your sections",
+    },
   ].map((voce) => Object.freeze(voce)),
 );
 
@@ -160,4 +178,18 @@ export function sezioniPerFamiglia(elenco = SEZIONI) {
       sezioni: perFamiglia.get(famiglia.chiave),
     }),
   );
+}
+
+/**
+ * La pagina della plancia che apre questa sezione, o `null` se non ne ha una.
+ *
+ * Quasi sempre la pagina si chiama come la chiave — «luci» si accende e «luci»
+ * si apre — e le tre eccezioni stanno scritte nell'elenco. Serve a chi mette i
+ * disegni di casa nella barra in basso: quella tabella è indicizzata sul nome
+ * della pagina, e chi aggiunge una sezione conosce la chiave, non la pagina.
+ */
+export function paginaDellaSezione(voce) {
+  if (!voce) return null;
+  if (voce.pagina === null) return null;
+  return pulito(voce.pagina) || pulito(voce.chiave) || null;
 }
