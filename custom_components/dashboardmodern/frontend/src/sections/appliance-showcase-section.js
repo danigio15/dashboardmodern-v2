@@ -29,7 +29,7 @@ import {
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { createCycleTracker } from "../core/appliance-cycle-tracker.js";
 import { scheduleApplianceNormalization } from "./appliances-section.js";
-import { iconGlyph } from "./icon-engine-section.js";
+import { iconGlyphMarkup } from "./icon-engine-section.js";
 import { roomOrderRank } from "../core/room-overview.js";
 import {
   activeLocale,
@@ -335,6 +335,11 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="20" x2="5" y2="12"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="9"/></svg>',
   snow: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.2" y1="7.5" x2="19.8" y2="16.5"/><line x1="19.8" y1="7.5" x2="4.2" y2="16.5"/></svg>',
   home: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/></svg>',
+  /* «Senza stanza» aveva il punto interrogativo di sistema, ❓, che su ogni
+   * telefono ha una faccia diversa e su nessuno assomiglia alle altre voci
+   * della colonna. Disegnato come i suoi vicini: una casa col punto dentro. */
+  senzaStanza:
+    '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10.4 12.4a1.7 1.7 0 1 1 2.4 1.6c-.5.3-.8.7-.8 1.2v.3"/><circle cx="12" cy="17.6" r=".05" stroke-width="1.6"/></svg>',
 };
 
 function heroFxMarkup(model) {
@@ -493,9 +498,9 @@ export function buildCardMarkup(model, labels = copy()) {
     </span>`;
   return `<article class="appl-wide-card dm-ap-card dm-ap-mech is-${badgeClass} acc-${esc(model.accent)}${model.alarm ? " has-alarm" : ""}" data-appliance-id="${esc(model.id)}" data-idx="${model.index}" data-mode="${esc(model.mode)}" data-art="${esc(model.artworkType)}" role="button" tabindex="0" aria-label="${esc(model.name)} — ${esc(model.label)}">
     <div class="dm-ap-top">
-      <span class="dm-ap-chip" aria-hidden="true">${applianceArtwork(model.artworkType, 30) || "🔌"}</span>
-      <span class="dm-ap-headings"><span class="dm-ap-name appl-wide-name" data-dm-no-i18n>${esc(model.name)}</span>${roomName ? `<span class="dm-ap-room" data-dm-no-i18n>${esc(roomName)}</span>` : ""}</span>
-      <span class="dm-ap-badge ${badgeClass}"><i class="dm-ap-dot"></i>${esc(model.label)}</span>
+      <span class="dm-ap-chip" aria-hidden="true">${applianceArtwork(model.artworkType, 30) || iconGlyphMarkup("action", "mdi:power-plug", { size: 22 })}</span>
+      <span class="dm-ap-headings"><span class="dm-ap-name appl-wide-name" data-dm-no-i18n>${esc(model.name)}</span>
+        <span class="dm-ap-sotto">${roomName ? `<span class="dm-ap-room" data-dm-no-i18n>${esc(roomName)}</span>` : ""}<span class="dm-ap-badge ${badgeClass}"><i class="dm-ap-dot"></i>${esc(model.label)}</span></span></span>
       ${controls}
     </div>
     <div class="dm-ap-hero${heroHasImage(model) ? " has-image" : ""}">${heroMarkup(model)}${heroHasImage(model) ? heroFxMarkup(model) : ""}</div>
@@ -720,7 +725,7 @@ function renderSidebar(shell, models, counts, rooms, labels) {
           sideItem({
             key: room.id,
             kind: "room",
-            icon: esc(iconGlyph("room", room.icon || "mdi:home")),
+            icon: iconGlyphMarkup("room", room.icon || "mdi:home", { size: 17 }),
             label: room.name,
             count: counts.rooms.get(room.id) || 0,
             active: state.ui.room === room.id,
@@ -732,7 +737,7 @@ function renderSidebar(shell, models, counts, rooms, labels) {
         sideItem({
           key: "unassigned",
           kind: "room",
-          icon: "❓",
+          icon: ICONS.senzaStanza,
           label: labels.noRoom,
           count: counts.unassigned,
           active: state.ui.room === "unassigned",
@@ -1279,7 +1284,16 @@ function showcaseCss() {
  * di uno e la spaziatura di un altro. Nessuno aveva scelto quel nome li'.
  * Adesso sono i valori che si vedevano, scritti dove nasce la scheda. */
 .dm-ap-name{min-width:0;font-size:15px;font-weight:950;letter-spacing:-.15px;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dm-ap-room{font-size:10px;font-weight:750;color:var(--dm-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dm-ap-room{font-size:10px;font-weight:750;color:var(--dm-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* Il nome ha la riga per se'.
+ *
+ * Dal campo: «i nomi degli elettrodomestici non entrano nella card» — e
+ * usciva «Friggitric…», «Lavastovi…». Il nome divideva la riga con la
+ * pastiglia dello stato e due tasti: su una scheda stretta gli restavano
+ * quaranta pixel, e la parte tagliata era proprio quella che distingue una
+ * macchina dall'altra. Adesso la pastiglia scende accanto alla stanza, dov'e'
+ * l'informazione di contorno, e il nome si prende tutta la larghezza. */
+.dm-ap-sotto{display:flex;align-items:center;gap:6px;min-width:0}
 .dm-ap-badge{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:8.5px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
 .dm-ap-badge.run{background:#dcfce7;color:#15803d}
 .dm-ap-badge.standby{background:#dbeafe;color:#2563eb}

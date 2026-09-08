@@ -5,10 +5,7 @@ import {
   canonicalApplianceVisualKey,
   applianceVisualKey,
 } from "../core/device-model.js";
-import {
-  apriIlFoglioDiScelta,
-  chiudiIlFoglioDiScelta,
-} from "./foglio-di-scelta-section.js";
+import { apriIlFoglioDiScelta, chiudiIlFoglioDiScelta } from "./foglio-di-scelta-section.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
   activeLocale,
@@ -52,6 +49,14 @@ function appliances() {
   return Array.isArray(stored) ? stored.slice() : readJson("cd_appliances", []);
 }
 
+/* L'unico posto della sezione dove l'emoji resta, e non e' una scelta.
+ *
+ * «Non voglio vedere icone che non sono nostre»: giusto, e dappertutto qui
+ * intorno adesso c'e' il disegno del catalogo. Qui no, e non per dimenticanza:
+ * questa e' la tendina delle stanze, e dentro un `<option>` il browser disegna
+ * TESTO — nessun elemento, nessun disegno, nemmeno un'immagine. Per mettercelo
+ * bisognerebbe rifare la tendina come menu nostro, che e' un'altra cosa e un
+ * altro lavoro. Finche' e' un `<select>`, l'emoji e' quello che si puo'. */
 function roomIconEmoji(icon) {
   return iconGlyph("room", clean(icon) || "mdi:home") || "🏠";
 }

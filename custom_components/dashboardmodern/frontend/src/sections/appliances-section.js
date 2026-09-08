@@ -3,7 +3,7 @@ import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwor
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { isCumulativeEnergyEntity, resolveEntity } from "../core/period-service.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
-import { iconGlyph } from "./icon-engine-section.js";
+import { iconGlyphMarkup } from "./icon-engine-section.js";
 import {
   activeLocale,
   allStates,
@@ -61,7 +61,15 @@ export function normalizeApplianceRoomTabs() {
       const label = button.textContent || "";
       const match = label.match(/^mdi:[a-z0-9][a-z0-9-]*/i);
       if (!match) return;
-      button.textContent = `${iconGlyph("room", match[0])}${label.slice(match[0].length)}`;
+      /* Il disegno del catalogo, non l'emoji di sistema.
+       *
+       * «Nelle stanze degli elettrodomestici ci sono icone che non sono del
+       * nostro catalogo»: qui si chiedeva `iconGlyph`, che di un nome mdi
+       * torna l'EMOJI — quella del telefono, diversa su ognuno e diversa da
+       * tutto il resto della plancia. Il disegno lo da' `iconGlyphMarkup`, ed
+       * e' la stessa cosa che disegna la colonna delle stanze due dita piu' in
+       * la'. */
+      button.innerHTML = `${iconGlyphMarkup("room", match[0], { size: 16 })}<span>${esc(label.slice(match[0].length))}</span>`;
       normalized = true;
     });
   return normalized;
@@ -142,7 +150,7 @@ export async function buildApplianceDailyBreakdown(
     if (!source) return;
     const row = {
       id: clean(device.id) || `appliance-${index}`,
-      name: clean(device.name) || (t("Elettrodomestico", "Appliance")),
+      name: clean(device.name) || t("Elettrodomestico", "Appliance"),
       entity: source.entity,
       source: source.source,
       direct: source.direct,
@@ -194,7 +202,6 @@ export async function buildApplianceDailyBreakdown(
  * l'unita' di misura, quello guarda anche la classe del dispositivo e i campi
  * gia' configurati. Non lo chiamava nessuno dei due; e' rimasto quello che ha
  * le prove a dire cosa deve rispondere. */
-
 
 function devices() {
   const values = section("appliances", []);
@@ -530,7 +537,10 @@ function applyDailyKpi(breakdown = state.dailyBreakdown) {
     "aria-label",
     t("Apri dettaglio energia elettrodomestici di oggi", "Open today's appliance energy breakdown"),
   );
-  card.title = t("Mostra dispositivi ed entità che hanno consumato", "Show devices and energy sources");
+  card.title = t(
+    "Mostra dispositivi ed entità che hanno consumato",
+    "Show devices and energy sources",
+  );
   const value = card.querySelector(".g-val");
   if (value) value.textContent = formatDaily(breakdown.total);
   if (!card.dataset.dmDailyMounted) {
@@ -565,12 +575,7 @@ export function normalizeApplianceCards() {
     cards.forEach((card, index) => {
       const device = byId.get(clean(card.dataset.applianceId)) || configured[index];
       if (!device) return;
-      const model = createApplianceViewModel(
-        device,
-        states,
-        section("rooms", []),
-        activeLocale(),
-      );
+      const model = createApplianceViewModel(device, states, section("rooms", []), activeLocale());
       card.dataset.dmApplianceSection = "true";
       card.dataset.dmArtStyle = "panel";
       card.dataset.applianceThemeAware = "true";
