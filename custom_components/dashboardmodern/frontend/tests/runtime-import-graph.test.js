@@ -1045,8 +1045,17 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
   // negoziare e prova per prima la strada ricordata. La cascata del guscio non
   // si tocca: resta la rete di sicurezza, intera.
+  // 306 con chi decide di CHI e' un'entita' (#417): «il frigorifero 1 mi
+  // mostra il valore di un sensore che ho messo dentro il frigorifero 2 …
+  // anche se cancello l'associazione me la ritrovo sempre». La passata che
+  // indovina le entita' dai nomi cercava anche col TIPO dell'apparecchio —
+  // «frigo» — che ce l'hanno tutti i frigoriferi, e bastava che UNA parola
+  // combaciasse. `core/entita-di-questo-apparecchio.js` e' il giudizio, puro e
+  // provabile a tavolino: le parole vengono dal nome, tutte devono combaciare,
+  // e i numeri contano perche' sono il modo in cui una casa distingue due cose
+  // uguali.
   assert.ok(
-    relative.length <= 305,
+    relative.length <= 306,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
