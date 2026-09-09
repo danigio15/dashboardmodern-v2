@@ -167,7 +167,15 @@ import {
   contoDelleMacchine,
   macchineERete,
 } from "../core/macchine-e-rete.js";
+import {
+  CHIAVE_ANTIFURTO_SU_MISURA,
+  modoSuMisuraAcceso,
+  normalizzaModiSuMisura,
+} from "../core/antifurto-su-misura.js";
 import { EVENTO_PIATTAFORME, piattaformeConosciute } from "./di-chi-e-unentita-section.js";
+/* I server adottati per dispositivo (#411) li raccoglie la sezione Server, e
+ * si leggono da li': la tessera e la pagina devono contare le stesse righe. */
+import { serverPerDispositivo } from "./macchine-e-rete-section.js";
 import {
   configuredSecurityDoors,
   iconaPortaMarkup,
@@ -1108,19 +1116,27 @@ function securityModel(states) {
   const alarm = stateOf(states, RIF_CENTRALE);
   /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
   const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
+  /* I tasti scritti a mano da chi una centrale non ce l'ha (#413): sono un
+   * antifurto quanto quello di una centrale, e la tessera deve saperlo. Senza,
+   * chi ha solo quelli non aveva nessuna tessera da cui inserirlo — cioe' la
+   * fila di tasti c'era e non si poteva raggiungere — e se aveva anche una
+   * porta la tessera diceva «—» a antifurto inserito. */
+  const miei = normalizzaModiSuMisura(readJson(CHIAVE_ANTIFURTO_SU_MISURA, []));
+  const mioAcceso = miei.length ? modoSuMisuraAcceso(miei, states) : "";
   // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
   // telecamere, da sole, sono gia' la loro tessera.
-  if (!alarm && !doors.length) return null;
+  if (!alarm && !doors.length && !miei.length) return null;
   const raw = clean(alarm?.state).toLowerCase();
   const triggered = raw === "triggered" || raw === "pending";
-  const armed = raw.startsWith("armed");
-  const value = !alarm
-    ? "—"
-    : triggered
-      ? t("Allarme!", "Alarm!")
-      : armed
-        ? t("Inserito", "Armed")
-        : t("Disinserito", "Disarmed");
+  const armed = raw.startsWith("armed") || Boolean(mioAcceso);
+  const value =
+    !alarm && !miei.length
+      ? "—"
+      : triggered
+        ? t("Allarme!", "Alarm!")
+        : armed
+          ? t("Inserito", "Armed")
+          : t("Disinserito", "Disarmed");
   // La didascalia parla di quello che questa tessera comanda — l'antifurto e
   // le aperture — non delle telecamere: quelle hanno la loro tessera, con le
   // miniature, e dirle due volte era dire due volte la stessa cosa.
@@ -1134,10 +1150,13 @@ function securityModel(states) {
     caption: doors.length ? clean(doors[0].name) || clean(doors[0].entity) : "",
     ring: armed || triggered ? 100 : 0,
     doors,
-    alarm: Boolean(alarm),
+    /* «C'e' un antifurto da comandare»: la centrale, oppure i tasti scritti a
+     * mano. Chi legge questo campo apre la fila dei tasti, e quella fila i
+     * suoi ce li ha in tutti e due i casi. */
+    alarm: Boolean(alarm) || miei.length > 0,
     armed,
     triggered,
-    mode: raw,
+    mode: raw || mioAcceso,
   };
 }
 
@@ -3236,6 +3255,11 @@ function macchineModel(states) {
     config,
     (entity) => friendlyName(states, entity),
     piattaformeConosciute(),
+    /* Compresi i NAS che non dichiarano l'acceso: senza questi la pagina
+     * Server mostrava il Synology e la tessera no, o spariva del tutto se non
+     * c'era altro. Una tessera che conta meno righe della pagina che apre e'
+     * una tessera che mente. */
+    serverPerDispositivo(states, config),
   );
   const righe = [...elenchi.macchine, ...elenchi.rete].filter((riga) =>
     widgetIncludes(riga.entity, fuori),

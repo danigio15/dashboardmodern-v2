@@ -69,6 +69,12 @@ export function vuoleUnOpzione(entity) {
  *
  * Senza entita' il tasto non farebbe niente, e un tasto che non fa niente non
  * deve esistere: e' la stessa regola dei tasti della centrale vera.
+ *
+ * E un menu senza la voce da scegliere e' la stessa cosa detta in un altro
+ * modo: `select_option` senza l'opzione non e' una chiamata, e il tasto
+ * sarebbe li' a farsi premere senza fare niente. Capita alla prima riga
+ * appena scritta, dove il campo dell'opzione compare solo dopo che l'entita'
+ * c'e': meglio un tasto che non compare ancora di uno che compare e tace.
  */
 export function normalizzaModoSuMisura(grezzo, indice = 0) {
   if (!grezzo || typeof grezzo !== "object") return null;
@@ -76,6 +82,7 @@ export function normalizzaModoSuMisura(grezzo, indice = 0) {
   if (!entita.includes(".") || !SERVIZI[dominioDi(entita)]) return null;
   const id = pulito(grezzo.id) || `su-misura-${indice + 1}`;
   const opzione = pulito(grezzo.opzione);
+  if (vuoleUnOpzione(entita) && !opzione) return null;
   return Object.freeze({
     id,
     nome: pulito(grezzo.nome),

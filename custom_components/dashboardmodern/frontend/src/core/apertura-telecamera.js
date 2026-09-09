@@ -124,6 +124,17 @@ export function attesaDelRicordo(ricordo) {
   return Math.min(ATTESA_MASSIMA_DEL_RICORDO_MS, speso + MARGINE_DEL_RICORDO_MS);
 }
 
+/* Le istantanee non sono una scorciatoia.
+ *
+ * Sono l'ultima rete della fila — un fotogramma ogni tanto, niente video e
+ * niente audio — e quel fotogramma la plancia lo mette gia' da se' appena si
+ * apre il riquadro: saltare la fila per arrivare li' non fa guadagnare niente.
+ * In cambio costa: chi salta la fila non passa dalla porta del guscio, e il
+ * guscio resta senza sapere quale telecamera e' aperta — cioe' il tasto
+ * «Attiva audio», che le istantanee disegnano e che di li' chiede il salto
+ * all'HLS, non trova piu' niente da attivare. */
+const STRADE_SENZA_SCORCIATOIA = Object.freeze(new Set(["Istantanee"]));
+
 /**
  * La strada da provare per prima, con la sua attesa — o `null`.
  *
@@ -134,6 +145,7 @@ export function attesaDelRicordo(ricordo) {
  */
 export function scorciatoia(ricordo, strade = [], adesso = 0) {
   if (!ricordo || ricordoScaduto(ricordo, adesso)) return null;
+  if (STRADE_SENZA_SCORCIATOIA.has(ricordo.strada)) return null;
   const voce = (Array.isArray(strade) ? strade : []).find(
     (strada) => pulito(strada?.nome) === ricordo.strada && !pulito(strada?.salta),
   );

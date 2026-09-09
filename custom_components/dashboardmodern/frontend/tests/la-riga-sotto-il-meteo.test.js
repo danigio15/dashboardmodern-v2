@@ -189,3 +189,29 @@ test("la posta tiene il blu degli avvisi, che una tessera non ce l'ha", () => {
   assert.equal(pastiglia.mdi, "mdi:email", "il disegno del catalogo, non l'emoji di sistema");
   assert.equal(pastiglia.avviso, true);
 });
+
+/* La posta si muove finché non la si tocca, e rifare il foglio non deve
+ * spegnerla (#357).
+ *
+ * Rifacendo la barra il richiamo della posta — l'alone che pulsa attorno alla
+ * pastiglia — è rimasto indietro: nel foglio nuovo c'era ancora lo sportello
+ * che sbatte, ma non l'alone, e nessuna prova qui se n'è accorta. Se l'ha
+ * trovato la prova e2e sul browser vero, quindici minuti dopo. Un avviso che
+ * non si nota è un avviso che nessuno vede, e questa è la parte che lo fa
+ * notare: sta scritta qui perché costa un millesimo di secondo, non un giro
+ * di Playwright.
+ */
+test("la posta chiama: l'alone e lo sportello restano nel foglio", () => {
+  const sorgente = readFileSync(
+    new URL("../src/sections/come-sta-la-casa-section.js", import.meta.url),
+    "utf8",
+  );
+  for (const nome of ["dmPostaChiama", "dmPostaSbatte"]) {
+    assert.match(sorgente, new RegExp(`@keyframes\\s+${nome}\\b`), `manca il disegno «${nome}»`);
+    assert.match(sorgente, new RegExp(`animation:${nome}\\b`), `«${nome}» non lo usa nessuno`);
+  }
+  /* E chi ha chiesto meno movimento non se lo prende comunque: tutte e due si
+   * fermano, non una sola. */
+  const riposo = sorgente.slice(sorgente.indexOf("prefers-reduced-motion"));
+  assert.match(riposo, /\[data-dm-casa="posta"\],/, "l'alone non si ferma con lo sportello");
+});

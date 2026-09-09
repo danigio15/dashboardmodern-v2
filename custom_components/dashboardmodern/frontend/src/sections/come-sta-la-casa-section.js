@@ -546,17 +546,23 @@ function stile() {
     .dm-casa-pastiglia[data-avviso="true"] .dm-casa-coda{color:#dc2626}
     .dm-casa-pastiglia[data-dm-casa="posta"]{
       --dm-casa-tinta:#2563eb;
-      background:color-mix(in srgb,#2563eb 10%,transparent)}
+      background:color-mix(in srgb,#2563eb 10%,transparent);
+      animation:dmPostaChiama 2.4s ease-in-out infinite}
     .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-testa{color:#1d4ed8}
     .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-coda{color:#2563eb}
     .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-chip{
       animation:dmPostaSbatte 2.4s ease-in-out infinite}
+    @keyframes dmPostaChiama{
+      0%,72%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}
+      82%{box-shadow:0 0 0 6px rgba(37,99,235,.16)}
+      92%{box-shadow:0 0 0 11px rgba(37,99,235,0)}}
     @keyframes dmPostaSbatte{
       0%,66%,100%{transform:translateY(0) rotate(0)}
       74%{transform:translateY(-3px) rotate(-11deg)}
       82%{transform:translateY(-3px) rotate(11deg)}
       90%{transform:translateY(0) rotate(0)}}
     @media (prefers-reduced-motion:reduce){
+      .dm-casa-pastiglia[data-dm-casa="posta"],
       .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-chip{animation:none}}
     html[data-theme="dark"] #dm-casa-riga{
       box-shadow:none;border-color:var(--card-border,rgba(148,163,184,.16))}

@@ -28,7 +28,7 @@
  * `input`, o portano `draggable` — e chi ne ha una fatta a mano la marca con
  * `data-dm-si-trascina`.
  */
-import { haScorsoDavvero, stavaScorrendo } from "../core/il-dito-scorre-o-tocca.js";
+import { eraUnoScorrimento } from "../core/il-dito-scorre-o-tocca.js";
 import { doc, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_DITO__";
@@ -83,12 +83,15 @@ function fermaSeScorreva(evento) {
   /* Ogni click consuma la sua partenza: due click di fila senza un tocco in
    * mezzo — succede con `.click()` da codice — non devono ereditarla. */
   scordaLaPartenza();
-  if (!partenza || !stavaScorrendo(partenza, punto(evento))) return;
-  /* Il dito si e' mosso, ma si e' mossa anche la pagina? Se no, non stava
-   * scorrendo: stava premendo, con la mano che trabalza. Su una fascia larga
-   * quanto la scheda succede di continuo, e buttare via quel comando vuol dire
-   * un interruttore che «a volte non si clicca». */
-  if (!haScorsoDavvero(scorrimenti, scorrimentiSopra(evento.target))) return;
+  if (!partenza) return;
+  /* Il dito si e' mosso, ma si e' mossa anche la pagina? Se no, di solito non
+   * stava scorrendo: stava premendo, con la mano che trabalza. Su una fascia
+   * larga quanto la scheda succede di continuo, e buttare via quel comando
+   * vuol dire un interruttore che «a volte non si clicca». Di solito, non
+   * sempre: in fondo a un elenco non c'e' piu' niente da scorrere, e li' e' il
+   * dito che deve dirlo. La regola intera sta in `core`. */
+  if (!eraUnoScorrimento(partenza, punto(evento), scorrimenti, scorrimentiSopra(evento.target)))
+    return;
   if (evento.target?.closest?.(SI_TRASCINA)) return;
   evento.stopPropagation();
   evento.preventDefault();

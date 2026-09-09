@@ -18,6 +18,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import {
   CHIAVE_ANTIFURTO_SU_MISURA,
   PREFISSO_SU_MISURA,
@@ -95,10 +96,35 @@ test("il servizio lo dice il dominio, non si indovina", () => {
   );
 });
 
-test("un elenco senza la voce scelta non si chiama a vuoto", () => {
-  const [modo] = normalizzaModiSuMisura([{ entita: "input_select.antifurto" }]);
-  assert.ok(vuoleUnOpzione(modo.entita));
-  assert.equal(chiamataDelModo(modo), null);
+/* Un menu senza la voce scelta non diventa un tasto.
+ *
+ * Prima diventava, e poi taceva: la riga passava il filtro, il tasto compariva
+ * nella fila dell'antifurto, e premendolo non partiva niente perche'
+ * `select_option` senza l'opzione non e' una chiamata. Capita alla prima riga
+ * appena scritta — il campo dell'opzione compare solo dopo che c'e'
+ * l'entita' — ed e' proprio il momento in cui uno prova se funziona. Meglio un
+ * tasto che non c'e' ancora di uno che c'e' e non fa niente: e' la stessa
+ * regola con cui una riga senza entita' non diventa un tasto. */
+test("un elenco senza la voce scelta non diventa un tasto", () => {
+  assert.ok(vuoleUnOpzione("input_select.antifurto"));
+  assert.deepEqual(
+    normalizzaModiSuMisura([{ entita: "input_select.antifurto" }]),
+    [],
+    "senza la voce da scegliere non c'e' niente da premere",
+  );
+  /* Con la voce, invece, c'e' e chiama. */
+  const [modo] = normalizzaModiSuMisura([
+    { entita: "input_select.antifurto", opzione: "Fuori casa" },
+  ]);
+  assert.deepEqual(chiamataDelModo(modo), {
+    domain: "input_select",
+    service: "select_option",
+    entity: "input_select.antifurto",
+    data: { entity_id: "input_select.antifurto", option: "Fuori casa" },
+  });
+  /* E la guardia tardiva resta: chi si costruisce un modo a mano, saltando la
+   * normalizzazione, non chiama comunque a vuoto. */
+  assert.equal(chiamataDelModo({ entita: "input_select.antifurto", opzione: "" }), null);
 });
 
 test("senza centrale valgono solo i tasti scritti a mano", () => {
@@ -184,4 +210,31 @@ test("due righe con lo stesso identificativo diventano una", () => {
     modi.map((voce) => voce.label),
     ["Primo"],
   );
+});
+
+/* La tessera della Home conosce i tasti scritti a mano.
+ *
+ * La fila dei tasti su misura la si raggiunge da due porte: la sezione
+ * Sicurezza e la tessera in Home. La tessera però nasceva solo se c'era una
+ * centrale o almeno una porta configurata, e leggeva l'inserimento solo dalla
+ * centrale: chi ha soltanto i propri tasti — cioè esattamente chi #413 serve —
+ * non aveva nessuna tessera da cui inserire, e chi aveva anche una porta
+ * leggeva «—» con l'antifurto inserito. Due porte per la stessa cosa devono
+ * dire la stessa cosa.
+ */
+test("la tessera in Home nasce e si accende anche con i soli tasti su misura", () => {
+  const sorgente = readFileSync(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  /* Li legge dalla stessa chiave e con lo stesso modulo della sezione: due
+   * elenchi di modi sarebbero due antifurti. */
+  assert.match(sorgente, /CHIAVE_ANTIFURTO_SU_MISURA/);
+  assert.match(sorgente, /modoSuMisuraAcceso/);
+  /* La tessera nasce: non più solo con la centrale o una porta. */
+  assert.match(sorgente, /if \(!alarm && !doors\.length && !miei\.length\) return null;/);
+  /* E si accende: «inserito» lo dice anche un tasto su misura acceso. */
+  assert.match(sorgente, /raw\.startsWith\("armed"\) \|\| Boolean\(mioAcceso\)/);
+  /* E la fila dei tasti si apre: `alarm` è «c'è un antifurto da comandare». */
+  assert.match(sorgente, /alarm: Boolean\(alarm\) \|\| miei\.length > 0/);
 });

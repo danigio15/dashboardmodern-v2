@@ -20,6 +20,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import {
   SERVER_PER_DISPOSITIVO,
   integrazioniDaScegliere,
@@ -195,14 +196,70 @@ test("se un domani Synology dichiarasse i suoi «running», vince la classe", ()
     },
   };
   const piattaforme = { "binary_sensor.nas_running": "synology_dsm" };
-  assert.deepEqual(integrazioniPerDispositivo(states, piattaforme, SCELTA), []);
   const elenchi = macchineERete(states, SCELTA, (entity) => entity, piattaforme, {
     dispositivi: [NAS],
-    entita: ENTITA,
+    entita: { ...ENTITA, "nas-1": [...ENTITA["nas-1"], "binary_sensor.nas_running"] },
   });
   assert.deepEqual(
     elenchi.macchine.map((riga) => riga.entity),
     ["binary_sensor.nas_running"],
     "una riga sola: la classe la racconta meglio, e quella per dispositivo si fa da parte",
   );
+});
+
+/* A farsi da parte e' il DISPOSITIVO che ha gia' la sua riga, non tutta
+ * l'integrazione.
+ *
+ * Guardando l'integrazione intera bastava un solo `connectivity` di un
+ * accessorio — una telecamera appesa al NAS, un processo di Glances — perche'
+ * ogni NAS di quella marca sparisse dalla pagina, lasciando in piedi soltanto
+ * la riga di quell'accessorio: cioe' l'esatto contrario di quello che #411
+ * chiedeva, e proprio nella casa dove il NAS ha piu' roba attaccata. */
+test("un accessorio con la sua classe non porta via il NAS", () => {
+  const states = {
+    ...ACCESO,
+    "binary_sensor.cam_ingresso_connesso": {
+      state: "on",
+      attributes: { device_class: "connectivity", friendly_name: "Telecamera ingresso" },
+    },
+  };
+  const piattaforme = { "binary_sensor.cam_ingresso_connesso": "synology_dsm" };
+  assert.deepEqual(
+    integrazioniPerDispositivo(states, piattaforme, SCELTA),
+    ["synology_dsm"],
+    "l'integrazione resta adottabile: a farsi da parte e' il singolo dispositivo",
+  );
+  const elenchi = macchineERete(states, SCELTA, (entity) => entity, piattaforme, {
+    dispositivi: [NAS, TELECAMERA],
+    entita: { ...ENTITA, "cam-1": ["camera.ingresso", "binary_sensor.cam_ingresso_connesso"] },
+  });
+  assert.deepEqual(
+    elenchi.macchine.map((riga) => riga.name),
+    ["Synology NAS"],
+    "il NAS c'e' ancora, e l'accessorio resta un accessorio",
+  );
+  assert.deepEqual(
+    elenchi.rete.map((riga) => riga.entity),
+    ["binary_sensor.cam_ingresso_connesso"],
+  );
+});
+
+/* La tessera della Home conta le stesse righe della pagina Server.
+ *
+ * Il NAS adottato per dispositivo lo raccoglie la sezione Server, e lo passa a
+ * `macchineERete` come quinto argomento. La tessera in Home chiamava la stessa
+ * funzione senza quell'argomento: la pagina mostrava il Synology e la tessera
+ * no — o spariva del tutto, se in casa non c'era nient'altro da contare. Una
+ * tessera che conta meno righe della pagina che apre è una tessera che mente.
+ */
+test("la tessera della Home riceve i server adottati per dispositivo", () => {
+  const sorgente = readFileSync(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    sorgente,
+    /import \{ serverPerDispositivo \} from "\.\/macchine-e-rete-section\.js"/,
+  );
+  assert.match(sorgente, /serverPerDispositivo\(states, config\),/);
 });

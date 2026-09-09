@@ -259,23 +259,17 @@ export function comandiDellaMacchina(entity, states = {}) {
 export const SERVER_PER_DISPOSITIVO = Object.freeze(new Set(["synology_dsm", "qnap", "glances"]));
 
 /**
- * Quali di quelle si adottano adesso: scelte, e senza candidati per classe.
+ * Quali di quelle si adottano adesso: quelle spuntate, e basta.
  *
- * La seconda meta' conta: se un domani l'integrazione dichiarasse i suoi
- * `running`, la strada delle classi e' migliore — dice acceso e spento, non
- * solo «risponde» — e questa si fa da parte da sola invece di elencare tutto
- * due volte.
+ * Chi si fa da parte non e' l'integrazione: e' il singolo DISPOSITIVO che una
+ * riga ce l'ha gia' — vedi `giaContatoPerClasse` qui sotto. Guardando
+ * l'integrazione intera bastava un solo `connectivity` — un accessorio, un
+ * processo di Glances — perche' tutti i NAS di quella marca sparissero dalla
+ * pagina, lasciando in piedi soltanto la riga di quell'accessorio.
  */
 export function integrazioniPerDispositivo(states = {}, piattaforme, config) {
   const scelte = normalizzaMacchine(config);
-  const conCandidati = new Set();
-  for (const entity of candidateDaChiedere(states)) {
-    const dominio = clean(piattaforme?.[entity]);
-    if (dominio) conCandidati.add(dominio);
-  }
-  return scelte.integrazioni.filter(
-    (dominio) => SERVER_PER_DISPOSITIVO.has(dominio) && !conCandidati.has(dominio),
-  );
+  return scelte.integrazioni.filter((dominio) => SERVER_PER_DISPOSITIVO.has(dominio));
 }
 
 /* L'entita' che da' il nome alla riga: si preferisce quella che parla dello
@@ -285,6 +279,15 @@ export function integrazioniPerDispositivo(states = {}, piattaforme, config) {
 function rappresentanteDi(entita = []) {
   const ordinate = [...new Set(entita.map(clean).filter((id) => id.includes(".")))].sort();
   return ordinate.find((id) => /_(status|state|uptime)$/i.test(id)) || ordinate[0] || "";
+}
+
+/* Se questo dispositivo una riga ce l'ha gia' dalla strada delle classi.
+ *
+ * E' il «farsi da parte» detto per dispositivo e non per integrazione: quello
+ * che conta e' se QUESTO server ha un `running` o un `connectivity` che entra
+ * in fascia da solo, non se ce l'ha un accessorio della stessa marca. */
+function giaContatoPerClasse(entita = [], states = {}, config, piattaforme) {
+  return entita.some((id) => famigliaDi(id, states?.[id], config, piattaforme));
 }
 
 /* Come sta un dispositivo: acceso se almeno una delle sue entita' risponde.
@@ -327,6 +330,10 @@ export function macchineDeiDispositivi({
       : [clean(dispositivo.integration)];
     if (!domini.some((dominio) => senza.has(dominio))) continue;
     const suoi = (entita[clean(dispositivo.id)] || []).map(clean).filter(Boolean);
+    /* Se una sua entita' arriva gia' in fascia dalla strada delle classi, la
+     * riga c'e': quella dice acceso e spento, questa solo «risponde», e due
+     * righe per lo stesso NAS sarebbero lo stesso server elencato due volte. */
+    if (giaContatoPerClasse(suoi, states, config, piattaforme)) continue;
     const rappresentante = rappresentanteDi(suoi);
     if (!rappresentante || scelte.escluse.includes(rappresentante)) continue;
     righe.push({

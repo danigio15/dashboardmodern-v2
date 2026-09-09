@@ -28,6 +28,22 @@
 /** Oltre questi pixel il dito stava scorrendo, non toccando. */
 export const SCARTO_DEL_TOCCO = 12;
 
+/**
+ * Oltre questi, il dito ha TIRATO: e non importa piu' se la pagina l'ha
+ * seguito.
+ *
+ * Serve al bordo dello scorrimento. Un elenco gia' in fondo non ha piu' niente
+ * da scorrere: le posizioni restano quelle, e la regola qui sotto — «e' un
+ * tocco se niente si e' mosso» — direbbe tocco anche a una spazzata larga
+ * mezzo schermo, riaccendendo la luce che #397 aveva smesso di accendere.
+ *
+ * Quaranta pixel stanno larghi sopra il pollice appoggiato che rulla (una
+ * dozzina) e stretti sotto qualunque spazzata vera, che su un telefono e'
+ * lunga come mezzo elenco. Fra i dodici e i quaranta decide la pagina; sopra i
+ * quaranta decide il dito.
+ */
+export const SCARTO_DEL_TRASCINAMENTO = 40;
+
 const numero = (valore) => (Number.isFinite(+valore) ? +valore : null);
 
 /**
@@ -89,4 +105,18 @@ export function haScorsoDavvero(prima, adesso) {
     if (a !== b) return true;
   }
   return false;
+}
+
+/**
+ * Il giudizio intero: se questo click e' la coda di uno scorrimento.
+ *
+ * Mette insieme i due fatti, e sta qui perche' la regola e' una sola e chi ha
+ * gli eventi in mano non deve ricomporla. Il dito dev'essersi mosso piu' del
+ * tocco, e poi o la pagina l'ha seguito, o si e' mosso cosi' tanto che non
+ * serve chiederlo.
+ */
+export function eraUnoScorrimento(partenza, arrivo, prima, adesso) {
+  if (!stavaScorrendo(partenza, arrivo)) return false;
+  if (haScorsoDavvero(prima, adesso)) return true;
+  return stavaScorrendo(partenza, arrivo, SCARTO_DEL_TRASCINAMENTO);
 }

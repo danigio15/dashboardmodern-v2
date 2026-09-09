@@ -160,3 +160,34 @@ test("una telecamera che dorme tiene il suo permesso lungo nella fila del guscio
   assert.equal(hls.sveglia, true);
   assert.equal(hls.attesa, 25_000);
 });
+
+/* Le istantanee non si scorciano, e il tasto dell'audio resta vivo.
+ *
+ * La scorciatoia esiste per saltare un negoziato lento e arrivare a un video.
+ * Le istantanee un video non sono: sono l'ultima rete della fila, e il loro
+ * fotogramma la plancia lo mette già da sé appena apre il riquadro — saltare
+ * la fila per arrivare lì non fa guadagnare niente.
+ *
+ * In cambio costava. Chi salta la fila non passa dalla porta del guscio
+ * (`dmCamOpen`), che è l'unica riga che scrive quale telecamera è aperta:
+ * dopo la pulizia quel posto resta vuoto, e «Attiva audio» — il tasto che le
+ * istantanee disegnano, e che di lì chiede il salto all'HLS — non trovava più
+ * niente da attivare. Succedeva solo dalla seconda apertura in poi, cioè
+ * esattamente quando la scorciatoia entra in gioco.
+ */
+test("il ricordo delle istantanee non diventa una scorciatoia", () => {
+  const strade = [
+    { nome: "HLS", attesa: 10_000 },
+    { nome: "Istantanee", attesa: 0 },
+  ];
+  const adesso = 1_000_000;
+  assert.equal(
+    scorciatoia({ strada: "Istantanee", ms: 120, quando: adesso - 1000 }, strade, adesso),
+    null,
+    "l'ultima rete non è una scorciatoia: il fotogramma c'è già",
+  );
+  /* E una strada vera invece sì, come sempre. */
+  const corta = scorciatoia({ strada: "HLS", ms: 1800, quando: adesso - 1000 }, strade, adesso);
+  assert.equal(corta?.nome, "HLS");
+  assert.equal(corta?.scorciatoia, true);
+});
