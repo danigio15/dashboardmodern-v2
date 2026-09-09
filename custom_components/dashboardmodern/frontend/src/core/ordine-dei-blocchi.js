@@ -19,11 +19,13 @@
  * mandare in fondo, cioe' non vederle. */
 export const BLOCCHI_DELLA_HOME = Object.freeze([
   "persone",
-  /* Il flusso dell'energia (#415): «sulla home, accanto magari alle card delle
-   * persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla casa
-   * alle batterie, dalla casa all'auto». Nasce li' perche' li' e' stato
-   * chiesto, e da li' si sposta come tutti gli altri. */
-  "flusso",
+  /* Il flusso dell'energia (#415) qui c'e' stato, e non c'e' piu'. La
+   * segnalazione lo voleva «accanto alle card delle persone», e adesso lo e'
+   * davvero: e' una card DENTRO la griglia delle persone, non un blocco suo.
+   * Spostarlo per conto proprio quindi non vuol dire piu' niente — si muove
+   * con le persone, che e' la cosa a cui e' accanto. Chi l'aveva messo in fila
+   * non perde nulla: `ordineDeiBlocchi` butta via i nomi che non esistono
+   * piu', ed e' proprio per questo che sa farlo. */
   "widget",
   "azioni",
   "dispositivi",

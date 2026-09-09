@@ -144,3 +144,24 @@ export function forzaDellArco(watt, massimo) {
 export function arcoPiuGrande(archi = []) {
   return archi.reduce((massimo, arco) => Math.max(massimo, positivo(Number(arco?.watt))), 0);
 }
+
+/**
+ * Da dove viene, adesso, la corrente che la casa sta usando.
+ *
+ * E' il titolo di una mappa dei flussi, ed e' la cosa che si guarda per prima:
+ * fra sole, rete e batteria comanda chi ne manda di piu' in casa. Torna `""`
+ * quando in casa non entra niente da nessuno — allora non c'e' nessun titolo
+ * da dare, e scriverne uno sarebbe inventarlo.
+ */
+export function sorgenteDiCasa(archi = []) {
+  let scelta = "";
+  let massimo = 0;
+  for (const arco of Array.isArray(archi) ? archi : []) {
+    if (arco?.a !== "casa") continue;
+    const watt = positivo(Number(arco.watt));
+    if (watt <= massimo) continue;
+    massimo = watt;
+    scelta = String(arco.da);
+  }
+  return scelta;
+}

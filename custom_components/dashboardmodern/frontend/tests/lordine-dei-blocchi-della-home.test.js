@@ -26,7 +26,6 @@ test("l'ordine scelto si rispetta, e quello che non c'e' va in coda al suo posto
   assert.deepEqual(ordineDeiBlocchi(["azioni"]), [
     "azioni",
     "persone",
-    "flusso",
     "widget",
     "dispositivi",
   ]);
@@ -35,7 +34,6 @@ test("l'ordine scelto si rispetta, e quello che non c'e' va in coda al suo posto
     "dispositivi",
     "azioni",
     "persone",
-    "flusso",
     "widget",
   ]);
 });
@@ -46,7 +44,6 @@ test("un ordine sporco non rompe la Home", () => {
   assert.deepEqual(ordineDeiBlocchi(["azioni", "persone", "azioni"]), [
     "azioni",
     "persone",
-    "flusso",
     "widget",
     "dispositivi",
   ]);
@@ -55,14 +52,12 @@ test("un ordine sporco non rompe la Home", () => {
   assert.deepEqual(ordineDeiBlocchi(["fantasma", "widget"]), [
     "widget",
     "persone",
-    "flusso",
     "azioni",
     "dispositivi",
   ]);
   /* E le voci che non sono nemmeno stringhe. */
   assert.deepEqual(ordineDeiBlocchi([null, 3, { azioni: true }, "persone"]), [
     "persone",
-    "flusso",
     "widget",
     "azioni",
     "dispositivi",

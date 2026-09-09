@@ -312,7 +312,17 @@ export function openPersonPopup(id) {
 
 /* La sezione vive tra le pillole di stato e il Quadro Avvisi: e' la prima
  * cosa che si guarda rientrando in casa. Senza persone configurate non lascia
- * ne' titolo ne' vuoto. */
+ * ne' titolo ne' vuoto.
+ *
+ * La griglia sta dentro una fila, e la fila ha posto per un compagno: e' li'
+ * che si mette la card del flusso dell'energia, che va «accanto alle card
+ * delle persone» (#415). Accanto alla GRIGLIA e non DENTRO, e l'ho imparato
+ * mettendocela dentro: una card piu' alta di una persona alza tutta la riga
+ * della griglia, e le persone accanto si stiravano vuote per seguirla. Da
+ * fuori, invece, ognuno tiene la sua altezza.
+ *
+ * Il compagno e' anche al riparo dal ridisegno: qui sotto si riscrive la
+ * griglia, non la fila, quindi chi sta accanto non se ne accorge nemmeno. */
 function ensureHost() {
   const page = doc?.getElementById?.("page-home");
   if (!page) return null;
@@ -320,7 +330,7 @@ function ensureHost() {
   if (host) return host;
   host = doc.createElement("div");
   host.id = "dm-people";
-  host.innerHTML = `<h3 class="section-title dm-people-title">${t("Persone", "People")}</h3><div class="dm-people-grid"></div>`;
+  host.innerHTML = `<h3 class="section-title dm-people-title">${t("Persone", "People")}</h3><div class="dm-people-fila"><div class="dm-people-grid"></div></div>`;
   const anchor = doc.getElementById("dashboard-pills-row");
   if (anchor?.parentElement === page) anchor.after(host);
   else page.prepend(host);
@@ -338,6 +348,11 @@ export function renderPeopleSection() {
   const states = allStates();
   const now = Date.now();
   const grid = host.querySelector(".dm-people-grid");
+  /* Quante sono: serve alla fila, per non tenere corsie vuote quando accanto
+   * c'e' qualcuno. La griglia da sola le corsie vuote se le tiene volentieri —
+   * e' quello che ha sempre fatto — ma con un compagno a destra quel vuoto
+   * diventa un buco in mezzo, e il compagno sembra buttato li'. */
+  host.style.setProperty("--dm-people-quante", String(people.length));
   grid.innerHTML = people.map((person) => cardMarkup(personViewModel(person, states, now))).join("");
   host.querySelector(".dm-people-title").textContent = t("Persone", "People");
   /* La foto che non si carica non deve restare come icona rotta sopra
@@ -447,7 +462,17 @@ function installStyles() {
        stesso passo — perche' le due griglie stanno una sotto l'altra nella
        stessa pagina: con tracce diverse le card si sfalsano e la Home sembra
        montata storta. Se cambia una, cambia l'altra. */
-    #dm-people .dm-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+    /* La fila: la griglia delle persone e, accanto, chi ci si mette. In cima e
+       non stirati, cosi' una card piu' alta non alza le altre. Quando non c'e'
+       piu' larghezza per due, il compagno va a capo: su un telefono «accanto»
+       non esiste, e la scelta e' fra sotto e schiacciato. */
+    #dm-people .dm-people-fila{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px}
+    #dm-people .dm-people-grid{flex:1 1 260px;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+    /* Con un compagno accanto la griglia si tiene solo le corsie che le
+       servono: 222px e' una corsia piena piu' il suo passo. Senza compagno la
+       riga resta com'e' sempre stata — questa misura non la tocca. */
+    #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{
+      max-width:calc(var(--dm-people-quante,12) * 222px)}
     #dm-people .dm-person-card{--dm-presence:148,163,184;position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);border-radius:22px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));transition:var(--transition,.3s);overflow:hidden}
     /* Il ritratto e chi e', su una riga: la faccia e il nome vicini. */
     #dm-people .dm-person-testa{display:flex;align-items:center;gap:13px;min-width:0}
@@ -510,6 +535,7 @@ function installStyles() {
       /* Otto e non nove: sul telefono i widget passano alle loro regole
          compatte, che stringono il passo a 8. E' quel numero che decide dove
          cade il bordo della seconda colonna. */
+      #dm-people .dm-people-fila{gap:8px}
       #dm-people .dm-people-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
       #dm-people .dm-person-card{padding:11px}
       #dm-people .dm-person-testa{gap:9px}
