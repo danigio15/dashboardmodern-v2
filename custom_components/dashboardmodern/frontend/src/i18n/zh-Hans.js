@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "旁通打开",
   "Bypassed": "旁通中",
   "Charged · Low · Not reporting": "电量充足 · 电量偏低 · 无响应",
+  "Your reports · Status · Replies": "你的反馈 · 状态 · 回复",
+  "Motion · Free rooms · Last seen": "移动 · 空闲房间 · 最后检测",
   "Clean the litter box": "清理猫砂盆",
   "Climate and water": "气候与水",
   "Closed for": "已关闭",

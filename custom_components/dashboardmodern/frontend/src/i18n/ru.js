@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "Байпас открыт",
   "Bypassed": "В обход",
   "Charged · Low · Not reporting": "Заряжены · Разряжены · Не отвечают",
+  "Your reports · Status · Replies": "Ваши сообщения · Статус · Ответы",
+  "Motion · Free rooms · Last seen": "Движение · Свободные комнаты · Последний раз",
   "Clean the litter box": "Почистить лоток",
   "Climate and water": "Климат и вода",
   "Closed for": "Закрыто",

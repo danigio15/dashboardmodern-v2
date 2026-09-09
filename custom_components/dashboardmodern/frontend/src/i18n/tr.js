@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "Bypass açık",
   "Bypassed": "Atlanıyor",
   "Charged · Low · Not reporting": "Dolu · Zayıf · Yanıt yok",
+  "Your reports · Status · Replies": "Bildirimleriniz · Durum · Yanıtlar",
+  "Motion · Free rooms · Last seen": "Hareket · Boş odalar · Son görülme",
   "Clean the litter box": "Kum kabını temizle",
   "Climate and water": "İklim ve su",
   "Closed for": "Kapalı",

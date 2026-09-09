@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "الباي باس مفتوح",
   "Bypassed": "متجاوَز",
   "Charged · Low · Not reporting": "مشحونة · منخفضة · لا تستجيب",
+  "Your reports · Status · Replies": "تقاريرك · الحالة · الردود",
+  "Motion · Free rooms · Last seen": "الحركة · الغرف الفارغة · آخر مرور",
   "Clean the litter box": "نظّف صندوق الرمل",
   "Climate and water": "المناخ والماء",
   "Closed for": "مغلق منذ",

@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "バイパス開",
   "Bypassed": "バイパス中",
   "Charged · Low · Not reporting": "満充電 · 残量低下 · 応答なし",
+  "Your reports · Status · Replies": "あなたの報告 · 状態 · 返信",
+  "Motion · Free rooms · Last seen": "動き · 空き部屋 · 最後の検知",
   "Clean the litter box": "トイレを掃除する",
   "Climate and water": "空調と水まわり",
   "Closed for": "閉から",

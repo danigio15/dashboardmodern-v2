@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "바이패스 열림",
   "Bypassed": "우회 중",
   "Charged · Low · Not reporting": "충전됨 · 부족 · 응답 없음",
+  "Your reports · Status · Replies": "내 신고 · 상태 · 답변",
+  "Motion · Free rooms · Last seen": "움직임 · 빈 방 · 마지막 감지",
   "Clean the litter box": "화장실 청소",
   "Climate and water": "공조와 물",
   "Closed for": "닫힌 지",

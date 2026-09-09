@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "बायपास खुला",
   "Bypassed": "बायपास किया",
   "Charged · Low · Not reporting": "चार्ज · कम · कोई जानकारी नहीं",
+  "Your reports · Status · Replies": "आपकी रिपोर्ट · स्थिति · उत्तर",
+  "Motion · Free rooms · Last seen": "गति · खाली कमरे · अंतिम गतिविधि",
   "Clean the litter box": "लिटर बॉक्स साफ़ करें",
   "Climate and water": "जलवायु और पानी",
   "Closed for": "बंद है",

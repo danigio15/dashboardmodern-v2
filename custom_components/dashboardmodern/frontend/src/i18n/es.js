@@ -42,6 +42,8 @@ export default Object.freeze({
   "Bypass open": "Bypass abierto",
   "Bypassed": "Derivado",
   "Charged · Low · Not reporting": "Cargadas · Bajas · Sin respuesta",
+  "Your reports · Status · Replies": "Tus informes · Estado · Respuestas",
+  "Motion · Free rooms · Last seen": "Movimiento · Habitaciones libres · Última vez",
   "Clean the litter box": "Limpiar el arenero",
   "Climate and water": "Clima y agua",
   "Closed for": "Cerrado desde hace",

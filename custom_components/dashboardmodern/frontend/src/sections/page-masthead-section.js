@@ -36,6 +36,24 @@ const state = (root[KEY] ||= { installed: false, frame: 0, seeded: false, masthe
  * heading is drawn in — the first tints the sun disc and starts the title
  * gradient, the second closes it. `fold` names the heading the page printed
  * before this module existed. */
+/* Questo elenco e' anche quello che disegna il tasto per tornare in Home: chi
+ * non ci sta apre la sua pagina e non se ne esce piu'.
+ *
+ * Ci mancavano due pagine. La Presenza, nata con la 1.4.16, l'ha segnalata chi
+ * la usava: «manca il tasto HOME». Il Cruscotto delle segnalazioni non l'aveva
+ * segnalato nessuno, e l'ha trovato la prova nuova — che parte dalle pagine
+ * che le sezioni dichiarano invece che da questo elenco, ed e' il verso
+ * giusto: una riga che manca non la trova nessuna prova che guardi solo le
+ * righe che ci sono.
+ *
+ * Le spiegazioni delle singole voci stanno qui sopra e non fra le voci, e non
+ * per gusto: l'estrattore delle traduzioni legge questo letterale e pretende
+ * che dentro non ci sia niente da eseguire, ma prima svuota le stringhe — e in
+ * un commento italiano gli apostrofi si accoppiano come se fossero apici,
+ * inghiottendo a tratti quello che c'e' in mezzo. Due commenti piu' su
+ * campavano cosi', e aggiungerne altri qui dentro ha spostato l'accoppiamento
+ * e li ha scoperti. Un commento fuori dal letterale non puo' fare danni.
+ */
 const PAGES = Object.freeze([
   {
     id: "page-temp",
@@ -150,6 +168,24 @@ const PAGES = Object.freeze([
     tint: ["220,38,38", "22,163,74"],
     it: ["Varchi", "Porte · Finestre · Aperti e chiusi"],
     en: ["Openings", "Doors · Windows · Open and closed"],
+  },
+  /* La Presenza: dove c'e' qualcuno adesso, e da quanto una stanza e' vuota.
+   *
+   * Qui non c'era, e il tasto per tornare in Home lo disegna questo elenco:
+   * la pagina nuova della 1.4.16 si apriva e non se ne usciva piu' («manca il
+   * tasto HOME», #452). Una sezione che si struttura diversamente dalle altre
+   * e' una sezione a cui manca qualcosa, e questo era il pezzo. */
+  {
+    id: "page-cruscotto",
+    tint: ["14,165,233", "139,92,246"],
+    it: ["Cruscotto", "Le tue segnalazioni · Stato · Risposte"],
+    en: ["Console", "Your reports · Status · Replies"],
+  },
+  {
+    id: "page-presenza",
+    tint: ["139,92,246", "34,197,94"],
+    it: ["Presenza", "Movimento · Stanze libere · Ultimo passaggio"],
+    en: ["Presence", "Motion · Free rooms · Last seen"],
   },
   {
     id: "page-rifiuti",
