@@ -7,7 +7,130 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+## 1.4.15
+
+Prima di tutto: **l'integrazione non si installava più**. Da tre settimane, su
+ogni Home Assistant precedente alla 2026.3, il pannello si registrava con un
+parametro che quelle versioni non conoscono e l'avvio si fermava lì. Chi era
+già installato non se n'è accorto; chi installava da zero non ci riusciva. Il
+`hacs.json` promette la 2025.1.0, e quella promessa adesso è di nuovo vera.
+
+Poi il giro delle segnalazioni: sei nuove issue prese una per una, l'energia di
+casa che si disegna in Home, l'antifurto per chi una centrale non ce l'ha, e i
+due frigoriferi che non si scambiano più i sensori.
+
+### Aggiunto
+
+- **Il flusso dell'energia sulla Home** (#415, #416)
+
+  Fotovoltaico, rete, batteria, casa e auto, con gli archi che dicono da dove
+  arriva la corrente e quanta. Non è un secondo conto: è lo stesso ripartitore
+  delle sorgenti che l'Energia usa già, disegnato. L'arco dell'auto è tagliato
+  sul consumo di casa, così una wallbox non fa mai sembrare che si stia
+  consumando più di quello che entra. Si accende e si sposta come ogni altro
+  widget della Home.
+
+- **Sicurezza: i tasti d'inserimento se li scrive chi una centrale non ce
+  l'ha** (#413)
+
+  Chi non ha un `alarm_control_panel` inseriva l'antifurto da nessuna parte: la
+  sezione aspettava una centrale che non esisteva. Adesso i modi si dichiarano
+  uno per uno — uno script, una scena, un tasto, un'automazione, un
+  interruttore, una voce di un menu — e la sezione li mostra come i suoi. Chi
+  la centrale ce l'ha non cambia niente: i suoi modi restano quelli, e i modi
+  su misura si aggiungono in fondo.
+
+- **Le stanze fra le icone delle azioni rapide** (#414)
+
+  Il catalogo delle icone di un'azione aveva i comandi e le categorie ma non le
+  stanze, che sono ventitré disegni già in casa. Adesso ci sono, in un gruppo
+  loro, e si cercano per nome.
+
 ### Corretto
+
+- **L'installazione non partiva su Home Assistant precedente alla 2026.3**
+
+      «Ho dovuto togliere `show_in_sidebar=True` da `frontend.py` per farla
+      installare.»
+
+  Era vero, ed era un difetto nostro. `show_in_sidebar` è un parametro che
+  `frontend.async_register_built_in_panel` ha imparato nella 2026.3: sulle
+  versioni precedenti la chiamata solleva `TypeError` e l'integrazione non si
+  carica. Era entrato il 20 agosto e da allora nessuno con una Home Assistant
+  più vecchia della 2026.3 riusciva più a installare. Non se n'è accorto
+  nessuno per tre settimane perché ogni prova del pannello sostituiva la
+  funzione che registra con una finta: la firma vera non la guardava nessuno.
+  Adesso il parametro non c'è più — la barra laterale lo mette già da sé — e
+  due prove nuove chiamano la registrazione per davvero e confrontano i
+  parametri con la firma di Home Assistant.
+
+- **Assist non passava il ponte**
+
+      «Message type not permitted through the bridge: conversation/process.»
+
+  Nel pannello di Home Assistant e da Nabu Casa le richieste passano da un
+  ponte con un elenco di messaggi ammessi, e `conversation/process` in
+  quell'elenco non c'era: Assist rispondeva con l'errore invece che con la
+  risposta. La prova che doveva accorgersene aveva un buco — leggeva solo i
+  messaggi scritti per esteso, e non quelli tenuti in una costante — e appena
+  l'ha chiuso sono usciti altri tre messaggi bloccati, quelli dei timer del
+  Clima. Aggiunti tutti e quattro.
+
+- **Due frigoriferi non si scambiano più i sensori** (#417)
+
+      «Il frigorifero 1 mi mostra il valore di un sensore di temperatura zigbee
+      che ho messo all'interno di un diverso frigorifero. Anche se cancello
+      l'associazione, quando ritorno in configurazione me la ritrovo sempre. Mi
+      ricarica sempre in automatico circa 30 sensori.»
+
+  La passata che indovina le entità di un apparecchio dai nomi della casa
+  cercava anche con il TIPO — «frigo» — che ce l'hanno tutti i frigoriferi, e
+  le bastava che UNA parola combaciasse: il numero, l'unica cosa che distingue
+  il primo dal secondo, veniva scartato perché corto. Adesso le parole vengono
+  dal NOME, devono combaciare tutte, e i numeri contano; fra due nomi uno
+  dentro l'altro vince chi riconosce l'entità con più parole. La maschera degli
+  elettrodomestici, poi, non lasciava alcun segno, così ogni cancellazione
+  veniva riscritta un istante dopo il salvataggio: adesso ne lascia uno, e una
+  casella lasciata vuota è una risposta. Le configurazioni già sporche si
+  ripuliscono da sole: un'entità che porta il nome di un altro apparecchio se
+  ne va, mentre quello che non si sa attribuire a nessuno resta dov'è.
+
+- **Il menu delle integrazioni non nasconde più una marca** (#412)
+
+  Un dispositivo dichiarato da due integrazioni compariva solo sotto la prima,
+  e chi cercava la sua marca non lo trovava. Adesso compare sotto ognuna, e il
+  conteggio accanto al nome dell'integrazione conta gli stessi dispositivi che
+  poi si vedono.
+
+- **Il NAS entra fra le macchine anche se non dichiara l'acceso** (#411)
+
+  Synology, QNAP e Glances descrivono un server con le sue misure ma senza
+  un'entità che dica «è acceso», e la sezione Macchine cercava proprio quella:
+  un NAS collegato non compariva. Adesso, per queste integrazioni, la macchina
+  è il DISPOSITIVO: si prende il suo rappresentante fra le entità che pubblica,
+  e lo stato lo si deduce dal fatto che risponda.
+
+- **Telecamere: il fotogramma subito, e la strada che ha funzionato si riprova
+  per prima**
+
+  Aprendo una telecamera si restava sul nero per qualche secondo mentre si
+  provavano in ordine WebRTC, HLS, MJPEG e le immagini a raffica. Adesso
+  compare subito l'ultimo fotogramma che Home Assistant ha già in mano, e la
+  strada che ha funzionato l'ultima volta su quella telecamera si riprova per
+  prima: la sequenza resta quella, ma quasi sempre finisce al primo tentativo.
+
+- **I nomi degli elettrodomestici entrano nella card**
+
+  Il nome divideva la riga con la stanza e il bollino di stato, e un nome un
+  po' lungo veniva tagliato. Adesso il nome ha la riga per sé, e stanza e
+  bollino stanno sotto insieme.
+
+- **Le stanze degli elettrodomestici portano il disegno di casa**
+
+  Nell'elenco delle stanze e sulla card comparivano ancora le emoji di sistema
+  al posto dei disegni del catalogo. Sostituite. Resta l'emoji nella tendina
+  delle stanze della scheda, e non per dimenticanza: dentro un `<option>` il
+  browser disegna testo, e nessun elemento.
 
 - **Wallbox: il totale dell'anno somma i giorni, non sottrae i contatori dei
   mesi**
@@ -56,6 +179,30 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   invece di lasciarlo scoprire aprendola.
 
 ### Cambiato
+
+- **La barra sotto il meteo, rifatta**
+
+  La riga che sta sotto il meteo dice quello che in casa è acceso o aperto
+  adesso — le luci, le finestre, le tapparelle, quello che sta suonando, la
+  posta. Era una fila di pastiglie grigie tutte uguali, che la si guardava
+  senza vederci niente. Adesso è una striscia sola, larga quanto quello che ha
+  da dire e non un pixel di più: dentro, ogni voce ha il suo disegno colorato,
+  il numero grande, e sotto la parola piccola che dice di cosa si tratta.
+  Rifacendola sono uscite cinque frasi che nessuna lingua traduceva: erano
+  scritte col numero dentro la frase, quindi ogni valore era una frase diversa
+  e nessun catalogo poteva contenerle tutte. Adesso il numero sta fuori.
+
+- **Le scritte inutili della sezione Macchine**
+
+  «MACCHINE E RETE · Da scegliere · 21», con il paragrafo che spiegava cosa
+  fare, comparivano anche a sezione non configurata: se si configura nella
+  sezione del Config di riferimento, quelle scritte non servono. Tolte.
+
+- **Il cestino è lo stesso in ogni sezione del Config**
+
+  Nei Varchi il tasto per togliere una voce dall'elenco era un divieto 🚫,
+  mentre altrove è un cestino: due disegni per lo stesso gesto. Adesso è il
+  cestino dappertutto — Varchi, Batterie, Macchine — con la stessa scritta.
 
 - **Il Config: la ricerca in cima, «Tutte» che resta, la colonna a sotto-menu,
   e il nome della sezione aperta**
