@@ -41,9 +41,14 @@ jobs:
           - { project: desktop, shard: 2, shards: 2 }
           - { project: mobile, shard: 1, shards: 2 }
           - { project: mobile, shard: 2, shards: 2 }
-          - { project: webkit-ipad, shard: 1, shards: 3 }
-          - { project: webkit-ipad, shard: 2, shards: 3 }
-          - { project: webkit-ipad, shard: 3, shards: 3 }
+          # Quattro pezzi e non tre: WebKit e' il piu' lento, a tre sfiorava il
+          # tetto dei trenta minuti, e la suite cresce a ogni rilascio. Il tetto
+          # e' lo stesso del gate del rilascio (release.yml): se cambia uno,
+          # cambia l'altro, sennò una PR verde non basta a far uscire nulla.
+          - { project: webkit-ipad, shard: 1, shards: 4 }
+          - { project: webkit-ipad, shard: 2, shards: 4 }
+          - { project: webkit-ipad, shard: 3, shards: 4 }
+          - { project: webkit-ipad, shard: 4, shards: 4 }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

@@ -76,14 +76,26 @@ jobs:
   # Same shape as the Browser E2E workflow, which is green on every commit that
   # reaches main: the browsers come with the image, so there is nothing to
   # install, and the three projects run in parallel instead of end to end.
+  # WebKit e' diviso in quattro e non in tre perche' e' il piu' lento dei tre
+  # browser: a tre pezzi ogni shard sfiorava il tetto, e la suite cresce a ogni
+  # rilascio. Sono le stesse prove, spartite piu' larghe — non una in meno.
   # Stessa divisione del giro normale: l'attesa e' quella del pezzo piu' lento,
   # non la somma. WebKit da solo teneva fermo il rilascio dodici minuti.
+  #
+  # Il tetto di tempo e' lo STESSO del giro normale (e2e.yml), e non per
+  # simmetria: qui era 25 minuti dove la' sono 30, e gli shard di WebKit ci
+  # stavano dentro per un pelo. Cresciuta la suite, la PR restava verde a
+  # ventisei minuti e qui i tre shard venivano troncati a venticinque — quindi
+  # «Publish release» si saltava e la 1.4.16 non usciva, senza che niente
+  # risultasse rosso. Un cancello piu' severo del controllo che autorizza il
+  # merge non protegge: rende solo impossibile rilasciare quello che e' stato
+  # approvato. Se uno dei due cambia, cambia l'altro.
   gate:
     name: Browser E2E release gate / ${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards }}
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.54.1-noble
-    timeout-minutes: 25
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       max-parallel: 7
@@ -93,9 +105,10 @@ jobs:
           - { project: desktop, shard: 2, shards: 2 }
           - { project: mobile, shard: 1, shards: 2 }
           - { project: mobile, shard: 2, shards: 2 }
-          - { project: webkit-ipad, shard: 1, shards: 3 }
-          - { project: webkit-ipad, shard: 2, shards: 3 }
-          - { project: webkit-ipad, shard: 3, shards: 3 }
+          - { project: webkit-ipad, shard: 1, shards: 4 }
+          - { project: webkit-ipad, shard: 2, shards: 4 }
+          - { project: webkit-ipad, shard: 3, shards: 4 }
+          - { project: webkit-ipad, shard: 4, shards: 4 }
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
