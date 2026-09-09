@@ -28,12 +28,14 @@ const SEME = {
     covers: [],
     pool: {},
     irrigation: { zones: [] },
-    energy: {},
-    entityOverrides: {
-      "dm.energy_potenza_batteria": BATTERIA,
-      "dm.energy_potenza_fotovoltaico": SOLARE,
-      "dm.energy_potenza_scambio_rete": RETE,
+    /* Le entità dell'Energia stanno nel documento della sezione, non fra le
+     * caselle sciolte: in schema 4 l'impianto è il primo livello di `energy`. */
+    energy: {
+      battery: { power: BATTERIA },
+      solar: { power: SOLARE },
+      grid: { power: RETE },
     },
+    entityOverrides: {},
   },
   visibility: { home: true, energy: true },
 };

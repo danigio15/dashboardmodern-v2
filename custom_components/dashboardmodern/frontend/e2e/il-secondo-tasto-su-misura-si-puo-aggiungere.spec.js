@@ -48,7 +48,11 @@ test("il «＋» si può premere più di una volta", async ({ page }, testInfo) 
   }, CENTRALE);
 
   await page.evaluate(() => window.apriConfigEntita());
-  await page.evaluate(() => window.editorSwitch?.("sez4"));
+  /* La linguetta si PREME, non si chiama: il blocco si riaggancia al corpo
+   * della scheda quando la scheda cambia, e il corpo cambia sotto le dita di
+   * chi tocca. Chiamando `editorSwitch` a mano si prova una plancia che
+   * nessuno usa. */
+  await page.locator('.ed-tab[data-tab="sez4"]').first().click();
 
   /* Il blocco compare da sé: si aggancia alla casella della centrale. */
   const piu = page.locator("#dm-antifurto-su-misura [data-suo-add]");
