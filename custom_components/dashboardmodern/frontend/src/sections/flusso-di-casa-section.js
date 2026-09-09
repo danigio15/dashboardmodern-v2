@@ -375,9 +375,12 @@ function schedule() {
  * quelle di `people-section.js`, compresa la soglia del telefono. */
 function css() {
   return `
-  #${BLOCCO_ID}{display:block;margin:14px 0 0}
+  #${BLOCCO_ID}{display:block;margin:14px 0 0;max-width:320px}
+  /* Nella fila delle persone la larghezza la da' la colonna: la card e' una
+     corsia di quella griglia, la stessa dei widget. Da sola — senza persone —
+     se la tiene addosso, per non stirarsi su tutta la pagina. */
   .dm-flusso-card{
-    --dm-flusso-fonte:100,116,139;flex:0 0 224px;width:224px;max-width:100%;
+    --dm-flusso-fonte:100,116,139;width:100%;max-width:100%;grid-column:-2/-1;
     position:relative;display:flex;flex-direction:column;gap:10px;
     padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);
     border-radius:22px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));
@@ -424,11 +427,15 @@ function css() {
   @keyframes dm-flusso-scorre{to{stroke-dashoffset:-17}}
   @media (prefers-reduced-motion:reduce){
     .dm-flusso-arco{animation:none;stroke-dasharray:none}}
-  @media(max-width:520px){
-    /* Su un telefono «accanto» non esiste: la card va a capo sotto la griglia
-       e allora prende la riga tutta, come tutto il resto. */
-    .dm-flusso-card{flex-basis:100%;width:100%;padding:11px;gap:8px}
+  @media(max-width:760px){
+    /* Senza tre colonne «accanto» non esiste: la card va sotto la griglia e
+       allora prende la riga tutta, come tutto il resto. */
+    #${BLOCCO_ID}{max-width:none}
+    .dm-flusso-card{grid-column:1/-1}
     .dm-flusso-card svg{max-height:220px}
+  }
+  @media(max-width:520px){
+    .dm-flusso-card{padding:11px;gap:8px}
     .dm-flusso-nome{font-size:12px}
     .dm-flusso-fonte{font-size:9px;padding:2px 8px}
   }

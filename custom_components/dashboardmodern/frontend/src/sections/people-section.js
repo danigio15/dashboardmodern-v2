@@ -348,11 +348,6 @@ export function renderPeopleSection() {
   const states = allStates();
   const now = Date.now();
   const grid = host.querySelector(".dm-people-grid");
-  /* Quante sono: serve alla fila, per non tenere corsie vuote quando accanto
-   * c'e' qualcuno. La griglia da sola le corsie vuote se le tiene volentieri —
-   * e' quello che ha sempre fatto — ma con un compagno a destra quel vuoto
-   * diventa un buco in mezzo, e il compagno sembra buttato li'. */
-  host.style.setProperty("--dm-people-quante", String(people.length));
   grid.innerHTML = people.map((person) => cardMarkup(personViewModel(person, states, now))).join("");
   host.querySelector(".dm-people-title").textContent = t("Persone", "People");
   /* La foto che non si carica non deve restare come icona rotta sopra
@@ -463,16 +458,27 @@ function installStyles() {
        stessa pagina: con tracce diverse le card si sfalsano e la Home sembra
        montata storta. Se cambia una, cambia l'altra. */
     /* La fila: la griglia delle persone e, accanto, chi ci si mette. In cima e
-       non stirati, cosi' una card piu' alta non alza le altre. Quando non c'e'
-       piu' larghezza per due, il compagno va a capo: su un telefono «accanto»
-       non esiste, e la scelta e' fra sotto e schiacciato. */
-    #dm-people .dm-people-fila{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px}
-    #dm-people .dm-people-grid{flex:1 1 260px;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-    /* Con un compagno accanto la griglia si tiene solo le corsie che le
-       servono: 222px e' una corsia piena piu' il suo passo. Senza compagno la
-       riga resta com'e' sempre stata — questa misura non la tocca. */
-    #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{
-      max-width:calc(var(--dm-people-quante,12) * 222px)}
+       non stirati, cosi' una card piu' alta non alza le altre.
+       La fila e' LA STESSA griglia — stesso passo, stessa corsia minima — e non
+       per eleganza: il compagno deve occupare esattamente una colonna, sennò le
+       persone che restano prendono una corsia diversa da quella dei widget e la
+       Home si monta storta. Con una fila larga a caso erano 6,66px di
+       differenza, che sulla quinta colonna diventano trenta. */
+    #dm-people .dm-people-fila{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+      align-items:start;gap:12px}
+    #dm-people .dm-people-grid{grid-column:1/-1;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+    /* Col compagno accanto la griglia lascia libera l'ultima colonna. Essendo
+       larga esattamente le altre meno una (piu' i loro passi), il suo auto-fill
+       ricava corsie identiche: e' la stessa aritmetica su una larghezza piu'
+       corta. */
+    #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-2}
+    /* Sotto le tre colonne «accanto» vuol dire schiacciare le persone in una
+       corsia sola: si torna in colonna, la griglia intera e il compagno sotto. */
+    @media(max-width:760px){
+      #dm-people .dm-people-fila{grid-template-columns:1fr}
+      #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-1}
+    }
     #dm-people .dm-person-card{--dm-presence:148,163,184;position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);border-radius:22px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));transition:var(--transition,.3s);overflow:hidden}
     /* Il ritratto e chi e', su una riga: la faccia e il nome vicini. */
     #dm-people .dm-person-testa{display:flex;align-items:center;gap:13px;min-width:0}
