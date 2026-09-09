@@ -24,6 +24,8 @@
  * passo.
  */
 
+import { pick } from "./i18n.js";
+
 const pulito = (valore) => String(valore ?? "").trim();
 
 /* Quello che non si mostra mai.
@@ -58,7 +60,9 @@ export const RUMORE = Object.freeze(
  * di non scrivere niente. Una lista si legge se i suoi pezzi si leggono. */
 export function comeSiLegge(valore) {
   if (valore === null || valore === undefined) return "";
-  if (typeof valore === "boolean") return valore ? "sì" : "no";
+  /* Il sì e il no nella lingua di chi guarda: erano scritti in italiano dentro
+   * il modello, e da lì uscivano tali e quali su ogni plancia del mondo. */
+  if (typeof valore === "boolean") return valore ? pick("sì", "yes") : pick("no", "no");
   if (typeof valore === "number") return Number.isFinite(valore) ? String(valore) : "";
   if (typeof valore === "string") return valore.trim();
   if (Array.isArray(valore)) {

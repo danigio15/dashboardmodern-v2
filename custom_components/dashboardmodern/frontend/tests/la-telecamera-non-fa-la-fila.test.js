@@ -96,18 +96,28 @@ test("le istantanee non hanno attesa: e' per questo che non sono un tentativo", 
   }
 });
 
-test("un browser che non sa fare ne' WebRTC ne' HLS resta con le istantanee", () => {
-  /* Il caso estremo: non e' una cascata caduta, e' l'unica strada che c'e'. */
+test("un browser che non sa fare ne' WebRTC ne' HLS resta col proxy dal vivo", () => {
+  /* Questa prova diceva «resta con le istantanee», e la ragione scritta era
+   * «e' l'unica strada che c'e'». Non lo era: il proxy MJPEG e' un `<img>` su
+   * un altro indirizzo — `camera_proxy_stream` invece di `camera_proxy` — e non
+   * chiede al browser di saper suonare niente. Chi non ha ne' WebRTC ne' HLS
+   * puo' vedere il vivo lo stesso, e ci veniva mandato sopra i fotogrammi a
+   * intervalli per una convinzione sbagliata. */
   const strade = strategieDellaTelecamera(
     {},
     { entity_id: "camera.generica" },
     { webrtcNelBrowser: false, hlsNelBrowser: false },
   );
-  assert.equal(stradaScelta(strade), null);
+  assert.equal(stradaScelta(strade)?.nome, "MJPEG");
   assert.deepEqual(
     daProvare(strade).map((strada) => strada.nome),
-    ["Istantanee"],
+    ["MJPEG", "Istantanee"],
   );
   assert.equal(strade.find((s) => s.nome === "WebRTC").salta, "browser-senza-webrtc");
   assert.equal(strade.find((s) => s.nome === "HLS").salta, "browser-senza-hls");
+  /* E le istantanee restano sotto: la rete non si toglie mai. */
+  assert.equal(strade.find((s) => s.nome === "Istantanee").salta, undefined);
+  /* Non si dice di svegliare una telecamera che non dorme: il proxy qui e' la
+   * strada scelta, non la sveglia di una che sta in cloud. */
+  assert.equal(strade.find((s) => s.nome === "MJPEG").sveglia, false);
 });

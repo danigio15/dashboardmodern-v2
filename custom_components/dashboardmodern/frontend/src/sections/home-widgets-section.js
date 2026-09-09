@@ -198,7 +198,6 @@ import { wattsFromState } from "../core/signed-energy.js";
 import {
   contactEntity,
   inferriataEntity,
-  isWindowOnly,
   windowOpenFromState,
 } from "../core/shutter-window.js";
 import {
@@ -1028,35 +1027,50 @@ function coversModel(states) {
        * solo i sensori di apertura non aveva modo di vedere a colpo d'occhio
        * quali infissi ha lasciato aperti — che e' esattamente la cosa che si
        * vuole sapere uscendo di casa. */
-      if (isWindowOnly(item)) {
-        /* I contatti possono essere due (#254): l'infisso dentro e
-         * l'inferriata fuori. Sono due cose che si aprono per conto loro, e in
-         * Home vanno elencate separate — una grata lasciata aperta e una
-         * finestra lasciata aperta non sono la stessa notizia. Chi ne ha
-         * dichiarato uno solo vede una riga sola, come prima. */
-        const nome = clean(item?.name);
-        return [
-          [contactEntity(item), nome, false],
-          [inferriataEntity(item), nome, true],
-        ]
-          .filter(([entita]) => entita)
-          .map(([entita, etichetta, grata]) => ({
-            item,
-            voce: { entity: entita, kind: "", down: "" },
-            etichetta: grata
-              ? `${etichetta || entita} · ${t("Inferriata", "Grate")}`
-              : etichetta || entita,
-            soloSensore: true,
-          }));
-      }
-      return coverEntries(item).map((voce) => ({
+      /* Una riga porta due cose diverse, e in Home vanno tutte e due.
+       *
+       * I contatti possono essere due (#254): l'infisso dentro e l'inferriata
+       * fuori. Sono due cose che si aprono per conto loro, e vanno elencate
+       * separate — una grata lasciata aperta e una finestra lasciata aperta
+       * non sono la stessa notizia.
+       *
+       * Prima i contatti uscivano SOLO da una riga senza motore, e la riga
+       * normale — la tapparella con il sensore del suo infisso, che e' come si
+       * configura una finestra — ne dava indietro la sola tapparella. La
+       * tessera quindi contava l'avvolgibile su e taceva dell'anta aperta,
+       * cioe' faceva l'errore della #442 dall'altro lato: chiamava tapparelle
+       * una casa che aveva anche una finestra aperta. Adesso una riga rende
+       * quello che ha. */
+      const nome = clean(item?.name);
+      const motori = coverEntries(item);
+      const righeMotore = motori.map((voce) => ({
         item,
         voce,
         etichetta:
-          coverEntries(item).length > 1 && voce.kind
-            ? `${clean(item?.name) || voce.entity} · ${coverKindLabel(voce.kind)}`
-            : clean(item?.name) || voce.entity,
+          motori.length > 1 && voce.kind
+            ? `${nome || voce.entity} · ${coverKindLabel(voce.kind)}`
+            : nome || voce.entity,
       }));
+      const righeContatto = [
+        [contactEntity(item), false],
+        [inferriataEntity(item), true],
+      ]
+        .filter(([entita]) => entita)
+        .map(([entita, grata]) => ({
+          item,
+          voce: { entity: entita, kind: "", down: "" },
+          /* Il nome si qualifica solo quando serve a distinguere: con un
+           * motore sulla stessa riga «Camera» comparirebbe due volte, una
+           * alzata e una aperta, e non si capirebbe quale e' quale. Da sola,
+           * la finestra resta «Camera» come e' sempre stata. */
+          etichetta: grata
+            ? `${nome || entita} · ${t("Inferriata", "Grate")}`
+            : motori.length
+              ? `${nome || entita} · ${t("Finestra", "Window")}`
+              : nome || entita,
+          soloSensore: true,
+        }));
+      return [...righeMotore, ...righeContatto];
     })
     .map(({ item, voce, etichetta, soloSensore }) => {
       const entity = clean(voce.entity);

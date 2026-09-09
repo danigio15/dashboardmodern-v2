@@ -171,8 +171,18 @@ export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
   else if (!hlsNelBrowser) strade.push({ nome: "HLS", salta: "browser-senza-hls" });
   else strade.push({ nome: "HLS", attesa: ATTESE.HLS_LOCALE, sveglia: false });
 
+  /* Il proxy MJPEG e' anche l'ultima strada VIVA, non solo quella di chi dorme.
+   *
+   * Senza WebRTC e con un browser che l'HLS non lo sa suonare — hls.js che non
+   * si carica, e niente HLS nativo — non era stata scelta nessuna strada, e
+   * MJPEG si toglieva di mezzo dicendo «strada-gia-scelta»: una ragione falsa,
+   * perche' scelta non ce n'era nessuna. Chi guardava finiva dritto sulle
+   * istantanee, cioe' su dei fotogrammi a intervalli, mentre il proxy dal vivo
+   * era li' e funzionava. */
+  const vivoInCorsa = webrtcInCorsa || scelta("HLS");
   if (proxyDalVivo) strade.push({ nome: "MJPEG", attesa: ATTESE.MJPEG_SVEGLIA, sveglia: true });
-  else strade.push({ nome: "MJPEG", salta: GIA_SCELTA });
+  else if (vivoInCorsa) strade.push({ nome: "MJPEG", salta: GIA_SCELTA });
+  else strade.push({ nome: "MJPEG", attesa: ATTESE.MJPEG_SVEGLIA, sveglia: false });
 
   /* Le istantanee non si saltano mai: sono l'ultima rete, e non hanno attesa
    * perche' o il fotogramma arriva o non arriva. Non fanno fila con nessuno —

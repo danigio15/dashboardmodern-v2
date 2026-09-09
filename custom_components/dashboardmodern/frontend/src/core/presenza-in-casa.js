@@ -183,14 +183,24 @@ export function contoDellaPresenza(righe = []) {
 }
 
 /**
- * Da quanto l'ultima volta che si è mosso qualcosa, fra tutti i rilevatori.
+ * Da quanto l'ultima volta che si è mosso qualcosa, fra i rilevatori che
+ * rispondono.
  *
  * È il numero che risponde a «è passato qualcuno mentre non c'ero»: con la casa
  * tutta libera, il rilevatore che ha cambiato stato più di recente è quello che
  * si è appena spento, cioè l'ultimo movimento. Torna `null` quando nessuno ha
  * una storia da raccontare.
+ *
+ * Chi non risponde resta fuori, e non è un dettaglio: un rilevatore che passa a
+ * `unavailable` cambia stato in quel momento, e contarlo voleva dire scrivere
+ * «Ultimo movimento · appena adesso» a una casa in cui l'unica cosa successa
+ * era un sensore andato giù. È la stessa regola con cui un muto non viene
+ * contato fra le stanze libere: un'assenza di notizie non è una notizia.
  */
 export function ultimoMovimento(righe = []) {
-  const istanti = righe.map((riga) => riga?.da).filter((quando) => Number.isFinite(quando));
+  const istanti = righe
+    .filter((riga) => riga?.stato !== "")
+    .map((riga) => riga?.da)
+    .filter((quando) => Number.isFinite(quando));
   return istanti.length ? Math.max(...istanti) : null;
 }

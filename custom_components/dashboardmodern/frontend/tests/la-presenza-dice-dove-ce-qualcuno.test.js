@@ -168,14 +168,33 @@ test("il conto non conta libero chi non risponde", () => {
 
 test("a casa libera la notizia è l'ultima volta che c'è stato qualcuno", () => {
   const righe = [
-    { da: Date.parse("2026-09-09T09:00:00Z") },
-    { da: Date.parse("2026-09-09T10:30:00Z") },
-    { da: null },
+    { stato: "libero", da: Date.parse("2026-09-09T09:00:00Z") },
+    { stato: "libero", da: Date.parse("2026-09-09T10:30:00Z") },
+    { stato: "libero", da: null },
   ];
   assert.equal(ultimoMovimento(righe), Date.parse("2026-09-09T10:30:00Z"));
   /* Nessuna storia, nessuna scritta: inventare «da poco» sarebbe una bugia. */
-  assert.equal(ultimoMovimento([{ da: null }]), null);
+  assert.equal(ultimoMovimento([{ stato: "libero", da: null }]), null);
   assert.equal(ultimoMovimento([]), null);
+});
+
+test("un rilevatore che va giù non è un movimento", () => {
+  /* Passare a `unavailable` è un cambio di stato, e il suo `last_changed` è
+   * adesso. Contandolo, una casa in cui l'unica cosa successa era un sensore
+   * andato giù leggeva «Ultimo movimento · appena adesso»: la notizia più
+   * tranquillizzante possibile, detta proprio quando la sorveglianza manca. */
+  const righe = [
+    { stato: "libero", da: Date.parse("2026-09-09T07:00:00Z") },
+    { stato: "", da: Date.parse("2026-09-09T11:59:00Z") },
+  ];
+  assert.equal(ultimoMovimento(righe), Date.parse("2026-09-09T07:00:00Z"));
+  /* E chi si sta muovendo adesso conta: il suo cambio è un movimento vero. */
+  assert.equal(
+    ultimoMovimento([{ stato: "attivo", da: Date.parse("2026-09-09T12:00:00Z") }]),
+    Date.parse("2026-09-09T12:00:00Z"),
+  );
+  /* Con i soli muti non c'è niente da dire. */
+  assert.equal(ultimoMovimento([{ stato: "", da: Date.parse("2026-09-09T11:59:00Z") }]), null);
 });
 
 test("la voce compare solo con qualcosa da mostrare", () => {

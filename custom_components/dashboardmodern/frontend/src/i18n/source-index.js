@@ -2819,6 +2819,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Sezioni successive": "Next sections",
   "Sfoglia le cartelle di Home Assistant": "Browse the Home Assistant folders",
   "Sfondo": "Background",
+  "sì": "yes",
   "si aggiorna da solo": "updates by itself",
   "si comanda": "can be controlled",
   "Si sta allontanando da casa": "Moving away from home",

@@ -284,7 +284,13 @@ export function fraseDellAllerta(lettura) {
        * che spiega cosa stia succedendo». Un «3» non dice niente a chi e'
        * allergico; «Graminacee: medio» gli dice se la giornata riguarda lui. */
       const peggiore = laPiuGrave(lettura.voci || []);
-      if (peggiore) {
+      /* ...ma solo se e' lui a decidere il livello della tessera. `voci` sono i
+       * pollini singoli, e il bollettino di oggi non e' fra loro: con un
+       * bollettino «molto alto» e le tre erbe tranquille, la tessera si
+       * accendeva sul bollettino e la frase diceva «Graminacee: basso» —
+       * nascondendo proprio la lettura che aveva alzato l'allerta. Quando a
+       * comandare e' il bollettino, si dice quello che dice lui. */
+      if (peggiore && peggiore.livello === lettura.livello) {
         const quanto =
           peggiore.categoria ||
           (peggiore.indice != null ? parolaDelGradino(peggiore.indice) : "") ||

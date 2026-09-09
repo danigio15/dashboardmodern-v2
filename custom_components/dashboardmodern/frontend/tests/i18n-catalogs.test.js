@@ -191,6 +191,9 @@ const SHARED_ACROSS_LANGUAGES = new Set([
  */
 const LOCALE_IDENTITIES = {
   es: new Set([
+    /* In spagnolo il no e' «no», uguale all'inglese. Il sì invece e' «sí»,
+     * quindi la coppia non e' sospetta: e' una parola sola che coincide. */
+    "no",
     "Gas",
     "Natural",
     "Polo",
