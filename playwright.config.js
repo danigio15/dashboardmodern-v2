@@ -23,10 +23,32 @@ export default defineConfig({
     port: 4173,
     reuseExistingServer: true,
   },
+  // Il tetto di tempo di una prova e' un fatto del browser, non della prova.
+  //
+  // Il valore di serie e' trenta secondi, e vale lo stesso per tutti e tre i
+  // progetti — ma WebKit su iPad, dentro un contenitore, ci mette circa una
+  // volta e mezza quello che ci mette Chromium. `phase6-functional` gira in
+  // diciotto secondi sul desktop: su WebKit sotto carico passa i trenta, e
+  // cade. Non resta appesa da nessuna parte — il tempo finisce mentre fa
+  // l'ultima cosa, e infatti cade in un punto diverso a ogni giro.
+  //
+  // Che il tetto di serie fosse stretto lo diceva gia' la suite da sola: in
+  // cinquantacinque file c'e' scritto a mano
+  // `setTimeout(project === "webkit-ipad" ? 120_000 : 75_000)`, novantacinque
+  // volte. E le prove che cadono sono esattamente quelle a cui nessuno si e'
+  // ricordato di scriverlo — `phase6-functional` sulla PR, `beta32-real-device-
+  // uniformity` su main. Una regola da ricordare a mano in ogni file nuovo non
+  // e' una regola: e' un tranello.
+  //
+  // Quindi il pavimento sta qui, dove il browser e' dichiarato. Quello scritto
+  // nelle singole prove resta, ed e' un'altra cosa: un permesso in piu' per i
+  // giri lunghi, sopra il pavimento, non il pavimento stesso. Nessuna prova
+  // perde tempo, perche' ogni valore scritto a mano e' gia' maggiore o uguale.
   projects: [
-    { name: "desktop", use: { viewport: { width: 1440, height: 900 } } },
+    { name: "desktop", timeout: 75_000, use: { viewport: { width: 1440, height: 900 } } },
     {
       name: "mobile",
+      timeout: 75_000,
       use: {
         browserName: "chromium",
         viewport: { width: 390, height: 844 },
@@ -35,6 +57,10 @@ export default defineConfig({
         deviceScaleFactor: 2,
       },
     },
-    { name: "webkit-ipad", use: { ...devices["iPad Pro 11"], browserName: "webkit" } },
+    {
+      name: "webkit-ipad",
+      timeout: 120_000,
+      use: { ...devices["iPad Pro 11"], browserName: "webkit" },
+    },
   ],
 });
