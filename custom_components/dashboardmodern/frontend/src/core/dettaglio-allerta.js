@@ -138,5 +138,11 @@ export function vociDelDettaglio(attributi = {}, salta = RUMORE) {
 export function valeLaPenaAprirla(lettura = {}, attributi = {}) {
   if (vociDelDettaglio(attributi).length) return true;
   /* Il testo intero che la tessera taglia e' gia' un motivo per aprirla. */
-  return pulito(lettura?.testo).length > 0;
+  if (pulito(lettura?.testo).length > 0) return true;
+  /* E le letture che una categoria si porta accanto: i pollini presi uno per
+   * uno, gli indici del disagio, i voli, gli scioperi (#428). Stanno in ALTRE
+   * entita' — o negli attributi di questa, ma sotto un nome che il conto qui
+   * sopra scarta — e guardando i soli attributi dell'entita' principale una
+   * tessera piena di righe sembrava vuota e non si apriva. */
+  return Array.isArray(lettura?.voci) && lettura.voci.length > 0;
 }

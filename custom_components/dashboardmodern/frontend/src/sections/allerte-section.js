@@ -20,10 +20,11 @@ import {
   IGNOTO,
   allerteAttive,
   categorieConfigurate,
+  laPiuGrave,
   letturaAllerte,
   livelloMassimo,
 } from "../core/allerte-model.js";
-import { valeLaPenaAprirla, vociDelDettaglio } from "../core/dettaglio-allerta.js";
+import { TESTO_LUNGO, valeLaPenaAprirla, vociDelDettaglio } from "../core/dettaglio-allerta.js";
 import {
   allStates,
   clean,
@@ -120,7 +121,7 @@ export function parolaDelLivello(livello) {
 
 /* Le parole di Thermal Comfort, dette in italiano: «quite_uncomfortable» non
  * e' una frase che uno legge volentieri sul muro di casa. */
-function parolaDelComfort(codice) {
+function parolaDelComfort(codice, scritto = "") {
   const voci = {
     /* Le parole che dicono «c'e' disagio» e prima non venivano lette (#355):
      * la zona del simmer index, il conto dell'humidex, e il contatto di chi
@@ -159,7 +160,50 @@ function parolaDelComfort(codice) {
     probable: t("Gelo probabile", "Frost probable"),
     high: t("Rischio di gelo alto", "High frost risk"),
   };
-  return voci[clean(codice)] || clean(codice).replaceAll("_", " ");
+  /* Se quel codice non lo conosciamo, si scrive quello che il sensore ha
+   * scritto — non il codice ridotto (#428): «anche se il sensore espone uno
+   * stato scritto in italiano, la dashboard prende l'opzione dell'attributo
+   * scritta in lowcase ed in inglese». Il codice ridotto serve a giudicare il
+   * livello; per leggerlo vale il testo dell'integrazione, che e' gia' nella
+   * lingua di chi l'ha configurata. In mancanza di tutto, il codice con gli
+   * spazi al posto dei trattini bassi e l'iniziale grande. */
+  const conosciuta = voci[clean(codice)];
+  if (conosciuta) return conosciuta;
+  const suo = clean(scritto);
+  if (suo) return suo;
+  const disteso = clean(codice).replaceAll("_", " ");
+  return disteso ? disteso.charAt(0).toUpperCase() + disteso.slice(1) : "";
+}
+
+/* Come si chiamano i tre pollini presi da se'. */
+function nomeDelPolline(chiave) {
+  const nomi = {
+    erba: t("Graminacee", "Grass"),
+    erbacce: t("Erbacce", "Weed"),
+    albero: t("Alberi", "Tree"),
+  };
+  return nomi[clean(chiave)] || clean(chiave);
+}
+
+/* E i tre indici del disagio termico. */
+function nomeDellIndice(chiave) {
+  const nomi = {
+    humidex: t("Humidex", "Humidex"),
+    calore: t("Indice di calore", "Heat index"),
+    gelo: t("Rischio gelo", "Frost risk"),
+  };
+  return nomi[clean(chiave)] || clean(chiave);
+}
+
+/* Il gradino dei bollettini, detto a parole: «restituiscono valori numerici
+ * quindi un valore 1 e' indicativo di rischio molto basso, valore 2 basso,
+ * valore 3 medio e valore 4 alto». Serve quando l'integrazione il suo
+ * «Category» non lo espone. */
+function parolaDelGradino(indice) {
+  if (indice >= 4) return t("Alto", "High");
+  if (indice >= 3) return t("Medio", "Moderate");
+  if (indice >= 2) return t("Basso", "Low");
+  return t("Molto basso", "Very low");
 }
 
 function parolaDeiPollini(parola) {
@@ -234,13 +278,27 @@ export function fraseDellAllerta(lettura) {
       }
       return quanti;
     }
-    case "pollini":
+    case "pollini": {
+      /* Se i pollini sono presi uno per uno, la frase nomina il peggiore
+       * (#428): «Pollini mostra solo il numero della concentrazione senza testo
+       * che spiega cosa stia succedendo». Un «3» non dice niente a chi e'
+       * allergico; «Graminacee: medio» gli dice se la giornata riguarda lui. */
+      const peggiore = laPiuGrave(lettura.voci || []);
+      if (peggiore) {
+        const quanto =
+          peggiore.categoria ||
+          (peggiore.indice != null ? parolaDelGradino(peggiore.indice) : "") ||
+          parolaDelLivello(peggiore.livello);
+        return `${nomeDelPolline(peggiore.chiave)}: ${quanto.toLowerCase()}`;
+      }
+      if (lettura.categoria) return lettura.categoria;
       if (lettura.parola) return parolaDeiPollini(lettura.parola);
       if (lettura.indice != null)
         return `${formatNumber(lettura.indice, 0)}${lettura.unita ? ` ${lettura.unita}` : ""}`;
       return categoria.quiete;
+    }
     case "comfort":
-      if (lettura.codice) return parolaDelComfort(lettura.codice);
+      if (lettura.codice) return parolaDelComfort(lettura.codice, lettura.scritto);
       if (lettura.gradi != null) return `${formatNumber(lettura.gradi, 1)}${lettura.unita || "°"}`;
       return categoria.quiete;
     case "voli":
@@ -321,6 +379,48 @@ export function righeDellAllerta(lettura) {
       if (lettura.binario) metti(t("Binario", "Platform"), lettura.binario);
       if (lettura.ritardo != null && lettura.ritardo > 0)
         metti(t("Ritardo", "Delay"), `${formatNumber(lettura.ritardo, 0)} min`);
+      break;
+    case "pollini": {
+      /* I pollini uno per uno (#428): il rischio, e le frasi che lo spiegano.
+       *
+       * «Ad ora, ad esempio, Pollini mostra solo il numero della
+       * concentrazione senza testo che spiega cosa stia succedendo.» Le frasi
+       * ci sono, negli attributi dell'integrazione — Category, Advice,
+       * Description — e sono sue: si scrivono come le ha scritte lei, che e'
+       * gia' la lingua di chi l'ha configurata. */
+      const spiega = (voce) =>
+        [
+          voce.categoria || (voce.indice != null ? parolaDelGradino(voce.indice) : ""),
+          voce.indice != null ? `${formatNumber(voce.indice, 0)}${voce.unita ? ` ${voce.unita}` : "/4"}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      for (const voce of lettura.voci || [])
+        metti(nomeDelPolline(voce.chiave), spiega(voce) || "—");
+      /* Le frasi lunghe dopo i numeri: prima si guarda quanto, poi si legge
+       * perche'. Quelle dei pollini singoli si dicono col loro nome davanti,
+       * cosi' due consigli diversi non si confondono. */
+      for (const voce of lettura.voci || []) {
+        if (voce.consiglio) metti(`${nomeDelPolline(voce.chiave)} · ${t("Consiglio", "Advice")}`, voce.consiglio);
+        if (voce.descrizione)
+          metti(`${nomeDelPolline(voce.chiave)} · ${t("Descrizione", "Description")}`, voce.descrizione);
+      }
+      if (lettura.consiglio) metti(t("Consiglio", "Advice"), lettura.consiglio);
+      if (lettura.descrizione) metti(t("Descrizione", "Description"), lettura.descrizione);
+      break;
+    }
+    case "comfort":
+      /* Gli altri tre indici del disagio (#428). Ognuno dice la sua parola —
+       * quella del sensore, se non la conosciamo — o i suoi gradi. */
+      for (const voce of lettura.voci || [])
+        metti(
+          nomeDellIndice(voce.chiave),
+          voce.codice
+            ? parolaDelComfort(voce.codice, voce.scritto)
+            : voce.gradi != null
+              ? `${formatNumber(voce.gradi, 1)}${voce.unita || "°"}`
+              : "—",
+        );
       break;
     case "voli":
       /* Prima la tratta, che e' la cosa che si vuole sapere di un aereo che
@@ -500,6 +600,18 @@ function ensureDettaglio() {
  * che l'integrazione scrive. I paragrafi vanno sotto al loro nome, i dati
  * accanto: e' la differenza fra un avviso della protezione civile e una
  * severita' di una parola. */
+/* Una riga dell'elenco: il nome, e il suo valore.
+ *
+ * Una frase — un consiglio, la descrizione di una giornata — porta il segno
+ * «lungo», e il foglio di stile la manda a capo invece di stringerla in un
+ * angolo accanto al nome. La soglia e' la stessa con cui il modulo del
+ * dettaglio decide se un attributo e' un paragrafo: una sola idea di «lungo»
+ * per tutta la finestra. */
+function rigaDellaListaMarkup(riga) {
+  const lungo = clean(riga?.valore).length > TESTO_LUNGO;
+  return `<li${lungo ? ' data-lungo="true"' : ""}><span>${esc(riga.nome)}</span><b>${esc(riga.valore)}</b></li>`;
+}
+
 function corpoDelDettaglio(lettura) {
   const pezzi = [];
   /* La frase, ma non quando dice quello che dice gia' la pastiglia del livello.
@@ -512,9 +624,7 @@ function corpoDelDettaglio(lettura) {
   const righe = righeDellAllerta(lettura);
   if (righe.length)
     pezzi.push(
-      `<ul class="dm-allerta-righe">${righe
-        .map((riga) => `<li><span>${esc(riga.nome)}</span><b>${esc(riga.valore)}</b></li>`)
-        .join("")}</ul>`,
+      `<ul class="dm-allerta-righe">${righe.map(rigaDellaListaMarkup).join("")}</ul>`,
     );
   const voci = vociDelDettaglio(attributiDi(lettura.entity));
   if (voci.length)
@@ -577,9 +687,7 @@ function tesseraMarkup(lettura) {
     <div class="dm-allerta-frase">${esc(fraseDellAllerta(lettura))}</div>
     ${
       righe.length
-        ? `<ul class="dm-allerta-righe">${righe
-            .map((riga) => `<li><span>${esc(riga.nome)}</span><b>${esc(riga.valore)}</b></li>`)
-            .join("")}</ul>`
+        ? `<ul class="dm-allerta-righe">${righe.map(rigaDellaListaMarkup).join("")}</ul>`
         : ""
     }
   </article>`;
@@ -694,11 +802,28 @@ function installStyles() {
       flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
       padding:3px 8px;border-radius:999px;color:#fff;background:var(--dm-allerta-colore,#94a3b8)}
     ${P} .dm-allerta-frase{font-size:17px;font-weight:800;line-height:1.25;color:var(--text,#0f172a)}
-    ${P} .dm-allerta-righe{list-style:none;margin:0;padding:0;display:grid;gap:4px}
-    ${P} .dm-allerta-righe li{
-      display:flex;justify-content:space-between;gap:10px;font-size:12px;
+    /* Le righe valgono nella pagina E nella finestra del dettaglio.
+     *
+     * La finestra riusa questo markup ma vive attaccata al corpo del
+     * documento, fuori dalla pagina: scritte col solo prefisso della pagina,
+     * queste regole non la raggiungevano e li' dentro le righe uscivano coi
+     * pallini dell'elenco, senza spazio fra il nome e il valore —
+     * «GraminaceeAlto · 4/4». Non si vedeva finche' le righe erano due parole;
+     * con i pollini presi uno per uno e le frasi dell'integrazione (#428) e'
+     * diventato il difetto piu' visibile della finestra. */
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe{
+      list-style:none;margin:0;padding:0;display:grid;gap:4px}
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li{
+      display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;font-size:12px;
       color:var(--text-dim,#64748b)}
-    ${P} .dm-allerta-righe li b{font-weight:800;color:var(--text,#0f172a);text-align:right;min-width:0}
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li>span{flex:0 1 auto;min-width:0}
+    /* Una frase non sta sulla riga del suo nome: va a capo e si prende tutta
+     * la larghezza, allineata a sinistra come si legge un testo. Un valore
+     * corto — «4/4», «12 km» — resta a destra del nome, dov'era. */
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li b{
+      font-weight:800;color:var(--text,#0f172a);text-align:right;min-width:0;flex:0 1 auto}
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li[data-lungo="true"] b{
+      flex:1 0 100%;text-align:left}
 
     /* I quattro colori, piu' il grigio di chi non risponde. Stanno in una
        variabile perche' li usano tre pezzi — striscia, pastiglia, alone — e un

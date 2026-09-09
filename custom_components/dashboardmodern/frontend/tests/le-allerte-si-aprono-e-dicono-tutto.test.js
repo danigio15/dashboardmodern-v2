@@ -86,6 +86,12 @@ test("una tessera senza niente dentro non finge di essere premibile", () => {
   /* Il testo intero che la tessera taglia è già un motivo per aprirla, anche
    * senza un solo attributo interessante. */
   assert.equal(valeLaPenaAprirla({ testo: "un avviso lungo" }, {}), true);
+  /* E le letture che una categoria si porta accanto in ALTRE entita': i
+   * pollini presi uno per uno, gli indici del disagio (#428). Guardando i soli
+   * attributi dell'entita' principale, una tessera piena di righe sembrava
+   * vuota e non si apriva. */
+  assert.equal(valeLaPenaAprirla({ voci: [{ chiave: "erba", indice: 4 }] }, {}), true);
+  assert.equal(valeLaPenaAprirla({ voci: [] }, {}), false);
 });
 
 test("solo le tessere apribili invitano il dito, e si aprono anche da tastiera", async () => {

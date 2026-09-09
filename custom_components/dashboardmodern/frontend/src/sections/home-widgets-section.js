@@ -40,6 +40,7 @@ import {
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { escluseDellaTessera } from "../core/fuori-dai-widget.js";
+import { PERIOD_SOURCES } from "../core/period-service.js";
 import {
   TONO_DEL_GRADO,
   eUnaMisuraDellAria,
@@ -92,6 +93,7 @@ import {
   plantList,
   sommaLetture,
   sommaNumeri,
+  sommaOggi,
 } from "../core/energy-plants.js";
 import {
   CALENDARI_KEY,
@@ -1214,6 +1216,32 @@ function wattsOf(states, entity) {
   return wattsFromState(stateOf(states, entity));
 }
 
+/* Quanto ha fatto oggi ogni sorgente di UN impianto.
+ *
+ * «Oltre ai dati del consumo attuale istantaneo inserirei, sotto in basso in
+ *  piccolino, anche quelli della produzione, importazione ecc. del giorno. Per
+ *  avere il colpo d'occhio necessario.» (#429)
+ *
+ * La tessera diceva la potenza di adesso e, sotto, il solo consumo di casa
+ * oggi. Gli altri numeri del giorno — quanto ha prodotto il fotovoltaico,
+ * quanto si e' preso dalla rete, quanto le si e' dato — esistono da sempre
+ * nella sezione Energia, e in Home non arrivavano.
+ *
+ * Quale entita' dica il giorno per ogni sorgente non si decide qui: lo dice
+ * `PERIOD_SOURCES`, che e' la stessa tabella con cui l'Energia costruisce i
+ * suoi piani. Scriverne una seconda vorrebbe dire che un giorno la sezione e
+ * la tessera leggono due entita' diverse per lo stesso numero. */
+function oggiDellImpianto(states, impianto, primo) {
+  const oggi = {};
+  for (const piano of PERIOD_SOURCES) {
+    const entita =
+      clean(impianto?.[piano.group]?.[piano.periodKeys.day]) || (primo ? piano.slots.day : "");
+    const letto = entita ? numOf(states, entita) : null;
+    if (letto != null) oggi[piano.key] = letto;
+  }
+  return oggi;
+}
+
 /* Le letture dei quattro gruppi di UN impianto.
  *
  * `slot` è la mappatura di sempre, e vale solo per il primo impianto: gli
@@ -1235,13 +1263,14 @@ function lettureDellImpianto(states, impianto, primo) {
     if (batteria) batteria.soc = soc;
     else rows.push({ group: "battery", watts: null, soc });
   }
+  const oggi = oggiDellImpianto(states, impianto, primo);
   return {
     rows,
     house: readings.find((row) => row.group === "house")?.watts ?? null,
-    today: numOf(
-      states,
-      clean(impianto?.house?.daily_energy) || (primo ? "dm.energy_consumo_casa_oggi" : ""),
-    ),
+    /* `today` resta il consumo di casa oggi, che e' il numero della didascalia
+     * da sempre: adesso lo dice la stessa tabella che dice tutti gli altri. */
+    today: oggi.house ?? null,
+    oggi,
   };
 }
 
@@ -1275,7 +1304,60 @@ export function lettureDiCasa(states = allStates()) {
   };
 }
 
-function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "" } = {}) {
+/* Cosa dice la didascalia del giorno, in che ordine e con quale parola.
+ *
+ * L'ordine e' quello con cui si guarda una casa — quanto ha consumato, quanto
+ * ha prodotto, quanto ha preso e quanto ha dato — e non quello della tabella
+ * dei piani, che e' ordinata per come si interroga Recorder. Quale entita' dica
+ * ognuno di questi numeri resta affare di `PERIOD_SOURCES`: qui ci sono
+ * soltanto le parole. */
+/* Il disegno di ogni sorgente. Lo usano la didascalia della tessera e le righe
+ * della sua finestra: due mappe uguali sarebbero il modo di far comparire un
+ * sole in un posto e una spina nell'altro per la stessa corrente. */
+const GLIFI_ENERGIA = Object.freeze({
+  house: "🏠",
+  solar: "☀️",
+  grid: "🔌",
+  battery: "🔋",
+});
+
+const PAROLE_DI_OGGI = Object.freeze([
+  Object.freeze({ chiave: "solar", it: "Produzione", en: "Produced" }),
+  Object.freeze({ chiave: "gridImport", it: "Prelievo", en: "Imported" }),
+  Object.freeze({ chiave: "gridExport", it: "Immissione", en: "Exported" }),
+  Object.freeze({ chiave: "batteryCharged", it: "In batteria", en: "To battery" }),
+  Object.freeze({ chiave: "batteryDischarged", it: "Da batteria", en: "From battery" }),
+]);
+
+/* La riga sotto il numero grande.
+ *
+ * Il consumo di casa resta in testa e scritto per esteso, com'era: chi ha
+ * mappato solo quello legge esattamente la didascalia di prima — «Oggi 12,3
+ * kWh» — e non si accorge che questa funzione e' cambiata. Gli altri numeri del
+ * giorno gli si accodano senza ripetere l'unita', che e' la stessa. */
+function didascaliaDiOggi(oggi) {
+  const casa = oggi?.house ?? null;
+  const testa =
+    casa == null
+      ? t("potenza di casa", "home power")
+      : `${t("Oggi", "Today")} ${formatNumber(casa, 1)} kWh`;
+  /* Le sorgenti si dicono per esteso, e la riga scorre se non ci sta: e' il
+   * nastro che la plancia usa da sempre per le didascalie lunghe — le Luci ci
+   * elencano quali sono accese — e usarlo qui vuol dire una tessera che si
+   * comporta come le altre.
+   *
+   * Ci ho provato con i disegni al posto delle parole, per farcele stare tutte
+   * in una riga ferma. Non e' andata: quattro numeri in centonovanta pixel non
+   * ci stanno comunque, e un «🔌↓» a undici pixel e' una macchia scura con una
+   * freccia accanto. Meglio una parola che scorre di un simbolo che non si
+   * capisce. */
+  const altre = PAROLE_DI_OGGI.filter((voce) => oggi?.[voce.chiave] != null).map(
+    (voce) => `${t(voce.it, voce.en)} ${formatNumber(oggi[voce.chiave], 1)}`,
+  );
+  return altre.length ? `${testa} · ${altre.join(" · ")}` : testa;
+}
+
+function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "", oggi } = {}) {
   if (house == null && !rows.length) return null;
   return {
     key,
@@ -1286,13 +1368,13 @@ function tesseraEnergia(rows, house, today, { key = "energia", label, impianto =
      * di lui, non su quello che era rimasto acceso (#286, dal campo). */
     impianto: clean(impianto),
     value: formatWatts(house),
-    caption:
-      today == null
-        ? t("potenza di casa", "home power")
-        : `${t("Oggi", "Today")} ${formatNumber(today, 1)} kWh`,
+    caption: didascaliaDiOggi(oggi || (today == null ? {} : { house: today })),
     ring: null,
     rows,
     today,
+    /* Quanto ha fatto oggi ogni sorgente: la didascalia ne fa una riga, e la
+     * finestra del dettaglio lo scrive sotto la potenza di ciascuna. */
+    oggi: oggi || {},
   };
 }
 
@@ -1313,8 +1395,8 @@ function energyModels(states) {
     lettureDellImpianto(states, impianto, indice === 0),
   );
   if (configurati.length < 2) {
-    const sola = letture[0] || { rows: [], house: null, today: null };
-    return [tesseraEnergia(sola.rows, sola.house, sola.today)].filter(Boolean);
+    const sola = letture[0] || { rows: [], house: null, today: null, oggi: {} };
+    return [tesseraEnergia(sola.rows, sola.house, sola.today, { oggi: sola.oggi })].filter(Boolean);
   }
   /* La scelta è una parola, non un oggetto: si legge com'è scritta — come
    * `cd_energy_plant`, che è la casella vicina di casa. */
@@ -1330,6 +1412,7 @@ function energyModels(states) {
           key: plantKey("energia", impianto, indice),
           label: plantLabel(impianto, indice, t("Impianto", "Plant")),
           impianto: clean(impianto?.id) || PRIMO_IMPIANTO,
+          oggi: letture[indice].oggi,
         }),
       )
       .filter(Boolean);
@@ -1341,6 +1424,7 @@ function energyModels(states) {
       sommaLetture(letture.map((lettura) => lettura.rows)),
       sommaNumeri(letture.map((lettura) => lettura.house)),
       sommaNumeri(letture.map((lettura) => lettura.today)),
+      { oggi: sommaOggi(letture.map((lettura) => lettura.oggi)) },
     ),
   ].filter(Boolean);
 }
@@ -5329,7 +5413,25 @@ function carteDalleRighe(widget) {
       grid: t("Rete", "Grid"),
       battery: t("Batteria", "Battery"),
     };
-    const glifi = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
+    const glifi = GLIFI_ENERGIA;
+    /* Quanto ha fatto oggi, sotto la potenza di adesso (#429). Qui le parole si
+     * scrivono per esteso — c'e' lo spazio — e la rete e la batteria ne hanno
+     * due, perche' preso e dato sono due versi della stessa cosa. */
+    const oggi = widget.oggi || {};
+    const parola = (chiave) => {
+      const valore = oggi?.[chiave];
+      if (valore == null) return "";
+      const voce = PAROLE_DI_OGGI.find((riga) => riga.chiave === chiave);
+      return `${t(voce.it, voce.en)} ${formatNumber(valore, 1)} kWh`;
+    };
+    const delGiorno = {
+      house: oggi.house == null ? "" : `${formatNumber(oggi.house, 1)} kWh`,
+      solar: parola("solar"),
+      grid: [parola("gridImport"), parola("gridExport")].filter(Boolean).join(" · "),
+      battery: [parola("batteryCharged"), parola("batteryDischarged")]
+        .filter(Boolean)
+        .join(" · "),
+    };
     return righe.map((riga) => ({
       glyph: glifi[riga.group] || "⚡",
       /* La batteria dice anche quanto e' piena: watt e percentuale insieme,
@@ -5341,6 +5443,10 @@ function carteDalleRighe(widget) {
             : `${formatWatts(riga.watts)} · ${Math.round(riga.soc)}%`
           : formatWatts(riga.watts),
       etichetta: nomi[riga.group] || clean(riga.group),
+      /* «Oggi · Produzione 8,1 kWh»: il separatore serve alla lingua, non
+       * all'ordine — «Oggi Produzione» sono due sostantivi appiccicati, e si
+       * legge male in tutte le lingue in cui questa riga esce. */
+      sotto: delGiorno[riga.group] ? `${t("Oggi", "Today")} · ${delGiorno[riga.group]}` : "",
     }));
   }
   if (chiave === "temperatura") {
