@@ -261,6 +261,11 @@ async def async_build_catalog(
                 "model": _testo(device.model) or _testo(device.model_id),
                 "integration": principale,
                 "integrations": integrazioni,
+                # Da chi dipende: la telecamera appesa al NAS, il ripetitore
+                # appeso al router. Un dispositivo che non dipende da nessuno
+                # e' la macchina; quelli appesi sono i suoi accessori, e la
+                # sezione Server vuole elencare le macchine.
+                "via_device": device.via_device_id or "",
                 "area_id": device.area_id or "",
                 "area": _testo(getattr(area, "name", "")),
                 "entities": sum(1 for entry in entita if entry.disabled_by is None),
@@ -276,7 +281,12 @@ async def async_build_catalog(
         )
         for domain in sorted(domini)
     ]
-    conteggio = Counter(device["integration"] for device in devices)
+    # Un dispositivo che arriva da due integrazioni si conta in tutte e due:
+    # e' quello che la plancia mostra nel menu, e un numero che dice meno di
+    # quello che si vede e' un numero che confonde.
+    conteggio = Counter(
+        dominio for device in devices for dominio in device["integrations"]
+    )
     for integrazione in integrations:
         integrazione["devices"] = conteggio.get(integrazione["domain"], 0)
     integrations.sort(key=lambda item: item["name"].casefold())

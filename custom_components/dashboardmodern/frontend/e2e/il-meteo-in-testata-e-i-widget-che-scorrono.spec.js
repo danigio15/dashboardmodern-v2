@@ -211,12 +211,24 @@ test("a barra ferma niente si prende i clic sopra la barra", async ({ page }, te
   });
   expect(sensore.ferma).toBe(true);
   expect(sensore.sensore).toBe("none");
-  // E ogni tessera risponde al clic nel punto in cui la si vede.
+  /* E ogni tessera che si vede PER INTERO risponde al clic nel punto in cui la
+   * si vede.
+   *
+   * Il confine è la cima della barra, non il fondo della finestra. La barra è
+   * ferma e occupa la sua striscia: una tessera che ci finisce sotto è
+   * semplicemente scorsa via a metà, e lo sa anche chi guarda. Il difetto era
+   * un altro — un rettangolo INVISIBILE sopra la barra che si prendeva i clic
+   * di tessere che si vedevano tutte intere — e si misura così. Misurandolo
+   * sul fondo della finestra, invece, la prova cadeva il giorno in cui alla
+   * Home si aggiungeva un blocco e la fila delle tessere scendeva di qualche
+   * pixel: cioè per come è fatta la pagina, non per un clic rubato. */
   const coperte = await page.evaluate(() => {
+    const barra = document.querySelector("nav.tabs.bottom-nav-bar");
+    const cima = barra ? barra.getBoundingClientRect().top : innerHeight;
     return [...document.querySelectorAll("#dm-widgets .dm-tile")]
       .map((tessera) => {
         const riquadro = tessera.getBoundingClientRect();
-        if (riquadro.bottom > innerHeight) return null;
+        if (riquadro.bottom > cima) return null;
         const sopra = document.elementFromPoint(
           riquadro.left + riquadro.width / 2,
           riquadro.bottom - 4,

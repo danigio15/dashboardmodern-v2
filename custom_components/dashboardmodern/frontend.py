@@ -254,7 +254,30 @@ def _register_or_update_panel(
     static_url_path: str,
     variants: list[str] | None = None,
 ) -> None:
-    """Register or update the custom panel for one plancia."""
+    """Registra o aggiorna il pannello di una plancia.
+
+    Gli argomenti sono quelli che `async_register_built_in_panel` accetta
+    davvero, e non uno di piu'.
+
+    Qui c'era anche `show_in_sidebar=True`, e quel parametro Home Assistant lo
+    ha aggiunto solo nella 2026.3. Dalla 2026.2 in giu' la firma e' `(hass,
+    component_name, sidebar_title, sidebar_icon, frontend_url_path, config,
+    require_admin, *, update, config_panel_domain)` e basta: passarglielo
+    solleva `TypeError: unexpected keyword argument`, il setup della voce
+    fallisce e l'integrazione non compare.
+
+    E' l'installazione che «non parte» segnalata sul gruppo, e chi l'ha risolta
+    cancellando quella riga aveva ragione. Non si vedeva perche' su una Home
+    Assistant recente non succede niente — la riga passa — e chi sviluppa ce
+    l'ha recente; a restare fuori sono le case ferme a una versione piu'
+    vecchia, cioe' proprio quelle che l'integrazione non l'hanno mai vista
+    partire.
+
+    Non serviva nemmeno: nella 2026.3 quel parametro vale `True` di suo, quindi
+    scriverlo diceva quello che sarebbe successo comunque. Toglierlo non cambia
+    niente dove funzionava e rimette in piedi l'installazione dalla 2025.1 in
+    poi, che e' la versione minima che `hacs.json` promette.
+    """
     from homeassistant.components import frontend
 
     from .config_flow import OPTION_ADMIN_ONLY
@@ -273,7 +296,6 @@ def _register_or_update_panel(
             variants=variants,
         ),
         require_admin=bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
-        show_in_sidebar=True,
         update=update,
     )
 
@@ -458,6 +480,53 @@ async def _aggiorna_scheda_compagna(
     await aggiorna(voce["id"], cambi)
 
 
+async def _magazzino_della_compagna(plance: Any, url_path: str) -> Any:
+    """Il magazzino della dashboard appena creata, dandogli il tempo di nascere.
+
+    Chi crea una dashboard nella collezione di Lovelace non riceve indietro il
+    suo magazzino: lo costruisce un ascoltatore della collezione, e la mappa
+    `dashboards` si popola quando quell'ascoltatore ha girato. Su una macchina
+    carica — o su una versione di Home Assistant che lo fa in coda invece che
+    subito — chiedere il magazzino nella riga dopo la creazione lo trova vuoto.
+
+    E li' finiva: si tornava indietro senza scrivere niente, lasciando una
+    dashboard REGISTRATA E VUOTA. Home Assistant, aprendola, risponde «Errore
+    di configurazione» — e la risposta resta uguale a ogni riavvio, perche' al
+    giro dopo la dashboard c'e' gia' e si prende la stessa strada.
+
+    Qui le si lascia il tempo di comparire: un paio di giri del ciclo di
+    eventi, che e' quello che serve a un ascoltatore messo in coda.
+    """
+    import asyncio
+
+    for attesa in (0, 0, 0.05):
+        magazzino = plance.get(url_path)
+        if magazzino is not None and hasattr(magazzino, "async_save"):
+            return magazzino
+        await asyncio.sleep(attesa)
+    return None
+
+
+async def _la_compagna_e_piena(magazzino: Any) -> bool:
+    """Se quello che si e' appena scritto si rilegge davvero.
+
+    Scrivere e non ricontrollare vuol dire scoprire dall'utente che non era
+    stato scritto. Qui si rilegge: se manca la configurazione, o non ha viste,
+    chi apre quella dashboard vedra' «Errore di configurazione», e conviene che
+    stia scritto nel registro adesso invece che in una segnalazione domani.
+    """
+    leggi = getattr(magazzino, "async_load", None)
+    if leggi is None:
+        # Una Lovelace che non sa rileggere non e' una prova che sia vuota.
+        return True
+    try:
+        letta = await leggi(False)
+    except Exception:  # noqa: BLE001 - il perche' lo dice chi chiama
+        return False
+    viste = letta.get("views") if isinstance(letta, dict) else None
+    return bool(viste)
+
+
 async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> bool:
     """Crea e riempie la dashboard di appoggio di questa plancia.
 
@@ -502,13 +571,29 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
             )
         else:
             await _aggiorna_scheda_compagna(collezione, url_path, titolo, solo_admin)
-        magazzino = plance.get(url_path)
-        if magazzino is None or not hasattr(magazzino, "async_save"):
+        magazzino = await _magazzino_della_compagna(plance, url_path)
+        if magazzino is None:
+            # Una dashboard che c'e' ma non si riesce a riempire e' peggio di
+            # una che non c'e': Home Assistant la apre e risponde «Errore di
+            # configurazione». Lo si dice forte, invece di lasciarla muta.
+            _LOGGER.error(
+                "La dashboard di appoggio %s esiste ma Lovelace non ne espone "
+                "il magazzino: resterebbe vuota, e chi la mette come "
+                "predefinita vedrebbe «Errore di configurazione»",
+                url_path,
+            )
             return False
         vista = _companion_view(
             entry, _config_profile(hass, entry), _entry_is_primary(hass, entry)
         )
         await magazzino.async_save({"views": [vista]})
+        if not await _la_compagna_e_piena(magazzino):
+            _LOGGER.error(
+                "La dashboard di appoggio %s risulta vuota subito dopo averla "
+                "scritta: chi la apre vedrebbe «Errore di configurazione»",
+                url_path,
+            )
+            return False
     except Exception:  # noqa: BLE001 - una dashboard in meno non ferma la plancia
         _LOGGER.warning(
             "Non sono riuscito a preparare la dashboard di appoggio %s",

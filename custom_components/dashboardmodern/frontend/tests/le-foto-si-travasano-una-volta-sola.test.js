@@ -129,8 +129,26 @@ test("togliere una chiave non alza la revisione", async () => {
    * Sotto quanto una batteria e' da cambiare era venti per cento scritto nel
    * codice, uguale per tutti; adesso lo si sceglie, ed e' una scelta sulla
    * casa — chi ha una serratura da cambiare al trenta ce l'ha da cambiare al
-   * trenta anche guardando dal telefono. */
-  assert.equal(CONFIG_KEYS_REVISION, 36);
+   * trenta anche guardando dal telefono. E la 37 con i tasti d'inserimento
+   * scritti a mano (#413, `cd_antifurto_su_misura`): «utilizzando un
+   * dispositivo tramite esphome non ho il classico control_panel_alarm». Chi
+   * l'antifurto se l'e' fatto con gli script la fila dei tasti se la descrive —
+   * nome, icona, entita' da premere — ed e' l'antifurto della casa: inserirlo
+   * dal tablet e non poterlo inserire dal telefono sarebbe il difetto piu'
+   * grave di tutti quelli di questo elenco. E la 38 col flusso dell'energia in
+   * Home (#415, #416, `cd_flusso_home`): «sulla home, accanto magari alle card
+   * delle persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla
+   * casa alle batterie, dalla casa all'auto». Vederlo o no e' una scelta sulla
+   * casa, come l'ordine dei blocchi che gli sta accanto. */
+  assert.equal(CONFIG_KEYS_REVISION, 38);
+  assert.ok(
+    CONFIG_KEYS.includes("cd_flusso_home"),
+    "il flusso in Home si sceglie per la casa, non per lo schermo",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_antifurto_su_misura"),
+    "l'antifurto scritto a mano deve viaggiare con la casa",
+  );
   for (const chiave of ["cd_radar_meteo", "cd_orologio", "dm_campi_scelti", "cd_allag_rilevato"])
     assert.ok(CONFIG_KEYS.includes(chiave), `${chiave} deve viaggiare con la casa`);
   assert.ok(CONFIG_KEYS.includes("cd_vmc"), "la ventilazione deve viaggiare con la casa");

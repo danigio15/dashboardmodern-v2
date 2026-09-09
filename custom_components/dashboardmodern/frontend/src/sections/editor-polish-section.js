@@ -325,6 +325,10 @@ function polishCss() {
     #ed-body .ed-btn-add[style*="#0ea5e9"]{background:linear-gradient(135deg,#0369a1,#075985)!important}
     #ed-body .ed-btn-add[style*="#10b981"]{background:linear-gradient(135deg,#047857,#065f46)!important}
     #ed-body .ed-btn-add[style*="#94a3b8"]{background:linear-gradient(135deg,#64748b,#475569)!important}
+    /* Il rosso del «Reset totale configurazione» era il quarto della fila, e
+       mancava: bianco sul suo capo chiaro sta a 3,76:1. E' il tasto che
+       cancella tutto — quello che di tutti deve leggersi meglio. */
+    #ed-body .ed-btn-add[style*="#ef4444"]{background:linear-gradient(135deg,#dc2626,#991b1b)!important}
     #ed-body[data-dm-lights-editor="canonical-polished"]{display:grid!important;gap:16px!important}
     #ed-body[data-dm-lights-editor="canonical-polished"]>.ed-intro{margin:0!important;padding:14px 16px!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 35%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 5%,var(--card-background-color,#fff))!important}
     .dm-light-group{border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:var(--card-background-color,#fff)!important;padding:12px!important;overflow:hidden!important}

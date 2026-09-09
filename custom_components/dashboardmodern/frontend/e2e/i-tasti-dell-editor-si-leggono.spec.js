@@ -145,8 +145,14 @@ async function boot(page, testInfo) {
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
 }
 
-/* Le schede dove i tasti hanno un fondo suo — coi nomi che usa la plancia. */
-const SCHEDE = ["appliances", "stanze", "luci", "load", "sezioni"];
+/* Le schede dove i tasti hanno un fondo suo — coi nomi che usa la plancia.
+ *
+ * «sezioni» non e' piu' una scheda: l'editor ne ha una per sezione, da sez0 a
+ * sez9. Chiedendola per nome si restava dove si era — sulla Plancia — e la
+ * prova misurava due volte quella, mai una scheda di sezione. «visib» ci sta
+ * apposta: e' la scheda su cui il Config si apre, e i suoi tasti si devono
+ * leggere quanto gli altri. */
+const SCHEDE = ["appliances", "stanze", "luci", "load", "sez0", "visib"];
 
 for (const tema of ["light", "dark"]) {
   test(`i tasti dell'editor si leggono, tema ${tema}`, async ({ page }, testInfo) => {

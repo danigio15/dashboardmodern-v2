@@ -77,9 +77,22 @@ test("una baseline senza contatore non conta come baseline", () => {
   assert.equal(mesi[0].change, 40);
 });
 
-test("niente conti negativi, e le righe restano quelle del Recorder", () => {
-  /* Un contatore che scende è un azzeramento: il Recorder lo gestisce già nel
-   * suo `sum`, e qui non si conta due volte — al più si dice zero. */
+test("un contatore che scende è ripartito da zero, e il suo valore è il consumo", () => {
+  /* Qui prima si diceva zero, con questa ragione: «il Recorder l'azzeramento
+   * lo gestisce già nel suo `sum`, e contarlo qui vorrebbe dire contarlo due
+   * volte». La ragione regge per un contatore di sempre, che infatti non
+   * scende mai — e allora questo ramo non si percorre nemmeno.
+   *
+   * Non regge per un contatore che si azzera per mestiere: quello mensile di
+   * una wallbox riparte da zero il primo di ogni mese, e il `sum` riparte con
+   * lui. Dicendo zero si buttava via il primo giorno di ogni mese, dodici
+   * giorni all'anno, e per una colonnina che carica di notte non è poco. È il
+   * pezzo che mancava a «il totale da inizio anno è 1440,76 kWh» contro i 546
+   * che la plancia diceva.
+   *
+   * Quando il contatore scende, quello che segna adesso è quanto ha contato da
+   * quando è ripartito: quello è il consumo di questo intervallo. Un contatore
+   * che non si azzera non scende, quindi per lui non cambia niente. */
   const scende = recorderBucketConsumptions(
     [
       { start: "2026-06-01T00:00:00Z", sum: 40 },
@@ -89,7 +102,7 @@ test("niente conti negativi, e le righe restano quelle del Recorder", () => {
   );
   assert.deepEqual(
     scende.map((riga) => riga.change),
-    [40, 0],
+    [40, 30],
   );
   /* E ogni riga porta ancora il suo `start`: chi disegna il grafico ci mette
    * il giorno sotto la colonna. */

@@ -50,6 +50,8 @@ import { installLiveUiSection } from "./live-ui-section.js";
 import { installTelecameraWebRtc } from "./telecamera-webrtc-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
+import { installAntifurtoSuMisuraEditorSection } from "./antifurto-su-misura-editor-section.js";
+import { installFlussoDiCasaSection } from "./flusso-di-casa-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
 import { installVmcEditor } from "./vmc-editor-section.js";
 import { installAssistSection } from "./assist-section.js";
@@ -89,6 +91,7 @@ import { installElencoDelleSezioni } from "./lelenco-delle-sezioni-section.js";
 import { installBatterie } from "./batterie-section.js";
 import { installBatterieEditor } from "./batterie-editor-section.js";
 import { installVideoSiMuove } from "./telecamera-il-video-si-muove-section.js";
+import { installTelecameraSubito } from "./telecamera-subito-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
@@ -896,6 +899,8 @@ export function installSectionRuntime() {
     /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();
+    installAntifurtoSuMisuraEditorSection();
+    installFlussoDiCasaSection();
     installClimateThermalSection();
     /* Le voci termiche del popup Caldo: dopo chi disegna il popup, cosi' il
      * pannello passa di mano una volta sola. */
@@ -947,6 +952,11 @@ export function installSectionRuntime() {
     /* L'HLS di una telecamera vale quando il video si muove davvero (#385):
      * si avvolge la strada del guscio, che si accontentava dell'intestazione. */
     installVideoSiMuove();
+    /* Il fotogramma si vede prima del negoziato, e la strada che ha funzionato
+     * si prova per prima la volta dopo: «sono lentissime e non carica
+     * immediatamente immagine». Si installa DOPO chi avvolge le singole
+     * strade, cosi' la scorciatoia chiama quelle gia' corrette. */
+    installTelecameraSubito();
     /* Le linguette del Config in ordine di alberatura, con l'insegna della
      * famiglia davanti a ognuna: si installa dopo tutti gli editor che una
      * linguetta se la aggiungono, cosi' al primo giro le trova gia' tutte. */

@@ -277,3 +277,72 @@ async def test_una_lovelace_vecchia_non_fa_saltare_l_avvio(hass: Any) -> None:
 
     assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
     assert plance[url_path].salvata["views"]
+
+
+class _MagazzinoTardivo(_Magazzino):
+    """Un magazzino che si rilegge, come quello vero."""
+
+    async def async_load(self, _forza: bool) -> dict:
+        if self.salvata is None:
+            raise RuntimeError("nessuna configurazione")
+        return self.salvata
+
+
+class _CollezioneLenta(_Collezione):
+    """Lovelace che costruisce il magazzino un giro di eventi DOPO.
+
+    E' quello che fa davvero: la mappa `dashboards` la riempie un ascoltatore
+    della collezione, non chi crea la voce. Chiedere il magazzino nella riga
+    dopo la creazione lo trova vuoto.
+    """
+
+    async def async_create_item(self, voce: dict) -> dict:
+        import asyncio
+
+        self.create.append(voce)
+        self.voci.append({"id": voce["url_path"], **voce})
+
+        async def _piu_tardi() -> None:
+            await asyncio.sleep(0)
+            self.plance[voce["url_path"]] = _MagazzinoTardivo()
+
+        asyncio.get_running_loop().create_task(_piu_tardi())
+        return voce
+
+
+async def test_una_lovelace_che_arriva_tardi_non_lascia_la_dashboard_vuota(
+    hass: Any,
+) -> None:
+    """«Errore di configurazione» quando si mette la plancia come predefinita.
+
+    Una dashboard registrata e mai riempita e' esattamente cio' che Home
+    Assistant apre rispondendo «Errore di configurazione», e la risposta resta
+    uguale a ogni riavvio: al giro dopo la dashboard c'e' gia', e si ripercorre
+    la stessa strada. Qui la collezione costruisce il magazzino un giro dopo,
+    come fa quella vera, e la vista deve arrivarci lo stesso.
+    """
+    plance: dict = {}
+    hass.data["lovelace"] = {
+        "dashboards": plance,
+        "dashboards_collection": _CollezioneLenta(plance),
+    }
+    _voce(hass)
+
+    assert await fe._ensure_companion_dashboard(hass, "abcdef1234567890") is True
+    magazzino = plance["dashboardmodern-abcdef12"]
+    assert magazzino.salvata is not None
+    assert magazzino.salvata["views"], "la vista deve esserci davvero"
+
+
+async def test_una_compagna_che_si_rilegge_vuota_lo_dice(hass: Any) -> None:
+    """Scrivere e non ricontrollare vuol dire scoprirlo da una segnalazione."""
+
+    class _MagazzinoBugiardo(_Magazzino):
+        async def async_load(self, _forza: bool) -> dict:
+            return {"views": []}
+
+    plance = {"dashboardmodern-abcdef12": _MagazzinoBugiardo()}
+    _lovelace(hass, plance, [{"id": "x", "url_path": "dashboardmodern-abcdef12"}])
+    _voce(hass)
+
+    assert await fe._ensure_companion_dashboard(hass, "abcdef1234567890") is False

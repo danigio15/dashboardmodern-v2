@@ -1009,8 +1009,53 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scheda guardino lo STESSO elenco. Se la scheda ne toglie una e la tessera
   // continua a contarla, chi l'ha tolta pensa che la plancia non l'abbia
   // sentito.
+  // 301 con i tasti d'inserimento scritti a mano (#413): «possibilita' di
+  // configurare i comandi di inserimento e modalita' sia nel comando da
+  // lanciare che nel nome icona — utilizzando un dispositivo tramite esphome
+  // non ho il classico control_panel_alarm». La fila della Sicurezza la
+  // disegna la centrale, e chi una centrale non ce l'ha si ritrovava due tasti
+  // di ripiego che chiamavano servizi inesistenti. Sono due moduli, che e' la
+  // forma di sempre: `core/antifurto-su-misura.js` (cosa premere, quale
+  // servizio per quale dominio, e chi e' inserito adesso) e
+  // `sections/antifurto-su-misura-editor-section.js` (la scheda, sotto la
+  // casella della centrale, accanto alle modalita' da mostrare). La fila non
+  // si riscrive: `core/alarm-panel.js` li aggiunge ai tasti della centrale, e
+  // la pagina, la tessera della Home e la finestra rapida del banner li
+  // disegnano senza sapere da dove arrivano.
+  // 303 col flusso dell'energia in Home (#415, #416): «sarebbe veramente
+  // perfetta se sulla home, accanto magari alle card delle persone, potessimo
+  // mettere un'immagine con il flusso dal fotovoltaico alla casa, dalla casa
+  // alle batterie, dalla casa all'auto». La mappa della sezione Energia vive
+  // attaccata al documento storico e da li' non esce; il CONTO invece e' puro
+  // — `core/energy-flow-truth.js` — e `core/flusso-di-casa.js` gli mette sopra
+  // l'unico arco che manca, la casa che carica l'auto.
+  // `sections/flusso-di-casa-section.js` lo disegna come un blocco della Home,
+  // che si sposta nell'ordine e si spegne dalla scheda Home. Due mappe della
+  // stessa casa che dicono cose diverse sarebbero peggio di una mappa sola:
+  // qui sono d'accordo perche' fanno lo stesso conto, non perche' qualcuno le
+  // ha allineate a mano.
+  // 305 con le telecamere che si vedono subito: «vanno riviste completamente
+  // le connessioni che avvengono con le telecamere, sono lentissime e non
+  // carica immediatamente immagine». Il guscio prova le strade in fila —
+  // WebRTC, HLS, MJPEG, istantanee — e nessuna disegna finche' non vince:
+  // prima di allora il riquadro e' vuoto, su una telecamera che dorme anche
+  // per venticinque secondi. E la fila si rifa' identica a ogni apertura.
+  // `core/apertura-telecamera.js` tiene i due conti (quale strada ha
+  // funzionato per quella telecamera, e quanto vale la pena aspettarla) e
+  // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
+  // negoziare e prova per prima la strada ricordata. La cascata del guscio non
+  // si tocca: resta la rete di sicurezza, intera.
+  // 306 con chi decide di CHI e' un'entita' (#417): «il frigorifero 1 mi
+  // mostra il valore di un sensore che ho messo dentro il frigorifero 2 …
+  // anche se cancello l'associazione me la ritrovo sempre». La passata che
+  // indovina le entita' dai nomi cercava anche col TIPO dell'apparecchio —
+  // «frigo» — che ce l'hanno tutti i frigoriferi, e bastava che UNA parola
+  // combaciasse. `core/entita-di-questo-apparecchio.js` e' il giudizio, puro e
+  // provabile a tavolino: le parole vengono dal nome, tutte devono combaciare,
+  // e i numeri contano perche' sono il modo in cui una casa distingue due cose
+  // uguali.
   assert.ok(
-    relative.length <= 299,
+    relative.length <= 306,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

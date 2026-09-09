@@ -36,7 +36,11 @@ import {
   caricaCatalogo,
   nomiDelleIntegrazioni,
 } from "./appliance-integration-section.js";
-import { renderMacchine } from "./macchine-e-rete-section.js";
+import {
+  dispositiviDeiServerDichiarati,
+  renderMacchine,
+  serverPerDispositivo,
+} from "./macchine-e-rete-section.js";
 import {
   allStates,
   clean,
@@ -101,7 +105,7 @@ function rigaMarkup(riga, scelte) {
     </div>
     <button type="button" class="ed-del" data-dm-macchina-escludi="${esc(riga.entity)}"
       title="${esc(t("Togli dall'elenco", "Drop from the list"))}"
-      aria-label="${esc(t("Togli dall'elenco", "Drop from the list"))}">🚫</button>
+      aria-label="${esc(t("Togli dall'elenco", "Drop from the list"))}">🗑️</button>
   </article>`;
 }
 
@@ -123,7 +127,13 @@ function elencoMarkup(famiglia, righe, scelte) {
  * delle due è il server e quale sono le prese di casa. */
 function integrazioniMarkup(states, scelte) {
   const piattaforme = piattaformeConosciute();
-  const righe = integrazioniDaScegliere(states, piattaforme, scelte, nomiDelleIntegrazioni());
+  const righe = integrazioniDaScegliere(
+    states,
+    piattaforme,
+    scelte,
+    nomiDelleIntegrazioni(),
+    dispositiviDeiServerDichiarati(),
+  );
   const candidate = candidateDaChiedere(states);
   if (!righe.length)
     return `<div class="dm-macchina-ed-fascia">
@@ -164,6 +174,7 @@ function schedaMarkup() {
     { ...scelte, escluse: [] },
     (entity) => nomeDaHomeAssistant(entity, states),
     piattaformeConosciute(),
+    serverPerDispositivo(states, scelte),
   );
   const senzaEscluse = (righe) => righe.filter((riga) => !scelte.escluse.includes(riga.entity));
   return `<div class="ed-slot-lbl dm-macchina-ed-titolo">${esc(t("Macchine e rete", "Machines and network"))}</div>

@@ -11,6 +11,16 @@
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+/* L'elenco dei blocchi si legge dal modello, non si riscrive qui. Scritto a
+ * mano, questa prova cadeva il giorno in cui alla Home se ne aggiungeva uno —
+ * per il motivo sbagliato: perche' il numero era invecchiato, non perche' il
+ * riordino avesse smesso di funzionare. */
+import { BLOCCHI_DELLA_HOME } from "../src/core/ordine-dei-blocchi.js";
+
+/* Quello che ci si aspetta dopo aver portato «Azioni rapide» in cima: lui
+ * primo, gli altri nell'ordine di serie. */
+const AZIONI_IN_CIMA = ["azioni", ...BLOCCHI_DELLA_HOME.filter((nome) => nome !== "azioni")];
+const QUANTE_FRECCE = BLOCCHI_DELLA_HOME.indexOf("azioni");
 
 const SEME = {
   schema_version: 4,
@@ -149,13 +159,15 @@ test("le azioni rapide si portano in cima alla Home, e ci restano", async ({ pag
   await expect(page.locator('#ed-body [data-blocco="azioni"]')).toHaveCount(0);
   await page.locator('.ed-tab[data-tab="sez0"]').first().click();
   await expect(riga).toBeVisible({ timeout: 15_000 });
-  /* Due volte: da terzo a primo. */
-  await riga.locator("[data-blocco-su]").click();
-  await page.locator('#ed-body [data-blocco="azioni"] [data-blocco-su]').click();
+  /* Una freccia per ogni posto che lo separa dalla cima: quanti siano lo dice
+   * il modello, non un numero battuto qui. */
+  for (let passo = 0; passo < QUANTE_FRECCE; passo += 1) {
+    await page.locator('#ed-body [data-blocco="azioni"] [data-blocco-su]').click();
+  }
 
   await expect
     .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_home_blocchi") || "null")))
-    .toEqual(["azioni", "persone", "widget", "dispositivi"]);
+    .toEqual(AZIONI_IN_CIMA);
 
   /* E la Home lo mostra. */
   await page.evaluate(() => document.getElementById("editor-modal")?.classList.remove("show"));
@@ -186,13 +198,13 @@ test("le azioni rapide si portano in cima alla Home, e ci restano", async ({ pag
    * in ordine: l'ordine si applica a pagina aperta, e il guscio cambia pagina
    * senza avvisare nessuno — senza un orecchio sul cambio di scheda, la Home
    * restava com'era finche' non passava di li' un evento per tutt'altro. */
-  await page.evaluate(() => {
-    document.querySelector('.tab[data-tab="temp"]')?.click();
-    localStorage.setItem(
-      "cd_home_blocchi",
-      JSON.stringify(["persone", "azioni", "widget", "dispositivi"]),
-    );
-  });
+  await page.evaluate(
+    (ordine) => {
+      document.querySelector('.tab[data-tab="temp"]')?.click();
+      localStorage.setItem("cd_home_blocchi", JSON.stringify(ordine));
+    },
+    [...BLOCCHI_DELLA_HOME],
+  );
   await page.evaluate(() => document.querySelector('.tab[data-tab="home"]')?.click());
   await expect
     .poll(

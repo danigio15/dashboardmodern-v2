@@ -261,20 +261,30 @@ function disegnaGliEsiti(contenitore, parola) {
   return esiti.length;
 }
 
-/* La barra sta sopra il corpo e sotto le linguette: e' della configurazione
- * intera, non della scheda aperta, quindi non se ne va quando si cambia
- * scheda. */
+/* La barra sta in cima a tutto, fuori dal corpo della scheda.
+ *
+ * Cerca nella configurazione INTERA — legge il magazzino, non la scheda
+ * aperta — ma stava dentro il corpo, sotto il titolo della sezione: nel posto
+ * dove tutto quello che si vede appartiene alla scheda che si sta guardando.
+ * Chi la trovava li' leggeva «cerca in questa scheda», che e' il contrario di
+ * quello che fa. «Il cerca spostalo in alto a tutto e deve essere trasversale
+ * a tutto il config, non solo alla sezione selezionata.»
+ *
+ * Adesso e' figlia del guscio del Config e si prende una riga sua per tutta la
+ * larghezza, sopra le famiglie: sta dove sta quello che vale per tutti. E non
+ * la si deve piu' rimettere in cima a ogni cambio di scheda, perche' il guscio
+ * riscrive il corpo e la barra non e' piu' li' dentro. */
 export function ensureBarraDiRicerca() {
   const strisce = linguette();
-  const corpo = doc?.getElementById?.("ed-body");
-  if (!strisce || !corpo) return false;
+  const guscio = strisce?.parentElement || null;
+  if (!strisce || !guscio) return false;
   installaLoStile();
-  let barra = corpo.querySelector(`:scope > .${BARRA}`);
+  let barra = guscio.querySelector(`:scope > .${BARRA}`);
   if (barra) {
-    /* Il guscio riscrive il corpo a ogni cambio di scheda: se la barra e'
-     * finita in mezzo la si rimette in cima, e quello che si stava cercando
-     * resta scritto perche' la parola vive nello stato del modulo. */
-    if (corpo.firstElementChild !== barra) corpo.prepend(barra);
+    /* Prima delle famiglie, che sono la riga sotto. */
+    const famiglie = guscio.querySelector(":scope > #dm-alberatura-famiglie");
+    const dopo = famiglie || strisce;
+    if (barra.nextElementSibling !== dopo) dopo.before(barra);
     return false;
   }
   barra = doc.createElement("div");
@@ -297,7 +307,8 @@ export function ensureBarraDiRicerca() {
   esiti.className = `${BARRA}-esiti`;
   esiti.hidden = !state.parola;
   barra.append(riga, esiti);
-  corpo.prepend(barra);
+  const famiglie = guscio.querySelector(":scope > #dm-alberatura-famiglie");
+  (famiglie || strisce).before(barra);
 
   const ridisegna = () => {
     state.parola = clean(campo.value);

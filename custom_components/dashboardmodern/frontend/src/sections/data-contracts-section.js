@@ -7,6 +7,12 @@ import {
   root,
   writeJsonIfChanged,
 } from "./shared.js";
+import {
+  eDiQuestoApparecchio,
+  eDiUnAltroApparecchio,
+  paroleDegliAltri,
+  paroleDellApparecchio,
+} from "../core/entita-di-questo-apparecchio.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 
 const KEY = "__DASHBOARDMODERN_DATA_CONTRACTS_SECTION__";
@@ -24,17 +30,6 @@ const DAILY_NAME = /(?:daily|giorno|today|oggi)/i;
 const MONTHLY_NAME = /(?:monthly|mese|month)/i;
 const TOTAL_NAME = /(?:total|totale|lifetime|meter|contatore)/i;
 const GENERATED_ROOM_NAME = /^room[_-][a-z0-9]{8,}$/i;
-const GENERIC_TOKENS = new Set([
-  "appl",
-  "appliance",
-  "device",
-  "dispositivo",
-  "generic",
-  "generico",
-  "load",
-  "carico",
-]);
-
 function entityId(entry) {
   return clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id);
 }
@@ -117,31 +112,6 @@ function slug(value) {
     .replace(/^-|-$/g, "");
 }
 
-function deviceTokens(device = {}) {
-  return [
-    device.name,
-    clean(device.id).replace(/^(?:appl|load|device)-/i, ""),
-    device.device_type,
-    device.visual_key,
-  ]
-    .flatMap((value) => slug(value).split("-"))
-    .filter(
-      (value, index, values) =>
-        value.length >= 3 && !GENERIC_TOKENS.has(value) && values.indexOf(value) === index,
-    );
-}
-
-function belongsToDevice(entity, tokens) {
-  const objectId = slug(clean(entity).split(".").pop());
-  return tokens.some(
-    (token) =>
-      objectId === token ||
-      objectId.startsWith(`${token}-`) ||
-      objectId.endsWith(`-${token}`) ||
-      objectId.includes(`-${token}-`),
-  );
-}
-
 function stateAttributes(entity) {
   return allStates()[entity]?.attributes || {};
 }
@@ -177,15 +147,37 @@ export function isLifetimeEnergyEntity(entity) {
   return TOTAL_NAME.test(`${id} ${clean(attributes.friendly_name)}`);
 }
 
-function candidateEntities(device = {}) {
-  const explicit = uniqueEntities(device);
-  const tokens = deviceTokens(device);
-  if (!tokens.length) return explicit;
-  const recovered = Object.keys(allStates()).filter((entity) => belongsToDevice(entity, tokens));
-  return [...new Set([...explicit, ...recovered])];
+/* Quello che l'apparecchio dichiara, meno quello che porta il nome di un altro,
+ * piu' quello che si riconosce dal nome suo.
+ *
+ * Chi decide di chi e' un'entita' sta in `core/entita-di-questo-apparecchio.js`
+ * (#417): qui si legge la casa e la' si giudica. Prima il giudizio era qui e
+ * guardava anche il TIPO dell'apparecchio — «frigo» — che ce l'hanno tutti i
+ * frigoriferi: ogni frigorifero si prendeva le entita' di ogni altro. Il
+ * sottrarre serve a chi quel guaio ce l'ha gia' in configurazione: «mi ricarica
+ * sempre in automatico circa 30 sensori, non riesco a togliere quelli errati in
+ * nessun modo».
+ *
+ * Si toglie SOLO da `entities`, e solo cio' che si sa attribuire a un altro
+ * apparecchio dell'elenco. `entities` non lo scrive nessuno a mano: lo scrive
+ * questa passata, e quello che abbiamo scritto noi lo possiamo correggere. Le
+ * caselle no: quelle le riempie anche una persona, e la stessa entita' su due
+ * carichi puo' essere una scelta — due appartamenti con un contatore solo lo
+ * fanno apposta, e c'e' una prova che dice di non cancellarla. Quello che non
+ * si sa di chi sia resta dov'e'. */
+function candidateEntities(device, parole, altrui) {
+  const explicit = uniqueEntities(device).filter(
+    (entity) => !eDiUnAltroApparecchio(entity, parole, altrui),
+  );
+  if (!parole.length) return explicit;
+  const recuperate = Object.keys(allStates()).filter(
+    (entity) =>
+      eDiQuestoApparecchio(entity, parole) && !eDiUnAltroApparecchio(entity, parole, altrui),
+  );
+  return [...new Set([...explicit, ...recuperate])];
 }
 
-function inferApplianceContract(device = {}) {
+function inferApplianceContract(device = {}, sezione = []) {
   /* Chi e' passato dalla maschera ha gia' detto tutto, comprese le caselle
    * che ha lasciato vuote apposta.
    *
@@ -198,7 +190,9 @@ function inferApplianceContract(device = {}) {
    * quello del carico. Una casella vuota per scelta e' una risposta, non una
    * domanda. */
   if (device?.metadata?.[CAMPI_SCELTI] === true) return device;
-  const entities = candidateEntities(device);
+  const parole = paroleDellApparecchio(device);
+  const altrui = paroleDegliAltri(device, sezione);
+  const entities = candidateEntities(device, parole, altrui);
   const sensors = entities.filter((id) => /^sensor\./i.test(id));
   const energySensors = sensors.filter(isEnergyEntity);
   const find = (pattern, values = sensors) => values.find((id) => pattern.test(id)) || "";
@@ -256,7 +250,7 @@ async function normalizeDeviceSection(section) {
   if (!store?.getSection || !store?.replaceSection) return false;
   const current = store.getSection(section);
   if (!Array.isArray(current) || !current.length) return false;
-  const next = current.map(inferApplianceContract);
+  const next = current.map((device) => inferApplianceContract(device, current));
   if (same(current, next)) return false;
   await store.replaceSection(section, next);
   return true;

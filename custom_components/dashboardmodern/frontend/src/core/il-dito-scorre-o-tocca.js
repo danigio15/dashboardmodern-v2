@@ -28,6 +28,22 @@
 /** Oltre questi pixel il dito stava scorrendo, non toccando. */
 export const SCARTO_DEL_TOCCO = 12;
 
+/**
+ * Oltre questi, il dito ha TIRATO: e non importa piu' se la pagina l'ha
+ * seguito.
+ *
+ * Serve al bordo dello scorrimento. Un elenco gia' in fondo non ha piu' niente
+ * da scorrere: le posizioni restano quelle, e la regola qui sotto — «e' un
+ * tocco se niente si e' mosso» — direbbe tocco anche a una spazzata larga
+ * mezzo schermo, riaccendendo la luce che #397 aveva smesso di accendere.
+ *
+ * Quaranta pixel stanno larghi sopra il pollice appoggiato che rulla (una
+ * dozzina) e stretti sotto qualunque spazzata vera, che su un telefono e'
+ * lunga come mezzo elenco. Fra i dodici e i quaranta decide la pagina; sopra i
+ * quaranta decide il dito.
+ */
+export const SCARTO_DEL_TRASCINAMENTO = 40;
+
 const numero = (valore) => (Number.isFinite(+valore) ? +valore : null);
 
 /**
@@ -58,4 +74,49 @@ export function stavaScorrendo(partenza, arrivo, scarto = SCARTO_DEL_TOCCO) {
   const distanza = quantoSiEMosso(partenza, arrivo);
   if (distanza === null) return false;
   return distanza > Math.max(0, Number(scarto) || 0);
+}
+
+/**
+ * Se qualcosa si e' davvero mosso sotto il dito.
+ *
+ * «In alcuni casi lo switch non e' cliccabile.» La distanza da sola non basta
+ * a dire che si stava scorrendo: su un bersaglio largo tutta la scheda — la
+ * fascia verde che accende una sezione e' larga cosi' — il pollice appoggiato
+ * rulla di una dozzina di pixel senza che nessuno abbia inteso scorrere, e il
+ * comando finiva buttato via. Chi lo subiva ritoccava, e a volte funzionava:
+ * «in alcuni casi», appunto.
+ *
+ * Il fatto che decide non e' quanto si e' mosso il dito: e' se la pagina si e'
+ * mossa. Uno scorrimento sposta qualcosa — la finestra o il contenitore che
+ * scorre — e un tocco no, per quanto la mano trabalzi. Si confrontano le
+ * posizioni di scorrimento di prima e di adesso: se sono le stesse, non si
+ * stava scorrendo, e il comando passa.
+ *
+ * Le posizioni arrivano gia' lette da chi ha il documento in mano: qui si
+ * confrontano e basta.
+ */
+export function haScorsoDavvero(prima, adesso) {
+  if (!prima || !adesso) return false;
+  const chiavi = new Set([...Object.keys(prima), ...Object.keys(adesso)]);
+  for (const chiave of chiavi) {
+    const a = numero(prima[chiave]);
+    const b = numero(adesso[chiave]);
+    if (a === null || b === null) continue;
+    if (a !== b) return true;
+  }
+  return false;
+}
+
+/**
+ * Il giudizio intero: se questo click e' la coda di uno scorrimento.
+ *
+ * Mette insieme i due fatti, e sta qui perche' la regola e' una sola e chi ha
+ * gli eventi in mano non deve ricomporla. Il dito dev'essersi mosso piu' del
+ * tocco, e poi o la pagina l'ha seguito, o si e' mosso cosi' tanto che non
+ * serve chiederlo.
+ */
+export function eraUnoScorrimento(partenza, arrivo, prima, adesso) {
+  if (!stavaScorrendo(partenza, arrivo)) return false;
+  if (haScorsoDavvero(prima, adesso)) return true;
+  return stavaScorrendo(partenza, arrivo, SCARTO_DEL_TRASCINAMENTO);
 }

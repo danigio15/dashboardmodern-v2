@@ -227,6 +227,9 @@ async def test_il_catalogo_elenca_integrazioni_e_dispositivi(
     assert prima["model"] == "H-WASH 500"
     assert prima["integration"] == "hon"
     assert prima["integrations"] == ["hon"]
+    # Da chi dipende: la sezione Server elenca le macchine, non gli accessori
+    # che ci sono appesi, e questo e' il fatto che glielo dice.
+    assert prima["via_device"] == ""
     assert prima["area"] == "Lavanderia"
     # Tre accese: quella disabilitata non conta nel numero che il menu mostra.
     assert prima["entities"] == 3
@@ -234,6 +237,57 @@ async def test_il_catalogo_elenca_integrazioni_e_dispositivi(
     assert catalogo["devices"][1]["id"] == presa.id
     # Senza `device_ids` le entita' non viaggiano: sono migliaia in una casa.
     assert catalogo["entities"] == []
+
+
+async def test_un_dispositivo_di_due_integrazioni_si_conta_in_entrambe(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Il robot acceso da MQTT e adottato dalla sua marca sta in tutte e due.
+
+    Segnalato sulla sezione Robot: «non la vedo fra le integrazioni». Il
+    dispositivo c'era, la marca no — perche' il conto guardava solo
+    l'integrazione principale, e un'integrazione con zero dispositivi la
+    plancia non la mostra.
+    """
+    mock_integration(
+        hass,
+        MockModule("dreame_vacuum", partial_manifest={"name": "Dreame"}),
+        built_in=False,
+    )
+    mock_integration(hass, MockModule("mqtt", partial_manifest={"name": "MQTT"}))
+    marca = MockConfigEntry(domain="dreame_vacuum", title="Dreame", entry_id="dreame-1")
+    marca.add_to_hass(hass)
+    ponte = MockConfigEntry(domain="mqtt", title="MQTT", entry_id="mqtt-1")
+    ponte.add_to_hass(hass)
+
+    robot = device_registry.async_get_or_create(
+        config_entry_id="mqtt-1",
+        identifiers={("mqtt", "robot-1")},
+        manufacturer="Dreame",
+        model="L10s Ultra",
+        name="Robot",
+    )
+    device_registry.async_update_device(robot.id, add_config_entry_id="dreame-1")
+    entity_registry.async_get_or_create(
+        "vacuum",
+        "dreame_vacuum",
+        "robot-1",
+        suggested_object_id="robot",
+        device_id=robot.id,
+        config_entry=marca,
+        original_name="Robot",
+    )
+
+    catalogo = await _comando(
+        hass, StubConnection(hass), {"type": TYPE_INTEGRATIONS_CATALOG}
+    )
+
+    riga = catalogo["devices"][0]
+    assert riga["integrations"] == ["dreame_vacuum", "mqtt"]
+    conti = {item["domain"]: item["devices"] for item in catalogo["integrations"]}
+    assert conti == {"dreame_vacuum": 1, "mqtt": 1}
 
 
 async def test_le_entita_si_chiedono_per_dispositivo(

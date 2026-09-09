@@ -184,6 +184,19 @@ export function nomiDelleIntegrazioni() {
   return nomi;
 }
 
+/**
+ * I dispositivi gia' letti, e intanto chiede il catalogo se non c'e'.
+ *
+ * Come `entitaDelDispositivo`, ma per il menu intero: chi disegna non aspetta
+ * — riceve quello che c'e' adesso, magari niente — e si ridisegna da solo
+ * quando arriva l'annuncio del catalogo.
+ */
+export function dispositiviDelCatalogo() {
+  if (state.catalog) return state.catalog.devices || [];
+  caricaCatalogo().catch(() => {});
+  return [];
+}
+
 export function dimenticaCatalogo() {
   state.catalog = null;
   state.catalogAt = 0;

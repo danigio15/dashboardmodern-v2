@@ -119,18 +119,20 @@ export async function chiedi(testo) {
     const risposta = rispostaDi(risultato);
     state.filo = risposta.conversazione || state.filo;
     state.ultimo = Date.now();
-    const parola = risposta.muta
-      ? t("Fatto.", "Done.")
-      : risposta.testo;
+    const parola = risposta.muta ? t("Fatto.", "Done.") : risposta.testo;
     aggiungi("casa", parola, { errore: risposta.errore });
     leggi(parola);
     return !risposta.errore;
   } catch (errore) {
     /* Il messaggio di Home Assistant e' la sola spiegazione che chi guarda
      * puo' capire; senza, si dice almeno che la casa non ha risposto. */
-    aggiungi("casa", clean(errore?.message) || t("La casa non ha risposto.", "The house did not answer."), {
-      errore: true,
-    });
+    aggiungi(
+      "casa",
+      clean(errore?.message) || t("La casa non ha risposto.", "The house did not answer."),
+      {
+        errore: true,
+      },
+    );
     return false;
   } finally {
     state.inVolo = false;
@@ -314,8 +316,10 @@ function ensureTasto() {
   let tasto = doc.getElementById("dm-assist-tasto");
   if (!acceso()) {
     tasto?.remove();
+    segnaCheGalleggia(false);
     return null;
   }
+  segnaCheGalleggia(true);
   if (tasto) return tasto;
   tasto = doc.createElement("button");
   tasto.type = "button";
@@ -329,6 +333,24 @@ function ensureTasto() {
   return tasto;
 }
 
+/* Lo spazio in fondo alla pagina cresce insieme a quello che ci galleggia
+ * sopra.
+ *
+ * La barra ferma se l'era gia' preso: `body.cd-nav-fixed` riserva centododici
+ * pixel, «cosi' la barra non si mangia la distanza che serve a non coprire
+ * l'ultima card». Questo tasto e' arrivato dopo e arriva piu' in alto — sta a
+ * novantasei pixel dal fondo ed e' alto cinquantadue, cioe' centoquarantotto —
+ * ma la riserva e' rimasta quella di prima. Su un iPad l'ultima card si
+ * fermava proprio li' sotto: il tasto «Storico» del microonde finiva dentro il
+ * cerchio di Assist, e premerlo apriva Assist. Un tasto che ne copre un altro
+ * non galleggia sopra la scena: ci sta davanti.
+ *
+ * La riserva la chiede chi galleggia, e solo mentre c'e': spento Assist, la
+ * pagina torna a finire dove e' sempre finita. */
+function segnaCheGalleggia(acceso) {
+  doc?.body?.classList?.toggle("dm-assist-galleggia", Boolean(acceso));
+}
+
 function installStyles() {
   installStyle(
     "dm-assist-style",
@@ -337,6 +359,9 @@ function installStyles() {
       width:52px;height:52px;border:none;border-radius:50%;font-size:23px;cursor:pointer;
       background:linear-gradient(145deg,#0ea5e9,#0369a1);color:#fff;
       box-shadow:0 14px 30px -12px rgba(2,132,199,.7)}
+    body.dm-assist-galleggia.cd-nav-fixed{
+      padding-bottom:calc(160px + var(--dm-fondo-di-sistema,0px))!important;
+      scroll-padding-bottom:calc(160px + var(--dm-fondo-di-sistema,0px))!important}
     .dm-assist-tasto:hover{transform:translateY(-1px)}
     .dm-assist-tasto:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 40%,transparent);outline-offset:3px}
     .dm-assist-pannello{max-width:520px;width:min(520px,100%);display:flex;flex-direction:column;max-height:min(78vh,720px)}

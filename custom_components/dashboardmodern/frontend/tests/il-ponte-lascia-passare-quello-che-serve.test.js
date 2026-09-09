@@ -41,16 +41,47 @@ function moduli(cartella) {
 
 /* Un messaggio per Home Assistant si riconosce dalla barra: `get_states` e
  * `call_service` sono gli unici piatti, e li scrive il runtime vendorizzato. */
-const MESSAGGIO = /type:\s*"([a-z][a-z0-9_]*\/[a-z0-9_/]+)"/g;
+const FORMA = "[a-z][a-z0-9_]*\\/[a-z0-9_/]+";
+const MESSAGGIO_SCRITTO = new RegExp(`type:\\s*"(${FORMA})"`, "g");
+
+/* Il nome al posto della stringa.
+ *
+ * Assist scrive `{ type: TIPO_CONVERSAZIONE }`, e TIPO_CONVERSAZIONE vale
+ * "conversation/process" venti righe piu' su, in un altro file. La ricerca
+ * guardava solo le stringhe scritte li' per li', quindi quel messaggio non lo
+ * ha mai visto: il ponte lo negava, e questa prova diceva che andava tutto
+ * bene. Dal campo, con la schermata allegata: «impostato conversation gemini e
+ * openai ma non funziona, sbaglio io qualcosa?» — e dentro il riquadro rosso
+ * c'era la nostra risposta, «Message type not permitted through the bridge:
+ * conversation/process».
+ *
+ * Una prova che non vede meta' di quello che deve guardare e' peggio di
+ * nessuna prova: dice di no ai difetti che non sa trovare. Adesso si leggono
+ * anche le costanti — `const NOME = "dominio/cosa"` — e chi le usa come `type`
+ * conta come chi ci scrive la stringa. */
+const COSTANTE = new RegExp(`(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*"(${FORMA})"`, "g");
+const MESSAGGIO_PER_NOME = /type:\s*([A-Z][A-Z0-9_]*)\b/g;
 
 function messaggiSpediti() {
+  const testi = new Map();
+  for (const percorso of moduli(SRC))
+    testi.set(percorso.slice(SRC.length + 1), readFileSync(percorso, "utf8"));
+
+  /* Le costanti di tutti i moduli insieme: chi le usa quasi sempre le importa
+   * da un altro file, ed e' proprio quel salto che nascondeva il difetto. */
+  const costanti = new Map();
+  for (const testo of testi.values())
+    for (const [, nome, tipo] of testo.matchAll(COSTANTE)) costanti.set(nome, tipo);
+
   const trovati = new Map();
-  for (const percorso of moduli(SRC)) {
-    const testo = readFileSync(percorso, "utf8");
-    for (const [, tipo] of testo.matchAll(MESSAGGIO)) {
-      if (!trovati.has(tipo)) trovati.set(tipo, []);
-      trovati.get(tipo).push(percorso.slice(SRC.length + 1));
-    }
+  const segna = (tipo, dove) => {
+    if (!trovati.has(tipo)) trovati.set(tipo, []);
+    if (!trovati.get(tipo).includes(dove)) trovati.get(tipo).push(dove);
+  };
+  for (const [dove, testo] of testi) {
+    for (const [, tipo] of testo.matchAll(MESSAGGIO_SCRITTO)) segna(tipo, dove);
+    for (const [, nome] of testo.matchAll(MESSAGGIO_PER_NOME))
+      if (costanti.has(nome)) segna(costanti.get(nome), dove);
   }
   return trovati;
 }
@@ -73,6 +104,17 @@ test("le cartelle per la foto dell'auto attraversano il ponte", () => {
   ]) {
     assert.ok(ALLOWED_MESSAGE_TYPES.includes(tipo), `manca ${tipo}`);
   }
+});
+
+test("Assist attraversa il ponte, e la ricerca lo vede anche dietro al suo nome", () => {
+  /* Le due meta' dello stesso difetto: il messaggio deve passare, e la prova
+   * deve saperlo trovare anche quando nel codice non c'e' la stringa ma la
+   * costante che la tiene. */
+  assert.ok(ALLOWED_MESSAGE_TYPES.includes("conversation/process"));
+  assert.ok(
+    messaggiSpediti().has("conversation/process"),
+    "la ricerca non vede i messaggi scritti con una costante: e' il buco che ha lasciato passare #360",
+  );
 });
 
 test("il ponte non si allarga a quello che non serve", () => {

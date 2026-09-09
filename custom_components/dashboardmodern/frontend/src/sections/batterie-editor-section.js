@@ -161,8 +161,8 @@ function rigaMarkup(riga, aggiunte) {
     </div>
     <b class="dm-batt-ed-livello">${esc(riga.muta ? "—" : `${Math.round(riga.level)}%`)}</b>
     <button type="button" class="ed-del dm-batt-ed-togli" data-dm-batt-escludi="${esc(riga.entity)}"
-      title="${esc(t("Non contare questa batteria", "Do not count this battery"))}"
-      aria-label="${esc(t("Non contare questa batteria", "Do not count this battery"))}">🚫</button>
+      title="${esc(t("Togli dall'elenco", "Drop from the list"))}"
+      aria-label="${esc(t("Togli dall'elenco", "Drop from the list"))}">🗑️</button>
   </article>`;
 }
 

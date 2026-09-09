@@ -68,8 +68,8 @@ function rigaMarkup(riga, scelte) {
       <small class="ed-row-old mono">${esc(riga.entity)}${aggiunto ? ` · ${esc(t("aggiunto a mano", "added by hand"))}` : ""}</small>
     </div>
     <button type="button" class="ed-del dm-varco-ed-togli" data-dm-varco-escludi="${esc(riga.entity)}"
-      title="${esc(t("Non contare questo contatto", "Do not count this contact"))}"
-      aria-label="${esc(t("Non contare questo contatto", "Do not count this contact"))}">🚫</button>
+      title="${esc(t("Togli dall'elenco", "Drop from the list"))}"
+      aria-label="${esc(t("Togli dall'elenco", "Drop from the list"))}">🗑️</button>
   </article>`;
 }
 

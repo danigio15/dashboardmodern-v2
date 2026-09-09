@@ -38,6 +38,8 @@ const SOLO_DI_QUESTO_DISPOSITIVO = Object.freeze({
   cd_irr_lastrun: "quando ha girato l'irrigazione su questo dispositivo",
   cd_posta_stato:
     "cosa sa questo dispositivo della cassetta: com'era l'ultima volta che l'ha guardata, e se chi guarda ha gia' visto la posta. Lo scatto di prima e' quello che permette di accorgersi di un'apertura avvenuta mentre non si guardava, e condividerlo vorrebbe dire che il tablet acceso in cucina se ne accorge per primo e al telefono non resta piu' niente da confrontare",
+  cd_cam_strade:
+    "quale strada — WebRTC, HLS, MJPEG, istantanee — ha aperto ogni telecamera da QUI. Non e' una proprieta' della telecamera, e' una proprieta' della strada di rete fra chi guarda e la telecamera: dal divano si passa in HLS, dal telefono fuori casa magari no, e scrivere la scelta di uno sull'altro vorrebbe dire far sbagliare strada a tutti e due",
   cd_pool_run: "il conteggio della pompa in corso qui",
   cd_pool_lastrun: "quando ha girato la pompa su questo dispositivo",
   cd_open_editor_after_reload: "riapri la configurazione dopo il ricaricamento",
@@ -62,13 +64,11 @@ const SCRITTURE = [
   /writeJson(?:IfChanged)?\(\s*["'`]((?:cd|dm)_[a-zA-Z0-9_.-]+)["'`]/g,
   /setItem\(\s*["'`]((?:cd|dm)_[a-zA-Z0-9_.-]+)["'`]/g,
 ];
-const DICHIARAZIONE = /\b(?:export\s+)?const\s+([A-Z][A-Z_0-9]*)\s*=\s*["'`]((?:cd|dm)_[a-zA-Z0-9_.-]+)["'`]/g;
+const DICHIARAZIONE =
+  /\b(?:export\s+)?const\s+([A-Z][A-Z_0-9]*)\s*=\s*["'`]((?:cd|dm)_[a-zA-Z0-9_.-]+)["'`]/g;
 
 function chiaviScritte() {
-  const file = [
-    ...tuttiIFile(join(RADICE, "src")),
-    ...tuttiIFile(join(RADICE, "legacy")),
-  ];
+  const file = [...tuttiIFile(join(RADICE, "src")), ...tuttiIFile(join(RADICE, "legacy"))];
   const sorgenti = new Map(file.map((percorso) => [percorso, readFileSync(percorso, "utf8")]));
 
   /* Le costanti viaggiano fra i file: una sezione importa la chiave da core/.
@@ -101,10 +101,7 @@ function chiaviScritte() {
 }
 
 function chiaviCheViaggiano() {
-  const sorgente = readFileSync(
-    join(RADICE, "src/core/chiavi-di-configurazione.js"),
-    "utf8",
-  );
+  const sorgente = readFileSync(join(RADICE, "src/core/chiavi-di-configurazione.js"), "utf8");
   const apertura = sorgente.indexOf("export const CONFIG_KEYS = Object.freeze([");
   const blocco = sorgente.slice(apertura, sorgente.indexOf("]);", apertura));
   return new Set([...blocco.matchAll(/"((?:cd|dm)_[a-zA-Z0-9_.-]+)"/g)].map((m) => m[1]));

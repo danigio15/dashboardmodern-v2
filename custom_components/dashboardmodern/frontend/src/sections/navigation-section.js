@@ -59,7 +59,15 @@ function installStyles() {
        * si mangiava proprio la distanza che serviva a non coprire l'ultima
        * card, e piu' alta e' la fascia di sistema piu' grande era la
        * sovrapposizione. */
-      body.cd-nav-fixed{padding-bottom:calc(112px + var(--dm-fondo-di-sistema))!important}
+      /* E non basta lo spazio: serve che chi porta una cosa in vista si fermi
+       * prima della barra. La proprieta' scroll-padding-bottom dice al browser
+       * dove finisce la parte utile della finestra, cosi' un tasto raggiunto
+       * da un salto, dalla tastiera o da un giro di scrollIntoView si ferma
+       * sopra la barra invece che sotto — dove si vede ma non si preme. */
+      body.cd-nav-fixed{
+        padding-bottom:calc(112px + var(--dm-fondo-di-sistema))!important;
+        scroll-padding-bottom:calc(112px + var(--dm-fondo-di-sistema))!important
+      }
       /* E la maniglia che tira fuori la barra, che sta ancora piu' in basso:
        * se resta sotto i tasti non la si prende nemmeno. */
       .bottom-nav-handle{bottom:calc(6px + var(--dm-fondo-di-sistema))!important}

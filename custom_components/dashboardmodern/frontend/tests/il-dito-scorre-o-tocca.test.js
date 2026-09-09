@@ -14,8 +14,11 @@ import { readFileSync } from "node:fs";
 
 import {
   SCARTO_DEL_TOCCO,
+  SCARTO_DEL_TRASCINAMENTO,
+  eraUnoScorrimento,
   quantoSiEMosso,
   stavaScorrendo,
+  haScorsoDavvero,
 } from "../src/core/il-dito-scorre-o-tocca.js";
 
 test("un dito fermo tocca, un dito che tira scorre", () => {
@@ -74,4 +77,82 @@ test("è installata dal runtime, non da chi se la ricorda", () => {
     "utf8",
   );
   assert.match(runtime, /installIlDitoScorreOTocca\(\);/);
+});
+
+/* ── il dito si muove, ma la pagina no ─────────────────────────────────── */
+
+/* «In alcuni casi lo switch non e' cliccabile.»
+ *
+ * La distanza da sola non basta a dire che si stava scorrendo. Su un bersaglio
+ * largo tutta la scheda — la fascia verde che accende una sezione — il pollice
+ * appoggiato rulla di una dozzina di pixel senza che nessuno abbia inteso
+ * scorrere, e il comando finiva buttato via. Il fatto che decide non e' quanto
+ * si e' mosso il dito: e' se la pagina si e' mossa.
+ */
+test("se niente si e' mosso, non si stava scorrendo", () => {
+  const fermo = { finestraX: 0, finestraY: 120, v1: 40 };
+  assert.equal(haScorsoDavvero(fermo, { ...fermo }), false);
+});
+
+test("la finestra che scorre basta a dirlo", () => {
+  assert.equal(
+    haScorsoDavvero({ finestraX: 0, finestraY: 120 }, { finestraX: 0, finestraY: 260 }),
+    true,
+  );
+});
+
+test("anche un solo contenitore che scorre basta", () => {
+  assert.equal(haScorsoDavvero({ finestraY: 0, v1: 40 }, { finestraY: 0, v1: 300 }), true);
+});
+
+test("scorrere di traverso conta come scorrere", () => {
+  assert.equal(haScorsoDavvero({ o1: 0, v1: 10 }, { o1: 90, v1: 10 }), true);
+});
+
+test("senza misure non si accusa nessuno", () => {
+  assert.equal(haScorsoDavvero(null, { finestraY: 10 }), false);
+  assert.equal(haScorsoDavvero({ finestraY: 10 }, null), false);
+  assert.equal(haScorsoDavvero(undefined, undefined), false);
+});
+
+test("una misura che non c'e' piu' non conta come movimento", () => {
+  /* Un contenitore sparito fra il tocco e il click — la scheda si ridisegna —
+   * lascia una chiave senza numero dall'altra parte: non e' uno scorrimento. */
+  assert.equal(haScorsoDavvero({ finestraY: 10, v1: 5 }, { finestraY: 10 }), false);
+});
+
+/* In fondo all'elenco non c'e' piu' niente da scorrere, e li' decide il dito.
+ *
+ * «Se la pagina non si e' mossa era un tocco» tiene finche' la pagina PUO'
+ * muoversi. A fine corsa non puo': una spazzata larga mezzo schermo lascia le
+ * posizioni identiche, e la regola da sola direbbe tocco — cioe' riaccenderebbe
+ * la luce che #397 aveva smesso di accendere, proprio dove capita di piu', in
+ * fondo a un elenco lungo. Sopra il trascinamento non si chiede piu' niente
+ * alla pagina.
+ */
+test("a fine corsa una spazzata resta uno scorrimento, anche se niente si e' mosso", () => {
+  const fermo = { finestraX: 0, finestraY: 0, v1: 900, o1: 0 };
+  const partenza = { x: 200, y: 600 };
+
+  /* Il pollice appoggiato che rulla: sotto il trascinamento, e la pagina non si
+   * e' mossa. E' un comando, e passa — «in alcuni casi lo switch non e'
+   * cliccabile» resta corretto. */
+  assert.equal(eraUnoScorrimento(partenza, { x: 204, y: 585 }, fermo, fermo), false);
+
+  /* La spazzata vera, allo stesso posto: centoventi pixel. */
+  assert.equal(eraUnoScorrimento(partenza, { x: 200, y: 480 }, fermo, fermo), true);
+
+  /* E quando la pagina si muove basta lo scarto del tocco, come prima. */
+  assert.equal(eraUnoScorrimento(partenza, { x: 204, y: 585 }, fermo, { ...fermo, v1: 860 }), true);
+
+  /* Un dito che non si e' mosso non scorre mai, per quanto scorra la pagina. */
+  assert.equal(eraUnoScorrimento(partenza, partenza, fermo, { ...fermo, v1: 100 }), false);
+  /* E senza un dito dietro — tastiera, `.click()` — non si accusa nessuno. */
+  assert.equal(eraUnoScorrimento(null, { x: 1, y: 1 }, fermo, fermo), false);
+});
+
+test("le due soglie sono dichiarate, e la seconda sta larga sopra la prima", () => {
+  assert.equal(SCARTO_DEL_TOCCO, 12);
+  assert.equal(SCARTO_DEL_TRASCINAMENTO, 40);
+  assert.ok(SCARTO_DEL_TRASCINAMENTO > SCARTO_DEL_TOCCO * 3);
 });

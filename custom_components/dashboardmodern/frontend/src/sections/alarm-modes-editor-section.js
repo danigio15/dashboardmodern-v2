@@ -97,7 +97,7 @@ function markup(modi) {
  * disegna la scheda annuncia di averla rifatta prima di accendere la linguetta,
  * e chi si fidava della linguetta arrivava sempre un giro in anticipo — trovava
  * la scheda vecchia, si toglieva, e non tornava piu'. */
-function casellaDellaCentrale() {
+export function casellaDellaCentrale() {
   const body = doc?.getElementById?.("ed-body");
   if (!body) return null;
   return (

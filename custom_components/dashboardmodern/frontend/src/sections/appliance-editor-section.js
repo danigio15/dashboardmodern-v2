@@ -5,10 +5,7 @@ import {
   canonicalApplianceVisualKey,
   applianceVisualKey,
 } from "../core/device-model.js";
-import {
-  apriIlFoglioDiScelta,
-  chiudiIlFoglioDiScelta,
-} from "./foglio-di-scelta-section.js";
+import { apriIlFoglioDiScelta, chiudiIlFoglioDiScelta } from "./foglio-di-scelta-section.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
   activeLocale,
@@ -38,6 +35,12 @@ import {
   nomeDelComando,
 } from "../core/robot-model.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
+import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
+import {
+  eDiUnAltroApparecchio,
+  paroleDegliAltri,
+  paroleDellApparecchio,
+} from "../core/entita-di-questo-apparecchio.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_APPLIANCE_EDITOR_SECTION__";
@@ -52,6 +55,14 @@ function appliances() {
   return Array.isArray(stored) ? stored.slice() : readJson("cd_appliances", []);
 }
 
+/* L'unico posto della sezione dove l'emoji resta, e non e' una scelta.
+ *
+ * «Non voglio vedere icone che non sono nostre»: giusto, e dappertutto qui
+ * intorno adesso c'e' il disegno del catalogo. Qui no, e non per dimenticanza:
+ * questa e' la tendina delle stanze, e dentro un `<option>` il browser disegna
+ * TESTO — nessun elemento, nessun disegno, nemmeno un'immagine. Per mettercelo
+ * bisognerebbe rifare la tendina come menu nostro, che e' un'altra cosa e un
+ * altro lavoro. Finche' e' un `<select>`, l'emoji e' quello che si puo'. */
 function roomIconEmoji(icon) {
   return iconGlyph("room", clean(icon) || "mdi:home") || "🏠";
 }
@@ -440,7 +451,17 @@ function wireComandi(modal, form) {
   disegnaComandi(modal, form);
 }
 
-function normalizeEntities(device, values) {
+/* Le entita' dell'apparecchio dopo un salvataggio: le caselle della maschera,
+ * piu' quelle che aveva gia' e che non sono di un altro apparecchio (#417).
+ *
+ * Il setaccio serve perche' l'elenco `entities` non lo scrive nessuno a mano:
+ * lo riempiva la passata che indovina dai nomi, e quando sbagliava ci lasciava
+ * dentro i sensori del frigorifero accanto. Da qui in poi le caselle sono
+ * scelte — `dm_campi_scelti` le blocca — quindi quello che resta nell'elenco
+ * resta per sempre: se non si toglie adesso non si toglie piu'. */
+function normalizeEntities(device, values, elenco = []) {
+  const parole = paroleDellApparecchio(device);
+  const altrui = paroleDegliAltri(device, elenco);
   return [
     ...new Set(
       [
@@ -452,9 +473,11 @@ function normalizeEntities(device, values) {
         values.total_energy_entity,
         values.history_entity,
         values.report_entity,
-        ...(device.entities || []).map((entry) =>
-          clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id),
-        ),
+        ...(device.entities || [])
+          .map((entry) =>
+            clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id),
+          )
+          .filter((entity) => !eDiUnAltroApparecchio(entity, parole, altrui)),
       ].filter(Boolean),
     ),
   ];
@@ -828,7 +851,14 @@ export function openApplianceEditor(index) {
       next.total_energy_entity ||
       next.monthly_energy_entity ||
       next.daily_energy_entity;
-    next.entities = normalizeEntities(device, next);
+    next.entities = normalizeEntities(device, next, appliances());
+    /* Da adesso le caselle sono sue: quello che ha lasciato vuoto e' una
+     * risposta, non una domanda, e la passata che indovina dai nomi non ci
+     * torna sopra (#417). Senza questo segno «anche se cancello l'associazione,
+     * quando ritorno in configurazione me la ritrovo sempre»: l'entita' tolta
+     * col cestino rientrava un istante dopo il salvataggio. E' lo stesso segno
+     * che mette il collegamento a un dispositivo dell'integrazione. */
+    next.metadata = { ...(next.metadata || {}), [CAMPI_SCELTI]: true };
     try {
       await saveAppliance(index, next);
       close();

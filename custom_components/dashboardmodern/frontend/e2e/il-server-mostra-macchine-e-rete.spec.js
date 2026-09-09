@@ -258,19 +258,23 @@ test("la lavatrice e il telefono restano fuori, anche se portano le stesse class
   await expect(page.locator("#page-server .dm-macchina", { hasText: "Telefono" })).toHaveCount(0);
 });
 
-test("senza aver scelto niente non si adotta niente, e la pagina dice dove si sceglie", async ({
+test("senza aver scelto niente non si adotta niente, e non si dice niente", async ({
   page,
 }, testInfo) => {
   await avvia(page, testInfo, { integrazioni: [] });
   await page.evaluate(() => document.querySelector('.tab[data-tab="server"]')?.click());
 
-  /* Meglio una sezione vuota con scritto perché, che una piena di roba
-   * d'altri: la riga d'invito conta i candidati veri e dice dove si sceglie. */
-  const invito = page.locator("#page-server .dm-macchine-invito");
-  await expect(invito).toBeVisible({ timeout: 20_000 });
-  await expect(invito).toContainText("MiniPC");
-  await expect(invito.locator(".dm-macchine-testa span")).toContainText("6");
-  await expect(page.locator("#page-server .dm-macchina")).toHaveCount(0);
+  /* Meglio una sezione vuota che una piena di roba d'altri: questo non cambia.
+   * Quello che è cambiato è che la sezione vuota adesso tace.
+   *
+   * C'era una riga d'invito — «MACCHINE E RETE · Da scegliere · 21» — con un
+   * paragrafo che spiegava dove andare a spuntare le integrazioni. Ma dove si
+   * sceglie lo dice già la scheda del Config, che è dove uno sta guardando
+   * quando configura: «se si configura nella sezione config di riferimento
+   * togli ste scritte inutili, soprattutto se non è configurato nulla». Una
+   * pagina che non ha niente da mostrare non ha nemmeno niente da dire. */
+  await expect(page.locator("#page-server .dm-macchina")).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.locator("#page-server .dm-macchine-invito")).toHaveCount(0);
 });
 
 test("dal config si spunta l'integrazione, e la sezione si riempie", async ({ page }, testInfo) => {

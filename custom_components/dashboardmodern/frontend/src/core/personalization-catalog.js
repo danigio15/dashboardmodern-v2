@@ -498,6 +498,9 @@ export function carBrandImageSource(value) {
  * delle icone per la famiglia «car» chiede quello. I tre pezzi se ne sono
  * andati insieme, perche' esistevano solo l'uno per l'altro. */
 
+/* Le stanze che le azioni hanno gia' col loro nome: una voce, non due. */
+const AZIONI_CHE_SONO_GIA_STANZE = Object.freeze(new Set(["laundry", "garage", "pool"]));
+
 export const ACTION_ICON_CATALOG = Object.freeze(
   [
     ["home", "Casa", "Home", "mdi:home", "🏠"],
@@ -612,7 +615,38 @@ export const ACTION_ICON_CATALOG = Object.freeze(
     ["wifi", "Wi-Fi", "Wi-Fi", "mdi:wifi", "📡"],
     ["refresh", "Aggiorna", "Refresh", "mdi:refresh", "🔄"],
     ["restart", "Riavvia", "Restart", "mdi:restart", "♻️"],
-  ].map(([id, it, en, mdi, glyph]) => Object.freeze({ id, it, en, mdi, glyph })),
+  ]
+    .map(([id, it, en, mdi, glyph]) =>
+      Object.freeze({ id, it, en, mdi, glyph, group: "action", keywords: "" }),
+    )
+    /* Le stanze valgono anche come icona d'azione.
+     *
+     * Dal campo: «vorrei che le icone delle azioni rapide fossero di piu', non
+     * solo le categorie come luci prese ecc: vorrei poter associare una luce a
+     * un'icona che mi ricordi una stanza». Il catalogo delle stanze esisteva
+     * gia' — lo usa il selettore dei carichi — e alle azioni non arrivava: il
+     * divano, il letto, la vasca, il giardino non erano scegliibili. Adesso
+     * arrivano da li', non copiate: un elenco solo, e chi cambia una stanza la
+     * cambia dappertutto.
+     *
+     * Le tre che le azioni hanno gia' con lo stesso nome — lavatrice, garage,
+     * piscina — restano una sola voce: sarebbero lo stesso riquadro due volte.
+     * L'identificativo prende il prefisso `room-`, che e' anche il nome del
+     * disegno di casa: cosi' la voce si porta dietro il suo disegno invece di
+     * ripiegare sull'emoji. */
+    .concat(
+      ROOM_CATALOG.filter((stanza) => !AZIONI_CHE_SONO_GIA_STANZE.has(stanza.id)).map((stanza) =>
+        Object.freeze({
+          id: `room-${stanza.id}`,
+          it: stanza.it,
+          en: stanza.en,
+          mdi: stanza.mdi,
+          glyph: ROOM_GLYPHS[stanza.id] || "\u{1F3E0}",
+          group: "room",
+          keywords: stanza.keywords,
+        }),
+      ),
+    ),
 );
 
 const ACTION_ARTWORK = Object.freeze({

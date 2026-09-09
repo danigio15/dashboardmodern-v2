@@ -3,8 +3,28 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
+/* La linguetta della stanza porta il DISEGNO, non l'emoji.
+ *
+ * Dal campo: «nelle stanze degli elettrodomestici ci sono icone che non sono
+ * del nostro catalogo — non voglio vedere icone che non sono nostre». Qui si
+ * chiedeva `iconGlyph`, che di un nome mdi torna l'emoji del telefono; adesso
+ * si chiede il disegno, lo stesso delle tessere.
+ *
+ * Il tasto finto modella la cosa che conta: scrivere `innerHTML` cambia anche
+ * `textContent`, ed e' quello che rende il giro idempotente — al secondo passo
+ * il prefisso `mdi:` non c'e' piu' e non si tocca piu' niente. */
 test("appliance room tab normalization replaces an MDI prefix once", async () => {
-  const button = { textContent: "mdi:bed-king-outline Cameretta" };
+  const button = {
+    _html: "",
+    textContent: "mdi:bed-king-outline Cameretta",
+    set innerHTML(valore) {
+      this._html = valore;
+      this.textContent = String(valore).replaceAll(/<[^>]*>/g, "");
+    },
+    get innerHTML() {
+      return this._html;
+    },
+  };
   globalThis.document = {
     documentElement: { lang: "it" },
     querySelectorAll: (selector) =>
@@ -15,9 +35,14 @@ test("appliance room tab normalization replaces an MDI prefix once", async () =>
   };
   const module = await import(`../src/sections/appliances-section.js?fix=${Date.now()}`);
   assert.equal(module.normalizeApplianceRoomTabs(), true);
-  assert.equal(button.textContent, "🛏️ Cameretta");
+  assert.match(button.innerHTML, /<svg/, "la linguetta deve portare il disegno del catalogo");
+  /* Il nome mdi resta negli attributi del disegno — e' la firma con cui il
+   * motore riconosce quello che ha gia' scritto — ma di leggibile non ne resta
+   * niente: chi guarda vede il disegno e la parola. */
+  assert.equal(button.textContent.trim(), "Cameretta");
+  const prima = button.innerHTML;
   assert.equal(module.normalizeApplianceRoomTabs(), false);
-  assert.equal(button.textContent, "🛏️ Cameretta");
+  assert.equal(button.innerHTML, prima);
   button.textContent = "📊 Panoramica";
   assert.equal(module.normalizeApplianceRoomTabs(), false);
   assert.equal(button.textContent, "📊 Panoramica");

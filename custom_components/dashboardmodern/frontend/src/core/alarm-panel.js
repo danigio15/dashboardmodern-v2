@@ -21,6 +21,11 @@
  * risponde. Non tocca il documento e non chiama servizi.
  */
 
+import {
+  modoSuMisuraAcceso,
+  normalizzaModiSuMisura,
+  tastiSuMisura,
+} from "./antifurto-su-misura.js";
 import { corrente, elencoConCorrente, nomeProgressivo, overridesPerScelto } from "./piu-di-uno.js";
 
 /* I bit di alarm_control_panel, come li definisce Home Assistant. */
@@ -196,16 +201,39 @@ export function alarmHiddenModes(stored) {
 
 /**
  * I tasti da disegnare davvero: quelli che la centrale accetta, meno quelli
- * che si e' scelto di non vedere.
+ * che si e' scelto di non vedere, piu' quelli scritti a mano.
+ *
+ * `suMisura` sono i tasti di chi una centrale non ce l'ha (#413): «utilizzando
+ * un dispositivo tramite esphome non ho il classico control_panel_alarm». Se la
+ * centrale non c'e' proprio — nessuna entita' da leggere — i tasti di ripiego
+ * chiamerebbero servizi che non esistono, e allora valgono solo i propri: e' la
+ * stessa regola di sempre, un tasto che non fa niente non deve esistere. Se la
+ * centrale c'e', i propri si aggiungono ai suoi.
  */
-export function alarmVisibleModes(stateObj, stored) {
+export function alarmVisibleModes(stateObj, stored, suMisura = []) {
+  const miei = tastiSuMisura(suMisura);
+  if (!stateObj && miei.length) return miei;
   const tolte = new Set(alarmHiddenModes(stored));
   const tutte = alarmModes(stateObj);
   const restano = tutte.filter((voce) => voce.mode === ALARM_DISARM.mode || !tolte.has(voce.mode));
   /* Toglierli tutti lascerebbe la fila con il solo sblocco, e una centrale che
    * si puo' solo spegnere non e' quello che uno voleva chiedere: se la scelta
    * cancella ogni inserimento la si ignora. */
-  return restano.length > 1 ? restano : tutte;
+  return [...(restano.length > 1 ? restano : tutte), ...miei];
+}
+
+/**
+ * Il tasto acceso quando i tasti sono quelli scritti a mano.
+ *
+ * La centrale vera lo dice col proprio stato; questi lo dicono ognuno col suo —
+ * l'`input_select` che porta il nome della modalita', lo `switch` acceso. Senza
+ * centrale e' l'unica risposta possibile; con la centrale la sua vince, perche'
+ * e' lei a sapere davvero com'e' messa la casa.
+ */
+export function alarmActiveModeWithCustom(stateObj, disponibili, suMisura, states = {}) {
+  const dalPannello = alarmActiveMode(stateObj?.state, disponibili);
+  if (dalPannello) return dalPannello;
+  return modoSuMisuraAcceso(normalizzaModiSuMisura(suMisura), states);
 }
 
 /* ── più di una centrale: le aree (#285) ──────────────────────────────── */
