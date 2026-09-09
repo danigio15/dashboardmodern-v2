@@ -32,7 +32,7 @@ import {
   senzaIlRicordo,
 } from "../src/core/apertura-telecamera.js";
 import { CONFIG_KEYS } from "../src/core/chiavi-di-configurazione.js";
-import { strategieDellaTelecamera } from "../src/core/strategie-telecamera.js";
+import { stradaScelta, strategieDellaTelecamera } from "../src/core/strategie-telecamera.js";
 
 const ORA = 1_700_000_000_000;
 const GIORNO = 24 * 60 * 60 * 1000;
@@ -147,18 +147,25 @@ test("la strada che cade si dimentica: insistere domani costerebbe di nuovo", ()
   assert.equal(ricordoScaduto(memoria["camera.salone"], ORA), true);
 });
 
-test("una telecamera che dorme tiene il suo permesso lungo nella fila del guscio", () => {
-  /* La scorciatoia è corta apposta, ma quando fallisce si torna alla fila
-   * intera — e lì l'HLS ha i venticinque secondi che a un'Arlo servono. Non è
-   * lavoro doppio: è la seconda metà dello stesso tentativo. */
+test("l'Arlo che dorme non passa piu' dall'HLS che Home Assistant le dichiara", () => {
+  /* Questa e' la #418, scritta come dato: un'Arlo ferma (`idle`) per cui Home
+   * Assistant dichiara `frontend_stream_type: hls`. Prima ci si fidava di
+   * quella dichiarazione e le si davano venticinque secondi. La dichiarazione
+   * dice che l'integrazione dei flussi c'e', non che l'apparecchio in cloud
+   * riesca a svegliarsi e a produrre segmenti — ed e' quel passaggio che non
+   * arriva: «la live non parte in nessun modo».
+   *
+   * Il proxy dal vivo non chiede a nessuno di svegliarsi: manda i fotogrammi
+   * che ha, appena li ha. E' quello che fa `camera_view: live` di
+   * `picture-entity`, la card che su questa stessa telecamera si muove.
+   * Adesso e' la strada, non il quarto tentativo dopo ventotto secondi. */
   const strade = strategieDellaTelecamera(
     { entity: "camera.arlo" },
     { entity_id: "camera.arlo", state: "idle", attributes: { frontend_stream_type: "hls" } },
     {},
   );
-  const hls = strade.find((strada) => strada.nome === "HLS");
-  assert.equal(hls.sveglia, true);
-  assert.equal(hls.attesa, 25_000);
+  assert.equal(stradaScelta(strade).nome, "MJPEG");
+  assert.equal(strade.find((strada) => strada.nome === "HLS").salta, "strada-gia-scelta");
 });
 
 /* Le istantanee non si scorciano, e il tasto dell'audio resta vivo.
