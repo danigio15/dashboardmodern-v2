@@ -30,6 +30,7 @@ import {
   pastiglieDellaCasa,
   postaRitirata,
 } from "../core/come-sta-la-casa.js";
+import { durataDellaDeriva, spazioDaPercorrere } from "../core/la-fascia-deriva.js";
 import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { windowOpenFromState } from "../core/shutter-window.js";
 import { iconGlyphMarkup } from "./icon-engine-section.js";
@@ -280,6 +281,14 @@ function ospite() {
   const riga = gia || doc.createElement("div");
   riga.id = "dm-casa-riga";
   riga.className = "dm-casa-riga";
+  /* Le pastiglie stanno su un nastro, e la fascia lo ritaglia: e' il nastro a
+   * scorrere, non lo scorrimento della fascia. Cosi' il movimento lo fa il
+   * compositore e non c'e' nessun timer che sposti niente. */
+  if (!riga.querySelector(":scope > .dm-casa-nastro")) {
+    const nastro = doc.createElement("div");
+    nastro.className = "dm-casa-nastro";
+    riga.append(nastro);
+  }
   /* Sotto il meteo vuol dire due posti diversi, e sono lo stesso posto: quando
    * il meteo sta ancora nella pagina, subito dopo di lui; quando invece e'
    * salito nella testata — la fascia in cima, che sta fuori dalla pagina — il
@@ -288,6 +297,37 @@ function ospite() {
   if (meteo) meteo.after(riga);
   else pagina.prepend(riga);
   return riga;
+}
+
+/* ── la deriva della fascia ──────────────────────────────────────────────── */
+
+/* Quanta strada c'e' da fare, detta al foglio di stile una volta per disegno.
+ *
+ * Il foglio sa animare, ma non sa quanto sono larghe le pastiglie: quella
+ * misura la puo' prendere solo chi ha il documento in mano, e la prende quando
+ * il disegno e' appena finito — non a ogni fotogramma. Da qui in poi si muove
+ * tutto da solo.
+ *
+ * `data-dm-deriva` accende l'animazione e le sfumature ai bordi: senza di lui
+ * una fascia che ci sta tutta resterebbe ferma ma sfumata, cioe' direbbe che
+ * c'e' altro quando non c'e'. */
+function tieniLaFasciaInMovimento(riga) {
+  const nastro = riga?.querySelector(":scope > .dm-casa-nastro");
+  if (!nastro) return false;
+  const strada = spazioDaPercorrere({
+    scrollWidth: nastro.scrollWidth,
+    clientWidth: riga.clientWidth,
+  });
+  if (!strada) {
+    delete riga.dataset.dmDeriva;
+    riga.style.removeProperty("--dm-casa-strada");
+    riga.style.removeProperty("--dm-casa-durata");
+    return false;
+  }
+  riga.style.setProperty("--dm-casa-strada", `${strada}px`);
+  riga.style.setProperty("--dm-casa-durata", `${durataDellaDeriva(strada)}s`);
+  riga.dataset.dmDeriva = "true";
+  return true;
 }
 
 /**
@@ -310,11 +350,15 @@ export function disegnaComeStaLaCasa(modelli, states) {
     state.firma = "";
     return false;
   }
+  const nastro = riga.querySelector(":scope > .dm-casa-nastro") || riga;
   const attuale = firmaDellaRiga(pastiglie);
-  if (state.firma !== attuale || riga.childElementCount !== pastiglie.length) {
+  if (state.firma !== attuale || nastro.childElementCount !== pastiglie.length) {
     state.firma = attuale;
-    aggiornaLePastiglie(riga, pastiglie);
+    aggiornaLePastiglie(nastro, pastiglie);
   }
+  /* Dopo il disegno, non prima: quante pastiglie ci stanno lo si sa solo a
+   * fascia piena. */
+  tieniLaFasciaInMovimento(riga);
   return true;
 }
 
@@ -488,10 +532,24 @@ function stile() {
        dentro la sua. Due fasce una sopra l'altra, e si leggono come una cosa
        sola.
 
-       Va a capo quando serve (#400): «va oltre pagina a destra e devi scorrere
-       per vederle. Sarebbe carino che andasse a capo». */
+       ── Una riga sola, che scorre da sola ────────────────────────────────
+       «La barra sotto al meteo deve essere su una riga: da smartphone, se non
+       entra, la devi rendere scorrevole o che scorre lei automaticamente.»
+
+       E' la marcia indietro sulla #400 — «va oltre pagina a destra e devi
+       scorrere per vederle, sarebbe carino che andasse a capo» — e non e' un
+       ripensamento a vuoto: l'obiezione di allora era che uno scorrimento
+       orizzontale, in cima a una pagina che scorre in verticale, non lo trova
+       nessuno, e quello che stava oltre il bordo era di fatto quello che non
+       esisteva. Adesso quell'obiezione cade, perche' non c'e' piu' niente da
+       trovare: se le pastiglie non entrano, la fascia deriva da sola avanti e
+       indietro e te le porta davanti una per una.
+
+       La deriva si ferma appena qualcuno la tocca — chi ha preso in mano la
+       fascia comanda lui — e non parte affatto per chi ha chiesto meno
+       animazioni. Il velo sul bordo dice che c'e' altro anche da ferma. */
     #dm-casa-riga{
-      display:flex;flex-wrap:wrap;align-items:stretch;gap:2px;
+      display:block;overflow:hidden;
       /* Stretta quanto quello che dice: una casa tranquilla ha due voci, e una
          fascia larga tutta la pagina con due voci dentro e' mezza fascia
          vuota. Cresce con quello che ha da dire, e al massimo arriva al bordo
@@ -502,7 +560,35 @@ function stile() {
       border:1px solid var(--card-border,rgba(15,23,42,.07));
       background:var(--card-bg,#fff);
       box-shadow:0 6px 18px -12px rgba(15,23,42,.28)}
-    #dm-casa-riga:empty{display:none}
+    #dm-casa-riga:not(:has([data-dm-casa])){display:none}
+    /* Il nastro: le pastiglie in fila, larghe quanto vogliono. E' lui che si
+       muove, e lo muove il foglio — nessun timer sposta niente. */
+    .dm-casa-nastro{
+      display:flex;flex-wrap:nowrap;align-items:stretch;gap:2px;width:max-content}
+    /* Va avanti e torna, e si ferma un attimo ai due capi: alternate piu' la
+       curva morbida. La strada e il tempo li ha misurati la sezione — il foglio
+       non sa quanto sono larghe le pastiglie. */
+    #dm-casa-riga[data-dm-deriva="true"] .dm-casa-nastro{
+      animation:dm-casa-deriva var(--dm-casa-durata,12s) ease-in-out infinite alternate}
+    @keyframes dm-casa-deriva{
+      from{translate:0}
+      to{translate:calc(-1 * var(--dm-casa-strada,0px))}}
+    /* Chi ci mette il dito o il puntatore sopra comanda lui: la fascia si ferma
+       e si legge. Riprende quando lo si toglie. */
+    #dm-casa-riga:hover .dm-casa-nastro,
+    #dm-casa-riga:active .dm-casa-nastro,
+    #dm-casa-riga:focus-within .dm-casa-nastro{animation-play-state:paused}
+    /* Le sfumature ai due bordi dicono «continua»: si accendono solo quando
+       c'e' davvero qualcosa fuori. */
+    #dm-casa-riga[data-dm-deriva="true"]{
+      mask-image:linear-gradient(to right,transparent 0,#000 22px,#000 calc(100% - 22px),transparent 100%);
+      -webkit-mask-image:linear-gradient(to right,transparent 0,#000 22px,#000 calc(100% - 22px),transparent 100%)}
+    @media (prefers-reduced-motion:reduce){
+      /* Chi ha chiesto meno animazioni si trascina la fascia a mano: e' l'unico
+         caso in cui torna a scorrere invece di derivare. */
+      #dm-casa-riga[data-dm-deriva="true"] .dm-casa-nastro{animation:none}
+      #dm-casa-riga[data-dm-deriva="true"]{overflow-x:auto;scrollbar-width:none}
+      #dm-casa-riga[data-dm-deriva="true"]::-webkit-scrollbar{display:none}}
 
     /* Ogni voce: il disegno nel suo riquadro tinto, la parola grossa e sotto
        la micro-etichetta maiuscola spaziata. E' la coppia con cui parla tutta

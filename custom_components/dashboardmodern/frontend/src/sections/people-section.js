@@ -13,7 +13,17 @@
  */
 import { fermaRitrattiPersi, installAvatar3dStyle, ritrattoVivo } from "./person-avatar-section.js";
 import { normalizePeople, personViewModel } from "../core/person-model.js";
-import { allStates, clean, doc, esc, formatNumber, installStyle, readJson, root, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  formatNumber,
+  installStyle,
+  readJson,
+  root,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PEOPLE__";
 const state = (root[KEY] ||= { installed: false, listeners: false, frame: 0, clock: 0 });
@@ -106,8 +116,7 @@ function distanceLabel(distance) {
 function tripMarkup(view) {
   const parts = [];
   if (view.distance) {
-    const arrow =
-      view.direction === "towards" ? " →🏠" : view.direction === "away" ? " ←🏠" : "";
+    const arrow = view.direction === "towards" ? " →🏠" : view.direction === "away" ? " ←🏠" : "";
     const title =
       view.direction === "towards"
         ? t("Si sta avvicinando a casa", "Approaching home")
@@ -205,14 +214,33 @@ function popupTiles(view) {
       ),
     );
   if (view.watch !== null)
-    tiles.push(popupTile("⌚", t("Batteria orologio", "Watch battery"), `${Math.round(view.watch)}%`, view.watchLow ? " low" : ""));
+    tiles.push(
+      popupTile(
+        "⌚",
+        t("Batteria orologio", "Watch battery"),
+        `${Math.round(view.watch)}%`,
+        view.watchLow ? " low" : "",
+      ),
+    );
   if (view.wifi) tiles.push(popupTile("📶", t("Rete WiFi", "WiFi network"), esc(view.wifi)));
   const activity = ACTIVITY_LABELS[view.activity];
   if (activity && view.presence !== "home")
-    tiles.push(popupTile(ACTIVITY_EMOJI[view.activity] || "🧍", t("Attività", "Activity"), esc(t(activity[0], activity[1]))));
+    tiles.push(
+      popupTile(
+        ACTIVITY_EMOJI[view.activity] || "🧍",
+        t("Attività", "Activity"),
+        esc(t(activity[0], activity[1])),
+      ),
+    );
   if (view.distance) {
     const arrow = view.direction === "towards" ? " →🏠" : view.direction === "away" ? " ←🏠" : "";
-    tiles.push(popupTile("🧭", t("Distanza da casa", "Distance from home"), `${esc(distanceLabel(view.distance))}${arrow}`));
+    tiles.push(
+      popupTile(
+        "🧭",
+        t("Distanza da casa", "Distance from home"),
+        `${esc(distanceLabel(view.distance))}${arrow}`,
+      ),
+    );
   }
   if (view.travel !== null)
     tiles.push(popupTile("⏱", t("Tempo di rientro", "Time to home"), `${view.travel} min`));
@@ -254,11 +282,9 @@ function paintPersonPopup() {
   if (view.known) delete card.dataset.unknown;
   else card.dataset.unknown = "true";
   card.innerHTML = popupBodyMarkup(view, people);
-  card.querySelector("[data-person-img]")?.addEventListener(
-    "error",
-    (event) => event.target.remove(),
-    { once: true },
-  );
+  card
+    .querySelector("[data-person-img]")
+    ?.addEventListener("error", (event) => event.target.remove(), { once: true });
   /* Anche il ritratto grande del popup e' vivo: sarebbe strano che la
    * persona sbatta le ciglia nella card e resti di marmo qui dentro. */
   const ritratto = card.querySelector(".dm-person-avatar[data-ritratto]");
@@ -295,7 +321,8 @@ export function openPersonPopup(id) {
       if (nav) {
         const people2 = peopleInHome();
         const at = people2.findIndex((entry) => entry.id === state.popupId);
-        const next = people2[(at + Number(nav.dataset.personPopNav) + people2.length) % people2.length];
+        const next =
+          people2[(at + Number(nav.dataset.personPopNav) + people2.length) % people2.length];
         if (next) {
           state.popupId = next.id;
           paintPersonPopup();
@@ -348,13 +375,15 @@ export function renderPeopleSection() {
   const states = allStates();
   const now = Date.now();
   const grid = host.querySelector(".dm-people-grid");
-  grid.innerHTML = people.map((person) => cardMarkup(personViewModel(person, states, now))).join("");
+  grid.innerHTML = people
+    .map((person) => cardMarkup(personViewModel(person, states, now)))
+    .join("");
   host.querySelector(".dm-people-title").textContent = t("Persone", "People");
   /* La foto che non si carica non deve restare come icona rotta sopra
    * l'avatar: sparisce lei e resta lui. */
-  grid.querySelectorAll("[data-person-img]").forEach((img) =>
-    img.addEventListener("error", () => img.remove(), { once: true }),
-  );
+  grid
+    .querySelectorAll("[data-person-img]")
+    .forEach((img) => img.addEventListener("error", () => img.remove(), { once: true }));
   /* I ritratti si compongono e si animano dopo che la card e' comparsa:
    * nessuno aspetta davanti a un buco. L'espressione la decide quello che la
    * plancia sa gia' — chi e' a casa e' contento, chi ha il telefono fermo da
@@ -473,9 +502,20 @@ function installStyles() {
        ricava corsie identiche: e' la stessa aritmetica su una larghezza piu'
        corta. */
     #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-2}
-    /* Sotto le tre colonne «accanto» vuol dire schiacciare le persone in una
-       corsia sola: si torna in colonna, la griglia intera e il compagno sotto. */
+    /* Sul telefono «accanto» esiste, e a due corsie.
+       «La card deve uscire affianco a Giovanni.» Qui la fila cadeva a una
+       colonna sola sotto i 760px, e il compagno finiva sotto la griglia largo
+       tutta la pagina — che e' esattamente quello che era stato chiesto di non
+       fare. Due corsie ci stanno: le persone ne prendono una e il compagno
+       l'altra, che e' la stessa spartizione che la griglia delle persone fa
+       gia' da sola sul telefono sotto i 520px.
+       Piu' stretto di un telefono no: sotto i 360px due corsie non tengono ne'
+       una persona ne' un anello, e allora si torna in colonna. */
     @media(max-width:760px){
+      #dm-people .dm-people-fila{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-2}
+    }
+    @media(max-width:360px){
       #dm-people .dm-people-fila{grid-template-columns:1fr}
       #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-1}
     }
@@ -543,6 +583,9 @@ function installStyles() {
          cade il bordo della seconda colonna. */
       #dm-people .dm-people-fila{gap:8px}
       #dm-people .dm-people-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      /* Con il compagno accanto la griglia ha una corsia sola: le persone si
+         mettono in fila dentro quella, invece di provare a starci in due. */
+      #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-template-columns:1fr}
       #dm-people .dm-person-card{padding:11px}
       #dm-people .dm-person-testa{gap:9px}
       #dm-people .dm-person-portrait{width:46px;height:46px}

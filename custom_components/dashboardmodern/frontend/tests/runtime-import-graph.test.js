@@ -1095,8 +1095,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // provabile a tavolino: le parole vengono dal nome, tutte devono combaciare,
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
+  // 315 con la deriva della fascia sotto il meteo: «deve essere su una riga,
+  // quindi da smartphone se non entra la devi rendere scorrevole o che scorre
+  // lei automaticamente». Torna su una riga sola — era andata a capo per la
+  // #400 — e l'obiezione di allora, che uno scorrimento orizzontale non lo
+  // trova nessuno, cade perche' non c'e' piu' niente da trovare: la fascia si
+  // muove da sola. `core/la-fascia-deriva.js` e' l'aritmetica di quel
+  // movimento, che e' la parte che si tiene ferma con una prova; il timer e il
+  // dito che lo ferma stanno nella sezione, che e' l'unica a poterli conoscere.
   assert.ok(
-    relative.length <= 314,
+    relative.length <= 315,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
