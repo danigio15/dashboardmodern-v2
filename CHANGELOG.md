@@ -10,9 +10,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 ## 1.4.16
 
 Il giro delle segnalazioni, una per una. Sei richieste nuove diventate cose che
-si vedono — fra cui una sezione che non c'era, la Presenza — e sette difetti,
-quattro dei quali erano la stessa forma di bugia: la plancia diceva una cosa
-mentre ne faceva un'altra, e chi guardava non aveva modo di accorgersene.
+si vedono — fra cui una sezione che non c'era, la Presenza — e una dozzina di
+difetti, quasi tutti la stessa forma di bugia: la plancia diceva una cosa
+mentre ne faceva un'altra, e chi guardava non aveva modo di accorgersene. Il
+flusso dell'energia, che nella 1.4.15 era finito sotto le persone invece che
+accanto, adesso è la card che era stata chiesta.
 
 ### Aggiunto
 
@@ -90,6 +92,54 @@ mentre ne faceva un'altra, e chi guardava non aveva modo di accorgersene.
   disegno mente. Chi non tocca niente resta com'era.
 
 ### Corretto
+
+- **Home: il flusso dell'energia è una card accanto alle persone** (#415)
+
+  «Accanto magari alle card delle persone» lo diceva la richiesta, e non era
+  stato fatto: ne era uscito un blocco largo quanto la pagina, **sotto** di
+  loro — un riquadro quasi vuoto con dentro cinque targhette piccole, più
+  cornice che disegno. Adesso è una card stretta accanto alla griglia delle
+  persone, con la loro stessa veste, e il disegno è rifatto attorno alla casa:
+  lei al centro col numero grosso, le sorgenti attorno, e in cima da dove
+  arriva **adesso** la corrente che la casa usa. La freccia della batteria è
+  sparita perché lo dice già l'arco che ci arriva, e il «62%» è diventato un
+  anello di carica attorno al suo cerchio. Non è più una voce dell'ordine dei
+  blocchi: viaggia con le persone, che è la cosa a cui è accanto. Accenderlo e
+  spegnerlo si fa dov'era.
+
+- **Home: la finestra dentro la riga della tapparella tornava invisibile**
+
+  I contatti uscivano solo da una riga senza motore. Ma la riga normale — la
+  tapparella con il sensore del suo infisso — è esattamente come si configura
+  una finestra qui dentro, e di quella la tessera prendeva la sola tapparella:
+  contava l'avvolgibile su e taceva dell'anta aperta. È l'errore della #442
+  rifatto dall'altro lato.
+
+- **Presenza: un rilevatore che va giù non è un movimento**
+
+  Passare a «non disponibile» è un cambio di stato, e il suo istante è adesso:
+  contandolo, una casa in cui l'unica cosa successa era un sensore andato giù
+  leggeva «Ultimo movimento · appena adesso». La notizia più tranquillizzante
+  possibile, detta proprio quando la sorveglianza manca.
+
+- **Telecamere: il proxy dal vivo non si salta quando è l'unica strada**
+
+  Senza WebRTC e con un browser che l'HLS non sa suonare non veniva scelta
+  nessuna strada, e il proxy MJPEG si toglieva di mezzo dicendo «strada già
+  scelta». Si finiva sui fotogrammi a intervalli mentre il flusso dal vivo era
+  lì e funzionava: è un'immagine su un altro indirizzo, e non chiede al browser
+  di saper suonare niente.
+
+- **Allerte: la frase dei pollini dice chi ha alzato l'allerta**
+
+  Con il bollettino del giorno «molto alto» e le tre erbe tranquille, la tessera
+  si accendeva sul bollettino e la frase diceva «Graminacee: basso» — nascondendo
+  proprio la lettura che aveva alzato l'allerta.
+
+- **Allerte: il sì e il no nella lingua di chi guarda**
+
+  Un attributo vero o falso usciva scritto in italiano su ogni plancia del
+  mondo.
 
 - **Auto: la card mostrava i km dell'AdBlue anche dopo aver corretto l'entità**
   (#444)
