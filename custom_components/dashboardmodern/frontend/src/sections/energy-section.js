@@ -3,6 +3,7 @@ import {
   PERIOD_SOURCES,
   archiDelPeriodo,
   chiaveDellArco,
+  giorniPerLaMedia,
   periodConsumption,
   periodRange,
   recorderBucketConsumptions,
@@ -935,14 +936,14 @@ function applyDeviceDetail(bundle) {
   if (monthValue == null || yearValue == null) return false;
   const selectedMonth = Number(bundle.period?.month) || new Date().getMonth() + 1;
   const selectedYear = Number(bundle.period?.year) || new Date().getFullYear();
-  const days = new Date(selectedYear, selectedMonth, 0).getDate();
+  const days = giorniPerLaMedia(selectedYear, selectedMonth);
   const importPrice = finite(bundle.rates?.importPrice);
   const monthSplit = splitFor(bundle.month, monthValue);
   const yearSplit = splitFor(bundle.year, yearValue);
 
   setText("ed-dkpi-mese", `${formatNumber(monthValue, 1)} kWh`);
   setText("ed-dkpi-mese-eur", `€ ${formatNumber(monthValue * importPrice, 2)}`);
-  setText("ed-dkpi-media", `${formatNumber(days ? monthValue / days : 0, 2)} kWh`);
+  setText("ed-dkpi-media", days ? `${formatNumber(monthValue / days, 2)} kWh` : "—");
   setText("ed-dkpi-media-sub", t("Media/giorno", "Daily average"));
   setText("ed-dkpi-risp-eur", `+ ${formatNumber(monthSplit.solar * importPrice, 2)} €`);
   setText(
