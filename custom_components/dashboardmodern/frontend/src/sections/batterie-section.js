@@ -37,8 +37,11 @@ import {
   root,
   t,
 } from "./shared.js";
-import { nomeDaHomeAssistant } from "./editor-slots-section.js";
-import { batterieSorvegliate } from "./batterie-elenco-section.js";
+import {
+  batterieSorvegliate,
+  CHIAVE_NOMI_SCELTI,
+  nomeDellaBatteria,
+} from "./batterie-elenco-section.js";
 
 const KEY = "__DASHBOARDMODERN_BATTERIE__";
 const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
@@ -56,9 +59,11 @@ export function sogliaDiCasa() {
 /** Le batterie di casa, lette adesso e messe in ordine. */
 export function batterieInPlancia() {
   const states = allStates();
+  /* I nomi si leggono una volta per tutta la pagina, non una per riga. */
+  const nomi = readJson(CHIAVE_NOMI_SCELTI, {}) || {};
   return batterieLette(batterieSorvegliate(), states, {
     soglia: sogliaDiCasa(),
-    nome: (entity) => nomeDaHomeAssistant(entity, states),
+    nome: (entity) => nomeDellaBatteria(entity, states, nomi),
   });
 }
 

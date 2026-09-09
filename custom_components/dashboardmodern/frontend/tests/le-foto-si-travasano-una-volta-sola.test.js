@@ -139,11 +139,35 @@ test("togliere una chiave non alza la revisione", async () => {
    * Home (#415, #416, `cd_flusso_home`): «sulla home, accanto magari alle card
    * delle persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla
    * casa alle batterie, dalla casa all'auto». Vederlo o no e' una scelta sulla
-   * casa, come l'ordine dei blocchi che gli sta accanto. */
-  assert.equal(CONFIG_KEYS_REVISION, 38);
+   * casa, come l'ordine dei blocchi che gli sta accanto. E la 39 con chi resta
+   * fuori dal grafico delle Temperature (#433, `cd_grafico_stanze`): «poter
+   * togliere dal grafico alcune entita'/stanze cliccandoci sopra in modo tale
+   * che diventi piu' leggibile la variazione. Nel mio caso il vano tecnico».
+   * Una stanza fuori scala schiaccia tutte le altre, e toglierla e' una cosa
+   * che si dice della casa, non del vetro da cui la si e' detta. E la 40 con la
+   * presenza (#432, `cd_presenza`): «ci vorrebbe una sezione con i sensori
+   * presenza o movimento». Sono le stesse tre correzioni dei varchi — quale
+   * rilevatore non guarda la casa, quale aggiungere a mano, come si chiama — e
+   * sono correzioni al rilevamento di CASA: il sensore del cortile e' fuori
+   * posto su ogni dispositivo, e il nome dato a «Motion 3C» vale per tutti. */
+  /* E la 41 col verso della batteria (#434, `cd_batteria_verso`): «sembra
+   * scaricarsi perche' il flow tratteggiato va dalla batteria verso casa ma non
+   * e' esatto». Meta' dei sensori scrive positivo quando la batteria si CARICA,
+   * e da un valore solo non si indovina: lo dice la casa. La batteria e' una
+   * sola per tutta la casa, e chi ha girato il verso dal computer non deve
+   * vedere le frecce al contrario sul telefono. */
+  assert.equal(CONFIG_KEYS_REVISION, 41);
   assert.ok(
     CONFIG_KEYS.includes("cd_flusso_home"),
     "il flusso in Home si sceglie per la casa, non per lo schermo",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_presenza"),
+    "i rilevatori di presenza si correggono per la casa, non per lo schermo",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_batteria_verso"),
+    "il verso della batteria e' dell'impianto, non del vetro",
   );
   assert.ok(
     CONFIG_KEYS.includes("cd_antifurto_su_misura"),

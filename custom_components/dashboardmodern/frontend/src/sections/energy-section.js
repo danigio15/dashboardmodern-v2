@@ -3,6 +3,8 @@ import {
   PERIOD_SOURCES,
   archiDelPeriodo,
   chiaveDellArco,
+  giorniPerLaMedia,
+  ilGiornoDelPicco,
   periodConsumption,
   periodRange,
   recorderBucketConsumptions,
@@ -453,6 +455,23 @@ function pianiDeiDispositivi(kind) {
 
 /* Il paniere dei dispositivi e' indicizzato per entita', non per piano: e' con
  * quella che lo cercano il Report e i cerchi del flusso. */
+/* I giorni per entita', come `valoriPerEntita` fa coi totali.
+ *
+ * Le chiavi del paniere sono prefissate — «disp:month:» — perche' nello stesso
+ * paniere finiscono il giorno, il mese e l'anno; qui si torna al nome
+ * dell'entita', che e' quello che chi disegna ha in mano. */
+function giorniPerEntita(plans, giorni, prefisso) {
+  const perEntita = new Map();
+  if (!(giorni instanceof Map) || giorni.size === 0) return perEntita;
+  plans.forEach((plan) => {
+    const serie = giorni.get(`${prefisso}${plan.key}`);
+    if (!Array.isArray(serie) || !serie.length) return;
+    perEntita.set(plan.entity, serie);
+    perEntita.set(plan.source, serie);
+  });
+  return perEntita;
+}
+
 function valoriPerEntita(plans, valori) {
   const values = new Map();
   plans.forEach((plan) => {
@@ -606,10 +625,23 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso 
     carichi: letturaDi(carichi, today, states, "carico:", archiGiorno),
   };
 
+  /* Del mese dei dispositivi si tengono anche i giorni: il picco del mese e'
+   * il massimo della loro serie, e quella serie arriva insieme al totale —
+   * la domanda al Recorder e' a giorni comunque. Chiederla due volte per
+   * leggere due numeri dalla stessa risposta sarebbe un giro regalato. */
   const richieste = Object.values(letture).flatMap((lettura) =>
-    lettura.archi.map((range) => ({ plans: lettura.daRicavare, range })),
+    lettura.archi.map((range) => ({
+      plans: lettura.daRicavare,
+      range,
+      conIGiorni: lettura === letture.dispMonth,
+    })),
   );
-  const { valori: ricavati, caduti } = await broker.valoriPerArchi(richieste, new Map(), alPasso);
+  const giorniDeiDispositivi = new Map();
+  const {
+    valori: ricavati,
+    caduti,
+    giorni: giorniRicavati,
+  } = await broker.valoriPerArchi(richieste, new Map(), alPasso, giorniDeiDispositivi);
   /* Gli archi che non hanno risposto. Serve saperlo per famiglia: l'anno
    * senza il suo mese aperto sarebbe un anno piu' corto — un numero
    * sbagliato, non un numero mancante — e un numero sbagliato non si
@@ -690,6 +722,11 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso 
       caduta: caduti.length ? clean(caduti[0]?.errore?.message || caduti[0]?.errore) : "",
       deviceDay: paniere("deviceDay", letture.dispDay, dispositivi.day),
       deviceMonth: paniere("deviceMonth", letture.dispMonth, dispositivi.month),
+      deviceMonthDays: giorniPerEntita(
+        dispositivi.month.plans,
+        giorniRicavati,
+        letture.dispMonth.prefisso,
+      ),
       deviceYear: paniere("deviceYear", letture.dispYear, dispositivi.year),
       energyLoadsDay: letture.carichi.valori,
       rates: Object.freeze(rates()),
@@ -935,14 +972,29 @@ function applyDeviceDetail(bundle) {
   if (monthValue == null || yearValue == null) return false;
   const selectedMonth = Number(bundle.period?.month) || new Date().getMonth() + 1;
   const selectedYear = Number(bundle.period?.year) || new Date().getFullYear();
-  const days = new Date(selectedYear, selectedMonth, 0).getDate();
+  const days = giorniPerLaMedia(selectedYear, selectedMonth);
   const importPrice = finite(bundle.rates?.importPrice);
   const monthSplit = splitFor(bundle.month, monthValue);
   const yearSplit = splitFor(bundle.year, yearValue);
 
   setText("ed-dkpi-mese", `${formatNumber(monthValue, 1)} kWh`);
   setText("ed-dkpi-mese-eur", `€ ${formatNumber(monthValue * importPrice, 2)}`);
-  setText("ed-dkpi-media", `${formatNumber(days ? monthValue / days : 0, 2)} kWh`);
+  setText("ed-dkpi-media", days ? `${formatNumber(monthValue / days, 2)} kWh` : "—");
+  /* Il picco, con la virgola come tutto il resto della card.
+   *
+   * Lo scriveva il guscio storico, e lo scriveva dopo di noi: la sua passata
+   * finisce con la storia del giorno, cioe' dopo un giro in rete. Ma il nostro
+   * risveglio e' agganciato al `finally` della sua promessa, quindi la nostra
+   * scrittura viene DOPO la sua — e' un ordine, non una corsa. */
+  const picco = ilGiornoDelPicco(bundle.deviceMonthDays?.get(source));
+  if (picco) {
+    setText("ed-dkpi-picco", `${formatNumber(picco.quanto, 2)} kWh`);
+    if (picco.quando)
+      setText(
+        "ed-dkpi-picco-sub",
+        `${t("Giorno", "Day")} ${picco.quando.getDate()}/${picco.quando.getMonth() + 1}`,
+      );
+  }
   setText("ed-dkpi-media-sub", t("Media/giorno", "Daily average"));
   setText("ed-dkpi-risp-eur", `+ ${formatNumber(monthSplit.solar * importPrice, 2)} €`);
   setText(
@@ -1614,11 +1666,66 @@ function installStyles() {
   );
 }
 
+/* I quattro riquadri del TOTALE ANNO hanno un padrone solo.
+ *
+ * Ne avevano due, e vinceva quello sbagliato. Il guscio storico ha una sua
+ * `edCalcolaTotaliAnnoDispositivo`: chiede al Recorder gli intervalli MENSILI
+ * e ne somma i `change`. E' il conto che su un contatore che si azzera ogni
+ * mese — quello mensile di una wallbox e' esattamente questo — da' il divario
+ * fra due mesi al posto del consumo di uno. Correggerlo e' stato il lavoro
+ * della 1.4.15: si chiedono i GIORNI e si sommano (`mesiDaiGiorni`).
+ *
+ * Solo che quella funzione non e' stata spenta, e non e' attesa da nessuno:
+ * il guscio la lancia e tira avanti. Lei scrive «⏳ —», parte con la sua
+ * domanda mensile, e quando la risposta arriva — dopo un giro in rete, quindi
+ * dopo di noi — riscrive i quattro riquadri col numero vecchio. Vinceva
+ * sempre, perche' scriveva per ultima.
+ *
+ * Ecco perche' la correzione era nel codice e sullo schermo il totale restava
+ * quello di prima: «i dati della wallbox sono ancora sbagliati, il totale
+ * consumato da inizio anno e' 1440,76 kWh» — e la plancia ne diceva 546 sulla
+ * 1.4.14, e 546 anche sulla 1.4.15.
+ *
+ * Qui si sostituisce, non si affianca: `wrapFunction` chiama sempre
+ * l'originale e non servirebbe a niente. Della vecchia resta il solo gesto che
+ * vale, mettere i riquadri in attesa — senza quello, cambiando dispositivo
+ * resterebbero i numeri di quello di prima, che e' peggio di un trattino — e
+ * la domanda mensile non si fa piu': era anche un giro di Recorder buttato a
+ * ogni apertura.
+ */
+const RIQUADRI_DELL_ANNO = Object.freeze([
+  "ed-dkpi-anno-risp-eur",
+  "ed-dkpi-anno-risp-kwh",
+  "ed-dkpi-anno-costo-eur",
+  "ed-dkpi-anno-costo-kwh",
+]);
+
+function iRiquadriDellAnnoAspettano(selYear) {
+  setText("ed-dkpi-year-lbl", String(selYear ?? ""));
+  for (const id of RIQUADRI_DELL_ANNO) setText(id, "⏳ —");
+}
+
+function spegniIlTotaleAnnoDelGuscio() {
+  const precedente = root.edCalcolaTotaliAnnoDispositivo;
+  if (typeof precedente !== "function" || precedente.__dmTotaleAnno) return false;
+  function nostra(_sensor, selYear) {
+    iRiquadriDellAnnoAspettano(selYear);
+    scheduleProjection();
+    /* Niente promessa da attendere: chi la chiamava non l'attendeva comunque. */
+    return undefined;
+  }
+  nostra.__dmTotaleAnno = true;
+  nostra.__dmPrevious = precedente;
+  root.edCalcolaTotaliAnnoDispositivo = nostra;
+  return true;
+}
+
 function installWrappers() {
   for (const name of ["render", "renderEnergyDashboard", "renderEdDeviceList"]) {
     wrapFunction(name, "__dmEnergySection", scheduleProjection);
   }
   wrapFunction("edCaricaDettaglio", "__dmEnergyDetailSection", scheduleProjection);
+  spegniIlTotaleAnnoDelGuscio();
   onEditorRedraw("__dmEnergyEditorSection", installEnergyEditorContracts);
 }
 

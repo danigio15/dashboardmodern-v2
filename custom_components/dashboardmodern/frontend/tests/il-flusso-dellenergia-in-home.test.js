@@ -19,6 +19,7 @@ import {
   arcoPiuGrande,
   flussoDiCasa,
   forzaDellArco,
+  sorgenteDiCasa,
 } from "../src/core/flusso-di-casa.js";
 import { allocateSourceFlows } from "../src/core/energy-flow-truth.js";
 import { BLOCCHI_DELLA_HOME, ordineDeiBlocchi } from "../src/core/ordine-dei-blocchi.js";
@@ -27,18 +28,40 @@ import { CONFIG_KEYS } from "../src/core/chiavi-di-configurazione.js";
 const archiDi = (modello) =>
   modello.archi.map((arco) => `${arco.da}>${arco.a}:${Math.round(arco.watt)}`);
 
-test("il blocco esiste nella Home e la sua scelta viaggia con la casa", () => {
-  assert.ok(BLOCCHI_DELLA_HOME.includes("flusso"));
-  assert.ok(CONFIG_KEYS.includes("cd_flusso_home"));
-  /* Chi ha gia' salvato un ordine senza il flusso non lo perde: entra al suo
-   * posto di serie, non in fondo e non per primo. */
-  assert.deepEqual(ordineDeiBlocchi(["azioni", "persone", "widget", "dispositivi"]), [
+test("il flusso non è un blocco: è una card delle persone, e la sua scelta viaggia con la casa", () => {
+  /* «Accanto alle card delle persone» lo diceva la segnalazione, e la prima
+   * stesura ne aveva fatto un blocco largo quanto la pagina, SOTTO di loro.
+   * Adesso è una card dentro la loro griglia: si muove con le persone, e
+   * spostarlo per conto proprio non vorrebbe più dire niente. */
+  assert.ok(!BLOCCHI_DELLA_HOME.includes("flusso"));
+  assert.ok(CONFIG_KEYS.includes("cd_flusso_home"), "accenderlo e spegnerlo resta dov'era");
+  /* Chi l'aveva messo in fila quando era un blocco non ci resta impigliato: un
+   * nome che non esiste più si butta via, ed è la stessa regola con cui uno
+   * nuovo entra al suo posto. */
+  assert.deepEqual(ordineDeiBlocchi(["azioni", "flusso", "persone", "widget", "dispositivi"]), [
     "azioni",
     "persone",
     "widget",
     "dispositivi",
-    "flusso",
   ]);
+});
+
+test("il titolo della mappa è da dove viene adesso quello che la casa usa", () => {
+  /* Il colore della card e la pastiglia in cima li decide questo: fra sole,
+   * rete e batteria comanda chi ne manda di più IN CASA — non l'arco più
+   * grande del disegno, che con il fotovoltaico che vende sarebbe la rete. */
+  const sole = flussoDiCasa({ solare: 3000, rete: -500, batteria: -800, casa: 1700 });
+  assert.equal(sorgenteDiCasa(sole.archi), "solare");
+  const notte = flussoDiCasa({ solare: 0, rete: 2200, batteria: -1500, casa: 700 });
+  assert.equal(sorgenteDiCasa(notte.archi), "rete");
+  const isola = flussoDiCasa({ solare: 0, rete: 0, batteria: 900, casa: 900 });
+  assert.equal(sorgenteDiCasa(isola.archi), "batteria");
+  /* In casa non entra niente: non c'è nessun titolo da dare, e inventarne uno
+   * sarebbe dire una cosa che non si sa. */
+  const fermo = flussoDiCasa({ solare: 1200, rete: -1200, casa: 0 });
+  assert.equal(sorgenteDiCasa(fermo.archi), "");
+  assert.equal(sorgenteDiCasa(), "");
+  assert.equal(sorgenteDiCasa(null), "");
 });
 
 test("una giornata di sole: il solare carica, alimenta e vende", () => {

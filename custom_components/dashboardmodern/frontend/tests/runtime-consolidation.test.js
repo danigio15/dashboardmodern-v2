@@ -72,7 +72,13 @@ test("Recorder sum growth matches Home Assistant across physical meter resets", 
     { start: "2026-08-01T02:00:00Z", state: 0.5, sum: 11843.5 },
   ];
   assert.ok(Math.abs(periodConsumption(rows, baseline) - 4.1) < 1e-9);
-  assert.equal(periodConsumption(rows.map(({ sum: _sum, ...row }) => row), baseline), null);
+  assert.equal(
+    periodConsumption(
+      rows.map(({ sum: _sum, ...row }) => row),
+      baseline,
+    ),
+    null,
+  );
 });
 
 test("canonical total sensor derives every Energy period", () => {
@@ -98,11 +104,9 @@ test("configured monthly fields remain direct even when Home Assistant marks the
   assert.equal(cumulativePlans[1].fallback, true);
   assert.equal(cumulativePlans[1].reason, "explicit-cumulative-fallback");
 
-  const direct = sourcePlans(
-    { solar: { monthly_energy: "sensor.solar_month" } },
-    "month",
-    { "sensor.solar_month": measurementState("sensor.solar_month") },
-  )[0];
+  const direct = sourcePlans({ solar: { monthly_energy: "sensor.solar_month" } }, "month", {
+    "sensor.solar_month": measurementState("sensor.solar_month"),
+  })[0];
   assert.equal(direct.direct, true);
   assert.equal(direct.reason, "explicit-period");
 });
@@ -129,8 +133,14 @@ test("legacy overrides still classify total increasing meters safely", () => {
 test("one hosted bootstrap delegates to the section runtime, which owns the guard", async () => {
   const loader = await readFile(new URL("../legacy/config.js", import.meta.url), "utf8");
   const prelude = await readFile(new URL("../legacy/bridge-prelude.js", import.meta.url), "utf8");
-  const sections = await readFile(new URL("../src/sections/section-runtime.js", import.meta.url), "utf8");
-  const energy = await readFile(new URL("../src/sections/energy-section.js", import.meta.url), "utf8");
+  const sections = await readFile(
+    new URL("../src/sections/section-runtime.js", import.meta.url),
+    "utf8",
+  );
+  const energy = await readFile(
+    new URL("../src/sections/energy-section.js", import.meta.url),
+    "utf8",
+  );
   const stability = await readFile(
     new URL("../src/sections/energy-stability-section.js", import.meta.url),
     "utf8",
@@ -205,7 +215,15 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
   assert.match(energy, /pianiDelleFonti\("day"\)/);
   assert.match(energy, /pianiDelleFonti\("month"\)/);
   assert.match(energy, /pianiDelleFonti\("year"\)/);
-  assert.match(energy, /broker\.valoriPerArchi\(richieste, new Map\(\), alPasso\)/);
+  /* Una chiamata sola, e gli archi restano condivisi. Il quarto argomento
+   * raccoglie i GIORNI del mese dei dispositivi: la risposta del Recorder e'
+   * a giorni comunque, e il picco del mese e' il massimo di quella serie —
+   * tenerla non aggiunge una domanda, buttarla ne avrebbe chiesta un'altra. */
+  assert.match(
+    energy,
+    /broker\.valoriPerArchi\(richieste, new Map\(\), alPasso, giorniDeiDispositivi\)/,
+  );
+  assert.equal((energy.match(/broker\.valoriPerArchi\(/g) || []).length, 1);
   assert.match(energy, /Incomplete Home Assistant statistics/);
   assert.doesNotMatch(stability, /waitForHostedBridge/);
   assert.doesNotMatch(stability, /refreshEnergy/);

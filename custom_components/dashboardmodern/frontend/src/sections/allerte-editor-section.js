@@ -31,6 +31,7 @@ import {
   wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
+import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
 
 const KEY = "__DASHBOARDMODERN_ALLERTE_EDITOR__";
 const state = (root[KEY] ||= { installed: false });
@@ -87,23 +88,65 @@ function caselleDi(chiave) {
     pollini: [
       [
         "entity",
-        t("Concentrazione dei pollini", "Pollen concentration"),
-        "sensor.pollini_graminacee",
+        t("Pollini di oggi", "Today's pollen"),
+        "sensor.pollini_oggi",
         t(
-          "Un sensore con l'indice (da 0 a 4), una percentuale, una concentrazione o una parola: basso, medio, alto.",
-          "A sensor with the index (0 to 4), a percentage, a concentration or a word: low, moderate, high.",
+          "Il bollettino della giornata: un sensore con l'indice (da 0 a 4), una percentuale, una concentrazione o una parola — basso, medio, alto. Se espone «Category», «Advice» e «Description», la plancia li legge e li mostra aprendo l'allerta.",
+          "The bulletin for the day: a sensor with the index (0 to 4), a percentage, a concentration or a word — low, moderate, high. When it exposes Category, Advice and Description, the dashboard reads them and shows them when the alert is opened.",
         ),
+      ],
+      [
+        "erba",
+        t("Graminacee (facoltativo)", "Grass (optional)"),
+        "sensor.polline_graminacee",
+        t(
+          "Il rischio delle graminacee preso da sé: da 1, molto basso, a 4, alto. Chi è allergico a una sola famiglia vede l'allerta anche quando la media della giornata è tranquilla.",
+          "The grass risk on its own: from 1, very low, to 4, high. Whoever is allergic to one family only still sees the alert when the day's average is quiet.",
+        ),
+      ],
+      [
+        "erbacce",
+        t("Erbacce (facoltativo)", "Weed (optional)"),
+        "sensor.polline_erbacce",
+        "",
+      ],
+      [
+        "albero",
+        t("Alberi (facoltativo)", "Tree (optional)"),
+        "sensor.polline_alberi",
+        "",
       ],
     ],
     comfort: [
       [
         "entity",
-        t("Comfort termico", "Thermal comfort"),
+        t("Percezione", "Perception"),
         "sensor.thermal_comfort_perception",
         t(
-          "Thermal Comfort espone la percezione («comfortable», «quite_uncomfortable»…), il rischio di gelo, o un indice di calore in gradi.",
-          "Thermal Comfort exposes the perception (comfortable, quite_uncomfortable…), the frost risk, or a heat index in degrees.",
+          "Quella che si guarda: Thermal Comfort la espone come parola («comfortable», «quite_uncomfortable»…). Se il sensore la scrive in italiano, la plancia scrive quello che c'è scritto.",
+          "The one you look at: Thermal Comfort exposes it as a word (comfortable, quite_uncomfortable…). When the sensor writes it in your own language, the dashboard writes what it says.",
         ),
+      ],
+      [
+        "humidex",
+        t("Humidex (facoltativo)", "Humidex (optional)"),
+        "sensor.thermal_comfort_humidex",
+        t(
+          "Il conto del disagio da caldo e umidità. Il livello della sezione è il più alto fra i quattro: un indice che grida non resta nascosto dietro una percezione tranquilla.",
+          "The count of heat-and-humidity discomfort. The section's level is the highest of the four: an index that shouts does not stay hidden behind a quiet perception.",
+        ),
+      ],
+      [
+        "calore",
+        t("Indice di calore (facoltativo)", "Heat index (optional)"),
+        "sensor.thermal_comfort_heat_index",
+        "",
+      ],
+      [
+        "gelo",
+        t("Rischio gelo (facoltativo)", "Frost risk (optional)"),
+        "sensor.thermal_comfort_frost_risk",
+        "",
       ],
     ],
     scioperi: [
@@ -242,7 +285,10 @@ function ariaMarkup(config) {
         )}<button type="button" class="ed-del" data-dm-aria-togli="${esc(entity)}" aria-label="${esc(t("Elimina", "Remove"))}">✕</button></span>`,
     )
     .join("");
-  return `<article class="ed-row dm-todo-ed-row dm-allerte-ed-fonte dm-aria-ed" data-open="true" data-dm-allerte-fonte-riga="${CHIAVE_ARIA}">
+  /* Il marchio dice che questa riga parla della tessera dell'aria e non di
+   * quella delle allerte: stanno nella stessa scheda, e chi mette un sensore
+   * fuori dai widget da qui non sta parlando dei temporali. */
+  return `<article class="ed-row dm-todo-ed-row dm-allerte-ed-fonte dm-aria-ed" data-open="true" data-dm-allerte-fonte-riga="${CHIAVE_ARIA}" ${MARCHIO_TESSERA}="${CHIAVE_ARIA}">
     <div class="dm-allerte-ed-testa"><span aria-hidden="true">🍃</span><strong>${esc(t("Qualità dell'aria", "Air quality"))}</strong></div>
     <div class="dm-todo-ed-body">
       <div class="ed-intro">${esc(

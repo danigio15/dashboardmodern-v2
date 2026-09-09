@@ -447,8 +447,14 @@ test("le tre caselle stanno sotto la tapparella, non in fondo al pannello", asyn
     const salva = tutti.findIndex((nodo) =>
       /salva sezione/i.test(nodo.children.length ? "" : nodo.textContent || ""),
     );
-    const aggiungi = tutti.findIndex((nodo) =>
-      /aggiungi tapparella/i.test(nodo.children.length ? "" : nodo.textContent || ""),
+    /* Il tasto che aggiunge, preso per quello che E' e non per come si chiama:
+     * la sezione adesso si chiama Finestre e il tasto dice «Aggiungi entità a
+     * Finestre». Cercarlo per la parola «tapparella» voleva dire legare la
+     * prova al nome della sezione, che e' gia' cambiato una volta. Lo switch
+     * della visibilita' ha la stessa classe: si toglie di mezzo per nome. */
+    const aggiungi = tutti.findIndex(
+      (nodo) =>
+        nodo.classList?.contains("ed-btn-add") && !nodo.classList.contains("dm-section-switch"),
     );
     return {
       nome: posto("ed-tp-name"),

@@ -20,9 +20,11 @@ import {
   IGNOTO,
   allerteAttive,
   categorieConfigurate,
+  laPiuGrave,
   letturaAllerte,
   livelloMassimo,
 } from "../core/allerte-model.js";
+import { TESTO_LUNGO, valeLaPenaAprirla, vociDelDettaglio } from "../core/dettaglio-allerta.js";
 import {
   allStates,
   clean,
@@ -119,7 +121,7 @@ export function parolaDelLivello(livello) {
 
 /* Le parole di Thermal Comfort, dette in italiano: «quite_uncomfortable» non
  * e' una frase che uno legge volentieri sul muro di casa. */
-function parolaDelComfort(codice) {
+function parolaDelComfort(codice, scritto = "") {
   const voci = {
     /* Le parole che dicono «c'e' disagio» e prima non venivano lette (#355):
      * la zona del simmer index, il conto dell'humidex, e il contatto di chi
@@ -158,7 +160,50 @@ function parolaDelComfort(codice) {
     probable: t("Gelo probabile", "Frost probable"),
     high: t("Rischio di gelo alto", "High frost risk"),
   };
-  return voci[clean(codice)] || clean(codice).replaceAll("_", " ");
+  /* Se quel codice non lo conosciamo, si scrive quello che il sensore ha
+   * scritto — non il codice ridotto (#428): «anche se il sensore espone uno
+   * stato scritto in italiano, la dashboard prende l'opzione dell'attributo
+   * scritta in lowcase ed in inglese». Il codice ridotto serve a giudicare il
+   * livello; per leggerlo vale il testo dell'integrazione, che e' gia' nella
+   * lingua di chi l'ha configurata. In mancanza di tutto, il codice con gli
+   * spazi al posto dei trattini bassi e l'iniziale grande. */
+  const conosciuta = voci[clean(codice)];
+  if (conosciuta) return conosciuta;
+  const suo = clean(scritto);
+  if (suo) return suo;
+  const disteso = clean(codice).replaceAll("_", " ");
+  return disteso ? disteso.charAt(0).toUpperCase() + disteso.slice(1) : "";
+}
+
+/* Come si chiamano i tre pollini presi da se'. */
+function nomeDelPolline(chiave) {
+  const nomi = {
+    erba: t("Graminacee", "Grass"),
+    erbacce: t("Erbacce", "Weed"),
+    albero: t("Alberi", "Tree"),
+  };
+  return nomi[clean(chiave)] || clean(chiave);
+}
+
+/* E i tre indici del disagio termico. */
+function nomeDellIndice(chiave) {
+  const nomi = {
+    humidex: t("Humidex", "Humidex"),
+    calore: t("Indice di calore", "Heat index"),
+    gelo: t("Rischio gelo", "Frost risk"),
+  };
+  return nomi[clean(chiave)] || clean(chiave);
+}
+
+/* Il gradino dei bollettini, detto a parole: «restituiscono valori numerici
+ * quindi un valore 1 e' indicativo di rischio molto basso, valore 2 basso,
+ * valore 3 medio e valore 4 alto». Serve quando l'integrazione il suo
+ * «Category» non lo espone. */
+function parolaDelGradino(indice) {
+  if (indice >= 4) return t("Alto", "High");
+  if (indice >= 3) return t("Medio", "Moderate");
+  if (indice >= 2) return t("Basso", "Low");
+  return t("Molto basso", "Very low");
 }
 
 function parolaDeiPollini(parola) {
@@ -233,13 +278,33 @@ export function fraseDellAllerta(lettura) {
       }
       return quanti;
     }
-    case "pollini":
+    case "pollini": {
+      /* Se i pollini sono presi uno per uno, la frase nomina il peggiore
+       * (#428): «Pollini mostra solo il numero della concentrazione senza testo
+       * che spiega cosa stia succedendo». Un «3» non dice niente a chi e'
+       * allergico; «Graminacee: medio» gli dice se la giornata riguarda lui. */
+      const peggiore = laPiuGrave(lettura.voci || []);
+      /* ...ma solo se e' lui a decidere il livello della tessera. `voci` sono i
+       * pollini singoli, e il bollettino di oggi non e' fra loro: con un
+       * bollettino «molto alto» e le tre erbe tranquille, la tessera si
+       * accendeva sul bollettino e la frase diceva «Graminacee: basso» —
+       * nascondendo proprio la lettura che aveva alzato l'allerta. Quando a
+       * comandare e' il bollettino, si dice quello che dice lui. */
+      if (peggiore && peggiore.livello === lettura.livello) {
+        const quanto =
+          peggiore.categoria ||
+          (peggiore.indice != null ? parolaDelGradino(peggiore.indice) : "") ||
+          parolaDelLivello(peggiore.livello);
+        return `${nomeDelPolline(peggiore.chiave)}: ${quanto.toLowerCase()}`;
+      }
+      if (lettura.categoria) return lettura.categoria;
       if (lettura.parola) return parolaDeiPollini(lettura.parola);
       if (lettura.indice != null)
         return `${formatNumber(lettura.indice, 0)}${lettura.unita ? ` ${lettura.unita}` : ""}`;
       return categoria.quiete;
+    }
     case "comfort":
-      if (lettura.codice) return parolaDelComfort(lettura.codice);
+      if (lettura.codice) return parolaDelComfort(lettura.codice, lettura.scritto);
       if (lettura.gradi != null) return `${formatNumber(lettura.gradi, 1)}${lettura.unita || "°"}`;
       return categoria.quiete;
     case "voli":
@@ -320,6 +385,48 @@ export function righeDellAllerta(lettura) {
       if (lettura.binario) metti(t("Binario", "Platform"), lettura.binario);
       if (lettura.ritardo != null && lettura.ritardo > 0)
         metti(t("Ritardo", "Delay"), `${formatNumber(lettura.ritardo, 0)} min`);
+      break;
+    case "pollini": {
+      /* I pollini uno per uno (#428): il rischio, e le frasi che lo spiegano.
+       *
+       * «Ad ora, ad esempio, Pollini mostra solo il numero della
+       * concentrazione senza testo che spiega cosa stia succedendo.» Le frasi
+       * ci sono, negli attributi dell'integrazione — Category, Advice,
+       * Description — e sono sue: si scrivono come le ha scritte lei, che e'
+       * gia' la lingua di chi l'ha configurata. */
+      const spiega = (voce) =>
+        [
+          voce.categoria || (voce.indice != null ? parolaDelGradino(voce.indice) : ""),
+          voce.indice != null ? `${formatNumber(voce.indice, 0)}${voce.unita ? ` ${voce.unita}` : "/4"}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      for (const voce of lettura.voci || [])
+        metti(nomeDelPolline(voce.chiave), spiega(voce) || "—");
+      /* Le frasi lunghe dopo i numeri: prima si guarda quanto, poi si legge
+       * perche'. Quelle dei pollini singoli si dicono col loro nome davanti,
+       * cosi' due consigli diversi non si confondono. */
+      for (const voce of lettura.voci || []) {
+        if (voce.consiglio) metti(`${nomeDelPolline(voce.chiave)} · ${t("Consiglio", "Advice")}`, voce.consiglio);
+        if (voce.descrizione)
+          metti(`${nomeDelPolline(voce.chiave)} · ${t("Descrizione", "Description")}`, voce.descrizione);
+      }
+      if (lettura.consiglio) metti(t("Consiglio", "Advice"), lettura.consiglio);
+      if (lettura.descrizione) metti(t("Descrizione", "Description"), lettura.descrizione);
+      break;
+    }
+    case "comfort":
+      /* Gli altri tre indici del disagio (#428). Ognuno dice la sua parola —
+       * quella del sensore, se non la conosciamo — o i suoi gradi. */
+      for (const voce of lettura.voci || [])
+        metti(
+          nomeDellIndice(voce.chiave),
+          voce.codice
+            ? parolaDelComfort(voce.codice, voce.scritto)
+            : voce.gradi != null
+              ? `${formatNumber(voce.gradi, 1)}${voce.unita || "°"}`
+              : "—",
+        );
       break;
     case "voli":
       /* Prima la tratta, che e' la cosa che si vuole sapere di un aereo che
@@ -437,7 +544,9 @@ function riassuntoMarkup(letture) {
       ? t("1 allerta in corso", "1 alert in force")
       : t(`${attive.length} allerte in corso`, `${attive.length} alerts in force`);
   const fonti =
-    letture.length === 1 ? t("1 fonte", "1 source") : t(`${letture.length} fonti`, `${letture.length} sources`);
+    letture.length === 1
+      ? t("1 fonte", "1 source")
+      : t(`${letture.length} fonti`, `${letture.length} sources`);
   const sotto = mute
     ? `${fonti} · ${mute === 1 ? t("1 non risponde", "1 not answering") : t(`${mute} non rispondono`, `${mute} not answering`)}`
     : attive.length
@@ -449,10 +558,133 @@ function riassuntoMarkup(letture) {
   </div>`;
 }
 
+/* ── il dettaglio, quando la si apre (#422) ───────────────────────────── */
+
+const POPUP_ID = "dm-allerta-dettaglio";
+
+/** Quello che Home Assistant dice dell'entita' di questa allerta. */
+function attributiDi(entity) {
+  const id = clean(entity);
+  if (!id) return {};
+  const stato = allStates()?.[id];
+  return stato?.attributes && typeof stato.attributes === "object" ? stato.attributes : {};
+}
+
+function chiudiIlDettaglio() {
+  doc?.getElementById?.(POPUP_ID)?.classList?.remove("show");
+}
+
+/* La finestra e' una sola e si riempie ogni volta: le allerte sono al massimo
+ * otto, e tenerne otto costruite per mostrarne una alla volta e' ingombro
+ * senza motivo. */
+function ensureDettaglio() {
+  let modal = doc?.getElementById?.(POPUP_ID);
+  if (modal) return modal;
+  if (!doc?.body) return null;
+  modal = doc.createElement("div");
+  modal.id = POPUP_ID;
+  modal.className = "modal-wrapper";
+  modal.innerHTML = `<div class="modal-card dm-allerta-dettaglio" role="dialog" aria-modal="true" aria-labelledby="${POPUP_ID}-titolo">
+      <header class="dm-allerta-dettaglio-testa">
+        <span class="dm-allerta-dettaglio-ic" data-dm-ic aria-hidden="true"></span>
+        <span class="dm-allerta-dettaglio-nome" id="${POPUP_ID}-titolo" data-dm-nome></span>
+        <span class="dm-allerta-dettaglio-livello" data-dm-livello></span>
+        <button type="button" class="dm-allerta-dettaglio-chiudi" data-dm-chiudi aria-label="${esc(t("Chiudi", "Close"))}">✕</button>
+      </header>
+      <div class="dm-allerta-dettaglio-corpo" data-dm-corpo></div>
+    </div>`;
+  /* Fuori dalla scheda si chiude, come in ogni altra finestra della plancia. */
+  modal.addEventListener("click", (evento) => {
+    if (evento.target === modal || evento.target?.closest?.("[data-dm-chiudi]"))
+      chiudiIlDettaglio();
+  });
+  doc.body.append(modal);
+  return modal;
+}
+
+/* Il corpo: la frase per intero, le righe della tessera, e poi tutto quello
+ * che l'integrazione scrive. I paragrafi vanno sotto al loro nome, i dati
+ * accanto: e' la differenza fra un avviso della protezione civile e una
+ * severita' di una parola. */
+/* Una riga dell'elenco: il nome, e il suo valore.
+ *
+ * Una frase — un consiglio, la descrizione di una giornata — porta il segno
+ * «lungo», e il foglio di stile la manda a capo invece di stringerla in un
+ * angolo accanto al nome. La soglia e' la stessa con cui il modulo del
+ * dettaglio decide se un attributo e' un paragrafo: una sola idea di «lungo»
+ * per tutta la finestra. */
+function rigaDellaListaMarkup(riga) {
+  const lungo = clean(riga?.valore).length > TESTO_LUNGO;
+  return `<li${lungo ? ' data-lungo="true"' : ""}><span>${esc(riga.nome)}</span><b>${esc(riga.valore)}</b></li>`;
+}
+
+function corpoDelDettaglio(lettura) {
+  const pezzi = [];
+  /* La frase, ma non quando dice quello che dice gia' la pastiglia del livello.
+   * A quiete la frase E' la parola del livello — «Da notare» — e scriverla
+   * anche qui vuol dire aprire una finestra per rileggere l'intestazione. */
+  const frase = fraseDellAllerta(lettura);
+  const livello = parolaDelLivello(lettura.livello);
+  if (frase && frase.trim().toLowerCase() !== livello.trim().toLowerCase())
+    pezzi.push(`<p class="dm-allerta-dettaglio-frase">${esc(frase)}</p>`);
+  const righe = righeDellAllerta(lettura);
+  if (righe.length)
+    pezzi.push(
+      `<ul class="dm-allerta-righe">${righe.map(rigaDellaListaMarkup).join("")}</ul>`,
+    );
+  const voci = vociDelDettaglio(attributiDi(lettura.entity));
+  if (voci.length)
+    pezzi.push(
+      `<dl class="dm-allerta-voci">${voci
+        .map(
+          (voce) =>
+            `<div class="dm-allerta-voce${voce.lungo ? " dm-allerta-voce-lunga" : ""}"><dt>${esc(voce.titolo)}</dt><dd>${esc(voce.istante ? giornoEOraDi(voce.valore) : voce.valore)}</dd></div>`,
+        )
+        .join("")}</dl>`,
+    );
+  /* L'entita' in fondo, in piccolo: quando un valore non torna, la prima
+   * domanda e' «da dove viene questo numero», e la risposta e' qui. */
+  if (clean(lettura.entity))
+    pezzi.push(`<p class="dm-allerta-dettaglio-fonte mono">${esc(lettura.entity)}</p>`);
+  return pezzi.join("");
+}
+
+function apriIlDettaglio(chiave) {
+  const lettura = lettureAllerte().find((voce) => voce.chiave === chiave);
+  if (!lettura) return false;
+  const modal = ensureDettaglio();
+  if (!modal) return false;
+  const categoria = categoriaDelleAllerte(lettura.chiave);
+  const dentro = (selettore) => modal.querySelector(selettore);
+  const testa = modal.querySelector(".dm-allerta-dettaglio");
+  if (testa) testa.dataset.livello = lettura.livello;
+  const icona = dentro("[data-dm-ic]");
+  if (icona) icona.textContent = categoria.icona;
+  const nome = dentro("[data-dm-nome]");
+  if (nome) nome.textContent = lettura.nome || categoria.nome;
+  const livello = dentro("[data-dm-livello]");
+  if (livello) livello.textContent = parolaDelLivello(lettura.livello);
+  const corpo = dentro("[data-dm-corpo]");
+  if (corpo) corpo.innerHTML = corpoDelDettaglio(lettura);
+  modal.classList.add("show");
+  if (root.navigator?.vibrate) root.navigator.vibrate(8);
+  return true;
+}
+
 function tesseraMarkup(lettura) {
   const categoria = categoriaDelleAllerte(lettura.chiave);
   const righe = righeDellAllerta(lettura);
-  return `<article class="dm-allerta" data-livello="${esc(lettura.livello)}" data-chiave="${esc(lettura.chiave)}">
+  /* Apribile solo se dentro c'e' qualcosa in piu' di quello che si vede gia'.
+   *
+   * Un riquadro che sembra premibile e non fa niente e' peggio di uno fermo:
+   * la seconda volta non si prova piu' nemmeno dove invece funzionava. */
+  const apribile = valeLaPenaAprirla(lettura, attributiDi(lettura.entity));
+  const invito = apribile
+    ? ` role="button" tabindex="0" aria-haspopup="dialog" data-dm-allerta-apri aria-label="${esc(
+        `${lettura.nome || categoria.nome}: ${t("apri il dettaglio", "open the detail")}`,
+      )}"`
+    : "";
+  return `<article class="dm-allerta${apribile ? " dm-allerta-apribile" : ""}"${invito} data-livello="${esc(lettura.livello)}" data-chiave="${esc(lettura.chiave)}">
     <header class="dm-allerta-testa">
       <span class="dm-allerta-ic" aria-hidden="true">${categoria.icona}</span>
       <span class="dm-allerta-nome">${esc(lettura.nome || categoria.nome)}</span>
@@ -461,9 +693,7 @@ function tesseraMarkup(lettura) {
     <div class="dm-allerta-frase">${esc(fraseDellAllerta(lettura))}</div>
     ${
       righe.length
-        ? `<ul class="dm-allerta-righe">${righe
-            .map((riga) => `<li><span>${esc(riga.nome)}</span><b>${esc(riga.valore)}</b></li>`)
-            .join("")}</ul>`
+        ? `<ul class="dm-allerta-righe">${righe.map(rigaDellaListaMarkup).join("")}</ul>`
         : ""
     }
   </article>`;
@@ -554,6 +784,15 @@ function installStyles() {
       position:relative;display:grid;gap:8px;padding:14px 16px;border-radius:18px;
       border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);
       box-shadow:var(--shadow-glass,0 8px 30px rgba(0,0,0,.06));overflow:hidden}
+    /* Una tessera che si apre lo dice al dito prima che al dito serva saperlo:
+       il cursore, e un sollevamento appena percettibile. Chi non ha niente
+       dentro non riceve niente di tutto questo: lo decide valeLaPenaAprirla. */
+    ${P} .dm-allerta-apribile{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+    ${P} .dm-allerta-apribile:hover{transform:translateY(-1px);
+      box-shadow:var(--shadow-glass-strong,0 12px 34px rgba(0,0,0,.10))}
+    ${P} .dm-allerta-apribile:focus-visible{
+      outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 45%,transparent);
+      outline-offset:3px}
     /* La striscia a sinistra e' il livello, detto col colore prima che con la parola. */
     ${P} .dm-allerta::before{
       content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
@@ -569,11 +808,28 @@ function installStyles() {
       flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
       padding:3px 8px;border-radius:999px;color:#fff;background:var(--dm-allerta-colore,#94a3b8)}
     ${P} .dm-allerta-frase{font-size:17px;font-weight:800;line-height:1.25;color:var(--text,#0f172a)}
-    ${P} .dm-allerta-righe{list-style:none;margin:0;padding:0;display:grid;gap:4px}
-    ${P} .dm-allerta-righe li{
-      display:flex;justify-content:space-between;gap:10px;font-size:12px;
+    /* Le righe valgono nella pagina E nella finestra del dettaglio.
+     *
+     * La finestra riusa questo markup ma vive attaccata al corpo del
+     * documento, fuori dalla pagina: scritte col solo prefisso della pagina,
+     * queste regole non la raggiungevano e li' dentro le righe uscivano coi
+     * pallini dell'elenco, senza spazio fra il nome e il valore —
+     * «GraminaceeAlto · 4/4». Non si vedeva finche' le righe erano due parole;
+     * con i pollini presi uno per uno e le frasi dell'integrazione (#428) e'
+     * diventato il difetto piu' visibile della finestra. */
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe{
+      list-style:none;margin:0;padding:0;display:grid;gap:4px}
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li{
+      display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;font-size:12px;
       color:var(--text-dim,#64748b)}
-    ${P} .dm-allerta-righe li b{font-weight:800;color:var(--text,#0f172a);text-align:right;min-width:0}
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li>span{flex:0 1 auto;min-width:0}
+    /* Una frase non sta sulla riga del suo nome: va a capo e si prende tutta
+     * la larghezza, allineata a sinistra come si legge un testo. Un valore
+     * corto — «4/4», «12 km» — resta a destra del nome, dov'era. */
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li b{
+      font-weight:800;color:var(--text,#0f172a);text-align:right;min-width:0;flex:0 1 auto}
+    :is(${P},#${POPUP_ID}) .dm-allerta-righe li[data-lungo="true"] b{
+      flex:1 0 100%;text-align:left}
 
     /* I quattro colori, piu' il grigio di chi non risponde. Stanno in una
        variabile perche' li usano tre pezzi — striscia, pastiglia, alone — e un
@@ -599,7 +855,54 @@ function installStyles() {
       ${P} .dm-allerte-griglia{grid-template-columns:1fr}
       ${P} .dm-allerta-frase{font-size:16px}
     }
-    `,
+    
+    /* ── la finestra del dettaglio (#422) ─────────────────────────────────
+       La veste — sfondo, bordo, angoli, entrata — la mette il foglio del
+       guscio, che e' l'unico posto dove sta: qui c'e' solo quello che dentro
+       questa finestra e' diverso dalle altre. */
+    #dm-allerta-dettaglio .dm-allerta-dettaglio{
+      display:grid;gap:0;max-width:560px;width:min(560px,92vw);
+      max-height:min(80vh,720px);overflow:hidden;grid-template-rows:auto minmax(0,1fr)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-testa{
+      display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;
+      padding:16px 18px 12px;border-bottom:1px solid var(--card-border,#e2e8f0)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-ic{font-size:26px;line-height:1}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-nome{
+      font-size:17px;font-weight:900;letter-spacing:-.01em;
+      color:var(--primary-text-color,#0f172a);min-width:0;overflow-wrap:anywhere}
+    /* Il livello si colora come la striscia della tessera da cui si e' entrati:
+       aprendola non si cambia mondo. */
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-livello{
+      font-size:10.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+      padding:4px 10px;border-radius:999px;white-space:nowrap;color:#fff;
+      background:var(--dm-allerta-colore,#94a3b8)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-chiudi{
+      border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;
+      padding:6px 4px;color:var(--text-dim,#64748b)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-corpo{
+      padding:14px 18px 18px;overflow:auto;display:grid;gap:14px;align-content:start}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-frase{
+      margin:0;font-size:14px;line-height:1.45;color:var(--primary-text-color,#0f172a)}
+    /* Le voci dell'integrazione. Un dato sta accanto al suo nome; un paragrafo
+       — l'avviso della protezione civile e' questo — va sotto, e per intero:
+       nella tessera lo si taglia a centottanta caratteri, qui no. */
+    #dm-allerta-dettaglio .dm-allerta-voci{margin:0;display:grid;gap:8px}
+    #dm-allerta-dettaglio .dm-allerta-voce{
+      display:grid;grid-template-columns:minmax(90px,38%) minmax(0,1fr);gap:10px;align-items:baseline;
+      padding-top:8px;border-top:1px solid var(--card-border,#eef2f7)}
+    /* Il filo separa due voci: sopra la prima non separa niente, e resta un
+       trattino sospeso sotto l'intestazione. */
+    #dm-allerta-dettaglio .dm-allerta-voce:first-child{padding-top:0;border-top:0}
+    #dm-allerta-dettaglio .dm-allerta-voce-lunga{grid-template-columns:minmax(0,1fr)}
+    #dm-allerta-dettaglio .dm-allerta-voce dt{
+      font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
+      color:var(--text-dim,#94a3b8)}
+    #dm-allerta-dettaglio .dm-allerta-voce dd{
+      margin:0;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;
+      color:var(--primary-text-color,#0f172a)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-fonte{
+      margin:0;font-size:11px;color:var(--text-dim,#94a3b8);overflow-wrap:anywhere}
+`,
   );
 }
 
@@ -630,6 +933,29 @@ export function installAllerte() {
     "dashboardmodern:persistence-restored",
   ])
     root.addEventListener?.(evento, schedule);
+  /* Il tocco sulla tessera. Agganciato al documento e non a ogni riquadro: le
+   * tessere si rifanno a ogni ridisegno, e un gestore per tessera sarebbe da
+   * riattaccare ogni volta — cioe' da dimenticare una volta. */
+  doc.addEventListener("click", (evento) => {
+    const tessera = evento.target?.closest?.("[data-dm-allerta-apri]");
+    if (!tessera) return;
+    evento.preventDefault();
+    apriIlDettaglio(clean(tessera.dataset.chiave));
+  });
+  /* Con la tastiera si apre come ogni altro tasto, e si chiude con Esc: la
+   * tessera dichiara `role="button"`, e un bottone che risponde solo al dito
+   * e' un bottone a meta'. */
+  doc.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape") {
+      chiudiIlDettaglio();
+      return;
+    }
+    if (evento.key !== "Enter" && evento.key !== " ") return;
+    const tessera = evento.target?.closest?.("[data-dm-allerta-apri]");
+    if (!tessera) return;
+    evento.preventDefault();
+    apriIlDettaglio(clean(tessera.dataset.chiave));
+  });
   quandoSiCambiaPagina(schedule);
   schedule();
   return true;

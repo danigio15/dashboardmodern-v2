@@ -33,7 +33,11 @@ import {
   sogliaDelleBatterie,
 } from "../core/batterie-di-casa.js";
 import { BATTERIE_TAB, renderBatterie } from "./batterie-section.js";
-import { batterieSorvegliate } from "./batterie-elenco-section.js";
+import {
+  batterieSorvegliate,
+  CHIAVE_NOMI_SCELTI,
+  nomeDellaBatteria,
+} from "./batterie-elenco-section.js";
 import {
   allStates,
   clean,
@@ -46,7 +50,6 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
-import { nomeDaHomeAssistant } from "./editor-slots-section.js";
 
 const KEY = "__DASHBOARDMODERN_BATTERIE_EDITOR__";
 const state = (root[KEY] ||= { installed: false });
@@ -58,7 +61,10 @@ export const BATTERIE_EDITOR_TAB = BATTERIE_TAB;
 const GRUPPO = "batt";
 const CHIAVE_AGGIUNTE = "cd_gruppi_extra";
 const CHIAVE_TOLTE = "cd_gruppi_removed";
-const CHIAVE_NOMI = "cd_avvisi_names_extra";
+/* Dove si tengono i nomi scelti lo dice l'elenco delle batterie, che e' anche
+ * chi li rilegge per disegnare: due nomi per la stessa chiave sono il modo di
+ * scriverne uno e leggerne un altro. */
+const CHIAVE_NOMI = CHIAVE_NOMI_SCELTI;
 
 const elenco = (valore) => (Array.isArray(valore) ? valore.map(clean).filter(Boolean) : []);
 
@@ -181,9 +187,10 @@ function schedaMarkup() {
   const soglia = sogliaDelleBatterie(readJson(CHIAVE_BATTERIE, {}));
   const aggiunte = elenco(readJson(CHIAVE_AGGIUNTE, {})?.[GRUPPO]);
   const tolte = elenco(readJson(CHIAVE_TOLTE, {})?.[GRUPPO]);
+  const nomi = readJson(CHIAVE_NOMI, {}) || {};
   const righe = batterieLette(batterieSorvegliate(), states, {
     soglia,
-    nome: (entity) => nomeDaHomeAssistant(entity, states),
+    nome: (entity) => nomeDellaBatteria(entity, states, nomi),
   });
   return `${root.cdSecToggleHtml?.(BATTERIE_EDITOR_TAB) || ""}
   <div class="ed-intro">${esc(

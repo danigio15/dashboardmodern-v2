@@ -12,6 +12,7 @@ import {
   daProvare,
   diagnosi,
   siSveglia,
+  stradaScelta,
   strategieDellaTelecamera,
 } from "../src/core/strategie-telecamera.js";
 
@@ -50,32 +51,34 @@ test("con un nome di flusso WebRTC si prova, ed e' il primo", () => {
   assert.equal(strada(strade, "WebRTC").flusso, "giardino_go2rtc");
 });
 
-test("una telecamera che dorme ha piu' tempo per svegliarsi", () => {
-  const dorme = strada(strategieDellaTelecamera({}, RING), "HLS");
+test("una telecamera di casa prende l'HLS, e chi dorme non lo prende affatto", () => {
+  /* L'HLS su una telecamera in cloud vuole che l'integrazione dei flussi
+   * svegli l'apparecchio e produca i segmenti, ed e' esattamente il passaggio
+   * che non arriva: si aspettavano venticinque secondi per scoprirlo. Adesso
+   * chi dorme non ci passa nemmeno — la sua strada e' il proxy dal vivo — e
+   * l'HLS resta quello che e' sempre stato per una telecamera di casa. */
   const sveglia = strada(strategieDellaTelecamera({}, LOCALE), "HLS");
-  assert.equal(dorme.attesa, ATTESE.HLS_SVEGLIA);
   assert.equal(sveglia.attesa, ATTESE.HLS_LOCALE);
-  assert.ok(
-    dorme.attesa > 10_000,
-    "dieci secondi sono meno di quanto ci mette una telecamera in cloud ad accendersi: si mollava proprio sul piu' bello",
-  );
+  assert.equal(strada(strategieDellaTelecamera({}, RING), "HLS").salta, "strada-gia-scelta");
 });
 
-test("anche a chi dorme si prova il flusso continuo, prima di arrendersi alle istantanee", () => {
-  /* Il salto stava PRIMA dell'HLS, e se l'HLS regge a MJPEG non ci si arriva
-   * comunque: valeva soltanto quando l'HLS aveva appena fallito, cioe' quando
-   * un'altra strada dal vivo e' l'unica cosa che resta. Chi dorme finiva sulle
-   * istantanee chieste dal browser mentre il proxy di Home Assistant gliele
-   * avrebbe spinte da solo — che e' quello che fa `camera_view: live`, e il
-   * confronto si e' visto dal vero su una Arlo. */
+test("chi dorme va DIRITTO al proxy dal vivo, non dopo ventotto secondi di altro", () => {
+  /* «Togli tutta quella roba a cascata.» Su un'Arlo il proxy di Home
+   * Assistant si muove — e' quello che fa `camera_view: live` di
+   * `picture-entity`, e il confronto si e' visto dal vero: «dalla card YAML si
+   * muove, dalla plancia no». La plancia ci arrivava lo stesso, ma dopo tre
+   * secondi di WebRTC e venticinque di HLS: ventotto secondi sono molto piu'
+   * di quanto uno resta a guardare un rettangolo, ed e' per questo che la live
+   * «non parte in nessun modo» (#418).
+   *
+   * Adesso la strada si scegle: chi dorme parte dal proxy. */
   const strade = strategieDellaTelecamera({}, RING);
-  assert.equal(strada(strade, "MJPEG").salta, undefined);
-  assert.deepEqual(nomiDa(daProvare(strade)), ["HLS", "MJPEG", "Istantanee"]);
-  /* E ha piu' tempo di una telecamera di casa: il primo fotogramma arriva
-   * dopo la sveglia. */
+  assert.equal(stradaScelta(strade).nome, "MJPEG");
   assert.equal(strada(strade, "MJPEG").attesa, ATTESE.MJPEG_SVEGLIA);
-  assert.equal(strada(strategieDellaTelecamera({}, LOCALE), "MJPEG").attesa, ATTESE.MJPEG);
-  assert.ok(ATTESE.MJPEG_SVEGLIA > ATTESE.MJPEG);
+  /* Niente fila davanti: WebRTC e HLS non si tentano, e si sa dire perche'. */
+  assert.deepEqual(nomiDa(daProvare(strade)), ["MJPEG", "Istantanee"]);
+  assert.equal(strada(strade, "WebRTC").salta, "senza-nome-di-flusso");
+  assert.equal(strada(strade, "HLS").salta, "strada-gia-scelta");
 });
 
 test("le istantanee restano sempre, che e' l'ultima rete", () => {

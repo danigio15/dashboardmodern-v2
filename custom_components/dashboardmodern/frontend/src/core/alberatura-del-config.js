@@ -154,6 +154,7 @@ export const SCHEDE = Object.freeze({
   /* ── 🛡️ Sicurezza ──────────────────────────────────────────────────── */
   sez4: { famiglia: "sicurezza", posizione: 10 }, // Telecamere, sensori, centrali
   varchi: { famiglia: "sicurezza", posizione: 20 }, // Contatti di porte e finestre
+  presenza: { famiglia: "sicurezza", posizione: 25 }, // Movimento e presenza
   doors: { famiglia: "sicurezza", posizione: 30 }, // Apri porte/cancelli
 
   /* ── 🔔 Avvisi ─────────────────────────────────────────────────────── */

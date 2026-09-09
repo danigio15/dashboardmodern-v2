@@ -3,7 +3,13 @@ import {
   flowRecorderEntity,
   flowStageModel,
 } from "../core/energy-flow-topology.js";
-import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
+import {
+  CHIAVE_VERSO_BATTERIA,
+  allocateSourceFlows,
+  batteriaGirata,
+  batteryReadout,
+  potenzaDellaBatteria,
+} from "../core/energy-flow-truth.js";
 import { specchioDeiCerchi } from "../core/energy-loads-config.js";
 import { applySignedSources, wattsFromState } from "../core/signed-energy.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
@@ -599,6 +605,16 @@ function potenzaViva(reference) {
   return wattsFromState(nodo);
 }
 
+/* La potenza della batteria come la intende questa plancia: positivo =
+ * scarica. Il verso lo dice la casa, perche' meta' dei sensori scrive
+ * positivo quando la batteria si carica (#434). */
+function potenzaBatteriaViva() {
+  return potenzaDellaBatteria(
+    potenzaViva("dm.energy_potenza_batteria"),
+    batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
+  );
+}
+
 function instantSourceFlows() {
   const fonti = [
     "dm.energy_potenza_fotovoltaico",
@@ -606,7 +622,8 @@ function instantSourceFlows() {
     "dm.energy_potenza_batteria",
   ].map((ref) => ({
     configurata: resolvedEntity(ref) !== clean(ref),
-    valore: potenzaViva(ref),
+    valore:
+      ref === "dm.energy_potenza_batteria" ? potenzaBatteriaViva() : potenzaViva(ref),
   }));
   const [sole, rete, batteria] = fonti;
   /* Senza nemmeno una sorgente viva non c'e' niente da spartire: si cede il
@@ -795,7 +812,7 @@ export function refreshEnergyFlows() {
    * la freccia — sullo zero, o sull'impianto che una batteria non ce l'ha —
    * lasciava inciso il numero di prima, e cambiando impianto si leggeva la
    * carica dell'altra casa. «—» senza lettura, «0 W» da ferma. */
-  const batteria = potenzaViva("dm.energy_potenza_batteria");
+  const batteria = potenzaBatteriaViva();
   const testo = batteria === null ? "—" : (batteryReadout(batteria) ?? "0 W");
   for (const id of ["v-battery", "m-v-battery"]) {
     scriviTestoSeCambia(doc.getElementById(id), testo);

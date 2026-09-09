@@ -63,6 +63,7 @@ import {
   wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
+import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
 
 const KEY = "__DASHBOARDMODERN_IMPIANTI_TERMICI_EDITOR__";
 const state = (root[KEY] ||= {
@@ -687,13 +688,21 @@ function linguetteMarkup(scelti, attiva) {
 
 /* Il pannello della macchina accesa. Il solare non ha markup suo: le sue
  * caselle sono quelle del guscio, e qui si prepara soltanto il posto dove
- * andranno a stare. */
+ * andranno a stare.
+ *
+ * Il marchio dice di quale tessera della Home parla il pannello. Serve perche'
+ * qui dentro le macchine sono tre e la linguetta e' una: senza, l'interruttore
+ * «nel widget» accanto a un'entita' della caldaia scriverebbe una scelta col
+ * nome della sezione — «solare» — e la caldaia non ne saprebbe niente. Vale
+ * anche per le caselle del guscio, che il solare si ospita dentro il suo
+ * posto. */
 function pannelloMarkup(attiva) {
   if (attiva === "solare")
-    return `<div class="dm-it-ed-pannello" data-dm-it-ed-posto="solare">${solareMarkup()}</div>`;
+    return `<div class="dm-it-ed-pannello" data-dm-it-ed-posto="solare" ${MARCHIO_TESSERA}="solare">${solareMarkup()}</div>`;
   if (attiva === "scaldabagno")
-    return `<div class="dm-it-ed-pannello">${scaldabagnoMarkup()}</div>`;
-  if (attiva === "caldaia") return `<div class="dm-it-ed-pannello">${caldaiaMarkup()}</div>`;
+    return `<div class="dm-it-ed-pannello" ${MARCHIO_TESSERA}="scaldabagno">${scaldabagnoMarkup()}</div>`;
+  if (attiva === "caldaia")
+    return `<div class="dm-it-ed-pannello" ${MARCHIO_TESSERA}="caldaia">${caldaiaMarkup()}</div>`;
   return "";
 }
 

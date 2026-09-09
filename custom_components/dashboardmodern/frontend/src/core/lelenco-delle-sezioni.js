@@ -94,6 +94,10 @@ export const SEZIONI = Object.freeze(
      * in #399 non si trovava — sta nella famiglia della Sicurezza, e da qui
      * adesso si vede senza doverla cercare. */
     { scheda: "varchi", chiave: "varchi", glifo: "🚪", it: "Varchi", en: "Openings" },
+    /* La presenza (#432): i sensori di movimento e di presenza. Sta accanto ai
+     * varchi perché è la stessa domanda — cosa succede in casa adesso — fatta
+     * su un'altra famiglia di sensori. */
+    { scheda: "presenza", chiave: "presenza", glifo: "🏃", it: "Presenza", en: "Presence" },
     {
       scheda: "doors",
       chiave: "porte",

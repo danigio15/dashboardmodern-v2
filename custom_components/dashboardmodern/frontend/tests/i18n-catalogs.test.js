@@ -133,6 +133,11 @@ test("no translation is left as its English source", async () => {
 const SHARED_ACROSS_LANGUAGES = new Set([
   ".",
   "24 h",
+  /* «Humidex» e' il nome dell'indice, non una parola: lo scrivono cosi' anche
+   * i servizi meteo che non parlano inglese, e tradurlo vorrebbe dire
+   * inventarne uno che nessuno cerca. */
+  "Humidex",
+  "Humidex (optional)",
   "Auto",
   "Boost",
   "Config",
@@ -186,6 +191,9 @@ const SHARED_ACROSS_LANGUAGES = new Set([
  */
 const LOCALE_IDENTITIES = {
   es: new Set([
+    /* In spagnolo il no e' «no», uguale all'inglese. Il sì invece e' «sí»,
+     * quindi la coppia non e' sospetta: e' una parola sola che coincide. */
+    "no",
     "Gas",
     "Natural",
     "Polo",

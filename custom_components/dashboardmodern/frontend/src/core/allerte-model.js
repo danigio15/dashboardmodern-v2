@@ -47,8 +47,18 @@ export const CATEGORIE = Object.freeze([
   Object.freeze({ chiave: "terremoti", caselle: ["entity", "magnitudo", "distanza"] }),
   Object.freeze({ chiave: "meteo", caselle: ["entity"] }),
   Object.freeze({ chiave: "fulmini", caselle: ["entity", "distanza"] }),
-  Object.freeze({ chiave: "pollini", caselle: ["entity"] }),
-  Object.freeze({ chiave: "comfort", caselle: ["entity"] }),
+  /* I pollini presi uno per uno (#428): «un campo dove aggiungere un sensor
+   * che dice le tipologie di minacce come polline di oggi, oltre quelli che
+   * specificano il rischio preso singolarmente per erba, erbacce e albero».
+   * L'entita' principale resta il bollettino di oggi; le altre tre dicono di
+   * quale polline si tratta, che e' l'unica cosa che permette a chi e'
+   * allergico di sapere se la giornata riguarda lui. */
+  Object.freeze({ chiave: "pollini", caselle: ["entity", "erba", "erbacce", "albero"] }),
+  /* Il disagio termico ha piu' di un modo di misurarsi (#428): «si potrebbe
+   * aggiungere la possibilita' di avere altri campi, come humidex, indice di
+   * calore e rischio gelo». La percezione resta la principale — e' quella che
+   * uno guarda — e le altre tre le stanno accanto. */
+  Object.freeze({ chiave: "comfort", caselle: ["entity", "humidex", "calore", "gelo"] }),
   Object.freeze({ chiave: "voli", caselle: ["entity"] }),
   /* «Sarebbe bello inserire una sezione per gli scioperi nazionali e per gli
    * orari dei treni, con la stazione preferita» (#352). Sono due notizie che
@@ -56,6 +66,21 @@ export const CATEGORIE = Object.freeze([
   Object.freeze({ chiave: "scioperi", caselle: ["entity"] }),
   Object.freeze({ chiave: "treni", caselle: ["entity", "stazione"] }),
 ]);
+
+/**
+ * La voce col livello più alto fra quelle date, o `null` se non ce ne sono.
+ *
+ * È la stessa regola di `livelloMassimo`, ma torna la voce e non il suo
+ * livello: chi disegna deve poter dire QUALE polline è alto, non soltanto che
+ * qualcosa lo è.
+ */
+export function laPiuGrave(voci = []) {
+  return (Array.isArray(voci) ? voci : []).reduce(
+    (piuAlta, voce) =>
+      !piuAlta || (PESO[voce?.livello] ?? -1) > (PESO[piuAlta?.livello] ?? -1) ? voce : piuAlta,
+    null,
+  );
+}
 
 /* Gli stati che vogliono dire «non lo so». */
 const MUTI = new Set(["unavailable", "unknown", "none", ""]);
@@ -252,32 +277,101 @@ const PAROLE_POLLINI = Object.freeze([
   [/low|bass[ao]|none|nessun[ao]|assente|no[_ ]?pollen/, "quiete"],
 ]);
 
+/* Il livello di un indice dei pollini, qualunque scala usi il sensore.
+ *
+ * Le tre scale che girano davvero: la percentuale, la concentrazione in granuli
+ * per metro cubo, e il gradino da uno a quattro dei bollettini — che e' quello
+ * dei sensori per erba, erbacce e albero: «restituiscono valori numerici quindi
+ * un valore 1 e' indicativo di rischio molto basso, valore 2 basso, valore 3
+ * medio e valore 4 alto». */
+function livelloDellIndice(indice, unita) {
+  if (indice == null) return null;
+  if (pulito(unita) === "%")
+    return indice >= 75
+      ? "allarme"
+      : indice >= 50
+        ? "attenzione"
+        : indice >= 25
+          ? "nota"
+          : "quiete";
+  /* Una concentrazione (granuli per metro cubo): le soglie dei bollettini. */
+  if (indice > 10)
+    return indice >= 500
+      ? "allarme"
+      : indice >= 100
+        ? "attenzione"
+        : indice >= 20
+          ? "nota"
+          : "quiete";
+  return indice >= 4 ? "allarme" : indice >= 3 ? "attenzione" : indice >= 2 ? "nota" : "quiete";
+}
+
+/* Il livello di una parola dei pollini, o `null` se quella parola non la
+ * conosciamo. */
+function livelloDellaParola(parola) {
+  for (const [prova, esito] of PAROLE_POLLINI) if (prova.test(parola)) return esito;
+  return null;
+}
+
+/* Un polline preso da se': erba, erbacce o albero (#428).
+ *
+ * «Oltre allo stato, questi sensori espongono Category con il label del
+ * rischio, Advice con testi riassuntivi e Description con conseguenze del
+ * clima attuale.» Sono le tre cose che trasformano un «3» in una notizia, e la
+ * plancia le porta cosi' come le scrive l'integrazione: sono frasi sue, gia'
+ * nella lingua in cui l'ha configurata chi la usa. */
+function leggiUnPolline(chiave, stato) {
+  if (!stato || MUTI.has(minuscolo(stato.state))) return null;
+  const unita = pulito(stato?.attributes?.unit_of_measurement);
+  const indice = numero(minuscolo(stato.state));
+  const categoria = pulito(
+    attributo(stato, ["Category", "category", "level", "level_text", "livello"]),
+  );
+  return {
+    chiave,
+    indice,
+    unita,
+    categoria,
+    consiglio: pulito(attributo(stato, ["Advice", "advice", "consiglio"])),
+    descrizione: pulito(attributo(stato, ["Description", "description", "descrizione"])),
+    livello:
+      livelloDellIndice(indice, unita) ||
+      livelloDellaParola(minuscolo(categoria || stato.state)) ||
+      "quiete",
+  };
+}
+
+const POLLINI_SINGOLI = Object.freeze(["erba", "erbacce", "albero"]);
+
 function leggiPollini(voce, stati) {
   const principale = stati.entity;
   const grezzo = minuscolo(principale?.state);
   const unita = pulito(principale?.attributes?.unit_of_measurement);
   const indice = numero(grezzo);
-  let livello = "quiete";
-  if (indice != null) {
-    if (unita === "%")
-      livello =
-        indice >= 75 ? "allarme" : indice >= 50 ? "attenzione" : indice >= 25 ? "nota" : "quiete";
-    else if (indice > 10)
-      /* Una concentrazione (granuli per metro cubo): le soglie dei bollettini. */
-      livello =
-        indice >= 500 ? "allarme" : indice >= 100 ? "attenzione" : indice >= 20 ? "nota" : "quiete";
-    else
-      livello =
-        indice >= 4 ? "allarme" : indice >= 3 ? "attenzione" : indice >= 2 ? "nota" : "quiete";
-  } else {
+  let livello = livelloDellIndice(indice, unita);
+  if (livello === null) {
     const parola = grezzo || minuscolo(attributo(principale, ["level", "level_text", "livello"]));
-    for (const [prova, esito] of PAROLE_POLLINI)
-      if (prova.test(parola)) {
-        livello = esito;
-        break;
-      }
+    livello = livelloDellaParola(parola) || "quiete";
   }
-  return { livello, indice, unita, parola: indice == null ? grezzo : "" };
+  /* I tre pollini presi uno per uno. Il livello della categoria e' il piu' alto
+   * fra il bollettino di oggi e loro: chi e' allergico alle graminacee deve
+   * vedere l'allerta anche quando la media della giornata e' tranquilla. */
+  const voci = POLLINI_SINGOLI.map((chiave) => leggiUnPolline(chiave, stati[chiave])).filter(
+    Boolean,
+  );
+  const massimo = laPiuGrave([{ livello }, ...voci])?.livello || livello;
+  return {
+    livello: massimo,
+    indice,
+    unita,
+    parola: indice == null ? grezzo : "",
+    /* Le frasi del bollettino di oggi, quando l'integrazione le espone: sono
+     * le stesse tre dei pollini singoli. */
+    categoria: pulito(attributo(principale, ["Category", "category"])),
+    consiglio: pulito(attributo(principale, ["Advice", "advice", "consiglio"])),
+    descrizione: pulito(attributo(principale, ["Description", "description", "descrizione"])),
+    voci,
+  };
 }
 
 /* Il comfort termico: le parole di Thermal Comfort, o un indice di calore in
@@ -336,11 +430,14 @@ function gradiInCelsius(valore, unita) {
   return /^f$/i.test(sigla) ? ((valore - 32) * 5) / 9 : valore;
 }
 
-function leggiComfort(voce, stati) {
-  const principale = stati.entity;
-  const grezzo = parolaNormalizzata(principale?.state);
-  const unita = pulito(principale?.attributes?.unit_of_measurement);
-  const gradi = gradiInCelsius(numero(minuscolo(principale?.state)), unita);
+/* Il disagio di UN sensore: la sua parola o i suoi gradi, e che livello vuol
+ * dire. Lo stesso giudizio serve alla percezione, all'humidex, all'indice di
+ * calore e al rischio gelo — sono quattro modi di misurare la stessa cosa. */
+function leggiUnDisagio(stato) {
+  if (!stato || MUTI.has(minuscolo(stato.state))) return null;
+  const grezzo = parolaNormalizzata(stato.state);
+  const unita = pulito(stato?.attributes?.unit_of_measurement);
+  const gradi = gradiInCelsius(numero(minuscolo(stato.state)), unita);
   let livello = "quiete";
   if (gradi != null) {
     if (gradi >= 41) livello = "allarme";
@@ -357,7 +454,53 @@ function leggiComfort(voce, stati) {
         break;
       }
   }
-  return { livello, codice: gradi == null ? grezzo : "", gradi, unita };
+  return {
+    livello,
+    codice: gradi == null ? grezzo : "",
+    /* Lo stato come lo scrive il sensore, senza toccarlo (#428): «anche se il
+     * sensore espone uno stato scritto in italiano, la dashboard prende
+     * l'opzione dell'attributo scritta in lowcase ed in inglese». Il codice
+     * ridotto serve a giudicare, non a leggere: chi disegna prova prima il
+     * vocabolario e, se quella parola non la conosce, scrive questa — che e'
+     * gia' nella lingua di chi ha configurato il sensore.
+     *
+     * Si chiama `scritto` e non `testo` perche' `testo` in questo modello vuol
+     * dire un'altra cosa — l'avviso lungo della protezione civile, quello che
+     * la tessera taglia e che da solo vale l'apertura del dettaglio. Chiamarli
+     * uguale rendeva apribile ogni tessera del comfort per mostrarci dentro
+     * niente. */
+    scritto: pulito(stato.state),
+    gradi,
+    unita,
+  };
+}
+
+const INDICI_DEL_DISAGIO = Object.freeze(["humidex", "calore", "gelo"]);
+
+function leggiComfort(voce, stati) {
+  const percepito = leggiUnDisagio(stati.entity) || {
+    livello: "quiete",
+    codice: "",
+    scritto: "",
+    gradi: null,
+    unita: "",
+  };
+  /* Gli altri tre indici, quando ci sono. Il livello della categoria e' il piu'
+   * alto: un rischio gelo alto e' una notizia anche se la percezione dice che
+   * si sta bene, ed e' esattamente il caso in cui serve. */
+  const voci = INDICI_DEL_DISAGIO.map((chiave) => {
+    const letto = leggiUnDisagio(stati[chiave]);
+    return letto ? { chiave, ...letto } : null;
+  }).filter(Boolean);
+  const massimo = laPiuGrave([percepito, ...voci])?.livello || percepito.livello;
+  return {
+    livello: massimo,
+    codice: percepito.codice,
+    scritto: percepito.scritto,
+    gradi: percepito.gradi,
+    unita: percepito.unita,
+    voci,
+  };
 }
 
 /* I voli sopra casa: quanti, e quali. Flightradar24 tiene l'elenco negli

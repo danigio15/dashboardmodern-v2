@@ -35,11 +35,7 @@
  * costa niente, e farlo dopo ogni ridisegno vuol dire che una scheda nuova
  * trova il suo posto senza che nessuno la registri da nessuna parte.
  */
-import {
-  famigliaDellaScheda,
-  famiglieConSchede,
-  inOrdine,
-} from "../core/alberatura-del-config.js";
+import { famigliaDellaScheda, famiglieConSchede, inOrdine } from "../core/alberatura-del-config.js";
 import { clean, doc, esc, installStyle, onEditorRedraw, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ALBERATURA__";
@@ -75,7 +71,9 @@ function nomeDellaFamiglia(voce) {
  * linguette: niente `ed-tab`, niente `data-tab`, niente da cliccare. Chi cerca
  * una scheda per identificativo non le trova, ed è giusto così. */
 function insegna(dentro, voce) {
-  let nodo = dentro.querySelector(`:scope > .${INSEGNA}[data-famiglia="${CSS.escape(voce.chiave)}"]`);
+  let nodo = dentro.querySelector(
+    `:scope > .${INSEGNA}[data-famiglia="${CSS.escape(voce.chiave)}"]`,
+  );
   if (!nodo) {
     nodo = doc.createElement("span");
     nodo.className = INSEGNA;
@@ -98,7 +96,9 @@ export function riordinaLeLinguette() {
   const dentro = fila();
   if (!dentro || state.riordinando) return false;
   const bottoni = new Map(
-    linguette(dentro).map((nodo) => [clean(nodo.dataset.tab), nodo]).filter(([id]) => id),
+    linguette(dentro)
+      .map((nodo) => [clean(nodo.dataset.tab), nodo])
+      .filter(([id]) => id),
   );
   if (!bottoni.size) return false;
   const gruppi = famiglieConSchede([...bottoni.keys()]);
@@ -230,15 +230,25 @@ function ensureFila() {
   } else if (riga.nextElementSibling !== tabs) {
     tabs.before(riga);
   }
-  const attiva = famigliaDellaScheda(schedaAttiva());
   const scelta = famigliaScelta();
-  /* Il chip acceso è quello della scheda che si sta guardando; quello che
-   * FILTRA lo dice `aria-pressed`, perché sono due cose diverse: si può stare
-   * su una scheda della Sicurezza senza aver chiesto di vedere solo quella. */
+  /* Acceso vuol dire una cosa sola: «e' questo che stai vedendo».
+   *
+   * Prima ne voleva dire due. Sui chip delle famiglie l'accensione diceva
+   * «la scheda aperta e' di questa famiglia»; su «Tutte» diceva «non stai
+   * filtrando». Due frasi diverse, lo stesso colore — e a riposo si
+   * accendevano in due insieme: «Plancia» perche' la scheda aperta era la
+   * sua, «Tutte» perche' nessun filtro era acceso. Chi guardava vedeva due
+   * tasti scelti e tutte le sezioni nell'elenco: «parte su Plancia ma in
+   * realta' vedo tutto, e se clicco Tutte resta cliccato anche l'altro».
+   *
+   * Il filtro portava anche un anello suo, un terzo segno per una cosa che
+   * era gia' detta. Adesso il segno e' uno: si accende il chip che filtra, e
+   * se non filtra nessuno si accende «Tutte». `aria-pressed` resta perche' e'
+   * quello che un lettore di schermo deve sentire, non un secondo colore. */
   const markup = gruppi
     .map(
       (voce) =>
-        `<button type="button" class="dm-alberatura-famiglia${voce.chiave === attiva ? " active" : ""}" aria-pressed="${voce.chiave === scelta ? "true" : "false"}" data-dm-famiglia="${esc(voce.chiave)}"><span aria-hidden="true">${esc(voce.glifo)}</span>${esc(nomeDellaFamiglia(voce))}</button>`,
+        `<button type="button" class="dm-alberatura-famiglia${voce.chiave === scelta ? " active" : ""}" aria-pressed="${voce.chiave === scelta ? "true" : "false"}" data-dm-famiglia="${esc(voce.chiave)}"><span aria-hidden="true">${esc(voce.glifo)}</span>${esc(nomeDellaFamiglia(voce))}</button>`,
     )
     .join("");
   /* «Tutte» c'e' sempre, e quando non si sta filtrando e' lei quella scelta.
@@ -276,16 +286,16 @@ function nomeDellaScheda(bottone) {
   /* Senza il pezzo del nome si legge la linguetta intera, togliendole il
    * simbolo davanti: e' quello che si vedeva prima che la colonna imparasse a
    * dividere le due cose. */
-  return clean(bottone?.textContent).replace(/^[^\p{L}\p{N}]+/u, "").trim();
+  return clean(bottone?.textContent)
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .trim();
 }
 
 export function ensureTitoloDellaSezione() {
   const corpo = doc?.getElementById?.("ed-body");
   if (!corpo) return false;
   const attiva = schedaAttiva();
-  const bottone = attiva
-    ? doc.querySelector(`.ed-tab[data-tab="${CSS.escape(attiva)}"]`)
-    : null;
+  const bottone = attiva ? doc.querySelector(`.ed-tab[data-tab="${CSS.escape(attiva)}"]`) : null;
   const nome = nomeDellaScheda(bottone);
   if (!nome) return false;
   const famiglia = famiglieConSchede([attiva]).find((voce) => voce.schede.includes(attiva));
@@ -407,20 +417,23 @@ function installStili() {
     #${FILA} .dm-alberatura-famiglia.active{
       background:var(--primary-color,#0ea5e9);border-color:var(--primary-color,#0ea5e9);color:#fff}
     #${FILA} .dm-alberatura-famiglia:focus-visible{outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 40%,transparent);outline-offset:2px}
-    /* La famiglia che sta filtrando porta un anello: acceso vuol dire «sei
-       qui», con l'anello vuol dire «vedi solo questa». */
-    #${FILA} .dm-alberatura-famiglia[aria-pressed="true"]{
-      box-shadow:0 0 0 2px var(--card-bg,#fff),0 0 0 4px var(--primary-color,#0ea5e9)}
+    /* Niente anello. Serviva a distinguere «sei qui» da «vedi solo questa»,
+       cioe' a rimediare al fatto che l'accensione voleva dire due cose: erano
+       tre segni per due frasi, e non si capiva ne' l'uno ne' l'altro. Adesso
+       la frase e' una e il segno e' uno. */
     #${FILA} .dm-alberatura-tutte{
       background:transparent;border-style:dashed;color:var(--text-dim,#64748b)}
     /* Scelta anche lei, quando non si sta filtrando: e' lo stato normale del
-       Config, e deve vedersi che e' uno stato, non l'assenza di uno. */
-    #${FILA} .dm-alberatura-tutte.active{
-      background:var(--secondary-background-color,#e2e8f0);border-style:solid;
-      border-color:var(--divider-color,#cbd5e1);color:var(--primary-text-color,#0f172a)}
+       Config, e deve vedersi che e' uno stato, non l'assenza di uno.
+       E si accende come le altre, non di un colore suo: un significato, un
+       segno. Prima era grigia da accesa, cosi' «scelto» aveva due facce a
+       seconda di quale tasto fosse — che e' lo stesso errore dell'anello,
+       piu' piccolo. Da spenta il tratteggio la distingue: quello resta,
+       perche' li' la differenza e' vera. */
+    #${FILA} .dm-alberatura-tutte.active{border-style:solid}
     /* Fuori dalla famiglia scelta. A riposo questa classe non ce l'ha nessuno:
-       il filtro si accende toccando una famiglia, e chi apre il Config le vede
-       tutte com'e' sempre stato. */
+       il Config si apre con «Tutte» acceso, cioe' vedendo tutto, e il filtro
+       si accende toccando una famiglia. */
     .ed-tab.${NASCOSTA},.${INSEGNA}.${NASCOSTA}{display:none!important}
     /* L'insegna sta nella fila delle linguette e non è una linguetta: non si
        preme, non si sceglie, dice soltanto dove comincia una famiglia. */
@@ -472,18 +485,30 @@ function installStili() {
     }
 
     /* ── il nome della sezione, in cima al suo corpo ─────────────────── */
+    /* Al centro, e grande.
+     *
+     * Stava a sinistra e piccolo: era una didascalia, e chi apriva una scheda
+     * dal telefono non lo leggeva — «intestazione al centro e bella grande, si
+     * deve vedere». Dice in che sezione si e' entrati, che da telefono e'
+     * l'unica cosa che lo dice: e' la prima riga della scheda, non una nota a
+     * margine. Al centro perche' non ha niente accanto a cui allinearsi, e
+     * l'insegna della famiglia gli sta sopra come un soprattitolo. */
     .${TITOLO}{
-      display:flex;flex-direction:column;gap:2px;margin:0 0 14px;padding:0 0 10px;
+      display:flex;flex-direction:column;align-items:center;gap:3px;
+      margin:0 0 16px;padding:0 0 12px;text-align:center;
       border-bottom:1px solid var(--card-border,#e2e8f0)}
     .${TITOLO}-famiglia{
-      font-size:9.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;
+      font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
       color:var(--text-dim,#94a3b8)}
     .${TITOLO}-nome{
-      font-size:19px;font-weight:900;letter-spacing:-.01em;
-      color:var(--primary-text-color,#0f172a);line-height:1.15}
+      font-size:27px;font-weight:900;letter-spacing:-.02em;
+      color:var(--primary-text-color,#0f172a);line-height:1.1;
+      /* Un nome lungo — «Macchine e rete» — va a capo invece di stringere la
+       * scheda o di uscirne. */
+      text-wrap:balance;max-width:100%}
     @media(max-width:640px){
-      .${TITOLO}{margin-bottom:11px;padding-bottom:8px}
-      .${TITOLO}-nome{font-size:17px}
+      .${TITOLO}{margin-bottom:13px;padding-bottom:10px}
+      .${TITOLO}-nome{font-size:23px}
     }
     @media(max-width:640px){
       #${FILA}{padding:8px 10px 0}

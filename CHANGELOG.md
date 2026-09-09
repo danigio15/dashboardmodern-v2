@@ -7,6 +7,197 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+## 1.4.16
+
+Il giro delle segnalazioni, una per una. Sei richieste nuove diventate cose che
+si vedono — fra cui una sezione che non c'era, la Presenza — e una dozzina di
+difetti, quasi tutti la stessa forma di bugia: la plancia diceva una cosa
+mentre ne faceva un'altra, e chi guardava non aveva modo di accorgersene. Il
+flusso dell'energia, che nella 1.4.15 era finito sotto le persone invece che
+accanto, adesso è la card che era stata chiesta.
+
+### Aggiunto
+
+- **Presenza: dove c'è qualcuno adesso, e da quanto la casa è vuota** (#432,
+  #437)
+
+  Di un rilevatore di movimento non si vuole sapere che esiste: si vuole sapere
+  dove c'è qualcuno adesso e — quasi più importante — da quanto una stanza è
+  vuota. «Libera da tre minuti» e «libera da otto ore» sono due case diverse, e
+  il pallino acceso non le distingue.
+
+  Non c'è niente da configurare per cominciare: un `motion`, un `occupancy`, un
+  `presence` lo dichiara Home Assistant e chi ne ha uno se lo ritrova. Movimento
+  e presenza non dicono la stessa cosa e la riga li distingue — di un movimento
+  conta l'ultimo, di una presenza da quanto dura. Un rilevatore muto non è una
+  stanza vuota: è una sorveglianza che manca, e non conta né fra le attive né
+  fra le libere. A casa tutta libera la notizia è l'**ultima** volta che c'è
+  stato qualcuno.
+
+  La tessera in Home non si accende: qualcuno in casa è la normalità, non un
+  allarme. La scheda del Config è quella dei Varchi, con le stesse tre
+  correzioni — il sensore del cortile che la casa non la guarda, quello che
+  nessuno ha etichettato, e il nome di chi si chiama «Motion 3C».
+
+- **Temperature: il grafico dell'umidità, e una stanza si toglie toccandola**
+  (#427, #433)
+
+  Due richieste sullo stesso disegno. Le pastiglie sopra il grafico scelgono la
+  misura — temperatura o umidità, ognuna con la sua unità e la sua fascia di
+  comfort — e la legenda si preme: una stanza fuori scala schiacciava tutte le
+  altre, e adesso esce dal disegno con un tocco. L'ultima accesa non si spegne,
+  che è il solo modo di non ritrovarsi un grafico vuoto senza capire perché.
+  Le stanze spente non si chiedono nemmeno al Recorder.
+
+- **Allerte: i pollini dicono quale è alto, e il disagio ha più di un indice**
+  (#428)
+
+  I pollini presi uno per uno — graminacee, erbacce, alberi — con la parola che
+  il sensore usa e non un numero da interpretare, e la didascalia che nomina il
+  peggiore. Il comfort termico legge la percezione, l'humidex, l'indice di
+  calore e il rischio gelo, e il livello della sezione è il più grave dei
+  quattro: un indice che urla non resta nascosto dietro una percezione
+  tranquilla.
+
+- **Home: la tessera dell'energia dice anche i totali del giorno** (#429)
+
+  Sotto il numero grande, quello che la casa ha fatto oggi: consumato, prodotto,
+  preso dalla rete, immesso. Non è una seconda tabella di entità — sono le
+  stesse che l'Energia usa già per i suoi periodi — e chi ne ha mappata una sola
+  legge esattamente la didascalia di prima.
+
+- **Allerte: la tessera si apre e dice tutto** (#422)
+
+  Il testo di un avviso della protezione civile lo si tagliava a centottanta
+  caratteri per farlo stare nel riquadro, e tutto quello che l'integrazione
+  scrive negli attributi non usciva da nessuna parte. Adesso la tessera si apre,
+  e dentro c'è tutto quello che vale la pena leggere — qualunque integrazione
+  l'abbia scritto, perché la regola è «tutto tranne il rumore» e non un elenco
+  di campi che qualcuno conosceva.
+
+- **Batterie: il nome che si dà resta** (#430)
+
+  Rinominare una batteria in configurazione non cambiava niente dove si guarda,
+  che dal di fuori è come non poter rinominare. Il nome scelto aveva tre padroni
+  e adesso ne ha uno.
+
+- **Energia: da che parte scrive la batteria** (#434)
+
+  La mappa dei flussi ha una convenzione sola — positivo = scarica — e metà dei
+  sensori scrive positivo quando la batteria si **carica**. Da un valore solo
+  non si indovina: 800 W vuol dire «sta caricando» o «sta scaricando» a seconda
+  di chi l'ha scritto, e chi guardava vedeva la batteria alimentare casa mentre
+  si stava caricando. Adesso lo dice la casa, con un interruttore sotto la
+  casella della potenza — il posto dove ci si trova quando ci si accorge che il
+  disegno mente. Chi non tocca niente resta com'era.
+
+### Corretto
+
+- **Home: il flusso dell'energia è una card accanto alle persone** (#415)
+
+  «Accanto magari alle card delle persone» lo diceva la richiesta, e non era
+  stato fatto: ne era uscito un blocco largo quanto la pagina, **sotto** di
+  loro — un riquadro quasi vuoto con dentro cinque targhette piccole, più
+  cornice che disegno. Adesso è una card stretta accanto alla griglia delle
+  persone, con la loro stessa veste, e il disegno è rifatto attorno alla casa:
+  lei al centro col numero grosso, le sorgenti attorno, e in cima da dove
+  arriva **adesso** la corrente che la casa usa. La freccia della batteria è
+  sparita perché lo dice già l'arco che ci arriva, e il «62%» è diventato un
+  anello di carica attorno al suo cerchio. Non è più una voce dell'ordine dei
+  blocchi: viaggia con le persone, che è la cosa a cui è accanto. Accenderlo e
+  spegnerlo si fa dov'era.
+
+- **Home: la finestra dentro la riga della tapparella tornava invisibile**
+
+  I contatti uscivano solo da una riga senza motore. Ma la riga normale — la
+  tapparella con il sensore del suo infisso — è esattamente come si configura
+  una finestra qui dentro, e di quella la tessera prendeva la sola tapparella:
+  contava l'avvolgibile su e taceva dell'anta aperta. È l'errore della #442
+  rifatto dall'altro lato.
+
+- **Presenza: un rilevatore che va giù non è un movimento**
+
+  Passare a «non disponibile» è un cambio di stato, e il suo istante è adesso:
+  contandolo, una casa in cui l'unica cosa successa era un sensore andato giù
+  leggeva «Ultimo movimento · appena adesso». La notizia più tranquillizzante
+  possibile, detta proprio quando la sorveglianza manca.
+
+- **Telecamere: il proxy dal vivo non si salta quando è l'unica strada**
+
+  Senza WebRTC e con un browser che l'HLS non sa suonare non veniva scelta
+  nessuna strada, e il proxy MJPEG si toglieva di mezzo dicendo «strada già
+  scelta». Si finiva sui fotogrammi a intervalli mentre il flusso dal vivo era
+  lì e funzionava: è un'immagine su un altro indirizzo, e non chiede al browser
+  di saper suonare niente.
+
+- **Allerte: la frase dei pollini dice chi ha alzato l'allerta**
+
+  Con il bollettino del giorno «molto alto» e le tre erbe tranquille, la tessera
+  si accendeva sul bollettino e la frase diceva «Graminacee: basso» — nascondendo
+  proprio la lettura che aveva alzato l'allerta.
+
+- **Allerte: il sì e il no nella lingua di chi guarda**
+
+  Un attributo vero o falso usciva scritto in italiano su ogni plancia del
+  mondo.
+
+- **Auto: la card mostrava i km dell'AdBlue anche dopo aver corretto l'entità**
+  (#444)
+
+  «Ho modificato a mano l'entità e salvato. Purtroppo a schermo compaiono ancora
+  i km residui dell'AdBlue ma se clicco sopra prende il grafico corretto.» Le
+  caselle di una vettura vivono in due posti, e per disegno: nel profilo, che è
+  il loro padrone, e nella mappa di casa, che è quella che il grafico legge.
+  Correggerne una scriveva solo la seconda, e i due posti si contraddicevano
+  sullo stesso schermo. Adesso una correzione basta a sé stessa.
+
+- **Home: sei tapparelle non sono sei finestre aperte** (#442)
+
+  La sezione Finestre porta dentro due cose diverse: i motori — tapparelle,
+  tende, tende da sole — che si **alzano**, e i contatti sull'anta, che si
+  **aprono**. La tessera le sommava e le chiamava tutte «aperte»: sei tapparelle
+  tirate su sono una casa normale, sei finestre aperte sono una casa da
+  chiudere. Adesso la tessera dice quello che conta davvero, e quando conta le
+  due cose insieme le dice separate. I contatti hanno già il loro chip e si
+  chiama Varchi.
+
+- **Sicurezza: il secondo tasto d'inserimento su misura si può aggiungere**
+  (#431)
+
+  Aggiungere il primo tasto salvava, salvare rifaceva la scheda, e il blocco se
+  ne andava con lei: il secondo «＋» non c'era più da premere. Il blocco delle
+  modalità, che nasce due righe sopra e ha lo stesso problema, se l'era risolto
+  per conto suo. Adesso la meccanica per restare appesi a una scheda che si rifà
+  è una sola e la usano tutti — che è il modo di non ritrovarsene una vecchia.
+
+- **Varchi e Finestre: la finestra spenta nei Varchi resta nelle Finestre**
+
+  «Se la finestra è configurata nella sezione finestre e no nei varchi la
+  segnalazione resta in finestre, non deve scomparire.» Lo stesso contatto sta
+  scritto in due sezioni e finisce in due tessere; l'interruttore «nel widget»
+  spegneva l'**entità** e non la **riga**, e toccarlo nei Varchi la faceva
+  sparire anche dalle Finestre, dove nessuno aveva chiesto niente. Chi aveva già
+  scelto non perde nulla.
+
+- **Energia: tre numeri che non dicevano il vero**
+
+  La media al giorno divideva per i giorni del mese intero anche a metà mese; il
+  picco stampava «26.37» col punto a chi legge in italiano; e il totale anno
+  della wallbox sommava i giorni invece di differenziare i mesi.
+
+- **Telecamere: una strada scelta, non quattro in fila**
+
+  «Vanno riviste completamente le connessioni con le telecamere, sono
+  lentissime e non carica immediatamente l'immagine.» Si provavano WebRTC, HLS,
+  MJPEG e le istantanee una dopo l'altra, e finché non vinceva una il riquadro
+  restava vuoto — su una telecamera che dorme anche per venticinque secondi, e
+  la fila si rifaceva identica a ogni apertura. Adesso l'istantanea si disegna
+  prima di negoziare, e la strada che ha funzionato per quella telecamera si
+  prova per prima.
+
+- **Config: l'intestazione al centro, i chip del filtro leggibili, e il tasto
+  delle Finestre dice cosa aggiunge**
+
 ## 1.4.15
 
 Prima di tutto: **l'integrazione non si installava più**. Da tre settimane, su

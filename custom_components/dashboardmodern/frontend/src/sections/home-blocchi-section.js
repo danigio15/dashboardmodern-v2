@@ -51,7 +51,6 @@ export function ordineSalvato() {
 function pezziDelBlocco(nome, pagina) {
   const dentro = (nodo) => (nodo && nodo.parentElement === pagina ? nodo : null);
   if (nome === "persone") return [dentro(doc.getElementById("dm-people"))].filter(Boolean);
-  if (nome === "flusso") return [dentro(doc.getElementById("dm-flusso"))].filter(Boolean);
   if (nome === "widget") return [dentro(doc.getElementById("dm-widgets"))].filter(Boolean);
   if (nome === "dispositivi")
     return [dentro(doc.getElementById("dev-title")), dentro(doc.getElementById("dev-grid"))].filter(
@@ -145,7 +144,6 @@ const SCHEDA_HOME = "sez0";
  * mettono in fila i blocchi. */
 const NOMI_DEI_BLOCCHI = () => ({
   persone: ["👥", t("Persone", "People")],
-  flusso: ["🔀", t("Flusso energia", "Energy flow")],
   widget: ["🧩", t("Widget", "Widgets")],
   azioni: ["⚡", t("Azioni rapide", "Quick actions")],
   dispositivi: ["📟", t("Dispositivi", "Devices")],
@@ -176,8 +174,8 @@ function pannelloMarkup() {
   return `<div class="ed-sec-title">🏠 ${esc(t("Ordine dei blocchi della Home", "Order of the Home blocks"))}</div>
     <div class="ed-intro">${esc(
       t(
-        "In che ordine si vedono in Home: persone, flusso dell'energia, widget, azioni rapide, dispositivi. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le tessere in Widget, le azioni rapide nella loro.",
-        "The order they appear in on Home: people, the energy flow, widgets, quick actions, devices. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
+        "In che ordine si vedono in Home: persone, widget, azioni rapide, dispositivi. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le tessere in Widget, le azioni rapide nella loro.",
+        "The order they appear in on Home: people, widgets, quick actions, devices. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
       ),
     )}</div>
     <div class="dm-blocco-list">${righe}</div>
@@ -187,8 +185,8 @@ function pannelloMarkup() {
         <b>${esc(t("Mostra il flusso dell'energia", "Show the energy flow"))}</b>
         <small>${esc(
           t(
-            "Il disegno con il fotovoltaico, la rete, la batteria, la casa e l'auto: le stesse frecce della sezione Energia. Compare da solo quando c'è abbastanza da raccontare.",
-            "The drawing with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell.",
+            "La card accanto alle persone con il fotovoltaico, la rete, la batteria, la casa e l'auto: le stesse frecce della sezione Energia. Compare da sola quando c'è abbastanza da raccontare, e si sposta insieme alle persone.",
+            "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.",
           ),
         )}</small>
       </span>
@@ -236,7 +234,7 @@ function onClickFreccia(event) {
   ensurePannelloDeiBlocchi();
 }
 
-/* L'interruttore del flusso: si spegne e il blocco sparisce dalla Home subito,
+/* L'interruttore del flusso: si spegne e la card sparisce dalla Home subito,
  * non al prossimo stato che arriva. */
 function onClickFlusso(event) {
   const casella = event.target?.closest?.("[data-dm-blocco-flusso]");

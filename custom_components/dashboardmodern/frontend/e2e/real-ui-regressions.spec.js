@@ -163,7 +163,13 @@ for (const variant of PRIMARY) {
       await page.locator("#ed-tp-name").fill(name);
       await fillEntityFieldByHand(page, "#ed-tp-ent", entity);
       await page.locator("#ed-tp-room").selectOption("room-salone");
-      await page.locator("#ed-body .ed-btn-add", { hasText: /tapparella|shutter/i }).click();
+      /* Il tasto che aggiunge, preso per quello che E' e non per come si
+       * chiama: la sezione adesso si chiama Finestre e il tasto dice «Aggiungi
+       * entità a Finestre», e chi lo cercava per la parola «tapparella» non lo
+       * trovava piu'. Il nome di una sezione e' cambiato una volta e cambiera'
+       * ancora; la classe no. Lo switch della visibilita' porta la stessa
+       * classe, e si toglie di mezzo per nome. */
+      await page.locator("#ed-body .ed-btn-add:not(.dm-section-switch)").click();
     }
     await expect
       .poll(() => page.evaluate(() => getTapparelle().map((item) => item.entity)))

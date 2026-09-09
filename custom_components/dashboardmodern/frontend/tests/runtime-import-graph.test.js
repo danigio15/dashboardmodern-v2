@@ -1045,6 +1045,47 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
   // negoziare e prova per prima la strada ricordata. La cascata del guscio non
   // si tocca: resta la rete di sicurezza, intera.
+  // 314 con il verso della batteria (#434): «sembra scaricarsi perche' il flow
+  // tratteggiato va dalla batteria verso casa ma non e' esatto». La mappa ha
+  // una convenzione sola — positivo = scarica — e meta' dei sensori scrive
+  // positivo quando la batteria si CARICA: da un valore solo non si indovina,
+  // e chi guarda vede le frecce all'incontrario. La regola sta nel nucleo che
+  // gia' possiede quelle convenzioni (`core/energy-flow-truth.js`, che non
+  // cresce di un file); `sections/verso-batteria-editor-section.js` e' solo
+  // l'interruttore, sotto la casella della potenza — il posto dove ci si trova
+  // quando ci si accorge che il disegno mente.
+  // 313 con la presenza in casa (#432): «ci vorrebbe una sezione con i sensori
+  // presenza o movimento». Quattro moduli, e nessuno di piu': `core/da-quanto.js`
+  // e' la sveglia e le parole del «da quanto» — stavano dentro
+  // `core/varchi-di-casa.js`, dove sono servite per primo, e non sono dei
+  // varchi: le scrive anche la presenza, e chiedere l'ora al modulo delle porte
+  // sarebbe la dipendenza che fra un anno fa domandare «ma perche' la presenza
+  // dipende dai varchi?». `core/presenza-in-casa.js` legge i rilevatori — quali
+  // sono di casa, come stanno, da quanto — e `sections/presenza-section.js` e
+  // `sections/presenza-editor-section.js` sono la pagina e la sua scheda, nella
+  // stessa forma dei Varchi perche' e' la stessa domanda su un'altra famiglia
+  // di sensori.
+  // 309 con cosa disegna il grafico delle Temperature (#427, #433): «avere
+  // anche quello relativo all'umidità» e «poter togliere dal grafico alcune
+  // entità/stanze cliccandoci sopra … nel mio caso il vano tecnico». Due
+  // richieste sullo stesso disegno, ed e' per questo che stanno in un modulo
+  // solo: `core/il-grafico-delle-stanze.js` dice da quale casella della stanza
+  // si legge, con che unita' si scrive, dov'e' la fascia in cui si sta bene, e
+  // chi resta fuori — con la regola che l'ultima accesa non si spegne.
+  // 308 con la tessera di cui parla una scelta: «se la finestra e configurata
+  // nella sezione finestre e no nei varchi la segnalazione resta in finestre
+  // non deve scomparire». Lo stesso contatto sta scritto in due sezioni e
+  // finisce in due tessere; l'interruttore «nel widget» spegneva l'entita' e
+  // non la riga, e toccarlo nei Varchi la faceva sparire anche dalle Finestre.
+  // `core/fuori-dai-widget.js` e' la regola: una voce nuda vale ovunque — cosi'
+  // chi ha gia' scelto non perde niente — e una voce «tessera|entita'» vale in
+  // quella tessera sola.
+  // 307 con cosa c'e' dentro un'allerta quando la si apre (#422): «non si puo'
+  // interagire con le schede allerte per espandere le informazioni». Il testo
+  // di un avviso della protezione civile lo si tagliava a centottanta caratteri
+  // per farlo stare nella tessera, e gli attributi dell'integrazione non
+  // uscivano da nessuna parte: adesso la tessera si apre, e questo modulo
+  // decide cosa vale la pena mostrarci dentro.
   // 306 con chi decide di CHI e' un'entita' (#417): «il frigorifero 1 mi
   // mostra il valore di un sensore che ho messo dentro il frigorifero 2 …
   // anche se cancello l'associazione me la ritrovo sempre». La passata che
@@ -1055,7 +1096,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
   assert.ok(
-    relative.length <= 306,
+    relative.length <= 314,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -4,6 +4,28 @@
  * persone, potessimo mettere un'immagine con il flusso dal fotovoltaico alla
  * casa, dalla casa alle batterie, dalla casa all'auto ecc ecc.»
  *
+ * ── Dov'e' ────────────────────────────────────────────────────────────────
+ *
+ * «Accanto alle card delle persone» era scritto nella segnalazione e non era
+ * stato fatto: la prima stesura ne aveva fatto un blocco intero della Home,
+ * largo quanto la pagina e SOTTO le persone. Un riquadro vuoto largo cosi',
+ * con dentro cinque targhette piccole, e' brutto in un modo che si vede da
+ * lontano — c'e' piu' cornice che disegno.
+ *
+ * Adesso e' una card stretta accanto alla griglia delle persone: la stessa
+ * cornice, lo stesso raggio, lo stesso alone colorato — la sua corsia e non
+ * tutta la pagina. Accanto alla griglia e non DENTRO, e la differenza l'ho
+ * imparata mettendocela dentro: una card piu' alta di una persona alza tutta
+ * la riga della griglia, e le persone accanto si stirano vuote per seguirla.
+ * Chi non ha nessuna persona configurata quella fila non ce l'ha: allora la
+ * card tiene il posto che sarebbe stato delle persone, con la stessa misura.
+ *
+ * Stando dentro il blocco delle persone, viaggia con loro quando si riordina
+ * la Home: non e' piu' una voce dell'ordine dei blocchi, ed e' per questo che
+ * da quell'elenco e' sparita. Accenderla e spegnerla si fa dove si faceva.
+ *
+ * ── Cosa disegna ──────────────────────────────────────────────────────────
+ *
  * La sezione Energia una mappa ce l'ha, ma vive attaccata al documento storico
  * — le bolle, le linee e i tre periodi sono nodi di quello — e da li' non esce.
  * Quello che esce e' il CONTO, che e' puro: `core/energy-flow-truth.js` dice
@@ -12,15 +34,18 @@
  * quindi raccontano la stessa casa perche' fanno lo stesso conto, non perche'
  * qualcuno le ha allineate a mano.
  *
- * Il blocco e' un blocco della Home come le persone e le tessere: si mette
- * dove si vuole nell'ordine, e si spegne dalla scheda Energia. Sparisce da solo
- * quando non c'e' abbastanza da raccontare — un riquadro vuoto in una mappa dei
- * flussi non dice «zero», dice «non lo so».
+ * Sparisce da sola quando non c'e' abbastanza da raccontare — un riquadro
+ * vuoto in una mappa dei flussi non dice «zero», dice «non lo so».
  *
  * Non si disegna quando la Home non si guarda: e' la regola del resto della
  * plancia, e qui vale doppio perche' il disegno cambia a ogni stato che arriva.
  */
-import { arcoPiuGrande, flussoDiCasa, forzaDellArco } from "../core/flusso-di-casa.js";
+import {
+  arcoPiuGrande,
+  flussoDiCasa,
+  forzaDellArco,
+  sorgenteDiCasa,
+} from "../core/flusso-di-casa.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import { lettureDiCasa } from "./home-widgets-section.js";
 import {
@@ -39,6 +64,7 @@ import {
 const KEY = "__DASHBOARDMODERN_FLUSSO_CASA__";
 const STYLE_ID = "dm-flusso-style";
 const BLOCCO_ID = "dm-flusso";
+const CARD_ID = "dm-flusso-card";
 const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
 
 /** Dove si dice se il flusso in Home si vuole. */
@@ -50,42 +76,53 @@ export const CHIAVE_FLUSSO_HOME = "cd_flusso_home";
  * nome, «dalla casa all'auto». */
 const POTENZA_WALLBOX = "dm.ev_potenza_wallbox";
 
-/* I nodi, con il posto che occupano nel disegno e la loro tinta.
+/* ── La geometria ──────────────────────────────────────────────────────────
  *
- * Sono targhette, non bolle: il nome e il numero stanno DENTRO, e fuori non
- * c'e' nessuna scritta che una linea possa tagliare. La prima stesura le
- * metteva sotto ai cerchi, e la linea del fotovoltaico verso casa passava
- * dritta sopra la parola «Fotovoltaico»; il numero, per giunta, finiva addosso
- * al simbolo. Dentro non succede.
+ * La casa in mezzo e le sorgenti attorno, non una scala dall'alto in basso: su
+ * una card stretta e' l'unica figura che ci sta senza rimpicciolire le
+ * scritte, e dice da sola quello che deve dire — tutto converge in casa.
  *
- * Le sorgenti in alto, la casa in mezzo, l'auto sotto: si legge dall'alto in
- * basso come scende la corrente. */
-const LARGHEZZA = 104;
-const ALTEZZA = 44;
+ * Le scritte stanno DENTRO i cerchi, e fuori non c'e' nessuna parola che una
+ * linea possa tagliare. Il nome non c'e': lo dice il simbolo, e su una card di
+ * questa misura scriverlo vorrebbe dire togliere il numero. Chi vuole il nome
+ * lo trova nel `<title>` del nodo, che e' quello che leggono le lenti e i
+ * lettori di schermo.
+ *
+ * Nemmeno la freccia c'e' piu', e non e' una perdita: «▼» diceva che la
+ * batteria si carica, ma lo dice gia' l'arco che ci arriva. Due modi di dire
+ * la stessa cosa nello stesso disegno sono uno di troppo, e quello era quello
+ * che rubava lo spazio al numero. */
+const CASA = Object.freeze({ x: 80, y: 90, r: 25 });
+const SATELLITE = 18;
+/* Il cerchio della carica attorno alla batteria: gli archi che arrivano alla
+ * batteria si fermano su di lui, non sul suo corpo. */
+const ANELLO = 22.5;
+const GIRO_ANELLO = 2 * Math.PI * ANELLO;
 
 const POSTI = Object.freeze({
-  solare: Object.freeze({ x: 190, y: 44, glifo: "\u2600\uFE0F", tinta: "#f59e0b" }),
-  rete: Object.freeze({ x: 56, y: 150, glifo: "\u{1F50C}", tinta: "#2563eb" }),
-  casa: Object.freeze({ x: 190, y: 150, glifo: "\u{1F3E0}", tinta: "#2563eb" }),
-  batteria: Object.freeze({ x: 324, y: 150, glifo: "\u{1F50B}", tinta: "#14b8a6" }),
-  auto: Object.freeze({ x: 190, y: 258, glifo: "\u{1F697}", tinta: "#8b5cf6" }),
+  solare: Object.freeze({ x: 80, y: 36, glifo: "☀️", tinta: "245,158,11" }),
+  rete: Object.freeze({ x: 24, y: 90, glifo: "\u{1F50C}", tinta: "37,99,235" }),
+  casa: Object.freeze({ x: 80, y: 90, glifo: "\u{1F3E0}", tinta: "100,116,139" }),
+  batteria: Object.freeze({ x: 136, y: 90, glifo: "\u{1F50B}", tinta: "20,184,166" }),
+  auto: Object.freeze({ x: 80, y: 146, glifo: "\u{1F697}", tinta: "139,92,246" }),
 });
 
 /* La strada di ogni coppia, disegnata una volta sola: fra due nodi la corrente
  * va in un verso o nell'altro, mai in tutti e due insieme, quindi la linea e'
  * la stessa e cambia solo da che parte scorre il tratteggio.
  *
- * `rete` e `batteria` si parlano scavalcando tutto dall'alto: passare in mezzo
- * vorrebbe dire tagliare la casa a meta', e una linea che attraversa una
- * targhetta sembra entrarci. */
+ * Ogni tratto parte e finisce sul bordo dei due cerchi, cosi' le linee non
+ * entrano mai dentro un nodo. `rete` e `batteria` sono l'unica coppia che si
+ * parla stando dai lati opposti: si scavalca dall'alto, sopra il sole, perche'
+ * passare in mezzo vorrebbe dire tagliare la casa a meta'. */
 const STRADE = Object.freeze({
-  "solare|casa": "M190,66 L190,128",
-  "rete|casa": "M108,150 L138,150",
-  "batteria|casa": "M272,150 L242,150",
-  "casa|auto": "M190,172 L190,236",
-  "solare|rete": "M138,58 L98,128",
-  "solare|batteria": "M242,58 L282,128",
-  "rete|batteria": "M40,128 C40,-30 340,-30 340,128",
+  "solare|casa": "M80,54 L80,65",
+  "rete|casa": "M42,90 L55,90",
+  "batteria|casa": "M113.5,90 L105,90",
+  "casa|auto": "M80,115 L80,128",
+  "solare|rete": "M67,48.5 L37,77.5",
+  "solare|batteria": "M93,48.5 L119.8,74.4",
+  "rete|batteria": "M24,67.5 C24,-13 136,-13 136,67.5",
 });
 
 const stradaDi = (da, a) => STRADE[`${da}|${a}`] || STRADE[`${a}|${da}`] || "";
@@ -122,29 +159,52 @@ function nomeDelNodo(chiave) {
 }
 
 /* I watt come si leggono: sotto il migliaio in watt interi, sopra in kW con un
- * decimale — «3400 W» su una bolla piccola non si legge, «3,4 kW» sì. */
+ * decimale — «3400 W» su una bolla piccola non si legge, «3,4 kW» sì.
+ *
+ * Dai dieci kilowatt in su il decimo si toglie, e non per gusto: la scritta sta
+ * DENTRO il cerchio, e «10,2 kW» era l'unico numero che non ci entrava. È anche
+ * la cosa giusta da leggere — a dieci kilowatt il decimo non lo guarda
+ * nessuno. */
 function scritta(watt) {
   if (watt == null) return "";
   const valore = Math.abs(watt);
   if (valore < 1000) return `${Math.round(valore)} W`;
   const kw = valore / 1000;
+  if (kw >= 10) return `${Math.round(kw)} kW`;
   return `${kw.toFixed(1).replace(".", t(",", "."))} kW`;
 }
 
-function nodoMarkup(nodo) {
+/* La carica della batteria e' un anello attorno al suo cerchio, non una scritta
+ * in piu': «62%» accanto ai watt non ci sta, e un anello pieno per due terzi
+ * si legge senza leggerlo. Parte dall'alto, da cui la rotazione. */
+function anelloDellaCarica(posto, soc) {
+  if (soc == null) return "";
+  const quota = (Math.max(0, Math.min(100, soc)) / 100) * GIRO_ANELLO;
+  return `<circle class="dm-flusso-pista" cx="${posto.x}" cy="${posto.y}" r="${ANELLO}"></circle>
+      <circle class="dm-flusso-carica" cx="${posto.x}" cy="${posto.y}" r="${ANELLO}"
+        transform="rotate(-90 ${posto.x} ${posto.y})"
+        style="stroke-dasharray:${quota.toFixed(1)} ${GIRO_ANELLO.toFixed(1)}"></circle>`;
+}
+
+/* Un nodo a zero che nessun arco tocca non e' una notizia allegra da guardare:
+ * «🚗 0 W» da solo in fondo, senza nessuna linea, sembra un pezzo di disegno
+ * rotto. Non si toglie — dire che la colonnina non sta erogando e' comunque
+ * dire qualcosa — ma si spegne: resta leggibile, e non pesa come chi sta
+ * lavorando. */
+function nodoMarkup(nodo, attaccati) {
   const posto = POSTI[nodo.chiave];
   if (!posto) return "";
-  const freccia = nodo.verso === "dentro" ? "\u25BC " : nodo.verso === "fuori" ? "\u25B2 " : "";
-  /* La carica della batteria sta sulla riga del nome, non su quella del
-   * numero: «▼ 800 W · 62%» usciva dai bordi della targhetta, e una scritta
-   * che scavalca il suo riquadro sembra appartenere a quello accanto. */
-  const carica = nodo.chiave === "batteria" && nodo.soc != null ? ` ${Math.round(nodo.soc)}%` : "";
-  const sinistra = posto.x - LARGHEZZA / 2;
-  const alto = posto.y - ALTEZZA / 2;
-  return `<g class="dm-flusso-nodo" data-nodo="${esc(nodo.chiave)}" style="--dm-flusso-tinta:${posto.tinta}">
-      <rect x="${sinistra}" y="${alto}" width="${LARGHEZZA}" height="${ALTEZZA}" rx="13"></rect>
-      <text class="dm-flusso-nome" x="${posto.x}" y="${posto.y - 5}">${posto.glifo} ${esc(nomeDelNodo(nodo.chiave) + carica)}</text>
-      <text class="dm-flusso-watt" x="${posto.x}" y="${posto.y + 13}">${esc(freccia + scritta(nodo.watt))}</text>
+  const eLaCasa = nodo.chiave === "casa";
+  const raggio = eLaCasa ? CASA.r : SATELLITE;
+  const muto = !eLaCasa && !nodo.watt && !attaccati.has(nodo.chiave);
+  const carica =
+    nodo.chiave === "batteria" && nodo.soc != null ? ` — ${Math.round(nodo.soc)}%` : "";
+  return `<g class="dm-flusso-nodo" data-nodo="${esc(nodo.chiave)}"${muto ? ' data-muto="true"' : ""} style="--dm-flusso-tinta:${posto.tinta}">
+      <title>${esc(nomeDelNodo(nodo.chiave) + carica)}</title>
+      ${nodo.chiave === "batteria" ? anelloDellaCarica(posto, nodo.soc) : ""}
+      <circle class="dm-flusso-corpo" cx="${posto.x}" cy="${posto.y}" r="${raggio}"></circle>
+      <text class="dm-flusso-glifo" x="${posto.x}" y="${posto.y - (eLaCasa ? 6 : 2.5)}">${posto.glifo}</text>
+      <text class="dm-flusso-watt" x="${posto.x}" y="${posto.y + (eLaCasa ? 12 : 10)}">${esc(scritta(nodo.watt))}</text>
     </g>`;
 }
 
@@ -152,27 +212,50 @@ function arcoMarkup(arco, massimo) {
   const strada = stradaDi(arco.da, arco.a);
   if (!strada) return "";
   const forza = forzaDellArco(arco.watt, massimo);
-  const spessore = (2 + forza * 4).toFixed(1);
+  const spessore = (1.4 + forza * 2).toFixed(1);
   /* Più corrente, più svelto il tratteggio: è il modo in cui una mappa dice
    * «di qui ne passa tanta» senza scriverci sopra un altro numero. */
   const durata = (2.4 - forza * 1.6).toFixed(2);
   const verso = alContrario(arco.da, arco.a) ? "reverse" : "normal";
   return `<path class="dm-flusso-arco" d="${strada}" data-da="${esc(arco.da)}" data-a="${esc(arco.a)}"
-      style="--dm-flusso-tinta:${POSTI[arco.da]?.tinta || "#64748b"};stroke-width:${spessore};animation-duration:${durata}s;animation-direction:${verso}"></path>`;
+      style="--dm-flusso-tinta:${POSTI[arco.da]?.tinta || "100,116,139"};stroke-width:${spessore};animation-duration:${durata}s;animation-direction:${verso}"></path>`;
 }
 
 /** Il disegno del flusso, dal modello: serve anche alle prove. */
 export function flussoMarkup(modello) {
   const massimo = arcoPiuGrande(modello.archi);
   const archi = modello.archi.map((arco) => arcoMarkup(arco, massimo)).join("");
-  const nodi = modello.presenti.map((chiave) => nodoMarkup(modello.nodi[chiave])).join("");
-  return `<h3 class="section-title dm-flusso-titolo">${esc(t("Il flusso dell'energia", "The energy flow"))}</h3>
-  <div class="dm-flusso-tela">
-    <svg viewBox="0 -20 380 312" role="img" aria-label="${esc(t("Il flusso dell'energia di casa", "The home energy flow"))}">
-      <g class="dm-flusso-archi">${archi}</g>
-      <g class="dm-flusso-nodi">${nodi}</g>
-    </svg>
-  </div>`;
+  const attaccati = new Set(modello.archi.flatMap((arco) => [arco.da, arco.a]));
+  const nodi = modello.presenti
+    .map((chiave) => nodoMarkup(modello.nodi[chiave], attaccati))
+    .join("");
+  /* Da dove arriva adesso quello che la casa usa: e' il titolo della mappa, e
+   * la sua tinta veste la card come il colore di presenza veste quelle delle
+   * persone — l'alone dietro, il bordo quando ci si passa sopra, la pastiglia.
+   * Cosi' da lontano, senza leggere niente, si vede se la casa sta andando a
+   * sole o a rete. */
+  const fonte = sorgenteDiCasa(modello.archi);
+  const tinta = POSTI[fonte]?.tinta || POSTI.casa.tinta;
+  const pastiglia = fonte
+    ? `<span class="dm-flusso-fonte">${POSTI[fonte].glifo} ${esc(nomeDelNodo(fonte))}</span>`
+    : "";
+  /* Il nome sopra e la pastiglia sotto, in colonna: e' come stanno il nome e la
+   * zona di una persona, ed e' anche l'unico modo perche' non si taglino a
+   * vicenda — su una card di questa larghezza «Flusso energia» e «☀️
+   * Fotovoltaico» sulla stessa riga non ci stanno, e il titolo diventava
+   * «Flusso ene...». */
+  return `<article class="dm-flusso-card" style="--dm-flusso-fonte:${tinta}">
+    <div class="dm-flusso-testa">
+      <strong class="dm-flusso-nome">${esc(t("Flusso energia", "Energy flow"))}</strong>
+      ${pastiglia}
+    </div>
+    <div class="dm-flusso-tela">
+      <svg viewBox="0 4 160 162" role="img" aria-label="${esc(t("Il flusso dell'energia di casa", "The home energy flow"))}">
+        <g class="dm-flusso-archi">${archi}</g>
+        <g class="dm-flusso-nodi">${nodi}</g>
+      </svg>
+    </div>
+  </article>`;
 }
 
 /** Il modello adesso, dalle stesse letture della tessera dell'energia. */
@@ -192,35 +275,82 @@ function firmaDel(modello) {
   ].join("§");
 }
 
+/* La fila delle persone, se in questa casa ce ne sono. E' li' che la card va a
+ * stare: accanto alla loro griglia, non dentro.
+ *
+ * Dentro ci e' stata, ed era sbagliato: una card piu' alta di una persona
+ * alzava tutta la riga della griglia, e le persone accanto si stiravano vuote
+ * per starle dietro. Accanto alla griglia ognuno tiene la sua altezza — e in
+ * piu' la card e' al riparo dal ridisegno, perche' chi disegna le persone
+ * riscrive la griglia, non la fila. */
+function laFila(pagina) {
+  const persone = doc?.getElementById?.("dm-people");
+  if (!persone || persone.parentElement !== pagina) return null;
+  return persone.querySelector(".dm-people-fila");
+}
+
+/* Senza persone la card tiene il loro posto, con la loro misura: un blocco
+ * suo, subito sotto le pastiglie di stato, che e' dove le persone sarebbero
+ * andate. */
+function bloccoDiPagina(pagina) {
+  let blocco = doc.getElementById(BLOCCO_ID);
+  if (blocco && blocco.parentElement === pagina) return blocco;
+  blocco?.remove();
+  blocco = doc.createElement("section");
+  blocco.id = BLOCCO_ID;
+  blocco.className = "dm-flusso";
+  const pastiglie = doc.getElementById("dashboard-pills-row");
+  if (pastiglie?.parentElement === pagina) pastiglie.after(blocco);
+  else pagina.prepend(blocco);
+  return blocco;
+}
+
+/* Alla fila si dice che qualcuno c'e': e' cosi' che lei sa di non dover tenere
+ * le corsie vuote che nessuna persona sta usando. Si dice anche quando si va
+ * via, sennò la griglia resta stretta attorno a un compagno che non c'e' piu'. */
+function diAllaFila(fila, accanto) {
+  if (!fila) return;
+  if (accanto) fila.dataset.accanto = "true";
+  else delete fila.dataset.accanto;
+}
+
+function viaTutto() {
+  doc?.getElementById?.(CARD_ID)?.remove();
+  doc?.getElementById?.(BLOCCO_ID)?.remove();
+  diAllaFila(doc?.getElementById?.("dm-people")?.querySelector?.(".dm-people-fila"), false);
+  state.firma = "";
+}
+
 export function renderFlusso() {
   const pagina = laHome();
-  let blocco = doc?.getElementById?.(BLOCCO_ID);
   if (!pagina || !flussoInHome()) {
-    blocco?.remove();
+    viaTutto();
     return false;
   }
   const modello = flussoAdesso();
   if (!modello.disegnabile) {
-    blocco?.remove();
-    state.firma = "";
+    viaTutto();
     return false;
   }
-  if (!blocco || blocco.parentElement !== pagina) {
-    blocco?.remove();
-    blocco = doc.createElement("section");
-    blocco.id = BLOCCO_ID;
-    blocco.className = "dm-flusso";
-    /* Sotto le persone, che è dove è stato chiesto. Da lì l'ordine dei blocchi
-     * lo può spostare dove si vuole, come tutti gli altri. */
-    const persone = doc.getElementById("dm-people");
-    if (persone?.parentElement === pagina) persone.after(blocco);
-    else pagina.prepend(blocco);
-    state.firma = "";
-  }
+  const fila = laFila(pagina);
+  /* Con le persone la card sta nella loro fila, e allora il blocco a se' non
+   * serve piu': ne resterebbe una cornice vuota sotto la Home. */
+  if (fila) doc.getElementById(BLOCCO_ID)?.remove();
+  diAllaFila(fila, true);
+  const ospite = fila || bloccoDiPagina(pagina);
+  if (!ospite) return false;
+
+  const vecchia = doc.getElementById(CARD_ID);
   const firma = firmaDel(modello);
-  if (state.firma === firma) return false;
+  if (vecchia && vecchia.parentElement === ospite && state.firma === firma) return false;
+  const guscio = doc.createElement("div");
+  guscio.innerHTML = flussoMarkup(modello);
+  const card = guscio.firstElementChild;
+  if (!card) return false;
+  card.id = CARD_ID;
+  if (vecchia) vecchia.replaceWith(card);
+  if (card.parentElement !== ospite) ospite.appendChild(card);
   state.firma = firma;
-  blocco.innerHTML = flussoMarkup(modello);
   return true;
 }
 
@@ -239,31 +369,76 @@ function schedule() {
   }
 }
 
+/* La card e' vestita come una card delle persone, e non per somiglianza: sta
+ * accanto a loro, e una card che nella stessa fila ha un'altra cornice o un
+ * altro raggio si vede subito che e' stata appiccicata li'. Le misure sono
+ * quelle di `people-section.js`, compresa la soglia del telefono. */
 function css() {
   return `
-  #${BLOCCO_ID}{display:block;margin:14px 0 0}
-  #${BLOCCO_ID} .dm-flusso-titolo{margin:0 0 6px}
-  #${BLOCCO_ID} .dm-flusso-tela{
-    background:var(--dm-card-bg,rgba(255,255,255,.06));
-    border:1px solid var(--dm-card-border,rgba(148,163,184,.22));
-    border-radius:18px;padding:8px 6px 4px}
-  #${BLOCCO_ID} svg{display:block;width:100%;height:auto;max-height:340px}
-  #${BLOCCO_ID} .dm-flusso-nodo rect{
-    fill:color-mix(in srgb,var(--dm-flusso-tinta) 15%,transparent);
-    stroke:var(--dm-flusso-tinta);stroke-width:1.6}
-  #${BLOCCO_ID} .dm-flusso-nome{
-    font-size:10px;text-anchor:middle;fill:var(--secondary-text-color,#94a3b8)}
-  #${BLOCCO_ID} .dm-flusso-watt{
-    font-size:13px;font-weight:800;text-anchor:middle;
-    fill:var(--primary-text-color,#e2e8f0);font-variant-numeric:tabular-nums}
-  #${BLOCCO_ID} .dm-flusso-arco{
-    fill:none;stroke:var(--dm-flusso-tinta);stroke-linecap:round;
-    stroke-dasharray:5 9;opacity:.85;
+  #${BLOCCO_ID}{display:block;margin:14px 0 0;max-width:320px}
+  /* Nella fila delle persone la larghezza la da' la colonna: la card e' una
+     corsia di quella griglia, la stessa dei widget. Da sola — senza persone —
+     se la tiene addosso, per non stirarsi su tutta la pagina. */
+  .dm-flusso-card{
+    --dm-flusso-fonte:100,116,139;width:100%;max-width:100%;grid-column:-2/-1;
+    position:relative;display:flex;flex-direction:column;gap:10px;
+    padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);
+    border-radius:22px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));
+    transition:var(--transition,.3s);overflow:hidden}
+  /* L'alone della sorgente, morbido dietro: e' lui a dire da lontano se la
+     casa sta andando a sole o a rete, prima ancora di leggere. */
+  .dm-flusso-card::before{content:"";position:absolute;top:-56px;left:-40px;width:190px;height:160px;
+    background:radial-gradient(closest-side,rgba(var(--dm-flusso-fonte),.22),transparent 72%);
+    pointer-events:none}
+  .dm-flusso-card:hover{box-shadow:var(--shadow-hover,0 10px 25px rgba(15,23,42,.14));
+    border-color:rgba(var(--dm-flusso-fonte),.35)}
+  .dm-flusso-testa{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;max-width:100%}
+  .dm-flusso-nome{font-size:14px;font-weight:900;letter-spacing:-.3px;color:var(--text,#0f172a);
+    max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dm-flusso-fonte{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:900;letter-spacing:.3px;color:#fff;
+    background:linear-gradient(135deg,rgb(var(--dm-flusso-fonte)),color-mix(in srgb,rgb(var(--dm-flusso-fonte)) 72%,#0f172a));
+    border-radius:999px;padding:3px 10px;white-space:nowrap;
+    box-shadow:0 5px 12px -5px rgba(var(--dm-flusso-fonte),.7)}
+  .dm-flusso-tela{position:relative}
+  .dm-flusso-card svg{display:block;width:100%;height:auto}
+  /* Il riquadro dell'intestazione l'ha gia' la fila: qui la card e' sempre
+     larga uguale, e il disegno la riempie. */
+  .dm-flusso-corpo{
+    fill:color-mix(in srgb,rgb(var(--dm-flusso-tinta)) 13%,var(--card-bg,#fff));
+    stroke:rgba(var(--dm-flusso-tinta),.55);stroke-width:1.4}
+  /* La casa e' il centro tranquillo: il fondo della card, non una tinta, cosi'
+     le sorgenti attorno si vedono per quello che sono. */
+  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-corpo{
+    fill:var(--card-bg,#fff);stroke:rgba(var(--dm-flusso-tinta),.42);stroke-width:1.6}
+  .dm-flusso-glifo{font-size:11px;text-anchor:middle}
+  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-glifo{font-size:13px}
+  .dm-flusso-watt{font-size:7.8px;font-weight:900;text-anchor:middle;
+    fill:var(--text,#0f172a);font-variant-numeric:tabular-nums}
+  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-watt{font-size:11px}
+  /* Il nodo spento: si legge ancora, e non pesa come chi sta lavorando. */
+  .dm-flusso-nodo[data-muto="true"]{opacity:.42}
+  .dm-flusso-pista{fill:none;stroke:rgba(var(--dm-flusso-tinta),.15);stroke-width:2.2}
+  .dm-flusso-carica{fill:none;stroke:rgb(var(--dm-flusso-tinta));stroke-width:2.2;stroke-linecap:round}
+  .dm-flusso-arco{
+    fill:none;stroke:rgb(var(--dm-flusso-tinta));stroke-linecap:round;
+    stroke-dasharray:3 5.5;opacity:.9;
     animation-name:dm-flusso-scorre;animation-timing-function:linear;
     animation-iteration-count:infinite}
-  @keyframes dm-flusso-scorre{to{stroke-dashoffset:-28}}
+  @keyframes dm-flusso-scorre{to{stroke-dashoffset:-17}}
   @media (prefers-reduced-motion:reduce){
-    #${BLOCCO_ID} .dm-flusso-arco{animation:none;stroke-dasharray:none}}
+    .dm-flusso-arco{animation:none;stroke-dasharray:none}}
+  @media(max-width:760px){
+    /* Senza tre colonne «accanto» non esiste: la card va sotto la griglia e
+       allora prende la riga tutta, come tutto il resto. */
+    #${BLOCCO_ID}{max-width:none}
+    .dm-flusso-card{grid-column:1/-1}
+    .dm-flusso-card svg{max-height:220px}
+  }
+  @media(max-width:520px){
+    .dm-flusso-card{padding:11px;gap:8px}
+    .dm-flusso-nome{font-size:12px}
+    .dm-flusso-fonte{font-size:9px;padding:2px 8px}
+  }
   `;
 }
 

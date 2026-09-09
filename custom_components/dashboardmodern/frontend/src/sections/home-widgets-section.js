@@ -39,6 +39,8 @@ import {
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
+import { escluseDellaTessera } from "../core/fuori-dai-widget.js";
+import { PERIOD_SOURCES } from "../core/period-service.js";
 import {
   TONO_DEL_GRADO,
   eUnaMisuraDellAria,
@@ -91,6 +93,7 @@ import {
   plantList,
   sommaLetture,
   sommaNumeri,
+  sommaOggi,
 } from "../core/energy-plants.js";
 import {
   CALENDARI_KEY,
@@ -163,6 +166,16 @@ import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
 import {
+  CHIAVE_VERSO_BATTERIA,
+  batteriaGirata,
+  potenzaDellaBatteria,
+} from "../core/energy-flow-truth.js";
+import {
+  CHIAVE_PRESENZA,
+  contoDellaPresenza,
+  presenzaDiCasa,
+} from "../core/presenza-in-casa.js";
+import {
   CHIAVE_MACCHINE,
   contoDelleMacchine,
   macchineERete,
@@ -185,7 +198,6 @@ import { wattsFromState } from "../core/signed-energy.js";
 import {
   contactEntity,
   inferriataEntity,
-  isWindowOnly,
   windowOpenFromState,
 } from "../core/shutter-window.js";
 import {
@@ -714,7 +726,8 @@ function localToday() {
 }
 
 function todoModel() {
-  const lists = configuredTodoLists().filter((list) => widgetIncludes(list.entity));
+  const fuori = widgetExcludedEntities("agenda");
+  const lists = configuredTodoLists().filter((list) => widgetIncludes(list.entity, fuori));
   if (!lists.length) return null;
   let pending = 0;
   let total = 0;
@@ -771,7 +784,7 @@ function paroleDelCalendario() {
  */
 /* Le liste grezze, per chi deve contare le scadenze senza disegnare niente. */
 function blocchiDelleListe() {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("agenda");
   return configuredTodoLists()
     .filter((list) => widgetIncludes(list.entity, fuori))
     .map((list) => ({ list, items: record(list.entity).items }));
@@ -855,7 +868,7 @@ function lightsModel(states) {
   } catch (_error) {
     return null;
   }
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("luci");
   const rows = groups.flatMap((group) =>
     group.entities
       .filter((entity) => widgetIncludes(entity, fuori))
@@ -942,7 +955,7 @@ function climateModel(states) {
   } catch (_error) {
     return null;
   }
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("clima");
   const rows = units
     .map((unit) => rigaClima(states, unit))
     .filter((riga) => riga && widgetIncludes(riga.entity, fuori));
@@ -999,7 +1012,7 @@ function climateRow(entity) {
 function coversModel(states) {
   const values = root.getTapparelle?.() || readJson("cd_tapparelle", []);
   if (!Array.isArray(values) || !values.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("tapparelle");
   /* Una riga puo' portare tapparella, tenda e tenda da sole insieme: la
    * tessera ne mostrava solo la prima, e chi ha le tende in Home non le
    * vedeva. Adesso ogni copertura della riga e' una voce, col suo nome e col
@@ -1014,35 +1027,50 @@ function coversModel(states) {
        * solo i sensori di apertura non aveva modo di vedere a colpo d'occhio
        * quali infissi ha lasciato aperti — che e' esattamente la cosa che si
        * vuole sapere uscendo di casa. */
-      if (isWindowOnly(item)) {
-        /* I contatti possono essere due (#254): l'infisso dentro e
-         * l'inferriata fuori. Sono due cose che si aprono per conto loro, e in
-         * Home vanno elencate separate — una grata lasciata aperta e una
-         * finestra lasciata aperta non sono la stessa notizia. Chi ne ha
-         * dichiarato uno solo vede una riga sola, come prima. */
-        const nome = clean(item?.name);
-        return [
-          [contactEntity(item), nome, false],
-          [inferriataEntity(item), nome, true],
-        ]
-          .filter(([entita]) => entita)
-          .map(([entita, etichetta, grata]) => ({
-            item,
-            voce: { entity: entita, kind: "", down: "" },
-            etichetta: grata
-              ? `${etichetta || entita} · ${t("Inferriata", "Grate")}`
-              : etichetta || entita,
-            soloSensore: true,
-          }));
-      }
-      return coverEntries(item).map((voce) => ({
+      /* Una riga porta due cose diverse, e in Home vanno tutte e due.
+       *
+       * I contatti possono essere due (#254): l'infisso dentro e l'inferriata
+       * fuori. Sono due cose che si aprono per conto loro, e vanno elencate
+       * separate — una grata lasciata aperta e una finestra lasciata aperta
+       * non sono la stessa notizia.
+       *
+       * Prima i contatti uscivano SOLO da una riga senza motore, e la riga
+       * normale — la tapparella con il sensore del suo infisso, che e' come si
+       * configura una finestra — ne dava indietro la sola tapparella. La
+       * tessera quindi contava l'avvolgibile su e taceva dell'anta aperta,
+       * cioe' faceva l'errore della #442 dall'altro lato: chiamava tapparelle
+       * una casa che aveva anche una finestra aperta. Adesso una riga rende
+       * quello che ha. */
+      const nome = clean(item?.name);
+      const motori = coverEntries(item);
+      const righeMotore = motori.map((voce) => ({
         item,
         voce,
         etichetta:
-          coverEntries(item).length > 1 && voce.kind
-            ? `${clean(item?.name) || voce.entity} · ${coverKindLabel(voce.kind)}`
-            : clean(item?.name) || voce.entity,
+          motori.length > 1 && voce.kind
+            ? `${nome || voce.entity} · ${coverKindLabel(voce.kind)}`
+            : nome || voce.entity,
       }));
+      const righeContatto = [
+        [contactEntity(item), false],
+        [inferriataEntity(item), true],
+      ]
+        .filter(([entita]) => entita)
+        .map(([entita, grata]) => ({
+          item,
+          voce: { entity: entita, kind: "", down: "" },
+          /* Il nome si qualifica solo quando serve a distinguere: con un
+           * motore sulla stessa riga «Camera» comparirebbe due volte, una
+           * alzata e una aperta, e non si capirebbe quale e' quale. Da sola,
+           * la finestra resta «Camera» come e' sempre stata. */
+          etichetta: grata
+            ? `${nome || entita} · ${t("Inferriata", "Grate")}`
+            : motori.length
+              ? `${nome || entita} · ${t("Finestra", "Window")}`
+              : nome || entita,
+          soloSensore: true,
+        }));
+      return [...righeMotore, ...righeContatto];
     })
     .map(({ item, voce, etichetta, soloSensore }) => {
       const entity = clean(voce.entity);
@@ -1094,13 +1122,52 @@ function coversModel(states) {
     .filter(Boolean);
   if (!rows.length) return null;
   const open = rows.filter((row) => row.open);
+  /* Una tapparella alzata non e' una finestra aperta (#442).
+   *
+   * «Nella home il chip indica 6 finestre aperte ma in realta' sono 6
+   *  tapparelle, le finestre (tramite sensori di apertura/chiusura)
+   *  andrebbero specificate come finestre in un altro chip.»
+   *
+   * Ha ragione sulla parola. La tessera conta quello che la sezione Finestre
+   * ha dentro, e dentro stanno due cose diverse: i motori — tapparelle, tende,
+   * tende da sole — che si ALZANO, e i contatti sull'anta, che si APRONO.
+   * Chiamarle tutte «aperte» dice a chi sta uscendo di casa una cosa che non
+   * e': sei tapparelle tirate su sono una casa normale, sei finestre aperte
+   * sono una casa da chiudere.
+   *
+   * L'altro chip che chiede c'e' gia' e si chiama Varchi: i contatti di porte
+   * e finestre li trova da se', uno per uno, senza configurare niente — anche
+   * quelli scritti dentro una riga delle Finestre. Qui si corregge la parola,
+   * che e' il pezzo che diceva il falso; e quando la sezione porta le due cose
+   * insieme, la didascalia le dice separate invece di sommarle in silenzio. */
+  const coperture = rows.filter((row) => !row.soloSensore);
+  const contatti = rows.filter((row) => row.soloSensore);
+  const alzate = coperture.filter((row) => row.open);
+  const aperte = contatti.filter((row) => row.open);
+  const soloMotori = coperture.length > 0 && contatti.length === 0;
+  const didascalia = () => {
+    if (soloMotori) return nomiAccesi(alzate, () => true, t("Tutte abbassate", "All down"));
+    /* Le finestre aperte si NOMINANO, una per una.
+     *
+     * E' la ragione per cui la tessera delle «aperture» non esiste piu': le
+     * diceva questa, per nome, e contarle e basta la farebbe tornare. Le
+     * tapparelle invece si contano: quali siano su non e' una notizia, quante
+     * ne restano alzate quando esci di casa si'. */
+    const pezzi = [
+      nomiAccesi(aperte, () => true, ""),
+      alzate.length ? t(`${alzate.length} alzate`, `${alzate.length} up`) : "",
+    ].filter(Boolean);
+    return pezzi.length ? pezzi.join(" · ") : t("Tutto chiuso", "All closed");
+  };
   return {
     key: "tapparelle",
     accent: "#8b5cf6",
     icon: "🪟",
-    label: t("Finestre", "Windows"),
+    /* Il nome dice cosa c'e' dentro: senza un solo contatto sull'anta questa
+     * tessera parla di motori, e si chiama come loro. */
+    label: soloMotori ? t("Tapparelle", "Shutters") : t("Finestre", "Windows"),
     value: String(open.length),
-    caption: nomiAccesi(open, () => true, t(`${open.length} aperte`, `${open.length} open`)),
+    caption: didascalia(),
     ring: Math.round((open.length / rows.length) * 100),
     rows,
     /* Le aperture escono col modello, come le luci accese: chi le conta senza
@@ -1112,7 +1179,7 @@ function coversModel(states) {
 }
 
 function securityModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("sicurezza");
   const alarm = stateOf(states, RIF_CENTRALE);
   /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
   const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
@@ -1170,6 +1237,7 @@ function formatWatts(value) {
 }
 
 function camerasModel() {
+  const fuori = widgetExcludedEntities("telecamere");
   let cameras = [];
   try {
     cameras = root.getCameras?.() || [];
@@ -1179,7 +1247,7 @@ function camerasModel() {
       entity: clean(camera?.entity),
       name: clean(camera?.name) || clean(camera?.entity),
     }))
-    .filter((row) => row.entity && widgetIncludes(row.entity));
+    .filter((row) => row.entity && widgetIncludes(row.entity, fuori));
   if (!rows.length) return null;
   return {
     key: "telecamere",
@@ -1211,6 +1279,32 @@ function wattsOf(states, entity) {
   return wattsFromState(stateOf(states, entity));
 }
 
+/* Quanto ha fatto oggi ogni sorgente di UN impianto.
+ *
+ * «Oltre ai dati del consumo attuale istantaneo inserirei, sotto in basso in
+ *  piccolino, anche quelli della produzione, importazione ecc. del giorno. Per
+ *  avere il colpo d'occhio necessario.» (#429)
+ *
+ * La tessera diceva la potenza di adesso e, sotto, il solo consumo di casa
+ * oggi. Gli altri numeri del giorno — quanto ha prodotto il fotovoltaico,
+ * quanto si e' preso dalla rete, quanto le si e' dato — esistono da sempre
+ * nella sezione Energia, e in Home non arrivavano.
+ *
+ * Quale entita' dica il giorno per ogni sorgente non si decide qui: lo dice
+ * `PERIOD_SOURCES`, che e' la stessa tabella con cui l'Energia costruisce i
+ * suoi piani. Scriverne una seconda vorrebbe dire che un giorno la sezione e
+ * la tessera leggono due entita' diverse per lo stesso numero. */
+function oggiDellImpianto(states, impianto, primo) {
+  const oggi = {};
+  for (const piano of PERIOD_SOURCES) {
+    const entita =
+      clean(impianto?.[piano.group]?.[piano.periodKeys.day]) || (primo ? piano.slots.day : "");
+    const letto = entita ? numOf(states, entita) : null;
+    if (letto != null) oggi[piano.key] = letto;
+  }
+  return oggi;
+}
+
 /* Le letture dei quattro gruppi di UN impianto.
  *
  * `slot` è la mappatura di sempre, e vale solo per il primo impianto: gli
@@ -1232,13 +1326,14 @@ function lettureDellImpianto(states, impianto, primo) {
     if (batteria) batteria.soc = soc;
     else rows.push({ group: "battery", watts: null, soc });
   }
+  const oggi = oggiDellImpianto(states, impianto, primo);
   return {
     rows,
     house: readings.find((row) => row.group === "house")?.watts ?? null,
-    today: numOf(
-      states,
-      clean(impianto?.house?.daily_energy) || (primo ? "dm.energy_consumo_casa_oggi" : ""),
-    ),
+    /* `today` resta il consumo di casa oggi, che e' il numero della didascalia
+     * da sempre: adesso lo dice la stessa tabella che dice tutti gli altri. */
+    today: oggi.house ?? null,
+    oggi,
   };
 }
 
@@ -1266,13 +1361,72 @@ export function lettureDiCasa(states = allStates()) {
   return {
     solare: di("solar")?.watts ?? null,
     rete: di("grid")?.watts ?? null,
-    batteria: di("battery")?.watts ?? null,
+    /* La batteria nella convenzione di casa: positivo = scarica. Meta' dei
+     * sensori scrive positivo quando si CARICA, e il verso lo dice la casa una
+     * volta sola — sennò la mappa disegna le frecce all'incontrario (#434). */
+    batteria: potenzaDellaBatteria(
+      di("battery")?.watts ?? null,
+      batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
+    ),
     casa: sommaNumeri(letture.map((lettura) => lettura.house)),
     soc: di("battery")?.soc ?? null,
   };
 }
 
-function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "" } = {}) {
+/* Cosa dice la didascalia del giorno, in che ordine e con quale parola.
+ *
+ * L'ordine e' quello con cui si guarda una casa — quanto ha consumato, quanto
+ * ha prodotto, quanto ha preso e quanto ha dato — e non quello della tabella
+ * dei piani, che e' ordinata per come si interroga Recorder. Quale entita' dica
+ * ognuno di questi numeri resta affare di `PERIOD_SOURCES`: qui ci sono
+ * soltanto le parole. */
+/* Il disegno di ogni sorgente. Lo usano la didascalia della tessera e le righe
+ * della sua finestra: due mappe uguali sarebbero il modo di far comparire un
+ * sole in un posto e una spina nell'altro per la stessa corrente. */
+const GLIFI_ENERGIA = Object.freeze({
+  house: "🏠",
+  solar: "☀️",
+  grid: "🔌",
+  battery: "🔋",
+});
+
+const PAROLE_DI_OGGI = Object.freeze([
+  Object.freeze({ chiave: "solar", it: "Produzione", en: "Produced" }),
+  Object.freeze({ chiave: "gridImport", it: "Prelievo", en: "Imported" }),
+  Object.freeze({ chiave: "gridExport", it: "Immissione", en: "Exported" }),
+  Object.freeze({ chiave: "batteryCharged", it: "In batteria", en: "To battery" }),
+  Object.freeze({ chiave: "batteryDischarged", it: "Da batteria", en: "From battery" }),
+]);
+
+/* La riga sotto il numero grande.
+ *
+ * Il consumo di casa resta in testa e scritto per esteso, com'era: chi ha
+ * mappato solo quello legge esattamente la didascalia di prima — «Oggi 12,3
+ * kWh» — e non si accorge che questa funzione e' cambiata. Gli altri numeri del
+ * giorno gli si accodano senza ripetere l'unita', che e' la stessa. */
+function didascaliaDiOggi(oggi) {
+  const casa = oggi?.house ?? null;
+  const testa =
+    casa == null
+      ? t("potenza di casa", "home power")
+      : `${t("Oggi", "Today")} ${formatNumber(casa, 1)} kWh`;
+  /* Le sorgenti si dicono per esteso, e la riga scorre se non ci sta: e' il
+   * nastro che la plancia usa da sempre per le didascalie lunghe — le Luci ci
+   * elencano quali sono accese — e usarlo qui vuol dire una tessera che si
+   * comporta come le altre.
+   *
+   * Ci ho provato con i disegni al posto delle parole, per farcele stare tutte
+   * in una riga ferma. Non e' andata: quattro numeri in centonovanta pixel non
+   * ci stanno comunque, e un «🔌↓» a undici pixel e' una macchia scura con una
+   * freccia accanto. Meglio una parola che scorre di un simbolo che non si
+   * capisce. */
+  const altre = PAROLE_DI_OGGI.filter((voce) => oggi?.[voce.chiave] != null).map(
+    (voce) => `${t(voce.it, voce.en)} ${formatNumber(oggi[voce.chiave], 1)}`,
+  );
+  return altre.length ? `${testa} · ${altre.join(" · ")}` : testa;
+}
+
+function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "", oggi } = {}) {
   if (house == null && !rows.length) return null;
   return {
     key,
@@ -1283,13 +1437,13 @@ function tesseraEnergia(rows, house, today, { key = "energia", label, impianto =
      * di lui, non su quello che era rimasto acceso (#286, dal campo). */
     impianto: clean(impianto),
     value: formatWatts(house),
-    caption:
-      today == null
-        ? t("potenza di casa", "home power")
-        : `${t("Oggi", "Today")} ${formatNumber(today, 1)} kWh`,
+    caption: didascaliaDiOggi(oggi || (today == null ? {} : { house: today })),
     ring: null,
     rows,
     today,
+    /* Quanto ha fatto oggi ogni sorgente: la didascalia ne fa una riga, e la
+     * finestra del dettaglio lo scrive sotto la potenza di ciascuna. */
+    oggi: oggi || {},
   };
 }
 
@@ -1310,8 +1464,8 @@ function energyModels(states) {
     lettureDellImpianto(states, impianto, indice === 0),
   );
   if (configurati.length < 2) {
-    const sola = letture[0] || { rows: [], house: null, today: null };
-    return [tesseraEnergia(sola.rows, sola.house, sola.today)].filter(Boolean);
+    const sola = letture[0] || { rows: [], house: null, today: null, oggi: {} };
+    return [tesseraEnergia(sola.rows, sola.house, sola.today, { oggi: sola.oggi })].filter(Boolean);
   }
   /* La scelta è una parola, non un oggetto: si legge com'è scritta — come
    * `cd_energy_plant`, che è la casella vicina di casa. */
@@ -1327,6 +1481,7 @@ function energyModels(states) {
           key: plantKey("energia", impianto, indice),
           label: plantLabel(impianto, indice, t("Impianto", "Plant")),
           impianto: clean(impianto?.id) || PRIMO_IMPIANTO,
+          oggi: letture[indice].oggi,
         }),
       )
       .filter(Boolean);
@@ -1338,6 +1493,7 @@ function energyModels(states) {
       sommaLetture(letture.map((lettura) => lettura.rows)),
       sommaNumeri(letture.map((lettura) => lettura.house)),
       sommaNumeri(letture.map((lettura) => lettura.today)),
+      { oggi: sommaOggi(letture.map((lettura) => lettura.oggi)) },
     ),
   ].filter(Boolean);
 }
@@ -1345,7 +1501,7 @@ function energyModels(states) {
 function appliancesModel(states) {
   const devices = section("appliances", readJson("cd_appliances", []));
   if (!Array.isArray(devices) || !devices.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("elettrodomestici");
   const rows = devices
     .filter((device) => device?.enabled !== false)
     .filter((device) =>
@@ -1384,7 +1540,7 @@ function appliancesModel(states) {
 function temperatureModel(states) {
   const rooms = root.getStanze?.() || readJson("cd_stanze", []);
   if (!Array.isArray(rooms)) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("temperatura");
   const rows = rooms
     .filter((room) => clean(room?.temp) && widgetIncludes(room.temp, fuori))
     .map((room) => {
@@ -1807,7 +1963,7 @@ export function lettureDelleVetture(states, auto = [], fuori = new Set()) {
 }
 
 function evModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("ev");
   const profilate = lettureDelleVetture(states, vetture(), fuori);
   /* Il profilo comanda appena e' leggibile, anche da solo: prima, con UNA
    * vettura profilata, si leggevano solo le chiavi globali — che si riempiono
@@ -1881,7 +2037,7 @@ function robotsModel(states) {
   const robots = normalizeRobots(
     Array.isArray(salvati) && salvati.length ? salvati : readJson("cd_robot", []),
   );
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("robot");
   const viste = robots
     .filter((robot) => clean(robot.entity) && widgetIncludes(clean(robot.entity), fuori))
     .map((robot) => robotView(robot, states));
@@ -1981,7 +2137,7 @@ const STATI_SPENTI = /^(off|false|0|idle|ferma|fermo|closed|chiusa|standby)$/i;
 const STATI_MUTI = /^(unknown|unavailable|none|)$/i;
 
 function solarThermalModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("solare");
   const righe = [];
   const visti = new Set();
   let primaSonda = null;
@@ -2092,7 +2248,7 @@ const GLIFI_SCALDABAGNO = Object.freeze({
 });
 
 function scaldabagnoModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("scaldabagno");
   const letture = lettureScaldabagni(
     configuredScaldabagni(),
     states,
@@ -2198,7 +2354,7 @@ function caldaiaModel(states) {
   const config = readJson(CHIAVE_CALDAIA, {});
   const entita = entitaDelleCaldaie(config);
   if (!entita.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("caldaia");
   if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
   const dati = normalizzaCaldaie(config);
   const letture = lettureCaldaie(config, states, root.resolveEntity || ((value) => value));
@@ -2365,7 +2521,7 @@ function upsModel(states) {
     (gruppo) => entitaDellUps(gruppo).length > 0,
   );
   if (!gruppi.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("ups");
   const visibili = gruppi.filter((gruppo) =>
     entitaDellUps(gruppo).some((entity) => widgetIncludes(entity, fuori)),
   );
@@ -2521,7 +2677,7 @@ function contaDaFare(tessera) {
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("piscina");
   /* Tutte le vasche, non solo la prima.
    *
    * Qui si leggeva `config` cosi' com'e', che sono le caselle della PRIMA
@@ -2624,7 +2780,7 @@ function preseModel(states) {
   const grezzo = Array.isArray(canonico) && canonico.length ? canonico : readJson("cd_prese", []);
   const prese = normalizzaPrese(grezzo).filter((presa) => clean(presa.entity));
   if (!prese.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("prese");
   const rows = [];
   for (const presa of prese) {
     if (!widgetIncludes(presa.entity, fuori)) continue;
@@ -2684,7 +2840,7 @@ function cosaSuona(riga, conIlPosto) {
 function mediaModel(states) {
   const lettori = lettoriConfigurati(readJson(CHIAVE_MEDIA, []));
   if (!lettori.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("media");
   const dentro = lettori.filter((voce) => widgetIncludes(voce.entity, fuori));
   if (!dentro.length) return null;
   const righe = lettureDeiLettori(dentro, states, root.resolveEntity || ((valore) => valore));
@@ -2809,7 +2965,7 @@ const CASELLE_MINIPC = Object.freeze([
  * faticando?»; il resto sta nella finestra, e il tasto porta alla sua
  * sezione. */
 export function minipcModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("minipc");
   const rows = [];
   const visti = new Set();
   let carico = null;
@@ -2868,7 +3024,7 @@ export function minipcModel(states) {
 function irrigationModel(states) {
   const config = root.getIrr?.() || readJson("cd_irrigazione", {});
   const zones = Array.isArray(config?.zones) ? config.zones : [];
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("irrigazione");
   const attive = zones.filter((zona) => {
     const entity = clean(zona?.entity);
     return entity && widgetIncludes(entity, fuori);
@@ -3015,7 +3171,11 @@ export function entitaSorvegliate(chiave, { extras, removed, vive } = {}) {
   return uscita;
 }
 
-export function gruppoEntita(chiave) {
+/* Il secondo argomento e' la tessera per cui si sta chiedendo l'elenco: le
+ * stesse entita' sorvegliate finiscono in tessere diverse, e la scelta di
+ * lasciarne fuori una vale per la tessera che la mostra. Senza, si legge solo
+ * quello che e' fuori da tutte. */
+export function gruppoEntita(chiave, tessera = "") {
   try {
     let vive = [];
     try {
@@ -3026,7 +3186,7 @@ export function gruppoEntita(chiave) {
       removed: readJson("cd_gruppi_removed", {}),
       vive,
     });
-    const fuori = widgetExcludedEntities();
+    const fuori = widgetExcludedEntities(tessera);
     return lista.filter((entity) => widgetIncludes(entity, fuori));
   } catch (_error) {
     return [];
@@ -3039,13 +3199,14 @@ function friendlyName(states, entity) {
    * Camera matrimoniale Batteria» — il nome di fabbrica — anche a chi quella
    * riga l'aveva battezzata: il nome scelto sta in `cd_avvisi_names_extra`,
    * ed e' lo stesso posto da cui lo leggono il Quadro Avvisi e gli
-   * allagamenti. Un nome dato una volta vale ovunque. */
-  return (
-    clean(readJson("cd_avvisi_names_extra", {})?.[entity]) ||
-    clean(stateOf(states, entity)?.attributes?.friendly_name) ||
-    entity.split(".")[1]?.replaceAll("_", " ") ||
-    entity
-  );
+   * allagamenti. Un nome dato una volta vale ovunque.
+   *
+   * La catena — scelto, poi Home Assistant, poi l'identificativo reso
+   * leggibile — qui era riscritta, e riscritta quasi uguale: la coda
+   * dell'identificativo veniva fuori in minuscolo mentre dappertutto comincia
+   * per maiuscola. Adesso la dice `nomeDellEntita`, che e' la stessa che
+   * legge la pagina di ogni sezione. */
+  return nomeDellEntita(entity, readJson("cd_avvisi_names_extra", {})?.[entity], states);
 }
 
 function batteriesModel(states) {
@@ -3054,9 +3215,9 @@ function batteriesModel(states) {
    * delle tessere: nascondere una batteria da Home e' una scelta che riguarda
    * Home, non un modo di dire che quella pila non esiste. La regola che
    * compone l'elenco sta in `batterie-di-casa.js`, ed e' una sola. */
-  const fuoriDaiWidget = widgetExcludedEntities();
+  const fuoriDaiWidget = widgetExcludedEntities("batterie");
   const entities = batterieDiCasa({
-    configurate: gruppoEntita("batt"),
+    configurate: gruppoEntita("batt", "batterie"),
     stati: states,
     tolte: readJson("cd_gruppi_removed", {})?.batt,
   }).filter((entity) => widgetIncludes(entity, fuoriDaiWidget));
@@ -3127,7 +3288,7 @@ function batteriesModel(states) {
  * valore, la didascalia dice quale sostanza e' e come sta.
  */
 function ariaModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("aria");
   /* Quello che chi ha la casa ha detto sull'aria: quali sensori non contano,
    * quali contano anche se Home Assistant non li dichiara, e con che confini.
    * Sta in `cd_allerte.aria` e si scrive dalla scheda Allerte — «mi devi creare
@@ -3196,7 +3357,7 @@ function ariaModel(states) {
  * piu' un avviso. Le righe sono pastiglie, rosse le aperte e verdi le chiuse,
  * che e' esattamente la colorazione chiesta nella segnalazione. */
 function varchiModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("varchi");
   const config = readJson(CHIAVE_VARCHI, {});
   const girati = insiemeInvertiti(readJson(CHIAVE_VERSI, {}));
   const righe = varchiDiCasa(states, config, girati, (entity) =>
@@ -3233,6 +3394,59 @@ function varchiModel(states) {
   };
 }
 
+/* La presenza: in quante stanze c'è qualcuno adesso (#432).
+ *
+ * «Ci vorrebbe una sezione con i sensori presenza o movimento.»
+ *
+ * Il numero grande è quello: quante stanze hanno qualcuno dentro. La
+ * didascalia dice QUALI, perché «in due stanze» senza sapere quali obbliga ad
+ * aprire la scheda per una domanda che si fa in mezzo secondo — ed è la stessa
+ * scelta della tessera dei Varchi, che è la stessa domanda su un'altra
+ * famiglia di sensori.
+ *
+ * La tessera non si accende mai: qualcuno che è in casa non è un allarme, è la
+ * normalità. Chi vuole l'avviso lo mette sulla Sicurezza, che è dove sta.
+ */
+function presenzaModel(states) {
+  const fuori = widgetExcludedEntities("presenza");
+  const righe = presenzaDiCasa(states, readJson(CHIAVE_PRESENZA, {}), (entity) =>
+    friendlyName(states, entity),
+  ).filter((riga) => widgetIncludes(riga.entity, fuori));
+  if (!righe.length) return null;
+  const conto = contoDellaPresenza(righe);
+  return {
+    key: "presenza",
+    accent: conto.attivi ? "#2563eb" : "#16a34a",
+    icon: "🏃",
+    label: t("Presenza", "Presence"),
+    value: String(conto.attivi),
+    caption: conto.attivi
+      ? conto.nomi.join(" · ")
+      : t(`Casa libera · ${conto.liberi}`, `Nobody around · ${conto.liberi}`),
+    ring: conto.totale ? Math.round((conto.attivi / conto.totale) * 100) : null,
+    rows: righe.map((riga) => ({
+      entity: riga.entity,
+      name: riga.name,
+      glyph: riga.glifo,
+      on: riga.stato === "attivo",
+      /* Il tono dice il colore della pastiglia senza sapere di cosa parla: chi
+       * rileva qualcuno è una cosa che sta succedendo — non un allarme, che è
+       * il rosso — e una stanza libera è la quiete. */
+      tono: riga.stato === "attivo" ? "acceso" : riga.stato === "libero" ? "quiete" : "",
+      value:
+        riga.stato === "attivo"
+          ? riga.stabile
+            ? t("Occupato", "Occupied")
+            : t("Movimento", "Movement")
+          : riga.stato === "libero"
+            ? riga.stabile
+              ? t("Libero", "Free")
+              : t("Fermo", "Still")
+            : t("Non risponde", "Not answering"),
+    })),
+  };
+}
+
 /* Le macchine del server e la rete (#382).
  *
  * «I controlli del server proxmox dove gira HA con tutti i suoi container, e
@@ -3246,7 +3460,7 @@ function varchiModel(states) {
  * e poi guardo i ripetitori». Aprendola si distinguono: le pastiglie portano
  * il verde di chi va e il rosso di chi non va. */
 function macchineModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("macchine");
   const config = readJson(CHIAVE_MACCHINE, {});
   /* Le stesse integrazioni scelte per la pagina Server: la tessera non conta
    * niente che quella pagina non mostrerebbe. */
@@ -3324,7 +3538,7 @@ function fumoModel(states) {
     return null;
   }
   if (!Array.isArray(entities) || !entities.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("fumo");
   const nomi = readJson("cd_avvisi_names_extra", {}) || {};
   const righe = entities
     .filter((entity) => widgetIncludes(entity, fuori))
@@ -3372,7 +3586,7 @@ function floodModel(states) {
     return null;
   }
   if (!Array.isArray(entities) || !entities.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("allagamenti");
   const rows = entities
     .filter((entity) => widgetIncludes(entity, fuori))
     .map((entity) => ({
@@ -3465,7 +3679,7 @@ function customAlertModels(states) {
         : avviso?.entity
           ? [avviso.entity]
           : [];
-      const fuori = widgetExcludedEntities();
+      const fuori = widgetExcludedEntities(`custom-${index}`);
       const rows = entities
         .map(clean)
         .filter((entity) => entity && widgetIncludes(entity, fuori))
@@ -3526,7 +3740,7 @@ export const eUnaTesseraSola = (voce) =>
 export function evidenzaModel(states) {
   const voci = readJson(EVIDENZA_CONFIG_KEY, []);
   if (!Array.isArray(voci)) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("evidenza");
   const rows = voci
     .filter((voce) => !eUnaTesseraSola(voce))
     .map((voce) => rigaInEvidenza(states, voce, fuori))
@@ -3554,7 +3768,10 @@ export function evidenzaModel(states) {
 export function evidenzeSingole(states) {
   const voci = readJson(EVIDENZA_CONFIG_KEY, []);
   if (!Array.isArray(voci)) return [];
-  const fuori = widgetExcludedEntities();
+  /* Qui le tessere sono tante quante le voci «a se'», e ognuna ha la sua
+   * chiave: l'elenco delle escluse si legge una volta e si ritaglia per voce,
+   * invece di rileggere la configurazione a ogni giro. */
+  const elenco = widgetPreferences().excluded;
   let stanze = [];
   try {
     stanze = root.getStanze?.() || readJson("cd_stanze", []) || [];
@@ -3564,7 +3781,7 @@ export function evidenzeSingole(states) {
   return voci
     .map((voce, index) => {
       if (!eUnaTesseraSola(voce)) return null;
-      const riga = rigaInEvidenza(states, voce, fuori);
+      const riga = rigaInEvidenza(states, voce, escluseDellaTessera(elenco, `evidenza-${index}`));
       if (!riga) return null;
       const stanza = Array.isArray(stanze)
         ? stanze.find((room) => clean(room?.id) === clean(voce?.room_id))
@@ -3662,18 +3879,26 @@ export function sorgenteDelWidget(chiave, preferences = widgetPreferences()) {
   return clean(preferences?.sorgenti?.[clean(chiave)]);
 }
 
-/* Le entita' che restano fuori dai widget.
+/* Le entita' che restano fuori da UNA tessera.
  *
  * Ogni tessera legge la configurazione della sua sezione, tutta: senza una
  * parola in contrario, quello che c'e' nella sezione finisce nel widget. La
  * parola in contrario e' questa — l'interruttore accanto a ogni entita' negli
  * editor — e si tiene in `cd_widgets`, insieme all'ordine e alle tessere
  * nascoste. Chi non e' nell'elenco e' dentro: cosi' chi non tocca niente
- * vede quello che vedeva prima. */
-export function widgetExcludedEntities() {
-  return new Set(widgetPreferences().excluded);
+ * vede quello che vedeva prima.
+ *
+ * La chiave e' quella della tessera che sta chiedendo, ed e' obbligatoria di
+ * fatto: un contatto scritto sia nelle Finestre sia nei Varchi si spegne in
+ * una senza sparire dall'altra, e senza chiave le due domande sono la stessa.
+ * Chi la regola sta in `fuori-dai-widget.js`; qui si legge e basta. */
+export function widgetExcludedEntities(chiave = "") {
+  return escluseDellaTessera(widgetPreferences().excluded, chiave);
 }
 
+/* L'insieme si passa sempre: e' quello della tessera che sta chiedendo. Senza,
+ * si guarda solo chi e' fuori da tutte le tessere — che e' la risposta giusta
+ * a una domanda che non nomina nessuna tessera, non una scorciatoia. */
 export function widgetIncludes(entity, excluded = widgetExcludedEntities()) {
   const id = clean(entity);
   return !id || !excluded.has(id);
@@ -3862,7 +4087,7 @@ export function paroleDelleFontiMute(quante) {
 function allerteModel(states) {
   const config = readJson(CHIAVE_ALLERTE, {});
   if (!categorieConfigurate(config).length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("allerte");
   if (!entitaDelleAllerte(config).some((entity) => widgetIncludes(entity, fuori))) return null;
   const letture = letturaAllerte(config, states, root.resolveEntity || ((value) => value));
   const attive = allerteAttive(letture);
@@ -3922,7 +4147,7 @@ function rifiutiModel(states) {
    * frigo, e di interruttori da spegnere non ne ha. Contarlo per zero voleva
    * dire che chi configurava SOLO le due settimane si ritrovava la sezione
    * piena e in Home nessuna tessera. */
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("rifiuti");
   const dato = normalizzaRifiuti(grezza);
   const config = {
     ...dato,
@@ -3981,7 +4206,7 @@ function vmcModel(states) {
   const config = readJson(CHIAVE_VMC, []);
   const unita = vmcDisegnabili(config);
   if (!unita.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("vmc");
   if (!entitaDellaVmc(config).some((entity) => widgetIncludes(entity, fuori))) return null;
   const letture = unita.map((voce) => letturaVmc(voce, states)).filter(vmcParla);
   if (!letture.length) return null;
@@ -4053,6 +4278,7 @@ export function modelliDelleTessere(states) {
       coversModel(states),
       securityModel(states),
       varchiModel(states),
+      presenzaModel(states),
       camerasModel(states),
       ...energyModels(states),
       appliancesModel(states),
@@ -4929,9 +5155,13 @@ function coversDetail(widget) {
             * al suo posto dice quello che sa, cioe' se e' aperta. */
            row.soloSensore
              ? esc(row.open ? t("Aperta", "Open") : t("Chiusa", "Closed"))
-             : row.position == null
-               ? ""
-               : `${row.position}%`
+             : row.position != null
+               ? `${row.position}%`
+               : /* E un motore che la posizione non la pubblica diceva NIENTE.
+                  * Sa se sta su o giu' — e' il conto che la tessera fa in cima
+                  * — e lo dice con la sua parola: una tapparella si alza, non
+                  * si apre (#442). */
+                 esc(row.open ? t("Alzata", "Up") : t("Abbassata", "Down"))
          }</small></span>
          ${
            row.isCover || row.relay
@@ -5310,7 +5540,25 @@ function carteDalleRighe(widget) {
       grid: t("Rete", "Grid"),
       battery: t("Batteria", "Battery"),
     };
-    const glifi = { house: "🏠", solar: "☀️", grid: "🔌", battery: "🔋" };
+    const glifi = GLIFI_ENERGIA;
+    /* Quanto ha fatto oggi, sotto la potenza di adesso (#429). Qui le parole si
+     * scrivono per esteso — c'e' lo spazio — e la rete e la batteria ne hanno
+     * due, perche' preso e dato sono due versi della stessa cosa. */
+    const oggi = widget.oggi || {};
+    const parola = (chiave) => {
+      const valore = oggi?.[chiave];
+      if (valore == null) return "";
+      const voce = PAROLE_DI_OGGI.find((riga) => riga.chiave === chiave);
+      return `${t(voce.it, voce.en)} ${formatNumber(valore, 1)} kWh`;
+    };
+    const delGiorno = {
+      house: oggi.house == null ? "" : `${formatNumber(oggi.house, 1)} kWh`,
+      solar: parola("solar"),
+      grid: [parola("gridImport"), parola("gridExport")].filter(Boolean).join(" · "),
+      battery: [parola("batteryCharged"), parola("batteryDischarged")]
+        .filter(Boolean)
+        .join(" · "),
+    };
     return righe.map((riga) => ({
       glyph: glifi[riga.group] || "⚡",
       /* La batteria dice anche quanto e' piena: watt e percentuale insieme,
@@ -5322,6 +5570,10 @@ function carteDalleRighe(widget) {
             : `${formatWatts(riga.watts)} · ${Math.round(riga.soc)}%`
           : formatWatts(riga.watts),
       etichetta: nomi[riga.group] || clean(riga.group),
+      /* «Oggi · Produzione 8,1 kWh»: il separatore serve alla lingua, non
+       * all'ordine — «Oggi Produzione» sono due sostantivi appiccicati, e si
+       * legge male in tutte le lingue in cui questa riga esce. */
+      sotto: delGiorno[riga.group] ? `${t("Oggi", "Today")} · ${delGiorno[riga.group]}` : "",
     }));
   }
   if (chiave === "temperatura") {
@@ -7501,6 +7753,13 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   border-color:color-mix(in srgb,#dc2626 34%,transparent);
   background:color-mix(in srgb,#dc2626 12%,transparent);
   color:color-mix(in srgb,#dc2626 78%,#0f172a)}
+/* «Acceso» non e' «allarme»: e' una cosa che sta succedendo e che si vuole
+   vedere — una stanza con dentro qualcuno (#432) — non una da guardare
+   subito. Il rosso resta a chi deve alzare la testa. */
+#dm-widget-popup .dm-w-pillola[data-tono="acceso"]{
+  border-color:color-mix(in srgb,#2563eb 34%,transparent);
+  background:color-mix(in srgb,#2563eb 12%,transparent);
+  color:color-mix(in srgb,#2563eb 78%,#0f172a)}
 #dm-widget-popup .dm-w-pillola[data-tono="quiete"]{
   border-color:color-mix(in srgb,#16a34a 30%,transparent);
   background:color-mix(in srgb,#16a34a 10%,transparent);

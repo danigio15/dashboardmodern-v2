@@ -23,7 +23,10 @@ const sorgente = readFileSync(
 const tacche = new Function(
   `${sorgente.slice(
     sorgente.indexOf("export function tacche"),
-    sorgente.indexOf("function degrees("),
+    /* Fino a chi scrive i valori: si chiamava `degrees` quando la misura era
+     * una sola, e adesso che sono due si chiama `valore` e la misura gliela
+     * passa chi disegna. */
+    sorgente.indexOf("function valore("),
   ).replace("export function tacche", "return function tacche")}; return tacche;`,
 )();
 

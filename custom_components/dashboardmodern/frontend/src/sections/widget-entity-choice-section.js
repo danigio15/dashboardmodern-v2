@@ -20,12 +20,38 @@
  * La scelta si tiene in `cd_widgets.excluded`, insieme all'ordine delle
  * tessere e a quelle nascoste: chi non e' nell'elenco e' dentro, cosi' chi
  * non tocca niente continua a vedere quello che vedeva.
+ *
+ * ── Di quale tessera si sta parlando ────────────────────────────────────
+ *
+ * «se la finestra e configurata nella sezione finestre e no nei varchi la
+ *  segnalazione resta in finestre non deve scomparire»
+ *
+ * Lo stesso contatto sta scritto due volte: nelle Finestre, accanto alla
+ * tapparella, e nei Varchi, che contano cosa e' aperto. Sono due sezioni e due
+ * tessere. L'interruttore spegneva l'entita' e non la riga, e toccarlo nei
+ * Varchi la faceva sparire anche dalle Finestre.
+ *
+ * Adesso la scelta si scrive «tessera|entita'», e la tessera la dice la riga:
+ * il marchio della scheda che la contiene se ce l'ha, se no il posto del
+ * blocco fra quelli della linguetta, se no la linguetta stessa. Quando
+ * nessuna delle tre risponde — gli Avvisi servono tre tessere sulla stessa
+ * pagina — la voce si scrive nuda e vale ovunque, come prima: meglio una
+ * scelta che vale dappertutto di una che vale nel posto sbagliato. La regola
+ * sta in `fuori-dai-widget.js`.
  */
 import {
   WIDGETS_CONFIG_KEY,
   renderHomeWidgets,
   widgetPreferences,
 } from "./home-widgets-section.js";
+import {
+  escluseDellaTessera,
+  MARCHIO_TESSERA,
+  rimettiNellaTessera,
+  tesseraDelBlocco,
+  tesseraDellaScheda,
+  togliDallaTessera,
+} from "../core/fuori-dai-widget.js";
 import {
   clean,
   doc,
@@ -43,20 +69,52 @@ const state = (root[KEY] ||= { installed: false });
 
 const ENTITY_RE = /^[a-z_]+\.[a-z0-9_]+$/i;
 export const CHOICE_ATTRIBUTE = "data-dm-widget-entities";
+/* La tessera per cui parla questo interruttore, scritta addosso al tasto: al
+ * tocco non si torna a chiedere alla pagina dov'era la riga, si legge quello
+ * che si era gia' capito quando la si e' disegnata. */
+export const TESSERA_ATTRIBUTE = "data-dm-widget-tessera";
 
 /* ── la memoria ───────────────────────────────────────────────────────── */
 
-function escluse() {
-  return new Set(widgetPreferences().excluded);
+function elencoDelleEscluse() {
+  return widgetPreferences().excluded;
 }
 
-function salvaEscluse(insieme) {
+function salvaEscluse(elenco) {
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
   const base = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-  writeJsonIfChanged(WIDGETS_CONFIG_KEY, { ...base, excluded: [...insieme].sort() });
+  writeJsonIfChanged(WIDGETS_CONFIG_KEY, { ...base, excluded: [...new Set(elenco)].sort() });
   try {
     renderHomeWidgets();
   } catch (_error) {}
+}
+
+/* ── di quale tessera parla questa riga ────────────────────────────────── */
+
+function schedaAttiva() {
+  return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
+}
+
+/* Il posto di un blocco fra quelli che la linguetta ha disegnato.
+ *
+ * I blocchi delle linguette «sezN» sono figli diretti del corpo dell'editor e
+ * li conta il guscio stesso: e' lo stesso numero con cui decide quale lasciare
+ * aperto. Chi non e' un figlio diretto — un blocco che un modulo si e' fatto
+ * dentro un altro — non ha un posto in quella fila, e non se ne inventa uno. */
+function postoDelBlocco(nodo) {
+  const body = doc?.getElementById?.("ed-body");
+  const blocco = nodo?.closest?.("details.ed-acc");
+  if (!body || !blocco || blocco.parentElement !== body) return -1;
+  return [...body.querySelectorAll(":scope > details.ed-acc")].indexOf(blocco);
+}
+
+/** La tessera di cui parla questa riga, o «» se non si sa. */
+export function tesseraDellaRiga(nodo) {
+  const marchiata = nodo?.closest?.(`[${MARCHIO_TESSERA}]`);
+  if (marchiata) return clean(marchiata.getAttribute(MARCHIO_TESSERA));
+  const posto = postoDelBlocco(nodo);
+  if (posto >= 0) return tesseraDelBlocco(posto);
+  return tesseraDellaScheda(schedaAttiva());
 }
 
 /* ── le righe ─────────────────────────────────────────────────────────── */
@@ -96,11 +154,12 @@ function vestiInterruttore(button, dentro) {
   if (testo && testo.textContent !== parola) testo.textContent = parola;
 }
 
-function interruttore(entities, dentro) {
+function interruttore(entities, dentro, tessera) {
   const button = doc.createElement("button");
   button.type = "button";
   button.className = "dm-widget-entity";
   button.setAttribute(CHOICE_ATTRIBUTE, entities.join(","));
+  button.setAttribute(TESSERA_ATTRIBUTE, tessera);
   button.dataset.on = String(dentro);
   button.innerHTML = `<span aria-hidden="true">🧩</span><b></b><i></i>`;
   vestiInterruttore(button, dentro);
@@ -131,16 +190,17 @@ function entitiesOfSlot(slot) {
   return ENTITY_RE.test(value) ? [value] : [];
 }
 
-function attacca(contenitore, entities, fuori, dove) {
+function attacca(contenitore, entities, fuori, tessera, dove) {
   const dentro = entities.some((entity) => !fuori.has(entity));
   let button = contenitore.querySelector(`:scope [${CHOICE_ATTRIBUTE}]`);
   if (button) {
     button.setAttribute(CHOICE_ATTRIBUTE, entities.join(","));
+    button.setAttribute(TESSERA_ATTRIBUTE, tessera);
     button.dataset.on = String(dentro);
     vestiInterruttore(button, dentro);
     return false;
   }
-  button = interruttore(entities, dentro);
+  button = interruttore(entities, dentro, tessera);
   dove(button);
   return true;
 }
@@ -149,7 +209,16 @@ function attacca(contenitore, entities, fuori, dove) {
 export function ensureEntityChoices() {
   const body = doc?.getElementById?.("ed-body");
   if (!body) return 0;
-  const fuori = escluse();
+  /* L'elenco si legge una volta sola e si ritaglia per tessera: le righe di
+   * una pagina parlano quasi sempre della stessa, e rileggere la
+   * configurazione a ogni riga vorrebbe dire una lettura per riga. */
+  const elenco = elencoDelleEscluse();
+  const ritagli = new Map();
+  const perTessera = (nodo) => {
+    const tessera = tesseraDellaRiga(nodo);
+    if (!ritagli.has(tessera)) ritagli.set(tessera, escluseDellaTessera(elenco, tessera));
+    return { tessera, fuori: ritagli.get(tessera) };
+  };
   let messi = 0;
   for (const slot of body.querySelectorAll(".ed-slot")) {
     // Il modulo delle caselle salta le stesse che salta lui: il form dei
@@ -160,8 +229,9 @@ export function ensureEntityChoices() {
       slot.querySelector(`:scope [${CHOICE_ATTRIBUTE}]`)?.remove();
       continue;
     }
+    const { tessera, fuori } = perTessera(slot);
     if (
-      attacca(slot, entities, fuori, (button) => {
+      attacca(slot, entities, fuori, tessera, (button) => {
         button.classList.add("dm-widget-entity-slot");
         const etichetta = slot.querySelector(".ed-slot-lbl");
         if (etichetta) {
@@ -192,10 +262,11 @@ export function ensureEntityChoices() {
     }
     const entities = entitiesOfRow(row);
     if (!entities.length) continue;
+    const { tessera, fuori } = perTessera(row);
     const dentro = entities.some((entity) => !fuori.has(entity));
     let button = row.querySelector(`[${CHOICE_ATTRIBUTE}]`);
     if (!button) {
-      button = interruttore(entities, dentro);
+      button = interruttore(entities, dentro, tessera);
       // Dentro il blocco che porta il nome e l'entity_id, non accanto: le
       // righe sono griglie con le loro colonne, e un figlio in piu' le
       // manderebbe a capo. Cosi' l'interruttore scorre col testo che governa.
@@ -210,6 +281,7 @@ export function ensureEntityChoices() {
       continue;
     }
     button.setAttribute(CHOICE_ATTRIBUTE, entities.join(","));
+    button.setAttribute(TESSERA_ATTRIBUTE, tessera);
     button.dataset.on = String(dentro);
     vestiInterruttore(button, dentro);
   }
@@ -226,15 +298,17 @@ function onClick(event) {
     .map(clean)
     .filter(Boolean);
   if (!entities.length) return;
-  const fuori = escluse();
+  const tessera = clean(button.getAttribute(TESSERA_ATTRIBUTE));
+  let elenco = elencoDelleEscluse();
+  const fuori = escluseDellaTessera(elenco, tessera);
   const dentro = entities.some((entity) => !fuori.has(entity));
-  for (const entity of entities) {
-    if (dentro) fuori.add(entity);
-    else fuori.delete(entity);
-  }
+  for (const entity of entities)
+    elenco = dentro
+      ? togliDallaTessera(elenco, tessera, entity)
+      : rimettiNellaTessera(elenco, tessera, entity);
   button.dataset.on = String(!dentro);
   vestiInterruttore(button, !dentro);
-  salvaEscluse(fuori);
+  salvaEscluse(elenco);
   root.edToast?.(
     dentro
       ? t("🧩 Fuori dai widget", "🧩 Out of the widgets")

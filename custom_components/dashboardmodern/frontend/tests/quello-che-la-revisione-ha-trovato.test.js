@@ -15,10 +15,10 @@ import test from "node:test";
 
 import { leggiData } from "../src/core/rifiuti-model.js";
 import { batterieDiCasa } from "../src/core/batterie-di-casa.js";
-import {
-  prossimoCambioDelDaQuando,
-  quandoCambiaIlDaQuando,
-} from "../src/core/varchi-di-casa.js";
+/* La sveglia del «da quanto» sta in un modulo suo: non e' dei varchi, e' di
+ * chiunque scriva «da quanto» — e adesso lo scrivono anche i rilevatori di
+ * presenza. */
+import { prossimoCambioDelDaQuando, quandoCambiaIlDaQuando } from "../src/core/da-quanto.js";
 
 const sorgente = (rel) => readFile(new URL(rel, import.meta.url), "utf8");
 

@@ -102,6 +102,10 @@ function catalogoTessere() {
     /* La raccolta differenziata (#293): dice cosa mettere fuori stasera. */
     ["rifiuti", "♻️", t("Rifiuti", "Waste")],
     ["varchi", "🚪", t("Varchi", "Openings")],
+    /* La presenza (#432): dice in quante stanze c'e' qualcuno adesso, e sta
+     * accanto ai varchi perche' e' la stessa domanda su un'altra famiglia di
+     * sensori. */
+    ["presenza", "🏃", t("Presenza", "Presence")],
     ["macchine", "🖥️", t("Server e rete", "Server and network")],
     /* La ventilazione meccanica (#371): la tessera dice a che temperatura sta
      * entrando l'aria e quanto la macchina se n'e' ripreso, e porta alla

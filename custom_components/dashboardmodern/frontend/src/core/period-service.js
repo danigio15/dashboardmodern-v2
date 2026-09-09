@@ -245,6 +245,59 @@ function endOfClosedRange(nextBoundary, now) {
   return new Date(nextBoundary);
 }
 
+/* Su quanti giorni si divide, per dire «media al giorno».
+ *
+ * Su un mese finito sono i suoi giorni: trenta a settembre, e non c'e' altro
+ * da chiedersi. Sul mese in corso no — i giorni che non sono ancora arrivati
+ * non hanno consumato niente, e metterli al denominatore non fa una media:
+ * fa una previsione, e per difetto. Il 9 settembre con 68,1 kWh la plancia
+ * diceva 2,27 kWh al giorno (68,1 diviso trenta) mentre il vero era 7,57
+ * (68,1 diviso nove): chi lo leggeva vedeva un terzo del suo consumo.
+ *
+ * Un mese futuro non ha nemmeno un giorno passato: non si divide per zero e
+ * non si inventa un numero, si risponde zero e chi scrive dira' «—».
+ *
+ * Il guscio storico questo conto lo faceva giusto. E' la nostra passata
+ * canonica, che gli e' passata sopra, ad averlo perso: e' per questo che la
+ * regola sta qui adesso, dove una prova la puo' tenere ferma.
+ */
+/* Il giorno che ha consumato piu' di tutti, e quanto.
+ *
+ * Il picco del mese lo scriveva il guscio storico con `toFixed(2)`, che non sa
+ * in che lingua si parla: nello stesso riquadro si leggeva «26.37 kWh» accanto
+ * a «68,1 kWh» e «47,7 kWh da FV» — un punto in mezzo a delle virgole. Il
+ * numero era giusto, la lingua no, e non e' un dettaglio: un punto decimale
+ * dove si aspetta una virgola si legge come un separatore delle migliaia.
+ *
+ * Qui esce il dato, non la scritta: il valore e la data del giorno. Le cifre e
+ * il separatore li mette chi disegna, con lo stesso formattatore di tutti gli
+ * altri numeri della card.
+ */
+export function ilGiornoDelPicco(giorni = []) {
+  let picco = null;
+  for (const giorno of Array.isArray(giorni) ? giorni : []) {
+    const quanto = Number(giorno?.change);
+    if (!Number.isFinite(quanto) || quanto <= 0) continue;
+    if (picco && quanto <= picco.quanto) continue;
+    const quando = new Date(rowTimestamp(giorno));
+    picco = { quanto, quando: Number.isFinite(quando.getTime()) ? quando : null };
+  }
+  return picco;
+}
+
+export function giorniPerLaMedia(anno, mese, adesso = new Date()) {
+  const anni = Number(anno);
+  const mesi = Number(mese);
+  if (!Number.isFinite(anni) || !Number.isFinite(mesi)) return 0;
+  const oggi = new Date(adesso);
+  const nelMeseInCorso = anni === oggi.getFullYear() && mesi === oggi.getMonth() + 1;
+  if (nelMeseInCorso) return oggi.getDate();
+  /* Il giorno zero del mese dopo e' l'ultimo di questo. */
+  const ultimo = new Date(anni, mesi, 0);
+  if (ultimo.getTime() > oggi.getTime()) return 0;
+  return ultimo.getDate();
+}
+
 export function periodRange(kind, selected = new Date(), now = new Date()) {
   const date = new Date(selected);
   const current = new Date(now);
@@ -1130,18 +1183,31 @@ export class HomeAssistantBroker {
    *
    * Un arco che cade non porta giu' gli altri: quello che e' arrivato si
    * tiene, e chi ha chiesto decide (vedi il pacchetto parziale dell'Energia). */
-  async valoriPerArchi(richieste = [], valori = new Map(), alPasso = () => {}) {
+  /* I giorni, per chi li chiede.
+   *
+   * La domanda al Recorder torna GIA' a giorni — `period` di un arco mensile
+   * e' `day` — e qui si riducevano a un totale, buttando la serie. Il picco
+   * del mese e' il massimo di quella serie: senza tenerla si doveva chiedere
+   * di nuovo, e una seconda domanda per un dato che era gia' arrivato e' un
+   * giro di Recorder regalato.
+   *
+   * Si tiene solo per chi mette `conIGiorni` nella richiesta: tenerla per
+   * tutte vorrebbe dire portarsi dietro trecento righe per ogni misura di
+   * ogni periodo, e a novantanove di quelle non serve nessuno.
+   */
+  async valoriPerArchi(richieste = [], valori = new Map(), alPasso = () => {}, giorni = new Map()) {
     const perArco = new Map();
     /* Chi comincia il suo periodo e chi lo continua: della stessa misura — la
      * stessa `plan.key` — puo' esserci un arco a ore chiuse e uno a cinque
      * minuti, e solo quello che parte prima puo' aver visto nascere il
      * contatore (vedi `contatoreNatoDentro`). */
     const primoArco = new Map();
-    for (const { plans = [], range } of richieste) {
+    for (const { plans = [], range, conIGiorni = false } of richieste) {
       if (!range || !plans.length || range.end <= range.start) continue;
       const chiave = chiaveDellArco(range);
-      const gruppo = perArco.get(chiave) || { range, chiave, plans: [] };
+      const gruppo = perArco.get(chiave) || { range, chiave, plans: [], conIGiorni: false };
       gruppo.plans.push(...plans);
+      if (conIGiorni) gruppo.conIGiorni = true;
       perArco.set(chiave, gruppo);
       const quando = range.start.getTime();
       for (const plan of plans) {
@@ -1157,7 +1223,7 @@ export class HomeAssistantBroker {
     let fatte = 0;
     alPasso(fatte, gruppi.length);
     await Promise.all(
-      gruppi.map(async ({ range, chiave, plans }) => {
+      gruppi.map(async ({ range, chiave, plans, conIGiorni }) => {
         try {
           const ids = [...new Set(plans.map((plan) => plan.entity).filter(Boolean))];
           if (!ids.length) return;
@@ -1173,6 +1239,16 @@ export class HomeAssistantBroker {
             if (crescita == null) continue;
             const arrotondata = Math.round(crescita * 1000) / 1000;
             valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
+            if (conIGiorni) {
+              const dentro = (righe[plan.entity] || []).filter((riga) => {
+                const quando = rowTimestamp(riga);
+                return quando >= range.start.getTime() && quando < range.end.getTime();
+              });
+              const prima = (righe[plan.entity] || []).filter(
+                (riga) => rowTimestamp(riga) < range.start.getTime(),
+              );
+              giorni.set(plan.key, recorderBucketConsumptions(dentro, prima.at(-1) || null));
+            }
           }
         } catch (errore) {
           /* Chi e' caduto si dice con nome e cognome: chi aspettava proprio
@@ -1184,7 +1260,7 @@ export class HomeAssistantBroker {
         }
       }),
     );
-    return { valori, caduti };
+    return { valori, caduti, giorni };
   }
 
   async valuesForEntities(ids, kind, selected) {

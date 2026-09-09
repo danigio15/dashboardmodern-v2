@@ -346,6 +346,26 @@ export function sommaLetture(letture = []) {
     .filter((riga) => riga.watts != null || riga.soc != null);
 }
 
+/**
+ * La somma, sorgente per sorgente, di quanto hanno fatto oggi più impianti.
+ *
+ * Vale la stessa regola dei watt: una sorgente che nessun impianto misura resta
+ * fuori, perché sommare due «non lo so» non fa zero. Chi ha unito due
+ * appartamenti ha una casa sola, e i kilowattora del giorno si sommano — a
+ * differenza della percentuale di una batteria, che si media.
+ */
+export function sommaOggi(mappe = []) {
+  const totale = {};
+  for (const mappa of mappe) {
+    if (!mappa || typeof mappa !== "object") continue;
+    for (const [chiave, valore] of Object.entries(mappa)) {
+      if (typeof valore !== "number" || !Number.isFinite(valore)) continue;
+      totale[chiave] = (totale[chiave] ?? 0) + valore;
+    }
+  }
+  return totale;
+}
+
 /** La somma di più numeri, dove nessun numero vuol dire `null` e non zero. */
 export function sommaNumeri(valori = []) {
   const veri = valori.filter((valore) => typeof valore === "number" && Number.isFinite(valore));

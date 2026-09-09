@@ -128,10 +128,10 @@ test("i watt si contano leggendo l'unita', non solo il numero", async () => {
   assert.doesNotMatch(flusso, /unit === "kw" \? value \* 1000 : value/);
 });
 
-test("la finestra col solo contatto entra nella tessera delle tapparelle", () => {
+test("il contatto della finestra entra nella tessera, col motore o senza", () => {
   const ponte = leggi("sections/home-widgets-section.js");
-  // La tessera conosce le finestre senza motori, con le stesse funzioni con
-  // cui le conosce la pagina: una regola sola su cosa sia una finestra.
+  // La tessera conosce le finestre con le stesse funzioni con cui le conosce
+  // la pagina: una regola sola su cosa sia una finestra.
   // L'elenco importato e' cresciuto col secondo contatto (#254) e la riga si
   // e' spezzata su piu' righe: si pretende che ci siano i nomi, non come sono
   // impaginati — a quello pensa il formattatore, e un test che lo ripete si
@@ -140,10 +140,18 @@ test("la finestra col solo contatto entra nella tessera delle tapparelle", () =>
     /import \{([^}]*)\} from "\.\.\/core\/shutter-window\.js"/,
   )?.[1];
   assert.ok(importati, "il ponte non importa piu' dal modulo delle finestre");
-  for (const nome of ["contactEntity", "isWindowOnly", "windowOpenFromState"]) {
+  for (const nome of ["contactEntity", "windowOpenFromState"]) {
     assert.ok(importati.includes(nome), `manca ${nome}`);
   }
-  assert.match(ponte, /if \(isWindowOnly\(item\)\)/);
+  /* `isWindowOnly` qui non serve piu', ed e' la correzione: i contatti
+   * uscivano SOLO da una riga senza motore, e la riga normale — la tapparella
+   * col sensore del suo infisso — ne dava indietro la sola tapparella. La
+   * tessera contava l'avvolgibile su e taceva dell'anta aperta. Adesso una
+   * riga rende quello che ha, e i due elenchi si costruiscono sempre tutti e
+   * due. */
+  assert.doesNotMatch(ponte, /if \(isWindowOnly\(item\)\)/);
+  assert.match(ponte, /const motori = coverEntries\(item\)/);
+  assert.match(ponte, /return \[\.\.\.righeMotore, \.\.\.righeContatto\]/);
   assert.match(ponte, /soloSensore: true/);
   // Il contatto parla la sua lingua, e non ha una posizione da inventare.
   // Dal #244 la lettura passa dal verso (il sensore girato dice il contrario),

@@ -94,7 +94,11 @@ test.describe("l'interruttore dei widget", () => {
           }
         }),
       )
-      .toContain("sensor.batteria_auto");
+      /* La scelta porta il nome della tessera di cui parla la riga: qui la
+       * scheda e' quella dell'auto, e togliere una sonda da li' non deve
+       * toglierla anche da un'altra tessera dove la stessa entita' fosse
+       * scritta. */
+      .toContain("ev|sensor.batteria_auto");
   });
 
   test("c'e' anche nel solare termico", async ({ page }, testInfo) => {

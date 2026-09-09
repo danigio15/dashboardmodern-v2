@@ -211,10 +211,11 @@ function vestiIlCampoAvviso(input) {
    * il campo mostrava la scritta «mdi:door-closed» a caratteri cubitali al
    * posto di una porta. L'emoji resta emoji. */
   const valore = clean(input.value) || "🔔";
-  /* Si riscrive solo quando cambia. Riscriverla ogni volta vorrebbe dire
-   * cambiare il documento a ogni passata, e chi guarda il corpo dell'editor
-   * (vedi in fondo) rimetterebbe in coda la passata successiva: un giro che
-   * non finisce mai, sul fotogramma, cioe' la ventola accesa per niente. */
+  /* Si riscrive solo quando cambia. Le passate qui sopra sono tante — una per
+   * ogni click, ogni cambio e ogni giro dell'editor — e ridisegnare un'icona
+   * che e' rimasta quella significa buttare via il disegno di prima per
+   * rifarne uno identico, ogni volta. Il confronto costa un paragone; la
+   * riscrittura costa il motore delle icone piu' un pezzo di documento. */
   if (preview.dataset.alertIcon !== valore) {
     const disegnata = /^mdi:/i.test(valore)
       ? root.DashboardModernIconEngine?.markup?.("action", valore, { size: 34 }) || ""

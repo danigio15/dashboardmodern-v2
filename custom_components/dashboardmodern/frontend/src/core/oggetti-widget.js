@@ -376,6 +376,34 @@ const OGGETTI = Object.freeze({
     <path d="M8.2 8.6h4.4M8.2 12.4h4.4" stroke="#f59e0b" stroke-opacity=".5" stroke-width="1.4"
       stroke-linecap="round" fill="none"/>`,
 
+  /* La presenza: il rilevatore a muro, con le onde che scendono.
+   *
+   * «Ci vorrebbe una sezione con i sensori presenza o movimento» (#432).
+   * L'oggetto e' quello vero — la scatoletta bianca sopra la porta, con la
+   * lente scura che occupa la meta' bassa — e le due onde sotto dicono cosa
+   * fa: guarda in giu', nella stanza. La lente accesa e' azzurra, che e' il
+   * colore con cui la pagina segna una stanza dove c'e' qualcuno. */
+  presenza: `<defs>
+      <linearGradient id="dmoPresC" x1="0" y1="0" x2=".35" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e2e8f0"/>
+        <stop offset="1" stop-color="#94a3b8"/></linearGradient>
+      <linearGradient id="dmoPresL" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#0f172a"/></linearGradient>
+      <radialGradient id="dmoPresO" cx=".35" cy=".3" r=".8">
+        <stop offset="0" stop-color="#93c5fd"/><stop offset="1" stop-color="#2563eb"/></radialGradient></defs>
+    ${OMBRA(16, 28.4, 8.6)}
+    <rect x="8" y="3.8" width="16" height="13.6" rx="4.4" fill="url(#dmoPresC)"/>
+    <path d="M9.2 10.8h13.6v2a4.6 4.6 0 0 1-4.6 4.6h-4.4a4.6 4.6 0 0 1-4.6-4.6z"
+      fill="url(#dmoPresL)"/>
+    <circle cx="16" cy="13.2" r="2" fill="url(#dmoPresO)"/>
+    <circle cx="15.3" cy="12.5" r=".62" fill="#fff" fill-opacity=".8"/>
+    <path d="M9.6 7a3.2 3.2 0 0 1 2.8-1.8" stroke="#fff" stroke-opacity=".9" stroke-width="1.4"
+      stroke-linecap="round" fill="none"/>
+    <g fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-opacity=".9">
+      <path d="M11.4 22.4a6.4 6.4 0 0 1 9.2 0"/>
+      <path d="M13.6 25.8a3.4 3.4 0 0 1 4.8 0"/>
+    </g>`,
+
   /* Il server e la rete: il rack con le sue macchine, e il segnale che esce.
    *
    * «I controlli del server proxmox dove gira HA con tutti i suoi container, e

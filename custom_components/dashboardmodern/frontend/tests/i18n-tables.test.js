@@ -57,6 +57,10 @@ const REACHED_OTHERWISE = new Set([
    * I nomi delle famiglie che fanno da insegna li prende dallo stesso posto da
    * cui li prende la fila sopra le linguette. */
   "lelenco-delle-sezioni-section.js",
+  /* E il grafico delle Temperature scrive i nomi delle sue due misure —
+   * Temperatura e Umidità — che stanno in `src/core/il-grafico-delle-stanze.js`,
+   * anche lui fra i cataloghi importati e anche lui con le righe `{ it, en }`. */
+  "temperature-trend-section.js",
 ]);
 
 /* L'elenco si legge dal sorgente, non si importa: l'estrattore riscrive i file

@@ -949,6 +949,70 @@ export function onEditorRedraw(marker, callback) {
   return avvolto;
 }
 
+/**
+ * Tiene un blocco aggiunto alla scheda del Config, comunque la scheda cambi.
+ *
+ * `onEditorRedraw` avvisa quando la scheda si rifa' per due strade — la
+ * navigazione fra le linguette e `renderCurrentEditor` — e a lungo e' bastato.
+ * Non basta piu': il corpo della scheda lo rifa' anche chi salva, e chi apre la
+ * finestra da un tasto qualunque della plancia. Un blocco appeso li' dentro
+ * sparisce e non torna, perche' nessuno gli dice che il corpo e' un altro.
+ *
+ * Il caso che l'ha reso una regola e' #431: «non fa inserire altri tasti oltre
+ * al primo». Aggiungere il primo tasto salva, salvare ridisegna la scheda, e il
+ * blocco dei tasti su misura se ne andava con lei — il secondo «＋» non c'era
+ * piu' da premere. Il blocco delle modalita', che sta due righe sopra e ha lo
+ * stesso problema, se l'era gia' risolto per conto suo con un osservatore. Una
+ * meta' della stessa fila sapeva rimettersi in piedi e l'altra no.
+ *
+ * Il corpo che cambia figli e' l'unico segnale che vuol dire davvero «la scheda
+ * e' nuova»: si guarda quello, e l'osservatore si riattacca al corpo di adesso
+ * — la finestra si apre e si chiude, e ogni volta il corpo e' un altro.
+ *
+ * `disegna` deve saper uscire subito quando non c'e' niente da rifare: qui la
+ * si chiama spesso.
+ */
+export function tieniIlBloccoNellaScheda(marker, disegna) {
+  const registro = (root.__dmBlocchiDellaScheda ||= new Map());
+  const richiama = () => {
+    try {
+      disegna();
+    } catch (_errore) {}
+  };
+  const aggancia = () => {
+    onEditorRedraw(marker, richiama);
+    const corpo = doc?.getElementById?.("ed-body");
+    const suo = registro.get(marker);
+    if (!corpo || suo?.corpo === corpo) return;
+    suo?.osservatore?.disconnect?.();
+    if (typeof root.MutationObserver !== "function") {
+      registro.set(marker, { corpo, osservatore: null });
+      return;
+    }
+    const osservatore = new root.MutationObserver(() => root.queueMicrotask?.(richiama));
+    osservatore.observe(corpo, { childList: true });
+    registro.set(marker, { corpo, osservatore });
+  };
+  if (!registro.has(marker)) {
+    registro.set(marker, { corpo: null, osservatore: null });
+    /* Al primo clic il corpo puo' non esserci ancora, al secondo si'. Guardare
+     * ogni clic costa una ricerca per id, e smette di costare appena
+     * l'osservatore e' attaccato. */
+    doc?.addEventListener?.(
+      "click",
+      () =>
+        root.queueMicrotask?.(() => {
+          aggancia();
+          richiama();
+        }),
+      true,
+    );
+  }
+  aggancia();
+  richiama();
+  return aggancia;
+}
+
 export function selectedPeriod() {
   const now = new Date();
   const month = Number(doc?.getElementById("ed-sel-month")?.value);

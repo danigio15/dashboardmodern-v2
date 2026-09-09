@@ -312,7 +312,17 @@ export function openPersonPopup(id) {
 
 /* La sezione vive tra le pillole di stato e il Quadro Avvisi: e' la prima
  * cosa che si guarda rientrando in casa. Senza persone configurate non lascia
- * ne' titolo ne' vuoto. */
+ * ne' titolo ne' vuoto.
+ *
+ * La griglia sta dentro una fila, e la fila ha posto per un compagno: e' li'
+ * che si mette la card del flusso dell'energia, che va «accanto alle card
+ * delle persone» (#415). Accanto alla GRIGLIA e non DENTRO, e l'ho imparato
+ * mettendocela dentro: una card piu' alta di una persona alza tutta la riga
+ * della griglia, e le persone accanto si stiravano vuote per seguirla. Da
+ * fuori, invece, ognuno tiene la sua altezza.
+ *
+ * Il compagno e' anche al riparo dal ridisegno: qui sotto si riscrive la
+ * griglia, non la fila, quindi chi sta accanto non se ne accorge nemmeno. */
 function ensureHost() {
   const page = doc?.getElementById?.("page-home");
   if (!page) return null;
@@ -320,7 +330,7 @@ function ensureHost() {
   if (host) return host;
   host = doc.createElement("div");
   host.id = "dm-people";
-  host.innerHTML = `<h3 class="section-title dm-people-title">${t("Persone", "People")}</h3><div class="dm-people-grid"></div>`;
+  host.innerHTML = `<h3 class="section-title dm-people-title">${t("Persone", "People")}</h3><div class="dm-people-fila"><div class="dm-people-grid"></div></div>`;
   const anchor = doc.getElementById("dashboard-pills-row");
   if (anchor?.parentElement === page) anchor.after(host);
   else page.prepend(host);
@@ -447,7 +457,28 @@ function installStyles() {
        stesso passo — perche' le due griglie stanno una sotto l'altra nella
        stessa pagina: con tracce diverse le card si sfalsano e la Home sembra
        montata storta. Se cambia una, cambia l'altra. */
-    #dm-people .dm-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+    /* La fila: la griglia delle persone e, accanto, chi ci si mette. In cima e
+       non stirati, cosi' una card piu' alta non alza le altre.
+       La fila e' LA STESSA griglia — stesso passo, stessa corsia minima — e non
+       per eleganza: il compagno deve occupare esattamente una colonna, sennò le
+       persone che restano prendono una corsia diversa da quella dei widget e la
+       Home si monta storta. Con una fila larga a caso erano 6,66px di
+       differenza, che sulla quinta colonna diventano trenta. */
+    #dm-people .dm-people-fila{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+      align-items:start;gap:12px}
+    #dm-people .dm-people-grid{grid-column:1/-1;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+    /* Col compagno accanto la griglia lascia libera l'ultima colonna. Essendo
+       larga esattamente le altre meno una (piu' i loro passi), il suo auto-fill
+       ricava corsie identiche: e' la stessa aritmetica su una larghezza piu'
+       corta. */
+    #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-2}
+    /* Sotto le tre colonne «accanto» vuol dire schiacciare le persone in una
+       corsia sola: si torna in colonna, la griglia intera e il compagno sotto. */
+    @media(max-width:760px){
+      #dm-people .dm-people-fila{grid-template-columns:1fr}
+      #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-1}
+    }
     #dm-people .dm-person-card{--dm-presence:148,163,184;position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);border-radius:22px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));transition:var(--transition,.3s);overflow:hidden}
     /* Il ritratto e chi e', su una riga: la faccia e il nome vicini. */
     #dm-people .dm-person-testa{display:flex;align-items:center;gap:13px;min-width:0}
@@ -510,6 +541,7 @@ function installStyles() {
       /* Otto e non nove: sul telefono i widget passano alle loro regole
          compatte, che stringono il passo a 8. E' quel numero che decide dove
          cade il bordo della seconda colonna. */
+      #dm-people .dm-people-fila{gap:8px}
       #dm-people .dm-people-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
       #dm-people .dm-person-card{padding:11px}
       #dm-people .dm-person-testa{gap:9px}

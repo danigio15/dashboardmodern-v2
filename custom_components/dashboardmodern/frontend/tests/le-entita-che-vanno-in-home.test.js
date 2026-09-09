@@ -41,7 +41,7 @@ test("l'interruttore nasce sulla riga dove l'entita' e' gia' scritta", () => {
 test("la scelta abita in cd_widgets, accanto all'ordine delle tessere", () => {
   const scelta = leggi("sections/widget-entity-choice-section.js");
   assert.match(scelta, /WIDGETS_CONFIG_KEY/);
-  assert.match(scelta, /excluded: \[\.\.\.insieme\]\.sort\(\)/);
+  assert.match(scelta, /excluded: \[\.\.\.new Set\(elenco\)\]\.sort\(\)/);
   // Salvare ridisegna il ponte: la Home cambia sotto gli occhi.
   assert.match(scelta, /renderHomeWidgets\(\)/);
 });

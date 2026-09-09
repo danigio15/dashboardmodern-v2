@@ -29,10 +29,10 @@ import {
   doc,
   esc,
   installStyle,
-  onEditorRedraw,
   readJson,
   root,
   t,
+  tieniIlBloccoNellaScheda,
   writeJsonIfChanged,
 } from "./shared.js";
 
@@ -260,14 +260,19 @@ export function installAntifurtoSuMisuraEditorSection() {
   if (!doc || state.installed) return false;
   installStyle(STYLE_ID, css());
   doc.addEventListener("click", onClick);
-  onEditorRedraw("dmAntifurtoSuMisura", ensureAntifurtoSuMisuraBlock);
+  /* «Non fa inserire altri tasti oltre al primo» (#431).
+   *
+   * Aggiungere un tasto salva, salvare rifa' la scheda, e il blocco se ne
+   * andava con lei: il secondo «＋» non c'era piu' da premere. I tre annunci
+   * qui sotto non parlano di quel ridisegno — nessuno lo annuncia — e il
+   * blocco delle modalita', che sta due righe sopra, se l'era gia' risolto per
+   * conto suo. Adesso la meccanica e' una sola e la usano tutti e due. */
+  tieniIlBloccoNellaScheda("dmAntifurtoSuMisura", ensureAntifurtoSuMisuraBlock);
   for (const evento of [
-    "dashboardmodern:editor-rendered",
     "dashboardmodern:legacy-ready",
     "dashboardmodern:persistence-restored",
   ])
     root.addEventListener?.(evento, () => root.queueMicrotask?.(ensureAntifurtoSuMisuraBlock));
   state.installed = true;
-  ensureAntifurtoSuMisuraBlock();
   return true;
 }
