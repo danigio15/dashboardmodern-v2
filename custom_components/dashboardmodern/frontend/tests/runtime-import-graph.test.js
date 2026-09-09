@@ -1045,6 +1045,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
   // negoziare e prova per prima la strada ricordata. La cascata del guscio non
   // si tocca: resta la rete di sicurezza, intera.
+  // 309 con cosa disegna il grafico delle Temperature (#427, #433): «avere
+  // anche quello relativo all'umidità» e «poter togliere dal grafico alcune
+  // entità/stanze cliccandoci sopra … nel mio caso il vano tecnico». Due
+  // richieste sullo stesso disegno, ed e' per questo che stanno in un modulo
+  // solo: `core/il-grafico-delle-stanze.js` dice da quale casella della stanza
+  // si legge, con che unita' si scrive, dov'e' la fascia in cui si sta bene, e
+  // chi resta fuori — con la regola che l'ultima accesa non si spegne.
   // 308 con la tessera di cui parla una scelta: «se la finestra e configurata
   // nella sezione finestre e no nei varchi la segnalazione resta in finestre
   // non deve scomparire». Lo stesso contatto sta scritto in due sezioni e
@@ -1069,7 +1076,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
   assert.ok(
-    relative.length <= 308,
+    relative.length <= 309,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

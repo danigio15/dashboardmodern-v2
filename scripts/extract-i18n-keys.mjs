@@ -256,6 +256,9 @@ const CATALOG_MODULES = Object.freeze([
   /* I nomi delle sezioni della plancia — Varchi, Musica, Aspirapolvere — che
      l'elenco unico degli interruttori scrive in Impostazioni. */
   "src/core/lelenco-delle-sezioni.js",
+  /* Le due misure del grafico delle Temperature — Temperatura e Umidità — che
+     le pastiglie sopra il disegno scrivono per dire cosa si sta guardando. */
+  "src/core/il-grafico-delle-stanze.js",
 ]);
 
 /*

@@ -139,8 +139,13 @@ test("togliere una chiave non alza la revisione", async () => {
    * Home (#415, #416, `cd_flusso_home`): «sulla home, accanto magari alle card
    * delle persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla
    * casa alle batterie, dalla casa all'auto». Vederlo o no e' una scelta sulla
-   * casa, come l'ordine dei blocchi che gli sta accanto. */
-  assert.equal(CONFIG_KEYS_REVISION, 38);
+   * casa, come l'ordine dei blocchi che gli sta accanto. E la 39 con chi resta
+   * fuori dal grafico delle Temperature (#433, `cd_grafico_stanze`): «poter
+   * togliere dal grafico alcune entita'/stanze cliccandoci sopra in modo tale
+   * che diventi piu' leggibile la variazione. Nel mio caso il vano tecnico».
+   * Una stanza fuori scala schiaccia tutte le altre, e toglierla e' una cosa
+   * che si dice della casa, non del vetro da cui la si e' detta. */
+  assert.equal(CONFIG_KEYS_REVISION, 39);
   assert.ok(
     CONFIG_KEYS.includes("cd_flusso_home"),
     "il flusso in Home si sceglie per la casa, non per lo schermo",

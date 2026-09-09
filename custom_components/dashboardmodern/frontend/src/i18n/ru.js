@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "До: плохо",
   "${conto.aperti} open": "открыто: ${conto.aperti}",
   "All closed": "Все закрыты",
+  "At least one has to stay on the chart": "Хотя бы одна должна остаться на графике",
+  "No room has a humidity probe: add one from the Temperature tab.": "Ни в одной комнате нет датчика влажности: добавьте его во вкладке «Температура».",
+  "Tap to drop it from the chart": "Нажмите, чтобы убрать с графика",
+  "Tap to put it back on the chart": "Нажмите, чтобы вернуть на график",
 });

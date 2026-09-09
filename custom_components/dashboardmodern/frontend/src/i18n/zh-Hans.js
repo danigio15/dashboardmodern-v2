@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "到此为止：较差",
   "${conto.aperti} open": "${conto.aperti} 扇开着",
   "All closed": "全部关闭",
+  "At least one has to stay on the chart": "图表中至少要保留一项",
+  "No room has a humidity probe: add one from the Temperature tab.": "没有房间配置湿度传感器：请在「温度」标签页中添加。",
+  "Tap to drop it from the chart": "点按以从图表中移除",
+  "Tap to put it back on the chart": "点按以放回图表",
 });

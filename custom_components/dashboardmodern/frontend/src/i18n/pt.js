@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "Até: má",
   "${conto.aperti} open": "${conto.aperti} abertas",
   "All closed": "Todas fechadas",
+  "At least one has to stay on the chart": "Pelo menos uma tem de ficar no gráfico",
+  "No room has a humidity probe: add one from the Temperature tab.": "Nenhuma divisão tem sonda de humidade: adicione uma no separador Temperatura.",
+  "Tap to drop it from the chart": "Toque para a tirar do gráfico",
+  "Tap to put it back on the chart": "Toque para a repor no gráfico",
 });

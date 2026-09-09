@@ -2,6 +2,22 @@
 // been": one chart under the cards, following the room tabs above them. Picking
 // a room draws its probes; "all" compares the rooms against each other.
 //
+// Due cose si scelgono qui sopra e valgono per tutto il disegno, e la regola di
+// tutte e due sta in `core/il-grafico-delle-stanze.js`:
+//
+// La misura (#427). Le stanze la sonda dell'umidità ce l'hanno già accanto a
+// quella della temperatura, e mancava solo di poterla guardare. Non è un
+// secondo grafico sotto il primo — gradi e per cento non stanno sulla stessa
+// altezza — è questo che cambia misura, come le linguette del periodo cambiano
+// quanto indietro si guarda. Cambiando misura cambia anche la fascia del
+// comfort dietro le linee, che per l'umidità è un'altra.
+//
+// Chi si spegne (#433). «Poter togliere dal grafico alcune entità/stanze
+// cliccandoci sopra … nel mio caso il vano tecnico»: una stanza fuori scala
+// schiaccia tutte le altre, e toccare la sua voce nella legenda la toglie dal
+// disegno e dalla scala. La scelta si tiene in configurazione, così vale anche
+// sul telefono, e l'ultima accesa non si spegne.
+//
 // It is drawn as plain SVG from the same history Home Assistant already serves
 // to the card popup — no chart library, so it costs nothing to load and scales
 // to any width the page happens to have.
@@ -15,10 +31,31 @@ import {
   passoDelleTacche,
   perInputLocale,
 } from "../core/periodo-storico.js";
+import {
+  CHIAVE_GRAFICO_STANZE,
+  conLaSerieGirata,
+  laSiPuoSpegnere,
+  MISURE,
+  misuraDelGrafico,
+  scriviIlValore,
+  serieAccese,
+  serieSpente,
+} from "../core/il-grafico-delle-stanze.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import { parolaDelPeriodo } from "./history-section.js";
 import { quandoArrivaLoStorico, serieDi } from "./storico-condiviso-section.js";
-import { clean, doc, english, installStyle, locale, root, section, t } from "./shared.js";
+import {
+  clean,
+  doc,
+  english,
+  installStyle,
+  locale,
+  readJson,
+  root,
+  section,
+  t,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TEMPERATURE_TREND__";
 const state = (root[KEY] ||= {
@@ -28,8 +65,17 @@ const state = (root[KEY] ||= {
   hours: 24,
   /* L'intervallo scelto a mano (#302): quando c'e', vince sulle ore. */
   periodo: null,
+  /* La misura che si sta guardando. Non si tiene in configurazione: e' come il
+   * periodo — si sceglie mentre si guarda, e la prossima volta si riparte dalla
+   * temperatura, che e' la domanda che si fa quasi sempre. */
+  misura: MISURE[0].chiave,
   signature: "",
 });
+
+/** Quello che il grafico si e' tenuto: chi e' spento. */
+function preferenze() {
+  return readJson(CHIAVE_GRAFICO_STANZE, {}) || {};
+}
 
 /** Il periodo che il pannello sta guardando adesso, sempre come intervallo. */
 export function periodoDelPannello(adesso = Date.now()) {
@@ -54,7 +100,9 @@ function viewFor(panel) {
   const height = width < 520 ? 210 : width < 900 ? VIEW.height : 320;
   return { ...VIEW, width, height, left: width < 520 ? VIEW.left : 44 };
 }
-const COMFORT = Object.freeze({ low: 18, high: 26 });
+/* La fascia in cui si sta bene la porta la misura — sono altre percentuali per
+ * l'umidita' — e questa e' quella dei gradi, che vale quando non la si passa. */
+const COMFORT_GRADI = MISURE[0].comfort;
 /* Nessuna stanza uguale a un'altra, nemmeno la settima.
  *
  * Le tinte erano sei e le stanze si prendevano il colore col resto della
@@ -104,23 +152,29 @@ export function activeRoomId() {
 
 /* What the chart should draw right now: one series per probe of the selected
  * room, or one per room when the selection is "all". */
-export function trendSeriesModel(roomValues = rooms(), roomId = "all") {
-  const configured = roomValues.filter((room) => temperatureEntries(room).length > 0);
+export function trendSeriesModel(roomValues = rooms(), roomId = "all", misura = MISURE[0]) {
+  /* La casella da cui si legge la dice la misura: `temp` per i gradi, `hum` per
+   * l'umidita'. Una stanza che quella sonda non ce l'ha non entra nel disegno —
+   * e' l'unica cosa che cambia fra i due grafici. */
+  const campo = misura.campo;
+  const configured = roomValues.filter((room) =>
+    temperatureEntries(room).some((entry) => clean(entry?.[campo])),
+  );
   if (roomId && roomId !== "all") {
     const room = configured.find((item) => clean(item.id) === roomId);
     if (!room) return { title: "", series: [] };
     return {
       title: clean(room.name) || (t("Stanza", "Room")),
       series: temperatureEntries(room)
-        .filter((entry) => clean(entry.temp))
+        .filter((entry) => clean(entry?.[campo]))
         .map((entry, index) => ({
           id: `${clean(room.id)}::${clean(entry.id) || "primary"}`,
           name:
             clean(entry.name) ||
             clean(room.temp_name) ||
             clean(room.name) ||
-            (t("Temperatura", "Temperature")),
-          entity: clean(entry.temp),
+            t(misura.it, misura.en),
+          entity: clean(entry[campo]),
           ...vestitoDellaSerie(index),
         })),
     };
@@ -129,12 +183,12 @@ export function trendSeriesModel(roomValues = rooms(), roomId = "all") {
     title: t("Tutte le stanze", "All rooms"),
     series: configured
       .map((room, index) => {
-        const entry = temperatureEntries(room).find((item) => clean(item.temp));
+        const entry = temperatureEntries(room).find((item) => clean(item?.[campo]));
         if (!entry) return null;
         return {
           id: clean(room.id),
           name: clean(room.name) || (t("Stanza", "Room")),
-          entity: clean(entry.temp),
+          entity: clean(entry[campo]),
           ...vestitoDellaSerie(index),
         };
       })
@@ -144,7 +198,7 @@ export function trendSeriesModel(roomValues = rooms(), roomId = "all") {
 
 /* Rows in, drawable geometry out. Everything is mapped into a fixed viewBox so
  * the drawing stretches to the card width without recomputing on resize. */
-export function trendGeometry(series, window, view = VIEW) {
+export function trendGeometry(series, window, view = VIEW, comfort = COMFORT_GRADI) {
   const plotWidth = view.width - view.left - view.right;
   const plotHeight = view.height - view.top - view.bottom;
   const drawn = series
@@ -180,9 +234,9 @@ export function trendGeometry(series, window, view = VIEW) {
     plotWidth,
     plotHeight,
     band: (() => {
-      const top = Math.max(view.top, y(Math.min(COMFORT.high, max)));
-      const bottom = Math.min(view.height - view.bottom, y(Math.max(COMFORT.low, min)));
-      const visible = COMFORT.low < max && COMFORT.high > min && bottom - top > 2;
+      const top = Math.max(view.top, y(Math.min(comfort.alto, max)));
+      const bottom = Math.min(view.height - view.bottom, y(Math.max(comfort.basso, min)));
+      const visible = comfort.basso < max && comfort.alto > min && bottom - top > 2;
       return { top, bottom, visible };
     })(),
     series: drawn.map((item) => {
@@ -292,8 +346,11 @@ export function tacche(min, max) {
   return valori;
 }
 
-function degrees(value) {
-  return `${value.toFixed(1).replace(".", t(",", "."))}°`;
+/* Il valore scritto come lo vuole la misura che si sta guardando: un grado ha
+ * un decimale e il gradino, una percentuale nessuno dei due. La virgola la
+ * mette la lingua di chi guarda. */
+function valore(numero, misura = misuraDelGrafico(state.misura)) {
+  return scriviIlValore(numero, misura, t(",", "."));
 }
 
 /* Lo storico lo chiede il modulo condiviso, non piu' questo.
@@ -365,6 +422,23 @@ function ensurePanel() {
     element("span", "dm-trend-kicker", t("Andamento", "Trend")),
     element("h3", "dm-trend-title", ""),
   );
+  /* La misura sta prima del periodo e nella stessa forma — una pastiglia, la
+   * scelta accesa — perche' sono la stessa domanda fatta su due assi: cosa
+   * guardo, e da quando. */
+  const misure = element("div", "dm-trend-misure");
+  for (const misura of MISURE) {
+    const button = element("button", "dm-trend-misura", `${misura.glifo} ${t(misura.it, misura.en)}`);
+    button.type = "button";
+    button.dataset.dmMisura = misura.chiave;
+    button.addEventListener("click", () => {
+      if (state.misura === misura.chiave) return;
+      state.misura = misura.chiave;
+      state.signature = "";
+      schedule();
+    });
+    misure.append(button);
+  }
+
   const ranges = element("div", "dm-trend-ranges");
   for (const periodo of PERIODI) {
     const button = element("button", "dm-trend-range", parolaDelPeriodo(periodo));
@@ -384,7 +458,7 @@ function ensurePanel() {
   custom.type = "button";
   custom.dataset.dmTrendCustom = "1";
   ranges.append(custom);
-  head.append(titles, ranges);
+  head.append(titles, misure, ranges);
 
   const riga = element("div", "dm-trend-custom");
   riga.hidden = true;
@@ -436,17 +510,21 @@ function ensurePanel() {
     }),
   );
   const legend = element("div", "dm-trend-legend");
-  const empty = element(
-    "p",
-    "dm-trend-empty",
-    t("Nessuno storico disponibile per questa stanza.", "No history yet for this room."),
-  );
+  /* Un ascoltatore solo per tutta la legenda: le voci si rifanno a ogni
+   * disegno, e attaccarne uno per voce vorrebbe dire riattaccarli tutti ogni
+   * volta. */
+  legend.addEventListener("click", (event) => {
+    const chip = event.target?.closest?.("[data-dm-trend-serie]");
+    if (!chip || !legend.contains(chip)) return;
+    giraLaSerie(clean(chip.dataset.dmTrendSerie));
+  });
+  const empty = element("p", "dm-trend-empty", "");
   panel.append(head, riga, plot, legend, empty);
   grid.after(panel);
   return panel;
 }
 
-function drawChart(chart, geometry, window, view) {
+function drawChart(chart, geometry, window, view, misura = misuraDelGrafico(state.misura)) {
   chart.replaceChildren();
   const baseline = view.height - view.bottom;
 
@@ -490,7 +568,7 @@ function drawChart(chart, geometry, window, view) {
     const y = geometry.y(value);
     axis.append(svg("line", { x1: view.left, x2: view.width - view.right, y1: y, y2: y }));
     const label = svg("text", { x: view.left - 7, y: y + 3, class: "dm-trend-tick" });
-    label.textContent = `${Number.isInteger(value) ? value : value.toFixed(1).replace(".", t(",", "."))}°`;
+    label.textContent = `${Number.isInteger(value) ? value : value.toFixed(1).replace(".", t(",", "."))}${misura.unita}`;
     axis.append(label);
   }
   axis.append(
@@ -535,37 +613,84 @@ function drawChart(chart, geometry, window, view) {
         x: Math.min(item.last.x + 7, view.width - 4),
         y,
       });
-      tag.textContent = degrees(item.last.value);
+      tag.textContent = valore(item.last.value, misura);
       group.append(tag);
     }
     chart.append(group);
   });
 }
 
-function drawLegend(legend, geometry) {
+/* La legenda non e' piu' solo una didascalia: e' il comando con cui si toglie
+ * dal grafico una stanza fuori scala (#433). Chi c'e' porta il suo valore di
+ * adesso e i suoi estremi; chi e' spento resta in fila, sbiadito, col nome e
+ * niente numeri — non ne ha, non e' stato disegnato — perche' quello e' il solo
+ * posto da cui lo si puo' riaccendere.
+ *
+ * Sono tasti veri: si raggiungono in tabulazione e dicono se sono premuti, che
+ * e' l'unico modo in cui chi non vede i colori capisce chi c'e' e chi no. */
+function drawLegend(legend, disegnate, tutte, spenti, misura) {
   legend.replaceChildren();
-  for (const item of geometry.series) {
-    const chip = element("span", "dm-trend-chip");
+  const conIlDisegno = new Map(disegnate.map((item) => [item.id, item]));
+  for (const item of tutte) {
+    const acceso = conIlDisegno.get(item.id) || null;
+    const chip = element("button", "dm-trend-chip");
+    chip.type = "button";
+    chip.dataset.dmTrendSerie = item.id;
+    chip.dataset.dmSpenta = String(!acceso);
+    chip.setAttribute("aria-pressed", String(Boolean(acceso)));
+    chip.title = acceso
+      ? t("Tocca per toglierla dal grafico", "Tap to drop it from the chart")
+      : t("Tocca per rimetterla nel grafico", "Tap to put it back on the chart");
     chip.style.setProperty("--dm-series", item.colour);
     const pallino = element("i", "dm-trend-swatch");
     // Lo stesso vestito della linea: chi ha il tratteggio lo porta anche qui.
     if (item.stroke) pallino.dataset.dmTratto = item.stroke === "7 5" ? "tratti" : "punti";
-    chip.append(
-      pallino,
-      element("b", "dm-trend-chip-name", item.name),
-      element("span", "dm-trend-chip-now", degrees(item.last.value)),
-      element("small", "dm-trend-chip-range", `${degrees(item.low)} · ${degrees(item.high)}`),
-    );
+    chip.append(pallino, element("b", "dm-trend-chip-name", item.name));
+    if (acceso)
+      chip.append(
+        element("span", "dm-trend-chip-now", valore(acceso.last.value, misura)),
+        element(
+          "small",
+          "dm-trend-chip-range",
+          `${valore(acceso.low, misura)} · ${valore(acceso.high, misura)}`,
+        ),
+      );
     legend.append(chip);
   }
+  legend.dataset.dmSpente = String(spenti.size);
+}
+
+/* Spegnere o riaccendere una voce della legenda.
+ *
+ * La regola — compresa quella dell'ultima accesa — sta nel modulo puro; qui c'e'
+ * soltanto la configurazione da scrivere e il disegno da rifare. */
+function giraLaSerie(id) {
+  const misura = misuraDelGrafico(state.misura);
+  const model = trendSeriesModel(rooms(), activeRoomId(), misura);
+  const stored = preferenze();
+  const prossime = conLaSerieGirata(stored, model.series, id);
+  if (!prossime) {
+    root.edToast?.(
+      t("Almeno una deve restare nel grafico", "At least one has to stay on the chart"),
+    );
+    return false;
+  }
+  writeJsonIfChanged(CHIAVE_GRAFICO_STANZE, { ...stored, spente: prossime });
+  state.signature = "";
+  schedule();
+  return true;
 }
 
 export function renderTemperatureTrend() {
   const panel = ensurePanel();
   if (!panel) return false;
   const roomId = activeRoomId();
-  const model = trendSeriesModel(rooms(), roomId);
+  const misura = misuraDelGrafico(state.misura);
+  const model = trendSeriesModel(rooms(), roomId, misura);
   const intervallo = periodoDelPannello();
+  panel.querySelectorAll(".dm-trend-misura[data-dm-misura]").forEach((button) =>
+    button.classList.toggle("active", button.dataset.dmMisura === misura.chiave),
+  );
   const hours = intervallo.ore;
   panel.querySelectorAll(".dm-trend-range[data-hours]").forEach((button) =>
     button.classList.toggle(
@@ -579,12 +704,30 @@ export function renderTemperatureTrend() {
   panel.querySelector(".dm-trend-title").textContent = model.title;
 
   if (!model.series.length) {
+    /* Perche' non c'e' niente da disegnare: con l'umidita' quasi sempre e'
+     * perche' quella sonda le stanze non ce l'hanno, ed e' una risposta
+     * diversa da «non c'e' ancora storico». */
+    panel.querySelector(".dm-trend-empty").textContent =
+      misura.chiave === MISURE[0].chiave
+        ? t(
+            "Nessuno storico disponibile per questa stanza.",
+            "No history yet for this room.",
+          )
+        : t(
+            "Nessuna stanza ha una sonda dell'umidità: si aggiunge dalla scheda Temperature.",
+            "No room has a humidity probe: add one from the Temperature tab.",
+          );
     panel.dataset.state = "empty";
     return false;
   }
 
   const window = { start: intervallo.start, end: intervallo.end, hours };
-  const withRows = model.series.map((item) => ({ ...item, rows: rowsFor(item.entity, intervallo) }));
+  /* Le spente non si chiedono nemmeno allo storico: toglierle dal disegno e
+   * continuare a leggerne la storia vorrebbe dire pagare una domanda a Recorder
+   * per una linea che nessuno guarda. */
+  const spenti = serieSpente(preferenze());
+  const accese = serieAccese(model.series, spenti);
+  const withRows = accese.map((item) => ({ ...item, rows: rowsFor(item.entity, intervallo) }));
   if (withRows.some((item) => item.rows === null)) panel.dataset.state = "loading";
 
   const view = viewFor(panel);
@@ -595,14 +738,17 @@ export function renderTemperatureTrend() {
     withRows.filter((item) => Array.isArray(item.rows)),
     window,
     view,
+    misura.comfort,
   );
   if (!geometry) {
     panel.dataset.state = panel.dataset.state === "loading" ? "loading" : "empty";
     return false;
   }
 
-  drawChart(chart, geometry, window, view);
-  drawLegend(panel.querySelector(".dm-trend-legend"), geometry);
+  drawChart(chart, geometry, window, view, misura);
+  /* La legenda le elenca tutte, non solo quelle disegnate: da li' si riaccende
+   * quella che si e' spenta, e senza la sua voce non ci sarebbe piu' modo. */
+  drawLegend(panel.querySelector(".dm-trend-legend"), geometry.series, model.series, spenti, misura);
   panel.dataset.state = "ready";
   return true;
 }
@@ -661,7 +807,22 @@ function installStyles() {
     #dm-temperature-trend .dm-trend-line{fill:none!important;stroke:rgb(var(--dm-series))!important;stroke-width:2.6!important;stroke-linecap:round!important;stroke-linejoin:round!important;vector-effect:non-scaling-stroke!important}
     #dm-temperature-trend .dm-trend-dot{fill:rgb(var(--dm-series))!important;stroke:var(--dm-trend-surface)!important;stroke-width:2!important;vector-effect:non-scaling-stroke!important}
     #dm-temperature-trend .dm-trend-legend{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
-    #dm-temperature-trend .dm-trend-chip{display:inline-flex!important;align-items:baseline!important;gap:7px!important;padding:7px 11px!important;border:1px solid color-mix(in srgb,rgb(var(--dm-series)) 26%,transparent)!important;border-radius:13px!important;background:color-mix(in srgb,rgb(var(--dm-series)) 8%,var(--dm-trend-surface))!important}
+    /* La voce della legenda e' un tasto: si tocca per togliere dal grafico una
+       stanza fuori scala, e la mano lo deve capire prima di leggerlo. */
+    #dm-temperature-trend .dm-trend-chip{display:inline-flex!important;align-items:baseline!important;gap:7px!important;padding:7px 11px!important;border:1px solid color-mix(in srgb,rgb(var(--dm-series)) 26%,transparent)!important;border-radius:13px!important;background:color-mix(in srgb,rgb(var(--dm-series)) 8%,var(--dm-trend-surface))!important;font:inherit!important;color:inherit!important;cursor:pointer!important;transition:opacity .18s ease,border-color .18s ease,background .18s ease}
+    #dm-temperature-trend .dm-trend-chip:hover{border-color:color-mix(in srgb,rgb(var(--dm-series)) 55%,transparent)!important}
+    #dm-temperature-trend .dm-trend-chip:focus-visible{outline:2px solid rgb(var(--dm-series))!important;outline-offset:2px!important}
+    /* Spenta: resta in fila col suo nome, sbiadita e senza numeri — non ne ha,
+       non e' stata disegnata — perche' e' l'unico posto da cui riaccenderla.
+       Il nome barrato lo dice anche a chi i colori non li distingue. */
+    #dm-temperature-trend .dm-trend-chip[data-dm-spenta="true"]{opacity:.42!important;border-style:dashed!important;background:transparent!important}
+    #dm-temperature-trend .dm-trend-chip[data-dm-spenta="true"] .dm-trend-chip-name{text-decoration:line-through!important}
+    /* La misura: le stesse pastiglie del periodo, perche' sono la stessa
+       domanda su due assi — cosa guardo, e da quando. */
+    #dm-temperature-trend .dm-trend-misure{display:inline-flex!important;flex-wrap:wrap!important;gap:4px!important;padding:3px!important;border-radius:999px!important;background:color-mix(in srgb,var(--text-dim,#64748b) 10%,transparent)!important}
+    #dm-temperature-trend .dm-trend-misura{padding:6px 12px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:var(--text-dim,#64748b)!important;font:inherit!important;font-size:11.5px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important}
+    #dm-temperature-trend .dm-trend-misura.active{background:var(--dm-trend-surface)!important;color:var(--text,#0f172a)!important;box-shadow:0 2px 8px -4px rgba(15,23,42,.45)!important}
+    @media(prefers-reduced-motion:reduce){#dm-temperature-trend .dm-trend-chip{transition:none!important}}
     #dm-temperature-trend .dm-trend-swatch{width:9px!important;height:9px!important;border-radius:3px!important;background:rgb(var(--dm-series))!important;align-self:center!important}
     /* Il pallino della legenda dice lo stesso della linea: pieno, a tratti,
        a puntini. Senza, due stanze dello stesso colore sarebbero uguali qui

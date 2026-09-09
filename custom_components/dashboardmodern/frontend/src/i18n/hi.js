@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "तक: खराब",
   "${conto.aperti} open": "${conto.aperti} खुली",
   "All closed": "सभी बंद",
+  "At least one has to stay on the chart": "कम से कम एक चार्ट में रहना चाहिए",
+  "No room has a humidity probe: add one from the Temperature tab.": "किसी कमरे में नमी सेंसर नहीं है: तापमान टैब से एक जोड़ें।",
+  "Tap to drop it from the chart": "चार्ट से हटाने के लिए टैप करें",
+  "Tap to put it back on the chart": "चार्ट में वापस लाने के लिए टैप करें",
 });

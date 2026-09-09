@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "Do: zła",
   "${conto.aperti} open": "${conto.aperti} otwarte",
   "All closed": "Wszystkie zamknięte",
+  "At least one has to stay on the chart": "Przynajmniej jedna musi zostać na wykresie",
+  "No room has a humidity probe: add one from the Temperature tab.": "Żaden pokój nie ma czujnika wilgotności: dodaj go w zakładce Temperatura.",
+  "Tap to drop it from the chart": "Dotknij, aby usunąć z wykresu",
+  "Tap to put it back on the chart": "Dotknij, aby przywrócić na wykres",
 });

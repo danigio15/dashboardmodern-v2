@@ -183,8 +183,16 @@
  * E gli animali di casa (`cd_animali`, #358): i loro nomi, le loro foto e le
  * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
  * e del collare. Anche questa e' roba della casa: il gatto configurato sul
- * tablet deve esistere anche sul telefono. */
-export const CONFIG_KEYS_REVISION = 38;
+ * tablet deve esistere anche sul telefono.
+ *
+ * La revisione 39 aggiunge chi resta fuori dal grafico delle Temperature
+ * (`cd_grafico_stanze`, #433): «poter togliere dal grafico alcune
+ * entità/stanze cliccandoci sopra in modo tale che diventi più leggibile la
+ * variazione. Nel mio caso il vano tecnico». Una stanza fuori scala schiaccia
+ * tutte le altre, e toglierla è una cosa che si dice della casa, non dello
+ * schermo da cui la si è detta: chi ha tolto il vano tecnico dal computer non
+ * se lo ritrova dentro sul telefono. */
+export const CONFIG_KEYS_REVISION = 39;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -345,6 +353,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_gruppi_extra",
   "cd_gruppi_removed",
   "cd_avvisi_names_extra",
+  "cd_grafico_stanze",
   "cd_avvisi_custom",
   "cd_subload_groups",
   "cd_subloads_extra",

@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "여기까지: 나쁨",
   "${conto.aperti} open": "${conto.aperti}개 열림",
   "All closed": "모두 닫힘",
+  "At least one has to stay on the chart": "차트에 최소한 하나는 남아 있어야 합니다",
+  "No room has a humidity probe: add one from the Temperature tab.": "습도 센서가 있는 방이 없습니다. 온도 탭에서 추가하세요.",
+  "Tap to drop it from the chart": "탭하여 차트에서 제외",
+  "Tap to put it back on the chart": "탭하여 차트에 다시 표시",
 });

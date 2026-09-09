@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "Tot: slecht",
   "${conto.aperti} open": "${conto.aperti} geopend",
   "All closed": "Alles dicht",
+  "At least one has to stay on the chart": "Er moet er minstens één in de grafiek blijven",
+  "No room has a humidity probe: add one from the Temperature tab.": "Geen enkele kamer heeft een vochtigheidssensor: voeg er een toe via het tabblad Temperatuur.",
+  "Tap to drop it from the chart": "Tik om hem uit de grafiek te halen",
+  "Tap to put it back on the chart": "Tik om hem terug in de grafiek te zetten",
 });

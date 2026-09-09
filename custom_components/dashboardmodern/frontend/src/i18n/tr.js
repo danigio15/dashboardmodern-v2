@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "Şuraya kadar: kötü",
   "${conto.aperti} open": "${conto.aperti} açık",
   "All closed": "Hepsi kapalı",
+  "At least one has to stay on the chart": "Grafikte en az biri kalmalı",
+  "No room has a humidity probe: add one from the Temperature tab.": "Hiçbir odada nem sensörü yok: Sıcaklık sekmesinden ekleyin.",
+  "Tap to drop it from the chart": "Grafikten çıkarmak için dokunun",
+  "Tap to put it back on the chart": "Grafiğe geri koymak için dokunun",
 });

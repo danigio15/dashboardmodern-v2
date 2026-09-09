@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "حتى: رديء",
   "${conto.aperti} open": "${conto.aperti} مفتوحة",
   "All closed": "كلها مغلقة",
+  "At least one has to stay on the chart": "يجب أن يبقى واحد على الأقل في الرسم البياني",
+  "No room has a humidity probe: add one from the Temperature tab.": "لا توجد غرفة بها مستشعر رطوبة: أضِف واحدًا من تبويب درجة الحرارة.",
+  "Tap to drop it from the chart": "انقر لإزالته من الرسم البياني",
+  "Tap to put it back on the chart": "انقر لإعادته إلى الرسم البياني",
 });

@@ -3046,13 +3046,14 @@ function friendlyName(states, entity) {
    * Camera matrimoniale Batteria» — il nome di fabbrica — anche a chi quella
    * riga l'aveva battezzata: il nome scelto sta in `cd_avvisi_names_extra`,
    * ed e' lo stesso posto da cui lo leggono il Quadro Avvisi e gli
-   * allagamenti. Un nome dato una volta vale ovunque. */
-  return (
-    clean(readJson("cd_avvisi_names_extra", {})?.[entity]) ||
-    clean(stateOf(states, entity)?.attributes?.friendly_name) ||
-    entity.split(".")[1]?.replaceAll("_", " ") ||
-    entity
-  );
+   * allagamenti. Un nome dato una volta vale ovunque.
+   *
+   * La catena — scelto, poi Home Assistant, poi l'identificativo reso
+   * leggibile — qui era riscritta, e riscritta quasi uguale: la coda
+   * dell'identificativo veniva fuori in minuscolo mentre dappertutto comincia
+   * per maiuscola. Adesso la dice `nomeDellEntita`, che e' la stessa che
+   * legge la pagina di ogni sezione. */
+  return nomeDellEntita(entity, readJson("cd_avvisi_names_extra", {})?.[entity], states);
 }
 
 function batteriesModel(states) {

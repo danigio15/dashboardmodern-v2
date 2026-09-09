@@ -3292,4 +3292,8 @@ export default Object.freeze({
   "Up to: poor": "ここまで: 悪い",
   "${conto.aperti} open": "${conto.aperti} 開",
   "All closed": "すべて閉",
+  "At least one has to stay on the chart": "グラフには少なくとも1つ残す必要があります",
+  "No room has a humidity probe: add one from the Temperature tab.": "湿度センサーのある部屋がありません。温度タブから追加してください。",
+  "Tap to drop it from the chart": "タップしてグラフから外します",
+  "Tap to put it back on the chart": "タップしてグラフに戻します",
 });
