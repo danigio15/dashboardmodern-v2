@@ -22,6 +22,7 @@ export default Object.freeze({
   "Add a battery that is not found": "أضف بطارية غير موجودة",
   "Add a button": "أضف زرًا",
   "Add a ventilation unit": "أضف وحدة تهوية",
+  "Add an entity to Windows": "أضف كيانًا إلى النوافذ",
   "Air into the house": "الهواء إلى المنزل",
   "All charged": "كلها مشحونة",
   "All good": "كل شيء بخير",

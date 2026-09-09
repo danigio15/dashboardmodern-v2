@@ -228,9 +228,8 @@ function stanzaDellaFinestra(cover) {
   const stanze = section("rooms", readJson("cd_stanze", []));
   if (!Array.isArray(stanze)) return null;
   return (
-    stanze.find(
-      (stanza) => clean(stanza?.id) === cercato || clean(stanza?.name) === cercato,
-    ) || null
+    stanze.find((stanza) => clean(stanza?.id) === cercato || clean(stanza?.name) === cercato) ||
+    null
   );
 }
 
@@ -734,7 +733,10 @@ export function ensureCampoUmidita(body = doc?.getElementById("ed-body")) {
     riquadro.dataset.dmUmiditaSoglia = "true";
     riquadro.innerHTML =
       `<span class="ed-slot-lbl">${esc(
-        t("Suggerisci di arieggiare sopra il (%), di serie", "Suggest airing above (%), by default"),
+        t(
+          "Suggerisci di arieggiare sopra il (%), di serie",
+          "Suggest airing above (%), by default",
+        ),
       )}</span>` +
       `<input id="ed-umidita-soglia" class="ed-input" type="number" min="${SOGLIA_MINIMA}" max="${SOGLIA_MASSIMA}" step="1"` +
       ` placeholder="${SOGLIA_PREDEFINITA}" autocomplete="off">` +
@@ -777,7 +779,33 @@ export function ensureCampoUmidita(body = doc?.getElementById("ed-body")) {
   return true;
 }
 
+/* Il tasto in fondo alla scheda non aggiunge una tapparella.
+ *
+ * La sezione si chiama Finestre e da un pezzo accetta molto piu' di una
+ * tapparella: una finestra senza `cover`, una tenda, una tenda da sole, una
+ * zanzariera, un contatto che dice solo aperto o chiuso. Il tasto pero'
+ * continuava a dire «Aggiungi tapparella», ed e' l'ultima cosa che si legge
+ * prima di premere: chi ha una finestra e basta leggeva che li' dentro non
+ * c'era posto per lei.
+ *
+ * La scritta sta nel guscio storico, che non si tocca a mano: si riscrive qui,
+ * nella stessa passata che veste il resto della scheda. Il tasto resta il suo
+ * — stesso `onclick`, stesso `edTappAdd` — cambia solo quello che dichiara di
+ * fare, perche' e' quello che era diventato falso.
+ */
+function rinominaIlTastoAggiungi(body) {
+  const tasto = body?.querySelector?.(".ed-btn-add[onclick*='edTappAdd']");
+  if (!tasto) return false;
+  const scritta = `＋ ${t("Aggiungi entità a Finestre", "Add an entity to Windows")}`;
+  /* Si riscrive solo se e' cambiata: la passata gira a ogni ridisegno, e
+   * toccare il documento per riscriverci la stessa cosa e' lavoro per niente. */
+  if (tasto.textContent === scritta) return false;
+  tasto.textContent = scritta;
+  return true;
+}
+
 export function ensureContactField(body = doc?.getElementById("ed-body")) {
+  rinominaIlTastoAggiungi(body);
   /* La soglia di chiusura (#298) sta sopra tutto: e' della casa, non della riga.
    * Subito sotto quella dell'umidita' (#330), che e' di casa anche lei. */
   ensureSogliaField(body);

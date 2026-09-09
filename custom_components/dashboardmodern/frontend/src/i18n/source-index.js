@@ -459,6 +459,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Aggiungi da un'integrazione": "Add from an integration",
   "Aggiungi dispositivo": "Add appliance",
   "Aggiungi entità": "Add entity",
+  "Aggiungi entità a Finestre": "Add an entity to Windows",
   "Aggiungi foto o video": "Add a photo or a video",
   "Aggiungi i materiali dalla scheda Rifiuti della configurazione: per ognuno il sensore o il calendario che dice quando passa il ritiro.": "Add the materials from the Waste tab in the settings: for each one the sensor or calendar that says when the collection comes.",
   "Aggiungi i tuoi elettrodomestici (lavatrice, lavastoviglie, forno, microonde…). Puoi collegare": "Add your appliances (washing machine, dishwasher, oven, microwave…). You can link",

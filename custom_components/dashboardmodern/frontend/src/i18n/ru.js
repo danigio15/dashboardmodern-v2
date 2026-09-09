@@ -22,6 +22,7 @@ export default Object.freeze({
   "Add a battery that is not found": "Добавить батарейку, которая не найдена",
   "Add a button": "Добавить кнопку",
   "Add a ventilation unit": "Добавить установку",
+  "Add an entity to Windows": "Добавить сущность в «Окна»",
   "Air into the house": "Воздух в дом",
   "All charged": "Все заряжены",
   "All good": "Всё в порядке",

@@ -22,6 +22,7 @@ export default Object.freeze({
   "Add a battery that is not found": "Bulunamayan bir pil ekle",
   "Add a button": "Düğme ekle",
   "Add a ventilation unit": "Bir havalandırma ünitesi ekle",
+  "Add an entity to Windows": "Pencereler'e varlık ekle",
   "Air into the house": "Eve giren hava",
   "All charged": "Hepsi dolu",
   "All good": "Her şey yolunda",

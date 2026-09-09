@@ -22,6 +22,7 @@ export default Object.freeze({
   "Add a battery that is not found": "添加未被找到的电池",
   "Add a button": "添加按钮",
   "Add a ventilation unit": "添加一台新风机",
+  "Add an entity to Windows": "向“窗户”添加实体",
   "Air into the house": "送进屋里的空气",
   "All charged": "全部电量充足",
   "All good": "一切正常",

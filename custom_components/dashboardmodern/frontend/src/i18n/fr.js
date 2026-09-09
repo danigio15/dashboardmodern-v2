@@ -22,6 +22,7 @@ export default Object.freeze({
   "Add a battery that is not found": "Ajouter une pile qui n'est pas trouvée",
   "Add a button": "Ajouter un bouton",
   "Add a ventilation unit": "Ajouter une VMC",
+  "Add an entity to Windows": "Ajouter une entité à Fenêtres",
   "Air into the house": "Air vers la maison",
   "All charged": "Toutes chargées",
   "All good": "Tout va bien",

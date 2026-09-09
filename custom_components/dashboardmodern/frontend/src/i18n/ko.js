@@ -22,6 +22,7 @@ export default Object.freeze({
   "Add a battery that is not found": "찾지 못한 배터리 추가",
   "Add a button": "버튼 추가",
   "Add a ventilation unit": "환기 장치 추가",
+  "Add an entity to Windows": "창문에 엔티티 추가",
   "Air into the house": "집으로 들어오는 공기",
   "All charged": "모두 충전됨",
   "All good": "이상 없음",
