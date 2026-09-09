@@ -193,10 +193,7 @@ function openAlertPicker(input, titolo) {
   return true;
 }
 
-function decorateAlertIconField() {
-  // Gli avvisi vivono in fondo alla scheda dei widget: quello che conta e'
-  // che la loro casella sia in scena, non da che linguetta ci si arriva.
-  const input = doc?.getElementById("ed-avv-icon");
+function vestiIlCampoAvviso(input) {
   const row = input?.parentElement;
   if (!input || !row) return false;
   row.classList.add("dm-beta11-alert-icon-row");
@@ -235,6 +232,24 @@ function decorateAlertIconField() {
     button.hidden = true;
   });
   return true;
+}
+
+/* Gli avvisi vivono in fondo alla scheda dei widget: quello che conta e' che
+ * la loro casella sia in scena, non da che linguetta ci si arriva.
+ *
+ * E se di caselle ce n'e' piu' d'una si vestono tutte. L'editor storico, dopo
+ * un ridisegno parziale, puo' lasciare in piedi un secondo pannello con la sua
+ * copia del campo: `getElementById` ne vede una sola, e la lente dell'altra
+ * restava com'era — non ritirata e non marcata. Chi ci arrivava sopra
+ * riapriva il vecchio selettore accanto all'anteprima, cioe' i «due menu per
+ * inserire icona» che questa vestizione esiste per togliere. Su iPad e'
+ * successo davvero. */
+function decorateAlertIconField() {
+  const caselle = doc?.querySelectorAll?.("#ed-avv-icon");
+  if (!caselle?.length) return false;
+  let vestita = false;
+  for (const casella of caselle) if (vestiIlCampoAvviso(casella)) vestita = true;
+  return vestita;
 }
 
 function run() {
@@ -299,9 +314,11 @@ function install() {
     doc.addEventListener(
       "click",
       (event) => {
-        const trigger = event.target?.closest?.(
-          ".dm-beta5-alert-icon-trigger[data-dm-beta11-alert-picker='true']",
-        );
+        /* Ogni lente dell'avviso, marcata o no. La marcatura e' il segno che
+         * la vestizione c'e' passata, non il permesso: se una lente e' li' e
+         * qualcuno la preme, il menu da aprire e' uno solo comunque — quello
+         * del catalogo — anche se la vestizione non l'ha ancora raggiunta. */
+        const trigger = event.target?.closest?.(".dm-beta5-alert-icon-trigger");
         if (trigger) {
           const input = trigger.closest(".dm-beta11-alert-icon-row")?.querySelector("#ed-avv-icon");
           if (input) {

@@ -42,7 +42,10 @@ test("room rows preserve metadata and delegate icon rendering to the canonical e
   const source = await readFile(polishUrl, "utf8");
   assert.match(source, /function mergedRooms\(\)/);
   assert.match(source, /return \{ \.\.\.fallback, \.\.\.room \}/);
-  assert.match(source, /icon\.dataset\.roomIcon = clean\(room\.icon \|\| icon\.dataset\.roomIcon \|\| "mdi:home"\)/);
+  assert.match(
+    source,
+    /icon\.dataset\.roomIcon = clean\(room\.icon \|\| icon\.dataset\.roomIcon \|\| "mdi:home"\)/,
+  );
   assert.match(source, /DashboardModernIconEngine\?\.syncEditor\?\.\(\)/);
   assert.doesNotMatch(source, /icon\.innerHTML\s*=/);
   assert.doesNotMatch(source, /target\.innerHTML\s*=\s*roomMarkup/);
@@ -56,7 +59,10 @@ test("room rows preserve metadata and delegate icon rendering to the canonical e
 test("alerts get an expanded coherent visual picker without polling", async () => {
   const source = await readFile(polishUrl, "utf8");
   const catalogEntries = [...source.matchAll(/^\s*\["[^\"]+",\s*"[^\"]+",\s*"[^\"]+",/gm)];
-  assert.ok(catalogEntries.length >= 35, `expected at least 35 alert icons, got ${catalogEntries.length}`);
+  assert.ok(
+    catalogEntries.length >= 35,
+    `expected at least 35 alert icons, got ${catalogEntries.length}`,
+  );
   assert.match(source, /dm-beta11-alert-picker/);
   assert.match(source, /dm-beta11-alert-grid/);
   assert.match(source, /data-alert-icon/);
@@ -75,8 +81,14 @@ test("l'icona degli avvisi ha un menu solo: l'anteprima", async () => {
   const source = await readFile(polishUrl, "utf8");
   assert.match(source, /button\.hidden = true/);
   assert.doesNotMatch(source, /button\.textContent = "🎨"/);
-  assert.match(source, /\.dm-beta11-alert-icon-row>\.dm-beta5-alert-icon-trigger\{display:none!important\}/);
-  assert.match(source, /dm-beta11-alert-icon-row\{display:grid!important;grid-template-columns:64px minmax\(0,1fr\)!important/);
+  assert.match(
+    source,
+    /\.dm-beta11-alert-icon-row>\.dm-beta5-alert-icon-trigger\{display:none!important\}/,
+  );
+  assert.match(
+    source,
+    /dm-beta11-alert-icon-row\{display:grid!important;grid-template-columns:64px minmax\(0,1fr\)!important/,
+  );
   assert.match(source, /button\.dataset\.dmBeta11AlertPicker = "true"/);
 });
 
@@ -115,8 +127,36 @@ test("l'anteprima dell'icona di un avviso disegna i nomi mdi col motore (dal cam
     sezione,
     /const disegnata = \/\^mdi:\/i\.test\(valore\)\s*\?\s*root\.DashboardModernIconEngine\?\.markup\?\.\("action", valore, \{ size: 34 \}\) \|\| ""\s*:\s*"";/,
   );
-  assert.match(sezione, /if \(disegnata\) preview\.innerHTML = disegnata;\s*else preview\.textContent = valore;/);
+  assert.match(
+    sezione,
+    /if \(disegnata\) preview\.innerHTML = disegnata;\s*else preview\.textContent = valore;/,
+  );
   assert.equal(/preview\.textContent = clean\(input\.value\) \|\| "🔔";/.test(sezione), false);
   /* E il riquadro non lascia piu' uscire un testo lungo. */
-  assert.match(sezione, /\.dm-beta11-alert-preview\{overflow:hidden!important;word-break:break-all!important\}/);
+  assert.match(
+    sezione,
+    /\.dm-beta11-alert-preview\{overflow:hidden!important;word-break:break-all!important\}/,
+  );
+});
+
+/* Le lenti dell'avviso si ritirano tutte, non solo la prima.
+ *
+ * L'editor storico, dopo un ridisegno parziale, può lasciare in piedi un
+ * secondo pannello con la sua copia del campo `#ed-avv-icon`.
+ * `getElementById` ne vede una sola: la lente dell'altra restava com'era — non
+ * ritirata e non marcata — e chi ci arrivava sopra riapriva il vecchio
+ * selettore accanto all'anteprima, cioè i «due menu per inserire icona» che
+ * questa vestizione esiste per togliere. Su iPad è successo davvero, e la
+ * prova e2e l'ha visto sull'ultima lente della pagina.
+ */
+test("di caselle avviso ce ne può essere più d'una, e si vestono tutte", async () => {
+  const source = await readFile(polishUrl, "utf8");
+  /* Non «la prima che si trova»: tutte quelle che ci sono. */
+  assert.match(source, /doc\?\.querySelectorAll\?\.\("#ed-avv-icon"\)/);
+  assert.doesNotMatch(source, /getElementById\("ed-avv-icon"\)/);
+  assert.match(source, /for \(const casella of caselle\) if \(vestiIlCampoAvviso\(casella\)\)/);
+  /* E il click si prende ogni lente, marcata o no: la marcatura dice che la
+   * vestizione c'è passata, non se quel tasto può aprire il catalogo. Un menu
+   * solo vale anche per la lente che la vestizione non ha ancora raggiunto. */
+  assert.match(source, /closest\?\.\("\.dm-beta5-alert-icon-trigger"\)/);
 });
