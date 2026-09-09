@@ -39,6 +39,7 @@ import {
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
+import { escluseDellaTessera } from "../core/fuori-dai-widget.js";
 import {
   TONO_DEL_GRADO,
   eUnaMisuraDellAria,
@@ -714,7 +715,8 @@ function localToday() {
 }
 
 function todoModel() {
-  const lists = configuredTodoLists().filter((list) => widgetIncludes(list.entity));
+  const fuori = widgetExcludedEntities("agenda");
+  const lists = configuredTodoLists().filter((list) => widgetIncludes(list.entity, fuori));
   if (!lists.length) return null;
   let pending = 0;
   let total = 0;
@@ -771,7 +773,7 @@ function paroleDelCalendario() {
  */
 /* Le liste grezze, per chi deve contare le scadenze senza disegnare niente. */
 function blocchiDelleListe() {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("agenda");
   return configuredTodoLists()
     .filter((list) => widgetIncludes(list.entity, fuori))
     .map((list) => ({ list, items: record(list.entity).items }));
@@ -855,7 +857,7 @@ function lightsModel(states) {
   } catch (_error) {
     return null;
   }
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("luci");
   const rows = groups.flatMap((group) =>
     group.entities
       .filter((entity) => widgetIncludes(entity, fuori))
@@ -942,7 +944,7 @@ function climateModel(states) {
   } catch (_error) {
     return null;
   }
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("clima");
   const rows = units
     .map((unit) => rigaClima(states, unit))
     .filter((riga) => riga && widgetIncludes(riga.entity, fuori));
@@ -999,7 +1001,7 @@ function climateRow(entity) {
 function coversModel(states) {
   const values = root.getTapparelle?.() || readJson("cd_tapparelle", []);
   if (!Array.isArray(values) || !values.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("tapparelle");
   /* Una riga puo' portare tapparella, tenda e tenda da sole insieme: la
    * tessera ne mostrava solo la prima, e chi ha le tende in Home non le
    * vedeva. Adesso ogni copertura della riga e' una voce, col suo nome e col
@@ -1112,7 +1114,7 @@ function coversModel(states) {
 }
 
 function securityModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("sicurezza");
   const alarm = stateOf(states, RIF_CENTRALE);
   /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
   const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
@@ -1170,6 +1172,7 @@ function formatWatts(value) {
 }
 
 function camerasModel() {
+  const fuori = widgetExcludedEntities("telecamere");
   let cameras = [];
   try {
     cameras = root.getCameras?.() || [];
@@ -1179,7 +1182,7 @@ function camerasModel() {
       entity: clean(camera?.entity),
       name: clean(camera?.name) || clean(camera?.entity),
     }))
-    .filter((row) => row.entity && widgetIncludes(row.entity));
+    .filter((row) => row.entity && widgetIncludes(row.entity, fuori));
   if (!rows.length) return null;
   return {
     key: "telecamere",
@@ -1345,7 +1348,7 @@ function energyModels(states) {
 function appliancesModel(states) {
   const devices = section("appliances", readJson("cd_appliances", []));
   if (!Array.isArray(devices) || !devices.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("elettrodomestici");
   const rows = devices
     .filter((device) => device?.enabled !== false)
     .filter((device) =>
@@ -1384,7 +1387,7 @@ function appliancesModel(states) {
 function temperatureModel(states) {
   const rooms = root.getStanze?.() || readJson("cd_stanze", []);
   if (!Array.isArray(rooms)) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("temperatura");
   const rows = rooms
     .filter((room) => clean(room?.temp) && widgetIncludes(room.temp, fuori))
     .map((room) => {
@@ -1807,7 +1810,7 @@ export function lettureDelleVetture(states, auto = [], fuori = new Set()) {
 }
 
 function evModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("ev");
   const profilate = lettureDelleVetture(states, vetture(), fuori);
   /* Il profilo comanda appena e' leggibile, anche da solo: prima, con UNA
    * vettura profilata, si leggevano solo le chiavi globali — che si riempiono
@@ -1881,7 +1884,7 @@ function robotsModel(states) {
   const robots = normalizeRobots(
     Array.isArray(salvati) && salvati.length ? salvati : readJson("cd_robot", []),
   );
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("robot");
   const viste = robots
     .filter((robot) => clean(robot.entity) && widgetIncludes(clean(robot.entity), fuori))
     .map((robot) => robotView(robot, states));
@@ -1981,7 +1984,7 @@ const STATI_SPENTI = /^(off|false|0|idle|ferma|fermo|closed|chiusa|standby)$/i;
 const STATI_MUTI = /^(unknown|unavailable|none|)$/i;
 
 function solarThermalModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("solare");
   const righe = [];
   const visti = new Set();
   let primaSonda = null;
@@ -2092,7 +2095,7 @@ const GLIFI_SCALDABAGNO = Object.freeze({
 });
 
 function scaldabagnoModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("scaldabagno");
   const letture = lettureScaldabagni(
     configuredScaldabagni(),
     states,
@@ -2198,7 +2201,7 @@ function caldaiaModel(states) {
   const config = readJson(CHIAVE_CALDAIA, {});
   const entita = entitaDelleCaldaie(config);
   if (!entita.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("caldaia");
   if (!entita.some((entity) => widgetIncludes(entity, fuori))) return null;
   const dati = normalizzaCaldaie(config);
   const letture = lettureCaldaie(config, states, root.resolveEntity || ((value) => value));
@@ -2365,7 +2368,7 @@ function upsModel(states) {
     (gruppo) => entitaDellUps(gruppo).length > 0,
   );
   if (!gruppi.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("ups");
   const visibili = gruppi.filter((gruppo) =>
     entitaDellUps(gruppo).some((entity) => widgetIncludes(entity, fuori)),
   );
@@ -2521,7 +2524,7 @@ function contaDaFare(tessera) {
 function poolModel(states) {
   const config = root.getPool?.() || readJson("cd_piscina", {});
   if (!config || typeof config !== "object") return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("piscina");
   /* Tutte le vasche, non solo la prima.
    *
    * Qui si leggeva `config` cosi' com'e', che sono le caselle della PRIMA
@@ -2624,7 +2627,7 @@ function preseModel(states) {
   const grezzo = Array.isArray(canonico) && canonico.length ? canonico : readJson("cd_prese", []);
   const prese = normalizzaPrese(grezzo).filter((presa) => clean(presa.entity));
   if (!prese.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("prese");
   const rows = [];
   for (const presa of prese) {
     if (!widgetIncludes(presa.entity, fuori)) continue;
@@ -2684,7 +2687,7 @@ function cosaSuona(riga, conIlPosto) {
 function mediaModel(states) {
   const lettori = lettoriConfigurati(readJson(CHIAVE_MEDIA, []));
   if (!lettori.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("media");
   const dentro = lettori.filter((voce) => widgetIncludes(voce.entity, fuori));
   if (!dentro.length) return null;
   const righe = lettureDeiLettori(dentro, states, root.resolveEntity || ((valore) => valore));
@@ -2809,7 +2812,7 @@ const CASELLE_MINIPC = Object.freeze([
  * faticando?»; il resto sta nella finestra, e il tasto porta alla sua
  * sezione. */
 export function minipcModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("minipc");
   const rows = [];
   const visti = new Set();
   let carico = null;
@@ -2868,7 +2871,7 @@ export function minipcModel(states) {
 function irrigationModel(states) {
   const config = root.getIrr?.() || readJson("cd_irrigazione", {});
   const zones = Array.isArray(config?.zones) ? config.zones : [];
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("irrigazione");
   const attive = zones.filter((zona) => {
     const entity = clean(zona?.entity);
     return entity && widgetIncludes(entity, fuori);
@@ -3015,7 +3018,11 @@ export function entitaSorvegliate(chiave, { extras, removed, vive } = {}) {
   return uscita;
 }
 
-export function gruppoEntita(chiave) {
+/* Il secondo argomento e' la tessera per cui si sta chiedendo l'elenco: le
+ * stesse entita' sorvegliate finiscono in tessere diverse, e la scelta di
+ * lasciarne fuori una vale per la tessera che la mostra. Senza, si legge solo
+ * quello che e' fuori da tutte. */
+export function gruppoEntita(chiave, tessera = "") {
   try {
     let vive = [];
     try {
@@ -3026,7 +3033,7 @@ export function gruppoEntita(chiave) {
       removed: readJson("cd_gruppi_removed", {}),
       vive,
     });
-    const fuori = widgetExcludedEntities();
+    const fuori = widgetExcludedEntities(tessera);
     return lista.filter((entity) => widgetIncludes(entity, fuori));
   } catch (_error) {
     return [];
@@ -3054,9 +3061,9 @@ function batteriesModel(states) {
    * delle tessere: nascondere una batteria da Home e' una scelta che riguarda
    * Home, non un modo di dire che quella pila non esiste. La regola che
    * compone l'elenco sta in `batterie-di-casa.js`, ed e' una sola. */
-  const fuoriDaiWidget = widgetExcludedEntities();
+  const fuoriDaiWidget = widgetExcludedEntities("batterie");
   const entities = batterieDiCasa({
-    configurate: gruppoEntita("batt"),
+    configurate: gruppoEntita("batt", "batterie"),
     stati: states,
     tolte: readJson("cd_gruppi_removed", {})?.batt,
   }).filter((entity) => widgetIncludes(entity, fuoriDaiWidget));
@@ -3127,7 +3134,7 @@ function batteriesModel(states) {
  * valore, la didascalia dice quale sostanza e' e come sta.
  */
 function ariaModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("aria");
   /* Quello che chi ha la casa ha detto sull'aria: quali sensori non contano,
    * quali contano anche se Home Assistant non li dichiara, e con che confini.
    * Sta in `cd_allerte.aria` e si scrive dalla scheda Allerte — «mi devi creare
@@ -3196,7 +3203,7 @@ function ariaModel(states) {
  * piu' un avviso. Le righe sono pastiglie, rosse le aperte e verdi le chiuse,
  * che e' esattamente la colorazione chiesta nella segnalazione. */
 function varchiModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("varchi");
   const config = readJson(CHIAVE_VARCHI, {});
   const girati = insiemeInvertiti(readJson(CHIAVE_VERSI, {}));
   const righe = varchiDiCasa(states, config, girati, (entity) =>
@@ -3246,7 +3253,7 @@ function varchiModel(states) {
  * e poi guardo i ripetitori». Aprendola si distinguono: le pastiglie portano
  * il verde di chi va e il rosso di chi non va. */
 function macchineModel(states) {
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("macchine");
   const config = readJson(CHIAVE_MACCHINE, {});
   /* Le stesse integrazioni scelte per la pagina Server: la tessera non conta
    * niente che quella pagina non mostrerebbe. */
@@ -3324,7 +3331,7 @@ function fumoModel(states) {
     return null;
   }
   if (!Array.isArray(entities) || !entities.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("fumo");
   const nomi = readJson("cd_avvisi_names_extra", {}) || {};
   const righe = entities
     .filter((entity) => widgetIncludes(entity, fuori))
@@ -3372,7 +3379,7 @@ function floodModel(states) {
     return null;
   }
   if (!Array.isArray(entities) || !entities.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("allagamenti");
   const rows = entities
     .filter((entity) => widgetIncludes(entity, fuori))
     .map((entity) => ({
@@ -3465,7 +3472,7 @@ function customAlertModels(states) {
         : avviso?.entity
           ? [avviso.entity]
           : [];
-      const fuori = widgetExcludedEntities();
+      const fuori = widgetExcludedEntities(`custom-${index}`);
       const rows = entities
         .map(clean)
         .filter((entity) => entity && widgetIncludes(entity, fuori))
@@ -3526,7 +3533,7 @@ export const eUnaTesseraSola = (voce) =>
 export function evidenzaModel(states) {
   const voci = readJson(EVIDENZA_CONFIG_KEY, []);
   if (!Array.isArray(voci)) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("evidenza");
   const rows = voci
     .filter((voce) => !eUnaTesseraSola(voce))
     .map((voce) => rigaInEvidenza(states, voce, fuori))
@@ -3554,7 +3561,10 @@ export function evidenzaModel(states) {
 export function evidenzeSingole(states) {
   const voci = readJson(EVIDENZA_CONFIG_KEY, []);
   if (!Array.isArray(voci)) return [];
-  const fuori = widgetExcludedEntities();
+  /* Qui le tessere sono tante quante le voci «a se'», e ognuna ha la sua
+   * chiave: l'elenco delle escluse si legge una volta e si ritaglia per voce,
+   * invece di rileggere la configurazione a ogni giro. */
+  const elenco = widgetPreferences().excluded;
   let stanze = [];
   try {
     stanze = root.getStanze?.() || readJson("cd_stanze", []) || [];
@@ -3564,7 +3574,7 @@ export function evidenzeSingole(states) {
   return voci
     .map((voce, index) => {
       if (!eUnaTesseraSola(voce)) return null;
-      const riga = rigaInEvidenza(states, voce, fuori);
+      const riga = rigaInEvidenza(states, voce, escluseDellaTessera(elenco, `evidenza-${index}`));
       if (!riga) return null;
       const stanza = Array.isArray(stanze)
         ? stanze.find((room) => clean(room?.id) === clean(voce?.room_id))
@@ -3662,18 +3672,26 @@ export function sorgenteDelWidget(chiave, preferences = widgetPreferences()) {
   return clean(preferences?.sorgenti?.[clean(chiave)]);
 }
 
-/* Le entita' che restano fuori dai widget.
+/* Le entita' che restano fuori da UNA tessera.
  *
  * Ogni tessera legge la configurazione della sua sezione, tutta: senza una
  * parola in contrario, quello che c'e' nella sezione finisce nel widget. La
  * parola in contrario e' questa — l'interruttore accanto a ogni entita' negli
  * editor — e si tiene in `cd_widgets`, insieme all'ordine e alle tessere
  * nascoste. Chi non e' nell'elenco e' dentro: cosi' chi non tocca niente
- * vede quello che vedeva prima. */
-export function widgetExcludedEntities() {
-  return new Set(widgetPreferences().excluded);
+ * vede quello che vedeva prima.
+ *
+ * La chiave e' quella della tessera che sta chiedendo, ed e' obbligatoria di
+ * fatto: un contatto scritto sia nelle Finestre sia nei Varchi si spegne in
+ * una senza sparire dall'altra, e senza chiave le due domande sono la stessa.
+ * Chi la regola sta in `fuori-dai-widget.js`; qui si legge e basta. */
+export function widgetExcludedEntities(chiave = "") {
+  return escluseDellaTessera(widgetPreferences().excluded, chiave);
 }
 
+/* L'insieme si passa sempre: e' quello della tessera che sta chiedendo. Senza,
+ * si guarda solo chi e' fuori da tutte le tessere — che e' la risposta giusta
+ * a una domanda che non nomina nessuna tessera, non una scorciatoia. */
 export function widgetIncludes(entity, excluded = widgetExcludedEntities()) {
   const id = clean(entity);
   return !id || !excluded.has(id);
@@ -3862,7 +3880,7 @@ export function paroleDelleFontiMute(quante) {
 function allerteModel(states) {
   const config = readJson(CHIAVE_ALLERTE, {});
   if (!categorieConfigurate(config).length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("allerte");
   if (!entitaDelleAllerte(config).some((entity) => widgetIncludes(entity, fuori))) return null;
   const letture = letturaAllerte(config, states, root.resolveEntity || ((value) => value));
   const attive = allerteAttive(letture);
@@ -3922,7 +3940,7 @@ function rifiutiModel(states) {
    * frigo, e di interruttori da spegnere non ne ha. Contarlo per zero voleva
    * dire che chi configurava SOLO le due settimane si ritrovava la sezione
    * piena e in Home nessuna tessera. */
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("rifiuti");
   const dato = normalizzaRifiuti(grezza);
   const config = {
     ...dato,
@@ -3981,7 +3999,7 @@ function vmcModel(states) {
   const config = readJson(CHIAVE_VMC, []);
   const unita = vmcDisegnabili(config);
   if (!unita.length) return null;
-  const fuori = widgetExcludedEntities();
+  const fuori = widgetExcludedEntities("vmc");
   if (!entitaDellaVmc(config).some((entity) => widgetIncludes(entity, fuori))) return null;
   const letture = unita.map((voce) => letturaVmc(voce, states)).filter(vmcParla);
   if (!letture.length) return null;

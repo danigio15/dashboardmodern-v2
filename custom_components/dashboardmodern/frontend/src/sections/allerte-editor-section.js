@@ -31,6 +31,7 @@ import {
   wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
+import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
 
 const KEY = "__DASHBOARDMODERN_ALLERTE_EDITOR__";
 const state = (root[KEY] ||= { installed: false });
@@ -242,7 +243,10 @@ function ariaMarkup(config) {
         )}<button type="button" class="ed-del" data-dm-aria-togli="${esc(entity)}" aria-label="${esc(t("Elimina", "Remove"))}">✕</button></span>`,
     )
     .join("");
-  return `<article class="ed-row dm-todo-ed-row dm-allerte-ed-fonte dm-aria-ed" data-open="true" data-dm-allerte-fonte-riga="${CHIAVE_ARIA}">
+  /* Il marchio dice che questa riga parla della tessera dell'aria e non di
+   * quella delle allerte: stanno nella stessa scheda, e chi mette un sensore
+   * fuori dai widget da qui non sta parlando dei temporali. */
+  return `<article class="ed-row dm-todo-ed-row dm-allerte-ed-fonte dm-aria-ed" data-open="true" data-dm-allerte-fonte-riga="${CHIAVE_ARIA}" ${MARCHIO_TESSERA}="${CHIAVE_ARIA}">
     <div class="dm-allerte-ed-testa"><span aria-hidden="true">🍃</span><strong>${esc(t("Qualità dell'aria", "Air quality"))}</strong></div>
     <div class="dm-todo-ed-body">
       <div class="ed-intro">${esc(

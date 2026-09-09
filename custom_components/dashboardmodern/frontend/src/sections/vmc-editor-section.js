@@ -31,6 +31,7 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
 
 const KEY = "__DASHBOARDMODERN_VMC_EDITOR__";
 const state = (root[KEY] ||= { installed: false, contatore: 0 });
@@ -164,6 +165,10 @@ export function ensureVmcEditor() {
     scheda = doc.createElement("section");
     scheda.id = ANCORA;
     scheda.className = "ed-form dm-vmc-ed";
+    /* La scheda sta dentro il Clima ma la tessera in Home e' un'altra: senza
+     * dirlo, l'interruttore «nel widget» accanto a una sonda della VMC
+     * scriverebbe una scelta a nome del Clima. */
+    scheda.setAttribute(MARCHIO_TESSERA, "vmc");
     body.append(scheda);
   } else if (scheda.dataset.dmVmcFirma === firma && scheda.firstElementChild) {
     return true;

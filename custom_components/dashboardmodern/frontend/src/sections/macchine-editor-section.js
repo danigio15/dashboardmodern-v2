@@ -54,6 +54,7 @@ import {
   writeJsonIfChanged,
 } from "./shared.js";
 import { nomeDaHomeAssistant } from "./editor-slots-section.js";
+import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
 
 const KEY = "__DASHBOARDMODERN_MACCHINE_EDITOR__";
 const state = (root[KEY] ||= { installed: false, catalogoChiesto: false });
@@ -241,6 +242,10 @@ export function ensureMacchineEditor() {
   chiediQuelloCheManca();
   const casella = doc.createElement("div");
   casella.id = ANCORA;
+  /* La scheda sta dentro il MiniPC e la tessera in Home e' quella delle
+   * macchine: chi mette un'entita' fuori dai widget da qui parla di questa,
+   * non del MiniPC. */
+  casella.setAttribute(MARCHIO_TESSERA, "macchine");
   casella.innerHTML = schedaMarkup();
   body.append(casella);
   return true;

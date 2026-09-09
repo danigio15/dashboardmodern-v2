@@ -1045,6 +1045,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
   // negoziare e prova per prima la strada ricordata. La cascata del guscio non
   // si tocca: resta la rete di sicurezza, intera.
+  // 308 con la tessera di cui parla una scelta: «se la finestra e configurata
+  // nella sezione finestre e no nei varchi la segnalazione resta in finestre
+  // non deve scomparire». Lo stesso contatto sta scritto in due sezioni e
+  // finisce in due tessere; l'interruttore «nel widget» spegneva l'entita' e
+  // non la riga, e toccarlo nei Varchi la faceva sparire anche dalle Finestre.
+  // `core/fuori-dai-widget.js` e' la regola: una voce nuda vale ovunque — cosi'
+  // chi ha gia' scelto non perde niente — e una voce «tessera|entita'» vale in
+  // quella tessera sola.
   // 307 con cosa c'e' dentro un'allerta quando la si apre (#422): «non si puo'
   // interagire con le schede allerte per espandere le informazioni». Il testo
   // di un avviso della protezione civile lo si tagliava a centottanta caratteri
@@ -1061,7 +1069,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
   assert.ok(
-    relative.length <= 307,
+    relative.length <= 308,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
