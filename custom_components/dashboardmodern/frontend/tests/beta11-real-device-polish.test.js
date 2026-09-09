@@ -160,3 +160,31 @@ test("di caselle avviso ce ne può essere più d'una, e si vestono tutte", async
    * solo vale anche per la lente che la vestizione non ha ancora raggiunto. */
   assert.match(source, /closest\?\.\("\.dm-beta5-alert-icon-trigger"\)/);
 });
+
+/* Il corpo dell'editor si riscrive anche quando non lo dice a nessuno.
+ *
+ * Il click e il cambio arrivano PRIMA che il guscio disegni: si vestiva quello
+ * che c'era in quel fotogramma, e la lente comparsa subito dopo restava com'era
+ * — nascosta dal foglio, perché la riga la classe ce l'aveva già, ma non
+ * ritirata. È il difetto che su iPad si è visto a intermittenza: dipende da chi
+ * arriva prima fra il nostro fotogramma e il disegno del guscio, e per due
+ * volte su tre arrivavamo prima noi.
+ *
+ * Adesso c'è un orecchio sul corpo dell'editor. E siccome la vestizione mette
+ * mano al documento, l'orecchio potrebbe risvegliarla all'infinito: guarda solo
+ * la struttura e non gli attributi, e l'anteprima si riscrive solo quando
+ * cambia davvero. Un giro che si richiama da solo sul fotogramma è la ventola
+ * accesa per niente — questo repository ne ha già inseguito uno.
+ */
+test("un orecchio sul corpo dell'editor, e niente giri che si richiamano", async () => {
+  const source = await readFile(polishUrl, "utf8");
+  assert.match(source, /function guardaIlCorpoDellEditor\(\)/);
+  assert.match(source, /guardaIlCorpoDellEditor\(\);/);
+  /* Solo la struttura: gli attributi li scriviamo noi, e non devono risvegliarci. */
+  assert.match(source, /\.observe\(modale, \{ childList: true, subtree: true \}\)/);
+  assert.doesNotMatch(source, /observe\([^)]*attributes: true/);
+  /* E l'anteprima si riscrive solo quando cambia. */
+  assert.match(source, /if \(preview\.dataset\.alertIcon !== valore\) \{/);
+  /* Le lenti si ritirano tutte, ovunque stiano nel corpo dell'editor. */
+  assert.match(source, /"#ed-body \.dm-beta5-alert-icon-trigger"/);
+});

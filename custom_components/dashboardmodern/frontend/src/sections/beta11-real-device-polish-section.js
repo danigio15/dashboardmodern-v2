@@ -211,12 +211,18 @@ function vestiIlCampoAvviso(input) {
    * il campo mostrava la scritta «mdi:door-closed» a caratteri cubitali al
    * posto di una porta. L'emoji resta emoji. */
   const valore = clean(input.value) || "🔔";
-  const disegnata = /^mdi:/i.test(valore)
-    ? root.DashboardModernIconEngine?.markup?.("action", valore, { size: 34 }) || ""
-    : "";
-  if (disegnata) preview.innerHTML = disegnata;
-  else preview.textContent = valore;
-  preview.dataset.alertIcon = valore;
+  /* Si riscrive solo quando cambia. Riscriverla ogni volta vorrebbe dire
+   * cambiare il documento a ogni passata, e chi guarda il corpo dell'editor
+   * (vedi in fondo) rimetterebbe in coda la passata successiva: un giro che
+   * non finisce mai, sul fotogramma, cioe' la ventola accesa per niente. */
+  if (preview.dataset.alertIcon !== valore) {
+    const disegnata = /^mdi:/i.test(valore)
+      ? root.DashboardModernIconEngine?.markup?.("action", valore, { size: 34 }) || ""
+      : "";
+    if (disegnata) preview.innerHTML = disegnata;
+    else preview.textContent = valore;
+    preview.dataset.alertIcon = valore;
+  }
   if (input.dataset.dmBeta11Bound !== "true") {
     input.dataset.dmBeta11Bound = "true";
     input.addEventListener("input", decorateAlertIconField);
@@ -227,11 +233,20 @@ function vestiIlCampoAvviso(input) {
    * il proprio selettore: due menu per la stessa icona. L'anteprima e' il
    * menu; il tasto di prima si ritira, ma resta marcato cosi' un click
    * arrivato prima di questa vestizione finisce comunque sul catalogo. */
-  row.querySelectorAll(".dm-beta5-alert-icon-trigger").forEach((button) => {
-    button.dataset.dmBeta11AlertPicker = "true";
-    button.hidden = true;
-  });
+  ritiraLeLenti();
   return true;
+}
+
+/* Le lenti si ritirano tutte, ovunque stiano nel corpo dell'editor.
+ *
+ * Guardarle solo dentro la riga della casella voleva dire fidarsi di dove
+ * l'editor storico le mette, che non e' una cosa su cui questo modulo abbia
+ * voce. Sono un pugno di nodi: si guardano tutti. */
+function ritiraLeLenti() {
+  for (const button of doc?.querySelectorAll?.("#ed-body .dm-beta5-alert-icon-trigger") || []) {
+    if (button.dataset.dmBeta11AlertPicker !== "true") button.dataset.dmBeta11AlertPicker = "true";
+    if (!button.hidden) button.hidden = true;
+  }
 }
 
 /* Gli avvisi vivono in fondo alla scheda dei widget: quello che conta e' che
@@ -344,8 +359,29 @@ function install() {
       true,
     );
     root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
+    guardaIlCorpoDellEditor();
   }
   schedule();
+}
+
+/* Il corpo dell'editor si riscrive anche quando non lo dice a nessuno.
+ *
+ * Il click e il cambio arrivano PRIMA che il guscio disegni: si vestiva quello
+ * che c'era in quel fotogramma, e la lente comparsa subito dopo restava com'era
+ * — nascosta dal foglio, perche' la riga la classe ce l'aveva gia', ma non
+ * ritirata. Su un iPad sotto carico e' successo davvero, e a intermittenza:
+ * dipende da chi arriva prima fra il nostro fotogramma e il disegno del guscio.
+ *
+ * Non e' un sorvegliante che gira a vuoto: dorme finche' l'editor non cambia,
+ * e quando cambia rimette in coda la stessa vestizione di sempre, che e'
+ * idempotente. Si guarda solo la struttura, non gli attributi, cosi' quello che
+ * scriviamo noi non ci risveglia. */
+function guardaIlCorpoDellEditor() {
+  const Osservatore = root.MutationObserver;
+  const modale = doc?.getElementById?.("editor-modal");
+  if (typeof Osservatore !== "function" || !modale) return false;
+  new Osservatore(schedule).observe(modale, { childList: true, subtree: true });
+  return true;
 }
 
 if (doc?.readyState === "loading") {
