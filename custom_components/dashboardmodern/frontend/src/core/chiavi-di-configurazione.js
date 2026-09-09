@@ -191,8 +191,15 @@
  * variazione. Nel mio caso il vano tecnico». Una stanza fuori scala schiaccia
  * tutte le altre, e toglierla è una cosa che si dice della casa, non dello
  * schermo da cui la si è detta: chi ha tolto il vano tecnico dal computer non
- * se lo ritrova dentro sul telefono. */
-export const CONFIG_KEYS_REVISION = 39;
+ * se lo ritrova dentro sul telefono.
+ *
+ * La revisione 40 aggiunge la presenza (`cd_presenza`, #432): «ci vorrebbe una
+ * sezione con i sensori presenza o movimento». Sono le stesse tre correzioni
+ * dei varchi — quale rilevatore non guarda la casa, quale aggiungere a mano,
+ * come si chiama — e sono correzioni al rilevamento di CASA: il sensore del
+ * cortile è fuori posto su ogni dispositivo, e il nome dato a «Motion 3C» vale
+ * per tutti. */
+export const CONFIG_KEYS_REVISION = 40;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -320,6 +327,11 @@ export const CONFIG_KEYS = Object.freeze([
    * il sensore del frigo etichettato «door» e' sbagliato su ogni dispositivo,
    * e il nome che gli si da' vale per tutti. */
   "cd_varchi",
+  /* La presenza (#432): quali rilevatori di movimento non contano, quali
+   * aggiungere a mano e come si chiamano. Stessa natura dei varchi — sono
+   * correzioni al rilevamento di casa — e quindi stesso viaggio fra i
+   * dispositivi. */
+  "cd_presenza",
   /* Le macchine del server e la rete (#382): quali sensori contano e come si
    * chiamano. Il server e' uno solo per tutta la casa, e il nome che si da' a
    * «pve_qemu_103» vale su ogni dispositivo che lo guarda. */

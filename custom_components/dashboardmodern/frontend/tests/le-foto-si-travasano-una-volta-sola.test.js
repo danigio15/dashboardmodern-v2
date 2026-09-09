@@ -144,11 +144,20 @@ test("togliere una chiave non alza la revisione", async () => {
    * togliere dal grafico alcune entita'/stanze cliccandoci sopra in modo tale
    * che diventi piu' leggibile la variazione. Nel mio caso il vano tecnico».
    * Una stanza fuori scala schiaccia tutte le altre, e toglierla e' una cosa
-   * che si dice della casa, non del vetro da cui la si e' detta. */
-  assert.equal(CONFIG_KEYS_REVISION, 39);
+   * che si dice della casa, non del vetro da cui la si e' detta. E la 40 con la
+   * presenza (#432, `cd_presenza`): «ci vorrebbe una sezione con i sensori
+   * presenza o movimento». Sono le stesse tre correzioni dei varchi — quale
+   * rilevatore non guarda la casa, quale aggiungere a mano, come si chiama — e
+   * sono correzioni al rilevamento di CASA: il sensore del cortile e' fuori
+   * posto su ogni dispositivo, e il nome dato a «Motion 3C» vale per tutti. */
+  assert.equal(CONFIG_KEYS_REVISION, 40);
   assert.ok(
     CONFIG_KEYS.includes("cd_flusso_home"),
     "il flusso in Home si sceglie per la casa, non per lo schermo",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_presenza"),
+    "i rilevatori di presenza si correggono per la casa, non per lo schermo",
   );
   assert.ok(
     CONFIG_KEYS.includes("cd_antifurto_su_misura"),

@@ -1045,6 +1045,17 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
   // negoziare e prova per prima la strada ricordata. La cascata del guscio non
   // si tocca: resta la rete di sicurezza, intera.
+  // 313 con la presenza in casa (#432): «ci vorrebbe una sezione con i sensori
+  // presenza o movimento». Quattro moduli, e nessuno di piu': `core/da-quanto.js`
+  // e' la sveglia e le parole del «da quanto» — stavano dentro
+  // `core/varchi-di-casa.js`, dove sono servite per primo, e non sono dei
+  // varchi: le scrive anche la presenza, e chiedere l'ora al modulo delle porte
+  // sarebbe la dipendenza che fra un anno fa domandare «ma perche' la presenza
+  // dipende dai varchi?». `core/presenza-in-casa.js` legge i rilevatori — quali
+  // sono di casa, come stanno, da quanto — e `sections/presenza-section.js` e
+  // `sections/presenza-editor-section.js` sono la pagina e la sua scheda, nella
+  // stessa forma dei Varchi perche' e' la stessa domanda su un'altra famiglia
+  // di sensori.
   // 309 con cosa disegna il grafico delle Temperature (#427, #433): «avere
   // anche quello relativo all'umidità» e «poter togliere dal grafico alcune
   // entità/stanze cliccandoci sopra … nel mio caso il vano tecnico». Due
@@ -1076,7 +1087,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
   assert.ok(
-    relative.length <= 309,
+    relative.length <= 313,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

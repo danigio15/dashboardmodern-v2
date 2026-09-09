@@ -157,6 +157,7 @@ export const TESSERE_PER_SCHEDA = Object.freeze({
   media: "media",
   batterie: "batterie",
   varchi: "varchi",
+  presenza: "presenza",
   rifiuti: "rifiuti",
   /* Le porte e i cancelli si configurano in una scheda loro e si mostrano
    * nella tessera della Sicurezza: non esiste una tessera «porte». */

@@ -62,9 +62,13 @@ test("la pagina scrive da quando, e torna all'identificativo solo senza istante"
   const sezione = await leggi("../src/sections/varchi-section.js");
   assert.match(sezione, /function daQuandoMarkup\(riga\)/);
   /* Il numero sta fuori dalla frase da tradurre: dentro, la chiave sarebbe
-   * diversa per ogni minuto e non si troverebbe in nessun catalogo. */
-  assert.match(sezione, /function quantoTempo\(minuti\)/);
-  assert.match(sezione, /\$\{Math\.round\(minuti\)\} \$\{t\("minuti", "minutes"\)\}/);
+   * diversa per ogni minuto e non si troverebbe in nessun catalogo. Le parole
+   * del tempo stanno in `da-quanto.js`, perché non sono dei varchi: le scrive
+   * anche la Presenza, e due copie della stessa scala si sarebbero scollate. */
+  assert.match(sezione, /quantoTempoInParole\(minuti\)/);
+  const quanto = await leggi("../src/core/da-quanto.js");
+  assert.match(quanto, /export function quantoTempoInParole\(minuti\)/);
+  assert.match(quanto, /\$\{Math\.round\(minuti\)\} \$\{pick\("minuti", "minutes"\)\}/);
   /* Senza istante resta l'identificativo: è comunque meglio di una riga
    * vuota. */
   assert.match(sezione, /if \(riga\.da === null \|\| riga\.da === undefined\)/);

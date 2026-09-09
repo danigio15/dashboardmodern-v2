@@ -166,6 +166,11 @@ import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
 import {
+  CHIAVE_PRESENZA,
+  contoDellaPresenza,
+  presenzaDiCasa,
+} from "../core/presenza-in-casa.js";
+import {
   CHIAVE_MACCHINE,
   contoDelleMacchine,
   macchineERete,
@@ -3325,6 +3330,59 @@ function varchiModel(states) {
   };
 }
 
+/* La presenza: in quante stanze c'è qualcuno adesso (#432).
+ *
+ * «Ci vorrebbe una sezione con i sensori presenza o movimento.»
+ *
+ * Il numero grande è quello: quante stanze hanno qualcuno dentro. La
+ * didascalia dice QUALI, perché «in due stanze» senza sapere quali obbliga ad
+ * aprire la scheda per una domanda che si fa in mezzo secondo — ed è la stessa
+ * scelta della tessera dei Varchi, che è la stessa domanda su un'altra
+ * famiglia di sensori.
+ *
+ * La tessera non si accende mai: qualcuno che è in casa non è un allarme, è la
+ * normalità. Chi vuole l'avviso lo mette sulla Sicurezza, che è dove sta.
+ */
+function presenzaModel(states) {
+  const fuori = widgetExcludedEntities("presenza");
+  const righe = presenzaDiCasa(states, readJson(CHIAVE_PRESENZA, {}), (entity) =>
+    friendlyName(states, entity),
+  ).filter((riga) => widgetIncludes(riga.entity, fuori));
+  if (!righe.length) return null;
+  const conto = contoDellaPresenza(righe);
+  return {
+    key: "presenza",
+    accent: conto.attivi ? "#2563eb" : "#16a34a",
+    icon: "🏃",
+    label: t("Presenza", "Presence"),
+    value: String(conto.attivi),
+    caption: conto.attivi
+      ? conto.nomi.join(" · ")
+      : t(`Casa libera · ${conto.liberi}`, `Nobody around · ${conto.liberi}`),
+    ring: conto.totale ? Math.round((conto.attivi / conto.totale) * 100) : null,
+    rows: righe.map((riga) => ({
+      entity: riga.entity,
+      name: riga.name,
+      glyph: riga.glifo,
+      on: riga.stato === "attivo",
+      /* Il tono dice il colore della pastiglia senza sapere di cosa parla: chi
+       * rileva qualcuno è una cosa che sta succedendo — non un allarme, che è
+       * il rosso — e una stanza libera è la quiete. */
+      tono: riga.stato === "attivo" ? "acceso" : riga.stato === "libero" ? "quiete" : "",
+      value:
+        riga.stato === "attivo"
+          ? riga.stabile
+            ? t("Occupato", "Occupied")
+            : t("Movimento", "Movement")
+          : riga.stato === "libero"
+            ? riga.stabile
+              ? t("Libero", "Free")
+              : t("Fermo", "Still")
+            : t("Non risponde", "Not answering"),
+    })),
+  };
+}
+
 /* Le macchine del server e la rete (#382).
  *
  * «I controlli del server proxmox dove gira HA con tutti i suoi container, e
@@ -4156,6 +4214,7 @@ export function modelliDelleTessere(states) {
       coversModel(states),
       securityModel(states),
       varchiModel(states),
+      presenzaModel(states),
       camerasModel(states),
       ...energyModels(states),
       appliancesModel(states),
@@ -7626,6 +7685,13 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   border-color:color-mix(in srgb,#dc2626 34%,transparent);
   background:color-mix(in srgb,#dc2626 12%,transparent);
   color:color-mix(in srgb,#dc2626 78%,#0f172a)}
+/* «Acceso» non e' «allarme»: e' una cosa che sta succedendo e che si vuole
+   vedere — una stanza con dentro qualcuno (#432) — non una da guardare
+   subito. Il rosso resta a chi deve alzare la testa. */
+#dm-widget-popup .dm-w-pillola[data-tono="acceso"]{
+  border-color:color-mix(in srgb,#2563eb 34%,transparent);
+  background:color-mix(in srgb,#2563eb 12%,transparent);
+  color:color-mix(in srgb,#2563eb 78%,#0f172a)}
 #dm-widget-popup .dm-w-pillola[data-tono="quiete"]{
   border-color:color-mix(in srgb,#16a34a 30%,transparent);
   background:color-mix(in srgb,#16a34a 10%,transparent);

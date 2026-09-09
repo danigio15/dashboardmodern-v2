@@ -20,8 +20,8 @@ import {
   contoDeiVarchi,
   varchiConfigurati,
   varchiDiCasa,
-  prossimoCambioDelDaQuando,
 } from "../core/varchi-di-casa.js";
+import { prossimoCambioDelDaQuando, quantoTempoInParole } from "../core/da-quanto.js";
 import {
   allStates,
   clean,
@@ -171,20 +171,6 @@ export function titoloDeiVarchi(conto) {
  * Senza un istante non si scrive niente: una porta senza storia non è una
  * porta appena aperta, e inventare «da poco» sarebbe una bugia. In quel caso
  * torna l'identificativo, che è comunque meglio di una riga vuota. */
-/* Il numero sta SEMPRE fuori dalla frase da tradurre.
- *
- * `daQuanto` in `racconto-tessera.js` compone «da 5 minuti» e poi lo passa a
- * tradurre: quella chiave è diversa per ogni minuto, e nessuna di quelle si
- * trova in un catalogo. Qui le parole sono quattro, fisse, e la cifra le sta
- * accanto. */
-function quantoTempo(minuti) {
-  if (minuti < 1) return t("appena adesso", "just now");
-  if (minuti < 60) return `${Math.round(minuti)} ${t("minuti", "minutes")}`;
-  const ore = Math.floor(minuti / 60);
-  if (ore < 24) return `${ore} ${t("ore", "hours")}`;
-  return `${Math.floor(ore / 24)} ${t("giorni", "days")}`;
-}
-
 /* La scritta, in parole. Sta separata dal markup perche' la legge anche la
  * firma del ridisegno: e' l'unico pezzo di questa pagina che cambia da solo,
  * col passare del tempo, e chi decide se ridisegnare deve poterlo guardare. */
@@ -194,14 +180,14 @@ function daQuandoTesto(riga) {
   /* «appena adesso» non vuole il «da» davanti: sarebbe «aperto da appena
    * adesso», che non lo dice nessuno. */
   if (minuti < 1)
-    return `${riga.stato === "aperto" ? t("Aperto", "Open") : riga.stato === "chiuso" ? t("Chiuso", "Closed") : t("Fermo", "Still")} ${t("appena adesso", "just now")}`;
+    return `${riga.stato === "aperto" ? t("Aperto", "Open") : riga.stato === "chiuso" ? t("Chiuso", "Closed") : t("Fermo", "Still")} ${quantoTempoInParole(0)}`;
   const parola =
     riga.stato === "aperto"
       ? t("Aperto da", "Open for")
       : riga.stato === "chiuso"
         ? t("Chiuso da", "Closed for")
         : t("Fermo da", "Still for");
-  return `${parola} ${quantoTempo(minuti)}`;
+  return `${parola} ${quantoTempoInParole(minuti)}`;
 }
 
 function daQuandoMarkup(riga) {
