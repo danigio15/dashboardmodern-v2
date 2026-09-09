@@ -105,6 +105,17 @@ export function pruneHiddenSections(body = editorBody(), tab = activeTab()) {
 
 /* ── the same switch, on every section ────────────────────────────────────── */
 
+/* Dove finisce il corpo della scheda: prima del salvataggio, se c'e'.
+ *
+ * «Ultimo» sarebbe stato il piede del salvataggio, che ultimo ci sta per conto
+ * suo e per una ragione sua. Dirsi ultimi in due e' lo stesso errore del
+ * dirsi primi in due, spostato in fondo: si spingerebbero a vicenda a ogni
+ * passata. `insertBefore(nodo, null)` mette in fondo, quindi senza piede
+ * questa e' esattamente «in fondo». */
+function piedeDelSalvataggio(body) {
+  return body?.querySelector?.(":scope > [data-dm-save-footer]") || null;
+}
+
 function bannerMarkup(key) {
   try {
     return clean(root.cdSecToggleHtml?.(key));
@@ -146,7 +157,7 @@ export function ensureVisibilityBanner(body = editorBody(), tab = activeTab()) {
     banner = holder.firstElementChild;
     if (!banner) return false;
     banner.dataset.dmSectionSwitch = "true";
-    body.prepend(banner);
+    body.insertBefore(banner, piedeDelSalvataggio(body));
   }
   // The switch is moved by its own block, never torn out of the wrapper the tab
   // built around it — the EV tab wraps it together with the vehicle profiles,
@@ -154,8 +165,22 @@ export function ensureVisibilityBanner(body = editorBody(), tab = activeTab()) {
   let outermost = banner;
   while (outermost.parentElement && outermost.parentElement !== body)
     outermost = outermost.parentElement;
-  if (outermost.parentElement === body && body.firstElementChild !== outermost)
-    body.prepend(outermost);
+  /* In fondo, e non in cima.
+   *
+   * Stava in cima, e in cima ci sta anche il nome della sezione: due moduli
+   * che si dichiaravano tutti e due primi, e l'ordine lo decideva chi passava
+   * per ultimo. Si spingevano a vicenda a ogni giro — una scrittura nel
+   * documento per niente, ogni passata — e chi guardava trovava sopra il nome
+   * della scheda una fascia verde che col nome non c'entra.
+   *
+   * Sotto il nome della sezione ci vanno i DATI: si apre una scheda per
+   * configurarla, non per accenderla. L'interruttore che dice se la sezione si
+   * vede in plancia e' una decisione sola e si prende una volta: sta in fondo,
+   * dopo quello che si e' venuti a fare, e sta in fondo in ogni sezione — che
+   * e' l'unica cosa che lo rende trovabile senza cercarlo. */
+  const piede = piedeDelSalvataggio(body);
+  if (outermost.parentElement === body && outermost.nextElementSibling !== piede)
+    body.insertBefore(outermost, piede);
   banner.classList.add("dm-section-switch");
   rinfrescaBanner(banner, key);
   return true;

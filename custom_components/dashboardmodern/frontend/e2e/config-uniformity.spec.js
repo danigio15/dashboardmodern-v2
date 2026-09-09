@@ -141,9 +141,16 @@ function tabState(page) {
     return {
       saveLabels: saves.map((node) => node.textContent.replace(/\s+/g, " ").trim()),
       banners: banners.length,
-      bannerIsFirst: banners.length
-        ? body.firstElementChild === banners[0] ||
-          Boolean(body.firstElementChild?.contains(banners[0]))
+      /* La fascia chiude il corpo della scheda: dopo di lei c'e' solo il piede
+       * del salvataggio, quando la scheda ne ha uno. */
+      bannerClosesBody: banners.length
+        ? (() => {
+            let blocco = banners[0];
+            while (blocco.parentElement && blocco.parentElement !== body)
+              blocco = blocco.parentElement;
+            const dopo = blocco.nextElementSibling;
+            return !dopo || dopo === footer;
+          })()
         : null,
       footerIsLast: footer ? body.lastElementChild === footer : null,
       accordions: body.querySelectorAll("details.ed-acc").length,
@@ -215,15 +222,25 @@ test.describe("the configuration behaves the same on every tab", () => {
     }
   });
 
-  test("the section switch is on every section, and always first", async ({ page }, testInfo) => {
+  /* Sotto il nome della sezione ci vanno i DATI, non un interruttore.
+   *
+   * La fascia stava in cima, e in cima ci sta anche il nome della sezione: due
+   * moduli che si dichiaravano primi tutti e due, e l'ordine lo decideva chi
+   * passava per ultimo. Sopra «PLANCIA / HOME» finiva una fascia verde che col
+   * nome della scheda non c'entra. Adesso la fascia chiude il corpo, e chiude
+   * ogni scheda allo stesso modo — che e' l'unica cosa che la rende trovabile
+   * senza cercarla. */
+  test("the section switch is on every section, and always closes it", async ({
+    page,
+  }, testInfo) => {
     await boot(page, testInfo);
     for (const tab of SECTION_TABS) {
       await openTab(page, tab);
       await settledTabState(page, (view) => view.banners, `${tab}: exactly one switch`).toBe(1);
       await settledTabState(
         page,
-        (view) => view.bannerIsFirst,
-        `${tab}: the switch opens the tab`,
+        (view) => view.bannerClosesBody,
+        `${tab}: the switch closes the tab`,
       ).toBe(true);
     }
     for (const tab of PLAIN_TABS) {

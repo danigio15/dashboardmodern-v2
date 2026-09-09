@@ -59,7 +59,13 @@ function salva(cambio) {
 /* La fascia verde e' quella del guscio, con il suo gestore: in questa plancia
  * una sezione si accende e si spegne da li', e Assist non e' un'eccezione solo
  * perche' non ha una scheda tutta sua. Disegnarne una nostra vorrebbe dire due
- * interruttori per la stessa decisione. */
+ * interruttori per la stessa decisione.
+ *
+ * Sta in fondo al blocco, come in ogni altra sezione del Config: sotto il nome
+ * ci vanno i dati — si apre una scheda per configurarla, non per accenderla — e
+ * l'interruttore e' una decisione sola, che si prende una volta. Stava fra il
+ * nome e la spiegazione, cioe' esattamente in mezzo a quello che si era venuti
+ * a leggere. */
 function fasciaMarkup() {
   try {
     return root.cdSecToggleHtml?.(SEZIONE_ASSIST) || "";
@@ -73,7 +79,6 @@ function rigaMarkup() {
   const senzaVoce = !siPuoParlare();
   return `<div class="ed-slot dm-assist-ed" data-dm-assist-ed>
     <div class="ed-slot-lbl">🗣️ Assist</div>
-    ${fasciaMarkup()}
     <div class="dm-assist-ed-nota">${esc(
       t(
         "Un tasto che apre l'assistente di Home Assistant: si scrive la domanda, oppure si tocca il microfono e si parla. Le frasi le capisce Home Assistant — la plancia gliele passa e basta.",
@@ -101,6 +106,7 @@ function rigaMarkup() {
           )}</small>`
         : ""
     }
+    ${fasciaMarkup()}
   </div>`;
 }
 
