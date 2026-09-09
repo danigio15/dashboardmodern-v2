@@ -30,7 +30,10 @@ const SEME = {
 
 async function apriMappaturaHome(page) {
   await page.evaluate(() => window.apriConfigEntita());
-  await page.evaluate(() => window.editorSwitch?.("sezioni"));
+  /* La scheda della Home e' «sez0»: «sezioni» era una scheda sola e adesso ce
+   * n'e' una per sezione, quindi chiedendo il nome vecchio si restava dove si
+   * era — sulla Plancia, dove la mappatura del meteo non c'e'. */
+  await page.evaluate(() => window.editorSwitch?.("sez0"));
   const slotMeteo = page.locator('input[data-ref="dm.home_meteo"]');
   await expect(slotMeteo).toBeAttached({ timeout: 20000 });
   /* La fisarmonica va aperta, o i campi non si vedono comunque. */

@@ -162,12 +162,20 @@ test("l'associazione sbagliata già in configurazione se ne va da sola", async (
   await applyDataContracts();
 
   const uno = sezioni.appliances[0];
-  assert.equal(uno.entities.includes("switch.presa_frigorifero_2"), false);
+  /* Il termometro dell'altro frigorifero se ne va, ed è quello che si vedeva:
+   * la temperatura sulla card torna la sua. */
   assert.equal(uno.entities.includes("sensor.frigorifero_2_temperatura"), false);
-  assert.equal(uno.control_entity, "");
+  assert.equal(temperatureInfo(uno, CASA).value, 4.1);
   /* Quello che non si sa di chi sia non si tocca: era già lì, resta lì. */
   assert.equal(uno.entities.includes("sensor.shelly_em_channel_1_power"), true);
-  assert.equal(temperatureInfo(uno, CASA).value, 4.1);
+  /* La casella del comando invece resta, ed è voluto: `entities` lo scrive
+   * questa passata, e quello che abbiamo scritto noi lo possiamo correggere;
+   * una casella no, quella la riempie anche una persona. La stessa entità su
+   * due apparecchi può essere una scelta — due appartamenti con un contatore
+   * solo lo fanno apposta, e c'è una prova che dice di non cancellarla — e
+   * deciderlo d'ufficio vorrebbe dire decidere al posto suo. Adesso però
+   * toglierla a mano funziona: la maschera lascia il segno, e non torna più. */
+  assert.equal(uno.control_entity, "switch.presa_frigorifero_2");
 });
 
 test("cancellata dalla maschera, l'associazione non torna", async () => {

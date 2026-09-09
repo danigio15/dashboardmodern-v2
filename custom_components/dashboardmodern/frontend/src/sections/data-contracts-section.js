@@ -156,8 +156,15 @@ export function isLifetimeEnergyEntity(entity) {
  * frigoriferi: ogni frigorifero si prendeva le entita' di ogni altro. Il
  * sottrarre serve a chi quel guaio ce l'ha gia' in configurazione: «mi ricarica
  * sempre in automatico circa 30 sensori, non riesco a togliere quelli errati in
- * nessun modo». Se ne va solo cio' che si sa attribuire a un altro apparecchio
- * dell'elenco; quello che non si sa di chi sia resta dov'e'. */
+ * nessun modo».
+ *
+ * Si toglie SOLO da `entities`, e solo cio' che si sa attribuire a un altro
+ * apparecchio dell'elenco. `entities` non lo scrive nessuno a mano: lo scrive
+ * questa passata, e quello che abbiamo scritto noi lo possiamo correggere. Le
+ * caselle no: quelle le riempie anche una persona, e la stessa entita' su due
+ * carichi puo' essere una scelta — due appartamenti con un contatore solo lo
+ * fanno apposta, e c'e' una prova che dice di non cancellarla. Quello che non
+ * si sa di chi sia resta dov'e'. */
 function candidateEntities(device, parole, altrui) {
   const explicit = uniqueEntities(device).filter(
     (entity) => !eDiUnAltroApparecchio(entity, parole, altrui),
@@ -185,37 +192,30 @@ function inferApplianceContract(device = {}, sezione = []) {
   if (device?.metadata?.[CAMPI_SCELTI] === true) return device;
   const parole = paroleDellApparecchio(device);
   const altrui = paroleDegliAltri(device, sezione);
-  /* Una casella che porta il nome di un altro apparecchio non e' una risposta:
-   * l'ha scritta questa stessa passata quando sbagliava. Chi e' passato dalla
-   * maschera qui non ci arriva, e le sue caselle non si toccano. */
-  const mia = (valore) => {
-    const id = clean(valore);
-    return id && !eDiUnAltroApparecchio(id, parole, altrui) ? id : "";
-  };
   const entities = candidateEntities(device, parole, altrui);
   const sensors = entities.filter((id) => /^sensor\./i.test(id));
   const energySensors = sensors.filter(isEnergyEntity);
   const find = (pattern, values = sensors) => values.find((id) => pattern.test(id)) || "";
-  const control = mia(device.control_entity) || find(CONTROL_DOMAIN, entities);
-  const power = mia(device.power_entity) || sensors.find(isPowerEntity) || find(POWER_NAME);
-  const daily = mia(device.daily_energy_entity) || find(DAILY_NAME, energySensors);
-  const monthly = mia(device.monthly_energy_entity) || find(MONTHLY_NAME, energySensors);
+  const control = clean(device.control_entity) || find(CONTROL_DOMAIN, entities);
+  const power = clean(device.power_entity) || sensors.find(isPowerEntity) || find(POWER_NAME);
+  const daily = clean(device.daily_energy_entity) || find(DAILY_NAME, energySensors);
+  const monthly = clean(device.monthly_energy_entity) || find(MONTHLY_NAME, energySensors);
   const energy =
-    mia(device.energy_entity) ||
+    clean(device.energy_entity) ||
     energySensors.find(
       (id) => !DAILY_NAME.test(id) && !MONTHLY_NAME.test(id) && !TOTAL_NAME.test(id),
     ) ||
     energySensors[0] ||
     "";
 
-  const explicitTotal = mia(device.total_energy_entity);
+  const explicitTotal = clean(device.total_energy_entity);
   const namedTotal = find(TOTAL_NAME, energySensors);
   const total =
     (isLifetimeEnergyEntity(explicitTotal) && explicitTotal) ||
     (isLifetimeEnergyEntity(namedTotal) && namedTotal) ||
     "";
-  const explicitHistory = mia(device.history_entity);
-  const explicitReport = mia(device.report_entity);
+  const explicitHistory = clean(device.history_entity);
+  const explicitReport = clean(device.report_entity);
   // History is lifetime-only. Report, instead, may intentionally use a monthly
   // measurement for the current period; canonicalReportDevices keeps that
   // current-period entity separate from its cumulative history source.
