@@ -118,6 +118,10 @@ due frigoriferi che non si scambiano più i sensori.
   compare subito l'ultimo fotogramma che Home Assistant ha già in mano, e la
   strada che ha funzionato l'ultima volta su quella telecamera si riprova per
   prima: la sequenza resta quella, ma quasi sempre finisce al primo tentativo.
+  Le istantanee fanno eccezione e restano l'ultima rete: il loro fotogramma la
+  plancia lo mette già da sé, e saltare la fila per arrivare lì non guadagnava
+  niente — costava il tasto «Attiva audio», che cercava nel guscio la
+  telecamera aperta e non la trovava più.
 
 - **I nomi degli elettrodomestici entrano nella card**
 
@@ -162,7 +166,11 @@ due frigoriferi che non si scambiano più i sensori.
   la scheda — quella che accende una sezione — il pollice appoggiato rulla di
   una dozzina di pixel senza che nessuno abbia inteso scorrere. Il fatto che
   decide non è quanto si è mosso il dito: è se la pagina si è mossa. Adesso si
-  guarda quello, e uno scorrimento vero continua a non comandare niente.
+  guarda quello — salvo quando il dito ha tirato per davvero, oltre i quaranta
+  pixel: in fondo a un elenco non c'è più niente da scorrere, le posizioni
+  restano identiche, e lì una spazzata larga mezzo schermo sarebbe tornata a
+  comandare quello che sfiorava. Fra i dodici e i quaranta decide la pagina;
+  sopra i quaranta decide il dito.
 
 - **La dashboard di appoggio non resta mai vuota**
 
