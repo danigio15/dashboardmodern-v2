@@ -4,6 +4,7 @@ import {
   archiDelPeriodo,
   chiaveDellArco,
   giorniPerLaMedia,
+  ilGiornoDelPicco,
   periodConsumption,
   periodRange,
   recorderBucketConsumptions,
@@ -454,6 +455,23 @@ function pianiDeiDispositivi(kind) {
 
 /* Il paniere dei dispositivi e' indicizzato per entita', non per piano: e' con
  * quella che lo cercano il Report e i cerchi del flusso. */
+/* I giorni per entita', come `valoriPerEntita` fa coi totali.
+ *
+ * Le chiavi del paniere sono prefissate — «disp:month:» — perche' nello stesso
+ * paniere finiscono il giorno, il mese e l'anno; qui si torna al nome
+ * dell'entita', che e' quello che chi disegna ha in mano. */
+function giorniPerEntita(plans, giorni, prefisso) {
+  const perEntita = new Map();
+  if (!(giorni instanceof Map) || giorni.size === 0) return perEntita;
+  plans.forEach((plan) => {
+    const serie = giorni.get(`${prefisso}${plan.key}`);
+    if (!Array.isArray(serie) || !serie.length) return;
+    perEntita.set(plan.entity, serie);
+    perEntita.set(plan.source, serie);
+  });
+  return perEntita;
+}
+
 function valoriPerEntita(plans, valori) {
   const values = new Map();
   plans.forEach((plan) => {
@@ -607,10 +625,23 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso 
     carichi: letturaDi(carichi, today, states, "carico:", archiGiorno),
   };
 
+  /* Del mese dei dispositivi si tengono anche i giorni: il picco del mese e'
+   * il massimo della loro serie, e quella serie arriva insieme al totale —
+   * la domanda al Recorder e' a giorni comunque. Chiederla due volte per
+   * leggere due numeri dalla stessa risposta sarebbe un giro regalato. */
   const richieste = Object.values(letture).flatMap((lettura) =>
-    lettura.archi.map((range) => ({ plans: lettura.daRicavare, range })),
+    lettura.archi.map((range) => ({
+      plans: lettura.daRicavare,
+      range,
+      conIGiorni: lettura === letture.dispMonth,
+    })),
   );
-  const { valori: ricavati, caduti } = await broker.valoriPerArchi(richieste, new Map(), alPasso);
+  const giorniDeiDispositivi = new Map();
+  const {
+    valori: ricavati,
+    caduti,
+    giorni: giorniRicavati,
+  } = await broker.valoriPerArchi(richieste, new Map(), alPasso, giorniDeiDispositivi);
   /* Gli archi che non hanno risposto. Serve saperlo per famiglia: l'anno
    * senza il suo mese aperto sarebbe un anno piu' corto — un numero
    * sbagliato, non un numero mancante — e un numero sbagliato non si
@@ -691,6 +722,11 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso 
       caduta: caduti.length ? clean(caduti[0]?.errore?.message || caduti[0]?.errore) : "",
       deviceDay: paniere("deviceDay", letture.dispDay, dispositivi.day),
       deviceMonth: paniere("deviceMonth", letture.dispMonth, dispositivi.month),
+      deviceMonthDays: giorniPerEntita(
+        dispositivi.month.plans,
+        giorniRicavati,
+        letture.dispMonth.prefisso,
+      ),
       deviceYear: paniere("deviceYear", letture.dispYear, dispositivi.year),
       energyLoadsDay: letture.carichi.valori,
       rates: Object.freeze(rates()),
@@ -944,6 +980,21 @@ function applyDeviceDetail(bundle) {
   setText("ed-dkpi-mese", `${formatNumber(monthValue, 1)} kWh`);
   setText("ed-dkpi-mese-eur", `€ ${formatNumber(monthValue * importPrice, 2)}`);
   setText("ed-dkpi-media", days ? `${formatNumber(monthValue / days, 2)} kWh` : "—");
+  /* Il picco, con la virgola come tutto il resto della card.
+   *
+   * Lo scriveva il guscio storico, e lo scriveva dopo di noi: la sua passata
+   * finisce con la storia del giorno, cioe' dopo un giro in rete. Ma il nostro
+   * risveglio e' agganciato al `finally` della sua promessa, quindi la nostra
+   * scrittura viene DOPO la sua — e' un ordine, non una corsa. */
+  const picco = ilGiornoDelPicco(bundle.deviceMonthDays?.get(source));
+  if (picco) {
+    setText("ed-dkpi-picco", `${formatNumber(picco.quanto, 2)} kWh`);
+    if (picco.quando)
+      setText(
+        "ed-dkpi-picco-sub",
+        `${t("Giorno", "Day")} ${picco.quando.getDate()}/${picco.quando.getMonth() + 1}`,
+      );
+  }
   setText("ed-dkpi-media-sub", t("Media/giorno", "Daily average"));
   setText("ed-dkpi-risp-eur", `+ ${formatNumber(monthSplit.solar * importPrice, 2)} €`);
   setText(

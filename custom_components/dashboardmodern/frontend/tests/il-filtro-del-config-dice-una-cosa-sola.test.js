@@ -50,3 +50,21 @@ test("a riposo si accende «Tutte», da sola: e' vero, si vede tutto", async () 
   assert.match(source, /famiglia: "",\n\}\);/);
   assert.match(source, /dm-alberatura-tutte\$\{scelta \? "" : " active"\}/);
 });
+
+/* L'intestazione della sezione: al centro, e grande.
+ *
+ * «Intestazione al centro e bella grande, si deve vedere.» Stava a sinistra a
+ * diciannove pixel — diciassette da telefono — cioe' era una didascalia. Ma da
+ * telefono e' l'unica cosa che dice in che sezione si e' entrati: e' la prima
+ * riga della scheda, non una nota a margine.
+ */
+test("il nome della sezione sta al centro e si vede", async () => {
+  const source = await readFile(sezione, "utf8");
+  assert.match(source, /\.\$\{TITOLO\}\{[^}]*align-items:center/);
+  assert.match(source, /\.\$\{TITOLO\}\{[^}]*text-align:center/);
+  /* Grande davvero, e non un ritocco: da diciannove a ventisette. */
+  assert.match(source, /\.\$\{TITOLO\}-nome\{\s*font-size:27px/);
+  assert.match(source, /\.\$\{TITOLO\}-nome\{font-size:23px\}/);
+  /* E un nome lungo va a capo invece di uscire dalla scheda. */
+  assert.match(source, /text-wrap:balance/);
+});

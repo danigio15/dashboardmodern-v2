@@ -35,11 +35,7 @@
  * costa niente, e farlo dopo ogni ridisegno vuol dire che una scheda nuova
  * trova il suo posto senza che nessuno la registri da nessuna parte.
  */
-import {
-  famigliaDellaScheda,
-  famiglieConSchede,
-  inOrdine,
-} from "../core/alberatura-del-config.js";
+import { famigliaDellaScheda, famiglieConSchede, inOrdine } from "../core/alberatura-del-config.js";
 import { clean, doc, esc, installStyle, onEditorRedraw, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ALBERATURA__";
@@ -75,7 +71,9 @@ function nomeDellaFamiglia(voce) {
  * linguette: niente `ed-tab`, niente `data-tab`, niente da cliccare. Chi cerca
  * una scheda per identificativo non le trova, ed è giusto così. */
 function insegna(dentro, voce) {
-  let nodo = dentro.querySelector(`:scope > .${INSEGNA}[data-famiglia="${CSS.escape(voce.chiave)}"]`);
+  let nodo = dentro.querySelector(
+    `:scope > .${INSEGNA}[data-famiglia="${CSS.escape(voce.chiave)}"]`,
+  );
   if (!nodo) {
     nodo = doc.createElement("span");
     nodo.className = INSEGNA;
@@ -98,7 +96,9 @@ export function riordinaLeLinguette() {
   const dentro = fila();
   if (!dentro || state.riordinando) return false;
   const bottoni = new Map(
-    linguette(dentro).map((nodo) => [clean(nodo.dataset.tab), nodo]).filter(([id]) => id),
+    linguette(dentro)
+      .map((nodo) => [clean(nodo.dataset.tab), nodo])
+      .filter(([id]) => id),
   );
   if (!bottoni.size) return false;
   const gruppi = famiglieConSchede([...bottoni.keys()]);
@@ -286,16 +286,16 @@ function nomeDellaScheda(bottone) {
   /* Senza il pezzo del nome si legge la linguetta intera, togliendole il
    * simbolo davanti: e' quello che si vedeva prima che la colonna imparasse a
    * dividere le due cose. */
-  return clean(bottone?.textContent).replace(/^[^\p{L}\p{N}]+/u, "").trim();
+  return clean(bottone?.textContent)
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .trim();
 }
 
 export function ensureTitoloDellaSezione() {
   const corpo = doc?.getElementById?.("ed-body");
   if (!corpo) return false;
   const attiva = schedaAttiva();
-  const bottone = attiva
-    ? doc.querySelector(`.ed-tab[data-tab="${CSS.escape(attiva)}"]`)
-    : null;
+  const bottone = attiva ? doc.querySelector(`.ed-tab[data-tab="${CSS.escape(attiva)}"]`) : null;
   const nome = nomeDellaScheda(bottone);
   if (!nome) return false;
   const famiglia = famiglieConSchede([attiva]).find((voce) => voce.schede.includes(attiva));
@@ -485,18 +485,30 @@ function installStili() {
     }
 
     /* ── il nome della sezione, in cima al suo corpo ─────────────────── */
+    /* Al centro, e grande.
+     *
+     * Stava a sinistra e piccolo: era una didascalia, e chi apriva una scheda
+     * dal telefono non lo leggeva — «intestazione al centro e bella grande, si
+     * deve vedere». Dice in che sezione si e' entrati, che da telefono e'
+     * l'unica cosa che lo dice: e' la prima riga della scheda, non una nota a
+     * margine. Al centro perche' non ha niente accanto a cui allinearsi, e
+     * l'insegna della famiglia gli sta sopra come un soprattitolo. */
     .${TITOLO}{
-      display:flex;flex-direction:column;gap:2px;margin:0 0 14px;padding:0 0 10px;
+      display:flex;flex-direction:column;align-items:center;gap:3px;
+      margin:0 0 16px;padding:0 0 12px;text-align:center;
       border-bottom:1px solid var(--card-border,#e2e8f0)}
     .${TITOLO}-famiglia{
-      font-size:9.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;
+      font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
       color:var(--text-dim,#94a3b8)}
     .${TITOLO}-nome{
-      font-size:19px;font-weight:900;letter-spacing:-.01em;
-      color:var(--primary-text-color,#0f172a);line-height:1.15}
+      font-size:27px;font-weight:900;letter-spacing:-.02em;
+      color:var(--primary-text-color,#0f172a);line-height:1.1;
+      /* Un nome lungo — «Macchine e rete» — va a capo invece di stringere la
+       * scheda o di uscirne. */
+      text-wrap:balance;max-width:100%}
     @media(max-width:640px){
-      .${TITOLO}{margin-bottom:11px;padding-bottom:8px}
-      .${TITOLO}-nome{font-size:17px}
+      .${TITOLO}{margin-bottom:13px;padding-bottom:10px}
+      .${TITOLO}-nome{font-size:23px}
     }
     @media(max-width:640px){
       #${FILA}{padding:8px 10px 0}
