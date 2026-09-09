@@ -1615,11 +1615,66 @@ function installStyles() {
   );
 }
 
+/* I quattro riquadri del TOTALE ANNO hanno un padrone solo.
+ *
+ * Ne avevano due, e vinceva quello sbagliato. Il guscio storico ha una sua
+ * `edCalcolaTotaliAnnoDispositivo`: chiede al Recorder gli intervalli MENSILI
+ * e ne somma i `change`. E' il conto che su un contatore che si azzera ogni
+ * mese — quello mensile di una wallbox e' esattamente questo — da' il divario
+ * fra due mesi al posto del consumo di uno. Correggerlo e' stato il lavoro
+ * della 1.4.15: si chiedono i GIORNI e si sommano (`mesiDaiGiorni`).
+ *
+ * Solo che quella funzione non e' stata spenta, e non e' attesa da nessuno:
+ * il guscio la lancia e tira avanti. Lei scrive «⏳ —», parte con la sua
+ * domanda mensile, e quando la risposta arriva — dopo un giro in rete, quindi
+ * dopo di noi — riscrive i quattro riquadri col numero vecchio. Vinceva
+ * sempre, perche' scriveva per ultima.
+ *
+ * Ecco perche' la correzione era nel codice e sullo schermo il totale restava
+ * quello di prima: «i dati della wallbox sono ancora sbagliati, il totale
+ * consumato da inizio anno e' 1440,76 kWh» — e la plancia ne diceva 546 sulla
+ * 1.4.14, e 546 anche sulla 1.4.15.
+ *
+ * Qui si sostituisce, non si affianca: `wrapFunction` chiama sempre
+ * l'originale e non servirebbe a niente. Della vecchia resta il solo gesto che
+ * vale, mettere i riquadri in attesa — senza quello, cambiando dispositivo
+ * resterebbero i numeri di quello di prima, che e' peggio di un trattino — e
+ * la domanda mensile non si fa piu': era anche un giro di Recorder buttato a
+ * ogni apertura.
+ */
+const RIQUADRI_DELL_ANNO = Object.freeze([
+  "ed-dkpi-anno-risp-eur",
+  "ed-dkpi-anno-risp-kwh",
+  "ed-dkpi-anno-costo-eur",
+  "ed-dkpi-anno-costo-kwh",
+]);
+
+function iRiquadriDellAnnoAspettano(selYear) {
+  setText("ed-dkpi-year-lbl", String(selYear ?? ""));
+  for (const id of RIQUADRI_DELL_ANNO) setText(id, "⏳ —");
+}
+
+function spegniIlTotaleAnnoDelGuscio() {
+  const precedente = root.edCalcolaTotaliAnnoDispositivo;
+  if (typeof precedente !== "function" || precedente.__dmTotaleAnno) return false;
+  function nostra(_sensor, selYear) {
+    iRiquadriDellAnnoAspettano(selYear);
+    scheduleProjection();
+    /* Niente promessa da attendere: chi la chiamava non l'attendeva comunque. */
+    return undefined;
+  }
+  nostra.__dmTotaleAnno = true;
+  nostra.__dmPrevious = precedente;
+  root.edCalcolaTotaliAnnoDispositivo = nostra;
+  return true;
+}
+
 function installWrappers() {
   for (const name of ["render", "renderEnergyDashboard", "renderEdDeviceList"]) {
     wrapFunction(name, "__dmEnergySection", scheduleProjection);
   }
   wrapFunction("edCaricaDettaglio", "__dmEnergyDetailSection", scheduleProjection);
+  spegniIlTotaleAnnoDelGuscio();
   onEditorRedraw("__dmEnergyEditorSection", installEnergyEditorContracts);
 }
 
