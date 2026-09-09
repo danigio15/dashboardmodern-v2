@@ -9,7 +9,8 @@
  * Qui si guarda dove finisce davvero, e non lo si chiede alle classi ma ai
  * rettangoli, che sono quello che si vede: la card sta accanto alla griglia
  * delle persone, alla stessa altezza della prima — cioè accanto, non sotto — e
- * occupa una corsia stretta, non la pagina.
+ * occupa una corsia stretta, non la pagina. Su un telefono «accanto» non
+ * esiste e la fila va a capo: lì si pretende l'altro layout, non questo.
  *
  * Accanto alla griglia e non DENTRO, e la differenza si misura: dentro, una
  * card più alta di una persona alzava tutta la riga della griglia, e le
@@ -107,18 +108,35 @@ test("la card del flusso sta accanto alle persone, non sotto e non dentro", asyn
   const suo = await card.boundingBox();
   const sua = await persone.first().boundingBox();
   const suaSeconda = await persone.nth(1).boundingBox();
-  /* Accanto: le due caselle si sovrappongono in verticale — stessa riga — e la
-   * card è a destra dell'ultima persona. */
-  expect(suo.y).toBeLessThan(sua.y + sua.height);
-  expect(suo.y + suo.height).toBeGreaterThan(sua.y);
-  expect(suo.x).toBeGreaterThan(suaSeconda.x + suaSeconda.width - 1);
-  /* E stretta: una corsia sola, non la pagina. */
-  expect(suo.width).toBeLessThan(260);
 
-  /* La prova che sta FUORI dalla griglia e non dentro: la card è più alta di
-   * una persona, e le persone non l'hanno seguita. Dentro la griglia si
-   * sarebbero stirate fino a lei. */
-  expect(suo.height).toBeGreaterThan(sua.height + 20);
+  /* «Accanto» esiste solo dove c'è la larghezza per due. La fila va a capo
+   * sotto i 520px — è la stessa soglia a cui la griglia delle persone passa a
+   * due colonne strette — e su un telefono la scelta non è fra sotto e
+   * accanto, è fra sotto e schiacciato. Questa prova gira su tre viste, e su
+   * quella del telefono pretendere «accanto» vorrebbe dire pretendere il
+   * layout sbagliato. */
+  const larghezza = page.viewportSize()?.width ?? 0;
+  if (larghezza <= 520) {
+    /* Sotto la griglia, e tutta la riga: non una colonnina stretta in un
+     * angolo, che è il modo in cui una card va a capo per sbaglio. */
+    expect(suo.y).toBeGreaterThanOrEqual(sua.y + sua.height - 1);
+    expect(suo.width).toBeGreaterThan(sua.width);
+  } else {
+    /* Le due caselle si sovrappongono in verticale — stessa riga — e la card è
+     * a destra dell'ultima persona. */
+    expect(suo.y).toBeLessThan(sua.y + sua.height);
+    expect(suo.y + suo.height).toBeGreaterThan(sua.y);
+    expect(suo.x).toBeGreaterThan(suaSeconda.x + suaSeconda.width - 1);
+    /* E stretta: una corsia sola, non la pagina. */
+    expect(suo.width).toBeLessThan(260);
+    /* La prova che sta FUORI dalla griglia e non dentro: la card è più alta di
+     * una persona, e le persone non l'hanno seguita. Dentro la griglia si
+     * sarebbero stirate fino a lei. */
+    expect(suo.height).toBeGreaterThan(sua.height + 20);
+  }
+
+  /* In ogni caso le persone tengono la loro altezza: è la cosa che si rompeva
+   * quando la card stava dentro la griglia. */
   expect(sua.height).toBeCloseTo(suaSeconda.height, 0);
 
   /* Il disegno c'è tutto: i cinque nodi che hanno un numero e gli archi fra
