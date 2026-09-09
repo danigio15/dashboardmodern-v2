@@ -23,6 +23,7 @@ export default Object.freeze({
   "Add a button": "एक बटन जोड़ें",
   "Add a ventilation unit": "एक वेंटिलेशन यूनिट जोड़ें",
   "Add an entity to Windows": "खिड़कियाँ में इकाई जोड़ें",
+  "open the detail": "विवरण खोलें",
   "Air into the house": "घर में आती हवा",
   "All charged": "सभी चार्ज हैं",
   "All good": "सब ठीक है",

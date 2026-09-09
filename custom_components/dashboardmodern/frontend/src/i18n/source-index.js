@@ -596,6 +596,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Apri elettrodomestici in funzione": "Open appliances running",
   "Apri GitHub": "Open GitHub",
   "Apri il cruscotto": "Open the console",
+  "apri il dettaglio": "open the detail",
   "Apri in mappa": "Open in map",
   "Apri l'accordion Rooms per modificare": "Open the Rooms accordion to edit",
   "Apri l'accordion Stanze per modificare": "Open the Rooms accordion to edit",

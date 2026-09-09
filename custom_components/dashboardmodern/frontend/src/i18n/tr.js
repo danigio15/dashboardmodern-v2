@@ -23,6 +23,7 @@ export default Object.freeze({
   "Add a button": "Düğme ekle",
   "Add a ventilation unit": "Bir havalandırma ünitesi ekle",
   "Add an entity to Windows": "Pencereler'e varlık ekle",
+  "open the detail": "ayrıntıyı aç",
   "Air into the house": "Eve giren hava",
   "All charged": "Hepsi dolu",
   "All good": "Her şey yolunda",

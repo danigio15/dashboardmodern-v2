@@ -23,6 +23,7 @@ export default Object.freeze({
   "Add a button": "Knop toevoegen",
   "Add a ventilation unit": "Een wtw-unit toevoegen",
   "Add an entity to Windows": "Entiteit toevoegen aan Ramen",
+  "open the detail": "details openen",
   "Air into the house": "Lucht het huis in",
   "All charged": "Allemaal opgeladen",
   "All good": "Alles in orde",

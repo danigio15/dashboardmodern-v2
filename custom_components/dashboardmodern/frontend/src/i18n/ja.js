@@ -23,6 +23,7 @@ export default Object.freeze({
   "Add a button": "ボタンを追加",
   "Add a ventilation unit": "換気ユニットを追加",
   "Add an entity to Windows": "「窓」にエンティティを追加",
+  "open the detail": "詳細を開く",
   "Air into the house": "家に入る空気",
   "All charged": "すべて充電済み",
   "All good": "問題なし",

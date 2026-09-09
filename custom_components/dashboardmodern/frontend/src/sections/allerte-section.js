@@ -23,6 +23,7 @@ import {
   letturaAllerte,
   livelloMassimo,
 } from "../core/allerte-model.js";
+import { valeLaPenaAprirla, vociDelDettaglio } from "../core/dettaglio-allerta.js";
 import {
   allStates,
   clean,
@@ -437,7 +438,9 @@ function riassuntoMarkup(letture) {
       ? t("1 allerta in corso", "1 alert in force")
       : t(`${attive.length} allerte in corso`, `${attive.length} alerts in force`);
   const fonti =
-    letture.length === 1 ? t("1 fonte", "1 source") : t(`${letture.length} fonti`, `${letture.length} sources`);
+    letture.length === 1
+      ? t("1 fonte", "1 source")
+      : t(`${letture.length} fonti`, `${letture.length} sources`);
   const sotto = mute
     ? `${fonti} · ${mute === 1 ? t("1 non risponde", "1 not answering") : t(`${mute} non rispondono`, `${mute} not answering`)}`
     : attive.length
@@ -449,10 +452,123 @@ function riassuntoMarkup(letture) {
   </div>`;
 }
 
+/* ── il dettaglio, quando la si apre (#422) ───────────────────────────── */
+
+const POPUP_ID = "dm-allerta-dettaglio";
+
+/** Quello che Home Assistant dice dell'entita' di questa allerta. */
+function attributiDi(entity) {
+  const id = clean(entity);
+  if (!id) return {};
+  const stato = allStates()?.[id];
+  return stato?.attributes && typeof stato.attributes === "object" ? stato.attributes : {};
+}
+
+function chiudiIlDettaglio() {
+  doc?.getElementById?.(POPUP_ID)?.classList?.remove("show");
+}
+
+/* La finestra e' una sola e si riempie ogni volta: le allerte sono al massimo
+ * otto, e tenerne otto costruite per mostrarne una alla volta e' ingombro
+ * senza motivo. */
+function ensureDettaglio() {
+  let modal = doc?.getElementById?.(POPUP_ID);
+  if (modal) return modal;
+  if (!doc?.body) return null;
+  modal = doc.createElement("div");
+  modal.id = POPUP_ID;
+  modal.className = "modal-wrapper";
+  modal.innerHTML = `<div class="modal-card dm-allerta-dettaglio" role="dialog" aria-modal="true" aria-labelledby="${POPUP_ID}-titolo">
+      <header class="dm-allerta-dettaglio-testa">
+        <span class="dm-allerta-dettaglio-ic" data-dm-ic aria-hidden="true"></span>
+        <span class="dm-allerta-dettaglio-nome" id="${POPUP_ID}-titolo" data-dm-nome></span>
+        <span class="dm-allerta-dettaglio-livello" data-dm-livello></span>
+        <button type="button" class="dm-allerta-dettaglio-chiudi" data-dm-chiudi aria-label="${esc(t("Chiudi", "Close"))}">✕</button>
+      </header>
+      <div class="dm-allerta-dettaglio-corpo" data-dm-corpo></div>
+    </div>`;
+  /* Fuori dalla scheda si chiude, come in ogni altra finestra della plancia. */
+  modal.addEventListener("click", (evento) => {
+    if (evento.target === modal || evento.target?.closest?.("[data-dm-chiudi]"))
+      chiudiIlDettaglio();
+  });
+  doc.body.append(modal);
+  return modal;
+}
+
+/* Il corpo: la frase per intero, le righe della tessera, e poi tutto quello
+ * che l'integrazione scrive. I paragrafi vanno sotto al loro nome, i dati
+ * accanto: e' la differenza fra un avviso della protezione civile e una
+ * severita' di una parola. */
+function corpoDelDettaglio(lettura) {
+  const pezzi = [];
+  /* La frase, ma non quando dice quello che dice gia' la pastiglia del livello.
+   * A quiete la frase E' la parola del livello — «Da notare» — e scriverla
+   * anche qui vuol dire aprire una finestra per rileggere l'intestazione. */
+  const frase = fraseDellAllerta(lettura);
+  const livello = parolaDelLivello(lettura.livello);
+  if (frase && frase.trim().toLowerCase() !== livello.trim().toLowerCase())
+    pezzi.push(`<p class="dm-allerta-dettaglio-frase">${esc(frase)}</p>`);
+  const righe = righeDellAllerta(lettura);
+  if (righe.length)
+    pezzi.push(
+      `<ul class="dm-allerta-righe">${righe
+        .map((riga) => `<li><span>${esc(riga.nome)}</span><b>${esc(riga.valore)}</b></li>`)
+        .join("")}</ul>`,
+    );
+  const voci = vociDelDettaglio(attributiDi(lettura.entity));
+  if (voci.length)
+    pezzi.push(
+      `<dl class="dm-allerta-voci">${voci
+        .map(
+          (voce) =>
+            `<div class="dm-allerta-voce${voce.lungo ? " dm-allerta-voce-lunga" : ""}"><dt>${esc(voce.titolo)}</dt><dd>${esc(voce.istante ? giornoEOraDi(voce.valore) : voce.valore)}</dd></div>`,
+        )
+        .join("")}</dl>`,
+    );
+  /* L'entita' in fondo, in piccolo: quando un valore non torna, la prima
+   * domanda e' «da dove viene questo numero», e la risposta e' qui. */
+  if (clean(lettura.entity))
+    pezzi.push(`<p class="dm-allerta-dettaglio-fonte mono">${esc(lettura.entity)}</p>`);
+  return pezzi.join("");
+}
+
+function apriIlDettaglio(chiave) {
+  const lettura = lettureAllerte().find((voce) => voce.chiave === chiave);
+  if (!lettura) return false;
+  const modal = ensureDettaglio();
+  if (!modal) return false;
+  const categoria = categoriaDelleAllerte(lettura.chiave);
+  const dentro = (selettore) => modal.querySelector(selettore);
+  const testa = modal.querySelector(".dm-allerta-dettaglio");
+  if (testa) testa.dataset.livello = lettura.livello;
+  const icona = dentro("[data-dm-ic]");
+  if (icona) icona.textContent = categoria.icona;
+  const nome = dentro("[data-dm-nome]");
+  if (nome) nome.textContent = lettura.nome || categoria.nome;
+  const livello = dentro("[data-dm-livello]");
+  if (livello) livello.textContent = parolaDelLivello(lettura.livello);
+  const corpo = dentro("[data-dm-corpo]");
+  if (corpo) corpo.innerHTML = corpoDelDettaglio(lettura);
+  modal.classList.add("show");
+  if (root.navigator?.vibrate) root.navigator.vibrate(8);
+  return true;
+}
+
 function tesseraMarkup(lettura) {
   const categoria = categoriaDelleAllerte(lettura.chiave);
   const righe = righeDellAllerta(lettura);
-  return `<article class="dm-allerta" data-livello="${esc(lettura.livello)}" data-chiave="${esc(lettura.chiave)}">
+  /* Apribile solo se dentro c'e' qualcosa in piu' di quello che si vede gia'.
+   *
+   * Un riquadro che sembra premibile e non fa niente e' peggio di uno fermo:
+   * la seconda volta non si prova piu' nemmeno dove invece funzionava. */
+  const apribile = valeLaPenaAprirla(lettura, attributiDi(lettura.entity));
+  const invito = apribile
+    ? ` role="button" tabindex="0" aria-haspopup="dialog" data-dm-allerta-apri aria-label="${esc(
+        `${lettura.nome || categoria.nome}: ${t("apri il dettaglio", "open the detail")}`,
+      )}"`
+    : "";
+  return `<article class="dm-allerta${apribile ? " dm-allerta-apribile" : ""}"${invito} data-livello="${esc(lettura.livello)}" data-chiave="${esc(lettura.chiave)}">
     <header class="dm-allerta-testa">
       <span class="dm-allerta-ic" aria-hidden="true">${categoria.icona}</span>
       <span class="dm-allerta-nome">${esc(lettura.nome || categoria.nome)}</span>
@@ -554,6 +670,15 @@ function installStyles() {
       position:relative;display:grid;gap:8px;padding:14px 16px;border-radius:18px;
       border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);
       box-shadow:var(--shadow-glass,0 8px 30px rgba(0,0,0,.06));overflow:hidden}
+    /* Una tessera che si apre lo dice al dito prima che al dito serva saperlo:
+       il cursore, e un sollevamento appena percettibile. Chi non ha niente
+       dentro non riceve niente di tutto questo: lo decide valeLaPenaAprirla. */
+    ${P} .dm-allerta-apribile{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+    ${P} .dm-allerta-apribile:hover{transform:translateY(-1px);
+      box-shadow:var(--shadow-glass-strong,0 12px 34px rgba(0,0,0,.10))}
+    ${P} .dm-allerta-apribile:focus-visible{
+      outline:3px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 45%,transparent);
+      outline-offset:3px}
     /* La striscia a sinistra e' il livello, detto col colore prima che con la parola. */
     ${P} .dm-allerta::before{
       content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
@@ -599,7 +724,54 @@ function installStyles() {
       ${P} .dm-allerte-griglia{grid-template-columns:1fr}
       ${P} .dm-allerta-frase{font-size:16px}
     }
-    `,
+    
+    /* ── la finestra del dettaglio (#422) ─────────────────────────────────
+       La veste — sfondo, bordo, angoli, entrata — la mette il foglio del
+       guscio, che e' l'unico posto dove sta: qui c'e' solo quello che dentro
+       questa finestra e' diverso dalle altre. */
+    #dm-allerta-dettaglio .dm-allerta-dettaglio{
+      display:grid;gap:0;max-width:560px;width:min(560px,92vw);
+      max-height:min(80vh,720px);overflow:hidden;grid-template-rows:auto minmax(0,1fr)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-testa{
+      display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;
+      padding:16px 18px 12px;border-bottom:1px solid var(--card-border,#e2e8f0)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-ic{font-size:26px;line-height:1}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-nome{
+      font-size:17px;font-weight:900;letter-spacing:-.01em;
+      color:var(--primary-text-color,#0f172a);min-width:0;overflow-wrap:anywhere}
+    /* Il livello si colora come la striscia della tessera da cui si e' entrati:
+       aprendola non si cambia mondo. */
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-livello{
+      font-size:10.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+      padding:4px 10px;border-radius:999px;white-space:nowrap;color:#fff;
+      background:var(--dm-allerta-colore,#94a3b8)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-chiudi{
+      border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;
+      padding:6px 4px;color:var(--text-dim,#64748b)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-corpo{
+      padding:14px 18px 18px;overflow:auto;display:grid;gap:14px;align-content:start}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-frase{
+      margin:0;font-size:14px;line-height:1.45;color:var(--primary-text-color,#0f172a)}
+    /* Le voci dell'integrazione. Un dato sta accanto al suo nome; un paragrafo
+       — l'avviso della protezione civile e' questo — va sotto, e per intero:
+       nella tessera lo si taglia a centottanta caratteri, qui no. */
+    #dm-allerta-dettaglio .dm-allerta-voci{margin:0;display:grid;gap:8px}
+    #dm-allerta-dettaglio .dm-allerta-voce{
+      display:grid;grid-template-columns:minmax(90px,38%) minmax(0,1fr);gap:10px;align-items:baseline;
+      padding-top:8px;border-top:1px solid var(--card-border,#eef2f7)}
+    /* Il filo separa due voci: sopra la prima non separa niente, e resta un
+       trattino sospeso sotto l'intestazione. */
+    #dm-allerta-dettaglio .dm-allerta-voce:first-child{padding-top:0;border-top:0}
+    #dm-allerta-dettaglio .dm-allerta-voce-lunga{grid-template-columns:minmax(0,1fr)}
+    #dm-allerta-dettaglio .dm-allerta-voce dt{
+      font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
+      color:var(--text-dim,#94a3b8)}
+    #dm-allerta-dettaglio .dm-allerta-voce dd{
+      margin:0;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;
+      color:var(--primary-text-color,#0f172a)}
+    #dm-allerta-dettaglio .dm-allerta-dettaglio-fonte{
+      margin:0;font-size:11px;color:var(--text-dim,#94a3b8);overflow-wrap:anywhere}
+`,
   );
 }
 
@@ -630,6 +802,29 @@ export function installAllerte() {
     "dashboardmodern:persistence-restored",
   ])
     root.addEventListener?.(evento, schedule);
+  /* Il tocco sulla tessera. Agganciato al documento e non a ogni riquadro: le
+   * tessere si rifanno a ogni ridisegno, e un gestore per tessera sarebbe da
+   * riattaccare ogni volta — cioe' da dimenticare una volta. */
+  doc.addEventListener("click", (evento) => {
+    const tessera = evento.target?.closest?.("[data-dm-allerta-apri]");
+    if (!tessera) return;
+    evento.preventDefault();
+    apriIlDettaglio(clean(tessera.dataset.chiave));
+  });
+  /* Con la tastiera si apre come ogni altro tasto, e si chiude con Esc: la
+   * tessera dichiara `role="button"`, e un bottone che risponde solo al dito
+   * e' un bottone a meta'. */
+  doc.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape") {
+      chiudiIlDettaglio();
+      return;
+    }
+    if (evento.key !== "Enter" && evento.key !== " ") return;
+    const tessera = evento.target?.closest?.("[data-dm-allerta-apri]");
+    if (!tessera) return;
+    evento.preventDefault();
+    apriIlDettaglio(clean(tessera.dataset.chiave));
+  });
   quandoSiCambiaPagina(schedule);
   schedule();
   return true;

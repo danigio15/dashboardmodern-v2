@@ -23,6 +23,7 @@ export default Object.freeze({
   "Add a button": "Добавить кнопку",
   "Add a ventilation unit": "Добавить установку",
   "Add an entity to Windows": "Добавить сущность в «Окна»",
+  "open the detail": "открыть подробности",
   "Air into the house": "Воздух в дом",
   "All charged": "Все заряжены",
   "All good": "Всё в порядке",

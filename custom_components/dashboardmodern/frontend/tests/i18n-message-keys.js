@@ -2067,6 +2067,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Open the attachment",
   "Open the chat",
   "Open the console",
+  "open the detail",
   "Open the history",
   "Open the image",
   "Open the map",

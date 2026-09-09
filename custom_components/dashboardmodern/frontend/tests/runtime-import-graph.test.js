@@ -1045,6 +1045,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
   // negoziare e prova per prima la strada ricordata. La cascata del guscio non
   // si tocca: resta la rete di sicurezza, intera.
+  // 307 con cosa c'e' dentro un'allerta quando la si apre (#422): «non si puo'
+  // interagire con le schede allerte per espandere le informazioni». Il testo
+  // di un avviso della protezione civile lo si tagliava a centottanta caratteri
+  // per farlo stare nella tessera, e gli attributi dell'integrazione non
+  // uscivano da nessuna parte: adesso la tessera si apre, e questo modulo
+  // decide cosa vale la pena mostrarci dentro.
   // 306 con chi decide di CHI e' un'entita' (#417): «il frigorifero 1 mi
   // mostra il valore di un sensore che ho messo dentro il frigorifero 2 …
   // anche se cancello l'associazione me la ritrovo sempre». La passata che
@@ -1055,7 +1061,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
   assert.ok(
-    relative.length <= 306,
+    relative.length <= 307,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
