@@ -313,7 +313,26 @@ export function periodRange(kind, selected = new Date(), now = new Date()) {
   } else if (kind === "year") {
     start = new Date(date.getFullYear(), 0, 1);
     next = new Date(date.getFullYear() + 1, 0, 1);
-    period = "month";
+    /* A GIORNI, non a mesi, ed e' la correzione che mancava.
+     *
+     * «I dati della wallbox sono ancora sbagliati: il totale consumato da
+     *  inizio anno e' 1440,76 kWh» — e la plancia ne diceva 546, per tre
+     *  rilasci di fila.
+     *
+     * Su un contatore che si azzera ogni mese — e quello mensile di una
+     * wallbox e' esattamente questo — i secchielli MENSILI del Recorder
+     * portano il totale DI QUEL MESE: dodici numeri che non stanno su nessuna
+     * scala comune. Da quella risposta il consumo dell'anno non si ricava
+     * piu', qualunque conto ci si faccia sopra: l'informazione non c'e'.
+     * `mesiDaiGiorni` lo diceva gia', ed era stato messo su un'altra porta —
+     * `statisticsWithGrowth` — che questo percorso non attraversa.
+     *
+     * Costa una domanda piu' grossa: trecentosessantacinque righe invece di
+     * dodici, per entita'. Ma l'anno si chiede in due archi — i mesi chiusi e
+     * il mese aperto (`archiDellAnno`) — e quello dei mesi chiusi non cambia
+     * mai piu', quindi la sua risposta si tiene. E su un contatore di sempre
+     * il numero che ne esce e' identico a prima. */
+    period = "day";
   } else {
     start = new Date(date.getFullYear(), date.getMonth(), 1);
     next = new Date(date.getFullYear(), date.getMonth() + 1, 1);
@@ -570,7 +589,39 @@ export function crescitaNellArco(righe = [], range, { continuazione = false } = 
   );
   const partenza =
     prima.at(-1) || (continuazione ? null : contatoreNatoDentro(prima, dentro, inizio));
-  return periodConsumption(dentro, partenza);
+  if (!dentro.length) return null;
+  /* Senza un predecessore, la prima riga di dentro E' il punto di partenza:
+   * vale zero, non se stessa.
+   *
+   * E' la cautela che teneva `periodConsumption`, e ci sono cascato dentro
+   * riscrivendo questo conto: sommando i secchielli senza baseline, il primo
+   * porta `max(0, adesso)`, cioe' tutto il contatore. Su un contatore di vita
+   * di cui semplicemente non sono state chieste le righe precedenti vorrebbe
+   * dire leggere una cumulata vecchia di anni come il consumo di quest'anno —
+   * sbagliare in quel verso e' molto peggio che non rispondere.
+   *
+   * Quando invece il contatore e' nato DENTRO l'arco lo si sa, e allora
+   * `contatoreNatoDentro` ha gia' messo una partenza a zero: li' il primo
+   * secchiello vale quello che dice, ed e' giusto. */
+  if (!partenza && dentro.length < 2) return null;
+  const base = partenza || dentro[0];
+  const secchielli = partenza ? dentro : dentro.slice(1);
+  /* La SOMMA delle crescite dei secchielli, non la differenza fra il primo e
+   * l'ultimo.
+   *
+   * Sul contatore di sempre sono lo stesso numero: le differenze si annullano
+   * a catena e resta ultimo meno primo. Su uno che si azzera no — e li' solo
+   * la somma e' vera, perche' ogni azzeramento lo vede il secchiello in cui
+   * cade invece di mangiarsi tutto quello che c'era prima.
+   *
+   * Il conto per secchielli c'era gia' e lo usava chi disegna i grafici
+   * (`recorderBucketConsumptions`): erano due modi di misurare la stessa cosa,
+   * uno giusto sempre e uno giusto quasi sempre, e a comandare qui era il
+   * secondo. Adesso ce n'e' uno. */
+  return recorderBucketConsumptions(secchielli, base).reduce(
+    (somma, riga) => somma + Math.max(0, Number(riga.change) || 0),
+    0,
+  );
 }
 
 /* Un contatore che a inizio periodo non c'era ancora parte da zero.

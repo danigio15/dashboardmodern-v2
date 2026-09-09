@@ -79,7 +79,7 @@ function recorderFinto({ senzaStatistiche = [], cade = () => false } = {}) {
   broker.inflight.clear();
   broker.statistics = async (ids, start, end, period) => {
     domande.push({ ids: [...ids], start: new Date(start), end: new Date(end), period });
-    if (cade(period, ids)) throw new Error("Home Assistant response timeout");
+    if (cade(period, ids, new Date(start))) throw new Error("Home Assistant response timeout");
     const passo =
       period === "5minute" ? 300e3 : period === "hour" ? 3600e3 : period === "day" ? 864e5 : 26e8;
     return Object.fromEntries(
@@ -159,12 +159,23 @@ test("fonti, dispositivi e carichi dello stesso arco costano una domanda sola", 
     domande.length,
     "due domande sullo stesso arco: gli istanti non coincidono",
   );
+  /* Due domande a giorni e non una a mesi: il mese in corso e i mesi chiusi
+   * dell'anno. L'anno non si chiede piu' a mesi — su un contatore che si
+   * azzera quella risposta non contiene piu' l'informazione per ricostruirlo
+   * (`lanno-della-wallbox-passa-dai-giorni`) — e sono due archi distinti,
+   * quindi restano due domande: il conto totale non cambia, cambia la finezza
+   * di una. */
   const periodi = domande.map((domanda) => domanda.period).sort();
-  assert.deepEqual(periodi, ["5minute", "day", "hour", "month"]);
+  assert.deepEqual(periodi, ["5minute", "day", "day", "hour"]);
 
   /* Nella domanda del mese ci sono le fonti, i dispositivi e — per il pezzo
-   * aperto dell'anno — le stesse entita' una volta sola. */
-  const mese = domande.find((domanda) => domanda.period === "day");
+   * aperto dell'anno — le stesse entita' una volta sola. Fra le due domande a
+   * giorni il mese e' quella che finisce piu' tardi: i mesi chiusi si fermano
+   * all'inizio del mese in corso. */
+  const aGiorni = domande
+    .filter((domanda) => domanda.period === "day")
+    .sort((a, b) => b.end.getTime() - a.end.getTime());
+  const mese = aGiorni[0];
   assert.ok(mese.ids.includes("sensor.casa_tot"));
   assert.ok(mese.ids.includes("sensor.forno_tot"));
   assert.equal(new Set(mese.ids).size, mese.ids.length, "la stessa entita' chiesta due volte");
@@ -172,8 +183,9 @@ test("fonti, dispositivi e carichi dello stesso arco costano una domanda sola", 
   const giorno = domande.find((domanda) => domanda.period === "hour");
   assert.ok(giorno.ids.includes("sensor.pompa_tot"));
 
-  /* I mesi chiusi non arrivano oltre l'inizio del mese in corso. */
-  const anno = domande.find((domanda) => domanda.period === "month");
+  /* I mesi chiusi non arrivano oltre l'inizio del mese in corso. Sono l'altra
+   * domanda a giorni: quella che finisce prima. */
+  const anno = aGiorni[1];
   const primoDelMese = new Date();
   primoDelMese.setDate(1);
   primoDelMese.setHours(0, 0, 0, 0);
@@ -203,7 +215,12 @@ test("un contatore senza statistiche non butta via il pacchetto: si tiene il res
 
 test("una domanda caduta lascia in piedi gli archi che sono arrivati", async () => {
   runtime.bundle = null;
-  recorderFinto({ cade: (period) => period === "month" });
+  /* Cade l'arco dell'anno, che adesso si chiede a giorni come il mese: non si
+   * distingue piu' per il passo, si distingue perche' e' l'unico che va a
+   * pescare indietro fino a gennaio. E la domanda parte dalla BASELINE, due
+   * giorni prima del confine, quindi il suo inizio cade a fine dicembre. */
+  const primoFebbraio = new Date(new Date().getFullYear(), 1, 1).getTime();
+  recorderFinto({ cade: (_period, _ids, inizio) => inizio.getTime() < primoFebbraio });
   const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi());
 
   assert.ok(pacchetto, "il giorno e il mese sono arrivati: il pacchetto vale");
