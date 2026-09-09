@@ -370,6 +370,64 @@ export function vehicleEntities(list = []) {
   return ids;
 }
 
+/**
+ * L'elenco con le caselle di un'auto rimesse d'accordo con quelle scritte.
+ *
+ * «Nella sezione km residui ho visto che in automatico prendeva l'entita' dei
+ *  km residui dell'AdBlue e non del gasolio. Per cui ho modificato a mano
+ *  l'entita' e salvato. Purtroppo a schermo compaiono ancora i km residui
+ *  dell'AdBlue ma se clicco sopra prende il grafico corretto» (#444).
+ *
+ * Le caselle di una vettura vivono in due posti, e per disegno: nel profilo,
+ * che e' il loro padrone, e nella mappa di casa, che e' quella che il guscio
+ * legge con `resolveEntity`. Mettere in uso un'auto versa il profilo nella
+ * mappa; salvare l'auto rilegge la mappa nel profilo. Finche' si passa da uno
+ * di quei due gesti i due posti dicono la stessa cosa.
+ *
+ * Correggere una casella a mano non e' nessuno dei due. La correzione andava
+ * nella mappa di casa e li' restava: il grafico che si apre toccando la
+ * misura la usava — passa da `resolveEntity` — e la card e la tessera no,
+ * perche' leggono il profilo. Da fuori si vede come una sola cosa: lo schermo
+ * dice AdBlue, il grafico dietro dice gasolio.
+ *
+ * Qui si chiude il giro dalla parte che mancava: quello che si e' scritto
+ * entra nel profilo dell'auto di cui sono le caselle. Solo un valore SCRITTO
+ * sovrascrive — una chiave che non c'e' non vuol dire «cancellala», vuol dire
+ * che quel gesto non parlava di lei — e `eDiCasa` tiene fuori quello che alla
+ * vettura non appartiene: la colonnina e' della casa, e il limite di carica
+ * comandabile pure.
+ *
+ * Torna l'elenco da salvare e se c'era davvero qualcosa da cambiare. Il
+ * secondo serve: una casella si salva sul `change` del suo campo, e salvare
+ * l'elenco a ogni battito vorrebbe dire una spinta di sincronizzazione per
+ * ogni lettera scritta.
+ */
+export function conLeCaselleScritte(list = [], uid, caselle = {}, eDiCasa = () => false) {
+  const auto = array(list);
+  const cercato = clean(uid);
+  const posto = cercato ? vehicleIndex(auto, cercato) : -1;
+  if (posto < 0) return { cars: auto, cambiato: false };
+  const sue = auto[posto]?.[VEHICLE_OVERRIDES_FIELD];
+  const mappa = sue && typeof sue === "object" && !Array.isArray(sue) ? sue : {};
+  const prossime = { ...mappa };
+  let cambiato = false;
+  for (const [chiave, valore] of Object.entries(caselle || {})) {
+    const ref = clean(chiave);
+    /* Solo le caselle di un'auto: la mappa di casa ne porta centinaia. */
+    if (!ref.startsWith("dm.ev_")) continue;
+    if (eDiCasa(ref, valore)) continue;
+    const scritto = clean(valore);
+    if (!scritto || clean(mappa[ref]) === scritto) continue;
+    prossime[ref] = scritto;
+    cambiato = true;
+  }
+  if (!cambiato) return { cars: auto, cambiato: false };
+  return {
+    cars: updateVehicle(auto, cercato, { [VEHICLE_OVERRIDES_FIELD]: prossime }),
+    cambiato: true,
+  };
+}
+
 /* Il nome di un modello come si confronta: minuscolo, senza accenti, una
  * parola per pezzo. E' la stessa pulizia che fa la scheda dell'auto. */
 export function normalizzaModello(value) {

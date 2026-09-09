@@ -23,17 +23,17 @@ import {
   doc,
   esc,
   installStyle,
-  onEditorRedraw,
   readJson,
   root,
   t,
+  tieniIlBloccoNellaScheda,
   writeJsonIfChanged,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ALARM_MODES_EDITOR__";
 const STYLE_ID = "dm-alarm-modes-style";
 const BLOCK_ID = "dm-alarm-modes";
-const state = (root[KEY] ||= { installed: false, osservato: null, osservatore: null });
+const state = (root[KEY] ||= { installed: false });
 
 const ETICHETTE = () => ({
   home: t("Casa", "Home"),
@@ -186,49 +186,18 @@ function css() {
     `;
 }
 
-/* Quando la scheda e' stata rifatta lo dice il corpo della scheda, non un orologio.
- *
- * L'aggancio a `editorSwitch` si prova lo stesso — e' la strada di casa — ma non
- * si puo' dare per fatto: quella funzione e' della plancia storica e quando i
- * moduli si installano puo' non esserci ancora; l'aggancio fallisce in silenzio
- * e da quel momento nessuno avvisa piu' nessuno. E anche riuscito, avvisa quando
- * la linguetta cambia, non quando il corpo e' pronto: il corpo lo monta chi
- * disegna, e puo' arrivare un giro dopo.
- *
- * Il corpo che cambia figli e' l'unico segnale che vuol dire davvero «la scheda
- * e' nuova»: si guarda quello. L'osservatore si attacca al corpo di adesso — la
- * finestra si apre e si chiude, e ogni volta il corpo e' un altro. */
-function aggancia() {
-  onEditorRedraw("dmAlarmModes", ensureAlarmModesBlock);
-  const body = doc?.getElementById?.("ed-body");
-  if (!body || state.osservato === body) return;
-  state.osservato = body;
-  state.osservatore?.disconnect?.();
-  if (typeof root.MutationObserver !== "function") return;
-  state.osservatore = new root.MutationObserver(() => {
-    root.queueMicrotask?.(ensureAlarmModesBlock);
-  });
-  state.osservatore.observe(body, { childList: true });
-}
-
-function onTabClick(event) {
-  if (!event.target?.closest?.(".ed-tab")) return;
-  aggancia();
-  root.queueMicrotask?.(ensureAlarmModesBlock);
-}
-
 export function installAlarmModesEditorSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyle(STYLE_ID, css());
   doc.addEventListener("click", onClick, true);
-  doc.addEventListener("click", onTabClick, true);
-  /* La finestra si apre da un tasto qualunque della plancia: al primo clic il
-   * corpo puo' non esserci ancora, al secondo si'. Guardare ogni clic costa una
-   * ricerca per id, e smette di costare appena l'osservatore e' attaccato. */
-  doc.addEventListener("click", () => root.queueMicrotask?.(aggancia), true);
-  aggancia();
-  ensureAlarmModesBlock();
+  /* Il modo di restare appesi a una scheda che si rifa' stava scritto qui, ed
+   * era l'unico posto che ce l'aveva: il blocco dei tasti su misura, che nasce
+   * due righe sotto questo e ha lo stesso problema, ne era rimasto senza e
+   * spariva al primo salvataggio (#431). Adesso la meccanica sta in
+   * `shared.js` e la usano tutti e due — una sola, che e' il modo di non
+   * ritrovarsene una vecchia. */
+  tieniIlBloccoNellaScheda("dmAlarmModes", ensureAlarmModesBlock);
 }
 
 if (doc?.readyState === "loading") {

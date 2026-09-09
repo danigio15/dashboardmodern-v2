@@ -150,7 +150,13 @@ test("togliere una chiave non alza la revisione", async () => {
    * rilevatore non guarda la casa, quale aggiungere a mano, come si chiama — e
    * sono correzioni al rilevamento di CASA: il sensore del cortile e' fuori
    * posto su ogni dispositivo, e il nome dato a «Motion 3C» vale per tutti. */
-  assert.equal(CONFIG_KEYS_REVISION, 40);
+  /* E la 41 col verso della batteria (#434, `cd_batteria_verso`): «sembra
+   * scaricarsi perche' il flow tratteggiato va dalla batteria verso casa ma non
+   * e' esatto». Meta' dei sensori scrive positivo quando la batteria si CARICA,
+   * e da un valore solo non si indovina: lo dice la casa. La batteria e' una
+   * sola per tutta la casa, e chi ha girato il verso dal computer non deve
+   * vedere le frecce al contrario sul telefono. */
+  assert.equal(CONFIG_KEYS_REVISION, 41);
   assert.ok(
     CONFIG_KEYS.includes("cd_flusso_home"),
     "il flusso in Home si sceglie per la casa, non per lo schermo",
@@ -158,6 +164,10 @@ test("togliere una chiave non alza la revisione", async () => {
   assert.ok(
     CONFIG_KEYS.includes("cd_presenza"),
     "i rilevatori di presenza si correggono per la casa, non per lo schermo",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_batteria_verso"),
+    "il verso della batteria e' dell'impianto, non del vetro",
   );
   assert.ok(
     CONFIG_KEYS.includes("cd_antifurto_su_misura"),

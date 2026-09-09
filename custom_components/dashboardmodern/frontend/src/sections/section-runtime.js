@@ -136,6 +136,7 @@ import { installVarchi } from "./varchi-section.js";
 import { installVarchiEditor } from "./varchi-editor-section.js";
 import { installPresenza } from "./presenza-section.js";
 import { installPresenzaEditor } from "./presenza-editor-section.js";
+import { installVersoBatteriaEditorSection } from "./verso-batteria-editor-section.js";
 import { installMacchine } from "./macchine-e-rete-section.js";
 import { installMacchineEditor } from "./macchine-editor-section.js";
 import { installAgendaEditorSection } from "./agenda-editor-section.js";
@@ -1062,6 +1063,7 @@ export function installSectionRuntime() {
     installVarchiEditor();
     installPresenza();
     installPresenzaEditor();
+    installVersoBatteriaEditorSection();
     installMacchine();
     installMacchineEditor();
     /* Il calendario (#259) ha una pagina sua accanto alla Home, e con le liste
@@ -1177,6 +1179,7 @@ export function installSectionRuntime() {
         "varchi-editor",
         "presenza",
         "presenza-editor",
+        "verso-batteria-editor",
         "macchine-e-rete",
         "macchine-editor",
       ]),

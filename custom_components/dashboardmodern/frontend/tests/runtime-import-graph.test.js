@@ -1045,6 +1045,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // `sections/telecamera-subito-section.js` disegna l'istantanea prima di
   // negoziare e prova per prima la strada ricordata. La cascata del guscio non
   // si tocca: resta la rete di sicurezza, intera.
+  // 314 con il verso della batteria (#434): «sembra scaricarsi perche' il flow
+  // tratteggiato va dalla batteria verso casa ma non e' esatto». La mappa ha
+  // una convenzione sola — positivo = scarica — e meta' dei sensori scrive
+  // positivo quando la batteria si CARICA: da un valore solo non si indovina,
+  // e chi guarda vede le frecce all'incontrario. La regola sta nel nucleo che
+  // gia' possiede quelle convenzioni (`core/energy-flow-truth.js`, che non
+  // cresce di un file); `sections/verso-batteria-editor-section.js` e' solo
+  // l'interruttore, sotto la casella della potenza — il posto dove ci si trova
+  // quando ci si accorge che il disegno mente.
   // 313 con la presenza in casa (#432): «ci vorrebbe una sezione con i sensori
   // presenza o movimento». Quattro moduli, e nessuno di piu': `core/da-quanto.js`
   // e' la sveglia e le parole del «da quanto» — stavano dentro
@@ -1087,7 +1096,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
   assert.ok(
-    relative.length <= 313,
+    relative.length <= 314,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

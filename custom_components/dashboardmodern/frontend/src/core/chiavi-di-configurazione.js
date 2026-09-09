@@ -198,8 +198,15 @@
  * dei varchi — quale rilevatore non guarda la casa, quale aggiungere a mano,
  * come si chiama — e sono correzioni al rilevamento di CASA: il sensore del
  * cortile è fuori posto su ogni dispositivo, e il nome dato a «Motion 3C» vale
- * per tutti. */
-export const CONFIG_KEYS_REVISION = 40;
+ * per tutti.
+ *
+ * La revisione 41 aggiunge da che parte scrive la batteria (`cd_batteria_verso`,
+ * #434): «sembra scaricarsi perché il flow tratteggiato va dalla batteria verso
+ * casa ma non è esatto». Metà dei sensori scrive positivo quando la batteria si
+ * CARICA, e da un valore solo non si indovina. È una cosa dell'impianto, non
+ * del vetro: la batteria è una sola per tutta la casa, e chi ha girato il verso
+ * dal computer non deve vedere le frecce al contrario sul telefono. */
+export const CONFIG_KEYS_REVISION = 41;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -332,6 +339,10 @@ export const CONFIG_KEYS = Object.freeze([
    * correzioni al rilevamento di casa — e quindi stesso viaggio fra i
    * dispositivi. */
   "cd_presenza",
+  /* Il verso della batteria (#434): se il sensore scrive positivo quando si
+   * carica. E' dell'impianto, non del dispositivo da cui lo si e' detto — la
+   * batteria e' una sola per tutta la casa. */
+  "cd_batteria_verso",
   /* Le macchine del server e la rete (#382): quali sensori contano e come si
    * chiamano. Il server e' uno solo per tutta la casa, e il nome che si da' a
    * «pve_qemu_103» vale su ogni dispositivo che lo guarda. */

@@ -69,8 +69,14 @@ test("quello che diceva la tessera lo dice Finestre, ed è l'unico a dirlo", () 
     ponte.indexOf("function coversModel"),
     ponte.indexOf("function securityModel"),
   );
-  assert.match(coperture, /label: t\("Finestre", "Windows"\)/);
-  assert.match(coperture, /caption: nomiAccesi\(open, \(\) => true,/);
+  /* Il nome dice cosa c'è dentro: con un contatto la tessera è delle Finestre,
+   * senza nemmeno uno parla di motori e si chiama come loro (#442). */
+  assert.match(coperture, /t\("Tapparelle", "Shutters"\) : t\("Finestre", "Windows"\)/);
+  /* E la didascalia le NOMINA ancora: contarle e basta farebbe tornare la
+   * tessera delle aperture. Le tapparelle alzate si contano, che è un'altra
+   * cosa e va detta con un'altra parola. */
+  assert.match(coperture, /nomiAccesi\(aperte, \(\) => true, ""\)/);
+  assert.match(coperture, /nomiAccesi\(alzate, \(\) => true, t\("Tutte abbassate", "All down"\)\)/);
   /* E i contatti li legge davvero: senza, resterebbe la sola posizione della
    * tapparella, che di una finestra aperta non dice niente. */
   assert.match(coperture, /contactEntity\(item\)/);

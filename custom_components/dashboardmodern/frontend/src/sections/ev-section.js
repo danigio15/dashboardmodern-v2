@@ -5,6 +5,7 @@ import {
   VEHICLE_KEY_FIELD,
   VEHICLE_OVERRIDES_FIELD,
   VEHICLE_PHOTO_FIELDS,
+  conLeCaselleScritte,
   nuovoVeicolo,
   pickVehicle,
   storedVehicles,
@@ -355,13 +356,26 @@ function rimettiInUso(auto, indice) {
  * seconda di dimenticare cosa fa la prima. */
 function scriviNeiCampi(contenitore, quale) {
   let scritti = 0;
-  for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
-    const valore = quale(clean(slot.dataset.ref));
-    if (valore === null || slot.value === valore) continue;
-    slot.value = valore;
-    slot.dispatchEvent(new Event("input", { bubbles: true }));
-    slot.dispatchEvent(new Event("change", { bubbles: true }));
-    scritti += 1;
+  /* Quello che scrive la plancia non e' una correzione a mano (#444).
+   *
+   * Qui si riempiono i campi dal profilo, e riempirli manda un `change` — deve
+   * mandarlo, o il guscio non se ne accorge. Ma `change` e' anche il momento in
+   * cui una casella corretta a mano entra nel profilo, e senza questo segno il
+   * profilo si sarebbe riscritto da se': profilo nei campi, campi nel profilo,
+   * e daccapo. Un valore che la plancia ha appena messo li' non e' una
+   * risposta di nessuno. */
+  state.dettandoICampi = true;
+  try {
+    for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
+      const valore = quale(clean(slot.dataset.ref));
+      if (valore === null || slot.value === valore) continue;
+      slot.value = valore;
+      slot.dispatchEvent(new Event("input", { bubbles: true }));
+      slot.dispatchEvent(new Event("change", { bubbles: true }));
+      scritti += 1;
+    }
+  } finally {
+    state.dettandoICampi = false;
   }
   return scritti;
 }
@@ -1791,6 +1805,91 @@ function installLegacyWrappers() {
     addProfile.__dmPrevious = previous;
     root.edEvCarAdd = addProfile;
   }
+  /* Una casella corretta a mano finisce anche nel profilo (#444).
+   *
+   * «Ho modificato a mano l'entita' e salvato. Purtroppo a schermo compaiono
+   *  ancora i km residui dell'AdBlue ma se clicco sopra prende il grafico
+   *  corretto dei km residui del carburante.»
+   *
+   * `edSetSlot` e' il salvataggio di UNA casella: scatta sul `change` del
+   * campo, scrive nella mappa di casa e dice «Salvato». Nessun bottone da
+   * premere, e nessuno che portasse quella correzione dentro il profilo della
+   * vettura — che e' dove la card e la tessera vanno a leggere. Da fuori si
+   * vedeva come una sola cosa che si contraddice: lo schermo diceva AdBlue, il
+   * grafico dietro diceva gasolio.
+   *
+   * Qui la correzione arriva a destinazione da sola. Vale per ogni casella di
+   * un'auto, non per l'autonomia: la stessa spaccatura c'era sul carburante,
+   * sull'odometro, sull'olio e sulle gomme. */
+  if (typeof root.edSetSlot === "function" && !root.edSetSlot.__dmEvSection) {
+    const previous = root.edSetSlot;
+    function setSlot(input, ...rest) {
+      const esito = previous.call(this, input, ...rest);
+      try {
+        const ref = clean(input?.dataset?.ref);
+        /* SOLO la casella che e' cambiata, e l'ho imparato rompendolo.
+         *
+         * Prendendole tutte — che e' quello che fa `cdEvCaptureProfile` — una
+         * correzione sull'autonomia si portava dietro il valore vivo di ogni
+         * altro campo, compresi quelli che un altro pezzo di plancia stava
+         * riscrivendo in quel momento: il profilo salvava, il salvataggio
+         * rifaceva i campi, i campi tornavano qui con un altro numero, e i due
+         * lati se lo rimbalzavano all'infinito. Una casella per volta non ha
+         * niente da rimbalzare: appena il profilo la porta, non cambia piu'
+         * niente e il giro finisce. */
+        if (ref.startsWith("dm.ev_")) prendiLeCaselle({ [ref]: clean(input?.value) });
+      } catch (_error) {}
+      return esito;
+    }
+    setSlot.__dmEvSection = true;
+    setSlot.__dmPrevious = previous;
+    root.edSetSlot = setSlot;
+  }
+
+  /* Le caselle appena scritte, dentro il profilo di chi sono.
+   *
+   * Di CHI sono lo dice la stessa domanda che si fa il tasto «Salva auto»:
+   * senza un gesto esplicito la scheda racconta l'auto in uso, la matita apre
+   * quella vettura, e una bozza — «＋ Aggiungi auto» — non e' ancora nessuno,
+   * quindi le sue caselle non appartengono a nessuno finche' non la si salva.
+   *
+   * La raccolta la fa `cdEvCaptureProfile`, che rilegge ogni campo `dm.ev_*`
+   * del modulo ed e' gia' avvolto qui sopra per tenere fuori la colonnina:
+   * quella e' della casa, e non entra nel profilo di una vettura. */
+  function prendiLeCaselle(scritte) {
+    /* Mentre e' la plancia a dettare i campi non si ascolta: quello che scrive
+     * lei non e' una correzione di nessuno, e prenderla per tale vorrebbe dire
+     * riscrivere il profilo con quello che ne era appena uscito. */
+    if (state.dettandoICampi || state.prendendoLeCaselle) return false;
+    if (!scritte || !Object.keys(scritte).length) return false;
+    const chiave = editingKey();
+    if (chiave === "") return false;
+    const elenco = profiles();
+    const bersaglio = chiave
+      ? elenco.find((car) => uidDi(car) === chiave) || null
+      : activeVehicle(elenco);
+    if (!bersaglio) return false;
+    const { cars, cambiato } = conLeCaselleScritte(
+      elenco,
+      uidDi(bersaglio),
+      scritte,
+      (ref, valore) => eDellaWallbox(ref) || eTargetDiCasa(ref, valore),
+    );
+    /* Niente da cambiare, niente da salvare: una casella si salva sul `change`
+     * del campo, e spingere la configurazione a ogni battito sarebbe una
+     * sincronizzazione per ogni lettera scritta. */
+    if (!cambiato) return false;
+    /* Salvare le auto fa ridisegnare la scheda, e ridisegnarla puo' riportare
+     * qui: un giro solo, e chi ci rientra dentro trova la porta chiusa. */
+    state.prendendoLeCaselle = true;
+    try {
+      salvaAuto(cars);
+    } finally {
+      state.prendendoLeCaselle = false;
+    }
+    return true;
+  }
+
   /* «SALVA SEZIONE» salva anche le foto.
    *
    * Il bottone verde in fondo alla sezione raccoglie i campi entita' e
@@ -1811,6 +1910,15 @@ function installLegacyWrappers() {
           savePhotos(panel);
           panel.dataset.saved="true";
         }
+        /* E le caselle nel profilo dell'auto (#444).
+         *
+         * Su mobile il `change` di una casella puo' non arrivare, e allora il
+         * bottone verde e' l'unico che passa: la regola sta in `prendiLeCaselle`
+         * e questa e' la sua seconda porta, non una seconda regola. Qui le
+         * caselle si prendono TUTTE — «salva la sezione» vuol dire quello, ed
+         * e' un gesto solo, che non torna. */
+        if (body?.querySelector?.('input.ed-slot-in[data-ref^="dm.ev_"]'))
+          prendiLeCaselle(root.cdEvCaptureProfile?.()?.ov || {});
       } catch (_error) {}
       return result;
     }

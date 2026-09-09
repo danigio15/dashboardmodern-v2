@@ -166,6 +166,11 @@ import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
 import {
+  CHIAVE_VERSO_BATTERIA,
+  batteriaGirata,
+  potenzaDellaBatteria,
+} from "../core/energy-flow-truth.js";
+import {
   CHIAVE_PRESENZA,
   contoDellaPresenza,
   presenzaDiCasa,
@@ -1103,13 +1108,52 @@ function coversModel(states) {
     .filter(Boolean);
   if (!rows.length) return null;
   const open = rows.filter((row) => row.open);
+  /* Una tapparella alzata non e' una finestra aperta (#442).
+   *
+   * «Nella home il chip indica 6 finestre aperte ma in realta' sono 6
+   *  tapparelle, le finestre (tramite sensori di apertura/chiusura)
+   *  andrebbero specificate come finestre in un altro chip.»
+   *
+   * Ha ragione sulla parola. La tessera conta quello che la sezione Finestre
+   * ha dentro, e dentro stanno due cose diverse: i motori — tapparelle, tende,
+   * tende da sole — che si ALZANO, e i contatti sull'anta, che si APRONO.
+   * Chiamarle tutte «aperte» dice a chi sta uscendo di casa una cosa che non
+   * e': sei tapparelle tirate su sono una casa normale, sei finestre aperte
+   * sono una casa da chiudere.
+   *
+   * L'altro chip che chiede c'e' gia' e si chiama Varchi: i contatti di porte
+   * e finestre li trova da se', uno per uno, senza configurare niente — anche
+   * quelli scritti dentro una riga delle Finestre. Qui si corregge la parola,
+   * che e' il pezzo che diceva il falso; e quando la sezione porta le due cose
+   * insieme, la didascalia le dice separate invece di sommarle in silenzio. */
+  const coperture = rows.filter((row) => !row.soloSensore);
+  const contatti = rows.filter((row) => row.soloSensore);
+  const alzate = coperture.filter((row) => row.open);
+  const aperte = contatti.filter((row) => row.open);
+  const soloMotori = coperture.length > 0 && contatti.length === 0;
+  const didascalia = () => {
+    if (soloMotori) return nomiAccesi(alzate, () => true, t("Tutte abbassate", "All down"));
+    /* Le finestre aperte si NOMINANO, una per una.
+     *
+     * E' la ragione per cui la tessera delle «aperture» non esiste piu': le
+     * diceva questa, per nome, e contarle e basta la farebbe tornare. Le
+     * tapparelle invece si contano: quali siano su non e' una notizia, quante
+     * ne restano alzate quando esci di casa si'. */
+    const pezzi = [
+      nomiAccesi(aperte, () => true, ""),
+      alzate.length ? t(`${alzate.length} alzate`, `${alzate.length} up`) : "",
+    ].filter(Boolean);
+    return pezzi.length ? pezzi.join(" · ") : t("Tutto chiuso", "All closed");
+  };
   return {
     key: "tapparelle",
     accent: "#8b5cf6",
     icon: "🪟",
-    label: t("Finestre", "Windows"),
+    /* Il nome dice cosa c'e' dentro: senza un solo contatto sull'anta questa
+     * tessera parla di motori, e si chiama come loro. */
+    label: soloMotori ? t("Tapparelle", "Shutters") : t("Finestre", "Windows"),
     value: String(open.length),
-    caption: nomiAccesi(open, () => true, t(`${open.length} aperte`, `${open.length} open`)),
+    caption: didascalia(),
     ring: Math.round((open.length / rows.length) * 100),
     rows,
     /* Le aperture escono col modello, come le luci accese: chi le conta senza
@@ -1303,7 +1347,13 @@ export function lettureDiCasa(states = allStates()) {
   return {
     solare: di("solar")?.watts ?? null,
     rete: di("grid")?.watts ?? null,
-    batteria: di("battery")?.watts ?? null,
+    /* La batteria nella convenzione di casa: positivo = scarica. Meta' dei
+     * sensori scrive positivo quando si CARICA, e il verso lo dice la casa una
+     * volta sola — sennò la mappa disegna le frecce all'incontrario (#434). */
+    batteria: potenzaDellaBatteria(
+      di("battery")?.watts ?? null,
+      batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
+    ),
     casa: sommaNumeri(letture.map((lettura) => lettura.house)),
     soc: di("battery")?.soc ?? null,
   };
@@ -5091,9 +5141,13 @@ function coversDetail(widget) {
             * al suo posto dice quello che sa, cioe' se e' aperta. */
            row.soloSensore
              ? esc(row.open ? t("Aperta", "Open") : t("Chiusa", "Closed"))
-             : row.position == null
-               ? ""
-               : `${row.position}%`
+             : row.position != null
+               ? `${row.position}%`
+               : /* E un motore che la posizione non la pubblica diceva NIENTE.
+                  * Sa se sta su o giu' — e' il conto che la tessera fa in cima
+                  * — e lo dice con la sua parola: una tapparella si alza, non
+                  * si apre (#442). */
+                 esc(row.open ? t("Alzata", "Up") : t("Abbassata", "Down"))
          }</small></span>
          ${
            row.isCover || row.relay
