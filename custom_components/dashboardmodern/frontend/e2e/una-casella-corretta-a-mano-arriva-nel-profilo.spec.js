@@ -7,9 +7,16 @@
  * legge con `resolveEntity`. Correggerne una scriveva solo la seconda, e i due
  * posti si contraddicevano sullo stesso schermo.
  *
- * Qui si fa il gesto vero, sulla plancia accesa: si scrive l'entità giusta
- * nella casella e la si lascia — il momento in cui la plancia dice «Salvato»,
- * senza nessun bottone da premere. Poi si guarda dove è finita.
+ * Qui si fa il gesto vero, sulla plancia accesa: si corregge la casella e si
+ * preme «SALVA SEZIONE», il bottone verde in fondo — quello che chiunque
+ * preme, perché sta in fondo e dice «salva la sezione». Poi si guarda dove è
+ * finita la correzione.
+ *
+ * Non sul `change` del singolo campo, e l'ho imparato rompendolo: mentre una
+ * casella cambia non si SA di chi sia. Comporre un'auto nuova usa gli stessi
+ * campi — prima le entità, poi il nome — e prendere quel `change` per una
+ * correzione faceva prendere alla prima auto la batteria della seconda prima
+ * che la seconda esistesse.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
@@ -64,6 +71,14 @@ const nellaCasa = (page, ref) =>
     ref,
   );
 
+/* Il bottone verde in fondo alla sezione: si aggancia al gestore e non al
+ * testo, così la prova regge anche in un'altra lingua. */
+async function salvaLaSezione(page) {
+  const tasto = page.locator('#ed-body button[onclick*="edSaveSezione"]').first();
+  await expect(tasto).toHaveCount(1, { timeout: 10_000 });
+  await tasto.evaluate((nodo) => nodo.click());
+}
+
 async function avvia(page, testInfo) {
   test.setTimeout(150_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
@@ -89,6 +104,10 @@ test("correggere la casella la porta anche nel profilo dell'auto", async ({ page
     campo.dispatchEvent(new Event("change", { bubbles: true }));
   }, GASOLIO);
 
+  /* E poi il salvataggio, che è il momento in cui si sa di chi sono le
+   * caselle. */
+  await salvaLaSezione(page);
+
   /* La mappa di casa la prende: è quella da cui passa il grafico, e diceva già
    * la cosa giusta anche prima. */
   await expect.poll(() => nellaCasa(page, "dm.ev_autonomia"), { timeout: 10_000 }).toBe(GASOLIO);
@@ -103,10 +122,12 @@ test("la correzione si ferma dopo un giro, non si rimbalza", async ({ page }, te
   await avvia(page, testInfo);
   await expect(casella(page)).toHaveCount(1, { timeout: 20_000 });
 
-  /* Salvare il profilo fa riscrivere i campi, e i campi tornano da `edSetSlot`:
-   * prendendole tutte, i due lati si rimbalzavano il numero all'infinito e la
-   * pagina si piantava. Si conta quante volte `edSetSlot` viene chiamato dopo
-   * un solo gesto: deve essere un numero piccolo e fermo. */
+  /* Salvare il profilo fa riscrivere i campi dell'auto, e i campi riscritti
+   * mandano un `change` ciascuno: se quel `change` tornasse a scrivere il
+   * profilo, i due lati si rimbalzerebbero il numero all'infinito e la pagina
+   * si pianterebbe — l'ho visto. Si conta quante volte `edSetSlot` viene
+   * chiamato dopo un solo salvataggio: deve essere un numero piccolo e
+   * FERMO. */
   await page.evaluate(() => {
     window.__dmConta = 0;
     const prima = window.edSetSlot;
@@ -119,12 +140,21 @@ test("la correzione si ferma dopo un giro, non si rimbalza", async ({ page }, te
     campo.value = valore;
     campo.dispatchEvent(new Event("change", { bubbles: true }));
   }, GASOLIO);
+  await salvaLaSezione(page);
   await expect.poll(() => nelProfilo(page, "dm.ev_autonomia"), { timeout: 10_000 }).toBe(GASOLIO);
 
   const dopoIlGesto = await page.evaluate(() => window.__dmConta);
   await page.waitForTimeout(1500);
   const dopoLAttesa = await page.evaluate(() => window.__dmConta);
-  expect(dopoIlGesto).toBeLessThan(5);
+
+  /* Il tetto non è un numero scelto a mano: salvare l'auto rifà i campi
+   * `dm.ev_*` una volta, e una passata su tutti è il conto giusto. Il doppio
+   * lascia spazio a un secondo giro legittimo e prende comunque un anello. */
+  const campi = await page.evaluate(
+    () => document.querySelectorAll('#ed-body input.ed-slot-in[data-ref^="dm.ev_"]').length,
+  );
+  expect(campi).toBeGreaterThan(0);
+  expect(dopoIlGesto).toBeLessThanOrEqual(campi * 2);
   /* E soprattutto: fermo. Un anello continuerebbe a girare da solo. */
   expect(dopoLAttesa).toBe(dopoIlGesto);
 });

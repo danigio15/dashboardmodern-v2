@@ -150,31 +150,31 @@ test("dopo la correzione la card e il grafico dicono la stessa entità", () => {
   assert.equal(resolve("dm.ev_autonomia"), "sensor.kodiaq_range");
 });
 
-test("la correzione arriva a destinazione dalle due porte che la portano", async () => {
+test("la correzione arriva a destinazione dal salvataggio, non dal singolo campo", async () => {
   const sezione = await leggi("../src/sections/ev-section.js");
-  /* `edSetSlot` è il salvataggio di UNA casella: scatta sul `change` del
-   * campo e non chiede nessun bottone. È la porta che il difetto ha
-   * attraversato. */
-  assert.match(sezione, /root\.edSetSlot === "function"/);
-  /* E prende SOLO la casella che è cambiata: prendendole tutte, salvare il
-   * profilo rifà i campi, i campi tornano qui con un altro numero, e i due lati
-   * se lo rimbalzano all'infinito. Una casella per volta non ha niente da
-   * rimbalzare. */
-  assert.match(sezione, /prendiLeCaselle\(\{ \[ref\]: clean\(input\?\.value\) \}\)/);
-  /* «SALVA SEZIONE» è la seconda porta: su mobile il `change` può non
-   * arrivare. Due porte, una regola sola. */
-  /* Il bottone verde invece le prende tutte: «salva la sezione» vuol dire
-   * quello, ed è un gesto solo, che non torna. */
+  /* Il bottone verde prende le caselle tutte: «salva la sezione» vuol dire
+   * quello, ed è il momento in cui si SA di chi sono. */
   assert.match(sezione, /prendiLeCaselle\(root\.cdEvCaptureProfile\?\.\(\)\?\.ov \|\| \{\}\)/);
+  /* E NON dal `change` del singolo campo, che è la porta da cui ci ho provato
+   * la prima volta: mentre una casella cambia non si sa di quale auto sia.
+   * Comporre un'auto nuova usa gli stessi campi — prima le entità, poi il
+   * nome — e la prima auto si prendeva la batteria della seconda prima che la
+   * seconda esistesse. Se quel gancio torna, torna anche quel difetto. */
+  assert.doesNotMatch(sezione, /edSetSlot/);
+
   const regola = sezione.slice(
     sezione.indexOf("function prendiLeCaselle(scritte)"),
     sezione.indexOf("/* «SALVA SEZIONE» salva anche le foto."),
   );
   assert.ok(regola, "prendiLeCaselle non si trova più dove questa prova lo cerca");
   /* Di chi sono le caselle lo dice la stessa domanda del tasto «Salva auto»:
-   * una bozza non è ancora nessuno. */
+   * la matita apre quella vettura, il nome scritto sceglie chi lo porta già, e
+   * un nome nuovo è una vettura che sta nascendo — le sue caselle non sono di
+   * nessuno finché non la si salva. */
   assert.match(regola, /if \(chiave === ""\) return false;/);
-  assert.match(regola, /activeVehicle\(elenco\)/);
+  assert.match(regola, /getElementById\("ed-evcar-name"\)/);
+  assert.match(regola, /if \(nomeScritto && !omonima\) return false;/);
+  assert.match(regola, /bersaglio = omonima \|\| activeVehicle\(elenco\)/);
   /* E si scrive dall'unico posto da cui si scrivono le auto. */
   assert.match(regola, /salvaAuto\(cars\)/);
 });
