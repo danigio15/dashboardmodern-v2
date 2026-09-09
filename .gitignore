@@ -30,3 +30,7 @@ custom_components/dashboardmodern/frontend/**/*.br
 # I banchi di misura si scrivono fuori dal deposito: uno c'e finito dentro
 # per un `git add -A` di troppo, e nessuno se ne era accorto.
 misura-tmp.mjs
+
+# Le anteprime del manuale: le fa `costruisci-il-manuale.mjs --anteprima N` per
+# guardare una pagina senza aprire il PDF, e sono buone solo per quel momento.
+docs/manuale/anteprima-*.png

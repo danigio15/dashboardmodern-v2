@@ -62,6 +62,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 
 ## Indice
 
+- [Il manuale in PDF](#il-manuale-in-pdf)
 - [Requisiti](#requisiti)
 - [Installazione](#installazione)
 - [Configurazione dell'integrazione](#configurazione-dellintegrazione)
@@ -80,6 +81,24 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Documentazione del progetto](#documentazione-del-progetto)
 - [Download e diffusione](#download-e-diffusione)
 - [Supporta il progetto](#supporta-il-progetto)
+
+---
+
+## Il manuale in PDF
+
+Chi preferisce una guida sola, stampabile, con tutte le schede spiegate una per una trova
+[**`docs/MANUALE-DASHBOARDMODERN.pdf`**](docs/MANUALE-DASHBOARDMODERN.pdf): sessantaquattro pagine in italiano —
+installazione, primo avvio, **dove va ogni entità** (fotovoltaico, porte, luci, auto, elettrodomestici),
+tutte e trentaquattro le schede dell'editor con le loro caselle, come nascono i numeri dell'Energia,
+risoluzione problemi, glossario e checklist.
+
+Il sorgente sta in [`docs/manuale/manuale.html`](docs/manuale/manuale.html) e si ristampa con:
+
+```bash
+node scripts/costruisci-il-manuale.mjs            # controlla le pagine e stampa il PDF
+node scripts/costruisci-il-manuale.mjs --controlla --riempimento   # solo i controlli
+node scripts/costruisci-il-manuale.mjs --anteprima 31              # una pagina in PNG
+```
 
 ---
 
@@ -1251,6 +1270,7 @@ Quando apri una Issue indica: versione DashboardModern, versione Home Assistant,
 
 ## Documentazione del progetto
 
+- [`docs/MANUALE-DASHBOARDMODERN.pdf`](docs/MANUALE-DASHBOARDMODERN.pdf) — **il manuale di configurazione in PDF**: sessantaquattro pagine, tutte le schede una per una, e le tabelle che dicono dove va ogni entità
 - [`CHANGELOG.md`](CHANGELOG.md) — cosa cambia a ogni versione
 - [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md) — archivio delle versioni precedenti alla 1.0
 - [`docs/RELEASE_1_0.md`](docs/RELEASE_1_0.md) — come si pubblica una release
