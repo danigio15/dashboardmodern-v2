@@ -81,9 +81,12 @@ test("l'icona degli avvisi ha un menu solo: l'anteprima", async () => {
   const source = await readFile(polishUrl, "utf8");
   assert.match(source, /button\.hidden = true/);
   assert.doesNotMatch(source, /button\.textContent = "🎨"/);
+  /* Nascosta per la classe dell'altro modulo quando c'è, e per il nostro segno
+   * quando quella classe non è ancora arrivata. */
+  assert.match(source, /\.dm-beta11-alert-icon-row>\.dm-beta5-alert-icon-trigger,/);
   assert.match(
     source,
-    /\.dm-beta11-alert-icon-row>\.dm-beta5-alert-icon-trigger\{display:none!important\}/,
+    /\.dm-beta11-alert-icon-row>\[data-dm-beta11-alert-picker="true"\]\{display:none!important\}/,
   );
   assert.match(
     source,
@@ -158,33 +161,35 @@ test("di caselle avviso ce ne può essere più d'una, e si vestono tutte", async
   /* E il click si prende ogni lente, marcata o no: la marcatura dice che la
    * vestizione c'è passata, non se quel tasto può aprire il catalogo. Un menu
    * solo vale anche per la lente che la vestizione non ha ancora raggiunto. */
-  assert.match(source, /closest\?\.\("\.dm-beta5-alert-icon-trigger"\)/);
+  assert.match(source, /\.dm-beta5-alert-icon-trigger,\[data-dm-beta11-alert-picker="true"\]/);
 });
 
-/* Il corpo dell'editor si riscrive anche quando non lo dice a nessuno.
- *
- * Il click e il cambio arrivano PRIMA che il guscio disegni: si vestiva quello
- * che c'era in quel fotogramma, e la lente comparsa subito dopo restava com'era
- * — nascosta dal foglio, perché la riga la classe ce l'aveva già, ma non
- * ritirata. È il difetto che su iPad si è visto a intermittenza: dipende da chi
- * arriva prima fra il nostro fotogramma e il disegno del guscio, e per due
- * volte su tre arrivavamo prima noi.
- *
- * Adesso c'è un orecchio sul corpo dell'editor. E siccome la vestizione mette
- * mano al documento, l'orecchio potrebbe risvegliarla all'infinito: guarda solo
- * la struttura e non gli attributi, e l'anteprima si riscrive solo quando
- * cambia davvero. Un giro che si richiama da solo sul fotogramma è la ventola
- * accesa per niente — questo repository ne ha già inseguito uno.
- */
-test("un orecchio sul corpo dell'editor, e niente giri che si richiamano", async () => {
+test("la lente si riconosce da sola, senza aspettare un altro modulo", async () => {
+  /* La classe `dm-beta5-alert-icon-trigger` non è di questo modulo: gliela mette
+   * la rifinitura da telefono, con un classList.add in una sua passata.
+   * Cercarla voleva dire dipendere da quale delle due passate arriva prima —
+   * che dipende dal carico — e su un iPad con sette prove in parallelo
+   * arrivava prima la nostra: qui non c'era ancora nessuna classe da
+   * riconoscere, e la lente restava nascosta dal foglio ma non ritirata. È lo
+   * stato a intermittenza che ha fermato il rilascio della 1.4.15 due volte.
+   *
+   * Aspettare l'altro modulo vorrebbe dire un orecchio o un secondo giro, e
+   * questo modulo non ne vuole: è la prova qui sopra a dirlo. Ma non serve —
+   * nella riga della casella i tasti sono due, l'anteprima e la lente, e
+   * l'anteprima è la nostra.
+   */
   const source = await readFile(polishUrl, "utf8");
-  assert.match(source, /function guardaIlCorpoDellEditor\(\)/);
-  assert.match(source, /guardaIlCorpoDellEditor\(\);/);
-  /* Solo la struttura: gli attributi li scriviamo noi, e non devono risvegliarci. */
-  assert.match(source, /\.observe\(modale, \{ childList: true, subtree: true \}\)/);
-  assert.doesNotMatch(source, /observe\([^)]*attributes: true/);
-  /* E l'anteprima si riscrive solo quando cambia. */
+  assert.match(source, /function ritiraLeLenti\(row, preview\)/);
+  assert.match(source, /row\.querySelectorAll\(":scope > button"\)/);
+  assert.match(source, /if \(button === preview\) continue;/);
+  /* E niente sorveglianti: questo modulo non ne ha, e la prova di sopra lo
+   * verifica — qui si guarda che non siano rientrati da una porta di servizio,
+   * cioè con un altro nome. */
+  assert.doesNotMatch(source, /MutationObserver/);
+  /* Il foglio nasconde per il NOSTRO segno, non per la classe di un altro. */
+  assert.match(source, /\[data-dm-beta11-alert-picker="true"\]\{display:none!important\}/);
+  /* E il click si prende la lente anche prima che l'altro modulo la battezzi. */
+  assert.match(source, /\.dm-beta5-alert-icon-trigger,\[data-dm-beta11-alert-picker="true"\]/);
+  /* L'anteprima si riscrive solo quando cambia: meno lavoro a ogni passata. */
   assert.match(source, /if \(preview\.dataset\.alertIcon !== valore\) \{/);
-  /* Le lenti si ritirano tutte, ovunque stiano nel corpo dell'editor. */
-  assert.match(source, /"#ed-body \.dm-beta5-alert-icon-trigger"/);
 });
