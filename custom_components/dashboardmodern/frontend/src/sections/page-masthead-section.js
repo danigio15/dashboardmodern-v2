@@ -35,6 +35,12 @@ const state = (root[KEY] ||= {
   frame: 0,
   /* Se dopo la passata in coda ne serve un'altra: vedi `scheduleSettled`. */
   ancora: false,
+  /* Quante passate sono CORSE davvero. Non serve a disegnare: serve a chi
+   * aspetta che l'intestazione si sia posata — le prove — per distinguere
+   * «non si e' ancora mossa» da «e' ferma». Sono due cose diverse, e da fuori
+   * si somigliano: un riquadro immobile perche' la passata non e' ancora
+   * partita e' esattamente cio' che una prova non deve prendere per buono. */
+  passate: 0,
   seeded: false,
   mastheads: {},
 });
@@ -621,6 +627,7 @@ export function renderPageMastheads() {
   for (const piano of piani) measureMasthead(piano);
   for (const piano of piani) applyMasthead(piano);
   state.seeded = true;
+  state.passate += 1;
   return true;
 }
 

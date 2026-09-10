@@ -286,6 +286,10 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
     for (const id of ids) {
       document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       document.getElementById(id)?.classList.add("active");
+      /* Quante passate dell'intestazione sono corse finora: il colpo qui sotto
+       * ne chiede due — quella subito e quella di sicurezza — e si aspetta che
+       * siano CORSE, non che siano state chieste. */
+      const dalPrincipio = window.__DASHBOARDMODERN_PAGE_MASTHEAD__?.passate ?? 0;
       window.dispatchEvent(
         new CustomEvent("dashboardmodern:state-changed", { detail: { entity_id: "cover.t1" } }),
       );
@@ -293,36 +297,47 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
        *
        * Qui c'erano 350 millisecondi fissi, ed era una scommessa: l'intestazione
        * si mette a posto in due passate — una rAF, poi una seconda ottanta
-       * millisecondi dopo — e su WebKit sotto carico quelle due possono
-       * finire dopo. La prova cadeva su «page-clima» in modo intermittente, e
-       * per una ragione che non aveva niente a che vedere con il Clima.
+       * millisecondi dopo — e su WebKit sotto carico quelle due possono finire
+       * dopo. La prova cadeva su «page-clima» in modo intermittente, e per una
+       * ragione che non aveva niente a che vedere con il Clima.
        *
-       * Un tempo fisso non può misurare due passate asincrone: si guarda
-       * finché il riquadro dell'intestazione smette di muoversi, e ci si ferma
-       * appena è fermo. Quello che si controlla dopo non cambia di una virgola:
-       * se non si posa mai, si esce col tempo scaduto e la prova cade come
-       * prima. */
+       * Guardare solo se il riquadro si muove non basta, ed e' un errore che
+       * peggiorerebbe le cose: l'intestazione c'e' gia' dal primo disegno, e
+       * finche' la passata non parte il suo riquadro sta fermo — «fermo» e
+       * «posato» da fuori si somigliano. Cosi' l'attesa poteva chiudersi in
+       * duecento millisecondi, cioe' PRIMA dei trecentocinquanta di prima, su
+       * misure vecchie.
+       *
+       * Si aspettano quindi due cose insieme: che le due passate siano corse
+       * davvero — le conta la sezione — e che dopo di loro il riquadro stia
+       * fermo. E se non si posa, non si tira dritto in silenzio: si porta fuori
+       * l'errore e la prova cade dicendo perche'. */
       const host = document.getElementById(id);
-      await (async () => {
-        const scadenza = 4000;
+      const errore = await (async () => {
+        const scadenza = 8000;
         const passo = 50;
         let fermo = 0;
         let prima = "";
         for (let speso = 0; speso < scadenza; speso += passo) {
           await new Promise((resolve) => setTimeout(resolve, passo));
+          const fatte = window.__DASHBOARDMODERN_PAGE_MASTHEAD__?.passate ?? 0;
           const mast = host?.querySelector(".dm-page-mast");
           const box = mast ? mast.getBoundingClientRect() : null;
           const adesso = box ? `${Math.round(box.top)}x${Math.round(box.width)}` : "";
-          /* Fermo per tre giri di fila, e non vuoto: si è posata. */
           fermo = adesso && adesso === prima ? fermo + 1 : 0;
           prima = adesso;
-          if (fermo >= 3) return;
+          if (fatte >= dalPrincipio + 2 && fermo >= 3) return "";
         }
+        const fatte = window.__DASHBOARDMODERN_PAGE_MASTHEAD__?.passate ?? 0;
+        return `l'intestazione non si e' posata in ${scadenza}ms (passate corse: ${
+          fatte - dalPrincipio
+        } di 2, ultimo riquadro ${prima || "assente"})`;
       })();
       const mast = host?.querySelector(".dm-page-mast");
       const visible = (node) => node && getComputedStyle(node).display !== "none";
       report.push({
         id,
+        errore,
         // L'intestazione apre il contenuto della pagina, e il contenuto di certe
         // pagine sta dentro un contenitore che ne fissa la larghezza: l'apertura
         // e' quella del contenitore, non della scheda, altrimenti l'intestazione
@@ -370,6 +385,10 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
     return report;
   });
   for (const entry of pages) {
+    /* Prima di tutto: le misure sotto valgono solo se sono state prese su
+     * un'intestazione posata. Se non si e' posata, non si giudica un riquadro
+     * a caso — si dice che non si e' posata. */
+    expect(entry.errore, `${entry.id}: ${entry.errore}`).toBe("");
     expect(entry.first, `${entry.id} opens with the heading`).toBe(true);
     expect(entry.sameWidth, `${entry.id} heading is as wide as what it introduces`).toBe(true);
     expect(entry.title.length, `${entry.id} names itself`).toBeGreaterThan(2);
