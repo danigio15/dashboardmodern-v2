@@ -178,6 +178,11 @@ import {
   presenzaDiCasa,
 } from "../core/presenza-in-casa.js";
 import {
+  CHIAVE_CITOFONO,
+  lettureDellIngresso,
+  riassuntoDellIngresso,
+} from "../core/citofono-e-posta.js";
+import {
   CHIAVE_STAMPANTI,
   lettureDelleStampanti,
   riassuntoDelleStampanti,
@@ -3599,6 +3604,71 @@ function presenzaModel(states) {
   };
 }
 
+/* Il citofono e la cassetta della posta (#449).
+ *
+ * «Avendo un intercom ho un button.cancello per aprire, inoltre volevo chiedere
+ * una sezione per la cassetta della posta.»
+ *
+ * Due domande, una tessera: c'è qualcuno alla porta, e c'è qualcosa in
+ * cassetta. La prima vince sulla seconda quando succede — un campanello che
+ * suona è adesso, la posta può aspettare — ed è l'unico caso in cui questa
+ * tessera si accende.
+ */
+function citofonoModel(states) {
+  const fuori = widgetExcludedEntities("citofono");
+  const letture = lettureDellIngresso(readJson(CHIAVE_CITOFONO, {}), states);
+  const citofoni = letture.citofoni.filter((voce) =>
+    widgetIncludes(voce.campanello || voce.apri, fuori),
+  );
+  const cassette = letture.cassette.filter((voce) =>
+    widgetIncludes(voce.posta || voce.ritiro, fuori),
+  );
+  if (!citofoni.length && !cassette.length) return null;
+  const riassunto = riassuntoDellIngresso({ citofoni, cassette });
+  return {
+    key: "citofono",
+    accent: riassunto.suona ? "#f97316" : riassunto.conPosta ? "#2563eb" : "#16a34a",
+    icon: "📮",
+    label: t("Citofono e posta", "Intercom and mail"),
+    value: riassunto.suona ? t("Suona", "Ringing") : String(riassunto.conPosta),
+    caption: riassunto.suona
+      ? t("C'è qualcuno alla porta", "Someone is at the door")
+      : riassunto.conPosta
+        ? t("C'è posta in cassetta", "Mail in the box")
+        : t("Niente di nuovo", "Nothing new"),
+    rows: [
+      ...citofoni.map((voce) => ({
+        entity: voce.campanello || voce.apri,
+        name: voce.nome,
+        glyph: "🔔",
+        on: voce.suona === true,
+        tono: voce.suona === true ? "acceso" : "",
+        value:
+          voce.suona === true
+            ? t("Sta suonando", "Ringing")
+            : voce.suona === false
+              ? t("Silenzio", "Quiet")
+              : t("Nessun campanello", "No doorbell"),
+      })),
+      ...cassette.map((voce) => ({
+        entity: voce.posta || voce.ritiro,
+        name: voce.nome,
+        glyph: "📬",
+        on: voce.ce === true,
+        tono: voce.ce === true ? "acceso" : voce.ce === false ? "quiete" : "",
+        value:
+          voce.aperta === true
+            ? t("Aperta", "Open")
+            : voce.ce === true
+              ? t("C'è posta", "Mail inside")
+              : voce.ce === false
+                ? t("Vuota", "Empty")
+                : t("Non si sa", "Unknown"),
+      })),
+    ],
+  };
+}
+
 /* Le stampanti: se sono pronte, e quanto inchiostro resta (#469).
  *
  * «Volevo chiedere se c'era la possibilita' del controllo delle tv e
@@ -4568,6 +4638,7 @@ export function modelliDelleTessere(states) {
       coversModel(states),
       securityModel(states),
       porteModel(states),
+      citofonoModel(states),
       varchiModel(states),
       presenzaModel(states),
       stampantiModel(states),

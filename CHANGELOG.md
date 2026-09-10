@@ -5,9 +5,41 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non ancora rilasciato
+## 1.4.18
 
 ### Aggiunto
+
+- **Citofono e cassetta della posta** (#449)
+
+  «Avendo un intercom ho un button.cancello per aprire, inoltre volevo chiedere
+  una sezione per la cassetta della posta: all'interno c'è un Vallhorn di IKEA
+  che espone un pir per segnalare la presenza posta e un sensore luminosità
+  che, quando rileva luce (apertura cassetta), segnala il ritiro della posta.»
+
+  Sezione nuova, **📮 Citofono e posta**, con la sua scheda in configurazione,
+  la sua tessera in Home e la sua pagina.
+
+  Del **citofono** servono il tasto che apre e, se c'è, il campanello e la
+  telecamera. Il tasto non è per forza un `button`: una serratura scatta
+  (`lock.open`, o `unlock` se quella serratura lo scatto non lo dichiara), un
+  cancello motorizzato si apre come una tapparella, uno script si accende, una
+  automazione parte. Cinque verbi per nove domini, e nessuno inventato.
+
+  Della **cassetta** servono i due sensori: quello che dice che è arrivato
+  qualcosa e quello che dice che lo sportello è stato aperto. Il verdetto è il
+  confronto fra i due momenti — se l'ultimo movimento è più recente
+  dell'ultima apertura, la posta è ancora dentro — e regge perché una cassetta
+  chiusa è una scatola buia: la luce, lì dentro, non cambia da sola. Il
+  luxmetro ha la sua soglia, di solito venti lux, e chi ha un contatto al posto
+  del luxmetro non ha soglie da tarare.
+
+  Chi ha **una sola** delle due entità non riceve un verdetto inventato: col
+  solo rilevatore si sa che qualcosa si è mosso e quando, non se è stato
+  ritirato, e allora la carta dice «non si sa» invece di dire «vuota».
+
+  C'è anche **«🔗 Aggiungi da un'integrazione»** per tutt'e due gli elenchi:
+  Ring, Doorbird, 2N, il Vallhorn di IKEA — scegli il dispositivo e le caselle
+  si compilano da sole.
 
 - **Gli altri nodi del cluster** (#470)
 

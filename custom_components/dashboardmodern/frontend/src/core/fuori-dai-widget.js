@@ -189,6 +189,9 @@ export const TESSERE_PER_SCHEDA = Object.freeze({
    * anche la loro tessera (#457): prima si mostravano dentro la Sicurezza, e
    * l'interruttore accanto a ogni apertura parlava di quella. */
   doors: "porte",
+  /* Il citofono e la posta (#449): la tessera dice chi suona e se c'e' posta,
+   * e l'interruttore accanto e' quello della sua sezione. */
+  citofono: "citofono",
   allerte: "allerte",
 });
 

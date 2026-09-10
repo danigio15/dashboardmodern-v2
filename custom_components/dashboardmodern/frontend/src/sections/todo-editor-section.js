@@ -110,6 +110,10 @@ function catalogoTessere() {
      * accanto ai varchi perche' e' la stessa domanda su un'altra famiglia di
      * sensori. */
     ["presenza", "🏃", t("Presenza", "Presence")],
+    /* Il citofono e la posta (#449): chi suona alla porta, e cosa c'e' in
+     * cassetta. Sta accanto alla presenza perche' e' la stessa porta, vista da
+     * fuori. */
+    ["citofono", "📮", t("Citofono e posta", "Intercom and mail")],
     /* Le stampanti (#469): sono nella famiglia delle macchine, e la tessera
      * dice la stessa cosa della pagina — se sono pronte e quanto inchiostro
      * resta. */

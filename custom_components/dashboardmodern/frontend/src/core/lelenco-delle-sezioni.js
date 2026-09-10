@@ -111,6 +111,16 @@ export const SEZIONI = Object.freeze(
       it: "Porte e cancelli",
       en: "Doors and gates",
     },
+    /* Il citofono e la cassetta della posta, la segnalazione #449: sta subito
+     * dopo «Porte e cancelli» perché è la stessa porta vista da fuori — chi
+     * suona, e cosa è stato lasciato. */
+    {
+      scheda: "citofono",
+      chiave: "citofono",
+      glifo: "📮",
+      it: "Citofono e posta",
+      en: "Intercom and mail",
+    },
     { scheda: "media", chiave: "media", glifo: "🎵", it: "Musica", en: "Music" },
     { scheda: "batterie", chiave: "batterie", glifo: "🔋", it: "Batterie", en: "Batteries" },
     /* Le sezioni che uno si fa da se' non hanno UNA pagina: ne hanno una per

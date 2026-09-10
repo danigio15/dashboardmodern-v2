@@ -159,6 +159,9 @@ export const SCHEDE = Object.freeze({
   varchi: { famiglia: "sicurezza", posizione: 20 }, // Contatti di porte e finestre
   presenza: { famiglia: "sicurezza", posizione: 25 }, // Movimento e presenza
   doors: { famiglia: "sicurezza", posizione: 30 }, // Apri porte/cancelli
+  /* Il citofono e la posta (#449) stanno subito dopo: è la stessa porta vista
+   * da fuori — chi suona, e cosa è stato lasciato. */
+  citofono: { famiglia: "sicurezza", posizione: 35 },
 
   /* ── 🔔 Avvisi ─────────────────────────────────────────────────────── */
   avvisi: { famiglia: "avvisi", posizione: 10 }, // Notifiche della plancia

@@ -216,7 +216,12 @@
  * dicono quanto inchiostro resta. E' roba di casa, non del vetro: la
  * stampante e' una sola, e chi la configura dal computer deve ritrovarla dal
  * telefono. */
-export const CONFIG_KEYS_REVISION = 44;
+/* La revisione 45 aggiunge il citofono e la cassetta della posta
+ * (`cd_citofono`, #449): «avendo un intercom ho un button.cancello per aprire,
+ * inoltre volevo chiedere una sezione per la cassetta della posta». Chi apre,
+ * chi suona, e i due sensori della cassetta: sono cose del cancello di casa,
+ * uguali su ogni dispositivo che le guarda. */
+export const CONFIG_KEYS_REVISION = 45;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -268,6 +273,10 @@ export const CONFIG_KEYS = Object.freeze([
   // scheda grande resta il computer su cui gira Home Assistant; qui stanno gli
   // altri, con le loro cinque entita' facoltative.
   "cd_nodi",
+  /* Il citofono e la cassetta della posta (#449): chi apre il cancello, chi
+   * suona, e i due sensori della cassetta. E' roba di casa — il cancello e' uno
+   * solo — e chi la configura dal telefono la deve ritrovare dal computer. */
+  "cd_citofono",
   // Le voci della parte Caldo del Clima (caldaia, pompe): lista libera.
   "cd_termico_caldo",
   // I programmi rapidi della lavatrice: nome, entita', icona.

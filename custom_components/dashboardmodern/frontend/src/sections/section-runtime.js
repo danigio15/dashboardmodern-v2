@@ -137,6 +137,8 @@ import { installVarchi } from "./varchi-section.js";
 import { installVarchiEditor } from "./varchi-editor-section.js";
 import { installPresenza } from "./presenza-section.js";
 import { installPresenzaEditor } from "./presenza-editor-section.js";
+import { installCitofono } from "./citofono-section.js";
+import { installCitofonoEditor } from "./citofono-editor-section.js";
 import { installStampanti } from "./stampanti-section.js";
 import { installStampantiEditor } from "./stampanti-editor-section.js";
 import { installVersoBatteriaEditorSection } from "./verso-batteria-editor-section.js";
@@ -1071,6 +1073,8 @@ export function installSectionRuntime() {
     installVarchiEditor();
     installPresenza();
     installPresenzaEditor();
+    installCitofono();
+    installCitofonoEditor();
     installStampanti();
     installStampantiEditor();
     installVersoBatteriaEditorSection();

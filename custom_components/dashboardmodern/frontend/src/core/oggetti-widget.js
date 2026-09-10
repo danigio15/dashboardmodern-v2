@@ -433,6 +433,38 @@ const OGGETTI = Object.freeze({
       <path d="M13.6 25.8a3.4 3.4 0 0 1 4.8 0"/>
     </g>`,
 
+  /* Il citofono a muro, con la fessura della posta.
+   *
+   * «Avendo un intercom ho un button.cancello per aprire, inoltre volevo
+   * chiedere una sezione per la cassetta della posta» (#449). L'oggetto e'
+   * quello che sta accanto alla porta: la scatola chiara appesa al muro, tre
+   * feritoie per la voce e il tasto tondo sotto — verde, perche' e' l'unica
+   * cosa di questa sezione che si comanda. La fessura in basso e' l'altra
+   * meta' della stessa domanda: chi e' passato dal cancello, e cosa ha
+   * lasciato.
+   */
+  citofono: `<defs>
+      <linearGradient id="dmoCitC" x1="0" y1="0" x2=".4" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e2e8f0"/>
+        <stop offset="1" stop-color="#94a3b8"/></linearGradient>
+      <linearGradient id="dmoCitG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#475569"/><stop offset="1" stop-color="#1e293b"/></linearGradient>
+      <radialGradient id="dmoCitB" cx=".35" cy=".3" r=".85">
+        <stop offset="0" stop-color="#6ee7b7"/><stop offset="1" stop-color="#059669"/></radialGradient></defs>
+    ${OMBRA(16, 28.6, 8.2)}
+    <rect x="8.4" y="3.2" width="15.2" height="22.4" rx="4.2" fill="url(#dmoCitC)"/>
+    <rect x="10.6" y="5.8" width="10.8" height="7.4" rx="2.2" fill="url(#dmoCitG)"/>
+    <g fill="#94a3b8" fill-opacity=".9">
+      <rect x="12.2" y="7.6" width="7.6" height="1.1" rx=".55"/>
+      <rect x="12.2" y="9.6" width="7.6" height="1.1" rx=".55"/>
+      <rect x="12.2" y="11.6" width="7.6" height="1.1" rx=".55"/>
+    </g>
+    <circle cx="16" cy="17.4" r="2.6" fill="url(#dmoCitB)"/>
+    <circle cx="15.2" cy="16.6" r=".8" fill="#fff" fill-opacity=".75"/>
+    <rect x="11.4" y="21.6" width="9.2" height="1.8" rx=".9" fill="url(#dmoCitG)"/>
+    <path d="M11.4 22.5h9.2" stroke="#fff" stroke-opacity=".35" stroke-width=".8"
+      stroke-linecap="round" fill="none"/>`,
+
   /* Il server e la rete: il rack con le sue macchine, e il segnale che esce.
    *
    * «I controlli del server proxmox dove gira HA con tutti i suoi container, e

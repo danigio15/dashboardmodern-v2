@@ -1179,8 +1179,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // nodo, quando un carico smette di essere normale, quali entita' di un
   // dispositivo sono le sue — e le due sezioni che le vestono, la fascia sulla
   // pagina Server e la scheda dentro quella del MiniPC.
+  // 334 col citofono e la cassetta della posta (#449): «avendo un intercom ho
+  // un button.cancello per aprire, inoltre volevo chiedere una sezione per la
+  // cassetta della posta». Tre moduli, come sempre quando nasce una sezione:
+  // le regole in `core/citofono-e-posta.js` — quale verbo apre quale dominio,
+  // e come si legge una cassetta da due sensori — e le due sezioni che le
+  // vestono, la pagina e la scheda della configurazione.
   assert.ok(
-    relative.length <= 331,
+    relative.length <= 334,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

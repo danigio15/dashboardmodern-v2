@@ -171,12 +171,20 @@ test("togliere una chiave non alza la revisione", async () => {
    * poter configurare più di un mini pc in modo da monitorare più nodi, comodo
    * per chi ha un cluster proxmox». Un cluster è della casa, non dello schermo
    * da cui lo si è dichiarato. */
-  assert.equal(CONFIG_KEYS_REVISION, 44);
+  /* E la 45 col citofono e la cassetta della posta (#449, `cd_citofono`):
+   * «avendo un intercom ho un button.cancello per aprire, inoltre volevo
+   * chiedere una sezione per la cassetta della posta». Il cancello è uno solo,
+   * e chi lo configura dal telefono lo ritrova dal computer. */
+  assert.equal(CONFIG_KEYS_REVISION, 45);
   assert.ok(
     CONFIG_KEYS.includes("cd_stampanti"),
     "le stampanti si configurano per la casa, non per lo schermo",
   );
   assert.ok(CONFIG_KEYS.includes("cd_nodi"), "un cluster è della casa, non dello schermo");
+  assert.ok(
+    CONFIG_KEYS.includes("cd_citofono"),
+    "il cancello è uno solo, e la cassetta della posta pure",
+  );
   assert.ok(
     CONFIG_KEYS.includes("cd_flusso_home"),
     "il flusso in Home si sceglie per la casa, non per lo schermo",
