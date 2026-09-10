@@ -121,3 +121,41 @@ test("un arco senza righe dentro resta senza risposta, non diventa zero", () => 
    * bugia, ed è la ragione per cui questo conto torna `null`. */
   assert.equal(crescitaNellArco([], ARCO), null);
 });
+
+test("un ritocco all'indietro del Recorder non è un azzeramento", () => {
+  /* Il rovescio della correzione qui sopra, e me lo sono preso in faccia: il
+   * Recorder ritocca le sue somme all'indietro di pochissimo — 1300,0 che
+   * diventa 1299,2 — e «sceso vuol dire azzerato» leggeva quel ritocco come
+   * un contatore ripartito da zero. Il secchiello prendeva 1299,2, cioè tutta
+   * la storia del contatore contata come consumo di un'ora, e l'anno della
+   * rete importata usciva 1310 invece di 10.
+   *
+   * Un azzeramento riporta il contatore a zero; una correzione toglie
+   * briciole. Si distinguono da quanto resta. */
+  const arco = periodRange("year", new Date(2026, 8, 20), new Date(2026, 8, 20));
+  const righe = [
+    { start: new Date(2026, 0, 1).toISOString(), sum: 1290 },
+    { start: new Date(2026, 4, 1).toISOString(), sum: 1300 },
+    /* Il ritocco: otto decimi in meno su milletrecento. */
+    { start: new Date(2026, 6, 1).toISOString(), sum: 1299.2 },
+    { start: new Date(2026, 8, 1).toISOString(), sum: 1300 },
+  ];
+  assert.equal(crescitaNellArco(righe, arco), 10);
+});
+
+test("e un contatore che riparte davvero conta da capo, anche a mesi vicini", () => {
+  /* La soglia non deve essere così stretta da mangiarsi un riavvio vero. Un
+   * mese scarso seguito da un mese pieno — 88,5 poi 201,3 — riparte da zero e
+   * il primo giorno vale già più della metà del mese prima: è comunque un
+   * riavvio, e il suo consumo va contato. */
+  const arco = periodRange("year", new Date(2026, 8, 20), new Date(2026, 8, 20));
+  const righe = [
+    { start: new Date(2026, 3, 28).toISOString(), sum: 88.5 },
+    { start: new Date(2026, 4, 1).toISOString(), sum: 50.325 },
+    { start: new Date(2026, 4, 2).toISOString(), sum: 100.65 },
+  ];
+  assert.equal(
+    crescitaNellArco(righe, arco, { continuazione: true }),
+    Math.round((50.325 + 50.325) * 1000) / 1000,
+  );
+});

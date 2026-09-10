@@ -160,24 +160,61 @@ export function periodConsumption(rows = [], baseline = null) {
  * Prima quella differenza negativa veniva schiacciata a zero, e il giorno
  * dell'azzeramento spariva: su un contatore mensile era il primo di ogni
  * mese, dodici giorni all'anno, e per una colonnina che carica di notte non
- * e' affatto poco. Qui non si indovina niente: si guarda se il contatore e'
- * sceso, e questo un contatore di sempre non lo fa mai.
+ * e' affatto poco.
+ *
+ * ── Scendere non basta: di quanto e' sceso ──────────────────────────────
+ *
+ * «Sceso vuol dire azzerato» era troppo poco, e mi e' costato un giro: il
+ * Recorder ritocca all'indietro le sue somme, di pochissimo — 1300,0 che
+ * diventa 1299,2 — e leggere quel ritocco come un azzeramento vuol dire
+ * contare tutta la cumulata di sempre, mille e trecento, come consumo di un
+ * secchiello. Non e' un caso di scuola: e' quello che faceva l'anno della
+ * plancia sul contatore di rete importata.
+ *
+ * Le due cose si distinguono da QUANTO e' sceso, non dal fatto che sia
+ * sceso. Un azzeramento riporta il contatore a zero e da li' riparte da
+ * capo: il salto indietro e' grande, e quello che resta e' una frazione di
+ * quello che c'era. Una correzione lima: toglie briciole, e quello che resta
+ * e' praticamente tutto. Fra le due non c'e' zona grigia — un ritocco del
+ * Recorder vale per mille, un riavvio vale per meta' — e la soglia sta in
+ * mezzo, larga: se il contatore ha perso piu' di un decimo di se' e'
+ * ripartito, altrimenti e' stato corretto e il secchiello non ha consumato.
+ *
+ * La direzione dell'errore e' scelta apposta. Prendere un riavvio per una
+ * correzione costa un secchiello di consumo; prendere una correzione per un
+ * riavvio costa gli anni di storia del contatore, scritti sullo schermo come
+ * se fossero di oggi.
  */
+const RIMASTO_DOPO_UN_RIAVVIO = 0.9;
 export function recorderBucketConsumptions(rows = [], baseline = null) {
   const partenza = baseline && cumulativeValue(baseline) != null ? baseline : null;
   const ordered = [partenza, ...(Array.isArray(rows) ? rows : [])]
     .filter((row) => row && cumulativeValue(row) != null)
     .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
   const intervalli = partenza ? ordered.slice(1) : ordered;
-  return intervalli.map((row, index) => {
-    const prima = partenza ? ordered[index] : ordered[index - 1];
+  /* Il riferimento si porta avanti riga per riga, e non e' sempre la riga
+   * precedente: dopo una correzione resta quello di PRIMA della correzione.
+   * Altrimenti gli otto decimi tolti dal Recorder tornerebbero indietro come
+   * consumo al secchiello dopo, e l'arco crescerebbe di quanto era stato
+   * limato. Dopo un riavvio, invece, il riferimento e' il valore nuovo: da li'
+   * il contatore conta davvero da capo. */
+  let riferimento = partenza ? cumulativeValue(partenza) : null;
+  return intervalli.map((row) => {
     const adesso = cumulativeValue(row);
-    if (!prima) return Object.freeze({ ...row, change: Math.max(0, adesso) });
-    const cresciuto = adesso - cumulativeValue(prima);
-    return Object.freeze({
-      ...row,
-      change: cresciuto < 0 ? Math.max(0, adesso) : cresciuto,
-    });
+    if (riferimento === null) {
+      riferimento = adesso;
+      return Object.freeze({ ...row, change: Math.max(0, adesso) });
+    }
+    const cresciuto = adesso - riferimento;
+    if (cresciuto >= 0) {
+      riferimento = adesso;
+      return Object.freeze({ ...row, change: cresciuto });
+    }
+    if (adesso < riferimento * RIMASTO_DOPO_UN_RIAVVIO) {
+      riferimento = adesso;
+      return Object.freeze({ ...row, change: Math.max(0, adesso) });
+    }
+    return Object.freeze({ ...row, change: 0 });
   });
 }
 
