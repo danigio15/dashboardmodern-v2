@@ -18,6 +18,14 @@
 
 import { conservaIlConfigurato } from "./device-model.js";
 import { SOURCE_LOCALE, getLocale, pick } from "./i18n.js";
+import { nomeAccantoAlDispositivo } from "./nome-accanto-al-dispositivo.js";
+import {
+  eUnaLettura,
+  elencoLetture,
+  LETTURE_MASSIME,
+  lettureConsigliate,
+  lettureDelRobot,
+} from "./robot-letture.js";
 
 const clean = (value) => String(value ?? "").trim();
 
@@ -89,21 +97,69 @@ export function robotStateLabel(state, locale = getLocale()) {
   return pick(labels[0], labels[1], code);
 }
 
+/* Le mappe del robot (#468).
+ *
+ * «In piu' io ho due mappe e mi visualizza solo una.» Un robot che gira su due
+ * piani disegna due mappe, e l'integrazione le pubblica come due entita' —
+ * `image.robot_piano_terra`, `image.robot_primo_piano`. Il campo era uno solo,
+ * e la seconda mappa non aveva dove stare.
+ *
+ * La mappa in cima resta quella che c'era: `mapEntity` e' la prima dell'elenco,
+ * e una configurazione scritta prima di oggi — che ha solo quella — diventa un
+ * elenco di uno senza che nessuno debba riscriverla.
+ */
+export const MAPPE_MASSIME = 4;
+
+const DOMINI_MAPPA = ["camera", "image"];
+
+/** Se quell'entita' puo' essere una mappa: una telecamera o un'immagine. */
+export function eUnaMappa(entity) {
+  return DOMINI_MAPPA.includes(clean(entity).split(".")[0]);
+}
+
+/** L'elenco pulito delle mappe: una volta sola, non piu' di quattro. */
+export function elencoMappe(input) {
+  const grezzi = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? input.split(/[\s,;]+/)
+      : input && typeof input === "object"
+        ? [input]
+        : [];
+  const visti = new Set();
+  const fuori = [];
+  for (const voce of grezzi) {
+    const entity = clean(voce && typeof voce === "object" ? voce.entity : voce);
+    if (!entity || !eUnaMappa(entity) || visti.has(entity)) continue;
+    visti.add(entity);
+    fuori.push(entity);
+    if (fuori.length >= MAPPE_MASSIME) break;
+  }
+  return fuori;
+}
+
 /** Un robot, coi campi che la configurazione conosce. */
 export function normalizeRobot(input = {}, index = 0) {
   /* E tutto quello che qui sotto non e' nominato.
    *
-   * L'elenco e' chiuso — sette campi — e finora un ottavo spariva al primo
+   * L'elenco e' chiuso, e finora quello che non c'era spariva al primo
    * salvataggio: l'icona scelta, l'ordine, un campo aggiunto dalla versione
    * dopo. E' la stessa regola dei dispositivi, e vale per la stessa ragione:
    * quello che uno configura non lo si butta via perche' il modello di oggi
    * non sa ancora leggerlo. */
+  /* Le mappe, e la prima di loro. I due campi dicono la stessa cosa per forza:
+   * `mapEntity` e' `mappe[0]`, e chi legge l'uno o l'altro legge sempre la
+   * mappa che sta in cima. */
+  const mappe = elencoMappe(
+    input.mappe ?? input.map_entities ?? input.mapEntity ?? input.map_entity,
+  );
   return conservaIlConfigurato(
     {
       id: clean(input.id) || `robot-${index + 1}`,
       name: clean(input.name),
       entity: clean(input.entity || input.entities?.[0]),
-      mapEntity: clean(input.mapEntity || input.map_entity),
+      mappe,
+      mapEntity: mappe[0] || "",
       /* La batteria puo' essere un sensore a parte: molti tagliaerba la
        * pubblicano cosi', fuori dall'entita' del robot. Il campo e' facoltativo
        * e deve sopravvivere alla normalizzazione, o sparirebbe a ogni salvataggio. */
@@ -113,6 +169,10 @@ export function normalizeRobot(input = {}, index = 0) {
        * l'integrazione pubblica accanto a lui. Sopravvivono alla normalizzazione
        * come la batteria, o sparirebbero a ogni salvataggio. */
       comandi: elencoComandi(input.comandi ?? input.commands),
+      /* Le altre letture (#468): i sensori del robot che chi configura vuole
+       * vedere sulla scheda. Come i comandi, sopravvivono alla
+       * normalizzazione o sparirebbero a ogni salvataggio. */
+      letture: elencoLetture(input.letture ?? input.readings),
     },
     input,
     "robots",
@@ -179,7 +239,36 @@ export function elencoComandi(input) {
   return fuori;
 }
 
-/* Aggiungere un comando, sapendo com'e' andata (#403).
+export const ESITI_ELENCO = Object.freeze({
+  aggiunto: "aggiunto",
+  gia: "gia",
+  pieno: "pieno",
+  nonValida: "nonValida",
+});
+
+/* I tre elenchi che un robot si porta dietro, e le regole di ognuno.
+ *
+ * Comandi, mappe e letture sono la stessa cosa fatta tre volte: un elenco di
+ * entita', con un tetto e un metro per dire quali ci possono stare. Scriverne
+ * tre copie vorrebbe dire tre posti dove sbagliare il messaggio del tetto —
+ * ed e' proprio quello che si era gia' sbagliato una volta (#403). */
+const ELENCHI = Object.freeze({
+  comandi: {
+    elenco: elencoComandi,
+    valida: (e) => Boolean(genereDelComando(e)),
+    tetto: COMANDI_MASSIMI,
+  },
+  mappe: { elenco: elencoMappe, valida: eUnaMappa, tetto: MAPPE_MASSIME },
+  letture: { elenco: elencoLetture, valida: eUnaLettura, tetto: LETTURE_MASSIME },
+});
+
+/** Quanti ce ne stanno in quell'elenco. */
+export function tettoDellElenco(tipo) {
+  return ELENCHI[tipo]?.tetto ?? 0;
+}
+
+/**
+ * Aggiungere una voce a uno dei tre elenchi, sapendo com'e' andata (#403).
  *
  * «Se collego il robot tramite integrazione HACS e cerco di inserire comandi
  *  manuali custom, questi non vengono aggiunti. Se invece lo integro
@@ -188,71 +277,23 @@ export function elencoComandi(input) {
  * Le due strade differiscono per una cosa sola: quanti comandi c'erano gia'.
  * Un robot nato a mano parte con la riga vuota; uno nato dall'integrazione
  * parte con quelli che l'integrazione pubblica — su un Dreame o un Roborock
- * sono facilmente dodici, cioe' il tetto. Da li' in poi `elencoComandi` si
- * fermava al dodicesimo e buttava via il tredicesimo SENZA DIRLO: si premeva
- * «＋», si salvava, si ridisegnava, e non compariva niente. Un rifiuto muto
- * sembra un guasto, e infatti e' stato segnalato come tale.
+ * sono facilmente dodici, cioe' il tetto. Da li' in poi l'elenco si fermava al
+ * dodicesimo e buttava via il tredicesimo SENZA DIRLO: si premeva «＋», si
+ * salvava, si ridisegnava, e non compariva niente. Un rifiuto muto sembra un
+ * guasto, e infatti e' stato segnalato come tale.
  *
  * Il tetto resta — una scheda e' una scheda — ma smette di essere muto: qui
  * l'esito ha un nome, e chi disegna ha di che dirlo.
  */
-export const ESITI_COMANDO = Object.freeze({
-  aggiunto: "aggiunto",
-  gia: "gia",
-  pieno: "pieno",
-  nonComando: "nonComando",
-});
-
-export function conIlComando(comandi, nuovo) {
-  const attuali = elencoComandi(comandi);
+export function conLaVoce(elenco, nuovo, tipo = "comandi") {
+  const regola = ELENCHI[tipo];
+  if (!regola) return { elenco: [], esito: ESITI_ELENCO.nonValida };
+  const attuali = regola.elenco(elenco);
   const entity = clean(nuovo);
-  if (!genereDelComando(entity)) return { comandi: attuali, esito: ESITI_COMANDO.nonComando };
-  if (attuali.includes(entity)) return { comandi: attuali, esito: ESITI_COMANDO.gia };
-  if (attuali.length >= COMANDI_MASSIMI) return { comandi: attuali, esito: ESITI_COMANDO.pieno };
-  return { comandi: [...attuali, entity], esito: ESITI_COMANDO.aggiunto };
-}
-
-const umano = (testo) => {
-  const pulito = clean(testo).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  return pulito ? pulito[0].toUpperCase() + pulito.slice(1) : "";
-};
-
-/* Il nome di un comando, senza il nome del robot davanti.
- *
- * Home Assistant chiama le entita' di un dispositivo «Nome del dispositivo
- * Nome dell'entita'»: su una scheda che porta gia' «Roborock Qrevo Edge» in
- * testa, un tasto «Roborock Qrevo Edge Asp e lav» ripete tre parole per dirne
- * tre. Si toglie il prefisso quando c'e'; senza `friendly_name` si legge la
- * coda dell'id, che e' comunque una parola scritta da qualcuno. */
-export function nomeDelComando(entity, robot = {}, states = {}) {
-  const voce = clean(entity);
-  const proprio = clean(states?.[voce]?.attributes?.friendly_name);
-  /* Il nome della scheda puo' non venire da un'entita' (#338).
-   *
-   * Un elettrodomestico comandato solo da script — «non ha un'entita' comando»
-   * — un'entita' sua non ce l'ha: quello che sta scritto in testa alla sua
-   * scheda e' il nome che gli ha dato chi l'ha configurato, e sotto quel
-   * titolo i suoi tasti si chiamavano «Asciugatrice Rapido 30». Si prova con
-   * tutti e due i prefissi — quello dell'entita' e quello scritto — perche' un
-   * apparecchio puo' avere l'uno, l'altro o due nomi diversi. */
-  const prefissi = [
-    clean(states?.[clean(robot?.entity)]?.attributes?.friendly_name),
-    clean(robot?.name),
-  ].filter(Boolean);
-  if (proprio) {
-    for (const suo of prefissi) {
-      if (proprio.length <= suo.length || !proprio.toLowerCase().startsWith(suo.toLowerCase()))
-        continue;
-      const coda = proprio.slice(suo.length).replace(/^[\s:·\-–—]+/, "");
-      if (coda) return umano(coda);
-    }
-    return proprio;
-  }
-  const oggetto = voce.split(".")[1] || voce;
-  const radice = clean(robot?.entity).split(".")[1] || "";
-  const coda =
-    radice && oggetto.startsWith(`${radice}_`) ? oggetto.slice(radice.length + 1) : oggetto;
-  return umano(coda);
+  if (!regola.valida(entity)) return { elenco: attuali, esito: ESITI_ELENCO.nonValida };
+  if (attuali.includes(entity)) return { elenco: attuali, esito: ESITI_ELENCO.gia };
+  if (attuali.length >= regola.tetto) return { elenco: attuali, esito: ESITI_ELENCO.pieno };
+  return { elenco: [...attuali, entity], esito: ESITI_ELENCO.aggiunto };
 }
 
 /** I comandi di un robot come stanno adesso: nome, genere, stato, opzioni. */
@@ -265,7 +306,7 @@ export function comandiDelRobot(robot = {}, states = {}) {
     return {
       entity,
       genere,
-      name: nomeDelComando(entity, robot, states),
+      name: nomeAccantoAlDispositivo(entity, robot, states),
       /* Un tasto mai premuto sta su «unknown», ed e' un tasto che funziona:
        * non raggiungibile e' solo chi lo dice. */
       available: Boolean(corrente) && stato !== "unavailable",
@@ -343,6 +384,31 @@ export function comandiSuggeriti(robot = {}, states = {}) {
   );
 }
 
+/* Le mappe che stanno accanto al robot, da proporre a chi configura (#468).
+ *
+ * Stessa regola dei comandi: l'id comincia con l'id del robot, oppure il nome
+ * comincia col nome del robot. Davanti quelle che dicono di essere una mappa,
+ * perche' un robot pubblica anche altre immagini — l'ultima pulizia, la
+ * fotografia dell'ostacolo — e la prima proposta dev'essere quella giusta. */
+export function mappeSuggerite(robot = {}, states = {}) {
+  const entity = clean(robot?.entity);
+  const radice = entity.split(".")[1] || "";
+  if (!radice) return [];
+  const nome = clean(states?.[entity]?.attributes?.friendly_name).toLowerCase();
+  const gia = new Set(elencoMappe(robot?.mappe ?? robot?.mapEntity));
+  const trovate = [];
+  for (const [id, corrente] of Object.entries(states || {})) {
+    if (gia.has(id) || !eUnaMappa(id)) continue;
+    const oggetto = id.split(".")[1] || "";
+    const suoNome = clean(corrente?.attributes?.friendly_name).toLowerCase();
+    if (!oggetto.startsWith(`${radice}_`) && !(nome && suoNome.startsWith(`${nome} `))) continue;
+    trovate.push(id);
+  }
+  const dice = (id) =>
+    MAPPA.test(`${id} ${clean(states?.[id]?.attributes?.friendly_name)}`) ? 0 : 1;
+  return trovate.sort((a, b) => dice(a) - dice(b) || a.localeCompare(b));
+}
+
 /* Il robot che nasce da un dispositivo di Home Assistant.
  *
  * E' la stessa strada degli elettrodomestici: si sceglie l'integrazione, si
@@ -374,10 +440,16 @@ export function bindRobotToDevice({
     `${clean(voce.entity_id)} ${clean(voce.name)} ${clean(states?.[clean(voce.entity_id)]?.attributes?.friendly_name)}`;
 
   const suo = elenco.find((voce) => ["vacuum", "lawn_mower"].includes(dominio(voce)));
-  /* La mappa: fra le immagini del dispositivo, quella che dice di esserlo. Se
-   * nessuna lo dice ma ce n'e' una sola, e' lei. */
+  /* Le mappe: tutte le immagini del dispositivo, con davanti quelle che dicono
+   * di essere una mappa. Un robot che gira su due piani ne pubblica due, e
+   * prenderne una sola voleva dire il piano di sopra che non si vedeva (#468). */
   const immagini = elenco.filter((voce) => ["camera", "image"].includes(dominio(voce)));
-  const mappa = immagini.find((voce) => MAPPA.test(parole(voce))) || immagini[0];
+  const mappe = elencoMappe(
+    immagini
+      .slice()
+      .sort((a, b) => Number(MAPPA.test(parole(b))) - Number(MAPPA.test(parole(a))))
+      .map((voce) => clean(voce.entity_id)),
+  );
   /* La batteria: quella dichiarata, e in mancanza quella che si chiama cosi'. */
   const batterie = elenco.filter((voce) => dominio(voce) === "sensor");
   const batteria =
@@ -402,14 +474,21 @@ export function bindRobotToDevice({
       .map((voce) => clean(voce.entity_id)),
   );
 
-  return {
+  const nato = {
     ...normalizeRobot(precedente, index),
     name: clean(precedente.name) || clean(device.name) || clean(precedente.name),
     entity: clean(suo?.entity_id) || clean(precedente.entity),
-    mapEntity: clean(mappa?.entity_id) || clean(precedente.mapEntity),
+    mappe: mappe.length ? mappe : elencoMappe(precedente.mappe ?? precedente.mapEntity),
     battery: clean(batteria?.entity_id) || clean(precedente.battery),
     comandi: comandi.length ? comandi : elencoComandi(precedente.comandi),
   };
+  nato.mapEntity = nato.mappe[0] || "";
+  /* Le letture che si riconoscono da sole (#468): il filtro, le spazzole,
+   * l'area pulita, le pulizie fatte. Si guardano con lo stato vero, non con
+   * l'elenco del registro, perche' e' li' che stanno unita' e nomi. */
+  const letture = lettureConsigliate(nato, states);
+  nato.letture = letture.length ? letture : elencoLetture(precedente.letture);
+  return nato;
 }
 
 /* L'elenco dei robot, messo in ordine.
@@ -441,6 +520,15 @@ export const drawableRobots = (robots = []) =>
  * telecamera (e' cosi' che fanno Valetudo e le integrazioni Xiaomi) o come
  * un'immagine. In tutti e due i casi l'indirizzo del disegno sta in
  * `entity_picture`, e cambia a ogni aggiornamento. */
+/** Le mappe di un robot, ognuna col suo nome e il suo disegno di adesso. */
+export function mappeDelRobot(robot = {}, states = {}) {
+  return elencoMappe(robot?.mappe ?? robot?.mapEntity).map((entity) => ({
+    entity,
+    name: nomeAccantoAlDispositivo(entity, robot, states),
+    picture: robotMapPicture(states, entity),
+  }));
+}
+
 export function robotMapPicture(states = {}, mapEntity = "") {
   const reference = clean(mapEntity);
   if (!reference) return "";
@@ -492,8 +580,15 @@ export function robotView(robot = {}, states = {}) {
         : [],
     features,
     error: clean(attributes.error),
+    /* Le mappe (#468): tutte quelle configurate, ognuna col suo disegno di
+     * adesso. `mapEntity` e `mapPicture` restano la prima — la scheda apre su
+     * quella, e chi legge solo loro legge la mappa in cima. */
+    mappe: mappeDelRobot(robot, states),
     mapEntity: clean(robot.mapEntity),
     mapPicture: robotMapPicture(states, robot.mapEntity),
+    /* Le altre letture (#468): filtro, spazzole, area pulita… quelle che chi
+     * configura ha scelto, gia' scritte come vanno lette. */
+    letture: lettureDelRobot(robot, states),
     /* I comandi a parte (#306), come stanno adesso. */
     comandi: comandiDelRobot(robot, states),
   };

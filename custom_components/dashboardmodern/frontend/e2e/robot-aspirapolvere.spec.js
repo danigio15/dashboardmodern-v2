@@ -30,6 +30,27 @@ const stati = {
     state: "idle",
     attributes: { entity_picture: "/api/camera_proxy/camera.piano_terra_map?token=abc" },
   },
+  /* La seconda mappa: «io ho due mappe e mi visualizza solo una» (#468). */
+  "camera.primo_piano_map": {
+    entity_id: "camera.primo_piano_map",
+    state: "idle",
+    attributes: {
+      friendly_name: "Robottino Primo piano",
+      entity_picture: "/api/camera_proxy/camera.primo_piano_map?token=abc",
+    },
+  },
+  /* Le altre letture: «sarebbe possibile aggiungere piu' valori tra quelli
+   * che mostra?» (#468). */
+  "sensor.piano_terra_durata_filtro": {
+    entity_id: "sensor.piano_terra_durata_filtro",
+    state: "8100",
+    attributes: { friendly_name: "Robottino Durata filtro", unit_of_measurement: "min" },
+  },
+  "sensor.piano_terra_area_pulita": {
+    entity_id: "sensor.piano_terra_area_pulita",
+    state: "23.4",
+    attributes: { friendly_name: "Robottino Area pulita", unit_of_measurement: "m²" },
+  },
 };
 
 const seme = {
@@ -173,7 +194,9 @@ test.describe("robot aspirapolvere", () => {
       };
       scrivi("name", "Piano terra");
       scrivi("entity", "vacuum.piano_terra");
-      scrivi("mapEntity", "camera.piano_terra_map");
+      /* La mappa non e' piu' una casella di testo ma un elenco (#468): la
+       * casella nascosta e' quella che l'editor rilegge al salvataggio. */
+      scrivi("mappe", "camera.piano_terra_map");
     });
     await page.locator("#ed-body .dm-save-footer-btn").click();
 
@@ -209,5 +232,68 @@ test.describe("robot aspirapolvere", () => {
     });
     await page.locator("#ed-body .dm-save-footer-btn").click();
     await expect(page.locator("[data-robot-error]")).not.toBeEmpty();
+  });
+
+  /* «Sarebbe possibile aggiungere più valori tra quelli che mostra?» e «io ho
+   * due mappe e mi visualizza solo una» (#468). Le due richieste stanno sulla
+   * stessa scheda, e questa è la prova che ci arrivano davvero. */
+  test("le altre letture si vedono, e con due mappe compaiono le linguette", async ({
+    page,
+  }, testInfo) => {
+    await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+    await page.route("**/api/camera_proxy/**", (route) =>
+      route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
+    );
+    await bootNamespacedDashboard(page, "dashboard.html", testInfo, {
+      ...seme,
+      sections: {
+        ...seme.sections,
+        robots: [
+          {
+            id: "robot-1",
+            name: "Piano terra",
+            entity: "vacuum.piano_terra",
+            mappe: ["camera.piano_terra_map", "camera.primo_piano_map"],
+            letture: ["sensor.piano_terra_durata_filtro", "sensor.piano_terra_area_pulita"],
+            room: "Casa",
+          },
+        ],
+      },
+    });
+    await semina(page);
+    await page.locator('nav.tabs .tab[data-tab="robot"]').dispatchEvent("click");
+    await semina(page);
+
+    const card = page.locator("[data-dm-robot='vacuum.piano_terra']");
+    await expect(card).toHaveCount(1);
+
+    /* Le letture: col nome senza «Robottino» davanti, e col numero già
+     * scritto come si legge — 8100 minuti sono 135 ore. */
+    const letture = card.locator("[data-dm-robot-letture] .dm-robot-lettura");
+    await expect(letture).toHaveCount(2);
+    await expect(
+      card.locator("[data-dm-lettura='sensor.piano_terra_durata_filtro'] small"),
+    ).toHaveText("Durata filtro");
+    await expect(card.locator("[data-dm-lettura='sensor.piano_terra_durata_filtro'] b")).toHaveText(
+      "135 h",
+    );
+    await expect(card.locator("[data-dm-lettura='sensor.piano_terra_area_pulita'] b")).toHaveText(
+      /23[.,]4 m²/,
+    );
+
+    /* Le due mappe: due linguette, la prima accesa. */
+    const linguette = card.locator("[data-dm-robot-mappa]");
+    await expect(linguette).toHaveCount(2);
+    await expect(linguette.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(linguette.nth(1)).toHaveAttribute("aria-pressed", "false");
+
+    /* E toccando la seconda si passa a quella: la linguetta si accende e il
+     * riquadro va a prendere l'altro disegno. */
+    await linguette.nth(1).click();
+    await expect(linguette.nth(1)).toHaveAttribute("aria-pressed", "true");
+    await expect(linguette.first()).toHaveAttribute("aria-pressed", "false");
+    await expect
+      .poll(() => card.locator("[data-dm-robot-map]").getAttribute("data-dm-map-state"))
+      .toBe("ready");
   });
 });

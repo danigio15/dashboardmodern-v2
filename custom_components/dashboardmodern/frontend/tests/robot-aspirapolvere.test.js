@@ -348,8 +348,8 @@ import {
   DOMINI_COMANDO,
   elencoComandi,
   genereDelComando,
-  nomeDelComando,
 } from "../src/core/robot-model.js";
+import { nomeAccantoAlDispositivo } from "../src/core/nome-accanto-al-dispositivo.js";
 import { readFile } from "node:fs/promises";
 
 const ROBOROCK = "vacuum.roborock_qrevo_edge_series";
@@ -440,23 +440,23 @@ test("i comandi a parte sono tasti, tendine e interruttori, e restano dopo la no
 test("il nome del comando non ripete il nome del robot (#306)", () => {
   const robot = { entity: ROBOROCK };
   assert.equal(
-    nomeDelComando("button.roborock_qrevo_edge_series_asp_e_lav", robot, casaRoborock),
+    nomeAccantoAlDispositivo("button.roborock_qrevo_edge_series_asp_e_lav", robot, casaRoborock),
     "Asp e lav",
   );
   assert.equal(
-    nomeDelComando("select.roborock_qrevo_edge_series_mop_mode", robot, casaRoborock),
+    nomeAccantoAlDispositivo("select.roborock_qrevo_edge_series_mop_mode", robot, casaRoborock),
     "Mop mode",
   );
   /* Senza friendly_name si legge la coda dell'id, resa leggibile. */
   assert.equal(
-    nomeDelComando("button.roborock_qrevo_edge_series_solo_lavaggio", robot, {}),
+    nomeAccantoAlDispositivo("button.roborock_qrevo_edge_series_solo_lavaggio", robot, {}),
     "Solo lavaggio",
   );
   /* Un nome che non comincia col robot resta com'e'. */
-  assert.equal(nomeDelComando("button.cancello_apri", robot, casaRoborock), "Cancello apri");
+  assert.equal(nomeAccantoAlDispositivo("button.cancello_apri", robot, casaRoborock), "Cancello apri");
   /* E il nome che e' solo il nome del robot non diventa vuoto. */
   assert.equal(
-    nomeDelComando("switch.x", robot, {
+    nomeAccantoAlDispositivo("switch.x", robot, {
       "switch.x": stato("on", { friendly_name: "Roborock Qrevo Edge Series" }),
     }),
     "Roborock Qrevo Edge Series",
@@ -577,17 +577,20 @@ test("la scheda e la configurazione portano i comandi a parte (#306)", async () 
     new URL("../src/sections/robot-editor-section.js", import.meta.url),
     "utf8",
   );
-  assert.match(scheda2, /data-robot-field="comandi"/);
-  /* Le pastiglie: proposte col piu', scelte con la croce, e il piu' della casella. */
-  assert.match(scheda2, /chipMarkup\(entity, "robot-cmd-sug", "＋", robot, states\)/);
-  assert.match(scheda2, /chipMarkup\(entity, "robot-cmd-del", "✕", robot, states\)/);
-  assert.match(scheda2, /data-robot-cmd-add/);
-  assert.match(scheda2, /event\.target\.closest\("\[data-robot-cmd-sug\]"\)/);
-  assert.match(scheda2, /event\.target\.closest\("\[data-robot-cmd-del\]"\)/);
-  assert.match(scheda2, /comandiSuggeriti\(robot, states\)/);
+  assert.match(scheda2, /data-robot-field="\$\{esc\(tipo\)\}"/);
+  assert.match(scheda2, /listaMarkup\("comandi", robot, index\)/);
+  /* Le pastiglie: proposte col piu', scelte con la croce, e il piu' della
+   * casella. Da #468 la stessa riga serve tre liste — comandi, mappe,
+   * letture — e il tipo viaggia con la pastiglia. */
+  assert.match(scheda2, /chipMarkup\(entity, tipo, "sug", "＋", robot, states\)/);
+  assert.match(scheda2, /chipMarkup\(entity, tipo, "del", "✕", robot, states\)/);
+  assert.match(scheda2, /data-robot-chip-add="\$\{esc\(tipo\)\}"/);
+  assert.match(scheda2, /event\.target\.closest\("\[data-robot-chip-sug\]"\)/);
+  assert.match(scheda2, /event\.target\.closest\("\[data-robot-chip-del\]"\)/);
+  assert.match(scheda2, /suggerite: comandiSuggeriti/);
   /* La scelta si salva subito, con quello che c'e' scritto nelle altre caselle. */
   assert.match(scheda2, /const letta = leggiRiga\(riga, robots\[index\]\);/);
-  assert.match(scheda2, /next\[index\] = \{ \.\.\.letta, comandi \};/);
+  assert.match(scheda2, /next\[index\] = \{ \.\.\.letta, \[tipo\]: elenco \};/);
 });
 
 /* Il robot preso da un'integrazione.

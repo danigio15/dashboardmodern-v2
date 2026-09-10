@@ -8,26 +8,31 @@
  * testo, e chi scriveva «salone» dove la stanza si chiama «Salone» vedeva il
  * robot sparire dalla sezione Stanze senza che nessuno dicesse perche'.
  *
- * Un robot chiede due entita': quella del robot — un `vacuum` per gli
- * aspirapolvere, un `lawn_mower` per i tagliaerba — e quella della mappa, che
- * invece non ha un tipo suo: chi ce l'ha la pubblica come telecamera o come
- * immagine, ed e' per questo che il campo accetta tutte e due invece di
- * pretenderne una. La batteria e' un terzo campo, facoltativo: molti
- * tagliaerba la espongono come sensore a parte, e chi lo indica la vede al
- * posto di quella (spesso assente) dell'entita' del robot.
+ * Un robot chiede una entita' sua — un `vacuum` per gli aspirapolvere, un
+ * `lawn_mower` per i tagliaerba — e poi tre elenchi di entita' che gli stanno
+ * accanto: le mappe, i comandi in piu' e le altre letture. Le mappe non hanno
+ * un tipo loro: chi ce l'ha le pubblica come telecamere o come immagini, ed e'
+ * per questo che il campo accetta tutte e due invece di pretenderne una; e
+ * sono un elenco perche' un robot che gira su due piani ne disegna due (#468).
+ * La batteria e' un campo a se', facoltativo: molti tagliaerba la espongono
+ * come sensore a parte, e chi lo indica la vede al posto di quella (spesso
+ * assente) dell'entita' del robot.
  */
 import {
-  COMANDI_MASSIMI,
-  ESITI_COMANDO,
+  ESITI_ELENCO,
   bindRobotToDevice,
   comandiSuggeriti,
-  conIlComando,
+  conLaVoce,
   elencoComandi,
+  elencoMappe,
   genereDelComando,
-  nomeDelComando,
+  mappeSuggerite,
   normalizeRobots,
   robotSpecies,
+  tettoDellElenco,
 } from "../core/robot-model.js";
+import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
+import { elencoLetture, lettureSuggerite } from "../core/robot-letture.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import {
   allStates,
@@ -85,30 +90,134 @@ function campo(id, label, value, placeholder, hint) {
     ${hint ? `<small>${esc(hint)}</small>` : ""}</label>`;
 }
 
-/* I comandi a parte del robot (#306).
+/* Le tre liste che un robot si porta dietro: comandi, mappe, letture.
  *
- * «Le varie entita' del robot continuano a non essere visibili: da solo la
- * modalita' aspirazione. Comandi mancanti: button.roborock_..._asp_e_lav,
- * ..._pulizia_completa, ..._solo_aspirazione, ..._solo_lavaggio.» Sono
- * entita' a parte — tasti, tendine, interruttori — e la scheda del robot le
- * mostra solo se qualcuno gliele da': qui. Quelle che stanno accanto al robot
- * si propongono da sole, e un tocco le aggiunge; qualunque altra si cerca
- * con la lente. La scelta si salva subito, cosi' la scheda le mostra mentre
- * si configura, senza aspettare il tasto in fondo. */
-function chipMarkup(entity, azione, segno, robot, states) {
-  return `<button type="button" class="dm-robot-chip" data-${azione}="${esc(entity)}" data-genere="${esc(genereDelComando(entity))}" title="${esc(entity)}"><span>${esc(nomeDelComando(entity, robot, states))}</span><i aria-hidden="true">${segno}</i></button>`;
+ * I comandi a parte (#306): «Le varie entita' del robot continuano a non
+ * essere visibili: da solo la modalita' aspirazione. Comandi mancanti:
+ * button.roborock_..._asp_e_lav, ..._pulizia_completa…» Le mappe (#468): «Io
+ * ho due mappe e mi visualizza solo una.» Le altre letture (#468): «Sarebbe
+ * possibile aggiungere piu' valori tra quelli che mostra?»
+ *
+ * Tre richieste diverse, un gesto solo: un elenco di entita' che stanno
+ * accanto al robot, quelle vicine proposte da sole con un tocco per
+ * aggiungerle, la lente per qualunque altra, la croce per toglierne una. Si
+ * scrive una volta e si usa tre volte: tre copie vorrebbero dire tre posti
+ * dove il tetto torna a essere muto, che e' il difetto gia' corretto una
+ * volta (#403).
+ */
+const LISTE = Object.freeze({
+  comandi: {
+    elenco: elencoComandi,
+    suggerite: comandiSuggeriti,
+    genere: genereDelComando,
+    segnaposto: "button.robot_pulizia_completa",
+  },
+  mappe: {
+    elenco: elencoMappe,
+    suggerite: mappeSuggerite,
+    genere: () => "mappa",
+    segnaposto: "image.robot_mappa",
+  },
+  letture: {
+    elenco: elencoLetture,
+    suggerite: lettureSuggerite,
+    genere: () => "lettura",
+    segnaposto: "sensor.robot_durata_filtro",
+  },
+});
+
+/* Le parole di ogni lista: cosa c'e' scritto sopra, cosa si legge quando e'
+ * vuota, cosa si spiega sotto. Stanno insieme perche' vanno lette insieme. */
+function paroleDellaLista(tipo) {
+  if (tipo === "mappe")
+    return {
+      etichetta: t("Mappe", "Maps"),
+      vuoto: t(
+        "Nessuna mappa: la scheda mostra stato, batteria e comandi.",
+        "No map: the card shows state, battery and controls.",
+      ),
+      invito: t(
+        "Trovate accanto al robot — un tocco le aggiunge:",
+        "Found next to the robot — one tap adds them:",
+      ),
+      aiuto: t(
+        "La mappa arriva da una telecamera o da un'immagine: camera.* o image.*. Un robot che gira su due piani ne pubblica una per piano: aggiungile tutte e sulla scheda compaiono le linguette per passare dall'una all'altra.",
+        "The map comes from a camera or an image: camera.* or image.*. A robot working on two floors publishes one map per floor: add them all and the card shows tabs to switch between them.",
+      ),
+    };
+  if (tipo === "letture")
+    return {
+      etichetta: t("Altre letture", "Other readings"),
+      vuoto: t(
+        "Nessuna lettura in più: la scheda dice stato e batteria.",
+        "No extra reading: the card shows state and battery.",
+      ),
+      invito: t(
+        "Trovate accanto al robot — un tocco le aggiunge:",
+        "Found next to the robot — one tap adds them:",
+      ),
+      aiuto: t(
+        "I sensori che il robot pubblica accanto a sé — durata del filtro, spazzola principale e laterale, area pulita, pulizie fatte: entità sensor.*, binary_sensor.*, number.*. Compaiono sulla scheda sotto i comandi, col loro nome e la loro unità, nell'ordine in cui le aggiungi.",
+        "The sensors the robot publishes next to itself — filter life, main and side brush, area cleaned, cleaning count: sensor.*, binary_sensor.*, number.* entities. They appear on the card under the controls, with their own name and unit, in the order you add them.",
+      ),
+    };
+  return {
+    etichetta: t("Altri comandi del robot", "Other robot commands"),
+    vuoto: t(
+      "Nessun comando in più: la scheda ha quelli del robot e basta.",
+      "No extra command: the card carries the robot's own and nothing else.",
+    ),
+    invito: t(
+      "Trovati accanto al robot — un tocco li aggiunge:",
+      "Found next to the robot — one tap adds them:",
+    ),
+    aiuto: t(
+      "I programmi e le regolazioni che l'integrazione pubblica a parte — pulizia completa, solo lavaggio, modalità del mocio…: entità button.*, select.*, switch.* (e input_*, script.*, scene.*). Compaiono sulla scheda del robot nell'ordine in cui li aggiungi: le tendine accanto all'aspirazione, i tasti sotto i comandi.",
+      "The programs and settings the integration publishes separately — full clean, mop only, mop mode…: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*). They appear on the robot card in the order you add them: dropdowns next to suction, buttons under the controls.",
+    ),
+  };
 }
 
-/* Perche' un comando non e' entrato. Tre motivi, tre frasi (#403).
+/* Una pastiglia: il nome dell'entita' senza il nome del robot davanti, e il
+ * segno di cosa fa toccarla — il piu' aggiunge, la croce toglie. */
+function chipMarkup(entity, tipo, azione, segno, robot, states) {
+  return `<button type="button" class="dm-robot-chip" data-robot-chip-${esc(azione)}="${esc(entity)}" data-robot-chip-tipo="${esc(tipo)}" data-genere="${esc(LISTE[tipo].genere(entity))}" title="${esc(entity)}"><span>${esc(nomeAccantoAlDispositivo(entity, robot, states))}</span><i aria-hidden="true">${segno}</i></button>`;
+}
+
+/* Perche' una voce non e' entrata. Tre motivi, tre frasi (#403).
  *
  * La piu' importante e' la terza: prima non c'era, e il tocco spariva. */
-function spiegazione(esito) {
-  if (esito === ESITI_COMANDO.gia)
-    return t("Questo comando c'è già.", "That command is already there.");
-  if (esito === ESITI_COMANDO.pieno)
+function spiegazione(esito, tipo) {
+  if (esito === ESITI_ELENCO.gia)
+    return tipo === "mappe"
+      ? t("Questa mappa c'è già.", "That map is already there.")
+      : tipo === "letture"
+        ? t("Questa lettura c'è già.", "That reading is already there.")
+        : t("Questo comando c'è già.", "That command is already there.");
+  if (esito === ESITI_ELENCO.pieno)
+    return tipo === "mappe"
+      ? t(
+          "La scheda tiene quattro mappe, e ci sono tutte: togline una per farci stare questa.",
+          "The card holds four maps and they are all taken: remove one to make room.",
+        )
+      : tipo === "letture"
+        ? t(
+            "La scheda tiene dieci letture, e ci sono tutte: togline una per farci stare questa.",
+            "The card holds ten readings and they are all taken: remove one to make room.",
+          )
+        : t(
+            "La scheda tiene dodici comandi, e ci sono tutti: togline uno per farci stare questo. Un robot arrivato da un'integrazione parte spesso già pieno di quelli che pubblica lei.",
+            "The card holds twelve commands and they are all taken: remove one to make room. A robot that came from an integration often starts out full of the ones it publishes.",
+          );
+  if (tipo === "mappe")
     return t(
-      "La scheda tiene dodici comandi, e ci sono tutti: togline uno per farci stare questo. Un robot arrivato da un'integrazione parte spesso già pieno di quelli che pubblica lei.",
-      "The card holds twelve commands and they are all taken: remove one to make room. A robot that came from an integration often starts out full of the ones it publishes.",
+      "Serve un'entità camera.* o image.*.",
+      "A camera.* or image.* entity is required.",
+    );
+  if (tipo === "letture")
+    return t(
+      "Serve un'entità sensor.*, binary_sensor.* o number.* — oppure input_number, input_text.",
+      "A sensor.*, binary_sensor.* or number.* entity is required — or input_number, input_text.",
     );
   return t(
     "Serve un'entità button.*, select.* o switch.* — oppure input_button, input_select, input_boolean, script, scene.",
@@ -116,29 +225,29 @@ function spiegazione(esito) {
   );
 }
 
-function comandiMarkup(robot, index) {
+function listaMarkup(tipo, robot, index) {
   const states = allStates();
-  const scelti = elencoComandi(robot.comandi);
-  const proposte = comandiSuggeriti(robot, states).slice(0, 24);
-  return `<div class="ed-slot dm-robot-field dm-robot-comandi" data-robot-comandi>
-    <span class="ed-slot-lbl">${t("Altri comandi del robot", "Other robot commands")} <b class="dm-robot-quanti"${scelti.length >= COMANDI_MASSIMI ? ' data-pieno="true"' : ""}>${esc(String(scelti.length))}/${esc(String(COMANDI_MASSIMI))}</b></span>
-    <input type="hidden" data-robot-field="comandi" value="${esc(scelti.join(","))}">
-    <div class="dm-robot-chips" data-robot-comandi-scelti>${
-      scelti.length
-        ? scelti.map((entity) => chipMarkup(entity, "robot-cmd-del", "✕", robot, states)).join("")
-        : `<small class="dm-robot-chips-vuoto">${t("Nessun comando in più: la scheda ha quelli del robot e basta.", "No extra command: the card carries the robot's own and nothing else.")}</small>`
+  const regola = LISTE[tipo];
+  const parole = paroleDellaLista(tipo);
+  const tetto = tettoDellElenco(tipo);
+  const scelte = regola.elenco(robot[tipo]);
+  const proposte = regola.suggerite(robot, states).slice(0, 24);
+  return `<div class="ed-slot dm-robot-field dm-robot-lista" data-robot-lista="${esc(tipo)}">
+    <span class="ed-slot-lbl">${esc(parole.etichetta)} <b class="dm-robot-quanti"${scelte.length >= tetto ? ' data-pieno="true"' : ""}>${esc(String(scelte.length))}/${esc(String(tetto))}</b></span>
+    <input type="hidden" data-robot-field="${esc(tipo)}" value="${esc(scelte.join(","))}">
+    <div class="dm-robot-chips" data-robot-chips-scelti>${
+      scelte.length
+        ? scelte.map((entity) => chipMarkup(entity, tipo, "del", "✕", robot, states)).join("")
+        : `<small class="dm-robot-chips-vuoto">${esc(parole.vuoto)}</small>`
     }</div>
-    <span class="ed-form-row"><input id="dm-robot-${index}-comando" class="ed-input mono" data-robot-comando-nuovo placeholder="button.robot_pulizia_completa" autocomplete="off" spellcheck="false"><button type="button" class="dm-robot-pick" data-robot-pick="dm-robot-${index}-comando" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button><button type="button" class="dm-robot-pick dm-robot-aggiungi" data-robot-cmd-add aria-label="${t("Aggiungi comando", "Add command")}" title="${t("Aggiungi comando", "Add command")}">＋</button></span>
+    <span class="ed-form-row"><input id="dm-robot-${index}-${esc(tipo)}" class="ed-input mono" data-robot-chip-nuovo placeholder="${esc(regola.segnaposto)}" autocomplete="off" spellcheck="false"><button type="button" class="dm-robot-pick" data-robot-pick="dm-robot-${index}-${esc(tipo)}" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button><button type="button" class="dm-robot-pick dm-robot-aggiungi" data-robot-chip-add="${esc(tipo)}" aria-label="${t("Aggiungi", "Add")}" title="${t("Aggiungi", "Add")}">＋</button></span>
     ${
       proposte.length
-        ? `<small>${t("Trovati accanto al robot — un tocco li aggiunge:", "Found next to the robot — one tap adds them:")}</small>
-    <div class="dm-robot-chips dm-robot-proposte" data-robot-comandi-proposti>${proposte.map((entity) => chipMarkup(entity, "robot-cmd-sug", "＋", robot, states)).join("")}</div>`
+        ? `<small>${esc(parole.invito)}</small>
+    <div class="dm-robot-chips dm-robot-proposte" data-robot-chips-proposti>${proposte.map((entity) => chipMarkup(entity, tipo, "sug", "＋", robot, states)).join("")}</div>`
         : ""
     }
-    <small>${t(
-      "I programmi e le regolazioni che l'integrazione pubblica a parte — pulizia completa, solo lavaggio, modalità del mocio…: entità button.*, select.*, switch.* (e input_*, script.*, scene.*). Compaiono sulla scheda del robot nell'ordine in cui li aggiungi: le tendine accanto all'aspirazione, i tasti sotto i comandi.",
-      "The programs and settings the integration publishes separately — full clean, mop only, mop mode…: button.*, select.*, switch.* entities (plus input_*, script.*, scene.*). They appear on the robot card in the order you add them: dropdowns next to suction, buttons under the controls.",
-    )}</small>
+    <small>${esc(parole.aiuto)}</small>
   </div>`;
 }
 
@@ -157,9 +266,10 @@ function rigaMarkup(robot, index) {
     <div class="dm-robot-row-body"${aperto ? "" : " hidden"}>
       <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-robot-${index}-name" class="ed-input" data-robot-field="name" value="${esc(clean(robot.name))}" placeholder="${t("Robot del piano terra", "Ground floor robot")}"></span></label>
       ${campo(`dm-robot-${index}-entity`, t("Entità del robot", "Robot entity"), robot.entity, "vacuum.robot", t("È l'entità vacuum.* (aspirapolvere) o lawn_mower.* (tagliaerba) che Home Assistant espone per il robot.", "The vacuum.* (vacuum) or lawn_mower.* (lawn mower) entity Home Assistant exposes for the robot."))}
-      ${campo(`dm-robot-${index}-mapEntity`, t("Entità della mappa", "Map entity"), robot.mapEntity, "camera.robot_map", t("La mappa arriva da una telecamera o da un'immagine: camera.* o image.*. Lasciala vuota se il tuo robot non ne pubblica una.", "The map comes from a camera or an image: camera.* or image.*. Leave it empty if your robot does not publish one."))}
+      ${listaMarkup("mappe", robot, index)}
       ${campo(`dm-robot-${index}-battery`, t("Batteria", "Battery"), robot.battery, "sensor.robot_batteria", t("Facoltativa: il sensore che dice la carica, se il robot la pubblica a parte — capita spesso coi tagliaerba. Se indicata, vince sulla batteria dell'entità del robot.", "Optional: the sensor reporting the charge, when the robot publishes it separately — common with lawn mowers. When set, it wins over the robot entity's own battery."))}
-      ${comandiMarkup(robot, index)}
+      ${listaMarkup("comandi", robot, index)}
+      ${listaMarkup("letture", robot, index)}
       <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><span class="ed-form-row"><select id="dm-robot-${index}-room" class="ed-input" data-robot-field="room">${roomOptionsMarkup(clean(robot.room), t("Nessuna stanza", "No room"))}</select></span></label>
       <output class="dm-robot-error" data-robot-error></output>
       <button type="button" class="ed-save-btn" data-robot-save>💾 ${t("Salva robot", "Save robot")}</button>
@@ -188,8 +298,8 @@ function bodyMarkup(robots) {
     <div class="dm-robot-invito">
       <button type="button" class="ed-btn-add dm-robot-integ" data-robot-integ>🔗 ${t("Aggiungi da un'integrazione", "Add from an integration")}</button>
       <small>${t(
-        "Roborock, Dreame, Ecovacs, Husqvarna… scegli il dispositivo e il robot arriva già fatto: la sua entità, la mappa, la batteria e i suoi programmi. Oppure, qui sotto, una casella alla volta.",
-        "Roborock, Dreame, Ecovacs, Husqvarna… pick the device and the robot arrives ready-made: its entity, the map, the battery and its programs. Or, below, one field at a time.",
+        "Roborock, Dreame, Ecovacs, Husqvarna… scegli il dispositivo e il robot arriva già fatto: la sua entità, le sue mappe, la batteria, i suoi programmi e le sue letture. Oppure, qui sotto, una casella alla volta.",
+        "Roborock, Dreame, Ecovacs, Husqvarna… pick the device and the robot arrives ready-made: its entity, its maps, the battery, its programs and its readings. Or, below, one field at a time.",
       )}</small>
     </div>
     <button type="button" class="ed-btn-add" data-robot-add>＋ ${t("Aggiungi robot", "Add robot")}</button>`;
@@ -212,6 +322,8 @@ function anteprimaRobot({ device, entities }) {
   const riga = (etichetta, valore) =>
     `<div class="dm-integ-casella"><span>${esc(etichetta)}</span><b class="mono">${esc(valore) || "—"}</b></div>`;
   const comandi = elencoComandi(robot.comandi);
+  const mappe = elencoMappe(robot.mappe);
+  const letture = elencoLetture(robot.letture);
   return {
     etichetta:
       robotSpecies(robot.entity) === "lawn_mower"
@@ -219,12 +331,18 @@ function anteprimaRobot({ device, entities }) {
         : t("Aspirapolvere", "Vacuum"),
     corpo: `<div class="dm-integ-caselle">
         ${riga(t("Entità del robot", "Robot entity"), robot.entity)}
-        ${riga(t("Mappa", "Map"), robot.mapEntity)}
+        ${riga(t("Mappe", "Maps"), mappe.join(", "))}
         ${riga(t("Batteria", "Battery"), robot.battery)}
         ${riga(
           t("Programmi e regolazioni", "Programs and settings"),
           comandi.length
-            ? `${comandi.length} — ${comandi.map((voce) => nomeDelComando(voce, robot, allStates())).join(", ")}`
+            ? `${comandi.length} — ${comandi.map((voce) => nomeAccantoAlDispositivo(voce, robot, allStates())).join(", ")}`
+            : "",
+        )}
+        ${riga(
+          t("Altre letture", "Other readings"),
+          letture.length
+            ? `${letture.length} — ${letture.map((voce) => nomeAccantoAlDispositivo(voce, robot, allStates())).join(", ")}`
             : "",
         )}
       </div>`,
@@ -296,7 +414,8 @@ export function ensureRobotEditor() {
     state.aperto,
     nascosta,
     ...robots.map(
-      (robot) => `${robot.id}~${robot.name}~${robot.entity}~${(robot.comandi || []).join(",")}`,
+      (robot) =>
+        `${robot.id}~${robot.name}~${robot.entity}~${(robot.comandi || []).join(",")}~${(robot.mappe || []).join(",")}~${(robot.letture || []).join(",")}`,
     ),
   ].join("|");
   if (body.dataset.dmRobotEditor === firma && body.querySelector(".dm-robot-list")) return true;
@@ -316,8 +435,8 @@ async function onClick(event) {
     apriMenuIntegrazioni({
       titolo: t("Aggiungi un robot da un'integrazione", "Add a robot from an integration"),
       intro: t(
-        "Le integrazioni di Home Assistant, ufficiali o da HACS, con i dispositivi che portano. Scegli il tuo robot: la sua entità, la mappa, la batteria e i suoi programmi entrano da soli.",
-        "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your robot: its entity, the map, the battery and its programs come along by themselves.",
+        "Le integrazioni di Home Assistant, ufficiali o da HACS, con i dispositivi che portano. Scegli il tuo robot: la sua entità, le sue mappe, la batteria, i suoi programmi e le sue letture entrano da soli.",
+        "Home Assistant integrations, official or from HACS, with the devices they bring. Pick your robot: its entity, its maps, the battery, its programs and its readings come along by themselves.",
       ),
       anteprima: anteprimaRobot,
       onScelto: (scelta) => creaDaDispositivo(scelta),
@@ -349,41 +468,45 @@ async function onClick(event) {
     ridisegna();
     return;
   }
-  /* I comandi a parte (#306): aggiungere una proposta, aggiungere quello
-   * scritto nella casella, togliere uno scelto. Si salva subito — con quello
+  /* Le tre liste (#306, #468): aggiungere una proposta, aggiungere quella
+   * scritta nella casella, toglierne una scelta. Si salva subito — con quello
    * che c'e' scritto nelle altre caselle, cosi' un nome battuto e non ancora
    * salvato non va perso — e la scheda del robot cambia mentre si guarda. */
-  const proposta = event.target.closest("[data-robot-cmd-sug]");
-  const togli = event.target.closest("[data-robot-cmd-del]");
-  const aggiungi = event.target.closest("[data-robot-cmd-add]");
+  const proposta = event.target.closest("[data-robot-chip-sug]");
+  const togli = event.target.closest("[data-robot-chip-del]");
+  const aggiungi = event.target.closest("[data-robot-chip-add]");
   if (proposta || togli || aggiungi) {
     event.preventDefault();
+    const tocco = proposta || togli || aggiungi;
+    const tipo = clean(tocco.dataset.robotChipTipo || tocco.dataset.robotChipAdd);
+    if (!LISTE[tipo]) return;
+    const casella = tocco.closest(`[data-robot-lista="${CSS.escape(tipo)}"]`);
     const letta = leggiRiga(riga, robots[index]);
     /* Un'entita' del robot battuta a meta' non si salva per sbaglio da qui:
      * quella la giudica il tasto «Salva robot», come sempre. */
     if (!/^(?:vacuum|lawn_mower)\.[a-z0-9_]+$/i.test(letta.entity))
       letta.entity = robots[index].entity;
     const errore = riga.querySelector("[data-robot-error]");
-    let comandi = elencoComandi(letta.comandi);
+    let elenco = LISTE[tipo].elenco(letta[tipo]);
     if (togli) {
-      comandi = comandi.filter((entity) => entity !== clean(togli.dataset.robotCmdDel));
+      elenco = elenco.filter((entity) => entity !== clean(togli.dataset.robotChipDel));
     } else {
       const nuovo = proposta
-        ? clean(proposta.dataset.robotCmdSug)
-        : clean(riga.querySelector("[data-robot-comando-nuovo]")?.value);
-      /* Il tetto dei dodici non si scavalca, ma nemmeno si tace (#403): un
-       * robot nato dall'integrazione arriva con la riga gia' piena, e chi ci
-       * aggiungeva il suo script vedeva sparire il tocco senza una parola. */
-      const esito = conIlComando(comandi, nuovo);
-      if (esito.esito !== ESITI_COMANDO.aggiunto) {
-        if (errore) errore.textContent = spiegazione(esito.esito);
+        ? clean(proposta.dataset.robotChipSug)
+        : clean(casella?.querySelector("[data-robot-chip-nuovo]")?.value);
+      /* Il tetto non si scavalca, ma nemmeno si tace (#403): un robot nato
+       * dall'integrazione arriva con la riga gia' piena, e chi ci aggiungeva
+       * il suo script vedeva sparire il tocco senza una parola. */
+      const esito = conLaVoce(elenco, nuovo, tipo);
+      if (esito.esito !== ESITI_ELENCO.aggiunto) {
+        if (errore) errore.textContent = spiegazione(esito.esito, tipo);
         return;
       }
-      comandi = esito.comandi;
+      elenco = esito.elenco;
     }
     if (errore) errore.textContent = "";
     const next = robots.slice();
-    next[index] = { ...letta, comandi };
+    next[index] = { ...letta, [tipo]: elenco };
     await salva(next);
     ridisegna();
     return;

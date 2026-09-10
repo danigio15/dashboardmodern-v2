@@ -54,7 +54,9 @@ test("il momento si segna prima della risposta, non dopo", () => {
   /* Una richiesta che fallisce non deve tornare al beat dopo: su una rete
    * lenta si accoderebbero. */
   const dentro = sezione.slice(sezione.indexOf("if (conGettone) {"));
-  const segna = dentro.indexOf("mappeChieste.set(view.entity, Date.now())");
+  /* La chiave e' quella della MAPPA, non del robot: da #468 un robot puo'
+   * averne piu' d'una, e il momento dell'ultima richiesta e' di ognuna. */
+  const segna = dentro.indexOf("mappeChieste.set(chiave, Date.now())");
   const chiede = dentro.indexOf("await root.fetch(picture");
   assert.ok(segna > 0 && chiede > 0);
   assert.ok(segna < chiede, "il momento si segna prima di chiedere");

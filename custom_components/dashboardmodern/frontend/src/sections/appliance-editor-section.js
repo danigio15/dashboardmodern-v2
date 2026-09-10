@@ -32,8 +32,8 @@ import {
   comandiSuggeriti as comandiVicini,
   elencoComandi,
   genereDelComando,
-  nomeDelComando,
 } from "../core/robot-model.js";
+import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 import {
@@ -335,7 +335,7 @@ function cardFieldsMarkup(device = {}) {
  * Non si salva niente finche' non si preme il tasto in fondo: l'elenco vive in
  * un campo nascosto del modulo, come il collegamento all'integrazione. */
 function chipComandoMarkup(entity, azione, segno, apparecchio, states) {
-  return `<button type="button" class="dm-appl-cmd-chip" data-${azione}="${esc(entity)}" data-genere="${esc(genereDelComando(entity))}" title="${esc(entity)}"><span>${esc(nomeDelComando(entity, apparecchio, states))}</span><i aria-hidden="true">${segno}</i></button>`;
+  return `<button type="button" class="dm-appl-cmd-chip" data-${azione}="${esc(entity)}" data-genere="${esc(genereDelComando(entity))}" title="${esc(entity)}"><span>${esc(nomeAccantoAlDispositivo(entity, apparecchio, states))}</span><i aria-hidden="true">${segno}</i></button>`;
 }
 
 /* L'apparecchio come lo vede il vocabolario dei comandi: la sua entita' e i

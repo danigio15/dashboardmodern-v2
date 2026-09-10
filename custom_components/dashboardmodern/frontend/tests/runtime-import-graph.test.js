@@ -1147,8 +1147,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // che non risponde non e' spenta: sono i due modi di dire una cosa falsa
   // colorando un tasto, e stanno scritti dove si possono provare senza un
   // documento.
+  // 326 con le altre letture del robot (#468): «sarebbe possibile aggiungere
+  // piu' valori tra quelli che mostra?». Due moduli, e il secondo e' il piu'
+  // interessante. `core/robot-letture.js` sa quali entita' di un robot sono
+  // cose che si leggono, quali si riconoscono da sole — filtro, spazzole,
+  // area, durata — e come si scrive il numero che portano.
+  // `core/nome-accanto-al-dispositivo.js` invece non e' nuovo: e' la regola
+  // «togli il nome del dispositivo dal nome dell'entita'» che stava dentro il
+  // modello del robot e serviva gia' anche agli elettrodomestici. Le letture
+  // ne avevano bisogno pure loro, e tenerla di la' avrebbe voluto dire due
+  // moduli che si importano a vicenda oppure la stessa regola scritta due
+  // volte: e' scesa dove tutt'e tre la vedono.
   assert.ok(
-    relative.length <= 324,
+    relative.length <= 326,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

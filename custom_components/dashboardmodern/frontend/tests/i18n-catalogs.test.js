@@ -181,6 +181,13 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   "System OK",
   "of",
   "pH",
+  /* Le due misure del tempo sulle letture del robot (#468): «min» e «h» sono
+     i simboli internazionali del minuto e dell'ora, e in alfabeto latino si
+     scrivono cosi' dappertutto. Dove non e' vero — russo, giapponese,
+     coreano, cinese, arabo, hindi — il catalogo di quella lingua li traduce
+     lo stesso: questa riga permette, non impone. */
+  "min",
+  "h",
   "🔥 Boiler",
 ]);
 
