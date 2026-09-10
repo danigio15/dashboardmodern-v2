@@ -44,12 +44,44 @@ test("la configurazione: una voce per categoria, e conta solo chi ha l'entita'",
     voli: { entity: "" },
     boh: { entity: "sensor.x" },
   });
-  assert.deepEqual(Object.keys(dato).sort(), CATEGORIE.map((c) => c.chiave).sort());
+  for (const { chiave } of CATEGORIE)
+    assert.ok(dato[chiave], `manca la voce della categoria ${chiave}`);
+  /* Quello che non e' una categoria resta dov'e' (#440).
+   *
+   * Prima questa riga pretendeva il contrario — che `boh` sparisse — e quella
+   * pretesa era il difetto: nella stessa casella `cd_allerte` ci vive anche il
+   * blocco della qualita' dell'aria, e la scheda salva quello che questa
+   * funzione le da'. Buttare le chiavi che non si conoscono voleva dire
+   * cancellare i sensori dell'aria a ogni salvataggio delle allerte. */
+  assert.deepEqual(dato.boh, { entity: "sensor.x" }, "un blocco altrui e' stato buttato");
   assert.equal(dato.fulmini.entity, "sensor.fulmini");
   assert.deepEqual(categorieConfigurate(dato), ["fulmini"]);
   assert.deepEqual(entitaDelleAllerte(dato), ["sensor.fulmini", "sensor.distanza"]);
   assert.deepEqual(categorieConfigurate(null), []);
   assert.equal(CHIAVE_ALLERTE, "cd_allerte");
+});
+
+test("i sensori dell'aria sopravvivono a un salvataggio delle allerte (#440)", () => {
+  /* «Inserisco il sensore, faccio salva sezione, esco, rientro e non c'è.»
+   *
+   * Il giro vero, in due passi: la scheda legge quello che c'e' (normalizza),
+   * ci mette dentro le sue caselle e riscrive tutto. Se il primo passo butta
+   * l'aria, il terzo la cancella dal salvataggio — e il sensore appena scritto
+   * sparisce senza che nessuno l'abbia toccato. */
+  const salvato = {
+    aria: { principale: "sensor.controllo_della_qualita_dell_aria_indoor_air_quality_2" },
+    fulmini: { entity: "sensor.fulmini" },
+  };
+  const letto = normalizzaAllerte(salvato);
+  const riscritto = { ...letto, meteo: { ...letto.meteo, entity: "sensor.protezione_civile" } };
+  const riletto = normalizzaAllerte(riscritto);
+  assert.equal(
+    riletto.aria?.principale,
+    "sensor.controllo_della_qualita_dell_aria_indoor_air_quality_2",
+    "il sensore dell'aria e' sparito salvando le allerte",
+  );
+  assert.equal(riletto.meteo.entity, "sensor.protezione_civile");
+  assert.equal(riletto.fulmini.entity, "sensor.fulmini");
 });
 
 test("il colore della protezione civile, in tutte le lingue in cui lo scrivono", () => {
@@ -82,8 +114,15 @@ test("ogni fonte nel suo dialetto, ridotta a un livello", () => {
   };
   const states = {
     /* Un geo_location porta la distanza nello stato e la magnitudo dentro. */
-    "geo_location.ingv_1": stato("18.4", { magnitude: 3.2, title: "Frosinone", publication_date: "2026-09-03T18:00:00Z" }),
-    "binary_sensor.meteoalarm": stato("on", { awareness_level: "3; orange; Severe", event: "Temporali" }),
+    "geo_location.ingv_1": stato("18.4", {
+      magnitude: 3.2,
+      title: "Frosinone",
+      publication_date: "2026-09-03T18:00:00Z",
+    }),
+    "binary_sensor.meteoalarm": stato("on", {
+      awareness_level: "3; orange; Severe",
+      event: "Temporali",
+    }),
     "sensor.blitz_conteggio": stato("12"),
     "sensor.blitz_distanza": stato("7.5", { unit_of_measurement: "km" }),
     "sensor.pollini": stato("high"),
@@ -192,7 +231,12 @@ test("una fonte muta non e' quiete: e' ignota, e non alza il livello", () => {
 
 test("i pollini e il comfort, nei numeri e nelle parole", () => {
   const pollini = (state, attributes) =>
-    letturaAllerte({ pollini: { entity: "s.p" } }, { "s.p": stato(state, attributes) }, (v) => v, ADESSO)[0].livello;
+    letturaAllerte(
+      { pollini: { entity: "s.p" } },
+      { "s.p": stato(state, attributes) },
+      (v) => v,
+      ADESSO,
+    )[0].livello;
   assert.equal(pollini("3"), "attenzione");
   assert.equal(pollini("4"), "allarme");
   assert.equal(pollini("60", { unit_of_measurement: "%" }), "attenzione");
@@ -200,7 +244,8 @@ test("i pollini e il comfort, nei numeri e nelle parole", () => {
   assert.equal(pollini("molto alto"), "allarme");
   assert.equal(pollini("basso"), "quiete");
   const comfort = (state) =>
-    letturaAllerte({ comfort: { entity: "s.c" } }, { "s.c": stato(state) }, (v) => v, ADESSO)[0].livello;
+    letturaAllerte({ comfort: { entity: "s.c" } }, { "s.c": stato(state) }, (v) => v, ADESSO)[0]
+      .livello;
   assert.equal(comfort("severely_high"), "allarme");
   assert.equal(comfort("somewhat_uncomfortable"), "nota");
   assert.equal(comfort("dry"), "quiete");
@@ -215,7 +260,12 @@ test("i pollini e il comfort, nei numeri e nelle parole", () => {
  * cadeva su «quiete». */
 test("il disagio termico si riconosce comunque lo dica chi lo misura", () => {
   const comfort = (state, attributes) =>
-    letturaAllerte({ comfort: { entity: "s.c" } }, { "s.c": stato(state, attributes) }, (v) => v, ADESSO)[0];
+    letturaAllerte(
+      { comfort: { entity: "s.c" } },
+      { "s.c": stato(state, attributes) },
+      (v) => v,
+      ADESSO,
+    )[0];
 
   /* La zona del simmer index di Thermal Comfort. */
   assert.equal(comfort("slightly_uncomfortable").livello, "nota");

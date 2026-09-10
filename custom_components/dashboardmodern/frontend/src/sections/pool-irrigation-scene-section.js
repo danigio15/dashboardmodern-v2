@@ -891,8 +891,20 @@ function installStyles() {
     #page-piscina .dm-pool-name{display:flex!important;align-items:center!important;gap:9px!important;margin:2px 2px -2px!important}
     #page-piscina .dm-pool-name strong{font-size:15px!important;font-weight:900!important;letter-spacing:.01em!important;color:var(--text,#0f172a)!important}
     #page-piscina .dm-pool-name-icon{font-size:17px!important}
-    #page-irrigazione .dm-irr{display:grid!important;gap:14px!important;width:100%!important;margin:0 0 14px!important}
-    #page-irrigazione #irr-grid{grid-template-columns:repeat(auto-fill,minmax(232px,1fr))!important;gap:12px!important;padding:0 4px 18px!important}
+    /* La stessa larghezza della piscina, e centrata come lei (#479).
+     *
+     * «Il layout dei comandi dell'irrigazione è errato (verificato su schermo
+     * 27 pollici).» Su un ventisette la piscina si ferma a 1040 e sta in mezzo,
+     * l'irrigazione invece prendeva tutta la finestra: la stessa plancia con
+     * due misure diverse a seconda della pagina, e i tre tasti del programma
+     * larghi mezzo schermo. */
+    #page-irrigazione .dm-irr{
+      display:grid!important;gap:14px!important;box-sizing:border-box!important;
+      width:min(100%,1040px)!important;max-width:1040px!important;margin:0 auto 14px!important}
+    #page-irrigazione #irr-grid{
+      box-sizing:border-box!important;width:min(100%,1040px)!important;margin:0 auto!important;
+      grid-template-columns:repeat(auto-fill,minmax(232px,1fr))!important;gap:12px!important;
+      padding:0 4px 18px!important}
 
     /* ── shared atoms ─────────────────────────────────────────────────── */
     .dm-scene-empty{display:grid;justify-items:center;gap:6px;padding:44px 20px;border:1px dashed var(--card-border,#dbe4ee);border-radius:24px;background:var(--card-bg,#fff);color:var(--text-dim,#64748b);text-align:center}
@@ -1211,7 +1223,11 @@ function installStyles() {
     .dm-irr-meta-chip{padding:5px 11px;border-radius:12px;background:var(--surface-2,#f1f5f9);color:var(--text,#0f172a);font-size:12px;font-weight:750}
     .dm-irr-meta-chip[data-alert="true"]{background:rgba(245,158,11,.16);color:#b45309}
     .dm-irr-skip{padding:9px 12px;border-radius:12px;background:rgba(245,158,11,.14);color:#b45309;font-size:12.5px;font-weight:800}
-    .dm-irr-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:8px}
+    /* I tasti si allargano fino a un limite, poi vanno a capo: in colonna sul
+       telefono, in fila e di misura umana sul monitor grande. Con la griglia a
+       colonne uguali, su un ventisette erano tre tasti da mezzo metro. */
+    .dm-irr-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .dm-irr-actions>.dm-btn{flex:1 1 146px;min-width:0;max-width:300px}
     .dm-irr-overflow{margin:0;color:var(--text-dim,#64748b);font-size:12px;font-weight:700;text-align:center}
 
     .dm-irr-card{box-sizing:border-box;display:grid;gap:9px;padding:14px;border:1px solid var(--card-border,#dbe4ee);border-radius:20px;background:var(--card-bg,#fff);box-shadow:var(--shadow-sculpted,0 6px 18px rgba(15,23,42,.07));transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease}
@@ -1292,7 +1308,7 @@ function installStyles() {
       .dm-lawn{height:clamp(250px,62vw,320px);border-radius:24px}
       .dm-lawn-tree{display:none}
       .dm-zone-tag em{max-width:6em}
-      .dm-irr-actions{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+      .dm-irr-actions>.dm-btn{flex-basis:112px}
       #page-irrigazione #irr-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important}
     }
 

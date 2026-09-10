@@ -23,7 +23,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { istantaneaDi, vestiIlPopup } from "../src/sections/telecamera-subito-section.js";
+import {
+  istantaneaDi,
+  spogliaIlPopup,
+  vestiIlPopup,
+} from "../src/sections/telecamera-subito-section.js";
 
 const FOTO = "/api/camera_proxy/camera.salone?token=abc123";
 
@@ -102,4 +106,30 @@ test("un apice nel gettone non rompe la regola del foglio di stile", () => {
   const valore = content.style.getPropertyValue("--dm-cam-fermo");
   assert.equal(valore.split('"').length - 1, 2, "le virgolette dentro l'url vanno citate");
   assert.match(valore, /%22/);
+});
+
+test("e se ne va appena il video vero dipinge", () => {
+  /* «Sembrano 2 immagini sovrapposte» (#476). Erano due davvero: il fermo
+   * restava fondo del riquadro per sempre, e su una telecamera verticale
+   * dentro un riquadro 16:9 le due bande ai lati non le copre nessun video —
+   * li' sotto si continuava a vedere l'istantanea di prima, col suo velo
+   * addosso al vivo.
+   *
+   * Il fermo e' quello che si guarda MENTRE il video arriva: quando arriva se
+   * ne va. */
+  const content = contentFinto();
+  vestiIlPopup({ entity: "camera.salone" }, content, STATI);
+  assert.equal(content.classList.contains("dm-cam-con-fermo"), true);
+  assert.equal(spogliaIlPopup(content), true, "il fermo non si e' tolto");
+  assert.equal(content.classList.contains("dm-cam-con-fermo"), false);
+  assert.equal(content.style.getPropertyValue("--dm-cam-fermo"), "");
+  /* Toglierlo due volte non e' un errore: il primo fotogramma di un video
+   * arriva insieme al suo `playing`, e i due eventi si rincorrono. */
+  assert.equal(spogliaIlPopup(content), false);
+});
+
+test("una telecamera senza istantanea non ha niente da togliere", () => {
+  const content = contentFinto();
+  assert.equal(vestiIlPopup({ entity: "camera.muta" }, content, STATI), false);
+  assert.equal(spogliaIlPopup(content), false);
 });
