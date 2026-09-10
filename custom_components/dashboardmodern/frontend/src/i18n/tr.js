@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "Açık: pozitif bir sayı bataryanın şarj olduğu anlamına gelir.",
   "Power draw (optional)": "Güç çekişi (isteğe bağlı)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Prizin varsa güç ölçeri: kart, durumunun yanına o an ne kadar çektiğini yazar. Olmadan kart olduğu gibi kalır.",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Kendi seçtiğiniz iki sensör: ev ortalaması değil, karar verirken gerçekten baktığınız sensör. Tipik olan dışarıdakidir; iç ünitelerinizi ona göre ayarlarsınız. Birimi Home Assistant söyler, hiçbirini belirtmezseniz iki rozetten hiçbiri görünmez.",
 });

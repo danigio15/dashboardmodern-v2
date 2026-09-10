@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "オン：プラスの数値は、バッテリーが充電中であることを表します。",
   "Power draw (optional)": "消費電力（任意）",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "コンセントの電力計があれば、カードは状態の横に現在の消費電力を書きます。なければカードはそのままです。",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "自分で選ぶ二つのセンサーです。家の平均ではなく、判断のために実際に見ているセンサー。よくあるのは屋外のもので、それを見て室内のエアコンを調節します。単位は Home Assistant が伝え、どちらも指定しなければどちらのピルも表示されません。",
 });

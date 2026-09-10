@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "켬: 양수는 배터리가 충전 중이라는 뜻입니다.",
   "Power draw (optional)": "소비 전력(선택)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "콘센트에 전력계가 있으면 카드가 상태 옆에 지금 쓰는 전력을 적습니다. 없으면 카드는 그대로입니다.",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "직접 고른 센서 두 개입니다. 집 평균이 아니라 판단할 때 실제로 보는 센서죠. 보통은 실외 센서이고, 그것을 기준으로 실내 냉난방을 맞춥니다. 단위는 Home Assistant가 알려 주며, 둘 다 지정하지 않으면 어느 알약도 나타나지 않습니다.",
 });

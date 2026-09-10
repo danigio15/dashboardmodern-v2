@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "Activé : un nombre positif veut dire que la batterie se charge.",
   "Power draw (optional)": "Consommation (facultatif)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Le wattmètre de la prise, si elle en a un : la carte écrit ce qu'elle consomme à côté de son état. Sans lui, la carte reste telle quelle.",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Deux capteurs que vous choisissez : celui que vous regardez vraiment pour décider, pas une moyenne de la maison. Le cas typique est celui de l'extérieur, sur lequel on se règle pour les climatiseurs intérieurs. L'unité vient de Home Assistant, et si vous n'en indiquez aucun, aucune des deux pastilles n'apparaît.",
 });

@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "开启：正数表示电池正在充电。",
   "Power draw (optional)": "功耗（可选）",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "插座的功率计（如果有）：卡片会在状态旁写出它此刻的用电量。没有的话，卡片保持原样。",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "由你选择的两个传感器：你真正用来判断的那一个，而不是全屋平均值。最常见的是屋外那只，室内空调就按它来调。单位由 Home Assistant 提供；两个都不填，两个胶囊都不会出现。",
 });

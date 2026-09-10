@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "مشغّل: الرقم الموجب يعني أن البطارية تُشحن.",
   "Power draw (optional)": "استهلاك الطاقة (اختياري)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "عدّاد استهلاك المقبس، إن وُجد: تكتب البطاقة مقدار ما يسحبه بجانب حالته. وبدونه تبقى البطاقة كما هي.",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "مستشعران تختارهما أنت: المستشعر الذي تقرأه فعلًا لتقرر، لا متوسط البيت. المعتاد هو مستشعر الخارج، الذي تعتمد عليه لضبط أجهزة التكييف الداخلية. الوحدة تأتي من Home Assistant، وإذا لم تحدّد أيًّا منهما فلن تظهر أي من الشارتين.",
 });

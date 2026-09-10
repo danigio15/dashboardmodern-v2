@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "Aan: een positief getal betekent dat de accu aan het laden is.",
   "Power draw (optional)": "Verbruik (optioneel)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "De wattmeter van het stopcontact, als die er is: de kaart schrijft naast de status hoeveel er wordt verbruikt. Zonder blijft de kaart zoals hij is.",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Twee sensoren van jouw keuze: degene die je echt afleest om te beslissen, geen huisgemiddelde. De typische staat buiten, daar stem je de binnenunits op af. De eenheid komt van Home Assistant, en noem je geen van beide sensoren, dan verschijnt geen van beide pillen.",
 });

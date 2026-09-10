@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "चालू: धनात्मक संख्या का मतलब है कि बैटरी चार्ज हो रही है।",
   "Power draw (optional)": "खपत (वैकल्पिक)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "सॉकेट का वॉटमीटर, अगर उसमें है: कार्ड उसकी स्थिति के बगल में लिखता है कि वह कितनी बिजली खींच रहा है। इसके बिना कार्ड जैसा है वैसा ही रहता है।",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "आपके चुने हुए दो सेंसर: वही जिसे आप सच में देखकर तय करते हैं, घर का औसत नहीं। आम तौर पर यह बाहर वाला होता है, जिसके हिसाब से भीतर के एसी सेट किए जाते हैं। इकाई Home Assistant बताता है, और अगर आप कोई सेंसर नहीं चुनते तो दोनों में से कोई चिप नहीं दिखती।",
 });

@@ -40,6 +40,7 @@ import {
   clean,
   doc,
   esc,
+  formatNumber,
   installStyle,
   onEditorRedraw,
   readJson,
@@ -96,6 +97,39 @@ function letturaDellaCassetta(entity, states) {
   if (aperto === null) return null;
   const quando = Date.parse(stato.last_changed || stato.last_updated || "");
   return { aperto, cambiatoIl: Number.isFinite(quando) ? quando : Date.now() };
+}
+
+/* Le due misure scelte a mano, com'e' adesso ognuna (#461).
+ *
+ * «Ho un sensore esterno all'abitazione con cui mi regolo con i clima interni»:
+ * il sensore lo sceglie chi abita la casa, e qui si legge quello e basta.
+ * L'unita' la dichiara Home Assistant — °C o °F, % — e riscriverla a mano
+ * vorrebbe dire dire gradi centigradi a chi li ha in Fahrenheit. Il nome serve
+ * a chi si ferma sopra: nella pastiglia non ci sta, nel titolo si'.
+ *
+ * Una misura che non si sa non e' una misura a zero: torna `null`, e la
+ * pastiglia semplicemente non compare. */
+function letturaDellaMisura(entity, states) {
+  const id = clean(entity);
+  if (!id) return null;
+  const risolta = clean(root.resolveEntity?.(id) || id);
+  const stato = states?.[risolta] || states?.[id];
+  if (!stato) return null;
+  const valore = Number.parseFloat(String(stato.state ?? "").replace(",", "."));
+  if (!Number.isFinite(valore)) return null;
+  return {
+    valore,
+    unita: clean(stato.attributes?.unit_of_measurement),
+    nome: clean(stato.attributes?.friendly_name) || id,
+  };
+}
+
+/** Le misure della barra, gia' lette: il nucleo non guarda nessuna entita'. */
+function leMisureAdesso(config, states) {
+  return {
+    temperatura: letturaDellaMisura(config.temperatura, states),
+    umidita: letturaDellaMisura(config.umidita, states),
+  };
 }
 
 /* Cosa dice la cassetta, e cosa se ne ricorda questo dispositivo.
@@ -167,6 +201,20 @@ function paroleDellaPastiglia(pastiglia) {
       coda: t("antifurto", "alarm"),
       titolo: pastiglia.valore,
     };
+  if (pastiglia.chiave === "temperatura" || pastiglia.chiave === "umidita") {
+    /* La temperatura si scrive col decimo — fra 21 e 21,5 c'e' la differenza
+     * per cui uno guarda il sensore — l'umidita' no: mezzo punto percentuale
+     * non cambia niente a nessuno. */
+    const decimali = pastiglia.chiave === "temperatura" ? 1 : 0;
+    const testa = `${formatNumber(pastiglia.valore, decimali)}${pastiglia.unita ? ` ${pastiglia.unita}` : ""}`;
+    const coda =
+      pastiglia.chiave === "temperatura"
+        ? t("temperatura", "temperature")
+        : t("umidità", "humidity");
+    /* Il nome del sensore nel titolo: nella pastiglia non ci starebbe, e sapere
+     * QUALE sensore e' l'unica cosa che il numero da solo non dice. */
+    return { testa, coda, titolo: pastiglia.nome ? `${pastiglia.nome} · ${testa}` : `${testa} ${coda}` };
+  }
   const parola = parolaDelConto(pastiglia.chiave, pastiglia.conto);
   const testa = String(pastiglia.conto);
   const nomi = (pastiglia.nomi || []).join(" · ");
@@ -353,7 +401,11 @@ export function disegnaComeStaLaCasa(modelli, states) {
   if (!doc) return false;
   const config = configurazione();
   const posta = laPostaAdesso(config, states || {});
-  const pastiglie = pastiglieDellaCasa(modelli, { barra: config, posta });
+  const pastiglie = pastiglieDellaCasa(modelli, {
+    barra: config,
+    posta,
+    misure: leMisureAdesso(config, states || {}),
+  });
   const riga = pastiglie.length ? ospite() : doc.getElementById("dm-casa-riga");
   if (!riga) return false;
   if (!pastiglie.length) {
@@ -422,7 +474,21 @@ const NOMI_DELLE_VOCI = () => ({
   clima: ["❄️", t("Clima", "Climate")],
   prese: ["🔌", t("Prese", "Sockets")],
   media: ["🔊", t("Musica", "Media")],
+  temperatura: ["🌡️", t("Temperatura", "Temperature")],
+  umidita: ["💧", t("Umidità", "Humidity")],
 });
+
+/* Una casella per un sensore della barra: le due misure hanno la stessa forma
+ * di quella della posta, e scriverla tre volte vorrebbe dire tre caselle che
+ * col tempo diventano diverse. */
+function campoDellaMisura(chiave, valore, etichetta, esempio) {
+  return `<label class="ed-slot dm-casa-ed-campo"><span class="ed-slot-lbl">${esc(etichetta)}</span>
+      <span class="ed-form-row"><input class="ed-input mono" data-dm-casa-misura="${esc(chiave)}" value="${esc(
+        valore,
+      )}" placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-dm-casa-pick-misura="${esc(
+        chiave,
+      )}" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span></label>`;
+}
 
 function pannelloMarkup() {
   const config = configurazione();
@@ -459,6 +525,24 @@ function pannelloMarkup() {
           "A contact on the mailbox: when the postman opens the flap the mail pill appears, moves to be noticed and stays there until somebody taps it. Mail arrives while nobody is looking, so a two-second flash is no use.",
         ),
       )}</small></label>
+    ${campoDellaMisura(
+      "temperatura",
+      config.temperatura,
+      t("Sensore della temperatura", "Temperature sensor"),
+      "sensor.temperatura_esterna",
+    )}
+    ${campoDellaMisura(
+      "umidita",
+      config.umidita,
+      t("Sensore dell'umidità", "Humidity sensor"),
+      "sensor.umidita_esterna",
+    )}
+    <div class="ed-intro">${esc(
+      t(
+        "Due sensori scelti da te: quello che leggi per decidere, non una media della casa. Il tipico è quello fuori, con cui ci si regola per i clima interni. L'unità la dice Home Assistant, e chi non ne indica nessuno non vede nessuna delle due pastiglie.",
+        "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.",
+      ),
+    )}</div>
     <button type="button" class="ed-save-btn" data-dm-casa-salva>💾 ${esc(
       t("Salva la barra", "Save the bar"),
     )}</button>`;
@@ -499,14 +583,26 @@ function onClickPannello(event) {
     root.wzPickEntity?.(pannello.querySelector("[data-dm-casa-posta]"));
     return;
   }
+  const scegliMisura = event.target.closest("[data-dm-casa-pick-misura]");
+  if (scegliMisura) {
+    event.preventDefault();
+    const chiave = clean(scegliMisura.dataset.dmCasaPickMisura);
+    root.wzPickEntity?.(
+      pannello.querySelector(`[data-dm-casa-misura="${CSS.escape(chiave)}"]`),
+    );
+    return;
+  }
   if (!event.target.closest("[data-dm-casa-salva]")) return;
   event.preventDefault();
   const voci = {};
   for (const casella of pannello.querySelectorAll("[data-dm-casa-voce]"))
     voci[clean(casella.dataset.dmCasaVoce)] = casella.checked;
   const posta = clean(pannello.querySelector("[data-dm-casa-posta]")?.value);
+  const misure = {};
+  for (const casella of pannello.querySelectorAll("[data-dm-casa-misura]"))
+    misure[clean(casella.dataset.dmCasaMisura)] = clean(casella.value);
   const prima = configurazione();
-  writeJsonIfChanged(CHIAVE_BARRA, normalizzaBarra({ voci, posta }));
+  writeJsonIfChanged(CHIAVE_BARRA, normalizzaBarra({ voci, posta, ...misure }));
   /* Cassetta cambiata: la memoria di quella di prima non vuol dire piu'
    * niente, e tenerla vorrebbe dire annunciare come «posta arrivata» il primo
    * scatto del contatto nuovo. Si riparte dal primo sguardo. */

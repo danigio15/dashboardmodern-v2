@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "Включено: положительное число значит, что батарея заряжается.",
   "Power draw (optional)": "Потребление (необязательно)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Ваттметр розетки, если он есть: карточка пишет рядом с состоянием, сколько она сейчас потребляет. Без него карточка остаётся прежней.",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Два датчика на ваш выбор: тот, на который вы действительно смотрите, принимая решение, а не среднее по дому. Обычно это уличный датчик, по нему настраивают внутренние кондиционеры. Единицу измерения сообщает Home Assistant, и если не указать ни одного датчика, не появится ни одной из двух плашек.",
 });

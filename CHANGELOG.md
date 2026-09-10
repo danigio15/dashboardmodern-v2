@@ -9,6 +9,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **La barra sotto il meteo dice anche i gradi e l'umidità** (#461)
+
+  «Sarebbe possibile inserire temperatura e umidità di sensori personali? Io ho
+  un sensore esterno all'abitazione con cui mi regolo con i clima interni.» Due
+  pastiglie nuove nella fascia, e i due sensori li scegli tu da **Config → Home
+  → Barra sotto il meteo**: quello che guardi per decidere, non una media della
+  casa.
+
+  Stanno in fondo alla fascia, e non è un dettaglio: sono due letture, non due
+  notizie — non succedono, ci sono sempre — e chi legge da sinistra deve trovare
+  per prima la cosa che è successa. Toccandole si apre la tessera Temperature,
+  dove la stessa domanda ha la risposta lunga.
+
+  L'unità la dichiara Home Assistant, quindi chi ha i Fahrenheit legge i
+  Fahrenheit. La temperatura si scrive col decimo — fra 21 e 21,5 c'è la
+  differenza per cui uno il sensore lo guarda — l'umidità no. E un sensore che
+  non risponde non scrive «—»: la pastiglia semplicemente non c'è, come per
+  tutte le altre voci che non hanno niente da dire.
+
 - **Prese: quanto sta tirando, scritto sulla card** (#465)
 
   «Le prese che hanno anche la lettura dei consumi: è possibile mettere oltre lo

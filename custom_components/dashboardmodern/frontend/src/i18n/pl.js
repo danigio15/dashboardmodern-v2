@@ -3355,4 +3355,5 @@ export default Object.freeze({
   "On: a positive number means the battery is charging.": "Włączone: liczba dodatnia oznacza, że akumulator się ładuje.",
   "Power draw (optional)": "Pobór mocy (opcjonalnie)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Miernik mocy gniazdka, jeśli je ma: karta pisze obok stanu, ile w tej chwili pobiera. Bez niego karta zostaje taka, jaka jest.",
+  "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Dwa czujniki, które wybierasz sam: ten, na który naprawdę patrzysz przy decyzji, a nie średnia z domu. Typowo jest to czujnik na zewnątrz, według którego ustawia się klimatyzatory w środku. Jednostkę podaje Home Assistant, a jeśli nie wskażesz żadnego, nie pojawi się żadna z pigułek.",
 });
