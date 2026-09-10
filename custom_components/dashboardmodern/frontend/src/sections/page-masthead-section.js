@@ -30,7 +30,20 @@ import {
 
 const KEY = "__DASHBOARDMODERN_PAGE_MASTHEAD__";
 const STYLE_ID = "dm-page-masthead-style";
-const state = (root[KEY] ||= { installed: false, frame: 0, seeded: false, mastheads: {} });
+const state = (root[KEY] ||= {
+  installed: false,
+  frame: 0,
+  /* Se dopo la passata in coda ne serve un'altra: vedi `scheduleSettled`. */
+  ancora: false,
+  /* Quante passate sono CORSE davvero. Non serve a disegnare: serve a chi
+   * aspetta che l'intestazione si sia posata — le prove — per distinguere
+   * «non si e' ancora mossa» da «e' ferma». Sono due cose diverse, e da fuori
+   * si somigliano: un riquadro immobile perche' la passata non e' ancora
+   * partita e' esattamente cio' che una prova non deve prendere per buono. */
+  passate: 0,
+  seeded: false,
+  mastheads: {},
+});
 
 /* The pages of the dashboard, what each one is, and the two colours its
  * heading is drawn in — the first tints the sun disc and starts the title
@@ -614,6 +627,7 @@ export function renderPageMastheads() {
   for (const piano of piani) measureMasthead(piano);
   for (const piano of piani) applyMasthead(piano);
   state.seeded = true;
+  state.passate += 1;
   return true;
 }
 
@@ -626,8 +640,17 @@ function schedule() {
      * la sta guardando nessuno — scheda in secondo piano, o plancia
      * parcheggiata dietro un'altra pagina di Home Assistant — quei conti non
      * servono a niente, e passavano a ogni mazzetto di stati. */
-    if (!planciaVisibile()) return;
+    if (!planciaVisibile()) {
+      state.ancora = false;
+      return;
+    }
     renderPageMastheads();
+    /* La seconda passata chiesta mentre questa era ancora in coda: adesso puo'
+     * partire, e misura il contenuto arrivato nel frattempo. */
+    if (state.ancora) {
+      state.ancora = false;
+      schedule();
+    }
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
@@ -640,10 +663,30 @@ function schedule() {
  * dopo la nostra misura. Da quando ogni sezione disegna solo la pagina che si
  * vede, quel «dopo» capita proprio all'arrivo su una pagina — cioe' l'unica
  * volta che conta. Una passata in piu' a pagina ferma non costa niente e
- * misura quello che c'e' davvero. */
+ * misura quello che c'e' davvero.
+ *
+ * ── Perche' non basta chiamare due volte `schedule` ──────────────────────
+ *
+ * Perche' `schedule` non ne accoda una seconda se ce n'e' gia' una in coda —
+ * ed e' giusto cosi', o ogni mazzetto di stati ne accumulerebbe una a testa.
+ * Ma vuol dire che la chiamata dopo ottanta millisecondi non faceva NIENTE
+ * ogni volta che la rAF non era ancora corsa: le due passate diventavano una
+ * sola, la prima, quella che misura prima che il contenuto arrivi.
+ *
+ * E la rAF tarda esattamente quando la macchina e' carica — cioe' proprio nel
+ * caso per cui la passata di sicurezza esiste. Dal campo si vedeva cosi': su
+ * WebKit, sotto otto lavori in parallelo, la pagina del Clima si apriva col
+ * contenuto sopra l'intestazione, e nessuno riusciva a riprodurlo altrove.
+ *
+ * Adesso, se la prima e' ancora in coda, si segna che ne serve un'altra e a
+ * riarmarla e' la prima quando finisce. La seconda passata non puo' piu'
+ * sparire dentro la prima. */
 function scheduleSettled() {
   schedule();
-  root.setTimeout?.(schedule, 80);
+  root.setTimeout?.(() => {
+    if (state.frame) state.ancora = true;
+    else schedule();
+  }, 80);
 }
 
 /* The measurements below are the Solar thermal header's own: same padding,
