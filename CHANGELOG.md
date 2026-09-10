@@ -18,6 +18,19 @@ una prova che avevo guardato tardi.
 
 ### Aggiunto
 
+- **Il flusso energia scrive quanto è piena la batteria** (#459)
+
+  «Sarebbe possibile visualizzare la percentuale della batteria e non solo la
+  potenza?» Il numero c'era, ma solo nel titolo del nodo — cioè nel suggerimento
+  del mouse, e la richiesta arriva da un iPhone, dove il mouse non c'è. Restava
+  l'anello attorno alla batteria, che distingue benissimo un 10% da un 90% e per
+  niente un 55% da un 65%.
+
+  Adesso è scritto, sotto i watt e non accanto: due numeri sulla stessa riga si
+  leggono come un numero solo lungo, e uno parla di potenza mentre l'altro parla
+  di quanto è piena. Piccolo e nel colore della batteria, perché la riga grossa
+  resta quella dei watt, e l'anello continua a fare la lettura di sfuggita.
+
 - **Le porte e i cancelli hanno la loro tessera in Home** (#457)
 
   «Create a doors widget in the home, separate from the security widget.» Le

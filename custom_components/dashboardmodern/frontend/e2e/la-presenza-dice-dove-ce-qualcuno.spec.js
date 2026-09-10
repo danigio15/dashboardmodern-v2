@@ -176,3 +176,55 @@ test("la scheda del Config elenca i rilevatori e ne toglie uno", async ({ page }
     .toEqual(["binary_sensor.movimento_garage"]);
   await expect(page.locator("#ed-body .dm-presenza-ed-riga")).toHaveCount(3);
 });
+
+/* «Manca il tasto HOME» (#452).
+ *
+ * La pagina della Presenza ridisegna il suo contenuto da sola, e piuttosto
+ * spesso: la scritta «da quanto» ha un orologio dietro, e ogni volta che
+ * cambia il minuto la pagina si riscrive. Il pulsante che riporta in Home però
+ * non è suo — lo mette l'intestazione, per tutte le pagine insieme — e una
+ * pagina che riscrive troppo può portarselo via senza accorgersene.
+ *
+ * Qui non si guarda che ci sia al primo sguardo: si guarda che ci sia ancora
+ * dopo che la pagina si è ridisegnata, e che porti davvero in Home.
+ */
+test("la pagina Presenza tiene il suo tasto Home anche dopo essersi ridisegnata", async ({
+  page,
+}, testInfo) => {
+  await avvia(page, testInfo);
+  await page.locator('.tab[data-tab="presenza"]').click();
+
+  const pagina = page.locator("#page-presenza");
+  await expect(pagina).toHaveClass(/active/);
+  const casa = pagina.locator(".back-home-btn");
+  await expect(casa).toBeVisible({ timeout: 20_000 });
+  /* Uno solo: due pulsanti Home sulla stessa pagina è l'altro difetto, e si
+   * vede quando l'intestazione si rifà invece di spostarsi. */
+  await expect(casa).toHaveCount(1);
+
+  /* Adesso la casa cambia, la pagina si riscrive, e il pulsante deve restare. */
+  await page.evaluate(() => {
+    const stati = {
+      "binary_sensor.movimento_cucina": {
+        entity_id: "binary_sensor.movimento_cucina",
+        state: "on",
+        last_changed: new Date().toISOString(),
+        attributes: { friendly_name: "Cucina", device_class: "motion" },
+      },
+    };
+    window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
+    const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+    if (raw) Object.assign(raw, stati);
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  });
+  await expect(pagina.locator(".dm-presenza-testa strong")).toHaveText(
+    /In 2 stanze c'è qualcuno/i,
+    { timeout: 10_000 },
+  );
+  await expect(casa).toBeVisible();
+  await expect(casa).toHaveCount(1);
+
+  /* E porta dove dice di portare. */
+  await casa.click();
+  await expect(page.locator("#page-home")).toHaveClass(/active/, { timeout: 10_000 });
+});

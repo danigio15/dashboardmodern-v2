@@ -13,6 +13,7 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   NODI_DEL_FLUSSO,
@@ -147,4 +148,40 @@ test("la forza dell'arco serve allo spessore, e col solo arco vale uno", () => {
   assert.equal(forzaDellArco(750, massimo), 0.5);
   assert.equal(forzaDellArco(9000, massimo), 1, "non si va oltre il più grande");
   assert.equal(forzaDellArco(100, 0), 0, "senza archi non c'è paragone");
+});
+
+/* La percentuale della batteria si legge, non solo si intuisce (#459).
+ *
+ * «Sarebbe possibile visualizzare la percentuale della batteria e non solo la
+ * potenza?» — chiesto da un iPhone, e da lì è una domanda senza risposta: il
+ * numero c'era, ma solo dentro il titolo del nodo, cioè nel suggerimento del
+ * mouse. Su un telefono il mouse non c'è, e restava l'anello, che distingue
+ * benissimo un 10% da un 90% e malissimo un 55% da un 65%.
+ *
+ * Adesso è scritto. La prova guarda il markup del nodo, che è dove il numero
+ * o c'è o non c'è.
+ */
+const SORGENTE_DEL_FLUSSO = readFileSync(
+  new URL("../src/sections/flusso-di-casa-section.js", import.meta.url),
+  "utf8",
+);
+
+test("la carica della batteria si scrive, oltre a disegnarsi", () => {
+  /* Il numero si prende dal modello, si arrotonda e si chiude fra zero e
+   * cento: un sensore che dice 101 o -3 non deve stampare 101% o -3%. */
+  assert.match(SORGENTE_DEL_FLUSSO, /function caricaScritta\(nodo\)/);
+  assert.match(SORGENTE_DEL_FLUSSO, /Math\.round\(Math\.max\(0, Math\.min\(100, nodo\.soc\)\)\)/);
+  /* Solo la batteria: nessun altro nodo ha una carica da raccontare. */
+  assert.match(SORGENTE_DEL_FLUSSO, /nodo\.chiave !== "batteria" \|\| nodo\.soc == null\) return ""/);
+  /* E il nodo la mette davvero in pagina, non basta che la funzione esista. */
+  assert.match(SORGENTE_DEL_FLUSSO, /\$\{caricaScritta\(nodo\)\}/);
+  /* Con un foglio di stile che la disegna: senza, sarebbe testo nudo. */
+  assert.match(SORGENTE_DEL_FLUSSO, /\.dm-flusso-soc\{/);
+});
+
+test("una batteria che non dice quanto è piena non stampa niente", () => {
+  /* Senza `soc` non si inventa uno zero: «0%» su una batteria che non risponde
+   * è una bugia, e per giunta allarmante. */
+  const modello = flussoDiCasa({ solare: 3000, rete: -500, batteria: -800, casa: 1700 });
+  assert.equal(modello.nodi.batteria.soc, null);
 });

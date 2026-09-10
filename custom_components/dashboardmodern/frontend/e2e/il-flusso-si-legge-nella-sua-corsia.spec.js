@@ -215,3 +215,65 @@ for (const larghezza of [360, 390, 412]) {
       .screenshot({ path: testInfo.outputPath(`fila-${larghezza}.png`) });
   });
 }
+
+/* «Sarebbe possibile visualizzare la percentuale della batteria e non solo la
+ * potenza?» (#459)
+ *
+ * Chiesto da un iPhone, e da lì era una domanda senza risposta: il numero
+ * c'era, ma solo nel titolo del nodo — cioè nel suggerimento del mouse, che su
+ * un telefono non esiste. Restava l'anello, che un 10% da un 90% lo distingue
+ * benissimo e un 55% da un 65% per niente.
+ *
+ * Si guarda al telefono, che è dove la domanda è nata, e si guarda che il
+ * numero stia dentro la card: una riga in più su un nodo è esattamente il modo
+ * in cui una card stretta comincia a debordare.
+ */
+test("la carica della batteria si legge, e sta dentro la card", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.route("https://**", (r) => r.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.locator("#setup-wizard").evaluateAll((n) => n.forEach((x) => x.remove()));
+  await page.evaluate(
+    ({ stati, persone }) => {
+      window.localStorage.setItem("cd_people", JSON.stringify(persone));
+      window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
+      const raw = window.eval("typeof _RAW_STATES!=='undefined'?_RAW_STATES:null");
+      if (raw) Object.assign(raw, stati);
+      window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+    },
+    { stati: STATI, persone: PERSONE },
+  );
+
+  const card = page.locator("#dm-flusso-card");
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  const carica = card.locator(".dm-flusso-soc");
+  /* Una sola: la carica ce l'ha la batteria, e nessun altro nodo. */
+  await expect(carica).toHaveCount(1);
+  await expect(carica).toHaveText("64%");
+  /* E sta sul nodo della batteria, non su un altro. */
+  await expect(card.locator('.dm-flusso-nodo[data-nodo="batteria"] .dm-flusso-soc')).toHaveCount(1);
+
+  const dentro = await page.evaluate(() => {
+    const c = document.querySelector("#dm-flusso-card").getBoundingClientRect();
+    const r = document.querySelector(".dm-flusso-soc").getBoundingClientRect();
+    return {
+      fuori: +Math.max(
+        c.top - r.top,
+        r.bottom - c.bottom,
+        c.left - r.left,
+        r.right - c.right,
+      ).toFixed(1),
+      alta: +r.height.toFixed(1),
+    };
+  });
+  expect(dentro.fuori).toBeLessThanOrEqual(0.6);
+  /* Leggibile vuol dire alta abbastanza da essere una scritta e non un segno. */
+  expect(dentro.alta).toBeGreaterThan(9);
+
+  await card.screenshot({ path: testInfo.outputPath("flusso-carica.png") });
+  await testInfo.attach("flusso-carica", {
+    path: testInfo.outputPath("flusso-carica.png"),
+    contentType: "image/png",
+  });
+});

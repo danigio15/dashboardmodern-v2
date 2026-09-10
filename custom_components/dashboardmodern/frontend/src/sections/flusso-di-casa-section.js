@@ -198,6 +198,25 @@ function anelloDellaCarica(nodo) {
     </svg>`;
 }
 
+/* La percentuale della carica, scritta.
+ *
+ * L'anello dice a colpo d'occhio quanto è piena, ed è la lettura giusta di
+ * sfuggita; ma QUANTO esattamente non lo dice, e il numero stava solo nel
+ * titolo — cioè nel suggerimento del mouse, che su un telefono non esiste.
+ * «Sarebbe possibile visualizzare la percentuale della batteria e non solo la
+ * potenza?» (#459), chiesto da un iPhone: da lì non c'era nessun modo di
+ * saperlo, e l'anello da solo distingue male un 55% da un 65%.
+ *
+ * Sta sotto i watt e non accanto: due numeri sulla stessa riga si leggono come
+ * un numero solo lungo, e uno dei due parla di potenza mentre l'altro parla di
+ * quanto è piena — due cose diverse, due righe. Piccola e nel colore della
+ * batteria, perché la riga grossa resta quella dei watt. */
+function caricaScritta(nodo) {
+  if (nodo.chiave !== "batteria" || nodo.soc == null) return "";
+  const quanto = Math.round(Math.max(0, Math.min(100, nodo.soc)));
+  return `<span class="dm-flusso-soc">${esc(`${quanto}%`)}</span>`;
+}
+
 /* Un nodo a zero che nessun arco tocca non è una notizia allegra da guardare:
  * «Auto 0 W» da solo in fondo, senza nessuna linea, sembra un pezzo di disegno
  * rotto. Non si toglie — dire che la colonnina non sta erogando è comunque dire
@@ -219,6 +238,7 @@ function nodoMarkup(nodo, attaccati) {
         <span class="dm-flusso-glifo">${disegnoDelCatalogo(posto.disegno, eLaCasa ? 26 : 18)}</span>
       </span>
       <span class="dm-flusso-valore">${eLaCasa ? "" : valore}</span>
+      ${caricaScritta(nodo)}
       ${eLaCasa ? `<strong class="dm-flusso-usa">${valore || "—"}</strong>` : ""}
     </div>`;
 }
@@ -509,6 +529,14 @@ function css() {
     background:var(--card-bg,#fff);
     box-shadow:0 1px 6px -3px rgba(15,23,42,.3)}
 
+  /* La percentuale della carica, sotto i watt della batteria: la lettura
+     precisa, piccola, sotto quella veloce. */
+  .dm-flusso-soc{font-size:9.5px;font-weight:900;line-height:1;letter-spacing:-.02em;
+    white-space:nowrap;font-variant-numeric:tabular-nums;
+    padding:1.5px 5px;border-radius:999px;
+    color:rgb(var(--dm-flusso-tinta));
+    background:rgba(var(--dm-flusso-tinta),.13)}
+
   /* L'anello della carica, attorno al cerchio della batteria. */
   .dm-flusso-carica{position:absolute;inset:-4px;width:auto;height:auto;overflow:visible}
   .dm-flusso-pista{fill:none;stroke:rgba(var(--dm-flusso-tinta),.18);stroke-width:3}
@@ -526,6 +554,7 @@ function css() {
     .dm-flusso-scena{--dm-flusso-disco:38px;--dm-flusso-casa:56px}
     .dm-flusso-usa{font-size:15px}
     .dm-flusso-valore{font-size:10.5px}
+    .dm-flusso-soc{font-size:9px;padding:1px 4px}
   }
   /* Più stretto di un telefono no: sotto i 360px due corsie non tengono né una
      persona né un disegno, e la card scende sotto e prende la riga. */
