@@ -689,7 +689,7 @@ function mainLineColor(node) {
   if (id.includes("battery")) return COLORS.battery;
   if (id.includes("grid")) return COLORS.grid;
   if (id.includes("home")) return COLORS.home;
-  return "var(--line-color,#64748b)";
+  return "var(--text-dim,#64748b)";
 }
 
 function isLoadLine(node) {

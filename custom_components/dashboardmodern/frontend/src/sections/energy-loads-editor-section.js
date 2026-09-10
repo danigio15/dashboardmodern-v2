@@ -1126,12 +1126,12 @@ function installStyles() {
     .dm-loads-list{display:grid;gap:10px}
     .dm-loads-card>.ed-acc-head{display:flex;align-items:center;gap:10px;justify-content:space-between}
     .dm-loads-preview{display:flex;align-items:center;gap:10px;min-width:0}
-    .dm-loads-preview-index{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--divider-color,#e2e8f0);color:var(--muted,#64748b);font-size:12px;font-weight:800}
+    .dm-loads-preview-index{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--divider-color,#e2e8f0);color:var(--text-dim,#64748b);font-size:12px;font-weight:800}
     .dm-loads-preview-bubble{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;font-size:21px;background:color-mix(in srgb,var(--dm-loads-color,#0ea5e9) 16%,transparent);border:2px solid var(--dm-loads-color,#0ea5e9)}
     .dm-loads-preview[data-dm-loads-visible="false"] .dm-loads-preview-bubble{opacity:.42;border-style:dashed}
     .dm-loads-preview-text{display:flex;flex-direction:column;min-width:0}
     .dm-loads-preview-text b{color:var(--text,#0f172a);font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .dm-loads-preview-text small{color:var(--muted,#64748b);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .dm-loads-preview-text small{color:var(--text-dim,#64748b);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .dm-loads-card-controls{display:flex;gap:6px;flex:none}
     .dm-loads-card-controls button[disabled]{opacity:.35;pointer-events:none}
     .dm-loads-identity{display:grid;gap:12px;margin-bottom:4px}
@@ -1140,12 +1140,12 @@ function installStyles() {
     .dm-loads-field .ed-input{width:100%;min-width:0;min-height:46px;box-sizing:border-box}
     .dm-loads-icon-row{display:grid!important;grid-template-columns:minmax(0,1fr) 56px!important;gap:10px!important;align-items:center!important}
     .dm-loads-icon-input{width:100%!important;min-width:0!important;flex:none!important;text-align:left!important;font-size:18px!important;color:var(--text,#0f172a)!important}
-    .dm-loads-icon-btn{display:grid!important;place-items:center!important;width:56px!important;height:46px!important;padding:0!important;border:1px solid var(--border,rgba(15,23,42,.14))!important;border-radius:14px!important;background:var(--card-bg,#fff)!important;font-size:22px!important;line-height:1!important;color:var(--text,#0f172a)!important;cursor:pointer}
+    .dm-loads-icon-btn{display:grid!important;place-items:center!important;width:56px!important;height:46px!important;padding:0!important;border:1px solid var(--card-border,rgba(15,23,42,.14))!important;border-radius:14px!important;background:var(--card-bg,#fff)!important;font-size:22px!important;line-height:1!important;color:var(--text,#0f172a)!important;cursor:pointer}
     .dm-loads-icon-btn svg,.dm-loads-icon-btn img{width:26px!important;height:26px!important}
     .dm-loads-color-field{grid-template-columns:minmax(0,1fr) 64px;align-items:center}
-    .dm-loads-color{width:64px;height:46px;padding:2px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:12px;background:var(--card-bg,#fff)}
+    .dm-loads-color{width:64px;height:46px;padding:2px;border:1px solid var(--card-border,rgba(15,23,42,.14));border-radius:12px;background:var(--card-bg,#fff)}
     .dm-loads-switch{display:flex;align-items:center;gap:9px;margin:10px 0;color:var(--text,#0f172a);font-weight:700}
-    .dm-loads-warnings{margin:10px 0 0;padding-left:18px;color:var(--muted,#64748b);font-size:13px;line-height:1.45}
+    .dm-loads-warnings{margin:10px 0 0;padding-left:18px;color:var(--text-dim,#64748b);font-size:13px;line-height:1.45}
     /* Il doppione fra due case: non e' un campo mancante, e' una scelta da
        fare — quindi porta il suo tasto, e si vede che e' un'altra cosa. */
     .dm-loads-travaso{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;color:#92400e}
@@ -1157,7 +1157,7 @@ function installStyles() {
        alto quanto il testo, allineato con lui. */
     .dm-loads-subload-art{display:inline-grid;place-items:center;width:26px;height:26px;vertical-align:-6px}
     .dm-loads-subload-art svg{display:block;width:100%;height:100%}
-    .dm-loads-source-tag{flex:none;padding:4px 10px;border-radius:999px;background:var(--divider-color,#e2e8f0);color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:.3px}
+    .dm-loads-source-tag{flex:none;padding:4px 10px;border-radius:999px;background:var(--divider-color,#e2e8f0);color:var(--text-dim,#64748b);font-size:11px;font-weight:800;letter-spacing:.3px}
     .dm-loads-subload-form{margin:0 0 10px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
     /* I due modi di aggiungere stanno fianco a fianco, e vanno a capo dove il
        telefono non ha posto per tutti e due. */

@@ -541,21 +541,21 @@ function installStyle() {
     #editor-modal [data-temperature-room],#ed-body [data-temperature-room]{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:12px!important}
     #editor-modal [data-temperature-room] .ed-row-main,#ed-body [data-temperature-room] .ed-row-main{display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;width:auto!important;max-width:none!important;opacity:1!important;visibility:visible!important;overflow:visible!important}
     #editor-modal [data-temperature-room] .ed-row-new,#ed-body [data-temperature-room] .ed-row-new{display:block!important;position:static!important;width:auto!important;max-width:100%!important;min-width:0!important;height:auto!important;opacity:1!important;visibility:visible!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:var(--text,#0f172a)!important;font-weight:800!important;font-size:16px!important;line-height:1.25!important}
-    #editor-modal [data-temperature-room] .ed-row-old,#ed-body [data-temperature-room] .ed-row-old{display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:var(--muted,#64748b)!important}
+    #editor-modal [data-temperature-room] .ed-row-old,#ed-body [data-temperature-room] .ed-row-old{display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:var(--text-dim,#64748b)!important}
     .dm-energy-cost-card{display:block!important;visibility:visible!important;opacity:1!important}
     .dm-energy-cost-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:12px!important;margin:12px 0!important}
     .dm-energy-cost-field{display:grid!important;gap:7px!important;min-width:0!important;color:var(--text,#0f172a)!important;font-weight:700!important}
-    .dm-energy-cost-field .ed-input{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:48px!important;padding:10px 12px!important;color:var(--text,#0f172a)!important;background:var(--card-bg,#fff)!important;border:1px solid var(--border,rgba(15,23,42,.14))!important;border-radius:14px!important;font-size:16px!important}
+    .dm-energy-cost-field .ed-input{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:48px!important;padding:10px 12px!important;color:var(--text,#0f172a)!important;background:var(--card-bg,#fff)!important;border:1px solid var(--card-border,rgba(15,23,42,.14))!important;border-radius:14px!important;font-size:16px!important}
     .dm-energy-cost-field .ed-input[hidden]{display:none!important}
-    .dm-rate-mode{display:inline-flex!important;width:max-content!important;border:1px solid var(--border,rgba(15,23,42,.14))!important;border-radius:12px!important;overflow:hidden!important}
-    .dm-rate-mode-btn{appearance:none;border:0;background:transparent;padding:7px 16px;font:inherit;font-weight:800;color:var(--muted,#64748b);cursor:pointer}
-    .dm-rate-mode-btn[data-active="true"]{background:var(--accent-color,#0ea5e9);color:#fff}
+    .dm-rate-mode{display:inline-flex!important;width:max-content!important;border:1px solid var(--card-border,rgba(15,23,42,.14))!important;border-radius:12px!important;overflow:hidden!important}
+    .dm-rate-mode-btn{appearance:none;border:0;background:transparent;padding:7px 16px;font:inherit;font-weight:800;color:var(--text-dim,#64748b);cursor:pointer}
+    .dm-rate-mode-btn[data-active="true"]{background:var(--accent,#0ea5e9);color:#fff}
     .dm-rate-entity-slot{display:block}
     .dm-rate-entity-slot[hidden],.dm-rate-entity-note[hidden]{display:none!important}
     .dm-rate-entity-slot .ed-form-row{display:flex;gap:8px;align-items:center}
-    .dm-rate-entity-slot .ed-input{display:block;box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:10px 12px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:14px;font-size:15px;color:var(--text,#0f172a);background:var(--card-bg,#fff)}
-    .dm-rate-entity-slot .dm-entity-picker{min-height:48px;min-width:48px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:14px;background:var(--card-bg,#fff);cursor:pointer;font-size:18px}
-    .dm-rate-entity-note{display:block;color:var(--muted,#64748b);font-weight:600}
+    .dm-rate-entity-slot .ed-input{display:block;box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:10px 12px;border:1px solid var(--card-border,rgba(15,23,42,.14));border-radius:14px;font-size:15px;color:var(--text,#0f172a);background:var(--card-bg,#fff)}
+    .dm-rate-entity-slot .dm-entity-picker{min-height:48px;min-width:48px;border:1px solid var(--card-border,rgba(15,23,42,.14));border-radius:14px;background:var(--card-bg,#fff);cursor:pointer;font-size:18px}
+    .dm-rate-entity-note{display:block;color:var(--text-dim,#64748b);font-weight:600}
     .dm-battery-soc{display:block;margin-top:3px;font-size:12px;font-weight:800;line-height:1.15;color:var(--success-color,#16a34a)}
     .dm-battery-soc[hidden]{display:none!important}
     @media(max-width:640px){.dm-energy-cost-grid{grid-template-columns:1fr!important}}

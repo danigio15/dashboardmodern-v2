@@ -38,6 +38,7 @@ export function installThemeFoundationSection() {
       --shadow-sculpted:0 4px 20px rgba(0,0,0,.45),0 1px 4px rgba(0,0,0,.35);
       --shadow-hover:0 12px 35px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4);
       --shadow-glass:0 8px 30px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06);
+      --shadow-glass-strong:0 14px 40px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.07);
       color-scheme:dark;
     }
     /* #206: le variabili col NOME di Home Assistant, risolte sui token nostri.
@@ -50,8 +51,12 @@ export function installThemeFoundationSection() {
      * regola che usa il nome di HA riceve il token di DashboardModern, chiaro
      * col chiaro e scuro con lo scuro, senza toccare le regole una per una. */
     html{
+      /* L'ombra «forte» aveva il nome e non la definizione: chi la chiedeva
+       * ripiegava sulla sua ombra chiara, che sul fondo scuro non si vede. */
+      --shadow-glass-strong:0 12px 34px rgba(15,23,42,.16);
       --card-background-color:var(--card-bg);
       --ha-card-background:var(--card-bg);
+      --primary-background-color:var(--bg-sculpted);
       --secondary-background-color:var(--surface-2);
       --divider-color:var(--card-border);
       --secondary-text-color:var(--text-dim);

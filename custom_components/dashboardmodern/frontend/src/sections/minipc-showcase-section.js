@@ -1268,7 +1268,7 @@ function minipcShowcaseCss() {
 }
 #page-server.dm-srvx .srv-tel-card::before{
   width:120px!important;height:120px!important;
-  background:radial-gradient(circle at top right,rgba(var(--tc-rgb,14,165,233),.14) 0%,transparent 68%)!important
+  background:radial-gradient(circle at top right,rgba(var(--accent-rgb,14,165,233),.14) 0%,transparent 68%)!important
 }
 #page-server.dm-srvx .srv-tel-card:hover{
   transform:translateY(-4px) rotateX(6deg)!important;
@@ -1276,8 +1276,8 @@ function minipcShowcaseCss() {
 }
 #page-server.dm-srvx .srv-tel-icon{
   width:30px!important;height:30px!important;border-radius:10px!important;font-size:0!important;
-  background:rgba(var(--tc-rgb,14,165,233),.13)!important;border:0!important;
-  color:rgb(var(--tc-rgb,14,165,233))!important
+  background:rgba(var(--accent-rgb,14,165,233),.13)!important;border:0!important;
+  color:rgb(var(--accent-rgb,14,165,233))!important
 }
 #page-server.dm-srvx .srv-tel-lbl{font-size:9.5px!important;letter-spacing:.12em!important}
 #page-server.dm-srvx .srv-tel-val{font-size:24px!important;letter-spacing:-.02em!important}
@@ -1285,11 +1285,11 @@ function minipcShowcaseCss() {
 /* download and upload run their own stream along the foot of the tile */
 #page-server.dm-srvx .dm-srvx-stream{
   position:absolute;left:15px;right:15px;bottom:11px;height:2px;border-radius:2px;overflow:hidden;
-  background:rgba(var(--tc-rgb,14,165,233),.14)
+  background:rgba(var(--accent-rgb,14,165,233),.14)
 }
 #page-server.dm-srvx .dm-srvx-stream::after{
   content:"";position:absolute;top:0;bottom:0;left:0;width:52%;
-  background:linear-gradient(90deg,transparent,rgb(var(--tc-rgb,14,165,233)),transparent);
+  background:linear-gradient(90deg,transparent,rgb(var(--accent-rgb,14,165,233)),transparent);
   opacity:.75
 }
 #page-server.dm-srvx [data-dm-srvx-flow="in"] .dm-srvx-stream::after{animation:dmSrvxFlowIn 2.6s linear infinite}

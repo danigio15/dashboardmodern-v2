@@ -7618,7 +7618,7 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
 #dm-widget-popup .dm-w-punti li{
   position:relative;padding-inline-start:13px;font-size:12.5px;line-height:1.4;
-  font-weight:650;color:var(--muted,#64748b)}
+  font-weight:650;color:var(--text-dim,#64748b)}
 #dm-widget-popup .dm-w-punti li::before{
   content:"";position:absolute;inset-inline-start:2px;top:.62em;
   width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.55}
@@ -8547,7 +8547,7 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
   margin-top:18px;padding-top:16px;border-top:1px solid var(--card-border,#e2e8f0)}
 :is(#dm-widgets,#dm-widget-popup) .dm-ag-titolo{
   margin:0 0 10px;font-size:12px;font-weight:900;letter-spacing:.4px;
-  color:var(--text-color,#0f172a)}
+  color:var(--text,#0f172a)}
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-lista{list-style:none;margin:0;padding:0 2px;display:grid;gap:9px}
 :is(#dm-widgets,#dm-widget-popup,#page-calendario) .dm-cal-evento{
   display:flex;align-items:flex-start;gap:11px;min-width:0}
