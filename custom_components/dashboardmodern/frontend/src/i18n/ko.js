@@ -2378,7 +2378,7 @@ export default Object.freeze({
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "카드와 팝업에는 언제나 모든 퍼센트가 담긴 드롭다운이 있습니다(0 = 닫힘, 100 = 열림). 여기서 평소에 쓰는 값을 고르세요. 5는 바람만 조금 통하게 거의 다 닫습니다. 고른 값은 드롭다운에 별표로 표시됩니다. 비워 두면 즐겨 쓰는 값이 없습니다.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "임계값을 넘은 마지막 전력 이후 이 시간(분) 동안 카드가 작동 중으로 유지됩니다. 식기세척기의 0W 건조 단계와 사이클 중 일시정지를 포함합니다.",
   "The code expired: try again.": "코드가 만료되었습니다. 다시 시도하세요.",
-  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey and the address only appear on the card when the person is away.": "Companion App, Waze, Proximity의 센서: 가진 것을 채우거나 버튼이 찾게 하세요. 이동과 주소는 그 사람이 밖에 있을 때만 카드에 표시됩니다.",
+  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey — distance, time home, heading — only shows on the card when the person is away; the address is always readable, at home too.": "Companion App, Waze, Proximity 센서: 가진 것을 채우거나 버튼이 찾게 하세요. 이동 — 거리, 귀가 시간, 방향 — 은 외출 중일 때만 카드에 나오고, 주소는 집에 있을 때도 언제나 보입니다.",
   "The config/www folder does not exist yet: create it and put the photos in there.": "config/www 폴더가 아직 없습니다. 만들고 그 안에 사진을 넣으세요.",
   "The control entity still reads the state, but the card hides the switch: the fridge cannot be turned off by mistake.": "컨트롤 엔터티는 계속 상태를 읽지만 카드는 스위치를 숨깁니다. 냉장고가 실수로 꺼지지 않습니다.",
   "The description is missing.": "설명이 없습니다.",

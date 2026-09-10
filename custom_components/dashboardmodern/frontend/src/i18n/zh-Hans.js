@@ -2378,7 +2378,7 @@ export default Object.freeze({
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "卡片和弹窗始终提供包含所有百分比的下拉菜单：0 = 关闭，100 = 打开。在这里选择你常用的那一档——5 几乎完全关闭，只留一点通风——它会在下拉菜单中带星号显示。留空则没有常用档位。",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "在最后一次功率超过阈值后的这些分钟内，卡片保持运行中：涵盖洗碗机 0 W 的烘干阶段和周期中的暂停。",
   "The code expired: try again.": "代码已过期：请重试。",
-  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey and the address only appear on the card when the person is away.": "Companion App、Waze 或 Proximity 的传感器：填写你有的，或让按钮自动查找。行程和地址只在成员外出时显示在卡片上。",
+  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey — distance, time home, heading — only shows on the card when the person is away; the address is always readable, at home too.": "Companion App、Waze 或 Proximity 的传感器：有哪些就填哪些，或让按钮自己找。行程——距离、到家时间、方向——只在人不在家时出现在卡片上；地址则始终可读，在家时也是。",
   "The config/www folder does not exist yet: create it and put the photos in there.": "config/www 文件夹还不存在：先创建它，再把照片放进去。",
   "The control entity still reads the state, but the card hides the switch: the fridge cannot be turned off by mistake.": "控制实体仍会读取状态，但卡片隐藏开关：冰箱不会被误关。",
   "The description is missing.": "缺少描述。",

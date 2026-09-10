@@ -2378,7 +2378,7 @@ export default Object.freeze({
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "カードとポップアップには常にすべてのパーセントを並べたドロップダウンがあります（0 = 閉、100 = 開）。ここではいつも使う値を選びます。5 ならほぼ閉じたまま少しだけ風を通せます。選んだ値はドロップダウンに星付きで表示されます。空欄ならお気に入りなし。",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "しきい値を超えた最後の電力から指定した分だけカードは稼働中のままになります。食洗機の0W乾燥フェーズやサイクル中の休止をカバーします。",
   "The code expired: try again.": "コードの有効期限が切れました。もう一度お試しください。",
-  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey and the address only appear on the card when the person is away.": "Companion App、Waze、Proximityのセンサー：あるものを入力するか、ボタンに探させてください。移動と住所は、その人が外にいるときだけカードに表示されます。",
+  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey — distance, time home, heading — only shows on the card when the person is away; the address is always readable, at home too.": "Companion App、Waze、Proximity のセンサー。持っているものを入れるか、ボタンに探させてください。移動 — 距離、帰宅までの時間、向き — は外出中だけカードに出ます。住所は在宅でも常に読めます。",
   "The config/www folder does not exist yet: create it and put the photos in there.": "config/www フォルダーはまだありません。作成して、その中に写真を置いてください。",
   "The control entity still reads the state, but the card hides the switch: the fridge cannot be turned off by mistake.": "コントロールエンティティは状態を読み続けますが、カードはスイッチを隠します。冷蔵庫を誤って消せません。",
   "The description is missing.": "説明がありません。",

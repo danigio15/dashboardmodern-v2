@@ -2818,7 +2818,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "The cleaning",
   "The code expired: try again.",
   "The colours and the brightness",
-  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey and the address only appear on the card when the person is away.",
+  "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey — distance, time home, heading — only shows on the card when the person is away; the address is always readable, at home too.",
   "The config/www folder does not exist yet: create it and put the photos in there.",
   "The consumption",
   "The contacts at home",
