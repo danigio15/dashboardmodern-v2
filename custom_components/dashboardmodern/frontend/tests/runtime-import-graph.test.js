@@ -1103,8 +1103,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // muove da sola. `core/la-fascia-deriva.js` e' l'aritmetica di quel
   // movimento, che e' la parte che si tiene ferma con una prova; il timer e il
   // dito che lo ferma stanno nella sezione, che e' l'unica a poterli conoscere.
+  // 317 con le tavolozze (#436): «quando è possibile avere qualche tema in
+  // più». Sono due moduli — `core/tavolozze.js`, che porta i valori e non sa
+  // che lingua si parla, e la sezione, che porta le parole e veste il
+  // documento. La divisione è la stessa di sempre, e serve a poter misurare il
+  // contrasto di ogni tavolozza senza un browser: è aritmetica sui numeri, e
+  // sta dove non ci sono effetti al caricamento.
   assert.ok(
-    relative.length <= 315,
+    relative.length <= 317,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

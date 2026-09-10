@@ -30,6 +30,8 @@ const RADICE = fileURLToPath(new URL("../", import.meta.url));
 const SOLO_DI_QUESTO_DISPOSITIVO = Object.freeze({
   cd_connection: "le credenziali di questo dispositivo",
   cd_theme: "il tema scelto qui (la barra invece viaggia: e' una scelta della plancia)",
+  cd_tavolozza:
+    "quale tavolozza si e' scelta QUI (#436): sta accanto al tema e vale quanto lui — il tablet in cucina puo' stare sul chiaro mentre il telefono sta sul notte, e imporre a tutti la scelta di uno non e' una comodita', e' una sorpresa",
   cd_energy_plant: "quale impianto e' aperto adesso, non cosa e' configurato",
   cd_ev_image: "il disegno dell'auto attiva qui: viaggia dentro cd_ev_cars",
   cd_ev_photos_moved: "segno che la migrazione delle foto e' gia' passata",
