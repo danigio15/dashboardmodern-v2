@@ -9,6 +9,30 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Plancia predefinita: «Errore di configurazione» all'apertura dell'app** (#107)
+
+  «Quando si imposta la plancia come predefinita e apro l'app HA va in errore;
+  se invece la seleziono dal menu laterale funziona.»
+
+  La dashboard di appoggio — quella che permette di scegliere la plancia come
+  predefinita — porta **una vista sola**, con dentro la plancia intera. Su
+  quell'unica vista veniva scritto anche il filtro delle persone ammesse, quando
+  ce n'era uno.
+
+  Un filtro su una vista sola non può fare la cosa per cui i filtri esistono —
+  mostrare a questo utente meno schede che a quell'altro — perché sotto non
+  resta niente. Può fare solo due cose: niente, se chi guarda è nell'elenco;
+  oppure lasciare la dashboard **senza nemmeno una vista**. E una dashboard
+  senza viste, aperta, è esattamente la schermata rossa: «Errore di
+  configurazione». Chi la teneva come predefinita la incontrava a ogni apertura
+  dell'app, senza modo di indovinare da dove venisse — perché la stessa plancia,
+  aperta dalla barra laterale, funziona.
+
+  Il filtro se n'è andato da lì. Il permesso non si è perso: sta dove funziona
+  davvero — la dashboard porta il «solo amministratori», e la card porta il suo
+  elenco di persone ammesse, che è lo stesso con cui il pannello decide chi
+  entra, e che sotto una vista vuota non ci finisce mai.
+
 - **La fascia sotto il meteo non diceva niente dei varchi aperti** (#482)
 
   «Sotto al meteo non appare l'allert dei varchi aperti. Ho finestre aperte ma

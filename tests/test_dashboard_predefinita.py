@@ -247,8 +247,13 @@ async def test_le_persone_ammesse_arrivano_nella_vista(hass: Any) -> None:
     (creata,) = dati["dashboards_collection"].create
     assert creata["require_admin"] is True
     vista = dati["dashboards"][fe._lovelace_url_path(entry)].salvata["views"][0]
-    assert vista["visible"] == [{"user": "u1"}, {"user": "u2"}]
     assert vista["cards"][0]["allowed_user_ids"] == ["u1", "u2"]
+    # Il permesso sta sulla card e sulla dashboard, NON su un filtro della
+    # vista: quella vista e' l'unica che c'e', e filtrarla vuol dire lasciare
+    # la dashboard senza niente da mostrare. Chi la tiene come predefinita
+    # aprirebbe «Errore di configurazione» a ogni avvio dell'app, mentre la
+    # stessa plancia dalla barra laterale funziona.
+    assert "visible" not in vista
 
 
 async def test_un_errore_di_lovelace_non_ferma_la_plancia(hass: Any) -> None:
@@ -484,3 +489,23 @@ async def test_una_compagna_che_si_rilegge_vuota_lo_dice(hass: Any) -> None:
     _voce(hass)
 
     assert await fe._ensure_companion_dashboard(hass, "abcdef1234567890") is False
+
+
+async def test_la_vista_di_appoggio_non_puo_restare_senza_niente(hass: Any) -> None:
+    """Una dashboard con zero viste visibili non si apre: risponde «Errore di
+    configurazione», e chi la tiene come predefinita la incontra a ogni avvio.
+
+    La vista di appoggio e' una sola. Qualunque filtro su di lei non riduce
+    niente — sotto non c'e' altro — e puo' solo renderla non apribile.
+    """
+    from custom_components.dashboardmodern.config_flow import OPTION_ALLOWED_USERS
+
+    for ammessi in ([], ["u1"], ["u1", "u2"]):
+        entry = _voce(hass, options={OPTION_ALLOWED_USERS: ammessi})
+        vista = fe._companion_view(entry, "profilo", True)
+        assert vista["cards"], "senza card la dashboard e' vuota lo stesso"
+        visibile = vista.get("visible", True)
+        assert visibile is True or visibile == [], (
+            "un filtro sull'unica vista puo' solo lasciare la dashboard senza "
+            f"niente da mostrare (ammessi: {ammessi})"
+        )

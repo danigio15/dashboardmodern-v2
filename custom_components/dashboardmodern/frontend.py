@@ -426,7 +426,23 @@ def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str,
         "title": entry.title or "DashboardModern",
         "path": "home",
         "type": "panel",
-        "visible": [{"user": user} for user in allowed] if allowed else True,
+        # Niente filtro `visible` su questa vista, ed e' una scelta.
+        #
+        # E' l'UNICA vista della dashboard. Un filtro su una vista sola non puo'
+        # fare la cosa per cui i filtri esistono — mostrare a questo utente meno
+        # schede che a quell'altro — perche' sotto non resta niente. Puo' fare
+        # solo due cose: niente, se chi guarda e' nell'elenco; oppure lasciare
+        # la dashboard senza nemmeno una vista, e allora Home Assistant, quando
+        # la si apre, risponde «Errore di configurazione».
+        #
+        # Chi la tiene come dashboard predefinita apre quella schermata rossa
+        # ogni volta che apre l'app, e non ha modo di indovinare da dove venga:
+        # la stessa plancia, aperta dalla barra laterale, funziona.
+        #
+        # Il permesso non si perde: sta dove funziona davvero. La dashboard
+        # porta `require_admin`, e la card porta il suo `allowed_user_ids` —
+        # che e' lo stesso elenco con cui il pannello decide chi entra, e che
+        # sotto una vista vuota non ci finisce mai.
         "cards": [
             {
                 "type": "custom:dashboardmodern-card",
