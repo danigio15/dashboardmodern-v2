@@ -167,6 +167,32 @@ function footMarkup(view) {
  * come su un citofono, e quello che il telefono racconta — la carica, la
  * carica dell'orologio, da quanto non si fa sentire — sta in un riquadro suo,
  * che si legge come un gruppo invece che come una striscia. */
+/* Il luogo si tocca e si apre la mappa (#438).
+ *
+ * «Nella sezione persone, se clicco sul luogo individuato puo' aprirsi la
+ *  mappa?» Puo', e il pezzo che serviva c'era gia' dall'altra parte: la scheda
+ * grande porta «Apri in mappa» da sempre. Sulla card l'indirizzo era una
+ * scritta e basta, quindi arrivarci costava due tocchi — apri la persona, poi
+ * la mappa — per una cosa che si guarda di sfuggita, tipicamente col telefono
+ * in mano mentre si sta uscendo.
+ *
+ * Adesso e' un collegamento vero. Il resto della card continua ad aprire la
+ * persona: due gesti diversi su due pezzi diversi, non uno che indovina cosa
+ * volevi. L'indirizzo lo passa `encodeURIComponent`, quindi una virgola o uno
+ * spazio non spezzano l'indirizzo — e senza indirizzo non c'e' niente da
+ * toccare, come prima. */
+function mappaDi(indirizzo) {
+  const scritto = clean(indirizzo);
+  return scritto ? `https://maps.google.com/?q=${encodeURIComponent(scritto)}` : "";
+}
+
+function indirizzoMarkup(view) {
+  const mappa = mappaDi(view.address);
+  if (!mappa) return "";
+  return `<a class="dm-person-address" data-person-mappa href="${esc(mappa)}" target="_blank" rel="noopener"
+    title="${esc(view.address)} — ${esc(t("Apri in mappa", "Open in map"))}">${esc(view.address)}</a>`;
+}
+
 function cardMarkup(view) {
   return `<article class="dm-person-card" data-person-id="${esc(view.id)}" data-presence="${esc(view.presence)}"${view.known ? "" : ' data-unknown="true"'}>
     <div class="dm-person-testa">
@@ -176,7 +202,7 @@ function cardMarkup(view) {
         <span class="dm-person-zone">${presenceIcon(view)} ${esc(presenceLabel(view))}</span>
       </div>
     </div>
-    ${view.address ? `<small class="dm-person-address" title="${esc(view.address)}">${esc(view.address)}</small>` : ""}
+    ${indirizzoMarkup(view)}
     ${tripMarkup(view)}
     ${footMarkup(view)}
   </article>`;
@@ -251,9 +277,7 @@ function popupTiles(view) {
 
 function popupBodyMarkup(view, people) {
   const molte = people.length > 1;
-  const mapUrl = view.address
-    ? `https://maps.google.com/?q=${encodeURIComponent(view.address)}`
-    : "";
+  const mapUrl = mappaDi(view.address);
   return `
     <button type="button" class="dm-person-pop-close" data-person-pop-close aria-label="${t("Chiudi", "Close")}">✕</button>
     ${molte ? `<button type="button" class="dm-person-pop-nav" data-person-pop-nav="-1" aria-label="${t("Persona precedente", "Previous person")}">‹</button><button type="button" class="dm-person-pop-nav dm-next" data-person-pop-nav="1" aria-label="${t("Persona successiva", "Next person")}">›</button>` : ""}
@@ -551,7 +575,10 @@ function installStyles() {
     #dm-people .dm-person-zone{font-size:11px;font-weight:900;letter-spacing:.3px;color:#fff;background:linear-gradient(135deg,rgb(var(--dm-presence)),color-mix(in srgb,rgb(var(--dm-presence)) 72%,#0f172a));border-radius:999px;padding:4px 13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 5px 12px -5px rgba(var(--dm-presence),.7)}
     #dm-people .dm-person-card[data-unknown="true"] .dm-person-zone{background:transparent;color:var(--text-dim,#64748b);border:1px dashed rgba(148,163,184,.6);box-shadow:none}
     /* Dove si trova, scritto per esteso: la via sotto la zona, in piccolo. */
-    #dm-people .dm-person-address{margin-top:10px;font-size:10.5px;font-weight:750;color:var(--text-dim,#64748b);max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #dm-people .dm-person-address{display:block;margin-top:10px;font-size:10.5px;font-weight:750;color:var(--text-dim,#64748b);max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+    /* Che sia da toccare si vede: sottolineato all'avvicinarsi del dito e col
+       colore del testo, non quello dei collegamenti del browser. */
+    #dm-people a.dm-person-address:hover,#dm-people a.dm-person-address:focus-visible{color:var(--text,#0f172a);text-decoration:underline}
     /* Il viaggio: distanza (con la freccia della direzione) e tempo di
      * rientro, come pastiglie leggere del colore di presenza. */
     #dm-people .dm-person-trip{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;margin-top:10px;max-width:100%}
@@ -658,6 +685,9 @@ export function installPeopleSection() {
       "click",
       (event) => {
         if (event.target?.closest?.(".tab[data-tab]")) schedule();
+        /* Il luogo porta alla mappa e non apre la persona: due gesti diversi
+         * su due pezzi diversi (#438). */
+        if (event.target?.closest?.("[data-person-mappa]")) return;
         const card = event.target?.closest?.("#dm-people .dm-person-card[data-person-id]");
         if (card) openPersonPopup(card.dataset.personId);
       },
