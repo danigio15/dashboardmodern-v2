@@ -289,8 +289,36 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
       window.dispatchEvent(
         new CustomEvent("dashboardmodern:state-changed", { detail: { entity_id: "cover.t1" } }),
       );
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      /* Si aspetta che l'intestazione si sia POSATA, non un tempo a caso.
+       *
+       * Qui c'erano 350 millisecondi fissi, ed era una scommessa: l'intestazione
+       * si mette a posto in due passate — una rAF, poi una seconda ottanta
+       * millisecondi dopo — e su WebKit sotto carico quelle due possono
+       * finire dopo. La prova cadeva su «page-clima» in modo intermittente, e
+       * per una ragione che non aveva niente a che vedere con il Clima.
+       *
+       * Un tempo fisso non può misurare due passate asincrone: si guarda
+       * finché il riquadro dell'intestazione smette di muoversi, e ci si ferma
+       * appena è fermo. Quello che si controlla dopo non cambia di una virgola:
+       * se non si posa mai, si esce col tempo scaduto e la prova cade come
+       * prima. */
       const host = document.getElementById(id);
+      await (async () => {
+        const scadenza = 4000;
+        const passo = 50;
+        let fermo = 0;
+        let prima = "";
+        for (let speso = 0; speso < scadenza; speso += passo) {
+          await new Promise((resolve) => setTimeout(resolve, passo));
+          const mast = host?.querySelector(".dm-page-mast");
+          const box = mast ? mast.getBoundingClientRect() : null;
+          const adesso = box ? `${Math.round(box.top)}x${Math.round(box.width)}` : "";
+          /* Fermo per tre giri di fila, e non vuoto: si è posata. */
+          fermo = adesso && adesso === prima ? fermo + 1 : 0;
+          prima = adesso;
+          if (fermo >= 3) return;
+        }
+      })();
       const mast = host?.querySelector(".dm-page-mast");
       const visible = (node) => node && getComputedStyle(node).display !== "none";
       report.push({

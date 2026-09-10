@@ -25,9 +25,8 @@ function pagina(id, attiva) {
 globalThis.document = documento;
 globalThis.localStorage = { getItem: () => null, setItem() {} };
 
-const { ilCambioTocca, paginaVisibile, planciaVisibile } = await import(
-  "../src/sections/shared.js"
-);
+const { ilCambioTocca, paginaVisibile, planciaVisibile } =
+  await import("../src/sections/shared.js");
 
 test.afterEach(() => {
   documento.visibilityState = "visible";
@@ -106,7 +105,13 @@ test("chi dipinge una pagina chiede prima se quella pagina si vede", () => {
     ["sections/allerte-section.js", /if \(!paginaVisibile\(ALLERTE_PAGE_ID\)\) return;/],
     ["sections/termico-del-caldo-section.js", /if \(!laFinestraDelClimaSiVede\(\)\) return false;/],
     ["sections/azioni-rapide-vassoio-section.js", /if \(!paginaVisibile\("page-home"\)\) return;/],
-    ["sections/page-masthead-section.js", /if \(!planciaVisibile\(\)\) return;/],
+    /* Qui il cancello e' a blocco, non a una riga: oltre a fermarsi spegne il
+     * segno della seconda passata, che altrimenti resterebbe armato per sempre
+     * su una plancia che nessuno guarda. */
+    [
+      "sections/page-masthead-section.js",
+      /if \(!planciaVisibile\(\)\) \{\s*state\.ancora = false;\s*return;/,
+    ],
     ["sections/lights-page-section.js", /if \(!doc \|\| !planciaVisibile\(\)\) return 0;/],
   ];
   for (const [file, regola] of attese) assert.match(leggi(file), regola, file);
@@ -196,4 +201,54 @@ test("la passata delle traduzioni non entra dove nessuno vede", () => {
   const passata = leggi("core/i18n-dom.js");
   assert.match(passata, /const NASCOSTO = "\.page:not\(\.active\)/);
   assert.match(passata, /optedOut\(node\) \|\| hiddenSubtree\(node\)/);
+});
+
+/* La passata di sicurezza dell'intestazione non deve sparire dentro la prima.
+ *
+ * L'intestazione si mette a posto in due passate: una subito, una ottanta
+ * millisecondi dopo, perché la larghezza gliela detta il contenuto e il
+ * contenuto può arrivare nello stesso giro in cui la si misura.
+ *
+ * Le due però erano due chiamate alla stessa `schedule`, e `schedule` non ne
+ * accoda una seconda se ce n'è già una in coda — giustamente, o ogni mazzetto
+ * di stati ne accumulerebbe una a testa. Quindi la chiamata degli ottanta
+ * millisecondi non faceva NIENTE tutte le volte che la rAF non era ancora
+ * corsa: le due passate diventavano una sola, e per giunta la prima, quella
+ * che misura prima che il contenuto arrivi.
+ *
+ * E la rAF tarda esattamente quando la macchina è carica, cioè proprio nel
+ * caso per cui la seconda passata esiste. Dal campo: su WebKit, sotto otto
+ * lavori in parallelo, la pagina del Clima si è aperta col contenuto sopra
+ * l'intestazione, tre tentativi su tre, e altrove non si riproduceva.
+ */
+test("la seconda passata dell'intestazione non si perde dentro la prima", () => {
+  const masthead = readFileSync(
+    new URL("../src/sections/page-masthead-section.js", import.meta.url),
+    "utf8",
+  );
+
+  /* `schedule` continua a non accodarne due: è la regola che tiene giù il
+   * lavoro, e non è lei a dover cambiare. */
+  assert.match(masthead, /function schedule\(\) \{\s*if \(state\.frame\) return;/);
+
+  /* La seconda passata non è più una `schedule` nuda: se la prima è ancora in
+   * coda si segna che ne serve un'altra, e a riarmarla è la prima quando
+   * finisce. */
+  assert.match(
+    masthead,
+    /if \(state\.frame\) state\.ancora = true;\s*else schedule\(\);/,
+    "la passata di sicurezza è tornata a essere una schedule che può sparire",
+  );
+  assert.doesNotMatch(
+    masthead,
+    /root\.setTimeout\?\.\(schedule, 80\)/,
+    "due schedule di fila sono una schedule sola quando la rAF tarda",
+  );
+
+  /* E chi corre la prima riarma la seconda. */
+  assert.match(masthead, /if \(state\.ancora\) \{\s*state\.ancora = false;\s*schedule\(\);/);
+
+  /* Il segno non deve restare acceso quando la passata si salta perché
+   * nessuno sta guardando: resterebbe armato per sempre. */
+  assert.match(masthead, /if \(!planciaVisibile\(\)\) \{\s*state\.ancora = false;\s*return;\s*\}/);
 });
