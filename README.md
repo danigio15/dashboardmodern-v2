@@ -87,18 +87,10 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 ## Il manuale in PDF
 
 Chi preferisce una guida sola, stampabile, con tutte le schede spiegate una per una trova
-[**`docs/MANUALE-DASHBOARDMODERN.pdf`**](docs/MANUALE-DASHBOARDMODERN.pdf): sessantaquattro pagine in italiano —
+[**`docs/MANUALE-DASHBOARDMODERN.pdf`**](docs/MANUALE-DASHBOARDMODERN.pdf): sessantacinque pagine in italiano — la prefazione,
 installazione, primo avvio, **dove va ogni entità** (fotovoltaico, porte, luci, auto, elettrodomestici),
 tutte e trentaquattro le schede dell'editor con le loro caselle, come nascono i numeri dell'Energia,
 risoluzione problemi, glossario e checklist.
-
-Il sorgente sta in [`docs/manuale/manuale.html`](docs/manuale/manuale.html) e si ristampa con:
-
-```bash
-node scripts/costruisci-il-manuale.mjs            # controlla le pagine e stampa il PDF
-node scripts/costruisci-il-manuale.mjs --controlla --riempimento   # solo i controlli
-node scripts/costruisci-il-manuale.mjs --anteprima 31              # una pagina in PNG
-```
 
 ---
 
@@ -1229,6 +1221,18 @@ Opzioni utili: `--format png`, `--quality 0.95`, `--all-mobile`, `--debug`, `--h
 
 Lo script avvia un server statico sulla cartella `frontend`, apre il documento della plancia in Chromium contro il finto Home Assistant, attraversa ogni sezione e ogni scheda dell'editor, adatta il viewport al contenuto e salva l'immagine. Le sezioni la cui resa dipende dal movimento vengono catturate con le animazioni attive; le altre a scena ferma.
 
+### Ristampare il manuale
+
+Il sorgente del manuale è [`docs/manuale/manuale.html`](docs/manuale/manuale.html): pagine A4 esplicite, i caratteri della plancia presi da `vendor/fonts`, le schermate da `docs/preview`. Si stampa con il Chromium che Playwright ha già in casa, senza dipendenze nuove.
+
+```bash
+node scripts/costruisci-il-manuale.mjs                             # controlla e stampa il PDF
+node scripts/costruisci-il-manuale.mjs --controlla --riempimento   # solo i controlli
+node scripts/costruisci-il-manuale.mjs --anteprima 31              # una pagina in PNG
+```
+
+Prima di stampare verifica che nessuna pagina trabocchi: una pagina più alta di 297 mm verrebbe tagliata in silenzio.
+
 ### Pubblicare una nuova versione
 
 Il workflow `Release` pubblica da solo quando `main` riceve una modifica a `manifest.json` o un tag `v*`, e marca come pre-release solo i tag che contengono un trattino.
@@ -1270,7 +1274,7 @@ Quando apri una Issue indica: versione DashboardModern, versione Home Assistant,
 
 ## Documentazione del progetto
 
-- [`docs/MANUALE-DASHBOARDMODERN.pdf`](docs/MANUALE-DASHBOARDMODERN.pdf) — **il manuale di configurazione in PDF**: sessantaquattro pagine, tutte le schede una per una, e le tabelle che dicono dove va ogni entità
+- [`docs/MANUALE-DASHBOARDMODERN.pdf`](docs/MANUALE-DASHBOARDMODERN.pdf) — **il manuale di configurazione in PDF**: sessantacinque pagine, tutte le schede una per una, e le tabelle che dicono dove va ogni entità
 - [`CHANGELOG.md`](CHANGELOG.md) — cosa cambia a ogni versione
 - [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md) — archivio delle versioni precedenti alla 1.0
 - [`docs/RELEASE_1_0.md`](docs/RELEASE_1_0.md) — come si pubblica una release

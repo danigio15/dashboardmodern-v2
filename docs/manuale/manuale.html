@@ -8,7 +8,7 @@
    Manuale di configurazione — DashboardModern v2
    I caratteri sono quelli che la plancia serve gia' da se': Inter per il testo,
    Oswald per i titoli, Share Tech Mono per gli identificativi delle entita'.
-   Nessuna rete: stanno tutti dentro la repository.
+   Nessuna rete: stanno tutti dentro l'integrazione.
    ══════════════════════════════════════════════════════════════════════════ */
 @font-face{font-family:Inter;font-weight:300;font-style:normal;font-display:block;
   src:url(../../custom_components/dashboardmodern/frontend/legacy/vendor/fonts/inter-latin-300-normal.woff2) format('woff2')}
@@ -279,7 +279,7 @@ figcaption b{color:var(--blu);font-weight:700}
   font-family:Oswald,sans-serif;font-weight:700;font-size:8.4pt;
   display:flex;align-items:center;justify-content:center;
 }
-.passi>li b{display:block;color:var(--blu)}
+.passi>li>b:first-child{display:block;color:var(--blu)}
 
 /* la checklist da spuntare */
 .spunte{list-style:none;padding:0;margin:0 0 3mm}
@@ -304,6 +304,17 @@ figcaption b{color:var(--blu);font-weight:700}
 .nota-riga{font-size:7.8pt;color:var(--grigio);line-height:1.4;margin:-2mm 0 4mm}
 .chiave{font-family:'Share Tech Mono',monospace;font-size:7.6pt;color:var(--grigio-chiaro)}
 .marcatore{font-size:6pt;color:#fff}
+/* La prefazione: una pagina che si legge come una lettera, non come una tabella. */
+.prefazione p{font-size:10.6pt;line-height:1.62;max-width:150mm}
+.prefazione .citazione{
+  font-family:Oswald,sans-serif;font-weight:500;font-size:17pt;line-height:1.24;
+  color:var(--blu);text-transform:uppercase;letter-spacing:.01em;
+  border-left:2.6pt solid var(--cielo);padding:1mm 0 1mm 6mm;margin:7mm 0;max-width:150mm;
+}
+.firma{margin-top:9mm;border-top:.5pt solid var(--filo);padding-top:4mm;max-width:150mm}
+.firma b{display:block;font-family:Oswald,sans-serif;font-weight:500;font-size:12pt;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--blu)}
+.firma span{display:block;font-size:8.6pt;color:var(--grigio);margin-top:.8mm}
 .cifre{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:6mm}
 .cifra{border:.5pt solid var(--filo);border-radius:3pt;padding:2.6mm 3mm;background:var(--velo);text-align:center}
 .cifra b{display:block;font-family:Oswald,sans-serif;font-weight:700;font-size:19pt;color:var(--cielo);line-height:1}
@@ -393,10 +404,53 @@ window.addEventListener("load", function () {
       <span class="bollino">Home Assistant 2025.1+</span>
     </div>
     <div class="fondo">
-      <div><b>DashboardModern v2</b>Custom integration per Home Assistant</div>
+      <div><b>DashboardModern v2</b>Un progetto di Giovanni d'Aniello</div>
       <div style="text-align:right"><b>Versione 1.4.16</b>Edizione italiana</div>
     </div>
   </div>
+</section>
+
+<!-- ═══════════════ 2 · PREFAZIONE ═══════════════ -->
+<section class="pagina prefazione" id="prefazione">
+  <div class="testatina"><span>Prefazione</span><span class="famiglia">DashboardModern v2</span></div>
+  <p class="occhiello">Prefazione</p>
+  <h2>Perché esiste questa plancia</h2>
+  <hr class="riga-titolo">
+
+  <p>DashboardModern nasce da un'idea di <b>Giovanni d'Aniello</b>, e da una constatazione semplice:
+    <b>non c'è una casa uguale a un'altra</b>. C'è chi ha il fotovoltaico e chi no, chi ha due contatori sotto lo
+    stesso tetto, chi ha le tapparelle su due relè e chi ha solo un contatto sulla finestra, chi ha l'auto elettrica
+    e chi il serbatoio da guardare. Una plancia che vada bene per tutti non può essere una plancia uguale per tutti:
+    deve essere una che <b>si adatta</b>.</p>
+
+  <p>Home Assistant sa fare quasi tutto, ma chiede di saperlo già. Chi ci arriva la prima volta si trova davanti
+    file YAML da scrivere, card da comporre una per una, e una casa che comincia a essere leggibile solo dopo
+    parecchie serate. È lì che tante persone si fermano — non perché manchi qualcosa, ma perché <b>la distanza fra
+    l'installazione e la prima pagina utile è troppo lunga</b>.</p>
+
+  <p class="citazione">Una plancia che si adatta alla casa,<br>non il contrario.</p>
+
+  <p>Questo progetto accorcia quella distanza. Le entità le hai già: quello che mancava era un posto dove metterle
+    e qualcuno che le disegnasse per quello che sono — un elettrodomestico ha un ciclo, non un acceso e spento;
+    una tapparella sta fuori e la finestra sta dentro; un impianto solare ha tre sonde e ognuna misura una cosa
+    diversa. Tutto si configura <b>a video</b>, in un editor fatto di caselle che dicono cosa vogliono, senza mai
+    aprire un file. E ogni sezione <b>si accende da sola</b> quando riceve la prima entità e resta nascosta quando
+    non ne ha: chi non ha la piscina non vede la piscina, e non deve fare niente perché sia così.</p>
+
+  <p>Il risultato è una plancia che sta bene addosso a un monolocale con quattro luci come a una casa con due
+    impianti, tre centrali d'allarme e un armadio di server — <b>senza che nessuno dei due debba imparare il
+    mestiere dell'altro</b>.</p>
+
+  <p>Questo manuale è la stessa idea messa su carta: dice dove va ogni cosa, in modo che <b>anche chi comincia
+    adesso</b> possa arrivare in fondo alla configurazione da solo, e chi ha una casa complicata trovi la casella
+    che gli serve senza cercarla.</p>
+
+  <div class="firma">
+    <b>Giovanni d'Aniello</b>
+    <span>Ideatore e autore di DashboardModern v2</span>
+  </div>
+
+  <div class="piedino"><span>DashboardModern v2 · Manuale di configurazione</span><span class="numero"></span></div>
 </section>
 
 <!-- ═══════════════ 2 · COME SI LEGGE ═══════════════ -->
@@ -469,7 +523,9 @@ window.addEventListener("load", function () {
 
   <div class="due">
     <div>
-      <div class="toc-parte">Parte 1 · Prima di cominciare</div>
+      <a class="toc-riga forte" data-toc-target="prefazione" style="margin-bottom:3mm"><span class="cod">—</span><span class="etichetta">Prefazione · perché esiste questa plancia</span><span class="punti"></span><span class="num"></span></a>
+
+      <div class="toc-parte" style="margin-top:0">Parte 1 · Prima di cominciare</div>
       <a class="toc-riga forte" data-toc-target="p1"><span class="cod">1.0</span><span class="etichetta">Apertura di parte</span><span class="punti"></span><span class="num"></span></a>
       <a class="toc-riga" data-toc-target="c11"><span class="cod">1.1</span><span class="etichetta">Che cos'è, in una pagina</span><span class="punti"></span><span class="num"></span></a>
       <a class="toc-riga" data-toc-target="c12"><span class="cod">1.2</span><span class="etichetta">Requisiti e cosa preparare</span><span class="punti"></span><span class="num"></span></a>
@@ -669,17 +725,15 @@ window.addEventListener("load", function () {
           non lo inventa: mostra <code>—</code>.</td></tr>
         <tr><td><b>Non sostituisce le integrazioni.</b> L'auto, la wallbox, l'inverter, la lavatrice connessa restano
           le loro: la plancia ne presenta le entità.</td></tr>
-        <tr><td><b>Non chiama nessun servizio in rete</b>, tranne il controllo delle versioni verso GitHub — che si
-          può spegnere — e i riquadri del radar meteo, se scegli un fornitore di mappe.</td></tr>
+        <tr><td><b>Non chiama nessun servizio in rete</b>, tranne il controllo delle nuove versioni — che si può
+          spegnere — e i riquadri del radar meteo, se scegli un fornitore di mappe.</td></tr>
       </table>
 
       <h3>Cosa registra in Home Assistant</h3>
       <ul>
         <li>un <b>pannello</b> nella barra laterale che serve la plancia;</li>
-        <li>un percorso statico versionato per gli asset del frontend;</li>
-        <li>i <b>comandi WebSocket</b> dell'archivio condiviso
-          (<code>dashboardmodern/config/get</code>, <code>set</code>, <code>restore</code>);</li>
-        <li>i <b>ritratti</b> delle persone e i <b>marchi</b> delle auto, serviti localmente.</li>
+        <li>l'<b>archivio condiviso</b> in cui vive la configurazione della plancia;</li>
+        <li>i <b>ritratti</b> delle persone e i <b>marchi</b> delle auto, serviti dall'integrazione stessa.</li>
       </ul>
     </div>
   </div>
@@ -714,11 +768,11 @@ window.addEventListener("load", function () {
     <thead><tr><th style="width:36mm">Requisito</th><th>Valore</th></tr></thead>
     <tbody>
       <tr><td><b>Home Assistant</b></td><td><b>2025.1.0</b> o successivo</td></tr>
-      <tr><td><b>Installazione</b></td><td>HACS come <em>custom repository</em> (tipo: Integrazione), oppure copia manuale in <code>custom_components/</code></td></tr>
+      <tr><td><b>Installazione</b></td><td>Da HACS come <em>archivio personalizzato</em> (tipo: Integrazione), oppure copiando a mano la cartella dell'integrazione</td></tr>
       <tr><td><b>Consigliato</b></td><td><code>recorder</code> attivo: serve per storico, report e analisi dell'Energia</td></tr>
       <tr><td><b>Browser</b></td><td>qualsiasi browser moderno; app Companion iOS e Android supportate</td></tr>
       <tr><td><b>Entità</b></td><td>le tue: la plancia <b>non crea</b> entità, usa quelle già presenti</td></tr>
-      <tr><td><b>Rete</b></td><td>la plancia funziona senza internet. L'unica uscita è il controllo delle nuove versioni, ogni mezz'ora verso GitHub, che si può spegnere dalle opzioni</td></tr>
+      <tr><td><b>Rete</b></td><td>la plancia funziona senza internet. L'unica uscita è il controllo delle nuove versioni, ogni mezz'ora, e si può spegnere dalle opzioni</td></tr>
     </tbody>
   </table>
 
@@ -775,8 +829,8 @@ window.addEventListener("load", function () {
       <ol class="passi">
         <li><b>Apri HACS</b> in Home Assistant.</li>
         <li><b>Archivi personalizzati.</b> Menu in alto a destra → <em>Custom repositories</em>.</li>
-        <li><b>Incolla l'URL</b> e scegli il tipo <b>Integrazione</b>:<br>
-          <code>https://github.com/danigio15/dashboardmodern-v2</code></li>
+        <li><b>Incolla l'indirizzo del progetto</b> — quello da cui hai ricevuto l'integrazione — e scegli
+          il tipo <b>Integrazione</b>.</li>
         <li><b>Cerca «DashboardModern v2»</b> e installa l'ultima versione.</li>
         <li><b>Riavvia Home Assistant.</b></li>
         <li><b>Aggiungi l'integrazione.</b> Impostazioni → Dispositivi e servizi → Aggiungi integrazione →
@@ -787,8 +841,8 @@ window.addEventListener("load", function () {
 
       <h3>Installazione manuale</h3>
       <ol class="passi">
-        <li><b>Copia la cartella</b> <code>custom_components/dashboardmodern/</code> nella tua
-          <code>config/custom_components/</code>.</li>
+        <li><b>Copia la cartella dell'integrazione</b> dentro <code>custom_components</code>, nella
+          configurazione di Home Assistant.</li>
         <li><b>Riavvia</b> Home Assistant e aggiungi l'integrazione come al passo 6 qui accanto.</li>
       </ol>
     </div>
@@ -796,21 +850,20 @@ window.addEventListener("load", function () {
       <h3>Come arriva l'avviso di una versione nuova</h3>
       <p>L'integrazione <b>se ne accorge da sola, entro mezz'ora</b> dalla pubblicazione, e lo dice in
         <em>Impostazioni → Aggiornamenti</em> con le note di versione.</p>
-      <p>Serve perché HACS, da solo, ci mette molto di più: un repository <b>personalizzato</b> lo ricontrolla
+      <p>Serve perché HACS, da solo, ci mette molto di più: un <b>archivio personalizzato</b> lo ricontrolla
         <b>ogni quarantotto ore</b>, e non lo guarda nemmeno al riavvio.</p>
       <div class="box box-verde">
         <span class="capo">Si installa da lì</span>
-        <p>Il tasto <b>«Installa»</b> in <em>Impostazioni → Aggiornamenti</em> scarica lo stesso identico zip
-          che installerebbe HACS, lo controlla prima che un solo file si muova, e a fine scambio chiede il riavvio
-          che completa l'aggiornamento. HACS si riallinea da solo al suo prossimo controllo.</p>
+        <p>Il tasto <b>«Installa»</b> in <em>Impostazioni → Aggiornamenti</em> scarica esattamente la stessa
+          versione che installerebbe HACS, la controlla prima che un solo file si muova, e a fine scambio chiede
+          il riavvio che completa l'aggiornamento. HACS si riallinea da solo al suo prossimo controllo.</p>
       </div>
       <p>La strada di HACS resta: <b>HACS → DashboardModern v2 → ⋮ → «Aggiorna informazioni»</b>, poi
         <b>«Aggiorna»</b> e riavvio quando compare <em>In attesa di riavvio</em>.</p>
 
       <h3>Dopo un aggiornamento</h3>
-      <p>Gli asset del frontend stanno su un URL versionato con il <b>digest del contenuto</b>
-        (<code>/dashboardmodern_static/&lt;digest&gt;/…</code>): quando aggiorni, l'URL cambia e il browser scarica
-        la versione nuova <b>senza hard refresh</b>. Serve comunque:</p>
+      <p>Quando aggiorni, il browser <b>scarica da solo la versione nuova</b>: non serve svuotare la cache né
+        forzare il ricaricamento. Serve comunque:</p>
       <ul>
         <li>riavviare Home Assistant quando l'installazione lo chiede;</li>
         <li>sull'app Companion, chiuderla e riaprirla se resta visibile la versione precedente.</li>
@@ -841,7 +894,7 @@ window.addEventListener("load", function () {
       <tr><td><b>Icona</b></td><td>L'icona del pannello, accanto al nome.</td></tr>
       <tr><td><b>Utenti abilitati</b></td><td>Limita la visibilità della plancia ad alcuni account Home Assistant. Vuoto = tutti.</td></tr>
       <tr><td><b>Posizione nella barra</b></td><td>L'ordine rispetto alle altre voci della barra laterale.</td></tr>
-      <tr><td><b>Controlla le nuove versioni</b></td><td>L'unica uscita verso internet: un controllo ogni mezz'ora verso GitHub. Spento, non contatta più nessuno.</td></tr>
+      <tr><td><b>Controlla le nuove versioni</b></td><td>L'unica uscita verso internet: un controllo ogni mezz'ora. Spento, non contatta più nessuno.</td></tr>
       <tr><td><b>Chiave della console assistenza</b></td><td>Serve solo a chi mantiene la plancia, per leggere le conversazioni della chat di assistenza. Chi la installa in casa propria <b>la lascia vuota</b>: la chat funziona lo stesso.</td></tr>
     </tbody>
   </table>
@@ -854,8 +907,8 @@ window.addEventListener("load", function () {
   </div>
 
   <h3 id="c15">1.5 · Dove vive la configurazione</h3>
-  <p>La configurazione della plancia sta <b>dentro Home Assistant</b>, nell'archivio dell'integrazione
-    (<code>.storage/dashboardmodern.config</code>), <b>non nel browser</b>. Di conseguenza:</p>
+  <p>La configurazione della plancia sta <b>dentro Home Assistant</b>, in un archivio interno
+    dell'integrazione, <b>non nel browser</b>. Di conseguenza:</p>
 
   <div class="due">
     <div>
@@ -3082,8 +3135,8 @@ window.addEventListener("load", function () {
         nome e la sua foto. I <b>sensori del telefono si trovano da soli</b>: batteria, stato di carica, indirizzo,
         attività, WiFi, orologio, distanza, tempo di rientro e direzione.</p>
       <p class="nota-riga">Il ritratto si compone da persona, capelli, carnagione e vestito — oltre tremilaseicento
-        combinazioni, e c'è il 🎲 per il caso. Sono i render 3D di Fluent Emoji, vendorizzati nell'integrazione:
-        nessuna rete a runtime.</p>
+        combinazioni, e c'è il 🎲 per il caso. I disegni stanno <b>dentro l'integrazione</b>: nessuna rete,
+        nemmeno per un ritratto.</p>
 
       <h3>🔋 Batterie</h3>
       <table class="stretta">
@@ -3683,14 +3736,16 @@ window.addEventListener("load", function () {
   <div class="due">
     <div>
       <h3>Le segnalazioni</h3>
-      <p>Un <b>difetto</b> è una cosa che deve restare scritta, pubblica e ritrovabile: le segnalazioni aprono
-        una issue sulla repository, e sotto quella si commenta.</p>
+      <p>Un <b>difetto</b> è una cosa che deve restare scritta, pubblica e ritrovabile: le segnalazioni entrano
+        nella coda pubblica del progetto, e sotto ognuna si commenta. Chi arriva dopo con lo stesso problema la
+        trova già scritta — e spesso già risolta.</p>
       <ul>
         <li><b>Difetti</b>, <b>Chiuse</b> e <b>Le mie</b> dividono la coda; ogni voce apre il suo filo con i commenti.</li>
         <li>Si allegano <b>foto e video</b> direttamente dal telefono.</li>
         <li>Il <b>codice</b> dell'installazione e i dati di <b>runtime</b> si allegano con un tocco, così non
           vanno ricopiati a mano.</li>
-        <li>Per scrivere serve <b>collegare un account GitHub</b>, una volta sola.</li>
+        <li>Per scrivere serve <b>collegare un account</b>, una volta sola: è quello che tiene insieme una
+          segnalazione e le sue risposte.</li>
       </ul>
 
       <div class="box box-verde">
@@ -3703,32 +3758,27 @@ window.addEventListener("load", function () {
       <h3>La chat di assistenza</h3>
       <p>Un difetto va bene pubblico. <b>Una richiesta di aiuto no</b>: chi chiede aiuto incolla un pezzo di
         configurazione, il nome delle proprie entità, a volte una foto di casa sua. Quindi la chat è una
-        <b>conversazione privata</b>, e non passa da GitHub:</p>
+        <b>conversazione privata</b>, e non passa dalla coda pubblica:</p>
       <ul>
         <li><b>Non serve nessun account.</b> L'identità nasce da sola col primo messaggio.</li>
-        <li><b>Il centralino non sa chi sei.</b> Sta fuori dall'integrazione, non conserva nomi, e del segreto
-          della tua casa tiene solo l'impronta.</li>
+        <li><b>Chi riceve i messaggi non sa chi sei.</b> Non conserva nomi, e del segreto della tua casa tiene
+          solo l'impronta.</li>
         <li><b>Il segreto non esce dal backend</b> di Home Assistant: il browser non lo vede.</li>
-        <li><b>Il tasto che cancella cancella davvero</b>, anche dal centralino.</li>
+        <li><b>Il tasto che cancella cancella davvero</b>, anche dall'altra parte.</li>
       </ul>
       <p class="nota-riga">Quando arriva una risposta, fra i widget della Home compare la tessera
         <b>Assistenza</b>, con il conto delle risposte da leggere. Se non la vuoi in Home, dalla scheda
         🧩 Widget si nasconde come le altre.</p>
 
-      <div class="box">
-        <span class="capo">Per chi mantiene una plancia propria</span>
-        <p>La chat funziona in uscita senza configurare niente. Per <b>leggere</b> le conversazioni serve la
-          chiave del proprio centralino in <em>Configura → «Chiave della console assistenza»</em> (§ 1.4).</p>
+      <div class="box box-scuro">
+        <span class="capo">Quale delle due strade</span>
+        <p>Se quello che hai da dire vale anche per gli altri — un difetto, un comportamento sbagliato, una cosa
+          che manca — è una <b>segnalazione</b>. Se riguarda casa tua — le tue entità, la tua configurazione,
+          la tua foto — è la <b>chat</b>.</p>
       </div>
     </div>
   </div>
 
-  <div class="box box-scuro">
-    <span class="capo">Quale delle due strade</span>
-    <p>Se quello che hai da dire vale anche per gli altri — un difetto, un comportamento sbagliato, una cosa che
-      manca — è una <b>segnalazione</b>: pubblica, ritrovabile, e chi arriva dopo la trova già risolta.
-      Se invece riguarda casa tua — le tue entità, la tua configurazione, la tua foto — è la <b>chat</b>.</p>
-  </div>
   <div class="piedino"><span>Parte 6 · Manutenzione e problemi</span><span class="numero"></span></div>
 </section>
 
@@ -3952,16 +4002,14 @@ window.addEventListener("load", function () {
     <p class="claim" style="font-size:10.6pt">Questo manuale descrive <b>DashboardModern v2 versione 1.4.16</b>.
       Le schermate vengono dalla casa demo del progetto: nessun dato appartiene a un impianto reale.</p>
     <div class="elenco" style="margin-top:auto">
-      <p style="color:#dbeafe;font-size:9.4pt;line-height:1.6">
-        Il sorgente del manuale sta in <b>docs/manuale/manuale.html</b> e si ristampa con<br>
-        <span style="font-family:'Share Tech Mono',monospace;color:#7dd3fc">node scripts/costruisci-il-manuale.mjs</span><br><br>
-        I caratteri sono quelli della plancia — <b>Inter</b>, <b>Oswald</b> e <b>Share Tech Mono</b> —
-        serviti dalla sua stessa cartella, senza rete. I disegni sono fatti a mano in SVG.<br><br>
-        Documentazione del progetto: <b>README.md</b> · <b>ARCHITECTURE.md</b> · <b>docs/</b><br>
-        Segnalazioni: dalla plancia, oppure sulla repository del progetto.
+      <p style="color:#dbeafe;font-size:9.6pt;line-height:1.7">
+        <b>Idea, progetto e sviluppo:</b> Giovanni d'Aniello.<br><br>
+        DashboardModern è una plancia che <b>si adatta alla casa</b>: nessuna sezione è obbligatoria,
+        nessuna configurazione va scritta a mano, e quello che non hai semplicemente non compare.<br><br>
+        Per una segnalazione o una richiesta di aiuto non serve uscire dalla plancia:
+        <b>Segnalazioni</b> per i difetti, la <b>chat di assistenza</b> per tutto il resto.
       </p>
     </div>
-  </div>
 </section>
 
 </body>
