@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "それぞれに設備の名前",
   "edit": "編集",
   "empty — add loads": "空です — 負荷を追加してください",
+  "enough rain already": "もう十分に降った",
   "entities": "エンティティ",
   "entities linked": "件のエンティティを結び付けました",
   "entity": "エンティティ",

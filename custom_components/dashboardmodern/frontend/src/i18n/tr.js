@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "her biri kendi tesisinin adıyla",
   "edit": "düzenle",
   "empty — add loads": "boş — yük ekleyin",
+  "enough rain already": "zaten yeterince yağdı",
   "entities": "varlık",
   "entities linked": "varlık bağlandı",
   "entity": "varlık",

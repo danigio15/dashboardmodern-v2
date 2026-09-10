@@ -1471,6 +1471,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Gruppo luci aggiornato": "Light group updated",
   "Gruppo luci creato": "Light group created",
   "Guardia": "Guard",
+  "ha gia' piovuto abbastanza": "enough rain already",
   "HACS / personalizzata": "HACS / custom",
   "Hai scelto «Un indirizzo mio» ma non c'è un indirizzo: scrivilo in Configurazione → Meteo, o scegli un servizio dalla tendina.": "You picked «An address of mine» but there is no address: write it under Settings → Weather, or pick a service from the list.",
   "History API non raggiungibile:": "History API unreachable:",

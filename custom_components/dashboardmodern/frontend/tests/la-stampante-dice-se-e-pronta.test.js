@@ -199,3 +199,20 @@ test("la sezione e la scheda esistono, e il modello resta puro", async () => {
   );
   assert.equal(lettureDelleStampanti([], CASA).length, 0);
 });
+
+/* ── quello che la revisione della #481 ha trovato ─────────────────────── */
+
+test("una stampante ferma e agli sgoccioli si conta una volta sola", async () => {
+  /* Stava in tutt'e due gli elenchi, e sommarli la contava due volte: la
+   * tessera diceva «2» con sotto scritto «1 ferma», e chi legge si chiede quale
+   * sia l'altra. Sono le stampanti che hanno qualcosa da dire, non le ragioni
+   * per dirlo. */
+  const tessere = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    tessere,
+    /const daDire = new Set\(\s*\n?\s*\[\.\.\.riassunto\.ferme, \.\.\.riassunto\.sgoccioli\]\.map\(\(lettura\) => lettura\.entity\),\s*\n?\s*\)\.size;/,
+  );
+});

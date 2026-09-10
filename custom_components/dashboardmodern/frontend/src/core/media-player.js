@@ -224,9 +224,16 @@ export function bindLettoreToDevice({
     entity: pulito(suo?.entity_id) || pulito(precedente.entity),
     comandi: comandi.length ? comandi : elencoComandi(precedente.comandi),
   };
-  /* Le letture si riconoscono guardando lo stato vero, non l'elenco del
-   * registro: è lì che stanno le unità e i nomi. */
-  const letture = lettureRiconosciute(nato, states);
+  /* Le letture sono quelle DI QUEL dispositivo — l'elenco arriva dal registro
+   * di Home Assistant, ed è esatto — lette però sullo stato vero, perché è lì
+   * che stanno le unità e i nomi. Indovinarle dal nome sbagliava in tutt'e due
+   * i versi: lasciava fuori una lettura chiamata in un altro modo, e prendeva
+   * dentro l'aiutante di qualcun altro che comincia uguale. */
+  const letture = lettureRiconosciute(
+    nato,
+    states,
+    elenco.map((voce) => pulito(voce.entity_id)),
+  );
   nato.letture = letture.length ? letture : elencoLetture(precedente.letture);
   return nato;
 }

@@ -205,6 +205,11 @@ export function installNodiSection() {
     "dashboardmodern:legacy-ready",
     "dashboardmodern:states-ready",
     "dashboardmodern:section-changed",
+    /* E i cambi di stato, che sono la ragione per cui questa fascia esiste: un
+     * nodo che si scalda o un carico che sale succedono a pagina aperta, e
+     * senza questo le barre restavano ferme sui valori del momento in cui la
+     * pagina era stata aperta. */
+    "dashboardmodern:state-changed",
   ])
     root.addEventListener?.(evento, schedule);
   schedule();

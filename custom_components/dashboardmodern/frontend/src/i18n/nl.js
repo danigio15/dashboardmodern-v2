@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "elk met de naam van de zijne",
   "edit": "bewerken",
   "empty — add loads": "leeg — voeg verbruikers toe",
+  "enough rain already": "het heeft al genoeg geregend",
   "entities": "entiteiten",
   "entities linked": "entiteiten gekoppeld",
   "entity": "entiteit",

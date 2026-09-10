@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "каждая с именем своей",
   "edit": "изменить",
   "empty — add loads": "пусто — добавьте нагрузки",
+  "enough rain already": "дождя уже хватило",
   "entities": "сущностей",
   "entities linked": "сущностей связано",
   "entity": "сущность",

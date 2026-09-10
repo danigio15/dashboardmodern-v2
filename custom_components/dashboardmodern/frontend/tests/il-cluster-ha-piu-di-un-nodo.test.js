@@ -214,3 +214,64 @@ test("la fascia sta sulla pagina Server, e la scheda dentro quella del MiniPC", 
   assert.match(chiavi, /"cd_nodi"/);
   assert.equal(CHIAVE_NODI, "cd_nodi");
 });
+
+/* ── quello che la revisione della #481 ha trovato ─────────────────────── */
+
+test("un nodo che Home Assistant non raggiunge non risponde, non è spento", () => {
+  /* «Spento» è un nodo che qualcuno ha fermato; «unavailable» è Home Assistant
+   * che non riesce a parlarci. Metterli insieme voleva dire una pastiglia rossa
+   * per un problema di rete. */
+  const lettura = letturaDelNodo(
+    { id: "n", stato: "binary_sensor.pve2_status" },
+    { "binary_sensor.pve2_status": { state: "unavailable", attributes: {} } },
+  );
+  assert.equal(lettura.muto, true);
+  assert.equal(lettura.acceso, null, "non si dice spento un nodo di cui non si sa niente");
+});
+
+test("i gradi in Fahrenheit si giudicano in Celsius, e si scrivono come sono", () => {
+  /* Settanta gradi Fahrenheit sono ventuno: un nodo fresco, non uno caldo. */
+  const lettura = letturaDelNodo(
+    { id: "n", temperatura: "sensor.pve2_temp" },
+    {
+      "sensor.pve2_temp": { state: "70", attributes: { unit_of_measurement: "°F" } },
+    },
+  );
+  assert.equal(lettura.temperatura.livello, "ok");
+  assert.equal(lettura.temperatura.valore, 70, "il numero resta quello del sensore");
+  assert.equal(lettura.temperatura.unita, "°F", "e l'unità pure");
+
+  const caldo = letturaDelNodo(
+    { id: "n", temperatura: "sensor.pve2_temp" },
+    {
+      "sensor.pve2_temp": { state: "190", attributes: { unit_of_measurement: "°F" } },
+    },
+  );
+  assert.equal(caldo.temperatura.livello, "critico", "88 °C sono critici anche scritti in °F");
+});
+
+test("dall'integrazione entrano solo le percentuali", () => {
+  /* Un sensore che si chiama «disk» ma scrive 150 GiB non è una percentuale, e
+   * la barra lo disegnava come un disco pieno al cento per cento. */
+  const entities = [
+    { entity_id: "sensor.pve2_disk_used", name: "pve2 disk used" },
+    { entity_id: "sensor.pve2_cpu_used", name: "pve2 cpu used" },
+  ];
+  const states = {
+    "sensor.pve2_disk_used": { state: "150", attributes: { unit_of_measurement: "GiB" } },
+    "sensor.pve2_cpu_used": { state: "12", attributes: { unit_of_measurement: "%" } },
+  };
+  const nato = bindNodoToDevice({ device: { name: "pve2" }, entities, states });
+  assert.equal(nato.cpu, "sensor.pve2_cpu_used");
+  assert.equal(nato.disco, "", "meglio una casella vuota di una barra che mente");
+});
+
+test("la fascia si ridisegna quando cambia uno stato", async () => {
+  /* Un nodo che si scalda succede a pagina aperta: senza questo evento le barre
+   * restavano ferme sui valori del momento in cui la pagina era stata aperta. */
+  const sezione = await readFile(
+    new URL("../src/sections/nodi-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezione, /"dashboardmodern:state-changed"/);
+});

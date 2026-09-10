@@ -3618,7 +3618,13 @@ function stampantiModel(states) {
     .filter((lettura) => widgetIncludes(lettura.entity, fuori));
   if (!letture.length) return null;
   const riassunto = riassuntoDelleStampanti(letture);
-  const daDire = riassunto.ferme.length + riassunto.sgoccioli.length;
+  /* Una stampante ferma CON la cartuccia agli sgoccioli sta in tutt'e due gli
+   * elenchi, e sommarli la contava due volte: la tessera diceva «2» con sotto
+   * scritto «1 ferma», e chi legge si chiede quale sia l'altra. Sono le
+   * stampanti che hanno qualcosa da dire, non le ragioni per dirlo. */
+  const daDire = new Set(
+    [...riassunto.ferme, ...riassunto.sgoccioli].map((lettura) => lettura.entity),
+  ).size;
   const peggiore = letture
     .map((lettura) => lettura.piuScarica)
     .filter(Boolean)

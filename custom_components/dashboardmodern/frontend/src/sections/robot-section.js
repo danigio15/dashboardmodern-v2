@@ -766,15 +766,30 @@ async function loadMap(card, view) {
     clean(image.getAttribute("src"));
   if (gia && !scaduta) return;
 
+  /* Chi tocca una linguetta mentre il disegno di prima e' ancora per strada.
+   *
+   * Le due mappe di un robot condividono lo stesso riquadro: la richiesta di
+   * quella di prima puo' tornare DOPO che si e' passati all'altra, e allora
+   * scriveva la sua immagine sopra quella giusta — e il suo `onload` metteva a
+   * memoria «pronta» sotto il nome sbagliato, cosi' i giri successivi
+   * accettavano il disegno scambiato per sempre.
+   *
+   * Il riquadro adesso porta scritto quale mappa sta guardando, e una risposta
+   * che arriva quando non e' piu' la sua se ne va senza toccare niente. */
+  image.dataset.dmMappa = chiave;
+  const suaAncora = () => image.dataset.dmMappa === chiave;
+
   /* Che il disegno arrivi per gettone o per indirizzo, quello che succede
    * quando arriva e' lo stesso: si dice che e' pronto, si tiene a mente qual
    * era, e il riquadro prende le sue proporzioni. */
   image.onload = () => {
+    if (!suaAncora()) return;
     host.dataset.dmMapState = "ready";
     state.mapPictures.set(chiave, picture);
     adattaIlRiquadro(host, image);
   };
   image.onerror = () => {
+    if (!suaAncora()) return;
     host.dataset.dmMapState = "missing";
     state.mapPictures.delete(chiave);
   };
@@ -797,6 +812,10 @@ async function loadMap(card, view) {
       if (response.ok) {
         const objectUrl = root.URL?.createObjectURL?.(await response.blob());
         if (objectUrl) {
+          if (!suaAncora()) {
+            root.URL?.revokeObjectURL?.(objectUrl);
+            return;
+          }
           releaseMap(chiave, objectUrl);
           image.src = objectUrl;
           return;
@@ -804,6 +823,7 @@ async function loadMap(card, view) {
       }
     } catch (_error) {}
   }
+  if (!suaAncora()) return;
   releaseMap(chiave, picture);
   image.src = picture;
 }

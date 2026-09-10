@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "每张都用各自系统的名字",
   "edit": "修改",
   "empty — add loads": "空的 —— 请添加负载",
+  "enough rain already": "雨已经下够了",
   "entities": "个实体",
   "entities linked": "个实体已关联",
   "entity": "个实体",

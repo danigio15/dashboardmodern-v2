@@ -145,8 +145,12 @@ export function disegnoDellaLettura(entity, states = {}) {
  * tradurli in ore renderebbe illeggibile «45 min». La soglia e' quella: due
  * ore.
  */
+/* «m» qui non c'e', ed e' voluto: in Home Assistant «m» sono i metri, e nella
+ * plancia lo sono dappertutto. Un sensore di distanza scelto a mano — «50 m» —
+ * finiva scritto «50 min». I minuti si dichiarano «min», che e' quello che
+ * scrivono le integrazioni quando parlano di tempo. */
 const ORE = ["h", "ore", "hours", "hour", "ora"];
-const MINUTI = ["min", "minuti", "minutes", "minute", "m"];
+const MINUTI = ["min", "minuti", "minutes", "minute"];
 const SECONDI = ["s", "sec", "secondi", "seconds", "second"];
 
 export function durataLeggibile(valore, unita, lingua = getLocale()) {
@@ -248,20 +252,37 @@ function giaInUso(dispositivo = {}) {
  * scritte qui sopra; in fondo la diagnostica, che si sceglie di rado ma si
  * puo' scegliere.
  */
-export function lettureVicine(dispositivo = {}, states = {}) {
+export function lettureVicine(dispositivo = {}, states = {}, candidate = null) {
   const entity = clean(dispositivo?.entity);
-  const radice = entity.split(".")[1] || "";
-  if (!radice) return [];
-  const nome = clean(states?.[entity]?.attributes?.friendly_name).toLowerCase();
   const gia = new Set(elencoLetture(dispositivo?.letture));
   const usate = giaInUso(dispositivo);
   const trovate = [];
-  for (const [id, corrente] of Object.entries(states || {})) {
-    if (gia.has(id) || usate.has(id) || !eUnaLettura(id)) continue;
-    const oggetto = id.split(".")[1] || "";
-    const suoNome = clean(corrente?.attributes?.friendly_name).toLowerCase();
-    if (!oggetto.startsWith(`${radice}_`) && !(nome && suoNome.startsWith(`${nome} `))) continue;
-    trovate.push(id);
+  /* Quando si sa gia' quali entita' sono di quel dispositivo, si guardano
+   * quelle e basta.
+   *
+   * Il menu delle integrazioni le sa dal registro di Home Assistant: e' l'elenco
+   * esatto, e indovinarlo dal nome sbaglia in tutt'e due i versi — lascia fuori
+   * una lettura che l'integrazione ha chiamato in un altro modo, e prende
+   * dentro l'aiutante di qualcun altro che comincia uguale. Senza quell'elenco
+   * — succede quando si guarda un dispositivo gia' configurato — si torna a
+   * riconoscerlo dal nome, che e' l'unica cosa che resta. */
+  if (Array.isArray(candidate)) {
+    for (const grezzo of candidate) {
+      const id = clean(grezzo);
+      if (!id || gia.has(id) || usate.has(id) || !eUnaLettura(id)) continue;
+      trovate.push(id);
+    }
+  } else {
+    const radice = entity.split(".")[1] || "";
+    if (!radice) return [];
+    const nome = clean(states?.[entity]?.attributes?.friendly_name).toLowerCase();
+    for (const [id, corrente] of Object.entries(states || {})) {
+      if (gia.has(id) || usate.has(id) || !eUnaLettura(id)) continue;
+      const oggetto = id.split(".")[1] || "";
+      const suoNome = clean(corrente?.attributes?.friendly_name).toLowerCase();
+      if (!oggetto.startsWith(`${radice}_`) && !(nome && suoNome.startsWith(`${nome} `))) continue;
+      trovate.push(id);
+    }
   }
   const rango = (id) => {
     if (DIAGNOSTICA.test(parole(id, states))) return LETTURE_NOTE.length + 1;
@@ -277,9 +298,9 @@ export function lettureVicine(dispositivo = {}, states = {}) {
  * Solo quelle che si riconoscono, e solo quelle che si scelgono da sole: la
  * diagnostica no, e nemmeno i consumi — chi li vuole se li aggiunge.
  */
-export function lettureRiconosciute(dispositivo = {}, states = {}) {
+export function lettureRiconosciute(dispositivo = {}, states = {}, candidate = null) {
   return elencoLetture(
-    lettureVicine(dispositivo, states).filter((id) => {
+    lettureVicine(dispositivo, states, candidate).filter((id) => {
       const nota = letturaNota(id, states);
       return nota && !nota.soloAMano && !DIAGNOSTICA.test(parole(id, states));
     }),

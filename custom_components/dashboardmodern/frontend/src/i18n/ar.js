@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "كلٌّ باسم منظومته",
   "edit": "تعديل",
   "empty — add loads": "فارغ — أضف أحمالًا",
+  "enough rain already": "هطل مطر كافٍ بالفعل",
   "entities": "كيانات",
   "entities linked": "كيانًا مرتبطًا",
   "entity": "كيان",

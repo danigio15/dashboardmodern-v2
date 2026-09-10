@@ -13,7 +13,7 @@ import {
   poolRunToday,
   poolTargetHours as modelTargetHours,
 } from "../core/pool-model.js";
-import { siPuoSaltare, verdettoDellaPioggia } from "../core/pioggia-caduta.js";
+import { inMillimetri, siPuoSaltare, verdettoDellaPioggia } from "../core/pioggia-caduta.js";
 import { letturePioggia } from "./come-sta-la-casa-section.js";
 import { decorateEntityFields } from "./editor-slots-section.js";
 import { extraPoolCommand } from "./pool-extra-section.js";
@@ -704,11 +704,7 @@ function syncIrrigationValues(host, grid, config) {
      * I sensori sono quelli della barra sotto il meteo: chi ha una stazione
      * l'ha gia' dichiarata li' una volta, e chiederla di nuovo qui vorrebbe
      * dire due caselle per lo stesso pluviometro. */
-    const dalCielo = letturePioggia(states);
-    const pioggia = verdettoDellaPioggia({
-      intensita: dalCielo.intensita?.valore,
-      oggi: dalCielo.oggi?.valore,
-    });
+    const pioggia = pioggiaDiOggi(states);
     if (pioggia) {
       const quanta =
         pioggia.oggi === null
@@ -1635,12 +1631,50 @@ function armaSoilEditor() {
  * `cdIrrProgram`: e' li' che gia' vive lo skip per pioggia, con lo stesso
  * avviso in card (`CD_IRR.skip`). L'override — non `wrapFunction`, che corre
  * DOPO l'originale e non puo' fermarlo — lascia passare il tasto «forza». */
+/* Il verdetto della pioggia, letto una volta e usato da tutt'e due.
+ *
+ * Lo guardano la pastiglia sotto la scheda — che dice come sta il cielo — e il
+ * cancello del programma, che decide se il giro parte. Erano due domande sulla
+ * stessa cosa, e prima solo la prima la faceva: la pastiglia scriveva «terreno
+ * bagnato», e un istante dopo l'impianto partiva lo stesso.
+ *
+ * I millimetri si convertono qui, prima del giudizio: chi ha Home Assistant in
+ * unita' imperiali ha un pluviometro che scrive pollici, e zero virgola tre
+ * pollici sono sette millimetri e mezzo — un giro di irrigazione gia' fatto
+ * dal cielo, che confrontato con cinque senza convertirlo diventava
+ * «asciutto». */
+function pioggiaDiOggi(states) {
+  const dalCielo = letturePioggia(states);
+  return verdettoDellaPioggia({
+    intensita: inMillimetri(dalCielo.intensita?.valore, dalCielo.intensita?.unita),
+    oggi: inMillimetri(dalCielo.oggi?.valore, dalCielo.oggi?.unita),
+  });
+}
+
 function installProgramGate() {
   const current = root.cdIrrProgram;
   if (typeof current !== "function" || current.__dmIrrSoilGate) return false;
   function gated(force) {
     try {
       if (!force) {
+        /* Il cielo prima del terreno: se e' appena piovuto abbastanza, il giro
+         * non serve — e questo e' il pezzo che la segnalazione chiedeva,
+         * «questo potrebbe integrarsi anche su gestione irrigazione». Il tasto
+         * che fa partire a mano passa comunque: `force` vuol dire «lo so, e lo
+         * voglio lo stesso». */
+        const pioggia = pioggiaDiOggi(allStates());
+        if (siPuoSaltare(pioggia)) {
+          const parola =
+            pioggia.chiave === "piove"
+              ? t("sta piovendo", "raining now")
+              : t("ha gia' piovuto abbastanza", "enough rain already");
+          if (root.CD_IRR) root.CD_IRR.skip = `☔ ${parola} — ${t("programma saltato", "program skipped")}`;
+          try {
+            root.renderIrrigazione?.();
+          } catch (_error) {}
+          root.edToast?.(clean(root.CD_IRR?.skip) || t("Programma saltato", "Program skipped"));
+          return undefined;
+        }
         const config = irrigationConfig();
         const soglia = num(config.soilSkipAbove);
         const soil = soilMoisture(config);

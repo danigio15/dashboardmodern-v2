@@ -103,7 +103,10 @@ export function entitaDeiNodi(input = []) {
   return [...viste];
 }
 
-const SPENTI = new Set(["off", "false", "unavailable", "disconnected", "not_running"]);
+/* «unavailable» qui non c'e', ed e' voluto: e' Home Assistant che non riesce a
+ * parlare col nodo, non il nodo che qualcuno ha spento. Sta fra i muti, dove
+ * la scheda scrive «non risponde». */
+const SPENTI = new Set(["off", "false", "disconnected", "not_running"]);
 const ACCESI = new Set(["on", "true", "home", "connected", "running", "online", "up"]);
 
 /* Se il nodo risponde: si', no, oppure non si sa.
@@ -120,6 +123,25 @@ function acceso(stato) {
   return null;
 }
 
+/* Un nodo che non risponde: o l'entita' non c'e' piu' in Home Assistant, o c'e'
+ * e vale «unavailable», che vuol dire la stessa cosa — non si riesce a
+ * chiedergli come sta. */
+function nonRisponde(stato) {
+  return !stato || clean(stato.state).toLowerCase() === "unavailable";
+}
+
+/* I gradi arrivano anche in Fahrenheit.
+ *
+ * Le soglie sono in Celsius — settanta e' caldo per un mini PC, ottantacinque
+ * e' dove i processori si rallentano da soli — e confrontarci settanta gradi
+ * Fahrenheit, che sono ventuno, vorrebbe dire una barra gialla su un nodo
+ * freddo. Si converte per il giudizio; il numero e l'unita' restano quelli che
+ * il sensore scrive, perche' quello e' cio' che chi guarda si aspetta di
+ * leggere. */
+function inCelsius(valore, unita) {
+  return clean(unita).toLowerCase().replace(/\s+/g, "") === "°f" ? ((valore - 32) * 5) / 9 : valore;
+}
+
 function misura(entity, states, soglie) {
   const id = clean(entity);
   if (!id) return null;
@@ -127,11 +149,15 @@ function misura(entity, states, soglie) {
   if (!stato) return null;
   const valore = numero(stato.state);
   if (valore === null) return null;
+  const unita = clean(stato.attributes?.unit_of_measurement);
   return {
     entity: id,
     valore,
-    unita: clean(stato.attributes?.unit_of_measurement),
-    livello: livelloDella(valore, soglie),
+    unita,
+    livello: livelloDella(
+      soglie === SOGLIE.temperatura ? inCelsius(valore, unita) : valore,
+      soglie,
+    ),
   };
 }
 
@@ -156,7 +182,7 @@ export function letturaDelNodo(nodo = {}, states = {}) {
     /* «Non risponde» e «e' spento» sono due cose diverse, e la scheda le dice
      * diverse: la prima e' un problema di rete o di Home Assistant, la seconda
      * e' un nodo che qualcuno ha fermato. */
-    muto: Boolean(clean(nodo.stato)) && !statoDelNodo,
+    muto: Boolean(clean(nodo.stato)) && nonRisponde(statoDelNodo),
     cpu: misura(nodo.cpu, states, SOGLIE.carico),
     ram: misura(nodo.ram, states, SOGLIE.carico),
     disco: misura(nodo.disco, states, SOGLIE.carico),
@@ -231,14 +257,20 @@ export function bindNodoToDevice({
   const classe = (voce) =>
     clean(voce.device_class || states?.[clean(voce.entity_id)]?.attributes?.device_class);
 
+  /* Solo percentuali, e senza ripiego.
+   *
+   * Le barre del nodo sono percentuali: la larghezza e' il valore, e le soglie
+   * sono settanta e novanta. Un sensore che si chiama «disk» ma scrive 150 GiB
+   * non e' una percentuale, e prendendolo lo stesso si disegnava una barra
+   * rossa piena su un disco mezzo vuoto. Meglio una casella che resta vuota —
+   * si riempie a mano in un secondo — di una barra che mente. */
   const percentuale = (chiave) =>
     elenco.find(
       (voce) =>
         dominio(voce) === "sensor" &&
         unita(voce) === "%" &&
         PAROLE[chiave].test(parole(voce, states)),
-    ) ||
-    elenco.find((voce) => dominio(voce) === "sensor" && PAROLE[chiave].test(parole(voce, states)));
+    );
 
   const stato =
     elenco.find(

@@ -14,6 +14,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   PIOGGIA_CHE_BASTA_MM,
+  inMillimetri,
   siPuoSaltare,
   stapiovendo,
   verdettoDellaPioggia,
@@ -84,4 +85,38 @@ test("i due sensori si scrivono una volta sola, sotto il meteo", async () => {
   assert.match(irrigazione, /const rain = entityNumber\(config\.rainEnt\)/);
   /* E nessuna seconda casella per lo stesso pluviometro. */
   assert.doesNotMatch(irrigazione, /ed-irr-pioggia-oggi/);
+});
+
+/* ── quello che la revisione della #481 ha trovato ─────────────────────── */
+
+test("i pollici diventano millimetri prima del giudizio", () => {
+  /* Chi ha Home Assistant in unità imperiali ha un pluviometro che scrive
+   * `in`: zero virgola tre pollici sono sette millimetri e mezzo, cioè un giro
+   * di irrigazione già fatto dal cielo. Confrontati con cinque senza
+   * convertirli diventavano «asciutto», e sotto al meteo si leggeva «0,3 mm». */
+  assert.equal(Math.round(inMillimetri(0.3, "in") * 10) / 10, 7.6);
+  assert.equal(Math.round(inMillimetri(0.5, "in/h") * 10) / 10, 12.7);
+  assert.equal(inMillimetri(4.2, "mm"), 4.2, "i millimetri restano quelli");
+  assert.equal(inMillimetri(4.2, ""), 4.2, "e chi non dichiara l'unità scrive millimetri");
+  assert.equal(inMillimetri("", "in"), null);
+
+  const verdetto = verdettoDellaPioggia({ oggi: inMillimetri(0.3, "in") });
+  assert.equal(verdetto.chiave, "bagnato");
+  assert.equal(siPuoSaltare(verdetto), true);
+});
+
+test("il verdetto della pioggia ferma il programma, e il tasto a mano no", async () => {
+  /* «Questo potrebbe integrarsi anche su gestione irrigazione»: prima la
+   * pastiglia scriveva «terreno bagnato» e un istante dopo l'impianto partiva
+   * lo stesso, perché il cancello guardava solo la previsione e il terreno. */
+  const sezione = await readFile(
+    new URL("../src/sections/pool-irrigation-scene-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezione, /function pioggiaDiOggi\(states\)/);
+  assert.match(sezione, /const pioggia = pioggiaDiOggi\(allStates\(\)\);\s*\n\s*if \(siPuoSaltare\(pioggia\)\)/);
+  /* Dentro `if (!force)`: il tasto che fa partire a mano passa comunque. */
+  assert.match(sezione, /if \(!force\) \{[\s\S]{0,400}pioggiaDiOggi\(allStates\(\)\)/);
+  /* E i millimetri si convertono prima, una volta sola per tutt'e due. */
+  assert.match(sezione, /inMillimetri\(dalCielo\.intensita\?\.valore, dalCielo\.intensita\?\.unita\)/);
 });

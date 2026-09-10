@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "각각 자기 설비의 이름으로",
   "edit": "수정",
   "empty — add loads": "비어 있음 — 부하를 추가하세요",
+  "enough rain already": "이미 충분히 내렸음",
   "entities": "엔터티",
   "entities linked": "개 엔티티를 연결했습니다",
   "entity": "엔터티",

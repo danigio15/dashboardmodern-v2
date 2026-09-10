@@ -1224,6 +1224,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Engine running",
   "Enough on its own: on and off, no numbers.",
   "Enough on its own: the card says on and off, and does not pretend to know the degrees.",
+  "enough rain already",
   "Enter a label.",
   "Enter a load name",
   "Enter a name and a valid climate entity",

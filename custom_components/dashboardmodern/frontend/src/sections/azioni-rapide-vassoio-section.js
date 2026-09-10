@@ -203,7 +203,7 @@ function tingi() {
     if (tinta) tasto.style.setProperty("--dm-azione-tinta", tinta);
     /* I tasti stanno nell'ordine delle azioni: e' il guscio a scriverli, uno
      * per voce, e lo stesso indice che il suo `onclick` porta dentro. */
-    const acceso = azioneAccesa(azioni[indice], states);
+    const acceso = azioneAccesa(azioni[indice], states, root.resolveEntity);
     if (acceso === true) tasto.dataset.dmAcceso = "true";
     else delete tasto.dataset.dmAcceso;
     indice += 1;
@@ -212,7 +212,7 @@ function tingi() {
 
 /** Le entita' che i tasti guardano: serve alle prove e a chi ascolta gli stati. */
 export function entitaDeiTasti() {
-  return entitaDelleAzioni(azioniDelGuscio());
+  return entitaDelleAzioni(azioniDelGuscio(), root.resolveEntity);
 }
 
 function onda(evento) {

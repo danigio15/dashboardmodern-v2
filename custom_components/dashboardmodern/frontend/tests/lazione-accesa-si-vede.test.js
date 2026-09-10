@@ -85,3 +85,39 @@ test("il ripiano accende i tasti e chiede le azioni al guscio", async () => {
     "il tasto acceso non usa la tinta dell'azione",
   );
 });
+
+/* ── quello che la revisione della #481 ha trovato ─────────────────────── */
+
+test("un'azione scritta con una scorciatoia della plancia si guarda col nome vero", () => {
+  /* Chi esegue l'azione traduce l'alias prima di parlare con Home Assistant; il
+   * registro degli stati però conosce solo i nomi veri, e cercarci dentro
+   * `dm.luce_salone` non trovava niente: il tasto restava spento anche dopo
+   * aver acceso la luce. */
+  const states = { "light.salone": { state: "on", attributes: {} } };
+  const risolvi = (id) => (id === "dm.luce_salone" ? "light.salone" : id);
+  const azione = { type: "toggle", entity: "dm.luce_salone" };
+
+  assert.equal(azioneAccesa(azione, states), null, "senza traduzione non si trova niente");
+  assert.equal(azioneAccesa(azione, states, risolvi), true);
+  assert.deepEqual(entitaDelleAzioni([azione], risolvi), ["light.salone"]);
+});
+
+test("anche le luci di un gruppo si traducono una per una", () => {
+  const states = {
+    "light.cucina": { state: "off", attributes: {} },
+    "light.salone": { state: "on", attributes: {} },
+  };
+  const risolvi = (id) => (id.startsWith("dm.") ? `light.${id.slice(3)}` : id);
+  const gruppo = { type: "luci_group", lights: ["dm.cucina", "dm.salone"] };
+
+  assert.equal(azioneAccesa(gruppo, states, risolvi), true, "una accesa basta");
+  assert.deepEqual(entitaDelleAzioni([gruppo], risolvi), ["light.cucina", "light.salone"]);
+});
+
+test("un traduttore che si rompe non spegne il tasto", () => {
+  const states = { "light.salone": { state: "on", attributes: {} } };
+  const rotto = () => {
+    throw new Error("niente");
+  };
+  assert.equal(azioneAccesa({ type: "toggle", entity: "light.salone" }, states, rotto), true);
+});

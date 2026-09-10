@@ -321,3 +321,49 @@ test("l'editor chiede le mappe e le letture con la stessa riga dei comandi", asy
    * cosa chiesta due volte, in due posti che possono discordare. */
   assert.doesNotMatch(editor, /data-robot-field="mapEntity"/);
 });
+
+/* ── quello che la revisione della #481 ha trovato ─────────────────────── */
+
+test("«m» sono metri, non minuti", () => {
+  /* In Home Assistant `m` è l'unità dei metri, e nella plancia lo è dappertutto:
+   * una distanza scelta a mano — «50 m» — finiva scritta «50 min». I minuti le
+   * integrazioni li scrivono `min`. */
+  assert.equal(durataLeggibile(50, "m", "it"), null);
+  assert.equal(durataLeggibile(50, "min", "it"), "50 min");
+});
+
+test("le letture di un dispositivo sono quelle del dispositivo", () => {
+  /* Il menu delle integrazioni sa dal registro quali entità sono di quel
+   * dispositivo. Indovinarle dal nome sbagliava in tutt'e due i versi: lasciava
+   * fuori una lettura chiamata in un altro modo, e prendeva dentro il sensore
+   * di qualcun altro che comincia uguale. */
+  const states = {
+    "vacuum.pippo": { state: "docked", attributes: { friendly_name: "Pippo" } },
+    "sensor.pippo_filtro": {
+      state: "80",
+      attributes: { friendly_name: "Pippo filtro", unit_of_measurement: "%" },
+    },
+    "sensor.filtro_del_robot": {
+      state: "60",
+      attributes: { friendly_name: "Filtro del robot", unit_of_measurement: "%" },
+    },
+    "sensor.pippo_pluto_filtro": {
+      state: "10",
+      attributes: { friendly_name: "Pippo Pluto filtro", unit_of_measurement: "%" },
+    },
+  };
+  const dispositivo = { entity: "vacuum.pippo" };
+
+  /* Dal nome: prende il sensore dell'altro robot che comincia uguale, e lascia
+   * fuori quello vero che si chiama in un altro modo. */
+  const dalNome = lettureRiconosciute(dispositivo, states);
+  assert.ok(dalNome.includes("sensor.pippo_pluto_filtro"));
+  assert.ok(!dalNome.includes("sensor.filtro_del_robot"));
+
+  /* Dall'elenco del registro: esattamente le sue. */
+  const dalRegistro = lettureRiconosciute(dispositivo, states, [
+    "vacuum.pippo",
+    "sensor.filtro_del_robot",
+  ]);
+  assert.deepEqual(dalRegistro, ["sensor.filtro_del_robot"]);
+});

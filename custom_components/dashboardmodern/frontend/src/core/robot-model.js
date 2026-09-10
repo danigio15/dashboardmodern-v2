@@ -342,9 +342,14 @@ export function bindRobotToDevice({
   };
   nato.mapEntity = nato.mappe[0] || "";
   /* Le letture che si riconoscono da sole (#468): il filtro, le spazzole,
-   * l'area pulita, le pulizie fatte. Si guardano con lo stato vero, non con
-   * l'elenco del registro, perche' e' li' che stanno unita' e nomi. */
-  const letture = lettureRiconosciute(nato, states);
+   * l'area pulita, le pulizie fatte. Sono quelle DI QUEL robot — l'elenco
+   * arriva dal registro di Home Assistant, ed e' esatto — lette pero' sullo
+   * stato vero, perche' e' li' che stanno unita' e nomi. */
+  const letture = lettureRiconosciute(
+    nato,
+    states,
+    elenco.map((voce) => clean(voce.entity_id)),
+  );
   nato.letture = letture.length ? letture : elencoLetture(precedente.letture);
   return nato;
 }

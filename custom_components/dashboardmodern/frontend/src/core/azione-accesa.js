@@ -51,7 +51,7 @@ export function entitaDellAzione(azione) {
  * colora solo il `true`: il `false` e' il tasto normale, e il `null` non deve
  * nemmeno sembrare spento.
  */
-export function azioneAccesa(azione, states = {}) {
+export function azioneAccesa(azione, states = {}, risolvi = null) {
   if (!azione || typeof azione !== "object") return null;
   /* Un gruppo di luci e' acceso se lo e' almeno una: e' la stessa regola con
    * cui la plancia conta le luci accese di una stanza, e quella che uno ha in
@@ -61,7 +61,7 @@ export function azioneAccesa(azione, states = {}) {
     if (!luci.length) return null;
     let vive = 0;
     for (const luce of luci) {
-      const stato = minuscolo(states?.[luce]?.state);
+      const stato = minuscolo(states?.[risolta(luce, risolvi)]?.state);
       if (MUTI.has(stato)) continue;
       vive += 1;
       if (ACCESI.has(stato)) return true;
@@ -70,24 +70,40 @@ export function azioneAccesa(azione, states = {}) {
   }
   const entity = entitaDellAzione(azione);
   if (!entity) return null;
-  const stato = minuscolo(states?.[entity]?.state);
+  const stato = minuscolo(states?.[risolta(entity, risolvi)]?.state);
   if (MUTI.has(stato)) return null;
   /* Uno script mentre gira e' acceso: e' l'unico caso in cui un gesto ha una
    * durata, e vederlo acceso dice «sta ancora andando». */
   return ACCESI.has(stato);
 }
 
+/* Il nome vero di un'entita' scritta con una scorciatoia.
+ *
+ * Un'azione rapida si puo' configurare con un alias della plancia — `dm.luce`,
+ * per dire — e chi la esegue lo traduce prima di parlare con Home Assistant. Il
+ * registro degli stati pero' conosce solo i nomi veri: cercarci dentro l'alias
+ * non trova niente, e il tasto restava spento anche dopo aver acceso la luce.
+ * Qui si traduce prima di guardare. */
+function risolta(entity, risolvi) {
+  if (typeof risolvi !== "function") return entity;
+  try {
+    return pulito(risolvi(entity)) || entity;
+  } catch (_errore) {
+    return entity;
+  }
+}
+
 /** Le entita' che le azioni guardano: serve a chi decide se ridisegnare. */
-export function entitaDelleAzioni(azioni = []) {
+export function entitaDelleAzioni(azioni = [], risolvi = null) {
   const elenco = [];
   for (const azione of Array.isArray(azioni) ? azioni : []) {
     if (minuscolo(azione?.type) === "luci_group") {
       for (const luce of Array.isArray(azione?.lights) ? azione.lights : [])
-        if (pulito(luce)) elenco.push(pulito(luce));
+        if (pulito(luce)) elenco.push(risolta(pulito(luce), risolvi));
       continue;
     }
     const entity = entitaDellAzione(azione);
-    if (entity) elenco.push(entity);
+    if (entity) elenco.push(risolta(entity, risolvi));
   }
   return [...new Set(elenco)];
 }

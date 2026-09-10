@@ -31,6 +31,32 @@ export const PIOGGIA_CHE_BASTA_MM = 5;
  * stazioni economiche oscillano attorno allo zero quando l'imbuto e' bagnato. */
 const PIOGGIA_VERA_MM_H = 0.2;
 
+/* Un pollice sono venticinque virgola quattro millimetri.
+ *
+ * Home Assistant lascia scegliere le unita' imperiali, e chi le usa ha un
+ * pluviometro che scrive `in` e `in/h`. Le soglie qui sono in millimetri —
+ * cinque millimetri sono il giro di un impianto — e confrontarci zero virgola
+ * tre pollici, che sono sette virgola sei millimetri, vuol dire chiamare
+ * «asciutto» un giardino appena bagnato dal cielo, e scrivere «0,3 mm» sotto
+ * al meteo. Si converte prima di giudicare e prima di scrivere.
+ *
+ * Il resto — `mm`, `mm/h`, o niente — e' gia' quello che serve: una stazione
+ * che non dichiara l'unita' i millimetri li scrive comunque. */
+const POLLICE_IN_MM = 25.4;
+
+/** Una misura di pioggia in millimetri, qualunque unita' porti. */
+export function inMillimetri(valore, unita = "") {
+  const n = numero(valore);
+  if (n === null) return null;
+  const misura = String(unita ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  return misura === "in" || misura === "in/h" || misura === "inch" || misura === "inches"
+    ? n * POLLICE_IN_MM
+    : n;
+}
+
 /** Se in questo momento sta piovendo davvero. */
 export function stapiovendo(intensita) {
   const mm = numero(intensita);

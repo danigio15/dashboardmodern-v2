@@ -244,6 +244,42 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   doppioni guarda quella stessa mappa, quindi nemmeno lei se ne accorgeva. Ora
   si chiede anche alla collezione, che le sue schede le sa sempre.
 
+- **Quello che la revisione ha trovato, prima che uscisse**
+
+  Dodici rilievi sul codice di questa versione, verificati e corretti uno per
+  uno:
+
+  - **L'irrigazione adesso guarda davvero il pluviometro.** La pastiglia
+    scriveva «terreno bagnato» e un istante dopo l'impianto partiva lo stesso:
+    il cancello del programma guardava solo la *previsione* e il terreno. Ora
+    guarda anche l'acqua caduta — che è quello che chiedeva la #478 — e il
+    tasto che fa partire a mano passa comunque.
+  - **La pioggia in pollici.** Chi ha Home Assistant in unità imperiali ha un
+    pluviometro che scrive `in`: zero virgola tre pollici sono sette
+    millimetri e mezzo, e confrontati con cinque senza convertirli diventavano
+    «asciutto», scritti «0,3 mm».
+  - **I nodi del cluster.** «Non risponde» e «spento» erano diventati la stessa
+    cosa per un nodo che Home Assistant non riesce a raggiungere; i gradi in
+    Fahrenheit finivano contro soglie in Celsius (70 °F, cioè 21°, segnati come
+    caldi); dall'integrazione entrava anche un sensore in GiB dove serviva una
+    percentuale — e 150 GiB diventavano una barra rossa piena; e la fascia non
+    si ridisegnava ai cambi di stato, cioè restava ferma proprio mentre il nodo
+    lavorava.
+  - **Le due mappe di un robot.** Chi toccava la linguetta mentre il disegno di
+    prima era ancora per strada se lo vedeva arrivare sopra quello giusto, e da
+    lì in poi la card accettava il disegno scambiato.
+  - **«m» sono metri.** Una lettura scelta a mano in metri — «50 m» — veniva
+    scritta «50 min».
+  - **Le letture di un dispositivo** sono adesso quelle di *quel* dispositivo,
+    prese dall'elenco del registro invece che indovinate dal nome: prima
+    restava fuori una lettura chiamata in un altro modo, ed entrava il sensore
+    di un altro apparecchio che comincia uguale.
+  - **La tessera delle stampanti** contava due volte la stampante ferma *e*
+    agli sgoccioli: diceva «2» con sotto scritto «1 ferma».
+  - **Le azioni rapide** scritte con una scorciatoia della plancia non si
+    coloravano mai: chi le esegue traduce la scorciatoia, chi ne legge lo stato
+    no.
+
 - **Un solo posto per chiamare un servizio di Home Assistant**
 
   La stessa funzione stava scritta uguale in tre sezioni — robot, luci, stanze —

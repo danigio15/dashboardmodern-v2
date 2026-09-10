@@ -3007,6 +3007,7 @@ export default Object.freeze({
   "each one named after its plant": "हर एक अपने संयंत्र के नाम से",
   "edit": "बदलना",
   "empty — add loads": "खाली — लोड जोड़ें",
+  "enough rain already": "पहले ही काफ़ी बारिश हो चुकी है",
   "entities": "इकाइयाँ",
   "entities linked": "इकाइयाँ जुड़ीं",
   "entity": "इकाई",
