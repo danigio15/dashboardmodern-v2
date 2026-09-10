@@ -157,6 +157,7 @@ import {
   CHIAVE_SOGLIA_CHIUSA,
   sogliaDellaCopertura,
   coverEntries,
+  contoDelleAperture,
   coverKindLabel,
   coverPositionChoices,
   coverPresetPosition,
@@ -1127,7 +1128,6 @@ function coversModel(states) {
     })
     .filter(Boolean);
   if (!rows.length) return null;
-  const open = rows.filter((row) => row.open);
   /* Una tapparella alzata non e' una finestra aperta (#442).
    *
    * «Nella home il chip indica 6 finestre aperte ma in realta' sono 6
@@ -1146,11 +1146,10 @@ function coversModel(states) {
    * quelli scritti dentro una riga delle Finestre. Qui si corregge la parola,
    * che e' il pezzo che diceva il falso; e quando la sezione porta le due cose
    * insieme, la didascalia le dice separate invece di sommarle in silenzio. */
-  const coperture = rows.filter((row) => !row.soloSensore);
-  const contatti = rows.filter((row) => row.soloSensore);
-  const alzate = coperture.filter((row) => row.open);
-  const aperte = contatti.filter((row) => row.open);
-  const soloMotori = coperture.length > 0 && contatti.length === 0;
+  /* Chi si alza e chi si apre, e quale delle due cose conta il numero grande:
+   * la regola sta tutta in `contoDelleAperture`, che e' pura e si prova con i
+   * numeri invece che rileggendo queste righe. */
+  const { alzate, aperte, soloMotori, insieme, contate } = contoDelleAperture(rows);
   const didascalia = () => {
     if (soloMotori) return nomiAccesi(alzate, () => true, t("Tutte abbassate", "All down"));
     /* Le finestre aperte si NOMINANO, una per una.
@@ -1172,15 +1171,15 @@ function coversModel(states) {
     /* Il nome dice cosa c'e' dentro: senza un solo contatto sull'anta questa
      * tessera parla di motori, e si chiama come loro. */
     label: soloMotori ? t("Tapparelle", "Shutters") : t("Finestre", "Windows"),
-    value: String(open.length),
+    value: String(contate.length),
     caption: didascalia(),
-    ring: Math.round((open.length / rows.length) * 100),
+    ring: Math.round((contate.length / insieme.length) * 100),
     rows,
     /* Le aperture escono col modello, come le luci accese: chi le conta senza
      * disegnarle legge questo campo invece di rifiltrare le righe per conto
      * suo, e due conti sulla stessa cosa non possono divergere se il conto e'
      * uno. */
-    open,
+    open: contate,
   };
 }
 

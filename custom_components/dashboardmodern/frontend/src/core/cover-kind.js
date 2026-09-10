@@ -204,6 +204,46 @@ export function coverEntries(item = {}) {
   return uscite;
 }
 
+/* Cosa conta la tessera delle Finestre, e su cosa (#462).
+ *
+ * Una riga della sezione porta due cose diverse: i motori — tapparelle, tende,
+ * tende da sole — che si ALZANO, e i contatti sull'anta, che si APRONO. La
+ * #442 aveva gia' stabilito che sono due notizie e che la didascalia le deve
+ * dire separate; il numero grande pero' era rimasto la somma delle righe
+ * aperte.
+ *
+ * «Ne ho 6 ma ne risultano 11.» Una finestra configurata come si configura —
+ * la tapparella piu' il contatto del suo infisso — di righe ne porta due, e
+ * sei finestre con la persiana su e l'anta aperta facevano undici: un numero
+ * che non conta ne' le finestre ne' le tapparelle, e che nessuno puo'
+ * verificare guardandosi intorno per casa.
+ *
+ * La regola e' che il numero conta la cosa di cui la tessera porta il nome:
+ * dove i contatti ci sono la tessera si chiama Finestre e conta le ante
+ * aperte, dove non ce n'e' nessuno si chiama Tapparelle e conta i motori
+ * alzati. Cosi' una finestra pesa una volta sola, e l'anello ha per
+ * denominatore lo stesso insieme del numeratore.
+ */
+export function contoDelleAperture(righe = []) {
+  const elenco = Array.isArray(righe) ? righe : [];
+  const coperture = elenco.filter((riga) => riga && !riga.soloSensore);
+  const contatti = elenco.filter((riga) => riga && riga.soloSensore);
+  const alzate = coperture.filter((riga) => riga.open);
+  const aperte = contatti.filter((riga) => riga.open);
+  /* Senza un solo contatto la tessera parla di motori e si chiama come loro. */
+  const soloMotori = coperture.length > 0 && contatti.length === 0;
+  const insieme = soloMotori ? coperture : contatti;
+  return {
+    coperture,
+    contatti,
+    alzate,
+    aperte,
+    soloMotori,
+    insieme,
+    contate: soloMotori ? alzate : aperte,
+  };
+}
+
 /* La tapparella comandata da due rele' (#194).
  *
  * Uno Shelly 2PM lasciato in modalita' interruttore non espone una copertura:

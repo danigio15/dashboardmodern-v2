@@ -7,6 +7,26 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+### Corretto
+
+- **Finestre: sei finestre non fanno undici** (#462)
+
+  «Ne ho 6 ma ne risultano 11, credo conti ancora i sensori e le tapparelle
+  insieme.» Contava esattamente quello. La 1.4.16 aveva corretto il nome della
+  tessera e la didascalia — le tapparelle si *alzano*, le ante si *aprono* — ma
+  il numero grande era rimasto la somma delle righe aperte, e una finestra
+  configurata come si configura, la tapparella più il contatto del suo infisso,
+  di righe ne porta due.
+
+  Adesso il numero conta la cosa di cui la tessera porta il nome: le ante aperte
+  dove i contatti ci sono, i motori alzati dove non ce n'è nessuno. Le tapparelle
+  su restano nella didascalia, dove stavano già, e l'anello ha per denominatore
+  lo stesso insieme del numeratore invece di tutte le righe insieme — sei
+  finestre aperte su sei disegnavano poco più di metà anello.
+
+  La regola sta adesso in un modulo puro, e si prova con i numeri: la casa della
+  segnalazione — undici righe, sei finestre — è una delle prove.
+
 ## 1.4.17
 
 Un giro sui colori e sui conti. Il tema scuro aveva una famiglia intera di
