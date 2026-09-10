@@ -712,6 +712,42 @@ function loadCard(panel, load, index, total) {
   });
   nameField.append(name);
 
+  /* In che stanza sta questo carico (#426).
+   *
+   * «In senza stanza appaiono tutti i vari carichi di stanze ed
+   *  elettrodomestici: se e' un comportamento voluto, come posso toglierli?»
+   *
+   * Non era voluto: la pagina Stanze ha un blocco «Carichi» da sempre, e
+   * nessun carico aveva una stanza da dargli — questa casella non c'era. Il
+   * blocco restava vuoto in ogni stanza e tutti i carichi finivano nel
+   * raccoglitore, che serve ad accorgersi di una dimenticanza e con dentro
+   * tutto non serve piu' a niente. La casella e' la stessa delle altre schede.
+   *
+   * Chi ha gia' detto «cerchio = stanza» qui sotto non deve ridirlo: quella
+   * scelta arriva gia' compilata, ed e' la risposta giusta — quel cerchio E'
+   * quella stanza. */
+  let stanzaField = null;
+  let stanzaScelta = null;
+  if (stanze.length) {
+    const riga = element("label", "ed-slot dm-loads-field");
+    riga.append(element("span", "ed-slot-lbl", t("Stanza", "Room")));
+    const scelta = doc.createElement("select");
+    scelta.className = "ed-input";
+    scelta.dataset.dmLoadStanza = "true";
+    scelta.append(new Option(`— ${t("Nessuna stanza", "No room")} —`, ""));
+    for (const stanza of stanze) {
+      const valore = clean(stanza.id || stanza.name);
+      scelta.append(new Option(stanza.name, valore, false, valore === clean(load.room_id)));
+    }
+    scelta.addEventListener("change", () => {
+      load.room_id = clean(scelta.value);
+      markDirty(panel);
+    });
+    riga.append(scelta);
+    stanzaScelta = scelta;
+    stanzaField = riga;
+  }
+
   let roomField = null;
   if (stanze.length && caricoDelPrimoImpianto(load)) {
     const riga = element("label", "ed-slot dm-loads-field dm-loads-room-circle");
@@ -727,6 +763,12 @@ function loadCard(panel, load, index, total) {
     }
     scelta.addEventListener("change", async () => {
       await impostaStanzaDelCerchio(load, scelta.value);
+      /* Il cerchio è quella stanza: lo è anche per la pagina Stanze, senza
+       * doverlo ridire nella casella qui sopra. */
+      if (clean(scelta.value)) {
+        load.room_id = clean(scelta.value);
+        if (stanzaScelta) stanzaScelta.value = load.room_id;
+      }
       /* Il cerchio è quella stanza: il nome è quello della stanza. Togliendo
        * la scelta il nome resta com'è — è già il nome di qualcosa. */
       const scelto = stanze.find((stanza) => clean(stanza.id || stanza.name) === scelta.value);
@@ -771,6 +813,7 @@ function loadCard(panel, load, index, total) {
 
   /* Il nome, la stanza quando c'è, poi icona e colore. */
   identity.append(nameField);
+  if (stanzaField) identity.append(stanzaField);
   if (roomField) identity.append(roomField);
   identity.append(icona, colorField);
   body.append(identity);

@@ -262,6 +262,14 @@ export function loadsConfigModel({
        * una svista: e' quello che lascia otto carichi gia' configurati dove
        * stanno, il giorno in cui questo campo compare. */
       plant: clean(load[LOAD_PLANT_FIELD]),
+      /* In che stanza sta (#426).
+       *
+       * Il blocco «Carichi» della pagina Stanze prometteva una stanza che
+       * nessun carico aveva, e cosi' restava vuoto in ogni stanza mentre tutti
+       * i carichi finivano nel raccoglitore «Senza stanza». Chi aveva gia'
+       * detto «cerchio = stanza» ha gia' risposto: quella scelta vale come
+       * stanza finche' non se ne sceglie un'altra. */
+      room_id: clean(load.room_id || load.metadata?.flow_room),
     };
   });
 }
@@ -286,6 +294,7 @@ export function emptyLoad(model = [], locale = "it", plant = "") {
     /* Un carico nuovo nasce nell'impianto che si sta guardando, non nel
      * primo: chi apre «casa Donato» e aggiunge un cerchio lo aggiunge li'. */
     plant: clean(plant),
+    room_id: "",
   };
 }
 
@@ -413,6 +422,7 @@ export function loadsConfigToSections(model = [], previous = [], plant = null) {
           name: clean(load.name) || `Carico ${index + 1}`,
           icon: clean(load.icon) || "🔌",
           color: clean(load.color) || PALETTE[index % PALETTE.length],
+          room_id: clean(load.room_id),
           order: index,
           show_in_dashboard: load.visible !== false,
           power_entity: clean(load.power),

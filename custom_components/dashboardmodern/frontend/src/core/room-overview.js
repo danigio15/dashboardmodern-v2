@@ -138,6 +138,24 @@ export function roomRefOf(item = {}) {
   return clean(item.room_id || item.roomId || item.room || "");
 }
 
+/* L'entita' che identifica una voce, per riconoscerla in due elenchi diversi.
+ *
+ * Quasi tutte ne hanno una che comanda; una finestra che si apre a mano ha il
+ * solo sensore del contatto. Serve qui perche' la stessa cosa arriva da due
+ * parti — la sua scheda e l'assegnazione a mano — e sono due oggetti diversi
+ * che parlano della stessa entita'. */
+export function entityOf(item = {}) {
+  return clean(
+    item?.entity ||
+      item?.entities?.[0] ||
+      item?.contact ||
+      item?.contact_entity ||
+      item?.power ||
+      item?.power_entity ||
+      "",
+  );
+}
+
 /** Se questa voce appartiene a questa stanza. */
 export function belongsToRoom(item, room) {
   const riferimento = roomRefOf(item);
@@ -249,6 +267,26 @@ export function lightItems(lights, assignments = {}) {
   }));
 }
 
+/* La stanza di un carico (#426).
+ *
+ * «In senza stanza appaiono tutti i vari carichi di stanze ed elettrodomestici,
+ *  anche se questi sono correttamente assegnati alle stanze di riferimento.»
+ *
+ * Il blocco «Carichi» prometteva una stanza e nessun carico ne aveva una: la
+ * scheda dei Carichi non la chiedeva. Cosi' il blocco restava vuoto in ogni
+ * stanza e OGNI carico finiva nel raccoglitore — che serve ad accorgersi di
+ * una dimenticanza e diventa inutile quando ci finisce dentro tutto.
+ *
+ * Adesso la scheda la chiede. E chi aveva gia' detto «cerchio = stanza» non
+ * deve ridirlo: quella scelta e' gia' la risposta — quel cerchio E' quella
+ * stanza — e vale come stanza del carico finche' non se ne sceglie un'altra. */
+export function loadItems(loads) {
+  return array(loads).map((load) => ({
+    ...load,
+    room_id: clean(load?.room_id || load?.roomId || load?.room || load?.metadata?.flow_room),
+  }));
+}
+
 /* Le zone d'irrigazione stanno dentro un oggetto, non in un elenco. */
 const irrigationZones = (irrigation) => array(irrigation?.zones ?? irrigation);
 
@@ -293,13 +331,42 @@ export function roomOverviewModel(input = {}) {
     appliances: array(input.appliances),
     media: array(input.media),
     cameras: array(input.cameras),
-    loads: array(input.loads),
+    loads: loadItems(input.loads),
     robots: array(input.robots),
     irrigation: irrigationZones(input.irrigation),
     assigned: array(input.assigned),
   };
 
   const assegnate = new Set();
+  const entitaGiaViste = new Set();
+  /* Una cosa sola compare una volta sola (#426).
+   *
+   * «Dopo l'aggiornamento che ha identificato i vari speaker nelle stanze,
+   *  questi vengono duplicati: se si clicca quello sotto la sezione musica si
+   *  va nella sezione corretta, se si seleziona quello sotto la voce altro in
+   *  questa stanza si torna alla home della dashboard.»
+   *
+   * Lo stesso lettore arrivava da due parti: dalla sua scheda, che la stanza
+   * la chiede da quando c'e' il blocco Musica, e dall'assegnazione a mano, che
+   * era il modo di metterlo in stanza PRIMA che quel blocco esistesse. Due
+   * oggetti diversi, la stessa entita': il confronto guardava l'oggetto, e
+   * l'oggetto era diverso, quindi passavano tutti e due.
+   *
+   * Chi ha la stanza per mestiere viene prima — sa dove portare col tocco —
+   * e l'assegnazione a mano, che a quel punto ripete, resta indietro. Vale
+   * anche fra stanze diverse: la stessa entita' in due stanze non e' una
+   * comodita', e' una bugia detta due volte. */
+  const nuova = (item) => {
+    if (assegnate.has(item)) return false;
+    const entita = entityOf(item);
+    if (entita && entitaGiaViste.has(entita)) return false;
+    return true;
+  };
+  const segna = (item) => {
+    assegnate.add(item);
+    const entita = entityOf(item);
+    if (entita) entitaGiaViste.add(entita);
+  };
   const pagine = stanze.map((room) => {
     const blocchi = ROOM_BLOCKS.map((blocco) => {
       const voci = sorgenti[blocco.section].filter((item) => {
@@ -307,9 +374,9 @@ export function roomOverviewModel(input = {}) {
          * non e' una ragione per far comparire la stessa luce due volte: la
          * prima che la reclama se la tiene, e la seconda resta vuota — che e'
          * anche il modo in cui il doppione si nota. */
-        if (assegnate.has(item)) return false;
+        if (!nuova(item)) return false;
         if (!belongsToRoom(item, room)) return false;
-        assegnate.add(item);
+        segna(item);
         return true;
       });
       return { ...blocco, voci };
@@ -330,7 +397,11 @@ export function roomOverviewModel(input = {}) {
    * accorgersene. */
   const orfane = ROOM_BLOCKS.map((blocco) => ({
     ...blocco,
-    voci: sorgenti[blocco.section].filter((item) => !assegnate.has(item)),
+    voci: sorgenti[blocco.section].filter((item) => {
+      if (!nuova(item)) return false;
+      segna(item);
+      return true;
+    }),
   }));
   const quanteOrfane = orfane.reduce((totale, blocco) => totale + blocco.voci.length, 0);
   if (quanteOrfane)

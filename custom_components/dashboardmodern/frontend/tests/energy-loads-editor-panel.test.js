@@ -587,14 +587,22 @@ test("la stanza si sceglie sotto il nome, e il nome la segue", async () => {
   sections.appliances = [];
   render();
 
-  /* L'ordine dei campi: la domanda «questo cerchio è una stanza?» viene prima
-   * dell'icona e del colore, non dopo l'elenco dei dispositivi. */
+  /* L'ordine dei campi: prima chi è questo carico — nome e stanza, come in
+   * ogni altra scheda — poi che cosa fa: «questo cerchio è una stanza?». E
+   * comunque prima dell'icona e del colore, non dopo l'elenco dei dispositivi.
+   *
+   * Sono due domande diverse e servono due caselle (#426). «Stanza» dice dove
+   * sta il carico, ed è quella che lo fa comparire nella pagina Stanze invece
+   * che nel raccoglitore. «Cerchio = stanza» dice che quel cerchio conta gli
+   * elettrodomestici di quella stanza: una linea col suo amperometro in
+   * garage vuole la prima e non la seconda. */
   const campi = panel
     .querySelector(".dm-loads-identity")
     .children.map((nodo) => nodo.querySelector(".ed-slot-lbl")?.textContent || "");
   assert.equal(campi[0], "Nome del carico");
-  assert.match(campi[1], /Cerchio = stanza/);
-  assert.match(campi[2], /Icona/);
+  assert.equal(campi[1], "Stanza");
+  assert.match(campi[2], /Cerchio = stanza/);
+  assert.match(campi[3], /Icona/);
 
   const scelta = panel.querySelector("[data-dm-load-room]");
   assert.ok(scelta, "la tendina della stanza non è nel blocco dell'identità");
@@ -604,6 +612,12 @@ test("la stanza si sceglie sotto il nome, e il nome la segue", async () => {
 
   /* La scelta è scritta sul carico canonico… */
   assert.equal(sections.loads[0].metadata.flow_room, "bagno");
+  /* …e la casella «Stanza» la segue: quel cerchio È quella stanza, e non si
+   * deve ridire in due posti. Si guarda la voce accesa della tendina, che è
+   * quello che si vede aprendola: `value` nel guscio delle prove è solo una
+   * proprietà, e direbbe di sì anche a tendina ridisegnata da capo. */
+  const tendinaStanza = panel.querySelector("[data-dm-load-stanza]");
+  assert.equal(tendinaStanza.children.find((voce) => voce.selected)?.value, "bagno");
   /* …e il nome è quello della stanza, nella casella e nel titolo. */
   assert.equal(panel.querySelector("[data-dm-load-name]").value, "Bagno");
   assert.equal(previewName(cards()[0]), "Bagno");
