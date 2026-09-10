@@ -3361,4 +3361,5 @@ export default Object.freeze({
   "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "لما يُعاد شحنه بدل استبداله: اللوح المثبت على الحائط، بطارية محمولة. الكيانان هما number.* أو input_number.*، وهما ما يعرضه الجهاز ليقول أين يبدأ الشحن من جديد وأين يتوقف. اتركهما فارغين وتبقى هذه بطارية كغيرها.",
   "Starts again below": "يبدأ من جديد تحت",
   "Stops above": "يتوقف فوق",
+  "No data for this period": "لا توجد بيانات لهذه الفترة",
 });

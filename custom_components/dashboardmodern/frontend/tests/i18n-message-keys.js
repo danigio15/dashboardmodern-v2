@@ -1914,6 +1914,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "No contact found",
   "No custom button",
   "No data",
+  "No data for this period",
   "No date in sight",
   "No detector found",
   "No device by that name.",

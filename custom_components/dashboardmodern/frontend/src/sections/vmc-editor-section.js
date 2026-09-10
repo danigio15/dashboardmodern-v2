@@ -54,10 +54,28 @@ function salva(elenco) {
   } catch (_error) {}
 }
 
-/** Se siamo nella scheda del Clima: e' quella che ha il form delle unita'. */
+/* Dove va appesa la scheda: DENTRO il Clima, non in fondo al corpo.
+ *
+ * «Ma perche' ventilazione meccanica e' inserito nella sezione sicurezza? E
+ * dentro minipc.» Perche' le sezioni del Config non sono linguette separate:
+ * stanno tutte nello STESSO `ed-body`, una sotto l'altra a fisarmonica. Questa
+ * scheda si appendeva in fondo al corpo — e il fondo del corpo, per chi ha
+ * aperto la Sicurezza o il MiniPC, e' sotto la Sicurezza o sotto il MiniPC.
+ * Non era finita nella sezione sbagliata: era finita in fondo a tutto, che da
+ * dove si guarda e' la stessa cosa.
+ *
+ * L'ancora e' il tasto che aggiunge un'unita' del Clima: e' lo stesso appiglio
+ * che usa il blocco del Clima rapido, che infatti non e' mai scappato. Il
+ * campo dell'entita' resta la prova che il Clima c'e', ma non basta a dire
+ * DOVE: nel corpo c'e' sempre, anche mentre si guarda un'altra sezione. */
+function tastoAggiungiClima() {
+  const body = doc?.getElementById?.("ed-body");
+  return body?.querySelector?.('[onclick*="edAddClima"]') || null;
+}
+
 function nellaSchedaClima() {
   const body = doc?.getElementById?.("ed-body");
-  return Boolean(body?.querySelector?.("#ed-cl-ent"));
+  return Boolean(body?.querySelector?.("#ed-cl-ent")) && Boolean(tastoAggiungiClima());
 }
 
 function etichetta(chiave) {
@@ -155,8 +173,13 @@ function corpoMarkup() {
 export function ensureVmcEditor() {
   const body = doc?.getElementById?.("ed-body");
   if (!body) return false;
-  let scheda = body.querySelector(`:scope > #${ANCORA}`);
+  let scheda = doc?.getElementById?.(ANCORA);
   if (!nellaSchedaClima()) {
+    scheda?.remove();
+    return false;
+  }
+  const aggiungi = tastoAggiungiClima();
+  if (!aggiungi) {
     scheda?.remove();
     return false;
   }
@@ -169,7 +192,11 @@ export function ensureVmcEditor() {
      * dirlo, l'interruttore «nel widget» accanto a una sonda della VMC
      * scriverebbe una scelta a nome del Clima. */
     scheda.setAttribute(MARCHIO_TESSERA, "vmc");
-    body.append(scheda);
+    aggiungi.before(scheda);
+  } else if (scheda.nextElementSibling !== aggiungi) {
+    /* Il guscio ridisegna il Clima e la scheda resta dov'era, cioe' fuori
+     * posto: si rimette accanto alla sua ancora invece di restare orfana. */
+    aggiungi.before(scheda);
   } else if (scheda.dataset.dmVmcFirma === firma && scheda.firstElementChild) {
     return true;
   }

@@ -104,6 +104,31 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Report: un mese senza dati mostrava i numeri del mese prima**
+
+  «Se seleziono 2025 o mesi precedenti non effettua il calcolo.» Non è che non
+  calcolava: teneva i numeri del periodo precedente. Quando i valori di un
+  periodo tornavano vuoti si ripescavano quelli di prima — regola nata per una
+  ragione buona (il Recorder che non risponde: meglio numeri vecchi ma veri che
+  uno zero, che è una bugia) ma applicata anche quando il Recorder risponde
+  «per questo periodo non ho niente», che è una risposta e non un silenzio.
+
+  Il risultato erano i kWh di settembre scritti sotto l'etichetta di agosto: da
+  fuori «non calcola» e «calcola sbagliato» sono la stessa cosa. La differenza
+  fra domanda caduta e periodo vuoto il codice la sapeva già e non se la
+  chiedeva. Adesso sì, e la card del dispositivo scrive **«Nessun dato per
+  questo periodo»** con i trattini, invece di lasciare in piedi numeri che
+  parlano di un altro mese.
+
+- **La ventilazione meccanica non è più «dentro» la Sicurezza o il MiniPC**
+
+  Le sezioni del Config non sono linguette separate: stanno tutte nello stesso
+  corpo, a fisarmonica. La scheda della VMC si appendeva in fondo al corpo — e
+  il fondo del corpo, per chi ha aperto la Sicurezza o il MiniPC, è sotto la
+  Sicurezza o sotto il MiniPC. Adesso si aggancia al tasto che aggiunge
+  un'unità del Clima, che è lo stesso appiglio del blocco Clima rapido: quello
+  infatti non è mai scappato.
+
 - **Varchi: un contatto scritto nelle Finestre è un varco anche lì**
 
   «Quelle che non sono configurate in varchi non le vedo nel widget relativo.» I

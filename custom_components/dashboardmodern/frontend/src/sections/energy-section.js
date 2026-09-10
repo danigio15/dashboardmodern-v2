@@ -702,10 +702,25 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso 
    * invece non e' un errore: e' un fatto, e si dice. */
   if (!Object.values(letti).some(Boolean) && caduti.length && !state.bundle) throw caduti[0].errore;
 
+  /* «Se seleziono 2025 o mesi precedenti non effettua il calcolo.»
+   *
+   * Non e' che non calcolava: teneva i numeri del periodo PRIMA. Qui si
+   * tornavano i valori vecchi ogni volta che i nuovi erano vuoti, e vuoto vuol
+   * dire due cose diverse:
+   *
+   * — la domanda al Recorder e' CADUTA: allora i numeri di prima sono vecchi
+   *   ma veri, e tenerli e' meglio di scrivere zero, che sarebbe una bugia;
+   * — il Recorder ha risposto «per questo periodo non ho niente»: e questa e'
+   *   una risposta, non un silenzio. Tenendo i numeri di prima si scrivevano i
+   *   kWh di settembre sotto l'etichetta di agosto, e da fuori sono due cose
+   *   indistinguibili — «non calcola» e «calcola sbagliato».
+   *
+   * La differenza la sapeva gia' `cadutaLa`, e non la si chiedeva. */
   const paniere = (chiaveDelPaniere, lettura, piani) => {
-    const values = cadutaLa(lettura) ? new Map() : valoriPerEntita(piani.plans, lettura.valori);
+    const caduta = cadutaLa(lettura);
+    const values = caduta ? new Map() : valoriPerEntita(piani.plans, lettura.valori);
     const precedente = state.bundle?.[chiaveDelPaniere];
-    if (!values.size && precedente?.values?.size) return precedente;
+    if (caduta && precedente?.values?.size) return precedente;
     return { devices: piani.devices, values };
   };
 
@@ -969,7 +984,36 @@ function applyDeviceDetail(bundle) {
   const source = clean(device?.history || entity);
   const monthValue = valueFrom(bundle.deviceMonth.values, source);
   const yearValue = valueFrom(bundle.deviceYear.values, source);
-  if (monthValue == null || yearValue == null) return false;
+  /* Un periodo senza numeri lo si DICE, invece di lasciare quelli di prima.
+   *
+   * Qui si usciva senza scrivere niente, e sullo schermo restavano i kWh del
+   * periodo precedente sotto l'etichetta di quello scelto: la card sembrava
+   * non aggiornarsi, o peggio sembrava sbagliare il conto. Un trattino non e'
+   * un numero: e' l'unica cosa vera da scrivere quando il Recorder dice che
+   * per quel mese non ha statistiche. */
+  if (monthValue == null || yearValue == null) {
+    for (const id of [
+      "ed-dkpi-mese",
+      "ed-dkpi-mese-eur",
+      "ed-dkpi-media",
+      "ed-dkpi-picco",
+      "ed-dkpi-risp-eur",
+      "ed-dkpi-risp-kwh",
+      "ed-dkpi-costo-eur",
+      "ed-dkpi-costo-kwh",
+      "ed-dkpi-anno-risp-eur",
+      "ed-dkpi-anno-risp-kwh",
+      "ed-dkpi-anno-costo-eur",
+      "ed-dkpi-anno-costo-kwh",
+    ])
+      setText(id, "—");
+    setText(
+      "ed-dkpi-picco-sub",
+      t("Nessun dato per questo periodo", "No data for this period"),
+    );
+    setText("ed-dkpi-year-lbl", String(Number(bundle.period?.year) || new Date().getFullYear()));
+    return false;
+  }
   const selectedMonth = Number(bundle.period?.month) || new Date().getMonth() + 1;
   const selectedYear = Number(bundle.period?.year) || new Date().getFullYear();
   const days = giorniPerLaMedia(selectedYear, selectedMonth);

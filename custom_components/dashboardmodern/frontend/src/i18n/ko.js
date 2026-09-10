@@ -3361,4 +3361,5 @@ export default Object.freeze({
   "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "교체하는 대신 충전하는 것을 위한 항목입니다. 벽걸이 태블릿, 보조 배터리 같은 것들이죠. 두 엔티티는 number.* 또는 input_number.*로, 기기가 어디서 다시 시작하고 어디서 멈추는지 알려 주는 것입니다. 비워 두면 다른 배터리와 똑같이 취급됩니다.",
   "Starts again below": "이 값 아래에서 다시 시작",
   "Stops above": "이 값 위에서 정지",
+  "No data for this period": "이 기간의 데이터가 없습니다",
 });

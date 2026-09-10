@@ -2028,6 +2028,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Nessun contatore energia: Giorno e Mese restano vuoti. Basta il contatore totale, il periodo viene calcolato da lì.": "No energy meter: Day and Month stay empty. A total meter is enough — the period is computed from it.",
   "Nessun contatto trovato": "No contact found",
   "Nessun dato giornaliero reale disponibile per questo periodo.": "No real daily data is available for this period.",
+  "Nessun dato per questo periodo": "No data for this period",
   "Nessun dato registrato": "No recorded data",
   "Nessun dato storico trovato in questo periodo": "No history found in this period",
   "Nessun disagio": "No discomfort",
