@@ -4185,8 +4185,15 @@ function rifiutiModel(states) {
     icon: "♻️",
     label: t("Rifiuti", "Waste"),
     value: primaRiga ? parolaDelQuando(primaRiga) : "—",
+    /* Quando il ritiro e' domani, la tessera dice il gesto e non solo il
+     * giorno (#441): «Da mettere fuori stasera» e' quello che uno deve fare
+     * adesso, mentre «Domani» lascia a chi legge il passo che conta. */
     caption: primo
-      ? prossimi.map((riga) => riga.name).join(" · ")
+      ? primo.quando === "domani"
+        ? `${t("Da mettere fuori stasera", "Put it out tonight")} · ${prossimi
+            .map((riga) => riga.name)
+            .join(" · ")}`
+        : prossimi.map((riga) => riga.name).join(" · ")
       : t("Nessuna data in vista", "No date in sight"),
     ring: null,
     attiva: Boolean(primo && (primo.quando === "oggi" || primo.quando === "domani")),

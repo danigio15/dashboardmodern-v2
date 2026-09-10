@@ -284,12 +284,12 @@ function corpoMarkup() {
     <button type="button" class="ed-btn-add dm-rifiuti-ed-aggiungi" data-dm-rifiuti-aggiungi${piene ? " disabled" : ""}>＋ ${esc(
       t("Aggiungi materiale", "Add material"),
     )}</button>
-    <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Calendario unico (facoltativo)", "Single calendar (optional)"))}</span>
-      <span class="ed-form-row"><input id="dm-rifiuti-calendario" class="ed-input mono" data-dm-rifiuti-calendario value="${esc(dato.calendario)}" placeholder="calendar.raccolta_rifiuti" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-dm-rifiuti-pick="dm-rifiuti-calendario" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span>
+    <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${esc(t("Calendario o sensore unico (facoltativo)", "Single calendar or sensor (optional)"))}</span>
+      <span class="ed-form-row"><input id="dm-rifiuti-calendario" class="ed-input mono" data-dm-rifiuti-calendario value="${esc(dato.calendario)}" placeholder="calendar.raccolta_rifiuti o sensor.prossimi_ritiri" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-dm-rifiuti-pick="dm-rifiuti-calendario" aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span>
       <small>${esc(
         t(
-          "Se i ritiri stanno in un calendario solo, la pagina mostra il prossimo evento col materiale indovinato dal suo nome.",
-          "If the collections live in a single calendar, the page shows the next event with the material guessed from its name.",
+          "Se i ritiri stanno in un posto solo, mettilo qui: un calendar.* con un evento per ritiro, oppure un sensor.* che porta l'elenco dei prossimi ritiri negli attributi. Ogni voce diventa una riga, col materiale indovinato dal nome.",
+          "If the collections live in one place, put it here: a calendar.* with one event per collection, or a sensor.* carrying the list of upcoming collections in its attributes. Each entry becomes a row, with the material guessed from its name.",
         ),
       )}</small></label>
     ${turnoMarkup(dato)}

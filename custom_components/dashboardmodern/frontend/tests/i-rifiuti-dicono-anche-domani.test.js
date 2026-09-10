@@ -59,11 +59,24 @@ test("senza niente domani, non c'è niente da dire", () => {
   assert.deepEqual(lettura.domani, []);
 });
 
-test("la pagina disegna domani, ma non lo ripete quando è già la risposta grande", async () => {
+test("la pagina dice il gesto della sera, e non ripete i bidoni già scritti grandi", async () => {
+  /* «Sarebbe più comodo penso per tutti che lo segnasse un giorno prima, in
+   *  modo da metterli fuori la sera» (#441). Il dato c'era e si disegnava; era
+   *  la parola a essere sbagliata. «Domani» è un'informazione, e chi legge deve
+   *  ancora fare da sé il passo che conta; «Da mettere fuori stasera» è il
+   *  gesto, e chi legge ha finito. */
   const sezione = await leggi("../src/sections/rifiuti-section.js");
-  assert.match(sezione, /function domaniMarkup\(lettura, primo\)/);
-  /* Quando il prossimo ritiro è già domani, la risposta grande lo dice:
-   * scriverlo di nuovo sotto sarebbe la stessa cosa due volte. */
-  assert.match(sezione, /if \(!domani\.length \|\| primo\?\.giorni === 1\) return "";/);
-  assert.match(sezione, /\$\{domaniMarkup\(lettura, primo\)\}/);
+  assert.match(sezione, /function seraMarkup\(lettura, primo\)/);
+  assert.match(sezione, /Da mettere fuori stasera/);
+  assert.doesNotMatch(sezione, /function domaniMarkup/);
+  /* Quando il prossimo ritiro è già domani i bidoni stanno grandi nella
+   * risposta sopra: sotto resta il gesto, non l'elenco una seconda volta. */
+  assert.match(sezione, /if \(primo\?\.giorni === 1\)/);
+  assert.match(sezione, /\$\{seraMarkup\(lettura, primo\)\}/);
+});
+
+test("anche la tessera della Home dice il gesto, non solo il giorno", async () => {
+  const home = await leggi("../src/sections/home-widgets-section.js");
+  assert.match(home, /primo\.quando === "domani"/);
+  assert.match(home, /Da mettere fuori stasera/);
 });
