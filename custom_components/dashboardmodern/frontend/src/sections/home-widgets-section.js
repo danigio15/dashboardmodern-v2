@@ -944,6 +944,14 @@ function rigaClima(states, unit) {
     modi: elenco(attributi.hvac_modes),
     ventole: elenco(attributi.fan_modes),
     ventola: clean(attributi.fan_mode),
+    /* Le alette (#475): «oltre la modalita temperature etc... poter
+     * visualizzare le modalita delle alette». Home Assistant le pubblica
+     * accanto alle ventole e con la stessa forma — un elenco e quella scelta —
+     * quindi qui non c'e' nessun motore nuovo: c'e' una riga in piu' che porta
+     * dentro quello che l'unita' dichiara gia'. Un condizionatore che le
+     * alette non le muove non dichiara niente, e la riga non compare. */
+    alette: elenco(attributi.swing_modes),
+    aletta: clean(attributi.swing_mode),
     /* Fin dove il pannello lascia andare l'obiettivo: la scala e' quella che
      * l'unita' dichiara, e la regola sta nel nucleo insieme a quella della
      * pagina Clima — erano due copie della stessa cosa, e una delle due si
@@ -5328,6 +5336,20 @@ function climatePanel(row, solo = false) {
           .join("")}</div>
       </div>`
     : "";
+  const aletteMarkup = row.alette?.length
+    ? `<div class="dm-w-panel-row">
+        <span class="dm-w-panel-lbl">${esc(t("Alette", "Swing"))}</span>
+        <div class="dm-w-chips">${row.alette
+          .map(
+            (voce) =>
+              `<button type="button" class="dm-w-chip" data-dm-w-swing="${esc(voce)}"
+                 data-dm-w-target="${esc(row.entity)}" data-on="${voce === row.aletta}">${esc(
+                   voce,
+                 )}</button>`,
+          )
+          .join("")}</div>
+      </div>`
+    : "";
   const azione = NOMI_AZIONE()[row.azione] || "";
   const noteMarkup =
     azione || row.umidita != null
@@ -5339,7 +5361,7 @@ function climatePanel(row, solo = false) {
           .map(esc)
           .join(" · ")}</p>`
       : "";
-  const dentro = `${modiMarkup}${temperaturaMarkup}${ventoleMarkup}${noteMarkup}`;
+  const dentro = `${modiMarkup}${temperaturaMarkup}${ventoleMarkup}${aletteMarkup}${noteMarkup}`;
   if (!dentro) return "";
   if (solo)
     return `<div class="dm-w-panel dm-w-panel-solo" data-dm-w-panel="${esc(row.entity)}">${dentro}</div>`;
@@ -7626,6 +7648,16 @@ function onClick(event) {
     callHa("climate", "set_fan_mode", {
       entity_id: clean(ventola.dataset.dmWTarget),
       fan_mode: clean(ventola.dataset.dmWFan),
+    });
+    root.setTimeout?.(schedule, 500);
+    return;
+  }
+  const aletta = event.target?.closest?.("[data-dm-w-swing]");
+  if (aletta) {
+    event.preventDefault();
+    callHa("climate", "set_swing_mode", {
+      entity_id: clean(aletta.dataset.dmWTarget),
+      swing_mode: clean(aletta.dataset.dmWSwing),
     });
     root.setTimeout?.(schedule, 500);
     return;

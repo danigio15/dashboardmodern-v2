@@ -209,11 +209,19 @@ function insegnaLaVisibilita() {
 function gruppoMarkup(gruppo, states) {
   const viste = gruppo.prese.map((presa) => vistaDi(presa, states));
   const riepilogo = lightSummary(viste);
+  /* Le card dentro la griglia delle Luci, che le mette in colonne (#474).
+   *
+   * «Sarebbe piu bella come la sezione luci (sul desktop).» E infatti: la
+   * regola della griglia esiste da sempre e nomina anche questa pagina, ma qui
+   * le card uscivano nude sotto il titolo della stanza — senza il contenitore
+   * la regola non aveva su cosa applicarsi, e su un monitor restavano una per
+   * riga mentre le luci accanto stavano su tre colonne. La stessa plancia con
+   * due layout diversi per la stessa cosa. */
   return `<div class="dm-lucip-room" data-dm-prese-group="${esc(gruppo.room)}" role="heading" aria-level="3">
-      <span>${esc(gruppo.room)}</span>
+      <span class="dm-lucip-room-name">${esc(gruppo.room)}</span>
       <span class="dm-lucip-room-count">${pageSummaryMarkup(riepilogo)}</span>
     </div>
-    ${viste.map((vista) => pageCardMarkup(vista)).join("")}`;
+    <div class="dm-lucip-grid">${viste.map((vista) => pageCardMarkup(vista)).join("")}</div>`;
 }
 
 function vuotoMarkup() {

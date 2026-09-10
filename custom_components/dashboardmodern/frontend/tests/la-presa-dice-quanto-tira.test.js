@@ -30,7 +30,10 @@ test("il wattmetro sta sulla presa, comunque fosse scritto", () => {
     normalizzaPrese([{ entity: "switch.a", power_entity: "sensor.a_w" }])[0].power,
     "sensor.a_w",
   );
-  assert.equal(normalizzaPrese([{ entity: "switch.b", consumo: "sensor.b_w" }])[0].power, "sensor.b_w");
+  assert.equal(
+    normalizzaPrese([{ entity: "switch.b", consumo: "sensor.b_w" }])[0].power,
+    "sensor.b_w",
+  );
   /* Chi non ce l'ha non ha una casella a metà: ha una casella vuota. */
   assert.equal(normalizzaPrese([{ entity: "switch.c" }])[0].power, "");
 });
@@ -86,7 +89,10 @@ test("la card scrive i watt accanto allo stato, e solo se ci sono", async () => 
 
 test("i watt entrano nella firma, o la card resterebbe ferma sul primo numero", async () => {
   const sorgente = await leggi("../src/sections/prese-section.js");
-  const dentro = sorgente.slice(sorgente.indexOf("function firma("), sorgente.indexOf("function dipingi("));
+  const dentro = sorgente.slice(
+    sorgente.indexOf("function firma("),
+    sorgente.indexOf("function dipingi("),
+  );
   assert.match(dentro, /consumoDellaPresa\(presa, states\)/);
 });
 
@@ -99,4 +105,26 @@ test("la casella sta nella scheda, e si salva", async () => {
   /* Il selettore delle entità, come per l'interruttore: scrivere a mano un
    * entity_id è il modo più veloce di sbagliarlo. */
   assert.match(sorgente, /data-presa-power-pick/);
+});
+
+test("le prese stanno in griglia come le luci, non una per riga (#474)", async () => {
+  /* «Sarebbe piu bella come la sezione luci (sul desktop).»
+   *
+   * La regola della griglia esiste da sempre e nomina anche la pagina delle
+   * prese — ma le card uscivano nude sotto il titolo della stanza, e senza il
+   * contenitore la regola non aveva su cosa applicarsi: su un monitor le prese
+   * restavano una per riga mentre le luci accanto stavano su tre colonne. */
+  const prese = await readFile(
+    new URL("../src/sections/prese-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.ok(
+    prese.includes('<div class="dm-lucip-grid">'),
+    "le card delle prese non stanno nella griglia delle luci",
+  );
+  const luci = await readFile(
+    new URL("../src/sections/lights-page-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.ok(luci.includes('<div class="dm-lucip-grid">'), "la griglia delle luci e' cambiata nome");
 });

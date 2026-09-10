@@ -48,6 +48,7 @@ import {
   t,
   wrapFunction,
 } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_APPLIANCE_SHOWCASE__";
 const STYLE_ID = "dm-appliance-showcase-style";
@@ -406,9 +407,26 @@ function ringMarkup(model, labels) {
  * il ciclo, a che gradi, a quanti giri, che programma — e c'e' solo per chi
  * ha un'integrazione che lo pubblica: su una presa smart la striscia non
  * esiste e la card resta quella di prima. */
+/* La porta aperta, quando qualcuno l'ha dichiarata (#471).
+ *
+ * «Potresti aggiungere un entità al frigorifero di apertura chiusura porta?»
+ *
+ * Si dice solo quando e' APERTA: una porta chiusa e' la normalita', e una
+ * pastiglia che dice «chiusa» su ogni frigo di casa e' rumore. Non e' un
+ * allarme rosso — un frigo aperto per prendere il latte non e' un guasto — ma
+ * e' la cosa che uno vuole sapere di sfuggita, e sta col resto dei fatti. */
+function portaMarkup(model) {
+  if (model?.door !== true) return "";
+  return `<span class="dm-ap-fact dm-ap-porta" data-fact="porta"><i aria-hidden="true">${disegnoDelCatalogo(
+    "door",
+    18,
+  )}</i>${esc(t("Porta aperta", "Door open"))}</span>`;
+}
+
 function programMarkup(model) {
   const program = model.program;
-  if (!program?.phase && !program?.chips?.length) return "";
+  const porta = portaMarkup(model);
+  if (!program?.phase && !program?.chips?.length) return porta ? `<div class="dm-ap-program">${porta}</div>` : "";
   const fase = program.phase
     ? `<span class="dm-ap-phase"><i aria-hidden="true">${program.phase.glifo}</i>${esc(program.phase.label)}</span>`
     : "";
@@ -418,7 +436,7 @@ function programMarkup(model) {
         `<span class="dm-ap-fact" data-fact="${esc(chip.key)}"><i aria-hidden="true">${chip.glifo}</i>${esc(chip.label)}</span>`,
     )
     .join("");
-  return `<div class="dm-ap-program">${fase}${chips}</div>`;
+  return `<div class="dm-ap-program">${fase}${porta}${chips}</div>`;
 }
 
 function panelMarkup(model, labels) {
@@ -1440,6 +1458,12 @@ function showcaseCss() {
 .dm-appl-shell .dm-ap-fact{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--dm-border);background:var(--dm-soft);color:var(--dm-dim)}
 .dm-appl-shell .dm-ap-fact i{font-style:normal;font-size:11px;line-height:1}
 .dm-appl-shell .dm-ap-fact[data-fact="programma"]{min-width:0;max-width:100%}
+/* La porta aperta si vede fra i fatti: ambra, non rossa — non e' un guasto,
+   e' una cosa da chiudere (#471). */
+.dm-appl-shell .dm-ap-fact[data-fact="porta"]{
+  border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.14);color:#b45309}
+.dm-appl-shell .dm-ap-fact[data-fact="porta"] i{display:inline-grid;place-items:center;width:18px;height:18px}
+.dm-appl-shell .dm-ap-fact[data-fact="porta"] .dm-appliance-art{display:block;line-height:0}
 @media(max-width:520px){.dm-appl-shell .dm-ap-program{margin:8px 10px 0;gap:5px}.dm-appl-shell .dm-ap-fact{font-size:10.5px;padding:3px 8px}}
 /* list view */
 .dm-appl-shell[data-view="list"] #appl-grid-overview.dm-appl-grid,.dm-appl-shell[data-view="list"] .dm-appl-grid{grid-template-columns:1fr;gap:10px}

@@ -1140,8 +1140,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // stampante, e quali entita' sono le sue cartucce), e le due sezioni le
   // vestono. Il modello e' puro apposta: le cartucce si cercano da sole, e un
   // indovinello si prova solo se lo si puo' chiamare senza un documento.
+  // 324 con l'azione accesa (#477): «color the active Quick Action cards when
+  // they are active». `core/azione-accesa.js` risponde a una domanda sola —
+  // questa azione e' accesa? — e la risposta ha tre esiti, non due: acceso,
+  // spento, e «uno stato non ce l'ha». Una scena non e' mai accesa, e una luce
+  // che non risponde non e' spenta: sono i due modi di dire una cosa falsa
+  // colorando un tasto, e stanno scritti dove si possono provare senza un
+  // documento.
   assert.ok(
-    relative.length <= 323,
+    relative.length <= 324,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

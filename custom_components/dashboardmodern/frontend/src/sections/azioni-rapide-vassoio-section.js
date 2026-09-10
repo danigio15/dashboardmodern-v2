@@ -17,7 +17,9 @@
  * andare a cercarla la'. Le misure del simbolo restano dove stanno — le
  * governa il motore delle icone — e qui non si toccano.
  */
+import { azioneAccesa, entitaDelleAzioni } from "../core/azione-accesa.js";
 import {
+  allStates,
   doc,
   installStyle,
   paginaVisibile,
@@ -85,6 +87,26 @@ html body #page-home .dm-vassoio #qa-grid .qa-btn{
   box-shadow:inset 0 1px 0 var(--dm-vetrino-vassoio,rgba(255,255,255,.75)),
              0 8px 18px -14px rgba(15,23,42,.85)!important;
   transition:transform .13s ease,background .13s ease}
+/* Il tasto acceso si vede (#477).
+   «Color the active Quick Action cards when they are active»: meta' delle
+   azioni che uno ci mette non sono gesti, sono interruttori — la luce del
+   salone, la presa del ripetitore — e un interruttore che non dice se e'
+   acceso obbliga ad andare a vedere da un'altra parte.
+   Il colore e' quello che l'azione ha gia', tenuto basso: il tasto resta un
+   tasto e non diventa una tessera, ma da spento a acceso si vede al primo
+   sguardo. Chi uno stato non ce l'ha — una scena — resta com'era. */
+html body #page-home .dm-vassoio #qa-grid .qa-btn[data-dm-acceso="true"]{
+  border-color:color-mix(in srgb,var(--dm-azione-tinta,var(--accent,#0ea5e9)) 52%,transparent)!important;
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--dm-azione-tinta,var(--accent,#0ea5e9)) 20%,var(--card-background-color,var(--card-bg,#fff))),
+    color-mix(in srgb,var(--dm-azione-tinta,var(--accent,#0ea5e9)) 11%,var(--card-background-color,var(--card-bg,#fff))))!important;
+  box-shadow:inset 0 1px 0 var(--dm-vetrino-vassoio,rgba(255,255,255,.75)),
+             0 10px 22px -14px var(--dm-azione-tinta,var(--accent,#0ea5e9))!important}
+/* Il disco del simbolo, acceso, smette di essere smorzato dall'ombra. */
+html body #page-home .dm-vassoio #qa-grid .qa-btn[data-dm-acceso="true"] .icon{
+  box-shadow:0 15px 26px -14px var(--dm-azione-tinta,var(--accent,#0ea5e9)),
+             inset 0 1px 0 rgba(255,255,255,.62)!important}
+
 @media(hover:hover){
   html body #page-home .dm-vassoio #qa-grid .qa-btn:hover{transform:translateY(-2px)}
 }
@@ -154,13 +176,43 @@ function avvolgi() {
 }
 
 /* Ogni tasto porta la propria tinta: il disco la usa per lo smalto e per
- * l'onda. La tinta e' quella che la plancia scrive gia' sul simbolo. */
+ * l'onda. La tinta e' quella che la plancia scrive gia' sul simbolo.
+ *
+ * E porta anche il suo stato (#477): il tasto di un interruttore acceso si
+ * colora, quello di una scena no — una scena accesa non esiste. Le azioni le
+ * chiede al guscio, che e' l'unico che sa quali sono e in che ordine: leggerle
+ * per conto proprio vorrebbe dire tenere un secondo elenco che un giorno
+ * diverge dal primo. */
+function azioniDelGuscio() {
+  try {
+    const elenco = root.getQuickActions?.();
+    return Array.isArray(elenco) ? elenco : [];
+  } catch (_errore) {
+    return [];
+  }
+}
+
 function tingi() {
-  for (const tasto of doc?.querySelectorAll?.("#page-home .dm-vassoio .qa-btn") || []) {
+  const azioni = azioniDelGuscio();
+  const states = allStates();
+  const tasti = doc?.querySelectorAll?.("#page-home .dm-vassoio .qa-btn") || [];
+  let indice = 0;
+  for (const tasto of tasti) {
     const simbolo = tasto.querySelector(".icon");
     const tinta = simbolo?.style?.color;
     if (tinta) tasto.style.setProperty("--dm-azione-tinta", tinta);
+    /* I tasti stanno nell'ordine delle azioni: e' il guscio a scriverli, uno
+     * per voce, e lo stesso indice che il suo `onclick` porta dentro. */
+    const acceso = azioneAccesa(azioni[indice], states);
+    if (acceso === true) tasto.dataset.dmAcceso = "true";
+    else delete tasto.dataset.dmAcceso;
+    indice += 1;
   }
+}
+
+/** Le entita' che i tasti guardano: serve alle prove e a chi ascolta gli stati. */
+export function entitaDeiTasti() {
+  return entitaDelleAzioni(azioniDelGuscio());
 }
 
 function onda(evento) {
